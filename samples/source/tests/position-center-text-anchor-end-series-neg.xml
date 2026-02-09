@@ -1,0 +1,61 @@
+<title>Position Center Text Anchor End Series Neg</title>
+
+<chart>
+<options>
+chart: {
+          type: 'bar',
+          height: 380,
+        },
+        plotOptions: {
+          bar: {
+            horizontal: true,
+            dataLabels: {
+              position: 'center',
+            },
+          },
+        },
+
+        dataLabels: {
+          enabled: true,
+          textAnchor: 'end',
+          style: {
+            colors: ['#333'],
+          },
+          formatter: function (val, opt) {
+            return opt.w.globals.labels[opt.dataPointIndex] + ':  ' + val
+          },
+        },
+        fill: {
+          opacity: 0.5,
+        },
+        xaxis: {
+          categories: [
+            'South Korea',
+            'Canada',
+            'United Kingdom',
+            'Netherlands',
+            'Italy',
+            'France',
+            'Japan',
+            'United States',
+            'China',
+            'India',
+          ],
+        },
+        yaxis: {
+          labels: {
+            show: false,
+          },
+        }
+</options>
+
+<series>
+[
+          {
+            data: [400, 430, 1, 470, 540, 580, 690, 1100, 1200, 1380].map(
+              (_) => _ * -1
+            ),
+          },
+        ]
+</series>
+</chart>

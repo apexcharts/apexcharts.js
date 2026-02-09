@@ -9,19 +9,23 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      #chart {
-        padding: 0;
-        max-width: 450px;
-        margin: 35px auto;
-      }
+      
+        #chart {
+      padding: 0;
+      max-width: 450px;
+      margin: 35px auto;
+    }
+      
     </style>
 
+    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -32,93 +36,97 @@
         return (_seed - 1) / 2147483646
       }
     </script>
+
+    
   </head>
 
   <body>
+    
     <div id="app"></div>
 
-    <div id="html">
-      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
-      options={state.options} series={state.series} type=&quot;radialBar&quot;
-      /&gt; &lt;/div&gt;
-    </div>
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;radialBar&quot; /&gt;
+&lt;/div&gt;</div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          series: [76],
-          options: {
-            chart: {
-              type: 'radialBar',
-              offsetY: -20,
-              sparkline: {
-                enabled: true,
+          
+            series: [76],
+            options: {
+              chart: {
+                type: 'radialBar',
+                offsetY: -20,
+                sparkline: {
+                  enabled: true
+                }
               },
-            },
-            plotOptions: {
-              radialBar: {
-                startAngle: -90,
-                endAngle: 90,
-                track: {
-                  background: '#e7e7e7',
-                  strokeWidth: '97%',
-                  margin: 5, // margin is in pixels
-                  dropShadow: {
-                    enabled: true,
-                    top: 2,
-                    left: 0,
-                    color: '#444',
-                    opacity: 1,
-                    blur: 2,
+              plotOptions: {
+                radialBar: {
+                  startAngle: -90,
+                  endAngle: 90,
+                  track: {
+                    background: "#e7e7e7",
+                    strokeWidth: '97%',
+                    margin: 5, // margin is in pixels
+                    dropShadow: {
+                      enabled: true,
+                      top: 2,
+                      left: 0,
+                      color: '#444',
+                      opacity: 1,
+                      blur: 2
+                    }
                   },
+                  dataLabels: {
+                    name: {
+                      show: false
+                    },
+                    value: {
+                      offsetY: -2,
+                      fontSize: '22px'
+                    }
+                  }
+                }
+              },
+              grid: {
+                padding: {
+                  top: -10
+                }
+              },
+              fill: {
+                type: 'gradient',
+                gradient: {
+                  shade: 'light',
+                  shadeIntensity: 0.4,
+                  inverseColors: false,
+                  opacityFrom: 1,
+                  opacityTo: 1,
+                  stops: [0, 50, 53, 91]
                 },
-                dataLabels: {
-                  name: {
-                    show: false,
-                  },
-                  value: {
-                    offsetY: -2,
-                    fontSize: '22px',
-                  },
-                },
               },
+              labels: ['Average Results'],
             },
-            grid: {
-              padding: {
-                top: -10,
-              },
-            },
-            fill: {
-              type: 'gradient',
-              gradient: {
-                shade: 'light',
-                shadeIntensity: 0.4,
-                inverseColors: false,
-                opacityFrom: 1,
-                opacityTo: 1,
-                stops: [0, 50, 53, 91],
-              },
-            },
-            labels: ['Average Results'],
-          },
-        })
+          
+          
+        });
+
+        
 
         return (
           <div>
             <div id="chart">
-              <ReactApexChart
-                options={state.options}
-                series={state.series}
-                type="radialBar"
-              />
-            </div>
+                <ReactApexChart options={state.options} series={state.series} type="radialBar" />
+              </div>
             <div id="html-dist"></div>
           </div>
-        )
+        );
       }
 
-      const domContainer = document.querySelector('#app')
-      ReactDOM.render(<ApexChart />, domContainer)
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
     </script>
+
+    
   </body>
 </html>

@@ -9,19 +9,23 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      #chart {
-        padding: 0;
-        max-width: 380px;
-        margin: 35px auto;
-      }
+      
+        #chart {
+      padding: 0;
+      max-width: 380px;
+      margin: 35px auto;
+    }
+      
     </style>
 
+    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -32,77 +36,80 @@
         return (_seed - 1) / 2147483646
       }
     </script>
+
+    
   </head>
 
   <body>
+    
     <div id="app"></div>
 
-    <div id="html">
-      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
-      options={state.options} series={state.series} type=&quot;polarArea&quot;
-      width={380} /&gt; &lt;/div&gt;
-    </div>
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;polarArea&quot; width={380} /&gt;
+&lt;/div&gt;</div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          series: [42, 47, 52, 58, 65],
-          options: {
-            chart: {
-              width: 380,
-              type: 'polarArea',
-            },
-            labels: ['Rose A', 'Rose B', 'Rose C', 'Rose D', 'Rose E'],
-            fill: {
-              opacity: 1,
-            },
-            stroke: {
-              width: 1,
-              colors: undefined,
-            },
-            yaxis: {
-              show: false,
-            },
-            legend: {
-              position: 'bottom',
-            },
-            plotOptions: {
-              polarArea: {
-                rings: {
-                  strokeWidth: 0,
-                },
-                spokes: {
-                  strokeWidth: 0,
-                },
+          
+            series: [42, 47, 52, 58, 65],
+            options: {
+              chart: {
+                width: 380,
+                type: 'polarArea'
               },
-            },
-            theme: {
-              monochrome: {
-                enabled: true,
-                shadeTo: 'light',
-                shadeIntensity: 0.6,
+              labels: ['Rose A', 'Rose B', 'Rose C', 'Rose D', 'Rose E'],
+              fill: {
+                opacity: 1
               },
+              stroke: {
+                width: 1,
+                colors: undefined
+              },
+              yaxis: {
+                show: false
+              },
+              legend: {
+                position: 'bottom'
+              },
+              plotOptions: {
+                polarArea: {
+                  rings: {
+                    strokeWidth: 0
+                  },
+                  spokes: {
+                    strokeWidth: 0
+                  },
+                }
+              },
+              theme: {
+                monochrome: {
+                  enabled: true,
+                  shadeTo: 'light',
+                  shadeIntensity: 0.6
+                }
+              }
             },
-          },
-        })
+          
+          
+        });
+
+        
 
         return (
           <div>
             <div id="chart">
-              <ReactApexChart
-                options={state.options}
-                series={state.series}
-                type="polarArea"
-                width={380}
-              />
-            </div>
+                <ReactApexChart options={state.options} series={state.series} type="polarArea" width={380} />
+              </div>
             <div id="html-dist"></div>
           </div>
-        )
+        );
       }
 
-      const domContainer = document.querySelector('#app')
-      ReactDOM.render(<ApexChart />, domContainer)
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
     </script>
+
+    
   </body>
 </html>

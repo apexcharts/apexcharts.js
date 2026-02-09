@@ -9,18 +9,22 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      #chart {
-        max-width: 650px;
-        margin: 35px auto;
-      }
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
     </style>
 
+    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -36,38 +40,34 @@
   </head>
 
   <body>
+    
     <div id="app"></div>
 
-    <div id="html">
-      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
-      options={state.options} series={state.series} type=&quot;line&quot; /&gt;
-      &lt;/div&gt;
-    </div>
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;line&quot; /&gt;
+&lt;/div&gt;</div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          series: [
-            {
-              type: 'bar',
-              data: series.monthDataSeries2.prices,
-            },
-            {
-              type: 'line',
-              data: series.monthDataSeries1.prices,
-            },
-          ],
-          options: {
-            chart: {
-              type: 'line',
-              id: 'chart',
-              sparkline: {
-                //  enabled: true
+          
+            series: [{
+                type: 'bar',
+                data: series.monthDataSeries2.prices
+            }, {
+                type: 'line',
+                data: series.monthDataSeries1.prices
+            }],
+            options: {
+              chart: {
+                type: 'line',
+                id: 'chart',
+                sparkline: {
+                  //  enabled: true
+                }
               },
-            },
-            annotations: {
-              yaxis: [
-                {
+              annotations: {
+                yaxis: [{
                   y: 8200,
                   borderColor: '#FEB019',
                   label: {
@@ -78,11 +78,9 @@
                       background: '#FEB019',
                     },
                     text: 'Y-axis annotation',
-                  },
-                },
-              ],
-              xaxis: [
-                {
+                  }
+                }],
+                xaxis: [{
                   x: new Date('23 Nov 2017').getTime(),
                   borderColor: '#00E396',
                   label: {
@@ -94,11 +92,9 @@
                     },
                     offsetY: -10,
                     text: 'Vertical',
-                  },
-                },
-              ],
-              points: [
-                {
+                  }
+                }],
+                points: [{
                   x: new Date('01 Dec 2017').getTime(),
                   y: 9025,
                   label: {
@@ -110,38 +106,40 @@
                       background: '#FF4560',
                     },
                     text: 'All time high',
-                  },
-                },
-              ],
-            },
-            plotOptions: {
-              bar: {
-                columnWidth: '50%',
+                  }
+                }]
               },
+              plotOptions: {
+                bar: {
+                  columnWidth: '50%'
+                }
+              },
+              markers: {
+                size: 0
+              },
+              dataLabels: {
+                enabled: false
+              },
+              stroke: {
+                curve: 'straight'
+              },
+              legend: {
+                show: false,
+              },
+              labels: series.monthDataSeries1.dates,
+              yaxis: {
+                min: 8000
+              },
+              xaxis: {
+                type: 'datetime',
+              }
             },
-            markers: {
-              size: 0,
-            },
-            dataLabels: {
-              enabled: false,
-            },
-            stroke: {
-              curve: 'straight',
-            },
-            legend: {
-              show: false,
-            },
-            labels: series.monthDataSeries1.dates,
-            yaxis: {
-              min: 8000,
-            },
-            xaxis: {
-              type: 'datetime',
-            },
-          },
-        })
+          
+          
+        });
 
-        React.useEffect(() => {
+        
+          React.useEffect(() => {
           ApexCharts.exec('chart', 'addYaxisAnnotation', {
             id: 'yaxis-anno',
             y: 9000,
@@ -154,9 +152,9 @@
                 background: '#FEB019',
               },
               text: 'Y-axis - runtime',
-            },
-          })
-
+            }
+          });
+        
           ApexCharts.exec('chart', 'addXaxisAnnotation', {
             id: 'xaxis-anno',
             x: new Date('25 Nov 2017').getTime(),
@@ -171,9 +169,9 @@
               },
               offsetY: -10,
               text: 'xaxis - runtime',
-            },
-          })
-
+            }
+          });
+        
           ApexCharts.exec('chart', 'addPointAnnotation', {
             id: 'point-anno',
             x: new Date('17 Nov 2017').getTime(),
@@ -187,28 +185,27 @@
                 background: '#FF4560',
               },
               text: 'Point - runtime',
-            },
-          })
-
-          ApexCharts.exec('chart', 'removeAnnotation', 'point-anno')
+            }
+          });
+        
+          ApexCharts.exec('chart', 'removeAnnotation', 'point-anno');
         }, [])
+        
 
         return (
           <div>
             <div id="chart">
-              <ReactApexChart
-                options={state.options}
-                series={state.series}
-                type="line"
-              />
-            </div>
+                <ReactApexChart options={state.options} series={state.series} type="line" />
+              </div>
             <div id="html-dist"></div>
           </div>
-        )
+        );
       }
 
-      const domContainer = document.querySelector('#app')
-      ReactDOM.render(<ApexChart />, domContainer)
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
     </script>
+
+    
   </body>
 </html>

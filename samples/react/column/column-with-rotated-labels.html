@@ -9,18 +9,22 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      #chart {
-        max-width: 650px;
-        margin: 35px auto;
-      }
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
     </style>
 
+    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -31,30 +35,29 @@
         return (_seed - 1) / 2147483646
       }
     </script>
+
+    
   </head>
 
   <body>
+    
     <div id="app"></div>
 
-    <div id="html">
-      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
-      options={state.options} series={state.series} type=&quot;bar&quot;
-      height={350} /&gt; &lt;/div&gt;
-    </div>
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={350} /&gt;
+&lt;/div&gt;</div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          series: [
-            {
+          
+            series: [{
               name: 'Servings',
-              data: [44, 55, 41, 67, 22, 43, 21, 33, 45, 31, 87, 65, 35],
-            },
-          ],
-          options: {
-            annotations: {
-              points: [
-                {
+              data: [44, 55, 41, 67, 22, 43, 21, 33, 45, 31, 87, 65, 35]
+            }],
+            options: {
+              annotations: {
+                points: [{
                   x: 'Bananas',
                   seriesIndex: 0,
                   label: {
@@ -65,90 +68,78 @@
                       background: '#775DD0',
                     },
                     text: 'Bananas are good',
-                  },
+                  }
+                }]
+              },
+              chart: {
+                height: 350,
+                type: 'bar',
+              },
+              plotOptions: {
+                bar: {
+                  borderRadius: 10,
+                  columnWidth: '50%',
+                }
+              },
+              dataLabels: {
+                enabled: false
+              },
+              stroke: {
+                width: 0
+              },
+              grid: {
+                row: {
+                  colors: ['#fff', '#f2f2f2']
+                }
+              },
+              xaxis: {
+                labels: {
+                  rotate: -45
                 },
-              ],
-            },
-            chart: {
-              height: 350,
-              type: 'bar',
-            },
-            plotOptions: {
-              bar: {
-                borderRadius: 10,
-                columnWidth: '50%',
+                categories: ['Apples', 'Oranges', 'Strawberries', 'Pineapples', 'Mangoes', 'Bananas',
+                  'Blackberries', 'Pears', 'Watermelons', 'Cherries', 'Pomegranates', 'Tangerines', 'Papayas'
+                ],
+                tickPlacement: 'on'
               },
-            },
-            dataLabels: {
-              enabled: false,
-            },
-            stroke: {
-              width: 0,
-            },
-            grid: {
-              row: {
-                colors: ['#fff', '#f2f2f2'],
+              yaxis: {
+                title: {
+                  text: 'Servings',
+                },
               },
+              fill: {
+                type: 'gradient',
+                gradient: {
+                  shade: 'light',
+                  type: "horizontal",
+                  shadeIntensity: 0.25,
+                  gradientToColors: undefined,
+                  inverseColors: true,
+                  opacityFrom: 0.85,
+                  opacityTo: 0.85,
+                  stops: [50, 0, 100]
+                },
+              }
             },
-            xaxis: {
-              labels: {
-                rotate: -45,
-              },
-              categories: [
-                'Apples',
-                'Oranges',
-                'Strawberries',
-                'Pineapples',
-                'Mangoes',
-                'Bananas',
-                'Blackberries',
-                'Pears',
-                'Watermelons',
-                'Cherries',
-                'Pomegranates',
-                'Tangerines',
-                'Papayas',
-              ],
-              tickPlacement: 'on',
-            },
-            yaxis: {
-              title: {
-                text: 'Servings',
-              },
-            },
-            fill: {
-              type: 'gradient',
-              gradient: {
-                shade: 'light',
-                type: 'horizontal',
-                shadeIntensity: 0.25,
-                gradientToColors: undefined,
-                inverseColors: true,
-                opacityFrom: 0.85,
-                opacityTo: 0.85,
-                stops: [50, 0, 100],
-              },
-            },
-          },
-        })
+          
+          
+        });
+
+        
 
         return (
           <div>
             <div id="chart">
-              <ReactApexChart
-                options={state.options}
-                series={state.series}
-                type="bar"
-                height={350}
-              />
-            </div>
+                <ReactApexChart options={state.options} series={state.series} type="bar" height={350} />
+              </div>
             <div id="html-dist"></div>
           </div>
-        )
+        );
       }
 
-      const domContainer = document.querySelector('#app')
-      ReactDOM.render(<ApexChart />, domContainer)
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
     </script>
+
+    
   </body>
 </html>

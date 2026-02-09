@@ -9,18 +9,22 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      #chart {
-        max-width: 650px;
-        margin: 35px auto;
-      }
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
     </style>
 
+    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -31,121 +35,115 @@
         return (_seed - 1) / 2147483646
       }
     </script>
+
+    
   </head>
 
   <body>
+    
     <div id="app"></div>
 
-    <div id="html">
-      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
-      options={state.options} series={state.series} type=&quot;bar&quot;
-      height={350} /&gt; &lt;/div&gt;
-    </div>
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={350} /&gt;
+&lt;/div&gt;</div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          series: [
-            {
+          
+            series: [{
               name: 'Marine Sprite',
-              data: [44, 55, 41, 37, 22, 43, 21],
-            },
-            {
+              data: [44, 55, 41, 37, 22, 43, 21]
+            }, {
               name: 'Striking Calf',
-              data: [53, 32, 33, 52, 13, 43, 32],
-            },
-            {
+              data: [53, 32, 33, 52, 13, 43, 32]
+            }, {
               name: 'Tank Picture',
-              data: [12, 17, 11, 9, 15, 11, 20],
-            },
-            {
+              data: [12, 17, 11, 9, 15, 11, 20]
+            }, {
               name: 'Bucket Slope',
-              data: [9, 7, 5, 8, 6, 9, 4],
-            },
-          ],
-          options: {
-            chart: {
-              type: 'bar',
-              height: 350,
-              stacked: true,
-              dropShadow: {
-                enabled: true,
-                blur: 1,
-                opacity: 0.5,
+              data: [9, 7, 5, 8, 6, 9, 4]
+            }],
+            options: {
+              chart: {
+                type: 'bar',
+                height: 350,
+                stacked: true,
+                dropShadow: {
+                  enabled: true,
+                  blur: 1,
+                  opacity: 0.5
+                }
               },
-            },
-            plotOptions: {
-              bar: {
-                horizontal: true,
-                barHeight: '60%',
-              },
-            },
-            dataLabels: {
-              enabled: false,
-            },
-            stroke: {
-              width: 2,
-            },
-            title: {
-              text: 'Compare Sales Strategy',
-            },
-            xaxis: {
-              categories: [2008, 2009, 2010, 2011, 2012, 2013, 2014],
-            },
-            yaxis: {
-              title: {
-                text: undefined,
-              },
-            },
-            tooltip: {
-              shared: false,
-              y: {
-                formatter: function (val) {
-                  return val + 'K'
+              plotOptions: {
+                bar: {
+                  horizontal: true,
+                  barHeight: '60%',
                 },
               },
-            },
-            fill: {
-              type: 'pattern',
-              opacity: 1,
-              pattern: {
-                style: [
-                  'circles',
-                  'slantedLines',
-                  'verticalLines',
-                  'horizontalLines',
-                ], // string or array of strings
+              dataLabels: {
+                enabled: false
               },
-            },
-            states: {
-              hover: {
-                filter: 'none',
+              stroke: {
+                width: 2,
               },
+              title: {
+                text: 'Compare Sales Strategy'
+              },
+              xaxis: {
+                categories: [2008, 2009, 2010, 2011, 2012, 2013, 2014],
+              },
+              yaxis: {
+                title: {
+                  text: undefined
+                },
+              },
+              tooltip: {
+                shared: false,
+                y: {
+                  formatter: function (val) {
+                    return val + "K"
+                  }
+                }
+              },
+              fill: {
+                type: 'pattern',
+                opacity: 1,
+                pattern: {
+                  style: ['circles', 'slantedLines', 'verticalLines', 'horizontalLines'], // string or array of strings
+              
+                }
+              },
+              states: {
+                hover: {
+                  filter: 'none'
+                }
+              },
+              legend: {
+                position: 'right',
+                offsetY: 40
+              }
             },
-            legend: {
-              position: 'right',
-              offsetY: 40,
-            },
-          },
-        })
+          
+          
+        });
+
+        
 
         return (
           <div>
             <div id="chart">
-              <ReactApexChart
-                options={state.options}
-                series={state.series}
-                type="bar"
-                height={350}
-              />
-            </div>
+                <ReactApexChart options={state.options} series={state.series} type="bar" height={350} />
+              </div>
             <div id="html-dist"></div>
           </div>
-        )
+        );
       }
 
-      const domContainer = document.querySelector('#app')
-      ReactDOM.render(<ApexChart />, domContainer)
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
     </script>
+
+    
   </body>
 </html>

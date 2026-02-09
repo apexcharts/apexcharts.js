@@ -9,22 +9,26 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      #chart {
-        max-width: 650px;
-        margin: 35px auto;
-      }
-
-      #apexcharts-canvas {
-        margin: 0 auto;
-      }
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+    
+    #apexcharts-canvas {
+      margin: 0 auto;
+    }
+      
     </style>
 
+    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -35,104 +39,105 @@
         return (_seed - 1) / 2147483646
       }
     </script>
+
+    
   </head>
 
   <body>
+    
     <div id="app"></div>
 
-    <div id="html">
-      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
-      options={state.options} series={state.series} type=&quot;bar&quot;
-      height={410} /&gt; &lt;/div&gt;
-    </div>
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={410} /&gt;
+&lt;/div&gt;</div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          series: [
-            {
+          
+            series: [{
               name: 'coins',
-              data: [
-                2, 4, 3, 4, 3, 5, 5, 6.5, 6, 5, 4, 5, 8, 7, 7, 8, 8, 10, 9, 9,
-                12, 12, 11, 12, 13, 14, 16, 14, 15, 17, 19, 21,
-              ],
-            },
-          ],
-          options: {
-            chart: {
-              type: 'bar',
-              height: 410,
-              animations: {
+              data: [2, 4, 3, 4, 3, 5, 5, 6.5, 6, 5, 4, 5, 8, 7, 7, 8, 8, 10, 9, 9, 12, 12,
+                11, 12, 13, 14, 16, 14, 15, 17, 19, 21
+              ]
+            }],
+            options: {
+              chart: {
+                type: 'bar',
+                height: 410,
+                animations: {
+                  enabled: false
+                }
+              },
+              plotOptions: {
+                bar: {
+                  horizontal: true,
+                  barHeight: '100%',
+              
+                },
+              },
+              dataLabels: {
                 enabled: false,
               },
-            },
-            plotOptions: {
-              bar: {
-                horizontal: true,
-                barHeight: '100%',
+              stroke: {
+                width: 1,
+                colors: ['#000'],
               },
-            },
-            dataLabels: {
-              enabled: false,
-            },
-            stroke: {
-              width: 1,
-              colors: ['#000'],
-            },
-            labels: Array.apply(null, { length: 32 }).map(function (el, index) {
-              return index + 1
-            }),
-            yaxis: {
-              axisBorder: {
-                show: false,
+              labels: Array.apply(null, {length: 32}).map(function(el, index){
+                return index + 1;
+              }),
+              yaxis: {
+                axisBorder: {
+                  show: false
+                },
+                axisTicks: {
+                  show: false
+                },
+                labels: {
+                  show: false
+                },
+                title: {
+                  text: 'Weight',
+                },
               },
-              axisTicks: {
-                show: false,
-              },
-              labels: {
-                show: false,
+              grid: {
+                position: 'back'
               },
               title: {
-                text: 'Weight',
+                text: 'Paths filled by clipped image',
+                align: 'right',
+                offsetY: 30
+              },
+              fill: {
+                type: 'image',
+                opacity: 0.87,
+                image: {
+                  src: 'https://cdn.pixabay.com/photo/2023/10/08/17/04/swirls-8302543_1280.jpg',
+                  width: 600,
+                  height: 600,
+                },
               },
             },
-            grid: {
-              position: 'back',
-            },
-            title: {
-              text: 'Paths filled by clipped image',
-              align: 'right',
-              offsetY: 30,
-            },
-            fill: {
-              type: 'image',
-              opacity: 0.87,
-              image: {
-                src: 'https://cdn.pixabay.com/photo/2023/10/08/17/04/swirls-8302543_1280.jpg',
-                width: 600,
-                height: 600,
-              },
-            },
-          },
-        })
+          
+          
+        });
+
+        
 
         return (
           <div>
             <div id="chart">
-              <ReactApexChart
-                options={state.options}
-                series={state.series}
-                type="bar"
-                height={410}
-              />
-            </div>
+                <ReactApexChart options={state.options} series={state.series} type="bar" height={410} />
+              </div>
             <div id="html-dist"></div>
           </div>
-        )
+        );
       }
 
-      const domContainer = document.querySelector('#app')
-      ReactDOM.render(<ApexChart />, domContainer)
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
     </script>
+
+    
   </body>
 </html>

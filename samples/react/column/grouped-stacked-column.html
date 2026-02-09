@@ -9,18 +9,22 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      #chart {
-        max-width: 650px;
-        margin: 35px auto;
-      }
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
     </style>
 
+    
     <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -31,110 +35,113 @@
         return (_seed - 1) / 2147483646
       }
     </script>
+
+    
   </head>
 
   <body>
+    
     <div id="app"></div>
 
-    <div id="html">
-      &lt;div id=&quot;chart&quot;&gt; &lt;ReactApexChart
-      options={state.options} series={state.series} type=&quot;bar&quot;
-      height={350} /&gt; &lt;/div&gt;
-    </div>
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={350} /&gt;
+&lt;/div&gt;</div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          series: [
-            {
-              name: 'Q1 Budget',
-              group: 'budget',
-              color: '#80c7fd',
-              data: [44000, 55000, 41000, 67000, 22000, 43000],
-            },
-            {
-              name: 'Q1 Actual',
-              group: 'actual',
-              color: '#008FFB',
-              data: [48000, 50000, 40000, 65000, 25000, 40000],
-            },
-            {
-              name: 'Q2 Budget',
-              group: 'budget',
-              color: '#80f1cb',
-              data: [13000, 36000, 20000, 8000, 13000, 27000],
-            },
-            {
-              name: 'Q2 Actual',
-              group: 'actual',
-              color: '#00E396',
-              data: [20000, 40000, 25000, 10000, 12000, 28000],
-            },
-          ],
-          options: {
-            chart: {
-              type: 'bar',
-              height: 350,
-              stacked: true,
-            },
-            stroke: {
-              width: 1,
-              colors: ['#fff'],
-            },
-            dataLabels: {
-              formatter: (val) => {
-                return val / 1000 + 'K'
+          
+            series: [
+              {
+                name: 'Q1 Budget',
+                group: 'budget',
+                color: '#80c7fd',
+                data: [44000, 55000, 41000, 67000, 22000, 43000],
               },
-            },
-            plotOptions: {
-              bar: {
-                horizontal: false,
+              {
+                name: 'Q1 Actual',
+                group: 'actual',
+                color: '#008FFB',
+                data: [48000, 50000, 40000, 65000, 25000, 40000],
               },
-            },
-            xaxis: {
-              categories: [
-                'Online ads',
-                'Sales Training',
-                'Print ads',
-                'Catalogs',
-                'Meetings',
-                'Public relations',
-              ],
-            },
-            fill: {
-              opacity: 1,
-            },
-            yaxis: {
-              labels: {
+              {
+                name: 'Q2 Budget',
+                group: 'budget',
+                color: '#80f1cb',
+                data: [13000, 36000, 20000, 8000, 13000, 27000],
+              },
+              {
+                name: 'Q2 Actual',
+                group: 'actual',
+                color: '#00E396',
+                data: [20000, 40000, 25000, 10000, 12000, 28000],
+              },
+            ],
+            options: {
+              chart: {
+                type: 'bar',
+                height: 350,
+                stacked: true,
+              },
+              stroke: {
+                width: 1,
+                colors: ['#fff']
+              },
+              dataLabels: {
                 formatter: (val) => {
                   return val / 1000 + 'K'
-                },
+                }
               },
+              plotOptions: {
+                bar: {
+                  horizontal: false
+                }
+              },
+              xaxis: {
+                categories: [
+                  'Online ads',
+                  'Sales Training',
+                  'Print ads',
+                  'Catalogs',
+                  'Meetings',
+                  'Public relations'
+                ]
+              },
+              fill: {
+                opacity: 1
+              },
+              yaxis: {
+                labels: {
+                  formatter: (val) => {
+                    return val / 1000 + 'K'
+                  }
+                }
+              },
+              legend: {
+                position: 'bottom',
+                clusterGroupedSeriesOrientation: "vertical"
+              }
             },
-            legend: {
-              position: 'bottom',
-              clusterGroupedSeriesOrientation: 'vertical',
-            },
-          },
-        })
+          
+          
+        });
+
+        
 
         return (
           <div>
             <div id="chart">
-              <ReactApexChart
-                options={state.options}
-                series={state.series}
-                type="bar"
-                height={350}
-              />
-            </div>
+                <ReactApexChart options={state.options} series={state.series} type="bar" height={350} />
+              </div>
             <div id="html-dist"></div>
           </div>
-        )
+        );
       }
 
-      const domContainer = document.querySelector('#app')
-      ReactDOM.render(<ApexChart />, domContainer)
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
     </script>
+
+    
   </body>
 </html>
