@@ -26,10 +26,10 @@
  * See the README file for more details.
  */
 
-window.TreemapSquared = {}
+const TreemapSquared = {}
 ;(function() {
   'use strict'
-  window.TreemapSquared.generate = (function() {
+  TreemapSquared.generate = (function() {
     function Container(xoffset, yoffset, width, height) {
       this.xoffset = xoffset // offset from the the top left hand corner
       this.yoffset = yoffset // ditto
@@ -288,3 +288,5 @@ window.TreemapSquared = {}
     return treemapMultidimensional
   })()
 })()
+
+export default TreemapSquared
