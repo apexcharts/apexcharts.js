@@ -16,7 +16,7 @@ export default class Helpers {
       )
 
       if (xAnno !== null) {
-        const xAnnoCoord = xAnno.getBoundingClientRect()
+        const xAnnoCoord = xAnno.getBBox()
         xAnno.setAttribute(
           'x',
           parseFloat(xAnno.getAttribute('x')) - xAnnoCoord.height + 4
@@ -39,9 +39,13 @@ export default class Helpers {
       return null
     }
 
-    const elGridRect = w.globals.dom.baseEl
-      .querySelector('.apexcharts-grid')
-      .getBoundingClientRect()
+    // We compute the difference between the bounding client rect and the BBox to
+    // correctly scale the drawn rectangle when chart is in a container with a
+    //  CSS zoom level != 100%.
+    const gridEl = w.globals.dom.baseEl.querySelector('.apexcharts-grid')
+    const elGridRect = gridEl.getBoundingClientRect()
+    const gridBBox = gridEl.getBBox()
+    const zoom = elGridRect.width / gridBBox.width || 1
 
     const coords = annoEl.getBoundingClientRect()
 
@@ -56,13 +60,13 @@ export default class Helpers {
       ;[ptop, pbottom, pleft, pright] = [pleft, pright, ptop, pbottom]
     }
 
-    const x1 = coords.left - elGridRect.left - pleft
-    const y1 = coords.top - elGridRect.top - ptop
+    const x1 = (coords.left - elGridRect.left) / zoom - pleft
+    const y1 = (coords.top - elGridRect.top) / zoom - ptop
     const elRect = this.annoCtx.graphics.drawRect(
       x1 - w.globals.barPadForNumericAxis,
       y1,
-      coords.width + pleft + pright,
-      coords.height + ptop + pbottom,
+      coords.width / zoom + pleft + pright,
+      coords.height / zoom + ptop + pbottom,
       anno.label.borderRadius,
       anno.label.style.background,
       1,
