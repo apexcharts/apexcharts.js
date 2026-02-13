@@ -104,9 +104,9 @@ export default class Helpers {
           })
         }
 
-        val = getText(w.globals.series[seriesIndex][dataPointIndex])
+        const labelText = getText(w.globals.series[seriesIndex][dataPointIndex])
 
-        allLabels.push(val)
+        allLabels.push(labelText)
       })
     })
 

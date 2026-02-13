@@ -7,7 +7,7 @@ const { PNG } = require('pngjs')
 const { Cluster } = require('puppeteer-cluster')
 const os = require('os')
 
-const { builds, executeBuildEntry } = require('../../build/config')
+const { builds, executeBuildEntry } = require('../../build/e2e-build')
 const { extractSampleInfo } = require('../../samples/source')
 
 const rootDir = path.join(path.resolve(__dirname), '..', '..')
@@ -151,10 +151,12 @@ async function processSample(page, sample, command) {
 
   if (command === 'test') {
     const coverage = await page.evaluate(() => window.__coverage__)
-    await fs.writeJson(
-      `${rootDir}/.nyc_output/${sample.dirName}-${sample.fileName}.json`,
-      coverage
-    )
+    if (coverage) {
+      await fs.writeJson(
+        `${rootDir}/.nyc_output/${sample.dirName}-${sample.fileName}.json`,
+        coverage
+      )
+    }
   }
 
   // Make a screenshot of root div element or page (if root div has empty height, e.g. column/dynamic-loaded-chart)

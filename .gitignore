@@ -9,3 +9,8 @@ tests/e2e/diffs
 .vscode
 bundle-analysis.html
 /nbproject/private/
+
+# Vite
+.vite
+dist-ssr
+*.local
