@@ -431,12 +431,31 @@ export default class ApexCharts {
     // fixes apexcharts.js#1488
     w.globals.selection = undefined
 
-    if (
-      this.lastUpdateOptions &&
-      JSON.stringify(this.lastUpdateOptions) === JSON.stringify(options)
-    ) {
-      // Options are identical, skip the update
-      return this
+    // try shallow comparison first before expensive JSON.stringify
+    if (this.lastUpdateOptions) {
+      // quick shallow check on top-level keys
+      if (Utils.shallowEqual(this.lastUpdateOptions, options)) {
+        return this
+      }
+
+      // If shallow check fails, do deep comparison only for critical paths
+      // check series separately
+      if (options.series && this.lastUpdateOptions.series) {
+        if (
+          JSON.stringify(this.lastUpdateOptions.series) ===
+          JSON.stringify(options.series)
+        ) {
+          // series unchanged, check other options
+          const optionsWithoutSeries = { ...options }
+          const lastWithoutSeries = { ...this.lastUpdateOptions }
+          delete optionsWithoutSeries.series
+          delete lastWithoutSeries.series
+
+          if (Utils.shallowEqual(optionsWithoutSeries, lastWithoutSeries)) {
+            return this
+          }
+        }
+      }
     }
 
     if (options.series) {

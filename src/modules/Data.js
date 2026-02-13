@@ -200,28 +200,39 @@ export default class Data {
 
     // check for overlaps to avoid clashes in a timeline chart
     gl.seriesRange.forEach((sr, si) => {
-      if (sr) {
-        sr.forEach((sarr, sarri) => {
-          sarr.y.forEach((arr, arri) => {
-            for (let sri = 0; sri < sarr.y.length; sri++) {
-              if (arri !== sri) {
-                const range1y1 = arr.y1
-                const range1y2 = arr.y2
-                const range2y1 = sarr.y[sri].y1
-                const range2y2 = sarr.y[sri].y2
-                if (range1y1 <= range2y2 && range2y1 <= range1y2) {
-                  if (sarr.overlaps.indexOf(arr.rangeName) < 0) {
-                    sarr.overlaps.push(arr.rangeName)
-                  }
-                  if (sarr.overlaps.indexOf(sarr.y[sri].rangeName) < 0) {
-                    sarr.overlaps.push(sarr.y[sri].rangeName)
-                  }
-                }
+      if (!sr) return
+
+      sr.forEach((sarr, sarri) => {
+        const yItems = sarr.y
+        const len = yItems.length
+
+        // Pre-check: if only one item, no overlaps possible
+        if (len <= 1) return
+
+        for (let arri = 0; arri < len; arri++) {
+          const arr = yItems[arri]
+          const range1y1 = arr.y1
+          const range1y2 = arr.y2
+
+          // Only check subsequent items to avoid duplicate comparisons
+          for (let sri = arri + 1; sri < len; sri++) {
+            const range2 = yItems[sri]
+            const range2y1 = range2.y1
+            const range2y2 = range2.y2
+
+            // Check overlap using interval intersection
+            if (range1y1 <= range2y2 && range2y1 <= range1y2) {
+              // Use Set-like behavior to avoid duplicates
+              if (sarr.overlaps.indexOf(arr.rangeName) < 0) {
+                sarr.overlaps.push(arr.rangeName)
+              }
+              if (sarr.overlaps.indexOf(range2.rangeName) < 0) {
+                sarr.overlaps.push(range2.rangeName)
               }
             }
-          })
-        })
-      }
+          }
+        }
+      })
     })
 
     return range
@@ -250,17 +261,21 @@ export default class Data {
     const rangeStart = []
     const rangeEnd = []
 
-    const uniqueKeys = ser[i].data
-      .filter(
-        (thing, index, self) => index === self.findIndex((t) => t.x === thing.x)
-      )
-      .map((r, index) => {
-        return {
-          x: r.x,
+    const uniqueKeysMap = new Map()
+    const uniqueKeys = []
+
+    // unique keys map
+    ser[i].data.forEach((item) => {
+      if (!uniqueKeysMap.has(item.x)) {
+        const keyObj = {
+          x: item.x,
           overlaps: [],
           y: [],
         }
-      })
+        uniqueKeysMap.set(item.x, keyObj)
+        uniqueKeys.push(keyObj)
+      }
+    })
 
     if (format === 'array') {
       for (let j = 0; j < ser[i].data.length; j++) {
@@ -287,8 +302,10 @@ export default class Data {
         // TODO: As this is specifically for timeline rangebar charts, update the docs mentioning the series only supports xy format
         ser[i].data[j].rangeName = id
 
-        const uI = uniqueKeys.findIndex((t) => t.x === x)
-        uniqueKeys[uI].y.push(y)
+        const keyObj = uniqueKeysMap.get(x)
+        if (keyObj) {
+          keyObj.y.push(y)
+        }
 
         rangeStart.push(y.y1)
         rangeEnd.push(y.y2)

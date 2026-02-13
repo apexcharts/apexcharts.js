@@ -96,7 +96,14 @@ class Utils {
     return month % 12
   }
 
-  static clone(source, visited = new WeakMap()) {
+  /**
+   * clone object with optional shallow copy for performance
+   * @param {*} source - Source object to clone
+   * @param {WeakMap} visited - Circular reference tracker
+   * @param {boolean} shallow - If true, performs shallow copy (default: false)
+   * @returns {*} Cloned object
+   */
+  static clone(source, visited = new WeakMap(), shallow = false) {
     if (source === null || typeof source !== 'object') {
       return source
     }
@@ -108,23 +115,73 @@ class Utils {
     let cloneResult
 
     if (Array.isArray(source)) {
-      cloneResult = []
-      visited.set(source, cloneResult)
-      for (let i = 0; i < source.length; i++) {
-        cloneResult[i] = this.clone(source[i], visited)
+      if (shallow) {
+        cloneResult = source.slice()
+      } else {
+        cloneResult = []
+        visited.set(source, cloneResult)
+        for (let i = 0; i < source.length; i++) {
+          cloneResult[i] = this.clone(source[i], visited, false)
+        }
       }
     } else if (source instanceof Date) {
       cloneResult = new Date(source.getTime())
     } else {
-      cloneResult = {}
-      visited.set(source, cloneResult)
-      for (let prop in source) {
-        if (source.hasOwnProperty(prop)) {
-          cloneResult[prop] = this.clone(source[prop], visited)
+      if (shallow) {
+        cloneResult = Object.assign({}, source)
+      } else {
+        cloneResult = {}
+        visited.set(source, cloneResult)
+        for (let prop in source) {
+          if (source.hasOwnProperty(prop)) {
+            cloneResult[prop] = this.clone(source[prop], visited, false)
+          }
         }
       }
     }
     return cloneResult
+  }
+
+  /**
+   * Shallow clone for performance when deep clone isn't needed
+   * @param {*} source - Source to clone
+   * @returns {*} Shallow cloned object
+   */
+  static shallowClone(source) {
+    if (source === null || typeof source !== 'object') {
+      return source
+    }
+    if (Array.isArray(source)) {
+      return source.slice()
+    }
+    return Object.assign({}, source)
+  }
+
+  /**
+   * Fast shallow equality check for objects
+   * @param {Object} obj1 - First object
+   * @param {Object} obj2 - Second object
+   * @returns {boolean} True if shallowly equal
+   */
+  static shallowEqual(obj1, obj2) {
+    if (obj1 === obj2) return true
+
+    if (!obj1 || !obj2) return false
+
+    if (typeof obj1 !== 'object' || typeof obj2 !== 'object') {
+      return obj1 === obj2
+    }
+
+    const keys1 = Object.keys(obj1)
+    const keys2 = Object.keys(obj2)
+
+    if (keys1.length !== keys2.length) return false
+
+    for (let key of keys1) {
+      if (obj1[key] !== obj2[key]) return false
+    }
+
+    return true
   }
 
   static log10(x) {
