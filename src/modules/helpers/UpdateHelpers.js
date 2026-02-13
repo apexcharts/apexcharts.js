@@ -3,6 +3,7 @@ import Config from '../settings/Config'
 import CoreUtils from '../CoreUtils'
 import Graphics from '../Graphics'
 import Utils from '../../utils/Utils'
+import PerformanceCache from '../../utils/PerformanceCache'
 
 export default class UpdateHelpers {
   constructor(ctx) {
@@ -129,6 +130,8 @@ export default class UpdateHelpers {
       w.globals.shouldAnimate = animate
 
       w.globals.dataChanged = true
+
+      PerformanceCache.invalidateSelectors(w)
 
       if (animate) {
         this.ctx.series.getPreviousPaths()

@@ -35,6 +35,72 @@ export default class Tooltip {
     this.yaxisTTEls = null
     this.isBarShared = !w.globals.isBarHorizontal && this.tConfig.shared
     this.lastHoverTime = Date.now()
+    this.dimensionUpdateScheduled = false
+  }
+
+  setupDimensionCache() {
+    const w = this.w
+    const tooltipEl = this.getElTooltip()
+
+    if (!tooltipEl) return
+
+    // Initial dimension cache
+    this.updateDimensionCache()
+
+    // Setup ResizeObserver for automatic dimension updates
+    if (typeof ResizeObserver !== 'undefined' && !w.globals.resizeObserver) {
+      w.globals.resizeObserver = new ResizeObserver(() => {
+        if (!this.dimensionUpdateScheduled) {
+          this.dimensionUpdateScheduled = true
+          requestAnimationFrame(() => {
+            this.updateDimensionCache()
+            this.dimensionUpdateScheduled = false
+          })
+        }
+      })
+      w.globals.resizeObserver.observe(tooltipEl)
+    }
+  }
+
+  updateDimensionCache() {
+    const w = this.w
+    const tooltipEl = this.getElTooltip()
+
+    if (!tooltipEl) return
+
+    const rect = tooltipEl.getBoundingClientRect()
+    w.globals.dimensionCache.tooltip = {
+      width: rect.width,
+      height: rect.height,
+      lastUpdate: Date.now(),
+    }
+  }
+
+  getCachedDimensions() {
+    const w = this.w
+
+    // Return cached dimensions if available and fresh (< 1 second old)
+    if (w.globals.dimensionCache.tooltip) {
+      const cache = w.globals.dimensionCache.tooltip
+      const age = Date.now() - cache.lastUpdate
+
+      if (age < 1000) {
+        return {
+          ttWidth: cache.width,
+          ttHeight: cache.height,
+        }
+      }
+    }
+
+    // Fallback to live measurement and update cache
+    this.updateDimensionCache()
+    const cache = w.globals.dimensionCache.tooltip
+    return cache
+      ? {
+          ttWidth: cache.width,
+          ttHeight: cache.height,
+        }
+      : { ttWidth: 0, ttHeight: 0 }
   }
 
   getElTooltip(ctx) {
@@ -129,6 +195,8 @@ export default class Tooltip {
 
     this.ttItems = this.createTTElements(ttItemsCnt)
     this.addSVGEvents()
+
+    this.setupDimensionCache()
   }
 
   createTTElements(ttItemsCnt) {
@@ -449,12 +517,13 @@ export default class Tooltip {
 
     if (!tooltipEl) return
 
-    // tooltipRect is calculated on every mousemove, because the text is dynamic
+    // use cached dimensions instead of live getBoundingClientRect
+    const cachedDims = ttCtx.getCachedDimensions()
     ttCtx.tooltipRect = {
       x: 0,
       y: 0,
-      ttWidth: tooltipEl.getBoundingClientRect().width,
-      ttHeight: tooltipEl.getBoundingClientRect().height,
+      ttWidth: cachedDims.ttWidth,
+      ttHeight: cachedDims.ttHeight,
     }
     ttCtx.e = e
 

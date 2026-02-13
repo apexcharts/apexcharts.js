@@ -15,8 +15,25 @@ export default class Series {
     this.legendInactiveClass = 'legend-mouseover-inactive'
   }
 
+  clearSeriesCache() {
+    const w = this.w
+    if (w.globals.cachedSelectors) {
+      delete w.globals.cachedSelectors.allSeriesEls
+      delete w.globals.cachedSelectors.highlightSeriesEls
+    }
+  }
+
   getAllSeriesEls() {
-    return this.w.globals.dom.baseEl.getElementsByClassName(`apexcharts-series`)
+    // cache the result to avoid repeated querySelectorAll
+    const w = this.w
+    const cacheKey = 'allSeriesEls'
+
+    if (!w.globals.cachedSelectors[cacheKey]) {
+      w.globals.cachedSelectors[cacheKey] =
+        w.globals.dom.baseEl.getElementsByClassName(`apexcharts-series`)
+    }
+
+    return w.globals.cachedSelectors[cacheKey]
   }
 
   getSeriesByName(seriesName) {
@@ -91,6 +108,8 @@ export default class Series {
   ) {
     const w = this.w
 
+    this.clearSeriesCache()
+
     let series = Utils.clone(w.globals.initialSeries)
 
     w.globals.previousPaths = []
@@ -134,9 +153,15 @@ export default class Series {
     const targetElement = this.getSeriesByName(seriesName)
     let realIndex = parseInt(targetElement?.getAttribute('data:realIndex'), 10)
 
-    let allSeriesEls = w.globals.dom.baseEl.querySelectorAll(
-      `.apexcharts-series, .apexcharts-datalabels, .apexcharts-yaxis`
-    )
+    const cacheKey = 'highlightSeriesEls'
+    let allSeriesEls = w.globals.cachedSelectors[cacheKey]
+
+    if (!allSeriesEls) {
+      allSeriesEls = w.globals.dom.baseEl.querySelectorAll(
+        `.apexcharts-series, .apexcharts-datalabels, .apexcharts-yaxis`
+      )
+      w.globals.cachedSelectors[cacheKey] = allSeriesEls
+    }
 
     let seriesEl = null
     let dataLabelEl = null

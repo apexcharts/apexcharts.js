@@ -1,3 +1,5 @@
+import PerformanceCache from '../../utils/PerformanceCache'
+
 export default class Destroy {
   constructor(ctx) {
     this.ctx = ctx
@@ -11,6 +13,18 @@ export default class Destroy {
     if (this.ctx.toolbar) {
       this.ctx.toolbar.destroy()
     }
+
+    // Cleanup ResizeObserver
+    if (
+      this.w.globals.resizeObserver &&
+      typeof this.w.globals.resizeObserver.disconnect === 'function'
+    ) {
+      this.w.globals.resizeObserver.disconnect()
+      this.w.globals.resizeObserver = null
+    }
+
+    // Clear all performance caches
+    PerformanceCache.invalidateAll(this.w)
 
     this.ctx.animations = null
     this.ctx.axes = null

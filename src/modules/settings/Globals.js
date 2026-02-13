@@ -42,6 +42,9 @@ export default class Globals {
     gl.pointsArray = []
     gl.dataLabelsRects = []
     gl.textRectsCache = new Map()
+    gl.domCache = new Map()
+    gl.dimensionCache = {} // cache for getBoundingClientRect results
+    gl.cachedSelectors = {} // cache for querySelectorAll results
     gl.isXNumeric = false
     gl.skipLastTimelinelabel = false
     gl.skipFirstTimelinelabel = false
@@ -167,6 +170,10 @@ export default class Globals {
       memory: {
         methodsToExec: [],
       },
+      domCache: new Map(),
+      dimensionCache: {},
+      cachedSelectors: {},
+      resizeObserver: null,
       shouldAnimate: true,
       skipLastTimelinelabel: false, // when last label is cropped, skip drawing it
       skipFirstTimelinelabel: false, // when first label is cropped, skip drawing it
