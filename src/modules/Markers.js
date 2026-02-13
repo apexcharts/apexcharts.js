@@ -12,6 +12,9 @@ export default class Markers {
   constructor(ctx, opts) {
     this.ctx = ctx
     this.w = ctx.w
+
+    this._filters = new Filters(this.ctx)
+    this._graphics = new Graphics(this.ctx)
   }
 
   setGlobalMarkerSize() {
@@ -138,6 +141,8 @@ export default class Markers {
                 'clip-path',
                 `url(#gridRectMarkerMask${w.globals.cuid})`
               )
+              // Set up event delegation once on the group
+              this.setupMarkerDelegation(elMarkersWrap)
             }
             markerElement = graphics.drawMarker(p.x[q], p.y[q], opts)
 
@@ -146,13 +151,11 @@ export default class Markers {
             markerElement.attr('index', seriesIndex)
             markerElement.node.setAttribute('default-marker-size', opts.pSize)
 
-            const filters = new Filters(this.ctx)
-            filters.setSelectionFilter(
+            this._filters.setSelectionFilter(
               markerElement,
               seriesIndex,
               dataPointIndex
             )
-            this.addEvents(markerElement)
 
             if (elMarkersWrap) {
               elMarkersWrap.add(markerElement)
@@ -229,22 +232,67 @@ export default class Markers {
     }
   }
 
+  setupMarkerDelegation(parentGroup) {
+    const w = this.w
+    const selector = '.apexcharts-marker'
+
+    // Core mouse events via delegation
+    this._graphics.setupEventDelegation(parentGroup, selector)
+
+    // Marker-specific events: click, dblclick, touchstart
+    parentGroup.node.addEventListener('click', (e) => {
+      if (w.config.markers.onClick) {
+        const targetNode = Graphics._findDelegateTarget(
+          e.target,
+          parentGroup.node,
+          selector
+        )
+        if (targetNode) w.config.markers.onClick(e)
+      }
+    })
+
+    parentGroup.node.addEventListener('dblclick', (e) => {
+      if (w.config.markers.onDblClick) {
+        const targetNode = Graphics._findDelegateTarget(
+          e.target,
+          parentGroup.node,
+          selector
+        )
+        if (targetNode) w.config.markers.onDblClick(e)
+      }
+    })
+
+    parentGroup.node.addEventListener(
+      'touchstart',
+      (e) => {
+        const targetNode = Graphics._findDelegateTarget(
+          e.target,
+          parentGroup.node,
+          selector
+        )
+        if (targetNode && targetNode.instance) {
+          this._graphics.pathMouseDown(targetNode.instance, e)
+        }
+      },
+      { passive: true }
+    )
+  }
+
   addEvents(marker) {
     const w = this.w
 
-    const graphics = new Graphics(this.ctx)
     marker.node.addEventListener(
       'mouseenter',
-      graphics.pathMouseEnter.bind(this.ctx, marker)
+      this._graphics.pathMouseEnter.bind(this.ctx, marker)
     )
     marker.node.addEventListener(
       'mouseleave',
-      graphics.pathMouseLeave.bind(this.ctx, marker)
+      this._graphics.pathMouseLeave.bind(this.ctx, marker)
     )
 
     marker.node.addEventListener(
       'mousedown',
-      graphics.pathMouseDown.bind(this.ctx, marker)
+      this._graphics.pathMouseDown.bind(this.ctx, marker)
     )
 
     marker.node.addEventListener('click', w.config.markers.onClick)
@@ -252,7 +300,7 @@ export default class Markers {
 
     marker.node.addEventListener(
       'touchstart',
-      graphics.pathMouseDown.bind(this.ctx, marker),
+      this._graphics.pathMouseDown.bind(this.ctx, marker),
       { passive: true }
     )
   }

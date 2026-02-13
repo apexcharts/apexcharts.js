@@ -1038,6 +1038,68 @@ class Graphics {
     }
   }
 
+  /**
+   * Sets up event delegation on a parent group element.
+   * Uses mouseover/mouseout (which bubble) to simulate mouseenter/mouseleave
+   * on matching child elements, reducing per-element listener overhead.
+   */
+  setupEventDelegation(parentGroup, targetSelector) {
+    let currentHovered = null
+
+    parentGroup.node.addEventListener('mouseover', (e) => {
+      const targetNode = Graphics._findDelegateTarget(
+        e.target,
+        parentGroup.node,
+        targetSelector
+      )
+      if (!targetNode || targetNode === currentHovered) return
+
+      if (currentHovered && currentHovered.instance) {
+        this.pathMouseLeave(currentHovered.instance, e)
+      }
+      currentHovered = targetNode
+      if (targetNode.instance) {
+        this.pathMouseEnter(targetNode.instance, e)
+      }
+    })
+
+    parentGroup.node.addEventListener('mouseout', (e) => {
+      if (!currentHovered) return
+      const relatedNode = e.relatedTarget
+        ? Graphics._findDelegateTarget(
+            e.relatedTarget,
+            parentGroup.node,
+            targetSelector
+          )
+        : null
+      if (relatedNode !== currentHovered) {
+        if (currentHovered && currentHovered.instance) {
+          this.pathMouseLeave(currentHovered.instance, e)
+        }
+        currentHovered = null
+      }
+    })
+
+    parentGroup.node.addEventListener('mousedown', (e) => {
+      const targetNode = Graphics._findDelegateTarget(
+        e.target,
+        parentGroup.node,
+        targetSelector
+      )
+      if (targetNode && targetNode.instance) {
+        this.pathMouseDown(targetNode.instance, e)
+      }
+    })
+  }
+
+  static _findDelegateTarget(node, boundary, selector) {
+    while (node && node !== boundary && node !== document) {
+      if (node.matches && node.matches(selector)) return node
+      node = node.parentNode
+    }
+    return null
+  }
+
   static setAttrs(el, attrs) {
     for (let key in attrs) {
       if (attrs.hasOwnProperty(key)) {
@@ -1048,6 +1110,14 @@ class Graphics {
 
   getTextRects(text, fontSize, fontFamily, transform, useBBox = true) {
     let w = this.w
+
+    // cache text measurements to avoid repeated DOM create/measure/remove cycles
+    const cacheKey = `${text}|${fontSize}|${fontFamily}|${transform}|${useBBox}`
+    const cache = w.globals.textRectsCache
+    if (cache && cache.has(cacheKey)) {
+      return cache.get(cacheKey)
+    }
+
     let virtualText = this.drawText({
       x: -200,
       y: -200,
@@ -1071,10 +1141,16 @@ class Graphics {
 
     virtualText.remove()
 
-    return {
+    const result = {
       width: rect.width,
       height: rect.height,
     }
+
+    if (cache) {
+      cache.set(cacheKey, result)
+    }
+
+    return result
   }
 
   /**

@@ -41,6 +41,7 @@ export default class Globals {
     gl.delayedElements = []
     gl.pointsArray = []
     gl.dataLabelsRects = []
+    gl.textRectsCache = new Map()
     gl.isXNumeric = false
     gl.skipLastTimelinelabel = false
     gl.skipFirstTimelinelabel = false

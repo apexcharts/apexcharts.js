@@ -329,6 +329,15 @@ class Bar {
     const graphics = new Graphics(this.ctx)
     let skipDrawing = false
 
+    // Set up event delegation once per series group instead of per-element listeners
+    if (!elSeries._bindingsDelegated) {
+      elSeries._bindingsDelegated = true
+      graphics.setupEventDelegation(
+        elSeries,
+        `.apexcharts-${type}-area`
+      )
+    }
+
     if (!lineFill) {
       // if user provided a function in colors, we need to eval here
       // Note: the position of this function logic (ex. stroke: { colors: ["",function(){}] }) i.e array index 1 depicts the realIndex/seriesIndex.
@@ -420,6 +429,7 @@ class Bar {
         dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
         className: `apexcharts-${type}-area ${classes}`,
         chartType: type,
+        bindEventsOnPaths: false,
       })
 
       renderedPath.attr('clip-path', `url(#gridRectBarMask${w.globals.cuid})`)

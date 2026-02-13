@@ -66,6 +66,9 @@ export default class TreemapChart {
         'data:realIndex': i,
       })
 
+      // Set up event delegation once per series group instead of per-cell listeners
+      graphics.setupEventDelegation(elSeries, '.apexcharts-treemap-rect')
+
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow
         const filters = new Filters(this.ctx)
@@ -134,8 +137,6 @@ export default class TreemapChart {
         })
 
         elRect.node.classList.add('apexcharts-treemap-rect')
-
-        this.helpers.addListeners(elRect)
 
         let fromRect = {
           x: x1 + (x2 - x1) / 2,

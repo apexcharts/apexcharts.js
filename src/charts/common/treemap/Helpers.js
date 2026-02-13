@@ -182,19 +182,4 @@ export default class TreemapHelpers {
     return elDataLabelsWrap
   }
 
-  addListeners(elRect) {
-    const graphics = new Graphics(this.ctx)
-    elRect.node.addEventListener(
-      'mouseenter',
-      graphics.pathMouseEnter.bind(this, elRect)
-    )
-    elRect.node.addEventListener(
-      'mouseleave',
-      graphics.pathMouseLeave.bind(this, elRect)
-    )
-    elRect.node.addEventListener(
-      'mousedown',
-      graphics.pathMouseDown.bind(this, elRect)
-    )
-  }
 }

@@ -67,6 +67,9 @@ export default class HeatMap {
       })
       this.ctx.series.addCollapsedClassToSeries(elSeries, i)
 
+      // Set up event delegation once per series group instead of per-cell listeners
+      graphics.setupEventDelegation(elSeries, '.apexcharts-heatmap-rect')
+
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow
         const filters = new Filters(this.ctx)
@@ -145,8 +148,6 @@ export default class HeatMap {
             : w.globals.stroke.colors[0],
           color,
         })
-
-        this.helpers.addListeners(rect)
 
         if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
           let speed = 1

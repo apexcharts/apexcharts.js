@@ -15,12 +15,18 @@ export default class Scatter {
     this.w = ctx.w
 
     this.initialAnim = this.w.config.chart.animations.enabled
+
+    this.anim = new Animations(this.ctx)
+    this.filters = new Filters(this.ctx)
+    this.fill = new Fill(this.ctx)
+    this.markers = new Markers(this.ctx)
+    this.graphics = new Graphics(this.ctx)
   }
 
   draw(elSeries, j, opts) {
     let w = this.w
 
-    let graphics = new Graphics(this.ctx)
+    let graphics = this.graphics
 
     let realIndex = opts.realIndex
     let pointsPos = opts.pointsPos
@@ -32,6 +38,9 @@ export default class Scatter {
     })
 
     elPointsWrap.attr('clip-path', `url(#gridRectMarkerMask${w.globals.cuid})`)
+
+    // Set up event delegation once on the group instead of per-point listeners
+    this.markers.setupMarkerDelegation(elPointsWrap)
 
     if (Array.isArray(pointsPos.x)) {
       for (let q = 0; q < pointsPos.x.length; q++) {
@@ -95,11 +104,11 @@ export default class Scatter {
     const w = this.w
 
     let i = realIndex
-    let anim = new Animations(this.ctx)
-    let filters = new Filters(this.ctx)
-    let fill = new Fill(this.ctx)
-    let markers = new Markers(this.ctx)
-    const graphics = new Graphics(this.ctx)
+    const anim = this.anim
+    const filters = this.filters
+    const fill = this.fill
+    const markers = this.markers
+    const graphics = this.graphics
 
     const markerConfig = markers.getMarkerConfig({
       cssClass: 'apexcharts-marker',
@@ -159,7 +168,6 @@ export default class Scatter {
     })
 
     filters.setSelectionFilter(el, realIndex, dataPointIndex)
-    markers.addEvents(el)
 
     el.node.classList.add('apexcharts-marker')
 
