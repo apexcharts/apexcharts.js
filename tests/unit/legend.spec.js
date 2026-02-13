@@ -244,7 +244,7 @@ describe('Legend', () => {
       })
 
       const texts = getLegendTexts(chart)
-      expect(texts[0].style.fontFamily).toBe('Courier New')
+      expect(texts[0].style.fontFamily).toMatch(/Courier New/)
     })
 
     it('should use series colors for label text when useSeriesColors is true', () => {

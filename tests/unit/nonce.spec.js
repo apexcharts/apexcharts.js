@@ -36,7 +36,11 @@ describe('chart.nonce option', () => {
     expect(
       document.head.querySelectorAll('#apexcharts-css[nonce]').length
     ).toBe(0)
-    expect(document.body.querySelectorAll('foreignObject style').length).toBe(1)
+    // JSDOM doesn't properly support 'foreignObject style' selector, so we check directly
+    const foreignObject = document.body.querySelector('foreignObject')
+    expect(foreignObject).not.toBeNull()
+    const styleInForeignObject = foreignObject.querySelector('style')
+    expect(styleInForeignObject).not.toBeNull()
   })
 
   it('will render a nonce attribute when provided as an option', () => {

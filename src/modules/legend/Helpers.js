@@ -59,11 +59,13 @@ export default class Helpers {
         seriesEl = w.globals.dom.baseEl.querySelector(
           `.apexcharts-series[data\\:realIndex='${seriesCnt}']`
         )
+        if (!seriesEl) return
         realIndex = parseInt(seriesEl.getAttribute('data:realIndex'), 10)
       } else {
         seriesEl = w.globals.dom.baseEl.querySelector(
           `.apexcharts-series[rel='${seriesCnt + 1}']`
         )
+        if (!seriesEl) return
         realIndex = parseInt(seriesEl.getAttribute('rel'), 10) - 1
       }
 

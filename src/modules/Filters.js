@@ -16,7 +16,9 @@ class Filters {
   // create a re-usable filter which can be appended other filter effects and applied to multiple elements
   getDefaultFilter(el, i) {
     const w = this.w
-    el.unfilter(true)
+    if (el.unfilter) {
+      el.unfilter(true)
+    }
 
     let filter = new Filter()
     filter.size('120%', '180%', '-5%', '-40%')
@@ -28,7 +30,9 @@ class Filters {
 
   applyFilter(el, i, filterType) {
     const w = this.w
-    el.unfilter(true)
+    if (el.unfilter) {
+      el.unfilter(true)
+    }
 
     if (filterType === 'none') {
       this.getDefaultFilter(el, i)
@@ -38,30 +42,32 @@ class Filters {
     const shadowAttr = w.config.chart.dropShadow
     const brightnessFactor = filterType === 'lighten' ? 2 : 0.3
 
-    el.filterWith((add) => {
-      add.colorMatrix({
-        type: 'matrix',
-        values: `
-          ${brightnessFactor} 0 0 0 0
-          0 ${brightnessFactor} 0 0 0
-          0 0 ${brightnessFactor} 0 0
-          0 0 0 1 0
-        `,
-        in: 'SourceGraphic',
-        result: 'brightness',
+    if (el.filterWith) {
+      el.filterWith((add) => {
+        add.colorMatrix({
+          type: 'matrix',
+          values: `
+            ${brightnessFactor} 0 0 0 0
+            0 ${brightnessFactor} 0 0 0
+            0 0 ${brightnessFactor} 0 0
+            0 0 0 1 0
+          `,
+          in: 'SourceGraphic',
+          result: 'brightness',
+        })
+
+        if (shadowAttr.enabled) {
+          this.addShadow(add, i, shadowAttr, 'brightness')
+        }
       })
 
-      if (shadowAttr.enabled) {
-        this.addShadow(add, i, shadowAttr, 'brightness')
+      if (!shadowAttr.noUserSpaceOnUse) {
+        el.filterer()?.node?.setAttribute('filterUnits', 'userSpaceOnUse')
       }
-    })
 
-    if (!shadowAttr.noUserSpaceOnUse) {
-      el.filterer()?.node?.setAttribute('filterUnits', 'userSpaceOnUse')
+      // this scales the filter to a bigger size so that the dropshadow doesn't crops
+      this._scaleFilterSize(el.filterer()?.node)
     }
-
-    // this scales the filter to a bigger size so that the dropshadow doesn't crops
-    this._scaleFilterSize(el.filterer()?.node)
   }
 
   // appends dropShadow to the filter object which can be chained with other filter effects
@@ -109,7 +115,9 @@ class Filters {
   dropShadow(el, attrs, i = 0) {
     const w = this.w
 
-    el.unfilter(true)
+    if (el.unfilter) {
+      el.unfilter(true)
+    }
 
     if (Utils.isMsEdge() && w.config.chart.type === 'radialBar') {
       // in radialbar charts, dropshadow is clipping actual drawing in IE
@@ -122,16 +130,18 @@ class Filters {
       }
     }
 
-    el.filterWith((add) => {
-      this.addShadow(add, i, attrs, 'SourceGraphic')
-    })
+    if (el.filterWith) {
+      el.filterWith((add) => {
+        this.addShadow(add, i, attrs, 'SourceGraphic')
+      })
 
-    if (!attrs.noUserSpaceOnUse) {
-      el.filterer()?.node?.setAttribute('filterUnits', 'userSpaceOnUse')
+      if (!attrs.noUserSpaceOnUse) {
+        el.filterer()?.node?.setAttribute('filterUnits', 'userSpaceOnUse')
+      }
+
+      // this scales the filter to a bigger size so that the dropshadow doesn't crops
+      this._scaleFilterSize(el.filterer()?.node)
     }
-
-    // this scales the filter to a bigger size so that the dropshadow doesn't crops
-    this._scaleFilterSize(el.filterer()?.node)
 
     return el
   }

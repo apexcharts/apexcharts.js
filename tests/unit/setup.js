@@ -1,3 +1,12 @@
+import { vi } from 'vitest'
+
+globalThis.jest = {
+  ...vi,
+  fn: vi.fn,
+  spyOn: vi.spyOn,
+  mock: vi.mock,
+}
+
 if (
   typeof SVGElement !== 'undefined' &&
   typeof SVGElement.prototype.getBBox !== 'function'
