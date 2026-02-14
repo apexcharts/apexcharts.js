@@ -1,292 +1,158 @@
 /*
  * treemap-squarify.js - open source implementation of squarified treemaps
  *
- * Treemap Squared 0.5 - Treemap Charting library
- *
+ * Based on Treemap Squared 0.5 by Imran Ghory
  * https://github.com/imranghory/treemap-squared/
  *
  * Copyright (c) 2012 Imran Ghory (imranghory@gmail.com)
  * Licensed under the MIT (http://www.opensource.org/licenses/mit-license.php) license.
  *
- *
  * Implementation of the squarify treemap algorithm described in:
  *
  * Bruls, Mark; Huizing, Kees; van Wijk, Jarke J. (2000), "Squarified treemaps"
  * in de Leeuw, W.; van Liere, R., Data Visualization 2000:
- * Proc. Joint Eurographics and IEEE TCVG Symp. on Visualization, Springer-Verlag, pp. 33–42.
+ * Proc. Joint Eurographics and IEEE TCVG Symp. on Visualization, Springer-Verlag, pp. 33-42.
  *
- * Paper is available online at: http://www.win.tue.nl/~vanwijk/stm.pdf
- *
- * The code in this file is completeley decoupled from the drawing code so it should be trivial
- * to port it to any other vector drawing library. Given an array of datapoints this library returns
- * an array of cartesian coordinates that represent the rectangles that make up the treemap.
- *
- * The library also supports multidimensional data (nested treemaps) and performs normalization on the data.
- *
- * See the README file for more details.
  */
 
-const TreemapSquared = {}
-;(function() {
-  'use strict'
-  TreemapSquared.generate = (function() {
-    function Container(xoffset, yoffset, width, height) {
-      this.xoffset = xoffset // offset from the the top left hand corner
-      this.yoffset = yoffset // ditto
-      this.height = height
-      this.width = width
+function normalize(data, area) {
+  let sum = 0
+  for (let i = 0; i < data.length; i++) {
+    sum += data[i]
+  }
+  const multiplier = area / sum
+  const result = new Array(data.length)
+  for (let i = 0; i < data.length; i++) {
+    result[i] = data[i] * multiplier
+  }
+  return result
+}
 
-      this.shortestEdge = function() {
-        return Math.min(this.height, this.width)
-      }
+function calculateRatio(rowMin, rowMax, rowSum, length) {
+  const lengthSq = length * length
+  const sumSq = rowSum * rowSum
+  return Math.max(
+    (lengthSq * rowMax) / sumSq,
+    sumSq / (lengthSq * rowMin)
+  )
+}
 
-      // getCoordinates - for a row of boxes which we've placed
-      //                  return an array of their cartesian coordinates
-      this.getCoordinates = function(row) {
-        let coordinates = []
-        let subxoffset = this.xoffset,
-          subyoffset = this.yoffset //our offset within the container
-        let areawidth = sumArray(row) / this.height
-        let areaheight = sumArray(row) / this.width
-        let i
+function improvesRatio(rowLen, rowMin, rowMax, rowSum, nextNode, length) {
+  if (rowLen === 0) return true
 
-        if (this.width >= this.height) {
-          for (i = 0; i < row.length; i++) {
-            coordinates.push([
-              subxoffset,
-              subyoffset,
-              subxoffset + areawidth,
-              subyoffset + row[i] / areawidth
-            ])
-            subyoffset = subyoffset + row[i] / areawidth
-          }
-        } else {
-          for (i = 0; i < row.length; i++) {
-            coordinates.push([
-              subxoffset,
-              subyoffset,
-              subxoffset + row[i] / areaheight,
-              subyoffset + areaheight
-            ])
-            subxoffset = subxoffset + row[i] / areaheight
-          }
-        }
-        return coordinates
-      }
+  const currentRatio = calculateRatio(rowMin, rowMax, rowSum, length)
+  const newRatio = calculateRatio(
+    Math.min(rowMin, nextNode),
+    Math.max(rowMax, nextNode),
+    rowSum + nextNode,
+    length
+  )
 
-      // cutArea - once we've placed some boxes into an row we then need to identify the remaining area,
-      //           this function takes the area of the boxes we've placed and calculates the location and
-      //           dimensions of the remaining space and returns a container box defined by the remaining area
-      this.cutArea = function(area) {
-        let newcontainer
+  return currentRatio >= newRatio
+}
 
-        if (this.width >= this.height) {
-          let areawidth = area / this.height
-          let newwidth = this.width - areawidth
-          newcontainer = new Container(
-            this.xoffset + areawidth,
-            this.yoffset,
-            newwidth,
-            this.height
-          )
-        } else {
-          let areaheight = area / this.width
-          let newheight = this.height - areaheight
-          newcontainer = new Container(
-            this.xoffset,
-            this.yoffset + areaheight,
-            this.width,
-            newheight
-          )
-        }
-        return newcontainer
-      }
+function emitCoordinates(coords, row, rowLen, rowSum, xoffset, yoffset, width, height) {
+  if (width >= height) {
+    const areaWidth = rowSum / height
+    let subY = yoffset
+    for (let i = 0; i < rowLen; i++) {
+      const h = row[i] / areaWidth
+      coords.push([xoffset, subY, xoffset + areaWidth, subY + h])
+      subY += h
     }
-
-    // normalize - the Bruls algorithm assumes we're passing in areas that nicely fit into our
-    //             container box, this method takes our raw data and normalizes the data values into
-    //             area values so that this assumption is valid.
-    function normalize(data, area) {
-      let normalizeddata = []
-      let sum = sumArray(data)
-      let multiplier = area / sum
-      let i
-
-      for (i = 0; i < data.length; i++) {
-        normalizeddata[i] = data[i] * multiplier
-      }
-      return normalizeddata
+  } else {
+    const areaHeight = rowSum / width
+    let subX = xoffset
+    for (let i = 0; i < rowLen; i++) {
+      const w = row[i] / areaHeight
+      coords.push([subX, yoffset, subX + w, yoffset + areaHeight])
+      subX += w
     }
+  }
+}
 
-    // treemapMultidimensional - takes multidimensional data (aka [[23,11],[11,32]] - nested array)
-    //                           and recursively calls itself using treemapSingledimensional
-    //                           to create a patchwork of treemaps and merge them
-    function treemapMultidimensional(data, width, height, xoffset, yoffset) {
-      xoffset = typeof xoffset === 'undefined' ? 0 : xoffset
-      yoffset = typeof yoffset === 'undefined' ? 0 : yoffset
+function squarify(data, xoffset, yoffset, width, height) {
+  const coords = []
+  const n = data.length
+  if (n === 0) return coords
 
-      let mergeddata = []
-      let mergedtreemap
-      let results = []
-      let i
+  const row = new Array(n)
+  let rowLen = 0
+  let rowSum = 0
+  let rowMin = Infinity
+  let rowMax = -Infinity
 
-      if (isArray(data[0])) {
-        // if we've got more dimensions of depth
-        for (i = 0; i < data.length; i++) {
-          mergeddata[i] = sumMultidimensionalArray(data[i])
-        }
-        mergedtreemap = treemapSingledimensional(
-          mergeddata,
-          width,
-          height,
-          xoffset,
-          yoffset
-        )
+  let i = 0
+  while (i < n) {
+    const length = Math.min(width, height)
+    const val = data[i]
 
-        for (i = 0; i < data.length; i++) {
-          results.push(
-            treemapMultidimensional(
-              data[i],
-              mergedtreemap[i][2] - mergedtreemap[i][0],
-              mergedtreemap[i][3] - mergedtreemap[i][1],
-              mergedtreemap[i][0],
-              mergedtreemap[i][1]
-            )
-          )
-        }
+    if (improvesRatio(rowLen, rowMin, rowMax, rowSum, val, length)) {
+      row[rowLen] = val
+      rowLen++
+      rowSum += val
+      if (val < rowMin) rowMin = val
+      if (val > rowMax) rowMax = val
+      i++
+    } else {
+      emitCoordinates(coords, row, rowLen, rowSum, xoffset, yoffset, width, height)
+
+      if (width >= height) {
+        const areaWidth = rowSum / height
+        xoffset += areaWidth
+        width -= areaWidth
       } else {
-        results = treemapSingledimensional(
-          data,
-          width,
-          height,
-          xoffset,
-          yoffset
-        )
-      }
-      return results
-    }
-
-    // treemapSingledimensional - simple wrapper around squarify
-    function treemapSingledimensional(data, width, height, xoffset, yoffset) {
-      xoffset = typeof xoffset === 'undefined' ? 0 : xoffset
-      yoffset = typeof yoffset === 'undefined' ? 0 : yoffset
-
-      let rawtreemap = squarify(
-        normalize(data, width * height),
-        [],
-        new Container(xoffset, yoffset, width, height),
-        []
-      )
-      return flattenTreemap(rawtreemap)
-    }
-
-    // flattenTreemap - squarify implementation returns an array of arrays of coordinates
-    //                  because we have a new array everytime we switch to building a new row
-    //                  this converts it into an array of coordinates.
-    function flattenTreemap(rawtreemap) {
-      let flattreemap = []
-      let i, j
-
-      for (i = 0; i < rawtreemap.length; i++) {
-        for (j = 0; j < rawtreemap[i].length; j++) {
-          flattreemap.push(rawtreemap[i][j])
-        }
-      }
-      return flattreemap
-    }
-
-    // squarify  - as per the Bruls paper
-    //             plus coordinates stack and containers so we get
-    //             usable data out of it
-    function squarify(data, currentrow, container, stack) {
-      let length
-      let nextdatapoint
-      let newcontainer
-
-      if (data.length === 0) {
-        stack.push(container.getCoordinates(currentrow))
-        return
+        const areaHeight = rowSum / width
+        yoffset += areaHeight
+        height -= areaHeight
       }
 
-      length = container.shortestEdge()
-      nextdatapoint = data[0]
-
-      if (improvesRatio(currentrow, nextdatapoint, length)) {
-        currentrow.push(nextdatapoint)
-        squarify(data.slice(1), currentrow, container, stack)
-      } else {
-        newcontainer = container.cutArea(sumArray(currentrow), stack)
-        stack.push(container.getCoordinates(currentrow))
-        squarify(data, [], newcontainer, stack)
-      }
-      return stack
+      rowLen = 0
+      rowSum = 0
+      rowMin = Infinity
+      rowMax = -Infinity
     }
+  }
 
-    // improveRatio - implements the worse calculation and comparision as given in Bruls
-    //                (note the error in the original paper; fixed here)
-    function improvesRatio(currentrow, nextnode, length) {
-      let newrow
+  if (rowLen > 0) {
+    emitCoordinates(coords, row, rowLen, rowSum, xoffset, yoffset, width, height)
+  }
 
-      if (currentrow.length === 0) {
-        return true
-      }
+  return coords
+}
 
-      newrow = currentrow.slice()
-      newrow.push(nextnode)
+function generate(data, width, height) {
+  const n = data.length
 
-      let currentratio = calculateRatio(currentrow, length)
-      let newratio = calculateRatio(newrow, length)
-
-      // the pseudocode in the Bruls paper has the direction of the comparison
-      // wrong, this is the correct one.
-      return currentratio >= newratio
+  const sums = new Array(n)
+  for (let i = 0; i < n; i++) {
+    let s = 0
+    const series = data[i]
+    for (let j = 0; j < series.length; j++) {
+      s += series[j]
     }
+    sums[i] = s
+  }
 
-    // calculateRatio - calculates the maximum width to height ratio of the
-    //                  boxes in this row
-    function calculateRatio(row, length) {
-      let min = Math.min.apply(Math, row)
-      let max = Math.max.apply(Math, row)
-      let sum = sumArray(row)
-      return Math.max(
-        (Math.pow(length, 2) * max) / Math.pow(sum, 2),
-        Math.pow(sum, 2) / (Math.pow(length, 2) * min)
-      )
-    }
+  const seriesRects = squarify(
+    normalize(sums, width * height),
+    0, 0, width, height
+  )
 
-    // isArray - checks if arr is an array
-    function isArray(arr) {
-      return arr && arr.constructor === Array
-    }
+  const results = new Array(n)
+  for (let i = 0; i < n; i++) {
+    const rect = seriesRects[i]
+    const rx = rect[0]
+    const ry = rect[1]
+    const rw = rect[2] - rx
+    const rh = rect[3] - ry
+    results[i] = squarify(
+      normalize(data[i], rw * rh),
+      rx, ry, rw, rh
+    )
+  }
 
-    // sumArray - sums a single dimensional array
-    function sumArray(arr) {
-      let sum = 0
-      let i
+  return results
+}
 
-      for (i = 0; i < arr.length; i++) {
-        sum += arr[i]
-      }
-      return sum
-    }
-
-    // sumMultidimensionalArray - sums the values in a nested array (aka [[0,1],[[2,3]]])
-    function sumMultidimensionalArray(arr) {
-      let i,
-        total = 0
-
-      if (isArray(arr[0])) {
-        for (i = 0; i < arr.length; i++) {
-          total += sumMultidimensionalArray(arr[i])
-        }
-      } else {
-        total = sumArray(arr)
-      }
-      return total
-    }
-
-    return treemapMultidimensional
-  })()
-})()
-
-export default TreemapSquared
+export default { generate }
