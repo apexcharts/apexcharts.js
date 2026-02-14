@@ -61,6 +61,7 @@ export default class YAxis {
       else if (w.config.chart.type === 'heatmap') lY -= labelsDivider / 2
       lY += parseInt(yaxisFontSize, 10) / 3
 
+      let firstLabel = null
       for (let i = tickAmount; i >= 0; i--) {
         let val = lbFormatter(labels[i], i, w)
         let xPad = w.config.yaxis[realIndex].labels.padding
@@ -103,6 +104,10 @@ export default class YAxis {
 
         elYaxisTexts.add(label)
         this.addTooltip(label, val)
+
+        if (firstLabel === null) {
+          firstLabel = label
+        }
 
         if (w.config.yaxis[realIndex].labels.rotate !== 0) {
           this.rotateLabel(

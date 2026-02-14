@@ -258,7 +258,7 @@ export default class Labels {
     })
   }
 
-  DOMHandling({ i, t, j, ttItems, values, seriesName, shared, pColor }) {
+  DOMHandling({ t, j, ttItems, values, seriesName, shared, pColor }) {
     const w = this.w
     const ttCtx = this.ttCtx
 
@@ -331,7 +331,7 @@ export default class Labels {
       const createGoalsHtml = () => {
         let gLabels = '<div>'
         let gVals = '<div>'
-        goalVals.forEach((goal, gi) => {
+        goalVals.forEach((goal) => {
           gLabels += ` <div style="display: flex"><span class="apexcharts-tooltip-marker" style="background-color: ${goal.attrs.strokeColor}; height: 3px; border-radius: 0; top: 5px;"></span> ${goal.attrs.name}</div>`
           gVals += `<div>${goal.val}</div>`
         })

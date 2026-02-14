@@ -92,7 +92,9 @@ class Range {
             firstXIndex < lastXIndex &&
             gl.seriesX[i][firstXIndex] < cnf.xaxis.min;
             firstXIndex++
-          ) {}
+          ) {
+            // Intentionally empty - just incrementing firstXIndex
+          }
         }
         if (cnf.xaxis.max) {
           for (
@@ -100,7 +102,9 @@ class Range {
             lastXIndex > firstXIndex &&
             gl.seriesX[i][lastXIndex] > cnf.xaxis.max;
             lastXIndex--
-          ) {}
+          ) {
+            // Intentionally empty - just decrementing lastXIndex
+          }
         }
       }
       for (
@@ -565,7 +569,7 @@ class Range {
 
     if (gl.isXNumeric) {
       // get the least x diff if numeric x axis is present
-      gl.seriesX.forEach((sX, i) => {
+      gl.seriesX.forEach((sX) => {
         if (sX.length) {
           if (sX.length === 1) {
             // a small hack to prevent overlapping multiple bars when there is just 1 datapoint in bar series.

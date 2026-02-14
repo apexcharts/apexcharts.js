@@ -97,7 +97,7 @@ export default class Annotations {
     this.pointsAnnotations.addPointAnnotation(anno, parent, index)
   }
 
-  addText(params, index) {
+  addText(params) {
     const {
       x,
       y,
@@ -159,7 +159,7 @@ export default class Annotations {
     }
   }
 
-  addImage(params, index) {
+  addImage(params) {
     const w = this.w
 
     const {

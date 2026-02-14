@@ -16,7 +16,6 @@ function parsePath(d) {
   const re = /([MmLlHhVvCcSsQqTtAaZz])\s*/g
   const numRe = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi
   let match
-  let lastIndex = 0
   const letters = []
   const positions = []
 
@@ -382,7 +381,7 @@ function handleBlock(
     posStart = { pos: [0, 0], start: [0, 0] },
     posDest = { pos: [0, 0], start: [0, 0] }
 
-  do {
+  while (true) {
     startArrTemp[i] = simplify.call(posStart, startArrTemp[i])
     destArrTemp[i] = simplify.call(posDest, destArrTemp[i])
 
@@ -431,7 +430,7 @@ function handleBlock(
         posDest.pos[1],
       ])
     }
-  } while (true)
+  }
 
   return { start: startArrTemp, dest: destArrTemp }
 }
@@ -460,7 +459,7 @@ function synchronizePaths(fromD, toD) {
     )
 
     if (startOffsetM === false) {
-      var bbox = pathBbox(result.start)
+      let bbox = pathBbox(result.start)
       if (bbox.height == 0 || bbox.width == 0) {
         startOffsetM = startArr.push(startArr[0]) - 1
       } else {
@@ -474,7 +473,7 @@ function synchronizePaths(fromD, toD) {
     }
 
     if (destOffsetM === false) {
-      var bbox = pathBbox(result.dest)
+      let bbox = pathBbox(result.dest)
       if (bbox.height == 0 || bbox.width == 0) {
         destOffsetM = destArr.push(destArr[0]) - 1
       } else {

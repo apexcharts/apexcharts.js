@@ -48,6 +48,12 @@ export default [
     rules: {
       ...js.configs.recommended.rules,
       ...prettierConfig.rules,
+      'no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrors: 'none'
+      }],
+      'no-empty': ['error', { allowEmptyCatch: true }],
     },
   },
 

@@ -1,5 +1,3 @@
-import { SVGNS } from './math'
-
 export default class SVGElement {
   constructor(node) {
     this.node = node
@@ -243,14 +241,14 @@ export default class SVGElement {
 
   // ---- Animation (overridden by SVGAnimation mixin) ----
 
-  animate(duration, delay) {
+  animate() {
     // This will be set up by the animation module
     throw new Error('Animation module not loaded')
   }
 
   // ---- Filter methods (set up by SVGFilter module) ----
 
-  filterWith(fn) {
+  filterWith() {
     throw new Error('Filter module not loaded')
   }
 

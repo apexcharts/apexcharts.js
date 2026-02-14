@@ -305,14 +305,16 @@ export default class Core {
             elGraph = ctx.bar.draw(gl.series)
           }
           break
-        case 'candlestick':
+        case 'candlestick': {
           const candleStick = new BoxCandleStick(ctx, xyRatios)
           elGraph = candleStick.draw(gl.series, 'candlestick')
           break
-        case 'boxPlot':
+        }
+        case 'boxPlot': {
           const boxPlot = new BoxCandleStick(ctx, xyRatios)
           elGraph = boxPlot.draw(gl.series, cnf.chart.type)
           break
+        }
         case 'rangeBar':
           elGraph = ctx.rangeBar.draw(gl.series)
           break
@@ -324,14 +326,16 @@ export default class Core {
             gl.seriesRangeEnd
           )
           break
-        case 'heatmap':
+        case 'heatmap': {
           const heatmap = new HeatMap(ctx, xyRatios)
           elGraph = heatmap.draw(gl.series)
           break
-        case 'treemap':
+        }
+        case 'treemap': {
           const treemap = new Treemap(ctx, xyRatios)
           elGraph = treemap.draw(gl.series)
           break
+        }
         case 'pie':
         case 'donut':
         case 'polarArea':

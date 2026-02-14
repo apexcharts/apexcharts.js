@@ -191,10 +191,7 @@ class Intersect {
       y = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight
     }
 
-    const seriesIndex = parseInt(
-      opt.paths.parentNode.getAttribute('data:realIndex'),
-      10
-    )
+    
 
     if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {
       x = x - ttCtx.tooltipRect.ttWidth

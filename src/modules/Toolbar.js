@@ -1,6 +1,5 @@
 import Graphics from './Graphics'
 import Exports from './Exports'
-import Scales from './Scales'
 import Utils from './../utils/Utils'
 import icoPan from './../assets/ico-pan-hand.svg'
 import icoZoom from './../assets/ico-zoom-in.svg'
@@ -461,7 +460,7 @@ export default class Toolbar {
     }
   }
 
-  handleZoomReset(e) {
+  handleZoomReset() {
     const charts = this.ctx.getSyncedCharts()
 
     charts.forEach((ch) => {

@@ -13,7 +13,7 @@ import Utils from '../utils/Utils'
  **/
 
 export default class TreemapChart {
-  constructor(ctx, xyRatios) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
 

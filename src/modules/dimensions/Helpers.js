@@ -131,7 +131,7 @@ export default class Helpers {
     let valArr = val
     if (w.globals.isMultiLineX) {
       // if the xaxis labels has multiline texts (array)
-      let maxArrs = arr.map((xl, idx) => {
+      let maxArrs = arr.map((xl) => {
         return Array.isArray(xl) ? xl.length : 1
       })
       let maxArrLen = Math.max(...maxArrs)

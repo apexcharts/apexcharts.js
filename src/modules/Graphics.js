@@ -515,7 +515,6 @@ class Graphics {
     height,
     stroke = '#a8a8a8',
     strokeWidth = 0,
-    opacity = 1
   ) {
     let w = this.w
 
@@ -752,7 +751,7 @@ class Graphics {
         }`
         break
       case 'star':
-      case 'sparkle':
+      case 'sparkle': {
         let points = 5
         size = size * 1.15
         if (type === 'sparkle') {
@@ -771,6 +770,7 @@ class Graphics {
         }
         d += 'Z'
         break
+      }
       case 'triangle':
         d = `M ${x} ${y - size} 
              L ${x + size} ${y + size} 
@@ -981,7 +981,7 @@ class Graphics {
         // Reapply the hover filter in case it was removed by `deselect`when there is no active filter and it is not a touch device
         if (w.config.states.hover.filter !== 'none') {
           if (!w.globals.isTouchDevice) {
-            var hoverFilter = w.config.states.hover.filter
+            let hoverFilter = w.config.states.hover.filter
             filters.applyFilter(path, i, hoverFilter.type)
           }
         }
@@ -993,7 +993,7 @@ class Graphics {
           w.config.states.hover.filter.type !== 'none' &&
           !w.globals.isTouchDevice
         ) {
-          var hoverFilter = w.config.states.hover.filter
+          let hoverFilter = w.config.states.hover.filter
           filters.applyFilter(path, i, hoverFilter.type)
         } else {
           filters.getDefaultFilter(path, i)
@@ -1102,7 +1102,7 @@ class Graphics {
 
   static setAttrs(el, attrs) {
     for (let key in attrs) {
-      if (attrs.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(attrs, key)) {
         el.setAttribute(key, attrs[key])
       }
     }

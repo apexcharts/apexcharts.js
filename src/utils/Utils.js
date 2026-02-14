@@ -50,7 +50,7 @@ class Utils {
             let source = arguments[index]
             if (source !== undefined && source !== null) {
               for (let nextKey in source) {
-                if (source.hasOwnProperty(nextKey)) {
+                if (Object.prototype.hasOwnProperty.call(source, nextKey)) {
                   output[nextKey] = source[nextKey]
                 }
               }
@@ -133,7 +133,7 @@ class Utils {
         cloneResult = {}
         visited.set(source, cloneResult)
         for (let prop in source) {
-          if (source.hasOwnProperty(prop)) {
+          if (Object.prototype.hasOwnProperty.call(source, prop)) {
             cloneResult[prop] = this.clone(source[prop], visited, false)
           }
         }
@@ -489,7 +489,7 @@ class Utils {
 
   static setELstyles(el, styles) {
     for (let key in styles) {
-      if (styles.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(styles, key)) {
         el.style.key = styles[key]
       }
     }

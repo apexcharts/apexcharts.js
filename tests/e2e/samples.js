@@ -119,7 +119,7 @@ async function processSample(page, sample, command) {
 
     //Wait for the chart animation to end
     await page
-      .waitForFunction(() => chart.w.globals.animationEnded, { timeout: 5000 })
+      .waitForFunction(() => window.chart.w.globals.animationEnded, { timeout: 5000 })
       .catch(() => {})
 
     //Wait for all network requests to finish
@@ -131,7 +131,7 @@ async function processSample(page, sample, command) {
       return !(
         window.activeIntervalCount === 0 &&
         window.activeTimerCount === 0 &&
-        chart.w.globals.animationEnded
+        window.chart.w.globals.animationEnded 
       )
     })
 

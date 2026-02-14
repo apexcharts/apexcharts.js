@@ -516,7 +516,7 @@ export default class Defaults {
       },
       dataLabels: {
         enabled: false,
-        formatter(val, { ctx, seriesIndex, dataPointIndex, w }) {
+        formatter(val, { seriesIndex, dataPointIndex, w }) {
           const getVal = () => {
             const start =
               w.globals.seriesRangeStart[seriesIndex][dataPointIndex]

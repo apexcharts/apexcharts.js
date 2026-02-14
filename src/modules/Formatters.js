@@ -14,7 +14,7 @@ class Formatters {
     this.tooltipKeyFormat = 'dd MMM'
   }
 
-  xLabelFormat(fn, val, timestamp, opts) {
+  xLabelFormat(fn, val, timestamp, _opts) {
     let w = this.w
 
     if (w.config.xaxis.type === 'datetime') {
@@ -30,7 +30,7 @@ class Formatters {
       }
     }
 
-    return fn(val, timestamp, opts)
+    return fn(val, timestamp, _opts)
   }
 
   defaultGeneralFormatter(val) {
@@ -43,7 +43,7 @@ class Formatters {
     }
   }
 
-  defaultYFormatter(v, yaxe, i) {
+  defaultYFormatter(v, yaxe) {
     let w = this.w
 
     if (Utils.isNumber(v)) {

@@ -9,7 +9,7 @@ import Utils from '../utils/Utils'
  **/
 
 export default class Markers {
-  constructor(ctx, opts) {
+  constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
 
@@ -33,7 +33,7 @@ export default class Markers {
         }
       }
     } else {
-      w.globals.markers.size = w.config.series.map((s) => w.config.markers.size)
+      w.globals.markers.size = w.config.series.map(() => w.config.markers.size)
     }
   }
 

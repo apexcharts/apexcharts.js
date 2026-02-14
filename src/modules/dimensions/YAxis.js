@@ -135,7 +135,7 @@ export default class DimYAxis {
     let w = this.w
     let ret = []
 
-    w.config.yaxis.map((yaxe, index) => {
+    w.config.yaxis.map((yaxe) => {
       if (yaxe.show && yaxe.title.text !== undefined) {
         let graphics = new Graphics(this.dCtx.ctx)
         let rotateStr = 'rotate('.concat(yaxe.title.rotate, ' 0 0)')

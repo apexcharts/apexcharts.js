@@ -123,7 +123,7 @@ export default class Tooltip {
     this.xyRatios = xyRatios
     this.isXAxisTooltipEnabled =
       w.config.xaxis.tooltip.enabled && w.globals.axisCharts
-    this.yaxisTooltips = w.config.yaxis.map((y, i) => {
+    this.yaxisTooltips = w.config.yaxis.map((y) => {
       return y.show && y.tooltip.enabled && w.globals.axisCharts ? true : false
     })
     this.allTooltipSeriesGroups = []

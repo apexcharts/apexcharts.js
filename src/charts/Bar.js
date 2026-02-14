@@ -230,6 +230,8 @@ class Bar {
                 : Utils.hexToRgba(w.globals.colors[i]),
             prevPaths: this.pathArr[this.pathArr.length - 1],
             currPaths: paths,
+            realIndex,
+            j,
           })
 
           elBarShadows.add(barShadow)

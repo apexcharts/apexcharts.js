@@ -277,7 +277,7 @@ class TimeScale {
     return filteredTimeScale
   }
 
-  recalcDimensionsBasedOnFormat(filteredTimeScale, inverted) {
+  recalcDimensionsBasedOnFormat(filteredTimeScale) {
     const w = this.w
     const reformattedTimescaleArray = this.formatDates(filteredTimeScale)
 

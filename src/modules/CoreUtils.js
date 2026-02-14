@@ -234,7 +234,7 @@ class CoreUtils {
         unassignedYAxisIndices.push(yi)
       }
     })
-    axisSeriesMap = axisSeriesMap.map((yaxe, yi) => {
+    axisSeriesMap = axisSeriesMap.map((yaxe) => {
       let ra = []
       yaxe.forEach((sa) => {
         seriesYAxisReverseMap[sa[1]] = sa[0]
@@ -308,7 +308,7 @@ class CoreUtils {
     const w = this.w
     let catLabels = labels.slice()
     if (w.config.xaxis.convertedCatToNumeric) {
-      catLabels = labels.map((i, li) => {
+      catLabels = labels.map((i) => {
         return w.config.xaxis.labels.formatter(i - w.globals.minX + 1)
       })
     }
@@ -363,7 +363,7 @@ class CoreUtils {
   getSeriesTotals() {
     const w = this.w
 
-    w.globals.seriesTotals = w.globals.series.map((ser, index) => {
+    w.globals.seriesTotals = w.globals.series.map((ser) => {
       let total = 0
 
       if (Array.isArray(ser)) {
@@ -409,7 +409,7 @@ class CoreUtils {
   getPercentSeries() {
     const w = this.w
 
-    w.globals.seriesPercent = w.globals.series.map((ser, index) => {
+    w.globals.seriesPercent = w.globals.series.map((ser) => {
       let seriesPercent = []
       if (Array.isArray(ser)) {
         for (let j = 0; j < ser.length; j++) {

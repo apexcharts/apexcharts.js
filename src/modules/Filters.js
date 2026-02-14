@@ -160,7 +160,7 @@ class Filters {
     if (!el) return
     const setAttributes = (attrs) => {
       for (let key in attrs) {
-        if (attrs.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(attrs, key)) {
           el.setAttribute(key, attrs[key])
         }
       }

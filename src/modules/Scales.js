@@ -589,7 +589,6 @@ export default class Scales {
   setXScale(minX, maxX) {
     const w = this.w
     const gl = w.globals
-    let diff = Math.round(Math.abs(maxX - minX))
     if (maxX === -Number.MAX_VALUE || !Utils.isNumber(maxX)) {
       // no data in the chart. Either all series collapsed or user passed a blank array
       gl.xAxisScale = this.linearScale(0, 10, 10)

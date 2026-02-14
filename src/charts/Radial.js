@@ -497,7 +497,7 @@ class Radial extends Pie {
         })
         g.add(image)
       } else {
-        let image = w.globals.dom.Paper.image(hollowFillImg, function (loader) {
+        let image = w.globals.dom.Paper.image(hollowFillImg, function () {
           this.move(
             opts.centerX -
               imgWidth / 2 +

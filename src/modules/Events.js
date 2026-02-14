@@ -11,7 +11,7 @@ export default class Events {
   addEventListener(name, handler) {
     const w = this.w
 
-    if (w.globals.events.hasOwnProperty(name)) {
+    if (Object.prototype.hasOwnProperty.call(w.globals.events, name)) {
       w.globals.events[name].push(handler)
     } else {
       w.globals.events[name] = [handler]
@@ -20,7 +20,7 @@ export default class Events {
 
   removeEventListener(name, handler) {
     const w = this.w
-    if (!w.globals.events.hasOwnProperty(name)) {
+    if (!Object.prototype.hasOwnProperty.call(w.globals.events, name)) {
       return
     }
 
@@ -33,7 +33,7 @@ export default class Events {
   fireEvent(name, args) {
     const w = this.w
 
-    if (!w.globals.events.hasOwnProperty(name)) {
+    if (!Object.prototype.hasOwnProperty.call(w.globals.events, name)) {
       return
     }
 

@@ -199,10 +199,10 @@ export default class Data {
     gl.seriesRange[i] = range.rangeUniques
 
     // check for overlaps to avoid clashes in a timeline chart
-    gl.seriesRange.forEach((sr, si) => {
+    gl.seriesRange.forEach((sr) => {
       if (!sr) return
 
-      sr.forEach((sarr, sarri) => {
+      sr.forEach((sarr) => {
         const yItems = sarr.y
         const len = yItems.length
 
@@ -719,7 +719,7 @@ export default class Data {
         if (this.isFormatXY()) {
           // in case there is a combo chart (boxplot/scatter)
           // and there are duplicated x values, we need to eliminate duplicates
-          const seriesDataFiltered = cnf.series.map((serie, s) => {
+          const seriesDataFiltered = cnf.series.map((serie) => {
             return serie.data.filter(
               (v, i, a) => a.findIndex((t) => t.x === v.x) === i
             )
@@ -820,8 +820,8 @@ export default class Data {
       if (
         (typeof firstDataPoint === 'object' &&
           firstDataPoint !== null &&
-          (firstDataPoint.hasOwnProperty('x') ||
-            firstDataPoint.hasOwnProperty('y'))) ||
+          (Object.prototype.hasOwnProperty.call(firstDataPoint, 'x') ||
+            Object.prototype.hasOwnProperty.call(firstDataPoint, 'y'))) ||
         Array.isArray(firstDataPoint)
       ) {
         return serie

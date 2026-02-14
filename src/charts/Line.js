@@ -694,7 +694,6 @@ class Line {
         type,
         series,
         i,
-        realIndex,
         j,
         x,
         y,
@@ -799,7 +798,6 @@ class Line {
     type,
     series,
     i,
-    realIndex,
     j,
     x,
     y,
@@ -824,7 +822,7 @@ class Line {
     let isLowerRangeAreaPath = type === 'rangeArea' && isRangeStart
 
     switch (curve) {
-      case 'monotoneCubic':
+      case 'monotoneCubic': {
         let yAj = isRangeStart ? yArrj : y2Arrj
         let getSmoothInputs = (xArr, yArr) => {
           return xArr
@@ -867,7 +865,7 @@ class Line {
               break
             }
             pathState = 1
-          // continue through to pathState 1
+          // falls through
           case 1:
             if (
               !(rangeArea
@@ -876,8 +874,8 @@ class Line {
             ) {
               break
             }
-          // continue through to pathState 2
-          case 2:
+            // falls through
+          case 2: {
             // Interpolate the full series with nulls excluded then extract the
             // null delimited segments with interpolated points included.
             const _xAj = isRangeStart ? xArrj : xArrj.slice().reverse()
@@ -956,9 +954,11 @@ class Line {
             }
             pathState = 0
             break
+          }
         }
         break
-      case 'smooth':
+      }
+      case 'smooth': {
         let length = (x - pX) * 0.35
         if (series[i][j] === null) {
           pathState = 0
@@ -992,7 +992,7 @@ class Line {
                 areaPath += p
                 break
               }
-            // Continue on with pathState 1 to finish the path and exit
+            // falls through
             case 1:
               // Continuing with segment
               if (series[i][j + 1] === null) {
@@ -1036,7 +1036,8 @@ class Line {
         pY = y
 
         break
-      default:
+      }
+      default: {
         let pathToPoint = (curve, x, y) => {
           let path = []
           switch (curve) {
@@ -1084,7 +1085,7 @@ class Line {
                 areaPath += p
                 break
               }
-            // Continue on with pathState 1 to finish the path and exit
+            // falls through
             case 1:
               // Continuing with segment
               if (series[i][j + 1] === null) {
@@ -1127,6 +1128,7 @@ class Line {
         pY = y
 
         break
+      }
     }
 
     return {

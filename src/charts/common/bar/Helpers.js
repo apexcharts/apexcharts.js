@@ -1,4 +1,3 @@
-import Fill from '../../../modules/Fill'
 import Graphics from '../../../modules/Graphics'
 import Series from '../../../modules/Series'
 import Utils from '../../../utils/Utils'
@@ -751,7 +750,7 @@ export default class Helpers {
     return lineGroup
   }
 
-  drawBarShadow({ prevPaths, currPaths, color }) {
+  drawBarShadow({ prevPaths, currPaths, color, realIndex, j }) {
     const w = this.w
     const { x: prevX2, x1: prevX1, barYPosition: prevY1 } = prevPaths
     const { x: currX2, x1: currX1, barYPosition: currY1 } = currPaths

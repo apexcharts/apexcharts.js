@@ -242,7 +242,7 @@ class Fill {
     }
 
     if (useGradient) {
-      let colorStops = [...cnf.fill.gradient.colorStops] || []
+      let colorStops = cnf.fill.gradient.colorStops ? [...cnf.fill.gradient.colorStops] : []
       let type = cnf.fill.gradient.type
       if (drawMultiColorLine) {
         colorStops[this.seriesIndex] = this.computeColorStops(

@@ -203,7 +203,6 @@ class BoxCandleStick extends Bar {
   drawVerticalBoxPaths({
     indexes,
     x,
-    y,
     xDivision,
     barWidth,
     zeroH,
@@ -351,7 +350,6 @@ class BoxCandleStick extends Bar {
 
   drawHorizontalBoxPaths({
     indexes,
-    x,
     y,
     yDivision,
     barHeight,

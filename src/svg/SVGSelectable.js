@@ -24,7 +24,6 @@ function installSelectable(ElementClass) {
       parent.appendChild(handleGroup)
     }
 
-    const handleGroupContainer = new SVGContainer(handleGroup)
     const handles = {}
 
     // Create handles for all edge positions

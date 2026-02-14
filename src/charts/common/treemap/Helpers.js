@@ -15,7 +15,7 @@ export default class TreemapHelpers {
     let chartOpts = w.config.plotOptions[w.config.chart.type]
 
     if (chartOpts.colorScale.ranges.length > 0) {
-      chartOpts.colorScale.ranges.map((range, index) => {
+      chartOpts.colorScale.ranges.map((range) => {
         if (range.from <= 0) {
           negRange = true
         }
@@ -125,7 +125,7 @@ export default class TreemapHelpers {
 
     if (chartOpts.colorScale.ranges.length > 0) {
       const colorRange = chartOpts.colorScale.ranges
-      colorRange.map((range, index) => {
+      colorRange.map((range) => {
         if (val >= range.from && val <= range.to) {
           color = range.color
           foreColor = range.foreColor ? range.foreColor : null

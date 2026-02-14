@@ -149,7 +149,7 @@ class DateTime {
     return format
   }
 
-  getTimeUnitsfromTimestamp(minX, maxX, utc) {
+  getTimeUnitsfromTimestamp(minX, maxX) {
     let w = this.w
 
     if (w.config.xaxis.min !== undefined) {

@@ -187,7 +187,6 @@ export default class BarDataLabels {
       i,
       j,
       realIndex,
-      columnGroupIndex,
       y,
       bcx,
       barWidth,
@@ -663,7 +662,6 @@ export default class BarDataLabels {
     textAnchor,
     barTotalDataLabelsConfig,
   }) {
-    const w = this.w
     const graphics = new Graphics(this.barCtx.ctx)
 
     let totalDataLabelText
