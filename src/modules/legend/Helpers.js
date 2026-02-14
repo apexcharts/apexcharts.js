@@ -222,7 +222,7 @@ export default class Helpers {
       })
     } else {
       series.forEach((s, sI) => {
-        if (!w.globals.collapsedSeriesIndices.indexOf(sI) < 0) {
+        if (w.globals.collapsedSeriesIndices.indexOf(sI) >= 0) {
           series[sI] = 0
           collapsed++
         }
