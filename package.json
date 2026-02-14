@@ -34,11 +34,6 @@
     "build:samples": "node samples/source/index.js generate"
   },
   "dependencies": {
-    "@svgdotjs/svg.draggable.js": "^3.0.4",
-    "@svgdotjs/svg.filter.js": "^3.0.8",
-    "@svgdotjs/svg.js": "^3.2.4",
-    "@svgdotjs/svg.resize.js": "^2.0.2",
-    "@svgdotjs/svg.select.js": "^4.0.1",
     "@yr/monotone-cubic-spline": "^1.0.3"
   },
   "devDependencies": {
@@ -80,7 +75,7 @@
   "homepage": "https://apexcharts.com",
   "sideEffects": [
     "*.css",
-    "./src/svgjs/*.js",
+    "./src/svg/index.js",
     "./src/modules/helpers/InitCtxVariables.js"
   ],
   "keywords": [

@@ -1,5 +1,3 @@
-import Filter from '@svgdotjs/svg.filter.js'
-
 import Utils from './../utils/Utils'
 
 /**
@@ -19,9 +17,6 @@ class Filters {
     if (el.unfilter) {
       el.unfilter(true)
     }
-
-    let filter = new Filter()
-    filter.size('120%', '180%', '-5%', '-40%')
 
     if (w.config.chart.dropShadow.enabled) {
       this.dropShadow(el, w.config.chart.dropShadow, i)

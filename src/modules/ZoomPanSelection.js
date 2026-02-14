@@ -1,7 +1,7 @@
 import Graphics from './Graphics'
 import Utils from './../utils/Utils'
 import Toolbar from './Toolbar'
-import { Box } from '@svgdotjs/svg.js'
+import { Box } from '../svg/index'
 
 /**
  * ApexCharts Zoom Class for handling zooming and panning on axes based charts.
