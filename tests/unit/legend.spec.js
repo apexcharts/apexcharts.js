@@ -746,7 +746,7 @@ describe('Legend', () => {
   // =========================================================================
   describe('onLegendClick', () => {
     it('should not proceed when customLegendItems is set', () => {
-      const legendClickSpy = jest.fn()
+      const legendClickSpy = vi.fn()
 
       const chart = chartWithLegend({
         series: [
@@ -770,7 +770,7 @@ describe('Legend', () => {
     })
 
     it('should fire legendClick event callback when legend item is clicked', () => {
-      const legendClickSpy = jest.fn()
+      const legendClickSpy = vi.fn()
 
       const chart = chartWithLegend({
         series: [
@@ -791,7 +791,7 @@ describe('Legend', () => {
     })
 
     it('should fire markerClick callback when a legend marker is clicked', () => {
-      const markerClickSpy = jest.fn()
+      const markerClickSpy = vi.fn()
 
       const chart = chartWithLegend({
         series: [
