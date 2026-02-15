@@ -228,6 +228,25 @@ class Legend {
 
       let elLegend = document.createElement('div')
 
+      // accessibility attributes
+      if (
+        w.config.chart.accessibility.enabled &&
+        w.config.chart.accessibility.keyboard.enabled
+      ) {
+        elLegend.setAttribute('role', 'button')
+        elLegend.setAttribute('tabindex', '0')
+
+        // Use formatted legend text (handle both string and array)
+        const seriesName = Array.isArray(text) ? text.join(' ') : text
+        const isCollapsed = collapsedSeries || ancillaryCollapsedSeries
+        const statusText = isCollapsed ? 'hidden' : 'visible'
+        elLegend.setAttribute(
+          'aria-label',
+          `${seriesName}, ${statusText}. Press Enter or Space to toggle.`
+        )
+        elLegend.setAttribute('aria-pressed', isCollapsed ? 'true' : 'false')
+      }
+
       let elLegendText = document.createElement('span')
       elLegendText.classList.add('apexcharts-legend-text')
       elLegendText.innerHTML = Array.isArray(text) ? text.join(' ') : text
@@ -341,6 +360,14 @@ class Legend {
         me.onLegendHovered,
         true
       )
+    }
+
+    // keyboard navigation support
+    if (
+      w.config.chart.accessibility.enabled &&
+      w.config.chart.accessibility.keyboard.enabled
+    ) {
+      w.globals.dom.elWrap.addEventListener('keydown', me.onLegendKeyDown.bind(me), true)
     }
   }
 
@@ -458,6 +485,27 @@ class Legend {
         let series = new Series(this.ctx)
         series.highlightRangeInSeries(e, e.target)
       }
+    }
+  }
+
+  onLegendKeyDown(e) {
+    const w = this.w
+    const me = this
+
+    // Check if event target is a legend item
+    const isLegendItem =
+      e.target.classList.contains('apexcharts-legend-series') ||
+      e.target.classList.contains('apexcharts-legend-text') ||
+      e.target.classList.contains('apexcharts-legend-marker')
+
+    if (!isLegendItem) return
+
+    // Handle Enter or Space key
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault() // Prevent page scroll on Space
+
+      // Trigger click handler
+      me.onLegendClick(e)
     }
   }
 

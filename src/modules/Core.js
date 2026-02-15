@@ -98,6 +98,27 @@ export default class Core {
 
     this.setSVGDimensions()
 
+    if (cnf.chart.accessibility.enabled) {
+      const ariaLabel = this.getAccessibleChartLabel()
+
+      gl.dom.Paper.attr({
+        role: 'img',
+        'aria-label': ariaLabel,
+      })
+
+      // Add title element for screen readers
+      const titleEl = document.createElementNS(gl.SVGNS, 'title')
+      titleEl.textContent = cnf.title.text || 'Chart'
+      gl.dom.Paper.node.insertBefore(titleEl, gl.dom.Paper.node.firstChild)
+
+      // Add desc element when description is provided
+      if (cnf.chart.accessibility.description) {
+        const descEl = document.createElementNS(gl.SVGNS, 'desc')
+        descEl.textContent = cnf.chart.accessibility.description
+        gl.dom.Paper.node.insertBefore(descEl, titleEl.nextSibling)
+      }
+    }
+
     gl.dom.elLegendForeign = document.createElementNS(gl.SVGNS, 'foreignObject')
     Graphics.setAttrs(gl.dom.elLegendForeign, {
       x: 0,
@@ -611,5 +632,30 @@ export default class Core {
         })
       }
     }
+  }
+
+  getAccessibleChartLabel() {
+    const w = this.w
+    const cnf = w.config
+
+    // Build descriptive label from available metadata
+    let label = ''
+
+    if (cnf.chart.accessibility && cnf.chart.accessibility.description) {
+      label = cnf.chart.accessibility.description
+    } else if (cnf.title.text) {
+      const chartType = cnf.chart.type
+      label = `${cnf.title.text}. ${chartType} chart`
+      if (cnf.subtitle.text) {
+        label += `. ${cnf.subtitle.text}`
+      }
+    } else {
+      const chartType = cnf.chart.type
+      // Use config.series if globals.series is not yet populated
+      const seriesCount = w.globals.series.length || (cnf.series ? cnf.series.length : 0)
+      label = `${chartType} chart with ${seriesCount} data series`
+    }
+
+    return label
   }
 }

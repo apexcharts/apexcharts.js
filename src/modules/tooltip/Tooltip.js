@@ -138,6 +138,18 @@ export default class Tooltip {
       tooltipEl.classList.add(w.config.tooltip.cssClass)
     }
     tooltipEl.classList.add(`apexcharts-theme-${this.tConfig.theme || 'light'}`)
+
+    // accessibility attributes
+    if (
+      w.config.chart.accessibility.enabled &&
+      w.config.chart.accessibility.announcements.enabled
+    ) {
+      tooltipEl.setAttribute('role', 'tooltip')
+      tooltipEl.setAttribute('aria-live', 'polite')
+      tooltipEl.setAttribute('aria-atomic', 'true')
+      tooltipEl.setAttribute('aria-hidden', 'true')
+    }
+
     w.globals.dom.elWrap.appendChild(tooltipEl)
 
     if (w.globals.axisCharts) {
@@ -686,6 +698,9 @@ export default class Tooltip {
 
       w.globals.dom.baseEl.classList.add('apexcharts-tooltip-active')
       opt.tooltipEl.classList.add('apexcharts-active')
+      if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
+        opt.tooltipEl.removeAttribute('aria-hidden')
+      }
     } else if (e.type === 'mouseout' || e.type === 'touchend') {
       this.handleMouseOut(opt)
     }
@@ -703,6 +718,9 @@ export default class Tooltip {
     if (e.type === 'mousemove' || e.type === 'touchmove') {
       w.globals.dom.baseEl.classList.add('apexcharts-tooltip-active')
       tooltipEl.classList.add('apexcharts-active')
+      if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
+        tooltipEl.removeAttribute('aria-hidden')
+      }
 
       this.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
@@ -827,6 +845,9 @@ export default class Tooltip {
     w.globals.dom.baseEl.classList.remove('apexcharts-tooltip-active')
 
     opt.tooltipEl.classList.remove('apexcharts-active')
+    if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
+      opt.tooltipEl.setAttribute('aria-hidden', 'true')
+    }
     this.deactivateHoverFilter()
     if (w.config.chart.type !== 'bubble') {
       this.marker.resetPointsSize()

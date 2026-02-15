@@ -75,7 +75,27 @@ export default class Events {
             dataPointIndex: capturedDataPointIndex,
           })
 
-          if (e.type === 'mousemove' || e.type === 'touchmove') {
+          if (e.type === 'keydown') {
+            if (
+              w.config.chart.accessibility.enabled &&
+              w.config.chart.accessibility.keyboard.enabled
+            ) {
+              if (typeof w.config.chart.events.keyDown === 'function') {
+                w.config.chart.events.keyDown(e, me, opts)
+              }
+              me.ctx.events.fireEvent('keydown', [e, me, opts])
+            }
+          } else if (e.type === 'keyup') {
+            if (
+              w.config.chart.accessibility.enabled &&
+              w.config.chart.accessibility.keyboard.enabled
+            ) {
+              if (typeof w.config.chart.events.keyUp === 'function') {
+                w.config.chart.events.keyUp(e, me, opts)
+              }
+              me.ctx.events.fireEvent('keyup', [e, me, opts])
+            }
+          } else if (e.type === 'mousemove' || e.type === 'touchmove') {
             if (typeof w.config.chart.events.mouseMove === 'function') {
               w.config.chart.events.mouseMove(e, me, opts)
             }

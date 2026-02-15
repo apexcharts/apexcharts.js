@@ -302,6 +302,8 @@ export default class Options {
           zoomed: undefined,
           scrolled: undefined,
           brushScrolled: undefined,
+          keyDown: undefined,
+          keyUp: undefined,
         },
         foreColor: '#373d3f',
         fontFamily: 'Helvetica, Arial, sans-serif',
@@ -401,6 +403,16 @@ export default class Options {
               opacity: 0.4,
               width: 1,
             },
+          },
+        },
+        accessibility: {
+          enabled: true,
+          description: undefined,
+          announcements: {
+            enabled: true,
+          },
+          keyboard: {
+            enabled: true,
           },
         },
       },

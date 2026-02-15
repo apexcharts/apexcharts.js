@@ -148,6 +148,8 @@ type ApexChart = {
     zoomed?(chart: any, options?: any): void
     scrolled?(chart: any, options?: any): void
     brushScrolled?(chart: any, options?: any): void
+    keyDown?(e: KeyboardEvent, chart?: any, options?: any): void
+    keyUp?(e: KeyboardEvent, chart?: any, options?: any): void
   }
   brush?: {
     enabled?: boolean
@@ -258,6 +260,16 @@ type ApexChart = {
     dynamicAnimation?: {
       enabled?: boolean
       speed?: number
+    }
+  }
+  accessibility?: {
+    enabled?: boolean
+    description?: string
+    announcements?: {
+      enabled?: boolean
+    }
+    keyboard?: {
+      enabled?: boolean
     }
   }
 }

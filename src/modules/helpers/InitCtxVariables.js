@@ -77,6 +77,8 @@ export default class InitCtxVariables {
       'touchleave',
       'mouseup',
       'touchend',
+      'keydown',
+      'keyup',
     ]
 
     this.ctx.animations = new Animations(this.ctx)

@@ -58,6 +58,20 @@ rect.legend-mouseover-inactive,
   margin-left: -15px;
 }
 
+.apexcharts-legend-series[role="button"]:focus {
+  outline: 2px solid #008FFB;
+  outline-offset: 2px;
+}
+
+.apexcharts-legend-series[role="button"]:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.apexcharts-legend-series[role="button"]:focus-visible {
+  outline: 2px solid #008FFB;
+  outline-offset: 2px;
+}
+
 .apexcharts-series-collapsed {
   opacity: 0
 }
