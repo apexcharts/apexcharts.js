@@ -426,7 +426,6 @@ var optionsCircle4 = {
     type: 'radialBar',
   },
   colors: ['#775DD0', '#00C8E1', '#FFB900'],
-  labels: ['q4'],
   series: [71, 63, 77],
   labels: ['June', 'May', 'April'],
   theme: {

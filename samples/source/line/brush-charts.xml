@@ -79,9 +79,6 @@ chart: {
   }
 },
 colors: ['#008FFB', '#00E396'],
-stroke: {
-  width: 3
-},
 dataLabels: {
   enabled: false
 },
