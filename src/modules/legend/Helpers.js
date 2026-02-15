@@ -192,6 +192,7 @@ export default class Helpers {
           collapsedSeries.splice(c, 1)
           seriesIndices.splice(c, 1)
           w.globals.risingSeries.push(realIndex)
+          c--
         }
       }
 
@@ -222,7 +223,7 @@ export default class Helpers {
       })
     } else {
       series.forEach((s, sI) => {
-        if (!w.globals.collapsedSeriesIndices.indexOf(sI) < 0) {
+        if (!(w.globals.collapsedSeriesIndices.indexOf(sI) < 0)) {
           series[sI] = 0
           collapsed++
         }

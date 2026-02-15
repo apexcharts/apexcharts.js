@@ -10,9 +10,7 @@ class Utils {
   }
 
   static isObject(item) {
-    return (
-      item && typeof item === 'object' && !Array.isArray(item) && item != null
-    )
+    return item && typeof item === 'object' && !Array.isArray(item)
   }
 
   // Type checking that works across different window objects

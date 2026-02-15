@@ -332,7 +332,7 @@ export default class Core {
           break
         }
         case 'treemap': {
-          const treemap = new Treemap(ctx, xyRatios)
+          const treemap = new Treemap(ctx)
           elGraph = treemap.draw(gl.series)
           break
         }
