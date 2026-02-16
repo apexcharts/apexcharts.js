@@ -1293,5 +1293,5 @@ type ApexTheme = {
 }
 
 declare module 'apexcharts' {
-  export = ApexCharts
+  export default ApexCharts
 }

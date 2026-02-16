@@ -14,6 +14,7 @@
   "typings": "types/apexcharts.d.ts",
   "exports": {
     ".": {
+      "types": "./types/apexcharts.d.ts",
       "browser": {
         "import": "./dist/apexcharts.esm.js",
         "require": "./dist/apexcharts.common.js"
@@ -25,10 +26,12 @@
       "default": "./dist/apexcharts.esm.js"
     },
     "./ssr": {
+      "types": "./types/apexcharts.d.ts",
       "import": "./dist/apexcharts.ssr.esm.js",
       "require": "./dist/apexcharts.ssr.common.js"
     },
     "./client": {
+      "types": "./types/apexcharts.d.ts",
       "import": "./dist/apexcharts.esm.js",
       "require": "./dist/apexcharts.common.js"
     },
