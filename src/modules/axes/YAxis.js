@@ -293,7 +293,6 @@ export default class YAxis {
         })
 
         elXaxisTexts.add(elTick)
-        elTick.tspan(val)
         this.addTooltip(elTick, val)
         l += labelsDivider
       }
