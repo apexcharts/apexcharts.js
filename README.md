@@ -57,6 +57,8 @@ Useful links to wrappers other than the popular frameworks mentioned above
 
 ## Usage
 
+### Client-Side (Browser)
+
 ```js
 import ApexCharts from 'apexcharts'
 ```
@@ -81,6 +83,38 @@ var options = {
 
 var chart = new ApexCharts(document.querySelector('#chart'), options)
 chart.render()
+```
+
+### Server-Side Rendering (SSR)
+
+ApexCharts now supports SSR for Next.js, Nuxt, SvelteKit, Astro, and other meta-frameworks:
+
+```js
+import ApexCharts from 'apexcharts/ssr'
+
+const chartHTML = await ApexCharts.renderToHTML({
+  series: [{ data: [30, 40, 35, 50, 49, 60, 70, 91, 125] }],
+  chart: { type: 'bar' },
+  xaxis: {
+    categories: [1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999]
+  }
+}, {
+  width: 500,
+  height: 300
+})
+
+// Returns hydration-ready HTML with embedded SVG
+```
+
+```js
+// Client-side hydration (makes chart interactive)
+import ApexCharts from 'apexcharts/client'
+
+// Hydrate specific chart
+ApexCharts.hydrate(document.getElementById('my-chart'))
+
+// Or hydrate all charts on the page
+ApexCharts.hydrateAll()
 ```
 
 This will render the following chart

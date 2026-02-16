@@ -1,5 +1,5 @@
-(function(global, factory) {
-  typeof exports === "object" && typeof module !== "undefined" ? module.exports = factory() : typeof define === "function" && define.amd ? define(factory) : (global = typeof globalThis !== "undefined" ? globalThis : global || self, global.ApexCharts = factory());
+(function(global2, factory) {
+  typeof exports === "object" && typeof module !== "undefined" ? module.exports = factory() : typeof define === "function" && define.amd ? define(factory) : (global2 = typeof globalThis !== "undefined" ? globalThis : global2 || self, global2.ApexCharts = factory());
 })(this, (function() {
   "use strict";var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
@@ -21,10 +21,487 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.4.0
+ * ApexCharts v5.5.0
  * (c) 2018-2026 ApexCharts
  */
 
+  class Environment {
+    /**
+     * Check if running in server-side rendering environment (Node.js)
+     * @returns {boolean} True if in SSR/Node.js, false if in browser
+     */
+    static isSSR() {
+      return typeof window === "undefined" || typeof document === "undefined";
+    }
+    /**
+     * Check if running in browser environment
+     * @returns {boolean} True if in browser, false if in SSR/Node.js
+     */
+    static isBrowser() {
+      return !this.isSSR();
+    }
+    /**
+     * Check if a specific browser API is available
+     * @param {string} api - Name of the API to check (e.g., 'ResizeObserver')
+     * @returns {boolean} True if API is available
+     */
+    static hasAPI(api) {
+      if (this.isSSR()) return false;
+      return typeof window[api] !== "undefined";
+    }
+  }
+  class SSRElement {
+    constructor(nodeName, namespaceURI = null) {
+      this.nodeName = nodeName;
+      this.namespaceURI = namespaceURI;
+      this.attributes = /* @__PURE__ */ new Map();
+      this.children = [];
+      this.textContent = "";
+      this.style = {};
+      this.classList = new SSRClassList();
+      this.parentNode = null;
+    }
+    setAttribute(name2, value) {
+      this.attributes.set(name2, value);
+    }
+    getAttribute(name2) {
+      return this.attributes.get(name2);
+    }
+    removeAttribute(name2) {
+      this.attributes.delete(name2);
+    }
+    hasAttribute(name2) {
+      return this.attributes.has(name2);
+    }
+    appendChild(child) {
+      if (child && child !== this) {
+        child.parentNode = this;
+        this.children.push(child);
+      }
+      return child;
+    }
+    removeChild(child) {
+      const index = this.children.indexOf(child);
+      if (index !== -1) {
+        this.children.splice(index, 1);
+        child.parentNode = null;
+      }
+      return child;
+    }
+    insertBefore(newNode, referenceNode) {
+      if (!referenceNode) {
+        return this.appendChild(newNode);
+      }
+      const index = this.children.indexOf(referenceNode);
+      if (index !== -1) {
+        newNode.parentNode = this;
+        this.children.splice(index, 0, newNode);
+      }
+      return newNode;
+    }
+    cloneNode(deep = false) {
+      const clone = new SSRElement(this.nodeName, this.namespaceURI);
+      clone.textContent = this.textContent;
+      this.attributes.forEach((value, key) => {
+        clone.attributes.set(key, value);
+      });
+      Object.assign(clone.style, this.style);
+      if (deep) {
+        this.children.forEach((child) => {
+          if (child.cloneNode) {
+            clone.appendChild(child.cloneNode(true));
+          }
+        });
+      }
+      return clone;
+    }
+    getBoundingClientRect() {
+      return {
+        width: this._ssrWidth || 0,
+        height: this._ssrHeight || 0,
+        top: 0,
+        left: 0,
+        right: this._ssrWidth || 0,
+        bottom: this._ssrHeight || 0,
+        x: 0,
+        y: 0
+      };
+    }
+    getRootNode() {
+      let root = this;
+      while (root.parentNode) {
+        root = root.parentNode;
+      }
+      return root;
+    }
+    toString() {
+      let attrs = "";
+      this.attributes.forEach((value, key) => {
+        attrs += ` ${key}="${value}"`;
+      });
+      if (this.children.length === 0 && !this.textContent) {
+        return `<${this.nodeName}${attrs}/>`;
+      }
+      const childrenStr = this.children.map((c) => c.toString()).join("");
+      return `<${this.nodeName}${attrs}>${this.textContent}${childrenStr}</${this.nodeName}>`;
+    }
+    // Property getters/setters
+    get innerHTML() {
+      return this.children.map((c) => c.toString()).join("");
+    }
+    set innerHTML(value) {
+      this.children = [];
+      this.textContent = value;
+    }
+    get outerHTML() {
+      return this.toString();
+    }
+    get isConnected() {
+      return true;
+    }
+  }
+  class SSRClassList {
+    constructor() {
+      this.classes = /* @__PURE__ */ new Set();
+    }
+    add(...classNames) {
+      classNames.forEach((name2) => this.classes.add(name2));
+    }
+    remove(...classNames) {
+      classNames.forEach((name2) => this.classes.delete(name2));
+    }
+    contains(className) {
+      return this.classes.has(className);
+    }
+    toggle(className, force) {
+      if (force === true) {
+        this.classes.add(className);
+        return true;
+      } else if (force === false) {
+        this.classes.delete(className);
+        return false;
+      } else {
+        if (this.classes.has(className)) {
+          this.classes.delete(className);
+          return false;
+        } else {
+          this.classes.add(className);
+          return true;
+        }
+      }
+    }
+    toString() {
+      return Array.from(this.classes).join(" ");
+    }
+  }
+  class SSRDOMShim {
+    constructor() {
+      this.SVGNS = "http://www.w3.org/2000/svg";
+      this.XLINKNS = "http://www.w3.org/1999/xlink";
+    }
+    /**
+     * Create SVG element with namespace
+     * @param {string} namespaceURI - Namespace URI
+     * @param {string} qualifiedName - Element tag name
+     * @returns {SSRElement} Mock SVG element
+     */
+    createElementNS(namespaceURI, qualifiedName) {
+      return new SSRElement(qualifiedName, namespaceURI);
+    }
+    /**
+     * Create text node
+     * @param {string} data - Text content
+     * @returns {object} Text node mock
+     */
+    createTextNode(data) {
+      return {
+        nodeName: "#text",
+        nodeType: 3,
+        textContent: data,
+        toString() {
+          return this.textContent;
+        }
+      };
+    }
+    /**
+     * Query selector (returns null in SSR)
+     * @returns {null}
+     */
+    querySelector() {
+      return null;
+    }
+    /**
+     * Query selector all (returns empty array in SSR)
+     * @returns {Array}
+     */
+    querySelectorAll() {
+      return [];
+    }
+    /**
+     * Get computed style (returns empty object in SSR)
+     * @returns {object}
+     */
+    getComputedStyle() {
+      return {};
+    }
+    /**
+     * Get bounding client rect for element
+     * @param {SSRElement} element - Element to measure
+     * @returns {object} Mock dimensions
+     */
+    getBoundingClientRect(element) {
+      if (element && element.getBoundingClientRect) {
+        return element.getBoundingClientRect();
+      }
+      return {
+        width: 0,
+        height: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        x: 0,
+        y: 0
+      };
+    }
+    /**
+     * Create mock XMLSerializer for SSR
+     * @returns {object} XMLSerializer mock
+     */
+    createXMLSerializer() {
+      return {
+        serializeToString(element) {
+          return element.toString ? element.toString() : "";
+        }
+      };
+    }
+    /**
+     * Create mock DOMParser for SSR
+     * @returns {object} DOMParser mock
+     */
+    createDOMParser() {
+      return {
+        parseFromString(str, _type) {
+          const root = new SSRElement("root");
+          root.innerHTML = str;
+          return {
+            documentElement: root
+          };
+        }
+      };
+    }
+  }
+  let shim = null;
+  let xmlSerializerInstance = null;
+  let domParserInstance = null;
+  class BrowserAPIs {
+    /**
+     * Initialize the SSR shim if in SSR environment
+     * Must be called before using other methods
+     */
+    static init() {
+      if (Environment.isSSR() && !shim) {
+        shim = new SSRDOMShim();
+      }
+    }
+    /**
+     * Create an SVG element with namespace
+     * @param {string} namespaceURI - Namespace URI
+     * @param {string} qualifiedName - Element tag name
+     * @returns {Element|SSRElement} SVG element
+     */
+    static createElementNS(namespaceURI, qualifiedName) {
+      if (Environment.isSSR()) {
+        if (!shim) this.init();
+        return shim.createElementNS(namespaceURI, qualifiedName);
+      }
+      return document.createElementNS(namespaceURI, qualifiedName);
+    }
+    /**
+     * Create a text node
+     * @param {string} data - Text content
+     * @returns {Text|object} Text node
+     */
+    static createTextNode(data) {
+      if (Environment.isSSR()) {
+        if (!shim) this.init();
+        return shim.createTextNode(data);
+      }
+      return document.createTextNode(data);
+    }
+    /**
+     * Query selector
+     * @param {string} selector - CSS selector
+     * @returns {Element|null}
+     */
+    static querySelector(selector) {
+      if (Environment.isSSR()) {
+        return null;
+      }
+      return document.querySelector(selector);
+    }
+    /**
+     * Query selector all
+     * @param {string} selector - CSS selector
+     * @returns {NodeList|Array}
+     */
+    static querySelectorAll(selector) {
+      if (Environment.isSSR()) {
+        return [];
+      }
+      return document.querySelectorAll(selector);
+    }
+    /**
+     * Get computed style for an element
+     * @param {Element} element - Element to get styles for
+     * @returns {CSSStyleDeclaration|object}
+     */
+    static getComputedStyle(element) {
+      if (Environment.isSSR()) {
+        return {};
+      }
+      return window.getComputedStyle(element);
+    }
+    /**
+     * Get bounding client rect for an element
+     * @param {Element} element - Element to measure
+     * @returns {DOMRect|object}
+     */
+    static getBoundingClientRect(element) {
+      if (Environment.isSSR()) {
+        if (!shim) this.init();
+        return shim.getBoundingClientRect(element);
+      }
+      return element ? element.getBoundingClientRect() : {
+        width: 0,
+        height: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        x: 0,
+        y: 0
+      };
+    }
+    /**
+     * Get XMLSerializer instance
+     * @returns {XMLSerializer|object}
+     */
+    static getXMLSerializer() {
+      if (Environment.isSSR()) {
+        if (!shim) this.init();
+        if (!xmlSerializerInstance) {
+          xmlSerializerInstance = shim.createXMLSerializer();
+        }
+        return xmlSerializerInstance;
+      }
+      if (!xmlSerializerInstance) {
+        xmlSerializerInstance = new XMLSerializer();
+      }
+      return xmlSerializerInstance;
+    }
+    /**
+     * Get DOMParser instance
+     * @returns {DOMParser|object}
+     */
+    static getDOMParser() {
+      if (Environment.isSSR()) {
+        if (!shim) this.init();
+        if (!domParserInstance) {
+          domParserInstance = shim.createDOMParser();
+        }
+        return domParserInstance;
+      }
+      if (!domParserInstance) {
+        domParserInstance = new DOMParser();
+      }
+      return domParserInstance;
+    }
+    /**
+     * Add event listener to window
+     * @param {string} event - Event name
+     * @param {Function} handler - Event handler
+     * @param {object} options - Event options
+     */
+    static addWindowEventListener(event, handler, options2) {
+      if (Environment.isBrowser()) {
+        window.addEventListener(event, handler, options2);
+      }
+    }
+    /**
+     * Remove event listener from window
+     * @param {string} event - Event name
+     * @param {Function} handler - Event handler
+     * @param {object} options - Event options
+     */
+    static removeWindowEventListener(event, handler, options2) {
+      if (Environment.isBrowser()) {
+        window.removeEventListener(event, handler, options2);
+      }
+    }
+    /**
+     * Request animation frame
+     * @param {Function} callback - Callback function
+     * @returns {number|null}
+     */
+    static requestAnimationFrame(callback) {
+      if (Environment.isBrowser()) {
+        return window.requestAnimationFrame(callback);
+      }
+      callback();
+      return null;
+    }
+    /**
+     * Cancel animation frame
+     * @param {number} id - Animation frame ID
+     */
+    static cancelAnimationFrame(id) {
+      if (Environment.isBrowser() && id) {
+        window.cancelAnimationFrame(id);
+      }
+    }
+    /**
+     * Check if element exists
+     * @param {Element} element - Element to check
+     * @returns {boolean}
+     */
+    static elementExists(element) {
+      if (!element) return false;
+      if (Environment.isSSR()) {
+        return element._ssrMode === true || element.nodeName !== void 0;
+      }
+      return element.getRootNode ? element.getRootNode({ composed: true }) === document || element.isConnected : false;
+    }
+    /**
+     * Get window object (or null in SSR)
+     * @returns {Window|null}
+     */
+    static getWindow() {
+      return Environment.isBrowser() ? window : null;
+    }
+    /**
+     * Get document object (or null in SSR)
+     * @returns {Document|null}
+     */
+    static getDocument() {
+      return Environment.isBrowser() ? document : null;
+    }
+    /**
+     * Get the shim instance (for testing purposes)
+     * @returns {SSRDOMShim|null}
+     */
+    static _getShim() {
+      return shim;
+    }
+    /**
+     * Reset the shim instance (for testing purposes)
+     */
+    static _resetShim() {
+      shim = null;
+      xmlSerializerInstance = null;
+      domParserInstance = null;
+    }
+  }
   let Utils$1 = class Utils2 {
     static bind(fn, me) {
       return function() {
@@ -32,7 +509,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       };
     }
     static isObject(item) {
-      return item && typeof item === "object" && !Array.isArray(item) && item != null;
+      return item && typeof item === "object" && !Array.isArray(item);
     }
     // Type checking that works across different window objects
     static is(type, val) {
@@ -62,7 +539,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               let source2 = arguments[index];
               if (source2 !== void 0 && source2 !== null) {
                 for (let nextKey in source2) {
-                  if (source2.hasOwnProperty(nextKey)) {
+                  if (Object.prototype.hasOwnProperty.call(source2, nextKey)) {
                     output2[nextKey] = source2[nextKey];
                   }
                 }
@@ -138,7 +615,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           cloneResult = {};
           visited.set(source, cloneResult);
           for (let prop in source) {
-            if (source.hasOwnProperty(prop)) {
+            if (Object.prototype.hasOwnProperty.call(source, prop)) {
               cloneResult[prop] = this.clone(source[prop], visited, false);
             }
           }
@@ -233,6 +710,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     static getDimensions(el) {
       if (!el) return [0, 0];
+      if (Environment.isSSR()) {
+        return [el._ssrWidth || 400, el._ssrHeight || 300];
+      }
       const rootNode = el.getRootNode && el.getRootNode();
       const inShadowDOM = rootNode && rootNode !== document;
       if (inShadowDOM && rootNode.host) {
@@ -263,6 +743,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           x: 0,
           y: 0
         };
+      }
+      if (Environment.isSSR()) {
+        return BrowserAPIs.getBoundingClientRect(element);
       }
       const rect = element.getBoundingClientRect();
       return {
@@ -368,7 +851,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     static escapeString(str, escapeWith = "x") {
       let newStr = str.toString().slice();
       newStr = newStr.replace(
-        /[` ~!@#$%^&*()|+\=?;:'",.<>{}[\]\\/]/gi,
+        /[` ~!@#$%^&*()|+=?;:'",.<>{}[\]\\/]/gi,
         escapeWith
       );
       return newStr;
@@ -395,7 +878,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     static setELstyles(el, styles) {
       for (let key in styles) {
-        if (styles.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(styles, key)) {
           el.style.key = styles[key];
         }
       }
@@ -486,7 +969,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       el.attr(from).animate(speed).attr(to).after(() => fn());
     }
     animatePathsGradually(params) {
-      let { el, realIndex: realIndex2, j: j2, fill, pathFrom, pathTo, speed, delay } = params;
+      let { el, realIndex, j, fill, pathFrom, pathTo, speed, delay } = params;
       let me = this;
       let w = this.w;
       let delayFactor = 0;
@@ -498,8 +981,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       me.morphSVG(
         el,
-        realIndex2,
-        j2,
+        realIndex,
+        j,
         w.config.chart.type === "line" && !w.globals.comboCharts ? "stroke" : fill,
         pathFrom,
         pathTo,
@@ -524,7 +1007,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
     }
     // SVG.js animation for morphing one path to another
-    morphSVG(el, realIndex2, j2, fill, pathFrom, pathTo, speed, delay) {
+    morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay) {
       let w = this.w;
       if (!pathFrom) {
         pathFrom = el.attr("pathFrom");
@@ -532,7 +1015,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (!pathTo) {
         pathTo = el.attr("pathTo");
       }
-      const disableAnimationForCorrupPath = (path) => {
+      const disableAnimationForCorrupPath = () => {
         if (w.config.chart.type === "radar") {
           speed = 1;
         }
@@ -548,12 +1031,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         speed = 1;
       }
       el.plot(pathFrom).animate(1, delay).plot(pathFrom).animate(speed, delay).plot(pathTo).after(() => {
-        if (Utils$1.isNumber(j2)) {
-          if (j2 === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
+        if (Utils$1.isNumber(j)) {
+          if (j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
             this.animationCompleted(el);
           }
         } else if (fill !== "none" && w.globals.shouldAnimate) {
-          if (!w.globals.comboCharts && realIndex2 === w.globals.series.length - 1 || w.globals.comboCharts) {
+          if (!w.globals.comboCharts && realIndex === w.globals.series.length - 1 || w.globals.comboCharts) {
             this.animationCompleted(el);
           }
         }
@@ -672,14 +1155,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       return el;
     }
-    setSelectionFilter(el, realIndex2, dataPointIndex) {
+    setSelectionFilter(el, realIndex, dataPointIndex) {
       const w = this.w;
-      if (typeof w.globals.selectedDataPoints[realIndex2] !== "undefined") {
-        if (w.globals.selectedDataPoints[realIndex2].indexOf(dataPointIndex) > -1) {
+      if (typeof w.globals.selectedDataPoints[realIndex] !== "undefined") {
+        if (w.globals.selectedDataPoints[realIndex].indexOf(dataPointIndex) > -1) {
           el.node.setAttribute("selected", true);
           let activeFilter = w.config.states.active.filter;
           if (activeFilter !== "none") {
-            this.applyFilter(el, realIndex2, activeFilter.type);
+            this.applyFilter(el, realIndex, activeFilter.type);
           }
         }
       }
@@ -688,7 +1171,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (!el) return;
       const setAttributes = (attrs) => {
         for (let key in attrs) {
-          if (attrs.hasOwnProperty(key)) {
+          if (Object.prototype.hasOwnProperty.call(attrs, key)) {
             el.setAttribute(key, attrs[key]);
           }
         }
@@ -972,8 +1455,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
      * @return {object} svg.js path object
      **/
     renderPaths({
-      j: j2,
-      realIndex: realIndex2,
+      j,
+      realIndex,
       pathFrom,
       pathTo,
       stroke,
@@ -1011,7 +1494,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let strokeDashArrayOpt = w.config.stroke.dashArray;
       let strokeDashArray = 0;
       if (Array.isArray(strokeDashArrayOpt)) {
-        strokeDashArray = strokeDashArrayOpt[realIndex2];
+        strokeDashArray = strokeDashArrayOpt[realIndex];
       } else {
         strokeDashArray = w.config.stroke.dashArray;
       }
@@ -1025,7 +1508,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         strokeLinecap,
         strokeDashArray
       });
-      el.attr("index", realIndex2);
+      el.attr("index", realIndex);
       if (shouldClipToGrid) {
         if (chartType === "bar" && !w.globals.isHorizontal || w.globals.comboCharts) {
           el.attr({
@@ -1038,7 +1521,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
       }
       if (w.config.chart.dropShadow.enabled && drawShadow) {
-        filters.dropShadow(el, w.config.chart.dropShadow, realIndex2);
+        filters.dropShadow(el, w.config.chart.dropShadow, realIndex);
       }
       if (bindEventsOnPaths) {
         el.node.addEventListener("mouseenter", this.pathMouseEnter.bind(this, el));
@@ -1051,8 +1534,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       });
       const defaultAnimateOpts = {
         el,
-        j: j2,
-        realIndex: realIndex2,
+        j,
+        realIndex,
         pathFrom,
         pathTo,
         fill,
@@ -1075,7 +1558,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       return el;
     }
-    drawPattern(style, width, height, stroke = "#a8a8a8", strokeWidth = 0, opacity = 1) {
+    drawPattern(style, width, height, stroke = "#a8a8a8", strokeWidth = 0) {
       let w = this.w;
       let p = w.globals.dom.Paper.pattern(width, height, (add) => {
         if (style === "horizontalLines") {
@@ -1250,7 +1733,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           d = `M ${x - size} ${y} L ${x + size} ${y}  M ${x} ${y - size} L ${x} ${y + size}`;
           break;
         case "star":
-        case "sparkle":
+        case "sparkle": {
           let points = 5;
           size = size * 1.15;
           if (type === "sparkle") {
@@ -1267,6 +1750,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           }
           d += "Z";
           break;
+        }
         case "triangle":
           d = `M ${x} ${y - size} 
              L ${x + size} ${y + size} 
@@ -1347,18 +1831,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let w = this.w;
       const filters = new Filters(this.ctx);
       const i = parseInt(path.node.getAttribute("index"), 10);
-      const j2 = parseInt(path.node.getAttribute("j"), 10);
+      const j = parseInt(path.node.getAttribute("j"), 10);
       if (typeof w.config.chart.events.dataPointMouseEnter === "function") {
         w.config.chart.events.dataPointMouseEnter(e, this.ctx, {
           seriesIndex: i,
-          dataPointIndex: j2,
+          dataPointIndex: j,
           w
         });
       }
       this.ctx.events.fireEvent("dataPointMouseEnter", [
         e,
         this.ctx,
-        { seriesIndex: i, dataPointIndex: j2, w }
+        { seriesIndex: i, dataPointIndex: j, w }
       ]);
       if (w.config.states.active.filter.type !== "none") {
         if (path.node.getAttribute("selected") === "true") {
@@ -1376,18 +1860,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let w = this.w;
       const filters = new Filters(this.ctx);
       const i = parseInt(path.node.getAttribute("index"), 10);
-      const j2 = parseInt(path.node.getAttribute("j"), 10);
+      const j = parseInt(path.node.getAttribute("j"), 10);
       if (typeof w.config.chart.events.dataPointMouseLeave === "function") {
         w.config.chart.events.dataPointMouseLeave(e, this.ctx, {
           seriesIndex: i,
-          dataPointIndex: j2,
+          dataPointIndex: j,
           w
         });
       }
       this.ctx.events.fireEvent("dataPointMouseLeave", [
         e,
         this.ctx,
-        { seriesIndex: i, dataPointIndex: j2, w }
+        { seriesIndex: i, dataPointIndex: j, w }
       ]);
       if (w.config.states.active.filter.type !== "none") {
         if (path.node.getAttribute("selected") === "true") {
@@ -1402,12 +1886,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let w = this.w;
       const filters = new Filters(this.ctx);
       const i = parseInt(path.node.getAttribute("index"), 10);
-      const j2 = parseInt(path.node.getAttribute("j"), 10);
+      const j = parseInt(path.node.getAttribute("j"), 10);
       let selected = "false";
       if (path.node.getAttribute("selected") === "true") {
         path.node.setAttribute("selected", "false");
-        if (w.globals.selectedDataPoints[i].indexOf(j2) > -1) {
-          let index = w.globals.selectedDataPoints[i].indexOf(j2);
+        if (w.globals.selectedDataPoints[i].indexOf(j) > -1) {
+          let index = w.globals.selectedDataPoints[i].indexOf(j);
           w.globals.selectedDataPoints[i].splice(index, 1);
         }
       } else {
@@ -1433,7 +1917,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         if (typeof w.globals.selectedDataPoints[i] === "undefined") {
           w.globals.selectedDataPoints[i] = [];
         }
-        w.globals.selectedDataPoints[i].push(j2);
+        w.globals.selectedDataPoints[i].push(j);
       }
       if (selected === "true") {
         let activeFilter = w.config.states.active.filter;
@@ -1442,7 +1926,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         } else {
           if (w.config.states.hover.filter !== "none") {
             if (!w.globals.isTouchDevice) {
-              var hoverFilter = w.config.states.hover.filter;
+              let hoverFilter = w.config.states.hover.filter;
               filters.applyFilter(path, i, hoverFilter.type);
             }
           }
@@ -1450,7 +1934,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       } else {
         if (w.config.states.active.filter.type !== "none") {
           if (w.config.states.hover.filter.type !== "none" && !w.globals.isTouchDevice) {
-            var hoverFilter = w.config.states.hover.filter;
+            let hoverFilter = w.config.states.hover.filter;
             filters.applyFilter(path, i, hoverFilter.type);
           } else {
             filters.getDefaultFilter(path, i);
@@ -1461,7 +1945,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         w.config.chart.events.dataPointSelection(e, this.ctx, {
           selectedDataPoints: w.globals.selectedDataPoints,
           seriesIndex: i,
-          dataPointIndex: j2,
+          dataPointIndex: j,
           w
         });
       }
@@ -1472,7 +1956,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           {
             selectedDataPoints: w.globals.selectedDataPoints,
             seriesIndex: i,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             w
           }
         ]);
@@ -1546,7 +2030,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     static setAttrs(el, attrs) {
       for (let key in attrs) {
-        if (attrs.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(attrs, key)) {
           el.setAttribute(key, attrs[key]);
         }
       }
@@ -1649,9 +2133,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (w.globals.series.length === 0) return total;
       for (let i = 0; i < w.globals.series[w.globals.maxValsInArrayIndex].length; i++) {
         let t = 0;
-        for (let j2 = 0; j2 < w.globals.series.length; j2++) {
-          if (typeof w.globals.series[j2][i] !== "undefined" && excludedSeriesIndices.indexOf(j2) === -1) {
-            t += w.globals.series[j2][i];
+        for (let j = 0; j < w.globals.series.length; j++) {
+          if (typeof w.globals.series[j][i] !== "undefined" && excludedSeriesIndices.indexOf(j) === -1) {
+            t += w.globals.series[j][i];
           }
         }
         total.push(t);
@@ -1741,7 +2225,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           unassignedYAxisIndices.push(yi);
         }
       });
-      axisSeriesMap = axisSeriesMap.map((yaxe, yi) => {
+      axisSeriesMap = axisSeriesMap.map((yaxe) => {
         let ra = [];
         yaxe.forEach((sa) => {
           seriesYAxisReverseMap[sa[1]] = sa[0];
@@ -1792,7 +2276,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const w = this.w;
       let catLabels = labels.slice();
       if (w.config.xaxis.convertedCatToNumeric) {
-        catLabels = labels.map((i, li) => {
+        catLabels = labels.map((i) => {
           return w.config.xaxis.labels.formatter(i - w.globals.minX + 1);
         });
       }
@@ -1837,11 +2321,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
      **/
     getSeriesTotals() {
       const w = this.w;
-      w.globals.seriesTotals = w.globals.series.map((ser, index) => {
+      w.globals.seriesTotals = w.globals.series.map((ser) => {
         let total = 0;
         if (Array.isArray(ser)) {
-          for (let j2 = 0; j2 < ser.length; j2++) {
-            total += ser[j2];
+          for (let j = 0; j < ser.length; j++) {
+            total += ser[j];
           }
         } else {
           total += ser;
@@ -1853,9 +2337,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const w = this.w;
       const seriesTotalsXRange = w.globals.series.map((ser, index) => {
         let total = 0;
-        for (let j2 = 0; j2 < ser.length; j2++) {
-          if (w.globals.seriesX[index][j2] > minX && w.globals.seriesX[index][j2] < maxX) {
-            total += ser[j2];
+        for (let j = 0; j < ser.length; j++) {
+          if (w.globals.seriesX[index][j] > minX && w.globals.seriesX[index][j] < maxX) {
+            total += ser[j];
           }
         }
         return total;
@@ -1870,14 +2354,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
      **/
     getPercentSeries() {
       const w = this.w;
-      w.globals.seriesPercent = w.globals.series.map((ser, index) => {
+      w.globals.seriesPercent = w.globals.series.map((ser) => {
         let seriesPercent = [];
         if (Array.isArray(ser)) {
-          for (let j2 = 0; j2 < ser.length; j2++) {
-            let total = w.globals.stackedSeriesTotals[j2];
+          for (let j = 0; j < ser.length; j++) {
+            let total = w.globals.stackedSeriesTotals[j];
             let percent = 0;
             if (total) {
-              percent = 100 * ser[j2] / total;
+              percent = 100 * ser[j] / total;
             }
             seriesPercent.push(percent);
           }
@@ -2479,7 +2963,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       format = format.replace(/\\(.)/g, "$1");
       return format;
     }
-    getTimeUnitsfromTimestamp(minX, maxX, utc) {
+    getTimeUnitsfromTimestamp(minX, maxX) {
       let w = this.w;
       if (w.config.xaxis.min !== void 0) {
         minX = w.config.xaxis.min;
@@ -2556,7 +3040,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       this.w = ctx.w;
       this.tooltipKeyFormat = "dd MMM";
     }
-    xLabelFormat(fn, val, timestamp, opts) {
+    xLabelFormat(fn, val, timestamp, _opts) {
       let w = this.w;
       if (w.config.xaxis.type === "datetime") {
         if (w.config.xaxis.labels.formatter === void 0) {
@@ -2569,7 +3053,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           }
         }
       }
-      return fn(val, timestamp, opts);
+      return fn(val, timestamp, _opts);
     }
     defaultGeneralFormatter(val) {
       if (Array.isArray(val)) {
@@ -2580,7 +3064,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         return val;
       }
     }
-    defaultYFormatter(v, yaxe, i) {
+    defaultYFormatter(v, yaxe) {
       let w = this.w;
       if (Utils$1.isNumber(v)) {
         if (w.globals.yValueDecimal !== 0) {
@@ -2844,28 +3328,28 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     // get the label color for y-axis
     // realIndex is the actual series index, while i is the tick Index
-    getYAxisForeColor(yColors, realIndex2) {
+    getYAxisForeColor(yColors, realIndex) {
       const w = this.w;
-      if (Array.isArray(yColors) && w.globals.yAxisScale[realIndex2]) {
+      if (Array.isArray(yColors) && w.globals.yAxisScale[realIndex]) {
         this.ctx.theme.pushExtraColors(
           yColors,
-          w.globals.yAxisScale[realIndex2].result.length,
+          w.globals.yAxisScale[realIndex].result.length,
           false
         );
       }
       return yColors;
     }
-    drawYAxisTicks(x, tickAmount, axisBorder, axisTicks, realIndex2, labelsDivider, elYaxis) {
+    drawYAxisTicks(x, tickAmount, axisBorder, axisTicks, realIndex, labelsDivider, elYaxis) {
       let w = this.w;
       let graphics = new Graphics(this.ctx);
-      let tY = w.globals.translateY + w.config.yaxis[realIndex2].labels.offsetY;
+      let tY = w.globals.translateY + w.config.yaxis[realIndex].labels.offsetY;
       if (w.globals.isBarHorizontal) {
         tY = 0;
       } else if (w.config.chart.type === "heatmap") {
         tY += labelsDivider / 2;
       }
       if (axisTicks.show && tickAmount > 0) {
-        if (w.config.yaxis[realIndex2].opposite === true) x = x + axisTicks.width;
+        if (w.config.yaxis[realIndex].opposite === true) x = x + axisTicks.width;
         for (let i = tickAmount; i >= 0; i--) {
           let elTick = graphics.drawLine(
             x + axisBorder.offsetX - axisTicks.width + axisTicks.offsetX,
@@ -3404,7 +3888,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             beforeResetZoom: void 0,
             zoomed: void 0,
             scrolled: void 0,
-            brushScrolled: void 0
+            brushScrolled: void 0,
+            keyDown: void 0,
+            keyUp: void 0
           },
           foreColor: "#373d3f",
           fontFamily: "Helvetica, Arial, sans-serif",
@@ -3506,6 +3992,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
                 opacity: 0.4,
                 width: 1
               }
+            }
+          },
+          accessibility: {
+            enabled: true,
+            description: void 0,
+            announcements: {
+              enabled: true
+            },
+            keyboard: {
+              enabled: true
             }
           }
         },
@@ -4348,7 +4844,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     addPointAnnotation(anno, parent, index) {
       this.pointsAnnotations.addPointAnnotation(anno, parent, index);
     }
-    addText(params, index) {
+    addText(params) {
       const {
         x,
         y,
@@ -4403,7 +4899,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         parent.insertBefore(elRect.node, elText.node);
       }
     }
-    addImage(params, index) {
+    addImage(params) {
       const w = this.w;
       const {
         path,
@@ -5002,7 +5498,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         },
         dataLabels: {
           enabled: false,
-          formatter(val, { ctx, seriesIndex, dataPointIndex, w }) {
+          formatter(val, { seriesIndex, dataPointIndex, w }) {
             const getVal = () => {
               const start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex];
               const end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex];
@@ -6342,7 +6838,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         });
       }
       if (useGradient) {
-        let colorStops = [...cnf.fill.gradient.colorStops];
+        let colorStops = cnf.fill.gradient.colorStops ? [...cnf.fill.gradient.colorStops] : [];
         let type = cnf.fill.gradient.type;
         if (drawMultiColorLine) {
           colorStops[this.seriesIndex] = this.computeColorStops(
@@ -6558,7 +7054,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
   }
   class Markers {
-    constructor(ctx, opts) {
+    constructor(ctx) {
       this.ctx = ctx;
       this.w = ctx.w;
       this._filters = new Filters(this.ctx);
@@ -6576,13 +7072,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           }
         }
       } else {
-        w.globals.markers.size = w.config.series.map((s) => w.config.markers.size);
+        w.globals.markers.size = w.config.series.map(() => w.config.markers.size);
       }
     }
     plotChartMarkers({
       pointsPos,
       seriesIndex,
-      j: j2,
+      j,
       pSize,
       alwaysDrawMarker = false,
       isVirtualPoint = false
@@ -6596,13 +7092,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (Array.isArray(p.x)) {
         for (let q = 0; q < p.x.length; q++) {
           let markerElement;
-          let dataPointIndex = j2;
+          let dataPointIndex = j;
           let invalidMarker = !Utils$1.isNumber(p.y[q]);
-          if (w.globals.markers.largestSize === 0 && w.globals.hasNullValues && w.globals.series[i][j2 + 1] !== null && !isVirtualPoint) {
+          if (w.globals.markers.largestSize === 0 && w.globals.hasNullValues && w.globals.series[i][j + 1] !== null && !isVirtualPoint) {
             invalidMarker = true;
           }
-          if (j2 === 1 && q === 0) dataPointIndex = 0;
-          if (j2 === 1 && q === 1) dataPointIndex = 1;
+          if (j === 1 && q === 0) dataPointIndex = 0;
+          if (j === 1 && q === 1) dataPointIndex = 1;
           let markerClasses = "apexcharts-marker";
           if ((w.config.chart.type === "line" || w.config.chart.type === "area") && !w.globals.comboCharts && !w.config.tooltip.intersect) {
             markerClasses += " no-pointer-events";
@@ -6786,10 +7282,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       this.markers = new Markers(this.ctx);
       this.graphics = new Graphics(this.ctx);
     }
-    draw(elSeries, j2, opts) {
+    draw(elSeries, j, opts) {
       let w = this.w;
       let graphics = this.graphics;
-      let realIndex2 = opts.realIndex;
+      let realIndex = opts.realIndex;
       let pointsPos = opts.pointsPos;
       let zRatio = opts.zRatio;
       let elPointsMain = opts.elParent;
@@ -6800,14 +7296,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       this.markers.setupMarkerDelegation(elPointsWrap);
       if (Array.isArray(pointsPos.x)) {
         for (let q = 0; q < pointsPos.x.length; q++) {
-          let dataPointIndex = j2 + 1;
+          let dataPointIndex = j + 1;
           let shouldDraw = true;
-          if (j2 === 0 && q === 0) dataPointIndex = 0;
-          if (j2 === 0 && q === 1) dataPointIndex = 1;
-          let radius = w.globals.markers.size[realIndex2];
+          if (j === 0 && q === 0) dataPointIndex = 0;
+          if (j === 0 && q === 1) dataPointIndex = 1;
+          let radius = w.globals.markers.size[realIndex];
           if (zRatio !== Infinity) {
             const bubble = w.config.plotOptions.bubble;
-            radius = w.globals.seriesZ[realIndex2][dataPointIndex];
+            radius = w.globals.seriesZ[realIndex][dataPointIndex];
             if (bubble.zScaling) {
               radius /= zRatio;
             }
@@ -6821,7 +7317,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           let x = pointsPos.x[q];
           let y = pointsPos.y[q];
           radius = radius || 0;
-          if (y === null || typeof w.globals.series[realIndex2][dataPointIndex] === "undefined") {
+          if (y === null || typeof w.globals.series[realIndex][dataPointIndex] === "undefined") {
             shouldDraw = false;
           }
           if (shouldDraw) {
@@ -6829,9 +7325,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               x,
               y,
               radius,
-              realIndex2,
+              realIndex,
               dataPointIndex,
-              j2
+              j
             );
             elPointsWrap.add(point);
           }
@@ -6839,9 +7335,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
       }
     }
-    drawPoint(x, y, radius, realIndex2, dataPointIndex, j2) {
+    drawPoint(x, y, radius, realIndex, dataPointIndex, j) {
       const w = this.w;
-      let i = realIndex2;
+      let i = realIndex;
       const anim = this.anim;
       const filters = this.filters;
       const fill = this.fill;
@@ -6851,14 +7347,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         cssClass: "apexcharts-marker",
         seriesIndex: i,
         dataPointIndex,
-        radius: w.config.chart.type === "bubble" || w.globals.comboCharts && w.config.series[realIndex2] && w.config.series[realIndex2].type === "bubble" ? radius : null
+        radius: w.config.chart.type === "bubble" || w.globals.comboCharts && w.config.series[realIndex] && w.config.series[realIndex].type === "bubble" ? radius : null
       });
       let pathFillCircle = fill.fillPath({
-        seriesNumber: realIndex2,
+        seriesNumber: realIndex,
         dataPointIndex,
         color: markerConfig.pointFillColor,
         patternUnits: "objectBoundingBox",
-        value: w.globals.series[realIndex2][j2]
+        value: w.globals.series[realIndex][j]
       });
       let el = graphics.drawMarker(x, y, markerConfig);
       if (w.config.series[i].data[dataPointIndex]) {
@@ -6871,7 +7367,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       });
       if (w.config.chart.dropShadow.enabled) {
         const dropShadow = w.config.chart.dropShadow;
-        filters.dropShadow(el, dropShadow, realIndex2);
+        filters.dropShadow(el, dropShadow, realIndex);
       }
       if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
         let speed = w.config.chart.animations.speed;
@@ -6886,10 +7382,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       el.attr({
         rel: dataPointIndex,
         j: dataPointIndex,
-        index: realIndex2,
+        index: realIndex,
         "default-marker-size": markerConfig.pSize
       });
-      filters.setSelectionFilter(el, realIndex2, dataPointIndex);
+      filters.setSelectionFilter(el, realIndex, dataPointIndex);
       el.node.classList.add("apexcharts-marker");
       return el;
     }
@@ -6941,13 +7437,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         drawnextLabel
       };
     }
-    drawDataLabel({ type, pos, i, j: j2, isRangeStart, strokeWidth = 2 }) {
+    drawDataLabel({ type, pos, i, j, isRangeStart, strokeWidth = 2 }) {
       let w = this.w;
       const graphics = new Graphics(this.ctx);
       let dataLabelsConfig = w.config.dataLabels;
       let x = 0;
       let y = 0;
-      let dataPointIndex = j2;
+      let dataPointIndex = j;
       let elDataLabelsWrap = null;
       const seriesCollapsed = w.globals.collapsedSeriesIndices.indexOf(i) !== -1;
       if (seriesCollapsed || !dataLabelsConfig.enabled || !Array.isArray(pos.x)) {
@@ -6960,8 +7456,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         x = pos.x[q] + dataLabelsConfig.offsetX;
         y = pos.y[q] + dataLabelsConfig.offsetY + strokeWidth;
         if (!isNaN(x)) {
-          if (j2 === 1 && q === 0) dataPointIndex = 0;
-          if (j2 === 1 && q === 1) dataPointIndex = 1;
+          if (j === 1 && q === 0) dataPointIndex = 0;
+          if (j === 1 && q === 1) dataPointIndex = 1;
           let val = w.globals.series[i][dataPointIndex];
           if (type === "rangeArea") {
             if (isRangeStart) {
@@ -7027,7 +7523,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         x,
         y,
         i,
-        j: j2,
+        j,
         text,
         textAnchor,
         fontSize,
@@ -7056,7 +7552,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           y,
           text,
           i,
-          j2,
+          j,
           alwaysDrawDataLabel,
           parseInt(dataLabelsConfig.style.fontSize, 10)
         );
@@ -7072,13 +7568,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       let dataLabelColor = w.globals.dataLabels.style.colors[i];
       if ((w.config.chart.type === "bar" || w.config.chart.type === "rangeBar") && w.config.plotOptions.bar.distributed || w.config.dataLabels.distributed) {
-        dataLabelColor = w.globals.dataLabels.style.colors[j2];
+        dataLabelColor = w.globals.dataLabels.style.colors[j];
       }
       if (typeof dataLabelColor === "function") {
         dataLabelColor = dataLabelColor({
           series: w.globals.series,
           seriesIndex: i,
-          dataPointIndex: j2,
+          dataPointIndex: j,
           w
         });
       }
@@ -7092,10 +7588,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         offY = 0;
       }
       if (w.globals.isSlopeChart) {
-        if (j2 !== 0) {
+        if (j !== 0) {
           offX = dataLabelsConfig.offsetX * -2 + 5;
         }
-        if (j2 !== 0 && j2 !== w.config.series[i].data.length - 1) {
+        if (j !== 0 && j !== w.config.series[i].data.length - 1) {
           offX = 0;
         }
       }
@@ -7131,7 +7627,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === "undefined") {
           w.globals.lastDrawnDataLabelsIndexes[i] = [];
         }
-        w.globals.lastDrawnDataLabelsIndexes[i].push(j2);
+        w.globals.lastDrawnDataLabelsIndexes[i].push(j);
       }
       return dataLabelText;
     }
@@ -7232,11 +7728,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     isSeriesHidden(seriesName) {
       const targetElement = this.getSeriesByName(seriesName);
-      let realIndex2 = parseInt(targetElement.getAttribute("data:realIndex"), 10);
+      let realIndex = parseInt(targetElement.getAttribute("data:realIndex"), 10);
       let isHidden = targetElement.classList.contains(
         "apexcharts-series-collapsed"
       );
-      return { isHidden, realIndex: realIndex2 };
+      return { isHidden, realIndex };
     }
     addCollapsedClassToSeries(elSeries, index) {
       const w = this.w;
@@ -7313,7 +7809,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     highlightSeries(seriesName) {
       const w = this.w;
       const targetElement = this.getSeriesByName(seriesName);
-      let realIndex2 = parseInt(targetElement == null ? void 0 : targetElement.getAttribute("data:realIndex"), 10);
+      let realIndex = parseInt(targetElement == null ? void 0 : targetElement.getAttribute("data:realIndex"), 10);
       const cacheKey = "highlightSeriesEls";
       let allSeriesEls = w.globals.cachedSelectors[cacheKey];
       if (!allSeriesEls) {
@@ -7328,23 +7824,23 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (w.globals.axisCharts || w.config.chart.type === "radialBar") {
         if (w.globals.axisCharts) {
           seriesEl = w.globals.dom.baseEl.querySelector(
-            `.apexcharts-series[data\\:realIndex='${realIndex2}']`
+            `.apexcharts-series[data\\:realIndex='${realIndex}']`
           );
           dataLabelEl = w.globals.dom.baseEl.querySelector(
-            `.apexcharts-datalabels[data\\:realIndex='${realIndex2}']`
+            `.apexcharts-datalabels[data\\:realIndex='${realIndex}']`
           );
-          let yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex2];
+          let yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex];
           yaxisEl = w.globals.dom.baseEl.querySelector(
             `.apexcharts-yaxis[rel='${yaxisIndex}']`
           );
         } else {
           seriesEl = w.globals.dom.baseEl.querySelector(
-            `.apexcharts-series[rel='${realIndex2 + 1}']`
+            `.apexcharts-series[rel='${realIndex + 1}']`
           );
         }
       } else {
         seriesEl = w.globals.dom.baseEl.querySelector(
-          `.apexcharts-series[rel='${realIndex2 + 1}'] path`
+          `.apexcharts-series[rel='${realIndex + 1}'] path`
         );
       }
       for (let se = 0; se < allSeriesEls.length; se++) {
@@ -7374,8 +7870,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         `.apexcharts-series, .apexcharts-datalabels, .apexcharts-yaxis`
       );
       if (e.type === "mousemove") {
-        let realIndex2 = parseInt(targetElement.getAttribute("rel"), 10) - 1;
-        this.highlightSeries(w.globals.seriesNames[realIndex2]);
+        let realIndex = parseInt(targetElement.getAttribute("rel"), 10) - 1;
+        this.highlightSeries(w.globals.seriesNames[realIndex]);
       } else if (e.type === "mouseout") {
         for (let se = 0; se < allSeriesEls.length; se++) {
           allSeriesEls[se].classList.remove(this.legendInactiveClass);
@@ -7457,9 +7953,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           paths: [],
           realIndex: seriesEls[i].getAttribute("data:realIndex")
         };
-        for (let j2 = 0; j2 < paths.length; j2++) {
-          if (paths[j2].hasAttribute("pathTo")) {
-            let d = paths[j2].getAttribute("pathTo");
+        for (let j = 0; j < paths.length; j++) {
+          if (paths[j].hasAttribute("pathTo")) {
+            let d = paths[j].getAttribute("pathTo");
             dArr.paths.push({
               d
             });
@@ -7568,7 +8064,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let w = this.w;
       for (let sl = 0; sl < series.length; sl++) {
         if (series[sl].length === 0) {
-          for (let j2 = 0; j2 < series[w.globals.maxValsInArrayIndex].length; j2++) {
+          for (let j = 0; j < series[w.globals.maxValsInArrayIndex].length; j++) {
             series[sl].push(0);
           }
         }
@@ -7634,8 +8130,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const gl = this.w.globals;
       const data = ser[i].data;
       const isBoxPlot = cnf.chart.type === "boxPlot" || cnf.series[i].type === "boxPlot";
-      for (let j2 = 0; j2 < data.length; j2++) {
-        const point = data[j2];
+      for (let j = 0; j < data.length; j++) {
+        const point = data[j];
         const x = point[0];
         const y = point[1];
         const z = point[2];
@@ -7672,8 +8168,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         activeI = this.activeSeriesIndex;
       }
       const activeData = ser[activeI].data;
-      for (let j2 = 0; j2 < data.length; j2++) {
-        const point = data[j2];
+      for (let j = 0; j < data.length; j++) {
+        const point = data[j];
         if (typeof point.y !== "undefined") {
           const val = Array.isArray(point.y) ? Utils$1.parseNumber(point.y[point.y.length - 1]) : Utils$1.parseNumber(point.y);
           this.twoDSeries.push(val);
@@ -7691,8 +8187,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           gl.isDataXYZ = true;
         }
       }
-      for (let j2 = 0; j2 < activeData.length; j2++) {
-        const point = activeData[j2];
+      for (let j = 0; j < activeData.length; j++) {
+        const point = activeData[j];
         const x = point.x;
         const isXString = typeof x === "string";
         const isXArr = Array.isArray(x);
@@ -7739,9 +8235,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       gl.seriesRangeStart[i] = range.start === void 0 ? [] : range.start;
       gl.seriesRangeEnd[i] = range.end === void 0 ? [] : range.end;
       gl.seriesRange[i] = range.rangeUniques;
-      gl.seriesRange.forEach((sr, si) => {
+      gl.seriesRange.forEach((sr) => {
         if (!sr) return;
-        sr.forEach((sarr, sarri) => {
+        sr.forEach((sarr) => {
           const yItems = sarr.y;
           const len = yItems.length;
           if (len <= 1) return;
@@ -7799,26 +8295,26 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
       });
       if (format === "array") {
-        for (let j2 = 0; j2 < ser[i].data.length; j2++) {
-          if (Array.isArray(ser[i].data[j2])) {
-            rangeStart.push(ser[i].data[j2][1][0]);
-            rangeEnd.push(ser[i].data[j2][1][1]);
+        for (let j = 0; j < ser[i].data.length; j++) {
+          if (Array.isArray(ser[i].data[j])) {
+            rangeStart.push(ser[i].data[j][1][0]);
+            rangeEnd.push(ser[i].data[j][1][1]);
           } else {
-            rangeStart.push(ser[i].data[j2]);
-            rangeEnd.push(ser[i].data[j2]);
+            rangeStart.push(ser[i].data[j]);
+            rangeEnd.push(ser[i].data[j]);
           }
         }
       } else if (format === "xy") {
-        for (let j2 = 0; j2 < ser[i].data.length; j2++) {
-          let isDataPoint2D = Array.isArray(ser[i].data[j2].y);
+        for (let j = 0; j < ser[i].data.length; j++) {
+          let isDataPoint2D = Array.isArray(ser[i].data[j].y);
           const id = Utils$1.randomId();
-          const x = ser[i].data[j2].x;
+          const x = ser[i].data[j].x;
           const y = {
-            y1: isDataPoint2D ? ser[i].data[j2].y[0] : ser[i].data[j2].y,
-            y2: isDataPoint2D ? ser[i].data[j2].y[1] : ser[i].data[j2].y,
+            y1: isDataPoint2D ? ser[i].data[j].y[0] : ser[i].data[j].y,
+            y2: isDataPoint2D ? ser[i].data[j].y[1] : ser[i].data[j].y,
             rangeName: id
           };
-          ser[i].data[j2].rangeName = id;
+          ser[i].data[j].rangeName = id;
           const keyObj = uniqueKeysMap.get(x);
           if (keyObj) {
             keyObj.y.push(y);
@@ -7853,8 +8349,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       } else {
         getVals = (d) => Array.isArray(d.y) ? d.y : [];
       }
-      for (let j2 = 0; j2 < data.length; j2++) {
-        const vals = getVals(data[j2]);
+      for (let j = 0; j < data.length; j++) {
+        const vals = getVals(data[j]);
         if (vals && vals.length >= 2) {
           serO.push(vals[0]);
           serH.push(vals[1]);
@@ -7903,18 +8399,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       });
       gl.seriesGroups = buckets;
       const handleDates = () => {
-        for (let j2 = 0; j2 < xlabels.length; j2++) {
-          if (typeof xlabels[j2] === "string") {
-            let isDate = dt.isValidDate(xlabels[j2]);
+        for (let j = 0; j < xlabels.length; j++) {
+          if (typeof xlabels[j] === "string") {
+            let isDate = dt.isValidDate(xlabels[j]);
             if (isDate) {
-              this.twoDSeriesX.push(dt.parseDate(xlabels[j2]));
+              this.twoDSeriesX.push(dt.parseDate(xlabels[j]));
             } else {
               throw new Error(
                 "You have provided invalid Date format. Please provide a valid JavaScript Date"
               );
             }
           } else {
-            this.twoDSeriesX.push(xlabels[j2]);
+            this.twoDSeriesX.push(xlabels[j]);
           }
         }
       };
@@ -8132,7 +8628,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (gl.axisCharts) {
         if (gl.series.length > 0) {
           if (this.isFormatXY()) {
-            const seriesDataFiltered = cnf.series.map((serie, s) => {
+            const seriesDataFiltered = cnf.series.map((serie) => {
               return serie.data.filter(
                 (v, i, a) => a.findIndex((t) => t.x === v.x) === i
               );
@@ -8198,7 +8694,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           return serie;
         }
         const firstDataPoint = serie.data[0];
-        if (typeof firstDataPoint === "object" && firstDataPoint !== null && (firstDataPoint.hasOwnProperty("x") || firstDataPoint.hasOwnProperty("y")) || Array.isArray(firstDataPoint)) {
+        if (typeof firstDataPoint === "object" && firstDataPoint !== null && (Object.prototype.hasOwnProperty.call(firstDataPoint, "x") || Object.prototype.hasOwnProperty.call(firstDataPoint, "y")) || Array.isArray(firstDataPoint)) {
           return serie;
         }
         if (!effectiveParsing.x || !effectiveParsing.y || Array.isArray(effectiveParsing.y) && effectiveParsing.y.length === 0) {
@@ -8951,13 +9447,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
     }
     // this actually becomes the vertical axis (for bar charts)
-    drawXaxisInversed(realIndex2) {
+    drawXaxisInversed(realIndex) {
       let w = this.w;
       let graphics = new Graphics(this.ctx);
-      let translateYAxisX = w.config.yaxis[0].opposite ? w.globals.translateYAxisX[realIndex2] : 0;
+      let translateYAxisX = w.config.yaxis[0].opposite ? w.globals.translateYAxisX[realIndex] : 0;
       let elYaxis = graphics.group({
         class: "apexcharts-yaxis apexcharts-xaxis-inversed",
-        rel: realIndex2
+        rel: realIndex
       });
       let elYaxisTexts = graphics.group({
         class: "apexcharts-yaxis-texts-g apexcharts-xaxis-inversed-texts-g",
@@ -8967,7 +9463,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let colHeight;
       let yPos;
       let labels = [];
-      if (w.config.yaxis[realIndex2].show) {
+      if (w.config.yaxis[realIndex].show) {
         for (let i = 0; i < this.xaxisLabels.length; i++) {
           labels.push(this.xaxisLabels[i]);
         }
@@ -8980,13 +9476,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         for (let i = 0; i <= labels.length - 1; i++) {
           let label = typeof labels[i] === "undefined" ? "" : labels[i];
           label = lbFormatter(label, {
-            seriesIndex: realIndex2,
+            seriesIndex: realIndex,
             dataPointIndex: i,
             w
           });
           const yColors = this.axesUtils.getYAxisForeColor(
             ylabels.style.colors,
-            realIndex2
+            realIndex
           );
           const getForeColor = () => {
             return Array.isArray(yColors) ? yColors[i] : yColors;
@@ -9034,11 +9530,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           let elTooltipTitle = document.createElementNS(w.globals.SVGNS, "title");
           elTooltipTitle.textContent = Array.isArray(label) ? label.join(" ") : label;
           elLabel.node.appendChild(elTooltipTitle);
-          if (w.config.yaxis[realIndex2].labels.rotate !== 0) {
+          if (w.config.yaxis[realIndex].labels.rotate !== 0) {
             let labelRotatingCenter = graphics.rotateAroundCenter(elLabel.node);
             elLabel.node.setAttribute(
               "transform",
-              `rotate(${w.config.yaxis[realIndex2].labels.rotate} 0 ${labelRotatingCenter.y})`
+              `rotate(${w.config.yaxis[realIndex].labels.rotate} 0 ${labelRotatingCenter.y})`
             );
           }
           yPos = yPos + colHeight;
@@ -10030,14 +10526,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
                 gl.allSeriesCollapsed = false;
                 groupNames.forEach((gn, gni) => {
                   if (cnf.series[si].group === gn) {
-                    for (let j2 = 0; j2 < gl.series[si].length; j2++) {
-                      let val = gl.series[si][j2];
+                    for (let j = 0; j < gl.series[si].length; j++) {
+                      let val = gl.series[si][j];
                       if (val >= 0) {
-                        posSeries[gni][j2] += val;
+                        posSeries[gni][j] += val;
                       } else {
-                        negSeries[gni][j2] += val;
+                        negSeries[gni][j] += val;
                       }
-                      sumSeries[gni][j2] += val;
+                      sumSeries[gni][j] += val;
                       lowestY = Math.min(lowestY, val);
                       highestY = Math.max(highestY, val);
                     }
@@ -10170,41 +10666,41 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             }
           }
         }
-        for (let j2 = firstXIndex; j2 <= lastXIndex && j2 < gl.series[i].length; j2++) {
-          let val = series[i][j2];
+        for (let j = firstXIndex; j <= lastXIndex && j < gl.series[i].length; j++) {
+          let val = series[i][j];
           if (val !== null && Utils$1.isNumber(val)) {
-            if (typeof ((_b = seriesMax[i]) == null ? void 0 : _b[j2]) !== "undefined") {
-              maxY = Math.max(maxY, seriesMax[i][j2]);
-              lowestY = Math.min(lowestY, seriesMax[i][j2]);
+            if (typeof ((_b = seriesMax[i]) == null ? void 0 : _b[j]) !== "undefined") {
+              maxY = Math.max(maxY, seriesMax[i][j]);
+              lowestY = Math.min(lowestY, seriesMax[i][j]);
             }
-            if (typeof ((_c = seriesMin[i]) == null ? void 0 : _c[j2]) !== "undefined") {
-              lowestY = Math.min(lowestY, seriesMin[i][j2]);
-              highestY = Math.max(highestY, seriesMin[i][j2]);
+            if (typeof ((_c = seriesMin[i]) == null ? void 0 : _c[j]) !== "undefined") {
+              lowestY = Math.min(lowestY, seriesMin[i][j]);
+              highestY = Math.max(highestY, seriesMin[i][j]);
             }
             switch (seriesType) {
               case "candlestick":
                 {
-                  if (typeof gl.seriesCandleC[i][j2] !== "undefined") {
-                    maxY = Math.max(maxY, gl.seriesCandleH[i][j2]);
-                    lowestY = Math.min(lowestY, gl.seriesCandleL[i][j2]);
+                  if (typeof gl.seriesCandleC[i][j] !== "undefined") {
+                    maxY = Math.max(maxY, gl.seriesCandleH[i][j]);
+                    lowestY = Math.min(lowestY, gl.seriesCandleL[i][j]);
                   }
                 }
                 break;
               case "boxPlot":
                 {
-                  if (typeof gl.seriesCandleC[i][j2] !== "undefined") {
-                    maxY = Math.max(maxY, gl.seriesCandleC[i][j2]);
-                    lowestY = Math.min(lowestY, gl.seriesCandleO[i][j2]);
+                  if (typeof gl.seriesCandleC[i][j] !== "undefined") {
+                    maxY = Math.max(maxY, gl.seriesCandleC[i][j]);
+                    lowestY = Math.min(lowestY, gl.seriesCandleO[i][j]);
                   }
                 }
                 break;
             }
             if (seriesType && seriesType !== "candlestick" && seriesType !== "boxPlot" && seriesType !== "rangeArea" && seriesType !== "rangeBar") {
-              maxY = Math.max(maxY, gl.series[i][j2]);
-              lowestY = Math.min(lowestY, gl.series[i][j2]);
+              maxY = Math.max(maxY, gl.series[i][j]);
+              lowestY = Math.min(lowestY, gl.series[i][j]);
             }
-            if (gl.seriesGoals[i] && gl.seriesGoals[i][j2] && Array.isArray(gl.seriesGoals[i][j2])) {
-              gl.seriesGoals[i][j2].forEach((g) => {
+            if (gl.seriesGoals[i] && gl.seriesGoals[i][j] && Array.isArray(gl.seriesGoals[i][j])) {
+              gl.seriesGoals[i][j].forEach((g) => {
                 maxY = Math.max(maxY, g.value);
                 lowestY = Math.min(lowestY, g.value);
               });
@@ -10217,8 +10713,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
                 val.toString().split(".")[1].length
               );
             }
-            if (minY > ((_d = seriesMin[i]) == null ? void 0 : _d[j2]) && ((_e = seriesMin[i]) == null ? void 0 : _e[j2]) < 0) {
-              minY = seriesMin[i][j2];
+            if (minY > ((_d = seriesMin[i]) == null ? void 0 : _d[j]) && ((_e = seriesMin[i]) == null ? void 0 : _e[j]) < 0) {
+              minY = seriesMin[i][j];
             }
           } else {
             gl.hasNullValues = true;
@@ -10364,12 +10860,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const getInitialMinXMaxX = () => {
         for (let i = 0; i < gl.series.length; i++) {
           if (gl.labels[i]) {
-            for (let j2 = 0; j2 < gl.labels[i].length; j2++) {
-              if (gl.labels[i][j2] !== null && Utils$1.isNumber(gl.labels[i][j2])) {
-                gl.maxX = Math.max(gl.maxX, gl.labels[i][j2]);
-                gl.initialMaxX = Math.max(gl.maxX, gl.labels[i][j2]);
-                gl.minX = Math.min(gl.minX, gl.labels[i][j2]);
-                gl.initialMinX = Math.min(gl.minX, gl.labels[i][j2]);
+            for (let j = 0; j < gl.labels[i].length; j++) {
+              if (gl.labels[i][j] !== null && Utils$1.isNumber(gl.labels[i][j])) {
+                gl.maxX = Math.max(gl.maxX, gl.labels[i][j]);
+                gl.initialMaxX = Math.max(gl.maxX, gl.labels[i][j]);
+                gl.minX = Math.min(gl.minX, gl.labels[i][j]);
+                gl.initialMinX = Math.min(gl.minX, gl.labels[i][j]);
               }
             }
           }
@@ -10471,10 +10967,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (!gl.isDataXYZ) return;
       for (let i = 0; i < gl.series.length; i++) {
         if (typeof gl.seriesZ[i] !== "undefined") {
-          for (let j2 = 0; j2 < gl.seriesZ[i].length; j2++) {
-            if (gl.seriesZ[i][j2] !== null && Utils$1.isNumber(gl.seriesZ[i][j2])) {
-              gl.maxZ = Math.max(gl.maxZ, gl.seriesZ[i][j2]);
-              gl.minZ = Math.min(gl.minZ, gl.seriesZ[i][j2]);
+          for (let j = 0; j < gl.seriesZ[i].length; j++) {
+            if (gl.seriesZ[i][j] !== null && Utils$1.isNumber(gl.seriesZ[i][j])) {
+              gl.maxZ = Math.max(gl.maxZ, gl.seriesZ[i][j]);
+              gl.minZ = Math.min(gl.minZ, gl.seriesZ[i][j]);
             }
           }
         }
@@ -10511,7 +11007,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     _getMinXDiff() {
       const gl = this.w.globals;
       if (gl.isXNumeric) {
-        gl.seriesX.forEach((sX, i) => {
+        gl.seriesX.forEach((sX) => {
           if (sX.length) {
             if (sX.length === 1) {
               sX.push(
@@ -10520,9 +11016,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             }
             const seriesX = sX.slice();
             seriesX.sort((a, b) => a - b);
-            seriesX.forEach((s, j2) => {
-              if (j2 > 0) {
-                let xDiff = s - seriesX[j2 - 1];
+            seriesX.forEach((s, j) => {
+              if (j > 0) {
+                let xDiff = s - seriesX[j - 1];
                 if (xDiff > 0) {
                   gl.minXDiff = Math.min(xDiff, gl.minXDiff);
                 }
@@ -10552,15 +11048,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         ).filter((f) => f !== null);
         indicesOfSeriesInGroup.forEach((i) => {
           var _a, _b, _c, _d;
-          for (let j2 = 0; j2 < gl.series[gl.maxValsInArrayIndex].length; j2++) {
-            if (typeof stackedPoss[group][j2] === "undefined") {
-              stackedPoss[group][j2] = 0;
-              stackedNegs[group][j2] = 0;
+          for (let j = 0; j < gl.series[gl.maxValsInArrayIndex].length; j++) {
+            if (typeof stackedPoss[group][j] === "undefined") {
+              stackedPoss[group][j] = 0;
+              stackedNegs[group][j] = 0;
             }
             let stackSeries = this.w.config.chart.stacked && !gl.comboCharts || this.w.config.chart.stacked && gl.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_b = (_a = this.w.config.series) == null ? void 0 : _a[i]) == null ? void 0 : _b.type) === "bar" || ((_d = (_c = this.w.config.series) == null ? void 0 : _c[i]) == null ? void 0 : _d.type) === "column");
             if (stackSeries) {
-              if (gl.series[i][j2] !== null && Utils$1.isNumber(gl.series[i][j2])) {
-                gl.series[i][j2] > 0 ? stackedPoss[group][j2] += parseFloat(gl.series[i][j2]) + 1e-4 : stackedNegs[group][j2] += parseFloat(gl.series[i][j2]);
+              if (gl.series[i][j] !== null && Utils$1.isNumber(gl.series[i][j])) {
+                gl.series[i][j] > 0 ? stackedPoss[group][j] += parseFloat(gl.series[i][j]) + 1e-4 : stackedNegs[group][j] += parseFloat(gl.series[i][j]);
               }
             }
           }
@@ -10588,10 +11084,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       this.drawnLabels = [];
       this.axesUtils = new AxesUtils(ctx);
     }
-    drawYaxis(realIndex2) {
+    drawYaxis(realIndex) {
       const w = this.w;
       const graphics = new Graphics(this.ctx);
-      const yaxisStyle = w.config.yaxis[realIndex2].labels.style;
+      const yaxisStyle = w.config.yaxis[realIndex].labels.style;
       const {
         fontSize: yaxisFontSize,
         fontFamily: yaxisFontFamily,
@@ -10599,71 +11095,75 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       } = yaxisStyle;
       const elYaxis = graphics.group({
         class: "apexcharts-yaxis",
-        rel: realIndex2,
-        transform: `translate(${w.globals.translateYAxisX[realIndex2]}, 0)`
+        rel: realIndex,
+        transform: `translate(${w.globals.translateYAxisX[realIndex]}, 0)`
       });
-      if (this.axesUtils.isYAxisHidden(realIndex2)) return elYaxis;
+      if (this.axesUtils.isYAxisHidden(realIndex)) return elYaxis;
       const elYaxisTexts = graphics.group({ class: "apexcharts-yaxis-texts-g" });
       elYaxis.add(elYaxisTexts);
-      const tickAmount = w.globals.yAxisScale[realIndex2].result.length - 1;
+      const tickAmount = w.globals.yAxisScale[realIndex].result.length - 1;
       const labelsDivider = w.globals.gridHeight / tickAmount;
-      const lbFormatter = w.globals.yLabelFormatters[realIndex2];
+      const lbFormatter = w.globals.yLabelFormatters[realIndex];
       let labels = this.axesUtils.checkForReversedLabels(
-        realIndex2,
-        w.globals.yAxisScale[realIndex2].result.slice()
+        realIndex,
+        w.globals.yAxisScale[realIndex].result.slice()
       );
-      if (w.config.yaxis[realIndex2].labels.show) {
-        let lY = w.globals.translateY + w.config.yaxis[realIndex2].labels.offsetY;
+      if (w.config.yaxis[realIndex].labels.show) {
+        let lY = w.globals.translateY + w.config.yaxis[realIndex].labels.offsetY;
         if (w.globals.isBarHorizontal) lY = 0;
         else if (w.config.chart.type === "heatmap") lY -= labelsDivider / 2;
         lY += parseInt(yaxisFontSize, 10) / 3;
+        let firstLabel = null;
         for (let i = tickAmount; i >= 0; i--) {
           let val = lbFormatter(labels[i], i, w);
-          let xPad = w.config.yaxis[realIndex2].labels.padding;
-          if (w.config.yaxis[realIndex2].opposite && w.config.yaxis.length !== 0)
+          let xPad = w.config.yaxis[realIndex].labels.padding;
+          if (w.config.yaxis[realIndex].opposite && w.config.yaxis.length !== 0)
             xPad *= -1;
           const textAnchor = this.getTextAnchor(
-            w.config.yaxis[realIndex2].labels.align,
-            w.config.yaxis[realIndex2].opposite
+            w.config.yaxis[realIndex].labels.align,
+            w.config.yaxis[realIndex].opposite
           );
           const yColors = this.axesUtils.getYAxisForeColor(
             yaxisStyle.colors,
-            realIndex2
+            realIndex
           );
           const foreColor = Array.isArray(yColors) ? yColors[i] : yColors;
           const existingYLabels = Utils$1.listToArray(
             w.globals.dom.baseEl.querySelectorAll(
-              `.apexcharts-yaxis[rel='${realIndex2}'] .apexcharts-yaxis-label tspan`
+              `.apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-label tspan`
             )
           ).map((label2) => label2.textContent);
           const label = graphics.drawText({
             x: xPad,
             y: lY,
-            text: existingYLabels.includes(val) && !w.config.yaxis[realIndex2].labels.showDuplicates ? "" : val,
+            text: existingYLabels.includes(val) && !w.config.yaxis[realIndex].labels.showDuplicates ? "" : val,
             textAnchor,
             fontSize: yaxisFontSize,
             fontFamily: yaxisFontFamily,
             fontWeight: yaxisFontWeight,
-            maxWidth: w.config.yaxis[realIndex2].labels.maxWidth,
+            maxWidth: w.config.yaxis[realIndex].labels.maxWidth,
             foreColor,
             isPlainText: false,
             cssClass: `apexcharts-yaxis-label ${yaxisStyle.cssClass}`
           });
           elYaxisTexts.add(label);
           this.addTooltip(label, val);
-          if (w.config.yaxis[realIndex2].labels.rotate !== 0) {
+          if (firstLabel === null) {
+            firstLabel = label;
+          }
+          if (w.config.yaxis[realIndex].labels.rotate !== 0) {
             this.rotateLabel(
               graphics,
               label,
               firstLabel,
-              w.config.yaxis[realIndex2].labels.rotate
+              w.config.yaxis[realIndex].labels.rotate
             );
           }
           lY += labelsDivider;
         }
       }
-      this.addYAxisTitle(graphics, elYaxis, realIndex2);
-      this.addAxisBorder(graphics, elYaxis, realIndex2, tickAmount, labelsDivider);
+      this.addYAxisTitle(graphics, elYaxis, realIndex);
+      this.addAxisBorder(graphics, elYaxis, realIndex, tickAmount, labelsDivider);
       return elYaxis;
     }
     getTextAnchor(align, opposite) {
@@ -10680,39 +11180,39 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       elTooltipTitle.textContent = Array.isArray(val) ? val.join(" ") : val;
       label.node.appendChild(elTooltipTitle);
     }
-    rotateLabel(graphics, label, firstLabel2, rotate) {
-      const firstLabelCenter = graphics.rotateAroundCenter(firstLabel2.node);
+    rotateLabel(graphics, label, firstLabel, rotate) {
+      const firstLabelCenter = graphics.rotateAroundCenter(firstLabel.node);
       const labelCenter = graphics.rotateAroundCenter(label.node);
       label.node.setAttribute(
         "transform",
         `rotate(${rotate} ${firstLabelCenter.x} ${labelCenter.y})`
       );
     }
-    addYAxisTitle(graphics, elYaxis, realIndex2) {
+    addYAxisTitle(graphics, elYaxis, realIndex) {
       const w = this.w;
-      if (w.config.yaxis[realIndex2].title.text !== void 0) {
+      if (w.config.yaxis[realIndex].title.text !== void 0) {
         const elYaxisTitle = graphics.group({ class: "apexcharts-yaxis-title" });
-        const x = w.config.yaxis[realIndex2].opposite ? w.globals.translateYAxisX[realIndex2] : 0;
+        const x = w.config.yaxis[realIndex].opposite ? w.globals.translateYAxisX[realIndex] : 0;
         const elYAxisTitleText = graphics.drawText({
           x,
-          y: w.globals.gridHeight / 2 + w.globals.translateY + w.config.yaxis[realIndex2].title.offsetY,
-          text: w.config.yaxis[realIndex2].title.text,
+          y: w.globals.gridHeight / 2 + w.globals.translateY + w.config.yaxis[realIndex].title.offsetY,
+          text: w.config.yaxis[realIndex].title.text,
           textAnchor: "end",
-          foreColor: w.config.yaxis[realIndex2].title.style.color,
-          fontSize: w.config.yaxis[realIndex2].title.style.fontSize,
-          fontWeight: w.config.yaxis[realIndex2].title.style.fontWeight,
-          fontFamily: w.config.yaxis[realIndex2].title.style.fontFamily,
-          cssClass: `apexcharts-yaxis-title-text ${w.config.yaxis[realIndex2].title.style.cssClass}`
+          foreColor: w.config.yaxis[realIndex].title.style.color,
+          fontSize: w.config.yaxis[realIndex].title.style.fontSize,
+          fontWeight: w.config.yaxis[realIndex].title.style.fontWeight,
+          fontFamily: w.config.yaxis[realIndex].title.style.fontFamily,
+          cssClass: `apexcharts-yaxis-title-text ${w.config.yaxis[realIndex].title.style.cssClass}`
         });
         elYaxisTitle.add(elYAxisTitleText);
         elYaxis.add(elYaxisTitle);
       }
     }
-    addAxisBorder(graphics, elYaxis, realIndex2, tickAmount, labelsDivider) {
+    addAxisBorder(graphics, elYaxis, realIndex, tickAmount, labelsDivider) {
       const w = this.w;
-      const axisBorder = w.config.yaxis[realIndex2].axisBorder;
+      const axisBorder = w.config.yaxis[realIndex].axisBorder;
       let x = 31 + axisBorder.offsetX;
-      if (w.config.yaxis[realIndex2].opposite) x = -31 - axisBorder.offsetX;
+      if (w.config.yaxis[realIndex].opposite) x = -31 - axisBorder.offsetX;
       if (axisBorder.show) {
         const elVerticalLine = graphics.drawLine(
           x,
@@ -10725,19 +11225,19 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         );
         elYaxis.add(elVerticalLine);
       }
-      if (w.config.yaxis[realIndex2].axisTicks.show) {
+      if (w.config.yaxis[realIndex].axisTicks.show) {
         this.axesUtils.drawYAxisTicks(
           x,
           tickAmount,
           axisBorder,
-          w.config.yaxis[realIndex2].axisTicks,
-          realIndex2,
+          w.config.yaxis[realIndex].axisTicks,
+          realIndex,
           labelsDivider,
           elYaxis
         );
       }
     }
-    drawYaxisInversed(realIndex2) {
+    drawYaxisInversed(realIndex) {
       const w = this.w;
       const graphics = new Graphics(this.ctx);
       const elXaxis = graphics.group({
@@ -10748,13 +11248,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         transform: `translate(${w.globals.translateXAxisX}, ${w.globals.translateXAxisY})`
       });
       elXaxis.add(elXaxisTexts);
-      let tickAmount = w.globals.yAxisScale[realIndex2].result.length - 1;
+      let tickAmount = w.globals.yAxisScale[realIndex].result.length - 1;
       const labelsDivider = w.globals.gridWidth / tickAmount + 0.1;
       let l = labelsDivider + w.config.xaxis.labels.offsetX;
       const lbFormatter = w.globals.xLabelFormatter;
       let labels = this.axesUtils.checkForReversedLabels(
-        realIndex2,
-        w.globals.yAxisScale[realIndex2].result.slice()
+        realIndex,
+        w.globals.yAxisScale[realIndex].result.slice()
       );
       const timescaleLabels = w.globals.timescaleLabels;
       if (timescaleLabels.length > 0) {
@@ -10787,7 +11287,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             y: this.xAxisoffX + w.config.xaxis.labels.offsetY + 30 - (w.config.xaxis.position === "top" ? w.globals.xAxisHeight + w.config.xaxis.axisTicks.height - 2 : 0),
             text: val,
             textAnchor: "middle",
-            foreColor: Array.isArray(this.xaxisForeColors) ? this.xaxisForeColors[realIndex2] : this.xaxisForeColors,
+            foreColor: Array.isArray(this.xaxisForeColors) ? this.xaxisForeColors[realIndex] : this.xaxisForeColors,
             fontSize: this.xaxisFontSize,
             fontFamily: this.xaxisFontFamily,
             fontWeight: w.config.xaxis.labels.style.fontWeight,
@@ -10850,20 +11350,20 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         parent.add(elYaxisTitle);
       }
     }
-    yAxisTitleRotate(realIndex2, yAxisOpposite) {
+    yAxisTitleRotate(realIndex, yAxisOpposite) {
       const w = this.w;
       const graphics = new Graphics(this.ctx);
       const elYAxisLabelsWrap = w.globals.dom.baseEl.querySelector(
-        `.apexcharts-yaxis[rel='${realIndex2}'] .apexcharts-yaxis-texts-g`
+        `.apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-texts-g`
       );
       const yAxisLabelsCoord = elYAxisLabelsWrap ? elYAxisLabelsWrap.getBoundingClientRect() : { width: 0, height: 0 };
       const yAxisTitle = w.globals.dom.baseEl.querySelector(
-        `.apexcharts-yaxis[rel='${realIndex2}'] .apexcharts-yaxis-title text`
+        `.apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-title text`
       );
       const yAxisTitleCoord = yAxisTitle ? yAxisTitle.getBoundingClientRect() : { width: 0, height: 0 };
       if (yAxisTitle) {
         const x = this.xPaddingForYAxisTitle(
-          realIndex2,
+          realIndex,
           yAxisLabelsCoord,
           yAxisTitleCoord,
           yAxisOpposite
@@ -10872,24 +11372,24 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         const titleRotatingCenter = graphics.rotateAroundCenter(yAxisTitle);
         yAxisTitle.setAttribute(
           "transform",
-          `rotate(${yAxisOpposite ? w.config.yaxis[realIndex2].title.rotate * -1 : w.config.yaxis[realIndex2].title.rotate} ${titleRotatingCenter.x} ${titleRotatingCenter.y})`
+          `rotate(${yAxisOpposite ? w.config.yaxis[realIndex].title.rotate * -1 : w.config.yaxis[realIndex].title.rotate} ${titleRotatingCenter.x} ${titleRotatingCenter.y})`
         );
       }
     }
-    xPaddingForYAxisTitle(realIndex2, yAxisLabelsCoord, yAxisTitleCoord, yAxisOpposite) {
+    xPaddingForYAxisTitle(realIndex, yAxisLabelsCoord, yAxisTitleCoord, yAxisOpposite) {
       const w = this.w;
       let x = 0;
       let padd = 10;
-      if (w.config.yaxis[realIndex2].title.text === void 0 || realIndex2 < 0) {
+      if (w.config.yaxis[realIndex].title.text === void 0 || realIndex < 0) {
         return { xPos: x, padd: 0 };
       }
       if (yAxisOpposite) {
-        x = yAxisLabelsCoord.width + w.config.yaxis[realIndex2].title.offsetX + yAxisTitleCoord.width / 2 + padd / 2;
+        x = yAxisLabelsCoord.width + w.config.yaxis[realIndex].title.offsetX + yAxisTitleCoord.width / 2 + padd / 2;
       } else {
-        x = yAxisLabelsCoord.width * -1 + w.config.yaxis[realIndex2].title.offsetX + padd / 2 + yAxisTitleCoord.width / 2;
+        x = yAxisLabelsCoord.width * -1 + w.config.yaxis[realIndex].title.offsetX + padd / 2 + yAxisTitleCoord.width / 2;
         if (w.globals.isBarHorizontal) {
           padd = 25;
-          x = yAxisLabelsCoord.width * -1 - w.config.yaxis[realIndex2].title.offsetX - padd;
+          x = yAxisLabelsCoord.width * -1 - w.config.yaxis[realIndex].title.offsetX - padd;
         }
       }
       return { xPos: x, padd };
@@ -10962,7 +11462,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     addEventListener(name2, handler) {
       const w = this.w;
-      if (w.globals.events.hasOwnProperty(name2)) {
+      if (Object.prototype.hasOwnProperty.call(w.globals.events, name2)) {
         w.globals.events[name2].push(handler);
       } else {
         w.globals.events[name2] = [handler];
@@ -10970,7 +11470,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     removeEventListener(name2, handler) {
       const w = this.w;
-      if (!w.globals.events.hasOwnProperty(name2)) {
+      if (!Object.prototype.hasOwnProperty.call(w.globals.events, name2)) {
         return;
       }
       let index = w.globals.events[name2].indexOf(handler);
@@ -10980,7 +11480,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     fireEvent(name2, args) {
       const w = this.w;
-      if (!w.globals.events.hasOwnProperty(name2)) {
+      if (!Object.prototype.hasOwnProperty.call(w.globals.events, name2)) {
         return;
       }
       if (!args || !args.length) {
@@ -11006,7 +11506,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               seriesIndex: w.globals.axisCharts ? capturedSeriesIndex : 0,
               dataPointIndex: capturedDataPointIndex
             });
-            if (e.type === "mousemove" || e.type === "touchmove") {
+            if (e.type === "keydown") {
+              if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
+                if (typeof w.config.chart.events.keyDown === "function") {
+                  w.config.chart.events.keyDown(e, me, opts);
+                }
+                me.ctx.events.fireEvent("keydown", [e, me, opts]);
+              }
+            } else if (e.type === "keyup") {
+              if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
+                if (typeof w.config.chart.events.keyUp === "function") {
+                  w.config.chart.events.keyUp(e, me, opts);
+                }
+                me.ctx.events.fireEvent("keyup", [e, me, opts]);
+              }
+            } else if (e.type === "mousemove" || e.type === "touchmove") {
               if (typeof w.config.chart.events.mouseMove === "function") {
                 w.config.chart.events.mouseMove(e, me, opts);
               }
@@ -11536,7 +12050,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const w = this.w;
       let valArr = val;
       if (w.globals.isMultiLineX) {
-        let maxArrs = arr.map((xl, idx) => {
+        let maxArrs = arr.map((xl) => {
           return Array.isArray(xl) ? xl.length : 1;
         });
         let maxArrLen = Math.max(...maxArrs);
@@ -11881,7 +12395,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     getyAxisTitleCoords() {
       let w = this.w;
       let ret = [];
-      w.config.yaxis.map((yaxe, index) => {
+      w.config.yaxis.map((yaxe) => {
         if (yaxe.show && yaxe.title.text !== void 0) {
           let graphics = new Graphics(this.dCtx.ctx);
           let rotateStr = "rotate(".concat(yaxe.title.rotate, " 0 0)");
@@ -12292,20 +12806,20 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (w.globals.axisCharts || w.config.chart.type === "radialBar") {
         w.globals.resized = true;
         let seriesEl = null;
-        let realIndex2 = null;
+        let realIndex = null;
         w.globals.risingSeries = [];
         if (w.globals.axisCharts) {
           seriesEl = w.globals.dom.baseEl.querySelector(
             `.apexcharts-series[data\\:realIndex='${seriesCnt}']`
           );
           if (!seriesEl) return;
-          realIndex2 = parseInt(seriesEl.getAttribute("data:realIndex"), 10);
+          realIndex = parseInt(seriesEl.getAttribute("data:realIndex"), 10);
         } else {
           seriesEl = w.globals.dom.baseEl.querySelector(
             `.apexcharts-series[rel='${seriesCnt + 1}']`
           );
           if (!seriesEl) return;
-          realIndex2 = parseInt(seriesEl.getAttribute("rel"), 10) - 1;
+          realIndex = parseInt(seriesEl.getAttribute("rel"), 10) - 1;
         }
         if (isHidden) {
           const seriesToMakeVisible = [
@@ -12319,10 +12833,31 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             }
           ];
           seriesToMakeVisible.forEach((r) => {
-            this.riseCollapsedSeries(r.cs, r.csi, realIndex2);
+            this.riseCollapsedSeries(r.cs, r.csi, realIndex);
           });
         } else {
-          this.hideSeries({ seriesEl, realIndex: realIndex2 });
+          this.hideSeries({ seriesEl, realIndex });
+        }
+        if (w.config.chart.accessibility.enabled) {
+          const legendItem = w.globals.dom.baseEl.querySelector(
+            `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`
+          );
+          if (legendItem) {
+            const isCollapsed = w.globals.collapsedSeriesIndices.includes(realIndex) || w.globals.ancillaryCollapsedSeriesIndices.includes(realIndex);
+            legendItem.setAttribute(
+              "aria-pressed",
+              isCollapsed ? "true" : "false"
+            );
+            const legendTextEl = legendItem.querySelector(
+              ".apexcharts-legend-text"
+            );
+            const seriesName = legendTextEl ? legendTextEl.textContent : w.globals.seriesNames[seriesCnt];
+            const statusText = isCollapsed ? "hidden" : "visible";
+            legendItem.setAttribute(
+              "aria-label",
+              `${seriesName}, ${statusText}. Press Enter or Space to toggle.`
+            );
+          }
         }
       } else {
         let seriesEl = w.globals.dom.Paper.findOne(
@@ -12336,46 +12871,67 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           this.lgCtx.ctx.pie.printDataLabelsInner(seriesEl.node, dataLabels);
         }
         seriesEl.fire("click");
+        if (w.config.chart.accessibility.enabled) {
+          const legendItem = w.globals.dom.baseEl.querySelector(
+            `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`
+          );
+          if (legendItem) {
+            const isCollapsed = w.globals.collapsedSeriesIndices.includes(seriesCnt);
+            legendItem.setAttribute(
+              "aria-pressed",
+              isCollapsed ? "true" : "false"
+            );
+            const legendTextEl = legendItem.querySelector(
+              ".apexcharts-legend-text"
+            );
+            const seriesName = legendTextEl ? legendTextEl.textContent : w.globals.seriesNames[seriesCnt];
+            const statusText = isCollapsed ? "hidden" : "visible";
+            legendItem.setAttribute(
+              "aria-label",
+              `${seriesName}, ${statusText}. Press Enter or Space to toggle.`
+            );
+          }
+        }
       }
     }
-    getSeriesAfterCollapsing({ realIndex: realIndex2 }) {
+    getSeriesAfterCollapsing({ realIndex }) {
       const w = this.w;
       const gl = w.globals;
       let series = Utils$1.clone(w.config.series);
       if (gl.axisCharts) {
-        let yaxis = w.config.yaxis[gl.seriesYAxisReverseMap[realIndex2]];
+        let yaxis = w.config.yaxis[gl.seriesYAxisReverseMap[realIndex]];
         const collapseData = {
-          index: realIndex2,
-          data: series[realIndex2].data.slice(),
-          type: series[realIndex2].type || w.config.chart.type
+          index: realIndex,
+          data: series[realIndex].data.slice(),
+          type: series[realIndex].type || w.config.chart.type
         };
         if (yaxis && yaxis.show && yaxis.showAlways) {
-          if (gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex2) < 0) {
+          if (gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
             gl.ancillaryCollapsedSeries.push(collapseData);
-            gl.ancillaryCollapsedSeriesIndices.push(realIndex2);
+            gl.ancillaryCollapsedSeriesIndices.push(realIndex);
           }
         } else {
-          if (gl.collapsedSeriesIndices.indexOf(realIndex2) < 0) {
+          if (gl.collapsedSeriesIndices.indexOf(realIndex) < 0) {
             gl.collapsedSeries.push(collapseData);
-            gl.collapsedSeriesIndices.push(realIndex2);
-            let removeIndexOfRising = gl.risingSeries.indexOf(realIndex2);
+            gl.collapsedSeriesIndices.push(realIndex);
+            let removeIndexOfRising = gl.risingSeries.indexOf(realIndex);
             gl.risingSeries.splice(removeIndexOfRising, 1);
           }
         }
       } else {
         gl.collapsedSeries.push({
-          index: realIndex2,
-          data: series[realIndex2]
+          index: realIndex,
+          data: series[realIndex]
         });
-        gl.collapsedSeriesIndices.push(realIndex2);
+        gl.collapsedSeriesIndices.push(realIndex);
       }
       gl.allSeriesCollapsed = gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length === w.config.series.length;
       return this._getSeriesBasedOnCollapsedState(series);
     }
-    hideSeries({ seriesEl, realIndex: realIndex2 }) {
+    hideSeries({ seriesEl, realIndex }) {
       const w = this.w;
       let series = this.getSeriesAfterCollapsing({
-        realIndex: realIndex2
+        realIndex
       });
       let seriesChildren = seriesEl.childNodes;
       for (let sc = 0; sc < seriesChildren.length; sc++) {
@@ -12392,23 +12948,24 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         w.config.chart.animations.dynamicAnimation.enabled
       );
     }
-    riseCollapsedSeries(collapsedSeries, seriesIndices, realIndex2) {
+    riseCollapsedSeries(collapsedSeries, seriesIndices, realIndex) {
       const w = this.w;
       let series = Utils$1.clone(w.config.series);
       if (collapsedSeries.length > 0) {
         for (let c = 0; c < collapsedSeries.length; c++) {
-          if (collapsedSeries[c].index === realIndex2) {
+          if (collapsedSeries[c].index === realIndex) {
             if (w.globals.axisCharts) {
-              series[realIndex2].data = collapsedSeries[c].data.slice();
+              series[realIndex].data = collapsedSeries[c].data.slice();
             } else {
-              series[realIndex2] = collapsedSeries[c].data;
+              series[realIndex] = collapsedSeries[c].data;
             }
-            if (typeof series[realIndex2] !== "number") {
-              series[realIndex2].hidden = false;
+            if (typeof series[realIndex] !== "number") {
+              series[realIndex].hidden = false;
             }
             collapsedSeries.splice(c, 1);
             seriesIndices.splice(c, 1);
-            w.globals.risingSeries.push(realIndex2);
+            w.globals.risingSeries.push(realIndex);
+            c--;
           }
         }
         series = this._getSeriesBasedOnCollapsedState(series);
@@ -12430,7 +12987,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         });
       } else {
         series.forEach((s, sI) => {
-          if (!w.globals.collapsedSeriesIndices.indexOf(sI) < 0) {
+          if (!(w.globals.collapsedSeriesIndices.indexOf(sI) < 0)) {
             series[sI] = 0;
             collapsed++;
           }
@@ -12587,6 +13144,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           elMarker.classList.add("apexcharts-inactive-legend");
         }
         let elLegend = document.createElement("div");
+        if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
+          elLegend.setAttribute("role", "button");
+          elLegend.setAttribute("tabindex", "0");
+          const seriesName = Array.isArray(text) ? text.join(" ") : text;
+          const isCollapsed = collapsedSeries || ancillaryCollapsedSeries;
+          const statusText = isCollapsed ? "hidden" : "visible";
+          elLegend.setAttribute(
+            "aria-label",
+            `${seriesName}, ${statusText}. Press Enter or Space to toggle.`
+          );
+          elLegend.setAttribute("aria-pressed", isCollapsed ? "true" : "false");
+        }
         let elLegendText = document.createElement("span");
         elLegendText.classList.add("apexcharts-legend-text");
         elLegendText.innerHTML = Array.isArray(text) ? text.join(" ") : text;
@@ -12664,6 +13233,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           true
         );
       }
+      if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.keyboard.enabled) {
+        w.globals.dom.elWrap.addEventListener("keydown", me.onLegendKeyDown.bind(me), true);
+      }
     }
     setLegendWrapXY(offsetX, offsetY) {
       let w = this.w;
@@ -12737,6 +13309,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           let series = new Series(this.ctx);
           series.highlightRangeInSeries(e, e.target);
         }
+      }
+    }
+    onLegendKeyDown(e) {
+      const me = this;
+      const isLegendItem = e.target.classList.contains("apexcharts-legend-series") || e.target.classList.contains("apexcharts-legend-text") || e.target.classList.contains("apexcharts-legend-marker");
+      if (!isLegendItem) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        me.onLegendClick(e);
       }
     }
     onLegendClick(e) {
@@ -13125,7 +13706,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           break;
       }
     }
-    handleZoomReset(e) {
+    handleZoomReset() {
       const charts = this.ctx.getSyncedCharts();
       charts.forEach((ch) => {
         let w = ch.w;
@@ -13162,71 +13743,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       this.elSelection = null;
       this.elZoomReset = null;
       this.elMenuIcon = null;
-    }
-  }
-  const SVGNS = "http://www.w3.org/2000/svg";
-  class Point {
-    constructor(x, y) {
-      if (typeof x === "object") {
-        this.x = x.x;
-        this.y = x.y;
-      } else {
-        this.x = x || 0;
-        this.y = y || 0;
-      }
-    }
-    transform(matrix) {
-      return matrix.apply(this);
-    }
-    clone() {
-      return new Point(this.x, this.y);
-    }
-  }
-  class Matrix {
-    constructor(a, b, c, d, e, f) {
-      this.a = a != null ? a : 1;
-      this.b = b != null ? b : 0;
-      this.c = c != null ? c : 0;
-      this.d = d != null ? d : 1;
-      this.e = e != null ? e : 0;
-      this.f = f != null ? f : 0;
-    }
-    rotate(deg) {
-      const rad = deg * Math.PI / 180;
-      const cos = Math.cos(rad);
-      const sin = Math.sin(rad);
-      return this.multiply(new Matrix(cos, sin, -sin, cos, 0, 0));
-    }
-    scale(sx, sy) {
-      return this.multiply(new Matrix(sx, 0, 0, sy != null ? sy : sx, 0, 0));
-    }
-    multiply(m) {
-      return new Matrix(
-        this.a * m.a + this.c * m.b,
-        this.b * m.a + this.d * m.b,
-        this.a * m.c + this.c * m.d,
-        this.b * m.c + this.d * m.d,
-        this.a * m.e + this.c * m.f + this.e,
-        this.b * m.e + this.d * m.f + this.f
-      );
-    }
-    apply(point) {
-      return new Point(
-        this.a * point.x + this.c * point.y + this.e,
-        this.b * point.x + this.d * point.y + this.f
-      );
-    }
-  }
-  class Box {
-    constructor(x, y, w, h) {
-      this.x = x;
-      this.y = y;
-      this.w = w;
-      this.h = h;
-      this.width = w;
-      this.height = h;
-      this.x2 = x + w;
-      this.y2 = y + h;
     }
   }
   class SVGElement {
@@ -13425,11 +13941,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return this;
     }
     // ---- Animation (overridden by SVGAnimation mixin) ----
-    animate(duration, delay) {
+    animate() {
       throw new Error("Animation module not loaded");
     }
     // ---- Filter methods (set up by SVGFilter module) ----
-    filterWith(fn) {
+    filterWith() {
       throw new Error("Filter module not loaded");
     }
     unfilter(all) {
@@ -13446,11 +13962,76 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return this._filter;
     }
   }
+  const SVGNS = "http://www.w3.org/2000/svg";
+  class Point {
+    constructor(x, y) {
+      if (typeof x === "object") {
+        this.x = x.x;
+        this.y = x.y;
+      } else {
+        this.x = x || 0;
+        this.y = y || 0;
+      }
+    }
+    transform(matrix) {
+      return matrix.apply(this);
+    }
+    clone() {
+      return new Point(this.x, this.y);
+    }
+  }
+  class Matrix {
+    constructor(a, b, c, d, e, f) {
+      this.a = a != null ? a : 1;
+      this.b = b != null ? b : 0;
+      this.c = c != null ? c : 0;
+      this.d = d != null ? d : 1;
+      this.e = e != null ? e : 0;
+      this.f = f != null ? f : 0;
+    }
+    rotate(deg) {
+      const rad = deg * Math.PI / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      return this.multiply(new Matrix(cos, sin, -sin, cos, 0, 0));
+    }
+    scale(sx, sy) {
+      return this.multiply(new Matrix(sx, 0, 0, sy != null ? sy : sx, 0, 0));
+    }
+    multiply(m) {
+      return new Matrix(
+        this.a * m.a + this.c * m.b,
+        this.b * m.a + this.d * m.b,
+        this.a * m.c + this.c * m.d,
+        this.b * m.c + this.d * m.d,
+        this.a * m.e + this.c * m.f + this.e,
+        this.b * m.e + this.d * m.f + this.f
+      );
+    }
+    apply(point) {
+      return new Point(
+        this.a * point.x + this.c * point.y + this.e,
+        this.b * point.x + this.d * point.y + this.f
+      );
+    }
+  }
+  class Box {
+    constructor(x, y, w, h) {
+      this.x = x;
+      this.y = y;
+      this.w = w;
+      this.h = h;
+      this.width = w;
+      this.height = h;
+      this.x2 = x + w;
+      this.y2 = y + h;
+    }
+  }
   let gradientCounter = 0;
   class SVGGradient extends SVGElement {
     constructor(container, type, builder) {
       const tag = type === "radial" ? "radialGradient" : "linearGradient";
-      const node = document.createElementNS(SVGNS, tag);
+      const node = BrowserAPIs.createElementNS(SVGNS, tag);
       super(node);
       this._id = "SvgjsGradient" + ++gradientCounter;
       this.attr("id", this._id);
@@ -13459,13 +14040,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       let defs = container.node.querySelector("defs");
       if (!defs) {
-        defs = document.createElementNS(SVGNS, "defs");
+        defs = BrowserAPIs.createElementNS(SVGNS, "defs");
         container.node.appendChild(defs);
       }
       defs.appendChild(this.node);
     }
     stop(offset, color, opacity) {
-      const s = document.createElementNS(SVGNS, "stop");
+      const s = BrowserAPIs.createElementNS(SVGNS, "stop");
       s.setAttribute("offset", offset);
       s.setAttribute("stop-color", color);
       if (opacity !== void 0) s.setAttribute("stop-opacity", opacity);
@@ -13503,7 +14084,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   let patternCounter = 0;
   class SVGPattern extends SVGElement {
     constructor(container, w, h, builder) {
-      const node = document.createElementNS(SVGNS, "pattern");
+      const node = BrowserAPIs.createElementNS(SVGNS, "pattern");
       super(node);
       this._id = "SvgjsPattern" + ++patternCounter;
       this.attr({
@@ -13518,7 +14099,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       let defs = container.node.querySelector("defs");
       if (!defs) {
-        defs = document.createElementNS(SVGNS, "defs");
+        defs = BrowserAPIs.createElementNS(SVGNS, "defs");
         container.node.appendChild(defs);
       }
       defs.appendChild(this.node);
@@ -13575,14 +14156,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return this._makeContainer("defs");
     }
     plain(textContent) {
-      const node = document.createElementNS(SVGNS, "text");
+      const node = BrowserAPIs.createElementNS(SVGNS, "text");
       node.textContent = textContent;
       const el = new SVGElement(node);
       this.node.appendChild(node);
       return el;
     }
     text(builder) {
-      const node = document.createElementNS(SVGNS, "text");
+      const node = BrowserAPIs.createElementNS(SVGNS, "text");
       const el = new SVGElement(node);
       this.node.appendChild(node);
       if (typeof builder === "function") {
@@ -13591,7 +14172,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return el;
     }
     image(url, callback) {
-      const node = document.createElementNS(SVGNS, "image");
+      const node = BrowserAPIs.createElementNS(SVGNS, "image");
       node.setAttributeNS("http://www.w3.org/1999/xlink", "href", url);
       const el = new SVGElement(node);
       this.node.appendChild(node);
@@ -13612,12 +14193,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return new SVGPattern(this, w, h, builder);
     }
     _make(tag) {
-      const node = document.createElementNS(SVGNS, tag);
+      const node = BrowserAPIs.createElementNS(SVGNS, tag);
       this.node.appendChild(node);
       return new SVGElement(node);
     }
     _makeContainer(tag) {
-      const node = document.createElementNS(SVGNS, tag);
+      const node = BrowserAPIs.createElementNS(SVGNS, tag);
       this.node.appendChild(node);
       return new SVGContainer(node);
     }
@@ -13627,7 +14208,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       this.textNode = textNode;
     }
     tspan(text) {
-      const tspan = document.createElementNS(SVGNS, "tspan");
+      const tspan = BrowserAPIs.createElementNS(SVGNS, "tspan");
       tspan.textContent = text;
       this.textNode.appendChild(tspan);
       return new TspanWrapper(tspan, this.textNode);
@@ -13647,7 +14228,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   let filterCounter = 0;
   class SVGFilter extends SVGElement {
     constructor() {
-      const node = document.createElementNS(SVGNS, "filter");
+      const node = BrowserAPIs.createElementNS(SVGNS, "filter");
       super(node);
       this._id = "SvgjsFilter" + ++filterCounter;
       this.attr("id", this._id);
@@ -13676,9 +14257,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return this._primitive("feComposite", attrs);
     }
     merge(sources) {
-      const m = document.createElementNS(SVGNS, "feMerge");
+      const m = BrowserAPIs.createElementNS(SVGNS, "feMerge");
       sources.forEach((src) => {
-        const mn = document.createElementNS(SVGNS, "feMergeNode");
+        const mn = BrowserAPIs.createElementNS(SVGNS, "feMergeNode");
         mn.setAttribute("in", src);
         m.appendChild(mn);
       });
@@ -13686,7 +14267,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return new SVGElement(m);
     }
     _primitive(tag, attrs) {
-      const el = document.createElementNS(SVGNS, tag);
+      const el = BrowserAPIs.createElementNS(SVGNS, tag);
       for (const key in attrs) {
         el.setAttribute(key, attrs[key]);
       }
@@ -13705,7 +14286,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (svgRoot) {
         let defs = svgRoot.querySelector("defs");
         if (!defs) {
-          defs = document.createElementNS(SVGNS, "defs");
+          defs = BrowserAPIs.createElementNS(SVGNS, "defs");
           svgRoot.insertBefore(defs, svgRoot.firstChild);
         }
         defs.appendChild(filter.node);
@@ -13759,44 +14340,44 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (cmd === "Z") {
         commands.push(["Z"]);
       } else if (cmd === "M" || cmd === "L" || cmd === "T") {
-        for (let j2 = 0; j2 < nums.length; j2 += 2) {
-          commands.push([cmd, nums[j2], nums[j2 + 1]]);
+        for (let j = 0; j < nums.length; j += 2) {
+          commands.push([cmd, nums[j], nums[j + 1]]);
         }
       } else if (cmd === "H") {
-        for (let j2 = 0; j2 < nums.length; j2++) {
-          commands.push([cmd, nums[j2]]);
+        for (let j = 0; j < nums.length; j++) {
+          commands.push([cmd, nums[j]]);
         }
       } else if (cmd === "V") {
-        for (let j2 = 0; j2 < nums.length; j2++) {
-          commands.push([cmd, nums[j2]]);
+        for (let j = 0; j < nums.length; j++) {
+          commands.push([cmd, nums[j]]);
         }
       } else if (cmd === "C") {
-        for (let j2 = 0; j2 < nums.length; j2 += 6) {
+        for (let j = 0; j < nums.length; j += 6) {
           commands.push([
             cmd,
-            nums[j2],
-            nums[j2 + 1],
-            nums[j2 + 2],
-            nums[j2 + 3],
-            nums[j2 + 4],
-            nums[j2 + 5]
+            nums[j],
+            nums[j + 1],
+            nums[j + 2],
+            nums[j + 3],
+            nums[j + 4],
+            nums[j + 5]
           ]);
         }
       } else if (cmd === "S" || cmd === "Q") {
-        for (let j2 = 0; j2 < nums.length; j2 += 4) {
-          commands.push([cmd, nums[j2], nums[j2 + 1], nums[j2 + 2], nums[j2 + 3]]);
+        for (let j = 0; j < nums.length; j += 4) {
+          commands.push([cmd, nums[j], nums[j + 1], nums[j + 2], nums[j + 3]]);
         }
       } else if (cmd === "A") {
-        for (let j2 = 0; j2 < nums.length; j2 += 7) {
+        for (let j = 0; j < nums.length; j += 7) {
           commands.push([
             cmd,
-            nums[j2],
-            nums[j2 + 1],
-            nums[j2 + 2],
-            nums[j2 + 3],
-            nums[j2 + 4],
-            nums[j2 + 5],
-            nums[j2 + 6]
+            nums[j],
+            nums[j + 1],
+            nums[j + 2],
+            nums[j + 3],
+            nums[j + 4],
+            nums[j + 5],
+            nums[j + 6]
           ]);
         }
       }
@@ -14001,7 +14582,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     );
     var destArrTemp = destArr.slice(destOffsetM, destOffsetNextM || void 0);
     var i = 0, posStart = { pos: [0, 0], start: [0, 0] }, posDest = { pos: [0, 0], start: [0, 0] };
-    do {
+    while (true) {
       startArrTemp[i] = simplify.call(posStart, startArrTemp[i]);
       destArrTemp[i] = simplify.call(posDest, destArrTemp[i]);
       if (startArrTemp[i][0] != destArrTemp[i][0] || startArrTemp[i][0] == "M" || startArrTemp[i][0] == "A" && (startArrTemp[i][4] != destArrTemp[i][4] || startArrTemp[i][5] != destArrTemp[i][5])) {
@@ -14040,7 +14621,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           posDest.pos[1]
         ]);
       }
-    } while (true);
+    }
     return { start: startArrTemp, dest: destArrTemp };
   }
   function synchronizePaths(fromD, toD) {
@@ -14060,7 +14641,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         destOffsetM === false ? false : destOffsetM + 1
       );
       if (startOffsetM === false) {
-        var bbox = pathBbox(result.start);
+        let bbox = pathBbox(result.start);
         if (bbox.height == 0 || bbox.width == 0) {
           startOffsetM = startArr.push(startArr[0]) - 1;
         } else {
@@ -14072,7 +14653,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
       }
       if (destOffsetM === false) {
-        var bbox = pathBbox(result.dest);
+        let bbox = pathBbox(result.dest);
         if (bbox.height == 0 || bbox.width == 0) {
           destOffsetM = destArr.push(destArr[0]) - 1;
         } else {
@@ -14399,7 +14980,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (parent) {
         parent.appendChild(handleGroup);
       }
-      new SVGContainer(handleGroup);
       const handles = {};
       const handleNames = ["t", "b", "l", "r", "lt", "rt", "lb", "rb"];
       handleNames.forEach((name2, index) => {
@@ -14540,11 +15120,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   installDraggable(SVGElement);
   installSelectable(SVGElement);
   function SVG() {
-    const svg = new SVGContainer(document.createElementNS(SVGNS, "svg"));
+    const svgEl = BrowserAPIs.createElementNS(SVGNS, "svg");
+    const svg = new SVGContainer(svgEl);
     svg.attr({ xmlns: SVGNS });
     return svg;
   }
   SVG.xlink = "http://www.w3.org/1999/xlink";
+  if (Environment.isBrowser() && typeof window.SVG === "undefined") {
+    window.SVG = SVG;
+  }
   class ZoomPanSelection extends Toolbar {
     constructor(ctx) {
       super(ctx);
@@ -15250,11 +15834,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           hoverArea.classList.add("hovering-pan");
         }
       }
-      let j2 = Math.round(hoverX / xDivisor);
+      let j = Math.round(hoverX / xDivisor);
       let jHorz = Math.floor(hoverY / yDivisor);
       if (hasBars && !w.config.xaxis.convertedCatToNumeric) {
-        j2 = Math.ceil(hoverX / xDivisor);
-        j2 = j2 - 1;
+        j = Math.ceil(hoverX / xDivisor);
+        j = j - 1;
       }
       let capturedSeries = null;
       let closest = null;
@@ -15276,23 +15860,23 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           seriesYValArr
         );
         capturedSeries = closest.index;
-        j2 = closest.j;
+        j = closest.j;
         if (capturedSeries !== null && w.globals.hasNullValues) {
           seriesXValArr = w.globals.seriesXvalues[capturedSeries];
           closest = this.closestInArray(transformedHoverX, seriesXValArr);
-          j2 = closest.j;
+          j = closest.j;
         }
       }
       w.globals.capturedSeriesIndex = capturedSeries === null ? -1 : capturedSeries;
-      if (!j2 || j2 < 1) j2 = 0;
+      if (!j || j < 1) j = 0;
       if (w.globals.isBarHorizontal) {
         w.globals.capturedDataPointIndex = jHorz;
       } else {
-        w.globals.capturedDataPointIndex = j2;
+        w.globals.capturedDataPointIndex = j;
       }
       return {
         capturedSeries,
-        j: w.globals.isBarHorizontal ? jHorz : j2,
+        j: w.globals.isBarHorizontal ? jHorz : j,
         hoverX,
         hoverY
       };
@@ -15326,19 +15910,19 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         const xArr = Xarrays[i];
         const yArr = Yarrays[i];
         const len = Math.min(xArr.length, yArr.length);
-        for (let j2 = 0; j2 < len; j2++) {
-          const xVal = xArr[j2];
+        for (let j = 0; j < len; j++) {
+          const xVal = xArr[j];
           const distX = hoverX - xVal;
           let dist = Math.sqrt(distX * distX);
           if (!w.globals.allSeriesHasEqualX) {
-            const yVal = yArr[j2];
+            const yVal = yArr[j];
             const distY = hoverY - yVal;
             dist = Math.sqrt(distX * distX + distY * distY);
           }
           if (dist < closestDist) {
             closestDist = dist;
             closestSeriesIndex = i;
-            closestPointIndex = j2;
+            closestPointIndex = j;
           }
         }
       }
@@ -15371,14 +15955,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
      * - j = is the inner index of series -> (series[i][j])
      * @return {bool}
      */
-    isXoverlap(j2) {
+    isXoverlap(j) {
       let w = this.w;
       let xSameForAllSeriesJArr = [];
       const seriesX = w.globals.seriesX.filter((s) => typeof s[0] !== "undefined");
       if (seriesX.length > 0) {
         for (let i = 0; i < seriesX.length - 1; i++) {
-          if (typeof seriesX[i][j2] !== "undefined" && typeof seriesX[i + 1][j2] !== "undefined") {
-            if (seriesX[i][j2] !== seriesX[i + 1][j2]) {
+          if (typeof seriesX[i][j] !== "undefined" && typeof seriesX[i + 1][j] !== "undefined") {
+            if (seriesX[i][j] !== seriesX[i + 1][j]) {
               xSameForAllSeriesJArr.push("unEqual");
             }
           }
@@ -15428,8 +16012,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       markersWraps = [...markersWraps];
       if (filterCollapsed) {
         markersWraps = markersWraps.filter((m) => {
-          const realIndex2 = Number(m.getAttribute("data:realIndex"));
-          return this.w.globals.collapsedSeriesIndices.indexOf(realIndex2) === -1;
+          const realIndex = Number(m.getAttribute("data:realIndex"));
+          return this.w.globals.collapsedSeriesIndices.indexOf(realIndex) === -1;
         });
       }
       markersWraps.sort((a, b) => {
@@ -15497,20 +16081,20 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       this.ttCtx = tooltipContext;
       this.tooltipUtil = new Utils(tooltipContext);
     }
-    drawSeriesTexts({ shared = true, ttItems, i = 0, j: j2 = null, y1, y2, e }) {
+    drawSeriesTexts({ shared = true, ttItems, i = 0, j = null, y1, y2, e }) {
       let w = this.w;
       if (w.config.tooltip.custom !== void 0) {
-        this.handleCustomTooltip({ i, j: j2, y1, y2, w });
+        this.handleCustomTooltip({ i, j, y1, y2, w });
       } else {
         this.toggleActiveInactiveSeries(shared, i);
       }
       let values = this.getValuesToPrint({
         i,
-        j: j2
+        j
       });
       this.printLabels({
         i,
-        j: j2,
+        j,
         values,
         ttItems,
         shared,
@@ -15520,19 +16104,19 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       this.ttCtx.tooltipRect.ttWidth = tooltipEl.getBoundingClientRect().width;
       this.ttCtx.tooltipRect.ttHeight = tooltipEl.getBoundingClientRect().height;
     }
-    printLabels({ i, j: j2, values, ttItems, shared, e }) {
+    printLabels({ i, j, values, ttItems, shared, e }) {
       var _a;
       const w = this.w;
       let val;
       let goalVals = [];
       const hasGoalValues = (gi) => {
-        return w.globals.seriesGoals[gi] && w.globals.seriesGoals[gi][j2] && Array.isArray(w.globals.seriesGoals[gi][j2]);
+        return w.globals.seriesGoals[gi] && w.globals.seriesGoals[gi][j] && Array.isArray(w.globals.seriesGoals[gi][j]);
       };
       const { xVal, zVal, xAxisTTVal } = values;
       let seriesName = "";
       let pColor = w.globals.colors[i];
-      if (j2 !== null && w.config.plotOptions.bar.distributed) {
-        pColor = w.globals.colors[j2];
+      if (j !== null && w.config.plotOptions.bar.distributed) {
+        pColor = w.globals.colors[j];
       }
       for (let t = 0, inverset = w.globals.series.length - 1; t < w.globals.series.length; t++, inverset--) {
         let f = this.getFormatters(i);
@@ -15540,13 +16124,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           fn: f.yLbTitleFormatter,
           index: i,
           seriesIndex: i,
-          j: j2
+          j
         });
         if (w.config.chart.type === "treemap") {
-          seriesName = f.yLbTitleFormatter(String(w.config.series[i].data[j2].x), {
+          seriesName = f.yLbTitleFormatter(String(w.config.series[i].data[j].x), {
             series: w.globals.series,
             seriesIndex: i,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             w
           });
         }
@@ -15555,22 +16139,22 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           const getValBySeriesIndex = (index) => {
             var _a2, _b, _c, _d;
             if (w.globals.isRangeData) {
-              return f.yLbFormatter((_b = (_a2 = w.globals.seriesRangeStart) == null ? void 0 : _a2[index]) == null ? void 0 : _b[j2], {
+              return f.yLbFormatter((_b = (_a2 = w.globals.seriesRangeStart) == null ? void 0 : _a2[index]) == null ? void 0 : _b[j], {
                 series: w.globals.seriesRangeStart,
                 seriesIndex: index,
-                dataPointIndex: j2,
+                dataPointIndex: j,
                 w
-              }) + " - " + f.yLbFormatter((_d = (_c = w.globals.seriesRangeEnd) == null ? void 0 : _c[index]) == null ? void 0 : _d[j2], {
+              }) + " - " + f.yLbFormatter((_d = (_c = w.globals.seriesRangeEnd) == null ? void 0 : _c[index]) == null ? void 0 : _d[j], {
                 series: w.globals.seriesRangeEnd,
                 seriesIndex: index,
-                dataPointIndex: j2,
+                dataPointIndex: j,
                 w
               });
             }
-            return f.yLbFormatter(w.globals.series[index][j2], {
+            return f.yLbFormatter(w.globals.series[index][j], {
               series: w.globals.series,
               seriesIndex: index,
-              dataPointIndex: j2,
+              dataPointIndex: j,
               w
             });
           };
@@ -15580,17 +16164,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               fn: f.yLbTitleFormatter,
               index: tIndex,
               seriesIndex: i,
-              j: j2
+              j
             });
             pColor = w.globals.colors[tIndex];
             val = getValBySeriesIndex(tIndex);
             if (hasGoalValues(tIndex)) {
-              goalVals = w.globals.seriesGoals[tIndex][j2].map((goal) => {
+              goalVals = w.globals.seriesGoals[tIndex][j].map((goal) => {
                 return {
                   attrs: goal,
                   val: f.yLbFormatter(goal.value, {
                     seriesIndex: tIndex,
-                    dataPointIndex: j2,
+                    dataPointIndex: j,
                     w
                   })
                 };
@@ -15608,13 +16192,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               }
             }
             val = getValBySeriesIndex(i);
-            if (hasGoalValues(i) && Array.isArray(w.globals.seriesGoals[i][j2])) {
-              goalVals = w.globals.seriesGoals[i][j2].map((goal) => {
+            if (hasGoalValues(i) && Array.isArray(w.globals.seriesGoals[i][j])) {
+              goalVals = w.globals.seriesGoals[i][j].map((goal) => {
                 return {
                   attrs: goal,
                   val: f.yLbFormatter(goal.value, {
                     seriesIndex: i,
-                    dataPointIndex: j2,
+                    dataPointIndex: j,
                     w
                   })
                 };
@@ -15622,7 +16206,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             }
           }
         }
-        if (j2 === null) {
+        if (j === null) {
           val = f.yLbFormatter(w.globals.series[i], __spreadProps(__spreadValues({}, w), {
             seriesIndex: i,
             dataPointIndex: i
@@ -15631,7 +16215,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         this.DOMHandling({
           i,
           t: tIndex,
-          j: j2,
+          j,
           ttItems,
           values: {
             val,
@@ -15682,16 +16266,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         yLbTitleFormatter
       };
     }
-    getSeriesName({ fn, index, seriesIndex, j: j2 }) {
+    getSeriesName({ fn, index, seriesIndex, j }) {
       const w = this.w;
       return fn(String(w.globals.seriesNames[index]), {
         series: w.globals.series,
         seriesIndex,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         w
       });
     }
-    DOMHandling({ i, t, j: j2, ttItems, values, seriesName, shared, pColor }) {
+    DOMHandling({ t, j, ttItems, values, seriesName, shared, pColor }) {
       const w = this.w;
       const ttCtx = this.ttCtx;
       const { val, goalVals, xVal, xAxisTTVal, zVal } = values;
@@ -15745,7 +16329,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         const createGoalsHtml = () => {
           let gLabels = "<div>";
           let gVals = "<div>";
-          goalVals.forEach((goal, gi) => {
+          goalVals.forEach((goal) => {
             gLabels += ` <div style="display: flex"><span class="apexcharts-tooltip-marker" style="background-color: ${goal.attrs.strokeColor}; height: 3px; border-radius: 0; top: 5px;"></span> ${goal.attrs.name}</div>`;
             gVals += `<div>${goal.val}</div>`;
           });
@@ -15753,7 +16337,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           ttGVal.innerHTML = gVals + `</div>`;
         };
         if (shared) {
-          if (w.globals.seriesGoals[t][j2] && Array.isArray(w.globals.seriesGoals[t][j2])) {
+          if (w.globals.seriesGoals[t][j] && Array.isArray(w.globals.seriesGoals[t][j])) {
             createGoalsHtml();
           } else {
             ttGLabel.innerHTML = "";
@@ -15816,7 +16400,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
       }
     }
-    getValuesToPrint({ i, j: j2 }) {
+    getValuesToPrint({ i, j }) {
       const w = this.w;
       const filteredSeriesX = this.ctx.series.filteredSeriesX();
       let xVal = "";
@@ -15826,25 +16410,25 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const customFormatterOpts = {
         series: w.globals.series,
         seriesIndex: i,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         w
       };
       let zFormatter = w.globals.ttZFormatter;
-      if (j2 === null) {
+      if (j === null) {
         val = w.globals.series[i];
       } else {
         if (w.globals.isXNumeric && w.config.chart.type !== "treemap") {
-          xVal = filteredSeriesX[i][j2];
+          xVal = filteredSeriesX[i][j];
           if (filteredSeriesX[i].length === 0) {
             const firstActiveSeriesIndex = this.tooltipUtil.getFirstActiveXArray(filteredSeriesX);
-            xVal = filteredSeriesX[firstActiveSeriesIndex][j2];
+            xVal = filteredSeriesX[firstActiveSeriesIndex][j];
           }
         } else {
           const dataFormat = new Data(this.ctx);
           if (dataFormat.isFormatXY()) {
-            xVal = typeof w.config.series[i].data[j2] !== "undefined" ? w.config.series[i].data[j2].x : "";
+            xVal = typeof w.config.series[i].data[j] !== "undefined" ? w.config.series[i].data[j].x : "";
           } else {
-            xVal = typeof w.globals.labels[j2] !== "undefined" ? w.globals.labels[j2] : "";
+            xVal = typeof w.globals.labels[j] !== "undefined" ? w.globals.labels[j] : "";
           }
         }
       }
@@ -15872,7 +16456,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         xVal = w.globals.ttKeyFormatter(bufferXVal, customFormatterOpts);
       }
       if (w.globals.seriesZ.length > 0 && w.globals.seriesZ[i].length > 0) {
-        zVal = zFormatter(w.globals.seriesZ[i][j2], w);
+        zVal = zFormatter(w.globals.seriesZ[i][j], w);
       }
       if (typeof w.config.xaxis.tooltip.formatter === "function") {
         xAxisTTVal = w.globals.xaxisTooltipFormatter(
@@ -15889,7 +16473,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         zVal
       };
     }
-    handleCustomTooltip({ i, j: j2, y1, y2, w }) {
+    handleCustomTooltip({ i, j, y1, y2, w }) {
       const tooltipEl = this.ttCtx.getElTooltip();
       let fn = w.config.tooltip.custom;
       if (Array.isArray(fn) && fn[i]) {
@@ -15899,7 +16483,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         ctx: this.ctx,
         series: w.globals.series,
         seriesIndex: i,
-        dataPointIndex: j2,
+        dataPointIndex: j,
         y1,
         y2,
         w
@@ -15924,14 +16508,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
      * @memberof Position
      * @param {int} - cx = point's x position, wherever point's x is, you need to move crosshair
      */
-    moveXCrosshairs(cx, j2 = null) {
+    moveXCrosshairs(cx, j = null) {
       const ttCtx = this.ttCtx;
       let w = this.w;
       const xcrosshairs = ttCtx.getElXCrosshairs();
       let x = cx - ttCtx.xcrosshairsWidth / 2;
       let tickAmount = w.globals.labels.slice().length;
-      if (j2 !== null) {
-        x = w.globals.gridWidth / tickAmount * j2;
+      if (j !== null) {
+        x = w.globals.gridWidth / tickAmount * j;
       }
       if (xcrosshairs !== null && !w.globals.isBarHorizontal) {
         xcrosshairs.setAttribute("x", x);
@@ -16076,7 +16660,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         tooltipEl.style.top = y + "px";
       }
     }
-    moveMarkers(i, j2) {
+    moveMarkers(i, j) {
       let w = this.w;
       let ttCtx = this.ttCtx;
       if (w.globals.markers.size[i] > 0) {
@@ -16084,19 +16668,19 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           ` .apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker`
         );
         for (let p = 0; p < allPoints.length; p++) {
-          if (parseInt(allPoints[p].getAttribute("rel"), 10) === j2) {
+          if (parseInt(allPoints[p].getAttribute("rel"), 10) === j) {
             ttCtx.marker.resetPointsSize();
-            ttCtx.marker.enlargeCurrentPoint(j2, allPoints[p]);
+            ttCtx.marker.enlargeCurrentPoint(j, allPoints[p]);
           }
         }
       } else {
         ttCtx.marker.resetPointsSize();
-        this.moveDynamicPointOnHover(j2, i);
+        this.moveDynamicPointOnHover(j, i);
       }
     }
     // This function is used when you need to show markers/points only on hover -
     // DIFFERENT X VALUES in multiple series
-    moveDynamicPointOnHover(j2, capturedSeries) {
+    moveDynamicPointOnHover(j, capturedSeries) {
       var _a, _b;
       let w = this.w;
       let ttCtx = this.ttCtx;
@@ -16109,8 +16693,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (serType && (serType === "column" || serType === "candlestick" || serType === "boxPlot")) {
         return;
       }
-      cx = (_a = pointsArr[capturedSeries][j2]) == null ? void 0 : _a[0];
-      cy = ((_b = pointsArr[capturedSeries][j2]) == null ? void 0 : _b[1]) || 0;
+      cx = (_a = pointsArr[capturedSeries][j]) == null ? void 0 : _a[0];
+      cy = ((_b = pointsArr[capturedSeries][j]) == null ? void 0 : _b[1]) || 0;
       let point = w.globals.dom.baseEl.querySelector(
         `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers path`
       );
@@ -16126,7 +16710,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     // This function is used when you need to show markers/points only on hover -
     // SAME X VALUES in multiple series
-    moveDynamicPointsOnHover(j2) {
+    moveDynamicPointsOnHover(j) {
       const ttCtx = this.ttCtx;
       let w = ttCtx.w;
       let cx = 0;
@@ -16143,8 +16727,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       ]);
       let hoverSize = ttCtx.tooltipUtil.getHoverMarkerSize(activeSeries);
       if (pointsArr[activeSeries]) {
-        cx = pointsArr[activeSeries][j2][0];
-        cy = pointsArr[activeSeries][j2][1];
+        cx = pointsArr[activeSeries][j][0];
+        cy = pointsArr[activeSeries][j][1];
       }
       if (isNaN(cx)) {
         return;
@@ -16159,12 +16743,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             }
           }
           if (pointArr && pointArr.length) {
-            let pcy = pointsArr[p][j2][1];
+            let pcy = pointsArr[p][j][1];
             let pcy2;
             points[p].setAttribute("cx", cx);
             const shape = points[p].getAttribute("shape");
             if (w.config.chart.type === "rangeArea" && !w.globals.comboCharts) {
-              const rangeStartIndex = j2 + w.globals.series[p].length;
+              const rangeStartIndex = j + w.globals.series[p].length;
               pcy2 = pointsArr[p][rangeStartIndex][1];
               const pcyDiff = Math.abs(pcy - pcy2) / 2;
               pcy = pcy - pcyDiff;
@@ -16183,7 +16767,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         this.moveTooltip(cx, cy || w.globals.gridHeight, hoverSize);
       }
     }
-    moveStickyTooltipOverBars(j2, capturedSeries) {
+    moveStickyTooltipOverBars(j, capturedSeries) {
       const w = this.w;
       const ttCtx = this.ttCtx;
       let barLen = w.globals.columnSeries ? w.globals.columnSeries.length : w.globals.series.length;
@@ -16196,14 +16780,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         i = series.getActiveConfigSeriesIndex("desc") + 1;
       }
       let jBar = w.globals.dom.baseEl.querySelector(
-        `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j2}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j2}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j2}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j2}']`
+        `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
       );
       if (!jBar && typeof capturedSeries === "number") {
         jBar = w.globals.dom.baseEl.querySelector(
-          `.apexcharts-bar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j2}'],
-        .apexcharts-candlestick-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j2}'],
-        .apexcharts-boxPlot-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j2}'],
-        .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j2}']`
+          `.apexcharts-bar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
+        .apexcharts-candlestick-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
+        .apexcharts-boxPlot-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
+        .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}']`
         );
       }
       let bcx = jBar ? parseFloat(jBar.getAttribute("cx")) : 0;
@@ -16222,9 +16806,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
       } else {
         if (!w.globals.isBarHorizontal) {
-          bcx = ttCtx.xAxisTicksPositions[j2 - 1] + ttCtx.dataPointsDividedWidth / 2;
+          bcx = ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2;
           if (isNaN(bcx)) {
-            bcx = ttCtx.xAxisTicksPositions[j2] - ttCtx.dataPointsDividedWidth / 2;
+            bcx = ttCtx.xAxisTicksPositions[j] - ttCtx.dataPointsDividedWidth / 2;
           }
         }
       }
@@ -16310,11 +16894,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         this.tooltipPosition.moveTooltip(cx, cy, w.config.markers.hover.size);
       }
     }
-    enlargePoints(j2) {
+    enlargePoints(j) {
       let w = this.w;
       let me = this;
       const ttCtx = this.ttCtx;
-      let col = j2;
+      let col = j;
       let points = w.globals.dom.baseEl.querySelectorAll(
         ".apexcharts-series:not(.apexcharts-series-collapsed) .apexcharts-marker"
       );
@@ -16392,7 +16976,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const w = this.w;
       if (e.target.classList.contains(`apexcharts-${type}-rect`)) {
         let i = this.getAttr(e, "i");
-        let j2 = this.getAttr(e, "j");
+        let j = this.getAttr(e, "j");
         let cx = this.getAttr(e, "cx");
         let cy = this.getAttr(e, "cy");
         let width = this.getAttr(e, "width");
@@ -16400,12 +16984,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         ttCtx.tooltipLabels.drawSeriesTexts({
           ttItems: opt.ttItems,
           i,
-          j: j2,
+          j,
           shared: false,
           e
         });
         w.globals.capturedSeriesIndex = i;
-        w.globals.capturedDataPointIndex = j2;
+        w.globals.capturedDataPointIndex = j;
         x = cx + ttCtx.tooltipRect.ttWidth / 2 + width;
         y = cy + ttCtx.tooltipRect.ttHeight / 2 - height / 2;
         ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2);
@@ -16431,12 +17015,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let w = this.w;
       const ttCtx = this.ttCtx;
       let i;
-      let j2;
+      let j;
       if (e.target.classList.contains("apexcharts-marker")) {
         let cx = parseInt(opt.paths.getAttribute("cx"), 10);
         let cy = parseInt(opt.paths.getAttribute("cy"), 10);
         let val = parseFloat(opt.paths.getAttribute("val"));
-        j2 = parseInt(opt.paths.getAttribute("rel"), 10);
+        j = parseInt(opt.paths.getAttribute("rel"), 10);
         i = parseInt(
           opt.paths.parentNode.parentNode.parentNode.getAttribute("rel"),
           10
@@ -16450,15 +17034,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         ttCtx.tooltipLabels.drawSeriesTexts({
           ttItems: opt.ttItems,
           i,
-          j: j2,
+          j,
           shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
           e
         });
         if (e.type === "mouseup") {
-          ttCtx.markerClick(e, i, j2);
+          ttCtx.markerClick(e, i, j);
         }
         w.globals.capturedSeriesIndex = i;
-        w.globals.capturedDataPointIndex = j2;
+        w.globals.capturedDataPointIndex = j;
         x = cx;
         y = cy + w.globals.translateY - ttCtx.tooltipRect.ttHeight * 1.4;
         if (ttCtx.w.config.tooltip.followCursor) {
@@ -16469,7 +17053,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         if (val < 0) {
           y = cy;
         }
-        ttCtx.marker.enlargeCurrentPoint(j2, opt.paths, x, y);
+        ttCtx.marker.enlargeCurrentPoint(j, opt.paths, x, y);
       }
       return {
         x,
@@ -16496,9 +17080,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         return;
       }
       i = barXY.i;
-      let j2 = barXY.j;
+      let j = barXY.j;
       w.globals.capturedSeriesIndex = i;
-      w.globals.capturedDataPointIndex = j2;
+      w.globals.capturedDataPointIndex = j;
       if (w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars() || !w.config.tooltip.shared) {
         x = barXY.x;
         y = barXY.y;
@@ -16512,10 +17096,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (isNaN(y)) {
         y = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight;
       }
-      parseInt(
-        opt.paths.parentNode.getAttribute("data:realIndex"),
-        10
-      );
       if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {
         x = x - ttCtx.tooltipRect.ttWidth;
       } else if (x < 0) {
@@ -16544,7 +17124,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     getBarTooltipXY({ e, opt }) {
       let w = this.w;
-      let j2 = null;
+      let j = null;
       const ttCtx = this.ttCtx;
       let i = 0;
       let x = 0;
@@ -16563,7 +17143,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         let cy = parseInt(bar.getAttribute("cy"), 10);
         barWidth = parseFloat(bar.getAttribute("barWidth"));
         const clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
-        j2 = parseInt(bar.getAttribute("j"), 10);
+        j = parseInt(bar.getAttribute("j"), 10);
         i = parseInt(bar.parentNode.getAttribute("rel"), 10) - 1;
         let y1 = bar.getAttribute("data-range-y1");
         let y2 = bar.getAttribute("data-range-y2");
@@ -16588,7 +17168,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         ttCtx.tooltipLabels.drawSeriesTexts({
           ttItems: opt.ttItems,
           i,
-          j: j2,
+          j,
           y1: y1 ? parseInt(y1, 10) : null,
           y2: y2 ? parseInt(y2, 10) : null,
           shared: ttCtx.showOnIntersect ? false : w.config.tooltip.shared,
@@ -16621,7 +17201,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         barHeight,
         barWidth,
         i,
-        j: j2
+        j
       };
     }
   }
@@ -16849,7 +17429,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let w = this.w;
       this.xyRatios = xyRatios;
       this.isXAxisTooltipEnabled = w.config.xaxis.tooltip.enabled && w.globals.axisCharts;
-      this.yaxisTooltips = w.config.yaxis.map((y, i) => {
+      this.yaxisTooltips = w.config.yaxis.map((y) => {
         return y.show && y.tooltip.enabled && w.globals.axisCharts ? true : false;
       });
       this.allTooltipSeriesGroups = [];
@@ -16862,6 +17442,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         tooltipEl.classList.add(w.config.tooltip.cssClass);
       }
       tooltipEl.classList.add(`apexcharts-theme-${this.tConfig.theme || "light"}`);
+      if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
+        tooltipEl.setAttribute("role", "tooltip");
+        tooltipEl.setAttribute("aria-live", "polite");
+        tooltipEl.setAttribute("aria-atomic", "true");
+        tooltipEl.setAttribute("aria-hidden", "true");
+      }
       w.globals.dom.elWrap.appendChild(tooltipEl);
       if (w.globals.axisCharts) {
         this.axesTooltip.drawXaxisTooltip();
@@ -17239,6 +17825,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
         w.globals.dom.baseEl.classList.add("apexcharts-tooltip-active");
         opt.tooltipEl.classList.add("apexcharts-active");
+        if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
+          opt.tooltipEl.removeAttribute("aria-hidden");
+        }
       } else if (e.type === "mouseout" || e.type === "touchend") {
         this.handleMouseOut(opt);
       }
@@ -17252,6 +17841,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (e.type === "mousemove" || e.type === "touchmove") {
         w.globals.dom.baseEl.classList.add("apexcharts-tooltip-active");
         tooltipEl.classList.add("apexcharts-active");
+        if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
+          tooltipEl.removeAttribute("aria-hidden");
+        }
         this.tooltipLabels.drawSeriesTexts({
           ttItems: opt.ttItems,
           i: parseInt(rel, 10) - 1,
@@ -17292,7 +17884,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         clientX,
         clientY
       });
-      let j2 = capj.j;
+      let j = capj.j;
       let capturedSeries = capj.capturedSeries;
       if (w.globals.collapsedSeriesIndices.includes(capturedSeries))
         capturedSeries = null;
@@ -17302,37 +17894,37 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         return;
       }
       if (capturedSeries !== null) {
-        this.handleStickyCapturedSeries(e, capturedSeries, opt, j2);
+        this.handleStickyCapturedSeries(e, capturedSeries, opt, j);
       } else {
-        if (this.tooltipUtil.isXoverlap(j2) || w.globals.isBarHorizontal) {
+        if (this.tooltipUtil.isXoverlap(j) || w.globals.isBarHorizontal) {
           const firstVisibleSeries = w.globals.series.findIndex(
             (s, i) => !w.globals.collapsedSeriesIndices.includes(i)
           );
-          this.create(e, this, firstVisibleSeries, j2, opt.ttItems);
+          this.create(e, this, firstVisibleSeries, j, opt.ttItems);
         }
       }
     }
-    handleStickyCapturedSeries(e, capturedSeries, opt, j2) {
+    handleStickyCapturedSeries(e, capturedSeries, opt, j) {
       const w = this.w;
       if (!this.tConfig.shared) {
-        let ignoreNull = w.globals.series[capturedSeries][j2] === null;
+        let ignoreNull = w.globals.series[capturedSeries][j] === null;
         if (ignoreNull) {
           this.handleMouseOut(opt);
           return;
         }
       }
-      if (typeof w.globals.series[capturedSeries][j2] !== "undefined") {
-        if (this.tConfig.shared && this.tooltipUtil.isXoverlap(j2) && this.tooltipUtil.isInitialSeriesSameLen()) {
-          this.create(e, this, capturedSeries, j2, opt.ttItems);
+      if (typeof w.globals.series[capturedSeries][j] !== "undefined") {
+        if (this.tConfig.shared && this.tooltipUtil.isXoverlap(j) && this.tooltipUtil.isInitialSeriesSameLen()) {
+          this.create(e, this, capturedSeries, j, opt.ttItems);
         } else {
-          this.create(e, this, capturedSeries, j2, opt.ttItems, false);
+          this.create(e, this, capturedSeries, j, opt.ttItems, false);
         }
       } else {
-        if (this.tooltipUtil.isXoverlap(j2)) {
+        if (this.tooltipUtil.isXoverlap(j)) {
           const firstVisibleSeries = w.globals.series.findIndex(
             (s, i) => !w.globals.collapsedSeriesIndices.includes(i)
           );
-          this.create(e, this, firstVisibleSeries, j2, opt.ttItems);
+          this.create(e, this, firstVisibleSeries, j, opt.ttItems);
         }
       }
     }
@@ -17349,6 +17941,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const xcrosshairs = this.getElXCrosshairs();
       w.globals.dom.baseEl.classList.remove("apexcharts-tooltip-active");
       opt.tooltipEl.classList.remove("apexcharts-active");
+      if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
+        opt.tooltipEl.setAttribute("aria-hidden", "true");
+      }
       this.deactivateHoverFilter();
       if (w.config.chart.type !== "bubble") {
         this.marker.resetPointsSize();
@@ -17394,21 +17989,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         { seriesIndex, dataPointIndex, w }
       ]);
     }
-    create(e, context, capturedSeries, j2, ttItems, shared = null) {
+    create(e, context, capturedSeries, j, ttItems, shared = null) {
       var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p;
       let w = this.w;
       let ttCtx = context;
       if (e.type === "mouseup") {
-        this.markerClick(e, capturedSeries, j2);
+        this.markerClick(e, capturedSeries, j);
       }
       if (shared === null) shared = this.tConfig.shared;
       const hasMarkers = this.tooltipUtil.hasMarkers(capturedSeries);
       const bars = this.tooltipUtil.getElBars();
       const handlePoints = () => {
         if (w.globals.markers.largestSize > 0) {
-          ttCtx.marker.enlargePoints(j2);
+          ttCtx.marker.enlargePoints(j);
         } else {
-          ttCtx.tooltipPosition.moveDynamicPointsOnHover(j2);
+          ttCtx.tooltipPosition.moveDynamicPointsOnHover(j);
         }
       };
       if (w.config.legend.tooltipHoverFormatter) {
@@ -17426,7 +18021,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           );
           let text = legendFormatter(legendName, {
             seriesIndex: shared ? lsIndex : capturedSeries,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             w
           });
           if (!shared) {
@@ -17442,11 +18037,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const commonSeriesTextsParams = __spreadValues(__spreadValues({
         ttItems,
         i: capturedSeries,
-        j: j2
-      }, typeof ((_d = (_c = (_b = (_a = w.globals.seriesRange) == null ? void 0 : _a[capturedSeries]) == null ? void 0 : _b[j2]) == null ? void 0 : _c.y[0]) == null ? void 0 : _d.y1) !== "undefined" && {
-        y1: (_h = (_g = (_f = (_e = w.globals.seriesRange) == null ? void 0 : _e[capturedSeries]) == null ? void 0 : _f[j2]) == null ? void 0 : _g.y[0]) == null ? void 0 : _h.y1
-      }), typeof ((_l = (_k = (_j = (_i = w.globals.seriesRange) == null ? void 0 : _i[capturedSeries]) == null ? void 0 : _j[j2]) == null ? void 0 : _k.y[0]) == null ? void 0 : _l.y2) !== "undefined" && {
-        y2: (_p = (_o = (_n = (_m = w.globals.seriesRange) == null ? void 0 : _m[capturedSeries]) == null ? void 0 : _n[j2]) == null ? void 0 : _o.y[0]) == null ? void 0 : _p.y2
+        j
+      }, typeof ((_d = (_c = (_b = (_a = w.globals.seriesRange) == null ? void 0 : _a[capturedSeries]) == null ? void 0 : _b[j]) == null ? void 0 : _c.y[0]) == null ? void 0 : _d.y1) !== "undefined" && {
+        y1: (_h = (_g = (_f = (_e = w.globals.seriesRange) == null ? void 0 : _e[capturedSeries]) == null ? void 0 : _f[j]) == null ? void 0 : _g.y[0]) == null ? void 0 : _h.y1
+      }), typeof ((_l = (_k = (_j = (_i = w.globals.seriesRange) == null ? void 0 : _i[capturedSeries]) == null ? void 0 : _j[j]) == null ? void 0 : _k.y[0]) == null ? void 0 : _l.y2) !== "undefined" && {
+        y2: (_p = (_o = (_n = (_m = w.globals.seriesRange) == null ? void 0 : _m[capturedSeries]) == null ? void 0 : _n[j]) == null ? void 0 : _o.y[0]) == null ? void 0 : _p.y2
       });
       if (shared) {
         ttCtx.tooltipLabels.drawSeriesTexts(__spreadProps(__spreadValues({}, commonSeriesTextsParams), {
@@ -17458,13 +18053,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           this.barSeriesHeight = this.tooltipUtil.getBarsHeight(bars);
           if (this.barSeriesHeight > 0) {
             let graphics = new Graphics(this.ctx);
-            let paths = w.globals.dom.Paper.find(`.apexcharts-bar-area[j='${j2}']`);
+            let paths = w.globals.dom.Paper.find(`.apexcharts-bar-area[j='${j}']`);
             this.deactivateHoverFilter();
             let points = ttCtx.tooltipUtil.getAllMarkers(true);
             if (points.length && !this.barSeriesHeight) {
               handlePoints();
             }
-            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
+            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries);
             for (let b = 0; b < paths.length; b++) {
               graphics.pathMouseEnter(paths[b]);
             }
@@ -17475,10 +18070,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           shared: false
         }, commonSeriesTextsParams));
         if (this.tooltipUtil.hasBars()) {
-          ttCtx.tooltipPosition.moveStickyTooltipOverBars(j2, capturedSeries);
+          ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries);
         }
         if (hasMarkers) {
-          ttCtx.tooltipPosition.moveMarkers(capturedSeries, j2);
+          ttCtx.tooltipPosition.moveMarkers(capturedSeries, j);
         }
       }
     }
@@ -17715,7 +18310,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       });
       return filteredTimeScale;
     }
-    recalcDimensionsBasedOnFormat(filteredTimeScale, inverted) {
+    recalcDimensionsBasedOnFormat(filteredTimeScale) {
       const w = this.w;
       const reformattedTimescaleArray = this.formatDates(filteredTimeScale);
       const removedOverlappingTS = this.removeOverlappingTS(
@@ -17867,7 +18462,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       let month = firstTickValue + 1;
       let pos = firstTickPosition;
-      for (let i = 0, j2 = 1; i < numberOfMonths; i++, j2++) {
+      for (let i = 0, j = 1; i < numberOfMonths; i++, j++) {
         month = Utils$1.monthMod(month);
         if (month === 0) {
           unit = "year";
@@ -18261,8 +18856,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         y1,
         y2,
         i,
-        j: j2,
-        realIndex: realIndex2,
+        j,
+        realIndex,
         columnGroupIndex,
         series,
         barHeight,
@@ -18273,7 +18868,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       } = opts;
       let w = this.w;
       let graphics = new Graphics(this.barCtx.ctx);
-      let strokeWidth = Array.isArray(this.barCtx.strokeWidth) ? this.barCtx.strokeWidth[realIndex2] : this.barCtx.strokeWidth;
+      let strokeWidth = Array.isArray(this.barCtx.strokeWidth) ? this.barCtx.strokeWidth[realIndex] : this.barCtx.strokeWidth;
       let bcx;
       let bcy;
       if (w.globals.isXNumeric && !w.globals.isBarHorizontal) {
@@ -18306,11 +18901,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         height: 0
       };
       if (w.config.dataLabels.enabled) {
-        const yLabel = w.globals.series[i][j2];
+        const yLabel = w.globals.series[i][j];
         textRects = graphics.getTextRects(
           w.config.dataLabels.formatter ? w.config.dataLabels.formatter(yLabel, __spreadProps(__spreadValues({}, w), {
             seriesIndex: i,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             w
           })) : w.globals.yLabelFormatters[0](yLabel),
           parseFloat(dataLabelsConfig.style.fontSize)
@@ -18320,8 +18915,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         x,
         y,
         i,
-        j: j2,
-        realIndex: realIndex2,
+        j,
+        realIndex,
         columnGroupIndex,
         bcx,
         bcy,
@@ -18345,9 +18940,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       dataLabels = this.drawCalculatedDataLabels({
         x: dataLabelsPos.dataLabelsX,
         y: dataLabelsPos.dataLabelsY,
-        val: this.barCtx.isRangeBar ? [y1, y2] : w.config.chart.stackType === "100%" ? series[realIndex2][j2] : w.globals.series[realIndex2][j2],
-        i: realIndex2,
-        j: j2,
+        val: this.barCtx.isRangeBar ? [y1, y2] : w.config.chart.stackType === "100%" ? series[realIndex][j] : w.globals.series[realIndex][j],
+        i: realIndex,
+        j,
         barWidth,
         barHeight,
         textRects,
@@ -18359,9 +18954,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           y: dataLabelsPos.totalDataLabelsY,
           barWidth,
           barHeight,
-          realIndex: realIndex2,
+          realIndex,
           textAnchor: dataLabelsPos.totalDataLabelsAnchor,
-          val: this.getStackedTotalDataLabel({ realIndex: realIndex2, j: j2 }),
+          val: this.getStackedTotalDataLabel({ realIndex, j }),
           dataLabelsConfig,
           barTotalDataLabelsConfig
         });
@@ -18372,13 +18967,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         totalDataLabels
       };
     }
-    getStackedTotalDataLabel({ realIndex: realIndex2, j: j2 }) {
+    getStackedTotalDataLabel({ realIndex, j }) {
       const w = this.w;
-      let val = this.barCtx.stackedSeriesTotals[j2];
+      let val = this.barCtx.stackedSeriesTotals[j];
       if (this.totalFormatter) {
         val = this.totalFormatter(val, __spreadProps(__spreadValues({}, w), {
-          seriesIndex: realIndex2,
-          dataPointIndex: j2,
+          seriesIndex: realIndex,
+          dataPointIndex: j,
           w
         }));
       }
@@ -18388,9 +18983,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const w = this.w;
       let {
         i,
-        j: j2,
-        realIndex: realIndex2,
-        columnGroupIndex,
+        j,
+        realIndex,
         y,
         bcx,
         barWidth,
@@ -18413,7 +19007,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let vertical = w.config.plotOptions.bar.dataLabels.orientation === "vertical";
       const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
         i,
-        j: j2
+        j
       });
       bcx = bcx - strokeWidth / 2;
       let dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints;
@@ -18433,7 +19027,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         const offsetDLX = 2;
         dataLabelsX = dataLabelsX + textRects.height / 2 - strokeWidth / 2 - offsetDLX;
       }
-      let valIsNegative = w.globals.series[i][j2] < 0;
+      let valIsNegative = w.globals.series[i][j] < 0;
       let newY = y;
       if (this.barCtx.isReversed) {
         newY = y + (valIsNegative ? barHeight : -barHeight);
@@ -18490,17 +19084,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         var _a;
         (_a = this.barCtx[sg.join(",")]) == null ? void 0 : _a.prevY.forEach((arr) => {
           if (valIsNegative) {
-            lowestPrevY = Math.max(arr[j2], lowestPrevY);
+            lowestPrevY = Math.max(arr[j], lowestPrevY);
           } else {
-            lowestPrevY = Math.min(arr[j2], lowestPrevY);
+            lowestPrevY = Math.min(arr[j], lowestPrevY);
           }
         });
       });
-      if (this.barCtx.lastActiveBarSerieIndex === realIndex2 && barTotalDataLabelsConfig.enabled) {
+      if (this.barCtx.lastActiveBarSerieIndex === realIndex && barTotalDataLabelsConfig.enabled) {
         const ADDITIONAL_OFFY = 18;
         const graphics = new Graphics(this.barCtx.ctx);
         const totalLabeltextRects = graphics.getTextRects(
-          this.getStackedTotalDataLabel({ realIndex: realIndex2, j: j2 }),
+          this.getStackedTotalDataLabel({ realIndex, j }),
           dataLabelsConfig.fontSize
         );
         if (valIsNegative) {
@@ -18533,8 +19127,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let {
         x,
         i,
-        j: j2,
-        realIndex: realIndex2,
+        j,
+        realIndex,
         bcy,
         barHeight,
         barWidth,
@@ -18550,7 +19144,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let dataPointsDividedHeight = w.globals.gridHeight / w.globals.dataPoints;
       const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
         i,
-        j: j2
+        j
       });
       barWidth = Math.abs(barWidth);
       let dataLabelsY = bcy - (this.barCtx.isRangeBar ? 0 : dataPointsDividedHeight) + barHeight / 2 + textRects.height / 2 + offY - 3;
@@ -18560,7 +19154,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let totalDataLabelsX;
       let totalDataLabelsY;
       let totalDataLabelsAnchor = "start";
-      let valIsNegative = w.globals.series[i][j2] < 0;
+      let valIsNegative = w.globals.series[i][j] < 0;
       let newX = x;
       if (this.barCtx.isReversed) {
         newX = x + (valIsNegative ? -barWidth : barWidth);
@@ -18594,16 +19188,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         var _a;
         (_a = this.barCtx[sg.join(",")]) == null ? void 0 : _a.prevX.forEach((arr) => {
           if (valIsNegative) {
-            lowestPrevX = Math.min(arr[j2], lowestPrevX);
+            lowestPrevX = Math.min(arr[j], lowestPrevX);
           } else {
-            lowestPrevX = Math.max(arr[j2], lowestPrevX);
+            lowestPrevX = Math.max(arr[j], lowestPrevX);
           }
         });
       });
-      if (this.barCtx.lastActiveBarSerieIndex === realIndex2 && barTotalDataLabelsConfig.enabled) {
+      if (this.barCtx.lastActiveBarSerieIndex === realIndex && barTotalDataLabelsConfig.enabled) {
         const graphics = new Graphics(this.barCtx.ctx);
         const totalLabeltextRects = graphics.getTextRects(
-          this.getStackedTotalDataLabel({ realIndex: realIndex2, j: j2 }),
+          this.getStackedTotalDataLabel({ realIndex, j }),
           dataLabelsConfig.fontSize
         );
         if (valIsNegative) {
@@ -18654,7 +19248,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       val,
       i,
       // = realIndex
-      j: j2,
+      j,
       textRects,
       barHeight,
       barWidth,
@@ -18678,14 +19272,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         if (typeof val !== "undefined") {
           text = formatter(val, __spreadProps(__spreadValues({}, w), {
             seriesIndex: i,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             w
           }));
         }
         if (!val && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
           text = "";
         }
-        let valIsNegative = w.globals.series[i][j2] < 0;
+        let valIsNegative = w.globals.series[i][j] < 0;
         let position = w.config.plotOptions.bar.dataLabels.position;
         if (w.config.plotOptions.bar.dataLabels.orientation === "vertical") {
           if (position === "top") {
@@ -18735,7 +19329,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           y,
           text,
           i,
-          j: j2,
+          j,
           parent: elDataLabelsWrap,
           dataLabelsConfig: modifiedDataLabelsConfig,
           alwaysDrawDataLabel: true,
@@ -18748,14 +19342,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       x,
       y,
       val,
-      realIndex: realIndex2,
+      realIndex,
       textAnchor,
       barTotalDataLabelsConfig
     }) {
-      this.w;
       const graphics = new Graphics(this.barCtx.ctx);
       let totalDataLabelText;
-      if (barTotalDataLabelsConfig.enabled && typeof x !== "undefined" && typeof y !== "undefined" && this.barCtx.lastActiveBarSerieIndex === realIndex2) {
+      if (barTotalDataLabelsConfig.enabled && typeof x !== "undefined" && typeof y !== "undefined" && this.barCtx.lastActiveBarSerieIndex === realIndex) {
         totalDataLabelText = graphics.drawText({
           x,
           y,
@@ -18788,8 +19381,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           this.barCtx.totalItems += series[sl].length;
         }
         if (w.globals.isXNumeric) {
-          for (let j2 = 0; j2 < series[sl].length; j2++) {
-            if (w.globals.seriesX[sl][j2] > w.globals.minX && w.globals.seriesX[sl][j2] < w.globals.maxX) {
+          for (let j = 0; j < series[sl].length; j++) {
+            if (w.globals.seriesX[sl][j] > w.globals.minX && w.globals.seriesX[sl][j] < w.globals.maxX) {
               this.barCtx.visibleItems++;
             }
           }
@@ -18811,7 +19404,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         this.checkZeroSeries({ series });
       }
     }
-    initialPositions(realIndex2) {
+    initialPositions(realIndex) {
       let w = this.w;
       let x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW;
       let dataPoints = w.globals.dataPoints;
@@ -18862,7 +19455,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           const xForNumericX = this.barCtx.getBarXForNumericXAxis({
             x,
             j: 0,
-            realIndex: realIndex2,
+            realIndex,
             barWidth
           });
           x = xForNumericX.x;
@@ -18907,46 +19500,46 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         ctx[group].yArrjVal = [];
       });
     }
-    getPathFillColor(series, i, j2, realIndex2) {
+    getPathFillColor(series, i, j, realIndex) {
       var _a, _b, _c, _d;
       const w = this.w;
       let fill = this.barCtx.ctx.fill;
       let fillColor = null;
-      let seriesNumber = this.barCtx.barOptions.distributed ? j2 : i;
+      let seriesNumber = this.barCtx.barOptions.distributed ? j : i;
       let useRangeColor = false;
       if (this.barCtx.barOptions.colors.ranges.length > 0) {
         const colorRange = this.barCtx.barOptions.colors.ranges;
         colorRange.map((range) => {
-          if (series[i][j2] >= range.from && series[i][j2] <= range.to) {
+          if (series[i][j] >= range.from && series[i][j] <= range.to) {
             fillColor = range.color;
             useRangeColor = true;
           }
         });
       }
       let pathFill = fill.fillPath({
-        seriesNumber: this.barCtx.barOptions.distributed ? seriesNumber : realIndex2,
-        dataPointIndex: j2,
+        seriesNumber: this.barCtx.barOptions.distributed ? seriesNumber : realIndex,
+        dataPointIndex: j,
         color: fillColor,
-        value: series[i][j2],
-        fillConfig: (_a = w.config.series[i].data[j2]) == null ? void 0 : _a.fill,
-        fillType: ((_c = (_b = w.config.series[i].data[j2]) == null ? void 0 : _b.fill) == null ? void 0 : _c.type) ? (_d = w.config.series[i].data[j2]) == null ? void 0 : _d.fill.type : Array.isArray(w.config.fill.type) ? w.config.fill.type[realIndex2] : w.config.fill.type
+        value: series[i][j],
+        fillConfig: (_a = w.config.series[i].data[j]) == null ? void 0 : _a.fill,
+        fillType: ((_c = (_b = w.config.series[i].data[j]) == null ? void 0 : _b.fill) == null ? void 0 : _c.type) ? (_d = w.config.series[i].data[j]) == null ? void 0 : _d.fill.type : Array.isArray(w.config.fill.type) ? w.config.fill.type[realIndex] : w.config.fill.type
       });
       return {
         color: pathFill,
         useRangeColor
       };
     }
-    getStrokeWidth(i, j2, realIndex2) {
+    getStrokeWidth(i, j, realIndex) {
       let strokeWidth = 0;
       const w = this.w;
-      if (typeof this.barCtx.series[i][j2] === "undefined" || this.barCtx.series[i][j2] === null || w.config.chart.type === "bar" && !this.barCtx.series[i][j2]) {
+      if (typeof this.barCtx.series[i][j] === "undefined" || this.barCtx.series[i][j] === null || w.config.chart.type === "bar" && !this.barCtx.series[i][j]) {
         this.barCtx.isNullValue = true;
       } else {
         this.barCtx.isNullValue = false;
       }
       if (w.config.stroke.show) {
         if (!this.barCtx.isNullValue) {
-          strokeWidth = Array.isArray(this.barCtx.strokeWidth) ? this.barCtx.strokeWidth[realIndex2] : this.barCtx.strokeWidth;
+          strokeWidth = Array.isArray(this.barCtx.strokeWidth) ? this.barCtx.strokeWidth[realIndex] : this.barCtx.strokeWidth;
         }
       }
       return strokeWidth;
@@ -18963,12 +19556,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       );
       if (alwaysApplyRadius) return output;
       const chartType = this.w.config.chart.type;
-      for (let j2 = 0; j2 < numColumns; j2++) {
+      for (let j = 0; j < numColumns; j++) {
         let positiveIndices = [];
         let negativeIndices = [];
         let nonZeroCount = 0;
         for (let i = 0; i < numSeries; i++) {
-          const value = series[i][j2];
+          const value = series[i][j];
           if (value > 0) {
             positiveIndices.push(i);
             nonZeroCount++;
@@ -18979,33 +19572,33 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
         if (positiveIndices.length > 0 && negativeIndices.length === 0) {
           if (positiveIndices.length === 1) {
-            output[positiveIndices[0]][j2] = chartType === "bar" && numColumns === 1 ? "top" : "both";
+            output[positiveIndices[0]][j] = chartType === "bar" && numColumns === 1 ? "top" : "both";
           } else {
             const firstPositiveIndex = positiveIndices[0];
             const lastPositiveIndex = positiveIndices[positiveIndices.length - 1];
             for (let i of positiveIndices) {
               if (i === firstPositiveIndex) {
-                output[i][j2] = chartType === "bar" && numColumns === 1 ? "top" : "bottom";
+                output[i][j] = chartType === "bar" && numColumns === 1 ? "top" : "bottom";
               } else if (i === lastPositiveIndex) {
-                output[i][j2] = "top";
+                output[i][j] = "top";
               } else {
-                output[i][j2] = "none";
+                output[i][j] = "none";
               }
             }
           }
         } else if (negativeIndices.length > 0 && positiveIndices.length === 0) {
           if (negativeIndices.length === 1) {
-            output[negativeIndices[0]][j2] = "both";
+            output[negativeIndices[0]][j] = "both";
           } else {
             const highestNegativeIndex = Math.max(...negativeIndices);
             const lowestNegativeIndex = Math.min(...negativeIndices);
             for (let i of negativeIndices) {
               if (i === highestNegativeIndex) {
-                output[i][j2] = "bottom";
+                output[i][j] = "bottom";
               } else if (i === lowestNegativeIndex) {
-                output[i][j2] = "top";
+                output[i][j] = "top";
               } else {
-                output[i][j2] = "none";
+                output[i][j] = "none";
               }
             }
           }
@@ -19013,36 +19606,36 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           const lastPositiveIndex = positiveIndices[positiveIndices.length - 1];
           for (let i of positiveIndices) {
             if (i === lastPositiveIndex) {
-              output[i][j2] = "top";
+              output[i][j] = "top";
             } else {
-              output[i][j2] = "none";
+              output[i][j] = "none";
             }
           }
           const highestNegativeIndex = Math.max(...negativeIndices);
           for (let i of negativeIndices) {
             if (i === highestNegativeIndex) {
-              output[i][j2] = "bottom";
+              output[i][j] = "bottom";
             } else {
-              output[i][j2] = "none";
+              output[i][j] = "none";
             }
           }
         } else if (nonZeroCount === 1) {
           const index = positiveIndices[0] || negativeIndices[0];
-          output[index][j2] = "both";
+          output[index][j] = "both";
         }
       }
       return output;
     }
-    barBackground({ j: j2, i, x1, x2, y1, y2, elSeries }) {
+    barBackground({ j, i, x1, x2, y1, y2, elSeries }) {
       const w = this.w;
       const graphics = new Graphics(this.barCtx.ctx);
       const sr = new Series(this.barCtx.ctx);
       let activeSeriesIndex = sr.getActiveConfigSeriesIndex();
       if (this.barCtx.barOptions.colors.backgroundBarColors.length > 0 && activeSeriesIndex === i) {
-        if (j2 >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
-          j2 %= this.barCtx.barOptions.colors.backgroundBarColors.length;
+        if (j >= this.barCtx.barOptions.colors.backgroundBarColors.length) {
+          j %= this.barCtx.barOptions.colors.backgroundBarColors.length;
         }
-        let bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j2];
+        let bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j];
         let rect = graphics.drawRect(
           typeof x1 !== "undefined" ? x1 : 0,
           typeof y1 !== "undefined" ? y1 : 0,
@@ -19065,36 +19658,36 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       isReversed,
       series,
       seriesGroup,
-      realIndex: realIndex2,
+      realIndex,
       i,
-      j: j2,
+      j,
       w
     }) {
       var _a;
       const graphics = new Graphics(this.barCtx.ctx);
-      strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex2] : strokeWidth;
+      strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
       if (!strokeWidth) strokeWidth = 0;
       let bW = barWidth;
       let bXP = barXPosition;
-      if ((_a = w.config.series[realIndex2].data[j2]) == null ? void 0 : _a.columnWidthOffset) {
-        bXP = barXPosition - w.config.series[realIndex2].data[j2].columnWidthOffset / 2;
-        bW = barWidth + w.config.series[realIndex2].data[j2].columnWidthOffset;
+      if ((_a = w.config.series[realIndex].data[j]) == null ? void 0 : _a.columnWidthOffset) {
+        bXP = barXPosition - w.config.series[realIndex].data[j].columnWidthOffset / 2;
+        bW = barWidth + w.config.series[realIndex].data[j].columnWidthOffset;
       }
       let strokeCenter = strokeWidth / 2;
       const x1 = bXP + strokeCenter;
       const x2 = bXP + bW - strokeCenter;
-      let direction = (series[i][j2] >= 0 ? 1 : -1) * (isReversed ? -1 : 1);
+      let direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1);
       y1 += 1e-3 - strokeCenter * direction;
       y2 += 1e-3 + strokeCenter * direction;
       let pathTo = graphics.move(x1, y1);
       let pathFrom = graphics.move(x1, y1);
       const sl = graphics.line(x2, y1);
       if (w.globals.previousPaths.length > 0) {
-        pathFrom = this.barCtx.getPreviousPath(realIndex2, j2, false);
+        pathFrom = this.barCtx.getPreviousPath(realIndex, j, false);
       }
-      pathTo = pathTo + graphics.line(x1, y2) + graphics.line(x2, y2) + sl + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex2][j2] === "both" ? " Z" : " z");
-      pathFrom = pathFrom + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex2][j2] === "both" ? " Z" : " z");
-      if (this.arrBorderRadius[realIndex2][j2] !== "none") {
+      pathTo = pathTo + graphics.line(x1, y2) + graphics.line(x2, y2) + sl + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
+      pathFrom = pathFrom + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
+      if (this.arrBorderRadius[realIndex][j] !== "none") {
         pathTo = graphics.roundPathCorners(
           pathTo,
           w.config.plotOptions.bar.borderRadius
@@ -19105,7 +19698,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         _ctx = this.barCtx[seriesGroup];
         _ctx.yArrj.push(y2 - strokeCenter * direction);
         _ctx.yArrjF.push(Math.abs(y1 - y2 + strokeWidth * direction));
-        _ctx.yArrjVal.push(this.barCtx.series[i][j2]);
+        _ctx.yArrjVal.push(this.barCtx.series[i][j]);
       }
       return {
         pathTo,
@@ -19121,36 +19714,36 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       isReversed,
       series,
       seriesGroup,
-      realIndex: realIndex2,
+      realIndex,
       i,
-      j: j2,
+      j,
       w
     }) {
       var _a;
       const graphics = new Graphics(this.barCtx.ctx);
-      strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex2] : strokeWidth;
+      strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
       if (!strokeWidth) strokeWidth = 0;
       let bYP = barYPosition;
       let bH = barHeight;
-      if ((_a = w.config.series[realIndex2].data[j2]) == null ? void 0 : _a.barHeightOffset) {
-        bYP = barYPosition - w.config.series[realIndex2].data[j2].barHeightOffset / 2;
-        bH = barHeight + w.config.series[realIndex2].data[j2].barHeightOffset;
+      if ((_a = w.config.series[realIndex].data[j]) == null ? void 0 : _a.barHeightOffset) {
+        bYP = barYPosition - w.config.series[realIndex].data[j].barHeightOffset / 2;
+        bH = barHeight + w.config.series[realIndex].data[j].barHeightOffset;
       }
       let strokeCenter = strokeWidth / 2;
       const y1 = bYP + strokeCenter;
       const y2 = bYP + bH - strokeCenter;
-      let direction = (series[i][j2] >= 0 ? 1 : -1) * (isReversed ? -1 : 1);
+      let direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1);
       x1 += 1e-3 + strokeCenter * direction;
       x2 += 1e-3 - strokeCenter * direction;
       let pathTo = graphics.move(x1, y1);
       let pathFrom = graphics.move(x1, y1);
       if (w.globals.previousPaths.length > 0) {
-        pathFrom = this.barCtx.getPreviousPath(realIndex2, j2, false);
+        pathFrom = this.barCtx.getPreviousPath(realIndex, j, false);
       }
       const sl = graphics.line(x1, y2);
-      pathTo = pathTo + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex2][j2] === "both" ? " Z" : " z");
-      pathFrom = pathFrom + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex2][j2] === "both" ? " Z" : " z");
-      if (this.arrBorderRadius[realIndex2][j2] !== "none") {
+      pathTo = pathTo + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
+      pathFrom = pathFrom + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
+      if (this.arrBorderRadius[realIndex][j] !== "none") {
         pathTo = graphics.roundPathCorners(
           pathTo,
           w.config.plotOptions.bar.borderRadius
@@ -19161,7 +19754,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         _ctx = this.barCtx[seriesGroup];
         _ctx.xArrj.push(x2 + strokeCenter * direction);
         _ctx.xArrjF.push(Math.abs(x1 - x2 - strokeWidth * direction));
-        _ctx.xArrjVal.push(this.barCtx.series[i][j2]);
+        _ctx.xArrjVal.push(this.barCtx.series[i][j]);
       }
       return {
         pathTo,
@@ -19194,7 +19787,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       return yForVal;
     }
-    getGoalValues(type, zeroW, zeroH, i, j2, translationsIndex) {
+    getGoalValues(type, zeroW, zeroH, i, j, translationsIndex) {
       const w = this.w;
       let goals = [];
       const pushGoal = (value, attrs) => {
@@ -19203,8 +19796,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           attrs
         });
       };
-      if (w.globals.seriesGoals[i] && w.globals.seriesGoals[i][j2] && Array.isArray(w.globals.seriesGoals[i][j2])) {
-        w.globals.seriesGoals[i][j2].forEach((goal) => {
+      if (w.globals.seriesGoals[i] && w.globals.seriesGoals[i][j] && Array.isArray(w.globals.seriesGoals[i][j])) {
+        w.globals.seriesGoals[i][j].forEach((goal) => {
           pushGoal(goal.value, goal);
         });
       }
@@ -19217,8 +19810,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           strokeLineCap: "round",
           strokeColor: Array.isArray(colors[i]) ? colors[i][0] : colors[i]
         };
-        pushGoal(w.globals.seriesRangeStart[i][j2], commonAttrs);
-        pushGoal(w.globals.seriesRangeEnd[i][j2], __spreadProps(__spreadValues({}, commonAttrs), {
+        pushGoal(w.globals.seriesRangeStart[i][j], commonAttrs);
+        pushGoal(w.globals.seriesRangeEnd[i][j], __spreadProps(__spreadValues({}, commonAttrs), {
           strokeColor: Array.isArray(colors[i]) ? colors[i][1] : colors[i]
         }));
       }
@@ -19288,7 +19881,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       return lineGroup;
     }
-    drawBarShadow({ prevPaths, currPaths, color }) {
+    drawBarShadow({ prevPaths, currPaths, color, realIndex, j }) {
       const w = this.w;
       const { x: prevX2, x1: prevX1, barYPosition: prevY1 } = prevPaths;
       const { x: currX2, x1: currX1, barYPosition: currY1 } = currPaths;
@@ -19305,14 +19898,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         classes: "apexcharts-bar-shadow apexcharts-decoration-element"
       });
     }
-    getZeroValueEncounters({ i, j: j2 }) {
+    getZeroValueEncounters({ i, j }) {
       var _a;
       const w = this.w;
       let nonZeroColumns = 0;
       let zeroEncounters = 0;
       let seriesIndices = w.config.plotOptions.bar.horizontal ? w.globals.series.map((_, _i) => _i) : ((_a = w.globals.columnSeries) == null ? void 0 : _a.i.map((_i) => _i)) || [];
       seriesIndices.forEach((_si) => {
-        let val = w.globals.seriesPercent[_si][j2];
+        let val = w.globals.seriesPercent[_si][j];
         if (val) {
           nonZeroColumns++;
         }
@@ -19415,27 +20008,27 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         let x, y, xDivision, yDivision, zeroH, zeroW;
         let yArrj = [];
         let xArrj = [];
-        let realIndex2 = w.globals.comboCharts ? seriesIndex[i] : i;
-        let { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex2);
+        let realIndex = w.globals.comboCharts ? seriesIndex[i] : i;
+        let { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex);
         let elSeries = graphics.group({
           class: `apexcharts-series`,
           rel: i + 1,
-          seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex2]),
-          "data:realIndex": realIndex2
+          seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex]),
+          "data:realIndex": realIndex
         });
-        this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex2);
+        this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex);
         if (series[i].length > 0) {
           this.visibleI = this.visibleI + 1;
         }
         let barHeight = 0;
         let barWidth = 0;
         if (this.yRatio.length > 1) {
-          this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex2];
-          this.translationsIndex = realIndex2;
+          this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex];
+          this.translationsIndex = realIndex;
         }
         let translationsIndex = this.translationsIndex;
         this.isReversed = w.config.yaxis[this.yaxisIndex] && w.config.yaxis[this.yaxisIndex].reversed;
-        let initPositions = this.barHelpers.initialPositions(realIndex2);
+        let initPositions = this.barHelpers.initialPositions(realIndex);
         y = initPositions.y;
         barHeight = initPositions.barHeight;
         yDivision = initPositions.yDivision;
@@ -19449,7 +20042,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
         let elDataLabelsWrap = graphics.group({
           class: "apexcharts-datalabels",
-          "data:realIndex": realIndex2
+          "data:realIndex": realIndex
         });
         w.globals.delayedElements.push({
           el: elDataLabelsWrap.node
@@ -19465,14 +20058,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           el: elBarShadows.node
         });
         elBarShadows.node.classList.add("apexcharts-element-hidden");
-        for (let j2 = 0; j2 < series[i].length; j2++) {
-          const strokeWidth = this.barHelpers.getStrokeWidth(i, j2, realIndex2);
+        for (let j = 0; j < series[i].length; j++) {
+          const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
           let paths = null;
           const pathsParams = {
             indexes: {
               i,
-              j: j2,
-              realIndex: realIndex2,
+              j,
+              realIndex,
               translationsIndex,
               bc
             },
@@ -19487,26 +20080,28 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               zeroW,
               yDivision
             }));
-            barWidth = this.series[i][j2] / this.invertedYRatio;
+            barWidth = this.series[i][j] / this.invertedYRatio;
           } else {
             paths = this.drawColumnPaths(__spreadProps(__spreadValues({}, pathsParams), {
               xDivision,
               barWidth,
               zeroH
             }));
-            barHeight = this.series[i][j2] / this.yRatio[translationsIndex];
+            barHeight = this.series[i][j] / this.yRatio[translationsIndex];
           }
-          let pathFill = this.barHelpers.getPathFillColor(series, i, j2, realIndex2);
-          if (this.isFunnel && this.barOptions.isFunnel3d && this.pathArr.length && j2 > 0) {
+          let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
+          if (this.isFunnel && this.barOptions.isFunnel3d && this.pathArr.length && j > 0) {
             const barShadow = this.barHelpers.drawBarShadow({
               color: typeof pathFill.color === "string" && ((_a = pathFill.color) == null ? void 0 : _a.indexOf("url")) === -1 ? pathFill.color : Utils$1.hexToRgba(w.globals.colors[i]),
               prevPaths: this.pathArr[this.pathArr.length - 1],
-              currPaths: paths
+              currPaths: paths,
+              realIndex,
+              j
             });
             elBarShadows.add(barShadow);
             if (w.config.chart.dropShadow.enabled) {
               const filters = new Filters(this.ctx);
-              filters.dropShadow(barShadow, w.config.chart.dropShadow, realIndex2);
+              filters.dropShadow(barShadow, w.config.chart.dropShadow, realIndex);
             }
           }
           this.pathArr.push(paths);
@@ -19523,15 +20118,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           }
           y = paths.y;
           x = paths.x;
-          if (j2 > 0) {
+          if (j > 0) {
             xArrj.push(x + barWidth / 2);
           }
           yArrj.push(y);
           this.renderSeries(__spreadProps(__spreadValues({
-            realIndex: realIndex2,
+            realIndex,
             pathFill: pathFill.color
           }, pathFill.useRangeColor ? { lineFill: pathFill.color } : {}), {
-            j: j2,
+            j,
             i,
             columnGroupIndex,
             pathFrom: paths.pathFrom,
@@ -19550,17 +20145,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             type: "bar"
           }));
         }
-        w.globals.seriesXvalues[realIndex2] = xArrj;
-        w.globals.seriesYvalues[realIndex2] = yArrj;
+        w.globals.seriesXvalues[realIndex] = xArrj;
+        w.globals.seriesYvalues[realIndex] = yArrj;
         ret.add(elSeries);
       }
       return ret;
     }
     renderSeries({
-      realIndex: realIndex2,
+      realIndex,
       pathFill,
       lineFill,
-      j: j2,
+      j,
       i,
       columnGroupIndex,
       pathFrom,
@@ -19606,16 +20201,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             if (!c) c = "";
             if (typeof c === "function") {
               return c({
-                value: w.globals.series[i2][j2],
-                dataPointIndex: j2,
+                value: w.globals.series[i2][j],
+                dataPointIndex: j,
                 w
               });
             }
           }
           return c;
         };
-        const checkAvailableColor = typeof w.globals.stroke.colors[realIndex2] === "function" ? fetchColor(realIndex2) : w.globals.stroke.colors[realIndex2];
-        lineFill = this.barOptions.distributed ? w.globals.stroke.colors[j2] : checkAvailableColor;
+        const checkAvailableColor = typeof w.globals.stroke.colors[realIndex] === "function" ? fetchColor(realIndex) : w.globals.stroke.colors[realIndex];
+        lineFill = this.barOptions.distributed ? w.globals.stroke.colors[j] : checkAvailableColor;
       }
       let barDataLabels = new BarDataLabels(this);
       let dataLabelsObj = barDataLabels.handleBarDataLabels({
@@ -19624,9 +20219,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         y1,
         y2,
         i,
-        j: j2,
+        j,
         series,
-        realIndex: realIndex2,
+        realIndex,
         columnGroupIndex,
         barHeight,
         barWidth,
@@ -19639,18 +20234,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           skipDrawing = true;
         }
       }
-      if (w.config.series[i].data[j2] && w.config.series[i].data[j2].strokeColor) {
-        lineFill = w.config.series[i].data[j2].strokeColor;
+      if (w.config.series[i].data[j] && w.config.series[i].data[j].strokeColor) {
+        lineFill = w.config.series[i].data[j].strokeColor;
       }
       if (this.isNullValue) {
         pathFill = "none";
       }
-      let delay = j2 / w.config.chart.animations.animateGradually.delay * (w.config.chart.animations.speed / w.globals.dataPoints) / 2.4;
+      let delay = j / w.config.chart.animations.animateGradually.delay * (w.config.chart.animations.speed / w.globals.dataPoints) / 2.4;
       if (!skipDrawing) {
         let renderedPath = graphics.renderPaths({
           i,
-          j: j2,
-          realIndex: realIndex2,
+          j,
+          realIndex,
           pathFrom,
           pathTo,
           stroke: lineFill,
@@ -19667,7 +20262,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         renderedPath.attr("clip-path", `url(#gridRectBarMask${w.globals.cuid})`);
         const forecast = w.config.forecastDataPoints;
         if (forecast.count > 0) {
-          if (j2 >= w.globals.dataPoints - forecast.count) {
+          if (j >= w.globals.dataPoints - forecast.count) {
             renderedPath.node.setAttribute("stroke-dasharray", forecast.dashArray);
             renderedPath.node.setAttribute("stroke-width", forecast.strokeWidth);
             renderedPath.node.setAttribute("fill-opacity", forecast.fillOpacity);
@@ -19678,13 +20273,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           renderedPath.attr("data-range-y2", y2);
         }
         const filters = new Filters(this.ctx);
-        filters.setSelectionFilter(renderedPath, realIndex2, j2);
+        filters.setSelectionFilter(renderedPath, realIndex, j);
         elSeries.add(renderedPath);
         renderedPath.attr({
           cy: dataLabelsObj.dataLabelsPos.bcy,
           cx: dataLabelsObj.dataLabelsPos.bcx,
-          j: j2,
-          val: w.globals.series[i][j2],
+          j,
+          val: w.globals.series[i][j],
           barHeight,
           barWidth
         });
@@ -19716,14 +20311,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }) {
       let w = this.w;
       let i = indexes.i;
-      let j2 = indexes.j;
+      let j = indexes.j;
       let barYPosition;
       if (w.globals.isXNumeric) {
-        y = (w.globals.seriesX[i][j2] - w.globals.minX) / this.invertedXRatio - barHeight;
+        y = (w.globals.seriesX[i][j] - w.globals.minX) / this.invertedXRatio - barHeight;
         barYPosition = y + barHeight * this.visibleI;
       } else {
         if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-          const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j: j2 });
+          const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j });
           if (nonZeroColumns > 0) {
             barHeight = this.seriesLen * barHeight / nonZeroColumns;
           }
@@ -19734,9 +20329,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
       }
       if (this.isFunnel) {
-        zeroW = zeroW - (this.barHelpers.getXForValue(this.series[i][j2], zeroW) - zeroW) / 2;
+        zeroW = zeroW - (this.barHelpers.getXForValue(this.series[i][j], zeroW) - zeroW) / 2;
       }
-      x = this.barHelpers.getXForValue(this.series[i][j2], zeroW);
+      x = this.barHelpers.getXForValue(this.series[i][j], zeroW);
       const paths = this.barHelpers.getBarpaths({
         barYPosition,
         barHeight,
@@ -19747,14 +20342,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         series: this.series,
         realIndex: indexes.realIndex,
         i,
-        j: j2,
+        j,
         w
       });
       if (!w.globals.isXNumeric) {
         y = y + yDivision;
       }
       this.barHelpers.barBackground({
-        j: j2,
+        j,
         i,
         y1: barYPosition - barHeight * this.visibleI,
         y2: barHeight * this.seriesLen,
@@ -19766,7 +20361,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         x1: zeroW,
         x,
         y,
-        goalX: this.barHelpers.getGoalValues("x", zeroW, null, i, j2),
+        goalX: this.barHelpers.getGoalValues("x", zeroW, null, i, j),
         barYPosition,
         barHeight
       };
@@ -19782,24 +20377,24 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       elSeries
     }) {
       let w = this.w;
-      let realIndex2 = indexes.realIndex;
+      let realIndex = indexes.realIndex;
       let translationsIndex = indexes.translationsIndex;
       let i = indexes.i;
-      let j2 = indexes.j;
+      let j = indexes.j;
       let bc = indexes.bc;
       let barXPosition;
       if (w.globals.isXNumeric) {
         const xForNumericX = this.getBarXForNumericXAxis({
           x,
-          j: j2,
-          realIndex: realIndex2,
+          j,
+          realIndex,
           barWidth
         });
         x = xForNumericX.x;
         barXPosition = xForNumericX.barXPosition;
       } else {
         if (w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
-          const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j: j2 });
+          const { nonZeroColumns, zeroEncounters } = this.barHelpers.getZeroValueEncounters({ i, j });
           if (nonZeroColumns > 0) {
             barWidth = this.seriesLen * barWidth / nonZeroColumns;
           }
@@ -19810,7 +20405,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
       }
       y = this.barHelpers.getYForValue(
-        this.series[i][j2],
+        this.series[i][j],
         zeroH,
         translationsIndex
       );
@@ -19822,9 +20417,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         strokeWidth,
         isReversed: this.isReversed,
         series: this.series,
-        realIndex: realIndex2,
+        realIndex,
         i,
-        j: j2,
+        j,
         w
       });
       if (!w.globals.isXNumeric) {
@@ -19832,7 +20427,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       this.barHelpers.barBackground({
         bc,
-        j: j2,
+        j,
         i,
         x1: barXPosition - strokeWidth / 2 - barWidth * this.visibleI,
         x2: barWidth * this.seriesLen + strokeWidth / 2,
@@ -19848,21 +20443,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           null,
           zeroH,
           i,
-          j2,
+          j,
           translationsIndex
         ),
         barXPosition,
         barWidth
       };
     }
-    getBarXForNumericXAxis({ x, barWidth, realIndex: realIndex2, j: j2 }) {
+    getBarXForNumericXAxis({ x, barWidth, realIndex, j }) {
       const w = this.w;
-      let sxI = realIndex2;
-      if (!w.globals.seriesX[realIndex2].length) {
+      let sxI = realIndex;
+      if (!w.globals.seriesX[realIndex].length) {
         sxI = w.globals.maxValsInArrayIndex;
       }
-      if (Utils$1.isNumber(w.globals.seriesX[sxI][j2])) {
-        x = (w.globals.seriesX[sxI][j2] - w.globals.minX) / this.xRatio - barWidth * this.seriesLen / 2;
+      if (Utils$1.isNumber(w.globals.seriesX[sxI][j])) {
+        x = (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio - barWidth * this.seriesLen / 2;
       }
       return {
         barXPosition: x + barWidth * this.visibleI,
@@ -19875,14 +20470,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
      * @param {int} j - current iterating series's j index
      * @return {string} pathFrom is the string which will be appended in animations
      **/
-    getPreviousPath(realIndex2, j2) {
+    getPreviousPath(realIndex, j) {
       let w = this.w;
       let pathFrom = "M 0 0";
       for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
         let gpp = w.globals.previousPaths[pp];
-        if (gpp.paths && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(realIndex2, 10)) {
-          if (typeof w.globals.previousPaths[pp].paths[j2] !== "undefined") {
-            pathFrom = w.globals.previousPaths[pp].paths[j2].d;
+        if (gpp.paths && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)) {
+          if (typeof w.globals.previousPaths[pp].paths[j] !== "undefined") {
+            pathFrom = w.globals.previousPaths[pp].paths[j].d;
           }
         }
       }
@@ -19913,27 +20508,27 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         let yDivision;
         let zeroH;
         let zeroW;
-        let realIndex2 = w.globals.comboCharts ? seriesIndex[i] : i;
-        let { groupIndex, columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex2);
+        let realIndex = w.globals.comboCharts ? seriesIndex[i] : i;
+        let { groupIndex, columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex);
         this.groupCtx = this[w.globals.seriesGroups[groupIndex]];
         let xArrValues = [];
         let yArrValues = [];
         let translationsIndex = 0;
         if (this.yRatio.length > 1) {
-          this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex2][0];
-          translationsIndex = realIndex2;
+          this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex][0];
+          translationsIndex = realIndex;
         }
         this.isReversed = w.config.yaxis[this.yaxisIndex] && w.config.yaxis[this.yaxisIndex].reversed;
         let elSeries = this.graphics.group({
           class: `apexcharts-series`,
-          seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex2]),
+          seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex]),
           rel: i + 1,
-          "data:realIndex": realIndex2
+          "data:realIndex": realIndex
         });
-        this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex2);
+        this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex);
         let elDataLabelsWrap = this.graphics.group({
           class: "apexcharts-datalabels",
-          "data:realIndex": realIndex2
+          "data:realIndex": realIndex
         });
         let elGoalsMarkers = this.graphics.group({
           class: "apexcharts-bar-goals-markers"
@@ -19964,10 +20559,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           this.groupCtx.prevY[0] = this.groupCtx.prevY[0].map(() => zeroH);
           this.groupCtx.prevYF[0] = this.groupCtx.prevYF[0].map(() => 0);
         }
-        for (let j2 = 0; j2 < w.globals.dataPoints; j2++) {
-          const strokeWidth = this.barHelpers.getStrokeWidth(i, j2, realIndex2);
+        for (let j = 0; j < w.globals.dataPoints; j++) {
+          const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
           const commonPathOpts = {
-            indexes: { i, j: j2, realIndex: realIndex2, translationsIndex, bc },
+            indexes: { i, j, realIndex, translationsIndex, bc },
             strokeWidth,
             x,
             y,
@@ -19982,14 +20577,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               barHeight,
               yDivision
             }));
-            barWidth = this.series[i][j2] / this.invertedYRatio;
+            barWidth = this.series[i][j] / this.invertedYRatio;
           } else {
             paths = this.drawStackedColumnPaths(__spreadProps(__spreadValues({}, commonPathOpts), {
               xDivision,
               barWidth,
               zeroH
             }));
-            barHeight = this.series[i][j2] / this.yRatio[translationsIndex];
+            barHeight = this.series[i][j] / this.yRatio[translationsIndex];
           }
           const barGoalLine = this.barHelpers.drawGoalLine({
             barXPosition: paths.barXPosition,
@@ -20006,17 +20601,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           x = paths.x;
           xArrValues.push(x);
           yArrValues.push(y);
-          let pathFill = this.barHelpers.getPathFillColor(series, i, j2, realIndex2);
+          let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
           let classes = "";
           const flipClass = w.globals.isBarHorizontal ? "apexcharts-flip-x" : "apexcharts-flip-y";
-          if (this.barHelpers.arrBorderRadius[realIndex2][j2] === "bottom" && w.globals.series[realIndex2][j2] > 0 || this.barHelpers.arrBorderRadius[realIndex2][j2] === "top" && w.globals.series[realIndex2][j2] < 0) {
+          if (this.barHelpers.arrBorderRadius[realIndex][j] === "bottom" && w.globals.series[realIndex][j] > 0 || this.barHelpers.arrBorderRadius[realIndex][j] === "top" && w.globals.series[realIndex][j] < 0) {
             classes = flipClass;
           }
           elSeries = this.renderSeries(__spreadProps(__spreadValues({
-            realIndex: realIndex2,
+            realIndex,
             pathFill: pathFill.color
           }, pathFill.useRangeColor ? { lineFill: pathFill.color } : {}), {
-            j: j2,
+            j,
             i,
             columnGroupIndex,
             pathFrom: paths.pathFrom,
@@ -20035,8 +20630,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             classes
           }));
         }
-        w.globals.seriesXvalues[realIndex2] = xArrValues;
-        w.globals.seriesYvalues[realIndex2] = yArrValues;
+        w.globals.seriesXvalues[realIndex] = xArrValues;
+        w.globals.seriesYvalues[realIndex] = yArrValues;
         this.groupCtx.prevY.push(this.groupCtx.yArrj);
         this.groupCtx.prevYF.push(this.groupCtx.yArrjF);
         this.groupCtx.prevYVal.push(this.groupCtx.yArrjVal);
@@ -20107,32 +20702,32 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let barYPosition = y + columnGroupIndex * barHeight;
       let barXPosition;
       let i = indexes.i;
-      let j2 = indexes.j;
-      let realIndex2 = indexes.realIndex;
+      let j = indexes.j;
+      let realIndex = indexes.realIndex;
       let translationsIndex = indexes.translationsIndex;
       let prevBarW = 0;
       for (let k = 0; k < this.groupCtx.prevXF.length; k++) {
-        prevBarW = prevBarW + this.groupCtx.prevXF[k][j2];
+        prevBarW = prevBarW + this.groupCtx.prevXF[k][j];
       }
       let gsi = i;
-      if (w.config.series[realIndex2].name) {
-        gsi = seriesGroup.indexOf(w.config.series[realIndex2].name);
+      if (w.config.series[realIndex].name) {
+        gsi = seriesGroup.indexOf(w.config.series[realIndex].name);
       }
       if (gsi > 0) {
         let bXP = zeroW;
-        if (this.groupCtx.prevXVal[gsi - 1][j2] < 0) {
-          bXP = this.series[i][j2] >= 0 ? this.groupCtx.prevX[gsi - 1][j2] + prevBarW - (this.isReversed ? prevBarW : 0) * 2 : this.groupCtx.prevX[gsi - 1][j2];
-        } else if (this.groupCtx.prevXVal[gsi - 1][j2] >= 0) {
-          bXP = this.series[i][j2] >= 0 ? this.groupCtx.prevX[gsi - 1][j2] : this.groupCtx.prevX[gsi - 1][j2] - prevBarW + (this.isReversed ? prevBarW : 0) * 2;
+        if (this.groupCtx.prevXVal[gsi - 1][j] < 0) {
+          bXP = this.series[i][j] >= 0 ? this.groupCtx.prevX[gsi - 1][j] + prevBarW - (this.isReversed ? prevBarW : 0) * 2 : this.groupCtx.prevX[gsi - 1][j];
+        } else if (this.groupCtx.prevXVal[gsi - 1][j] >= 0) {
+          bXP = this.series[i][j] >= 0 ? this.groupCtx.prevX[gsi - 1][j] : this.groupCtx.prevX[gsi - 1][j] - prevBarW + (this.isReversed ? prevBarW : 0) * 2;
         }
         barXPosition = bXP;
       } else {
         barXPosition = zeroW;
       }
-      if (this.series[i][j2] === null) {
+      if (this.series[i][j] === null) {
         x = barXPosition;
       } else {
-        x = barXPosition + this.series[i][j2] / this.invertedYRatio - (this.isReversed ? this.series[i][j2] / this.invertedYRatio : 0) * 2;
+        x = barXPosition + this.series[i][j] / this.invertedYRatio - (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2;
       }
       const paths = this.barHelpers.getBarpaths({
         barYPosition,
@@ -20145,11 +20740,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         realIndex: indexes.realIndex,
         seriesGroup,
         i,
-        j: j2,
+        j,
         w
       });
       this.barHelpers.barBackground({
-        j: j2,
+        j,
         i,
         y1: barYPosition,
         y2: barHeight,
@@ -20164,7 +20759,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           zeroW,
           null,
           i,
-          j2,
+          j,
           translationsIndex
         ),
         barXPosition,
@@ -20187,12 +20782,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       var _a, _b, _c, _d;
       let w = this.w;
       let i = indexes.i;
-      let j2 = indexes.j;
+      let j = indexes.j;
       let bc = indexes.bc;
-      let realIndex2 = indexes.realIndex;
+      let realIndex = indexes.realIndex;
       let translationsIndex = indexes.translationsIndex;
       if (w.globals.isXNumeric) {
-        let seriesVal = w.globals.seriesX[realIndex2][j2];
+        let seriesVal = w.globals.seriesX[realIndex][j];
         if (!seriesVal) seriesVal = 0;
         x = (seriesVal - w.globals.minX) / this.xRatio - barWidth / 2 * w.globals.barGroups.length;
       }
@@ -20200,30 +20795,30 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let barYPosition;
       let prevBarH = 0;
       for (let k = 0; k < this.groupCtx.prevYF.length; k++) {
-        prevBarH = prevBarH + (!isNaN(this.groupCtx.prevYF[k][j2]) ? this.groupCtx.prevYF[k][j2] : 0);
+        prevBarH = prevBarH + (!isNaN(this.groupCtx.prevYF[k][j]) ? this.groupCtx.prevYF[k][j] : 0);
       }
       let gsi = i;
       if (seriesGroup) {
-        gsi = seriesGroup.indexOf(w.globals.seriesNames[realIndex2]);
+        gsi = seriesGroup.indexOf(w.globals.seriesNames[realIndex]);
       }
-      if (gsi > 0 && !w.globals.isXNumeric || gsi > 0 && w.globals.isXNumeric && w.globals.seriesX[realIndex2 - 1][j2] === w.globals.seriesX[realIndex2][j2]) {
+      if (gsi > 0 && !w.globals.isXNumeric || gsi > 0 && w.globals.isXNumeric && w.globals.seriesX[realIndex - 1][j] === w.globals.seriesX[realIndex][j]) {
         let bYP;
         let prevYValue;
-        const p = Math.min(this.yRatio.length + 1, realIndex2 + 1);
+        const p = Math.min(this.yRatio.length + 1, realIndex + 1);
         if (this.groupCtx.prevY[gsi - 1] !== void 0 && this.groupCtx.prevY[gsi - 1].length) {
           for (let ii = 1; ii < p; ii++) {
-            if (!isNaN((_a = this.groupCtx.prevY[gsi - ii]) == null ? void 0 : _a[j2])) {
-              prevYValue = this.groupCtx.prevY[gsi - ii][j2];
+            if (!isNaN((_a = this.groupCtx.prevY[gsi - ii]) == null ? void 0 : _a[j])) {
+              prevYValue = this.groupCtx.prevY[gsi - ii][j];
               break;
             }
           }
         }
         for (let ii = 1; ii < p; ii++) {
-          if (((_b = this.groupCtx.prevYVal[gsi - ii]) == null ? void 0 : _b[j2]) < 0) {
-            bYP = this.series[i][j2] >= 0 ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2 : prevYValue;
+          if (((_b = this.groupCtx.prevYVal[gsi - ii]) == null ? void 0 : _b[j]) < 0) {
+            bYP = this.series[i][j] >= 0 ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2 : prevYValue;
             break;
-          } else if (((_c = this.groupCtx.prevYVal[gsi - ii]) == null ? void 0 : _c[j2]) >= 0) {
-            bYP = this.series[i][j2] >= 0 ? prevYValue : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
+          } else if (((_c = this.groupCtx.prevYVal[gsi - ii]) == null ? void 0 : _c[j]) >= 0) {
+            bYP = this.series[i][j] >= 0 ? prevYValue : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
             break;
           }
         }
@@ -20236,8 +20831,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       } else {
         barYPosition = zeroH;
       }
-      if (this.series[i][j2]) {
-        y = barYPosition - this.series[i][j2] / this.yRatio[translationsIndex] + (this.isReversed ? this.series[i][j2] / this.yRatio[translationsIndex] : 0) * 2;
+      if (this.series[i][j]) {
+        y = barYPosition - this.series[i][j] / this.yRatio[translationsIndex] + (this.isReversed ? this.series[i][j] / this.yRatio[translationsIndex] : 0) * 2;
       } else {
         y = barYPosition;
       }
@@ -20253,12 +20848,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         seriesGroup,
         realIndex: indexes.realIndex,
         i,
-        j: j2,
+        j,
         w
       });
       this.barHelpers.barBackground({
         bc,
-        j: j2,
+        j,
         i,
         x1: barXPosition,
         x2: barWidth,
@@ -20267,7 +20862,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       return {
         pathTo: paths.pathTo,
         pathFrom: paths.pathFrom,
-        goalY: this.barHelpers.getGoalValues("y", null, zeroH, i, j2),
+        goalY: this.barHelpers.getGoalValues("y", null, zeroH, i, j),
         barXPosition,
         x: w.globals.isXNumeric ? x : x + xDivision,
         y
@@ -20297,15 +20892,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         let x, y, xDivision, yDivision, zeroH, zeroW;
         const yArrj = [];
         const xArrj = [];
-        const realIndex2 = w.globals.comboCharts ? seriesIndex[i] : i;
-        const { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex2);
+        const realIndex = w.globals.comboCharts ? seriesIndex[i] : i;
+        const { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex);
         const elSeries = graphics.group({
           class: `apexcharts-series`,
-          seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex2]),
+          seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex]),
           rel: i + 1,
-          "data:realIndex": realIndex2
+          "data:realIndex": realIndex
         });
-        this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex2);
+        this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex);
         if (series[i].length > 0) {
           this.visibleI = this.visibleI + 1;
         }
@@ -20313,10 +20908,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         let barWidth = 0;
         let translationsIndex = 0;
         if (this.yRatio.length > 1) {
-          this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex2][0];
-          translationsIndex = realIndex2;
+          this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex][0];
+          translationsIndex = realIndex;
         }
-        const initPositions = this.barHelpers.initialPositions(realIndex2);
+        const initPositions = this.barHelpers.initialPositions(realIndex);
         y = initPositions.y;
         barHeight = initPositions.barHeight;
         yDivision = initPositions.yDivision;
@@ -20328,19 +20923,19 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         xArrj.push(x + barWidth / 2);
         const elDataLabelsWrap = graphics.group({
           class: "apexcharts-datalabels",
-          "data:realIndex": realIndex2
+          "data:realIndex": realIndex
         });
         const elGoalsMarkers = graphics.group({
           class: "apexcharts-bar-goals-markers"
         });
-        for (let j2 = 0; j2 < w.globals.dataPoints; j2++) {
-          const strokeWidth = this.barHelpers.getStrokeWidth(i, j2, realIndex2);
+        for (let j = 0; j < w.globals.dataPoints; j++) {
+          const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
           let paths = null;
           const pathsParams = {
             indexes: {
               i,
-              j: j2,
-              realIndex: realIndex2,
+              j,
+              realIndex,
               translationsIndex
             },
             x,
@@ -20374,23 +20969,23 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           if (barGoalLine) {
             elGoalsMarkers.add(barGoalLine);
           }
-          if (j2 > 0) {
+          if (j > 0) {
             xArrj.push(x + barWidth / 2);
           }
           yArrj.push(y);
           paths.pathTo.forEach((pathTo, pi) => {
             const lineFill = !this.isBoxPlot && this.candlestickOptions.wick.useFillColor ? paths.color[pi] : w.globals.stroke.colors[i];
             const pathFill = fill.fillPath({
-              seriesNumber: realIndex2,
-              dataPointIndex: j2,
+              seriesNumber: realIndex,
+              dataPointIndex: j,
               color: paths.color[pi],
-              value: series[i][j2]
+              value: series[i][j]
             });
             this.renderSeries({
-              realIndex: realIndex2,
+              realIndex,
               pathFill,
               lineFill,
-              j: j2,
+              j,
               i,
               pathFrom: paths.pathFrom,
               pathTo,
@@ -20409,8 +21004,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             });
           });
         }
-        w.globals.seriesXvalues[realIndex2] = xArrj;
-        w.globals.seriesYvalues[realIndex2] = yArrj;
+        w.globals.seriesXvalues[realIndex] = xArrj;
+        w.globals.seriesYvalues[realIndex] = yArrj;
         ret.add(elSeries);
       }
       return ret;
@@ -20418,7 +21013,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     drawVerticalBoxPaths({
       indexes,
       x,
-      y,
       xDivision,
       barWidth,
       zeroH,
@@ -20427,15 +21021,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const w = this.w;
       const graphics = new Graphics(this.ctx);
       const i = indexes.i;
-      const j2 = indexes.j;
+      const j = indexes.j;
       const { colors: candleColors } = w.config.plotOptions.candlestick;
       const { colors: boxColors } = this.boxOptions;
-      const realIndex2 = indexes.realIndex;
-      const getColor = (color2) => Array.isArray(color2) ? color2[realIndex2] : color2;
+      const realIndex = indexes.realIndex;
+      const getColor = (color2) => Array.isArray(color2) ? color2[realIndex] : color2;
       const colorPos = getColor(candleColors.upward);
       const colorNeg = getColor(candleColors.downward);
       const yRatio = this.yRatio[indexes.translationsIndex];
-      const ohlc = this.getOHLCValue(realIndex2, j2);
+      const ohlc = this.getOHLCValue(realIndex, j);
       let l1 = zeroH;
       let l2 = zeroH;
       let color = ohlc.o < ohlc.c ? [colorPos] : [colorNeg];
@@ -20446,10 +21040,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let y2 = Math.max(ohlc.o, ohlc.c);
       let m = ohlc.m;
       if (w.globals.isXNumeric) {
-        x = (w.globals.seriesX[realIndex2][j2] - w.globals.minX) / this.xRatio - barWidth / 2;
+        x = (w.globals.seriesX[realIndex][j] - w.globals.minX) / this.xRatio - barWidth / 2;
       }
       const barXPosition = x + barWidth * this.visibleI;
-      if (typeof this.series[i][j2] === "undefined" || this.series[i][j2] === null) {
+      if (typeof this.series[i][j] === "undefined" || this.series[i][j] === null) {
         y1 = zeroH;
         y2 = zeroH;
       } else {
@@ -20462,7 +21056,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let pathTo;
       let pathFrom = graphics.move(barXPosition + barWidth / 2, y1);
       if (w.globals.previousPaths.length > 0) {
-        pathFrom = this.getPreviousPath(realIndex2, j2, true);
+        pathFrom = this.getPreviousPath(realIndex, j, true);
       }
       if (this.isOHLC) {
         const centerX = barXPosition + barWidth / 2;
@@ -20495,7 +21089,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           null,
           zeroH,
           i,
-          j2,
+          j,
           indexes.translationsIndex
         ),
         barXPosition,
@@ -20504,7 +21098,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     drawHorizontalBoxPaths({
       indexes,
-      x,
       y,
       yDivision,
       barHeight,
@@ -20514,13 +21107,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       const w = this.w;
       const graphics = new Graphics(this.ctx);
       const i = indexes.i;
-      const j2 = indexes.j;
-      const realIndex2 = indexes.realIndex;
+      const j = indexes.j;
+      const realIndex = indexes.realIndex;
       const { colors: candleColors } = w.config.plotOptions.candlestick;
       const { colors: boxColors } = this.boxOptions;
-      const getColor = (color2) => Array.isArray(color2) ? color2[realIndex2] : color2;
+      const getColor = (color2) => Array.isArray(color2) ? color2[realIndex] : color2;
       const yRatio = this.invertedYRatio;
-      const ohlc = this.getOHLCValue(realIndex2, j2);
+      const ohlc = this.getOHLCValue(realIndex, j);
       let color = ohlc.o < ohlc.c ? [getColor(candleColors.upward)] : [getColor(candleColors.downward)];
       if (this.isBoxPlot) {
         color = [getColor(boxColors.lower), getColor(boxColors.upper)];
@@ -20531,10 +21124,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let x2 = Math.max(ohlc.o, ohlc.c);
       let m = ohlc.m;
       if (w.globals.isXNumeric) {
-        y = (w.globals.seriesX[realIndex2][j2] - w.globals.minX) / this.invertedXRatio - barHeight / 2;
+        y = (w.globals.seriesX[realIndex][j] - w.globals.minX) / this.invertedXRatio - barHeight / 2;
       }
       const barYPosition = y + barHeight * this.visibleI;
-      if (typeof this.series[i][j2] === "undefined" || this.series[i][j2] === null) {
+      if (typeof this.series[i][j] === "undefined" || this.series[i][j] === null) {
         x1 = zeroW;
         x2 = zeroW;
       } else {
@@ -20547,7 +21140,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let pathTo;
       let pathFrom = graphics.move(x1, barYPosition + barHeight / 2);
       if (w.globals.previousPaths.length > 0) {
-        pathFrom = this.getPreviousPath(realIndex2, j2, true);
+        pathFrom = this.getPreviousPath(realIndex, j, true);
       }
       pathTo = [
         graphics.move(x1, barYPosition) + graphics.line(x1, barYPosition + barHeight / 2) + graphics.line(l1, barYPosition + barHeight / 2) + graphics.line(l1, barYPosition + barHeight / 2 - barHeight / 4) + graphics.line(l1, barYPosition + barHeight / 2 + barHeight / 4) + graphics.line(l1, barYPosition + barHeight / 2) + graphics.line(x1, barYPosition + barHeight / 2) + graphics.line(x1, barYPosition + barHeight) + graphics.line(m, barYPosition + barHeight) + graphics.line(m, barYPosition) + graphics.line(x1 + strokeWidth / 2, barYPosition),
@@ -20562,15 +21155,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         pathFrom,
         x: x2,
         y,
-        goalX: this.barHelpers.getGoalValues("x", zeroW, null, i, j2),
+        goalX: this.barHelpers.getGoalValues("x", zeroW, null, i, j),
         barYPosition,
         color
       };
     }
-    getOHLCValue(i, j2) {
+    getOHLCValue(i, j) {
       const w = this.w;
       const coreUtils = this.coreUtils;
-      const getCandleVal = (arr) => arr[i] && arr[i][j2] != null ? coreUtils.getLogValAtSeriesIndex(arr[i][j2], i) : 0;
+      const getCandleVal = (arr) => arr[i] && arr[i][j] != null ? coreUtils.getLogValAtSeriesIndex(arr[i][j], i) : 0;
       const h = getCandleVal(w.globals.seriesCandleH);
       const o = getCandleVal(w.globals.seriesCandleO);
       const m = getCandleVal(w.globals.seriesCandleM);
@@ -20595,7 +21188,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let negRange = false;
       let chartOpts = w.config.plotOptions[w.config.chart.type];
       if (chartOpts.colorScale.ranges.length > 0) {
-        chartOpts.colorScale.ranges.map((range, index) => {
+        chartOpts.colorScale.ranges.map((range) => {
           if (range.from <= 0) {
             negRange = true;
           }
@@ -20603,11 +21196,11 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       return negRange;
     }
-    getShadeColor(chartType, i, j2, negRange) {
+    getShadeColor(chartType, i, j, negRange) {
       const w = this.w;
       let colorShadePercent = 1;
       let shadeIntensity = w.config.plotOptions[chartType].shadeIntensity;
-      const colorProps = this.determineColor(chartType, i, j2);
+      const colorProps = this.determineColor(chartType, i, j);
       if (w.globals.hasNegs || negRange) {
         if (w.config.plotOptions[chartType].reverseNegativeShade) {
           if (colorProps.percent < 0) {
@@ -20650,13 +21243,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       return { color, colorProps };
     }
-    determineColor(chartType, i, j2) {
+    determineColor(chartType, i, j) {
       const w = this.w;
-      let val = w.globals.series[i][j2];
+      let val = w.globals.series[i][j];
       let chartOpts = w.config.plotOptions[chartType];
-      let seriesNumber = chartOpts.colorScale.inverse ? j2 : i;
+      let seriesNumber = chartOpts.colorScale.inverse ? j : i;
       if (chartOpts.distributed && w.config.chart.type === "treemap") {
-        seriesNumber = j2;
+        seriesNumber = j;
       }
       let color = w.globals.colors[seriesNumber];
       let foreColor = null;
@@ -20674,7 +21267,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let percent = 100 * val / (total === 0 ? total - 1e-6 : total);
       if (chartOpts.colorScale.ranges.length > 0) {
         const colorRange = chartOpts.colorScale.ranges;
-        colorRange.map((range, index) => {
+        colorRange.map((range) => {
           if (val >= range.from && val <= range.to) {
             color = range.color;
             foreColor = range.foreColor ? range.foreColor : null;
@@ -20691,7 +21284,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         percent
       };
     }
-    calculateDataLabels({ text, x, y, i, j: j2, colorProps, fontSize }) {
+    calculateDataLabels({ text, x, y, i, j, colorProps, fontSize }) {
       let w = this.w;
       let dataLabelsConfig = w.config.dataLabels;
       const graphics = new Graphics(this.ctx);
@@ -20710,7 +21303,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           y: dataLabelsY,
           text,
           i,
-          j: j2,
+          j,
           color: colorProps.foreColor,
           parent: elDataLabelsWrap,
           fontSize,
@@ -20764,19 +21357,19 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
         let x1 = 0;
         let shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity;
-        let j2 = 0;
+        let j = 0;
         for (let dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
           if (w.globals.seriesX.length && !w.globals.allSeriesHasEqualX) {
-            if (w.globals.minX + w.globals.minXDiff * dIndex < w.globals.seriesX[i][j2]) {
+            if (w.globals.minX + w.globals.minXDiff * dIndex < w.globals.seriesX[i][j]) {
               x1 = x1 + xDivision;
               continue;
             }
           }
-          if (j2 >= heatSeries[i].length) break;
+          if (j >= heatSeries[i].length) break;
           let heatColor = this.helpers.getShadeColor(
             w.config.chart.type,
             i,
-            j2,
+            j,
             this.negRange
           );
           let color = heatColor.color;
@@ -20785,7 +21378,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             const fill = new Fill(this.ctx);
             color = fill.fillPath({
               seriesNumber: i,
-              dataPointIndex: j2,
+              dataPointIndex: j,
               opacity: w.globals.hasNegs ? heatColorProps.percent < 0 ? 1 - (1 + heatColorProps.percent / 100) : shadeIntensity + heatColorProps.percent / 100 : heatColorProps.percent / 100,
               patternID: Utils$1.randomId(),
               width: w.config.fill.image.width ? w.config.fill.image.width : xDivision,
@@ -20804,8 +21397,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             fill: color,
             i,
             index: i,
-            j: j2,
-            val: series[i][j2],
+            j,
+            val: series[i][j],
             "stroke-width": this.strokeWidth,
             stroke: w.config.plotOptions.heatmap.useFillColorAsStroke ? color : w.globals.stroke.colors[0],
             color
@@ -20821,7 +21414,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             let speed = 1;
             if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
               speed = this.dynamicAnim.speed;
-              let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j2] && w.globals.previousPaths[i][j2].color;
+              let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color;
               if (!colorFrom) colorFrom = "rgba(255, 255, 255, 0)";
               this.animateHeatColor(
                 rect,
@@ -20832,10 +21425,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             }
           }
           let formatter = w.config.dataLabels.formatter;
-          let formattedText = formatter(w.globals.series[i][j2], {
-            value: w.globals.series[i][j2],
+          let formattedText = formatter(w.globals.series[i][j], {
+            value: w.globals.series[i][j],
             seriesIndex: i,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             w
           });
           let dataLabels = this.helpers.calculateDataLabels({
@@ -20843,7 +21436,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             x: x1 + xDivision / 2,
             y: y1 + yDivision / 2,
             i,
-            j: j2,
+            j,
             colorProps: heatColorProps,
             series: heatSeries
           });
@@ -20851,7 +21444,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             elSeries.add(dataLabels);
           }
           x1 = x1 + xDivision;
-          j2++;
+          j++;
         }
         y1 = y1 + yDivision;
         ret.add(elSeries);
@@ -20912,15 +21505,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       return series;
     }
-    calculatePoints({ series, realIndex: realIndex2, x, y, i, j: j2, prevY }) {
+    calculatePoints({ series, realIndex, x, y, i, j, prevY }) {
       let w = this.w;
       let ptX = [];
       let ptY = [];
       let xPT1st = this.lineCtx.categoryAxisCorrection + w.config.markers.offsetX;
       if (w.globals.isXNumeric) {
-        xPT1st = (w.globals.seriesX[realIndex2][0] - w.globals.minX) / this.lineCtx.xRatio + w.config.markers.offsetX;
+        xPT1st = (w.globals.seriesX[realIndex][0] - w.globals.minX) / this.lineCtx.xRatio + w.config.markers.offsetX;
       }
-      if (j2 === 0) {
+      if (j === 0) {
         ptX.push(xPT1st);
         ptY.push(
           Utils$1.isNumber(series[i][0]) ? prevY + w.config.markers.offsetY : null
@@ -20928,18 +21521,18 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       ptX.push(x + w.config.markers.offsetX);
       ptY.push(
-        Utils$1.isNumber(series[i][j2 + 1]) ? y + w.config.markers.offsetY : null
+        Utils$1.isNumber(series[i][j + 1]) ? y + w.config.markers.offsetY : null
       );
       return {
         x: ptX,
         y: ptY
       };
     }
-    checkPreviousPaths({ pathFromLine, pathFromArea, realIndex: realIndex2 }) {
+    checkPreviousPaths({ pathFromLine, pathFromArea, realIndex }) {
       let w = this.w;
       for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
         let gpp = w.globals.previousPaths[pp];
-        if ((gpp.type === "line" || gpp.type === "area") && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(realIndex2, 10)) {
+        if ((gpp.type === "line" || gpp.type === "area") && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)) {
           if (gpp.type === "line") {
             this.lineCtx.appendPathFrom = false;
             pathFromLine = w.globals.previousPaths[pp].paths[0].d;
@@ -20959,7 +21552,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     determineFirstPrevY({
       i,
-      realIndex: realIndex2,
+      realIndex,
       series,
       prevY,
       lineYPosition,
@@ -20967,7 +21560,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }) {
       var _a, _b, _c;
       let w = this.w;
-      let stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_a = this.w.config.series[realIndex2]) == null ? void 0 : _a.type) === "bar" || ((_b = this.w.config.series[realIndex2]) == null ? void 0 : _b.type) === "column");
+      let stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_a = this.w.config.series[realIndex]) == null ? void 0 : _a.type) === "bar" || ((_b = this.w.config.series[realIndex]) == null ? void 0 : _b.type) === "column");
       if (typeof ((_c = series[i]) == null ? void 0 : _c[0]) !== "undefined") {
         if (stackSeries) {
           if (i > 0) {
@@ -21139,9 +21732,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let allSeries = [];
       for (let i = 0; i < series.length; i++) {
         series = this.lineHelpers.sameValueSeriesFix(i, series);
-        let realIndex2 = w.globals.comboCharts ? seriesIndex[i] : i;
-        let translationsIndex = this.yRatio.length > 1 ? realIndex2 : 0;
-        this._initSerieVariables(series, i, realIndex2);
+        let realIndex = w.globals.comboCharts ? seriesIndex[i] : i;
+        let translationsIndex = this.yRatio.length > 1 ? realIndex : 0;
+        this._initSerieVariables(series, i, realIndex);
         let yArrj = [];
         let y2Arrj = [];
         let xArrj = [];
@@ -21149,9 +21742,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         let y = 1;
         let linePaths = [];
         let areaPaths = [];
-        this.ctx.series.addCollapsedClassToSeries(this.elSeries, realIndex2);
+        this.ctx.series.addCollapsedClassToSeries(this.elSeries, realIndex);
         if (w.globals.isXNumeric && w.globals.seriesX.length > 0) {
-          x = (w.globals.seriesX[realIndex2][0] - w.globals.minX) / this.xRatio;
+          x = (w.globals.seriesX[realIndex][0] - w.globals.minX) / this.xRatio;
         }
         xArrj.push(x);
         let pX = x;
@@ -21163,7 +21756,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         let lineYPosition = 0;
         let firstPrevY = this.lineHelpers.determineFirstPrevY({
           i,
-          realIndex: realIndex2,
+          realIndex,
           series,
           prevY,
           lineYPosition,
@@ -21180,7 +21773,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         if (type === "rangeArea") {
           firstPrevY2 = this.lineHelpers.determineFirstPrevY({
             i,
-            realIndex: realIndex2,
+            realIndex,
             series: seriesRangeEnd,
             prevY: prevY2,
             lineYPosition,
@@ -21194,7 +21787,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           type,
           series,
           i,
-          realIndex: realIndex2,
+          realIndex,
           translationsIndex,
           prevX,
           prevY,
@@ -21205,7 +21798,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         const iteratingOpts = {
           type,
           series,
-          realIndex: realIndex2,
+          realIndex,
           translationsIndex,
           i,
           x,
@@ -21230,7 +21823,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           let pathsFrom2 = this._calculatePathsFrom({
             series: seriesRangeEnd,
             i,
-            realIndex: realIndex2,
+            realIndex,
             prevX,
             prevY: prevY2
           });
@@ -21254,7 +21847,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         } else {
           paths.pathFromArea += "z";
         }
-        this._handlePaths({ type, realIndex: realIndex2, i, paths });
+        this._handlePaths({ type, realIndex, i, paths });
         this.elSeries.add(this.elPointsMain);
         this.elSeries.add(this.elDataLabelsWrap);
         allSeries.push(this.elSeries);
@@ -21275,15 +21868,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       return ret;
     }
-    _initSerieVariables(series, i, realIndex2) {
+    _initSerieVariables(series, i, realIndex) {
       const w = this.w;
       const graphics = new Graphics(this.ctx);
       this.xDivision = w.globals.gridWidth / (w.globals.dataPoints - (w.config.xaxis.tickPlacement === "on" ? 1 : 0));
-      this.strokeWidth = Array.isArray(w.config.stroke.width) ? w.config.stroke.width[realIndex2] : w.config.stroke.width;
+      this.strokeWidth = Array.isArray(w.config.stroke.width) ? w.config.stroke.width[realIndex] : w.config.stroke.width;
       let translationsIndex = 0;
       if (this.yRatio.length > 1) {
-        this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex2];
-        translationsIndex = realIndex2;
+        this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex];
+        translationsIndex = realIndex;
       }
       this.isReversed = w.config.yaxis[this.yaxisIndex] && w.config.yaxis[this.yaxisIndex].reversed;
       this.zeroY = w.globals.gridHeight - this.baseLineY[translationsIndex] - (this.isReversed ? w.globals.gridHeight : 0) + (this.isReversed ? this.baseLineY[translationsIndex] * 2 : 0);
@@ -21294,12 +21887,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       this.categoryAxisCorrection = this.xDivision / 2;
       this.elSeries = graphics.group({
         class: `apexcharts-series`,
-        zIndex: typeof w.config.series[realIndex2].zIndex !== "undefined" ? w.config.series[realIndex2].zIndex : realIndex2,
-        seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex2])
+        zIndex: typeof w.config.series[realIndex].zIndex !== "undefined" ? w.config.series[realIndex].zIndex : realIndex,
+        seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex])
       });
       this.elPointsMain = graphics.group({
         class: "apexcharts-series-markers-wrap",
-        "data:realIndex": realIndex2
+        "data:realIndex": realIndex
       });
       if (w.globals.hasNullValues) {
         const firstPoint = this.markers.plotChartMarkers({
@@ -21319,13 +21912,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       this.elDataLabelsWrap = graphics.group({
         class: "apexcharts-datalabels",
-        "data:realIndex": realIndex2
+        "data:realIndex": realIndex
       });
       let longestSeries = series[i].length === w.globals.dataPoints;
       this.elSeries.attr({
         "data:longestSeries": longestSeries,
         rel: i + 1,
-        "data:realIndex": realIndex2
+        "data:realIndex": realIndex
       });
       this.appendPathFrom = true;
     }
@@ -21333,7 +21926,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       type,
       series,
       i,
-      realIndex: realIndex2,
+      realIndex,
       translationsIndex,
       prevX,
       prevY,
@@ -21365,7 +21958,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         const pathFrom = this.lineHelpers.checkPreviousPaths({
           pathFromLine,
           pathFromArea,
-          realIndex: realIndex2
+          realIndex
         });
         pathFromLine = pathFrom.pathFromLine;
         pathFromArea = pathFrom.pathFromArea;
@@ -21379,16 +21972,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         pathFromArea
       };
     }
-    _handlePaths({ type, realIndex: realIndex2, i, paths }) {
+    _handlePaths({ type, realIndex, i, paths }) {
       const w = this.w;
       const graphics = new Graphics(this.ctx);
       const fill = new Fill(this.ctx);
       this.prevSeriesY.push(paths.yArrj);
-      w.globals.seriesXvalues[realIndex2] = paths.xArrj;
-      w.globals.seriesYvalues[realIndex2] = paths.yArrj;
+      w.globals.seriesXvalues[realIndex] = paths.xArrj;
+      w.globals.seriesYvalues[realIndex] = paths.yArrj;
       const forecast = w.config.forecastDataPoints;
       if (forecast.count > 0 && type !== "rangeArea") {
-        const forecastCutoff = w.globals.seriesXvalues[realIndex2][w.globals.seriesXvalues[realIndex2].length - forecast.count - 1];
+        const forecastCutoff = w.globals.seriesXvalues[realIndex][w.globals.seriesXvalues[realIndex].length - forecast.count - 1];
         const elForecastMask = graphics.drawRect(
           forecastCutoff,
           0,
@@ -21409,12 +22002,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       if (!this.pointsChart) {
         w.globals.delayedElements.push({
           el: this.elPointsMain.node,
-          index: realIndex2
+          index: realIndex
         });
       }
       const defaultRenderedPathOptions = {
         i,
-        realIndex: realIndex2,
+        realIndex,
         animationDelay: i,
         initialSpeed: w.config.chart.animations.speed,
         dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
@@ -21422,7 +22015,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       };
       if (type === "area") {
         let pathFill = fill.fillPath({
-          seriesNumber: realIndex2
+          seriesNumber: realIndex
         });
         for (let p = 0; p < paths.areaPaths.length; p++) {
           let renderedPath = graphics.renderPaths(__spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
@@ -21440,17 +22033,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         let lineFill = null;
         if (type === "line") {
           lineFill = fill.fillPath({
-            seriesNumber: realIndex2,
+            seriesNumber: realIndex,
             i
           });
         } else {
           if (w.config.stroke.fill.type === "solid") {
-            lineFill = w.globals.stroke.colors[realIndex2];
+            lineFill = w.globals.stroke.colors[realIndex];
           } else {
             const prevFill = w.config.fill;
             w.config.fill = w.config.stroke.fill;
             lineFill = fill.fillPath({
-              seriesNumber: realIndex2,
+              seriesNumber: realIndex,
               i
             });
             w.config.fill = prevFill;
@@ -21460,7 +22053,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           let pathFill = lineFill;
           if (type === "rangeArea") {
             pathFill = fill.fillPath({
-              seriesNumber: realIndex2
+              seriesNumber: realIndex
             });
           }
           const linePathCommonOpts = __spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
@@ -21503,7 +22096,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       type,
       series,
       iterations,
-      realIndex: realIndex2,
+      realIndex,
       translationsIndex,
       i,
       x,
@@ -21526,7 +22119,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let graphics = new Graphics(this.ctx);
       let yRatio = this.yRatio;
       let { prevY, linePath, areaPath, pathFromLine, pathFromArea } = pathsFrom;
-      const minY = Utils$1.isNumber(w.globals.minYArr[realIndex2]) ? w.globals.minYArr[realIndex2] : w.globals.minY;
+      const minY = Utils$1.isNumber(w.globals.minYArr[realIndex]) ? w.globals.minYArr[realIndex] : w.globals.minY;
       if (!iterations) {
         iterations = w.globals.dataPoints > 1 ? w.globals.dataPoints - 1 : w.globals.dataPoints;
       }
@@ -21534,7 +22127,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         return lineYPos - _y / yRatio[translationsIndex] + (this.isReversed ? _y / yRatio[translationsIndex] : 0) * 2;
       };
       let y2 = y;
-      let stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_a = this.w.config.series[realIndex2]) == null ? void 0 : _a.type) === "bar" || ((_b = this.w.config.series[realIndex2]) == null ? void 0 : _b.type) === "column");
+      let stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_a = this.w.config.series[realIndex]) == null ? void 0 : _a.type) === "bar" || ((_b = this.w.config.series[realIndex]) == null ? void 0 : _b.type) === "column");
       let curve = w.config.stroke.curve;
       if (Array.isArray(curve)) {
         if (Array.isArray(seriesIndex)) {
@@ -21545,13 +22138,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       }
       let pathState = 0;
       let segmentStartX;
-      for (let j2 = 0; j2 < iterations; j2++) {
+      for (let j = 0; j < iterations; j++) {
         if (series[i].length === 0) break;
-        const isNull = typeof series[i][j2 + 1] === "undefined" || series[i][j2 + 1] === null;
+        const isNull = typeof series[i][j + 1] === "undefined" || series[i][j + 1] === null;
         if (w.globals.isXNumeric) {
-          let sX = w.globals.seriesX[realIndex2][j2 + 1];
-          if (typeof w.globals.seriesX[realIndex2][j2 + 1] === "undefined") {
-            sX = w.globals.seriesX[realIndex2][iterations - 1];
+          let sX = w.globals.seriesX[realIndex][j + 1];
+          if (typeof w.globals.seriesX[realIndex][j + 1] === "undefined") {
+            sX = w.globals.seriesX[realIndex][iterations - 1];
           }
           x = (sX - w.globals.minX) / this.xRatio;
         } else {
@@ -21571,7 +22164,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               }
               return 0;
             };
-            lineYPosition = this.prevSeriesY[prevIndex(i - 1)][j2 + 1];
+            lineYPosition = this.prevSeriesY[prevIndex(i - 1)][j + 1];
           } else {
             lineYPosition = this.zeroY;
           }
@@ -21581,12 +22174,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         if (isNull) {
           y = getY(minY, lineYPosition);
         } else {
-          y = getY(series[i][j2 + 1], lineYPosition);
+          y = getY(series[i][j + 1], lineYPosition);
           if (type === "rangeArea") {
-            y2 = getY(seriesRangeEnd[i][j2 + 1], lineYPosition);
+            y2 = getY(seriesRangeEnd[i][j + 1], lineYPosition);
           }
         }
-        xArrj.push(series[i][j2 + 1] === null ? null : x);
+        xArrj.push(series[i][j + 1] === null ? null : x);
         if (isNull && (w.config.stroke.curve === "smooth" || w.config.stroke.curve === "monotoneCubic")) {
           yArrj.push(null);
           y2Arrj.push(null);
@@ -21598,17 +22191,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           series,
           x,
           y,
-          realIndex: realIndex2,
+          realIndex,
           i,
-          j: j2,
+          j,
           prevY
         });
         let calculatedPaths = this._createPaths({
           type,
           series,
           i,
-          realIndex: realIndex2,
-          j: j2,
+          j,
           x,
           y,
           y2,
@@ -21638,13 +22230,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           pathFromLine += graphics.line(x, this.areaBottomY);
           pathFromArea += graphics.line(x, this.areaBottomY);
         }
-        this.handleNullDataPoints(series, pointsPos, i, j2, realIndex2);
+        this.handleNullDataPoints(series, pointsPos, i, j, realIndex);
         this._handleMarkersAndLabels({
           type,
           pointsPos,
           i,
-          j: j2,
-          realIndex: realIndex2,
+          j,
+          realIndex,
           isRangeStart
         });
       }
@@ -21659,7 +22251,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         areaPath
       };
     }
-    _handleMarkersAndLabels({ type, pointsPos, isRangeStart, i, j: j2, realIndex: realIndex2 }) {
+    _handleMarkersAndLabels({ type, pointsPos, isRangeStart, i, j, realIndex }) {
       const w = this.w;
       let dataLabels = new DataLabels(this.ctx);
       if (!this.pointsChart) {
@@ -21668,15 +22260,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         }
         let elPointsWrap = this.markers.plotChartMarkers({
           pointsPos,
-          seriesIndex: realIndex2,
-          j: j2 + 1
+          seriesIndex: realIndex,
+          j: j + 1
         });
         if (elPointsWrap !== null) {
           this.elPointsMain.add(elPointsWrap);
         }
       } else {
-        this.scatter.draw(this.elSeries, j2, {
-          realIndex: realIndex2,
+        this.scatter.draw(this.elSeries, j, {
+          realIndex,
           pointsPos,
           zRatio: this.zRatio,
           elParent: this.elPointsMain
@@ -21686,8 +22278,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         type,
         isRangeStart,
         pos: pointsPos,
-        i: realIndex2,
-        j: j2 + 1
+        i: realIndex,
+        j: j + 1
       });
       if (drawnLabels !== null) {
         this.elDataLabelsWrap.add(drawnLabels);
@@ -21697,8 +22289,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       type,
       series,
       i,
-      realIndex: realIndex2,
-      j: j2,
+      j,
       x,
       y,
       xArrj,
@@ -21721,7 +22312,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let rangeArea = type === "rangeArea";
       let isLowerRangeAreaPath = type === "rangeArea" && isRangeStart;
       switch (curve) {
-        case "monotoneCubic":
+        case "monotoneCubic": {
           let yAj = isRangeStart ? yArrj : y2Arrj;
           let getSmoothInputs = (xArr, yArr) => {
             return xArr.map((_, i2) => {
@@ -21754,17 +22345,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           };
           switch (pathState) {
             case 0:
-              if (yAj[j2 + 1] === null) {
+              if (yAj[j + 1] === null) {
                 break;
               }
               pathState = 1;
-            // continue through to pathState 1
+            // falls through
             case 1:
-              if (!(rangeArea ? xArrj.length === series[i].length : j2 === series[i].length - 2)) {
+              if (!(rangeArea ? xArrj.length === series[i].length : j === series[i].length - 2)) {
                 break;
               }
-            // continue through to pathState 2
-            case 2:
+            // falls through
+            case 2: {
               const _xAj = isRangeStart ? xArrj : xArrj.slice().reverse();
               const _yAj = isRangeStart ? yAj : yAj.slice().reverse();
               const smoothInputs = getSmoothInputs(_xAj, _yAj);
@@ -21818,37 +22409,39 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               }
               pathState = 0;
               break;
+            }
           }
           break;
-        case "smooth":
+        }
+        case "smooth": {
           let length = (x - pX) * 0.35;
-          if (series[i][j2] === null) {
+          if (series[i][j] === null) {
             pathState = 0;
           } else {
             switch (pathState) {
               case 0:
                 segmentStartX = pX;
                 if (isLowerRangeAreaPath) {
-                  linePath = graphics.move(pX, y2Arrj[j2]) + graphics.line(pX, pY);
+                  linePath = graphics.move(pX, y2Arrj[j]) + graphics.line(pX, pY);
                 } else {
                   linePath = graphics.move(pX, pY);
                 }
                 areaPath = graphics.move(pX, pY);
-                if (series[i][j2 + 1] === null || typeof series[i][j2 + 1] === "undefined") {
+                if (series[i][j + 1] === null || typeof series[i][j + 1] === "undefined") {
                   linePaths.push(linePath);
                   areaPaths.push(areaPath);
                   break;
                 }
                 pathState = 1;
-                if (j2 < series[i].length - 2) {
+                if (j < series[i].length - 2) {
                   let p = graphics.curve(pX + length, pY, x - length, y, x, y);
                   linePath += p;
                   areaPath += p;
                   break;
                 }
-              // Continue on with pathState 1 to finish the path and exit
+              // falls through
               case 1:
-                if (series[i][j2 + 1] === null) {
+                if (series[i][j + 1] === null) {
                   if (isLowerRangeAreaPath) {
                     linePath += graphics.line(pX, y2);
                   } else {
@@ -21862,7 +22455,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
                   let p = graphics.curve(pX + length, pY, x - length, y, x, y);
                   linePath += p;
                   areaPath += p;
-                  if (j2 >= series[i].length - 2) {
+                  if (j >= series[i].length - 2) {
                     if (isLowerRangeAreaPath) {
                       linePath += graphics.curve(x, y, x, y, x, y2) + graphics.move(x, y2);
                     }
@@ -21878,7 +22471,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           pX = x;
           pY = y;
           break;
-        default:
+        }
+        default: {
           let pathToPoint = (curve2, x2, y3) => {
             let path = [];
             switch (curve2) {
@@ -21894,33 +22488,33 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             }
             return path;
           };
-          if (series[i][j2] === null) {
+          if (series[i][j] === null) {
             pathState = 0;
           } else {
             switch (pathState) {
               case 0:
                 segmentStartX = pX;
                 if (isLowerRangeAreaPath) {
-                  linePath = graphics.move(pX, y2Arrj[j2]) + graphics.line(pX, pY);
+                  linePath = graphics.move(pX, y2Arrj[j]) + graphics.line(pX, pY);
                 } else {
                   linePath = graphics.move(pX, pY);
                 }
                 areaPath = graphics.move(pX, pY);
-                if (series[i][j2 + 1] === null || typeof series[i][j2 + 1] === "undefined") {
+                if (series[i][j + 1] === null || typeof series[i][j + 1] === "undefined") {
                   linePaths.push(linePath);
                   areaPaths.push(areaPath);
                   break;
                 }
                 pathState = 1;
-                if (j2 < series[i].length - 2) {
+                if (j < series[i].length - 2) {
                   let p = pathToPoint(curve, x, y);
                   linePath += p;
                   areaPath += p;
                   break;
                 }
-              // Continue on with pathState 1 to finish the path and exit
+              // falls through
               case 1:
-                if (series[i][j2 + 1] === null) {
+                if (series[i][j + 1] === null) {
                   if (isLowerRangeAreaPath) {
                     linePath += graphics.line(pX, y2);
                   } else {
@@ -21934,7 +22528,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
                   let p = pathToPoint(curve, x, y);
                   linePath += p;
                   areaPath += p;
-                  if (j2 >= series[i].length - 2) {
+                  if (j >= series[i].length - 2) {
                     if (isLowerRangeAreaPath) {
                       linePath += graphics.line(x, y2);
                     }
@@ -21950,6 +22544,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           pX = x;
           pY = y;
           break;
+        }
       }
       return {
         linePaths,
@@ -21962,17 +22557,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         areaPath
       };
     }
-    handleNullDataPoints(series, pointsPos, i, j2, realIndex2) {
+    handleNullDataPoints(series, pointsPos, i, j, realIndex) {
       const w = this.w;
-      if (series[i][j2] === null && w.config.markers.showNullDataPoints || series[i].length === 1) {
+      if (series[i][j] === null && w.config.markers.showNullDataPoints || series[i].length === 1) {
         let pSize = this.strokeWidth - w.config.markers.strokeWidth / 2;
         if (!(pSize > 0)) {
           pSize = 0;
         }
         let elPointsWrap = this.markers.plotChartMarkers({
           pointsPos,
-          seriesIndex: realIndex2,
-          j: j2 + 1,
+          seriesIndex: realIndex,
+          j: j + 1,
           pSize,
           alwaysDrawMarker: true
         });
@@ -22809,15 +23404,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         this.dataRadiusOfPercent[i] = [];
         this.dataRadius[i] = [];
         this.angleArr[i] = [];
-        s.forEach((dv, j2) => {
+        s.forEach((dv, j) => {
           const range = Math.abs(this.maxValue - this.minValue);
           dv = dv - this.minValue;
           if (this.isLog) {
             dv = this.coreUtils.getLogVal(this.logBase, dv, 0);
           }
-          this.dataRadiusOfPercent[i][j2] = dv / range;
-          this.dataRadius[i][j2] = this.dataRadiusOfPercent[i][j2] * this.size;
-          this.angleArr[i][j2] = j2 * this.disAngle;
+          this.dataRadiusOfPercent[i][j] = dv / range;
+          this.dataRadius[i][j] = this.dataRadiusOfPercent[i][j] * this.size;
+          this.angleArr[i][j] = j * this.disAngle;
         });
         dataPointsPos = this.getDataPointsPos(
           this.dataRadius[i],
@@ -22884,20 +23479,20 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           }
           elSeries.add(renderedAreaPath);
         }
-        s.forEach((sj, j2) => {
+        s.forEach((sj, j) => {
           let markers = new Markers(this.ctx);
           let opts = markers.getMarkerConfig({
             cssClass: "apexcharts-marker",
             seriesIndex: i,
-            dataPointIndex: j2
+            dataPointIndex: j
           });
           let point = this.graphics.drawMarker(
-            dataPointsPos[j2].x,
-            dataPointsPos[j2].y,
+            dataPointsPos[j].x,
+            dataPointsPos[j].y,
             opts
           );
-          point.attr("rel", j2);
-          point.attr("j", j2);
+          point.attr("rel", j);
+          point.attr("j", j);
           point.attr("index", i);
           point.node.setAttribute("default-marker-size", opts.pSize);
           let elPointsWrap = this.graphics.group({
@@ -22910,14 +23505,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           elSeries.add(elPointsMain);
           const dataLabelsConfig = w.config.dataLabels;
           if (dataLabelsConfig.enabled) {
-            let text = dataLabelsConfig.formatter(w.globals.series[i][j2], {
+            let text = dataLabelsConfig.formatter(w.globals.series[i][j], {
               seriesIndex: i,
-              dataPointIndex: j2,
+              dataPointIndex: j,
               w
             });
             dataLabels.plotDataLabelsText({
-              x: dataPointsPos[j2].x,
-              y: dataPointsPos[j2].y,
+              x: dataPointsPos[j].x,
+              y: dataPointsPos[j].y,
               text,
               textAnchor: "middle",
               i,
@@ -23105,12 +23700,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         newY
       };
     }
-    getPreviousPath(realIndex2) {
+    getPreviousPath(realIndex) {
       let w = this.w;
       let pathFrom = null;
       for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
         let gpp = w.globals.previousPaths[pp];
-        if (gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(realIndex2, 10)) {
+        if (gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)) {
           if (typeof w.globals.previousPaths[pp].paths[0] !== "undefined") {
             pathFrom = w.globals.previousPaths[pp].paths[0].d;
           }
@@ -23122,10 +23717,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       dataRadiusArr = dataRadiusArr || [];
       angleArr = angleArr || [];
       let dataPointsPosArray = [];
-      for (let j2 = 0; j2 < dataPointsLen; j2++) {
+      for (let j = 0; j < dataPointsLen; j++) {
         let curPointPos = {};
-        curPointPos.x = dataRadiusArr[j2] * Math.sin(angleArr[j2]);
-        curPointPos.y = -dataRadiusArr[j2] * Math.cos(angleArr[j2]);
+        curPointPos.x = dataRadiusArr[j] * Math.sin(angleArr[j]);
+        curPointPos.y = -dataRadiusArr[j] * Math.cos(angleArr[j]);
         dataPointsPosArray.push(curPointPos);
       }
       return dataPointsPosArray;
@@ -23497,7 +24092,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           });
           g.add(image);
         } else {
-          let image = w.globals.dom.Paper.image(hollowFillImg, function(loader) {
+          let image = w.globals.dom.Paper.image(hollowFillImg, function() {
             this.move(
               opts.centerX - imgWidth / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetX,
               opts.centerY - imgHeight / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetY
@@ -23536,15 +24131,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       });
       for (let i = 0; i < series.length; i++) {
         let x, y, xDivision, yDivision, zeroH, zeroW;
-        let realIndex2 = w.globals.comboCharts ? seriesIndex[i] : i;
-        let { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex2);
+        let realIndex = w.globals.comboCharts ? seriesIndex[i] : i;
+        let { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex);
         let elSeries = graphics.group({
           class: `apexcharts-series`,
-          seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex2]),
+          seriesName: Utils$1.escapeString(w.globals.seriesNames[realIndex]),
           rel: i + 1,
-          "data:realIndex": realIndex2
+          "data:realIndex": realIndex
         });
-        this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex2);
+        this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex);
         if (series[i].length > 0) {
           this.visibleI = this.visibleI + 1;
         }
@@ -23552,10 +24147,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         let barWidth = 0;
         let translationsIndex = 0;
         if (this.yRatio.length > 1) {
-          this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex2][0];
-          translationsIndex = realIndex2;
+          this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex][0];
+          translationsIndex = realIndex;
         }
-        let initPositions = this.barHelpers.initialPositions(realIndex2);
+        let initPositions = this.barHelpers.initialPositions(realIndex);
         y = initPositions.y;
         zeroW = initPositions.zeroW;
         x = initPositions.x;
@@ -23566,15 +24161,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         zeroH = initPositions.zeroH;
         let elDataLabelsWrap = graphics.group({
           class: "apexcharts-datalabels",
-          "data:realIndex": realIndex2
+          "data:realIndex": realIndex
         });
         let elGoalsMarkers = graphics.group({
           class: "apexcharts-rangebar-goals-markers"
         });
-        for (let j2 = 0; j2 < w.globals.dataPoints; j2++) {
-          const strokeWidth = this.barHelpers.getStrokeWidth(i, j2, realIndex2);
-          const y1 = this.seriesRangeStart[i][j2];
-          const y2 = this.seriesRangeEnd[i][j2];
+        for (let j = 0; j < w.globals.dataPoints; j++) {
+          const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
+          const y1 = this.seriesRangeStart[i][j];
+          const y2 = this.seriesRangeEnd[i][j];
           let paths = null;
           let barXPosition = null;
           let barYPosition = null;
@@ -23583,16 +24178,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           if (w.config.plotOptions.bar.rangeBarGroupRows) {
             seriesLen = 1;
           }
-          if (typeof w.config.series[i].data[j2] === "undefined") {
+          if (typeof w.config.series[i].data[j] === "undefined") {
             break;
           }
           if (this.isHorizontal) {
             barYPosition = y + barHeight * this.visibleI;
             let srty = (yDivision - barHeight * seriesLen) / 2;
-            if (w.config.series[i].data[j2].x) {
+            if (w.config.series[i].data[j].x) {
               let positions = this.detectOverlappingBars({
                 i,
-                j: j2,
+                j,
                 barYPosition,
                 srty,
                 barHeight,
@@ -23603,7 +24198,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               barYPosition = positions.barYPosition;
             }
             paths = this.drawRangeBarPaths(__spreadValues({
-              indexes: { i, j: j2, realIndex: realIndex2 },
+              indexes: { i, j, realIndex },
               barHeight,
               barYPosition,
               zeroW,
@@ -23614,14 +24209,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             barWidth = paths.barWidth;
           } else {
             if (w.globals.isXNumeric) {
-              x = (w.globals.seriesX[i][j2] - w.globals.minX) / this.xRatio - barWidth / 2;
+              x = (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2;
             }
             barXPosition = x + barWidth * this.visibleI;
             let srtx = (xDivision - barWidth * seriesLen) / 2;
-            if (w.config.series[i].data[j2].x) {
+            if (w.config.series[i].data[j].x) {
               let positions = this.detectOverlappingBars({
                 i,
-                j: j2,
+                j,
                 barXPosition,
                 srtx,
                 barWidth,
@@ -23632,7 +24227,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               barXPosition = positions.barXPosition;
             }
             paths = this.drawRangeColumnPaths(__spreadValues({
-              indexes: { i, j: j2, realIndex: realIndex2, translationsIndex },
+              indexes: { i, j, realIndex, translationsIndex },
               barWidth,
               barXPosition,
               zeroH,
@@ -23653,12 +24248,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           }
           y = paths.y;
           x = paths.x;
-          let pathFill = this.barHelpers.getPathFillColor(series, i, j2, realIndex2);
+          let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
           this.renderSeries({
-            realIndex: realIndex2,
+            realIndex,
             pathFill: pathFill.color,
-            lineFill: pathFill.useRangeColor ? pathFill.color : w.globals.stroke.colors[realIndex2],
-            j: j2,
+            lineFill: pathFill.useRangeColor ? pathFill.color : w.globals.stroke.colors[realIndex],
+            j,
             i,
             x,
             y,
@@ -23686,7 +24281,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }
     detectOverlappingBars({
       i,
-      j: j2,
+      j,
       barYPosition,
       barXPosition,
       srty,
@@ -23699,8 +24294,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     }) {
       const w = this.w;
       let overlaps = [];
-      let rangeName = w.config.series[i].data[j2].rangeName;
-      const x = w.config.series[i].data[j2].x;
+      let rangeName = w.config.series[i].data[j].rangeName;
+      const x = w.config.series[i].data[j].x;
       const labelX = Array.isArray(x) ? x.join(" ") : x;
       const rowIndex = w.globals.labels.map((_) => Array.isArray(_) ? _.join(" ") : _).indexOf(labelX);
       const overlappedIndex = w.globals.seriesRange[i].findIndex(
@@ -23751,12 +24346,12 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       zeroH
     }) {
       let w = this.w;
-      const { i, j: j2, realIndex: realIndex2, translationsIndex } = indexes;
+      const { i, j, realIndex, translationsIndex } = indexes;
       const yRatio = this.yRatio[translationsIndex];
-      const range = this.getRangeValue(realIndex2, j2);
+      const range = this.getRangeValue(realIndex, j);
       let y1 = Math.min(range.start, range.end);
       let y2 = Math.max(range.start, range.end);
-      if (typeof this.series[i][j2] === "undefined" || this.series[i][j2] === null) {
+      if (typeof this.series[i][j] === "undefined" || this.series[i][j] === null) {
         y1 = zeroH;
       } else {
         y1 = zeroH - y1 / yRatio;
@@ -23770,9 +24365,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         y2,
         strokeWidth: this.strokeWidth,
         series: this.seriesRangeEnd,
-        realIndex: realIndex2,
-        i: realIndex2,
-        j: j2,
+        realIndex,
+        i: realIndex,
+        j,
         w
       });
       if (!w.globals.isXNumeric) {
@@ -23780,8 +24375,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       } else {
         const xForNumericXAxis = this.getBarXForNumericXAxis({
           x,
-          j: j2,
-          realIndex: realIndex2,
+          j,
+          realIndex,
           barWidth
         });
         x = xForNumericXAxis.x;
@@ -23798,7 +24393,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           null,
           zeroH,
           i,
-          j2,
+          j,
           translationsIndex
         ),
         barXPosition
@@ -23825,10 +24420,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       zeroW
     }) {
       let w = this.w;
-      const { realIndex: realIndex2, j: j2 } = indexes;
+      const { realIndex, j } = indexes;
       let x1 = this.preventBarOverflow(zeroW + y1 / this.invertedYRatio);
       let x2 = this.preventBarOverflow(zeroW + y2 / this.invertedYRatio);
-      const range = this.getRangeValue(realIndex2, j2);
+      const range = this.getRangeValue(realIndex, j);
       const barWidth = Math.abs(x2 - x1);
       const paths = this.barHelpers.getBarpaths({
         barYPosition,
@@ -23837,9 +24432,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         x2,
         strokeWidth: this.strokeWidth,
         series: this.seriesRangeEnd,
-        i: realIndex2,
-        realIndex: realIndex2,
-        j: j2,
+        i: realIndex,
+        realIndex,
+        j,
         w
       });
       if (!w.globals.isXNumeric) {
@@ -23850,15 +24445,15 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         pathFrom: paths.pathFrom,
         barWidth,
         x: range.start < 0 && range.end < 0 ? x1 : x2,
-        goalX: this.barHelpers.getGoalValues("x", zeroW, null, realIndex2, j2),
+        goalX: this.barHelpers.getGoalValues("x", zeroW, null, realIndex, j),
         y
       };
     }
-    getRangeValue(i, j2) {
+    getRangeValue(i, j) {
       const w = this.w;
       return {
-        start: w.globals.seriesRangeStart[i][j2],
-        end: w.globals.seriesRangeEnd[i][j2]
+        start: w.globals.seriesRangeStart[i][j],
+        end: w.globals.seriesRangeEnd[i][j]
       };
     }
   }
@@ -23960,8 +24555,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     for (let i = 0; i < n; i++) {
       let s = 0;
       const series = data[i];
-      for (let j2 = 0; j2 < series.length; j2++) {
-        s += series[j2];
+      for (let j = 0; j < series.length; j++) {
+        s += series[j];
       }
       sums[i] = s;
     }
@@ -23991,7 +24586,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   const TreemapSquared = { generate };
   class TreemapChart {
-    constructor(ctx, xyRatios) {
+    constructor(ctx) {
       this.ctx = ctx;
       this.w = ctx.w;
       this.strokeWidth = this.w.config.stroke.width;
@@ -24048,7 +24643,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           xMax: -Infinity,
           yMax: -Infinity
         };
-        node.forEach((r, j2) => {
+        node.forEach((r, j) => {
           const x1 = r[0];
           const y1 = r[1];
           const x2 = r[2];
@@ -24060,14 +24655,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           let colorProps = this.helpers.getShadeColor(
             w.config.chart.type,
             i,
-            j2,
+            j,
             this.negRange
           );
           let color = colorProps.color;
           let pathFill = fill.fillPath({
             color,
             seriesNumber: i,
-            dataPointIndex: j2
+            dataPointIndex: j
           });
           let elRect = graphics.drawRect(
             x1,
@@ -24085,7 +24680,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             cy: y1,
             index: i,
             i,
-            j: j2,
+            j,
             width: x2 - x1,
             height: y2 - y1,
             fill: pathFill
@@ -24114,17 +24709,17 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             let speed = 1;
             if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
               speed = this.dynamicAnim.speed;
-              if (w.globals.previousPaths[i] && w.globals.previousPaths[i][j2] && w.globals.previousPaths[i][j2].rect) {
-                fromRect = w.globals.previousPaths[i][j2].rect;
+              if (w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].rect) {
+                fromRect = w.globals.previousPaths[i][j].rect;
               }
               this.animateTreemap(elRect, fromRect, toRect, speed);
             }
           }
           let fontSize = this.getFontSize(r);
-          let formattedText = w.config.dataLabels.formatter(this.labels[i][j2], {
-            value: w.globals.series[i][j2],
+          let formattedText = w.config.dataLabels.formatter(this.labels[i][j], {
+            value: w.globals.series[i][j],
             seriesIndex: i,
-            dataPointIndex: j2,
+            dataPointIndex: j,
             w
           });
           if (w.config.plotOptions.treemap.dataLabels.format === "truncate") {
@@ -24139,13 +24734,13 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             );
           }
           let dataLabels = null;
-          if (w.globals.series[i][j2]) {
+          if (w.globals.series[i][j]) {
             dataLabels = this.helpers.calculateDataLabels({
               text: formattedText,
               x: (x1 + x2) / 2,
               y: (y1 + y2) / 2 + this.strokeWidth / 2 + fontSize / 3,
               i,
-              j: j2,
+              j,
               colorProps,
               fontSize,
               series
@@ -24343,13 +24938,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       gl.isBarHorizontal = ["bar", "rangeBar", "boxPlot"].includes(ct) && cnf.plotOptions.bar.horizontal;
       gl.chartClass = `.apexcharts${gl.chartID}`;
       gl.dom.baseEl = this.el;
-      gl.dom.elWrap = document.createElement("div");
+      gl.dom.elWrap = BrowserAPIs.createElementNS("http://www.w3.org/1999/xhtml", "div");
       Graphics.setAttrs(gl.dom.elWrap, {
         id: gl.chartClass.substring(1),
         class: `apexcharts-canvas ${gl.chartClass.substring(1)}`
       });
       this.el.appendChild(gl.dom.elWrap);
-      gl.dom.Paper = window.SVG().addTo(gl.dom.elWrap);
+      const SVG2 = Environment.isBrowser() ? window.SVG : global.SVG;
+      gl.dom.Paper = SVG2().addTo(gl.dom.elWrap);
       gl.dom.Paper.attr({
         class: "apexcharts-svg",
         "xmlns:data": "ApexChartsNS",
@@ -24357,6 +24953,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       });
       gl.dom.Paper.node.style.background = cnf.theme.mode === "dark" && !cnf.chart.background ? "#343A3F" : cnf.theme.mode === "light" && !cnf.chart.background ? "#fff" : cnf.chart.background;
       this.setSVGDimensions();
+      if (cnf.chart.accessibility.enabled) {
+        const ariaLabel = this.getAccessibleChartLabel();
+        gl.dom.Paper.attr({
+          role: "img",
+          "aria-label": ariaLabel
+        });
+        const titleEl = document.createElementNS(gl.SVGNS, "title");
+        titleEl.textContent = cnf.title.text || "Chart";
+        gl.dom.Paper.node.insertBefore(titleEl, gl.dom.Paper.node.firstChild);
+        if (cnf.chart.accessibility.description) {
+          const descEl = document.createElementNS(gl.SVGNS, "desc");
+          descEl.textContent = cnf.chart.accessibility.description;
+          gl.dom.Paper.node.insertBefore(descEl, titleEl.nextSibling);
+        }
+      }
       gl.dom.elLegendForeign = document.createElementNS(gl.SVGNS, "foreignObject");
       Graphics.setAttrs(gl.dom.elLegendForeign, {
         x: 0,
@@ -24547,14 +25158,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               elGraph = ctx.bar.draw(gl.series);
             }
             break;
-          case "candlestick":
+          case "candlestick": {
             const candleStick = new BoxCandleStick(ctx, xyRatios);
             elGraph = candleStick.draw(gl.series, "candlestick");
             break;
-          case "boxPlot":
+          }
+          case "boxPlot": {
             const boxPlot = new BoxCandleStick(ctx, xyRatios);
             elGraph = boxPlot.draw(gl.series, cnf.chart.type);
             break;
+          }
           case "rangeBar":
             elGraph = ctx.rangeBar.draw(gl.series);
             break;
@@ -24566,14 +25179,16 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
               gl.seriesRangeEnd
             );
             break;
-          case "heatmap":
+          case "heatmap": {
             const heatmap = new HeatMap(ctx, xyRatios);
             elGraph = heatmap.draw(gl.series);
             break;
-          case "treemap":
-            const treemap = new TreemapChart(ctx, xyRatios);
+          }
+          case "treemap": {
+            const treemap = new TreemapChart(ctx);
             elGraph = treemap.draw(gl.series);
             break;
+          }
           case "pie":
           case "donut":
           case "polarArea":
@@ -24778,6 +25393,25 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           });
         };
       }
+    }
+    getAccessibleChartLabel() {
+      const w = this.w;
+      const cnf = w.config;
+      let label = "";
+      if (cnf.chart.accessibility && cnf.chart.accessibility.description) {
+        label = cnf.chart.accessibility.description;
+      } else if (cnf.title.text) {
+        const chartType = cnf.chart.type;
+        label = `${cnf.title.text}. ${chartType} chart`;
+        if (cnf.subtitle.text) {
+          label += `. ${cnf.subtitle.text}`;
+        }
+      } else {
+        const chartType = cnf.chart.type;
+        const seriesCount = w.globals.series.length || (cnf.series ? cnf.series.length : 0);
+        label = `${chartType} chart with ${seriesCount} data series`;
+      }
+      return label;
     }
   }
   class PerformanceCache {
@@ -25082,11 +25716,19 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       });
     }
   }
-  if (typeof window.SVG === "undefined") {
-    window.SVG = SVG;
-  }
-  if (typeof window.Apex === "undefined") {
-    window.Apex = {};
+  if (Environment.isBrowser()) {
+    if (typeof window.SVG === "undefined") {
+      window.SVG = SVG;
+    }
+    if (typeof window.Apex === "undefined") {
+      window.Apex = {};
+    }
+  } else {
+    if (typeof global !== "undefined") {
+      if (typeof global.Apex === "undefined") {
+        global.Apex = {};
+      }
+    }
   }
   class InitCtxVariables {
     constructor(ctx) {
@@ -25127,7 +25769,9 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         "touchmove",
         "touchleave",
         "mouseup",
-        "touchend"
+        "touchend",
+        "keydown",
+        "keyup"
       ];
       this.ctx.animations = new Animations(this.ctx);
       this.ctx.axes = new Axes(this.ctx);
@@ -25238,6 +25882,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   }
   let ros = /* @__PURE__ */ new WeakMap();
   function addResizeListener(el, fn) {
+    if (Environment.isSSR()) return;
     let called = false;
     if (el.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) {
       const elRect = el.getBoundingClientRect();
@@ -25259,13 +25904,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
     ros.set(fn, ro);
   }
   function removeResizeListener(el, fn) {
+    if (Environment.isSSR()) return;
     let ro = ros.get(fn);
     if (ro) {
       ro.disconnect();
       ros.delete(fn);
     }
   }
-  const apexCSS = '@keyframes opaque {\n  0% {\n    opacity: 0\n  }\n\n  to {\n    opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n\n  0%,\n  to {\n    opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  direction: ltr !important;\n  user-select: none\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0, 0, 0, .5);\n  box-shadow: 0 0 1px rgba(255, 255, 255, .5);\n  -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\nrect.legend-mouseover-inactive,\n.legend-mouseover-inactive rect,\n.legend-mouseover-inactive path,\n.legend-mouseover-inactive circle,\n.legend-mouseover-inactive line,\n.legend-mouseover-inactive text.apexcharts-yaxis-title-text,\n.legend-mouseover-inactive text.apexcharts-yaxis-label {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n.apexcharts-tooltip {\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px #999;\n  cursor: default;\n  font-size: 14px;\n  left: 62px;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  top: 20px;\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  white-space: nowrap;\n  z-index: 12;\n  transition: .15s ease all\n}\n\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  border: 1px solid #e3e3e3;\n  background: rgba(255, 255, 255, .96)\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  color: #fff;\n  background: rgba(30, 30, 30, .8)\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n.apexcharts-tooltip-title {\n  padding: 6px;\n  font-size: 15px;\n  margin-bottom: 4px\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title {\n  background: #eceff1;\n  border-bottom: 1px solid #ddd\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, .7);\n  border-bottom: 1px solid #333\n}\n\n.apexcharts-tooltip-text-goals-value,\n.apexcharts-tooltip-text-y-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,\n.apexcharts-tooltip-text-goals-value:empty,\n.apexcharts-tooltip-text-y-label:empty,\n.apexcharts-tooltip-text-y-value:empty,\n.apexcharts-tooltip-text-z-value:empty,\n.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),\n.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  display: inline-block;\n  position: relative;\n  width: 16px;\n  height: 16px;\n  font-size: 16px;\n  line-height: 16px;\n  margin-right: 4px;\n  text-align: center;\n  vertical-align: middle;\n  color: inherit;\n}\n\n.apexcharts-tooltip-marker::before {\n  content: "";\n  display: inline-block;\n  width: 100%;\n  text-align: center;\n  color: currentcolor;\n  text-rendering: optimizeLegibility;\n  -webkit-font-smoothing: antialiased;\n  font-size: 26px;\n  font-family: Arial, Helvetica, sans-serif;\n  line-height: 14px;\n  font-weight: 900;\n}\n\n.apexcharts-tooltip-marker[shape="circle"]::before {\n  content: "\\25CF";\n}\n\n.apexcharts-tooltip-marker[shape="square"]::before,\n.apexcharts-tooltip-marker[shape="rect"]::before {\n  content: "\\25A0";\n  transform: translate(-1px, -2px);\n}\n\n.apexcharts-tooltip-marker[shape="line"]::before {\n  content: "\\2500";\n}\n\n.apexcharts-tooltip-marker[shape="diamond"]::before {\n  content: "\\25C6";\n  font-size: 28px;\n}\n\n.apexcharts-tooltip-marker[shape="triangle"]::before {\n  content: "\\25B2";\n  font-size: 22px;\n}\n\n.apexcharts-tooltip-marker[shape="cross"]::before {\n  content: "\\2715";\n  font-size: 18px;\n}\n\n.apexcharts-tooltip-marker[shape="plus"]::before {\n  content: "\\2715";\n  transform: rotate(45deg) translate(-1px, -1px);\n  font-size: 18px;\n}\n\n.apexcharts-tooltip-marker[shape="star"]::before {\n  content: "\\2605";\n  font-size: 18px;\n}\n\n.apexcharts-tooltip-marker[shape="sparkle"]::before {\n  content: "\\2726";\n  font-size: 20px;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 0 10px;\n  display: none;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active,\n.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 4px\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n.apexcharts-custom-tooltip,\n.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n.apexcharts-xaxistooltip,\n.apexcharts-yaxistooltip {\n  opacity: 0;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n  background: #eceff1;\n  border: 1px solid #90a4ae\n}\n\n.apexcharts-xaxistooltip {\n  padding: 9px 10px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark {\n  background: rgba(0, 0, 0, .7);\n  border: 1px solid rgba(0, 0, 0, .5);\n  color: #fff\n}\n\n.apexcharts-xaxistooltip:after,\n.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 7px;\n  margin-left: -7px\n}\n\n.apexcharts-xaxistooltip-bottom:after,\n.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,\n.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: #eceff1\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: #90a4ae\n}\n\n.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:after,\n.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:before {\n  border-bottom-color: rgba(0, 0, 0, .5)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: #eceff1\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: #90a4ae\n}\n\n.apexcharts-xaxistooltip-top.apexcharts-theme-dark:after,\n.apexcharts-xaxistooltip-top.apexcharts-theme-dark:before {\n  border-top-color: rgba(0, 0, 0, .5)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 4px 10px\n}\n\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  background: rgba(0, 0, 0, .7);\n  border: 1px solid rgba(0, 0, 0, .5);\n  color: #fff\n}\n\n.apexcharts-yaxistooltip:after,\n.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 7px;\n  margin-top: -7px\n}\n\n.apexcharts-yaxistooltip-left:after,\n.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,\n.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: #eceff1\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: #90a4ae\n}\n\n.apexcharts-yaxistooltip-left.apexcharts-theme-dark:after,\n.apexcharts-yaxistooltip-left.apexcharts-theme-dark:before {\n  border-left-color: rgba(0, 0, 0, .5)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: #eceff1\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: #90a4ae\n}\n\n.apexcharts-yaxistooltip-right.apexcharts-theme-dark:after,\n.apexcharts-yaxistooltip-right.apexcharts-theme-dark:before {\n  border-right-color: rgba(0, 0, 0, .5)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,\n.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,\n.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_shape {\n  stroke-width: 1;\n  stroke-dasharray: 10 10;\n  stroke: black;\n  stroke-opacity: 0.1;\n  pointer-events: none;\n  fill: none;\n}\n\n.svg_select_handle {\n  stroke-width: 3;\n  stroke: black;\n  fill: none;\n}\n\n.svg_select_handle_r {\n  cursor: e-resize;\n}\n\n.svg_select_handle_l {\n  cursor: w-resize;\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,\n.apexcharts-pan-icon,\n.apexcharts-reset-icon,\n.apexcharts-selection-icon,\n.apexcharts-toolbar-custom-icon,\n.apexcharts-zoom-icon,\n.apexcharts-zoomin-icon,\n.apexcharts-zoomout-icon {\n  cursor: pointer;\n  width: 20px;\n  height: 20px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center\n}\n\n.apexcharts-menu-icon svg,\n.apexcharts-reset-icon svg,\n.apexcharts-zoom-icon svg,\n.apexcharts-zoomin-icon svg,\n.apexcharts-zoomout-icon svg {\n  fill: #6e8192\n}\n\n.apexcharts-selection-icon svg {\n  fill: #444;\n  transform: scale(.76)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon svg,\n.apexcharts-theme-dark .apexcharts-pan-icon svg,\n.apexcharts-theme-dark .apexcharts-reset-icon svg,\n.apexcharts-theme-dark .apexcharts-selection-icon svg,\n.apexcharts-theme-dark .apexcharts-toolbar-custom-icon svg,\n.apexcharts-theme-dark .apexcharts-zoom-icon svg,\n.apexcharts-theme-dark .apexcharts-zoomin-icon svg,\n.apexcharts-theme-dark .apexcharts-zoomout-icon svg {\n  fill: #f3f4f5\n}\n\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected svg,\n.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected svg,\n.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected svg {\n  fill: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover svg,\n.apexcharts-theme-light .apexcharts-reset-icon:hover svg,\n.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover svg,\n.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover svg,\n.apexcharts-theme-light .apexcharts-zoomin-icon:hover svg,\n.apexcharts-theme-light .apexcharts-zoomout-icon:hover svg {\n  fill: #333\n}\n\n.apexcharts-menu-icon,\n.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-reset-icon {\n  margin-left: 5px\n}\n\n.apexcharts-menu-icon,\n.apexcharts-reset-icon,\n.apexcharts-zoom-icon {\n  transform: scale(.85)\n}\n\n.apexcharts-zoomin-icon,\n.apexcharts-zoomout-icon {\n  transform: scale(.7)\n}\n\n.apexcharts-zoomout-icon {\n  margin-right: 3px\n}\n\n.apexcharts-pan-icon {\n  transform: scale(.62);\n  position: relative;\n  left: 1px;\n  top: 0\n}\n\n.apexcharts-pan-icon svg {\n  fill: #fff;\n  stroke: #6e8192;\n  stroke-width: 2\n}\n\n.apexcharts-pan-icon.apexcharts-selected svg {\n  stroke: #008ffb\n}\n\n.apexcharts-pan-icon:not(.apexcharts-selected):hover svg {\n  stroke: #333\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  max-width: 176px;\n  text-align: right;\n  border-radius: 3px;\n  padding: 0 6px 2px;\n  display: flex;\n  justify-content: space-between;\n  align-items: center\n}\n\n.apexcharts-menu {\n  background: #fff;\n  position: absolute;\n  top: 100%;\n  border: 1px solid #ddd;\n  border-radius: 3px;\n  padding: 3px;\n  right: 10px;\n  opacity: 0;\n  min-width: 110px;\n  transition: .15s ease all;\n  pointer-events: none\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  pointer-events: all;\n  transition: .15s ease all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 7px;\n  font-size: 12px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: #eee\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(0, 0, 0, .7);\n  color: #fff\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1\n  }\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,\n.apexcharts-datalabel.apexcharts-element-hidden,\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-hidden-element-shown {\n  opacity: 1;\n  transition: 0.25s ease all;\n}\n\n.apexcharts-datalabel,\n.apexcharts-datalabel-label,\n.apexcharts-datalabel-value,\n.apexcharts-datalabels,\n.apexcharts-pie-label {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n.apexcharts-radialbar-label {\n  cursor: pointer;\n}\n\n.apexcharts-annotation-rect,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-gridline,\n.apexcharts-line,\n.apexcharts-point-annotation-label,\n.apexcharts-radar-series path:not(.apexcharts-marker),\n.apexcharts-radar-series polygon,\n.apexcharts-toolbar svg,\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-xaxis-annotation-label,\n.apexcharts-yaxis-annotation-label,\n.apexcharts-zoom-rect,\n.no-pointer-events {\n  pointer-events: none\n}\n\n.apexcharts-tooltip-active .apexcharts-marker {\n  transition: .15s ease all\n}\n\n.apexcharts-radar-series .apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,\n.resize-triggers,\n.resize-triggers>div {\n  content: " ";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n\n.apexcharts-bar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-bar-shadows {\n  pointer-events: none\n}\n\n.apexcharts-rangebar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-disable-transitions * {\n  transition: none !important;\n}';
+  const apexCSS = '@keyframes opaque {\n  0% {\n    opacity: 0\n  }\n\n  to {\n    opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n\n  0%,\n  to {\n    opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  direction: ltr !important;\n  user-select: none\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0, 0, 0, .5);\n  box-shadow: 0 0 1px rgba(255, 255, 255, .5);\n  -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\nrect.legend-mouseover-inactive,\n.legend-mouseover-inactive rect,\n.legend-mouseover-inactive path,\n.legend-mouseover-inactive circle,\n.legend-mouseover-inactive line,\n.legend-mouseover-inactive text.apexcharts-yaxis-title-text,\n.legend-mouseover-inactive text.apexcharts-yaxis-label {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-legend-series[role="button"]:focus {\n  outline: 2px solid #008FFB;\n  outline-offset: 2px;\n}\n\n.apexcharts-legend-series[role="button"]:focus:not(:focus-visible) {\n  outline: none;\n}\n\n.apexcharts-legend-series[role="button"]:focus-visible {\n  outline: 2px solid #008FFB;\n  outline-offset: 2px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n.apexcharts-tooltip {\n  border-radius: 5px;\n  box-shadow: 2px 2px 6px -4px #999;\n  cursor: default;\n  font-size: 14px;\n  left: 62px;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  top: 20px;\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  white-space: nowrap;\n  z-index: 12;\n  transition: .15s ease all\n}\n\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  border: 1px solid #e3e3e3;\n  background: rgba(255, 255, 255, .96)\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  color: #fff;\n  background: rgba(30, 30, 30, .8)\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n.apexcharts-tooltip-title {\n  padding: 6px;\n  font-size: 15px;\n  margin-bottom: 4px\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title {\n  background: #eceff1;\n  border-bottom: 1px solid #ddd\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, .7);\n  border-bottom: 1px solid #333\n}\n\n.apexcharts-tooltip-text-goals-value,\n.apexcharts-tooltip-text-y-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,\n.apexcharts-tooltip-text-goals-value:empty,\n.apexcharts-tooltip-text-y-label:empty,\n.apexcharts-tooltip-text-y-value:empty,\n.apexcharts-tooltip-text-z-value:empty,\n.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),\n.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  display: inline-block;\n  position: relative;\n  width: 16px;\n  height: 16px;\n  font-size: 16px;\n  line-height: 16px;\n  margin-right: 4px;\n  text-align: center;\n  vertical-align: middle;\n  color: inherit;\n}\n\n.apexcharts-tooltip-marker::before {\n  content: "";\n  display: inline-block;\n  width: 100%;\n  text-align: center;\n  color: currentcolor;\n  text-rendering: optimizeLegibility;\n  -webkit-font-smoothing: antialiased;\n  font-size: 26px;\n  font-family: Arial, Helvetica, sans-serif;\n  line-height: 14px;\n  font-weight: 900;\n}\n\n.apexcharts-tooltip-marker[shape="circle"]::before {\n  content: "\\25CF";\n}\n\n.apexcharts-tooltip-marker[shape="square"]::before,\n.apexcharts-tooltip-marker[shape="rect"]::before {\n  content: "\\25A0";\n  transform: translate(-1px, -2px);\n}\n\n.apexcharts-tooltip-marker[shape="line"]::before {\n  content: "\\2500";\n}\n\n.apexcharts-tooltip-marker[shape="diamond"]::before {\n  content: "\\25C6";\n  font-size: 28px;\n}\n\n.apexcharts-tooltip-marker[shape="triangle"]::before {\n  content: "\\25B2";\n  font-size: 22px;\n}\n\n.apexcharts-tooltip-marker[shape="cross"]::before {\n  content: "\\2715";\n  font-size: 18px;\n}\n\n.apexcharts-tooltip-marker[shape="plus"]::before {\n  content: "\\2715";\n  transform: rotate(45deg) translate(-1px, -1px);\n  font-size: 18px;\n}\n\n.apexcharts-tooltip-marker[shape="star"]::before {\n  content: "\\2605";\n  font-size: 18px;\n}\n\n.apexcharts-tooltip-marker[shape="sparkle"]::before {\n  content: "\\2726";\n  font-size: 20px;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 0 10px;\n  display: none;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active,\n.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 4px\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n.apexcharts-custom-tooltip,\n.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n.apexcharts-xaxistooltip,\n.apexcharts-yaxistooltip {\n  opacity: 0;\n  pointer-events: none;\n  color: #373d3f;\n  font-size: 13px;\n  text-align: center;\n  border-radius: 2px;\n  position: absolute;\n  z-index: 10;\n  background: #eceff1;\n  border: 1px solid #90a4ae\n}\n\n.apexcharts-xaxistooltip {\n  padding: 9px 10px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark {\n  background: rgba(0, 0, 0, .7);\n  border: 1px solid rgba(0, 0, 0, .5);\n  color: #fff\n}\n\n.apexcharts-xaxistooltip:after,\n.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 7px;\n  margin-left: -7px\n}\n\n.apexcharts-xaxistooltip-bottom:after,\n.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,\n.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: #eceff1\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: #90a4ae\n}\n\n.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:after,\n.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:before {\n  border-bottom-color: rgba(0, 0, 0, .5)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: #eceff1\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: #90a4ae\n}\n\n.apexcharts-xaxistooltip-top.apexcharts-theme-dark:after,\n.apexcharts-xaxistooltip-top.apexcharts-theme-dark:before {\n  border-top-color: rgba(0, 0, 0, .5)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 4px 10px\n}\n\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  background: rgba(0, 0, 0, .7);\n  border: 1px solid rgba(0, 0, 0, .5);\n  color: #fff\n}\n\n.apexcharts-yaxistooltip:after,\n.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 7px;\n  margin-top: -7px\n}\n\n.apexcharts-yaxistooltip-left:after,\n.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,\n.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: #eceff1\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: #90a4ae\n}\n\n.apexcharts-yaxistooltip-left.apexcharts-theme-dark:after,\n.apexcharts-yaxistooltip-left.apexcharts-theme-dark:before {\n  border-left-color: rgba(0, 0, 0, .5)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: #eceff1\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: #90a4ae\n}\n\n.apexcharts-yaxistooltip-right.apexcharts-theme-dark:after,\n.apexcharts-yaxistooltip-right.apexcharts-theme-dark:before {\n  border-right-color: rgba(0, 0, 0, .5)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,\n.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,\n.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_shape {\n  stroke-width: 1;\n  stroke-dasharray: 10 10;\n  stroke: black;\n  stroke-opacity: 0.1;\n  pointer-events: none;\n  fill: none;\n}\n\n.svg_select_handle {\n  stroke-width: 3;\n  stroke: black;\n  fill: none;\n}\n\n.svg_select_handle_r {\n  cursor: e-resize;\n}\n\n.svg_select_handle_l {\n  cursor: w-resize;\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,\n.apexcharts-pan-icon,\n.apexcharts-reset-icon,\n.apexcharts-selection-icon,\n.apexcharts-toolbar-custom-icon,\n.apexcharts-zoom-icon,\n.apexcharts-zoomin-icon,\n.apexcharts-zoomout-icon {\n  cursor: pointer;\n  width: 20px;\n  height: 20px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center\n}\n\n.apexcharts-menu-icon svg,\n.apexcharts-reset-icon svg,\n.apexcharts-zoom-icon svg,\n.apexcharts-zoomin-icon svg,\n.apexcharts-zoomout-icon svg {\n  fill: #6e8192\n}\n\n.apexcharts-selection-icon svg {\n  fill: #444;\n  transform: scale(.76)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon svg,\n.apexcharts-theme-dark .apexcharts-pan-icon svg,\n.apexcharts-theme-dark .apexcharts-reset-icon svg,\n.apexcharts-theme-dark .apexcharts-selection-icon svg,\n.apexcharts-theme-dark .apexcharts-toolbar-custom-icon svg,\n.apexcharts-theme-dark .apexcharts-zoom-icon svg,\n.apexcharts-theme-dark .apexcharts-zoomin-icon svg,\n.apexcharts-theme-dark .apexcharts-zoomout-icon svg {\n  fill: #f3f4f5\n}\n\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected svg,\n.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected svg,\n.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected svg {\n  fill: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover svg,\n.apexcharts-theme-light .apexcharts-reset-icon:hover svg,\n.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover svg,\n.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover svg,\n.apexcharts-theme-light .apexcharts-zoomin-icon:hover svg,\n.apexcharts-theme-light .apexcharts-zoomout-icon:hover svg {\n  fill: #333\n}\n\n.apexcharts-menu-icon,\n.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-reset-icon {\n  margin-left: 5px\n}\n\n.apexcharts-menu-icon,\n.apexcharts-reset-icon,\n.apexcharts-zoom-icon {\n  transform: scale(.85)\n}\n\n.apexcharts-zoomin-icon,\n.apexcharts-zoomout-icon {\n  transform: scale(.7)\n}\n\n.apexcharts-zoomout-icon {\n  margin-right: 3px\n}\n\n.apexcharts-pan-icon {\n  transform: scale(.62);\n  position: relative;\n  left: 1px;\n  top: 0\n}\n\n.apexcharts-pan-icon svg {\n  fill: #fff;\n  stroke: #6e8192;\n  stroke-width: 2\n}\n\n.apexcharts-pan-icon.apexcharts-selected svg {\n  stroke: #008ffb\n}\n\n.apexcharts-pan-icon:not(.apexcharts-selected):hover svg {\n  stroke: #333\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  max-width: 176px;\n  text-align: right;\n  border-radius: 3px;\n  padding: 0 6px 2px;\n  display: flex;\n  justify-content: space-between;\n  align-items: center\n}\n\n.apexcharts-menu {\n  background: #fff;\n  position: absolute;\n  top: 100%;\n  border: 1px solid #ddd;\n  border-radius: 3px;\n  padding: 3px;\n  right: 10px;\n  opacity: 0;\n  min-width: 110px;\n  transition: .15s ease all;\n  pointer-events: none\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  pointer-events: all;\n  transition: .15s ease all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 7px;\n  font-size: 12px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: #eee\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(0, 0, 0, .7);\n  color: #fff\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1\n  }\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,\n.apexcharts-datalabel.apexcharts-element-hidden,\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-hidden-element-shown {\n  opacity: 1;\n  transition: 0.25s ease all;\n}\n\n.apexcharts-datalabel,\n.apexcharts-datalabel-label,\n.apexcharts-datalabel-value,\n.apexcharts-datalabels,\n.apexcharts-pie-label {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n.apexcharts-radialbar-label {\n  cursor: pointer;\n}\n\n.apexcharts-annotation-rect,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-gridline,\n.apexcharts-line,\n.apexcharts-point-annotation-label,\n.apexcharts-radar-series path:not(.apexcharts-marker),\n.apexcharts-radar-series polygon,\n.apexcharts-toolbar svg,\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-xaxis-annotation-label,\n.apexcharts-yaxis-annotation-label,\n.apexcharts-zoom-rect,\n.no-pointer-events {\n  pointer-events: none\n}\n\n.apexcharts-tooltip-active .apexcharts-marker {\n  transition: .15s ease all\n}\n\n.apexcharts-radar-series .apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,\n.resize-triggers,\n.resize-triggers>div {\n  content: " ";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n\n.apexcharts-bar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-bar-shadows {\n  pointer-events: none\n}\n\n.apexcharts-rangebar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-disable-transitions * {\n  transition: none !important;\n}';
   class ApexCharts {
     constructor(el, opts) {
       this.opts = opts;
@@ -25278,8 +25924,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       initCtx.initModules();
       this.lastUpdateOptions = null;
       this.create = Utils$1.bind(this.create, this);
-      this.windowResizeHandler = this._windowResizeHandler.bind(this);
-      this.parentResizeHandler = this._parentResizeCallback.bind(this);
+      if (Environment.isBrowser()) {
+        this.windowResizeHandler = this._windowResizeHandler.bind(this);
+        this.parentResizeHandler = this._parentResizeCallback.bind(this);
+      }
     }
     /**
      * The primary method user will call to render the chart.
@@ -25304,24 +25952,26 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             beforeMount(this, this.w);
           }
           this.events.fireEvent("beforeMount", [this, this.w]);
-          window.addEventListener("resize", this.windowResizeHandler);
-          addResizeListener(this.el.parentNode, this.parentResizeHandler);
-          let rootNode = this.el.getRootNode && this.el.getRootNode();
-          let inShadowRoot = Utils$1.is("ShadowRoot", rootNode);
-          let doc = this.el.ownerDocument;
-          let css = inShadowRoot ? rootNode.getElementById("apexcharts-css") : doc.getElementById("apexcharts-css");
-          if (!css) {
-            css = document.createElement("style");
-            css.id = "apexcharts-css";
-            css.textContent = apexCSS;
-            const nonce = ((_a = this.opts.chart) == null ? void 0 : _a.nonce) || this.w.config.chart.nonce;
-            if (nonce) {
-              css.setAttribute("nonce", nonce);
-            }
-            if (inShadowRoot) {
-              rootNode.prepend(css);
-            } else if (this.w.config.chart.injectStyleSheet !== false) {
-              doc.head.appendChild(css);
+          if (Environment.isBrowser()) {
+            window.addEventListener("resize", this.windowResizeHandler);
+            addResizeListener(this.el.parentNode, this.parentResizeHandler);
+            let rootNode = this.el.getRootNode && this.el.getRootNode();
+            let inShadowRoot = Utils$1.is("ShadowRoot", rootNode);
+            let doc = this.el.ownerDocument;
+            let css = inShadowRoot ? rootNode.getElementById("apexcharts-css") : doc.getElementById("apexcharts-css");
+            if (!css) {
+              css = BrowserAPIs.createElementNS("http://www.w3.org/1999/xhtml", "style");
+              css.id = "apexcharts-css";
+              css.textContent = apexCSS;
+              const nonce = ((_a = this.opts.chart) == null ? void 0 : _a.nonce) || this.w.config.chart.nonce;
+              if (nonce) {
+                css.setAttribute("nonce", nonce);
+              }
+              if (inShadowRoot) {
+                rootNode.prepend(css);
+              } else if (this.w.config.chart.injectStyleSheet !== false) {
+                doc.head.appendChild(css);
+              }
             }
           }
           let graphData = this.create(this.w.config.series, {});
@@ -25366,10 +26016,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
         return null;
       }
       let series = ser;
-      ser.forEach((s, realIndex2) => {
+      ser.forEach((s, realIndex) => {
         if (s.hidden) {
           series = this.legend.legendHelpers.getSeriesAfterCollapsing({
-            realIndex: realIndex2
+            realIndex
           });
         }
       });
@@ -25533,8 +26183,10 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
      * Destroy the chart instance by removing all elements which also clean up event listeners on those elements.
      */
     destroy() {
-      window.removeEventListener("resize", this.windowResizeHandler);
-      removeResizeListener(this.el.parentNode, this.parentResizeHandler);
+      if (Environment.isBrowser()) {
+        window.removeEventListener("resize", this.windowResizeHandler);
+        removeResizeListener(this.el.parentNode, this.parentResizeHandler);
+      }
       const chartID = this.w.config.chart.id;
       if (chartID) {
         Apex._chartInstances.forEach((c, i) => {
@@ -25646,8 +26298,8 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       let newSeries = me.w.config.series.slice();
       for (let i = 0; i < newSeries.length; i++) {
         if (newData[i] !== null && typeof newData[i] !== "undefined") {
-          for (let j2 = 0; j2 < newData[i].data.length; j2++) {
-            newSeries[i].data.push(newData[i].data[j2]);
+          for (let j = 0; j < newData[i].data.length; j++) {
+            newSeries[i].data.push(newData[i].data[j]);
           }
         }
       }

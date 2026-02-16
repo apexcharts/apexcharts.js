@@ -48,12 +48,14 @@ export default defineConfig(({ mode }) => {
                 format: 'es',
                 entryFileNames: 'apexcharts.ssr.esm.js',
                 banner,
+                exports: 'named',
               },
               // SSR CommonJS build (minified for Node.js)
               {
                 format: 'cjs',
                 entryFileNames: 'apexcharts.ssr.common.js',
                 banner,
+                exports: 'named',
                 plugins: [
                   terser({
                     format: {

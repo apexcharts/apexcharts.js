@@ -17,6 +17,26 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __async = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
 /*!
  * ApexCharts v5.5.0
  * (c) 2018-2026 ApexCharts
@@ -13741,7 +13761,7 @@ class Toolbar {
     this.elMenuIcon = null;
   }
 }
-class SVGElement {
+let SVGElement$1 = class SVGElement2 {
   constructor(node) {
     this.node = node;
     if (node) {
@@ -13836,12 +13856,12 @@ class SVGElement {
   // ---- Query ----
   find(selector) {
     return Array.from(this.node.querySelectorAll(selector)).map(
-      (n) => n.instance || new SVGElement(n)
+      (n) => n.instance || new SVGElement2(n)
     );
   }
   findOne(selector) {
     const n = this.node.querySelector(selector);
-    return n ? n.instance || new SVGElement(n) : null;
+    return n ? n.instance || new SVGElement2(n) : null;
   }
   // ---- Events ----
   on(event, handler) {
@@ -13881,7 +13901,7 @@ class SVGElement {
   each(fn, deep) {
     const children = Array.from(this.node.children);
     children.forEach((child) => {
-      const inst = child.instance || new SVGElement(child);
+      const inst = child.instance || new SVGElement2(child);
       fn.call(inst);
       if (deep) inst.each(fn, deep);
     });
@@ -13898,7 +13918,7 @@ class SVGElement {
   }
   // ---- Children ----
   children() {
-    return Array.from(this.node.childNodes).filter((n) => n.nodeType === 1).map((n) => n.instance || new SVGElement(n));
+    return Array.from(this.node.childNodes).filter((n) => n.nodeType === 1).map((n) => n.instance || new SVGElement2(n));
   }
   // ---- Visibility ----
   hide() {
@@ -13927,7 +13947,7 @@ class SVGElement {
     );
     tspan.textContent = text;
     this.node.appendChild(tspan);
-    return new SVGElement(tspan);
+    return new SVGElement2(tspan);
   }
   // ---- Path-specific ----
   plot(d) {
@@ -13957,7 +13977,7 @@ class SVGElement {
   filterer() {
     return this._filter;
   }
-}
+};
 const SVGNS = "http://www.w3.org/2000/svg";
 class Point {
   constructor(x, y) {
@@ -14024,7 +14044,7 @@ class Box {
   }
 }
 let gradientCounter = 0;
-class SVGGradient extends SVGElement {
+class SVGGradient extends SVGElement$1 {
   constructor(container, type, builder) {
     const tag = type === "radial" ? "radialGradient" : "linearGradient";
     const node = BrowserAPIs.createElementNS(SVGNS, tag);
@@ -14078,7 +14098,7 @@ class StopBuilder {
   }
 }
 let patternCounter = 0;
-class SVGPattern extends SVGElement {
+class SVGPattern extends SVGElement$1 {
   constructor(container, w, h, builder) {
     const node = BrowserAPIs.createElementNS(SVGNS, "pattern");
     super(node);
@@ -14113,7 +14133,7 @@ class SVGPattern extends SVGElement {
     return this.url();
   }
 }
-class SVGContainer extends SVGElement {
+class SVGContainer extends SVGElement$1 {
   line(x1, y1, x2, y2) {
     const el = this._make("line");
     if (x1 !== void 0) {
@@ -14154,13 +14174,13 @@ class SVGContainer extends SVGElement {
   plain(textContent) {
     const node = BrowserAPIs.createElementNS(SVGNS, "text");
     node.textContent = textContent;
-    const el = new SVGElement(node);
+    const el = new SVGElement$1(node);
     this.node.appendChild(node);
     return el;
   }
   text(builder) {
     const node = BrowserAPIs.createElementNS(SVGNS, "text");
-    const el = new SVGElement(node);
+    const el = new SVGElement$1(node);
     this.node.appendChild(node);
     if (typeof builder === "function") {
       builder(new TspanBuilder(node));
@@ -14170,7 +14190,7 @@ class SVGContainer extends SVGElement {
   image(url, callback) {
     const node = BrowserAPIs.createElementNS(SVGNS, "image");
     node.setAttributeNS("http://www.w3.org/1999/xlink", "href", url);
-    const el = new SVGElement(node);
+    const el = new SVGElement$1(node);
     this.node.appendChild(node);
     if (typeof callback === "function") {
       const img = new Image();
@@ -14191,7 +14211,7 @@ class SVGContainer extends SVGElement {
   _make(tag) {
     const node = BrowserAPIs.createElementNS(SVGNS, tag);
     this.node.appendChild(node);
-    return new SVGElement(node);
+    return new SVGElement$1(node);
   }
   _makeContainer(tag) {
     const node = BrowserAPIs.createElementNS(SVGNS, tag);
@@ -14222,7 +14242,7 @@ class TspanWrapper {
   }
 }
 let filterCounter = 0;
-class SVGFilter extends SVGElement {
+class SVGFilter extends SVGElement$1 {
   constructor() {
     const node = BrowserAPIs.createElementNS(SVGNS, "filter");
     super(node);
@@ -14260,7 +14280,7 @@ class FilterBuilder {
       m.appendChild(mn);
     });
     this.filter.node.appendChild(m);
-    return new SVGElement(m);
+    return new SVGElement$1(m);
   }
   _primitive(tag, attrs) {
     const el = BrowserAPIs.createElementNS(SVGNS, tag);
@@ -14268,7 +14288,7 @@ class FilterBuilder {
       el.setAttribute(key, attrs[key]);
     }
     this.filter.node.appendChild(el);
-    return new SVGElement(el);
+    return new SVGElement$1(el);
   }
 }
 function installFilterMethods(ElementClass) {
@@ -15111,10 +15131,10 @@ function installSelectable(ElementClass) {
     return el;
   };
 }
-installFilterMethods(SVGElement);
-installAnimationMethods(SVGElement);
-installDraggable(SVGElement);
-installSelectable(SVGElement);
+installFilterMethods(SVGElement$1);
+installAnimationMethods(SVGElement$1);
+installDraggable(SVGElement$1);
+installSelectable(SVGElement$1);
 function SVG() {
   const svgEl = BrowserAPIs.createElementNS(SVGNS, "svg");
   const svg = new SVGContainer(svgEl);
@@ -26542,6 +26562,396 @@ class ApexCharts {
     redraw && this._windowResize();
   }
 }
+class SSRRenderer {
+  /**
+   * Render chart to SVG string for server-side rendering
+   *
+   * @param {object} options - Chart configuration (same as ApexCharts constructor)
+   * @param {object} ssrOptions - SSR-specific options
+   * @param {number} ssrOptions.width - Chart width in pixels (default: 400)
+   * @param {number} ssrOptions.height - Chart height in pixels (default: 300)
+   * @param {number} ssrOptions.scale - SVG scale factor (default: 1)
+   * @returns {Promise<string>} SVG string
+   *
+   * @example
+   * const svgString = await SSRRenderer.renderToString({
+   *   series: [{ data: [30, 40, 35] }],
+   *   chart: { type: 'bar' }
+   * }, {
+   *   width: 500,
+   *   height: 300
+   * });
+   */
+  static renderToString(_0) {
+    return __async(this, arguments, function* (options2, ssrOptions = {}) {
+      if (Environment.isSSR()) {
+        BrowserAPIs.init();
+      }
+      const { width = 400, height = 300, scale = 1 } = ssrOptions;
+      const virtualEl = this._createVirtualElement(width, height);
+      const ssrConfig = __spreadProps(__spreadValues({}, options2), {
+        chart: __spreadProps(__spreadValues({}, options2.chart), {
+          width,
+          height,
+          // Disable interactive features for SSR
+          toolbar: { show: false },
+          animations: { enabled: false }
+        })
+      });
+      const chart = new ApexCharts(virtualEl, ssrConfig);
+      try {
+        yield chart.render();
+        const svgString = this._extractSVGString(chart, scale);
+        chart.destroy();
+        return svgString;
+      } catch (error) {
+        chart.destroy();
+        throw new Error(`SSR rendering failed: ${error.message}`);
+      }
+    });
+  }
+  /**
+   * Generate hydration-ready HTML with embedded configuration
+   *
+   * @param {object} options - Chart configuration
+   * @param {object} ssrOptions - SSR-specific options
+   * @param {number} ssrOptions.width - Chart width in pixels (default: 400)
+   * @param {number} ssrOptions.height - Chart height in pixels (default: 300)
+   * @param {number} ssrOptions.scale - SVG scale factor (default: 1)
+   * @param {string} ssrOptions.className - Additional CSS class for wrapper (default: '')
+   * @returns {Promise<string>} HTML string with SVG and hydration data
+   *
+   * @example
+   * const html = await SSRRenderer.renderToHTML({
+   *   series: [{ data: [30, 40, 35] }],
+   *   chart: { type: 'bar' }
+   * }, {
+   *   width: 500,
+   *   height: 300
+   * });
+   */
+  static renderToHTML(_0) {
+    return __async(this, arguments, function* (options2, ssrOptions = {}) {
+      const { className = "" } = ssrOptions;
+      const svgString = yield this.renderToString(options2, ssrOptions);
+      const dataConfig = this._encodeConfig(options2);
+      const wrapperClass = `apexcharts-ssr-wrapper${className ? " " + className : ""}`;
+      return `<div class="${wrapperClass}" data-apexcharts-hydrate data-apexcharts-config="${dataConfig}">
+${svgString}
+</div>`;
+    });
+  }
+  /**
+   * Create a virtual DOM element for SSR rendering
+   * @private
+   */
+  static _createVirtualElement(width, height) {
+    if (Environment.isBrowser()) {
+      const el = document.createElement("div");
+      el.style.width = `${width}px`;
+      el.style.height = `${height}px`;
+      return el;
+    }
+    return {
+      _ssrWidth: width,
+      _ssrHeight: height,
+      _ssrMode: true,
+      nodeType: 1,
+      nodeName: "DIV",
+      children: [],
+      style: {},
+      classList: {
+        add: () => {
+        },
+        remove: () => {
+        },
+        contains: () => false
+      },
+      appendChild(child) {
+        this.children.push(child);
+      },
+      removeChild(child) {
+        const index = this.children.indexOf(child);
+        if (index > -1) this.children.splice(index, 1);
+      },
+      querySelector() {
+        return null;
+      },
+      querySelectorAll() {
+        return [];
+      },
+      getAttribute() {
+        return null;
+      },
+      setAttribute() {
+      },
+      removeAttribute() {
+      },
+      hasAttribute() {
+        return false;
+      },
+      getBoundingClientRect() {
+        return {
+          width: this._ssrWidth,
+          height: this._ssrHeight,
+          top: 0,
+          left: 0,
+          right: this._ssrWidth,
+          bottom: this._ssrHeight,
+          x: 0,
+          y: 0
+        };
+      },
+      get parentNode() {
+        return null;
+      },
+      get isConnected() {
+        return true;
+      },
+      getRootNode() {
+        return this;
+      }
+    };
+  }
+  /**
+   * Extract SVG string from rendered chart
+   * @private
+   */
+  static _extractSVGString(chart, scale = 1) {
+    const w = chart.w;
+    if (!w || !w.globals || !w.globals.dom || !w.globals.dom.Paper) {
+      throw new Error("Chart not properly initialized");
+    }
+    const svgNode = w.globals.dom.Paper.node;
+    if (Environment.isBrowser() && svgNode instanceof SVGElement) {
+      const serializer = new XMLSerializer();
+      let svgString = serializer.serializeToString(svgNode);
+      if (scale !== 1) {
+        svgString = this._applyScale(svgString, scale);
+      }
+      return svgString;
+    }
+    if (svgNode && typeof svgNode.toString === "function") {
+      let svgString = svgNode.toString();
+      if (scale !== 1) {
+        svgString = this._applyScale(svgString, scale);
+      }
+      return svgString;
+    }
+    throw new Error("Unable to extract SVG string from chart");
+  }
+  /**
+   * Apply scale transformation to SVG string
+   * @private
+   */
+  static _applyScale(svgString, scale) {
+    const widthMatch = svgString.match(/width="([^"]+)"/);
+    const heightMatch = svgString.match(/height="([^"]+)"/);
+    if (widthMatch && heightMatch) {
+      const width = parseFloat(widthMatch[1]);
+      const height = parseFloat(heightMatch[1]);
+      const scaledWidth = width * scale;
+      const scaledHeight = height * scale;
+      svgString = svgString.replace(/width="[^"]+"/, `width="${scaledWidth}"`).replace(/height="[^"]+"/, `height="${scaledHeight}"`);
+    }
+    return svgString;
+  }
+  /**
+   * Encode configuration for client-side hydration
+   * @private
+   */
+  static _encodeConfig(config) {
+    try {
+      const json = JSON.stringify(config);
+      if (typeof Buffer !== "undefined") {
+        return Buffer.from(json).toString("base64");
+      } else if (typeof btoa !== "undefined") {
+        return btoa(json);
+      }
+      return encodeURIComponent(json);
+    } catch (error) {
+      throw new Error(`Failed to encode config: ${error.message}`);
+    }
+  }
+  /**
+   * Decode configuration from hydration data
+   * @private
+   */
+  static _decodeConfig(encodedConfig) {
+    try {
+      let json;
+      if (typeof Buffer !== "undefined") {
+        json = Buffer.from(encodedConfig, "base64").toString("utf-8");
+      } else if (typeof atob !== "undefined") {
+        json = atob(encodedConfig);
+      } else {
+        json = decodeURIComponent(encodedConfig);
+      }
+      return JSON.parse(json);
+    } catch (error) {
+      throw new Error(`Failed to decode config: ${error.message}`);
+    }
+  }
+}
+class Hydration {
+  /**
+   * Hydrate a single server-rendered chart
+   *
+   * @param {HTMLElement} el - Container element with data-apexcharts-hydrate attribute
+   * @param {object} clientOptions - Optional config overrides for client-side (e.g., enable animations)
+   * @returns {ApexCharts} Hydrated chart instance
+   *
+   * @example
+   * // Hydrate with default settings
+   * const chart = Hydration.hydrate(document.getElementById('my-chart'));
+   *
+   * @example
+   * // Hydrate with custom options
+   * const chart = Hydration.hydrate(element, {
+   *   chart: {
+   *     animations: { enabled: true, speed: 800 }
+   *   }
+   * });
+   */
+  static hydrate(el, clientOptions = {}) {
+    if (!Environment.isBrowser()) {
+      throw new Error("Hydration can only be performed in browser environment");
+    }
+    if (!el) {
+      throw new Error("Element is required for hydration");
+    }
+    if (!el.hasAttribute("data-apexcharts-hydrate")) {
+      throw new Error("Element does not have data-apexcharts-hydrate attribute");
+    }
+    const configAttr = el.getAttribute("data-apexcharts-config");
+    if (!configAttr) {
+      throw new Error("Element is missing data-apexcharts-config attribute");
+    }
+    const ssrConfig = this._decodeConfig(configAttr);
+    const config = this._mergeConfigs(ssrConfig, clientOptions);
+    const ssrContent = el.innerHTML;
+    const chart = new ApexCharts(el, config);
+    const rect = el.getBoundingClientRect();
+    el.style.width = `${rect.width}px`;
+    el.style.height = `${rect.height}px`;
+    el.innerHTML = "";
+    el.removeAttribute("data-apexcharts-hydrate");
+    el.removeAttribute("data-apexcharts-config");
+    chart.render().then(() => {
+      el.setAttribute("data-apexcharts-hydrated", "true");
+      el.style.width = "";
+      el.style.height = "";
+      const event = new CustomEvent("apexcharts:hydrated", {
+        detail: { chart, ssrContent }
+      });
+      el.dispatchEvent(event);
+    }).catch((error) => {
+      console.error("ApexCharts hydration failed:", error);
+      el.innerHTML = ssrContent;
+      el.setAttribute("data-apexcharts-hydrate", "");
+      el.setAttribute("data-apexcharts-config", configAttr);
+      throw error;
+    });
+    return chart;
+  }
+  /**
+   * Auto-hydrate all server-rendered charts on the page
+   *
+   * @param {string} selector - CSS selector for containers (default: '[data-apexcharts-hydrate]')
+   * @param {object} clientOptions - Optional config overrides applied to all charts
+   * @returns {ApexCharts[]} Array of hydrated chart instances
+   *
+   * @example
+   * // Hydrate all charts on page load
+   * document.addEventListener('DOMContentLoaded', () => {
+   *   ApexCharts.hydrateAll();
+   * });
+   *
+   * @example
+   * // Hydrate with animations enabled
+   * ApexCharts.hydrateAll('[data-apexcharts-hydrate]', {
+   *   chart: { animations: { enabled: true } }
+   * });
+   */
+  static hydrateAll(selector = "[data-apexcharts-hydrate]", clientOptions = {}) {
+    if (!Environment.isBrowser()) {
+      throw new Error("Hydration can only be performed in browser environment");
+    }
+    const elements = document.querySelectorAll(selector);
+    if (elements.length === 0) {
+      console.warn(`No elements found matching selector: ${selector}`);
+      return [];
+    }
+    const charts = [];
+    elements.forEach((el) => {
+      try {
+        const chart = this.hydrate(el, clientOptions);
+        charts.push(chart);
+      } catch (error) {
+        console.error("Failed to hydrate element:", el, error);
+      }
+    });
+    return charts;
+  }
+  /**
+   * Check if an element has been hydrated
+   *
+   * @param {HTMLElement} el - Element to check
+   * @returns {boolean} True if element has been hydrated
+   */
+  static isHydrated(el) {
+    if (!el) return false;
+    return el.hasAttribute("data-apexcharts-hydrated");
+  }
+  /**
+   * Decode configuration from base64-encoded data attribute
+   * @private
+   */
+  static _decodeConfig(encodedConfig) {
+    try {
+      let json;
+      if (typeof atob !== "undefined") {
+        json = atob(encodedConfig);
+      } else if (typeof Buffer !== "undefined") {
+        json = Buffer.from(encodedConfig, "base64").toString("utf-8");
+      } else {
+        json = decodeURIComponent(encodedConfig);
+      }
+      return JSON.parse(json);
+    } catch (error) {
+      throw new Error(`Failed to decode chart config: ${error.message}`);
+    }
+  }
+  /**
+   * Merge SSR configuration with client-side overrides
+   * @private
+   */
+  static _mergeConfigs(ssrConfig, clientOptions) {
+    var _a, _b, _c;
+    const merged = __spreadValues(__spreadValues({}, ssrConfig), clientOptions);
+    if (ssrConfig.chart || clientOptions.chart) {
+      merged.chart = __spreadValues(__spreadValues({}, ssrConfig.chart), clientOptions.chart);
+      if (merged.chart.animations === void 0 || merged.chart.animations.enabled === false) {
+        merged.chart.animations = __spreadProps(__spreadValues({}, merged.chart.animations || {}), {
+          enabled: true
+        });
+      }
+      if (((_a = clientOptions.chart) == null ? void 0 : _a.toolbar) === void 0 && ((_c = (_b = ssrConfig.chart) == null ? void 0 : _b.toolbar) == null ? void 0 : _c.show) === false) {
+        merged.chart.toolbar = __spreadProps(__spreadValues({}, merged.chart.toolbar || {}), {
+          show: true
+        });
+      }
+    }
+    return merged;
+  }
+}
+ApexCharts.renderToString = SSRRenderer.renderToString.bind(SSRRenderer);
+ApexCharts.renderToHTML = SSRRenderer.renderToHTML.bind(SSRRenderer);
+ApexCharts.hydrate = Hydration.hydrate.bind(Hydration);
+ApexCharts.hydrateAll = Hydration.hydrateAll.bind(Hydration);
+ApexCharts.isHydrated = Hydration.isHydrated.bind(Hydration);
 export {
+  Hydration,
+  SSRRenderer,
   ApexCharts as default
 };
