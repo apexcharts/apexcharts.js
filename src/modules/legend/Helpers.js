@@ -132,8 +132,6 @@ export default class Helpers {
         this.lgCtx.ctx.pie.printDataLabelsInner(seriesEl.node, dataLabels)
       }
 
-      seriesEl.fire('click')
-
       // Update ARIA attributes for accessibility (non-axis charts)
       if (
         w.config.chart.accessibility.enabled
