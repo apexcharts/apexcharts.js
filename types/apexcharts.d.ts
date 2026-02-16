@@ -1292,6 +1292,5 @@ type ApexTheme = {
   }
 }
 
-declare module 'apexcharts' {
-  export = ApexCharts
-}
+export = ApexCharts;
+export as namespace ApexCharts;
