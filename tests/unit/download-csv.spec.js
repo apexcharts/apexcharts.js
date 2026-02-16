@@ -7,7 +7,7 @@ describe('Export Csv', () => {
     const csvData = 'category,value\n1,0\n2,1'
     const chart = createChart('pie', series)
     const exports = new Exports(chart.ctx)
-    jest.spyOn(Exports.prototype, 'triggerDownload')
+    vi.spyOn(Exports.prototype, 'triggerDownload')
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
@@ -21,7 +21,7 @@ describe('Export Csv', () => {
     const csvData = 'category,series-0\n1,0\n2,1'
     const chart = createChart('line', series)
     const exports = new Exports(chart.ctx)
-    jest.spyOn(Exports.prototype, 'triggerDownload')
+    vi.spyOn(Exports.prototype, 'triggerDownload')
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
@@ -56,7 +56,7 @@ describe('Export Csv', () => {
     const chart = createChartWithOptions(options)
     chart.w.globals.collapsedSeriesIndices = [0]
     const exports = new Exports(chart.ctx)
-    jest.spyOn(Exports.prototype, 'triggerDownload')
+    vi.spyOn(Exports.prototype, 'triggerDownload')
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
@@ -100,7 +100,7 @@ describe('Export Csv', () => {
     const chart = createChartWithOptions(options)
     chart.w.globals.collapsedSeriesIndices = [0]
     const exports = new Exports(chart.ctx)
-    jest.spyOn(Exports.prototype, 'triggerDownload')
+    vi.spyOn(Exports.prototype, 'triggerDownload')
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
@@ -135,7 +135,7 @@ describe('Export Csv', () => {
     const chart = createChartWithOptions(options)
     chart.w.globals.collapsedSeriesIndices = [0]
     const exports = new Exports(chart.ctx)
-    jest.spyOn(Exports.prototype, 'triggerDownload')
+    vi.spyOn(Exports.prototype, 'triggerDownload')
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
@@ -152,7 +152,7 @@ describe('Export Csv', () => {
     const csvData = 'category,series 1,series 2\n' + '1,0,1\n' + '2,1,2'
     const chart = createChart('line', series)
     const exports = new Exports(chart.ctx)
-    jest.spyOn(Exports.prototype, 'triggerDownload')
+    vi.spyOn(Exports.prototype, 'triggerDownload')
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
@@ -169,7 +169,7 @@ describe('Export Csv', () => {
     const csvData = 'category,2022,2023\n' + '1,0,1\n' + '2,1,2'
     const chart = createChart('line', series)
     const exports = new Exports(chart.ctx)
-    jest.spyOn(Exports.prototype, 'triggerDownload')
+    vi.spyOn(Exports.prototype, 'triggerDownload')
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
@@ -212,7 +212,7 @@ describe('Export Csv', () => {
 
     const chart = createChart('line', series)
     const exports = new Exports(chart.ctx)
-    jest.spyOn(Exports.prototype, 'triggerDownload')
+    vi.spyOn(Exports.prototype, 'triggerDownload')
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
@@ -237,7 +237,7 @@ describe('Export Csv', () => {
     const chart = createChartWithOptions(options)
     const exports = new Exports(chart.ctx)
     chart.w.globals.collapsedSeriesIndices = [0]
-    jest.spyOn(Exports.prototype, 'triggerDownload')
+    vi.spyOn(Exports.prototype, 'triggerDownload')
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
@@ -271,7 +271,7 @@ describe('Export Csv', () => {
       'Sun Jan 02 2000,,1'
     const chart = createChartWithOptions(options)
     const exports = new Exports(chart.ctx)
-    jest.spyOn(Exports.prototype, 'triggerDownload')
+    vi.spyOn(Exports.prototype, 'triggerDownload')
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
@@ -315,7 +315,7 @@ describe('Export Csv', () => {
       'Sun Jan 02 2000,,1'
     const chart = createChartWithOptions(options)
     const exports = new Exports(chart.ctx)
-    jest.spyOn(Exports.prototype, 'triggerDownload')
+    vi.spyOn(Exports.prototype, 'triggerDownload')
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
@@ -362,7 +362,7 @@ describe('Export Csv', () => {
       'Wed Sep 19 2018,40,32'
     const chart = createChartWithOptions(options)
     const exports = new Exports(chart.ctx)
-    jest.spyOn(Exports.prototype, 'triggerDownload')
+    vi.spyOn(Exports.prototype, 'triggerDownload')
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
@@ -410,7 +410,7 @@ describe('Export Csv', () => {
     const chart = createChartWithOptions(options)
     chart.w.globals.collapsedSeriesIndices = [0]
     const exports = new Exports(chart.ctx)
-    jest.spyOn(Exports.prototype, 'triggerDownload')
+    vi.spyOn(Exports.prototype, 'triggerDownload')
     exports.exportToCSV(chart.w.config.series, 'fileName')
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
     expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(

@@ -398,7 +398,7 @@ describe('Accessibility', () => {
     })
 
     it('should respond to Enter key press on legend item', () => {
-      const legendClickSpy = jest.fn()
+      const legendClickSpy = vi.fn()
 
       const chart = chartWithAccessibility({
         chart: {
@@ -416,7 +416,7 @@ describe('Accessibility', () => {
     })
 
     it('should respond to Space key press on legend item', () => {
-      const legendClickSpy = jest.fn()
+      const legendClickSpy = vi.fn()
 
       const chart = chartWithAccessibility({
         chart: {
@@ -434,7 +434,7 @@ describe('Accessibility', () => {
     })
 
     it('should not respond to other key presses on legend item', () => {
-      const legendClickSpy = jest.fn()
+      const legendClickSpy = vi.fn()
 
       const chart = chartWithAccessibility({
         chart: {
@@ -452,7 +452,7 @@ describe('Accessibility', () => {
     })
 
     it('should work with legend text element', () => {
-      const legendClickSpy = jest.fn()
+      const legendClickSpy = vi.fn()
 
       const chart = chartWithAccessibility({
         chart: {
@@ -470,7 +470,7 @@ describe('Accessibility', () => {
     })
 
     it('should work with legend marker element', () => {
-      const legendClickSpy = jest.fn()
+      const legendClickSpy = vi.fn()
 
       const chart = chartWithAccessibility({
         chart: {
@@ -495,7 +495,7 @@ describe('Accessibility', () => {
   // =========================================================================
   describe('keyboard events', () => {
     it('should fire keyDown event handler when key is pressed', () => {
-      const keyDownSpy = jest.fn()
+      const keyDownSpy = vi.fn()
 
       const chart = chartWithAccessibility({
         chart: {
@@ -514,7 +514,7 @@ describe('Accessibility', () => {
     })
 
     it('should fire keyUp event handler when key is released', () => {
-      const keyUpSpy = jest.fn()
+      const keyUpSpy = vi.fn()
 
       const chart = chartWithAccessibility({
         chart: {
@@ -533,7 +533,7 @@ describe('Accessibility', () => {
     })
 
     it('should not fire keyboard events when accessibility is disabled', () => {
-      const keyDownSpy = jest.fn()
+      const keyDownSpy = vi.fn()
 
       const chart = createChartWithOptions({
         chart: {
@@ -556,7 +556,7 @@ describe('Accessibility', () => {
     })
 
     it('should not fire keyboard events when keyboard is disabled', () => {
-      const keyDownSpy = jest.fn()
+      const keyDownSpy = vi.fn()
 
       const chart = chartWithAccessibility({
         accessibility: {

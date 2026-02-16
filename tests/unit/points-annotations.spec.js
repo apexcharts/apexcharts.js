@@ -301,7 +301,7 @@ describe('PointsAnnotations', () => {
   // =========================================================================
   describe('event listeners', () => {
     it('should invoke click handler when marker is clicked', () => {
-      const clickSpy = jest.fn()
+      const clickSpy = vi.fn()
 
       chart = createChartWithOptions({
         chart: { type: 'line' },

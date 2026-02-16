@@ -91,7 +91,7 @@ function createBarInstance(overrides = {}) {
   // Build a minimal ctx that Bar's constructor needs
   const ctx = {
     w,
-    series: { addCollapsedClassToSeries: jest.fn() },
+    series: { addCollapsedClassToSeries: vi.fn() },
   }
   ctx.ctx = ctx
 
@@ -345,7 +345,7 @@ describe('Bar chart', () => {
     })
 
     it('should warn when dataLabels exceed maxItems', () => {
-      const spy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
       barChart({
         dataLabels: { enabled: true },
@@ -363,7 +363,7 @@ describe('Bar chart', () => {
     })
 
     it('should not warn when dataLabels are within maxItems', () => {
-      const spy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
       barChart({
         dataLabels: { enabled: true },
