@@ -25,14 +25,25 @@ import Data from '../Data'
 import UpdateHelpers from './UpdateHelpers'
 
 import { SVG } from '../../svg/index'
+import { Environment } from '../../utils/Environment.js'
 
-if (typeof window.SVG === 'undefined') {
-  window.SVG = SVG
-}
+// set window globals in browser environment
+if (Environment.isBrowser()) {
+  if (typeof window.SVG === 'undefined') {
+    window.SVG = SVG
+  }
 
-// global Apex object which user can use to override chart's defaults globally
-if (typeof window.Apex === 'undefined') {
-  window.Apex = {}
+  // global Apex object which user can use to override chart's defaults globally
+  if (typeof window.Apex === 'undefined') {
+    window.Apex = {}
+  }
+} else {
+  // SSR: use global namespace (Node.js)
+  if (typeof global !== 'undefined') {
+    if (typeof global.Apex === 'undefined') {
+      global.Apex = {}
+    }
+  }
 }
 
 export default class InitCtxVariables {

@@ -14,6 +14,8 @@ import InitCtxVariables from './modules/helpers/InitCtxVariables'
 import Destroy from './modules/helpers/Destroy'
 import { addResizeListener, removeResizeListener } from './utils/Resize'
 import apexCSS from './assets/apexcharts.css'
+import { Environment } from './utils/Environment.js'
+import { BrowserAPIs } from './ssr/BrowserAPIs.js'
 
 /**
  *
@@ -41,8 +43,12 @@ export default class ApexCharts {
     this.lastUpdateOptions = null
 
     this.create = Utils.bind(this.create, this)
-    this.windowResizeHandler = this._windowResizeHandler.bind(this)
-    this.parentResizeHandler = this._parentResizeCallback.bind(this)
+
+    // bind event handlers in browser environment
+    if (Environment.isBrowser()) {
+      this.windowResizeHandler = this._windowResizeHandler.bind(this)
+      this.parentResizeHandler = this._parentResizeCallback.bind(this)
+    }
   }
 
   /**
@@ -72,31 +78,35 @@ export default class ApexCharts {
         }
 
         this.events.fireEvent('beforeMount', [this, this.w])
-        window.addEventListener('resize', this.windowResizeHandler)
-        addResizeListener(this.el.parentNode, this.parentResizeHandler)
 
-        let rootNode = this.el.getRootNode && this.el.getRootNode()
-        let inShadowRoot = Utils.is('ShadowRoot', rootNode)
-        let doc = this.el.ownerDocument
-        let css = inShadowRoot
-          ? rootNode.getElementById('apexcharts-css')
-          : doc.getElementById('apexcharts-css')
+        // add event listeners in browser environment
+        if (Environment.isBrowser()) {
+          window.addEventListener('resize', this.windowResizeHandler)
+          addResizeListener(this.el.parentNode, this.parentResizeHandler)
 
-        if (!css) {
-          css = document.createElement('style')
-          css.id = 'apexcharts-css'
-          css.textContent = apexCSS
-          const nonce = this.opts.chart?.nonce || this.w.config.chart.nonce
-          if (nonce) {
-            css.setAttribute('nonce', nonce)
-          }
+          let rootNode = this.el.getRootNode && this.el.getRootNode()
+          let inShadowRoot = Utils.is('ShadowRoot', rootNode)
+          let doc = this.el.ownerDocument
+          let css = inShadowRoot
+            ? rootNode.getElementById('apexcharts-css')
+            : doc.getElementById('apexcharts-css')
 
-          if (inShadowRoot) {
-            // We are in Shadow DOM, add to shadow root
-            rootNode.prepend(css)
-          } else if (this.w.config.chart.injectStyleSheet !== false) {
-            // Add to <head> of element's document
-            doc.head.appendChild(css)
+          if (!css) {
+            css = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'style')
+            css.id = 'apexcharts-css'
+            css.textContent = apexCSS
+            const nonce = this.opts.chart?.nonce || this.w.config.chart.nonce
+            if (nonce) {
+              css.setAttribute('nonce', nonce)
+            }
+
+            if (inShadowRoot) {
+              // We are in Shadow DOM, add to shadow root
+              rootNode.prepend(css)
+            } else if (this.w.config.chart.injectStyleSheet !== false) {
+              // Add to <head> of element's document
+              doc.head.appendChild(css)
+            }
           }
         }
 
@@ -396,9 +406,11 @@ export default class ApexCharts {
    * Destroy the chart instance by removing all elements which also clean up event listeners on those elements.
    */
   destroy() {
-    window.removeEventListener('resize', this.windowResizeHandler)
-
-    removeResizeListener(this.el.parentNode, this.parentResizeHandler)
+    // remove event listeners in browser environment
+    if (Environment.isBrowser()) {
+      window.removeEventListener('resize', this.windowResizeHandler)
+      removeResizeListener(this.el.parentNode, this.parentResizeHandler)
+    }
     // remove the chart's instance from the global Apex._chartInstances
     const chartID = this.w.config.chart.id
     if (chartID) {

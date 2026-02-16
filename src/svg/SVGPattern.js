@@ -1,12 +1,13 @@
 import SVGElement from './SVGElement'
 import SVGContainer from './SVGContainer'
 import { SVGNS } from './math'
+import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 
 let patternCounter = 0
 
 class SVGPattern extends SVGElement {
   constructor(container, w, h, builder) {
-    const node = document.createElementNS(SVGNS, 'pattern')
+    const node = BrowserAPIs.createElementNS(SVGNS, 'pattern')
     super(node)
 
     this._id = 'SvgjsPattern' + ++patternCounter
@@ -26,7 +27,7 @@ class SVGPattern extends SVGElement {
     // Add to <defs>
     let defs = container.node.querySelector('defs')
     if (!defs) {
-      defs = document.createElementNS(SVGNS, 'defs')
+      defs = BrowserAPIs.createElementNS(SVGNS, 'defs')
       container.node.appendChild(defs)
     }
     defs.appendChild(this.node)

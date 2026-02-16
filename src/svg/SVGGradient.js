@@ -1,12 +1,13 @@
 import SVGElement from './SVGElement'
 import { SVGNS } from './math'
+import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 
 let gradientCounter = 0
 
 class SVGGradient extends SVGElement {
   constructor(container, type, builder) {
     const tag = type === 'radial' ? 'radialGradient' : 'linearGradient'
-    const node = document.createElementNS(SVGNS, tag)
+    const node = BrowserAPIs.createElementNS(SVGNS, tag)
     super(node)
 
     this._id = 'SvgjsGradient' + ++gradientCounter
@@ -19,14 +20,14 @@ class SVGGradient extends SVGElement {
     // Add to <defs>
     let defs = container.node.querySelector('defs')
     if (!defs) {
-      defs = document.createElementNS(SVGNS, 'defs')
+      defs = BrowserAPIs.createElementNS(SVGNS, 'defs')
       container.node.appendChild(defs)
     }
     defs.appendChild(this.node)
   }
 
   stop(offset, color, opacity) {
-    const s = document.createElementNS(SVGNS, 'stop')
+    const s = BrowserAPIs.createElementNS(SVGNS, 'stop')
     s.setAttribute('offset', offset)
     s.setAttribute('stop-color', color)
     if (opacity !== undefined) s.setAttribute('stop-opacity', opacity)

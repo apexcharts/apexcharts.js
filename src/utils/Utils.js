@@ -2,6 +2,9 @@
  ** Generic functions which are not dependent on ApexCharts
  */
 
+import { Environment } from './Environment.js'
+import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
+
 class Utils {
   static bind(fn, me) {
     return function () {
@@ -251,6 +254,11 @@ class Utils {
   static getDimensions(el) {
     if (!el) return [0, 0]
 
+    // SSR: use provided dimensions or defaults
+    if (Environment.isSSR()) {
+      return [el._ssrWidth || 400, el._ssrHeight || 300]
+    }
+
     // check if in shadow DOM
     const rootNode = el.getRootNode && el.getRootNode()
     const inShadowDOM = rootNode && rootNode !== document
@@ -294,6 +302,11 @@ class Utils {
         x: 0,
         y: 0,
       }
+    }
+
+    // SSR: use abstraction layer
+    if (Environment.isSSR()) {
+      return BrowserAPIs.getBoundingClientRect(element)
     }
 
     const rect = element.getBoundingClientRect()

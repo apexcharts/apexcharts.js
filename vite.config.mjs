@@ -24,75 +24,115 @@ const banner = `/*!
 
 export default defineConfig(({ mode }) => {
   const isDev = mode === 'development'
+  const isSSR = mode === 'ssr'
 
   return {
     build: {
       lib: {
-        entry: resolve(__dirname, 'src/apexcharts.js'),
+        entry: isSSR
+          ? resolve(__dirname, 'src/ssr/index.js')
+          : resolve(__dirname, 'src/apexcharts.js'),
         name: 'ApexCharts',
       },
       outDir: 'dist',
+      emptyOutDir: !isSSR,
       sourcemap: isDev,
       minify: false, // control minification per output
       target: 'es2015',
       cssCodeSplit: false,
       rollupOptions: {
-        output: [
-          // ESM (unminified for optimal tree-shaking)
-          {
-            format: 'es',
-            entryFileNames: 'apexcharts.esm.js',
-            banner,
-          },
-          // CommonJS (minified)
-          {
-            format: 'cjs',
-            entryFileNames: 'apexcharts.common.js',
-            banner,
-            plugins: isDev ? [] : [terser({
-              format: {
-                ascii_only: true,
-                comments: false,
-                preamble: banner,
+        output: isSSR
+          ? [
+              // SSR ESM build (unminified for Node.js)
+              {
+                format: 'es',
+                entryFileNames: 'apexcharts.ssr.esm.js',
+                banner,
               },
-              compress: {
-                drop_console: true,
-                drop_debugger: true,
+              // SSR CommonJS build (minified for Node.js)
+              {
+                format: 'cjs',
+                entryFileNames: 'apexcharts.ssr.common.js',
+                banner,
+                plugins: [
+                  terser({
+                    format: {
+                      ascii_only: true,
+                      comments: false,
+                      preamble: banner,
+                    },
+                    compress: {
+                      drop_console: true,
+                      drop_debugger: true,
+                    },
+                  }),
+                ],
               },
-            })],
-          },
-          // UMD unminified (for debugging)
-          {
-            format: 'umd',
-            name: 'ApexCharts',
-            entryFileNames: 'apexcharts.js',
-            banner,
-            globals: {
-              apexcharts: 'ApexCharts',
-            },
-          },
-          // UMD minified (for production)
-          {
-            format: 'umd',
-            name: 'ApexCharts',
-            entryFileNames: 'apexcharts.min.js',
-            banner,
-            globals: {
-              apexcharts: 'ApexCharts',
-            },
-            plugins: isDev ? [] : [terser({
-              format: {
-                ascii_only: true,
-                comments: false,
-                preamble: banner,
+            ]
+          : [
+              // ESM (unminified for optimal tree-shaking)
+              {
+                format: 'es',
+                entryFileNames: 'apexcharts.esm.js',
+                banner,
               },
-              compress: {
-                drop_console: true,
-                drop_debugger: true,
+              // CommonJS (minified)
+              {
+                format: 'cjs',
+                entryFileNames: 'apexcharts.common.js',
+                banner,
+                plugins: isDev
+                  ? []
+                  : [
+                      terser({
+                        format: {
+                          ascii_only: true,
+                          comments: false,
+                          preamble: banner,
+                        },
+                        compress: {
+                          drop_console: true,
+                          drop_debugger: true,
+                        },
+                      }),
+                    ],
               },
-            })],
-          },
-        ],
+              // UMD unminified (for debugging)
+              {
+                format: 'umd',
+                name: 'ApexCharts',
+                entryFileNames: 'apexcharts.js',
+                banner,
+                globals: {
+                  apexcharts: 'ApexCharts',
+                },
+              },
+              // UMD minified (for production)
+              {
+                format: 'umd',
+                name: 'ApexCharts',
+                entryFileNames: 'apexcharts.min.js',
+                banner,
+                globals: {
+                  apexcharts: 'ApexCharts',
+                },
+                plugins: isDev
+                  ? []
+                  : [
+                      terser({
+                        format: {
+                          ascii_only: true,
+                          comments: false,
+                          preamble: banner,
+                        },
+                        compress: {
+                          drop_console: true,
+                          drop_debugger: true,
+                        },
+                      }),
+                    ],
+              },
+            ],
       },
     },
 

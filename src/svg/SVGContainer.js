@@ -2,6 +2,7 @@ import SVGElement from './SVGElement'
 import { SVGNS } from './math'
 import { SVGGradient } from './SVGGradient'
 import { SVGPattern } from './SVGPattern'
+import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 
 export default class SVGContainer extends SVGElement {
   line(x1, y1, x2, y2) {
@@ -49,7 +50,7 @@ export default class SVGContainer extends SVGElement {
   }
 
   plain(textContent) {
-    const node = document.createElementNS(SVGNS, 'text')
+    const node = BrowserAPIs.createElementNS(SVGNS, 'text')
     node.textContent = textContent
     const el = new SVGElement(node)
     this.node.appendChild(node)
@@ -57,7 +58,7 @@ export default class SVGContainer extends SVGElement {
   }
 
   text(builder) {
-    const node = document.createElementNS(SVGNS, 'text')
+    const node = BrowserAPIs.createElementNS(SVGNS, 'text')
     const el = new SVGElement(node)
     this.node.appendChild(node)
     if (typeof builder === 'function') {
@@ -67,7 +68,7 @@ export default class SVGContainer extends SVGElement {
   }
 
   image(url, callback) {
-    const node = document.createElementNS(SVGNS, 'image')
+    const node = BrowserAPIs.createElementNS(SVGNS, 'image')
     node.setAttributeNS('http://www.w3.org/1999/xlink', 'href', url)
     const el = new SVGElement(node)
     this.node.appendChild(node)
@@ -93,13 +94,13 @@ export default class SVGContainer extends SVGElement {
   }
 
   _make(tag) {
-    const node = document.createElementNS(SVGNS, tag)
+    const node = BrowserAPIs.createElementNS(SVGNS, tag)
     this.node.appendChild(node)
     return new SVGElement(node)
   }
 
   _makeContainer(tag) {
-    const node = document.createElementNS(SVGNS, tag)
+    const node = BrowserAPIs.createElementNS(SVGNS, tag)
     this.node.appendChild(node)
     return new SVGContainer(node)
   }
@@ -111,7 +112,7 @@ class TspanBuilder {
   }
 
   tspan(text) {
-    const tspan = document.createElementNS(SVGNS, 'tspan')
+    const tspan = BrowserAPIs.createElementNS(SVGNS, 'tspan')
     tspan.textContent = text
     this.textNode.appendChild(tspan)
     return new TspanWrapper(tspan, this.textNode)

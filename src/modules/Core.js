@@ -6,6 +6,8 @@ import Graphics from './Graphics'
 import Range from './Range'
 import Utils from '../utils/Utils'
 import TimeScale from './TimeScale'
+import { Environment } from '../utils/Environment.js'
+import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 import {
   Line,
   Bar,
@@ -73,7 +75,7 @@ export default class Core {
     gl.chartClass = `.apexcharts${gl.chartID}`
     gl.dom.baseEl = this.el
 
-    gl.dom.elWrap = document.createElement('div')
+    gl.dom.elWrap = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
     Graphics.setAttrs(gl.dom.elWrap, {
       id: gl.chartClass.substring(1),
       class: `apexcharts-canvas ${gl.chartClass.substring(1)}`,
@@ -81,7 +83,9 @@ export default class Core {
     this.el.appendChild(gl.dom.elWrap)
 
     // gl.dom.Paper = new window.SVG.Doc(gl.dom.elWrap)
-    gl.dom.Paper = window.SVG().addTo(gl.dom.elWrap)
+    // Access SVG from appropriate global scope
+    const SVG = Environment.isBrowser() ? window.SVG : global.SVG
+    gl.dom.Paper = SVG().addTo(gl.dom.elWrap)
 
     gl.dom.Paper.attr({
       class: 'apexcharts-svg',

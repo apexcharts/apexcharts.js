@@ -489,7 +489,6 @@ class Legend {
   }
 
   onLegendKeyDown(e) {
-    const w = this.w
     const me = this
 
     // Check if event target is a legend item

@@ -12,16 +12,42 @@
   "unpkg": "dist/apexcharts.js",
   "jsdelivr": "dist/apexcharts.js",
   "typings": "types/apexcharts.d.ts",
+  "exports": {
+    ".": {
+      "browser": {
+        "import": "./dist/apexcharts.esm.js",
+        "require": "./dist/apexcharts.common.js"
+      },
+      "node": {
+        "import": "./dist/apexcharts.ssr.esm.js",
+        "require": "./dist/apexcharts.ssr.common.js"
+      },
+      "default": "./dist/apexcharts.esm.js"
+    },
+    "./ssr": {
+      "import": "./dist/apexcharts.ssr.esm.js",
+      "require": "./dist/apexcharts.ssr.common.js"
+    },
+    "./client": {
+      "import": "./dist/apexcharts.esm.js",
+      "require": "./dist/apexcharts.common.js"
+    },
+    "./dist/*": "./dist/*",
+    "./src/*": "./src/*",
+    "./types/*": "./types/*",
+    "./package.json": "./package.json"
+  },
   "files": [
     "src",
     "dist/*.js",
+    "dist/*.js.map",
     "dist/*.css",
     "dist/locales/*.json",
     "types/*.d.ts"
   ],
   "scripts": {
     "dev": "vite build --watch --mode development",
-    "build": "node build/vite-build.mjs",
+    "build": "node build/vite-build.mjs && vite build --mode ssr",
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

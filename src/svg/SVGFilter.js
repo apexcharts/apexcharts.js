@@ -1,11 +1,12 @@
 import SVGElement from './SVGElement'
 import { SVGNS } from './math'
+import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 
 let filterCounter = 0
 
 class SVGFilter extends SVGElement {
   constructor() {
-    const node = document.createElementNS(SVGNS, 'filter')
+    const node = BrowserAPIs.createElementNS(SVGNS, 'filter')
     super(node)
 
     this._id = 'SvgjsFilter' + ++filterCounter
@@ -44,9 +45,9 @@ class FilterBuilder {
   }
 
   merge(sources) {
-    const m = document.createElementNS(SVGNS, 'feMerge')
+    const m = BrowserAPIs.createElementNS(SVGNS, 'feMerge')
     sources.forEach((src) => {
-      const mn = document.createElementNS(SVGNS, 'feMergeNode')
+      const mn = BrowserAPIs.createElementNS(SVGNS, 'feMergeNode')
       mn.setAttribute('in', src)
       m.appendChild(mn)
     })
@@ -55,7 +56,7 @@ class FilterBuilder {
   }
 
   _primitive(tag, attrs) {
-    const el = document.createElementNS(SVGNS, tag)
+    const el = BrowserAPIs.createElementNS(SVGNS, tag)
     for (const key in attrs) {
       el.setAttribute(key, attrs[key])
     }
@@ -78,7 +79,7 @@ function installFilterMethods(ElementClass) {
     if (svgRoot) {
       let defs = svgRoot.querySelector('defs')
       if (!defs) {
-        defs = document.createElementNS(SVGNS, 'defs')
+        defs = BrowserAPIs.createElementNS(SVGNS, 'defs')
         svgRoot.insertBefore(defs, svgRoot.firstChild)
       }
       defs.appendChild(filter.node)
