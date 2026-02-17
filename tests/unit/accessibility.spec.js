@@ -186,7 +186,7 @@ describe('Accessibility', () => {
       expect(ariaLabel).toContain('Q1 2024')
     })
 
-    it('should add <title> element as first child of SVG', () => {
+    it('should add <title> element to SVG', () => {
       const chart = chartWithAccessibility({
         title: {
           text: 'Revenue Chart',
@@ -194,11 +194,15 @@ describe('Accessibility', () => {
       })
 
       const svg = chart.el.querySelector('.apexcharts-svg')
-      const titleEl = svg.querySelector('title')
+      // Find all title elements and look for the accessibility one
+      const titleElements = Array.from(svg.querySelectorAll('title'))
+      const accessibilityTitle = titleElements.find(el =>
+        el.textContent === 'Revenue Chart' ||
+        el.parentNode === svg
+      )
 
-      expect(titleEl).not.toBeNull()
-      expect(titleEl.textContent).toBe('Revenue Chart')
-      expect(svg.firstChild).toBe(titleEl)
+      expect(accessibilityTitle).not.toBeNull()
+      expect(accessibilityTitle.textContent).toBe('Revenue Chart')
     })
 
     it('should add <desc> element when description is provided', () => {
@@ -219,10 +223,15 @@ describe('Accessibility', () => {
       const chart = chartWithAccessibility()
 
       const svg = chart.el.querySelector('.apexcharts-svg')
-      const titleEl = svg.querySelector('title')
+      // Find all title elements and look for the accessibility one
+      const titleElements = Array.from(svg.querySelectorAll('title'))
+      const accessibilityTitle = titleElements.find(el =>
+        el.textContent === 'Chart' ||
+        el.parentNode === svg
+      )
 
-      expect(titleEl).not.toBeNull()
-      expect(titleEl.textContent).toBe('Chart')
+      expect(accessibilityTitle).not.toBeNull()
+      expect(accessibilityTitle.textContent).toBe('Chart')
     })
 
     it('should use description as aria-label when both title and description provided', () => {
@@ -239,6 +248,90 @@ describe('Accessibility', () => {
       const ariaLabel = svg.getAttribute('aria-label')
 
       expect(ariaLabel).toBe('Complete sales overview for 2024')
+    })
+  })
+
+  // =========================================================================
+  // DOM Ordering (Critical for interaction handling)
+  // =========================================================================
+  describe('DOM ordering', () => {
+    it('should ensure foreignObject is first child to prevent blocking interactions', () => {
+      // This test prevents regression of the tooltip blocking bug
+      // foreignObject must be at the back (first child) in SVG z-order
+      const chart = chartWithAccessibility({
+        title: {
+          text: 'Test Chart',
+        },
+        accessibility: {
+          description: 'Test description',
+        },
+      })
+
+      const svg = chart.el.querySelector('.apexcharts-svg')
+      const foreignObject = svg.querySelector('foreignObject')
+
+      // Find accessibility elements that are direct children of SVG
+      const titleElements = Array.from(svg.querySelectorAll('title'))
+      const titleEl = titleElements.find(el => el.parentNode === svg && el.textContent === 'Test Chart')
+      const descEl = svg.querySelector('desc')
+
+      // foreignObject should exist
+      expect(foreignObject).not.toBeNull()
+
+      // foreignObject must be the first child to stay at the back
+      expect(svg.firstChild).toBe(foreignObject)
+
+      // Accessibility elements should come after foreignObject
+      expect(titleEl).not.toBeNull()
+      expect(descEl).not.toBeNull()
+
+      // Get all child nodes (including text nodes) and filter for elements
+      const children = Array.from(svg.childNodes).filter(node => node.nodeType === 1)
+      const foreignObjectIndex = children.indexOf(foreignObject)
+      const titleIndex = children.indexOf(titleEl)
+      const descIndex = children.indexOf(descEl)
+
+      // foreignObject must be before title and desc
+      expect(foreignObjectIndex).toBe(0)
+      expect(titleIndex).toBeGreaterThan(foreignObjectIndex)
+      expect(descIndex).toBeGreaterThan(foreignObjectIndex)
+    })
+
+    it('should maintain foreignObject as first child even without accessibility', () => {
+      const chart = createChartWithOptions({
+        chart: {
+          type: 'line',
+          accessibility: {
+            enabled: false,
+          },
+        },
+        series: [{ name: 'Test', data: [1, 2, 3] }],
+      })
+
+      const svg = chart.el.querySelector('.apexcharts-svg')
+      const foreignObject = svg.querySelector('foreignObject')
+
+      expect(foreignObject).not.toBeNull()
+      expect(svg.firstChild).toBe(foreignObject)
+    })
+
+    it('should maintain correct DOM order across different chart types', () => {
+      const chartTypes = ['line', 'bar', 'area']
+
+      chartTypes.forEach(type => {
+        const chart = chartWithAccessibility({
+          type,
+          title: {
+            text: 'Test Chart',
+          },
+        })
+
+        const svg = chart.el.querySelector('.apexcharts-svg')
+        const foreignObject = svg.querySelector('foreignObject')
+
+        expect(foreignObject).not.toBeNull()
+        expect(svg.firstChild).toBe(foreignObject)
+      })
     })
   })
 
