@@ -57,7 +57,7 @@ declare class ApexCharts {
   }
 }
 
-declare module ApexCharts {
+declare namespace ApexCharts {
   export interface ApexOptions {
     annotations?: ApexAnnotations
     chart?: ApexChart
