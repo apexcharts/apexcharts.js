@@ -11291,7 +11291,6 @@ class YAxis {
           cssClass: `apexcharts-xaxis-label ${w.config.xaxis.labels.style.cssClass}`
         });
         elXaxisTexts.add(elTick);
-        elTick.tspan(val);
         this.addTooltip(elTick, val);
         l += labelsDivider;
       }
@@ -12866,7 +12865,6 @@ let Helpers$2 = class Helpers3 {
         graphics.pathMouseDown(seriesEl, null);
         this.lgCtx.ctx.pie.printDataLabelsInner(seriesEl.node, dataLabels);
       }
-      seriesEl.fire("click");
       if (w.config.chart.accessibility.enabled) {
         const legendItem = w.globals.dom.baseEl.querySelector(
           `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`

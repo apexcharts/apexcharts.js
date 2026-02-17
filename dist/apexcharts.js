@@ -11295,7 +11295,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
             cssClass: `apexcharts-xaxis-label ${w.config.xaxis.labels.style.cssClass}`
           });
           elXaxisTexts.add(elTick);
-          elTick.tspan(val);
           this.addTooltip(elTick, val);
           l += labelsDivider;
         }
@@ -12870,7 +12869,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
           graphics.pathMouseDown(seriesEl, null);
           this.lgCtx.ctx.pie.printDataLabelsInner(seriesEl.node, dataLabels);
         }
-        seriesEl.fire("click");
         if (w.config.chart.accessibility.enabled) {
           const legendItem = w.globals.dom.baseEl.querySelector(
             `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`
