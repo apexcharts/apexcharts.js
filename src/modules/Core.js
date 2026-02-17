@@ -102,27 +102,7 @@ export default class Core {
 
     this.setSVGDimensions()
 
-    if (cnf.chart.accessibility.enabled) {
-      const ariaLabel = this.getAccessibleChartLabel()
-
-      gl.dom.Paper.attr({
-        role: 'img',
-        'aria-label': ariaLabel,
-      })
-
-      // Add title element for screen readers
-      const titleEl = document.createElementNS(gl.SVGNS, 'title')
-      titleEl.textContent = cnf.title.text || 'Chart'
-      gl.dom.Paper.node.insertBefore(titleEl, gl.dom.Paper.node.firstChild)
-
-      // Add desc element when description is provided
-      if (cnf.chart.accessibility.description) {
-        const descEl = document.createElementNS(gl.SVGNS, 'desc')
-        descEl.textContent = cnf.chart.accessibility.description
-        gl.dom.Paper.node.insertBefore(descEl, titleEl.nextSibling)
-      }
-    }
-
+    // foreignObject must be added first (at the back in z-order) to prevent blocking interactions
     gl.dom.elLegendForeign = document.createElementNS(gl.SVGNS, 'foreignObject')
     Graphics.setAttrs(gl.dom.elLegendForeign, {
       x: 0,
@@ -136,6 +116,29 @@ export default class Core {
 
     gl.dom.elWrap.appendChild(gl.dom.elLegendWrap)
     gl.dom.Paper.node.appendChild(gl.dom.elLegendForeign)
+
+    // Add accessibility elements after foreignObject to maintain proper z-order
+    if (cnf.chart.accessibility.enabled) {
+      const ariaLabel = this.getAccessibleChartLabel()
+
+      gl.dom.Paper.attr({
+        role: 'img',
+        'aria-label': ariaLabel,
+      })
+
+      // Add title element for screen readers (after foreignObject)
+      const titleEl = document.createElementNS(gl.SVGNS, 'title')
+      titleEl.textContent = cnf.title.text || 'Chart'
+      // Insert after foreignObject but before other elements
+      gl.dom.Paper.node.insertBefore(titleEl, gl.dom.elLegendForeign.nextSibling)
+
+      // Add desc element when description is provided
+      if (cnf.chart.accessibility.description) {
+        const descEl = document.createElementNS(gl.SVGNS, 'desc')
+        descEl.textContent = cnf.chart.accessibility.description
+        gl.dom.Paper.node.insertBefore(descEl, titleEl.nextSibling)
+      }
+    }
 
     gl.dom.elGraphical = gl.dom.Paper.group().attr({
       class: 'apexcharts-inner apexcharts-graphical',
