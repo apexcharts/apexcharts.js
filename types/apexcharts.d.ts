@@ -1,5 +1,5 @@
-// Typescript declarations for Apex class and module.
-// Note: When you have a class and a module with the same name; the module is merged
+// Typescript declarations for Apex class and namespace.
+// Note: When you have a class and a namespace with the same name; the namespace is merged
 // with the class.  This is necessary since apexcharts exports the main ApexCharts class only.
 //
 // This is a sparse typed declarations of chart interfaces.  See Apex Chart documentation
@@ -57,7 +57,7 @@ declare class ApexCharts {
   }
 }
 
-declare module ApexCharts {
+declare namespace ApexCharts {
   export interface ApexOptions {
     annotations?: ApexAnnotations
     chart?: ApexChart
