@@ -24951,21 +24951,6 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       });
       gl.dom.Paper.node.style.background = cnf.theme.mode === "dark" && !cnf.chart.background ? "#343A3F" : cnf.theme.mode === "light" && !cnf.chart.background ? "#fff" : cnf.chart.background;
       this.setSVGDimensions();
-      if (cnf.chart.accessibility.enabled) {
-        const ariaLabel = this.getAccessibleChartLabel();
-        gl.dom.Paper.attr({
-          role: "img",
-          "aria-label": ariaLabel
-        });
-        const titleEl = document.createElementNS(gl.SVGNS, "title");
-        titleEl.textContent = cnf.title.text || "Chart";
-        gl.dom.Paper.node.insertBefore(titleEl, gl.dom.Paper.node.firstChild);
-        if (cnf.chart.accessibility.description) {
-          const descEl = document.createElementNS(gl.SVGNS, "desc");
-          descEl.textContent = cnf.chart.accessibility.description;
-          gl.dom.Paper.node.insertBefore(descEl, titleEl.nextSibling);
-        }
-      }
       gl.dom.elLegendForeign = document.createElementNS(gl.SVGNS, "foreignObject");
       Graphics.setAttrs(gl.dom.elLegendForeign, {
         x: 0,
@@ -24977,6 +24962,21 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
       gl.dom.elLegendWrap.classList.add("apexcharts-legend");
       gl.dom.elWrap.appendChild(gl.dom.elLegendWrap);
       gl.dom.Paper.node.appendChild(gl.dom.elLegendForeign);
+      if (cnf.chart.accessibility.enabled) {
+        const ariaLabel = this.getAccessibleChartLabel();
+        gl.dom.Paper.attr({
+          role: "img",
+          "aria-label": ariaLabel
+        });
+        const titleEl = document.createElementNS(gl.SVGNS, "title");
+        titleEl.textContent = cnf.title.text || "Chart";
+        gl.dom.Paper.node.insertBefore(titleEl, gl.dom.elLegendForeign.nextSibling);
+        if (cnf.chart.accessibility.description) {
+          const descEl = document.createElementNS(gl.SVGNS, "desc");
+          descEl.textContent = cnf.chart.accessibility.description;
+          gl.dom.Paper.node.insertBefore(descEl, titleEl.nextSibling);
+        }
+      }
       gl.dom.elGraphical = gl.dom.Paper.group().attr({
         class: "apexcharts-inner apexcharts-graphical"
       });
