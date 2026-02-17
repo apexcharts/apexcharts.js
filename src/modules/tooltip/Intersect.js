@@ -70,6 +70,12 @@ class Intersect {
       }
     }
 
+    if (ttCtx.w.config.tooltip.keepInBoundary) {
+      // Avoid going out of the boundaries of the chart
+      y = Math.max(0, y);
+      x = Math.max(0, x);
+    }
+
     return {
       x,
       y,
@@ -133,6 +139,12 @@ class Intersect {
         y = cy
       }
       ttCtx.marker.enlargeCurrentPoint(j, opt.paths, x, y)
+    }
+
+    if (ttCtx.w.config.tooltip.keepInBoundary) {
+      // Avoid going out of the boundaries of the chart
+      y = Math.max(0, y);
+      x = Math.max(0, x);
     }
 
     return {
@@ -225,8 +237,15 @@ class Intersect {
         (w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars()))
     ) {
       y = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2
+      x = x + w.globals.translateX
 
-      tooltipEl.style.left = x + w.globals.translateX + 'px'
+      if (w.config.tooltip.keepInBoundary) {
+        // Avoid going out of the boundaries of the chart
+        y = Math.max(0, y);
+        x = Math.max(0, x);
+      }
+
+      tooltipEl.style.left = x + 'px'
       tooltipEl.style.top = y + 'px'
     }
   }

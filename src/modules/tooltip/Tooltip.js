@@ -249,20 +249,20 @@ export default class Tooltip {
       gYZ.style.fontFamily =
         this.tConfig.style.fontFamily || w.config.chart.fontFamily
       gYZ.style.fontSize = this.tConfig.style.fontSize
-      ;['y', 'goals', 'z'].forEach((g) => {
-        const gValText = document.createElement('div')
-        gValText.classList.add(`apexcharts-tooltip-${g}-group`)
+        ;['y', 'goals', 'z'].forEach((g) => {
+          const gValText = document.createElement('div')
+          gValText.classList.add(`apexcharts-tooltip-${g}-group`)
 
-        let txtLabel = document.createElement('span')
-        txtLabel.classList.add(`apexcharts-tooltip-text-${g}-label`)
-        gValText.appendChild(txtLabel)
+          let txtLabel = document.createElement('span')
+          txtLabel.classList.add(`apexcharts-tooltip-text-${g}-label`)
+          gValText.appendChild(txtLabel)
 
-        let txtValue = document.createElement('span')
-        txtValue.classList.add(`apexcharts-tooltip-text-${g}-value`)
-        gValText.appendChild(txtValue)
+          let txtValue = document.createElement('span')
+          txtValue.classList.add(`apexcharts-tooltip-text-${g}-value`)
+          gValText.appendChild(txtValue)
 
-        gYZ.appendChild(gValText)
-      })
+          gYZ.appendChild(gValText)
+        })
 
       gTxt.appendChild(gYZ)
 
@@ -631,7 +631,7 @@ export default class Tooltip {
       // there is no series to hover over
       if (
         w.globals.collapsedSeries.length +
-          w.globals.ancillaryCollapsedSeries.length ===
+        w.globals.ancillaryCollapsedSeries.length ===
         w.globals.series.length
       ) {
         return
@@ -730,6 +730,12 @@ export default class Tooltip {
 
       let x = w.globals.clientX - seriesBound.left - tooltipRect.ttWidth / 2
       let y = w.globals.clientY - seriesBound.top - tooltipRect.ttHeight - 10
+
+      if (w.config.tooltip.keepInBoundary) {
+        // Avoid going out of the boundaries of the chart
+        y = Math.max(0, y);
+        x = Math.max(0, x);
+      }
 
       tooltipEl.style.left = x + 'px'
       tooltipEl.style.top = y + 'px'
