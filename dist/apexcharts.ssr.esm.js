@@ -38,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v5.5.1
+ * ApexCharts v5.6.0
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
