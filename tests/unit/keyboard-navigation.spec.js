@@ -318,7 +318,6 @@ describe('KeyboardNavigation', () => {
   describe('globals update on navigation', () => {
     it('should update capturedSeriesIndex and capturedDataPointIndex', () => {
       const chart = chartWithKeyNav({ shared: false })
-      const kn = chart.ctx.keyboardNavigation
       const w = chart.ctx.w
       focusSvg(chart)
       fireKey(chart, 'ArrowRight')
@@ -457,8 +456,20 @@ describe('KeyboardNavigation', () => {
           },
         },
         series: [
-          { name: 'S1', data: [{ x: 1, y: 2 }, { x: 3, y: 4 }] },
-          { name: 'S2', data: [{ x: 2, y: 3 }, { x: 4, y: 5 }] },
+          {
+            name: 'S1',
+            data: [
+              { x: 1, y: 2 },
+              { x: 3, y: 4 },
+            ],
+          },
+          {
+            name: 'S2',
+            data: [
+              { x: 2, y: 3 },
+              { x: 4, y: 5 },
+            ],
+          },
         ],
       })
       const kn = chart.ctx.keyboardNavigation

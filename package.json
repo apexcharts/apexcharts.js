@@ -60,7 +60,11 @@
     "e2e": "node tests/e2e/samples.js test",
     "e2e:update": "node tests/e2e/samples.js update",
     "e2e:ci": "node tests/e2e/samples.js test:ci",
-    "build:samples": "node samples/source/index.js generate"
+    "build:samples": "node samples/source/index.js generate",
+    "prepare": "npx simple-git-hooks"
+  },
+  "simple-git-hooks": {
+    "pre-push": "npm run lint"
   },
   "dependencies": {
     "@yr/monotone-cubic-spline": "^1.0.3"
@@ -91,6 +95,7 @@
     "prettier": "^3.2.0",
     "puppeteer": "22.15.0",
     "puppeteer-cluster": "0.24.0",
+    "simple-git-hooks": "2.13.1",
     "terser": "5.46.0",
     "tslint": "6.1.3",
     "typescript": "5.0.2",

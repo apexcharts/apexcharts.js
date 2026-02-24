@@ -97,16 +97,18 @@ export class BrowserAPIs {
       if (!shim) this.init()
       return shim.getBoundingClientRect(element)
     }
-    return element ? element.getBoundingClientRect() : {
-      width: 0,
-      height: 0,
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      x: 0,
-      y: 0
-    }
+    return element
+      ? element.getBoundingClientRect()
+      : {
+          width: 0,
+          height: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          x: 0,
+          y: 0,
+        }
   }
 
   /**
@@ -210,9 +212,10 @@ export class BrowserAPIs {
     }
 
     // In browser, check if element is in DOM
-    return element.getRootNode ?
-      (element.getRootNode({ composed: true }) === document || element.isConnected) :
-      false
+    return element.getRootNode
+      ? element.getRootNode({ composed: true }) === document ||
+          element.isConnected
+      : false
   }
 
   /**
