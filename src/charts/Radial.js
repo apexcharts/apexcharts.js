@@ -341,9 +341,19 @@ class Radial extends Pie {
         strokeDashArray: dashArray,
       })
 
+      const radialMidAngle = startAngle + angle / 2
+      const radialArcCenter = Utils.polarToCartesian(
+        opts.centerX,
+        opts.centerY,
+        opts.size,
+        radialMidAngle
+      )
+
       Graphics.setAttrs(elPath.node, {
         'data:angle': angle,
         'data:value': opts.series[i],
+        'data:cx': radialArcCenter.x,
+        'data:cy': radialArcCenter.y,
       })
 
       if (w.config.chart.dropShadow.enabled) {

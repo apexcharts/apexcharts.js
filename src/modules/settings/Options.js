@@ -413,6 +413,10 @@ export default class Options {
           },
           keyboard: {
             enabled: true,
+            navigation: {
+              enabled: true,
+              wrapAround: false,
+            },
           },
         },
       },

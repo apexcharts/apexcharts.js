@@ -137,10 +137,30 @@ export default class Toolbar {
       Graphics.setAttrs(toolbarControls[i].el, {
         class: toolbarControls[i].class,
         title: toolbarControls[i].title,
+        tabindex: '0',
+        role: 'button',
+        'aria-label': toolbarControls[i].title,
       })
 
       toolbarControls[i].el.innerHTML = toolbarControls[i].icon
       elToolbarWrap.appendChild(toolbarControls[i].el)
+    }
+
+    // Toggle-button ARIA pressed state for zoom / selection / pan
+    if (this.elZoom.parentNode) {
+      this.elZoom.setAttribute('aria-pressed', String(!!w.globals.zoomEnabled))
+    }
+    if (this.elSelection.parentNode) {
+      this.elSelection.setAttribute('aria-pressed', String(!!w.globals.selectionEnabled))
+    }
+    if (this.elPan.parentNode) {
+      this.elPan.setAttribute('aria-pressed', String(!!w.globals.panEnabled))
+    }
+
+    // Menu icon: popup indicator
+    if (this.elMenuIcon.parentNode) {
+      this.elMenuIcon.setAttribute('aria-haspopup', 'true')
+      this.elMenuIcon.setAttribute('aria-expanded', 'false')
     }
 
     this._createHamburgerMenu(elToolbarWrap)
@@ -162,6 +182,7 @@ export default class Toolbar {
 
     Graphics.setAttrs(this.elMenu, {
       class: 'apexcharts-menu',
+      role: 'menu',
     })
 
     const menuItems = [
@@ -185,6 +206,8 @@ export default class Toolbar {
       Graphics.setAttrs(this.elMenuItems[i], {
         class: `apexcharts-menu-item ${menuItems[i].name}`,
         title: menuItems[i].title,
+        role: 'menuitem',
+        tabindex: '-1',
       })
       this.elMenu.appendChild(this.elMenuItems[i])
     }
@@ -219,6 +242,87 @@ export default class Toolbar {
         this.t.customIcons[i].click.bind(this, this.ctx, this.ctx.w)
       )
     }
+
+    // ── Keyboard accessibility ──────────────────────────────────────────────
+
+    // Activate any toolbar button (not menu items) with Enter or Space
+    const toolbarButtons = [
+      this.elZoomReset,
+      this.elSelection,
+      this.elZoom,
+      this.elZoomIn,
+      this.elZoomOut,
+      this.elPan,
+      this.elMenuIcon,
+      ...this.elCustomIcons,
+    ]
+    toolbarButtons.forEach((btn) => {
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          // Capture the button's class before click triggers a potential
+          // re-render (zoom-in/out/reset recreate the toolbar DOM, which
+          // removes the focused element and loses focus — same issue as legend).
+          const btnClass = btn.className
+          btn.click()
+          // After re-render, restore focus to the equivalent new button so the
+          // user can keep operating without having to re-tab to the toolbar.
+          requestAnimationFrame(() => {
+            const baseEl = this.w.globals.dom.baseEl
+            if (!baseEl) return
+            // Match on the first apexcharts-specific class (e.g. apexcharts-zoomin-icon)
+            const apexClass = btnClass
+              .split(' ')
+              .find((c) => c.startsWith('apexcharts-'))
+            if (!apexClass) return
+            const restored = baseEl.querySelector(`.${apexClass}`)
+            if (restored) restored.focus()
+          })
+        }
+      })
+    })
+
+    // Menu keyboard navigation: Arrow keys move focus, Escape closes menu
+    this.elMenuIcon.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        if (!this.elMenu.classList.contains('apexcharts-menu-open')) {
+          this.toggleMenu()
+        }
+        // Focus first (ArrowDown) or last (ArrowUp) menu item after menu renders
+        window.setTimeout(() => {
+          const idx = e.key === 'ArrowDown' ? 0 : this.elMenuItems.length - 1
+          if (this.elMenuItems[idx]) this.elMenuItems[idx].focus()
+        }, 20)
+      }
+    })
+
+    this.elMenuItems.forEach((m, idx) => {
+      m.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          const next = this.elMenuItems[idx + 1] || this.elMenuItems[0]
+          next.focus()
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          const prev =
+            this.elMenuItems[idx - 1] ||
+            this.elMenuItems[this.elMenuItems.length - 1]
+          prev.focus()
+        } else if (e.key === 'Escape' || e.key === 'Tab') {
+          this._closeMenu()
+          this.elMenuIcon.focus()
+          if (e.key === 'Tab') {
+            // Allow Tab to continue natural flow — do not prevent default
+          } else {
+            e.preventDefault()
+          }
+        } else if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          m.click()
+        }
+      })
+    })
   }
 
   toggleZoomSelection(type) {
@@ -241,6 +345,8 @@ export default class Toolbar {
       } else {
         el.classList.remove(ch.ctx.toolbar.selectedClass)
       }
+
+      el.setAttribute('aria-pressed', String(ch.w.globals[enabledType]))
     })
   }
 
@@ -290,6 +396,11 @@ export default class Toolbar {
       } else {
         ch.ctx.toolbar.elPan.classList.remove(ch.ctx.toolbar.selectedClass)
       }
+
+      ch.ctx.toolbar.elPan.setAttribute(
+        'aria-pressed',
+        String(ch.w.globals.panEnabled)
+      )
     })
   }
 
@@ -435,11 +546,17 @@ export default class Toolbar {
   toggleMenu() {
     window.setTimeout(() => {
       if (this.elMenu.classList.contains('apexcharts-menu-open')) {
-        this.elMenu.classList.remove('apexcharts-menu-open')
+        this._closeMenu()
       } else {
         this.elMenu.classList.add('apexcharts-menu-open')
+        this.elMenuIcon.setAttribute('aria-expanded', 'true')
       }
     }, 0)
+  }
+
+  _closeMenu() {
+    this.elMenu.classList.remove('apexcharts-menu-open')
+    this.elMenuIcon.setAttribute('aria-expanded', 'false')
   }
 
   handleDownload(type) {

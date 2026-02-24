@@ -355,6 +355,14 @@ export default class ApexCharts {
         }
 
         if (
+          w.config.chart.accessibility.enabled &&
+          w.config.chart.accessibility.keyboard.enabled &&
+          w.config.chart.accessibility.keyboard.navigation.enabled
+        ) {
+          me.keyboardNavigation.init()
+        }
+
+        if (
           w.globals.axisCharts &&
           (w.globals.isXNumeric ||
             w.config.xaxis.convertedCatToNumeric ||
@@ -419,6 +427,9 @@ export default class ApexCharts {
           Apex._chartInstances.splice(i, 1)
         }
       })
+    }
+    if (this.keyboardNavigation) {
+      this.keyboardNavigation.destroy()
     }
     new Destroy(this.ctx).clear({ isUpdating: false })
   }

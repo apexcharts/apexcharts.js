@@ -80,6 +80,9 @@ export default class Events {
               w.config.chart.accessibility.enabled &&
               w.config.chart.accessibility.keyboard.enabled
             ) {
+              if (me.ctx.keyboardNavigation) {
+                me.ctx.keyboardNavigation.handleKey(e)
+              }
               if (typeof w.config.chart.events.keyDown === 'function') {
                 w.config.chart.events.keyDown(e, me, opts)
               }

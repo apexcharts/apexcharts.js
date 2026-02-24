@@ -23,6 +23,7 @@ import Tooltip from '../tooltip/Tooltip'
 import Core from '../Core'
 import Data from '../Data'
 import UpdateHelpers from './UpdateHelpers'
+import KeyboardNavigation from '../accessibility/KeyboardNavigation'
 
 import { SVG } from '../../svg/index'
 import { Environment } from '../../utils/Environment.js'
@@ -118,5 +119,6 @@ export default class InitCtxVariables {
     this.ctx.updateHelpers = new UpdateHelpers(this.ctx)
     this.ctx.zoomPanSelection = new ZoomPanSelection(this.ctx)
     this.ctx.w.globals.tooltip = new Tooltip(this.ctx)
+    this.ctx.keyboardNavigation = new KeyboardNavigation(this.ctx)
   }
 }

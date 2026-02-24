@@ -76,6 +76,20 @@ rect.legend-mouseover-inactive,
   opacity: 0
 }
 
+/* Keyboard navigation focus indicator on SVG data elements.
+   SVG elements don't support CSS outline, so we use stroke. */
+.apexcharts-bar-area.apexcharts-keyboard-focused,
+.apexcharts-candlestick-area.apexcharts-keyboard-focused,
+.apexcharts-boxPlot-area.apexcharts-keyboard-focused,
+.apexcharts-rangebar-area.apexcharts-keyboard-focused,
+.apexcharts-pie-area.apexcharts-keyboard-focused,
+.apexcharts-heatmap-rect.apexcharts-keyboard-focused,
+.apexcharts-treemap-rect.apexcharts-keyboard-focused {
+  stroke: #008FFB;
+  stroke-width: 2;
+  stroke-opacity: 1;
+}
+
 .apexcharts-tooltip {
   border-radius: 5px;
   box-shadow: 2px 2px 6px -4px #999;
@@ -657,6 +671,32 @@ rect.legend-mouseover-inactive,
   .apexcharts-canvas:hover .apexcharts-toolbar {
     opacity: 1
   }
+}
+
+/* Toolbar keyboard accessibility: show toolbar when any button inside it is focused */
+.apexcharts-toolbar:focus-within {
+  opacity: 1
+}
+
+/* Focus indicator for toolbar icon buttons */
+.apexcharts-menu-icon:focus-visible,
+.apexcharts-pan-icon:focus-visible,
+.apexcharts-reset-icon:focus-visible,
+.apexcharts-selection-icon:focus-visible,
+.apexcharts-toolbar-custom-icon:focus-visible,
+.apexcharts-zoom-icon:focus-visible,
+.apexcharts-zoomin-icon:focus-visible,
+.apexcharts-zoomout-icon:focus-visible {
+  outline: 2px solid #008FFB;
+  outline-offset: 2px;
+  border-radius: 2px
+}
+
+/* Focus indicator for hamburger menu items */
+.apexcharts-menu-item:focus-visible {
+  outline: 2px solid #008FFB;
+  outline-offset: -2px;
+  background: #eee
 }
 
 .apexcharts-canvas .apexcharts-element-hidden,

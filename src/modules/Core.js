@@ -121,8 +121,17 @@ export default class Core {
     if (cnf.chart.accessibility.enabled) {
       const ariaLabel = this.getAccessibleChartLabel()
 
+      // Use role="application" when keyboard navigation is enabled so that
+      // screen readers pass arrow keys through to the chart rather than
+      // intercepting them. The <title> element still provides context.
+      const svgRole =
+        cnf.chart.accessibility.keyboard.enabled &&
+        cnf.chart.accessibility.keyboard.navigation.enabled
+          ? 'application'
+          : 'img'
+
       gl.dom.Paper.attr({
-        role: 'img',
+        role: svgRole,
         'aria-label': ariaLabel,
       })
 

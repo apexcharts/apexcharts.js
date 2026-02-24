@@ -492,6 +492,7 @@ class Legend {
 
   onLegendKeyDown(e) {
     const me = this
+    const w = this.w
 
     // Check if event target is a legend item
     const isLegendItem =
@@ -505,8 +506,23 @@ class Legend {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault() // Prevent page scroll on Space
 
+      // Capture the rel index before the click (toggleDataSeries re-renders
+      // the legend DOM, which destroys the focused element).
+      const rel = e.target.getAttribute('rel')
+
       // Trigger click handler
       me.onLegendClick(e)
+
+      // After re-render, restore focus to the same legend item so the user
+      // can keep toggling without having to re-tab to the legend.
+      if (rel !== null && w.config.legend.onItemClick.toggleDataSeries) {
+        requestAnimationFrame(() => {
+          const restored = w.globals.dom.baseEl.querySelector(
+            `.apexcharts-legend-series[rel="${rel}"]`
+          )
+          if (restored) restored.focus()
+        })
+      }
     }
   }
 

@@ -60,7 +60,9 @@ describe('Accessibility', () => {
       })
 
       const svg = chart.el.querySelector('.apexcharts-svg')
-      expect(svg.getAttribute('role')).toBe('img')
+      // Keyboard navigation is enabled by default → role="application" so that
+      // screen readers pass arrow keys through to the chart widget.
+      expect(svg.getAttribute('role')).toBe('application')
       expect(svg.getAttribute('aria-label')).toBeTruthy()
     })
 
@@ -86,7 +88,8 @@ describe('Accessibility', () => {
       const svg = chart.el.querySelector('.apexcharts-svg')
 
       expect(svg).not.toBeNull()
-      expect(svg.getAttribute('role')).toBe('img')
+      // Keyboard navigation enabled by default → role="application"
+      expect(svg.getAttribute('role')).toBe('application')
       expect(svg.getAttribute('aria-label')).toBeTruthy()
     })
 
@@ -136,8 +139,22 @@ describe('Accessibility', () => {
   // SVG ARIA Attributes
   // =========================================================================
   describe('SVG ARIA attributes', () => {
-    it('should add role="img" to main SVG element', () => {
+    it('should add role="application" to main SVG element when keyboard navigation is enabled', () => {
       const chart = chartWithAccessibility()
+
+      const svg = chart.el.querySelector('.apexcharts-svg')
+      expect(svg.getAttribute('role')).toBe('application')
+    })
+
+    it('should add role="img" to main SVG element when keyboard navigation is disabled', () => {
+      const chart = chartWithAccessibility({
+        accessibility: {
+          keyboard: {
+            enabled: true,
+            navigation: { enabled: false },
+          },
+        },
+      })
 
       const svg = chart.el.querySelector('.apexcharts-svg')
       expect(svg.getAttribute('role')).toBe('img')
@@ -676,6 +693,8 @@ describe('Accessibility', () => {
   // Different Chart Types
   // =========================================================================
   describe('different chart types', () => {
+    // Keyboard navigation is enabled by default, so the SVG gets
+    // role="application" (allows screen readers to pass arrow keys through).
     it.each(['line', 'area', 'bar', 'scatter', 'bubble', 'heatmap'])(
       'should add accessibility attributes for %s chart',
       (chartType) => {
@@ -684,7 +703,7 @@ describe('Accessibility', () => {
         })
 
         const svg = chart.el.querySelector('.apexcharts-svg')
-        expect(svg.getAttribute('role')).toBe('img')
+        expect(svg.getAttribute('role')).toBe('application')
 
         const ariaLabel = svg.getAttribute('aria-label')
         expect(ariaLabel).toContain(chartType + ' chart')
@@ -701,7 +720,7 @@ describe('Accessibility', () => {
       })
 
       const svg = chart.el.querySelector('.apexcharts-svg')
-      expect(svg.getAttribute('role')).toBe('img')
+      expect(svg.getAttribute('role')).toBe('application')
 
       const ariaLabel = svg.getAttribute('aria-label')
       expect(ariaLabel).toContain('pie chart')
@@ -717,7 +736,7 @@ describe('Accessibility', () => {
       })
 
       const svg = chart.el.querySelector('.apexcharts-svg')
-      expect(svg.getAttribute('role')).toBe('img')
+      expect(svg.getAttribute('role')).toBe('application')
 
       const ariaLabel = svg.getAttribute('aria-label')
       expect(ariaLabel).toContain('donut chart')
@@ -730,10 +749,25 @@ describe('Accessibility', () => {
       })
 
       const svg = chart.el.querySelector('.apexcharts-svg')
-      expect(svg.getAttribute('role')).toBe('img')
+      expect(svg.getAttribute('role')).toBe('application')
 
       const ariaLabel = svg.getAttribute('aria-label')
       expect(ariaLabel).toContain('radialBar chart')
+    })
+
+    it('should use role="img" when keyboard navigation is disabled', () => {
+      const chart = chartWithAccessibility({
+        type: 'line',
+        accessibility: {
+          keyboard: {
+            enabled: true,
+            navigation: { enabled: false },
+          },
+        },
+      })
+
+      const svg = chart.el.querySelector('.apexcharts-svg')
+      expect(svg.getAttribute('role')).toBe('img')
     })
   })
 

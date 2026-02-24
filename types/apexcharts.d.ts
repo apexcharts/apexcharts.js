@@ -270,6 +270,10 @@ type ApexChart = {
     }
     keyboard?: {
       enabled?: boolean
+      navigation?: {
+        enabled?: boolean
+        wrapAround?: boolean
+      }
     }
   }
 }
