@@ -5,6 +5,7 @@ import Series from '../Series'
 import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
 import Markers from '../Markers'
+import { Environment } from '../../utils/Environment.js'
 
 /**
  * ApexCharts Legend Class to draw legend.
@@ -110,7 +111,8 @@ class Legend {
         size: mSize,
       })
 
-      const SVGMarker = window.SVG().addTo(elMarker).size('100%', '100%')
+      const SVGLib = Environment.isBrowser() ? window.SVG : global.SVG
+      const SVGMarker = SVGLib().addTo(elMarker).size('100%', '100%')
       const marker = new Graphics(this.ctx).drawMarker(0, 0, {
         ...markerConfig,
         pointFillColor: Array.isArray(fillcolor)

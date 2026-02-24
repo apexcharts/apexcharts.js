@@ -1,6 +1,7 @@
 import apexchartsLegendCSS from '../../assets/apexcharts-legend.css'
 import Utils from '../../utils/Utils'
 import Graphics from '../Graphics'
+import { Environment } from '../../utils/Environment.js'
 
 export default class Helpers {
   constructor(lgCtx) {
@@ -9,6 +10,8 @@ export default class Helpers {
   }
 
   getLegendStyles() {
+    if (Environment.isSSR()) return null
+
     let stylesheet = document.createElement('style')
     stylesheet.setAttribute('type', 'text/css')
     const nonce =
@@ -38,8 +41,9 @@ export default class Helpers {
   appendToForeignObject() {
     const gl = this.w.globals
 
-    if (this.w.config.chart.injectStyleSheet !== false) {
-      gl.dom.elLegendForeign.appendChild(this.getLegendStyles())
+    const legendStyles = this.getLegendStyles()
+    if (this.w.config.chart.injectStyleSheet !== false && legendStyles) {
+      gl.dom.elLegendForeign.appendChild(legendStyles)
     }
   }
 

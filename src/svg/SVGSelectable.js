@@ -1,5 +1,6 @@
 import SVGContainer from './SVGContainer'
 import { SVGNS } from './math'
+import { Environment } from '../utils/Environment.js'
 
 // Install select + resize behavior on SVGElement prototype
 function installSelectable(ElementClass) {
@@ -160,10 +161,12 @@ function installSelectable(ElementClass) {
         }
 
         const onUp = () => {
-          document.removeEventListener('mousemove', onMove)
-          document.removeEventListener('touchmove', onMove)
-          document.removeEventListener('mouseup', onUp)
-          document.removeEventListener('touchend', onUp)
+          if (Environment.isBrowser()) {
+            document.removeEventListener('mousemove', onMove)
+            document.removeEventListener('touchmove', onMove)
+            document.removeEventListener('mouseup', onUp)
+            document.removeEventListener('touchend', onUp)
+          }
 
           // Fire resize event
           const event = new CustomEvent('resize', {
@@ -172,10 +175,12 @@ function installSelectable(ElementClass) {
           el.node.dispatchEvent(event)
         }
 
-        document.addEventListener('mousemove', onMove)
-        document.addEventListener('touchmove', onMove)
-        document.addEventListener('mouseup', onUp)
-        document.addEventListener('touchend', onUp)
+        if (Environment.isBrowser()) {
+          document.addEventListener('mousemove', onMove)
+          document.addEventListener('touchmove', onMove)
+          document.addEventListener('mouseup', onUp)
+          document.addEventListener('touchend', onUp)
+        }
       }
 
       handleNode.addEventListener('mousedown', onPointerDown)

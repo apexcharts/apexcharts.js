@@ -5,6 +5,8 @@
  * @module Tooltip.AxesTooltip
  **/
 
+import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
+
 class AxesTooltip {
   constructor(tooltipContext) {
     this.w = tooltipContext.w
@@ -36,7 +38,7 @@ class AxesTooltip {
       )
 
       if (xaxisTooltip === null) {
-        ttCtx.xaxisTooltip = document.createElement('div')
+        ttCtx.xaxisTooltip = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
         ttCtx.xaxisTooltip.setAttribute(
           'class',
           tooltipCssClass + ' apexcharts-theme-' + w.config.tooltip.theme
@@ -44,7 +46,7 @@ class AxesTooltip {
 
         renderTo.appendChild(ttCtx.xaxisTooltip)
 
-        ttCtx.xaxisTooltipText = document.createElement('div')
+        ttCtx.xaxisTooltipText = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
         ttCtx.xaxisTooltipText.classList.add('apexcharts-xaxistooltip-text')
 
         ttCtx.xaxisTooltipText.style.fontFamily =
@@ -81,7 +83,7 @@ class AxesTooltip {
       )
 
       if (yaxisTooltip === null) {
-        ttCtx.yaxisTooltip = document.createElement('div')
+        ttCtx.yaxisTooltip = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
         ttCtx.yaxisTooltip.setAttribute(
           'class',
           tooltipCssClass + ' apexcharts-theme-' + w.config.tooltip.theme
@@ -91,7 +93,7 @@ class AxesTooltip {
 
         if (i === 0) ttCtx.yaxisTooltipText = []
 
-        ttCtx.yaxisTooltipText[i] = document.createElement('div')
+        ttCtx.yaxisTooltipText[i] = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
         ttCtx.yaxisTooltipText[i].classList.add('apexcharts-yaxistooltip-text')
 
         ttCtx.yaxisTooltip.appendChild(ttCtx.yaxisTooltipText[i])

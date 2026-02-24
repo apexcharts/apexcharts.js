@@ -1,5 +1,6 @@
 import Graphics from '../Graphics'
 import AxesUtils from './AxesUtils'
+import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 
 /**
  * ApexCharts XAxis Class for drawing X-Axis.
@@ -320,7 +321,7 @@ export default class XAxis {
         })
 
         if (isLeafGroup) {
-          let elTooltipTitle = document.createElementNS(
+          let elTooltipTitle = BrowserAPIs.createElementNS(
             w.globals.SVGNS,
             'title'
           )
@@ -444,7 +445,7 @@ export default class XAxis {
           }
         })
 
-        let elTooltipTitle = document.createElementNS(w.globals.SVGNS, 'title')
+        let elTooltipTitle = BrowserAPIs.createElementNS(w.globals.SVGNS, 'title')
         elTooltipTitle.textContent = Array.isArray(label)
           ? label.join(' ')
           : label

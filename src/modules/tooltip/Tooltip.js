@@ -3,6 +3,7 @@ import Position from './Position'
 import Marker from './Marker'
 import Intersect from './Intersect'
 import AxesTooltip from './AxesTooltip'
+import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import Graphics from '../Graphics'
 import Series from '../Series'
 import XAxis from './../axes/XAxis'
@@ -132,7 +133,7 @@ export default class Tooltip {
       this.showTooltipTitle = false
     }
 
-    const tooltipEl = document.createElement('div')
+    const tooltipEl = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
     tooltipEl.classList.add('apexcharts-tooltip')
     if (w.config.tooltip.cssClass) {
       tooltipEl.classList.add(w.config.tooltip.cssClass)
@@ -184,7 +185,7 @@ export default class Tooltip {
     this.dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints
 
     if (this.showTooltipTitle) {
-      this.tooltipTitle = document.createElement('div')
+      this.tooltipTitle = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
       this.tooltipTitle.classList.add('apexcharts-tooltip-title')
       this.tooltipTitle.style.fontFamily =
         this.tConfig.style.fontFamily || w.config.chart.fontFamily
@@ -217,7 +218,7 @@ export default class Tooltip {
 
     const tooltipEl = this.getElTooltip()
     for (let i = 0; i < ttItemsCnt; i++) {
-      let gTxt = document.createElement('div')
+      let gTxt = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
 
       gTxt.classList.add(
         'apexcharts-tooltip-series-group',
@@ -225,7 +226,7 @@ export default class Tooltip {
       )
       gTxt.style.order = w.config.tooltip.inverseOrder ? ttItemsCnt - i : i + 1
 
-      let point = document.createElement('span')
+      let point = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'span')
       point.classList.add('apexcharts-tooltip-marker')
 
       if (w.config.tooltip.fillSeriesColor) {
@@ -243,21 +244,21 @@ export default class Tooltip {
       point.setAttribute('shape', shape)
       gTxt.appendChild(point)
 
-      const gYZ = document.createElement('div')
+      const gYZ = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
       gYZ.classList.add('apexcharts-tooltip-text')
 
       gYZ.style.fontFamily =
         this.tConfig.style.fontFamily || w.config.chart.fontFamily
       gYZ.style.fontSize = this.tConfig.style.fontSize
       ;['y', 'goals', 'z'].forEach((g) => {
-        const gValText = document.createElement('div')
+        const gValText = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
         gValText.classList.add(`apexcharts-tooltip-${g}-group`)
 
-        let txtLabel = document.createElement('span')
+        let txtLabel = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'span')
         txtLabel.classList.add(`apexcharts-tooltip-text-${g}-label`)
         gValText.appendChild(txtLabel)
 
-        let txtValue = document.createElement('span')
+        let txtValue = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'span')
         txtValue.classList.add(`apexcharts-tooltip-text-${g}-value`)
         gValText.appendChild(txtValue)
 

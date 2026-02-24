@@ -3,6 +3,7 @@ import AxesUtils from '../modules/axes/AxesUtils'
 import Data from '../modules/Data'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
+import { Environment } from '../utils/Environment.js'
 
 class Exports {
   constructor(ctx) {
@@ -116,6 +117,8 @@ class Exports {
   }
 
   getBase64FromUrl(url) {
+    if (Environment.isSSR()) return Promise.resolve(url)
+
     return new Promise((resolve, reject) => {
       const img = new Image()
       img.crossOrigin = 'Anonymous'
@@ -144,6 +147,8 @@ class Exports {
   }
 
   dataURI(options) {
+    if (Environment.isSSR()) return Promise.resolve({ imgURI: '' })
+
     return new Promise((resolve) => {
       const w = this.w
 
@@ -504,6 +509,8 @@ class Exports {
   }
 
   triggerDownload(href, filename, ext) {
+    if (Environment.isSSR()) return
+
     const downloadLink = document.createElement('a')
     downloadLink.href = href
     downloadLink.download = (filename ? filename : this.w.globals.chartID) + ext

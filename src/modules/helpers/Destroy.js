@@ -1,4 +1,5 @@
 import PerformanceCache from '../../utils/PerformanceCache'
+import { Environment } from '../../utils/Environment.js'
 
 export default class Destroy {
   constructor(ctx) {
@@ -60,32 +61,34 @@ export default class Destroy {
   }
 
   clearDomElements({ isUpdating }) {
-    const elSVG = this.w.globals.dom.Paper.node
-    // fixes apexcharts.js#1654 & vue-apexcharts#256
-    if (elSVG.parentNode && elSVG.parentNode.parentNode && !isUpdating) {
-      elSVG.parentNode.parentNode.style.minHeight = 'unset'
-    }
-
-    // detach root event
-    const baseEl = this.w.globals.dom.baseEl
-    if (baseEl) {
-      // see https://github.com/apexcharts/vue-apexcharts/issues/275
-      this.ctx.eventList.forEach((event) => {
-        baseEl.removeEventListener(event, this.ctx.events.documentEvent)
-      })
-    }
-
     const domEls = this.w.globals.dom
 
-    if (this.ctx.el !== null) {
-      // remove all child elements - resetting the whole chart
-      while (this.ctx.el.firstChild) {
-        this.ctx.el.removeChild(this.ctx.el.firstChild)
+    if (Environment.isBrowser()) {
+      const elSVG = domEls.Paper.node
+      // fixes apexcharts.js#1654 & vue-apexcharts#256
+      if (elSVG.parentNode && elSVG.parentNode.parentNode && !isUpdating) {
+        elSVG.parentNode.parentNode.style.minHeight = 'unset'
       }
-    }
 
-    this.killSVG(domEls.Paper)
-    domEls.Paper.remove()
+      // detach root event
+      const baseEl = domEls.baseEl
+      if (baseEl) {
+        // see https://github.com/apexcharts/vue-apexcharts/issues/275
+        this.ctx.eventList.forEach((event) => {
+          baseEl.removeEventListener(event, this.ctx.events.documentEvent)
+        })
+      }
+
+      if (this.ctx.el !== null) {
+        // remove all child elements - resetting the whole chart
+        while (this.ctx.el.firstChild) {
+          this.ctx.el.removeChild(this.ctx.el.firstChild)
+        }
+      }
+
+      this.killSVG(domEls.Paper)
+      domEls.Paper.remove()
+    }
 
     domEls.elWrap = null
     domEls.elGraphical = null

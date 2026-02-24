@@ -103,7 +103,7 @@ export default class Core {
     this.setSVGDimensions()
 
     // foreignObject must be added first (at the back in z-order) to prevent blocking interactions
-    gl.dom.elLegendForeign = document.createElementNS(gl.SVGNS, 'foreignObject')
+    gl.dom.elLegendForeign = BrowserAPIs.createElementNS(gl.SVGNS, 'foreignObject')
     Graphics.setAttrs(gl.dom.elLegendForeign, {
       x: 0,
       y: 0,
@@ -111,7 +111,7 @@ export default class Core {
       height: gl.svgHeight,
     })
 
-    gl.dom.elLegendWrap = document.createElement('div')
+    gl.dom.elLegendWrap = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
     gl.dom.elLegendWrap.classList.add('apexcharts-legend')
 
     gl.dom.elWrap.appendChild(gl.dom.elLegendWrap)
@@ -127,14 +127,14 @@ export default class Core {
       })
 
       // Add title element for screen readers (after foreignObject)
-      const titleEl = document.createElementNS(gl.SVGNS, 'title')
+      const titleEl = BrowserAPIs.createElementNS(gl.SVGNS, 'title')
       titleEl.textContent = cnf.title.text || 'Chart'
       // Insert after foreignObject but before other elements
       gl.dom.Paper.node.insertBefore(titleEl, gl.dom.elLegendForeign.nextSibling)
 
       // Add desc element when description is provided
       if (cnf.chart.accessibility.description) {
-        const descEl = document.createElementNS(gl.SVGNS, 'desc')
+        const descEl = BrowserAPIs.createElementNS(gl.SVGNS, 'desc')
         descEl.textContent = cnf.chart.accessibility.description
         gl.dom.Paper.node.insertBefore(descEl, titleEl.nextSibling)
       }

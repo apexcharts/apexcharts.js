@@ -1,6 +1,7 @@
 import Config from './settings/Config'
 import Utils from '../utils/Utils'
 import CoreUtils from './CoreUtils'
+import { Environment } from '../utils/Environment.js'
 
 /**
  * ApexCharts Responsive Class to override options for different screen sizes.
@@ -34,7 +35,9 @@ export default class Responsive {
 
     const iterateResponsiveOptions = (newOptions = {}) => {
       let largestBreakpoint = res[0].breakpoint
-      const width = window.innerWidth > 0 ? window.innerWidth : screen.width
+      const width = Environment.isBrowser()
+        ? (window.innerWidth > 0 ? window.innerWidth : screen.width)
+        : 0
 
       if (width > largestBreakpoint) {
         let initialConfig = Utils.clone(w.globals.initialConfig)

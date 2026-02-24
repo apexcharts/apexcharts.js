@@ -1,6 +1,7 @@
 import Graphics from '../Graphics'
 import Utils from '../../utils/Utils'
 import AxesUtils from './AxesUtils'
+import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 
 /**
  * ApexCharts YAxis Class for drawing Y-Axis.
@@ -136,7 +137,7 @@ export default class YAxis {
   }
 
   addTooltip(label, val) {
-    const elTooltipTitle = document.createElementNS(
+    const elTooltipTitle = BrowserAPIs.createElementNS(
       this.w.globals.SVGNS,
       'title'
     )

@@ -1,4 +1,5 @@
 import Utils from '../../utils/Utils'
+import { Environment } from '../../utils/Environment.js'
 
 import en from '../../locales/en.json'
 
@@ -13,12 +14,13 @@ export default class Localization {
 
     // check if user has specified locales in global Apex variable
     // if yes - then extend those with local chart's locale
+    const globalApex = Environment.getApex()
     if (
-      window.Apex.chart &&
-      window.Apex.chart.locales &&
-      window.Apex.chart.locales.length > 0
+      globalApex.chart &&
+      globalApex.chart.locales &&
+      globalApex.chart.locales.length > 0
     ) {
-      locales = this.w.config.chart.locales.concat(window.Apex.chart.locales)
+      locales = this.w.config.chart.locales.concat(globalApex.chart.locales)
     }
 
     // find the locale from the array of locales which user has set (either by chart.defaultLocale or by calling setLocale() method.)

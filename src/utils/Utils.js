@@ -427,6 +427,9 @@ class Utils {
   static getThemeColor(color) {
     if (!Utils.isCSSVariable(color)) return color
 
+    // CSS variable resolution requires a live DOM — not possible in SSR
+    if (Environment.isSSR()) return color
+
     const tempElem = document.createElement('div')
     tempElem.style.cssText = 'position:fixed; left: -9999px; visibility:hidden;'
     tempElem.style.color = color
@@ -528,6 +531,8 @@ class Utils {
   }
 
   static isMsEdge() {
+    if (Environment.isSSR()) return false
+
     let ua = window.navigator.userAgent
 
     let edge = ua.indexOf('Edge/')

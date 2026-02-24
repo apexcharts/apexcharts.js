@@ -28,4 +28,15 @@ export class Environment {
     if (this.isSSR()) return false
     return typeof window[api] !== 'undefined'
   }
+
+  /**
+   * Returns the global Apex config object regardless of environment.
+   * In browser: window.Apex; in SSR/Node.js: global.Apex; fallback: {}.
+   * @returns {object}
+   */
+  static getApex() {
+    if (typeof window !== 'undefined' && window.Apex) return window.Apex
+    if (typeof global !== 'undefined' && global.Apex) return global.Apex
+    return {}
+  }
 }

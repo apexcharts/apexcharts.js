@@ -1,6 +1,7 @@
 import Graphics from './Graphics'
 import Exports from './Exports'
 import Utils from './../utils/Utils'
+import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 import icoPan from './../assets/ico-pan-hand.svg'
 import icoZoom from './../assets/ico-zoom-in.svg'
 import icoReset from './../assets/ico-home.svg'
@@ -34,7 +35,7 @@ export default class Toolbar {
     let w = this.w
 
     const createDiv = () => {
-      return document.createElement('div')
+      return BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
     }
     const elToolbarWrap = createDiv()
     elToolbarWrap.setAttribute('class', 'apexcharts-toolbar')
@@ -179,7 +180,7 @@ export default class Toolbar {
     ]
 
     for (let i = 0; i < menuItems.length; i++) {
-      this.elMenuItems.push(document.createElement('div'))
+      this.elMenuItems.push(BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div'))
       this.elMenuItems[i].innerHTML = menuItems[i].title
       Graphics.setAttrs(this.elMenuItems[i], {
         class: `apexcharts-menu-item ${menuItems[i].name}`,
