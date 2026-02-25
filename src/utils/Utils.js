@@ -6,12 +6,6 @@ import { Environment } from './Environment.js'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 
 class Utils {
-  static bind(fn, me) {
-    return function () {
-      return fn.apply(me, arguments)
-    }
-  }
-
   static isObject(item) {
     return item && typeof item === 'object' && !Array.isArray(item)
   }
@@ -25,43 +19,9 @@ class Utils {
     return /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
   }
 
-  static listToArray(list) {
-    let i,
-      array = []
-    for (i = 0; i < list.length; i++) {
-      array[i] = list[i]
-    }
-    return array
-  }
-
   // to extend defaults with user options
   // credit: http://stackoverflow.com/questions/27936772/deep-object-merging-in-es6-es7#answer-34749873
   static extend(target, source) {
-    if (typeof Object.assign !== 'function') {
-      ;(function () {
-        Object.assign = function (target) {
-          'use strict'
-          // We must check against these specific cases.
-          if (target === undefined || target === null) {
-            throw new TypeError('Cannot convert undefined or null to object')
-          }
-
-          let output = Object(target)
-          for (let index = 1; index < arguments.length; index++) {
-            let source = arguments[index]
-            if (source !== undefined && source !== null) {
-              for (let nextKey in source) {
-                if (Object.prototype.hasOwnProperty.call(source, nextKey)) {
-                  output[nextKey] = source[nextKey]
-                }
-              }
-            }
-          }
-          return output
-        }
-      })()
-    }
-
     let output = Object.assign({}, target)
     if (this.isObject(target) && this.isObject(source)) {
       Object.keys(source).forEach((key) => {

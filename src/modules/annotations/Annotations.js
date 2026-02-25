@@ -296,7 +296,7 @@ export default class Annotations {
       }
     }
 
-    annos = Utils.listToArray(annos)
+    annos = Array.from(annos)
 
     // delete the DOM elements
     Array.prototype.forEach.call(annos, (a) => {

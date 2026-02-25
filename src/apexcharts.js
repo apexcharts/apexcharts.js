@@ -42,7 +42,7 @@ export default class ApexCharts {
 
     this.lastUpdateOptions = null
 
-    this.create = Utils.bind(this.create, this)
+    this.create = this.create.bind(this)
 
     // bind event handlers in browser environment
     if (Environment.isBrowser()) {
@@ -815,6 +815,55 @@ export default class ApexCharts {
 
   getSeriesTotal() {
     return this.w.globals.seriesTotals
+  }
+
+  /**
+   * Returns a curated snapshot of chart state for use in formatters, events,
+   * and external integrations. Prefer this over accessing `chart.w` directly.
+   *
+   * The shape of this object is stable and versioned. `chart.w` is internal
+   * and will be restricted in a future major version.
+   */
+  getState() {
+    const gl = this.w.globals
+
+    return {
+      // Series data — computed/parsed form used for rendering
+      series: gl.series,
+      seriesNames: gl.seriesNames,
+      colors: gl.colors,
+      labels: gl.labels,
+      seriesTotals: gl.seriesTotals,
+
+      // Axis bounds — updated after each render
+      minX: gl.minX,
+      maxX: gl.maxX,
+      minY: gl.minY,
+      maxY: gl.maxY,
+
+      // Chart dimensions — updated after each render/resize
+      svgWidth: gl.svgWidth,
+      svgHeight: gl.svgHeight,
+      gridWidth: gl.gridWidth,
+      gridHeight: gl.gridHeight,
+
+      // Interactive state
+      selectedDataPoints: gl.selectedDataPoints,
+      collapsedSeriesIndices: gl.collapsedSeriesIndices,
+      zoomed: gl.zoomed,
+
+      // Chart-type-specific series data (null when not applicable)
+      seriesX: gl.seriesX,
+      seriesZ: gl.seriesZ,
+      seriesCandleO: gl.seriesCandleO,
+      seriesCandleH: gl.seriesCandleH,
+      seriesCandleM: gl.seriesCandleM,
+      seriesCandleL: gl.seriesCandleL,
+      seriesCandleC: gl.seriesCandleC,
+      seriesRangeStart: gl.seriesRangeStart,
+      seriesRangeEnd: gl.seriesRangeEnd,
+      seriesGoals: gl.seriesGoals,
+    }
   }
 
   toggleDataPointSelection(seriesIndex, dataPointIndex) {

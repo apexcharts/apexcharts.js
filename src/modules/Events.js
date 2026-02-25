@@ -1,11 +1,9 @@
-import Utils from '../utils/Utils'
-
 export default class Events {
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
 
-    this.documentEvent = Utils.bind(this.documentEvent, this)
+    this.documentEvent = this.documentEvent.bind(this)
   }
 
   addEventListener(name, handler) {

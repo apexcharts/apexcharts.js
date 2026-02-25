@@ -79,7 +79,7 @@ export default class YAxis {
         )
         const foreColor = Array.isArray(yColors) ? yColors[i] : yColors
 
-        const existingYLabels = Utils.listToArray(
+        const existingYLabels = Array.from(
           w.globals.dom.baseEl.querySelectorAll(
             `.apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-label tspan`
           )
@@ -474,7 +474,7 @@ export default class YAxis {
 
   setYAxisTextAlignments() {
     const w = this.w
-    const yaxis = Utils.listToArray(
+    const yaxis = Array.from(
       w.globals.dom.baseEl.getElementsByClassName('apexcharts-yaxis')
     )
 
@@ -484,7 +484,7 @@ export default class YAxis {
         const yAxisInner = w.globals.dom.baseEl.querySelector(
           `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`
         )
-        const yAxisTexts = Utils.listToArray(
+        const yAxisTexts = Array.from(
           w.globals.dom.baseEl.querySelectorAll(
             `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-label`
           )
