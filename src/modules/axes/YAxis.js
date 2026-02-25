@@ -1,5 +1,4 @@
 import Graphics from '../Graphics'
-import Utils from '../../utils/Utils'
 import AxesUtils from './AxesUtils'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 
