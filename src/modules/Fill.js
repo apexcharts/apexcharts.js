@@ -2,6 +2,7 @@ import Graphics from './Graphics'
 import Utils from '../utils/Utils'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 import { Environment } from '../utils/Environment.js'
+import { SVGNS } from '../svg/math'
 
 /**
  * ApexCharts Fill Class for setting fill options of the paths.
@@ -50,7 +51,7 @@ class Fill {
       imgHeight = params.height
     }
 
-    const elPattern = BrowserAPIs.createElementNS(w.globals.SVGNS, 'pattern')
+    const elPattern = BrowserAPIs.createElementNS(SVGNS, 'pattern')
 
     Graphics.setAttrs(elPattern, {
       id: params.patternID,
@@ -61,7 +62,7 @@ class Fill {
       height: imgHeight + 'px',
     })
 
-    const elImage = BrowserAPIs.createElementNS(w.globals.SVGNS, 'image')
+    const elImage = BrowserAPIs.createElementNS(SVGNS, 'image')
     elPattern.appendChild(elImage)
 
     const SVGLib = Environment.isBrowser() ? window.SVG : global.SVG

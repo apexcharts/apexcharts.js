@@ -292,8 +292,8 @@ export default class KeyboardNavigation {
     if (!ttCtx || !ttCtx.ttItems) return
 
     // Keep globals consistent with the rest of the system
-    w.globals.capturedSeriesIndex = i
-    w.globals.capturedDataPointIndex = j
+    w.interact.capturedSeriesIndex = i
+    w.interact.capturedDataPointIndex = j
 
     this._applyFocusClass(i, j)
     this._showTooltip(i, j, ttCtx)

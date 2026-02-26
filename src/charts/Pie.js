@@ -370,8 +370,8 @@ class Pie {
       }
 
       if (
-        typeof w.globals.selectedDataPoints[0] !== 'undefined' &&
-        w.globals.selectedDataPoints[0].indexOf(i) > -1
+        typeof w.interact.selectedDataPoints[0] !== 'undefined' &&
+        w.interact.selectedDataPoints[0].indexOf(i) > -1
       ) {
         this.pieClicked(i)
       }
@@ -635,7 +635,7 @@ class Pie {
           pieSlice.setAttribute('d', origPath)
         }
       })
-      w.globals.capturedDataPointIndex = i
+      w.interact.capturedDataPointIndex = i
 
       elPath.attr('data:pieClicked', 'true')
     }

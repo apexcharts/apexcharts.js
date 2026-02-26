@@ -43,11 +43,14 @@ function makeW(overrides = {}) {
         { min: 10, max: 200 },
         { min: 0, max: 50 },
       ],
-      zoomed: false,
       axisCharts: true,
       collapsedSeriesIndices: [],
       ancillaryCollapsedSeriesIndices: [],
       ...overrides.globals,
+    },
+    interact: {
+      zoomed: false,
+      ...(overrides.interact || {}),
     },
   }
   return w
@@ -295,7 +298,7 @@ describe('UpdateHelpers.revertDefaultAxisMinMax', () => {
   it('restores xaxis min/max from lastXAxis when not zoomed and no opts', () => {
     const w = makeW()
     w.globals.lastXAxis = { min: 5, max: 95 }
-    w.globals.zoomed = false
+    w.interact.zoomed = false
     const uh = new UpdateHelpers(w, makeCtx(w))
 
     uh.revertDefaultAxisMinMax()
@@ -317,7 +320,7 @@ describe('UpdateHelpers.revertDefaultAxisMinMax', () => {
 
   it('restores yaxis min/max from lastYAxis when zoomed', () => {
     const w = makeW()
-    w.globals.zoomed = true
+    w.interact.zoomed = true
     w.globals.lastYAxis = [
       { min: 10, max: 200 },
       { min: 0, max: 50 },
@@ -334,7 +337,7 @@ describe('UpdateHelpers.revertDefaultAxisMinMax', () => {
 
   it('falls back to ctx.opts.yaxis when lastYAxis entry is missing and not zoomed', () => {
     const w = makeW()
-    w.globals.zoomed = false
+    w.interact.zoomed = false
     w.globals.lastYAxis = [] // no last axis stored
     const ctx = makeCtx(w, {
       yaxis: [
@@ -355,7 +358,7 @@ describe('UpdateHelpers.revertDefaultAxisMinMax', () => {
 
   it('uses opts.yaxis when provided as override', () => {
     const w = makeW()
-    w.globals.zoomed = false
+    w.interact.zoomed = false
     const uh = new UpdateHelpers(w, makeCtx(w))
 
     uh.revertDefaultAxisMinMax({

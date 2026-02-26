@@ -142,9 +142,9 @@ class Filters {
 
   setSelectionFilter(el, realIndex, dataPointIndex) {
     const w = this.w
-    if (typeof w.globals.selectedDataPoints[realIndex] !== 'undefined') {
+    if (typeof w.interact.selectedDataPoints[realIndex] !== 'undefined') {
       if (
-        w.globals.selectedDataPoints[realIndex].indexOf(dataPointIndex) > -1
+        w.interact.selectedDataPoints[realIndex].indexOf(dataPointIndex) > -1
       ) {
         el.node.setAttribute('selected', true)
         const activeFilter = w.config.states.active.filter

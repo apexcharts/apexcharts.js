@@ -129,7 +129,7 @@ export default class ZoomPanSelection extends Toolbar {
     const w = this.w
     const toolbar = this.ctx.toolbar
 
-    const zoomtype = w.globals.zoomEnabled
+    const zoomtype = w.interact.zoomEnabled
       ? w.config.chart.zoom.type
       : w.config.chart.selection.type
 
@@ -180,15 +180,15 @@ export default class ZoomPanSelection extends Toolbar {
       this.startY = this.clientY - gridRectDim.top
 
       this.dragged = false
-      this.w.globals.mousedown = true
+      this.w.interact.mousedown = true
     }
 
     if ((e.type === 'mousemove' && e.which === 1) || e.type === 'touchmove') {
       this.dragged = true
 
-      if (w.globals.panEnabled) {
-        w.globals.selection = null
-        if (this.w.globals.mousedown) {
+      if (w.interact.panEnabled) {
+        w.interact.selection = null
+        if (this.w.interact.mousedown) {
           this.panDragging({
             context: this,
             zoomtype,
@@ -197,8 +197,8 @@ export default class ZoomPanSelection extends Toolbar {
         }
       } else {
         if (
-          (this.w.globals.mousedown && w.globals.zoomEnabled) ||
-          (this.w.globals.mousedown && w.globals.selectionEnabled)
+          (this.w.interact.mousedown && w.interact.zoomEnabled) ||
+          (this.w.interact.mousedown && w.interact.selectionEnabled)
         ) {
           this.selection = this.selectionDrawing({
             context: this,
@@ -224,7 +224,7 @@ export default class ZoomPanSelection extends Toolbar {
     // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
     const gridRectDim = this.gridRect?.getBoundingClientRect()
 
-    if (gridRectDim && (this.w.globals.mousedown || isResized)) {
+    if (gridRectDim && (this.w.interact.mousedown || isResized)) {
       // user released the drag, now do all the calculations
       this.endX =
         this.clientX - gridRectDim.left - w.globals.barPadForNumericAxis
@@ -232,24 +232,24 @@ export default class ZoomPanSelection extends Toolbar {
       this.dragX = Math.abs(this.endX - this.startX)
       this.dragY = Math.abs(this.endY - this.startY)
 
-      if (w.globals.zoomEnabled || w.globals.selectionEnabled) {
+      if (w.interact.zoomEnabled || w.interact.selectionEnabled) {
         this.selectionDrawn({
           context: this,
           zoomtype,
         })
       }
 
-      // if (w.globals.panEnabled && w.config.xaxis.convertedCatToNumeric) {
+      // if (w.interact.panEnabled && w.config.xaxis.convertedCatToNumeric) {
       //   this.delayedPanScrolled()
       // }
     }
 
-    if (w.globals.zoomEnabled) {
+    if (w.interact.zoomEnabled) {
       this.hideSelectionRect(this.selectionRect)
     }
 
     this.dragged = false
-    this.w.globals.mousedown = false
+    this.w.interact.mousedown = false
   }
 
   mouseWheelEvent(e) {
@@ -259,17 +259,17 @@ export default class ZoomPanSelection extends Toolbar {
     const now = Date.now()
 
     // Execute immediately if it's the first action or enough time has passed
-    if (now - w.globals.lastWheelExecution > this.wheelDelay) {
+    if (now - w.interact.lastWheelExecution > this.wheelDelay) {
       this.executeMouseWheelZoom(e)
-      w.globals.lastWheelExecution = now
+      w.interact.lastWheelExecution = now
     }
 
     if (this.debounceTimer) clearTimeout(this.debounceTimer)
 
     this.debounceTimer = setTimeout(() => {
-      if (now - w.globals.lastWheelExecution > this.wheelDelay) {
+      if (now - w.interact.lastWheelExecution > this.wheelDelay) {
         this.executeMouseWheelZoom(e)
-        w.globals.lastWheelExecution = now
+        w.interact.lastWheelExecution = now
       }
     }, this.debounceDelay)
   }
@@ -355,7 +355,7 @@ export default class ZoomPanSelection extends Toolbar {
         })
         .resize()
         .on('resize', () => {
-          const zoomtype = w.globals.zoomEnabled
+          const zoomtype = w.interact.zoomEnabled
             ? w.config.chart.zoom.type
             : w.config.chart.selection.type
 
@@ -368,13 +368,13 @@ export default class ZoomPanSelection extends Toolbar {
     const w = this.w
     const xyRatios = this.xyRatios
 
-    if (!w.globals.zoomEnabled) {
+    if (!w.interact.zoomEnabled) {
       if (
-        typeof w.globals.selection !== 'undefined' &&
-        w.globals.selection !== null
+        typeof w.interact.selection !== 'undefined' &&
+        w.interact.selection !== null
       ) {
         this.drawSelectionRect({
-          ...w.globals.selection,
+          ...w.interact.selection,
           translateX: w.globals.translateX,
           translateY: w.globals.translateY,
         })
@@ -431,14 +431,14 @@ export default class ZoomPanSelection extends Toolbar {
     const w = this.w
     const zoomRect = this.zoomRect
     const selectionRect = this.selectionRect
-    if (this.dragged || w.globals.selection !== null) {
+    if (this.dragged || w.interact.selection !== null) {
       const scalingAttrs = {
         transform: 'translate(' + translateX + ', ' + translateY + ')',
       }
 
       // change styles based on zoom or selection
       // zoom is Enabled and user has dragged, so draw blue rect
-      if (w.globals.zoomEnabled && this.dragged) {
+      if (w.interact.zoomEnabled && this.dragged) {
         if (width < 0) width = 1 // fixes apexcharts.js#1168
         zoomRect.attr({
           x,
@@ -455,7 +455,7 @@ export default class ZoomPanSelection extends Toolbar {
       }
 
       // selection is enabled
-      if (w.globals.selectionEnabled) {
+      if (w.interact.selectionEnabled) {
         selectionRect.attr({
           x,
           y,
@@ -610,12 +610,12 @@ export default class ZoomPanSelection extends Toolbar {
       height: getSelAttr('height'),
     }
 
-    w.globals.selection = draggedProps
+    w.interact.selection = draggedProps
     // update selection ends
 
     if (
       typeof w.config.chart.events.selection === 'function' &&
-      w.globals.selectionEnabled
+      w.interact.selectionEnabled
     ) {
       // a small debouncer is required when resizing to avoid freezing the chart
       clearTimeout(this.w.globals.selectionResizeTimer)
@@ -682,7 +682,7 @@ export default class ZoomPanSelection extends Toolbar {
     const toolbar = this.ctx.toolbar
 
     // Use boundingRect for final selection area
-    const selRect = w.globals.zoomEnabled
+    const selRect = w.interact.zoomEnabled
       ? me.zoomRect.node.getBoundingClientRect()
       : me.selectionRect.node.getBoundingClientRect()
     const gridRectDim = me.gridRect.getBoundingClientRect()
@@ -733,11 +733,11 @@ export default class ZoomPanSelection extends Toolbar {
       (me.dragX > 10 || me.dragY > 10) &&
       xLowestValue !== xHighestValue
     ) {
-      if (w.globals.zoomEnabled) {
+      if (w.interact.zoomEnabled) {
         let yaxis = Utils.clone(w.globals.initialConfig.yaxis)
         let xaxis = Utils.clone(w.globals.initialConfig.xaxis)
 
-        w.globals.zoomed = true
+        w.interact.zoomed = true
 
         if (w.config.xaxis.convertedCatToNumeric) {
           xLowestValue = Math.floor(xLowestValue)
@@ -793,7 +793,7 @@ export default class ZoomPanSelection extends Toolbar {
         if (typeof w.config.chart.events.zoomed === 'function') {
           toolbar.zoomCallback(xaxis, yaxis)
         }
-      } else if (w.globals.selectionEnabled) {
+      } else if (w.interact.selectionEnabled) {
         let yaxis = null
         let xaxis = null
         xaxis = {
@@ -808,7 +808,7 @@ export default class ZoomPanSelection extends Toolbar {
           })
         }
 
-        w.globals.selection = me.selection
+        w.interact.selection = me.selection
         if (typeof w.config.chart.events.selection === 'function') {
           w.config.chart.events.selection(me.ctx, {
             xaxis,
@@ -824,10 +824,10 @@ export default class ZoomPanSelection extends Toolbar {
     const me = context
 
     // check to make sure there is data to compare against
-    if (typeof w.globals.lastClientPosition.x !== 'undefined') {
+    if (typeof w.interact.lastClientPosition.x !== 'undefined') {
       // get the change from last position to this position
-      const deltaX = w.globals.lastClientPosition.x - me.clientX
-      const deltaY = w.globals.lastClientPosition.y - me.clientY
+      const deltaX = w.interact.lastClientPosition.x - me.clientX
+      const deltaY = w.interact.lastClientPosition.y - me.clientY
 
       // check which direction had the highest amplitude
       if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 0) {
@@ -842,7 +842,7 @@ export default class ZoomPanSelection extends Toolbar {
     }
 
     // set the new last position to the current for next time (to get the position of drag)
-    w.globals.lastClientPosition = {
+    w.interact.lastClientPosition = {
       x: me.clientX,
       y: me.clientY,
     }

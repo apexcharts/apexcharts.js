@@ -8,6 +8,7 @@ import Utils from '../utils/Utils'
 import TimeScale from './TimeScale'
 import { Environment } from '../utils/Environment.js'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
+import { SVGNS } from '../svg/math'
 import {
   Line,
   Bar,
@@ -103,7 +104,7 @@ export default class Core {
     this.setSVGDimensions()
 
     // foreignObject must be added first (at the back in z-order) to prevent blocking interactions
-    this.w.dom.elLegendForeign = BrowserAPIs.createElementNS(gl.SVGNS, 'foreignObject')
+    this.w.dom.elLegendForeign = BrowserAPIs.createElementNS(SVGNS, 'foreignObject')
     Graphics.setAttrs(this.w.dom.elLegendForeign, {
       x: 0,
       y: 0,
@@ -136,14 +137,14 @@ export default class Core {
       })
 
       // Add title element for screen readers (after foreignObject)
-      const titleEl = BrowserAPIs.createElementNS(gl.SVGNS, 'title')
+      const titleEl = BrowserAPIs.createElementNS(SVGNS, 'title')
       titleEl.textContent = cnf.title.text || 'Chart'
       // Insert after foreignObject but before other elements
       this.w.dom.Paper.node.insertBefore(titleEl, this.w.dom.elLegendForeign.nextSibling)
 
       // Add desc element when description is provided
       if (cnf.chart.accessibility.description) {
-        const descEl = BrowserAPIs.createElementNS(gl.SVGNS, 'desc')
+        const descEl = BrowserAPIs.createElementNS(SVGNS, 'desc')
         descEl.textContent = cnf.chart.accessibility.description
         this.w.dom.Paper.node.insertBefore(descEl, titleEl.nextSibling)
       }
@@ -590,7 +591,7 @@ export default class Core {
   }
 
   updateSourceChart(targetChart) {
-    this.ctx.w.globals.selection = undefined
+    this.ctx.w.interact.selection = undefined
     this.ctx.updateHelpers._updateOptions(
       {
         chart: {

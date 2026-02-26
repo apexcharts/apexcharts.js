@@ -147,13 +147,13 @@ export default class Toolbar {
 
     // Toggle-button ARIA pressed state for zoom / selection / pan
     if (this.elZoom.parentNode) {
-      this.elZoom.setAttribute('aria-pressed', String(!!w.globals.zoomEnabled))
+      this.elZoom.setAttribute('aria-pressed', String(!!w.interact.zoomEnabled))
     }
     if (this.elSelection.parentNode) {
-      this.elSelection.setAttribute('aria-pressed', String(!!w.globals.selectionEnabled))
+      this.elSelection.setAttribute('aria-pressed', String(!!w.interact.selectionEnabled))
     }
     if (this.elPan.parentNode) {
-      this.elPan.setAttribute('aria-pressed', String(!!w.globals.panEnabled))
+      this.elPan.setAttribute('aria-pressed', String(!!w.interact.panEnabled))
     }
 
     // Menu icon: popup indicator
@@ -164,11 +164,11 @@ export default class Toolbar {
 
     this._createHamburgerMenu(elToolbarWrap)
 
-    if (w.globals.zoomEnabled) {
+    if (w.interact.zoomEnabled) {
       this.elZoom.classList.add(this.selectedClass)
-    } else if (w.globals.panEnabled) {
+    } else if (w.interact.panEnabled) {
       this.elPan.classList.add(this.selectedClass)
-    } else if (w.globals.selectionEnabled) {
+    } else if (w.interact.selectionEnabled) {
       this.elSelection.classList.add(this.selectedClass)
     }
 
@@ -368,8 +368,8 @@ export default class Toolbar {
     this.toggleOtherControls()
 
     type === 'pan'
-      ? (this.w.globals.panEnabled = true)
-      : (this.w.globals.zoomEnabled = true)
+      ? (this.w.interact.panEnabled = true)
+      : (this.w.interact.zoomEnabled = true)
 
     const el = type === 'pan' ? this.elPan : this.elZoom
     const el2 = type === 'pan' ? this.elZoom : this.elPan
@@ -386,7 +386,7 @@ export default class Toolbar {
 
     charts.forEach((ch) => {
       ch.ctx.toolbar.toggleOtherControls()
-      ch.w.globals.panEnabled = !ch.w.globals.panEnabled
+      ch.w.interact.panEnabled = !ch.w.interact.panEnabled
 
       if (
         !ch.ctx.toolbar.elPan.classList.contains(ch.ctx.toolbar.selectedClass)
@@ -398,16 +398,16 @@ export default class Toolbar {
 
       ch.ctx.toolbar.elPan.setAttribute(
         'aria-pressed',
-        String(ch.w.globals.panEnabled)
+        String(ch.w.interact.panEnabled)
       )
     })
   }
 
   toggleOtherControls() {
     const w = this.w
-    w.globals.panEnabled = false
-    w.globals.zoomEnabled = false
-    w.globals.selectionEnabled = false
+    w.interact.panEnabled = false
+    w.interact.zoomEnabled = false
+    w.interact.selectionEnabled = false
 
     this.getToolbarIconsReference()
 
@@ -433,7 +433,7 @@ export default class Toolbar {
 
     const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX)
 
-    if (!w.globals.disableZoomIn) {
+    if (!w.interact.disableZoomIn) {
       this.zoomUpdateOptions(newMinXMaxX.minX, newMinXMaxX.maxX)
     }
   }
@@ -460,7 +460,7 @@ export default class Toolbar {
 
     const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX)
 
-    if (!w.globals.disableZoomOut) {
+    if (!w.interact.disableZoomOut) {
       this.zoomUpdateOptions(newMinXMaxX.minX, newMinXMaxX.maxX)
     }
   }
@@ -515,7 +515,7 @@ export default class Toolbar {
       options.yaxis = yaxis
     }
 
-    this.w.globals.zoomed = true
+    this.w.interact.zoomed = true
 
     this.ctx.updateHelpers._updateOptions(
       options,
@@ -607,7 +607,7 @@ export default class Toolbar {
         })
       }
 
-      w.globals.zoomed = false
+      w.interact.zoomed = false
 
       // if user has some series collapsed before hitting zoom reset button,
       // those series should stay collapsed

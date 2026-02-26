@@ -1,5 +1,9 @@
 import CoreUtils from './CoreUtils'
 import Utils from '../utils/Utils'
+import {
+  NICE_SCALE_ALLOWED_MAG_MSD,
+  NICE_SCALE_DEFAULT_TICKS,
+} from '../utils/Constants'
 
 export default class Scales {
   constructor(w) {
@@ -41,10 +45,10 @@ export default class Scales {
       axisCnf.tickAmount !== undefined && axisCnf.tickAmount !== null
     let ticks = gotTickAmount
       ? axisCnf.tickAmount
-      : gl.niceScaleDefaultTicks[
+      : NICE_SCALE_DEFAULT_TICKS[
           Math.min(
             Math.round(maxTicks / 2),
-            gl.niceScaleDefaultTicks.length - 1
+            NICE_SCALE_DEFAULT_TICKS.length - 1
           )
         ]
 
@@ -126,8 +130,8 @@ export default class Scales {
     // produces a range that doesn't clip data points after stretching
     // the raw range out a little to match the prospective new range.
     let magMsd = Math.ceil(niceStep / magPow)
-    // See globals.js for info on what niceScaleAllowedMagMsd does
-    magMsd = gl.niceScaleAllowedMagMsd[gl.yValueDecimal === 0 ? 0 : 1][magMsd]
+    // See utils/Constants.js for info on what NICE_SCALE_ALLOWED_MAG_MSD does
+    magMsd = NICE_SCALE_ALLOWED_MAG_MSD[gl.yValueDecimal === 0 ? 0 : 1][magMsd]
     niceStep = magMsd * magPow
 
     // Initial stepSize

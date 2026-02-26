@@ -124,7 +124,7 @@ export default class Series {
 
     if (shouldUpdateChart) {
       if (shouldResetZoom) {
-        w.globals.zoomed = false
+        w.interact.zoomed = false
         this._revertDefaultAxisMinMax?.()
       }
       this._updateSeries?.(

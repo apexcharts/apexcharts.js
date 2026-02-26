@@ -192,7 +192,14 @@ export default class ApexCharts {
     this.events.setupEventHandlers()
 
     // Handle the data inputted by user and set some of the global variables (for eg, if data is datetime / numeric / category). Don't calculate the range / min / max at this time
-    this.data.parseData(series)
+    // Phase 1: return value is captured; named writers are stubs (mutations already wrote to gl).
+    // Phase 2: writers will route each slice to its dedicated w.* namespace.
+    const parsedState = this.data.parseData(series)
+    this._writeParsedSeriesData(parsedState.seriesData)
+    this._writeParsedRangeData(parsedState.rangeData)
+    this._writeParsedCandleData(parsedState.candleData)
+    this._writeParsedLabelData(parsedState.labelData)
+    this._writeParsedAxisFlags(parsedState.axisFlags)
 
     // this is a good time to set theme colors first
     this.theme.init()
@@ -238,7 +245,10 @@ export default class ApexCharts {
     coreUtils.getLargestMarkerSize()
 
     // We got plottable area here, next task would be to calculate axis areas
-    this.dimensions.plotCoords()
+    // Phase 1: return value captured; named writer is a stub (no-op).
+    // Phase 2: writer will route layout slice to w.layout namespace.
+    const layoutState = this.dimensions.plotCoords()
+    this._writeLayoutCoords(layoutState.layout)
 
     const xyRatios = this.core.xySettings()
 
@@ -453,7 +463,7 @@ export default class ApexCharts {
 
     // when called externally, clear some global variables
     // fixes apexcharts.js#1488
-    w.globals.selection = undefined
+    w.interact.selection = undefined
 
     // try shallow comparison first before expensive JSON.stringify
     if (this.lastUpdateOptions) {
@@ -907,6 +917,17 @@ export default class ApexCharts {
   paper() {
     return this.w.dom.Paper
   }
+
+  // ─── Phase-1 parse write-back stubs ────────────────────────────────────────
+  // Phase 1: no-ops — Data.parseData() already mutated w.globals directly.
+  // Phase 2: each stub will assign its slice to the corresponding w.* namespace
+  //          instead of relying on globals mutations (enabling true tree-shaking).
+  _writeParsedSeriesData(_slice) {}
+  _writeParsedRangeData(_slice) {}
+  _writeParsedCandleData(_slice) {}
+  _writeParsedLabelData(_slice) {}
+  _writeParsedAxisFlags(_slice) {}
+  _writeLayoutCoords(_slice) {}
 
   _parentResizeCallback() {
     if (

@@ -2,6 +2,7 @@ import Graphics from '../Graphics'
 import XAxis from './XAxis'
 import AxesUtils from './AxesUtils'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
+import { SVGNS } from '../../svg/math'
 
 /**
  * ApexCharts Grid Class for drawing Cartesian Grid.
@@ -76,7 +77,7 @@ class Grid {
       : w.config.stroke.width
 
     const createClipPath = (id) => {
-      const clipPath = BrowserAPIs.createElementNS(gl.SVGNS, 'clipPath')
+      const clipPath = BrowserAPIs.createElementNS(SVGNS, 'clipPath')
       clipPath.setAttribute('id', id)
       return clipPath
     }

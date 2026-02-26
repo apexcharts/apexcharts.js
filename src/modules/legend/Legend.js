@@ -166,7 +166,7 @@ class Legend {
     if (w.config.legend.customLegendItems.length) {
       legendNames = w.config.legend.customLegendItems
     }
-    const legendFormatter = w.globals.legendFormatter
+    const legendFormatter = w.formatters.legendFormatter
 
     const isLegendInversed = w.config.legend.inverseOrder
 

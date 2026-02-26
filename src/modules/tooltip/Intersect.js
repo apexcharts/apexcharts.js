@@ -46,8 +46,8 @@ class Intersect {
         e,
       })
 
-      w.globals.capturedSeriesIndex = i
-      w.globals.capturedDataPointIndex = j
+      w.interact.capturedSeriesIndex = i
+      w.interact.capturedDataPointIndex = j
 
       x = cx + ttCtx.tooltipRect.ttWidth / 2 + width
       y = cy + ttCtx.tooltipRect.ttHeight / 2 - height / 2
@@ -60,11 +60,11 @@ class Intersect {
       if (ttCtx.w.config.tooltip.followCursor) {
         const seriesBound = w.dom.elWrap.getBoundingClientRect()
         x =
-          w.globals.clientX -
+          w.interact.clientX -
           seriesBound.left -
           (x > w.globals.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0)
         y =
-          w.globals.clientY -
+          w.interact.clientY -
           seriesBound.top -
           (y > w.globals.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0)
       }
@@ -117,8 +117,8 @@ class Intersect {
         ttCtx.markerClick(e, i, j)
       }
 
-      w.globals.capturedSeriesIndex = i
-      w.globals.capturedDataPointIndex = j
+      w.interact.capturedSeriesIndex = i
+      w.interact.capturedDataPointIndex = j
 
       x = cx
       y = cy + w.globals.translateY - ttCtx.tooltipRect.ttHeight * 1.4
@@ -166,8 +166,8 @@ class Intersect {
     i = barXY.i
     const j = barXY.j
 
-    w.globals.capturedSeriesIndex = i
-    w.globals.capturedDataPointIndex = j
+    w.interact.capturedSeriesIndex = i
+    w.interact.capturedDataPointIndex = j
 
     if (
       (w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars()) ||

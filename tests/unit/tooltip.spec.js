@@ -73,6 +73,16 @@ function makeTooltipContext(overrides = {}) {
       baseEl: document.createElement('div'),
       ...(overrides.dom || {}),
     },
+    formatters: {
+      xLabelFormatter: undefined,
+      yLabelFormatters: [],
+      xaxisTooltipFormatter: undefined,
+      ttKeyFormatter: undefined,
+      ttVal: undefined,
+      ttZFormatter: undefined,
+      legendFormatter: undefined,
+      ...(overrides.formatters || {}),
+    },
   }
 
   const ttCtx = {
@@ -473,9 +483,7 @@ describe('Tooltip.Utils', () => {
 describe('Tooltip.Labels', () => {
   describe('getFormatters', () => {
     it('returns identity functions when no formatter is configured', () => {
-      const { ttCtx, w } = makeTooltipContext()
-      w.globals.yLabelFormatters = []
-      w.globals.ttVal = undefined
+      const { ttCtx } = makeTooltipContext()
       const labels = new TooltipLabels(ttCtx)
 
       const { yLbFormatter, yLbTitleFormatter } = labels.getFormatters(0)
@@ -484,9 +492,7 @@ describe('Tooltip.Labels', () => {
     })
 
     it('returns empty string from yLbTitleFormatter when label is falsy', () => {
-      const { ttCtx, w } = makeTooltipContext()
-      w.globals.yLabelFormatters = []
-      w.globals.ttVal = undefined
+      const { ttCtx } = makeTooltipContext()
       const labels = new TooltipLabels(ttCtx)
 
       const { yLbTitleFormatter } = labels.getFormatters(0)
@@ -495,11 +501,10 @@ describe('Tooltip.Labels', () => {
       expect(yLbTitleFormatter(undefined)).toBe('')
     })
 
-    it('uses yLabelFormatters[i] from globals', () => {
+    it('uses yLabelFormatters[i] from w.formatters', () => {
       const { ttCtx, w } = makeTooltipContext()
       const customFmt = (val) => `$${val}`
-      w.globals.yLabelFormatters = [customFmt]
-      w.globals.ttVal = undefined
+      w.formatters.yLabelFormatters = [customFmt]
       const labels = new TooltipLabels(ttCtx)
 
       const { yLbFormatter } = labels.getFormatters(0)
@@ -509,8 +514,7 @@ describe('Tooltip.Labels', () => {
     it('falls back to yLabelFormatters[0] when index formatter is missing', () => {
       const { ttCtx, w } = makeTooltipContext()
       const fallbackFmt = (val) => `€${val}`
-      w.globals.yLabelFormatters = [fallbackFmt]
-      w.globals.ttVal = undefined
+      w.formatters.yLabelFormatters = [fallbackFmt]
       const labels = new TooltipLabels(ttCtx)
 
       // Index 2 has no formatter — should fall back to index 0
@@ -522,9 +526,7 @@ describe('Tooltip.Labels', () => {
       const { ttCtx, w } = makeTooltipContext()
       const customFmt = (val) => `[${val}]`
       const customTitleFmt = (label) => `>> ${label}`
-      // yLabelFormatters must exist (accessed before ttVal branch)
-      w.globals.yLabelFormatters = []
-      w.globals.ttVal = {
+      w.formatters.ttVal = {
         formatter: customFmt,
         title: { formatter: customTitleFmt },
       }
@@ -539,9 +541,7 @@ describe('Tooltip.Labels', () => {
       const { ttCtx, w } = makeTooltipContext()
       const fmt0 = (val) => `A:${val}`
       const fmt1 = (val) => `B:${val}`
-      // yLabelFormatters must exist (accessed before ttVal branch)
-      w.globals.yLabelFormatters = []
-      w.globals.ttVal = [
+      w.formatters.ttVal = [
         { formatter: fmt0, title: { formatter: (l) => `Title0:${l}` } },
         { formatter: fmt1, title: { formatter: (l) => `Title1:${l}` } },
       ]
@@ -558,8 +558,6 @@ describe('Tooltip.Labels', () => {
       const { ttCtx, w } = makeTooltipContext()
       const titleFmt = (label) => `-- ${label} --`
       w.config.tooltip.y.title.formatter = titleFmt
-      w.globals.ttVal = undefined
-      w.globals.yLabelFormatters = []
       const labels = new TooltipLabels(ttCtx)
 
       const { yLbTitleFormatter } = labels.getFormatters(0)

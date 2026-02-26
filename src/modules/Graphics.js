@@ -888,7 +888,7 @@ class Graphics {
     }
 
     if (w.config.states.hover.filter.type !== 'none') {
-      if (!w.globals.isTouchDevice) {
+      if (!w.interact.isTouchDevice) {
         const hoverFilter = w.config.states.hover.filter
         filters.applyFilter(path, i, hoverFilter.type)
       }
@@ -937,16 +937,16 @@ class Graphics {
     if (path.node.getAttribute('selected') === 'true') {
       path.node.setAttribute('selected', 'false')
 
-      if (w.globals.selectedDataPoints[i].indexOf(j) > -1) {
-        const index = w.globals.selectedDataPoints[i].indexOf(j)
-        w.globals.selectedDataPoints[i].splice(index, 1)
+      if (w.interact.selectedDataPoints[i].indexOf(j) > -1) {
+        const index = w.interact.selectedDataPoints[i].indexOf(j)
+        w.interact.selectedDataPoints[i].splice(index, 1)
       }
     } else {
       if (
         !w.config.states.active.allowMultipleDataPointsSelection &&
-        w.globals.selectedDataPoints.length > 0
+        w.interact.selectedDataPoints.length > 0
       ) {
-        w.globals.selectedDataPoints = []
+        w.interact.selectedDataPoints = []
         const elPaths = w.dom.Paper.find(
           '.apexcharts-series path:not(.apexcharts-decoration-element)'
         )
@@ -967,10 +967,10 @@ class Graphics {
       path.node.setAttribute('selected', 'true')
       selected = 'true'
 
-      if (typeof w.globals.selectedDataPoints[i] === 'undefined') {
-        w.globals.selectedDataPoints[i] = []
+      if (typeof w.interact.selectedDataPoints[i] === 'undefined') {
+        w.interact.selectedDataPoints[i] = []
       }
-      w.globals.selectedDataPoints[i].push(j)
+      w.interact.selectedDataPoints[i].push(j)
     }
 
     if (selected === 'true') {
@@ -980,7 +980,7 @@ class Graphics {
       } else {
         // Reapply the hover filter in case it was removed by `deselect`when there is no active filter and it is not a touch device
         if (w.config.states.hover.filter !== 'none') {
-          if (!w.globals.isTouchDevice) {
+          if (!w.interact.isTouchDevice) {
             const hoverFilter = w.config.states.hover.filter
             filters.applyFilter(path, i, hoverFilter.type)
           }
@@ -991,7 +991,7 @@ class Graphics {
       if (w.config.states.active.filter.type !== 'none') {
         if (
           w.config.states.hover.filter.type !== 'none' &&
-          !w.globals.isTouchDevice
+          !w.interact.isTouchDevice
         ) {
           const hoverFilter = w.config.states.hover.filter
           filters.applyFilter(path, i, hoverFilter.type)
@@ -1003,7 +1003,7 @@ class Graphics {
 
     if (typeof w.config.chart.events.dataPointSelection === 'function') {
       w.config.chart.events.dataPointSelection(e, this.ctx, {
-        selectedDataPoints: w.globals.selectedDataPoints,
+        selectedDataPoints: w.interact.selectedDataPoints,
         seriesIndex: i,
         dataPointIndex: j,
         w,
@@ -1015,7 +1015,7 @@ class Graphics {
         e,
         this.ctx,
         {
-          selectedDataPoints: w.globals.selectedDataPoints,
+          selectedDataPoints: w.interact.selectedDataPoints,
           seriesIndex: i,
           dataPointIndex: j,
           w,

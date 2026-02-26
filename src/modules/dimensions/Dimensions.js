@@ -3,6 +3,7 @@ import Helpers from './Helpers'
 import DimXAxis from './XAxis'
 import DimYAxis from './YAxis'
 import Grid from './Grid'
+import { LINE_HEIGHT_RATIO } from '../../utils/Constants'
 
 /**
  * ApexCharts Dimensions Class for calculating rects of all elements that are drawn and will be drawn.
@@ -92,6 +93,28 @@ export default class Dimensions {
       this.xPadLeft +
       (barWidth > 0 ? barWidth : 0)
     gl.translateY = gl.translateY + this.gridPad.top
+
+    // Return a snapshot of all computed layout state grouped by future w.layout slice destination.
+    // Phase 1: callers use named writer stubs (no-ops — mutations above already wrote to gl).
+    // Phase 2: writers will assign to typed slices instead of gl.*.
+    return {
+      // w.layout (future slice)
+      layout: {
+        gridHeight: gl.gridHeight,
+        gridWidth: gl.gridWidth,
+        translateX: gl.translateX,
+        translateY: gl.translateY,
+        translateXAxisX: gl.translateXAxisX,
+        translateXAxisY: gl.translateXAxisY,
+        rotateXLabels: gl.rotateXLabels,
+        xAxisHeight: gl.xAxisHeight,
+        xAxisLabelsHeight: gl.xAxisLabelsHeight,
+        xAxisGroupLabelsHeight: gl.xAxisGroupLabelsHeight,
+        xAxisLabelsWidth: gl.xAxisLabelsWidth,
+        yLabelsCoords: gl.yLabelsCoords,
+        yTitleCoords: gl.yTitleCoords,
+      },
+    }
   }
 
   setDimensionsForAxisCharts() {
@@ -315,7 +338,7 @@ export default class Dimensions {
       xtitleCoords.height
     const xAxisHeightMultiplicate = w.globals.isMultiLineX
       ? 1.2
-      : w.globals.LINE_HEIGHT_RATIO
+      : LINE_HEIGHT_RATIO
     const rotatedXAxisOffset = w.globals.rotateXLabels ? 22 : 10
     const rotatedXAxisLegendOffset =
       w.globals.rotateXLabels && w.config.legend.position === 'bottom'

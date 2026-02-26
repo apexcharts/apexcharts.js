@@ -1019,6 +1019,58 @@ export default class Data {
         break
       }
     }
+
+    // Return a snapshot of all parsed state grouped by future w.* slice destinations.
+    // Phase 1: callers use named writer stubs (no-ops — mutations above already wrote to gl).
+    // Phase 2: writers will assign to typed slices instead of gl.*.
+    return {
+      // w.seriesData (future slice)
+      seriesData: {
+        series: gl.series,
+        seriesNames: gl.seriesNames,
+        seriesX: gl.seriesX,
+        seriesZ: gl.seriesZ,
+        seriesColors: gl.seriesColors,
+        seriesGoals: gl.seriesGoals,
+        initialSeries: gl.initialSeries,
+        originalSeries: gl.originalSeries,
+        stackedSeriesTotals: gl.stackedSeriesTotals,
+        stackedSeriesTotalsByGroups: gl.stackedSeriesTotalsByGroups,
+        noLabelsProvided: gl.noLabelsProvided,
+      },
+      // w.rangeData (future slice)
+      rangeData: {
+        seriesRangeStart: gl.seriesRangeStart,
+        seriesRangeEnd: gl.seriesRangeEnd,
+        seriesRange: gl.seriesRange,
+      },
+      // w.candleData (future slice)
+      candleData: {
+        seriesCandleO: gl.seriesCandleO,
+        seriesCandleH: gl.seriesCandleH,
+        seriesCandleM: gl.seriesCandleM,
+        seriesCandleL: gl.seriesCandleL,
+        seriesCandleC: gl.seriesCandleC,
+      },
+      // w.labelData (future slice)
+      labelData: {
+        labels: gl.labels,
+        categoryLabels: gl.categoryLabels,
+      },
+      // w.axisFlags (future slice)
+      axisFlags: {
+        isXNumeric: gl.isXNumeric,
+        dataFormatXNumeric: gl.dataFormatXNumeric,
+        isDataXYZ: gl.isDataXYZ,
+        isRangeData: gl.isRangeData,
+        isRangeBar: gl.isRangeBar,
+        isMultiLineX: gl.isMultiLineX,
+        dataWasParsed: gl.dataWasParsed,
+        hasXaxisGroups: gl.hasXaxisGroups,
+        groups: gl.groups,
+        seriesGroups: gl.seriesGroups,
+      },
+    }
   }
 
   excludeCollapsedSeriesInYAxis() {

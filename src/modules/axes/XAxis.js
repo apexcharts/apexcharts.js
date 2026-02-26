@@ -1,6 +1,7 @@
 import Graphics from '../Graphics'
 import AxesUtils from './AxesUtils'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
+import { SVGNS } from '../../svg/math'
 
 /**
  * ApexCharts XAxis Class for drawing X-Axis.
@@ -321,7 +322,7 @@ export default class XAxis {
 
         if (isLeafGroup) {
           const elTooltipTitle = BrowserAPIs.createElementNS(
-            w.globals.SVGNS,
+            SVGNS,
             'title'
           )
           elTooltipTitle.textContent = Array.isArray(label.text)
@@ -373,7 +374,7 @@ export default class XAxis {
     // initial x Position (keep adding column width in the loop)
     let yPos = -(colHeight / 2.2)
 
-    const lbFormatter = w.globals.yLabelFormatters[0]
+    const lbFormatter = w.formatters.yLabelFormatters[0]
 
     const ylabels = w.config.yaxis[0].labels
 
@@ -441,7 +442,7 @@ export default class XAxis {
           }
         })
 
-        const elTooltipTitle = BrowserAPIs.createElementNS(w.globals.SVGNS, 'title')
+        const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS, 'title')
         elTooltipTitle.textContent = Array.isArray(label)
           ? label.join(' ')
           : label
@@ -677,7 +678,7 @@ export default class XAxis {
   // renderXAxisBands() {
   //   let w = this.w;
 
-  //   let plotBand = document.createElementNS(w.globals.SVGNS, 'rect')
+  //   let plotBand = document.createElementNS(SVGNS, 'rect')
   //   w.dom.elGraphical.add(plotBand)
   // }
 }

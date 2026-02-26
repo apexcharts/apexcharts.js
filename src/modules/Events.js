@@ -59,13 +59,13 @@ export default class Events {
         (e) => {
           const capturedSeriesIndex =
             e.target.getAttribute('i') === null &&
-            w.globals.capturedSeriesIndex !== -1
-              ? w.globals.capturedSeriesIndex
+            w.interact.capturedSeriesIndex !== -1
+              ? w.interact.capturedSeriesIndex
               : e.target.getAttribute('i')
           const capturedDataPointIndex =
             e.target.getAttribute('j') === null &&
-            w.globals.capturedDataPointIndex !== -1
-              ? w.globals.capturedDataPointIndex
+            w.interact.capturedDataPointIndex !== -1
+              ? w.interact.capturedDataPointIndex
               : e.target.getAttribute('j')
 
           const opts = Object.assign({}, w, {
@@ -142,9 +142,9 @@ export default class Events {
       }
     }
 
-    w.globals.clientX =
+    w.interact.clientX =
       e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
-    w.globals.clientY =
+    w.interact.clientY =
       e.type === 'touchmove' ? e.touches[0].clientY : e.clientY
   }
 }

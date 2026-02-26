@@ -138,7 +138,13 @@ export default class UpdateHelpers {
       }
 
       this.ctx.data.resetParsingFlags()
-      this.ctx.data.parseData(newSeries)
+      // Phase 1: return value captured; writer stubs are no-ops.
+      const parsedState = this.ctx.data.parseData(newSeries)
+      this.ctx._writeParsedSeriesData(parsedState.seriesData)
+      this.ctx._writeParsedRangeData(parsedState.rangeData)
+      this.ctx._writeParsedCandleData(parsedState.candleData)
+      this.ctx._writeParsedLabelData(parsedState.labelData)
+      this.ctx._writeParsedAxisFlags(parsedState.axisFlags)
 
       if (overwriteInitialSeries) {
         w.globals.initialConfig.series = Utils.clone(w.config.series)
@@ -273,7 +279,7 @@ export default class UpdateHelpers {
     }
 
     w.config.yaxis.map((yaxe, index) => {
-      if (w.globals.zoomed) {
+      if (w.interact.zoomed) {
         // user has zoomed, check the last yaxis
         getLastYAxis(index)
       } else {

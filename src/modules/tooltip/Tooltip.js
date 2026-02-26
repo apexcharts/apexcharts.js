@@ -608,8 +608,8 @@ export default class Tooltip {
     this.clientY = clientY
     this.clientX = clientX
 
-    w.globals.capturedSeriesIndex = -1
-    w.globals.capturedDataPointIndex = -1
+    w.interact.capturedSeriesIndex = -1
+    w.interact.capturedDataPointIndex = -1
 
     if (
       clientY < seriesBound.top ||
@@ -782,8 +782,8 @@ export default class Tooltip {
           tooltipRect.ttHeight -
           10
       } else {
-        x = w.globals.clientX - seriesBound.left - tooltipRect.ttWidth / 2
-        y = w.globals.clientY - seriesBound.top - tooltipRect.ttHeight - 10
+        x = w.interact.clientX - seriesBound.left - tooltipRect.ttWidth / 2
+        y = w.interact.clientY - seriesBound.top - tooltipRect.ttHeight - 10
       }
 
       tooltipEl.style.left = x + 'px'

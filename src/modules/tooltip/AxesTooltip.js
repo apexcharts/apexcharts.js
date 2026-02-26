@@ -167,7 +167,7 @@ class AxesTooltip {
     const yAxisSeriesArr = gl.seriesYAxisMap[index]
 
     if (ttCtx.yaxisTooltips[index] && yAxisSeriesArr.length > 0) {
-      const lbFormatter = gl.yLabelFormatters[index]
+      const lbFormatter = w.formatters.yLabelFormatters[index]
       const elGrid = ttCtx.getElGrid()
       const seriesBound = elGrid.getBoundingClientRect()
 

@@ -95,7 +95,7 @@ export default class BarDataLabels {
               dataPointIndex: j,
               w,
             })
-          : w.globals.yLabelFormatters[0](yLabel),
+          : w.formatters.yLabelFormatters[0](yLabel),
         parseFloat(dataLabelsConfig.style.fontSize)
       )
     }

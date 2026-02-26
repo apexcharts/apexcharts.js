@@ -22,7 +22,7 @@ const getRangeValues = ({
   let seriesName = w.config.series[seriesIndex].name
     ? w.config.series[seriesIndex].name
     : ''
-  const yLbFormatter = w.globals.ttKeyFormatter
+  const yLbFormatter = w.formatters.ttKeyFormatter
   const yLbTitleFormatter = w.config.tooltip.y.title.formatter
 
   const opts = {
@@ -43,7 +43,7 @@ const getRangeValues = ({
   if (!isTimeline) {
     if (w.config.xaxis.type === 'datetime') {
       const xFormat = new Formatters(w)
-      ylabel = xFormat.xLabelFormat(w.globals.ttKeyFormatter, ylabel, ylabel, {
+      ylabel = xFormat.xLabelFormat(w.formatters.ttKeyFormatter, ylabel, ylabel, {
         i: undefined,
         dateFormatter: new DateTime(w).formatDate,
         w,

@@ -50,10 +50,10 @@ export default class Utils {
       hoverArea.classList.remove('hovering-zoom')
       hoverArea.classList.remove('hovering-pan')
     } else {
-      if (w.globals.zoomEnabled) {
+      if (w.interact.zoomEnabled) {
         hoverArea.classList.remove('hovering-pan')
         hoverArea.classList.add('hovering-zoom')
-      } else if (w.globals.panEnabled) {
+      } else if (w.interact.panEnabled) {
         hoverArea.classList.remove('hovering-zoom')
         hoverArea.classList.add('hovering-pan')
       }
@@ -107,15 +107,15 @@ export default class Utils {
       }
     }
 
-    w.globals.capturedSeriesIndex =
+    w.interact.capturedSeriesIndex =
       capturedSeries === null ? -1 : capturedSeries
 
     if (!j || j < 1) j = 0
 
     if (w.globals.isBarHorizontal) {
-      w.globals.capturedDataPointIndex = jHorz
+      w.interact.capturedDataPointIndex = jHorz
     } else {
-      w.globals.capturedDataPointIndex = j
+      w.interact.capturedDataPointIndex = j
     }
 
     return {

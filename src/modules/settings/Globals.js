@@ -1,4 +1,9 @@
 import Utils from './../../utils/Utils'
+import {
+  LINE_HEIGHT_RATIO,
+  NICE_SCALE_ALLOWED_MAG_MSD,
+  NICE_SCALE_DEFAULT_TICKS,
+} from '../../utils/Constants'
 
 export default class Globals {
   initGlobalVars(gl) {
@@ -84,7 +89,8 @@ export default class Globals {
     gl.rotateXLabels = false // true when x-axis labels are angled
     gl.overlappingXLabels = false // true when x labels overlap and must be hidden
     gl.radialSize = 0 // computed radius for radial/polar charts
-    gl.legendFormatter = undefined // set by Formatters.setLabelFormatters each render
+    // Note: formatter properties (xLabelFormatter, yLabelFormatters, etc.) live on
+    // w.formatters — not on gl. See Base.js for backward-compat shims.
 
     // ── Bar chart sizing (ephemeral — set by bar/Helpers.initialPositions) ──
     gl.barHeight = 0
@@ -122,11 +128,12 @@ export default class Globals {
    * no sync needed.
    *
    * Namespaces:
-   *   gl.series   — parsed series data and chart-type-specific arrays
-   *   gl.axes     — axis bounds, scales, ranges, tick state
-   *   gl.layout   — SVG/grid dimensions, translations, label sizes
-   *   gl.interact — zoom/pan/selection/mouse interaction state
-   *   gl.cache    — DOM caches, timers, observers, drawing scratch space
+   *   gl.series  — parsed series data and chart-type-specific arrays
+   *   gl.axes    — axis bounds, scales, ranges, tick state
+   *   gl.layout  — SVG/grid dimensions, translations, label sizes
+   *   gl.cache   — DOM caches, timers, observers, drawing scratch space
+   *
+   * Note: interact state lives on w.interact (not gl) — see Base.js.
    */
   _attachNamespaces(gl) {
     // Helper: define a property on `ns` that proxies to `gl[key]`
@@ -281,13 +288,6 @@ export default class Globals {
       'scaleX',
       'scaleY',
       'radialSize',
-      'xLabelFormatter',
-      'yLabelFormatters',
-      'xaxisTooltipFormatter',
-      'ttKeyFormatter',
-      'ttVal',
-      'ttZFormatter',
-      'legendFormatter',
       'defaultLabels',
       'overlappingXLabels',
     ]) {
@@ -300,36 +300,8 @@ export default class Globals {
       configurable: true,
     })
 
-    // ── interact namespace ───────────────────────────────────────────────────
-    // All runtime interaction state: zoom, pan, selection, mouse, collapse.
-    const interactNS = {}
-    for (const key of [
-      'zoomed',
-      'zoomEnabled',
-      'panEnabled',
-      'selectionEnabled',
-      'disableZoomIn',
-      'disableZoomOut',
-      'selection',
-      'selectedDataPoints',
-      'capturedSeriesIndex',
-      'capturedDataPointIndex',
-      'mousedown',
-      'clientX',
-      'clientY',
-      'lastClientPosition',
-      'lastWheelExecution',
-      'visibleXRange',
-      'isTouchDevice',
-    ]) {
-      proxy(interactNS, key)
-    }
-    Object.defineProperty(gl, 'interact', {
-      value: interactNS,
-      writable: false,
-      enumerable: false,
-      configurable: true,
-    })
+    // Note: interact namespace (zoom/pan/selection/mouse state) lives on w.interact
+    // — see Base.js. Backward-compat shims proxy gl.* → w.interact.*.
 
     // ── cache namespace ──────────────────────────────────────────────────────
     // Internal caches, timers, observers, drawing scratch arrays.
@@ -395,10 +367,9 @@ export default class Globals {
         largestSize: 0,
       },
 
-      // ── Device / environment (detected once at startup) ───────────────────────
-      isTouchDevice: 'ontouchstart' in window || navigator.msMaxTouchPoints,
-      SVGNS: 'http://www.w3.org/2000/svg',
-      LINE_HEIGHT_RATIO: 1.618,
+      // ── Device / environment detected once at startup ─────────────────────────
+      // Note: isTouchDevice lives on w.interact — see Base.js. Shim installed there.
+      LINE_HEIGHT_RATIO,
 
       // ── Chart-type flags (derived from config, set during Core.mount) ─────────
       axisCharts: true, // false for pie/radial/treemap etc.
@@ -412,21 +383,11 @@ export default class Globals {
       lastYAxis: [],
 
       // ── User interaction state (must survive re-renders) ──────────────────────
-      // Zoom / pan / selection tool mode — derived from toolbar config
-      zoomEnabled:
-        config.chart.toolbar.autoSelected === 'zoom' &&
-        config.chart.toolbar.tools.zoom &&
-        config.chart.zoom.enabled,
-      panEnabled:
-        config.chart.toolbar.autoSelected === 'pan' &&
-        config.chart.toolbar.tools.pan,
-      selectionEnabled:
-        config.chart.toolbar.autoSelected === 'selection' &&
-        config.chart.toolbar.tools.selection,
-      zoomed: false, // true after user has zoomed in
-      selection: undefined, // current selection rectangle data
-      visibleXRange: undefined, // visible x extent after zoom
-      selectedDataPoints: [], // indices of data points the user selected
+      // Note: zoomEnabled, panEnabled, selectionEnabled, zoomed, selection,
+      //       visibleXRange, selectedDataPoints, mousedown, clientX, clientY,
+      //       lastClientPosition, lastWheelExecution, capturedSeriesIndex,
+      //       capturedDataPointIndex, disableZoomIn, disableZoomOut, isTouchDevice
+      //       live on w.interact — see Base.js. Backward-compat shims installed there.
 
       // Series collapse state (user-driven, must persist across re-renders)
       allSeriesCollapsed: false,
@@ -436,12 +397,6 @@ export default class Globals {
       ancillaryCollapsedSeriesIndices: [],
       risingSeries: [], // series being re-shown after collapse
       ignoreYAxisIndexes: [], // y-axis indices excluded during series collapse
-
-      // Mouse / pointer state
-      mousedown: false,
-      clientX: null,
-      clientY: null,
-      lastClientPosition: {}, // used to detect pan direction; must not reset on destroy
 
       // ── Lifecycle / update flags ──────────────────────────────────────────────
       isDirty: false, // true when user called an update method manually
@@ -458,8 +413,6 @@ export default class Globals {
       columnSeries: null, // tracks which series are rendered as bars/columns
       yaxis: null, // resolved yaxis config array
       total: 0, // running total (used by pie/radial)
-      capturedSeriesIndex: -1, // last focused series (tooltip / keyboard nav)
-      capturedDataPointIndex: -1, // last focused data point
 
       // ── Animation control ─────────────────────────────────────────────────────
       shouldAnimate: true,
@@ -471,12 +424,8 @@ export default class Globals {
       gridWidth: 0, // drawable width  (svgWidth minus axes/labels)
       gridHeight: 0, // drawable height (svgHeight minus axes/labels)
       defaultLabels: false,
-      xLabelFormatter: undefined, // formatter for x-axis labels
-      yLabelFormatters: [],
-      xaxisTooltipFormatter: undefined,
-      ttKeyFormatter: undefined,
-      ttVal: undefined,
-      ttZFormatter: undefined,
+      // Note: formatter properties (xLabelFormatter, yLabelFormatters, etc.) live on
+      // w.formatters — see Base.js. Backward-compat shims installed there.
       xAxisLabelsHeight: 0,
       xAxisGroupLabelsHeight: 0,
       xAxisLabelsWidth: 0,
@@ -502,36 +451,9 @@ export default class Globals {
         methodsToExec: [],
       },
 
-      // ── Scale configuration constants (never change at runtime) ──────────────
-      // Rules for niceScaleAllowedMagMsd:
-      // 1) An array of two arrays only ([[],[]]):
-      //    * array[0][]: influences labelling of data series that contain only integers
-      //       - must contain only integers (or expect ugly ticks)
-      //    * array[1][]: influences labelling of data series that contain at least one float
-      //       - may contain floats
-      //    * both arrays:
-      //       - each array[][i] ideally satisfy: 10 mod array[][i] == 0 (or expect ugly ticks)
-      //       - to avoid clipping data point keep each array[][i] >= i
-      // 2) each array[i][] contains 11 values, for all possible index values 0..10.
-      //    array[][0] should not be needed (not proven) but ensures non-zero is returned.
-      //
-      // Users can effectively force their preferred "magMsd" through stepSize and
-      // forceNiceScale. With forceNiceScale: true, stepSize becomes normalizable to the
-      // axis's min..max range, which allows users to set stepSize to an integer 1..10, for
-      // example, stepSize: 3. This value will be preferred to the value determined through
-      // this array. The range-normalized value is checked for consistency with other
-      // user defined options and will be ignored if inconsistent.
-      niceScaleAllowedMagMsd: [
-        [1, 1, 2, 5, 5, 5, 10, 10, 10, 10, 10],
-        [1, 1, 2, 5, 5, 5, 10, 10, 10, 10, 10],
-      ],
-      // Default ticks based on SVG size. These values have high numbers
-      // of divisors. The array is indexed using a calculated maxTicks value
-      // divided by 2 simply to halve the array size. See Scales.niceScale().
-      niceScaleDefaultTicks: [
-        1, 2, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 12, 12, 12, 12,
-        12, 12, 12, 12, 12, 24,
-      ],
+      // ── Scale configuration constants — imported from utils/Constants.js ──────
+      niceScaleAllowedMagMsd: NICE_SCALE_ALLOWED_MAG_MSD,
+      niceScaleDefaultTicks: NICE_SCALE_DEFAULT_TICKS,
 
       // ── Multi-axis series mapping ─────────────────────────────────────────────
       seriesYAxisMap: [], // yAxis index → series indices[]

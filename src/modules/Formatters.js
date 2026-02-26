@@ -66,28 +66,29 @@ class Formatters {
 
   setLabelFormatters() {
     const w = this.w
+    const fmt = w.formatters
 
-    w.globals.xaxisTooltipFormatter = (val) => {
+    fmt.xaxisTooltipFormatter = (val) => {
       return this.defaultGeneralFormatter(val)
     }
 
-    w.globals.ttKeyFormatter = (val) => {
+    fmt.ttKeyFormatter = (val) => {
       return this.defaultGeneralFormatter(val)
     }
 
-    w.globals.ttZFormatter = (val) => {
+    fmt.ttZFormatter = (val) => {
       return val
     }
 
-    w.globals.legendFormatter = (val) => {
+    fmt.legendFormatter = (val) => {
       return this.defaultGeneralFormatter(val)
     }
 
     // formatter function will always overwrite format property
     if (w.config.xaxis.labels.formatter !== undefined) {
-      w.globals.xLabelFormatter = w.config.xaxis.labels.formatter
+      fmt.xLabelFormatter = w.config.xaxis.labels.formatter
     } else {
-      w.globals.xLabelFormatter = (val) => {
+      fmt.xLabelFormatter = (val) => {
         if (Utils.isNumber(val)) {
           if (
             !w.config.xaxis.convertedCatToNumeric &&
@@ -117,38 +118,39 @@ class Formatters {
     }
 
     if (typeof w.config.tooltip.x.formatter === 'function') {
-      w.globals.ttKeyFormatter = w.config.tooltip.x.formatter
+      fmt.ttKeyFormatter = w.config.tooltip.x.formatter
     } else {
-      w.globals.ttKeyFormatter = w.globals.xLabelFormatter
+      fmt.ttKeyFormatter = fmt.xLabelFormatter
     }
 
     if (typeof w.config.xaxis.tooltip.formatter === 'function') {
-      w.globals.xaxisTooltipFormatter = w.config.xaxis.tooltip.formatter
+      fmt.xaxisTooltipFormatter = w.config.xaxis.tooltip.formatter
     }
 
     if (Array.isArray(w.config.tooltip.y)) {
-      w.globals.ttVal = w.config.tooltip.y
+      fmt.ttVal = w.config.tooltip.y
     } else {
       if (w.config.tooltip.y.formatter !== undefined) {
-        w.globals.ttVal = w.config.tooltip.y
+        fmt.ttVal = w.config.tooltip.y
       }
     }
 
     if (w.config.tooltip.z.formatter !== undefined) {
-      w.globals.ttZFormatter = w.config.tooltip.z.formatter
+      fmt.ttZFormatter = w.config.tooltip.z.formatter
     }
 
     // legend formatter - if user wants to append any global values of series to legend text
     if (w.config.legend.formatter !== undefined) {
-      w.globals.legendFormatter = w.config.legend.formatter
+      fmt.legendFormatter = w.config.legend.formatter
     }
 
     // formatter function will always overwrite format property
+    fmt.yLabelFormatters = []
     w.config.yaxis.forEach((yaxe, i) => {
       if (yaxe.labels.formatter !== undefined) {
-        w.globals.yLabelFormatters[i] = yaxe.labels.formatter
+        fmt.yLabelFormatters[i] = yaxe.labels.formatter
       } else {
-        w.globals.yLabelFormatters[i] = (val) => {
+        fmt.yLabelFormatters[i] = (val) => {
           if (!w.globals.xyCharts) return val
 
           if (Array.isArray(val)) {

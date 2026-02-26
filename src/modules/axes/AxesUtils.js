@@ -24,7 +24,7 @@ export default class AxesUtils {
     const rawLabel = typeof labels[i] === 'undefined' ? '' : labels[i]
     let label = rawLabel
 
-    const xlbFormatter = w.globals.xLabelFormatter
+    const xlbFormatter = w.formatters.xLabelFormatter
     const customFormatter = w.config.xaxis.labels.formatter
 
     let isBold = false

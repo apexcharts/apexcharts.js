@@ -204,20 +204,20 @@ export default class Labels {
   getFormatters(i) {
     const w = this.w
 
-    let yLbFormatter = w.globals.yLabelFormatters[i]
+    let yLbFormatter = w.formatters.yLabelFormatters[i]
     let yLbTitleFormatter
 
-    if (w.globals.ttVal !== undefined) {
-      if (Array.isArray(w.globals.ttVal)) {
-        yLbFormatter = w.globals.ttVal[i] && w.globals.ttVal[i].formatter
+    if (w.formatters.ttVal !== undefined) {
+      if (Array.isArray(w.formatters.ttVal)) {
+        yLbFormatter = w.formatters.ttVal[i] && w.formatters.ttVal[i].formatter
         yLbTitleFormatter =
-          w.globals.ttVal[i] &&
-          w.globals.ttVal[i].title &&
-          w.globals.ttVal[i].title.formatter
+          w.formatters.ttVal[i] &&
+          w.formatters.ttVal[i].title &&
+          w.formatters.ttVal[i].title.formatter
       } else {
-        yLbFormatter = w.globals.ttVal.formatter
-        if (typeof w.globals.ttVal.title.formatter === 'function') {
-          yLbTitleFormatter = w.globals.ttVal.title.formatter
+        yLbFormatter = w.formatters.ttVal.formatter
+        if (typeof w.formatters.ttVal.title.formatter === 'function') {
+          yLbTitleFormatter = w.formatters.ttVal.title.formatter
         }
       }
     } else {
@@ -225,8 +225,8 @@ export default class Labels {
     }
 
     if (typeof yLbFormatter !== 'function') {
-      if (w.globals.yLabelFormatters[0]) {
-        yLbFormatter = w.globals.yLabelFormatters[0]
+      if (w.formatters.yLabelFormatters[0]) {
+        yLbFormatter = w.formatters.yLabelFormatters[0]
       } else {
         yLbFormatter = function (label) {
           return label
@@ -441,7 +441,7 @@ export default class Labels {
       w,
     }
 
-    const zFormatter = w.globals.ttZFormatter
+    const zFormatter = w.formatters.ttZFormatter
 
     if (j === null) {
       val = w.globals.series[i]
@@ -475,7 +475,7 @@ export default class Labels {
     if (w.globals.isXNumeric && w.config.xaxis.type === 'datetime') {
       const xFormat = new Formatters(this.w)
       xVal = xFormat.xLabelFormat(
-        w.globals.ttKeyFormatter,
+        w.formatters.ttKeyFormatter,
         bufferXVal,
         bufferXVal,
         {
@@ -486,15 +486,15 @@ export default class Labels {
       )
     } else {
       if (w.globals.isBarHorizontal) {
-        xVal = w.globals.yLabelFormatters[0](bufferXVal, customFormatterOpts)
+        xVal = w.formatters.yLabelFormatters[0](bufferXVal, customFormatterOpts)
       } else {
-        xVal = w.globals.xLabelFormatter(bufferXVal, customFormatterOpts)
+        xVal = w.formatters.xLabelFormatter(bufferXVal, customFormatterOpts)
       }
     }
 
     // override default x-axis formatter with tooltip formatter
     if (w.config.tooltip.x.formatter !== undefined) {
-      xVal = w.globals.ttKeyFormatter(bufferXVal, customFormatterOpts)
+      xVal = w.formatters.ttKeyFormatter(bufferXVal, customFormatterOpts)
     }
 
     if (w.globals.seriesZ.length > 0 && w.globals.seriesZ[i].length > 0) {
@@ -502,7 +502,7 @@ export default class Labels {
     }
 
     if (typeof w.config.xaxis.tooltip.formatter === 'function') {
-      xAxisTTVal = w.globals.xaxisTooltipFormatter(
+      xAxisTTVal = w.formatters.xaxisTooltipFormatter(
         bufferXVal,
         customFormatterOpts
       )

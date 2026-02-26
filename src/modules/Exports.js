@@ -286,7 +286,7 @@ class Exports {
           w.config.xaxis.convertedCatToNumeric
         ) {
           if (w.globals.isBarHorizontal) {
-            const lbFormatter = w.globals.yLabelFormatters[0]
+            const lbFormatter = w.formatters.yLabelFormatters[0]
             const sr = new Series(this.ctx.w)
             const activeSeries = sr.getActiveConfigSeriesIndex()
 

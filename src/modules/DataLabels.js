@@ -226,7 +226,7 @@ class DataLabels {
 
     // when zoomed, we don't need to correct labels offsets,
     // but if normally, labels get cropped, correct them
-    if (!w.globals.zoomed) {
+    if (!w.interact.zoomed) {
       x = correctedLabels.x
       y = correctedLabels.y
     }

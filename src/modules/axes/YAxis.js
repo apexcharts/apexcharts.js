@@ -1,6 +1,7 @@
 import Graphics from '../Graphics'
 import AxesUtils from './AxesUtils'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
+import { SVGNS } from '../../svg/math'
 
 /**
  * ApexCharts YAxis Class for drawing Y-Axis.
@@ -47,7 +48,7 @@ export default class YAxis {
 
     const tickAmount = w.globals.yAxisScale[realIndex].result.length - 1
     const labelsDivider = w.globals.gridHeight / tickAmount
-    const lbFormatter = w.globals.yLabelFormatters[realIndex]
+    const lbFormatter = w.formatters.yLabelFormatters[realIndex]
     const labels = this.axesUtils.checkForReversedLabels(
       realIndex,
       w.globals.yAxisScale[realIndex].result.slice()
@@ -135,7 +136,7 @@ export default class YAxis {
 
   addTooltip(label, val) {
     const elTooltipTitle = BrowserAPIs.createElementNS(
-      this.w.globals.SVGNS,
+      SVGNS,
       'title'
     )
     elTooltipTitle.textContent = Array.isArray(val) ? val.join(' ') : val
@@ -227,7 +228,7 @@ export default class YAxis {
     let tickAmount = w.globals.yAxisScale[realIndex].result.length - 1
     const labelsDivider = w.globals.gridWidth / tickAmount + 0.1
     let l = labelsDivider + w.config.xaxis.labels.offsetX
-    const lbFormatter = w.globals.xLabelFormatter
+    const lbFormatter = w.formatters.xLabelFormatter
     let labels = this.axesUtils.checkForReversedLabels(
       realIndex,
       w.globals.yAxisScale[realIndex].result.slice()

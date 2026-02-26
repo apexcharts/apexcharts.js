@@ -40,7 +40,7 @@ export default class DimXAxis {
           : 0
 
       // get the longest string from the labels array and also apply label formatter
-      const xlbFormatter = w.globals.xLabelFormatter
+      const xlbFormatter = w.formatters.xLabelFormatter
       // prevent changing xaxisLabels to avoid issues in multi-yaxes - fix #522
       let val = Utils.getLargestStringFromArr(xaxisLabels)
       let valArr = this.dCtx.dimHelpers.getLargestStringFromMultiArr(

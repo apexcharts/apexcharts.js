@@ -42,7 +42,7 @@ export default class DimYAxis {
         yaxe.labels.show &&
         yS.result.length
       ) {
-        const lbFormatter = w.globals.yLabelFormatters[index]
+        const lbFormatter = w.formatters.yLabelFormatters[index]
         const minV = yS.niceMin === Number.MIN_VALUE ? 0 : yS.niceMin
         let val = yS.result.reduce((acc, curr) => {
           return String(lbFormatter(acc, formatterArgs))?.length >

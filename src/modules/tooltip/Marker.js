@@ -3,6 +3,7 @@ import Position from './Position'
 import Markers from '../../modules/Markers'
 import Utils from '../../utils/Utils'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
+import { SVGNS } from '../../svg/math'
 
 /**
  * ApexCharts Tooltip.Marker Class to draw texts on the tooltip.
@@ -67,7 +68,7 @@ export default class Marker {
 
         point.node.setAttribute('default-marker-size', 0)
 
-        const elPointsG = BrowserAPIs.createElementNS(w.globals.SVGNS, 'g')
+        const elPointsG = BrowserAPIs.createElementNS(SVGNS, 'g')
         elPointsG.classList.add('apexcharts-series-markers')
 
         elPointsG.appendChild(point.node)

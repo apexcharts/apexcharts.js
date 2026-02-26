@@ -36,13 +36,13 @@ class TimeScale {
     const daysDiff = (maxX - minX) / (1000 * SECONDS_IN_DAY)
     this.determineInterval(daysDiff)
 
-    w.globals.disableZoomIn = false
-    w.globals.disableZoomOut = false
+    w.interact.disableZoomIn = false
+    w.interact.disableZoomOut = false
 
     if (daysDiff < MIN_ZOOM_DAYS) {
-      w.globals.disableZoomIn = true
+      w.interact.disableZoomIn = true
     } else if (daysDiff > 50000) {
-      w.globals.disableZoomOut = true
+      w.interact.disableZoomOut = true
     }
 
     const timeIntervals = dt.getTimeUnitsfromTimestamp(minX, maxX, this.utc)
@@ -292,7 +292,9 @@ class TimeScale {
     // Dependency on Dimensions(), need to refactor correctly
     // TODO - find an alternate way to avoid calling this Heavy method twice
     const dimensions = new Dimensions(this.w, this.ctx)
-    dimensions.plotCoords()
+    // Phase 1: return value captured; writer stub is a no-op.
+    const layoutState = dimensions.plotCoords()
+    this.ctx._writeLayoutCoords(layoutState.layout)
   }
 
   determineInterval(daysDiff) {

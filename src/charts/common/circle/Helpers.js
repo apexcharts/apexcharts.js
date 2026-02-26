@@ -9,7 +9,7 @@ export default class CircularChartsHelpers {
     const w = this.w
 
     const yaxisConfig = w.config.yaxis[0]
-    const formatter = w.globals.yLabelFormatters[0]
+    const formatter = w.formatters.yLabelFormatters[0]
 
     const graphics = new Graphics(this.w)
     const yaxisLabel = graphics.drawText({
