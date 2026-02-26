@@ -480,7 +480,7 @@ export default class KeyboardNavigation {
     if (elPath) {
       // Leave the previous bar before entering the new one
       this._leaveHoveredBar()
-      const graphics = new Graphics(this.w)
+      const graphics = new Graphics(this.w, this.ctx)
       graphics.pathMouseEnter(elPath, null)
       this._hoveredBarEl = elPath
     }
@@ -770,7 +770,7 @@ export default class KeyboardNavigation {
 
   _leaveHoveredBar() {
     if (this._hoveredBarEl) {
-      const graphics = new Graphics(this.w)
+      const graphics = new Graphics(this.w, this.ctx)
       graphics.pathMouseLeave(this._hoveredBarEl, null)
       this._hoveredBarEl = null
     }

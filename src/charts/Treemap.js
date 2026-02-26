@@ -26,7 +26,7 @@ export default class TreemapChart {
 
   draw(series) {
     const w = this.w
-    const graphics = new Graphics(this.w)
+    const graphics = new Graphics(this.w, this.ctx)
     const fill = new Fill(this.w)
 
     const ret = graphics.group({

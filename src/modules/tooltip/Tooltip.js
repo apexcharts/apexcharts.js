@@ -884,7 +884,7 @@ export default class Tooltip {
 
   deactivateHoverFilter() {
     const w = this.w
-    const graphics = new Graphics(this.w)
+    const graphics = new Graphics(this.w, this.ctx)
 
     const allPaths = w.dom.Paper.find(`.apexcharts-bar-area`)
 
@@ -1040,7 +1040,7 @@ export default class Tooltip {
         this.barSeriesHeight = this.tooltipUtil.getBarsHeight(bars)
         if (this.barSeriesHeight > 0) {
           // hover state, activate snap filter
-          const graphics = new Graphics(this.w)
+          const graphics = new Graphics(this.w, this.ctx)
           const paths = w.dom.Paper.find(`.apexcharts-bar-area[j='${j}']`)
 
           // de-activate first

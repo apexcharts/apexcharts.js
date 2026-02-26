@@ -322,7 +322,7 @@ class Bar {
     classes,
   }) {
     const w = this.w
-    const graphics = new Graphics(this.w)
+    const graphics = new Graphics(this.w, this.ctx)
     let skipDrawing = false
 
     // Set up event delegation once per series group instead of per-element listeners

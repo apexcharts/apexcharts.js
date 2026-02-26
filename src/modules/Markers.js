@@ -14,7 +14,7 @@ export default class Markers {
     this.ctx = ctx // kept for .bind(this.ctx, ...) in pathMouse* event handlers
 
     this._filters = new Filters(this.w)
-    this._graphics = new Graphics(this.w)
+    this._graphics = new Graphics(this.w, this.ctx)
   }
 
   setGlobalMarkerSize() {

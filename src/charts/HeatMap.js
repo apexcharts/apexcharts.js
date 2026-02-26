@@ -30,7 +30,7 @@ export default class HeatMap {
 
   draw(series) {
     const w = this.w
-    const graphics = new Graphics(this.w)
+    const graphics = new Graphics(this.w, this.ctx)
 
     const ret = graphics.group({
       class: 'apexcharts-heatmap',

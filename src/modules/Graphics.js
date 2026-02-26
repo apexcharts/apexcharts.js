@@ -9,8 +9,9 @@ import Utils from '../utils/Utils'
  **/
 
 class Graphics {
-  constructor(w) {
+  constructor(w, ctx = null) {
     this.w = w
+    this.ctx = ctx
   }
 
   /*****************************************************************************

@@ -102,7 +102,7 @@ export default class InitCtxVariables {
       isMultipleY: () => this.ctx.core.isMultipleY(),
     })
     this.ctx.grid = new Grid(this.w, this.ctx)
-    this.ctx.graphics = new Graphics(this.w)
+    this.ctx.graphics = new Graphics(this.w, this.ctx)
     this.ctx.coreUtils = new CoreUtils(this.w)
     this.ctx.crosshairs = new Crosshairs(this.w)
     this.ctx.events = new Events(this.w, this.ctx)
