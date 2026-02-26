@@ -15,7 +15,7 @@ describe('XAxisAnnotations', () => {
         categories: ['A', 'B', 'C', 'D', 'E'],
       },
     })
-    annoCtx = new Annotations(chart)
+    annoCtx = new Annotations(chart.w)
     xAxisAnnotations = new XAxisAnnotations(annoCtx)
   })
 
@@ -45,7 +45,7 @@ describe('XAxisAnnotations', () => {
         series: [{ data: [10, 20, 30] }],
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const xAxis2 = new XAxisAnnotations(annoCtx2)
 
       expect(xAxis2.invertAxis).toBe(true)
@@ -165,7 +165,7 @@ describe('XAxisAnnotations', () => {
     })
 
     it('should not draw if x is not a number', () => {
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const xAxis2 = new XAxisAnnotations(annoCtx2)
 
       const parent = chart.w.globals.dom.baseEl.querySelector('.apexcharts-svg')
@@ -521,7 +521,7 @@ describe('XAxisAnnotations', () => {
         },
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       expect(annoCtx2.invertAxis).toBe(true)
 
       const group = chart.w.globals.dom.baseEl.querySelector(
@@ -572,7 +572,7 @@ describe('XAxisAnnotations', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const xAxis2 = new XAxisAnnotations(annoCtx2)
       const parent = chart.w.globals.dom.baseEl.querySelector(
         '.apexcharts-xaxis-annotations'

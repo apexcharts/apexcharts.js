@@ -15,8 +15,8 @@ export default class Config {
 
   init({ responsiveOverride }) {
     let opts = this.opts
-    let options = new Options()
-    let defaults = new Defaults(opts)
+    const options = new Options()
+    const defaults = new Defaults(opts)
 
     this.chartType = opts.chart.type
 
@@ -103,7 +103,7 @@ export default class Config {
     // default-config < global-apex-variable-config < user-defined-config
 
     // get GLOBALLY defined options and merge with the default config
-    let mergedWithDefaultConfig = Utils.extend(newDefaults, Environment.getApex())
+    const mergedWithDefaultConfig = Utils.extend(newDefaults, Environment.getApex())
 
     // get the merged config and extend with user defined config
     config = Utils.extend(mergedWithDefaultConfig, opts)
@@ -115,7 +115,7 @@ export default class Config {
   }
 
   checkForCatToNumericXAxis(chartType, chartDefaults, opts) {
-    let defaults = new Defaults(opts)
+    const defaults = new Defaults(opts)
 
     const isBarHorizontal =
       (chartType === 'bar' || chartType === 'boxPlot') &&
@@ -132,7 +132,7 @@ export default class Config {
     const notNumericXAxis =
       opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric'
 
-    let tickPlacement = opts.xaxis.tickPlacement
+    const tickPlacement = opts.xaxis.tickPlacement
       ? opts.xaxis.tickPlacement
       : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement
     if (
@@ -148,7 +148,7 @@ export default class Config {
   }
 
   extendYAxis(opts, w) {
-    let options = new Options()
+    const options = new Options()
 
     if (
       typeof opts.yaxis === 'undefined' ||
@@ -232,7 +232,7 @@ export default class Config {
   }
 
   extendYAxisAnnotations(opts) {
-    let options = new Options()
+    const options = new Options()
 
     opts.annotations.yaxis = Utils.extendArray(
       typeof opts.annotations.yaxis !== 'undefined'
@@ -244,7 +244,7 @@ export default class Config {
   }
 
   extendXAxisAnnotations(opts) {
-    let options = new Options()
+    const options = new Options()
 
     opts.annotations.xaxis = Utils.extendArray(
       typeof opts.annotations.xaxis !== 'undefined'
@@ -255,7 +255,7 @@ export default class Config {
     return opts
   }
   extendPointAnnotations(opts) {
-    let options = new Options()
+    const options = new Options()
 
     opts.annotations.points = Utils.extendArray(
       typeof opts.annotations.points !== 'undefined'
@@ -286,7 +286,7 @@ export default class Config {
   }
 
   handleUserInputErrors(opts) {
-    let config = opts
+    const config = opts
     // conflicting tooltip option. intersect makes sure to focus on 1 point at a time. Shared cannot be used along with it
     if (config.tooltip.shared && config.tooltip.intersect) {
       throw new Error(

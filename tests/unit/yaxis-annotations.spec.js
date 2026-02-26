@@ -294,11 +294,11 @@ describe('YAxisAnnotations', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx = new Annotations(chart)
+      const annoCtx = new Annotations(chart.w)
       const yAxis = new YAxisAnnotations(annoCtx)
 
       const width = yAxis._getYAxisAnnotationWidth({ width: '50%', offsetX: 0 })
-      expect(width).toBe(chart.w.globals.gridWidth * 0.5)
+      expect(width).toBe(chart.getState().gridWidth * 0.5)
     })
 
     it('should return parsed integer for numeric string', () => {
@@ -307,7 +307,7 @@ describe('YAxisAnnotations', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx = new Annotations(chart)
+      const annoCtx = new Annotations(chart.w)
       const yAxis = new YAxisAnnotations(annoCtx)
 
       const width = yAxis._getYAxisAnnotationWidth({ width: '200', offsetX: 0 })
@@ -320,7 +320,7 @@ describe('YAxisAnnotations', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx = new Annotations(chart)
+      const annoCtx = new Annotations(chart.w)
       const yAxis = new YAxisAnnotations(annoCtx)
 
       const width = yAxis._getYAxisAnnotationWidth({

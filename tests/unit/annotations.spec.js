@@ -21,8 +21,7 @@ describe('Annotations', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx = new Annotations(chart)
-      expect(annoCtx.ctx).toBeDefined()
+      const annoCtx = new Annotations(chart.w)
       expect(annoCtx.w).toBeDefined()
       expect(annoCtx.graphics).toBeDefined()
       expect(annoCtx.helpers).toBeDefined()
@@ -40,7 +39,7 @@ describe('Annotations', () => {
         series: [{ data: [10, 20, 30] }],
       })
 
-      const annoCtx = new Annotations(chart)
+      const annoCtx = new Annotations(chart.w)
       expect(annoCtx.invertAxis).toBe(true)
     })
 
@@ -54,7 +53,7 @@ describe('Annotations', () => {
         series: [{ data: [10, 20, 30] }],
       })
 
-      const annoCtx = new Annotations(chart)
+      const annoCtx = new Annotations(chart.w)
       expect(annoCtx.inversedReversedAxis).toBe(true)
     })
 
@@ -64,9 +63,9 @@ describe('Annotations', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx = new Annotations(chart)
-      const expectedXDivision =
-        chart.w.globals.gridWidth / chart.w.globals.dataPoints
+      const annoCtx = new Annotations(chart.w)
+      const { gridWidth, dataPoints } = chart.getState()
+      const expectedXDivision = gridWidth / dataPoints
       expect(annoCtx.xDivision).toBe(expectedXDivision)
     })
   })
@@ -145,7 +144,7 @@ describe('Annotations', () => {
         },
       })
 
-      const annoCtx = new Annotations(chart)
+      const annoCtx = new Annotations(chart.w)
       annoCtx.drawImageAnnos()
 
       const images = chart.w.globals.dom.baseEl.querySelectorAll('image')
@@ -167,7 +166,7 @@ describe('Annotations', () => {
         },
       })
 
-      const annoCtx = new Annotations(chart)
+      const annoCtx = new Annotations(chart.w)
       annoCtx.drawImageAnnos()
 
       const images = chart.w.globals.dom.baseEl.querySelectorAll('image')
@@ -192,7 +191,7 @@ describe('Annotations', () => {
         },
       })
 
-      const annoCtx = new Annotations(chart)
+      const annoCtx = new Annotations(chart.w)
       annoCtx.drawTextAnnos()
 
       const textElements =
@@ -212,7 +211,7 @@ describe('Annotations', () => {
         },
       })
 
-      const annoCtx = new Annotations(chart)
+      const annoCtx = new Annotations(chart.w)
       annoCtx.drawTextAnnos()
 
       const textElements =
@@ -228,7 +227,7 @@ describe('Annotations', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx = new Annotations(chart)
+      const annoCtx = new Annotations(chart.w)
       annoCtx.addText({
         x: 100,
         y: 100,

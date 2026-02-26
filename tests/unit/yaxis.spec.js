@@ -25,7 +25,7 @@ describe('Y-axis with ultra-small values', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY.toFixed(6)).toEqual('0.003760')
@@ -51,7 +51,7 @@ describe('Y-axis with ultra-small values', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(1)
@@ -101,7 +101,7 @@ describe('yaxis scale to ignore duplication if fractions are present in series',
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.yAxisScale[0].result).toEqual([
@@ -130,7 +130,7 @@ describe('user defined Y-axis min/max', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(3.175199)
@@ -153,7 +153,7 @@ describe('user defined Y-axis min/max', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -175,7 +175,7 @@ describe('yaxis range to not contain negative values', () => {
       ],
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -194,7 +194,7 @@ describe('yaxis range to not contain negative values', () => {
       ],
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -213,7 +213,7 @@ describe('yaxis range to not contain negative values', () => {
       ],
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(-50)
@@ -233,7 +233,7 @@ describe('yaxis range to not contain negative values', () => {
       ],
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(-60)
@@ -269,7 +269,7 @@ describe('single yaxis - functions in min and max', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(-23)
@@ -313,7 +313,7 @@ describe('multiple yaxis - functions in min and max', () => {
       ],
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.yAxisScale[0].niceMin).toEqual(400)
@@ -350,7 +350,7 @@ describe('multiple yaxis - functions in min and max', () => {
       ],
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.yAxisScale[0].niceMin).toEqual(0)
@@ -394,7 +394,7 @@ describe('multiple yaxis - functions in min and max', () => {
       ],
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.yAxisScale.length).toEqual(3)
@@ -417,7 +417,7 @@ describe('yaxis edge cases', () => {
       ],
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(41)
@@ -436,7 +436,7 @@ describe('yaxis edge cases', () => {
       ],
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(99)
@@ -455,7 +455,7 @@ describe('yaxis edge cases', () => {
       ],
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -478,7 +478,7 @@ describe('yaxis edge cases', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -497,7 +497,7 @@ describe('yaxis edge cases', () => {
       ],
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -516,7 +516,7 @@ describe('yaxis edge cases', () => {
       ],
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -541,7 +541,7 @@ describe('yaxis with tickAmount', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -563,7 +563,7 @@ describe('yaxis with tickAmount', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(1)
@@ -588,7 +588,7 @@ describe('yaxis with forceNiceScale', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(10)
@@ -613,7 +613,7 @@ describe('yaxis with forceNiceScale', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(10)
@@ -637,7 +637,7 @@ describe('yaxis with logarithmic scale', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(1)
@@ -661,7 +661,7 @@ describe('yaxis with logarithmic scale', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(1)
@@ -688,7 +688,7 @@ describe('yaxis with stepSize', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)

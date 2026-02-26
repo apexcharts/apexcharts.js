@@ -61,7 +61,7 @@ export default class Destroy {
   }
 
   clearDomElements({ isUpdating }) {
-    const domEls = this.w.globals.dom
+    const domEls = this.w.dom
 
     if (Environment.isBrowser()) {
       const elSVG = domEls.Paper.node

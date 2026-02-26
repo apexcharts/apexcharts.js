@@ -6,9 +6,9 @@ import Utils from '../../utils/Utils'
 import PerformanceCache from '../../utils/PerformanceCache'
 
 export default class UpdateHelpers {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w, ctx) {
+    this.w = w
+    this.ctx = ctx // needed: getSyncedCharts, series, data, pie, update
   }
 
   /**
@@ -32,14 +32,14 @@ export default class UpdateHelpers {
         charts = this.ctx.getSyncedCharts()
       }
 
-      if (this.ctx.w.globals.isExecCalled) {
+      if (this.w.globals.isExecCalled) {
         // If the user called exec method, we don't want to get grouped charts as user specifically provided a chartID to update
         charts = [this.ctx]
-        this.ctx.w.globals.isExecCalled = false
+        this.w.globals.isExecCalled = false
       }
 
       charts.forEach((ch, chartIndex) => {
-        let w = ch.w
+        const w = ch.w
 
         w.globals.shouldAnimate = animate
 
@@ -57,7 +57,7 @@ export default class UpdateHelpers {
           options = CoreUtils.extendArrayProps(ch.config, options, w)
 
           // fixes #914, #623
-          if (ch.w.globals.chartID !== this.ctx.w.globals.chartID) {
+          if (ch.w.globals.chartID !== this.w.globals.chartID) {
             // don't overwrite series of synchronized charts
             delete options.series
           }
@@ -84,7 +84,7 @@ export default class UpdateHelpers {
                 i < w.globals.collapsedSeriesIndices.length;
                 i++
               ) {
-                let series =
+                const series =
                   w.config.series[w.globals.collapsedSeriesIndices[i]]
                 w.globals.collapsedSeries[i].data = w.globals.axisCharts
                   ? series.data.slice()
@@ -95,7 +95,7 @@ export default class UpdateHelpers {
                 i < w.globals.ancillaryCollapsedSeriesIndices.length;
                 i++
               ) {
-                let series =
+                const series =
                   w.config.series[w.globals.ancillaryCollapsedSeriesIndices[i]]
                 w.globals.ancillaryCollapsedSeries[i].data = w.globals
                   .axisCharts
@@ -172,13 +172,13 @@ export default class UpdateHelpers {
     const parent = `.apexcharts-series[data\\:realIndex='${seriesIndex}']`
 
     if (w.globals.axisCharts) {
-      elPath = w.globals.dom.Paper.findOne(
+      elPath = w.dom.Paper.findOne(
         `${parent} path[j='${dataPointIndex}'], ${parent} circle[j='${dataPointIndex}'], ${parent} rect[j='${dataPointIndex}']`
       )
     } else {
       // dataPointIndex will be undefined here, hence using seriesIndex
       if (typeof dataPointIndex === 'undefined') {
-        elPath = w.globals.dom.Paper.findOne(
+        elPath = w.dom.Paper.findOne(
           `${parent} path[j='${seriesIndex}']`
         )
 
@@ -193,7 +193,7 @@ export default class UpdateHelpers {
     }
 
     if (elPath) {
-      const graphics = new Graphics(this.ctx)
+      const graphics = new Graphics(this.w)
       graphics.pathMouseDown(elPath, null)
     } else {
       console.warn('toggleDataPointSelection: Element not found')

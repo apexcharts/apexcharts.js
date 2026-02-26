@@ -1,5 +1,4 @@
 import Graphics from '../Graphics'
-import Utils from '../../utils/Utils'
 import AxesUtils from './AxesUtils'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 
@@ -10,11 +9,9 @@ import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
  **/
 
 export default class YAxis {
-  constructor(ctx, elgrid) {
-    this.ctx = ctx
+  constructor(w, { theme = null, timeScale = null } = {}, elgrid) {
+    this.w = w
     this.elgrid = elgrid
-    this.w = ctx.w
-    const w = this.w
 
     this.xaxisFontSize = w.config.xaxis.labels.style.fontSize
     this.axisFontFamily = w.config.xaxis.labels.style.fontFamily
@@ -24,12 +21,12 @@ export default class YAxis {
     this.xAxisoffX =
       w.config.xaxis.position === 'bottom' ? w.globals.gridHeight : 0
     this.drawnLabels = []
-    this.axesUtils = new AxesUtils(ctx)
+    this.axesUtils = new AxesUtils(w, { theme, timeScale })
   }
 
   drawYaxis(realIndex) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
     const yaxisStyle = w.config.yaxis[realIndex].labels.style
     const {
       fontSize: yaxisFontSize,
@@ -51,7 +48,7 @@ export default class YAxis {
     const tickAmount = w.globals.yAxisScale[realIndex].result.length - 1
     const labelsDivider = w.globals.gridHeight / tickAmount
     const lbFormatter = w.globals.yLabelFormatters[realIndex]
-    let labels = this.axesUtils.checkForReversedLabels(
+    const labels = this.axesUtils.checkForReversedLabels(
       realIndex,
       w.globals.yAxisScale[realIndex].result.slice()
     )
@@ -64,7 +61,7 @@ export default class YAxis {
 
       let firstLabel = null
       for (let i = tickAmount; i >= 0; i--) {
-        let val = lbFormatter(labels[i], i, w)
+        const val = lbFormatter(labels[i], i, w)
         let xPad = w.config.yaxis[realIndex].labels.padding
         if (w.config.yaxis[realIndex].opposite && w.config.yaxis.length !== 0)
           xPad *= -1
@@ -79,8 +76,8 @@ export default class YAxis {
         )
         const foreColor = Array.isArray(yColors) ? yColors[i] : yColors
 
-        const existingYLabels = Utils.listToArray(
-          w.globals.dom.baseEl.querySelectorAll(
+        const existingYLabels = Array.from(
+          w.dom.baseEl.querySelectorAll(
             `.apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-label tspan`
           )
         ).map((label) => label.textContent)
@@ -214,7 +211,7 @@ export default class YAxis {
 
   drawYaxisInversed(realIndex) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
 
     const elXaxis = graphics.group({
       class: 'apexcharts-xaxis apexcharts-yaxis-inversed',
@@ -307,7 +304,7 @@ export default class YAxis {
 
   inversedYAxisBorder(parent) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
     const axisBorder = w.config.xaxis.axisBorder
 
     if (axisBorder.show) {
@@ -335,7 +332,7 @@ export default class YAxis {
 
   inversedYAxisTitleText(parent) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
 
     if (w.config.xaxis.title.text !== undefined) {
       const elYaxisTitle = graphics.group({
@@ -365,14 +362,14 @@ export default class YAxis {
 
   yAxisTitleRotate(realIndex, yAxisOpposite) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
-    const elYAxisLabelsWrap = w.globals.dom.baseEl.querySelector(
+    const graphics = new Graphics(this.w)
+    const elYAxisLabelsWrap = w.dom.baseEl.querySelector(
       `.apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-texts-g`
     )
     const yAxisLabelsCoord = elYAxisLabelsWrap
       ? elYAxisLabelsWrap.getBoundingClientRect()
       : { width: 0, height: 0 }
-    const yAxisTitle = w.globals.dom.baseEl.querySelector(
+    const yAxisTitle = w.dom.baseEl.querySelector(
       `.apexcharts-yaxis[rel='${realIndex}'] .apexcharts-yaxis-title text`
     )
     const yAxisTitleCoord = yAxisTitle
@@ -474,18 +471,18 @@ export default class YAxis {
 
   setYAxisTextAlignments() {
     const w = this.w
-    const yaxis = Utils.listToArray(
-      w.globals.dom.baseEl.getElementsByClassName('apexcharts-yaxis')
+    const yaxis = Array.from(
+      w.dom.baseEl.getElementsByClassName('apexcharts-yaxis')
     )
 
     yaxis.forEach((y, index) => {
       const yaxe = w.config.yaxis[index]
       if (yaxe && !yaxe.floating && yaxe.labels.align !== undefined) {
-        const yAxisInner = w.globals.dom.baseEl.querySelector(
+        const yAxisInner = w.dom.baseEl.querySelector(
           `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`
         )
-        const yAxisTexts = Utils.listToArray(
-          w.globals.dom.baseEl.querySelectorAll(
+        const yAxisTexts = Array.from(
+          w.dom.baseEl.querySelectorAll(
             `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-label`
           )
         )

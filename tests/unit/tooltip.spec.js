@@ -35,9 +35,6 @@ function makeTooltipContext(overrides = {}) {
     capturedDataPointIndex: 0,
     markers: { size: [4] },
     initialSeries: [{ data: [10, 20, 30] }],
-    dom: {
-      baseEl: document.createElement('div'),
-    },
     ...(overrides.globals || {}),
   }
 
@@ -69,7 +66,14 @@ function makeTooltipContext(overrides = {}) {
     ...(overrides.config || {}),
   }
 
-  const w = { config, globals }
+  const w = {
+    config,
+    globals,
+    dom: {
+      baseEl: document.createElement('div'),
+      ...(overrides.dom || {}),
+    },
+  }
 
   const ttCtx = {
     w,

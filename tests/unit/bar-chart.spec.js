@@ -53,7 +53,6 @@ function createBarInstance(overrides = {}) {
     maxValsInArrayIndex: 0,
     barPadForNumericAxis: 0,
     cuid: 'test123',
-    dom: {},
     ...(overrides.globals || {}),
   }
 
@@ -86,7 +85,11 @@ function createBarInstance(overrides = {}) {
     ...(overrides.config || {}),
   }
 
-  const w = { config, globals }
+  const w = {
+    config,
+    globals,
+    dom: {},
+  }
 
   // Build a minimal ctx that Bar's constructor needs
   const ctx = {
@@ -117,7 +120,7 @@ describe('Bar chart', () => {
       chart: { type: 'bar' },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     range.setXRange()
 
     expect(range.w.globals.minXDiff).toEqual(1)
@@ -305,12 +308,12 @@ describe('Bar chart', () => {
       const chart = barChart({
         series: [{ data: [10, 20, 30] }],
       })
-      const w = chart.w
+      const { seriesXvalues, seriesYvalues } = chart.getState()
 
-      expect(w.globals.seriesXvalues.length).toBeGreaterThan(0)
-      expect(w.globals.seriesYvalues.length).toBeGreaterThan(0)
-      expect(w.globals.seriesXvalues[0].length).toBe(3)
-      expect(w.globals.seriesYvalues[0].length).toBe(3)
+      expect(seriesXvalues.length).toBeGreaterThan(0)
+      expect(seriesYvalues.length).toBeGreaterThan(0)
+      expect(seriesXvalues[0].length).toBe(3)
+      expect(seriesYvalues[0].length).toBe(3)
     })
 
     it('should populate seriesXvalues and seriesYvalues for horizontal bar', () => {
@@ -318,30 +321,28 @@ describe('Bar chart', () => {
         bar: { horizontal: true },
         series: [{ data: [10, 20, 30] }],
       })
-      const w = chart.w
+      const { seriesXvalues, seriesYvalues } = chart.getState()
 
-      expect(w.globals.seriesXvalues.length).toBeGreaterThan(0)
-      expect(w.globals.seriesYvalues.length).toBeGreaterThan(0)
+      expect(seriesXvalues.length).toBeGreaterThan(0)
+      expect(seriesYvalues.length).toBeGreaterThan(0)
     })
 
     it('should handle multi-series bar charts', () => {
       const chart = barChart({
         series: [{ data: [10, 20, 30] }, { data: [15, 25, 35] }],
       })
-      const w = chart.w
+      const { seriesXvalues, seriesYvalues } = chart.getState()
 
-      expect(w.globals.seriesXvalues.length).toBe(2)
-      expect(w.globals.seriesYvalues.length).toBe(2)
+      expect(seriesXvalues.length).toBe(2)
+      expect(seriesYvalues.length).toBe(2)
     })
 
     it('should handle series with empty data', () => {
       const chart = barChart({
         series: [{ data: [] }],
       })
-      const w = chart.w
-
       // Should not throw — chart renders even with no data
-      expect(w.globals.series).toBeDefined()
+      expect(chart.getState().series).toBeDefined()
     })
 
     it('should warn when dataLabels exceed maxItems', () => {
@@ -479,9 +480,8 @@ describe('Bar chart', () => {
         bar: { horizontal: true },
         series: [{ data: [10, 20, 30] }],
       })
-      const w = chart.w
 
-      expect(w.globals.seriesYvalues[0].length).toBe(3)
+      expect(chart.getState().seriesYvalues[0].length).toBe(3)
     })
   })
 

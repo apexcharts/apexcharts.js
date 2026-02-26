@@ -246,7 +246,7 @@ async function updateBundle(config) {
     ? fs.statSync(config.dest).mtime.valueOf()
     : 0
 
-  let codeModifiedTime = Math.max(
+  const codeModifiedTime = Math.max(
     dirLastModified(`${rootDir}/build`),
     dirLastModified(`${rootDir}/src`)
   )

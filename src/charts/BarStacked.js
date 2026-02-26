@@ -1,6 +1,7 @@
 import CoreUtils from '../modules/CoreUtils'
 import Bar from './Bar'
 import Graphics from '../modules/Graphics'
+import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 
 /**
@@ -13,11 +14,11 @@ import Utils from '../utils/Utils'
 
 class BarStacked extends Bar {
   draw(series, seriesIndex) {
-    let w = this.w
-    this.graphics = new Graphics(this.ctx)
-    this.bar = new Bar(this.ctx, this.xyRatios)
+    const w = this.w
+    this.graphics = new Graphics(this.w)
+    this.bar = new Bar(this.w, this.ctx, this.xyRatios)
 
-    const coreUtils = new CoreUtils(this.ctx)
+    const coreUtils = new CoreUtils(this.w)
     series = coreUtils.getLogSeries(series)
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
@@ -32,7 +33,7 @@ class BarStacked extends Bar {
     this.series = series
     this.barHelpers.initializeStackedPrevVars(this)
 
-    let ret = this.graphics.group({
+    const ret = this.graphics.group({
       class: 'apexcharts-bar-series apexcharts-plot-series',
     })
 
@@ -40,18 +41,13 @@ class BarStacked extends Bar {
     let y = 0
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
-      let xDivision // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
-      let yDivision // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
-      let zeroH // zeroH is the baseline where 0 meets y axis
-      let zeroW // zeroW is the baseline where 0 meets x axis
-
-      let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
-      let { groupIndex, columnGroupIndex } =
+      const realIndex = w.globals.comboCharts ? seriesIndex[i] : i
+      const { groupIndex, columnGroupIndex } =
         this.barHelpers.getGroupIndex(realIndex)
       this.groupCtx = this[w.globals.seriesGroups[groupIndex]]
 
-      let xArrValues = []
-      let yArrValues = []
+      const xArrValues = []
+      const yArrValues = []
 
       let translationsIndex = 0
       if (this.yRatio.length > 1) {
@@ -70,39 +66,30 @@ class BarStacked extends Bar {
         rel: i + 1,
         'data:realIndex': realIndex,
       })
-      this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex)
+      Series.addCollapsedClassToSeries(this.w, elSeries, realIndex)
 
       // eldatalabels
-      let elDataLabelsWrap = this.graphics.group({
+      const elDataLabelsWrap = this.graphics.group({
         class: 'apexcharts-datalabels',
         'data:realIndex': realIndex,
       })
 
-      let elGoalsMarkers = this.graphics.group({
+      const elGoalsMarkers = this.graphics.group({
         class: 'apexcharts-bar-goals-markers',
       })
 
-      let barHeight = 0
-      let barWidth = 0
+      const initPositions = this.initialPositions(x, y, undefined, undefined, undefined, undefined, translationsIndex)
+      const {
+        xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
+        yDivision, // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
+        zeroH, // zeroH is the baseline where 0 meets y axis
+        zeroW, // zeroW is the baseline where 0 meets x axis
+      } = initPositions
+      let barHeight = initPositions.barHeight
+      let barWidth = initPositions.barWidth
 
-      let initPositions = this.initialPositions(
-        x,
-        y,
-        xDivision,
-        yDivision,
-        zeroH,
-        zeroW,
-        translationsIndex
-      )
       y = initPositions.y
-      barHeight = initPositions.barHeight
-      yDivision = initPositions.yDivision
-      zeroW = initPositions.zeroW
-
       x = initPositions.x
-      barWidth = initPositions.barWidth
-      xDivision = initPositions.xDivision
-      zeroH = initPositions.zeroH
 
       w.globals.barHeight = barHeight
       w.globals.barWidth = barWidth
@@ -167,7 +154,7 @@ class BarStacked extends Bar {
         xArrValues.push(x)
         yArrValues.push(y)
 
-        let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
+        const pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
 
         let classes = ''
 
@@ -233,14 +220,14 @@ class BarStacked extends Bar {
     zeroW,
     translationsIndex
   ) {
-    let w = this.w
+    const w = this.w
 
     let barHeight, barWidth
     if (this.isHorizontal) {
       // height divided into equal parts
       yDivision = w.globals.gridHeight / w.globals.dataPoints
 
-      let userBarHeight = w.config.plotOptions.bar.barHeight
+      const userBarHeight = w.config.plotOptions.bar.barHeight
       if (String(userBarHeight).indexOf('%') === -1) {
         barHeight = parseInt(userBarHeight, 10)
       } else {
@@ -260,7 +247,7 @@ class BarStacked extends Bar {
 
       barWidth = xDivision
 
-      let userColumnWidth = w.config.plotOptions.bar.columnWidth
+      const userColumnWidth = w.config.plotOptions.bar.columnWidth
       if (w.globals.isXNumeric && w.globals.dataPoints > 1) {
         xDivision = w.globals.minXDiff / this.xRatio
         barWidth = (xDivision * parseInt(this.barOptions.columnWidth, 10)) / 100
@@ -289,7 +276,7 @@ class BarStacked extends Bar {
     // further divided later by the number of series in the group. So, eg, two
     // groups of three series would become six bars side-by-side unstacked,
     // or two bars stacked.
-    let subDivisions = w.globals.barGroups.length || 1
+    const subDivisions = w.globals.barGroups.length || 1
 
     return {
       x,
@@ -315,13 +302,13 @@ class BarStacked extends Bar {
     yDivision,
     elSeries,
   }) {
-    let w = this.w
-    let barYPosition = y + columnGroupIndex * barHeight
+    const w = this.w
+    const barYPosition = y + columnGroupIndex * barHeight
     let barXPosition
-    let i = indexes.i
-    let j = indexes.j
-    let realIndex = indexes.realIndex
-    let translationsIndex = indexes.translationsIndex
+    const i = indexes.i
+    const j = indexes.j
+    const realIndex = indexes.realIndex
+    const translationsIndex = indexes.translationsIndex
 
     let prevBarW = 0
     for (let k = 0; k < this.groupCtx.prevXF.length; k++) {
@@ -421,12 +408,12 @@ class BarStacked extends Bar {
     seriesGroup,
     elSeries,
   }) {
-    let w = this.w
-    let i = indexes.i
-    let j = indexes.j
-    let bc = indexes.bc
-    let realIndex = indexes.realIndex
-    let translationsIndex = indexes.translationsIndex
+    const w = this.w
+    const i = indexes.i
+    const j = indexes.j
+    const bc = indexes.bc
+    const realIndex = indexes.realIndex
+    const translationsIndex = indexes.translationsIndex
 
     if (w.globals.isXNumeric) {
       let seriesVal = w.globals.seriesX[realIndex][j]
@@ -437,7 +424,7 @@ class BarStacked extends Bar {
         (barWidth / 2) * w.globals.barGroups.length
     }
 
-    let barXPosition = x + columnGroupIndex * barWidth
+    const barXPosition = x + columnGroupIndex * barWidth
     let barYPosition
 
     let prevBarH = 0

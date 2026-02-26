@@ -117,7 +117,7 @@ export default class DimGrid {
 
   setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords) {
     const { w } = this
-    const axesUtils = new AxesUtils(this.dCtx.ctx)
+    const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme, timeScale: this.dCtx.timeScale })
 
     w.config.yaxis.forEach((yaxe, index) => {
       if (

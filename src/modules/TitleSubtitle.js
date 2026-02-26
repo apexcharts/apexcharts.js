@@ -1,9 +1,8 @@
 import Graphics from './Graphics'
 
 export default class TitleSubtitle {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w) {
+    this.w = w
   }
 
   draw() {
@@ -12,7 +11,7 @@ export default class TitleSubtitle {
   }
 
   drawTitleSubtitle(type) {
-    let w = this.w
+    const w = this.w
     const tsConfig = type === 'title' ? w.config.title : w.config.subtitle
 
     let x = w.globals.svgWidth / 2
@@ -31,8 +30,8 @@ export default class TitleSubtitle {
     y = y + parseInt(tsConfig.style.fontSize, 10) + tsConfig.margin / 2
 
     if (tsConfig.text !== undefined) {
-      let graphics = new Graphics(this.ctx)
-      let titleText = graphics.drawText({
+      const graphics = new Graphics(this.w)
+      const titleText = graphics.drawText({
         x,
         y,
         text: tsConfig.text,
@@ -46,7 +45,7 @@ export default class TitleSubtitle {
 
       titleText.node.setAttribute('class', `apexcharts-${type}-text`)
 
-      w.globals.dom.Paper.add(titleText)
+      w.dom.Paper.add(titleText)
     }
   }
 }

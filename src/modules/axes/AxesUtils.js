@@ -4,9 +4,10 @@ import CoreUtils from '../CoreUtils'
 import DateTime from '../../utils/DateTime'
 
 export default class AxesUtils {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w, { theme = null, timeScale = null } = {}) {
+    this.w = w
+    this.theme = theme
+    this.timeScale = timeScale
   }
 
   // Based on the formatter function, get the label text and position
@@ -20,28 +21,28 @@ export default class AxesUtils {
     isLeafGroup = true
   ) {
     const w = this.w
-    let rawLabel = typeof labels[i] === 'undefined' ? '' : labels[i]
+    const rawLabel = typeof labels[i] === 'undefined' ? '' : labels[i]
     let label = rawLabel
 
-    let xlbFormatter = w.globals.xLabelFormatter
-    let customFormatter = w.config.xaxis.labels.formatter
+    const xlbFormatter = w.globals.xLabelFormatter
+    const customFormatter = w.config.xaxis.labels.formatter
 
     let isBold = false
 
-    let xFormat = new Formatters(this.ctx)
-    let timestamp = rawLabel
+    const xFormat = new Formatters(this.w)
+    const timestamp = rawLabel
 
     if (isLeafGroup) {
       label = xFormat.xLabelFormat(xlbFormatter, rawLabel, timestamp, {
         i,
-        dateFormatter: new DateTime(this.ctx).formatDate,
+        dateFormatter: new DateTime(this.w).formatDate,
         w,
       })
 
       if (customFormatter !== undefined) {
         label = customFormatter(rawLabel, labels[i], {
           i,
-          dateFormatter: new DateTime(this.ctx).formatDate,
+          dateFormatter: new DateTime(this.w).formatDate,
           w,
         })
       }
@@ -77,7 +78,7 @@ export default class AxesUtils {
 
     label = Array.isArray(label) ? label : label.toString()
 
-    let graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
     let textRect = {}
     if (w.globals.rotateXLabels && isLeafGroup) {
       textRect = graphics.getTextRects(
@@ -92,7 +93,7 @@ export default class AxesUtils {
     }
 
     const allowDuplicatesInTimeScale =
-      !w.config.xaxis.labels.showDuplicates && this.ctx.timeScale
+      !w.config.xaxis.labels.showDuplicates && this.timeScale
 
     if (
       !Array.isArray(label) &&
@@ -117,7 +118,7 @@ export default class AxesUtils {
     if (ticks === 'dataPoints') ticks = Math.round(w.globals.gridWidth / 120)
 
     if (ticks > labelsLen) return label
-    let tickMultiple = Math.round(labelsLen / (ticks + 1))
+    const tickMultiple = Math.round(labelsLen / (ticks + 1))
 
     if (i % tickMultiple === 0) {
       return label
@@ -195,7 +196,7 @@ export default class AxesUtils {
     const w = this.w
     const gl = w.globals
     const yaxis = w.config.yaxis
-    let newStyle =
+    const newStyle =
           gl.series.length > yaxis.length
           || yaxis.some((a) => Array.isArray(a.seriesName))
     if (newStyle) {
@@ -215,7 +216,7 @@ export default class AxesUtils {
     }
     if (!yaxis.showForNullSeries) {
       const seriesIndices = w.globals.seriesYAxisMap[index]
-      const coreUtils = new CoreUtils(this.ctx)
+      const coreUtils = new CoreUtils(this.w)
       return seriesIndices.every((si) => coreUtils.isSeriesNull(si))
     }
     return false
@@ -226,7 +227,7 @@ export default class AxesUtils {
   getYAxisForeColor(yColors, realIndex) {
     const w = this.w
     if (Array.isArray(yColors) && w.globals.yAxisScale[realIndex]) {
-      this.ctx.theme.pushExtraColors(
+      this.theme?.pushExtraColors(
         yColors,
         w.globals.yAxisScale[realIndex].result.length,
         false
@@ -244,8 +245,8 @@ export default class AxesUtils {
     labelsDivider,
     elYaxis
   ) {
-    let w = this.w
-    let graphics = new Graphics(this.ctx)
+    const w = this.w
+    const graphics = new Graphics(this.w)
 
     // initial label position = 0;
     let tY = w.globals.translateY + w.config.yaxis[realIndex].labels.offsetY
@@ -259,7 +260,7 @@ export default class AxesUtils {
       if (w.config.yaxis[realIndex].opposite === true) x = x + axisTicks.width
 
       for (let i = tickAmount; i >= 0; i--) {
-        let elTick = graphics.drawLine(
+        const elTick = graphics.drawLine(
           x + axisBorder.offsetX - axisTicks.width + axisTicks.offsetX,
           tY + axisTicks.offsetY,
           x + axisBorder.offsetX + axisTicks.offsetX,

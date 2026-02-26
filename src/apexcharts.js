@@ -8,6 +8,7 @@ import Grid from './modules/axes/Grid'
 import Markers from './modules/Markers'
 import Range from './modules/Range'
 import Utils from './utils/Utils'
+import { getThemePalettes } from './utils/ThemePalettes.js'
 import XAxis from './modules/axes/XAxis'
 import YAxis from './modules/axes/YAxis'
 import InitCtxVariables from './modules/helpers/InitCtxVariables'
@@ -42,7 +43,7 @@ export default class ApexCharts {
 
     this.lastUpdateOptions = null
 
-    this.create = Utils.bind(this.create, this)
+    this.create = this.create.bind(this)
 
     // bind event handlers in browser environment
     if (Environment.isBrowser()) {
@@ -84,9 +85,9 @@ export default class ApexCharts {
           window.addEventListener('resize', this.windowResizeHandler)
           addResizeListener(this.el.parentNode, this.parentResizeHandler)
 
-          let rootNode = this.el.getRootNode && this.el.getRootNode()
-          let inShadowRoot = Utils.is('ShadowRoot', rootNode)
-          let doc = this.el.ownerDocument
+          const rootNode = this.el.getRootNode && this.el.getRootNode()
+          const inShadowRoot = Utils.is('ShadowRoot', rootNode)
+          const doc = this.el.ownerDocument
           let css = inShadowRoot
             ? rootNode.getElementById('apexcharts-css')
             : doc.getElementById('apexcharts-css')
@@ -110,7 +111,7 @@ export default class ApexCharts {
           }
         }
 
-        let graphData = this.create(this.w.config.series, {})
+        const graphData = this.create(this.w.config.series, {})
         if (!graphData) return resolve(this)
         this.mount(graphData)
           .then(() => {
@@ -132,11 +133,11 @@ export default class ApexCharts {
   }
 
   create(ser, opts) {
-    let w = this.w
+    const w = this.w
 
     const initCtx = new InitCtxVariables(this)
     initCtx.initModules()
-    let gl = this.w.globals
+    const gl = this.w.globals
 
     gl.noData = false
     gl.animationEnded = false
@@ -197,7 +198,7 @@ export default class ApexCharts {
     this.theme.init()
 
     // as markers accepts array, we need to setup global markers for easier access
-    const markers = new Markers(this)
+    const markers = new Markers(this.w, this)
     markers.setGlobalMarkerSize()
 
     // labelFormatters should be called before dimensions as in dimensions we need text labels width
@@ -233,7 +234,7 @@ export default class ApexCharts {
     this.formatters.heatmapLabelFormatters()
 
     // get the largest marker size which will be needed in dimensions calc
-    const coreUtils = new CoreUtils(this)
+    const coreUtils = new CoreUtils(this.w)
     coreUtils.getLargestMarkerSize()
 
     // We got plottable area here, next task would be to calculate axis areas
@@ -245,7 +246,7 @@ export default class ApexCharts {
 
     const elGraph = this.core.plotChartType(series, xyRatios)
 
-    const dataLabels = new DataLabels(this)
+    const dataLabels = new DataLabels(this.w, this)
     dataLabels.bringForward()
     if (w.config.dataLabels.background.enabled) {
       dataLabels.dataLabelsBackground()
@@ -255,7 +256,7 @@ export default class ApexCharts {
     this.core.shiftGraphPosition()
 
     if (w.globals.dataPoints > 50) {
-      w.globals.dom.elWrap.classList.add('apexcharts-disable-transitions')
+      w.dom.elWrap.classList.add('apexcharts-disable-transitions')
     }
 
     const dim = {
@@ -275,8 +276,8 @@ export default class ApexCharts {
   }
 
   mount(graphData = null) {
-    let me = this
-    let w = me.w
+    const me = this
+    const w = me.w
 
     return new Promise((resolve, reject) => {
       // no data to display
@@ -288,36 +289,36 @@ export default class ApexCharts {
         me.series.handleNoData()
       }
 
-      me.grid = new Grid(me)
-      let elgrid = me.grid.drawGrid()
+      me.grid = new Grid(me.w, me)
+      const elgrid = me.grid.drawGrid()
 
-      me.annotations = new Annotations(me)
+      me.annotations = new Annotations(me.w, { theme: me.theme, timeScale: me.timeScale })
       me.annotations.drawImageAnnos()
       me.annotations.drawTextAnnos()
 
       if (w.config.grid.position === 'back') {
         if (elgrid) {
-          w.globals.dom.elGraphical.add(elgrid.el)
+          w.dom.elGraphical.add(elgrid.el)
         }
         if (elgrid?.elGridBorders?.node) {
-          w.globals.dom.elGraphical.add(elgrid.elGridBorders)
+          w.dom.elGraphical.add(elgrid.elGridBorders)
         }
       }
 
       if (Array.isArray(graphData.elGraph)) {
         for (let g = 0; g < graphData.elGraph.length; g++) {
-          w.globals.dom.elGraphical.add(graphData.elGraph[g])
+          w.dom.elGraphical.add(graphData.elGraph[g])
         }
       } else {
-        w.globals.dom.elGraphical.add(graphData.elGraph)
+        w.dom.elGraphical.add(graphData.elGraph)
       }
 
       if (w.config.grid.position === 'front') {
         if (elgrid) {
-          w.globals.dom.elGraphical.add(elgrid.el)
+          w.dom.elGraphical.add(elgrid.el)
         }
         if (elgrid?.elGridBorders?.node) {
-          w.globals.dom.elGraphical.add(elgrid.elGridBorders)
+          w.dom.elGraphical.add(elgrid.elGridBorders)
         }
       }
 
@@ -333,8 +334,8 @@ export default class ApexCharts {
         me.axes.drawAxis(w.config.chart.type, elgrid)
       }
 
-      let xAxis = new XAxis(this.ctx, elgrid)
-      let yaxis = new YAxis(this.ctx, elgrid)
+      const xAxis = new XAxis(this.w, this.ctx, elgrid)
+      const yaxis = new YAxis(this.w, { theme: this.theme, timeScale: this.timeScale }, elgrid)
       if (elgrid !== null) {
         xAxis.xAxisLabelCorrections(elgrid.xAxisTickWidth)
         yaxis.setYAxisTextAlignments()
@@ -379,7 +380,7 @@ export default class ApexCharts {
           }
         } else {
           const tools = w.config.chart.toolbar.tools
-          let toolsArr = [
+          const toolsArr = [
             'zoom',
             'zoomin',
             'zoomout',
@@ -560,13 +561,13 @@ export default class ApexCharts {
    * @param {array} newData - New data in the same format as series
    */
   appendData(newData, overwriteInitialSeries = true) {
-    let me = this
+    const me = this
 
     me.data.resetParsingFlags()
     me.w.globals.dataChanged = true
     me.series.getPreviousPaths()
 
-    let newSeries = me.w.config.series.slice()
+    const newSeries = me.w.config.series.slice()
 
     for (let i = 0; i < newSeries.length; i++) {
       if (newData[i] !== null && typeof newData[i] !== 'undefined') {
@@ -701,18 +702,7 @@ export default class ApexCharts {
   }
 
   static getThemePalettes() {
-    return {
-      palette1: ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0'],
-      palette2: ['#3F51B5', '#03A9F4', '#4CAF50', '#F9CE1D', '#FF9800'],
-      palette3: ['#33B2DF', '#546E7A', '#D4526E', '#13D8AA', '#A5978B'],
-      palette4: ['#4ECDC4', '#C7F464', '#81D4FA', '#FD6A6A', '#546E7A'],
-      palette5: ['#2B908F', '#F9A3A4', '#90EE7E', '#FA4443', '#69D2E7'],
-      palette6: ['#449DD1', '#F86624', '#EA3546', '#662E9B', '#C5D86D'],
-      palette7: ['#D7263D', '#1B998B', '#2E294E', '#F46036', '#E2C044'],
-      palette8: ['#662E9B', '#F86624', '#F9C80E', '#EA3546', '#43BCCD'],
-      palette9: ['#5C4742', '#A5978B', '#8D5B4C', '#5A2A27', '#C4BBAF'],
-      palette10: ['#A300D6', '#7D02EB', '#5653FE', '#2983FF', '#00B1F2'],
-    }
+    return getThemePalettes()
   }
 
   toggleSeries(seriesName) {
@@ -794,7 +784,7 @@ export default class ApexCharts {
   }
 
   getChartArea() {
-    const el = this.w.globals.dom.baseEl.querySelector('.apexcharts-inner')
+    const el = this.w.dom.baseEl.querySelector('.apexcharts-inner')
 
     return el
   }
@@ -804,17 +794,85 @@ export default class ApexCharts {
   }
 
   getHighestValueInSeries(seriesIndex = 0) {
-    const range = new Range(this.ctx)
+    const range = new Range(this.w)
     return range.getMinYMaxY(seriesIndex).highestY
   }
 
   getLowestValueInSeries(seriesIndex = 0) {
-    const range = new Range(this.ctx)
+    const range = new Range(this.w)
     return range.getMinYMaxY(seriesIndex).lowestY
   }
 
   getSeriesTotal() {
     return this.w.globals.seriesTotals
+  }
+
+  /**
+   * Returns a curated snapshot of chart state for use in formatters, events,
+   * and external integrations. Prefer this over accessing `chart.w` directly.
+   *
+   * The shape of this object is stable and versioned. `chart.w` is internal
+   * and will be restricted in a future major version.
+   */
+  getState() {
+    const gl = this.w.globals
+
+    return {
+      // Series data — computed/parsed form used for rendering
+      series: gl.series,
+      seriesNames: gl.seriesNames,
+      colors: gl.colors,
+      labels: gl.labels,
+      seriesTotals: gl.seriesTotals,
+      seriesPercent: gl.seriesPercent,
+      seriesXvalues: gl.seriesXvalues,
+      seriesYvalues: gl.seriesYvalues,
+
+      // Axis bounds — updated after each render
+      minX: gl.minX,
+      maxX: gl.maxX,
+      minY: gl.minY,
+      maxY: gl.maxY,
+      minYArr: gl.minYArr,
+      maxYArr: gl.maxYArr,
+      minXDiff: gl.minXDiff,
+      dataPoints: gl.dataPoints,
+
+      // Axis scale objects — computed tick/scale results
+      xAxisScale: gl.xAxisScale,
+      yAxisScale: gl.yAxisScale,
+      xTickAmount: gl.xTickAmount,
+
+      // Axis type flags
+      isXNumeric: gl.isXNumeric,
+
+      // Multi-axis series mapping
+      seriesYAxisMap: gl.seriesYAxisMap,
+      seriesYAxisReverseMap: gl.seriesYAxisReverseMap,
+
+      // Chart dimensions — updated after each render/resize
+      svgWidth: gl.svgWidth,
+      svgHeight: gl.svgHeight,
+      gridWidth: gl.gridWidth,
+      gridHeight: gl.gridHeight,
+
+      // Interactive state
+      selectedDataPoints: gl.selectedDataPoints,
+      collapsedSeriesIndices: gl.collapsedSeriesIndices,
+      zoomed: gl.zoomed,
+
+      // Chart-type-specific series data (null when not applicable)
+      seriesX: gl.seriesX,
+      seriesZ: gl.seriesZ,
+      seriesCandleO: gl.seriesCandleO,
+      seriesCandleH: gl.seriesCandleH,
+      seriesCandleM: gl.seriesCandleM,
+      seriesCandleL: gl.seriesCandleL,
+      seriesCandleC: gl.seriesCandleC,
+      seriesRangeStart: gl.seriesRangeStart,
+      seriesRangeEnd: gl.seriesRangeEnd,
+      seriesGoals: gl.seriesGoals,
+    }
   }
 
   toggleDataPointSelection(seriesIndex, dataPointIndex) {
@@ -833,21 +891,21 @@ export default class ApexCharts {
   }
 
   dataURI(options) {
-    const exp = new Exports(this.ctx)
+    const exp = new Exports(this.ctx.w, this.ctx)
     return exp.dataURI(options)
   }
 
   getSvgString(scale) {
-    return new Exports(this.ctx).getSvgString(scale)
+    return new Exports(this.ctx.w, this.ctx).getSvgString(scale)
   }
 
   exportToCSV(options = {}) {
-    const exp = new Exports(this.ctx)
+    const exp = new Exports(this.ctx.w, this.ctx)
     return exp.exportToCSV(options)
   }
 
   paper() {
-    return this.w.globals.dom.Paper
+    return this.w.dom.Paper
   }
 
   _parentResizeCallback() {

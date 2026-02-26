@@ -15,7 +15,7 @@ describe('Annotation Helpers', () => {
         categories: ['A', 'B', 'C', 'D', 'E'],
       },
     })
-    annoCtx = new Annotations(chart)
+    annoCtx = new Annotations(chart.w)
     helpers = new Helpers(annoCtx)
   })
 
@@ -57,7 +57,7 @@ describe('Annotation Helpers', () => {
       })
 
       const annotation = chart.w.config.annotations.xaxis[0]
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       // Call setOrientations
@@ -169,7 +169,7 @@ describe('Annotation Helpers', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const anno = { y: 25, yAxisIndex: 0 }
@@ -186,7 +186,7 @@ describe('Annotation Helpers', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const anno = { y: 20, y2: 40, yAxisIndex: 0 }
@@ -202,7 +202,7 @@ describe('Annotation Helpers', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const anno = { y: '100px', yAxisIndex: 0 }
@@ -223,7 +223,7 @@ describe('Annotation Helpers', () => {
         },
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const anno = { y: 'B', yAxisIndex: 0 }
@@ -238,7 +238,7 @@ describe('Annotation Helpers', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const anno = { y: 1000, yAxisIndex: 0 }
@@ -257,7 +257,7 @@ describe('Annotation Helpers', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const anno = { x: 2.5 }
@@ -274,7 +274,7 @@ describe('Annotation Helpers', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const anno = { x: 1, x2: 3 }
@@ -290,7 +290,7 @@ describe('Annotation Helpers', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const anno = { x: '150px' }
@@ -309,7 +309,7 @@ describe('Annotation Helpers', () => {
         },
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const anno = { x: 'C' }
@@ -324,7 +324,7 @@ describe('Annotation Helpers', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const anno = { marker: { size: 6 } }
@@ -339,7 +339,7 @@ describe('Annotation Helpers', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const anno = { x: 1000000 }
@@ -357,7 +357,7 @@ describe('Annotation Helpers', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const anno = { x: -100 }
@@ -378,7 +378,7 @@ describe('Annotation Helpers', () => {
         },
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const result = helpers2.getStringX('C')
@@ -395,7 +395,7 @@ describe('Annotation Helpers', () => {
         },
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const result = helpers2.getStringX('NonExistent')
@@ -412,7 +412,7 @@ describe('Annotation Helpers', () => {
         },
       })
 
-      const annoCtx2 = new Annotations(chart)
+      const annoCtx2 = new Annotations(chart.w)
       const helpers2 = new Helpers(annoCtx2)
 
       const result = helpers2.getStringX('Line 1 Line 2')

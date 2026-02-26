@@ -4,7 +4,7 @@
 
 import { Environment } from './Environment.js'
 
-let ros = new WeakMap() // Map callbacks to ResizeObserver instances for easy removal
+const ros = new WeakMap() // Map callbacks to ResizeObserver instances for easy removal
 
 export function addResizeListener(el, fn) {
   // No-op in SSR environment
@@ -24,7 +24,7 @@ export function addResizeListener(el, fn) {
     }
   }
 
-  let ro = new ResizeObserver((r) => {
+  const ro = new ResizeObserver((r) => {
     // ROs fire immediately after being created,
     // per spec: https://drafts.csswg.org/resize-observer/#ref-for-element%E2%91%A3
     // we don't want that so we just discard the first run
@@ -48,7 +48,7 @@ export function removeResizeListener(el, fn) {
   // No-op in SSR environment
   if (Environment.isSSR()) return
 
-  let ro = ros.get(fn)
+  const ro = ros.get(fn)
   if (ro) {
     ro.disconnect()
     ros.delete(fn)

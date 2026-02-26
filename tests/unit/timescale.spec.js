@@ -9,7 +9,7 @@ describe('Generate TimeScale', () => {
         data: [0, 1],
       },
     ])
-    const timeScale = new TimeScale(chart)
+    const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleYears = timeScale.calculateTimeScaleTicks(
       range.years[0],
       range.years[1]
@@ -31,7 +31,7 @@ describe('Generate TimeScale', () => {
         data: [0, 1],
       },
     ])
-    const timeScale = new TimeScale(chart)
+    const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleMonths = timeScale.calculateTimeScaleTicks(
       range.months[0],
       range.months[1]
@@ -49,7 +49,7 @@ describe('Generate TimeScale', () => {
         data: [0, 1],
       },
     ])
-    const timeScale = new TimeScale(chart)
+    const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleDays = timeScale.calculateTimeScaleTicks(
       range.days[0],
       range.days[1]
@@ -71,7 +71,7 @@ describe('Generate TimeScale', () => {
         data: [0, 1],
       },
     ])
-    const timeScale = new TimeScale(chart)
+    const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleHours = timeScale.calculateTimeScaleTicks(
       range.hours[0],
       range.hours[1]
@@ -89,7 +89,7 @@ describe('Generate TimeScale', () => {
         data: [0, 1],
       },
     ])
-    const timeScale = new TimeScale(chart)
+    const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
       range.minutes_fives[0],
       range.minutes_fives[1]
@@ -141,7 +141,7 @@ describe('Generate TimeScale', () => {
         data: [0, 1],
       },
     ])
-    const timeScale = new TimeScale(chart)
+    const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
       range.minutes[0],
       range.minutes[1]
@@ -193,7 +193,7 @@ describe('Generate TimeScale', () => {
         data: [0, 1],
       },
     ])
-    const timeScale = new TimeScale(chart)
+    const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
       range.seconds_tens[0],
       range.seconds_tens[1]
@@ -265,7 +265,7 @@ describe('Generate TimeScale', () => {
         data: [0, 1],
       },
     ])
-    const timeScale = new TimeScale(chart)
+    const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
       range.seconds_fives[0],
       range.seconds_fives[1]
@@ -330,7 +330,7 @@ describe('Generate TimeScale', () => {
         data: [0, 1],
       },
     ])
-    const timeScale = new TimeScale(chart)
+    const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
       range.seconds[0],
       range.seconds[1]
@@ -395,7 +395,7 @@ describe('Generate TimeScale', () => {
         data: [0, 1],
       },
     ])
-    const timeScale = new TimeScale(chart)
+    const timeScale = new TimeScale(chart.w, chart)
     timeScale.generateHourScale({
       firstVal: {
         minSecond: 0,
@@ -423,7 +423,7 @@ describe('Generate TimeScale', () => {
         data: [0, 1],
       },
     ])
-    const timeScale = new TimeScale(chart)
+    const timeScale = new TimeScale(chart.w, chart)
     timeScale.generateHourScale({
       firstVal: {
         minSecond: 0,
@@ -449,7 +449,7 @@ describe('Generate TimeScale', () => {
         data: [0, 1],
       },
     ])
-    const timeScale = new TimeScale(chart)
+    const timeScale = new TimeScale(chart.w, chart)
     timeScale.generateHourScale({
       firstVal: {
         minSecond: 0,
@@ -494,7 +494,7 @@ describe('Generate TimeScale', () => {
           },
         },
       })
-      const timeScale = new TimeScale(chart)
+      const timeScale = new TimeScale(chart.w, chart)
       timeScale.generateHourScale({
         firstVal: {
           minSecond: 0,
@@ -524,7 +524,7 @@ describe('createRawDateString', () => {
       data: [0, 1],
     },
   ])
-  const timeScale = new TimeScale(chart)
+  const timeScale = new TimeScale(chart.w, chart)
 
   it('should create month string', () => {
     expect(

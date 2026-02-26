@@ -18,19 +18,19 @@ describe('Format Y-axis and tooltip Labels', () => {
       ],
       ...case1,
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnTtVal = gl.ttVal
     const fnYLabelFormatters = gl.yLabelFormatters
 
-    const tooltipFormat = chart.w.globals.series.map((ser, i) => {
+    const tooltipFormat = chart.getState().series.map((ser, i) => {
       return ser.map((s) => {
         return fnTtVal[i].formatter(s)
       })
     })
 
-    const yFormat = chart.w.globals.series.map((ser) => {
+    const yFormat = chart.getState().series.map((ser) => {
       return ser.map((s) => {
         return fnYLabelFormatters[0](s)
       })
@@ -62,19 +62,19 @@ describe('Format Y-axis and tooltip Labels', () => {
       ],
       ...case2,
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnTtVal = gl.ttVal
     const fnYLabelFormatters = gl.yLabelFormatters
 
-    const tooltipFormat = chart.w.globals.series.map((ser) => {
+    const tooltipFormat = chart.getState().series.map((ser) => {
       return ser.map((s) => {
         return fnTtVal.formatter(s)
       })
     })
 
-    const yFormat = chart.w.globals.series.map((ser) => {
+    const yFormat = chart.getState().series.map((ser) => {
       return ser.map((s) => {
         return fnYLabelFormatters[0](s)
       })
@@ -106,13 +106,13 @@ describe('Format Y-axis and tooltip Labels', () => {
       ],
       ...case3,
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnTtVal = gl.ttVal
     const fnYLabelFormatters = gl.yLabelFormatters
 
-    const yFormat = chart.w.globals.series.map((ser) => {
+    const yFormat = chart.getState().series.map((ser) => {
       return ser.map((s) => {
         return fnYLabelFormatters[0](s)
       })
@@ -138,11 +138,11 @@ describe('Format Y-axis and tooltip Labels', () => {
         },
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnYLabelFormatters = gl.yLabelFormatters
-    const yFormat = chart.w.globals.series.map((ser) => {
+    const yFormat = chart.getState().series.map((ser) => {
       return ser.map((s) => {
         return fnYLabelFormatters[0](s)
       })
@@ -163,11 +163,11 @@ describe('Format Y-axis and tooltip Labels', () => {
         },
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnYLabelFormatters = gl.yLabelFormatters
-    const yFormat = chart.w.globals.series[0].map((s) => {
+    const yFormat = chart.getState().series[0].map((s) => {
       return fnYLabelFormatters[0](s)
     })
 
@@ -187,11 +187,11 @@ describe('Format Y-axis and tooltip Labels', () => {
       chart: { type: 'line' },
       series: [{ data: [1000000, 5000000, 10000000] }],
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnYLabelFormatters = gl.yLabelFormatters
-    const yFormat = chart.w.globals.series[0].map((s) => {
+    const yFormat = chart.getState().series[0].map((s) => {
       return fnYLabelFormatters[0](s)
     })
 
@@ -210,11 +210,11 @@ describe('Format Y-axis and tooltip Labels', () => {
         },
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnYLabelFormatters = gl.yLabelFormatters
-    const yFormat = chart.w.globals.series[0].map((s) => {
+    const yFormat = chart.getState().series[0].map((s) => {
       return fnYLabelFormatters[0](s)
     })
 
@@ -242,8 +242,8 @@ describe('Format Y-axis and tooltip Labels', () => {
         },
       ],
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnYLabelFormatters = gl.yLabelFormatters
 
@@ -268,8 +268,8 @@ describe('Format Y-axis and tooltip Labels', () => {
         },
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     expect(typeof gl.legendFormatter).toBe('function')
   })
@@ -286,8 +286,8 @@ describe('Format Y-axis and tooltip Labels', () => {
         },
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     expect(gl.xaxisTooltipFormatter(5)).toBe('Index: 5')
   })
@@ -311,8 +311,8 @@ describe('Format Y-axis and tooltip Labels', () => {
         },
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     expect(gl.ttZFormatter(100)).toBe('100 size')
   })
@@ -329,8 +329,8 @@ describe('Format Y-axis and tooltip Labels', () => {
         },
       ],
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnYLabelFormatters = gl.yLabelFormatters
     const result = fnYLabelFormatters[0]([10.5, 20.8])
@@ -356,8 +356,8 @@ describe('Format Y-axis and tooltip Labels', () => {
         decimalsInFloat: 2,
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     expect(gl.xLabelFormatter(1.23456)).toBe('1.23')
     expect(gl.xLabelFormatter(2.56789)).toBe('2.57')
@@ -379,8 +379,8 @@ describe('Format Y-axis and tooltip Labels', () => {
         type: 'numeric',
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     // Should return 1 decimal for small ranges
     const result = gl.xLabelFormatter(1.567)
@@ -403,8 +403,8 @@ describe('Format Y-axis and tooltip Labels', () => {
         type: 'numeric',
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     // Should return no decimal for large ranges
     const result = gl.xLabelFormatter(125.7)
@@ -419,8 +419,8 @@ describe('Format Y-axis and tooltip Labels', () => {
         bar: { horizontal: true },
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     // For horizontal bars with small range, should show 1 decimal
     const result = gl.xLabelFormatter(2.5)
@@ -432,8 +432,8 @@ describe('Format Y-axis and tooltip Labels', () => {
       chart: { type: 'line' },
       series: [{ data: [] }],
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnYLabelFormatters = gl.yLabelFormatters
     expect(fnYLabelFormatters[0]).toBeDefined()
@@ -451,11 +451,11 @@ describe('Format Y-axis and tooltip Labels', () => {
         },
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnYLabelFormatters = gl.yLabelFormatters
-    const yFormat = chart.w.globals.series[0].map((s) => {
+    const yFormat = chart.getState().series[0].map((s) => {
       return fnYLabelFormatters[0](s)
     })
 
@@ -474,8 +474,8 @@ describe('Format Y-axis and tooltip Labels', () => {
         },
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     expect(gl.ttKeyFormatter(3)).toBe('Point #3')
   })
@@ -492,8 +492,8 @@ describe('Format Y-axis and tooltip Labels', () => {
         },
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     expect(gl.ttKeyFormatter(5)).toBe('X: 5')
   })
@@ -518,7 +518,7 @@ describe('Format Y-axis and tooltip Labels', () => {
         },
       },
     })
-    const formatters = new Formatters(chart)
+    const formatters = new Formatters(chart.w)
     formatters.setLabelFormatters()
 
     // xLabelFormat should use datetime formatting
@@ -536,7 +536,7 @@ describe('Format Y-axis and tooltip Labels', () => {
       chart: { type: 'line' },
       series: [{ data: [10, 20, 30] }],
     })
-    const formatters = new Formatters(chart)
+    const formatters = new Formatters(chart.w)
 
     // Test with string value
     expect(formatters.defaultYFormatter('test', {}, 0)).toBe('test')
@@ -554,11 +554,11 @@ describe('Format Y-axis and tooltip Labels', () => {
         decimalsInFloat: 3,
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnYLabelFormatters = gl.yLabelFormatters
-    const yFormat = chart.w.globals.series[0].map((s) => {
+    const yFormat = chart.getState().series[0].map((s) => {
       return fnYLabelFormatters[0](s)
     })
 
@@ -570,8 +570,8 @@ describe('Format Y-axis and tooltip Labels', () => {
       chart: { type: 'line' },
       series: [{ data: [10.0, 20.0, 30.5] }],
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnYLabelFormatters = gl.yLabelFormatters
 
@@ -596,7 +596,7 @@ describe('Format Y-axis and tooltip Labels', () => {
       chart: { type: 'line' },
       series: [{ data: [10, 20, 30] }],
     })
-    const formatters = new Formatters(chart)
+    const formatters = new Formatters(chart.w)
 
     const result = formatters.defaultGeneralFormatter([1, 2, 3])
     expect(result).toEqual([1, 2, 3])
@@ -607,7 +607,7 @@ describe('Format Y-axis and tooltip Labels', () => {
       chart: { type: 'line' },
       series: [{ data: [10, 20, 30] }],
     })
-    const formatters = new Formatters(chart)
+    const formatters = new Formatters(chart.w)
 
     expect(formatters.defaultGeneralFormatter(42)).toBe(42)
     expect(formatters.defaultGeneralFormatter('test')).toBe('test')
@@ -623,7 +623,7 @@ describe('Format Y-axis and tooltip Labels', () => {
         { name: 'Very Long Series Name', data: [20, 30] },
       ],
     })
-    const formatters = new Formatters(chart)
+    const formatters = new Formatters(chart.w)
     formatters.setLabelFormatters()
     formatters.heatmapLabelFormatters()
 
@@ -648,8 +648,8 @@ describe('Format Y-axis and tooltip Labels', () => {
         ],
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     expect(Array.isArray(gl.ttVal)).toBe(true)
     expect(gl.ttVal[0].formatter(50)).toBe('50 kg')
@@ -665,11 +665,11 @@ describe('Format Y-axis and tooltip Labels', () => {
         decimalsInFloat: 2,
       },
     })
-    const formatters = new Formatters(chart)
-    let gl = formatters.setLabelFormatters()
+    const formatters = new Formatters(chart.w)
+    const gl = formatters.setLabelFormatters()
 
     const fnYLabelFormatters = gl.yLabelFormatters
-    const yFormat = chart.w.globals.series[0].map((s) => {
+    const yFormat = chart.getState().series[0].map((s) => {
       return fnYLabelFormatters[0](s)
     })
 

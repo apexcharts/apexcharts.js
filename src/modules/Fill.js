@@ -10,9 +10,8 @@ import { Environment } from '../utils/Environment.js'
  **/
 
 class Fill {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w) {
+    this.w = w
 
     this.opts = null
     this.seriesIndex = 0
@@ -20,15 +19,15 @@ class Fill {
   }
 
   clippedImgArea(params) {
-    let w = this.w
-    let cnf = w.config
+    const w = this.w
+    const cnf = w.config
 
-    let svgW = parseInt(w.globals.gridWidth, 10)
-    let svgH = parseInt(w.globals.gridHeight, 10)
+    const svgW = parseInt(w.globals.gridWidth, 10)
+    const svgH = parseInt(w.globals.gridHeight, 10)
 
-    let size = svgW > svgH ? svgW : svgH
+    const size = svgW > svgH ? svgW : svgH
 
-    let fillImg = params.image
+    const fillImg = params.image
 
     let imgWidth = 0
     let imgHeight = 0
@@ -51,7 +50,7 @@ class Fill {
       imgHeight = params.height
     }
 
-    let elPattern = BrowserAPIs.createElementNS(w.globals.SVGNS, 'pattern')
+    const elPattern = BrowserAPIs.createElementNS(w.globals.SVGNS, 'pattern')
 
     Graphics.setAttrs(elPattern, {
       id: params.patternID,
@@ -62,7 +61,7 @@ class Fill {
       height: imgHeight + 'px',
     })
 
-    let elImage = BrowserAPIs.createElementNS(w.globals.SVGNS, 'image')
+    const elImage = BrowserAPIs.createElementNS(w.globals.SVGNS, 'image')
     elPattern.appendChild(elImage)
 
     const SVGLib = Environment.isBrowser() ? window.SVG : global.SVG
@@ -78,7 +77,7 @@ class Fill {
 
     elImage.style.opacity = params.opacity
 
-    w.globals.dom.elDefs.node.appendChild(elPattern)
+    w.dom.elDefs.node.appendChild(elPattern)
   }
 
   getSeriesIndex(opts) {
@@ -104,7 +103,7 @@ class Fill {
     let maxPositive = null
     let minNegative = null
 
-    for (let value of data) {
+    for (const value of data) {
       if (value >= multiColorConfig.threshold) {
         if (maxPositive === null || value > maxPositive) {
           maxPositive = value
@@ -132,7 +131,7 @@ class Fill {
       totalRange = 1
     }
 
-    let negativePercentage =
+    const negativePercentage =
       ((multiColorConfig.threshold - minNegative) / totalRange) * 100
 
     let offset = 100 - negativePercentage
@@ -154,10 +153,10 @@ class Fill {
   }
 
   fillPath(opts) {
-    let w = this.w
+    const w = this.w
     this.opts = opts
 
-    let cnf = this.w.config
+    const cnf = this.w.config
     let pathFill
 
     let patternFill, gradientFill
@@ -168,7 +167,7 @@ class Fill {
       cnf.plotOptions.line.colors.colorAboveThreshold &&
       cnf.plotOptions.line.colors.colorBelowThreshold
 
-    let fillColors = this.getFillColors()
+    const fillColors = this.getFillColors()
     let fillColor = fillColors[this.seriesIndex]
 
     //override fillcolor if user inputted color with data
@@ -184,7 +183,7 @@ class Fill {
         w,
       })
     }
-    let fillType = opts.fillType
+    const fillType = opts.fillType
       ? opts.fillType
       : this.getFillType(this.seriesIndex)
     let fillOpacity = Array.isArray(cnf.fill.opacity)
@@ -245,7 +244,7 @@ class Fill {
     }
 
     if (useGradient) {
-      let colorStops = cnf.fill.gradient.colorStops ? [...cnf.fill.gradient.colorStops] : []
+      const colorStops = cnf.fill.gradient.colorStops ? [...cnf.fill.gradient.colorStops] : []
       let type = cnf.fill.gradient.type
       if (drawMultiColorLine) {
         colorStops[this.seriesIndex] = this.computeColorStops(
@@ -266,9 +265,9 @@ class Fill {
     }
 
     if (fillType === 'image') {
-      let imgSrc = cnf.fill.image.src
+      const imgSrc = cnf.fill.image.src
 
-      let patternID = opts.patternID ? opts.patternID : ''
+      const patternID = opts.patternID ? opts.patternID : ''
       const patternKey = `pattern${w.globals.cuid}${
         opts.seriesNumber + 1
       }${patternID}`
@@ -381,16 +380,16 @@ class Fill {
     }
 
     const opts = this.opts
-    let graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
 
-    let patternStrokeWidth = Array.isArray(fillCnf.pattern.strokeWidth)
+    const patternStrokeWidth = Array.isArray(fillCnf.pattern.strokeWidth)
       ? fillCnf.pattern.strokeWidth[this.seriesIndex]
       : fillCnf.pattern.strokeWidth
-    let patternLineColor = fillColor
+    const patternLineColor = fillColor
 
     if (Array.isArray(fillCnf.pattern.style)) {
       if (typeof fillCnf.pattern.style[opts.seriesNumber] !== 'undefined') {
-        let pf = graphics.drawPattern(
+        const pf = graphics.drawPattern(
           fillCnf.pattern.style[opts.seriesNumber],
           fillCnf.pattern.width,
           fillCnf.pattern.height,
@@ -432,8 +431,8 @@ class Fill {
       }
     }
     const opts = this.opts
-    let graphics = new Graphics(this.ctx)
-    let utils = new Utils()
+    const graphics = new Graphics(this.w)
+    const utils = new Utils()
 
     type = type || fillCnf.gradient.type
     let gradientFrom = fillColor
@@ -490,7 +489,7 @@ class Fill {
     }
 
     if (fillCnf.gradient.inverseColors) {
-      let t = gradientFrom
+      const t = gradientFrom
       gradientFrom = gradientTo
       gradientTo = t
     }

@@ -1,11 +1,9 @@
-import Utils from '../utils/Utils'
-
 export default class Events {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w, ctx) {
+    this.w = w
+    this.ctx = ctx // needed: eventList, keyboardNavigation, core.setupBrushHandler, fireEvent args
 
-    this.documentEvent = Utils.bind(this.documentEvent, this)
+    this.documentEvent = this.documentEvent.bind(this)
   }
 
   addEventListener(name, handler) {
@@ -24,7 +22,7 @@ export default class Events {
       return
     }
 
-    let index = w.globals.events[name].indexOf(handler)
+    const index = w.globals.events[name].indexOf(handler)
     if (index !== -1) {
       w.globals.events[name].splice(index, 1)
     }
@@ -41,8 +39,8 @@ export default class Events {
       args = []
     }
 
-    let evs = w.globals.events[name]
-    let l = evs.length
+    const evs = w.globals.events[name]
+    const l = evs.length
 
     for (let i = 0; i < l; i++) {
       evs[i].apply(null, args)
@@ -53,18 +51,18 @@ export default class Events {
     const w = this.w
     const me = this.ctx
 
-    let clickableArea = w.globals.dom.baseEl.querySelector(w.globals.chartClass)
+    const clickableArea = w.dom.baseEl.querySelector(w.globals.chartClass)
 
     this.ctx.eventList.forEach((event) => {
       clickableArea.addEventListener(
         event,
         (e) => {
-          let capturedSeriesIndex =
+          const capturedSeriesIndex =
             e.target.getAttribute('i') === null &&
             w.globals.capturedSeriesIndex !== -1
               ? w.globals.capturedSeriesIndex
               : e.target.getAttribute('i')
-          let capturedDataPointIndex =
+          const capturedDataPointIndex =
             e.target.getAttribute('j') === null &&
             w.globals.capturedDataPointIndex !== -1
               ? w.globals.capturedDataPointIndex
@@ -121,7 +119,7 @@ export default class Events {
     })
 
     this.ctx.eventList.forEach((event) => {
-      w.globals.dom.baseEl.addEventListener(event, this.documentEvent, {
+      w.dom.baseEl.addEventListener(event, this.documentEvent, {
         passive: true,
       })
     })
@@ -134,7 +132,7 @@ export default class Events {
     const target = e.target.className
 
     if (e.type === 'click') {
-      let elMenu = w.globals.dom.baseEl.querySelector('.apexcharts-menu')
+      const elMenu = w.dom.baseEl.querySelector('.apexcharts-menu')
       if (
         elMenu &&
         elMenu.classList.contains('apexcharts-menu-open') &&

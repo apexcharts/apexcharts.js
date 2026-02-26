@@ -22,7 +22,7 @@ describe('user defined Y-axis options priority', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.yAxisScale[0].result.length - 1).toEqual(7) // ticks
@@ -45,7 +45,7 @@ describe('user defined Y-axis options priority', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -79,7 +79,7 @@ describe('user defined Y-axis options priority', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.yAxisScale[0].niceMin).toEqual(0)
@@ -107,7 +107,7 @@ describe('user defined Y-axis options priority', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -135,7 +135,7 @@ describe('user defined Y-axis options priority', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -164,7 +164,7 @@ describe('user defined Y-axis options priority', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -192,7 +192,7 @@ describe('user defined Y-axis options priority', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -225,7 +225,7 @@ describe('user defined Y-axis options priority', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)
@@ -255,7 +255,7 @@ describe('user defined Y-axis options priority', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const yRange = range.setYRange()
 
     expect(yRange.minY).toEqual(0)

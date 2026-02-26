@@ -14,13 +14,13 @@ export default class DimYAxis {
    * @return {{width, height}}
    **/
   getyAxisLabelsCoords() {
-    let w = this.w
+    const w = this.w
 
-    let width = 0
-    let height = 0
-    let ret = []
+    const width = 0
+    const height = 0
+    const ret = []
     let labelPad = 10
-    const axesUtils = new AxesUtils(this.dCtx.ctx)
+    const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme, timeScale: this.dCtx.timeScale })
 
     w.config.yaxis.map((yaxe, index) => {
       const formatterArgs = {
@@ -42,8 +42,8 @@ export default class DimYAxis {
         yaxe.labels.show &&
         yS.result.length
       ) {
-        let lbFormatter = w.globals.yLabelFormatters[index]
-        let minV = yS.niceMin === Number.MIN_VALUE ? 0 : yS.niceMin
+        const lbFormatter = w.globals.yLabelFormatters[index]
+        const minV = yS.niceMin === Number.MIN_VALUE ? 0 : yS.niceMin
         let val = yS.result.reduce((acc, curr) => {
           return String(lbFormatter(acc, formatterArgs))?.length >
             String(lbFormatter(curr, formatterArgs))?.length
@@ -68,7 +68,7 @@ export default class DimYAxis {
         if (w.globals.isBarHorizontal) {
           labelPad = 0
 
-          let barYaxisLabels = w.globals.labels.slice()
+          const barYaxisLabels = w.globals.labels.slice()
 
           //  get the longest string from the labels array and also apply label formatter to it
           val = Utils.getLargestStringFromArr(barYaxisLabels)
@@ -80,10 +80,10 @@ export default class DimYAxis {
           )
         }
 
-        let graphics = new Graphics(this.dCtx.ctx)
+        const graphics = new Graphics(this.w)
 
-        let rotateStr = 'rotate('.concat(yaxe.labels.rotate, ' 0 0)')
-        let rect = graphics.getTextRects(
+        const rotateStr = 'rotate('.concat(yaxe.labels.rotate, ' 0 0)')
+        const rect = graphics.getTextRects(
           val,
           yaxe.labels.style.fontSize,
           yaxe.labels.style.fontFamily,
@@ -132,14 +132,14 @@ export default class DimYAxis {
    * @return {{width, height}}
    **/
   getyAxisTitleCoords() {
-    let w = this.w
-    let ret = []
+    const w = this.w
+    const ret = []
 
     w.config.yaxis.map((yaxe) => {
       if (yaxe.show && yaxe.title.text !== undefined) {
-        let graphics = new Graphics(this.dCtx.ctx)
-        let rotateStr = 'rotate('.concat(yaxe.title.rotate, ' 0 0)')
-        let rect = graphics.getTextRects(
+        const graphics = new Graphics(this.w)
+        const rotateStr = 'rotate('.concat(yaxe.title.rotate, ' 0 0)')
+        const rect = graphics.getTextRects(
           yaxe.title.text,
           yaxe.title.style.fontSize,
           yaxe.title.style.fontFamily,
@@ -163,19 +163,19 @@ export default class DimYAxis {
   }
 
   getTotalYAxisWidth() {
-    let w = this.w
+    const w = this.w
     let yAxisWidth = 0
     let yAxisWidthLeft = 0
     let yAxisWidthRight = 0
-    let padding = w.globals.yAxisScale.length > 1 ? 10 : 0
-    const axesUtils = new AxesUtils(this.dCtx.ctx)
+    const padding = w.globals.yAxisScale.length > 1 ? 10 : 0
+    const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme, timeScale: this.dCtx.timeScale })
 
     const isHiddenYAxis = function (index) {
       return w.globals.ignoreYAxisIndexes.indexOf(index) > -1
     }
 
     const padForLabelTitle = (coord, index) => {
-      let floating = w.config.yaxis[index].floating
+      const floating = w.config.yaxis[index].floating
       let width = 0
 
       if (coord.width > 0 && !floating) {

@@ -459,7 +459,7 @@ function synchronizePaths(fromD, toD) {
     )
 
     if (startOffsetM === false) {
-      let bbox = pathBbox(result.start)
+      const bbox = pathBbox(result.start)
       if (bbox.height == 0 || bbox.width == 0) {
         startOffsetM = startArr.push(startArr[0]) - 1
       } else {
@@ -473,7 +473,7 @@ function synchronizePaths(fromD, toD) {
     }
 
     if (destOffsetM === false) {
-      let bbox = pathBbox(result.dest)
+      const bbox = pathBbox(result.dest)
       if (bbox.height == 0 || bbox.width == 0) {
         destOffsetM = destArr.push(destArr[0]) - 1
       } else {

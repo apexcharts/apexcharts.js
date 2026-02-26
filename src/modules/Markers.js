@@ -9,12 +9,12 @@ import Utils from '../utils/Utils'
  **/
 
 export default class Markers {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w, ctx) {
+    this.w = w
+    this.ctx = ctx // kept for .bind(this.ctx, ...) in pathMouse* event handlers
 
-    this._filters = new Filters(this.ctx)
-    this._graphics = new Graphics(this.ctx)
+    this._filters = new Filters(this.w)
+    this._graphics = new Graphics(this.w, this.ctx)
   }
 
   setGlobalMarkerSize() {
@@ -45,13 +45,13 @@ export default class Markers {
     alwaysDrawMarker = false,
     isVirtualPoint = false,
   }) {
-    let w = this.w
+    const w = this.w
 
-    let i = seriesIndex
-    let p = pointsPos
+    const i = seriesIndex
+    const p = pointsPos
     let elMarkersWrap = null
 
-    let graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
 
     const hasDiscreteMarkers =
       w.config.markers.discrete && w.config.markers.discrete.length
@@ -94,7 +94,7 @@ export default class Markers {
             markerClasses += ` w${Utils.randomId()}`
           }
 
-          let opts = this.getMarkerConfig({
+          const opts = this.getMarkerConfig({
             cssClass: markerClasses,
             seriesIndex,
             dataPointIndex,
@@ -183,7 +183,7 @@ export default class Markers {
     strokeWidth = null,
   }) {
     const w = this.w
-    let pStyle = this.getMarkerStyle(seriesIndex)
+    const pStyle = this.getMarkerStyle(seriesIndex)
     let pSize = size === null ? w.globals.markers.size[seriesIndex] : size
 
     const m = w.config.markers
@@ -306,16 +306,16 @@ export default class Markers {
   }
 
   getMarkerStyle(seriesIndex) {
-    let w = this.w
+    const w = this.w
 
-    let colors = w.globals.markers.colors
-    let strokeColors =
+    const colors = w.globals.markers.colors
+    const strokeColors =
       w.config.markers.strokeColor || w.config.markers.strokeColors
 
-    let pointStrokeColor = Array.isArray(strokeColors)
+    const pointStrokeColor = Array.isArray(strokeColors)
       ? strokeColors[seriesIndex]
       : strokeColors
-    let pointFillColor = Array.isArray(colors) ? colors[seriesIndex] : colors
+    const pointFillColor = Array.isArray(colors) ? colors[seriesIndex] : colors
 
     return {
       pointStrokeColor,

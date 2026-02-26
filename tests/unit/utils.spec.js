@@ -275,14 +275,6 @@ describe('Utils', () => {
   })
 
   describe('Array operations', () => {
-    describe('listToArray', () => {
-      it('should convert array-like objects to arrays', () => {
-        const arrayLike = { 0: 'a', 1: 'b', 2: 'c', length: 3 }
-        const result = Utils.listToArray(arrayLike)
-        expect(result).toEqual(['a', 'b', 'c'])
-      })
-    })
-
     describe('moveIndexInArray', () => {
       it('should move element to new position', () => {
         const arr = [1, 2, 3, 4, 5]
@@ -537,16 +529,4 @@ describe('Utils', () => {
     })
   })
 
-  describe('Function operations', () => {
-    describe('bind', () => {
-      it('should bind function to context', () => {
-        const obj = { value: 42 }
-        const fn = function () {
-          return this.value
-        }
-        const bound = Utils.bind(fn, obj)
-        expect(bound()).toBe(42)
-      })
-    })
-  })
 })

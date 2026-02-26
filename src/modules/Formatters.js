@@ -8,20 +8,19 @@ import Utils from '../utils/Utils'
  **/
 
 class Formatters {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w) {
+    this.w = w
     this.tooltipKeyFormat = 'dd MMM'
   }
 
   xLabelFormat(fn, val, timestamp, _opts) {
-    let w = this.w
+    const w = this.w
 
     if (w.config.xaxis.type === 'datetime') {
       if (w.config.xaxis.labels.formatter === undefined) {
         // if user has not specified a custom formatter, use the default tooltip.x.format
         if (w.config.tooltip.x.formatter === undefined) {
-          let datetimeObj = new DateTime(this.ctx)
+          const datetimeObj = new DateTime(this.w)
           return datetimeObj.formatDate(
             datetimeObj.getDate(val),
             w.config.tooltip.x.format
@@ -44,7 +43,7 @@ class Formatters {
   }
 
   defaultYFormatter(v, yaxe) {
-    let w = this.w
+    const w = this.w
 
     if (Utils.isNumber(v)) {
       if (w.globals.yValueDecimal !== 0) {
@@ -66,7 +65,7 @@ class Formatters {
   }
 
   setLabelFormatters() {
-    let w = this.w
+    const w = this.w
 
     w.globals.xaxisTooltipFormatter = (val) => {
       return this.defaultGeneralFormatter(val)
@@ -172,7 +171,7 @@ class Formatters {
       w.globals.yAxisScale[0].result = w.globals.seriesNames.slice()
 
       //  get the longest string from the labels array and also apply label formatter to it
-      let longest = w.globals.seriesNames.reduce(
+      const longest = w.globals.seriesNames.reduce(
         (a, b) => (a.length > b.length ? a : b),
         0
       )

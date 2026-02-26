@@ -10,7 +10,7 @@ describe('Parse Data', () => {
     chart.w.globals.seriesX = []
     chart.w.globals.labels = []
 
-    const data = new Data(chart)
+    const data = new Data(chart.w, chart)
     const w = data.parseDataAxisCharts(seriesxy, seriesxy, chart)
 
     expect(w.globals.series).toEqual([[300, 230, 210]])
@@ -29,7 +29,7 @@ describe('Parse Data', () => {
     chart.w.globals.series = []
     chart.w.globals.seriesNames = []
 
-    const data = new Data(chart)
+    const data = new Data(chart.w, chart)
     const w = data.parseDataNonAxisCharts(series)
 
     expect(w.globals.series).toEqual([30, 23, 12, 43])
@@ -52,7 +52,7 @@ describe('Data Processing', () => {
       chart: { type: 'line' },
       series: [{ data: [1, 2, 3] }],
     })
-    dataModule = new Data(ctx)
+    dataModule = new Data(ctx.w, ctx)
   })
 
   afterEach(() => {

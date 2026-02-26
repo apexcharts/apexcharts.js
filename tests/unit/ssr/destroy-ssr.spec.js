@@ -23,21 +23,21 @@ function makeCtx({ paperNode = null } = {}) {
       globals: {
         resizeObserver: null,
         tooltip: null,
-        dom: {
-          Paper,
-          baseEl: null,
-          elWrap: {},
-          elGraphical: {},
-          elLegendWrap: {},
-          elLegendForeign: {},
-          elGridRect: {},
-          elGridRectMask: {},
-          elGridRectBarMask: {},
-          elGridRectMarkerMask: {},
-          elForecastMask: {},
-          elNonForecastMask: {},
-          elDefs: {},
-        },
+      },
+      dom: {
+        Paper,
+        baseEl: null,
+        elWrap: {},
+        elGraphical: {},
+        elLegendWrap: {},
+        elLegendForeign: {},
+        elGridRect: {},
+        elGridRectMask: {},
+        elGridRectBarMask: {},
+        elGridRectMarkerMask: {},
+        elForecastMask: {},
+        elNonForecastMask: {},
+        elDefs: {},
       },
     },
   }
@@ -85,7 +85,7 @@ describe('Destroy.clearDomElements() SSR safety', () => {
     const destroy = new Destroy(ctx)
     destroy.clearDomElements({ isUpdating: false })
 
-    const dom = ctx.w.globals.dom
+    const dom = ctx.w.dom
     expect(dom.elWrap).toBeNull()
     expect(dom.elGraphical).toBeNull()
     expect(dom.elLegendWrap).toBeNull()
@@ -109,8 +109,8 @@ describe('Destroy.clearDomElements() SSR safety', () => {
     destroy.clearDomElements({ isUpdating: false })
 
     // These are browser-only operations — should not be called in SSR
-    expect(ctx.w.globals.dom.Paper.remove).not.toHaveBeenCalled()
-    expect(ctx.w.globals.dom.Paper.each).not.toHaveBeenCalled()
+    expect(ctx.w.dom.Paper.remove).not.toHaveBeenCalled()
+    expect(ctx.w.dom.Paper.each).not.toHaveBeenCalled()
   })
 
   it('should call Paper.remove() and killSVG() in browser environment', () => {
@@ -122,12 +122,12 @@ describe('Destroy.clearDomElements() SSR safety', () => {
     ctx.el = document.createElement('div')
 
     // baseEl with a real element so removeEventListener can be called
-    ctx.w.globals.dom.baseEl = document.createElement('div')
+    ctx.w.dom.baseEl = document.createElement('div')
 
     const destroy = new Destroy(ctx)
     destroy.clearDomElements({ isUpdating: false })
 
-    expect(ctx.w.globals.dom.Paper.remove).toHaveBeenCalledOnce()
-    expect(ctx.w.globals.dom.Paper.each).toHaveBeenCalledOnce()
+    expect(ctx.w.dom.Paper.remove).toHaveBeenCalledOnce()
+    expect(ctx.w.dom.Paper.each).toHaveBeenCalledOnce()
   })
 })

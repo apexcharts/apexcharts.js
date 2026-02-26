@@ -10,7 +10,6 @@ import Formatters from '../Formatters'
 
 const getRangeValues = ({
   isTimeline,
-  ctx,
   seriesIndex,
   dataPointIndex,
   y1,
@@ -43,10 +42,10 @@ const getRangeValues = ({
 
   if (!isTimeline) {
     if (w.config.xaxis.type === 'datetime') {
-      let xFormat = new Formatters(ctx)
+      const xFormat = new Formatters(w)
       ylabel = xFormat.xLabelFormat(w.globals.ttKeyFormatter, ylabel, ylabel, {
         i: undefined,
-        dateFormatter: new DateTime(ctx).formatDate,
+        dateFormatter: new DateTime(w).formatDate,
         w,
       })
     }
@@ -66,7 +65,7 @@ const getRangeValues = ({
   const color = w.globals.colors[seriesIndex]
   if (w.config.tooltip.x.formatter === undefined) {
     if (w.config.xaxis.type === 'datetime') {
-      let datetimeObj = new DateTime(ctx)
+      const datetimeObj = new DateTime(w)
       startVal = datetimeObj.formatDate(
         datetimeObj.getDate(start),
         w.config.tooltip.x.format
@@ -748,7 +747,7 @@ export default class Defaults {
     return opts
   }
 
-  convertCatToNumericXaxis(opts, ctx, cats) {
+  convertCatToNumericXaxis(opts, cats) {
     opts.xaxis.type = 'numeric'
     opts.xaxis.labels = opts.xaxis.labels || {}
     opts.xaxis.labels.formatter =

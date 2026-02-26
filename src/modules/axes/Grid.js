@@ -10,13 +10,12 @@ import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
  **/
 
 class Grid {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w, ctx) {
+    this.w = w
+    this.ctx = ctx // needed: XAxis instantiation, passes ctx to AxesUtils theme/timeScale
 
-    const w = this.w
     this.xaxisLabels = w.globals.labels.slice()
-    this.axesUtils = new AxesUtils(ctx)
+    this.axesUtils = new AxesUtils(ctx.w, { theme: ctx.theme, timeScale: ctx.timeScale })
 
     this.isRangeBar = w.globals.seriesRange.length && w.globals.isBarHorizontal
 
@@ -28,7 +27,7 @@ class Grid {
 
   drawGridArea(elGrid = null) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
 
     if (!elGrid) {
       elGrid = graphics.group({ class: 'apexcharts-grid' })
@@ -70,7 +69,7 @@ class Grid {
   createGridMask() {
     const w = this.w
     const gl = w.globals
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
 
     const strokeSize = Array.isArray(w.config.stroke.width)
       ? Math.max(...w.config.stroke.width)
@@ -82,11 +81,11 @@ class Grid {
       return clipPath
     }
 
-    gl.dom.elGridRectMask = createClipPath(`gridRectMask${gl.cuid}`)
-    gl.dom.elGridRectBarMask = createClipPath(`gridRectBarMask${gl.cuid}`)
-    gl.dom.elGridRectMarkerMask = createClipPath(`gridRectMarkerMask${gl.cuid}`)
-    gl.dom.elForecastMask = createClipPath(`forecastMask${gl.cuid}`)
-    gl.dom.elNonForecastMask = createClipPath(`nonForecastMask${gl.cuid}`)
+    w.dom.elGridRectMask = createClipPath(`gridRectMask${gl.cuid}`)
+    w.dom.elGridRectBarMask = createClipPath(`gridRectBarMask${gl.cuid}`)
+    w.dom.elGridRectMarkerMask = createClipPath(`gridRectMarkerMask${gl.cuid}`)
+    w.dom.elForecastMask = createClipPath(`forecastMask${gl.cuid}`)
+    w.dom.elNonForecastMask = createClipPath(`nonForecastMask${gl.cuid}`)
 
     const hasBar =
       ['bar', 'rangeBar', 'candlestick', 'boxPlot'].includes(
@@ -106,7 +105,7 @@ class Grid {
       )
     }
 
-    gl.dom.elGridRect = graphics.drawRect(
+    w.dom.elGridRect = graphics.drawRect(
       -strokeSize / 2 - 2,
       -strokeSize / 2 - 2,
       gl.gridWidth + strokeSize + 4,
@@ -115,7 +114,7 @@ class Grid {
       '#fff'
     )
 
-    gl.dom.elGridRectBar = graphics.drawRect(
+    w.dom.elGridRectBar = graphics.drawRect(
       -strokeSize / 2 - barWidthLeft - 2,
       -strokeSize / 2 - 2,
       gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4,
@@ -126,7 +125,7 @@ class Grid {
 
     const markerSize = w.globals.markers.largestSize
 
-    gl.dom.elGridRectMarker = graphics.drawRect(
+    w.dom.elGridRectMarker = graphics.drawRect(
       Math.min(-strokeSize / 2 - barWidthLeft - 2, -markerSize),
       -markerSize,
       gl.gridWidth +
@@ -136,16 +135,16 @@ class Grid {
       '#fff'
     )
 
-    gl.dom.elGridRectMask.appendChild(gl.dom.elGridRect.node)
-    gl.dom.elGridRectBarMask.appendChild(gl.dom.elGridRectBar.node)
-    gl.dom.elGridRectMarkerMask.appendChild(gl.dom.elGridRectMarker.node)
+    w.dom.elGridRectMask.appendChild(w.dom.elGridRect.node)
+    w.dom.elGridRectBarMask.appendChild(w.dom.elGridRectBar.node)
+    w.dom.elGridRectMarkerMask.appendChild(w.dom.elGridRectMarker.node)
 
-    const defs = gl.dom.baseEl.querySelector('defs')
-    defs.appendChild(gl.dom.elGridRectMask)
-    defs.appendChild(gl.dom.elGridRectBarMask)
-    defs.appendChild(gl.dom.elGridRectMarkerMask)
-    defs.appendChild(gl.dom.elForecastMask)
-    defs.appendChild(gl.dom.elNonForecastMask)
+    const defs = w.dom.baseEl.querySelector('defs')
+    defs.appendChild(w.dom.elGridRectMask)
+    defs.appendChild(w.dom.elGridRectBarMask)
+    defs.appendChild(w.dom.elGridRectMarkerMask)
+    defs.appendChild(w.dom.elForecastMask)
+    defs.appendChild(w.dom.elNonForecastMask)
   }
 
   _drawGridLines({ i, x1, y1, x2, y2, xCount, parent }) {
@@ -185,8 +184,8 @@ class Grid {
         }
       }
 
-      const xAxis = new XAxis(this.ctx)
-      xAxis.drawXaxisTicks(x1, y_2, w.globals.dom.elGraphical)
+      const xAxis = new XAxis(this.w, this.ctx)
+      xAxis.drawXaxisTicks(x1, y_2, w.dom.elGraphical)
     }
   }
 
@@ -203,7 +202,7 @@ class Grid {
       (y1 === w.globals.gridHeight && y2 === w.globals.gridHeight) ||
       (w.globals.isBarHorizontal && (i === 0 || i === xCount - 1))
 
-    const graphics = new Graphics(this)
+    const graphics = new Graphics(this.w)
     const line = graphics.drawLine(
       x1 - (isHorzLine ? offX : 0),
       y1,
@@ -223,7 +222,7 @@ class Grid {
 
   _drawGridBandRect({ c, x1, y1, x2, y2, type }) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
     const offX = w.globals.barPadForNumericAxis
 
     const color = w.config.grid[type].colors[c]
@@ -284,10 +283,10 @@ class Grid {
     }
 
     if (w.config.grid.xaxis.lines.show || w.config.xaxis.axisTicks.show) {
-      let x1 = w.globals.padHorizontal
-      let y1 = 0
+      const x1 = w.globals.padHorizontal
+      const y1 = 0
       let x2
-      let y2 = w.globals.gridHeight
+      const y2 = w.globals.gridHeight
 
       if (w.globals.timescaleLabels.length) {
         datetimeLines({ xC: xCount, x1, y1, x2, y2 })
@@ -300,10 +299,10 @@ class Grid {
     }
 
     if (w.config.grid.yaxis.lines.show) {
-      let x1 = 0
+      const x1 = 0
       let y1 = 0
       let y2 = 0
-      let x2 = w.globals.gridWidth
+      const x2 = w.globals.gridWidth
       let tA = tickAmount + 1
 
       if (this.isRangeBar) {
@@ -332,9 +331,9 @@ class Grid {
 
     if (w.config.grid.xaxis.lines.show || w.config.xaxis.axisTicks.show) {
       let x1 = w.globals.padHorizontal
-      let y1 = 0
+      const y1 = 0
       let x2
-      let y2 = w.globals.gridHeight
+      const y2 = w.globals.gridHeight
       for (let i = 0; i < xCount + 1; i++) {
         if (w.config.grid.xaxis.lines.show) {
           this._drawGridLine({
@@ -348,18 +347,18 @@ class Grid {
           })
         }
 
-        const xAxis = new XAxis(this.ctx)
-        xAxis.drawXaxisTicks(x1, 0, w.globals.dom.elGraphical)
+        const xAxis = new XAxis(this.w, this.ctx)
+        xAxis.drawXaxisTicks(x1, 0, w.dom.elGraphical)
         x1 += w.globals.gridWidth / xCount
         x2 = x1
       }
     }
 
     if (w.config.grid.yaxis.lines.show) {
-      let x1 = 0
+      const x1 = 0
       let y1 = 0
       let y2 = 0
-      let x2 = w.globals.gridWidth
+      const x2 = w.globals.gridWidth
 
       for (let i = 0; i < w.globals.dataPoints + 1; i++) {
         this._drawGridLine({
@@ -381,7 +380,7 @@ class Grid {
   renderGrid() {
     const w = this.w
     const gl = w.globals
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
 
     this.elg = graphics.group({ class: 'apexcharts-grid' })
     this.elgridLinesH = graphics.group({
@@ -488,9 +487,9 @@ class Grid {
       }
 
       let x1 = w.globals.padHorizontal
-      let y1 = 0
+      const y1 = 0
       let x2 = w.globals.padHorizontal + w.globals.gridWidth / xc
-      let y2 = w.globals.gridHeight
+      const y2 = w.globals.gridHeight
 
       for (let i = 0, c = 0; i < xCount; i++, c++) {
         if (c >= w.config.grid.column.colors.length) {

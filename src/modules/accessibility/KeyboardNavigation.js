@@ -17,9 +17,9 @@ import Utils from '../../utils/Utils'
  *   Escape                  — exit keyboard nav, return focus to SVG
  */
 export default class KeyboardNavigation {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w, ctx) {
+    this.w = w
+    this.ctx = ctx // needed: ctx.events.addEventListener/removeEventListener
 
     // Current navigation cursor
     this.seriesIndex = 0
@@ -54,7 +54,7 @@ export default class KeyboardNavigation {
    */
   init() {
     const w = this.w
-    const svgEl = w.globals.dom.Paper.node
+    const svgEl = w.dom.Paper.node
 
     if (!svgEl) return
 
@@ -78,7 +78,7 @@ export default class KeyboardNavigation {
    */
   destroy() {
     const w = this.w
-    const svgEl = w.globals.dom.Paper && w.globals.dom.Paper.node
+    const svgEl = w.dom.Paper && w.dom.Paper.node
 
     if (!svgEl) return
 
@@ -326,7 +326,7 @@ export default class KeyboardNavigation {
       }
     }
 
-    w.globals.dom.baseEl.classList.remove('apexcharts-tooltip-active')
+    w.dom.baseEl.classList.remove('apexcharts-tooltip-active')
 
     const xcrosshairs = ttCtx.getElXCrosshairs()
     if (xcrosshairs) xcrosshairs.classList.remove('apexcharts-active')
@@ -365,7 +365,7 @@ export default class KeyboardNavigation {
     // code is surprised.
     this._setSyntheticEvent(i, j, ttCtx)
 
-    w.globals.dom.baseEl.classList.add('apexcharts-tooltip-active')
+    w.dom.baseEl.classList.add('apexcharts-tooltip-active')
     tooltipEl.classList.add('apexcharts-active')
     if (
       w.config.chart.accessibility.enabled &&
@@ -427,7 +427,7 @@ export default class KeyboardNavigation {
       }
     } else {
       // Fallback: SVG element centre
-      const svgEl = w.globals.dom.Paper && w.globals.dom.Paper.node
+      const svgEl = w.dom.Paper && w.dom.Paper.node
       if (svgEl) {
         const svgRect = svgEl.getBoundingClientRect()
         clientX = svgRect.left + svgRect.width / 2
@@ -474,13 +474,13 @@ export default class KeyboardNavigation {
     // in UpdateHelpers.js) — querySelector returns a plain DOM node which lacks the
     // .node property that pathMouseEnter requires.
     const parent = `.apexcharts-series[data\\:realIndex='${i}']`
-    const elPath = w.globals.dom.Paper.findOne(
+    const elPath = w.dom.Paper.findOne(
       `${parent} path[j='${j}'], ${parent} circle[j='${j}'], ${parent} rect[j='${j}']`,
     )
     if (elPath) {
       // Leave the previous bar before entering the new one
       this._leaveHoveredBar()
-      const graphics = new Graphics(this.ctx)
+      const graphics = new Graphics(this.w, this.ctx)
       graphics.pathMouseEnter(elPath, null)
       this._hoveredBarEl = elPath
     }
@@ -490,7 +490,7 @@ export default class KeyboardNavigation {
       // coords to avoid grid-space vs wrapper-space confusion.
       const barDomEl = elPath && elPath.node
       if (barDomEl) {
-        const wrapRect = w.globals.dom.elWrap.getBoundingClientRect()
+        const wrapRect = w.dom.elWrap.getBoundingClientRect()
         const barRect = barDomEl.getBoundingClientRect()
 
         // Bar centre in elWrap-relative coordinates
@@ -581,7 +581,7 @@ export default class KeyboardNavigation {
    * method queries by both series index AND data-point index for precision.
    */
   _showScatterBubblePoint(i, j, ttCtx) {
-    const baseEl = this.w.globals.dom.baseEl
+    const baseEl = this.w.dom.baseEl
 
     // Reset only the previously enlarged marker (not all markers via
     // resetPointsSize()). Calling resetPointsSize() modifies the `d`
@@ -634,7 +634,7 @@ export default class KeyboardNavigation {
     // Pie.js (same values that nonAxisChartsTooltips uses for intersect mode).
     // The path element carries j='${j}' (0-indexed). data:cx/cy are set on
     // the path directly (not on the parent group).
-    const sliceEl = w.globals.dom.baseEl.querySelector(
+    const sliceEl = w.dom.baseEl.querySelector(
       `.apexcharts-pie-area[j='${j}']`,
     )
     if (sliceEl) {
@@ -643,8 +643,8 @@ export default class KeyboardNavigation {
 
       if (!isNaN(cx) && !isNaN(cy)) {
         // Convert SVG-space to elWrap-relative (same transform as mouse path)
-        const svgBound = w.globals.dom.Paper.node.getBoundingClientRect()
-        const wrapBound = w.globals.dom.elWrap.getBoundingClientRect()
+        const svgBound = w.dom.Paper.node.getBoundingClientRect()
+        const wrapBound = w.dom.elWrap.getBoundingClientRect()
         const offsetX = svgBound.left - wrapBound.left
         const offsetY = svgBound.top - wrapBound.top
 
@@ -668,7 +668,7 @@ export default class KeyboardNavigation {
 
     // Each radial series is a ring; find the path and use its data:angle to
     // compute the centroid at the midpoint of the arc.
-    const arcEl = w.globals.dom.baseEl.querySelector(
+    const arcEl = w.dom.baseEl.querySelector(
       `.apexcharts-radialbar-series[data\\:realIndex='${i}'] path`,
     )
     if (arcEl) {
@@ -716,13 +716,13 @@ export default class KeyboardNavigation {
     const rectClass =
       type === 'heatmap' ? 'apexcharts-heatmap-rect' : 'apexcharts-treemap-rect'
 
-    const cell = w.globals.dom.baseEl.querySelector(
+    const cell = w.dom.baseEl.querySelector(
       `.${rectClass}[i='${i}'][j='${j}']`,
     )
     if (cell) {
       // Use viewport-relative rects so we don't need to worry about SVG
       // translate offsets (cx/cy on these elements are in grid-space).
-      const wrapRect = w.globals.dom.elWrap.getBoundingClientRect()
+      const wrapRect = w.dom.elWrap.getBoundingClientRect()
       const cellRect = cell.getBoundingClientRect()
 
       const cellCx = cellRect.left - wrapRect.left
@@ -738,7 +738,7 @@ export default class KeyboardNavigation {
       // Position tooltip to the right of the cell, vertically centred;
       // flip left if it would overflow the right half of the grid.
       let x = cellCx + cellWidth + ttWidth / 2
-      let y = cellCy + cellHeight / 2 - ttHeight / 2
+      const y = cellCy + cellHeight / 2 - ttHeight / 2
 
       if (cellCx + cellWidth > w.globals.gridWidth / 2) {
         x = cellCx - ttWidth / 2
@@ -770,7 +770,7 @@ export default class KeyboardNavigation {
 
   _leaveHoveredBar() {
     if (this._hoveredBarEl) {
-      const graphics = new Graphics(this.ctx)
+      const graphics = new Graphics(this.w, this.ctx)
       graphics.pathMouseLeave(this._hoveredBarEl, null)
       this._hoveredBarEl = null
     }
@@ -779,7 +779,7 @@ export default class KeyboardNavigation {
   _getFocusableElement(i, j) {
     const w = this.w
     const type = w.config.chart.type
-    const baseEl = w.globals.dom.baseEl
+    const baseEl = w.dom.baseEl
 
     if (type === 'pie' || type === 'donut' || type === 'polarArea') {
       // j is 0-indexed; the path carries j='${j}' (rel is on the parent group)

@@ -5,21 +5,22 @@ import Utils from '../utils/Utils'
 import Defaults from './settings/Defaults'
 
 export default class Data {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w, { resetGlobals = () => {}, isMultipleY = () => {} } = {}) {
+    this.w = w
+    this.resetGlobals = resetGlobals
+    this.isMultipleY = isMultipleY
 
     this.twoDSeries = []
     this.threeDSeries = []
     this.twoDSeriesX = []
     this.seriesGoals = []
-    this.coreUtils = new CoreUtils(this.ctx)
+    this.coreUtils = new CoreUtils(this.w)
   }
 
   // Helper to get the first valid data point from the active series
   getFirstDataPoint() {
     const series = this.w.config.series
-    const sr = new Series(this.ctx)
+    const sr = new Series(this.w)
     this.activeSeriesIndex = sr.getActiveConfigSeriesIndex()
 
     if (
@@ -95,7 +96,7 @@ export default class Data {
   handleFormatXY(ser, i) {
     const cnf = this.w.config
     const gl = this.w.globals
-    const dt = new DateTime(this.ctx)
+    const dt = new DateTime(this.w)
     const data = ser[i].data
 
     let activeI = i
@@ -289,7 +290,7 @@ export default class Data {
       }
     } else if (format === 'xy') {
       for (let j = 0; j < ser[i].data.length; j++) {
-        let isDataPoint2D = Array.isArray(ser[i].data[j].y)
+        const isDataPoint2D = Array.isArray(ser[i].data[j].y)
         const id = Utils.randomId()
         const x = ser[i].data[j].x
         const y = {
@@ -372,11 +373,11 @@ export default class Data {
     }
   }
 
-  parseDataAxisCharts(ser, ctx = this.ctx) {
+  parseDataAxisCharts(ser) {
     const cnf = this.w.config
     const gl = this.w.globals
 
-    const dt = new DateTime(ctx)
+    const dt = new DateTime(this.w)
 
     const xlabels =
       cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
@@ -402,10 +403,10 @@ export default class Data {
     // has been given a name according to the yaxis the series is referenced by.
     // This fits the existing behaviour where all series associated with an axis
     // are defacto presented as a single group. It is now formalised.
-    let buckets = []
-    let groups = [...new Set(cnf.series.map((s) => s.group))]
+    const buckets = []
+    const groups = [...new Set(cnf.series.map((s) => s.group))]
     cnf.series.forEach((s, i) => {
-      let index = groups.indexOf(s.group)
+      const index = groups.indexOf(s.group)
       if (!buckets[index]) buckets[index] = []
 
       buckets[index].push(gl.seriesNames[i])
@@ -416,7 +417,7 @@ export default class Data {
       for (let j = 0; j < xlabels.length; j++) {
         if (typeof xlabels[j] === 'string') {
           // user provided date strings
-          let isDate = dt.isValidDate(xlabels[j])
+          const isDate = dt.isValidDate(xlabels[j])
           if (isDate) {
             this.twoDSeriesX.push(dt.parseDate(xlabels[j]))
           } else {
@@ -700,7 +701,7 @@ export default class Data {
 
       if (cnf.xaxis.convertedCatToNumeric) {
         const defaults = new Defaults(cnf)
-        defaults.convertCatToNumericXaxis(cnf, this.ctx, gl.seriesX[0])
+        defaults.convertCatToNumericXaxis(cnf, gl.seriesX[0])
         this._generateExternalLabels(ser)
       }
     } else {
@@ -958,9 +959,9 @@ export default class Data {
 
   // Segregate user provided data into appropriate vars
   parseData(ser) {
-    let w = this.w
-    let cnf = w.config
-    let gl = w.globals
+    const w = this.w
+    const cnf = w.config
+    const gl = w.globals
 
     ser = this.parseRawDataIfNeeded(ser)
 
@@ -972,8 +973,8 @@ export default class Data {
     // If we detected string in X prop of series, we fallback to category x-axis
     this.fallbackToCategory = false
 
-    this.ctx.core.resetGlobals()
-    this.ctx.core.isMultipleY()
+    this.resetGlobals()
+    this.isMultipleY()
 
     if (gl.axisCharts) {
       // axisCharts includes line / area / column / scatter
@@ -986,7 +987,7 @@ export default class Data {
 
     // set Null values to 0 in all series when user hides/shows some series
     if (cnf.chart.stacked) {
-      const series = new Series(this.ctx)
+      const series = new Series(this.w)
       gl.series = series.setNullSeriesToZeroValues(gl.series)
     }
 
@@ -1026,7 +1027,7 @@ export default class Data {
     // correspondence between series and Y axes.
     // An axis can be ignored only while all series referenced by it
     // are collapsed.
-    let yAxisIndexes = []
+    const yAxisIndexes = []
     w.globals.seriesYAxisMap.forEach((yAxisArr, yi) => {
       let collapsedCount = 0
       yAxisArr.forEach((seriesIndex) => {

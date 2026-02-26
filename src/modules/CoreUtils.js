@@ -3,9 +3,8 @@
  */
 
 class CoreUtils {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w) {
+    this.w = w
   }
 
   static checkComboSeries(series, chartType) {
@@ -54,7 +53,7 @@ class CoreUtils {
    **/
   getStackedSeriesTotals(excludedSeriesIndices = []) {
     const w = this.w
-    let total = []
+    const total = []
 
     if (w.globals.series.length === 0) return total
 
@@ -97,10 +96,10 @@ class CoreUtils {
    **/
   getStackedSeriesTotalsByGroups() {
     const w = this.w
-    let total = []
+    const total = []
 
     w.globals.seriesGroups.forEach((sg) => {
-      let includedIndexes = []
+      const includedIndexes = []
       w.config.series.forEach((s, si) => {
         if (sg.indexOf(w.globals.seriesNames[si]) > -1) {
           includedIndexes.push(si)
@@ -165,9 +164,9 @@ class CoreUtils {
     // A0 <-> A2, A1 <-> A0, A2 <-> A1 --->>> A0 <-> A1 <-> A2
 
     let axisSeriesMap = []
-    let seriesYAxisReverseMap = []
-    let unassignedSeriesIndices = []
-    let seriesNameArrayStyle =
+    const seriesYAxisReverseMap = []
+    const unassignedSeriesIndices = []
+    const seriesNameArrayStyle =
       gl.series.length > cnf.yaxis.length ||
       cnf.yaxis.some((a) => Array.isArray(a.seriesName))
 
@@ -179,7 +178,7 @@ class CoreUtils {
       axisSeriesMap[yi] = []
     })
 
-    let unassignedYAxisIndices = []
+    const unassignedYAxisIndices = []
 
     // here, we loop through the yaxis array and find the item which has "seriesName" property
     cnf.yaxis.forEach((yaxe, yi) => {
@@ -235,7 +234,7 @@ class CoreUtils {
       }
     })
     axisSeriesMap = axisSeriesMap.map((yaxe) => {
-      let ra = []
+      const ra = []
       yaxe.forEach((sa) => {
         seriesYAxisReverseMap[sa[1]] = sa[0]
         ra.push(sa[1])
@@ -255,7 +254,7 @@ class CoreUtils {
       lastUnassignedYAxis = unassignedYAxisIndices[i]
       axisSeriesMap[lastUnassignedYAxis] = []
       if (unassignedSeriesIndices) {
-        let si = unassignedSeriesIndices[0]
+        const si = unassignedSeriesIndices[0]
         unassignedSeriesIndices.shift()
         axisSeriesMap[lastUnassignedYAxis].push(si)
         seriesYAxisReverseMap[si] = lastUnassignedYAxis
@@ -410,10 +409,10 @@ class CoreUtils {
     const w = this.w
 
     w.globals.seriesPercent = w.globals.series.map((ser) => {
-      let seriesPercent = []
+      const seriesPercent = []
       if (Array.isArray(ser)) {
         for (let j = 0; j < ser.length; j++) {
-          let total = w.globals.stackedSeriesTotals[j]
+          const total = w.globals.stackedSeriesTotals[j]
           let percent = 0
           if (total) {
             percent = (100 * ser[j]) / total
@@ -422,7 +421,7 @@ class CoreUtils {
         }
       } else {
         const total = w.globals.seriesTotals.reduce((acc, val) => acc + val, 0)
-        let percent = (100 * ser) / total
+        const percent = (100 * ser) / total
         seriesPercent.push(percent)
       }
 
@@ -431,10 +430,10 @@ class CoreUtils {
   }
 
   getCalculatedRatios() {
-    let w = this.w
-    let gl = w.globals
+    const w = this.w
+    const gl = w.globals
 
-    let yRatio = []
+    const yRatio = []
     let invertedYRatio = 0
     let xRatio = 0
     let invertedXRatio = 0
@@ -477,9 +476,9 @@ class CoreUtils {
 
     // Check we have a map as series may still to be added/updated.
     if (w.globals.seriesYAxisReverseMap.length > 0) {
-      let scaleBaseLineYScale = (y, i) => {
-        let yAxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[i]]
-        let sign = y < 0 ? -1 : 1
+      const scaleBaseLineYScale = (y, i) => {
+        const yAxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[i]]
+        const sign = y < 0 ? -1 : 1
         y = Math.abs(y)
         if (yAxis.logarithmic) {
           y = this.getBaseLog(yAxis.logBase, y)
@@ -524,7 +523,7 @@ class CoreUtils {
     const w = this.w
 
     w.globals.seriesLog = series.map((s, i) => {
-      let yAxisIndex = w.globals.seriesYAxisReverseMap[i]
+      const yAxisIndex = w.globals.seriesYAxisReverseMap[i]
       if (
         w.config.yaxis[yAxisIndex] &&
         w.config.yaxis[yAxisIndex].logarithmic
@@ -544,7 +543,7 @@ class CoreUtils {
   getLogValAtSeriesIndex(val, seriesIndex) {
     if (val === null) return null
     const w = this.w
-    let yAxisIndex = w.globals.seriesYAxisReverseMap[seriesIndex]
+    const yAxisIndex = w.globals.seriesYAxisReverseMap[seriesIndex]
     if (w.config.yaxis[yAxisIndex] && w.config.yaxis[yAxisIndex].logarithmic) {
       return this.getLogVal(
         w.config.yaxis[yAxisIndex].logBase,
@@ -584,7 +583,7 @@ class CoreUtils {
     gl.yLogRatio = yRatio.slice()
 
     gl.logYRange = gl.yRange.map((_, i) => {
-      let yAxisIndex = w.globals.seriesYAxisReverseMap[i]
+      const yAxisIndex = w.globals.seriesYAxisReverseMap[i]
       if (
         w.config.yaxis[yAxisIndex] &&
         this.w.config.yaxis[yAxisIndex].logarithmic
@@ -634,13 +633,13 @@ class CoreUtils {
   // Series of the same group and type can be stacked together distinct from
   // other series of the same type on the same axis.
   drawSeriesByGroup(typeSeries, typeGroups, type, chartClass) {
-    let w = this.w
-    let graph = []
+    const w = this.w
+    const graph = []
     if (typeSeries.series.length > 0) {
       // draw each group separately
       typeGroups.forEach((gn) => {
-        let gs = []
-        let gi = []
+        const gs = []
+        const gi = []
         typeSeries.i.forEach((i, ii) => {
           if (w.config.series[i].group === gn) {
             gs.push(typeSeries.series[ii])

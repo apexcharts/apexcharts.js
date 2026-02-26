@@ -13,17 +13,17 @@ export default class Helpers {
    * @return {{width, height}}
    **/
   getTitleSubtitleCoords(type) {
-    let w = this.w
+    const w = this.w
     let width = 0
     let height = 0
 
     const floating =
       type === 'title' ? w.config.title.floating : w.config.subtitle.floating
 
-    let el = w.globals.dom.baseEl.querySelector(`.apexcharts-${type}-text`)
+    const el = w.dom.baseEl.querySelector(`.apexcharts-${type}-text`)
 
     if (el !== null && !floating) {
-      let coord = el.getBoundingClientRect()
+      const coord = el.getBoundingClientRect()
       width = coord.width
       height = w.globals.axisCharts ? coord.height + 5 : coord.height
     }
@@ -35,9 +35,9 @@ export default class Helpers {
   }
 
   getLegendsRect() {
-    let w = this.w
+    const w = this.w
 
-    let elLegendWrap = w.globals.dom.elLegendWrap
+    const elLegendWrap = w.dom.elLegendWrap
 
     if (
       !w.config.legend.height &&
@@ -48,7 +48,7 @@ export default class Helpers {
       elLegendWrap.style.maxHeight = w.globals.svgHeight / 2 + 'px'
     }
 
-    let lgRect = Object.assign({}, Utils.getBoundingClientRect(elLegendWrap))
+    const lgRect = Object.assign({}, Utils.getBoundingClientRect(elLegendWrap))
 
     if (
       elLegendWrap !== null &&
@@ -89,15 +89,14 @@ export default class Helpers {
    * @return {{width, height}}
    **/
   getDatalabelsRect() {
-    let w = this.w
+    const w = this.w
 
-    let allLabels = []
+    const allLabels = []
 
     w.config.series.forEach((serie, seriesIndex) => {
       serie.data.forEach((datum, dataPointIndex) => {
         const getText = (v) => {
           return w.config.dataLabels.formatter(v, {
-            ctx: this.dCtx.ctx,
             seriesIndex,
             dataPointIndex,
             w,
@@ -110,11 +109,11 @@ export default class Helpers {
       })
     })
 
-    let val = Utils.getLargestStringFromArr(allLabels)
+    const val = Utils.getLargestStringFromArr(allLabels)
 
-    let graphics = new Graphics(this.dCtx.ctx)
+    const graphics = new Graphics(this.w)
     const dataLabelsStyle = w.config.dataLabels.style
-    let labelrect = graphics.getTextRects(
+    const labelrect = graphics.getTextRects(
       val,
       parseInt(dataLabelsStyle.fontSize),
       dataLabelsStyle.fontFamily
@@ -131,11 +130,11 @@ export default class Helpers {
     let valArr = val
     if (w.globals.isMultiLineX) {
       // if the xaxis labels has multiline texts (array)
-      let maxArrs = arr.map((xl) => {
+      const maxArrs = arr.map((xl) => {
         return Array.isArray(xl) ? xl.length : 1
       })
-      let maxArrLen = Math.max(...maxArrs)
-      let maxArrIndex = maxArrs.indexOf(maxArrLen)
+      const maxArrLen = Math.max(...maxArrs)
+      const maxArrIndex = maxArrs.indexOf(maxArrLen)
       valArr = arr[maxArrIndex]
     }
 

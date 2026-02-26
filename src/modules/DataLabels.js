@@ -9,9 +9,9 @@ import Filters from './Filters'
  **/
 
 class DataLabels {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w, ctx = null) {
+    this.w = w
+    this.ctx = ctx // only used for new Scatter(w, ctx) in bubble chart path
   }
 
   // When there are many datalabels to be printed, and some of them overlaps each other in the same series, this method will take care of that
@@ -25,13 +25,13 @@ class DataLabels {
     alwaysDrawDataLabel,
     fontSize
   ) {
-    let w = this.w
-    let graphics = new Graphics(this.ctx)
+    const w = this.w
+    const graphics = new Graphics(this.w)
     let drawnextLabel = false //
 
-    let textRects = graphics.getTextRects(val, fontSize)
-    let width = textRects.width
-    let height = textRects.height
+    const textRects = graphics.getTextRects(val, fontSize)
+    const width = textRects.width
+    const height = textRects.height
 
     if (y < 0) y = 0
     if (y > w.globals.gridHeight + height) y = w.globals.gridHeight + height / 2
@@ -43,8 +43,8 @@ class DataLabels {
     // then start pushing actual rects in that sub-array
     w.globals.dataLabelsRects[i].push({ x, y, width, height })
 
-    let len = w.globals.dataLabelsRects[i].length - 2
-    let lastDrawnIndex =
+    const len = w.globals.dataLabelsRects[i].length - 2
+    const lastDrawnIndex =
       typeof w.globals.lastDrawnDataLabelsIndexes[i] !== 'undefined'
         ? w.globals.lastDrawnDataLabelsIndexes[i][
             w.globals.lastDrawnDataLabelsIndexes[i].length - 1
@@ -52,7 +52,7 @@ class DataLabels {
         : 0
 
     if (typeof w.globals.dataLabelsRects[i][len] !== 'undefined') {
-      let lastDataLabelRect = w.globals.dataLabelsRects[i][lastDrawnIndex]
+      const lastDataLabelRect = w.globals.dataLabelsRects[i][lastDrawnIndex]
       if (
         // next label forward and x not intersecting
         x > lastDataLabelRect.x + lastDataLabelRect.width ||
@@ -80,11 +80,11 @@ class DataLabels {
   drawDataLabel({ type, pos, i, j, isRangeStart, strokeWidth = 2 }) {
     // this method handles line, area, bubble, scatter charts as those charts contains markers/points which have pre-defined x/y positions
     // all other charts like radar / bars / heatmaps will define their own drawDataLabel routine
-    let w = this.w
+    const w = this.w
 
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
 
-    let dataLabelsConfig = w.config.dataLabels
+    const dataLabelsConfig = w.config.dataLabels
 
     let x = 0
     let y = 0
@@ -126,7 +126,6 @@ class DataLabels {
 
         const getText = (v) => {
           return w.config.dataLabels.formatter(v, {
-            ctx: this.ctx,
             seriesIndex: i,
             dataPointIndex,
             w,
@@ -138,8 +137,8 @@ class DataLabels {
           text = getText(val)
 
           y = pos.y[q]
-          const scatter = new Scatter(this.ctx)
-          let centerTextInBubbleCoords = scatter.centerTextInBubble(
+          const scatter = new Scatter(this.w, this.ctx)
+          const centerTextInBubbleCoords = scatter.centerTextInBubble(
             y,
             i,
             dataPointIndex
@@ -181,8 +180,8 @@ class DataLabels {
   }
 
   plotDataLabelsText(opts) {
-    let w = this.w
-    let graphics = new Graphics(this.ctx)
+    const w = this.w
+    const graphics = new Graphics(this.w)
     let {
       x,
       y,
@@ -313,7 +312,7 @@ class DataLabels {
 
       if (dataLabelsConfig.dropShadow.enabled) {
         const textShadow = dataLabelsConfig.dropShadow
-        const filters = new Filters(this.ctx)
+        const filters = new Filters(this.w)
         filters.dropShadow(dataLabelText, textShadow)
       }
 
@@ -339,7 +338,7 @@ class DataLabels {
 
     const width = coords.width
     const height = coords.height
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
     const elRect = graphics.drawRect(
       coords.x - paddingH,
       coords.y - paddingV / 2,
@@ -355,7 +354,7 @@ class DataLabels {
     )
 
     if (bCnf.dropShadow.enabled) {
-      const filters = new Filters(this.ctx)
+      const filters = new Filters(this.w)
       filters.dropShadow(elRect, bCnf.dropShadow)
     }
 
@@ -367,7 +366,7 @@ class DataLabels {
 
     if (w.config.chart.type === 'bubble') return
 
-    const elDataLabels = w.globals.dom.baseEl.querySelectorAll(
+    const elDataLabels = w.dom.baseEl.querySelectorAll(
       '.apexcharts-datalabels text'
     )
 
@@ -402,11 +401,11 @@ class DataLabels {
 
   bringForward() {
     const w = this.w
-    const elDataLabelsNodes = w.globals.dom.baseEl.querySelectorAll(
+    const elDataLabelsNodes = w.dom.baseEl.querySelectorAll(
       '.apexcharts-datalabels'
     )
 
-    const elSeries = w.globals.dom.baseEl.querySelector(
+    const elSeries = w.dom.baseEl.querySelector(
       '.apexcharts-plot-series:last-child'
     )
 

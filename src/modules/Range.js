@@ -9,11 +9,9 @@ import Scales from './Scales'
  **/
 
 class Range {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
-
-    this.scales = new Scales(ctx)
+  constructor(w) {
+    this.w = w
+    this.scales = new Scales(this.w)
   }
 
   init() {
@@ -36,7 +34,7 @@ class Range {
     if (endingSeriesIndex === null) {
       endingSeriesIndex = startingSeriesIndex + 1
     }
-    let series = gl.series
+    const series = gl.series
     let seriesMin = series
     let seriesMax = series
 
@@ -54,7 +52,7 @@ class Range {
     if (gl.seriesX.length >= endingSeriesIndex) {
       // Eventually brushSource will be set if the current chart is a target.
       // That is, after the appropriate event causes us to update.
-      let brush = gl.brushSource?.w.config.chart.brush
+      const brush = gl.brushSource?.w.config.chart.brush
       if (
         (cnf.chart.zoom.enabled && cnf.chart.zoom.autoScaleYaxis) ||
         (brush?.enabled && brush?.autoScaleYaxis)
@@ -225,8 +223,8 @@ class Range {
   }
 
   setYRange() {
-    let gl = this.w.globals
-    let cnf = this.w.config
+    const gl = this.w.globals
+    const cnf = this.w.config
     gl.maxY = -Number.MAX_VALUE
     gl.minY = Number.MIN_VALUE
 
@@ -343,7 +341,7 @@ class Range {
     gl.lineGroups = []
     gl.areaGroups = []
     cnf.series.forEach((s) => {
-      let type = s.type || cnf.chart.type
+      const type = s.type || cnf.chart.type
       switch (type) {
         case 'bar':
         case 'column':
@@ -372,8 +370,8 @@ class Range {
   }
 
   setXRange() {
-    let gl = this.w.globals
-    let cnf = this.w.config
+    const gl = this.w.globals
+    const cnf = this.w.config
 
     const isXNumeric =
       cnf.xaxis.type === 'numeric' ||
@@ -456,7 +454,7 @@ class Range {
 
       if (gl.minX !== Number.MAX_VALUE && gl.maxX !== -Number.MAX_VALUE) {
         if (cnf.xaxis.convertedCatToNumeric && !gl.dataFormatXNumeric) {
-          let catScale = []
+          const catScale = []
           for (let i = gl.minX - 1; i < gl.maxX; i++) {
             catScale.push(i + 1)
           }
@@ -513,7 +511,7 @@ class Range {
 
   setZRange() {
     // minZ, maxZ starts here
-    let gl = this.w.globals
+    const gl = this.w.globals
 
     if (!gl.isDataXYZ) return
     for (let i = 0; i < gl.series.length; i++) {
@@ -533,7 +531,7 @@ class Range {
     const cnf = this.w.config
 
     if (gl.minX === gl.maxX) {
-      let datetimeObj = new DateTime(this.ctx)
+      const datetimeObj = new DateTime(this.w)
 
       if (cnf.xaxis.type === 'datetime') {
         const newMinX = datetimeObj.getDate(gl.minX)
@@ -587,7 +585,7 @@ class Range {
 
           seriesX.forEach((s, j) => {
             if (j > 0) {
-              let xDiff = s - seriesX[j - 1]
+              const xDiff = s - seriesX[j - 1]
               if (xDiff > 0) {
                 gl.minXDiff = Math.min(xDiff, gl.minXDiff)
               }
@@ -615,8 +613,8 @@ class Range {
     if (!seriesGroups.length) {
       seriesGroups = [this.w.globals.seriesNames.map((name) => name)]
     }
-    let stackedPoss = {}
-    let stackedNegs = {}
+    const stackedPoss = {}
+    const stackedNegs = {}
 
     seriesGroups.forEach((group) => {
       stackedPoss[group] = []
@@ -634,7 +632,7 @@ class Range {
             stackedNegs[group][j] = 0
           }
 
-          let stackSeries =
+          const stackSeries =
             (this.w.config.chart.stacked && !gl.comboCharts) ||
             (this.w.config.chart.stacked &&
               gl.comboCharts &&

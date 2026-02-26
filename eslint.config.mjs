@@ -54,6 +54,7 @@ export default [
         caughtErrors: 'none'
       }],
       'no-empty': ['error', { allowEmptyCatch: true }],
+      'prefer-const': ['error', { destructuring: 'all' }],
     },
   },
 

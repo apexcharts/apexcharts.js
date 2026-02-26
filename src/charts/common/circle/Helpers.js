@@ -1,9 +1,8 @@
 import Graphics from '../../../modules/Graphics'
 
 export default class CircularChartsHelpers {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w) {
+    this.w = w
   }
 
   drawYAxisTexts(x, y, i, text) {
@@ -12,7 +11,7 @@ export default class CircularChartsHelpers {
     const yaxisConfig = w.config.yaxis[0]
     const formatter = w.globals.yLabelFormatters[0]
 
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
     const yaxisLabel = graphics.drawText({
       x: x + yaxisConfig.labels.offsetX,
       y: y + yaxisConfig.labels.offsetY,

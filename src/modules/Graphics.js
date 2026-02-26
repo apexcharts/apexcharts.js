@@ -9,9 +9,9 @@ import Utils from '../utils/Utils'
  **/
 
 class Graphics {
-  constructor(ctx) {
+  constructor(w, ctx = null) {
+    this.w = w
     this.ctx = ctx
-    this.w = ctx.w
   }
 
   /*****************************************************************************
@@ -207,8 +207,8 @@ class Graphics {
     strokeWidth = null,
     strokeLineCap = 'butt'
   ) {
-    let w = this.w
-    let line = w.globals.dom.Paper.line().attr({
+    const w = this.w
+    const line = w.dom.Paper.line().attr({
       x1,
       y1,
       x2,
@@ -234,8 +234,8 @@ class Graphics {
     strokeColor = null,
     strokeDashArray = 0
   ) {
-    let w = this.w
-    let rect = w.globals.dom.Paper.rect()
+    const w = this.w
+    const rect = w.dom.Paper.rect()
 
     rect.attr({
       x: x1,
@@ -263,7 +263,7 @@ class Graphics {
     fill = 'none'
   ) {
     const w = this.w
-    const polygon = w.globals.dom.Paper.polygon(polygonString).attr({
+    const polygon = w.dom.Paper.polygon(polygonString).attr({
       fill,
       stroke,
       'stroke-width': strokeWidth,
@@ -276,7 +276,7 @@ class Graphics {
     const w = this.w
 
     if (radius < 0) radius = 0
-    const c = w.globals.dom.Paper.circle(radius * 2)
+    const c = w.dom.Paper.circle(radius * 2)
     if (attrs !== null) {
       c.attr(attrs)
     }
@@ -294,7 +294,7 @@ class Graphics {
     strokeLinecap = null,
     strokeDashArray = 0,
   }) {
-    let w = this.w
+    const w = this.w
 
     if (strokeLinecap === null) {
       strokeLinecap = w.config.stroke.lineCap
@@ -303,7 +303,7 @@ class Graphics {
     if (d.indexOf('undefined') > -1 || d.indexOf('NaN') > -1) {
       d = `M 0 ${w.globals.gridHeight}`
     }
-    let p = w.globals.dom.Paper.path(d).attr({
+    const p = w.dom.Paper.path(d).attr({
       fill,
       'fill-opacity': fillOpacity,
       stroke,
@@ -319,7 +319,7 @@ class Graphics {
 
   group(attrs = null) {
     const w = this.w
-    const g = w.globals.dom.Paper.group()
+    const g = w.dom.Paper.group()
 
     if (attrs !== null) {
       g.attr(attrs)
@@ -328,7 +328,7 @@ class Graphics {
   }
 
   move(x, y) {
-    let move = ['M', x, y].join(' ')
+    const move = ['M', x, y].join(' ')
     return move
   }
 
@@ -345,12 +345,12 @@ class Graphics {
   }
 
   curve(x1, y1, x2, y2, x, y) {
-    let curve = ['C', x1, y1, x2, y2, x, y].join(' ')
+    const curve = ['C', x1, y1, x2, y2, x, y].join(' ')
     return curve
   }
 
   quadraticCurve(x1, y1, x, y) {
-    let curve = ['Q', x1, y1, x, y].join(' ')
+    const curve = ['Q', x1, y1, x, y].join(' ')
     return curve
   }
 
@@ -358,7 +358,7 @@ class Graphics {
     let coord = 'A'
     if (relative) coord = 'a'
 
-    let arc = [coord, rx, ry, axisRotation, largeArcFlag, sweepFlag, x, y].join(
+    const arc = [coord, rx, ry, axisRotation, largeArcFlag, sweepFlag, x, y].join(
       ' '
     )
     return arc
@@ -397,12 +397,12 @@ class Graphics {
     bindEventsOnPaths = true,
     drawShadow = true,
   }) {
-    let w = this.w
-    const filters = new Filters(this.ctx)
-    const anim = new Animations(this.ctx)
+    const w = this.w
+    const filters = new Filters(this.w)
+    const anim = new Animations(this.w)
 
-    let initialAnim = this.w.config.chart.animations.enabled
-    let dynamicAnim =
+    const initialAnim = this.w.config.chart.animations.enabled
+    const dynamicAnim =
       initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled
 
     // Fix for paths starting with M 0 0
@@ -414,7 +414,7 @@ class Graphics {
     }
 
     let d
-    let shouldAnimate = !!(
+    const shouldAnimate = !!(
       (initialAnim && !w.globals.resized) ||
       (dynamicAnim && w.globals.dataChanged && w.globals.shouldAnimate)
     )
@@ -426,7 +426,7 @@ class Graphics {
       w.globals.animationEnded = true
     }
 
-    let strokeDashArrayOpt = w.config.stroke.dashArray
+    const strokeDashArrayOpt = w.config.stroke.dashArray
     let strokeDashArray = 0
     if (Array.isArray(strokeDashArrayOpt)) {
       strokeDashArray = strokeDashArrayOpt[realIndex]
@@ -434,7 +434,7 @@ class Graphics {
       strokeDashArray = w.config.stroke.dashArray
     }
 
-    let el = this.drawPath({
+    const el = this.drawPath({
       d,
       stroke,
       strokeWidth,
@@ -516,9 +516,9 @@ class Graphics {
     stroke = '#a8a8a8',
     strokeWidth = 0,
   ) {
-    let w = this.w
+    const w = this.w
 
-    let p = w.globals.dom.Paper.pattern(width, height, (add) => {
+    const p = w.dom.Paper.pattern(width, height, (add) => {
       if (style === 'horizontalLines') {
         add
           .line(0, 0, height, 0)
@@ -558,7 +558,7 @@ class Graphics {
     colorStops = [],
     i = 0
   ) {
-    let w = this.w
+    const w = this.w
     let g
 
     if (gfrom.length < 9 && gfrom.indexOf('#') === 0) {
@@ -581,7 +581,7 @@ class Graphics {
       stop4 = typeof stops[3] !== 'undefined' ? stops[3] / 100 : null
     }
 
-    let radial = !!(
+    const radial = !!(
       w.config.chart.type === 'donut' ||
       w.config.chart.type === 'pie' ||
       w.config.chart.type === 'polarArea' ||
@@ -589,7 +589,7 @@ class Graphics {
     )
 
     if (!colorStops || colorStops.length === 0) {
-      g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', (add) => {
+      g = w.dom.Paper.gradient(radial ? 'radial' : 'linear', (add) => {
         add.stop(stop1, gfrom, opacityFrom)
         add.stop(stop2, gto, opacityTo)
         add.stop(stop3, gto, opacityTo)
@@ -598,8 +598,8 @@ class Graphics {
         }
       })
     } else {
-      g = w.globals.dom.Paper.gradient(radial ? 'radial' : 'linear', (add) => {
-        let gradientStops = Array.isArray(colorStops[i])
+      g = w.dom.Paper.gradient(radial ? 'radial' : 'linear', (add) => {
+        const gradientStops = Array.isArray(colorStops[i])
           ? colorStops[i]
           : colorStops
         gradientStops.forEach((s) => {
@@ -619,8 +619,8 @@ class Graphics {
         g.from(1, 0).to(0, 1)
       }
     } else {
-      let offx = w.globals.gridWidth / 2
-      let offy = w.globals.gridHeight / 2
+      const offx = w.globals.gridWidth / 2
+      const offy = w.globals.gridHeight / 2
 
       if (w.config.chart.type !== 'bubble') {
         g.attr({
@@ -668,7 +668,7 @@ class Graphics {
     isPlainText = true,
     dominantBaseline = 'auto',
   }) {
-    let w = this.w
+    const w = this.w
 
     if (typeof text === 'undefined') text = ''
 
@@ -691,7 +691,7 @@ class Graphics {
     }
     let elText
     if (Array.isArray(text)) {
-      elText = w.globals.dom.Paper.text((add) => {
+      elText = w.dom.Paper.text((add) => {
         for (let i = 0; i < text.length; i++) {
           truncatedText = text[i]
           if (maxWidth) {
@@ -713,8 +713,8 @@ class Graphics {
         })
       }
       elText = isPlainText
-        ? w.globals.dom.Paper.plain(text)
-        : w.globals.dom.Paper.text((add) => add.tspan(truncatedText))
+        ? w.dom.Paper.plain(text)
+        : w.dom.Paper.text((add) => add.tspan(truncatedText))
     }
 
     elText.attr({
@@ -862,8 +862,8 @@ class Graphics {
   }
 
   pathMouseEnter(path, e) {
-    let w = this.w
-    const filters = new Filters(this.ctx)
+    const w = this.w
+    const filters = new Filters(this.w)
 
     const i = parseInt(path.node.getAttribute('index'), 10)
     const j = parseInt(path.node.getAttribute('j'), 10)
@@ -889,15 +889,15 @@ class Graphics {
 
     if (w.config.states.hover.filter.type !== 'none') {
       if (!w.globals.isTouchDevice) {
-        let hoverFilter = w.config.states.hover.filter
+        const hoverFilter = w.config.states.hover.filter
         filters.applyFilter(path, i, hoverFilter.type)
       }
     }
   }
 
   pathMouseLeave(path, e) {
-    let w = this.w
-    const filters = new Filters(this.ctx)
+    const w = this.w
+    const filters = new Filters(this.w)
 
     const i = parseInt(path.node.getAttribute('index'), 10)
     const j = parseInt(path.node.getAttribute('j'), 10)
@@ -927,8 +927,8 @@ class Graphics {
   }
 
   pathMouseDown(path, e) {
-    let w = this.w
-    const filters = new Filters(this.ctx)
+    const w = this.w
+    const filters = new Filters(this.w)
 
     const i = parseInt(path.node.getAttribute('index'), 10)
     const j = parseInt(path.node.getAttribute('j'), 10)
@@ -938,7 +938,7 @@ class Graphics {
       path.node.setAttribute('selected', 'false')
 
       if (w.globals.selectedDataPoints[i].indexOf(j) > -1) {
-        let index = w.globals.selectedDataPoints[i].indexOf(j)
+        const index = w.globals.selectedDataPoints[i].indexOf(j)
         w.globals.selectedDataPoints[i].splice(index, 1)
       }
     } else {
@@ -947,10 +947,10 @@ class Graphics {
         w.globals.selectedDataPoints.length > 0
       ) {
         w.globals.selectedDataPoints = []
-        const elPaths = w.globals.dom.Paper.find(
+        const elPaths = w.dom.Paper.find(
           '.apexcharts-series path:not(.apexcharts-decoration-element)'
         )
-        const elCircles = w.globals.dom.Paper.find(
+        const elCircles = w.dom.Paper.find(
           '.apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)'
         )
 
@@ -974,14 +974,14 @@ class Graphics {
     }
 
     if (selected === 'true') {
-      let activeFilter = w.config.states.active.filter
+      const activeFilter = w.config.states.active.filter
       if (activeFilter !== 'none') {
         filters.applyFilter(path, i, activeFilter.type)
       } else {
         // Reapply the hover filter in case it was removed by `deselect`when there is no active filter and it is not a touch device
         if (w.config.states.hover.filter !== 'none') {
           if (!w.globals.isTouchDevice) {
-            let hoverFilter = w.config.states.hover.filter
+            const hoverFilter = w.config.states.hover.filter
             filters.applyFilter(path, i, hoverFilter.type)
           }
         }
@@ -993,7 +993,7 @@ class Graphics {
           w.config.states.hover.filter.type !== 'none' &&
           !w.globals.isTouchDevice
         ) {
-          let hoverFilter = w.config.states.hover.filter
+          const hoverFilter = w.config.states.hover.filter
           filters.applyFilter(path, i, hoverFilter.type)
         } else {
           filters.getDefaultFilter(path, i)
@@ -1029,8 +1029,8 @@ class Graphics {
     if (el && typeof el.getBBox === 'function') {
       coord = el.getBBox()
     }
-    let x = coord.x + coord.width / 2
-    let y = coord.y + coord.height / 2
+    const x = coord.x + coord.width / 2
+    const y = coord.y + coord.height / 2
 
     return {
       x,
@@ -1101,7 +1101,7 @@ class Graphics {
   }
 
   static setAttrs(el, attrs) {
-    for (let key in attrs) {
+    for (const key in attrs) {
       if (Object.prototype.hasOwnProperty.call(attrs, key)) {
         el.setAttribute(key, attrs[key])
       }
@@ -1109,7 +1109,7 @@ class Graphics {
   }
 
   getTextRects(text, fontSize, fontFamily, transform, useBBox = true) {
-    let w = this.w
+    const w = this.w
 
     // cache text measurements to avoid repeated DOM create/measure/remove cycles
     const cacheKey = `${text}|${fontSize}|${fontFamily}|${transform}|${useBBox}`
@@ -1118,7 +1118,7 @@ class Graphics {
       return cache.get(cacheKey)
     }
 
-    let virtualText = this.drawText({
+    const virtualText = this.drawText({
       x: -200,
       y: -200,
       text,
@@ -1132,7 +1132,7 @@ class Graphics {
     if (transform) {
       virtualText.attr('transform', transform)
     }
-    w.globals.dom.Paper.add(virtualText)
+    w.dom.Paper.add(virtualText)
 
     let rect = virtualText.bbox()
     if (!useBBox) {

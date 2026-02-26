@@ -12,10 +12,9 @@ export default class Helpers {
   getLegendStyles() {
     if (Environment.isSSR()) return null
 
-    let stylesheet = document.createElement('style')
+    const stylesheet = document.createElement('style')
     stylesheet.setAttribute('type', 'text/css')
-    const nonce =
-      this.lgCtx.ctx?.opts?.chart?.nonce || this.w.config.chart.nonce
+    const nonce = this.w.config.chart.nonce
     if (nonce) {
       stylesheet.setAttribute('nonce', nonce)
     }
@@ -27,9 +26,9 @@ export default class Helpers {
 
   getLegendDimensions() {
     const w = this.w
-    let currLegendsWrap =
-      w.globals.dom.baseEl.querySelector('.apexcharts-legend')
-    let { width: currLegendsWrapWidth, height: currLegendsWrapHeight } =
+    const currLegendsWrap =
+      w.dom.baseEl.querySelector('.apexcharts-legend')
+    const { width: currLegendsWrapWidth, height: currLegendsWrapHeight } =
       currLegendsWrap.getBoundingClientRect()
 
     return {
@@ -39,11 +38,9 @@ export default class Helpers {
   }
 
   appendToForeignObject() {
-    const gl = this.w.globals
-
     const legendStyles = this.getLegendStyles()
     if (this.w.config.chart.injectStyleSheet !== false && legendStyles) {
-      gl.dom.elLegendForeign.appendChild(legendStyles)
+      this.w.dom.elLegendForeign.appendChild(legendStyles)
     }
   }
 
@@ -60,13 +57,13 @@ export default class Helpers {
       w.globals.risingSeries = []
 
       if (w.globals.axisCharts) {
-        seriesEl = w.globals.dom.baseEl.querySelector(
+        seriesEl = w.dom.baseEl.querySelector(
           `.apexcharts-series[data\\:realIndex='${seriesCnt}']`
         )
         if (!seriesEl) return
         realIndex = parseInt(seriesEl.getAttribute('data:realIndex'), 10)
       } else {
-        seriesEl = w.globals.dom.baseEl.querySelector(
+        seriesEl = w.dom.baseEl.querySelector(
           `.apexcharts-series[rel='${seriesCnt + 1}']`
         )
         if (!seriesEl) return
@@ -95,7 +92,7 @@ export default class Helpers {
       if (
         w.config.chart.accessibility.enabled
       ) {
-        const legendItem = w.globals.dom.baseEl.querySelector(
+        const legendItem = w.dom.baseEl.querySelector(
           `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`
         )
         if (legendItem) {
@@ -123,24 +120,24 @@ export default class Helpers {
       }
     } else {
       // for non-axis charts i.e pie / donuts
-      let seriesEl = w.globals.dom.Paper.findOne(
+      const seriesEl = w.dom.Paper.findOne(
         ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
       )
 
       const type = w.config.chart.type
       if (type === 'pie' || type === 'polarArea' || type === 'donut') {
-        let dataLabels = w.config.plotOptions.pie.donut.labels
+        const dataLabels = w.config.plotOptions.pie.donut.labels
 
-        const graphics = new Graphics(this.lgCtx.ctx)
+        const graphics = new Graphics(this.w)
         graphics.pathMouseDown(seriesEl, null)
-        this.lgCtx.ctx.pie.printDataLabelsInner(seriesEl.node, dataLabels)
+        this.lgCtx.printDataLabelsInner(seriesEl.node, dataLabels)
       }
 
       // Update ARIA attributes for accessibility (non-axis charts)
       if (
         w.config.chart.accessibility.enabled
       ) {
-        const legendItem = w.globals.dom.baseEl.querySelector(
+        const legendItem = w.dom.baseEl.querySelector(
           `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`
         )
         if (legendItem) {
@@ -172,10 +169,10 @@ export default class Helpers {
     const w = this.w
     const gl = w.globals
 
-    let series = Utils.clone(w.config.series)
+    const series = Utils.clone(w.config.series)
 
     if (gl.axisCharts) {
-      let yaxis = w.config.yaxis[gl.seriesYAxisReverseMap[realIndex]]
+      const yaxis = w.config.yaxis[gl.seriesYAxisReverseMap[realIndex]]
 
       const collapseData = {
         index: realIndex,
@@ -192,7 +189,7 @@ export default class Helpers {
           gl.collapsedSeries.push(collapseData)
           gl.collapsedSeriesIndices.push(realIndex)
 
-          let removeIndexOfRising = gl.risingSeries.indexOf(realIndex)
+          const removeIndexOfRising = gl.risingSeries.indexOf(realIndex)
           gl.risingSeries.splice(removeIndexOfRising, 1)
         }
       }
@@ -214,11 +211,11 @@ export default class Helpers {
   hideSeries({ seriesEl, realIndex }) {
     const w = this.w
 
-    let series = this.getSeriesAfterCollapsing({
+    const series = this.getSeriesAfterCollapsing({
       realIndex,
     })
 
-    let seriesChildren = seriesEl.childNodes
+    const seriesChildren = seriesEl.childNodes
     for (let sc = 0; sc < seriesChildren.length; sc++) {
       if (
         seriesChildren[sc].classList.contains('apexcharts-series-markers-wrap')
@@ -231,7 +228,7 @@ export default class Helpers {
       }
     }
 
-    this.lgCtx.ctx.updateHelpers._updateSeries(
+    this.lgCtx.updateSeries(
       series,
       w.config.chart.animations.dynamicAnimation.enabled
     )
@@ -261,7 +258,7 @@ export default class Helpers {
 
       series = this._getSeriesBasedOnCollapsedState(series)
 
-      this.lgCtx.ctx.updateHelpers._updateSeries(
+      this.lgCtx.updateSeries(
         series,
         w.config.chart.animations.dynamicAnimation.enabled
       )

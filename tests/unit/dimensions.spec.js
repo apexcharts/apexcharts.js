@@ -98,29 +98,6 @@ function makeDimCtx(overrides = {}) {
     // seriesYAxisMap: required by AxesUtils.isYAxisHidden → [[0], [1], ...]
     seriesYAxisMap: [[0]],
 
-    // legend/dom
-    dom: {
-      baseEl: document.createElement('div'),
-      elLegendWrap: (() => {
-        const el = document.createElement('div')
-        // Utils.getBoundingClientRect reads clientWidth/clientHeight, not getBoundingClientRect
-        Object.defineProperty(el, 'clientWidth', {
-          get: () => 120,
-          configurable: true,
-        })
-        Object.defineProperty(el, 'clientHeight', {
-          get: () => 20,
-          configurable: true,
-        })
-        return el
-      })(),
-      elWrap: (() => {
-        const el = document.createElement('div')
-        el.getBoundingClientRect = () => ({ width: 600 })
-        return el
-      })(),
-    },
-
     LINE_HEIGHT_RATIO: 1.618,
     ...(overrides.globals || {}),
   }
@@ -183,7 +160,32 @@ function makeDimCtx(overrides = {}) {
     ...(overrides.config || {}),
   }
 
-  const w = { config, globals }
+  const w = {
+    config,
+    globals,
+    dom: {
+      baseEl: document.createElement('div'),
+      elLegendWrap: (() => {
+        const el = document.createElement('div')
+        // Utils.getBoundingClientRect reads clientWidth/clientHeight, not getBoundingClientRect
+        Object.defineProperty(el, 'clientWidth', {
+          get: () => 120,
+          configurable: true,
+        })
+        Object.defineProperty(el, 'clientHeight', {
+          get: () => 20,
+          configurable: true,
+        })
+        return el
+      })(),
+      elWrap: (() => {
+        const el = document.createElement('div')
+        el.getBoundingClientRect = () => ({ width: 600 })
+        return el
+      })(),
+    },
+    ...(overrides.dom ? { dom: overrides.dom } : {}),
+  }
 
   // A minimal ctx that sub-classes may forward to Graphics etc.
   const ctx = { w }
@@ -585,11 +587,11 @@ describe('Helpers', () => {
       w.globals.svgWidth = 300
       // Utils.getBoundingClientRect uses element.clientWidth / clientHeight
       // Make the legend wider than svgWidth/1.5 (= 200), height must be > 0
-      Object.defineProperty(w.globals.dom.elLegendWrap, 'clientWidth', {
+      Object.defineProperty(w.dom.elLegendWrap, 'clientWidth', {
         get: () => 9999,
         configurable: true,
       })
-      Object.defineProperty(w.globals.dom.elLegendWrap, 'clientHeight', {
+      Object.defineProperty(w.dom.elLegendWrap, 'clientHeight', {
         get: () => 30,
         configurable: true,
       })

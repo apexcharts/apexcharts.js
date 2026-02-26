@@ -190,11 +190,11 @@ ${svgString}
   static _extractSVGString(chart, scale = 1) {
     const w = chart.w
 
-    if (!w || !w.globals || !w.globals.dom || !w.globals.dom.Paper) {
+    if (!w || !w.dom || !w.dom.Paper) {
       throw new Error('Chart not properly initialized')
     }
 
-    const svgNode = w.globals.dom.Paper.node
+    const svgNode = w.dom.Paper.node
 
     // If we have a real SVG element (browser), serialize it
     if (Environment.isBrowser() && svgNode instanceof SVGElement) {
