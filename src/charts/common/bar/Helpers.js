@@ -1,5 +1,6 @@
 import Graphics from '../../../modules/Graphics'
 import Series from '../../../modules/Series'
+import Fill from '../../../modules/Fill'
 import Utils from '../../../utils/Utils'
 
 export default class Helpers {
@@ -58,7 +59,7 @@ export default class Helpers {
   }
 
   initialPositions(realIndex) {
-    let w = this.w
+    const w = this.w
     let x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW
 
     let dataPoints = w.globals.dataPoints
@@ -112,7 +113,7 @@ export default class Helpers {
 
       if (w.globals.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
-        let xRatio = this.barCtx.xRatio
+        const xRatio = this.barCtx.xRatio
 
         if (
           w.globals.minXDiff &&
@@ -204,10 +205,10 @@ export default class Helpers {
 
   getPathFillColor(series, i, j, realIndex) {
     const w = this.w
-    let fill = this.barCtx.ctx.fill
+    const fill = new Fill(this.barCtx.w)
 
     let fillColor = null
-    let seriesNumber = this.barCtx.barOptions.distributed ? j : i
+    const seriesNumber = this.barCtx.barOptions.distributed ? j : i
     let useRangeColor = false
 
     if (this.barCtx.barOptions.colors.ranges.length > 0) {
@@ -220,7 +221,7 @@ export default class Helpers {
       })
     }
 
-    let pathFill = fill.fillPath({
+    const pathFill = fill.fillPath({
       seriesNumber: this.barCtx.barOptions.distributed
         ? seriesNumber
         : realIndex,
@@ -281,8 +282,8 @@ export default class Helpers {
     const chartType = this.w.config.chart.type;
 
     for (let j = 0; j < numColumns; j++) {
-      let positiveIndices = []
-      let negativeIndices = []
+      const positiveIndices = []
+      const negativeIndices = []
       let nonZeroCount = 0
 
       // Collect positive and negative indices
@@ -306,7 +307,7 @@ export default class Helpers {
           // Multiple positive values
           const firstPositiveIndex = positiveIndices[0]
           const lastPositiveIndex = positiveIndices[positiveIndices.length - 1]
-          for (let i of positiveIndices) {
+          for (const i of positiveIndices) {
             if (i === firstPositiveIndex) {
 
               output[i][j] = (chartType === 'bar' && numColumns === 1) ? 'top' : 'bottom'
@@ -326,7 +327,7 @@ export default class Helpers {
           // Multiple negative values
           const highestNegativeIndex = Math.max(...negativeIndices)
           const lowestNegativeIndex = Math.min(...negativeIndices)
-          for (let i of negativeIndices) {
+          for (const i of negativeIndices) {
             if (i === highestNegativeIndex) {
               output[i][j] = 'bottom' // Closest to axis
             } else if (i === lowestNegativeIndex) {
@@ -340,7 +341,7 @@ export default class Helpers {
         // Mixed positive and negative values
         // Assign 'top' to the last positive bar
         const lastPositiveIndex = positiveIndices[positiveIndices.length - 1]
-        for (let i of positiveIndices) {
+        for (const i of positiveIndices) {
           if (i === lastPositiveIndex) {
             output[i][j] = 'top'
           } else {
@@ -349,7 +350,7 @@ export default class Helpers {
         }
         // Assign 'bottom' to the highest negative index (closest to axis)
         const highestNegativeIndex = Math.max(...negativeIndices)
-        for (let i of negativeIndices) {
+        for (const i of negativeIndices) {
           if (i === highestNegativeIndex) {
             output[i][j] = 'bottom'
           } else {
@@ -368,10 +369,10 @@ export default class Helpers {
 
   barBackground({ j, i, x1, x2, y1, y2, elSeries }) {
     const w = this.w
-    const graphics = new Graphics(this.barCtx.ctx)
+    const graphics = new Graphics(this.barCtx.w)
 
-    const sr = new Series(this.barCtx.ctx)
-    let activeSeriesIndex = sr.getActiveConfigSeriesIndex()
+    const sr = new Series(this.barCtx.w)
+    const activeSeriesIndex = sr.getActiveConfigSeriesIndex()
 
     if (
       this.barCtx.barOptions.colors.backgroundBarColors.length > 0 &&
@@ -381,8 +382,8 @@ export default class Helpers {
         j %= this.barCtx.barOptions.colors.backgroundBarColors.length
       }
 
-      let bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j]
-      let rect = graphics.drawRect(
+      const bcolor = this.barCtx.barOptions.colors.backgroundBarColors[j]
+      const rect = graphics.drawRect(
         typeof x1 !== 'undefined' ? x1 : 0,
         typeof y1 !== 'undefined' ? y1 : 0,
         typeof x2 !== 'undefined' ? x2 : w.globals.gridWidth,
@@ -410,7 +411,7 @@ export default class Helpers {
     j,
     w,
   }) {
-    const graphics = new Graphics(this.barCtx.ctx)
+    const graphics = new Graphics(this.barCtx.w)
     strokeWidth = Array.isArray(strokeWidth)
       ? strokeWidth[realIndex]
       : strokeWidth
@@ -426,12 +427,12 @@ export default class Helpers {
     }
 
     // Center the stroke on the coordinates
-    let strokeCenter = strokeWidth / 2
+    const strokeCenter = strokeWidth / 2
 
     const x1 = bXP + strokeCenter
     const x2 = bXP + bW - strokeCenter
 
-    let direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1)
+    const direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1)
 
     // append tiny pixels to avoid exponentials (which cause issues in border-radius)
     y1 += 0.001 - strokeCenter * direction
@@ -506,7 +507,7 @@ export default class Helpers {
     j,
     w,
   }) {
-    const graphics = new Graphics(this.barCtx.ctx)
+    const graphics = new Graphics(this.barCtx.w)
     strokeWidth = Array.isArray(strokeWidth)
       ? strokeWidth[realIndex]
       : strokeWidth
@@ -522,12 +523,12 @@ export default class Helpers {
     }
 
     // Center the stroke on the coordinates
-    let strokeCenter = strokeWidth / 2
+    const strokeCenter = strokeWidth / 2
 
     const y1 = bYP + strokeCenter
     const y2 = bYP + bH - strokeCenter
 
-    let direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1)
+    const direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1)
 
     // append tiny pixels to avoid exponentials (which cause issues in border-radius)
     x1 += 0.001 + strokeCenter * direction
@@ -586,7 +587,7 @@ export default class Helpers {
   }
 
   checkZeroSeries({ series }) {
-    let w = this.w
+    const w = this.w
     for (let zs = 0; zs < series.length; zs++) {
       let total = 0
       for (
@@ -630,7 +631,7 @@ export default class Helpers {
   getGoalValues(type, zeroW, zeroH, i, j, translationsIndex) {
     const w = this.w
 
-    let goals = []
+    const goals = []
 
     const pushGoal = (value, attrs) => {
       goals.push({
@@ -651,7 +652,7 @@ export default class Helpers {
       })
     }
     if (this.barCtx.barOptions.isDumbbell && w.globals.seriesRange.length) {
-      let colors = this.barCtx.barOptions.dumbbellColors
+      const colors = this.barCtx.barOptions.dumbbellColors
         ? this.barCtx.barOptions.dumbbellColors
         : w.globals.colors
       const commonAttrs = {
@@ -679,7 +680,7 @@ export default class Helpers {
     barWidth,
     barHeight,
   }) {
-    let graphics = new Graphics(this.barCtx.ctx)
+    const graphics = new Graphics(this.barCtx.w)
     const lineGroup = graphics.group({
       className: 'apexcharts-bar-goals-groups',
     })
@@ -700,11 +701,11 @@ export default class Helpers {
         goalX.forEach((goal) => {
           // Need a tiny margin of 1 each side so goals don't disappear at extremeties
           if (goal.x >= -1 && goal.x <= graphics.w.globals.gridWidth + 1) {
-            let sHeight =
+            const sHeight =
               typeof goal.attrs.strokeHeight !== 'undefined'
                 ? goal.attrs.strokeHeight
                 : barHeight / 2
-            let y = barYPosition + sHeight + barHeight / 2
+            const y = barYPosition + sHeight + barHeight / 2
 
             line = graphics.drawLine(
               goal.x,
@@ -725,11 +726,11 @@ export default class Helpers {
         goalY.forEach((goal) => {
           // Need a tiny margin of 1 each side so goals don't disappear at extremeties
           if (goal.y >= -1 && goal.y <= graphics.w.globals.gridHeight + 1) {
-            let sWidth =
+            const sWidth =
               typeof goal.attrs.strokeWidth !== 'undefined'
                 ? goal.attrs.strokeWidth
                 : barWidth / 2
-            let x = barXPosition + sWidth + barWidth / 2
+            const x = barXPosition + sWidth + barWidth / 2
 
             line = graphics.drawLine(
               x - sWidth * 2,
@@ -757,7 +758,7 @@ export default class Helpers {
 
     const prevY2 = prevY1 + currPaths.barHeight
 
-    const graphics = new Graphics(this.barCtx.ctx)
+    const graphics = new Graphics(this.barCtx.w)
     const utils = new Utils()
 
     const shadowPath =
@@ -786,12 +787,12 @@ export default class Helpers {
 
     let nonZeroColumns = 0
     let zeroEncounters = 0
-    let seriesIndices = w.config.plotOptions.bar.horizontal
+    const seriesIndices = w.config.plotOptions.bar.horizontal
       ? w.globals.series.map((_, _i) => _i)
       : w.globals.columnSeries?.i.map((_i) => _i) || []
 
     seriesIndices.forEach((_si) => {
-      let val = w.globals.seriesPercent[_si][j]
+      const val = w.globals.seriesPercent[_si][j]
       if (val) {
         nonZeroColumns++
       }
@@ -809,7 +810,7 @@ export default class Helpers {
   getGroupIndex(seriesIndex) {
     const w = this.w
     // groupIndex is the index of group buckets (group1, group2, ...)
-    let groupIndex = w.globals.seriesGroups.findIndex(
+    const groupIndex = w.globals.seriesGroups.findIndex(
       (group) =>
         // w.config.series[i].name may be undefined, so use
         // w.globals.seriesNames[i], which has default names for those
@@ -818,7 +819,7 @@ export default class Helpers {
     )
     // We need the column groups to be indexable as 0,1,2,... for their
     // positioning relative to each other.
-    let cGI = this.barCtx.columnGroupIndices
+    const cGI = this.barCtx.columnGroupIndices
     let columnGroupIndex = cGI.indexOf(groupIndex)
     if (columnGroupIndex < 0) {
       cGI.push(groupIndex)

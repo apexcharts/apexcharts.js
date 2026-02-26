@@ -54,8 +54,8 @@ describe('x-axis when 2 datapoints area provided in a column chart', () => {
       ],
     })
 
-    expect(chart.w.globals.minX).toEqual(2021)
-    expect(chart.w.globals.maxX).toEqual(2022)
+    expect(chart.getState().minX).toEqual(2021)
+    expect(chart.getState().maxX).toEqual(2022)
   })
 })
 
@@ -233,8 +233,8 @@ describe('x-axis when more than 10 datapoints are provided in a column chart', (
       ],
     })
 
-    expect(chart.w.globals.minX).toEqual(2021)
-    expect(chart.w.globals.maxX).toEqual(2032)
+    expect(chart.getState().minX).toEqual(2021)
+    expect(chart.getState().maxX).toEqual(2032)
   })
 })
 
@@ -251,7 +251,7 @@ describe('User defined X-axis min/max', () => {
       },
     })
 
-    const range = new Range(chart)
+    const range = new Range(chart.w)
     const xRange = range.setXRange()
 
     expect(xRange.minX).toEqual(0)
@@ -302,7 +302,7 @@ describe('x-axis category mode', () => {
       xaxis: { categories: [] },
     })
 
-    expect(chart.w.globals.labels.length).toBeGreaterThan(0)
+    expect(chart.getState().labels.length).toBeGreaterThan(0)
   })
 })
 
@@ -438,8 +438,8 @@ describe('x-axis with numeric type', () => {
 
     const w = chart.w
     expect(w.globals.isXNumeric).toBe(true)
-    expect(w.globals.minX).toBeLessThanOrEqual(10)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(30)
+    expect(chart.getState().minX).toBeLessThanOrEqual(10)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(30)
   })
 
   it('should produce unique scale values for numeric axis', () => {
@@ -478,9 +478,8 @@ describe('x-axis with numeric type', () => {
       xaxis: { type: 'numeric' },
     })
 
-    const w = chart.w
-    expect(w.globals.minX).toBeLessThanOrEqual(10)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(30)
+    expect(chart.getState().minX).toBeLessThanOrEqual(10)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(30)
   })
 })
 
@@ -492,10 +491,9 @@ describe('x-axis single datapoint edge cases', () => {
       xaxis: { type: 'numeric' },
     })
 
-    const w = chart.w
     // _handleSingleDataPoint adjusts minX and maxX by ±2
-    expect(w.globals.minX).toBeLessThan(100)
-    expect(w.globals.maxX).toBeGreaterThan(100)
+    expect(chart.getState().minX).toBeLessThan(100)
+    expect(chart.getState().maxX).toBeGreaterThan(100)
   })
 
   it('should set minXDiff to 0.5 for single numeric datapoint', () => {
@@ -526,9 +524,8 @@ describe('x-axis user-defined range', () => {
       xaxis: { range: 50 },
     })
 
-    const w = chart.w
     // range = maxX - minX should be 50
-    expect(w.globals.maxX - w.globals.minX).toBeCloseTo(50, 0)
+    expect(chart.getState().maxX - chart.getState().minX).toBeCloseTo(50, 0)
   })
 
   it('should override only min when xaxis.min is set', () => {
@@ -546,8 +543,7 @@ describe('x-axis user-defined range', () => {
       xaxis: { min: 5 },
     })
 
-    const w = chart.w
-    expect(w.globals.minX).toBe(5)
+    expect(chart.getState().minX).toBe(5)
   })
 
   it('should override only max when xaxis.max is set', () => {
@@ -565,8 +561,7 @@ describe('x-axis user-defined range', () => {
       xaxis: { max: 50 },
     })
 
-    const w = chart.w
-    expect(w.globals.maxX).toBe(50)
+    expect(chart.getState().maxX).toBe(50)
   })
 })
 
@@ -638,9 +633,8 @@ describe('x-axis with negative values', () => {
       xaxis: { type: 'numeric' },
     })
 
-    const w = chart.w
-    expect(w.globals.minX).toBeLessThanOrEqual(-20)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(10)
+    expect(chart.getState().minX).toBeLessThanOrEqual(-20)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(10)
   })
 
   it('should handle all-negative x values', () => {
@@ -658,9 +652,8 @@ describe('x-axis with negative values', () => {
       xaxis: { type: 'numeric' },
     })
 
-    const w = chart.w
-    expect(w.globals.minX).toBeLessThanOrEqual(-50)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(-10)
+    expect(chart.getState().minX).toBeLessThanOrEqual(-50)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(-10)
   })
 })
 
@@ -685,10 +678,9 @@ describe('x-axis with multi-series', () => {
       xaxis: { type: 'numeric' },
     })
 
-    const w = chart.w
     // minX should come from second series (1), maxX from second series (25)
-    expect(w.globals.minX).toBeLessThanOrEqual(1)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(25)
+    expect(chart.getState().minX).toBeLessThanOrEqual(1)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(25)
   })
 
   it('should compute minXDiff from smallest gap across all series', () => {
@@ -736,8 +728,8 @@ describe('x-axis with large values', () => {
     })
 
     const w = chart.w
-    expect(w.globals.minX).toBeLessThanOrEqual(1000000)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(3000000)
+    expect(chart.getState().minX).toBeLessThanOrEqual(1000000)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(3000000)
 
     const scale = w.globals.xAxisScale.result
     expect(scale.length).toBeGreaterThan(0)
@@ -763,10 +755,9 @@ describe('x-axis with equal x values (all same)', () => {
       xaxis: { type: 'numeric' },
     })
 
-    const w = chart.w
     // _handleSingleDataPoint should expand the range
-    expect(w.globals.minX).toBeLessThan(50)
-    expect(w.globals.maxX).toBeGreaterThan(50)
+    expect(chart.getState().minX).toBeLessThan(50)
+    expect(chart.getState().maxX).toBeGreaterThan(50)
   })
 })
 
@@ -787,8 +778,8 @@ describe('x-axis with 2D array format', () => {
 
     const w = chart.w
     expect(w.globals.isXNumeric).toBe(true)
-    expect(w.globals.minX).toBeLessThanOrEqual(5)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(25)
+    expect(chart.getState().minX).toBeLessThanOrEqual(5)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(25)
   })
 
   it('should handle multi-series 2D array format', () => {
@@ -799,7 +790,7 @@ describe('x-axis with 2D array format', () => {
 
     const w = chart.w
     expect(w.globals.isXNumeric).toBe(true)
-    expect(w.globals.seriesX.length).toBe(2)
+    expect(chart.getState().seriesX.length).toBe(2)
   })
 })
 
@@ -819,9 +810,8 @@ describe('x-axis with timestamp data', () => {
       xaxis: { type: 'datetime' },
     })
 
-    const w = chart.w
-    expect(w.globals.minX).toBeLessThanOrEqual(1262284200000)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(1262457000000)
+    expect(chart.getState().minX).toBeLessThanOrEqual(1262284200000)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(1262457000000)
   })
 })
 
@@ -868,8 +858,7 @@ describe('x-axis horizontal bar chart', () => {
       xaxis: { categories: ['A', 'B', 'C', 'D', 'E'] },
     })
 
-    const w = chart.w
-    expect(w.globals.labels.length).toBe(5)
+    expect(chart.getState().labels.length).toBe(5)
   })
 })
 
@@ -946,8 +935,9 @@ describe('x-axis with sparse/gapped numeric data', () => {
     })
 
     const w = chart.w
-    expect(w.globals.minX).toBeLessThanOrEqual(1)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(100)
+
+    expect(chart.getState().minX).toBeLessThanOrEqual(1)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(100)
     // minXDiff should be 1 (gap between 1 and 2)
     expect(w.globals.minXDiff).toBe(1)
   })
@@ -964,8 +954,7 @@ describe('x-axis with many categories', () => {
       xaxis: { categories },
     })
 
-    const w = chart.w
-    expect(w.globals.labels.length).toBe(50)
+    expect(chart.getState().labels.length).toBe(50)
   })
 })
 
@@ -985,9 +974,8 @@ describe('x-axis with zero values', () => {
       xaxis: { type: 'numeric' },
     })
 
-    const w = chart.w
-    expect(w.globals.minX).toBeLessThanOrEqual(0)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(2)
+    expect(chart.getState().minX).toBeLessThanOrEqual(0)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(2)
   })
 
   it('should handle all-zero x values', () => {
@@ -1004,10 +992,9 @@ describe('x-axis with zero values', () => {
       xaxis: { type: 'numeric' },
     })
 
-    const w = chart.w
     // _handleSingleDataPoint should expand range around 0
-    expect(w.globals.minX).toBeLessThan(0)
-    expect(w.globals.maxX).toBeGreaterThan(0)
+    expect(chart.getState().minX).toBeLessThan(0)
+    expect(chart.getState().maxX).toBeGreaterThan(0)
   })
 })
 
@@ -1031,8 +1018,8 @@ describe('x-axis with area chart', () => {
     const w = chart.w
     expect(w.globals.isXNumeric).toBe(true)
     expect(w.globals.xAxisScale.result.length).toBeGreaterThan(0)
-    expect(w.globals.minX).toBeLessThanOrEqual(10)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(40)
+    expect(chart.getState().minX).toBeLessThanOrEqual(10)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(40)
   })
 })
 
@@ -1075,9 +1062,8 @@ describe('x-axis with stacked bar chart', () => {
       series: [{ data: [10, 20, 30] }, { data: [15, 25, 35] }],
       xaxis: { categories: ['A', 'B', 'C'] },
     })
-
     const w = chart.w
-    expect(w.globals.labels.length).toBe(3)
+    expect(chart.getState().labels.length).toBe(3)
     expect(w.config.chart.stacked).toBe(true)
   })
 })
@@ -1131,8 +1117,8 @@ describe('x-axis with floating point x values', () => {
     })
 
     const w = chart.w
-    expect(w.globals.minX).toBeLessThanOrEqual(1.5)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(4.5)
+    expect(chart.getState().minX).toBeLessThanOrEqual(1.5)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(4.5)
     expect(w.globals.minXDiff).toBeCloseTo(1, 5)
   })
 })
@@ -1152,11 +1138,10 @@ describe('x-axis with scatter chart', () => {
         },
       ],
     })
-
     const w = chart.w
     expect(w.globals.isXNumeric).toBe(true)
-    expect(w.globals.minX).toBeLessThanOrEqual(10)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(40)
+    expect(chart.getState().minX).toBeLessThanOrEqual(10)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(40)
   })
 
   it('should handle multi-series scatter with different ranges', () => {
@@ -1178,9 +1163,8 @@ describe('x-axis with scatter chart', () => {
       ],
     })
 
-    const w = chart.w
-    expect(w.globals.minX).toBeLessThanOrEqual(5)
-    expect(w.globals.maxX).toBeGreaterThanOrEqual(50)
+    expect(chart.getState().minX).toBeLessThanOrEqual(5)
+    expect(chart.getState().maxX).toBeGreaterThanOrEqual(50)
   })
 })
 

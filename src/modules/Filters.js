@@ -6,9 +6,8 @@ import Utils from './../utils/Utils'
  * @module Formatters
  **/
 class Filters {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w) {
+    this.w = w
   }
 
   // create a re-usable filter which can be appended other filter effects and applied to multiple elements
@@ -148,7 +147,7 @@ class Filters {
         w.globals.selectedDataPoints[realIndex].indexOf(dataPointIndex) > -1
       ) {
         el.node.setAttribute('selected', true)
-        let activeFilter = w.config.states.active.filter
+        const activeFilter = w.config.states.active.filter
         if (activeFilter !== 'none') {
           this.applyFilter(el, realIndex, activeFilter.type)
         }
@@ -159,7 +158,7 @@ class Filters {
   _scaleFilterSize(el) {
     if (!el) return
     const setAttributes = (attrs) => {
-      for (let key in attrs) {
+      for (const key in attrs) {
         if (Object.prototype.hasOwnProperty.call(attrs, key)) {
           el.setAttribute(key, attrs[key])
         }

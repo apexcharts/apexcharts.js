@@ -11,7 +11,7 @@ export default class Helpers {
 
     if (anno.label.orientation === 'vertical') {
       const i = annoIndex !== null ? annoIndex : 0
-      const xAnno = w.globals.dom.baseEl.querySelector(
+      const xAnno = w.dom.baseEl.querySelector(
         `.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel='${i}']`
       )
 
@@ -42,7 +42,7 @@ export default class Helpers {
     // We compute the difference between the bounding client rect and the BBox to
     // correctly scale the drawn rectangle when chart is in a container with a
     //  CSS zoom level != 100%.
-    const gridEl = w.globals.dom.baseEl.querySelector('.apexcharts-grid')
+    const gridEl = w.dom.baseEl.querySelector('.apexcharts-grid')
     const elGridRect = gridEl.getBoundingClientRect()
     const gridBBox = gridEl.getBBox()
     const zoom = elGridRect.width / gridBBox.width || 1
@@ -86,7 +86,7 @@ export default class Helpers {
     const w = this.w
 
     const add = (anno, i, type) => {
-      const annoLabel = w.globals.dom.baseEl.querySelector(
+      const annoLabel = w.dom.baseEl.querySelector(
         `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`
       )
 
@@ -126,7 +126,7 @@ export default class Helpers {
 
   getY1Y2(type, anno) {
     const w = this.w
-    let y = type === 'y1' ? anno.y : anno.y2
+    const y = type === 'y1' ? anno.y : anno.y2
     let yP
     let clipped = false
 
@@ -135,7 +135,7 @@ export default class Helpers {
         ? w.globals.categoryLabels
         : w.globals.labels
       const catIndex = labels.indexOf(y)
-      const xLabel = w.globals.dom.baseEl.querySelector(
+      const xLabel = w.dom.baseEl.querySelector(
         `.apexcharts-yaxis-texts-g text:nth-child(${catIndex + 1})`
       )
 
@@ -152,7 +152,7 @@ export default class Helpers {
     } else {
       const seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0]
       const yPos = w.config.yaxis[anno.yAxisIndex].logarithmic
-        ? new CoreUtils(this.annoCtx.ctx).getLogVal(
+        ? new CoreUtils(this.w).getLogVal(
             w.config.yaxis[anno.yAxisIndex].logBase,
             y,
             seriesIndex
@@ -255,7 +255,7 @@ export default class Helpers {
       .map((item) => (Array.isArray(item) ? item.join(' ') : item))
       .indexOf(x)
 
-    const xLabel = w.globals.dom.baseEl.querySelector(
+    const xLabel = w.dom.baseEl.querySelector(
       `.apexcharts-xaxis-texts-g text:nth-child(${catIndex + 1})`
     )
 

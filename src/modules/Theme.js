@@ -1,4 +1,5 @@
 import Utils from '../utils/Utils'
+import { getThemePalettes } from '../utils/ThemePalettes.js'
 
 /**
  * ApexCharts Theme Class for setting the colors and palettes.
@@ -7,9 +8,8 @@ import Utils from '../utils/Utils'
  **/
 
 export default class Theme {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w) {
+    this.w = w
     this.colors = []
     this.isColorFn = false
     this.isHeatmapDistributed = this.checkHeatmapDistributed()
@@ -45,7 +45,7 @@ export default class Theme {
     const w = this.w
     const utils = new Utils()
 
-    w.globals.dom.elWrap.classList.add(
+    w.dom.elWrap.classList.add(
       `apexcharts-theme-${w.config.theme.mode || 'light'}`
     )
 
@@ -85,7 +85,7 @@ export default class Theme {
     ) {
       this.isColorFn = true
       return w.config.series.map((s, i) => {
-        let c = configColors[i] || configColors[0]
+        const c = configColors[i] || configColors[0]
         return typeof c === 'function'
           ? c({
               value: w.globals.axisCharts
@@ -189,7 +189,7 @@ export default class Theme {
     }
 
     if (colorSeries.length < len) {
-      let diff = len - colorSeries.length
+      const diff = len - colorSeries.length
       for (let i = 0; i < diff; i++) {
         colorSeries.push(colorSeries[i])
       }
@@ -222,7 +222,7 @@ export default class Theme {
 
   predefined() {
     const palette = this.w.config.theme.palette
-    const palettes = this.ctx.constructor.getThemePalettes()
+    const palettes = getThemePalettes()
     return palettes[palette] || palettes.palette1
   }
 }

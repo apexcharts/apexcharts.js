@@ -22,7 +22,7 @@ class Utils {
   // to extend defaults with user options
   // credit: http://stackoverflow.com/questions/27936772/deep-object-merging-in-es6-es7#answer-34749873
   static extend(target, source) {
-    let output = Object.assign({}, target)
+    const output = Object.assign({}, target)
     if (this.isObject(target) && this.isObject(source)) {
       Object.keys(source).forEach((key) => {
         if (this.isObject(source[key])) {
@@ -44,7 +44,7 @@ class Utils {
   }
 
   static extendArray(arrToExtend, resultArr) {
-    let extendedArr = []
+    const extendedArr = []
     arrToExtend.map((item) => {
       extendedArr.push(Utils.extend(resultArr, item))
     })
@@ -93,7 +93,7 @@ class Utils {
       } else {
         cloneResult = {}
         visited.set(source, cloneResult)
-        for (let prop in source) {
+        for (const prop in source) {
           if (Object.prototype.hasOwnProperty.call(source, prop)) {
             cloneResult[prop] = this.clone(source[prop], visited, false)
           }
@@ -138,7 +138,7 @@ class Utils {
 
     if (keys1.length !== keys2.length) return false
 
-    for (let key of keys1) {
+    for (const key of keys1) {
       if (obj1[key] !== obj2[key]) return false
     }
 
@@ -326,7 +326,7 @@ class Utils {
   }
 
   shadeRGBColor(percent, color) {
-    let f = color.split(','),
+    const f = color.split(','),
       t = percent < 0 ? 0 : 255,
       p = percent < 0 ? percent * -1 : percent,
       R = parseInt(f[0].slice(4), 10),
@@ -344,7 +344,7 @@ class Utils {
   }
 
   shadeHexColor(percent, color) {
-    let f = parseInt(color.slice(1), 16),
+    const f = parseInt(color.slice(1), 16),
       t = percent < 0 ? 0 : 255,
       p = percent < 0 ? percent * -1 : percent,
       R = f >> 16,
@@ -408,10 +408,10 @@ class Utils {
   }
 
   static getPolygonPos(size, dataPointsLen) {
-    let dotsArray = []
-    let angle = (Math.PI * 2) / dataPointsLen
+    const dotsArray = []
+    const angle = (Math.PI * 2) / dataPointsLen
     for (let i = 0; i < dataPointsLen; i++) {
-      let curPos = {}
+      const curPos = {}
       curPos.x = size * Math.sin(i * angle)
       curPos.y = -size * Math.cos(i * angle)
       dotsArray.push(curPos)
@@ -420,7 +420,7 @@ class Utils {
   }
 
   static polarToCartesian(centerX, centerY, radius, angleInDegrees) {
-    let angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0
+    const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0
 
     return {
       x: centerX + radius * Math.cos(angleInRadians),
@@ -462,7 +462,7 @@ class Utils {
   }
 
   static setELstyles(el, styles) {
-    for (let key in styles) {
+    for (const key in styles) {
       if (Object.prototype.hasOwnProperty.call(styles, key)) {
         el.style.key = styles[key]
       }
@@ -470,10 +470,10 @@ class Utils {
   }
   // prevents JS prevision errors when adding
   static preciseAddition(a, b) {
-    let aDecimals = (String(a).split('.')[1] || '').length
-    let bDecimals = (String(b).split('.')[1] || '').length
+    const aDecimals = (String(a).split('.')[1] || '').length
+    const bDecimals = (String(b).split('.')[1] || '').length
 
-    let factor = Math.pow(10, Math.max(aDecimals, bDecimals))
+    const factor = Math.pow(10, Math.max(aDecimals, bDecimals))
 
     return (Math.round(a * factor) + Math.round(b * factor)) / factor
   }
@@ -493,9 +493,9 @@ class Utils {
   static isMsEdge() {
     if (Environment.isSSR()) return false
 
-    let ua = window.navigator.userAgent
+    const ua = window.navigator.userAgent
 
-    let edge = ua.indexOf('Edge/')
+    const edge = ua.indexOf('Edge/')
     if (edge > 0) {
       // Edge (IE 12+) => return version number
       return parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10)
@@ -517,7 +517,7 @@ class Utils {
     }
 
     while (b) {
-      let t = b
+      const t = b
       b = a % b
       a = t
     }
@@ -540,7 +540,7 @@ class Utils {
   }
 
   static mod(a, b, p = 7) {
-    let big = Math.pow(10, p - Math.floor(Math.log10(Math.max(a, b))))
+    const big = Math.pow(10, p - Math.floor(Math.log10(Math.max(a, b))))
     a = Math.round(Math.abs(a) * big)
     b = Math.round(Math.abs(b) * big)
 

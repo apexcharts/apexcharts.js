@@ -17,8 +17,21 @@ export default class Base {
 
     const w = {
       config,
-      globals
+      globals,
+      dom: {}, // DOM node cache — lives here, not inside globals
     }
+
+    // Backward-compat: w.globals.dom proxies to w.dom
+    Object.defineProperty(globals, 'dom', {
+      get() {
+        return w.dom
+      },
+      set(v) {
+        w.dom = v
+      },
+      enumerable: false,
+      configurable: true,
+    })
 
     return w
   }

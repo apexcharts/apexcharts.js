@@ -13,31 +13,31 @@ import Utils from '../utils/Utils'
  **/
 
 export default class TreemapChart {
-  constructor(ctx) {
+  constructor(w, ctx) {
     this.ctx = ctx
-    this.w = ctx.w
+    this.w = w
 
     this.strokeWidth = this.w.config.stroke.width
-    this.helpers = new Helpers(ctx)
+    this.helpers = new Helpers(w, ctx)
     this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation
 
     this.labels = []
   }
 
   draw(series) {
-    let w = this.w
-    const graphics = new Graphics(this.ctx)
-    const fill = new Fill(this.ctx)
+    const w = this.w
+    const graphics = new Graphics(this.w)
+    const fill = new Fill(this.w)
 
-    let ret = graphics.group({
+    const ret = graphics.group({
       class: 'apexcharts-treemap',
     })
 
     if (w.globals.noData) return ret
 
-    let ser = []
+    const ser = []
     series.forEach((s) => {
-      let d = s.map((v) => {
+      const d = s.map((v) => {
         return Math.abs(v)
       })
       ser.push(d)
@@ -59,7 +59,7 @@ export default class TreemapChart {
     )
 
     nodes.forEach((node, i) => {
-      let elSeries = graphics.group({
+      const elSeries = graphics.group({
         class: `apexcharts-series apexcharts-treemap-series`,
         seriesName: Utils.escapeString(w.globals.seriesNames[i]),
         rel: i + 1,
@@ -71,15 +71,15 @@ export default class TreemapChart {
 
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow
-        const filters = new Filters(this.ctx)
+        const filters = new Filters(this.w)
         filters.dropShadow(ret, shadow, i)
       }
 
-      let elDataLabelWrap = graphics.group({
+      const elDataLabelWrap = graphics.group({
         class: 'apexcharts-data-labels',
       })
 
-      let bounds = {
+      const bounds = {
         xMin: Infinity,
         yMin: Infinity,
         xMax: -Infinity,
@@ -97,21 +97,21 @@ export default class TreemapChart {
         bounds.xMax = Math.max(bounds.xMax, x2)
         bounds.yMax = Math.max(bounds.yMax, y2)
 
-        let colorProps = this.helpers.getShadeColor(
+        const colorProps = this.helpers.getShadeColor(
           w.config.chart.type,
           i,
           j,
           this.negRange
         )
-        let color = colorProps.color
+        const color = colorProps.color
 
-        let pathFill = fill.fillPath({
+        const pathFill = fill.fillPath({
           color,
           seriesNumber: i,
           dataPointIndex: j,
         })
 
-        let elRect = graphics.drawRect(
+        const elRect = graphics.drawRect(
           x1,
           y1,
           x2 - x1,
@@ -144,7 +144,7 @@ export default class TreemapChart {
           width: 0,
           height: 0,
         }
-        let toRect = {
+        const toRect = {
           x: x1,
           y: y1,
           width: x2 - x1,
@@ -331,12 +331,12 @@ export default class TreemapChart {
       return total
     }
 
-    let averagelabelsize =
+    const averagelabelsize =
       totalLabelLength(this.labels) / countLabels(this.labels)
 
     function fontSize(width, height) {
-      let area = width * height
-      let arearoot = Math.pow(area, 0.5)
+      const area = width * height
+      const arearoot = Math.pow(area, 0.5)
       return Math.min(
         arearoot / averagelabelsize,
         parseInt(w.config.dataLabels.style.fontSize, 10)
@@ -350,7 +350,7 @@ export default class TreemapChart {
   }
 
   rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
     const textRect = graphics.getTextRects(text, fontSize)
 
     // if the label fits better sideways then rotate it
@@ -358,7 +358,7 @@ export default class TreemapChart {
       textRect.width + this.w.config.stroke.width + 5 > x2 - x1 &&
       textRect.width <= y2 - y1
     ) {
-      let labelRotatingCenter = graphics.rotateAroundCenter(elText.node)
+      const labelRotatingCenter = graphics.rotateAroundCenter(elText.node)
 
       elText.node.setAttribute(
         'transform',
@@ -372,7 +372,7 @@ export default class TreemapChart {
   // This is an alternative label formatting method that uses a
   // consistent font size, and trims the edge of long labels
   truncateLabels(text, fontSize, x1, y1, x2, y2) {
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
     const textRect = graphics.getTextRects(text, fontSize)
 
     // Determine max width based on ideal orientation of text
@@ -396,7 +396,7 @@ export default class TreemapChart {
   }
 
   animateTreemap(el, fromRect, toRect, speed) {
-    const animations = new Animations(this.ctx)
+    const animations = new Animations(this.w)
     animations.animateRect(el, fromRect, toRect, speed, () => {
       animations.animationCompleted(el)
     })

@@ -31,12 +31,12 @@ class Intersect {
     const w = this.w
 
     if (e.target.classList.contains(`apexcharts-${type}-rect`)) {
-      let i = this.getAttr(e, 'i')
-      let j = this.getAttr(e, 'j')
-      let cx = this.getAttr(e, 'cx')
-      let cy = this.getAttr(e, 'cy')
-      let width = this.getAttr(e, 'width')
-      let height = this.getAttr(e, 'height')
+      const i = this.getAttr(e, 'i')
+      const j = this.getAttr(e, 'j')
+      const cx = this.getAttr(e, 'cx')
+      const cy = this.getAttr(e, 'cy')
+      const width = this.getAttr(e, 'width')
+      const height = this.getAttr(e, 'height')
 
       ttCtx.tooltipLabels.drawSeriesTexts({
         ttItems: opt.ttItems,
@@ -58,7 +58,7 @@ class Intersect {
         x = cx - ttCtx.tooltipRect.ttWidth / 2 + width
       }
       if (ttCtx.w.config.tooltip.followCursor) {
-        let seriesBound = w.globals.dom.elWrap.getBoundingClientRect()
+        const seriesBound = w.dom.elWrap.getBoundingClientRect()
         x =
           w.globals.clientX -
           seriesBound.left -
@@ -81,15 +81,15 @@ class Intersect {
    * when user hovers over the marker directly, this function is executed
    */
   handleMarkerTooltip({ e, opt, x, y }) {
-    let w = this.w
+    const w = this.w
     const ttCtx = this.ttCtx
 
     let i
     let j
     if (e.target.classList.contains('apexcharts-marker')) {
-      let cx = parseInt(opt.paths.getAttribute('cx'), 10)
-      let cy = parseInt(opt.paths.getAttribute('cy'), 10)
-      let val = parseFloat(opt.paths.getAttribute('val'))
+      const cx = parseInt(opt.paths.getAttribute('cx'), 10)
+      const cy = parseInt(opt.paths.getAttribute('cy'), 10)
+      const val = parseFloat(opt.paths.getAttribute('val'))
 
       j = parseInt(opt.paths.getAttribute('rel'), 10)
       i =
@@ -155,7 +155,7 @@ class Intersect {
     let y = 0
     let i = 0
     let strokeWidth
-    let barXY = this.getBarTooltipXY({
+    const barXY = this.getBarTooltipXY({
       e,
       opt,
     })
@@ -164,7 +164,7 @@ class Intersect {
     }
 
     i = barXY.i
-    let j = barXY.j
+    const j = barXY.j
 
     w.globals.capturedSeriesIndex = i
     w.globals.capturedDataPointIndex = j
@@ -207,7 +207,7 @@ class Intersect {
 
     // if tooltip is still null, querySelector
     if (ttCtx.tooltip === null) {
-      ttCtx.tooltip = w.globals.dom.baseEl.querySelector('.apexcharts-tooltip')
+      ttCtx.tooltip = w.dom.baseEl.querySelector('.apexcharts-tooltip')
     }
 
     if (!w.config.tooltip.shared) {
@@ -232,7 +232,7 @@ class Intersect {
   }
 
   getBarTooltipXY({ e, opt }) {
-    let w = this.w
+    const w = this.w
     let j = null
     const ttCtx = this.ttCtx
     let i = 0
@@ -249,25 +249,25 @@ class Intersect {
       cl.contains('apexcharts-boxPlot-area') ||
       cl.contains('apexcharts-rangebar-area')
     ) {
-      let bar = e.target
-      let barRect = bar.getBoundingClientRect()
+      const bar = e.target
+      const barRect = bar.getBoundingClientRect()
 
-      let seriesBound = opt.elGrid.getBoundingClientRect()
+      const seriesBound = opt.elGrid.getBoundingClientRect()
 
-      let bh = barRect.height
+      const bh = barRect.height
       barHeight = barRect.height
-      let bw = barRect.width
+      const bw = barRect.width
 
-      let cx = parseInt(bar.getAttribute('cx'), 10)
-      let cy = parseInt(bar.getAttribute('cy'), 10)
+      const cx = parseInt(bar.getAttribute('cx'), 10)
+      const cy = parseInt(bar.getAttribute('cy'), 10)
       barWidth = parseFloat(bar.getAttribute('barWidth'))
       const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
 
       j = parseInt(bar.getAttribute('j'), 10)
       i = parseInt(bar.parentNode.getAttribute('rel'), 10) - 1
 
-      let y1 = bar.getAttribute('data-range-y1')
-      let y2 = bar.getAttribute('data-range-y2')
+      const y1 = bar.getAttribute('data-range-y1')
+      const y2 = bar.getAttribute('data-range-y2')
 
       if (w.globals.comboCharts) {
         i = parseInt(bar.parentNode.getAttribute('data:realIndex'), 10)

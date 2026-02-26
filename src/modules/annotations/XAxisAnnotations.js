@@ -12,23 +12,23 @@ export default class XAnnotations {
   }
 
   addXaxisAnnotation(anno, parent, index) {
-    let w = this.w
+    const w = this.w
 
-    let result = this.helpers.getX1X2('x1', anno)
+    const result = this.helpers.getX1X2('x1', anno)
     let x1 = result.x
-    let clipX1 = result.clipped
+    const clipX1 = result.clipped
     let clipX2 = true
     let x2
 
     const text = anno.label.text
 
-    let strokeDashArray = anno.strokeDashArray
+    const strokeDashArray = anno.strokeDashArray
 
     if (!Utils.isNumber(x1)) return
 
     if (anno.x2 === null || typeof anno.x2 === 'undefined') {
       if (!clipX1) {
-        let line = this.annoCtx.graphics.drawLine(
+        const line = this.annoCtx.graphics.drawLine(
           x1 + anno.offsetX, // x1
           0 + anno.offsetY, // y1
           x1 + anno.offsetX, // x2
@@ -43,17 +43,17 @@ export default class XAnnotations {
         }
       }
     } else {
-      let result = this.helpers.getX1X2('x2', anno)
+      const result = this.helpers.getX1X2('x2', anno)
       x2 = result.x
       clipX2 = result.clipped
 
       if (x2 < x1) {
-        let temp = x1
+        const temp = x1
         x1 = x2
         x2 = temp
       }
 
-      let rect = this.annoCtx.graphics.drawRect(
+      const rect = this.annoCtx.graphics.drawRect(
         x1 + anno.offsetX, // x1
         0 + anno.offsetY, // y1
         x2 - x1, // x2
@@ -74,11 +74,11 @@ export default class XAnnotations {
     }
 
     if (!(clipX1 && clipX2)) {
-      let textRects = this.annoCtx.graphics.getTextRects(
+      const textRects = this.annoCtx.graphics.getTextRects(
         text,
         parseFloat(anno.label.style.fontSize)
       )
-      let textY =
+      const textY =
         anno.label.position === 'top'
           ? 4
           : anno.label.position === 'center'
@@ -86,7 +86,7 @@ export default class XAnnotations {
             (anno.label.orientation === 'vertical' ? textRects.width / 2 : 0)
           : w.globals.gridHeight
 
-      let elText = this.annoCtx.graphics.drawText({
+      const elText = this.annoCtx.graphics.drawText({
         x: x1 + anno.label.offsetX,
         y:
           textY +
@@ -118,9 +118,9 @@ export default class XAnnotations {
     }
   }
   drawXAxisAnnotations() {
-    let w = this.w
+    const w = this.w
 
-    let elg = this.annoCtx.graphics.group({
+    const elg = this.annoCtx.graphics.group({
       class: 'apexcharts-xaxis-annotations',
     })
 

@@ -2,10 +2,9 @@ import CoreUtils from './CoreUtils'
 import Utils from '../utils/Utils'
 
 export default class Scales {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
-    this.coreUtils = new CoreUtils(this.ctx)
+  constructor(w) {
+    this.w = w
+    this.coreUtils = new CoreUtils(this.w)
   }
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axis
@@ -82,7 +81,7 @@ export default class Scales {
       console.warn(
         'axis.min cannot be greater than axis.max: swapping min and max'
       )
-      let temp = yMax
+      const temp = yMax
       yMax = yMin
       yMin = temp
     } else if (yMin === yMax) {
@@ -93,7 +92,7 @@ export default class Scales {
       yMax = yMax === 0 ? 2 : yMax + 1 // choose an integer in case yValueDecimals=0
     }
 
-    let result = []
+    const result = []
 
     if (ticks < 1) {
       ticks = 1
@@ -104,7 +103,7 @@ export default class Scales {
     let range = Math.abs(yMax - yMin)
 
     // Snap min or max to zero if close
-    let proximityRatio = 0.15
+    const proximityRatio = 0.15
     if (!gotMin && yMin > 0 && yMin / range < proximityRatio) {
       yMin = 0
       gotMin = true
@@ -120,8 +119,8 @@ export default class Scales {
     // Initial stepSize
     let stepSize = range / tiks
     let niceStep = stepSize
-    let mag = Math.floor(Math.log10(niceStep))
-    let magPow = Math.pow(10, mag)
+    const mag = Math.floor(Math.log10(niceStep))
+    const magPow = Math.pow(10, mag)
     // ceil() is used below in conjunction with the values populating
     // niceScaleAllowedMagMsd[][] to ensure that (niceStep * tiks)
     // produces a range that doesn't clip data points after stretching
@@ -153,7 +152,7 @@ export default class Scales {
         // (or 8000 or 0.0008, etc), then stepSize is inapplicable as
         // it is. Reducing it to 0.8 will fit with 5 ticks.
         //
-        let stepMag = Math.floor(Math.log10(stepSize))
+        const stepMag = Math.floor(Math.log10(stepSize))
         stepSize *= Math.pow(10, mag - stepMag)
       }
     }
@@ -166,7 +165,7 @@ export default class Scales {
         if (gotStepSize) {
           if (Utils.mod(range, stepSize) != 0) {
             // stepSize conflicts with range
-            let gcdStep = Utils.getGCD(stepSize, crudeStep)
+            const gcdStep = Utils.getGCD(stepSize, crudeStep)
             // gcdStep is a multiple of range because crudeStep is a multiple.
             // gcdStep is also a multiple of stepSize, so it partially honoured
             // All three could be equal, which would be very nice
@@ -220,7 +219,7 @@ export default class Scales {
           } else {
             tiks = Math.ceil(range / stepSize)
             crudeStep = range / tiks
-            let gcdStep = Utils.getGCD(range, stepSize)
+            const gcdStep = Utils.getGCD(range, stepSize)
             if (range / gcdStep < maxTicks) {
               crudeStep = gcdStep
             }
@@ -234,7 +233,7 @@ export default class Scales {
       if (!gotMin && !gotMax) {
         if (gl.isMultipleYAxis && gotTickAmount) {
           // Ensure graph doesn't clip.
-          let tMin = stepSize * Math.floor(yMin / stepSize)
+          const tMin = stepSize * Math.floor(yMin / stepSize)
           let tMax = tMin + stepSize * tiks
           if (tMax < yMax) {
             stepSize *= 2
@@ -260,7 +259,7 @@ export default class Scales {
         if (gotTickAmount) {
           yMin = yMax - stepSize * tiks
         } else {
-          let yMinPrev = yMin
+          const yMinPrev = yMin
           yMin = stepSize * Math.floor(yMin / stepSize)
           if (
             Math.abs(yMax - yMin) / Utils.getGCD(range, stepSize) >
@@ -275,7 +274,7 @@ export default class Scales {
         if (gotTickAmount) {
           yMax = yMin + stepSize * tiks
         } else {
-          let yMaxPrev = yMax
+          const yMaxPrev = yMax
           yMax = stepSize * Math.ceil(yMax / stepSize)
           if (
             Math.abs(yMax - yMin) / Utils.getGCD(range, stepSize) >
@@ -355,12 +354,12 @@ export default class Scales {
       //      the worst case is to display all, which is the status quo. Really
       //      only a problem visually for larger tick numbers, say, > 7.
       //
-      let pf = Utils.getPrimeFactors(tiks)
-      let last = pf.length - 1
+      const pf = Utils.getPrimeFactors(tiks)
+      const last = pf.length - 1
       let tt = tiks
       reduceLoop: for (var xFactors = 0; xFactors < last; xFactors++) {
         for (var lowest = 0; lowest <= last - xFactors; lowest++) {
-          let stop = Math.min(lowest + xFactors, last)
+          const stop = Math.min(lowest + xFactors, last)
           let t = tt
           let div = 1
           for (var next = lowest; next <= stop; next++) {
@@ -399,7 +398,7 @@ export default class Scales {
     // Ensure we don't under/over shoot due to JS precision errors.
     // This also fixes (amongst others):
     // https://github.com/apexcharts/apexcharts.js/issues/430
-    let err = stepSize * jsPrecision
+    const err = stepSize * jsPrecision
     do {
       val += stepSize
       result.push(Utils.stripNumber(val, 7))
@@ -413,7 +412,7 @@ export default class Scales {
   }
 
   linearScale(yMin, yMax, ticks = 10, index = 0, step = undefined) {
-    let range = Math.abs(yMax - yMin)
+    const range = Math.abs(yMax - yMin)
     let result = []
 
     if (yMin === yMax) {
@@ -550,13 +549,13 @@ export default class Scales {
     const gl = this.w.globals
     const cnf = this.w.config
 
-    let y = gl.isBarHorizontal ? cnf.xaxis : cnf.yaxis[index]
+    const y = gl.isBarHorizontal ? cnf.xaxis : cnf.yaxis[index]
 
     if (typeof gl.yAxisScale[index] === 'undefined') {
       gl.yAxisScale[index] = []
     }
 
-    let range = Math.abs(maxY - minY)
+    const range = Math.abs(maxY - minY)
 
     if (y.logarithmic && range <= 5) {
       gl.invalidLogScale = true
@@ -593,7 +592,7 @@ export default class Scales {
       // no data in the chart. Either all series collapsed or user passed a blank array
       gl.xAxisScale = this.linearScale(0, 10, 10)
     } else {
-      let ticks = gl.xTickAmount
+      const ticks = gl.xTickAmount
 
       gl.xAxisScale = this.linearScale(
         minX,
@@ -612,17 +611,17 @@ export default class Scales {
 
     this.coreUtils.setSeriesYAxisMappings()
 
-    let axisSeriesMap = gl.seriesYAxisMap
-    let minYArr = gl.minYArr
-    let maxYArr = gl.maxYArr
+    const axisSeriesMap = gl.seriesYAxisMap
+    const minYArr = gl.minYArr
+    const maxYArr = gl.maxYArr
 
     // Compute min..max for each yaxis
     gl.allSeriesCollapsed = true
     gl.barGroups = []
     axisSeriesMap.forEach((axisSeries, ai) => {
-      let groupNames = []
+      const groupNames = []
       axisSeries.forEach((as) => {
-        let group = cnf.series[as]?.group
+        const group = cnf.series[as]?.group
         if (groupNames.indexOf(group) < 0) {
           groupNames.push(group)
         }
@@ -637,10 +636,10 @@ export default class Scales {
         if (cnf.chart.stacked) {
           // Series' on this axis with the same group name will be stacked.
           // Sum series in each group separately
-          let mapSeries = new Array(gl.dataPoints).fill(0)
-          let sumSeries = []
-          let posSeries = []
-          let negSeries = []
+          const mapSeries = new Array(gl.dataPoints).fill(0)
+          const sumSeries = []
+          const posSeries = []
+          const negSeries = []
           groupNames.forEach(() => {
             sumSeries.push(mapSeries.map(() => Number.MIN_VALUE))
             posSeries.push(mapSeries.map(() => Number.MIN_VALUE))
@@ -654,13 +653,13 @@ export default class Scales {
             // Sum all series for this yaxis at each corresponding datapoint
             // For bar and column charts we need to keep positive and negative
             // values separate, for each group separately.
-            let si = axisSeries[i]
+            const si = axisSeries[i]
             if (cnf.series[si].group) {
               seriesGroupName = cnf.series[si].group
             } else {
               seriesGroupName = 'axis-'.concat(ai)
             }
-            let collapsed = !(
+            const collapsed = !(
               gl.collapsedSeriesIndices.indexOf(si) < 0 &&
               gl.ancillaryCollapsedSeriesIndices.indexOf(si) < 0
             )
@@ -671,7 +670,7 @@ export default class Scales {
                 // group.
                 if (cnf.series[si].group === gn) {
                   for (let j = 0; j < gl.series[si].length; j++) {
-                    let val = gl.series[si][j]
+                    const val = gl.series[si][j]
                     if (val >= 0) {
                       posSeries[gni][j] += val
                     } else {
@@ -714,10 +713,10 @@ export default class Scales {
           }
         } else {
           for (let i = 0; i < axisSeries.length; i++) {
-            let si = axisSeries[i]
+            const si = axisSeries[i]
             minY = Math.min(minY, minYArr[si])
             maxY = Math.max(maxY, maxYArr[si])
-            let collapsed = !(
+            const collapsed = !(
               gl.collapsedSeriesIndices.indexOf(si) < 0 &&
               gl.ancillaryCollapsedSeriesIndices.indexOf(si) < 0
             )

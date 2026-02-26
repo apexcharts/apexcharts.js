@@ -16,7 +16,7 @@ describe('DateTime', () => {
       series: [{ data: [1, 2, 3] }],
     })
     // Don't render - DateTime only needs the config structure
-    datetime = new DateTime(ctx)
+    datetime = new DateTime(ctx.w)
   })
 
   afterEach(() => {

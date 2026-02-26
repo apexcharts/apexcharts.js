@@ -8,9 +8,12 @@ import Utils from '../utils/Utils'
  **/
 
 export default class Series {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w, { toggleDataSeries, revertDefaultAxisMinMax, updateSeries } = {}) {
+    this.w = w
+    // Injected callbacks for cross-module coordination (toggleSeries/showSeries/hideSeries/resetSeries)
+    this._toggleDataSeries = toggleDataSeries || null
+    this._revertDefaultAxisMinMax = revertDefaultAxisMinMax || null
+    this._updateSeries = updateSeries || null
 
     this.legendInactiveClass = 'legend-mouseover-inactive'
   }
@@ -30,14 +33,14 @@ export default class Series {
 
     if (!w.globals.cachedSelectors[cacheKey]) {
       w.globals.cachedSelectors[cacheKey] =
-        w.globals.dom.baseEl.getElementsByClassName(`apexcharts-series`)
+        w.dom.baseEl.getElementsByClassName(`apexcharts-series`)
     }
 
     return w.globals.cachedSelectors[cacheKey]
   }
 
   getSeriesByName(seriesName) {
-    return this.w.globals.dom.baseEl.querySelector(
+    return this.w.dom.baseEl.querySelector(
       `.apexcharts-inner .apexcharts-series[seriesName='${Utils.escapeString(
         seriesName
       )}']`
@@ -46,8 +49,8 @@ export default class Series {
 
   isSeriesHidden(seriesName) {
     const targetElement = this.getSeriesByName(seriesName)
-    let realIndex = parseInt(targetElement.getAttribute('data:realIndex'), 10)
-    let isHidden = targetElement.classList.contains(
+    const realIndex = parseInt(targetElement.getAttribute('data:realIndex'), 10)
+    const isHidden = targetElement.classList.contains(
       'apexcharts-series-collapsed'
     )
 
@@ -55,7 +58,10 @@ export default class Series {
   }
 
   addCollapsedClassToSeries(elSeries, index) {
-    const w = this.w
+    Series.addCollapsedClassToSeries(this.w, elSeries, index)
+  }
+
+  static addCollapsedClassToSeries(w, elSeries, index) {
     function iterateOnAllCollapsedSeries(series) {
       for (let cs = 0; cs < series.length; cs++) {
         if (series[cs].index === index) {
@@ -69,35 +75,26 @@ export default class Series {
   }
 
   toggleSeries(seriesName) {
-    let isSeriesHidden = this.isSeriesHidden(seriesName)
+    const isSeriesHidden = this.isSeriesHidden(seriesName)
 
-    this.ctx.legend.legendHelpers.toggleDataSeries(
-      isSeriesHidden.realIndex,
-      isSeriesHidden.isHidden
-    )
+    this._toggleDataSeries?.(isSeriesHidden.realIndex, isSeriesHidden.isHidden)
 
     return isSeriesHidden.isHidden
   }
 
   showSeries(seriesName) {
-    let isSeriesHidden = this.isSeriesHidden(seriesName)
+    const isSeriesHidden = this.isSeriesHidden(seriesName)
 
     if (isSeriesHidden.isHidden) {
-      this.ctx.legend.legendHelpers.toggleDataSeries(
-        isSeriesHidden.realIndex,
-        true
-      )
+      this._toggleDataSeries?.(isSeriesHidden.realIndex, true)
     }
   }
 
   hideSeries(seriesName) {
-    let isSeriesHidden = this.isSeriesHidden(seriesName)
+    const isSeriesHidden = this.isSeriesHidden(seriesName)
 
     if (!isSeriesHidden.isHidden) {
-      this.ctx.legend.legendHelpers.toggleDataSeries(
-        isSeriesHidden.realIndex,
-        false
-      )
+      this._toggleDataSeries?.(isSeriesHidden.realIndex, false)
     }
   }
 
@@ -128,9 +125,9 @@ export default class Series {
     if (shouldUpdateChart) {
       if (shouldResetZoom) {
         w.globals.zoomed = false
-        this.ctx.updateHelpers.revertDefaultAxisMinMax()
+        this._revertDefaultAxisMinMax?.()
       }
-      this.ctx.updateHelpers._updateSeries(
+      this._updateSeries?.(
         series,
         w.config.chart.animations.dynamicAnimation.enabled
       )
@@ -151,13 +148,13 @@ export default class Series {
     const w = this.w
 
     const targetElement = this.getSeriesByName(seriesName)
-    let realIndex = parseInt(targetElement?.getAttribute('data:realIndex'), 10)
+    const realIndex = parseInt(targetElement?.getAttribute('data:realIndex'), 10)
 
     const cacheKey = 'highlightSeriesEls'
     let allSeriesEls = w.globals.cachedSelectors[cacheKey]
 
     if (!allSeriesEls) {
-      allSeriesEls = w.globals.dom.baseEl.querySelectorAll(
+      allSeriesEls = w.dom.baseEl.querySelectorAll(
         `.apexcharts-series, .apexcharts-datalabels, .apexcharts-yaxis`
       )
       w.globals.cachedSelectors[cacheKey] = allSeriesEls
@@ -168,23 +165,23 @@ export default class Series {
     let yaxisEl = null
     if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
       if (w.globals.axisCharts) {
-        seriesEl = w.globals.dom.baseEl.querySelector(
+        seriesEl = w.dom.baseEl.querySelector(
           `.apexcharts-series[data\\:realIndex='${realIndex}']`
         )
-        dataLabelEl = w.globals.dom.baseEl.querySelector(
+        dataLabelEl = w.dom.baseEl.querySelector(
           `.apexcharts-datalabels[data\\:realIndex='${realIndex}']`
         )
-        let yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex]
-        yaxisEl = w.globals.dom.baseEl.querySelector(
+        const yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex]
+        yaxisEl = w.dom.baseEl.querySelector(
           `.apexcharts-yaxis[rel='${yaxisIndex}']`
         )
       } else {
-        seriesEl = w.globals.dom.baseEl.querySelector(
+        seriesEl = w.dom.baseEl.querySelector(
           `.apexcharts-series[rel='${realIndex + 1}']`
         )
       }
     } else {
-      seriesEl = w.globals.dom.baseEl.querySelector(
+      seriesEl = w.dom.baseEl.querySelector(
         `.apexcharts-series[rel='${realIndex + 1}'] path`
       )
     }
@@ -218,12 +215,12 @@ export default class Series {
 
     if (!targetElement) targetElement = e.target
 
-    let allSeriesEls = w.globals.dom.baseEl.querySelectorAll(
+    const allSeriesEls = w.dom.baseEl.querySelectorAll(
       `.apexcharts-series, .apexcharts-datalabels, .apexcharts-yaxis`
     )
 
     if (e.type === 'mousemove') {
-      let realIndex = parseInt(targetElement.getAttribute('rel'), 10) - 1
+      const realIndex = parseInt(targetElement.getAttribute('rel'), 10) - 1
 
       this.highlightSeries(w.globals.seriesNames[realIndex])
     } else if (e.type === 'mouseout') {
@@ -235,7 +232,7 @@ export default class Series {
 
   highlightRangeInSeries(e, targetElement) {
     const w = this.w
-    const allHeatMapElements = w.globals.dom.baseEl.getElementsByClassName(
+    const allHeatMapElements = w.dom.baseEl.getElementsByClassName(
       'apexcharts-heatmap-rect'
     )
 
@@ -258,7 +255,7 @@ export default class Series {
     }
 
     if (e.type === 'mousemove') {
-      let seriesCnt = parseInt(targetElement.getAttribute('rel'), 10) - 1
+      const seriesCnt = parseInt(targetElement.getAttribute('rel'), 10) - 1
       activeInactive('add')
 
       const ranges = w.config.plotOptions.heatmap.colorScale.ranges
@@ -277,7 +274,7 @@ export default class Series {
 
     if (w.config.series.length > 1) {
       // active series flag is required to know if user has not deactivated via legend click
-      let activeSeriesIndex = w.config.series.map((s, index) => {
+      const activeSeriesIndex = w.config.series.map((s, index) => {
         const checkChartType = () => {
           if (w.globals.comboCharts) {
             return (
@@ -328,13 +325,13 @@ export default class Series {
   }
 
   getPreviousPaths() {
-    let w = this.w
+    const w = this.w
 
     w.globals.previousPaths = []
 
     function pushPaths(seriesEls, i, type) {
-      let paths = seriesEls[i].childNodes
-      let dArr = {
+      const paths = seriesEls[i].childNodes
+      const dArr = {
         type,
         paths: [],
         realIndex: seriesEls[i].getAttribute('data:realIndex'),
@@ -342,7 +339,7 @@ export default class Series {
 
       for (let j = 0; j < paths.length; j++) {
         if (paths[j].hasAttribute('pathTo')) {
-          let d = paths[j].getAttribute('pathTo')
+          const d = paths[j].getAttribute('pathTo')
           dArr.paths.push({
             d,
           })
@@ -353,7 +350,7 @@ export default class Series {
     }
 
     const getPaths = (chartType) => {
-      return w.globals.dom.baseEl.querySelectorAll(
+      return w.dom.baseEl.querySelectorAll(
         `.apexcharts-${chartType}-series .apexcharts-series`
       )
     }
@@ -374,17 +371,17 @@ export default class Series {
       }
     })
 
-    let heatTreeSeries = w.globals.dom.baseEl.querySelectorAll(
+    const heatTreeSeries = w.dom.baseEl.querySelectorAll(
       `.apexcharts-${w.config.chart.type} .apexcharts-series`
     )
 
     if (heatTreeSeries.length > 0) {
       for (let h = 0; h < heatTreeSeries.length; h++) {
-        let seriesEls = w.globals.dom.baseEl.querySelectorAll(
+        const seriesEls = w.dom.baseEl.querySelectorAll(
           `.apexcharts-${w.config.chart.type} .apexcharts-series[data\\:realIndex='${h}'] rect`
         )
 
-        let dArr = []
+        const dArr = []
 
         for (let i = 0; i < seriesEls.length; i++) {
           const getAttr = (x) => {
@@ -422,7 +419,7 @@ export default class Series {
     const me = this
 
     const noDataOpts = w.config.noData
-    const graphics = new Graphics(me.ctx)
+    const graphics = new Graphics(me.w)
 
     let x = w.globals.svgWidth / 2
     let y = w.globals.svgHeight / 2
@@ -449,7 +446,7 @@ export default class Series {
     y = y + parseInt(noDataOpts.style.fontSize, 10) + 2 + noDataOpts.offsetY
 
     if (noDataOpts.text !== undefined && noDataOpts.text !== '') {
-      let titleText = graphics.drawText({
+      const titleText = graphics.drawText({
         x,
         y,
         text: noDataOpts.text,
@@ -461,14 +458,14 @@ export default class Series {
         class: 'apexcharts-text-nodata',
       })
 
-      w.globals.dom.Paper.add(titleText)
+      w.dom.Paper.add(titleText)
     }
   }
 
   // When user clicks on legends, the collapsed series is filled with [0,0,0,...,0]
   // This is because we don't want to alter the series' length as it is used at many places
   setNullSeriesToZeroValues(series) {
-    let w = this.w
+    const w = this.w
     for (let sl = 0; sl < series.length; sl++) {
       if (series[sl].length === 0) {
         for (let j = 0; j < series[w.globals.maxValsInArrayIndex].length; j++) {

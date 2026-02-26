@@ -42,6 +42,12 @@ declare class ApexCharts {
   removeAnnotation(id: string, options?: any): void
   clearAnnotations(options?: any): void
   dataURI(options?: { scale?: number, width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
+  /**
+   * Returns a stable snapshot of chart state. Use this in formatters, events,
+   * and integrations instead of accessing `chart.w` directly.
+   * `chart.w` is internal and will be restricted in a future major version.
+   */
+  getState(): ApexCharts.ChartState
   static exec(chartID: string, fn: string, ...args: Array<any>): any
   static getChartByID(chartID: string): ApexCharts | undefined
   static initOnLoad(): void
@@ -58,6 +64,63 @@ declare class ApexCharts {
 }
 
 declare namespace ApexCharts {
+  export interface ChartState {
+    // Series data — computed/parsed form used for rendering
+    series: number[][] | any[]
+    seriesNames: string[]
+    colors: string[]
+    labels: string[]
+    seriesTotals: number[]
+    seriesPercent: number[][]
+    seriesXvalues: number[][]
+    seriesYvalues: number[][]
+
+    // Axis bounds — updated after each render
+    minX: number
+    maxX: number
+    minY: number
+    maxY: number
+    minYArr: number[]
+    maxYArr: number[]
+    minXDiff: number
+    dataPoints: number
+
+    // Axis scale objects — computed tick/scale results
+    xAxisScale: { result: number[]; niceMin: number; niceMax: number } | null
+    yAxisScale: { result: number[]; niceMin: number; niceMax: number }[]
+    xTickAmount: number
+
+    // Axis type flags
+    isXNumeric: boolean
+
+    // Multi-axis series mapping
+    seriesYAxisMap: number[][]
+    seriesYAxisReverseMap: number[]
+
+    // Chart dimensions — updated after each render/resize
+    svgWidth: number
+    svgHeight: number
+    gridWidth: number
+    gridHeight: number
+
+    // Interactive state
+    selectedDataPoints: number[][]
+    collapsedSeriesIndices: number[]
+    zoomed: boolean
+
+    // Chart-type-specific series data (empty arrays when not applicable)
+    seriesX: any[][]
+    seriesZ: number[][]
+    seriesCandleO: number[][]
+    seriesCandleH: number[][]
+    seriesCandleM: number[][]
+    seriesCandleL: number[][]
+    seriesCandleC: number[][]
+    seriesRangeStart: number[][]
+    seriesRangeEnd: number[][]
+    seriesGoals: any[][]
+  }
+
   export interface ApexOptions {
     annotations?: ApexAnnotations
     chart?: ApexChart

@@ -2,6 +2,7 @@ import CoreUtils from '../modules/CoreUtils'
 import Bar from './Bar'
 import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
+import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 
 /**
@@ -13,9 +14,9 @@ import Utils from '../utils/Utils'
 class BoxCandleStick extends Bar {
   draw(series, ctype, seriesIndex) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
     const type = w.globals.comboCharts ? ctype : w.config.chart.type
-    const fill = new Fill(this.ctx)
+    const fill = new Fill(this.w)
 
     this.candlestickOptions = this.w.config.plotOptions.candlestick
     this.boxOptions = this.w.config.plotOptions.boxPlot
@@ -23,7 +24,7 @@ class BoxCandleStick extends Bar {
     this.isOHLC =
       this.candlestickOptions && this.candlestickOptions.type === 'ohlc'
 
-    this.coreUtils = new CoreUtils(this.ctx)
+    this.coreUtils = new CoreUtils(this.w)
     series = this.coreUtils.getLogSeries(series)
     this.series = series
     this.yRatio = this.coreUtils.getLogYRatios(this.yRatio)
@@ -39,12 +40,7 @@ class BoxCandleStick extends Bar {
         w.config.chart.type === 'boxPlot' ||
         w.config.series[i].type === 'boxPlot'
 
-      let x,
-        y,
-        xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
-        yDivision, // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
-        zeroH, // zeroH is the baseline where 0 meets y axis
-        zeroW // zeroW is the baseline where 0 meets x axis
+      let x, y
 
       const yArrj = [] // hold y values of current iterating series
       const xArrj = [] // hold x values of current iterating series
@@ -59,14 +55,11 @@ class BoxCandleStick extends Bar {
         'data:realIndex': realIndex,
       })
 
-      this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex)
+      Series.addCollapsedClassToSeries(this.w, elSeries, realIndex)
 
       if (series[i].length > 0) {
         this.visibleI = this.visibleI + 1
       }
-
-      let barHeight = 0
-      let barWidth = 0
 
       let translationsIndex = 0
       if (this.yRatio.length > 1) {
@@ -75,16 +68,19 @@ class BoxCandleStick extends Bar {
       }
 
       const initPositions = this.barHelpers.initialPositions(realIndex)
+      const {
+        y: initY,
+        barHeight,
+        yDivision, // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
+        zeroW, // zeroW is the baseline where 0 meets x axis
+        x: initX,
+        barWidth,
+        xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
+        zeroH, // zeroH is the baseline where 0 meets y axis
+      } = initPositions
 
-      y = initPositions.y
-      barHeight = initPositions.barHeight
-      yDivision = initPositions.yDivision
-      zeroW = initPositions.zeroW
-
-      x = initPositions.x
-      barWidth = initPositions.barWidth
-      xDivision = initPositions.xDivision
-      zeroH = initPositions.zeroH
+      y = initY
+      x = initX
 
       xArrj.push(x + barWidth / 2)
 
@@ -209,7 +205,7 @@ class BoxCandleStick extends Bar {
     strokeWidth,
   }) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
 
     const i = indexes.i
     const j = indexes.j
@@ -357,7 +353,7 @@ class BoxCandleStick extends Bar {
     strokeWidth,
   }) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
 
     const i = indexes.i
     const j = indexes.j
@@ -410,13 +406,12 @@ class BoxCandleStick extends Bar {
       m = zeroW + ohlc.m / yRatio
     }
 
-    let pathTo
     let pathFrom = graphics.move(x1, barYPosition + barHeight / 2)
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j, true)
     }
 
-    pathTo = [
+    const pathTo = [
       graphics.move(x1, barYPosition) +
         graphics.line(x1, barYPosition + barHeight / 2) +
         graphics.line(l1, barYPosition + barHeight / 2) +

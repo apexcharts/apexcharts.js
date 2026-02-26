@@ -14,9 +14,13 @@ import { Environment } from '../../utils/Environment.js'
  **/
 
 class Legend {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w, ctx) {
+    this.w = w
+    this.ctx = ctx // needed: fires events, passes chart instance to user callbacks
+
+    // Injected callbacks used by LegendHelpers (avoids lgCtx.ctx.pie / lgCtx.ctx.updateHelpers)
+    this.printDataLabelsInner = (...a) => ctx.pie?.printDataLabelsInner(...a)
+    this.updateSeries = (...a) => ctx.updateHelpers._updateSeries(...a)
 
     this.onLegendClick = this.onLegendClick.bind(this)
     this.onLegendHovered = this.onLegendHovered.bind(this)
@@ -43,8 +47,8 @@ class Legend {
     this.legendHelpers.appendToForeignObject()
 
     if ((showLegendAlways || !gl.axisCharts) && cnf.legend.show) {
-      while (gl.dom.elLegendWrap.firstChild) {
-        gl.dom.elLegendWrap.removeChild(gl.dom.elLegendWrap.firstChild)
+      while (w.dom.elLegendWrap.firstChild) {
+        w.dom.elLegendWrap.removeChild(w.dom.elLegendWrap.firstChild)
       }
 
       this.drawLegends()
@@ -65,25 +69,25 @@ class Legend {
     const elMarker = document.createElement('span')
     elMarker.classList.add('apexcharts-legend-marker')
 
-    let mShape = w.config.legend.markers.shape || w.config.markers.shape
+    const mShape = w.config.legend.markers.shape || w.config.markers.shape
     let shape = mShape
     if (Array.isArray(mShape)) {
       shape = mShape[i]
     }
-    let mSize = Array.isArray(w.config.legend.markers.size)
+    const mSize = Array.isArray(w.config.legend.markers.size)
       ? parseFloat(w.config.legend.markers.size[i])
       : parseFloat(w.config.legend.markers.size)
-    let mOffsetX = Array.isArray(w.config.legend.markers.offsetX)
+    const mOffsetX = Array.isArray(w.config.legend.markers.offsetX)
       ? parseFloat(w.config.legend.markers.offsetX[i])
       : parseFloat(w.config.legend.markers.offsetX)
-    let mOffsetY = Array.isArray(w.config.legend.markers.offsetY)
+    const mOffsetY = Array.isArray(w.config.legend.markers.offsetY)
       ? parseFloat(w.config.legend.markers.offsetY[i])
       : parseFloat(w.config.legend.markers.offsetY)
-    let mBorderWidth = Array.isArray(w.config.legend.markers.strokeWidth)
+    const mBorderWidth = Array.isArray(w.config.legend.markers.strokeWidth)
       ? parseFloat(w.config.legend.markers.strokeWidth[i])
       : parseFloat(w.config.legend.markers.strokeWidth)
 
-    let mStyle = elMarker.style
+    const mStyle = elMarker.style
 
     mStyle.height = (mSize + mBorderWidth) * 2 + 'px'
     mStyle.width = (mSize + mBorderWidth) * 2 + 'px'
@@ -102,7 +106,7 @@ class Legend {
         elMarker.innerHTML = w.config.legend.markers.customHTML()
       }
     } else {
-      let markers = new Markers(this.ctx)
+      const markers = new Markers(this.ctx.w, this.ctx)
 
       const markerConfig = markers.getMarkerConfig({
         cssClass: `apexcharts-legend-marker apexcharts-marker apexcharts-marker-${shape}`,
@@ -113,7 +117,7 @@ class Legend {
 
       const SVGLib = Environment.isBrowser() ? window.SVG : global.SVG
       const SVGMarker = SVGLib().addTo(elMarker).size('100%', '100%')
-      const marker = new Graphics(this.ctx).drawMarker(0, 0, {
+      const marker = new Graphics(this.w).drawMarker(0, 0, {
         ...markerConfig,
         pointFillColor: Array.isArray(fillcolor)
           ? fillcolor[i]
@@ -121,7 +125,7 @@ class Legend {
         shape,
       })
 
-      const shapesEls = w.globals.dom.Paper.find(
+      const shapesEls = w.dom.Paper.find(
         '.apexcharts-legend-marker.apexcharts-marker'
       )
       shapesEls.forEach((shapeEl) => {
@@ -137,10 +141,10 @@ class Legend {
   }
 
   drawLegends() {
-    let me = this
-    let w = this.w
+    const me = this
+    const w = this.w
 
-    let fontFamily = w.config.legend.fontFamily
+    const fontFamily = w.config.legend.fontFamily
 
     let legendNames = w.globals.seriesNames
     let fillcolor = w.config.legend.markers.fillColors
@@ -162,11 +166,11 @@ class Legend {
     if (w.config.legend.customLegendItems.length) {
       legendNames = w.config.legend.customLegendItems
     }
-    let legendFormatter = w.globals.legendFormatter
+    const legendFormatter = w.globals.legendFormatter
 
-    let isLegendInversed = w.config.legend.inverseOrder
+    const isLegendInversed = w.config.legend.inverseOrder
 
-    let legendGroups = []
+    const legendGroups = []
 
     if (
       w.globals.seriesGroups.length > 1 &&
@@ -179,7 +183,7 @@ class Legend {
           `apexcharts-legend-group-${gi}`
         )
         if (w.config.legend.clusterGroupedSeriesOrientation === 'horizontal') {
-          w.globals.dom.elLegendWrap.classList.add(
+          w.dom.elLegendWrap.classList.add(
             'apexcharts-legend-group-horizontal'
           )
         } else {
@@ -193,7 +197,7 @@ class Legend {
       isLegendInversed ? i >= 0 : i <= legendNames.length - 1;
       isLegendInversed ? i-- : i++
     ) {
-      let text = legendFormatter(legendNames[i], { seriesIndex: i, w })
+      const text = legendFormatter(legendNames[i], { seriesIndex: i, w })
 
       let collapsedSeries = false
       let ancillaryCollapsedSeries = false
@@ -217,7 +221,7 @@ class Legend {
         }
       }
 
-      let elMarker = this.createLegendMarker({ i, fillcolor })
+      const elMarker = this.createLegendMarker({ i, fillcolor })
 
       Graphics.setAttrs(elMarker, {
         rel: i + 1,
@@ -228,7 +232,7 @@ class Legend {
         elMarker.classList.add('apexcharts-inactive-legend')
       }
 
-      let elLegend = document.createElement('div')
+      const elLegend = document.createElement('div')
 
       // accessibility attributes
       if (
@@ -249,7 +253,7 @@ class Legend {
         elLegend.setAttribute('aria-pressed', isCollapsed ? 'true' : 'false')
       }
 
-      let elLegendText = document.createElement('span')
+      const elLegendText = document.createElement('span')
       elLegendText.classList.add('apexcharts-legend-text')
       elLegendText.innerHTML = Array.isArray(text) ? text.join(' ') : text
 
@@ -279,7 +283,7 @@ class Legend {
       elLegend.appendChild(elMarker)
       elLegend.appendChild(elLegendText)
 
-      const coreUtils = new CoreUtils(this.ctx)
+      const coreUtils = new CoreUtils(this.w)
       if (!w.config.legend.showForZeroSeries) {
         const total = coreUtils.getSeriesTotalByIndex(i)
 
@@ -307,27 +311,27 @@ class Legend {
       if (legendGroups.length) {
         w.globals.seriesGroups.forEach((group, gi) => {
           if (group.includes(w.config.series[i]?.name)) {
-            w.globals.dom.elLegendWrap.appendChild(legendGroups[gi])
+            w.dom.elLegendWrap.appendChild(legendGroups[gi])
             legendGroups[gi].appendChild(elLegend)
           }
         })
       } else {
-        w.globals.dom.elLegendWrap.appendChild(elLegend)
+        w.dom.elLegendWrap.appendChild(elLegend)
       }
 
-      w.globals.dom.elLegendWrap.classList.add(
+      w.dom.elLegendWrap.classList.add(
         `apexcharts-align-${w.config.legend.horizontalAlign}`
       )
-      w.globals.dom.elLegendWrap.classList.add(
+      w.dom.elLegendWrap.classList.add(
         'apx-legend-position-' + w.config.legend.position
       )
 
       elLegend.classList.add('apexcharts-legend-series')
       elLegend.style.margin = `${w.config.legend.itemMargin.vertical}px ${w.config.legend.itemMargin.horizontal}px`
-      w.globals.dom.elLegendWrap.style.width = w.config.legend.width
+      w.dom.elLegendWrap.style.width = w.config.legend.width
         ? w.config.legend.width + 'px'
         : ''
-      w.globals.dom.elLegendWrap.style.height = w.config.legend.height
+      w.dom.elLegendWrap.style.height = w.config.legend.height
         ? w.config.legend.height + 'px'
         : ''
 
@@ -346,18 +350,18 @@ class Legend {
       }
     }
 
-    w.globals.dom.elWrap.addEventListener('click', me.onLegendClick, true)
+    w.dom.elWrap.addEventListener('click', me.onLegendClick, true)
 
     if (
       w.config.legend.onItemHover.highlightDataSeries &&
       w.config.legend.customLegendItems.length === 0
     ) {
-      w.globals.dom.elWrap.addEventListener(
+      w.dom.elWrap.addEventListener(
         'mousemove',
         me.onLegendHovered,
         true
       )
-      w.globals.dom.elWrap.addEventListener(
+      w.dom.elWrap.addEventListener(
         'mouseout',
         me.onLegendHovered,
         true
@@ -369,14 +373,14 @@ class Legend {
       w.config.chart.accessibility.enabled &&
       w.config.chart.accessibility.keyboard.enabled
     ) {
-      w.globals.dom.elWrap.addEventListener('keydown', me.onLegendKeyDown.bind(me), true)
+      w.dom.elWrap.addEventListener('keydown', me.onLegendKeyDown.bind(me), true)
     }
   }
 
   setLegendWrapXY(offsetX, offsetY) {
-    let w = this.w
+    const w = this.w
 
-    let elLegendWrap = w.globals.dom.elLegendWrap
+    const elLegendWrap = w.dom.elLegendWrap
 
     const legendHeight = elLegendWrap.clientHeight
 
@@ -389,7 +393,7 @@ class Legend {
         Math.min(legendHeight, w.globals.svgHeight / 2) -
         5
     } else if (w.config.legend.position === 'top') {
-      const dim = new Dimensions(this.ctx)
+      const dim = new Dimensions(this.w, this.ctx)
       const titleH = dim.dimHelpers.getTitleSubtitleCoords('title').height
       const subtitleH = dim.dimHelpers.getTitleSubtitleCoords('subtitle').height
 
@@ -418,17 +422,17 @@ class Legend {
   }
 
   legendAlignHorizontal() {
-    let w = this.w
+    const w = this.w
 
-    let elLegendWrap = w.globals.dom.elLegendWrap
+    const elLegendWrap = w.dom.elLegendWrap
 
     elLegendWrap.style.right = 0
 
-    let dimensions = new Dimensions(this.ctx)
-    let titleRect = dimensions.dimHelpers.getTitleSubtitleCoords('title')
-    let subtitleRect = dimensions.dimHelpers.getTitleSubtitleCoords('subtitle')
+    const dimensions = new Dimensions(this.w, this.ctx)
+    const titleRect = dimensions.dimHelpers.getTitleSubtitleCoords('title')
+    const subtitleRect = dimensions.dimHelpers.getTitleSubtitleCoords('subtitle')
 
-    let offsetX = 20
+    const offsetX = 20
     let offsetY = 0
 
     if (w.config.legend.position === 'top') {
@@ -444,11 +448,11 @@ class Legend {
   }
 
   legendAlignVertical() {
-    let w = this.w
+    const w = this.w
 
-    let lRect = this.legendHelpers.getLegendDimensions()
+    const lRect = this.legendHelpers.getLegendDimensions()
 
-    let offsetY = 20
+    const offsetY = 20
     let offsetX = 0
 
     if (w.config.legend.position === 'left') {
@@ -475,16 +479,16 @@ class Legend {
         !e.target.classList.contains('apexcharts-inactive-legend') &&
         hoverOverLegend
       ) {
-        let series = new Series(this.ctx)
+        const series = new Series(this.ctx.w)
         series.toggleSeriesOnHover(e, e.target)
       }
     } else {
       // for heatmap handling
       if (hoverOverLegend) {
-        let seriesCnt = parseInt(e.target.getAttribute('rel'), 10) - 1
+        const seriesCnt = parseInt(e.target.getAttribute('rel'), 10) - 1
         this.ctx.events.fireEvent('legendHover', [this.ctx, seriesCnt, this.w])
 
-        let series = new Series(this.ctx)
+        const series = new Series(this.ctx.w)
         series.highlightRangeInSeries(e, e.target)
       }
     }
@@ -517,7 +521,7 @@ class Legend {
       // can keep toggling without having to re-tab to the legend.
       if (rel !== null && w.config.legend.onItemClick.toggleDataSeries) {
         requestAnimationFrame(() => {
-          const restored = w.globals.dom.baseEl.querySelector(
+          const restored = w.dom.baseEl.querySelector(
             `.apexcharts-legend-series[rel="${rel}"]`
           )
           if (restored) restored.focus()
@@ -536,8 +540,8 @@ class Legend {
       e.target.classList.contains('apexcharts-legend-text') ||
       e.target.classList.contains('apexcharts-legend-marker')
     ) {
-      let seriesCnt = parseInt(e.target.getAttribute('rel'), 10) - 1
-      let isHidden = e.target.getAttribute('data:collapsed') === 'true'
+      const seriesCnt = parseInt(e.target.getAttribute('rel'), 10) - 1
+      const isHidden = e.target.getAttribute('data:collapsed') === 'true'
 
       const legendClick = this.w.config.chart.events.legendClick
       if (typeof legendClick === 'function') {

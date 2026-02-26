@@ -17,10 +17,9 @@ import icoMenu from './../assets/ico-menu.svg'
  **/
 
 export default class Toolbar {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
-    const w = this.w
+  constructor(w, ctx) {
+    this.w = w
+    this.ctx = ctx // needed: getSyncedCharts, fireEvent, user callbacks, Exports
 
     this.ev = this.w.config.chart.events
     this.selectedClass = 'apexcharts-selected'
@@ -32,7 +31,7 @@ export default class Toolbar {
   }
 
   createToolbar() {
-    let w = this.w
+    const w = this.w
 
     const createDiv = () => {
       return BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
@@ -41,7 +40,7 @@ export default class Toolbar {
     elToolbarWrap.setAttribute('class', 'apexcharts-toolbar')
     elToolbarWrap.style.top = w.config.chart.toolbar.offsetY + 'px'
     elToolbarWrap.style.right = -w.config.chart.toolbar.offsetX + 3 + 'px'
-    w.globals.dom.elWrap.appendChild(elToolbarWrap)
+    w.dom.elWrap.appendChild(elToolbarWrap)
 
     this.elZoom = createDiv()
     this.elZoomIn = createDiv()
@@ -61,7 +60,7 @@ export default class Toolbar {
       }
     }
 
-    let toolbarControls = []
+    const toolbarControls = []
 
     const appendZoomControl = (type, el, ico) => {
       const tool = type.toLowerCase()
@@ -268,7 +267,7 @@ export default class Toolbar {
           // After re-render, restore focus to the equivalent new button so the
           // user can keep operating without having to re-tab to the toolbar.
           requestAnimationFrame(() => {
-            const baseEl = this.w.globals.dom.baseEl
+            const baseEl = this.w.dom.baseEl
             if (!baseEl) return
             // Match on the first apexcharts-specific class (e.g. apexcharts-zoomin-icon)
             const apexClass = btnClass
@@ -331,11 +330,11 @@ export default class Toolbar {
     charts.forEach((ch) => {
       ch.ctx.toolbar.toggleOtherControls()
 
-      let el =
+      const el =
         type === 'selection'
           ? ch.ctx.toolbar.elSelection
           : ch.ctx.toolbar.elZoom
-      let enabledType =
+      const enabledType =
         type === 'selection' ? 'selectionEnabled' : 'zoomEnabled'
 
       ch.w.globals[enabledType] = !ch.w.globals[enabledType]
@@ -353,13 +352,13 @@ export default class Toolbar {
   getToolbarIconsReference() {
     const w = this.w
     if (!this.elZoom) {
-      this.elZoom = w.globals.dom.baseEl.querySelector('.apexcharts-zoom-icon')
+      this.elZoom = w.dom.baseEl.querySelector('.apexcharts-zoom-icon')
     }
     if (!this.elPan) {
-      this.elPan = w.globals.dom.baseEl.querySelector('.apexcharts-pan-icon')
+      this.elPan = w.dom.baseEl.querySelector('.apexcharts-pan-icon')
     }
     if (!this.elSelection) {
-      this.elSelection = w.globals.dom.baseEl.querySelector(
+      this.elSelection = w.dom.baseEl.querySelector(
         '.apexcharts-selection-icon'
       )
     }
@@ -429,8 +428,8 @@ export default class Toolbar {
     }
 
     const centerX = (this.minX + this.maxX) / 2
-    let newMinX = (this.minX + centerX) / 2
-    let newMaxX = (this.maxX + centerX) / 2
+    const newMinX = (this.minX + centerX) / 2
+    const newMaxX = (this.maxX + centerX) / 2
 
     const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX)
 
@@ -456,8 +455,8 @@ export default class Toolbar {
     }
 
     const centerX = (this.minX + this.maxX) / 2
-    let newMinX = this.minX - (centerX - this.minX)
-    let newMaxX = this.maxX - (centerX - this.maxX)
+    const newMinX = this.minX - (centerX - this.minX)
+    const newMaxX = this.maxX - (centerX - this.maxX)
 
     const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX)
 
@@ -504,11 +503,11 @@ export default class Toolbar {
       xaxis = beforeZoomRange.xaxis
     }
 
-    let options = {
+    const options = {
       xaxis,
     }
 
-    let yaxis = Utils.clone(w.globals.initialConfig.yaxis)
+    const yaxis = Utils.clone(w.globals.initialConfig.yaxis)
 
     if (!w.config.chart.group) {
       // if chart in a group, prevent yaxis update here
@@ -561,7 +560,7 @@ export default class Toolbar {
 
   handleDownload(type) {
     const w = this.w
-    const exprt = new Exports(this.ctx)
+    const exprt = new Exports(this.w, this.ctx)
     switch (type) {
       case 'svg':
         exprt.exportToSVG(this.ctx)
@@ -582,7 +581,7 @@ export default class Toolbar {
     const charts = this.ctx.getSyncedCharts()
 
     charts.forEach((ch) => {
-      let w = ch.w
+      const w = ch.w
 
       // forget lastXAxis min/max as reset button isn't resetting the x-axis completely if zoomX is called before
       w.globals.lastXAxis.min = w.globals.initialConfig.xaxis.min
@@ -612,7 +611,7 @@ export default class Toolbar {
 
       // if user has some series collapsed before hitting zoom reset button,
       // those series should stay collapsed
-      let series = ch.ctx.series.emptyCollapsedSeries(
+      const series = ch.ctx.series.emptyCollapsedSeries(
         Utils.clone(w.globals.initialSeries)
       )
 

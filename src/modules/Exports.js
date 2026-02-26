@@ -6,9 +6,9 @@ import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment.js'
 
 class Exports {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w, ctx) {
+    this.w = w
+    this.ctx = ctx // needed: theme, timeScale (for AxesUtils), passes ctx to Data/Series
   }
 
   svgStringToNode(svgString) {
@@ -19,8 +19,8 @@ class Exports {
 
   scaleSvgNode(svg, scale) {
     // get current both width and height of the svg
-    let svgWidth = parseFloat(svg.getAttributeNS(null, 'width'))
-    let svgHeight = parseFloat(svg.getAttributeNS(null, 'height'))
+    const svgWidth = parseFloat(svg.getAttributeNS(null, 'width'))
+    const svgHeight = parseFloat(svg.getAttributeNS(null, 'height'))
     // set new width and height based on the scale
     svg.setAttributeNS(null, 'width', svgWidth * scale)
     svg.setAttributeNS(null, 'height', svgHeight * scale)
@@ -42,7 +42,7 @@ class Exports {
       const width = w.globals.svgWidth * scale
       const height = w.globals.svgHeight * scale
 
-      const clonedNode = w.globals.dom.elWrap.cloneNode(true)
+      const clonedNode = w.dom.elWrap.cloneNode(true)
       clonedNode.style.width = width + 'px'
       clonedNode.style.height = height + 'px'
       const serializedNode = new XMLSerializer().serializeToString(clonedNode)
@@ -50,8 +50,8 @@ class Exports {
       // Check if legend is shown and should be included in export
       const shouldIncludeLegendStyles =
         w.config.legend.show &&
-        w.globals.dom.elLegendWrap &&
-        w.globals.dom.elLegendWrap.children.length > 0
+        w.dom.elLegendWrap &&
+        w.dom.elLegendWrap.children.length > 0
 
       // Base styles for export
       let exportStyles = `
@@ -158,7 +158,7 @@ class Exports {
 
       const canvas = document.createElement('canvas')
       canvas.width = w.globals.svgWidth * scale
-      canvas.height = parseInt(w.globals.dom.elWrap.style.height, 10) * scale // because of resizeNonAxisCharts
+      canvas.height = parseInt(w.dom.elWrap.style.height, 10) * scale // because of resizeNonAxisCharts
 
       const canvasBg =
         w.config.chart.background === 'transparent' ||
@@ -166,13 +166,13 @@ class Exports {
           ? '#fff'
           : w.config.chart.background
 
-      let ctx = canvas.getContext('2d')
+      const ctx = canvas.getContext('2d')
       ctx.fillStyle = canvasBg
       ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale)
 
       this.getSvgString(scale).then((svgData) => {
         const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
-        let img = new Image()
+        const img = new Image()
         img.crossOrigin = 'anonymous'
 
         img.onload = () => {
@@ -180,10 +180,10 @@ class Exports {
 
           if (canvas.msToBlob) {
             // Microsoft Edge can't navigate to data urls, so we return the blob instead
-            let blob = canvas.msToBlob()
+            const blob = canvas.msToBlob()
             resolve({ blob })
           } else {
-            let imgURI = canvas.toDataURL('image/png')
+            const imgURI = canvas.toDataURL('image/png')
             resolve({ imgURI })
           }
         }
@@ -235,10 +235,10 @@ class Exports {
     if (!series) series = w.config.series
 
     let columns = []
-    let rows = []
+    const rows = []
     let result = ''
-    let universalBOM = '\uFEFF'
-    let gSeries = w.globals.series.map((s, i) => {
+    const universalBOM = '\uFEFF'
+    const gSeries = w.globals.series.map((s, i) => {
       return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : []
     })
 
@@ -268,9 +268,9 @@ class Exports {
         return s.data ? s.data.length : 0
       })
     )
-    const dataFormat = new Data(this.ctx)
+    const dataFormat = new Data(this.w)
 
-    const axesUtils = new AxesUtils(this.ctx)
+    const axesUtils = new AxesUtils(this.w, { theme: this.ctx.theme, timeScale: this.ctx.timeScale })
     const getCat = (i) => {
       let cat = ''
 
@@ -286,9 +286,9 @@ class Exports {
           w.config.xaxis.convertedCatToNumeric
         ) {
           if (w.globals.isBarHorizontal) {
-            let lbFormatter = w.globals.yLabelFormatters[0]
-            let sr = new Series(this.ctx)
-            let activeSeries = sr.getActiveConfigSeriesIndex()
+            const lbFormatter = w.globals.yLabelFormatters[0]
+            const sr = new Series(this.ctx.w)
+            const activeSeries = sr.getActiveConfigSeriesIndex()
 
             cat = lbFormatter(w.globals.labels[i], {
               seriesIndex: activeSeries,

@@ -10,30 +10,30 @@ import Markers from '../modules/Markers'
  * @module Scatter
  **/
 export default class Scatter {
-  constructor(ctx) {
+  constructor(w, ctx) {
     this.ctx = ctx
-    this.w = ctx.w
+    this.w = w
 
     this.initialAnim = this.w.config.chart.animations.enabled
 
-    this.anim = new Animations(this.ctx)
-    this.filters = new Filters(this.ctx)
-    this.fill = new Fill(this.ctx)
-    this.markers = new Markers(this.ctx)
-    this.graphics = new Graphics(this.ctx)
+    this.anim = new Animations(this.w)
+    this.filters = new Filters(this.w)
+    this.fill = new Fill(this.w)
+    this.markers = new Markers(this.w, this.ctx)
+    this.graphics = new Graphics(this.w)
   }
 
   draw(elSeries, j, opts) {
-    let w = this.w
+    const w = this.w
 
-    let graphics = this.graphics
+    const graphics = this.graphics
 
-    let realIndex = opts.realIndex
-    let pointsPos = opts.pointsPos
-    let zRatio = opts.zRatio
-    let elPointsMain = opts.elParent
+    const realIndex = opts.realIndex
+    const pointsPos = opts.pointsPos
+    const zRatio = opts.zRatio
+    const elPointsMain = opts.elParent
 
-    let elPointsWrap = graphics.group({
+    const elPointsWrap = graphics.group({
       class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`,
     })
 
@@ -71,8 +71,8 @@ export default class Scatter {
           }
         }
 
-        let x = pointsPos.x[q]
-        let y = pointsPos.y[q]
+        const x = pointsPos.x[q]
+        const y = pointsPos.y[q]
 
         radius = radius || 0
 
@@ -103,7 +103,7 @@ export default class Scatter {
   drawPoint(x, y, radius, realIndex, dataPointIndex, j) {
     const w = this.w
 
-    let i = realIndex
+    const i = realIndex
     const anim = this.anim
     const filters = this.filters
     const fill = this.fill
@@ -131,7 +131,7 @@ export default class Scatter {
       value: w.globals.series[realIndex][j],
     })
 
-    let el = graphics.drawMarker(x, y, markerConfig)
+    const el = graphics.drawMarker(x, y, markerConfig)
 
     if (w.config.series[i].data[dataPointIndex]) {
       if (w.config.series[i].data[dataPointIndex].fillColor) {
@@ -149,7 +149,7 @@ export default class Scatter {
     }
 
     if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
-      let speed = w.config.chart.animations.speed
+      const speed = w.config.chart.animations.speed
 
       anim.animateMarker(el, speed, w.globals.easing, () => {
         window.setTimeout(() => {
@@ -175,7 +175,7 @@ export default class Scatter {
   }
 
   centerTextInBubble(y) {
-    let w = this.w
+    const w = this.w
     y = y + parseInt(w.config.dataLabels.style.fontSize, 10) / 4
 
     return {

@@ -13,10 +13,9 @@ import Series from '../modules/Series'
  **/
 
 class Bar {
-  constructor(ctx, xyRatios) {
+  constructor(w, ctx, xyRatios) {
     this.ctx = ctx
-    this.w = ctx.w
-    const w = this.w
+    this.w = w
     this.barOptions = w.config.plotOptions.bar
 
     this.isHorizontal = this.barOptions.horizontal
@@ -46,7 +45,7 @@ class Bar {
     this.seriesLen = 0
     this.pathArr = []
 
-    const ser = new Series(this.ctx)
+    const ser = new Series(this.w)
     this.lastActiveBarSerieIndex = ser.getActiveConfigSeriesIndex('desc', [
       'bar',
       'column',
@@ -54,7 +53,7 @@ class Bar {
 
     this.columnGroupIndices = []
     const barSeriesIndices = ser.getBarSeriesIndices()
-    const coreUtils = new CoreUtils(this.ctx)
+    const coreUtils = new CoreUtils(this.w)
     this.stackedSeriesTotals = coreUtils.getStackedSeriesTotals(
       this.w.config.series
         .map((s, i) => {
@@ -75,17 +74,17 @@ class Bar {
    * @return {node} element which is supplied to parent chart draw method for appending
    **/
   draw(series, seriesIndex) {
-    let w = this.w
-    let graphics = new Graphics(this.ctx)
+    const w = this.w
+    const graphics = new Graphics(this.w)
 
-    const coreUtils = new CoreUtils(this.ctx)
+    const coreUtils = new CoreUtils(this.w)
     series = coreUtils.getLogSeries(series)
     this.series = series
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
 
     this.barHelpers.initVariables(series)
 
-    let ret = graphics.group({
+    const ret = graphics.group({
       class: 'apexcharts-bar-series apexcharts-plot-series',
     })
 
@@ -98,65 +97,60 @@ class Bar {
     }
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
-      let x,
-        y,
-        xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
-        yDivision, // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
-        zeroH, // zeroH is the baseline where 0 meets y axis
-        zeroW // zeroW is the baseline where 0 meets x axis
+      let x, y
 
-      let yArrj = [] // hold y values of current iterating series
-      let xArrj = [] // hold x values of current iterating series
+      const yArrj = [] // hold y values of current iterating series
+      const xArrj = [] // hold x values of current iterating series
 
-      let realIndex = w.globals.comboCharts ? seriesIndex[i] : i
+      const realIndex = w.globals.comboCharts ? seriesIndex[i] : i
 
-      let { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex)
+      const { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex)
 
       // el to which series will be drawn
-      let elSeries = graphics.group({
+      const elSeries = graphics.group({
         class: `apexcharts-series`,
         rel: i + 1,
         seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
         'data:realIndex': realIndex,
       })
 
-      this.ctx.series.addCollapsedClassToSeries(elSeries, realIndex)
+      Series.addCollapsedClassToSeries(this.w, elSeries, realIndex)
 
       if (series[i].length > 0) {
         this.visibleI = this.visibleI + 1
       }
 
-      let barHeight = 0
-      let barWidth = 0
-
       if (this.yRatio.length > 1) {
         this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex]
         this.translationsIndex = realIndex
       }
-      let translationsIndex = this.translationsIndex
+      const translationsIndex = this.translationsIndex
 
       this.isReversed =
         w.config.yaxis[this.yaxisIndex] &&
         w.config.yaxis[this.yaxisIndex].reversed
 
-      let initPositions = this.barHelpers.initialPositions(realIndex)
+      const initPositions = this.barHelpers.initialPositions(realIndex)
+      const {
+        y: initY,
+        yDivision, // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
+        zeroW, // zeroW is the baseline where 0 meets x axis
+        x: initX,
+        xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
+        zeroH, // zeroH is the baseline where 0 meets y axis
+      } = initPositions
+      let barHeight = initPositions.barHeight
+      let barWidth = initPositions.barWidth
 
-      y = initPositions.y
-      barHeight = initPositions.barHeight
-      yDivision = initPositions.yDivision
-      zeroW = initPositions.zeroW
-
-      x = initPositions.x
-      barWidth = initPositions.barWidth
-      xDivision = initPositions.xDivision
-      zeroH = initPositions.zeroH
+      y = initY
+      x = initX
 
       if (!this.isHorizontal) {
         xArrj.push(x + barWidth / 2)
       }
 
       // eldatalabels
-      let elDataLabelsWrap = graphics.group({
+      const elDataLabelsWrap = graphics.group({
         class: 'apexcharts-datalabels',
         'data:realIndex': realIndex,
       })
@@ -166,11 +160,11 @@ class Bar {
       })
       elDataLabelsWrap.node.classList.add('apexcharts-element-hidden')
 
-      let elGoalsMarkers = graphics.group({
+      const elGoalsMarkers = graphics.group({
         class: 'apexcharts-bar-goals-markers',
       })
 
-      let elBarShadows = graphics.group({
+      const elBarShadows = graphics.group({
         class: 'apexcharts-bar-shadows',
       })
 
@@ -214,7 +208,7 @@ class Bar {
           barHeight = this.series[i][j] / this.yRatio[translationsIndex]
         }
 
-        let pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
+        const pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
 
         if (
           this.isFunnel &&
@@ -237,7 +231,7 @@ class Bar {
           elBarShadows.add(barShadow)
 
           if (w.config.chart.dropShadow.enabled) {
-            const filters = new Filters(this.ctx)
+            const filters = new Filters(this.w)
             filters.dropShadow(barShadow, w.config.chart.dropShadow, realIndex)
           }
         }
@@ -328,7 +322,7 @@ class Bar {
     classes,
   }) {
     const w = this.w
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
     let skipDrawing = false
 
     // Set up event delegation once per series group instead of per-element listeners
@@ -371,8 +365,8 @@ class Bar {
         : checkAvailableColor
     }
 
-    let barDataLabels = new BarDataLabels(this)
-    let dataLabelsObj = barDataLabels.handleBarDataLabels({
+    const barDataLabels = new BarDataLabels(this)
+    const dataLabelsObj = barDataLabels.handleBarDataLabels({
       x,
       y,
       y1,
@@ -410,13 +404,13 @@ class Bar {
       pathFill = 'none'
     }
 
-    let delay =
+    const delay =
       ((j / w.config.chart.animations.animateGradually.delay) *
         (w.config.chart.animations.speed / w.globals.dataPoints)) /
       2.4
 
     if (!skipDrawing) {
-      let renderedPath = graphics.renderPaths({
+      const renderedPath = graphics.renderPaths({
         i,
         j,
         realIndex,
@@ -450,7 +444,7 @@ class Bar {
         renderedPath.attr('data-range-y2', y2)
       }
 
-      const filters = new Filters(this.ctx)
+      const filters = new Filters(this.w)
       filters.setSelectionFilter(renderedPath, realIndex, j)
       elSeries.add(renderedPath)
 
@@ -495,10 +489,10 @@ class Bar {
     yDivision,
     elSeries,
   }) {
-    let w = this.w
+    const w = this.w
 
-    let i = indexes.i
-    let j = indexes.j
+    const i = indexes.i
+    const j = indexes.j
     let barYPosition
 
     if (w.globals.isXNumeric) {
@@ -577,13 +571,13 @@ class Bar {
     strokeWidth,
     elSeries,
   }) {
-    let w = this.w
+    const w = this.w
 
-    let realIndex = indexes.realIndex
-    let translationsIndex = indexes.translationsIndex
-    let i = indexes.i
-    let j = indexes.j
-    let bc = indexes.bc
+    const realIndex = indexes.realIndex
+    const translationsIndex = indexes.translationsIndex
+    const i = indexes.i
+    const j = indexes.j
+    const bc = indexes.bc
     let barXPosition
 
     if (w.globals.isXNumeric) {
@@ -686,10 +680,10 @@ class Bar {
    * @return {string} pathFrom is the string which will be appended in animations
    **/
   getPreviousPath(realIndex, j) {
-    let w = this.w
+    const w = this.w
     let pathFrom = 'M 0 0'
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
-      let gpp = w.globals.previousPaths[pp]
+      const gpp = w.globals.previousPaths[pp]
 
       if (
         gpp.paths &&

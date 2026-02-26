@@ -3,16 +3,16 @@ import Graphics from '../../../modules/Graphics'
 import DataLabels from '../../../modules/DataLabels'
 
 export default class TreemapHelpers {
-  constructor(ctx) {
+  constructor(w, ctx) {
     this.ctx = ctx
-    this.w = ctx.w
+    this.w = w
   }
 
   checkColorRange() {
     const w = this.w
 
     let negRange = false
-    let chartOpts = w.config.plotOptions[w.config.chart.type]
+    const chartOpts = w.config.plotOptions[w.config.chart.type]
 
     if (chartOpts.colorScale.ranges.length > 0) {
       chartOpts.colorScale.ranges.map((range) => {
@@ -28,7 +28,7 @@ export default class TreemapHelpers {
     const w = this.w
 
     let colorShadePercent = 1
-    let shadeIntensity = w.config.plotOptions[chartType].shadeIntensity
+    const shadeIntensity = w.config.plotOptions[chartType].shadeIntensity
 
     const colorProps = this.determineColor(chartType, i, j)
 
@@ -58,7 +58,7 @@ export default class TreemapHelpers {
     }
 
     let color = colorProps.color
-    let utils = new Utils()
+    const utils = new Utils()
 
     if (w.config.plotOptions[chartType].enableShades) {
       // The shadeColor function may return either an RGB or a hex color value
@@ -88,9 +88,9 @@ export default class TreemapHelpers {
   determineColor(chartType, i, j) {
     const w = this.w
 
-    let val = w.globals.series[i][j]
+    const val = w.globals.series[i][j]
 
-    let chartOpts = w.config.plotOptions[chartType]
+    const chartOpts = w.config.plotOptions[chartType]
 
     let seriesNumber = chartOpts.colorScale.inverse ? j : i
 
@@ -119,7 +119,7 @@ export default class TreemapHelpers {
           : w.globals.maxY
     }
 
-    let total = Math.abs(max) + Math.abs(min)
+    const total = Math.abs(max) + Math.abs(min)
 
     let percent = (100 * val) / (total === 0 ? total - 0.000001 : total)
 
@@ -131,7 +131,7 @@ export default class TreemapHelpers {
           foreColor = range.foreColor ? range.foreColor : null
           min = range.from
           max = range.to
-          let rTotal = Math.abs(max) + Math.abs(min)
+          const rTotal = Math.abs(max) + Math.abs(min)
           percent = (100 * val) / (rTotal === 0 ? rTotal - 0.000001 : rTotal)
         }
       })
@@ -145,12 +145,12 @@ export default class TreemapHelpers {
   }
 
   calculateDataLabels({ text, x, y, i, j, colorProps, fontSize }) {
-    let w = this.w
-    let dataLabelsConfig = w.config.dataLabels
+    const w = this.w
+    const dataLabelsConfig = w.config.dataLabels
 
-    const graphics = new Graphics(this.ctx)
+    const graphics = new Graphics(this.w)
 
-    let dataLabels = new DataLabels(this.ctx)
+    const dataLabels = new DataLabels(this.w, this.ctx)
 
     let elDataLabelsWrap = null
 
@@ -162,8 +162,8 @@ export default class TreemapHelpers {
       const offX = dataLabelsConfig.offsetX
       const offY = dataLabelsConfig.offsetY
 
-      let dataLabelsX = x + offX
-      let dataLabelsY =
+      const dataLabelsX = x + offX
+      const dataLabelsY =
         y + parseFloat(dataLabelsConfig.style.fontSize) / 3 + offY
 
       dataLabels.plotDataLabelsText({

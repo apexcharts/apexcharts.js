@@ -16,16 +16,16 @@ export default class PointAnnotations {
     }
 
     let result = this.helpers.getX1X2('x1', anno)
-    let x = result.x
-    let clipX = result.clipped
+    const x = result.x
+    const clipX = result.clipped
     result = this.helpers.getY1Y2('y1', anno)
-    let y = result.yP
-    let clipY = result.clipped
+    const y = result.yP
+    const clipY = result.clipped
 
     if (!Utils.isNumber(x)) return
 
     if (!(clipY || clipX)) {
-      let optsPoints = {
+      const optsPoints = {
         pSize: anno.marker.size,
         pointStrokeWidth: anno.marker.strokeWidth,
         pointFillColor: anno.marker.fillColor,
@@ -47,7 +47,7 @@ export default class PointAnnotations {
 
       const text = anno.label.text ? anno.label.text : ''
 
-      let elText = this.annoCtx.graphics.drawText({
+      const elText = this.annoCtx.graphics.drawText({
         x: x + anno.label.offsetX,
         y:
           y +
@@ -73,7 +73,7 @@ export default class PointAnnotations {
 
       // TODO: deprecate this as we will use custom
       if (anno.customSVG.SVG) {
-        let g = this.annoCtx.graphics.group({
+        const g = this.annoCtx.graphics.group({
           class:
             'apexcharts-point-annotations-custom-svg ' + anno.customSVG.cssClass,
         })
@@ -89,8 +89,8 @@ export default class PointAnnotations {
       }
 
       if (anno.image.path) {
-        let imgWidth = anno.image.width ? anno.image.width : 20
-        let imgHeight = anno.image.height ? anno.image.height : 20
+        const imgWidth = anno.image.width ? anno.image.width : 20
+        const imgHeight = anno.image.height ? anno.image.height : 20
 
         point = this.annoCtx.addImage({
           x: x + anno.image.offsetX - imgWidth / 2,
@@ -121,9 +121,9 @@ export default class PointAnnotations {
   }
 
   drawPointAnnotations() {
-    let w = this.w
+    const w = this.w
 
-    let elg = this.annoCtx.graphics.group({
+    const elg = this.annoCtx.graphics.group({
       class: 'apexcharts-point-annotations',
     })
 

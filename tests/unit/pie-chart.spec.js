@@ -94,7 +94,7 @@ describe('Pie chart', () => {
         labels: [],
       })
       // Should not throw
-      expect(chart.w.globals.series).toBeDefined()
+      expect(chart.getState().series).toBeDefined()
     })
 
     it('should set data:value attributes on slices', () => {

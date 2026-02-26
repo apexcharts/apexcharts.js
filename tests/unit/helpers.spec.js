@@ -72,7 +72,7 @@ describe('UpdateHelpers._extendSeries', () => {
   /** All new fields present → use them; existing series just provides fallbacks. */
   it('uses new values when all fields are provided', () => {
     const w = makeW()
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     const result = uh._extendSeries(
       {
@@ -96,7 +96,7 @@ describe('UpdateHelpers._extendSeries', () => {
 
   it('falls back to existing series values when new fields are absent', () => {
     const w = makeW()
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     // Empty update object — everything should come from w.config.series[1]
     const result = uh._extendSeries({}, 1)
@@ -109,7 +109,7 @@ describe('UpdateHelpers._extendSeries', () => {
 
   it('assigns zIndex from index when not provided', () => {
     const w = makeW()
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     const result = uh._extendSeries({}, 1)
     // when s.zIndex is undefined, zIndex defaults to the series index
@@ -118,7 +118,7 @@ describe('UpdateHelpers._extendSeries', () => {
 
   it('uses explicit zIndex when provided', () => {
     const w = makeW()
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     const result = uh._extendSeries({ zIndex: 99 }, 0)
     expect(result.zIndex).toBe(99)
@@ -126,7 +126,7 @@ describe('UpdateHelpers._extendSeries', () => {
 
   it('correctly sets hidden=false (falsy but defined) from new series', () => {
     const w = makeW()
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     // hidden=false is defined → should use it, not fall back to ser?.hidden
     const result = uh._extendSeries({ hidden: false }, 0)
@@ -135,7 +135,7 @@ describe('UpdateHelpers._extendSeries', () => {
 
   it('merges all existing series fields into the result', () => {
     const w = makeW()
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     // _extendSeries spreads w.config.series[i], so any extra keys survive
     w.config.series[0].customProp = 'kept'
@@ -151,7 +151,7 @@ describe('UpdateHelpers._extendSeries', () => {
 describe('UpdateHelpers.forceXAxisUpdate', () => {
   it('writes min and max from options.xaxis into w.config.xaxis and lastXAxis', () => {
     const w = makeW()
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     const options = { xaxis: { min: 5, max: 80 } }
     uh.forceXAxisUpdate(options)
@@ -166,7 +166,7 @@ describe('UpdateHelpers.forceXAxisUpdate', () => {
     const w = makeW()
     w.config.xaxis.min = 10
     w.config.xaxis.max = 90
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     // options.xaxis has neither min nor max
     uh.forceXAxisUpdate({ xaxis: {} })
@@ -178,7 +178,7 @@ describe('UpdateHelpers.forceXAxisUpdate', () => {
   it('updates xaxis.categories when a non-empty array is supplied', () => {
     const w = makeW()
     w.config.xaxis.categories = []
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     uh.forceXAxisUpdate({ xaxis: { categories: ['Jan', 'Feb', 'Mar'] } })
 
@@ -188,7 +188,7 @@ describe('UpdateHelpers.forceXAxisUpdate', () => {
   it('does not touch categories when the provided array is empty', () => {
     const w = makeW()
     w.config.xaxis.categories = ['A', 'B']
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     uh.forceXAxisUpdate({ xaxis: { categories: [] } })
 
@@ -198,7 +198,7 @@ describe('UpdateHelpers.forceXAxisUpdate', () => {
 
   it('returns the (possibly mutated) options object', () => {
     const w = makeW()
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
     const options = { xaxis: { min: 1, max: 9 } }
 
     const result = uh.forceXAxisUpdate(options)
@@ -213,7 +213,7 @@ describe('UpdateHelpers.forceXAxisUpdate', () => {
 describe('UpdateHelpers.forceYAxisUpdate', () => {
   it('forces min=0 / max=100 on every yaxis entry for 100% stacked charts', () => {
     const w = makeW()
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     const options = {
       chart: { stacked: true, stackType: '100%' },
@@ -233,7 +233,7 @@ describe('UpdateHelpers.forceYAxisUpdate', () => {
 
   it('handles a single-object yaxis (non-array) for 100% stacked', () => {
     const w = makeW()
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     const options = {
       chart: { stacked: true, stackType: '100%' },
@@ -248,7 +248,7 @@ describe('UpdateHelpers.forceYAxisUpdate', () => {
 
   it('does not touch yaxis when chart is stacked but stackType is not 100%', () => {
     const w = makeW()
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     const options = {
       chart: { stacked: true, stackType: 'normal' },
@@ -264,7 +264,7 @@ describe('UpdateHelpers.forceYAxisUpdate', () => {
 
   it('does not touch yaxis when chart is not stacked at all', () => {
     const w = makeW()
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     const options = {
       chart: { stacked: false },
@@ -279,7 +279,7 @@ describe('UpdateHelpers.forceYAxisUpdate', () => {
 
   it('returns the options object', () => {
     const w = makeW()
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
     const options = { chart: { stacked: false }, yaxis: [] }
 
     const result = uh.forceYAxisUpdate(options)
@@ -296,7 +296,7 @@ describe('UpdateHelpers.revertDefaultAxisMinMax', () => {
     const w = makeW()
     w.globals.lastXAxis = { min: 5, max: 95 }
     w.globals.zoomed = false
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     uh.revertDefaultAxisMinMax()
 
@@ -307,7 +307,7 @@ describe('UpdateHelpers.revertDefaultAxisMinMax', () => {
   it('uses opts.xaxis min/max when opts is provided', () => {
     const w = makeW()
     w.globals.lastXAxis = { min: 0, max: 100 }
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     uh.revertDefaultAxisMinMax({ xaxis: { min: 20, max: 60 } })
 
@@ -322,7 +322,7 @@ describe('UpdateHelpers.revertDefaultAxisMinMax', () => {
       { min: 10, max: 200 },
       { min: 0, max: 50 },
     ]
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     uh.revertDefaultAxisMinMax()
 
@@ -342,7 +342,7 @@ describe('UpdateHelpers.revertDefaultAxisMinMax', () => {
         { min: 2, max: 20 },
       ],
     })
-    const uh = new UpdateHelpers(ctx)
+    const uh = new UpdateHelpers(w, ctx)
 
     uh.revertDefaultAxisMinMax()
 
@@ -356,7 +356,7 @@ describe('UpdateHelpers.revertDefaultAxisMinMax', () => {
   it('uses opts.yaxis when provided as override', () => {
     const w = makeW()
     w.globals.zoomed = false
-    const uh = new UpdateHelpers(makeCtx(w))
+    const uh = new UpdateHelpers(w, makeCtx(w))
 
     uh.revertDefaultAxisMinMax({
       yaxis: [
@@ -398,7 +398,7 @@ describe('Localization.setCurrentLocaleValues', () => {
         },
       },
     ])
-    const loc = new Localization(ctx)
+    const loc = new Localization(ctx.w)
 
     loc.setCurrentLocaleValues('fr')
 
@@ -418,7 +418,7 @@ describe('Localization.setCurrentLocaleValues', () => {
         },
       },
     ])
-    const loc = new Localization(ctx)
+    const loc = new Localization(ctx.w)
     loc.setCurrentLocaleValues('partial')
 
     // 'toolbar.download' was overridden
@@ -430,7 +430,7 @@ describe('Localization.setCurrentLocaleValues', () => {
 
   it('throws when the locale name is not found in chart.locales', () => {
     const ctx = makeLocCtx([{ name: 'de', options: {} }])
-    const loc = new Localization(ctx)
+    const loc = new Localization(ctx.w)
 
     expect(() => loc.setCurrentLocaleValues('es')).toThrow(
       'Wrong locale name provided',
@@ -440,7 +440,7 @@ describe('Localization.setCurrentLocaleValues', () => {
   it('uses the "en" built-in locale directly when name matches English defaults', () => {
     // An empty options object should still produce a valid locale after merge
     const ctx = makeLocCtx([{ name: 'en', options: {} }])
-    const loc = new Localization(ctx)
+    const loc = new Localization(ctx.w)
 
     loc.setCurrentLocaleValues('en')
 
@@ -689,12 +689,19 @@ describe('LegendHelpers.riseCollapsedSeries', () => {
     // Create a stub for updateHelpers._updateSeries so we can verify it is called
     const updateHelperStub = { _updateSeries: vi.fn() }
     const ctx = { w, updateHelpers: updateHelperStub }
-    return { w, ctx, updateHelperStub }
+    // lgCtx must have updateSeries callback (set by Legend constructor)
+    const lgCtx = {
+      w,
+      ctx,
+      updateSeries: (...a) => ctx.updateHelpers._updateSeries(...a),
+      printDataLabelsInner: () => {},
+    }
+    return { w, ctx, lgCtx, updateHelperStub }
   }
 
   it('does nothing and never calls _updateSeries when collapsedSeries is empty', () => {
-    const { w, ctx, updateHelperStub } = makeLgCtxFull()
-    const helpers = new LegendHelpers({ w, ctx })
+    const { lgCtx, updateHelperStub } = makeLgCtxFull()
+    const helpers = new LegendHelpers(lgCtx)
 
     helpers.riseCollapsedSeries([], [], 0)
 
@@ -703,11 +710,11 @@ describe('LegendHelpers.riseCollapsedSeries', () => {
 
   it('restores original data for a matching realIndex from collapsedSeries', () => {
     const originalData = [10, 20, 30]
-    const { w, ctx } = makeLgCtxFull({
+    const { w, lgCtx } = makeLgCtxFull({
       collapsedSeries: [{ index: 0, data: originalData.slice(), type: 'line' }],
       collapsedSeriesIndices: [0],
     })
-    const helpers = new LegendHelpers({ w, ctx })
+    const helpers = new LegendHelpers(lgCtx)
 
     helpers.riseCollapsedSeries(
       w.globals.collapsedSeries,
@@ -720,11 +727,11 @@ describe('LegendHelpers.riseCollapsedSeries', () => {
   })
 
   it('removes the entry from collapsedSeries and collapsedSeriesIndices after rising', () => {
-    const { w, ctx } = makeLgCtxFull({
+    const { w, lgCtx } = makeLgCtxFull({
       collapsedSeries: [{ index: 1, data: [4, 5, 6], type: 'bar' }],
       collapsedSeriesIndices: [1],
     })
-    const helpers = new LegendHelpers({ w, ctx })
+    const helpers = new LegendHelpers(lgCtx)
 
     helpers.riseCollapsedSeries(
       w.globals.collapsedSeries,
@@ -737,12 +744,12 @@ describe('LegendHelpers.riseCollapsedSeries', () => {
   })
 
   it('adds the risen realIndex to risingSeries', () => {
-    const { w, ctx } = makeLgCtxFull({
+    const { w, lgCtx } = makeLgCtxFull({
       collapsedSeries: [{ index: 0, data: [1], type: 'line' }],
       collapsedSeriesIndices: [0],
       risingSeries: [],
     })
-    const helpers = new LegendHelpers({ w, ctx })
+    const helpers = new LegendHelpers(lgCtx)
 
     helpers.riseCollapsedSeries(
       w.globals.collapsedSeries,
@@ -754,11 +761,11 @@ describe('LegendHelpers.riseCollapsedSeries', () => {
   })
 
   it('calls _updateSeries when a series is risen', () => {
-    const { w, ctx, updateHelperStub } = makeLgCtxFull({
+    const { w, lgCtx, updateHelperStub } = makeLgCtxFull({
       collapsedSeries: [{ index: 0, data: [1, 2], type: 'line' }],
       collapsedSeriesIndices: [0],
     })
-    const helpers = new LegendHelpers({ w, ctx })
+    const helpers = new LegendHelpers(lgCtx)
 
     helpers.riseCollapsedSeries(
       w.globals.collapsedSeries,
@@ -770,14 +777,14 @@ describe('LegendHelpers.riseCollapsedSeries', () => {
   })
 
   it('only rises the matching series, leaving unrelated collapsed entries intact', () => {
-    const { w, ctx } = makeLgCtxFull({
+    const { w, lgCtx } = makeLgCtxFull({
       collapsedSeries: [
         { index: 0, data: [10], type: 'line' },
         { index: 1, data: [40], type: 'bar' },
       ],
       collapsedSeriesIndices: [0, 1],
     })
-    const helpers = new LegendHelpers({ w, ctx })
+    const helpers = new LegendHelpers(lgCtx)
 
     // Only rise series at realIndex=0
     helpers.riseCollapsedSeries(

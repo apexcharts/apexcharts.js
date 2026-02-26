@@ -7,9 +7,9 @@ import Utils from '../utils/Utils'
  **/
 
 export default class Animations {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w, ctx) {
+    this.w = w
+    this.ctx = ctx // kept for animationEnd user callback: chart.events.animationEnd(ctx, …)
   }
 
   animateLine(el, from, to, speed) {
@@ -43,10 +43,10 @@ export default class Animations {
   }
 
   animatePathsGradually(params) {
-    let { el, realIndex, j, fill, pathFrom, pathTo, speed, delay } = params
+    const { el, realIndex, j, fill, pathFrom, pathTo, speed, delay } = params
 
-    let me = this
-    let w = this.w
+    const me = this
+    const w = this.w
 
     let delayFactor = 0
 
@@ -98,7 +98,7 @@ export default class Animations {
 
   // SVG.js animation for morphing one path to another
   morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay) {
-    let w = this.w
+    const w = this.w
 
     if (!pathFrom) {
       pathFrom = el.attr('pathFrom')

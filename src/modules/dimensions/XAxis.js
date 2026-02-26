@@ -15,7 +15,7 @@ export default class DimXAxis {
    * @return {{width, height}}
    **/
   getxAxisLabelsCoords() {
-    let w = this.w
+    const w = this.w
 
     let xaxisLabels = w.globals.labels.slice()
     if (w.config.xaxis.convertedCatToNumeric && xaxisLabels.length === 0) {
@@ -40,7 +40,7 @@ export default class DimXAxis {
           : 0
 
       // get the longest string from the labels array and also apply label formatter
-      let xlbFormatter = w.globals.xLabelFormatter
+      const xlbFormatter = w.globals.xLabelFormatter
       // prevent changing xaxisLabels to avoid issues in multi-yaxes - fix #522
       let val = Utils.getLargestStringFromArr(xaxisLabels)
       let valArr = this.dCtx.dimHelpers.getLargestStringFromMultiArr(
@@ -57,16 +57,16 @@ export default class DimXAxis {
         valArr = val
       }
 
-      let xFormat = new Formatters(this.dCtx.ctx)
-      let timestamp = val
+      const xFormat = new Formatters(this.w)
+      const timestamp = val
       val = xFormat.xLabelFormat(xlbFormatter, val, timestamp, {
         i: undefined,
-        dateFormatter: new DateTime(this.dCtx.ctx).formatDate,
+        dateFormatter: new DateTime(this.w).formatDate,
         w,
       })
       valArr = xFormat.xLabelFormat(xlbFormatter, valArr, timestamp, {
         i: undefined,
-        dateFormatter: new DateTime(this.dCtx.ctx).formatDate,
+        dateFormatter: new DateTime(this.w).formatDate,
         w,
       })
 
@@ -78,7 +78,7 @@ export default class DimXAxis {
         valArr = val
       }
 
-      let graphics = new Graphics(this.dCtx.ctx)
+      const graphics = new Graphics(this.w)
       let xLabelrect = graphics.getTextRects(
         val,
         w.config.xaxis.labels.style.fontSize
@@ -161,7 +161,7 @@ export default class DimXAxis {
    * @return {{width, height}}
    */
   getxAxisGroupLabelsCoords() {
-    let w = this.w
+    const w = this.w
 
     if (!w.globals.hasXaxisGroups) {
       return { width: 0, height: 0 }
@@ -171,19 +171,19 @@ export default class DimXAxis {
       w.config.xaxis.group.style?.fontSize ||
       w.config.xaxis.labels.style.fontSize
 
-    let xaxisLabels = w.globals.groups.map((g) => g.title)
+    const xaxisLabels = w.globals.groups.map((g) => g.title)
 
     let rect
 
     // prevent changing xaxisLabels to avoid issues in multi-yaxes - fix #522
-    let val = Utils.getLargestStringFromArr(xaxisLabels)
-    let valArr = this.dCtx.dimHelpers.getLargestStringFromMultiArr(
+    const val = Utils.getLargestStringFromArr(xaxisLabels)
+    const valArr = this.dCtx.dimHelpers.getLargestStringFromMultiArr(
       val,
       xaxisLabels
     )
 
-    let graphics = new Graphics(this.dCtx.ctx)
-    let xLabelrect = graphics.getTextRects(val, fontSize)
+    const graphics = new Graphics(this.w)
+    const xLabelrect = graphics.getTextRects(val, fontSize)
     let xArrLabelrect = xLabelrect
     if (val !== valArr) {
       xArrLabelrect = graphics.getTextRects(valArr, fontSize)
@@ -219,14 +219,14 @@ export default class DimXAxis {
    * @return {{width, height}}
    **/
   getxAxisTitleCoords() {
-    let w = this.w
+    const w = this.w
     let width = 0
     let height = 0
 
     if (w.config.xaxis.title.text !== undefined) {
-      let graphics = new Graphics(this.dCtx.ctx)
+      const graphics = new Graphics(this.w)
 
-      let rect = graphics.getTextRects(
+      const rect = graphics.getTextRects(
         w.config.xaxis.title.text,
         w.config.xaxis.title.style.fontSize
       )
@@ -242,15 +242,13 @@ export default class DimXAxis {
   }
 
   getxAxisTimeScaleLabelsCoords() {
-    let w = this.w
-    let rect
-
+    const w = this.w
     this.dCtx.timescaleLabels = w.globals.timescaleLabels.slice()
 
-    let labels = this.dCtx.timescaleLabels.map((label) => label.value)
+    const labels = this.dCtx.timescaleLabels.map((label) => label.value)
 
     //  get the longest string from the labels array and also apply label formatter to it
-    let val = labels.reduce((a, b) => {
+    const val = labels.reduce((a, b) => {
       // if undefined, maybe user didn't pass the datetime(x) values
       if (typeof a === 'undefined') {
         console.error(
@@ -262,10 +260,10 @@ export default class DimXAxis {
       }
     }, 0)
 
-    let graphics = new Graphics(this.dCtx.ctx)
-    rect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize)
+    const graphics = new Graphics(this.w)
+    const rect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize)
 
-    let totalWidthRotated = rect.width * 1.05 * labels.length
+    const totalWidthRotated = rect.width * 1.05 * labels.length
 
     if (
       totalWidthRotated > w.globals.gridWidth &&
@@ -285,7 +283,7 @@ export default class DimXAxis {
     const cnf = w.config
     const xtype = cnf.xaxis.type
 
-    let lbWidth = xaxisLabelCoords.width
+    const lbWidth = xaxisLabelCoords.width
 
     gl.skipLastTimelinelabel = false
     gl.skipFirstTimelinelabel = false
@@ -311,7 +309,7 @@ export default class DimXAxis {
           lbWidth / 1.75 +
           this.dCtx.yAxisWidthLeft
 
-        let lgRightRectWidth =
+        const lgRightRectWidth =
           w.config.legend.position === 'right' && this.dCtx.lgRect.width > 0
             ? this.dCtx.lgRect.width
             : 0

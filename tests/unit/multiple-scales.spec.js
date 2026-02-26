@@ -36,9 +36,7 @@ describe('Multiple Y-axis Scales', () => {
       ],
     })
 
-    const minYArr = chart.w.globals.minYArr
-    const maxYArr = chart.w.globals.maxYArr
-    const yAxisScale = chart.w.globals.yAxisScale
+    const { minYArr, maxYArr, yAxisScale } = chart.getState()
 
     expect(minYArr).toEqual([1000000, 1000000])
 
@@ -95,9 +93,7 @@ describe('Multiple Y-axis Scales', () => {
       ],
     })
 
-    const minYArr = chart.w.globals.minYArr
-    const maxYArr = chart.w.globals.maxYArr
-    const yAxisScale = chart.w.globals.yAxisScale
+    const { minYArr, maxYArr, yAxisScale } = chart.getState()
 
     expect(minYArr).toEqual([1000000, 1000000])
 
@@ -156,20 +152,17 @@ describe('Multiple Y-axis Scales', () => {
       ],
     })
 
-    const minYArr = chart.w.globals.minYArr
-    const maxYArr = chart.w.globals.maxYArr
-    const yAxisMap = chart.w.globals.seriesYAxisMap
-    const yAxisRevMap = chart.w.globals.seriesYAxisReverseMap
+    const { minYArr, maxYArr, seriesYAxisMap, seriesYAxisReverseMap } = chart.getState()
 
     expect(minYArr).toEqual([1000000, 1000000, 1000000, 1000000])
 
     expect(maxYArr).toEqual([500000000, 500000000, 500000000, 500000000])
 
-    expect(yAxisMap).toEqual([
+    expect(seriesYAxisMap).toEqual([
       [0, 1],
       [2, 3],
     ])
-    expect(yAxisRevMap).toEqual([0, 0, 1, 1])
+    expect(seriesYAxisReverseMap).toEqual([0, 0, 1, 1])
   })
 
   it('should associate series to yaxes according to seriesName then assign remainder to last free axis', () => {
@@ -210,20 +203,17 @@ describe('Multiple Y-axis Scales', () => {
       ],
     })
 
-    const minYArr = chart.w.globals.minYArr
-    const maxYArr = chart.w.globals.maxYArr
-    const yAxisMap = chart.w.globals.seriesYAxisMap
-    const yAxisRevMap = chart.w.globals.seriesYAxisReverseMap
+    const { minYArr, maxYArr, seriesYAxisMap, seriesYAxisReverseMap } = chart.getState()
 
     expect(minYArr).toEqual([1000000, 1000000, 1000000, 1000000])
 
     expect(maxYArr).toEqual([500000000, 500000000, 500000000, 500000000])
 
-    expect(yAxisMap).toEqual([
+    expect(seriesYAxisMap).toEqual([
       [0, 1],
       [2, 3],
     ])
-    expect(yAxisRevMap).toEqual([0, 0, 1, 1])
+    expect(seriesYAxisReverseMap).toEqual([0, 0, 1, 1])
   })
 
   it('should associate series to yaxes according to seriesName then assign remainder to last axis', () => {
@@ -265,20 +255,17 @@ describe('Multiple Y-axis Scales', () => {
       ],
     })
 
-    const minYArr = chart.w.globals.minYArr
-    const maxYArr = chart.w.globals.maxYArr
-    const yAxisMap = chart.w.globals.seriesYAxisMap
-    const yAxisRevMap = chart.w.globals.seriesYAxisReverseMap
+    const { minYArr, maxYArr, seriesYAxisMap, seriesYAxisReverseMap } = chart.getState()
 
     expect(minYArr).toEqual([1000000, 1000000, 1000000, 1000000])
 
     expect(maxYArr).toEqual([500000000, 500000000, 500000000, 500000000])
 
-    expect(yAxisMap).toEqual([
+    expect(seriesYAxisMap).toEqual([
       [0, 1],
       [2, 3],
     ])
-    expect(yAxisRevMap).toEqual([0, 0, 1, 1])
+    expect(seriesYAxisReverseMap).toEqual([0, 0, 1, 1])
   })
 
   it('should associate series to yaxes according to seriesName then assign remainder one-for-one', () => {
@@ -324,17 +311,14 @@ describe('Multiple Y-axis Scales', () => {
       ],
     })
 
-    const minYArr = chart.w.globals.minYArr
-    const maxYArr = chart.w.globals.maxYArr
-    const yAxisMap = chart.w.globals.seriesYAxisMap
-    const yAxisRevMap = chart.w.globals.seriesYAxisReverseMap
+    const { minYArr, maxYArr, seriesYAxisMap, seriesYAxisReverseMap } = chart.getState()
 
     expect(minYArr).toEqual([1000000, 1000000, 1000000, 1000000])
 
     expect(maxYArr).toEqual([500000000, 500000000, 500000000, 500000000])
 
-    expect(yAxisMap).toEqual([[0, 1], [2], [3]])
-    expect(yAxisRevMap).toEqual([0, 0, 1, 2])
+    expect(seriesYAxisMap).toEqual([[0, 1], [2], [3]])
+    expect(seriesYAxisReverseMap).toEqual([0, 0, 1, 2])
   })
 
   it('should associate series to yaxes according to seriesName before assigning remainder one-for-one', () => {
@@ -379,16 +363,13 @@ describe('Multiple Y-axis Scales', () => {
       ],
     })
 
-    const minYArr = chart.w.globals.minYArr
-    const maxYArr = chart.w.globals.maxYArr
-    const yAxisMap = chart.w.globals.seriesYAxisMap
-    const yAxisRevMap = chart.w.globals.seriesYAxisReverseMap
+    const { minYArr, maxYArr, seriesYAxisMap, seriesYAxisReverseMap } = chart.getState()
 
     expect(minYArr).toEqual([1000000, 1000000, 1000000, 1000000])
 
     expect(maxYArr).toEqual([500000000, 500000000, 500000000, 500000000])
 
-    expect(yAxisMap).toEqual([[2], [0, 1], [3]])
-    expect(yAxisRevMap).toEqual([1, 1, 0, 2])
+    expect(seriesYAxisMap).toEqual([[2], [0, 1], [3]])
+    expect(seriesYAxisReverseMap).toEqual([1, 1, 0, 2])
   })
 })

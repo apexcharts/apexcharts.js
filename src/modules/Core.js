@@ -28,9 +28,9 @@ import {
  **/
 
 export default class Core {
-  constructor(el, ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(el, w, ctx) {
+    this.w = w
+    this.ctx = ctx // needed: timeScale, updateHelpers, chart type instantiation
     this.el = el
   }
 
@@ -73,27 +73,27 @@ export default class Core {
       cnf.plotOptions.bar.horizontal
 
     gl.chartClass = `.apexcharts${gl.chartID}`
-    gl.dom.baseEl = this.el
+    this.w.dom.baseEl = this.el
 
-    gl.dom.elWrap = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
-    Graphics.setAttrs(gl.dom.elWrap, {
+    this.w.dom.elWrap = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
+    Graphics.setAttrs(this.w.dom.elWrap, {
       id: gl.chartClass.substring(1),
       class: `apexcharts-canvas ${gl.chartClass.substring(1)}`,
     })
-    this.el.appendChild(gl.dom.elWrap)
+    this.el.appendChild(this.w.dom.elWrap)
 
-    // gl.dom.Paper = new window.SVG.Doc(gl.dom.elWrap)
+    // this.w.dom.Paper = new window.SVG.Doc(this.w.dom.elWrap)
     // Access SVG from appropriate global scope
     const SVG = Environment.isBrowser() ? window.SVG : global.SVG
-    gl.dom.Paper = SVG().addTo(gl.dom.elWrap)
+    this.w.dom.Paper = SVG().addTo(this.w.dom.elWrap)
 
-    gl.dom.Paper.attr({
+    this.w.dom.Paper.attr({
       class: 'apexcharts-svg',
       'xmlns:data': 'ApexChartsNS',
       transform: `translate(${cnf.chart.offsetX}, ${cnf.chart.offsetY})`,
     })
 
-    gl.dom.Paper.node.style.background =
+    this.w.dom.Paper.node.style.background =
       cnf.theme.mode === 'dark' && !cnf.chart.background
         ? '#343A3F'
         : cnf.theme.mode === 'light' && !cnf.chart.background
@@ -103,19 +103,19 @@ export default class Core {
     this.setSVGDimensions()
 
     // foreignObject must be added first (at the back in z-order) to prevent blocking interactions
-    gl.dom.elLegendForeign = BrowserAPIs.createElementNS(gl.SVGNS, 'foreignObject')
-    Graphics.setAttrs(gl.dom.elLegendForeign, {
+    this.w.dom.elLegendForeign = BrowserAPIs.createElementNS(gl.SVGNS, 'foreignObject')
+    Graphics.setAttrs(this.w.dom.elLegendForeign, {
       x: 0,
       y: 0,
       width: gl.svgWidth,
       height: gl.svgHeight,
     })
 
-    gl.dom.elLegendWrap = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
-    gl.dom.elLegendWrap.classList.add('apexcharts-legend')
+    this.w.dom.elLegendWrap = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
+    this.w.dom.elLegendWrap.classList.add('apexcharts-legend')
 
-    gl.dom.elWrap.appendChild(gl.dom.elLegendWrap)
-    gl.dom.Paper.node.appendChild(gl.dom.elLegendForeign)
+    this.w.dom.elWrap.appendChild(this.w.dom.elLegendWrap)
+    this.w.dom.Paper.node.appendChild(this.w.dom.elLegendForeign)
 
     // Add accessibility elements after foreignObject to maintain proper z-order
     if (cnf.chart.accessibility.enabled) {
@@ -130,7 +130,7 @@ export default class Core {
           ? 'application'
           : 'img'
 
-      gl.dom.Paper.attr({
+      this.w.dom.Paper.attr({
         role: svgRole,
         'aria-label': ariaLabel,
       })
@@ -139,23 +139,23 @@ export default class Core {
       const titleEl = BrowserAPIs.createElementNS(gl.SVGNS, 'title')
       titleEl.textContent = cnf.title.text || 'Chart'
       // Insert after foreignObject but before other elements
-      gl.dom.Paper.node.insertBefore(titleEl, gl.dom.elLegendForeign.nextSibling)
+      this.w.dom.Paper.node.insertBefore(titleEl, this.w.dom.elLegendForeign.nextSibling)
 
       // Add desc element when description is provided
       if (cnf.chart.accessibility.description) {
         const descEl = BrowserAPIs.createElementNS(gl.SVGNS, 'desc')
         descEl.textContent = cnf.chart.accessibility.description
-        gl.dom.Paper.node.insertBefore(descEl, titleEl.nextSibling)
+        this.w.dom.Paper.node.insertBefore(descEl, titleEl.nextSibling)
       }
     }
 
-    gl.dom.elGraphical = gl.dom.Paper.group().attr({
+    this.w.dom.elGraphical = this.w.dom.Paper.group().attr({
       class: 'apexcharts-inner apexcharts-graphical',
     })
 
-    gl.dom.elDefs = gl.dom.Paper.defs()
-    gl.dom.Paper.add(gl.dom.elGraphical)
-    gl.dom.elGraphical.add(gl.dom.elDefs)
+    this.w.dom.elDefs = this.w.dom.Paper.defs()
+    this.w.dom.Paper.add(this.w.dom.elGraphical)
+    this.w.dom.elGraphical.add(this.w.dom.elDefs)
   }
 
   plotChartType(ser, xyRatios) {
@@ -231,16 +231,16 @@ export default class Core {
     }
     gl.comboCharts ||= comboCount > 0
 
-    const line = new Line(ctx, xyRatios)
-    const boxCandlestick = new BoxCandleStick(ctx, xyRatios)
-    ctx.pie = new Pie(ctx)
-    const radialBar = new Radial(ctx)
-    ctx.rangeBar = new RangeBar(ctx, xyRatios)
-    const radar = new Radar(ctx)
+    const line = new Line(ctx.w, ctx, xyRatios)
+    const boxCandlestick = new BoxCandleStick(ctx.w, ctx, xyRatios)
+    ctx.pie = new Pie(ctx.w, ctx)
+    const radialBar = new Radial(ctx.w, ctx)
+    ctx.rangeBar = new RangeBar(ctx.w, ctx, xyRatios)
+    const radar = new Radar(ctx.w, ctx)
     let elGraph = []
 
     if (gl.comboCharts) {
-      const coreUtils = new CoreUtils(ctx)
+      const coreUtils = new CoreUtils(this.w)
       if (seriesTypes.area.series.length > 0) {
         elGraph.push(
           ...coreUtils.drawSeriesByGroup(
@@ -253,12 +253,12 @@ export default class Core {
       }
       if (seriesTypes.bar.series.length > 0) {
         if (cnf.chart.stacked) {
-          const barStacked = new BarStacked(ctx, xyRatios)
+          const barStacked = new BarStacked(ctx.w, ctx, xyRatios)
           elGraph.push(
             barStacked.draw(seriesTypes.bar.series, seriesTypes.bar.i)
           )
         } else {
-          ctx.bar = new Bar(ctx, xyRatios)
+          ctx.bar = new Bar(ctx.w, ctx, xyRatios)
           elGraph.push(ctx.bar.draw(seriesTypes.bar.series, seriesTypes.bar.i))
         }
       }
@@ -306,7 +306,7 @@ export default class Core {
         )
       }
       if (seriesTypes.scatter.series.length > 0) {
-        const scatterLine = new Line(ctx, xyRatios, true)
+        const scatterLine = new Line(ctx.w, ctx, xyRatios, true)
         elGraph.push(
           scatterLine.draw(
             seriesTypes.scatter.series,
@@ -316,7 +316,7 @@ export default class Core {
         )
       }
       if (seriesTypes.bubble.series.length > 0) {
-        const bubbleLine = new Line(ctx, xyRatios, true)
+        const bubbleLine = new Line(ctx.w, ctx, xyRatios, true)
         elGraph.push(
           bubbleLine.draw(
             seriesTypes.bubble.series,
@@ -335,20 +335,20 @@ export default class Core {
           break
         case 'bar':
           if (cnf.chart.stacked) {
-            const barStacked = new BarStacked(ctx, xyRatios)
+            const barStacked = new BarStacked(ctx.w, ctx, xyRatios)
             elGraph = barStacked.draw(gl.series)
           } else {
-            ctx.bar = new Bar(ctx, xyRatios)
+            ctx.bar = new Bar(ctx.w, ctx, xyRatios)
             elGraph = ctx.bar.draw(gl.series)
           }
           break
         case 'candlestick': {
-          const candleStick = new BoxCandleStick(ctx, xyRatios)
+          const candleStick = new BoxCandleStick(ctx.w, ctx, xyRatios)
           elGraph = candleStick.draw(gl.series, 'candlestick')
           break
         }
         case 'boxPlot': {
-          const boxPlot = new BoxCandleStick(ctx, xyRatios)
+          const boxPlot = new BoxCandleStick(ctx.w, ctx, xyRatios)
           elGraph = boxPlot.draw(gl.series, cnf.chart.type)
           break
         }
@@ -364,12 +364,12 @@ export default class Core {
           )
           break
         case 'heatmap': {
-          const heatmap = new HeatMap(ctx, xyRatios)
+          const heatmap = new HeatMap(ctx.w, ctx, xyRatios)
           elGraph = heatmap.draw(gl.series)
           break
         }
         case 'treemap': {
-          const treemap = new Treemap(ctx)
+          const treemap = new Treemap(ctx.w, ctx)
           elGraph = treemap.draw(gl.series)
           break
         }
@@ -436,7 +436,7 @@ export default class Core {
     gl.svgWidth = Math.max(gl.svgWidth, 0)
     gl.svgHeight = Math.max(gl.svgHeight, 0)
 
-    Graphics.setAttrs(gl.dom.Paper.node, {
+    Graphics.setAttrs(this.w.dom.Paper.node, {
       width: gl.svgWidth,
       height: gl.svgHeight,
     })
@@ -447,20 +447,20 @@ export default class Core {
         : gl.axisCharts
         ? cnf.chart.parentHeightOffset
         : 0
-      gl.dom.Paper.node.parentNode.parentNode.style.minHeight = `${
+      this.w.dom.Paper.node.parentNode.parentNode.style.minHeight = `${
         gl.svgHeight + offsetY
       }px`
     }
 
-    gl.dom.elWrap.style.width = `${gl.svgWidth}px`
-    gl.dom.elWrap.style.height = `${gl.svgHeight}px`
+    this.w.dom.elWrap.style.width = `${gl.svgWidth}px`
+    this.w.dom.elWrap.style.height = `${gl.svgHeight}px`
   }
 
   shiftGraphPosition() {
     const { globals: gl } = this.w
     const { translateY: tY, translateX: tX } = gl
 
-    Graphics.setAttrs(gl.dom.elGraphical.node, {
+    Graphics.setAttrs(this.w.dom.elGraphical.node, {
       transform: `translate(${tX}, ${tY})`,
     })
   }
@@ -479,10 +479,10 @@ export default class Core {
       !w.config.legend.floating
     ) {
       legendHeight =
-        new Legend(this.ctx).legendHelpers.getLegendDimensions().clwh + 7
+        new Legend(this.w, this.ctx).legendHelpers.getLegendDimensions().clwh + 7
     }
 
-    const el = w.globals.dom.baseEl.querySelector(
+    const el = w.dom.baseEl.querySelector(
       '.apexcharts-radialbar, .apexcharts-pie'
     )
     let chartInnerDimensions = w.globals.radialSize * 2.05
@@ -502,20 +502,20 @@ export default class Core {
       chartInnerDimensions + gl.translateY + legendHeight + offY
     )
 
-    if (gl.dom.elLegendForeign) {
-      gl.dom.elLegendForeign.setAttribute('height', newHeight)
+    if (this.w.dom.elLegendForeign) {
+      this.w.dom.elLegendForeign.setAttribute('height', newHeight)
     }
 
     if (w.config.chart.height && String(w.config.chart.height).includes('%'))
       return
 
-    gl.dom.elWrap.style.height = `${newHeight}px`
-    Graphics.setAttrs(gl.dom.Paper.node, { height: newHeight })
-    gl.dom.Paper.node.parentNode.parentNode.style.minHeight = `${newHeight}px`
+    this.w.dom.elWrap.style.height = `${newHeight}px`
+    Graphics.setAttrs(this.w.dom.Paper.node, { height: newHeight })
+    this.w.dom.Paper.node.parentNode.parentNode.style.minHeight = `${newHeight}px`
   }
 
   coreCalculations() {
-    new Range(this.ctx).init()
+    new Range(this.w).init()
   }
 
   resetGlobals() {
@@ -553,17 +553,17 @@ export default class Core {
 
     if (w.globals.axisCharts) {
       if (w.config.xaxis.crosshairs.position === 'back') {
-        new Crosshairs(this.ctx).drawXCrosshairs()
+        new Crosshairs(this.w).drawXCrosshairs()
       }
       if (w.config.yaxis[0].crosshairs.position === 'back') {
-        new Crosshairs(this.ctx).drawYCrosshairs()
+        new Crosshairs(this.w).drawYCrosshairs()
       }
 
       if (
         w.config.xaxis.type === 'datetime' &&
         w.config.xaxis.labels.formatter === undefined
       ) {
-        this.ctx.timeScale = new TimeScale(this.ctx)
+        this.ctx.timeScale = new TimeScale(this.w, this.ctx)
         let formattedTimeScale = []
         if (
           isFinite(w.globals.minX) &&
@@ -583,7 +583,7 @@ export default class Core {
         this.ctx.timeScale.recalcDimensionsBasedOnFormat(formattedTimeScale)
       }
 
-      const coreUtils = new CoreUtils(this.ctx)
+      const coreUtils = new CoreUtils(this.w)
       xyRatios = coreUtils.getCalculatedRatios()
     }
     return xyRatios

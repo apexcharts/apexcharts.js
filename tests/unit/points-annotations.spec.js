@@ -338,7 +338,7 @@ describe('PointsAnnotations', () => {
         series: [{ data: [10, 20, 30, 40, 50] }],
       })
 
-      const annoCtx = new Annotations(chart)
+      const annoCtx = new Annotations(chart.w)
       const points = new PointsAnnotations(annoCtx)
       const parent = chart.w.globals.dom.baseEl.querySelector(
         '.apexcharts-point-annotations'
@@ -372,7 +372,7 @@ describe('PointsAnnotations', () => {
       // Mark series 1 as collapsed
       chart.w.globals.collapsedSeriesIndices = [1]
 
-      const annoCtx = new Annotations(chart)
+      const annoCtx = new Annotations(chart.w)
       const points = new PointsAnnotations(annoCtx)
       const parent = chart.w.globals.dom.baseEl.querySelector(
         '.apexcharts-point-annotations'

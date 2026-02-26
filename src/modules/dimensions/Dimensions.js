@@ -11,9 +11,11 @@ import Grid from './Grid'
  **/
 
 export default class Dimensions {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w, ctx) {
+    this.w = w
+    this.ctx = ctx // needed: new XAxis(w, ctx) for xAxisLabelClick event callback
+    this.theme = ctx.theme
+    this.timeScale = ctx.timeScale
     this.lgRect = {}
     this.yAxisWidth = 0
     this.yAxisWidthLeft = 0
@@ -36,8 +38,8 @@ export default class Dimensions {
    * @param {object} w - chart context
    **/
   plotCoords() {
-    let w = this.w
-    let gl = w.globals
+    const w = this.w
+    const gl = w.globals
 
     this.lgRect = this.dimHelpers.getLegendsRect()
     this.datalabelsCoords = { width: 0, height: 0 }
@@ -80,7 +82,7 @@ export default class Dimensions {
       this.xPadRight -
       this.xPadLeft
 
-    let barWidth = this.dimGrid.gridPadForColumnsInNumericAxis(gl.gridWidth)
+    const barWidth = this.dimGrid.gridPadForColumnsInNumericAxis(gl.gridWidth)
 
     gl.gridWidth = gl.gridWidth - barWidth * 2
 
@@ -93,11 +95,11 @@ export default class Dimensions {
   }
 
   setDimensionsForAxisCharts() {
-    let w = this.w
-    let gl = w.globals
+    const w = this.w
+    const gl = w.globals
 
-    let yaxisLabelCoords = this.dimYAxis.getyAxisLabelsCoords()
-    let yTitleCoords = this.dimYAxis.getyAxisTitleCoords()
+    const yaxisLabelCoords = this.dimYAxis.getyAxisLabelsCoords()
+    const yTitleCoords = this.dimYAxis.getyAxisTitleCoords()
 
     if (gl.isSlopeChart) {
       this.datalabelsCoords = this.dimHelpers.getDatalabelsRect()
@@ -119,9 +121,9 @@ export default class Dimensions {
 
     this.yAxisWidth = this.dimYAxis.getTotalYAxisWidth()
 
-    let xaxisLabelCoords = this.dimXAxis.getxAxisLabelsCoords()
-    let xaxisGroupLabelCoords = this.dimXAxis.getxAxisGroupLabelsCoords()
-    let xtitleCoords = this.dimXAxis.getxAxisTitleCoords()
+    const xaxisLabelCoords = this.dimXAxis.getxAxisLabelsCoords()
+    const xaxisGroupLabelCoords = this.dimXAxis.getxAxisGroupLabelsCoords()
+    const xtitleCoords = this.dimXAxis.getxAxisTitleCoords()
 
     this.conditionalChecksForAxisCoords(
       xaxisLabelCoords,
@@ -231,14 +233,14 @@ export default class Dimensions {
     this.dimGrid.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords)
 
     // after drawing everything, set the Y axis positions
-    let objyAxis = new YAxis(this.ctx)
+    const objyAxis = new YAxis(this.w, { theme: this.theme, timeScale: this.timeScale })
     objyAxis.setYAxisXPosition(yaxisLabelCoords, yTitleCoords)
   }
 
   setDimensionsForNonAxisCharts() {
-    let w = this.w
-    let gl = w.globals
-    let cnf = w.config
+    const w = this.w
+    const gl = w.globals
+    const cnf = w.config
     let xPad = 0
 
     if (w.config.legend.show && !w.config.legend.floating) {
@@ -252,13 +254,13 @@ export default class Dimensions {
         ? 'pie'
         : 'radialBar'
 
-    let offY = cnf.plotOptions[type].offsetY
-    let offX = cnf.plotOptions[type].offsetX
+    const offY = cnf.plotOptions[type].offsetY
+    const offX = cnf.plotOptions[type].offsetX
 
     if (!cnf.legend.show || cnf.legend.floating) {
       gl.gridHeight = gl.svgHeight
 
-      const maxWidth = gl.dom.elWrap.getBoundingClientRect().width
+      const maxWidth = w.dom.elWrap.getBoundingClientRect().width
       gl.gridWidth = Math.min(maxWidth, gl.gridHeight)
 
       gl.translateY = offY

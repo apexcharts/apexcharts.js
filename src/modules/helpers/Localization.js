@@ -4,9 +4,8 @@ import { Environment } from '../../utils/Environment.js'
 import en from '../../locales/en.json'
 
 export default class Localization {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
+  constructor(w) {
+    this.w = w
   }
 
   setCurrentLocaleValues(localeName) {
@@ -28,7 +27,7 @@ export default class Localization {
 
     if (selectedLocale) {
       // create a complete locale object by extending defaults so you don't get undefined errors.
-      let ret = Utils.extend(en, selectedLocale)
+      const ret = Utils.extend(en, selectedLocale)
 
       // store these locale options in global var for ease access
       this.w.globals.locale = ret.options

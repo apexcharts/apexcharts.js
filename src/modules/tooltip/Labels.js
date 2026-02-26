@@ -13,13 +13,12 @@ import Data from '../Data'
 export default class Labels {
   constructor(tooltipContext) {
     this.w = tooltipContext.w
-    this.ctx = tooltipContext.ctx
     this.ttCtx = tooltipContext
     this.tooltipUtil = new Utils(tooltipContext)
   }
 
   drawSeriesTexts({ shared = true, ttItems, i = 0, j = null, y1, y2, e }) {
-    let w = this.w
+    const w = this.w
 
     if (w.config.tooltip.custom !== undefined) {
       this.handleCustomTooltip({ i, j, y1, y2, w })
@@ -27,7 +26,7 @@ export default class Labels {
       this.toggleActiveInactiveSeries(shared, i)
     }
 
-    let values = this.getValuesToPrint({
+    const values = this.getValuesToPrint({
       i,
       j,
     })
@@ -150,7 +149,7 @@ export default class Labels {
             if (targetFill.indexOf('url') !== -1) {
               // pattern fill
               if (targetFill.indexOf('Pattern') !== -1) {
-                pColor = w.globals.dom.baseEl
+                pColor = w.dom.baseEl
                   .querySelector(targetFill.substr(4).slice(0, -1))
                   .childNodes[0].getAttribute('stroke')
               }
@@ -275,7 +274,7 @@ export default class Labels {
     if (ttCtx.showTooltipTitle) {
       if (ttCtx.tooltipTitle === null) {
         // get it once if null, and store it in class property
-        ttCtx.tooltipTitle = w.globals.dom.baseEl.querySelector(
+        ttCtx.tooltipTitle = w.dom.baseEl.querySelector(
           '.apexcharts-tooltip-title'
         )
       }
@@ -370,10 +369,10 @@ export default class Labels {
     if (shared && ttItemsChildren[0]) {
       // hide when no Val or series collapsed
       if (w.config.tooltip.hideEmptySeries) {
-        let ttItemMarker = ttItems[t].querySelector(
+        const ttItemMarker = ttItems[t].querySelector(
           '.apexcharts-tooltip-marker'
         )
-        let ttItemText = ttItems[t].querySelector('.apexcharts-tooltip-text')
+        const ttItemText = ttItems[t].querySelector('.apexcharts-tooltip-text')
         if (parseFloat(val) == 0) {
           ttItemMarker.style.display = 'none'
           ttItemText.style.display = 'none'
@@ -415,7 +414,7 @@ export default class Labels {
       this.tooltipUtil.toggleAllTooltipSeriesGroups('disable')
 
       // enable the first tooltip text group
-      let firstTooltipSeriesGroup = w.globals.dom.baseEl.querySelector(
+      const firstTooltipSeriesGroup = w.dom.baseEl.querySelector(
         `.apexcharts-tooltip-series-group-${i}`
       )
 
@@ -428,7 +427,7 @@ export default class Labels {
 
   getValuesToPrint({ i, j }) {
     const w = this.w
-    const filteredSeriesX = this.ctx.series.filteredSeriesX()
+    const filteredSeriesX = w.globals.seriesX.map((ser) => (ser.length > 0 ? ser : []))
 
     let xVal = ''
     let xAxisTTVal = ''
@@ -442,7 +441,7 @@ export default class Labels {
       w,
     }
 
-    let zFormatter = w.globals.ttZFormatter
+    const zFormatter = w.globals.ttZFormatter
 
     if (j === null) {
       val = w.globals.series[i]
@@ -456,7 +455,7 @@ export default class Labels {
           xVal = filteredSeriesX[firstActiveSeriesIndex][j]
         }
       } else {
-        const dataFormat = new Data(this.ctx)
+        const dataFormat = new Data(this.w)
         if (dataFormat.isFormatXY()) {
           xVal =
             typeof w.config.series[i].data[j] !== 'undefined'
@@ -471,17 +470,17 @@ export default class Labels {
       }
     }
 
-    let bufferXVal = xVal
+    const bufferXVal = xVal
 
     if (w.globals.isXNumeric && w.config.xaxis.type === 'datetime') {
-      let xFormat = new Formatters(this.ctx)
+      const xFormat = new Formatters(this.w)
       xVal = xFormat.xLabelFormat(
         w.globals.ttKeyFormatter,
         bufferXVal,
         bufferXVal,
         {
           i: undefined,
-          dateFormatter: new DateTime(this.ctx).formatDate,
+          dateFormatter: new DateTime(this.w).formatDate,
           w: this.w,
         }
       )
@@ -528,7 +527,6 @@ export default class Labels {
     }
 
     const customTooltip = fn({
-      ctx: this.ctx,
       series: w.globals.series,
       seriesIndex: i,
       dataPointIndex: j,

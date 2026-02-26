@@ -7,18 +7,18 @@ export default class YAnnotations {
     this.annoCtx = annoCtx
 
     this.helpers = new Helpers(this.annoCtx)
-    this.axesUtils = new AxesUtils(this.annoCtx)
+    this.axesUtils = new AxesUtils(this.annoCtx.w, { theme: this.annoCtx.theme, timeScale: this.annoCtx.timeScale })
 
   }
 
   addYaxisAnnotation(anno, parent, index) {
-    let w = this.w
+    const w = this.w
 
-    let strokeDashArray = anno.strokeDashArray
+    const strokeDashArray = anno.strokeDashArray
 
     let result = this.helpers.getY1Y2('y1', anno)
     let y1 = result.yP
-    let clipY1 = result.clipped
+    const clipY1 = result.clipped
     let y2
     let clipY2 = true
     let drawn = false
@@ -28,7 +28,7 @@ export default class YAnnotations {
     if (anno.y2 === null || typeof anno.y2 === 'undefined') {
       if (!clipY1) {
         drawn = true
-        let line = this.annoCtx.graphics.drawLine(
+        const line = this.annoCtx.graphics.drawLine(
           0 + anno.offsetX, // x1
           y1 + anno.offsetY, // y1
           this._getYAxisAnnotationWidth(anno), // x2
@@ -48,14 +48,14 @@ export default class YAnnotations {
       clipY2 = result.clipped
 
       if (y2 > y1) {
-        let temp = y1
+        const temp = y1
         y1 = y2
         y2 = temp
       }
 
       if (!(clipY1 && clipY2)) {
         drawn = true
-        let rect = this.annoCtx.graphics.drawRect(
+        const rect = this.annoCtx.graphics.drawRect(
           0 + anno.offsetX, // x1
           y2 + anno.offsetY, // y1
           this._getYAxisAnnotationWidth(anno), // x2
@@ -77,14 +77,14 @@ export default class YAnnotations {
       }
     }
     if (drawn) {
-      let textX =
+      const textX =
         anno.label.position === 'right'
           ? w.globals.gridWidth
           : anno.label.position === 'center'
           ? w.globals.gridWidth / 2
           : 0
 
-      let elText = this.annoCtx.graphics.drawText({
+      const elText = this.annoCtx.graphics.drawText({
         x: textX + anno.label.offsetX,
         y: (y2 != null ? y2 : y1) + anno.label.offsetY - 3,
         text,
@@ -121,7 +121,7 @@ export default class YAnnotations {
   drawYAxisAnnotations() {
     const w = this.w
 
-    let elg = this.annoCtx.graphics.group({
+    const elg = this.annoCtx.graphics.group({
       class: 'apexcharts-yaxis-annotations'
     })
 

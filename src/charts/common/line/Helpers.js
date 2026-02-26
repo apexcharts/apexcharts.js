@@ -14,13 +14,13 @@ export default class Helpers {
       w.config.fill.type === 'gradient' ||
       w.config.fill.type[i] === 'gradient'
     ) {
-      const coreUtils = new CoreUtils(this.lineCtx.ctx)
+      const coreUtils = new CoreUtils(this.lineCtx.w)
 
       // applied only to LINE chart
       // a small adjustment to allow gradient line to draw correctly for all same values
       /* #fix https://github.com/apexcharts/apexcharts.js/issues/358 */
       if (coreUtils.seriesHaveSameValues(i)) {
-        let gSeries = series[i].slice()
+        const gSeries = series[i].slice()
         gSeries[gSeries.length - 1] = gSeries[gSeries.length - 1] + 0.000001
         series[i] = gSeries
       }
@@ -29,10 +29,10 @@ export default class Helpers {
   }
 
   calculatePoints({ series, realIndex, x, y, i, j, prevY }) {
-    let w = this.w
+    const w = this.w
 
-    let ptX = []
-    let ptY = []
+    const ptX = []
+    const ptY = []
 
     let xPT1st = this.lineCtx.categoryAxisCorrection + w.config.markers.offsetX
 
@@ -66,10 +66,10 @@ export default class Helpers {
   }
 
   checkPreviousPaths({ pathFromLine, pathFromArea, realIndex }) {
-    let w = this.w
+    const w = this.w
 
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
-      let gpp = w.globals.previousPaths[pp]
+      const gpp = w.globals.previousPaths[pp]
 
       if (
         (gpp.type === 'line' || gpp.type === 'area') &&
@@ -104,8 +104,8 @@ export default class Helpers {
     lineYPosition,
     translationsIndex,
   }) {
-    let w = this.w
-    let stackSeries =
+    const w = this.w
+    const stackSeries =
       (w.config.chart.stacked && !w.globals.comboCharts) ||
       (w.config.chart.stacked &&
         w.globals.comboCharts &&

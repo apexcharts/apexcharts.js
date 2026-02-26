@@ -12,10 +12,11 @@ import Options from './../settings/Options'
  * @module Annotations
  **/
 export default class Annotations {
-  constructor(ctx) {
-    this.ctx = ctx
-    this.w = ctx.w
-    this.graphics = new Graphics(this.ctx)
+  constructor(w, { theme = null, timeScale = null } = {}) {
+    this.w = w
+    this.theme = theme
+    this.timeScale = timeScale
+    this.graphics = new Graphics(this.w)
 
     if (this.w.globals.isBarHorizontal) {
       this.invertAxis = true
@@ -37,9 +38,9 @@ export default class Annotations {
     const w = this.w
     if (w.globals.axisCharts && w.globals.dataPoints) {
       // w.globals.dataPoints check added to fix  #1832
-      let yAnnotations = this.yAxisAnnotations.drawYAxisAnnotations()
-      let xAnnotations = this.xAxisAnnotations.drawXAxisAnnotations()
-      let pointAnnotations = this.pointsAnnotations.drawPointAnnotations()
+      const yAnnotations = this.yAxisAnnotations.drawYAxisAnnotations()
+      const xAnnotations = this.xAxisAnnotations.drawXAxisAnnotations()
+      const pointAnnotations = this.pointsAnnotations.drawPointAnnotations()
 
       const initialAnim = w.config.chart.animations.enabled
 
@@ -50,7 +51,7 @@ export default class Annotations {
         pointAnnotations.node,
       ]
       for (let i = 0; i < 3; i++) {
-        w.globals.dom.elGraphical.add(annoArray[i])
+        w.dom.elGraphical.add(annoArray[i])
         if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
           // fixes apexcharts/apexcharts.js#685
           if (
@@ -122,7 +123,7 @@ export default class Annotations {
 
     const w = this.w
 
-    let elText = this.graphics.drawText({
+    const elText = this.graphics.drawText({
       x,
       y,
       text,
@@ -134,7 +135,7 @@ export default class Annotations {
       cssClass: 'apexcharts-text ' + cssClass ? cssClass : '',
     })
 
-    const parent = w.globals.dom.baseEl.querySelector(appendTo)
+    const parent = w.dom.baseEl.querySelector(appendTo)
     if (parent) {
       parent.appendChild(elText.node)
     }
@@ -171,10 +172,10 @@ export default class Annotations {
       appendTo = '.apexcharts-svg',
     } = params
 
-    let img = w.globals.dom.Paper.image(path)
+    const img = w.dom.Paper.image(path)
     img.size(width, height).move(x, y)
 
-    const parent = w.globals.dom.baseEl.querySelector(appendTo)
+    const parent = w.dom.baseEl.querySelector(appendTo)
     if (parent) {
       parent.appendChild(img.node)
     }
@@ -229,7 +230,7 @@ export default class Annotations {
   }) {
     const me = context
     const w = me.w
-    const parent = w.globals.dom.baseEl.querySelector(
+    const parent = w.dom.baseEl.querySelector(
       `.apexcharts-${type}-annotations`
     )
     const index = parent.childNodes.length + 1
@@ -259,7 +260,7 @@ export default class Annotations {
     }
 
     // add background
-    let axesAnnoLabel = w.globals.dom.baseEl.querySelector(
+    const axesAnnoLabel = w.dom.baseEl.querySelector(
       `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${index}']`
     )
     const elRect = this.helpers.addBackgroundToAnno(axesAnnoLabel, anno)
@@ -282,7 +283,7 @@ export default class Annotations {
 
   clearAnnotations(ctx) {
     const w = ctx.w
-    let annos = w.globals.dom.baseEl.querySelectorAll(
+    let annos = w.dom.baseEl.querySelectorAll(
       '.apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations'
     )
 
@@ -308,7 +309,7 @@ export default class Annotations {
 
   removeAnnotation(ctx, id) {
     const w = ctx.w
-    let annos = w.globals.dom.baseEl.querySelectorAll(`.${id}`)
+    const annos = w.dom.baseEl.querySelectorAll(`.${id}`)
 
     if (annos) {
       w.globals.memory.methodsToExec.map((m, i) => {
