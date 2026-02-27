@@ -436,6 +436,9 @@ class Bar {
           renderedPath.node.setAttribute('stroke-dasharray', forecast.dashArray)
           renderedPath.node.setAttribute('stroke-width', forecast.strokeWidth)
           renderedPath.node.setAttribute('fill-opacity', forecast.fillOpacity)
+          if (forecast.strokeColor) {
+            renderedPath.node.setAttribute('stroke', forecast.strokeColor)
+          }
         }
       }
 
