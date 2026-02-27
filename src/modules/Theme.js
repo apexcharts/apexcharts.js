@@ -53,12 +53,12 @@ export default class Theme {
     const configColors = [...(w.config.colors || w.config.fill.colors || [])]
     w.globals.colors = this.getColors(configColors)
 
-    this.applySeriesColors(w.globals.seriesColors, w.globals.colors)
+    this.applySeriesColors(w.seriesData.seriesColors, w.globals.colors)
 
     if (w.config.theme.monochrome.enabled) {
       w.globals.colors = this.getMonochromeColors(
         w.config.theme.monochrome,
-        w.globals.series,
+        w.seriesData.series,
         utils
       )
     }
@@ -89,8 +89,8 @@ export default class Theme {
         return typeof c === 'function'
           ? c({
               value: w.globals.axisCharts
-                ? w.globals.series[i][0] || 0
-                : w.globals.series[i],
+                ? w.seriesData.series[i][0] || 0
+                : w.seriesData.series[i],
               seriesIndex: i,
               dataPointIndex: i,
               w: this.w,
@@ -171,7 +171,7 @@ export default class Theme {
 
   pushExtraColors(colorSeries, length, distributed = null) {
     const w = this.w
-    let len = length || w.globals.series.length
+    let len = length || w.seriesData.series.length
 
     if (distributed === null) {
       distributed =
@@ -182,10 +182,10 @@ export default class Theme {
           w.config.plotOptions.heatmap.colorScale.inverse)
     }
 
-    if (distributed && w.globals.series.length) {
+    if (distributed && w.seriesData.series.length) {
       len =
-        w.globals.series[w.globals.maxValsInArrayIndex].length *
-        w.globals.series.length
+        w.seriesData.series[w.globals.maxValsInArrayIndex].length *
+        w.seriesData.series.length
     }
 
     if (colorSeries.length < len) {

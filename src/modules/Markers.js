@@ -25,8 +25,8 @@ export default class Markers {
       : [w.config.markers.size]
 
     if (w.globals.markers.size.length > 0) {
-      if (w.globals.markers.size.length < w.globals.series.length + 1) {
-        for (let i = 0; i <= w.globals.series.length; i++) {
+      if (w.globals.markers.size.length < w.seriesData.series.length + 1) {
+        for (let i = 0; i <= w.seriesData.series.length; i++) {
           if (typeof w.globals.markers.size[i] === 'undefined') {
             w.globals.markers.size.push(w.globals.markers.size[0])
           }
@@ -66,7 +66,7 @@ export default class Markers {
         if (
           w.globals.markers.largestSize === 0 &&
           w.globals.hasNullValues &&
-          w.globals.series[i][j + 1] !== null &&
+          w.seriesData.series[i][j + 1] !== null &&
           !isVirtualPoint
         ) {
           invalidMarker = true
@@ -118,9 +118,9 @@ export default class Markers {
 
           if (
             p.x[q] < -w.globals.markers.largestSize ||
-            p.x[q] > w.globals.gridWidth + w.globals.markers.largestSize ||
+            p.x[q] > w.layout.gridWidth + w.globals.markers.largestSize ||
             p.y[q] < -w.globals.markers.largestSize ||
-            p.y[q] > w.globals.gridHeight + w.globals.markers.largestSize
+            p.y[q] > w.layout.gridHeight + w.globals.markers.largestSize
           ) {
             opts.pSize = 0
           }

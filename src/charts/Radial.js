@@ -57,7 +57,7 @@ class Radial extends Pie {
     const elSeries = graphics.group()
 
     const centerY = this.defaultSize / 2
-    const centerX = w.globals.gridWidth / 2
+    const centerX = w.layout.gridWidth / 2
 
     let size = this.defaultSize / 2.05
     if (!w.config.chart.sparkline.enabled) {
@@ -235,7 +235,7 @@ class Radial extends Pie {
     }
 
     let shown = 1
-    if (!this.radialDataLabels.total.show && w.globals.series.length > 1) {
+    if (!this.radialDataLabels.total.show && w.seriesData.series.length > 1) {
       shown = 0
     }
 
@@ -277,7 +277,7 @@ class Radial extends Pie {
     ) {
       const elRadialBarArc = graphics.group({
         class: `apexcharts-series apexcharts-radial-series`,
-        seriesName: Utils.escapeString(w.globals.seriesNames[i]),
+        seriesName: Utils.escapeString(w.seriesData.seriesNames[i]),
       })
       g.add(elRadialBarArc)
 
@@ -378,7 +378,7 @@ class Radial extends Pie {
           opts.size,
           startAngle
         )
-        const text = this.barLabels.formatter(w.globals.seriesNames[i], {
+        const text = this.barLabels.formatter(w.seriesData.seriesNames[i], {
           seriesIndex: i,
           w,
         })
@@ -541,7 +541,7 @@ class Radial extends Pie {
     const w = this.w
 
     if (legendClick) {
-      legendClick(w.globals.seriesNames[seriesIndex], { w, seriesIndex })
+      legendClick(w.seriesData.seriesNames[seriesIndex], { w, seriesIndex })
     }
   }
 }

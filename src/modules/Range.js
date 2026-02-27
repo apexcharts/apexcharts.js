@@ -611,7 +611,7 @@ class Range {
     let seriesGroups = gl.seriesGroups
 
     if (!seriesGroups.length) {
-      seriesGroups = [this.w.globals.seriesNames.map((name) => name)]
+      seriesGroups = [this.w.seriesData.seriesNames.map((name) => name)]
     }
     const stackedPoss = {}
     const stackedNegs = {}

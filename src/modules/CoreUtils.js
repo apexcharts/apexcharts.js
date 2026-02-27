@@ -48,27 +48,27 @@ class CoreUtils {
   /**
    * @memberof CoreUtils
    * returns the sum of all individual values in a multiple stacked series
-   * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1]]
+   * Eg. w.seriesData.series = [[32,33,43,12], [2,3,5,1]]
    *  @return [34,36,48,13]
    **/
   getStackedSeriesTotals(excludedSeriesIndices = []) {
     const w = this.w
     const total = []
 
-    if (w.globals.series.length === 0) return total
+    if (w.seriesData.series.length === 0) return total
 
     for (
       let i = 0;
-      i < w.globals.series[w.globals.maxValsInArrayIndex].length;
+      i < w.seriesData.series[w.globals.maxValsInArrayIndex].length;
       i++
     ) {
       let t = 0
-      for (let j = 0; j < w.globals.series.length; j++) {
+      for (let j = 0; j < w.seriesData.series.length; j++) {
         if (
-          typeof w.globals.series[j][i] !== 'undefined' &&
+          typeof w.seriesData.series[j][i] !== 'undefined' &&
           excludedSeriesIndices.indexOf(j) === -1
         ) {
-          t += w.globals.series[j][i]
+          t += w.seriesData.series[j][i]
         }
       }
       total.push(t)
@@ -83,14 +83,14 @@ class CoreUtils {
       return this.w.config.series.reduce((acc, cur) => acc + cur, 0)
     } else {
       // axis charts - supporting multiple series
-      return this.w.globals.series[index].reduce((acc, cur) => acc + cur, 0)
+      return this.w.seriesData.series[index].reduce((acc, cur) => acc + cur, 0)
     }
   }
 
   /**
    * @memberof CoreUtils
    * returns the sum of values in a multiple stacked grouped charts
-   * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1], [43, 23, 34, 22]]
+   * Eg. w.seriesData.series = [[32,33,43,12], [2,3,5,1], [43, 23, 34, 22]]
    * series 1 and 2 are in a group, while series 3 is in another group
    *  @return [[34, 36, 48, 12], [43, 23, 34, 22]]
    **/
@@ -98,15 +98,15 @@ class CoreUtils {
     const w = this.w
     const total = []
 
-    w.globals.seriesGroups.forEach((sg) => {
+    w.labelData.seriesGroups.forEach((sg) => {
       const includedIndexes = []
       w.config.series.forEach((s, si) => {
-        if (sg.indexOf(w.globals.seriesNames[si]) > -1) {
+        if (sg.indexOf(w.seriesData.seriesNames[si]) > -1) {
           includedIndexes.push(si)
         }
       })
 
-      const excludedIndices = w.globals.series
+      const excludedIndices = w.seriesData.series
         .map((_, fi) => (includedIndexes.indexOf(fi) === -1 ? fi : -1))
         .filter((f) => f !== -1)
 
@@ -300,7 +300,7 @@ class CoreUtils {
   }
 
   seriesHaveSameValues(index) {
-    return this.w.globals.series[index].every((val, i, arr) => val === arr[0])
+    return this.w.seriesData.series[index].every((val, i, arr) => val === arr[0])
   }
 
   getCategoryLabels(labels) {
@@ -316,12 +316,12 @@ class CoreUtils {
   // maxValsInArrayIndex is the index of series[] which has the largest number of items
   getLargestSeries() {
     const w = this.w
-    w.globals.maxValsInArrayIndex = w.globals.series
+    w.globals.maxValsInArrayIndex = w.seriesData.series
       .map((a) => a.length)
       .indexOf(
         Math.max.apply(
           Math,
-          w.globals.series.map((a) => a.length)
+          w.seriesData.series.map((a) => a.length)
         )
       )
   }
@@ -356,13 +356,13 @@ class CoreUtils {
   /**
    * @memberof Core
    * returns the sum of all values in a series
-   * Eg. w.globals.series = [[32,33,43,12], [2,3,5,1]]
+   * Eg. w.seriesData.series = [[32,33,43,12], [2,3,5,1]]
    *  @return [120, 11]
    **/
   getSeriesTotals() {
     const w = this.w
 
-    w.globals.seriesTotals = w.globals.series.map((ser) => {
+    w.globals.seriesTotals = w.seriesData.series.map((ser) => {
       let total = 0
 
       if (Array.isArray(ser)) {
@@ -381,13 +381,13 @@ class CoreUtils {
   getSeriesTotalsXRange(minX, maxX) {
     const w = this.w
 
-    const seriesTotalsXRange = w.globals.series.map((ser, index) => {
+    const seriesTotalsXRange = w.seriesData.series.map((ser, index) => {
       let total = 0
 
       for (let j = 0; j < ser.length; j++) {
         if (
-          w.globals.seriesX[index][j] > minX &&
-          w.globals.seriesX[index][j] < maxX
+          w.seriesData.seriesX[index][j] > minX &&
+          w.seriesData.seriesX[index][j] < maxX
         ) {
           total += ser[j]
         }
@@ -402,17 +402,17 @@ class CoreUtils {
   /**
    * @memberof CoreUtils
    * returns the percentage value of all individual values which can be used in a 100% stacked series
-   * Eg. w.globals.series = [[32, 33, 43, 12], [2, 3, 5, 1]]
+   * Eg. w.seriesData.series = [[32, 33, 43, 12], [2, 3, 5, 1]]
    *  @return [[94.11, 91.66, 89.58, 92.30], [5.88, 8.33, 10.41, 7.7]]
    **/
   getPercentSeries() {
     const w = this.w
 
-    w.globals.seriesPercent = w.globals.series.map((ser) => {
+    w.globals.seriesPercent = w.seriesData.series.map((ser) => {
       const seriesPercent = []
       if (Array.isArray(ser)) {
         for (let j = 0; j < ser.length; j++) {
-          const total = w.globals.stackedSeriesTotals[j]
+          const total = w.seriesData.stackedSeriesTotals[j]
           let percent = 0
           if (total) {
             percent = (100 * ser[j]) / total

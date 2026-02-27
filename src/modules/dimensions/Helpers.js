@@ -103,7 +103,7 @@ export default class Helpers {
           })
         }
 
-        const labelText = getText(w.globals.series[seriesIndex][dataPointIndex])
+        const labelText = getText(w.seriesData.series[seriesIndex][dataPointIndex])
 
         allLabels.push(labelText)
       })
@@ -128,7 +128,7 @@ export default class Helpers {
   getLargestStringFromMultiArr(val, arr) {
     const w = this.w
     let valArr = val
-    if (w.globals.isMultiLineX) {
+    if (w.axisFlags.isMultiLineX) {
       // if the xaxis labels has multiline texts (array)
       const maxArrs = arr.map((xl) => {
         return Array.isArray(xl) ? xl.length : 1

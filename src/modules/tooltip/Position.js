@@ -27,16 +27,16 @@ export default class Position {
 
     let x = cx - ttCtx.xcrosshairsWidth / 2
 
-    const tickAmount = w.globals.labels.slice().length
+    const tickAmount = w.labelData.labels.slice().length
     if (j !== null) {
-      x = (w.globals.gridWidth / tickAmount) * j
+      x = (w.layout.gridWidth / tickAmount) * j
     }
 
     if (xcrosshairs !== null && !w.globals.isBarHorizontal) {
       xcrosshairs.setAttribute('x', x)
       xcrosshairs.setAttribute('x1', x)
       xcrosshairs.setAttribute('x2', x)
-      xcrosshairs.setAttribute('y2', w.globals.gridHeight)
+      xcrosshairs.setAttribute('y2', w.layout.gridHeight)
       xcrosshairs.classList.add('apexcharts-active')
     }
 
@@ -44,8 +44,8 @@ export default class Position {
       x = 0
     }
 
-    if (x > w.globals.gridWidth) {
-      x = w.globals.gridWidth
+    if (x > w.layout.gridWidth) {
+      x = w.layout.gridWidth
     }
 
     if (ttCtx.isXAxisTooltipEnabled) {
@@ -98,7 +98,7 @@ export default class Position {
       const cy =
         ttCtx.xaxisOffY +
         w.config.xaxis.tooltip.offsetY +
-        w.globals.translateY +
+        w.layout.translateY +
         1 +
         w.config.xaxis.offsetY
 
@@ -108,7 +108,7 @@ export default class Position {
       cx = cx - xaxisTTTextWidth / 2
 
       if (!isNaN(cx)) {
-        cx = cx + w.globals.translateX
+        cx = cx + w.layout.translateX
 
         let textRect = 0
         const graphics = new Graphics(this.w)
@@ -135,7 +135,7 @@ export default class Position {
       ttCtx.ycrosshairsHidden.getAttribute('y1'),
       10
     )
-    let cy = w.globals.translateY + ycrosshairsHiddenRectY1
+    let cy = w.layout.translateY + ycrosshairsHiddenRectY1
 
     const yAxisTTRect = ttCtx.yaxisTTEls[index].getBoundingClientRect()
     const yAxisTTHeight = yAxisTTRect.height
@@ -150,7 +150,7 @@ export default class Position {
     if (
       w.globals.ignoreYAxisIndexes.indexOf(index) === -1 &&
       cy > 0 &&
-      cy < w.globals.gridHeight
+      cy < w.layout.gridHeight
     ) {
       ttCtx.yaxisTTEls[index].classList.add('apexcharts-active')
       ttCtx.yaxisTTEls[index].style.top = cy + 'px'
@@ -180,12 +180,12 @@ export default class Position {
     let x = parseFloat(cx) + pointSize + 5
     let y = parseFloat(cy) + pointSize / 2 // - tooltipRect.ttHeight / 2
 
-    if (x > w.globals.gridWidth / 2) {
+    if (x > w.layout.gridWidth / 2) {
       x = x - tooltipRect.ttWidth - pointSize - 10
     }
 
-    if (x > w.globals.gridWidth - tooltipRect.ttWidth - 10) {
-      x = w.globals.gridWidth - tooltipRect.ttWidth
+    if (x > w.layout.gridWidth - tooltipRect.ttWidth - 10) {
+      x = w.layout.gridWidth - tooltipRect.ttWidth
     }
 
     if (x < -20) {
@@ -197,23 +197,23 @@ export default class Position {
       const seriesBound = elGrid.getBoundingClientRect()
 
       x = ttCtx.e.clientX - seriesBound.left
-      if (x > w.globals.gridWidth / 2) {
+      if (x > w.layout.gridWidth / 2) {
         x = x - ttCtx.tooltipRect.ttWidth
       }
-      y = ttCtx.e.clientY + w.globals.translateY - seriesBound.top
-      if (y > w.globals.gridHeight / 2) {
+      y = ttCtx.e.clientY + w.layout.translateY - seriesBound.top
+      if (y > w.layout.gridHeight / 2) {
         y = y - ttCtx.tooltipRect.ttHeight
       }
     } else {
       if (!w.globals.isBarHorizontal) {
-        if (tooltipRect.ttHeight / 2 + y > w.globals.gridHeight) {
-          y = w.globals.gridHeight - tooltipRect.ttHeight + w.globals.translateY
+        if (tooltipRect.ttHeight / 2 + y > w.layout.gridHeight) {
+          y = w.layout.gridHeight - tooltipRect.ttHeight + w.layout.translateY
         }
       }
     }
 
     if (!isNaN(x)) {
-      x = x + w.globals.translateX
+      x = x + w.layout.translateX
 
       tooltipEl.style.left = x + 'px'
       tooltipEl.style.top = y + 'px'
@@ -271,7 +271,7 @@ export default class Position {
       `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers path`
     )
 
-    if (point && cy < w.globals.gridHeight && cy > 0) {
+    if (point && cy < w.layout.gridHeight && cy > 0) {
       const shape = point.getAttribute('shape')
 
       const path = graphics.getMarkerPath(cx, cy, shape, hoverSize * 1.5)
@@ -319,7 +319,7 @@ export default class Position {
     const points = ttCtx.tooltipUtil.getAllMarkers()
 
     if (points.length) {
-      for (let p = 0; p < w.globals.series.length; p++) {
+      for (let p = 0; p < w.seriesData.series.length; p++) {
         const pointArr = pointsArr[p]
 
         if (w.globals.comboCharts) {
@@ -337,7 +337,7 @@ export default class Position {
           const shape = points[p].getAttribute('shape')
 
           if (w.config.chart.type === 'rangeArea' && !w.globals.comboCharts) {
-            const rangeStartIndex = j + w.globals.series[p].length
+            const rangeStartIndex = j + w.seriesData.series[p].length
             pcy2 = pointsArr[p][rangeStartIndex][1]
             const pcyDiff = Math.abs(pcy - pcy2) / 2
 
@@ -346,7 +346,7 @@ export default class Position {
           if (
             pcy !== null &&
             !isNaN(pcy) &&
-            pcy < w.globals.gridHeight + hoverSize &&
+            pcy < w.layout.gridHeight + hoverSize &&
             pcy + hoverSize > 0
           ) {
             const path = graphics.getMarkerPath(cx, pcy, shape, hoverSize)
@@ -361,7 +361,7 @@ export default class Position {
     this.moveXCrosshairs(cx)
 
     if (!ttCtx.fixedTooltip) {
-      this.moveTooltip(cx, cy || w.globals.gridHeight, hoverSize)
+      this.moveTooltip(cx, cy || w.layout.gridHeight, hoverSize)
     }
   }
 
@@ -371,7 +371,7 @@ export default class Position {
 
     let barLen = w.globals.columnSeries
       ? w.globals.columnSeries.length
-      : w.globals.series.length
+      : w.seriesData.series.length
 
     if (w.config.chart.stacked) {
       barLen = w.globals.barGroups.length
@@ -410,7 +410,7 @@ export default class Position {
       jBar &&
       (jBar.classList.contains('apexcharts-candlestick-area') ||
         jBar.classList.contains('apexcharts-boxPlot-area'))
-    if (w.globals.isXNumeric) {
+    if (w.axisFlags.isXNumeric) {
       if (jBar && !isBoxOrCandle) {
         bcx = bcx - (barLen % 2 !== 0 ? bw / 2 : 0)
       }
@@ -435,8 +435,8 @@ export default class Position {
       if (w.config.tooltip.followCursor) {
         bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2
       } else {
-        if (bcy + ttCtx.tooltipRect.ttHeight + 15 > w.globals.gridHeight) {
-          bcy = w.globals.gridHeight
+        if (bcy + ttCtx.tooltipRect.ttHeight + 15 > w.layout.gridHeight) {
+          bcy = w.layout.gridHeight
         }
       }
     } else {
@@ -448,7 +448,7 @@ export default class Position {
     }
 
     if (!ttCtx.fixedTooltip) {
-      this.moveTooltip(bcx, bcy || w.globals.gridHeight)
+      this.moveTooltip(bcx, bcy || w.layout.gridHeight)
     }
   }
 }

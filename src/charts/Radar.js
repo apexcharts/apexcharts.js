@@ -35,8 +35,8 @@ class Radar {
 
     this.defaultSize =
       w.globals.svgHeight < w.globals.svgWidth
-        ? w.globals.gridHeight
-        : w.globals.gridWidth
+        ? w.layout.gridHeight
+        : w.layout.gridWidth
 
     this.isLog = w.config.yaxis[0].logarithmic
     this.logBase = w.config.yaxis[0].logBase
@@ -57,7 +57,7 @@ class Radar {
       this.defaultSize / 2.1 - this.strokeWidth - w.config.chart.dropShadow.blur
 
     if (w.config.xaxis.labels.show) {
-      this.size = this.size - w.globals.xAxisLabelsWidth / 1.75
+      this.size = this.size - w.layout.xAxisLabelsWidth / 1.75
     }
 
     if (w.config.plotOptions.radar.size !== undefined) {
@@ -83,8 +83,8 @@ class Radar {
     }
     this.disAngle = (Math.PI * 2) / this.dataPointsLen
 
-    const halfW = w.globals.gridWidth / 2
-    const halfH = w.globals.gridHeight / 2
+    const halfW = w.layout.gridWidth / 2
+    const halfH = w.layout.gridHeight / 2
     const translateX = halfW + w.config.plotOptions.radar.offsetX
     const translateY = halfH + w.config.plotOptions.radar.offsetY
 
@@ -108,7 +108,7 @@ class Radar {
       const elSeries = this.graphics.group().attr({
         class: `apexcharts-series`,
         'data:longestSeries': longestSeries,
-        seriesName: Utils.escapeString(w.globals.seriesNames[i]),
+        seriesName: Utils.escapeString(w.seriesData.seriesNames[i]),
         rel: i + 1,
         'data:realIndex': i,
       })
@@ -251,7 +251,7 @@ class Radar {
         const dataLabelsConfig = w.config.dataLabels
 
         if (dataLabelsConfig.enabled) {
-          const text = dataLabelsConfig.formatter(w.globals.series[i][j], {
+          const text = dataLabelsConfig.formatter(w.seriesData.series[i][j], {
             seriesIndex: i,
             dataPointIndex: j,
             w,
@@ -379,7 +379,7 @@ class Radar {
 
     const polygonPos = Utils.getPolygonPos(this.size, this.dataPointsLen)
 
-    w.globals.labels.forEach((label, i) => {
+    w.labelData.labels.forEach((label, i) => {
       const formatter = w.config.xaxis.labels.formatter
       const dataLabels = new DataLabels(this.w, this.ctx)
 

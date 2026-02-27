@@ -53,9 +53,9 @@ export default class Labels {
     let goalVals = []
     const hasGoalValues = (gi) => {
       return (
-        w.globals.seriesGoals[gi] &&
-        w.globals.seriesGoals[gi][j] &&
-        Array.isArray(w.globals.seriesGoals[gi][j])
+        w.seriesData.seriesGoals[gi] &&
+        w.seriesData.seriesGoals[gi][j] &&
+        Array.isArray(w.seriesData.seriesGoals[gi][j])
       )
     }
 
@@ -69,8 +69,8 @@ export default class Labels {
     }
 
     for (
-      let t = 0, inverset = w.globals.series.length - 1;
-      t < w.globals.series.length;
+      let t = 0, inverset = w.seriesData.series.length - 1;
+      t < w.seriesData.series.length;
       t++, inverset--
     ) {
       let f = this.getFormatters(i)
@@ -83,7 +83,7 @@ export default class Labels {
 
       if (w.config.chart.type === 'treemap') {
         seriesName = f.yLbTitleFormatter(String(w.config.series[i].data[j].x), {
-          series: w.globals.series,
+          series: w.seriesData.series,
           seriesIndex: i,
           dataPointIndex: j,
           w,
@@ -94,25 +94,25 @@ export default class Labels {
 
       if (w.globals.axisCharts) {
         const getValBySeriesIndex = (index) => {
-          if (w.globals.isRangeData) {
+          if (w.axisFlags.isRangeData) {
             return (
-              f.yLbFormatter(w.globals.seriesRangeStart?.[index]?.[j], {
-                series: w.globals.seriesRangeStart,
+              f.yLbFormatter(w.rangeData.seriesRangeStart?.[index]?.[j], {
+                series: w.rangeData.seriesRangeStart,
                 seriesIndex: index,
                 dataPointIndex: j,
                 w,
               }) +
               ' - ' +
-              f.yLbFormatter(w.globals.seriesRangeEnd?.[index]?.[j], {
-                series: w.globals.seriesRangeEnd,
+              f.yLbFormatter(w.rangeData.seriesRangeEnd?.[index]?.[j], {
+                series: w.rangeData.seriesRangeEnd,
                 seriesIndex: index,
                 dataPointIndex: j,
                 w,
               })
             )
           }
-          return f.yLbFormatter(w.globals.series[index][j], {
-            series: w.globals.series,
+          return f.yLbFormatter(w.seriesData.series[index][j], {
+            series: w.seriesData.series,
             seriesIndex: index,
             dataPointIndex: j,
             w,
@@ -131,7 +131,7 @@ export default class Labels {
 
           val = getValBySeriesIndex(tIndex)
           if (hasGoalValues(tIndex)) {
-            goalVals = w.globals.seriesGoals[tIndex][j].map((goal) => {
+            goalVals = w.seriesData.seriesGoals[tIndex][j].map((goal) => {
               return {
                 attrs: goal,
                 val: f.yLbFormatter(goal.value, {
@@ -158,8 +158,8 @@ export default class Labels {
             }
           }
           val = getValBySeriesIndex(i)
-          if (hasGoalValues(i) && Array.isArray(w.globals.seriesGoals[i][j])) {
-            goalVals = w.globals.seriesGoals[i][j].map((goal) => {
+          if (hasGoalValues(i) && Array.isArray(w.seriesData.seriesGoals[i][j])) {
+            goalVals = w.seriesData.seriesGoals[i][j].map((goal) => {
               return {
                 attrs: goal,
                 val: f.yLbFormatter(goal.value, {
@@ -175,7 +175,7 @@ export default class Labels {
 
       // for pie / donuts
       if (j === null) {
-        val = f.yLbFormatter(w.globals.series[i], {
+        val = f.yLbFormatter(w.seriesData.series[i], {
           ...w,
           seriesIndex: i,
           dataPointIndex: i,
@@ -249,8 +249,8 @@ export default class Labels {
 
   getSeriesName({ fn, index, seriesIndex, j }) {
     const w = this.w
-    return fn(String(w.globals.seriesNames[index]), {
-      series: w.globals.series,
+    return fn(String(w.seriesData.seriesNames[index]), {
+      series: w.seriesData.series,
       seriesIndex,
       dataPointIndex: j,
       w,
@@ -326,7 +326,7 @@ export default class Labels {
       '.apexcharts-tooltip-text-goals-value'
     )
 
-    if (goalVals.length && w.globals.seriesGoals[t]) {
+    if (goalVals.length && w.seriesData.seriesGoals[t]) {
       const createGoalsHtml = () => {
         let gLabels = '<div>'
         let gVals = '<div>'
@@ -339,8 +339,8 @@ export default class Labels {
       }
       if (shared) {
         if (
-          w.globals.seriesGoals[t][j] &&
-          Array.isArray(w.globals.seriesGoals[t][j])
+          w.seriesData.seriesGoals[t][j] &&
+          Array.isArray(w.seriesData.seriesGoals[t][j])
         ) {
           createGoalsHtml()
         } else {
@@ -427,7 +427,7 @@ export default class Labels {
 
   getValuesToPrint({ i, j }) {
     const w = this.w
-    const filteredSeriesX = w.globals.seriesX.map((ser) => (ser.length > 0 ? ser : []))
+    const filteredSeriesX = w.seriesData.seriesX.map((ser) => (ser.length > 0 ? ser : []))
 
     let xVal = ''
     let xAxisTTVal = ''
@@ -435,7 +435,7 @@ export default class Labels {
     let val = null
 
     const customFormatterOpts = {
-      series: w.globals.series,
+      series: w.seriesData.series,
       seriesIndex: i,
       dataPointIndex: j,
       w,
@@ -444,9 +444,9 @@ export default class Labels {
     const zFormatter = w.formatters.ttZFormatter
 
     if (j === null) {
-      val = w.globals.series[i]
+      val = w.seriesData.series[i]
     } else {
-      if (w.globals.isXNumeric && w.config.chart.type !== 'treemap') {
+      if (w.axisFlags.isXNumeric && w.config.chart.type !== 'treemap') {
         xVal = filteredSeriesX[i][j]
         if (filteredSeriesX[i].length === 0) {
           // a series (possibly the first one) might be collapsed, so get the next active index
@@ -463,8 +463,8 @@ export default class Labels {
               : ''
         } else {
           xVal =
-            typeof w.globals.labels[j] !== 'undefined'
-              ? w.globals.labels[j]
+            typeof w.labelData.labels[j] !== 'undefined'
+              ? w.labelData.labels[j]
               : ''
         }
       }
@@ -472,7 +472,7 @@ export default class Labels {
 
     const bufferXVal = xVal
 
-    if (w.globals.isXNumeric && w.config.xaxis.type === 'datetime') {
+    if (w.axisFlags.isXNumeric && w.config.xaxis.type === 'datetime') {
       const xFormat = new Formatters(this.w)
       xVal = xFormat.xLabelFormat(
         w.formatters.ttKeyFormatter,
@@ -497,8 +497,8 @@ export default class Labels {
       xVal = w.formatters.ttKeyFormatter(bufferXVal, customFormatterOpts)
     }
 
-    if (w.globals.seriesZ.length > 0 && w.globals.seriesZ[i].length > 0) {
-      zVal = zFormatter(w.globals.seriesZ[i][j], w)
+    if (w.seriesData.seriesZ.length > 0 && w.seriesData.seriesZ[i].length > 0) {
+      zVal = zFormatter(w.seriesData.seriesZ[i][j], w)
     }
 
     if (typeof w.config.xaxis.tooltip.formatter === 'function') {
@@ -527,7 +527,7 @@ export default class Labels {
     }
 
     const customTooltip = fn({
-      series: w.globals.series,
+      series: w.seriesData.series,
       seriesIndex: i,
       dataPointIndex: j,
       y1,

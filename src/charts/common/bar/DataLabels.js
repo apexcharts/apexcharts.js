@@ -47,7 +47,7 @@ export default class BarDataLabels {
 
     let bcx
     let bcy
-    if (w.globals.isXNumeric && !w.globals.isBarHorizontal) {
+    if (w.axisFlags.isXNumeric && !w.globals.isBarHorizontal) {
       bcx = x + parseFloat(barWidth * (visibleSeries + 1))
       bcy = y + parseFloat(barHeight * (visibleSeries + 1)) - strokeWidth
     } else {
@@ -85,7 +85,7 @@ export default class BarDataLabels {
       height: 0,
     }
     if (w.config.dataLabels.enabled) {
-      const yLabel = w.globals.series[i][j]
+      const yLabel = w.seriesData.series[i][j]
 
       textRects = graphics.getTextRects(
         w.config.dataLabels.formatter
@@ -135,7 +135,7 @@ export default class BarDataLabels {
         ? [y1, y2]
         : w.config.chart.stackType === '100%'
         ? series[realIndex][j]
-        : w.globals.series[realIndex][j],
+        : w.seriesData.series[realIndex][j],
       i: realIndex,
       j,
       barWidth,
@@ -218,12 +218,12 @@ export default class BarDataLabels {
 
     bcx = bcx - strokeWidth / 2
 
-    const dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints
+    const dataPointsDividedWidth = w.layout.gridWidth / w.globals.dataPoints
 
     if (this.barCtx.isVerticalGroupedRangeBar) {
       dataLabelsX += barWidth / 2
     } else {
-      if (w.globals.isXNumeric) {
+      if (w.axisFlags.isXNumeric) {
         dataLabelsX = bcx - barWidth / 2 + offX
       } else {
         dataLabelsX = bcx - dataPointsDividedWidth + barWidth / 2 + offX
@@ -243,7 +243,7 @@ export default class BarDataLabels {
         dataLabelsX + textRects.height / 2 - strokeWidth / 2 - offsetDLX
     }
 
-    const valIsNegative = w.globals.series[i][j] < 0
+    const valIsNegative = w.seriesData.series[i][j] < 0
 
     let newY = y
     if (this.barCtx.isReversed) {
@@ -301,7 +301,7 @@ export default class BarDataLabels {
     }
 
     let lowestPrevY = newY
-    w.globals.seriesGroups.forEach((sg) => {
+    w.labelData.seriesGroups.forEach((sg) => {
       this.barCtx[sg.join(',')]?.prevY.forEach((arr) => {
         if (valIsNegative) {
           lowestPrevY = Math.max(arr[j], lowestPrevY)
@@ -344,7 +344,7 @@ export default class BarDataLabels {
 
       totalDataLabelsX =
         totalDataLabelsBcx +
-        (w.globals.isXNumeric
+        (w.axisFlags.isXNumeric
           ? (-barWidth * w.globals.barGroups.length) / 2
           : (w.globals.barGroups.length * barWidth) / 2 -
             (w.globals.barGroups.length - 1) * barWidth -
@@ -355,8 +355,8 @@ export default class BarDataLabels {
     if (!w.config.chart.stacked) {
       if (dataLabelsY < 0) {
         dataLabelsY = 0 + strokeWidth
-      } else if (dataLabelsY + textRects.height / 3 > w.globals.gridHeight) {
-        dataLabelsY = w.globals.gridHeight - strokeWidth
+      } else if (dataLabelsY + textRects.height / 3 > w.layout.gridHeight) {
+        dataLabelsY = w.layout.gridHeight - strokeWidth
       }
     }
 
@@ -391,7 +391,7 @@ export default class BarDataLabels {
       offY,
     } = opts
 
-    const dataPointsDividedHeight = w.globals.gridHeight / w.globals.dataPoints
+    const dataPointsDividedHeight = w.layout.gridHeight / w.globals.dataPoints
     const { zeroEncounters } = this.barCtx.barHelpers.getZeroValueEncounters({
       i,
       j,
@@ -418,7 +418,7 @@ export default class BarDataLabels {
     let totalDataLabelsY
     let totalDataLabelsAnchor = 'start'
 
-    const valIsNegative = w.globals.series[i][j] < 0
+    const valIsNegative = w.seriesData.series[i][j] < 0
 
     let newX = x
     if (this.barCtx.isReversed) {
@@ -452,7 +452,7 @@ export default class BarDataLabels {
     }
 
     let lowestPrevX = newX
-    w.globals.seriesGroups.forEach((sg) => {
+    w.labelData.seriesGroups.forEach((sg) => {
       this.barCtx[sg.join(',')]?.prevX.forEach((arr) => {
         if (valIsNegative) {
           lowestPrevX = Math.min(arr[j], lowestPrevX)
@@ -502,22 +502,22 @@ export default class BarDataLabels {
           dataLabelsX = valIsNegative
             ? textRects.width + strokeWidth
             : strokeWidth
-        } else if (dataLabelsX + textRects.width > w.globals.gridWidth) {
+        } else if (dataLabelsX + textRects.width > w.layout.gridWidth) {
           dataLabelsX = valIsNegative
-            ? w.globals.gridWidth - strokeWidth
-            : w.globals.gridWidth - textRects.width - strokeWidth
+            ? w.layout.gridWidth - strokeWidth
+            : w.layout.gridWidth - textRects.width - strokeWidth
         }
       } else if (dataLabelsConfig.textAnchor === 'middle') {
         if (dataLabelsX - textRects.width / 2 < 0) {
           dataLabelsX = textRects.width / 2 + strokeWidth
-        } else if (dataLabelsX + textRects.width / 2 > w.globals.gridWidth) {
-          dataLabelsX = w.globals.gridWidth - textRects.width / 2 - strokeWidth
+        } else if (dataLabelsX + textRects.width / 2 > w.layout.gridWidth) {
+          dataLabelsX = w.layout.gridWidth - textRects.width / 2 - strokeWidth
         }
       } else if (dataLabelsConfig.textAnchor === 'end') {
         if (dataLabelsX < 1) {
           dataLabelsX = textRects.width + strokeWidth
-        } else if (dataLabelsX + 1 > w.globals.gridWidth) {
-          dataLabelsX = w.globals.gridWidth - textRects.width - strokeWidth
+        } else if (dataLabelsX + 1 > w.layout.gridWidth) {
+          dataLabelsX = w.layout.gridWidth - textRects.width - strokeWidth
         }
       }
     }
@@ -578,7 +578,7 @@ export default class BarDataLabels {
         text = ''
       }
 
-      const valIsNegative = w.globals.series[i][j] < 0
+      const valIsNegative = w.seriesData.series[i][j] < 0
       const position = w.config.plotOptions.bar.dataLabels.position
       if (w.config.plotOptions.bar.dataLabels.orientation === 'vertical') {
         if (position === 'top') {

@@ -301,7 +301,7 @@ class Graphics {
     }
 
     if (d.indexOf('undefined') > -1 || d.indexOf('NaN') > -1) {
-      d = `M 0 ${w.globals.gridHeight}`
+      d = `M 0 ${w.layout.gridHeight}`
     }
     const p = w.dom.Paper.path(d).attr({
       fill,
@@ -619,8 +619,8 @@ class Graphics {
         g.from(1, 0).to(0, 1)
       }
     } else {
-      const offx = w.globals.gridWidth / 2
-      const offy = w.globals.gridHeight / 2
+      const offx = w.layout.gridWidth / 2
+      const offy = w.layout.gridHeight / 2
 
       if (w.config.chart.type !== 'bubble') {
         g.attr({

@@ -88,7 +88,7 @@ export default class TreemapHelpers {
   determineColor(chartType, i, j) {
     const w = this.w
 
-    const val = w.globals.series[i][j]
+    const val = w.seriesData.series[i][j]
 
     const chartOpts = w.config.plotOptions[chartType]
 
@@ -100,8 +100,8 @@ export default class TreemapHelpers {
 
     let color = w.globals.colors[seriesNumber]
     let foreColor = null
-    let min = Math.min(...w.globals.series[i])
-    let max = Math.max(...w.globals.series[i])
+    let min = Math.min(...w.seriesData.series[i])
+    let max = Math.max(...w.seriesData.series[i])
 
     if (!chartOpts.distributed && chartType === 'heatmap') {
       min = w.globals.minY

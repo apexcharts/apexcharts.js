@@ -16,9 +16,9 @@ const getRangeValues = ({
   y2,
   w,
 }) => {
-  let start = w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
-  let end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
-  let ylabel = w.globals.labels[dataPointIndex]
+  let start = w.rangeData.seriesRangeStart[seriesIndex][dataPointIndex]
+  let end = w.rangeData.seriesRangeEnd[seriesIndex][dataPointIndex]
+  let ylabel = w.labelData.labels[dataPointIndex]
   let seriesName = w.config.series[seriesIndex].name
     ? w.config.series[seriesIndex].name
     : ''
@@ -94,7 +94,7 @@ const buildRangeTooltipHTML = (opts) => {
   start = formatter.yLbFormatter(start)
   end = formatter.yLbFormatter(end)
   const val = formatter.yLbFormatter(
-    opts.w.globals.series[seriesIndex][dataPointIndex]
+    opts.w.seriesData.series[seriesIndex][dataPointIndex]
   )
 
   let valueHTML = ''
@@ -518,8 +518,8 @@ export default class Defaults {
         formatter(val, { seriesIndex, dataPointIndex, w }) {
           const getVal = () => {
             const start =
-              w.globals.seriesRangeStart[seriesIndex][dataPointIndex]
-            const end = w.globals.seriesRangeEnd[seriesIndex][dataPointIndex]
+              w.rangeData.seriesRangeStart[seriesIndex][dataPointIndex]
+            const end = w.rangeData.seriesRangeEnd[seriesIndex][dataPointIndex]
             return end - start
           }
           if (w.globals.comboCharts) {
@@ -1167,11 +1167,11 @@ export default class Defaults {
   }
 
   _getBoxTooltip(w, seriesIndex, dataPointIndex, labels, chartType) {
-    const o = w.globals.seriesCandleO[seriesIndex][dataPointIndex]
-    const h = w.globals.seriesCandleH[seriesIndex][dataPointIndex]
-    const m = w.globals.seriesCandleM[seriesIndex][dataPointIndex]
-    const l = w.globals.seriesCandleL[seriesIndex][dataPointIndex]
-    const c = w.globals.seriesCandleC[seriesIndex][dataPointIndex]
+    const o = w.candleData.seriesCandleO[seriesIndex][dataPointIndex]
+    const h = w.candleData.seriesCandleH[seriesIndex][dataPointIndex]
+    const m = w.candleData.seriesCandleM[seriesIndex][dataPointIndex]
+    const l = w.candleData.seriesCandleL[seriesIndex][dataPointIndex]
+    const c = w.candleData.seriesCandleC[seriesIndex][dataPointIndex]
 
     if (
       w.config.series[seriesIndex].type &&
@@ -1182,7 +1182,7 @@ export default class Defaults {
             w.config.series[seriesIndex].name
               ? w.config.series[seriesIndex].name
               : 'series-' + (seriesIndex + 1)
-          }: <strong>${w.globals.series[seriesIndex][dataPointIndex]}</strong>
+          }: <strong>${w.seriesData.series[seriesIndex][dataPointIndex]}</strong>
         </div>`
     } else {
       return (

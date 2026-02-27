@@ -32,7 +32,7 @@ export default class XAnnotations {
           x1 + anno.offsetX, // x1
           0 + anno.offsetY, // y1
           x1 + anno.offsetX, // x2
-          w.globals.gridHeight + anno.offsetY, // y2
+          w.layout.gridHeight + anno.offsetY, // y2
           anno.borderColor, // lineColor
           strokeDashArray, //dashArray
           anno.borderWidth
@@ -57,7 +57,7 @@ export default class XAnnotations {
         x1 + anno.offsetX, // x1
         0 + anno.offsetY, // y1
         x2 - x1, // x2
-        w.globals.gridHeight + anno.offsetY, // y2
+        w.layout.gridHeight + anno.offsetY, // y2
         0, // radius
         anno.fillColor, // color
         anno.opacity, // opacity,
@@ -82,9 +82,9 @@ export default class XAnnotations {
         anno.label.position === 'top'
           ? 4
           : anno.label.position === 'center'
-          ? w.globals.gridHeight / 2 +
+          ? w.layout.gridHeight / 2 +
             (anno.label.orientation === 'vertical' ? textRects.width / 2 : 0)
-          : w.globals.gridHeight
+          : w.layout.gridHeight
 
       const elText = this.annoCtx.graphics.drawText({
         x: x1 + anno.label.offsetX,

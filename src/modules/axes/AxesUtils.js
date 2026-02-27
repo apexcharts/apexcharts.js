@@ -80,7 +80,7 @@ export default class AxesUtils {
 
     const graphics = new Graphics(this.w)
     let textRect = {}
-    if (w.globals.rotateXLabels && isLeafGroup) {
+    if (w.layout.rotateXLabels && isLeafGroup) {
       textRect = graphics.getTextRects(
         label,
         parseInt(fontSize, 10),
@@ -115,7 +115,7 @@ export default class AxesUtils {
     const w = this.w
 
     let ticks = w.config.xaxis.tickAmount
-    if (ticks === 'dataPoints') ticks = Math.round(w.globals.gridWidth / 120)
+    if (ticks === 'dataPoints') ticks = Math.round(w.layout.gridWidth / 120)
 
     if (ticks > labelsLen) return label
     const tickMultiple = Math.round(labelsLen / (ticks + 1))
@@ -160,7 +160,7 @@ export default class AxesUtils {
       if (
         label.x <
         prev.textRect.width /
-          (w.globals.rotateXLabels
+          (w.layout.rotateXLabels
             ? Math.abs(w.config.xaxis.labels.rotate) / 12
             : 1.01) +
           prev.x
@@ -249,7 +249,7 @@ export default class AxesUtils {
     const graphics = new Graphics(this.w)
 
     // initial label position = 0;
-    let tY = w.globals.translateY + w.config.yaxis[realIndex].labels.offsetY
+    let tY = w.layout.translateY + w.config.yaxis[realIndex].labels.offsetY
     if (w.globals.isBarHorizontal) {
       tY = 0
     } else if (w.config.chart.type === 'heatmap') {

@@ -34,7 +34,7 @@ class DataLabels {
     const height = textRects.height
 
     if (y < 0) y = 0
-    if (y > w.globals.gridHeight + height) y = w.globals.gridHeight + height / 2
+    if (y > w.layout.gridHeight + height) y = w.layout.gridHeight + height / 2
 
     // first value in series, so push an empty array
     if (typeof w.globals.dataLabelsRects[i] === 'undefined')
@@ -112,13 +112,13 @@ class DataLabels {
         if (j === 1 && q === 0) dataPointIndex = 0
         if (j === 1 && q === 1) dataPointIndex = 1
 
-        let val = w.globals.series[i][dataPointIndex]
+        let val = w.seriesData.series[i][dataPointIndex]
 
         if (type === 'rangeArea') {
           if (isRangeStart) {
-            val = w.globals.seriesRangeStart[i][dataPointIndex]
+            val = w.rangeData.seriesRangeStart[i][dataPointIndex]
           } else {
-            val = w.globals.seriesRangeEnd[i][dataPointIndex]
+            val = w.rangeData.seriesRangeEnd[i][dataPointIndex]
           }
         }
 
@@ -133,7 +133,7 @@ class DataLabels {
         }
 
         if (w.config.chart.type === 'bubble') {
-          val = w.globals.seriesZ[i][dataPointIndex]
+          val = w.seriesData.seriesZ[i][dataPointIndex]
           text = getText(val)
 
           y = pos.y[q]
@@ -235,7 +235,7 @@ class DataLabels {
       // fixes #2264
       if (
         x < -20 - correctedLabels.textRects.width ||
-        x > w.globals.gridWidth + correctedLabels.textRects.width + 30
+        x > w.layout.gridWidth + correctedLabels.textRects.width + 30
       ) {
         // datalabels fall outside drawing area, so draw a blank label
         text = ''
@@ -252,7 +252,7 @@ class DataLabels {
     }
     if (typeof dataLabelColor === 'function') {
       dataLabelColor = dataLabelColor({
-        series: w.globals.series,
+        series: w.seriesData.series,
         seriesIndex: i,
         dataPointIndex: j,
         w,
@@ -284,7 +284,7 @@ class DataLabels {
 
     if (correctedLabels.drawnextLabel) {
       if (textAnchor === 'middle') {
-        if (x === w.globals.gridWidth) {
+        if (x === w.layout.gridWidth) {
           // last label - might get cropped
           // fixes https://github.com/apexcharts/apexcharts.js/issues/5036
           textAnchor = 'end'

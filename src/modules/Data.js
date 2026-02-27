@@ -591,7 +591,7 @@ export default class Data {
    */
   resetParsingFlags() {
     const w = this.w
-    w.globals.dataWasParsed = false
+    w.axisFlags.dataWasParsed = false
     w.globals.originalSeries = null
 
     if (w.config.series) {

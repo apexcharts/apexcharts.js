@@ -82,8 +82,8 @@ class Line {
 
       Series.addCollapsedClassToSeries(this.w, this.elSeries, realIndex)
 
-      if (w.globals.isXNumeric && w.globals.seriesX.length > 0) {
-        x = (w.globals.seriesX[realIndex][0] - w.globals.minX) / this.xRatio
+      if (w.axisFlags.isXNumeric && w.seriesData.seriesX.length > 0) {
+        x = (w.seriesData.seriesX[realIndex][0] - w.globals.minX) / this.xRatio
       }
 
       xArrj.push(x)
@@ -247,7 +247,7 @@ class Line {
 
     // width divided into equal parts
     this.xDivision =
-      w.globals.gridWidth /
+      w.layout.gridWidth /
       (w.globals.dataPoints - (w.config.xaxis.tickPlacement === 'on' ? 1 : 0))
 
     this.strokeWidth = Array.isArray(w.config.stroke.width)
@@ -266,17 +266,17 @@ class Line {
 
     // zeroY is the 0 value in y series which can be used in negative charts
     this.zeroY =
-      w.globals.gridHeight -
+      w.layout.gridHeight -
       this.baseLineY[translationsIndex] -
-      (this.isReversed ? w.globals.gridHeight : 0) +
+      (this.isReversed ? w.layout.gridHeight : 0) +
       (this.isReversed ? this.baseLineY[translationsIndex] * 2 : 0)
 
     this.areaBottomY = this.zeroY
     if (
-      this.zeroY > w.globals.gridHeight ||
+      this.zeroY > w.layout.gridHeight ||
       w.config.plotOptions.area.fillTo === 'end'
     ) {
-      this.areaBottomY = w.globals.gridHeight
+      this.areaBottomY = w.layout.gridHeight
     }
 
     this.categoryAxisCorrection = this.xDivision / 2
@@ -288,7 +288,7 @@ class Line {
         typeof w.config.series[realIndex].zIndex !== 'undefined'
           ? w.config.series[realIndex].zIndex
           : realIndex,
-      seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
+      seriesName: Utils.escapeString(w.seriesData.seriesNames[realIndex]),
     })
 
     // points
@@ -302,7 +302,7 @@ class Line {
       const firstPoint = this.markers.plotChartMarkers({
         pointsPos: {
           x: [0],
-          y: [w.globals.gridHeight + w.globals.markers.largestSize],
+          y: [w.layout.gridHeight + w.globals.markers.largestSize],
         },
         seriesIndex: i,
         j: 0,
@@ -414,8 +414,8 @@ class Line {
       const elForecastMask = graphics.drawRect(
         forecastCutoff,
         0,
-        w.globals.gridWidth,
-        w.globals.gridHeight,
+        w.layout.gridWidth,
+        w.layout.gridHeight,
         0
       )
       w.dom.elForecastMask.appendChild(elForecastMask.node)
@@ -424,7 +424,7 @@ class Line {
         0,
         0,
         forecastCutoff,
-        w.globals.gridHeight,
+        w.layout.gridHeight,
         0
       )
       w.dom.elNonForecastMask.appendChild(elNonForecastMask.node)
@@ -612,11 +612,11 @@ class Line {
       const isNull =
         typeof series[i][j + 1] === 'undefined' || series[i][j + 1] === null
 
-      if (w.globals.isXNumeric) {
-        let sX = w.globals.seriesX[realIndex][j + 1]
-        if (typeof w.globals.seriesX[realIndex][j + 1] === 'undefined') {
+      if (w.axisFlags.isXNumeric) {
+        let sX = w.seriesData.seriesX[realIndex][j + 1]
+        if (typeof w.seriesData.seriesX[realIndex][j + 1] === 'undefined') {
           /* fix #374 */
-          sX = w.globals.seriesX[realIndex][iterations - 1]
+          sX = w.seriesData.seriesX[realIndex][iterations - 1]
         }
         x = (sX - w.globals.minX) / this.xRatio
       } else {
@@ -760,7 +760,7 @@ class Line {
     const dataLabels = new DataLabels(this.w, this.ctx)
 
     if (!this.pointsChart) {
-      if (w.globals.series[i].length > 1) {
+      if (w.seriesData.series[i].length > 1) {
         this.elPointsMain.node.classList.add('apexcharts-element-hidden')
       }
 

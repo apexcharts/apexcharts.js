@@ -163,6 +163,61 @@ function makeDimCtx(overrides = {}) {
   const w = {
     config,
     globals,
+    layout: {
+      gridHeight: globals.gridHeight,
+      gridWidth: globals.gridWidth,
+      translateX: globals.translateX,
+      translateY: globals.translateY,
+      translateXAxisX: globals.translateXAxisX ?? 0,
+      translateXAxisY: globals.translateXAxisY ?? 0,
+      rotateXLabels: globals.rotateXLabels,
+      xAxisHeight: globals.xAxisHeight,
+      xAxisLabelsHeight: globals.xAxisLabelsHeight,
+      xAxisGroupLabelsHeight: globals.xAxisGroupLabelsHeight,
+      xAxisLabelsWidth: globals.xAxisLabelsWidth,
+      yLabelsCoords: globals.yLabelsCoords,
+      yTitleCoords: globals.yTitleCoords,
+    },
+    seriesData: {
+      series: globals.series,
+      seriesNames: globals.seriesNames,
+      seriesX: globals.seriesX ?? [],
+      seriesZ: globals.seriesZ ?? [],
+      seriesColors: globals.seriesColors ?? [],
+      seriesGoals: globals.seriesGoals ?? [],
+      stackedSeriesTotals: globals.stackedSeriesTotals ?? [],
+      stackedSeriesTotalsByGroups: globals.stackedSeriesTotalsByGroups ?? [],
+    },
+    axisFlags: {
+      isXNumeric: globals.isXNumeric,
+      dataFormatXNumeric: globals.dataFormatXNumeric ?? false,
+      isDataXYZ: globals.isDataXYZ ?? false,
+      isRangeData: globals.isRangeData ?? false,
+      isRangeBar: globals.isRangeBar ?? false,
+      isMultiLineX: globals.isMultiLineX,
+      noLabelsProvided: globals.noLabelsProvided ?? false,
+      dataWasParsed: globals.dataWasParsed ?? false,
+    },
+    labelData: {
+      labels: globals.labels,
+      categoryLabels: globals.categoryLabels,
+      timescaleLabels: globals.timescaleLabels,
+      hasXaxisGroups: globals.hasXaxisGroups,
+      groups: globals.groups,
+      seriesGroups: globals.seriesGroups ?? [],
+    },
+    rangeData: {
+      seriesRangeStart: globals.seriesRangeStart ?? [],
+      seriesRangeEnd: globals.seriesRangeEnd ?? [],
+      seriesRange: globals.seriesRange ?? [],
+    },
+    candleData: {
+      seriesCandleO: globals.seriesCandleO ?? [],
+      seriesCandleH: globals.seriesCandleH ?? [],
+      seriesCandleM: globals.seriesCandleM ?? [],
+      seriesCandleL: globals.seriesCandleL ?? [],
+      seriesCandleC: globals.seriesCandleC ?? [],
+    },
     dom: {
       baseEl: document.createElement('div'),
       elLegendWrap: (() => {
@@ -185,6 +240,31 @@ function makeDimCtx(overrides = {}) {
       })(),
     },
     ...(overrides.dom ? { dom: overrides.dom } : {}),
+  }
+
+  // Install bidirectional shims on globals — mirrors what Base.init() does so that
+  // w.globals.X reads/writes always stay in sync with the typed slices.
+  const sliceShims = [
+    ['layout', ['gridHeight','gridWidth','translateX','translateY','translateXAxisX',
+      'translateXAxisY','rotateXLabels','xAxisHeight','xAxisLabelsHeight',
+      'xAxisGroupLabelsHeight','xAxisLabelsWidth','yLabelsCoords','yTitleCoords']],
+    ['seriesData', ['series','seriesNames','seriesX','seriesZ','seriesColors','seriesGoals',
+      'stackedSeriesTotals','stackedSeriesTotalsByGroups']],
+    ['axisFlags', ['isXNumeric','dataFormatXNumeric','isDataXYZ','isRangeData','isRangeBar',
+      'isMultiLineX','noLabelsProvided','dataWasParsed']],
+    ['labelData', ['labels','categoryLabels','timescaleLabels','hasXaxisGroups','groups','seriesGroups']],
+    ['rangeData', ['seriesRangeStart','seriesRangeEnd','seriesRange']],
+    ['candleData', ['seriesCandleO','seriesCandleH','seriesCandleM','seriesCandleL','seriesCandleC']],
+  ]
+  for (const [sliceName, keys] of sliceShims) {
+    for (const key of keys) {
+      Object.defineProperty(globals, key, {
+        get() { return w[sliceName][key] },
+        set(v) { w[sliceName][key] = v },
+        enumerable: false,
+        configurable: true,
+      })
+    }
   }
 
   // A minimal ctx that sub-classes may forward to Graphics etc.

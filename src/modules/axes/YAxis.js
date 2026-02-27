@@ -20,7 +20,7 @@ export default class YAxis {
     this.isCategoryBarHorizontal =
       w.config.chart.type === 'bar' && w.config.plotOptions.bar.horizontal
     this.xAxisoffX =
-      w.config.xaxis.position === 'bottom' ? w.globals.gridHeight : 0
+      w.config.xaxis.position === 'bottom' ? w.layout.gridHeight : 0
     this.drawnLabels = []
     this.axesUtils = new AxesUtils(w, { theme, timeScale })
   }
@@ -47,7 +47,7 @@ export default class YAxis {
     elYaxis.add(elYaxisTexts)
 
     const tickAmount = w.globals.yAxisScale[realIndex].result.length - 1
-    const labelsDivider = w.globals.gridHeight / tickAmount
+    const labelsDivider = w.layout.gridHeight / tickAmount
     const lbFormatter = w.formatters.yLabelFormatters[realIndex]
     const labels = this.axesUtils.checkForReversedLabels(
       realIndex,
@@ -55,7 +55,7 @@ export default class YAxis {
     )
 
     if (w.config.yaxis[realIndex].labels.show) {
-      let lY = w.globals.translateY + w.config.yaxis[realIndex].labels.offsetY
+      let lY = w.layout.translateY + w.config.yaxis[realIndex].labels.offsetY
       if (w.globals.isBarHorizontal) lY = 0
       else if (w.config.chart.type === 'heatmap') lY -= labelsDivider / 2
       lY += parseInt(yaxisFontSize, 10) / 3
@@ -162,8 +162,8 @@ export default class YAxis {
       const elYAxisTitleText = graphics.drawText({
         x,
         y:
-          w.globals.gridHeight / 2 +
-          w.globals.translateY +
+          w.layout.gridHeight / 2 +
+          w.layout.translateY +
           w.config.yaxis[realIndex].title.offsetY,
         text: w.config.yaxis[realIndex].title.text,
         textAnchor: 'end',
@@ -187,9 +187,9 @@ export default class YAxis {
     if (axisBorder.show) {
       const elVerticalLine = graphics.drawLine(
         x,
-        w.globals.translateY + axisBorder.offsetY - 2,
+        w.layout.translateY + axisBorder.offsetY - 2,
         x,
-        w.globals.gridHeight + w.globals.translateY + axisBorder.offsetY + 2,
+        w.layout.gridHeight + w.layout.translateY + axisBorder.offsetY + 2,
         axisBorder.color,
         0,
         axisBorder.width
@@ -220,20 +220,20 @@ export default class YAxis {
 
     const elXaxisTexts = graphics.group({
       class: 'apexcharts-xaxis-texts-g',
-      transform: `translate(${w.globals.translateXAxisX}, ${w.globals.translateXAxisY})`,
+      transform: `translate(${w.layout.translateXAxisX}, ${w.layout.translateXAxisY})`,
     })
 
     elXaxis.add(elXaxisTexts)
 
     let tickAmount = w.globals.yAxisScale[realIndex].result.length - 1
-    const labelsDivider = w.globals.gridWidth / tickAmount + 0.1
+    const labelsDivider = w.layout.gridWidth / tickAmount + 0.1
     let l = labelsDivider + w.config.xaxis.labels.offsetX
     const lbFormatter = w.formatters.xLabelFormatter
     let labels = this.axesUtils.checkForReversedLabels(
       realIndex,
       w.globals.yAxisScale[realIndex].result.slice()
     )
-    const timescaleLabels = w.globals.timescaleLabels
+    const timescaleLabels = w.labelData.timescaleLabels
 
     if (timescaleLabels.length > 0) {
       this.xaxisLabels = timescaleLabels.slice()
@@ -249,7 +249,7 @@ export default class YAxis {
       ) {
         let val = lbFormatter(labels[i], i, w)
         let x =
-          w.globals.gridWidth +
+          w.layout.gridWidth +
           w.globals.padHorizontal -
           (l - labelsDivider + w.config.xaxis.labels.offsetX)
 
@@ -277,7 +277,7 @@ export default class YAxis {
             w.config.xaxis.labels.offsetY +
             30 -
             (w.config.xaxis.position === 'top'
-              ? w.globals.xAxisHeight + w.config.xaxis.axisTicks.height - 2
+              ? w.layout.xAxisHeight + w.config.xaxis.axisTicks.height - 2
               : 0),
           text: val,
           textAnchor: 'middle',
@@ -310,13 +310,13 @@ export default class YAxis {
 
     if (axisBorder.show) {
       let lineCorrection = 0
-      if (w.config.chart.type === 'bar' && w.globals.isXNumeric)
+      if (w.config.chart.type === 'bar' && w.axisFlags.isXNumeric)
         lineCorrection -= 15
 
       const elHorzLine = graphics.drawLine(
         w.globals.padHorizontal + lineCorrection + axisBorder.offsetX,
         this.xAxisoffX,
-        w.globals.gridWidth,
+        w.layout.gridWidth,
         this.xAxisoffX,
         axisBorder.color,
         0,
@@ -340,7 +340,7 @@ export default class YAxis {
         class: 'apexcharts-xaxis-title apexcharts-yaxis-title-inversed',
       })
       const elYAxisTitleText = graphics.drawText({
-        x: w.globals.gridWidth / 2 + w.config.xaxis.title.offsetX,
+        x: w.layout.gridWidth / 2 + w.config.xaxis.title.offsetX,
         y:
           this.xAxisoffX +
           parseFloat(this.xaxisFontSize) +
@@ -454,15 +454,15 @@ export default class YAxis {
         yaxisLabelCoords[index].width + yTitleCoords[index].width
 
       if (!yaxe.opposite) {
-        xLeft = w.globals.translateX - leftOffsetX
+        xLeft = w.layout.translateX - leftOffsetX
         if (!shouldNotDrawAxis) leftOffsetX += axisWidth + 20
         w.globals.translateYAxisX[index] = xLeft + yaxe.labels.offsetX
       } else {
         if (w.globals.isBarHorizontal) {
-          xRight = w.globals.gridWidth + w.globals.translateX - 1
+          xRight = w.layout.gridWidth + w.layout.translateX - 1
           w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX
         } else {
-          xRight = w.globals.gridWidth + w.globals.translateX + rightOffsetX
+          xRight = w.layout.gridWidth + w.layout.translateX + rightOffsetX
           if (!shouldNotDrawAxis) rightOffsetX += axisWidth + 20
           w.globals.translateYAxisX[index] = xRight - yaxe.labels.offsetX + 20
         }

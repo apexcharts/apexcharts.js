@@ -22,11 +22,11 @@ class Bar {
     this.strokeWidth = w.config.stroke.width
     this.isNullValue = false
 
-    this.isRangeBar = w.globals.seriesRange.length && this.isHorizontal
+    this.isRangeBar = w.rangeData.seriesRange.length && this.isHorizontal
 
     this.isVerticalGroupedRangeBar =
       !w.globals.isBarHorizontal &&
-      w.globals.seriesRange.length &&
+      w.rangeData.seriesRange.length &&
       w.config.plotOptions.bar.rangeBarGroupRows
 
     this.isFunnel = this.barOptions.isFunnel
@@ -110,7 +110,7 @@ class Bar {
       const elSeries = graphics.group({
         class: `apexcharts-series`,
         rel: i + 1,
-        seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
+        seriesName: Utils.escapeString(w.seriesData.seriesNames[realIndex]),
         'data:realIndex': realIndex,
       })
 
@@ -345,7 +345,7 @@ class Bar {
           if (!c) c = ''
           if (typeof c === 'function') {
             return c({
-              value: w.globals.series[i][j],
+              value: w.seriesData.series[i][j],
               dataPointIndex: j,
               w,
             })
@@ -390,7 +390,7 @@ class Bar {
           0 ||
         dataLabelsObj.dataLabelsPos.dataLabelsX -
           Math.max(barWidth, w.globals.barPadForNumericAxis) >
-          w.globals.gridWidth
+          w.layout.gridWidth
       ) {
         skipDrawing = true
       }
@@ -452,7 +452,7 @@ class Bar {
         cy: dataLabelsObj.dataLabelsPos.bcy,
         cx: dataLabelsObj.dataLabelsPos.bcx,
         j,
-        val: w.globals.series[i][j],
+        val: w.seriesData.series[i][j],
         barHeight,
         barWidth,
       })
@@ -495,9 +495,9 @@ class Bar {
     const j = indexes.j
     let barYPosition
 
-    if (w.globals.isXNumeric) {
+    if (w.axisFlags.isXNumeric) {
       y =
-        (w.globals.seriesX[i][j] - w.globals.minX) / this.invertedXRatio -
+        (w.seriesData.seriesX[i][j] - w.globals.minX) / this.invertedXRatio -
         barHeight
       barYPosition = y + barHeight * this.visibleI
     } else {
@@ -537,7 +537,7 @@ class Bar {
       w,
     })
 
-    if (!w.globals.isXNumeric) {
+    if (!w.axisFlags.isXNumeric) {
       y = y + yDivision
     }
 
@@ -580,7 +580,7 @@ class Bar {
     const bc = indexes.bc
     let barXPosition
 
-    if (w.globals.isXNumeric) {
+    if (w.axisFlags.isXNumeric) {
       const xForNumericX = this.getBarXForNumericXAxis({
         x,
         j,
@@ -624,7 +624,7 @@ class Bar {
       w,
     })
 
-    if (!w.globals.isXNumeric) {
+    if (!w.axisFlags.isXNumeric) {
       x = x + xDivision
     }
 
@@ -658,12 +658,12 @@ class Bar {
   getBarXForNumericXAxis({ x, barWidth, realIndex, j }) {
     const w = this.w
     let sxI = realIndex
-    if (!w.globals.seriesX[realIndex].length) {
+    if (!w.seriesData.seriesX[realIndex].length) {
       sxI = w.globals.maxValsInArrayIndex
     }
-    if (Utils.isNumber(w.globals.seriesX[sxI][j])) {
+    if (Utils.isNumber(w.seriesData.seriesX[sxI][j])) {
       x =
-        (w.globals.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
+        (w.seriesData.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
         (barWidth * this.seriesLen) / 2
     }
 

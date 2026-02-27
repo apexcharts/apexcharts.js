@@ -50,7 +50,7 @@ class BoxCandleStick extends Bar {
 
       const elSeries = graphics.group({
         class: `apexcharts-series`,
-        seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
+        seriesName: Utils.escapeString(w.seriesData.seriesNames[realIndex]),
         rel: i + 1,
         'data:realIndex': realIndex,
       })
@@ -236,9 +236,9 @@ class BoxCandleStick extends Bar {
     let y2 = Math.max(ohlc.o, ohlc.c)
     let m = ohlc.m
 
-    if (w.globals.isXNumeric) {
+    if (w.axisFlags.isXNumeric) {
       x =
-        (w.globals.seriesX[realIndex][j] - w.globals.minX) / this.xRatio -
+        (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.xRatio -
         barWidth / 2
     }
 
@@ -322,7 +322,7 @@ class BoxCandleStick extends Bar {
 
     pathFrom = pathFrom + graphics.move(barXPosition, y1)
 
-    if (!w.globals.isXNumeric) {
+    if (!w.axisFlags.isXNumeric) {
       x = x + xDivision
     }
 
@@ -383,9 +383,9 @@ class BoxCandleStick extends Bar {
     let x2 = Math.max(ohlc.o, ohlc.c)
     let m = ohlc.m
 
-    if (w.globals.isXNumeric) {
+    if (w.axisFlags.isXNumeric) {
       y =
-        (w.globals.seriesX[realIndex][j] - w.globals.minX) /
+        (w.seriesData.seriesX[realIndex][j] - w.globals.minX) /
           this.invertedXRatio -
         barHeight / 2
     }
@@ -439,7 +439,7 @@ class BoxCandleStick extends Bar {
 
     pathFrom = pathFrom + graphics.move(x1, barYPosition)
 
-    if (!w.globals.isXNumeric) {
+    if (!w.axisFlags.isXNumeric) {
       y = y + yDivision
     }
 
@@ -462,11 +462,11 @@ class BoxCandleStick extends Bar {
         ? coreUtils.getLogValAtSeriesIndex(arr[i][j], i)
         : 0
 
-    const h = getCandleVal(w.globals.seriesCandleH)
-    const o = getCandleVal(w.globals.seriesCandleO)
-    const m = getCandleVal(w.globals.seriesCandleM)
-    const c = getCandleVal(w.globals.seriesCandleC)
-    const l = getCandleVal(w.globals.seriesCandleL)
+    const h = getCandleVal(w.candleData.seriesCandleH)
+    const o = getCandleVal(w.candleData.seriesCandleO)
+    const m = getCandleVal(w.candleData.seriesCandleM)
+    const c = getCandleVal(w.candleData.seriesCandleC)
+    const l = getCandleVal(w.candleData.seriesCandleL)
 
     // BoxPlot data arrives as [min, q1, median, q3, max] and is stored in
     // H=min, O=q1, M=median, C=q3, L=max — remap to OHLC semantics:

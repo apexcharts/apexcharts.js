@@ -669,7 +669,7 @@ export default class Core {
     } else {
       const chartType = cnf.chart.type
       // Use config.series if globals.series is not yet populated
-      const seriesCount = w.globals.series.length || (cnf.series ? cnf.series.length : 0)
+      const seriesCount = w.seriesData.series.length || (cnf.series ? cnf.series.length : 0)
       label = `${chartType} chart with ${seriesCount} data series`
     }
 

@@ -405,7 +405,7 @@ export default class Globals {
       resized: false, // true after a container resize
 
       // ── Data format flags (derived from config/series, stable between renders) ─
-      dataFormatXNumeric: false, // true when x values are numeric (not categories)
+      // Note: dataFormatXNumeric lives on w.axisFlags — see Base.js. Shim installed there.
       invalidLogScale: false, // true when log scale requested but data is invalid
       hasNullValues: false, // true when any series contains null values
 
@@ -421,23 +421,18 @@ export default class Globals {
       // ── SVG viewport (set by Dimensions, but persistent as layout anchor) ─────
       svgWidth: 0,
       svgHeight: 0,
-      gridWidth: 0, // drawable width  (svgWidth minus axes/labels)
-      gridHeight: 0, // drawable height (svgHeight minus axes/labels)
+      // Note: gridWidth, gridHeight, translateX, translateY, translateXAxisX,
+      // translateXAxisY, xAxisLabelsHeight, xAxisGroupLabelsHeight, xAxisLabelsWidth,
+      // rotateXLabels, xAxisHeight, yLabelsCoords, yTitleCoords live on w.layout —
+      // see Base.js. Backward-compat shims installed there.
       defaultLabels: false,
       // Note: formatter properties (xLabelFormatter, yLabelFormatters, etc.) live on
       // w.formatters — see Base.js. Backward-compat shims installed there.
-      xAxisLabelsHeight: 0,
-      xAxisGroupLabelsHeight: 0,
-      xAxisLabelsWidth: 0,
       yAxisLabelsWidth: 0,
       scaleX: 1,
       scaleY: 1,
-      translateX: 0,
-      translateY: 0,
       translateYAxisX: [],
       yAxisWidths: [],
-      translateXAxisY: 0,
-      translateXAxisX: 0,
 
       // ── Instances (created once, replaced only on full re-init) ──────────────
       tooltip: null,

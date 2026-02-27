@@ -170,10 +170,10 @@ class Formatters {
   heatmapLabelFormatters() {
     const w = this.w
     if (w.config.chart.type === 'heatmap') {
-      w.globals.yAxisScale[0].result = w.globals.seriesNames.slice()
+      w.globals.yAxisScale[0].result = w.seriesData.seriesNames.slice()
 
       //  get the longest string from the labels array and also apply label formatter to it
-      const longest = w.globals.seriesNames.reduce(
+      const longest = w.seriesData.seriesNames.reduce(
         (a, b) => (a.length > b.length ? a : b),
         0
       )

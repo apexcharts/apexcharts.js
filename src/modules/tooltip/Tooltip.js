@@ -181,10 +181,10 @@ export default class Tooltip {
     }
 
     // no visible series, exit
-    if (w.globals.collapsedSeries.length === w.globals.series.length) return
+    if (w.globals.collapsedSeries.length === w.seriesData.series.length) return
 
-    this.dataPointsDividedHeight = w.globals.gridHeight / w.globals.dataPoints
-    this.dataPointsDividedWidth = w.globals.gridWidth / w.globals.dataPoints
+    this.dataPointsDividedHeight = w.layout.gridHeight / w.globals.dataPoints
+    this.dataPointsDividedWidth = w.layout.gridWidth / w.globals.dataPoints
 
     if (this.showTooltipTitle) {
       this.tooltipTitle = BrowserAPIs.createElementNS(
@@ -198,10 +198,10 @@ export default class Tooltip {
       tooltipEl.appendChild(this.tooltipTitle)
     }
 
-    let ttItemsCnt = w.globals.series.length // whether shared or not, default is shared
+    let ttItemsCnt = w.seriesData.series.length // whether shared or not, default is shared
     if ((w.globals.xyCharts || w.globals.comboCharts) && this.tConfig.shared) {
       if (!this.showOnIntersect) {
-        ttItemsCnt = w.globals.series.length
+        ttItemsCnt = w.seriesData.series.length
       } else {
         ttItemsCnt = 1
       }
@@ -656,7 +656,7 @@ export default class Tooltip {
       if (
         w.globals.collapsedSeries.length +
           w.globals.ancillaryCollapsedSeries.length ===
-        w.globals.series.length
+        w.seriesData.series.length
       ) {
         return
       }
@@ -844,7 +844,7 @@ export default class Tooltip {
       // couldn't capture any series. check if shared X is same,
       // if yes, draw a grouped tooltip
       if (this.tooltipUtil.isXoverlap(j) || w.globals.isBarHorizontal) {
-        const firstVisibleSeries = w.globals.series.findIndex(
+        const firstVisibleSeries = w.seriesData.series.findIndex(
           (s, i) => !w.globals.collapsedSeriesIndices.includes(i),
         )
         this.create(e, this, firstVisibleSeries, j, opt.ttItems)
@@ -855,14 +855,14 @@ export default class Tooltip {
   handleStickyCapturedSeries(e, capturedSeries, opt, j) {
     const w = this.w
     if (!this.tConfig.shared) {
-      const ignoreNull = w.globals.series[capturedSeries][j] === null
+      const ignoreNull = w.seriesData.series[capturedSeries][j] === null
       if (ignoreNull) {
         this.handleMouseOut(opt)
         return
       }
     }
 
-    if (typeof w.globals.series[capturedSeries][j] !== 'undefined') {
+    if (typeof w.seriesData.series[capturedSeries][j] !== 'undefined') {
       if (
         this.tConfig.shared &&
         this.tooltipUtil.isXoverlap(j) &&
@@ -874,7 +874,7 @@ export default class Tooltip {
       }
     } else {
       if (this.tooltipUtil.isXoverlap(j)) {
-        const firstVisibleSeries = w.globals.series.findIndex(
+        const firstVisibleSeries = w.seriesData.series.findIndex(
           (s, i) => !w.globals.collapsedSeriesIndices.includes(i),
         )
         this.create(e, this, firstVisibleSeries, j, opt.ttItems)
@@ -1019,13 +1019,13 @@ export default class Tooltip {
       ttItems,
       i: capturedSeries,
       j,
-      ...(typeof w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y1 !==
+      ...(typeof w.rangeData.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y1 !==
         'undefined' && {
-        y1: w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y1,
+        y1: w.rangeData.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y1,
       }),
-      ...(typeof w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y2 !==
+      ...(typeof w.rangeData.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y2 !==
         'undefined' && {
-        y2: w.globals.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y2,
+        y2: w.rangeData.seriesRange?.[capturedSeries]?.[j]?.y[0]?.y2,
       }),
     }
     if (shared) {

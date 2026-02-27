@@ -132,8 +132,8 @@ export default class Helpers {
 
     if (this.annoCtx.invertAxis) {
       const labels = w.config.xaxis.convertedCatToNumeric
-        ? w.globals.categoryLabels
-        : w.globals.labels
+        ? w.labelData.categoryLabels
+        : w.labelData.labels
       const catIndex = labels.indexOf(y)
       const xLabel = w.dom.baseEl.querySelector(
         `.apexcharts-yaxis-texts-g text:nth-child(${catIndex + 1})`
@@ -141,12 +141,12 @@ export default class Helpers {
 
       yP = xLabel
         ? parseFloat(xLabel.getAttribute('y'))
-        : (w.globals.gridHeight / labels.length - 1) * (catIndex + 1) -
+        : (w.layout.gridHeight / labels.length - 1) * (catIndex + 1) -
           w.globals.barHeight
 
       if (anno.seriesIndex !== undefined && w.globals.barHeight) {
         yP -=
-          (w.globals.barHeight / 2) * (w.globals.series.length - 1) -
+          (w.globals.barHeight / 2) * (w.seriesData.series.length - 1) -
           w.globals.barHeight * anno.seriesIndex
       }
     } else {
@@ -158,11 +158,11 @@ export default class Helpers {
             seriesIndex
           ) / w.globals.yLogRatio[seriesIndex]
         : (y - w.globals.minYArr[seriesIndex]) /
-          (w.globals.yRange[seriesIndex] / w.globals.gridHeight)
+          (w.globals.yRange[seriesIndex] / w.layout.gridHeight)
 
       yP =
-        w.globals.gridHeight - Math.min(Math.max(yPos, 0), w.globals.gridHeight)
-      clipped = yPos > w.globals.gridHeight || yPos < 0
+        w.layout.gridHeight - Math.min(Math.max(yPos, 0), w.layout.gridHeight)
+      clipped = yPos > w.layout.gridHeight || yPos < 0
 
       if (anno.marker && (anno.y === undefined || anno.y === null)) {
         yP = 0
@@ -191,14 +191,14 @@ export default class Helpers {
     let clipped = false
 
     let xP = this.annoCtx.inversedReversedAxis
-      ? (max - x) / (range / w.globals.gridWidth)
-      : (x - min) / (range / w.globals.gridWidth)
+      ? (max - x) / (range / w.layout.gridWidth)
+      : (x - min) / (range / w.layout.gridWidth)
 
     if (
       (w.config.xaxis.type === 'category' ||
         w.config.xaxis.convertedCatToNumeric) &&
       !this.annoCtx.invertAxis &&
-      !w.globals.dataFormatXNumeric
+      !w.axisFlags.dataFormatXNumeric
     ) {
       if (!w.config.chart.sparkline.enabled) {
         xP = this.getStringX(x)
@@ -210,7 +210,7 @@ export default class Helpers {
     }
 
     if ((x === undefined || x === null) && anno.marker) {
-      xP = w.globals.gridWidth
+      xP = w.layout.gridWidth
     }
 
     if (
@@ -219,7 +219,7 @@ export default class Helpers {
       !this.annoCtx.invertAxis
     ) {
       xP -=
-        (w.globals.barWidth / 2) * (w.globals.series.length - 1) -
+        (w.globals.barWidth / 2) * (w.seriesData.series.length - 1) -
         w.globals.barWidth * anno.seriesIndex
     }
 
@@ -228,9 +228,9 @@ export default class Helpers {
       clipped = true
     }
     if (
-      parseFloat(xP.toFixed(10)) > parseFloat(w.globals.gridWidth.toFixed(10))
+      parseFloat(xP.toFixed(10)) > parseFloat(w.layout.gridWidth.toFixed(10))
     ) {
-      xP = w.globals.gridWidth
+      xP = w.layout.gridWidth
       clipped = true
     } else if (xP < 0) {
       xP = 0
@@ -246,12 +246,12 @@ export default class Helpers {
 
     if (
       w.config.xaxis.convertedCatToNumeric &&
-      w.globals.categoryLabels.length
+      w.labelData.categoryLabels.length
     ) {
-      x = w.globals.categoryLabels.indexOf(x) + 1
+      x = w.labelData.categoryLabels.indexOf(x) + 1
     }
 
-    const catIndex = w.globals.labels
+    const catIndex = w.labelData.labels
       .map((item) => (Array.isArray(item) ? item.join(' ') : item))
       .indexOf(x)
 

@@ -422,7 +422,7 @@ export default class Toolbar {
   handleZoomIn() {
     const w = this.w
 
-    if (w.globals.isRangeBar) {
+    if (w.axisFlags.isRangeBar) {
       this.minX = w.globals.minY
       this.maxX = w.globals.maxY
     }
@@ -441,7 +441,7 @@ export default class Toolbar {
   handleZoomOut() {
     const w = this.w
 
-    if (w.globals.isRangeBar) {
+    if (w.axisFlags.isRangeBar) {
       this.minX = w.globals.minY
       this.maxX = w.globals.maxY
     }

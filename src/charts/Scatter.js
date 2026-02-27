@@ -56,7 +56,7 @@ export default class Scatter {
         if (zRatio !== Infinity) {
           // means we have a bubble
           const bubble = w.config.plotOptions.bubble
-          radius = w.globals.seriesZ[realIndex][dataPointIndex]
+          radius = w.seriesData.seriesZ[realIndex][dataPointIndex]
 
           if (bubble.zScaling) {
             radius /= zRatio
@@ -78,7 +78,7 @@ export default class Scatter {
 
         if (
           y === null ||
-          typeof w.globals.series[realIndex][dataPointIndex] === 'undefined'
+          typeof w.seriesData.series[realIndex][dataPointIndex] === 'undefined'
         ) {
           shouldDraw = false
         }
@@ -128,7 +128,7 @@ export default class Scatter {
       dataPointIndex,
       color: markerConfig.pointFillColor,
       patternUnits: 'objectBoundingBox',
-      value: w.globals.series[realIndex][j],
+      value: w.seriesData.series[realIndex][j],
     })
 
     const el = graphics.drawMarker(x, y, markerConfig)

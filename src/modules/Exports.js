@@ -238,7 +238,7 @@ class Exports {
     const rows = []
     let result = ''
     const universalBOM = '\uFEFF'
-    const gSeries = w.globals.series.map((s, i) => {
+    const gSeries = w.seriesData.series.map((s, i) => {
       return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : []
     })
 
@@ -290,15 +290,15 @@ class Exports {
             const sr = new Series(this.ctx.w)
             const activeSeries = sr.getActiveConfigSeriesIndex()
 
-            cat = lbFormatter(w.globals.labels[i], {
+            cat = lbFormatter(w.labelData.labels[i], {
               seriesIndex: activeSeries,
               dataPointIndex: i,
               w,
             })
           } else {
             cat = axesUtils.getLabel(
-              w.globals.labels,
-              w.globals.timescaleLabels,
+              w.labelData.labels,
+              w.labelData.timescaleLabels,
               0,
               i
             ).text
@@ -361,7 +361,7 @@ class Exports {
             // It's the first series.  Also handle the category.
             columns.push(getFormattedCategory(cat))
 
-            for (let ci = 0; ci < w.globals.series.length; ci++) {
+            for (let ci = 0; ci < w.seriesData.series.length; ci++) {
               const value = dataFormat.isFormatXY()
                 ? series[ci].data[i]?.y
                 : gSeries[ci][i]
@@ -374,10 +374,10 @@ class Exports {
             (s.type && s.type === 'candlestick')
           ) {
             columns.pop()
-            columns.push(w.globals.seriesCandleO[sI][i])
-            columns.push(w.globals.seriesCandleH[sI][i])
-            columns.push(w.globals.seriesCandleL[sI][i])
-            columns.push(w.globals.seriesCandleC[sI][i])
+            columns.push(w.candleData.seriesCandleO[sI][i])
+            columns.push(w.candleData.seriesCandleH[sI][i])
+            columns.push(w.candleData.seriesCandleL[sI][i])
+            columns.push(w.candleData.seriesCandleC[sI][i])
           }
 
           if (
@@ -385,17 +385,17 @@ class Exports {
             (s.type && s.type === 'boxPlot')
           ) {
             columns.pop()
-            columns.push(w.globals.seriesCandleO[sI][i])
-            columns.push(w.globals.seriesCandleH[sI][i])
-            columns.push(w.globals.seriesCandleM[sI][i])
-            columns.push(w.globals.seriesCandleL[sI][i])
-            columns.push(w.globals.seriesCandleC[sI][i])
+            columns.push(w.candleData.seriesCandleO[sI][i])
+            columns.push(w.candleData.seriesCandleH[sI][i])
+            columns.push(w.candleData.seriesCandleM[sI][i])
+            columns.push(w.candleData.seriesCandleL[sI][i])
+            columns.push(w.candleData.seriesCandleC[sI][i])
           }
 
           if (w.config.chart.type === 'rangeBar') {
             columns.pop()
-            columns.push(w.globals.seriesRangeStart[sI][i])
-            columns.push(w.globals.seriesRangeEnd[sI][i])
+            columns.push(w.rangeData.seriesRangeStart[sI][i])
+            columns.push(w.rangeData.seriesRangeEnd[sI][i])
           }
 
           if (columns.length) {
@@ -491,7 +491,7 @@ class Exports {
         } else {
           columns = []
 
-          columns.push(getFormattedCategory(w.globals.labels[sI]))
+          columns.push(getFormattedCategory(w.labelData.labels[sI]))
           columns.push(getFormattedValue(gSeries[sI]))
           rows.push(columns.join(columnDelimiter))
         }

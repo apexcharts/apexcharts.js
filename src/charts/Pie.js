@@ -32,10 +32,10 @@ class Pie {
         ? w.globals.stroke.colors
         : w.globals.colors
 
-    this.defaultSize = Math.min(w.globals.gridWidth, w.globals.gridHeight)
+    this.defaultSize = Math.min(w.layout.gridWidth, w.layout.gridHeight)
 
     this.centerY = this.defaultSize / 2
-    this.centerX = w.globals.gridWidth / 2
+    this.centerX = w.layout.gridWidth / 2
 
     if (w.config.chart.type === 'radialBar') {
       this.fullAngle = 360
@@ -57,8 +57,8 @@ class Pie {
       100
 
     const scaleSize = w.config.plotOptions.pie.customScale
-    const halfW = w.globals.gridWidth / 2
-    const halfH = w.globals.gridHeight / 2
+    const halfW = w.layout.gridWidth / 2
+    const halfH = w.layout.gridHeight / 2
     this.translateX = halfW - halfW * scaleSize
     this.translateY = halfH - halfH * scaleSize
 
@@ -224,7 +224,7 @@ class Pie {
     for (let i = 0; i < sectorAngleArr.length; i++) {
       const elPieArc = graphics.group({
         class: `apexcharts-series apexcharts-pie-series`,
-        seriesName: Utils.escapeString(w.globals.seriesNames[i]),
+        seriesName: Utils.escapeString(w.seriesData.seriesNames[i]),
         rel: i + 1,
         'data:realIndex': i,
       })
@@ -842,9 +842,9 @@ class Pie {
         : dataLabelsConfig.total.label
       val = dataLabelsConfig.total.formatter(w)
     } else {
-      if (w.globals.series.length === 1) {
-        val = lbFormatter(w.globals.series[0], w)
-        name = w.globals.seriesNames[0]
+      if (w.seriesData.series.length === 1) {
+        val = lbFormatter(w.seriesData.series[0], w)
+        name = w.seriesData.seriesNames[0]
       }
     }
 
@@ -914,7 +914,7 @@ class Pie {
         labelColor = labelsConfig.name.color
       }
     } else {
-      if (w.globals.series.length > 1 && labelsConfig.total.show) {
+      if (w.seriesData.series.length > 1 && labelsConfig.total.show) {
         labelColor = labelsConfig.total.color
       }
     }
@@ -956,9 +956,9 @@ class Pie {
 
     const val = el.getAttribute('data:value')
     const name =
-      w.globals.seriesNames[parseInt(el.parentNode.getAttribute('rel'), 10) - 1]
+      w.seriesData.seriesNames[parseInt(el.parentNode.getAttribute('rel'), 10) - 1]
 
-    if (w.globals.series.length > 1) {
+    if (w.seriesData.series.length > 1) {
       this.printInnerLabels(dataLabelsConfig, name, val, el)
     }
 
@@ -979,8 +979,8 @@ class Pie {
 
     const spokes = []
 
-    const angleDivision = 360 / w.globals.series.length
-    for (let i = 0; i < w.globals.series.length; i++) {
+    const angleDivision = 360 / w.seriesData.series.length
+    for (let i = 0; i < w.seriesData.series.length; i++) {
       spokes.push(
         Utils.polarToCartesian(
           this.centerX,

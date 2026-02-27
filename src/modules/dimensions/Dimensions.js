@@ -128,15 +128,15 @@ export default class Dimensions {
       this.datalabelsCoords = this.dimHelpers.getDatalabelsRect()
     }
 
-    w.globals.yLabelsCoords = []
-    w.globals.yTitleCoords = []
+    w.layout.yLabelsCoords = []
+    w.layout.yTitleCoords = []
     w.config.yaxis.map((yaxe, index) => {
       // store the labels and titles coords in global vars
-      w.globals.yLabelsCoords.push({
+      w.layout.yLabelsCoords.push({
         width: yaxisLabelCoords[index].width,
         index,
       })
-      w.globals.yTitleCoords.push({
+      w.layout.yTitleCoords.push({
         width: yTitleCoords[index].width,
         index,
       })
@@ -154,10 +154,10 @@ export default class Dimensions {
       xaxisGroupLabelCoords
     )
 
-    gl.translateXAxisY = w.globals.rotateXLabels ? this.xAxisHeight / 8 : -4
+    gl.translateXAxisY = w.layout.rotateXLabels ? this.xAxisHeight / 8 : -4
     gl.translateXAxisX =
-      w.globals.rotateXLabels &&
-      w.globals.isXNumeric &&
+      w.layout.rotateXLabels &&
+      w.axisFlags.isXNumeric &&
       w.config.xaxis.labels.rotate <= -45
         ? -this.xAxisWidth / 4
         : 0
@@ -208,7 +208,7 @@ export default class Dimensions {
         this.lgRect.height -
         xAxisHeight -
         (!this.isSparkline && w.config.chart.type !== 'treemap'
-          ? w.globals.rotateXLabels
+          ? w.layout.rotateXLabels
             ? 10
             : 15
           : 0)
@@ -330,18 +330,18 @@ export default class Dimensions {
   ) {
     const w = this.w
 
-    const xAxisNum = w.globals.hasXaxisGroups ? 2 : 1
+    const xAxisNum = w.labelData.hasXaxisGroups ? 2 : 1
 
     const baseXAxisHeight =
       xaxisGroupLabelCoords.height +
       xaxisLabelCoords.height +
       xtitleCoords.height
-    const xAxisHeightMultiplicate = w.globals.isMultiLineX
+    const xAxisHeightMultiplicate = w.axisFlags.isMultiLineX
       ? 1.2
       : LINE_HEIGHT_RATIO
-    const rotatedXAxisOffset = w.globals.rotateXLabels ? 22 : 10
+    const rotatedXAxisOffset = w.layout.rotateXLabels ? 22 : 10
     const rotatedXAxisLegendOffset =
-      w.globals.rotateXLabels && w.config.legend.position === 'bottom'
+      w.layout.rotateXLabels && w.config.legend.position === 'bottom'
     const additionalOffset = rotatedXAxisLegendOffset ? 10 : 0
 
     this.xAxisHeight =

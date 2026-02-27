@@ -23,8 +23,8 @@ class Fill {
     const w = this.w
     const cnf = w.config
 
-    const svgW = parseInt(w.globals.gridWidth, 10)
-    const svgH = parseInt(w.globals.gridHeight, 10)
+    const svgW = parseInt(w.layout.gridWidth, 10)
+    const svgH = parseInt(w.layout.gridHeight, 10)
 
     const size = svgW > svgH ? svgW : svgH
 
@@ -93,7 +93,7 @@ class Fill {
     ) {
       this.seriesIndex = opts.seriesNumber
     } else {
-      this.seriesIndex = opts.seriesNumber % w.globals.series.length
+      this.seriesIndex = opts.seriesNumber % w.seriesData.series.length
     }
 
     return this.seriesIndex
@@ -172,8 +172,8 @@ class Fill {
     let fillColor = fillColors[this.seriesIndex]
 
     //override fillcolor if user inputted color with data
-    if (w.globals.seriesColors[this.seriesIndex] !== undefined) {
-      fillColor = w.globals.seriesColors[this.seriesIndex]
+    if (w.seriesData.seriesColors[this.seriesIndex] !== undefined) {
+      fillColor = w.seriesData.seriesColors[this.seriesIndex]
     }
 
     if (typeof fillColor === 'function') {
@@ -249,7 +249,7 @@ class Fill {
       let type = cnf.fill.gradient.type
       if (drawMultiColorLine) {
         colorStops[this.seriesIndex] = this.computeColorStops(
-          w.globals.series[this.seriesIndex],
+          w.seriesData.series[this.seriesIndex],
           cnf.plotOptions.line.colors
         )
         type = 'vertical'

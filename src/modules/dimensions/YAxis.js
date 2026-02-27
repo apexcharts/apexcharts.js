@@ -68,7 +68,7 @@ export default class DimYAxis {
         if (w.globals.isBarHorizontal) {
           labelPad = 0
 
-          const barYaxisLabels = w.globals.labels.slice()
+          const barYaxisLabels = w.labelData.labels.slice()
 
           //  get the longest string from the labels array and also apply label formatter to it
           val = Utils.getLargestStringFromArr(barYaxisLabels)
@@ -194,17 +194,17 @@ export default class DimYAxis {
       yAxisWidth = yAxisWidth + width
     }
 
-    w.globals.yLabelsCoords.map((yLabelCoord, index) => {
+    w.layout.yLabelsCoords.map((yLabelCoord, index) => {
       padForLabelTitle(yLabelCoord, index)
     })
 
-    w.globals.yTitleCoords.map((yTitleCoord, index) => {
+    w.layout.yTitleCoords.map((yTitleCoord, index) => {
       padForLabelTitle(yTitleCoord, index)
     })
 
     if (w.globals.isBarHorizontal && !w.config.yaxis[0].floating) {
       yAxisWidth =
-        w.globals.yLabelsCoords[0].width + w.globals.yTitleCoords[0].width + 15
+        w.layout.yLabelsCoords[0].width + w.layout.yTitleCoords[0].width + 15
     }
 
     this.dCtx.yAxisWidthLeft = yAxisWidthLeft

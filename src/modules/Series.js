@@ -222,7 +222,7 @@ export default class Series {
     if (e.type === 'mousemove') {
       const realIndex = parseInt(targetElement.getAttribute('rel'), 10) - 1
 
-      this.highlightSeries(w.globals.seriesNames[realIndex])
+      this.highlightSeries(w.seriesData.seriesNames[realIndex])
     } else if (e.type === 'mouseout') {
       for (let se = 0; se < allSeriesEls.length; se++) {
         allSeriesEls[se].classList.remove(this.legendInactiveClass)
@@ -404,7 +404,7 @@ export default class Series {
 
     if (!w.globals.axisCharts) {
       // for non-axis charts (i.e., circular charts, pathFrom is not usable. We need whole series)
-      w.globals.previousPaths = w.globals.series
+      w.globals.previousPaths = w.seriesData.series
     }
   }
 
@@ -497,7 +497,7 @@ export default class Series {
   filteredSeriesX() {
     const w = this.w
 
-    const filteredSeriesX = w.globals.seriesX.map((ser) =>
+    const filteredSeriesX = w.seriesData.seriesX.map((ser) =>
       ser.length > 0 ? ser : []
     )
 

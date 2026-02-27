@@ -79,9 +79,9 @@ export default class YAnnotations {
     if (drawn) {
       const textX =
         anno.label.position === 'right'
-          ? w.globals.gridWidth
+          ? w.layout.gridWidth
           : anno.label.position === 'center'
-          ? w.globals.gridWidth / 2
+          ? w.layout.gridWidth / 2
           : 0
 
       const elText = this.annoCtx.graphics.drawText({
@@ -109,9 +109,9 @@ export default class YAnnotations {
   _getYAxisAnnotationWidth(anno) {
     // issue apexcharts.js#2009
     const w = this.w
-    let width = w.globals.gridWidth
+    let width = w.layout.gridWidth
     if (anno.width.indexOf('%') > -1) {
-      width = (w.globals.gridWidth * parseInt(anno.width, 10)) / 100
+      width = (w.layout.gridWidth * parseInt(anno.width, 10)) / 100
     } else {
       width = parseInt(anno.width, 10)
     }

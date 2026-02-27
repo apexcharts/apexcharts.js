@@ -110,7 +110,7 @@ export default class Helpers {
           )
           const seriesName = legendTextEl
             ? legendTextEl.textContent
-            : w.globals.seriesNames[seriesCnt]
+            : w.seriesData.seriesNames[seriesCnt]
           const statusText = isCollapsed ? 'hidden' : 'visible'
           legendItem.setAttribute(
             'aria-label',
@@ -154,7 +154,7 @@ export default class Helpers {
           )
           const seriesName = legendTextEl
             ? legendTextEl.textContent
-            : w.globals.seriesNames[seriesCnt]
+            : w.seriesData.seriesNames[seriesCnt]
           const statusText = isCollapsed ? 'hidden' : 'visible'
           legendItem.setAttribute(
             'aria-label',

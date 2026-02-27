@@ -26,8 +26,8 @@ class TimeScale {
 
     // null check when no series to show
     if (w.globals.allSeriesCollapsed) {
-      w.globals.labels = []
-      w.globals.timescaleLabels = []
+      w.labelData.labels = []
+      w.labelData.timescaleLabels = []
       return []
     }
 
@@ -47,7 +47,7 @@ class TimeScale {
 
     const timeIntervals = dt.getTimeUnitsfromTimestamp(minX, maxX, this.utc)
 
-    const daysWidthOnXAxis = w.globals.gridWidth / daysDiff
+    const daysWidthOnXAxis = w.layout.gridWidth / daysDiff
     const hoursWidthOnXAxis = daysWidthOnXAxis / 24
     const minutesWidthOnXAxis = hoursWidthOnXAxis / 60
     const secondsWidthOnXAxis = minutesWidthOnXAxis / 60
@@ -175,7 +175,7 @@ class TimeScale {
 
     const filteredTimeScale = adjustedMonthInTimeScaleArray.filter((ts) => {
       let modulo = 1
-      let ticks = Math.ceil(w.globals.gridWidth / 120)
+      let ticks = Math.ceil(w.layout.gridWidth / 120)
       const value = ts.value
       if (w.config.xaxis.tickAmount !== undefined) {
         ticks = w.config.xaxis.tickAmount
@@ -285,7 +285,7 @@ class TimeScale {
       reformattedTimescaleArray
     )
 
-    w.globals.timescaleLabels = removedOverlappingTS.slice()
+    w.labelData.timescaleLabels = removedOverlappingTS.slice()
 
     // at this stage, we need to re-calculate coords of the grid as timeline labels may have altered the xaxis labels coords
     // The reason we can't do this prior to this stage is because timeline labels depends on gridWidth, and as the ticks are calculated based on available gridWidth, there can be unknown number of ticks generated for different minX and maxX

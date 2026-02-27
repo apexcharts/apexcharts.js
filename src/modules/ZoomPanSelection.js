@@ -55,7 +55,7 @@ export default class ZoomPanSelection extends Toolbar {
     this.selectionRect = this.graphics.drawRect(0, 0, 0, 0)
 
     this.gridRect = w.dom.baseEl.querySelector('.apexcharts-grid')
-    this.constraints = new Box(0, 0, w.globals.gridWidth, w.globals.gridHeight)
+    this.constraints = new Box(0, 0, w.layout.gridWidth, w.layout.gridHeight)
 
     this.zoomRect.node.classList.add('apexcharts-zoom-rect')
     this.selectionRect.node.classList.add('apexcharts-selection-rect')
@@ -67,15 +67,15 @@ export default class ZoomPanSelection extends Toolbar {
         .draggable({
           minX: 0,
           minY: 0,
-          maxX: w.globals.gridWidth,
-          maxY: w.globals.gridHeight,
+          maxX: w.layout.gridWidth,
+          maxY: w.layout.gridHeight,
         })
         .on('dragmove.namespace', this.selectionDragging.bind(this, 'dragging'))
     } else if (w.config.chart.selection.type === 'y') {
       this.slDraggableRect = this.selectionRect
         .draggable({
           minX: 0,
-          maxX: w.globals.gridWidth,
+          maxX: w.layout.gridWidth,
         })
         .on('dragmove.namespace', this.selectionDragging.bind(this, 'dragging'))
     } else {
@@ -276,8 +276,8 @@ export default class ZoomPanSelection extends Toolbar {
 
   executeMouseWheelZoom(e) {
     const w = this.w
-    this.minX = w.globals.isRangeBar ? w.globals.minY : w.globals.minX
-    this.maxX = w.globals.isRangeBar ? w.globals.maxY : w.globals.maxX
+    this.minX = w.axisFlags.isRangeBar ? w.globals.minY : w.globals.minX
+    this.maxX = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX
 
     // Calculate the relative position of the mouse on the chart
     const gridRectDim = this.gridRect?.getBoundingClientRect()
@@ -309,7 +309,7 @@ export default class ZoomPanSelection extends Toolbar {
     }
 
     // Constrain within original chart bounds
-    if (!w.globals.isRangeBar) {
+    if (!w.axisFlags.isRangeBar) {
       newMinX = Math.max(newMinX, w.globals.initialMinX)
       newMaxX = Math.min(newMaxX, w.globals.initialMaxX)
 
@@ -375,8 +375,8 @@ export default class ZoomPanSelection extends Toolbar {
       ) {
         this.drawSelectionRect({
           ...w.interact.selection,
-          translateX: w.globals.translateX,
-          translateY: w.globals.translateY,
+          translateX: w.layout.translateX,
+          translateY: w.layout.translateY,
         })
       } else {
         if (
@@ -387,11 +387,11 @@ export default class ZoomPanSelection extends Toolbar {
             (w.config.chart.selection.xaxis.min - w.globals.minX) /
             xyRatios.xRatio
           let width =
-            w.globals.gridWidth -
+            w.layout.gridWidth -
             (w.globals.maxX - w.config.chart.selection.xaxis.max) /
               xyRatios.xRatio -
             x
-          if (w.globals.isRangeBar) {
+          if (w.axisFlags.isRangeBar) {
             // rangebars put datetime data in y axis
             x =
               (w.config.chart.selection.xaxis.min -
@@ -406,9 +406,9 @@ export default class ZoomPanSelection extends Toolbar {
             x,
             y: 0,
             width,
-            height: w.globals.gridHeight,
-            translateX: w.globals.translateX,
-            translateY: w.globals.translateY,
+            height: w.layout.gridHeight,
+            translateX: w.layout.translateX,
+            translateY: w.layout.translateY,
             selectionEnabled: true,
           }
           this.drawSelectionRect(selectionRect)
@@ -503,13 +503,13 @@ export default class ZoomPanSelection extends Toolbar {
     let selectionHeight = top - startY
 
     let selectionRect = {
-      translateX: w.globals.translateX,
-      translateY: w.globals.translateY,
+      translateX: w.layout.translateX,
+      translateY: w.layout.translateY,
     }
 
-    if (Math.abs(selectionWidth + startX) > w.globals.gridWidth) {
+    if (Math.abs(selectionWidth + startX) > w.layout.gridWidth) {
       // user dragged the mouse outside drawing area to the right
-      selectionWidth = w.globals.gridWidth - startX
+      selectionWidth = w.layout.gridWidth - startX
     } else if (left < 0) {
       // user dragged the mouse outside drawing area to the left
       selectionWidth = startX
@@ -532,13 +532,13 @@ export default class ZoomPanSelection extends Toolbar {
         x: inversedX ? startX - selectionWidth : startX,
         y: 0,
         width: selectionWidth,
-        height: w.globals.gridHeight,
+        height: w.layout.gridHeight,
       }
     } else if (zoomtype === 'y') {
       selectionRect = {
         x: 0,
         y: inversedY ? startY - selectionHeight : startY,
-        width: w.globals.gridWidth,
+        width: w.layout.gridWidth,
         height: selectionHeight,
       }
     } else {
@@ -552,8 +552,8 @@ export default class ZoomPanSelection extends Toolbar {
 
     selectionRect = {
       ...selectionRect,
-      translateX: w.globals.translateX,
-      translateY: w.globals.translateY,
+      translateX: w.layout.translateX,
+      translateY: w.layout.translateY,
     }
 
     me.drawSelectionRect(selectionRect)
@@ -625,7 +625,7 @@ export default class ZoomPanSelection extends Toolbar {
 
         let minX, maxX, minY, maxY
 
-        if (!w.globals.isRangeBar) {
+        if (!w.axisFlags.isRangeBar) {
           // normal XY charts
           minX =
             w.globals.xAxisScale.niceMin +
@@ -698,7 +698,7 @@ export default class ZoomPanSelection extends Toolbar {
     // Convert those local coords to actual data values
     let xLowestValue, xHighestValue
 
-    if (!w.globals.isRangeBar) {
+    if (!w.axisFlags.isRangeBar) {
       xLowestValue =
         w.globals.xAxisScale.niceMin + localStartX * xyRatios.xRatio
       xHighestValue = w.globals.xAxisScale.niceMin + localEndX * xyRatios.xRatio
@@ -847,9 +847,9 @@ export default class ZoomPanSelection extends Toolbar {
       y: me.clientY,
     }
 
-    const xLowestValue = w.globals.isRangeBar ? w.globals.minY : w.globals.minX
+    const xLowestValue = w.axisFlags.isRangeBar ? w.globals.minY : w.globals.minX
 
-    const xHighestValue = w.globals.isRangeBar ? w.globals.maxY : w.globals.maxX
+    const xHighestValue = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX
 
     // removed delayedPanScrolled as it doesn't seem to cause bugs anymore in convertedCatToNumeric
     // if (!w.config.xaxis.convertedCatToNumeric) {
@@ -890,21 +890,21 @@ export default class ZoomPanSelection extends Toolbar {
     let xRatio = xyRatios.xRatio
     let minX = w.globals.minX
     let maxX = w.globals.maxX
-    if (w.globals.isRangeBar) {
+    if (w.axisFlags.isRangeBar) {
       xRatio = xyRatios.invertedYRatio
       minX = w.globals.minY
       maxX = w.globals.maxY
     }
 
     if (this.moveDirection === 'left') {
-      xLowestValue = minX + (w.globals.gridWidth / 15) * xRatio
-      xHighestValue = maxX + (w.globals.gridWidth / 15) * xRatio
+      xLowestValue = minX + (w.layout.gridWidth / 15) * xRatio
+      xHighestValue = maxX + (w.layout.gridWidth / 15) * xRatio
     } else if (this.moveDirection === 'right') {
-      xLowestValue = minX - (w.globals.gridWidth / 15) * xRatio
-      xHighestValue = maxX - (w.globals.gridWidth / 15) * xRatio
+      xLowestValue = minX - (w.layout.gridWidth / 15) * xRatio
+      xHighestValue = maxX - (w.layout.gridWidth / 15) * xRatio
     }
 
-    if (!w.globals.isRangeBar) {
+    if (!w.axisFlags.isRangeBar) {
       if (
         xLowestValue < w.globals.initialMinX ||
         xHighestValue > w.globals.initialMaxX

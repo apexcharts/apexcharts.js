@@ -146,7 +146,7 @@ class Legend {
 
     const fontFamily = w.config.legend.fontFamily
 
-    let legendNames = w.globals.seriesNames
+    let legendNames = w.seriesData.seriesNames
     let fillcolor = w.config.legend.markers.fillColors
       ? w.config.legend.markers.fillColors.slice()
       : w.globals.colors.slice()
@@ -160,7 +160,7 @@ class Legend {
       })
       fillcolor = ranges.map((color) => color.color)
     } else if (this.isBarsDistributed) {
-      legendNames = w.globals.labels.slice()
+      legendNames = w.labelData.labels.slice()
     }
 
     if (w.config.legend.customLegendItems.length) {
@@ -173,10 +173,10 @@ class Legend {
     const legendGroups = []
 
     if (
-      w.globals.seriesGroups.length > 1 &&
+      w.labelData.seriesGroups.length > 1 &&
       w.config.legend.clusterGroupedSeries
     ) {
-      w.globals.seriesGroups.forEach((_, gi) => {
+      w.labelData.seriesGroups.forEach((_, gi) => {
         legendGroups[gi] = document.createElement('div')
         legendGroups[gi].classList.add(
           'apexcharts-legend-group',
@@ -309,7 +309,7 @@ class Legend {
       }
 
       if (legendGroups.length) {
-        w.globals.seriesGroups.forEach((group, gi) => {
+        w.labelData.seriesGroups.forEach((group, gi) => {
           if (group.includes(w.config.series[i]?.name)) {
             w.dom.elLegendWrap.appendChild(legendGroups[gi])
             legendGroups[gi].appendChild(elLegend)

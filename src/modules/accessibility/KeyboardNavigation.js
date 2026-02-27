@@ -249,11 +249,11 @@ export default class KeyboardNavigation {
     let attempts = 0
 
     // Non-axis charts (pie, etc.) have flat numeric series — no nulls to skip
-    if (!Array.isArray(w.globals.series[si])) return
+    if (!Array.isArray(w.seriesData.series[si])) return
 
     while (
       attempts < dpCount &&
-      w.globals.series[si][di] === null
+      w.seriesData.series[si][di] === null
     ) {
       di = (di + 1) % dpCount
       attempts++
@@ -270,11 +270,11 @@ export default class KeyboardNavigation {
     let attempts = 0
 
     // Non-axis charts (pie, etc.) have flat numeric series — no nulls to skip
-    if (!Array.isArray(w.globals.series[si])) return
+    if (!Array.isArray(w.seriesData.series[si])) return
 
     while (
       attempts < dpCount &&
-      w.globals.series[si][di] === null
+      w.seriesData.series[si][di] === null
     ) {
       di = (di - 1 + dpCount) % dpCount
       attempts++
@@ -459,7 +459,7 @@ export default class KeyboardNavigation {
     const w = this.w
 
     // Draw tooltip text content
-    const rangeData = w.globals.seriesRange?.[i]?.[j]?.y?.[0]
+    const rangeData = w.rangeData.seriesRange?.[i]?.[j]?.y?.[0]
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
       i,
@@ -677,20 +677,20 @@ export default class KeyboardNavigation {
       const initialAngle = w.config.plotOptions.radialBar.startAngle || 0
       const midAngle = initialAngle + angle / 2
 
-      const centerX = w.globals.gridWidth / 2
-      const centerY = w.globals.gridHeight / 2
-      const radialSize = w.globals.radialSize || Math.min(w.globals.gridWidth, w.globals.gridHeight) / 2
+      const centerX = w.layout.gridWidth / 2
+      const centerY = w.layout.gridHeight / 2
+      const radialSize = w.globals.radialSize || Math.min(w.layout.gridWidth, w.layout.gridHeight) / 2
 
       // Use the outer radius for this particular ring (series i)
-      const seriesCount = w.globals.series.length
+      const seriesCount = w.seriesData.series.length
       const trackSize = radialSize / Math.max(seriesCount, 1)
       const outerRadius = radialSize - i * trackSize
       const innerRadius = outerRadius - trackSize
       const ringRadius = (outerRadius + innerRadius) / 2
 
       const centroid = Utils.polarToCartesian(centerX, centerY, ringRadius, midAngle)
-      const x = centroid.x + (w.globals.translateX || 0)
-      const y = centroid.y + (w.globals.translateY || 0)
+      const x = centroid.x + (w.layout.translateX || 0)
+      const y = centroid.y + (w.layout.translateY || 0)
 
       tooltipEl.style.left = x - ttWidth / 2 + 'px'
       tooltipEl.style.top = y - ttHeight - 10 + 'px'
@@ -740,7 +740,7 @@ export default class KeyboardNavigation {
       let x = cellCx + cellWidth + ttWidth / 2
       const y = cellCy + cellHeight / 2 - ttHeight / 2
 
-      if (cellCx + cellWidth > w.globals.gridWidth / 2) {
+      if (cellCx + cellWidth > w.layout.gridWidth / 2) {
         x = cellCx - ttWidth / 2
       }
 
@@ -853,7 +853,7 @@ export default class KeyboardNavigation {
     if (type === 'pie' || type === 'donut' || type === 'polarArea') {
       return 1 // single "series" — all navigation is on dataPointIndex
     }
-    return w.globals.series.length
+    return w.seriesData.series.length
   }
 
   _getDataPointCount(si) {
@@ -861,9 +861,9 @@ export default class KeyboardNavigation {
     const type = w.config.chart.type
     // Non-axis charts: globals.series is a flat array of values (one per slice)
     if (type === 'pie' || type === 'donut' || type === 'polarArea') {
-      return w.globals.series.length
+      return w.seriesData.series.length
     }
-    const series = w.globals.series
+    const series = w.seriesData.series
     return series[si] && Array.isArray(series[si]) ? series[si].length : 0
   }
 
@@ -882,7 +882,7 @@ export default class KeyboardNavigation {
    * data point that is outside the visible viewport. Snap the cursor to the
    * first data point whose x-value falls within [minX, maxX].
    *
-   * Only adjusts when w.globals.seriesX is populated (numeric/datetime axes).
+   * Only adjusts when w.seriesData.seriesX is populated (numeric/datetime axes).
    * Category-only charts (seriesX entries are strings or auto-indices) are
    * unaffected — all points are always visible.
    */

@@ -15,14 +15,14 @@ class Grid {
     this.w = w
     this.ctx = ctx // needed: XAxis instantiation, passes ctx to AxesUtils theme/timeScale
 
-    this.xaxisLabels = w.globals.labels.slice()
+    this.xaxisLabels = w.labelData.labels.slice()
     this.axesUtils = new AxesUtils(ctx.w, { theme: ctx.theme, timeScale: ctx.timeScale })
 
-    this.isRangeBar = w.globals.seriesRange.length && w.globals.isBarHorizontal
+    this.isRangeBar = w.rangeData.seriesRange.length && w.globals.isBarHorizontal
 
-    if (w.globals.timescaleLabels.length > 0) {
+    if (w.labelData.timescaleLabels.length > 0) {
       //  timescaleLabels labels are there
-      this.xaxisLabels = w.globals.timescaleLabels.slice()
+      this.xaxisLabels = w.labelData.timescaleLabels.slice()
     }
   }
 
@@ -38,15 +38,15 @@ class Grid {
       w.globals.padHorizontal,
       1,
       w.globals.padHorizontal,
-      w.globals.gridHeight,
+      w.layout.gridHeight,
       'transparent'
     )
 
     const elHorzLine = graphics.drawLine(
       w.globals.padHorizontal,
-      w.globals.gridHeight,
-      w.globals.gridWidth,
-      w.globals.gridHeight,
+      w.layout.gridHeight,
+      w.layout.gridWidth,
+      w.layout.gridHeight,
       'transparent'
     )
 
@@ -95,7 +95,7 @@ class Grid {
 
     let barWidthLeft = 0
     let barWidthRight = 0
-    if (hasBar && w.globals.isXNumeric && !w.globals.isBarHorizontal) {
+    if (hasBar && w.axisFlags.isXNumeric && !w.globals.isBarHorizontal) {
       barWidthLeft = Math.max(
         w.config.grid.padding.left,
         gl.barPadForNumericAxis
@@ -170,17 +170,17 @@ class Grid {
 
       let y_2 = 0
       if (
-        w.globals.hasXaxisGroups &&
+        w.labelData.hasXaxisGroups &&
         w.config.xaxis.tickPlacement === 'between'
       ) {
-        const groups = w.globals.groups
+        const groups = w.labelData.groups
         if (groups) {
           let gacc = 0
           for (let gi = 0; gacc < i && gi < groups.length; gi++) {
             gacc += groups[gi].cols
           }
           if (gacc === i) {
-            y_2 = w.globals.xAxisLabelsHeight * 0.6
+            y_2 = w.layout.xAxisLabelsHeight * 0.6
           }
         }
       }
@@ -200,7 +200,7 @@ class Grid {
     const excludeBorders =
       (y1 === 0 && y2 === 0) ||
       (x1 === 0 && x2 === 0) ||
-      (y1 === w.globals.gridHeight && y2 === w.globals.gridHeight) ||
+      (y1 === w.layout.gridHeight && y2 === w.layout.gridHeight) ||
       (w.globals.isBarHorizontal && (i === 0 || i === xCount - 1))
 
     const graphics = new Graphics(this.w)
@@ -263,9 +263,9 @@ class Grid {
     }
 
     const categoryLines = ({ xC, x1, y1, x2, y2 }) => {
-      for (let i = 0; i < xC + (w.globals.isXNumeric ? 0 : 1); i++) {
+      for (let i = 0; i < xC + (w.axisFlags.isXNumeric ? 0 : 1); i++) {
         if (i === 0 && xC === 1 && w.globals.dataPoints === 1) {
-          x1 = w.globals.gridWidth / 2
+          x1 = w.layout.gridWidth / 2
           x2 = x1
         }
         this._drawGridLines({
@@ -278,7 +278,7 @@ class Grid {
           parent: this.elgridLinesV,
         })
 
-        x1 += w.globals.gridWidth / (w.globals.isXNumeric ? xC - 1 : xC)
+        x1 += w.layout.gridWidth / (w.axisFlags.isXNumeric ? xC - 1 : xC)
         x2 = x1
       }
     }
@@ -287,12 +287,12 @@ class Grid {
       const x1 = w.globals.padHorizontal
       const y1 = 0
       let x2
-      const y2 = w.globals.gridHeight
+      const y2 = w.layout.gridHeight
 
-      if (w.globals.timescaleLabels.length) {
+      if (w.labelData.timescaleLabels.length) {
         datetimeLines({ xC: xCount, x1, y1, x2, y2 })
       } else {
-        if (w.globals.isXNumeric) {
+        if (w.axisFlags.isXNumeric) {
           xCount = w.globals.xAxisScale.result.length
         }
         categoryLines({ xC: xCount, x1, y1, x2, y2 })
@@ -303,11 +303,11 @@ class Grid {
       const x1 = 0
       let y1 = 0
       let y2 = 0
-      const x2 = w.globals.gridWidth
+      const x2 = w.layout.gridWidth
       let tA = tickAmount + 1
 
       if (this.isRangeBar) {
-        tA = w.globals.labels.length
+        tA = w.labelData.labels.length
       }
 
       for (let i = 0; i < tA + (this.isRangeBar ? 1 : 0); i++) {
@@ -321,7 +321,7 @@ class Grid {
           parent: this.elgridLinesH,
         })
 
-        y1 += w.globals.gridHeight / (this.isRangeBar ? tA : tickAmount)
+        y1 += w.layout.gridHeight / (this.isRangeBar ? tA : tickAmount)
         y2 = y1
       }
     }
@@ -334,7 +334,7 @@ class Grid {
       let x1 = w.globals.padHorizontal
       const y1 = 0
       let x2
-      const y2 = w.globals.gridHeight
+      const y2 = w.layout.gridHeight
       for (let i = 0; i < xCount + 1; i++) {
         if (w.config.grid.xaxis.lines.show) {
           this._drawGridLine({
@@ -350,7 +350,7 @@ class Grid {
 
         const xAxis = new XAxis(this.w, this.ctx)
         xAxis.drawXaxisTicks(x1, 0, w.dom.elGraphical)
-        x1 += w.globals.gridWidth / xCount
+        x1 += w.layout.gridWidth / xCount
         x2 = x1
       }
     }
@@ -359,7 +359,7 @@ class Grid {
       const x1 = 0
       let y1 = 0
       let y2 = 0
-      const x2 = w.globals.gridWidth
+      const x2 = w.layout.gridWidth
 
       for (let i = 0; i < w.globals.dataPoints + 1; i++) {
         this._drawGridLine({
@@ -372,7 +372,7 @@ class Grid {
           parent: this.elgridLinesH,
         })
 
-        y1 += w.globals.gridHeight / w.globals.dataPoints
+        y1 += w.layout.gridHeight / w.globals.dataPoints
         y2 = y1
       }
     }
@@ -459,7 +459,7 @@ class Grid {
           c = 0
         }
         this._drawGridBandRect({ c, x1, y1, x2, y2, type })
-        y1 += w.globals.gridHeight / tickAmount
+        y1 += w.layout.gridHeight / tickAmount
       }
     }
 
@@ -469,8 +469,8 @@ class Grid {
         tickAmount,
         0,
         0,
-        w.globals.gridWidth,
-        w.globals.gridHeight / tickAmount
+        w.layout.gridWidth,
+        w.layout.gridHeight / tickAmount
       )
     }
 
@@ -483,14 +483,14 @@ class Grid {
           ? xCount - 1
           : xCount
 
-      if (w.globals.isXNumeric) {
+      if (w.axisFlags.isXNumeric) {
         xc = w.globals.xAxisScale.result.length - 1
       }
 
       let x1 = w.globals.padHorizontal
       const y1 = 0
-      let x2 = w.globals.padHorizontal + w.globals.gridWidth / xc
-      const y2 = w.globals.gridHeight
+      let x2 = w.globals.padHorizontal + w.layout.gridWidth / xc
+      const y2 = w.layout.gridHeight
 
       for (let i = 0, c = 0; i < xCount; i++, c++) {
         if (c >= w.config.grid.column.colors.length) {
@@ -500,12 +500,12 @@ class Grid {
         if (w.config.xaxis.type === 'datetime') {
           x1 = this.xaxisLabels[i].position
           x2 =
-            (this.xaxisLabels[i + 1]?.position || w.globals.gridWidth) -
+            (this.xaxisLabels[i + 1]?.position || w.layout.gridWidth) -
             this.xaxisLabels[i].position
         }
 
         this._drawGridBandRect({ c, x1, y1, x2, y2, type: 'column' })
-        x1 += w.globals.gridWidth / xc
+        x1 += w.layout.gridWidth / xc
       }
     }
   }

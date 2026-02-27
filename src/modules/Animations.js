@@ -114,7 +114,7 @@ export default class Animations {
         // therefore, disable animation for such a case
         speed = 1
       }
-      return `M 0 ${w.globals.gridHeight}`
+      return `M 0 ${w.layout.gridHeight}`
     }
 
     if (
@@ -145,7 +145,7 @@ export default class Animations {
         // a flag to indicate that the original mount function can return true now as animation finished here
         if (Utils.isNumber(j)) {
           if (
-            j === w.globals.series[w.globals.maxValsInArrayIndex].length - 2 &&
+            j === w.seriesData.series[w.globals.maxValsInArrayIndex].length - 2 &&
             w.globals.shouldAnimate
           ) {
             this.animationCompleted(el)
@@ -153,7 +153,7 @@ export default class Animations {
         } else if (fill !== 'none' && w.globals.shouldAnimate) {
           if (
             (!w.globals.comboCharts &&
-              realIndex === w.globals.series.length - 1) ||
+              realIndex === w.seriesData.series.length - 1) ||
             w.globals.comboCharts
           ) {
             this.animationCompleted(el)

@@ -24,8 +24,8 @@ class AxesTooltip {
     const isBottom = w.config.xaxis.position === 'bottom'
 
     ttCtx.xaxisOffY = isBottom
-      ? w.globals.gridHeight + 1
-      : -w.globals.xAxisHeight - w.config.xaxis.axisTicks.height + 3
+      ? w.layout.gridHeight + 1
+      : -w.layout.xAxisHeight - w.config.xaxis.axisTicks.height + 3
     const tooltipCssClass = isBottom
       ? 'apexcharts-xaxistooltip apexcharts-xaxistooltip-bottom'
       : 'apexcharts-xaxistooltip apexcharts-xaxistooltip-top'
@@ -71,7 +71,7 @@ class AxesTooltip {
       const isRight =
         w.config.yaxis[i].opposite || w.config.yaxis[i].crosshairs.opposite
 
-      ttCtx.yaxisOffX = isRight ? w.globals.gridWidth + 1 : 1
+      ttCtx.yaxisOffX = isRight ? w.layout.gridWidth + 1 : 1
       const tooltipCssClass = isRight
         ? `apexcharts-yaxistooltip apexcharts-yaxistooltip-${i} apexcharts-yaxistooltip-right`
         : `apexcharts-yaxistooltip apexcharts-yaxistooltip-${i} apexcharts-yaxistooltip-left`
@@ -114,8 +114,8 @@ class AxesTooltip {
 
     if (!w.globals.comboCharts) {
       if (w.config.xaxis.crosshairs.width === 'tickWidth') {
-        const count = w.globals.labels.length
-        ttCtx.xcrosshairsWidth = w.globals.gridWidth / count
+        const count = w.labelData.labels.length
+        ttCtx.xcrosshairsWidth = w.layout.gridWidth / count
       } else if (w.config.xaxis.crosshairs.width === 'barWidth') {
         const bar = w.dom.baseEl.querySelector('.apexcharts-bar-area')
         if (bar !== null) {
@@ -132,8 +132,8 @@ class AxesTooltip {
         ttCtx.xcrosshairsWidth = barWidth
       } else {
         if (w.config.xaxis.crosshairs.width === 'tickWidth') {
-          const count = w.globals.labels.length
-          ttCtx.xcrosshairsWidth = w.globals.gridWidth / count
+          const count = w.labelData.labels.length
+          ttCtx.xcrosshairsWidth = w.layout.gridWidth / count
         }
       }
     }

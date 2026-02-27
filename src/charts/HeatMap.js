@@ -39,8 +39,8 @@ export default class HeatMap {
     ret.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
 
     // width divided into equal parts
-    const xDivision = w.globals.gridWidth / w.globals.dataPoints
-    const yDivision = w.globals.gridHeight / w.globals.series.length
+    const xDivision = w.layout.gridWidth / w.globals.dataPoints
+    const yDivision = w.layout.gridHeight / w.seriesData.series.length
 
     let y1 = 0
     let rev = false
@@ -62,7 +62,7 @@ export default class HeatMap {
       // el to which series will be drawn
       const elSeries = graphics.group({
         class: `apexcharts-series apexcharts-heatmap-series`,
-        seriesName: Utils.escapeString(w.globals.seriesNames[i]),
+        seriesName: Utils.escapeString(w.seriesData.seriesNames[i]),
         rel: i + 1,
         'data:realIndex': i,
       })
@@ -84,10 +84,10 @@ export default class HeatMap {
       for (let dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
         // Recognize gaps and align values based on x axis
 
-        if (w.globals.seriesX.length && !w.globals.allSeriesHasEqualX) {
+        if (w.seriesData.seriesX.length && !w.globals.allSeriesHasEqualX) {
           if (
             w.globals.minX + w.globals.minXDiff * dIndex <
-            w.globals.seriesX[i][j]
+            w.seriesData.seriesX[i][j]
           ) {
             x1 = x1 + xDivision
             continue
@@ -182,8 +182,8 @@ export default class HeatMap {
         }
 
         const formatter = w.config.dataLabels.formatter
-        const formattedText = formatter(w.globals.series[i][j], {
-          value: w.globals.series[i][j],
+        const formattedText = formatter(w.seriesData.series[i][j], {
+          value: w.seriesData.series[i][j],
           seriesIndex: i,
           dataPointIndex: j,
           w,

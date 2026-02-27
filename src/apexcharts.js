@@ -271,10 +271,10 @@ export default class ApexCharts {
 
     const dim = {
       plot: {
-        left: w.globals.translateX,
-        top: w.globals.translateY,
-        width: w.globals.gridWidth,
-        height: w.globals.gridHeight,
+        left: w.layout.translateX,
+        top: w.layout.translateY,
+        width: w.layout.gridWidth,
+        height: w.layout.gridHeight,
       },
     }
 
@@ -375,9 +375,9 @@ export default class ApexCharts {
 
         if (
           w.globals.axisCharts &&
-          (w.globals.isXNumeric ||
+          (w.axisFlags.isXNumeric ||
             w.config.xaxis.convertedCatToNumeric ||
-            w.globals.isRangeBar)
+            w.axisFlags.isRangeBar)
         ) {
           if (
             w.config.chart.zoom.enabled ||
@@ -918,16 +918,13 @@ export default class ApexCharts {
     return this.w.dom.Paper
   }
 
-  // ─── Phase-1 parse write-back stubs ────────────────────────────────────────
-  // Phase 1: no-ops — Data.parseData() already mutated w.globals directly.
-  // Phase 2: each stub will assign its slice to the corresponding w.* namespace
-  //          instead of relying on globals mutations (enabling true tree-shaking).
-  _writeParsedSeriesData(_slice) {}
-  _writeParsedRangeData(_slice) {}
-  _writeParsedCandleData(_slice) {}
-  _writeParsedLabelData(_slice) {}
-  _writeParsedAxisFlags(_slice) {}
-  _writeLayoutCoords(_slice) {}
+  // ─── Slice write-back stubs ─────────────────────────────────────────────────
+  _writeParsedSeriesData(slice) { Object.assign(this.w.seriesData, slice) }
+  _writeParsedRangeData(slice)  { Object.assign(this.w.rangeData,  slice) }
+  _writeParsedCandleData(slice) { Object.assign(this.w.candleData, slice) }
+  _writeParsedLabelData(slice)  { Object.assign(this.w.labelData,  slice) }
+  _writeParsedAxisFlags(slice)  { Object.assign(this.w.axisFlags,  slice) }
+  _writeLayoutCoords(slice)     { Object.assign(this.w.layout,     slice) }
 
   _parentResizeCallback() {
     if (

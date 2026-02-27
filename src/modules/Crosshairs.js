@@ -53,7 +53,7 @@ class Crosshairs {
         xcrosshairs = graphics.drawLine()
       }
 
-      let gridHeight = w.globals.gridHeight
+      let gridHeight = w.layout.gridHeight
       if (!Utils.isNumber(gridHeight) || gridHeight < 0) {
         gridHeight = 0
       }
@@ -103,7 +103,7 @@ class Crosshairs {
       const ycrosshairs = graphics.drawLine(
         -offX,
         0,
-        w.globals.gridWidth + offX,
+        w.layout.gridWidth + offX,
         0,
         crosshair.stroke.color,
         crosshair.stroke.dashArray,
@@ -120,7 +120,7 @@ class Crosshairs {
     const ycrosshairsHidden = graphics.drawLine(
       -offX,
       0,
-      w.globals.gridWidth + offX,
+      w.layout.gridWidth + offX,
       0,
       crosshair.stroke.color,
       0,

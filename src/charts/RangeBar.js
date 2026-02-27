@@ -17,8 +17,8 @@ class RangeBar extends Bar {
     this.rangeBarOptions = this.w.config.plotOptions.rangeBar
 
     this.series = series
-    this.seriesRangeStart = w.globals.seriesRangeStart
-    this.seriesRangeEnd = w.globals.seriesRangeEnd
+    this.seriesRangeStart = w.rangeData.seriesRangeStart
+    this.seriesRangeEnd = w.rangeData.seriesRangeEnd
 
     this.barHelpers.initVariables(series)
 
@@ -35,7 +35,7 @@ class RangeBar extends Bar {
       // el to which series will be drawn
       const elSeries = graphics.group({
         class: `apexcharts-series`,
-        seriesName: Utils.escapeString(w.globals.seriesNames[realIndex]),
+        seriesName: Utils.escapeString(w.seriesData.seriesNames[realIndex]),
         rel: i + 1,
         'data:realIndex': realIndex,
       })
@@ -132,9 +132,9 @@ class RangeBar extends Bar {
 
           barWidth = paths.barWidth
         } else {
-          if (w.globals.isXNumeric) {
+          if (w.axisFlags.isXNumeric) {
             x =
-              (w.globals.seriesX[i][j] - w.globals.minX) / this.xRatio -
+              (w.seriesData.seriesX[i][j] - w.globals.minX) / this.xRatio -
               barWidth / 2
           }
 
@@ -242,10 +242,10 @@ class RangeBar extends Bar {
     const x = w.config.series[i].data[j].x
     const labelX = Array.isArray(x) ? x.join(' ') : x
 
-    const rowIndex = w.globals.labels
+    const rowIndex = w.labelData.labels
       .map((_) => (Array.isArray(_) ? _.join(' ') : _))
       .indexOf(labelX)
-    const overlappedIndex = w.globals.seriesRange[i].findIndex(
+    const overlappedIndex = w.rangeData.seriesRange[i].findIndex(
       (tx) => tx.x === labelX && tx.overlaps.length > 0
     )
 
@@ -257,7 +257,7 @@ class RangeBar extends Bar {
       }
 
       if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
-        overlaps = w.globals.seriesRange[i][overlappedIndex].overlaps
+        overlaps = w.rangeData.seriesRange[i][overlappedIndex].overlaps
 
         if (overlaps.indexOf(rangeName) > -1) {
           barHeight = initPositions.barHeight / overlaps.length
@@ -272,7 +272,7 @@ class RangeBar extends Bar {
         }
       }
     } else {
-      if (rowIndex > -1 && !w.globals.timescaleLabels.length) {
+      if (rowIndex > -1 && !w.labelData.timescaleLabels.length) {
         if (w.config.plotOptions.bar.rangeBarGroupRows) {
           barXPosition = srtx + xDivision * rowIndex
         } else {
@@ -281,7 +281,7 @@ class RangeBar extends Bar {
       }
 
       if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
-        overlaps = w.globals.seriesRange[i][overlappedIndex].overlaps
+        overlaps = w.rangeData.seriesRange[i][overlappedIndex].overlaps
 
         if (overlaps.indexOf(rangeName) > -1) {
           barWidth = initPositions.barWidth / overlaps.length
@@ -348,7 +348,7 @@ class RangeBar extends Bar {
       w,
     })
 
-    if (!w.globals.isXNumeric) {
+    if (!w.axisFlags.isXNumeric) {
       x = x + xDivision
     } else {
       const xForNumericXAxis = this.getBarXForNumericXAxis({
@@ -385,8 +385,8 @@ class RangeBar extends Bar {
     if (val < 0) {
       val = 0
     }
-    if (val > w.globals.gridWidth) {
-      val = w.globals.gridWidth
+    if (val > w.layout.gridWidth) {
+      val = w.layout.gridWidth
     }
 
     return val
@@ -426,7 +426,7 @@ class RangeBar extends Bar {
       w,
     })
 
-    if (!w.globals.isXNumeric) {
+    if (!w.axisFlags.isXNumeric) {
       y = y + yDivision
     }
 
@@ -443,8 +443,8 @@ class RangeBar extends Bar {
   getRangeValue(i, j) {
     const w = this.w
     return {
-      start: w.globals.seriesRangeStart[i][j],
-      end: w.globals.seriesRangeEnd[i][j],
+      start: w.rangeData.seriesRangeStart[i][j],
+      end: w.rangeData.seriesRangeEnd[i][j],
     }
   }
 }

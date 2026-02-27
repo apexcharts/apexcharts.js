@@ -17,20 +17,20 @@ export default class DimXAxis {
   getxAxisLabelsCoords() {
     const w = this.w
 
-    let xaxisLabels = w.globals.labels.slice()
+    let xaxisLabels = w.labelData.labels.slice()
     if (w.config.xaxis.convertedCatToNumeric && xaxisLabels.length === 0) {
-      xaxisLabels = w.globals.categoryLabels
+      xaxisLabels = w.labelData.categoryLabels
     }
 
     let rect
 
-    if (w.globals.timescaleLabels.length > 0) {
+    if (w.labelData.timescaleLabels.length > 0) {
       const coords = this.getxAxisTimeScaleLabelsCoords()
       rect = {
         width: coords.width,
         height: coords.height,
       }
-      w.globals.rotateXLabels = false
+      w.layout.rotateXLabels = false
     } else {
       this.dCtx.lgWidthForSideLegends =
         (w.config.legend.position === 'left' ||
@@ -113,7 +113,7 @@ export default class DimXAxis {
         w.config.xaxis.labels.rotateAlways
       ) {
         if (!w.globals.isBarHorizontal) {
-          w.globals.rotateXLabels = true
+          w.layout.rotateXLabels = true
           const getRotatedTextRects = (text) => {
             return graphics.getTextRects(
               text,
@@ -138,7 +138,7 @@ export default class DimXAxis {
               : xArrLabelrect.width
         }
       } else {
-        w.globals.rotateXLabels = false
+        w.layout.rotateXLabels = false
       }
     }
 
@@ -163,7 +163,7 @@ export default class DimXAxis {
   getxAxisGroupLabelsCoords() {
     const w = this.w
 
-    if (!w.globals.hasXaxisGroups) {
+    if (!w.labelData.hasXaxisGroups) {
       return { width: 0, height: 0 }
     }
 
@@ -171,7 +171,7 @@ export default class DimXAxis {
       w.config.xaxis.group.style?.fontSize ||
       w.config.xaxis.labels.style.fontSize
 
-    const xaxisLabels = w.globals.groups.map((g) => g.title)
+    const xaxisLabels = w.labelData.groups.map((g) => g.title)
 
     let rect
 
@@ -243,7 +243,7 @@ export default class DimXAxis {
 
   getxAxisTimeScaleLabelsCoords() {
     const w = this.w
-    this.dCtx.timescaleLabels = w.globals.timescaleLabels.slice()
+    this.dCtx.timescaleLabels = w.labelData.timescaleLabels.slice()
 
     const labels = this.dCtx.timescaleLabels.map((label) => label.value)
 
@@ -266,7 +266,7 @@ export default class DimXAxis {
     const totalWidthRotated = rect.width * 1.05 * labels.length
 
     if (
-      totalWidthRotated > w.globals.gridWidth &&
+      totalWidthRotated > w.layout.gridWidth &&
       w.config.xaxis.labels.rotate !== 0
     ) {
       w.globals.overlappingXLabels = true

@@ -229,12 +229,16 @@ describe('Bar chart', () => {
   describe('getBarXForNumericXAxis', () => {
     function makeBar(globals) {
       const bar = Object.create(Bar.prototype)
+      const gl = {
+        seriesX: [[10, 20, 30]],
+        minX: 0,
+        maxValsInArrayIndex: 0,
+        ...globals,
+      }
       bar.w = {
-        globals: {
-          seriesX: [[10, 20, 30]],
-          minX: 0,
-          maxValsInArrayIndex: 0,
-          ...globals,
+        globals: gl,
+        seriesData: {
+          seriesX: gl.seriesX,
         },
       }
       bar.xRatio = 1

@@ -78,7 +78,7 @@ export default class Utils {
     })
 
     // if X axis type is not category and tooltip is not shared, then we need to find the cursor position and get the nearest value
-    if (w.globals.isXNumeric) {
+    if (w.axisFlags.isXNumeric) {
       // Change origin of cursor position so that we can compute the relative nearest point to the cursor on our chart
       // we only need to scale because all points are relative to the bounds.left and bounds.top => origin is virtually (0, 0)
       const chartGridEl = this.ttCtx.getElGrid()
@@ -229,7 +229,7 @@ export default class Utils {
     const w = this.w
     const xSameForAllSeriesJArr = []
 
-    const seriesX = w.globals.seriesX.filter((s) => typeof s[0] !== 'undefined')
+    const seriesX = w.seriesData.seriesX.filter((s) => typeof s[0] !== 'undefined')
 
     if (seriesX.length > 0) {
       for (let i = 0; i < seriesX.length - 1; i++) {

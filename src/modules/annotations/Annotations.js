@@ -31,7 +31,7 @@ export default class Annotations {
       this.inversedReversedAxis = true
     }
 
-    this.xDivision = this.w.globals.gridWidth / this.w.globals.dataPoints
+    this.xDivision = this.w.layout.gridWidth / this.w.globals.dataPoints
   }
 
   drawAxesAnnotations() {

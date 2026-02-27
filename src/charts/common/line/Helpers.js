@@ -39,9 +39,9 @@ export default class Helpers {
     // the first point for line series
     // we need to check whether it's not a time series, because a time series may
     // start from the middle of the x axis
-    if (w.globals.isXNumeric) {
+    if (w.axisFlags.isXNumeric) {
       xPT1st =
-        (w.globals.seriesX[realIndex][0] - w.globals.minX) /
+        (w.seriesData.seriesX[realIndex][0] - w.globals.minX) /
           this.lineCtx.xRatio +
         w.config.markers.offsetX
     }

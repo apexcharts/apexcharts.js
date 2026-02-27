@@ -22,12 +22,12 @@ export default class Helpers {
         this.barCtx.seriesLen = this.barCtx.seriesLen + 1
         this.barCtx.totalItems += series[sl].length
       }
-      if (w.globals.isXNumeric) {
+      if (w.axisFlags.isXNumeric) {
         // get max visible items
         for (let j = 0; j < series[sl].length; j++) {
           if (
-            w.globals.seriesX[sl][j] > w.globals.minX &&
-            w.globals.seriesX[sl][j] < w.globals.maxX
+            w.seriesData.seriesX[sl][j] > w.globals.minX &&
+            w.seriesData.seriesX[sl][j] < w.globals.maxX
           ) {
             this.barCtx.visibleItems++
           }
@@ -37,7 +37,7 @@ export default class Helpers {
       }
     }
 
-    this.arrBorderRadius = this.createBorderRadiusArr(w.globals.series)
+    this.arrBorderRadius = this.createBorderRadiusArr(w.seriesData.series)
 
     if (Utils.isSafari()) {
       // https://github.com/apexcharts/apexcharts.js/issues/4996
@@ -65,7 +65,7 @@ export default class Helpers {
     let dataPoints = w.globals.dataPoints
     if (this.barCtx.isRangeBar) {
       // timeline rangebar chart
-      dataPoints = w.globals.labels.length
+      dataPoints = w.labelData.labels.length
     }
 
     let seriesLen = this.barCtx.seriesLen
@@ -75,11 +75,11 @@ export default class Helpers {
 
     if (this.barCtx.isHorizontal) {
       // height divided into equal parts
-      yDivision = w.globals.gridHeight / dataPoints
+      yDivision = w.layout.gridHeight / dataPoints
       barHeight = yDivision / seriesLen
 
-      if (w.globals.isXNumeric) {
-        yDivision = w.globals.gridHeight / this.barCtx.totalItems
+      if (w.axisFlags.isXNumeric) {
+        yDivision = w.layout.gridHeight / this.barCtx.totalItems
         barHeight = yDivision / this.barCtx.seriesLen
       }
 
@@ -93,25 +93,25 @@ export default class Helpers {
       zeroW =
         this.barCtx.baseLineInvertedY +
         w.globals.padHorizontal +
-        (this.barCtx.isReversed ? w.globals.gridWidth : 0) -
+        (this.barCtx.isReversed ? w.layout.gridWidth : 0) -
         (this.barCtx.isReversed ? this.barCtx.baseLineInvertedY * 2 : 0)
 
       if (this.barCtx.isFunnel) {
-        zeroW = w.globals.gridWidth / 2
+        zeroW = w.layout.gridWidth / 2
       }
       y = (yDivision - barHeight * this.barCtx.seriesLen) / 2
     } else {
       // width divided into equal parts
-      xDivision = w.globals.gridWidth / this.barCtx.visibleItems
+      xDivision = w.layout.gridWidth / this.barCtx.visibleItems
       if (w.config.xaxis.convertedCatToNumeric) {
-        xDivision = w.globals.gridWidth / w.globals.dataPoints
+        xDivision = w.layout.gridWidth / w.globals.dataPoints
       }
       barWidth =
         ((xDivision / seriesLen) *
           parseInt(this.barCtx.barOptions.columnWidth, 10)) /
         100
 
-      if (w.globals.isXNumeric) {
+      if (w.axisFlags.isXNumeric) {
         // max barwidth should be equal to minXDiff to avoid overlap
         const xRatio = this.barCtx.xRatio
 
@@ -137,14 +137,14 @@ export default class Helpers {
       }
 
       zeroH =
-        w.globals.gridHeight -
+        w.layout.gridHeight -
         this.barCtx.baseLineY[this.barCtx.translationsIndex] -
-        (this.barCtx.isReversed ? w.globals.gridHeight : 0) +
+        (this.barCtx.isReversed ? w.layout.gridHeight : 0) +
         (this.barCtx.isReversed
           ? this.barCtx.baseLineY[this.barCtx.translationsIndex] * 2
           : 0)
 
-      if (w.globals.isXNumeric) {
+      if (w.axisFlags.isXNumeric) {
         const xForNumericX = this.barCtx.getBarXForNumericXAxis({
           x,
           j: 0,
@@ -176,7 +176,7 @@ export default class Helpers {
 
   initializeStackedPrevVars(ctx) {
     const w = ctx.w
-    w.globals.seriesGroups.forEach((group) => {
+    w.labelData.seriesGroups.forEach((group) => {
       if (!ctx[group]) ctx[group] = {}
 
       ctx[group].prevY = []
@@ -191,7 +191,7 @@ export default class Helpers {
   initializeStackedXYVars(ctx) {
     const w = ctx.w
 
-    w.globals.seriesGroups.forEach((group) => {
+    w.labelData.seriesGroups.forEach((group) => {
       if (!ctx[group]) ctx[group] = {}
 
       ctx[group].xArrj = []
@@ -386,8 +386,8 @@ export default class Helpers {
       const rect = graphics.drawRect(
         typeof x1 !== 'undefined' ? x1 : 0,
         typeof y1 !== 'undefined' ? y1 : 0,
-        typeof x2 !== 'undefined' ? x2 : w.globals.gridWidth,
-        typeof y2 !== 'undefined' ? y2 : w.globals.gridHeight,
+        typeof x2 !== 'undefined' ? x2 : w.layout.gridWidth,
+        typeof y2 !== 'undefined' ? y2 : w.layout.gridHeight,
         this.barCtx.barOptions.colors.backgroundBarRadius,
         bcolor,
         this.barCtx.barOptions.colors.backgroundBarOpacity
@@ -643,15 +643,15 @@ export default class Helpers {
       })
     }
     if (
-      w.globals.seriesGoals[i] &&
-      w.globals.seriesGoals[i][j] &&
-      Array.isArray(w.globals.seriesGoals[i][j])
+      w.seriesData.seriesGoals[i] &&
+      w.seriesData.seriesGoals[i][j] &&
+      Array.isArray(w.seriesData.seriesGoals[i][j])
     ) {
-      w.globals.seriesGoals[i][j].forEach((goal) => {
+      w.seriesData.seriesGoals[i][j].forEach((goal) => {
         pushGoal(goal.value, goal)
       })
     }
-    if (this.barCtx.barOptions.isDumbbell && w.globals.seriesRange.length) {
+    if (this.barCtx.barOptions.isDumbbell && w.rangeData.seriesRange.length) {
       const colors = this.barCtx.barOptions.dumbbellColors
         ? this.barCtx.barOptions.dumbbellColors
         : w.globals.colors
@@ -663,8 +663,8 @@ export default class Helpers {
         strokeColor: Array.isArray(colors[i]) ? colors[i][0] : colors[i],
       }
 
-      pushGoal(w.globals.seriesRangeStart[i][j], commonAttrs)
-      pushGoal(w.globals.seriesRangeEnd[i][j], {
+      pushGoal(w.rangeData.seriesRangeStart[i][j], commonAttrs)
+      pushGoal(w.rangeData.seriesRangeEnd[i][j], {
         ...commonAttrs,
         strokeColor: Array.isArray(colors[i]) ? colors[i][1] : colors[i],
       })
@@ -700,7 +700,7 @@ export default class Helpers {
       if (Array.isArray(goalX)) {
         goalX.forEach((goal) => {
           // Need a tiny margin of 1 each side so goals don't disappear at extremeties
-          if (goal.x >= -1 && goal.x <= graphics.w.globals.gridWidth + 1) {
+          if (goal.x >= -1 && goal.x <= graphics.w.layout.gridWidth + 1) {
             const sHeight =
               typeof goal.attrs.strokeHeight !== 'undefined'
                 ? goal.attrs.strokeHeight
@@ -725,7 +725,7 @@ export default class Helpers {
       if (Array.isArray(goalY)) {
         goalY.forEach((goal) => {
           // Need a tiny margin of 1 each side so goals don't disappear at extremeties
-          if (goal.y >= -1 && goal.y <= graphics.w.globals.gridHeight + 1) {
+          if (goal.y >= -1 && goal.y <= graphics.w.layout.gridHeight + 1) {
             const sWidth =
               typeof goal.attrs.strokeWidth !== 'undefined'
                 ? goal.attrs.strokeWidth
@@ -788,7 +788,7 @@ export default class Helpers {
     let nonZeroColumns = 0
     let zeroEncounters = 0
     const seriesIndices = w.config.plotOptions.bar.horizontal
-      ? w.globals.series.map((_, _i) => _i)
+      ? w.seriesData.series.map((_, _i) => _i)
       : w.globals.columnSeries?.i.map((_i) => _i) || []
 
     seriesIndices.forEach((_si) => {
@@ -810,12 +810,12 @@ export default class Helpers {
   getGroupIndex(seriesIndex) {
     const w = this.w
     // groupIndex is the index of group buckets (group1, group2, ...)
-    const groupIndex = w.globals.seriesGroups.findIndex(
+    const groupIndex = w.labelData.seriesGroups.findIndex(
       (group) =>
         // w.config.series[i].name may be undefined, so use
-        // w.globals.seriesNames[i], which has default names for those
-        // series. w.globals.seriesGroups[] uses the same default naming.
-        group.indexOf(w.globals.seriesNames[seriesIndex]) > -1
+        // w.seriesData.seriesNames[i], which has default names for those
+        // series. w.labelData.seriesGroups[] uses the same default naming.
+        group.indexOf(w.seriesData.seriesNames[seriesIndex]) > -1
     )
     // We need the column groups to be indexable as 0,1,2,... for their
     // positioning relative to each other.

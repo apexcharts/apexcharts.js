@@ -54,14 +54,14 @@ export default class TreemapChart {
 
     const nodes = TreemapSquared.generate(
       ser,
-      w.globals.gridWidth,
-      w.globals.gridHeight
+      w.layout.gridWidth,
+      w.layout.gridHeight
     )
 
     nodes.forEach((node, i) => {
       const elSeries = graphics.group({
         class: `apexcharts-series apexcharts-treemap-series`,
-        seriesName: Utils.escapeString(w.globals.seriesNames[i]),
+        seriesName: Utils.escapeString(w.seriesData.seriesNames[i]),
         rel: i + 1,
         'data:realIndex': i,
       })
@@ -178,7 +178,7 @@ export default class TreemapChart {
         let fontSize = this.getFontSize(r)
 
         let formattedText = w.config.dataLabels.formatter(this.labels[i][j], {
-          value: w.globals.series[i][j],
+          value: w.seriesData.series[i][j],
           seriesIndex: i,
           dataPointIndex: j,
           w,
@@ -195,7 +195,7 @@ export default class TreemapChart {
           )
         }
         let dataLabels = null
-        if (w.globals.series[i][j]) {
+        if (w.seriesData.series[i][j]) {
           dataLabels = this.helpers.calculateDataLabels({
             text: formattedText,
             x: (x1 + x2) / 2,

@@ -54,7 +54,7 @@ class Intersect {
 
       ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2)
 
-      if (x > w.globals.gridWidth / 2) {
+      if (x > w.layout.gridWidth / 2) {
         x = cx - ttCtx.tooltipRect.ttWidth / 2 + width
       }
       if (ttCtx.w.config.tooltip.followCursor) {
@@ -62,11 +62,11 @@ class Intersect {
         x =
           w.interact.clientX -
           seriesBound.left -
-          (x > w.globals.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0)
+          (x > w.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0)
         y =
           w.interact.clientY -
           seriesBound.top -
-          (y > w.globals.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0)
+          (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0)
       }
     }
 
@@ -121,12 +121,12 @@ class Intersect {
       w.interact.capturedDataPointIndex = j
 
       x = cx
-      y = cy + w.globals.translateY - ttCtx.tooltipRect.ttHeight * 1.4
+      y = cy + w.layout.translateY - ttCtx.tooltipRect.ttHeight * 1.4
 
       if (ttCtx.w.config.tooltip.followCursor) {
         const elGrid = ttCtx.getElGrid()
         const seriesBound = elGrid.getBoundingClientRect()
-        y = ttCtx.e.clientY + w.globals.translateY - seriesBound.top
+        y = ttCtx.e.clientY + w.layout.translateY - seriesBound.top
       }
 
       if (val < 0) {
@@ -193,7 +193,7 @@ class Intersect {
 
     
 
-    if (x + ttCtx.tooltipRect.ttWidth > w.globals.gridWidth) {
+    if (x + ttCtx.tooltipRect.ttWidth > w.layout.gridWidth) {
       x = x - ttCtx.tooltipRect.ttWidth
     } else if (x < 0) {
       x = 0
@@ -224,9 +224,9 @@ class Intersect {
       (!w.config.tooltip.shared ||
         (w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars()))
     ) {
-      y = y + w.globals.translateY - ttCtx.tooltipRect.ttHeight / 2
+      y = y + w.layout.translateY - ttCtx.tooltipRect.ttHeight / 2
 
-      tooltipEl.style.left = x + w.globals.translateX + 'px'
+      tooltipEl.style.left = x + w.layout.translateX + 'px'
       tooltipEl.style.top = y + 'px'
     }
   }
@@ -274,7 +274,7 @@ class Intersect {
       }
 
       const handleXForColumns = (x) => {
-        if (w.globals.isXNumeric) {
+        if (w.axisFlags.isXNumeric) {
           x = cx - bw / 2
         } else {
           if (this.isVerticalGroupedRangeBar) {
