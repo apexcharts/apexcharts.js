@@ -65,6 +65,23 @@ export default class PointAnnotations {
         } ${anno.id ? anno.id : ''}`,
       })
 
+      const gridWidth = this?.w?.globals?.gridWidth;
+      const textWidth = elText?.node?.getBBox()?.width;
+      const textLeft = elText?.node?.getBBox()?.x;
+      const textRight = textLeft + textWidth;
+      const overflowOffset = textRight - x;
+      const exceedsGrid = textRight > gridWidth;
+
+      if (x === 0) {
+        elText.attr({
+          x: x + overflowOffset,
+        })
+      } else if (x > 0 && exceedsGrid) {
+        elText.attr({
+          x: x - overflowOffset,
+        })
+      }
+
       elText.attr({
         rel: index,
       })
