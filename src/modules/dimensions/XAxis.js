@@ -315,7 +315,7 @@ export default class DimXAxis {
             : 0
         if (
           lastLabelPosition >
-          gl.svgWidth - gl.translateX - lgRightRectWidth
+          gl.svgWidth - w.layout.translateX - lgRightRectWidth
         ) {
           gl.skipLastTimelinelabel = true
         }
@@ -334,13 +334,13 @@ export default class DimXAxis {
         }
       } else if (xtype === 'datetime') {
         // If user has enabled DateTime, but uses own's formatter
-        if (this.dCtx.gridPad.right < lbWidth && !gl.rotateXLabels) {
+        if (this.dCtx.gridPad.right < lbWidth && !w.layout.rotateXLabels) {
           gl.skipLastTimelinelabel = true
         }
       } else if (xtype !== 'datetime') {
         if (
           this.dCtx.gridPad.right < lbWidth / 2 - this.dCtx.yAxisWidthRight &&
-          !gl.rotateXLabels &&
+          !w.layout.rotateXLabels &&
           !w.config.xaxis.labels.trim
         ) {
           this.dCtx.xPadRight = lbWidth / 2 + 1

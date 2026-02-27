@@ -109,8 +109,8 @@ class Grid {
     w.dom.elGridRect = graphics.drawRect(
       -strokeSize / 2 - 2,
       -strokeSize / 2 - 2,
-      gl.gridWidth + strokeSize + 4,
-      gl.gridHeight + strokeSize + 4,
+      w.layout.gridWidth + strokeSize + 4,
+      w.layout.gridHeight + strokeSize + 4,
       0,
       '#fff'
     )
@@ -118,8 +118,8 @@ class Grid {
     w.dom.elGridRectBar = graphics.drawRect(
       -strokeSize / 2 - barWidthLeft - 2,
       -strokeSize / 2 - 2,
-      gl.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4,
-      gl.gridHeight + strokeSize + 4,
+      w.layout.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4,
+      w.layout.gridHeight + strokeSize + 4,
       0,
       '#fff'
     )
@@ -129,9 +129,9 @@ class Grid {
     w.dom.elGridRectMarker = graphics.drawRect(
       Math.min(-strokeSize / 2 - barWidthLeft - 2, -markerSize),
       -markerSize,
-      gl.gridWidth +
+      w.layout.gridWidth +
         Math.max(strokeSize + barWidthRight + barWidthLeft + 4, markerSize * 2),
-      gl.gridHeight + markerSize * 2,
+      w.layout.gridHeight + markerSize * 2,
       0,
       '#fff'
     )
@@ -420,7 +420,7 @@ class Grid {
       xCount = this.xaxisLabels.length
 
       if (this.isRangeBar) {
-        yTickAmount = gl.labels.length
+        yTickAmount = w.labelData.labels.length
 
         if (w.config.xaxis.tickAmount && w.config.xaxis.labels.formatter) {
           xCount = w.config.xaxis.tickAmount
@@ -446,7 +446,7 @@ class Grid {
     return {
       el: this.elg,
       elGridBorders: this.elGridBorders,
-      xAxisTickWidth: gl.gridWidth / xCount,
+      xAxisTickWidth: w.layout.gridWidth / xCount,
     }
   }
 

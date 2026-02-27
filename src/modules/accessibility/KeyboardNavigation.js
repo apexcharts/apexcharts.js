@@ -892,9 +892,9 @@ export default class KeyboardNavigation {
     const si = this.seriesIndex
 
     // No zoom applied — nothing to do
-    if (!gl.zoomed) return
+    if (!w.interact.zoomed) return
 
-    const seriesX = gl.seriesX && gl.seriesX[si]
+    const seriesX = w.seriesData.seriesX && w.seriesData.seriesX[si]
     if (!seriesX || !seriesX.length) return
 
     const minX = gl.minX
@@ -927,7 +927,7 @@ export default class KeyboardNavigation {
     const gl = w.globals
     const si = this.seriesIndex
 
-    const seriesX = gl.seriesX && gl.seriesX[si]
+    const seriesX = w.seriesData.seriesX && w.seriesData.seriesX[si]
     if (!seriesX || !seriesX.length) return
 
     const minX = gl.minX
@@ -963,9 +963,9 @@ export default class KeyboardNavigation {
     const w = this.w
     const gl = w.globals
 
-    if (!gl.zoomed) return true
+    if (!w.interact.zoomed) return true
 
-    const seriesX = gl.seriesX && gl.seriesX[si]
+    const seriesX = w.seriesData.seriesX && w.seriesData.seriesX[si]
     if (!seriesX) return true
 
     const x = seriesX[di]

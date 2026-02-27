@@ -216,7 +216,7 @@ export default class ApexCharts {
     // if there is some data to show or user collapsed all series, then proceed drawing legend
     if (
       !gl.noData ||
-      gl.collapsedSeries.length === gl.series.length ||
+      gl.collapsedSeries.length === w.seriesData.series.length ||
       w.config.legend.showForSingleSeries
     ) {
       this.legend.init()
@@ -825,14 +825,15 @@ export default class ApexCharts {
    * and will be restricted in a future major version.
    */
   getState() {
-    const gl = this.w.globals
+    const w = this.w
+    const gl = w.globals
 
     return {
       // Series data — computed/parsed form used for rendering
-      series: gl.series,
-      seriesNames: gl.seriesNames,
+      series: w.seriesData.series,
+      seriesNames: w.seriesData.seriesNames,
       colors: gl.colors,
-      labels: gl.labels,
+      labels: w.labelData.labels,
       seriesTotals: gl.seriesTotals,
       seriesPercent: gl.seriesPercent,
       seriesXvalues: gl.seriesXvalues,
@@ -854,7 +855,7 @@ export default class ApexCharts {
       xTickAmount: gl.xTickAmount,
 
       // Axis type flags
-      isXNumeric: gl.isXNumeric,
+      isXNumeric: w.axisFlags.isXNumeric,
 
       // Multi-axis series mapping
       seriesYAxisMap: gl.seriesYAxisMap,
@@ -863,25 +864,25 @@ export default class ApexCharts {
       // Chart dimensions — updated after each render/resize
       svgWidth: gl.svgWidth,
       svgHeight: gl.svgHeight,
-      gridWidth: gl.gridWidth,
-      gridHeight: gl.gridHeight,
+      gridWidth: w.layout.gridWidth,
+      gridHeight: w.layout.gridHeight,
 
       // Interactive state
-      selectedDataPoints: gl.selectedDataPoints,
+      selectedDataPoints: w.interact.selectedDataPoints,
       collapsedSeriesIndices: gl.collapsedSeriesIndices,
-      zoomed: gl.zoomed,
+      zoomed: w.interact.zoomed,
 
       // Chart-type-specific series data (null when not applicable)
-      seriesX: gl.seriesX,
-      seriesZ: gl.seriesZ,
-      seriesCandleO: gl.seriesCandleO,
-      seriesCandleH: gl.seriesCandleH,
-      seriesCandleM: gl.seriesCandleM,
-      seriesCandleL: gl.seriesCandleL,
-      seriesCandleC: gl.seriesCandleC,
-      seriesRangeStart: gl.seriesRangeStart,
-      seriesRangeEnd: gl.seriesRangeEnd,
-      seriesGoals: gl.seriesGoals,
+      seriesX: w.seriesData.seriesX,
+      seriesZ: w.seriesData.seriesZ,
+      seriesCandleO: w.candleData.seriesCandleO,
+      seriesCandleH: w.candleData.seriesCandleH,
+      seriesCandleM: w.candleData.seriesCandleM,
+      seriesCandleL: w.candleData.seriesCandleL,
+      seriesCandleC: w.candleData.seriesCandleC,
+      seriesRangeStart: w.rangeData.seriesRangeStart,
+      seriesRangeEnd: w.rangeData.seriesRangeEnd,
+      seriesGoals: w.seriesData.seriesGoals,
     }
   }
 

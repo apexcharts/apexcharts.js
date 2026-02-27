@@ -76,7 +76,10 @@ export default class Core {
     gl.chartClass = `.apexcharts${gl.chartID}`
     this.w.dom.baseEl = this.el
 
-    this.w.dom.elWrap = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
+    this.w.dom.elWrap = BrowserAPIs.createElementNS(
+      'http://www.w3.org/1999/xhtml',
+      'div',
+    )
     Graphics.setAttrs(this.w.dom.elWrap, {
       id: gl.chartClass.substring(1),
       class: `apexcharts-canvas ${gl.chartClass.substring(1)}`,
@@ -98,13 +101,16 @@ export default class Core {
       cnf.theme.mode === 'dark' && !cnf.chart.background
         ? '#343A3F'
         : cnf.theme.mode === 'light' && !cnf.chart.background
-        ? '#fff'
-        : cnf.chart.background
+          ? '#fff'
+          : cnf.chart.background
 
     this.setSVGDimensions()
 
     // foreignObject must be added first (at the back in z-order) to prevent blocking interactions
-    this.w.dom.elLegendForeign = BrowserAPIs.createElementNS(SVGNS, 'foreignObject')
+    this.w.dom.elLegendForeign = BrowserAPIs.createElementNS(
+      SVGNS,
+      'foreignObject',
+    )
     Graphics.setAttrs(this.w.dom.elLegendForeign, {
       x: 0,
       y: 0,
@@ -112,7 +118,10 @@ export default class Core {
       height: gl.svgHeight,
     })
 
-    this.w.dom.elLegendWrap = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
+    this.w.dom.elLegendWrap = BrowserAPIs.createElementNS(
+      'http://www.w3.org/1999/xhtml',
+      'div',
+    )
     this.w.dom.elLegendWrap.classList.add('apexcharts-legend')
 
     this.w.dom.elWrap.appendChild(this.w.dom.elLegendWrap)
@@ -140,7 +149,10 @@ export default class Core {
       const titleEl = BrowserAPIs.createElementNS(SVGNS, 'title')
       titleEl.textContent = cnf.title.text || 'Chart'
       // Insert after foreignObject but before other elements
-      this.w.dom.Paper.node.insertBefore(titleEl, this.w.dom.elLegendForeign.nextSibling)
+      this.w.dom.Paper.node.insertBefore(
+        titleEl,
+        this.w.dom.elLegendForeign.nextSibling,
+      )
 
       // Add desc element when description is provided
       if (cnf.chart.accessibility.description) {
@@ -179,7 +191,7 @@ export default class Core {
     let nonComboType = null
     let comboCount = 0
 
-    gl.series.forEach((serie, st) => {
+    this.w.seriesData.series.forEach((serie, st) => {
       const seriesType =
         ser[st]?.type === 'column'
           ? 'bar'
@@ -187,8 +199,12 @@ export default class Core {
 
       if (seriesTypes[seriesType]) {
         if (seriesType === 'rangeArea') {
-          seriesTypes[seriesType].series.push(gl.seriesRangeStart[st])
-          seriesTypes[seriesType].seriesRangeEnd.push(gl.seriesRangeEnd[st])
+          seriesTypes[seriesType].series.push(
+            this.w.rangeData.seriesRangeStart[st],
+          )
+          seriesTypes[seriesType].seriesRangeEnd.push(
+            this.w.rangeData.seriesRangeEnd[st],
+          )
         } else {
           seriesTypes[seriesType].series.push(serie)
         }
@@ -209,7 +225,7 @@ export default class Core {
         nonComboType = seriesType
       } else {
         console.warn(
-          `You have specified an unrecognized series type (${seriesType}).`
+          `You have specified an unrecognized series type (${seriesType}).`,
         )
       }
       if (chartType !== seriesType && seriesType !== 'scatter') comboCount++
@@ -218,7 +234,7 @@ export default class Core {
     if (comboCount > 0) {
       if (nonComboType) {
         console.warn(
-          `Chart or series type ${nonComboType} cannot appear with other chart or series types.`
+          `Chart or series type ${nonComboType} cannot appear with other chart or series types.`,
         )
       }
       if (seriesTypes.bar.series.length > 0 && cnf.plotOptions.bar.horizontal) {
@@ -226,7 +242,7 @@ export default class Core {
         seriesTypes.bar = { series: [], i: [] }
         w.globals.columnSeries = { series: [], i: [] }
         console.warn(
-          'Horizontal bars are not supported in a mixed/combo chart. Please turn off `plotOptions.bar.horizontal`'
+          'Horizontal bars are not supported in a mixed/combo chart. Please turn off `plotOptions.bar.horizontal`',
         )
       }
     }
@@ -248,15 +264,15 @@ export default class Core {
             seriesTypes.area,
             gl.areaGroups,
             'area',
-            line
-          )
+            line,
+          ),
         )
       }
       if (seriesTypes.bar.series.length > 0) {
         if (cnf.chart.stacked) {
           const barStacked = new BarStacked(ctx.w, ctx, xyRatios)
           elGraph.push(
-            barStacked.draw(seriesTypes.bar.series, seriesTypes.bar.i)
+            barStacked.draw(seriesTypes.bar.series, seriesTypes.bar.i),
           )
         } else {
           ctx.bar = new Bar(ctx.w, ctx, xyRatios)
@@ -269,8 +285,8 @@ export default class Core {
             seriesTypes.rangeArea.series,
             'rangeArea',
             seriesTypes.rangeArea.i,
-            seriesTypes.rangeArea.seriesRangeEnd
-          )
+            seriesTypes.rangeArea.seriesRangeEnd,
+          ),
         )
       }
       if (seriesTypes.line.series.length > 0) {
@@ -279,8 +295,8 @@ export default class Core {
             seriesTypes.line,
             gl.lineGroups,
             'line',
-            line
-          )
+            line,
+          ),
         )
       }
       if (seriesTypes.candlestick.series.length > 0) {
@@ -288,8 +304,8 @@ export default class Core {
           boxCandlestick.draw(
             seriesTypes.candlestick.series,
             'candlestick',
-            seriesTypes.candlestick.i
-          )
+            seriesTypes.candlestick.i,
+          ),
         )
       }
       if (seriesTypes.boxPlot.series.length > 0) {
@@ -297,13 +313,16 @@ export default class Core {
           boxCandlestick.draw(
             seriesTypes.boxPlot.series,
             'boxPlot',
-            seriesTypes.boxPlot.i
-          )
+            seriesTypes.boxPlot.i,
+          ),
         )
       }
       if (seriesTypes.rangeBar.series.length > 0) {
         elGraph.push(
-          ctx.rangeBar.draw(seriesTypes.rangeBar.series, seriesTypes.rangeBar.i)
+          ctx.rangeBar.draw(
+            seriesTypes.rangeBar.series,
+            seriesTypes.rangeBar.i,
+          ),
         )
       }
       if (seriesTypes.scatter.series.length > 0) {
@@ -312,8 +331,8 @@ export default class Core {
           scatterLine.draw(
             seriesTypes.scatter.series,
             'scatter',
-            seriesTypes.scatter.i
-          )
+            seriesTypes.scatter.i,
+          ),
         )
       }
       if (seriesTypes.bubble.series.length > 0) {
@@ -322,71 +341,71 @@ export default class Core {
           bubbleLine.draw(
             seriesTypes.bubble.series,
             'bubble',
-            seriesTypes.bubble.i
-          )
+            seriesTypes.bubble.i,
+          ),
         )
       }
     } else {
       switch (cnf.chart.type) {
         case 'line':
-          elGraph = line.draw(gl.series, 'line')
+          elGraph = line.draw(this.w.seriesData.series, 'line')
           break
         case 'area':
-          elGraph = line.draw(gl.series, 'area')
+          elGraph = line.draw(this.w.seriesData.series, 'area')
           break
         case 'bar':
           if (cnf.chart.stacked) {
             const barStacked = new BarStacked(ctx.w, ctx, xyRatios)
-            elGraph = barStacked.draw(gl.series)
+            elGraph = barStacked.draw(this.w.seriesData.series)
           } else {
             ctx.bar = new Bar(ctx.w, ctx, xyRatios)
-            elGraph = ctx.bar.draw(gl.series)
+            elGraph = ctx.bar.draw(this.w.seriesData.series)
           }
           break
         case 'candlestick': {
           const candleStick = new BoxCandleStick(ctx.w, ctx, xyRatios)
-          elGraph = candleStick.draw(gl.series, 'candlestick')
+          elGraph = candleStick.draw(this.w.seriesData.series, 'candlestick')
           break
         }
         case 'boxPlot': {
           const boxPlot = new BoxCandleStick(ctx.w, ctx, xyRatios)
-          elGraph = boxPlot.draw(gl.series, cnf.chart.type)
+          elGraph = boxPlot.draw(this.w.seriesData.series, cnf.chart.type)
           break
         }
         case 'rangeBar':
-          elGraph = ctx.rangeBar.draw(gl.series)
+          elGraph = ctx.rangeBar.draw(this.w.seriesData.series)
           break
         case 'rangeArea':
           elGraph = line.draw(
-            gl.seriesRangeStart,
+            this.w.rangeData.seriesRangeStart,
             'rangeArea',
             undefined,
-            gl.seriesRangeEnd
+            this.w.rangeData.seriesRangeEnd,
           )
           break
         case 'heatmap': {
           const heatmap = new HeatMap(ctx.w, ctx, xyRatios)
-          elGraph = heatmap.draw(gl.series)
+          elGraph = heatmap.draw(this.w.seriesData.series)
           break
         }
         case 'treemap': {
           const treemap = new Treemap(ctx.w, ctx)
-          elGraph = treemap.draw(gl.series)
+          elGraph = treemap.draw(this.w.seriesData.series)
           break
         }
         case 'pie':
         case 'donut':
         case 'polarArea':
-          elGraph = ctx.pie.draw(gl.series)
+          elGraph = ctx.pie.draw(this.w.seriesData.series)
           break
         case 'radialBar':
-          elGraph = radialBar.draw(gl.series)
+          elGraph = radialBar.draw(this.w.seriesData.series)
           break
         case 'radar':
-          elGraph = radar.draw(gl.series)
+          elGraph = radar.draw(this.w.seriesData.series)
           break
         default:
-          elGraph = line.draw(gl.series)
+          elGraph = line.draw(this.w.seriesData.series)
       }
     }
 
@@ -446,8 +465,8 @@ export default class Core {
       const offsetY = cnf.chart.sparkline.enabled
         ? 0
         : gl.axisCharts
-        ? cnf.chart.parentHeightOffset
-        : 0
+          ? cnf.chart.parentHeightOffset
+          : 0
       this.w.dom.Paper.node.parentNode.parentNode.style.minHeight = `${
         gl.svgHeight + offsetY
       }px`
@@ -468,7 +487,6 @@ export default class Core {
 
   resizeNonAxisCharts() {
     const { w } = this
-    const { globals: gl } = w
 
     let legendHeight = 0
     let offY = w.config.chart.sparkline.enabled ? 1 : 15
@@ -480,11 +498,12 @@ export default class Core {
       !w.config.legend.floating
     ) {
       legendHeight =
-        new Legend(this.w, this.ctx).legendHelpers.getLegendDimensions().clwh + 7
+        new Legend(this.w, this.ctx).legendHelpers.getLegendDimensions().clwh +
+        7
     }
 
     const el = w.dom.baseEl.querySelector(
-      '.apexcharts-radialbar, .apexcharts-pie'
+      '.apexcharts-radialbar, .apexcharts-pie',
     )
     let chartInnerDimensions = w.globals.radialSize * 2.05
 
@@ -500,7 +519,7 @@ export default class Core {
     }
 
     const newHeight = Math.ceil(
-      chartInnerDimensions + gl.translateY + legendHeight + offY
+      chartInnerDimensions + this.w.layout.translateY + legendHeight + offY,
     )
 
     if (this.w.dom.elLegendForeign) {
@@ -526,7 +545,7 @@ export default class Core {
     const { globals: gl } = this.w
 
     const parsingFlags = {
-      dataWasParsed: gl.dataWasParsed,
+      dataWasParsed: this.w.axisFlags.dataWasParsed,
       originalSeries: gl.originalSeries,
     }
 
@@ -535,7 +554,7 @@ export default class Core {
     gl.seriesYvalues = resetxyValues()
 
     if (parsingFlags.dataWasParsed) {
-      gl.dataWasParsed = parsingFlags.dataWasParsed
+      this.w.axisFlags.dataWasParsed = parsingFlags.dataWasParsed
       gl.originalSeries = parsingFlags.originalSeries
     }
   }
@@ -573,12 +592,12 @@ export default class Core {
         ) {
           formattedTimeScale = this.ctx.timeScale.calculateTimeScaleTicks(
             w.globals.minX,
-            w.globals.maxX
+            w.globals.maxX,
           )
         } else if (w.globals.isBarHorizontal) {
           formattedTimeScale = this.ctx.timeScale.calculateTimeScaleTicks(
             w.globals.minY,
-            w.globals.maxY
+            w.globals.maxY,
           )
         }
         this.ctx.timeScale.recalcDimensionsBasedOnFormat(formattedTimeScale)
@@ -604,7 +623,7 @@ export default class Core {
         },
       },
       false,
-      false
+      false,
     )
   }
 
@@ -644,7 +663,7 @@ export default class Core {
             false,
             false,
             false,
-            false
+            false,
           )
         })
       }
@@ -669,7 +688,8 @@ export default class Core {
     } else {
       const chartType = cnf.chart.type
       // Use config.series if globals.series is not yet populated
-      const seriesCount = w.seriesData.series.length || (cnf.series ? cnf.series.length : 0)
+      const seriesCount =
+        w.seriesData.series.length || (cnf.series ? cnf.series.length : 0)
       label = `${chartType} chart with ${seriesCount} data series`
     }
 

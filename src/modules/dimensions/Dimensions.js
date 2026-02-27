@@ -74,25 +74,25 @@ export default class Dimensions {
     this.dimGrid.gridPadFortitleSubtitle()
 
     // after calculating everything, apply padding set by user
-    gl.gridHeight = gl.gridHeight - this.gridPad.top - this.gridPad.bottom
+    w.layout.gridHeight = w.layout.gridHeight - this.gridPad.top - this.gridPad.bottom
 
-    gl.gridWidth =
-      gl.gridWidth -
+    w.layout.gridWidth =
+      w.layout.gridWidth -
       this.gridPad.left -
       this.gridPad.right -
       this.xPadRight -
       this.xPadLeft
 
-    const barWidth = this.dimGrid.gridPadForColumnsInNumericAxis(gl.gridWidth)
+    const barWidth = this.dimGrid.gridPadForColumnsInNumericAxis(w.layout.gridWidth)
 
-    gl.gridWidth = gl.gridWidth - barWidth * 2
+    w.layout.gridWidth = w.layout.gridWidth - barWidth * 2
 
-    gl.translateX =
-      gl.translateX +
+    w.layout.translateX =
+      w.layout.translateX +
       this.gridPad.left +
       this.xPadLeft +
       (barWidth > 0 ? barWidth : 0)
-    gl.translateY = gl.translateY + this.gridPad.top
+    w.layout.translateY = w.layout.translateY + this.gridPad.top
 
     // Return a snapshot of all computed layout state grouped by future w.layout slice destination.
     // Phase 1: callers use named writer stubs (no-ops — mutations above already wrote to gl).
@@ -100,19 +100,19 @@ export default class Dimensions {
     return {
       // w.layout (future slice)
       layout: {
-        gridHeight: gl.gridHeight,
-        gridWidth: gl.gridWidth,
-        translateX: gl.translateX,
-        translateY: gl.translateY,
-        translateXAxisX: gl.translateXAxisX,
-        translateXAxisY: gl.translateXAxisY,
-        rotateXLabels: gl.rotateXLabels,
-        xAxisHeight: gl.xAxisHeight,
-        xAxisLabelsHeight: gl.xAxisLabelsHeight,
-        xAxisGroupLabelsHeight: gl.xAxisGroupLabelsHeight,
-        xAxisLabelsWidth: gl.xAxisLabelsWidth,
-        yLabelsCoords: gl.yLabelsCoords,
-        yTitleCoords: gl.yTitleCoords,
+        gridHeight: w.layout.gridHeight,
+        gridWidth: w.layout.gridWidth,
+        translateX: w.layout.translateX,
+        translateY: w.layout.translateY,
+        translateXAxisX: w.layout.translateXAxisX,
+        translateXAxisY: w.layout.translateXAxisY,
+        rotateXLabels: w.layout.rotateXLabels,
+        xAxisHeight: w.layout.xAxisHeight,
+        xAxisLabelsHeight: w.layout.xAxisLabelsHeight,
+        xAxisGroupLabelsHeight: w.layout.xAxisGroupLabelsHeight,
+        xAxisLabelsWidth: w.layout.xAxisLabelsWidth,
+        yLabelsCoords: w.layout.yLabelsCoords,
+        yTitleCoords: w.layout.yTitleCoords,
       },
     }
   }
@@ -154,8 +154,8 @@ export default class Dimensions {
       xaxisGroupLabelCoords
     )
 
-    gl.translateXAxisY = w.layout.rotateXLabels ? this.xAxisHeight / 8 : -4
-    gl.translateXAxisX =
+    w.layout.translateXAxisY = w.layout.rotateXLabels ? this.xAxisHeight / 8 : -4
+    w.layout.translateXAxisX =
       w.layout.rotateXLabels &&
       w.axisFlags.isXNumeric &&
       w.config.xaxis.labels.rotate <= -45
@@ -163,20 +163,20 @@ export default class Dimensions {
         : 0
 
     if (w.globals.isBarHorizontal) {
-      gl.rotateXLabels = false
-      gl.translateXAxisY =
+      w.layout.rotateXLabels = false
+      w.layout.translateXAxisY =
         -1 * (parseInt(w.config.xaxis.labels.style.fontSize, 10) / 1.5)
     }
 
-    gl.translateXAxisY = gl.translateXAxisY + w.config.xaxis.labels.offsetY
-    gl.translateXAxisX = gl.translateXAxisX + w.config.xaxis.labels.offsetX
+    w.layout.translateXAxisY = w.layout.translateXAxisY + w.config.xaxis.labels.offsetY
+    w.layout.translateXAxisX = w.layout.translateXAxisX + w.config.xaxis.labels.offsetX
 
     let yAxisWidth = this.yAxisWidth
     let xAxisHeight = this.xAxisHeight
-    gl.xAxisLabelsHeight = this.xAxisHeight - xtitleCoords.height
-    gl.xAxisGroupLabelsHeight = gl.xAxisLabelsHeight - xaxisLabelCoords.height
-    gl.xAxisLabelsWidth = this.xAxisWidth
-    gl.xAxisHeight = this.xAxisHeight
+    w.layout.xAxisLabelsHeight = this.xAxisHeight - xtitleCoords.height
+    w.layout.xAxisGroupLabelsHeight = w.layout.xAxisLabelsHeight - xaxisLabelCoords.height
+    w.layout.xAxisLabelsWidth = this.xAxisWidth
+    w.layout.xAxisHeight = this.xAxisHeight
     let translateY = 10
 
     if (w.config.chart.type === 'radar' || this.isSparkline) {
@@ -202,8 +202,8 @@ export default class Dimensions {
     }
 
     const legendTopBottom = () => {
-      gl.translateX = yAxisWidth + this.datalabelsCoords.width
-      gl.gridHeight =
+      w.layout.translateX = yAxisWidth + this.datalabelsCoords.width
+      w.layout.gridHeight =
         gl.svgHeight -
         this.lgRect.height -
         xAxisHeight -
@@ -212,37 +212,37 @@ export default class Dimensions {
             ? 10
             : 15
           : 0)
-      gl.gridWidth = gl.svgWidth - yAxisWidth - this.datalabelsCoords.width * 2
+      w.layout.gridWidth = gl.svgWidth - yAxisWidth - this.datalabelsCoords.width * 2
     }
 
     if (w.config.xaxis.position === 'top')
-      translateY = gl.xAxisHeight - w.config.xaxis.axisTicks.height - 5
+      translateY = w.layout.xAxisHeight - w.config.xaxis.axisTicks.height - 5
 
     switch (w.config.legend.position) {
       case 'bottom':
-        gl.translateY = translateY
+        w.layout.translateY = translateY
         legendTopBottom()
         break
       case 'top':
-        gl.translateY = this.lgRect.height + translateY
+        w.layout.translateY = this.lgRect.height + translateY
         legendTopBottom()
         break
       case 'left':
-        gl.translateY = translateY
-        gl.translateX =
+        w.layout.translateY = translateY
+        w.layout.translateX =
           this.lgRect.width + yAxisWidth + this.datalabelsCoords.width
-        gl.gridHeight = gl.svgHeight - xAxisHeight - 12
-        gl.gridWidth =
+        w.layout.gridHeight = gl.svgHeight - xAxisHeight - 12
+        w.layout.gridWidth =
           gl.svgWidth -
           this.lgRect.width -
           yAxisWidth -
           this.datalabelsCoords.width * 2
         break
       case 'right':
-        gl.translateY = translateY
-        gl.translateX = yAxisWidth + this.datalabelsCoords.width
-        gl.gridHeight = gl.svgHeight - xAxisHeight - 12
-        gl.gridWidth =
+        w.layout.translateY = translateY
+        w.layout.translateX = yAxisWidth + this.datalabelsCoords.width
+        w.layout.gridHeight = gl.svgHeight - xAxisHeight - 12
+        w.layout.gridWidth =
           gl.svgWidth -
           this.lgRect.width -
           yAxisWidth -
@@ -281,42 +281,42 @@ export default class Dimensions {
     const offX = cnf.plotOptions[type].offsetX
 
     if (!cnf.legend.show || cnf.legend.floating) {
-      gl.gridHeight = gl.svgHeight
+      w.layout.gridHeight = gl.svgHeight
 
       const maxWidth = w.dom.elWrap.getBoundingClientRect().width
-      gl.gridWidth = Math.min(maxWidth, gl.gridHeight)
+      w.layout.gridWidth = Math.min(maxWidth, w.layout.gridHeight)
 
-      gl.translateY = offY
-      gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
+      w.layout.translateY = offY
+      w.layout.translateX = offX + (gl.svgWidth - w.layout.gridWidth) / 2
       return
     }
 
     switch (cnf.legend.position) {
       case 'bottom':
-        gl.gridHeight = gl.svgHeight - this.lgRect.height
-        gl.gridWidth = gl.svgWidth
-        gl.translateY = offY - 10
-        gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
+        w.layout.gridHeight = gl.svgHeight - this.lgRect.height
+        w.layout.gridWidth = gl.svgWidth
+        w.layout.translateY = offY - 10
+        w.layout.translateX = offX + (gl.svgWidth - w.layout.gridWidth) / 2
         break
       case 'top':
-        gl.gridHeight = gl.svgHeight - this.lgRect.height
-        gl.gridWidth = gl.svgWidth
-        gl.translateY = this.lgRect.height + offY + 10
-        gl.translateX = offX + (gl.svgWidth - gl.gridWidth) / 2
+        w.layout.gridHeight = gl.svgHeight - this.lgRect.height
+        w.layout.gridWidth = gl.svgWidth
+        w.layout.translateY = this.lgRect.height + offY + 10
+        w.layout.translateX = offX + (gl.svgWidth - w.layout.gridWidth) / 2
         break
       case 'left':
-        gl.gridWidth = gl.svgWidth - this.lgRect.width - xPad
-        gl.gridHeight =
-          cnf.chart.height !== 'auto' ? gl.svgHeight : gl.gridWidth
-        gl.translateY = offY
-        gl.translateX = offX + this.lgRect.width + xPad
+        w.layout.gridWidth = gl.svgWidth - this.lgRect.width - xPad
+        w.layout.gridHeight =
+          cnf.chart.height !== 'auto' ? gl.svgHeight : w.layout.gridWidth
+        w.layout.translateY = offY
+        w.layout.translateX = offX + this.lgRect.width + xPad
         break
       case 'right':
-        gl.gridWidth = gl.svgWidth - this.lgRect.width - xPad - 5
-        gl.gridHeight =
-          cnf.chart.height !== 'auto' ? gl.svgHeight : gl.gridWidth
-        gl.translateY = offY
-        gl.translateX = offX + 10
+        w.layout.gridWidth = gl.svgWidth - this.lgRect.width - xPad - 5
+        w.layout.gridHeight =
+          cnf.chart.height !== 'auto' ? gl.svgHeight : w.layout.gridWidth
+        w.layout.translateY = offY
+        w.layout.translateX = offX + 10
         break
       default:
         throw new Error('Legend position not supported')

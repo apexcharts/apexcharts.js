@@ -53,7 +53,6 @@ export default class Data {
 
   handleFormat2DArray(ser, i) {
     const cnf = this.w.config
-    const gl = this.w.globals
     const data = ser[i].data
 
     const isBoxPlot =
@@ -75,7 +74,7 @@ export default class Data {
         } else {
           this.twoDSeries.push(Utils.parseNumber(y))
         }
-        gl.dataFormatXNumeric = true
+        this.w.axisFlags.dataFormatXNumeric = true
       }
       if (cnf.xaxis.type === 'datetime') {
         // if timestamps are provided and xaxis type is datetime,
@@ -88,7 +87,7 @@ export default class Data {
 
       if (typeof z !== 'undefined') {
         this.threeDSeries.push(z)
-        gl.isDataXYZ = true
+        this.w.axisFlags.isDataXYZ = true
       }
     }
   }
@@ -128,7 +127,7 @@ export default class Data {
 
       if (typeof point.z !== 'undefined') {
         this.threeDSeries.push(point.z)
-        gl.isDataXYZ = true
+        this.w.axisFlags.isDataXYZ = true
       }
     }
 
@@ -144,7 +143,8 @@ export default class Data {
       if (isXString || isXDate) {
         // user supplied '01/01/2017' or a date string (a JS date object is not supported)
         if (isXString || cnf.xaxis.convertedCatToNumeric) {
-          const isRangeColumn = gl.isBarHorizontal && gl.isRangeData
+          const isRangeColumn =
+            gl.isBarHorizontal && this.w.axisFlags.isRangeData
 
           if (cnf.xaxis.type === 'datetime' && !isRangeColumn) {
             this.twoDSeriesX.push(dt.parseDate(x))
@@ -158,15 +158,15 @@ export default class Data {
               this.w.config.xaxis.type !== 'category' &&
               typeof x !== 'string'
             ) {
-              gl.isXNumeric = true
+              this.w.axisFlags.isXNumeric = true
             }
           }
         } else {
           if (cnf.xaxis.type === 'datetime') {
             this.twoDSeriesX.push(dt.parseDate(x.toString()))
           } else {
-            gl.dataFormatXNumeric = true
-            gl.isXNumeric = true
+            this.w.axisFlags.dataFormatXNumeric = true
+            this.w.axisFlags.isXNumeric = true
             this.twoDSeriesX.push(parseFloat(x))
           }
         }
@@ -176,16 +176,14 @@ export default class Data {
         this.twoDSeriesX.push(x)
       } else {
         // a numeric value in x property
-        gl.isXNumeric = true
-        gl.dataFormatXNumeric = true
+        this.w.axisFlags.isXNumeric = true
+        this.w.axisFlags.dataFormatXNumeric = true
         this.twoDSeriesX.push(x)
       }
     }
   }
 
   handleRangeData(ser, i) {
-    const gl = this.w.globals
-
     let range = {}
     if (this.isFormat2DArray()) {
       range = this.handleRangeDataFormat('array', ser, i)
@@ -194,13 +192,15 @@ export default class Data {
     }
 
     // Fix: RangeArea Chart: hide all series results in a crash #3984
-    gl.seriesRangeStart[i] = range.start === undefined ? [] : range.start
-    gl.seriesRangeEnd[i] = range.end === undefined ? [] : range.end
+    this.w.rangeData.seriesRangeStart[i] =
+      range.start === undefined ? [] : range.start
+    this.w.rangeData.seriesRangeEnd[i] =
+      range.end === undefined ? [] : range.end
 
-    gl.seriesRange[i] = range.rangeUniques
+    this.w.rangeData.seriesRange[i] = range.rangeUniques
 
     // check for overlaps to avoid clashes in a timeline chart
-    gl.seriesRange.forEach((sr) => {
+    this.w.rangeData.seriesRange.forEach((sr) => {
       if (!sr) return
 
       sr.forEach((sarr) => {
@@ -240,8 +240,6 @@ export default class Data {
   }
 
   handleCandleStickBoxData(ser, i) {
-    const gl = this.w.globals
-
     let ohlc = {}
     if (this.isFormat2DArray()) {
       ohlc = this.handleCandleStickBoxDataFormat('array', ser, i)
@@ -249,11 +247,11 @@ export default class Data {
       ohlc = this.handleCandleStickBoxDataFormat('xy', ser, i)
     }
 
-    gl.seriesCandleO[i] = ohlc.o
-    gl.seriesCandleH[i] = ohlc.h
-    gl.seriesCandleM[i] = ohlc.m
-    gl.seriesCandleL[i] = ohlc.l
-    gl.seriesCandleC[i] = ohlc.c
+    this.w.candleData.seriesCandleO[i] = ohlc.o
+    this.w.candleData.seriesCandleH[i] = ohlc.h
+    this.w.candleData.seriesCandleM[i] = ohlc.m
+    this.w.candleData.seriesCandleL[i] = ohlc.l
+    this.w.candleData.seriesCandleC[i] = ohlc.c
 
     return ohlc
   }
@@ -382,19 +380,20 @@ export default class Data {
     const xlabels =
       cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
 
-    gl.isRangeBar = cnf.chart.type === 'rangeBar' && gl.isBarHorizontal
+    this.w.axisFlags.isRangeBar =
+      cnf.chart.type === 'rangeBar' && gl.isBarHorizontal
 
-    gl.hasXaxisGroups =
+    this.w.labelData.hasXaxisGroups =
       cnf.xaxis.type === 'category' && cnf.xaxis.group.groups.length > 0
-    if (gl.hasXaxisGroups) {
-      gl.groups = cnf.xaxis.group.groups
+    if (this.w.labelData.hasXaxisGroups) {
+      this.w.labelData.groups = cnf.xaxis.group.groups
     }
 
     ser.forEach((s, i) => {
       if (s.name !== undefined) {
-        gl.seriesNames.push(s.name)
+        this.w.seriesData.seriesNames.push(s.name)
       } else {
-        gl.seriesNames.push('series-' + parseInt(i + 1, 10))
+        this.w.seriesData.seriesNames.push('series-' + parseInt(i + 1, 10))
       }
     })
 
@@ -409,9 +408,9 @@ export default class Data {
       const index = groups.indexOf(s.group)
       if (!buckets[index]) buckets[index] = []
 
-      buckets[index].push(gl.seriesNames[i])
+      buckets[index].push(this.w.seriesData.seriesNames[i])
     })
-    gl.seriesGroups = buckets
+    this.w.labelData.seriesGroups = buckets
 
     const handleDates = () => {
       for (let j = 0; j < xlabels.length; j++) {
@@ -422,7 +421,7 @@ export default class Data {
             this.twoDSeriesX.push(dt.parseDate(xlabels[j]))
           } else {
             throw new Error(
-              'You have provided invalid Date format. Please provide a valid JavaScript Date'
+              'You have provided invalid Date format. Please provide a valid JavaScript Date',
             )
           }
         } else {
@@ -439,7 +438,7 @@ export default class Data {
 
       if (typeof ser[i].data === 'undefined') {
         console.error(
-          "It is a possibility that you may have not included 'data' property in series."
+          "It is a possibility that you may have not included 'data' property in series.",
         )
         return
       }
@@ -450,7 +449,7 @@ export default class Data {
         ser[i].type === 'rangeBar' ||
         ser[i].type === 'rangeArea'
       ) {
-        gl.isRangeData = true
+        this.w.axisFlags.isRangeData = true
         this.handleRangeData(ser, i)
       }
 
@@ -470,43 +469,43 @@ export default class Data {
           this.handleCandleStickBoxData(ser, i)
         }
 
-        gl.series.push(this.twoDSeries)
-        gl.labels.push(this.twoDSeriesX)
-        gl.seriesX.push(this.twoDSeriesX)
-        gl.seriesGoals = this.seriesGoals
+        this.w.seriesData.series.push(this.twoDSeries)
+        this.w.labelData.labels.push(this.twoDSeriesX)
+        this.w.seriesData.seriesX.push(this.twoDSeriesX)
+        this.w.seriesData.seriesGoals = this.seriesGoals
 
         if (i === this.activeSeriesIndex && !this.fallbackToCategory) {
-          gl.isXNumeric = true
+          this.w.axisFlags.isXNumeric = true
         }
       } else {
         if (cnf.xaxis.type === 'datetime') {
           // user didn't supplied [{x,y}] or [[x,y]], but single array in data.
           // Also labels/categories were supplied differently
-          gl.isXNumeric = true
+          this.w.axisFlags.isXNumeric = true
 
           handleDates()
 
-          gl.seriesX.push(this.twoDSeriesX)
+          this.w.seriesData.seriesX.push(this.twoDSeriesX)
         } else if (cnf.xaxis.type === 'numeric') {
-          gl.isXNumeric = true
+          this.w.axisFlags.isXNumeric = true
 
           if (xlabels.length > 0) {
             this.twoDSeriesX = xlabels
-            gl.seriesX.push(this.twoDSeriesX)
+            this.w.seriesData.seriesX.push(this.twoDSeriesX)
           }
         }
-        gl.labels.push(this.twoDSeriesX)
+        this.w.labelData.labels.push(this.twoDSeriesX)
         const singleArray = ser[i].data.map((d) => Utils.parseNumber(d))
-        gl.series.push(singleArray)
+        this.w.seriesData.series.push(singleArray)
       }
 
-      gl.seriesZ.push(this.threeDSeries)
+      this.w.seriesData.seriesZ.push(this.threeDSeries)
 
       // overrided default color if user inputs color with series data
       if (ser[i].color !== undefined) {
-        gl.seriesColors.push(ser[i].color)
+        this.w.seriesData.seriesColors.push(ser[i].color)
       } else {
-        gl.seriesColors.push(undefined)
+        this.w.seriesData.seriesColors.push(undefined)
       }
     }
 
@@ -514,7 +513,6 @@ export default class Data {
   }
 
   parseDataNonAxisCharts(ser) {
-    const gl = this.w.globals
     const cnf = this.w.config
 
     // Check if we have both old format (numeric series + labels) and new format
@@ -527,22 +525,22 @@ export default class Data {
       ser.some(
         (s) =>
           (s && typeof s === 'object' && s.data) ||
-          (s && typeof s === 'object' && s.parsing)
+          (s && typeof s === 'object' && s.parsing),
       )
 
     if (hasOldFormat && hasNewFormat) {
       console.warn(
-        'ApexCharts: Both old format (numeric series + labels) and new format (series objects with data/parsing) detected. Using old format for backward compatibility.'
+        'ApexCharts: Both old format (numeric series + labels) and new format (series objects with data/parsing) detected. Using old format for backward compatibility.',
       )
     }
 
     // If old format exists, use it (backward compatibility priority)
     if (hasOldFormat) {
-      gl.series = ser.slice()
-      gl.seriesNames = cnf.labels.slice()
-      for (let i = 0; i < gl.series.length; i++) {
-        if (gl.seriesNames[i] === undefined) {
-          gl.seriesNames.push('series-' + (i + 1))
+      this.w.seriesData.series = ser.slice()
+      this.w.seriesData.seriesNames = cnf.labels.slice()
+      for (let i = 0; i < this.w.seriesData.series.length; i++) {
+        if (this.w.seriesData.seriesNames[i] === undefined) {
+          this.w.seriesData.seriesNames.push('series-' + (i + 1))
         }
       }
       return this.w
@@ -550,26 +548,26 @@ export default class Data {
 
     // Check if it's just a plain numeric array without labels (radialBar common case)
     if (Array.isArray(ser) && ser.every((s) => typeof s === 'number')) {
-      gl.series = ser.slice()
-      gl.seriesNames = []
-      for (let i = 0; i < gl.series.length; i++) {
-        gl.seriesNames.push(cnf.labels[i] || `series-${i + 1}`)
+      this.w.seriesData.series = ser.slice()
+      this.w.seriesData.seriesNames = []
+      for (let i = 0; i < this.w.seriesData.series.length; i++) {
+        this.w.seriesData.seriesNames.push(cnf.labels[i] || `series-${i + 1}`)
       }
       return this.w
     }
 
     const processedData = this.extractPieDataFromSeries(ser)
 
-    gl.series = processedData.values
-    gl.seriesNames = processedData.labels
+    this.w.seriesData.series = processedData.values
+    this.w.seriesData.seriesNames = processedData.labels
 
     // Special handling for radialBar - ensure percentages are valid
     if (cnf.chart.type === 'radialBar') {
-      gl.series = gl.series.map((val) => {
+      this.w.seriesData.series = this.w.seriesData.series.map((val) => {
         const numVal = Utils.parseNumber(val)
         if (numVal > 100) {
           console.warn(
-            `ApexCharts: RadialBar value ${numVal} > 100, consider using percentage values (0-100)`
+            `ApexCharts: RadialBar value ${numVal} > 100, consider using percentage values (0-100)`,
           )
         }
         return numVal
@@ -577,9 +575,9 @@ export default class Data {
     }
 
     // Ensure we have proper fallback names
-    for (let i = 0; i < gl.series.length; i++) {
-      if (gl.seriesNames[i] === undefined) {
-        gl.seriesNames.push('series-' + (i + 1))
+    for (let i = 0; i < this.w.seriesData.series.length; i++) {
+      if (this.w.seriesData.seriesNames[i] === undefined) {
+        this.w.seriesData.seriesNames.push('series-' + (i + 1))
       }
     }
 
@@ -626,7 +624,7 @@ export default class Data {
     } else {
       // Unsupported format
       console.warn(
-        'ApexCharts: Unsupported series format for pie/donut/radialBar. Expected series objects with data property.'
+        'ApexCharts: Unsupported series format for pie/donut/radialBar. Expected series objects with data property.',
       )
       return { values: [], labels: [] }
     }
@@ -651,13 +649,13 @@ export default class Data {
           } else {
             console.warn(
               'ApexCharts: Invalid data point format for pie chart. Expected {x, y} format:',
-              dataPoint
+              dataPoint,
             )
           }
         } else {
           console.warn(
             'ApexCharts: Expected object data point, got:',
-            typeof dataPoint
+            typeof dataPoint,
           )
         }
       })
@@ -672,36 +670,35 @@ export default class Data {
    */
   handleExternalLabelsData(ser) {
     const cnf = this.w.config
-    const gl = this.w.globals
 
     if (cnf.xaxis.categories.length > 0) {
       // user provided labels in xaxis.category prop
-      gl.labels = cnf.xaxis.categories
+      this.w.labelData.labels = cnf.xaxis.categories
     } else if (cnf.labels.length > 0) {
       // user provided labels in labels props
-      gl.labels = cnf.labels.slice()
+      this.w.labelData.labels = cnf.labels.slice()
     } else if (this.fallbackToCategory) {
-      // user provided labels in x prop in [{ x: 3, y: 55 }] data, and those labels are already stored in gl.labels[0], so just re-arrange the gl.labels array
-      gl.labels = gl.labels[0]
+      // user provided labels in x prop in [{ x: 3, y: 55 }] data, and those labels are already stored in this.w.labelData.labels[0], so just re-arrange the this.w.labelData.labels array
+      this.w.labelData.labels = this.w.labelData.labels[0]
 
-      if (gl.seriesRange.length) {
-        gl.seriesRange.map((srt) => {
+      if (this.w.rangeData.seriesRange.length) {
+        this.w.rangeData.seriesRange.map((srt) => {
           srt.forEach((sr) => {
-            if (gl.labels.indexOf(sr.x) < 0 && sr.x) {
-              gl.labels.push(sr.x)
+            if (this.w.labelData.labels.indexOf(sr.x) < 0 && sr.x) {
+              this.w.labelData.labels.push(sr.x)
             }
           })
         })
         // remove duplicate x-axis labels
-        gl.labels = Array.from(
-          new Set(gl.labels.map(JSON.stringify)),
-          JSON.parse
+        this.w.labelData.labels = Array.from(
+          new Set(this.w.labelData.labels.map(JSON.stringify)),
+          JSON.parse,
         )
       }
 
       if (cnf.xaxis.convertedCatToNumeric) {
         const defaults = new Defaults(cnf)
-        defaults.convertCatToNumericXaxis(cnf, gl.seriesX[0])
+        defaults.convertCatToNumericXaxis(cnf, this.w.seriesData.seriesX[0])
         this._generateExternalLabels(ser)
       }
     } else {
@@ -716,40 +713,44 @@ export default class Data {
     let labelArr = []
 
     if (gl.axisCharts) {
-      if (gl.series.length > 0) {
+      if (this.w.seriesData.series.length > 0) {
         if (this.isFormatXY()) {
           // in case there is a combo chart (boxplot/scatter)
           // and there are duplicated x values, we need to eliminate duplicates
           const seriesDataFiltered = cnf.series.map((serie) => {
             return serie.data.filter(
-              (v, i, a) => a.findIndex((t) => t.x === v.x) === i
+              (v, i, a) => a.findIndex((t) => t.x === v.x) === i,
             )
           })
 
           const len = seriesDataFiltered.reduce(
             (p, c, i, a) => (a[p].length > c.length ? p : i),
-            0
+            0,
           )
 
           for (let i = 0; i < seriesDataFiltered[len].length; i++) {
             labelArr.push(i + 1)
           }
         } else {
-          for (let i = 0; i < gl.series[gl.maxValsInArrayIndex].length; i++) {
+          for (
+            let i = 0;
+            i < this.w.seriesData.series[gl.maxValsInArrayIndex].length;
+            i++
+          ) {
             labelArr.push(i + 1)
           }
         }
       }
 
-      gl.seriesX = []
-      // create gl.seriesX as it will be used in calculations of x positions
+      this.w.seriesData.seriesX = []
+      // create this.w.seriesData.seriesX as it will be used in calculations of x positions
       for (let i = 0; i < ser.length; i++) {
-        gl.seriesX.push(labelArr)
+        this.w.seriesData.seriesX.push(labelArr)
       }
 
       // turn on the isXNumeric flag to allow minX and maxX to function properly
       if (!this.w.globals.isBarHorizontal) {
-        gl.isXNumeric = true
+        this.w.axisFlags.isXNumeric = true
       }
     }
 
@@ -758,25 +759,25 @@ export default class Data {
     if (labelArr.length === 0) {
       labelArr = gl.axisCharts
         ? []
-        : gl.series.map((gls, glsi) => {
+        : this.w.seriesData.series.map((gls, glsi) => {
             return glsi + 1
           })
       for (let i = 0; i < ser.length; i++) {
-        gl.seriesX.push(labelArr)
+        this.w.seriesData.seriesX.push(labelArr)
       }
     }
 
-    // Finally, pass the labelArr in gl.labels which will be printed on x-axis
-    gl.labels = labelArr
+    // Finally, pass the labelArr in this.w.labelData.labels which will be printed on x-axis
+    this.w.labelData.labels = labelArr
 
     if (cnf.xaxis.convertedCatToNumeric) {
-      gl.categoryLabels = labelArr.map((l) => {
+      this.w.labelData.categoryLabels = labelArr.map((l) => {
         return cnf.xaxis.labels.formatter(l)
       })
     }
 
     // Turn on this global flag to indicate no labels were provided by user
-    gl.noLabelsProvided = true
+    this.w.axisFlags.noLabelsProvided = true
   }
 
   parseRawDataIfNeeded(series) {
@@ -785,7 +786,7 @@ export default class Data {
     const globalParsing = cnf.parsing
 
     // If data was already parsed, don't parse again
-    if (gl.dataWasParsed) {
+    if (this.w.axisFlags.dataWasParsed) {
       return series
     }
 
@@ -835,7 +836,7 @@ export default class Data {
         (Array.isArray(effectiveParsing.y) && effectiveParsing.y.length === 0)
       ) {
         console.warn(
-          `ApexCharts: Series ${index} has parsing config but missing x or y field specification`
+          `ApexCharts: Series ${index} has parsing config but missing x or y field specification`,
         )
         return serie
       }
@@ -844,7 +845,7 @@ export default class Data {
       const transformedData = serie.data.map((item, itemIndex) => {
         if (typeof item !== 'object' || item === null) {
           console.warn(
-            `ApexCharts: Series ${index}, data point ${itemIndex} is not an object, skipping parsing`
+            `ApexCharts: Series ${index}, data point ${itemIndex} is not an object, skipping parsing`,
           )
           return item
         }
@@ -855,7 +856,7 @@ export default class Data {
         let z = undefined
         if (Array.isArray(effectiveParsing.y)) {
           const yValues = effectiveParsing.y.map((fieldName) =>
-            this.getNestedValue(item, fieldName)
+            this.getNestedValue(item, fieldName),
           )
 
           if (this.w.config.chart.type === 'bubble' && yValues.length === 2) {
@@ -876,13 +877,13 @@ export default class Data {
         // Warn if fields don't exist
         if (x === undefined) {
           console.warn(
-            `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.x}'`
+            `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.x}'`,
           )
         }
 
         if (y === undefined) {
           console.warn(
-            `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.y}'`
+            `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.y}'`,
           )
         }
 
@@ -914,7 +915,7 @@ export default class Data {
     })
 
     // Mark that data was parsed
-    gl.dataWasParsed = true
+    this.w.axisFlags.dataWasParsed = true
 
     if (!gl.originalSeries) {
       gl.originalSeries = Utils.clone(series)
@@ -988,21 +989,24 @@ export default class Data {
     // set Null values to 0 in all series when user hides/shows some series
     if (cnf.chart.stacked) {
       const series = new Series(this.w)
-      gl.series = series.setNullSeriesToZeroValues(gl.series)
+      this.w.seriesData.series = series.setNullSeriesToZeroValues(
+        this.w.seriesData.series,
+      )
     }
 
     this.coreUtils.getSeriesTotals()
     if (gl.axisCharts) {
-      gl.stackedSeriesTotals = this.coreUtils.getStackedSeriesTotals()
-      gl.stackedSeriesTotalsByGroups =
+      this.w.seriesData.stackedSeriesTotals =
+        this.coreUtils.getStackedSeriesTotals()
+      this.w.seriesData.stackedSeriesTotalsByGroups =
         this.coreUtils.getStackedSeriesTotalsByGroups()
     }
 
     this.coreUtils.getPercentSeries()
 
     if (
-      !gl.dataFormatXNumeric &&
-      (!gl.isXNumeric ||
+      !this.w.axisFlags.dataFormatXNumeric &&
+      (!this.w.axisFlags.isXNumeric ||
         (cnf.xaxis.type === 'numeric' &&
           cnf.labels.length === 0 &&
           cnf.xaxis.categories.length === 0))
@@ -1012,10 +1016,10 @@ export default class Data {
     }
 
     // check for multiline xaxis
-    const catLabels = this.coreUtils.getCategoryLabels(gl.labels)
+    const catLabels = this.coreUtils.getCategoryLabels(this.w.labelData.labels)
     for (let l = 0; l < catLabels.length; l++) {
       if (Array.isArray(catLabels[l])) {
-        gl.isMultiLineX = true
+        this.w.axisFlags.isMultiLineX = true
         break
       }
     }
@@ -1026,49 +1030,50 @@ export default class Data {
     return {
       // w.seriesData (future slice)
       seriesData: {
-        series: gl.series,
-        seriesNames: gl.seriesNames,
-        seriesX: gl.seriesX,
-        seriesZ: gl.seriesZ,
-        seriesColors: gl.seriesColors,
-        seriesGoals: gl.seriesGoals,
+        series: this.w.seriesData.series,
+        seriesNames: this.w.seriesData.seriesNames,
+        seriesX: this.w.seriesData.seriesX,
+        seriesZ: this.w.seriesData.seriesZ,
+        seriesColors: this.w.seriesData.seriesColors,
+        seriesGoals: this.w.seriesData.seriesGoals,
         initialSeries: gl.initialSeries,
         originalSeries: gl.originalSeries,
-        stackedSeriesTotals: gl.stackedSeriesTotals,
-        stackedSeriesTotalsByGroups: gl.stackedSeriesTotalsByGroups,
-        noLabelsProvided: gl.noLabelsProvided,
+        stackedSeriesTotals: this.w.seriesData.stackedSeriesTotals,
+        stackedSeriesTotalsByGroups:
+          this.w.seriesData.stackedSeriesTotalsByGroups,
+        noLabelsProvided: this.w.axisFlags.noLabelsProvided,
       },
       // w.rangeData (future slice)
       rangeData: {
-        seriesRangeStart: gl.seriesRangeStart,
-        seriesRangeEnd: gl.seriesRangeEnd,
-        seriesRange: gl.seriesRange,
+        seriesRangeStart: this.w.rangeData.seriesRangeStart,
+        seriesRangeEnd: this.w.rangeData.seriesRangeEnd,
+        seriesRange: this.w.rangeData.seriesRange,
       },
       // w.candleData (future slice)
       candleData: {
-        seriesCandleO: gl.seriesCandleO,
-        seriesCandleH: gl.seriesCandleH,
-        seriesCandleM: gl.seriesCandleM,
-        seriesCandleL: gl.seriesCandleL,
-        seriesCandleC: gl.seriesCandleC,
+        seriesCandleO: this.w.candleData.seriesCandleO,
+        seriesCandleH: this.w.candleData.seriesCandleH,
+        seriesCandleM: this.w.candleData.seriesCandleM,
+        seriesCandleL: this.w.candleData.seriesCandleL,
+        seriesCandleC: this.w.candleData.seriesCandleC,
       },
       // w.labelData (future slice)
       labelData: {
-        labels: gl.labels,
-        categoryLabels: gl.categoryLabels,
+        labels: this.w.labelData.labels,
+        categoryLabels: this.w.labelData.categoryLabels,
       },
       // w.axisFlags (future slice)
       axisFlags: {
-        isXNumeric: gl.isXNumeric,
-        dataFormatXNumeric: gl.dataFormatXNumeric,
-        isDataXYZ: gl.isDataXYZ,
-        isRangeData: gl.isRangeData,
-        isRangeBar: gl.isRangeBar,
-        isMultiLineX: gl.isMultiLineX,
-        dataWasParsed: gl.dataWasParsed,
-        hasXaxisGroups: gl.hasXaxisGroups,
-        groups: gl.groups,
-        seriesGroups: gl.seriesGroups,
+        isXNumeric: this.w.axisFlags.isXNumeric,
+        dataFormatXNumeric: this.w.axisFlags.dataFormatXNumeric,
+        isDataXYZ: this.w.axisFlags.isDataXYZ,
+        isRangeData: this.w.axisFlags.isRangeData,
+        isRangeBar: this.w.axisFlags.isRangeBar,
+        isMultiLineX: this.w.axisFlags.isMultiLineX,
+        dataWasParsed: this.w.axisFlags.dataWasParsed,
+        hasXaxisGroups: this.w.labelData.hasXaxisGroups,
+        groups: this.w.labelData.groups,
+        seriesGroups: this.w.labelData.seriesGroups,
       },
     }
   }

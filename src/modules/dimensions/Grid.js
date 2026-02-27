@@ -44,7 +44,7 @@ export default class DimGrid {
 
     if (
       barsPresent &&
-      gl.isXNumeric &&
+      w.axisFlags.isXNumeric &&
       !gl.isBarHorizontal &&
       seriesLen > 0 &&
       xRange !== 0
@@ -109,9 +109,9 @@ export default class DimGrid {
     const subtitleCoords =
       this.dCtx.dimHelpers.getTitleSubtitleCoords('subtitle')
 
-    gl.gridHeight -=
+    w.layout.gridHeight -=
       titleCoords.height + subtitleCoords.height + gridShrinkOffset
-    gl.translateY +=
+    w.layout.translateY +=
       titleCoords.height + subtitleCoords.height + gridShrinkOffset
   }
 

@@ -167,7 +167,7 @@ class CoreUtils {
     const seriesYAxisReverseMap = []
     const unassignedSeriesIndices = []
     const seriesNameArrayStyle =
-      gl.series.length > cnf.yaxis.length ||
+      this.w.seriesData.series.length > cnf.yaxis.length ||
       cnf.yaxis.some((a) => Array.isArray(a.seriesName))
 
     cnf.series.forEach((s, i) => {
@@ -456,14 +456,14 @@ class CoreUtils {
 
     // multiple y axis
     for (let i = 0; i < gl.yRange.length; i++) {
-      yRatio.push(gl.yRange[i] / gl.gridHeight)
+      yRatio.push(gl.yRange[i] / this.w.layout.gridHeight)
     }
 
-    xRatio = gl.xRange / gl.gridWidth
+    xRatio = gl.xRange / this.w.layout.gridWidth
 
-    invertedYRatio = gl.yRange / gl.gridWidth
-    invertedXRatio = gl.xRange / gl.gridHeight
-    zRatio = (gl.zRange / gl.gridHeight) * 16
+    invertedYRatio = gl.yRange / this.w.layout.gridWidth
+    invertedXRatio = gl.xRange / this.w.layout.gridHeight
+    zRatio = (gl.zRange / this.w.layout.gridHeight) * 16
 
     if (!zRatio) {
       zRatio = 1
@@ -602,7 +602,7 @@ class CoreUtils {
 
         range = Math.pow(gl.yRange[i], Math.abs(minY - maxY) / gl.yRange[i])
 
-        gl.yLogRatio[i] = range / gl.gridHeight
+        gl.yLogRatio[i] = range / this.w.layout.gridHeight
         return range
       }
     })

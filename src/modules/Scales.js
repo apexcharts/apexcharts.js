@@ -673,8 +673,8 @@ export default class Scales {
                 // Undefined group names will be grouped together as their own
                 // group.
                 if (cnf.series[si].group === gn) {
-                  for (let j = 0; j < gl.series[si].length; j++) {
-                    const val = gl.series[si][j]
+                  for (let j = 0; j < this.w.seriesData.series[si].length; j++) {
+                    const val = this.w.seriesData.series[si][j]
                     if (val >= 0) {
                       posSeries[gni][j] += val
                     } else {

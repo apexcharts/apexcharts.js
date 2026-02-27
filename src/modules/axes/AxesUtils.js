@@ -197,7 +197,7 @@ export default class AxesUtils {
     const gl = w.globals
     const yaxis = w.config.yaxis
     const newStyle =
-          gl.series.length > yaxis.length
+          w.seriesData.series.length > yaxis.length
           || yaxis.some((a) => Array.isArray(a.seriesName))
     if (newStyle) {
       return index

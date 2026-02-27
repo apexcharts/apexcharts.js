@@ -40,9 +40,9 @@ class Legend {
     const cnf = w.config
 
     const showLegendAlways =
-      (cnf.legend.showForSingleSeries && gl.series.length === 1) ||
+      (cnf.legend.showForSingleSeries && this.w.seriesData.series.length === 1) ||
       this.isBarsDistributed ||
-      gl.series.length > 1
+      this.w.seriesData.series.length > 1
 
     this.legendHelpers.appendToForeignObject()
 
