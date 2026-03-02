@@ -1,6 +1,6 @@
 {
   "name": "apexcharts",
-  "version": "5.8.0",
+  "version": "5.8.1",
   "description": "A JavaScript Chart Library",
   "repository": {
     "type": "git",
@@ -105,6 +105,8 @@
     "dist/*.js.map",
     "dist/*.css",
     "dist/locales/*.json",
+    "dist/features/*.js",
+    "dist/features/*.js.map",
     "types/*.d.ts"
   ],
   "scripts": {
