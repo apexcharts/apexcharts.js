@@ -39,6 +39,9 @@ if (Environment.isBrowser()) {
     if (typeof global.Apex === 'undefined') {
       global.Apex = {}
     }
+    if (typeof global.SVG === 'undefined') {
+      global.SVG = SVG
+    }
   }
 }
 
