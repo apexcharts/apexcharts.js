@@ -20,7 +20,7 @@ const rootDir = resolve(__dirname, '..', '..', '..')
 
 export const test = base.extend({
   // Accumulated page-level JS errors for the current test.
-  consoleErrors: async (_, use) => {
+  consoleErrors: async ({ page: _page }, use) => {
     const errors = []
     await use(errors)
   },
