@@ -144,7 +144,7 @@ import 'apexcharts/features/toolbar'      // zoom/pan toolbar
 // import 'apexcharts/features/keyboard'     // keyboard navigation
 ```
 
-See [https://apexcharts.com/docs/tree-shaking/](tree-shaking) for the full guide.
+See [tree-shaking](https://apexcharts.com/docs/tree-shaking/) for the full guide.
 
 ### A little more than the basic
 
