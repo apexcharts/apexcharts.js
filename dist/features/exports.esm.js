@@ -19854,762 +19854,389 @@ class ApexCharts {
     redraw && this._windowResize();
   }
 }
-class TreemapHelpers {
+class Exports {
   constructor(w, ctx) {
-    this.ctx = ctx;
     this.w = w;
-  }
-  checkColorRange() {
-    const w = this.w;
-    let negRange = false;
-    const chartOpts = w.config.plotOptions[w.config.chart.type];
-    if (chartOpts.colorScale.ranges.length > 0) {
-      chartOpts.colorScale.ranges.map((range) => {
-        if (range.from <= 0) {
-          negRange = true;
-        }
-      });
-    }
-    return negRange;
-  }
-  getShadeColor(chartType, i, j, negRange) {
-    const w = this.w;
-    let colorShadePercent = 1;
-    const shadeIntensity = w.config.plotOptions[chartType].shadeIntensity;
-    const colorProps = this.determineColor(chartType, i, j);
-    if (w.globals.hasNegs || negRange) {
-      if (w.config.plotOptions[chartType].reverseNegativeShade) {
-        if (colorProps.percent < 0) {
-          colorShadePercent = colorProps.percent / 100 * (shadeIntensity * 1.25);
-        } else {
-          colorShadePercent = (1 - colorProps.percent / 100) * (shadeIntensity * 1.25);
-        }
-      } else {
-        if (colorProps.percent <= 0) {
-          colorShadePercent = 1 - (1 + colorProps.percent / 100) * shadeIntensity;
-        } else {
-          colorShadePercent = (1 - colorProps.percent / 100) * shadeIntensity;
-        }
-      }
-    } else {
-      colorShadePercent = 1 - colorProps.percent / 100;
-      if (chartType === "treemap") {
-        colorShadePercent = (1 - colorProps.percent / 100) * (shadeIntensity * 1.25);
-      }
-    }
-    let color = colorProps.color;
-    const utils = new Utils$1();
-    if (w.config.plotOptions[chartType].enableShades) {
-      if (this.w.config.theme.mode === "dark") {
-        const shadeColor = utils.shadeColor(
-          colorShadePercent * -1,
-          colorProps.color
-        );
-        color = Utils$1.hexToRgba(
-          Utils$1.isColorHex(shadeColor) ? shadeColor : Utils$1.rgb2hex(shadeColor),
-          w.config.fill.opacity
-        );
-      } else {
-        const shadeColor = utils.shadeColor(colorShadePercent, colorProps.color);
-        color = Utils$1.hexToRgba(
-          Utils$1.isColorHex(shadeColor) ? shadeColor : Utils$1.rgb2hex(shadeColor),
-          w.config.fill.opacity
-        );
-      }
-    }
-    return { color, colorProps };
-  }
-  determineColor(chartType, i, j) {
-    const w = this.w;
-    const val = w.seriesData.series[i][j];
-    const chartOpts = w.config.plotOptions[chartType];
-    let seriesNumber = chartOpts.colorScale.inverse ? j : i;
-    if (chartOpts.distributed && w.config.chart.type === "treemap") {
-      seriesNumber = j;
-    }
-    let color = w.globals.colors[seriesNumber];
-    let foreColor = null;
-    let min = Math.min(...w.seriesData.series[i]);
-    let max = Math.max(...w.seriesData.series[i]);
-    if (!chartOpts.distributed && chartType === "heatmap") {
-      min = w.globals.minY;
-      max = w.globals.maxY;
-    }
-    if (typeof chartOpts.colorScale.min !== "undefined") {
-      min = chartOpts.colorScale.min < w.globals.minY ? chartOpts.colorScale.min : w.globals.minY;
-      max = chartOpts.colorScale.max > w.globals.maxY ? chartOpts.colorScale.max : w.globals.maxY;
-    }
-    const total = Math.abs(max) + Math.abs(min);
-    let percent = 100 * val / (total === 0 ? total - 1e-6 : total);
-    if (chartOpts.colorScale.ranges.length > 0) {
-      const colorRange = chartOpts.colorScale.ranges;
-      colorRange.map((range) => {
-        if (val >= range.from && val <= range.to) {
-          color = range.color;
-          foreColor = range.foreColor ? range.foreColor : null;
-          min = range.from;
-          max = range.to;
-          const rTotal = Math.abs(max) + Math.abs(min);
-          percent = 100 * val / (rTotal === 0 ? rTotal - 1e-6 : rTotal);
-        }
-      });
-    }
-    return {
-      color,
-      foreColor,
-      percent
-    };
-  }
-  calculateDataLabels({ text, x, y, i, j, colorProps, fontSize }) {
-    const w = this.w;
-    const dataLabelsConfig = w.config.dataLabels;
-    const graphics = new Graphics(this.w);
-    const dataLabels = new DataLabels(this.w, this.ctx);
-    let elDataLabelsWrap = null;
-    if (dataLabelsConfig.enabled) {
-      elDataLabelsWrap = graphics.group({
-        class: "apexcharts-data-labels"
-      });
-      const offX = dataLabelsConfig.offsetX;
-      const offY = dataLabelsConfig.offsetY;
-      const dataLabelsX = x + offX;
-      const dataLabelsY = y + parseFloat(dataLabelsConfig.style.fontSize) / 3 + offY;
-      dataLabels.plotDataLabelsText({
-        x: dataLabelsX,
-        y: dataLabelsY,
-        text,
-        i,
-        j,
-        color: colorProps.foreColor,
-        parent: elDataLabelsWrap,
-        fontSize,
-        dataLabelsConfig
-      });
-    }
-    return elDataLabelsWrap;
-  }
-}
-class HeatMap {
-  constructor(w, ctx, xyRatios) {
     this.ctx = ctx;
-    this.w = w;
-    this.xRatio = xyRatios.xRatio;
-    this.yRatio = xyRatios.yRatio;
-    this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation;
-    this.helpers = new TreemapHelpers(w, ctx);
-    this.rectRadius = this.w.config.plotOptions.heatmap.radius;
-    this.strokeWidth = this.w.config.stroke.show ? this.w.config.stroke.width : 0;
   }
-  draw(series) {
-    const w = this.w;
-    const graphics = new Graphics(this.w, this.ctx);
-    const ret = graphics.group({
-      class: "apexcharts-heatmap"
-    });
-    ret.attr("clip-path", `url(#gridRectMask${w.globals.cuid})`);
-    const xDivision = w.layout.gridWidth / w.globals.dataPoints;
-    const yDivision = w.layout.gridHeight / w.seriesData.series.length;
-    let y1 = 0;
-    let rev = false;
-    this.negRange = this.helpers.checkColorRange();
-    const heatSeries = series.slice();
-    if (w.config.yaxis[0].reversed) {
-      rev = true;
-      heatSeries.reverse();
-    }
-    for (let i = rev ? 0 : heatSeries.length - 1; rev ? i < heatSeries.length : i >= 0; rev ? i++ : i--) {
-      const elSeries = graphics.group({
-        class: `apexcharts-series apexcharts-heatmap-series`,
-        seriesName: Utils$1.escapeString(w.seriesData.seriesNames[i]),
-        rel: i + 1,
-        "data:realIndex": i
-      });
-      Series.addCollapsedClassToSeries(this.w, elSeries, i);
-      graphics.setupEventDelegation(elSeries, ".apexcharts-heatmap-rect");
-      if (w.config.chart.dropShadow.enabled) {
-        const shadow = w.config.chart.dropShadow;
-        const filters = new Filters(this.w);
-        filters.dropShadow(elSeries, shadow, i);
+  svgStringToNode(svgString) {
+    const parser = new DOMParser();
+    const svgDoc = parser.parseFromString(svgString, "image/svg+xml");
+    return svgDoc.documentElement;
+  }
+  scaleSvgNode(svg, scale) {
+    const svgWidth = parseFloat(svg.getAttributeNS(null, "width"));
+    const svgHeight = parseFloat(svg.getAttributeNS(null, "height"));
+    svg.setAttributeNS(null, "width", svgWidth * scale);
+    svg.setAttributeNS(null, "height", svgHeight * scale);
+    svg.setAttributeNS(null, "viewBox", "0 0 " + svgWidth + " " + svgHeight);
+  }
+  getSvgString(_scale) {
+    return new Promise((resolve) => {
+      const w = this.w;
+      let scale = _scale || w.config.chart.toolbar.export.scale || w.config.chart.toolbar.export.width / w.globals.svgWidth;
+      if (!scale) {
+        scale = 1;
       }
-      let x1 = 0;
-      const shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity;
-      let j = 0;
-      for (let dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
-        if (w.seriesData.seriesX.length && !w.globals.allSeriesHasEqualX) {
-          if (w.globals.minX + w.globals.minXDiff * dIndex < w.seriesData.seriesX[i][j]) {
-            x1 = x1 + xDivision;
-            continue;
-          }
+      const width = w.globals.svgWidth * scale;
+      const height = w.globals.svgHeight * scale;
+      const clonedNode = w.dom.elWrap.cloneNode(true);
+      clonedNode.style.width = width + "px";
+      clonedNode.style.height = height + "px";
+      const serializedNode = new XMLSerializer().serializeToString(clonedNode);
+      const shouldIncludeLegendStyles = w.config.legend.show && w.dom.elLegendWrap && w.dom.elLegendWrap.children.length > 0;
+      let exportStyles = `
+        .apexcharts-tooltip, .apexcharts-toolbar, .apexcharts-xaxistooltip, .apexcharts-yaxistooltip, .apexcharts-xcrosshairs, .apexcharts-ycrosshairs, .apexcharts-zoom-rect, .apexcharts-selection-rect {
+          display: none;
         }
-        if (j >= heatSeries[i].length) break;
-        const heatColor = this.helpers.getShadeColor(
-          w.config.chart.type,
-          i,
-          j,
-          this.negRange
-        );
-        let color = heatColor.color;
-        const heatColorProps = heatColor.colorProps;
-        if (w.config.fill.type === "image") {
-          const fill = new Fill(this.w);
-          color = fill.fillPath({
-            seriesNumber: i,
-            dataPointIndex: j,
-            opacity: w.globals.hasNegs ? heatColorProps.percent < 0 ? 1 - (1 + heatColorProps.percent / 100) : shadeIntensity + heatColorProps.percent / 100 : heatColorProps.percent / 100,
-            patternID: Utils$1.randomId(),
-            width: w.config.fill.image.width ? w.config.fill.image.width : xDivision,
-            height: w.config.fill.image.height ? w.config.fill.image.height : yDivision
-          });
-        }
-        const radius = this.rectRadius;
-        const rect = graphics.drawRect(x1, y1, xDivision, yDivision, radius);
-        rect.attr({
-          cx: x1,
-          cy: y1
+      `;
+      if (shouldIncludeLegendStyles) {
+        exportStyles += apexchartsLegendCSS;
+      }
+      let svgString = `
+        <svg xmlns="http://www.w3.org/2000/svg"
+          version="1.1"
+          xmlns:xlink="http://www.w3.org/1999/xlink"
+          class="apexcharts-svg"
+          xmlns:data="ApexChartsNS"
+          transform="translate(0, 0)"
+          width="${w.globals.svgWidth}px" height="${w.globals.svgHeight}px">
+          <foreignObject width="100%" height="100%">
+            <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px; height:${height}px;">
+            <style type="text/css">
+              ${exportStyles}
+            </style>
+              ${serializedNode}
+            </div>
+          </foreignObject>
+        </svg>
+      `;
+      const svgNode = this.svgStringToNode(svgString);
+      if (scale !== 1) {
+        this.scaleSvgNode(svgNode, scale);
+      }
+      this.convertImagesToBase64(svgNode).then(() => {
+        svgString = new XMLSerializer().serializeToString(svgNode);
+        resolve(svgString.replace(/&nbsp;/g, "&#160;"));
+      });
+    });
+  }
+  convertImagesToBase64(svgNode) {
+    const images = svgNode.getElementsByTagName("image");
+    const promises = Array.from(images).map((img) => {
+      const href = img.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+      if (href && !href.startsWith("data:")) {
+        return this.getBase64FromUrl(href).then((base64) => {
+          img.setAttributeNS("http://www.w3.org/1999/xlink", "href", base64);
+        }).catch((error) => {
+          console.error("Error converting image to base64:", error);
         });
-        rect.node.classList.add("apexcharts-heatmap-rect");
-        elSeries.add(rect);
-        rect.attr({
-          fill: color,
-          i,
-          index: i,
-          j,
-          val: series[i][j],
-          "stroke-width": this.strokeWidth,
-          stroke: w.config.plotOptions.heatmap.useFillColorAsStroke ? color : w.globals.stroke.colors[0],
-          color
-        });
-        if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
-          let speed = 1;
-          if (!w.globals.resized) {
-            speed = w.config.chart.animations.speed;
-          }
-          this.animateHeatMap(rect, x1, y1, xDivision, yDivision, speed);
-        }
-        if (w.globals.dataChanged) {
-          let speed = 1;
-          if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
-            speed = this.dynamicAnim.speed;
-            let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color;
-            if (!colorFrom) colorFrom = "rgba(255, 255, 255, 0)";
-            this.animateHeatColor(
-              rect,
-              Utils$1.isColorHex(colorFrom) ? colorFrom : Utils$1.rgb2hex(colorFrom),
-              Utils$1.isColorHex(color) ? color : Utils$1.rgb2hex(color),
-              speed
-            );
-          }
-        }
-        const formatter = w.config.dataLabels.formatter;
-        const formattedText = formatter(w.seriesData.series[i][j], {
-          value: w.seriesData.series[i][j],
-          seriesIndex: i,
-          dataPointIndex: j,
-          w
-        });
-        const dataLabels = this.helpers.calculateDataLabels({
-          text: formattedText,
-          x: x1 + xDivision / 2,
-          y: y1 + yDivision / 2,
-          i,
-          j,
-          colorProps: heatColorProps,
-          series: heatSeries
-        });
-        if (dataLabels !== null) {
-          elSeries.add(dataLabels);
-        }
-        x1 = x1 + xDivision;
-        j++;
       }
-      y1 = y1 + yDivision;
-      ret.add(elSeries);
-    }
-    const yAxisScale = w.globals.yAxisScale[0].result.slice();
-    if (w.config.yaxis[0].reversed) {
-      yAxisScale.unshift("");
-    } else {
-      yAxisScale.push("");
-    }
-    w.globals.yAxisScale[0].result = yAxisScale;
-    return ret;
-  }
-  animateHeatMap(el, x, y, width, height, speed) {
-    const animations = new Animations(this.w);
-    animations.animateRect(
-      el,
-      {
-        x: x + width / 2,
-        y: y + height / 2,
-        width: 0,
-        height: 0
-      },
-      {
-        x,
-        y,
-        width,
-        height
-      },
-      speed,
-      () => {
-        animations.animationCompleted(el);
-      }
-    );
-  }
-  animateHeatColor(el, colorFrom, colorTo, speed) {
-    el.attr({
-      fill: colorFrom
-    }).animate(speed).attr({
-      fill: colorTo
+      return Promise.resolve();
     });
+    return Promise.all(promises);
   }
-}
-function normalize(data, area) {
-  let sum = 0;
-  for (let i = 0; i < data.length; i++) {
-    sum += data[i];
-  }
-  const multiplier = area / sum;
-  const result = new Array(data.length);
-  for (let i = 0; i < data.length; i++) {
-    result[i] = data[i] * multiplier;
-  }
-  return result;
-}
-function calculateRatio(rowMin, rowMax, rowSum, length) {
-  const lengthSq = length * length;
-  const sumSq = rowSum * rowSum;
-  return Math.max(
-    lengthSq * rowMax / sumSq,
-    sumSq / (lengthSq * rowMin)
-  );
-}
-function improvesRatio(rowLen, rowMin, rowMax, rowSum, nextNode, length) {
-  if (rowLen === 0) return true;
-  const currentRatio = calculateRatio(rowMin, rowMax, rowSum, length);
-  const newRatio = calculateRatio(
-    Math.min(rowMin, nextNode),
-    Math.max(rowMax, nextNode),
-    rowSum + nextNode,
-    length
-  );
-  return currentRatio >= newRatio;
-}
-function emitCoordinates(coords, row, rowLen, rowSum, xoffset, yoffset, width, height) {
-  if (width >= height) {
-    const areaWidth = rowSum / height;
-    let subY = yoffset;
-    for (let i = 0; i < rowLen; i++) {
-      const h = row[i] / areaWidth;
-      coords.push([xoffset, subY, xoffset + areaWidth, subY + h]);
-      subY += h;
-    }
-  } else {
-    const areaHeight = rowSum / width;
-    let subX = xoffset;
-    for (let i = 0; i < rowLen; i++) {
-      const w = row[i] / areaHeight;
-      coords.push([subX, yoffset, subX + w, yoffset + areaHeight]);
-      subX += w;
-    }
-  }
-}
-function squarify(data, xoffset, yoffset, width, height) {
-  const coords = [];
-  const n = data.length;
-  if (n === 0) return coords;
-  const row = new Array(n);
-  let rowLen = 0;
-  let rowSum = 0;
-  let rowMin = Infinity;
-  let rowMax = -Infinity;
-  let i = 0;
-  while (i < n) {
-    const length = Math.min(width, height);
-    const val = data[i];
-    if (improvesRatio(rowLen, rowMin, rowMax, rowSum, val, length)) {
-      row[rowLen] = val;
-      rowLen++;
-      rowSum += val;
-      if (val < rowMin) rowMin = val;
-      if (val > rowMax) rowMax = val;
-      i++;
-    } else {
-      emitCoordinates(coords, row, rowLen, rowSum, xoffset, yoffset, width, height);
-      if (width >= height) {
-        const areaWidth = rowSum / height;
-        xoffset += areaWidth;
-        width -= areaWidth;
-      } else {
-        const areaHeight = rowSum / width;
-        yoffset += areaHeight;
-        height -= areaHeight;
-      }
-      rowLen = 0;
-      rowSum = 0;
-      rowMin = Infinity;
-      rowMax = -Infinity;
-    }
-  }
-  if (rowLen > 0) {
-    emitCoordinates(coords, row, rowLen, rowSum, xoffset, yoffset, width, height);
-  }
-  return coords;
-}
-function generate(data, width, height) {
-  const n = data.length;
-  const sums = new Array(n);
-  for (let i = 0; i < n; i++) {
-    let s = 0;
-    const series = data[i];
-    for (let j = 0; j < series.length; j++) {
-      s += series[j];
-    }
-    sums[i] = s;
-  }
-  const seriesRects = squarify(
-    normalize(sums, width * height),
-    0,
-    0,
-    width,
-    height
-  );
-  const results = new Array(n);
-  for (let i = 0; i < n; i++) {
-    const rect = seriesRects[i];
-    const rx = rect[0];
-    const ry = rect[1];
-    const rw = rect[2] - rx;
-    const rh = rect[3] - ry;
-    results[i] = squarify(
-      normalize(data[i], rw * rh),
-      rx,
-      ry,
-      rw,
-      rh
-    );
-  }
-  return results;
-}
-const TreemapSquared = { generate };
-class TreemapChart {
-  constructor(w, ctx) {
-    this.ctx = ctx;
-    this.w = w;
-    this.strokeWidth = this.w.config.stroke.width;
-    this.helpers = new TreemapHelpers(w, ctx);
-    this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation;
-    this.labels = [];
-  }
-  draw(series) {
-    const w = this.w;
-    const graphics = new Graphics(this.w, this.ctx);
-    const fill = new Fill(this.w);
-    const ret = graphics.group({
-      class: "apexcharts-treemap"
-    });
-    if (w.globals.noData) return ret;
-    const ser = [];
-    series.forEach((s) => {
-      const d = s.map((v) => {
-        return Math.abs(v);
-      });
-      ser.push(d);
-    });
-    this.negRange = this.helpers.checkColorRange();
-    w.config.series.forEach((s, i) => {
-      s.data.forEach((l) => {
-        if (!Array.isArray(this.labels[i])) this.labels[i] = [];
-        this.labels[i].push(l.x);
-      });
-    });
-    const nodes = TreemapSquared.generate(
-      ser,
-      w.layout.gridWidth,
-      w.layout.gridHeight
-    );
-    nodes.forEach((node, i) => {
-      const elSeries = graphics.group({
-        class: `apexcharts-series apexcharts-treemap-series`,
-        seriesName: Utils$1.escapeString(w.seriesData.seriesNames[i]),
-        rel: i + 1,
-        "data:realIndex": i
-      });
-      graphics.setupEventDelegation(elSeries, ".apexcharts-treemap-rect");
-      if (w.config.chart.dropShadow.enabled) {
-        const shadow = w.config.chart.dropShadow;
-        const filters = new Filters(this.w);
-        filters.dropShadow(ret, shadow, i);
-      }
-      const elDataLabelWrap = graphics.group({
-        class: "apexcharts-data-labels"
-      });
-      const bounds = {
-        xMin: Infinity,
-        yMin: Infinity,
-        xMax: -Infinity,
-        yMax: -Infinity
+  getBase64FromUrl(url) {
+    if (Environment.isSSR()) return Promise.resolve(url);
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL());
       };
-      node.forEach((r, j) => {
-        const x1 = r[0];
-        const y1 = r[1];
-        const x2 = r[2];
-        const y2 = r[3];
-        bounds.xMin = Math.min(bounds.xMin, x1);
-        bounds.yMin = Math.min(bounds.yMin, y1);
-        bounds.xMax = Math.max(bounds.xMax, x2);
-        bounds.yMax = Math.max(bounds.yMax, y2);
-        const colorProps = this.helpers.getShadeColor(
-          w.config.chart.type,
-          i,
-          j,
-          this.negRange
-        );
-        const color = colorProps.color;
-        const pathFill = fill.fillPath({
-          color,
-          seriesNumber: i,
-          dataPointIndex: j
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+  svgUrl() {
+    return new Promise((resolve) => {
+      this.getSvgString().then((svgData) => {
+        const svgBlob = new Blob([svgData], {
+          type: "image/svg+xml;charset=utf-8"
         });
-        const elRect = graphics.drawRect(
-          x1,
-          y1,
-          x2 - x1,
-          y2 - y1,
-          w.config.plotOptions.treemap.borderRadius,
-          "#fff",
-          1,
-          this.strokeWidth,
-          w.config.plotOptions.treemap.useFillColorAsStroke ? color : w.globals.stroke.colors[i]
-        );
-        elRect.attr({
-          cx: x1,
-          cy: y1,
-          index: i,
-          i,
-          j,
-          width: x2 - x1,
-          height: y2 - y1,
-          fill: pathFill
-        });
-        elRect.node.classList.add("apexcharts-treemap-rect");
-        let fromRect = {
-          x: x1 + (x2 - x1) / 2,
-          y: y1 + (y2 - y1) / 2,
-          width: 0,
-          height: 0
-        };
-        const toRect = {
-          x: x1,
-          y: y1,
-          width: x2 - x1,
-          height: y2 - y1
-        };
-        if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
-          let speed = 1;
-          if (!w.globals.resized) {
-            speed = w.config.chart.animations.speed;
+        resolve(URL.createObjectURL(svgBlob));
+      });
+    });
+  }
+  dataURI(options2) {
+    if (Environment.isSSR()) return Promise.resolve({ imgURI: "" });
+    return new Promise((resolve) => {
+      const w = this.w;
+      const scale = options2 ? options2.scale || options2.width / w.globals.svgWidth : 1;
+      const canvas = document.createElement("canvas");
+      canvas.width = w.globals.svgWidth * scale;
+      canvas.height = parseInt(w.dom.elWrap.style.height, 10) * scale;
+      const canvasBg = w.config.chart.background === "transparent" || !w.config.chart.background ? "#fff" : w.config.chart.background;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = canvasBg;
+      ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale);
+      this.getSvgString(scale).then((svgData) => {
+        const svgUrl = "data:image/svg+xml," + encodeURIComponent(svgData);
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0);
+          if (canvas.msToBlob) {
+            const blob = canvas.msToBlob();
+            resolve({ blob });
+          } else {
+            const imgURI = canvas.toDataURL("image/png");
+            resolve({ imgURI });
           }
-          this.animateTreemap(elRect, fromRect, toRect, speed);
+        };
+        img.src = svgUrl;
+      });
+    });
+  }
+  exportToSVG() {
+    this.svgUrl().then((url) => {
+      this.triggerDownload(
+        url,
+        this.w.config.chart.toolbar.export.svg.filename,
+        ".svg"
+      );
+    });
+  }
+  exportToPng() {
+    const scale = this.w.config.chart.toolbar.export.scale;
+    const width = this.w.config.chart.toolbar.export.width;
+    const option = scale ? { scale } : width ? { width } : void 0;
+    this.dataURI(option).then(({ imgURI, blob }) => {
+      if (blob) {
+        navigator.msSaveOrOpenBlob(blob, this.w.globals.chartID + ".png");
+      } else {
+        this.triggerDownload(
+          imgURI,
+          this.w.config.chart.toolbar.export.png.filename,
+          ".png"
+        );
+      }
+    });
+  }
+  exportToCSV({
+    series,
+    fileName,
+    columnDelimiter = ",",
+    lineDelimiter = "\n"
+  }) {
+    const w = this.w;
+    if (!series) series = w.config.series;
+    let columns = [];
+    const rows = [];
+    let result = "";
+    const universalBOM = "\uFEFF";
+    const gSeries = w.seriesData.series.map((s, i) => {
+      return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : [];
+    });
+    const getFormattedCategory = (cat) => {
+      if (typeof w.config.chart.toolbar.export.csv.categoryFormatter === "function") {
+        return w.config.chart.toolbar.export.csv.categoryFormatter(cat);
+      }
+      if (w.config.xaxis.type === "datetime" && String(cat).length >= 10) {
+        return new Date(cat).toDateString();
+      }
+      return Utils$1.isNumber(cat) ? cat : cat.split(columnDelimiter).join("");
+    };
+    const getFormattedValue = (value) => {
+      return typeof w.config.chart.toolbar.export.csv.valueFormatter === "function" ? w.config.chart.toolbar.export.csv.valueFormatter(value) : value;
+    };
+    const seriesMaxDataLength = Math.max(
+      ...series.map((s) => {
+        return s.data ? s.data.length : 0;
+      })
+    );
+    const dataFormat = new Data(this.w);
+    const axesUtils = new AxesUtils(this.w, { theme: this.ctx.theme, timeScale: this.ctx.timeScale });
+    const getCat = (i) => {
+      let cat = "";
+      if (!w.globals.axisCharts) {
+        cat = w.config.labels[i];
+      } else {
+        if (w.config.xaxis.type === "category" || w.config.xaxis.convertedCatToNumeric) {
+          if (w.globals.isBarHorizontal) {
+            const lbFormatter = w.formatters.yLabelFormatters[0];
+            const sr = new Series(this.ctx.w);
+            const activeSeries = sr.getActiveConfigSeriesIndex();
+            cat = lbFormatter(w.labelData.labels[i], {
+              seriesIndex: activeSeries,
+              dataPointIndex: i,
+              w
+            });
+          } else {
+            cat = axesUtils.getLabel(
+              w.labelData.labels,
+              w.labelData.timescaleLabels,
+              0,
+              i
+            ).text;
+          }
         }
-        if (w.globals.dataChanged) {
-          let speed = 1;
-          if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
-            speed = this.dynamicAnim.speed;
-            if (w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].rect) {
-              fromRect = w.globals.previousPaths[i][j].rect;
+        if (w.config.xaxis.type === "datetime") {
+          if (w.config.xaxis.categories.length) {
+            cat = w.config.xaxis.categories[i];
+          } else if (w.config.labels.length) {
+            cat = w.config.labels[i];
+          }
+        }
+      }
+      if (cat === null) return "nullvalue";
+      if (Array.isArray(cat)) {
+        cat = cat.join(" ");
+      }
+      return Utils$1.isNumber(cat) ? cat : cat.split(columnDelimiter).join("");
+    };
+    const getEmptyDataForCsvColumn = () => {
+      return [...Array(seriesMaxDataLength)].map(() => "");
+    };
+    const handleAxisRowsColumns = (s, sI) => {
+      var _a;
+      if (columns.length && sI === 0) {
+        rows.push(columns.join(columnDelimiter));
+      }
+      if (s.data) {
+        s.data = s.data.length && s.data || getEmptyDataForCsvColumn();
+        for (let i = 0; i < s.data.length; i++) {
+          columns = [];
+          let cat = getCat(i);
+          if (cat === "nullvalue") continue;
+          if (!cat) {
+            if (dataFormat.isFormatXY()) {
+              cat = series[sI].data[i].x;
+            } else if (dataFormat.isFormat2DArray()) {
+              cat = series[sI].data[i] ? series[sI].data[i][0] : "";
             }
-            this.animateTreemap(elRect, fromRect, toRect, speed);
+          }
+          if (sI === 0) {
+            columns.push(getFormattedCategory(cat));
+            for (let ci = 0; ci < w.seriesData.series.length; ci++) {
+              const value = dataFormat.isFormatXY() ? (_a = series[ci].data[i]) == null ? void 0 : _a.y : gSeries[ci][i];
+              columns.push(getFormattedValue(value));
+            }
+          }
+          if (w.config.chart.type === "candlestick" || s.type && s.type === "candlestick") {
+            columns.pop();
+            columns.push(w.candleData.seriesCandleO[sI][i]);
+            columns.push(w.candleData.seriesCandleH[sI][i]);
+            columns.push(w.candleData.seriesCandleL[sI][i]);
+            columns.push(w.candleData.seriesCandleC[sI][i]);
+          }
+          if (w.config.chart.type === "boxPlot" || s.type && s.type === "boxPlot") {
+            columns.pop();
+            columns.push(w.candleData.seriesCandleO[sI][i]);
+            columns.push(w.candleData.seriesCandleH[sI][i]);
+            columns.push(w.candleData.seriesCandleM[sI][i]);
+            columns.push(w.candleData.seriesCandleL[sI][i]);
+            columns.push(w.candleData.seriesCandleC[sI][i]);
+          }
+          if (w.config.chart.type === "rangeBar") {
+            columns.pop();
+            columns.push(w.rangeData.seriesRangeStart[sI][i]);
+            columns.push(w.rangeData.seriesRangeEnd[sI][i]);
+          }
+          if (columns.length) {
+            rows.push(columns.join(columnDelimiter));
           }
         }
-        let fontSize = this.getFontSize(r);
-        let formattedText = w.config.dataLabels.formatter(this.labels[i][j], {
-          value: w.seriesData.series[i][j],
-          seriesIndex: i,
-          dataPointIndex: j,
-          w
+      }
+    };
+    const handleUnequalXValues = () => {
+      const categories = /* @__PURE__ */ new Set();
+      const data = {};
+      series.forEach((s, sI) => {
+        s == null ? void 0 : s.data.forEach((dataItem) => {
+          let cat, value;
+          if (dataFormat.isFormatXY()) {
+            cat = dataItem.x;
+            value = dataItem.y;
+          } else if (dataFormat.isFormat2DArray()) {
+            cat = dataItem[0];
+            value = dataItem[1];
+          } else {
+            return;
+          }
+          if (!data[cat]) {
+            data[cat] = Array(series.length).fill("");
+          }
+          data[cat][sI] = getFormattedValue(value);
+          categories.add(cat);
         });
-        if (w.config.plotOptions.treemap.dataLabels.format === "truncate") {
-          fontSize = parseInt(w.config.dataLabels.style.fontSize, 10);
-          formattedText = this.truncateLabels(
-            formattedText,
-            fontSize,
-            x1,
-            y1,
-            x2,
-            y2
+      });
+      if (columns.length) {
+        rows.push(columns.join(columnDelimiter));
+      }
+      Array.from(categories).sort().forEach((cat) => {
+        rows.push([
+          getFormattedCategory(cat),
+          data[cat].join(columnDelimiter)
+        ]);
+      });
+    };
+    columns.push(w.config.chart.toolbar.export.csv.headerCategory);
+    if (w.config.chart.type === "boxPlot") {
+      columns.push("minimum");
+      columns.push("q1");
+      columns.push("median");
+      columns.push("q3");
+      columns.push("maximum");
+    } else if (w.config.chart.type === "candlestick") {
+      columns.push("open");
+      columns.push("high");
+      columns.push("low");
+      columns.push("close");
+    } else if (w.config.chart.type === "rangeBar") {
+      columns.push("minimum");
+      columns.push("maximum");
+    } else {
+      series.map((s, sI) => {
+        const sname = (s.name ? s.name : `series-${sI}`) + "";
+        if (w.globals.axisCharts) {
+          columns.push(
+            sname.split(columnDelimiter).join("") ? sname.split(columnDelimiter).join("") : `series-${sI}`
           );
-        }
-        let dataLabels = null;
-        if (w.seriesData.series[i][j]) {
-          dataLabels = this.helpers.calculateDataLabels({
-            text: formattedText,
-            x: (x1 + x2) / 2,
-            y: (y1 + y2) / 2 + this.strokeWidth / 2 + fontSize / 3,
-            i,
-            j,
-            colorProps,
-            fontSize,
-            series
-          });
-        }
-        if (w.config.dataLabels.enabled && dataLabels) {
-          this.rotateToFitLabel(
-            dataLabels,
-            fontSize,
-            formattedText,
-            x1,
-            y1,
-            x2,
-            y2
-          );
-        }
-        elSeries.add(elRect);
-        if (dataLabels !== null) {
-          elSeries.add(dataLabels);
         }
       });
-      const seriesTitle = w.config.plotOptions.treemap.seriesTitle;
-      if (w.config.series.length > 1 && seriesTitle && seriesTitle.show) {
-        const sName = w.config.series[i].name || "";
-        if (sName && bounds.xMin < Infinity && bounds.yMin < Infinity) {
-          const {
-            offsetX,
-            offsetY,
-            borderColor,
-            borderWidth,
-            borderRadius,
-            style
-          } = seriesTitle;
-          const textColor = style.color || w.config.chart.foreColor;
-          const padding = {
-            left: style.padding.left,
-            right: style.padding.right,
-            top: style.padding.top,
-            bottom: style.padding.bottom
-          };
-          const textSize = graphics.getTextRects(
-            sName,
-            style.fontSize,
-            style.fontFamily
-          );
-          const labelRectWidth = textSize.width + padding.left + padding.right;
-          const labelRectHeight = textSize.height + padding.top + padding.bottom;
-          const labelX = bounds.xMin + (offsetX || 0);
-          const labelY = bounds.yMin + (offsetY || 0);
-          const elLabelRect = graphics.drawRect(
-            labelX,
-            labelY,
-            labelRectWidth,
-            labelRectHeight,
-            borderRadius,
-            style.background,
-            1,
-            borderWidth,
-            borderColor
-          );
-          const elLabelText = graphics.drawText({
-            x: labelX + padding.left,
-            y: labelY + padding.top + textSize.height * 0.75,
-            text: sName,
-            fontSize: style.fontSize,
-            fontFamily: style.fontFamily,
-            fontWeight: style.fontWeight,
-            foreColor: textColor,
-            cssClass: style.cssClass || ""
-          });
-          elSeries.add(elLabelRect);
-          elSeries.add(elLabelText);
-        }
-      }
-      elSeries.add(elDataLabelWrap);
-      ret.add(elSeries);
-    });
-    return ret;
-  }
-  // This calculates a font-size based upon
-  // average label length and the size of the box
-  getFontSize(coordinates) {
-    const w = this.w;
-    function totalLabelLength(arr) {
-      let i, total = 0;
-      if (Array.isArray(arr[0])) {
-        for (i = 0; i < arr.length; i++) {
-          total += totalLabelLength(arr[i]);
-        }
-      } else {
-        for (i = 0; i < arr.length; i++) {
-          total += arr[i].length;
-        }
-      }
-      return total;
     }
-    function countLabels(arr) {
-      let i, total = 0;
-      if (Array.isArray(arr[0])) {
-        for (i = 0; i < arr.length; i++) {
-          total += countLabels(arr[i]);
-        }
-      } else {
-        for (i = 0; i < arr.length; i++) {
-          total += 1;
-        }
-      }
-      return total;
+    if (!w.globals.axisCharts) {
+      columns.push(w.config.chart.toolbar.export.csv.headerValue);
+      rows.push(columns.join(columnDelimiter));
     }
-    const averagelabelsize = totalLabelLength(this.labels) / countLabels(this.labels);
-    function fontSize(width, height) {
-      const area = width * height;
-      const arearoot = Math.pow(area, 0.5);
-      return Math.min(
-        arearoot / averagelabelsize,
-        parseInt(w.config.dataLabels.style.fontSize, 10)
-      );
+    if (!w.globals.allSeriesHasEqualX && w.globals.axisCharts && !w.config.xaxis.categories.length && !w.config.labels.length) {
+      handleUnequalXValues();
+    } else {
+      series.map((s, sI) => {
+        if (w.globals.axisCharts) {
+          handleAxisRowsColumns(s, sI);
+        } else {
+          columns = [];
+          columns.push(getFormattedCategory(w.labelData.labels[sI]));
+          columns.push(getFormattedValue(gSeries[sI]));
+          rows.push(columns.join(columnDelimiter));
+        }
+      });
     }
-    return fontSize(
-      coordinates[2] - coordinates[0],
-      coordinates[3] - coordinates[1]
+    result += rows.join(lineDelimiter);
+    this.triggerDownload(
+      "data:text/csv; charset=utf-8," + encodeURIComponent(universalBOM + result),
+      fileName ? fileName : w.config.chart.toolbar.export.csv.filename,
+      ".csv"
     );
   }
-  rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
-    const graphics = new Graphics(this.w);
-    const textRect = graphics.getTextRects(text, fontSize);
-    if (textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
-      const labelRotatingCenter = graphics.rotateAroundCenter(elText.node);
-      elText.node.setAttribute(
-        "transform",
-        `rotate(-90 ${labelRotatingCenter.x} ${labelRotatingCenter.y}) translate(${textRect.height / 3})`
-      );
-    }
-  }
-  // This is an alternative label formatting method that uses a
-  // consistent font size, and trims the edge of long labels
-  truncateLabels(text, fontSize, x1, y1, x2, y2) {
-    const graphics = new Graphics(this.w);
-    const textRect = graphics.getTextRects(text, fontSize);
-    const labelMaxWidth = textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && y2 - y1 > x2 - x1 ? y2 - y1 : x2 - x1;
-    const truncatedText = graphics.getTextBasedOnMaxWidth({
-      text,
-      maxWidth: labelMaxWidth,
-      fontSize
-    });
-    if (text.length !== truncatedText.length && labelMaxWidth / fontSize < 5) {
-      return "";
-    } else {
-      return truncatedText;
-    }
-  }
-  animateTreemap(el, fromRect, toRect, speed) {
-    const animations = new Animations(this.w);
-    animations.animateRect(el, fromRect, toRect, speed, () => {
-      animations.animationCompleted(el);
-    });
+  triggerDownload(href, filename, ext) {
+    if (Environment.isSSR()) return;
+    const downloadLink = document.createElement("a");
+    downloadLink.href = href;
+    downloadLink.download = (filename ? filename : this.w.globals.chartID) + ext;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
   }
 }
-ApexCharts.use({
-  heatmap: HeatMap,
-  treemap: TreemapChart
-});
+ApexCharts.registerFeatures({ exports: Exports });
 export {
   ApexCharts as default
 };

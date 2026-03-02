@@ -22,7 +22,7 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v5.7.1
+ * ApexCharts v5.8.0
  * (c) 2018-2026 ApexCharts
  */
 

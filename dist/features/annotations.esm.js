@@ -10538,7 +10538,7 @@ class TitleSubtitle {
     }
   }
 }
-let Helpers$1 = class Helpers {
+let Helpers$2 = class Helpers {
   constructor(dCtx) {
     this.w = dCtx.w;
     this.dCtx = dCtx;
@@ -11129,7 +11129,7 @@ class Dimensions {
     this.yAxisWidthRight = 0;
     this.xAxisHeight = 0;
     this.isSparkline = this.w.config.chart.sparkline.enabled;
-    this.dimHelpers = new Helpers$1(this);
+    this.dimHelpers = new Helpers$2(this);
     this.dimYAxis = new DimYAxis(this);
     this.dimXAxis = new DimXAxis(this);
     this.dimGrid = new DimGrid(this);
@@ -11370,7 +11370,7 @@ class Dimensions {
   }
 }
 const apexchartsLegendCSS = ".apexcharts-flip-y {\n  transform: scaleY(-1) translateY(-100%);\n  transform-origin: top;\n  transform-box: fill-box;\n}\n.apexcharts-flip-x {\n  transform: scaleX(-1);\n  transform-origin: center;\n  transform-box: fill-box;\n}\n.apexcharts-legend {\n  display: flex;\n  overflow: auto;\n  padding: 0 10px;\n}\n.apexcharts-legend.apexcharts-legend-group-horizontal {\n  flex-direction: column;\n}\n.apexcharts-legend-group {\n  display: flex;\n}\n.apexcharts-legend-group-vertical {\n  flex-direction: column-reverse;\n}\n.apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\n  flex-wrap: wrap\n}\n.apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n  flex-direction: column;\n  bottom: 0;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n  justify-content: flex-start;\n  align-items: flex-start;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\n  justify-content: center;\n  align-items: center;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\n  justify-content: flex-end;\n  align-items: flex-end;\n}\n.apexcharts-legend-series {\n  cursor: pointer;\n  line-height: normal;\n  display: flex;\n  align-items: center;\n}\n.apexcharts-legend-text {\n  position: relative;\n  font-size: 14px;\n}\n.apexcharts-legend-text *, .apexcharts-legend-marker * {\n  pointer-events: none;\n}\n.apexcharts-legend-marker {\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  cursor: pointer;\n  margin-right: 1px;\n}\n\n.apexcharts-legend-series.apexcharts-no-click {\n  cursor: auto;\n}\n.apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n  display: none !important;\n}\n.apexcharts-inactive-legend {\n  opacity: 0.45;\n} ";
-class Helpers2 {
+let Helpers$1 = class Helpers2 {
   constructor(lgCtx) {
     this.w = lgCtx.w;
     this.lgCtx = lgCtx;
@@ -11599,7 +11599,7 @@ class Helpers2 {
     w.globals.allSeriesCollapsed = collapsed === series.length;
     return series;
   }
-}
+};
 class Legend {
   constructor(w, ctx) {
     this.w = w;
@@ -11612,7 +11612,7 @@ class Legend {
     this.onLegendClick = this.onLegendClick.bind(this);
     this.onLegendHovered = this.onLegendHovered.bind(this);
     this.isBarsDistributed = this.w.config.chart.type === "bar" && this.w.config.plotOptions.bar.distributed && this.w.config.series.length === 1;
-    this.legendHelpers = new Helpers2(this);
+    this.legendHelpers = new Helpers$1(this);
   }
   init() {
     const w = this.w;
@@ -19854,762 +19854,787 @@ class ApexCharts {
     redraw && this._windowResize();
   }
 }
-class TreemapHelpers {
-  constructor(w, ctx) {
-    this.ctx = ctx;
-    this.w = w;
+class Helpers3 {
+  constructor(annoCtx) {
+    this.w = annoCtx.w;
+    this.annoCtx = annoCtx;
   }
-  checkColorRange() {
+  setOrientations(anno, annoIndex = null) {
     const w = this.w;
-    let negRange = false;
-    const chartOpts = w.config.plotOptions[w.config.chart.type];
-    if (chartOpts.colorScale.ranges.length > 0) {
-      chartOpts.colorScale.ranges.map((range) => {
-        if (range.from <= 0) {
-          negRange = true;
-        }
-      });
-    }
-    return negRange;
-  }
-  getShadeColor(chartType, i, j, negRange) {
-    const w = this.w;
-    let colorShadePercent = 1;
-    const shadeIntensity = w.config.plotOptions[chartType].shadeIntensity;
-    const colorProps = this.determineColor(chartType, i, j);
-    if (w.globals.hasNegs || negRange) {
-      if (w.config.plotOptions[chartType].reverseNegativeShade) {
-        if (colorProps.percent < 0) {
-          colorShadePercent = colorProps.percent / 100 * (shadeIntensity * 1.25);
-        } else {
-          colorShadePercent = (1 - colorProps.percent / 100) * (shadeIntensity * 1.25);
-        }
-      } else {
-        if (colorProps.percent <= 0) {
-          colorShadePercent = 1 - (1 + colorProps.percent / 100) * shadeIntensity;
-        } else {
-          colorShadePercent = (1 - colorProps.percent / 100) * shadeIntensity;
-        }
-      }
-    } else {
-      colorShadePercent = 1 - colorProps.percent / 100;
-      if (chartType === "treemap") {
-        colorShadePercent = (1 - colorProps.percent / 100) * (shadeIntensity * 1.25);
-      }
-    }
-    let color = colorProps.color;
-    const utils = new Utils$1();
-    if (w.config.plotOptions[chartType].enableShades) {
-      if (this.w.config.theme.mode === "dark") {
-        const shadeColor = utils.shadeColor(
-          colorShadePercent * -1,
-          colorProps.color
+    if (anno.label.orientation === "vertical") {
+      const i = annoIndex !== null ? annoIndex : 0;
+      const xAnno = w.dom.baseEl.querySelector(
+        `.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel='${i}']`
+      );
+      if (xAnno !== null) {
+        const xAnnoCoord = xAnno.getBBox();
+        xAnno.setAttribute(
+          "x",
+          parseFloat(xAnno.getAttribute("x")) - xAnnoCoord.height + 4
         );
-        color = Utils$1.hexToRgba(
-          Utils$1.isColorHex(shadeColor) ? shadeColor : Utils$1.rgb2hex(shadeColor),
-          w.config.fill.opacity
-        );
-      } else {
-        const shadeColor = utils.shadeColor(colorShadePercent, colorProps.color);
-        color = Utils$1.hexToRgba(
-          Utils$1.isColorHex(shadeColor) ? shadeColor : Utils$1.rgb2hex(shadeColor),
-          w.config.fill.opacity
-        );
+        const yOffset = anno.label.position === "top" ? xAnnoCoord.width : -xAnnoCoord.width;
+        xAnno.setAttribute("y", parseFloat(xAnno.getAttribute("y")) + yOffset);
+        const { x, y } = this.annoCtx.graphics.rotateAroundCenter(xAnno);
+        xAnno.setAttribute("transform", `rotate(-90 ${x} ${y})`);
       }
     }
-    return { color, colorProps };
   }
-  determineColor(chartType, i, j) {
+  addBackgroundToAnno(annoEl, anno) {
     const w = this.w;
-    const val = w.seriesData.series[i][j];
-    const chartOpts = w.config.plotOptions[chartType];
-    let seriesNumber = chartOpts.colorScale.inverse ? j : i;
-    if (chartOpts.distributed && w.config.chart.type === "treemap") {
-      seriesNumber = j;
+    if (!annoEl || !anno.label.text || !String(anno.label.text).trim()) {
+      return null;
     }
-    let color = w.globals.colors[seriesNumber];
-    let foreColor = null;
-    let min = Math.min(...w.seriesData.series[i]);
-    let max = Math.max(...w.seriesData.series[i]);
-    if (!chartOpts.distributed && chartType === "heatmap") {
-      min = w.globals.minY;
-      max = w.globals.maxY;
+    const gridEl = w.dom.baseEl.querySelector(".apexcharts-grid");
+    const elGridRect = gridEl.getBoundingClientRect();
+    const gridBBox = gridEl.getBBox();
+    const zoom = elGridRect.width / gridBBox.width || 1;
+    const coords = annoEl.getBoundingClientRect();
+    let {
+      left: pleft,
+      right: pright,
+      top: ptop,
+      bottom: pbottom
+    } = anno.label.style.padding;
+    if (anno.label.orientation === "vertical") {
+      [ptop, pbottom, pleft, pright] = [pleft, pright, ptop, pbottom];
     }
-    if (typeof chartOpts.colorScale.min !== "undefined") {
-      min = chartOpts.colorScale.min < w.globals.minY ? chartOpts.colorScale.min : w.globals.minY;
-      max = chartOpts.colorScale.max > w.globals.maxY ? chartOpts.colorScale.max : w.globals.maxY;
+    const x1 = (coords.left - elGridRect.left) / zoom - pleft;
+    const y1 = (coords.top - elGridRect.top) / zoom - ptop;
+    const elRect = this.annoCtx.graphics.drawRect(
+      x1 - w.globals.barPadForNumericAxis,
+      y1,
+      coords.width / zoom + pleft + pright,
+      coords.height / zoom + ptop + pbottom,
+      anno.label.borderRadius,
+      anno.label.style.background,
+      1,
+      anno.label.borderWidth,
+      anno.label.borderColor,
+      0
+    );
+    if (anno.id) {
+      elRect.node.classList.add(anno.id);
     }
-    const total = Math.abs(max) + Math.abs(min);
-    let percent = 100 * val / (total === 0 ? total - 1e-6 : total);
-    if (chartOpts.colorScale.ranges.length > 0) {
-      const colorRange = chartOpts.colorScale.ranges;
-      colorRange.map((range) => {
-        if (val >= range.from && val <= range.to) {
-          color = range.color;
-          foreColor = range.foreColor ? range.foreColor : null;
-          min = range.from;
-          max = range.to;
-          const rTotal = Math.abs(max) + Math.abs(min);
-          percent = 100 * val / (rTotal === 0 ? rTotal - 1e-6 : rTotal);
-        }
-      });
-    }
-    return {
-      color,
-      foreColor,
-      percent
-    };
+    return elRect;
   }
-  calculateDataLabels({ text, x, y, i, j, colorProps, fontSize }) {
+  annotationsBackground() {
     const w = this.w;
-    const dataLabelsConfig = w.config.dataLabels;
-    const graphics = new Graphics(this.w);
-    const dataLabels = new DataLabels(this.w, this.ctx);
-    let elDataLabelsWrap = null;
-    if (dataLabelsConfig.enabled) {
-      elDataLabelsWrap = graphics.group({
-        class: "apexcharts-data-labels"
-      });
-      const offX = dataLabelsConfig.offsetX;
-      const offY = dataLabelsConfig.offsetY;
-      const dataLabelsX = x + offX;
-      const dataLabelsY = y + parseFloat(dataLabelsConfig.style.fontSize) / 3 + offY;
-      dataLabels.plotDataLabelsText({
-        x: dataLabelsX,
-        y: dataLabelsY,
-        text,
-        i,
-        j,
-        color: colorProps.foreColor,
-        parent: elDataLabelsWrap,
-        fontSize,
-        dataLabelsConfig
-      });
-    }
-    return elDataLabelsWrap;
-  }
-}
-class HeatMap {
-  constructor(w, ctx, xyRatios) {
-    this.ctx = ctx;
-    this.w = w;
-    this.xRatio = xyRatios.xRatio;
-    this.yRatio = xyRatios.yRatio;
-    this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation;
-    this.helpers = new TreemapHelpers(w, ctx);
-    this.rectRadius = this.w.config.plotOptions.heatmap.radius;
-    this.strokeWidth = this.w.config.stroke.show ? this.w.config.stroke.width : 0;
-  }
-  draw(series) {
-    const w = this.w;
-    const graphics = new Graphics(this.w, this.ctx);
-    const ret = graphics.group({
-      class: "apexcharts-heatmap"
-    });
-    ret.attr("clip-path", `url(#gridRectMask${w.globals.cuid})`);
-    const xDivision = w.layout.gridWidth / w.globals.dataPoints;
-    const yDivision = w.layout.gridHeight / w.seriesData.series.length;
-    let y1 = 0;
-    let rev = false;
-    this.negRange = this.helpers.checkColorRange();
-    const heatSeries = series.slice();
-    if (w.config.yaxis[0].reversed) {
-      rev = true;
-      heatSeries.reverse();
-    }
-    for (let i = rev ? 0 : heatSeries.length - 1; rev ? i < heatSeries.length : i >= 0; rev ? i++ : i--) {
-      const elSeries = graphics.group({
-        class: `apexcharts-series apexcharts-heatmap-series`,
-        seriesName: Utils$1.escapeString(w.seriesData.seriesNames[i]),
-        rel: i + 1,
-        "data:realIndex": i
-      });
-      Series.addCollapsedClassToSeries(this.w, elSeries, i);
-      graphics.setupEventDelegation(elSeries, ".apexcharts-heatmap-rect");
-      if (w.config.chart.dropShadow.enabled) {
-        const shadow = w.config.chart.dropShadow;
-        const filters = new Filters(this.w);
-        filters.dropShadow(elSeries, shadow, i);
-      }
-      let x1 = 0;
-      const shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity;
-      let j = 0;
-      for (let dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
-        if (w.seriesData.seriesX.length && !w.globals.allSeriesHasEqualX) {
-          if (w.globals.minX + w.globals.minXDiff * dIndex < w.seriesData.seriesX[i][j]) {
-            x1 = x1 + xDivision;
-            continue;
+    const add = (anno, i, type) => {
+      const annoLabel = w.dom.baseEl.querySelector(
+        `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`
+      );
+      if (annoLabel) {
+        const parent = annoLabel.parentNode;
+        const elRect = this.addBackgroundToAnno(annoLabel, anno);
+        if (elRect) {
+          parent.insertBefore(elRect.node, annoLabel);
+          if (anno.label.mouseEnter) {
+            elRect.node.addEventListener(
+              "mouseenter",
+              anno.label.mouseEnter.bind(this, anno)
+            );
           }
-        }
-        if (j >= heatSeries[i].length) break;
-        const heatColor = this.helpers.getShadeColor(
-          w.config.chart.type,
-          i,
-          j,
-          this.negRange
-        );
-        let color = heatColor.color;
-        const heatColorProps = heatColor.colorProps;
-        if (w.config.fill.type === "image") {
-          const fill = new Fill(this.w);
-          color = fill.fillPath({
-            seriesNumber: i,
-            dataPointIndex: j,
-            opacity: w.globals.hasNegs ? heatColorProps.percent < 0 ? 1 - (1 + heatColorProps.percent / 100) : shadeIntensity + heatColorProps.percent / 100 : heatColorProps.percent / 100,
-            patternID: Utils$1.randomId(),
-            width: w.config.fill.image.width ? w.config.fill.image.width : xDivision,
-            height: w.config.fill.image.height ? w.config.fill.image.height : yDivision
-          });
-        }
-        const radius = this.rectRadius;
-        const rect = graphics.drawRect(x1, y1, xDivision, yDivision, radius);
-        rect.attr({
-          cx: x1,
-          cy: y1
-        });
-        rect.node.classList.add("apexcharts-heatmap-rect");
-        elSeries.add(rect);
-        rect.attr({
-          fill: color,
-          i,
-          index: i,
-          j,
-          val: series[i][j],
-          "stroke-width": this.strokeWidth,
-          stroke: w.config.plotOptions.heatmap.useFillColorAsStroke ? color : w.globals.stroke.colors[0],
-          color
-        });
-        if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
-          let speed = 1;
-          if (!w.globals.resized) {
-            speed = w.config.chart.animations.speed;
+          if (anno.label.mouseLeave) {
+            elRect.node.addEventListener(
+              "mouseleave",
+              anno.label.mouseLeave.bind(this, anno)
+            );
           }
-          this.animateHeatMap(rect, x1, y1, xDivision, yDivision, speed);
-        }
-        if (w.globals.dataChanged) {
-          let speed = 1;
-          if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
-            speed = this.dynamicAnim.speed;
-            let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color;
-            if (!colorFrom) colorFrom = "rgba(255, 255, 255, 0)";
-            this.animateHeatColor(
-              rect,
-              Utils$1.isColorHex(colorFrom) ? colorFrom : Utils$1.rgb2hex(colorFrom),
-              Utils$1.isColorHex(color) ? color : Utils$1.rgb2hex(color),
-              speed
+          if (anno.label.click) {
+            elRect.node.addEventListener(
+              "click",
+              anno.label.click.bind(this, anno)
             );
           }
         }
-        const formatter = w.config.dataLabels.formatter;
-        const formattedText = formatter(w.seriesData.series[i][j], {
-          value: w.seriesData.series[i][j],
-          seriesIndex: i,
-          dataPointIndex: j,
-          w
-        });
-        const dataLabels = this.helpers.calculateDataLabels({
-          text: formattedText,
-          x: x1 + xDivision / 2,
-          y: y1 + yDivision / 2,
-          i,
-          j,
-          colorProps: heatColorProps,
-          series: heatSeries
-        });
-        if (dataLabels !== null) {
-          elSeries.add(dataLabels);
-        }
-        x1 = x1 + xDivision;
-        j++;
       }
-      y1 = y1 + yDivision;
-      ret.add(elSeries);
-    }
-    const yAxisScale = w.globals.yAxisScale[0].result.slice();
-    if (w.config.yaxis[0].reversed) {
-      yAxisScale.unshift("");
-    } else {
-      yAxisScale.push("");
-    }
-    w.globals.yAxisScale[0].result = yAxisScale;
-    return ret;
+    };
+    w.config.annotations.xaxis.forEach((anno, i) => add(anno, i, "xaxis"));
+    w.config.annotations.yaxis.forEach((anno, i) => add(anno, i, "yaxis"));
+    w.config.annotations.points.forEach((anno, i) => add(anno, i, "point"));
   }
-  animateHeatMap(el, x, y, width, height, speed) {
-    const animations = new Animations(this.w);
-    animations.animateRect(
-      el,
-      {
-        x: x + width / 2,
-        y: y + height / 2,
-        width: 0,
-        height: 0
-      },
-      {
-        x,
+  getY1Y2(type, anno) {
+    var _a;
+    const w = this.w;
+    const y = type === "y1" ? anno.y : anno.y2;
+    let yP;
+    let clipped = false;
+    if (this.annoCtx.invertAxis) {
+      const labels = w.config.xaxis.convertedCatToNumeric ? w.labelData.categoryLabels : w.labelData.labels;
+      const catIndex = labels.indexOf(y);
+      const xLabel = w.dom.baseEl.querySelector(
+        `.apexcharts-yaxis-texts-g text:nth-child(${catIndex + 1})`
+      );
+      yP = xLabel ? parseFloat(xLabel.getAttribute("y")) : (w.layout.gridHeight / labels.length - 1) * (catIndex + 1) - w.globals.barHeight;
+      if (anno.seriesIndex !== void 0 && w.globals.barHeight) {
+        yP -= w.globals.barHeight / 2 * (w.seriesData.series.length - 1) - w.globals.barHeight * anno.seriesIndex;
+      }
+    } else {
+      const seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0];
+      const yPos = w.config.yaxis[anno.yAxisIndex].logarithmic ? new CoreUtils(this.w).getLogVal(
+        w.config.yaxis[anno.yAxisIndex].logBase,
         y,
-        width,
-        height
-      },
-      speed,
-      () => {
-        animations.animationCompleted(el);
+        seriesIndex
+      ) / w.globals.yLogRatio[seriesIndex] : (y - w.globals.minYArr[seriesIndex]) / (w.globals.yRange[seriesIndex] / w.layout.gridHeight);
+      yP = w.layout.gridHeight - Math.min(Math.max(yPos, 0), w.layout.gridHeight);
+      clipped = yPos > w.layout.gridHeight || yPos < 0;
+      if (anno.marker && (anno.y === void 0 || anno.y === null)) {
+        yP = 0;
       }
-    );
-  }
-  animateHeatColor(el, colorFrom, colorTo, speed) {
-    el.attr({
-      fill: colorFrom
-    }).animate(speed).attr({
-      fill: colorTo
-    });
-  }
-}
-function normalize(data, area) {
-  let sum = 0;
-  for (let i = 0; i < data.length; i++) {
-    sum += data[i];
-  }
-  const multiplier = area / sum;
-  const result = new Array(data.length);
-  for (let i = 0; i < data.length; i++) {
-    result[i] = data[i] * multiplier;
-  }
-  return result;
-}
-function calculateRatio(rowMin, rowMax, rowSum, length) {
-  const lengthSq = length * length;
-  const sumSq = rowSum * rowSum;
-  return Math.max(
-    lengthSq * rowMax / sumSq,
-    sumSq / (lengthSq * rowMin)
-  );
-}
-function improvesRatio(rowLen, rowMin, rowMax, rowSum, nextNode, length) {
-  if (rowLen === 0) return true;
-  const currentRatio = calculateRatio(rowMin, rowMax, rowSum, length);
-  const newRatio = calculateRatio(
-    Math.min(rowMin, nextNode),
-    Math.max(rowMax, nextNode),
-    rowSum + nextNode,
-    length
-  );
-  return currentRatio >= newRatio;
-}
-function emitCoordinates(coords, row, rowLen, rowSum, xoffset, yoffset, width, height) {
-  if (width >= height) {
-    const areaWidth = rowSum / height;
-    let subY = yoffset;
-    for (let i = 0; i < rowLen; i++) {
-      const h = row[i] / areaWidth;
-      coords.push([xoffset, subY, xoffset + areaWidth, subY + h]);
-      subY += h;
-    }
-  } else {
-    const areaHeight = rowSum / width;
-    let subX = xoffset;
-    for (let i = 0; i < rowLen; i++) {
-      const w = row[i] / areaHeight;
-      coords.push([subX, yoffset, subX + w, yoffset + areaHeight]);
-      subX += w;
-    }
-  }
-}
-function squarify(data, xoffset, yoffset, width, height) {
-  const coords = [];
-  const n = data.length;
-  if (n === 0) return coords;
-  const row = new Array(n);
-  let rowLen = 0;
-  let rowSum = 0;
-  let rowMin = Infinity;
-  let rowMax = -Infinity;
-  let i = 0;
-  while (i < n) {
-    const length = Math.min(width, height);
-    const val = data[i];
-    if (improvesRatio(rowLen, rowMin, rowMax, rowSum, val, length)) {
-      row[rowLen] = val;
-      rowLen++;
-      rowSum += val;
-      if (val < rowMin) rowMin = val;
-      if (val > rowMax) rowMax = val;
-      i++;
-    } else {
-      emitCoordinates(coords, row, rowLen, rowSum, xoffset, yoffset, width, height);
-      if (width >= height) {
-        const areaWidth = rowSum / height;
-        xoffset += areaWidth;
-        width -= areaWidth;
-      } else {
-        const areaHeight = rowSum / width;
-        yoffset += areaHeight;
-        height -= areaHeight;
+      if ((_a = w.config.yaxis[anno.yAxisIndex]) == null ? void 0 : _a.reversed) {
+        yP = yPos;
       }
-      rowLen = 0;
-      rowSum = 0;
-      rowMin = Infinity;
-      rowMax = -Infinity;
     }
-  }
-  if (rowLen > 0) {
-    emitCoordinates(coords, row, rowLen, rowSum, xoffset, yoffset, width, height);
-  }
-  return coords;
-}
-function generate(data, width, height) {
-  const n = data.length;
-  const sums = new Array(n);
-  for (let i = 0; i < n; i++) {
-    let s = 0;
-    const series = data[i];
-    for (let j = 0; j < series.length; j++) {
-      s += series[j];
+    if (typeof y === "string" && y.includes("px")) {
+      yP = parseFloat(y);
     }
-    sums[i] = s;
+    return { yP, clipped };
   }
-  const seriesRects = squarify(
-    normalize(sums, width * height),
-    0,
-    0,
-    width,
-    height
-  );
-  const results = new Array(n);
-  for (let i = 0; i < n; i++) {
-    const rect = seriesRects[i];
-    const rx = rect[0];
-    const ry = rect[1];
-    const rw = rect[2] - rx;
-    const rh = rect[3] - ry;
-    results[i] = squarify(
-      normalize(data[i], rw * rh),
-      rx,
-      ry,
-      rw,
-      rh
-    );
-  }
-  return results;
-}
-const TreemapSquared = { generate };
-class TreemapChart {
-  constructor(w, ctx) {
-    this.ctx = ctx;
-    this.w = w;
-    this.strokeWidth = this.w.config.stroke.width;
-    this.helpers = new TreemapHelpers(w, ctx);
-    this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation;
-    this.labels = [];
-  }
-  draw(series) {
+  getX1X2(type, anno) {
     const w = this.w;
-    const graphics = new Graphics(this.w, this.ctx);
-    const fill = new Fill(this.w);
-    const ret = graphics.group({
-      class: "apexcharts-treemap"
-    });
-    if (w.globals.noData) return ret;
-    const ser = [];
-    series.forEach((s) => {
-      const d = s.map((v) => {
-        return Math.abs(v);
-      });
-      ser.push(d);
-    });
-    this.negRange = this.helpers.checkColorRange();
-    w.config.series.forEach((s, i) => {
-      s.data.forEach((l) => {
-        if (!Array.isArray(this.labels[i])) this.labels[i] = [];
-        this.labels[i].push(l.x);
-      });
-    });
-    const nodes = TreemapSquared.generate(
-      ser,
-      w.layout.gridWidth,
-      w.layout.gridHeight
-    );
-    nodes.forEach((node, i) => {
-      const elSeries = graphics.group({
-        class: `apexcharts-series apexcharts-treemap-series`,
-        seriesName: Utils$1.escapeString(w.seriesData.seriesNames[i]),
-        rel: i + 1,
-        "data:realIndex": i
-      });
-      graphics.setupEventDelegation(elSeries, ".apexcharts-treemap-rect");
-      if (w.config.chart.dropShadow.enabled) {
-        const shadow = w.config.chart.dropShadow;
-        const filters = new Filters(this.w);
-        filters.dropShadow(ret, shadow, i);
+    const x = type === "x1" ? anno.x : anno.x2;
+    const min = this.annoCtx.invertAxis ? w.globals.minY : w.globals.minX;
+    const max = this.annoCtx.invertAxis ? w.globals.maxY : w.globals.maxX;
+    const range = this.annoCtx.invertAxis ? w.globals.yRange[0] : w.globals.xRange;
+    let clipped = false;
+    let xP = this.annoCtx.inversedReversedAxis ? (max - x) / (range / w.layout.gridWidth) : (x - min) / (range / w.layout.gridWidth);
+    if ((w.config.xaxis.type === "category" || w.config.xaxis.convertedCatToNumeric) && !this.annoCtx.invertAxis && !w.axisFlags.dataFormatXNumeric) {
+      if (!w.config.chart.sparkline.enabled) {
+        xP = this.getStringX(x);
       }
-      const elDataLabelWrap = graphics.group({
-        class: "apexcharts-data-labels"
-      });
-      const bounds = {
-        xMin: Infinity,
-        yMin: Infinity,
-        xMax: -Infinity,
-        yMax: -Infinity
-      };
-      node.forEach((r, j) => {
-        const x1 = r[0];
-        const y1 = r[1];
-        const x2 = r[2];
-        const y2 = r[3];
-        bounds.xMin = Math.min(bounds.xMin, x1);
-        bounds.yMin = Math.min(bounds.yMin, y1);
-        bounds.xMax = Math.max(bounds.xMax, x2);
-        bounds.yMax = Math.max(bounds.yMax, y2);
-        const colorProps = this.helpers.getShadeColor(
-          w.config.chart.type,
-          i,
-          j,
-          this.negRange
+    }
+    if (typeof x === "string" && x.includes("px")) {
+      xP = parseFloat(x);
+    }
+    if ((x === void 0 || x === null) && anno.marker) {
+      xP = w.layout.gridWidth;
+    }
+    if (anno.seriesIndex !== void 0 && w.globals.barWidth && !this.annoCtx.invertAxis) {
+      xP -= w.globals.barWidth / 2 * (w.seriesData.series.length - 1) - w.globals.barWidth * anno.seriesIndex;
+    }
+    if (typeof xP !== "number") {
+      xP = 0;
+      clipped = true;
+    }
+    if (parseFloat(xP.toFixed(10)) > parseFloat(w.layout.gridWidth.toFixed(10))) {
+      xP = w.layout.gridWidth;
+      clipped = true;
+    } else if (xP < 0) {
+      xP = 0;
+      clipped = true;
+    }
+    return { x: xP, clipped };
+  }
+  getStringX(x) {
+    const w = this.w;
+    let rX = x;
+    if (w.config.xaxis.convertedCatToNumeric && w.labelData.categoryLabels.length) {
+      x = w.labelData.categoryLabels.indexOf(x) + 1;
+    }
+    const catIndex = w.labelData.labels.map((item) => Array.isArray(item) ? item.join(" ") : item).indexOf(x);
+    const xLabel = w.dom.baseEl.querySelector(
+      `.apexcharts-xaxis-texts-g text:nth-child(${catIndex + 1})`
+    );
+    if (xLabel) {
+      rX = parseFloat(xLabel.getAttribute("x"));
+    }
+    return rX;
+  }
+}
+class XAnnotations {
+  constructor(annoCtx) {
+    this.w = annoCtx.w;
+    this.annoCtx = annoCtx;
+    this.invertAxis = this.annoCtx.invertAxis;
+    this.helpers = new Helpers3(this.annoCtx);
+  }
+  addXaxisAnnotation(anno, parent, index) {
+    const w = this.w;
+    const result = this.helpers.getX1X2("x1", anno);
+    let x1 = result.x;
+    const clipX1 = result.clipped;
+    let clipX2 = true;
+    let x2;
+    const text = anno.label.text;
+    const strokeDashArray = anno.strokeDashArray;
+    if (!Utils$1.isNumber(x1)) return;
+    if (anno.x2 === null || typeof anno.x2 === "undefined") {
+      if (!clipX1) {
+        const line = this.annoCtx.graphics.drawLine(
+          x1 + anno.offsetX,
+          // x1
+          0 + anno.offsetY,
+          // y1
+          x1 + anno.offsetX,
+          // x2
+          w.layout.gridHeight + anno.offsetY,
+          // y2
+          anno.borderColor,
+          // lineColor
+          strokeDashArray,
+          //dashArray
+          anno.borderWidth
         );
-        const color = colorProps.color;
-        const pathFill = fill.fillPath({
-          color,
-          seriesNumber: i,
-          dataPointIndex: j
-        });
-        const elRect = graphics.drawRect(
-          x1,
-          y1,
-          x2 - x1,
-          y2 - y1,
-          w.config.plotOptions.treemap.borderRadius,
-          "#fff",
+        parent.appendChild(line.node);
+        if (anno.id) {
+          line.node.classList.add(anno.id);
+        }
+      }
+    } else {
+      const result2 = this.helpers.getX1X2("x2", anno);
+      x2 = result2.x;
+      clipX2 = result2.clipped;
+      if (x2 < x1) {
+        const temp = x1;
+        x1 = x2;
+        x2 = temp;
+      }
+      const rect = this.annoCtx.graphics.drawRect(
+        x1 + anno.offsetX,
+        // x1
+        0 + anno.offsetY,
+        // y1
+        x2 - x1,
+        // x2
+        w.layout.gridHeight + anno.offsetY,
+        // y2
+        0,
+        // radius
+        anno.fillColor,
+        // color
+        anno.opacity,
+        // opacity,
+        1,
+        // strokeWidth
+        anno.borderColor,
+        // strokeColor
+        strokeDashArray
+        // stokeDashArray
+      );
+      rect.node.classList.add("apexcharts-annotation-rect");
+      rect.attr("clip-path", `url(#gridRectMask${w.globals.cuid})`);
+      parent.appendChild(rect.node);
+      if (anno.id) {
+        rect.node.classList.add(anno.id);
+      }
+    }
+    if (!(clipX1 && clipX2)) {
+      const textRects = this.annoCtx.graphics.getTextRects(
+        text,
+        parseFloat(anno.label.style.fontSize)
+      );
+      const textY = anno.label.position === "top" ? 4 : anno.label.position === "center" ? w.layout.gridHeight / 2 + (anno.label.orientation === "vertical" ? textRects.width / 2 : 0) : w.layout.gridHeight;
+      const elText = this.annoCtx.graphics.drawText({
+        x: x1 + anno.label.offsetX,
+        y: textY + anno.label.offsetY - (anno.label.orientation === "vertical" ? anno.label.position === "top" ? textRects.width / 2 - 12 : -textRects.width / 2 : 0),
+        text,
+        textAnchor: anno.label.textAnchor,
+        fontSize: anno.label.style.fontSize,
+        fontFamily: anno.label.style.fontFamily,
+        fontWeight: anno.label.style.fontWeight,
+        foreColor: anno.label.style.color,
+        cssClass: `apexcharts-xaxis-annotation-label ${anno.label.style.cssClass} ${anno.id ? anno.id : ""}`
+      });
+      elText.attr({
+        rel: index
+      });
+      parent.appendChild(elText.node);
+      this.annoCtx.helpers.setOrientations(anno, index);
+    }
+  }
+  drawXAxisAnnotations() {
+    const w = this.w;
+    const elg = this.annoCtx.graphics.group({
+      class: "apexcharts-xaxis-annotations"
+    });
+    w.config.annotations.xaxis.map((anno, index) => {
+      this.addXaxisAnnotation(anno, elg.node, index);
+    });
+    return elg;
+  }
+}
+class YAnnotations {
+  constructor(annoCtx) {
+    this.w = annoCtx.w;
+    this.annoCtx = annoCtx;
+    this.helpers = new Helpers3(this.annoCtx);
+    this.axesUtils = new AxesUtils(this.annoCtx.w, { theme: this.annoCtx.theme, timeScale: this.annoCtx.timeScale });
+  }
+  addYaxisAnnotation(anno, parent, index) {
+    const w = this.w;
+    const strokeDashArray = anno.strokeDashArray;
+    let result = this.helpers.getY1Y2("y1", anno);
+    let y1 = result.yP;
+    const clipY1 = result.clipped;
+    let y2;
+    let clipY2 = true;
+    let drawn = false;
+    const text = anno.label.text;
+    if (anno.y2 === null || typeof anno.y2 === "undefined") {
+      if (!clipY1) {
+        drawn = true;
+        const line = this.annoCtx.graphics.drawLine(
+          0 + anno.offsetX,
+          // x1
+          y1 + anno.offsetY,
+          // y1
+          this._getYAxisAnnotationWidth(anno),
+          // x2
+          y1 + anno.offsetY,
+          // y2
+          anno.borderColor,
+          // lineColor
+          strokeDashArray,
+          // dashArray
+          anno.borderWidth
+        );
+        parent.appendChild(line.node);
+        if (anno.id) {
+          line.node.classList.add(anno.id);
+        }
+      }
+    } else {
+      result = this.helpers.getY1Y2("y2", anno);
+      y2 = result.yP;
+      clipY2 = result.clipped;
+      if (y2 > y1) {
+        const temp = y1;
+        y1 = y2;
+        y2 = temp;
+      }
+      if (!(clipY1 && clipY2)) {
+        drawn = true;
+        const rect = this.annoCtx.graphics.drawRect(
+          0 + anno.offsetX,
+          // x1
+          y2 + anno.offsetY,
+          // y1
+          this._getYAxisAnnotationWidth(anno),
+          // x2
+          y1 - y2,
+          // y2
+          0,
+          // radius
+          anno.fillColor,
+          // color
+          anno.opacity,
+          // opacity,
           1,
-          this.strokeWidth,
-          w.config.plotOptions.treemap.useFillColorAsStroke ? color : w.globals.stroke.colors[i]
+          // strokeWidth
+          anno.borderColor,
+          // strokeColor
+          strokeDashArray
+          // stokeDashArray
         );
-        elRect.attr({
-          cx: x1,
-          cy: y1,
-          index: i,
-          i,
-          j,
-          width: x2 - x1,
-          height: y2 - y1,
-          fill: pathFill
-        });
-        elRect.node.classList.add("apexcharts-treemap-rect");
-        let fromRect = {
-          x: x1 + (x2 - x1) / 2,
-          y: y1 + (y2 - y1) / 2,
-          width: 0,
-          height: 0
-        };
-        const toRect = {
-          x: x1,
-          y: y1,
-          width: x2 - x1,
-          height: y2 - y1
-        };
-        if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
-          let speed = 1;
-          if (!w.globals.resized) {
-            speed = w.config.chart.animations.speed;
-          }
-          this.animateTreemap(elRect, fromRect, toRect, speed);
+        rect.node.classList.add("apexcharts-annotation-rect");
+        rect.attr("clip-path", `url(#gridRectMask${w.globals.cuid})`);
+        parent.appendChild(rect.node);
+        if (anno.id) {
+          rect.node.classList.add(anno.id);
         }
-        if (w.globals.dataChanged) {
-          let speed = 1;
-          if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
-            speed = this.dynamicAnim.speed;
-            if (w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].rect) {
-              fromRect = w.globals.previousPaths[i][j].rect;
-            }
-            this.animateTreemap(elRect, fromRect, toRect, speed);
-          }
-        }
-        let fontSize = this.getFontSize(r);
-        let formattedText = w.config.dataLabels.formatter(this.labels[i][j], {
-          value: w.seriesData.series[i][j],
-          seriesIndex: i,
-          dataPointIndex: j,
-          w
-        });
-        if (w.config.plotOptions.treemap.dataLabels.format === "truncate") {
-          fontSize = parseInt(w.config.dataLabels.style.fontSize, 10);
-          formattedText = this.truncateLabels(
-            formattedText,
-            fontSize,
-            x1,
-            y1,
-            x2,
-            y2
-          );
-        }
-        let dataLabels = null;
-        if (w.seriesData.series[i][j]) {
-          dataLabels = this.helpers.calculateDataLabels({
-            text: formattedText,
-            x: (x1 + x2) / 2,
-            y: (y1 + y2) / 2 + this.strokeWidth / 2 + fontSize / 3,
-            i,
-            j,
-            colorProps,
-            fontSize,
-            series
-          });
-        }
-        if (w.config.dataLabels.enabled && dataLabels) {
-          this.rotateToFitLabel(
-            dataLabels,
-            fontSize,
-            formattedText,
-            x1,
-            y1,
-            x2,
-            y2
-          );
-        }
-        elSeries.add(elRect);
-        if (dataLabels !== null) {
-          elSeries.add(dataLabels);
-        }
+      }
+    }
+    if (drawn) {
+      const textX = anno.label.position === "right" ? w.layout.gridWidth : anno.label.position === "center" ? w.layout.gridWidth / 2 : 0;
+      const elText = this.annoCtx.graphics.drawText({
+        x: textX + anno.label.offsetX,
+        y: (y2 != null ? y2 : y1) + anno.label.offsetY - 3,
+        text,
+        textAnchor: anno.label.textAnchor,
+        fontSize: anno.label.style.fontSize,
+        fontFamily: anno.label.style.fontFamily,
+        fontWeight: anno.label.style.fontWeight,
+        foreColor: anno.label.style.color,
+        cssClass: `apexcharts-yaxis-annotation-label ${anno.label.style.cssClass} ${anno.id ? anno.id : ""}`
       });
-      const seriesTitle = w.config.plotOptions.treemap.seriesTitle;
-      if (w.config.series.length > 1 && seriesTitle && seriesTitle.show) {
-        const sName = w.config.series[i].name || "";
-        if (sName && bounds.xMin < Infinity && bounds.yMin < Infinity) {
-          const {
-            offsetX,
-            offsetY,
-            borderColor,
-            borderWidth,
-            borderRadius,
-            style
-          } = seriesTitle;
-          const textColor = style.color || w.config.chart.foreColor;
-          const padding = {
-            left: style.padding.left,
-            right: style.padding.right,
-            top: style.padding.top,
-            bottom: style.padding.bottom
-          };
-          const textSize = graphics.getTextRects(
-            sName,
-            style.fontSize,
-            style.fontFamily
-          );
-          const labelRectWidth = textSize.width + padding.left + padding.right;
-          const labelRectHeight = textSize.height + padding.top + padding.bottom;
-          const labelX = bounds.xMin + (offsetX || 0);
-          const labelY = bounds.yMin + (offsetY || 0);
-          const elLabelRect = graphics.drawRect(
-            labelX,
-            labelY,
-            labelRectWidth,
-            labelRectHeight,
-            borderRadius,
-            style.background,
-            1,
-            borderWidth,
-            borderColor
-          );
-          const elLabelText = graphics.drawText({
-            x: labelX + padding.left,
-            y: labelY + padding.top + textSize.height * 0.75,
-            text: sName,
-            fontSize: style.fontSize,
-            fontFamily: style.fontFamily,
-            fontWeight: style.fontWeight,
-            foreColor: textColor,
-            cssClass: style.cssClass || ""
-          });
-          elSeries.add(elLabelRect);
-          elSeries.add(elLabelText);
-        }
-      }
-      elSeries.add(elDataLabelWrap);
-      ret.add(elSeries);
-    });
-    return ret;
+      elText.attr({
+        rel: index
+      });
+      parent.appendChild(elText.node);
+    }
   }
-  // This calculates a font-size based upon
-  // average label length and the size of the box
-  getFontSize(coordinates) {
+  _getYAxisAnnotationWidth(anno) {
     const w = this.w;
-    function totalLabelLength(arr) {
-      let i, total = 0;
-      if (Array.isArray(arr[0])) {
-        for (i = 0; i < arr.length; i++) {
-          total += totalLabelLength(arr[i]);
-        }
-      } else {
-        for (i = 0; i < arr.length; i++) {
-          total += arr[i].length;
-        }
-      }
-      return total;
-    }
-    function countLabels(arr) {
-      let i, total = 0;
-      if (Array.isArray(arr[0])) {
-        for (i = 0; i < arr.length; i++) {
-          total += countLabels(arr[i]);
-        }
-      } else {
-        for (i = 0; i < arr.length; i++) {
-          total += 1;
-        }
-      }
-      return total;
-    }
-    const averagelabelsize = totalLabelLength(this.labels) / countLabels(this.labels);
-    function fontSize(width, height) {
-      const area = width * height;
-      const arearoot = Math.pow(area, 0.5);
-      return Math.min(
-        arearoot / averagelabelsize,
-        parseInt(w.config.dataLabels.style.fontSize, 10)
-      );
-    }
-    return fontSize(
-      coordinates[2] - coordinates[0],
-      coordinates[3] - coordinates[1]
-    );
-  }
-  rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
-    const graphics = new Graphics(this.w);
-    const textRect = graphics.getTextRects(text, fontSize);
-    if (textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
-      const labelRotatingCenter = graphics.rotateAroundCenter(elText.node);
-      elText.node.setAttribute(
-        "transform",
-        `rotate(-90 ${labelRotatingCenter.x} ${labelRotatingCenter.y}) translate(${textRect.height / 3})`
-      );
-    }
-  }
-  // This is an alternative label formatting method that uses a
-  // consistent font size, and trims the edge of long labels
-  truncateLabels(text, fontSize, x1, y1, x2, y2) {
-    const graphics = new Graphics(this.w);
-    const textRect = graphics.getTextRects(text, fontSize);
-    const labelMaxWidth = textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && y2 - y1 > x2 - x1 ? y2 - y1 : x2 - x1;
-    const truncatedText = graphics.getTextBasedOnMaxWidth({
-      text,
-      maxWidth: labelMaxWidth,
-      fontSize
-    });
-    if (text.length !== truncatedText.length && labelMaxWidth / fontSize < 5) {
-      return "";
+    let width = w.layout.gridWidth;
+    if (anno.width.indexOf("%") > -1) {
+      width = w.layout.gridWidth * parseInt(anno.width, 10) / 100;
     } else {
-      return truncatedText;
+      width = parseInt(anno.width, 10);
     }
+    return width + anno.offsetX;
   }
-  animateTreemap(el, fromRect, toRect, speed) {
-    const animations = new Animations(this.w);
-    animations.animateRect(el, fromRect, toRect, speed, () => {
-      animations.animationCompleted(el);
+  drawYAxisAnnotations() {
+    const w = this.w;
+    const elg = this.annoCtx.graphics.group({
+      class: "apexcharts-yaxis-annotations"
     });
+    w.config.annotations.yaxis.forEach((anno, index) => {
+      anno.yAxisIndex = this.axesUtils.translateYAxisIndex(anno.yAxisIndex);
+      if (!(this.axesUtils.isYAxisHidden(anno.yAxisIndex) && this.axesUtils.yAxisAllSeriesCollapsed(anno.yAxisIndex))) {
+        this.addYaxisAnnotation(anno, elg.node, index);
+      }
+    });
+    return elg;
   }
 }
-ApexCharts.use({
-  heatmap: HeatMap,
-  treemap: TreemapChart
-});
+class PointAnnotations {
+  constructor(annoCtx) {
+    this.w = annoCtx.w;
+    this.annoCtx = annoCtx;
+    this.helpers = new Helpers3(this.annoCtx);
+  }
+  addPointAnnotation(anno, parent, index) {
+    const w = this.w;
+    if (w.globals.collapsedSeriesIndices.indexOf(anno.seriesIndex) > -1) {
+      return;
+    }
+    let result = this.helpers.getX1X2("x1", anno);
+    const x = result.x;
+    const clipX = result.clipped;
+    result = this.helpers.getY1Y2("y1", anno);
+    const y = result.yP;
+    const clipY = result.clipped;
+    if (!Utils$1.isNumber(x)) return;
+    if (!(clipY || clipX)) {
+      const optsPoints = {
+        pSize: anno.marker.size,
+        pointStrokeWidth: anno.marker.strokeWidth,
+        pointFillColor: anno.marker.fillColor,
+        pointStrokeColor: anno.marker.strokeColor,
+        shape: anno.marker.shape,
+        pRadius: anno.marker.radius,
+        class: `apexcharts-point-annotation-marker ${anno.marker.cssClass} ${anno.id ? anno.id : ""}`
+      };
+      let point = this.annoCtx.graphics.drawMarker(
+        x + anno.marker.offsetX,
+        y + anno.marker.offsetY,
+        optsPoints
+      );
+      parent.appendChild(point.node);
+      const text = anno.label.text ? anno.label.text : "";
+      const elText = this.annoCtx.graphics.drawText({
+        x: x + anno.label.offsetX,
+        y: y + anno.label.offsetY - anno.marker.size - parseFloat(anno.label.style.fontSize) / 1.6,
+        text,
+        textAnchor: anno.label.textAnchor,
+        fontSize: anno.label.style.fontSize,
+        fontFamily: anno.label.style.fontFamily,
+        fontWeight: anno.label.style.fontWeight,
+        foreColor: anno.label.style.color,
+        cssClass: `apexcharts-point-annotation-label ${anno.label.style.cssClass} ${anno.id ? anno.id : ""}`
+      });
+      elText.attr({
+        rel: index
+      });
+      parent.appendChild(elText.node);
+      if (anno.customSVG.SVG) {
+        const g = this.annoCtx.graphics.group({
+          class: "apexcharts-point-annotations-custom-svg " + anno.customSVG.cssClass
+        });
+        g.attr({
+          transform: `translate(${x + anno.customSVG.offsetX}, ${y + anno.customSVG.offsetY})`
+        });
+        g.node.innerHTML = anno.customSVG.SVG;
+        parent.appendChild(g.node);
+      }
+      if (anno.image.path) {
+        const imgWidth = anno.image.width ? anno.image.width : 20;
+        const imgHeight = anno.image.height ? anno.image.height : 20;
+        point = this.annoCtx.addImage({
+          x: x + anno.image.offsetX - imgWidth / 2,
+          y: y + anno.image.offsetY - imgHeight / 2,
+          width: imgWidth,
+          height: imgHeight,
+          path: anno.image.path,
+          appendTo: ".apexcharts-point-annotations"
+        });
+      }
+      if (anno.mouseEnter) {
+        point.node.addEventListener(
+          "mouseenter",
+          anno.mouseEnter.bind(this, anno)
+        );
+      }
+      if (anno.mouseLeave) {
+        point.node.addEventListener(
+          "mouseleave",
+          anno.mouseLeave.bind(this, anno)
+        );
+      }
+      if (anno.click) {
+        point.node.addEventListener("click", anno.click.bind(this, anno));
+      }
+    }
+  }
+  drawPointAnnotations() {
+    const w = this.w;
+    const elg = this.annoCtx.graphics.group({
+      class: "apexcharts-point-annotations"
+    });
+    w.config.annotations.points.map((anno, index) => {
+      this.addPointAnnotation(anno, elg.node, index);
+    });
+    return elg;
+  }
+}
+class Annotations {
+  constructor(w, { theme = null, timeScale = null } = {}) {
+    this.w = w;
+    this.theme = theme;
+    this.timeScale = timeScale;
+    this.graphics = new Graphics(this.w);
+    if (this.w.globals.isBarHorizontal) {
+      this.invertAxis = true;
+    }
+    this.helpers = new Helpers3(this);
+    this.xAxisAnnotations = new XAnnotations(this);
+    this.yAxisAnnotations = new YAnnotations(this);
+    this.pointsAnnotations = new PointAnnotations(this);
+    if (this.w.globals.isBarHorizontal && this.w.config.yaxis[0].reversed) {
+      this.inversedReversedAxis = true;
+    }
+    this.xDivision = this.w.layout.gridWidth / this.w.globals.dataPoints;
+  }
+  drawAxesAnnotations() {
+    const w = this.w;
+    if (w.globals.axisCharts && w.globals.dataPoints) {
+      const yAnnotations = this.yAxisAnnotations.drawYAxisAnnotations();
+      const xAnnotations = this.xAxisAnnotations.drawXAxisAnnotations();
+      const pointAnnotations = this.pointsAnnotations.drawPointAnnotations();
+      const initialAnim = w.config.chart.animations.enabled;
+      const annoArray = [yAnnotations, xAnnotations, pointAnnotations];
+      const annoElArray = [
+        xAnnotations.node,
+        yAnnotations.node,
+        pointAnnotations.node
+      ];
+      for (let i = 0; i < 3; i++) {
+        w.dom.elGraphical.add(annoArray[i]);
+        if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
+          if (w.config.chart.type !== "scatter" && w.config.chart.type !== "bubble" && w.globals.dataPoints > 1) {
+            annoElArray[i].classList.add("apexcharts-element-hidden");
+          }
+        }
+        w.globals.delayedElements.push({ el: annoElArray[i], index: 0 });
+      }
+      this.helpers.annotationsBackground();
+    }
+  }
+  drawImageAnnos() {
+    const w = this.w;
+    w.config.annotations.images.map((s, index) => {
+      this.addImage(s, index);
+    });
+  }
+  drawTextAnnos() {
+    const w = this.w;
+    w.config.annotations.texts.map((t, index) => {
+      this.addText(t, index);
+    });
+  }
+  addXaxisAnnotation(anno, parent, index) {
+    this.xAxisAnnotations.addXaxisAnnotation(anno, parent, index);
+  }
+  addYaxisAnnotation(anno, parent, index) {
+    this.yAxisAnnotations.addYaxisAnnotation(anno, parent, index);
+  }
+  addPointAnnotation(anno, parent, index) {
+    this.pointsAnnotations.addPointAnnotation(anno, parent, index);
+  }
+  addText(params) {
+    const {
+      x,
+      y,
+      text,
+      textAnchor,
+      foreColor,
+      fontSize,
+      fontFamily,
+      fontWeight,
+      cssClass,
+      backgroundColor,
+      borderWidth,
+      strokeDashArray,
+      borderRadius,
+      borderColor,
+      appendTo = ".apexcharts-svg",
+      paddingLeft = 4,
+      paddingRight = 4,
+      paddingBottom = 2,
+      paddingTop = 2
+    } = params;
+    const w = this.w;
+    const elText = this.graphics.drawText({
+      x,
+      y,
+      text,
+      textAnchor: textAnchor || "start",
+      fontSize: fontSize || "12px",
+      fontWeight: fontWeight || "regular",
+      fontFamily: fontFamily || w.config.chart.fontFamily,
+      foreColor: foreColor || w.config.chart.foreColor,
+      cssClass: "apexcharts-text " + cssClass ? cssClass : ""
+    });
+    const parent = w.dom.baseEl.querySelector(appendTo);
+    if (parent) {
+      parent.appendChild(elText.node);
+    }
+    const textRect = elText.bbox();
+    if (text) {
+      const elRect = this.graphics.drawRect(
+        textRect.x - paddingLeft,
+        textRect.y - paddingTop,
+        textRect.width + paddingLeft + paddingRight,
+        textRect.height + paddingBottom + paddingTop,
+        borderRadius,
+        backgroundColor ? backgroundColor : "transparent",
+        1,
+        borderWidth,
+        borderColor,
+        strokeDashArray
+      );
+      parent.insertBefore(elRect.node, elText.node);
+    }
+  }
+  addImage(params) {
+    const w = this.w;
+    const {
+      path,
+      x = 0,
+      y = 0,
+      width = 20,
+      height = 20,
+      appendTo = ".apexcharts-svg"
+    } = params;
+    const img = w.dom.Paper.image(path);
+    img.size(width, height).move(x, y);
+    const parent = w.dom.baseEl.querySelector(appendTo);
+    if (parent) {
+      parent.appendChild(img.node);
+    }
+    return img;
+  }
+  // The addXaxisAnnotation method requires a parent class, and user calling this method externally on the chart instance may not specify parent, hence a different method
+  addXaxisAnnotationExternal(params, pushToMemory, context) {
+    this.addAnnotationExternal({
+      params,
+      pushToMemory,
+      context,
+      type: "xaxis",
+      contextMethod: context.addXaxisAnnotation
+    });
+    return context;
+  }
+  addYaxisAnnotationExternal(params, pushToMemory, context) {
+    this.addAnnotationExternal({
+      params,
+      pushToMemory,
+      context,
+      type: "yaxis",
+      contextMethod: context.addYaxisAnnotation
+    });
+    return context;
+  }
+  addPointAnnotationExternal(params, pushToMemory, context) {
+    if (typeof this.invertAxis === "undefined") {
+      this.invertAxis = context.w.globals.isBarHorizontal;
+    }
+    this.addAnnotationExternal({
+      params,
+      pushToMemory,
+      context,
+      type: "point",
+      contextMethod: context.addPointAnnotation
+    });
+    return context;
+  }
+  addAnnotationExternal({
+    params,
+    pushToMemory,
+    context,
+    type,
+    contextMethod
+  }) {
+    const me = context;
+    const w = me.w;
+    const parent = w.dom.baseEl.querySelector(
+      `.apexcharts-${type}-annotations`
+    );
+    const index = parent.childNodes.length + 1;
+    const options2 = new Options();
+    const axesAnno = Object.assign(
+      {},
+      type === "xaxis" ? options2.xAxisAnnotation : type === "yaxis" ? options2.yAxisAnnotation : options2.pointAnnotation
+    );
+    const anno = Utils$1.extend(axesAnno, params);
+    switch (type) {
+      case "xaxis":
+        this.addXaxisAnnotation(anno, parent, index);
+        break;
+      case "yaxis":
+        this.addYaxisAnnotation(anno, parent, index);
+        break;
+      case "point":
+        this.addPointAnnotation(anno, parent, index);
+        break;
+    }
+    const axesAnnoLabel = w.dom.baseEl.querySelector(
+      `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${index}']`
+    );
+    const elRect = this.helpers.addBackgroundToAnno(axesAnnoLabel, anno);
+    if (elRect) {
+      parent.insertBefore(elRect.node, axesAnnoLabel);
+    }
+    if (pushToMemory) {
+      w.globals.memory.methodsToExec.push({
+        context: me,
+        id: anno.id ? anno.id : Utils$1.randomId(),
+        method: contextMethod,
+        label: "addAnnotation",
+        params
+      });
+    }
+    return context;
+  }
+  clearAnnotations(ctx) {
+    const w = ctx.w;
+    let annos = w.dom.baseEl.querySelectorAll(
+      ".apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations"
+    );
+    for (let i = w.globals.memory.methodsToExec.length - 1; i >= 0; i--) {
+      if (w.globals.memory.methodsToExec[i].label === "addText" || w.globals.memory.methodsToExec[i].label === "addAnnotation") {
+        w.globals.memory.methodsToExec.splice(i, 1);
+      }
+    }
+    annos = Array.from(annos);
+    Array.prototype.forEach.call(annos, (a) => {
+      while (a.firstChild) {
+        a.removeChild(a.firstChild);
+      }
+    });
+  }
+  removeAnnotation(ctx, id) {
+    const w = ctx.w;
+    const annos = w.dom.baseEl.querySelectorAll(`.${id}`);
+    if (annos) {
+      w.globals.memory.methodsToExec.map((m, i) => {
+        if (m.id === id) {
+          w.globals.memory.methodsToExec.splice(i, 1);
+        }
+      });
+      Object.keys(w.config.annotations).forEach((key) => {
+        const annotationArray = w.config.annotations[key];
+        if (Array.isArray(annotationArray)) {
+          w.config.annotations[key] = annotationArray.filter((m) => m.id !== id);
+        }
+      });
+      Array.prototype.forEach.call(annos, (a) => {
+        a.parentElement.removeChild(a);
+      });
+    }
+  }
+}
+ApexCharts.registerFeatures({ annotations: Annotations });
 export {
   ApexCharts as default
 };

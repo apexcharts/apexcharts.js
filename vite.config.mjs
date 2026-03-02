@@ -22,14 +22,23 @@ const banner = `/*!
  * (c) 2018-${year} ApexCharts
  */`
 
-// Sub-entry names and their source files (excludes the full bundle / index)
+// Sub-entry names and their source files (excludes the full bundle / index).
+// Each value is either a file path string (output goes to dist/) or an object
+// { file, outDir } where outDir is relative to dist/ (e.g. 'features').
 export const SUB_ENTRIES = {
+  core: resolve(__dirname, 'src/entries/core.js'),
   line: resolve(__dirname, 'src/entries/line.js'),
   bar: resolve(__dirname, 'src/entries/bar.js'),
   candlestick: resolve(__dirname, 'src/entries/candlestick.js'),
   pie: resolve(__dirname, 'src/entries/pie.js'),
   radial: resolve(__dirname, 'src/entries/radial.js'),
   heatmap: resolve(__dirname, 'src/entries/heatmap.js'),
+  'features/annotations': resolve(__dirname, 'src/features/annotations.js'),
+  'features/exports': resolve(__dirname, 'src/features/exports.js'),
+  'features/keyboard': resolve(__dirname, 'src/features/keyboard.js'),
+  'features/legend': resolve(__dirname, 'src/features/legend.js'),
+  'features/toolbar': resolve(__dirname, 'src/features/toolbar.js'),
+  'features/all': resolve(__dirname, 'src/features/all.js'),
 }
 
 export default defineConfig(({ mode }) => {
@@ -37,6 +46,15 @@ export default defineConfig(({ mode }) => {
   const isSSR = mode === 'ssr'
   // SUB_ENTRY mode: only ESM + CJS, single entry (set by vite-build.mjs via --entry)
   const isSubEntry = mode === 'sub-entry'
+  // Derive outDir from entry name — entries like 'features/annotations' go to dist/features/
+  const subEntryName = process.env.APEX_ENTRY_NAME ?? ''
+  const subEntryFile = process.env.APEX_ENTRY_FILE ?? ''
+  const subEntryBaseName = subEntryName.includes('/')
+    ? subEntryName.slice(subEntryName.lastIndexOf('/') + 1)
+    : subEntryName
+  const subEntryOutDir = subEntryName.includes('/')
+    ? `dist/${subEntryName.slice(0, subEntryName.lastIndexOf('/'))}`
+    : 'dist'
 
   if (isSSR) {
     return {
@@ -84,15 +102,13 @@ export default defineConfig(({ mode }) => {
 
   // Sub-entry build: single entry passed via env var, ESM + CJS only
   if (isSubEntry) {
-    const entryName = process.env.APEX_ENTRY_NAME
-    const entryFile = process.env.APEX_ENTRY_FILE
     return {
       build: {
         lib: {
-          entry: entryFile,
+          entry: subEntryFile,
           name: 'ApexCharts',
         },
-        outDir: 'dist',
+        outDir: subEntryOutDir,
         emptyOutDir: false,
         sourcemap: isDev,
         minify: false,
@@ -102,12 +118,12 @@ export default defineConfig(({ mode }) => {
           output: [
             {
               format: 'es',
-              entryFileNames: `${entryName}.esm.js`,
+              entryFileNames: `${subEntryBaseName}.esm.js`,
               banner,
             },
             {
               format: 'cjs',
-              entryFileNames: `${entryName}.common.js`,
+              entryFileNames: `${subEntryBaseName}.common.js`,
               banner,
               plugins: isDev
                 ? []

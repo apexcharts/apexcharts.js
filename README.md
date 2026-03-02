@@ -129,7 +129,7 @@ By default `import ApexCharts from 'apexcharts'` includes everything. If you wan
 import ApexCharts from 'apexcharts/core'   // bare class — no chart types, no features
 
 // Chart types
-import 'apexcharts/line'         // line, area, scatter, bubble
+import 'apexcharts/line'         // line, area, scatter, bubble, rangeArea
 import 'apexcharts/bar'          // bar, column
 // import 'apexcharts/pie'       // pie, donut
 // import 'apexcharts/radial'    // radialBar, radar
