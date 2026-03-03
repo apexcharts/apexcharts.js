@@ -19,7 +19,7 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v5.8.2-beta.1
+ * ApexCharts v5.9.0
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
