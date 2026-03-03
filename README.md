@@ -128,13 +128,11 @@ By default `import ApexCharts from 'apexcharts'` includes everything. If you wan
 ```js
 import ApexCharts from 'apexcharts/core'   // bare class — no chart types, no features
 
-// Chart types
-import 'apexcharts/line'         // line, area, scatter, bubble, rangeArea
-import 'apexcharts/bar'          // bar, column
-// import 'apexcharts/pie'       // pie, donut
-// import 'apexcharts/radial'    // radialBar, radar
-// import 'apexcharts/heatmap'   // heatmap, treemap
-// import 'apexcharts/candlestick'
+// Import by the exact chart type name you use in { chart: { type: '...' } }
+import 'apexcharts/line'
+import 'apexcharts/bar'
+// import 'apexcharts/area'
+// import 'apexcharts/scatter'
 
 // Optional features
 import 'apexcharts/features/legend'
@@ -142,6 +140,24 @@ import 'apexcharts/features/toolbar'      // zoom/pan toolbar
 // import 'apexcharts/features/exports'      // SVG/PNG/CSV download
 // import 'apexcharts/features/annotations'
 // import 'apexcharts/features/keyboard'     // keyboard navigation
+```
+
+**Vite users:** Vite's dependency pre-bundler can create two separate copies of ApexCharts, causing `"chart type X is not registered"` errors even when the import is present. Fix this by listing all apexcharts sub-entries in `optimizeDeps.include`:
+
+```js
+// vite.config.js
+export default {
+  optimizeDeps: {
+    include: [
+      'apexcharts/core',
+      'apexcharts/line',   // add only the ones you import
+      'apexcharts/bar',
+      'apexcharts/features/legend',
+      'apexcharts/features/toolbar',
+      // ...
+    ],
+  },
+}
 ```
 
 See [tree-shaking](https://apexcharts.com/docs/tree-shaking/) for the full guide.

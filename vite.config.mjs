@@ -27,12 +27,25 @@ const banner = `/*!
 // { file, outDir } where outDir is relative to dist/ (e.g. 'features').
 export const SUB_ENTRIES = {
   core: resolve(__dirname, 'src/entries/core.js'),
+  // Primary entries
   line: resolve(__dirname, 'src/entries/line.js'),
   bar: resolve(__dirname, 'src/entries/bar.js'),
   candlestick: resolve(__dirname, 'src/entries/candlestick.js'),
   pie: resolve(__dirname, 'src/entries/pie.js'),
-  radial: resolve(__dirname, 'src/entries/radial.js'),
+  radialBar: resolve(__dirname, 'src/entries/radialBar.js'),
+  radar: resolve(__dirname, 'src/entries/radar.js'),
   heatmap: resolve(__dirname, 'src/entries/heatmap.js'),
+  treemap: resolve(__dirname, 'src/entries/treemap.js'),
+  // Alias entries — one per public chart type name
+  area: resolve(__dirname, 'src/entries/area.js'),
+  scatter: resolve(__dirname, 'src/entries/scatter.js'),
+  bubble: resolve(__dirname, 'src/entries/bubble.js'),
+  rangeArea: resolve(__dirname, 'src/entries/rangeArea.js'),
+  column: resolve(__dirname, 'src/entries/column.js'),
+  rangeBar: resolve(__dirname, 'src/entries/rangeBar.js'),
+  boxPlot: resolve(__dirname, 'src/entries/boxPlot.js'),
+  donut: resolve(__dirname, 'src/entries/donut.js'),
+  polarArea: resolve(__dirname, 'src/entries/polarArea.js'),
   'features/annotations': resolve(__dirname, 'src/features/annotations.js'),
   'features/exports': resolve(__dirname, 'src/features/exports.js'),
   'features/keyboard': resolve(__dirname, 'src/features/keyboard.js'),

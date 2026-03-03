@@ -48,7 +48,8 @@ const SUB_ENTRIES = [
   'bar.esm.js',
   'candlestick.esm.js',
   'pie.esm.js',
-  'radial.esm.js',
+  'radialBar.esm.js',
+  'radar.esm.js',
   'heatmap.esm.js',
   'features/annotations.esm.js',
   'features/exports.esm.js',
@@ -166,16 +167,17 @@ describe('optional feature classes are absent from core.esm.js', () => {
 // ─── 4. Chart-type classes confined to their own sub-entry ───────────────────
 
 describe('chart-type classes are confined to their own sub-entry', () => {
-  // Note: Radial extends Pie (src/charts/Radial.js), so Pie is legitimately
-  // present in radial.esm.js. It is therefore not listed in Radial's absentFrom.
   // Candlestick uses class BoxCandleStick (src/charts/BoxCandleStick.js).
+  // Radial extends Pie, so Pie is legitimately present in radialBar.esm.js —
+  // it is therefore not listed in Radial's absentFrom.
   const CHART_TYPE_ISOLATION = [
-    { name: 'Bar',           ownEntry: 'bar.esm.js',         absentFrom: ['line.esm.js', 'pie.esm.js', 'radial.esm.js'] },
-    { name: 'Line',          ownEntry: 'line.esm.js',        absentFrom: ['bar.esm.js', 'pie.esm.js', 'radial.esm.js'] },
-    { name: 'Pie',           ownEntry: 'pie.esm.js',         absentFrom: ['bar.esm.js', 'line.esm.js', 'heatmap.esm.js'] },
-    { name: 'Radial',        ownEntry: 'radial.esm.js',      absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js', 'heatmap.esm.js'] },
-    { name: 'HeatMap',       ownEntry: 'heatmap.esm.js',     absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js'] },
-    { name: 'BoxCandleStick',ownEntry: 'candlestick.esm.js', absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js'] },
+    { name: 'Bar',           ownEntry: 'bar.esm.js',         absentFrom: ['line.esm.js', 'pie.esm.js', 'radialBar.esm.js', 'radar.esm.js'] },
+    { name: 'Line',          ownEntry: 'line.esm.js',        absentFrom: ['bar.esm.js', 'pie.esm.js', 'radialBar.esm.js', 'radar.esm.js'] },
+    { name: 'Pie',           ownEntry: 'pie.esm.js',         absentFrom: ['bar.esm.js', 'line.esm.js', 'radar.esm.js', 'heatmap.esm.js'] },
+    { name: 'Radial',        ownEntry: 'radialBar.esm.js',   absentFrom: ['bar.esm.js', 'line.esm.js', 'radar.esm.js', 'heatmap.esm.js'] },
+    { name: 'Radar',         ownEntry: 'radar.esm.js',       absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js', 'radialBar.esm.js', 'heatmap.esm.js'] },
+    { name: 'HeatMap',       ownEntry: 'heatmap.esm.js',     absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js', 'radialBar.esm.js', 'radar.esm.js'] },
+    { name: 'BoxCandleStick',ownEntry: 'candlestick.esm.js', absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js', 'radialBar.esm.js', 'radar.esm.js'] },
   ]
 
   for (const { name, ownEntry, absentFrom } of CHART_TYPE_ISOLATION) {

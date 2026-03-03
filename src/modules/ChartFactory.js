@@ -34,7 +34,11 @@ export function getChartClass(type) {
   if (!Cls) {
     throw new Error(
       `ApexCharts: chart type "${type}" is not registered. ` +
-        `Import it via ApexCharts.use() or use the full apexcharts bundle.`,
+        `Import it via ApexCharts.use() or use the full apexcharts bundle.\n` +
+        `If you already imported the entry (e.g. 'apexcharts/${type}'), your bundler may have ` +
+        `created two separate copies of the ApexCharts module so the registration was lost. ` +
+        `Add all apexcharts sub-entries to your bundler's deduplication config — ` +
+        `for Vite add them to optimizeDeps.include in vite.config.`,
     )
   }
   return Cls

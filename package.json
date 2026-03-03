@@ -40,30 +40,85 @@
       "import": "./dist/line.esm.js",
       "require": "./dist/line.common.js"
     },
+    "./area": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/area.esm.js",
+      "require": "./dist/area.common.js"
+    },
+    "./scatter": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/scatter.esm.js",
+      "require": "./dist/scatter.common.js"
+    },
+    "./bubble": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/bubble.esm.js",
+      "require": "./dist/bubble.common.js"
+    },
+    "./rangeArea": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/rangeArea.esm.js",
+      "require": "./dist/rangeArea.common.js"
+    },
     "./bar": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/bar.esm.js",
       "require": "./dist/bar.common.js"
+    },
+    "./column": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/column.esm.js",
+      "require": "./dist/column.common.js"
+    },
+    "./rangeBar": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/rangeBar.esm.js",
+      "require": "./dist/rangeBar.common.js"
     },
     "./candlestick": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/candlestick.esm.js",
       "require": "./dist/candlestick.common.js"
     },
+    "./boxPlot": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/boxPlot.esm.js",
+      "require": "./dist/boxPlot.common.js"
+    },
     "./pie": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/pie.esm.js",
       "require": "./dist/pie.common.js"
     },
-    "./radial": {
+    "./donut": {
       "types": "./types/apexcharts.d.ts",
-      "import": "./dist/radial.esm.js",
-      "require": "./dist/radial.common.js"
+      "import": "./dist/donut.esm.js",
+      "require": "./dist/donut.common.js"
+    },
+    "./polarArea": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/polarArea.esm.js",
+      "require": "./dist/polarArea.common.js"
+    },
+    "./radialBar": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/radialBar.esm.js",
+      "require": "./dist/radialBar.common.js"
+    },
+    "./radar": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/radar.esm.js",
+      "require": "./dist/radar.common.js"
     },
     "./heatmap": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/heatmap.esm.js",
       "require": "./dist/heatmap.common.js"
+    },
+    "./treemap": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/treemap.esm.js",
+      "require": "./dist/treemap.common.js"
     },
     "./core": {
       "types": "./types/apexcharts.d.ts",
