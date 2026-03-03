@@ -22,7 +22,7 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v5.9.0
+ * ApexCharts v5.10.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -12183,7 +12183,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const Cls = registry[type];
     if (!Cls) {
       throw new Error(
-        `ApexCharts: chart type "${type}" is not registered. Import it via ApexCharts.use() or use the full apexcharts bundle.`
+        `ApexCharts: chart type "${type}" is not registered. Import it via ApexCharts.use() or use the full apexcharts bundle.
+If you already imported the entry (e.g. 'apexcharts/${type}'), your bundler may have created two separate copies of the ApexCharts module so the registration was lost. Add all apexcharts sub-entries to your bundler's deduplication config — for Vite add them to optimizeDeps.include in vite.config.`
       );
     }
     return Cls;
