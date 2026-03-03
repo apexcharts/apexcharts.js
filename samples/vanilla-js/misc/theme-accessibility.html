@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Accessibility Color Blind Modes</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #wrapper {
+      max-width: 900px;
+      margin: 35px auto;
+      padding: 24px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    }
+    
+    h2 {
+      font-family: sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin: 32px 0 4px;
+    }
+    
+    h2:first-child {
+      margin-top: 0;
+    }
+    
+    p.desc {
+      font-family: sans-serif;
+      font-size: 13px;
+      color: #777;
+      margin: 0 0 12px;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    
+    .card {
+      border: 1px solid #eee;
+      border-radius: 6px;
+      padding: 12px;
+    }
+    
+    .card h3 {
+      font-family: sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+      margin: 0 0 2px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    
+    .card p {
+      font-family: sans-serif;
+      font-size: 12px;
+      color: #999;
+      margin: 0 0 8px;
+    }
+      
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+     <div id="wrapper">
+        <h2>Default palette</h2>
+        <p class="desc">Standard <code>palette1</code> — no accessibility mode set.</p>
+        <div id="chart-default"></div>
+      
+        <h2 style="margin-top:32px">Color Blind Modes</h2>
+        <p class="desc">Set via <code>theme.accessibility.colorBlindMode</code>. Each palette is designed to remain distinguishable under the named color vision deficiency.</p>
+      
+        <div class="grid">
+          <div class="card">
+            <h3>Deuteranopia</h3>
+            <p>Red-green (green-weak) · ~6% of males</p>
+            <div id="chart-deuteranopia"></div>
+          </div>
+          <div class="card">
+            <h3>Protanopia</h3>
+            <p>Red-green (red-weak) · ~1% of males</p>
+            <div id="chart-protanopia"></div>
+          </div>
+          <div class="card">
+            <h3>Tritanopia</h3>
+            <p>Blue-yellow · ~0.01% of population</p>
+            <div id="chart-tritanopia"></div>
+          </div>
+          <div class="card">
+            <h3>High Contrast</h3>
+            <p>Wider strokes · data labels always on</p>
+            <div id="chart-highContrast"></div>
+          </div>
+        </div>
+      </div>
+
+    <script>
+      
+        var options = {
+          series: [{
+          name: 'Product A',
+          data: [44, 55, 41, 64, 22, 43]
+        }, {
+          name: 'Product B',
+          data: [53, 32, 33, 52, 13, 44]
+        }, {
+          name: 'Product C',
+          data: [12, 17, 11, 9, 15, 11]
+        }],
+          chart: {
+          type: 'bar',
+          height: 220,
+          toolbar: { show: false },
+        },
+        title: {
+          text: 'Monthly Revenue (default palette)',
+          style: { fontSize: '13px' }
+        },
+        plotOptions: {
+          bar: { columnWidth: '55%', borderRadius: 3 }
+        },
+        dataLabels: { enabled: false },
+        xaxis: {
+          categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+        },
+        legend: { position: 'top' }
+        };
+
+        var chart = new ApexCharts(document.querySelector("#chart-default"), options);
+        chart.render();
+      
+        var optionsDeuteranopia = {
+          series: [{
+          name: 'Product A',
+          data: [44, 55, 41, 64, 22, 43]
+        }, {
+          name: 'Product B',
+          data: [53, 32, 33, 52, 13, 44]
+        }, {
+          name: 'Product C',
+          data: [12, 17, 11, 9, 15, 11]
+        }],
+          chart: {
+          type: 'bar',
+          height: 200,
+          toolbar: { show: false },
+        },
+        plotOptions: {
+          bar: { columnWidth: '55%', borderRadius: 3 }
+        },
+        dataLabels: { enabled: false },
+        xaxis: {
+          categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+        },
+        legend: { show: false },
+        theme: {
+          accessibility: { colorBlindMode: 'deuteranopia' }
+        }
+        };
+
+        var chartDeuteranopia = new ApexCharts(document.querySelector("#chart-deuteranopia"), optionsDeuteranopia);
+        chartDeuteranopia.render();
+      
+        var optionsProtanopia = {
+          series: [{
+          name: 'Product A',
+          data: [44, 55, 41, 64, 22, 43]
+        }, {
+          name: 'Product B',
+          data: [53, 32, 33, 52, 13, 44]
+        }, {
+          name: 'Product C',
+          data: [12, 17, 11, 9, 15, 11]
+        }],
+          chart: {
+          type: 'bar',
+          height: 200,
+          toolbar: { show: false },
+        },
+        plotOptions: {
+          bar: { columnWidth: '55%', borderRadius: 3 }
+        },
+        dataLabels: { enabled: false },
+        xaxis: {
+          categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+        },
+        legend: { show: false },
+        theme: {
+          accessibility: { colorBlindMode: 'protanopia' }
+        }
+        };
+
+        var chartProtanopia = new ApexCharts(document.querySelector("#chart-protanopia"), optionsProtanopia);
+        chartProtanopia.render();
+      
+        var optionsTritanopia = {
+          series: [{
+          name: 'Product A',
+          data: [44, 55, 41, 64, 22, 43]
+        }, {
+          name: 'Product B',
+          data: [53, 32, 33, 52, 13, 44]
+        }, {
+          name: 'Product C',
+          data: [12, 17, 11, 9, 15, 11]
+        }],
+          chart: {
+          type: 'bar',
+          height: 200,
+          toolbar: { show: false },
+        },
+        plotOptions: {
+          bar: { columnWidth: '55%', borderRadius: 3 }
+        },
+        dataLabels: { enabled: false },
+        xaxis: {
+          categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+        },
+        legend: { show: false },
+        theme: {
+          accessibility: { colorBlindMode: 'tritanopia' }
+        }
+        };
+
+        var chartTritanopia = new ApexCharts(document.querySelector("#chart-tritanopia"), optionsTritanopia);
+        chartTritanopia.render();
+      
+        var optionsHighContrast = {
+          series: [{
+          name: 'Product A',
+          data: [44, 55, 41, 64, 22, 43]
+        }, {
+          name: 'Product B',
+          data: [53, 32, 33, 52, 13, 44]
+        }, {
+          name: 'Product C',
+          data: [12, 17, 11, 9, 15, 11]
+        }],
+          chart: {
+          type: 'bar',
+          height: 200,
+          toolbar: { show: false },
+        },
+        plotOptions: {
+          bar: { columnWidth: '55%', borderRadius: 3 }
+        },
+        xaxis: {
+          categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+        },
+        legend: { show: false },
+        theme: {
+          accessibility: { colorBlindMode: 'highContrast' }
+        }
+        };
+
+        var chartHighContrast = new ApexCharts(document.querySelector("#chart-highContrast"), optionsHighContrast);
+        chartHighContrast.render();
+      
+      
+    </script>
+
+    
+  </body>
+</html>

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Accessibility Color Blind Modes</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #wrapper {
+      max-width: 900px;
+      margin: 35px auto;
+      padding: 24px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    }
+    
+    h2 {
+      font-family: sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin: 32px 0 4px;
+    }
+    
+    h2:first-child {
+      margin-top: 0;
+    }
+    
+    p.desc {
+      font-family: sans-serif;
+      font-size: 13px;
+      color: #777;
+      margin: 0 0 12px;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    
+    .card {
+      border: 1px solid #eee;
+      border-radius: 6px;
+      padding: 12px;
+    }
+    
+    .card h3 {
+      font-family: sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+      margin: 0 0 2px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    
+    .card p {
+      font-family: sans-serif;
+      font-size: 12px;
+      color: #999;
+      margin: 0 0 8px;
+    }
+      
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div id=&quot;wrapper&quot;&gt;
+  &lt;h2&gt;Default palette&lt;/h2&gt;
+  &lt;p class=&quot;desc&quot;&gt;Standard &lt;code&gt;palette1&lt;/code&gt; — no accessibility mode set.&lt;/p&gt;
+  &lt;div id=&quot;chart-default&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={220} /&gt;
+&lt;/div&gt;
+
+  &lt;h2 style=&quot;margin-top:32px&quot;&gt;Color Blind Modes&lt;/h2&gt;
+  &lt;p class=&quot;desc&quot;&gt;Set via &lt;code&gt;theme.accessibility.colorBlindMode&lt;/code&gt;. Each palette is designed to remain distinguishable under the named color vision deficiency.&lt;/p&gt;
+
+  &lt;div class=&quot;grid&quot;&gt;
+    &lt;div class=&quot;card&quot;&gt;
+      &lt;h3&gt;Deuteranopia&lt;/h3&gt;
+      &lt;p&gt;Red-green (green-weak) · ~6% of males&lt;/p&gt;
+      &lt;div id=&quot;chart-deuteranopia&quot;&gt;
+  &lt;ReactApexChart options={state.optionsDeuteranopia} series={state.seriesDeuteranopia} type=&quot;bar&quot; height={200} /&gt;
+&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;card&quot;&gt;
+      &lt;h3&gt;Protanopia&lt;/h3&gt;
+      &lt;p&gt;Red-green (red-weak) · ~1% of males&lt;/p&gt;
+      &lt;div id=&quot;chart-protanopia&quot;&gt;
+  &lt;ReactApexChart options={state.optionsProtanopia} series={state.seriesProtanopia} type=&quot;bar&quot; height={200} /&gt;
+&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;card&quot;&gt;
+      &lt;h3&gt;Tritanopia&lt;/h3&gt;
+      &lt;p&gt;Blue-yellow · ~0.01% of population&lt;/p&gt;
+      &lt;div id=&quot;chart-tritanopia&quot;&gt;
+  &lt;ReactApexChart options={state.optionsTritanopia} series={state.seriesTritanopia} type=&quot;bar&quot; height={200} /&gt;
+&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;card&quot;&gt;
+      &lt;h3&gt;High Contrast&lt;/h3&gt;
+      &lt;p&gt;Wider strokes · data labels always on&lt;/p&gt;
+      &lt;div id=&quot;chart-highContrast&quot;&gt;
+  &lt;ReactApexChart options={state.optionsHighContrast} series={state.seriesHighContrast} type=&quot;bar&quot; height={200} /&gt;
+&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          
+            series: [{
+              name: 'Product A',
+              data: [44, 55, 41, 64, 22, 43]
+            }, {
+              name: 'Product B',
+              data: [53, 32, 33, 52, 13, 44]
+            }, {
+              name: 'Product C',
+              data: [12, 17, 11, 9, 15, 11]
+            }],
+            options: {
+              chart: {
+                type: 'bar',
+                height: 220,
+                toolbar: { show: false },
+              },
+              title: {
+                text: 'Monthly Revenue (default palette)',
+                style: { fontSize: '13px' }
+              },
+              plotOptions: {
+                bar: { columnWidth: '55%', borderRadius: 3 }
+              },
+              dataLabels: { enabled: false },
+              xaxis: {
+                categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+              },
+              legend: { position: 'top' }
+            },
+          
+            seriesDeuteranopia: [{
+              name: 'Product A',
+              data: [44, 55, 41, 64, 22, 43]
+            }, {
+              name: 'Product B',
+              data: [53, 32, 33, 52, 13, 44]
+            }, {
+              name: 'Product C',
+              data: [12, 17, 11, 9, 15, 11]
+            }],
+            optionsDeuteranopia: {
+              chart: {
+                type: 'bar',
+                height: 200,
+                toolbar: { show: false },
+              },
+              plotOptions: {
+                bar: { columnWidth: '55%', borderRadius: 3 }
+              },
+              dataLabels: { enabled: false },
+              xaxis: {
+                categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+              },
+              legend: { show: false },
+              theme: {
+                accessibility: { colorBlindMode: 'deuteranopia' }
+              }
+            },
+          
+            seriesProtanopia: [{
+              name: 'Product A',
+              data: [44, 55, 41, 64, 22, 43]
+            }, {
+              name: 'Product B',
+              data: [53, 32, 33, 52, 13, 44]
+            }, {
+              name: 'Product C',
+              data: [12, 17, 11, 9, 15, 11]
+            }],
+            optionsProtanopia: {
+              chart: {
+                type: 'bar',
+                height: 200,
+                toolbar: { show: false },
+              },
+              plotOptions: {
+                bar: { columnWidth: '55%', borderRadius: 3 }
+              },
+              dataLabels: { enabled: false },
+              xaxis: {
+                categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+              },
+              legend: { show: false },
+              theme: {
+                accessibility: { colorBlindMode: 'protanopia' }
+              }
+            },
+          
+            seriesTritanopia: [{
+              name: 'Product A',
+              data: [44, 55, 41, 64, 22, 43]
+            }, {
+              name: 'Product B',
+              data: [53, 32, 33, 52, 13, 44]
+            }, {
+              name: 'Product C',
+              data: [12, 17, 11, 9, 15, 11]
+            }],
+            optionsTritanopia: {
+              chart: {
+                type: 'bar',
+                height: 200,
+                toolbar: { show: false },
+              },
+              plotOptions: {
+                bar: { columnWidth: '55%', borderRadius: 3 }
+              },
+              dataLabels: { enabled: false },
+              xaxis: {
+                categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+              },
+              legend: { show: false },
+              theme: {
+                accessibility: { colorBlindMode: 'tritanopia' }
+              }
+            },
+          
+            seriesHighContrast: [{
+              name: 'Product A',
+              data: [44, 55, 41, 64, 22, 43]
+            }, {
+              name: 'Product B',
+              data: [53, 32, 33, 52, 13, 44]
+            }, {
+              name: 'Product C',
+              data: [12, 17, 11, 9, 15, 11]
+            }],
+            optionsHighContrast: {
+              chart: {
+                type: 'bar',
+                height: 200,
+                toolbar: { show: false },
+              },
+              plotOptions: {
+                bar: { columnWidth: '55%', borderRadius: 3 }
+              },
+              xaxis: {
+                categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+              },
+              legend: { show: false },
+              theme: {
+                accessibility: { colorBlindMode: 'highContrast' }
+              }
+            },
+          
+          
+        });
+
+        
+
+        return (
+          <div>
+            <div id="wrapper">
+                <h2>Default palette</h2>
+                <p class="desc">Standard <code>palette1</code> — no accessibility mode set.</p>
+                <div id="chart-default">
+                <ReactApexChart options={state.options} series={state.series} type="bar" height={220} />
+              </div>
+              
+                <h2 style="margin-top:32px">Color Blind Modes</h2>
+                <p class="desc">Set via <code>theme.accessibility.colorBlindMode</code>. Each palette is designed to remain distinguishable under the named color vision deficiency.</p>
+              
+                <div class="grid">
+                  <div class="card">
+                    <h3>Deuteranopia</h3>
+                    <p>Red-green (green-weak) · ~6% of males</p>
+                    <div id="chart-deuteranopia">
+                <ReactApexChart options={state.optionsDeuteranopia} series={state.seriesDeuteranopia} type="bar" height={200} />
+              </div>
+                  </div>
+                  <div class="card">
+                    <h3>Protanopia</h3>
+                    <p>Red-green (red-weak) · ~1% of males</p>
+                    <div id="chart-protanopia">
+                <ReactApexChart options={state.optionsProtanopia} series={state.seriesProtanopia} type="bar" height={200} />
+              </div>
+                  </div>
+                  <div class="card">
+                    <h3>Tritanopia</h3>
+                    <p>Blue-yellow · ~0.01% of population</p>
+                    <div id="chart-tritanopia">
+                <ReactApexChart options={state.optionsTritanopia} series={state.seriesTritanopia} type="bar" height={200} />
+              </div>
+                  </div>
+                  <div class="card">
+                    <h3>High Contrast</h3>
+                    <p>Wider strokes · data labels always on</p>
+                    <div id="chart-highContrast">
+                <ReactApexChart options={state.optionsHighContrast} series={state.seriesHighContrast} type="bar" height={200} />
+              </div>
+                  </div>
+                </div>
+              </div>
+            <div id="html-dist"></div>
+          </div>
+        );
+      }
+
+      const domContainer = document.querySelector('#app');
+      ReactDOM.render(<ApexChart />, domContainer);
+    </script>
+
+    
+  </body>
+</html>

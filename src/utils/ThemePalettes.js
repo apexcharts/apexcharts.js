@@ -14,5 +14,10 @@ export function getThemePalettes() {
     palette8: ['#662E9B', '#F86624', '#F9C80E', '#EA3546', '#43BCCD'],
     palette9: ['#5C4742', '#A5978B', '#8D5B4C', '#5A2A27', '#C4BBAF'],
     palette10: ['#A300D6', '#7D02EB', '#5653FE', '#2983FF', '#00B1F2'],
+    // CVD-safe palettes (Wong 2011 / IBM design)
+    cvdDeuteranopia: ['#0072B2', '#E69F00', '#56B4E9', '#009E73', '#F0E442', '#D55E00', '#CC79A7'],
+    cvdProtanopia: ['#0077BB', '#EE7733', '#009988', '#EE3377', '#BBBBBB', '#33BBEE', '#CC3311'],
+    cvdTritanopia: ['#CC3311', '#009988', '#EE7733', '#0077BB', '#EE3377', '#BBBBBB', '#33BBEE'],
+    highContrast: ['#005A9C', '#C00000', '#007A33', '#6C3483', '#7B3F00', '#0097A7', '#4A235A'],
   }
 }

@@ -1164,6 +1164,9 @@ export default class Options {
           shadeTo: 'light',
           shadeIntensity: 0.65,
         },
+        accessibility: {
+          colorBlindMode: '', // '' | 'deuteranopia' | 'protanopia' | 'tritanopia' | 'highContrast'
+        },
       },
     }
   }

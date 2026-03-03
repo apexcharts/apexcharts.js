@@ -847,4 +847,74 @@ describe('Accessibility', () => {
       })
     })
   })
+
+  // =========================================================================
+  // Color blind mode (theme.accessibility.colorBlindMode)
+  // =========================================================================
+  describe('colorBlindMode', () => {
+    it('should use deuteranopia palette when colorBlindMode is deuteranopia', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ name: 'A', data: [1, 2, 3] }],
+        theme: { accessibility: { colorBlindMode: 'deuteranopia' } },
+      })
+      expect(chart.w.globals.colors[0]).toBe('#0072B2')
+    })
+
+    it('should use protanopia palette when colorBlindMode is protanopia', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ name: 'A', data: [1, 2, 3] }],
+        theme: { accessibility: { colorBlindMode: 'protanopia' } },
+      })
+      expect(chart.w.globals.colors[0]).toBe('#0077BB')
+    })
+
+    it('should use tritanopia palette when colorBlindMode is tritanopia', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ name: 'A', data: [1, 2, 3] }],
+        theme: { accessibility: { colorBlindMode: 'tritanopia' } },
+      })
+      expect(chart.w.globals.colors[0]).toBe('#CC3311')
+    })
+
+    it('should use high contrast palette when colorBlindMode is highContrast', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ name: 'A', data: [1, 2, 3] }],
+        theme: { accessibility: { colorBlindMode: 'highContrast' } },
+      })
+      expect(chart.w.globals.colors[0]).toBe('#005A9C')
+    })
+
+    it('should add apexcharts-high-contrast class to wrapper when colorBlindMode is highContrast', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ name: 'A', data: [1, 2, 3] }],
+        theme: { accessibility: { colorBlindMode: 'highContrast' } },
+      })
+      expect(chart.el.querySelector('.apexcharts-canvas').classList.contains('apexcharts-high-contrast')).toBe(true)
+    })
+
+    it('should not override CVD palette when theme.palette is also set', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ name: 'A', data: [1, 2, 3] }],
+        theme: { palette: 'palette3', accessibility: { colorBlindMode: 'deuteranopia' } },
+      })
+      // colorBlindMode takes priority over theme.palette
+      expect(chart.w.globals.colors[0]).toBe('#0072B2')
+    })
+
+    it('should use default palette when colorBlindMode is empty string', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ name: 'A', data: [1, 2, 3] }],
+        theme: { accessibility: { colorBlindMode: '' } },
+      })
+      // palette1 default
+      expect(chart.w.globals.colors[0]).toBe('#008FFB')
+    })
+  })
 })

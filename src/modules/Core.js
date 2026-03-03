@@ -1,7 +1,6 @@
 import CoreUtils from './CoreUtils'
 import Crosshairs from './Crosshairs'
 import Globals from '../modules/settings/Globals'
-import Legend from './legend/Legend'
 import Graphics from './Graphics'
 import Range from './Range'
 import Utils from '../utils/Utils'
@@ -520,7 +519,7 @@ export default class Core {
       !w.config.legend.floating
     ) {
       legendHeight =
-        new Legend(this.w, this.ctx).legendHelpers.getLegendDimensions().clwh +
+        (this.ctx.legend?.legendHelpers.getLegendDimensions().clwh ?? 0) +
         7
     }
 

@@ -46,8 +46,24 @@ export default class Theme {
     const utils = new Utils()
 
     w.dom.elWrap.classList.add(
-      `apexcharts-theme-${w.config.theme.mode || 'light'}`
+      `apexcharts-theme-${w.config.theme.mode || 'light'}`,
     )
+
+    const colorBlindMode = w.config.theme.accessibility?.colorBlindMode
+    if (colorBlindMode) {
+      w.globals.colors = this.getColorBlindColors(colorBlindMode)
+      this.applySeriesColors(w.seriesData.seriesColors, w.globals.colors)
+      const defaultColors = w.globals.colors.slice()
+      this.pushExtraColors(w.globals.colors)
+      this.applyColorTypes(['fill', 'stroke'], defaultColors)
+      this.applyDataLabelsColors(defaultColors)
+      this.applyRadarPolygonsColors()
+      this.applyMarkersColors(defaultColors)
+      if (colorBlindMode === 'highContrast') {
+        w.dom.elWrap.classList.add('apexcharts-high-contrast')
+      }
+      return
+    }
 
     // Create a copy of config.colors array to avoid mutating the original config.colors
     const configColors = [...(w.config.colors || w.config.fill.colors || [])]
@@ -59,7 +75,7 @@ export default class Theme {
       w.globals.colors = this.getMonochromeColors(
         w.config.theme.monochrome,
         w.seriesData.series,
-        utils
+        utils,
       )
     }
 
@@ -196,6 +212,17 @@ export default class Theme {
     }
   }
 
+  getColorBlindColors(mode) {
+    const palettes = getThemePalettes()
+    const map = {
+      deuteranopia: palettes.cvdDeuteranopia,
+      protanopia: palettes.cvdProtanopia,
+      tritanopia: palettes.cvdTritanopia,
+      highContrast: palettes.highContrast,
+    }
+    return (map[mode] || palettes.palette1).slice()
+  }
+
   updateThemeOptions(options) {
     options.chart = options.chart || {}
     options.tooltip = options.tooltip || {}
@@ -204,14 +231,14 @@ export default class Theme {
       mode === 'dark'
         ? 'palette4'
         : mode === 'light'
-        ? 'palette1'
-        : options.theme.palette || 'palette1'
+          ? 'palette1'
+          : options.theme.palette || 'palette1'
     const foreColor =
       mode === 'dark'
         ? '#f6f7f8'
         : mode === 'light'
-        ? '#373d3f'
-        : options.chart.foreColor || '#373d3f'
+          ? '#373d3f'
+          : options.chart.foreColor || '#373d3f'
 
     options.tooltip.theme = mode || 'light'
     options.chart.foreColor = foreColor

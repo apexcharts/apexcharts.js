@@ -1357,6 +1357,9 @@ type ApexTheme = {
     shadeTo?: 'light' | 'dark'
     shadeIntensity?: number
   }
+  accessibility?: {
+    colorBlindMode?: 'deuteranopia' | 'protanopia' | 'tritanopia' | 'highContrast' | ''
+  }
 }
 
 export = ApexCharts;

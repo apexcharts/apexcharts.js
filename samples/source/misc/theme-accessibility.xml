@@ -1,0 +1,265 @@
+<title>Accessibility Color Blind Modes</title>
+
+<style>
+#wrapper {
+  max-width: 900px;
+  margin: 35px auto;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+}
+
+h2 {
+  font-family: sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 32px 0 4px;
+}
+
+h2:first-child {
+  margin-top: 0;
+}
+
+p.desc {
+  font-family: sans-serif;
+  font-size: 13px;
+  color: #777;
+  margin: 0 0 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.card {
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.card h3 {
+  font-family: sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+  margin: 0 0 2px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.card p {
+  font-family: sans-serif;
+  font-size: 12px;
+  color: #999;
+  margin: 0 0 8px;
+}
+</style>
+
+<html>
+<div id="wrapper">
+  <h2>Default palette</h2>
+  <p class="desc">Standard <code>palette1</code> — no accessibility mode set.</p>
+  {{ charts['default'] }}
+
+  <h2 style="margin-top:32px">Color Blind Modes</h2>
+  <p class="desc">Set via <code>theme.accessibility.colorBlindMode</code>. Each palette is designed to remain distinguishable under the named color vision deficiency.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Deuteranopia</h3>
+      <p>Red-green (green-weak) · ~6% of males</p>
+      {{ charts['deuteranopia'] }}
+    </div>
+    <div class="card">
+      <h3>Protanopia</h3>
+      <p>Red-green (red-weak) · ~1% of males</p>
+      {{ charts['protanopia'] }}
+    </div>
+    <div class="card">
+      <h3>Tritanopia</h3>
+      <p>Blue-yellow · ~0.01% of population</p>
+      {{ charts['tritanopia'] }}
+    </div>
+    <div class="card">
+      <h3>High Contrast</h3>
+      <p>Wider strokes · data labels always on</p>
+      {{ charts['highContrast'] }}
+    </div>
+  </div>
+</div>
+</html>
+
+<chart>
+<id>default</id>
+<options>
+chart: {
+  type: 'bar',
+  height: 220,
+  toolbar: { show: false },
+},
+title: {
+  text: 'Monthly Revenue (default palette)',
+  style: { fontSize: '13px' }
+},
+plotOptions: {
+  bar: { columnWidth: '55%', borderRadius: 3 }
+},
+dataLabels: { enabled: false },
+xaxis: {
+  categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+},
+legend: { position: 'top' }
+</options>
+<series>
+[{
+  name: 'Product A',
+  data: [44, 55, 41, 64, 22, 43]
+}, {
+  name: 'Product B',
+  data: [53, 32, 33, 52, 13, 44]
+}, {
+  name: 'Product C',
+  data: [12, 17, 11, 9, 15, 11]
+}]
+</series>
+</chart>
+
+<chart>
+<id>deuteranopia</id>
+<options>
+chart: {
+  type: 'bar',
+  height: 200,
+  toolbar: { show: false },
+},
+plotOptions: {
+  bar: { columnWidth: '55%', borderRadius: 3 }
+},
+dataLabels: { enabled: false },
+xaxis: {
+  categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+},
+legend: { show: false },
+theme: {
+  accessibility: { colorBlindMode: 'deuteranopia' }
+}
+</options>
+<series>
+[{
+  name: 'Product A',
+  data: [44, 55, 41, 64, 22, 43]
+}, {
+  name: 'Product B',
+  data: [53, 32, 33, 52, 13, 44]
+}, {
+  name: 'Product C',
+  data: [12, 17, 11, 9, 15, 11]
+}]
+</series>
+</chart>
+
+<chart>
+<id>protanopia</id>
+<options>
+chart: {
+  type: 'bar',
+  height: 200,
+  toolbar: { show: false },
+},
+plotOptions: {
+  bar: { columnWidth: '55%', borderRadius: 3 }
+},
+dataLabels: { enabled: false },
+xaxis: {
+  categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+},
+legend: { show: false },
+theme: {
+  accessibility: { colorBlindMode: 'protanopia' }
+}
+</options>
+<series>
+[{
+  name: 'Product A',
+  data: [44, 55, 41, 64, 22, 43]
+}, {
+  name: 'Product B',
+  data: [53, 32, 33, 52, 13, 44]
+}, {
+  name: 'Product C',
+  data: [12, 17, 11, 9, 15, 11]
+}]
+</series>
+</chart>
+
+<chart>
+<id>tritanopia</id>
+<options>
+chart: {
+  type: 'bar',
+  height: 200,
+  toolbar: { show: false },
+},
+plotOptions: {
+  bar: { columnWidth: '55%', borderRadius: 3 }
+},
+dataLabels: { enabled: false },
+xaxis: {
+  categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+},
+legend: { show: false },
+theme: {
+  accessibility: { colorBlindMode: 'tritanopia' }
+}
+</options>
+<series>
+[{
+  name: 'Product A',
+  data: [44, 55, 41, 64, 22, 43]
+}, {
+  name: 'Product B',
+  data: [53, 32, 33, 52, 13, 44]
+}, {
+  name: 'Product C',
+  data: [12, 17, 11, 9, 15, 11]
+}]
+</series>
+</chart>
+
+<chart>
+<id>highContrast</id>
+<options>
+chart: {
+  type: 'bar',
+  height: 200,
+  toolbar: { show: false },
+},
+plotOptions: {
+  bar: { columnWidth: '55%', borderRadius: 3 }
+},
+xaxis: {
+  categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+},
+legend: { show: false },
+theme: {
+  accessibility: { colorBlindMode: 'highContrast' }
+}
+</options>
+<series>
+[{
+  name: 'Product A',
+  data: [44, 55, 41, 64, 22, 43]
+}, {
+  name: 'Product B',
+  data: [53, 32, 33, 52, 13, 44]
+}, {
+  name: 'Product C',
+  data: [12, 17, 11, 9, 15, 11]
+}]
+</series>
+</chart>
