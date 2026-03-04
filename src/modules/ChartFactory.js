@@ -1,6 +1,11 @@
 /**
  * Chart Factory - Runtime registry for chart type classes.
  *
+ * The registry is stored on `globalThis` so that multiple copies of this
+ * module (e.g. from bundler deduplication failures or dual CJS/ESM instances)
+ * all share a single registry. Without this, calling ApexCharts.use() in one
+ * module copy and rendering in another silently loses the registration.
+ *
  * The registry is populated at module load time by whichever entry point is
  * used:
  *   - Each entry point (src/entries/*.js) calls ApexCharts.use() with the
@@ -10,8 +15,16 @@
  * @module ChartFactory
  */
 
-/** @type {Record<string, Function>} */
-const registry = {}
+const REGISTRY_KEY = '__apexcharts_registry__'
+
+if (!globalThis[REGISTRY_KEY]) {
+  globalThis[REGISTRY_KEY] = {}
+}
+
+/** @returns {Record<string, Function>} */
+function getRegistry() {
+  return globalThis[REGISTRY_KEY]
+}
 
 /**
  * Register one or more chart type constructors.
@@ -19,7 +32,7 @@ const registry = {}
  * @param {Record<string, Function>} typeMap  e.g. { line: Line, area: Line }
  */
 export function register(typeMap) {
-  Object.assign(registry, typeMap)
+  Object.assign(getRegistry(), typeMap)
 }
 
 /**
@@ -30,15 +43,11 @@ export function register(typeMap) {
  * @returns {Function}
  */
 export function getChartClass(type) {
-  const Cls = registry[type]
+  const Cls = getRegistry()[type]
   if (!Cls) {
     throw new Error(
       `ApexCharts: chart type "${type}" is not registered. ` +
-        `Import it via ApexCharts.use() or use the full apexcharts bundle.\n` +
-        `If you already imported the entry (e.g. 'apexcharts/${type}'), your bundler may have ` +
-        `created two separate copies of the ApexCharts module so the registration was lost. ` +
-        `Add all apexcharts sub-entries to your bundler's deduplication config — ` +
-        `for Vite add them to optimizeDeps.include in vite.config.`,
+        `Import it via ApexCharts.use() or use the full apexcharts bundle.`,
     )
   }
   return Cls
