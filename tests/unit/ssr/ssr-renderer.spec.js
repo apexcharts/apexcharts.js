@@ -310,5 +310,23 @@ describe('SSRRenderer', () => {
         expect(svg).toContain('<svg')
       }
     })
+
+    it('bar chart: renders exactly N bar paths and N datalabel groups for N data points', async () => {
+      const data = [44, 55, 57, 56, 61]
+      const svg = await SSRRenderer.renderToString({
+        chart: { type: 'bar', height: 300 },
+        series: [{ name: 'Visitors', data }],
+        xaxis: { categories: ['Feb', 'Mar', 'Apr', 'May', 'Jun'] },
+      })
+
+      const barPaths = svg.match(/class="apexcharts-bar-area/g)
+      const dataLabels = svg.match(/class="apexcharts-datalabels"/g)
+
+      expect(barPaths).not.toBeNull()
+      expect(barPaths.length).toBe(data.length)
+      expect(dataLabels).not.toBeNull()
+      // One datalabels group per series (not per data point)
+      expect(dataLabels.length).toBe(1)
+    })
   })
 })

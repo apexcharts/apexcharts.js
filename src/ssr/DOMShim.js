@@ -36,6 +36,14 @@ class SSRElement {
 
   appendChild(child) {
     if (child && child !== this) {
+      // Mirror real DOM: re-parenting removes child from previous parent
+      if (child.parentNode && child.parentNode !== this) {
+        child.parentNode.removeChild(child)
+      } else if (child.parentNode === this) {
+        // Already a child — move to end (matches browser DOM behaviour)
+        const index = this.children.indexOf(child)
+        if (index !== -1) this.children.splice(index, 1)
+      }
       child.parentNode = this
       this.children.push(child)
     }
@@ -54,6 +62,13 @@ class SSRElement {
   insertBefore(newNode, referenceNode) {
     if (!referenceNode) {
       return this.appendChild(newNode)
+    }
+    // Mirror real DOM: remove from previous parent before inserting
+    if (newNode.parentNode && newNode.parentNode !== this) {
+      newNode.parentNode.removeChild(newNode)
+    } else if (newNode.parentNode === this) {
+      const existingIndex = this.children.indexOf(newNode)
+      if (existingIndex !== -1) this.children.splice(existingIndex, 1)
     }
     const index = this.children.indexOf(referenceNode)
     if (index !== -1) {
@@ -77,7 +92,7 @@ class SSRElement {
 
     // Deep clone children
     if (deep) {
-      this.children.forEach(child => {
+      this.children.forEach((child) => {
         if (child.cloneNode) {
           clone.appendChild(child.cloneNode(true))
         }
@@ -97,7 +112,7 @@ class SSRElement {
       right: this._ssrWidth || 0,
       bottom: this._ssrHeight || 0,
       x: 0,
-      y: 0
+      y: 0,
     }
   }
 
@@ -138,13 +153,13 @@ class SSRElement {
       return `<${this.nodeName}${attrs}/>`
     }
 
-    const childrenStr = this.children.map(c => c.toString()).join('')
+    const childrenStr = this.children.map((c) => c.toString()).join('')
     return `<${this.nodeName}${attrs}>${this.textContent}${childrenStr}</${this.nodeName}>`
   }
 
   // Property getters/setters
   get innerHTML() {
-    return this.children.map(c => c.toString()).join('')
+    return this.children.map((c) => c.toString()).join('')
   }
 
   set innerHTML(value) {
@@ -170,11 +185,11 @@ class SSRClassList {
   }
 
   add(...classNames) {
-    classNames.forEach(name => this.classes.add(name))
+    classNames.forEach((name) => this.classes.add(name))
   }
 
   remove(...classNames) {
-    classNames.forEach(name => this.classes.delete(name))
+    classNames.forEach((name) => this.classes.delete(name))
   }
 
   contains(className) {
@@ -235,7 +250,7 @@ export class SSRDOMShim {
       textContent: data,
       toString() {
         return this.textContent
-      }
+      },
     }
   }
 
@@ -280,7 +295,7 @@ export class SSRDOMShim {
       right: 0,
       bottom: 0,
       x: 0,
-      y: 0
+      y: 0,
     }
   }
 
@@ -292,7 +307,7 @@ export class SSRDOMShim {
     return {
       serializeToString(element) {
         return element.toString ? element.toString() : ''
-      }
+      },
     }
   }
 
@@ -307,9 +322,9 @@ export class SSRDOMShim {
         const root = new SSRElement('root')
         root.innerHTML = str
         return {
-          documentElement: root
+          documentElement: root,
         }
-      }
+      },
     }
   }
 }

@@ -9,56 +9,203 @@
 // See https://github.com/DefinitelyTyped/DefinitelyTyped/pull/28733
 
 declare class ApexCharts {
-  constructor(el: any, options: any)
-  render(): Promise<void>
+  constructor(el: HTMLElement, options: ApexCharts.ApexOptions)
+
+  /** Renders the chart. Must be called once after construction. */
+  render(): Promise<ApexCharts>
+
+  /**
+   * Merges new options into the existing config and re-renders the chart.
+   * @param redraw When true, redraws from scratch instead of animating from previous paths.
+   * @param animate Whether to animate the update.
+   * @param updateSyncedCharts Whether to propagate the update to charts in the same group.
+   * @param overwriteInitialConfig When true, replaces the stored initial config used by resetSeries().
+   */
   updateOptions(
-    options: any,
-    redrawPaths?: boolean,
+    options: ApexCharts.ApexOptions,
+    redraw?: boolean,
     animate?: boolean,
-    updateSyncedCharts?: boolean
-  ): Promise<void>
+    updateSyncedCharts?: boolean,
+    overwriteInitialConfig?: boolean
+  ): Promise<ApexCharts>
+
+  /**
+   * Replaces the chart's series data and re-renders.
+   * @param overwriteInitialSeries When true, replaces the stored initial series used by resetSeries().
+   */
   updateSeries(
     newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries,
-    animate?: boolean
-  ): Promise<void>
-  appendSeries(
-    newSeries: ApexAxisChartSeries | ApexNonAxisChartSeries,
-    animate?: boolean
-  ): Promise<void>
-  appendData(data: any[], overwriteInitialSeries?: boolean): void
-  toggleSeries(seriesName: string): any
-  highlightSeries(seriesName: string): any
-  showSeries(seriesName: string): void
-  hideSeries(seriesName: string): void
-  resetSeries(): void
-  zoomX(min: number, max: number): void
-  toggleDataPointSelection(seriesIndex: number, dataPointIndex?: number): any
-  destroy(): void
-  setLocale(localeName: string): void
-  paper(): void
-  addXaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void
-  addYaxisAnnotation(options: any, pushToMemory?: boolean, context?: any): void
-  addPointAnnotation(options: any, pushToMemory?: boolean, context?: any): void
-  removeAnnotation(id: string, options?: any): void
-  clearAnnotations(options?: any): void
-  dataURI(options?: { scale?: number, width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
+    animate?: boolean,
+    overwriteInitialSeries?: boolean
+  ): Promise<ApexCharts>
+
   /**
-   * Returns a stable snapshot of chart state. Use this in formatters, events,
-   * and integrations instead of accessing `chart.w` directly.
-   * `chart.w` is internal and will be restricted in a future major version.
+   * Appends a new series to the existing series array and re-renders.
+   * @param overwriteInitialSeries When true, replaces the stored initial series used by resetSeries().
+   */
+  appendSeries(
+    newSerie: ApexAxisChartSeries[0] | number,
+    animate?: boolean,
+    overwriteInitialSeries?: boolean
+  ): Promise<ApexCharts>
+
+  /**
+   * Appends data points to existing series without replacing them.
+   * Each element corresponds to the series at the same index.
+   */
+  appendData(data: Array<{ data: any[] }>, overwriteInitialSeries?: boolean): Promise<ApexCharts>
+
+  /** Toggles (show/hide) the series by name. Mirrors a click on the legend item. */
+  toggleSeries(seriesName: string): object | undefined
+
+  /** Highlights or un-highlights a series when a legend marker is hovered. */
+  highlightSeriesOnLegendHover(e: MouseEvent, targetElement: HTMLElement): void
+
+  /** Makes a previously hidden series visible and re-renders. */
+  showSeries(seriesName: string): void
+
+  /** Hides a visible series and re-renders. */
+  hideSeries(seriesName: string): void
+
+  /** Highlights (dims all other series) the series identified by name. */
+  highlightSeries(seriesName: string): void
+
+  /** Returns whether the series identified by name is currently hidden. */
+  isSeriesHidden(seriesName: string): boolean
+
+  /**
+   * Resets the chart to its initial series and optionally its initial zoom level.
+   * @param shouldUpdateChart When true, triggers a re-render. Default true.
+   * @param shouldResetZoom When true, restores the initial zoom level. Default true.
+   */
+  resetSeries(shouldUpdateChart?: boolean, shouldResetZoom?: boolean): void
+
+  /** Programmatically zooms the x-axis to [min, max]. Requires zoom to be enabled. */
+  zoomX(min: number, max: number): void
+
+  /**
+   * Programmatically selects or deselects a data point.
+   * @returns Updated selectedDataPoints array, or null.
+   */
+  toggleDataPointSelection(seriesIndex: number, dataPointIndex?: number): number[][] | null
+
+  /** Destroys the chart instance, removing all DOM elements and event listeners. */
+  destroy(): void
+
+  /**
+   * Switches the active locale, updating all locale-dependent labels.
+   * @param localeName Must match a name defined in chart.locales.
+   */
+  setLocale(localeName: string): void
+
+  /**
+   * Subscribes to a chart event by name.
+   * Event names mirror the chart.events option keys (e.g. 'mounted', 'updated', 'dataPointMouseEnter').
+   */
+  addEventListener(name: string, handler: Function): void
+
+  /** Removes a previously registered event listener. */
+  removeEventListener(name: string, handler: Function): void
+
+  /** Adds an x-axis annotation dynamically after render. */
+  addXaxisAnnotation(options: XAxisAnnotations, pushToMemory?: boolean, context?: ApexCharts): void
+
+  /** Adds a y-axis annotation dynamically after render. */
+  addYaxisAnnotation(options: YAxisAnnotations, pushToMemory?: boolean, context?: ApexCharts): void
+
+  /** Adds a point annotation dynamically after render. */
+  addPointAnnotation(options: PointAnnotations, pushToMemory?: boolean, context?: ApexCharts): void
+
+  /** Removes a specific annotation by its id. */
+  removeAnnotation(id: string, context?: ApexCharts): void
+
+  /** Removes all annotations from the chart. */
+  clearAnnotations(context?: ApexCharts): void
+
+  /**
+   * Exports the chart to a data URI.
+   * Requires the Exports feature: import 'apexcharts/features/exports'.
+   */
+  dataURI(options?: { scale?: number; width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
+
+  /**
+   * Returns the chart's SVG markup as a string.
+   * Requires the Exports feature: import 'apexcharts/features/exports'.
+   */
+  getSvgString(scale?: number): Promise<string>
+
+  /**
+   * Triggers a CSV download of the chart's data.
+   * Requires the Exports feature: import 'apexcharts/features/exports'.
+   */
+  exportToCSV(options?: { series?: any; fileName?: string; columnDelimiter?: string; lineDelimiter?: string }): void
+
+  /** Returns the inner SVG group element containing all chart graphics. */
+  getChartArea(): Element | null
+
+  /** Returns the sum of all data points whose x value falls within [minX, maxX]. */
+  getSeriesTotalXRange(minX: number, maxX: number): number[]
+
+  /** Returns the highest y value in the specified series. */
+  getHighestValueInSeries(seriesIndex?: number): number
+
+  /** Returns the lowest y value in the specified series. */
+  getLowestValueInSeries(seriesIndex?: number): number
+
+  /** Returns the sum of each series (totals used for percentage calculations). */
+  getSeriesTotal(): number[]
+
+  /** Returns all charts in the same chart.group, including this instance. */
+  getSyncedCharts(): ApexCharts[]
+
+  /** Returns all charts in the same chart.group, excluding this instance. */
+  getGroupedCharts(): ApexCharts[]
+
+  /**
+   * Returns a stable snapshot of chart state for use in formatters, events,
+   * and external integrations. Prefer this over accessing chart.w directly.
    */
   getState(): ApexCharts.ChartState
-  static exec(chartID: string, fn: string, ...args: Array<any>): any
+
+  /**
+   * Calls a public method on a chart instance identified by chartID.
+   * Useful when you don't have a direct reference to the instance.
+   */
+  static exec(chartID: string, fn: string, ...args: any[]): any
+
+  /** Retrieves a rendered chart instance by its chart.id config value. */
   static getChartByID(chartID: string): ApexCharts | undefined
+
+  /**
+   * Scans the document for elements with data-apexcharts and data-options
+   * attributes and renders a chart in each one automatically.
+   */
   static initOnLoad(): void
+
+  /** Deep-merges source into target and returns the result. */
+  static merge(target: object, source: object): object
+
+  /**
+   * Registers chart type constructors for tree-shaking support.
+   * Used by sub-entry points (e.g. apexcharts/charts/bar).
+   */
+  static use(typeMap: Record<string, new (...args: any[]) => any>): void
+
+  /**
+   * Registers optional feature modules (Exports, Legend, Toolbar,
+   * ZoomPanSelection, KeyboardNavigation, Annotations).
+   * Call before rendering any chart.
+   */
+  static registerFeatures(featureMap: Record<string, new (...args: any[]) => any>): void
+
   exports: {
     cleanup(): string
     svgUrl(): string
-    dataURI(options?: { scale?: number, width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
+    dataURI(options?: { scale?: number; width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
     exportToSVG(): void
     exportToPng(): void
-    exportToCSV(options?: { series?: any, fileName?: string, columnDelimiter?: string, lineDelimiter?: string }): void
-    getSvgString(scale?: number): void
+    exportToCSV(options?: { series?: any; fileName?: string; columnDelimiter?: string; lineDelimiter?: string }): void
+    getSvgString(scale?: number): Promise<string>
     triggerDownload(href: string, filename?: string, ext?: string): void
   }
 }

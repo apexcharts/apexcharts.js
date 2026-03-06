@@ -23,6 +23,12 @@ import { BrowserAPIs } from './ssr/BrowserAPIs.js'
  **/
 
 export default class ApexCharts {
+  /**
+   * Creates a new ApexCharts instance.
+   *
+   * @param {HTMLElement} el - The DOM element to render the chart into.
+   * @param {ApexCharts.ApexOptions} opts - Chart configuration options.
+   */
   constructor(el, opts) {
     this.opts = opts
     this.ctx = this
@@ -52,7 +58,9 @@ export default class ApexCharts {
   }
 
   /**
-   * The primary method user will call to render the chart.
+   * Renders the chart. Must be called once after construction.
+   *
+   * @returns {Promise<ApexCharts>} Resolves with the chart instance after mount.
    */
   render() {
     // main method
@@ -429,7 +437,8 @@ export default class ApexCharts {
   }
 
   /**
-   * Destroy the chart instance by removing all elements which also clean up event listeners on those elements.
+   * Destroys the chart instance, removes all DOM elements and event listeners.
+   * After calling this, the instance should not be used again.
    */
   destroy() {
     // remove event listeners in browser environment
@@ -453,11 +462,14 @@ export default class ApexCharts {
   }
 
   /**
-   * Allows users to update Options after the chart has rendered.
+   * Merges new options into the existing config and re-renders the chart.
    *
-   * @param {object} options - A new config object can be passed which will be merged with the existing config object
-   * @param {boolean} redraw - should redraw from beginning or should use existing paths and redraw from there
-   * @param {boolean} animate - should animate or not on updating Options
+   * @param {ApexCharts.ApexOptions} options - Partial config object merged with the existing config.
+   * @param {boolean} [redraw=false] - When true, redraws the chart from scratch instead of animating from previous paths.
+   * @param {boolean} [animate=true] - Whether to animate the update.
+   * @param {boolean} [updateSyncedCharts=true] - Whether to propagate the update to charts in the same group.
+   * @param {boolean} [overwriteInitialConfig=true] - When true, replaces the stored initial config used by resetSeries().
+   * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
    */
   updateOptions(
     options,
@@ -537,9 +549,12 @@ export default class ApexCharts {
   }
 
   /**
-   * Allows users to update Series after the chart has rendered.
+   * Replaces the chart's series data and re-renders.
    *
-   * @param {array} series - New series which will override the existing
+   * @param {ApexAxisChartSeries | ApexNonAxisChartSeries} [newSeries=[]] - The replacement series array.
+   * @param {boolean} [animate=true] - Whether to animate the update.
+   * @param {boolean} [overwriteInitialSeries=true] - When true, replaces the stored initial series used by resetSeries().
+   * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
    */
   updateSeries(newSeries = [], animate = true, overwriteInitialSeries = true) {
     this.data.resetParsingFlags()
@@ -554,9 +569,12 @@ export default class ApexCharts {
   }
 
   /**
-   * Allows users to append a new series after the chart has rendered.
+   * Appends a new series to the existing series array and re-renders.
    *
-   * @param {array} newSerie - New serie which will be appended to the existing series
+   * @param {ApexAxisChartSeries[0] | ApexNonAxisChartSeries} newSerie - The series object to append.
+   * @param {boolean} [animate=true] - Whether to animate the update.
+   * @param {boolean} [overwriteInitialSeries=true] - When true, replaces the stored initial series used by resetSeries().
+   * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
    */
   appendSeries(newSerie, animate = true, overwriteInitialSeries = true) {
     this.data.resetParsingFlags()
@@ -573,9 +591,12 @@ export default class ApexCharts {
   }
 
   /**
-   * Allows users to append Data to series.
+   * Appends data points to existing series without replacing them.
+   * Each element of `newData` corresponds to the series at the same index.
    *
-   * @param {array} newData - New data in the same format as series
+   * @param {Array<{ data: any[] }>} newData - Data to append, in the same shape as series[].data.
+   * @param {boolean} [overwriteInitialSeries=true] - When true, updates the stored initial series used by resetSeries().
+   * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
    */
   appendData(newData, overwriteInitialSeries = true) {
     const me = this
@@ -635,7 +656,10 @@ export default class ApexCharts {
   }
 
   /**
-   * Get all charts in the same "group" (including the instance which is called upon) to sync them when user zooms in/out or pan.
+   * Returns all charts in the same `chart.group` (including this instance),
+   * used to synchronise zoom/pan across grouped charts.
+   *
+   * @returns {ApexCharts[]}
    */
   getSyncedCharts() {
     const chartGroups = this.getGroupedCharts()
@@ -651,7 +675,10 @@ export default class ApexCharts {
   }
 
   /**
-   * Get charts in the same "group" (excluding the instance which is called upon) to perform operations on the other charts of the same group (eg., tooltip hovering)
+   * Returns all charts in the same `chart.group`, excluding this instance.
+   * Used internally to apply hover/zoom effects to sibling charts.
+   *
+   * @returns {ApexCharts[]}
    */
   getGroupedCharts() {
     return Apex._chartInstances
@@ -663,6 +690,12 @@ export default class ApexCharts {
       .map((ch) => (this.w.config.chart.group === ch.group ? ch.chart : this))
   }
 
+  /**
+   * Retrieves a rendered chart instance by its `chart.id` config value.
+   *
+   * @param {string} id - The chart ID set via `chart.id` in options.
+   * @returns {ApexCharts | undefined}
+   */
   static getChartByID(id) {
     const chartId = Utils.escapeString(id)
     if (!Apex._chartInstances) return undefined
@@ -672,7 +705,9 @@ export default class ApexCharts {
   }
 
   /**
-   * Allows the user to provide data attrs in the element and the chart will render automatically when this method is called by searching for the elements containing 'data-apexcharts' attribute
+   * Scans the document for elements with a `data-apexcharts` attribute and
+   * `data-options` JSON, then renders a chart in each one automatically.
+   * Useful for non-framework HTML pages.
    */
   static initOnLoad() {
     const els = document.querySelectorAll('[data-apexcharts]')
@@ -714,6 +749,14 @@ export default class ApexCharts {
     return ret
   }
 
+  /**
+   * Deep-merges `source` into `target` and returns the result.
+   * Thin wrapper around the internal `Utils.extend` utility.
+   *
+   * @param {object} target
+   * @param {object} source
+   * @returns {object}
+   */
   static merge(target, source) {
     return Utils.extend(target, source)
   }
@@ -746,44 +789,104 @@ export default class ApexCharts {
     InitCtxVariables.registerFeatures(featureMap)
   }
 
+  /**
+   * Toggles (show/hide) the series identified by name.
+   * Mirrors a click on the corresponding legend item.
+   *
+   * @param {string} seriesName
+   * @returns {object | undefined} The collapsed series object, if now hidden.
+   */
   toggleSeries(seriesName) {
     return this.series.toggleSeries(seriesName)
   }
 
+  /**
+   * Highlights or un-highlights a series when the user hovers a legend item.
+   * Called internally by the legend; not typically called by consumers.
+   *
+   * @param {MouseEvent} e
+   * @param {HTMLElement} targetElement - The legend marker element being hovered.
+   */
   highlightSeriesOnLegendHover(e, targetElement) {
     return this.series.toggleSeriesOnHover(e, targetElement)
   }
 
+  /**
+   * Makes a previously hidden series visible and re-renders.
+   *
+   * @param {string} seriesName
+   */
   showSeries(seriesName) {
     this.series.showSeries(seriesName)
   }
 
+  /**
+   * Hides a visible series and re-renders.
+   *
+   * @param {string} seriesName
+   */
   hideSeries(seriesName) {
     this.series.hideSeries(seriesName)
   }
 
+  /**
+   * Highlights (dims all other series) the series identified by name.
+   *
+   * @param {string} seriesName
+   */
   highlightSeries(seriesName) {
     this.series.highlightSeries(seriesName)
   }
 
+  /**
+   * Returns whether the series identified by name is currently hidden.
+   *
+   * @param {string} seriesName
+   * @returns {boolean}
+   */
   isSeriesHidden(seriesName) {
     this.series.isSeriesHidden(seriesName)
   }
 
+  /**
+   * Resets the chart to the initial series and optionally the initial zoom level.
+   *
+   * @param {boolean} [shouldUpdateChart=true] - When true, triggers a re-render.
+   * @param {boolean} [shouldResetZoom=true] - When true, restores the initial zoom level.
+   */
   resetSeries(shouldUpdateChart = true, shouldResetZoom = true) {
     this.series.resetSeries(shouldUpdateChart, shouldResetZoom)
   }
 
-  // Public method to add event listener on chart context
+  /**
+   * Subscribes to a chart event by name.
+   * Supported event names mirror the `chart.events` option keys
+   * (e.g. `'mounted'`, `'updated'`, `'dataPointMouseEnter'`).
+   *
+   * @param {string} name - Event name.
+   * @param {Function} handler - Callback invoked when the event fires.
+   */
   addEventListener(name, handler) {
     this.events.addEventListener(name, handler)
   }
 
-  // Public method to remove event listener on chart context
+  /**
+   * Removes a previously registered event listener.
+   *
+   * @param {string} name - Event name.
+   * @param {Function} handler - The exact function reference passed to addEventListener.
+   */
   removeEventListener(name, handler) {
     this.events.removeEventListener(name, handler)
   }
 
+  /**
+   * Adds an x-axis annotation dynamically after render.
+   *
+   * @param {XAxisAnnotations} opts - Annotation configuration.
+   * @param {boolean} [pushToMemory=true] - When true, the annotation persists across re-renders.
+   * @param {ApexCharts} [context] - Override the target chart instance (used by exec()).
+   */
   addXaxisAnnotation(opts, pushToMemory = true, context = undefined) {
     let me = this
     if (context) {
@@ -792,6 +895,13 @@ export default class ApexCharts {
     me.annotations?.addXaxisAnnotationExternal(opts, pushToMemory, me)
   }
 
+  /**
+   * Adds a y-axis annotation dynamically after render.
+   *
+   * @param {YAxisAnnotations} opts - Annotation configuration.
+   * @param {boolean} [pushToMemory=true] - When true, the annotation persists across re-renders.
+   * @param {ApexCharts} [context] - Override the target chart instance (used by exec()).
+   */
   addYaxisAnnotation(opts, pushToMemory = true, context = undefined) {
     let me = this
     if (context) {
@@ -800,6 +910,13 @@ export default class ApexCharts {
     me.annotations?.addYaxisAnnotationExternal(opts, pushToMemory, me)
   }
 
+  /**
+   * Adds a point annotation dynamically after render.
+   *
+   * @param {PointAnnotations} opts - Annotation configuration.
+   * @param {boolean} [pushToMemory=true] - When true, the annotation persists across re-renders.
+   * @param {ApexCharts} [context] - Override the target chart instance (used by exec()).
+   */
   addPointAnnotation(opts, pushToMemory = true, context = undefined) {
     let me = this
     if (context) {
@@ -808,6 +925,11 @@ export default class ApexCharts {
     me.annotations?.addPointAnnotationExternal(opts, pushToMemory, me)
   }
 
+  /**
+   * Removes all annotations from the chart.
+   *
+   * @param {ApexCharts} [context] - Override the target chart instance (used by exec()).
+   */
   clearAnnotations(context = undefined) {
     let me = this
     if (context) {
@@ -816,6 +938,12 @@ export default class ApexCharts {
     me.annotations?.clearAnnotations(me)
   }
 
+  /**
+   * Removes a specific annotation by its `id`.
+   *
+   * @param {string} id - The annotation id as set in the annotation config.
+   * @param {ApexCharts} [context] - Override the target chart instance (used by exec()).
+   */
   removeAnnotation(id, context = undefined) {
     let me = this
     if (context) {
@@ -824,26 +952,55 @@ export default class ApexCharts {
     me.annotations?.removeAnnotation(me, id)
   }
 
+  /**
+   * Returns the inner SVG group element that contains all chart graphics.
+   *
+   * @returns {Element | null}
+   */
   getChartArea() {
     const el = this.w.dom.baseEl.querySelector('.apexcharts-inner')
 
     return el
   }
 
+  /**
+   * Returns the sum of all data points whose x value falls within [minX, maxX].
+   *
+   * @param {number} minX
+   * @param {number} maxX
+   * @returns {number[]} One total per series.
+   */
   getSeriesTotalXRange(minX, maxX) {
     return this.coreUtils.getSeriesTotalsXRange(minX, maxX)
   }
 
+  /**
+   * Returns the highest y value in the specified series.
+   *
+   * @param {number} [seriesIndex=0]
+   * @returns {number}
+   */
   getHighestValueInSeries(seriesIndex = 0) {
     const range = new Range(this.w)
     return range.getMinYMaxY(seriesIndex).highestY
   }
 
+  /**
+   * Returns the lowest y value in the specified series.
+   *
+   * @param {number} [seriesIndex=0]
+   * @returns {number}
+   */
   getLowestValueInSeries(seriesIndex = 0) {
     const range = new Range(this.w)
     return range.getMinYMaxY(seriesIndex).lowestY
   }
 
+  /**
+   * Returns the sum of each series (the totals used for percentage calculations).
+   *
+   * @returns {number[]}
+   */
   getSeriesTotal() {
     return this.w.globals.seriesTotals
   }
@@ -917,6 +1074,14 @@ export default class ApexCharts {
     }
   }
 
+  /**
+   * Programmatically selects or deselects a data point.
+   * Equivalent to a user click on the data point.
+   *
+   * @param {number} seriesIndex - Zero-based series index.
+   * @param {number} [dataPointIndex] - Zero-based data point index within the series.
+   * @returns {number[][] | null} Updated selectedDataPoints array, or null.
+   */
   toggleDataPointSelection(seriesIndex, dataPointIndex) {
     return this.updateHelpers.toggleDataPointSelection(
       seriesIndex,
@@ -924,24 +1089,56 @@ export default class ApexCharts {
     )
   }
 
+  /**
+   * Programmatically zooms the x-axis to the given range.
+   * Requires zoom to be enabled (`chart.zoom.enabled: true`).
+   *
+   * @param {number} min - The minimum x value (timestamp or numeric).
+   * @param {number} max - The maximum x value (timestamp or numeric).
+   */
   zoomX(min, max) {
     this.ctx.toolbar?.zoomUpdateOptions(min, max)
   }
 
+  /**
+   * Switches the active locale, updating all locale-dependent labels (toolbar tooltips, month names, etc.).
+   *
+   * @param {string} localeName - Must match a locale name defined in `chart.locales`.
+   */
   setLocale(localeName) {
     this.localization.setCurrentLocaleValues(localeName)
   }
 
+  /**
+   * Exports the chart to a PNG or SVG data URI.
+   * Requires the Exports feature: `import 'apexcharts/features/exports'`.
+   *
+   * @param {{ scale?: number, width?: number }} [options]
+   * @returns {Promise<{ imgURI: string } | { blob: Blob }>}
+   */
   dataURI(options) {
     if (!this.ctx.exports) throw new Error('apexcharts: Exports feature is not registered. Import apexcharts/features/exports.')
     return this.ctx.exports.dataURI(options)
   }
 
+  /**
+   * Returns the chart's SVG markup as a string, optionally scaled.
+   * Requires the Exports feature: `import 'apexcharts/features/exports'`.
+   *
+   * @param {number} [scale=1]
+   * @returns {Promise<string>}
+   */
   getSvgString(scale) {
     if (!this.ctx.exports) throw new Error('apexcharts: Exports feature is not registered. Import apexcharts/features/exports.')
     return this.ctx.exports.getSvgString(scale)
   }
 
+  /**
+   * Triggers a CSV download of the chart's data.
+   * Requires the Exports feature: `import 'apexcharts/features/exports'`.
+   *
+   * @param {{ series?: any, fileName?: string, columnDelimiter?: string, lineDelimiter?: string }} [options]
+   */
   exportToCSV(options = {}) {
     if (!this.ctx.exports) throw new Error('apexcharts: Exports feature is not registered. Import apexcharts/features/exports.')
     return this.ctx.exports.exportToCSV(options)
