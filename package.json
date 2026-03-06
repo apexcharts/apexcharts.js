@@ -1,6 +1,6 @@
 {
   "name": "apexcharts",
-  "version": "5.10.1",
+  "version": "5.10.2",
   "description": "A JavaScript Chart Library",
   "repository": {
     "type": "git",
@@ -233,7 +233,9 @@
     "./src/svg/index.js",
     "./src/modules/helpers/InitCtxVariables.js",
     "./src/entries/*.js",
-    "./src/features/*.js"
+    "./src/features/*.js",
+    "./dist/*.esm.js",
+    "./dist/features/*.esm.js"
   ],
   "keywords": [
     "charts",
