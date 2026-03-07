@@ -524,6 +524,13 @@ class Line {
             )
           }
 
+          if (forecast.strokeColor) {
+            renderedForecastPath.node.setAttribute(
+              'stroke',
+              forecast.strokeColor
+            )
+          }
+
           this.elSeries.add(renderedForecastPath)
           renderedForecastPath.attr(
             'clip-path',
