@@ -140,6 +140,9 @@ declare class ApexCharts {
    */
   exportToCSV(options?: { series?: any; fileName?: string; columnDelimiter?: string; lineDelimiter?: string }): void
 
+  /** Returns the SVG.js root element (SVG Paper) for the chart. */
+  paper(): any
+
   /** Returns the inner SVG group element containing all chart graphics. */
   getChartArea(): Element | null
 
