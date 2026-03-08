@@ -121,7 +121,7 @@ export default class Core {
 
       // Use role="application" when keyboard navigation is enabled so that
       // screen readers pass arrow keys through to the chart rather than
-      // intercepting them. The <title> element still provides context.
+      // intercepting them.
       const svgRole =
         cnf.chart.accessibility.keyboard.enabled &&
         cnf.chart.accessibility.keyboard.navigation.enabled
@@ -133,20 +133,14 @@ export default class Core {
         'aria-label': ariaLabel,
       })
 
-      // Add title element for screen readers (after foreignObject)
-      const titleEl = BrowserAPIs.createElementNS(SVGNS, 'title')
-      titleEl.textContent = cnf.title.text || 'Chart'
-      // Insert after foreignObject but before other elements
-      this.w.dom.Paper.node.insertBefore(
-        titleEl,
-        this.w.dom.elLegendForeign.nextSibling,
-      )
-
       // Add desc element when description is provided
       if (cnf.chart.accessibility.description) {
         const descEl = BrowserAPIs.createElementNS(SVGNS, 'desc')
         descEl.textContent = cnf.chart.accessibility.description
-        this.w.dom.Paper.node.insertBefore(descEl, titleEl.nextSibling)
+        this.w.dom.Paper.node.insertBefore(
+          descEl,
+          this.w.dom.elLegendForeign.nextSibling,
+        )
       }
     }
 
