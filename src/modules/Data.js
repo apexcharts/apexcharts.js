@@ -443,6 +443,21 @@ export default class Data {
         return
       }
 
+      // LTTB downsampling — runs before any parsing so all downstream paths
+      // benefit. Only applies to multiFormat (XY/{x,y}) data where both x and y
+      // are available for triangle-area calculation.
+      const dr = cnf.chart.dataReducer
+      if (
+        dr?.enabled &&
+        this.isMultiFormat() &&
+        ser[i].data.length > (dr.threshold ?? 500)
+      ) {
+        ser[i] = {
+          ...ser[i],
+          data: Data.lttbDownsample(ser[i].data, dr.targetPoints ?? 250),
+        }
+      }
+
       if (
         cnf.chart.type === 'rangeBar' ||
         cnf.chart.type === 'rangeArea' ||
@@ -1076,6 +1091,78 @@ export default class Data {
         seriesGroups: this.w.labelData.seriesGroups,
       },
     }
+  }
+
+  /**
+   * Largest-Triangle-Three-Bucket (LTTB) downsampling.
+   *
+   * Reduces `data` to `targetPoints` points while preserving the visual shape
+   * of the series as perceived by the human eye.
+   *
+   * @param {Array} data   - Raw series data in [{x,y}] or [[x,y]] format.
+   * @param {number} targetPoints - Desired output length (>= 3).
+   * @returns {Array} Downsampled array in the same format as the input.
+   */
+  static lttbDownsample(data, targetPoints) {
+    const len = data.length
+    if (targetPoints >= len || targetPoints < 3) return data
+
+    // Normalise each element to {x, y} for the algorithm, remembering format.
+    const isXY = !Array.isArray(data[0])
+    const getX = isXY ? (p) => p.x : (p) => p[0]
+    const getY = isXY ? (p) => p.y : (p) => p[1]
+
+    const sampled = []
+    // Always include the first point.
+    sampled.push(data[0])
+
+    const bucketSize = (len - 2) / (targetPoints - 2)
+    let a = 0 // index of the last selected point
+
+    for (let i = 0; i < targetPoints - 2; i++) {
+      // Calculate point average for next bucket (used as the "future" anchor).
+      const avgRangeStart = Math.floor((i + 1) * bucketSize) + 1
+      const avgRangeEnd = Math.min(Math.floor((i + 2) * bucketSize) + 1, len)
+
+      let avgX = 0
+      let avgY = 0
+      const avgRangeLen = avgRangeEnd - avgRangeStart
+      for (let j = avgRangeStart; j < avgRangeEnd; j++) {
+        avgX += getX(data[j])
+        avgY += getY(data[j])
+      }
+      avgX /= avgRangeLen
+      avgY /= avgRangeLen
+
+      // Pick the point in the current bucket with the largest triangle area.
+      const rangeStart = Math.floor(i * bucketSize) + 1
+      const rangeEnd = Math.min(Math.floor((i + 1) * bucketSize) + 1, len)
+
+      const pointAX = getX(data[a])
+      const pointAY = getY(data[a])
+
+      let maxArea = -1
+      let maxAreaIdx = rangeStart
+
+      for (let j = rangeStart; j < rangeEnd; j++) {
+        const area =
+          Math.abs(
+            (pointAX - avgX) * (getY(data[j]) - pointAY) -
+              (pointAX - getX(data[j])) * (avgY - pointAY),
+          ) * 0.5
+        if (area > maxArea) {
+          maxArea = area
+          maxAreaIdx = j
+        }
+      }
+
+      sampled.push(data[maxAreaIdx])
+      a = maxAreaIdx
+    }
+
+    // Always include the last point.
+    sampled.push(data[len - 1])
+    return sampled
   }
 
   excludeCollapsedSeriesInYAxis() {

@@ -189,3 +189,44 @@ describe('Data Processing', () => {
     })
   })
 })
+
+describe('Data.lttbDownsample', () => {
+  it('returns original data when length <= targetPoints', () => {
+    const data = [{ x: 0, y: 1 }, { x: 1, y: 2 }, { x: 2, y: 3 }]
+    expect(Data.lttbDownsample(data, 5)).toBe(data)
+  })
+
+  it('returns original data when targetPoints < 3', () => {
+    const data = Array.from({ length: 100 }, (_, i) => ({ x: i, y: i }))
+    expect(Data.lttbDownsample(data, 2)).toBe(data)
+  })
+
+  it('always includes first and last points', () => {
+    const data = Array.from({ length: 200 }, (_, i) => ({ x: i, y: Math.sin(i / 10) }))
+    const result = Data.lttbDownsample(data, 50)
+    expect(result[0]).toBe(data[0])
+    expect(result[result.length - 1]).toBe(data[data.length - 1])
+  })
+
+  it('reduces to exactly targetPoints', () => {
+    const data = Array.from({ length: 500 }, (_, i) => ({ x: i, y: Math.sin(i / 20) }))
+    const result = Data.lttbDownsample(data, 100)
+    expect(result.length).toBe(100)
+  })
+
+  it('works with 2D array format [[x, y]]', () => {
+    const data = Array.from({ length: 200 }, (_, i) => [i, Math.cos(i / 10)])
+    const result = Data.lttbDownsample(data, 50)
+    expect(result.length).toBe(50)
+    expect(result[0]).toBe(data[0])
+    expect(result[result.length - 1]).toBe(data[data.length - 1])
+    expect(Array.isArray(result[1])).toBe(true)
+  })
+
+  it('preserves visual peaks (picks max-area point in each bucket)', () => {
+    const data = Array.from({ length: 100 }, (_, i) => ({ x: i, y: i === 50 ? 100 : 0 }))
+    const result = Data.lttbDownsample(data, 10)
+    const ys = result.map((p) => p.y)
+    expect(ys).toContain(100)
+  })
+})

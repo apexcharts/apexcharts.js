@@ -419,6 +419,12 @@ export default class Options {
             },
           },
         },
+        dataReducer: {
+          enabled: false,
+          algorithm: 'lttb',
+          targetPoints: 250,
+          threshold: 500,
+        },
       },
       parsing: {
         x: undefined,

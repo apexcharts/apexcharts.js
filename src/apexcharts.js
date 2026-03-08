@@ -142,8 +142,12 @@ export default class ApexCharts {
   create(ser, opts) {
     const w = this.w
 
-    const initCtx = new InitCtxVariables(this)
-    initCtx.initModules()
+    // Core modules are preserved across updates (Destroy.clear skips them when
+    // isUpdating=true). Only re-init when a full destroy() was called first.
+    if (!this.core) {
+      const initCtx = new InitCtxVariables(this)
+      initCtx.initModules()
+    }
     const gl = this.w.globals
 
     gl.noData = false

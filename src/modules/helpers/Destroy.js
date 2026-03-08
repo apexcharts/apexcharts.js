@@ -27,27 +27,38 @@ export default class Destroy {
     // Clear all performance caches
     PerformanceCache.invalidateAll(this.w)
 
-    this.ctx.animations = null
-    this.ctx.axes = null
-    this.ctx.annotations = null
-    this.ctx.core = null
-    this.ctx.data = null
-    this.ctx.grid = null
-    this.ctx.series = null
-    this.ctx.responsive = null
-    this.ctx.theme = null
-    this.ctx.formatters = null
-    this.ctx.titleSubtitle = null
-    this.ctx.legend = null
-    this.ctx.dimensions = null
-    this.ctx.options = null
-    this.ctx.crosshairs = null
-    this.ctx._zoomPanSelection = null
-    this.ctx.updateHelpers = null
-    this.ctx._toolbar = null
-    this.ctx.localization = null
-    this.ctx._keyboardNavigation = null
-    this.ctx.w.globals.tooltip = null
+    if (isUpdating) {
+      // During updates the module instances are reused — they hold no
+      // per-render state (all state lives in w/w.globals). Only the lazy
+      // optional modules that have their own destroy() need clearing; the
+      // core eagerly-created modules stay alive so initModules() is skipped.
+      this.ctx._zoomPanSelection = null
+      this.ctx._toolbar = null
+      this.ctx._keyboardNavigation = null
+    } else {
+      // Full destroy — null everything so GC can collect the instances.
+      this.ctx.animations = null
+      this.ctx.axes = null
+      this.ctx.annotations = null
+      this.ctx.core = null
+      this.ctx.data = null
+      this.ctx.grid = null
+      this.ctx.series = null
+      this.ctx.responsive = null
+      this.ctx.theme = null
+      this.ctx.formatters = null
+      this.ctx.titleSubtitle = null
+      this.ctx.legend = null
+      this.ctx.dimensions = null
+      this.ctx.options = null
+      this.ctx.crosshairs = null
+      this.ctx._zoomPanSelection = null
+      this.ctx.updateHelpers = null
+      this.ctx._toolbar = null
+      this.ctx.localization = null
+      this.ctx._keyboardNavigation = null
+      this.ctx.w.globals.tooltip = null
+    }
     this.clearDomElements({ isUpdating })
   }
 

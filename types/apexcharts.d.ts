@@ -489,6 +489,12 @@ type ApexChart = {
       }
     }
   }
+  dataReducer?: {
+    enabled?: boolean
+    algorithm?: 'lttb'
+    targetPoints?: number
+    threshold?: number
+  }
 }
 
 type ApexStates = {
