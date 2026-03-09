@@ -150,6 +150,103 @@ export async function getSelectedDataPoints(page) {
 }
 
 /**
+ * Drag across the chart SVG to simulate a zoom or selection gesture.
+ *
+ * Dispatches mousedown → mousemove (intermediate steps) → mouseup on the
+ * `.apexcharts-svg` element using pixel offsets relative to its top-left.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ x: number, y: number }} from  — start position (SVG-relative px)
+ * @param {{ x: number, y: number }} to    — end position (SVG-relative px)
+ * @param {number} [steps=5]              — intermediate mousemove count
+ */
+export async function dragOnChart(page, from, to, steps = 5) {
+  await page.evaluate(
+    ({ from, to, steps }) => {
+      const svg = document.querySelector('.apexcharts-svg')
+      const rect = svg.getBoundingClientRect()
+
+      const fire = (type, x, y) => {
+        svg.dispatchEvent(
+          new MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            button: 0,
+            which: 1,
+            clientX: rect.left + x,
+            clientY: rect.top + y,
+          }),
+        )
+      }
+
+      fire('mousedown', from.x, from.y)
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps
+        fire('mousemove', from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t)
+      }
+      fire('mouseup', to.x, to.y)
+    },
+    { from, to, steps },
+  )
+  // Allow the chart update triggered by mouseup to settle.
+  await page.waitForTimeout(200)
+}
+
+/**
+ * Dispatch a wheel event on the chart SVG.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ x: number, y: number }} pos — SVG-relative position of mouse
+ * @param {number} deltaY — negative = zoom in, positive = zoom out
+ */
+export async function wheelOnChart(page, pos, deltaY) {
+  await page.evaluate(
+    ({ pos, deltaY }) => {
+      const svg = document.querySelector('.apexcharts-svg')
+      const rect = svg.getBoundingClientRect()
+      svg.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          clientX: rect.left + pos.x,
+          clientY: rect.top + pos.y,
+          deltaY,
+        }),
+      )
+    },
+    { pos, deltaY },
+  )
+  await page.waitForTimeout(300)
+}
+
+/**
+ * Read the current visible xaxis min/max from the live chart instance.
+ * Returns { minX, maxX } as numbers.
+ */
+export async function getXRange(page) {
+  return page.evaluate(() => ({
+    minX: window.chart.w.globals.minX,
+    maxX: window.chart.w.globals.maxX,
+  }))
+}
+
+/**
+ * Switch the toolbar mode (zoom / pan / selection) via updateOptions,
+ * then wait for the re-render to complete.
+ */
+export async function setToolbarMode(page, mode) {
+  await page.evaluate((m) => {
+    window.chart.updateOptions({
+      chart: { toolbar: { autoSelected: m } },
+    })
+  }, mode)
+  await page.waitForFunction(
+    () => window.chart.w.globals.animationEnded === true,
+    { timeout: 5_000 },
+  )
+}
+
+/**
  * Click a legend entry by series name text.
  */
 export async function clickLegend(page, seriesName) {

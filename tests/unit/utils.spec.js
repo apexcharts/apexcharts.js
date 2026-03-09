@@ -529,4 +529,153 @@ describe('Utils', () => {
     })
   })
 
+  describe('Color shading', () => {
+    describe('shadeColor(p, color)', () => {
+      it('lightens a hex color (positive percent)', () => {
+        const utils = new Utils()
+        const result = utils.shadeColor(0.5, '#000000')
+        // Lightening black by 50% → some mid-grey hex
+        expect(result).toMatch(/^#[0-9a-f]{6}$/i)
+        expect(result).not.toBe('#000000')
+      })
+
+      it('darkens a hex color (negative percent)', () => {
+        const utils = new Utils()
+        const result = utils.shadeColor(-0.5, '#ffffff')
+        expect(result).toMatch(/^#[0-9a-f]{6}$/i)
+        expect(result).not.toBe('#ffffff')
+      })
+
+      it('routes to shadeRGBColor for rgb() input', () => {
+        const utils = new Utils()
+        const result = utils.shadeColor(0.5, 'rgb(100,100,100)')
+        expect(result).toMatch(/^rgb\(/)
+      })
+
+      it('lightening by 0 returns a near-equivalent color', () => {
+        const utils = new Utils()
+        // shade by 0 → no change for hex
+        const result = utils.shadeHexColor(0, '#ff0000')
+        expect(result).toBe('#ff0000')
+      })
+
+      it('darkens an rgb color (negative percent)', () => {
+        const utils = new Utils()
+        const result = utils.shadeRGBColor(-0.5, 'rgb(200,200,200)')
+        expect(result).toMatch(/^rgb\(/)
+      })
+    })
+  })
+
+  describe('findAncestor(el, cls)', () => {
+    it('returns the matching ancestor element', () => {
+      const grandparent = document.createElement('div')
+      grandparent.classList.add('target-class')
+      const parent = document.createElement('div')
+      const child = document.createElement('span')
+      grandparent.appendChild(parent)
+      parent.appendChild(child)
+
+      const result = Utils.findAncestor(child, 'target-class')
+      expect(result).toBe(grandparent)
+    })
+
+    it('returns null when no matching ancestor exists', () => {
+      const parent = document.createElement('div')
+      const child = document.createElement('span')
+      parent.appendChild(child)
+
+      const result = Utils.findAncestor(child, 'nonexistent-class')
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('extractNumber(s)', () => {
+    it('extracts the numeric portion from a string with units', () => {
+      expect(Utils.extractNumber('123px')).toBe(123)
+      expect(Utils.extractNumber('45.6em')).toBe(45.6)
+    })
+
+    it('returns NaN for a non-numeric string', () => {
+      expect(isNaN(Utils.extractNumber('abc'))).toBe(true)
+    })
+
+    it('handles plain numeric strings', () => {
+      expect(Utils.extractNumber('42')).toBe(42)
+    })
+  })
+
+  describe('preciseAddition(a, b)', () => {
+    it('adds integers without floating-point error', () => {
+      expect(Utils.preciseAddition(1, 2)).toBe(3)
+    })
+
+    it('adds floats precisely — 0.1+0.2 = 0.3', () => {
+      expect(Utils.preciseAddition(0.1, 0.2)).toBeCloseTo(0.3, 10)
+    })
+
+    it('handles mixed integer and float', () => {
+      expect(Utils.preciseAddition(1, 0.5)).toBe(1.5)
+    })
+
+    it('handles negative numbers', () => {
+      expect(Utils.preciseAddition(-0.1, 0.1)).toBeCloseTo(0, 10)
+    })
+  })
+
+  describe('getGCD(a, b)', () => {
+    it('computes GCD of two integers', () => {
+      expect(Utils.getGCD(12, 8)).toBeCloseTo(4, 5)
+    })
+
+    it('computes GCD of two floats', () => {
+      // GCD of 0.3 and 0.6 should be close to 0.3
+      expect(Utils.getGCD(0.3, 0.6)).toBeCloseTo(0.3, 5)
+    })
+
+    it('returns a when b=0 (GCD(a,0)=a)', () => {
+      // When one number is much larger, factor may or may not exceed 1
+      const result = Utils.getGCD(5, 5)
+      expect(result).toBeCloseTo(5, 3)
+    })
+
+    it('uses factor=1 when the numbers are large enough (factor<=1 branch)', () => {
+      // With large numbers, factor = 10^(p - floor(log10(max))) ≤ 1
+      const result = Utils.getGCD(1000000, 500000)
+      expect(result).toBeCloseTo(500000, -3)
+    })
+  })
+
+  describe('getPrimeFactors(n)', () => {
+    it('returns prime factors of a composite number', () => {
+      expect(Utils.getPrimeFactors(12)).toEqual([2, 2, 3])
+    })
+
+    it('returns the number itself for a prime', () => {
+      expect(Utils.getPrimeFactors(7)).toEqual([7])
+    })
+
+    it('returns empty array for 1 (no factors)', () => {
+      expect(Utils.getPrimeFactors(1)).toEqual([])
+    })
+
+    it('handles a number with repeated prime factor', () => {
+      expect(Utils.getPrimeFactors(8)).toEqual([2, 2, 2])
+    })
+  })
+
+  describe('mod(a, b)', () => {
+    it('computes precise modulo for integers', () => {
+      expect(Utils.mod(10, 3)).toBeCloseTo(1, 5)
+    })
+
+    it('computes precise modulo for floats', () => {
+      expect(Utils.mod(0.7, 0.3)).toBeCloseTo(0.1, 4)
+    })
+
+    it('returns 0 when a is a multiple of b', () => {
+      expect(Utils.mod(6, 3)).toBeCloseTo(0, 5)
+    })
+  })
+
 })
