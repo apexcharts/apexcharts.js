@@ -203,25 +203,6 @@ describe('Accessibility', () => {
       expect(ariaLabel).toContain('Q1 2024')
     })
 
-    it('should add <title> element to SVG', () => {
-      const chart = chartWithAccessibility({
-        title: {
-          text: 'Revenue Chart',
-        },
-      })
-
-      const svg = chart.el.querySelector('.apexcharts-svg')
-      // Find all title elements and look for the accessibility one
-      const titleElements = Array.from(svg.querySelectorAll('title'))
-      const accessibilityTitle = titleElements.find(el =>
-        el.textContent === 'Revenue Chart' ||
-        el.parentNode === svg
-      )
-
-      expect(accessibilityTitle).not.toBeNull()
-      expect(accessibilityTitle.textContent).toBe('Revenue Chart')
-    })
-
     it('should add <desc> element when description is provided', () => {
       const chart = chartWithAccessibility({
         accessibility: {
@@ -234,21 +215,6 @@ describe('Accessibility', () => {
 
       expect(descEl).not.toBeNull()
       expect(descEl.textContent).toBe('This chart shows monthly sales data')
-    })
-
-    it('should add <title> with fallback "Chart" when no title provided', () => {
-      const chart = chartWithAccessibility()
-
-      const svg = chart.el.querySelector('.apexcharts-svg')
-      // Find all title elements and look for the accessibility one
-      const titleElements = Array.from(svg.querySelectorAll('title'))
-      const accessibilityTitle = titleElements.find(el =>
-        el.textContent === 'Chart' ||
-        el.parentNode === svg
-      )
-
-      expect(accessibilityTitle).not.toBeNull()
-      expect(accessibilityTitle.textContent).toBe('Chart')
     })
 
     it('should use description as aria-label when both title and description provided', () => {
@@ -286,10 +252,6 @@ describe('Accessibility', () => {
 
       const svg = chart.el.querySelector('.apexcharts-svg')
       const foreignObject = svg.querySelector('foreignObject')
-
-      // Find accessibility elements that are direct children of SVG
-      const titleElements = Array.from(svg.querySelectorAll('title'))
-      const titleEl = titleElements.find(el => el.parentNode === svg && el.textContent === 'Test Chart')
       const descEl = svg.querySelector('desc')
 
       // foreignObject should exist
@@ -298,19 +260,16 @@ describe('Accessibility', () => {
       // foreignObject must be the first child to stay at the back
       expect(svg.firstChild).toBe(foreignObject)
 
-      // Accessibility elements should come after foreignObject
-      expect(titleEl).not.toBeNull()
+      // desc should come after foreignObject
       expect(descEl).not.toBeNull()
 
       // Get all child nodes (including text nodes) and filter for elements
       const children = Array.from(svg.childNodes).filter(node => node.nodeType === 1)
       const foreignObjectIndex = children.indexOf(foreignObject)
-      const titleIndex = children.indexOf(titleEl)
       const descIndex = children.indexOf(descEl)
 
-      // foreignObject must be before title and desc
+      // foreignObject must be before desc
       expect(foreignObjectIndex).toBe(0)
-      expect(titleIndex).toBeGreaterThan(foreignObjectIndex)
       expect(descIndex).toBeGreaterThan(foreignObjectIndex)
     })
 

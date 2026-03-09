@@ -57,8 +57,8 @@ class Formatters {
         // deduce this is due to the number of ticks exceeding the even lower
         // integer range. Add an additional decimal place only in this case.
         const f = v.toFixed(0)
-        // Do not change the == to ===
-        v = v == f ? f : v.toFixed(1)
+        // Number(f) converts the string "2" to 2 so we can use strict equality
+        v = Number(f) === v ? f : v.toFixed(1)
       }
     }
     return v

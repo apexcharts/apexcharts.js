@@ -246,7 +246,7 @@ class RangeBar extends Bar {
       .map((_) => (Array.isArray(_) ? _.join(' ') : _))
       .indexOf(labelX)
     const overlappedIndex = w.rangeData.seriesRange[i].findIndex(
-      (tx) => tx.x === labelX && tx.overlaps.length > 0
+      (tx) => tx.x === labelX && tx.overlaps.size > 0
     )
 
     if (this.isHorizontal) {
@@ -257,7 +257,7 @@ class RangeBar extends Bar {
       }
 
       if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
-        overlaps = w.rangeData.seriesRange[i][overlappedIndex].overlaps
+        overlaps = Array.from(w.rangeData.seriesRange[i][overlappedIndex].overlaps)
 
         if (overlaps.indexOf(rangeName) > -1) {
           barHeight = initPositions.barHeight / overlaps.length
@@ -281,7 +281,7 @@ class RangeBar extends Bar {
       }
 
       if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
-        overlaps = w.rangeData.seriesRange[i][overlappedIndex].overlaps
+        overlaps = Array.from(w.rangeData.seriesRange[i][overlappedIndex].overlaps)
 
         if (overlaps.indexOf(rangeName) > -1) {
           barWidth = initPositions.barWidth / overlaps.length

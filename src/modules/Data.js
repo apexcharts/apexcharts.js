@@ -42,7 +42,20 @@ export default class Data {
   // given format is [{x, y}, {x, y}]
   isFormatXY() {
     const firstDataPoint = this.getFirstDataPoint()
-    return firstDataPoint && typeof firstDataPoint.x !== 'undefined'
+    if (!firstDataPoint || typeof firstDataPoint.x === 'undefined') return false
+    const data = this.w.config.series[this.activeSeriesIndex]?.data
+    if (data) {
+      const isXY = (pt) => pt && typeof pt.x !== 'undefined'
+      for (let k = 1; k < Math.min(3, data.length); k++) {
+        if (isXY(data[k]) !== true) {
+          console.warn(
+            `ApexCharts: series data has mixed formats starting at index ${k}`
+          )
+          break
+        }
+      }
+    }
+    return true
   }
 
   // given format is [[x, y], [x, y]]
@@ -223,13 +236,8 @@ export default class Data {
 
             // Check overlap using interval intersection
             if (range1y1 <= range2y2 && range2y1 <= range1y2) {
-              // Use Set-like behavior to avoid duplicates
-              if (sarr.overlaps.indexOf(arr.rangeName) < 0) {
-                sarr.overlaps.push(arr.rangeName)
-              }
-              if (sarr.overlaps.indexOf(range2.rangeName) < 0) {
-                sarr.overlaps.push(range2.rangeName)
-              }
+              sarr.overlaps.add(arr.rangeName)
+              sarr.overlaps.add(range2.rangeName)
             }
           }
         }
@@ -268,7 +276,7 @@ export default class Data {
       if (!uniqueKeysMap.has(item.x)) {
         const keyObj = {
           x: item.x,
-          overlaps: [],
+          overlaps: new Set(),
           y: [],
         }
         uniqueKeysMap.set(item.x, keyObj)
@@ -705,10 +713,17 @@ export default class Data {
           })
         })
         // remove duplicate x-axis labels
-        this.w.labelData.labels = Array.from(
-          new Set(this.w.labelData.labels.map(JSON.stringify)),
-          JSON.parse,
-        )
+        const _labels = this.w.labelData.labels
+        if (_labels.length > 0 && (typeof _labels[0] === 'number' || typeof _labels[0] === 'string')) {
+          this.w.labelData.labels = [...new Set(_labels)]
+        } else {
+          const _seen = new Map()
+          for (const _label of _labels) {
+            const _key = JSON.stringify(_label)
+            if (!_seen.has(_key)) _seen.set(_key, _label)
+          }
+          this.w.labelData.labels = Array.from(_seen.values())
+        }
       }
 
       if (cnf.xaxis.convertedCatToNumeric) {
@@ -733,9 +748,11 @@ export default class Data {
           // in case there is a combo chart (boxplot/scatter)
           // and there are duplicated x values, we need to eliminate duplicates
           const seriesDataFiltered = cnf.series.map((serie) => {
-            return serie.data.filter(
-              (v, i, a) => a.findIndex((t) => t.x === v.x) === i,
-            )
+            const seen = new Map()
+            for (const point of serie.data) {
+              if (!seen.has(point.x)) seen.set(point.x, point)
+            }
+            return Array.from(seen.values())
           })
 
           const len = seriesDataFiltered.reduce(
@@ -874,7 +891,12 @@ export default class Data {
             this.getNestedValue(item, fieldName),
           )
 
-          if (this.w.config.chart.type === 'bubble' && yValues.length === 2) {
+          if (this.w.config.chart.type === 'bubble') {
+            if (yValues.length < 2) {
+              console.warn(
+                `ApexCharts: series[${index}] bubble chart requires parseData.y to have at least 2 fields (y and z). Got: ${JSON.stringify(effectiveParsing.y)}`
+              )
+            }
             // For bubble: [y-value, z-value] → y = yValues[0], z = yValues[1]
             y = yValues[0]
           } else {

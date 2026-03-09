@@ -27,21 +27,6 @@ export default class Core {
     const { globals: gl, config: cnf } = this.w
 
     const ct = cnf.chart.type
-    const axisChartsArrTypes = [
-      'line',
-      'area',
-      'bar',
-      'rangeBar',
-      'rangeArea',
-      'candlestick',
-      'boxPlot',
-      'scatter',
-      'bubble',
-      'radar',
-      'heatmap',
-      'treemap',
-    ]
-
     const xyChartsArrTypes = [
       'line',
       'area',
@@ -52,6 +37,13 @@ export default class Core {
       'boxPlot',
       'scatter',
       'bubble',
+    ]
+
+    const axisChartsArrTypes = [
+      ...xyChartsArrTypes,
+      'radar',
+      'heatmap',
+      'treemap',
     ]
 
     gl.axisCharts = axisChartsArrTypes.includes(ct)
@@ -482,9 +474,10 @@ export default class Core {
         : gl.axisCharts
           ? cnf.chart.parentHeightOffset
           : 0
-      this.w.dom.Paper.node.parentNode.parentNode.style.minHeight = `${
-        gl.svgHeight + offsetY
-      }px`
+      const paperNode = this.w.dom.Paper.node
+      if (paperNode.parentNode?.parentNode) {
+        paperNode.parentNode.parentNode.style.minHeight = `${gl.svgHeight + offsetY}px`
+      }
     }
 
     this.w.dom.elWrap.style.width = `${gl.svgWidth}px`

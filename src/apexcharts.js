@@ -63,6 +63,13 @@ export default class ApexCharts {
    * @returns {Promise<ApexCharts>} Resolves with the chart instance after mount.
    */
   render() {
+    if (!this.w?.config?.chart) {
+      return Promise.reject(
+        new Error(
+          'ApexCharts: chart configuration is missing or invalid. Ensure the options object includes a `chart` property.'
+        )
+      )
+    }
     // main method
     return new Promise((resolve, reject) => {
       // only draw chart, if element found
@@ -130,8 +137,11 @@ export default class ApexCharts {
             resolve(graphData)
           })
           .catch((e) => {
-            reject(e)
             // handle error in case no data or element not found
+            const enriched = e instanceof Error ? e : new Error(String(e))
+            enriched.chartId = this.w?.globals?.chartID
+            enriched.el = this.el
+            reject(enriched)
           })
       } else {
         reject(new Error('Element not found'))
@@ -1173,7 +1183,6 @@ export default class ApexCharts {
    * Handle window resize and re-draw the whole chart.
    */
   _windowResize() {
-    clearTimeout(this.w.globals.resizeTimer)
     this.w.globals.resizeTimer = window.setTimeout(() => {
       this.w.globals.resized = true
       this.w.globals.dataChanged = false
@@ -1184,6 +1193,9 @@ export default class ApexCharts {
   }
 
   _windowResizeHandler() {
+    // Always clear any pending timer so a false→true→false toggle never fires a stale render
+    clearTimeout(this.w.globals.resizeTimer)
+
     let { redrawOnWindowResize: redraw } = this.w.config.chart
 
     if (typeof redraw === 'function') {

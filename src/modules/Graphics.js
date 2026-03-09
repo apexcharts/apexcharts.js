@@ -865,8 +865,9 @@ class Graphics {
     const w = this.w
     const filters = new Filters(this.w)
 
-    const i = parseInt(path.node.getAttribute('index'), 10)
-    const j = parseInt(path.node.getAttribute('j'), 10)
+    const i = parseInt(path.node.getAttribute('index') ?? '', 10)
+    const j = parseInt(path.node.getAttribute('j') ?? '', 10)
+    if (isNaN(i) || isNaN(j)) return
 
     if (typeof w.config.chart.events.dataPointMouseEnter === 'function') {
       w.config.chart.events.dataPointMouseEnter(e, this.ctx, {
@@ -899,8 +900,9 @@ class Graphics {
     const w = this.w
     const filters = new Filters(this.w)
 
-    const i = parseInt(path.node.getAttribute('index'), 10)
-    const j = parseInt(path.node.getAttribute('j'), 10)
+    const i = parseInt(path.node.getAttribute('index') ?? '', 10)
+    const j = parseInt(path.node.getAttribute('j') ?? '', 10)
+    if (isNaN(i) || isNaN(j)) return
 
     if (typeof w.config.chart.events.dataPointMouseLeave === 'function') {
       w.config.chart.events.dataPointMouseLeave(e, this.ctx, {
@@ -930,15 +932,16 @@ class Graphics {
     const w = this.w
     const filters = new Filters(this.w)
 
-    const i = parseInt(path.node.getAttribute('index'), 10)
-    const j = parseInt(path.node.getAttribute('j'), 10)
+    const i = parseInt(path.node.getAttribute('index') ?? '', 10)
+    const j = parseInt(path.node.getAttribute('j') ?? '', 10)
+    if (isNaN(i) || isNaN(j)) return
 
     let selected = 'false'
     if (path.node.getAttribute('selected') === 'true') {
       path.node.setAttribute('selected', 'false')
 
-      if (w.interact.selectedDataPoints[i].indexOf(j) > -1) {
-        const index = w.interact.selectedDataPoints[i].indexOf(j)
+      const index = w.interact.selectedDataPoints[i].indexOf(j)
+      if (index > -1) {
         w.interact.selectedDataPoints[i].splice(index, 1)
       }
     } else {
@@ -1125,7 +1128,8 @@ class Graphics {
     const w = this.w
 
     // cache text measurements to avoid repeated DOM create/measure/remove cycles
-    const cacheKey = `${text}|${fontSize}|${fontFamily}|${transform}|${useBBox}`
+    // Use \0 (null byte) as separator — cannot appear in font families or CSS transforms
+    const cacheKey = [text, fontSize, fontFamily, transform, useBBox].join('\0')
     const cache = w.globals.textRectsCache
     if (cache && cache.has(cacheKey)) {
       return cache.get(cacheKey)
