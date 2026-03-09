@@ -1,3 +1,4 @@
+// @ts-check
 import CoreUtils from '../../../modules/CoreUtils'
 import Utils from '../../../utils/Utils'
 

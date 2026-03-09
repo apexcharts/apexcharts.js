@@ -1,3 +1,4 @@
+// @ts-check
 import CoreUtils from '../modules/CoreUtils'
 import Bar from './Bar'
 import Fill from '../modules/Fill'
@@ -96,7 +97,7 @@ class BoxCandleStick extends Bar {
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
-        let paths = null
+        let paths = /** @type {any} */ (null)
         const pathsParams = {
           indexes: {
             i,
@@ -261,7 +262,7 @@ class BoxCandleStick extends Bar {
     let pathTo
     let pathFrom = graphics.move(barXPosition + barWidth / 2, y1)
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j, true)
+      pathFrom = this.getPreviousPath(realIndex, j)
     }
 
     if (this.isOHLC) {
@@ -408,7 +409,7 @@ class BoxCandleStick extends Bar {
 
     let pathFrom = graphics.move(x1, barYPosition + barHeight / 2)
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j, true)
+      pathFrom = this.getPreviousPath(realIndex, j)
     }
 
     const pathTo = [

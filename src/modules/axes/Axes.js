@@ -1,3 +1,4 @@
+// @ts-check
 import XAxis from './XAxis'
 import YAxis from './YAxis'
 

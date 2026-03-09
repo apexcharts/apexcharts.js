@@ -232,7 +232,6 @@ describe('morphPaths(fromD, toD)', () => {
     const morph = morphPaths('M 0 0 L 100 0', 'M 0 0 L 0 100')
     const mid = morph(0.5)
     // At midpoint: L coordinate should be approximately (50, 50) after normalisation
-    const nums = mid.match(/[\d.]+/g).map(Number)
     // The x and y of the L command at pos=0.5 should both be 50
     // After bezier normalisation coords may differ, so we just check it's a valid path
     expect(mid).toMatch(/^[MLCQZSHVAT\s\d.,-]+$/)

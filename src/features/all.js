@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Registers all optional ApexCharts feature modules.
  *

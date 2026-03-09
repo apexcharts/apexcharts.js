@@ -1,3 +1,4 @@
+// @ts-check
 import Utils from '../utils/Utils'
 import DateTime from '../utils/DateTime'
 import Scales from './Scales'

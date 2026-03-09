@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from '../../../modules/Graphics'
 
 export default class CircularChartsHelpers {

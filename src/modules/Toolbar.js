@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from './Graphics'
 import Exports from './Exports'
 import Utils from './../utils/Utils'
@@ -282,7 +283,7 @@ export default class Toolbar {
     })
 
     // Menu keyboard navigation: Arrow keys move focus, Escape closes menu
-    this.elMenuIcon.addEventListener('keydown', (e) => {
+    this.elMenuIcon.addEventListener('keydown', (/** @type {KeyboardEvent} */ e) => {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault()
         if (!this.elMenu.classList.contains('apexcharts-menu-open')) {
@@ -291,13 +292,13 @@ export default class Toolbar {
         // Focus first (ArrowDown) or last (ArrowUp) menu item after menu renders
         window.setTimeout(() => {
           const idx = e.key === 'ArrowDown' ? 0 : this.elMenuItems.length - 1
-          if (this.elMenuItems[idx]) this.elMenuItems[idx].focus()
+          if (this.elMenuItems[idx]) /** @type {HTMLElement} */ (this.elMenuItems[idx]).focus()
         }, 20)
       }
     })
 
     this.elMenuItems.forEach((m, idx) => {
-      m.addEventListener('keydown', (e) => {
+      m.addEventListener('keydown', (/** @type {KeyboardEvent} */ e) => {
         if (e.key === 'ArrowDown') {
           e.preventDefault()
           const next = this.elMenuItems[idx + 1] || this.elMenuItems[0]
@@ -563,10 +564,10 @@ export default class Toolbar {
     const exprt = new Exports(this.w, this.ctx)
     switch (type) {
       case 'svg':
-        exprt.exportToSVG(this.ctx)
+        exprt.exportToSVG()
         break
       case 'png':
-        exprt.exportToPng(this.ctx)
+        exprt.exportToPng()
         break
       case 'csv':
         exprt.exportToCSV({

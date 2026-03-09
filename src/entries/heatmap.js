@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * ApexCharts — heatmap entry point.
  *

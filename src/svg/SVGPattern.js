@@ -1,3 +1,4 @@
+// @ts-check
 import SVGElement from './SVGElement'
 import SVGContainer from './SVGContainer'
 import { SVGNS } from './math'

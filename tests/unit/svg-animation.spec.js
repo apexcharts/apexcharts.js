@@ -14,7 +14,7 @@
  * refactors while still documenting the expected behaviour precisely.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { SVGAnimationRunner } from '../../src/svg/SVGAnimation.js'
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+// @ts-check
 import { Environment } from '../utils/Environment.js'
 
 // Install draggable behavior on SVGElement prototype

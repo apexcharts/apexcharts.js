@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Performance cache utils
  * Centralized cache management for DOM queries and dimensions
@@ -6,7 +7,7 @@
 export default class PerformanceCache {
   /**
    * Invalidate all caches
-   * @param {Object} w - ApexCharts globals object
+   * @param {import('../types/internal').ChartStateW} w - ApexCharts state object
    */
   static invalidateAll(w) {
     if (!w || !w.globals) return
@@ -27,7 +28,7 @@ export default class PerformanceCache {
 
   /**
    * Invalidate dimension cache only
-   * @param {Object} w - ApexCharts globals object
+   * @param {import('../types/internal').ChartStateW} w - ApexCharts state object
    */
   static invalidateDimensions(w) {
     if (!w || !w.globals) return
@@ -36,7 +37,7 @@ export default class PerformanceCache {
 
   /**
    * Invalidate selector cache only
-   * @param {Object} w - ApexCharts globals object
+   * @param {import('../types/internal').ChartStateW} w - ApexCharts state object
    */
   static invalidateSelectors(w) {
     if (!w || !w.globals) return
@@ -47,7 +48,7 @@ export default class PerformanceCache {
 
   /**
    * Get cached selector result or compute and cache it
-   * @param {Object} w - ApexCharts globals object
+   * @param {import('../types/internal').ChartStateW} w - ApexCharts state object
    * @param {string} key - Cache key
    * @param {Function} queryFn - Function to execute if not cached
    * @returns {*} Cached or newly computed result
@@ -68,7 +69,7 @@ export default class PerformanceCache {
 
   /**
    * Get cached dimension or compute and cache it
-   * @param {Object} w - ApexCharts globals object
+   * @param {import('../types/internal').ChartStateW} w - ApexCharts state object
    * @param {string} key - Cache key
    * @param {Function} computeFn - Function to compute dimensions
    * @param {number} maxAge - Maximum cache age in milliseconds (default: 1000ms)
@@ -99,7 +100,7 @@ export default class PerformanceCache {
 
   /**
    * Cache a DOM element reference
-   * @param {Object} w - ApexCharts globals object
+   * @param {import('../types/internal').ChartStateW} w - ApexCharts state object
    * @param {string} key - Cache key
    * @param {Element} element - DOM element to cache
    */
@@ -115,7 +116,7 @@ export default class PerformanceCache {
 
   /**
    * Get cached DOM element
-   * @param {Object} w - ApexCharts globals object
+   * @param {import('../types/internal').ChartStateW} w - ApexCharts state object
    * @param {string} key - Cache key
    * @returns {Element|null} Cached element or null
    */

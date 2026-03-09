@@ -1,3 +1,4 @@
+// @ts-check
 import BarDataLabels from './common/bar/DataLabels'
 import BarHelpers from './common/bar/Helpers'
 import CoreUtils from '../modules/CoreUtils'
@@ -70,8 +71,8 @@ class Bar {
   /** primary draw method which is called on bar object
    * @memberof Bar
    * @param {array} series - user supplied series values
-   * @param {int} seriesIndex - the index by which series will be drawn on the svg
-   * @return {node} element which is supplied to parent chart draw method for appending
+   * @param {number} seriesIndex - the index by which series will be drawn on the svg
+   * @return {Element} element which is supplied to parent chart draw method for appending
    **/
   draw(series, seriesIndex) {
     const w = this.w
@@ -89,6 +90,7 @@ class Bar {
     })
 
     if (w.config.dataLabels.enabled) {
+      // @ts-ignore — totalItems is set dynamically by bar/Helpers.js initializePoints()
       if (this.totalItems > this.barOptions.dataLabels.maxItems) {
         console.warn(
           'WARNING: DataLabels are enabled but there are too many to display. This may cause performance issue when rendering - ApexCharts'
@@ -176,7 +178,7 @@ class Bar {
       for (let j = 0; j < series[i].length; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
-        let paths = null
+        let paths = /** @type {any} */ (null)
         const pathsParams = {
           indexes: {
             i,
@@ -294,6 +296,7 @@ class Bar {
     return ret
   }
 
+  /** @param {{ realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any }} opts */
   renderSeries({
     realIndex,
     pathFill,
@@ -366,7 +369,7 @@ class Bar {
     }
 
     const barDataLabels = new BarDataLabels(this)
-    const dataLabelsObj = barDataLabels.handleBarDataLabels({
+    const dataLabelsObj = /** @type {any} */ (barDataLabels.handleBarDataLabels({
       x,
       y,
       y1,
@@ -381,7 +384,7 @@ class Bar {
       barXPosition,
       barYPosition,
       visibleSeries,
-    })
+    }))
 
     if (!w.globals.isBarHorizontal) {
       if (
@@ -410,7 +413,7 @@ class Bar {
       2.4
 
     if (!skipDrawing) {
-      const renderedPath = graphics.renderPaths({
+      const renderedPath = /** @type {any} */ (graphics.renderPaths({
         i,
         j,
         realIndex,
@@ -426,7 +429,7 @@ class Bar {
         className: `apexcharts-${type}-area ${classes}`,
         chartType: type,
         bindEventsOnPaths: false,
-      })
+      }))
 
       renderedPath.attr('clip-path', `url(#gridRectBarMask${w.globals.cuid})`)
 
@@ -523,7 +526,7 @@ class Bar {
 
     x = this.barHelpers.getXForValue(this.series[i][j], zeroW)
 
-    const paths = this.barHelpers.getBarpaths({
+    const paths = /** @type {any} */ (this.barHelpers.getBarpaths({
       barYPosition,
       barHeight,
       x1: zeroW,
@@ -535,7 +538,7 @@ class Bar {
       i,
       j,
       w,
-    })
+    }))
 
     if (!w.axisFlags.isXNumeric) {
       y = y + yDivision
@@ -610,7 +613,7 @@ class Bar {
       translationsIndex
     )
 
-    const paths = this.barHelpers.getColumnPaths({
+    const paths = /** @type {any} */ (this.barHelpers.getColumnPaths({
       barXPosition,
       barWidth,
       y1: zeroH,
@@ -622,7 +625,7 @@ class Bar {
       i,
       j,
       w,
-    })
+    }))
 
     if (!w.axisFlags.isXNumeric) {
       x = x + xDivision
@@ -675,8 +678,8 @@ class Bar {
 
   /** getPreviousPath is a common function for bars/columns which is used to get previous paths when data changes.
    * @memberof Bar
-   * @param {int} realIndex - current iterating i
-   * @param {int} j - current iterating series's j index
+   * @param {number} realIndex - current iterating i
+   * @param {number} j - current iterating series's j index
    * @return {string} pathFrom is the string which will be appended in animations
    **/
   getPreviousPath(realIndex, j) {
@@ -688,7 +691,7 @@ class Bar {
       if (
         gpp.paths &&
         gpp.paths.length > 0 &&
-        parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)
+        parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)
       ) {
         if (typeof w.globals.previousPaths[pp].paths[j] !== 'undefined') {
           pathFrom = w.globals.previousPaths[pp].paths[j].d

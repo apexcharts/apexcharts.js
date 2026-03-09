@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from './Graphics'
 import Utils from './../utils/Utils'
 import Toolbar from './Toolbar'
@@ -219,6 +220,7 @@ export default class ZoomPanSelection extends Toolbar {
     this.makeSelectionRectDraggable()
   }
 
+  /** @param {{ zoomtype?: any, isResized?: any }} opts */
   handleMouseUp({ zoomtype, isResized }) {
     const w = this.w
     // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
@@ -502,6 +504,7 @@ export default class ZoomPanSelection extends Toolbar {
     let selectionWidth = left - startX
     let selectionHeight = top - startY
 
+    /** @type {any} */
     let selectionRect = {
       translateX: w.layout.translateX,
       translateY: w.layout.translateY,
@@ -819,6 +822,7 @@ export default class ZoomPanSelection extends Toolbar {
     }
   }
 
+  /** @param {{ context?: any, zoomtype?: any, xyRatios?: any }} opts */
   panDragging({ context }) {
     const w = this.w
     const me = context

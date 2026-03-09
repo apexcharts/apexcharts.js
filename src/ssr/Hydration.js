@@ -1,3 +1,4 @@
+// @ts-check
 import ApexCharts from '../apexcharts.js'
 import { Environment } from '../utils/Environment.js'
 
@@ -141,7 +142,7 @@ export class Hydration {
 
     elements.forEach((el) => {
       try {
-        const chart = this.hydrate(el, clientOptions)
+        const chart = this.hydrate(/** @type {HTMLElement} */ (el), clientOptions)
         charts.push(chart)
       } catch (error) {
         console.error('Failed to hydrate element:', el, error)

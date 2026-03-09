@@ -1,3 +1,4 @@
+// @ts-check
 import Animations from './Animations'
 import Filters from './Filters'
 import Utils from '../utils/Utils'
@@ -172,6 +173,7 @@ class Graphics {
             curveEnd.y,
           ]
           // Save the original point for fractional calculations
+          // @ts-ignore — origPoint is a custom property added to the array command
           curveCmd.origPoint = curPoint
           resultCommands.push(curveCmd)
         } else {
@@ -283,6 +285,7 @@ class Graphics {
     return c
   }
 
+  /** @param {{ d?: string, stroke?: string, strokeWidth?: number, fill: any, fillOpacity?: number, strokeOpacity?: number, classes?: any, strokeLinecap?: any, strokeDashArray?: number }} opts */
   drawPath({
     d = '',
     stroke = '#a8a8a8',
@@ -366,7 +369,7 @@ class Graphics {
 
   /**
    * @memberof Graphics
-   * @param {object}
+   * @param {any} opts
    *  i = series's index
    *  realIndex = realIndex is series's actual index when it was drawn time. After several redraws, the iterating "i" may change in loops, but realIndex doesn't
    *  pathFrom = existing pathFrom to animateTo
@@ -377,7 +380,7 @@ class Graphics {
    *  animationDelay = how much to delay when starting animation (in milliseconds)
    *  dataChangeSpeed = for dynamic animations, when data changes
    *  className = class attribute to add
-   * @return {object} svg.js path object
+   * @return {any} svg.js path object
    **/
   renderPaths({
     j,
@@ -643,6 +646,7 @@ class Graphics {
     return g
   }
 
+  /** @param {{ text: any, maxWidth: any, fontSize: any, fontFamily?: any }} opts */
   getTextBasedOnMaxWidth({ text, maxWidth, fontSize, fontFamily }) {
     const tRects = this.getTextRects(text, fontSize, fontFamily)
     const wordWidth = tRects.width / text.length
@@ -653,6 +657,9 @@ class Graphics {
     return text
   }
 
+  /**
+   * @param {{ x: any, y: any, text: any, textAnchor?: any, fontSize?: any, fontFamily?: any, fontWeight?: any, foreColor?: any, opacity?: any, maxWidth?: any, cssClass?: string, isPlainText?: boolean, dominantBaseline?: string }} opts
+   */
   drawText({
     x,
     y,
@@ -813,14 +820,15 @@ class Graphics {
 
   /**
    * @param {number} x - The x-coordinate of the marker
-   * @param {number} y - The y-coordinate of the marker.
+   * @param {number} y - The y-coordinate of the marker
+   * @param {string} type - Marker shape type
    * @param {number} size - The size of the marker
-   * @param {Object} opts - The options for the marker.
-   * @returns {Object} The created marker.
+   * @param {any} opts - The options for the marker
+   * @returns {any} The created marker.
    */
   drawMarkerShape(x, y, type, size, opts) {
     const path = this.drawPath({
-      d: this.getMarkerPath(x, y, type, size, opts),
+      d: this.getMarkerPath(x, y, type, size),
       stroke: opts.pointStrokeColor,
       strokeDashArray: opts.pointStrokeDashArray,
       strokeWidth: opts.pointStrokeWidth,
@@ -1028,7 +1036,7 @@ class Graphics {
   }
 
   rotateAroundCenter(el) {
-    let coord = {}
+    let coord = /** @type {any} */ ({})
     if (el && typeof el.getBBox === 'function') {
       coord = el.getBBox()
     }

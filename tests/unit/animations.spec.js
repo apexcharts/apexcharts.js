@@ -1,6 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { createChart, createChartWithOptions } from './utils/utils.js'
-import Animations from '../../src/modules/Animations.js'
 
 function getAnimations(chart) {
   return chart.animations

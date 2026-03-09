@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from '../../modules/Graphics'
 import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
@@ -73,16 +74,16 @@ export default class Annotations {
   drawImageAnnos() {
     const w = this.w
 
-    w.config.annotations.images.map((s, index) => {
-      this.addImage(s, index)
+    w.config.annotations.images.map((s) => {
+      this.addImage(s)
     })
   }
 
   drawTextAnnos() {
     const w = this.w
 
-    w.config.annotations.texts.map((t, index) => {
-      this.addText(t, index)
+    w.config.annotations.texts.map((t) => {
+      this.addText(t)
     })
   }
 

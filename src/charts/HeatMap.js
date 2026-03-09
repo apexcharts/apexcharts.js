@@ -1,3 +1,4 @@
+// @ts-check
 import Animations from '../modules/Animations'
 import Graphics from '../modules/Graphics'
 import Fill from '../modules/Fill'

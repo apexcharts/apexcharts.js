@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from '../Graphics'
 import Series from '../Series'
 
@@ -17,7 +18,7 @@ export default class Position {
    * This will move the crosshair (the vertical/horz line that moves along with mouse)
    * Along with this, this function also calls the xaxisMove function
    * @memberof Position
-   * @param {int} - cx = point's x position, wherever point's x is, you need to move crosshair
+   * @param {number} cx - point's x position, wherever point's x is, you need to move crosshair
    */
   moveXCrosshairs(cx, j = null) {
     const ttCtx = this.ttCtx
@@ -64,7 +65,7 @@ export default class Position {
    * This will move the crosshair (the vertical/horz line that moves along with mouse)
    * Along with this, this function also calls the xaxisMove function
    * @memberof Position
-   * @param {int} - cx = point's x position, wherever point's x is, you need to move crosshair
+   * @param {number} cy - point's y position, wherever point's y is, you need to move crosshair
    */
   moveYCrosshairs(cy) {
     const ttCtx = this.ttCtx
@@ -86,7 +87,7 @@ export default class Position {
   /**
    ** AxisTooltip is the small rectangle which appears on x axis with x value, when user moves
    * @memberof Position
-   * @param {int} - cx = point's x position, wherever point's x is, you need to move
+   * @param {number} cx - point's x position, wherever point's x is, you need to move
    */
   moveXAxisTooltip(cx) {
     const w = this.w
@@ -110,9 +111,8 @@ export default class Position {
       if (!isNaN(cx)) {
         cx = cx + w.layout.translateX
 
-        let textRect = 0
         const graphics = new Graphics(this.w)
-        textRect = graphics.getTextRects(ttCtx.xaxisTooltipText.innerHTML)
+        const textRect = graphics.getTextRects(ttCtx.xaxisTooltipText.innerHTML)
 
         ttCtx.xaxisTooltipText.style.minWidth = textRect.width + 'px'
         ttCtx.xaxisTooltip.style.left = cx + 'px'
@@ -164,9 +164,9 @@ export default class Position {
   /**
    ** moves the whole tooltip by changing x, y attrs
    * @memberof Position
-   * @param {int} - cx = point's x position, wherever point's x is, you need to move tooltip
-   * @param {int} - cy = point's y position, wherever point's y is, you need to move tooltip
-   * @param {int} - markerSize = point's size
+   * @param {number} cx - point's x position, wherever point's x is, you need to move tooltip
+   * @param {number} cy - point's y position, wherever point's y is, you need to move tooltip
+   * @param {number} markerSize - point's size
    */
   moveTooltip(cx, cy, markerSize = null) {
     const w = this.w
@@ -175,10 +175,10 @@ export default class Position {
     const tooltipEl = ttCtx.getElTooltip()
     const tooltipRect = ttCtx.tooltipRect
 
-    const pointSize = markerSize !== null ? parseFloat(markerSize) : 1
+    const pointSize = markerSize !== null ? parseFloat(String(markerSize)) : 1
 
-    let x = parseFloat(cx) + pointSize + 5
-    let y = parseFloat(cy) + pointSize / 2 // - tooltipRect.ttHeight / 2
+    let x = parseFloat(String(cx)) + pointSize + 5
+    let y = parseFloat(String(cy)) + pointSize / 2 // - tooltipRect.ttHeight / 2
 
     if (x > w.layout.gridWidth / 2) {
       x = x - tooltipRect.ttWidth - pointSize - 10

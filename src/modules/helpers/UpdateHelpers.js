@@ -1,3 +1,4 @@
+// @ts-check
 import Defaults from '../settings/Defaults'
 import Config from '../settings/Config'
 import CoreUtils from '../CoreUtils'
@@ -14,7 +15,7 @@ export default class UpdateHelpers {
   /**
    * private method to update Options.
    *
-   * @param {object} options - A new config object can be passed which will be merged with the existing config object
+   * @param {any} options - A new config object can be passed which will be merged with the existing config object
    * @param {boolean} redraw - should redraw from beginning or should use existing paths and redraw from there
    * @param {boolean} animate - should animate or not on updating Options
    * @param {boolean} overwriteInitialConfig - should update the initial config or not
@@ -121,7 +122,7 @@ export default class UpdateHelpers {
   /**
    * Private method to update Series.
    *
-   * @param {array} series - New series which will override the existing
+   * @param {array} newSeries - New series which will override the existing
    */
   _updateSeries(newSeries, animate, overwriteInitialSeries = false) {
     return new Promise((resolve) => {
@@ -137,6 +138,9 @@ export default class UpdateHelpers {
         this.ctx.series.getPreviousPaths()
       }
 
+      // Capture previous series count BEFORE parsing (parseData overwrites w.seriesData.series)
+      const prevSeriesCount = w.config.series.length
+
       this.ctx.data.resetParsingFlags()
       // Phase 1: return value captured; writer stubs are no-ops.
       const parsedState = this.ctx.data.parseData(newSeries)
@@ -150,10 +154,39 @@ export default class UpdateHelpers {
         w.globals.initialConfig.series = Utils.clone(w.config.series)
         w.globals.initialSeries = Utils.clone(w.config.series)
       }
+
+      // Use the fast path when the series structure is compatible:
+      // same series count, same chart type, axis chart, no series collapse in progress.
+      if (this._canUseFastPath(newSeries, prevSeriesCount, w)) {
+        return this.ctx.fastUpdate(animate).then(() => {
+          resolve(this.ctx)
+        })
+      }
+
       return this.ctx.update().then(() => {
         resolve(this.ctx)
       })
     })
+  }
+
+  /**
+   * Returns true if the data-only fast path can be used for this update.
+   * Fast path skips rebuilding grid, axes, legend, annotations, and tooltip DOM.
+   *
+   * Requirements:
+   * - Chart has been fully rendered (DOM exists)
+   * - Axis chart (non-axis charts like pie always need full rebuild due to radial layout)
+   * - Series count unchanged (grid column/row counts depend on it)
+   * - No series currently collapsing (collapsed series changes visible data range)
+   * - Not a combo chart (combo charts mix types and need coordinated axis recalc)
+   */
+  _canUseFastPath(newSeries, prevSeriesCount, w) {
+    if (!w.dom.elGraphical) return false
+    if (!w.globals.axisCharts) return false
+    if (newSeries.length !== prevSeriesCount) return false
+    if (w.globals.collapsedSeries.length > 0) return false
+    if (w.globals.comboCharts) return false
+    return true
   }
 
   _extendSeries(s, i) {

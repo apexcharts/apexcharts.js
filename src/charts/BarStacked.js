@@ -1,3 +1,4 @@
+// @ts-check
 import CoreUtils from '../modules/CoreUtils'
 import Bar from './Bar'
 import Graphics from '../modules/Graphics'
@@ -116,7 +117,7 @@ class BarStacked extends Bar {
           columnGroupIndex,
           seriesGroup: w.labelData.seriesGroups[groupIndex],
         }
-        let paths = null
+        let paths = /** @type {any} */ (null)
         if (this.isHorizontal) {
           paths = this.drawStackedBarPaths({
             ...commonPathOpts,

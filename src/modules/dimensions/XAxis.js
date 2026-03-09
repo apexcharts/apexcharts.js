@@ -1,3 +1,4 @@
+// @ts-check
 import Formatters from '../Formatters'
 import Graphics from '../Graphics'
 import Utils from '../../utils/Utils'

@@ -1,3 +1,4 @@
+// @ts-check
 import CoreUtils from './CoreUtils'
 import Crosshairs from './Crosshairs'
 import Globals from '../modules/settings/Globals'

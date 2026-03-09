@@ -1,3 +1,4 @@
+// @ts-check
 import AxesUtils from '../axes/AxesUtils'
 
 export default class DimGrid {

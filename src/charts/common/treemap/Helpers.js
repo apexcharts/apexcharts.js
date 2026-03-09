@@ -1,3 +1,4 @@
+// @ts-check
 import Utils from '../../../utils/Utils'
 import Graphics from '../../../modules/Graphics'
 import DataLabels from '../../../modules/DataLabels'
@@ -144,6 +145,7 @@ export default class TreemapHelpers {
     }
   }
 
+  /** @param {{ text?: any, x?: any, y?: any, i?: any, j?: any, colorProps?: any, fontSize?: any, series?: any }} opts */
   calculateDataLabels({ text, x, y, i, j, colorProps, fontSize }) {
     const w = this.w
     const dataLabelsConfig = w.config.dataLabels

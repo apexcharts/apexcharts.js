@@ -1,3 +1,4 @@
+// @ts-check
 import ApexCharts from '../apexcharts.js'
 import { BrowserAPIs } from './BrowserAPIs.js'
 import { Environment } from '../utils/Environment.js'
@@ -12,11 +13,8 @@ export class SSRRenderer {
   /**
    * Render chart to SVG string for server-side rendering
    *
-   * @param {object} options - Chart configuration (same as ApexCharts constructor)
-   * @param {object} ssrOptions - SSR-specific options
-   * @param {number} ssrOptions.width - Chart width in pixels (default: 400)
-   * @param {number} ssrOptions.height - Chart height in pixels (default: 300)
-   * @param {number} ssrOptions.scale - SVG scale factor (default: 1)
+   * @param {any} options - Chart configuration (same as ApexCharts constructor)
+   * @param {{ width?: number, height?: number, scale?: number }} [ssrOptions] - SSR-specific options
    * @returns {Promise<string>} SVG string
    *
    * @example
@@ -53,7 +51,7 @@ export class SSRRenderer {
     }
 
     // Create chart instance
-    const chart = new ApexCharts(virtualEl, ssrConfig)
+    const chart = new ApexCharts(/** @type {HTMLElement} */ (virtualEl), ssrConfig)
 
     try {
       // Render the chart
@@ -78,11 +76,7 @@ export class SSRRenderer {
    * Generate hydration-ready HTML with embedded configuration
    *
    * @param {object} options - Chart configuration
-   * @param {object} ssrOptions - SSR-specific options
-   * @param {number} ssrOptions.width - Chart width in pixels (default: 400)
-   * @param {number} ssrOptions.height - Chart height in pixels (default: 300)
-   * @param {number} ssrOptions.scale - SVG scale factor (default: 1)
-   * @param {string} ssrOptions.className - Additional CSS class for wrapper (default: '')
+   * @param {{ width?: number, height?: number, scale?: number, className?: string }} [ssrOptions] - SSR-specific options
    * @returns {Promise<string>} HTML string with SVG and hydration data
    *
    * @example

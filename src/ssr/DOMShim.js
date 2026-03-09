@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Minimal DOM shim for Server-Side Rendering
  * Provides just enough SVG element emulation to create chart structure without full DOM
@@ -16,6 +17,9 @@ class SSRElement {
     this.style = {}
     this.classList = new SSRClassList()
     this.parentNode = null
+    /** @type {number|undefined} */ this._ssrWidth = undefined
+    /** @type {number|undefined} */ this._ssrHeight = undefined
+    /** @type {boolean|undefined} */ this._ssrMode = undefined
   }
 
   setAttribute(name, value) {
@@ -244,14 +248,15 @@ export class SSRDOMShim {
    * @returns {object} Text node mock
    */
   createTextNode(data) {
-    return {
+    const node = {
       nodeName: '#text',
       nodeType: 3,
       textContent: data,
       toString() {
-        return this.textContent
+        return node.textContent
       },
     }
+    return node
   }
 
   /**

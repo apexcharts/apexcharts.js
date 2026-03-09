@@ -1,3 +1,4 @@
+// @ts-check
 import Config from './settings/Config'
 import Utils from '../utils/Utils'
 import CoreUtils from './CoreUtils'

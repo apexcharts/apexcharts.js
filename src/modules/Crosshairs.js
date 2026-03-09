@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from './Graphics'
 import Filters from './Filters'
 import Utils from '../utils/Utils'

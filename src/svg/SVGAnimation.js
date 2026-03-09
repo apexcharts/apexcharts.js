@@ -1,3 +1,4 @@
+// @ts-check
 import { morphPaths } from './PathMorphing'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 
@@ -84,7 +85,7 @@ class SVGAnimationRunner {
 
   _executeChain() {
     const chain = []
-    let r = this
+    /** @type {any} */ let r = this
     while (r) {
       chain.push(r)
       r = r._next

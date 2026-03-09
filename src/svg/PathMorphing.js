@@ -1,3 +1,4 @@
+// @ts-check
 import { Point, Matrix } from './math'
 
 /*!
@@ -187,7 +188,9 @@ function toBezier(val) {
     case 'L':
       val[5] = val[3] = val[1]
       val[6] = val[4] = val[2]
+      // @ts-ignore — this.pos is always set before L/Q cases are reached
       val[1] = this.pos[0]
+      // @ts-ignore
       val[2] = this.pos[1]
       break
     case 'Q':
@@ -195,7 +198,9 @@ function toBezier(val) {
       val[5] = val[3]
       val[4] = (val[4] * 1) / 3 + (val[2] * 2) / 3
       val[3] = (val[3] * 1) / 3 + (val[1] * 2) / 3
+      // @ts-ignore — this.pos is always set before L/Q cases are reached
       val[2] = (this.pos[1] * 1) / 3 + (val[2] * 2) / 3
+      // @ts-ignore
       val[1] = (this.pos[0] * 1) / 3 + (val[1] * 2) / 3
       break
     case 'A':
@@ -212,6 +217,7 @@ function toBezier(val) {
 }
 
 // Find next M command position
+/** @param {any[]} arr @param {number | false} offset @returns {number | false} */
 function findNextM(arr, offset) {
   if (offset === false) return false
   for (var i = offset, len = arr.length; i < len; ++i) {
@@ -440,10 +446,10 @@ function synchronizePaths(fromD, toD) {
   var startArr = parsePath(fromD)
   var destArr = parsePath(toD)
 
-  var startOffsetM = 0,
-    destOffsetM = 0
-  var startOffsetNextM = false,
-    destOffsetNextM = false
+  /** @type {number | false} */ var startOffsetM = 0
+  /** @type {number | false} */ var destOffsetM = 0
+  /** @type {number | false} */ var startOffsetNextM = false
+  /** @type {number | false} */ var destOffsetNextM = false
   var result
 
   while (true) {
@@ -534,6 +540,7 @@ function morphPaths(fromD, toD) {
     var result = startArr.map(function (from, idx) {
       return destArr[idx].map(function (to, toIdx) {
         if (toIdx === 0) return to // command letter
+        // @ts-ignore — toIdx > 0 entries are always numbers; index 0 (command letter) is returned above
         return from[toIdx] + (destArr[idx][toIdx] - from[toIdx]) * pos
       })
     })

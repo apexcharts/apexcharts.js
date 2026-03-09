@@ -1,3 +1,4 @@
+// @ts-check
 import SVGContainer from './SVGContainer'
 import { SVGNS } from './math'
 import { Environment } from '../utils/Environment.js'

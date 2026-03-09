@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * ApexCharts — candlestick / boxPlot entry point.
  *

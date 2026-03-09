@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from './Graphics'
 import Utils from '../utils/Utils'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
@@ -239,7 +240,6 @@ class Fill {
         fillConfig: opts.fillConfig,
         patternFill,
         fillColor,
-        fillOpacity,
         defaultColor,
       })
     }
@@ -371,7 +371,6 @@ class Fill {
     fillConfig,
     patternFill,
     fillColor,
-    fillOpacity,
     defaultColor,
   }) {
     let fillCnf = this.w.config.fill
@@ -395,8 +394,7 @@ class Fill {
           fillCnf.pattern.width,
           fillCnf.pattern.height,
           patternLineColor,
-          patternStrokeWidth,
-          fillOpacity
+          patternStrokeWidth
         )
         patternFill = pf
       } else {
@@ -408,8 +406,7 @@ class Fill {
         fillCnf.pattern.width,
         fillCnf.pattern.height,
         patternLineColor,
-        patternStrokeWidth,
-        fillOpacity
+        patternStrokeWidth
       )
     }
     return patternFill

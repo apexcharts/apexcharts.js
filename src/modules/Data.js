@@ -1,3 +1,4 @@
+// @ts-check
 import CoreUtils from './CoreUtils'
 import DateTime from './../utils/DateTime'
 import Series from './Series'
@@ -49,7 +50,7 @@ export default class Data {
       for (let k = 1; k < Math.min(3, data.length); k++) {
         if (isXY(data[k]) !== true) {
           console.warn(
-            `ApexCharts: series data has mixed formats starting at index ${k}`
+            `ApexCharts: series data has mixed formats starting at index ${k}`,
           )
           break
         }
@@ -91,8 +92,7 @@ export default class Data {
       }
       if (cnf.xaxis.type === 'datetime') {
         // if timestamps are provided and xaxis type is datetime,
-        let ts = new Date(x)
-        ts = ts.getTime()
+        const ts = new Date(x).getTime()
         this.twoDSeriesX.push(ts)
       } else {
         this.twoDSeriesX.push(x)
@@ -197,7 +197,7 @@ export default class Data {
   }
 
   handleRangeData(ser, i) {
-    let range = {}
+    let range = { start: [], end: [], rangeUniques: [] }
     if (this.isFormat2DArray()) {
       range = this.handleRangeDataFormat('array', ser, i)
     } else if (this.isFormatXY()) {
@@ -248,7 +248,7 @@ export default class Data {
   }
 
   handleCandleStickBoxData(ser, i) {
-    let ohlc = {}
+    let ohlc = { o: [], h: [], m: [], l: [], c: [] }
     if (this.isFormat2DArray()) {
       ohlc = this.handleCandleStickBoxDataFormat('array', ser, i)
     } else if (this.isFormatXY()) {
@@ -714,7 +714,10 @@ export default class Data {
         })
         // remove duplicate x-axis labels
         const _labels = this.w.labelData.labels
-        if (_labels.length > 0 && (typeof _labels[0] === 'number' || typeof _labels[0] === 'string')) {
+        if (
+          _labels.length > 0 &&
+          (typeof _labels[0] === 'number' || typeof _labels[0] === 'string')
+        ) {
           this.w.labelData.labels = [...new Set(_labels)]
         } else {
           const _seen = new Map()
@@ -894,7 +897,7 @@ export default class Data {
           if (this.w.config.chart.type === 'bubble') {
             if (yValues.length < 2) {
               console.warn(
-                `ApexCharts: series[${index}] bubble chart requires parseData.y to have at least 2 fields (y and z). Got: ${JSON.stringify(effectiveParsing.y)}`
+                `ApexCharts: series[${index}] bubble chart requires parseData.y to have at least 2 fields (y and z). Got: ${JSON.stringify(effectiveParsing.y)}`,
               )
             }
             // For bubble: [y-value, z-value] → y = yValues[0], z = yValues[1]
@@ -924,7 +927,7 @@ export default class Data {
           )
         }
 
-        const result = { x, y }
+        const result = { x, y, z: undefined }
 
         if (
           this.w.config.chart.type === 'bubble' &&

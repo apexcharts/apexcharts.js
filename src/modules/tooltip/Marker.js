@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from '../Graphics'
 import Position from './Position'
 import Markers from '../../modules/Markers'
@@ -94,6 +95,7 @@ export default class Marker {
 
     this.tooltipPosition.moveXCrosshairs(cx)
 
+    // @ts-ignore — fixedTooltip is set by Tooltip.js on this.marker instance
     if (!this.fixedTooltip) {
       if (w.config.chart.type === 'radar') {
         const elGrid = this.ttCtx.getElGrid()

@@ -1,3 +1,4 @@
+// @ts-check
 import Helpers from './Helpers'
 import AxesUtils from '../axes/AxesUtils'
 

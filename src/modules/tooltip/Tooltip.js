@@ -1,3 +1,4 @@
+// @ts-check
 import Labels from './Labels'
 import Position from './Position'
 import Marker from './Marker'
@@ -177,7 +178,7 @@ export default class Tooltip {
 
     if (w.config.markers.size === 0 || w.globals.markers.largestSize === 0) {
       // when user don't want to show points all the time, but only on when hovering on series
-      this.marker.drawDynamicPoints(this)
+      this.marker.drawDynamicPoints()
     }
 
     // no visible series, exit
@@ -232,7 +233,7 @@ export default class Tooltip {
         'apexcharts-tooltip-series-group',
         `apexcharts-tooltip-series-group-${i}`,
       )
-      gTxt.style.order = w.config.tooltip.inverseOrder ? ttItemsCnt - i : i + 1
+      gTxt.style.order = String(w.config.tooltip.inverseOrder ? ttItemsCnt - i : i + 1)
 
       const point = BrowserAPIs.createElementNS(
         'http://www.w3.org/1999/xhtml',
@@ -668,8 +669,10 @@ export default class Tooltip {
       const hasYAxisTooltip = this.yaxisTooltips.filter((b) => {
         return b === true
       })
-      if (this.ycrosshairs !== null && hasYAxisTooltip.length) {
-        this.ycrosshairs.classList.add('apexcharts-active')
+      // ycrosshairs is set dynamically during drawTooltip()
+      const _yc = /** @type {any} */ (this).ycrosshairs
+      if (_yc !== null && hasYAxisTooltip.length) {
+        _yc.classList.add('apexcharts-active')
       }
 
       if (
@@ -913,8 +916,10 @@ export default class Tooltip {
     if (xcrosshairs !== null) {
       xcrosshairs.classList.remove('apexcharts-active')
     }
-    if (this.ycrosshairs !== null) {
-      this.ycrosshairs.classList.remove('apexcharts-active')
+    // ycrosshairs is set dynamically during drawTooltip()
+    const _yc2 = /** @type {any} */ (this).ycrosshairs
+    if (_yc2 !== null) {
+      _yc2.classList.remove('apexcharts-active')
     }
     if (this.isXAxisTooltipEnabled) {
       this.xaxisTooltip.classList.remove('apexcharts-active')

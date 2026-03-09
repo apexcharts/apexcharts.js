@@ -1,3 +1,4 @@
+// @ts-check
 import SVGElement from './SVGElement'
 import { SVGNS } from './math'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'

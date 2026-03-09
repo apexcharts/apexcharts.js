@@ -26,7 +26,6 @@ import {
   dragOnChart,
   wheelOnChart,
   getXRange,
-  setToolbarMode,
 } from '../helpers/chart.js'
 
 const CHART = 'line'

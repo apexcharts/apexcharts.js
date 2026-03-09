@@ -1,3 +1,4 @@
+// @ts-check
 import Bar from './Bar'
 import Graphics from '../modules/Graphics'
 import Series from '../modules/Series'
@@ -83,7 +84,7 @@ class RangeBar extends Bar {
         const y1 = this.seriesRangeStart[i][j]
         const y2 = this.seriesRangeEnd[i][j]
 
-        let paths = null
+        let paths = /** @type {any} */ (null)
         let barXPosition = null
         let barYPosition = null
         const params = { x, y, strokeWidth, elSeries }
@@ -222,6 +223,7 @@ class RangeBar extends Bar {
     return ret
   }
 
+  /** @param {{ i?: any, j?: any, barYPosition?: any, barXPosition?: any, srty?: any, srtx?: any, barHeight?: any, barWidth?: any, yDivision?: any, xDivision?: any, initPositions?: any }} opts */
   detectOverlappingBars({
     i,
     j,

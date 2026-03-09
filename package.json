@@ -169,6 +169,7 @@
     "serve": "vite",
     "build": "node build/vite-build.mjs && vite build --mode ssr",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "npm run e2e && npm run unit -- --coverage",
@@ -185,9 +186,6 @@
   },
   "simple-git-hooks": {
     "pre-push": "npm run lint >&2"
-  },
-  "dependencies": {
-    "@yr/monotone-cubic-spline": "^1.0.3"
   },
   "devDependencies": {
     "@babel/core": "7.29.0",

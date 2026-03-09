@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * ApexCharts SSR Entry Point
  *
@@ -18,12 +19,17 @@ import { SSRRenderer } from './SSRRenderer.js'
 import { Hydration } from './Hydration.js'
 
 // Extend ApexCharts with SSR static methods
+// @ts-ignore — SSR methods are monkey-patched onto the class at runtime
 ApexCharts.renderToString = SSRRenderer.renderToString.bind(SSRRenderer)
+// @ts-ignore
 ApexCharts.renderToHTML = SSRRenderer.renderToHTML.bind(SSRRenderer)
 
 // Extend ApexCharts with hydration static methods
+// @ts-ignore
 ApexCharts.hydrate = Hydration.hydrate.bind(Hydration)
+// @ts-ignore
 ApexCharts.hydrateAll = Hydration.hydrateAll.bind(Hydration)
+// @ts-ignore
 ApexCharts.isHydrated = Hydration.isHydrated.bind(Hydration)
 
 // Export the extended ApexCharts class as default

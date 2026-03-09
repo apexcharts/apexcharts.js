@@ -1,3 +1,4 @@
+// @ts-check
 /*
  ** Generic functions which are not dependent on ApexCharts
  */
@@ -253,6 +254,7 @@ class Utils {
     return [elementWidth, elementHeight]
   }
 
+  /** @returns {any} */
   static getBoundingClientRect(element) {
     if (!element) {
       return {
@@ -300,8 +302,9 @@ class Utils {
       hex = '#999999'
     }
 
-    let h = hex.replace('#', '')
-    h = h.match(new RegExp('(.{' + h.length / 3 + '})', 'g'))
+    const hexStr = hex.replace('#', '')
+    /** @type {any[]} */
+    const h = hexStr.match(new RegExp('(.{' + hexStr.length / 3 + '})', 'g')) || []
 
     for (let i = 0; i < h.length; i++) {
       h[i] = parseInt(h[i].length === 1 ? h[i] + h[i] : h[i], 16)
@@ -484,7 +487,7 @@ class Utils {
   static isNumber(value) {
     return (
       !isNaN(value) &&
-      parseFloat(Number(value)) === value &&
+      parseFloat(String(Number(value))) === value &&
       !isNaN(parseInt(value, 10))
     )
   }

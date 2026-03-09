@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Chart Factory - Runtime registry for chart type classes.
  *
@@ -21,7 +22,7 @@ if (!globalThis[REGISTRY_KEY]) {
   globalThis[REGISTRY_KEY] = {}
 }
 
-/** @returns {Record<string, Function>} */
+/** @returns {Record<string, new (...args: any[]) => any>} */
 function getRegistry() {
   return globalThis[REGISTRY_KEY]
 }
@@ -29,7 +30,7 @@ function getRegistry() {
 /**
  * Register one or more chart type constructors.
  *
- * @param {Record<string, Function>} typeMap  e.g. { line: Line, area: Line }
+ * @param {Record<string, new (...args: any[]) => any>} typeMap  e.g. { line: Line, area: Line }
  */
 export function register(typeMap) {
   Object.assign(getRegistry(), typeMap)
@@ -40,7 +41,7 @@ export function register(typeMap) {
  * Throws a clear error if the type was not registered.
  *
  * @param {string} type
- * @returns {Function}
+ * @returns {new (...args: any[]) => any}
  */
 export function getChartClass(type) {
   const Cls = getRegistry()[type]

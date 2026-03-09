@@ -1,3 +1,4 @@
+// @ts-check
 import CoreUtils from '../CoreUtils'
 
 export default class Helpers {

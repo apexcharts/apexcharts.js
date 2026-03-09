@@ -1,3 +1,4 @@
+// @ts-check
 import Events from '../Events'
 import Localization from './Localization'
 import Animations from '../Animations'

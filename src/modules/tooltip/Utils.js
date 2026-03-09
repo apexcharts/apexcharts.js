@@ -1,3 +1,4 @@
+// @ts-check
 import Utilities from '../../utils/Utils'
 import Graphics from '../Graphics'
 
@@ -17,9 +18,7 @@ export default class Utils {
    ** When hovering over series, you need to capture which series is being hovered on.
    ** This function will return both capturedseries index as well as inner index of that series
    * @memberof Utils
-   * @param {object}
-   * - hoverArea = the rect on which user hovers
-   * - elGrid = dimensions of the hover rect (it can be different than hoverarea)
+   * @param {{ hoverArea: any, elGrid: any, clientX: any, clientY: any, context?: any }} opts
    */
   getNearestValues({ hoverArea, elGrid, clientX, clientY }) {
     const w = this.w
@@ -221,9 +220,8 @@ export default class Utils {
    * But it may be possible in those multiple series, that there is same x value for 2 or more
    * series.
    * @memberof Utils
-   * @param {int}
-   * - j = is the inner index of series -> (series[i][j])
-   * @return {bool}
+   * @param {number} j - the inner index of series (series[i][j])
+   * @return {boolean}
    */
   isXoverlap(j) {
     const w = this.w

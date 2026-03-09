@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * ApexCharts — treemap entry point.
  *

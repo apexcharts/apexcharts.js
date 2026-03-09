@@ -1,3 +1,4 @@
+// @ts-check
 import Pie from './Pie'
 import Utils from '../utils/Utils'
 import Fill from '../modules/Fill'

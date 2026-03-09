@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from '../Graphics'
 import AxesUtils from './AxesUtils'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
@@ -285,7 +286,7 @@ export default class YAxis {
             ? this.xaxisForeColors[realIndex]
             : this.xaxisForeColors,
           fontSize: this.xaxisFontSize,
-          fontFamily: this.xaxisFontFamily,
+          fontFamily: this.axisFontFamily,
           fontWeight: w.config.xaxis.labels.style.fontWeight,
           isPlainText: false,
           cssClass: `apexcharts-xaxis-label ${w.config.xaxis.labels.style.cssClass}`,

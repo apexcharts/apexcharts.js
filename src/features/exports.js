@@ -1,3 +1,4 @@
+// @ts-check
 import ApexCharts from '../apexcharts'
 import Exports from '../modules/Exports'
 

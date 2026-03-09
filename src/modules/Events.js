@@ -1,3 +1,4 @@
+// @ts-check
 export default class Events {
   constructor(w, ctx) {
     this.w = w

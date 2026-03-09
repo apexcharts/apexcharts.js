@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * ApexCharts — bar / column / rangeBar entry point.
  *

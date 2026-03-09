@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from '../Graphics'
 import Utils from '../../utils/Utils'
 import AxesUtils from '../axes/AxesUtils'
@@ -11,7 +12,7 @@ export default class DimYAxis {
   /**
    * Get Y Axis Dimensions
    * @memberof Dimensions
-   * @return {{width, height}}
+   * @returns {Array<{width: number, height: number}>}
    **/
   getyAxisLabelsCoords() {
     const w = this.w
@@ -129,7 +130,7 @@ export default class DimYAxis {
   /**
    * Get Y Axis Dimensions
    * @memberof Dimensions
-   * @return {{width, height}}
+   * @returns {Array<{width: number, height: number}>}
    **/
   getyAxisTitleCoords() {
     const w = this.w

@@ -1,3 +1,4 @@
+// @ts-check
 import DateTime from '../utils/DateTime'
 import Utils from '../utils/Utils'
 
@@ -155,10 +156,10 @@ class Formatters {
 
           if (Array.isArray(val)) {
             return val.map((v) => {
-              return this.defaultYFormatter(v, yaxe, i)
+              return this.defaultYFormatter(v, yaxe)
             })
           } else {
-            return this.defaultYFormatter(val, yaxe, i)
+            return this.defaultYFormatter(val, yaxe)
           }
         }
       }

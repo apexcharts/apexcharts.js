@@ -1,3 +1,4 @@
+// @ts-check
 import CoreUtils from '../CoreUtils'
 import Dimensions from '../dimensions/Dimensions'
 import Graphics from '../Graphics'

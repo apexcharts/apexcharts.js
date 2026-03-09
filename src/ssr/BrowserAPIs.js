@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Browser API abstraction layer for SSR support
  * Routes to either real browser APIs or SSR shims based on environment
@@ -27,7 +28,7 @@ export class BrowserAPIs {
   /**
    * Create an HTML element
    * @param {string} tagName - Element tag name
-   * @returns {Element|SSRElement} HTML element
+   * @returns {HTMLElement} HTML element
    */
   static createElement(tagName) {
     if (Environment.isSSR()) {
@@ -41,14 +42,14 @@ export class BrowserAPIs {
    * Create an SVG element with namespace
    * @param {string} namespaceURI - Namespace URI
    * @param {string} qualifiedName - Element tag name
-   * @returns {Element|SSRElement} SVG element
+   * @returns {HTMLElement} created element
    */
   static createElementNS(namespaceURI, qualifiedName) {
     if (Environment.isSSR()) {
       if (!shim) this.init()
       return shim.createElementNS(namespaceURI, qualifiedName)
     }
-    return document.createElementNS(namespaceURI, qualifiedName)
+    return /** @type {HTMLElement} */ (document.createElementNS(namespaceURI, qualifiedName))
   }
 
   /**
@@ -163,7 +164,7 @@ export class BrowserAPIs {
   /**
    * Add event listener to window
    * @param {string} event - Event name
-   * @param {Function} handler - Event handler
+   * @param {EventListenerOrEventListenerObject} handler - Event handler
    * @param {object} options - Event options
    */
   static addWindowEventListener(event, handler, options) {
@@ -176,7 +177,7 @@ export class BrowserAPIs {
   /**
    * Remove event listener from window
    * @param {string} event - Event name
-   * @param {Function} handler - Event handler
+   * @param {EventListenerOrEventListenerObject} handler - Event handler
    * @param {object} options - Event options
    */
   static removeWindowEventListener(event, handler, options) {
@@ -188,7 +189,7 @@ export class BrowserAPIs {
 
   /**
    * Request animation frame
-   * @param {Function} callback - Callback function
+   * @param {FrameRequestCallback} callback - Callback function
    * @returns {number|null}
    */
   static requestAnimationFrame(callback) {
@@ -196,7 +197,7 @@ export class BrowserAPIs {
       return window.requestAnimationFrame(callback)
     }
     // Execute immediately in SSR
-    callback()
+    callback(0)
     return null
   }
 
@@ -221,6 +222,7 @@ export class BrowserAPIs {
 
     if (Environment.isSSR()) {
       // In SSR, element is valid if it's our mock element
+      // @ts-ignore — _ssrMode is an internal SSR-only property on mock elements
       return element._ssrMode === true || element.nodeName !== undefined
     }
 

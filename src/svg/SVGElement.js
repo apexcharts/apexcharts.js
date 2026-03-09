@@ -1,3 +1,4 @@
+// @ts-check
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 
 export default class SVGElement {

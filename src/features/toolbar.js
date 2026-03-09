@@ -1,3 +1,4 @@
+// @ts-check
 import ApexCharts from '../apexcharts'
 import Toolbar from '../modules/Toolbar'
 import ZoomPanSelection from '../modules/ZoomPanSelection'

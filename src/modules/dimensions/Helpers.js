@@ -1,3 +1,4 @@
+// @ts-check
 import Utils from '../../utils/Utils'
 import Graphics from '../Graphics'
 
@@ -48,7 +49,7 @@ export default class Helpers {
       elLegendWrap.style.maxHeight = w.globals.svgHeight / 2 + 'px'
     }
 
-    const lgRect = Object.assign({}, Utils.getBoundingClientRect(elLegendWrap))
+    const lgRect = /** @type {any} */ (Object.assign({}, Utils.getBoundingClientRect(elLegendWrap)))
 
     if (
       elLegendWrap !== null &&

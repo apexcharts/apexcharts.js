@@ -1,3 +1,4 @@
+// @ts-check
 import Formatters from '../Formatters'
 import DateTime from '../../utils/DateTime'
 import Utils from './Utils'
@@ -17,6 +18,7 @@ export default class Labels {
     this.tooltipUtil = new Utils(tooltipContext)
   }
 
+  /** @param {{ shared?: boolean, ttItems?: any, i?: number, j?: any, y1?: any, y2?: any, e?: any }} opts */
   drawSeriesTexts({ shared = true, ttItems, i = 0, j = null, y1, y2, e }) {
     const w = this.w
 
@@ -257,6 +259,7 @@ export default class Labels {
     })
   }
 
+  /** @param {{ t?: any, j?: any, i?: any, ttItems?: any, values?: any, seriesName?: any, shared?: any, pColor?: any }} opts */
   DOMHandling({ t, j, ttItems, values, seriesName, shared, pColor }) {
     const w = this.w
     const ttCtx = this.ttCtx

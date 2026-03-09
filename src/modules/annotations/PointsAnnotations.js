@@ -1,3 +1,4 @@
+// @ts-check
 import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
 
@@ -15,12 +16,12 @@ export default class PointAnnotations {
       return
     }
 
-    let result = this.helpers.getX1X2('x1', anno)
-    const x = result.x
-    const clipX = result.clipped
-    result = this.helpers.getY1Y2('y1', anno)
-    const y = result.yP
-    const clipY = result.clipped
+    const resultX = this.helpers.getX1X2('x1', anno)
+    const x = resultX.x
+    const clipX = resultX.clipped
+    const resultY = this.helpers.getY1Y2('y1', anno)
+    const y = resultY.yP
+    const clipY = resultY.clipped
 
     if (!Utils.isNumber(x)) return
 

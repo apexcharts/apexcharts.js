@@ -1,3 +1,4 @@
+// @ts-check
 /*
  ** Util functions which are dependent on ApexCharts instance
  */

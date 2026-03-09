@@ -1,0 +1,44 @@
+{
+  "compilerOptions": {
+    // ── Validation mode (no output files) ─────────────────────────────────────
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": true,
+    "skipLibCheck": true,
+
+    // ── Strictness — intentionally relaxed for incremental adoption ───────────
+    // Tighten these as JSDoc coverage improves across modules.
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+
+    // ── Module resolution ──────────────────────────────────────────────────────
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ES2020",
+
+    // ── Type resolution ────────────────────────────────────────────────────────
+    // Pick up the existing consumer-facing types so internal JSDoc can
+    // reference ApexCharts.ApexOptions, etc.
+    "typeRoots": ["./types", "./node_modules/@types"],
+    "lib": ["ES2020", "DOM"],
+
+    // ── Paths ──────────────────────────────────────────────────────────────────
+    "baseUrl": "."
+
+    // Files without @ts-check are still parsed for type inference but errors
+    // are only surfaced when @ts-check is added at the top of a file.
+    // Add @ts-check file-by-file as JSDoc coverage improves.
+  },
+  "include": [
+    "src/**/*.js",
+    "src/types/**/*.d.ts",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests",
+    "docs"
+  ]
+}

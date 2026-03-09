@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Built-in theme color palettes for ApexCharts.
  * Extracted here so Theme.js does not need a reference to the ApexCharts class.

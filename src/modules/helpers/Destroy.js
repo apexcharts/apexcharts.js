@@ -1,3 +1,4 @@
+// @ts-check
 import PerformanceCache from '../../utils/PerformanceCache'
 import { Environment } from '../../utils/Environment.js'
 

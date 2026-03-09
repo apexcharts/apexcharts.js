@@ -1,3 +1,4 @@
+// @ts-check
 import CoreUtils from './CoreUtils'
 import Utils from '../utils/Utils'
 import {
@@ -415,6 +416,7 @@ export default class Scales {
     }
   }
 
+  /** @param {number} yMin @param {number} yMax @param {number|string} ticks @param {number} index @param {number|undefined} step */
   linearScale(yMin, yMax, ticks = 10, index = 0, step = undefined) {
     const range = Math.abs(yMax - yMin)
     let result = []
@@ -435,8 +437,11 @@ export default class Scales {
       ticks = this.w.globals.dataPoints - 1
     }
 
+    /** @type {number} */
+    const ticksNum = /** @type {number} */ (ticks)
+
     if (!step) {
-      step = range / ticks
+      step = range / ticksNum
     }
 
     const MIN_PRECISION = 2
@@ -448,17 +453,17 @@ export default class Scales {
       const multiplier = Math.pow(10, precision)
       step = Math.round((step + Number.EPSILON) * multiplier) / multiplier
     }
+    let tickCount = ticks === Number.MAX_VALUE ? 5 : ticksNum
     if (ticks === Number.MAX_VALUE) {
-      ticks = 5
       step = 1
     }
 
     let v = yMin
 
-    while (ticks >= 0) {
+    while (tickCount >= 0) {
       result.push(v)
       v = Utils.preciseAddition(v, step)
-      ticks -= 1
+      tickCount -= 1
     }
 
     return {

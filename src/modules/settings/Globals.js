@@ -1,3 +1,4 @@
+// @ts-check
 import Utils from './../../utils/Utils'
 import {
   LINE_HEIGHT_RATIO,
@@ -336,9 +337,10 @@ export default class Globals {
    *
    * Rule: if a value is recalculated fresh on every render it belongs in
    * initGlobalVars instead, not here.
+   * @returns {import('../../types/internal').ChartGlobals}
    */
   globalVars(config) {
-    return {
+    const globals = {
       // ── Identity (set once, never changes) ───────────────────────────────────
       chartID: null, // full chart ID: "apexcharts-<cuid>"
       cuid: null, // random suffix only
@@ -455,6 +457,10 @@ export default class Globals {
       seriesYAxisReverseMap: [], // series index → yAxis index
       noData: false, // true when there is nothing to render
     }
+    // globalVars() returns the persistent subset; initGlobalVars() fills the
+    // ephemeral properties before first render. Cast to ChartGlobals since the
+    // combined object is structurally complete by the time it is first read.
+    return /** @type {import('../../types/internal').ChartGlobals} */ (/** @type {unknown} */ (globals))
   }
 
   init(config) {

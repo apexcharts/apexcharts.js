@@ -1,3 +1,4 @@
+// @ts-check
 import apexchartsLegendCSS from '../../assets/apexcharts-legend.css'
 import Utils from '../../utils/Utils'
 import Graphics from '../Graphics'

@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from '../../../modules/Graphics'
 import Series from '../../../modules/Series'
 import Fill from '../../../modules/Fill'
@@ -367,6 +368,7 @@ export default class Helpers {
     return output
   }
 
+  /** @param {{ j?: any, i?: any, x1?: any, x2?: any, y1?: any, y2?: any, bc?: any, elSeries?: any }} opts */
   barBackground({ j, i, x1, x2, y1, y2, elSeries }) {
     const w = this.w
     const graphics = new Graphics(this.barCtx.w)
@@ -397,6 +399,7 @@ export default class Helpers {
     }
   }
 
+  /** @param {{ barWidth?: any, barXPosition?: any, y1?: any, y2?: any, yRatio?: any, strokeWidth?: any, isReversed?: any, series?: any, seriesGroup?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getColumnPaths({
     barWidth,
     barXPosition,
@@ -493,6 +496,7 @@ export default class Helpers {
     }
   }
 
+  /** @param {{ barYPosition?: any, barHeight?: any, x1?: any, x2?: any, strokeWidth?: any, isReversed?: any, series?: any, seriesGroup?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getBarpaths({
     barYPosition,
     barHeight,

@@ -1,3 +1,4 @@
+// @ts-check
 import Utils from '../utils/Utils'
 import { getThemePalettes } from '../utils/ThemePalettes.js'
 

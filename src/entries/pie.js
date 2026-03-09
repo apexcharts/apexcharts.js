@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * ApexCharts — pie / donut / polarArea entry point.
  *

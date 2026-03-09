@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * ApexCharts Tooltip.AxesTooltip Class.
  * This file deals with the x-axis and y-axis tooltips.

@@ -1,3 +1,4 @@
+// @ts-check
 import Utils from './Utils'
 
 /**

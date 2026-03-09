@@ -1,3 +1,4 @@
+// @ts-check
 import TreemapSquared from '../libs/Treemap-squared'
 import Graphics from '../modules/Graphics'
 import Animations from '../modules/Animations'

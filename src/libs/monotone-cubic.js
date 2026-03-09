@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * 
  * @yr/monotone-cubic-spline (https://github.com/YR/monotone-cubic-spline)

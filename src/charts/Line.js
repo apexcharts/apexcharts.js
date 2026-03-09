@@ -1,3 +1,4 @@
+// @ts-check
 import CoreUtils from '../modules/CoreUtils'
 import Graphics from '../modules/Graphics'
 import Fill from '../modules/Fill'
@@ -333,6 +334,7 @@ class Line {
     this.appendPathFrom = true
   }
 
+  /** @param {{ type?: any, series?: any, i?: any, realIndex?: any, translationsIndex?: any, prevX?: any, prevY?: any, prevY2?: any }} opts */
   _calculatePathsFrom({
     type,
     series,
@@ -1039,7 +1041,7 @@ class Line {
       }
       default: {
         const pathToPoint = (curve, x, y) => {
-          let path = []
+          /** @type {string} */ let path = ''
           switch (curve) {
             case 'stepline':
               path = graphics.line(x, null, 'H') + graphics.line(null, y, 'V')

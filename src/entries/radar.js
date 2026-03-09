@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * ApexCharts — radar entry point.
  *

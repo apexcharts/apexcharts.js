@@ -1,3 +1,4 @@
+// @ts-check
 /*
  * treemap-squarify.js - open source implementation of squarified treemaps
  *

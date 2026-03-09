@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * ApexCharts — full bundle entry point (all chart types).
  *

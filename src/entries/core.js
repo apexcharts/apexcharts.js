@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * ApexCharts — core entry point.
  *

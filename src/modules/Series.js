@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from './Graphics'
 import Utils from '../utils/Utils'
 
@@ -8,7 +9,7 @@ import Utils from '../utils/Utils'
  **/
 
 export default class Series {
-  constructor(w, { toggleDataSeries, revertDefaultAxisMinMax, updateSeries } = {}) {
+  constructor(w, { toggleDataSeries = undefined, revertDefaultAxisMinMax = undefined, updateSeries = undefined } = {}) {
     this.w = w
     // Injected callbacks for cross-module coordination (toggleSeries/showSeries/hideSeries/resetSeries)
     this._toggleDataSeries = toggleDataSeries || null
@@ -455,7 +456,7 @@ export default class Series {
         fontFamily: noDataOpts.style.fontFamily,
         foreColor: noDataOpts.style.color,
         opacity: 1,
-        class: 'apexcharts-text-nodata',
+        cssClass: 'apexcharts-text-nodata',
       })
 
       w.dom.Paper.add(titleText)

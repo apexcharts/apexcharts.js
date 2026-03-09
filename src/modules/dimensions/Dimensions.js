@@ -1,3 +1,4 @@
+// @ts-check
 import YAxis from '../axes/YAxis'
 import Helpers from './Helpers'
 import DimXAxis from './XAxis'
@@ -17,7 +18,7 @@ export default class Dimensions {
     this.ctx = ctx // needed: new XAxis(w, ctx) for xAxisLabelClick event callback
     this.theme = ctx.theme
     this.timeScale = ctx.timeScale
-    this.lgRect = {}
+    this.lgRect = /** @type {any} */ ({})
     this.yAxisWidth = 0
     this.yAxisWidthLeft = 0
     this.yAxisWidthRight = 0
@@ -36,7 +37,6 @@ export default class Dimensions {
 
   /**
    * @memberof Dimensions
-   * @param {object} w - chart context
    **/
   plotCoords() {
     const w = this.w

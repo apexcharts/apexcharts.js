@@ -1,3 +1,4 @@
+// @ts-check
 import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Markers from '../modules/Markers'

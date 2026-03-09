@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * ApexCharts — line / area / scatter / bubble / rangeArea entry point.
  *

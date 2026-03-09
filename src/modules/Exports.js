@@ -1,3 +1,4 @@
+// @ts-check
 import apexchartsLegendCSS from '../assets/apexcharts-legend.css'
 import AxesUtils from '../modules/axes/AxesUtils'
 import Data from '../modules/Data'
@@ -178,9 +179,10 @@ class Exports {
         img.onload = () => {
           ctx.drawImage(img, 0, 0)
 
-          if (canvas.msToBlob) {
-            // Microsoft Edge can't navigate to data urls, so we return the blob instead
-            const blob = canvas.msToBlob()
+          /** @type {any} */ const edgeCanvas = canvas
+          if (edgeCanvas.msToBlob) {
+            // Legacy Microsoft Edge can't navigate to data urls, so return the blob instead
+            const blob = edgeCanvas.msToBlob()
             resolve({ blob })
           } else {
             const imgURI = canvas.toDataURL('image/png')
@@ -213,6 +215,7 @@ class Exports {
       : undefined
     this.dataURI(option).then(({ imgURI, blob }) => {
       if (blob) {
+        // @ts-ignore — msSaveOrOpenBlob is an IE11-only API
         navigator.msSaveOrOpenBlob(blob, this.w.globals.chartID + '.png')
       } else {
         this.triggerDownload(
@@ -224,6 +227,7 @@ class Exports {
     })
   }
 
+  /** @param {{ series?: any, fileName?: any, columnDelimiter?: string, lineDelimiter?: string }} opts */
   exportToCSV({
     series,
     fileName,

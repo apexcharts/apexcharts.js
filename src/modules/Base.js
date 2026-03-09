@@ -1,6 +1,10 @@
+// @ts-check
 import Config from './settings/Config'
 import Globals from './settings/Globals'
 import { Environment } from '../utils/Environment'
+
+/** @typedef {import('../types/internal').ChartStateW} ChartStateW */
+/** @typedef {import('../types/internal').ChartContext} ChartContext */
 
 /**
  * ApexCharts Base Class for extending user options with pre-defined ApexCharts config.
@@ -12,6 +16,10 @@ export default class Base {
     this.opts = opts
   }
 
+  /**
+   * Build and return the full chart state object `w`.
+   * @returns {import('../types/internal').ChartStateW}
+   */
   init() {
     const config = new Config(this.opts).init({ responsiveOverride: false })
     const globals = new Globals().init(config)
@@ -51,7 +59,7 @@ export default class Base {
         disableZoomOut: false,
         // Device detection (set once at construction)
         isTouchDevice: Environment.isBrowser()
-          ? 'ontouchstart' in window || navigator.msMaxTouchPoints > 0
+          ? 'ontouchstart' in window || navigator.maxTouchPoints > 0
           : false,
       },
       formatters: {
@@ -349,6 +357,6 @@ export default class Base {
       })
     }
 
-    return w
+    return /** @type {import('../types/internal').ChartStateW} */ (/** @type {unknown} */ (w))
   }
 }

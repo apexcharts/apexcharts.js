@@ -1,3 +1,4 @@
+// @ts-check
 import Utils from '../../utils/Utils'
 import { Environment } from '../../utils/Environment.js'
 

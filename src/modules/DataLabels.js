@@ -1,3 +1,4 @@
+// @ts-check
 import Scatter from './../charts/Scatter'
 import Graphics from './Graphics'
 import Filters from './Filters'
@@ -138,11 +139,7 @@ class DataLabels {
 
           y = pos.y[q]
           const scatter = new Scatter(this.w, this.ctx)
-          const centerTextInBubbleCoords = scatter.centerTextInBubble(
-            y,
-            i,
-            dataPointIndex
-          )
+          const centerTextInBubbleCoords = scatter.centerTextInBubble(y)
           y = centerTextInBubbleCoords.y
         } else {
           if (typeof val !== 'undefined') {
@@ -292,8 +289,6 @@ class DataLabels {
       }
 
       dataLabelText = graphics.drawText({
-        width: 100,
-        height: parseInt(dataLabelsConfig.style.fontSize, 10),
         x: x + offX,
         y: y + offY,
         foreColor: dataLabelColor,

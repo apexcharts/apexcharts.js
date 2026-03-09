@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Chart rendering constants — values that never change at runtime.
  *

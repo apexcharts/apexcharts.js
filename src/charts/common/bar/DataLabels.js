@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from '../../../modules/Graphics'
 import DataLabels from '../../../modules/DataLabels'
 
@@ -17,8 +18,7 @@ export default class BarDataLabels {
    * It also sets the element's data attr for bars and calls drawCalculatedBarDataLabels()
    * After calculating, it also calls the function to draw data labels
    * @memberof Bar
-   * @param {object} {barProps} most of the bar properties used throughout the bar
-   * drawing function
+   * @param {any} opts - bar properties used throughout the bar drawing function
    * @return {object} dataLabels node-element which you can append later
    **/
   handleBarDataLabels(opts) {
@@ -48,18 +48,18 @@ export default class BarDataLabels {
     let bcx
     let bcy
     if (w.axisFlags.isXNumeric && !w.globals.isBarHorizontal) {
-      bcx = x + parseFloat(barWidth * (visibleSeries + 1))
-      bcy = y + parseFloat(barHeight * (visibleSeries + 1)) - strokeWidth
+      bcx = x + barWidth * (visibleSeries + 1)
+      bcy = y + barHeight * (visibleSeries + 1) - strokeWidth
     } else {
-      bcx = x + parseFloat(barWidth * visibleSeries)
-      bcy = y + parseFloat(barHeight * visibleSeries)
+      bcx = x + barWidth * visibleSeries
+      bcy = y + barHeight * visibleSeries
     }
 
     let dataLabels = null
     let totalDataLabels = null
     let dataLabelsX = x
     let dataLabelsY = y
-    let dataLabelsPos = {}
+    let dataLabelsPos = /** @type {any} */ ({})
     const dataLabelsConfig = w.config.dataLabels
     const barDataLabelsConfig = this.barCtx.barOptions.dataLabels
     const barTotalDataLabelsConfig = this.barCtx.barOptions.dataLabels.total
@@ -654,6 +654,7 @@ export default class BarDataLabels {
     return elDataLabelsWrap
   }
 
+  /** @param {{ x?: any, y?: any, val?: any, realIndex?: any, textAnchor?: any, barWidth?: any, barHeight?: any, dataLabelsConfig?: any, barTotalDataLabelsConfig?: any }} opts */
   drawTotalDataLabels({
     x,
     y,

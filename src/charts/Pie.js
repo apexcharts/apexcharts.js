@@ -1,3 +1,4 @@
+// @ts-check
 import Animations from '../modules/Animations'
 import Fill from '../modules/Fill'
 import Utils from '../utils/Utils'
@@ -616,7 +617,7 @@ class Pie {
       elPath.attr({
         'data:pieClicked': 'false',
       })
-      this.revertDataLabelsInner(elPath.node, this.donutDataLabels)
+      this.revertDataLabelsInner()
 
       const origPath = elPath.attr('data:pathOrig')
       elPath.attr({
@@ -662,6 +663,7 @@ class Pie {
         me: this,
         startAngle: prevStartAngle,
         angle: prevEndAngle - prevStartAngle,
+        // @ts-ignore — size is set dynamically during draw()
         size: this.size,
       })
     }
@@ -899,7 +901,7 @@ class Pie {
    *
    * @param {string} name - The name of the series
    * @param {string} val - The value of that series
-   * @param {object} el - Optional el (indicates which series was hovered/clicked). If this param is not present, means we need to show total
+   * @param {any} el - Optional el (indicates which series was hovered/clicked). If this param is not present, means we need to show total
    */
   printInnerLabels(labelsConfig, name, val, el) {
     const w = this.w

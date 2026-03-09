@@ -1,3 +1,4 @@
+// @ts-check
 import DateTime from '../utils/DateTime'
 import Dimensions from './dimensions/Dimensions'
 import Graphics from './Graphics'
@@ -45,7 +46,7 @@ class TimeScale {
       w.interact.disableZoomOut = true
     }
 
-    const timeIntervals = dt.getTimeUnitsfromTimestamp(minX, maxX, this.utc)
+    const timeIntervals = dt.getTimeUnitsfromTimestamp(minX, maxX)
 
     const daysWidthOnXAxis = w.layout.gridWidth / daysDiff
     const hoursWidthOnXAxis = daysWidthOnXAxis / 24

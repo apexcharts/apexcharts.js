@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from '../Graphics'
 import AxesUtils from './AxesUtils'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
@@ -98,7 +99,7 @@ export default class XAxis {
         labels.push(labelsGroup[i].title)
       }
 
-      const overwriteStyles = {}
+      const overwriteStyles = /** @type {any} */ ({})
       if (w.config.xaxis.group.style) {
         overwriteStyles.xaxisFontSize = w.config.xaxis.group.style.fontSize
         overwriteStyles.xaxisFontFamily = w.config.xaxis.group.style.fontFamily
@@ -168,6 +169,9 @@ export default class XAxis {
     return elXaxis
   }
 
+  /**
+   * @param {any} [overwriteStyles]
+   */
   drawXAxisLabelAndGroup(
     isLeafGroup,
     graphics,

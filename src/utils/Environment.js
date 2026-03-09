@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Environment detection utility for SSR support
  * Detects whether code is running in browser or Node.js environment
@@ -32,7 +33,7 @@ export class Environment {
   /**
    * Returns the global Apex config object regardless of environment.
    * In browser: window.Apex; in SSR/Node.js: global.Apex; fallback: {}.
-   * @returns {object}
+   * @returns {any}
    */
   static getApex() {
     if (typeof window !== 'undefined' && window.Apex) return window.Apex

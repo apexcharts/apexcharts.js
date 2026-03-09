@@ -1,3 +1,4 @@
+// @ts-check
 import Graphics from '../Graphics'
 import XAxis from './XAxis'
 import AxesUtils from './AxesUtils'
@@ -327,6 +328,7 @@ class Grid {
     }
   }
 
+  /** @param {{ xCount?: any, tickAmount?: any }} opts */
   _drawInvertedXYLines({ xCount }) {
     const w = this.w
 

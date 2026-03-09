@@ -1,3 +1,4 @@
+// @ts-check
 import Filters from './Filters'
 import Graphics from './Graphics'
 import Utils from '../utils/Utils'
@@ -37,6 +38,7 @@ export default class Markers {
     }
   }
 
+  /** @param {{ pointsPos?: any, seriesIndex?: any, j?: any, pSize?: any, alwaysDrawMarker?: boolean, isVirtualPoint?: boolean }} opts */
   plotChartMarkers({
     pointsPos,
     seriesIndex,
@@ -305,6 +307,7 @@ export default class Markers {
     )
   }
 
+  /** @returns {any} */
   getMarkerStyle(seriesIndex) {
     const w = this.w
 
