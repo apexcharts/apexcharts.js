@@ -213,17 +213,16 @@ class Fill {
       console.warn('undefined color - ApexCharts')
     }
 
-    if (Utils.isCSSVariable(fillColor)) {
-      fillColor = Utils.getThemeColor(fillColor)
-    }
+    if (opts.opacity) fillOpacity = opts.opacity
 
     let defaultColor = fillColor
 
-    if (fillColor.indexOf('rgb') === -1) {
+    if (Utils.isCSSVariable(fillColor)) {
+      defaultColor = Utils.applyOpacityToColor(fillColor, fillOpacity)
+    } else if (fillColor.indexOf('rgb') === -1) {
       if (fillColor.indexOf('#') === -1) {
         defaultColor = fillColor
       } else if (fillColor.length < 9) {
-        // if the hex contains alpha and is of 9 digit, skip the opacity
         defaultColor = Utils.hexToRgba(fillColor, fillOpacity)
       }
     } else {
@@ -233,13 +232,17 @@ class Fill {
         defaultColor = Utils.hexToRgba(Utils.rgb2hex(fillColor), fillOpacity)
       }
     }
-    if (opts.opacity) fillOpacity = opts.opacity
+
+    // Gradients and patterns require resolved color values (not CSS variables)
+    const resolvedFillColor = Utils.isCSSVariable(fillColor)
+      ? Utils.getThemeColor(fillColor)
+      : fillColor
 
     if (fillType === 'pattern') {
       patternFill = this.handlePatternFill({
         fillConfig: opts.fillConfig,
         patternFill,
-        fillColor,
+        fillColor: resolvedFillColor,
         defaultColor,
       })
     }
@@ -258,7 +261,7 @@ class Fill {
       gradientFill = this.handleGradientFill({
         type,
         fillConfig: opts.fillConfig,
-        fillColor,
+        fillColor: resolvedFillColor,
         fillOpacity,
         colorStops,
         i: this.seriesIndex,

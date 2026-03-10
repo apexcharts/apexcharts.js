@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>CSS Variables as Fill Colors</title>
+
+  <link href="../../assets/styles.css" rel="stylesheet" />
+
+  <style>
+    :root,
+    [data-theme="default"] {
+      --chart-primary: #008ffb;
+      --chart-secondary: #00e396;
+      --chart-tertiary: #feb019;
+    }
+
+    [data-theme="ocean"] {
+      --chart-primary: #0077b6;
+      --chart-secondary: #00b4d8;
+      --chart-tertiary: #90e0ef;
+    }
+
+    [data-theme="sunset"] {
+      --chart-primary: #e63946;
+      --chart-secondary: #f4a261;
+      --chart-tertiary: #e9c46a;
+    }
+
+    [data-theme="forest"] {
+      --chart-primary: #2d6a4f;
+      --chart-secondary: #52b788;
+      --chart-tertiary: #95d5b2;
+    }
+
+    [data-theme="neon"] {
+      --chart-primary: #9b5de5;
+      --chart-secondary: #f15bb5;
+      --chart-tertiary: #00f5d4;
+    }
+
+    [data-theme="candy"] {
+      --chart-primary: #ff69b4;
+      --chart-secondary: #ff85cb;
+      --chart-tertiary: #ffc8dd;
+    }
+
+    [data-theme="arctic"] {
+      --chart-primary: #4cc9f0;
+      --chart-secondary: #4895ef;
+      --chart-tertiary: #4361ee;
+    }
+
+    body {
+      transition: background-color 0.3s;
+    }
+
+    .controls {
+      max-width: 650px;
+      margin: 20px auto 0;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .controls button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+
+    .btn-theme {
+      background: #333;
+      color: #fff;
+    }
+
+    .btn-theme:hover {
+      background: #555;
+    }
+
+    .btn-color {
+      color: #fff;
+    }
+
+    .btn-color[data-palette="ocean"] {
+      background: #0077b6;
+    }
+
+    .btn-color[data-palette="sunset"] {
+      background: #e63946;
+    }
+
+    .btn-color[data-palette="forest"] {
+      background: #2d6a4f;
+    }
+
+    .btn-color[data-palette="neon"] {
+      background: #9b5de5;
+    }
+
+    .btn-color[data-palette="candy"] {
+      background: #ff69b4;
+    }
+
+    .btn-color[data-palette="arctic"] {
+      background: #4cc9f0;
+    }
+
+    .info {
+      max-width: 650px;
+      margin: 12px auto;
+      padding: 12px;
+      background: #f0f4ff;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    #chart, #chart2, #chart3 {
+      max-width: 650px;
+      margin: 35px auto;
+      padding-top: 20px;
+      padding-left: 10px;
+      background: #fff;
+      border: 1px solid #ddd;
+      box-shadow: 0 22px 35px -16px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+
+  <script src="../../../dist/apexcharts.js"></script>
+</head>
+
+<body>
+  <div class="controls">
+    <button class="btn-color" data-palette="ocean" onclick="setPalette('ocean')">Ocean</button>
+    <button class="btn-color" data-palette="sunset" onclick="setPalette('sunset')">Sunset</button>
+    <button class="btn-color" data-palette="forest" onclick="setPalette('forest')">Forest</button>
+    <button class="btn-color" data-palette="neon" onclick="setPalette('neon')">Neon</button>
+    <button class="btn-color" data-palette="candy" onclick="setPalette('candy')">Candy</button>
+    <button class="btn-color" data-palette="arctic" onclick="setPalette('arctic')">Arctic</button>
+  </div>
+
+  <div class="info">
+    This example uses <strong>CSS variables</strong> as chart colors.
+    The SVG fill uses <code>var(--chart-primary)</code> directly — no JavaScript color resolution needed.
+    Toggle the theme or change palettes to see the chart react instantly via CSS.
+  </div>
+
+  <div id="chart"></div>
+  <div id="chart2"></div>
+  <div id="chart3"></div>
+
+  <script>
+    function setPalette(name) {
+      document.documentElement.setAttribute('data-theme', name)
+    }
+
+    var options = {
+      series: [
+        { name: 'Series A', data: [44, 55, 41, 67, 22, 43] },
+        { name: 'Series B', data: [13, 23, 20, 8, 13, 27] },
+        { name: 'Series C', data: [11, 17, 15, 15, 21, 14] },
+      ],
+      chart: {
+        type: 'bar',
+        height: 380,
+        stacked: true,
+      },
+      colors: [
+        'var(--chart-primary)',
+        'var(--chart-secondary)',
+        'var(--chart-tertiary)',
+      ],
+      fill: {
+        opacity: 0.85,
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 4,
+          borderRadiusApplication: 'end',
+          borderRadiusWhenStacked: 'last',
+          horizontal: false,
+          columnWidth: '55%',
+        },
+      },
+      dataLabels: {
+        enabled: false,
+      },
+      xaxis: {
+        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      },
+      legend: {
+        position: 'top',
+      },
+    }
+
+    var chart = new ApexCharts(document.querySelector('#chart'), options)
+    chart.render()
+
+    var cssColors = [
+      'var(--chart-primary)',
+      'var(--chart-secondary)',
+      'var(--chart-tertiary)',
+    ]
+
+    var chart2 = new ApexCharts(document.querySelector('#chart2'), {
+      series: [
+        { name: 'Series A', data: [31, 40, 28, 51, 42, 109, 80] },
+        { name: 'Series B', data: [11, 32, 45, 32, 34, 52, 41] },
+        { name: 'Series C', data: [5, 18, 12, 26, 15, 31, 22] },
+      ],
+      chart: { type: 'area', height: 350 },
+      colors: cssColors,
+      fill: { type: 'solid', opacity: 0.3 },
+      stroke: { curve: 'smooth', width: 2 },
+      dataLabels: { enabled: false },
+      xaxis: { categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
+      legend: { position: 'top' },
+    })
+    chart2.render()
+
+    var chart3 = new ApexCharts(document.querySelector('#chart3'), {
+      series: [44, 33, 23],
+      chart: { type: 'donut', height: 350 },
+      colors: cssColors,
+      labels: ['Desktop', 'Tablet', 'Mobile'],
+      fill: { opacity: 1 },
+      legend: { position: 'bottom' },
+    })
+    chart3.render()
+  </script>
+</body>
+
+</html>
