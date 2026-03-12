@@ -508,6 +508,15 @@ class Utils {
     return computedColor
   }
 
+  static applyOpacityToColor(color, opacity) {
+    const value = Number(opacity)
+    if (!Number.isFinite(value)) return color
+    if (value <= 0) return 'transparent'
+    if (value >= 1) return color
+    const percent = Math.round(value * 100)
+    return `color-mix(in srgb, ${color} ${percent}%, transparent)`
+  }
+
   /**
    * @param {number} size
    * @param {number} dataPointsLen

@@ -408,6 +408,28 @@ describe('Utils', () => {
       })
     })
 
+    describe('applyOpacityToColor', () => {
+      it('should return color-mix for opacity < 1', () => {
+        expect(Utils.applyOpacityToColor('var(--primary)', 0.5)).toBe(
+          'color-mix(in srgb, var(--primary) 50%, transparent)'
+        )
+        expect(Utils.applyOpacityToColor('#ff0000', 0.8)).toBe(
+          'color-mix(in srgb, #ff0000 80%, transparent)'
+        )
+      })
+
+      it('should return original color when opacity is 1', () => {
+        expect(Utils.applyOpacityToColor('var(--primary)', 1)).toBe('var(--primary)')
+        expect(Utils.applyOpacityToColor('#ff0000', 1)).toBe('#ff0000')
+      })
+
+      it('should round opacity percentage', () => {
+        expect(Utils.applyOpacityToColor('var(--color)', 0.333)).toBe(
+          'color-mix(in srgb, var(--color) 33%, transparent)'
+        )
+      })
+    })
+
     describe('hexToRgba', () => {
       it('should convert 6-digit hex to rgba', () => {
         expect(Utils.hexToRgba('#FFFFFF', 1)).toBe('rgba(255,255,255,1)')
