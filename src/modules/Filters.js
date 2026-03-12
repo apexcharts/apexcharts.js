@@ -7,11 +7,18 @@ import Utils from './../utils/Utils'
  * @module Formatters
  **/
 class Filters {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w
   }
 
   // create a re-usable filter which can be appended other filter effects and applied to multiple elements
+  /**
+   * @param {any} el
+   * @param {number} i
+   */
   getDefaultFilter(el, i) {
     const w = this.w
     if (el.unfilter) {
@@ -23,6 +30,11 @@ class Filters {
     }
   }
 
+  /**
+   * @param {any} el
+   * @param {number} i
+   * @param {string} filterType
+   */
   applyFilter(el, i, filterType) {
     const w = this.w
     if (el.unfilter) {
@@ -38,7 +50,10 @@ class Filters {
     const brightnessFactor = filterType === 'lighten' ? 2 : 0.3
 
     if (el.filterWith) {
-      el.filterWith((add) => {
+      /**
+       * @param {any} add
+       */
+      el.filterWith((/** @type {any} */ add) => {
         add.colorMatrix({
           type: 'matrix',
           values: `
@@ -66,6 +81,12 @@ class Filters {
   }
 
   // appends dropShadow to the filter object which can be chained with other filter effects
+  /**
+   * @param {any} add
+   * @param {number} i
+   * @param {Record<string, any>} attrs
+   * @param {string} source
+   */
   addShadow(add, i, attrs, source) {
     const w = this.w
     let { blur, top, left, color, opacity } = attrs
@@ -107,6 +128,10 @@ class Filters {
   }
 
   // directly adds dropShadow to the element and returns the same element.
+  /**
+   * @param {any} el
+   * @param {Record<string, any>} attrs
+   */
   dropShadow(el, attrs, i = 0) {
     const w = this.w
 
@@ -126,7 +151,7 @@ class Filters {
     }
 
     if (el.filterWith) {
-      el.filterWith((add) => {
+      el.filterWith((/** @type {any} */ add) => {
         this.addShadow(add, i, attrs, 'SourceGraphic')
       })
 
@@ -141,6 +166,11 @@ class Filters {
     return el
   }
 
+  /**
+   * @param {any} el
+   * @param {number} realIndex
+   * @param {number} dataPointIndex
+   */
   setSelectionFilter(el, realIndex, dataPointIndex) {
     const w = this.w
     if (typeof w.interact.selectedDataPoints[realIndex] !== 'undefined') {
@@ -156,8 +186,14 @@ class Filters {
     }
   }
 
+  /**
+   * @param {any} el
+   */
   _scaleFilterSize(el) {
     if (!el) return
+    /**
+     * @param {Record<string, any>} attrs
+     */
     const setAttributes = (attrs) => {
       for (const key in attrs) {
         if (Object.prototype.hasOwnProperty.call(attrs, key)) {

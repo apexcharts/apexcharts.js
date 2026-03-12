@@ -12,6 +12,9 @@ import Data from '../Data'
  **/
 
 export default class Labels {
+  /**
+   * @param {import('./Tooltip').default} tooltipContext
+   */
   constructor(tooltipContext) {
     this.w = tooltipContext.w
     this.ttCtx = tooltipContext
@@ -45,14 +48,20 @@ export default class Labels {
     // Re-calculate tooltip dimensions now that we have drawn the text
     const tooltipEl = this.ttCtx.getElTooltip()
 
-    this.ttCtx.tooltipRect.ttWidth = tooltipEl.getBoundingClientRect().width
-    this.ttCtx.tooltipRect.ttHeight = tooltipEl.getBoundingClientRect().height
+    if (tooltipEl) {
+      this.ttCtx.tooltipRect.ttWidth = tooltipEl.getBoundingClientRect().width
+      this.ttCtx.tooltipRect.ttHeight = tooltipEl.getBoundingClientRect().height
+    }
   }
 
+  /** @param {{i: any, j: any, values: any, ttItems: any, shared: any, e: any}} opts */
   printLabels({ i, j, values, ttItems, shared, e }) {
     const w = this.w
     let val
-    let goalVals = []
+    let goalVals = /** @type {any[]} */ ([])
+    /**
+     * @param {number} gi
+     */
     const hasGoalValues = (gi) => {
       return (
         w.seriesData.seriesGoals[gi] &&
@@ -84,17 +93,23 @@ export default class Labels {
       })
 
       if (w.config.chart.type === 'treemap') {
-        seriesName = f.yLbTitleFormatter(String(w.config.series[i].data[j].x), {
-          series: w.seriesData.series,
-          seriesIndex: i,
-          dataPointIndex: j,
-          w,
-        })
+        seriesName = f.yLbTitleFormatter(
+          String(/** @type {any} */ (w.config.series[i]).data[j].x),
+          {
+            series: w.seriesData.series,
+            seriesIndex: i,
+            dataPointIndex: j,
+            w,
+          },
+        )
       }
 
       const tIndex = w.config.tooltip.inverseOrder ? inverset : t
 
       if (w.globals.axisCharts) {
+        /**
+         * @param {number} index
+         */
         const getValBySeriesIndex = (index) => {
           if (w.axisFlags.isRangeData) {
             return (
@@ -133,16 +148,21 @@ export default class Labels {
 
           val = getValBySeriesIndex(tIndex)
           if (hasGoalValues(tIndex)) {
-            goalVals = w.seriesData.seriesGoals[tIndex][j].map((goal) => {
-              return {
-                attrs: goal,
-                val: f.yLbFormatter(goal.value, {
-                  seriesIndex: tIndex,
-                  dataPointIndex: j,
-                  w,
-                }),
-              }
-            })
+            /**
+             * @param {number} goal
+             */
+            goalVals = w.seriesData.seriesGoals[tIndex][j].map(
+              (/** @type {any} */ goal) => {
+                return {
+                  attrs: goal,
+                  val: f.yLbFormatter(goal.value, {
+                    seriesIndex: tIndex,
+                    dataPointIndex: j,
+                    w,
+                  }),
+                }
+              },
+            )
           }
         } else {
           // get a color from a hover area (if it's a line pattern then get from a first line)
@@ -160,17 +180,25 @@ export default class Labels {
             }
           }
           val = getValBySeriesIndex(i)
-          if (hasGoalValues(i) && Array.isArray(w.seriesData.seriesGoals[i][j])) {
-            goalVals = w.seriesData.seriesGoals[i][j].map((goal) => {
-              return {
-                attrs: goal,
-                val: f.yLbFormatter(goal.value, {
-                  seriesIndex: i,
-                  dataPointIndex: j,
-                  w,
-                }),
-              }
-            })
+          if (
+            hasGoalValues(i) &&
+            Array.isArray(w.seriesData.seriesGoals[i][j])
+          ) {
+            /**
+             * @param {any} goal
+             */
+            goalVals = w.seriesData.seriesGoals[i][j].map(
+              (/** @type {any} */ goal) => {
+                return {
+                  attrs: goal,
+                  val: f.yLbFormatter(goal.value, {
+                    seriesIndex: i,
+                    dataPointIndex: j,
+                    w,
+                  }),
+                }
+              },
+            )
           }
         }
       }
@@ -203,6 +231,9 @@ export default class Labels {
     }
   }
 
+  /**
+   * @param {number} i
+   */
   getFormatters(i) {
     const w = this.w
 
@@ -211,15 +242,21 @@ export default class Labels {
 
     if (w.formatters.ttVal !== undefined) {
       if (Array.isArray(w.formatters.ttVal)) {
-        yLbFormatter = w.formatters.ttVal[i] && w.formatters.ttVal[i].formatter
+        yLbFormatter =
+          /** @type {any} */ (w.formatters.ttVal)[i] &&
+          /** @type {any} */ (w.formatters.ttVal)[i].formatter
         yLbTitleFormatter =
-          w.formatters.ttVal[i] &&
-          w.formatters.ttVal[i].title &&
-          w.formatters.ttVal[i].title.formatter
+          /** @type {any} */ (w.formatters.ttVal)[i] &&
+          /** @type {any} */ (w.formatters.ttVal)[i].title &&
+          /** @type {any} */ (w.formatters.ttVal)[i].title.formatter
       } else {
-        yLbFormatter = w.formatters.ttVal.formatter
-        if (typeof w.formatters.ttVal.title.formatter === 'function') {
-          yLbTitleFormatter = w.formatters.ttVal.title.formatter
+        yLbFormatter = /** @type {any} */ (w.formatters.ttVal).formatter
+        if (
+          typeof (/** @type {any} */ (w.formatters.ttVal).title.formatter) ===
+          'function'
+        ) {
+          yLbTitleFormatter = /** @type {any} */ (w.formatters.ttVal).title
+            .formatter
         }
       }
     } else {
@@ -230,6 +267,9 @@ export default class Labels {
       if (w.formatters.yLabelFormatters[0]) {
         yLbFormatter = w.formatters.yLabelFormatters[0]
       } else {
+        /**
+         * @param {string} label
+         */
         yLbFormatter = function (label) {
           return label
         }
@@ -237,6 +277,9 @@ export default class Labels {
     }
 
     if (typeof yLbTitleFormatter !== 'function') {
+      /**
+       * @param {string} label
+       */
       yLbTitleFormatter = function (label) {
         // refrence used from line: 966 in Options.js
         return label ? label + ': ' : ''
@@ -249,6 +292,7 @@ export default class Labels {
     }
   }
 
+  /** @param {{fn: any, index: any, seriesIndex: any, j: any}} opts */
   getSeriesName({ fn, index, seriesIndex, j }) {
     const w = this.w
     return fn(String(w.seriesData.seriesNames[index]), {
@@ -278,19 +322,23 @@ export default class Labels {
       if (ttCtx.tooltipTitle === null) {
         // get it once if null, and store it in class property
         ttCtx.tooltipTitle = w.dom.baseEl.querySelector(
-          '.apexcharts-tooltip-title'
+          '.apexcharts-tooltip-title',
         )
       }
-      ttCtx.tooltipTitle.innerHTML = xVal
+      if (ttCtx.tooltipTitle) {
+        ttCtx.tooltipTitle.innerHTML = xVal
+      }
     }
 
     // if xaxis tooltip is constructed, we need to replace the innerHTML
     if (ttCtx.isXAxisTooltipEnabled) {
-      ttCtx.xaxisTooltipText.innerHTML = xAxisTTVal !== '' ? xAxisTTVal : xVal
+      if (ttCtx.xaxisTooltipText) {
+        ttCtx.xaxisTooltipText.innerHTML = xAxisTTVal !== '' ? xAxisTTVal : xVal
+      }
     }
 
     const ttYLabel = ttItems[t].querySelector(
-      '.apexcharts-tooltip-text-y-label'
+      '.apexcharts-tooltip-text-y-label',
     )
     if (ttYLabel) {
       ttYLabel.innerHTML = seriesName ? seriesName : ''
@@ -323,17 +371,20 @@ export default class Labels {
     }
 
     const ttGLabel = ttItems[t].querySelector(
-      '.apexcharts-tooltip-text-goals-label'
+      '.apexcharts-tooltip-text-goals-label',
     )
     const ttGVal = ttItems[t].querySelector(
-      '.apexcharts-tooltip-text-goals-value'
+      '.apexcharts-tooltip-text-goals-value',
     )
 
     if (goalVals.length && w.seriesData.seriesGoals[t]) {
       const createGoalsHtml = () => {
         let gLabels = '<div>'
         let gVals = '<div>'
-        goalVals.forEach((goal) => {
+        /**
+         * @param {any} goal
+         */
+        goalVals.forEach((/** @type {any} */ goal) => {
           gLabels += ` <div style="display: flex"><span class="apexcharts-tooltip-marker" style="background-color: ${goal.attrs.strokeColor}; height: 3px; border-radius: 0; top: 5px;"></span> ${goal.attrs.name}</div>`
           gVals += `<div>${goal.val}</div>`
         })
@@ -360,11 +411,11 @@ export default class Labels {
 
     if (zVal !== null) {
       const ttZLabel = ttItems[t].querySelector(
-        '.apexcharts-tooltip-text-z-label'
+        '.apexcharts-tooltip-text-z-label',
       )
       ttZLabel.innerHTML = w.config.tooltip.z.title
       const ttZVal = ttItems[t].querySelector(
-        '.apexcharts-tooltip-text-z-value'
+        '.apexcharts-tooltip-text-z-value',
       )
       ttZVal.innerHTML = typeof zVal !== 'undefined' ? zVal : ''
     }
@@ -373,7 +424,7 @@ export default class Labels {
       // hide when no Val or series collapsed
       if (w.config.tooltip.hideEmptySeries) {
         const ttItemMarker = ttItems[t].querySelector(
-          '.apexcharts-tooltip-marker'
+          '.apexcharts-tooltip-marker',
         )
         const ttItemText = ttItems[t].querySelector('.apexcharts-tooltip-text')
         if (parseFloat(val) == 0) {
@@ -407,6 +458,10 @@ export default class Labels {
     }
   }
 
+  /**
+   * @param {boolean} shared
+   * @param {number} i
+   */
   toggleActiveInactiveSeries(shared, i) {
     const w = this.w
     if (shared) {
@@ -418,19 +473,26 @@ export default class Labels {
 
       // enable the first tooltip text group
       const firstTooltipSeriesGroup = w.dom.baseEl.querySelector(
-        `.apexcharts-tooltip-series-group-${i}`
+        `.apexcharts-tooltip-series-group-${i}`,
       )
 
       if (firstTooltipSeriesGroup) {
-        firstTooltipSeriesGroup.classList.add('apexcharts-active')
-        firstTooltipSeriesGroup.style.display = w.config.tooltip.items.display
+        const ftsGroup = /** @type {HTMLElement} */ (firstTooltipSeriesGroup)
+        ftsGroup.classList.add('apexcharts-active')
+        ftsGroup.style.display = w.config.tooltip.items.display
       }
     }
   }
 
+  /** @param {{i: any, j: any}} opts */
   getValuesToPrint({ i, j }) {
     const w = this.w
-    const filteredSeriesX = w.seriesData.seriesX.map((ser) => (ser.length > 0 ? ser : []))
+    /**
+     * @param {any[]} ser
+     */
+    const filteredSeriesX = w.seriesData.seriesX.map(
+      (/** @type {any} */ ser) => (ser.length > 0 ? ser : []),
+    )
 
     let xVal = ''
     let xAxisTTVal = ''
@@ -461,8 +523,9 @@ export default class Labels {
         const dataFormat = new Data(this.w)
         if (dataFormat.isFormatXY()) {
           xVal =
-            typeof w.config.series[i].data[j] !== 'undefined'
-              ? w.config.series[i].data[j].x
+            typeof (/** @type {any} */ (w.config.series[i]).data[j]) !==
+            'undefined'
+              ? /** @type {any} */ (w.config.series[i]).data[j].x
               : ''
         } else {
           xVal =
@@ -478,36 +541,40 @@ export default class Labels {
     if (w.axisFlags.isXNumeric && w.config.xaxis.type === 'datetime') {
       const xFormat = new Formatters(this.w)
       xVal = xFormat.xLabelFormat(
-        w.formatters.ttKeyFormatter,
+        /** @type {Function} */ (w.formatters.ttKeyFormatter),
         bufferXVal,
         bufferXVal,
         {
           i: undefined,
           dateFormatter: new DateTime(this.w).formatDate,
           w: this.w,
-        }
+        },
       )
     } else {
       if (w.globals.isBarHorizontal) {
         xVal = w.formatters.yLabelFormatters[0](bufferXVal, customFormatterOpts)
       } else {
-        xVal = w.formatters.xLabelFormatter(bufferXVal, customFormatterOpts)
+        xVal =
+          w.formatters.xLabelFormatter?.(bufferXVal, customFormatterOpts) ??
+          bufferXVal
       }
     }
 
     // override default x-axis formatter with tooltip formatter
     if (w.config.tooltip.x.formatter !== undefined) {
-      xVal = w.formatters.ttKeyFormatter(bufferXVal, customFormatterOpts)
+      xVal =
+        w.formatters.ttKeyFormatter?.(bufferXVal, customFormatterOpts) ??
+        bufferXVal
     }
 
     if (w.seriesData.seriesZ.length > 0 && w.seriesData.seriesZ[i].length > 0) {
-      zVal = zFormatter(w.seriesData.seriesZ[i][j], w)
+      zVal = zFormatter?.(w.seriesData.seriesZ[i][j], w)
     }
 
     if (typeof w.config.xaxis.tooltip.formatter === 'function') {
-      xAxisTTVal = w.formatters.xaxisTooltipFormatter(
+      xAxisTTVal = w.formatters.xaxisTooltipFormatter?.(
         bufferXVal,
-        customFormatterOpts
+        customFormatterOpts,
       )
     } else {
       xAxisTTVal = xVal
@@ -521,6 +588,7 @@ export default class Labels {
     }
   }
 
+  /** @param {{i: any, j: any, y1: any, y2: any, w: any}} opts */
   handleCustomTooltip({ i, j, y1, y2, w }) {
     const tooltipEl = this.ttCtx.getElTooltip()
     let fn = w.config.tooltip.custom
@@ -538,17 +606,19 @@ export default class Labels {
       w,
     })
 
-    if (
-      typeof customTooltip === 'string' ||
-      typeof customTooltip === 'number'
-    ) {
-      tooltipEl.innerHTML = customTooltip
-    } else if (
-      customTooltip instanceof Element ||
-      typeof customTooltip.nodeName === 'string'
-    ) {
-      tooltipEl.innerHTML = ''
-      tooltipEl.appendChild(customTooltip.cloneNode(true))
+    if (tooltipEl) {
+      if (
+        typeof customTooltip === 'string' ||
+        typeof customTooltip === 'number'
+      ) {
+        tooltipEl.innerHTML = String(customTooltip)
+      } else if (
+        customTooltip instanceof Element ||
+        typeof customTooltip.nodeName === 'string'
+      ) {
+        tooltipEl.innerHTML = ''
+        tooltipEl.appendChild(customTooltip.cloneNode(true))
+      }
     }
   }
 }

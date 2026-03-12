@@ -5,13 +5,25 @@ import CoreUtils from '../CoreUtils'
 import DateTime from '../../utils/DateTime'
 
 export default class AxesUtils {
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   */
   constructor(w, { theme = null, timeScale = null } = {}) {
     this.w = w
+    /** @type {any} */
     this.theme = theme
+    /** @type {any} */
     this.timeScale = timeScale
   }
 
   // Based on the formatter function, get the label text and position
+  /**
+   * @param {any[]} labels
+   * @param {Array<Record<string, any>>} timescaleLabels
+   * @param {number} x
+   * @param {number} i
+   * @param {any[]} drawnLabels
+   */
   getLabel(
     labels,
     timescaleLabels,
@@ -19,7 +31,7 @@ export default class AxesUtils {
     i,
     drawnLabels = [],
     fontSize = '12px',
-    isLeafGroup = true
+    isLeafGroup = true,
   ) {
     const w = this.w
     const rawLabel = typeof labels[i] === 'undefined' ? '' : labels[i]
@@ -34,11 +46,16 @@ export default class AxesUtils {
     const timestamp = rawLabel
 
     if (isLeafGroup) {
-      label = xFormat.xLabelFormat(xlbFormatter, rawLabel, timestamp, {
-        i,
-        dateFormatter: new DateTime(this.w).formatDate,
-        w,
-      })
+      label = /** @type {any} */ (xFormat).xLabelFormat(
+        xlbFormatter,
+        rawLabel,
+        timestamp,
+        {
+          i,
+          dateFormatter: new DateTime(this.w).formatDate,
+          w,
+        },
+      )
 
       if (customFormatter !== undefined) {
         label = customFormatter(rawLabel, labels[i], {
@@ -49,9 +66,15 @@ export default class AxesUtils {
       }
     }
 
+    /**
+     * @param {string} unit
+     */
     const determineHighestUnit = (unit) => {
       let highestUnit = null
-      timescaleLabels.forEach((t) => {
+      /**
+       * @param {Record<string, any>} t
+       */
+      timescaleLabels.forEach((/** @type {any} */ t) => {
         if (t.unit === 'month') {
           highestUnit = 'year'
         } else if (t.unit === 'day') {
@@ -84,13 +107,13 @@ export default class AxesUtils {
     if (w.layout.rotateXLabels && isLeafGroup) {
       textRect = graphics.getTextRects(
         label,
-        parseInt(fontSize, 10),
+        parseInt(fontSize, 10).toString(),
         null,
         `rotate(${w.config.xaxis.labels.rotate} 0 0)`,
-        false
+        false,
       )
     } else {
-      textRect = graphics.getTextRects(label, parseInt(fontSize, 10))
+      textRect = graphics.getTextRects(label, parseInt(fontSize, 10).toString())
     }
 
     const allowDuplicatesInTimeScale =
@@ -112,6 +135,11 @@ export default class AxesUtils {
     }
   }
 
+  /**
+   * @param {number} i
+   * @param {any} label
+   * @param {number} labelsLen
+   */
   checkLabelBasedOnTickamount(i, label, labelsLen) {
     const w = this.w
 
@@ -124,32 +152,39 @@ export default class AxesUtils {
     if (i % tickMultiple === 0) {
       return label
     } else {
-      label.text = ''
+      /** @type {any} */ ;(label).text = ''
     }
 
     return label
   }
 
+  /**
+   * @param {number} i
+   * @param {any} label
+   * @param {number} labelsLen
+   * @param {any[]} drawnLabels
+   * @param {Array<Record<string, any>>} drawnLabelsRects
+   */
   checkForOverflowingLabels(
     i,
     label,
     labelsLen,
     drawnLabels,
-    drawnLabelsRects
+    drawnLabelsRects,
   ) {
     const w = this.w
 
     if (i === 0) {
       // check if first label is being truncated
       if (w.globals.skipFirstTimelinelabel) {
-        label.text = ''
+        /** @type {any} */ ;(label).text = ''
       }
     }
 
     if (i === labelsLen - 1) {
       // check if last label is being truncated
       if (w.globals.skipLastTimelinelabel) {
-        label.text = ''
+        /** @type {any} */ ;(label).text = ''
       }
     }
 
@@ -159,20 +194,24 @@ export default class AxesUtils {
         return label
       }
       if (
-        label.x <
+        /** @type {any} */ (label).x <
         prev.textRect.width /
           (w.layout.rotateXLabels
             ? Math.abs(w.config.xaxis.labels.rotate) / 12
             : 1.01) +
           prev.x
       ) {
-        label.text = ''
+        /** @type {any} */ ;(label).text = ''
       }
     }
 
     return label
   }
 
+  /**
+   * @param {number} i
+   * @param {any[]} labels
+   */
   checkForReversedLabels(i, labels) {
     const w = this.w
     if (w.config.yaxis[i] && w.config.yaxis[i].reversed) {
@@ -180,26 +219,37 @@ export default class AxesUtils {
     }
     return labels
   }
-  
+
+  /**
+   * @param {number} index
+   */
   yAxisAllSeriesCollapsed(index) {
     const gl = this.w.globals
 
+    /**
+     * @param {number} si
+     */
     return !gl.seriesYAxisMap[index].some((si) => {
       return gl.collapsedSeriesIndices.indexOf(si) === -1
     })
-    
   }
-  
+
   // Method to translate annotation.yAxisIndex values from
   // seriesName-as-a-string values to seriesName-as-an-array values (old style
   // series mapping to new style).
+  /**
+   * @param {number} index
+   */
   translateYAxisIndex(index) {
     const w = this.w
     const gl = w.globals
     const yaxis = w.config.yaxis
     const newStyle =
-          w.seriesData.series.length > yaxis.length
-          || yaxis.some((a) => Array.isArray(a.seriesName))
+      w.seriesData.series.length > yaxis.length ||
+      /**
+       * @param {Record<string, any>} a
+       */
+      yaxis.some((a) => Array.isArray(a.seriesName))
     if (newStyle) {
       return index
     } else {
@@ -207,17 +257,22 @@ export default class AxesUtils {
     }
   }
 
+  /**
+   * @param {number} index
+   */
   isYAxisHidden(index) {
     const w = this.w
     const yaxis = w.config.yaxis[index]
 
-    if (!yaxis.show || this.yAxisAllSeriesCollapsed(index) 
-    ) {
+    if (!yaxis.show || this.yAxisAllSeriesCollapsed(index)) {
       return true
     }
     if (!yaxis.showForNullSeries) {
       const seriesIndices = w.globals.seriesYAxisMap[index]
       const coreUtils = new CoreUtils(this.w)
+      /**
+       * @param {number} si
+       */
       return seriesIndices.every((si) => coreUtils.isSeriesNull(si))
     }
     return false
@@ -225,18 +280,31 @@ export default class AxesUtils {
 
   // get the label color for y-axis
   // realIndex is the actual series index, while i is the tick Index
+  /**
+   * @param {string[]} yColors
+   * @param {number} realIndex
+   */
   getYAxisForeColor(yColors, realIndex) {
     const w = this.w
     if (Array.isArray(yColors) && w.globals.yAxisScale[realIndex]) {
       this.theme?.pushExtraColors(
         yColors,
         w.globals.yAxisScale[realIndex].result.length,
-        false
+        false,
       )
     }
     return yColors
   }
 
+  /**
+   * @param {number} x
+   * @param {number} tickAmount
+   * @param {Record<string, any>} axisBorder
+   * @param {Record<string, any>} axisTicks
+   * @param {number} realIndex
+   * @param {any} labelsDivider
+   * @param {any} elYaxis
+   */
   drawYAxisTicks(
     x,
     tickAmount,
@@ -244,7 +312,7 @@ export default class AxesUtils {
     axisTicks,
     realIndex,
     labelsDivider,
-    elYaxis
+    elYaxis,
   ) {
     const w = this.w
     const graphics = new Graphics(this.w)
@@ -266,7 +334,7 @@ export default class AxesUtils {
           tY + axisTicks.offsetY,
           x + axisBorder.offsetX + axisTicks.offsetX,
           tY + axisTicks.offsetY,
-          axisTicks.color
+          axisTicks.color,
         )
         elYaxis.add(elTick)
         tY += labelsDivider

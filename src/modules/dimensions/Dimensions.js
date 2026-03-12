@@ -13,6 +13,10 @@ import { LINE_HEIGHT_RATIO } from '../../utils/Constants'
  **/
 
 export default class Dimensions {
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {import('../../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx // needed: new XAxis(w, ctx) for xAxisLabelClick event callback
@@ -33,6 +37,11 @@ export default class Dimensions {
     this.gridPad = this.w.config.grid.padding
     this.xPadRight = 0
     this.xPadLeft = 0
+    this.datalabelsCoords = { width: 0, height: 0 }
+    /** @type {number} */
+    this.xAxisWidth = 0
+    /** @type {any[]} */
+    this.timescaleLabels = []
   }
 
   /**
@@ -54,7 +63,7 @@ export default class Dimensions {
         Object.entries(this.gridPad).forEach(([k, v]) => {
           this.gridPad[k] = Math.max(
             v,
-            this.w.globals.markers.largestSize / 1.5
+            this.w.globals.markers.largestSize / 1.5,
           )
         })
       }
@@ -74,7 +83,8 @@ export default class Dimensions {
     this.dimGrid.gridPadFortitleSubtitle()
 
     // after calculating everything, apply padding set by user
-    w.layout.gridHeight = w.layout.gridHeight - this.gridPad.top - this.gridPad.bottom
+    w.layout.gridHeight =
+      w.layout.gridHeight - this.gridPad.top - this.gridPad.bottom
 
     w.layout.gridWidth =
       w.layout.gridWidth -
@@ -83,7 +93,9 @@ export default class Dimensions {
       this.xPadRight -
       this.xPadLeft
 
-    const barWidth = this.dimGrid.gridPadForColumnsInNumericAxis(w.layout.gridWidth)
+    const barWidth = this.dimGrid.gridPadForColumnsInNumericAxis(
+      w.layout.gridWidth,
+    )
 
     w.layout.gridWidth = w.layout.gridWidth - barWidth * 2
 
@@ -130,16 +142,22 @@ export default class Dimensions {
 
     w.layout.yLabelsCoords = []
     w.layout.yTitleCoords = []
+    /**
+     * @param {ApexYAxis} yaxe
+     * @param {number} index
+     */
     w.config.yaxis.map((yaxe, index) => {
       // store the labels and titles coords in global vars
       w.layout.yLabelsCoords.push({
         width: yaxisLabelCoords[index].width,
         index,
       })
-      w.layout.yTitleCoords.push({
-        width: yTitleCoords[index].width,
-        index,
-      })
+      w.layout.yTitleCoords.push(
+        /** @type {any} */ ({
+          width: yTitleCoords[index].width,
+          index,
+        }),
+      )
     })
 
     this.yAxisWidth = this.dimYAxis.getTotalYAxisWidth()
@@ -151,10 +169,12 @@ export default class Dimensions {
     this.conditionalChecksForAxisCoords(
       xaxisLabelCoords,
       xtitleCoords,
-      xaxisGroupLabelCoords
+      xaxisGroupLabelCoords,
     )
 
-    w.layout.translateXAxisY = w.layout.rotateXLabels ? this.xAxisHeight / 8 : -4
+    w.layout.translateXAxisY = w.layout.rotateXLabels
+      ? this.xAxisHeight / 8
+      : -4
     w.layout.translateXAxisX =
       w.layout.rotateXLabels &&
       w.axisFlags.isXNumeric &&
@@ -168,13 +188,16 @@ export default class Dimensions {
         -1 * (parseInt(w.config.xaxis.labels.style.fontSize, 10) / 1.5)
     }
 
-    w.layout.translateXAxisY = w.layout.translateXAxisY + w.config.xaxis.labels.offsetY
-    w.layout.translateXAxisX = w.layout.translateXAxisX + w.config.xaxis.labels.offsetX
+    w.layout.translateXAxisY =
+      w.layout.translateXAxisY + w.config.xaxis.labels.offsetY
+    w.layout.translateXAxisX =
+      w.layout.translateXAxisX + w.config.xaxis.labels.offsetX
 
     let yAxisWidth = this.yAxisWidth
     let xAxisHeight = this.xAxisHeight
     w.layout.xAxisLabelsHeight = this.xAxisHeight - xtitleCoords.height
-    w.layout.xAxisGroupLabelsHeight = w.layout.xAxisLabelsHeight - xaxisLabelCoords.height
+    w.layout.xAxisGroupLabelsHeight =
+      w.layout.xAxisLabelsHeight - xaxisLabelCoords.height
     w.layout.xAxisLabelsWidth = this.xAxisWidth
     w.layout.xAxisHeight = this.xAxisHeight
     let translateY = 10
@@ -212,7 +235,8 @@ export default class Dimensions {
             ? 10
             : 15
           : 0)
-      w.layout.gridWidth = gl.svgWidth - yAxisWidth - this.datalabelsCoords.width * 2
+      w.layout.gridWidth =
+        gl.svgWidth - yAxisWidth - this.datalabelsCoords.width * 2
     }
 
     if (w.config.xaxis.position === 'top')
@@ -256,7 +280,10 @@ export default class Dimensions {
     this.dimGrid.setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords)
 
     // after drawing everything, set the Y axis positions
-    const objyAxis = new YAxis(this.w, { theme: this.theme, timeScale: this.timeScale })
+    const objyAxis = new YAxis(this.w, {
+      theme: this.theme,
+      timeScale: this.timeScale,
+    })
     objyAxis.setYAxisXPosition(yaxisLabelCoords, yTitleCoords)
   }
 
@@ -323,10 +350,15 @@ export default class Dimensions {
     }
   }
 
+  /**
+   * @param {any} xaxisLabelCoords
+   * @param {any} xtitleCoords
+   * @param {any} xaxisGroupLabelCoords
+   */
   conditionalChecksForAxisCoords(
     xaxisLabelCoords,
     xtitleCoords,
-    xaxisGroupLabelCoords
+    xaxisGroupLabelCoords,
   ) {
     const w = this.w
 
@@ -371,6 +403,9 @@ export default class Dimensions {
 
     let minYAxisWidth = 0
     let maxYAxisWidth = 0
+    /**
+     * @param {number} y
+     */
     w.config.yaxis.forEach((y) => {
       minYAxisWidth += y.labels.minWidth
       maxYAxisWidth += y.labels.maxWidth

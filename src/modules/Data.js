@@ -6,16 +6,24 @@ import Utils from '../utils/Utils'
 import Defaults from './settings/Defaults'
 
 export default class Data {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   */
   constructor(w, { resetGlobals = () => {}, isMultipleY = () => {} } = {}) {
     this.w = w
     this.resetGlobals = resetGlobals
     this.isMultipleY = isMultipleY
 
+    /** @type {any} */
     this.twoDSeries = []
+    /** @type {any} */
     this.threeDSeries = []
+    /** @type {any} */
     this.twoDSeriesX = []
+    /** @type {any} */
     this.seriesGoals = []
     this.coreUtils = new CoreUtils(this.w)
+    /** @type {number} */ this.activeSeriesIndex = 0
   }
 
   // Helper to get the first valid data point from the active series
@@ -23,15 +31,16 @@ export default class Data {
     const series = this.w.config.series
     const sr = new Series(this.w)
     this.activeSeriesIndex = sr.getActiveConfigSeriesIndex()
+    const activeItem = /** @type {any} */ (series[this.activeSeriesIndex])
 
     if (
-      series[this.activeSeriesIndex] &&
-      series[this.activeSeriesIndex].data &&
-      series[this.activeSeriesIndex].data.length > 0 &&
-      series[this.activeSeriesIndex].data[0] !== null &&
-      typeof series[this.activeSeriesIndex].data[0] !== 'undefined'
+      activeItem &&
+      activeItem.data &&
+      activeItem.data.length > 0 &&
+      activeItem.data[0] !== null &&
+      typeof activeItem.data[0] !== 'undefined'
     ) {
-      return series[this.activeSeriesIndex].data[0]
+      return activeItem.data[0]
     }
     return null
   }
@@ -44,8 +53,13 @@ export default class Data {
   isFormatXY() {
     const firstDataPoint = this.getFirstDataPoint()
     if (!firstDataPoint || typeof firstDataPoint.x === 'undefined') return false
-    const data = this.w.config.series[this.activeSeriesIndex]?.data
+    const data = /** @type {any} */ (
+      this.w.config.series[this.activeSeriesIndex]
+    )?.data
     if (data) {
+      /**
+       * @param {Record<string, any>} pt
+       */
       const isXY = (pt) => pt && typeof pt.x !== 'undefined'
       for (let k = 1; k < Math.min(3, data.length); k++) {
         if (isXY(data[k]) !== true) {
@@ -65,12 +79,17 @@ export default class Data {
     return firstDataPoint && Array.isArray(firstDataPoint)
   }
 
+  /**
+   * @param {any[]} ser
+   * @param {number} i
+   */
   handleFormat2DArray(ser, i) {
     const cnf = this.w.config
     const data = ser[i].data
 
     const isBoxPlot =
-      cnf.chart.type === 'boxPlot' || cnf.series[i].type === 'boxPlot'
+      cnf.chart.type === 'boxPlot' ||
+      /** @type {any} */ (cnf.series[i]).type === 'boxPlot'
 
     for (let j = 0; j < data.length; j++) {
       const point = data[j]
@@ -105,6 +124,10 @@ export default class Data {
     }
   }
 
+  /**
+   * @param {any[]} ser
+   * @param {number} i
+   */
   handleFormatXY(ser, i) {
     const cnf = this.w.config
     const gl = this.w.globals
@@ -196,7 +219,12 @@ export default class Data {
     }
   }
 
+  /**
+   * @param {any[]} ser
+   * @param {number} i
+   */
   handleRangeData(ser, i) {
+    /** @type {any} */
     let range = { start: [], end: [], rangeUniques: [] }
     if (this.isFormat2DArray()) {
       range = this.handleRangeDataFormat('array', ser, i)
@@ -213,31 +241,38 @@ export default class Data {
     this.w.rangeData.seriesRange[i] = range.rangeUniques
 
     // check for overlaps to avoid clashes in a timeline chart
+    /**
+     * @param {Array<Record<string, any>>} sr
+     */
     this.w.rangeData.seriesRange.forEach((sr) => {
       if (!sr) return
 
+      /**
+       * @param {Record<string, any>} sarr
+       */
       sr.forEach((sarr) => {
-        const yItems = sarr.y
-        const len = yItems.length
+        const yItems = /** @type {any} */ (sarr).y
+        const len = /** @type {any[]} */ (yItems).length
 
         // Pre-check: if only one item, no overlaps possible
         if (len <= 1) return
 
         for (let arri = 0; arri < len; arri++) {
-          const arr = yItems[arri]
+          const arr = /** @type {any} */ (yItems[arri])
           const range1y1 = arr.y1
           const range1y2 = arr.y2
 
           // Only check subsequent items to avoid duplicate comparisons
           for (let sri = arri + 1; sri < len; sri++) {
-            const range2 = yItems[sri]
+            const range2 = /** @type {any} */ (yItems[sri])
             const range2y1 = range2.y1
             const range2y2 = range2.y2
 
             // Check overlap using interval intersection
             if (range1y1 <= range2y2 && range2y1 <= range1y2) {
-              sarr.overlaps.add(arr.rangeName)
-              sarr.overlaps.add(range2.rangeName)
+              const sarrAny = /** @type {any} */ (sarr)
+              sarrAny.overlaps.add(arr.rangeName)
+              sarrAny.overlaps.add(range2.rangeName)
             }
           }
         }
@@ -247,7 +282,12 @@ export default class Data {
     return range
   }
 
+  /**
+   * @param {any[]} ser
+   * @param {number} i
+   */
   handleCandleStickBoxData(ser, i) {
+    /** @type {any} */
     let ohlc = { o: [], h: [], m: [], l: [], c: [] }
     if (this.isFormat2DArray()) {
       ohlc = this.handleCandleStickBoxDataFormat('array', ser, i)
@@ -264,15 +304,24 @@ export default class Data {
     return ohlc
   }
 
+  /**
+   * @param {string} format
+   * @param {any[]} ser
+   * @param {number} i
+   */
   handleRangeDataFormat(format, ser, i) {
     const rangeStart = []
     const rangeEnd = []
 
     const uniqueKeysMap = new Map()
+    /** @type {any[]} */
     const uniqueKeys = []
 
     // unique keys map
-    ser[i].data.forEach((item) => {
+    /**
+     * @param {Record<string, any>} item
+     */
+    ser[i].data.forEach((/** @type {any} */ item) => {
       if (!uniqueKeysMap.has(item.x)) {
         const keyObj = {
           x: item.x,
@@ -326,10 +375,16 @@ export default class Data {
     }
   }
 
+  /**
+   * @param {string} format
+   * @param {any[]} ser
+   * @param {number} i
+   */
   handleCandleStickBoxDataFormat(format, ser, i) {
     const w = this.w
     const isBoxPlot =
-      w.config.chart.type === 'boxPlot' || w.config.series[i].type === 'boxPlot'
+      w.config.chart.type === 'boxPlot' ||
+      /** @type {Record<string,any>} */ (w.config.series[i]).type === 'boxPlot'
 
     const serO = []
     const serH = []
@@ -345,12 +400,21 @@ export default class Data {
         (isBoxPlot && data[0].length === 6) ||
         (!isBoxPlot && data[0].length === 5)
       if (isFlat) {
+        /**
+         * @param {any[]} d
+         */
         getVals = (d) => d.slice(1)
       } else {
+        /**
+         * @param {any} d
+         */
         getVals = (d) => (Array.isArray(d[1]) ? d[1] : [])
       }
     } else {
       // format === 'xy'
+      /**
+       * @param {Record<string, any>} d
+       */
       getVals = (d) => (Array.isArray(d.y) ? d.y : [])
     }
 
@@ -379,6 +443,9 @@ export default class Data {
     }
   }
 
+  /**
+   * @param {any[]} ser
+   */
   parseDataAxisCharts(ser) {
     const cnf = this.w.config
     const gl = this.w.globals
@@ -397,11 +464,17 @@ export default class Data {
       this.w.labelData.groups = cnf.xaxis.group.groups
     }
 
+    /**
+     * @param {Record<string, any>} s
+     * @param {number} i
+     */
     ser.forEach((s, i) => {
       if (s.name !== undefined) {
         this.w.seriesData.seriesNames.push(s.name)
       } else {
-        this.w.seriesData.seriesNames.push('series-' + parseInt(i + 1, 10))
+        this.w.seriesData.seriesNames.push(
+          'series-' + parseInt(String(i + 1), 10),
+        )
       }
     })
 
@@ -410,9 +483,15 @@ export default class Data {
     // has been given a name according to the yaxis the series is referenced by.
     // This fits the existing behaviour where all series associated with an axis
     // are defacto presented as a single group. It is now formalised.
+    /** @type {any[]} */
     const buckets = []
-    const groups = [...new Set(cnf.series.map((s) => s.group))]
-    cnf.series.forEach((s, i) => {
+    /**
+     * @param {Record<string, any>} s
+     */
+    const groups = [
+      ...new Set(cnf.series.map((/** @type {any} */ s) => s.group)),
+    ]
+    cnf.series.forEach((/** @type {any} */ s, i) => {
       const index = groups.indexOf(s.group)
       if (!buckets[index]) buckets[index] = []
 
@@ -518,7 +597,12 @@ export default class Data {
           }
         }
         this.w.labelData.labels.push(this.twoDSeriesX)
-        const singleArray = ser[i].data.map((d) => Utils.parseNumber(d))
+        /**
+         * @param {any} d
+         */
+        const singleArray = ser[i].data.map((/** @type {any} */ d) =>
+          Utils.parseNumber(d),
+        )
         this.w.seriesData.series.push(singleArray)
       }
 
@@ -528,13 +612,16 @@ export default class Data {
       if (ser[i].color !== undefined) {
         this.w.seriesData.seriesColors.push(ser[i].color)
       } else {
-        this.w.seriesData.seriesColors.push(undefined)
+        this.w.seriesData.seriesColors.push(/** @type {any} */ (undefined))
       }
     }
 
     return this.w
   }
 
+  /**
+   * @param {any[]} ser
+   */
   parseDataNonAxisCharts(ser) {
     const cnf = this.w.config
 
@@ -559,7 +646,7 @@ export default class Data {
 
     // If old format exists, use it (backward compatibility priority)
     if (hasOldFormat) {
-      this.w.seriesData.series = ser.slice()
+      this.w.seriesData.series = /** @type {any} */ (ser.slice())
       this.w.seriesData.seriesNames = cnf.labels.slice()
       for (let i = 0; i < this.w.seriesData.series.length; i++) {
         if (this.w.seriesData.seriesNames[i] === undefined) {
@@ -571,7 +658,7 @@ export default class Data {
 
     // Check if it's just a plain numeric array without labels (radialBar common case)
     if (Array.isArray(ser) && ser.every((s) => typeof s === 'number')) {
-      this.w.seriesData.series = ser.slice()
+      this.w.seriesData.series = /** @type {any} */ (ser.slice())
       this.w.seriesData.seriesNames = []
       for (let i = 0; i < this.w.seriesData.series.length; i++) {
         this.w.seriesData.seriesNames.push(cnf.labels[i] || `series-${i + 1}`)
@@ -586,6 +673,9 @@ export default class Data {
 
     // Special handling for radialBar - ensure percentages are valid
     if (cnf.chart.type === 'radialBar') {
+      /**
+       * @param {any} val
+       */
       this.w.seriesData.series = this.w.seriesData.series.map((val) => {
         const numVal = Utils.parseNumber(val)
         if (numVal > 100) {
@@ -616,16 +706,24 @@ export default class Data {
     w.globals.originalSeries = null
 
     if (w.config.series) {
+      /**
+       * @param {Object} serie
+       */
       w.config.series.forEach((serie) => {
-        if (serie.__apexParsed) {
-          delete serie.__apexParsed
+        if (/** @type {any} */ (serie).__apexParsed) {
+          delete (/** @type {any} */ (serie).__apexParsed)
         }
       })
     }
   }
 
+  /**
+   * @param {any[]} ser
+   */
   extractPieDataFromSeries(ser) {
+    /** @type {any[]} */
     const values = []
+    /** @type {any[]} */
     const labels = []
 
     if (!Array.isArray(ser)) {
@@ -656,7 +754,16 @@ export default class Data {
   }
 
   // Extract data from series objects: [{ data: [...], parsing: {...} }]
+  /**
+   * @param {any[]} seriesArray
+   * @param {any[]} values
+   * @param {any[]} labels
+   */
   extractPieDataFromSeriesObjects(seriesArray, values, labels) {
+    /**
+     * @param {Object} serie
+     * @param {number} serieIndex
+     */
     seriesArray.forEach((serie, serieIndex) => {
       if (!serie.data || !Array.isArray(serie.data)) {
         console.warn(`ApexCharts: Series ${serieIndex} has no valid data array`)
@@ -664,7 +771,10 @@ export default class Data {
       }
 
       // If series was already parsed by parseRawDataIfNeeded, data should be in {x, y} format
-      serie.data.forEach((dataPoint) => {
+      /**
+       * @param {Record<string, any>} dataPoint
+       */
+      serie.data.forEach((/** @type {any} */ dataPoint) => {
         if (typeof dataPoint === 'object' && dataPoint !== null) {
           if (dataPoint.x !== undefined && dataPoint.y !== undefined) {
             labels.push(String(dataPoint.x))
@@ -689,7 +799,7 @@ export default class Data {
    * Or didn't set xaxis labels at all - in which case we manually do it.
    * If user passed series data as [[3, 2], [4, 5]] or [{ x: 3, y: 55 }],
    * this shouldn't be called
-   * @param {array} ser - the series which user passed to the config
+   * @param {any[]} ser - the series which user passed to the config
    */
   handleExternalLabelsData(ser) {
     const cnf = this.w.config
@@ -702,11 +812,16 @@ export default class Data {
       this.w.labelData.labels = cnf.labels.slice()
     } else if (this.fallbackToCategory) {
       // user provided labels in x prop in [{ x: 3, y: 55 }] data, and those labels are already stored in this.w.labelData.labels[0], so just re-arrange the this.w.labelData.labels array
-      this.w.labelData.labels = this.w.labelData.labels[0]
+      this.w.labelData.labels = /** @type {string[]} */ (
+        /** @type {unknown} */ (this.w.labelData.labels[0])
+      )
 
       if (this.w.rangeData.seriesRange.length) {
+        /**
+         * @param {Array<Record<string, any>>} srt
+         */
         this.w.rangeData.seriesRange.map((srt) => {
-          srt.forEach((sr) => {
+          srt.forEach((/** @type {any} */ sr) => {
             if (this.w.labelData.labels.indexOf(sr.x) < 0 && sr.x) {
               this.w.labelData.labels.push(sr.x)
             }
@@ -739,6 +854,9 @@ export default class Data {
     }
   }
 
+  /**
+   * @param {any[]} ser
+   */
   _generateExternalLabels(ser) {
     const gl = this.w.globals
     const cnf = this.w.config
@@ -750,14 +868,25 @@ export default class Data {
         if (this.isFormatXY()) {
           // in case there is a combo chart (boxplot/scatter)
           // and there are duplicated x values, we need to eliminate duplicates
-          const seriesDataFiltered = cnf.series.map((serie) => {
-            const seen = new Map()
-            for (const point of serie.data) {
-              if (!seen.has(point.x)) seen.set(point.x, point)
-            }
-            return Array.from(seen.values())
-          })
+          /**
+           * @param {Object} serie
+           */
+          const seriesDataFiltered = cnf.series.map(
+            (/** @type {any} */ serie) => {
+              const seen = new Map()
+              for (const point of serie.data) {
+                if (!seen.has(point.x)) seen.set(point.x, point)
+              }
+              return Array.from(seen.values())
+            },
+          )
 
+          /**
+           * @param {number} p
+           * @param {any} c
+           * @param {number} i
+           * @param {any} a
+           */
           const len = seriesDataFiltered.reduce(
             (p, c, i, a) => (a[p].length > c.length ? p : i),
             0,
@@ -794,7 +923,11 @@ export default class Data {
     if (labelArr.length === 0) {
       labelArr = gl.axisCharts
         ? []
-        : this.w.seriesData.series.map((gls, glsi) => {
+        : /**
+           * @param {Record<string, any>} gls
+           * @param {number} glsi
+           */
+          this.w.seriesData.series.map((gls, glsi) => {
             return glsi + 1
           })
       for (let i = 0; i < ser.length; i++) {
@@ -803,9 +936,14 @@ export default class Data {
     }
 
     // Finally, pass the labelArr in this.w.labelData.labels which will be printed on x-axis
-    this.w.labelData.labels = labelArr
+    this.w.labelData.labels = /** @type {string[]} */ (
+      /** @type {unknown} */ (labelArr)
+    )
 
     if (cnf.xaxis.convertedCatToNumeric) {
+      /**
+       * @param {number} l
+       */
       this.w.labelData.categoryLabels = labelArr.map((l) => {
         return cnf.xaxis.labels.formatter(l)
       })
@@ -815,6 +953,9 @@ export default class Data {
     this.w.axisFlags.noLabelsProvided = true
   }
 
+  /**
+   * @param {any[]} series
+   */
   parseRawDataIfNeeded(series) {
     const cnf = this.w.config
     const gl = this.w.globals
@@ -826,10 +967,17 @@ export default class Data {
     }
 
     // If no global parsing config and no series-level parsing, return as-is
+    /**
+     * @param {Record<string, any>} s
+     */
     if (!globalParsing && !series.some((s) => s.parsing)) {
       return series
     }
 
+    /**
+     * @param {Object} serie
+     * @param {number} index
+     */
     const processedSeries = series.map((serie, index) => {
       if (
         !serie.data ||
@@ -877,75 +1025,81 @@ export default class Data {
       }
 
       // Transform raw data to {x, y} format
-      const transformedData = serie.data.map((item, itemIndex) => {
-        if (typeof item !== 'object' || item === null) {
-          console.warn(
-            `ApexCharts: Series ${index}, data point ${itemIndex} is not an object, skipping parsing`,
-          )
-          return item
-        }
+      /**
+       * @param {Record<string, any>} item
+       * @param {number} itemIndex
+       */
+      const transformedData = serie.data.map(
+        (/** @type {any} */ item, /** @type {any} */ itemIndex) => {
+          if (typeof item !== 'object' || item === null) {
+            console.warn(
+              `ApexCharts: Series ${index}, data point ${itemIndex} is not an object, skipping parsing`,
+            )
+            return item
+          }
 
-        const x = this.getNestedValue(item, effectiveParsing.x)
+          const x = this.getNestedValue(item, effectiveParsing.x)
 
-        let y
-        let z = undefined
-        if (Array.isArray(effectiveParsing.y)) {
-          const yValues = effectiveParsing.y.map((fieldName) =>
-            this.getNestedValue(item, fieldName),
-          )
+          let y
+          let z = undefined
+          if (Array.isArray(effectiveParsing.y)) {
+            const yValues = effectiveParsing.y.map((fieldName) =>
+              this.getNestedValue(item, fieldName),
+            )
 
-          if (this.w.config.chart.type === 'bubble') {
-            if (yValues.length < 2) {
-              console.warn(
-                `ApexCharts: series[${index}] bubble chart requires parseData.y to have at least 2 fields (y and z). Got: ${JSON.stringify(effectiveParsing.y)}`,
-              )
+            if (this.w.config.chart.type === 'bubble') {
+              if (yValues.length < 2) {
+                console.warn(
+                  `ApexCharts: series[${index}] bubble chart requires parseData.y to have at least 2 fields (y and z). Got: ${JSON.stringify(effectiveParsing.y)}`,
+                )
+              }
+              // For bubble: [y-value, z-value] → y = yValues[0], z = yValues[1]
+              y = yValues[0]
+            } else {
+              y = yValues
             }
-            // For bubble: [y-value, z-value] → y = yValues[0], z = yValues[1]
-            y = yValues[0]
           } else {
-            y = yValues
+            y = this.getNestedValue(item, effectiveParsing.y)
           }
-        } else {
-          y = this.getNestedValue(item, effectiveParsing.y)
-        }
 
-        // explicit z field for bubble charts
-        if (effectiveParsing.z) {
-          z = this.getNestedValue(item, effectiveParsing.z)
-        }
-
-        // Warn if fields don't exist
-        if (x === undefined) {
-          console.warn(
-            `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.x}'`,
-          )
-        }
-
-        if (y === undefined) {
-          console.warn(
-            `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.y}'`,
-          )
-        }
-
-        const result = { x, y, z: undefined }
-
-        if (
-          this.w.config.chart.type === 'bubble' &&
-          Array.isArray(effectiveParsing.y) &&
-          effectiveParsing.y.length === 2
-        ) {
-          const zValue = this.getNestedValue(item, effectiveParsing.y[1])
-          if (zValue !== undefined) {
-            result.z = zValue
+          // explicit z field for bubble charts
+          if (effectiveParsing.z) {
+            z = this.getNestedValue(item, effectiveParsing.z)
           }
-        }
 
-        if (z !== undefined) {
-          result.z = z
-        }
+          // Warn if fields don't exist
+          if (x === undefined) {
+            console.warn(
+              `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.x}'`,
+            )
+          }
 
-        return result
-      })
+          if (y === undefined) {
+            console.warn(
+              `ApexCharts: Series ${index}, data point ${itemIndex} missing field '${effectiveParsing.y}'`,
+            )
+          }
+
+          const result = { x, y, z: undefined }
+
+          if (
+            this.w.config.chart.type === 'bubble' &&
+            Array.isArray(effectiveParsing.y) &&
+            effectiveParsing.y.length === 2
+          ) {
+            const zValue = this.getNestedValue(item, effectiveParsing.y[1])
+            if (zValue !== undefined) {
+              result.z = zValue
+            }
+          }
+
+          if (z !== undefined) {
+            result.z = z
+          }
+
+          return result
+        },
+      )
 
       return {
         ...serie,
@@ -977,7 +1131,7 @@ export default class Data {
 
     // Handle simple property access (no dots)
     if (path.indexOf('.') === -1) {
-      return obj[path]
+      return /** @type {any} */ (obj)[path]
     }
 
     // Handle nested property access
@@ -992,13 +1146,16 @@ export default class Data {
       ) {
         return undefined
       }
-      current = current[keys[i]]
+      current = /** @type {any} */ (current)[keys[i]]
     }
 
     return current
   }
 
   // Segregate user provided data into appropriate vars
+  /**
+   * @param {any[]} ser
+   */
   parseData(ser) {
     const w = this.w
     const cnf = w.config
@@ -1124,18 +1281,25 @@ export default class Data {
    * Reduces `data` to `targetPoints` points while preserving the visual shape
    * of the series as perceived by the human eye.
    *
-   * @param {Array} data   - Raw series data in [{x,y}] or [[x,y]] format.
+   * @param {any[]} data   - Raw series data in [{x,y}] or [[x,y]] format.
    * @param {number} targetPoints - Desired output length (>= 3).
-   * @returns {Array} Downsampled array in the same format as the input.
+   * @returns {any[]} Downsampled array in the same format as the input.
    */
   static lttbDownsample(data, targetPoints) {
     const len = data.length
     if (targetPoints >= len || targetPoints < 3) return data
 
     // Normalise each element to {x, y} for the algorithm, remembering format.
+    /**
+     * @param {number} p
+     */
     const isXY = !Array.isArray(data[0])
-    const getX = isXY ? (p) => p.x : (p) => p[0]
-    const getY = isXY ? (p) => p.y : (p) => p[1]
+    const getX = isXY
+      ? (/** @type {any} */ p) => p.x
+      : (/** @type {any} */ p) => p[0]
+    const getY = isXY
+      ? (/** @type {any} */ p) => p.y
+      : (/** @type {any} */ p) => p[1]
 
     const sampled = []
     // Always include the first point.
@@ -1196,9 +1360,17 @@ export default class Data {
     // correspondence between series and Y axes.
     // An axis can be ignored only while all series referenced by it
     // are collapsed.
+    /** @type {any[]} */
     const yAxisIndexes = []
+    /**
+     * @param {any[]} yAxisArr
+     * @param {number} yi
+     */
     w.globals.seriesYAxisMap.forEach((yAxisArr, yi) => {
       let collapsedCount = 0
+      /**
+       * @param {number} seriesIndex
+       */
       yAxisArr.forEach((seriesIndex) => {
         if (w.globals.collapsedSeriesIndices.indexOf(seriesIndex) !== -1) {
           collapsedCount++

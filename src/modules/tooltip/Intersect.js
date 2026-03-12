@@ -10,6 +10,9 @@ import Utils from '../../utils/Utils'
  **/
 
 class Intersect {
+  /**
+   * @param {import('./Tooltip').default} tooltipContext
+   */
   constructor(tooltipContext) {
     this.w = tooltipContext.w
     const w = this.w
@@ -22,11 +25,18 @@ class Intersect {
   }
 
   // a helper function to get an element's attribute value
+  /**
+   * @param {Event} e
+   * @param {string} attr
+   */
   getAttr(e, attr) {
-    return parseFloat(e.target.getAttribute(attr))
+    return parseFloat(
+      /** @type {Element} */ (e.target).getAttribute(attr) ?? '',
+    )
   }
 
   // handle tooltip for heatmaps and treemaps
+  /** @param {{e: any, opt: any, x: any, y: any, type: any}} opts */
   handleHeatTreeTooltip({ e, opt, x, y, type }) {
     const ttCtx = this.ttCtx
     const w = this.w
@@ -61,11 +71,11 @@ class Intersect {
       if (ttCtx.w.config.tooltip.followCursor) {
         const seriesBound = w.dom.elWrap.getBoundingClientRect()
         x =
-          w.interact.clientX -
+          (w.interact.clientX ?? 0) -
           seriesBound.left -
           (x > w.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0)
         y =
-          w.interact.clientY -
+          (w.interact.clientY ?? 0) -
           seriesBound.top -
           (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0)
       }
@@ -81,6 +91,7 @@ class Intersect {
    * handle tooltips for line/area/scatter charts where tooltip.intersect is true
    * when user hovers over the marker directly, this function is executed
    */
+  /** @param {{e: any, opt: any, x: any, y: any}} opts */
   handleMarkerTooltip({ e, opt, x, y }) {
     const w = this.w
     const ttCtx = this.ttCtx
@@ -96,7 +107,7 @@ class Intersect {
       i =
         parseInt(
           opt.paths.parentNode.parentNode.parentNode.getAttribute('rel'),
-          10
+          10,
         ) - 1
 
       if (ttCtx.intersect) {
@@ -126,6 +137,7 @@ class Intersect {
 
       if (ttCtx.w.config.tooltip.followCursor) {
         const elGrid = ttCtx.getElGrid()
+        if (!elGrid) return { x, y }
         const seriesBound = elGrid.getBoundingClientRect()
         y = ttCtx.e.clientY + w.layout.translateY - seriesBound.top
       }
@@ -145,6 +157,7 @@ class Intersect {
   /**
    * handle tooltips for bar/column charts
    */
+  /** @param {{e: any, opt: any}} opts */
   handleBarTooltip({ e, opt }) {
     const w = this.w
     const ttCtx = this.ttCtx
@@ -168,7 +181,8 @@ class Intersect {
     const j = barXY.j
 
     w.interact.capturedSeriesIndex = i
-    w.interact.capturedDataPointIndex = j
+    w.interact.capturedDataPointIndex =
+      j !== null ? j : w.interact.capturedDataPointIndex
 
     if (
       (w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars()) ||
@@ -192,8 +206,6 @@ class Intersect {
       y = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight
     }
 
-    
-
     if (x + ttCtx.tooltipRect.ttWidth > w.layout.gridWidth) {
       x = x - ttCtx.tooltipRect.ttWidth
     } else if (x < 0) {
@@ -202,8 +214,7 @@ class Intersect {
 
     if (ttCtx.w.config.tooltip.followCursor) {
       const elGrid = ttCtx.getElGrid()
-      const seriesBound = elGrid.getBoundingClientRect()
-      y = ttCtx.e.clientY - seriesBound.top
+      if (!elGrid) return
     }
 
     // if tooltip is still null, querySelector
@@ -227,11 +238,14 @@ class Intersect {
     ) {
       y = y + w.layout.translateY - ttCtx.tooltipRect.ttHeight / 2
 
-      tooltipEl.style.left = x + w.layout.translateX + 'px'
-      tooltipEl.style.top = y + 'px'
+      if (tooltipEl) {
+        tooltipEl.style.left = x + w.layout.translateX + 'px'
+        tooltipEl.style.top = y + 'px'
+      }
     }
   }
 
+  /** @param {{e: any, opt: any}} opts */
   getBarTooltipXY({ e, opt }) {
     const w = this.w
     let j = null
@@ -274,6 +288,9 @@ class Intersect {
         i = parseInt(bar.parentNode.getAttribute('data:realIndex'), 10)
       }
 
+      /**
+       * @param {number} x
+       */
       const handleXForColumns = (x) => {
         if (w.axisFlags.isXNumeric) {
           x = cx - bw / 2
@@ -317,7 +334,7 @@ class Intersect {
       } else {
         if (w.globals.isBarHorizontal) {
           x = cx
-          if (x < ttCtx.xyRatios.baseLineInvertedY) {
+          if (ttCtx.xyRatios && x < ttCtx.xyRatios.baseLineInvertedY) {
             x = cx - ttCtx.tooltipRect.ttWidth
           }
           y = handleYForBars()

@@ -12,20 +12,28 @@ import { SVGNS } from '../svg/math'
  **/
 
 class Fill {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w
 
+    /** @type {any} */
     this.opts = null
     this.seriesIndex = 0
+    /** @type {any} */
     this.patternIDs = []
   }
 
+  /**
+   * @param {Record<string, any>} params
+   */
   clippedImgArea(params) {
     const w = this.w
     const cnf = w.config
 
-    const svgW = parseInt(w.layout.gridWidth, 10)
-    const svgH = parseInt(w.layout.gridHeight, 10)
+    const svgW = parseInt(String(w.layout.gridWidth), 10)
+    const svgH = parseInt(String(w.layout.gridHeight), 10)
 
     const size = svgW > svgH ? svgW : svgH
 
@@ -66,7 +74,9 @@ class Fill {
     const elImage = BrowserAPIs.createElementNS(SVGNS, 'image')
     elPattern.appendChild(elImage)
 
-    const SVGLib = Environment.isBrowser() ? window.SVG : global.SVG
+    const SVGLib = Environment.isBrowser()
+      ? /** @type {any} */ (window).SVG
+      : /** @type {any} */ (global).SVG
     elImage.setAttributeNS(SVGLib.xlink, 'href', fillImg)
 
     Graphics.setAttrs(elImage, {
@@ -82,6 +92,9 @@ class Fill {
     w.dom.elDefs.node.appendChild(elPattern)
   }
 
+  /**
+   * @param {Record<string, any>} opts
+   */
   getSeriesIndex(opts) {
     const w = this.w
     const cType = w.config.chart.type
@@ -100,6 +113,10 @@ class Fill {
     return this.seriesIndex
   }
 
+  /**
+   * @param {number[]} data
+   * @param {Record<string, any>} multiColorConfig
+   */
   computeColorStops(data, multiColorConfig) {
     const w = this.w
     let maxPositive = null
@@ -154,6 +171,9 @@ class Fill {
     ]
   }
 
+  /**
+   * @param {Record<string, any>} opts
+   */
   fillPath(opts) {
     const w = this.w
     this.opts = opts
@@ -199,12 +219,9 @@ class Fill {
       fillColor = opts.color
     }
 
-    if (
-      w.config.series[this.seriesIndex]?.data?.[opts.dataPointIndex]?.fillColor
-    ) {
-      fillColor =
-        w.config.series[this.seriesIndex]?.data?.[opts.dataPointIndex]
-          ?.fillColor
+    const seriesItem = /** @type {Record<string,any>} */ (w.config.series[this.seriesIndex])
+    if (seriesItem?.data?.[opts.dataPointIndex]?.fillColor) {
+      fillColor = seriesItem?.data?.[opts.dataPointIndex]?.fillColor
     }
 
     // in case a color is undefined, fallback to white color to prevent runtime error
@@ -248,12 +265,14 @@ class Fill {
     }
 
     if (useGradient) {
-      const colorStops = cnf.fill.gradient.colorStops ? [...cnf.fill.gradient.colorStops] : []
+      const colorStops = cnf.fill.gradient.colorStops
+        ? [...cnf.fill.gradient.colorStops]
+        : []
       let type = cnf.fill.gradient.type
       if (drawMultiColorLine) {
         colorStops[this.seriesIndex] = this.computeColorStops(
           w.seriesData.series[this.seriesIndex],
-          cnf.plotOptions.line.colors
+          cnf.plotOptions.line.colors,
         )
         type = 'vertical'
       }
@@ -310,6 +329,9 @@ class Fill {
     return pathFill
   }
 
+  /**
+   * @param {number} seriesIndex
+   */
   getFillType(seriesIndex) {
     const w = this.w
 
@@ -328,7 +350,9 @@ class Fill {
     let fillColors = []
 
     if (w.globals.comboCharts) {
-      if (w.config.series[this.seriesIndex].type === 'line') {
+      if (
+        /** @type {Record<string,any>} */ (w.config.series[this.seriesIndex]).type === 'line'
+      ) {
         if (Array.isArray(w.globals.stroke.colors)) {
           fillColors = w.globals.stroke.colors
         } else {
@@ -370,12 +394,8 @@ class Fill {
     return fillColors
   }
 
-  handlePatternFill({
-    fillConfig,
-    patternFill,
-    fillColor,
-    defaultColor,
-  }) {
+  /** @param {{fillConfig: any, patternFill: any, fillColor: any, defaultColor: any}} opts */
+  handlePatternFill({ fillConfig, patternFill, fillColor, defaultColor }) {
     let fillCnf = this.w.config.fill
 
     if (fillConfig) {
@@ -397,7 +417,7 @@ class Fill {
           fillCnf.pattern.width,
           fillCnf.pattern.height,
           patternLineColor,
-          patternStrokeWidth
+          patternStrokeWidth,
         )
         patternFill = pf
       } else {
@@ -409,20 +429,22 @@ class Fill {
         fillCnf.pattern.width,
         fillCnf.pattern.height,
         patternLineColor,
-        patternStrokeWidth
+        patternStrokeWidth,
       )
     }
     return patternFill
   }
 
-  handleGradientFill({
-    type,
-    fillColor,
-    fillOpacity,
-    fillConfig,
-    colorStops,
-    i,
-  }) {
+  handleGradientFill(
+    /** @type {any} */ {
+      type,
+      fillColor,
+      fillOpacity,
+      fillConfig,
+      colorStops,
+      i,
+    },
+  ) {
     let fillCnf = this.w.config.fill
 
     if (fillConfig) {
@@ -442,8 +464,8 @@ class Fill {
       fillCnf.gradient.opacityFrom === undefined
         ? fillOpacity
         : Array.isArray(fillCnf.gradient.opacityFrom)
-        ? fillCnf.gradient.opacityFrom[i]
-        : fillCnf.gradient.opacityFrom
+          ? fillCnf.gradient.opacityFrom[i]
+          : fillCnf.gradient.opacityFrom
 
     if (gradientFrom.indexOf('rgba') > -1) {
       opacityFrom = Utils.getOpacityFromRGBA(gradientFrom)
@@ -452,8 +474,8 @@ class Fill {
       fillCnf.gradient.opacityTo === undefined
         ? fillOpacity
         : Array.isArray(fillCnf.gradient.opacityTo)
-        ? fillCnf.gradient.opacityTo[i]
-        : fillCnf.gradient.opacityTo
+          ? fillCnf.gradient.opacityTo[i]
+          : fillCnf.gradient.opacityTo
 
     if (
       fillCnf.gradient.gradientToColors === undefined ||
@@ -462,12 +484,12 @@ class Fill {
       if (fillCnf.gradient.shade === 'dark') {
         gradientTo = utils.shadeColor(
           parseFloat(fillCnf.gradient.shadeIntensity) * -1,
-          fillColor.indexOf('rgb') > -1 ? Utils.rgb2hex(fillColor) : fillColor
+          fillColor.indexOf('rgb') > -1 ? Utils.rgb2hex(fillColor) : fillColor,
         )
       } else {
         gradientTo = utils.shadeColor(
           parseFloat(fillCnf.gradient.shadeIntensity),
-          fillColor.indexOf('rgb') > -1 ? Utils.rgb2hex(fillColor) : fillColor
+          fillColor.indexOf('rgb') > -1 ? Utils.rgb2hex(fillColor) : fillColor,
         )
       }
     } else {
@@ -511,7 +533,7 @@ class Fill {
       opts.size,
       fillCnf.gradient.stops,
       colorStops,
-      i
+      i,
     )
   }
 }

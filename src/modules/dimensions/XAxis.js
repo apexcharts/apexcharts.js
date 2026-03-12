@@ -5,6 +5,9 @@ import Utils from '../../utils/Utils'
 import DateTime from '../../utils/DateTime'
 
 export default class DimXAxis {
+  /**
+   * @param {import('./Dimensions').default} dCtx
+   */
   constructor(dCtx) {
     this.w = dCtx.w
     this.dCtx = dCtx
@@ -13,7 +16,7 @@ export default class DimXAxis {
   /**
    * Get X Axis Dimensions
    * @memberof Dimensions
-   * @return {{width, height}}
+   * @return {{width: number, height: number}}
    **/
   getxAxisLabelsCoords() {
     const w = this.w
@@ -46,30 +49,45 @@ export default class DimXAxis {
       let val = Utils.getLargestStringFromArr(xaxisLabels)
       let valArr = this.dCtx.dimHelpers.getLargestStringFromMultiArr(
         val,
-        xaxisLabels
+        xaxisLabels,
       )
 
       // the labels gets changed for bar charts
       if (w.globals.isBarHorizontal) {
+        /**
+         * @param {any} a
+         * @param {any} b
+         */
         val = w.globals.yAxisScale[0].result.reduce(
-          (a, b) => (a.length > b.length ? a : b),
-          0
+          (/** @type {any} */ a, /** @type {any} */ b) =>
+            a.length > b.length ? a : b,
+          0,
         )
         valArr = val
       }
 
       const xFormat = new Formatters(this.w)
       const timestamp = val
-      val = xFormat.xLabelFormat(xlbFormatter, val, timestamp, {
-        i: undefined,
-        dateFormatter: new DateTime(this.w).formatDate,
-        w,
-      })
-      valArr = xFormat.xLabelFormat(xlbFormatter, valArr, timestamp, {
-        i: undefined,
-        dateFormatter: new DateTime(this.w).formatDate,
-        w,
-      })
+      val = xFormat.xLabelFormat(
+        /** @type {Function} */ (xlbFormatter),
+        val,
+        timestamp,
+        {
+          i: undefined,
+          dateFormatter: new DateTime(this.w).formatDate,
+          w,
+        },
+      )
+      valArr = xFormat.xLabelFormat(
+        /** @type {Function} */ (xlbFormatter),
+        valArr,
+        timestamp,
+        {
+          i: undefined,
+          dateFormatter: new DateTime(this.w).formatDate,
+          w,
+        },
+      )
 
       if (
         (w.config.xaxis.convertedCatToNumeric && typeof val === 'undefined') ||
@@ -82,13 +100,13 @@ export default class DimXAxis {
       const graphics = new Graphics(this.w)
       let xLabelrect = graphics.getTextRects(
         val,
-        w.config.xaxis.labels.style.fontSize
+        w.config.xaxis.labels.style.fontSize,
       )
       let xArrLabelrect = xLabelrect
       if (val !== valArr) {
         xArrLabelrect = graphics.getTextRects(
           valArr,
-          w.config.xaxis.labels.style.fontSize
+          w.config.xaxis.labels.style.fontSize,
         )
       }
 
@@ -115,13 +133,16 @@ export default class DimXAxis {
       ) {
         if (!w.globals.isBarHorizontal) {
           w.layout.rotateXLabels = true
+          /**
+           * @param {string} text
+           */
           const getRotatedTextRects = (text) => {
             return graphics.getTextRects(
               text,
               w.config.xaxis.labels.style.fontSize,
               w.config.xaxis.labels.style.fontFamily,
               `rotate(${w.config.xaxis.labels.rotate} 0 0)`,
-              false
+              false,
             )
           }
           xLabelrect = getRotatedTextRects(val)
@@ -159,7 +180,7 @@ export default class DimXAxis {
   /**
    * Get X Axis Label Group height
    * @memberof Dimensions
-   * @return {{width, height}}
+   * @return {{width: number, height: number}}
    */
   getxAxisGroupLabelsCoords() {
     const w = this.w
@@ -172,7 +193,12 @@ export default class DimXAxis {
       w.config.xaxis.group.style?.fontSize ||
       w.config.xaxis.labels.style.fontSize
 
-    const xaxisLabels = w.labelData.groups.map((g) => g.title)
+    /**
+     * @param {Record<string, any>} g
+     */
+    const xaxisLabels = w.labelData.groups.map(
+      (/** @type {any} */ g) => g.title,
+    )
 
     let rect
 
@@ -180,7 +206,7 @@ export default class DimXAxis {
     const val = Utils.getLargestStringFromArr(xaxisLabels)
     const valArr = this.dCtx.dimHelpers.getLargestStringFromMultiArr(
       val,
-      xaxisLabels
+      xaxisLabels,
     )
 
     const graphics = new Graphics(this.w)
@@ -217,7 +243,7 @@ export default class DimXAxis {
   /**
    * Get X Axis Title Dimensions
    * @memberof Dimensions
-   * @return {{width, height}}
+   * @return {{width: number, height: number}}
    **/
   getxAxisTitleCoords() {
     const w = this.w
@@ -229,7 +255,7 @@ export default class DimXAxis {
 
       const rect = graphics.getTextRects(
         w.config.xaxis.title.text,
-        w.config.xaxis.title.style.fontSize
+        w.config.xaxis.title.style.fontSize,
       )
 
       width = rect.width
@@ -246,14 +272,23 @@ export default class DimXAxis {
     const w = this.w
     this.dCtx.timescaleLabels = w.labelData.timescaleLabels.slice()
 
-    const labels = this.dCtx.timescaleLabels.map((label) => label.value)
+    /**
+     * @param {string} label
+     */
+    const labels = this.dCtx.timescaleLabels.map(
+      (/** @type {any} */ label) => label.value,
+    )
 
     //  get the longest string from the labels array and also apply label formatter to it
-    const val = labels.reduce((a, b) => {
+    /**
+     * @param {any} a
+     * @param {any} b
+     */
+    const val = labels.reduce((/** @type {any} */ a, /** @type {any} */ b) => {
       // if undefined, maybe user didn't pass the datetime(x) values
       if (typeof a === 'undefined') {
         console.error(
-          'You have possibly supplied invalid Date format. Please supply a valid JavaScript Date'
+          'You have possibly supplied invalid Date format. Please supply a valid JavaScript Date',
         )
         return 0
       } else {
@@ -262,7 +297,10 @@ export default class DimXAxis {
     }, 0)
 
     const graphics = new Graphics(this.w)
-    const rect = graphics.getTextRects(val, w.config.xaxis.labels.style.fontSize)
+    const rect = graphics.getTextRects(
+      val,
+      w.config.xaxis.labels.style.fontSize,
+    )
 
     const totalWidthRotated = rect.width * 1.05 * labels.length
 
@@ -278,6 +316,9 @@ export default class DimXAxis {
 
   // In certain cases, the last labels gets cropped in xaxis.
   // Hence, we add some additional padding based on the label length to avoid the last label being cropped or we don't draw it at all
+  /**
+   * @param {Record<string, any>} xaxisLabelCoords
+   */
   additionalPaddingXLabels(xaxisLabelCoords) {
     const w = this.w
     const gl = w.globals
@@ -291,8 +332,14 @@ export default class DimXAxis {
     const isBarOpposite =
       w.config.yaxis[0].opposite && w.globals.isBarHorizontal
 
+    /**
+     * @param {number} i
+     */
     const isCollapsed = (i) => gl.collapsedSeriesIndices.indexOf(i) !== -1
 
+    /**
+     * @param {ApexYAxis} yaxe
+     */
     const rightPad = (yaxe) => {
       if (this.dCtx.timescaleLabels && this.dCtx.timescaleLabels.length) {
         // for timeline labels, we take the last label and check if it exceeds gridWidth
@@ -349,13 +396,21 @@ export default class DimXAxis {
       }
     }
 
+    /**
+     * @param {ApexYAxis} yaxe
+     * @param {number} i
+     */
     const padYAxe = (yaxe, i) => {
       if (cnf.yaxis.length > 1 && isCollapsed(i)) return
 
       rightPad(yaxe)
     }
 
-    cnf.yaxis.forEach((yaxe, i) => {
+    /**
+     * @param {ApexYAxis} yaxe
+     * @param {number} i
+     */
+    cnf.yaxis.forEach((/** @type {any} */ yaxe, /** @type {any} */ i) => {
       if (isBarOpposite) {
         if (this.dCtx.gridPad.left < lbWidth) {
           this.dCtx.xPadLeft = lbWidth / 2 + 1

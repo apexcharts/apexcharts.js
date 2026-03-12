@@ -2,11 +2,17 @@
 import AxesUtils from '../axes/AxesUtils'
 
 export default class DimGrid {
+  /**
+   * @param {import('./Dimensions').default} dCtx
+   */
   constructor(dCtx) {
     this.w = dCtx.w
     this.dCtx = dCtx
   }
 
+  /**
+   * @param {number} gridWidth
+   */
   gridPadForColumnsInNumericAxis(gridWidth) {
     const { w } = this
     const { config: cnf, globals: gl } = w
@@ -19,6 +25,9 @@ export default class DimGrid {
       return 0
     }
 
+    /**
+     * @param {string} type
+     */
     const hasBar = (type) =>
       ['bar', 'rangeBar', 'candlestick', 'boxPlot'].includes(type)
 
@@ -30,7 +39,10 @@ export default class DimGrid {
       seriesLen = gl.comboBarCount
     }
 
-    gl.collapsedSeries.forEach((c) => {
+    /**
+     * @param {any} c
+     */
+    gl.collapsedSeries.forEach((/** @type {any} */ c) => {
       if (hasBar(c.type)) {
         seriesLen -= 1
       }
@@ -116,11 +128,19 @@ export default class DimGrid {
       titleCoords.height + subtitleCoords.height + gridShrinkOffset
   }
 
+  /**
+   * @param {{width: number, height: number}[]} yTitleCoords
+   * @param {{width: number, height: number}[]} yaxisLabelCoords
+   */
   setGridXPosForDualYAxis(yTitleCoords, yaxisLabelCoords) {
     const { w } = this
     const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme, timeScale: this.dCtx.timeScale })
 
-    w.config.yaxis.forEach((yaxe, index) => {
+    /**
+     * @param {ApexYAxis} yaxe
+     * @param {number} index
+     */
+    w.config.yaxis.forEach((/** @type {any} */ yaxe, /** @type {any} */ index) => {
       if (
         w.globals.ignoreYAxisIndexes.indexOf(index) === -1 &&
         !yaxe.floating &&

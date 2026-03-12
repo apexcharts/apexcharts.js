@@ -18,13 +18,13 @@
 
 const REGISTRY_KEY = '__apexcharts_registry__'
 
-if (!globalThis[REGISTRY_KEY]) {
-  globalThis[REGISTRY_KEY] = {}
+if (!/** @type {any} */ (globalThis)[REGISTRY_KEY]) {
+  ;/** @type {any} */ (globalThis)[REGISTRY_KEY] = {}
 }
 
 /** @returns {Record<string, new (...args: any[]) => any>} */
 function getRegistry() {
-  return globalThis[REGISTRY_KEY]
+  return /** @type {any} */ (globalThis)[REGISTRY_KEY]
 }
 
 /**

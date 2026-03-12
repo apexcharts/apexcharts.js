@@ -13,7 +13,7 @@ export class SSRRenderer {
   /**
    * Render chart to SVG string for server-side rendering
    *
-   * @param {any} options - Chart configuration (same as ApexCharts constructor)
+   * @param {Record<string, any>} options - Chart configuration (same as ApexCharts constructor)
    * @param {{ width?: number, height?: number, scale?: number }} [ssrOptions] - SSR-specific options
    * @returns {Promise<string>} SVG string
    *
@@ -51,7 +51,10 @@ export class SSRRenderer {
     }
 
     // Create chart instance
-    const chart = new ApexCharts(/** @type {HTMLElement} */ (virtualEl), ssrConfig)
+    const chart = new ApexCharts(
+      /** @type {HTMLElement} */ (virtualEl),
+      ssrConfig,
+    )
 
     try {
       // Render the chart
@@ -68,14 +71,16 @@ export class SSRRenderer {
     } catch (error) {
       // Ensure cleanup on error
       chart.destroy()
-      throw new Error(`SSR rendering failed: ${error.message}`)
+      throw new Error(
+        `SSR rendering failed: ${/** @type {any} */ (error).message}`,
+      )
     }
   }
 
   /**
    * Generate hydration-ready HTML with embedded configuration
    *
-   * @param {object} options - Chart configuration
+   * @param {Record<string, any>} options - Chart configuration
    * @param {{ width?: number, height?: number, scale?: number, className?: string }} [ssrOptions] - SSR-specific options
    * @returns {Promise<string>} HTML string with SVG and hydration data
    *
@@ -108,6 +113,8 @@ ${svgString}
   /**
    * Create a virtual DOM element for SSR rendering
    * @private
+   * @param {number} width
+   * @param {number} height
    */
   static _createVirtualElement(width, height) {
     if (Environment.isBrowser()) {
@@ -125,16 +132,22 @@ ${svgString}
       _ssrMode: true,
       nodeType: 1,
       nodeName: 'DIV',
-      children: [],
+      children: /** @type {any[]} */ ([]),
       style: {},
       classList: {
         add: () => {},
         remove: () => {},
         contains: () => false,
       },
+      /**
+       * @param {any} child
+       */
       appendChild(child) {
         this.children.push(child)
       },
+      /**
+       * @param {any} child
+       */
       removeChild(child) {
         const index = this.children.indexOf(child)
         if (index > -1) this.children.splice(index, 1)
@@ -183,6 +196,7 @@ ${svgString}
   /**
    * Extract SVG string from rendered chart
    * @private
+   * @param {any} chart
    */
   static _extractSVGString(chart, scale = 1) {
     const w = chart.w
@@ -224,6 +238,8 @@ ${svgString}
   /**
    * Apply scale transformation to SVG string
    * @private
+   * @param {string} svgString
+   * @param {number} scale
    */
   static _applyScale(svgString, scale) {
     // Parse width and height from SVG
@@ -248,6 +264,7 @@ ${svgString}
   /**
    * Encode configuration for client-side hydration
    * @private
+   * @param {Record<string, any>} config
    */
   static _encodeConfig(config) {
     try {
@@ -263,13 +280,16 @@ ${svgString}
       // Fallback: URL-safe JSON encoding
       return encodeURIComponent(json)
     } catch (error) {
-      throw new Error(`Failed to encode config: ${error.message}`)
+      throw new Error(
+        `Failed to encode config: ${/** @type {any} */ (error).message}`,
+      )
     }
   }
 
   /**
    * Decode configuration from hydration data
    * @private
+   * @param {string} encodedConfig
    */
   static _decodeConfig(encodedConfig) {
     try {
@@ -287,7 +307,9 @@ ${svgString}
 
       return JSON.parse(json)
     } catch (error) {
-      throw new Error(`Failed to decode config: ${error.message}`)
+      throw new Error(
+        `Failed to decode config: ${/** @type {any} */ (error).message}`,
+      )
     }
   }
 }

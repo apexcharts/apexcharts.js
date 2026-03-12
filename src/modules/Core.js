@@ -18,6 +18,11 @@ import { getChartClass } from './ChartFactory'
  **/
 
 export default class Core {
+  /**
+   * @param {Element} el
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(el, w, ctx) {
     this.w = w
     this.ctx = ctx // needed: timeScale, updateHelpers, chart type instantiation
@@ -69,7 +74,9 @@ export default class Core {
 
     // this.w.dom.Paper = new window.SVG.Doc(this.w.dom.elWrap)
     // Access SVG from appropriate global scope
-    const SVG = Environment.isBrowser() ? window.SVG : global.SVG
+    const SVG = Environment.isBrowser()
+      ? /** @type {any} */ (window).SVG
+      : /** @type {any} */ (global).SVG
     this.w.dom.Paper = SVG().addTo(this.w.dom.elWrap)
 
     this.w.dom.Paper.attr({
@@ -146,6 +153,10 @@ export default class Core {
     this.w.dom.elGraphical.add(this.w.dom.elDefs)
   }
 
+  /**
+   * @param {any[]} ser
+   * @param {import('../types/internal').XYRatios} xyRatios
+   */
   plotChartType(ser, xyRatios) {
     const { w, ctx } = this
     const { config: cnf, globals: gl } = w
@@ -166,24 +177,30 @@ export default class Core {
     let nonComboType = null
     let comboCount = 0
 
+    /**
+     * @param {Object} serie
+     * @param {number} st
+     */
     this.w.seriesData.series.forEach((serie, st) => {
       const seriesType =
         ser[st]?.type === 'column'
           ? 'bar'
           : ser[st]?.type || (chartType === 'column' ? 'bar' : chartType)
 
-      if (seriesTypes[seriesType]) {
+      if (/** @type {Record<string,any>} */ (seriesTypes)[seriesType]) {
         if (seriesType === 'rangeArea') {
-          seriesTypes[seriesType].series.push(
-            this.w.rangeData.seriesRangeStart[st],
-          )
-          seriesTypes[seriesType].seriesRangeEnd.push(
-            this.w.rangeData.seriesRangeEnd[st],
-          )
+          ;/** @type {Record<string,any>} */ (seriesTypes)[
+            seriesType
+          ].series.push(this.w.rangeData.seriesRangeStart[st])
+          ;/** @type {Record<string,any>} */ (seriesTypes)[
+            seriesType
+          ].seriesRangeEnd.push(this.w.rangeData.seriesRangeEnd[st])
         } else {
-          seriesTypes[seriesType].series.push(serie)
+          ;/** @type {Record<string,any>} */ (seriesTypes)[
+            seriesType
+          ].series.push(serie)
         }
-        seriesTypes[seriesType].i.push(st)
+        ;/** @type {Record<string,any>} */ (seriesTypes)[seriesType].i.push(st)
 
         if (seriesType === 'bar') w.globals.columnSeries = seriesTypes.bar
       } else if (
@@ -250,8 +267,7 @@ export default class Core {
       : null
 
     const needsPie =
-      !gl.comboCharts &&
-      ['pie', 'donut', 'polarArea'].includes(cnf.chart.type)
+      !gl.comboCharts && ['pie', 'donut', 'polarArea'].includes(cnf.chart.type)
     ctx.pie = needsPie ? new (getChartClass('pie'))(ctx.w, ctx) : null
 
     const needsRangeBar =
@@ -277,7 +293,11 @@ export default class Core {
       }
       if (seriesTypes.bar.series.length > 0) {
         if (cnf.chart.stacked) {
-          const barStacked = new (getChartClass('barStacked'))(ctx.w, ctx, xyRatios)
+          const barStacked = new (getChartClass('barStacked'))(
+            ctx.w,
+            ctx,
+            xyRatios,
+          )
           elGraph.push(
             barStacked.draw(seriesTypes.bar.series, seriesTypes.bar.i),
           )
@@ -333,7 +353,12 @@ export default class Core {
         )
       }
       if (seriesTypes.scatter.series.length > 0) {
-        const scatterLine = new (getChartClass('line'))(ctx.w, ctx, xyRatios, true)
+        const scatterLine = new (getChartClass('line'))(
+          ctx.w,
+          ctx,
+          xyRatios,
+          true,
+        )
         elGraph.push(
           scatterLine.draw(
             seriesTypes.scatter.series,
@@ -343,7 +368,12 @@ export default class Core {
         )
       }
       if (seriesTypes.bubble.series.length > 0) {
-        const bubbleLine = new (getChartClass('line'))(ctx.w, ctx, xyRatios, true)
+        const bubbleLine = new (getChartClass('line'))(
+          ctx.w,
+          ctx,
+          xyRatios,
+          true,
+        )
         elGraph.push(
           bubbleLine.draw(
             seriesTypes.bubble.series,
@@ -363,7 +393,11 @@ export default class Core {
           break
         case 'bar':
           if (cnf.chart.stacked) {
-            const barStacked = new (getChartClass('barStacked'))(ctx.w, ctx, xyRatios)
+            const barStacked = new (getChartClass('barStacked'))(
+              ctx.w,
+              ctx,
+              xyRatios,
+            )
             elGraph = barStacked.draw(this.w.seriesData.series)
           } else {
             ctx.bar = new (getChartClass('bar'))(ctx.w, ctx, xyRatios)
@@ -426,11 +460,19 @@ export default class Core {
     cnf.chart.width = cnf.chart.width || '100%'
     cnf.chart.height = cnf.chart.height || 'auto'
 
-    gl.svgWidth = cnf.chart.width
-    gl.svgHeight = cnf.chart.height
+    const rawWidth = cnf.chart.width
+    const rawHeight = cnf.chart.height
+
+    // Pre-set NaN so that when the element cannot be measured (e.g. JSDOM with
+    // percentage width), svgWidth doesn't stay at the Globals default of 0.
+    // The branching below overwrites with a real value when measurement works.
+    // The original code achieved this by assigning the raw config string first
+    // (e.g. '100%'). We use NaN instead to keep the type as number.
+    gl.svgWidth = NaN
+    gl.svgHeight = NaN
 
     let elDim = Utils.getDimensions(this.el)
-    const widthUnit = cnf.chart.width
+    const widthUnit = rawWidth
       .toString()
       .split(/[0-9]+/g)
       .pop()
@@ -440,22 +482,22 @@ export default class Core {
         if (elDim[0].width === 0) {
           elDim = Utils.getDimensions(this.el.parentNode)
         }
-        gl.svgWidth = (elDim[0] * parseInt(cnf.chart.width, 10)) / 100
+        gl.svgWidth = (elDim[0] * parseInt(rawWidth, 10)) / 100
       }
     } else if (widthUnit === 'px' || widthUnit === '') {
-      gl.svgWidth = parseInt(cnf.chart.width, 10)
+      gl.svgWidth = parseInt(rawWidth, 10)
     }
 
-    const heightUnit = String(cnf.chart.height)
+    const heightUnit = String(rawHeight)
       .toString()
       .split(/[0-9]+/g)
       .pop()
-    if (gl.svgHeight !== 'auto' && gl.svgHeight !== '') {
+    if (rawHeight !== 'auto' && rawHeight !== '') {
       if (heightUnit === '%') {
         const elParentDim = Utils.getDimensions(this.el.parentNode)
-        gl.svgHeight = (elParentDim[1] * parseInt(cnf.chart.height, 10)) / 100
+        gl.svgHeight = (elParentDim[1] * parseInt(rawHeight, 10)) / 100
       } else {
-        gl.svgHeight = parseInt(cnf.chart.height, 10)
+        gl.svgHeight = parseInt(rawHeight, 10)
       }
     } else {
       gl.svgHeight = gl.axisCharts ? gl.svgWidth / 1.61 : gl.svgWidth / 1.2
@@ -507,8 +549,7 @@ export default class Core {
       !w.config.legend.floating
     ) {
       legendHeight =
-        (this.ctx.legend?.legendHelpers.getLegendDimensions().clwh ?? 0) +
-        7
+        (this.ctx.legend?.legendHelpers.getLegendDimensions().clwh ?? 0) + 7
     }
 
     const el = w.dom.baseEl.querySelector(
@@ -532,7 +573,7 @@ export default class Core {
     )
 
     if (this.w.dom.elLegendForeign) {
-      this.w.dom.elLegendForeign.setAttribute('height', newHeight)
+      this.w.dom.elLegendForeign.setAttribute('height', String(newHeight))
     }
 
     if (w.config.chart.height && String(w.config.chart.height).includes('%'))
@@ -620,6 +661,9 @@ export default class Core {
     return xyRatios
   }
 
+  /**
+   * @param {any} targetChart
+   */
   updateSourceChart(targetChart) {
     this.ctx.w.interact.selection = undefined
     this.ctx.updateHelpers._updateOptions(
@@ -647,8 +691,10 @@ export default class Core {
       const targets = Array.isArray(w.config.chart.brush.targets)
         ? w.config.chart.brush.targets
         : [w.config.chart.brush.target]
-      targets.forEach((target) => {
-        const targetChart = ctx.constructor.getChartByID(target)
+      targets.forEach((/** @type {any} */ target) => {
+        const targetChart = /** @type {any} */ (ctx.constructor).getChartByID(
+          target,
+        )
         targetChart.w.globals.brushSource = this.ctx
 
         if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
@@ -657,13 +703,22 @@ export default class Core {
         }
         if (typeof targetChart.w.config.chart.events.scrolled !== 'function') {
           targetChart.w.config.chart.events.scrolled = () =>
+            /**
+             * @param {any} chart
+             * @param {Event} e
+             */
             this.updateSourceChart(targetChart)
         }
       })
 
-      w.config.chart.events.selection = (chart, e) => {
-        targets.forEach((target) => {
-          const targetChart = ctx.constructor.getChartByID(target)
+      w.config.chart.events.selection = (
+        /** @type {any} */ chart,
+        /** @type {any} */ e,
+      ) => {
+        targets.forEach((/** @type {any} */ target) => {
+          const targetChart = /** @type {any} */ (ctx.constructor).getChartByID(
+            target,
+          )
           targetChart.ctx.updateHelpers._updateOptions(
             {
               xaxis: {

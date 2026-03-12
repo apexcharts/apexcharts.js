@@ -9,6 +9,9 @@ import { Point, Matrix } from './math'
 
 // Parse an SVG path 'd' string into an array of command arrays
 // e.g. "M 0 0 L 10 20" → [['M', 0, 0], ['L', 10, 20]]
+/**
+ * @param {string} d
+ */
 function parsePath(d) {
   if (!d || typeof d !== 'string') return [['M', 0, 0]]
 
@@ -94,12 +97,18 @@ function parsePath(d) {
 }
 
 // Calculate bounding box of a parsed path array
+/**
+ * @param {any[]} arr
+ */
 function pathBbox(arr) {
   let minX = Infinity,
     minY = Infinity,
     maxX = -Infinity,
     maxY = -Infinity
 
+  /**
+   * @param {any[]} cmd
+   */
   arr.forEach((cmd) => {
     for (let i = 1; i < cmd.length; i += 2) {
       if (i + 1 <= cmd.length) {
@@ -122,11 +131,21 @@ function pathBbox(arr) {
 }
 
 // Serialize command array back to path string
+/**
+ * @param {any[]} arr
+ */
 function arrayToPath(arr) {
+  /**
+   * @param {any[]} cmd
+   */
   return arr.map((cmd) => cmd.join(' ')).join(' ')
 }
 
 // Convert shorthand types to long form
+/**
+ * @this {any}
+ * @param {any[]} val
+ */
 function simplify(val) {
   switch (val[0]) {
     case 'z':
@@ -165,6 +184,10 @@ function simplify(val) {
 }
 
 // Update reflection point and current position
+/**
+ * @this {any}
+ * @param {any[]} val
+ */
 function setPosAndReflection(val) {
   var len = val.length
   this.pos = [val[len - 2], val[len - 1]]
@@ -178,6 +201,10 @@ function setPosAndReflection(val) {
 }
 
 // Convert all types to cubic bezier
+/**
+ * @this {any}
+ * @param {any[]} val
+ */
 function toBezier(val) {
   var retVal = [val]
 
@@ -204,7 +231,7 @@ function toBezier(val) {
       val[1] = (this.pos[0] * 1) / 3 + (val[1] * 2) / 3
       break
     case 'A':
-      retVal = arcToBezier(this.pos, val)
+      retVal = arcToBezier(this.pos ?? [], val)
       val = retVal[0]
       break
   }
@@ -227,6 +254,10 @@ function findNextM(arr, offset) {
 }
 
 // Convert arc segment to cubic bezier curves
+/**
+ * @param {number[]} pos
+ * @param {any[]} val
+ */
 function arcToBezier(pos, val) {
   var rx = Math.abs(val[1]),
     ry = Math.abs(val[2]),
@@ -270,7 +301,7 @@ function arcToBezier(pos, val) {
   }
 
   primedCoord = new Point((A.x - B.x) / 2, (A.y - B.y) / 2).transform(
-    new Matrix().rotate(xAxisRotation)
+    /** @type {any} */ (new Matrix(0, 0, 0, 0, 0, 0)).rotate(xAxisRotation),
   )
   lambda =
     (primedCoord.x * primedCoord.x) / (rx * rx) +
@@ -281,7 +312,7 @@ function arcToBezier(pos, val) {
     ry = lambda * ry
   }
 
-  mat = new Matrix()
+  mat = /** @type {any} */ (new Matrix(0, 0, 0, 0, 0, 0))
     .rotate(xAxisRotation)
     .scale(1 / rx, 1 / ry)
     .rotate(-xAxisRotation)
@@ -300,10 +331,7 @@ function arcToBezier(pos, val) {
     t *= -1
   }
 
-  O = new Point(
-    (B.x + A.x) / 2 + t * -k[1],
-    (B.y + A.y) / 2 + t * k[0]
-  )
+  O = new Point((B.x + A.x) / 2 + t * -k[1], (B.y + A.y) / 2 + t * k[0])
   OA = new Point(A.x - O.x, A.y - O.y)
   OB = new Point(B.x - O.x, B.y - O.y)
 
@@ -342,7 +370,7 @@ function arcToBezier(pos, val) {
   arcSegPoints[arcSegPoints.length - 1][2] =
     arcSegPoints[arcSegPoints.length - 1][1].clone()
 
-  mat = new Matrix()
+  mat = /** @type {any} */ (new Matrix(0, 0, 0, 0, 0, 0))
     .rotate(xAxisRotation)
     .scale(rx, ry)
     .rotate(-xAxisRotation)
@@ -369,18 +397,23 @@ function arcToBezier(pos, val) {
 }
 
 // Synchronize one block (from M to next M) so types and lengths match
+/**
+ * @param {any[]} startArr
+ * @param {number} startOffsetM
+ * @param {any} startOffsetNextM
+ * @param {any[]} destArr
+ * @param {number} destOffsetM
+ * @param {any} destOffsetNextM
+ */
 function handleBlock(
   startArr,
   startOffsetM,
   startOffsetNextM,
   destArr,
   destOffsetM,
-  destOffsetNextM
+  destOffsetNextM,
 ) {
-  var startArrTemp = startArr.slice(
-    startOffsetM,
-    startOffsetNextM || undefined
-  )
+  var startArrTemp = startArr.slice(startOffsetM, startOffsetNextM || undefined)
   var destArrTemp = destArr.slice(destOffsetM, destOffsetNextM || undefined)
 
   var i = 0,
@@ -400,15 +433,29 @@ function handleBlock(
     ) {
       Array.prototype.splice.apply(
         startArrTemp,
-        [i, 1].concat(toBezier.call(posStart, startArrTemp[i]))
+        /** @type {[number, number, ...any[]]} */ (
+          [i, 1].concat(
+            /** @type {any} */ (toBezier).call(posStart, startArrTemp[i]),
+          )
+        ),
       )
       Array.prototype.splice.apply(
         destArrTemp,
-        [i, 1].concat(toBezier.call(posDest, destArrTemp[i]))
+        /** @type {[number, number, ...any[]]} */ (
+          [i, 1].concat(
+            /** @type {any} */ (toBezier).call(posDest, destArrTemp[i]),
+          )
+        ),
       )
     } else {
-      startArrTemp[i] = setPosAndReflection.call(posStart, startArrTemp[i])
-      destArrTemp[i] = setPosAndReflection.call(posDest, destArrTemp[i])
+      startArrTemp[i] = /** @type {any} */ (setPosAndReflection).call(
+        posStart,
+        startArrTemp[i],
+      )
+      destArrTemp[i] = /** @type {any} */ (setPosAndReflection).call(
+        posDest,
+        destArrTemp[i],
+      )
     }
 
     if (++i == startArrTemp.length && i == destArrTemp.length) break
@@ -442,6 +489,10 @@ function handleBlock(
 }
 
 // Synchronize two path arrays so they can be interpolated
+/**
+ * @param {string} fromD
+ * @param {string} toD
+ */
 function synchronizePaths(fromD, toD) {
   var startArr = parsePath(fromD)
   var destArr = parsePath(toD)
@@ -457,15 +508,15 @@ function synchronizePaths(fromD, toD) {
 
     startOffsetNextM = findNextM(
       startArr,
-      startOffsetM === false ? false : startOffsetM + 1
+      startOffsetM === false ? false : startOffsetM + 1,
     )
     destOffsetNextM = findNextM(
       destArr,
-      destOffsetM === false ? false : destOffsetM + 1
+      destOffsetM === false ? false : destOffsetM + 1,
     )
 
     if (startOffsetM === false) {
-      const bbox = pathBbox(result.start)
+      const bbox = pathBbox(/** @type {any} */ (result).start)
       if (bbox.height == 0 || bbox.width == 0) {
         startOffsetM = startArr.push(startArr[0]) - 1
       } else {
@@ -479,7 +530,7 @@ function synchronizePaths(fromD, toD) {
     }
 
     if (destOffsetM === false) {
-      const bbox = pathBbox(result.dest)
+      const bbox = pathBbox(/** @type {any} */ (result).dest)
       if (bbox.height == 0 || bbox.width == 0) {
         destOffsetM = destArr.push(destArr[0]) - 1
       } else {
@@ -498,26 +549,24 @@ function synchronizePaths(fromD, toD) {
       startOffsetNextM,
       destArr,
       destOffsetM,
-      destOffsetNextM
+      destOffsetNextM,
     )
 
     startArr = startArr
       .slice(0, startOffsetM)
       .concat(
         result.start,
-        startOffsetNextM === false ? [] : startArr.slice(startOffsetNextM)
+        startOffsetNextM === false ? [] : startArr.slice(startOffsetNextM),
       )
     destArr = destArr
       .slice(0, destOffsetM)
       .concat(
         result.dest,
-        destOffsetNextM === false ? [] : destArr.slice(destOffsetNextM)
+        destOffsetNextM === false ? [] : destArr.slice(destOffsetNextM),
       )
 
     startOffsetM =
-      startOffsetNextM === false
-        ? false
-        : startOffsetM + result.start.length
+      startOffsetNextM === false ? false : startOffsetM + result.start.length
     destOffsetM =
       destOffsetNextM === false ? false : destOffsetM + result.dest.length
   }
@@ -536,6 +585,9 @@ function morphPaths(fromD, toD) {
   var startArr = synced.start
   var destArr = synced.dest
 
+  /**
+   * @param {number} pos
+   */
   return function (pos) {
     var result = startArr.map(function (from, idx) {
       return destArr[idx].map(function (to, toIdx) {

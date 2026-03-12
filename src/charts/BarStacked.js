@@ -14,6 +14,10 @@ import Utils from '../utils/Utils'
  **/
 
 class BarStacked extends Bar {
+  /**
+   * @param {any[]} series
+   * @param {number} seriesIndex
+   */
   draw(series, seriesIndex) {
     const w = this.w
     this.graphics = new Graphics(this.w)
@@ -27,7 +31,9 @@ class BarStacked extends Bar {
 
     if (w.config.chart.stackType === '100%') {
       series = w.globals.comboCharts
-        ? seriesIndex.map((_) => w.globals.seriesPercent[_])
+        ? /** @type {any} */ (seriesIndex).map(
+            (/** @type {any} */ _) => w.globals.seriesPercent[_],
+          )
         : w.globals.seriesPercent.slice()
     }
 
@@ -42,17 +48,23 @@ class BarStacked extends Bar {
     let y = 0
 
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
-      const realIndex = w.globals.comboCharts ? seriesIndex[i] : i
+      const realIndex = w.globals.comboCharts
+        ? /** @type {any} */ (seriesIndex)[i]
+        : i
       const { groupIndex, columnGroupIndex } =
         this.barHelpers.getGroupIndex(realIndex)
-      this.groupCtx = this[w.labelData.seriesGroups[groupIndex]]
+      this.groupCtx = /** @type {any} */ (this)[
+        /** @type {any} */ (w.labelData.seriesGroups[groupIndex])
+      ]
 
       const xArrValues = []
       const yArrValues = []
 
       let translationsIndex = 0
       if (this.yRatio.length > 1) {
-        this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex][0]
+        this.yaxisIndex = /** @type {any} */ (
+          w.globals.seriesYAxisReverseMap[realIndex]
+        )[0]
         translationsIndex = realIndex
       }
 
@@ -79,7 +91,15 @@ class BarStacked extends Bar {
         class: 'apexcharts-bar-goals-markers',
       })
 
-      const initPositions = this.initialPositions(x, y, undefined, undefined, undefined, undefined, translationsIndex)
+      const initPositions = this.initialPositions(
+        x,
+        y,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        translationsIndex,
+      )
       const {
         xDivision, // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
         yDivision, // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
@@ -100,7 +120,10 @@ class BarStacked extends Bar {
       // where all stack bar disappear after collapsing the first series
       if (
         this.groupCtx.prevY.length === 1 &&
-        this.groupCtx.prevY[0].every((val) => isNaN(val))
+        /**
+         * @param {number} val
+         */
+        this.groupCtx.prevY[0].every((/** @type {any} */ val) => isNaN(val))
       ) {
         this.groupCtx.prevY[0] = this.groupCtx.prevY[0].map(() => zeroH)
         this.groupCtx.prevYF[0] = this.groupCtx.prevYF[0].map(() => 0)
@@ -155,7 +178,12 @@ class BarStacked extends Bar {
         xArrValues.push(x)
         yArrValues.push(y)
 
-        const pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex)
+        const pathFill = this.barHelpers.getPathFillColor(
+          series,
+          i,
+          j,
+          realIndex,
+        )
 
         let classes = ''
 
@@ -212,6 +240,15 @@ class BarStacked extends Bar {
     return ret
   }
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number | undefined} xDivision
+   * @param {number | undefined} yDivision
+   * @param {number | undefined} zeroH
+   * @param {number | undefined} zeroW
+   * @param {number} translationsIndex
+   */
   initialPositions(
     x,
     y,
@@ -219,7 +256,7 @@ class BarStacked extends Bar {
     yDivision,
     zeroH,
     zeroW,
-    translationsIndex
+    translationsIndex,
   ) {
     const w = this.w
 
@@ -284,13 +321,14 @@ class BarStacked extends Bar {
       y,
       yDivision,
       xDivision,
-      barHeight: barHeight / subDivisions,
-      barWidth: barWidth / subDivisions,
+      barHeight: (barHeight ?? 0) / subDivisions,
+      barWidth: (barWidth ?? 0) / subDivisions,
       zeroH,
       zeroW,
     }
   }
 
+  /** @param {{indexes: any, barHeight: any, strokeWidth: any, zeroW: any, x: any, y: any, columnGroupIndex: any, seriesGroup: any, yDivision: any, elSeries: any}} opts */
   drawStackedBarPaths({
     indexes,
     barHeight,
@@ -317,8 +355,10 @@ class BarStacked extends Bar {
     }
 
     let gsi = i // an index to keep track of the series inside a group
-    if (w.config.series[realIndex].name) {
-      gsi = seriesGroup.indexOf(w.config.series[realIndex].name)
+    if (/** @type {Record<string,any>} */ (w.config.series[realIndex]).name) {
+      gsi = seriesGroup.indexOf(
+        /** @type {Record<string,any>} */ (w.config.series[realIndex]).name,
+      )
     }
 
     if (gsi > 0) {
@@ -326,14 +366,14 @@ class BarStacked extends Bar {
 
       if (this.groupCtx.prevXVal[gsi - 1][j] < 0) {
         bXP =
-          this.series[i][j] >= 0
+          /** @type {any} */ (this.series)[i]?.[j] >= 0
             ? this.groupCtx.prevX[gsi - 1][j] +
               prevBarW -
               (this.isReversed ? prevBarW : 0) * 2
             : this.groupCtx.prevX[gsi - 1][j]
       } else if (this.groupCtx.prevXVal[gsi - 1][j] >= 0) {
         bXP =
-          this.series[i][j] >= 0
+          /** @type {any} */ (this.series)[i]?.[j] >= 0
             ? this.groupCtx.prevX[gsi - 1][j]
             : this.groupCtx.prevX[gsi - 1][j] -
               prevBarW +
@@ -346,13 +386,16 @@ class BarStacked extends Bar {
       barXPosition = zeroW
     }
 
-    if (this.series[i][j] === null) {
+    if (/** @type {any} */ (this.series)[i]?.[j] === null) {
       x = barXPosition
     } else {
       x =
         barXPosition +
-        this.series[i][j] / this.invertedYRatio -
-        (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2
+        /** @type {any} */ (this.series)[i]?.[j] / this.invertedYRatio -
+        (this.isReversed
+          ? /** @type {any} */ (this.series)[i]?.[j] / this.invertedYRatio
+          : 0) *
+          2
     }
 
     const paths = this.barHelpers.getBarpaths({
@@ -386,10 +429,10 @@ class BarStacked extends Bar {
       goalX: this.barHelpers.getGoalValues(
         'x',
         zeroW,
-        null,
+        /** @type {any} */ (null),
         i,
         j,
-        translationsIndex
+        translationsIndex,
       ),
       barXPosition,
       barYPosition,
@@ -398,6 +441,7 @@ class BarStacked extends Bar {
     }
   }
 
+  /** @param {{indexes: any, x: any, y: any, xDivision: any, barWidth: any, zeroH: any, columnGroupIndex: any, seriesGroup: any, elSeries: any}} opts */
   drawStackedColumnPaths({
     indexes,
     x,
@@ -445,7 +489,8 @@ class BarStacked extends Bar {
       (gsi > 0 && !w.axisFlags.isXNumeric) ||
       (gsi > 0 &&
         w.axisFlags.isXNumeric &&
-        w.seriesData.seriesX[realIndex - 1][j] === w.seriesData.seriesX[realIndex][j])
+        w.seriesData.seriesX[realIndex - 1][j] ===
+          w.seriesData.seriesX[realIndex][j])
     ) {
       let bYP
       let prevYValue
@@ -468,14 +513,14 @@ class BarStacked extends Bar {
         // find the previous available value(non-NaN) to give bYP
         if (this.groupCtx.prevYVal[gsi - ii]?.[j] < 0) {
           bYP =
-            this.series[i][j] >= 0
+            /** @type {any} */ (this.series)[i]?.[j] >= 0
               ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2
               : prevYValue
           // found it? break the loop
           break
         } else if (this.groupCtx.prevYVal[gsi - ii]?.[j] >= 0) {
           bYP =
-            this.series[i][j] >= 0
+            /** @type {any} */ (this.series)[i]?.[j] >= 0
               ? prevYValue
               : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2
           // found it? break the loop
@@ -488,10 +533,19 @@ class BarStacked extends Bar {
       // if this.prevYF[0] is all 0 resulted from line #486
       // AND every arr starting from the second only contains NaN
       if (
-        this.groupCtx.prevYF[0]?.every((val) => val === 0) &&
+        /**
+         * @param {number} val
+         */
+        this.groupCtx.prevYF[0]?.every((/** @type {any} */ val) => val === 0) &&
         this.groupCtx.prevYF
           .slice(1, gsi)
-          .every((arr) => arr.every((val) => isNaN(val)))
+          /**
+           * @param {any[]} arr
+           * @param {number} val
+           */
+          .every((/** @type {any} */ arr) =>
+            arr.every((/** @type {any} */ val) => isNaN(val)),
+          )
       ) {
         barYPosition = zeroH
       } else {
@@ -505,12 +559,14 @@ class BarStacked extends Bar {
       barYPosition = zeroH
     }
 
-    if (this.series[i][j]) {
+    if (/** @type {any} */ (this.series)[i]?.[j]) {
       y =
         barYPosition -
-        this.series[i][j] / this.yRatio[translationsIndex] +
+        /** @type {any} */ (this.series)[i]?.[j] /
+          this.yRatio[translationsIndex] +
         (this.isReversed
-          ? this.series[i][j] / this.yRatio[translationsIndex]
+          ? /** @type {any} */ (this.series)[i]?.[j] /
+            this.yRatio[translationsIndex]
           : 0) *
           2
     } else {
@@ -546,7 +602,14 @@ class BarStacked extends Bar {
     return {
       pathTo: paths.pathTo,
       pathFrom: paths.pathFrom,
-      goalY: this.barHelpers.getGoalValues('y', null, zeroH, i, j),
+      goalY: this.barHelpers.getGoalValues(
+        'y',
+        /** @type {any} */ (null),
+        zeroH,
+        i,
+        j,
+        0,
+      ),
       barXPosition,
       x: w.axisFlags.isXNumeric ? x : x + xDivision,
       y,

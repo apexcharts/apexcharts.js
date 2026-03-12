@@ -9,11 +9,20 @@ import Utils from '../utils/Utils'
  **/
 
 class Formatters {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w
     this.tooltipKeyFormat = 'dd MMM'
   }
 
+  /**
+   * @param {Function} fn
+   * @param {any} val
+   * @param {any} timestamp
+   * @param {any} _opts
+   */
   xLabelFormat(fn, val, timestamp, _opts) {
     const w = this.w
 
@@ -24,7 +33,7 @@ class Formatters {
           const datetimeObj = new DateTime(this.w)
           return datetimeObj.formatDate(
             datetimeObj.getDate(val),
-            w.config.tooltip.x.format
+            w.config.tooltip.x.format,
           )
         }
       }
@@ -33,6 +42,9 @@ class Formatters {
     return fn(val, timestamp, _opts)
   }
 
+  /**
+   * @param {any} val
+   */
   defaultGeneralFormatter(val) {
     if (Array.isArray(val)) {
       return val.map((v) => {
@@ -43,6 +55,10 @@ class Formatters {
     }
   }
 
+  /**
+   * @param {any} v
+   * @param {ApexYAxis} yaxe
+   */
   defaultYFormatter(v, yaxe) {
     const w = this.w
 
@@ -51,7 +67,7 @@ class Formatters {
         v = v.toFixed(
           yaxe.decimalsInFloat !== undefined
             ? yaxe.decimalsInFloat
-            : w.globals.yValueDecimal
+            : w.globals.yValueDecimal,
         )
       } else {
         // We have an integer value but the label is not an integer. We can
@@ -69,19 +85,19 @@ class Formatters {
     const w = this.w
     const fmt = w.formatters
 
-    fmt.xaxisTooltipFormatter = (val) => {
+    fmt.xaxisTooltipFormatter = (/** @type {any} */ val) => {
       return this.defaultGeneralFormatter(val)
     }
 
-    fmt.ttKeyFormatter = (val) => {
+    fmt.ttKeyFormatter = (/** @type {any} */ val) => {
       return this.defaultGeneralFormatter(val)
     }
 
-    fmt.ttZFormatter = (val) => {
+    fmt.ttZFormatter = (/** @type {any} */ val) => {
       return val
     }
 
-    fmt.legendFormatter = (val) => {
+    fmt.legendFormatter = (/** @type {any} */ val) => {
       return this.defaultGeneralFormatter(val)
     }
 
@@ -89,7 +105,7 @@ class Formatters {
     if (w.config.xaxis.labels.formatter !== undefined) {
       fmt.xLabelFormatter = w.config.xaxis.labels.formatter
     } else {
-      fmt.xLabelFormatter = (val) => {
+      fmt.xLabelFormatter = (/** @type {any} */ val) => {
         if (Utils.isNumber(val)) {
           if (
             !w.config.xaxis.convertedCatToNumeric &&
@@ -107,7 +123,8 @@ class Formatters {
           }
 
           if (w.globals.isBarHorizontal) {
-            const range = w.globals.maxY - w.globals.minYArr
+            const range =
+              w.globals.maxY - /** @type {any} */ (w.globals.minYArr)
             if (range < 4) {
               return val.toFixed(1)
             }
@@ -147,11 +164,15 @@ class Formatters {
 
     // formatter function will always overwrite format property
     fmt.yLabelFormatters = []
+    /**
+     * @param {ApexYAxis} yaxe
+     * @param {number} i
+     */
     w.config.yaxis.forEach((yaxe, i) => {
       if (yaxe.labels.formatter !== undefined) {
         fmt.yLabelFormatters[i] = yaxe.labels.formatter
       } else {
-        fmt.yLabelFormatters[i] = (val) => {
+        fmt.yLabelFormatters[i] = (/** @type {any} */ val) => {
           if (!w.globals.xyCharts) return val
 
           if (Array.isArray(val)) {
@@ -171,12 +192,21 @@ class Formatters {
   heatmapLabelFormatters() {
     const w = this.w
     if (w.config.chart.type === 'heatmap') {
-      w.globals.yAxisScale[0].result = w.seriesData.seriesNames.slice()
+      w.globals.yAxisScale[0].result = /** @type {any} */ (
+        w.seriesData.seriesNames.slice()
+      )
 
       //  get the longest string from the labels array and also apply label formatter to it
-      const longest = w.seriesData.seriesNames.reduce(
-        (a, b) => (a.length > b.length ? a : b),
-        0
+      /**
+       * @param {any} a
+       * @param {any} b
+       */
+      const longest = /** @type {any} */ (
+        w.seriesData.seriesNames.reduce(
+          (/** @type {any} */ a, /** @type {any} */ b) =>
+            a.length > b.length ? a : b,
+          0,
+        )
       )
       w.globals.yAxisScale[0].niceMax = longest
       w.globals.yAxisScale[0].niceMin = longest

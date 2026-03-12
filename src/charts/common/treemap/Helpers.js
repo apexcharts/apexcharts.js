@@ -4,6 +4,10 @@ import Graphics from '../../../modules/Graphics'
 import DataLabels from '../../../modules/DataLabels'
 
 export default class TreemapHelpers {
+  /**
+   * @param {import('../../../types/internal').ChartStateW} w
+   * @param {import('../../../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.ctx = ctx
     this.w = w
@@ -16,7 +20,10 @@ export default class TreemapHelpers {
     const chartOpts = w.config.plotOptions[w.config.chart.type]
 
     if (chartOpts.colorScale.ranges.length > 0) {
-      chartOpts.colorScale.ranges.map((range) => {
+      /**
+       * @param {number} range
+       */
+      chartOpts.colorScale.ranges.map((/** @type {any} */ range) => {
         if (range.from <= 0) {
           negRange = true
         }
@@ -25,6 +32,12 @@ export default class TreemapHelpers {
     return negRange
   }
 
+  /**
+   * @param {string} chartType
+   * @param {number} i
+   * @param {number} j
+   * @param {any} negRange
+   */
   getShadeColor(chartType, i, j, negRange) {
     const w = this.w
 
@@ -33,7 +46,7 @@ export default class TreemapHelpers {
 
     const colorProps = this.determineColor(chartType, i, j)
 
-    if (w.globals.hasNegs || negRange) {
+    if (/** @type {any} */ (w.globals).hasNegs || negRange) {
       if (w.config.plotOptions[chartType].reverseNegativeShade) {
         if (colorProps.percent < 0) {
           colorShadePercent =
@@ -68,17 +81,17 @@ export default class TreemapHelpers {
       if (this.w.config.theme.mode === 'dark') {
         const shadeColor = utils.shadeColor(
           colorShadePercent * -1,
-          colorProps.color
+          colorProps.color,
         )
         color = Utils.hexToRgba(
           Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
-          w.config.fill.opacity
+          w.config.fill.opacity,
         )
       } else {
         const shadeColor = utils.shadeColor(colorShadePercent, colorProps.color)
         color = Utils.hexToRgba(
           Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
-          w.config.fill.opacity
+          w.config.fill.opacity,
         )
       }
     }
@@ -86,6 +99,11 @@ export default class TreemapHelpers {
     return { color, colorProps }
   }
 
+  /**
+   * @param {string} chartType
+   * @param {number} i
+   * @param {number} j
+   */
   determineColor(chartType, i, j) {
     const w = this.w
 
@@ -126,7 +144,10 @@ export default class TreemapHelpers {
 
     if (chartOpts.colorScale.ranges.length > 0) {
       const colorRange = chartOpts.colorScale.ranges
-      colorRange.map((range) => {
+      /**
+       * @param {number} range
+       */
+      colorRange.map((/** @type {any} */ range) => {
         if (val >= range.from && val <= range.to) {
           color = range.color
           foreColor = range.foreColor ? range.foreColor : null
@@ -183,5 +204,4 @@ export default class TreemapHelpers {
 
     return elDataLabelsWrap
   }
-
 }

@@ -3,6 +3,9 @@ import Utils from '../../utils/Utils'
 import Graphics from '../Graphics'
 
 export default class Helpers {
+  /**
+   * @param {import('./Dimensions').default} dCtx
+   */
   constructor(dCtx) {
     this.w = dCtx.w
     this.dCtx = dCtx
@@ -11,7 +14,8 @@ export default class Helpers {
   /**
    * Get Chart Title/Subtitle Dimensions
    * @memberof Dimensions
-   * @return {{width, height}}
+   * @return {{width: number, height: number}}
+   * @param {string} type
    **/
   getTitleSubtitleCoords(type) {
     const w = this.w
@@ -46,10 +50,13 @@ export default class Helpers {
         w.config.legend.position === 'bottom')
     ) {
       // avoid legend to take up all the space
-      elLegendWrap.style.maxHeight = w.globals.svgHeight / 2 + 'px'
+      if (elLegendWrap)
+        elLegendWrap.style.maxHeight = w.globals.svgHeight / 2 + 'px'
     }
 
-    const lgRect = /** @type {any} */ (Object.assign({}, Utils.getBoundingClientRect(elLegendWrap)))
+    const lgRect = /** @type {any} */ (
+      Object.assign({}, Utils.getBoundingClientRect(elLegendWrap))
+    )
 
     if (
       elLegendWrap !== null &&
@@ -87,37 +94,56 @@ export default class Helpers {
   /**
    * Get Y Axis Dimensions
    * @memberof Dimensions
-   * @return {{width, height}}
+   * @return {{width: number, height: number}}
    **/
   getDatalabelsRect() {
     const w = this.w
 
+    /** @type {any[]} */
     const allLabels = []
 
-    w.config.series.forEach((serie, seriesIndex) => {
-      serie.data.forEach((datum, dataPointIndex) => {
-        const getText = (v) => {
-          return w.config.dataLabels.formatter(v, {
-            seriesIndex,
-            dataPointIndex,
-            w,
-          })
-        }
+    /**
+     * @param {Object} serie
+     * @param {number} seriesIndex
+     */
+    w.config.series.forEach(
+      (/** @type {any} */ serie, /** @type {any} */ seriesIndex) => {
+        /**
+         * @param {any} datum
+         * @param {number} dataPointIndex
+         */
+        serie.data.forEach(
+          (/** @type {any} */ datum, /** @type {any} */ dataPointIndex) => {
+            /**
+             * @param {any} v
+             */
+            const getText = (v) => {
+              return w.config.dataLabels.formatter(v, {
+                seriesIndex,
+                dataPointIndex,
+                w,
+              })
+            }
 
-        const labelText = getText(w.seriesData.series[seriesIndex][dataPointIndex])
+            const labelText = getText(
+              w.seriesData.series[seriesIndex][dataPointIndex],
+            )
 
-        allLabels.push(labelText)
-      })
-    })
+            allLabels.push(labelText)
+          },
+        )
+      },
+    )
 
+    /** @type {any} */
     const val = Utils.getLargestStringFromArr(allLabels)
 
     const graphics = new Graphics(this.w)
     const dataLabelsStyle = w.config.dataLabels.style
     const labelrect = graphics.getTextRects(
       val,
-      parseInt(dataLabelsStyle.fontSize),
-      dataLabelsStyle.fontFamily
+      parseInt(dataLabelsStyle.fontSize).toString(),
+      dataLabelsStyle.fontFamily,
     )
 
     return {
@@ -126,11 +152,18 @@ export default class Helpers {
     }
   }
 
+  /**
+   * @param {any} val
+   * @param {any[]} arr
+   */
   getLargestStringFromMultiArr(val, arr) {
     const w = this.w
     let valArr = val
     if (w.axisFlags.isMultiLineX) {
       // if the xaxis labels has multiline texts (array)
+      /**
+       * @param {any} xl
+       */
       const maxArrs = arr.map((xl) => {
         return Array.isArray(xl) ? xl.length : 1
       })

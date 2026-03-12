@@ -4,7 +4,13 @@ import { SVGNS } from './math'
 import { Environment } from '../utils/Environment.js'
 
 // Install select + resize behavior on SVGElement prototype
+/**
+ * @param {any} ElementClass
+ */
 function installSelectable(ElementClass) {
+  /**
+   * @param {any} opts
+   */
   ElementClass.prototype.select = function (opts) {
     if (opts === false) {
       // Remove selection handles
@@ -26,14 +32,13 @@ function installSelectable(ElementClass) {
       parent.appendChild(handleGroup)
     }
 
+    /** @type {Record<string, any>} */
     const handles = {}
 
     // Create handles for all edge positions
     const handleNames = ['t', 'b', 'l', 'r', 'lt', 'rt', 'lb', 'rb']
     handleNames.forEach((name, index) => {
-      const subGroup = new SVGContainer(
-        document.createElementNS(SVGNS, 'g')
-      )
+      const subGroup = new SVGContainer(document.createElementNS(SVGNS, 'g'))
       handleGroup.appendChild(subGroup.node)
       const handle = createHandle(subGroup, [0, 0], index, [], name)
       handles[name] = { group: subGroup, handle }
@@ -54,6 +59,7 @@ function installSelectable(ElementClass) {
         handleGroup.removeAttribute('transform')
       }
 
+      /** @type {Record<string, any>} */
       const positions = {
         t: [x + w / 2, y],
         b: [x + w / 2, y + h],
@@ -89,6 +95,9 @@ function installSelectable(ElementClass) {
     return el
   }
 
+  /**
+   * @param {boolean} enable
+   */
   ElementClass.prototype.resize = function (enable) {
     if (enable === false) {
       if (this._resizeCleanup) {
@@ -102,17 +111,20 @@ function installSelectable(ElementClass) {
     const handles = el._selectHandlesMap
     if (!handles) return el
 
+    /** @type {any[]} */
     const cleanupFns = []
 
     // Make left and right handles draggable for resizing
+    /**
+     * @param {string} name
+     */
     const makeHandleDraggable = (name) => {
       const handleInfo = handles[name]
-      if (!handleInfo || !handleInfo.group || !handleInfo.group.node)
-        return
+      if (!handleInfo || !handleInfo.group || !handleInfo.group.node) return
 
       const handleNode = handleInfo.group.node
 
-      const onPointerDown = (e) => {
+      const onPointerDown = (/** @type {any} */ e) => {
         if (e.button && e.button !== 0) return
         e.stopPropagation()
 
@@ -121,6 +133,7 @@ function installSelectable(ElementClass) {
         const startClientX = ev.clientX
 
         const svgRoot = el.node.ownerSVGElement
+        /** @type {DOMMatrix | null} */
         let ctm = null
         if (svgRoot) {
           ctm = svgRoot.getScreenCTM()
@@ -129,10 +142,13 @@ function installSelectable(ElementClass) {
         const startX = parseFloat(el.attr('x')) || 0
         const startW = parseFloat(el.attr('width')) || 0
 
+        /**
+         * @param {any} me
+         */
         const onMove = (me) => {
           const mev = me.type === 'touchmove' ? me.touches[0] : me
           let dx = mev.clientX - startClientX
-          if (ctm) dx = dx / ctm.a
+          if (ctm) dx = dx / /** @type {any} */ (ctm).a
 
           let newX = startX
           let newW = startW

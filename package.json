@@ -170,6 +170,7 @@
     "build": "node build/vite-build.mjs && vite build --mode ssr",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "typecheck:types": "tsc --noEmit -p tsconfig.types-test.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "npm run e2e && npm run unit -- --coverage",

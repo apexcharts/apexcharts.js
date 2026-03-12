@@ -7,8 +7,11 @@
 import { Environment } from '../utils/Environment.js'
 import { SSRDOMShim } from './DOMShim.js'
 
+/** @type {any} */
 let shim = null
+/** @type {any} */
 let xmlSerializerInstance = null
+/** @type {any} */
 let domParserInstance = null
 
 /**
@@ -49,7 +52,9 @@ export class BrowserAPIs {
       if (!shim) this.init()
       return shim.createElementNS(namespaceURI, qualifiedName)
     }
-    return /** @type {HTMLElement} */ (document.createElementNS(namespaceURI, qualifiedName))
+    return /** @type {HTMLElement} */ (
+      document.createElementNS(namespaceURI, qualifiedName)
+    )
   }
 
   /**
@@ -80,7 +85,7 @@ export class BrowserAPIs {
   /**
    * Query selector all
    * @param {string} selector - CSS selector
-   * @returns {NodeList|Array}
+   * @returns {NodeList|any[]}
    */
   static querySelectorAll(selector) {
     if (Environment.isSSR()) {

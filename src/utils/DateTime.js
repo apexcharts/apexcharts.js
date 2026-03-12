@@ -8,6 +8,9 @@ import Utils from './Utils'
  **/
 
 class DateTime {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w
 
@@ -17,6 +20,9 @@ class DateTime {
     this.daysCntOfYear = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
   }
 
+  /**
+   * @param {any} date
+   */
   isValidDate(date) {
     if (typeof date === 'number') {
       return false // don't test for timestamps
@@ -24,6 +30,9 @@ class DateTime {
     return !isNaN(this.parseDate(date))
   }
 
+  /**
+   * @param {any} dateStr
+   */
   getTimeStamp(dateStr) {
     if (!Date.parse(dateStr)) {
       return dateStr
@@ -34,6 +43,9 @@ class DateTime {
       : new Date(new Date(dateStr).toISOString().substr(0, 25)).getTime()
   }
 
+  /**
+   * @param {any} timestamp
+   */
   getDate(timestamp) {
     const utc = this.w.config.xaxis.labels.datetimeUTC
 
@@ -42,6 +54,9 @@ class DateTime {
       : new Date(timestamp)
   }
 
+  /**
+   * @param {string} dateStr
+   */
   parseDate(dateStr) {
     const parsed = Date.parse(dateStr)
     if (!isNaN(parsed)) {
@@ -55,11 +70,18 @@ class DateTime {
 
   // This fixes the difference of x-axis labels between chrome/safari
   // Fixes #1726, #1544, #1485, #1255
+  /**
+   * @param {string} dateStr
+   */
   parseDateWithTimezone(dateStr) {
     return Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '))
   }
 
   // http://stackoverflow.com/questions/14638018/current-time-formatting-with-javascript#answer-14638191
+  /**
+   * @param {Date} date
+   * @param {string} format
+   */
   formatDate(date, format) {
     const locale = this.w.globals.locale
 
@@ -70,9 +92,12 @@ class DateTime {
     const dddd = ['\x02', ...locale.days]
     const ddd = ['\x03', ...locale.shortDays]
 
-    function ii(i, len) {
+    /**
+     * @param {number} i
+     * @param {number} len
+     */
+    function ii(i, len = 2) {
       let s = i + ''
-      len = len || 2
       while (s.length < len) s = '0' + s
       return s
     }
@@ -149,6 +174,10 @@ class DateTime {
     return format
   }
 
+  /**
+   * @param {number} minX
+   * @param {number} maxX
+   */
   getTimeUnitsfromTimestamp(minX, maxX) {
     const w = this.w
 
@@ -183,10 +212,18 @@ class DateTime {
     }
   }
 
+  /**
+   * @param {number} year
+   */
   isLeapYear(year) {
     return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
   }
 
+  /**
+   * @param {number} month
+   * @param {number} year
+   * @param {number} subtract
+   */
   calculcateLastDaysOfMonth(month, year, subtract) {
     const days = this.determineDaysOfMonths(month, year)
 
@@ -194,6 +231,9 @@ class DateTime {
     return days - subtract
   }
 
+  /**
+   * @param {number} year
+   */
   determineDaysOfYear(year) {
     let days = 365
 
@@ -204,12 +244,21 @@ class DateTime {
     return days
   }
 
+  /**
+   * @param {number} year
+   * @param {number} month
+   * @param {number} date
+   */
   determineRemainingDaysOfYear(year, month, date) {
     let dayOfYear = this.daysCntOfYear[month] + date
-    if (month > 1 && this.isLeapYear()) dayOfYear++
+    if (month > 1 && this.isLeapYear(year)) dayOfYear++
     return dayOfYear
   }
 
+  /**
+   * @param {number} month
+   * @param {number} year
+   */
   determineDaysOfMonths(month, year) {
     let days = 30
 

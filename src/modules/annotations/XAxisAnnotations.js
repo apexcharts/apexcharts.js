@@ -3,6 +3,9 @@ import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
 
 export default class XAnnotations {
+  /**
+   * @param {import('./Annotations').default} annoCtx
+   */
   constructor(annoCtx) {
     this.w = annoCtx.w
     this.annoCtx = annoCtx
@@ -12,6 +15,11 @@ export default class XAnnotations {
     this.helpers = new Helpers(this.annoCtx)
   }
 
+  /**
+   * @param {XAxisAnnotations} anno
+   * @param {Element} parent
+   * @param {number} index
+   */
   addXaxisAnnotation(anno, parent, index) {
     const w = this.w
 
@@ -36,7 +44,7 @@ export default class XAnnotations {
           w.layout.gridHeight + anno.offsetY, // y2
           anno.borderColor, // lineColor
           strokeDashArray, //dashArray
-          anno.borderWidth
+          anno.borderWidth,
         )
         parent.appendChild(line.node)
         if (anno.id) {
@@ -64,7 +72,7 @@ export default class XAnnotations {
         anno.opacity, // opacity,
         1, // strokeWidth
         anno.borderColor, // strokeColor
-        strokeDashArray // stokeDashArray
+        strokeDashArray, // stokeDashArray
       )
       rect.node.classList.add('apexcharts-annotation-rect')
       rect.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
@@ -77,15 +85,15 @@ export default class XAnnotations {
     if (!(clipX1 && clipX2)) {
       const textRects = this.annoCtx.graphics.getTextRects(
         text,
-        parseFloat(anno.label.style.fontSize)
+        anno.label.style.fontSize,
       )
       const textY =
         anno.label.position === 'top'
           ? 4
           : anno.label.position === 'center'
-          ? w.layout.gridHeight / 2 +
-            (anno.label.orientation === 'vertical' ? textRects.width / 2 : 0)
-          : w.layout.gridHeight
+            ? w.layout.gridHeight / 2 +
+              (anno.label.orientation === 'vertical' ? textRects.width / 2 : 0)
+            : w.layout.gridHeight
 
       const elText = this.annoCtx.graphics.drawText({
         x: x1 + anno.label.offsetX,
@@ -125,9 +133,15 @@ export default class XAnnotations {
       class: 'apexcharts-xaxis-annotations',
     })
 
-    w.config.annotations.xaxis.map((anno, index) => {
-      this.addXaxisAnnotation(anno, elg.node, index)
-    })
+    /**
+     * @param {XAxisAnnotations} anno
+     * @param {number} index
+     */
+    w.config.annotations.xaxis.map(
+      (/** @type {any} */ anno, /** @type {any} */ index) => {
+        this.addXaxisAnnotation(anno, elg.node, index)
+      },
+    )
 
     return elg
   }

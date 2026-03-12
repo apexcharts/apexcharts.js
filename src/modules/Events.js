@@ -1,5 +1,9 @@
 // @ts-check
 export default class Events {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx // needed: eventList, keyboardNavigation, core.setupBrushHandler, fireEvent args
@@ -7,28 +11,45 @@ export default class Events {
     this.documentEvent = this.documentEvent.bind(this)
   }
 
+  /**
+   * @param {string} name
+   * @param {Function} handler
+   */
   addEventListener(name, handler) {
     const w = this.w
 
     if (Object.prototype.hasOwnProperty.call(w.globals.events, name)) {
-      w.globals.events[name].push(handler)
+      ;/** @type {Record<string,any>} */ (w.globals.events)[name].push(handler)
     } else {
-      w.globals.events[name] = [handler]
+      ;/** @type {Record<string,any>} */ (w.globals.events)[name] = [handler]
     }
   }
 
+  /**
+   * @param {string} name
+   * @param {Function} handler
+   */
   removeEventListener(name, handler) {
     const w = this.w
     if (!Object.prototype.hasOwnProperty.call(w.globals.events, name)) {
       return
     }
 
-    const index = w.globals.events[name].indexOf(handler)
+    const index = /** @type {Record<string,any>} */ (w.globals.events)[
+      name
+    ].indexOf(handler)
     if (index !== -1) {
-      w.globals.events[name].splice(index, 1)
+      ;/** @type {Record<string,any>} */ (w.globals.events)[name].splice(
+        index,
+        1,
+      )
     }
   }
 
+  /**
+   * @param {string} name
+   * @param {any[]} args
+   */
   fireEvent(name, args) {
     const w = this.w
 
@@ -40,7 +61,7 @@ export default class Events {
       args = []
     }
 
-    const evs = w.globals.events[name]
+    const evs = /** @type {Record<string,any>} */ (w.globals.events)[name]
     const l = evs.length
 
     for (let i = 0; i < l; i++) {
@@ -54,10 +75,16 @@ export default class Events {
 
     const clickableArea = w.dom.baseEl.querySelector(w.globals.chartClass)
 
+    /**
+     * @param {Event} event
+     */
     this.ctx.eventList.forEach((event) => {
-      clickableArea.addEventListener(
+      /**
+       * @param {Event} e
+       */
+      clickableArea?.addEventListener(
         event,
-        (e) => {
+        (/** @type {any} */ e) => {
           const capturedSeriesIndex =
             e.target.getAttribute('i') === null &&
             w.interact.capturedSeriesIndex !== -1
@@ -115,10 +142,13 @@ export default class Events {
             me.ctx.events.fireEvent('click', [e, me, opts])
           }
         },
-        { capture: false, passive: true }
+        { capture: false, passive: true },
       )
     })
 
+    /**
+     * @param {Event} event
+     */
     this.ctx.eventList.forEach((event) => {
       w.dom.baseEl.addEventListener(event, this.documentEvent, {
         passive: true,
@@ -128,6 +158,9 @@ export default class Events {
     this.ctx.core.setupBrushHandler()
   }
 
+  /**
+   * @param {any} e
+   */
   documentEvent(e) {
     const w = this.w
     const target = e.target.className

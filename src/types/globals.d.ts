@@ -39,9 +39,32 @@ type ApexAxisChartSeries = Array<{
   [key: string]: any
 }>
 type ApexNonAxisChartSeries = number[] | ApexAxisChartSeries
+type ApexYAxis = { [key: string]: any }
 type XAxisAnnotations = { [key: string]: any }
 type YAxisAnnotations = { [key: string]: any }
 type PointAnnotations = { [key: string]: any }
+// Sub-option types used in internal.d.ts (ResolvedApexOptions) — redeclared
+// as opaque `any` aliases; the real typed shapes live in types/apexcharts.d.ts.
+// Using plain `any` (not `{ [key: string]: any }`) matches the behaviour of the
+// old unresolved-name fallback so that existing JS code is not broken.
+type ApexAnnotations = any
+type ApexChart = any
+type ApexDataLabels = any
+type ApexFill = any
+type ApexForecastDataPoints = any
+type ApexGrid = any
+type ApexLegend = any
+type ApexMarkers = any
+type ApexNoData = any
+type ApexPlotOptions = any
+type ApexResponsive = any
+type ApexParsing = any
+type ApexStates = any
+type ApexStroke = any
+type ApexTitleSubtitle = any
+type ApexTheme = any
+type ApexTooltip = any
+type ApexXAxis = any
 
 /** SVG asset imports — bundler inlines them as strings */
 declare module '*.svg' {

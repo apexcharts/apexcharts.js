@@ -5,10 +5,16 @@ import { Environment } from '../../utils/Environment.js'
 import en from '../../locales/en.json'
 
 export default class Localization {
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w
   }
 
+  /**
+   * @param {string} localeName
+   */
   setCurrentLocaleValues(localeName) {
     let locales = this.w.config.chart.locales
 
@@ -24,7 +30,9 @@ export default class Localization {
     }
 
     // find the locale from the array of locales which user has set (either by chart.defaultLocale or by calling setLocale() method.)
-    const selectedLocale = locales.filter((c) => c.name === localeName)[0]
+    const selectedLocale = locales.filter(
+      (/** @type {{ name: string }} */ c) => c.name === localeName,
+    )[0]
 
     if (selectedLocale) {
       // create a complete locale object by extending defaults so you don't get undefined errors.
@@ -34,7 +42,7 @@ export default class Localization {
       this.w.globals.locale = ret.options
     } else {
       throw new Error(
-        'Wrong locale name provided. Please make sure you set the correct locale name in options'
+        'Wrong locale name provided. Please make sure you set the correct locale name in options',
       )
     }
   }

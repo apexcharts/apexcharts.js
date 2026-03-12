@@ -125,7 +125,10 @@ export class Hydration {
    *   chart: { animations: { enabled: true } }
    * });
    */
-  static hydrateAll(selector = '[data-apexcharts-hydrate]', clientOptions = {}) {
+  static hydrateAll(
+    selector = '[data-apexcharts-hydrate]',
+    clientOptions = {},
+  ) {
     // Only works in browser
     if (!Environment.isBrowser()) {
       throw new Error('Hydration can only be performed in browser environment')
@@ -138,11 +141,15 @@ export class Hydration {
       return []
     }
 
+    /** @type {any[]} */
     const charts = []
 
     elements.forEach((el) => {
       try {
-        const chart = this.hydrate(/** @type {HTMLElement} */ (el), clientOptions)
+        const chart = this.hydrate(
+          /** @type {HTMLElement} */ (el),
+          clientOptions,
+        )
         charts.push(chart)
       } catch (error) {
         console.error('Failed to hydrate element:', el, error)
@@ -166,6 +173,8 @@ export class Hydration {
   /**
    * Decode configuration from base64-encoded data attribute
    * @private
+   * @param {string} encodedConfig
+   * @returns {any}
    */
   static _decodeConfig(encodedConfig) {
     try {
@@ -184,13 +193,18 @@ export class Hydration {
 
       return JSON.parse(json)
     } catch (error) {
-      throw new Error(`Failed to decode chart config: ${error.message}`)
+      throw new Error(
+        `Failed to decode chart config: ${/** @type {any} */ (error).message}`,
+      )
     }
   }
 
   /**
    * Merge SSR configuration with client-side overrides
    * @private
+   * @param {Record<string, any>} ssrConfig
+   * @param {Record<string, any>} clientOptions
+   * @returns {any}
    */
   static _mergeConfigs(ssrConfig, clientOptions) {
     // Deep merge, with clientOptions taking precedence
@@ -207,7 +221,10 @@ export class Hydration {
       }
 
       // Re-enable animations by default for hydration (unless explicitly disabled)
-      if (merged.chart.animations === undefined || merged.chart.animations.enabled === false) {
+      if (
+        merged.chart.animations === undefined ||
+        merged.chart.animations.enabled === false
+      ) {
         merged.chart.animations = {
           ...(merged.chart.animations || {}),
           enabled: true,
@@ -215,7 +232,10 @@ export class Hydration {
       }
 
       // Re-enable toolbar if it was disabled for SSR (unless explicitly set)
-      if (clientOptions.chart?.toolbar === undefined && ssrConfig.chart?.toolbar?.show === false) {
+      if (
+        clientOptions.chart?.toolbar === undefined &&
+        ssrConfig.chart?.toolbar?.show === false
+      ) {
         merged.chart.toolbar = {
           ...(merged.chart.toolbar || {}),
           show: true,

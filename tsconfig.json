@@ -6,11 +6,8 @@
     "checkJs": true,
     "skipLibCheck": true,
 
-    // ── Strictness — intentionally relaxed for incremental adoption ───────────
-    // Tighten these as JSDoc coverage improves across modules.
-    "strict": false,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
+    // ── Strictness — full strict mode  ────────────────────
+    "strict": true,
 
     // ── Module resolution ──────────────────────────────────────────────────────
     "module": "ESNext",

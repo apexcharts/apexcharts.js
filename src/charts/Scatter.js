@@ -11,6 +11,10 @@ import Markers from '../modules/Markers'
  * @module Scatter
  **/
 export default class Scatter {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.ctx = ctx
     this.w = w
@@ -24,6 +28,11 @@ export default class Scatter {
     this.graphics = new Graphics(this.w)
   }
 
+  /**
+   * @param {Element} elSeries
+   * @param {number} j
+   * @param {Record<string, any>} opts
+   */
   draw(elSeries, j, opts) {
     const w = this.w
 
@@ -91,7 +100,7 @@ export default class Scatter {
             radius,
             realIndex,
             dataPointIndex,
-            j
+            j,
           )
           elPointsWrap.add(point)
         }
@@ -101,6 +110,14 @@ export default class Scatter {
     }
   }
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} radius
+   * @param {number} realIndex
+   * @param {number} dataPointIndex
+   * @param {number} j
+   */
   drawPoint(x, y, radius, realIndex, dataPointIndex, j) {
     const w = this.w
 
@@ -119,7 +136,7 @@ export default class Scatter {
         w.config.chart.type === 'bubble' ||
         (w.globals.comboCharts &&
           w.config.series[realIndex] &&
-          w.config.series[realIndex].type === 'bubble')
+          /** @type {Record<string,any>} */ (w.config.series[realIndex]).type === 'bubble')
           ? radius
           : null,
     })
@@ -134,9 +151,10 @@ export default class Scatter {
 
     const el = graphics.drawMarker(x, y, markerConfig)
 
-    if (w.config.series[i].data[dataPointIndex]) {
-      if (w.config.series[i].data[dataPointIndex].fillColor) {
-        pathFillCircle = w.config.series[i].data[dataPointIndex].fillColor
+    const _si = /** @type {Record<string,any>} */ (w.config.series[i])
+    if (_si.data[dataPointIndex]) {
+      if (_si.data[dataPointIndex].fillColor) {
+        pathFillCircle = _si.data[dataPointIndex].fillColor
       }
     }
 
@@ -152,11 +170,16 @@ export default class Scatter {
     if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
       const speed = w.config.chart.animations.speed
 
-      anim.animateMarker(el, speed, w.globals.easing, () => {
-        window.setTimeout(() => {
-          anim.animationCompleted(el)
-        }, 100)
-      })
+      anim.animateMarker(
+        el,
+        speed,
+        /** @type {any} */ (w.globals).easing,
+        () => {
+          window.setTimeout(() => {
+            anim.animationCompleted(el)
+          }, 100)
+        },
+      )
     } else {
       w.globals.animationEnded = true
     }
@@ -175,6 +198,9 @@ export default class Scatter {
     return el
   }
 
+  /**
+   * @param {number} y
+   */
   centerTextInBubble(y) {
     const w = this.w
     y = y + parseInt(w.config.dataLabels.style.fontSize, 10) / 4

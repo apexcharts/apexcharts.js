@@ -3,11 +3,18 @@ import CoreUtils from '../../../modules/CoreUtils'
 import Utils from '../../../utils/Utils'
 
 export default class Helpers {
+  /**
+   * @param {import('../../../charts/Line').default} lineCtx
+   */
   constructor(lineCtx) {
     this.w = lineCtx.w
     this.lineCtx = lineCtx
   }
 
+  /**
+   * @param {number} i
+   * @param {any[]} series
+   */
   sameValueSeriesFix(i, series) {
     const w = this.w
 
@@ -29,6 +36,7 @@ export default class Helpers {
     return series
   }
 
+  /** @param {{series: any, realIndex: any, x: any, y: any, i: any, j: any, prevY: any}} opts */
   calculatePoints({ series, realIndex, x, y, i, j, prevY }) {
     const w = this.w
 
@@ -51,13 +59,13 @@ export default class Helpers {
     if (j === 0) {
       ptX.push(xPT1st)
       ptY.push(
-        Utils.isNumber(series[i][0]) ? prevY + w.config.markers.offsetY : null
+        Utils.isNumber(series[i][0]) ? prevY + w.config.markers.offsetY : null,
       )
     }
 
     ptX.push(x + w.config.markers.offsetX)
     ptY.push(
-      Utils.isNumber(series[i][j + 1]) ? y + w.config.markers.offsetY : null
+      Utils.isNumber(series[i][j + 1]) ? y + w.config.markers.offsetY : null,
     )
 
     return {
@@ -66,6 +74,7 @@ export default class Helpers {
     }
   }
 
+  /** @param {{pathFromLine: any, pathFromArea: any, realIndex: any}} opts */
   checkPreviousPaths({ pathFromLine, pathFromArea, realIndex }) {
     const w = this.w
 
@@ -97,6 +106,7 @@ export default class Helpers {
     }
   }
 
+  /** @param {{i: any, realIndex: any, series: any, prevY: any, lineYPosition: any, translationsIndex: any}} opts */
   determineFirstPrevY({
     i,
     realIndex,
@@ -111,8 +121,10 @@ export default class Helpers {
       (w.config.chart.stacked &&
         w.globals.comboCharts &&
         (!this.w.config.chart.stackOnlyBar ||
-          this.w.config.series[realIndex]?.type === 'bar' ||
-          this.w.config.series[realIndex]?.type === 'column'))
+          /** @type {any} */ (this.w.config.series[realIndex])?.type ===
+            'bar' ||
+          /** @type {any} */ (this.w.config.series[realIndex])?.type ===
+            'column'))
 
     if (typeof series[i]?.[0] !== 'undefined') {
       if (stackSeries) {

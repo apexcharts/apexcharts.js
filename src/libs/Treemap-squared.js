@@ -16,6 +16,10 @@
  *
  */
 
+/**
+ * @param {number[]} data
+ * @param {number} area
+ */
 function normalize(data, area) {
   let sum = 0
   for (let i = 0; i < data.length; i++) {
@@ -29,6 +33,12 @@ function normalize(data, area) {
   return result
 }
 
+/**
+ * @param {number} rowMin
+ * @param {number} rowMax
+ * @param {number} rowSum
+ * @param {number} length
+ */
 function calculateRatio(rowMin, rowMax, rowSum, length) {
   const lengthSq = length * length
   const sumSq = rowSum * rowSum
@@ -38,6 +48,14 @@ function calculateRatio(rowMin, rowMax, rowSum, length) {
   )
 }
 
+/**
+ * @param {number} rowLen
+ * @param {number} rowMin
+ * @param {number} rowMax
+ * @param {number} rowSum
+ * @param {number} nextNode
+ * @param {number} length
+ */
 function improvesRatio(rowLen, rowMin, rowMax, rowSum, nextNode, length) {
   if (rowLen === 0) return true
 
@@ -52,6 +70,16 @@ function improvesRatio(rowLen, rowMin, rowMax, rowSum, nextNode, length) {
   return currentRatio >= newRatio
 }
 
+/**
+ * @param {any[]} coords
+ * @param {number[]} row
+ * @param {number} rowLen
+ * @param {number} rowSum
+ * @param {number} xoffset
+ * @param {number} yoffset
+ * @param {number} width
+ * @param {number} height
+ */
 function emitCoordinates(coords, row, rowLen, rowSum, xoffset, yoffset, width, height) {
   if (width >= height) {
     const areaWidth = rowSum / height
@@ -72,7 +100,15 @@ function emitCoordinates(coords, row, rowLen, rowSum, xoffset, yoffset, width, h
   }
 }
 
+/**
+ * @param {number[]} data
+ * @param {number} xoffset
+ * @param {number} yoffset
+ * @param {number} width
+ * @param {number} height
+ */
 function squarify(data, xoffset, yoffset, width, height) {
+  /** @type {any[]} */
   const coords = []
   const n = data.length
   if (n === 0) return coords
@@ -122,6 +158,11 @@ function squarify(data, xoffset, yoffset, width, height) {
   return coords
 }
 
+/**
+ * @param {any[]} data
+ * @param {number} width
+ * @param {number} height
+ */
 function generate(data, width, height) {
   const n = data.length
 

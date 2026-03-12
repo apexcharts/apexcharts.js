@@ -59,7 +59,9 @@ export default class ApexCharts {
   /** @type {any} */ _keyboardNavigation
   /** @type {any} */ windowResizeHandler
   /** @type {any} */ parentResizeHandler
-  /** @type {string[]} */ publicMethods
+  /** @type {string[]} */ publicMethods = []
+  /** @type {string[]} */ eventList = []
+  /** @type {any} */ config
 
   /**
    * Creates a new ApexCharts instance.
@@ -104,8 +106,8 @@ export default class ApexCharts {
     if (!this.w?.config?.chart) {
       return Promise.reject(
         new Error(
-          'ApexCharts: chart configuration is missing or invalid. Ensure the options object includes a `chart` property.'
-        )
+          'ApexCharts: chart configuration is missing or invalid. Ensure the options object includes a `chart` property.',
+        ),
       )
     }
     // main method
@@ -135,9 +137,14 @@ export default class ApexCharts {
         // add event listeners in browser environment
         if (Environment.isBrowser()) {
           window.addEventListener('resize', this.windowResizeHandler)
-          addResizeListener(this.el.parentNode, this.parentResizeHandler)
+          addResizeListener(
+            /** @type {HTMLElement} */ (this.el.parentNode),
+            this.parentResizeHandler,
+          )
 
-          const rootNode = /** @type {any} */ (this.el.getRootNode && this.el.getRootNode())
+          const rootNode = /** @type {any} */ (
+            this.el.getRootNode && this.el.getRootNode()
+          )
           const inShadowRoot = Utils.is('ShadowRoot', rootNode)
           const doc = this.el.ownerDocument
           let css = inShadowRoot
@@ -145,7 +152,10 @@ export default class ApexCharts {
             : doc.getElementById('apexcharts-css')
 
           if (!css) {
-            css = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'style')
+            css = BrowserAPIs.createElementNS(
+              'http://www.w3.org/1999/xhtml',
+              'style',
+            )
             css.id = 'apexcharts-css'
             css.textContent = apexCSS
             const nonce = this.opts.chart?.nonce || this.w.config.chart.nonce
@@ -189,6 +199,10 @@ export default class ApexCharts {
     })
   }
 
+  /**
+   * @param {any[]} ser
+   * @param {object} opts
+   */
   create(ser, opts) {
     const w = this.w
 
@@ -230,6 +244,10 @@ export default class ApexCharts {
     }
 
     let series = ser
+    /**
+     * @param {Record<string, any>} s
+     * @param {number} realIndex
+     */
     ser.forEach((s, realIndex) => {
       if (s.hidden) {
         series = this.legend.legendHelpers.getSeriesAfterCollapsing({
@@ -242,6 +260,9 @@ export default class ApexCharts {
     gl.comboCharts = combo.comboCharts
     gl.comboBarCount = combo.comboBarCount
 
+    /**
+     * @param {Record<string, any>} s
+     */
     const allSeriesAreEmpty = series.every((s) => s.data && s.data.length === 0)
 
     if (
@@ -351,6 +372,9 @@ export default class ApexCharts {
     }
   }
 
+  /**
+   * @param {any} graphData
+   */
   mount(graphData = null) {
     const me = this
     const w = me.w
@@ -359,7 +383,7 @@ export default class ApexCharts {
       // no data to display
       if (me.el === null) {
         return reject(
-          new Error('Not enough data to display or target element not found')
+          new Error('Not enough data to display or target element not found'),
         )
       } else if (graphData === null || w.globals.allSeriesCollapsed) {
         me.series.handleNoData()
@@ -368,9 +392,13 @@ export default class ApexCharts {
       me.grid = new Grid(me.w, me)
       const elgrid = me.grid.drawGrid()
 
-      const AnnotationsCtor = InitCtxVariables._featureRegistry.get('annotations')
+      const AnnotationsCtor =
+        InitCtxVariables._featureRegistry.get('annotations')
       me.annotations = AnnotationsCtor
-        ? new AnnotationsCtor(me.w, { theme: me.theme, timeScale: me.timeScale })
+        ? new AnnotationsCtor(me.w, {
+            theme: me.theme,
+            timeScale: me.timeScale,
+          })
         : null
       me.annotations?.drawImageAnnos()
       me.annotations?.drawTextAnnos()
@@ -414,7 +442,11 @@ export default class ApexCharts {
       }
 
       const xAxis = new XAxis(this.w, this.ctx, elgrid)
-      const yaxis = new YAxis(this.w, { theme: this.theme, timeScale: this.timeScale }, elgrid)
+      const yaxis = new YAxis(
+        this.w,
+        { theme: this.theme, timeScale: this.timeScale },
+        elgrid,
+      )
       if (elgrid !== null) {
         xAxis.xAxisLabelCorrections()
         yaxis.setYAxisTextAlignments()
@@ -431,8 +463,12 @@ export default class ApexCharts {
 
       if (!w.globals.noData) {
         // draw tooltips at the end (browser only — tooltip is DOM-heavy)
-        if (Environment.isBrowser() && w.config.tooltip.enabled && !w.globals.noData) {
-          me.w.globals.tooltip.drawTooltip(graphData.xyRatios)
+        if (
+          Environment.isBrowser() &&
+          w.config.tooltip.enabled &&
+          !w.globals.noData
+        ) {
+          me.w.globals.tooltip?.drawTooltip(graphData.xyRatios)
         }
 
         if (
@@ -447,7 +483,8 @@ export default class ApexCharts {
           Environment.isBrowser() &&
           w.globals.axisCharts &&
           (w.axisFlags.isXNumeric ||
-            /** @type {any} */ (w.config.xaxis).convertedCatToNumeric ||
+            /** @type {Record<string,any>} */ (w.config.xaxis)
+              .convertedCatToNumeric ||
             w.axisFlags.isRangeBar)
         ) {
           if (
@@ -501,16 +538,25 @@ export default class ApexCharts {
     // remove event listeners in browser environment
     if (Environment.isBrowser()) {
       window.removeEventListener('resize', this.windowResizeHandler)
-      removeResizeListener(this.el.parentNode, this.parentResizeHandler)
+      removeResizeListener(
+        /** @type {Element} */ (this.el.parentNode),
+        this.parentResizeHandler,
+      )
     }
     // remove the chart's instance from the global Apex._chartInstances
     const chartID = this.w.config.chart.id
     if (chartID) {
-      Apex._chartInstances.forEach((c, i) => {
-        if (c.id === Utils.escapeString(chartID)) {
-          Apex._chartInstances.splice(i, 1)
-        }
-      })
+      /**
+       * @param {Record<string, any>} c
+       * @param {number} i
+       */
+      Apex._chartInstances.forEach(
+        (/** @type {any} */ c, /** @type {any} */ i) => {
+          if (c.id === Utils.escapeString(chartID)) {
+            Apex._chartInstances.splice(i, 1)
+          }
+        },
+      )
     }
     if (this._keyboardNavigation) {
       this._keyboardNavigation.destroy()
@@ -533,7 +579,7 @@ export default class ApexCharts {
     redraw = false,
     animate = true,
     updateSyncedCharts = true,
-    overwriteInitialConfig = true
+    overwriteInitialConfig = true,
   ) {
     const w = this.w
 
@@ -573,9 +619,15 @@ export default class ApexCharts {
 
       this.series.resetSeries(false, true, false)
       if (options.series.length && options.series[0].data) {
-        options.series = options.series.map((s, i) => {
-          return this.updateHelpers._extendSeries(s, i)
-        })
+        /**
+         * @param {Record<string, any>} s
+         * @param {number} i
+         */
+        options.series = options.series.map(
+          (/** @type {any} */ s, /** @type {any} */ i) => {
+            return this.updateHelpers._extendSeries(s, i)
+          },
+        )
       }
 
       // user updated the series via updateOptions() function.
@@ -601,7 +653,7 @@ export default class ApexCharts {
       redraw,
       animate,
       updateSyncedCharts,
-      overwriteInitialConfig
+      overwriteInitialConfig,
     )
   }
 
@@ -621,7 +673,7 @@ export default class ApexCharts {
     return this.updateHelpers._updateSeries(
       newSeries,
       animate,
-      overwriteInitialSeries
+      overwriteInitialSeries,
     )
   }
 
@@ -643,7 +695,7 @@ export default class ApexCharts {
     return this.updateHelpers._updateSeries(
       newSeries,
       animate,
-      overwriteInitialSeries
+      overwriteInitialSeries,
     )
   }
 
@@ -682,6 +734,9 @@ export default class ApexCharts {
     return this.update()
   }
 
+  /**
+   * @param {object} [options]
+   */
   update(options) {
     return new Promise((resolve, reject) => {
       if (
@@ -696,7 +751,7 @@ export default class ApexCharts {
 
       new Destroy(this.ctx).clear({ isUpdating: true })
 
-      const graphData = this.create(this.w.config.series, options)
+      const graphData = this.create(this.w.config.series, options ?? {})
       if (!graphData) return resolve(this)
       this.mount(graphData)
         .then(() => {
@@ -781,9 +836,14 @@ export default class ApexCharts {
         // Grid, axes, crosshairs, and masks are preserved in place.
         const innerEl = w.dom.elGraphical.node
         const toRemove = innerEl.querySelectorAll(
-          '.apexcharts-series, .apexcharts-datalabels, .apexcharts-datalabels-background'
+          '.apexcharts-series, .apexcharts-datalabels, .apexcharts-datalabels-background',
         )
-        toRemove.forEach((el) => el.parentNode?.removeChild(el))
+        /**
+         * @param {Element} el
+         */
+        toRemove.forEach((/** @type {any} */ el) =>
+          el.parentNode?.removeChild(el),
+        )
 
         // Redraw series paths into the existing graphical container.
         const elGraph = this.core.plotChartType(w.config.series, xyRatios)
@@ -813,7 +873,7 @@ export default class ApexCharts {
 
         // Reattach tooltip event listeners to new series elements.
         if (Environment.isBrowser() && w.config.tooltip.enabled && !gl.noData) {
-          w.globals.tooltip.drawTooltip(xyRatios)
+          w.globals.tooltip?.drawTooltip(xyRatios)
         }
 
         if (typeof w.config.chart.events.updated === 'function') {
@@ -855,13 +915,20 @@ export default class ApexCharts {
    * @returns {ApexCharts[]}
    */
   getGroupedCharts() {
-    return Apex._chartInstances
-      .filter((ch) => {
-        if (ch.group) {
-          return true
-        }
-      })
-      .map((ch) => (this.w.config.chart.group === ch.group ? ch.chart : this))
+    return (
+      Apex._chartInstances
+        .filter((/** @type {any} */ ch) => {
+          if (ch.group) {
+            return true
+          }
+        })
+        /**
+         * @param {Record<string, any>} ch
+         */
+        .map((/** @type {any} */ ch) =>
+          this.w.config.chart.group === ch.group ? ch.chart : this,
+        )
+    )
   }
 
   /**
@@ -874,7 +941,12 @@ export default class ApexCharts {
     const chartId = Utils.escapeString(id)
     if (!Apex._chartInstances) return undefined
 
-    const c = Apex._chartInstances.filter((ch) => ch.id === chartId)[0]
+    /**
+     * @param {Record<string, any>} ch
+     */
+    const c = Apex._chartInstances.filter(
+      (/** @type {any} */ ch) => ch.id === chartId,
+    )[0]
     return c && c.chart
   }
 
@@ -888,7 +960,7 @@ export default class ApexCharts {
 
     for (let i = 0; i < els.length; i++) {
       const el = /** @type {HTMLElement} */ (els[i])
-      const options = JSON.parse(els[i].getAttribute('data-options'))
+      const options = JSON.parse(els[i].getAttribute('data-options') ?? '')
       const apexChart = new ApexCharts(el, options)
       apexChart.render()
     }
@@ -907,7 +979,7 @@ export default class ApexCharts {
    * @param {string} chartID - The unique identifier which will be used to call methods
    * on that chart instance
    * @param {string} fn - The method name to call
-   * @param {object} opts - The parameters which are accepted in the original method will be passed here in the same order.
+   * @param {...any} opts - The parameters which are accepted in the original method will be passed here in the same order.
    */
   static exec(chartID, fn, ...opts) {
     const chart = this.getChartByID(chartID)
@@ -1259,7 +1331,7 @@ export default class ApexCharts {
   toggleDataPointSelection(seriesIndex, dataPointIndex) {
     return this.updateHelpers.toggleDataPointSelection(
       seriesIndex,
-      dataPointIndex
+      dataPointIndex,
     )
   }
 
@@ -1291,7 +1363,10 @@ export default class ApexCharts {
    * @returns {Promise<{ imgURI: string } | { blob: Blob }>}
    */
   dataURI(options) {
-    if (!this.ctx.exports) throw new Error('apexcharts: Exports feature is not registered. Import apexcharts/features/exports.')
+    if (!this.ctx.exports)
+      throw new Error(
+        'apexcharts: Exports feature is not registered. Import apexcharts/features/exports.',
+      )
     return this.ctx.exports.dataURI(options)
   }
 
@@ -1303,7 +1378,10 @@ export default class ApexCharts {
    * @returns {Promise<string>}
    */
   getSvgString(scale) {
-    if (!this.ctx.exports) throw new Error('apexcharts: Exports feature is not registered. Import apexcharts/features/exports.')
+    if (!this.ctx.exports)
+      throw new Error(
+        'apexcharts: Exports feature is not registered. Import apexcharts/features/exports.',
+      )
     return this.ctx.exports.getSvgString(scale)
   }
 
@@ -1314,7 +1392,10 @@ export default class ApexCharts {
    * @param {{ series?: any, fileName?: string, columnDelimiter?: string, lineDelimiter?: string }} [options]
    */
   exportToCSV(options = {}) {
-    if (!this.ctx.exports) throw new Error('apexcharts: Exports feature is not registered. Import apexcharts/features/exports.')
+    if (!this.ctx.exports)
+      throw new Error(
+        'apexcharts: Exports feature is not registered. Import apexcharts/features/exports.',
+      )
     return this.ctx.exports.exportToCSV(options)
   }
 
@@ -1323,12 +1404,42 @@ export default class ApexCharts {
   }
 
   // ─── Slice write-back stubs ─────────────────────────────────────────────────
-  _writeParsedSeriesData(slice) { Object.assign(this.w.seriesData, slice) }
-  _writeParsedRangeData(slice)  { Object.assign(this.w.rangeData,  slice) }
-  _writeParsedCandleData(slice) { Object.assign(this.w.candleData, slice) }
-  _writeParsedLabelData(slice)  { Object.assign(this.w.labelData,  slice) }
-  _writeParsedAxisFlags(slice)  { Object.assign(this.w.axisFlags,  slice) }
-  _writeLayoutCoords(slice)     { Object.assign(this.w.layout,     slice) }
+  /**
+   * @param {Partial<import('./types/internal').SeriesData>} slice
+   */
+  _writeParsedSeriesData(slice) {
+    Object.assign(this.w.seriesData, slice)
+  }
+  /**
+   * @param {Partial<import('./types/internal').RangeData>} slice
+   */
+  _writeParsedRangeData(slice) {
+    Object.assign(this.w.rangeData, slice)
+  }
+  /**
+   * @param {Partial<import('./types/internal').CandleData>} slice
+   */
+  _writeParsedCandleData(slice) {
+    Object.assign(this.w.candleData, slice)
+  }
+  /**
+   * @param {Partial<import('./types/internal').LabelData>} slice
+   */
+  _writeParsedLabelData(slice) {
+    Object.assign(this.w.labelData, slice)
+  }
+  /**
+   * @param {Partial<import('./types/internal').AxisFlags>} slice
+   */
+  _writeParsedAxisFlags(slice) {
+    Object.assign(this.w.axisFlags, slice)
+  }
+  /**
+   * @param {Partial<import('./types/internal').LayoutCoords>} slice
+   */
+  _writeLayoutCoords(slice) {
+    Object.assign(this.w.layout, slice)
+  }
 
   _parentResizeCallback() {
     if (
@@ -1354,7 +1465,7 @@ export default class ApexCharts {
 
   _windowResizeHandler() {
     // Always clear any pending timer so a false→true→false toggle never fires a stale render
-    clearTimeout(this.w.globals.resizeTimer)
+    clearTimeout(this.w.globals.resizeTimer ?? undefined)
 
     let { redrawOnWindowResize: redraw } = this.w.config.chart
 

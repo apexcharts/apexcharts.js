@@ -9,6 +9,9 @@ import Graphics from '../Graphics'
  **/
 
 export default class Utils {
+  /**
+   * @param {import('./Tooltip').default} tooltipContext
+   */
   constructor(tooltipContext) {
     this.w = tooltipContext.w
     this.ttCtx = tooltipContext
@@ -69,18 +72,39 @@ export default class Utils {
     let capturedSeries = null
     let closest = null
 
-    let seriesXValArr = w.globals.seriesXvalues.map((seriesXVal) => {
-      return seriesXVal.filter((s) => Utilities.isNumber(s))
-    })
-    const seriesYValArr = w.globals.seriesYvalues.map((seriesYVal) => {
-      return seriesYVal.filter((s) => Utilities.isNumber(s))
-    })
+    /**
+     * @param {number[]} seriesXVal
+     */
+    let seriesXValArr = w.globals.seriesXvalues.map(
+      (/** @type {any} */ seriesXVal) => {
+        /**
+         * @param {number} s
+         */
+        return seriesXVal.filter((/** @type {any} */ s) =>
+          Utilities.isNumber(s),
+        )
+      },
+    )
+    /**
+     * @param {number[]} seriesYVal
+     */
+    const seriesYValArr = w.globals.seriesYvalues.map(
+      (/** @type {any} */ seriesYVal) => {
+        /**
+         * @param {number} s
+         */
+        return seriesYVal.filter((/** @type {any} */ s) =>
+          Utilities.isNumber(s),
+        )
+      },
+    )
 
     // if X axis type is not category and tooltip is not shared, then we need to find the cursor position and get the nearest value
     if (w.axisFlags.isXNumeric) {
       // Change origin of cursor position so that we can compute the relative nearest point to the cursor on our chart
       // we only need to scale because all points are relative to the bounds.left and bounds.top => origin is virtually (0, 0)
       const chartGridEl = this.ttCtx.getElGrid()
+      if (!chartGridEl) return { hoverX, hoverY }
       const chartGridElBoundingRect = chartGridEl.getBoundingClientRect()
       const transformedHoverX =
         hoverX * (chartGridElBoundingRect.width / hoverWidth)
@@ -91,10 +115,10 @@ export default class Utils {
         transformedHoverX,
         transformedHoverY,
         seriesXValArr,
-        seriesYValArr
+        seriesYValArr,
       )
       capturedSeries = closest.index
-      j = closest.j
+      j = closest.j ?? 0
 
       if (capturedSeries !== null && w.globals.hasNullValues) {
         // initial push, it should be a little smaller than the 1st val
@@ -102,7 +126,7 @@ export default class Utils {
 
         closest = this.closestInArray(transformedHoverX, seriesXValArr)
 
-        j = closest.j
+        j = closest.j ?? 0
       }
     }
 
@@ -125,13 +149,22 @@ export default class Utils {
     }
   }
 
+  /**
+   * @param {any[]} Xarrays
+   */
   getFirstActiveXArray(Xarrays) {
     const w = this.w
     let activeIndex = 0
 
-    const firstActiveSeriesIndex = Xarrays.map((xarr, index) => {
-      return xarr.length > 0 ? index : -1
-    })
+    /**
+     * @param {number[]} xarr
+     * @param {number} index
+     */
+    const firstActiveSeriesIndex = Xarrays.map(
+      (/** @type {any} */ xarr, /** @type {any} */ index) => {
+        return xarr.length > 0 ? index : -1
+      },
+    )
 
     for (let a = 0; a < firstActiveSeriesIndex.length; a++) {
       if (
@@ -146,10 +179,19 @@ export default class Utils {
     return activeIndex
   }
 
+  /**
+   * @param {number} hoverX
+   * @param {number} hoverY
+   * @param {any[]} Xarrays
+   * @param {any[]} Yarrays
+   */
   closestInMultiArray(hoverX, hoverY, Xarrays, Yarrays) {
     const w = this.w
 
     // Determine which series are active (not collapsed)
+    /**
+     * @param {number} seriesIndex
+     */
     const isActiveSeries = (seriesIndex) => {
       return (
         w.globals.collapsedSeriesIndices.indexOf(seriesIndex) === -1 &&
@@ -197,6 +239,10 @@ export default class Utils {
     }
   }
 
+  /**
+   * @param {number} val
+   * @param {any[]} arr
+   */
   closestInArray(val, arr) {
     const curr = arr[0]
     let currIndex = null
@@ -227,7 +273,12 @@ export default class Utils {
     const w = this.w
     const xSameForAllSeriesJArr = []
 
-    const seriesX = w.seriesData.seriesX.filter((s) => typeof s[0] !== 'undefined')
+    /**
+     * @param {number[]} s
+     */
+    const seriesX = w.seriesData.seriesX.filter(
+      (/** @type {any} */ s) => typeof s[0] !== 'undefined',
+    )
 
     if (seriesX.length > 0) {
       for (let i = 0; i < seriesX.length - 1; i++) {
@@ -253,8 +304,12 @@ export default class Utils {
     let sameLen = true
 
     const initialSeries =
-      this.w.globals.initialSeries?.filter(
-        (s, i) => !this.w.globals.collapsedSeriesIndices?.includes(i)
+      /** @type {any[]} */ (this.w.globals.initialSeries)?.filter(
+        /**
+         * @param {Record<string, any>} s
+         * @param {number} i
+         */
+        (s, i) => !this.w.globals.collapsedSeriesIndices?.includes(i),
       ) || []
 
     for (let i = 0; i < initialSeries.length - 1; i++) {
@@ -267,6 +322,9 @@ export default class Utils {
     return sameLen
   }
 
+  /**
+   * @param {any[]} allbars
+   */
   getBarsHeight(allbars) {
     const bars = [...allbars]
     const totalHeight = bars.reduce((acc, bar) => acc + bar.getBBox().height, 0)
@@ -274,54 +332,73 @@ export default class Utils {
     return totalHeight
   }
 
+  /**
+   * @param {number} capturedSeries
+   */
   getElMarkers(capturedSeries) {
     // The selector .apexcharts-series-markers-wrap > * includes marker groups for which the
     // .apexcharts-series-markers class is not added due to null values or discrete markers
     if (typeof capturedSeries == 'number') {
       return this.w.dom.baseEl.querySelectorAll(
-        `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers-wrap > *`
+        `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers-wrap > *`,
       )
     }
     return this.w.dom.baseEl.querySelectorAll(
-      '.apexcharts-series-markers-wrap > *'
+      '.apexcharts-series-markers-wrap > *',
     )
   }
 
   getAllMarkers(filterCollapsed = false) {
     // first get all marker parents. This parent class contains series-index
     // which helps to sort the markers as they are dynamic
-    let markersWraps = this.w.dom.baseEl.querySelectorAll(
-      '.apexcharts-series-markers-wrap'
-    )
-
-    markersWraps = [...markersWraps]
+    let markersWraps = /** @type {any[]} */ ([
+      ...this.w.dom.baseEl.querySelectorAll('.apexcharts-series-markers-wrap'),
+    ])
 
     if (filterCollapsed) {
-      markersWraps = markersWraps.filter((m) => {
+      /**
+       * @param {any} m
+       */
+      markersWraps = markersWraps.filter((/** @type {any} */ m) => {
         const realIndex = Number(m.getAttribute('data:realIndex'))
         return this.w.globals.collapsedSeriesIndices.indexOf(realIndex) === -1
       })
     }
 
-    markersWraps.sort((a, b) => {
+    /**
+     * @param {any} a
+     * @param {any} b
+     */
+    markersWraps.sort((/** @type {any} */ a, /** @type {any} */ b) => {
       var indexA = Number(a.getAttribute('data:realIndex'))
       var indexB = Number(b.getAttribute('data:realIndex'))
       return indexB < indexA ? 1 : indexB > indexA ? -1 : 0
     })
 
+    /** @type {any[]} */
     const markers = []
-    markersWraps.forEach((m) => {
+    /**
+     * @param {any} m
+     */
+    markersWraps.forEach((/** @type {any} */ m) => {
       markers.push(m.querySelector('.apexcharts-marker'))
     })
 
     return markers
   }
 
+  /**
+   * @param {number} capturedSeries
+   */
   hasMarkers(capturedSeries) {
     const markers = this.getElMarkers(capturedSeries)
     return markers.length > 0
   }
 
+  /**
+   * @param {any} point
+   * @param {number} size
+   */
   getPathFromPoint(point, size) {
     const cx = Number(point.getAttribute('cx'))
     const cy = Number(point.getAttribute('cy'))
@@ -331,7 +408,7 @@ export default class Utils {
 
   getElBars() {
     return this.w.dom.baseEl.querySelectorAll(
-      '.apexcharts-bar-series,  .apexcharts-candlestick-series, .apexcharts-boxPlot-series, .apexcharts-rangebar-series'
+      '.apexcharts-bar-series,  .apexcharts-candlestick-series, .apexcharts-boxPlot-series, .apexcharts-rangebar-series',
     )
   }
 
@@ -340,6 +417,9 @@ export default class Utils {
     return bars.length > 0
   }
 
+  /**
+   * @param {number} index
+   */
   getHoverMarkerSize(index) {
     const w = this.w
     let hoverSize = w.config.markers.hover.size
@@ -351,13 +431,16 @@ export default class Utils {
     return hoverSize
   }
 
+  /**
+   * @param {string} state
+   */
   toggleAllTooltipSeriesGroups(state) {
     const w = this.w
     const ttCtx = this.ttCtx
 
     if (ttCtx.allTooltipSeriesGroups.length === 0) {
       ttCtx.allTooltipSeriesGroups = w.dom.baseEl.querySelectorAll(
-        '.apexcharts-tooltip-series-group'
+        '.apexcharts-tooltip-series-group',
       )
     }
 

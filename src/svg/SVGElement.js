@@ -2,17 +2,26 @@
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 
 export default class SVGElement {
+  /**
+   * @param {any} node
+   */
   constructor(node) {
     this.node = node
     if (node) {
       node.instance = this
     }
+    /** @type {any} */
     this._listeners = []
+    /** @type {any} */
     this._filter = null
   }
 
   // ---- Attribute methods ----
 
+  /**
+   * @param {any} a
+   * @param {any} [v]
+   */
   attr(a, v) {
     if (typeof a === 'string' && v === undefined) {
       return this.node.getAttribute(a)
@@ -41,6 +50,9 @@ export default class SVGElement {
     return this
   }
 
+  /**
+   * @param {Record<string, string>} styles
+   */
   css(styles) {
     for (const k in styles) {
       this.node.style[k] = styles[k]
@@ -48,6 +60,9 @@ export default class SVGElement {
     return this
   }
 
+  /**
+   * @param {any} v
+   */
   fill(v) {
     if (typeof v === 'object') {
       return this.attr(v)
@@ -55,6 +70,9 @@ export default class SVGElement {
     return this.attr('fill', v)
   }
 
+  /**
+   * @param {any} v
+   */
   stroke(v) {
     if (typeof v === 'object') {
       if (v.color !== undefined) this.attr('stroke', v.color)
@@ -67,14 +85,26 @@ export default class SVGElement {
     return this.attr('stroke', v)
   }
 
+  /**
+   * @param {number} w
+   * @param {number} h
+   */
   size(w, h) {
     return this.attr({ width: w, height: h })
   }
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   */
   move(x, y) {
     return this.attr({ x, y })
   }
 
+  /**
+   * @param {number} cx
+   * @param {number} cy
+   */
   center(cx, cy) {
     if (this.node.nodeName === 'g') {
       // Groups don't have cx/cy — use transform to position content center
@@ -88,11 +118,17 @@ export default class SVGElement {
 
   // ---- Tree operations ----
 
+  /**
+   * @param {any} child
+   */
   add(child) {
     this.node.appendChild(child.node || child)
     return this
   }
 
+  /**
+   * @param {any} parent
+   */
   addTo(parent) {
     const p = parent.node || parent
     p.appendChild(this.node)
@@ -115,12 +151,18 @@ export default class SVGElement {
 
   // ---- Query ----
 
+  /**
+   * @param {string} selector
+   */
   find(selector) {
     return Array.from(this.node.querySelectorAll(selector)).map(
-      (n) => n.instance || new SVGElement(n)
+      (n) => n.instance || new SVGElement(n),
     )
   }
 
+  /**
+   * @param {string} selector
+   */
   findOne(selector) {
     const n = this.node.querySelector(selector)
     return n ? n.instance || new SVGElement(n) : null
@@ -128,24 +170,36 @@ export default class SVGElement {
 
   // ---- Events ----
 
+  /**
+   * @param {Event} event
+   * @param {Function} handler
+   */
   on(event, handler) {
     // Strip namespace suffix (e.g. 'dragmove.namespace' → 'dragmove')
-    const eventType = event.split('.')[0]
+    const eventType = /** @type {string} */ (/** @type {any} */ (event)).split(
+      '.',
+    )[0]
     this._listeners.push({ event, eventType, handler })
     this.node.addEventListener(eventType, handler)
     return this
   }
 
+  /**
+   * @param {Event} event
+   * @param {Function} handler
+   */
   off(event, handler) {
     if (!event && !handler) {
       // Remove all listeners registered via .on()
-      this._listeners.forEach((l) => {
+      this._listeners.forEach((/** @type {any} */ l) => {
         this.node.removeEventListener(l.eventType, l.handler)
       })
       this._listeners = []
     } else if (event && !handler) {
-      const eventType = event.split('.')[0]
-      this._listeners = this._listeners.filter((l) => {
+      const eventType = /** @type {string} */ (
+        /** @type {any} */ (event)
+      ).split('.')[0]
+      this._listeners = this._listeners.filter((/** @type {any} */ l) => {
         if (l.eventType === eventType) {
           this.node.removeEventListener(l.eventType, l.handler)
           return false
@@ -153,8 +207,10 @@ export default class SVGElement {
         return true
       })
     } else {
-      const eventType = event.split('.')[0]
-      this._listeners = this._listeners.filter((l) => {
+      const eventType = /** @type {string} */ (
+        /** @type {any} */ (event)
+      ).split('.')[0]
+      this._listeners = this._listeners.filter((/** @type {any} */ l) => {
         if (l.eventType === eventType && l.handler === handler) {
           this.node.removeEventListener(l.eventType, l.handler)
           return false
@@ -167,6 +223,10 @@ export default class SVGElement {
 
   // ---- Iteration ----
 
+  /**
+   * @param {Function} fn
+   * @param {boolean} deep
+   */
   each(fn, deep) {
     const children = Array.from(this.node.children)
     children.forEach((child) => {
@@ -179,6 +239,9 @@ export default class SVGElement {
 
   // ---- CSS classes ----
 
+  /**
+   * @param {string} cls
+   */
   removeClass(cls) {
     if (cls === '*') {
       this.node.removeAttribute('class')
@@ -223,8 +286,14 @@ export default class SVGElement {
 
   // ---- Text-specific ----
 
+  /**
+   * @param {string} text
+   */
   tspan(text) {
-    const tspan = BrowserAPIs.createElementNS('http://www.w3.org/2000/svg', 'tspan')
+    const tspan = BrowserAPIs.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'tspan',
+    )
     tspan.textContent = text
     this.node.appendChild(tspan)
     return new SVGElement(tspan)
@@ -232,6 +301,9 @@ export default class SVGElement {
 
   // ---- Path-specific ----
 
+  /**
+   * @param {string} d
+   */
   plot(d) {
     if (typeof d === 'string') {
       this.attr('d', d)
@@ -252,6 +324,9 @@ export default class SVGElement {
     throw new Error('Filter module not loaded')
   }
 
+  /**
+   * @param {boolean} all
+   */
   unfilter(all) {
     if (this._filter) {
       this.node.removeAttribute('filter')

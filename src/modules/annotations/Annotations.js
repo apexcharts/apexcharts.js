@@ -13,10 +13,19 @@ import Options from './../settings/Options'
  * @module Annotations
  **/
 export default class Annotations {
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   */
   constructor(w, { theme = null, timeScale = null } = {}) {
     this.w = w
+    /** @type {any} */
     this.theme = theme
+    /** @type {any} */
     this.timeScale = timeScale
+    /** @type {boolean | undefined} */
+    this.invertAxis = undefined
+    /** @type {boolean | undefined} */
+    this.inversedReversedAxis = undefined
     this.graphics = new Graphics(this.w)
 
     if (this.w.globals.isBarHorizontal) {
@@ -74,7 +83,10 @@ export default class Annotations {
   drawImageAnnos() {
     const w = this.w
 
-    w.config.annotations.images.map((s) => {
+    /**
+     * @param {Record<string, any>} s
+     */
+    w.config.annotations.images.map((/** @type {Record<string, any>} */ s) => {
       this.addImage(s)
     })
   }
@@ -82,23 +94,44 @@ export default class Annotations {
   drawTextAnnos() {
     const w = this.w
 
-    w.config.annotations.texts.map((t) => {
+    /**
+     * @param {Record<string, any>} t
+     */
+    w.config.annotations.texts.map((/** @type {Record<string, any>} */ t) => {
       this.addText(t)
     })
   }
 
+  /**
+   * @param {Record<string, any>} anno
+   * @param {Element} parent
+   * @param {number} index
+   */
   addXaxisAnnotation(anno, parent, index) {
     this.xAxisAnnotations.addXaxisAnnotation(anno, parent, index)
   }
 
+  /**
+   * @param {Record<string, any>} anno
+   * @param {Element} parent
+   * @param {number} index
+   */
   addYaxisAnnotation(anno, parent, index) {
     this.yAxisAnnotations.addYaxisAnnotation(anno, parent, index)
   }
 
+  /**
+   * @param {Record<string, any>} anno
+   * @param {Element} parent
+   * @param {number} index
+   */
   addPointAnnotation(anno, parent, index) {
     this.pointsAnnotations.addPointAnnotation(anno, parent, index)
   }
 
+  /**
+   * @param {Record<string, any>} params
+   */
   addText(params) {
     const {
       x,
@@ -154,13 +187,16 @@ export default class Annotations {
         1,
         borderWidth,
         borderColor,
-        strokeDashArray
+        strokeDashArray,
       )
 
       parent.insertBefore(elRect.node, elText.node)
     }
   }
 
+  /**
+   * @param {Record<string, any>} params
+   */
   addImage(params) {
     const w = this.w
 
@@ -185,6 +221,11 @@ export default class Annotations {
   }
 
   // The addXaxisAnnotation method requires a parent class, and user calling this method externally on the chart instance may not specify parent, hence a different method
+  /**
+   * @param {Record<string, any>} params
+   * @param {boolean} pushToMemory
+   * @param {any} context
+   */
   addXaxisAnnotationExternal(params, pushToMemory, context) {
     this.addAnnotationExternal({
       params,
@@ -196,6 +237,11 @@ export default class Annotations {
     return context
   }
 
+  /**
+   * @param {Record<string, any>} params
+   * @param {boolean} pushToMemory
+   * @param {any} context
+   */
   addYaxisAnnotationExternal(params, pushToMemory, context) {
     this.addAnnotationExternal({
       params,
@@ -207,6 +253,11 @@ export default class Annotations {
     return context
   }
 
+  /**
+   * @param {Record<string, any>} params
+   * @param {boolean} pushToMemory
+   * @param {any} context
+   */
   addPointAnnotationExternal(params, pushToMemory, context) {
     if (typeof this.invertAxis === 'undefined') {
       this.invertAxis = context.w.globals.isBarHorizontal
@@ -222,6 +273,7 @@ export default class Annotations {
     return context
   }
 
+  /** @param {{params: any, pushToMemory: any, context: any, type: any, contextMethod: any}} opts */
   addAnnotationExternal({
     params,
     pushToMemory,
@@ -231,9 +283,7 @@ export default class Annotations {
   }) {
     const me = context
     const w = me.w
-    const parent = w.dom.baseEl.querySelector(
-      `.apexcharts-${type}-annotations`
-    )
+    const parent = w.dom.baseEl.querySelector(`.apexcharts-${type}-annotations`)
     const index = parent.childNodes.length + 1
 
     const options = new Options()
@@ -242,8 +292,8 @@ export default class Annotations {
       type === 'xaxis'
         ? options.xAxisAnnotation
         : type === 'yaxis'
-        ? options.yAxisAnnotation
-        : options.pointAnnotation
+          ? options.yAxisAnnotation
+          : options.pointAnnotation,
     )
 
     const anno = Utils.extend(axesAnno, params)
@@ -262,7 +312,7 @@ export default class Annotations {
 
     // add background
     const axesAnnoLabel = w.dom.baseEl.querySelector(
-      `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${index}']`
+      `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${index}']`,
     )
     const elRect = this.helpers.addBackgroundToAnno(axesAnnoLabel, anno)
     if (elRect) {
@@ -282,10 +332,13 @@ export default class Annotations {
     return context
   }
 
+  /**
+   * @param {import('../../types/internal').ChartContext} ctx
+   */
   clearAnnotations(ctx) {
     const w = ctx.w
     let annos = w.dom.baseEl.querySelectorAll(
-      '.apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations'
+      '.apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations',
     )
 
     // annotations added externally should be cleared out too
@@ -298,9 +351,10 @@ export default class Annotations {
       }
     }
 
-    annos = Array.from(annos)
-
     // delete the DOM elements
+    /**
+     * @param {any} a
+     */
     Array.prototype.forEach.call(annos, (a) => {
       while (a.firstChild) {
         a.removeChild(a.firstChild)
@@ -308,11 +362,19 @@ export default class Annotations {
     })
   }
 
+  /**
+   * @param {import('../../types/internal').ChartContext} ctx
+   * @param {string} id
+   */
   removeAnnotation(ctx, id) {
     const w = ctx.w
     const annos = w.dom.baseEl.querySelectorAll(`.${id}`)
 
     if (annos) {
+      /**
+       * @param {Record<string, any>} m
+       * @param {number} i
+       */
       w.globals.memory.methodsToExec.map((m, i) => {
         if (m.id === id) {
           w.globals.memory.methodsToExec.splice(i, 1)
@@ -328,6 +390,9 @@ export default class Annotations {
         }
       })
 
+      /**
+       * @param {any} a
+       */
       Array.prototype.forEach.call(annos, (a) => {
         a.parentElement.removeChild(a)
       })

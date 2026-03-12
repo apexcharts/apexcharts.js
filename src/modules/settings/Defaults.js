@@ -9,6 +9,7 @@ import Formatters from '../Formatters'
  * @module Defaults
  **/
 
+/** @param {{isTimeline: any, seriesIndex: any, dataPointIndex: any, y1: any, y2: any, w: any}} opts */
 const getRangeValues = ({
   isTimeline,
   seriesIndex,
@@ -44,11 +45,16 @@ const getRangeValues = ({
   if (!isTimeline) {
     if (w.config.xaxis.type === 'datetime') {
       const xFormat = new Formatters(w)
-      ylabel = xFormat.xLabelFormat(w.formatters.ttKeyFormatter, ylabel, ylabel, {
-        i: undefined,
-        dateFormatter: new DateTime(w).formatDate,
-        w,
-      })
+      ylabel = xFormat.xLabelFormat(
+        w.formatters.ttKeyFormatter,
+        ylabel,
+        ylabel,
+        {
+          i: undefined,
+          dateFormatter: new DateTime(w).formatDate,
+          w,
+        },
+      )
     }
   }
 
@@ -69,11 +75,11 @@ const getRangeValues = ({
       const datetimeObj = new DateTime(w)
       startVal = datetimeObj.formatDate(
         datetimeObj.getDate(start),
-        w.config.tooltip.x.format
+        w.config.tooltip.x.format,
       )
       endVal = datetimeObj.formatDate(
         datetimeObj.getDate(end),
-        w.config.tooltip.x.format
+        w.config.tooltip.x.format,
       )
     } else {
       startVal = start
@@ -86,16 +92,20 @@ const getRangeValues = ({
 
   return { start, end, startVal, endVal, ylabel, color, seriesName }
 }
+/**
+ * @param {Record<string, any>} opts
+ */
 const buildRangeTooltipHTML = (opts) => {
   let { color, seriesName, ylabel, start, end, seriesIndex, dataPointIndex } =
     opts
 
-  const formatter = opts.w.globals.tooltip.tooltipLabels.getFormatters(seriesIndex)
+  const formatter =
+    opts.w.globals.tooltip.tooltipLabels.getFormatters(seriesIndex)
 
   start = formatter.yLbFormatter(start)
   end = formatter.yLbFormatter(end)
   const val = formatter.yLbFormatter(
-    opts.w.seriesData.series[seriesIndex][dataPointIndex]
+    opts.w.seriesData.series[seriesIndex][dataPointIndex],
   )
 
   let valueHTML = ''
@@ -134,6 +144,9 @@ const buildRangeTooltipHTML = (opts) => {
 }
 
 export default class Defaults {
+  /**
+   * @param {Record<string, any>} opts
+   */
   constructor(opts) {
     this.opts = opts
   }
@@ -169,6 +182,9 @@ export default class Defaults {
     }
   }
 
+  /**
+   * @param {Record<string, any>} defaults
+   */
   sparkline(defaults) {
     this.hideYAxis()
     const ret = {
@@ -228,6 +244,10 @@ export default class Defaults {
       },
       dataLabels: {
         enabled: true,
+        /**
+         * @param {any} val
+         * @param {Record<string, any>} opts
+         */
         formatter(val, opts) {
           const seriesName = opts.w.config.series[opts.seriesIndex].name
           return val !== null ? seriesName + ': ' + val : ''
@@ -403,13 +423,13 @@ export default class Defaults {
       },
       tooltip: {
         shared: true,
-        custom: ({ seriesIndex, dataPointIndex, w }) => {
+        custom: (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
           return this._getBoxTooltip(
             w,
             seriesIndex,
             dataPointIndex,
             ['Open', 'High', '', 'Low', 'Close'],
-            'candlestick'
+            'candlestick',
           )
         },
       },
@@ -446,13 +466,13 @@ export default class Defaults {
       },
       tooltip: {
         shared: true,
-        custom: ({ seriesIndex, dataPointIndex, w }) => {
+        custom: (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
           return this._getBoxTooltip(
             w,
             seriesIndex,
             dataPointIndex,
             ['Minimum', 'Q1', 'Median', 'Q3', 'Maximum'],
-            'boxPlot'
+            'boxPlot',
           )
         },
       },
@@ -470,6 +490,9 @@ export default class Defaults {
   }
 
   rangeBar() {
+    /**
+     * @param {any} opts
+     */
     const handleTimelineTooltip = (opts) => {
       const { color, seriesName, ylabel, startVal, endVal } = getRangeValues({
         ...opts,
@@ -485,6 +508,9 @@ export default class Defaults {
       })
     }
 
+    /**
+     * @param {any} opts
+     */
     const handleRangeColumnTooltip = (opts) => {
       const { color, seriesName, ylabel, start, end } = getRangeValues(opts)
       return buildRangeTooltipHTML({
@@ -516,7 +542,13 @@ export default class Defaults {
       },
       dataLabels: {
         enabled: false,
-        formatter(val, { seriesIndex, dataPointIndex, w }) {
+        /**
+         * @param {any} val
+         */
+        formatter(
+          /** @type {any} */ val,
+          /** @type {any} */ { seriesIndex, dataPointIndex, w },
+        ) {
           const getVal = () => {
             const start =
               w.rangeData.seriesRangeStart[seriesIndex][dataPointIndex]
@@ -549,6 +581,9 @@ export default class Defaults {
       tooltip: {
         shared: false,
         followCursor: true,
+        /**
+         * @param {Record<string, any>} opts
+         */
         custom(opts) {
           if (
             opts.w.config.plotOptions &&
@@ -575,6 +610,9 @@ export default class Defaults {
     }
   }
 
+  /**
+   * @param {Record<string, any>} opts
+   */
   dumbbell(opts) {
     if (!opts.plotOptions.bar?.barHeight) {
       opts.plotOptions.bar.barHeight = 2
@@ -625,6 +663,9 @@ export default class Defaults {
   }
 
   rangeArea() {
+    /**
+     * @param {any} opts
+     */
     const handleRangeAreaTooltip = (opts) => {
       const { color, seriesName, ylabel, start, end } = getRangeValues(opts)
       return buildRangeTooltipHTML({
@@ -664,6 +705,9 @@ export default class Defaults {
         intersect: false,
         shared: true,
         followCursor: true,
+        /**
+         * @param {Record<string, any>} opts
+         */
         custom(opts) {
           return handleRangeAreaTooltip(opts)
         },
@@ -671,6 +715,9 @@ export default class Defaults {
     }
   }
 
+  /**
+   * @param {Record<string, any>} defaults
+   */
   brush(defaults) {
     const ret = {
       chart: {
@@ -701,12 +748,19 @@ export default class Defaults {
     return Utils.extend(defaults, ret)
   }
 
+  /**
+   * @param {Record<string, any>} opts
+   */
   stacked100(opts) {
     opts.dataLabels = opts.dataLabels || {}
     opts.dataLabels.formatter = opts.dataLabels.formatter || undefined
     const existingDataLabelFormatter = opts.dataLabels.formatter
 
-    opts.yaxis.forEach((yaxe, index) => {
+    /**
+     * @param {ApexYAxis} yaxe
+     * @param {number} index
+     */
+    opts.yaxis.forEach((/** @type {any} */ yaxe, /** @type {any} */ index) => {
       opts.yaxis[index].min = 0
       opts.yaxis[index].max = 100
     })
@@ -716,6 +770,9 @@ export default class Defaults {
     if (isBar) {
       opts.dataLabels.formatter =
         existingDataLabelFormatter ||
+        /**
+         * @param {any} val
+         */
         function (val) {
           if (typeof val === 'number') {
             return val ? val.toFixed(0) + '%' : val
@@ -742,17 +799,27 @@ export default class Defaults {
   }
 
   // This function removes the left and right spacing in chart for line/area/scatter if xaxis type = category for those charts by converting xaxis = numeric. Numeric/Datetime xaxis prevents the unnecessary spacing in the left/right of the chart area
+  /**
+   * @param {Record<string, any>} opts
+   */
   convertCatToNumeric(opts) {
     opts.xaxis.convertedCatToNumeric = true
 
     return opts
   }
 
+  /**
+   * @param {Record<string, any>} opts
+   * @param {any} cats
+   */
   convertCatToNumericXaxis(opts, cats) {
     opts.xaxis.type = 'numeric'
     opts.xaxis.labels = opts.xaxis.labels || {}
     opts.xaxis.labels.formatter =
       opts.xaxis.labels.formatter ||
+      /**
+       * @param {any} val
+       */
       function (val) {
         return Utils.isNumber(val) ? Math.floor(val) : val
       }
@@ -764,12 +831,18 @@ export default class Defaults {
         : opts.labels
 
     if (cats && cats.length) {
-      labels = cats.map((c) => {
+      /**
+       * @param {any} c
+       */
+      labels = cats.map((/** @type {any} */ c) => {
         return Array.isArray(c) ? c : String(c)
       })
     }
 
     if (labels && labels.length) {
+      /**
+       * @param {any} val
+       */
       opts.xaxis.labels.formatter = function (val) {
         return Utils.isNumber(val)
           ? defaultFormatter(labels[Math.floor(val) - 1])
@@ -938,6 +1011,9 @@ export default class Defaults {
         },
       },
       dataLabels: {
+        /**
+         * @param {number} val
+         */
         formatter(val) {
           return val.toFixed(1) + '%'
         },
@@ -987,6 +1063,9 @@ export default class Defaults {
         },
       },
       dataLabels: {
+        /**
+         * @param {number} val
+         */
         formatter(val) {
           return val.toFixed(1) + '%'
         },
@@ -1039,6 +1118,9 @@ export default class Defaults {
         },
       },
       dataLabels: {
+        /**
+         * @param {number} val
+         */
         formatter(val) {
           return val.toFixed(1) + '%'
         },
@@ -1108,7 +1190,7 @@ export default class Defaults {
       },
       xaxis: {
         labels: {
-          formatter: (val) => val,
+          formatter: (/** @type {any} */ val) => val,
           style: {
             colors: ['#a8a8a8'],
             fontSize: '11px',
@@ -1167,6 +1249,13 @@ export default class Defaults {
     }
   }
 
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {number} seriesIndex
+   * @param {number} dataPointIndex
+   * @param {any[]} labels
+   * @param {string} chartType
+   */
   _getBoxTooltip(w, seriesIndex, dataPointIndex, labels, chartType) {
     const o = w.candleData.seriesCandleO[seriesIndex][dataPointIndex]
     const h = w.candleData.seriesCandleH[seriesIndex][dataPointIndex]
@@ -1174,15 +1263,12 @@ export default class Defaults {
     const l = w.candleData.seriesCandleL[seriesIndex][dataPointIndex]
     const c = w.candleData.seriesCandleC[seriesIndex][dataPointIndex]
 
-    if (
-      w.config.series[seriesIndex].type &&
-      w.config.series[seriesIndex].type !== chartType
-    ) {
+    const _si = /** @type {Record<string,any>} */ (w.config.series[seriesIndex])
+
+    if (_si.type && _si.type !== chartType) {
       return `<div class="apexcharts-custom-tooltip">
           ${
-            w.config.series[seriesIndex].name
-              ? w.config.series[seriesIndex].name
-              : 'series-' + (seriesIndex + 1)
+            _si.name ? _si.name : 'series-' + (seriesIndex + 1)
           }: <strong>${w.seriesData.series[seriesIndex][dataPointIndex]}</strong>
         </div>`
     } else {

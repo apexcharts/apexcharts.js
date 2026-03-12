@@ -7,6 +7,9 @@ import {
 } from '../../utils/Constants'
 
 export default class Globals {
+  /**
+   * @param {any} gl
+   */
   initGlobalVars(gl) {
     // ── Series data (ephemeral — fully recomputed from config.series each render) ──
     gl.series = [] // the MAIN series array (y values)
@@ -135,9 +138,14 @@ export default class Globals {
    *   gl.cache   — DOM caches, timers, observers, drawing scratch space
    *
    * Note: interact state lives on w.interact (not gl) — see Base.js.
+   * @param {any} gl
    */
   _attachNamespaces(gl) {
     // Helper: define a property on `ns` that proxies to `gl[key]`
+    /**
+     * @param {any} ns
+     * @param {string} key
+     */
     const proxy = (ns, key, nsKey = key) => {
       Object.defineProperty(ns, nsKey, {
         get() {
@@ -338,6 +346,7 @@ export default class Globals {
    * Rule: if a value is recalculated fresh on every render it belongs in
    * initGlobalVars instead, not here.
    * @returns {import('../../types/internal').ChartGlobals}
+   * @param {Record<string, any>} config
    */
   globalVars(config) {
     const globals = {
@@ -460,9 +469,14 @@ export default class Globals {
     // globalVars() returns the persistent subset; initGlobalVars() fills the
     // ephemeral properties before first render. Cast to ChartGlobals since the
     // combined object is structurally complete by the time it is first read.
-    return /** @type {import('../../types/internal').ChartGlobals} */ (/** @type {unknown} */ (globals))
+    return /** @type {import('../../types/internal').ChartGlobals} */ (
+      /** @type {unknown} */ (globals)
+    )
   }
 
+  /**
+   * @param {Record<string, any>} config
+   */
   init(config) {
     const globals = this.globalVars(config)
     this.initGlobalVars(globals)
@@ -470,8 +484,16 @@ export default class Globals {
     globals.initialConfig = Utils.extend({}, config)
     globals.initialSeries = Utils.clone(config.series)
 
-    globals.lastXAxis = Utils.clone(globals.initialConfig.xaxis)
-    globals.lastYAxis = Utils.clone(globals.initialConfig.yaxis)
+    globals.lastXAxis = Utils.clone(
+      /** @type {NonNullable<typeof globals.initialConfig>} */ (
+        globals.initialConfig
+      ).xaxis,
+    )
+    globals.lastYAxis = Utils.clone(
+      /** @type {NonNullable<typeof globals.initialConfig>} */ (
+        globals.initialConfig
+      ).yaxis,
+    )
     return globals
   }
 }

@@ -18,6 +18,10 @@ import Utils from '../../utils/Utils'
  *   Escape                  — exit keyboard nav, return focus to SVG
  */
 export default class KeyboardNavigation {
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {import('../../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx // needed: ctx.events.addEventListener/removeEventListener
@@ -95,6 +99,7 @@ export default class KeyboardNavigation {
    * by the direct SVG listener (which can call preventDefault). This entry
    * point is intentionally a no-op — Events.js still fires the public keyDown
    * callback and fireEvent('keydown') independently.
+   * @param {Event} _e
    */
   handleKey(_e) {
     // No-op: navigation is handled by the non-passive SVG keydown listener
@@ -130,6 +135,9 @@ export default class KeyboardNavigation {
 
   // ─── Key handler ──────────────────────────────────────────────────────────
 
+  /**
+   * @param {KeyboardEvent} e
+   */
   _onKeyDown(e) {
     if (!this._isNavEnabled() || !this.active) return
 
@@ -179,6 +187,10 @@ export default class KeyboardNavigation {
 
   // ─── Navigation ───────────────────────────────────────────────────────────
 
+  /**
+   * @param {number} dSeries
+   * @param {number} dPoint
+   */
   _move(dSeries, dPoint) {
     const w = this.w
     const wrapAround =
@@ -261,10 +273,7 @@ export default class KeyboardNavigation {
     // Non-axis charts (pie, etc.) have flat numeric series — no nulls to skip
     if (!Array.isArray(w.seriesData.series[si])) return
 
-    while (
-      attempts < dpCount &&
-      w.seriesData.series[si][di] === null
-    ) {
+    while (attempts < dpCount && w.seriesData.series[si][di] === null) {
       di = (di + 1) % dpCount
       attempts++
     }
@@ -282,10 +291,7 @@ export default class KeyboardNavigation {
     // Non-axis charts (pie, etc.) have flat numeric series — no nulls to skip
     if (!Array.isArray(w.seriesData.series[si])) return
 
-    while (
-      attempts < dpCount &&
-      w.seriesData.series[si][di] === null
-    ) {
+    while (attempts < dpCount && w.seriesData.series[si][di] === null) {
       di = (di - 1 + dpCount) % dpCount
       attempts++
     }
@@ -306,12 +312,12 @@ export default class KeyboardNavigation {
     w.interact.capturedDataPointIndex = j
 
     this._applyFocusClass(i, j)
-    this._showTooltip(i, j, ttCtx)
+    this._showTooltip(i, j, /** @type {any} */ (ttCtx))
   }
 
   _hideFocus() {
     const w = this.w
-    const ttCtx = w.globals.tooltip
+    const ttCtx = /** @type {any} */ (w.globals.tooltip)
 
     this._removeFocusClass()
     this._leaveHoveredBar()
@@ -344,6 +350,11 @@ export default class KeyboardNavigation {
 
   // ─── Tooltip display per chart type ───────────────────────────────────────
 
+  /**
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   */
   _showTooltip(i, j, ttCtx) {
     const w = this.w
     const type = w.config.chart.type
@@ -412,6 +423,9 @@ export default class KeyboardNavigation {
    *
    * For chart types that don't have a concrete SVG element per data point
    * (pie, radialBar) we fall back to the SVG centre.
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
    */
   _setSyntheticEvent(i, j, ttCtx) {
     const w = this.w
@@ -426,7 +440,11 @@ export default class KeyboardNavigation {
       const rect = el.getBoundingClientRect()
       clientX = rect.left + rect.width / 2
       clientY = rect.top + rect.height / 2
-    } else if (w.globals.pointsArray && w.globals.pointsArray[i] && w.globals.pointsArray[i][j]) {
+    } else if (
+      w.globals.pointsArray &&
+      w.globals.pointsArray[i] &&
+      w.globals.pointsArray[i][j]
+    ) {
       // Axis-line charts: derive from pointsArray pixel coords
       const pt = w.globals.pointsArray[i][j]
       const elGrid = ttCtx.getElGrid && ttCtx.getElGrid()
@@ -447,10 +465,18 @@ export default class KeyboardNavigation {
 
     // For line/area/rangeArea: pointsArray gives the most accurate position
     if (
-      type === 'line' || type === 'area' || type === 'rangeArea' ||
-      type === 'scatter' || type === 'bubble' || type === 'radar'
+      type === 'line' ||
+      type === 'area' ||
+      type === 'rangeArea' ||
+      type === 'scatter' ||
+      type === 'bubble' ||
+      type === 'radar'
     ) {
-      if (w.globals.pointsArray && w.globals.pointsArray[i] && w.globals.pointsArray[i][j]) {
+      if (
+        w.globals.pointsArray &&
+        w.globals.pointsArray[i] &&
+        w.globals.pointsArray[i][j]
+      ) {
         const pt = w.globals.pointsArray[i][j]
         const elGrid = ttCtx.getElGrid && ttCtx.getElGrid()
         if (elGrid) {
@@ -464,7 +490,12 @@ export default class KeyboardNavigation {
     ttCtx.e = { type: 'mousemove', clientX, clientY }
   }
 
-  /** bar / column / candlestick / boxPlot / rangeBar */
+  /**
+   * bar / column / candlestick / boxPlot / rangeBar
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   */
   _showTooltipBar(i, j, ttCtx) {
     const w = this.w
 
@@ -476,7 +507,8 @@ export default class KeyboardNavigation {
       ttCtx.tooltipUtil.isInitialSeriesSameLen()
 
     // Draw tooltip text content
-    const rangeData = w.rangeData.seriesRange?.[i]?.[j]?.y?.[0]
+    const rangeData = /** @type {any} */ (w.rangeData.seriesRange)?.[i]?.[j]
+      ?.y?.[0]
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
       i,
@@ -511,8 +543,8 @@ export default class KeyboardNavigation {
         const barRect = barDomEl.getBoundingClientRect()
 
         // Bar centre in elWrap-relative coordinates
-        const barCx = barRect.left - wrapRect.left      // left edge of bar
-        const barCy = barRect.top - wrapRect.top        // top edge of bar
+        const barCx = barRect.left - wrapRect.left // left edge of bar
+        const barCy = barRect.top - wrapRect.top // top edge of bar
         const bh = barRect.height
         const bw = barRect.width
 
@@ -525,9 +557,10 @@ export default class KeyboardNavigation {
         // Horizontally: place tooltip at the bar's right edge (positive values)
         // or left of bar start for negative bars (same logic as Intersect)
         let x = barCx + bw
-        const baselineX = ttCtx.xyRatios && ttCtx.xyRatios.baseLineInvertedY != null
-          ? ttCtx.xyRatios.baseLineInvertedY
-          : wrapRect.width / 2
+        const baselineX =
+          ttCtx.xyRatios && ttCtx.xyRatios.baseLineInvertedY != null
+            ? ttCtx.xyRatios.baseLineInvertedY
+            : wrapRect.width / 2
         if (barCx < baselineX) {
           x = barCx - ttWidth
         }
@@ -543,8 +576,12 @@ export default class KeyboardNavigation {
       ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, i)
     }
   }
-
-  /** line / area / scatter / bubble / radar / rangeArea */
+  /**
+   * line / area / scatter / bubble / radar / rangeArea
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   */
   _showTooltipAxisLine(i, j, ttCtx) {
     const w = this.w
     const type = w.config.chart.type
@@ -610,6 +647,9 @@ export default class KeyboardNavigation {
    * Unlike enlargePoints(j) which queries ALL series for rel===j (causing
    * multiple bubbles to enlarge and tooltip to land on the wrong one), this
    * method queries by both series index AND data-point index for precision.
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
    */
   _showScatterBubblePoint(i, j, ttCtx) {
     const baseEl = this.w.dom.baseEl
@@ -644,8 +684,13 @@ export default class KeyboardNavigation {
     // Remember which element was enlarged so we can reset only it next time.
     this._enlargedScatterMarker = markerEl
   }
-
-  /** pie / donut / polarArea */
+  /**
+   * pie / donut / polarArea
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   * @param {HTMLElement} tooltipEl
+   */
   _showTooltipNonAxis(i, j, ttCtx, tooltipEl) {
     const w = this.w
 
@@ -665,12 +710,10 @@ export default class KeyboardNavigation {
     // Pie.js (same values that nonAxisChartsTooltips uses for intersect mode).
     // The path element carries j='${j}' (0-indexed). data:cx/cy are set on
     // the path directly (not on the parent group).
-    const sliceEl = w.dom.baseEl.querySelector(
-      `.apexcharts-pie-area[j='${j}']`,
-    )
+    const sliceEl = w.dom.baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`)
     if (sliceEl) {
-      const cx = parseFloat(sliceEl.getAttribute('data:cx'))
-      const cy = parseFloat(sliceEl.getAttribute('data:cy'))
+      const cx = parseFloat(sliceEl.getAttribute('data:cx') ?? '')
+      const cy = parseFloat(sliceEl.getAttribute('data:cy') ?? '')
 
       if (!isNaN(cx) && !isNaN(cy)) {
         // Convert SVG-space to elWrap-relative (same transform as mouse path)
@@ -684,8 +727,13 @@ export default class KeyboardNavigation {
       }
     }
   }
-
-  /** radialBar — one ring per series, single value each */
+  /**
+   * radialBar — one ring per series, single value each
+   * @param {number} i
+   * @param {any} _j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   * @param {HTMLElement} tooltipEl
+   */
   _showTooltipRadialBar(i, _j, ttCtx, tooltipEl) {
     const w = this.w
 
@@ -703,14 +751,16 @@ export default class KeyboardNavigation {
       `.apexcharts-radialbar-series[data\\:realIndex='${i}'] path`,
     )
     if (arcEl) {
-      const angle = parseFloat(arcEl.getAttribute('data:angle')) || 0
+      const angle = parseFloat(arcEl.getAttribute('data:angle') ?? '') || 0
       // Radial bars start from the top (initialAngle) and sweep clockwise
       const initialAngle = w.config.plotOptions.radialBar.startAngle || 0
       const midAngle = initialAngle + angle / 2
 
       const centerX = w.layout.gridWidth / 2
       const centerY = w.layout.gridHeight / 2
-      const radialSize = w.globals.radialSize || Math.min(w.layout.gridWidth, w.layout.gridHeight) / 2
+      const radialSize =
+        w.globals.radialSize ||
+        Math.min(w.layout.gridWidth, w.layout.gridHeight) / 2
 
       // Use the outer radius for this particular ring (series i)
       const seriesCount = w.seriesData.series.length
@@ -719,7 +769,12 @@ export default class KeyboardNavigation {
       const innerRadius = outerRadius - trackSize
       const ringRadius = (outerRadius + innerRadius) / 2
 
-      const centroid = Utils.polarToCartesian(centerX, centerY, ringRadius, midAngle)
+      const centroid = Utils.polarToCartesian(
+        centerX,
+        centerY,
+        ringRadius,
+        midAngle,
+      )
       const x = centroid.x + (w.layout.translateX || 0)
       const y = centroid.y + (w.layout.translateY || 0)
 
@@ -727,8 +782,14 @@ export default class KeyboardNavigation {
       tooltipEl.style.top = y - ttHeight - 10 + 'px'
     }
   }
-
-  /** heatmap / treemap — position tooltip using element bounding rect */
+  /**
+   * heatmap / treemap — position tooltip using element bounding rect
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   * @param {HTMLElement} tooltipEl
+   * @param {string} type
+   */
   _showTooltipHeatTree(i, j, ttCtx, tooltipEl, type) {
     const w = this.w
 
@@ -747,9 +808,7 @@ export default class KeyboardNavigation {
     const rectClass =
       type === 'heatmap' ? 'apexcharts-heatmap-rect' : 'apexcharts-treemap-rect'
 
-    const cell = w.dom.baseEl.querySelector(
-      `.${rectClass}[i='${i}'][j='${j}']`,
-    )
+    const cell = w.dom.baseEl.querySelector(`.${rectClass}[i='${i}'][j='${j}']`)
     if (cell) {
       // Use viewport-relative rects so we don't need to worry about SVG
       // translate offsets (cx/cy on these elements are in grid-space).
@@ -762,8 +821,8 @@ export default class KeyboardNavigation {
       const cellHeight = cellRect.height
 
       // Move crosshair to horizontal centre of cell
-      const cx = parseFloat(cell.getAttribute('cx'))
-      const cellWidthAttr = parseFloat(cell.getAttribute('width'))
+      const cx = parseFloat(cell.getAttribute('cx') ?? '')
+      const cellWidthAttr = parseFloat(cell.getAttribute('width') ?? '')
       ttCtx.tooltipPosition.moveXCrosshairs(cx + cellWidthAttr / 2)
 
       // Position tooltip to the right of the cell, vertically centred;
@@ -782,6 +841,10 @@ export default class KeyboardNavigation {
 
   // ─── Focus class management ───────────────────────────────────────────────
 
+  /**
+   * @param {number} i
+   * @param {number} j
+   */
   _applyFocusClass(i, j) {
     this._removeFocusClass()
 
@@ -807,6 +870,10 @@ export default class KeyboardNavigation {
     }
   }
 
+  /**
+   * @param {number} i
+   * @param {number} j
+   */
   _getFocusableElement(i, j) {
     const w = this.w
     const type = w.config.chart.type
@@ -887,6 +954,9 @@ export default class KeyboardNavigation {
     return w.seriesData.series.length
   }
 
+  /**
+   * @param {number} si
+   */
   _getDataPointCount(si) {
     const w = this.w
     const type = w.config.chart.type
@@ -952,6 +1022,7 @@ export default class KeyboardNavigation {
    * Snap to the nearest visible data point in the given navigation direction.
    * direction > 0 → find the first visible point (left boundary of zoomed range)
    * direction < 0 → find the last visible point (right boundary of zoomed range)
+   * @param {number} direction
    */
   _snapToVisibleRangeInDirection(direction) {
     const w = this.w
@@ -989,6 +1060,8 @@ export default class KeyboardNavigation {
   /**
    * Check whether the data point at (si, di) is within the current visible
    * x-axis range. Used to skip out-of-viewport points during keyboard nav.
+   * @param {number} si
+   * @param {number} di
    */
   _isDataPointVisible(si, di) {
     const w = this.w

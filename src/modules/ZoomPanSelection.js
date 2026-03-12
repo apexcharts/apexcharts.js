@@ -11,6 +11,10 @@ import { Box } from '../svg/index'
  **/
 
 export default class ZoomPanSelection extends Toolbar {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     super(w, ctx)
 
@@ -46,6 +50,7 @@ export default class ZoomPanSelection extends Toolbar {
     this.wheelDelay = 400
   }
 
+  /** @param {{xyRatios: any}} opts */
   init({ xyRatios }) {
     const w = this.w
     const me = this
@@ -86,19 +91,20 @@ export default class ZoomPanSelection extends Toolbar {
     }
     this.preselectedSelection()
 
-    this.hoverArea = w.dom.baseEl.querySelector(
-      `${w.globals.chartClass} .apexcharts-svg`
+    this.hoverArea = /** @type {Element} */ (
+      w.dom.baseEl.querySelector(`${w.globals.chartClass} .apexcharts-svg`)
     )
+    if (!this.hoverArea) return
     this.hoverArea.classList.add('apexcharts-zoomable')
 
     this.eventList.forEach((event) => {
-      this.hoverArea.addEventListener(
+      this.hoverArea?.addEventListener(
         event,
         me.svgMouseEvents.bind(me, xyRatios),
         {
           capture: false,
           passive: true,
-        }
+        },
       )
     })
 
@@ -126,6 +132,10 @@ export default class ZoomPanSelection extends Toolbar {
     this.gridRect = null
   }
 
+  /**
+   * @param {import('../types/internal').XYRatios} xyRatios
+   * @param {any} e
+   */
   svgMouseEvents(xyRatios, e) {
     const w = this.w
     const toolbar = this.ctx.toolbar
@@ -164,17 +174,18 @@ export default class ZoomPanSelection extends Toolbar {
       e.type === 'touchmove' || e.type === 'touchstart'
         ? e.touches[0].clientX
         : e.type === 'touchend'
-        ? e.changedTouches[0].clientX
-        : e.clientX
+          ? e.changedTouches[0].clientX
+          : e.clientX
     this.clientY =
       e.type === 'touchmove' || e.type === 'touchstart'
         ? e.touches[0].clientY
         : e.type === 'touchend'
-        ? e.changedTouches[0].clientY
-        : e.clientY
+          ? e.changedTouches[0].clientY
+          : e.clientY
 
     if ((e.type === 'mousedown' && e.which === 1) || e.type === 'touchstart') {
-      const gridRectDim = this.gridRect.getBoundingClientRect()
+      const gridRectDim = this.gridRect?.getBoundingClientRect()
+      if (!gridRectDim) return
 
       this.startX =
         this.clientX - gridRectDim.left - w.globals.barPadForNumericAxis
@@ -254,6 +265,9 @@ export default class ZoomPanSelection extends Toolbar {
     this.w.interact.mousedown = false
   }
 
+  /**
+   * @param {Event} e
+   */
   mouseWheelEvent(e) {
     const w = this.w
     e.preventDefault()
@@ -276,6 +290,9 @@ export default class ZoomPanSelection extends Toolbar {
     }, this.debounceDelay)
   }
 
+  /**
+   * @param {any} e
+   */
   executeMouseWheelZoom(e) {
     const w = this.w
     this.minX = w.axisFlags.isRangeBar ? w.globals.minY : w.globals.minX
@@ -341,17 +358,34 @@ export default class ZoomPanSelection extends Toolbar {
     if (rectDim.width > 0 && rectDim.height > 0) {
       this.selectionRect.select(false).resize(false)
       this.selectionRect
+        /**
+         * @param {Element} group
+         * @param {number} p
+         * @param {number} index
+         * @param {any[]} pointArr
+         * @param {string} handleName
+         */
         .select({
           createRot: () => {},
           updateRot: () => {},
-          createHandle: (group, p, index, pointArr, handleName) => {
+          createHandle: (
+            /** @type {any} */ group,
+            /** @type {any} */ p,
+            /** @type {any} */ index,
+            /** @type {any} */ pointArr,
+            /** @type {any} */ handleName,
+          ) => {
             if (handleName === 'l' || handleName === 'r')
               return group
                 .circle(8)
                 .css({ 'stroke-width': 1, stroke: '#333', fill: '#fff' })
+            /**
+             * @param {Element} group
+             * @param {number} p
+             */
             return group.circle(0)
           },
-          updateHandle: (group, p) => {
+          updateHandle: (/** @type {any} */ group, /** @type {any} */ p) => {
             return group.center(p[0], p[1])
           },
         })
@@ -429,6 +463,7 @@ export default class ZoomPanSelection extends Toolbar {
     }
   }
 
+  /** @param {{x: any, y: any, width: any, height: any, translateX: any, translateY: any}} opts */
   drawSelectionRect({ x, y, width, height, translateX = 0, translateY = 0 }) {
     const w = this.w
     const zoomRect = this.zoomRect
@@ -476,6 +511,9 @@ export default class ZoomPanSelection extends Toolbar {
     }
   }
 
+  /**
+   * @param {any} rect
+   */
   hideSelectionRect(rect) {
     if (rect) {
       rect.attr({
@@ -487,11 +525,12 @@ export default class ZoomPanSelection extends Toolbar {
     }
   }
 
-  selectionDrawing({ context, zoomtype }) {
+  selectionDrawing(/** @type {any} */ { context, zoomtype }) {
     const w = this.w
     const me = context
 
-    const gridRectDim = this.gridRect.getBoundingClientRect()
+    const gridRectDim = this.gridRect?.getBoundingClientRect()
+    if (!gridRectDim) return
 
     const startX = me.startX - 1
     const startY = me.startY
@@ -564,6 +603,10 @@ export default class ZoomPanSelection extends Toolbar {
     return selectionRect
   }
 
+  /**
+   * @param {string} type
+   * @param {CustomEvent} e
+   */
   selectionDragging(type, e) {
     const w = this.w
     if (!e) return
@@ -571,23 +614,24 @@ export default class ZoomPanSelection extends Toolbar {
     e.preventDefault()
 
     const { handler, box } = e.detail
+    const constraints = /** @type {any} */ (this.constraints)
 
     let { x, y } = box
 
-    if (x < this.constraints.x) {
-      x = this.constraints.x
+    if (x < constraints.x) {
+      x = constraints.x
     }
 
-    if (y < this.constraints.y) {
-      y = this.constraints.y
+    if (y < constraints.y) {
+      y = constraints.y
     }
 
-    if (box.x2 > this.constraints.x2) {
-      x = this.constraints.x2 - box.w
+    if (box.x2 > constraints.x2) {
+      x = constraints.x2 - box.w
     }
 
-    if (box.y2 > this.constraints.y2) {
-      y = this.constraints.y2 - box.h
+    if (box.y2 > constraints.y2) {
+      y = constraints.y2 - box.h
     }
 
     handler.move(x, y)
@@ -603,6 +647,9 @@ export default class ZoomPanSelection extends Toolbar {
     }
 
     // update selection when selection rect is dragged
+    /**
+     * @param {string} attr
+     */
     const getSelAttr = (attr) => {
       return parseFloat(selRect.node.getAttribute(attr))
     }
@@ -621,15 +668,17 @@ export default class ZoomPanSelection extends Toolbar {
       w.interact.selectionEnabled
     ) {
       // a small debouncer is required when resizing to avoid freezing the chart
-      clearTimeout(this.w.globals.selectionResizeTimer)
+      clearTimeout(this.w.globals.selectionResizeTimer ?? undefined)
       this.w.globals.selectionResizeTimer = window.setTimeout(() => {
-        const gridRectDim = this.gridRect.getBoundingClientRect()
+        const gridRectDim = this.gridRect?.getBoundingClientRect()
+        if (!gridRectDim) return
         const selectionRect = selRect.node.getBoundingClientRect()
 
         let minX, maxX, minY, maxY
 
         if (!w.axisFlags.isRangeBar) {
           // normal XY charts
+          if (!w.globals.xAxisScale) return
           minX =
             w.globals.xAxisScale.niceMin +
             (selectionRect.left - gridRectDim.left) * xyRatios.xRatio
@@ -678,6 +727,7 @@ export default class ZoomPanSelection extends Toolbar {
     }
   }
 
+  /** @param {{context: any, zoomtype: any}} opts */
   selectionDrawn({ context, zoomtype }) {
     const w = this.w
     const me = context
@@ -702,9 +752,9 @@ export default class ZoomPanSelection extends Toolbar {
     let xLowestValue, xHighestValue
 
     if (!w.axisFlags.isRangeBar) {
-      xLowestValue =
-        w.globals.xAxisScale.niceMin + localStartX * xyRatios.xRatio
-      xHighestValue = w.globals.xAxisScale.niceMin + localEndX * xyRatios.xRatio
+      const niceMin = w.globals.xAxisScale?.niceMin ?? 0
+      xLowestValue = niceMin + localStartX * xyRatios.xRatio
+      xHighestValue = niceMin + localEndX * xyRatios.xRatio
     } else {
       xLowestValue =
         w.globals.yAxisScale[0].niceMin + localStartX * xyRatios.invertedYRatio
@@ -713,9 +763,15 @@ export default class ZoomPanSelection extends Toolbar {
     }
 
     // For Y values, pick from the first y-axis, but handle multi-axis
+    /** @type {any[]} */
     const yHighestValue = []
+    /** @type {any[]} */
     const yLowestValue = []
 
+    /**
+     * @param {ApexYAxis} yaxe
+     * @param {number} index
+     */
     w.config.yaxis.forEach((yaxe, index) => {
       // pick whichever series is mapped to this y-axis
       const seriesIndex = w.globals.seriesYAxisMap[index][0]
@@ -737,6 +793,7 @@ export default class ZoomPanSelection extends Toolbar {
       xLowestValue !== xHighestValue
     ) {
       if (w.interact.zoomEnabled) {
+        if (!w.globals.initialConfig) return
         let yaxis = Utils.clone(w.globals.initialConfig.yaxis)
         let xaxis = Utils.clone(w.globals.initialConfig.xaxis)
 
@@ -764,7 +821,11 @@ export default class ZoomPanSelection extends Toolbar {
         }
 
         if (zoomtype === 'xy' || zoomtype === 'y') {
-          yaxis.forEach((yaxe, index) => {
+          /**
+           * @param {ApexYAxis} yaxe
+           * @param {number} index
+           */
+          yaxis.forEach((/** @type {any} */ yaxe, /** @type {any} */ index) => {
             yaxis[index].min = yLowestValue[index]
             yaxis[index].max = yHighestValue[index]
           })
@@ -778,6 +839,7 @@ export default class ZoomPanSelection extends Toolbar {
           }
         }
 
+        /** @type {{ xaxis: any; yaxis?: any }} */
         const options = {
           xaxis,
         }
@@ -790,13 +852,14 @@ export default class ZoomPanSelection extends Toolbar {
         me.ctx.updateHelpers._updateOptions(
           options,
           false,
-          me.w.config.chart.animations.dynamicAnimation.enabled
+          me.w.config.chart.animations.dynamicAnimation.enabled,
         )
 
         if (typeof w.config.chart.events.zoomed === 'function') {
           toolbar.zoomCallback(xaxis, yaxis)
         }
       } else if (w.interact.selectionEnabled) {
+        /** @type {any} */
         let yaxis = null
         let xaxis = null
         xaxis = {
@@ -804,10 +867,13 @@ export default class ZoomPanSelection extends Toolbar {
           max: xHighestValue,
         }
         if (zoomtype === 'xy' || zoomtype === 'y') {
-          yaxis = Utils.clone(w.config.yaxis)
-          yaxis.forEach((yaxe, index) => {
-            yaxis[index].min = yLowestValue[index]
-            yaxis[index].max = yHighestValue[index]
+          const yaxisCopy = /** @type {ApexYAxis[]} */ (
+            Utils.clone(w.config.yaxis)
+          )
+          yaxis = yaxisCopy
+          yaxisCopy.forEach((yaxe, index) => {
+            yaxisCopy[index].min = yLowestValue[index]
+            yaxisCopy[index].max = yHighestValue[index]
           })
         }
 
@@ -831,7 +897,7 @@ export default class ZoomPanSelection extends Toolbar {
     if (typeof w.interact.lastClientPosition.x !== 'undefined') {
       // get the change from last position to this position
       const deltaX = w.interact.lastClientPosition.x - me.clientX
-      const deltaY = w.interact.lastClientPosition.y - me.clientY
+      const deltaY = (w.interact.lastClientPosition.y ?? 0) - me.clientY
 
       // check which direction had the highest amplitude
       if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 0) {
@@ -851,9 +917,13 @@ export default class ZoomPanSelection extends Toolbar {
       y: me.clientY,
     }
 
-    const xLowestValue = w.axisFlags.isRangeBar ? w.globals.minY : w.globals.minX
+    const xLowestValue = w.axisFlags.isRangeBar
+      ? w.globals.minY
+      : w.globals.minX
 
-    const xHighestValue = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX
+    const xHighestValue = w.axisFlags.isRangeBar
+      ? w.globals.maxY
+      : w.globals.maxX
 
     // removed delayedPanScrolled as it doesn't seem to cause bugs anymore in convertedCatToNumeric
     // if (!w.config.xaxis.convertedCatToNumeric) {
@@ -885,10 +955,15 @@ export default class ZoomPanSelection extends Toolbar {
   //   )
   // }
 
+  /**
+   * @param {number} xLowestValue
+   * @param {number} xHighestValue
+   */
   panScrolled(xLowestValue, xHighestValue) {
     const w = this.w
 
     const xyRatios = this.xyRatios
+    if (!w.globals.initialConfig) return
     const yaxis = Utils.clone(w.globals.initialConfig.yaxis)
 
     let xRatio = xyRatios.xRatio
@@ -923,6 +998,7 @@ export default class ZoomPanSelection extends Toolbar {
       max: xHighestValue,
     }
 
+    /** @type {{ xaxis: any; yaxis?: any }} */
     const options = {
       xaxis,
     }
@@ -936,6 +1012,11 @@ export default class ZoomPanSelection extends Toolbar {
     this.updateScrolledChart(options, xLowestValue, xHighestValue)
   }
 
+  /**
+   * @param {object} options
+   * @param {number} xLowestValue
+   * @param {number} xHighestValue
+   */
   updateScrolledChart(options, xLowestValue, xHighestValue) {
     const w = this.w
 

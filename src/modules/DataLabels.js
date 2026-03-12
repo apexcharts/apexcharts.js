@@ -10,6 +10,10 @@ import Filters from './Filters'
  **/
 
 class DataLabels {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext | null} ctx
+   */
   constructor(w, ctx = null) {
     this.w = w
     this.ctx = ctx // only used for new Scatter(w, ctx) in bubble chart path
@@ -17,6 +21,15 @@ class DataLabels {
 
   // When there are many datalabels to be printed, and some of them overlaps each other in the same series, this method will take care of that
   // Also, when datalabels exceeds the drawable area and get clipped off, we need to adjust and move some pixels to make them visible again
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {any} val
+   * @param {number} i
+   * @param {number} dataPointIndex
+   * @param {boolean} alwaysDrawDataLabel
+   * @param {string} fontSize
+   */
   dataLabelsCorrection(
     x,
     y,
@@ -24,13 +37,13 @@ class DataLabels {
     i,
     dataPointIndex,
     alwaysDrawDataLabel,
-    fontSize
+    fontSize,
   ) {
     const w = this.w
     const graphics = new Graphics(this.w)
     let drawnextLabel = false //
 
-    const textRects = graphics.getTextRects(val, fontSize)
+    const textRects = /** @type {any} */ (graphics).getTextRects(val, fontSize)
     const width = textRects.width
     const height = textRects.height
 
@@ -38,13 +51,21 @@ class DataLabels {
     if (y > w.layout.gridHeight + height) y = w.layout.gridHeight + height / 2
 
     // first value in series, so push an empty array
-    if (typeof w.globals.dataLabelsRects[i] === 'undefined')
-      w.globals.dataLabelsRects[i] = []
+    if (
+      typeof /** @type {any} */ (w.globals).dataLabelsRects[i] === 'undefined'
+    ) {
+      ;/** @type {any} */ (w.globals).dataLabelsRects[i] = []
+    }
 
     // then start pushing actual rects in that sub-array
-    w.globals.dataLabelsRects[i].push({ x, y, width, height })
+    ;/** @type {any} */ (w.globals).dataLabelsRects[i].push({
+      x,
+      y,
+      width,
+      height,
+    })
 
-    const len = w.globals.dataLabelsRects[i].length - 2
+    const len = /** @type {any} */ (w.globals).dataLabelsRects[i].length - 2
     const lastDrawnIndex =
       typeof w.globals.lastDrawnDataLabelsIndexes[i] !== 'undefined'
         ? w.globals.lastDrawnDataLabelsIndexes[i][
@@ -52,8 +73,13 @@ class DataLabels {
           ]
         : 0
 
-    if (typeof w.globals.dataLabelsRects[i][len] !== 'undefined') {
-      const lastDataLabelRect = w.globals.dataLabelsRects[i][lastDrawnIndex]
+    if (
+      typeof (/** @type {any} */ (w.globals.dataLabelsRects[i])[len]) !==
+      'undefined'
+    ) {
+      const lastDataLabelRect = /** @type {any} */ (
+        w.globals.dataLabelsRects[i]
+      )[lastDrawnIndex]
       if (
         // next label forward and x not intersecting
         x > lastDataLabelRect.x + lastDataLabelRect.width ||
@@ -78,6 +104,7 @@ class DataLabels {
     }
   }
 
+  /** @param {{type: any, pos: any, i: any, j: any, isRangeStart: any, strokeWidth?: any}} opts */
   drawDataLabel({ type, pos, i, j, isRangeStart, strokeWidth = 2 }) {
     // this method handles line, area, bubble, scatter charts as those charts contains markers/points which have pre-defined x/y positions
     // all other charts like radar / bars / heatmaps will define their own drawDataLabel routine
@@ -125,6 +152,9 @@ class DataLabels {
 
         let text = ''
 
+        /**
+         * @param {any} v
+         */
         const getText = (v) => {
           return w.config.dataLabels.formatter(v, {
             seriesIndex: i,
@@ -138,7 +168,10 @@ class DataLabels {
           text = getText(val)
 
           y = pos.y[q]
-          const scatter = new Scatter(this.w, this.ctx)
+          const scatter = new Scatter(
+            this.w,
+            /** @type {import('../types/internal').ChartContext} */ (this.ctx),
+          )
           const centerTextInBubbleCoords = scatter.centerTextInBubble(y)
           y = centerTextInBubbleCoords.y
         } else {
@@ -152,7 +185,10 @@ class DataLabels {
         if (w.globals.isSlopeChart) {
           if (dataPointIndex === 0) {
             textAnchor = 'end'
-          } else if (dataPointIndex === w.config.series[i].data.length - 1) {
+          } else if (
+            dataPointIndex ===
+            /** @type {Record<string,any>} */ (w.config.series[i]).data.length - 1
+          ) {
             textAnchor = 'start'
           } else {
             textAnchor = 'middle'
@@ -176,6 +212,9 @@ class DataLabels {
     return elDataLabelsWrap
   }
 
+  /**
+   * @param {Record<string, any>} opts
+   */
   plotDataLabelsText(opts) {
     const w = this.w
     const graphics = new Graphics(this.w)
@@ -217,7 +256,10 @@ class DataLabels {
         i,
         j,
         alwaysDrawDataLabel,
-        parseInt(dataLabelsConfig.style.fontSize, 10)
+        parseInt(
+          /** @type {any} */ (dataLabelsConfig).style.fontSize,
+          10,
+        ).toString(),
       )
     }
 
@@ -231,8 +273,11 @@ class DataLabels {
     if (correctedLabels.textRects) {
       // fixes #2264
       if (
-        x < -20 - correctedLabels.textRects.width ||
-        x > w.layout.gridWidth + correctedLabels.textRects.width + 30
+        x < -20 - /** @type {any} */ (correctedLabels.textRects).width ||
+        x >
+          w.layout.gridWidth +
+            /** @type {any} */ (correctedLabels.textRects).width +
+            30
       ) {
         // datalabels fall outside drawing area, so draw a blank label
         text = ''
@@ -248,7 +293,7 @@ class DataLabels {
       dataLabelColor = w.globals.dataLabels.style.colors[j]
     }
     if (typeof dataLabelColor === 'function') {
-      dataLabelColor = dataLabelColor({
+      dataLabelColor = /** @type {any} */ (dataLabelColor)({
         series: w.seriesData.series,
         seriesIndex: i,
         dataPointIndex: j,
@@ -274,7 +319,10 @@ class DataLabels {
       if (j !== 0) {
         offX = dataLabelsConfig.offsetX * -2 + 5
       }
-      if (j !== 0 && j !== w.config.series[i].data.length - 1) {
+      if (
+        j !== 0 &&
+        j !== /** @type {Record<string,any>} */ (w.config.series[i]).data.length - 1
+      ) {
         offX = 0
       }
     }
@@ -323,6 +371,10 @@ class DataLabels {
     return dataLabelText
   }
 
+  /**
+   * @param {Element} el
+   * @param {{x: number, y: number, width: number, height: number}} coords
+   */
   addBackgroundToDataLabel(el, coords) {
     const w = this.w
 
@@ -345,7 +397,7 @@ class DataLabels {
         : w.config.chart.background,
       bCnf.opacity,
       bCnf.borderWidth,
-      bCnf.borderColor
+      bCnf.borderColor,
     )
 
     if (bCnf.dropShadow.enabled) {
@@ -362,19 +414,19 @@ class DataLabels {
     if (w.config.chart.type === 'bubble') return
 
     const elDataLabels = w.dom.baseEl.querySelectorAll(
-      '.apexcharts-datalabels text'
+      '.apexcharts-datalabels text',
     )
 
     for (let i = 0; i < elDataLabels.length; i++) {
       const el = elDataLabels[i]
-      const coords = el.getBBox()
+      const coords = /** @type {SVGGraphicsElement} */ (el).getBBox()
       let elRect = null
 
       if (coords.width && coords.height) {
         elRect = this.addBackgroundToDataLabel(el, coords)
       }
       if (elRect) {
-        el.parentNode.insertBefore(elRect.node, el)
+        el.parentNode?.insertBefore(elRect.node, el)
         const background =
           w.config.dataLabels.background.backgroundColor ||
           el.getAttribute('fill')
@@ -397,11 +449,11 @@ class DataLabels {
   bringForward() {
     const w = this.w
     const elDataLabelsNodes = w.dom.baseEl.querySelectorAll(
-      '.apexcharts-datalabels'
+      '.apexcharts-datalabels',
     )
 
     const elSeries = w.dom.baseEl.querySelector(
-      '.apexcharts-plot-series:last-child'
+      '.apexcharts-plot-series:last-child',
     )
 
     for (let i = 0; i < elDataLabelsNodes.length; i++) {

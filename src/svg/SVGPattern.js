@@ -7,6 +7,12 @@ import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 let patternCounter = 0
 
 class SVGPattern extends SVGElement {
+  /**
+   * @param {any} container
+   * @param {number} w
+   * @param {number} h
+   * @param {Function} builder
+   */
   constructor(container, w, h, builder) {
     const node = BrowserAPIs.createElementNS(SVGNS, 'pattern')
     super(node)

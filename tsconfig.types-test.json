@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "strict": true,
+    "allowJs": false,
+    "checkJs": false,
+    "typeRoots": []
+  },
+  "include": [
+    "tests/types/**/*.ts",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "src",
+    "dist",
+    "tests/e2e",
+    "tests/unit",
+    "tests/interaction"
+  ]
+}

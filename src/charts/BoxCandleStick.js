@@ -13,6 +13,12 @@ import Utils from '../utils/Utils'
  **/
 
 class BoxCandleStick extends Bar {
+  /**
+   * @param {any[]} series
+   * @param {string} ctype
+   * @param {number} seriesIndex
+   */
+  // @ts-ignore -- BoxCandleStick.draw has an extra ctype param compared to Bar.draw
   draw(series, ctype, seriesIndex) {
     const w = this.w
     const graphics = new Graphics(this.w)
@@ -39,14 +45,19 @@ class BoxCandleStick extends Bar {
     for (let i = 0; i < series.length; i++) {
       this.isBoxPlot =
         w.config.chart.type === 'boxPlot' ||
-        w.config.series[i].type === 'boxPlot'
+        /** @type {Record<string,any>} */ (w.config.series[i]).type === 'boxPlot'
 
-      let x, y
+      /** @type {any} */
+      let x
+      /** @type {any} */
+      let y
 
       const yArrj = [] // hold y values of current iterating series
       const xArrj = [] // hold x values of current iterating series
 
-      const realIndex = w.globals.comboCharts ? seriesIndex[i] : i
+      const realIndex = w.globals.comboCharts
+        ? /** @type {any} */ (seriesIndex)[i]
+        : i
       const { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex)
 
       const elSeries = graphics.group({
@@ -64,7 +75,9 @@ class BoxCandleStick extends Bar {
 
       let translationsIndex = 0
       if (this.yRatio.length > 1) {
-        this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex][0]
+        this.yaxisIndex = /** @type {any} */ (
+          w.globals.seriesYAxisReverseMap[realIndex]
+        )[0]
         translationsIndex = realIndex
       }
 
@@ -83,7 +96,7 @@ class BoxCandleStick extends Bar {
       y = initY
       x = initX
 
-      xArrj.push(x + barWidth / 2)
+      xArrj.push(x + (barWidth ?? 0) / 2)
 
       const elDataLabelsWrap = graphics.group({
         class: 'apexcharts-datalabels',
@@ -145,46 +158,52 @@ class BoxCandleStick extends Bar {
 
         // push current X
         if (j > 0) {
-          xArrj.push(x + barWidth / 2)
+          xArrj.push(x + (barWidth ?? 0) / 2)
         }
 
         yArrj.push(y)
 
-        paths.pathTo.forEach((pathTo, pi) => {
-          const lineFill =
-            !this.isBoxPlot && this.candlestickOptions.wick.useFillColor
-              ? paths.color[pi]
-              : w.globals.stroke.colors[i]
+        /**
+         * @param {string} pathTo
+         * @param {number} pi
+         */
+        paths.pathTo.forEach(
+          (/** @type {any} */ pathTo, /** @type {any} */ pi) => {
+            const lineFill =
+              !this.isBoxPlot && this.candlestickOptions.wick.useFillColor
+                ? paths.color[pi]
+                : w.globals.stroke.colors[i]
 
-          const pathFill = fill.fillPath({
-            seriesNumber: realIndex,
-            dataPointIndex: j,
-            color: paths.color[pi],
-            value: series[i][j],
-          })
+            const pathFill = fill.fillPath({
+              seriesNumber: realIndex,
+              dataPointIndex: j,
+              color: paths.color[pi],
+              value: series[i][j],
+            })
 
-          this.renderSeries({
-            realIndex,
-            pathFill,
-            lineFill,
-            j,
-            i,
-            pathFrom: paths.pathFrom,
-            pathTo,
-            strokeWidth,
-            elSeries,
-            x,
-            y,
-            series,
-            columnGroupIndex,
-            barHeight,
-            barWidth,
-            elDataLabelsWrap,
-            elGoalsMarkers,
-            visibleSeries: this.visibleI,
-            type: w.config.chart.type,
-          })
-        })
+            this.renderSeries({
+              realIndex,
+              pathFill,
+              lineFill,
+              j,
+              i,
+              pathFrom: paths.pathFrom,
+              pathTo,
+              strokeWidth,
+              elSeries,
+              x,
+              y,
+              series,
+              columnGroupIndex,
+              barHeight,
+              barWidth,
+              elDataLabelsWrap,
+              elGoalsMarkers,
+              visibleSeries: this.visibleI,
+              type: w.config.chart.type,
+            })
+          },
+        )
       }
 
       // push all x val arrays into main xArr
@@ -197,6 +216,7 @@ class BoxCandleStick extends Bar {
     return ret
   }
 
+  /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any, strokeWidth: any}} opts */
   drawVerticalBoxPaths({
     indexes,
     x,
@@ -215,6 +235,9 @@ class BoxCandleStick extends Bar {
     const { colors: boxColors } = this.boxOptions
     const realIndex = indexes.realIndex
 
+    /**
+     * @param {string} color
+     */
     const getColor = (color) =>
       Array.isArray(color) ? color[realIndex] : color
 
@@ -246,8 +269,8 @@ class BoxCandleStick extends Bar {
     const barXPosition = x + barWidth * this.visibleI
 
     if (
-      typeof this.series[i][j] === 'undefined' ||
-      this.series[i][j] === null
+      typeof /** @type {any} */ (this.series)[i]?.[j] === 'undefined' ||
+      /** @type {any} */ (this.series)[i]?.[j] === null
     ) {
       y1 = zeroH
       y2 = zeroH
@@ -334,17 +357,18 @@ class BoxCandleStick extends Bar {
       y: y2,
       goalY: this.barHelpers.getGoalValues(
         'y',
-        null,
+        /** @type {any} */ (null),
         zeroH,
         i,
         j,
-        indexes.translationsIndex
+        indexes.translationsIndex,
       ),
       barXPosition,
       color,
     }
   }
 
+  /** @param {{indexes: any, y: any, yDivision: any, barHeight: any, zeroW: any, strokeWidth: any}} opts */
   drawHorizontalBoxPaths({
     indexes,
     y,
@@ -363,15 +387,19 @@ class BoxCandleStick extends Bar {
     const { colors: candleColors } = w.config.plotOptions.candlestick
     const { colors: boxColors } = this.boxOptions
 
+    /**
+     * @param {string} color
+     */
     const getColor = (color) =>
       Array.isArray(color) ? color[realIndex] : color
 
     const yRatio = this.invertedYRatio
     const ohlc = this.getOHLCValue(realIndex, j)
 
-    let color = ohlc.o < ohlc.c
-      ? [getColor(candleColors.upward)]
-      : [getColor(candleColors.downward)]
+    let color =
+      ohlc.o < ohlc.c
+        ? [getColor(candleColors.upward)]
+        : [getColor(candleColors.downward)]
 
     if (this.isBoxPlot) {
       color = [getColor(boxColors.lower), getColor(boxColors.upper)]
@@ -394,8 +422,8 @@ class BoxCandleStick extends Bar {
     const barYPosition = y + barHeight * this.visibleI
 
     if (
-      typeof this.series[i][j] === 'undefined' ||
-      this.series[i][j] === null
+      typeof /** @type {any} */ (this.series)[i]?.[j] === 'undefined' ||
+      /** @type {any} */ (this.series)[i]?.[j] === null
     ) {
       x1 = zeroW
       x2 = zeroW
@@ -449,18 +477,32 @@ class BoxCandleStick extends Bar {
       pathFrom,
       x: x2,
       y,
-      goalX: this.barHelpers.getGoalValues('x', zeroW, null, i, j),
+      goalX: this.barHelpers.getGoalValues(
+        'x',
+        zeroW,
+        /** @type {any} */ (null),
+        i,
+        j,
+        0,
+      ),
       barYPosition,
       color,
     }
   }
 
+  /**
+   * @param {number} i
+   * @param {number} j
+   */
   getOHLCValue(i, j) {
     const w = this.w
     const coreUtils = this.coreUtils
+    /**
+     * @param {any[]} arr
+     */
     const getCandleVal = (arr) =>
       arr[i] && arr[i][j] != null
-        ? coreUtils.getLogValAtSeriesIndex(arr[i][j], i)
+        ? /** @type {any} */ (coreUtils).getLogValAtSeriesIndex(arr[i][j], i)
         : 0
 
     const h = getCandleVal(w.candleData.seriesCandleH)

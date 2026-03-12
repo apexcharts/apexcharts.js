@@ -4,6 +4,9 @@ import Filters from './Filters'
 import Utils from '../utils/Utils'
 
 class Crosshairs {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w
   }
@@ -44,14 +47,14 @@ class Crosshairs {
           opacityTo,
           null,
           stops,
-          null
+          [],
         )
       }
 
       let xcrosshairs = graphics.drawRect()
       if (w.config.xaxis.crosshairs.width === 1) {
         // to prevent drawing 2 lines, convert rect to line
-        xcrosshairs = graphics.drawLine()
+        xcrosshairs = graphics.drawLine(0, 0, 0, 0)
       }
 
       let gridHeight = w.layout.gridHeight
@@ -59,7 +62,7 @@ class Crosshairs {
         gridHeight = 0
       }
       let crosshairsWidth = w.config.xaxis.crosshairs.width
-      if (!Utils.isNumber(crosshairsWidth) || crosshairsWidth < 0) {
+      if (!Utils.isNumber(crosshairsWidth) || Number(crosshairsWidth) < 0) {
         crosshairsWidth = 0
       }
 
@@ -75,7 +78,7 @@ class Crosshairs {
         'fill-opacity': w.config.xaxis.crosshairs.opacity,
         stroke: w.config.xaxis.crosshairs.stroke.color,
         'stroke-width': w.config.xaxis.crosshairs.stroke.width,
-        'stroke-dasharray': w.config.xaxis.crosshairs.stroke.dashArray
+        'stroke-dasharray': w.config.xaxis.crosshairs.stroke.dashArray,
       })
 
       if (dropShadow) {
@@ -84,7 +87,7 @@ class Crosshairs {
           top: shadowTop,
           blur: shadowBlur,
           color: shadowColor,
-          opacity: shadowOpacity
+          opacity: shadowOpacity,
         })
       }
 
@@ -97,10 +100,10 @@ class Crosshairs {
 
     const graphics = new Graphics(this.w)
 
-    const crosshair = w.config.yaxis[0].crosshairs
+    const crosshair = /** @type {any[]} */ (w.config.yaxis)[0].crosshairs
     const offX = w.globals.barPadForNumericAxis
 
-    if (w.config.yaxis[0].crosshairs.show) {
+    if (/** @type {any[]} */ (w.config.yaxis)[0].crosshairs.show) {
       const ycrosshairs = graphics.drawLine(
         -offX,
         0,
@@ -108,10 +111,10 @@ class Crosshairs {
         0,
         crosshair.stroke.color,
         crosshair.stroke.dashArray,
-        crosshair.stroke.width
+        crosshair.stroke.width,
       )
       ycrosshairs.attr({
-        class: 'apexcharts-ycrosshairs'
+        class: 'apexcharts-ycrosshairs',
       })
 
       w.dom.elGraphical.add(ycrosshairs)
@@ -125,10 +128,10 @@ class Crosshairs {
       0,
       crosshair.stroke.color,
       0,
-      0
+      0,
     )
     ycrosshairsHidden.attr({
-      class: 'apexcharts-ycrosshairs-hidden'
+      class: 'apexcharts-ycrosshairs-hidden',
     })
 
     w.dom.elGraphical.add(ycrosshairsHidden)

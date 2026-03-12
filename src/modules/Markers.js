@@ -10,6 +10,10 @@ import Utils from '../utils/Utils'
  **/
 
 export default class Markers {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx // kept for .bind(this.ctx, ...) in pathMouse* event handlers
@@ -34,7 +38,9 @@ export default class Markers {
         }
       }
     } else {
-      w.globals.markers.size = w.config.series.map(() => w.config.markers.size)
+      w.globals.markers.size = w.config.series.map(
+        () => /** @type {number} */ (w.config.markers.size),
+      )
     }
   }
 
@@ -102,15 +108,14 @@ export default class Markers {
             dataPointIndex,
           })
 
-          if (w.config.series[i].data[dataPointIndex]) {
-            if (w.config.series[i].data[dataPointIndex].fillColor) {
-              opts.pointFillColor =
-                w.config.series[i].data[dataPointIndex].fillColor
+          const _si = /** @type {Record<string,any>} */ (w.config.series[i])
+          if (_si.data[dataPointIndex]) {
+            if (_si.data[dataPointIndex].fillColor) {
+              opts.pointFillColor = _si.data[dataPointIndex].fillColor
             }
 
-            if (w.config.series[i].data[dataPointIndex].strokeColor) {
-              opts.pointStrokeColor =
-                w.config.series[i].data[dataPointIndex].strokeColor
+            if (_si.data[dataPointIndex].strokeColor) {
+              opts.pointStrokeColor = _si.data[dataPointIndex].strokeColor
             }
           }
 
@@ -141,7 +146,7 @@ export default class Markers {
               })
               elMarkersWrap.attr(
                 'clip-path',
-                `url(#gridRectMarkerMask${w.globals.cuid})`
+                `url(#gridRectMarkerMask${w.globals.cuid})`,
               )
               // Set up event delegation once on the group
               this.setupMarkerDelegation(elMarkersWrap)
@@ -156,7 +161,7 @@ export default class Markers {
             this._filters.setSelectionFilter(
               markerElement,
               seriesIndex,
-              dataPointIndex
+              dataPointIndex,
             )
 
             if (elMarkersWrap) {
@@ -176,6 +181,7 @@ export default class Markers {
     return elMarkersWrap
   }
 
+  /** @param {{cssClass: any, seriesIndex: any, dataPointIndex?: any, radius?: any, size?: any, strokeWidth?: any}} opts */
   getMarkerConfig({
     cssClass,
     seriesIndex,
@@ -193,7 +199,7 @@ export default class Markers {
     // discrete markers is an option where user can specify a particular marker with different shape, size and color
 
     if (dataPointIndex !== null && m.discrete.length) {
-      m.discrete.map((marker) => {
+      m.discrete.map((/** @type {any} */ marker) => {
         if (
           marker.seriesIndex === seriesIndex &&
           marker.dataPointIndex === dataPointIndex
@@ -213,8 +219,8 @@ export default class Markers {
         strokeWidth !== null
           ? strokeWidth
           : Array.isArray(m.strokeWidth)
-          ? m.strokeWidth[seriesIndex]
-          : m.strokeWidth,
+            ? m.strokeWidth[seriesIndex]
+            : m.strokeWidth,
       pointStrokeColor: pStyle.pointStrokeColor,
       pointFillColor: pStyle.pointFillColor,
       shape:
@@ -234,6 +240,9 @@ export default class Markers {
     }
   }
 
+  /**
+   * @param {any} parentGroup
+   */
   setupMarkerDelegation(parentGroup) {
     const w = this.w
     const selector = '.apexcharts-marker'
@@ -242,23 +251,29 @@ export default class Markers {
     this._graphics.setupEventDelegation(parentGroup, selector)
 
     // Marker-specific events: click, dblclick, touchstart
-    parentGroup.node.addEventListener('click', (e) => {
+    /**
+     * @param {Event} e
+     */
+    parentGroup.node.addEventListener('click', (/** @type {any} */ e) => {
       if (w.config.markers.onClick) {
         const targetNode = Graphics._findDelegateTarget(
           e.target,
           parentGroup.node,
-          selector
+          selector,
         )
         if (targetNode) w.config.markers.onClick(e)
       }
     })
 
-    parentGroup.node.addEventListener('dblclick', (e) => {
+    /**
+     * @param {Event} e
+     */
+    parentGroup.node.addEventListener('dblclick', (/** @type {any} */ e) => {
       if (w.config.markers.onDblClick) {
         const targetNode = Graphics._findDelegateTarget(
           e.target,
           parentGroup.node,
-          selector
+          selector,
         )
         if (targetNode) w.config.markers.onDblClick(e)
       }
@@ -266,35 +281,38 @@ export default class Markers {
 
     parentGroup.node.addEventListener(
       'touchstart',
-      (e) => {
+      (/** @type {Event} */ e) => {
         const targetNode = Graphics._findDelegateTarget(
           e.target,
           parentGroup.node,
-          selector
+          selector,
         )
         if (targetNode && targetNode.instance) {
           this._graphics.pathMouseDown(targetNode.instance, e)
         }
       },
-      { passive: true }
+      { passive: true },
     )
   }
 
+  /**
+   * @param {any} marker
+   */
   addEvents(marker) {
     const w = this.w
 
     marker.node.addEventListener(
       'mouseenter',
-      this._graphics.pathMouseEnter.bind(this.ctx, marker)
+      this._graphics.pathMouseEnter.bind(this.ctx, marker),
     )
     marker.node.addEventListener(
       'mouseleave',
-      this._graphics.pathMouseLeave.bind(this.ctx, marker)
+      this._graphics.pathMouseLeave.bind(this.ctx, marker),
     )
 
     marker.node.addEventListener(
       'mousedown',
-      this._graphics.pathMouseDown.bind(this.ctx, marker)
+      this._graphics.pathMouseDown.bind(this.ctx, marker),
     )
 
     marker.node.addEventListener('click', w.config.markers.onClick)
@@ -303,11 +321,13 @@ export default class Markers {
     marker.node.addEventListener(
       'touchstart',
       this._graphics.pathMouseDown.bind(this.ctx, marker),
-      { passive: true }
+      { passive: true },
     )
   }
-
-  /** @returns {any} */
+  /**
+   * @returns {any}
+   * @param {number} seriesIndex
+   */
   getMarkerStyle(seriesIndex) {
     const w = this.w
 
