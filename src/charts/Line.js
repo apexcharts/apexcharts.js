@@ -16,11 +16,22 @@ import { svgPath, spline } from '../libs/monotone-cubic'
  **/
 
 class Line {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   * @param {import('../types/internal').XYRatios} xyRatios
+   * @param {boolean} isPointsChart
+   */
   constructor(w, ctx, xyRatios, isPointsChart) {
     this.ctx = ctx
     this.w = w
 
     this.xyRatios = xyRatios
+
+    /** @type {number} */ this.xRatio = 0
+    /** @type {number[]} */ this.yRatio = []
+    /** @type {number} */ this.zRatio = 0
+    /** @type {number[]} */ this.baseLineY = []
 
     this.pointsChart =
       !(
@@ -35,11 +46,27 @@ class Line {
     this.lineHelpers = new Helpers(this)
     this.markers = new Markers(this.w, this.ctx)
 
+    /** @type {any} */
     this.prevSeriesY = []
     this.categoryAxisCorrection = 0
     this.yaxisIndex = 0
+    /** @type {number} */ this.xDivision = 0
+    /** @type {number} */ this.zeroY = 0
+    /** @type {number} */ this.areaBottomY = 0
+    /** @type {number} */ this.strokeWidth = 0
+    /** @type {boolean} */ this.isReversed = false
+    /** @type {boolean} */ this.appendPathFrom = false
+    /** @type {any} */ this.elSeries = null
+    /** @type {any} */ this.elPointsMain = null
+    /** @type {any} */ this.elDataLabelsWrap = null
   }
 
+  /**
+   * @param {any[]} series
+   * @param {string} ctype
+   * @param {number} seriesIndex
+   * @param {any} seriesRangeEnd
+   */
   draw(series, ctype, seriesIndex, seriesRangeEnd) {
     const w = this.w
     const graphics = new Graphics(this.w)
@@ -66,7 +93,9 @@ class Line {
     for (let i = 0; i < series.length; i++) {
       series = this.lineHelpers.sameValueSeriesFix(i, series)
 
-      const realIndex = w.globals.comboCharts ? seriesIndex[i] : i
+      const realIndex = w.globals.comboCharts
+        ? /** @type {any} */ (seriesIndex)[i]
+        : i
       const translationsIndex = this.yRatio.length > 1 ? realIndex : 0
 
       this._initSerieVariables(series, i, realIndex)
@@ -78,7 +107,9 @@ class Line {
       let x = w.globals.padHorizontal + this.categoryAxisCorrection
       const y = 1
 
+      /** @type {any[]} */
       const linePaths = []
+      /** @type {any[]} */
       const areaPaths = []
 
       Series.addCollapsedClassToSeries(this.w, this.elSeries, realIndex)
@@ -221,11 +252,15 @@ class Line {
       allSeries.push(this.elSeries)
     }
 
-    if (typeof w.config.series[0]?.zIndex !== 'undefined') {
+    if (
+      typeof (
+        /** @type {Record<string,any>} */ (w.config.series[0])?.zIndex
+      ) !== 'undefined'
+    ) {
       allSeries.sort(
         (a, b) =>
           Number(a.node.getAttribute('zIndex')) -
-          Number(b.node.getAttribute('zIndex'))
+          Number(b.node.getAttribute('zIndex')),
       )
     }
 
@@ -242,6 +277,11 @@ class Line {
     return ret
   }
 
+  /**
+   * @param {any[]} series
+   * @param {number} i
+   * @param {number} realIndex
+   */
   _initSerieVariables(series, i, realIndex) {
     const w = this.w
     const graphics = new Graphics(this.w)
@@ -283,11 +323,14 @@ class Line {
     this.categoryAxisCorrection = this.xDivision / 2
 
     // el to which series will be drawn
+    const seriesItem = /** @type {Record<string,any>} */ (
+      w.config.series[realIndex]
+    )
     this.elSeries = graphics.group({
       class: `apexcharts-series`,
       zIndex:
-        typeof w.config.series[realIndex].zIndex !== 'undefined'
-          ? w.config.series[realIndex].zIndex
+        typeof seriesItem.zIndex !== 'undefined'
+          ? seriesItem.zIndex
           : realIndex,
       seriesName: Utils.escapeString(w.seriesData.seriesNames[realIndex]),
     })
@@ -395,6 +438,7 @@ class Line {
     }
   }
 
+  /** @param {{type: any, realIndex: any, i: any, paths: any}} opts */
   _handlePaths({ type, realIndex, i, paths }) {
     const w = this.w
     const graphics = new Graphics(this.w)
@@ -418,7 +462,7 @@ class Line {
         0,
         w.layout.gridWidth,
         w.layout.gridHeight,
-        0
+        0,
       )
       w.dom.elForecastMask.appendChild(elForecastMask.node)
 
@@ -427,7 +471,7 @@ class Line {
         0,
         forecastCutoff,
         w.layout.gridHeight,
-        0
+        0,
       )
       w.dom.elNonForecastMask.appendChild(elNonForecastMask.node)
     }
@@ -516,52 +560,54 @@ class Line {
 
           renderedForecastPath.node.setAttribute(
             'stroke-dasharray',
-            forecast.dashArray
+            forecast.dashArray,
           )
 
           if (forecast.strokeWidth) {
             renderedForecastPath.node.setAttribute(
               'stroke-width',
-              forecast.strokeWidth
+              forecast.strokeWidth,
             )
           }
 
           this.elSeries.add(renderedForecastPath)
           renderedForecastPath.attr(
             'clip-path',
-            `url(#forecastMask${w.globals.cuid})`
+            `url(#forecastMask${w.globals.cuid})`,
           )
           renderedPath.attr(
             'clip-path',
-            `url(#nonForecastMask${w.globals.cuid})`
+            `url(#nonForecastMask${w.globals.cuid})`,
           )
         }
       }
     }
   }
 
-  _iterateOverDataPoints({
-    type,
-    series,
-    iterations,
-    realIndex,
-    translationsIndex,
-    i,
-    x,
-    y,
-    pX,
-    pY,
-    pathsFrom,
-    linePaths,
-    areaPaths,
-    seriesIndex,
-    lineYPosition,
-    xArrj,
-    yArrj,
-    y2Arrj,
-    isRangeStart,
-    seriesRangeEnd,
-  }) {
+  _iterateOverDataPoints(
+    /** @type {any} */ {
+      type,
+      series,
+      iterations,
+      realIndex,
+      translationsIndex,
+      i,
+      x,
+      y,
+      pX,
+      pY,
+      pathsFrom,
+      linePaths,
+      areaPaths,
+      seriesIndex,
+      lineYPosition,
+      xArrj,
+      yArrj,
+      y2Arrj,
+      isRangeStart,
+      seriesRangeEnd,
+    },
+  ) {
     const w = this.w
     const graphics = new Graphics(this.w)
     const yRatio = this.yRatio
@@ -578,6 +624,10 @@ class Line {
           : w.globals.dataPoints
     }
 
+    /**
+     * @param {number} _y
+     * @param {number} lineYPos
+     */
     const getY = (_y, lineYPos) => {
       return (
         lineYPos -
@@ -593,8 +643,10 @@ class Line {
       (w.config.chart.stacked &&
         w.globals.comboCharts &&
         (!this.w.config.chart.stackOnlyBar ||
-          this.w.config.series[realIndex]?.type === 'bar' ||
-          this.w.config.series[realIndex]?.type === 'column'))
+          /** @type {Record<string,any>} */ (this.w.config.series[realIndex])
+            ?.type === 'bar' ||
+          /** @type {Record<string,any>} */ (this.w.config.series[realIndex])
+            ?.type === 'column'))
 
     let curve = w.config.stroke.curve
     if (Array.isArray(curve)) {
@@ -633,11 +685,14 @@ class Line {
           // a collapsed series in a stacked chart may provide wrong result
           // for the next series, hence find the prevIndex of prev series
           // which is not collapsed - fixes apexcharts.js#1372
+          /**
+           * @param {number} pi
+           */
           const prevIndex = (pi) => {
             for (let pii = pi; pii > 0; pii--) {
               if (
                 w.globals.collapsedSeriesIndices.indexOf(
-                  seriesIndex?.[pii] || pii
+                  seriesIndex?.[pii] || pii,
                 ) > -1
               ) {
                 pii--
@@ -757,6 +812,7 @@ class Line {
     }
   }
 
+  /** @param {{type: any, pointsPos: any, isRangeStart: any, i: any, j: any, realIndex: any}} opts */
   _handleMarkersAndLabels({ type, pointsPos, isRangeStart, i, j, realIndex }) {
     const w = this.w
     const dataLabels = new DataLabels(this.w, this.ctx)
@@ -796,6 +852,7 @@ class Line {
     }
   }
 
+  /** @param {{type: any, series: any, i: any, j: any, x: any, y: any, xArrj: any, yArrj: any, y2: any, y2Arrj: any, pX: any, pY: any, pathState: any, segmentStartX: any, linePath: any, areaPath: any, linePaths: any, areaPaths: any, curve: any, isRangeStart: any}} opts */
   _createPaths({
     type,
     series,
@@ -826,18 +883,37 @@ class Line {
     switch (curve) {
       case 'monotoneCubic': {
         const yAj = isRangeStart ? yArrj : y2Arrj
+        /**
+         * @param {any[]} xArr
+         * @param {any[]} yArr
+         */
         const getSmoothInputs = (xArr, yArr) => {
-          return xArr
-            .map((_, i) => {
-              return [_, yArr[i]]
-            })
-            .filter((_) => _[1] !== null)
+          return (
+            xArr
+              /**
+               * @param {any} _
+               * @param {number} i
+               */
+              .map((_, i) => {
+                return [_, yArr[i]]
+              })
+              /**
+               * @param {any} _
+               */
+              .filter((_) => _[1] !== null)
+          )
         }
+        /**
+         * @param {any[]} yArr
+         */
         const getSegmentLengths = (yArr) => {
           // Get the segment lengths so the segments can be extracted from
           // the null-filtered smoothInputs array
           const segLens = []
           let count = 0
+          /**
+           * @param {any} _
+           */
           yArr.forEach((_) => {
             if (_ !== null) {
               count++
@@ -851,6 +927,10 @@ class Line {
           }
           return segLens
         }
+        /**
+         * @param {any[]} yArr
+         * @param {any} points
+         */
         const getSegments = (yArr, points) => {
           const segLens = getSegmentLengths(yArr)
           const segments = []
@@ -876,7 +956,7 @@ class Line {
             ) {
               break
             }
-            // falls through
+          // falls through
           case 2: {
             // Interpolate the full series with nulls excluded then extract the
             // null delimited segments with interpolated points included.
@@ -889,6 +969,7 @@ class Line {
                 ? spline.points(smoothInputs)
                 : smoothInputs
 
+            /** @type {any[]} */
             let smoothInputsLower = []
             if (rangeArea) {
               if (isLowerRangeAreaPath) {
@@ -915,28 +996,28 @@ class Line {
                 linePath =
                   graphics.move(
                     smoothInputs[_start][0],
-                    smoothInputs[_start][1]
+                    smoothInputs[_start][1],
                   ) + svgPoints
               } else if (rangeArea) {
                 linePath =
                   graphics.move(
                     smoothInputsLower[_start][0],
-                    smoothInputsLower[_start][1]
+                    smoothInputsLower[_start][1],
                   ) +
                   graphics.line(
                     smoothInputs[_start][0],
-                    smoothInputs[_start][1]
+                    smoothInputs[_start][1],
                   ) +
                   svgPoints +
                   graphics.line(
                     smoothInputsLower[_end][0],
-                    smoothInputsLower[_end][1]
+                    smoothInputsLower[_end][1],
                   )
               } else {
                 linePath =
                   graphics.move(
                     smoothInputs[_start][0],
-                    smoothInputs[_start][1]
+                    smoothInputs[_start][1],
                   ) + svgPoints
                 areaPath =
                   linePath +
@@ -952,7 +1033,12 @@ class Line {
               // Reverse the order of the upper path segments
               const upperLinePaths = linePaths.slice(segmentCount).reverse()
               linePaths.splice(segmentCount)
-              upperLinePaths.forEach((u) => linePaths.push(u))
+              /**
+               * @param {string} u
+               */
+              upperLinePaths.forEach((/** @type {any} */ u) =>
+                linePaths.push(u),
+              )
             }
             pathState = 0
             break
@@ -1040,6 +1126,11 @@ class Line {
         break
       }
       default: {
+        /**
+         * @param {string} curve
+         * @param {number} x
+         * @param {number} y
+         */
         const pathToPoint = (curve, x, y) => {
           /** @type {string} */ let path = ''
           switch (curve) {
@@ -1145,6 +1236,13 @@ class Line {
     }
   }
 
+  /**
+   * @param {any[]} series
+   * @param {any} pointsPos
+   * @param {number} i
+   * @param {number} j
+   * @param {number} realIndex
+   */
   handleNullDataPoints(series, pointsPos, i, j, realIndex) {
     const w = this.w
     if (

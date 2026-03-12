@@ -14,40 +14,75 @@ class SVGFilter extends SVGElement {
     this.attr('id', this._id)
   }
 
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {number} h
+   * @param {number} x
+   * @param {number} y
+   */
+  /**
+   * @param {number} w
+   * @param {number} h
+   * @param {number} [x]
+   * @param {number} [y]
+   */
   size(w, h, x, y) {
     return this.attr({ width: w, height: h, x, y })
   }
-  
 }
 
 class FilterBuilder {
+  /**
+   * @param {any} filter
+   */
   constructor(filter) {
     this.filter = filter
   }
 
+  /**
+   * @param {object} attrs
+   */
   colorMatrix(attrs) {
     return this._primitive('feColorMatrix', attrs)
   }
 
+  /**
+   * @param {object} attrs
+   */
   offset(attrs) {
     return this._primitive('feOffset', attrs)
   }
 
+  /**
+   * @param {object} attrs
+   */
   gaussianBlur(attrs) {
     return this._primitive('feGaussianBlur', attrs)
   }
 
+  /**
+   * @param {object} attrs
+   */
   flood(attrs) {
     return this._primitive('feFlood', attrs)
   }
 
+  /**
+   * @param {object} attrs
+   */
   composite(attrs) {
     return this._primitive('feComposite', attrs)
   }
 
+  /**
+   * @param {string[]} sources
+   */
   merge(sources) {
     const m = BrowserAPIs.createElementNS(SVGNS, 'feMerge')
-    sources.forEach((src) => {
+    /**
+     * @param {string} src
+     */
+    sources.forEach((/** @type {any} */ src) => {
       const mn = BrowserAPIs.createElementNS(SVGNS, 'feMergeNode')
       mn.setAttribute('in', src)
       m.appendChild(mn)
@@ -56,6 +91,10 @@ class FilterBuilder {
     return new SVGElement(m)
   }
 
+  /**
+   * @param {string} tag
+   * @param {Record<string, any>} attrs
+   */
   _primitive(tag, attrs) {
     const el = BrowserAPIs.createElementNS(SVGNS, tag)
     for (const key in attrs) {
@@ -67,7 +106,13 @@ class FilterBuilder {
 }
 
 // Install filter methods on SVGElement prototype
+/**
+ * @param {any} ElementClass
+ */
 function installFilterMethods(ElementClass) {
+  /**
+   * @param {Function} fn
+   */
   ElementClass.prototype.filterWith = function (fn) {
     const filter = new SVGFilter()
     this._filter = filter
@@ -91,6 +136,9 @@ function installFilterMethods(ElementClass) {
     return this
   }
 
+  /**
+   * @param {boolean} all
+   */
   ElementClass.prototype.unfilter = function (all) {
     if (this._filter) {
       this.node.removeAttribute('filter')

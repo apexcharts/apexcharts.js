@@ -3,11 +3,19 @@ import XAxis from './XAxis'
 import YAxis from './YAxis'
 
 export default class Axes {
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {import('../../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx // needed: passes ctx to XAxis/YAxis for event callbacks
   }
 
+  /**
+   * @param {string} type
+   * @param {any} elgrid
+   */
   drawAxis(type, elgrid) {
     const gl = this.w.globals
     const cnf = this.w.config
@@ -28,6 +36,10 @@ export default class Axes {
         elXaxis = xAxis.drawXaxis()
         this.w.dom.elGraphical.add(elXaxis)
 
+        /**
+         * @param {ApexYAxis} yaxe
+         * @param {number} index
+         */
         cnf.yaxis.map((yaxe, index) => {
           if (gl.ignoreYAxisIndexes.indexOf(index) === -1) {
             elYaxis = yAxis.drawYaxis(index)

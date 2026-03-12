@@ -12,6 +12,10 @@ import Series from '../modules/Series'
  **/
 
 class Radial extends Pie {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     super(w, ctx)
 
@@ -25,7 +29,7 @@ class Radial extends Pie {
 
     this.totalAngle = Math.abs(
       w.config.plotOptions.radialBar.endAngle -
-        w.config.plotOptions.radialBar.startAngle
+        w.config.plotOptions.radialBar.startAngle,
     )
 
     this.trackStartAngle = w.config.plotOptions.radialBar.track.startAngle
@@ -45,6 +49,9 @@ class Radial extends Pie {
     this.onBarLabelClick = this.onBarLabelClick.bind(this)
   }
 
+  /**
+   * @param {any[]} series
+   */
   draw(series) {
     const w = this.w
     const graphics = new Graphics(this.w)
@@ -97,7 +104,7 @@ class Radial extends Pie {
     if (this.radialDataLabels.value.show) {
       const offset = Math.max(
         this.radialDataLabels.value.offsetY,
-        this.radialDataLabels.name.offsetY
+        this.radialDataLabels.name.offsetY,
       )
       w.globals.radialSize += offset * angleRatio
     }
@@ -116,6 +123,9 @@ class Radial extends Pie {
     return ret
   }
 
+  /**
+   * @param {Record<string, any>} opts
+   */
   drawTracks(opts) {
     const w = this.w
     const graphics = new Graphics(this.w)
@@ -195,6 +205,9 @@ class Radial extends Pie {
     return g
   }
 
+  /**
+   * @param {Record<string, any>} opts
+   */
   drawArcs(opts) {
     const w = this.w
     // size, donutSize, centerX, centerY, colorArr, lineColorArr, sectorAngleArr, series
@@ -217,7 +230,8 @@ class Radial extends Pie {
         100 /
         2
 
-    const hollowRadius = hollowSize - w.config.plotOptions.radialBar.hollow.margin
+    const hollowRadius =
+      hollowSize - w.config.plotOptions.radialBar.hollow.margin
 
     if (w.config.plotOptions.radialBar.hollow.image !== undefined) {
       hollowFillID = this.drawHollowImage(opts, g, hollowSize, hollowFillID)
@@ -244,7 +258,7 @@ class Radial extends Pie {
 
     if (this.radialDataLabels.show) {
       const dataLabelsGroup = w.dom.Paper.findOne(
-        `.apexcharts-datalabels-group`
+        `.apexcharts-datalabels-group`,
       )
 
       dataLabels = this.renderInnerDataLabels(
@@ -255,7 +269,7 @@ class Radial extends Pie {
           centerX: opts.centerX,
           centerY: opts.centerY,
           opacity: shown,
-        }
+        },
       )
     }
 
@@ -312,7 +326,7 @@ class Radial extends Pie {
         prevEndAngle =
           Math.round(
             (this.totalAngle * Utils.negToZero(w.globals.previousPaths[i])) /
-              100
+              100,
           ) + prevStartAngle
       }
 
@@ -347,7 +361,7 @@ class Radial extends Pie {
         opts.centerX,
         opts.centerY,
         opts.size,
-        radialMidAngle
+        radialMidAngle,
       )
 
       Graphics.setAttrs(elPath.node, {
@@ -377,7 +391,7 @@ class Radial extends Pie {
           opts.centerX,
           opts.centerY,
           opts.size,
-          startAngle
+          startAngle,
         )
         const text = this.barLabels.formatter(w.seriesData.seriesNames[i], {
           seriesIndex: i,
@@ -461,6 +475,9 @@ class Radial extends Pie {
     }
   }
 
+  /**
+   * @param {Record<string, any>} opts
+   */
   drawHollow(opts) {
     const graphics = new Graphics(this.w)
 
@@ -477,6 +494,12 @@ class Radial extends Pie {
     return circle
   }
 
+  /**
+   * @param {Record<string, any>} opts
+   * @param {any} g
+   * @param {number} hollowSize
+   * @param {string} hollowFillID
+   */
   drawHollowImage(opts, g, hollowSize, hollowFillID) {
     const w = this.w
     const fill = new Fill(this.w)
@@ -496,35 +519,48 @@ class Radial extends Pie {
       const imgWidth = w.config.plotOptions.radialBar.hollow.imageWidth
       const imgHeight = w.config.plotOptions.radialBar.hollow.imageHeight
       if (imgWidth === undefined && imgHeight === undefined) {
-        const image = w.dom.Paper.image(hollowFillImg, function (loader) {
-          this.move(
-            opts.centerX -
-              loader.width / 2 +
-              w.config.plotOptions.radialBar.hollow.imageOffsetX,
-            opts.centerY -
-              loader.height / 2 +
-              w.config.plotOptions.radialBar.hollow.imageOffsetY
-          )
-        })
+        /**
+         * @param {Record<string, any>} loader
+         */
+        const image = w.dom.Paper.image(
+          hollowFillImg,
+          /** @this {any} */
+          function (/** @type {Record<string, any>} */ loader) {
+            this.move(
+              opts.centerX -
+                loader.width / 2 +
+                w.config.plotOptions.radialBar.hollow.imageOffsetX,
+              opts.centerY -
+                loader.height / 2 +
+                w.config.plotOptions.radialBar.hollow.imageOffsetY,
+            )
+          },
+        )
         g.add(image)
       } else {
-        const image = w.dom.Paper.image(hollowFillImg, function () {
-          this.move(
-            opts.centerX -
-              imgWidth / 2 +
-              w.config.plotOptions.radialBar.hollow.imageOffsetX,
-            opts.centerY -
-              imgHeight / 2 +
-              w.config.plotOptions.radialBar.hollow.imageOffsetY
-          )
-          this.size(imgWidth, imgHeight)
-        })
+        const image = w.dom.Paper.image(
+          hollowFillImg,
+          /** @this {any} */ function () {
+            this.move(
+              opts.centerX -
+                imgWidth / 2 +
+                w.config.plotOptions.radialBar.hollow.imageOffsetX,
+              opts.centerY -
+                imgHeight / 2 +
+                w.config.plotOptions.radialBar.hollow.imageOffsetY,
+            )
+            this.size(imgWidth, imgHeight)
+          },
+        )
         g.add(image)
       }
     }
     return hollowFillID
   }
 
+  /**
+   * @param {Record<string, any>} opts
+   */
   getStrokeWidth(opts) {
     const w = this.w
     return (
@@ -536,8 +572,12 @@ class Radial extends Pie {
     )
   }
 
+  /**
+   * @param {Event} e
+   */
   onBarLabelClick(e) {
-    const seriesIndex = parseInt(e.target.getAttribute('rel'), 10) - 1
+    const target = /** @type {Element} */ (e.target)
+    const seriesIndex = parseInt(target.getAttribute('rel') ?? '', 10) - 1
     const legendClick = this.barLabels.onClick
     const w = this.w
 

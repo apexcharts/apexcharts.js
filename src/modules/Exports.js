@@ -7,17 +7,28 @@ import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment.js'
 
 class Exports {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx // needed: theme, timeScale (for AxesUtils), passes ctx to Data/Series
   }
 
+  /**
+   * @param {string} svgString
+   */
   svgStringToNode(svgString) {
     const parser = new DOMParser()
     const svgDoc = parser.parseFromString(svgString, 'image/svg+xml')
     return svgDoc.documentElement
   }
 
+  /**
+   * @param {any} svg
+   * @param {number} scale
+   */
   scaleSvgNode(svg, scale) {
     // get current both width and height of the svg
     const svgWidth = parseFloat(svg.getAttributeNS(null, 'width'))
@@ -28,6 +39,9 @@ class Exports {
     svg.setAttributeNS(null, 'viewBox', '0 0 ' + svgWidth + ' ' + svgHeight)
   }
 
+  /**
+   * @param {number} [_scale]
+   */
   getSvgString(_scale) {
     return new Promise((resolve) => {
       const w = this.w
@@ -43,7 +57,9 @@ class Exports {
       const width = w.globals.svgWidth * scale
       const height = w.globals.svgHeight * scale
 
-      const clonedNode = w.dom.elWrap.cloneNode(true)
+      const clonedNode = /** @type {HTMLElement} */ (
+        w.dom.elWrap.cloneNode(true)
+      )
       clonedNode.style.width = width + 'px'
       clonedNode.style.height = height + 'px'
       const serializedNode = new XMLSerializer().serializeToString(clonedNode)
@@ -99,6 +115,9 @@ class Exports {
     })
   }
 
+  /**
+   * @param {any} svgNode
+   */
   convertImagesToBase64(svgNode) {
     const images = svgNode.getElementsByTagName('image')
     const promises = Array.from(images).map((img) => {
@@ -117,6 +136,9 @@ class Exports {
     return Promise.all(promises)
   }
 
+  /**
+   * @param {string} url
+   */
   getBase64FromUrl(url) {
     if (Environment.isSSR()) return Promise.resolve(url)
 
@@ -128,7 +150,7 @@ class Exports {
         canvas.width = img.width
         canvas.height = img.height
         const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0)
+        if (ctx) ctx.drawImage(img, 0, 0)
         resolve(canvas.toDataURL())
       }
       img.onerror = reject
@@ -147,6 +169,9 @@ class Exports {
     })
   }
 
+  /**
+   * @param {Record<string, any> | undefined} options
+   */
   dataURI(options) {
     if (Environment.isSSR()) return Promise.resolve({ imgURI: '' })
 
@@ -168,6 +193,7 @@ class Exports {
           : w.config.chart.background
 
       const ctx = canvas.getContext('2d')
+      if (!ctx) return
       ctx.fillStyle = canvasBg
       ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale)
 
@@ -200,7 +226,7 @@ class Exports {
       this.triggerDownload(
         url,
         this.w.config.chart.toolbar.export.svg.filename,
-        '.svg'
+        '.svg',
       )
     })
   }
@@ -211,8 +237,8 @@ class Exports {
     const option = scale
       ? { scale: scale }
       : width
-      ? { width: width }
-      : undefined
+        ? { width: width }
+        : undefined
     this.dataURI(option).then(({ imgURI, blob }) => {
       if (blob) {
         // @ts-ignore — msSaveOrOpenBlob is an IE11-only API
@@ -221,7 +247,7 @@ class Exports {
         this.triggerDownload(
           imgURI,
           this.w.config.chart.toolbar.export.png.filename,
-          '.png'
+          '.png',
         )
       }
     })
@@ -238,14 +264,22 @@ class Exports {
 
     if (!series) series = w.config.series
 
+    /** @type {any[]} */
     let columns = []
     const rows = []
     let result = ''
     const universalBOM = '\uFEFF'
+    /**
+     * @param {Record<string, any>} s
+     * @param {number} i
+     */
     const gSeries = w.seriesData.series.map((s, i) => {
       return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : []
     })
 
+    /**
+     * @param {any} cat
+     */
     const getFormattedCategory = (cat) => {
       if (
         typeof w.config.chart.toolbar.export.csv.categoryFormatter ===
@@ -260,6 +294,9 @@ class Exports {
       return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join('')
     }
 
+    /**
+     * @param {any} value
+     */
     const getFormattedValue = (value) => {
       return typeof w.config.chart.toolbar.export.csv.valueFormatter ===
         'function'
@@ -268,13 +305,22 @@ class Exports {
     }
 
     const seriesMaxDataLength = Math.max(
-      ...series.map((s) => {
+      /**
+       * @param {Record<string, any>} s
+       */
+      ...series.map((/** @type {any} */ s) => {
         return s.data ? s.data.length : 0
-      })
+      }),
     )
     const dataFormat = new Data(this.w)
 
-    const axesUtils = new AxesUtils(this.w, { theme: this.ctx.theme, timeScale: this.ctx.timeScale })
+    const axesUtils = new AxesUtils(this.w, {
+      theme: this.ctx.theme,
+      timeScale: this.ctx.timeScale,
+    })
+    /**
+     * @param {number} i
+     */
     const getCat = (i) => {
       let cat = ''
 
@@ -304,7 +350,7 @@ class Exports {
               w.labelData.labels,
               w.labelData.timescaleLabels,
               0,
-              i
+              i,
             ).text
           }
         }
@@ -335,6 +381,10 @@ class Exports {
       return [...Array(seriesMaxDataLength)].map(() => '')
     }
 
+    /**
+     * @param {Record<string, any>} s
+     * @param {number} sI
+     */
     const handleAxisRowsColumns = (s, sI) => {
       if (columns.length && sI === 0) {
         // It's the first series.  Go ahead and create the first row with header information.
@@ -413,8 +463,15 @@ class Exports {
       const categories = new Set()
       const data = {}
 
-      series.forEach((s, sI) => {
-        s?.data.forEach((dataItem) => {
+      /**
+       * @param {Record<string, any>} s
+       * @param {number} sI
+       */
+      series.forEach((/** @type {any} */ s, /** @type {any} */ sI) => {
+        /**
+         * @param {Record<string, any>} dataItem
+         */
+        s?.data.forEach((/** @type {any} */ dataItem) => {
           let cat, value
           if (dataFormat.isFormatXY()) {
             cat = dataItem.x
@@ -425,10 +482,13 @@ class Exports {
           } else {
             return
           }
-          if (!data[cat]) {
-            data[cat] = Array(series.length).fill('')
+          if (!(/** @type {Record<string,any>} */ (data)[cat])) {
+            ;/** @type {Record<string,any>} */ (data)[cat] = Array(
+              series.length,
+            ).fill('')
           }
-          data[cat][sI] = getFormattedValue(value)
+          ;/** @type {Record<string,any>} */ (data)[cat][sI] =
+            getFormattedValue(value)
           categories.add(cat)
         })
       })
@@ -442,7 +502,7 @@ class Exports {
         .forEach((cat) => {
           rows.push([
             getFormattedCategory(cat),
-            data[cat].join(columnDelimiter),
+            /** @type {Record<string,any>} */ (data)[cat].join(columnDelimiter),
           ])
         })
     }
@@ -464,13 +524,17 @@ class Exports {
       columns.push('minimum')
       columns.push('maximum')
     } else {
-      series.map((s, sI) => {
+      /**
+       * @param {Record<string, any>} s
+       * @param {number} sI
+       */
+      series.map((/** @type {any} */ s, /** @type {any} */ sI) => {
         const sname = (s.name ? s.name : `series-${sI}`) + ''
         if (w.globals.axisCharts) {
           columns.push(
             sname.split(columnDelimiter).join('')
               ? sname.split(columnDelimiter).join('')
-              : `series-${sI}`
+              : `series-${sI}`,
           )
         }
       })
@@ -489,7 +553,11 @@ class Exports {
     ) {
       handleUnequalXValues()
     } else {
-      series.map((s, sI) => {
+      /**
+       * @param {Record<string, any>} s
+       * @param {number} sI
+       */
+      series.map((/** @type {any} */ s, /** @type {any} */ sI) => {
         if (w.globals.axisCharts) {
           handleAxisRowsColumns(s, sI)
         } else {
@@ -508,10 +576,15 @@ class Exports {
       'data:text/csv; charset=utf-8,' +
         encodeURIComponent(universalBOM + result),
       fileName ? fileName : w.config.chart.toolbar.export.csv.filename,
-      '.csv'
+      '.csv',
     )
   }
 
+  /**
+   * @param {string} href
+   * @param {string} filename
+   * @param {string} ext
+   */
   triggerDownload(href, filename, ext) {
     if (Environment.isSSR()) return
 

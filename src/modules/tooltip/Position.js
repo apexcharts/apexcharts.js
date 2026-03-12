@@ -9,6 +9,9 @@ import Series from '../Series'
  **/
 
 export default class Position {
+  /**
+   * @param {import('./Tooltip').default} tooltipContext
+   */
   constructor(tooltipContext) {
     this.ttCtx = tooltipContext
     this.w = tooltipContext.w
@@ -19,6 +22,7 @@ export default class Position {
    * Along with this, this function also calls the xaxisMove function
    * @memberof Position
    * @param {number} cx - point's x position, wherever point's x is, you need to move crosshair
+   * @param {number | null} [j]
    */
   moveXCrosshairs(cx, j = null) {
     const ttCtx = this.ttCtx
@@ -34,10 +38,10 @@ export default class Position {
     }
 
     if (xcrosshairs !== null && !w.globals.isBarHorizontal) {
-      xcrosshairs.setAttribute('x', x)
-      xcrosshairs.setAttribute('x1', x)
-      xcrosshairs.setAttribute('x2', x)
-      xcrosshairs.setAttribute('y2', w.layout.gridHeight)
+      xcrosshairs.setAttribute('x', String(x))
+      xcrosshairs.setAttribute('x1', String(x))
+      xcrosshairs.setAttribute('x2', String(x))
+      xcrosshairs.setAttribute('y2', String(w.layout.gridHeight))
       xcrosshairs.classList.add('apexcharts-active')
     }
 
@@ -112,52 +116,62 @@ export default class Position {
         cx = cx + w.layout.translateX
 
         const graphics = new Graphics(this.w)
-        const textRect = graphics.getTextRects(ttCtx.xaxisTooltipText.innerHTML)
+        const textRect = graphics.getTextRects(
+          ttCtx.xaxisTooltipText?.innerHTML ?? '',
+          w.config.xaxis.labels.style.fontSize,
+        )
 
-        ttCtx.xaxisTooltipText.style.minWidth = textRect.width + 'px'
+        if (ttCtx.xaxisTooltipText) {
+          ttCtx.xaxisTooltipText.style.minWidth = textRect.width + 'px'
+        }
         ttCtx.xaxisTooltip.style.left = cx + 'px'
         ttCtx.xaxisTooltip.style.top = cy + 'px'
       }
     }
   }
 
+  /**
+   * @param {number} index
+   */
   moveYAxisTooltip(index) {
     const w = this.w
     const ttCtx = this.ttCtx
 
     if (ttCtx.yaxisTTEls === null) {
-      ttCtx.yaxisTTEls = w.dom.baseEl.querySelectorAll(
-        '.apexcharts-yaxistooltip'
-      )
+      ttCtx.yaxisTTEls = /** @type {any[]} */ ([
+        ...w.dom.baseEl.querySelectorAll('.apexcharts-yaxistooltip'),
+      ])
     }
 
     const ycrosshairsHiddenRectY1 = parseInt(
-      ttCtx.ycrosshairsHidden.getAttribute('y1'),
-      10
+      ttCtx.ycrosshairsHidden?.getAttribute('y1') ?? '0',
+      10,
     )
     let cy = w.layout.translateY + ycrosshairsHiddenRectY1
 
-    const yAxisTTRect = ttCtx.yaxisTTEls[index].getBoundingClientRect()
-    const yAxisTTHeight = yAxisTTRect.height
-    let cx = w.globals.translateYAxisX[index] - 2
+    if (ttCtx.yaxisTTEls) {
+      const yAxisTTRect = ttCtx.yaxisTTEls[index].getBoundingClientRect()
+      const yAxisTTHeight = yAxisTTRect.height
+      let cx = w.globals.translateYAxisX[index] - 2
 
-    if (w.config.yaxis[index].opposite) {
-      cx = cx - yAxisTTRect.width
-    }
+      if (w.config.yaxis[index].opposite) {
+        cx = cx - yAxisTTRect.width
+      }
 
-    cy = cy - yAxisTTHeight / 2
+      cy = cy - yAxisTTHeight / 2
 
-    if (
-      w.globals.ignoreYAxisIndexes.indexOf(index) === -1 &&
-      cy > 0 &&
-      cy < w.layout.gridHeight
-    ) {
-      ttCtx.yaxisTTEls[index].classList.add('apexcharts-active')
-      ttCtx.yaxisTTEls[index].style.top = cy + 'px'
-      ttCtx.yaxisTTEls[index].style.left =
-        cx + w.config.yaxis[index].tooltip.offsetX + 'px'
-    } else {
-      ttCtx.yaxisTTEls[index].classList.remove('apexcharts-active')
+      if (
+        w.globals.ignoreYAxisIndexes.indexOf(index) === -1 &&
+        cy > 0 &&
+        cy < w.layout.gridHeight
+      ) {
+        ttCtx.yaxisTTEls[index].classList.add('apexcharts-active')
+        ttCtx.yaxisTTEls[index].style.top = cy + 'px'
+        ttCtx.yaxisTTEls[index].style.left =
+          cx + w.config.yaxis[index].tooltip.offsetX + 'px'
+      } else {
+        ttCtx.yaxisTTEls[index].classList.remove('apexcharts-active')
+      }
     }
   }
 
@@ -166,7 +180,7 @@ export default class Position {
    * @memberof Position
    * @param {number} cx - point's x position, wherever point's x is, you need to move tooltip
    * @param {number} cy - point's y position, wherever point's y is, you need to move tooltip
-   * @param {number} markerSize - point's size
+   * @param {number | null} [markerSize] - point's size
    */
   moveTooltip(cx, cy, markerSize = null) {
     const w = this.w
@@ -194,6 +208,7 @@ export default class Position {
 
     if (w.config.tooltip.followCursor) {
       const elGrid = ttCtx.getElGrid()
+      if (!elGrid) return
       const seriesBound = elGrid.getBoundingClientRect()
 
       x = ttCtx.e.clientX - seriesBound.left
@@ -215,21 +230,27 @@ export default class Position {
     if (!isNaN(x)) {
       x = x + w.layout.translateX
 
-      tooltipEl.style.left = x + 'px'
-      tooltipEl.style.top = y + 'px'
+      if (tooltipEl) {
+        tooltipEl.style.left = x + 'px'
+        tooltipEl.style.top = y + 'px'
+      }
     }
   }
 
+  /**
+   * @param {number} i
+   * @param {number} j
+   */
   moveMarkers(i, j) {
     const w = this.w
     const ttCtx = this.ttCtx
 
     if (w.globals.markers.size[i] > 0) {
       const allPoints = w.dom.baseEl.querySelectorAll(
-        ` .apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker`
+        ` .apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker`,
       )
       for (let p = 0; p < allPoints.length; p++) {
-        if (parseInt(allPoints[p].getAttribute('rel'), 10) === j) {
+        if (parseInt(allPoints[p].getAttribute('rel') ?? '0', 10) === j) {
           ttCtx.marker.resetPointsSize()
           ttCtx.marker.enlargeCurrentPoint(j, allPoints[p])
         }
@@ -242,6 +263,10 @@ export default class Position {
 
   // This function is used when you need to show markers/points only on hover -
   // DIFFERENT X VALUES in multiple series
+  /**
+   * @param {number} j
+   * @param {number} capturedSeries
+   */
   moveDynamicPointOnHover(j, capturedSeries) {
     const w = this.w
     const ttCtx = this.ttCtx
@@ -253,7 +278,7 @@ export default class Position {
 
     const hoverSize = ttCtx.tooltipUtil.getHoverMarkerSize(capturedSeries)
 
-    const serType = w.config.series[capturedSeries].type
+    const serType = /** @type {any} */ (w.config.series[capturedSeries]).type
     if (
       serType &&
       (serType === 'column' ||
@@ -268,11 +293,11 @@ export default class Position {
     cy = pointsArr[capturedSeries]?.[j]?.[1] || 0
 
     const point = w.dom.baseEl.querySelector(
-      `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers path`
+      `.apexcharts-series[data\\:realIndex='${capturedSeries}'] .apexcharts-series-markers path`,
     )
 
     if (point && cy < w.layout.gridHeight && cy > 0) {
-      const shape = point.getAttribute('shape')
+      const shape = point.getAttribute('shape') ?? 'circle'
 
       const path = graphics.getMarkerPath(cx, cy, shape, hoverSize * 1.5)
       point.setAttribute('d', path)
@@ -287,6 +312,9 @@ export default class Position {
 
   // This function is used when you need to show markers/points only on hover -
   // SAME X VALUES in multiple series
+  /**
+   * @param {number} j
+   */
   moveDynamicPointsOnHover(j) {
     const ttCtx = this.ttCtx
     const w = ttCtx.w
@@ -334,7 +362,7 @@ export default class Position {
           let pcy2
           points[p].setAttribute('cx', cx)
 
-          const shape = points[p].getAttribute('shape')
+          const shape = points[p].getAttribute('shape') ?? 'circle'
 
           if (w.config.chart.type === 'rangeArea' && !w.globals.comboCharts) {
             const rangeStartIndex = j + w.seriesData.series[p].length
@@ -365,12 +393,16 @@ export default class Position {
     }
   }
 
+  /**
+   * @param {number} j
+   * @param {number} capturedSeries
+   */
   moveStickyTooltipOverBars(j, capturedSeries) {
     const w = this.w
     const ttCtx = this.ttCtx
 
     let barLen = w.globals.columnSeries
-      ? w.globals.columnSeries.length
+      ? /** @type {any} */ (w.globals.columnSeries).length
       : w.seriesData.series.length
 
     if (w.config.chart.stacked) {
@@ -387,7 +419,7 @@ export default class Position {
       i = series.getActiveConfigSeriesIndex('desc') + 1
     }
     let jBar = w.dom.baseEl.querySelector(
-      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
+      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`,
     )
     if (!jBar && typeof capturedSeries === 'number') {
       // Try with captured series index
@@ -395,15 +427,16 @@ export default class Position {
         `.apexcharts-bar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
         .apexcharts-candlestick-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
         .apexcharts-boxPlot-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
-        .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}']`
+        .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}']`,
       )
     }
 
-    let bcx = jBar ? parseFloat(jBar.getAttribute('cx')) : 0
-    let bcy = jBar ? parseFloat(jBar.getAttribute('cy')) : 0
-    const bw = jBar ? parseFloat(jBar.getAttribute('barWidth')) : 0
+    let bcx = jBar ? parseFloat(jBar.getAttribute('cx') ?? '0') : 0
+    let bcy = jBar ? parseFloat(jBar.getAttribute('cy') ?? '0') : 0
+    const bw = jBar ? parseFloat(jBar.getAttribute('barWidth') ?? '0') : 0
 
     const elGrid = ttCtx.getElGrid()
+    if (!elGrid) return
     const seriesBound = elGrid.getBoundingClientRect()
 
     const isBoxOrCandle =

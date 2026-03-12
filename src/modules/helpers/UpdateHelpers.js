@@ -7,6 +7,10 @@ import Utils from '../../utils/Utils'
 import PerformanceCache from '../../utils/PerformanceCache'
 
 export default class UpdateHelpers {
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {import('../../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx // needed: getSyncedCharts, series, data, pie, update
@@ -15,7 +19,7 @@ export default class UpdateHelpers {
   /**
    * private method to update Options.
    *
-   * @param {any} options - A new config object can be passed which will be merged with the existing config object
+   * @param {Record<string, any>} options - A new config object can be passed which will be merged with the existing config object
    * @param {boolean} redraw - should redraw from beginning or should use existing paths and redraw from there
    * @param {boolean} animate - should animate or not on updating Options
    * @param {boolean} overwriteInitialConfig - should update the initial config or not
@@ -25,7 +29,7 @@ export default class UpdateHelpers {
     redraw = false,
     animate = true,
     updateSyncedCharts = true,
-    overwriteInitialConfig = false
+    overwriteInitialConfig = false,
   ) {
     return new Promise((resolve) => {
       let charts = [this.ctx]
@@ -88,7 +92,7 @@ export default class UpdateHelpers {
                 const series =
                   w.config.series[w.globals.collapsedSeriesIndices[i]]
                 w.globals.collapsedSeries[i].data = w.globals.axisCharts
-                  ? series.data.slice()
+                  ? /** @type {any} */ (series).data.slice()
                   : series
               }
               for (
@@ -100,7 +104,7 @@ export default class UpdateHelpers {
                   w.config.series[w.globals.ancillaryCollapsedSeriesIndices[i]]
                 w.globals.ancillaryCollapsedSeries[i].data = w.globals
                   .axisCharts
-                  ? series.data.slice()
+                  ? /** @type {any} */ (series).data.slice()
                   : series
               }
 
@@ -122,7 +126,8 @@ export default class UpdateHelpers {
   /**
    * Private method to update Series.
    *
-   * @param {array} newSeries - New series which will override the existing
+   * @param {any[]} newSeries - New series which will override the existing
+   * @param {boolean} animate
    */
   _updateSeries(newSeries, animate, overwriteInitialSeries = false) {
     return new Promise((resolve) => {
@@ -151,7 +156,9 @@ export default class UpdateHelpers {
       this.ctx._writeParsedAxisFlags(parsedState.axisFlags)
 
       if (overwriteInitialSeries) {
-        w.globals.initialConfig.series = Utils.clone(w.config.series)
+        if (w.globals.initialConfig) {
+          w.globals.initialConfig.series = Utils.clone(w.config.series)
+        }
         w.globals.initialSeries = Utils.clone(w.config.series)
       }
 
@@ -179,6 +186,9 @@ export default class UpdateHelpers {
    * - Series count unchanged (grid column/row counts depend on it)
    * - No series currently collapsing (collapsed series changes visible data range)
    * - Not a combo chart (combo charts mix types and need coordinated axis recalc)
+   * @param {any[]} newSeries
+   * @param {number} prevSeriesCount
+   * @param {import('../../types/internal').ChartStateW} w
    */
   _canUseFastPath(newSeries, prevSeriesCount, w) {
     if (!w.dom.elGraphical) return false
@@ -189,22 +199,33 @@ export default class UpdateHelpers {
     return true
   }
 
+  /**
+   * @param {any} s
+   * @param {number} i
+   */
   _extendSeries(s, i) {
     const w = this.w
     const ser = w.config.series[i]
 
     return {
-      ...w.config.series[i],
-      name: s.name ? s.name : ser?.name,
-      color: s.color ? s.color : ser?.color,
-      type: s.type ? s.type : ser?.type,
-      group: s.group ? s.group : ser?.group,
-      hidden: typeof s.hidden !== 'undefined' ? s.hidden : ser?.hidden,
-      data: s.data ? s.data : ser?.data,
+      .../** @type {Record<string,any>} */ (w.config.series[i]),
+      name: s.name ? s.name : /** @type {any} */ (ser)?.name,
+      color: s.color ? s.color : /** @type {any} */ (ser)?.color,
+      type: s.type ? s.type : /** @type {any} */ (ser)?.type,
+      group: s.group ? s.group : /** @type {any} */ (ser)?.group,
+      hidden:
+        typeof s.hidden !== 'undefined'
+          ? s.hidden
+          : /** @type {any} */ (ser)?.hidden,
+      data: s.data ? s.data : /** @type {any} */ (ser)?.data,
       zIndex: typeof s.zIndex !== 'undefined' ? s.zIndex : i,
     }
   }
 
+  /**
+   * @param {number} seriesIndex
+   * @param {number} dataPointIndex
+   */
   toggleDataPointSelection(seriesIndex, dataPointIndex) {
     const w = this.w
     let elPath = null
@@ -212,14 +233,12 @@ export default class UpdateHelpers {
 
     if (w.globals.axisCharts) {
       elPath = w.dom.Paper.findOne(
-        `${parent} path[j='${dataPointIndex}'], ${parent} circle[j='${dataPointIndex}'], ${parent} rect[j='${dataPointIndex}']`
+        `${parent} path[j='${dataPointIndex}'], ${parent} circle[j='${dataPointIndex}'], ${parent} rect[j='${dataPointIndex}']`,
       )
     } else {
       // dataPointIndex will be undefined here, hence using seriesIndex
       if (typeof dataPointIndex === 'undefined') {
-        elPath = w.dom.Paper.findOne(
-          `${parent} path[j='${seriesIndex}']`
-        )
+        elPath = w.dom.Paper.findOne(`${parent} path[j='${seriesIndex}']`)
 
         if (
           w.config.chart.type === 'pie' ||
@@ -233,7 +252,7 @@ export default class UpdateHelpers {
 
     if (elPath) {
       const graphics = new Graphics(this.w)
-      graphics.pathMouseDown(elPath, null)
+      graphics.pathMouseDown(elPath, /** @type {any} */ (null))
     } else {
       console.warn('toggleDataPointSelection: Element not found')
       return null
@@ -242,6 +261,9 @@ export default class UpdateHelpers {
     return elPath.node ? elPath.node : null
   }
 
+  /**
+   * @param {Record<string, any>} options
+   */
   forceXAxisUpdate(options) {
     const w = this.w
     const minmax = ['min', 'max']
@@ -249,7 +271,8 @@ export default class UpdateHelpers {
     minmax.forEach((a) => {
       if (typeof options.xaxis[a] !== 'undefined') {
         w.config.xaxis[a] = options.xaxis[a]
-        w.globals.lastXAxis[a] = options.xaxis[a]
+        ;/** @type {Record<string,any>} */ (w.globals.lastXAxis)[a] =
+          options.xaxis[a]
       }
     })
 
@@ -264,6 +287,9 @@ export default class UpdateHelpers {
     return options
   }
 
+  /**
+   * @param {Record<string, any>} options
+   */
   forceYAxisUpdate(options) {
     if (
       options.chart &&
@@ -271,10 +297,16 @@ export default class UpdateHelpers {
       options.chart.stackType === '100%'
     ) {
       if (Array.isArray(options.yaxis)) {
-        options.yaxis.forEach((yaxe, index) => {
-          options.yaxis[index].min = 0
-          options.yaxis[index].max = 100
-        })
+        /**
+         * @param {ApexYAxis} yaxe
+         * @param {number} index
+         */
+        options.yaxis.forEach(
+          (/** @type {any} */ yaxe, /** @type {any} */ index) => {
+            options.yaxis[index].min = 0
+            options.yaxis[index].max = 100
+          },
+        )
       } else {
         options.yaxis.min = 0
         options.yaxis.max = 100
@@ -288,6 +320,7 @@ export default class UpdateHelpers {
    * This function fixes an important bug where a user might load a new series after zooming in/out of previous series which resulted in wrong min/max
    * Also, this should never be called internally on zoom/pan - the reset should only happen when user calls the updateSeries() function externally
    * The function also accepts an object {xaxis, yaxis} which when present is set as the new xaxis/yaxis
+   * @param {Record<string, any>} opts
    */
   revertDefaultAxisMinMax(opts) {
     const w = this.w
@@ -301,16 +334,25 @@ export default class UpdateHelpers {
     if (opts && opts.yaxis) {
       yaxis = opts.yaxis
     }
-    w.config.xaxis.min = xaxis.min
-    w.config.xaxis.max = xaxis.max
+    const _xaxis = /** @type {any} */ (xaxis)
+    w.config.xaxis.min = _xaxis.min
+    w.config.xaxis.max = _xaxis.max
 
+    /**
+     * @param {number} index
+     */
     const getLastYAxis = (index) => {
       if (typeof yaxis[index] !== 'undefined') {
-        w.config.yaxis[index].min = yaxis[index].min
-        w.config.yaxis[index].max = yaxis[index].max
+        const _y = /** @type {any} */ (yaxis[index])
+        w.config.yaxis[index].min = _y.min
+        w.config.yaxis[index].max = _y.max
       }
     }
 
+    /**
+     * @param {ApexYAxis} yaxe
+     * @param {number} index
+     */
     w.config.yaxis.map((yaxe, index) => {
       if (w.interact.zoomed) {
         // user has zoomed, check the last yaxis

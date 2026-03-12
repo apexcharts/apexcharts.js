@@ -14,6 +14,10 @@ import Utils from '../utils/Utils'
  **/
 
 export default class TreemapChart {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.ctx = ctx
     this.w = w
@@ -22,9 +26,13 @@ export default class TreemapChart {
     this.helpers = new Helpers(w, ctx)
     this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation
 
+    /** @type {any} */
     this.labels = []
   }
 
+  /**
+   * @param {any[]} series
+   */
   draw(series) {
     const w = this.w
     const graphics = new Graphics(this.w, this.ctx)
@@ -36,9 +44,16 @@ export default class TreemapChart {
 
     if (w.globals.noData) return ret
 
+    /** @type {any[]} */
     const ser = []
+    /**
+     * @param {number[]} s
+     */
     series.forEach((s) => {
-      const d = s.map((v) => {
+      /**
+       * @param {number} v
+       */
+      const d = s.map((/** @type {any} */ v) => {
         return Math.abs(v)
       })
       ser.push(d)
@@ -46,8 +61,11 @@ export default class TreemapChart {
 
     this.negRange = this.helpers.checkColorRange()
 
-    w.config.series.forEach((s, i) => {
-      s.data.forEach((l) => {
+    w.config.series.forEach((/** @type {any} */ s, /** @type {any} */ i) => {
+      /**
+       * @param {number} l
+       */
+      s.data.forEach((/** @type {any} */ l) => {
         if (!Array.isArray(this.labels[i])) this.labels[i] = []
         this.labels[i].push(l.x)
       })
@@ -56,7 +74,7 @@ export default class TreemapChart {
     const nodes = TreemapSquared.generate(
       ser,
       w.layout.gridWidth,
-      w.layout.gridHeight
+      w.layout.gridHeight,
     )
 
     nodes.forEach((node, i) => {
@@ -87,7 +105,11 @@ export default class TreemapChart {
         yMax: -Infinity,
       }
 
-      node.forEach((r, j) => {
+      /**
+       * @param {number} r
+       * @param {number} j
+       */
+      node.forEach((/** @type {any} */ r, /** @type {any} */ j) => {
         const x1 = r[0]
         const y1 = r[1]
         const x2 = r[2]
@@ -102,7 +124,7 @@ export default class TreemapChart {
           w.config.chart.type,
           i,
           j,
-          this.negRange
+          this.negRange,
         )
         const color = colorProps.color
 
@@ -123,7 +145,7 @@ export default class TreemapChart {
           this.strokeWidth,
           w.config.plotOptions.treemap.useFillColorAsStroke
             ? color
-            : w.globals.stroke.colors[i]
+            : w.globals.stroke.colors[i],
         )
 
         elRect.attr({
@@ -166,10 +188,15 @@ export default class TreemapChart {
 
             if (
               w.globals.previousPaths[i] &&
-              w.globals.previousPaths[i][j] &&
-              w.globals.previousPaths[i][j].rect
+              /** @type {Record<string,any>} */ (w.globals.previousPaths[i])[
+                j
+              ] &&
+              /** @type {Record<string,any>} */ (w.globals.previousPaths[i])[j]
+                .rect
             ) {
-              fromRect = w.globals.previousPaths[i][j].rect
+              fromRect = /** @type {Record<string,any>} */ (
+                w.globals.previousPaths[i]
+              )[j].rect
             }
 
             this.animateTreemap(elRect, fromRect, toRect, speed)
@@ -185,14 +212,14 @@ export default class TreemapChart {
           w,
         })
         if (w.config.plotOptions.treemap.dataLabels.format === 'truncate') {
-          fontSize = parseInt(w.config.dataLabels.style.fontSize, 10)
+          fontSize = parseInt(String(w.config.dataLabels.style.fontSize), 10)
           formattedText = this.truncateLabels(
-            formattedText,
+            String(formattedText),
             fontSize,
             x1,
             y1,
             x2,
-            y2
+            y2,
           )
         }
         let dataLabels = null
@@ -216,7 +243,7 @@ export default class TreemapChart {
             x1,
             y1,
             x2,
-            y2
+            y2,
           )
         }
         elSeries.add(elRect)
@@ -227,7 +254,8 @@ export default class TreemapChart {
 
       const seriesTitle = w.config.plotOptions.treemap.seriesTitle
       if (w.config.series.length > 1 && seriesTitle && seriesTitle.show) {
-        const sName = w.config.series[i].name || ''
+        const sName =
+          /** @type {Record<string,any>} */ (w.config.series[i]).name || ''
 
         if (sName && bounds.xMin < Infinity && bounds.yMin < Infinity) {
           const {
@@ -250,7 +278,7 @@ export default class TreemapChart {
           const textSize = graphics.getTextRects(
             sName,
             style.fontSize,
-            style.fontFamily
+            style.fontFamily,
           )
           const labelRectWidth = textSize.width + padding.left + padding.right
           const labelRectHeight = textSize.height + padding.top + padding.bottom
@@ -269,12 +297,12 @@ export default class TreemapChart {
             style.background,
             1,
             borderWidth,
-            borderColor
+            borderColor,
           )
 
           const elLabelText = graphics.drawText({
             x: labelX + padding.left,
-            y: labelY + padding.top + textSize.height * 0.75,
+            y: labelY + padding.top + (textSize?.height ?? 0) * 0.75,
             text: sName,
             fontSize: style.fontSize,
             fontFamily: style.fontFamily,
@@ -297,10 +325,16 @@ export default class TreemapChart {
 
   // This calculates a font-size based upon
   // average label length and the size of the box
+  /**
+   * @param {number[]} coordinates
+   */
   getFontSize(coordinates) {
     const w = this.w
 
     // total length of labels (i.e [["Italy"],["Spain", "Greece"]] -> 16)
+    /**
+     * @param {any[]} arr
+     */
     function totalLabelLength(arr) {
       let i,
         total = 0
@@ -317,6 +351,9 @@ export default class TreemapChart {
     }
 
     // count of labels (i.e [["Italy"],["Spain", "Greece"]] -> 3)
+    /**
+     * @param {any[]} arr
+     */
     function countLabels(arr) {
       let i,
         total = 0
@@ -335,24 +372,37 @@ export default class TreemapChart {
     const averagelabelsize =
       totalLabelLength(this.labels) / countLabels(this.labels)
 
+    /**
+     * @param {number} width
+     * @param {number} height
+     */
     function fontSize(width, height) {
       const area = width * height
       const arearoot = Math.pow(area, 0.5)
       return Math.min(
         arearoot / averagelabelsize,
-        parseInt(w.config.dataLabels.style.fontSize, 10)
+        parseInt(w.config.dataLabels.style.fontSize, 10),
       )
     }
 
     return fontSize(
       coordinates[2] - coordinates[0],
-      coordinates[3] - coordinates[1]
+      coordinates[3] - coordinates[1],
     )
   }
 
+  /**
+   * @param {any} elText
+   * @param {string | number} fontSize
+   * @param {string} text
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} x2
+   * @param {number} y2
+   */
   rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
     const graphics = new Graphics(this.w)
-    const textRect = graphics.getTextRects(text, fontSize)
+    const textRect = graphics.getTextRects(text, String(fontSize))
 
     // if the label fits better sideways then rotate it
     if (
@@ -365,16 +415,24 @@ export default class TreemapChart {
         'transform',
         `rotate(-90 ${labelRotatingCenter.x} ${
           labelRotatingCenter.y
-        }) translate(${textRect.height / 3})`
+        }) translate(${textRect.height / 3})`,
       )
     }
   }
 
   // This is an alternative label formatting method that uses a
   // consistent font size, and trims the edge of long labels
+  /**
+   * @param {string} text
+   * @param {number} fontSize
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} x2
+   * @param {number} y2
+   */
   truncateLabels(text, fontSize, x1, y1, x2, y2) {
     const graphics = new Graphics(this.w)
-    const textRect = graphics.getTextRects(text, fontSize)
+    const textRect = graphics.getTextRects(text, String(fontSize))
 
     // Determine max width based on ideal orientation of text
     const labelMaxWidth =
@@ -396,6 +454,12 @@ export default class TreemapChart {
     }
   }
 
+  /**
+   * @param {any} el
+   * @param {Record<string, any>} fromRect
+   * @param {Record<string, any>} toRect
+   * @param {number} speed
+   */
   animateTreemap(el, fromRect, toRect, speed) {
     const animations = new Animations(this.w)
     animations.animateRect(el, fromRect, toRect, speed, () => {

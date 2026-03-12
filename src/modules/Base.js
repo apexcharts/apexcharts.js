@@ -12,6 +12,9 @@ import { Environment } from '../utils/Environment'
  * @module Base
  **/
 export default class Base {
+  /**
+   * @param {object} opts
+   */
   constructor(opts) {
     this.opts = opts
   }
@@ -181,10 +184,10 @@ export default class Base {
     ]) {
       Object.defineProperty(globals, key, {
         get() {
-          return w.formatters[key]
+          return /** @type {Record<string,any>} */ (w.formatters)[key]
         },
         set(v) {
-          w.formatters[key] = v
+          /** @type {Record<string,any>} */ (w.formatters)[key] = v
         },
         enumerable: false,
         configurable: true,
@@ -213,10 +216,10 @@ export default class Base {
     ]) {
       Object.defineProperty(globals, key, {
         get() {
-          return w.interact[key]
+          return /** @type {Record<string,any>} */ (w.interact)[key]
         },
         set(v) {
-          w.interact[key] = v
+          /** @type {Record<string,any>} */ (w.interact)[key] = v
         },
         enumerable: false,
         configurable: true,
@@ -243,10 +246,10 @@ export default class Base {
     ]) {
       Object.defineProperty(globals, key, {
         get() {
-          return w.layout[key]
+          return /** @type {Record<string,any>} */ (w.layout)[key]
         },
         set(v) {
-          w.layout[key] = v
+          /** @type {Record<string,any>} */ (w.layout)[key] = v
         },
         enumerable: false,
         configurable: true,
@@ -269,10 +272,10 @@ export default class Base {
     ]) {
       Object.defineProperty(globals, key, {
         get() {
-          return w.seriesData[key]
+          return /** @type {Record<string,any>} */ (w.seriesData)[key]
         },
         set(v) {
-          w.seriesData[key] = v
+          /** @type {Record<string,any>} */ (w.seriesData)[key] = v
         },
         enumerable: false,
         configurable: true,
@@ -292,10 +295,10 @@ export default class Base {
     ]) {
       Object.defineProperty(globals, key, {
         get() {
-          return w.axisFlags[key]
+          return /** @type {Record<string,any>} */ (w.axisFlags)[key]
         },
         set(v) {
-          w.axisFlags[key] = v
+          /** @type {Record<string,any>} */ (w.axisFlags)[key] = v
         },
         enumerable: false,
         configurable: true,
@@ -313,10 +316,10 @@ export default class Base {
     ]) {
       Object.defineProperty(globals, key, {
         get() {
-          return w.labelData[key]
+          return /** @type {Record<string,any>} */ (w.labelData)[key]
         },
         set(v) {
-          w.labelData[key] = v
+          /** @type {Record<string,any>} */ (w.labelData)[key] = v
         },
         enumerable: false,
         configurable: true,
@@ -327,10 +330,10 @@ export default class Base {
     for (const key of ['seriesRangeStart', 'seriesRangeEnd', 'seriesRange']) {
       Object.defineProperty(globals, key, {
         get() {
-          return w.rangeData[key]
+          return /** @type {Record<string,any>} */ (w.rangeData)[key]
         },
         set(v) {
-          w.rangeData[key] = v
+          /** @type {Record<string,any>} */ (w.rangeData)[key] = v
         },
         enumerable: false,
         configurable: true,
@@ -347,10 +350,10 @@ export default class Base {
     ]) {
       Object.defineProperty(globals, key, {
         get() {
-          return w.candleData[key]
+          return /** @type {Record<string,any>} */ (w.candleData)[key]
         },
         set(v) {
-          w.candleData[key] = v
+          /** @type {Record<string,any>} */ (w.candleData)[key] = v
         },
         enumerable: false,
         configurable: true,

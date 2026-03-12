@@ -608,6 +608,9 @@ export default class Options {
               fontWeight: 600,
               color: undefined,
               offsetY: 0,
+              /**
+               * @param {any} val
+               */
               formatter(val) {
                 return val
               },
@@ -619,6 +622,9 @@ export default class Options {
               fontWeight: 400,
               color: undefined,
               offsetY: 16,
+              /**
+               * @param {any} val
+               */
               formatter(val) {
                 return val + '%'
               },
@@ -630,8 +636,15 @@ export default class Options {
               fontWeight: 600,
               fontFamily: undefined,
               color: undefined,
+              /**
+               * @param {import('../../types/internal').ChartStateW} w
+               */
               formatter(w) {
                 return (
+                  /**
+                   * @param {number} a
+                   * @param {number} b
+                   */
                   w.globals.seriesTotals.reduce((a, b) => a + b, 0) /
                     w.seriesData.series.length +
                   '%'
@@ -647,6 +660,9 @@ export default class Options {
             fontFamily: undefined,
             fontWeight: 600,
             fontSize: '16px',
+            /**
+             * @param {any} val
+             */
             formatter(val) {
               return val
             },
@@ -678,6 +694,9 @@ export default class Options {
                 fontWeight: 600,
                 color: undefined,
                 offsetY: -10,
+                /**
+                 * @param {any} val
+                 */
                 formatter(val) {
                   return val
                 },
@@ -689,6 +708,9 @@ export default class Options {
                 fontWeight: 400,
                 color: undefined,
                 offsetY: 10,
+                /**
+                 * @param {any} val
+                 */
                 formatter(val) {
                   return val
                 },
@@ -701,7 +723,14 @@ export default class Options {
                 fontWeight: 400,
                 fontFamily: undefined,
                 color: undefined,
+                /**
+                 * @param {import('../../types/internal').ChartStateW} w
+                 */
                 formatter(w) {
+                  /**
+                   * @param {number} a
+                   * @param {number} b
+                   */
                   return w.globals.seriesTotals.reduce((a, b) => a + b, 0)
                 },
               },
@@ -737,6 +766,9 @@ export default class Options {
       dataLabels: {
         enabled: true,
         enabledOnSeries: undefined,
+        /**
+         * @param {any} val
+         */
         formatter(val) {
           return val !== null ? val : ''
         },
@@ -1015,6 +1047,9 @@ export default class Options {
         y: {
           formatter: undefined,
           title: {
+            /**
+             * @param {string} seriesName
+             */
             formatter(seriesName) {
               return seriesName ? seriesName + ': ' : ''
             },

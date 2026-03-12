@@ -10,6 +10,9 @@ import Scales from './Scales'
  **/
 
 class Range {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w
     this.scales = new Scales(this.w)
@@ -21,11 +24,15 @@ class Range {
     this.setZRange()
   }
 
+  /**
+   * @param {number} startingSeriesIndex
+   * @param {number | null} [endingSeriesIndex]
+   */
   getMinYMaxY(
     startingSeriesIndex,
     lowestY = Number.MAX_VALUE,
     highestY = -Number.MAX_VALUE,
-    endingSeriesIndex = null
+    endingSeriesIndex = null,
   ) {
     const cnf = this.w.config
     const gl = this.w.globals
@@ -53,7 +60,7 @@ class Range {
     if (this.w.seriesData.seriesX.length >= endingSeriesIndex) {
       // Eventually brushSource will be set if the current chart is a target.
       // That is, after the appropriate event causes us to update.
-      const brush = gl.brushSource?.w.config.chart.brush
+      const brush = /** @type {any} */ (gl).brushSource?.w.config.chart.brush
       if (
         (cnf.chart.zoom.enabled && cnf.chart.zoom.autoScaleYaxis) ||
         (brush?.enabled && brush?.autoScaleYaxis)
@@ -65,17 +72,24 @@ class Range {
     for (let i = startingSeriesIndex; i < endingSeriesIndex; i++) {
       gl.dataPoints = Math.max(gl.dataPoints, series[i].length)
 
-      const seriesType = cnf.series[i].type
+      const seriesType = /** @type {Record<string,any>} */ (cnf.series[i]).type
 
       if (this.w.labelData.categoryLabels.length) {
+        /**
+         * @param {string} label
+         */
         gl.dataPoints = this.w.labelData.categoryLabels.filter(
-          (label) => typeof label !== 'undefined'
+          (label) => typeof label !== 'undefined',
         ).length
       }
 
       if (
         this.w.labelData.labels.length &&
         cnf.xaxis.type !== 'datetime' &&
+        /**
+         * @param {number} a
+         * @param {number[]} c
+         */
         this.w.seriesData.series.reduce((a, c) => a + c.length, 0) !== 0
       ) {
         // the condition cnf.xaxis.type !== 'datetime' fixes #3897 and #3905
@@ -129,17 +143,27 @@ class Range {
           switch (seriesType) {
             case 'candlestick':
               {
-                if (typeof this.w.candleData.seriesCandleC[i][j] !== 'undefined') {
+                if (
+                  typeof this.w.candleData.seriesCandleC[i][j] !== 'undefined'
+                ) {
                   maxY = Math.max(maxY, this.w.candleData.seriesCandleH[i][j])
-                  lowestY = Math.min(lowestY, this.w.candleData.seriesCandleL[i][j])
+                  lowestY = Math.min(
+                    lowestY,
+                    this.w.candleData.seriesCandleL[i][j],
+                  )
                 }
               }
               break
             case 'boxPlot':
               {
-                if (typeof this.w.candleData.seriesCandleC[i][j] !== 'undefined') {
+                if (
+                  typeof this.w.candleData.seriesCandleC[i][j] !== 'undefined'
+                ) {
                   maxY = Math.max(maxY, this.w.candleData.seriesCandleC[i][j])
-                  lowestY = Math.min(lowestY, this.w.candleData.seriesCandleO[i][j])
+                  lowestY = Math.min(
+                    lowestY,
+                    this.w.candleData.seriesCandleO[i][j],
+                  )
                 }
               }
               break
@@ -163,10 +187,12 @@ class Range {
             this.w.seriesData.seriesGoals[i][j] &&
             Array.isArray(this.w.seriesData.seriesGoals[i][j])
           ) {
-            this.w.seriesData.seriesGoals[i][j].forEach((g) => {
-              maxY = Math.max(maxY, g.value)
-              lowestY = Math.min(lowestY, g.value)
-            })
+            this.w.seriesData.seriesGoals[i][j].forEach(
+              (/** @type {any} */ g) => {
+                maxY = Math.max(maxY, g.value)
+                lowestY = Math.min(lowestY, g.value)
+              },
+            )
           }
           highestY = maxY
 
@@ -174,7 +200,7 @@ class Range {
           if (Utils.isFloat(val)) {
             gl.yValueDecimal = Math.max(
               gl.yValueDecimal,
-              val.toString().split('.')[1].length
+              val.toString().split('.')[1].length,
             )
           }
           if (minY > seriesMin[i]?.[j] && seriesMin[i]?.[j] < 0) {
@@ -244,7 +270,12 @@ class Range {
     }
 
     // and then, get the minY and maxY from all series
-    minYMaxY = this.getMinYMaxY(0, lowestYInAllSeries, null, this.w.seriesData.series.length)
+    minYMaxY = this.getMinYMaxY(
+      0,
+      lowestYInAllSeries,
+      undefined,
+      this.w.seriesData.series.length,
+    )
     if (cnf.chart.type === 'bar') {
       gl.minY = minYMaxY.minY
       gl.maxY = minYMaxY.maxY
@@ -284,6 +315,10 @@ class Range {
           : minYMaxY.minY
     }
 
+    /**
+     * @param {ApexYAxis} yaxe
+     * @param {number} index
+     */
     cnf.yaxis.forEach((yaxe, index) => {
       // override all min/max values by user defined values (y axis)
       if (yaxe.max !== undefined) {
@@ -292,7 +327,7 @@ class Range {
         } else if (typeof yaxe.max === 'function') {
           // fixes apexcharts.js/issues/2098
           gl.maxYArr[index] = yaxe.max(
-            gl.isMultipleYAxis ? gl.maxYArr[index] : gl.maxY
+            gl.isMultipleYAxis ? gl.maxYArr[index] : gl.maxY,
           )
         }
 
@@ -309,7 +344,7 @@ class Range {
               ? gl.minYArr[index] === Number.MIN_VALUE
                 ? 0
                 : gl.minYArr[index]
-              : gl.minY
+              : gl.minY,
           )
         }
         // gl.minY is for single y-axis chart, it will be ignored in multi-yaxis
@@ -341,24 +376,43 @@ class Range {
     gl.barGroups = []
     gl.lineGroups = []
     gl.areaGroups = []
+    /**
+     * @param {Record<string, any>} s
+     */
     cnf.series.forEach((s) => {
-      const type = s.type || cnf.chart.type
+      const _s = /** @type {any} */ (s)
+      const type = _s.type || cnf.chart.type
       switch (type) {
         case 'bar':
         case 'column':
-          gl.barGroups.push(s.group)
+          gl.barGroups.push(_s.group)
           break
         case 'line':
-          gl.lineGroups.push(s.group)
+          gl.lineGroups.push(_s.group)
           break
         case 'area':
-          gl.areaGroups.push(s.group)
+          gl.areaGroups.push(_s.group)
           break
       }
     })
     // Uniquify the group names in each stackable chart type.
+    /**
+     * @param {string} v
+     * @param {number} i
+     * @param {string[]} a
+     */
     gl.barGroups = gl.barGroups.filter((v, i, a) => a.indexOf(v) === i)
+    /**
+     * @param {string} v
+     * @param {number} i
+     * @param {string[]} a
+     */
     gl.lineGroups = gl.lineGroups.filter((v, i, a) => a.indexOf(v) === i)
+    /**
+     * @param {string} v
+     * @param {number} i
+     * @param {string[]} a
+     */
     gl.areaGroups = gl.areaGroups.filter((v, i, a) => a.indexOf(v) === i)
 
     return {
@@ -385,11 +439,34 @@ class Range {
       for (let i = 0; i < this.w.seriesData.series.length; i++) {
         if (this.w.labelData.labels[i]) {
           for (let j = 0; j < this.w.labelData.labels[i].length; j++) {
-            if (this.w.labelData.labels[i][j] !== null && Utils.isNumber(this.w.labelData.labels[i][j])) {
-              gl.maxX = Math.max(gl.maxX, this.w.labelData.labels[i][j])
-              gl.initialMaxX = Math.max(gl.maxX, this.w.labelData.labels[i][j])
-              gl.minX = Math.min(gl.minX, this.w.labelData.labels[i][j])
-              gl.initialMinX = Math.min(gl.minX, this.w.labelData.labels[i][j])
+            if (
+              this.w.labelData.labels[i][j] !== null &&
+              Utils.isNumber(this.w.labelData.labels[i][j])
+            ) {
+              gl.maxX = Math.max(
+                gl.maxX,
+                /** @type {number} */ (
+                  /** @type {any} */ (this.w.labelData.labels[i][j])
+                ),
+              )
+              gl.initialMaxX = Math.max(
+                gl.maxX,
+                /** @type {number} */ (
+                  /** @type {any} */ (this.w.labelData.labels[i][j])
+                ),
+              )
+              gl.minX = Math.min(
+                gl.minX,
+                /** @type {number} */ (
+                  /** @type {any} */ (this.w.labelData.labels[i][j])
+                ),
+              )
+              gl.initialMinX = Math.min(
+                gl.minX,
+                /** @type {number} */ (
+                  /** @type {any} */ (this.w.labelData.labels[i][j])
+                ),
+              )
             }
           }
         }
@@ -402,14 +479,22 @@ class Range {
 
     if (this.w.axisFlags.noLabelsProvided) {
       if (cnf.xaxis.categories.length === 0) {
-        gl.maxX = this.w.labelData.labels[this.w.labelData.labels.length - 1]
-        gl.initialMaxX = this.w.labelData.labels[this.w.labelData.labels.length - 1]
+        gl.maxX = /** @type {any} */ (
+          this.w.labelData.labels[this.w.labelData.labels.length - 1]
+        )
+        gl.initialMaxX = /** @type {any} */ (
+          this.w.labelData.labels[this.w.labelData.labels.length - 1]
+        )
         gl.minX = 1
         gl.initialMinX = 1
       }
     }
 
-    if (this.w.axisFlags.isXNumeric || this.w.axisFlags.noLabelsProvided || this.w.axisFlags.dataFormatXNumeric) {
+    if (
+      this.w.axisFlags.isXNumeric ||
+      this.w.axisFlags.noLabelsProvided ||
+      this.w.axisFlags.dataFormatXNumeric
+    ) {
       let ticks = 10
 
       if (cnf.xaxis.tickAmount === undefined) {
@@ -454,7 +539,10 @@ class Range {
       }
 
       if (gl.minX !== Number.MAX_VALUE && gl.maxX !== -Number.MAX_VALUE) {
-        if (cnf.xaxis.convertedCatToNumeric && !this.w.axisFlags.dataFormatXNumeric) {
+        if (
+          cnf.xaxis.convertedCatToNumeric &&
+          !this.w.axisFlags.dataFormatXNumeric
+        ) {
           const catScale = []
           for (let i = gl.minX - 1; i < gl.maxX; i++) {
             catScale.push(i + 1)
@@ -473,24 +561,31 @@ class Range {
           ticks,
           ticks,
           0,
-          cnf.xaxis.stepSize
+          cnf.xaxis.stepSize,
         )
-        if (this.w.axisFlags.noLabelsProvided && this.w.labelData.labels.length > 0) {
+        if (
+          this.w.axisFlags.noLabelsProvided &&
+          this.w.labelData.labels.length > 0
+        ) {
           gl.xAxisScale = this.scales.linearScale(
             1,
             this.w.labelData.labels.length,
             ticks - 1,
             0,
-            cnf.xaxis.stepSize
+            cnf.xaxis.stepSize,
           )
 
           // this is the only place seriesX is again mutated
-          this.w.seriesData.seriesX = this.w.labelData.labels.slice()
+          this.w.seriesData.seriesX = /** @type {any} */ (
+            this.w.labelData.labels.slice()
+          )
         }
       }
       // we will still store these labels as the count for this will be different (to draw grid and labels placement)
       if (isXNumeric) {
-        this.w.labelData.labels = gl.xAxisScale.result.slice()
+        this.w.labelData.labels = /** @type {any} */ (
+          gl.xAxisScale.result.slice()
+        )
       }
     }
 
@@ -518,7 +613,10 @@ class Range {
     for (let i = 0; i < this.w.seriesData.series.length; i++) {
       if (typeof this.w.seriesData.seriesZ[i] !== 'undefined') {
         for (let j = 0; j < this.w.seriesData.seriesZ[i].length; j++) {
-          if (this.w.seriesData.seriesZ[i][j] !== null && Utils.isNumber(this.w.seriesData.seriesZ[i][j])) {
+          if (
+            this.w.seriesData.seriesZ[i][j] !== null &&
+            Utils.isNumber(this.w.seriesData.seriesZ[i][j])
+          ) {
             gl.maxZ = Math.max(gl.maxZ, this.w.seriesData.seriesZ[i][j])
             gl.minZ = Math.min(gl.minZ, this.w.seriesData.seriesZ[i][j])
           }
@@ -568,6 +666,9 @@ class Range {
 
     if (this.w.axisFlags.isXNumeric) {
       // get the least x diff if numeric x axis is present
+      /**
+       * @param {number} sX
+       */
       this.w.seriesData.seriesX.forEach((sX) => {
         if (sX.length) {
           if (sX.length === 1) {
@@ -576,14 +677,22 @@ class Range {
             sX.push(
               this.w.seriesData.seriesX[gl.maxValsInArrayIndex][
                 this.w.seriesData.seriesX[gl.maxValsInArrayIndex].length - 1
-              ]
+              ],
             )
           }
 
           // fix #983 (clone the array to avoid side effects)
           const seriesX = sX.slice()
+          /**
+           * @param {number} a
+           * @param {number} b
+           */
           seriesX.sort((a, b) => a - b)
 
+          /**
+           * @param {Record<string, any>} s
+           * @param {number} j
+           */
           seriesX.forEach((s, j) => {
             if (j > 0) {
               const xDiff = s - seriesX[j - 1]
@@ -612,22 +721,31 @@ class Range {
     let seriesGroups = this.w.labelData.seriesGroups
 
     if (!seriesGroups.length) {
+      /**
+       * @param {string} name
+       */
       seriesGroups = [this.w.seriesData.seriesNames.map((name) => name)]
     }
+    /** @type {Record<string, number[]>} */
     const stackedPoss = {}
+    /** @type {Record<string, number[]>} */
     const stackedNegs = {}
 
-    seriesGroups.forEach((group) => {
+    seriesGroups.forEach((/** @type {any} */ group) => {
       stackedPoss[group] = []
       stackedNegs[group] = []
       const indicesOfSeriesInGroup = this.w.config.series
-        .map((serie, si) =>
-          group.indexOf(this.w.seriesData.seriesNames[si]) > -1 ? si : null
+        .map((/** @type {any} */ serie, /** @type {any} */ si) =>
+          group.indexOf(this.w.seriesData.seriesNames[si]) > -1 ? si : null,
         )
-        .filter((f) => f !== null)
+        .filter((/** @type {any} */ f) => f !== null)
 
-      indicesOfSeriesInGroup.forEach((i) => {
-        for (let j = 0; j < this.w.seriesData.series[gl.maxValsInArrayIndex].length; j++) {
+      indicesOfSeriesInGroup.forEach((/** @type {number} */ i) => {
+        for (
+          let j = 0;
+          j < this.w.seriesData.series[gl.maxValsInArrayIndex].length;
+          j++
+        ) {
           if (typeof stackedPoss[group][j] === 'undefined') {
             stackedPoss[group][j] = 0
             stackedNegs[group][j] = 0
@@ -638,15 +756,22 @@ class Range {
             (this.w.config.chart.stacked &&
               gl.comboCharts &&
               (!this.w.config.chart.stackOnlyBar ||
-                this.w.config.series?.[i]?.type === 'bar' ||
-                this.w.config.series?.[i]?.type === 'column'))
+                /** @type {Record<string,any>} */ (this.w.config.series?.[i])
+                  ?.type === 'bar' ||
+                /** @type {Record<string,any>} */ (this.w.config.series?.[i])
+                  ?.type === 'column'))
 
           if (stackSeries) {
-            if (this.w.seriesData.series[i][j] !== null && Utils.isNumber(this.w.seriesData.series[i][j])) {
+            if (
+              this.w.seriesData.series[i][j] !== null &&
+              Utils.isNumber(this.w.seriesData.series[i][j])
+            ) {
               this.w.seriesData.series[i][j] > 0
                 ? (stackedPoss[group][j] +=
-                    parseFloat(this.w.seriesData.series[i][j]) + 0.0001)
-                : (stackedNegs[group][j] += parseFloat(this.w.seriesData.series[i][j]))
+                    parseFloat(String(this.w.seriesData.series[i][j])) + 0.0001)
+                : (stackedNegs[group][j] += parseFloat(
+                    String(this.w.seriesData.series[i][j]),
+                  ))
             }
           }
         }
@@ -654,10 +779,12 @@ class Range {
     })
 
     Object.entries(stackedPoss).forEach(([key]) => {
-      stackedPoss[key].forEach((_, stgi) => {
-        gl.maxY = Math.max(gl.maxY, stackedPoss[key][stgi])
-        gl.minY = Math.min(gl.minY, stackedNegs[key][stgi])
-      })
+      stackedPoss[key].forEach(
+        (/** @type {any} */ _, /** @type {number} */ stgi) => {
+          gl.maxY = Math.max(gl.maxY, stackedPoss[key][stgi])
+          gl.minY = Math.min(gl.minY, stackedNegs[key][stgi])
+        },
+      )
     })
   }
 }

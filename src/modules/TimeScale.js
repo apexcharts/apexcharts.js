@@ -15,13 +15,22 @@ const MIN_ZOOM_DAYS = 10 / SECONDS_IN_DAY
  **/
 
 class TimeScale {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx // needed: new Dimensions(this.ctx)
+    /** @type {any} */
     this.timeScaleArray = []
     this.utc = this.w.config.xaxis.labels.datetimeUTC
   }
 
+  /**
+   * @param {number} minX
+   * @param {number} maxX
+   */
   calculateTimeScaleTicks(minX, maxX) {
     const w = this.w
 
@@ -136,154 +145,161 @@ class TimeScale {
     // first, we will adjust the month values index
     // as in the upper function, it is starting from 0
     // we will start them from 1
-    const adjustedMonthInTimeScaleArray = this.timeScaleArray.map((ts) => {
-      const defaultReturn = {
-        position: ts.position,
-        unit: ts.unit,
-        year: ts.year,
-        day: ts.day ? ts.day : 1,
-        hour: ts.hour ? ts.hour : 0,
-        month: ts.month + 1,
-      }
-      if (ts.unit === 'month') {
-        return {
-          ...defaultReturn,
-          day: 1,
-          value: ts.value + 1,
+    const adjustedMonthInTimeScaleArray = this.timeScaleArray.map(
+      (/** @type {any} */ ts) => {
+        const defaultReturn = {
+          position: ts.position,
+          unit: ts.unit,
+          year: ts.year,
+          day: ts.day ? ts.day : 1,
+          hour: ts.hour ? ts.hour : 0,
+          month: ts.month + 1,
         }
-      } else if (ts.unit === 'day' || ts.unit === 'hour') {
-        return {
-          ...defaultReturn,
-          value: ts.value,
+        if (ts.unit === 'month') {
+          return {
+            ...defaultReturn,
+            day: 1,
+            value: ts.value + 1,
+          }
+        } else if (ts.unit === 'day' || ts.unit === 'hour') {
+          return {
+            ...defaultReturn,
+            value: ts.value,
+          }
+        } else if (ts.unit === 'minute') {
+          return {
+            ...defaultReturn,
+            value: ts.value,
+            minute: ts.value,
+          }
+        } else if (ts.unit === 'second') {
+          return {
+            ...defaultReturn,
+            value: ts.value,
+            minute: ts.minute,
+            second: ts.second,
+          }
         }
-      } else if (ts.unit === 'minute') {
-        return {
-          ...defaultReturn,
-          value: ts.value,
-          minute: ts.value,
-        }
-      } else if (ts.unit === 'second') {
-        return {
-          ...defaultReturn,
-          value: ts.value,
-          minute: ts.minute,
-          second: ts.second,
-        }
-      }
 
-      return ts
-    })
+        return ts
+      },
+    )
 
-    const filteredTimeScale = adjustedMonthInTimeScaleArray.filter((ts) => {
-      let modulo = 1
-      let ticks = Math.ceil(w.layout.gridWidth / 120)
-      const value = ts.value
-      if (w.config.xaxis.tickAmount !== undefined) {
-        ticks = w.config.xaxis.tickAmount
-      }
-      if (adjustedMonthInTimeScaleArray.length > ticks) {
-        modulo = Math.floor(adjustedMonthInTimeScaleArray.length / ticks)
-      }
-
-      let shouldNotSkipUnit = false // there is a big change in unit i.e days to months
-      let shouldNotPrint = false // should skip these values
-
-      switch (this.tickInterval) {
-        case 'years':
-          // make years label denser
-          if (ts.unit === 'year') {
-            shouldNotSkipUnit = true
-          }
-          break
-        case 'half_year':
-          modulo = 7
-          if (ts.unit === 'year') {
-            shouldNotSkipUnit = true
-          }
-          break
-        case 'months':
-          modulo = 1
-          if (ts.unit === 'year') {
-            shouldNotSkipUnit = true
-          }
-          break
-        case 'months_fortnight':
-          modulo = 15
-          if (ts.unit === 'year' || ts.unit === 'month') {
-            shouldNotSkipUnit = true
-          }
-          if (value === 30) {
-            shouldNotPrint = true
-          }
-          break
-        case 'months_days':
-          modulo = 10
-          if (ts.unit === 'month') {
-            shouldNotSkipUnit = true
-          }
-          if (value === 30) {
-            shouldNotPrint = true
-          }
-          break
-        case 'week_days':
-          modulo = 8
-          if (ts.unit === 'month') {
-            shouldNotSkipUnit = true
-          }
-          break
-        case 'days':
-          modulo = 1
-          if (ts.unit === 'month') {
-            shouldNotSkipUnit = true
-          }
-          break
-        case 'hours':
-          if (ts.unit === 'day') {
-            shouldNotSkipUnit = true
-          }
-          break
-        case 'minutes_fives':
-          if (value % 5 !== 0) {
-            shouldNotPrint = true
-          }
-          break
-        case 'seconds_tens':
-          if (value % 10 !== 0) {
-            shouldNotPrint = true
-          }
-          break
-        case 'seconds_fives':
-          if (value % 5 !== 0) {
-            shouldNotPrint = true
-          }
-          break
-      }
-
-      if (
-        this.tickInterval === 'hours' ||
-        this.tickInterval === 'minutes_fives' ||
-        this.tickInterval === 'seconds_tens' ||
-        this.tickInterval === 'seconds_fives'
-      ) {
-        if (!shouldNotPrint) {
-          return true
+    const filteredTimeScale = adjustedMonthInTimeScaleArray.filter(
+      (/** @type {any} */ ts) => {
+        let modulo = 1
+        let ticks = Math.ceil(w.layout.gridWidth / 120)
+        const value = ts.value
+        if (w.config.xaxis.tickAmount !== undefined) {
+          ticks = w.config.xaxis.tickAmount
         }
-      } else {
-        if ((value % modulo === 0 || shouldNotSkipUnit) && !shouldNotPrint) {
-          return true
+        if (adjustedMonthInTimeScaleArray.length > ticks) {
+          modulo = Math.floor(adjustedMonthInTimeScaleArray.length / ticks)
         }
-      }
-    })
+
+        let shouldNotSkipUnit = false // there is a big change in unit i.e days to months
+        let shouldNotPrint = false // should skip these values
+
+        switch (this.tickInterval) {
+          case 'years':
+            // make years label denser
+            if (ts.unit === 'year') {
+              shouldNotSkipUnit = true
+            }
+            break
+          case 'half_year':
+            modulo = 7
+            if (ts.unit === 'year') {
+              shouldNotSkipUnit = true
+            }
+            break
+          case 'months':
+            modulo = 1
+            if (ts.unit === 'year') {
+              shouldNotSkipUnit = true
+            }
+            break
+          case 'months_fortnight':
+            modulo = 15
+            if (ts.unit === 'year' || ts.unit === 'month') {
+              shouldNotSkipUnit = true
+            }
+            if (value === 30) {
+              shouldNotPrint = true
+            }
+            break
+          case 'months_days':
+            modulo = 10
+            if (ts.unit === 'month') {
+              shouldNotSkipUnit = true
+            }
+            if (value === 30) {
+              shouldNotPrint = true
+            }
+            break
+          case 'week_days':
+            modulo = 8
+            if (ts.unit === 'month') {
+              shouldNotSkipUnit = true
+            }
+            break
+          case 'days':
+            modulo = 1
+            if (ts.unit === 'month') {
+              shouldNotSkipUnit = true
+            }
+            break
+          case 'hours':
+            if (ts.unit === 'day') {
+              shouldNotSkipUnit = true
+            }
+            break
+          case 'minutes_fives':
+            if (value % 5 !== 0) {
+              shouldNotPrint = true
+            }
+            break
+          case 'seconds_tens':
+            if (value % 10 !== 0) {
+              shouldNotPrint = true
+            }
+            break
+          case 'seconds_fives':
+            if (value % 5 !== 0) {
+              shouldNotPrint = true
+            }
+            break
+        }
+
+        if (
+          this.tickInterval === 'hours' ||
+          this.tickInterval === 'minutes_fives' ||
+          this.tickInterval === 'seconds_tens' ||
+          this.tickInterval === 'seconds_fives'
+        ) {
+          if (!shouldNotPrint) {
+            return true
+          }
+        } else {
+          if ((value % modulo === 0 || shouldNotSkipUnit) && !shouldNotPrint) {
+            return true
+          }
+        }
+      },
+    )
 
     return filteredTimeScale
   }
 
+  /**
+   * @param {Array<Record<string, any>>} filteredTimeScale
+   */
   recalcDimensionsBasedOnFormat(filteredTimeScale) {
     const w = this.w
     const reformattedTimescaleArray = this.formatDates(filteredTimeScale)
 
     const removedOverlappingTS = this.removeOverlappingTS(
-      reformattedTimescaleArray
+      reformattedTimescaleArray,
     )
 
     w.labelData.timescaleLabels = removedOverlappingTS.slice()
@@ -298,6 +314,9 @@ class TimeScale {
     this.ctx._writeLayoutCoords(layoutState.layout)
   }
 
+  /**
+   * @param {number} daysDiff
+   */
   determineInterval(daysDiff) {
     const yearsDiff = daysDiff / 365
     const hoursDiff = daysDiff * 24
@@ -346,6 +365,7 @@ class TimeScale {
     }
   }
 
+  /** @param {{firstVal: any, currentMonth: any, currentYear: any, daysWidthOnXAxis: any, numberOfYears: any}} opts */
   generateYearScale({
     firstVal,
     currentMonth,
@@ -363,7 +383,7 @@ class TimeScale {
       const remainingDays = dt.determineRemainingDaysOfYear(
         firstVal.minYear,
         firstVal.minMonth,
-        firstVal.minDate
+        firstVal.minDate,
       )
 
       // remainingDaysofFirstMonth is used to reacht the 2nd tick position
@@ -409,6 +429,7 @@ class TimeScale {
     }
   }
 
+  /** @param {{firstVal: any, currentMonthDate: any, currentMonth: any, currentYear: any, daysWidthOnXAxis: any, numberOfMonths: any}} opts */
   generateMonthScale({
     firstVal,
     currentMonthDate,
@@ -493,6 +514,7 @@ class TimeScale {
     }
   }
 
+  /** @param {{firstVal: any, currentMonth: any, currentYear: any, hoursWidthOnXAxis: any, numberOfDays: any}} opts */
   generateDayScale({
     firstVal,
     currentMonth,
@@ -505,6 +527,11 @@ class TimeScale {
     let firstTickValue = firstVal.minDate + 1
     let date = firstTickValue
 
+    /**
+     * @param {number} dateVal
+     * @param {number} month
+     * @param {number} year
+     */
     const changeMonth = (dateVal, month, year) => {
       const monthdays = dt.determineDaysOfMonths(month + 1, year)
 
@@ -572,7 +599,7 @@ class TimeScale {
       month = changeMonth(
         date,
         month,
-        this._getYear(currentYear, month, yrCounter)
+        this._getYear(currentYear, month, yrCounter),
       )
 
       const year = this._getYear(currentYear, month, yrCounter)
@@ -590,6 +617,7 @@ class TimeScale {
     }
   }
 
+  /** @param {{firstVal: any, currentDate: any, currentMonth: any, currentYear: any, minutesWidthOnXAxis: any, numberOfHours: any}} opts */
   generateHourScale({
     firstVal,
     currentDate,
@@ -603,6 +631,10 @@ class TimeScale {
     const yrCounter = 0
     let unit = 'hour'
 
+    /**
+     * @param {number} dateVal
+     * @param {number} month
+     */
     const changeDate = (dateVal, month) => {
       const monthdays = dt.determineDaysOfMonths(month + 1, currentYear)
       if (dateVal > monthdays) {
@@ -612,6 +644,10 @@ class TimeScale {
       return { month, date }
     }
 
+    /**
+     * @param {number} dateVal
+     * @param {number} month
+     */
     const changeMonth = (dateVal, month) => {
       const monthdays = dt.determineDaysOfMonths(month + 1, currentYear)
       if (dateVal > monthdays) {
@@ -703,6 +739,7 @@ class TimeScale {
     }
   }
 
+  /** @param {{currentMillisecond: any, currentSecond: any, currentMinute: any, currentHour: any, currentDate: any, currentMonth: any, currentYear: any, minutesWidthOnXAxis: any, secondsWidthOnXAxis: any, numberOfMinutes: any}} opts */
   generateMinuteScale({
     currentMillisecond,
     currentSecond,
@@ -754,6 +791,7 @@ class TimeScale {
     }
   }
 
+  /** @param {{currentMillisecond: any, currentSecond: any, currentMinute: any, currentHour: any, currentDate: any, currentMonth: any, currentYear: any, secondsWidthOnXAxis: any, numberOfSeconds: any}} opts */
   generateSecondScale({
     currentMillisecond,
     currentSecond,
@@ -809,6 +847,10 @@ class TimeScale {
     }
   }
 
+  /**
+   * @param {Record<string, any>} ts
+   * @param {string | number} value
+   */
   createRawDateString(ts, value) {
     let raw = ts.year
 
@@ -850,70 +892,95 @@ class TimeScale {
     return raw
   }
 
+  /**
+   * @param {Array<Record<string, any>>} filteredTimeScale
+   */
   formatDates(filteredTimeScale) {
     const w = this.w
 
-    const reformattedTimescaleArray = filteredTimeScale.map((ts) => {
-      let value = ts.value.toString()
+    /**
+     * @param {Record<string, any>} ts
+     */
+    const reformattedTimescaleArray = filteredTimeScale.map(
+      (/** @type {any} */ ts) => {
+        let value = ts.value.toString()
 
-      const dt = new DateTime(this.w)
+        const dt = new DateTime(this.w)
 
-      const raw = this.createRawDateString(ts, value)
+        const raw = this.createRawDateString(ts, value)
 
-      let dateToFormat = dt.getDate(dt.parseDate(raw))
-      if (!this.utc) {
-        // Fixes #1726, #1544, #1485, #1255
-        dateToFormat = dt.getDate(dt.parseDateWithTimezone(raw))
-      }
+        let dateToFormat = dt.getDate(dt.parseDate(raw))
+        if (!this.utc) {
+          // Fixes #1726, #1544, #1485, #1255
+          dateToFormat = dt.getDate(dt.parseDateWithTimezone(raw))
+        }
 
-      if (w.config.xaxis.labels.format === undefined) {
-        let customFormat = 'dd MMM'
-        const dtFormatter = w.config.xaxis.labels.datetimeFormatter
-        if (ts.unit === 'year') customFormat = dtFormatter.year
-        if (ts.unit === 'month') customFormat = dtFormatter.month
-        if (ts.unit === 'day') customFormat = dtFormatter.day
-        if (ts.unit === 'hour') customFormat = dtFormatter.hour
-        if (ts.unit === 'minute') customFormat = dtFormatter.minute
-        if (ts.unit === 'second') customFormat = dtFormatter.second
+        if (w.config.xaxis.labels.format === undefined) {
+          let customFormat = 'dd MMM'
+          const dtFormatter = w.config.xaxis.labels.datetimeFormatter
+          if (ts.unit === 'year') customFormat = dtFormatter.year
+          if (ts.unit === 'month') customFormat = dtFormatter.month
+          if (ts.unit === 'day') customFormat = dtFormatter.day
+          if (ts.unit === 'hour') customFormat = dtFormatter.hour
+          if (ts.unit === 'minute') customFormat = dtFormatter.minute
+          if (ts.unit === 'second') customFormat = dtFormatter.second
 
-        value = dt.formatDate(dateToFormat, customFormat)
-      } else {
-        value = dt.formatDate(dateToFormat, w.config.xaxis.labels.format)
-      }
+          value = dt.formatDate(dateToFormat, customFormat)
+        } else {
+          value = dt.formatDate(dateToFormat, w.config.xaxis.labels.format)
+        }
 
-      return {
-        dateString: raw,
-        position: ts.position,
-        value,
-        unit: ts.unit,
-        year: ts.year,
-        month: ts.month,
-      }
-    })
+        return {
+          dateString: raw,
+          position: ts.position,
+          value,
+          unit: ts.unit,
+          year: ts.year,
+          month: ts.month,
+        }
+      },
+    )
 
     return reformattedTimescaleArray
   }
 
+  /**
+   * @param {any[]} arr
+   */
   removeOverlappingTS(arr) {
     const graphics = new Graphics(this.w)
 
     let equalLabelLengthFlag = false // These labels got same length?
+    /** @type {number | undefined} */
     let constantLabelWidth // If true, what is the constant length to use
     if (
       arr.length > 0 && // check arr length
       arr[0].value && // check arr[0] contains value
+      /**
+       * @param {Record<string, any>} lb
+       */
       arr.every((lb) => lb.value.length === arr[0].value.length) // check every arr label value is the same as the first one
     ) {
       equalLabelLengthFlag = true // These labels got same length
-      constantLabelWidth = graphics.getTextRects(arr[0].value).width // The constant label width to use
+      constantLabelWidth = graphics.getTextRects(
+        arr[0].value,
+        this.w.config.xaxis.labels.style.fontSize,
+      ).width // The constant label width to use
     }
 
     let lastDrawnIndex = 0
 
+    /**
+     * @param {Record<string, any>} item
+     * @param {number} index
+     */
     let filteredArray = arr.map((item, index) => {
       if (index > 0 && this.w.config.xaxis.labels.hideOverlappingLabels) {
         const prevLabelWidth = !equalLabelLengthFlag // if vary in label length
-          ? graphics.getTextRects(arr[lastDrawnIndex].value).width // get individual length
+          ? graphics.getTextRects(
+              /** @type {any} */ (arr[lastDrawnIndex]).value,
+              this.w.config.xaxis.labels.style.fontSize,
+            ).width // get individual length
           : constantLabelWidth // else: use constant length
         const prevPos = arr[lastDrawnIndex].position
         const pos = item.position
@@ -929,11 +996,19 @@ class TimeScale {
       }
     })
 
-    filteredArray = filteredArray.filter((f) => f !== null)
+    /**
+     * @param {any} f
+     */
+    filteredArray = filteredArray.filter((/** @type {any} */ f) => f !== null)
 
     return filteredArray
   }
 
+  /**
+   * @param {number} currentYear
+   * @param {number} month
+   * @param {number} yrCounter
+   */
   _getYear(currentYear, month, yrCounter) {
     return currentYear + Math.floor(month / 12) + yrCounter
   }

@@ -13,6 +13,11 @@ import Filters from '../modules/Filters'
  **/
 
 export default class HeatMap {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   * @param {import('../types/internal').XYRatios} xyRatios
+   */
   constructor(w, ctx, xyRatios) {
     this.ctx = ctx
     this.w = w
@@ -29,6 +34,9 @@ export default class HeatMap {
       : 0
   }
 
+  /**
+   * @param {any[]} series
+   */
   draw(series) {
     const w = this.w
     const graphics = new Graphics(this.w, this.ctx)
@@ -102,7 +110,7 @@ export default class HeatMap {
           w.config.chart.type,
           i,
           j,
-          this.negRange
+          this.negRange,
         )
         let color = heatColor.color
         const heatColorProps = heatColor.colorProps
@@ -113,7 +121,7 @@ export default class HeatMap {
           color = fill.fillPath({
             seriesNumber: i,
             dataPointIndex: j,
-            opacity: w.globals.hasNegs
+            opacity: /** @type {any} */ (w.globals).hasNegs
               ? heatColorProps.percent < 0
                 ? 1 - (1 + heatColorProps.percent / 100)
                 : shadeIntensity + heatColorProps.percent / 100
@@ -177,7 +185,7 @@ export default class HeatMap {
                 ? colorFrom
                 : Utils.rgb2hex(colorFrom),
               Utils.isColorHex(color) ? color : Utils.rgb2hex(color),
-              speed
+              speed,
             )
           }
         }
@@ -213,7 +221,9 @@ export default class HeatMap {
     }
 
     // adjust yaxis labels for heatmap
-    const yAxisScale = w.globals.yAxisScale[0].result.slice()
+    const yAxisScale = /** @type {any[]} */ (
+      w.globals.yAxisScale[0].result.slice()
+    )
     if (w.config.yaxis[0].reversed) {
       yAxisScale.unshift('')
     } else {
@@ -224,6 +234,14 @@ export default class HeatMap {
     return ret
   }
 
+  /**
+   * @param {any} el
+   * @param {number} x
+   * @param {number} y
+   * @param {number} width
+   * @param {number} height
+   * @param {number} speed
+   */
   animateHeatMap(el, x, y, width, height, speed) {
     const animations = new Animations(this.w)
     animations.animateRect(
@@ -243,10 +261,16 @@ export default class HeatMap {
       speed,
       () => {
         animations.animationCompleted(el)
-      }
+      },
     )
   }
 
+  /**
+   * @param {any} el
+   * @param {string} colorFrom
+   * @param {string} colorTo
+   * @param {number} speed
+   */
   animateHeatColor(el, colorFrom, colorTo, speed) {
     el.attr({
       fill: colorFrom,

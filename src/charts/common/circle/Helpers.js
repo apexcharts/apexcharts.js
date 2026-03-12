@@ -2,10 +2,19 @@
 import Graphics from '../../../modules/Graphics'
 
 export default class CircularChartsHelpers {
+  /**
+   * @param {import('../../../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w
   }
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} i
+   * @param {string | number} text
+   */
   drawYAxisTexts(x, y, i, text) {
     const w = this.w
 
@@ -22,7 +31,7 @@ export default class CircularChartsHelpers {
       fontFamily: yaxisConfig.labels.style.fontFamily,
       foreColor: Array.isArray(yaxisConfig.labels.style.colors)
         ? yaxisConfig.labels.style.colors[i]
-        : yaxisConfig.labels.style.colors
+        : yaxisConfig.labels.style.colors,
     })
 
     return yaxisLabel

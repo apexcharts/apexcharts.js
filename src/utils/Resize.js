@@ -7,6 +7,10 @@ import { Environment } from './Environment.js'
 
 const ros = new WeakMap() // Map callbacks to ResizeObserver instances for easy removal
 
+/**
+ * @param {HTMLElement} el
+ * @param {Function} fn
+ */
 export function addResizeListener(el, fn) {
   // No-op in SSR environment
   if (Environment.isSSR()) return
@@ -45,6 +49,10 @@ export function addResizeListener(el, fn) {
   ros.set(fn, ro)
 }
 
+/**
+ * @param {Element} el
+ * @param {Function} fn
+ */
 export function removeResizeListener(el, fn) {
   // No-op in SSR environment
   if (Environment.isSSR()) return

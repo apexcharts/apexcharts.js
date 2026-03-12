@@ -12,14 +12,22 @@ import { SVGNS } from '../../svg/math'
  **/
 
 class Grid {
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {import('../../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx // needed: XAxis instantiation, passes ctx to AxesUtils theme/timeScale
 
     this.xaxisLabels = w.labelData.labels.slice()
-    this.axesUtils = new AxesUtils(ctx.w, { theme: ctx.theme, timeScale: ctx.timeScale })
+    this.axesUtils = new AxesUtils(ctx.w, {
+      theme: ctx.theme,
+      timeScale: ctx.timeScale,
+    })
 
-    this.isRangeBar = w.rangeData.seriesRange.length && w.globals.isBarHorizontal
+    this.isRangeBar =
+      w.rangeData.seriesRange.length && w.globals.isBarHorizontal
 
     if (w.labelData.timescaleLabels.length > 0) {
       //  timescaleLabels labels are there
@@ -27,6 +35,9 @@ class Grid {
     }
   }
 
+  /**
+   * @param {any} elGrid
+   */
   drawGridArea(elGrid = null) {
     const w = this.w
     const graphics = new Graphics(this.w)
@@ -40,7 +51,7 @@ class Grid {
       1,
       w.globals.padHorizontal,
       w.layout.gridHeight,
-      'transparent'
+      'transparent',
     )
 
     const elHorzLine = graphics.drawLine(
@@ -48,7 +59,7 @@ class Grid {
       w.layout.gridHeight,
       w.layout.gridWidth,
       w.layout.gridHeight,
-      'transparent'
+      'transparent',
     )
 
     elGrid.add(elHorzLine)
@@ -77,6 +88,9 @@ class Grid {
       ? Math.max(...w.config.stroke.width)
       : w.config.stroke.width
 
+    /**
+     * @param {string} id
+     */
     const createClipPath = (id) => {
       const clipPath = BrowserAPIs.createElementNS(SVGNS, 'clipPath')
       clipPath.setAttribute('id', id)
@@ -91,7 +105,7 @@ class Grid {
 
     const hasBar =
       ['bar', 'rangeBar', 'candlestick', 'boxPlot'].includes(
-        w.config.chart.type
+        w.config.chart.type,
       ) || w.globals.comboBarCount > 0
 
     let barWidthLeft = 0
@@ -99,11 +113,11 @@ class Grid {
     if (hasBar && w.axisFlags.isXNumeric && !w.globals.isBarHorizontal) {
       barWidthLeft = Math.max(
         w.config.grid.padding.left,
-        gl.barPadForNumericAxis
+        gl.barPadForNumericAxis,
       )
       barWidthRight = Math.max(
         w.config.grid.padding.right,
-        gl.barPadForNumericAxis
+        gl.barPadForNumericAxis,
       )
     }
 
@@ -113,7 +127,7 @@ class Grid {
       w.layout.gridWidth + strokeSize + 4,
       w.layout.gridHeight + strokeSize + 4,
       0,
-      '#fff'
+      '#fff',
     )
 
     w.dom.elGridRectBar = graphics.drawRect(
@@ -122,7 +136,7 @@ class Grid {
       w.layout.gridWidth + strokeSize + barWidthRight + barWidthLeft + 4,
       w.layout.gridHeight + strokeSize + 4,
       0,
-      '#fff'
+      '#fff',
     )
 
     const markerSize = w.globals.markers.largestSize
@@ -134,7 +148,7 @@ class Grid {
         Math.max(strokeSize + barWidthRight + barWidthLeft + 4, markerSize * 2),
       w.layout.gridHeight + markerSize * 2,
       0,
-      '#fff'
+      '#fff',
     )
 
     w.dom.elGridRectMask.appendChild(w.dom.elGridRect.node)
@@ -149,6 +163,7 @@ class Grid {
     defs.appendChild(w.dom.elNonForecastMask)
   }
 
+  /** @param {{i: any, x1: any, y1: any, x2: any, y2: any, xCount: any, parent: any}} opts */
   _drawGridLines({ i, x1, y1, x2, y2, xCount, parent }) {
     const w = this.w
 
@@ -191,10 +206,11 @@ class Grid {
     }
   }
 
+  /** @param {{i: any, x1: any, y1: any, x2: any, y2: any, xCount: any, parent: any}} opts */
   _drawGridLine({ i, x1, y1, x2, y2, xCount, parent }) {
     const w = this.w
     const isHorzLine = parent.node.classList.contains(
-      'apexcharts-gridlines-horizontal'
+      'apexcharts-gridlines-horizontal',
     )
     const offX = w.globals.barPadForNumericAxis
 
@@ -211,7 +227,7 @@ class Grid {
       x2 + (isHorzLine ? offX : 0),
       y2,
       w.config.grid.borderColor,
-      w.config.grid.strokeDashArray
+      w.config.grid.strokeDashArray,
     )
     line.node.classList.add('apexcharts-gridline')
 
@@ -222,6 +238,7 @@ class Grid {
     }
   }
 
+  /** @param {{c: any, x1: any, y1: any, x2: any, y2: any, type: any}} opts */
   _drawGridBandRect({ c, x1, y1, x2, y2, type }) {
     const w = this.w
     const graphics = new Graphics(this.w)
@@ -236,20 +253,21 @@ class Grid {
       y2,
       0,
       color,
-      w.config.grid[type].opacity
+      w.config.grid[type].opacity,
     )
     this.elg.add(rect)
     rect.attr('clip-path', `url(#gridRectMask${w.globals.cuid})`)
     rect.node.classList.add(`apexcharts-grid-${type}`)
   }
 
+  /** @param {{xCount: any, tickAmount: any}} opts */
   _drawXYLines({ xCount, tickAmount }) {
     const w = this.w
 
-    const datetimeLines = ({ xC, x1, y1, x2, y2 }) => {
+    const datetimeLines = (/** @type {any} */ { xC, x1, y1, x2, y2 }) => {
       for (let i = 0; i < xC; i++) {
-        x1 = this.xaxisLabels[i].position
-        x2 = this.xaxisLabels[i].position
+        x1 = /** @type {any} */ (this.xaxisLabels[i]).position
+        x2 = /** @type {any} */ (this.xaxisLabels[i]).position
 
         this._drawGridLines({
           i,
@@ -263,7 +281,7 @@ class Grid {
       }
     }
 
-    const categoryLines = ({ xC, x1, y1, x2, y2 }) => {
+    const categoryLines = (/** @type {any} */ { xC, x1, y1, x2, y2 }) => {
       for (let i = 0; i < xC + (w.axisFlags.isXNumeric ? 0 : 1); i++) {
         if (i === 0 && xC === 1 && w.globals.dataPoints === 1) {
           x1 = w.layout.gridWidth / 2
@@ -294,7 +312,7 @@ class Grid {
         datetimeLines({ xC: xCount, x1, y1, x2, y2 })
       } else {
         if (w.axisFlags.isXNumeric) {
-          xCount = w.globals.xAxisScale.result.length
+          xCount = w.globals.xAxisScale?.result.length
         }
         categoryLines({ xC: xCount, x1, y1, x2, y2 })
       }
@@ -452,9 +470,21 @@ class Grid {
     }
   }
 
+  /**
+   * @param {number} xCount
+   * @param {number} tickAmount
+   */
   drawGridBands(xCount, tickAmount) {
     const w = this.w
 
+    /**
+     * @param {string} type
+     * @param {number} count
+     * @param {number} x1
+     * @param {number} y1
+     * @param {number} x2
+     * @param {number} y2
+     */
     const drawBands = (type, count, x1, y1, x2, y2) => {
       for (let i = 0, c = 0; i < count; i++, c++) {
         if (c >= w.config.grid[type].colors.length) {
@@ -472,7 +502,7 @@ class Grid {
         0,
         0,
         w.layout.gridWidth,
-        w.layout.gridHeight / tickAmount
+        w.layout.gridHeight / tickAmount,
       )
     }
 
@@ -486,7 +516,7 @@ class Grid {
           : xCount
 
       if (w.axisFlags.isXNumeric) {
-        xc = w.globals.xAxisScale.result.length - 1
+        xc = (w.globals.xAxisScale?.result.length ?? 1) - 1
       }
 
       let x1 = w.globals.padHorizontal
@@ -500,10 +530,11 @@ class Grid {
         }
 
         if (w.config.xaxis.type === 'datetime') {
-          x1 = this.xaxisLabels[i].position
+          x1 = /** @type {any} */ (this.xaxisLabels[i]).position
           x2 =
-            (this.xaxisLabels[i + 1]?.position || w.layout.gridWidth) -
-            this.xaxisLabels[i].position
+            (/** @type {any} */ (this.xaxisLabels[i + 1])?.position ||
+              w.layout.gridWidth) -
+            /** @type {any} */ (this.xaxisLabels[i]).position
         }
 
         this._drawGridBandRect({ c, x1, y1, x2, y2, type: 'column' })

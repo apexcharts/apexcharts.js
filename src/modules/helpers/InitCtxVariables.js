@@ -37,11 +37,11 @@ if (Environment.isBrowser()) {
 } else {
   // SSR: use global namespace (Node.js)
   if (typeof global !== 'undefined') {
-    if (typeof global.Apex === 'undefined') {
-      global.Apex = {}
+    if (typeof /** @type {any} */ (global).Apex === 'undefined') {
+      ;/** @type {any} */ (global).Apex = {}
     }
-    if (typeof global.SVG === 'undefined') {
-      global.SVG = SVG
+    if (typeof /** @type {any} */ (global).SVG === 'undefined') {
+      ;/** @type {any} */ (global).SVG = SVG
     }
   }
 }
@@ -74,6 +74,9 @@ export default class InitCtxVariables {
     }
   }
 
+  /**
+   * @param {import('../../types/internal').ChartContext} ctx
+   */
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
@@ -138,9 +141,12 @@ export default class InitCtxVariables {
     this.ctx.responsive = new Responsive(this.w)
     this.ctx.series = new Series(this.w, {
       // legend may not be registered — guard with ?.
-      toggleDataSeries: (...a) => this.ctx.legend?.legendHelpers.toggleDataSeries(...a),
-      revertDefaultAxisMinMax: () => this.ctx.updateHelpers.revertDefaultAxisMinMax(),
-      updateSeries: (...a) => this.ctx.updateHelpers._updateSeries(...a),
+      toggleDataSeries: (/** @type {any[]} */ ...a) =>
+        this.ctx.legend?.legendHelpers.toggleDataSeries(...a),
+      revertDefaultAxisMinMax: () =>
+        this.ctx.updateHelpers.revertDefaultAxisMinMax(),
+      updateSeries: (/** @type {any[]} */ ...a) =>
+        this.ctx.updateHelpers._updateSeries(...a),
     })
     this.ctx.theme = new Theme(this.w)
     this.ctx.formatters = new Formatters(this.w)
@@ -153,7 +159,9 @@ export default class InitCtxVariables {
     const tooltipInstance = new Tooltip(this.w, this.ctx)
     this.w.globals.tooltip = tooltipInstance
     Object.defineProperty(this.ctx, 'tooltip', {
-      get() { return this.w.globals.tooltip },
+      get() {
+        return this.w.globals.tooltip
+      },
       configurable: true,
     })
 
@@ -191,7 +199,8 @@ export default class InitCtxVariables {
     const ToolbarCtor = reg.get('toolbar')
     Object.defineProperty(ctx, 'toolbar', {
       get() {
-        if (!this._toolbar && ToolbarCtor) this._toolbar = new ToolbarCtor(w, this)
+        if (!this._toolbar && ToolbarCtor)
+          this._toolbar = new ToolbarCtor(w, this)
         return this._toolbar ?? null
       },
       configurable: true,
@@ -200,7 +209,8 @@ export default class InitCtxVariables {
     const ZoomPanCtor = reg.get('zoomPanSelection')
     Object.defineProperty(ctx, 'zoomPanSelection', {
       get() {
-        if (!this._zoomPanSelection && ZoomPanCtor) this._zoomPanSelection = new ZoomPanCtor(w, this)
+        if (!this._zoomPanSelection && ZoomPanCtor)
+          this._zoomPanSelection = new ZoomPanCtor(w, this)
         return this._zoomPanSelection ?? null
       },
       configurable: true,
@@ -209,7 +219,8 @@ export default class InitCtxVariables {
     const KeyboardCtor = reg.get('keyboardNavigation')
     Object.defineProperty(ctx, 'keyboardNavigation', {
       get() {
-        if (!this._keyboardNavigation && KeyboardCtor) this._keyboardNavigation = new KeyboardCtor(w, this)
+        if (!this._keyboardNavigation && KeyboardCtor)
+          this._keyboardNavigation = new KeyboardCtor(w, this)
         return this._keyboardNavigation ?? null
       },
       configurable: true,

@@ -5,6 +5,9 @@ import Graphics from '../Graphics'
 import { Environment } from '../../utils/Environment.js'
 
 export default class Helpers {
+  /**
+   * @param {import('./Legend').default} lgCtx
+   */
   constructor(lgCtx) {
     this.w = lgCtx.w
     this.lgCtx = lgCtx
@@ -27,8 +30,7 @@ export default class Helpers {
 
   getLegendDimensions() {
     const w = this.w
-    const currLegendsWrap =
-      w.dom.baseEl.querySelector('.apexcharts-legend')
+    const currLegendsWrap = w.dom.baseEl.querySelector('.apexcharts-legend')
     if (!currLegendsWrap) {
       return { clwh: 0, clww: 0 }
     }
@@ -44,10 +46,14 @@ export default class Helpers {
   appendToForeignObject() {
     const legendStyles = this.getLegendStyles()
     if (this.w.config.chart.injectStyleSheet !== false && legendStyles) {
-      this.w.dom.elLegendForeign.appendChild(legendStyles)
+      this.w.dom.elLegendForeign?.appendChild(legendStyles)
     }
   }
 
+  /**
+   * @param {number} seriesCnt
+   * @param {boolean} isHidden
+   */
   toggleDataSeries(seriesCnt, isHidden) {
     const w = this.w
     if (w.globals.axisCharts || w.config.chart.type === 'radialBar') {
@@ -55,6 +61,7 @@ export default class Helpers {
 
       let seriesEl = null
 
+      /** @type {number | null} */
       let realIndex = null
 
       // yes, make it null. 1 series will rise at a time
@@ -62,16 +69,16 @@ export default class Helpers {
 
       if (w.globals.axisCharts) {
         seriesEl = w.dom.baseEl.querySelector(
-          `.apexcharts-series[data\\:realIndex='${seriesCnt}']`
+          `.apexcharts-series[data\\:realIndex='${seriesCnt}']`,
         )
         if (!seriesEl) return
-        realIndex = parseInt(seriesEl.getAttribute('data:realIndex'), 10)
+        realIndex = parseInt(seriesEl.getAttribute('data:realIndex') ?? '', 10)
       } else {
         seriesEl = w.dom.baseEl.querySelector(
-          `.apexcharts-series[rel='${seriesCnt + 1}']`
+          `.apexcharts-series[rel='${seriesCnt + 1}']`,
         )
         if (!seriesEl) return
-        realIndex = parseInt(seriesEl.getAttribute('rel'), 10) - 1
+        realIndex = parseInt(seriesEl.getAttribute('rel') ?? '', 10) - 1
       }
 
       if (isHidden) {
@@ -86,18 +93,18 @@ export default class Helpers {
           },
         ]
         seriesToMakeVisible.forEach((r) => {
-          this.riseCollapsedSeries(r.cs, r.csi, realIndex)
+          const cs = /** @type {any} */ (r).cs
+          const csi = /** @type {any} */ (r).csi
+          this.riseCollapsedSeries(cs, csi, /** @type {number} */ (realIndex))
         })
       } else {
         this.hideSeries({ seriesEl, realIndex })
       }
 
       // Update ARIA attributes for accessibility (axis charts)
-      if (
-        w.config.chart.accessibility.enabled
-      ) {
+      if (w.config.chart.accessibility.enabled) {
         const legendItem = w.dom.baseEl.querySelector(
-          `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`
+          `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`,
         )
         if (legendItem) {
           const isCollapsed =
@@ -105,12 +112,12 @@ export default class Helpers {
             w.globals.ancillaryCollapsedSeriesIndices.includes(realIndex)
           legendItem.setAttribute(
             'aria-pressed',
-            isCollapsed ? 'true' : 'false'
+            isCollapsed ? 'true' : 'false',
           )
 
           // Update aria-label - get text from legend text element
           const legendTextEl = legendItem.querySelector(
-            '.apexcharts-legend-text'
+            '.apexcharts-legend-text',
           )
           const seriesName = legendTextEl
             ? legendTextEl.textContent
@@ -118,14 +125,14 @@ export default class Helpers {
           const statusText = isCollapsed ? 'hidden' : 'visible'
           legendItem.setAttribute(
             'aria-label',
-            `${seriesName}, ${statusText}. Press Enter or Space to toggle.`
+            `${seriesName}, ${statusText}. Press Enter or Space to toggle.`,
           )
         }
       }
     } else {
       // for non-axis charts i.e pie / donuts
       const seriesEl = w.dom.Paper.findOne(
-        ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
+        ` .apexcharts-series[rel='${seriesCnt + 1}'] path`,
       )
 
       const type = w.config.chart.type
@@ -138,23 +145,21 @@ export default class Helpers {
       }
 
       // Update ARIA attributes for accessibility (non-axis charts)
-      if (
-        w.config.chart.accessibility.enabled
-      ) {
+      if (w.config.chart.accessibility.enabled) {
         const legendItem = w.dom.baseEl.querySelector(
-          `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`
+          `.apexcharts-legend-series[rel="${seriesCnt + 1}"]`,
         )
         if (legendItem) {
           const isCollapsed =
             w.globals.collapsedSeriesIndices.includes(seriesCnt)
           legendItem.setAttribute(
             'aria-pressed',
-            isCollapsed ? 'true' : 'false'
+            isCollapsed ? 'true' : 'false',
           )
 
           // Update aria-label - get text from legend text element
           const legendTextEl = legendItem.querySelector(
-            '.apexcharts-legend-text'
+            '.apexcharts-legend-text',
           )
           const seriesName = legendTextEl
             ? legendTextEl.textContent
@@ -162,13 +167,14 @@ export default class Helpers {
           const statusText = isCollapsed ? 'hidden' : 'visible'
           legendItem.setAttribute(
             'aria-label',
-            `${seriesName}, ${statusText}. Press Enter or Space to toggle.`
+            `${seriesName}, ${statusText}. Press Enter or Space to toggle.`,
           )
         }
       }
     }
   }
 
+  /** @param {{realIndex: any}} opts */
   getSeriesAfterCollapsing({ realIndex }) {
     const w = this.w
     const gl = w.globals
@@ -201,6 +207,7 @@ export default class Helpers {
       gl.collapsedSeries.push({
         index: realIndex,
         data: series[realIndex],
+        type: /** @type {any} */ (w.config.series[realIndex]).type ?? 'line',
       })
       gl.collapsedSeriesIndices.push(realIndex)
     }
@@ -212,6 +219,7 @@ export default class Helpers {
     return this._getSeriesBasedOnCollapsedState(series)
   }
 
+  /** @param {{seriesEl: any, realIndex: any}} opts */
   hideSeries({ seriesEl, realIndex }) {
     const w = this.w
 
@@ -234,10 +242,15 @@ export default class Helpers {
 
     this.lgCtx.updateSeries(
       series,
-      w.config.chart.animations.dynamicAnimation.enabled
+      w.config.chart.animations.dynamicAnimation.enabled,
     )
   }
 
+  /**
+   * @param {any[]} collapsedSeries
+   * @param {number[]} seriesIndices
+   * @param {number} realIndex
+   */
   riseCollapsedSeries(collapsedSeries, seriesIndices, realIndex) {
     const w = this.w
     let series = Utils.clone(w.config.series)
@@ -264,16 +277,23 @@ export default class Helpers {
 
       this.lgCtx.updateSeries(
         series,
-        w.config.chart.animations.dynamicAnimation.enabled
+        w.config.chart.animations.dynamicAnimation.enabled,
       )
     }
   }
 
+  /**
+   * @param {any[]} series
+   */
   _getSeriesBasedOnCollapsedState(series) {
     const w = this.w
     let collapsed = 0
 
     if (w.globals.axisCharts) {
+      /**
+       * @param {any} s
+       * @param {number} sI
+       */
       series.forEach((s, sI) => {
         if (
           !(
@@ -286,6 +306,10 @@ export default class Helpers {
         }
       })
     } else {
+      /**
+       * @param {any} s
+       * @param {number} sI
+       */
       series.forEach((s, sI) => {
         if (!(w.globals.collapsedSeriesIndices.indexOf(sI) < 0)) {
           series[sI] = 0

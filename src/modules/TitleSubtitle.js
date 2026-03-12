@@ -2,6 +2,9 @@
 import Graphics from './Graphics'
 
 export default class TitleSubtitle {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w
   }
@@ -11,6 +14,9 @@ export default class TitleSubtitle {
     this.drawTitleSubtitle('subtitle')
   }
 
+  /**
+   * @param {'title' | 'subtitle'} type
+   */
   drawTitleSubtitle(type) {
     const w = this.w
     const tsConfig = type === 'title' ? w.config.title : w.config.subtitle
@@ -41,7 +47,7 @@ export default class TitleSubtitle {
         fontFamily: tsConfig.style.fontFamily,
         fontWeight: tsConfig.style.fontWeight,
         foreColor: tsConfig.style.color,
-        opacity: 1
+        opacity: 1,
       })
 
       titleText.node.setAttribute('class', `apexcharts-${type}-text`)

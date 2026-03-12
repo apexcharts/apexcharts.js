@@ -24,6 +24,41 @@
 import type { ApexOptions } from '../../types/apexcharts'
 
 // ---------------------------------------------------------------------------
+// ResolvedApexOptions — config after Config.init() merges Options.js defaults
+//
+// All top-level properties are required (Options.init() provides defaults).
+// Sub-interfaces use Required<> so first-level nested access doesn't need
+// null checks. Deeper nesting (user callbacks, formatters) stays optional.
+// ---------------------------------------------------------------------------
+
+export type ResolvedApexOptions = {
+  annotations: Required<ApexAnnotations>
+  chart: Required<ApexChart>
+  colors: any[]
+  dataLabels: Required<ApexDataLabels>
+  fill: Required<ApexFill>
+  forecastDataPoints: Required<ApexForecastDataPoints>
+  grid: Required<ApexGrid>
+  labels: string[]
+  legend: Required<ApexLegend>
+  markers: Required<ApexMarkers>
+  noData: Required<ApexNoData>
+  plotOptions: Required<ApexPlotOptions>
+  responsive: ApexResponsive[]
+  parsing: Required<ApexParsing>
+  series: ApexAxisChartSeries | ApexNonAxisChartSeries
+  states: Required<ApexStates>
+  stroke: Required<ApexStroke>
+  subtitle: Required<ApexTitleSubtitle>
+  theme: Required<ApexTheme>
+  title: Required<ApexTitleSubtitle>
+  tooltip: Required<ApexTooltip>
+  xaxis: Required<ApexXAxis>
+  yaxis: Required<ApexYAxis>[]
+  [key: string]: any  // internal runtime properties (convertedCatToNumeric, pan, etc.)
+}
+
+// ---------------------------------------------------------------------------
 // Slice interfaces — canonical homes for each property group
 // ---------------------------------------------------------------------------
 
@@ -35,7 +70,7 @@ export interface InteractState {
   selectionEnabled: boolean
   // Zoom / pan state
   zoomed: boolean
-  selection: object | undefined
+  selection: { x: number; y: number; width: number; height: number } | null | undefined
   visibleXRange: number | undefined
   selectedDataPoints: number[][]
   // Mouse / pointer state
@@ -60,9 +95,9 @@ export interface FormatterState {
   yLabelFormatters: Function[]
   xaxisTooltipFormatter: Function | undefined
   ttKeyFormatter: Function | undefined
-  ttVal: Function | undefined
+  ttVal: any  // ApexTooltipY | ApexTooltipY[] — stores the whole tooltip.y config
   ttZFormatter: Function | undefined
-  legendFormatter: Function | undefined
+  legendFormatter: Function
 }
 
 /** Candlestick / boxplot OHLC arrays — lives on `w.candleData` */
@@ -110,7 +145,7 @@ export interface SeriesData {
   seriesX: number[][]
   seriesZ: number[][]
   seriesColors: string[]
-  seriesGoals: Array<Array<{ name: string; value: number; strokeColor?: string }>>
+  seriesGoals: Array<Array<Array<{ name: string; value: number; strokeColor?: string }>>>
   stackedSeriesTotals: number[]
   stackedSeriesTotalsByGroups: number[][]
 }
@@ -132,6 +167,18 @@ export interface LayoutCoords {
   yTitleCoords: Array<{ width: number; height: number }>
 }
 
+/** Return type of CoreUtils.getCalculatedRatios() */
+export interface XYRatios {
+  yRatio: number[]
+  invertedYRatio: number
+  zRatio: number
+  xRatio: number
+  invertedXRatio: number
+  baseLineInvertedY: number
+  baseLineY: number[]
+  baseLineX: number
+}
+
 // ---------------------------------------------------------------------------
 // ChartGlobals — the full `w.globals` flat object
 //
@@ -150,6 +197,7 @@ export interface ChartGlobals
   // ── Identity ─────────────────────────────────────────────────────────────
   chartID: string | null
   cuid: string | null
+  chartClass: string
 
   // ── Event registry ────────────────────────────────────────────────────────
   events: {
@@ -169,7 +217,7 @@ export interface ChartGlobals
   stroke: { colors: string[] }
   dataLabels: { style: { colors: string[] } }
   radarPolygons: { fill: { colors: string[] } }
-  markers: { colors: string[]; size: number; largestSize: number }
+  markers: { colors: string[]; size: number[]; largestSize: number }
 
   // ── Chart-type flags ──────────────────────────────────────────────────────
   axisCharts: boolean
@@ -180,7 +228,7 @@ export interface ChartGlobals
   isBarHorizontal: boolean
 
   // ── Config snapshots ──────────────────────────────────────────────────────
-  initialConfig: ApexOptions | null
+  initialConfig: ResolvedApexOptions | null
   initialSeries: ApexOptions['series']
   lastXAxis: object[]
   lastYAxis: object[]
@@ -265,7 +313,7 @@ export interface ChartGlobals
   // ── Animation ─────────────────────────────────────────────────────────────
   animationEnded: boolean
   shouldAnimate: boolean
-  previousPaths: Array<{ paths: Array<{ d: string }>; realIndex: number }>
+  previousPaths: any[]
 
   // ── Data format flags ─────────────────────────────────────────────────────
   columnSeries: object | null
@@ -281,13 +329,13 @@ export interface ChartGlobals
   pointsArray: number[][][]
   dataLabelsRects: DOMRect[]
   lastDrawnDataLabelsIndexes: number[][]
-  delayedElements: Array<{ el: Element; index: number }>
+  delayedElements: Array<{ el: Element; index?: number }>
   resizeTimer: number | null
   selectionResizeTimer: number | null
   resizeObserver: ResizeObserver | null
 
   // ── Locale ────────────────────────────────────────────────────────────────
-  locale: Record<string, string>
+  locale: Record<string, any>
   memory: { methodsToExec: Array<{ context: object; id: string; method: Function; label: string; params: unknown }> }
 
   // ── Scale constants ───────────────────────────────────────────────────────
@@ -305,7 +353,7 @@ export interface ChartGlobals
   panEnabled: boolean
   selectionEnabled: boolean
   zoomed: boolean
-  selection: object | undefined
+  selection: { x: number; y: number; width: number; height: number } | null | undefined
   visibleXRange: number | undefined
   selectedDataPoints: number[][]
   mousedown: boolean
@@ -321,7 +369,7 @@ export interface ChartGlobals
   yLabelFormatters: Function[]
   xaxisTooltipFormatter: Function | undefined
   ttKeyFormatter: Function | undefined
-  ttVal: Function | undefined
+  ttVal: any  // ApexTooltipY | ApexTooltipY[]
   ttZFormatter: Function | undefined
   legendFormatter: Function | undefined
 
@@ -373,7 +421,7 @@ export interface ChartDom {
 // ---------------------------------------------------------------------------
 
 export interface ChartStateW {
-  config: ApexOptions
+  config: ResolvedApexOptions
   globals: ChartGlobals
   dom: ChartDom
   interact: InteractState
@@ -417,45 +465,57 @@ export interface ChartContext {
   el: Element
   w: ChartStateW
   ctx: ChartContext   // self-reference: this.ctx = this
+  opts: any           // original user-supplied options
 
   // Public method list (populated by initModules)
   publicMethods: string[]
   eventList: string[]
 
-  // Core modules — always present
-  animations: object
-  axes: object
-  core: object
-  config: object
-  data: object
-  grid: object
-  graphics: object
-  coreUtils: object
-  crosshairs: object
-  events: object
-  fill: object
-  localization: object
-  options: object
-  responsive: object
-  series: object
-  theme: object
-  formatters: object
-  titleSubtitle: object
-  dimensions: object
-  updateHelpers: object
-  tooltip: TooltipModule
+  // Public methods on the ApexCharts instance
+  update(options?: any): Promise<any>
+  getSyncedCharts(): any[]
+  getGroupedCharts(): any[]
+  fastUpdate(options?: any): Promise<any>
 
-  // Optional feature modules (null if not registered)
-  exports: object | null
-  legend: object | null
-  toolbar: object | null
-  zoomPanSelection: object | null
-  keyboardNavigation: object | null
+  // Core modules — always present (typed as `any` until individual module
+  // class types are created; matches `/** @type {any} */` in apexcharts.js)
+  animations: any
+  axes: any
+  core: any
+  config: any
+  data: any
+  grid: any
+  graphics: any
+  coreUtils: any
+  crosshairs: any
+  events: any
+  fill: any
+  localization: any
+  options: any
+  responsive: any
+  series: any
+  theme: any
+  formatters: any
+  titleSubtitle: any
+  dimensions: any
+  updateHelpers: any
+  tooltip: any
+
+  // Optional feature modules (null when not registered / after destroy)
+  exports: any
+  legend: any
+  toolbar: any
+  zoomPanSelection: any
+  keyboardNavigation: any
 
   // Internal sub-modules instantiated during render
-  annotations?: object
-  markers?: object
-  pie?: object
-  theme2?: object
-  timeScale?: object
+  annotations?: any
+  markers?: any
+  pie?: any
+  theme2?: any
+  timeScale?: any
+
+  // Catch-all for dynamic runtime properties (chart type instances,
+  // private fields like _zoomPanSelection, _toolbar, etc.)
+  [key: string]: any
 }

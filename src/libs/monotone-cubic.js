@@ -26,8 +26,8 @@
  */
 /**
  * Generate tangents for 'points'
- * @param {Array} points
- * @returns {Array}
+ * @param {any[]} points
+ * @returns {any[]}
  */
 export const tangents = (points) => {
   const m = finiteDifferences(points)
@@ -67,7 +67,7 @@ export const tangents = (points) => {
 
 /**
  * Convert 'points' to svg path
- * @param {Array} points
+ * @param {any[]} points
  * @returns {String}
  */
 export const svgPath = (points) => {
@@ -93,8 +93,8 @@ export const svgPath = (points) => {
 export const spline = {
   /**
    * Convert 'points' to bezier
-   * @param {Array} points
-   * @returns {Array}
+   * @param {any[]} points
+   * @returns {any[]}
    */
   points(points) {
     const tgts = tangents(points)
@@ -128,10 +128,10 @@ export const spline = {
 
   /**
    * Slice out a segment of 'points'
-   * @param {Array} points
+   * @param {any[]} points
    * @param {Number} start
    * @param {Number} end
-   * @returns {Array}
+   * @returns {any[]}
    */
   slice(points, start, end) {
     const pts = points.slice(start, end)
@@ -156,8 +156,8 @@ export const spline = {
 
 /**
  * Compute slope from point 'p0' to 'p1'
- * @param {Array} p0
- * @param {Array} p1
+ * @param {any[]} p0
+ * @param {any[]} p1
  * @returns {Number}
  */
 function slope(p0, p1) {
@@ -166,8 +166,8 @@ function slope(p0, p1) {
 
 /**
  * Compute three-point differences for 'points'
- * @param {Array} points
- * @returns {Array}
+ * @param {any[]} points
+ * @returns {any[]}
  */
 function finiteDifferences(points) {
   const m = []

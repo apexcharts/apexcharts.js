@@ -27,7 +27,7 @@ export class Environment {
    */
   static hasAPI(api) {
     if (this.isSSR()) return false
-    return typeof window[api] !== 'undefined'
+    return typeof (/** @type {any} */ (window)[api]) !== 'undefined'
   }
 
   /**

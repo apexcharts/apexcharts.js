@@ -18,6 +18,10 @@ import icoMenu from './../assets/ico-menu.svg'
  **/
 
 export default class Toolbar {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx // needed: getSyncedCharts, fireEvent, user callbacks, Exports
@@ -29,6 +33,16 @@ export default class Toolbar {
 
     this.minX = w.globals.minX
     this.maxX = w.globals.maxX
+    /** @type {HTMLElement | null} */ this.elZoom = null
+    /** @type {HTMLElement | null} */ this.elZoomIn = null
+    /** @type {HTMLElement | null} */ this.elZoomOut = null
+    /** @type {HTMLElement | null} */ this.elPan = null
+    /** @type {HTMLElement | null} */ this.elSelection = null
+    /** @type {HTMLElement | null} */ this.elZoomReset = null
+    /** @type {HTMLElement | null} */ this.elMenuIcon = null
+    /** @type {HTMLElement | null} */ this.elMenu = null
+    /** @type {HTMLElement[]} */ this.elMenuItems = []
+    /** @type {any} */ this.t = null
   }
 
   createToolbar() {
@@ -51,6 +65,7 @@ export default class Toolbar {
     this.elZoomReset = createDiv()
     this.elMenuIcon = createDiv()
     this.elMenu = createDiv()
+    /** @type {any} */
     this.elCustomIcons = []
 
     this.t = w.config.chart.toolbar.tools
@@ -61,15 +76,21 @@ export default class Toolbar {
       }
     }
 
+    /** @type {any[]} */
     const toolbarControls = []
 
+    /**
+     * @param {string} type
+     * @param {Element} el
+     * @param {string} ico
+     */
     const appendZoomControl = (type, el, ico) => {
       const tool = type.toLowerCase()
       if (this.t[tool] && w.config.chart.zoom.enabled) {
         toolbarControls.push({
           el,
           icon: typeof this.t[tool] === 'string' ? this.t[tool] : ico,
-          title: this.localeValues[type],
+          title: /** @type {any} */ (this.localeValues)[type],
           class: `apexcharts-${tool}-icon`,
         })
       }
@@ -78,6 +99,9 @@ export default class Toolbar {
     appendZoomControl('zoomIn', this.elZoomIn, icoZoomIn)
     appendZoomControl('zoomOut', this.elZoomOut, icoZoomOut)
 
+    /**
+     * @param {string} z
+     */
     const zoomSelectionCtrls = (z) => {
       if (this.t[z] && w.config.chart[z].enabled) {
         toolbarControls.push({
@@ -86,10 +110,11 @@ export default class Toolbar {
             typeof this.t[z] === 'string'
               ? this.t[z]
               : z === 'zoom'
-              ? icoZoom
-              : icoSelect,
-          title:
-            this.localeValues[z === 'zoom' ? 'selectionZoom' : 'selection'],
+                ? icoZoom
+                : icoSelect,
+          title: /** @type {any} */ (this.localeValues)[
+            z === 'zoom' ? 'selectionZoom' : 'selection'
+          ],
           class: `apexcharts-${z}-icon`,
         })
       }
@@ -151,7 +176,10 @@ export default class Toolbar {
       this.elZoom.setAttribute('aria-pressed', String(!!w.interact.zoomEnabled))
     }
     if (this.elSelection.parentNode) {
-      this.elSelection.setAttribute('aria-pressed', String(!!w.interact.selectionEnabled))
+      this.elSelection.setAttribute(
+        'aria-pressed',
+        String(!!w.interact.selectionEnabled),
+      )
     }
     if (this.elPan.parentNode) {
       this.elPan.setAttribute('aria-pressed', String(!!w.interact.panEnabled))
@@ -176,9 +204,12 @@ export default class Toolbar {
     this.addToolbarEventListeners()
   }
 
+  /**
+   * @param {Element} parent
+   */
   _createHamburgerMenu(parent) {
     this.elMenuItems = []
-    parent.appendChild(this.elMenu)
+    parent.appendChild(/** @type {Node} */ (this.elMenu))
 
     Graphics.setAttrs(this.elMenu, {
       class: 'apexcharts-menu',
@@ -201,7 +232,9 @@ export default class Toolbar {
     ]
 
     for (let i = 0; i < menuItems.length; i++) {
-      this.elMenuItems.push(BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div'))
+      this.elMenuItems.push(
+        BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div'),
+      )
       this.elMenuItems[i].innerHTML = menuItems[i].title
       Graphics.setAttrs(this.elMenuItems[i], {
         class: `apexcharts-menu-item ${menuItems[i].name}`,
@@ -209,24 +242,24 @@ export default class Toolbar {
         role: 'menuitem',
         tabindex: '-1',
       })
-      this.elMenu.appendChild(this.elMenuItems[i])
+      ;/** @type {HTMLElement} */ (this.elMenu).appendChild(this.elMenuItems[i])
     }
   }
 
   addToolbarEventListeners() {
-    this.elZoomReset.addEventListener('click', this.handleZoomReset.bind(this))
-    this.elSelection.addEventListener(
+    this.elZoomReset?.addEventListener('click', this.handleZoomReset.bind(this))
+    this.elSelection?.addEventListener(
       'click',
-      this.toggleZoomSelection.bind(this, 'selection')
+      this.toggleZoomSelection.bind(this, 'selection'),
     )
-    this.elZoom.addEventListener(
+    this.elZoom?.addEventListener(
       'click',
-      this.toggleZoomSelection.bind(this, 'zoom')
+      this.toggleZoomSelection.bind(this, 'zoom'),
     )
-    this.elZoomIn.addEventListener('click', this.handleZoomIn.bind(this))
-    this.elZoomOut.addEventListener('click', this.handleZoomOut.bind(this))
-    this.elPan.addEventListener('click', this.togglePanning.bind(this))
-    this.elMenuIcon.addEventListener('click', this.toggleMenu.bind(this))
+    this.elZoomIn?.addEventListener('click', this.handleZoomIn.bind(this))
+    this.elZoomOut?.addEventListener('click', this.handleZoomOut.bind(this))
+    this.elPan?.addEventListener('click', this.togglePanning.bind(this))
+    this.elMenuIcon?.addEventListener('click', this.toggleMenu.bind(this))
     this.elMenuItems.forEach((m) => {
       if (m.classList.contains('exportSVG')) {
         m.addEventListener('click', this.handleDownload.bind(this, 'svg'))
@@ -239,7 +272,7 @@ export default class Toolbar {
     for (let i = 0; i < this.t.customIcons.length; i++) {
       this.elCustomIcons[i].addEventListener(
         'click',
-        this.t.customIcons[i].click.bind(this, this.ctx, this.ctx.w)
+        this.t.customIcons[i].click.bind(this, this.ctx, this.ctx.w),
       )
     }
 
@@ -257,7 +290,10 @@ export default class Toolbar {
       ...this.elCustomIcons,
     ]
     toolbarButtons.forEach((btn) => {
-      btn.addEventListener('keydown', (e) => {
+      /**
+       * @param {Event} e
+       */
+      btn.addEventListener('keydown', (/** @type {any} */ e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           // Capture the button's class before click triggers a potential
@@ -273,29 +309,36 @@ export default class Toolbar {
             // Match on the first apexcharts-specific class (e.g. apexcharts-zoomin-icon)
             const apexClass = btnClass
               .split(' ')
-              .find((c) => c.startsWith('apexcharts-'))
+              /**
+               * @param {string} c
+               */
+              .find((/** @type {any} */ c) => c.startsWith('apexcharts-'))
             if (!apexClass) return
             const restored = baseEl.querySelector(`.${apexClass}`)
-            if (restored) restored.focus()
+            if (restored) /** @type {HTMLElement} */ (restored).focus()
           })
         }
       })
     })
 
     // Menu keyboard navigation: Arrow keys move focus, Escape closes menu
-    this.elMenuIcon.addEventListener('keydown', (/** @type {KeyboardEvent} */ e) => {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault()
-        if (!this.elMenu.classList.contains('apexcharts-menu-open')) {
-          this.toggleMenu()
+    this.elMenuIcon?.addEventListener(
+      'keydown',
+      (/** @type {KeyboardEvent} */ e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault()
+          if (!this.elMenu?.classList.contains('apexcharts-menu-open')) {
+            this.toggleMenu()
+          }
+          // Focus first (ArrowDown) or last (ArrowUp) menu item after menu renders
+          window.setTimeout(() => {
+            const idx = e.key === 'ArrowDown' ? 0 : this.elMenuItems.length - 1
+            if (this.elMenuItems[idx])
+              /** @type {HTMLElement} */ (this.elMenuItems[idx]).focus()
+          }, 20)
         }
-        // Focus first (ArrowDown) or last (ArrowUp) menu item after menu renders
-        window.setTimeout(() => {
-          const idx = e.key === 'ArrowDown' ? 0 : this.elMenuItems.length - 1
-          if (this.elMenuItems[idx]) /** @type {HTMLElement} */ (this.elMenuItems[idx]).focus()
-        }, 20)
-      }
-    })
+      },
+    )
 
     this.elMenuItems.forEach((m, idx) => {
       m.addEventListener('keydown', (/** @type {KeyboardEvent} */ e) => {
@@ -311,7 +354,7 @@ export default class Toolbar {
           prev.focus()
         } else if (e.key === 'Escape' || e.key === 'Tab') {
           this._closeMenu()
-          this.elMenuIcon.focus()
+          this.elMenuIcon?.focus()
           if (e.key === 'Tab') {
             // Allow Tab to continue natural flow — do not prevent default
           } else {
@@ -325,9 +368,15 @@ export default class Toolbar {
     })
   }
 
+  /**
+   * @param {string} type
+   */
   toggleZoomSelection(type) {
     const charts = this.ctx.getSyncedCharts()
 
+    /**
+     * @param {Record<string, any>} ch
+     */
     charts.forEach((ch) => {
       ch.ctx.toolbar.toggleOtherControls()
 
@@ -360,11 +409,14 @@ export default class Toolbar {
     }
     if (!this.elSelection) {
       this.elSelection = w.dom.baseEl.querySelector(
-        '.apexcharts-selection-icon'
+        '.apexcharts-selection-icon',
       )
     }
   }
 
+  /**
+   * @param {string} type
+   */
   enableZoomPanFromToolbar(type) {
     this.toggleOtherControls()
 
@@ -385,6 +437,9 @@ export default class Toolbar {
   togglePanning() {
     const charts = this.ctx.getSyncedCharts()
 
+    /**
+     * @param {Record<string, any>} ch
+     */
     charts.forEach((ch) => {
       ch.ctx.toolbar.toggleOtherControls()
       ch.w.interact.panEnabled = !ch.w.interact.panEnabled
@@ -399,7 +454,7 @@ export default class Toolbar {
 
       ch.ctx.toolbar.elPan.setAttribute(
         'aria-pressed',
-        String(ch.w.interact.panEnabled)
+        String(ch.w.interact.panEnabled),
       )
     })
   }
@@ -466,6 +521,10 @@ export default class Toolbar {
     }
   }
 
+  /**
+   * @param {number} newMinX
+   * @param {number} newMaxX
+   */
   _getNewMinXMaxX(newMinX, newMaxX) {
     const shouldFloor = this.w.config.xaxis.convertedCatToNumeric
     return {
@@ -474,6 +533,10 @@ export default class Toolbar {
     }
   }
 
+  /**
+   * @param {number} newMinX
+   * @param {number} newMaxX
+   */
   zoomUpdateOptions(newMinX, newMaxX) {
     const w = this.w
 
@@ -499,15 +562,19 @@ export default class Toolbar {
       max: newMaxX,
     }
 
-    const beforeZoomRange = this.getBeforeZoomRange(xaxis)
+    const beforeZoomRange = this.getBeforeZoomRange(
+      xaxis,
+      /** @type {any} */ (undefined),
+    )
     if (beforeZoomRange) {
       xaxis = beforeZoomRange.xaxis
     }
 
+    /** @type {{ xaxis: any; yaxis?: any }} */
     const options = {
       xaxis,
     }
-
+    if (!w.globals.initialConfig) return
     const yaxis = Utils.clone(w.globals.initialConfig.yaxis)
 
     if (!w.config.chart.group) {
@@ -521,12 +588,16 @@ export default class Toolbar {
     this.ctx.updateHelpers._updateOptions(
       options,
       false,
-      this.w.config.chart.animations.dynamicAnimation.enabled
+      this.w.config.chart.animations.dynamicAnimation.enabled,
     )
 
     this.zoomCallback(xaxis, yaxis)
   }
 
+  /**
+   * @param {Record<string, any>} xaxis
+   * @param {Record<string, any>} yaxis
+   */
   zoomCallback(xaxis, yaxis) {
     if (typeof this.ev.zoomed === 'function') {
       this.ev.zoomed(this.ctx, { xaxis, yaxis })
@@ -534,6 +605,10 @@ export default class Toolbar {
     }
   }
 
+  /**
+   * @param {Record<string, any>} xaxis
+   * @param {Record<string, any>} yaxis
+   */
   getBeforeZoomRange(xaxis, yaxis) {
     let newRange = null
     if (typeof this.ev.beforeZoom === 'function') {
@@ -545,20 +620,23 @@ export default class Toolbar {
 
   toggleMenu() {
     window.setTimeout(() => {
-      if (this.elMenu.classList.contains('apexcharts-menu-open')) {
+      if (this.elMenu?.classList.contains('apexcharts-menu-open')) {
         this._closeMenu()
       } else {
-        this.elMenu.classList.add('apexcharts-menu-open')
-        this.elMenuIcon.setAttribute('aria-expanded', 'true')
+        this.elMenu?.classList.add('apexcharts-menu-open')
+        this.elMenuIcon?.setAttribute('aria-expanded', 'true')
       }
     }, 0)
   }
 
   _closeMenu() {
-    this.elMenu.classList.remove('apexcharts-menu-open')
-    this.elMenuIcon.setAttribute('aria-expanded', 'false')
+    this.elMenu?.classList.remove('apexcharts-menu-open')
+    this.elMenuIcon?.setAttribute('aria-expanded', 'false')
   }
 
+  /**
+   * @param {string} type
+   */
   handleDownload(type) {
     const w = this.w
     const exprt = new Exports(this.w, this.ctx)
@@ -581,6 +659,9 @@ export default class Toolbar {
   handleZoomReset() {
     const charts = this.ctx.getSyncedCharts()
 
+    /**
+     * @param {Record<string, any>} ch
+     */
     charts.forEach((ch) => {
       const w = ch.w
 
@@ -613,12 +694,12 @@ export default class Toolbar {
       // if user has some series collapsed before hitting zoom reset button,
       // those series should stay collapsed
       const series = ch.ctx.series.emptyCollapsedSeries(
-        Utils.clone(w.globals.initialSeries)
+        Utils.clone(w.globals.initialSeries),
       )
 
       ch.updateHelpers._updateSeries(
         series,
-        w.config.chart.animations.dynamicAnimation.enabled
+        w.config.chart.animations.dynamicAnimation.enabled,
       )
     })
   }

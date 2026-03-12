@@ -3,12 +3,20 @@ import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
 
 export default class PointAnnotations {
+  /**
+   * @param {import('./Annotations').default} annoCtx
+   */
   constructor(annoCtx) {
     this.w = annoCtx.w
     this.annoCtx = annoCtx
     this.helpers = new Helpers(this.annoCtx)
   }
 
+  /**
+   * @param {Record<string, any>} anno
+   * @param {Element} parent
+   * @param {number} index
+   */
   addPointAnnotation(anno, parent, index) {
     const w = this.w
 
@@ -41,7 +49,7 @@ export default class PointAnnotations {
       let point = this.annoCtx.graphics.drawMarker(
         x + anno.marker.offsetX,
         y + anno.marker.offsetY,
-        optsPoints
+        optsPoints,
       )
 
       parent.appendChild(point.node)
@@ -76,7 +84,8 @@ export default class PointAnnotations {
       if (anno.customSVG.SVG) {
         const g = this.annoCtx.graphics.group({
           class:
-            'apexcharts-point-annotations-custom-svg ' + anno.customSVG.cssClass,
+            'apexcharts-point-annotations-custom-svg ' +
+            anno.customSVG.cssClass,
         })
 
         g.attr({
@@ -106,13 +115,13 @@ export default class PointAnnotations {
       if (anno.mouseEnter) {
         point.node.addEventListener(
           'mouseenter',
-          anno.mouseEnter.bind(this, anno)
+          anno.mouseEnter.bind(this, anno),
         )
       }
       if (anno.mouseLeave) {
         point.node.addEventListener(
           'mouseleave',
-          anno.mouseLeave.bind(this, anno)
+          anno.mouseLeave.bind(this, anno),
         )
       }
       if (anno.click) {
@@ -128,9 +137,15 @@ export default class PointAnnotations {
       class: 'apexcharts-point-annotations',
     })
 
-    w.config.annotations.points.map((anno, index) => {
-      this.addPointAnnotation(anno, elg.node, index)
-    })
+    /**
+     * @param {Record<string, any>} anno
+     * @param {number} index
+     */
+    w.config.annotations.points.map(
+      (/** @type {any} */ anno, /** @type {any} */ index) => {
+        this.addPointAnnotation(anno, elg.node, index)
+      },
+    )
 
     return elg
   }

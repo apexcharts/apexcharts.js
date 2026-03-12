@@ -9,6 +9,9 @@
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 
 class AxesTooltip {
+  /**
+   * @param {import('./Tooltip').default} tooltipContext
+   */
   constructor(tooltipContext) {
     this.w = tooltipContext.w
     this.ttCtx = tooltipContext
@@ -35,19 +38,25 @@ class AxesTooltip {
 
     if (ttCtx.isXAxisTooltipEnabled) {
       const xaxisTooltip = w.dom.baseEl.querySelector(
-        '.apexcharts-xaxistooltip'
+        '.apexcharts-xaxistooltip',
       )
 
       if (xaxisTooltip === null) {
-        ttCtx.xaxisTooltip = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
+        ttCtx.xaxisTooltip = BrowserAPIs.createElementNS(
+          'http://www.w3.org/1999/xhtml',
+          'div',
+        )
         ttCtx.xaxisTooltip.setAttribute(
           'class',
-          tooltipCssClass + ' apexcharts-theme-' + w.config.tooltip.theme
+          tooltipCssClass + ' apexcharts-theme-' + w.config.tooltip.theme,
         )
 
         renderTo.appendChild(ttCtx.xaxisTooltip)
 
-        ttCtx.xaxisTooltipText = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
+        ttCtx.xaxisTooltipText = BrowserAPIs.createElementNS(
+          'http://www.w3.org/1999/xhtml',
+          'div',
+        )
         ttCtx.xaxisTooltipText.classList.add('apexcharts-xaxistooltip-text')
 
         ttCtx.xaxisTooltipText.style.fontFamily =
@@ -80,24 +89,31 @@ class AxesTooltip {
       const renderTo = w.dom.elWrap
 
       const yaxisTooltip = w.dom.baseEl.querySelector(
-        `.apexcharts-yaxistooltip apexcharts-yaxistooltip-${i}`
+        `.apexcharts-yaxistooltip apexcharts-yaxistooltip-${i}`,
       )
 
       if (yaxisTooltip === null) {
-        ttCtx.yaxisTooltip = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
+        ttCtx.yaxisTooltip = BrowserAPIs.createElementNS(
+          'http://www.w3.org/1999/xhtml',
+          'div',
+        )
         ttCtx.yaxisTooltip.setAttribute(
           'class',
-          tooltipCssClass + ' apexcharts-theme-' + w.config.tooltip.theme
+          tooltipCssClass + ' apexcharts-theme-' + w.config.tooltip.theme,
         )
 
         renderTo.appendChild(ttCtx.yaxisTooltip)
 
         if (i === 0) ttCtx.yaxisTooltipText = []
+        ;/** @type {any} */ (ttCtx.yaxisTooltipText)[i] =
+          BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
+        ;/** @type {any} */ (ttCtx.yaxisTooltipText)[i].classList.add(
+          'apexcharts-yaxistooltip-text',
+        )
 
-        ttCtx.yaxisTooltipText[i] = BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
-        ttCtx.yaxisTooltipText[i].classList.add('apexcharts-yaxistooltip-text')
-
-        ttCtx.yaxisTooltip.appendChild(ttCtx.yaxisTooltipText[i])
+        ttCtx.yaxisTooltip.appendChild(
+          /** @type {any} */ (ttCtx.yaxisTooltipText)[i],
+        )
       }
     }
   }
@@ -120,7 +136,7 @@ class AxesTooltip {
       } else if (w.config.xaxis.crosshairs.width === 'barWidth') {
         const bar = w.dom.baseEl.querySelector('.apexcharts-bar-area')
         if (bar !== null) {
-          const barWidth = parseFloat(bar.getAttribute('barWidth'))
+          const barWidth = parseFloat(bar.getAttribute('barWidth') ?? '0')
           ttCtx.xcrosshairsWidth = barWidth
         } else {
           ttCtx.xcrosshairsWidth = 1
@@ -129,7 +145,7 @@ class AxesTooltip {
     } else {
       const bar = w.dom.baseEl.querySelector('.apexcharts-bar-area')
       if (bar !== null && w.config.xaxis.crosshairs.width === 'barWidth') {
-        const barWidth = parseFloat(bar.getAttribute('barWidth'))
+        const barWidth = parseFloat(bar.getAttribute('barWidth') ?? '0')
         ttCtx.xcrosshairsWidth = barWidth
       } else {
         if (w.config.xaxis.crosshairs.width === 'tickWidth') {
@@ -143,7 +159,7 @@ class AxesTooltip {
       ttCtx.xcrosshairsWidth = 0
     }
     if (xcrosshairs !== null && ttCtx.xcrosshairsWidth > 0) {
-      xcrosshairs.setAttribute('width', ttCtx.xcrosshairsWidth)
+      xcrosshairs.setAttribute('width', String(ttCtx.xcrosshairsWidth))
     }
   }
 
@@ -152,15 +168,18 @@ class AxesTooltip {
     const ttCtx = this.ttCtx
 
     // set ycrosshairs height
-    ttCtx.ycrosshairs = w.dom.baseEl.querySelector(
-      '.apexcharts-ycrosshairs'
-    )
+    ttCtx.ycrosshairs = w.dom.baseEl.querySelector('.apexcharts-ycrosshairs')
 
     ttCtx.ycrosshairsHidden = w.dom.baseEl.querySelector(
-      '.apexcharts-ycrosshairs-hidden'
+      '.apexcharts-ycrosshairs-hidden',
     )
   }
 
+  /**
+   * @param {number} index
+   * @param {number} clientY
+   * @param {import('../../types/internal').XYRatios} xyRatios
+   */
   drawYaxisTooltipText(index, clientY, xyRatios) {
     const ttCtx = this.ttCtx
     const w = this.w
@@ -170,6 +189,7 @@ class AxesTooltip {
     if (ttCtx.yaxisTooltips[index] && yAxisSeriesArr.length > 0) {
       const lbFormatter = w.formatters.yLabelFormatters[index]
       const elGrid = ttCtx.getElGrid()
+      if (!elGrid) return
       const seriesBound = elGrid.getBoundingClientRect()
 
       // We can use the index of any series referenced by the Yaxis
@@ -189,7 +209,8 @@ class AxesTooltip {
       }
 
       ttCtx.tooltipPosition.moveYCrosshairs(clientY - seriesBound.top)
-      ttCtx.yaxisTooltipText[index].innerHTML = lbFormatter(val)
+      ;/** @type {any} */ (ttCtx.yaxisTooltipText)[index].innerHTML =
+        lbFormatter(val)
       ttCtx.tooltipPosition.moveYAxisTooltip(index)
     }
   }

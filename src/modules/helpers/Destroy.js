@@ -3,11 +3,17 @@ import PerformanceCache from '../../utils/PerformanceCache'
 import { Environment } from '../../utils/Environment.js'
 
 export default class Destroy {
+  /**
+   * @param {import('../../types/internal').ChartContext} ctx
+   */
   constructor(ctx) {
     this.ctx = ctx
     this.w = ctx.w
   }
 
+  /**
+   * @param {{ isUpdating: boolean }} opts
+   */
   clear({ isUpdating }) {
     if (this.ctx._zoomPanSelection) {
       this.ctx._zoomPanSelection.destroy()
@@ -63,18 +69,27 @@ export default class Destroy {
     this.clearDomElements({ isUpdating })
   }
 
+  /**
+   * @param {any} draw
+   */
   killSVG(draw) {
-    draw.each(function () {
-      this.removeClass('*')
-      this.off()
-      // this.stop()
-    }, true)
+    draw.each(
+      /** @this {any} */ function () {
+        this.removeClass('*')
+        this.off()
+        // this.stop()
+      },
+      true,
+    )
     // draw.ungroup()
     draw.clear()
   }
 
+  /**
+   * @param {{ isUpdating: boolean }} opts
+   */
   clearDomElements({ isUpdating }) {
-    const domEls = this.w.dom
+    const domEls = /** @type {any} */ (this.w.dom)
 
     if (Environment.isBrowser()) {
       const elSVG = domEls.Paper.node
@@ -87,7 +102,7 @@ export default class Destroy {
       const baseEl = domEls.baseEl
       if (baseEl) {
         // see https://github.com/apexcharts/vue-apexcharts/issues/275
-        this.ctx.eventList.forEach((event) => {
+        this.ctx.eventList.forEach((/** @type {string} */ event) => {
           baseEl.removeEventListener(event, this.ctx.events.documentEvent)
         })
       }

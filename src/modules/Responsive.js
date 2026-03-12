@@ -11,12 +11,18 @@ import { Environment } from '../utils/Environment.js'
  **/
 
 export default class Responsive {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w
   }
 
   // the opts parameter if not null has to be set overriding everything
   // as the opts is set by user externally
+  /**
+   * @param {object} opts
+   */
   checkResponsiveConfig(opts) {
     const w = this.w
     const cnf = w.config
@@ -26,8 +32,16 @@ export default class Responsive {
 
     const res = cnf.responsive.slice()
     res
-      .sort((a, b) =>
-        a.breakpoint > b.breakpoint ? 1 : b.breakpoint > a.breakpoint ? -1 : 0
+      .sort(
+        (
+          /** @type {{ breakpoint: number }} */ a,
+          /** @type {{ breakpoint: number }} */ b,
+        ) =>
+          a.breakpoint > b.breakpoint
+            ? 1
+            : b.breakpoint > a.breakpoint
+              ? -1
+              : 0,
       )
       .reverse()
 
@@ -36,7 +50,9 @@ export default class Responsive {
     const iterateResponsiveOptions = (newOptions = {}) => {
       const largestBreakpoint = res[0].breakpoint
       const width = Environment.isBrowser()
-        ? (window.innerWidth > 0 ? window.innerWidth : screen.width)
+        ? window.innerWidth > 0
+          ? window.innerWidth
+          : screen.width
         : 0
 
       if (width > largestBreakpoint) {
@@ -45,11 +61,7 @@ export default class Responsive {
         // (indicated by series.data === [], these series' will be zeroed later
         // enabling stacking to work correctly)
         initialConfig.series = Utils.clone(w.config.series)
-        const options = CoreUtils.extendArrayProps(
-          config,
-          initialConfig,
-          w
-        )
+        const options = CoreUtils.extendArrayProps(config, initialConfig, w)
         newOptions = Utils.extend(options, newOptions)
         newOptions = Utils.extend(w.config, newOptions)
         this.overrideResponsiveOptions(newOptions)
@@ -74,8 +86,11 @@ export default class Responsive {
     }
   }
 
+  /**
+   * @param {Record<string, any>} newOptions
+   */
   overrideResponsiveOptions(newOptions) {
     const newConfig = new Config(newOptions).init({ responsiveOverride: true })
-    this.w.config = newConfig
+    this.w.config = /** @type {any} */ (newConfig)
   }
 }

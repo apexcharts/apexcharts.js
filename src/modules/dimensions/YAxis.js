@@ -4,6 +4,9 @@ import Utils from '../../utils/Utils'
 import AxesUtils from '../axes/AxesUtils'
 
 export default class DimYAxis {
+  /**
+   * @param {import('./Dimensions').default} dCtx
+   */
   constructor(dCtx) {
     this.w = dCtx.w
     this.dCtx = dCtx
@@ -19,11 +22,16 @@ export default class DimYAxis {
 
     const width = 0
     const height = 0
+    /** @type {any[]} */
     const ret = []
     let labelPad = 10
     const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme, timeScale: this.dCtx.timeScale })
 
-    w.config.yaxis.map((yaxe, index) => {
+    /**
+     * @param {ApexYAxis} yaxe
+     * @param {number} index
+     */
+    w.config.yaxis.map((/** @type {any} */ yaxe, /** @type {any} */ index) => {
       const formatterArgs = {
         seriesIndex: index,
         dataPointIndex: -1,
@@ -45,7 +53,11 @@ export default class DimYAxis {
       ) {
         const lbFormatter = w.formatters.yLabelFormatters[index]
         const minV = yS.niceMin === Number.MIN_VALUE ? 0 : yS.niceMin
-        let val = yS.result.reduce((acc, curr) => {
+        /**
+         * @param {any} acc
+         * @param {any} curr
+         */
+        let val = yS.result.reduce((/** @type {any} */ acc, /** @type {any} */ curr) => {
           return String(lbFormatter(acc, formatterArgs))?.length >
             String(lbFormatter(curr, formatterArgs))?.length
             ? acc
@@ -134,9 +146,13 @@ export default class DimYAxis {
    **/
   getyAxisTitleCoords() {
     const w = this.w
+    /** @type {any[]} */
     const ret = []
 
-    w.config.yaxis.map((yaxe) => {
+    /**
+     * @param {ApexYAxis} yaxe
+     */
+    w.config.yaxis.map((/** @type {any} */ yaxe) => {
       if (yaxe.show && yaxe.title.text !== undefined) {
         const graphics = new Graphics(this.w)
         const rotateStr = 'rotate('.concat(yaxe.title.rotate, ' 0 0)')
@@ -171,10 +187,17 @@ export default class DimYAxis {
     const padding = w.globals.yAxisScale.length > 1 ? 10 : 0
     const axesUtils = new AxesUtils(this.w, { theme: this.dCtx.theme, timeScale: this.dCtx.timeScale })
 
+    /**
+     * @param {number} index
+     */
     const isHiddenYAxis = function (index) {
       return w.globals.ignoreYAxisIndexes.indexOf(index) > -1
     }
 
+    /**
+     * @param {{width: number, height: number}} coord
+     * @param {number} index
+     */
     const padForLabelTitle = (coord, index) => {
       const floating = w.config.yaxis[index].floating
       let width = 0
@@ -195,11 +218,19 @@ export default class DimYAxis {
       yAxisWidth = yAxisWidth + width
     }
 
-    w.layout.yLabelsCoords.map((yLabelCoord, index) => {
+    /**
+     * @param {{width: number, height: number}} yLabelCoord
+     * @param {number} index
+     */
+    w.layout.yLabelsCoords.map((/** @type {any} */ yLabelCoord, /** @type {any} */ index) => {
       padForLabelTitle(yLabelCoord, index)
     })
 
-    w.layout.yTitleCoords.map((yTitleCoord, index) => {
+    /**
+     * @param {{width: number, height: number}} yTitleCoord
+     * @param {number} index
+     */
+    w.layout.yTitleCoords.map((/** @type {any} */ yTitleCoord, /** @type {any} */ index) => {
       padForLabelTitle(yTitleCoord, index)
     })
 

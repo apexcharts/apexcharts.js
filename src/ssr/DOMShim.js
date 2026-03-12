@@ -8,36 +8,57 @@
  * Mock SVG element for SSR environment
  */
 class SSRElement {
+  /**
+   * @param {string} nodeName
+   * @param {any} namespaceURI
+   */
   constructor(nodeName, namespaceURI = null) {
     this.nodeName = nodeName
     this.namespaceURI = namespaceURI
     this.attributes = new Map()
+    /** @type {any[]} */
     this.children = []
     this.textContent = ''
     this.style = {}
     this.classList = new SSRClassList()
-    this.parentNode = null
+    this.parentNode = /** @type {SSRElement | null} */ (null)
     /** @type {number|undefined} */ this._ssrWidth = undefined
     /** @type {number|undefined} */ this._ssrHeight = undefined
     /** @type {boolean|undefined} */ this._ssrMode = undefined
   }
 
+  /**
+   * @param {string} name
+   * @param {any} value
+   */
   setAttribute(name, value) {
     this.attributes.set(name, value)
   }
 
+  /**
+   * @param {string} name
+   */
   getAttribute(name) {
     return this.attributes.get(name)
   }
 
+  /**
+   * @param {string} name
+   */
   removeAttribute(name) {
     this.attributes.delete(name)
   }
 
+  /**
+   * @param {string} name
+   */
   hasAttribute(name) {
     return this.attributes.has(name)
   }
 
+  /**
+   * @param {any} child
+   */
   appendChild(child) {
     if (child && child !== this) {
       // Mirror real DOM: re-parenting removes child from previous parent
@@ -54,6 +75,9 @@ class SSRElement {
     return child
   }
 
+  /**
+   * @param {any} child
+   */
   removeChild(child) {
     const index = this.children.indexOf(child)
     if (index !== -1) {
@@ -63,6 +87,10 @@ class SSRElement {
     return child
   }
 
+  /**
+   * @param {any} newNode
+   * @param {any} referenceNode
+   */
   insertBefore(newNode, referenceNode) {
     if (!referenceNode) {
       return this.appendChild(newNode)
@@ -121,6 +149,7 @@ class SSRElement {
   }
 
   getRootNode() {
+    /** @type {SSRElement} */
     let root = this
     while (root.parentNode) {
       root = root.parentNode
@@ -188,18 +217,25 @@ class SSRClassList {
     this.classes = new Set()
   }
 
-  add(...classNames) {
+  add(/** @type {any[]} */ ...classNames) {
     classNames.forEach((name) => this.classes.add(name))
   }
 
-  remove(...classNames) {
+  remove(/** @type {any[]} */ ...classNames) {
     classNames.forEach((name) => this.classes.delete(name))
   }
 
+  /**
+   * @param {string} className
+   */
   contains(className) {
     return this.classes.has(className)
   }
 
+  /**
+   * @param {string} className
+   * @param {any} force
+   */
   toggle(className, force) {
     if (force === true) {
       this.classes.add(className)
@@ -269,7 +305,7 @@ export class SSRDOMShim {
 
   /**
    * Query selector all (returns empty array in SSR)
-   * @returns {Array}
+   * @returns {any[]}
    */
   querySelectorAll() {
     return []
@@ -310,6 +346,9 @@ export class SSRDOMShim {
    */
   createXMLSerializer() {
     return {
+      /**
+       * @param {Element} element
+       */
       serializeToString(element) {
         return element.toString ? element.toString() : ''
       },
@@ -322,6 +361,10 @@ export class SSRDOMShim {
    */
   createDOMParser() {
     return {
+      /**
+       * @param {string} str
+       * @param {string} _type
+       */
       parseFromString(str, _type) {
         // Basic mock - returns a simple element
         const root = new SSRElement('root')

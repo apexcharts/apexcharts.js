@@ -10,6 +10,10 @@ import Utils from '../utils/Utils'
  **/
 
 class Graphics {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext | null} ctx
+   */
   constructor(w, ctx = null) {
     this.w = w
     this.ctx = ctx
@@ -44,10 +48,17 @@ class Graphics {
    *               coordinate space, or, if useFractionalRadius is true, a value
    *               from 0 to 1.
    * @returns A new SVG path string with the rounding
+   * @param {string} pathString
+   * @param {number} radius
    */
   roundPathCorners(pathString, radius) {
     if (pathString.indexOf('NaN') > -1) pathString = ''
 
+    /**
+     * @param {{x: number, y: number}} movingPoint
+     * @param {{x: number, y: number}} targetPoint
+     * @param {number} amount
+     */
     function moveTowardsLength(movingPoint, targetPoint, amount) {
       var width = targetPoint.x - movingPoint.x
       var height = targetPoint.y - movingPoint.y
@@ -57,9 +68,14 @@ class Graphics {
       return moveTowardsFractional(
         movingPoint,
         targetPoint,
-        Math.min(1, amount / distance)
+        Math.min(1, amount / distance),
       )
     }
+    /**
+     * @param {{x: number, y: number}} movingPoint
+     * @param {{x: number, y: number}} targetPoint
+     * @param {number} fraction
+     */
     function moveTowardsFractional(movingPoint, targetPoint, fraction) {
       return {
         x: movingPoint.x + (targetPoint.x - movingPoint.x) * fraction,
@@ -68,6 +84,10 @@ class Graphics {
     }
 
     // Adjusts the ending position of a command
+    /**
+     * @param {any} cmd
+     * @param {{x: number, y: number}} newPoint
+     */
     function adjustCommand(cmd, newPoint) {
       if (cmd.length > 2) {
         cmd[cmd.length - 2] = newPoint.x
@@ -76,6 +96,9 @@ class Graphics {
     }
 
     // Gives an {x, y} object for a command's ending position
+    /**
+     * @param {any} cmd
+     */
     function pointForCommand(cmd) {
       return {
         x: parseFloat(cmd[cmd.length - 2]),
@@ -84,7 +107,10 @@ class Graphics {
     }
 
     // Split apart the path, handing concatonated letters and numbers
-    var pathParts = pathString.split(/[,\s]/).reduce(function (parts, part) {
+    var pathParts = pathString.split(/[,\s]/).reduce(function (
+      /** @type {any} */ parts,
+      /** @type {any} */ part,
+    ) {
       var match = part.match(/^([a-zA-Z])(.+)/)
       if (match) {
         parts.push(match[1])
@@ -97,7 +123,10 @@ class Graphics {
     }, [])
 
     // Group the commands with their arguments for easier handling
-    var commands = pathParts.reduce(function (commands, part) {
+    var commands = pathParts.reduce(function (
+      /** @type {any} */ commands,
+      /** @type {any} */ part,
+    ) {
       if (parseFloat(part) == part && commands.length) {
         commands[commands.length - 1].push(part)
       } else {
@@ -185,7 +214,7 @@ class Graphics {
       // Fix up the starting point and restore the close path if the path was orignally closed
       if (virtualCloseLine) {
         var newStartPoint = pointForCommand(
-          resultCommands[resultCommands.length - 1]
+          resultCommands[resultCommands.length - 1],
         )
         resultCommands.push(['Z'])
         adjustCommand(resultCommands[0], newStartPoint)
@@ -194,11 +223,25 @@ class Graphics {
       resultCommands = commands
     }
 
-    return resultCommands.reduce(function (str, c) {
+    /**
+     * @param {string} str
+     * @param {Record<string, any>} c
+     */
+    return resultCommands.reduce(function (
+      /** @type {any} */ str,
+      /** @type {any} */ c,
+    ) {
       return str + c.join(' ') + ' '
     }, '')
   }
 
+  /**
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} x2
+   * @param {number} y2
+   * @param {number | null} [strokeWidth]
+   */
   drawLine(
     x1,
     y1,
@@ -207,7 +250,7 @@ class Graphics {
     lineColor = '#a8a8a8',
     dashArray = 0,
     strokeWidth = null,
-    strokeLineCap = 'butt'
+    strokeLineCap = 'butt',
   ) {
     const w = this.w
     const line = w.dom.Paper.line().attr({
@@ -224,6 +267,10 @@ class Graphics {
     return line
   }
 
+  /**
+   * @param {number | null} [strokeWidth]
+   * @param {string | null} [strokeColor]
+   */
   drawRect(
     x1 = 0,
     y1 = 0,
@@ -234,7 +281,7 @@ class Graphics {
     opacity = 1,
     strokeWidth = null,
     strokeColor = null,
-    strokeDashArray = 0
+    strokeDashArray = 0,
   ) {
     const w = this.w
     const rect = w.dom.Paper.rect()
@@ -258,11 +305,14 @@ class Graphics {
     return rect
   }
 
+  /**
+   * @param {string} polygonString
+   */
   drawPolygon(
     polygonString,
     stroke = '#e1e1e1',
     strokeWidth = 1,
-    fill = 'none'
+    fill = 'none',
   ) {
     const w = this.w
     const polygon = w.dom.Paper.polygon(polygonString).attr({
@@ -274,6 +324,10 @@ class Graphics {
     return polygon
   }
 
+  /**
+   * @param {number} radius
+   * @param {Record<string, any> | null} attrs
+   */
   drawCircle(radius, attrs = null) {
     const w = this.w
 
@@ -320,6 +374,9 @@ class Graphics {
     return p
   }
 
+  /**
+   * @param {Record<string, any> | null} attrs
+   */
   group(attrs = null) {
     const w = this.w
     const g = w.dom.Paper.group()
@@ -330,46 +387,80 @@ class Graphics {
     return g
   }
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   */
   move(x, y) {
     const move = ['M', x, y].join(' ')
     return move
   }
 
+  /**
+   * @param {number | null} x
+   * @param {number | null} y
+   * @param {string | null} hORv
+   * @returns {string}
+   */
   line(x, y, hORv = null) {
-    let line = null
-    if (hORv === null) {
-      line = [' L', x, y].join(' ')
-    } else if (hORv === 'H') {
-      line = [' H', x].join(' ')
-    } else if (hORv === 'V') {
-      line = [' V', y].join(' ')
-    }
-    return line
+    if (hORv === 'H') return [' H', x].join(' ')
+    if (hORv === 'V') return [' V', y].join(' ')
+    return [' L', x, y].join(' ')
   }
 
+  /**
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} x2
+   * @param {number} y2
+   * @param {number} x
+   * @param {number} y
+   */
   curve(x1, y1, x2, y2, x, y) {
     const curve = ['C', x1, y1, x2, y2, x, y].join(' ')
     return curve
   }
 
+  /**
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} x
+   * @param {number} y
+   */
   quadraticCurve(x1, y1, x, y) {
     const curve = ['Q', x1, y1, x, y].join(' ')
     return curve
   }
 
+  /**
+   * @param {number} rx
+   * @param {number} ry
+   * @param {number} axisRotation
+   * @param {number} largeArcFlag
+   * @param {number} sweepFlag
+   * @param {number} x
+   * @param {number} y
+   */
   arc(rx, ry, axisRotation, largeArcFlag, sweepFlag, x, y, relative = false) {
     let coord = 'A'
     if (relative) coord = 'a'
 
-    const arc = [coord, rx, ry, axisRotation, largeArcFlag, sweepFlag, x, y].join(
-      ' '
-    )
+    const arc = [
+      coord,
+      rx,
+      ry,
+      axisRotation,
+      largeArcFlag,
+      sweepFlag,
+      x,
+      y,
+    ].join(' ')
     return arc
   }
 
   /**
    * @memberof Graphics
-   * @param {any} opts
+   * @param {Record<string, any>} opts
    *  i = series's index
    *  realIndex = realIndex is series's actual index when it was drawn time. After several redraws, the iterating "i" may change in loops, but realIndex doesn't
    *  pathFrom = existing pathFrom to animateTo
@@ -402,7 +493,7 @@ class Graphics {
   }) {
     const w = this.w
     const filters = new Filters(this.w)
-    const anim = new Animations(this.w)
+    const anim = new Animations(this.w, /** @type {any} */ (undefined))
 
     const initialAnim = this.w.config.chart.animations.enabled
     const dynamicAnim =
@@ -452,7 +543,7 @@ class Graphics {
 
     if (shouldClipToGrid) {
       if (
-        (chartType === 'bar' && !w.globals.isHorizontal) ||
+        (chartType === 'bar' && !w.globals.isBarHorizontal) ||
         w.globals.comboCharts
       ) {
         el.attr({
@@ -512,16 +603,18 @@ class Graphics {
     return el
   }
 
-  drawPattern(
-    style,
-    width,
-    height,
-    stroke = '#a8a8a8',
-    strokeWidth = 0,
-  ) {
+  /**
+   * @param {string} style
+   * @param {number} width
+   * @param {number} height
+   */
+  drawPattern(style, width, height, stroke = '#a8a8a8', strokeWidth = 0) {
     const w = this.w
 
-    const p = w.dom.Paper.pattern(width, height, (add) => {
+    /**
+     * @param {string} add
+     */
+    const p = w.dom.Paper.pattern(width, height, (/** @type {any} */ add) => {
       if (style === 'horizontalLines') {
         add
           .line(0, 0, height, 0)
@@ -550,6 +643,16 @@ class Graphics {
     return p
   }
 
+  /**
+   * @param {string} style
+   * @param {string} gfrom
+   * @param {string} gto
+   * @param {number} opacityFrom
+   * @param {number} opacityTo
+   * @param {number | null} [size]
+   * @param {number[] | null} stops
+   * @param {any[]} colorStops
+   */
   drawGradient(
     style,
     gfrom,
@@ -559,7 +662,7 @@ class Graphics {
     size = null,
     stops = null,
     colorStops = [],
-    i = 0
+    i = 0,
   ) {
     const w = this.w
     let g
@@ -575,6 +678,7 @@ class Graphics {
     let stop1 = 0
     let stop2 = 1
     let stop3 = 1
+    /** @type {number | null} */
     let stop4 = null
 
     if (stops !== null) {
@@ -592,23 +696,38 @@ class Graphics {
     )
 
     if (!colorStops || colorStops.length === 0) {
-      g = w.dom.Paper.gradient(radial ? 'radial' : 'linear', (add) => {
-        add.stop(stop1, gfrom, opacityFrom)
-        add.stop(stop2, gto, opacityTo)
-        add.stop(stop3, gto, opacityTo)
-        if (stop4 !== null) {
-          add.stop(stop4, gfrom, opacityFrom)
-        }
-      })
+      /**
+       * @param {any} add
+       */
+      g = w.dom.Paper.gradient(
+        radial ? 'radial' : 'linear',
+        (/** @type {any} */ add) => {
+          add.stop(stop1, gfrom, opacityFrom)
+          add.stop(stop2, gto, opacityTo)
+          add.stop(stop3, gto, opacityTo)
+          if (stop4 !== null) {
+            add.stop(stop4, gfrom, opacityFrom)
+          }
+        },
+      )
     } else {
-      g = w.dom.Paper.gradient(radial ? 'radial' : 'linear', (add) => {
-        const gradientStops = Array.isArray(colorStops[i])
-          ? colorStops[i]
-          : colorStops
-        gradientStops.forEach((s) => {
-          add.stop(s.offset / 100, s.color, s.opacity)
-        })
-      })
+      /**
+       * @param {any} add
+       */
+      g = w.dom.Paper.gradient(
+        radial ? 'radial' : 'linear',
+        (/** @type {any} */ add) => {
+          const gradientStops = Array.isArray(colorStops[i])
+            ? colorStops[i]
+            : colorStops
+          /**
+           * @param {{offset: number, color: string, opacity: number}} s
+           */
+          gradientStops.forEach((/** @type {any} */ s) => {
+            add.stop(s.offset / 100, s.color, s.opacity)
+          })
+        },
+      )
     }
 
     if (!radial) {
@@ -648,7 +767,7 @@ class Graphics {
 
   /** @param {{ text: any, maxWidth: any, fontSize: any, fontFamily?: any }} opts */
   getTextBasedOnMaxWidth({ text, maxWidth, fontSize, fontFamily }) {
-    const tRects = this.getTextRects(text, fontSize, fontFamily)
+    const tRects = this.getTextRects(text, fontSize, fontFamily, '')
     const wordWidth = tRects.width / text.length
     const wordsBasedOnWidth = Math.floor(maxWidth / wordWidth)
     if (maxWidth < tRects.width) {
@@ -698,7 +817,10 @@ class Graphics {
     }
     let elText
     if (Array.isArray(text)) {
-      elText = w.dom.Paper.text((add) => {
+      /**
+       * @param {any} add
+       */
+      elText = w.dom.Paper.text((/** @type {any} */ add) => {
         for (let i = 0; i < text.length; i++) {
           truncatedText = text[i]
           if (maxWidth) {
@@ -721,7 +843,10 @@ class Graphics {
       }
       elText = isPlainText
         ? w.dom.Paper.plain(text)
-        : w.dom.Paper.text((add) => add.tspan(truncatedText))
+        : /**
+           * @param {any} add
+           */
+          w.dom.Paper.text((/** @type {any} */ add) => add.tspan(truncatedText))
     }
 
     elText.attr({
@@ -742,6 +867,12 @@ class Graphics {
     return elText
   }
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {string} type
+   * @param {number} size
+   */
   getMarkerPath(x, y, type, size) {
     let d = ''
     switch (type) {
@@ -823,7 +954,7 @@ class Graphics {
    * @param {number} y - The y-coordinate of the marker
    * @param {string} type - Marker shape type
    * @param {number} size - The size of the marker
-   * @param {any} opts - The options for the marker
+   * @param {Record<string, any>} opts - The options for the marker
    * @returns {any} The created marker.
    */
   drawMarkerShape(x, y, type, size, opts) {
@@ -847,6 +978,11 @@ class Graphics {
     return path
   }
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {Record<string, any>} opts
+   */
   drawMarker(x, y, opts) {
     x = x || 0
     let size = opts.pSize || 0
@@ -869,6 +1005,10 @@ class Graphics {
     })
   }
 
+  /**
+   * @param {any} path
+   * @param {Event | null} [e]
+   */
   pathMouseEnter(path, e) {
     const w = this.w
     const filters = new Filters(this.w)
@@ -904,6 +1044,10 @@ class Graphics {
     }
   }
 
+  /**
+   * @param {any} path
+   * @param {Event | null} [e]
+   */
   pathMouseLeave(path, e) {
     const w = this.w
     const filters = new Filters(this.w)
@@ -936,6 +1080,10 @@ class Graphics {
     }
   }
 
+  /**
+   * @param {any} path
+   * @param {Event | null} e
+   */
   pathMouseDown(path, e) {
     const w = this.w
     const filters = new Filters(this.w)
@@ -959,13 +1107,19 @@ class Graphics {
       ) {
         w.interact.selectedDataPoints = []
         const elPaths = w.dom.Paper.find(
-          '.apexcharts-series path:not(.apexcharts-decoration-element)'
+          '.apexcharts-series path:not(.apexcharts-decoration-element)',
         )
         const elCircles = w.dom.Paper.find(
-          '.apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)'
+          '.apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)',
         )
 
+        /**
+         * @param {any[]} els
+         */
         const deSelect = (els) => {
+          /**
+           * @param {any} el
+           */
           Array.prototype.forEach.call(els, (el) => {
             el.node.setAttribute('selected', 'false')
             filters.getDefaultFilter(el, i)
@@ -1035,6 +1189,10 @@ class Graphics {
     }
   }
 
+  /**
+   * @param {any} el
+   * @returns {{ x: number, y: number }}
+   */
   rotateAroundCenter(el) {
     let coord = /** @type {any} */ ({})
     if (el && typeof el.getBBox === 'function') {
@@ -1053,20 +1211,26 @@ class Graphics {
    * Sets up event delegation on a parent group element.
    * Uses mouseover/mouseout (which bubble) to simulate mouseenter/mouseleave
    * on matching child elements, reducing per-element listener overhead.
+   * @param {any} parentGroup
+   * @param {string} targetSelector
    */
   setupEventDelegation(parentGroup, targetSelector) {
+    /** @type {any} */
     let currentHovered = null
 
-    parentGroup.node.addEventListener('mouseover', (e) => {
+    /**
+     * @param {Event} e
+     */
+    parentGroup.node.addEventListener('mouseover', (/** @type {any} */ e) => {
       const targetNode = Graphics._findDelegateTarget(
         e.target,
         parentGroup.node,
-        targetSelector
+        targetSelector,
       )
       if (!targetNode || targetNode === currentHovered) return
 
-      if (currentHovered && currentHovered.instance) {
-        this.pathMouseLeave(currentHovered.instance, e)
+      if (currentHovered && /** @type {any} */ (currentHovered).instance) {
+        this.pathMouseLeave(/** @type {any} */ (currentHovered).instance, e)
       }
       currentHovered = targetNode
       if (targetNode.instance) {
@@ -1074,28 +1238,34 @@ class Graphics {
       }
     })
 
-    parentGroup.node.addEventListener('mouseout', (e) => {
+    /**
+     * @param {Event} e
+     */
+    parentGroup.node.addEventListener('mouseout', (/** @type {any} */ e) => {
       if (!currentHovered) return
       const relatedNode = e.relatedTarget
         ? Graphics._findDelegateTarget(
             e.relatedTarget,
             parentGroup.node,
-            targetSelector
+            targetSelector,
           )
         : null
       if (relatedNode !== currentHovered) {
-        if (currentHovered && currentHovered.instance) {
-          this.pathMouseLeave(currentHovered.instance, e)
+        if (currentHovered && /** @type {any} */ (currentHovered).instance) {
+          this.pathMouseLeave(/** @type {any} */ (currentHovered).instance, e)
         }
         currentHovered = null
       }
     })
 
-    parentGroup.node.addEventListener('mousedown', (e) => {
+    /**
+     * @param {Event} e
+     */
+    parentGroup.node.addEventListener('mousedown', (/** @type {any} */ e) => {
       const targetNode = Graphics._findDelegateTarget(
         e.target,
         parentGroup.node,
-        targetSelector
+        targetSelector,
       )
       if (targetNode && targetNode.instance) {
         this.pathMouseDown(targetNode.instance, e)
@@ -1107,15 +1277,25 @@ class Graphics {
   // Mirrors Events.fireEvent() but reads the registry directly from w so that
   // pathMouseEnter/Leave/Down work even when this.ctx is null (Graphics instances
   // created without a ctx arg for drawing-only use cases).
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {string} name
+   * @param {any[]} args
+   */
   static _fireEvent(w, name, args) {
     const evs = w.globals.events
     if (!evs || !Object.prototype.hasOwnProperty.call(evs, name)) return
-    const handlers = evs[name]
+    const handlers = /** @type {Record<string,any>} */ (evs)[name]
     for (let i = 0; i < handlers.length; i++) {
       handlers[i].apply(null, args)
     }
   }
 
+  /**
+   * @param {any} node
+   * @param {Record<string, any>} boundary
+   * @param {string} selector
+   */
   static _findDelegateTarget(node, boundary, selector) {
     while (node && node !== boundary && node !== document) {
       if (node.matches && node.matches(selector)) return node
@@ -1124,6 +1304,10 @@ class Graphics {
     return null
   }
 
+  /**
+   * @param {any} el
+   * @param {Record<string, any>} attrs
+   */
   static setAttrs(el, attrs) {
     for (const key in attrs) {
       if (Object.prototype.hasOwnProperty.call(attrs, key)) {
@@ -1132,6 +1316,13 @@ class Graphics {
     }
   }
 
+  /**
+   * @param {string} text
+   * @param {string} fontSize
+   * @param {string | null | undefined} [fontFamily]
+   * @param {string} [transform]
+   * @returns {{ width: number, height: number }}
+   */
   getTextRects(text, fontSize, fontFamily, transform, useBBox = true) {
     const w = this.w
 
@@ -1140,7 +1331,9 @@ class Graphics {
     const cacheKey = [text, fontSize, fontFamily, transform, useBBox].join('\0')
     const cache = w.globals.textRectsCache
     if (cache && cache.has(cacheKey)) {
-      return cache.get(cacheKey)
+      return /** @type {{ width: number, height: number }} */ (
+        cache.get(cacheKey)
+      )
     }
 
     const virtualText = this.drawText({
@@ -1182,6 +1375,9 @@ class Graphics {
    * append ... to long text
    * http://stackoverflow.com/questions/9241315/trimming-text-to-a-given-pixel-width-in-svg
    * @memberof Graphics
+   * @param {Record<string, any>} textObj
+   * @param {string} textString
+   * @param {number} width
    **/
   placeTextWithEllipsis(textObj, textString, width) {
     if (typeof textObj.getComputedTextLength !== 'function') return

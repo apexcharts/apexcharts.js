@@ -8,6 +8,39 @@
 // There is on-going work to provide a comprehensive typed definition for this component.
 // See https://github.com/DefinitelyTyped/DefinitelyTyped/pull/28733
 
+// ---------------------------------------------------------------------------
+// Shared formatter/event opts types
+// ---------------------------------------------------------------------------
+
+/**
+ * Opts object passed to most chart event callbacks (click, mouseMove, etc.).
+ */
+type ApexChartEventOpts = {
+  seriesIndex: number
+  dataPointIndex: number
+  w: ApexCharts.ApexOptions & { globals: any }
+  [key: string]: any
+}
+
+/**
+ * Opts object passed to most value formatters (dataLabels, legend, tooltip y, etc.).
+ */
+type ApexFormatterOpts = {
+  seriesIndex: number
+  dataPointIndex: number
+  w: ApexCharts.ApexOptions & { globals: any }
+  [key: string]: any
+}
+
+/**
+ * Opts object passed to legend.formatter and legend.tooltipHoverFormatter.
+ */
+type ApexLegendFormatterOpts = {
+  seriesIndex: number
+  w: ApexCharts.ApexOptions & { globals: any }
+  [key: string]: any
+}
+
 declare class ApexCharts {
   constructor(el: HTMLElement, options: ApexCharts.ApexOptions)
 
@@ -102,10 +135,10 @@ declare class ApexCharts {
    * Subscribes to a chart event by name.
    * Event names mirror the chart.events option keys (e.g. 'mounted', 'updated', 'dataPointMouseEnter').
    */
-  addEventListener(name: string, handler: Function): void
+  addEventListener(name: string, handler: (...args: any[]) => void): void
 
   /** Removes a previously registered event listener. */
-  removeEventListener(name: string, handler: Function): void
+  removeEventListener(name: string, handler: (...args: any[]) => void): void
 
   /** Adds an x-axis annotation dynamically after render. */
   addXaxisAnnotation(options: XAxisAnnotations, pushToMemory?: boolean, context?: ApexCharts): void
@@ -296,6 +329,41 @@ declare namespace ApexCharts {
     xaxis?: ApexXAxis
     yaxis?: ApexYAxis | ApexYAxis[]
   }
+
+  // Re-exported sub-types — consumers can use these as:
+  //   import type ApexCharts from 'apexcharts'
+  //   const yaxis: ApexCharts.ApexYAxis = { ... }
+  export type { ApexAnnotations }
+  export type { ApexChart }
+  export type { ApexDataLabels }
+  export type { ApexFill }
+  export type { ApexForecastDataPoints }
+  export type { ApexGrid }
+  export type { ApexLegend }
+  export type { ApexMarkers }
+  export type { ApexNoData }
+  export type { ApexPlotOptions }
+  export type { ApexResponsive }
+  export type { ApexParsing }
+  export type { ApexStates }
+  export type { ApexStroke }
+  export type { ApexTitleSubtitle }
+  export type { ApexTheme }
+  export type { ApexTooltip }
+  export type { ApexXAxis }
+  export type { ApexYAxis }
+  export type { ApexAxisChartSeries }
+  export type { ApexNonAxisChartSeries }
+  export type { ApexLocale }
+  export type { ApexDropShadow }
+  export type { ApexChartEventOpts }
+  export type { ApexFormatterOpts }
+  export type { ApexLegendFormatterOpts }
+  export type { XAxisAnnotations }
+  export type { YAxisAnnotations }
+  export type { PointAnnotations }
+  export type { TextAnnotations }
+  export type { ImageAnnotations }
 }
 
 type ApexDropShadow = {
@@ -342,27 +410,27 @@ type ApexChart = {
   }
   nonce?: string
   events?: {
-    animationEnd?(chart: any, options?: any): void
-    beforeMount?(chart: any, options?: any): void
-    mounted?(chart: any, options?: any): void
-    updated?(chart: any, options?: any): void
-    mouseMove?(e: any, chart?: any, options?: any): void
-    mouseLeave?(e: any, chart?: any, options?: any): void
-    click?(e: any, chart?: any, options?: any): void
-    xAxisLabelClick?(e: any, chart?: any, options?: any): void
-    legendClick?(chart: any, seriesIndex?: number, options?: any): void
-    markerClick?(e: any, chart?: any, options?: any): void
-    selection?(chart: any, options?: any): void
-    dataPointSelection?(e: any, chart?: any, options?: any): void
-    dataPointMouseEnter?(e: any, chart?: any, options?: any): void
-    dataPointMouseLeave?(e: any, chart?: any, options?: any): void
-    beforeZoom?(chart: any, options?: any): void
-    beforeResetZoom?(chart: any, options?: any): void
-    zoomed?(chart: any, options?: any): void
-    scrolled?(chart: any, options?: any): void
-    brushScrolled?(chart: any, options?: any): void
-    keyDown?(e: KeyboardEvent, chart?: any, options?: any): void
-    keyUp?(e: KeyboardEvent, chart?: any, options?: any): void
+    animationEnd?(chart: ApexCharts, options?: ApexChartEventOpts): void
+    beforeMount?(chart: ApexCharts, options?: ApexChartEventOpts): void
+    mounted?(chart: ApexCharts, options?: ApexChartEventOpts): void
+    updated?(chart: ApexCharts, options?: ApexChartEventOpts): void
+    mouseMove?(e: MouseEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    mouseLeave?(e: MouseEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    click?(e: MouseEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    xAxisLabelClick?(e: MouseEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    legendClick?(chart: ApexCharts, seriesIndex?: number, options?: ApexChartEventOpts): void
+    markerClick?(e: MouseEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    selection?(chart: ApexCharts, options?: { xaxis?: { min: number; max: number }; yaxis?: { min: number; max: number } }): void
+    dataPointSelection?(e: MouseEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    dataPointMouseEnter?(e: MouseEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    dataPointMouseLeave?(e: MouseEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    beforeZoom?(chart: ApexCharts, options?: { xaxis: { min: number; max: number } }): boolean | void
+    beforeResetZoom?(chart: ApexCharts, options?: ApexChartEventOpts): boolean | void
+    zoomed?(chart: ApexCharts, options?: { xaxis: { min: number; max: number }; yaxis?: { min: number; max: number }[] }): void
+    scrolled?(chart: ApexCharts, options?: { xaxis: { min: number; max: number } }): void
+    brushScrolled?(chart: ApexCharts, options?: { xaxis: { min: number; max: number }; yaxis?: { min: number; max: number }[] }): void
+    keyDown?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    keyUp?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
   }
   brush?: {
     enabled?: boolean
@@ -377,7 +445,7 @@ type ApexChart = {
   defaultLocale?: string
   parentHeightOffset?: number
   redrawOnParentResize?: boolean
-  redrawOnWindowResize?: boolean | Function
+  redrawOnWindowResize?: boolean | ((...args: any[]) => boolean)
   sparkline?: {
     enabled?: boolean
   }
@@ -401,7 +469,7 @@ type ApexChart = {
         title?: string
         index?: number
         class?: string
-        click?(chart?: any, options?: any, e?: any): any
+        click?(chart: ApexCharts, options?: ApexChartEventOpts, e?: MouseEvent): void
       }[]
     }
     export?: {
@@ -606,9 +674,9 @@ type AnnotationLabel = {
   style?: AnnotationStyle
   position?: string
   orientation?: string
-  mouseEnter?: Function
-  mouseLeave?: Function
-  click?: Function
+  mouseEnter?: (annotation: AnnotationLabel, e: MouseEvent) => void
+  mouseLeave?: (annotation: AnnotationLabel, e: MouseEvent) => void
+  click?: (annotation: AnnotationLabel, e: MouseEvent) => void
 }
 
 type AnnotationStyle = {
@@ -662,9 +730,9 @@ type PointAnnotations = {
   y?: null | number
   yAxisIndex?: number
   seriesIndex?: number
-  mouseEnter?: Function
-  mouseLeave?: Function
-  click?: Function
+  mouseEnter?: (annotation: PointAnnotations, e: MouseEvent) => void
+  mouseLeave?: (annotation: PointAnnotations, e: MouseEvent) => void
+  click?: (annotation: PointAnnotations, e: MouseEvent) => void
   marker?: {
     size?: number
     fillColor?: string
@@ -787,7 +855,7 @@ type ApexPlotOptions = {
       orientation?: 'horizontal' | 'vertical',
       total?: {
         enabled?: boolean,
-        formatter?(val?: string, opts?: any): string,
+        formatter?(val?: string, opts?: ApexFormatterOpts): string,
         offsetX?: number,
         offsetY?: number,
         style?: {
@@ -925,7 +993,7 @@ type ApexPlotOptions = {
           fontSize?: string
           label?: string
           color?: string
-          formatter?(w: any): string
+          formatter?(w: ApexCharts.ApexOptions & { globals: any }): string
         }
       }
     }
@@ -1008,7 +1076,7 @@ type ApexPlotOptions = {
         fontFamily?: string
         fontWeight?: string | number
         fontSize?: string
-        formatter?(opts: any): string
+        formatter?(opts: ApexFormatterOpts): string
       }
     }
     barLabels?: {
@@ -1019,8 +1087,8 @@ type ApexPlotOptions = {
       fontFamily?: string
       fontWeight?: string | number
       fontSize?: string
-      formatter?: (barName: string, opts?: any) => string
-      onClick?: (barName: string, opts?: any) => void
+      formatter?: (barName: string, opts?: ApexFormatterOpts) => string
+      onClick?: (barName: string, opts?: ApexFormatterOpts) => void
     }
   }
 }
@@ -1079,8 +1147,8 @@ type ApexLegend = {
   height?: number
   offsetX?: number
   offsetY?: number
-  formatter?(legendName: string, opts?: any): string
-  tooltipHoverFormatter?(legendName: string, opts?: any): string
+  formatter?(legendName: string, opts?: ApexLegendFormatterOpts): string
+  tooltipHoverFormatter?(legendName: string, opts?: ApexLegendFormatterOpts): string
   customLegendItems?: string[]
   clusterGroupedSeries?: boolean;
   clusterGroupedSeriesOrientation?: string;
@@ -1095,8 +1163,8 @@ type ApexLegend = {
     shape?: ApexMarkerShape
     offsetX?: number
     offsetY?: number
-    customHTML?(): any
-    onClick?(): void
+    customHTML?(): string
+    onClick?(e: MouseEvent): void
   }
   itemMargin?: {
     horizontal?: number
@@ -1136,8 +1204,8 @@ type ApexMarkers = {
   offsetX?: number
   offsetY?: number
   showNullDataPoints?: boolean
-  onClick?(e?: any): void
-  onDblClick?(e?: any): void
+  onClick?(e?: MouseEvent): void
+  onDblClick?(e?: MouseEvent): void
   hover?: {
     size?: number
     sizeOffset?: number
@@ -1192,7 +1260,7 @@ type ApexDataLabels = {
     dropShadow?: ApexDropShadow
   }
   dropShadow?: ApexDropShadow
-  formatter?(val: string | number | number[], opts?: any): string | number | (string | number)[]
+  formatter?(val: string | number | number[], opts?: ApexFormatterOpts): string | number | (string | number)[]
 }
 
 type ApexResponsive = {
@@ -1202,9 +1270,9 @@ type ApexResponsive = {
 
 type ApexTooltipY = {
   title?: {
-    formatter?(seriesName: string, opts?: any): string
+    formatter?(seriesName: string, opts?: ApexFormatterOpts): string
   }
-  formatter?(val: number, opts?: any): string
+  formatter?(val: number, opts?: ApexFormatterOpts): string
 }
 
 /**
@@ -1233,7 +1301,7 @@ type ApexTooltip = {
   x?: {
     show?: boolean
     format?: string
-    formatter?(val: string | number, opts?: any): string
+    formatter?(val: string | number, opts?: ApexFormatterOpts): string
   }
   y?: ApexTooltipY | ApexTooltipY[]
   z?: {
@@ -1285,7 +1353,7 @@ type ApexXAxis = {
     offsetX?: number
     offsetY?: number
     format?: string
-    formatter?(value: string | number, timestamp?: number, opts?: any): string | string[]
+    formatter?(value: string | number, timestamp?: number, opts?: ApexFormatterOpts): string | string[]
     datetimeUTC?: boolean
     datetimeFormatter?: {
       year?: string
@@ -1368,7 +1436,7 @@ type ApexXAxis = {
   tooltip?: {
     enabled?: boolean
     offsetY?: number
-    formatter?(value: string | number, opts?: object): string
+    formatter?(value: string | number, opts?: ApexFormatterOpts): string
     style?: {
       fontSize?: string
       fontFamily?: string
@@ -1414,7 +1482,7 @@ type ApexYAxis = {
       fontFamily?: string
       cssClass?: string
     }
-    formatter?(val: number, opts?: any): string | string[]
+    formatter?(val: number, opts?: ApexFormatterOpts): string | string[]
   }
   axisBorder?: {
     show?: boolean

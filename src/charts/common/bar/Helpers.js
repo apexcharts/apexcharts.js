@@ -5,11 +5,17 @@ import Fill from '../../../modules/Fill'
 import Utils from '../../../utils/Utils'
 
 export default class Helpers {
+  /**
+   * @param {Record<string, any>} barCtx
+   */
   constructor(barCtx) {
     this.w = barCtx.w
     this.barCtx = barCtx
   }
 
+  /**
+   * @param {any[]} series
+   */
   initVariables(series) {
     const w = this.w
     this.barCtx.series = series
@@ -43,8 +49,14 @@ export default class Helpers {
     if (Utils.isSafari()) {
       // https://github.com/apexcharts/apexcharts.js/issues/4996
       // to temporarily fix the above issue, border radius is disabled
-      this.arrBorderRadius = this.arrBorderRadius.map((brArr) =>
-        brArr.map((_) => 'none')
+      /**
+       * @param {any[]} brArr
+       */
+      this.arrBorderRadius = this.arrBorderRadius.map((/** @type {any} */ brArr) =>
+        /**
+         * @param {any} _
+         */
+        brArr.map((/** @type {any} */ _) => 'none')
       )
     }
 
@@ -59,6 +71,9 @@ export default class Helpers {
     }
   }
 
+  /**
+   * @param {number} realIndex
+   */
   initialPositions(realIndex) {
     const w = this.w
     let x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW
@@ -175,9 +190,15 @@ export default class Helpers {
     }
   }
 
+  /**
+   * @param {Record<string, any>} ctx
+   */
   initializeStackedPrevVars(ctx) {
     const w = ctx.w
-    w.labelData.seriesGroups.forEach((group) => {
+    /**
+     * @param {Element} group
+     */
+    w.labelData.seriesGroups.forEach((/** @type {any} */ group) => {
       if (!ctx[group]) ctx[group] = {}
 
       ctx[group].prevY = []
@@ -189,10 +210,16 @@ export default class Helpers {
     })
   }
 
+  /**
+   * @param {Record<string, any>} ctx
+   */
   initializeStackedXYVars(ctx) {
     const w = ctx.w
 
-    w.labelData.seriesGroups.forEach((group) => {
+    /**
+     * @param {Element} group
+     */
+    w.labelData.seriesGroups.forEach((/** @type {any} */ group) => {
       if (!ctx[group]) ctx[group] = {}
 
       ctx[group].xArrj = []
@@ -204,6 +231,12 @@ export default class Helpers {
     })
   }
 
+  /**
+   * @param {any[]} series
+   * @param {number} i
+   * @param {number} j
+   * @param {number} realIndex
+   */
   getPathFillColor(series, i, j, realIndex) {
     const w = this.w
     const fill = new Fill(this.barCtx.w)
@@ -214,7 +247,10 @@ export default class Helpers {
 
     if (this.barCtx.barOptions.colors.ranges.length > 0) {
       const colorRange = this.barCtx.barOptions.colors.ranges
-      colorRange.map((range) => {
+      /**
+       * @param {number} range
+       */
+      colorRange.map((/** @type {any} */ range) => {
         if (series[i][j] >= range.from && series[i][j] <= range.to) {
           fillColor = range.color
           useRangeColor = true
@@ -243,6 +279,11 @@ export default class Helpers {
     }
   }
 
+  /**
+   * @param {number} i
+   * @param {number} j
+   * @param {number} realIndex
+   */
   getStrokeWidth(i, j, realIndex) {
     let strokeWidth = 0
     const w = this.w
@@ -266,6 +307,9 @@ export default class Helpers {
     return strokeWidth
   }
 
+  /**
+   * @param {any[]} series
+   */
   createBorderRadiusArr(series) {
     const w = this.w
 
@@ -590,6 +634,7 @@ export default class Helpers {
     }
   }
 
+  /** @param {{series: any}} opts */
   checkZeroSeries({ series }) {
     const w = this.w
     for (let zs = 0; zs < series.length; zs++) {
@@ -607,6 +652,10 @@ export default class Helpers {
     }
   }
 
+  /**
+   * @param {number} value
+   * @param {number} zeroW
+   */
   getXForValue(value, zeroW, zeroPositionForNull = true) {
     let xForVal = zeroPositionForNull ? zeroW : null
     if (typeof value !== 'undefined' && value !== null) {
@@ -618,6 +667,11 @@ export default class Helpers {
     return xForVal
   }
 
+  /**
+   * @param {number} value
+   * @param {number} zeroH
+   * @param {number} translationsIndex
+   */
   getYForValue(value, zeroH, translationsIndex, zeroPositionForNull = true) {
     let yForVal = zeroPositionForNull ? zeroH : null
     if (typeof value !== 'undefined' && value !== null) {
@@ -632,11 +686,24 @@ export default class Helpers {
     return yForVal
   }
 
+  /**
+   * @param {string} type
+   * @param {number} zeroW
+   * @param {number} zeroH
+   * @param {number} i
+   * @param {number} j
+   * @param {number} translationsIndex
+   */
   getGoalValues(type, zeroW, zeroH, i, j, translationsIndex) {
     const w = this.w
 
+    /** @type {any[]} */
     const goals = []
 
+    /**
+     * @param {number} value
+     * @param {Record<string, any>} attrs
+     */
     const pushGoal = (value, attrs) => {
       goals.push({
         [type]:
@@ -651,7 +718,10 @@ export default class Helpers {
       w.seriesData.seriesGoals[i][j] &&
       Array.isArray(w.seriesData.seriesGoals[i][j])
     ) {
-      w.seriesData.seriesGoals[i][j].forEach((goal) => {
+      /**
+       * @param {Record<string, any>} goal
+       */
+      w.seriesData.seriesGoals[i][j].forEach((/** @type {any} */ goal) => {
         pushGoal(goal.value, goal)
       })
     }
@@ -676,6 +746,7 @@ export default class Helpers {
     return goals
   }
 
+  /** @param {{barXPosition: any, barYPosition: any, goalX: any, goalY: any, barWidth: any, barHeight: any}} opts */
   drawGoalLine({
     barXPosition,
     barYPosition,
@@ -755,6 +826,7 @@ export default class Helpers {
     return lineGroup
   }
 
+  /** @param {{prevPaths: any, currPaths: any, color: any, realIndex: any, j: any}} opts */
   drawBarShadow({ prevPaths, currPaths, color, realIndex, j }) {
     const w = this.w
     const { x: prevX2, x1: prevX1, barYPosition: prevY1 } = prevPaths
@@ -786,16 +858,27 @@ export default class Helpers {
     })
   }
 
+  /** @param {{i: any, j: any}} opts */
   getZeroValueEncounters({ i, j }) {
     const w = this.w
 
     let nonZeroColumns = 0
     let zeroEncounters = 0
     const seriesIndices = w.config.plotOptions.bar.horizontal
-      ? w.seriesData.series.map((_, _i) => _i)
-      : w.globals.columnSeries?.i.map((_i) => _i) || []
+      /**
+       * @param {any} _
+       * @param {number} _i
+       */
+      ? w.seriesData.series.map((/** @type {any} */ _, /** @type {any} */ _i) => _i)
+      /**
+       * @param {number} _i
+       */
+      : w.globals.columnSeries?.i.map((/** @type {any} */ _i) => _i) || []
 
-    seriesIndices.forEach((_si) => {
+    /**
+     * @param {number} _si
+     */
+    seriesIndices.forEach((/** @type {any} */ _si) => {
       const val = w.globals.seriesPercent[_si][j]
       if (val) {
         nonZeroColumns++
@@ -811,11 +894,17 @@ export default class Helpers {
     }
   }
 
+  /**
+   * @param {number} seriesIndex
+   */
   getGroupIndex(seriesIndex) {
     const w = this.w
     // groupIndex is the index of group buckets (group1, group2, ...)
+    /**
+     * @param {Element} group
+     */
     const groupIndex = w.labelData.seriesGroups.findIndex(
-      (group) =>
+      (/** @type {any} */ group) =>
         // w.config.series[i].name may be undefined, so use
         // w.seriesData.seriesNames[i], which has default names for those
         // series. w.labelData.seriesGroups[] uses the same default naming.

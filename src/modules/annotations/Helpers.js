@@ -2,30 +2,42 @@
 import CoreUtils from '../CoreUtils'
 
 export default class Helpers {
+  /**
+   * @param {import('./Annotations').default} annoCtx
+   */
   constructor(annoCtx) {
     this.w = annoCtx.w
     this.annoCtx = annoCtx
   }
 
+  /**
+   * @param {Record<string, any>} anno
+   * @param {number | null} [annoIndex]
+   */
   setOrientations(anno, annoIndex = null) {
     const w = this.w
 
     if (anno.label.orientation === 'vertical') {
       const i = annoIndex !== null ? annoIndex : 0
       const xAnno = w.dom.baseEl.querySelector(
-        `.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel='${i}']`
+        `.apexcharts-xaxis-annotations .apexcharts-xaxis-annotation-label[rel='${i}']`,
       )
 
       if (xAnno !== null) {
-        const xAnnoCoord = xAnno.getBBox()
+        const xAnnoCoord = /** @type {SVGGraphicsElement} */ (xAnno).getBBox()
         xAnno.setAttribute(
           'x',
-          parseFloat(xAnno.getAttribute('x')) - xAnnoCoord.height + 4
+          String(
+            parseFloat(xAnno.getAttribute('x') ?? '0') - xAnnoCoord.height + 4,
+          ),
         )
 
         const yOffset =
           anno.label.position === 'top' ? xAnnoCoord.width : -xAnnoCoord.width
-        xAnno.setAttribute('y', parseFloat(xAnno.getAttribute('y')) + yOffset)
+        xAnno.setAttribute(
+          'y',
+          String(parseFloat(xAnno.getAttribute('y') ?? '0') + yOffset),
+        )
 
         const { x, y } = this.annoCtx.graphics.rotateAroundCenter(xAnno)
         xAnno.setAttribute('transform', `rotate(-90 ${x} ${y})`)
@@ -33,6 +45,10 @@ export default class Helpers {
     }
   }
 
+  /**
+   * @param {any} annoEl
+   * @param {Record<string, any>} anno
+   */
   addBackgroundToAnno(annoEl, anno) {
     const w = this.w
 
@@ -44,8 +60,9 @@ export default class Helpers {
     // correctly scale the drawn rectangle when chart is in a container with a
     //  CSS zoom level != 100%.
     const gridEl = w.dom.baseEl.querySelector('.apexcharts-grid')
+    if (!gridEl) return null
     const elGridRect = gridEl.getBoundingClientRect()
-    const gridBBox = gridEl.getBBox()
+    const gridBBox = /** @type {SVGGraphicsElement} */ (gridEl).getBBox()
     const zoom = elGridRect.width / gridBBox.width || 1
 
     const coords = annoEl.getBoundingClientRect()
@@ -73,7 +90,7 @@ export default class Helpers {
       1,
       anno.label.borderWidth,
       anno.label.borderColor,
-      0
+      0,
     )
 
     if (anno.id) {
@@ -86,9 +103,14 @@ export default class Helpers {
   annotationsBackground() {
     const w = this.w
 
+    /**
+     * @param {Record<string, any>} anno
+     * @param {number} i
+     * @param {string} type
+     */
     const add = (anno, i, type) => {
       const annoLabel = w.dom.baseEl.querySelector(
-        `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`
+        `.apexcharts-${type}-annotations .apexcharts-${type}-annotation-label[rel='${i}']`,
       )
 
       if (annoLabel) {
@@ -96,35 +118,57 @@ export default class Helpers {
         const elRect = this.addBackgroundToAnno(annoLabel, anno)
 
         if (elRect) {
-          parent.insertBefore(elRect.node, annoLabel)
+          parent?.insertBefore(elRect.node, annoLabel)
 
           if (anno.label.mouseEnter) {
             elRect.node.addEventListener(
               'mouseenter',
-              anno.label.mouseEnter.bind(this, anno)
+              anno.label.mouseEnter.bind(this, anno),
             )
           }
           if (anno.label.mouseLeave) {
             elRect.node.addEventListener(
               'mouseleave',
-              anno.label.mouseLeave.bind(this, anno)
+              anno.label.mouseLeave.bind(this, anno),
             )
           }
           if (anno.label.click) {
             elRect.node.addEventListener(
               'click',
-              anno.label.click.bind(this, anno)
+              anno.label.click.bind(this, anno),
             )
           }
         }
       }
     }
 
-    w.config.annotations.xaxis.forEach((anno, i) => add(anno, i, 'xaxis'))
-    w.config.annotations.yaxis.forEach((anno, i) => add(anno, i, 'yaxis'))
-    w.config.annotations.points.forEach((anno, i) => add(anno, i, 'point'))
+    /**
+     * @param {Record<string, any>} anno
+     * @param {number} i
+     */
+    w.config.annotations.xaxis.forEach(
+      (/** @type {any} */ anno, /** @type {any} */ i) => add(anno, i, 'xaxis'),
+    )
+    /**
+     * @param {Record<string, any>} anno
+     * @param {number} i
+     */
+    w.config.annotations.yaxis.forEach(
+      (/** @type {any} */ anno, /** @type {any} */ i) => add(anno, i, 'yaxis'),
+    )
+    /**
+     * @param {Record<string, any>} anno
+     * @param {number} i
+     */
+    w.config.annotations.points.forEach(
+      (/** @type {any} */ anno, /** @type {any} */ i) => add(anno, i, 'point'),
+    )
   }
 
+  /**
+   * @param {string} type
+   * @param {Record<string, any>} anno
+   */
   getY1Y2(type, anno) {
     const w = this.w
     const y = type === 'y1' ? anno.y : anno.y2
@@ -137,11 +181,11 @@ export default class Helpers {
         : w.labelData.labels
       const catIndex = labels.indexOf(y)
       const xLabel = w.dom.baseEl.querySelector(
-        `.apexcharts-yaxis-texts-g text:nth-child(${catIndex + 1})`
+        `.apexcharts-yaxis-texts-g text:nth-child(${catIndex + 1})`,
       )
 
       yP = xLabel
-        ? parseFloat(xLabel.getAttribute('y'))
+        ? parseFloat(xLabel.getAttribute('y') ?? '0')
         : (w.layout.gridHeight / labels.length - 1) * (catIndex + 1) -
           w.globals.barHeight
 
@@ -156,8 +200,8 @@ export default class Helpers {
         ? new CoreUtils(this.w).getLogVal(
             w.config.yaxis[anno.yAxisIndex].logBase,
             y,
-            seriesIndex
-          ) / w.globals.yLogRatio[seriesIndex]
+            seriesIndex,
+          ) / /** @type {any} */ (w.globals).yLogRatio[seriesIndex]
         : (y - w.globals.minYArr[seriesIndex]) /
           (w.globals.yRange[seriesIndex] / w.layout.gridHeight)
 
@@ -181,6 +225,10 @@ export default class Helpers {
     return { yP, clipped }
   }
 
+  /**
+   * @param {string} type
+   * @param {Record<string, any>} anno
+   */
   getX1X2(type, anno) {
     const w = this.w
     const x = type === 'x1' ? anno.x : anno.x2
@@ -241,6 +289,9 @@ export default class Helpers {
     return { x: xP, clipped }
   }
 
+  /**
+   * @param {number} x
+   */
   getStringX(x) {
     const w = this.w
     let rX = x
@@ -249,19 +300,24 @@ export default class Helpers {
       w.config.xaxis.convertedCatToNumeric &&
       w.labelData.categoryLabels.length
     ) {
-      x = w.labelData.categoryLabels.indexOf(x) + 1
+      x = w.labelData.categoryLabels.indexOf(String(x)) + 1
     }
 
     const catIndex = w.labelData.labels
-      .map((item) => (Array.isArray(item) ? item.join(' ') : item))
+      /**
+       * @param {any} item
+       */
+      .map((/** @type {any} */ item) =>
+        Array.isArray(item) ? item.join(' ') : item,
+      )
       .indexOf(x)
 
     const xLabel = w.dom.baseEl.querySelector(
-      `.apexcharts-xaxis-texts-g text:nth-child(${catIndex + 1})`
+      `.apexcharts-xaxis-texts-g text:nth-child(${catIndex + 1})`,
     )
 
     if (xLabel) {
-      rX = parseFloat(xLabel.getAttribute('x'))
+      rX = parseFloat(xLabel.getAttribute('x') ?? '0')
     }
 
     return rX

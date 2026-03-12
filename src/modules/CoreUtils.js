@@ -4,10 +4,17 @@
  */
 
 class CoreUtils {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w
   }
 
+  /**
+   * @param {any[]} series
+   * @param {string} chartType
+   */
   static checkComboSeries(series, chartType) {
     let comboCharts = false
     let comboBarCount = 0
@@ -22,6 +29,9 @@ class CoreUtils {
     // chart type, therefore, if the types of all series match the chart type,
     // this should not be considered a combo chart.
     if (series.length && typeof series[0].type !== 'undefined') {
+      /**
+       * @param {Record<string, any>} s
+       */
       series.forEach((s) => {
         if (
           s.type === 'bar' ||
@@ -51,9 +61,11 @@ class CoreUtils {
    * returns the sum of all individual values in a multiple stacked series
    * Eg. w.seriesData.series = [[32,33,43,12], [2,3,5,1]]
    *  @return [34,36,48,13]
+   * @param {number[]} excludedSeriesIndices
    **/
   getStackedSeriesTotals(excludedSeriesIndices = []) {
     const w = this.w
+    /** @type {any[]} */
     const total = []
 
     if (w.seriesData.series.length === 0) return total
@@ -78,13 +90,22 @@ class CoreUtils {
   }
 
   // get total of the all values inside all series
+  /**
+   * @param {number | null} [index]
+   */
   getSeriesTotalByIndex(index = null) {
     if (index === null) {
       // non-plot chart types - pie / donut / circle
-      return this.w.config.series.reduce((acc, cur) => acc + cur, 0)
+      return /** @type {any[]} */ (this.w.config.series).reduce(
+        (/** @type {any} */ acc, /** @type {any} */ cur) => acc + cur,
+        0,
+      )
     } else {
       // axis charts - supporting multiple series
-      return this.w.seriesData.series[index].reduce((acc, cur) => acc + cur, 0)
+      return this.w.seriesData.series[index].reduce(
+        (/** @type {any} */ acc, /** @type {any} */ cur) => acc + cur,
+        0,
+      )
     }
   }
 
@@ -97,10 +118,19 @@ class CoreUtils {
    **/
   getStackedSeriesTotalsByGroups() {
     const w = this.w
+    /** @type {any[]} */
     const total = []
 
+    /**
+     * @param {string[]} sg
+     */
     w.labelData.seriesGroups.forEach((sg) => {
+      /** @type {any[]} */
       const includedIndexes = []
+      /**
+       * @param {number} s
+       * @param {number} si
+       */
       w.config.series.forEach((s, si) => {
         if (sg.indexOf(w.seriesData.seriesNames[si]) > -1) {
           includedIndexes.push(si)
@@ -108,7 +138,14 @@ class CoreUtils {
       })
 
       const excludedIndices = w.seriesData.series
+        /**
+         * @param {any} _
+         * @param {number} fi
+         */
         .map((_, fi) => (includedIndexes.indexOf(fi) === -1 ? fi : -1))
+        /**
+         * @param {number} f
+         */
         .filter((f) => f !== -1)
 
       total.push(this.getStackedSeriesTotals(excludedIndices))
@@ -164,24 +201,42 @@ class CoreUtils {
     // A2.seriesName: S1
     // A0 <-> A2, A1 <-> A0, A2 <-> A1 --->>> A0 <-> A1 <-> A2
 
+    /** @type {any[]} */
     let axisSeriesMap = []
     const seriesYAxisReverseMap = []
+    /** @type {any[]} */
     const unassignedSeriesIndices = []
     const seriesNameArrayStyle =
       this.w.seriesData.series.length > cnf.yaxis.length ||
+      /**
+       * @param {ApexYAxis} a
+       */
       cnf.yaxis.some((a) => Array.isArray(a.seriesName))
 
+    /**
+     * @param {Record<string, any>} s
+     * @param {number} i
+     */
     cnf.series.forEach((s, i) => {
       unassignedSeriesIndices.push(i)
       seriesYAxisReverseMap.push(null)
     })
+    /**
+     * @param {ApexYAxis} yaxe
+     * @param {number} yi
+     */
     cnf.yaxis.forEach((yaxe, yi) => {
       axisSeriesMap[yi] = []
     })
 
+    /** @type {any[]} */
     const unassignedYAxisIndices = []
 
     // here, we loop through the yaxis array and find the item which has "seriesName" property
+    /**
+     * @param {ApexYAxis} yaxe
+     * @param {number} yi
+     */
     cnf.yaxis.forEach((yaxe, yi) => {
       let assigned = false
       // Allow seriesName to be either a string (for backward compatibility),
@@ -195,9 +250,16 @@ class CoreUtils {
         } else {
           seriesNames.push(yaxe.seriesName)
         }
-        seriesNames.forEach((name) => {
+        /**
+         * @param {string} name
+         */
+        seriesNames.forEach((/** @type {any} */ name) => {
+          /**
+           * @param {Record<string, any>} s
+           * @param {number} si
+           */
           cnf.series.forEach((s, si) => {
-            if (s.name === name) {
+            if (/** @type {any} */ (s).name === name) {
               let remove = si
               if (yi === si || seriesNameArrayStyle) {
                 // New style, don't allow series to be double referenced
@@ -209,10 +271,10 @@ class CoreUtils {
                 } else {
                   console.warn(
                     "Series '" +
-                      s.name +
+                      /** @type {any} */ (s).name +
                       "' referenced more than once in what looks like the new style." +
                       ' That is, when using either seriesName: [],' +
-                      ' or when there are more series than yaxes.'
+                      ' or when there are more series than yaxes.',
                   )
                 }
               } else {
@@ -235,8 +297,12 @@ class CoreUtils {
       }
     })
     axisSeriesMap = axisSeriesMap.map((yaxe) => {
+      /** @type {any[]} */
       const ra = []
-      yaxe.forEach((sa) => {
+      /**
+       * @param {any[]} sa
+       */
+      yaxe.forEach((/** @type {any} */ sa) => {
         seriesYAxisReverseMap[sa[1]] = sa[0]
         ra.push(sa[1])
       })
@@ -255,6 +321,7 @@ class CoreUtils {
       lastUnassignedYAxis = unassignedYAxisIndices[i]
       axisSeriesMap[lastUnassignedYAxis] = []
       if (unassignedSeriesIndices) {
+        /** @type {any} */
         const si = unassignedSeriesIndices[0]
         unassignedSeriesIndices.shift()
         axisSeriesMap[lastUnassignedYAxis].push(si)
@@ -275,40 +342,78 @@ class CoreUtils {
     gl.seriesYAxisMap = axisSeriesMap.map((x) => x)
     gl.seriesYAxisReverseMap = seriesYAxisReverseMap.map((x) => x)
     // Set default series group names
+    /**
+     * @param {Record<string, any>} axisSeries
+     * @param {number} ai
+     */
     gl.seriesYAxisMap.forEach((axisSeries, ai) => {
+      /**
+       * @param {number} si
+       */
       axisSeries.forEach((si) => {
         // series may be bare until loaded in realtime
-        if (cnf.series[si] && cnf.series[si].group === undefined) {
+        if (
+          /** @type {any} */ (cnf.series[si]) &&
+          /** @type {any} */ (cnf.series[si]).group === undefined
+        ) {
           // A series with no group defined will be named after the axis that
           // referenced it and thus form a group automatically.
-          cnf.series[si].group = 'apexcharts-axis-'.concat(ai.toString())
+          const _series = /** @type {any} */ (cnf.series[si])
+          _series.group = 'apexcharts-axis-'.concat(ai.toString())
         }
       })
     })
   }
 
+  /**
+   * @param {number | null} [index]
+   */
   isSeriesNull(index = null) {
     let r = []
     if (index === null) {
       // non-plot chart types - pie / donut / circle
-      r = this.w.config.series.filter((d) => d !== null)
+      r = /** @type {any[]} */ (this.w.config.series).filter(
+        (/** @type {any} */ d) => d !== null,
+      )
     } else {
       // axis charts - supporting multiple series
-      r = this.w.config.series[index].data.filter((d) => d !== null)
+      r = /** @type {Record<string,any>} */ (this.w.config.series[index]).data.filter(
+        (/** @type {any} */ d) => d !== null,
+      )
     }
 
     return r.length === 0
   }
 
+  /**
+   * @param {number} index
+   */
   seriesHaveSameValues(index) {
-    return this.w.seriesData.series[index].every((val, i, arr) => val === arr[0])
+    /**
+     * @param {number} val
+     * @param {number} i
+     * @param {any[]} arr
+     */
+    return this.w.seriesData.series[index].every(
+      (
+        /** @type {any} */ val,
+        /** @type {number} */ i,
+        /** @type {any} */ arr,
+      ) => val === arr[0],
+    )
   }
 
+  /**
+   * @param {any[]} labels
+   */
   getCategoryLabels(labels) {
     const w = this.w
     let catLabels = labels.slice()
     if (w.config.xaxis.convertedCatToNumeric) {
-      catLabels = labels.map((i) => {
+      /**
+       * @param {number} i
+       */
+      catLabels = labels.map((/** @type {number} */ i) => {
         return w.config.xaxis.labels.formatter(i - w.globals.minX + 1)
       })
     }
@@ -318,12 +423,18 @@ class CoreUtils {
   getLargestSeries() {
     const w = this.w
     w.globals.maxValsInArrayIndex = w.seriesData.series
+      /**
+       * @param {number[]} a
+       */
       .map((a) => a.length)
       .indexOf(
         Math.max.apply(
           Math,
-          w.seriesData.series.map((a) => a.length)
-        )
+          /**
+           * @param {number[]} a
+           */
+          w.seriesData.series.map((a) => a.length),
+        ),
       )
   }
 
@@ -331,12 +442,15 @@ class CoreUtils {
     const w = this.w
     let size = 0
 
-    w.globals.markers.size.forEach((m) => {
+    w.globals.markers.size.forEach((/** @type {number} */ m) => {
       size = Math.max(size, m)
     })
 
     if (w.config.markers.discrete && w.config.markers.discrete.length) {
-      w.config.markers.discrete.forEach((m) => {
+      /**
+       * @param {Record<string, any>} m
+       */
+      w.config.markers.discrete.forEach((/** @type {any} */ m) => {
         size = Math.max(size, m.size)
       })
     }
@@ -363,6 +477,9 @@ class CoreUtils {
   getSeriesTotals() {
     const w = this.w
 
+    /**
+     * @param {any[]} ser
+     */
     w.globals.seriesTotals = w.seriesData.series.map((ser) => {
       let total = 0
 
@@ -379,9 +496,17 @@ class CoreUtils {
     })
   }
 
+  /**
+   * @param {number} minX
+   * @param {number} maxX
+   */
   getSeriesTotalsXRange(minX, maxX) {
     const w = this.w
 
+    /**
+     * @param {any[]} ser
+     * @param {number} index
+     */
     const seriesTotalsXRange = w.seriesData.series.map((ser, index) => {
       let total = 0
 
@@ -409,6 +534,9 @@ class CoreUtils {
   getPercentSeries() {
     const w = this.w
 
+    /**
+     * @param {any[]} ser
+     */
     w.globals.seriesPercent = w.seriesData.series.map((ser) => {
       const seriesPercent = []
       if (Array.isArray(ser)) {
@@ -421,6 +549,10 @@ class CoreUtils {
           seriesPercent.push(percent)
         }
       } else {
+        /**
+         * @param {number} acc
+         * @param {number} val
+         */
         const total = w.globals.seriesTotals.reduce((acc, val) => acc + val, 0)
         const percent = (100 * ser) / total
         seriesPercent.push(percent)
@@ -434,6 +566,7 @@ class CoreUtils {
     const w = this.w
     const gl = w.globals
 
+    /** @type {any[]} */
     const yRatio = []
     let invertedYRatio = 0
     let xRatio = 0
@@ -462,7 +595,7 @@ class CoreUtils {
 
     xRatio = gl.xRange / this.w.layout.gridWidth
 
-    invertedYRatio = gl.yRange / this.w.layout.gridWidth
+    invertedYRatio = /** @type {any} */ (gl.yRange) / this.w.layout.gridWidth
     invertedXRatio = gl.xRange / this.w.layout.gridHeight
     zRatio = (gl.zRange / this.w.layout.gridHeight) * 16
 
@@ -472,11 +605,16 @@ class CoreUtils {
 
     if (gl.minY !== Number.MIN_VALUE && Math.abs(gl.minY) !== 0) {
       // Negative numbers present in series
-      gl.hasNegs = true
+      const _hasNegsGl = /** @type {any} */ (gl)
+      _hasNegsGl.hasNegs = true
     }
 
     // Check we have a map as series may still to be added/updated.
     if (w.globals.seriesYAxisReverseMap.length > 0) {
+      /**
+       * @param {number} y
+       * @param {number} i
+       */
       const scaleBaseLineYScale = (y, i) => {
         const yAxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[i]]
         const sign = y < 0 ? -1 : 1
@@ -520,16 +658,26 @@ class CoreUtils {
     }
   }
 
+  /**
+   * @param {any[]} series
+   */
   getLogSeries(series) {
     const w = this.w
 
+    /**
+     * @param {number[]} s
+     * @param {number} i
+     */
     w.globals.seriesLog = series.map((s, i) => {
       const yAxisIndex = w.globals.seriesYAxisReverseMap[i]
       if (
         w.config.yaxis[yAxisIndex] &&
         w.config.yaxis[yAxisIndex].logarithmic
       ) {
-        return s.map((d) => {
+        /**
+         * @param {number | null} d
+         */
+        return s.map((/** @type {any} */ d) => {
           if (d === null) return null
           return this.getLogVal(w.config.yaxis[yAxisIndex].logBase, d, i)
         })
@@ -541,23 +689,37 @@ class CoreUtils {
     return w.globals.invalidLogScale ? series : w.globals.seriesLog
   }
 
+  /**
+   * @param {number} val
+   * @param {number} seriesIndex
+   * @returns {number}
+   */
   getLogValAtSeriesIndex(val, seriesIndex) {
-    if (val === null) return null
+    if (val === null) return /** @type {any} */ (null)
     const w = this.w
     const yAxisIndex = w.globals.seriesYAxisReverseMap[seriesIndex]
     if (w.config.yaxis[yAxisIndex] && w.config.yaxis[yAxisIndex].logarithmic) {
       return this.getLogVal(
         w.config.yaxis[yAxisIndex].logBase,
         val,
-        seriesIndex
+        seriesIndex,
       )
     }
     return val
   }
 
+  /**
+   * @param {number} base
+   * @param {number} value
+   */
   getBaseLog(base, value) {
     return Math.log(value) / Math.log(base)
   }
+  /**
+   * @param {number} b
+   * @param {number} d
+   * @param {number} seriesIndex
+   */
   getLogVal(b, d, seriesIndex) {
     if (d <= 0) {
       return 0 // Should be Number.NEGATIVE_INFINITY
@@ -577,41 +739,53 @@ class CoreUtils {
     return log_height_value / number_of_height_levels
   }
 
+  /**
+   * @param {number[]} yRatio
+   */
   getLogYRatios(yRatio) {
     const w = this.w
     const gl = this.w.globals
+    const _gl = /** @type {any} */ (gl)
+    _gl.yLogRatio = yRatio.slice()
 
-    gl.yLogRatio = yRatio.slice()
+    _gl.logYRange = /** @type {any[]} */ (gl.yRange).map(
+      (_, /** @type {number} */ i) => {
+        const yAxisIndex = w.globals.seriesYAxisReverseMap[i]
+        if (
+          w.config.yaxis[yAxisIndex] &&
+          this.w.config.yaxis[yAxisIndex].logarithmic
+        ) {
+          let maxY = -Number.MAX_VALUE
+          let minY = Number.MIN_VALUE
+          let range = 1
+          /** @type {any[]} */ gl.seriesLog.forEach(
+            (/** @type {any[]} */ s, /** @type {number} */ si) => {
+              s.forEach((/** @type {number} */ v) => {
+                if (w.config.yaxis[si] && w.config.yaxis[si].logarithmic) {
+                  maxY = Math.max(v, maxY)
+                  minY = Math.min(v, minY)
+                }
+              })
+            },
+          )
 
-    gl.logYRange = gl.yRange.map((_, i) => {
-      const yAxisIndex = w.globals.seriesYAxisReverseMap[i]
-      if (
-        w.config.yaxis[yAxisIndex] &&
-        this.w.config.yaxis[yAxisIndex].logarithmic
-      ) {
-        let maxY = -Number.MAX_VALUE
-        let minY = Number.MIN_VALUE
-        let range = 1
-        gl.seriesLog.forEach((s, si) => {
-          s.forEach((v) => {
-            if (w.config.yaxis[si] && w.config.yaxis[si].logarithmic) {
-              maxY = Math.max(v, maxY)
-              minY = Math.min(v, minY)
-            }
-          })
-        })
+          range = Math.pow(gl.yRange[i], Math.abs(minY - maxY) / gl.yRange[i])
 
-        range = Math.pow(gl.yRange[i], Math.abs(minY - maxY) / gl.yRange[i])
+          _gl.yLogRatio[i] = range / this.w.layout.gridHeight
+          return range
+        }
+      },
+    )
 
-        gl.yLogRatio[i] = range / this.w.layout.gridHeight
-        return range
-      }
-    })
-
-    return gl.invalidLogScale ? yRatio.slice() : gl.yLogRatio
+    return _gl.invalidLogScale ? yRatio.slice() : _gl.yLogRatio
   }
 
   // Some config objects can be array - and we need to extend them correctly
+  /**
+   * @param {any} configInstance
+   * @param {Record<string, any>} options
+   * @param {import('../types/internal').ChartStateW} w
+   */
   static extendArrayProps(configInstance, options, w) {
     if (options?.yaxis) {
       options = configInstance.extendYAxis(options, w)
@@ -633,21 +807,38 @@ class CoreUtils {
 
   // Series of the same group and type can be stacked together distinct from
   // other series of the same type on the same axis.
+  /**
+   * @param {Record<string, any>} typeSeries
+   * @param {string[]} typeGroups
+   * @param {string} type
+   * @param {string} chartClass
+   */
   drawSeriesByGroup(typeSeries, typeGroups, type, chartClass) {
     const w = this.w
+    /** @type {any[]} */
     const graph = []
     if (typeSeries.series.length > 0) {
       // draw each group separately
-      typeGroups.forEach((gn) => {
+      /**
+       * @param {string} gn
+       */
+      typeGroups.forEach((/** @type {any} */ gn) => {
+        /** @type {any[]} */
         const gs = []
+        /** @type {any[]} */
         const gi = []
-        typeSeries.i.forEach((i, ii) => {
-          if (w.config.series[i].group === gn) {
+        /**
+         * @param {number} i
+         * @param {number} ii
+         */
+        typeSeries.i.forEach((/** @type {any} */ i, /** @type {any} */ ii) => {
+          if (/** @type {Record<string,any>} */ (w.config.series[i]).group === gn) {
             gs.push(typeSeries.series[ii])
             gi.push(i)
           }
         })
-        gs.length > 0 && graph.push(chartClass.draw(gs, type, gi))
+        gs.length > 0 &&
+          graph.push(/** @type {any} */ (chartClass).draw(gs, type, gi))
       })
     }
     return graph

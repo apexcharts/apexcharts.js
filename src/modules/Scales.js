@@ -7,6 +7,9 @@ import {
 } from '../utils/Constants'
 
 export default class Scales {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w
     this.coreUtils = new CoreUtils(this.w)
@@ -14,6 +17,10 @@ export default class Scales {
 
   // http://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axis
   // This routine creates the Y axis values for a graph.
+  /**
+   * @param {number} yMin
+   * @param {number} yMax
+   */
   niceScale(yMin, yMax, index = 0) {
     // Calculate Min amd Max graphical labels and graph
     // increments.
@@ -49,7 +56,7 @@ export default class Scales {
       : NICE_SCALE_DEFAULT_TICKS[
           Math.min(
             Math.round(maxTicks / 2),
-            NICE_SCALE_DEFAULT_TICKS.length - 1
+            NICE_SCALE_DEFAULT_TICKS.length - 1,
           )
         ]
 
@@ -84,7 +91,7 @@ export default class Scales {
       // if somehow due to some wrong config, user sent max less than min,
       // adjust the min/max again
       console.warn(
-        'axis.min cannot be greater than axis.max: swapping min and max'
+        'axis.min cannot be greater than axis.max: swapping min and max',
       )
       const temp = yMax
       yMax = yMin
@@ -433,7 +440,7 @@ export default class Scales {
 
     ticks = this._adjustTicksForSmallRange(ticks, index, range)
 
-    if (ticks === 'dataPoints') {
+    if (/** @type {any} */ (ticks) === 'dataPoints') {
       ticks = this.w.globals.dataPoints - 1
     }
 
@@ -473,6 +480,11 @@ export default class Scales {
     }
   }
 
+  /**
+   * @param {number} yMin
+   * @param {number} yMax
+   * @param {number} base
+   */
   logarithmicScaleNice(yMin, yMax, base) {
     // Basic validation to avoid for loop starting at -inf.
     if (yMax <= 0) yMax = Math.max(yMin, base)
@@ -495,6 +507,11 @@ export default class Scales {
     }
   }
 
+  /**
+   * @param {number} yMin
+   * @param {number} yMax
+   * @param {number} base
+   */
   logarithmicScale(yMin, yMax, base) {
     // Basic validation to avoid for loop starting at -inf.
     if (yMax <= 0) yMax = Math.max(yMin, base)
@@ -537,6 +554,11 @@ export default class Scales {
     }
   }
 
+  /**
+   * @param {number | string} ticks
+   * @param {number} index
+   * @param {number} range
+   */
   _adjustTicksForSmallRange(ticks, index, range) {
     let newTicks = ticks
     if (
@@ -545,7 +567,7 @@ export default class Scales {
       this.w.config.yaxis[index].tickAmount === undefined
     ) {
       const formattedVal = Number(
-        this.w.config.yaxis[index].labels.formatter(1)
+        this.w.config.yaxis[index].labels.formatter(1),
       )
       if (Utils.isNumber(formattedVal) && this.w.globals.yValueDecimal === 0) {
         newTicks = Math.ceil(range)
@@ -554,6 +576,11 @@ export default class Scales {
     return newTicks < ticks ? newTicks : ticks
   }
 
+  /**
+   * @param {number} index
+   * @param {number} minY
+   * @param {number} maxY
+   */
   setYScaleForIndex(index, minY, maxY) {
     const gl = this.w.globals
     const cnf = this.w.config
@@ -561,7 +588,7 @@ export default class Scales {
     const y = gl.isBarHorizontal ? cnf.xaxis : cnf.yaxis[index]
 
     if (typeof gl.yAxisScale[index] === 'undefined') {
-      gl.yAxisScale[index] = []
+      ;/** @type {any} */ (gl).yAxisScale[index] = []
     }
 
     const range = Math.abs(maxY - minY)
@@ -572,7 +599,7 @@ export default class Scales {
 
     if (y.logarithmic && range > 5) {
       gl.allSeriesCollapsed = false
-      gl.yAxisScale[index] = y.forceNiceScale
+      ;/** @type {any} */ (gl).yAxisScale[index] = y.forceNiceScale
         ? this.logarithmicScaleNice(minY, maxY, y.logBase)
         : this.logarithmicScale(minY, maxY, y.logBase)
     } else {
@@ -585,15 +612,27 @@ export default class Scales {
         // no data in the chart.
         // Either all series collapsed or user passed a blank array.
         // Show the user's yaxis with their scale options but with a range.
-        gl.yAxisScale[index] = this.niceScale(Number.MIN_VALUE, 0, index)
+        ;/** @type {any} */ (gl).yAxisScale[index] = this.niceScale(
+          Number.MIN_VALUE,
+          0,
+          index,
+        )
       } else {
         // there is some data. Turn off the allSeriesCollapsed flag
         gl.allSeriesCollapsed = false
-        gl.yAxisScale[index] = this.niceScale(minY, maxY, index)
+        ;/** @type {any} */ (gl).yAxisScale[index] = this.niceScale(
+          minY,
+          maxY,
+          index,
+        )
       }
     }
   }
 
+  /**
+   * @param {number} minX
+   * @param {number} maxX
+   */
   setXScale(minX, maxX) {
     const w = this.w
     const gl = w.globals
@@ -608,7 +647,7 @@ export default class Scales {
         maxX,
         ticks,
         0,
-        w.config.xaxis.max === undefined ? w.config.xaxis.stepSize : undefined
+        w.config.xaxis.max === undefined ? w.config.xaxis.stepSize : undefined,
       )
     }
     return gl.xAxisScale
@@ -627,10 +666,18 @@ export default class Scales {
     // Compute min..max for each yaxis
     gl.allSeriesCollapsed = true
     gl.barGroups = []
+    /**
+     * @param {number[]} axisSeries
+     * @param {number} ai
+     */
     axisSeriesMap.forEach((axisSeries, ai) => {
+      /** @type {any[]} */
       const groupNames = []
+      /**
+       * @param {number} as
+       */
       axisSeries.forEach((as) => {
-        const group = cnf.series[as]?.group
+        const group = /** @type {Record<string,any>} */ (cnf.series[as])?.group
         if (groupNames.indexOf(group) < 0) {
           groupNames.push(group)
         }
@@ -646,8 +693,11 @@ export default class Scales {
           // Series' on this axis with the same group name will be stacked.
           // Sum series in each group separately
           const mapSeries = new Array(gl.dataPoints).fill(0)
+          /** @type {any[]} */
           const sumSeries = []
+          /** @type {any[]} */
           const posSeries = []
+          /** @type {any[]} */
           const negSeries = []
           groupNames.forEach(() => {
             sumSeries.push(mapSeries.map(() => Number.MIN_VALUE))
@@ -656,17 +706,20 @@ export default class Scales {
           })
           for (let i = 0; i < axisSeries.length; i++) {
             // Assume chart type but the first series that has a type overrides.
-            if (!seriesType && cnf.series[axisSeries[i]].type) {
-              seriesType = cnf.series[axisSeries[i]].type
+            if (
+              !seriesType &&
+              /** @type {Record<string,any>} */ (cnf.series[axisSeries[i]]).type
+            ) {
+              seriesType = /** @type {Record<string,any>} */ (cnf.series[axisSeries[i]]).type
             }
             // Sum all series for this yaxis at each corresponding datapoint
             // For bar and column charts we need to keep positive and negative
             // values separate, for each group separately.
             const si = axisSeries[i]
-            if (cnf.series[si].group) {
-              seriesGroupName = cnf.series[si].group
+            if (/** @type {Record<string,any>} */ (cnf.series[si]).group) {
+              seriesGroupName = /** @type {Record<string,any>} */ (cnf.series[si]).group
             } else {
-              seriesGroupName = 'axis-'.concat(ai)
+              seriesGroupName = 'axis-'.concat(ai.toString())
             }
             const collapsed = !(
               gl.collapsedSeriesIndices.indexOf(si) < 0 &&
@@ -677,8 +730,12 @@ export default class Scales {
               groupNames.forEach((gn, gni) => {
                 // Undefined group names will be grouped together as their own
                 // group.
-                if (cnf.series[si].group === gn) {
-                  for (let j = 0; j < this.w.seriesData.series[si].length; j++) {
+                if (/** @type {Record<string,any>} */ (cnf.series[si]).group === gn) {
+                  for (
+                    let j = 0;
+                    j < this.w.seriesData.series[si].length;
+                    j++
+                  ) {
                     const val = this.w.seriesData.series[si][j]
                     if (val >= 0) {
                       posSeries[gni][j] += val
@@ -710,7 +767,7 @@ export default class Scales {
               lowestY = Math.min(lowestY, Math.min.apply(null, sumSeries[gni]))
               highestY = Math.max(
                 highestY,
-                Math.max.apply(null, sumSeries[gni])
+                Math.max.apply(null, sumSeries[gni]),
               )
             })
             minY = lowestY
@@ -748,10 +805,18 @@ export default class Scales {
             maxY = cnf.yaxis[ai].max
           }
         }
+        /**
+         * @param {any} v
+         * @param {number} i
+         * @param {any[]} a
+         */
         gl.barGroups = gl.barGroups.filter((v, i, a) => a.indexOf(v) === i)
         // Set the scale for this yaxis
         this.setYScaleForIndex(ai, minY, maxY)
         // Set individual series min and max to nice values
+        /**
+         * @param {number} si
+         */
         axisSeries.forEach((si) => {
           minYArr[si] = gl.yAxisScale[ai].niceMin
           maxYArr[si] = gl.yAxisScale[ai].niceMax

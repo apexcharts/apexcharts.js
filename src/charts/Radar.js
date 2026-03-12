@@ -14,6 +14,10 @@ import CoreUtils from '../modules/CoreUtils'
  **/
 
 class Radar {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.ctx = ctx
     this.w = w
@@ -65,17 +69,25 @@ class Radar {
       this.size = w.config.plotOptions.radar.size
     }
 
-    this.dataRadiusOfPercent = []
-    this.dataRadius = []
-    this.angleArr = []
+    this.dataRadiusOfPercent = /** @type {any} */ ([])
+    this.dataRadius = /** @type {any} */ ([])
+    this.angleArr = /** @type {any} */ ([])
+    this.dataPointsLen = 0
+    this.disAngle = 0
 
+    /** @type {any} */
+    /** @type {any[]} */
     this.yaxisLabelsTextsPos = []
   }
 
+  /**
+   * @param {any[]} series
+   */
   draw(series) {
     const w = this.w
     const fill = new Fill(this.w)
 
+    /** @type {any[]} */
     const allSeries = []
     const dataLabels = new DataLabels(this.w, this.ctx)
 
@@ -94,14 +106,21 @@ class Radar {
       transform: `translate(${translateX || 0}, ${translateY || 0})`,
     })
 
+    /** @type {any[]} */
     let dataPointsPos = []
+    /** @type {any | null} */
     let elPointsMain = null
+    /** @type {any | null} */
     let elDataPointsMain = null
 
     this.yaxisLabels = this.graphics.group({
       class: 'apexcharts-yaxis',
     })
 
+    /**
+     * @param {number[]} s
+     * @param {number} i
+     */
     series.forEach((s, i) => {
       const longestSeries = s.length === w.globals.dataPoints
 
@@ -118,7 +137,11 @@ class Radar {
       this.dataRadius[i] = []
       this.angleArr[i] = []
 
-      s.forEach((dv, j) => {
+      /**
+       * @param {number} dv
+       * @param {number} j
+       */
+      s.forEach((/** @type {any} */ dv, /** @type {any} */ j) => {
         const range = Math.abs(this.maxValue - this.minValue)
         dv = dv - this.minValue
 
@@ -134,7 +157,7 @@ class Radar {
 
       dataPointsPos = this.getDataPointsPos(
         this.dataRadius[i],
-        this.angleArr[i]
+        this.angleArr[i],
       )
       const paths = this.createPaths(dataPointsPos, {
         x: 0,
@@ -210,14 +233,18 @@ class Radar {
           filters.dropShadow(
             renderedAreaPath,
             Object.assign({}, shadow, { noUserSpaceOnUse: true }),
-            i
+            i,
           )
         }
 
         elSeries.add(renderedAreaPath)
       }
 
-      s.forEach((sj, j) => {
+      /**
+       * @param {any} sj
+       * @param {number} j
+       */
+      s.forEach((/** @type {any} */ sj, /** @type {any} */ j) => {
         const markers = new Markers(this.w, this.ctx)
 
         const opts = markers.getMarkerConfig({
@@ -229,7 +256,7 @@ class Radar {
         const point = this.graphics.drawMarker(
           dataPointsPos[j].x,
           dataPointsPos[j].y,
-          opts
+          opts,
         )
 
         point.attr('rel', j)
@@ -296,6 +323,9 @@ class Radar {
     return ret
   }
 
+  /**
+   * @param {Record<string, any>} opts
+   */
   drawPolygons(opts) {
     const w = this.w
     const { parent } = opts
@@ -311,7 +341,9 @@ class Radar {
     }
     radiusSizes.reverse()
 
+    /** @type {any[]} */
     const polygonStrings = []
+    /** @type {any[]} */
     const lines = []
 
     radiusSizes.forEach((radiusSize, r) => {
@@ -327,7 +359,7 @@ class Radar {
             0,
             Array.isArray(this.polygons.connectorColors)
               ? this.polygons.connectorColors[i]
-              : this.polygons.connectorColors
+              : this.polygons.connectorColors,
           )
 
           lines.push(line)
@@ -353,7 +385,7 @@ class Radar {
         p,
         Array.isArray(strokeColors) ? strokeColors[i] : strokeColors,
         Array.isArray(strokeWidth) ? strokeWidth[i] : strokeWidth,
-        w.globals.radarPolygons.fill.colors[i]
+        w.globals.radarPolygons.fill.colors[i],
       )
       parent.add(polygon)
     })
@@ -363,10 +395,12 @@ class Radar {
     })
 
     if (w.config.yaxis[0].show) {
-      this.yaxisLabelsTextsPos.forEach((p, i) => {
-        const yText = helpers.drawYAxisTexts(p.x, p.y, i, yaxisTexts[i])
-        this.yaxisLabels.add(yText)
-      })
+      this.yaxisLabelsTextsPos.forEach(
+        (/** @type {any} */ p, /** @type {any} */ i) => {
+          const yText = helpers.drawYAxisTexts(p.x, p.y, i, yaxisTexts[i])
+          this.yaxisLabels.add(yText)
+        },
+      )
     }
   }
 
@@ -380,6 +414,10 @@ class Radar {
 
     const polygonPos = Utils.getPolygonPos(this.size, this.dataPointsLen)
 
+    /**
+     * @param {string} label
+     * @param {number} i
+     */
     w.labelData.labels.forEach((label, i) => {
       const formatter = w.config.xaxis.labels.formatter
       const dataLabels = new DataLabels(this.w, this.ctx)
@@ -415,7 +453,10 @@ class Radar {
           offsetCorrection: false,
         })
 
-        dataLabelText.on('click', (e) => {
+        /**
+         * @param {Event} e
+         */
+        dataLabelText.on('click', (/** @type {any} */ e) => {
           if (typeof w.config.chart.events.xAxisLabelClick === 'function') {
             const opts = Object.assign({}, w, {
               labelIndex: i,
@@ -430,10 +471,16 @@ class Radar {
     return elXAxisWrap
   }
 
+  /**
+   * @param {Array<Record<string, any>>} pos
+   * @param {Record<string, any>} origin
+   */
   createPaths(pos, origin) {
     const linePathsTo = []
+    /** @type {any[]} */
     let linePathsFrom = []
     const areaPathsTo = []
+    /** @type {any[]} */
     let areaPathsFrom = []
 
     if (pos.length) {
@@ -443,7 +490,11 @@ class Radar {
       let linePathTo = this.graphics.move(pos[0].x, pos[0].y)
       let areaPathTo = this.graphics.move(pos[0].x, pos[0].y)
 
-      pos.forEach((p, i) => {
+      /**
+       * @param {number} p
+       * @param {number} i
+       */
+      pos.forEach((/** @type {any} */ p, /** @type {any} */ i) => {
         linePathTo += this.graphics.line(p.x, p.y)
         areaPathTo += this.graphics.line(p.x, p.y)
         if (i === pos.length - 1) {
@@ -464,6 +515,10 @@ class Radar {
     }
   }
 
+  /**
+   * @param {Record<string, any>} pos
+   * @param {number} polygonSize
+   */
   getTextPos(pos, polygonSize) {
     const limit = 10
     let textAnchor = 'middle'
@@ -497,6 +552,9 @@ class Radar {
     }
   }
 
+  /**
+   * @param {number} realIndex
+   */
   getPreviousPath(realIndex) {
     const w = this.w
     let pathFrom = null
@@ -505,7 +563,7 @@ class Radar {
 
       if (
         gpp.paths.length > 0 &&
-        parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)
+        parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)
       ) {
         if (typeof w.globals.previousPaths[pp].paths[0] !== 'undefined') {
           pathFrom = w.globals.previousPaths[pp].paths[0].d
@@ -515,10 +573,14 @@ class Radar {
     return pathFrom
   }
 
+  /**
+   * @param {any[]} dataRadiusArr
+   * @param {any[]} angleArr
+   */
   getDataPointsPos(
     dataRadiusArr,
     angleArr,
-    dataPointsLen = this.dataPointsLen
+    dataPointsLen = this.dataPointsLen,
   ) {
     dataRadiusArr = dataRadiusArr || []
     angleArr = angleArr || []

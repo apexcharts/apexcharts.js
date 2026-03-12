@@ -11,12 +11,20 @@ import { SVGNS } from '../../svg/math'
  **/
 
 export default class XAxis {
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {import('../../types/internal').ChartContext} ctx
+   * @param {any} [elgrid]
+   */
   constructor(w, ctx, elgrid) {
     this.w = w
     this.ctx = ctx // needed: xAxisLabelClick event callback passes ctx as chart instance
     this.elgrid = elgrid
 
-    this.axesUtils = new AxesUtils(w, { theme: ctx.theme, timeScale: ctx.timeScale })
+    this.axesUtils = new AxesUtils(w, {
+      theme: ctx.theme,
+      timeScale: ctx.timeScale,
+    })
 
     this.xaxisLabels = w.labelData.labels.slice()
     if (w.labelData.timescaleLabels.length > 0 && !w.globals.isBarHorizontal) {
@@ -82,13 +90,17 @@ export default class XAxis {
       labels.push(this.xaxisLabels[i])
     }
 
+    /**
+     * @param {number} i
+     * @param {number} colWidth
+     */
     this.drawXAxisLabelAndGroup(
       true,
       graphics,
       elXaxisTexts,
       labels,
       w.axisFlags.isXNumeric,
-      (i, colWidth) => colWidth
+      (/** @type {any} */ i, /** @type {any} */ colWidth) => colWidth,
     )
 
     if (w.labelData.hasXaxisGroups) {
@@ -108,14 +120,19 @@ export default class XAxis {
         overwriteStyles.cssClass = w.config.xaxis.group.style.cssClass
       }
 
+      /**
+       * @param {number} i
+       * @param {number} colWidth
+       */
       this.drawXAxisLabelAndGroup(
         false,
         graphics,
         elXaxisTexts,
         labels,
         false,
-        (i, colWidth) => labelsGroup[i].cols * colWidth,
-        overwriteStyles
+        (/** @type {any} */ i, /** @type {any} */ colWidth) =>
+          labelsGroup[i].cols * colWidth,
+        overwriteStyles,
       )
     }
 
@@ -157,7 +174,7 @@ export default class XAxis {
         this.offY,
         w.config.xaxis.axisBorder.color,
         0,
-        this.xaxisBorderHeight
+        this.xaxisBorderHeight,
       )
       if (this.elgrid && this.elgrid.elGridBorders && w.config.grid.show) {
         this.elgrid.elGridBorders.add(elHorzLine)
@@ -170,7 +187,13 @@ export default class XAxis {
   }
 
   /**
-   * @param {any} [overwriteStyles]
+   * @param {Record<string, any>} [overwriteStyles]
+   * @param {boolean} isLeafGroup
+   * @param {import('../Graphics').default} graphics
+   * @param {any} elXaxisTexts
+   * @param {any[]} labels
+   * @param {boolean} isXNumeric
+   * @param {any} colWidthCb
    */
   drawXAxisLabelAndGroup(
     isLeafGroup,
@@ -179,7 +202,7 @@ export default class XAxis {
     labels,
     isXNumeric,
     colWidthCb,
-    overwriteStyles = {}
+    overwriteStyles = {},
   ) {
     const drawnLabels = []
     const drawnLabelsRects = []
@@ -216,7 +239,7 @@ export default class XAxis {
     if (isXNumeric) {
       const len = Math.max(
         Number(w.config.xaxis.tickAmount) || 1,
-        dataPoints > 1 ? dataPoints - 1 : dataPoints
+        dataPoints > 1 ? dataPoints - 1 : dataPoints,
       )
       colWidth = w.layout.gridWidth / Math.min(len, labelsLen - 1)
 
@@ -245,7 +268,7 @@ export default class XAxis {
         i,
         drawnLabels,
         xaxisFontSize,
-        isLeafGroup
+        isLeafGroup,
       )
 
       let offsetYCorrection = 28
@@ -278,7 +301,7 @@ export default class XAxis {
           label,
           labelsLen,
           drawnLabels,
-          drawnLabelsRects
+          drawnLabelsRects,
         )
       }
 
@@ -314,7 +337,10 @@ export default class XAxis {
         })
         elXaxisTexts.add(elText)
 
-        elText.on('click', (e) => {
+        /**
+         * @param {Event} e
+         */
+        elText.on('click', (/** @type {any} */ e) => {
           if (typeof w.config.chart.events.xAxisLabelClick === 'function') {
             const opts = Object.assign({}, w, {
               labelIndex: i,
@@ -325,10 +351,7 @@ export default class XAxis {
         })
 
         if (isLeafGroup) {
-          const elTooltipTitle = BrowserAPIs.createElementNS(
-            SVGNS,
-            'title'
-          )
+          const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS, 'title')
           elTooltipTitle.textContent = Array.isArray(label.text)
             ? label.text.join(' ')
             : label.text
@@ -346,6 +369,9 @@ export default class XAxis {
   }
 
   // this actually becomes the vertical axis (for bar charts)
+  /**
+   * @param {number} realIndex
+   */
   drawXaxisInversed(realIndex) {
     const w = this.w
     const graphics = new Graphics(this.w)
@@ -394,7 +420,7 @@ export default class XAxis {
 
         const yColors = this.axesUtils.getYAxisForeColor(
           ylabels.style.colors,
-          realIndex
+          realIndex,
         )
         const getForeColor = () => {
           return Array.isArray(yColors) ? yColors[i] : yColors
@@ -436,7 +462,10 @@ export default class XAxis {
 
         elYaxisTexts.add(elLabel)
 
-        elLabel.on('click', (e) => {
+        /**
+         * @param {Event} e
+         */
+        elLabel.on('click', (/** @type {any} */ e) => {
           if (typeof w.config.chart.events.xAxisLabelClick === 'function') {
             const opts = Object.assign({}, w, {
               labelIndex: i,
@@ -456,7 +485,7 @@ export default class XAxis {
           const labelRotatingCenter = graphics.rotateAroundCenter(elLabel.node)
           elLabel.node.setAttribute(
             'transform',
-            `rotate(${w.config.yaxis[realIndex].labels.rotate} 0 ${labelRotatingCenter.y})`
+            `rotate(${w.config.yaxis[realIndex].labels.rotate} 0 ${labelRotatingCenter.y})`,
           )
         }
         yPos = yPos + colHeight
@@ -500,7 +529,7 @@ export default class XAxis {
         w.globals.padHorizontal + axisBorder.offsetX + offX,
         w.layout.gridHeight + axisBorder.offsetY,
         axisBorder.color,
-        0
+        0,
       )
 
       if (this.elgrid && this.elgrid.elGridBorders && w.config.grid.show) {
@@ -518,13 +547,18 @@ export default class XAxis {
         w.config.yaxis[0].axisTicks,
         0,
         colHeight,
-        elYaxis
+        elYaxis,
       )
     }
 
     return elYaxis
   }
 
+  /**
+   * @param {number} x1
+   * @param {number} y2
+   * @param {any} appendToElement
+   */
   drawXaxisTicks(x1, y2, appendToElement) {
     const w = this.w
     const x2 = x1
@@ -545,7 +579,7 @@ export default class XAxis {
         y1 + w.config.xaxis.offsetY,
         x2 + w.config.xaxis.axisTicks.offsetX,
         y2 + w.config.xaxis.offsetY,
-        w.config.xaxis.axisTicks.color
+        w.config.xaxis.axisTicks.color,
       )
 
       // we are not returning anything, but appending directly to the element passed in param
@@ -590,13 +624,13 @@ export default class XAxis {
     const xAxis = w.dom.baseEl.querySelector('.apexcharts-xaxis-texts-g')
 
     const xAxisTexts = w.dom.baseEl.querySelectorAll(
-      '.apexcharts-xaxis-texts-g text:not(.apexcharts-xaxis-group-label)'
+      '.apexcharts-xaxis-texts-g text:not(.apexcharts-xaxis-group-label)',
     )
     const yAxisTextsInversed = w.dom.baseEl.querySelectorAll(
-      '.apexcharts-yaxis-inversed text'
+      '.apexcharts-yaxis-inversed text',
     )
     const xAxisTextsInversed = w.dom.baseEl.querySelectorAll(
-      '.apexcharts-xaxis-inversed-texts-g text tspan'
+      '.apexcharts-xaxis-inversed-texts-g text tspan',
     )
 
     if (w.layout.rotateXLabels || w.config.xaxis.labels.rotateAlways) {
@@ -607,24 +641,27 @@ export default class XAxis {
 
         xAxisTexts[xat].setAttribute(
           'transform',
-          `rotate(${w.config.xaxis.labels.rotate} ${textRotatingCenter.x} ${textRotatingCenter.y})`
+          `rotate(${w.config.xaxis.labels.rotate} ${textRotatingCenter.x} ${textRotatingCenter.y})`,
         )
 
         xAxisTexts[xat].setAttribute('text-anchor', `end`)
 
         const offsetHeight = 10
 
-        xAxis.setAttribute('transform', `translate(0, ${-offsetHeight})`)
+        xAxis?.setAttribute('transform', `translate(0, ${-offsetHeight})`)
 
         const tSpan = xAxisTexts[xat].childNodes
 
         if (w.config.xaxis.labels.trim) {
+          /**
+           * @param {any} ts
+           */
           Array.prototype.forEach.call(tSpan, (ts) => {
             graphics.placeTextWithEllipsis(
               ts,
               ts.textContent,
               w.layout.xAxisLabelsHeight -
-                (w.config.legend.position === 'bottom' ? 20 : 10)
+                (w.config.legend.position === 'bottom' ? 20 : 10),
             )
           })
         }
@@ -636,6 +673,9 @@ export default class XAxis {
         const tSpan = xAxisTexts[xat].childNodes
 
         if (w.config.xaxis.labels.trim && w.config.xaxis.type !== 'datetime') {
+          /**
+           * @param {any} ts
+           */
           Array.prototype.forEach.call(tSpan, (ts) => {
             graphics.placeTextWithEllipsis(ts, ts.textContent, width)
           })
@@ -645,15 +685,18 @@ export default class XAxis {
 
     if (yAxisTextsInversed.length > 0) {
       // truncate rotated y axis in bar chart (x axis)
-      const firstLabelPosX =
-        yAxisTextsInversed[yAxisTextsInversed.length - 1].getBBox()
-      const lastLabelPosX = yAxisTextsInversed[0].getBBox()
+      const firstLabelPosX = /** @type {SVGGraphicsElement} */ (
+        yAxisTextsInversed[yAxisTextsInversed.length - 1]
+      ).getBBox()
+      const lastLabelPosX = /** @type {SVGGraphicsElement} */ (
+        yAxisTextsInversed[0]
+      ).getBBox()
 
       if (firstLabelPosX.x < -20) {
         yAxisTextsInversed[
           yAxisTextsInversed.length - 1
-        ].parentNode.removeChild(
-          yAxisTextsInversed[yAxisTextsInversed.length - 1]
+        ].parentNode?.removeChild(
+          yAxisTextsInversed[yAxisTextsInversed.length - 1],
         )
       }
 
@@ -661,19 +704,19 @@ export default class XAxis {
         lastLabelPosX.x + lastLabelPosX.width > w.layout.gridWidth &&
         !w.globals.isBarHorizontal
       ) {
-        yAxisTextsInversed[0].parentNode.removeChild(yAxisTextsInversed[0])
+        yAxisTextsInversed[0].parentNode?.removeChild(yAxisTextsInversed[0])
       }
 
       // truncate rotated x axis in bar chart (y axis)
       for (let xat = 0; xat < xAxisTextsInversed.length; xat++) {
         graphics.placeTextWithEllipsis(
           xAxisTextsInversed[xat],
-          xAxisTextsInversed[xat].textContent,
+          xAxisTextsInversed[xat].textContent ?? '',
           w.config.yaxis[0].labels.maxWidth -
             (w.config.yaxis[0].title.text
               ? parseFloat(w.config.yaxis[0].title.style.fontSize) * 2
               : 0) -
-            15
+            15,
         )
       }
     }
