@@ -230,7 +230,7 @@ class Fill {
       console.warn('undefined color - ApexCharts')
     }
 
-    if (opts.opacity) fillOpacity = opts.opacity
+    if (opts.opacity !== undefined && opts.opacity !== null) fillOpacity = opts.opacity
 
     let defaultColor = fillColor
 
