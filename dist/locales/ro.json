@@ -1,0 +1,55 @@
+{
+  "name": "ro",
+  "options": {
+    "months": [
+      "Ianuarie",
+      "Februarie",
+      "Martie",
+      "Aprilie",
+      "Mai",
+      "Iunie",
+      "Iulie",
+      "August",
+      "Septembrie",
+      "Octombrie",
+      "Noiembrie",
+      "Decembrie"
+    ],
+    "shortMonths": [
+      "Ian",
+      "Feb",
+      "Mar",
+      "Apr",
+      "Mai",
+      "Iun",
+      "Iul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ],
+    "days": [
+      "Duminică",
+      "Luni",
+      "Marți",
+      "Miercuri",
+      "Joi",
+      "Vineri",
+      "Sâmbătă"
+    ],
+    "shortDays": ["Dum", "Lun", "Mar", "Mie", "Joi", "Vin", "Sâm"],
+    "toolbar": {
+      "exportToSVG": "Descarcă SVG",
+      "exportToPNG": "Descarcă PNG",
+      "exportToCSV": "Descarcă CSV",
+      "menu": "Meniu",
+      "selection": "Selecție",
+      "selectionZoom": "Zoom selecție",
+      "zoomIn": "Mărire",
+      "zoomOut": "Micșorare",
+      "pan": "Panoramare",
+      "reset": "Resetare zoom"
+    }
+  }
+}
