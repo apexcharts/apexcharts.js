@@ -1531,6 +1531,7 @@ type ApexForecastDataPoints = {
   fillOpacity?: number
   strokeWidth?: undefined | number
   dashArray?: number
+  strokeColor?: string
 }
 
 /**
