@@ -509,8 +509,12 @@ class Utils {
   }
 
   static applyOpacityToColor(color, opacity) {
-    if (opacity >= 1) return color
-    return `color-mix(in srgb, ${color} ${Math.round(opacity * 100)}%, transparent)`
+    const value = Number(opacity)
+    if (!Number.isFinite(value)) return color
+    if (value <= 0) return 'transparent'
+    if (value >= 1) return color
+    const percent = Math.round(value * 100)
+    return `color-mix(in srgb, ${color} ${percent}%, transparent)`
   }
 
   /**
