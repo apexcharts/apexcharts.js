@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.10.3
+ * ApexCharts v5.10.4
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -27,6 +27,10 @@ import { default as default2 } from "apexcharts/core";
 const Graphics = _core.__apex_Graphics;
 const Utils = _core.__apex_Utils;
 class KeyboardNavigation {
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {import('../../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.w = w;
     this.ctx = ctx;
@@ -73,6 +77,7 @@ class KeyboardNavigation {
    * by the direct SVG listener (which can call preventDefault). This entry
    * point is intentionally a no-op — Events.js still fires the public keyDown
    * callback and fireEvent('keydown') independently.
+   * @param {Event} _e
    */
   handleKey(_e) {
   }
@@ -97,6 +102,9 @@ class KeyboardNavigation {
     this._hideFocus();
   }
   // ─── Key handler ──────────────────────────────────────────────────────────
+  /**
+   * @param {KeyboardEvent} e
+   */
   _onKeyDown(e) {
     if (!this._isNavEnabled() || !this.active) return;
     switch (e.key) {
@@ -141,6 +149,10 @@ class KeyboardNavigation {
     }
   }
   // ─── Navigation ───────────────────────────────────────────────────────────
+  /**
+   * @param {number} dSeries
+   * @param {number} dPoint
+   */
   _move(dSeries, dPoint) {
     const w = this.w;
     const wrapAround = w.config.chart.accessibility.keyboard.navigation.wrapAround;
@@ -221,11 +233,19 @@ class KeyboardNavigation {
     w.interact.capturedSeriesIndex = i;
     w.interact.capturedDataPointIndex = j;
     this._applyFocusClass(i, j);
-    this._showTooltip(i, j, ttCtx);
+    this._showTooltip(
+      i,
+      j,
+      /** @type {any} */
+      ttCtx
+    );
   }
   _hideFocus() {
     const w = this.w;
-    const ttCtx = w.globals.tooltip;
+    const ttCtx = (
+      /** @type {any} */
+      w.globals.tooltip
+    );
     this._removeFocusClass();
     this._leaveHoveredBar();
     if (!ttCtx) return;
@@ -245,6 +265,11 @@ class KeyboardNavigation {
     if (xcrosshairs) xcrosshairs.classList.remove("apexcharts-active");
   }
   // ─── Tooltip display per chart type ───────────────────────────────────────
+  /**
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   */
   _showTooltip(i, j, ttCtx) {
     const w = this.w;
     const type = w.config.chart.type;
@@ -284,6 +309,9 @@ class KeyboardNavigation {
    *
    * For chart types that don't have a concrete SVG element per data point
    * (pie, radialBar) we fall back to the SVG centre.
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
    */
   _setSyntheticEvent(i, j, ttCtx) {
     const w = this.w;
@@ -324,12 +352,20 @@ class KeyboardNavigation {
     }
     ttCtx.e = { type: "mousemove", clientX, clientY };
   }
-  /** bar / column / candlestick / boxPlot / rangeBar */
+  /**
+   * bar / column / candlestick / boxPlot / rangeBar
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   */
   _showTooltipBar(i, j, ttCtx) {
     var _a, _b, _c, _d;
     const w = this.w;
     const shared = ttCtx.tConfig.shared && (ttCtx.tooltipUtil.isXoverlap(j) || w.globals.isBarHorizontal) && ttCtx.tooltipUtil.isInitialSeriesSameLen();
-    const rangeData = (_d = (_c = (_b = (_a = w.rangeData.seriesRange) == null ? void 0 : _a[i]) == null ? void 0 : _b[j]) == null ? void 0 : _c.y) == null ? void 0 : _d[0];
+    const rangeData = (
+      /** @type {any} */
+      (_d = (_c = (_b = (_a = w.rangeData.seriesRange) == null ? void 0 : _a[i]) == null ? void 0 : _b[j]) == null ? void 0 : _c.y) == null ? void 0 : _d[0]
+    );
     ttCtx.tooltipLabels.drawSeriesTexts(__spreadProps(__spreadValues(__spreadValues({
       ttItems: ttCtx.ttItems,
       i,
@@ -374,7 +410,12 @@ class KeyboardNavigation {
       ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, i);
     }
   }
-  /** line / area / scatter / bubble / radar / rangeArea */
+  /**
+   * line / area / scatter / bubble / radar / rangeArea
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   */
   _showTooltipAxisLine(i, j, ttCtx) {
     const w = this.w;
     const type = w.config.chart.type;
@@ -410,6 +451,9 @@ class KeyboardNavigation {
    * Unlike enlargePoints(j) which queries ALL series for rel===j (causing
    * multiple bubbles to enlarge and tooltip to land on the wrong one), this
    * method queries by both series index AND data-point index for precision.
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
    */
   _showScatterBubblePoint(i, j, ttCtx) {
     const baseEl = this.w.dom.baseEl;
@@ -426,8 +470,15 @@ class KeyboardNavigation {
     ttCtx.marker.enlargeCurrentPoint(j, markerEl);
     this._enlargedScatterMarker = markerEl;
   }
-  /** pie / donut / polarArea */
+  /**
+   * pie / donut / polarArea
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   * @param {HTMLElement} tooltipEl
+   */
   _showTooltipNonAxis(i, j, ttCtx, tooltipEl) {
+    var _a, _b;
     const w = this.w;
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
@@ -437,12 +488,10 @@ class KeyboardNavigation {
     const tooltipBound = tooltipEl.getBoundingClientRect();
     const ttWidth = tooltipBound.width || ttCtx.tooltipRect.ttWidth || 0;
     const ttHeight = tooltipBound.height || ttCtx.tooltipRect.ttHeight || 0;
-    const sliceEl = w.dom.baseEl.querySelector(
-      `.apexcharts-pie-area[j='${j}']`
-    );
+    const sliceEl = w.dom.baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`);
     if (sliceEl) {
-      const cx = parseFloat(sliceEl.getAttribute("data:cx"));
-      const cy = parseFloat(sliceEl.getAttribute("data:cy"));
+      const cx = parseFloat((_a = sliceEl.getAttribute("data:cx")) != null ? _a : "");
+      const cy = parseFloat((_b = sliceEl.getAttribute("data:cy")) != null ? _b : "");
       if (!isNaN(cx) && !isNaN(cy)) {
         const svgBound = w.dom.Paper.node.getBoundingClientRect();
         const wrapBound = w.dom.elWrap.getBoundingClientRect();
@@ -453,8 +502,15 @@ class KeyboardNavigation {
       }
     }
   }
-  /** radialBar — one ring per series, single value each */
+  /**
+   * radialBar — one ring per series, single value each
+   * @param {number} i
+   * @param {any} _j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   * @param {HTMLElement} tooltipEl
+   */
   _showTooltipRadialBar(i, _j, ttCtx, tooltipEl) {
+    var _a;
     const w = this.w;
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
@@ -466,7 +522,7 @@ class KeyboardNavigation {
       `.apexcharts-radialbar-series[data\\:realIndex='${i}'] path`
     );
     if (arcEl) {
-      const angle = parseFloat(arcEl.getAttribute("data:angle")) || 0;
+      const angle = parseFloat((_a = arcEl.getAttribute("data:angle")) != null ? _a : "") || 0;
       const initialAngle = w.config.plotOptions.radialBar.startAngle || 0;
       const midAngle = initialAngle + angle / 2;
       const centerX = w.layout.gridWidth / 2;
@@ -477,15 +533,28 @@ class KeyboardNavigation {
       const outerRadius = radialSize - i * trackSize;
       const innerRadius = outerRadius - trackSize;
       const ringRadius = (outerRadius + innerRadius) / 2;
-      const centroid = Utils.polarToCartesian(centerX, centerY, ringRadius, midAngle);
+      const centroid = Utils.polarToCartesian(
+        centerX,
+        centerY,
+        ringRadius,
+        midAngle
+      );
       const x = centroid.x + (w.layout.translateX || 0);
       const y = centroid.y + (w.layout.translateY || 0);
       tooltipEl.style.left = x - ttWidth / 2 + "px";
       tooltipEl.style.top = y - ttHeight - 10 + "px";
     }
   }
-  /** heatmap / treemap — position tooltip using element bounding rect */
+  /**
+   * heatmap / treemap — position tooltip using element bounding rect
+   * @param {number} i
+   * @param {number} j
+   * @param {import('../tooltip/Tooltip').default} ttCtx
+   * @param {HTMLElement} tooltipEl
+   * @param {string} type
+   */
   _showTooltipHeatTree(i, j, ttCtx, tooltipEl, type) {
+    var _a, _b;
     const w = this.w;
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
@@ -497,9 +566,7 @@ class KeyboardNavigation {
     const ttWidth = tooltipRect.width || ttCtx.tooltipRect.ttWidth || 0;
     const ttHeight = tooltipRect.height || ttCtx.tooltipRect.ttHeight || 0;
     const rectClass = type === "heatmap" ? "apexcharts-heatmap-rect" : "apexcharts-treemap-rect";
-    const cell = w.dom.baseEl.querySelector(
-      `.${rectClass}[i='${i}'][j='${j}']`
-    );
+    const cell = w.dom.baseEl.querySelector(`.${rectClass}[i='${i}'][j='${j}']`);
     if (cell) {
       const wrapRect = w.dom.elWrap.getBoundingClientRect();
       const cellRect = cell.getBoundingClientRect();
@@ -507,8 +574,8 @@ class KeyboardNavigation {
       const cellCy = cellRect.top - wrapRect.top;
       const cellWidth = cellRect.width;
       const cellHeight = cellRect.height;
-      const cx = parseFloat(cell.getAttribute("cx"));
-      const cellWidthAttr = parseFloat(cell.getAttribute("width"));
+      const cx = parseFloat((_a = cell.getAttribute("cx")) != null ? _a : "");
+      const cellWidthAttr = parseFloat((_b = cell.getAttribute("width")) != null ? _b : "");
       ttCtx.tooltipPosition.moveXCrosshairs(cx + cellWidthAttr / 2);
       let x = cellCx + cellWidth + ttWidth / 2;
       const y = cellCy + cellHeight / 2 - ttHeight / 2;
@@ -520,6 +587,10 @@ class KeyboardNavigation {
     }
   }
   // ─── Focus class management ───────────────────────────────────────────────
+  /**
+   * @param {number} i
+   * @param {number} j
+   */
   _applyFocusClass(i, j) {
     this._removeFocusClass();
     const el = this._getFocusableElement(i, j);
@@ -541,6 +612,10 @@ class KeyboardNavigation {
       this._hoveredBarEl = null;
     }
   }
+  /**
+   * @param {number} i
+   * @param {number} j
+   */
   _getFocusableElement(i, j) {
     const w = this.w;
     const type = w.config.chart.type;
@@ -598,6 +673,9 @@ class KeyboardNavigation {
     }
     return w.seriesData.series.length;
   }
+  /**
+   * @param {number} si
+   */
   _getDataPointCount(si) {
     const w = this.w;
     const type = w.config.chart.type;
@@ -648,6 +726,7 @@ class KeyboardNavigation {
    * Snap to the nearest visible data point in the given navigation direction.
    * direction > 0 → find the first visible point (left boundary of zoomed range)
    * direction < 0 → find the last visible point (right boundary of zoomed range)
+   * @param {number} direction
    */
   _snapToVisibleRangeInDirection(direction) {
     const w = this.w;
@@ -678,6 +757,8 @@ class KeyboardNavigation {
   /**
    * Check whether the data point at (si, di) is within the current visible
    * x-axis range. Used to skip out-of-viewport points during keyboard nav.
+   * @param {number} si
+   * @param {number} di
    */
   _isDataPointVisible(si, di) {
     const w = this.w;

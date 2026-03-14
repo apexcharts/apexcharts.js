@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.10.3
+ * ApexCharts v5.10.4
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -12,6 +12,10 @@ const Series = _core.__apex_Series;
 const Utils = _core.__apex_Utils;
 const DataLabels = _core.__apex_DataLabels;
 class TreemapHelpers {
+  /**
+   * @param {import('../../../types/internal').ChartStateW} w
+   * @param {import('../../../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.ctx = ctx;
     this.w = w;
@@ -29,12 +33,21 @@ class TreemapHelpers {
     }
     return negRange;
   }
+  /**
+   * @param {string} chartType
+   * @param {number} i
+   * @param {number} j
+   * @param {any} negRange
+   */
   getShadeColor(chartType, i, j, negRange) {
     const w = this.w;
     let colorShadePercent = 1;
     const shadeIntensity = w.config.plotOptions[chartType].shadeIntensity;
     const colorProps = this.determineColor(chartType, i, j);
-    if (w.globals.hasNegs || negRange) {
+    if (
+      /** @type {any} */
+      w.globals.hasNegs || negRange
+    ) {
       if (w.config.plotOptions[chartType].reverseNegativeShade) {
         if (colorProps.percent < 0) {
           colorShadePercent = colorProps.percent / 100 * (shadeIntensity * 1.25);
@@ -76,6 +89,11 @@ class TreemapHelpers {
     }
     return { color, colorProps };
   }
+  /**
+   * @param {string} chartType
+   * @param {number} i
+   * @param {number} j
+   */
   determineColor(chartType, i, j) {
     const w = this.w;
     const val = w.seriesData.series[i][j];
@@ -117,6 +135,7 @@ class TreemapHelpers {
       percent
     };
   }
+  /** @param {{ text?: any, x?: any, y?: any, i?: any, j?: any, colorProps?: any, fontSize?: any, series?: any }} opts */
   calculateDataLabels({ text, x, y, i, j, colorProps, fontSize }) {
     const w = this.w;
     const dataLabelsConfig = w.config.dataLabels;
@@ -148,6 +167,11 @@ class TreemapHelpers {
 }
 const Filters = _core.__apex_Filters;
 class HeatMap {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   * @param {import('../types/internal').XYRatios} xyRatios
+   */
   constructor(w, ctx, xyRatios) {
     this.ctx = ctx;
     this.w = w;
@@ -158,6 +182,9 @@ class HeatMap {
     this.rectRadius = this.w.config.plotOptions.heatmap.radius;
     this.strokeWidth = this.w.config.stroke.show ? this.w.config.stroke.width : 0;
   }
+  /**
+   * @param {any[]} series
+   */
   draw(series) {
     const w = this.w;
     const graphics = new Graphics(this.w, this.ctx);
@@ -213,7 +240,10 @@ class HeatMap {
           color = fill.fillPath({
             seriesNumber: i,
             dataPointIndex: j,
-            opacity: w.globals.hasNegs ? heatColorProps.percent < 0 ? 1 - (1 + heatColorProps.percent / 100) : shadeIntensity + heatColorProps.percent / 100 : heatColorProps.percent / 100,
+            opacity: (
+              /** @type {any} */
+              w.globals.hasNegs ? heatColorProps.percent < 0 ? 1 - (1 + heatColorProps.percent / 100) : shadeIntensity + heatColorProps.percent / 100 : heatColorProps.percent / 100
+            ),
             patternID: Utils.randomId(),
             width: w.config.fill.image.width ? w.config.fill.image.width : xDivision,
             height: w.config.fill.image.height ? w.config.fill.image.height : yDivision
@@ -283,7 +313,10 @@ class HeatMap {
       y1 = y1 + yDivision;
       ret.add(elSeries);
     }
-    const yAxisScale = w.globals.yAxisScale[0].result.slice();
+    const yAxisScale = (
+      /** @type {any[]} */
+      w.globals.yAxisScale[0].result.slice()
+    );
     if (w.config.yaxis[0].reversed) {
       yAxisScale.unshift("");
     } else {
@@ -292,6 +325,14 @@ class HeatMap {
     w.globals.yAxisScale[0].result = yAxisScale;
     return ret;
   }
+  /**
+   * @param {any} el
+   * @param {number} x
+   * @param {number} y
+   * @param {number} width
+   * @param {number} height
+   * @param {number} speed
+   */
   animateHeatMap(el, x, y, width, height, speed) {
     const animations = new Animations(this.w);
     animations.animateRect(
@@ -314,6 +355,12 @@ class HeatMap {
       }
     );
   }
+  /**
+   * @param {any} el
+   * @param {string} colorFrom
+   * @param {string} colorTo
+   * @param {number} speed
+   */
   animateHeatColor(el, colorFrom, colorTo, speed) {
     el.attr({
       fill: colorFrom

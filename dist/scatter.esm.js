@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.10.3
+ * ApexCharts v5.10.4
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -33,10 +33,17 @@ const Scatter = _core.__apex_charts_Scatter;
 const Series = _core.__apex_Series;
 const Utils = _core.__apex_Utils;
 class Helpers {
+  /**
+   * @param {import('../../../charts/Line').default} lineCtx
+   */
   constructor(lineCtx) {
     this.w = lineCtx.w;
     this.lineCtx = lineCtx;
   }
+  /**
+   * @param {number} i
+   * @param {any[]} series
+   */
   sameValueSeriesFix(i, series) {
     const w = this.w;
     if (w.config.fill.type === "gradient" || w.config.fill.type[i] === "gradient") {
@@ -49,6 +56,7 @@ class Helpers {
     }
     return series;
   }
+  /** @param {{series: any, realIndex: any, x: any, y: any, i: any, j: any, prevY: any}} opts */
   calculatePoints({ series, realIndex, x, y, i, j, prevY }) {
     const w = this.w;
     const ptX = [];
@@ -72,6 +80,7 @@ class Helpers {
       y: ptY
     };
   }
+  /** @param {{pathFromLine: any, pathFromArea: any, realIndex: any}} opts */
   checkPreviousPaths({ pathFromLine, pathFromArea, realIndex }) {
     const w = this.w;
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
@@ -94,6 +103,7 @@ class Helpers {
       pathFromArea
     };
   }
+  /** @param {{i: any, realIndex: any, series: any, prevY: any, lineYPosition: any, translationsIndex: any}} opts */
   determineFirstPrevY({
     i,
     realIndex,
@@ -104,7 +114,9 @@ class Helpers {
   }) {
     var _a, _b, _c;
     const w = this.w;
-    const stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_a = this.w.config.series[realIndex]) == null ? void 0 : _a.type) === "bar" || ((_b = this.w.config.series[realIndex]) == null ? void 0 : _b.type) === "column");
+    const stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || /** @type {any} */
+    ((_a = this.w.config.series[realIndex]) == null ? void 0 : _a.type) === "bar" || /** @type {any} */
+    ((_b = this.w.config.series[realIndex]) == null ? void 0 : _b.type) === "column");
     if (typeof ((_c = series[i]) == null ? void 0 : _c[0]) !== "undefined") {
       if (stackSeries) {
         if (i > 0) {
@@ -179,8 +191,8 @@ const svgPath = (points) => {
 const spline = {
   /**
    * Convert 'points' to bezier
-   * @param {Array} points
-   * @returns {Array}
+   * @param {any[]} points
+   * @returns {any[]}
    */
   points(points) {
     const tgts = tangents(points);
@@ -206,10 +218,10 @@ const spline = {
   },
   /**
    * Slice out a segment of 'points'
-   * @param {Array} points
+   * @param {any[]} points
    * @param {Number} start
    * @param {Number} end
-   * @returns {Array}
+   * @returns {any[]}
    */
   slice(points, start, end) {
     const pts = points.slice(start, end);
@@ -244,10 +256,20 @@ function finiteDifferences(points) {
   return m;
 }
 class Line {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   * @param {import('../types/internal').XYRatios} xyRatios
+   * @param {boolean} isPointsChart
+   */
   constructor(w, ctx, xyRatios, isPointsChart) {
     this.ctx = ctx;
     this.w = w;
     this.xyRatios = xyRatios;
+    this.xRatio = 0;
+    this.yRatio = [];
+    this.zRatio = 0;
+    this.baseLineY = [];
     this.pointsChart = !(this.w.config.chart.type !== "bubble" && this.w.config.chart.type !== "scatter") || isPointsChart;
     this.scatter = new Scatter(this.w, this.ctx);
     this.noNegatives = this.w.globals.minX === Number.MAX_VALUE;
@@ -256,7 +278,22 @@ class Line {
     this.prevSeriesY = [];
     this.categoryAxisCorrection = 0;
     this.yaxisIndex = 0;
+    this.xDivision = 0;
+    this.zeroY = 0;
+    this.areaBottomY = 0;
+    this.strokeWidth = 0;
+    this.isReversed = false;
+    this.appendPathFrom = false;
+    this.elSeries = null;
+    this.elPointsMain = null;
+    this.elDataLabelsWrap = null;
   }
+  /**
+   * @param {any[]} series
+   * @param {string} ctype
+   * @param {number} seriesIndex
+   * @param {any} seriesRangeEnd
+   */
   draw(series, ctype, seriesIndex, seriesRangeEnd) {
     var _a;
     const w = this.w;
@@ -276,7 +313,10 @@ class Line {
     const allSeries = [];
     for (let i = 0; i < series.length; i++) {
       series = this.lineHelpers.sameValueSeriesFix(i, series);
-      const realIndex = w.globals.comboCharts ? seriesIndex[i] : i;
+      const realIndex = w.globals.comboCharts ? (
+        /** @type {any} */
+        seriesIndex[i]
+      ) : i;
       const translationsIndex = this.yRatio.length > 1 ? realIndex : 0;
       this._initSerieVariables(series, i, realIndex);
       const yArrj = [];
@@ -395,7 +435,8 @@ class Line {
       this.elSeries.add(this.elDataLabelsWrap);
       allSeries.push(this.elSeries);
     }
-    if (typeof ((_a = w.config.series[0]) == null ? void 0 : _a.zIndex) !== "undefined") {
+    if (typeof /** @type {Record<string,any>} */
+    ((_a = w.config.series[0]) == null ? void 0 : _a.zIndex) !== "undefined") {
       allSeries.sort(
         (a, b) => Number(a.node.getAttribute("zIndex")) - Number(b.node.getAttribute("zIndex"))
       );
@@ -411,6 +452,11 @@ class Line {
     }
     return ret;
   }
+  /**
+   * @param {any[]} series
+   * @param {number} i
+   * @param {number} realIndex
+   */
   _initSerieVariables(series, i, realIndex) {
     const w = this.w;
     const graphics = new Graphics(this.w);
@@ -428,9 +474,13 @@ class Line {
       this.areaBottomY = w.layout.gridHeight;
     }
     this.categoryAxisCorrection = this.xDivision / 2;
+    const seriesItem = (
+      /** @type {Record<string,any>} */
+      w.config.series[realIndex]
+    );
     this.elSeries = graphics.group({
       class: `apexcharts-series`,
-      zIndex: typeof w.config.series[realIndex].zIndex !== "undefined" ? w.config.series[realIndex].zIndex : realIndex,
+      zIndex: typeof seriesItem.zIndex !== "undefined" ? seriesItem.zIndex : realIndex,
       seriesName: Utils.escapeString(w.seriesData.seriesNames[realIndex])
     });
     this.elPointsMain = graphics.group({
@@ -465,6 +515,7 @@ class Line {
     });
     this.appendPathFrom = true;
   }
+  /** @param {{ type?: any, series?: any, i?: any, realIndex?: any, translationsIndex?: any, prevX?: any, prevY?: any, prevY2?: any }} opts */
   _calculatePathsFrom({
     type,
     series,
@@ -515,6 +566,7 @@ class Line {
       pathFromArea
     };
   }
+  /** @param {{type: any, realIndex: any, i: any, paths: any}} opts */
   _handlePaths({ type, realIndex, i, paths }) {
     const w = this.w;
     const graphics = new Graphics(this.w);
@@ -670,7 +722,9 @@ class Line {
       return lineYPos - _y / yRatio[translationsIndex] + (this.isReversed ? _y / yRatio[translationsIndex] : 0) * 2;
     };
     let y2 = y;
-    const stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || ((_a = this.w.config.series[realIndex]) == null ? void 0 : _a.type) === "bar" || ((_b = this.w.config.series[realIndex]) == null ? void 0 : _b.type) === "column");
+    const stackSeries = w.config.chart.stacked && !w.globals.comboCharts || w.config.chart.stacked && w.globals.comboCharts && (!this.w.config.chart.stackOnlyBar || /** @type {Record<string,any>} */
+    ((_a = this.w.config.series[realIndex]) == null ? void 0 : _a.type) === "bar" || /** @type {Record<string,any>} */
+    ((_b = this.w.config.series[realIndex]) == null ? void 0 : _b.type) === "column");
     let curve = w.config.stroke.curve;
     if (Array.isArray(curve)) {
       if (Array.isArray(seriesIndex)) {
@@ -794,6 +848,7 @@ class Line {
       areaPath
     };
   }
+  /** @param {{type: any, pointsPos: any, isRangeStart: any, i: any, j: any, realIndex: any}} opts */
   _handleMarkersAndLabels({ type, pointsPos, isRangeStart, i, j, realIndex }) {
     const w = this.w;
     const dataLabels = new DataLabels(this.w, this.ctx);
@@ -828,6 +883,7 @@ class Line {
       this.elDataLabelsWrap.add(drawnLabels);
     }
   }
+  /** @param {{type: any, series: any, i: any, j: any, x: any, y: any, xArrj: any, yArrj: any, y2: any, y2Arrj: any, pX: any, pY: any, pathState: any, segmentStartX: any, linePath: any, areaPath: any, linePaths: any, areaPaths: any, curve: any, isRangeStart: any}} opts */
   _createPaths({
     type,
     series,
@@ -948,7 +1004,9 @@ class Line {
             if (rangeArea && segmentCount > 1 && !isLowerRangeAreaPath) {
               const upperLinePaths = linePaths.slice(segmentCount).reverse();
               linePaths.splice(segmentCount);
-              upperLinePaths.forEach((u) => linePaths.push(u));
+              upperLinePaths.forEach(
+                (u) => linePaths.push(u)
+              );
             }
             pathState = 0;
             break;
@@ -1017,7 +1075,7 @@ class Line {
       }
       default: {
         const pathToPoint = (curve2, x2, y3) => {
-          let path = [];
+          let path = "";
           switch (curve2) {
             case "stepline":
               path = graphics.line(x2, null, "H") + graphics.line(null, y3, "V");
@@ -1100,6 +1158,13 @@ class Line {
       areaPath
     };
   }
+  /**
+   * @param {any[]} series
+   * @param {any} pointsPos
+   * @param {number} i
+   * @param {number} j
+   * @param {number} realIndex
+   */
   handleNullDataPoints(series, pointsPos, i, j, realIndex) {
     const w = this.w;
     if (series[i][j] === null && w.config.markers.showNullDataPoints || series[i].length === 1) {

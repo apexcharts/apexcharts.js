@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.10.3
+ * ApexCharts v5.10.4
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -31,9 +31,18 @@ const DataLabels = _core.__apex_DataLabels;
 const Filters = _core.__apex_Filters;
 const Utils = _core.__apex_Utils;
 class CircularChartsHelpers {
+  /**
+   * @param {import('../../../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w;
   }
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} i
+   * @param {string | number} text
+   */
   drawYAxisTexts(x, y, i, text) {
     const w = this.w;
     const yaxisConfig = w.config.yaxis[0];
@@ -53,6 +62,10 @@ class CircularChartsHelpers {
 }
 const CoreUtils = _core.__apex_CoreUtils;
 class Radar {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.ctx = ctx;
     this.w = w;
@@ -77,11 +90,19 @@ class Radar {
     if (w.config.plotOptions.radar.size !== void 0) {
       this.size = w.config.plotOptions.radar.size;
     }
-    this.dataRadiusOfPercent = [];
-    this.dataRadius = [];
-    this.angleArr = [];
+    this.dataRadiusOfPercent = /** @type {any} */
+    [];
+    this.dataRadius = /** @type {any} */
+    [];
+    this.angleArr = /** @type {any} */
+    [];
+    this.dataPointsLen = 0;
+    this.disAngle = 0;
     this.yaxisLabelsTextsPos = [];
   }
+  /**
+   * @param {any[]} series
+   */
   draw(series) {
     const w = this.w;
     const fill = new Fill(this.w);
@@ -252,6 +273,9 @@ class Radar {
     ret.add(this.yaxisLabels);
     return ret;
   }
+  /**
+   * @param {Record<string, any>} opts
+   */
   drawPolygons(opts) {
     const w = this.w;
     const { parent } = opts;
@@ -305,10 +329,12 @@ class Radar {
       parent.add(l);
     });
     if (w.config.yaxis[0].show) {
-      this.yaxisLabelsTextsPos.forEach((p, i) => {
-        const yText = helpers.drawYAxisTexts(p.x, p.y, i, yaxisTexts[i]);
-        this.yaxisLabels.add(yText);
-      });
+      this.yaxisLabelsTextsPos.forEach(
+        (p, i) => {
+          const yText = helpers.drawYAxisTexts(p.x, p.y, i, yaxisTexts[i]);
+          this.yaxisLabels.add(yText);
+        }
+      );
     }
   }
   drawXAxisTexts() {
@@ -356,6 +382,10 @@ class Radar {
     });
     return elXAxisWrap;
   }
+  /**
+   * @param {Array<Record<string, any>>} pos
+   * @param {Record<string, any>} origin
+   */
   createPaths(pos, origin) {
     const linePathsTo = [];
     let linePathsFrom = [];
@@ -384,6 +414,10 @@ class Radar {
       areaPathsTo
     };
   }
+  /**
+   * @param {Record<string, any>} pos
+   * @param {number} polygonSize
+   */
   getTextPos(pos, polygonSize) {
     const limit = 10;
     let textAnchor = "middle";
@@ -413,12 +447,15 @@ class Radar {
       newY
     };
   }
+  /**
+   * @param {number} realIndex
+   */
   getPreviousPath(realIndex) {
     const w = this.w;
     let pathFrom = null;
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
       const gpp = w.globals.previousPaths[pp];
-      if (gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)) {
+      if (gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)) {
         if (typeof w.globals.previousPaths[pp].paths[0] !== "undefined") {
           pathFrom = w.globals.previousPaths[pp].paths[0].d;
         }
@@ -426,6 +463,10 @@ class Radar {
     }
     return pathFrom;
   }
+  /**
+   * @param {any[]} dataRadiusArr
+   * @param {any[]} angleArr
+   */
   getDataPointsPos(dataRadiusArr, angleArr, dataPointsLen = this.dataPointsLen) {
     dataRadiusArr = dataRadiusArr || [];
     angleArr = angleArr || [];

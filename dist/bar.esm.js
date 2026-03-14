@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.10.3
+ * ApexCharts v5.10.4
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -27,6 +27,9 @@ import { default as default2 } from "apexcharts/core";
 const Graphics = _core.__apex_Graphics;
 const DataLabels = _core.__apex_DataLabels;
 class BarDataLabels {
+  /**
+   * @param {import('../../../charts/Bar').default} barCtx
+   */
   constructor(barCtx) {
     this.w = barCtx.w;
     this.barCtx = barCtx;
@@ -39,8 +42,7 @@ class BarDataLabels {
    * It also sets the element's data attr for bars and calls drawCalculatedBarDataLabels()
    * After calculating, it also calls the function to draw data labels
    * @memberof Bar
-   * @param {object} {barProps} most of the bar properties used throughout the bar
-   * drawing function
+   * @param {Record<string, any>} opts - bar properties used throughout the bar drawing function
    * @return {object} dataLabels node-element which you can append later
    **/
   handleBarDataLabels(opts) {
@@ -66,17 +68,20 @@ class BarDataLabels {
     let bcx;
     let bcy;
     if (w.axisFlags.isXNumeric && !w.globals.isBarHorizontal) {
-      bcx = x + parseFloat(barWidth * (visibleSeries + 1));
-      bcy = y + parseFloat(barHeight * (visibleSeries + 1)) - strokeWidth;
+      bcx = x + barWidth * (visibleSeries + 1);
+      bcy = y + barHeight * (visibleSeries + 1) - strokeWidth;
     } else {
-      bcx = x + parseFloat(barWidth * visibleSeries);
-      bcy = y + parseFloat(barHeight * visibleSeries);
+      bcx = x + barWidth * visibleSeries;
+      bcy = y + barHeight * visibleSeries;
     }
     let dataLabels = null;
     let totalDataLabels = null;
     let dataLabelsX = x;
     let dataLabelsY = y;
-    let dataLabelsPos = {};
+    let dataLabelsPos = (
+      /** @type {any} */
+      {}
+    );
     const dataLabelsConfig = w.config.dataLabels;
     const barDataLabelsConfig = this.barCtx.barOptions.dataLabels;
     const barTotalDataLabelsConfig = this.barCtx.barOptions.dataLabels.total;
@@ -102,7 +107,7 @@ class BarDataLabels {
           dataPointIndex: j,
           w
         })) : w.formatters.yLabelFormatters[0](yLabel),
-        parseFloat(dataLabelsConfig.style.fontSize)
+        parseFloat(dataLabelsConfig.style.fontSize).toString()
       );
     }
     const params = {
@@ -161,6 +166,7 @@ class BarDataLabels {
       totalDataLabels
     };
   }
+  /** @param {{realIndex: any, j: any}} opts */
   getStackedTotalDataLabel({ realIndex, j }) {
     const w = this.w;
     let val = this.barCtx.stackedSeriesTotals[j];
@@ -173,6 +179,9 @@ class BarDataLabels {
     }
     return val;
   }
+  /**
+   * @param {Record<string, any>} opts
+   */
   calculateColumnsDataLabelsPosition(opts) {
     const w = this.w;
     let {
@@ -276,13 +285,15 @@ class BarDataLabels {
     let lowestPrevY = newY;
     w.labelData.seriesGroups.forEach((sg) => {
       var _a;
-      (_a = this.barCtx[sg.join(",")]) == null ? void 0 : _a.prevY.forEach((arr) => {
-        if (valIsNegative) {
-          lowestPrevY = Math.max(arr[j], lowestPrevY);
-        } else {
-          lowestPrevY = Math.min(arr[j], lowestPrevY);
+      (_a = this.barCtx[sg.join(",")]) == null ? void 0 : _a.prevY.forEach(
+        (arr) => {
+          if (valIsNegative) {
+            lowestPrevY = Math.max(arr[j], lowestPrevY);
+          } else {
+            lowestPrevY = Math.min(arr[j], lowestPrevY);
+          }
         }
-      });
+      );
     });
     if (this.barCtx.lastActiveBarSerieIndex === realIndex && barTotalDataLabelsConfig.enabled) {
       const ADDITIONAL_OFFY = 18;
@@ -316,6 +327,9 @@ class BarDataLabels {
       totalDataLabelsAnchor
     };
   }
+  /**
+   * @param {Record<string, any>} opts
+   */
   calculateBarsDataLabelsPosition(opts) {
     const w = this.w;
     let {
@@ -380,13 +394,15 @@ class BarDataLabels {
     let lowestPrevX = newX;
     w.labelData.seriesGroups.forEach((sg) => {
       var _a;
-      (_a = this.barCtx[sg.join(",")]) == null ? void 0 : _a.prevX.forEach((arr) => {
-        if (valIsNegative) {
-          lowestPrevX = Math.min(arr[j], lowestPrevX);
-        } else {
-          lowestPrevX = Math.max(arr[j], lowestPrevX);
+      (_a = this.barCtx[sg.join(",")]) == null ? void 0 : _a.prevX.forEach(
+        (arr) => {
+          if (valIsNegative) {
+            lowestPrevX = Math.min(arr[j], lowestPrevX);
+          } else {
+            lowestPrevX = Math.max(arr[j], lowestPrevX);
+          }
         }
-      });
+      );
     });
     if (this.barCtx.lastActiveBarSerieIndex === realIndex && barTotalDataLabelsConfig.enabled) {
       const graphics = new Graphics(this.barCtx.w);
@@ -436,6 +452,7 @@ class BarDataLabels {
       totalDataLabelsAnchor
     };
   }
+  /** @param {{x: any, y: any, val: any, i: any, j: any, textRects: any, barHeight: any, barWidth: any, dataLabelsConfig: any}} opts */
   drawCalculatedDataLabels({
     x,
     y,
@@ -491,7 +508,7 @@ class BarDataLabels {
       if (this.barCtx.isRangeBar && this.barCtx.barOptions.dataLabels.hideOverflowingLabels) {
         const txRect = graphics.getTextRects(
           text,
-          parseFloat(dataLabelsConfig.style.fontSize)
+          parseFloat(dataLabelsConfig.style.fontSize).toString()
         );
         if (barWidth < txRect.width) {
           text = "";
@@ -532,6 +549,7 @@ class BarDataLabels {
     }
     return elDataLabelsWrap;
   }
+  /** @param {{ x?: any, y?: any, val?: any, realIndex?: any, textAnchor?: any, barWidth?: any, barHeight?: any, dataLabelsConfig?: any, barTotalDataLabelsConfig?: any }} opts */
   drawTotalDataLabels({
     x,
     y,
@@ -561,10 +579,16 @@ const Series = _core.__apex_Series;
 const Fill = _core.__apex_Fill;
 const Utils = _core.__apex_Utils;
 class Helpers {
+  /**
+   * @param {Record<string, any>} barCtx
+   */
   constructor(barCtx) {
     this.w = barCtx.w;
     this.barCtx = barCtx;
   }
+  /**
+   * @param {any[]} series
+   */
   initVariables(series) {
     const w = this.w;
     this.barCtx.series = series;
@@ -590,7 +614,12 @@ class Helpers {
     this.arrBorderRadius = this.createBorderRadiusArr(w.seriesData.series);
     if (Utils.isSafari()) {
       this.arrBorderRadius = this.arrBorderRadius.map(
-        (brArr) => brArr.map((_) => "none")
+        (brArr) => (
+          /**
+           * @param {any} _
+           */
+          brArr.map((_) => "none")
+        )
       );
     }
     if (this.barCtx.seriesLen === 0) {
@@ -601,6 +630,9 @@ class Helpers {
       this.checkZeroSeries({ series });
     }
   }
+  /**
+   * @param {number} realIndex
+   */
   initialPositions(realIndex) {
     const w = this.w;
     let x, y, yDivision, xDivision, barHeight, barWidth, zeroH, zeroW;
@@ -673,6 +705,9 @@ class Helpers {
       zeroW
     };
   }
+  /**
+   * @param {Record<string, any>} ctx
+   */
   initializeStackedPrevVars(ctx) {
     const w = ctx.w;
     w.labelData.seriesGroups.forEach((group) => {
@@ -685,6 +720,9 @@ class Helpers {
       ctx[group].prevXVal = [];
     });
   }
+  /**
+   * @param {Record<string, any>} ctx
+   */
   initializeStackedXYVars(ctx) {
     const w = ctx.w;
     w.labelData.seriesGroups.forEach((group) => {
@@ -697,6 +735,12 @@ class Helpers {
       ctx[group].yArrjVal = [];
     });
   }
+  /**
+   * @param {any[]} series
+   * @param {number} i
+   * @param {number} j
+   * @param {number} realIndex
+   */
   getPathFillColor(series, i, j, realIndex) {
     var _a, _b, _c, _d;
     const w = this.w;
@@ -726,6 +770,11 @@ class Helpers {
       useRangeColor
     };
   }
+  /**
+   * @param {number} i
+   * @param {number} j
+   * @param {number} realIndex
+   */
   getStrokeWidth(i, j, realIndex) {
     let strokeWidth = 0;
     const w = this.w;
@@ -741,6 +790,9 @@ class Helpers {
     }
     return strokeWidth;
   }
+  /**
+   * @param {any[]} series
+   */
   createBorderRadiusArr(series) {
     var _a;
     const w = this.w;
@@ -823,6 +875,7 @@ class Helpers {
     }
     return output;
   }
+  /** @param {{ j?: any, i?: any, x1?: any, x2?: any, y1?: any, y2?: any, bc?: any, elSeries?: any }} opts */
   barBackground({ j, i, x1, x2, y1, y2, elSeries }) {
     const w = this.w;
     const graphics = new Graphics(this.barCtx.w);
@@ -846,6 +899,7 @@ class Helpers {
       rect.node.classList.add("apexcharts-backgroundBar");
     }
   }
+  /** @param {{ barWidth?: any, barXPosition?: any, y1?: any, y2?: any, yRatio?: any, strokeWidth?: any, isReversed?: any, series?: any, seriesGroup?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getColumnPaths({
     barWidth,
     barXPosition,
@@ -902,6 +956,7 @@ class Helpers {
       pathFrom
     };
   }
+  /** @param {{ barYPosition?: any, barHeight?: any, x1?: any, x2?: any, strokeWidth?: any, isReversed?: any, series?: any, seriesGroup?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getBarpaths({
     barYPosition,
     barHeight,
@@ -958,6 +1013,7 @@ class Helpers {
       pathFrom
     };
   }
+  /** @param {{series: any}} opts */
   checkZeroSeries({ series }) {
     const w = this.w;
     for (let zs = 0; zs < series.length; zs++) {
@@ -970,6 +1026,10 @@ class Helpers {
       }
     }
   }
+  /**
+   * @param {number} value
+   * @param {number} zeroW
+   */
   getXForValue(value, zeroW, zeroPositionForNull = true) {
     let xForVal = zeroPositionForNull ? zeroW : null;
     if (typeof value !== "undefined" && value !== null) {
@@ -977,6 +1037,11 @@ class Helpers {
     }
     return xForVal;
   }
+  /**
+   * @param {number} value
+   * @param {number} zeroH
+   * @param {number} translationsIndex
+   */
   getYForValue(value, zeroH, translationsIndex, zeroPositionForNull = true) {
     let yForVal = zeroPositionForNull ? zeroH : null;
     if (typeof value !== "undefined" && value !== null) {
@@ -984,6 +1049,14 @@ class Helpers {
     }
     return yForVal;
   }
+  /**
+   * @param {string} type
+   * @param {number} zeroW
+   * @param {number} zeroH
+   * @param {number} i
+   * @param {number} j
+   * @param {number} translationsIndex
+   */
   getGoalValues(type, zeroW, zeroH, i, j, translationsIndex) {
     const w = this.w;
     const goals = [];
@@ -1014,6 +1087,7 @@ class Helpers {
     }
     return goals;
   }
+  /** @param {{barXPosition: any, barYPosition: any, goalX: any, goalY: any, barWidth: any, barHeight: any}} opts */
   drawGoalLine({
     barXPosition,
     barYPosition,
@@ -1078,6 +1152,7 @@ class Helpers {
     }
     return lineGroup;
   }
+  /** @param {{prevPaths: any, currPaths: any, color: any, realIndex: any, j: any}} opts */
   drawBarShadow({ prevPaths, currPaths, color, realIndex, j }) {
     const w = this.w;
     const { x: prevX2, x1: prevX1, barYPosition: prevY1 } = prevPaths;
@@ -1095,6 +1170,7 @@ class Helpers {
       classes: "apexcharts-bar-shadow apexcharts-decoration-element"
     });
   }
+  /** @param {{i: any, j: any}} opts */
   getZeroValueEncounters({ i, j }) {
     var _a;
     const w = this.w;
@@ -1115,6 +1191,9 @@ class Helpers {
       zeroEncounters
     };
   }
+  /**
+   * @param {number} seriesIndex
+   */
   getGroupIndex(seriesIndex) {
     const w = this.w;
     const groupIndex = w.labelData.seriesGroups.findIndex(
@@ -1137,6 +1216,11 @@ class Helpers {
 const CoreUtils = _core.__apex_CoreUtils;
 const Filters = _core.__apex_Filters;
 class Bar {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   * @param {import('../types/internal').XYRatios} xyRatios
+   */
   constructor(w, ctx, xyRatios) {
     this.ctx = ctx;
     this.w = w;
@@ -1148,6 +1232,12 @@ class Bar {
     this.isVerticalGroupedRangeBar = !w.globals.isBarHorizontal && w.rangeData.seriesRange.length && w.config.plotOptions.bar.rangeBarGroupRows;
     this.isFunnel = this.barOptions.isFunnel;
     this.xyRatios = xyRatios;
+    this.xRatio = 0;
+    this.yRatio = [];
+    this.invertedXRatio = 0;
+    this.invertedYRatio = 0;
+    this.baseLineY = [];
+    this.baseLineInvertedY = 0;
     if (this.xyRatios !== null) {
       this.xRatio = xyRatios.xRatio;
       this.yRatio = xyRatios.yRatio;
@@ -1160,6 +1250,10 @@ class Bar {
     this.translationsIndex = 0;
     this.seriesLen = 0;
     this.pathArr = [];
+    this.series = [];
+    this.elSeries = null;
+    this.visibleI = 0;
+    this.isReversed = false;
     const ser = new Series(this.w);
     this.lastActiveBarSerieIndex = ser.getActiveConfigSeriesIndex("desc", [
       "bar",
@@ -1179,9 +1273,9 @@ class Bar {
   }
   /** primary draw method which is called on bar object
    * @memberof Bar
-   * @param {array} series - user supplied series values
-   * @param {int} seriesIndex - the index by which series will be drawn on the svg
-   * @return {node} element which is supplied to parent chart draw method for appending
+   * @param {any[]} series - user supplied series values
+   * @param {number} seriesIndex - the index by which series will be drawn on the svg
+   * @return {Element} element which is supplied to parent chart draw method for appending
    **/
   draw(series, seriesIndex) {
     var _a;
@@ -1206,7 +1300,10 @@ class Bar {
       let x, y;
       const yArrj = [];
       const xArrj = [];
-      const realIndex = w.globals.comboCharts ? seriesIndex[i] : i;
+      const realIndex = w.globals.comboCharts ? (
+        /** @type {any} */
+        seriesIndex[i]
+      ) : i;
       const { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex);
       const elSeries = graphics.group({
         class: `apexcharts-series`,
@@ -1242,7 +1339,7 @@ class Bar {
       y = initY;
       x = initX;
       if (!this.isHorizontal) {
-        xArrj.push(x + barWidth / 2);
+        xArrj.push(x + (barWidth != null ? barWidth : 0) / 2);
       }
       const elDataLabelsWrap = graphics.group({
         class: "apexcharts-datalabels",
@@ -1264,7 +1361,10 @@ class Bar {
       elBarShadows.node.classList.add("apexcharts-element-hidden");
       for (let j = 0; j < series[i].length; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
-        let paths = null;
+        let paths = (
+          /** @type {any} */
+          null
+        );
         const pathsParams = {
           indexes: {
             i,
@@ -1293,7 +1393,12 @@ class Bar {
           }));
           barHeight = this.series[i][j] / this.yRatio[translationsIndex];
         }
-        const pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
+        const pathFill = this.barHelpers.getPathFillColor(
+          series,
+          i,
+          j,
+          realIndex
+        );
         if (this.isFunnel && this.barOptions.isFunnel3d && this.pathArr.length && j > 0) {
           const barShadow = this.barHelpers.drawBarShadow({
             color: typeof pathFill.color === "string" && ((_a = pathFill.color) == null ? void 0 : _a.indexOf("url")) === -1 ? pathFill.color : Utils.hexToRgba(w.globals.colors[i]),
@@ -1323,7 +1428,7 @@ class Bar {
         y = paths.y;
         x = paths.x;
         if (j > 0) {
-          xArrj.push(x + barWidth / 2);
+          xArrj.push(x + (barWidth != null ? barWidth : 0) / 2);
         }
         yArrj.push(y);
         this.renderSeries(__spreadProps(__spreadValues({
@@ -1355,6 +1460,7 @@ class Bar {
     }
     return ret;
   }
+  /** @param {{ realIndex?: any, pathFill?: any, lineFill?: any, j?: any, i?: any, columnGroupIndex?: any, pathFrom?: any, pathTo?: any, strokeWidth?: any, elSeries?: any, x?: any, y?: any, y1?: any, y2?: any, series?: any, barHeight?: any, barWidth?: any, barXPosition?: any, barYPosition?: any, elDataLabelsWrap?: any, elGoalsMarkers?: any, elBarShadows?: any, visibleSeries?: any, type?: any, classes?: any }} opts */
   renderSeries({
     realIndex,
     pathFill,
@@ -1391,10 +1497,7 @@ class Bar {
     let skipDrawing = false;
     if (!elSeries._bindingsDelegated) {
       elSeries._bindingsDelegated = true;
-      graphics.setupEventDelegation(
-        elSeries,
-        `.apexcharts-${type}-area`
-      );
+      graphics.setupEventDelegation(elSeries, `.apexcharts-${type}-area`);
     }
     if (!lineFill) {
       let fetchColor = function(i2) {
@@ -1417,52 +1520,63 @@ class Bar {
       lineFill = this.barOptions.distributed ? w.globals.stroke.colors[j] : checkAvailableColor;
     }
     const barDataLabels = new BarDataLabels(this);
-    const dataLabelsObj = barDataLabels.handleBarDataLabels({
-      x,
-      y,
-      y1,
-      y2,
-      i,
-      j,
-      series,
-      realIndex,
-      columnGroupIndex,
-      barHeight,
-      barWidth,
-      barXPosition,
-      barYPosition,
-      visibleSeries
-    });
+    const dataLabelsObj = (
+      /** @type {any} */
+      barDataLabels.handleBarDataLabels({
+        x,
+        y,
+        y1,
+        y2,
+        i,
+        j,
+        series,
+        realIndex,
+        columnGroupIndex,
+        barHeight,
+        barWidth,
+        barXPosition,
+        barYPosition,
+        visibleSeries
+      })
+    );
     if (!w.globals.isBarHorizontal) {
       if (dataLabelsObj.dataLabelsPos.dataLabelsX + Math.max(barWidth, w.globals.barPadForNumericAxis) < 0 || dataLabelsObj.dataLabelsPos.dataLabelsX - Math.max(barWidth, w.globals.barPadForNumericAxis) > w.layout.gridWidth) {
         skipDrawing = true;
       }
     }
-    if (w.config.series[i].data[j] && w.config.series[i].data[j].strokeColor) {
-      lineFill = w.config.series[i].data[j].strokeColor;
+    if (
+      /** @type {Record<string,any>} */
+      w.config.series[i].data[j] && /** @type {Record<string,any>} */
+      w.config.series[i].data[j].strokeColor
+    ) {
+      lineFill = /** @type {Record<string,any>} */
+      w.config.series[i].data[j].strokeColor;
     }
     if (this.isNullValue) {
       pathFill = "none";
     }
     const delay = j / w.config.chart.animations.animateGradually.delay * (w.config.chart.animations.speed / w.globals.dataPoints) / 2.4;
     if (!skipDrawing) {
-      const renderedPath = graphics.renderPaths({
-        i,
-        j,
-        realIndex,
-        pathFrom,
-        pathTo,
-        stroke: lineFill,
-        strokeWidth,
-        strokeLineCap: w.config.stroke.lineCap,
-        fill: pathFill,
-        animationDelay: delay,
-        initialSpeed: w.config.chart.animations.speed,
-        dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
-        className: `apexcharts-${type}-area ${classes}`,
-        chartType: type,
-        bindEventsOnPaths: false
-      });
+      const renderedPath = (
+        /** @type {any} */
+        graphics.renderPaths({
+          i,
+          j,
+          realIndex,
+          pathFrom,
+          pathTo,
+          stroke: lineFill,
+          strokeWidth,
+          strokeLineCap: w.config.stroke.lineCap,
+          fill: pathFill,
+          animationDelay: delay,
+          initialSpeed: w.config.chart.animations.speed,
+          dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
+          className: `apexcharts-${type}-area ${classes}`,
+          chartType: type,
+          bindEventsOnPaths: false
+        })
+      );
       renderedPath.attr("clip-path", `url(#gridRectBarMask${w.globals.cuid})`);
       const forecast = w.config.forecastDataPoints;
       if (forecast.count > 0) {
@@ -1503,6 +1617,7 @@ class Bar {
     }
     return elSeries;
   }
+  /** @param {{indexes: any, barHeight: any, strokeWidth: any, zeroW: any, x: any, y: any, yDivision: any, elSeries: any}} opts */
   drawBarPaths({
     indexes,
     barHeight,
@@ -1533,22 +1648,36 @@ class Bar {
       }
     }
     if (this.isFunnel) {
-      zeroW = zeroW - (this.barHelpers.getXForValue(this.series[i][j], zeroW) - zeroW) / 2;
+      const _zeroW = zeroW != null ? zeroW : 0;
+      zeroW = _zeroW - /** @type {number} */
+      /** @type {any} */
+      (this.barHelpers.getXForValue(
+        /** @type {any} */
+        this.series[i][j],
+        _zeroW
+      ) - _zeroW) / 2;
     }
-    x = this.barHelpers.getXForValue(this.series[i][j], zeroW);
-    const paths = this.barHelpers.getBarpaths({
-      barYPosition,
-      barHeight,
-      x1: zeroW,
-      x2: x,
-      strokeWidth,
-      isReversed: this.isReversed,
-      series: this.series,
-      realIndex: indexes.realIndex,
-      i,
-      j,
-      w
-    });
+    x = this.barHelpers.getXForValue(
+      /** @type {any} */
+      this.series[i][j],
+      zeroW != null ? zeroW : 0
+    );
+    const paths = (
+      /** @type {any} */
+      this.barHelpers.getBarpaths({
+        barYPosition,
+        barHeight,
+        x1: zeroW,
+        x2: x,
+        strokeWidth,
+        isReversed: this.isReversed,
+        series: this.series,
+        realIndex: indexes.realIndex,
+        i,
+        j,
+        w
+      })
+    );
     if (!w.axisFlags.isXNumeric) {
       y = y + yDivision;
     }
@@ -1565,11 +1694,20 @@ class Bar {
       x1: zeroW,
       x,
       y,
-      goalX: this.barHelpers.getGoalValues("x", zeroW, null, i, j),
+      goalX: this.barHelpers.getGoalValues(
+        "x",
+        zeroW,
+        /** @type {any} */
+        null,
+        i,
+        j,
+        0
+      ),
       barYPosition,
       barHeight
     };
   }
+  /** @param {{indexes: any, x: any, y: any, xDivision: any, barWidth: any, zeroH: any, strokeWidth: any, elSeries: any}} opts */
   drawColumnPaths({
     indexes,
     x,
@@ -1609,23 +1747,27 @@ class Bar {
       }
     }
     y = this.barHelpers.getYForValue(
+      /** @type {any} */
       this.series[i][j],
       zeroH,
       translationsIndex
     );
-    const paths = this.barHelpers.getColumnPaths({
-      barXPosition,
-      barWidth,
-      y1: zeroH,
-      y2: y,
-      strokeWidth,
-      isReversed: this.isReversed,
-      series: this.series,
-      realIndex,
-      i,
-      j,
-      w
-    });
+    const paths = (
+      /** @type {any} */
+      this.barHelpers.getColumnPaths({
+        barXPosition,
+        barWidth,
+        y1: zeroH,
+        y2: y,
+        strokeWidth,
+        isReversed: this.isReversed,
+        series: this.series,
+        realIndex,
+        i,
+        j,
+        w
+      })
+    );
     if (!w.axisFlags.isXNumeric) {
       x = x + xDivision;
     }
@@ -1644,6 +1786,7 @@ class Bar {
       y,
       goalY: this.barHelpers.getGoalValues(
         "y",
+        /** @type {any} */
         null,
         zeroH,
         i,
@@ -1654,6 +1797,7 @@ class Bar {
       barWidth
     };
   }
+  /** @param {{x: any, barWidth: any, realIndex: any, j: any}} opts */
   getBarXForNumericXAxis({ x, barWidth, realIndex, j }) {
     const w = this.w;
     let sxI = realIndex;
@@ -1670,8 +1814,8 @@ class Bar {
   }
   /** getPreviousPath is a common function for bars/columns which is used to get previous paths when data changes.
    * @memberof Bar
-   * @param {int} realIndex - current iterating i
-   * @param {int} j - current iterating series's j index
+   * @param {number} realIndex - current iterating i
+   * @param {number} j - current iterating series's j index
    * @return {string} pathFrom is the string which will be appended in animations
    **/
   getPreviousPath(realIndex, j) {
@@ -1679,7 +1823,7 @@ class Bar {
     let pathFrom = "M 0 0";
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
       const gpp = w.globals.previousPaths[pp];
-      if (gpp.paths && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(realIndex, 10)) {
+      if (gpp.paths && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)) {
         if (typeof w.globals.previousPaths[pp].paths[j] !== "undefined") {
           pathFrom = w.globals.previousPaths[pp].paths[j].d;
         }
@@ -1689,6 +1833,10 @@ class Bar {
   }
 }
 class BarStacked extends Bar {
+  /**
+   * @param {any[]} series
+   * @param {number} seriesIndex
+   */
   draw(series, seriesIndex) {
     const w = this.w;
     this.graphics = new Graphics(this.w);
@@ -1698,7 +1846,12 @@ class BarStacked extends Bar {
     this.yRatio = coreUtils.getLogYRatios(this.yRatio);
     this.barHelpers.initVariables(series);
     if (w.config.chart.stackType === "100%") {
-      series = w.globals.comboCharts ? seriesIndex.map((_) => w.globals.seriesPercent[_]) : w.globals.seriesPercent.slice();
+      series = w.globals.comboCharts ? (
+        /** @type {any} */
+        seriesIndex.map(
+          (_) => w.globals.seriesPercent[_]
+        )
+      ) : w.globals.seriesPercent.slice();
     }
     this.series = series;
     this.barHelpers.initializeStackedPrevVars(this);
@@ -1708,14 +1861,22 @@ class BarStacked extends Bar {
     let x = 0;
     let y = 0;
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
-      const realIndex = w.globals.comboCharts ? seriesIndex[i] : i;
+      const realIndex = w.globals.comboCharts ? (
+        /** @type {any} */
+        seriesIndex[i]
+      ) : i;
       const { groupIndex, columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex);
-      this.groupCtx = this[w.labelData.seriesGroups[groupIndex]];
+      this.groupCtx = /** @type {any} */
+      this[
+        /** @type {any} */
+        w.labelData.seriesGroups[groupIndex]
+      ];
       const xArrValues = [];
       const yArrValues = [];
       let translationsIndex = 0;
       if (this.yRatio.length > 1) {
-        this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex][0];
+        this.yaxisIndex = /** @type {any} */
+        w.globals.seriesYAxisReverseMap[realIndex][0];
         translationsIndex = realIndex;
       }
       this.isReversed = w.config.yaxis[this.yaxisIndex] && w.config.yaxis[this.yaxisIndex].reversed;
@@ -1733,7 +1894,15 @@ class BarStacked extends Bar {
       const elGoalsMarkers = this.graphics.group({
         class: "apexcharts-bar-goals-markers"
       });
-      const initPositions = this.initialPositions(x, y, void 0, void 0, void 0, void 0, translationsIndex);
+      const initPositions = this.initialPositions(
+        x,
+        y,
+        void 0,
+        void 0,
+        void 0,
+        void 0,
+        translationsIndex
+      );
       const {
         xDivision,
         // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
@@ -1751,7 +1920,10 @@ class BarStacked extends Bar {
       w.globals.barHeight = barHeight;
       w.globals.barWidth = barWidth;
       this.barHelpers.initializeStackedXYVars(this);
-      if (this.groupCtx.prevY.length === 1 && this.groupCtx.prevY[0].every((val) => isNaN(val))) {
+      if (this.groupCtx.prevY.length === 1 && /**
+       * @param {number} val
+       */
+      this.groupCtx.prevY[0].every((val) => isNaN(val))) {
         this.groupCtx.prevY[0] = this.groupCtx.prevY[0].map(() => zeroH);
         this.groupCtx.prevYF[0] = this.groupCtx.prevYF[0].map(() => 0);
       }
@@ -1766,7 +1938,10 @@ class BarStacked extends Bar {
           columnGroupIndex,
           seriesGroup: w.labelData.seriesGroups[groupIndex]
         };
-        let paths = null;
+        let paths = (
+          /** @type {any} */
+          null
+        );
         if (this.isHorizontal) {
           paths = this.drawStackedBarPaths(__spreadProps(__spreadValues({}, commonPathOpts), {
             zeroW,
@@ -1797,7 +1972,12 @@ class BarStacked extends Bar {
         x = paths.x;
         xArrValues.push(x);
         yArrValues.push(y);
-        const pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
+        const pathFill = this.barHelpers.getPathFillColor(
+          series,
+          i,
+          j,
+          realIndex
+        );
         let classes = "";
         const flipClass = w.globals.isBarHorizontal ? "apexcharts-flip-x" : "apexcharts-flip-y";
         if (this.barHelpers.arrBorderRadius[realIndex][j] === "bottom" && w.seriesData.series[realIndex][j] > 0 || this.barHelpers.arrBorderRadius[realIndex][j] === "top" && w.seriesData.series[realIndex][j] < 0) {
@@ -1838,6 +2018,15 @@ class BarStacked extends Bar {
     }
     return ret;
   }
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number | undefined} xDivision
+   * @param {number | undefined} yDivision
+   * @param {number | undefined} zeroH
+   * @param {number | undefined} zeroW
+   * @param {number} translationsIndex
+   */
   initialPositions(x, y, xDivision, yDivision, zeroH, zeroW, translationsIndex) {
     const w = this.w;
     let barHeight, barWidth;
@@ -1876,12 +2065,13 @@ class BarStacked extends Bar {
       y,
       yDivision,
       xDivision,
-      barHeight: barHeight / subDivisions,
-      barWidth: barWidth / subDivisions,
+      barHeight: (barHeight != null ? barHeight : 0) / subDivisions,
+      barWidth: (barWidth != null ? barWidth : 0) / subDivisions,
       zeroH,
       zeroW
     };
   }
+  /** @param {{indexes: any, barHeight: any, strokeWidth: any, zeroW: any, x: any, y: any, columnGroupIndex: any, seriesGroup: any, yDivision: any, elSeries: any}} opts */
   drawStackedBarPaths({
     indexes,
     barHeight,
@@ -1894,6 +2084,7 @@ class BarStacked extends Bar {
     yDivision,
     elSeries
   }) {
+    var _a, _b, _c, _d, _e;
     const w = this.w;
     const barYPosition = y + columnGroupIndex * barHeight;
     let barXPosition;
@@ -1906,24 +2097,39 @@ class BarStacked extends Bar {
       prevBarW = prevBarW + this.groupCtx.prevXF[k][j];
     }
     let gsi = i;
-    if (w.config.series[realIndex].name) {
-      gsi = seriesGroup.indexOf(w.config.series[realIndex].name);
+    if (
+      /** @type {Record<string,any>} */
+      w.config.series[realIndex].name
+    ) {
+      gsi = seriesGroup.indexOf(
+        /** @type {Record<string,any>} */
+        w.config.series[realIndex].name
+      );
     }
     if (gsi > 0) {
       let bXP = zeroW;
       if (this.groupCtx.prevXVal[gsi - 1][j] < 0) {
-        bXP = this.series[i][j] >= 0 ? this.groupCtx.prevX[gsi - 1][j] + prevBarW - (this.isReversed ? prevBarW : 0) * 2 : this.groupCtx.prevX[gsi - 1][j];
+        bXP = /** @type {any} */
+        ((_a = this.series[i]) == null ? void 0 : _a[j]) >= 0 ? this.groupCtx.prevX[gsi - 1][j] + prevBarW - (this.isReversed ? prevBarW : 0) * 2 : this.groupCtx.prevX[gsi - 1][j];
       } else if (this.groupCtx.prevXVal[gsi - 1][j] >= 0) {
-        bXP = this.series[i][j] >= 0 ? this.groupCtx.prevX[gsi - 1][j] : this.groupCtx.prevX[gsi - 1][j] - prevBarW + (this.isReversed ? prevBarW : 0) * 2;
+        bXP = /** @type {any} */
+        ((_b = this.series[i]) == null ? void 0 : _b[j]) >= 0 ? this.groupCtx.prevX[gsi - 1][j] : this.groupCtx.prevX[gsi - 1][j] - prevBarW + (this.isReversed ? prevBarW : 0) * 2;
       }
       barXPosition = bXP;
     } else {
       barXPosition = zeroW;
     }
-    if (this.series[i][j] === null) {
+    if (
+      /** @type {any} */
+      ((_c = this.series[i]) == null ? void 0 : _c[j]) === null
+    ) {
       x = barXPosition;
     } else {
-      x = barXPosition + this.series[i][j] / this.invertedYRatio - (this.isReversed ? this.series[i][j] / this.invertedYRatio : 0) * 2;
+      x = barXPosition + /** @type {any} */
+      ((_d = this.series[i]) == null ? void 0 : _d[j]) / this.invertedYRatio - (this.isReversed ? (
+        /** @type {any} */
+        ((_e = this.series[i]) == null ? void 0 : _e[j]) / this.invertedYRatio
+      ) : 0) * 2;
     }
     const paths = this.barHelpers.getBarpaths({
       barYPosition,
@@ -1953,6 +2159,7 @@ class BarStacked extends Bar {
       goalX: this.barHelpers.getGoalValues(
         "x",
         zeroW,
+        /** @type {any} */
         null,
         i,
         j,
@@ -1964,6 +2171,7 @@ class BarStacked extends Bar {
       y
     };
   }
+  /** @param {{indexes: any, x: any, y: any, xDivision: any, barWidth: any, zeroH: any, columnGroupIndex: any, seriesGroup: any, elSeries: any}} opts */
   drawStackedColumnPaths({
     indexes,
     x,
@@ -1975,7 +2183,7 @@ class BarStacked extends Bar {
     seriesGroup,
     elSeries
   }) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
     const w = this.w;
     const i = indexes.i;
     const j = indexes.j;
@@ -2011,15 +2219,24 @@ class BarStacked extends Bar {
       }
       for (let ii = 1; ii < p; ii++) {
         if (((_b = this.groupCtx.prevYVal[gsi - ii]) == null ? void 0 : _b[j]) < 0) {
-          bYP = this.series[i][j] >= 0 ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2 : prevYValue;
+          bYP = /** @type {any} */
+          ((_c = this.series[i]) == null ? void 0 : _c[j]) >= 0 ? prevYValue - prevBarH + (this.isReversed ? prevBarH : 0) * 2 : prevYValue;
           break;
-        } else if (((_c = this.groupCtx.prevYVal[gsi - ii]) == null ? void 0 : _c[j]) >= 0) {
-          bYP = this.series[i][j] >= 0 ? prevYValue : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
+        } else if (((_d = this.groupCtx.prevYVal[gsi - ii]) == null ? void 0 : _d[j]) >= 0) {
+          bYP = /** @type {any} */
+          ((_e = this.series[i]) == null ? void 0 : _e[j]) >= 0 ? prevYValue : prevYValue + prevBarH - (this.isReversed ? prevBarH : 0) * 2;
           break;
         }
       }
       if (typeof bYP === "undefined") bYP = w.layout.gridHeight;
-      if (((_d = this.groupCtx.prevYF[0]) == null ? void 0 : _d.every((val) => val === 0)) && this.groupCtx.prevYF.slice(1, gsi).every((arr) => arr.every((val) => isNaN(val)))) {
+      if (
+        /**
+         * @param {number} val
+         */
+        ((_f = this.groupCtx.prevYF[0]) == null ? void 0 : _f.every((val) => val === 0)) && this.groupCtx.prevYF.slice(1, gsi).every(
+          (arr) => arr.every((val) => isNaN(val))
+        )
+      ) {
         barYPosition = zeroH;
       } else {
         barYPosition = bYP;
@@ -2027,8 +2244,15 @@ class BarStacked extends Bar {
     } else {
       barYPosition = zeroH;
     }
-    if (this.series[i][j]) {
-      y = barYPosition - this.series[i][j] / this.yRatio[translationsIndex] + (this.isReversed ? this.series[i][j] / this.yRatio[translationsIndex] : 0) * 2;
+    if (
+      /** @type {any} */
+      (_g = this.series[i]) == null ? void 0 : _g[j]
+    ) {
+      y = barYPosition - /** @type {any} */
+      ((_h = this.series[i]) == null ? void 0 : _h[j]) / this.yRatio[translationsIndex] + (this.isReversed ? (
+        /** @type {any} */
+        ((_i = this.series[i]) == null ? void 0 : _i[j]) / this.yRatio[translationsIndex]
+      ) : 0) * 2;
     } else {
       y = barYPosition;
     }
@@ -2058,7 +2282,15 @@ class BarStacked extends Bar {
     return {
       pathTo: paths.pathTo,
       pathFrom: paths.pathFrom,
-      goalY: this.barHelpers.getGoalValues("y", null, zeroH, i, j),
+      goalY: this.barHelpers.getGoalValues(
+        "y",
+        /** @type {any} */
+        null,
+        zeroH,
+        i,
+        j,
+        0
+      ),
       barXPosition,
       x: w.axisFlags.isXNumeric ? x : x + xDivision,
       y
@@ -2066,7 +2298,12 @@ class BarStacked extends Bar {
   }
 }
 class RangeBar extends Bar {
+  /**
+   * @param {any[]} series
+   * @param {number} seriesIndex
+   */
   draw(series, seriesIndex) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
     const w = this.w;
     const graphics = new Graphics(this.w);
     this.rangeBarOptions = this.w.config.plotOptions.rangeBar;
@@ -2079,7 +2316,10 @@ class RangeBar extends Bar {
     });
     for (let i = 0; i < series.length; i++) {
       let x, y;
-      const realIndex = w.globals.comboCharts ? seriesIndex[i] : i;
+      const realIndex = w.globals.comboCharts ? (
+        /** @type {any} */
+        seriesIndex[i]
+      ) : i;
       const { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex);
       const elSeries = graphics.group({
         class: `apexcharts-series`,
@@ -2093,7 +2333,8 @@ class RangeBar extends Bar {
       }
       let translationsIndex = 0;
       if (this.yRatio.length > 1) {
-        this.yaxisIndex = w.globals.seriesYAxisReverseMap[realIndex][0];
+        this.yaxisIndex = /** @type {any} */
+        w.globals.seriesYAxisReverseMap[realIndex][0];
         translationsIndex = realIndex;
       }
       const initPositions = this.barHelpers.initialPositions(realIndex);
@@ -2102,15 +2343,13 @@ class RangeBar extends Bar {
         zeroW,
         // zeroW is the baseline where 0 meets x axis
         x: initX,
-        xDivision,
-        // xDivision is the GRIDWIDTH divided by number of datapoints (columns)
-        yDivision,
-        // yDivision is the GRIDHEIGHT divided by number of datapoints (bars)
         zeroH
         // zeroH is the baseline where 0 meets y axis
       } = initPositions;
-      let barWidth = initPositions.barWidth;
-      let barHeight = initPositions.barHeight;
+      let barWidth = (_a = initPositions.barWidth) != null ? _a : 0;
+      let barHeight = (_b = initPositions.barHeight) != null ? _b : 0;
+      const yDivision = (_c = initPositions.yDivision) != null ? _c : 0;
+      const xDivision = (_d = initPositions.xDivision) != null ? _d : 0;
       y = initY;
       x = initX;
       const elDataLabelsWrap = graphics.group({
@@ -2124,7 +2363,10 @@ class RangeBar extends Bar {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
         const y1 = this.seriesRangeStart[i][j];
         const y2 = this.seriesRangeEnd[i][j];
-        let paths = null;
+        let paths = (
+          /** @type {any} */
+          null
+        );
         let barXPosition = null;
         let barYPosition = null;
         const params = { x, y, strokeWidth, elSeries };
@@ -2132,13 +2374,18 @@ class RangeBar extends Bar {
         if (w.config.plotOptions.bar.rangeBarGroupRows) {
           seriesLen = 1;
         }
-        if (typeof w.config.series[i].data[j] === "undefined") {
+        if (typeof /** @type {Record<string,any>} */
+        ((_e = w.config.series[i].data) == null ? void 0 : _e[j]) === "undefined") {
           break;
         }
         if (this.isHorizontal) {
-          barYPosition = y + barHeight * this.visibleI;
+          barYPosition = y + barHeight * /** @type {any} */
+          this.visibleI;
           const srty = (yDivision - barHeight * seriesLen) / 2;
-          if (w.config.series[i].data[j].x) {
+          if (
+            /** @type {Record<string,any>} */
+            (_g = (_f = w.config.series[i].data) == null ? void 0 : _f[j]) == null ? void 0 : _g.x
+          ) {
             const positions = this.detectOverlappingBars({
               i,
               j,
@@ -2165,9 +2412,13 @@ class RangeBar extends Bar {
           if (w.axisFlags.isXNumeric) {
             x = (w.seriesData.seriesX[i][j] - w.globals.minX) / this.xRatio - barWidth / 2;
           }
-          barXPosition = x + barWidth * this.visibleI;
+          barXPosition = x + barWidth * /** @type {any} */
+          this.visibleI;
           const srtx = (xDivision - barWidth * seriesLen) / 2;
-          if (w.config.series[i].data[j].x) {
+          if (
+            /** @type {Record<string,any>} */
+            (_i = (_h = w.config.series[i].data) == null ? void 0 : _h[j]) == null ? void 0 : _i.x
+          ) {
             const positions = this.detectOverlappingBars({
               i,
               j,
@@ -2202,7 +2453,12 @@ class RangeBar extends Bar {
         }
         y = paths.y;
         x = paths.x;
-        const pathFill = this.barHelpers.getPathFillColor(series, i, j, realIndex);
+        const pathFill = this.barHelpers.getPathFillColor(
+          series,
+          i,
+          j,
+          realIndex
+        );
         this.renderSeries({
           realIndex,
           pathFill: pathFill.color,
@@ -2233,6 +2489,7 @@ class RangeBar extends Bar {
     }
     return ret;
   }
+  /** @param {{ i?: any, j?: any, barYPosition?: any, barXPosition?: any, srty?: any, srtx?: any, barHeight?: any, barWidth?: any, yDivision?: any, xDivision?: any, initPositions?: any }} opts */
   detectOverlappingBars({
     i,
     j,
@@ -2246,14 +2503,24 @@ class RangeBar extends Bar {
     xDivision,
     initPositions
   }) {
+    var _a, _b, _c, _d;
     const w = this.w;
     let overlaps = [];
-    const rangeName = w.config.series[i].data[j].rangeName;
-    const x = w.config.series[i].data[j].x;
+    const rangeName = (
+      /** @type {Record<string,any>} */
+      (_b = (_a = w.config.series[i].data) == null ? void 0 : _a[j]) == null ? void 0 : _b.rangeName
+    );
+    const x = (
+      /** @type {Record<string,any>} */
+      (_d = (_c = w.config.series[i].data) == null ? void 0 : _c[j]) == null ? void 0 : _d.x
+    );
     const labelX = Array.isArray(x) ? x.join(" ") : x;
     const rowIndex = w.labelData.labels.map((_) => Array.isArray(_) ? _.join(" ") : _).indexOf(labelX);
     const overlappedIndex = w.rangeData.seriesRange[i].findIndex(
-      (tx) => tx.x === labelX && tx.overlaps.length > 0
+      (tx) => {
+        var _a2;
+        return tx.x === labelX && ((_a2 = tx.overlaps) == null ? void 0 : _a2.size) > 0;
+      }
     );
     if (this.isHorizontal) {
       if (w.config.plotOptions.bar.rangeBarGroupRows) {
@@ -2262,7 +2529,10 @@ class RangeBar extends Bar {
         barYPosition = srty + barHeight * this.visibleI + yDivision * rowIndex;
       }
       if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
-        overlaps = w.rangeData.seriesRange[i][overlappedIndex].overlaps;
+        overlaps = Array.from(
+          /** @type {any} */
+          w.rangeData.seriesRange[i][overlappedIndex].overlaps
+        );
         if (overlaps.indexOf(rangeName) > -1) {
           barHeight = initPositions.barHeight / overlaps.length;
           barYPosition = barHeight * this.visibleI + yDivision * (100 - parseInt(this.barOptions.barHeight, 10)) / 100 / 2 + barHeight * (this.visibleI + overlaps.indexOf(rangeName)) + yDivision * rowIndex;
@@ -2277,7 +2547,10 @@ class RangeBar extends Bar {
         }
       }
       if (overlappedIndex > -1 && !w.config.plotOptions.bar.rangeBarOverlap) {
-        overlaps = w.rangeData.seriesRange[i][overlappedIndex].overlaps;
+        overlaps = Array.from(
+          /** @type {any} */
+          w.rangeData.seriesRange[i][overlappedIndex].overlaps
+        );
         if (overlaps.indexOf(rangeName) > -1) {
           barWidth = initPositions.barWidth / overlaps.length;
           barXPosition = barWidth * this.visibleI + xDivision * (100 - parseInt(this.barOptions.barWidth, 10)) / 100 / 2 + barWidth * (this.visibleI + overlaps.indexOf(rangeName)) + xDivision * rowIndex;
@@ -2291,6 +2564,7 @@ class RangeBar extends Bar {
       barWidth
     };
   }
+  /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, barXPosition: any, zeroH: any}} opts */
   drawRangeColumnPaths({
     indexes,
     x,
@@ -2299,13 +2573,16 @@ class RangeBar extends Bar {
     barXPosition,
     zeroH
   }) {
+    var _a, _b;
     const w = this.w;
     const { i, j, realIndex, translationsIndex } = indexes;
     const yRatio = this.yRatio[translationsIndex];
     const range = this.getRangeValue(realIndex, j);
     let y1 = Math.min(range.start, range.end);
     let y2 = Math.max(range.start, range.end);
-    if (typeof this.series[i][j] === "undefined" || this.series[i][j] === null) {
+    if (typeof /** @type {any} */
+    ((_a = this.series[i]) == null ? void 0 : _a[j]) === "undefined" || /** @type {any} */
+    ((_b = this.series[i]) == null ? void 0 : _b[j]) === null) {
       y1 = zeroH;
     } else {
       y1 = zeroH - y1 / yRatio;
@@ -2344,6 +2621,7 @@ class RangeBar extends Bar {
       y: range.start < 0 && range.end < 0 ? y1 : y2,
       goalY: this.barHelpers.getGoalValues(
         "y",
+        /** @type {any} */
         null,
         zeroH,
         i,
@@ -2353,6 +2631,9 @@ class RangeBar extends Bar {
       barXPosition
     };
   }
+  /**
+   * @param {number} val
+   */
   preventBarOverflow(val) {
     const w = this.w;
     if (val < 0) {
@@ -2363,6 +2644,7 @@ class RangeBar extends Bar {
     }
     return val;
   }
+  /** @param {{indexes: any, y: any, y1: any, y2: any, yDivision: any, barHeight: any, barYPosition: any, zeroW: any}} opts */
   drawRangeBarPaths({
     indexes,
     y,
@@ -2399,10 +2681,22 @@ class RangeBar extends Bar {
       pathFrom: paths.pathFrom,
       barWidth,
       x: range.start < 0 && range.end < 0 ? x1 : x2,
-      goalX: this.barHelpers.getGoalValues("x", zeroW, null, realIndex, j),
+      goalX: this.barHelpers.getGoalValues(
+        "x",
+        zeroW,
+        /** @type {any} */
+        null,
+        realIndex,
+        j,
+        0
+      ),
       y
     };
   }
+  /**
+   * @param {number} i
+   * @param {number} j
+   */
   getRangeValue(i, j) {
     const w = this.w;
     return {

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.10.3
+ * ApexCharts v5.10.4
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -12,9 +12,18 @@ const Graphics = _core.__apex_Graphics;
 const Filters = _core.__apex_Filters;
 const Scales = _core.__apex_Scales;
 class CircularChartsHelpers {
+  /**
+   * @param {import('../../../types/internal').ChartStateW} w
+   */
   constructor(w) {
     this.w = w;
   }
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} i
+   * @param {string | number} text
+   */
   drawYAxisTexts(x, y, i, text) {
     const w = this.w;
     const yaxisConfig = w.config.yaxis[0];
@@ -33,6 +42,10 @@ class CircularChartsHelpers {
   }
 }
 class Pie {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.ctx = ctx;
     this.w = w;
@@ -70,6 +83,9 @@ class Pie {
     this.sliceSizes = [];
     this.prevSectorAngleArr = [];
   }
+  /**
+   * @param {any[]} series
+   */
   draw(series) {
     const self = this;
     const w = this.w;
@@ -157,6 +173,10 @@ class Pie {
     return elPie;
   }
   // core function for drawing pie arcs
+  /**
+   * @param {any[]} sectorAngleArr
+   * @param {any[]} series
+   */
   drawArcs(sectorAngleArr, series) {
     const w = this.w;
     const filters = new Filters(this.w);
@@ -330,6 +350,10 @@ class Pie {
     }
     return g;
   }
+  /**
+   * @param {any} elPath
+   * @param {Record<string, any>} dataLabels
+   */
   addListeners(elPath, dataLabels) {
     const graphics = new Graphics(this.w);
     elPath.node.addEventListener(
@@ -342,7 +366,7 @@ class Pie {
     );
     elPath.node.addEventListener(
       "mouseleave",
-      this.revertDataLabelsInner.bind(this, elPath.node, dataLabels)
+      this.revertDataLabelsInner.bind(this)
     );
     elPath.node.addEventListener(
       "mousedown",
@@ -360,6 +384,10 @@ class Pie {
     }
   }
   // This function can be used for other circle charts too
+  /**
+   * @param {any} el
+   * @param {Record<string, any>} opts
+   */
   animatePaths(el, opts) {
     const w = this.w;
     const me = this;
@@ -381,6 +409,14 @@ class Pie {
     if (angle === this.fullAngle) angle = this.fullAngle - 0.01;
     me.animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts);
   }
+  /**
+   * @param {any} el
+   * @param {number} fromStartAngle
+   * @param {number} toStartAngle
+   * @param {number} angle
+   * @param {number} prevAngle
+   * @param {Record<string, any>} opts
+   */
   animateArc(el, fromStartAngle, toStartAngle, angle, prevAngle, opts) {
     const me = this;
     const w = this.w;
@@ -407,18 +443,21 @@ class Pie {
       }
     }
     if (opts.dur !== 0) {
-      el.animate(opts.dur, opts.animBeginArr[opts.i]).after(function() {
-        if (me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea") {
-          this.animate(w.config.chart.animations.dynamicAnimation.speed).attr(
-            {
+      el.animate(opts.dur, opts.animBeginArr[opts.i]).after(
+        /** @this {any} */
+        function() {
+          if (me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea") {
+            this.animate(
+              w.config.chart.animations.dynamicAnimation.speed
+            ).attr({
               "stroke-width": me.strokeWidth
-            }
-          );
+            });
+          }
+          if (opts.i === w.config.series.length - 1) {
+            animations.animationCompleted(el);
+          }
         }
-        if (opts.i === w.config.series.length - 1) {
-          animations.animationCompleted(el);
-        }
-      }).during((pos) => {
+      ).during((pos) => {
         currAngle = fromAngle + (angle - fromAngle) * pos;
         if (opts.animateStartingPos) {
           currAngle = prevAngle + (angle - prevAngle) * pos;
@@ -452,6 +491,9 @@ class Pie {
       });
     }
   }
+  /**
+   * @param {number} i
+   */
   pieClicked(i) {
     const w = this.w;
     const me = this;
@@ -463,16 +505,14 @@ class Pie {
       elPath.attr({
         "data:pieClicked": "false"
       });
-      this.revertDataLabelsInner(elPath.node, this.donutDataLabels);
+      this.revertDataLabelsInner();
       const origPath = elPath.attr("data:pathOrig");
       elPath.attr({
         d: origPath
       });
       return;
     } else {
-      const allEls = w.dom.baseEl.getElementsByClassName(
-        "apexcharts-pie-area"
-      );
+      const allEls = w.dom.baseEl.getElementsByClassName("apexcharts-pie-area");
       Array.prototype.forEach.call(allEls, (pieSlice) => {
         pieSlice.setAttribute("data:pieClicked", "false");
         const origPath = pieSlice.getAttribute("data:pathOrig");
@@ -494,6 +534,10 @@ class Pie {
     if (angle === 360) return;
     elPath.plot(path);
   }
+  /**
+   * @param {number} prevStartAngle
+   * @param {number} prevEndAngle
+   */
   getChangedPath(prevStartAngle, prevEndAngle) {
     let path = "";
     if (this.dynamicAnim && this.w.globals.dataChanged) {
@@ -501,11 +545,13 @@ class Pie {
         me: this,
         startAngle: prevStartAngle,
         angle: prevEndAngle - prevStartAngle,
+        // @ts-ignore — size is set dynamically during draw()
         size: this.size
       });
     }
     return path;
   }
+  /** @param {{me: any, startAngle: any, angle: any, size: any}} opts */
   getPiePath({ me, startAngle, angle, size }) {
     let path;
     const graphics = new Graphics(this.w);
@@ -563,6 +609,9 @@ class Pie {
     }
     return graphics.roundPathCorners(path, this.strokeWidth * 2);
   }
+  /**
+   * @param {any} parent
+   */
   drawPolarElements(parent) {
     const w = this.w;
     const scale = new Scales(this.w);
@@ -601,6 +650,11 @@ class Pie {
     parent.add(gCircles);
     parent.add(gYAxis);
   }
+  /**
+   * @param {any} dataLabelsGroup
+   * @param {Record<string, any>} dataLabelsConfig
+   * @param {Record<string, any>} opts
+   */
   renderInnerDataLabels(dataLabelsGroup, dataLabelsConfig, opts) {
     const w = this.w;
     const graphics = new Graphics(this.w);
@@ -681,7 +735,8 @@ class Pie {
    *
    * @param {string} name - The name of the series
    * @param {string} val - The value of that series
-   * @param {object} el - Optional el (indicates which series was hovered/clicked). If this param is not present, means we need to show total
+   * @param {any} el - Optional el (indicates which series was hovered/clicked). If this param is not present, means we need to show total
+   * @param {Record<string, any>} labelsConfig
    */
   printInnerLabels(labelsConfig, name, val, el) {
     const w = this.w;
@@ -697,12 +752,8 @@ class Pie {
         labelColor = labelsConfig.total.color;
       }
     }
-    const elLabel = w.dom.baseEl.querySelector(
-      ".apexcharts-datalabel-label"
-    );
-    const elValue = w.dom.baseEl.querySelector(
-      ".apexcharts-datalabel-value"
-    );
+    const elLabel = w.dom.baseEl.querySelector(".apexcharts-datalabel-label");
+    const elValue = w.dom.baseEl.querySelector(".apexcharts-datalabel-value");
     const lbFormatter = labelsConfig.value.formatter;
     val = lbFormatter(val, w);
     if (!el && typeof labelsConfig.total.formatter === "function") {
@@ -717,9 +768,17 @@ class Pie {
       elValue.textContent = val;
     }
     if (elLabel !== null) {
-      elLabel.style.fill = labelColor;
+      const elLabelEl = (
+        /** @type {HTMLElement} */
+        elLabel
+      );
+      elLabelEl.style.fill = labelColor;
     }
   }
+  /**
+   * @param {any} el
+   * @param {Record<string, any>} dataLabelsConfig
+   */
   printDataLabelsInner(el, dataLabelsConfig) {
     const w = this.w;
     const val = el.getAttribute("data:value");
@@ -731,9 +790,16 @@ class Pie {
       ".apexcharts-datalabels-group"
     );
     if (dataLabelsGroup !== null) {
-      dataLabelsGroup.style.opacity = 1;
+      const dataLabelsGroupEl = (
+        /** @type {HTMLElement} */
+        dataLabelsGroup
+      );
+      dataLabelsGroupEl.style.opacity = "1";
     }
   }
+  /**
+   * @param {any} parent
+   */
   drawSpokes(parent) {
     const w = this.w;
     const graphics = new Graphics(this.w);
@@ -787,6 +853,10 @@ class Pie {
 }
 const Series = _core.__apex_Series;
 class Radial extends Pie {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     super(w, ctx);
     this.ctx = ctx;
@@ -809,6 +879,9 @@ class Radial extends Pie {
     this.margin = parseInt(w.config.plotOptions.radialBar.track.margin, 10);
     this.onBarLabelClick = this.onBarLabelClick.bind(this);
   }
+  /**
+   * @param {any[]} series
+   */
   draw(series) {
     const w = this.w;
     const graphics = new Graphics(this.w);
@@ -864,6 +937,9 @@ class Radial extends Pie {
     ret.add(elSeries);
     return ret;
   }
+  /**
+   * @param {Record<string, any>} opts
+   */
   drawTracks(opts) {
     const w = this.w;
     const graphics = new Graphics(this.w);
@@ -923,6 +999,9 @@ class Radial extends Pie {
     }
     return g;
   }
+  /**
+   * @param {Record<string, any>} opts
+   */
   drawArcs(opts) {
     const w = this.w;
     const graphics = new Graphics(this.w);
@@ -1123,6 +1202,9 @@ class Radial extends Pie {
       dataLabels
     };
   }
+  /**
+   * @param {Record<string, any>} opts
+   */
   drawHollow(opts) {
     const graphics = new Graphics(this.w);
     const circle = graphics.drawCircle(opts.size * 2);
@@ -1135,6 +1217,12 @@ class Radial extends Pie {
     });
     return circle;
   }
+  /**
+   * @param {Record<string, any>} opts
+   * @param {any} g
+   * @param {number} hollowSize
+   * @param {string} hollowFillID
+   */
   drawHollowImage(opts, g, hollowSize, hollowFillID) {
     const w = this.w;
     const fill = new Fill(this.w);
@@ -1152,32 +1240,51 @@ class Radial extends Pie {
       const imgWidth = w.config.plotOptions.radialBar.hollow.imageWidth;
       const imgHeight = w.config.plotOptions.radialBar.hollow.imageHeight;
       if (imgWidth === void 0 && imgHeight === void 0) {
-        const image = w.dom.Paper.image(hollowFillImg, function(loader) {
-          this.move(
-            opts.centerX - loader.width / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetX,
-            opts.centerY - loader.height / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetY
-          );
-        });
+        const image = w.dom.Paper.image(
+          hollowFillImg,
+          /** @this {any} */
+          function(loader) {
+            this.move(
+              opts.centerX - loader.width / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetX,
+              opts.centerY - loader.height / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetY
+            );
+          }
+        );
         g.add(image);
       } else {
-        const image = w.dom.Paper.image(hollowFillImg, function() {
-          this.move(
-            opts.centerX - imgWidth / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetX,
-            opts.centerY - imgHeight / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetY
-          );
-          this.size(imgWidth, imgHeight);
-        });
+        const image = w.dom.Paper.image(
+          hollowFillImg,
+          /** @this {any} */
+          function() {
+            this.move(
+              opts.centerX - imgWidth / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetX,
+              opts.centerY - imgHeight / 2 + w.config.plotOptions.radialBar.hollow.imageOffsetY
+            );
+            this.size(imgWidth, imgHeight);
+          }
+        );
         g.add(image);
       }
     }
     return hollowFillID;
   }
+  /**
+   * @param {Record<string, any>} opts
+   */
   getStrokeWidth(opts) {
     const w = this.w;
     return opts.size * (100 - parseInt(w.config.plotOptions.radialBar.hollow.size, 10)) / 100 / (opts.series.length + 1) - this.margin;
   }
+  /**
+   * @param {Event} e
+   */
   onBarLabelClick(e) {
-    const seriesIndex = parseInt(e.target.getAttribute("rel"), 10) - 1;
+    var _a;
+    const target = (
+      /** @type {Element} */
+      e.target
+    );
+    const seriesIndex = parseInt((_a = target.getAttribute("rel")) != null ? _a : "", 10) - 1;
     const legendClick = this.barLabels.onClick;
     const w = this.w;
     if (legendClick) {

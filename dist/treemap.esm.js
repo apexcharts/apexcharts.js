@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.10.3
+ * ApexCharts v5.10.4
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -139,6 +139,10 @@ const Fill = _core.__apex_Fill;
 const Utils = _core.__apex_Utils;
 const DataLabels = _core.__apex_DataLabels;
 class TreemapHelpers {
+  /**
+   * @param {import('../../../types/internal').ChartStateW} w
+   * @param {import('../../../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.ctx = ctx;
     this.w = w;
@@ -156,12 +160,21 @@ class TreemapHelpers {
     }
     return negRange;
   }
+  /**
+   * @param {string} chartType
+   * @param {number} i
+   * @param {number} j
+   * @param {any} negRange
+   */
   getShadeColor(chartType, i, j, negRange) {
     const w = this.w;
     let colorShadePercent = 1;
     const shadeIntensity = w.config.plotOptions[chartType].shadeIntensity;
     const colorProps = this.determineColor(chartType, i, j);
-    if (w.globals.hasNegs || negRange) {
+    if (
+      /** @type {any} */
+      w.globals.hasNegs || negRange
+    ) {
       if (w.config.plotOptions[chartType].reverseNegativeShade) {
         if (colorProps.percent < 0) {
           colorShadePercent = colorProps.percent / 100 * (shadeIntensity * 1.25);
@@ -203,6 +216,11 @@ class TreemapHelpers {
     }
     return { color, colorProps };
   }
+  /**
+   * @param {string} chartType
+   * @param {number} i
+   * @param {number} j
+   */
   determineColor(chartType, i, j) {
     const w = this.w;
     const val = w.seriesData.series[i][j];
@@ -244,6 +262,7 @@ class TreemapHelpers {
       percent
     };
   }
+  /** @param {{ text?: any, x?: any, y?: any, i?: any, j?: any, colorProps?: any, fontSize?: any, series?: any }} opts */
   calculateDataLabels({ text, x, y, i, j, colorProps, fontSize }) {
     const w = this.w;
     const dataLabelsConfig = w.config.dataLabels;
@@ -275,6 +294,10 @@ class TreemapHelpers {
 }
 const Filters = _core.__apex_Filters;
 class TreemapChart {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.ctx = ctx;
     this.w = w;
@@ -283,6 +306,9 @@ class TreemapChart {
     this.dynamicAnim = this.w.config.chart.animations.dynamicAnimation;
     this.labels = [];
   }
+  /**
+   * @param {any[]} series
+   */
   draw(series) {
     const w = this.w;
     const graphics = new Graphics(this.w, this.ctx);
@@ -311,6 +337,7 @@ class TreemapChart {
       w.layout.gridHeight
     );
     nodes.forEach((node, i) => {
+      var _a;
       const elSeries = graphics.group({
         class: `apexcharts-series apexcharts-treemap-series`,
         seriesName: Utils.escapeString(w.seriesData.seriesNames[i]),
@@ -398,8 +425,11 @@ class TreemapChart {
           let speed = 1;
           if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
             speed = this.dynamicAnim.speed;
-            if (w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].rect) {
-              fromRect = w.globals.previousPaths[i][j].rect;
+            if (w.globals.previousPaths[i] && /** @type {Record<string,any>} */
+            w.globals.previousPaths[i][j] && /** @type {Record<string,any>} */
+            w.globals.previousPaths[i][j].rect) {
+              fromRect = /** @type {Record<string,any>} */
+              w.globals.previousPaths[i][j].rect;
             }
             this.animateTreemap(elRect, fromRect, toRect, speed);
           }
@@ -412,9 +442,9 @@ class TreemapChart {
           w
         });
         if (w.config.plotOptions.treemap.dataLabels.format === "truncate") {
-          fontSize = parseInt(w.config.dataLabels.style.fontSize, 10);
+          fontSize = parseInt(String(w.config.dataLabels.style.fontSize), 10);
           formattedText = this.truncateLabels(
-            formattedText,
+            String(formattedText),
             fontSize,
             x1,
             y1,
@@ -453,7 +483,10 @@ class TreemapChart {
       });
       const seriesTitle = w.config.plotOptions.treemap.seriesTitle;
       if (w.config.series.length > 1 && seriesTitle && seriesTitle.show) {
-        const sName = w.config.series[i].name || "";
+        const sName = (
+          /** @type {Record<string,any>} */
+          w.config.series[i].name || ""
+        );
         if (sName && bounds.xMin < Infinity && bounds.yMin < Infinity) {
           const {
             offsetX,
@@ -492,7 +525,7 @@ class TreemapChart {
           );
           const elLabelText = graphics.drawText({
             x: labelX + padding.left,
-            y: labelY + padding.top + textSize.height * 0.75,
+            y: labelY + padding.top + ((_a = textSize == null ? void 0 : textSize.height) != null ? _a : 0) * 0.75,
             text: sName,
             fontSize: style.fontSize,
             fontFamily: style.fontFamily,
@@ -511,6 +544,9 @@ class TreemapChart {
   }
   // This calculates a font-size based upon
   // average label length and the size of the box
+  /**
+   * @param {number[]} coordinates
+   */
   getFontSize(coordinates) {
     const w = this.w;
     function totalLabelLength(arr) {
@@ -553,9 +589,18 @@ class TreemapChart {
       coordinates[3] - coordinates[1]
     );
   }
+  /**
+   * @param {any} elText
+   * @param {string | number} fontSize
+   * @param {string} text
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} x2
+   * @param {number} y2
+   */
   rotateToFitLabel(elText, fontSize, text, x1, y1, x2, y2) {
     const graphics = new Graphics(this.w);
-    const textRect = graphics.getTextRects(text, fontSize);
+    const textRect = graphics.getTextRects(text, String(fontSize));
     if (textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && textRect.width <= y2 - y1) {
       const labelRotatingCenter = graphics.rotateAroundCenter(elText.node);
       elText.node.setAttribute(
@@ -566,9 +611,17 @@ class TreemapChart {
   }
   // This is an alternative label formatting method that uses a
   // consistent font size, and trims the edge of long labels
+  /**
+   * @param {string} text
+   * @param {number} fontSize
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} x2
+   * @param {number} y2
+   */
   truncateLabels(text, fontSize, x1, y1, x2, y2) {
     const graphics = new Graphics(this.w);
-    const textRect = graphics.getTextRects(text, fontSize);
+    const textRect = graphics.getTextRects(text, String(fontSize));
     const labelMaxWidth = textRect.width + this.w.config.stroke.width + 5 > x2 - x1 && y2 - y1 > x2 - x1 ? y2 - y1 : x2 - x1;
     const truncatedText = graphics.getTextBasedOnMaxWidth({
       text,
@@ -581,6 +634,12 @@ class TreemapChart {
       return truncatedText;
     }
   }
+  /**
+   * @param {any} el
+   * @param {Record<string, any>} fromRect
+   * @param {Record<string, any>} toRect
+   * @param {number} speed
+   */
   animateTreemap(el, fromRect, toRect, speed) {
     const animations = new Animations(this.w);
     animations.animateRect(el, fromRect, toRect, speed, () => {

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.10.3
+ * ApexCharts v5.10.4
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -12,15 +12,26 @@ const Series = _core.__apex_Series;
 const Utils = _core.__apex_Utils;
 const Environment = _core.__apex_Environment_Environment;
 class Exports {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
   constructor(w, ctx) {
     this.w = w;
     this.ctx = ctx;
   }
+  /**
+   * @param {string} svgString
+   */
   svgStringToNode(svgString) {
     const parser = new DOMParser();
     const svgDoc = parser.parseFromString(svgString, "image/svg+xml");
     return svgDoc.documentElement;
   }
+  /**
+   * @param {any} svg
+   * @param {number} scale
+   */
   scaleSvgNode(svg, scale) {
     const svgWidth = parseFloat(svg.getAttributeNS(null, "width"));
     const svgHeight = parseFloat(svg.getAttributeNS(null, "height"));
@@ -28,6 +39,9 @@ class Exports {
     svg.setAttributeNS(null, "height", svgHeight * scale);
     svg.setAttributeNS(null, "viewBox", "0 0 " + svgWidth + " " + svgHeight);
   }
+  /**
+   * @param {number} [_scale]
+   */
   getSvgString(_scale) {
     return new Promise((resolve) => {
       const w = this.w;
@@ -37,7 +51,10 @@ class Exports {
       }
       const width = w.globals.svgWidth * scale;
       const height = w.globals.svgHeight * scale;
-      const clonedNode = w.dom.elWrap.cloneNode(true);
+      const clonedNode = (
+        /** @type {HTMLElement} */
+        w.dom.elWrap.cloneNode(true)
+      );
       clonedNode.style.width = width + "px";
       clonedNode.style.height = height + "px";
       const serializedNode = new XMLSerializer().serializeToString(clonedNode);
@@ -78,6 +95,9 @@ class Exports {
       });
     });
   }
+  /**
+   * @param {any} svgNode
+   */
   convertImagesToBase64(svgNode) {
     const images = svgNode.getElementsByTagName("image");
     const promises = Array.from(images).map((img) => {
@@ -93,6 +113,9 @@ class Exports {
     });
     return Promise.all(promises);
   }
+  /**
+   * @param {string} url
+   */
   getBase64FromUrl(url) {
     if (Environment.isSSR()) return Promise.resolve(url);
     return new Promise((resolve, reject) => {
@@ -103,7 +126,7 @@ class Exports {
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0);
+        if (ctx) ctx.drawImage(img, 0, 0);
         resolve(canvas.toDataURL());
       };
       img.onerror = reject;
@@ -120,6 +143,9 @@ class Exports {
       });
     });
   }
+  /**
+   * @param {Record<string, any> | undefined} options
+   */
   dataURI(options) {
     if (Environment.isSSR()) return Promise.resolve({ imgURI: "" });
     return new Promise((resolve) => {
@@ -130,6 +156,7 @@ class Exports {
       canvas.height = parseInt(w.dom.elWrap.style.height, 10) * scale;
       const canvasBg = w.config.chart.background === "transparent" || !w.config.chart.background ? "#fff" : w.config.chart.background;
       const ctx = canvas.getContext("2d");
+      if (!ctx) return;
       ctx.fillStyle = canvasBg;
       ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale);
       this.getSvgString(scale).then((svgData) => {
@@ -138,8 +165,9 @@ class Exports {
         img.crossOrigin = "anonymous";
         img.onload = () => {
           ctx.drawImage(img, 0, 0);
-          if (canvas.msToBlob) {
-            const blob = canvas.msToBlob();
+          const edgeCanvas = canvas;
+          if (edgeCanvas.msToBlob) {
+            const blob = edgeCanvas.msToBlob();
             resolve({ blob });
           } else {
             const imgURI = canvas.toDataURL("image/png");
@@ -175,6 +203,7 @@ class Exports {
       }
     });
   }
+  /** @param {{ series?: any, fileName?: any, columnDelimiter?: string, lineDelimiter?: string }} opts */
   exportToCSV({
     series,
     fileName,
@@ -208,7 +237,10 @@ class Exports {
       })
     );
     const dataFormat = new Data(this.w);
-    const axesUtils = new AxesUtils(this.w, { theme: this.ctx.theme, timeScale: this.ctx.timeScale });
+    const axesUtils = new AxesUtils(this.w, {
+      theme: this.ctx.theme,
+      timeScale: this.ctx.timeScale
+    });
     const getCat = (i) => {
       let cat = "";
       if (!w.globals.axisCharts) {
@@ -316,8 +348,11 @@ class Exports {
           } else {
             return;
           }
-          if (!data[cat]) {
-            data[cat] = Array(series.length).fill("");
+          if (!/** @type {Record<string,any>} */
+          data[cat]) {
+            data[cat] = Array(
+              series.length
+            ).fill("");
           }
           data[cat][sI] = getFormattedValue(value);
           categories.add(cat);
@@ -329,6 +364,7 @@ class Exports {
       Array.from(categories).sort().forEach((cat) => {
         rows.push([
           getFormattedCategory(cat),
+          /** @type {Record<string,any>} */
           data[cat].join(columnDelimiter)
         ]);
       });
@@ -383,6 +419,11 @@ class Exports {
       ".csv"
     );
   }
+  /**
+   * @param {string} href
+   * @param {string} filename
+   * @param {string} ext
+   */
   triggerDownload(href, filename, ext) {
     if (Environment.isSSR()) return;
     const downloadLink = document.createElement("a");
