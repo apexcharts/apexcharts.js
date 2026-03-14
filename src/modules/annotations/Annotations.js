@@ -337,7 +337,7 @@ export default class Annotations {
    */
   clearAnnotations(ctx) {
     const w = ctx.w
-    let annos = w.dom.baseEl.querySelectorAll(
+    const annos = w.dom.baseEl.querySelectorAll(
       '.apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations',
     )
 

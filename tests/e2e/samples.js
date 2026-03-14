@@ -159,8 +159,8 @@ async function processSample(page, sample, command) {
     }
   }
 
-  // Make a screenshot of root div element or page (if root div has empty height, e.g. column/dynamic-loaded-chart)
-  const chartDiv = await page.$('div')
+  // Make a screenshot of the first chart div or page (if chart div has empty height, e.g. column/dynamic-loaded-chart)
+  const chartDiv = await page.$('#chart')
   let testImgBuffer
   try {
     testImgBuffer = await chartDiv.screenshot()

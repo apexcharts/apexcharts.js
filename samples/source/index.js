@@ -63,8 +63,8 @@ function parseSampleXML(xmlPath) {
 
         chartInfo.elemId = chartInfo.id
           ? `chart-${chartInfo.id}`
-          : chartInfo.length > 0
-          ? `chart-${info.charts.length}`
+          : info.charts.length > 0
+          ? `chart${info.charts.length + 1}`
           : 'chart'
         chartInfo.varName =
           chartInfo.id && info.charts.length > 0

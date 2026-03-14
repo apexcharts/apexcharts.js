@@ -32,7 +32,7 @@ export default class Marker {
     const graphics = new Graphics(this.w)
     const marker = new Markers(this.w, this.ctx)
 
-    let elsSeries = /** @type {any[]} */ ([
+    const elsSeries = /** @type {any[]} */ ([
       ...w.dom.baseEl.querySelectorAll('.apexcharts-series'),
     ])
 

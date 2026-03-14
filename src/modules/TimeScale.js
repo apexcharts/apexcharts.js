@@ -399,7 +399,7 @@ class TimeScale {
         value: firstTickValue,
         unit,
         year: firstTickValue,
-        month: Utils.monthMod(currentMonth + 1),
+        month: 1,
       })
     } else if (firstVal.minDate === 1 && firstVal.minMonth === 0) {
       // push the first tick in the array
@@ -687,9 +687,9 @@ class TimeScale {
     let month = checkNextMonth.month
     month = changeMonth(date, month)
 
-    // Check if date is greater than 31 and change month if it is
-    if (firstTickValue > 31) {
-      date = 1
+    // Sync firstTickValue with date after potential month rollover
+    // (changeDate may have reset date to 1 for months shorter than 31 days)
+    if (unit === 'day') {
       firstTickValue = date
     }
 
@@ -752,16 +752,22 @@ class TimeScale {
     secondsWidthOnXAxis,
     numberOfMinutes,
   }) {
+    const dt = new DateTime(this.w)
     const yrCounter = 0
     const unit = 'minute'
 
     const remainingSecs = 60 - currentSecond
-    const firstTickPosition =
+    let firstTickPosition =
       (remainingSecs - currentMillisecond / 1000) * secondsWidthOnXAxis
     let minute = currentMinute + 1
 
-    const date = currentDate
-    const month = currentMonth
+    if (currentSecond === 0 && currentMillisecond === 0) {
+      firstTickPosition = 0
+      minute = currentMinute
+    }
+
+    let date = currentDate
+    let month = currentMonth
     const year = currentYear
     let hour = currentHour
 
@@ -772,6 +778,15 @@ class TimeScale {
         hour += 1
         if (hour === 24) {
           hour = 0
+          date += 1
+          const monthDays = dt.determineDaysOfMonths(
+            month + 1,
+            this._getYear(year, month, yrCounter),
+          )
+          if (date > monthDays) {
+            date = 1
+            month += 1
+          }
         }
       }
 
@@ -807,9 +822,14 @@ class TimeScale {
     const unit = 'second'
 
     const remainingMillisecs = 1000 - currentMillisecond
-    const firstTickPosition = (remainingMillisecs / 1000) * secondsWidthOnXAxis
+    let firstTickPosition = (remainingMillisecs / 1000) * secondsWidthOnXAxis
 
     let second = currentSecond + 1
+
+    if (currentMillisecond === 0) {
+      firstTickPosition = 0
+      second = currentSecond
+    }
     let minute = currentMinute
     const date = currentDate
     const month = currentMonth
@@ -862,14 +882,14 @@ class TimeScale {
 
     // unit is day
     if (ts.unit === 'day') {
-      raw += ts.unit === 'day' ? '-' + ('0' + value).slice(-2) : '-01'
+      raw += '-' + ('0' + value).slice(-2)
     } else {
       raw += '-' + ('0' + (ts.day ? ts.day : '1')).slice(-2)
     }
 
     // unit is hour
     if (ts.unit === 'hour') {
-      raw += ts.unit === 'hour' ? 'T' + ('0' + value).slice(-2) : 'T00'
+      raw += 'T' + ('0' + value).slice(-2)
     } else {
       raw += 'T' + ('0' + (ts.hour ? ts.hour : '0')).slice(-2)
     }

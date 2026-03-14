@@ -1,4 +1,5 @@
 // @ts-check
+/** @typedef {import('../../types/apexcharts').ApexYAxis} ApexYAxis */
 /*
  ** Util functions which are dependent on ApexCharts instance
  */
@@ -213,21 +214,15 @@ class CoreUtils {
        */
       cnf.yaxis.some((a) => Array.isArray(a.seriesName))
 
-    /**
-     * @param {Record<string, any>} s
-     * @param {number} i
-     */
-    cnf.series.forEach((s, i) => {
+    cnf.series.forEach((_s, /** @type {number} */ i) => {
       unassignedSeriesIndices.push(i)
       seriesYAxisReverseMap.push(null)
     })
-    /**
-     * @param {ApexYAxis} yaxe
-     * @param {number} yi
-     */
-    cnf.yaxis.forEach((yaxe, yi) => {
-      axisSeriesMap[yi] = []
-    })
+    cnf.yaxis.forEach(
+      (/** @type {ApexYAxis} */ _yaxe, /** @type {number} */ yi) => {
+        axisSeriesMap[yi] = []
+      },
+    )
 
     /** @type {any[]} */
     const unassignedYAxisIndices = []
@@ -377,9 +372,9 @@ class CoreUtils {
       )
     } else {
       // axis charts - supporting multiple series
-      r = /** @type {Record<string,any>} */ (this.w.config.series[index]).data.filter(
-        (/** @type {any} */ d) => d !== null,
-      )
+      r = /** @type {Record<string,any>} */ (
+        this.w.config.series[index]
+      ).data.filter((/** @type {any} */ d) => d !== null)
     }
 
     return r.length === 0
@@ -832,7 +827,9 @@ class CoreUtils {
          * @param {number} ii
          */
         typeSeries.i.forEach((/** @type {any} */ i, /** @type {any} */ ii) => {
-          if (/** @type {Record<string,any>} */ (w.config.series[i]).group === gn) {
+          if (
+            /** @type {Record<string,any>} */ (w.config.series[i]).group === gn
+          ) {
             gs.push(typeSeries.series[ii])
             gi.push(i)
           }

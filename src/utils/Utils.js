@@ -508,6 +508,10 @@ class Utils {
     return computedColor
   }
 
+  /**
+   * @param {string} color
+   * @param {number} opacity
+   */
   static applyOpacityToColor(color, opacity) {
     const value = Number(opacity)
     if (!Number.isFinite(value)) return color

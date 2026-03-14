@@ -12,7 +12,7 @@ describe('Generate TimeScale', () => {
     const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleYears = timeScale.calculateTimeScaleTicks(
       range.years[0],
-      range.years[1]
+      range.years[1],
     )
 
     expect(generatedTimeScaleYears).toHaveLength(6)
@@ -34,7 +34,7 @@ describe('Generate TimeScale', () => {
     const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleMonths = timeScale.calculateTimeScaleTicks(
       range.months[0],
-      range.months[1]
+      range.months[1],
     )
 
     expect(generatedTimeScaleMonths).toHaveLength(9)
@@ -52,7 +52,7 @@ describe('Generate TimeScale', () => {
     const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleDays = timeScale.calculateTimeScaleTicks(
       range.days[0],
-      range.days[1]
+      range.days[1],
     )
 
     expect(generatedTimeScaleDays).toHaveLength(27)
@@ -74,7 +74,7 @@ describe('Generate TimeScale', () => {
     const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleHours = timeScale.calculateTimeScaleTicks(
       range.hours[0],
-      range.hours[1]
+      range.hours[1],
     )
 
     expect(generatedTimeScaleHours).toHaveLength(21)
@@ -92,7 +92,7 @@ describe('Generate TimeScale', () => {
     const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
       range.minutes_fives[0],
-      range.minutes_fives[1]
+      range.minutes_fives[1],
     )
 
     expect(generatedTimeScaleMinutes).toEqual([
@@ -144,10 +144,16 @@ describe('Generate TimeScale', () => {
     const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
       range.minutes[0],
-      range.minutes[1]
+      range.minutes[1],
     )
 
     expect(generatedTimeScaleMinutes).toEqual([
+      expect.objectContaining({
+        unit: 'minute',
+        hour: 1,
+        minute: 59,
+        value: 59,
+      }),
       expect.objectContaining({
         unit: 'minute',
         hour: 2,
@@ -178,12 +184,6 @@ describe('Generate TimeScale', () => {
         minute: 4,
         value: 4,
       }),
-      expect.objectContaining({
-        unit: 'minute',
-        hour: 2,
-        minute: 5,
-        value: 5,
-      }),
     ])
   })
 
@@ -196,10 +196,17 @@ describe('Generate TimeScale', () => {
     const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
       range.seconds_tens[0],
-      range.seconds_tens[1]
+      range.seconds_tens[1],
     )
 
     expect(generatedTimeScaleMinutes).toEqual([
+      expect.objectContaining({
+        unit: 'second',
+        hour: 1,
+        minute: 59,
+        second: 0,
+        value: 0,
+      }),
       expect.objectContaining({
         unit: 'second',
         hour: 1,
@@ -268,7 +275,7 @@ describe('Generate TimeScale', () => {
     const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
       range.seconds_fives[0],
-      range.seconds_fives[1]
+      range.seconds_fives[1],
     )
 
     expect(generatedTimeScaleMinutes).toEqual([
@@ -333,10 +340,17 @@ describe('Generate TimeScale', () => {
     const timeScale = new TimeScale(chart.w, chart)
     const generatedTimeScaleMinutes = timeScale.calculateTimeScaleTicks(
       range.seconds[0],
-      range.seconds[1]
+      range.seconds[1],
     )
 
     expect(generatedTimeScaleMinutes).toEqual([
+      expect.objectContaining({
+        unit: 'second',
+        hour: 1,
+        minute: 59,
+        second: 58,
+        value: 58,
+      }),
       expect.objectContaining({
         unit: 'second',
         hour: 1,
@@ -379,13 +393,6 @@ describe('Generate TimeScale', () => {
         second: 4,
         value: 4,
       }),
-      expect.objectContaining({
-        unit: 'second',
-        hour: 2,
-        minute: 0,
-        second: 5,
-        value: 5,
-      }),
     ])
   })
 
@@ -412,7 +419,7 @@ describe('Generate TimeScale', () => {
     const generatedScale = timeScale.timeScaleArray
     for (let i = 0; i < generatedScale.length - 1; i++) {
       expect(generatedScale[i].position).not.toEqual(
-        generatedScale[i + 1].position
+        generatedScale[i + 1].position,
       )
     }
   })
@@ -512,9 +519,9 @@ describe('Generate TimeScale', () => {
       const formattedScale = timeScale.formatDates(generatedScale)
       const scaleValues = formattedScale.map((gs) => gs.value)
       expect(scaleValues.map((gs) => gs.value).length).toEqual(
-        new Set(scaleValues).size
+        new Set(scaleValues).size,
       )
-    }
+    },
   )
 })
 
@@ -535,8 +542,8 @@ describe('createRawDateString', () => {
           month: 2,
           value: 2,
         },
-        '2'
-      )
+        '2',
+      ),
     ).toBe('2020-02-01T00:00:00.000Z')
   })
 
@@ -550,8 +557,8 @@ describe('createRawDateString', () => {
           day: 2,
           value: 2,
         },
-        '2'
-      )
+        '2',
+      ),
     ).toBe('2020-01-02T00:00:00.000Z')
   })
 
@@ -566,8 +573,8 @@ describe('createRawDateString', () => {
           hour: 2,
           value: 2,
         },
-        '2'
-      )
+        '2',
+      ),
     ).toBe('2020-01-01T02:00:00.000Z')
   })
 
@@ -583,8 +590,8 @@ describe('createRawDateString', () => {
           minute: 59,
           value: 59,
         },
-        '59'
-      )
+        '59',
+      ),
     ).toBe('2020-01-01T01:59:00.000Z')
   })
 
@@ -601,8 +608,8 @@ describe('createRawDateString', () => {
           second: 59,
           value: 59,
         },
-        '59'
-      )
+        '59',
+      ),
     ).toBe('2020-01-01T01:01:59.000Z')
   })
 })
@@ -787,12 +794,20 @@ describe('TimeScale.calculateTimeScaleTicks edge cases', () => {
     // unit correctness rather than position ordering (position math is tested
     // implicitly by the existing generateHourScale no-overlap tests).
     const cases = [
-      { label: 'years',         bounds: range.years,         expectedUnit: 'year'   },
-      { label: 'months',        bounds: range.months,        expectedUnit: 'month'  },
-      { label: 'days',          bounds: range.days,          expectedUnit: 'day'    },
-      { label: 'hours',         bounds: range.hours,         expectedUnit: 'hour'   },
-      { label: 'minutes_fives', bounds: range.minutes_fives, expectedUnit: 'minute' },
-      { label: 'seconds_tens',  bounds: range.seconds_tens,  expectedUnit: 'second' },
+      { label: 'years', bounds: range.years, expectedUnit: 'year' },
+      { label: 'months', bounds: range.months, expectedUnit: 'month' },
+      { label: 'days', bounds: range.days, expectedUnit: 'day' },
+      { label: 'hours', bounds: range.hours, expectedUnit: 'hour' },
+      {
+        label: 'minutes_fives',
+        bounds: range.minutes_fives,
+        expectedUnit: 'minute',
+      },
+      {
+        label: 'seconds_tens',
+        bounds: range.seconds_tens,
+        expectedUnit: 'second',
+      },
     ]
     cases.forEach(({ label, bounds: [minX, maxX], expectedUnit }) => {
       const chart = createChart('line', [{ data: [0, 1] }])
@@ -801,7 +816,10 @@ describe('TimeScale.calculateTimeScaleTicks edge cases', () => {
       expect(ticks.length, `${label} should produce ticks`).toBeGreaterThan(0)
       // At least one tick should carry the primary unit for that interval
       const hasExpectedUnit = ticks.some((t) => t.unit === expectedUnit)
-      expect(hasExpectedUnit, `${label} should contain a "${expectedUnit}" tick`).toBe(true)
+      expect(
+        hasExpectedUnit,
+        `${label} should contain a "${expectedUnit}" tick`,
+      ).toBe(true)
     })
   })
 })
@@ -815,7 +833,10 @@ describe('TimeScale.formatDates', () => {
     const chart = createChartWithOptions({
       chart: { type: 'line' },
       series: [{ data: [0, 1] }],
-      xaxis: { type: 'datetime', labels: { datetimeUTC: true, ...xaxisOverride } },
+      xaxis: {
+        type: 'datetime',
+        labels: { datetimeUTC: true, ...xaxisOverride },
+      },
     })
     return new TimeScale(chart.w, chart)
   }
@@ -899,7 +920,7 @@ describe('TimeScale.removeOverlappingTS', () => {
     // Label width for a short string will be ~30px; positions 0 and 5 will overlap
     const ticks = [
       { position: 0, value: 'Jan 17' },
-      { position: 5, value: 'Feb 17' },   // too close — should be removed
+      { position: 5, value: 'Feb 17' }, // too close — should be removed
       { position: 400, value: 'Mar 17' }, // far enough — should be kept
     ]
     const result = ts.removeOverlappingTS(ticks)
@@ -916,11 +937,151 @@ describe('TimeScale.removeOverlappingTS', () => {
 
   it('always keeps the first tick regardless of spacing', () => {
     const ts = makeTS()
-    const ticks = [
-      { position: 0, value: 'Only' },
-    ]
+    const ticks = [{ position: 0, value: 'Only' }]
     const result = ts.removeOverlappingTS(ticks)
     expect(result.length).toBe(1)
     expect(result[0].value).toBe('Only')
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Edge-case regression tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('TimeScale edge-case regressions', () => {
+  function makeTS() {
+    const chart = createChart('line', [{ data: [0, 1] }])
+    return new TimeScale(chart.w, chart)
+  }
+
+  it('minute scale: places tick at position 0 when starting on a whole minute', () => {
+    const ts = makeTS()
+    ts.generateMinuteScale({
+      currentMillisecond: 0,
+      currentSecond: 0,
+      currentMinute: 30,
+      currentHour: 10,
+      currentDate: 5,
+      currentMonth: 3,
+      currentYear: 2023,
+      minutesWidthOnXAxis: 10,
+      secondsWidthOnXAxis: 10 / 60,
+      numberOfMinutes: 5,
+    })
+    expect(ts.timeScaleArray[0].position).toBe(0)
+    expect(ts.timeScaleArray[0].value).toBe(30)
+    expect(ts.timeScaleArray[0].minute).toBe(30)
+  })
+
+  it('minute scale: offsets first tick when NOT starting on a whole minute', () => {
+    const ts = makeTS()
+    ts.generateMinuteScale({
+      currentMillisecond: 0,
+      currentSecond: 15,
+      currentMinute: 30,
+      currentHour: 10,
+      currentDate: 5,
+      currentMonth: 3,
+      currentYear: 2023,
+      minutesWidthOnXAxis: 10,
+      secondsWidthOnXAxis: 10 / 60,
+      numberOfMinutes: 5,
+    })
+    // first tick should be the next minute (31) with a position > 0
+    expect(ts.timeScaleArray[0].position).toBeGreaterThan(0)
+    expect(ts.timeScaleArray[0].value).toBe(31)
+  })
+
+  it('minute scale: updates date/month when crossing midnight', () => {
+    const ts = makeTS()
+    ts.generateMinuteScale({
+      currentMillisecond: 0,
+      currentSecond: 0,
+      currentMinute: 58,
+      currentHour: 23,
+      currentDate: 15,
+      currentMonth: 6,
+      currentYear: 2023,
+      minutesWidthOnXAxis: 10,
+      secondsWidthOnXAxis: 10 / 60,
+      numberOfMinutes: 5,
+    })
+    // ticks: 58(h23), 59(h23), 0(h0,date16), 1(h0,date16), 2(h0,date16)
+    const afterMidnight = ts.timeScaleArray.filter((t) => t.hour === 0)
+    expect(afterMidnight.length).toBeGreaterThan(0)
+    expect(afterMidnight[0].day).toBe(16)
+  })
+
+  it('second scale: places tick at position 0 when starting on a whole second', () => {
+    const ts = makeTS()
+    ts.generateSecondScale({
+      currentMillisecond: 0,
+      currentSecond: 45,
+      currentMinute: 10,
+      currentHour: 5,
+      currentDate: 1,
+      currentMonth: 0,
+      currentYear: 2024,
+      secondsWidthOnXAxis: 8,
+      numberOfSeconds: 5,
+    })
+    expect(ts.timeScaleArray[0].position).toBe(0)
+    expect(ts.timeScaleArray[0].value).toBe(45)
+    expect(ts.timeScaleArray[0].second).toBe(45)
+  })
+
+  it('second scale: offsets first tick when NOT starting on a whole second', () => {
+    const ts = makeTS()
+    ts.generateSecondScale({
+      currentMillisecond: 500,
+      currentSecond: 45,
+      currentMinute: 10,
+      currentHour: 5,
+      currentDate: 1,
+      currentMonth: 0,
+      currentYear: 2024,
+      secondsWidthOnXAxis: 8,
+      numberOfSeconds: 5,
+    })
+    expect(ts.timeScaleArray[0].position).toBeGreaterThan(0)
+    expect(ts.timeScaleArray[0].value).toBe(46)
+  })
+
+  it('hour scale: syncs firstTickValue after short-month rollover (Feb 28 non-leap)', () => {
+    const ts = makeTS()
+    ts.generateHourScale({
+      firstVal: {
+        minSecond: 0,
+        minMinute: 30,
+        minHour: 23,
+      },
+      currentDate: 28,
+      currentMonth: 1, // February (0-indexed)
+      currentYear: 2023, // non-leap
+      minutesWidthOnXAxis: 0.4,
+      numberOfHours: 5,
+    })
+    // First tick crosses midnight: date should roll to Mar 1, not stay as 29
+    const firstTick = ts.timeScaleArray[0]
+    expect(firstTick.day).toBe(1)
+    expect(firstTick.value).toBe(1) // day value, not 29
+  })
+
+  it('year scale: first tick has month 1 (January) regardless of start month', () => {
+    const ts = makeTS()
+    ts.generateYearScale({
+      firstVal: {
+        minYear: 2020,
+        minMonth: 6, // start in July
+        minDate: 15,
+      },
+      currentMonth: 6,
+      currentYear: 2020,
+      daysWidthOnXAxis: 1,
+      numberOfYears: 3,
+    })
+    // First year tick is Jan 1 2021 — month should be 1, not 7
+    expect(ts.timeScaleArray[0].month).toBe(1)
+    expect(ts.timeScaleArray[0].year).toBe(2021)
   })
 })
