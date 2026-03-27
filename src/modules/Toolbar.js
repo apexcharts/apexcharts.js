@@ -689,8 +689,6 @@ export default class Toolbar {
         })
       }
 
-      w.interact.zoomed = false
-
       // if user has some series collapsed before hitting zoom reset button,
       // those series should stay collapsed
       const series = ch.ctx.series.emptyCollapsedSeries(
@@ -701,6 +699,8 @@ export default class Toolbar {
         series,
         w.config.chart.animations.dynamicAnimation.enabled,
       )
+
+      w.interact.zoomed = false
     })
   }
 
