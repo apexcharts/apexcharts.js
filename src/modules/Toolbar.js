@@ -665,6 +665,9 @@ export default class Toolbar {
     charts.forEach((ch) => {
       const w = ch.w
 
+      // if user is hitting zoom reset button without zooming in first, then we should not fire zoom reset event
+      if (!w.interact.zoomed) return
+
       // forget lastXAxis min/max as reset button isn't resetting the x-axis completely if zoomX is called before
       w.globals.lastXAxis.min = w.globals.initialConfig.xaxis.min
       w.globals.lastXAxis.max = w.globals.initialConfig.xaxis.max
