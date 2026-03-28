@@ -210,6 +210,14 @@ export default class Tooltip {
       this.showTooltipTitle = false
     }
 
+    // Remove any existing tooltip element to avoid duplicates on re-draws
+    // (e.g. fastUpdate path calls drawTooltip without full DOM teardown)
+    const existingTooltip = this.getElTooltip()
+    if (existingTooltip?.parentNode) {
+      existingTooltip.parentNode.removeChild(existingTooltip)
+    }
+    this.tooltipTitle = null
+
     const tooltipEl = BrowserAPIs.createElementNS(
       'http://www.w3.org/1999/xhtml',
       'div',
