@@ -16,6 +16,8 @@ export default class Responsive {
    */
   constructor(w) {
     this.w = w
+    /** @type {number | null} tracks which breakpoint is currently active (null = none) */
+    this._activeBreakpoint = null
   }
 
   // the opts parameter if not null has to be set overriding everything
@@ -56,21 +58,26 @@ export default class Responsive {
         : 0
 
       if (width > largestBreakpoint) {
-        const initialConfig = Utils.clone(w.globals.initialConfig)
-        // Retain state of series in case any have been collapsed
-        // (indicated by series.data === [], these series' will be zeroed later
-        // enabling stacking to work correctly)
-        initialConfig.series = Utils.clone(w.config.series)
-        const options = CoreUtils.extendArrayProps(config, initialConfig, w)
-        newOptions = Utils.extend(options, newOptions)
-        newOptions = Utils.extend(w.config, newOptions)
-        this.overrideResponsiveOptions(newOptions)
+        // Above all breakpoints — only reset config if we were previously
+        // inside a responsive breakpoint (fixes #2056: chart breaks on
+        // updateSeries when viewport is above the largest breakpoint)
+        if (this._activeBreakpoint !== null) {
+          if (!w.globals.initialConfig) return
+          const initialConfig = Utils.clone(w.globals.initialConfig)
+          initialConfig.series = Utils.clone(w.config.series)
+          const options = CoreUtils.extendArrayProps(config, initialConfig, w)
+          // Merge onto a fresh object so w.config is not used as a base
+          newOptions = Utils.extend(options, newOptions)
+          this.overrideResponsiveOptions(newOptions)
+          this._activeBreakpoint = null
+        }
       } else {
         for (let i = 0; i < res.length; i++) {
           if (width < res[i].breakpoint) {
             newOptions = CoreUtils.extendArrayProps(config, res[i].options, w)
             newOptions = Utils.extend(w.config, newOptions)
             this.overrideResponsiveOptions(newOptions)
+            this._activeBreakpoint = res[i].breakpoint
           }
         }
       }

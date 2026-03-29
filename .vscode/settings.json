@@ -4,5 +4,6 @@
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/node_modules/**": true
-  }
+  },
+  "chat.agent.maxRequests": 100
 }
