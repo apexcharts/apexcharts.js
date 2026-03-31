@@ -196,6 +196,7 @@ export default class UpdateHelpers {
     if (!w.globals.axisCharts) return false
     if (newSeries.length !== prevSeriesCount) return false
     if (w.globals.collapsedSeries.length > 0) return false
+    if (w.globals.risingSeries.length > 0) return false
     if (w.globals.comboCharts) return false
     if (w.interact.zoomed) return false
     return true
