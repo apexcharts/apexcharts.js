@@ -100,4 +100,22 @@ describe('fastUpdate() — partial updateSeries fast path', () => {
     expect(chart.getState().series).toEqual([[7, 8, 9]])
     expect(chart.getState().maxY).toBe(9)
   })
+
+  it('reset zoom should restore axis state using full update', async () => {
+    const chart = createChart('line', [{ data: [1, 2, 3, 4, 5] }])
+
+    const fastUpdateSpy = vi.spyOn(chart, 'fastUpdate')
+    const updateSpy = vi.spyOn(chart, 'update')
+
+    chart.zoomX(2, 4)
+    fastUpdateSpy.mockClear()
+    updateSpy.mockClear()
+
+    chart.ctx.toolbar.handleZoomReset()
+    expect(chart.w.interact.zoomed).toBe(false)
+    expect(chart.w.globals.minX).toBe(1)
+    expect(chart.w.globals.maxX).toBe(5)
+    expect(fastUpdateSpy).not.toHaveBeenCalled()
+    expect(updateSpy).toHaveBeenCalledOnce()
+  })
 })

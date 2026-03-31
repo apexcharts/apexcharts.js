@@ -665,6 +665,9 @@ export default class Toolbar {
     charts.forEach((ch) => {
       const w = ch.w
 
+      // if user is hitting zoom reset button without zooming in first, then we should not fire zoom reset event
+      if (!w.interact.zoomed) return
+
       // forget lastXAxis min/max as reset button isn't resetting the x-axis completely if zoomX is called before
       w.globals.lastXAxis.min = w.globals.initialConfig.xaxis.min
       w.globals.lastXAxis.max = w.globals.initialConfig.xaxis.max
@@ -689,8 +692,6 @@ export default class Toolbar {
         })
       }
 
-      w.interact.zoomed = false
-
       // if user has some series collapsed before hitting zoom reset button,
       // those series should stay collapsed
       const series = ch.ctx.series.emptyCollapsedSeries(
@@ -701,6 +702,8 @@ export default class Toolbar {
         series,
         w.config.chart.animations.dynamicAnimation.enabled,
       )
+
+      w.interact.zoomed = false
     })
   }
 

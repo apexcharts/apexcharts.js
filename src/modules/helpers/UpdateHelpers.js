@@ -186,6 +186,7 @@ export default class UpdateHelpers {
    * - Series count unchanged (grid column/row counts depend on it)
    * - No series currently collapsing (collapsed series changes visible data range)
    * - Not a combo chart (combo charts mix types and need coordinated axis recalc)
+   * - Not currently zoomed (zoomed charts have altered x-labels that need recalculation)
    * @param {any[]} newSeries
    * @param {number} prevSeriesCount
    * @param {import('../../types/internal').ChartStateW} w
@@ -196,6 +197,7 @@ export default class UpdateHelpers {
     if (newSeries.length !== prevSeriesCount) return false
     if (w.globals.collapsedSeries.length > 0) return false
     if (w.globals.comboCharts) return false
+    if (w.interact.zoomed) return false
     return true
   }
 
