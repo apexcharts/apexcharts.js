@@ -281,27 +281,24 @@ class Utils {
       return [el._ssrWidth || 400, el._ssrHeight || 300]
     }
 
-    // check if in shadow DOM
-    const rootNode = el.getRootNode && el.getRootNode()
-    const inShadowDOM = rootNode && rootNode !== document
-
-    if (inShadowDOM && rootNode.host) {
-      // in shadow DOM: use host container dimensions
-      const hostRect = rootNode.host.getBoundingClientRect()
-      return [hostRect.width, hostRect.height]
-    }
-
-    // regular DOM
     let computedStyle
     try {
       computedStyle = getComputedStyle(el, null)
     } catch (e) {
-      // fallback to clientWidth/Height
       return [el.clientWidth || 0, el.clientHeight || 0]
     }
 
-    let elementHeight = el.clientHeight
     let elementWidth = el.clientWidth
+    let elementHeight = el.clientHeight
+
+    // clientWidth/Height can be 0 when height:'100%' hasn't resolved yet
+    // (common inside shadow DOM or detached subtrees) — fall back to BCR
+    if (!elementWidth || !elementHeight) {
+      const rect = el.getBoundingClientRect()
+      elementWidth = elementWidth || rect.width
+      elementHeight = elementHeight || rect.height
+    }
+
     elementHeight -=
       parseFloat(computedStyle.paddingTop) +
       parseFloat(computedStyle.paddingBottom)
