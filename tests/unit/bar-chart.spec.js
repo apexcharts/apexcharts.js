@@ -606,6 +606,46 @@ describe('Bar chart', () => {
       const datalabels = el.querySelectorAll('.apexcharts-datalabels')
       expect(datalabels.length).toBeGreaterThan(0)
     })
+
+    it('should not blank first/last bar data labels in mixed charts (bar + line)', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'line', height: 380 },
+        series: [
+          { name: 'Incidents', type: 'bar', data: [1, 9, 2, 1, 0, 1] },
+          { name: 'Invites', type: 'bar', data: [2, 16, 2, 1, 3, 1] },
+          { name: 'Accepted', type: 'bar', data: [2, 8, 2, 1, 1, 1] },
+          { name: '% Accepted', type: 'line', data: [100, 50, 100, 100, 0, 100] },
+        ],
+        dataLabels: { enabled: true },
+        stroke: { width: [0, 0, 0, 3] },
+        xaxis: {
+          categories: ['Mar-2021', 'Aug-2021', 'Sep-2021', 'Nov-2021', 'Jan-2022', 'Jan-2023'],
+        },
+        yaxis: [
+          { seriesName: 'Incidents', min: 0, max: 20 },
+          { seriesName: 'Invites', show: false, min: 0, max: 20 },
+          { seriesName: 'Accepted', show: false, min: 0, max: 20 },
+          { seriesName: '% Accepted', opposite: true, min: 0, max: 120 },
+        ],
+        plotOptions: { bar: { columnWidth: '70%' } },
+      })
+
+      const el = chart.el
+      const datalabelTexts = el.querySelectorAll(
+        '.apexcharts-datalabels .apexcharts-datalabel'
+      )
+      const labels = Array.from(datalabelTexts).map((t) =>
+        t.textContent.trim()
+      )
+
+      const barLabels = labels.filter((l) => l !== '')
+      const firstCategoryLabels = labels.slice(0, 4).filter((l) => l !== '')
+      const lastCategoryLabels = labels.slice(-4).filter((l) => l !== '')
+
+      expect(barLabels.length).toBeGreaterThan(0)
+      expect(firstCategoryLabels.length).toBeGreaterThan(0)
+      expect(lastCategoryLabels.length).toBeGreaterThan(0)
+    })
   })
 
   // =========================================================================

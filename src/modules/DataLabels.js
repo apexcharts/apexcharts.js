@@ -272,11 +272,15 @@ class DataLabels {
 
     if (correctedLabels.textRects) {
       // fixes #2264
+      const barPad = w.globals.barPadForNumericAxis || 0
       if (
-        x < -20 - /** @type {any} */ (correctedLabels.textRects).width ||
+        x <
+          -(barPad + 20) -
+            /** @type {any} */ (correctedLabels.textRects).width ||
         x >
           w.layout.gridWidth +
             /** @type {any} */ (correctedLabels.textRects).width +
+            barPad +
             30
       ) {
         // datalabels fall outside drawing area, so draw a blank label
