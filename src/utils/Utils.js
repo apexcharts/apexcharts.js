@@ -281,17 +281,7 @@ class Utils {
       return [el._ssrWidth || 400, el._ssrHeight || 300]
     }
 
-    // check if in shadow DOM
-    const rootNode = el.getRootNode && el.getRootNode()
-    const inShadowDOM = rootNode && rootNode !== document
-
-    if (inShadowDOM && rootNode.host) {
-      // in shadow DOM: use host container dimensions
-      const hostRect = rootNode.host.getBoundingClientRect()
-      return [hostRect.width, hostRect.height]
-    }
-
-    // regular DOM
+    // regular DOM (also works correctly inside shadow DOM)
     let computedStyle
     try {
       computedStyle = getComputedStyle(el, null)
