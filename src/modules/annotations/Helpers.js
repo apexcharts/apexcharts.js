@@ -300,7 +300,11 @@ export default class Helpers {
       w.config.xaxis.convertedCatToNumeric &&
       w.labelData.categoryLabels.length
     ) {
-      x = w.labelData.categoryLabels.indexOf(String(x)) + 1
+      const strX = String(x)
+      x =
+        w.labelData.categoryLabels.findIndex(
+          (/** @type {any} */ l) => String(l) === strX,
+        ) + 1
     }
 
     const catIndex = w.labelData.labels

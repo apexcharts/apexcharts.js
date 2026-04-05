@@ -633,5 +633,30 @@ describe('XAxisAnnotations', () => {
       expect(labels[0].getAttribute('rel')).toBe('0')
       expect(labels[1].getAttribute('rel')).toBe('1')
     })
+
+    it('should render annotation line for numeric x value on line chart with simple array data (regression #5198)', () => {
+      // Regression test: in 5.10.4, annotations with numeric x values on line charts
+      // using simple array data (convertedCatToNumeric=true) were not rendered because
+      // getStringX() used indexOf(String(x)) which failed when categoryLabels are numbers.
+      chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        annotations: {
+          xaxis: [
+            {
+              x: 3,
+              borderColor: '#ff0000',
+            },
+          ],
+        },
+      })
+
+      const line = chart.w.globals.dom.baseEl.querySelector(
+        '.apexcharts-xaxis-annotations line'
+      )
+      // The annotation line must be present (was missing in 5.10.4 due to regression)
+      expect(line).not.toBeNull()
+      expect(line.getAttribute('stroke')).toBe('#ff0000')
+    })
   })
 })
