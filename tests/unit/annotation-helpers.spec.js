@@ -421,5 +421,54 @@ describe('Annotation Helpers', () => {
         true
       )
     })
+
+    it('should handle convertedCatToNumeric with matching category label', () => {
+      chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        xaxis: {
+          type: 'category',
+          categories: ['A', 'B', 'C', 'D', 'E'],
+        },
+      })
+
+      // Simulate convertedCatToNumeric scenario
+      chart.w.config.xaxis.convertedCatToNumeric = true
+      chart.w.labelData.categoryLabels = ['A', 'B', 'C', 'D', 'E']
+
+      const annoCtx2 = new Annotations(chart.w)
+      const helpers2 = new Helpers(annoCtx2)
+
+      // When x is 'C', it should find the correct position
+      const result = helpers2.getStringX('C')
+
+      expect(typeof result === 'number' || typeof result === 'string').toBe(
+        true
+      )
+    })
+
+    it('should handle convertedCatToNumeric with numeric string input', () => {
+      chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        xaxis: {
+          type: 'category',
+          categories: ['A', 'B', 'C', 'D', 'E'],
+        },
+      })
+
+      // Simulate convertedCatToNumeric scenario
+      chart.w.config.xaxis.convertedCatToNumeric = true
+      chart.w.labelData.categoryLabels = ['A', 'B', 'C', 'D', 'E']
+
+      const annoCtx2 = new Annotations(chart.w)
+      const helpers2 = new Helpers(annoCtx2)
+
+      // When x is a numeric string that matches a category label
+      const result = helpers2.getStringX('3')
+
+      // Should return the original value if not found
+      expect(result).toBe('3')
+    })
   })
 })

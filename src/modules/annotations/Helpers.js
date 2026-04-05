@@ -295,12 +295,13 @@ export default class Helpers {
   getStringX(x) {
     const w = this.w
     let rX = x
+    let lookupValue = x
 
     if (
       w.config.xaxis.convertedCatToNumeric &&
       w.labelData.categoryLabels.length
     ) {
-      x = w.labelData.categoryLabels.indexOf(String(x)) + 1
+      lookupValue = w.labelData.categoryLabels.indexOf(String(x)) + 1
     }
 
     const catIndex = w.labelData.labels
@@ -310,7 +311,7 @@ export default class Helpers {
       .map((/** @type {any} */ item) =>
         Array.isArray(item) ? item.join(' ') : item,
       )
-      .indexOf(x)
+      .indexOf(lookupValue)
 
     const xLabel = w.dom.baseEl.querySelector(
       `.apexcharts-xaxis-texts-g text:nth-child(${catIndex + 1})`,
