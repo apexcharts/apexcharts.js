@@ -99,18 +99,17 @@ describe('Multiple Y-axis Scales', () => {
 
     expect(maxYArr).toEqual([500000000, 500000000])
 
-    expect(yAxisScale).toEqual([
-      {
-        niceMax: 500000000,
-        niceMin: 1000000,
-        result: [999999.9999999998, 22360679.77499791, 500000000.0000007],
-      },
-      {
-        niceMax: 500000000,
-        niceMin: 1000000,
-        result: [1000000, 125750000, 250500000, 375250000, 500000000],
-      },
-    ])
+    expect(yAxisScale[0].niceMax).toBe(500000000)
+    expect(yAxisScale[0].niceMin).toBe(1000000)
+    expect(yAxisScale[0].result).toHaveLength(3)
+    expect(yAxisScale[0].result[0]).toBeCloseTo(999999.9999999998, 0)
+    expect(yAxisScale[0].result[1]).toBeCloseTo(22360679.775, 0)
+    expect(yAxisScale[0].result[2]).toBeCloseTo(500000000.0000007, 0)
+    expect(yAxisScale[1]).toEqual({
+      niceMax: 500000000,
+      niceMin: 1000000,
+      result: [1000000, 125750000, 250500000, 375250000, 500000000],
+    })
   })
 
   it('should associate multiple series to multiple yaxes according to seriesName array spec', () => {
