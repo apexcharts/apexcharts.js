@@ -1,15 +1,5 @@
 import { vi } from 'vitest'
 
-// Suppress jsdom noise that pollutes test output
-const SUPPRESSED = ['Could not parse CSS stylesheet', 'Not implemented']
-for (const method of ['error', 'warn']) {
-  const original = console[method].bind(console)
-  console[method] = (...args) => {
-    if (SUPPRESSED.some((s) => String(args[0]).includes(s))) return
-    original(...args)
-  }
-}
-
 globalThis.jest = {
   ...vi,
   fn: vi.fn,

@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename)
 
 export default defineConfig({
   test: {
-    environment: 'jsdom',
+    environment: './tests/unit/jsdom-quiet.js',
     setupFiles: ['./tests/unit/setup.js'],
     clearMocks: true,
     alias: [
