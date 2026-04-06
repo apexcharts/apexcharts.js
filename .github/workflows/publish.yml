@@ -47,7 +47,6 @@ jobs:
         if: steps.check.outputs.triggered == 'true'
         with:
           node-version: "20"
-          registry-url: "https://registry.npmjs.org"
 
       - run: yarn install --frozen-lockfile
         if: steps.check.outputs.triggered == 'true'
