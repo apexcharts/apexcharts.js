@@ -924,8 +924,8 @@ export default class Tooltip {
 
       if (w.config.tooltip.keepInBoundary) {
         // Avoid going out of the boundaries of the chart
-        y = Math.max(0, y);
-        x = Math.max(0, x);
+        y = Math.max(0, y)
+        x = Math.max(0, x)
       }
 
       tooltipEl.style.left = x + 'px'
