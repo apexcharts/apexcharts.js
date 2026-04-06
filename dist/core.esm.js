@@ -19,7 +19,7 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v5.10.4
+ * ApexCharts v5.10.5
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -832,20 +832,19 @@ let Utils$1 = class Utils {
     if (Environment.isSSR()) {
       return [el._ssrWidth || 400, el._ssrHeight || 300];
     }
-    const rootNode = el.getRootNode && el.getRootNode();
-    const inShadowDOM = rootNode && rootNode !== document;
-    if (inShadowDOM && rootNode.host) {
-      const hostRect = rootNode.host.getBoundingClientRect();
-      return [hostRect.width, hostRect.height];
-    }
     let computedStyle;
     try {
       computedStyle = getComputedStyle(el, null);
     } catch (e) {
       return [el.clientWidth || 0, el.clientHeight || 0];
     }
-    let elementHeight = el.clientHeight;
     let elementWidth = el.clientWidth;
+    let elementHeight = el.clientHeight;
+    if (!elementWidth || !elementHeight) {
+      const rect = el.getBoundingClientRect();
+      elementWidth = elementWidth || rect.width;
+      elementHeight = elementHeight || rect.height;
+    }
     elementHeight -= parseFloat(computedStyle.paddingTop) + parseFloat(computedStyle.paddingBottom);
     elementWidth -= parseFloat(computedStyle.paddingLeft) + parseFloat(computedStyle.paddingRight);
     return [elementWidth, elementHeight];
@@ -8069,9 +8068,10 @@ class DataLabels {
       y = correctedLabels.y;
     }
     if (correctedLabels.textRects) {
-      if (x < -20 - /** @type {any} */
+      const barPad = w.globals.barPadForNumericAxis || 0;
+      if (x < -(barPad + 20) - /** @type {any} */
       correctedLabels.textRects.width || x > w.layout.gridWidth + /** @type {any} */
-      correctedLabels.textRects.width + 30) {
+      correctedLabels.textRects.width + barPad + 30) {
         text = "";
       }
     }
@@ -11389,6 +11389,7 @@ class Responsive {
    */
   constructor(w) {
     this.w = w;
+    this._activeBreakpoint = null;
   }
   // the opts parameter if not null has to be set overriding everything
   // as the opts is set by user externally
@@ -11408,18 +11409,22 @@ class Responsive {
       const largestBreakpoint = res[0].breakpoint;
       const width = Environment.isBrowser() ? window.innerWidth > 0 ? window.innerWidth : screen.width : 0;
       if (width > largestBreakpoint) {
-        const initialConfig = Utils$1.clone(w.globals.initialConfig);
-        initialConfig.series = Utils$1.clone(w.config.series);
-        const options2 = CoreUtils.extendArrayProps(config, initialConfig, w);
-        newOptions = Utils$1.extend(options2, newOptions);
-        newOptions = Utils$1.extend(w.config, newOptions);
-        this.overrideResponsiveOptions(newOptions);
+        if (this._activeBreakpoint !== null) {
+          if (!w.globals.initialConfig) return;
+          const initialConfig = Utils$1.clone(w.globals.initialConfig);
+          initialConfig.series = Utils$1.clone(w.config.series);
+          const options2 = CoreUtils.extendArrayProps(config, initialConfig, w);
+          newOptions = Utils$1.extend(options2, newOptions);
+          this.overrideResponsiveOptions(newOptions);
+          this._activeBreakpoint = null;
+        }
       } else {
         for (let i = 0; i < res.length; i++) {
           if (width < res[i].breakpoint) {
             newOptions = CoreUtils.extendArrayProps(config, res[i].options, w);
             newOptions = Utils$1.extend(w.config, newOptions);
             this.overrideResponsiveOptions(newOptions);
+            this._activeBreakpoint = res[i].breakpoint;
           }
         }
       }
@@ -15642,6 +15647,7 @@ class UpdateHelpers {
    * - Series count unchanged (grid column/row counts depend on it)
    * - No series currently collapsing (collapsed series changes visible data range)
    * - Not a combo chart (combo charts mix types and need coordinated axis recalc)
+   * - Not currently zoomed (zoomed charts have altered x-labels that need recalculation)
    * @param {any[]} newSeries
    * @param {number} prevSeriesCount
    * @param {import('../../types/internal').ChartStateW} w
@@ -15652,6 +15658,7 @@ class UpdateHelpers {
     if (newSeries.length !== prevSeriesCount) return false;
     if (w.globals.collapsedSeries.length > 0) return false;
     if (w.globals.comboCharts) return false;
+    if (w.interact.zoomed) return false;
     return true;
   }
   /**
@@ -17731,6 +17738,11 @@ class Tooltip {
     if (!w.globals.axisCharts) {
       this.showTooltipTitle = false;
     }
+    const existingTooltip = this.getElTooltip();
+    if (existingTooltip == null ? void 0 : existingTooltip.parentNode) {
+      existingTooltip.parentNode.removeChild(existingTooltip);
+    }
+    this.tooltipTitle = null;
     const tooltipEl = BrowserAPIs.createElementNS(
       "http://www.w3.org/1999/xhtml",
       "div"

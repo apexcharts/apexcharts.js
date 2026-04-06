@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.10.4
+ * ApexCharts v5.10.5
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1666,6 +1666,7 @@ class Toolbar {
     const charts = this.ctx.getSyncedCharts();
     charts.forEach((ch) => {
       const w = ch.w;
+      if (!w.interact.zoomed) return;
       w.globals.lastXAxis.min = w.globals.initialConfig.xaxis.min;
       w.globals.lastXAxis.max = w.globals.initialConfig.xaxis.max;
       ch.updateHelpers.revertDefaultAxisMinMax();
@@ -1681,7 +1682,6 @@ class Toolbar {
           max: w.config.xaxis.max
         });
       }
-      w.interact.zoomed = false;
       const series = ch.ctx.series.emptyCollapsedSeries(
         Utils.clone(w.globals.initialSeries)
       );
@@ -1689,6 +1689,7 @@ class Toolbar {
         series,
         w.config.chart.animations.dynamicAnimation.enabled
       );
+      w.interact.zoomed = false;
     });
   }
   destroy() {
@@ -2646,7 +2647,10 @@ class Helpers2 {
     const w = this.w;
     let rX = x;
     if (w.config.xaxis.convertedCatToNumeric && w.labelData.categoryLabels.length) {
-      x = w.labelData.categoryLabels.indexOf(String(x)) + 1;
+      const strX = String(x);
+      x = w.labelData.categoryLabels.findIndex(
+        (l) => String(l) === strX
+      ) + 1;
     }
     const catIndex = w.labelData.labels.map(
       (item) => Array.isArray(item) ? item.join(" ") : item

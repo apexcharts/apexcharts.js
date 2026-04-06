@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.10.4
+ * ApexCharts v5.10.5
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -226,7 +226,10 @@ class Helpers {
     const w = this.w;
     let rX = x;
     if (w.config.xaxis.convertedCatToNumeric && w.labelData.categoryLabels.length) {
-      x = w.labelData.categoryLabels.indexOf(String(x)) + 1;
+      const strX = String(x);
+      x = w.labelData.categoryLabels.findIndex(
+        (l) => String(l) === strX
+      ) + 1;
     }
     const catIndex = w.labelData.labels.map(
       (item) => Array.isArray(item) ? item.join(" ") : item

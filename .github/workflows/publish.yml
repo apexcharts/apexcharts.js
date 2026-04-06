@@ -1,0 +1,62 @@
+name: Publish to npm
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check commit message for release trigger
+        id: check
+        run: |
+          MSG="${{ github.event.head_commit.message }}"
+          if echo "$MSG" | grep -qE '^release: [0-9]+\.[0-9]+\.[0-9]+'; then
+            VERSION=$(echo "$MSG" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[^ ]*' | head -1)
+            echo "triggered=true" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            if echo "$VERSION" | grep -qE '[-]'; then
+              echo "tag=next" >> $GITHUB_OUTPUT
+            else
+              echo "tag=latest" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "triggered=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify package.json version matches commit message
+        if: steps.check.outputs.triggered == 'true'
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          MSG_VERSION="${{ steps.check.outputs.version }}"
+          if [ "$PKG_VERSION" != "$MSG_VERSION" ]; then
+            echo "❌ package.json version ($PKG_VERSION) does not match commit message version ($MSG_VERSION)"
+            exit 1
+          fi
+          echo "✅ Version $PKG_VERSION confirmed"
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.triggered == 'true'
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: yarn install --frozen-lockfile
+        if: steps.check.outputs.triggered == 'true'
+
+      - run: yarn unit
+        if: steps.check.outputs.triggered == 'true'
+
+      - run: yarn build
+        if: steps.check.outputs.triggered == 'true'
+
+      - run: npm publish --provenance --tag ${{ steps.check.outputs.tag }}
+        if: steps.check.outputs.triggered == 'true'
