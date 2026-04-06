@@ -8,6 +8,7 @@ import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import Graphics from '../Graphics'
 import Series from '../Series'
 import XAxis from './../axes/XAxis'
+import GeneralUtils from '../../utils/Utils'
 import Utils from './Utils'
 
 /**
@@ -923,9 +924,9 @@ export default class Tooltip {
       }
 
       if (w.config.tooltip.keepInBoundary) {
-        // Avoid going out of the boundaries of the chart
-        y = Math.max(0, y)
-        x = Math.max(0, x)
+        const clamped = GeneralUtils.clampToBoundary({ x, y })
+        y = clamped.y
+        x = clamped.x
       }
 
       tooltipEl.style.left = x + 'px'

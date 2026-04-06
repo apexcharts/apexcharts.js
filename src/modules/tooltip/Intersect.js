@@ -82,15 +82,9 @@ class Intersect {
     }
 
     if (ttCtx.w.config.tooltip.keepInBoundary) {
-      // Avoid going out of the boundaries of the chart
-      y = Math.max(0, y);
-      x = Math.max(0, x);
-    }
-
-    if (ttCtx.w.config.tooltip.keepInBoundary) {
-      // Avoid going out of the boundaries of the chart
-      y = Math.max(0, y);
-      x = Math.max(0, x);
+      const clamped = Utils.clampToBoundary({ x, y })
+      y = clamped.y
+      x = clamped.x
     }
 
     return {
@@ -161,9 +155,9 @@ class Intersect {
     }
 
     if (ttCtx.w.config.tooltip.keepInBoundary) {
-      // Avoid going out of the boundaries of the chart
-      y = Math.max(0, y);
-      x = Math.max(0, x);
+      const clamped = Utils.clampToBoundary({ x, y })
+      y = clamped.y
+      x = clamped.x
     }
 
     return {
@@ -258,9 +252,9 @@ class Intersect {
       x = x + w.layout.translateX
 
       if (w.config.tooltip.keepInBoundary) {
-        // Avoid going out of the boundaries of the chart
-        y = Math.max(0, y);
-        x = Math.max(0, x);
+        const clamped = Utils.clampToBoundary({ x, y })
+        y = clamped.y
+        x = clamped.x
       }
 
       if (tooltipEl) {

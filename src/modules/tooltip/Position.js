@@ -1,6 +1,7 @@
 // @ts-check
 import Graphics from '../Graphics'
 import Series from '../Series'
+import Utils from '../../utils/Utils'
 
 /**
  * ApexCharts Tooltip.Position Class to move the tooltip based on x and y position.
@@ -231,9 +232,9 @@ export default class Position {
       x = x + w.layout.translateX
 
       if (ttCtx.w.config.tooltip.keepInBoundary) {
-        // Avoid going out of the boundaries of the chart
-        y = Math.max(0, y);
-        x = Math.max(0, x);
+        const clamped = Utils.clampToBoundary({ x, y })
+        y = clamped.y
+        x = clamped.x
       }
 
       if (tooltipEl) {
