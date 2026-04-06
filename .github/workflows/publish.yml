@@ -48,6 +48,9 @@ jobs:
         with:
           node-version: "20"
 
+      - run: npm install -g npm@latest
+        if: steps.check.outputs.triggered == 'true'
+
       - run: yarn install --frozen-lockfile
         if: steps.check.outputs.triggered == 'true'
 
