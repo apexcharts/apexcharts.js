@@ -7,7 +7,7 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 jobs:
   publish:
@@ -62,3 +62,25 @@ jobs:
 
       - run: npm publish --provenance --tag ${{ steps.check.outputs.tag }}
         if: steps.check.outputs.triggered == 'true'
+
+      - name: Create git tag
+        if: steps.check.outputs.triggered == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ steps.check.outputs.version }}"
+          git push origin "v${{ steps.check.outputs.version }}"
+
+      - name: Create GitHub release
+        if: steps.check.outputs.triggered == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRERELEASE=""
+          if [ "${{ steps.check.outputs.tag }}" = "next" ]; then
+            PRERELEASE="--prerelease"
+          fi
+          gh release create "v${{ steps.check.outputs.version }}" \
+            --title "v${{ steps.check.outputs.version }}" \
+            --generate-notes \
+            $PRERELEASE
