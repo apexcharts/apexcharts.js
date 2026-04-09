@@ -1,0 +1,31 @@
+name: Health Check
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Check endpoints
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check frontend (apexcharts.com)
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://apexcharts.com)
+          echo "Frontend status: $STATUS"
+          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 500 ]; then
+            echo "Frontend is DOWN (HTTP $STATUS)"
+            exit 1
+          fi
+
+      - name: Check backend (/health)
+        run: |
+          RESPONSE=$(curl -s --max-time 10 https://api.apexcharts.com/health)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://api.apexcharts.com/health)
+          echo "Backend status: $STATUS"
+          echo "Backend response: $RESPONSE"
+          if [ "$STATUS" != "200" ]; then
+            echo "Backend is DOWN (HTTP $STATUS)"
+            exit 1
+          fi
