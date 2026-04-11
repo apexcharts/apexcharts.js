@@ -76,6 +76,10 @@ rect.legend-mouseover-inactive,
   opacity: 0
 }
 
+.apexcharts-canvas svg:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* Keyboard navigation focus indicator on SVG data elements.
    SVG elements don't support CSS outline, so we use stroke. */
 .apexcharts-bar-area.apexcharts-keyboard-focused,

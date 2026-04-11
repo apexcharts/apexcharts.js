@@ -12,8 +12,6 @@
       
         #chart {
       padding: 0;
-      max-width: 280px;
-      max-height: 280px;
       margin: 35px auto;
     }
       
@@ -46,7 +44,7 @@
     <div id="app"></div>
 
     <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;pie&quot; /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;pie&quot; width={380} /&gt;
 &lt;/div&gt;</div>
 
     <script type="text/babel">
@@ -56,8 +54,7 @@
             series: [25, 15, 44, 55, 41, 17],
             options: {
               chart: {
-                width: '100%',
-                height: '100%',
+                width: 380,
                 type: 'pie',
               },
               labels: [
@@ -107,7 +104,7 @@
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="pie" />
+                <ReactApexChart options={state.options} series={state.series} type="pie" width={380} />
               </div>
             <div id="html-dist"></div>
           </div>
