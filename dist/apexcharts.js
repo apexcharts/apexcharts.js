@@ -15747,7 +15747,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const minmax = ["min", "max"];
       minmax.forEach((a) => {
         if (typeof options2.xaxis[a] !== "undefined") {
-          w.config.xaxis[a] = options2.xaxis[a](w.globals.lastXAxis)[a] = options2.xaxis[a];
+          w.config.xaxis[a] = options2.xaxis[a];
+          w.globals.lastXAxis[a] = options2.xaxis[a];
         }
       });
       if (options2.xaxis.categories && options2.xaxis.categories.length) {

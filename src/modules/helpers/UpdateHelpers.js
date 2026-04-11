@@ -275,7 +275,7 @@ export default class UpdateHelpers {
     minmax.forEach((/** @type {string} */ a) => {
       if (typeof options.xaxis[a] !== 'undefined') {
         w.config.xaxis[a] = options.xaxis[a]
-        /** @type {Record<string,any>} */ (w.globals.lastXAxis)[a] =
+        ;/** @type {Record<string,any>} */ (w.globals.lastXAxis)[a] =
           options.xaxis[a]
       }
     })
