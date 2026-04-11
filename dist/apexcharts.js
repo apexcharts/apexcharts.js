@@ -22,7 +22,7 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v5.10.5
+ * ApexCharts v5.10.6
  * (c) 2018-2026 ApexCharts
  */
 
@@ -15661,6 +15661,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (!w.globals.axisCharts) return false;
       if (newSeries.length !== prevSeriesCount) return false;
       if (w.globals.collapsedSeries.length > 0) return false;
+      if (w.globals.ancillaryCollapsedSeries.length > 0) return false;
+      if (w.globals.risingSeries.length > 0) return false;
       if (w.globals.comboCharts) return false;
       if (w.interact.zoomed) return false;
       return true;
@@ -15745,8 +15747,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const minmax = ["min", "max"];
       minmax.forEach((a) => {
         if (typeof options2.xaxis[a] !== "undefined") {
-          w.config.xaxis[a] = options2.xaxis[a];
-          w.globals.lastXAxis[a] = options2.xaxis[a];
+          w.config.xaxis[a] = options2.xaxis[a](w.globals.lastXAxis)[a] = options2.xaxis[a];
         }
       });
       if (options2.xaxis.categories && options2.xaxis.categories.length) {
@@ -20523,6 +20524,10 @@ rect.legend-mouseover-inactive,
 
 .apexcharts-series-collapsed {
   opacity: 0
+}
+
+.apexcharts-canvas svg:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* Keyboard navigation focus indicator on SVG data elements.
