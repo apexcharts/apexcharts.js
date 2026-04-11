@@ -196,6 +196,7 @@ export default class UpdateHelpers {
     if (!w.globals.axisCharts) return false
     if (newSeries.length !== prevSeriesCount) return false
     if (w.globals.collapsedSeries.length > 0) return false
+    if (w.globals.ancillaryCollapsedSeries.length > 0) return false
     if (w.globals.risingSeries.length > 0) return false
     if (w.globals.comboCharts) return false
     if (w.interact.zoomed) return false
@@ -271,10 +272,10 @@ export default class UpdateHelpers {
     const w = this.w
     const minmax = ['min', 'max']
 
-    minmax.forEach((a) => {
+    minmax.forEach((/** @type {string} */ a) => {
       if (typeof options.xaxis[a] !== 'undefined') {
         w.config.xaxis[a] = options.xaxis[a]
-        ;/** @type {Record<string,any>} */ (w.globals.lastXAxis)[a] =
+        /** @type {Record<string,any>} */ (w.globals.lastXAxis)[a] =
           options.xaxis[a]
       }
     })
