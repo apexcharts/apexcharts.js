@@ -700,6 +700,23 @@ class Utils {
    * @param {number} a
    * @param {number} b
    */
+  /**
+   * Clamps coordinates to avoid going below (0,0) and optionally
+   * above the given upper bounds.
+   * @param {{ x: number, y: number }} pos
+   * @param {{ width: number, height: number }} [upperBound]
+   * @returns {{ x: number, y: number }}
+   */
+  static clampToBoundary(pos, upperBound) {
+    let x = Math.max(0, pos.x)
+    let y = Math.max(0, pos.y)
+    if (upperBound) {
+      x = Math.min(x, Math.max(0, upperBound.width))
+      y = Math.min(y, Math.max(0, upperBound.height))
+    }
+    return { x, y }
+  }
+
   static mod(a, b, p = 7) {
     const big = Math.pow(10, p - Math.floor(Math.log10(Math.max(a, b))))
     a = Math.round(Math.abs(a) * big)

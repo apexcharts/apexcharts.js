@@ -1066,6 +1066,7 @@ export default class Options {
         items: {
           display: 'flex',
         },
+        keepInBoundary: false,
         fixed: {
           enabled: false,
           position: 'topRight', // topRight, topLeft, bottomRight, bottomLeft

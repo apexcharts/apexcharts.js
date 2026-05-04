@@ -8,6 +8,7 @@ import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import Graphics from '../Graphics'
 import Series from '../Series'
 import XAxis from './../axes/XAxis'
+import GeneralUtils from '../../utils/Utils'
 import Utils from './Utils'
 
 /**
@@ -376,8 +377,8 @@ export default class Tooltip {
         txtValue.classList.add(`apexcharts-tooltip-text-${g}-value`)
         gValText.appendChild(txtValue)
 
-        gYZ.appendChild(gValText)
-      })
+          gYZ.appendChild(gValText)
+        })
 
       gTxt.appendChild(gYZ)
 
@@ -920,6 +921,12 @@ export default class Tooltip {
           seriesBound.top -
           tooltipRect.ttHeight -
           10
+      }
+
+      if (w.config.tooltip.keepInBoundary) {
+        const clamped = GeneralUtils.clampToBoundary({ x, y })
+        y = clamped.y
+        x = clamped.x
       }
 
       tooltipEl.style.left = x + 'px'

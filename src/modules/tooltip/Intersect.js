@@ -31,7 +31,7 @@ class Intersect {
    */
   getAttr(e, attr) {
     return parseFloat(
-      /** @type {Element} */ (e.target).getAttribute(attr) ?? '',
+      /** @type {Element} */(e.target).getAttribute(attr) ?? '',
     )
   }
 
@@ -79,6 +79,12 @@ class Intersect {
           seriesBound.top -
           (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0)
       }
+    }
+
+    if (ttCtx.w.config.tooltip.keepInBoundary) {
+      const clamped = Utils.clampToBoundary({ x, y })
+      y = clamped.y
+      x = clamped.x
     }
 
     return {
@@ -146,6 +152,12 @@ class Intersect {
         y = cy
       }
       ttCtx.marker.enlargeCurrentPoint(j, opt.paths, x, y)
+    }
+
+    if (ttCtx.w.config.tooltip.keepInBoundary) {
+      const clamped = Utils.clampToBoundary({ x, y })
+      y = clamped.y
+      x = clamped.x
     }
 
     return {
@@ -237,6 +249,13 @@ class Intersect {
         (w.globals.isBarHorizontal && ttCtx.tooltipUtil.hasBars()))
     ) {
       y = y + w.layout.translateY - ttCtx.tooltipRect.ttHeight / 2
+      x = x + w.layout.translateX
+
+      if (w.config.tooltip.keepInBoundary) {
+        const clamped = Utils.clampToBoundary({ x, y })
+        y = clamped.y
+        x = clamped.x
+      }
 
       if (tooltipEl) {
         tooltipEl.style.left = x + w.layout.translateX + 'px'

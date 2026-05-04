@@ -1,6 +1,7 @@
 // @ts-check
 import Graphics from '../Graphics'
 import Series from '../Series'
+import Utils from '../../utils/Utils'
 
 /**
  * ApexCharts Tooltip.Position Class to move the tooltip based on x and y position.
@@ -202,7 +203,7 @@ export default class Position {
       x = w.layout.gridWidth - tooltipRect.ttWidth
     }
 
-    if (x < -20) {
+    if (x < -20 && !ttCtx.w.config.tooltip.keepInBoundary) {
       x = -20
     }
 
@@ -229,6 +230,12 @@ export default class Position {
 
     if (!isNaN(x)) {
       x = x + w.layout.translateX
+
+      if (ttCtx.w.config.tooltip.keepInBoundary) {
+        const clamped = Utils.clampToBoundary({ x, y })
+        y = clamped.y
+        x = clamped.x
+      }
 
       if (tooltipEl) {
         tooltipEl.style.left = x + 'px'
