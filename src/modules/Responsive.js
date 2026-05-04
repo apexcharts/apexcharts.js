@@ -76,6 +76,21 @@ export default class Responsive {
           if (width < res[i].breakpoint) {
             newOptions = CoreUtils.extendArrayProps(config, res[i].options, w)
             newOptions = Utils.extend(w.config, newOptions)
+            // Utils.extend does not deep-merge arrays, so a responsive `yaxis` array
+            // silently replaces the entire base `yaxis`, losing base settings not
+            // re-declared in the responsive options.  Re-merge each yaxis entry with
+            // the corresponding base entry so only explicitly overridden keys change.
+            if (Array.isArray(w.config.yaxis) && res[i].options?.yaxis) {
+              const responsiveYaxis = Array.isArray(res[i].options.yaxis)
+                ? res[i].options.yaxis
+                : [res[i].options.yaxis]
+              newOptions = {
+                ...newOptions,
+                yaxis: w.config.yaxis.map((baseAxis, idx) =>
+                  Utils.extend(baseAxis, responsiveYaxis[idx] || {}),
+                ),
+              }
+            }
             this.overrideResponsiveOptions(newOptions)
             this._activeBreakpoint = res[i].breakpoint
           }
