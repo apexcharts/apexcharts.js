@@ -5,6 +5,34 @@ import CoreUtils from './CoreUtils'
 import { Environment } from '../utils/Environment.js'
 
 /**
+ * Deep-merge a single responsive yaxis override onto the corresponding base
+ * yaxis entry while ignoring keys whose value is `undefined`. CoreUtils
+ * `extendArrayProps` populates the responsive `yaxis` entry with the full
+ * default yAxis schema, including keys whose default value is `undefined`
+ * (e.g. `min`, `max`, `title.text`). A plain `Utils.extend` would let those
+ * undefined defaults overwrite explicit values on the base axis.
+ *
+ * @param {any} base
+ * @param {any} override
+ */
+function mergeYaxisOverride(base, override) {
+  if (!Utils.isObject(base) || !Utils.isObject(override)) {
+    return override !== undefined ? override : base
+  }
+  const out = { ...base }
+  for (const key of Object.keys(override)) {
+    const v = override[key]
+    if (v === undefined) continue
+    if (Utils.isObject(v) && Utils.isObject(base[key])) {
+      out[key] = mergeYaxisOverride(base[key], v)
+    } else {
+      out[key] = v
+    }
+  }
+  return out
+}
+
+/**
  * ApexCharts Responsive Class to override options for different screen sizes.
  *
  * @module Responsive
@@ -74,20 +102,27 @@ export default class Responsive {
       } else {
         for (let i = 0; i < res.length; i++) {
           if (width < res[i].breakpoint) {
+            // Capture the user-provided yaxis override BEFORE
+            // CoreUtils.extendArrayProps fills it with default schema values,
+            // so we can tell which keys the user actually set.
+            const originalUserYaxis = res[i].options?.yaxis
+              ? Utils.clone(res[i].options.yaxis)
+              : null
             newOptions = CoreUtils.extendArrayProps(config, res[i].options, w)
             newOptions = Utils.extend(w.config, newOptions)
-            // Utils.extend does not deep-merge arrays, so a responsive `yaxis` array
-            // silently replaces the entire base `yaxis`, losing base settings not
-            // re-declared in the responsive options.  Re-merge each yaxis entry with
-            // the corresponding base entry so only explicitly overridden keys change.
-            if (Array.isArray(w.config.yaxis) && res[i].options?.yaxis) {
-              const responsiveYaxis = Array.isArray(res[i].options.yaxis)
-                ? res[i].options.yaxis
-                : [res[i].options.yaxis]
+            // Utils.extend does not deep-merge arrays, so a responsive `yaxis`
+            // array silently replaces the entire base `yaxis`, losing base
+            // settings not re-declared in the responsive options. Re-merge
+            // each yaxis entry with the corresponding base entry using only
+            // keys the user explicitly set in the responsive options.
+            if (Array.isArray(w.config.yaxis) && originalUserYaxis) {
+              const userYaxis = Array.isArray(originalUserYaxis)
+                ? originalUserYaxis
+                : [originalUserYaxis]
               newOptions = {
                 ...newOptions,
                 yaxis: w.config.yaxis.map((baseAxis, idx) =>
-                  Utils.extend(baseAxis, responsiveYaxis[idx] || {}),
+                  mergeYaxisOverride(baseAxis, userYaxis[idx]),
                 ),
               }
             }
