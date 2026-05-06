@@ -277,16 +277,18 @@ describe('Tooltip.Utils', () => {
       w.globals.allSeriesHasEqualX = false
       const utils = new TooltipUtils(ttCtx)
 
+      // Two near-horizontal segments at y ≈ 105 (series 0) and y ≈ 155
+      // (series 1). Hover at (32, 155) lies almost on series 1's segment
+      // and far above series 0's.
       const Xarrays = [
         [10, 50],
         [30, 70],
       ]
       const Yarrays = [
-        [100, 200],
-        [150, 250],
+        [100, 110],
+        [150, 160],
       ]
 
-      // hoverX=32, hoverY=155 → closest to series 1, point 0 (30, 150)
       const result = utils.closestInMultiArray(32, 155, Xarrays, Yarrays)
       expect(result.index).toBe(1)
       expect(result.j).toBe(0)
