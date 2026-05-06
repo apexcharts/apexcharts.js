@@ -199,6 +199,17 @@ export default class Utils {
       )
     }
 
+    // For pure line/area charts, measure distance to the line *segments*
+    // between consecutive points instead of just to the markers. Without
+    // this, hovering halfway between two markers picks whichever series's
+    // marker happens to be nearest to that empty space — often the wrong
+    // line. Only safe for non-combo line/area; bars/scatter/etc. fall
+    // through to the marker-distance path below.
+    const chartType = w.config.chart.type
+    const useSegmentDistance =
+      !w.globals.comboCharts &&
+      (chartType === 'line' || chartType === 'area')
+
     let closestDist = Infinity
     let closestSeriesIndex = null
     let closestPointIndex = null
@@ -224,6 +235,28 @@ export default class Utils {
 
       const len = Math.min(xArr.length, yArr.length)
 
+      if (useSegmentDistance && len >= 2) {
+        for (let j = 0; j < len - 1; j++) {
+          const seg = this._distanceToSegment(
+            hoverX,
+            hoverY,
+            xArr[j],
+            yArr[j],
+            xArr[j + 1],
+            yArr[j + 1],
+          )
+          if (seg.dist < closestDist) {
+            closestDist = seg.dist
+            closestSeriesIndex = i
+            // j is used downstream for tooltip content — pick the endpoint
+            // the projection landed closer to so the value shown matches
+            // what the user is pointing at.
+            closestPointIndex = seg.t < 0.5 ? j : j + 1
+          }
+        }
+        continue
+      }
+
       for (let j = 0; j < len; j++) {
         const xVal = xArr[j]
         const distX = hoverX - xVal
@@ -247,6 +280,33 @@ export default class Utils {
       index: closestSeriesIndex,
       j: closestPointIndex,
     }
+  }
+
+  /**
+   * Perpendicular distance from point (px, py) to the line segment
+   * (ax, ay) → (bx, by). Returns the distance plus the projection
+   * parameter t (0 = at A, 1 = at B, clamped) so callers know which
+   * endpoint the projection landed nearest.
+   * @param {number} px
+   * @param {number} py
+   * @param {number} ax
+   * @param {number} ay
+   * @param {number} bx
+   * @param {number} by
+   * @returns {{ dist: number, t: number }}
+   */
+  _distanceToSegment(px, py, ax, ay, bx, by) {
+    const dx = bx - ax
+    const dy = by - ay
+    const lenSq = dx * dx + dy * dy
+    let t = lenSq === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / lenSq
+    if (t < 0) t = 0
+    else if (t > 1) t = 1
+    const cx = ax + t * dx
+    const cy = ay + t * dy
+    const ex = px - cx
+    const ey = py - cy
+    return { dist: Math.sqrt(ex * ex + ey * ey), t }
   }
 
   /**
