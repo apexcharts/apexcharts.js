@@ -203,6 +203,16 @@ export default class Utils {
     let closestSeriesIndex = null
     let closestPointIndex = null
 
+    // For shared tooltips on bar charts with aligned x-axes, Y distance
+    // would arbitrarily pick whichever bar segment sits nearest the
+    // cursor vertically; ignore it (preserves the zoomed-bar fix from
+    // #3439). For line/area charts we need Y so click events report the
+    // actually-hovered series instead of always returning series 0.
+    const ignoreY =
+      w.config.tooltip.shared &&
+      w.globals.allSeriesHasEqualX &&
+      this.hasBars()
+
     // Iterate through all series and points to find the closest (x,y) to (hoverX, hoverY)
     for (let i = 0; i < Xarrays.length; i++) {
       if (!isActiveSeries(i)) {
@@ -213,13 +223,6 @@ export default class Utils {
       const yArr = Yarrays[i]
 
       const len = Math.min(xArr.length, yArr.length)
-
-      // For shared tooltips on aligned x-axes, Y distance would arbitrarily
-      // pick whichever series sits nearest the cursor vertically; ignore it.
-      // With shared:false we must use Y so we pick the series actually under
-      // the cursor instead of always returning series 0.
-      const ignoreY =
-        w.config.tooltip.shared && w.globals.allSeriesHasEqualX
 
       for (let j = 0; j < len; j++) {
         const xVal = xArr[j]
