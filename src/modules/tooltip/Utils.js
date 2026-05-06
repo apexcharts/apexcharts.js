@@ -214,12 +214,19 @@ export default class Utils {
 
       const len = Math.min(xArr.length, yArr.length)
 
+      // For shared tooltips on aligned x-axes, Y distance would arbitrarily
+      // pick whichever series sits nearest the cursor vertically; ignore it.
+      // With shared:false we must use Y so we pick the series actually under
+      // the cursor instead of always returning series 0.
+      const ignoreY =
+        w.config.tooltip.shared && w.globals.allSeriesHasEqualX
+
       for (let j = 0; j < len; j++) {
         const xVal = xArr[j]
         const distX = hoverX - xVal
         let dist = Math.sqrt(distX * distX)
 
-        if (!w.globals.allSeriesHasEqualX) {
+        if (!ignoreY) {
           const yVal = yArr[j]
           const distY = hoverY - yVal
           dist = Math.sqrt(distX * distX + distY * distY)
