@@ -31,6 +31,11 @@ export default class KeyboardNavigation {
     this.dataPointIndex = 0
     this.active = false
 
+    // True after the user presses Escape once: tooltip is dismissed but the
+    // chart still has focus. A second Escape exits keyboard nav entirely.
+    // Matches WCAG 1.4.13 technique G194 (dismissible content on focus).
+    this._tooltipDismissed = false
+
     // Previously focused SVG element (for removing the focus class)
     this._focusedEl = null
 
@@ -121,6 +126,7 @@ export default class KeyboardNavigation {
 
   _onBlur() {
     this.active = false
+    this._tooltipDismissed = false
     this._hideFocus()
   }
 
@@ -140,6 +146,18 @@ export default class KeyboardNavigation {
    */
   _onKeyDown(e) {
     if (!this._isNavEnabled() || !this.active) return
+
+    // Shift+Arrow → pan the visible x-range (when zoom is enabled).
+    // Has to come before the plain Arrow cases so the modifier wins.
+    if (
+      e.shiftKey &&
+      (e.key === 'ArrowRight' || e.key === 'ArrowLeft') &&
+      this._canPan()
+    ) {
+      e.preventDefault()
+      this._panBy(e.key === 'ArrowRight' ? 1 : -1)
+      return
+    }
 
     switch (e.key) {
       case 'ArrowRight':
@@ -175,14 +193,81 @@ export default class KeyboardNavigation {
         e.preventDefault()
         this._fireClick()
         break
+      case '+':
+      case '=':
+        // '=' for unshifted '+' on most US keyboards
+        if (this._canZoom()) {
+          e.preventDefault()
+          this.ctx.toolbar?.handleZoomIn()
+          this._announce('Zoomed in')
+        }
+        break
+      case '-':
+      case '_':
+        if (this._canZoom()) {
+          e.preventDefault()
+          this.ctx.toolbar?.handleZoomOut()
+          this._announce('Zoomed out')
+        }
+        break
+      case '0':
+        if (this._canZoom() && this.w.interact.zoomed) {
+          e.preventDefault()
+          this.ctx.toolbar?.handleZoomReset()
+          this._announce('Zoom reset')
+        }
+        break
       case 'Escape':
         e.preventDefault()
-        this.active = false
-        this._hideFocus()
+        // Two-stage: first Escape dismisses the tooltip but keeps focus on
+        // the chart so the user can resume nav; second Escape exits nav.
+        if (!this._tooltipDismissed) {
+          this._tooltipDismissed = true
+          this._hideFocus()
+        } else {
+          this.active = false
+          this._tooltipDismissed = false
+          this._hideFocus()
+        }
         break
       default:
         break
     }
+  }
+
+  // ─── Zoom / pan (keyboard alternatives for drag gestures) ─────────────────
+
+  _canZoom() {
+    const w = this.w
+    return Boolean(
+      w.globals.axisCharts && w.config.chart.zoom && w.config.chart.zoom.enabled,
+    )
+  }
+
+  _canPan() {
+    // Pan only meaningful once the chart is zoomed in (otherwise full data is
+    // already visible). We still allow it whenever zoom is enabled — the
+    // toolbar's zoomUpdateOptions clamps to data bounds.
+    return this._canZoom()
+  }
+
+  /**
+   * Shift the visible x-range by ~10% in the given direction.
+   * @param {number} direction +1 = right, -1 = left
+   */
+  _panBy(direction) {
+    const w = this.w
+    const toolbar = this.ctx.toolbar
+    if (!toolbar) return
+
+    const minX = Number(w.globals.minX)
+    const maxX = Number(w.globals.maxX)
+    if (!isFinite(minX) || !isFinite(maxX) || minX === maxX) return
+
+    const span = maxX - minX
+    const step = span * 0.1 * direction
+    toolbar.zoomUpdateOptions(minX + step, maxX + step)
+    this._announce(direction > 0 ? 'Panned right' : 'Panned left')
   }
 
   // ─── Navigation ───────────────────────────────────────────────────────────
@@ -851,6 +936,13 @@ export default class KeyboardNavigation {
     const el = this._getFocusableElement(i, j)
     if (el) {
       el.classList.add('apexcharts-keyboard-focused')
+      // WCAG 4.1.2 Name, Role, Value: give the focused data point an
+      // accessible name so screen readers announce series + value + category
+      // when the user navigates via arrow keys. We apply on focus (not on
+      // every render) to keep large datasets cheap and avoid noisy SR output.
+      el.setAttribute('role', 'img')
+      const label = this._buildPointLabel(i, j)
+      if (label) el.setAttribute('aria-label', label)
       this._focusedEl = el
     }
   }
@@ -858,8 +950,84 @@ export default class KeyboardNavigation {
   _removeFocusClass() {
     if (this._focusedEl) {
       this._focusedEl.classList.remove('apexcharts-keyboard-focused')
+      this._focusedEl.removeAttribute('role')
+      this._focusedEl.removeAttribute('aria-label')
       this._focusedEl = null
     }
+  }
+
+  /**
+   * Build an accessible label for the data point at (i, j) using the same
+   * formatters the visible tooltip / axis labels use, so SR output matches
+   * the visual presentation.
+   * @param {number} i
+   * @param {number} j
+   * @returns {string}
+   */
+  _buildPointLabel(i, j) {
+    const w = this.w
+    const type = w.config.chart.type
+
+    const seriesNames = w.seriesData.seriesNames || []
+    const series = w.seriesData.series || []
+
+    // Non-axis charts: i is unused by navigation (single-series), j is the slice
+    if (type === 'pie' || type === 'donut' || type === 'polarArea') {
+      const sliceLabel = (w.labelData?.labels && w.labelData.labels[j]) ?? ''
+      const value = Array.isArray(series) ? series[j] : ''
+      return sliceLabel ? `${sliceLabel}: ${value}` : `${value}`
+    }
+
+    if (type === 'radialBar') {
+      const seriesName = seriesNames[i] || `Series ${i + 1}`
+      const value = Array.isArray(series) ? series[i] : ''
+      return `${seriesName}: ${value}`
+    }
+
+    const seriesName = seriesNames[i] || `Series ${i + 1}`
+
+    // Format the y-value via the same formatter used by axis/tooltip labels.
+    const row = Array.isArray(series[i]) ? series[i] : []
+    const rawValue = row[j]
+    let formattedValue = rawValue == null ? '' : String(rawValue)
+    const yFormatter = w.formatters?.yLabelFormatters?.[i]
+    if (typeof yFormatter === 'function') {
+      try {
+        formattedValue = yFormatter(rawValue, {
+          seriesIndex: i,
+          dataPointIndex: j,
+          w,
+        })
+      } catch {
+        // fall back to raw
+      }
+    }
+
+    // Format the x-category. For category charts, w.labelData.categoryLabels
+    // holds the visible labels; otherwise fall back to seriesX numeric values.
+    let category = ''
+    const categoryLabels = w.labelData?.categoryLabels
+    const seriesX = w.seriesData?.seriesX?.[i]
+    if (Array.isArray(categoryLabels) && categoryLabels[j] != null) {
+      category = String(categoryLabels[j])
+    } else if (Array.isArray(seriesX) && seriesX[j] != null) {
+      const xFormatter = w.formatters?.xLabelFormatter
+      if (typeof xFormatter === 'function') {
+        try {
+          category = String(
+            xFormatter(seriesX[j], { seriesIndex: i, dataPointIndex: j, w }),
+          )
+        } catch {
+          category = String(seriesX[j])
+        }
+      } else {
+        category = String(seriesX[j])
+      }
+    }
+
+    return category
+      ? `${seriesName}: ${formattedValue}, ${category}`
+      : `${seriesName}: ${formattedValue}`
   }
 
   _leaveHoveredBar() {
@@ -1076,5 +1244,30 @@ export default class KeyboardNavigation {
     if (x === undefined) return true
 
     return x >= gl.minX && x <= gl.maxX
+  }
+
+  /**
+   * Push a short status message to the visually-hidden aria-live region so
+   * screen readers announce zoom / pan / reset events that have no inherent
+   * tooltip update. Silently no-op if the region is missing or announcements
+   * are disabled.
+   * @param {string} message
+   */
+  _announce(message) {
+    const w = this.w
+    if (!w.config.chart.accessibility.announcements.enabled) return
+
+    const baseEl = w.dom.baseEl
+    if (!baseEl) return
+    const region = baseEl.querySelector('.apexcharts-sr-status')
+    if (!region) return
+
+    // Toggling textContent on a polite live region is enough for SRs to
+    // re-announce. Same string twice in a row otherwise gets coalesced.
+    region.textContent = ''
+    // Microtask delay so the empty/then-text sequence is observed.
+    setTimeout(() => {
+      region.textContent = message
+    }, 0)
   }
 }
