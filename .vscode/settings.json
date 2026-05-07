@@ -1,5 +1,8 @@
 {
   "editor.formatOnSave": true,
+  "[markdown]": {
+    "editor.formatOnSave": false
+  },
   "linter_codeclimate.enabled": false,
   "files.watcherExclude": {
     "**/.git/objects/**": true,
