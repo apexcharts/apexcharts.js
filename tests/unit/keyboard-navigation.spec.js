@@ -284,14 +284,28 @@ describe('KeyboardNavigation', () => {
   })
 
   // =========================================================================
-  // Escape key
+  // Escape key (two-stage: 1st = dismiss tooltip, 2nd = exit nav)
   // =========================================================================
   describe('Escape key', () => {
-    it('should deactivate navigation on Escape', () => {
+    it('keeps nav active and hides focus on first Escape', () => {
       const chart = chartWithKeyNav()
       const kn = chart.ctx.keyboardNavigation
       focusSvg(chart)
       expect(kn.active).toBe(true)
+      fireKey(chart, 'Escape')
+      // First Escape dismisses tooltip but keeps the chart focused so the user
+      // can resume navigation without re-tabbing back in (WCAG 1.4.13 G194).
+      expect(kn.active).toBe(true)
+      expect(kn._tooltipDismissed).toBe(true)
+      const tooltip = chart.el.querySelector('.apexcharts-tooltip')
+      expect(tooltip.classList.contains('apexcharts-active')).toBe(false)
+    })
+
+    it('deactivates navigation on second Escape', () => {
+      const chart = chartWithKeyNav()
+      const kn = chart.ctx.keyboardNavigation
+      focusSvg(chart)
+      fireKey(chart, 'Escape')
       fireKey(chart, 'Escape')
       expect(kn.active).toBe(false)
     })

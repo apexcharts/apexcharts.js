@@ -230,6 +230,35 @@ export default class Position {
     if (!isNaN(x)) {
       x = x + w.layout.translateX
 
+      // WCAG 2.4.11 Focus Not Obscured: when keyboard nav drives the tooltip,
+      // make sure the tooltip box doesn't sit on top of the focused data
+      // point. If the tooltip's vertical extent overlaps the point, push it
+      // above the point by enough margin to clear the focus stroke.
+      const a11y = w.config?.chart?.accessibility
+      if (
+        a11y?.enabled &&
+        a11y?.keyboard?.navigation?.enabled &&
+        w.dom?.baseEl?.querySelector?.('.apexcharts-keyboard-focused')
+      ) {
+        const cyNum = parseFloat(String(cy))
+        const ttH = tooltipRect.ttHeight || 0
+        const margin = (pointSize || 1) + 12
+        const tooltipTop = y
+        const tooltipBottom = y + ttH
+        if (
+          !isNaN(cyNum) &&
+          ttH > 0 &&
+          tooltipTop < cyNum + margin &&
+          tooltipBottom > cyNum - margin
+        ) {
+          y = cyNum - ttH - margin
+          if (y < 0) {
+            // No room above — fall back below the point.
+            y = cyNum + margin
+          }
+        }
+      }
+
       if (tooltipEl) {
         tooltipEl.style.left = x + 'px'
         tooltipEl.style.top = y + 'px'

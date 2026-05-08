@@ -876,4 +876,122 @@ describe('Accessibility', () => {
       expect(chart.w.globals.colors[0]).toBe('#008FFB')
     })
   })
+
+  // =========================================================================
+  // Phase 1.5 — SVG <title> element
+  // =========================================================================
+  describe('SVG <title> element', () => {
+    // Root-level <title> only — chart series may add inner <title> elements.
+    const getRootTitle = (svg) => svg.querySelector(':scope > title')
+
+    it('adds a <title> child to the SVG with the same text as aria-label', () => {
+      const chart = chartWithAccessibility({
+        title: { text: 'Quarterly Report' },
+      })
+      const svg = chart.el.querySelector('.apexcharts-svg')
+      const titleEl = getRootTitle(svg)
+      expect(titleEl).not.toBeNull()
+      expect(titleEl.textContent).toBe(svg.getAttribute('aria-label'))
+    })
+
+    it('uses accessibility.description for the SVG <title> when provided', () => {
+      const chart = chartWithAccessibility({
+        accessibility: { description: 'Custom long description' },
+      })
+      const svg = chart.el.querySelector('.apexcharts-svg')
+      const titleEl = getRootTitle(svg)
+      expect(titleEl.textContent).toBe('Custom long description')
+    })
+
+    it('does not add a root <title> when accessibility is disabled', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'line', accessibility: { enabled: false } },
+        series: [{ name: 'A', data: [1, 2, 3] }],
+      })
+      const svg = chart.el.querySelector('.apexcharts-svg')
+      expect(getRootTitle(svg)).toBeNull()
+    })
+  })
+
+  // =========================================================================
+  // Phase 2.1 — enriched auto-generated alt text
+  // =========================================================================
+  describe('Auto-generated aria-label includes series names', () => {
+    it('lists series names when no title is configured', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'bar', accessibility: { enabled: true } },
+        series: [
+          { name: 'Sales', data: [1, 2, 3] },
+          { name: 'Revenue', data: [4, 5, 6] },
+        ],
+      })
+      const ariaLabel = chart.el
+        .querySelector('.apexcharts-svg')
+        .getAttribute('aria-label')
+      expect(ariaLabel).toContain('Sales')
+      expect(ariaLabel).toContain('Revenue')
+      expect(ariaLabel).toContain('bar chart')
+      expect(ariaLabel).toContain('2 data series')
+    })
+
+    it('falls back to count-only label when series have no names', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'line', accessibility: { enabled: true } },
+        series: [{ data: [1, 2, 3] }],
+      })
+      const ariaLabel = chart.el
+        .querySelector('.apexcharts-svg')
+        .getAttribute('aria-label')
+      expect(ariaLabel).toContain('1 data series')
+    })
+  })
+
+  // =========================================================================
+  // Phase 4.1 — sr-only aria-live status region
+  // =========================================================================
+  describe('Status messages live region (sr-status)', () => {
+    it('creates a polite aria-live region when announcements are enabled', () => {
+      const chart = chartWithAccessibility()
+      const status = chart.el.querySelector('.apexcharts-sr-status')
+      expect(status).not.toBeNull()
+      expect(status.getAttribute('role')).toBe('status')
+      expect(status.getAttribute('aria-live')).toBe('polite')
+      expect(status.getAttribute('aria-atomic')).toBe('true')
+    })
+
+    it('omits the live region when announcements are disabled', () => {
+      const chart = chartWithAccessibility({
+        accessibility: { announcements: { enabled: false } },
+      })
+      expect(chart.el.querySelector('.apexcharts-sr-status')).toBeNull()
+    })
+  })
+
+  // =========================================================================
+  // Phase 4.2 — toolbar uses native <button> elements
+  // =========================================================================
+  describe('Toolbar uses native <button> elements', () => {
+    it('renders zoom/pan/reset buttons as <button type="button">', () => {
+      const chart = createChartWithOptions({
+        chart: {
+          type: 'line',
+          toolbar: { show: true },
+          zoom: { enabled: true },
+        },
+        series: [{ name: 'A', data: [1, 2, 3, 4] }],
+      })
+      const zoomIn = chart.el.querySelector('.apexcharts-zoomin-icon')
+      const zoomOut = chart.el.querySelector('.apexcharts-zoomout-icon')
+      const reset = chart.el.querySelector('.apexcharts-reset-icon')
+      const menu = chart.el.querySelector('.apexcharts-menu-icon')
+      for (const el of [zoomIn, zoomOut, reset, menu]) {
+        expect(el).not.toBeNull()
+        expect(el.tagName).toBe('BUTTON')
+        expect(el.getAttribute('type')).toBe('button')
+        // role="button" and tabindex are now redundant on native <button>
+        expect(el.getAttribute('role')).toBeNull()
+        expect(el.getAttribute('tabindex')).toBeNull()
+      }
+    })
+  })
 })

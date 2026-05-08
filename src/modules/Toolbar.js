@@ -51,19 +51,30 @@ export default class Toolbar {
     const createDiv = () => {
       return BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'div')
     }
+    // Toolbar controls are native <button> elements (WCAG 1st rule of ARIA:
+    // prefer real buttons over div[role=button]). Type defaults to "submit"
+    // inside forms, so we set it explicitly.
+    const createBtn = () => {
+      const btn = /** @type {HTMLButtonElement} */ (
+        BrowserAPIs.createElementNS('http://www.w3.org/1999/xhtml', 'button')
+      )
+      btn.setAttribute('type', 'button')
+      return btn
+    }
     const elToolbarWrap = createDiv()
     elToolbarWrap.setAttribute('class', 'apexcharts-toolbar')
     elToolbarWrap.style.top = w.config.chart.toolbar.offsetY + 'px'
     elToolbarWrap.style.right = -w.config.chart.toolbar.offsetX + 3 + 'px'
     w.dom.elWrap.appendChild(elToolbarWrap)
 
-    this.elZoom = createDiv()
-    this.elZoomIn = createDiv()
-    this.elZoomOut = createDiv()
-    this.elPan = createDiv()
-    this.elSelection = createDiv()
-    this.elZoomReset = createDiv()
-    this.elMenuIcon = createDiv()
+    this.elZoom = createBtn()
+    this.elZoomIn = createBtn()
+    this.elZoomOut = createBtn()
+    this.elPan = createBtn()
+    this.elSelection = createBtn()
+    this.elZoomReset = createBtn()
+    this.elMenuIcon = createBtn()
+    // The menu (popup container) stays a <div> — it's not a button.
     this.elMenu = createDiv()
     /** @type {any} */
     this.elCustomIcons = []
@@ -72,7 +83,7 @@ export default class Toolbar {
 
     if (Array.isArray(this.t.customIcons)) {
       for (let i = 0; i < this.t.customIcons.length; i++) {
-        this.elCustomIcons.push(createDiv())
+        this.elCustomIcons.push(createBtn())
       }
     }
 
@@ -159,11 +170,10 @@ export default class Toolbar {
     })
 
     for (let i = 0; i < toolbarControls.length; i++) {
+      // <button> already has implicit role="button" and is keyboard-focusable.
       Graphics.setAttrs(toolbarControls[i].el, {
         class: toolbarControls[i].class,
         title: toolbarControls[i].title,
-        tabindex: '0',
-        role: 'button',
         'aria-label': toolbarControls[i].title,
       })
 

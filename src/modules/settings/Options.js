@@ -943,7 +943,6 @@ export default class Options {
       noData: {
         text: undefined,
         align: 'center',
-        verticalAlign: 'middle',
         offsetX: 0,
         offsetY: 0,
         style: {

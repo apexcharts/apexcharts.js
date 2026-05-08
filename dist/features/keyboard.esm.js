@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.10.6
+ * ApexCharts v5.11.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -37,6 +37,7 @@ class KeyboardNavigation {
     this.seriesIndex = 0;
     this.dataPointIndex = 0;
     this.active = false;
+    this._tooltipDismissed = false;
     this._focusedEl = null;
     this._hoveredBarEl = null;
     this._enlargedScatterMarker = null;
@@ -91,6 +92,7 @@ class KeyboardNavigation {
   }
   _onBlur() {
     this.active = false;
+    this._tooltipDismissed = false;
     this._hideFocus();
   }
   // Called when the user clicks a legend item (collapse/expand a series).
@@ -106,7 +108,13 @@ class KeyboardNavigation {
    * @param {KeyboardEvent} e
    */
   _onKeyDown(e) {
+    var _a, _b, _c;
     if (!this._isNavEnabled() || !this.active) return;
+    if (e.shiftKey && (e.key === "ArrowRight" || e.key === "ArrowLeft") && this._canPan()) {
+      e.preventDefault();
+      this._panBy(e.key === "ArrowRight" ? 1 : -1);
+      return;
+    }
     switch (e.key) {
       case "ArrowRight":
         e.preventDefault();
@@ -141,12 +149,67 @@ class KeyboardNavigation {
         e.preventDefault();
         this._fireClick();
         break;
+      case "+":
+      case "=":
+        if (this._canZoom()) {
+          e.preventDefault();
+          (_a = this.ctx.toolbar) == null ? void 0 : _a.handleZoomIn();
+          this._announce("Zoomed in");
+        }
+        break;
+      case "-":
+      case "_":
+        if (this._canZoom()) {
+          e.preventDefault();
+          (_b = this.ctx.toolbar) == null ? void 0 : _b.handleZoomOut();
+          this._announce("Zoomed out");
+        }
+        break;
+      case "0":
+        if (this._canZoom() && this.w.interact.zoomed) {
+          e.preventDefault();
+          (_c = this.ctx.toolbar) == null ? void 0 : _c.handleZoomReset();
+          this._announce("Zoom reset");
+        }
+        break;
       case "Escape":
         e.preventDefault();
-        this.active = false;
-        this._hideFocus();
+        if (!this._tooltipDismissed) {
+          this._tooltipDismissed = true;
+          this._hideFocus();
+        } else {
+          this.active = false;
+          this._tooltipDismissed = false;
+          this._hideFocus();
+        }
         break;
     }
+  }
+  // ─── Zoom / pan (keyboard alternatives for drag gestures) ─────────────────
+  _canZoom() {
+    const w = this.w;
+    return Boolean(
+      w.globals.axisCharts && w.config.chart.zoom && w.config.chart.zoom.enabled
+    );
+  }
+  _canPan() {
+    return this._canZoom();
+  }
+  /**
+   * Shift the visible x-range by ~10% in the given direction.
+   * @param {number} direction +1 = right, -1 = left
+   */
+  _panBy(direction) {
+    const w = this.w;
+    const toolbar = this.ctx.toolbar;
+    if (!toolbar) return;
+    const minX = Number(w.globals.minX);
+    const maxX = Number(w.globals.maxX);
+    if (!isFinite(minX) || !isFinite(maxX) || minX === maxX) return;
+    const span = maxX - minX;
+    const step = span * 0.1 * direction;
+    toolbar.zoomUpdateOptions(minX + step, maxX + step);
+    this._announce(direction > 0 ? "Panned right" : "Panned left");
   }
   // ─── Navigation ───────────────────────────────────────────────────────────
   /**
@@ -596,14 +659,79 @@ class KeyboardNavigation {
     const el = this._getFocusableElement(i, j);
     if (el) {
       el.classList.add("apexcharts-keyboard-focused");
+      el.setAttribute("role", "img");
+      const label = this._buildPointLabel(i, j);
+      if (label) el.setAttribute("aria-label", label);
       this._focusedEl = el;
     }
   }
   _removeFocusClass() {
     if (this._focusedEl) {
       this._focusedEl.classList.remove("apexcharts-keyboard-focused");
+      this._focusedEl.removeAttribute("role");
+      this._focusedEl.removeAttribute("aria-label");
       this._focusedEl = null;
     }
+  }
+  /**
+   * Build an accessible label for the data point at (i, j) using the same
+   * formatters the visible tooltip / axis labels use, so SR output matches
+   * the visual presentation.
+   * @param {number} i
+   * @param {number} j
+   * @returns {string}
+   */
+  _buildPointLabel(i, j) {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    const w = this.w;
+    const type = w.config.chart.type;
+    const seriesNames = w.seriesData.seriesNames || [];
+    const series = w.seriesData.series || [];
+    if (type === "pie" || type === "donut" || type === "polarArea") {
+      const sliceLabel = (_b = ((_a = w.labelData) == null ? void 0 : _a.labels) && w.labelData.labels[j]) != null ? _b : "";
+      const value = Array.isArray(series) ? series[j] : "";
+      return sliceLabel ? `${sliceLabel}: ${value}` : `${value}`;
+    }
+    if (type === "radialBar") {
+      const seriesName2 = seriesNames[i] || `Series ${i + 1}`;
+      const value = Array.isArray(series) ? series[i] : "";
+      return `${seriesName2}: ${value}`;
+    }
+    const seriesName = seriesNames[i] || `Series ${i + 1}`;
+    const row = Array.isArray(series[i]) ? series[i] : [];
+    const rawValue = row[j];
+    let formattedValue = rawValue == null ? "" : String(rawValue);
+    const yFormatter = (_d = (_c = w.formatters) == null ? void 0 : _c.yLabelFormatters) == null ? void 0 : _d[i];
+    if (typeof yFormatter === "function") {
+      try {
+        formattedValue = yFormatter(rawValue, {
+          seriesIndex: i,
+          dataPointIndex: j,
+          w
+        });
+      } catch (e) {
+      }
+    }
+    let category = "";
+    const categoryLabels = (_e = w.labelData) == null ? void 0 : _e.categoryLabels;
+    const seriesX = (_g = (_f = w.seriesData) == null ? void 0 : _f.seriesX) == null ? void 0 : _g[i];
+    if (Array.isArray(categoryLabels) && categoryLabels[j] != null) {
+      category = String(categoryLabels[j]);
+    } else if (Array.isArray(seriesX) && seriesX[j] != null) {
+      const xFormatter = (_h = w.formatters) == null ? void 0 : _h.xLabelFormatter;
+      if (typeof xFormatter === "function") {
+        try {
+          category = String(
+            xFormatter(seriesX[j], { seriesIndex: i, dataPointIndex: j, w })
+          );
+        } catch (e) {
+          category = String(seriesX[j]);
+        }
+      } else {
+        category = String(seriesX[j]);
+      }
+    }
+    return category ? `${seriesName}: ${formattedValue}, ${category}` : `${seriesName}: ${formattedValue}`;
   }
   _leaveHoveredBar() {
     if (this._hoveredBarEl) {
@@ -769,6 +897,25 @@ class KeyboardNavigation {
     const x = seriesX[di];
     if (x === void 0) return true;
     return x >= gl.minX && x <= gl.maxX;
+  }
+  /**
+   * Push a short status message to the visually-hidden aria-live region so
+   * screen readers announce zoom / pan / reset events that have no inherent
+   * tooltip update. Silently no-op if the region is missing or announcements
+   * are disabled.
+   * @param {string} message
+   */
+  _announce(message) {
+    const w = this.w;
+    if (!w.config.chart.accessibility.announcements.enabled) return;
+    const baseEl = w.dom.baseEl;
+    if (!baseEl) return;
+    const region = baseEl.querySelector(".apexcharts-sr-status");
+    if (!region) return;
+    region.textContent = "";
+    setTimeout(() => {
+      region.textContent = message;
+    }, 0);
   }
 }
 _core__default.registerFeatures({ keyboardNavigation: KeyboardNavigation });

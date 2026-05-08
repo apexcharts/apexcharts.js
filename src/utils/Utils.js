@@ -388,6 +388,58 @@ class Utils {
   }
 
   /**
+   * Parse a #RGB or #RRGGBB hex colour string into [r,g,b] in 0–255.
+   * Returns null for invalid input. Used by getContrastRatio.
+   * @param {string} hex
+   * @returns {[number, number, number] | null}
+   */
+  static parseHex(hex) {
+    if (typeof hex !== 'string') return null
+    let h = hex.trim().replace('#', '')
+    if (h.length === 3) {
+      h = h.split('').map((c) => c + c).join('')
+    }
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) return null
+    return [
+      parseInt(h.slice(0, 2), 16),
+      parseInt(h.slice(2, 4), 16),
+      parseInt(h.slice(4, 6), 16),
+    ]
+  }
+
+  /**
+   * Relative luminance per WCAG 2.x (https://www.w3.org/TR/WCAG22/#dfn-relative-luminance).
+   * @param {[number, number, number]} rgb 0–255 sRGB triplet
+   * @returns {number} 0.0–1.0
+   */
+  static relativeLuminance([r, g, b]) {
+    const channel = (/** @type {number} */ c) => {
+      const v = c / 255
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
+    }
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+  }
+
+  /**
+   * WCAG contrast ratio between two hex colours. Returns 0 for invalid input.
+   * Range: 1 (identical) … 21 (#000 vs #fff).
+   * WCAG AA requires ≥ 4.5 for normal text and ≥ 3.0 for large text / UI components.
+   * @param {string} hex1
+   * @param {string} hex2
+   * @returns {number}
+   */
+  static getContrastRatio(hex1, hex2) {
+    const rgb1 = Utils.parseHex(hex1)
+    const rgb2 = Utils.parseHex(hex2)
+    if (!rgb1 || !rgb2) return 0
+    const l1 = Utils.relativeLuminance(rgb1)
+    const l2 = Utils.relativeLuminance(rgb2)
+    const lighter = Math.max(l1, l2)
+    const darker = Math.min(l1, l2)
+    return (lighter + 0.05) / (darker + 0.05)
+  }
+
+  /**
    * @param {any} rgb
    */
   static rgb2hex(rgb) {

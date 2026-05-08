@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Line — shared tooltip click reports correct series</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 900px;
+        margin: 35px auto 12px;
+      }
+      #event-log {
+        max-width: 900px;
+        margin: 0 auto 35px;
+        padding: 12px 16px;
+        font-family: monospace;
+        font-size: 14px;
+        background: #f5f5f5;
+        border-left: 4px solid #008ffb;
+      }
+    </style>
+
+    <script src="../../../dist/apexcharts.js"></script>
+  </head>
+
+  <body>
+    <div id="chart"></div>
+    <div id="event-log">
+      Click a marker (or a line itself) — the captured series should match
+      what you clicked.
+    </div>
+
+    <script>
+      var seriesNames = [
+        'Desktops',
+        'Tablets',
+        'Phones',
+        'Watches',
+        'Projectors',
+      ]
+
+      function logEvent(name, cfg) {
+        document.getElementById('event-log').innerText =
+          name +
+          ' → seriesIndex: ' +
+          cfg.seriesIndex +
+          ' (' +
+          seriesNames[cfg.seriesIndex] +
+          '), dataPointIndex: ' +
+          cfg.dataPointIndex
+      }
+
+      var options = {
+        chart: {
+          height: 380,
+          width: '100%',
+          type: 'line',
+          events: {
+            dataPointSelection: function (e, ctx, cfg) {
+              logEvent('dataPointSelection', cfg)
+            },
+            markerClick: function (e, ctx, cfg) {
+              logEvent('markerClick', cfg)
+            },
+          },
+        },
+        tooltip: {
+          shared: true,
+        },
+        markers: {
+          size: 5,
+        },
+        xaxis: {
+          categories: [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+          ],
+        },
+        series: [
+          { name: 'Desktops', data: [10, 41, 35, 51, 49, 62, 69, 91, 148] },
+          { name: 'Tablets', data: [13, 54, 49, 68, 70, 84, 84, 80, 180] },
+          { name: 'Phones', data: [14, 23, 13, 27, 33, 20, 49, 41, 141] },
+          { name: 'Watches', data: [15, 43, 42, 49, 55, 58, 75, 84, 120] },
+          { name: 'Projectors', data: [12, 40, 12, 55, 57, 68, 74, 78, 157] },
+        ],
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      window.chart = chart
+      chart.render()
+    </script>
+  </body>
+</html>

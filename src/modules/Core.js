@@ -115,6 +115,22 @@ export default class Core {
     this.w.dom.elWrap.appendChild(this.w.dom.elLegendWrap)
     this.w.dom.Paper.node.appendChild(this.w.dom.elLegendForeign)
 
+    // Screen-reader-only aria-live status region (WCAG 4.1.3). Sits as a
+    // sibling of the SVG so events like zoom-in/out, pan and series toggle
+    // can be announced even when no tooltip is on screen. Visually hidden via
+    // .apexcharts-sr-status in apexcharts.css.
+    if (
+      cnf.chart.accessibility.enabled &&
+      cnf.chart.accessibility.announcements.enabled
+    ) {
+      const srStatus = BrowserAPIs.createElement('div')
+      srStatus.className = 'apexcharts-sr-status'
+      srStatus.setAttribute('role', 'status')
+      srStatus.setAttribute('aria-live', 'polite')
+      srStatus.setAttribute('aria-atomic', 'true')
+      this.w.dom.elWrap.appendChild(srStatus)
+    }
+
     // Add accessibility elements after foreignObject to maintain proper z-order
     if (cnf.chart.accessibility.enabled) {
       const ariaLabel = this.getAccessibleChartLabel()
@@ -132,6 +148,15 @@ export default class Core {
         role: svgRole,
         'aria-label': ariaLabel,
       })
+
+      // SVG <title>: some screen readers prefer <title> over aria-label and
+      // browsers expose it as the SVG's accessible name + a tooltip.
+      const titleEl = BrowserAPIs.createElementNS(SVGNS, 'title')
+      titleEl.textContent = ariaLabel
+      this.w.dom.Paper.node.insertBefore(
+        titleEl,
+        this.w.dom.elLegendForeign.nextSibling,
+      )
 
       // Add desc element when description is provided
       if (cnf.chart.accessibility.description) {
@@ -740,25 +765,44 @@ export default class Core {
     const w = this.w
     const cnf = w.config
 
-    // Build descriptive label from available metadata
-    let label = ''
-
+    // 1. User-supplied description always wins.
     if (cnf.chart.accessibility && cnf.chart.accessibility.description) {
-      label = cnf.chart.accessibility.description
-    } else if (cnf.title.text) {
-      const chartType = cnf.chart.type
-      label = `${cnf.title.text}. ${chartType} chart`
-      if (cnf.subtitle.text) {
-        label += `. ${cnf.subtitle.text}`
-      }
-    } else {
-      const chartType = cnf.chart.type
-      // Use config.series if globals.series is not yet populated
-      const seriesCount =
-        w.seriesData.series.length || (cnf.series ? cnf.series.length : 0)
-      label = `${chartType} chart with ${seriesCount} data series`
+      return cnf.chart.accessibility.description
     }
 
-    return label
+    // 2. Build a descriptive label from available metadata.
+    const chartType = cnf.chart.type
+    const parts = []
+
+    if (cnf.title.text) {
+      parts.push(`${cnf.title.text}. ${chartType} chart`)
+      if (cnf.subtitle.text) parts.push(cnf.subtitle.text)
+    } else {
+      // Pull series names from config.series when globals isn't populated yet.
+      const namedSeries = (() => {
+        if (Array.isArray(w.seriesData.seriesNames) &&
+            w.seriesData.seriesNames.length) {
+          return w.seriesData.seriesNames.filter(Boolean)
+        }
+        if (Array.isArray(cnf.series)) {
+          return cnf.series
+            .map((s) => (typeof s === 'object' && s !== null ? s.name : null))
+            .filter(Boolean)
+        }
+        return []
+      })()
+      const seriesCount =
+        w.seriesData.series.length || (cnf.series ? cnf.series.length : 0)
+
+      if (namedSeries.length) {
+        parts.push(
+          `${chartType} chart with ${seriesCount} data series: ${namedSeries.join(', ')}`,
+        )
+      } else {
+        parts.push(`${chartType} chart with ${seriesCount} data series`)
+      }
+    }
+
+    return parts.join('. ')
   }
 }

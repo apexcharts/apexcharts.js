@@ -19,7 +19,7 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v5.10.6
+ * ApexCharts v5.11.0
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -910,6 +910,55 @@ let Utils$1 = class Utils {
    */
   static getOpacityFromRGBA(rgba) {
     return parseFloat(rgba.replace(/^.*,(.+)\)/, "$1"));
+  }
+  /**
+   * Parse a #RGB or #RRGGBB hex colour string into [r,g,b] in 0–255.
+   * Returns null for invalid input. Used by getContrastRatio.
+   * @param {string} hex
+   * @returns {[number, number, number] | null}
+   */
+  static parseHex(hex) {
+    if (typeof hex !== "string") return null;
+    let h = hex.trim().replace("#", "");
+    if (h.length === 3) {
+      h = h.split("").map((c) => c + c).join("");
+    }
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+    return [
+      parseInt(h.slice(0, 2), 16),
+      parseInt(h.slice(2, 4), 16),
+      parseInt(h.slice(4, 6), 16)
+    ];
+  }
+  /**
+   * Relative luminance per WCAG 2.x (https://www.w3.org/TR/WCAG22/#dfn-relative-luminance).
+   * @param {[number, number, number]} rgb 0–255 sRGB triplet
+   * @returns {number} 0.0–1.0
+   */
+  static relativeLuminance([r, g, b]) {
+    const channel = (c) => {
+      const v = c / 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+  }
+  /**
+   * WCAG contrast ratio between two hex colours. Returns 0 for invalid input.
+   * Range: 1 (identical) … 21 (#000 vs #fff).
+   * WCAG AA requires ≥ 4.5 for normal text and ≥ 3.0 for large text / UI components.
+   * @param {string} hex1
+   * @param {string} hex2
+   * @returns {number}
+   */
+  static getContrastRatio(hex1, hex2) {
+    const rgb1 = Utils.parseHex(hex1);
+    const rgb2 = Utils.parseHex(hex2);
+    if (!rgb1 || !rgb2) return 0;
+    const l1 = Utils.relativeLuminance(rgb1);
+    const l2 = Utils.relativeLuminance(rgb2);
+    const lighter = Math.max(l1, l2);
+    const darker = Math.min(l1, l2);
+    return (lighter + 0.05) / (darker + 0.05);
   }
   /**
    * @param {any} rgb
@@ -3635,7 +3684,6 @@ class Options {
       noData: {
         text: void 0,
         align: "center",
-        verticalAlign: "middle",
         offsetX: 0,
         offsetY: 0,
         style: {
@@ -14021,6 +14069,14 @@ class Core {
     this.w.dom.elLegendWrap.classList.add("apexcharts-legend");
     this.w.dom.elWrap.appendChild(this.w.dom.elLegendWrap);
     this.w.dom.Paper.node.appendChild(this.w.dom.elLegendForeign);
+    if (cnf.chart.accessibility.enabled && cnf.chart.accessibility.announcements.enabled) {
+      const srStatus = BrowserAPIs.createElement("div");
+      srStatus.className = "apexcharts-sr-status";
+      srStatus.setAttribute("role", "status");
+      srStatus.setAttribute("aria-live", "polite");
+      srStatus.setAttribute("aria-atomic", "true");
+      this.w.dom.elWrap.appendChild(srStatus);
+    }
     if (cnf.chart.accessibility.enabled) {
       const ariaLabel = this.getAccessibleChartLabel();
       const svgRole = cnf.chart.accessibility.keyboard.enabled && cnf.chart.accessibility.keyboard.navigation.enabled ? "application" : "img";
@@ -14028,6 +14084,12 @@ class Core {
         role: svgRole,
         "aria-label": ariaLabel
       });
+      const titleEl = BrowserAPIs.createElementNS(SVGNS, "title");
+      titleEl.textContent = ariaLabel;
+      this.w.dom.Paper.node.insertBefore(
+        titleEl,
+        this.w.dom.elLegendForeign.nextSibling
+      );
       if (cnf.chart.accessibility.description) {
         const descEl = BrowserAPIs.createElementNS(SVGNS, "desc");
         descEl.textContent = cnf.chart.accessibility.description;
@@ -14515,21 +14577,34 @@ class Core {
   getAccessibleChartLabel() {
     const w = this.w;
     const cnf = w.config;
-    let label = "";
     if (cnf.chart.accessibility && cnf.chart.accessibility.description) {
-      label = cnf.chart.accessibility.description;
-    } else if (cnf.title.text) {
-      const chartType = cnf.chart.type;
-      label = `${cnf.title.text}. ${chartType} chart`;
-      if (cnf.subtitle.text) {
-        label += `. ${cnf.subtitle.text}`;
-      }
-    } else {
-      const chartType = cnf.chart.type;
-      const seriesCount = w.seriesData.series.length || (cnf.series ? cnf.series.length : 0);
-      label = `${chartType} chart with ${seriesCount} data series`;
+      return cnf.chart.accessibility.description;
     }
-    return label;
+    const chartType = cnf.chart.type;
+    const parts = [];
+    if (cnf.title.text) {
+      parts.push(`${cnf.title.text}. ${chartType} chart`);
+      if (cnf.subtitle.text) parts.push(cnf.subtitle.text);
+    } else {
+      const namedSeries = (() => {
+        if (Array.isArray(w.seriesData.seriesNames) && w.seriesData.seriesNames.length) {
+          return w.seriesData.seriesNames.filter(Boolean);
+        }
+        if (Array.isArray(cnf.series)) {
+          return cnf.series.map((s) => typeof s === "object" && s !== null ? s.name : null).filter(Boolean);
+        }
+        return [];
+      })();
+      const seriesCount = w.seriesData.series.length || (cnf.series ? cnf.series.length : 0);
+      if (namedSeries.length) {
+        parts.push(
+          `${chartType} chart with ${seriesCount} data series: ${namedSeries.join(", ")}`
+        );
+      } else {
+        parts.push(`${chartType} chart with ${seriesCount} data series`);
+      }
+    }
+    return parts.join(". ");
   }
 }
 class Data {
@@ -15951,9 +16026,12 @@ class Utils2 {
     const isActiveSeries = (seriesIndex) => {
       return w.globals.collapsedSeriesIndices.indexOf(seriesIndex) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(seriesIndex) === -1;
     };
+    const chartType = w.config.chart.type;
+    const useSegmentDistance = !w.globals.comboCharts && (chartType === "line" || chartType === "area");
     let closestDist = Infinity;
     let closestSeriesIndex = null;
     let closestPointIndex = null;
+    const ignoreY = w.config.tooltip.shared && w.globals.allSeriesHasEqualX && this.hasBars();
     for (let i = 0; i < Xarrays.length; i++) {
       if (!isActiveSeries(i)) {
         continue;
@@ -15961,11 +16039,29 @@ class Utils2 {
       const xArr = Xarrays[i];
       const yArr = Yarrays[i];
       const len = Math.min(xArr.length, yArr.length);
+      if (useSegmentDistance && len >= 2) {
+        for (let j = 0; j < len - 1; j++) {
+          const seg = this._distanceToSegment(
+            hoverX,
+            hoverY,
+            xArr[j],
+            yArr[j],
+            xArr[j + 1],
+            yArr[j + 1]
+          );
+          if (seg.dist < closestDist) {
+            closestDist = seg.dist;
+            closestSeriesIndex = i;
+            closestPointIndex = seg.t < 0.5 ? j : j + 1;
+          }
+        }
+        continue;
+      }
       for (let j = 0; j < len; j++) {
         const xVal = xArr[j];
         const distX = hoverX - xVal;
         let dist = Math.sqrt(distX * distX);
-        if (!w.globals.allSeriesHasEqualX) {
+        if (!ignoreY) {
           const yVal = yArr[j];
           const distY = hoverY - yVal;
           dist = Math.sqrt(distX * distX + distY * distY);
@@ -15981,6 +16077,32 @@ class Utils2 {
       index: closestSeriesIndex,
       j: closestPointIndex
     };
+  }
+  /**
+   * Perpendicular distance from point (px, py) to the line segment
+   * (ax, ay) → (bx, by). Returns the distance plus the projection
+   * parameter t (0 = at A, 1 = at B, clamped) so callers know which
+   * endpoint the projection landed nearest.
+   * @param {number} px
+   * @param {number} py
+   * @param {number} ax
+   * @param {number} ay
+   * @param {number} bx
+   * @param {number} by
+   * @returns {{ dist: number, t: number }}
+   */
+  _distanceToSegment(px, py, ax, ay, bx, by) {
+    const dx = bx - ax;
+    const dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    let t = lenSq === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / lenSq;
+    if (t < 0) t = 0;
+    else if (t > 1) t = 1;
+    const cx = ax + t * dx;
+    const cy = ay + t * dy;
+    const ex = px - cx;
+    const ey = py - cy;
+    return { dist: Math.sqrt(ex * ex + ey * ey), t };
   }
   /**
    * @param {number} val
@@ -16776,6 +16898,7 @@ class Position {
    * @param {number | null} [markerSize] - point's size
    */
   moveTooltip(cx, cy, markerSize = null) {
+    var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
     const ttCtx = this.ttCtx;
     const tooltipEl = ttCtx.getElTooltip();
@@ -16813,6 +16936,20 @@ class Position {
     }
     if (!isNaN(x)) {
       x = x + w.layout.translateX;
+      const a11y = (_b = (_a = w.config) == null ? void 0 : _a.chart) == null ? void 0 : _b.accessibility;
+      if ((a11y == null ? void 0 : a11y.enabled) && ((_d = (_c = a11y == null ? void 0 : a11y.keyboard) == null ? void 0 : _c.navigation) == null ? void 0 : _d.enabled) && ((_g = (_f = (_e = w.dom) == null ? void 0 : _e.baseEl) == null ? void 0 : _f.querySelector) == null ? void 0 : _g.call(_f, ".apexcharts-keyboard-focused"))) {
+        const cyNum = parseFloat(String(cy));
+        const ttH = tooltipRect.ttHeight || 0;
+        const margin = (pointSize || 1) + 12;
+        const tooltipTop = y;
+        const tooltipBottom = y + ttH;
+        if (!isNaN(cyNum) && ttH > 0 && tooltipTop < cyNum + margin && tooltipBottom > cyNum - margin) {
+          y = cyNum - ttH - margin;
+          if (y < 0) {
+            y = cyNum + margin;
+          }
+        }
+      }
       if (tooltipEl) {
         tooltipEl.style.left = x + "px";
         tooltipEl.style.top = y + "px";
@@ -20466,7 +20603,43 @@ const apexCSS = `@keyframes opaque {
 .apexcharts-canvas {
   position: relative;
   direction: ltr !important;
-  user-select: none
+  user-select: none;
+  /* Focus indicator colour. Themes override below. */
+  --apexcharts-focus-color: #008FFB;
+}
+
+/* Dark theme & high-contrast: brighter focus colour for sufficient contrast. */
+.apexcharts-canvas .apexcharts-theme-dark,
+.apexcharts-theme-dark.apexcharts-canvas {
+  --apexcharts-focus-color: #FFD500;
+}
+.apexcharts-canvas.apexcharts-high-contrast,
+.apexcharts-high-contrast.apexcharts-canvas {
+  --apexcharts-focus-color: #FFFF00;
+}
+
+/* Visually-hidden aria-live status region (WCAG 4.1.3 Status Messages). */
+.apexcharts-sr-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Respect OS-level reduced-motion preference (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  .apexcharts-canvas *,
+  .apexcharts-canvas *::before,
+  .apexcharts-canvas *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .apexcharts-canvas ::-webkit-scrollbar {
@@ -20506,7 +20679,7 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-legend-series[role="button"]:focus {
-  outline: 2px solid #008FFB;
+  outline: 2px solid var(--apexcharts-focus-color, #008FFB);
   outline-offset: 2px;
 }
 
@@ -20515,7 +20688,7 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-legend-series[role="button"]:focus-visible {
-  outline: 2px solid #008FFB;
+  outline: 2px solid var(--apexcharts-focus-color, #008FFB);
   outline-offset: 2px;
 }
 
@@ -20536,7 +20709,7 @@ rect.legend-mouseover-inactive,
 .apexcharts-pie-area.apexcharts-keyboard-focused,
 .apexcharts-heatmap-rect.apexcharts-keyboard-focused,
 .apexcharts-treemap-rect.apexcharts-keyboard-focused {
-  stroke: #008FFB;
+  stroke: var(--apexcharts-focus-color, #008FFB);
   stroke-width: 2;
   stroke-opacity: 1;
 }
@@ -20980,11 +21153,20 @@ rect.legend-mouseover-inactive,
 .apexcharts-zoomin-icon,
 .apexcharts-zoomout-icon {
   cursor: pointer;
-  width: 20px;
-  height: 20px;
+  /* WCAG 2.5.8 Target Size (Minimum): 24×24 CSS px hit target. */
+  width: 24px;
+  height: 24px;
   line-height: 24px;
   color: #6e8192;
-  text-align: center
+  text-align: center;
+  /* Reset native <button> chrome — these are styled via SVG icons. */
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .apexcharts-menu-icon svg,
@@ -21138,14 +21320,14 @@ rect.legend-mouseover-inactive,
 .apexcharts-zoom-icon:focus-visible,
 .apexcharts-zoomin-icon:focus-visible,
 .apexcharts-zoomout-icon:focus-visible {
-  outline: 2px solid #008FFB;
+  outline: 2px solid var(--apexcharts-focus-color, #008FFB);
   outline-offset: 2px;
   border-radius: 2px
 }
 
 /* Focus indicator for hamburger menu items */
 .apexcharts-menu-item:focus-visible {
-  outline: 2px solid #008FFB;
+  outline: 2px solid var(--apexcharts-focus-color, #008FFB);
   outline-offset: -2px;
   background: #eee
 }
@@ -23636,24 +23818,32 @@ class Toolbar {
     const createDiv = () => {
       return BrowserAPIs.createElementNS("http://www.w3.org/1999/xhtml", "div");
     };
+    const createBtn = () => {
+      const btn = (
+        /** @type {HTMLButtonElement} */
+        BrowserAPIs.createElementNS("http://www.w3.org/1999/xhtml", "button")
+      );
+      btn.setAttribute("type", "button");
+      return btn;
+    };
     const elToolbarWrap = createDiv();
     elToolbarWrap.setAttribute("class", "apexcharts-toolbar");
     elToolbarWrap.style.top = w.config.chart.toolbar.offsetY + "px";
     elToolbarWrap.style.right = -w.config.chart.toolbar.offsetX + 3 + "px";
     w.dom.elWrap.appendChild(elToolbarWrap);
-    this.elZoom = createDiv();
-    this.elZoomIn = createDiv();
-    this.elZoomOut = createDiv();
-    this.elPan = createDiv();
-    this.elSelection = createDiv();
-    this.elZoomReset = createDiv();
-    this.elMenuIcon = createDiv();
+    this.elZoom = createBtn();
+    this.elZoomIn = createBtn();
+    this.elZoomOut = createBtn();
+    this.elPan = createBtn();
+    this.elSelection = createBtn();
+    this.elZoomReset = createBtn();
+    this.elMenuIcon = createBtn();
     this.elMenu = createDiv();
     this.elCustomIcons = [];
     this.t = w.config.chart.toolbar.tools;
     if (Array.isArray(this.t.customIcons)) {
       for (let i = 0; i < this.t.customIcons.length; i++) {
-        this.elCustomIcons.push(createDiv());
+        this.elCustomIcons.push(createBtn());
       }
     }
     const toolbarControls = [];
@@ -23723,8 +23913,6 @@ class Toolbar {
       Graphics.setAttrs(toolbarControls[i].el, {
         class: toolbarControls[i].class,
         title: toolbarControls[i].title,
-        tabindex: "0",
-        role: "button",
         "aria-label": toolbarControls[i].title
       });
       toolbarControls[i].el.innerHTML = toolbarControls[i].icon;
@@ -25807,6 +25995,7 @@ class KeyboardNavigation {
     this.seriesIndex = 0;
     this.dataPointIndex = 0;
     this.active = false;
+    this._tooltipDismissed = false;
     this._focusedEl = null;
     this._hoveredBarEl = null;
     this._enlargedScatterMarker = null;
@@ -25861,6 +26050,7 @@ class KeyboardNavigation {
   }
   _onBlur() {
     this.active = false;
+    this._tooltipDismissed = false;
     this._hideFocus();
   }
   // Called when the user clicks a legend item (collapse/expand a series).
@@ -25876,7 +26066,13 @@ class KeyboardNavigation {
    * @param {KeyboardEvent} e
    */
   _onKeyDown(e) {
+    var _a, _b, _c;
     if (!this._isNavEnabled() || !this.active) return;
+    if (e.shiftKey && (e.key === "ArrowRight" || e.key === "ArrowLeft") && this._canPan()) {
+      e.preventDefault();
+      this._panBy(e.key === "ArrowRight" ? 1 : -1);
+      return;
+    }
     switch (e.key) {
       case "ArrowRight":
         e.preventDefault();
@@ -25911,12 +26107,67 @@ class KeyboardNavigation {
         e.preventDefault();
         this._fireClick();
         break;
+      case "+":
+      case "=":
+        if (this._canZoom()) {
+          e.preventDefault();
+          (_a = this.ctx.toolbar) == null ? void 0 : _a.handleZoomIn();
+          this._announce("Zoomed in");
+        }
+        break;
+      case "-":
+      case "_":
+        if (this._canZoom()) {
+          e.preventDefault();
+          (_b = this.ctx.toolbar) == null ? void 0 : _b.handleZoomOut();
+          this._announce("Zoomed out");
+        }
+        break;
+      case "0":
+        if (this._canZoom() && this.w.interact.zoomed) {
+          e.preventDefault();
+          (_c = this.ctx.toolbar) == null ? void 0 : _c.handleZoomReset();
+          this._announce("Zoom reset");
+        }
+        break;
       case "Escape":
         e.preventDefault();
-        this.active = false;
-        this._hideFocus();
+        if (!this._tooltipDismissed) {
+          this._tooltipDismissed = true;
+          this._hideFocus();
+        } else {
+          this.active = false;
+          this._tooltipDismissed = false;
+          this._hideFocus();
+        }
         break;
     }
+  }
+  // ─── Zoom / pan (keyboard alternatives for drag gestures) ─────────────────
+  _canZoom() {
+    const w = this.w;
+    return Boolean(
+      w.globals.axisCharts && w.config.chart.zoom && w.config.chart.zoom.enabled
+    );
+  }
+  _canPan() {
+    return this._canZoom();
+  }
+  /**
+   * Shift the visible x-range by ~10% in the given direction.
+   * @param {number} direction +1 = right, -1 = left
+   */
+  _panBy(direction) {
+    const w = this.w;
+    const toolbar = this.ctx.toolbar;
+    if (!toolbar) return;
+    const minX = Number(w.globals.minX);
+    const maxX = Number(w.globals.maxX);
+    if (!isFinite(minX) || !isFinite(maxX) || minX === maxX) return;
+    const span = maxX - minX;
+    const step = span * 0.1 * direction;
+    toolbar.zoomUpdateOptions(minX + step, maxX + step);
+    this._announce(direction > 0 ? "Panned right" : "Panned left");
   }
   // ─── Navigation ───────────────────────────────────────────────────────────
   /**
@@ -26366,14 +26617,79 @@ class KeyboardNavigation {
     const el = this._getFocusableElement(i, j);
     if (el) {
       el.classList.add("apexcharts-keyboard-focused");
+      el.setAttribute("role", "img");
+      const label = this._buildPointLabel(i, j);
+      if (label) el.setAttribute("aria-label", label);
       this._focusedEl = el;
     }
   }
   _removeFocusClass() {
     if (this._focusedEl) {
       this._focusedEl.classList.remove("apexcharts-keyboard-focused");
+      this._focusedEl.removeAttribute("role");
+      this._focusedEl.removeAttribute("aria-label");
       this._focusedEl = null;
     }
+  }
+  /**
+   * Build an accessible label for the data point at (i, j) using the same
+   * formatters the visible tooltip / axis labels use, so SR output matches
+   * the visual presentation.
+   * @param {number} i
+   * @param {number} j
+   * @returns {string}
+   */
+  _buildPointLabel(i, j) {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    const w = this.w;
+    const type = w.config.chart.type;
+    const seriesNames = w.seriesData.seriesNames || [];
+    const series = w.seriesData.series || [];
+    if (type === "pie" || type === "donut" || type === "polarArea") {
+      const sliceLabel = (_b = ((_a = w.labelData) == null ? void 0 : _a.labels) && w.labelData.labels[j]) != null ? _b : "";
+      const value = Array.isArray(series) ? series[j] : "";
+      return sliceLabel ? `${sliceLabel}: ${value}` : `${value}`;
+    }
+    if (type === "radialBar") {
+      const seriesName2 = seriesNames[i] || `Series ${i + 1}`;
+      const value = Array.isArray(series) ? series[i] : "";
+      return `${seriesName2}: ${value}`;
+    }
+    const seriesName = seriesNames[i] || `Series ${i + 1}`;
+    const row = Array.isArray(series[i]) ? series[i] : [];
+    const rawValue = row[j];
+    let formattedValue = rawValue == null ? "" : String(rawValue);
+    const yFormatter = (_d = (_c = w.formatters) == null ? void 0 : _c.yLabelFormatters) == null ? void 0 : _d[i];
+    if (typeof yFormatter === "function") {
+      try {
+        formattedValue = yFormatter(rawValue, {
+          seriesIndex: i,
+          dataPointIndex: j,
+          w
+        });
+      } catch (e) {
+      }
+    }
+    let category = "";
+    const categoryLabels = (_e = w.labelData) == null ? void 0 : _e.categoryLabels;
+    const seriesX = (_g = (_f = w.seriesData) == null ? void 0 : _f.seriesX) == null ? void 0 : _g[i];
+    if (Array.isArray(categoryLabels) && categoryLabels[j] != null) {
+      category = String(categoryLabels[j]);
+    } else if (Array.isArray(seriesX) && seriesX[j] != null) {
+      const xFormatter = (_h = w.formatters) == null ? void 0 : _h.xLabelFormatter;
+      if (typeof xFormatter === "function") {
+        try {
+          category = String(
+            xFormatter(seriesX[j], { seriesIndex: i, dataPointIndex: j, w })
+          );
+        } catch (e) {
+          category = String(seriesX[j]);
+        }
+      } else {
+        category = String(seriesX[j]);
+      }
+    }
+    return category ? `${seriesName}: ${formattedValue}, ${category}` : `${seriesName}: ${formattedValue}`;
   }
   _leaveHoveredBar() {
     if (this._hoveredBarEl) {
@@ -26539,6 +26855,25 @@ class KeyboardNavigation {
     const x = seriesX[di];
     if (x === void 0) return true;
     return x >= gl.minX && x <= gl.maxX;
+  }
+  /**
+   * Push a short status message to the visually-hidden aria-live region so
+   * screen readers announce zoom / pan / reset events that have no inherent
+   * tooltip update. Silently no-op if the region is missing or announcements
+   * are disabled.
+   * @param {string} message
+   */
+  _announce(message) {
+    const w = this.w;
+    if (!w.config.chart.accessibility.announcements.enabled) return;
+    const baseEl = w.dom.baseEl;
+    if (!baseEl) return;
+    const region = baseEl.querySelector(".apexcharts-sr-status");
+    if (!region) return;
+    region.textContent = "";
+    setTimeout(() => {
+      region.textContent = message;
+    }, 0);
   }
 }
 ApexCharts.registerFeatures({ keyboardNavigation: KeyboardNavigation });
