@@ -356,6 +356,79 @@ describe('Responsive', () => {
       expect(spy).not.toHaveBeenCalled()
       spy.mockRestore()
     })
+
+    it('should preserve base yaxis settings not re-declared in responsive options', () => {
+      // Regression: a responsive `yaxis` array used to *replace* the base
+      // `yaxis` because Utils.extend does not deep-merge arrays. Keys on the
+      // base axis that the responsive override doesn't re-declare (e.g.
+      // `min`, `max`, `tickAmount`, `title`) silently vanished at the
+      // breakpoint. The fix re-merges each yaxis entry per index.
+      const w = makeW({
+        config: {
+          yaxis: [
+            { show: true, min: 0, max: 100, tickAmount: 5, title: { text: 'Base' } },
+          ],
+          responsive: [
+            {
+              breakpoint: 1024,
+              options: {
+                yaxis: [{ labels: { show: false } }],
+              },
+            },
+          ],
+        },
+      })
+      const responsive = new Responsive(w)
+
+      withViewportWidth(800, () => {
+        responsive.checkResponsiveConfig(null)
+
+        // Override applied
+        expect(w.config.yaxis[0].labels.show).toBe(false)
+        // Base settings preserved
+        expect(w.config.yaxis[0].min).toBe(0)
+        expect(w.config.yaxis[0].max).toBe(100)
+        expect(w.config.yaxis[0].tickAmount).toBe(5)
+        expect(w.config.yaxis[0].title.text).toBe('Base')
+      })
+    })
+
+    it('should merge each yaxis entry with the corresponding base entry by index', () => {
+      // Multi-axis case: only the second yaxis is overridden in the responsive
+      // options. The first base axis should pass through untouched, the
+      // second should keep its base settings and pick up the override.
+      const w = makeW({
+        config: {
+          yaxis: [
+            { seriesName: 'A', min: 0, max: 100, opposite: false },
+            { seriesName: 'B', min: -50, max: 50, opposite: true },
+          ],
+          responsive: [
+            {
+              breakpoint: 1024,
+              options: {
+                yaxis: [{}, { labels: { show: false } }],
+              },
+            },
+          ],
+        },
+      })
+      const responsive = new Responsive(w)
+
+      withViewportWidth(800, () => {
+        responsive.checkResponsiveConfig(null)
+
+        // First axis: untouched
+        expect(w.config.yaxis[0].seriesName).toBe('A')
+        expect(w.config.yaxis[0].min).toBe(0)
+        expect(w.config.yaxis[0].max).toBe(100)
+        // Second axis: base preserved + override applied
+        expect(w.config.yaxis[1].seriesName).toBe('B')
+        expect(w.config.yaxis[1].min).toBe(-50)
+        expect(w.config.yaxis[1].opposite).toBe(true)
+        expect(w.config.yaxis[1].labels.show).toBe(false)
+      })
+    })
   })
 })
 
