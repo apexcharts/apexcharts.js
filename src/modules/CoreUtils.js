@@ -102,8 +102,13 @@ class CoreUtils {
         0,
       )
     } else {
+      const seriesAtIndex = this.w.seriesData.series[index]
+      if (!Array.isArray(seriesAtIndex)) {
+        // pie/donut/polarArea/radialBar called per-index from legend loop
+        return seriesAtIndex ?? 0
+      }
       // axis charts - supporting multiple series
-      return this.w.seriesData.series[index].reduce(
+      return seriesAtIndex.reduce(
         (/** @type {any} */ acc, /** @type {any} */ cur) => acc + cur,
         0,
       )
@@ -365,16 +370,16 @@ class CoreUtils {
    */
   isSeriesNull(index = null) {
     let r = []
+    const series = /** @type {any[]} */ (this.w.config.series)
     if (index === null) {
       // non-plot chart types - pie / donut / circle
-      r = /** @type {any[]} */ (this.w.config.series).filter(
-        (/** @type {any} */ d) => d !== null,
-      )
-    } else {
+      r = series.filter((/** @type {any} */ d) => d !== null)
+    } else if (series[index] && Array.isArray(series[index].data)) {
       // axis charts - supporting multiple series
-      r = /** @type {Record<string,any>} */ (
-        this.w.config.series[index]
-      ).data.filter((/** @type {any} */ d) => d !== null)
+      r = series[index].data.filter((/** @type {any} */ d) => d !== null)
+    } else {
+      // pie/donut/polarArea/radialBar called per-index from legend loop
+      r = series[index] !== null && series[index] !== undefined ? [series[index]] : []
     }
 
     return r.length === 0
@@ -384,12 +389,17 @@ class CoreUtils {
    * @param {number} index
    */
   seriesHaveSameValues(index) {
+    const seriesAtIndex = this.w.seriesData.series[index]
+    if (!Array.isArray(seriesAtIndex)) {
+      // pie/donut/polarArea/radialBar — single value per index, trivially "same"
+      return true
+    }
     /**
      * @param {number} val
      * @param {number} i
      * @param {any[]} arr
      */
-    return this.w.seriesData.series[index].every(
+    return seriesAtIndex.every(
       (
         /** @type {any} */ val,
         /** @type {number} */ i,
