@@ -878,29 +878,27 @@ describe('Accessibility', () => {
   })
 
   // =========================================================================
-  // Phase 1.5 — SVG <title> element
+  // Regression guard for #5183 — root SVG <title> must NOT be added,
+  // because browsers render it as a native tooltip on hover and that
+  // covers the chart's own data tooltip.
   // =========================================================================
-  describe('SVG <title> element', () => {
-    // Root-level <title> only — chart series may add inner <title> elements.
+  describe('no root SVG <title> element (#5183)', () => {
     const getRootTitle = (svg) => svg.querySelector(':scope > title')
 
-    it('adds a <title> child to the SVG with the same text as aria-label', () => {
+    it('does not add a root <title> when accessibility is enabled with a chart title', () => {
       const chart = chartWithAccessibility({
         title: { text: 'Quarterly Report' },
       })
       const svg = chart.el.querySelector('.apexcharts-svg')
-      const titleEl = getRootTitle(svg)
-      expect(titleEl).not.toBeNull()
-      expect(titleEl.textContent).toBe(svg.getAttribute('aria-label'))
+      expect(getRootTitle(svg)).toBeNull()
     })
 
-    it('uses accessibility.description for the SVG <title> when provided', () => {
+    it('does not add a root <title> when accessibility.description is provided', () => {
       const chart = chartWithAccessibility({
         accessibility: { description: 'Custom long description' },
       })
       const svg = chart.el.querySelector('.apexcharts-svg')
-      const titleEl = getRootTitle(svg)
-      expect(titleEl.textContent).toBe('Custom long description')
+      expect(getRootTitle(svg)).toBeNull()
     })
 
     it('does not add a root <title> when accessibility is disabled', () => {

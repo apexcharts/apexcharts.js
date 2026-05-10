@@ -149,15 +149,6 @@ export default class Core {
         'aria-label': ariaLabel,
       })
 
-      // SVG <title>: some screen readers prefer <title> over aria-label and
-      // browsers expose it as the SVG's accessible name + a tooltip.
-      const titleEl = BrowserAPIs.createElementNS(SVGNS, 'title')
-      titleEl.textContent = ariaLabel
-      this.w.dom.Paper.node.insertBefore(
-        titleEl,
-        this.w.dom.elLegendForeign.nextSibling,
-      )
-
       // Add desc element when description is provided
       if (cnf.chart.accessibility.description) {
         const descEl = BrowserAPIs.createElementNS(SVGNS, 'desc')
