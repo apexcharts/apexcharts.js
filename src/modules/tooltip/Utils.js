@@ -206,25 +206,94 @@ export default class Utils {
     // line. Only safe for non-combo line/area; bars/scatter/etc. fall
     // through to the marker-distance path below.
     const chartType = w.config.chart.type
-    const useSegmentDistance =
-      !w.globals.comboCharts &&
-      (chartType === 'line' || chartType === 'area')
+    const isLineArea =
+      !w.globals.comboCharts && (chartType === 'line' || chartType === 'area')
 
     let closestDist = Infinity
     let closestSeriesIndex = null
     let closestPointIndex = null
 
-    // For shared tooltips on bar charts with aligned x-axes, Y distance
-    // would arbitrarily pick whichever bar segment sits nearest the
-    // cursor vertically; ignore it (preserves the zoomed-bar fix from
-    // #3439). For line/area charts we need Y so click events report the
-    // actually-hovered series instead of always returning series 0.
-    const ignoreY =
-      w.config.tooltip.shared &&
-      w.globals.allSeriesHasEqualX &&
-      this.hasBars()
+    // Shared tooltips on aligned x-axes need two independent answers:
+    //   • `j` — the x-bucket the cursor is over. Must come from X distance
+    //     only, otherwise a series whose Y is closer at a neighboring x
+    //     wins and `j` skips indices as the cursor sweeps horizontally
+    //     (the grouped tooltip then misses datapoints).
+    //   • `index` — which series is "under" the cursor (used by markerClick
+    //     / dataPointMouseEnter). For line/area we use perpendicular
+    //     distance to each series's line segments so a click on a line
+    //     between markers reports that line. For other shared cases we
+    //     use nearest Y at the chosen bucket.
+    if (w.config.tooltip.shared && w.globals.allSeriesHasEqualX) {
+      let bucketDistX = Infinity
+      for (let i = 0; i < Xarrays.length; i++) {
+        if (!isActiveSeries(i)) continue
+        const xArr = Xarrays[i]
+        const yArr = Yarrays[i]
+        const len = Math.min(xArr.length, yArr.length)
+        for (let j = 0; j < len; j++) {
+          const distX = Math.abs(hoverX - xArr[j])
+          if (distX < bucketDistX) {
+            bucketDistX = distX
+            closestPointIndex = j
+          }
+        }
+      }
+      if (closestPointIndex !== null) {
+        if (isLineArea) {
+          let bestSegDist = Infinity
+          for (let i = 0; i < Xarrays.length; i++) {
+            if (!isActiveSeries(i)) continue
+            const xArr = Xarrays[i]
+            const yArr = Yarrays[i]
+            const len = Math.min(xArr.length, yArr.length)
+            if (len < 2) {
+              const yVal = yArr[closestPointIndex]
+              if (typeof yVal !== 'number') continue
+              const d = Math.abs(hoverY - yVal)
+              if (d < bestSegDist) {
+                bestSegDist = d
+                closestSeriesIndex = i
+              }
+              continue
+            }
+            for (let j = 0; j < len - 1; j++) {
+              const seg = this._distanceToSegment(
+                hoverX,
+                hoverY,
+                xArr[j],
+                yArr[j],
+                xArr[j + 1],
+                yArr[j + 1],
+              )
+              if (seg.dist < bestSegDist) {
+                bestSegDist = seg.dist
+                closestSeriesIndex = i
+              }
+            }
+          }
+        } else {
+          let bestY = Infinity
+          for (let i = 0; i < Xarrays.length; i++) {
+            if (!isActiveSeries(i)) continue
+            const yVal = Yarrays[i][closestPointIndex]
+            if (typeof yVal !== 'number') continue
+            const distY = Math.abs(hoverY - yVal)
+            if (distY < bestY) {
+              bestY = distY
+              closestSeriesIndex = i
+            }
+          }
+        }
+      }
+      return {
+        index: closestSeriesIndex,
+        j: closestPointIndex,
+      }
+    }
 
-    // Iterate through all series and points to find the closest (x,y) to (hoverX, hoverY)
+    // Non-shared tooltip path. Line/area uses segment distance so clicks
+    // landing on a line between markers report the right series; other
+    // chart types fall back to marker (Euclidean) distance.
     for (let i = 0; i < Xarrays.length; i++) {
       if (!isActiveSeries(i)) {
         continue
@@ -235,7 +304,7 @@ export default class Utils {
 
       const len = Math.min(xArr.length, yArr.length)
 
-      if (useSegmentDistance && len >= 2) {
+      if (isLineArea && len >= 2) {
         for (let j = 0; j < len - 1; j++) {
           const seg = this._distanceToSegment(
             hoverX,
@@ -260,13 +329,9 @@ export default class Utils {
       for (let j = 0; j < len; j++) {
         const xVal = xArr[j]
         const distX = hoverX - xVal
-        let dist = Math.sqrt(distX * distX)
-
-        if (!ignoreY) {
-          const yVal = yArr[j]
-          const distY = hoverY - yVal
-          dist = Math.sqrt(distX * distX + distY * distY)
-        }
+        const yVal = yArr[j]
+        const distY = hoverY - yVal
+        const dist = Math.sqrt(distX * distX + distY * distY)
 
         if (dist < closestDist) {
           closestDist = dist
