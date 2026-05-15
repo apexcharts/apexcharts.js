@@ -2,6 +2,7 @@
 import Scatter from './../charts/Scatter'
 import Graphics from './Graphics'
 import Filters from './Filters'
+import { applyProgressiveReveal } from './Animations'
 
 /**
  * ApexCharts DataLabels Class for drawing dataLabels on Axes based Charts.
@@ -365,6 +366,10 @@ class DataLabels {
 
       parent.add(dataLabelText)
 
+      // Progressive reveal: data labels fade in alongside their markers as the
+      // line's pen-stroke reaches them. Uses the corrected x (post-offset).
+      applyProgressiveReveal(dataLabelText, x, w)
+
       if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === 'undefined') {
         w.globals.lastDrawnDataLabelsIndexes[i] = []
       }
@@ -446,6 +451,13 @@ class DataLabels {
           elRect.attr({ fill: background })
         }
         el.setAttribute('fill', w.config.dataLabels.background.foreColor)
+
+        // Mirror the text's progressive reveal onto the background pill so
+        // the rect doesn't pop in before the line draw reaches it.
+        const cxAttr = el.getAttribute('cx')
+        if (cxAttr !== null) {
+          applyProgressiveReveal(elRect, parseFloat(cxAttr), w)
+        }
       }
     }
   }

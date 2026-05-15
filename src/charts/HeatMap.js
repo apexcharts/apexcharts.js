@@ -1,5 +1,5 @@
 // @ts-check
-import Animations from '../modules/Animations'
+import Animations, { computeStagger } from '../modules/Animations'
 import Graphics from '../modules/Graphics'
 import Fill from '../modules/Fill'
 import Series from '../modules/Series'
@@ -164,7 +164,7 @@ export default class HeatMap {
           if (!w.globals.resized) {
             speed = w.config.chart.animations.speed
           }
-          this.animateHeatMap(rect, x1, y1, xDivision, yDivision, speed)
+          this.animateHeatMap(rect, x1, y1, xDivision, yDivision, speed, i, j)
         }
 
         if (w.globals.dataChanged) {
@@ -241,9 +241,38 @@ export default class HeatMap {
    * @param {number} width
    * @param {number} height
    * @param {number} speed
+   * @param {number} [row] - series index (heatmap row)
+   * @param {number} [col] - data point index (heatmap column)
    */
-  animateHeatMap(el, x, y, width, height, speed) {
+  animateHeatMap(el, x, y, width, height, speed, row = 0, col = 0) {
+    const w = this.w
     const animations = new Animations(this.w)
+
+    // Diagonal-wave stagger: cells animate in order of (row + col), so the
+    // reveal travels from top-left to bottom-right. Total stagger is capped
+    // at ~half the animation speed regardless of grid size.
+    const animCfg = w.config.chart.animations
+    const gradCfg = animCfg.animateGradually
+    const staggerEnabled = gradCfg && gradCfg.enabled !== false
+
+    let delay = 0
+    if (staggerEnabled) {
+      const seriesCount = (w.seriesData.series || []).length || 1
+      const pointsCount = w.globals.dataPoints || 1
+      const maxDiag = seriesCount + pointsCount - 2
+      const baseDelay = Math.min(
+        gradCfg.delay || 0,
+        (speed * 0.5) / Math.max(1, maxDiag),
+      )
+      delay = computeStagger({
+        style: 'diagonal',
+        index: col,
+        row,
+        col,
+        baseDelay,
+      })
+    }
+
     animations.animateRect(
       el,
       {
@@ -262,6 +291,7 @@ export default class HeatMap {
       () => {
         animations.animationCompleted(el)
       },
+      delay,
     )
   }
 

@@ -1,5 +1,6 @@
 // @ts-check
 import CoreUtils from '../CoreUtils'
+import { applyProgressiveReveal } from '../Animations'
 
 export default class Helpers {
   /**
@@ -119,6 +120,13 @@ export default class Helpers {
 
         if (elRect) {
           parent?.insertBefore(elRect.node, annoLabel)
+
+          // Mirror the label's progressive reveal onto the background rect so
+          // it doesn't pop in before the line draw reaches the annotation x.
+          const labelX = annoLabel.getAttribute('x')
+          if (labelX !== null) {
+            applyProgressiveReveal(elRect, parseFloat(labelX), w)
+          }
 
           if (anno.label.mouseEnter) {
             elRect.node.addEventListener(

@@ -1,6 +1,7 @@
 // @ts-check
 import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
+import { applyProgressiveReveal } from '../Animations'
 
 export default class PointAnnotations {
   /**
@@ -54,6 +55,9 @@ export default class PointAnnotations {
 
       parent.appendChild(point.node)
 
+      // Progressive reveal — fades in when the line's pen-stroke reaches x.
+      applyProgressiveReveal(point, x, w)
+
       const text = anno.label.text ? anno.label.text : ''
 
       const elText = this.annoCtx.graphics.drawText({
@@ -79,6 +83,7 @@ export default class PointAnnotations {
       })
 
       parent.appendChild(elText.node)
+      applyProgressiveReveal(elText, x, w)
 
       // TODO: deprecate this as we will use custom
       if (anno.customSVG.SVG) {

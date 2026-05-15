@@ -2,6 +2,7 @@
 import Filters from './Filters'
 import Graphics from './Graphics'
 import Utils from '../utils/Utils'
+import { applyProgressiveReveal } from './Animations'
 
 /**
  * ApexCharts Markers Class for drawing markers on y values in axes charts.
@@ -157,6 +158,11 @@ export default class Markers {
             markerElement.attr('j', dataPointIndex)
             markerElement.attr('index', seriesIndex)
             markerElement.node.setAttribute('default-marker-size', opts.pSize)
+
+            // Progressive reveal: each marker fades in as the line's draw
+            // effect reaches its x position. No-op when draw mode is disabled
+            // or chart type isn't line/area/rangeArea.
+            applyProgressiveReveal(markerElement, p.x[q], w)
 
             this._filters.setSelectionFilter(
               markerElement,

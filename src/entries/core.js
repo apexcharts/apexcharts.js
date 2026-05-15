@@ -22,6 +22,12 @@ export { default } from '../apexcharts'
 // Shared utilities re-exported for sub-entry de-duplication (internal use only)
 export { default as __apex_charts_Scatter } from '../charts/Scatter.js'
 export { default as __apex_Animations } from '../modules/Animations.js'
+export {
+  computeStagger as __apex_Animations_computeStagger,
+  applyAnimationPolicy as __apex_Animations_applyAnimationPolicy,
+  prefersReducedMotion as __apex_Animations_prefersReducedMotion,
+  applyProgressiveReveal as __apex_Animations_applyProgressiveReveal,
+} from '../modules/Animations.js'
 export { default as __apex_Base } from '../modules/Base.js'
 export { register as __apex_ChartFactory_register, getChartClass as __apex_ChartFactory_getChartClass } from '../modules/ChartFactory.js'
 export { default as __apex_Core } from '../modules/Core.js'

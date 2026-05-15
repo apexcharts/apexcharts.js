@@ -5,6 +5,7 @@ import CoreUtils from '../modules/CoreUtils'
 import Utils from '../utils/Utils'
 import Filters from '../modules/Filters'
 import Graphics from '../modules/Graphics'
+import { computeStagger } from '../modules/Animations'
 import Series from '../modules/Series'
 
 /**
@@ -456,10 +457,40 @@ class Bar {
       pathFill = 'none'
     }
 
-    const delay =
-      ((j / w.config.chart.animations.animateGradually.delay) *
-        (w.config.chart.animations.speed / w.globals.dataPoints)) /
-      2.4
+    // Per-bar stagger delay. The base step is auto-scaled so total stagger
+    // (across all bars in a row/column) caps at ~half the animation speed —
+    // a 5-bar chart and a 50-bar chart finish in similar wall-clock time.
+    // For stacked bars: bottom layers (lower `i`) animate first, top layers
+    // cascade on a smaller offset so each stack visibly "builds up".
+    //
+    // Note: animatePathsGradually() multiplies the passed `animationDelay` by
+    // `animateGradually.delay` (the "delayFactor"). To express the stagger in
+    // real milliseconds we divide by that factor here so the multiplication
+    // cancels — otherwise a 40ms intended delay would become 40×150=6000ms.
+    const animCfg = w.config.chart.animations
+    const gradCfg = animCfg.animateGradually
+    const staggerEnabled = gradCfg && gradCfg.enabled !== false
+    let delay = 0
+    if (staggerEnabled) {
+      const totalBars = w.globals.dataPoints || 1
+      const configStep = gradCfg.delay || 0
+      const baseDelayMs = Math.min(
+        configStep,
+        (animCfg.speed * 0.5) / Math.max(1, totalBars),
+      )
+      let delayMs = computeStagger({
+        style: 'sequential',
+        index: j,
+        baseDelay: baseDelayMs,
+      })
+      if (w.config.chart.stacked) {
+        delayMs += i * baseDelayMs * 0.5
+      }
+      // Convert ms → delayFactor units so animatePathsGradually's
+      // `delay * delayFactor` reproduces our intended ms delay.
+      const delayFactor = configStep || 1
+      delay = delayMs / delayFactor
+    }
 
     if (!skipDrawing) {
       const renderedPath = /** @type {any} */ (

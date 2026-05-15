@@ -1,5 +1,5 @@
 // @ts-check
-import Animations from '../modules/Animations'
+import Animations, { computeStagger } from '../modules/Animations'
 import Fill from '../modules/Fill'
 import Filters from '../modules/Filters'
 import Graphics from '../modules/Graphics'
@@ -168,18 +168,26 @@ export default class Scatter {
     }
 
     if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
-      const speed = w.config.chart.animations.speed
-
-      anim.animateMarker(
-        el,
-        speed,
-        /** @type {any} */ (w.globals).easing,
-        () => {
-          window.setTimeout(() => {
-            anim.animationCompleted(el)
-          }, 100)
-        },
-      )
+      const animCfg = w.config.chart.animations
+      // Pop effect: scale + opacity per marker. Per-point left-to-right
+      // stagger is driven by `animateGradually`.
+      const popSpeed = animCfg.speed
+      const totalPoints = w.globals.dataPoints || 1
+      const gradCfg = animCfg.animateGradually
+      const gradEnabled = gradCfg && gradCfg.enabled !== false
+      const baseDelay = gradEnabled
+        ? Math.min(20, (popSpeed * 0.5) / Math.max(1, totalPoints))
+        : 0
+      const delay = computeStagger({
+        style: baseDelay > 0 ? 'sequential' : 'none',
+        index: dataPointIndex,
+        baseDelay,
+      })
+      anim.animatePop(el, {
+        speed: popSpeed,
+        delay,
+        onComplete: () => anim.animationCompleted(el),
+      })
     } else {
       w.globals.animationEnded = true
     }

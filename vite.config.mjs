@@ -133,7 +133,7 @@ export default defineConfig(({ mode }) => {
       [resolve(__dirname, 'src/charts/Scatter.js')]:
         { default: '__apex_charts_Scatter' },
       [resolve(__dirname, 'src/modules/Animations.js')]:
-        { default: '__apex_Animations' },
+        { default: '__apex_Animations', named: { computeStagger: '__apex_Animations_computeStagger', applyAnimationPolicy: '__apex_Animations_applyAnimationPolicy', prefersReducedMotion: '__apex_Animations_prefersReducedMotion', applyProgressiveReveal: '__apex_Animations_applyProgressiveReveal' } },
       [resolve(__dirname, 'src/modules/Base.js')]:
         { default: '__apex_Base' },
       [resolve(__dirname, 'src/modules/ChartFactory.js')]:

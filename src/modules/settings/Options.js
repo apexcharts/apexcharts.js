@@ -260,16 +260,37 @@ export default class Options {
       },
       chart: {
         animations: {
+          // Master switch — set false to render charts without any animation.
+          // Each chart type gets a tailored initial-mount animation by default:
+          //   line/area/rangeArea/radar: pen-stroke draw + radial fill bloom
+          //   bar/stacked/range/funnel:  grow from baseline (+ stagger)
+          //   scatter/bubble:            scale-up pop with overshoot
+          //   heatmap:                   diagonal-wave cell reveal
+          //   treemap:                   largest-tile-first cascade
+          //   pie/donut/polar/gauge:     arc sweep + needle settle
+          // Speed is controlled by `speed`; per-element stagger by
+          // `animateGradually.enabled` / `animateGradually.delay`.
           enabled: true,
           speed: 800,
           animateGradually: {
+            // Drives per-element stagger across all chart types. When enabled,
+            // bars/heatmap-cells/scatter-points/treemap-tiles reveal in
+            // sequence; line/area markers fade in progressively along the
+            // draw. `delay` is the requested step in ms (auto-capped per
+            // chart so total stagger ≤ ~half the animation duration).
             delay: 150,
             enabled: true,
           },
           dynamicAnimation: {
+            // Data-change (updateSeries) animation. Independent from the
+            // initial-mount animations above.
             enabled: true,
             speed: 350,
           },
+          // Honor the OS-level prefers-reduced-motion setting. When true (default)
+          // and the user has the accessibility preference enabled, all initial-mount
+          // animations are skipped and the chart renders instantly.
+          respectReducedMotion: true,
         },
         background: '',
         locales: [en],
@@ -1192,11 +1213,12 @@ export default class Options {
           formatter: undefined, // custom formatter function which will override format
           datetimeUTC: true,
           datetimeFormatter: {
-            // v6 multi-resolution defaults: year is shown only at year-
-            // boundary ticks (unit:'year'), month name at month-boundary
-            // ticks, smaller units below. The TimeScale promotes a tick's
-            // unit to the coarsest boundary it crosses, so the format
-            // context is always self-consistent.
+            // Base format per interval unit. TimeScale.formatDates folds in
+            // coarser context automatically when the data range spans it
+            // (e.g. month-scale across years → 'MMM yyyy', hour-scale across
+            // days → 'dd MMM HH:mm'). Customizing a base format that already
+            // includes the higher-unit token disables the auto-expansion for
+            // that level.
             year: 'yyyy',
             month: 'MMM',
             day: 'dd MMM',

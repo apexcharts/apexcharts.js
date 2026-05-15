@@ -5,6 +5,8 @@ import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Filters from '../modules/Filters'
 import Series from '../modules/Series'
+import { BrowserAPIs } from '../ssr/BrowserAPIs'
+import { Environment } from '../utils/Environment'
 
 /**
  * ApexCharts Radial Class for drawing Circle / Semi Circle Charts.
@@ -116,6 +118,20 @@ class Radial extends Pie {
         centerY,
         series,
       })
+      // On initial mount, ticks/labels fade in after the value arc + needle
+      // finish their sweep — so they read as a "settled" annotation rather
+      // than competing for attention during the gauge animation.
+      const isInitialMount =
+        this.initialAnim && !w.globals.dataChanged && !w.globals.resized
+      if (isInitialMount && Environment.isBrowser() && w.globals.shouldAnimate) {
+        const ticksNode = elTicks.node
+        ticksNode.style.opacity = '0'
+        ticksNode.style.transition = 'opacity 280ms ease-out'
+        const sweepDur = w.config.chart.animations.speed || 800
+        setTimeout(() => {
+          ticksNode.style.opacity = '1'
+        }, sweepDur)
+      }
       elSeries.add(elTicks)
     }
 
@@ -786,10 +802,42 @@ class Radial extends Pie {
     // chart center, transform-origin set to (cx, cy).
     const value = Number(opts.series[0])
     const targetAngle = this._angleAtValue(value)
-    g.attr({
-      'transform-origin': `${cx} ${cy}`,
-      transform: `rotate(${targetAngle})`,
-    })
+
+    const isInitialMount =
+      this.initialAnim && !w.globals.dataChanged && !w.globals.resized
+    if (isInitialMount && Environment.isBrowser() && w.globals.shouldAnimate) {
+      // Animate the needle from the gauge's start angle to its target with an
+      // ease-out-back curve so it visibly settles past the target and bounces
+      // back, like a real spring-loaded gauge needle.
+      const fromAngle = this.startAngle
+      const node = g.node
+      node.setAttribute('transform-origin', `${cx} ${cy}`)
+      node.setAttribute('transform', `rotate(${fromAngle})`)
+
+      const speed =
+        (cfg.animationSpeed && Number(cfg.animationSpeed)) ||
+        w.config.chart.animations.speed ||
+        800
+      const c1 = 1.70158
+      const c3 = c1 + 1
+      /** @param {number} t */
+      const ease = (t) => 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
+
+      const startAt = performance.now()
+      /** @param {number} now */
+      const step = (now) => {
+        const t = Math.max(0, Math.min(1, (now - startAt) / speed))
+        const angle = fromAngle + (targetAngle - fromAngle) * ease(t)
+        node.setAttribute('transform', `rotate(${angle})`)
+        if (t < 1) BrowserAPIs.requestAnimationFrame(step)
+      }
+      BrowserAPIs.requestAnimationFrame(step)
+    } else {
+      g.attr({
+        'transform-origin': `${cx} ${cy}`,
+        transform: `rotate(${targetAngle})`,
+      })
+    }
 
     return g
   }

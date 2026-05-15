@@ -490,6 +490,7 @@ class Graphics {
     shouldClipToGrid = true,
     bindEventsOnPaths = true,
     drawShadow = true,
+    drawMask = null,
   }) {
     const w = this.w
     const filters = new Filters(this.w)
@@ -513,11 +514,29 @@ class Graphics {
       (dynamicAnim && w.globals.dataChanged && w.globals.shouldAnimate)
     )
 
-    if (shouldAnimate) {
+    // Draw-mode (initial mount only): line/area/rangeArea/radar render at
+    // final path and reveal via stroke-dashoffset or a mask-rect width
+    // animation. Default-on whenever `chart.animations.enabled` is true.
+    const isDrawableSeries =
+      typeof className === 'string' &&
+      (className.indexOf('apexcharts-line') > -1 ||
+        className.indexOf('apexcharts-area') > -1 ||
+        className.indexOf('apexcharts-rangeArea') > -1 ||
+        className.indexOf('apexcharts-radar') > -1)
+    const useDrawMode = !!(
+      initialAnim &&
+      !w.globals.resized &&
+      !w.globals.dataChanged &&
+      isDrawableSeries
+    )
+
+    if (shouldAnimate && !useDrawMode) {
       d = pathFrom
     } else {
       d = pathTo
-      w.globals.animationEnded = true
+      if (!shouldAnimate) {
+        w.globals.animationEnded = true
+      }
     }
 
     const strokeDashArrayOpt = w.config.stroke.dashArray
@@ -583,10 +602,36 @@ class Graphics {
     }
 
     if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-      anim.animatePathsGradually({
-        ...defaultAnimateOpts,
-        speed: initialSpeed,
-      })
+      if (useDrawMode) {
+        // The pen-stroke traverses the full gridWidth, so it needs more time
+        // than the morph (which just rises from the baseline). Double the
+        // configured speed internally so the line/area/radar draw feels
+        // unhurried at the default `chart.animations.speed: 800`.
+        const drawSpeed = initialSpeed * 2
+        const isFill = stroke === 'none' || strokeWidth === 0
+        const seriesCount = w.seriesData.series.length
+        const isLast = w.globals.comboCharts
+          ? true
+          : realIndex === seriesCount - 1
+        // No per-series stagger for line / area / rangeArea / radar draw mode —
+        // all series begin drawing simultaneously. The draw effect's left-to-right
+        // motion provides enough visual interest on its own; staggering series
+        // makes multi-series charts feel slow and unsynchronised.
+        anim.animateDraw(el, {
+          realIndex,
+          j,
+          isFill,
+          isLast,
+          speed: drawSpeed,
+          delay: 0,
+          mask: drawMask,
+        })
+      } else {
+        anim.animatePathsGradually({
+          ...defaultAnimateOpts,
+          speed: initialSpeed,
+        })
+      }
     } else {
       if (w.globals.resized || !w.globals.dataChanged) {
         anim.showDelayedElements()

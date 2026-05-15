@@ -105,6 +105,28 @@ export default class TreemapChart {
         yMax: -Infinity,
       }
 
+      // Cascade: assign each tile a rank ordered by area (descending), so the
+      // largest tiles get rank 0 (no delay) and smaller tiles cascade in.
+      // Gated by `animateGradually`.
+      const animCfg = w.config.chart.animations
+      const gradCfg = animCfg.animateGradually
+      const cascadeEnabled = gradCfg && gradCfg.enabled !== false
+      /** @type {number[]} */
+      let cascadeDelays = new Array(node.length).fill(0)
+      if (cascadeEnabled) {
+        const tileCount = node.length || 1
+        const baseDelay = Math.min(
+          gradCfg.delay || 0,
+          (animCfg.speed * 0.5) / tileCount,
+        )
+        const ranked = node
+          .map((r, j) => ({ j, area: (r[2] - r[0]) * (r[3] - r[1]) }))
+          .sort((a, b) => b.area - a.area)
+        ranked.forEach((item, rank) => {
+          cascadeDelays[item.j] = rank * baseDelay
+        })
+      }
+
       /**
        * @param {number} r
        * @param {number} j
@@ -179,7 +201,13 @@ export default class TreemapChart {
           if (!w.globals.resized) {
             speed = w.config.chart.animations.speed
           }
-          this.animateTreemap(elRect, fromRect, toRect, speed)
+          this.animateTreemap(
+            elRect,
+            fromRect,
+            toRect,
+            speed,
+            cascadeDelays[j] || 0,
+          )
         }
         if (w.globals.dataChanged) {
           let speed = 1
@@ -459,11 +487,19 @@ export default class TreemapChart {
    * @param {Record<string, any>} fromRect
    * @param {Record<string, any>} toRect
    * @param {number} speed
+   * @param {number} [delay] - per-tile cascade delay in ms
    */
-  animateTreemap(el, fromRect, toRect, speed) {
+  animateTreemap(el, fromRect, toRect, speed, delay = 0) {
     const animations = new Animations(this.w)
-    animations.animateRect(el, fromRect, toRect, speed, () => {
-      animations.animationCompleted(el)
-    })
+    animations.animateRect(
+      el,
+      fromRect,
+      toRect,
+      speed,
+      () => {
+        animations.animationCompleted(el)
+      },
+      delay,
+    )
   }
 }

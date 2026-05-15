@@ -12,6 +12,7 @@ import { getThemePalettes } from './utils/ThemePalettes.js'
 import XAxis from './modules/axes/XAxis'
 import YAxis from './modules/axes/YAxis'
 import InitCtxVariables from './modules/helpers/InitCtxVariables'
+import { applyAnimationPolicy } from './modules/Animations'
 import Destroy from './modules/helpers/Destroy'
 import { register } from './modules/ChartFactory'
 import { addResizeListener, removeResizeListener } from './utils/Resize'
@@ -82,6 +83,8 @@ export default class ApexCharts {
     this.w.globals.chartID = this.w.config.chart.id
       ? Utils.escapeString(this.w.config.chart.id)
       : this.w.globals.cuid
+
+    applyAnimationPolicy(this.w)
 
     const initCtx = new InitCtxVariables(this)
     initCtx.initModules()

@@ -197,6 +197,14 @@ class Pie {
     elPie.add(elSeries)
 
     if (this.donutDataLabels.show) {
+      // On initial mount with animations enabled, the center label starts
+      // hidden and fades in after the last slice finishes its sweep — so the
+      // total/center value lands *with* the chart instead of before it.
+      const shouldFadeInLabels =
+        this.initialAnim &&
+        !w.globals.resized &&
+        !w.globals.dataChanged &&
+        this.animDur > 0
       const dataLabels = this.renderInnerDataLabels(
         this.dataLabelsGroup,
         this.donutDataLabels,
@@ -204,9 +212,17 @@ class Pie {
           hollowSize: this.donutSize,
           centerX: this.centerX,
           centerY: this.centerY,
-          opacity: this.donutDataLabels.show,
+          opacity: shouldFadeInLabels ? 0 : this.donutDataLabels.show,
         },
       )
+
+      if (shouldFadeInLabels) {
+        const labelsNode = this.dataLabelsGroup.node
+        labelsNode.style.transition = 'opacity 280ms ease-out'
+        setTimeout(() => {
+          labelsNode.style.opacity = '1'
+        }, this.animDur)
+      }
 
       elPie.add(dataLabels)
     }
@@ -392,7 +408,21 @@ class Pie {
         typeof w.interact.selectedDataPoints[0] !== 'undefined' &&
         w.interact.selectedDataPoints[0].indexOf(i) > -1
       ) {
-        this.pieClicked(i)
+        // Defer the "pulled out" offset for pre-selected slices until after
+        // the sweep finishes. Otherwise the slice translates while it's still
+        // growing, which makes both motions hard to read.
+        if (
+          this.initialAnim &&
+          !w.globals.resized &&
+          !w.globals.dataChanged &&
+          this.animDur > 0
+        ) {
+          const _this = this
+          const _i = i
+          setTimeout(() => _this.pieClicked(_i), this.animDur)
+        } else {
+          this.pieClicked(i)
+        }
       }
 
       if (w.config.dataLabels.enabled) {

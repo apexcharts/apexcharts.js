@@ -60,6 +60,16 @@ export default class Annotations {
         yAnnotations.node,
         pointAnnotations.node,
       ]
+      // For line/area/rangeArea, xaxis & point annotations handle their own
+      // per-element opacity timing via applyProgressiveReveal (synced to the
+      // line draw). YAxis annotations span the grid horizontally and have no
+      // meaningful x — they still use the legacy group-level fade-in.
+      const progressiveAnnos =
+        w.config.chart.type === 'line' ||
+        w.config.chart.type === 'area' ||
+        w.config.chart.type === 'rangeArea'
+      // annoElArray index: 0=xAnnotations, 1=yAnnotations, 2=pointAnnotations
+      const skipGroupHide = [progressiveAnnos, false, progressiveAnnos]
       for (let i = 0; i < 3; i++) {
         w.dom.elGraphical.add(annoArray[i])
         if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
@@ -67,7 +77,8 @@ export default class Annotations {
           if (
             w.config.chart.type !== 'scatter' &&
             w.config.chart.type !== 'bubble' &&
-            w.globals.dataPoints > 1
+            w.globals.dataPoints > 1 &&
+            !skipGroupHide[i]
           ) {
             annoElArray[i].classList.add('apexcharts-element-hidden')
           }

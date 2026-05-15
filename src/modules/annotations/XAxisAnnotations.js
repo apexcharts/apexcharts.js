@@ -1,6 +1,7 @@
 // @ts-check
 import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
+import { applyProgressiveReveal } from '../Animations'
 
 export default class XAnnotations {
   /**
@@ -50,6 +51,7 @@ export default class XAnnotations {
         if (anno.id) {
           line.node.classList.add(anno.id)
         }
+        applyProgressiveReveal(line, x1 + anno.offsetX, w)
       }
     } else {
       const result = this.helpers.getX1X2('x2', anno)
@@ -80,6 +82,10 @@ export default class XAnnotations {
       if (anno.id) {
         rect.node.classList.add(anno.id)
       }
+      // Progressive reveal: x-axis annotation rect fades in as the line's
+      // pen-stroke reaches its left edge. Wider rects still appear at once
+      // — only the start position drives the delay.
+      applyProgressiveReveal(rect, x1 + anno.offsetX, w)
     }
 
     if (!(clipX1 && clipX2)) {
@@ -121,6 +127,7 @@ export default class XAnnotations {
       })
 
       parent.appendChild(elText.node)
+      applyProgressiveReveal(elText, x1 + anno.label.offsetX, w)
 
       // after placing the annotations on svg, set any vertically placed annotations
       this.annoCtx.helpers.setOrientations(anno, index)

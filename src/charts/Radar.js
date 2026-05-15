@@ -224,6 +224,9 @@ class Radar {
           strokeWidth: 0,
           fill: pathFill,
           drawShadow: false,
+          // Radial mask: the area fill blooms outward from the radar's center
+          // (in this group's local coords) instead of the default L→R rect wipe.
+          drawMask: { type: 'radial', cx: 0, cy: 0, r: this.size },
         })
 
         if (w.config.chart.dropShadow.enabled) {

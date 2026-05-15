@@ -213,17 +213,21 @@ export default class Utils {
     let closestSeriesIndex = null
     let closestPointIndex = null
 
-    // Shared tooltips on aligned x-axes need two independent answers:
+    // When series share an x-axis we want two independent answers:
     //   • `j` — the x-bucket the cursor is over. Must come from X distance
-    //     only, otherwise a series whose Y is closer at a neighboring x
-    //     wins and `j` skips indices as the cursor sweeps horizontally
-    //     (the grouped tooltip then misses datapoints).
-    //   • `index` — which series is "under" the cursor (used by markerClick
-    //     / dataPointMouseEnter). For line/area we use perpendicular
-    //     distance to each series's line segments so a click on a line
-    //     between markers reports that line. For other shared cases we
-    //     use nearest Y at the chosen bucket.
-    if (w.config.tooltip.shared && w.globals.allSeriesHasEqualX) {
+    //     only, otherwise a marker whose Y is closer at a far-away x wins
+    //     and `j` jumps across many indices as the cursor sweeps
+    //     horizontally — e.g. cursor at y=60 over a line that crosses
+    //     y=60 at two distant points snaps to whichever crossing is
+    //     nearest, skipping everything between. Affects shared:false
+    //     single-series sweep too; the segment-distance commit made it
+    //     more visible but the underlying issue is the same.
+    //   • `index` — which series is "under" the cursor (used by
+    //     markerClick / dataPointMouseEnter). For line/area we use
+    //     perpendicular distance to each series's line segments so a
+    //     click on a line between markers reports that line. Otherwise
+    //     we use nearest Y at the chosen bucket.
+    if (w.globals.allSeriesHasEqualX) {
       let bucketDistX = Infinity
       for (let i = 0; i < Xarrays.length; i++) {
         if (!isActiveSeries(i)) continue

@@ -666,8 +666,14 @@ export default class Helpers {
     x1 += 0.001 + strokeCenter * direction
     x2 += 0.001 - strokeCenter * direction
 
+    // Funnel / pyramid (non-trapezoid): the segment expands outward from the
+    // chart center rather than growing in from the left edge, matching the
+    // trapezoid funnel's natural metaphor of "filling a vessel".
+    const isFunnel = this.barCtx.isFunnel
+    const fromX = isFunnel ? (x1 + x2) / 2 : x1
+
     let pathTo = graphics.move(x1, y1)
-    let pathFrom = graphics.move(x1, y1)
+    let pathFrom = graphics.move(fromX, y1)
 
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, false)
@@ -684,15 +690,16 @@ export default class Helpers {
         ? ' Z'
         : ' z')
 
+    const slFrom = isFunnel ? graphics.line(fromX, y2) : sl
     pathFrom =
       pathFrom +
-      graphics.line(x1, y1) +
-      sl +
-      sl +
-      sl +
-      sl +
-      sl +
-      graphics.line(x1, y1) +
+      graphics.line(fromX, y1) +
+      slFrom +
+      slFrom +
+      slFrom +
+      slFrom +
+      slFrom +
+      graphics.line(fromX, y1) +
       (w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
       this.arrBorderRadius[realIndex][j] === 'both'
         ? ' Z'

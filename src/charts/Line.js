@@ -818,7 +818,11 @@ class Line {
     const dataLabels = new DataLabels(this.w, this.ctx)
 
     if (!this.pointsChart) {
-      if (w.seriesData.series[i].length > 1) {
+      // Progressive marker reveal handles per-marker opacity timing (synced
+      // to the line draw), so the legacy group-level hide is bypassed on
+      // initial mount. Data updates and resizes still use the old code path.
+      const useProgressive = !w.globals.dataChanged && !w.globals.resized
+      if (!useProgressive && w.seriesData.series[i].length > 1) {
         this.elPointsMain.node.classList.add('apexcharts-element-hidden')
       }
 

@@ -542,16 +542,37 @@ type ApexChart = {
     }
   }
   animations?: {
+    /**
+     * Master switch. Each chart type gets a tailored initial-mount animation
+     * by default (line/area pen-stroke draw, bar grow, scatter pop, heatmap
+     * diagonal wave, treemap largest-first cascade, pie/donut/gauge sweep).
+     * Set false to render charts without any animation.
+     */
     enabled?: boolean
+    /** Animation duration in ms (default 800). */
     speed?: number
+    /**
+     * Drives per-element stagger across all chart types. When enabled, bars,
+     * heatmap cells, scatter points, and treemap tiles reveal in sequence;
+     * line/area markers fade in progressively as the line draws.
+     */
     animateGradually?: {
       enabled?: boolean
+      /** Requested stagger step in ms; auto-capped per chart so total
+       *  stagger ≤ ~half the animation speed. */
       delay?: number
     }
+    /** Data-change (updateSeries) animation. Independent from initial mount. */
     dynamicAnimation?: {
       enabled?: boolean
       speed?: number
     }
+    /**
+     * When true (default), honors the OS-level prefers-reduced-motion media
+     * query — all initial-mount animations are skipped and the chart renders
+     * instantly. Set to false to override (e.g. for QA / demo screens).
+     */
+    respectReducedMotion?: boolean
   }
   accessibility?: {
     enabled?: boolean
