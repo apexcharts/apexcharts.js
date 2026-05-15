@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.11.0
+ * ApexCharts v5.12.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -200,7 +200,10 @@ class Radar {
           pathTo: paths.areaPathsTo[p],
           strokeWidth: 0,
           fill: pathFill,
-          drawShadow: false
+          drawShadow: false,
+          // Radial mask: the area fill blooms outward from the radar's center
+          // (in this group's local coords) instead of the default L→R rect wipe.
+          drawMask: { type: "radial", cx: 0, cy: 0, r: this.size }
         }));
         if (w.config.chart.dropShadow.enabled) {
           const filters = new Filters(this.w);

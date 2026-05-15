@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.11.0
+ * ApexCharts v5.12.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -155,6 +155,7 @@ class Pie {
     elSeries.add(elG);
     elPie.add(elSeries);
     if (this.donutDataLabels.show) {
+      const shouldFadeInLabels = this.initialAnim && !w.globals.resized && !w.globals.dataChanged && this.animDur > 0;
       const dataLabels = this.renderInnerDataLabels(
         this.dataLabelsGroup,
         this.donutDataLabels,
@@ -162,9 +163,16 @@ class Pie {
           hollowSize: this.donutSize,
           centerX: this.centerX,
           centerY: this.centerY,
-          opacity: this.donutDataLabels.show
+          opacity: shouldFadeInLabels ? 0 : this.donutDataLabels.show
         }
       );
+      if (shouldFadeInLabels) {
+        const labelsNode = this.dataLabelsGroup.node;
+        labelsNode.style.transition = "opacity 280ms ease-out";
+        setTimeout(() => {
+          labelsNode.style.opacity = "1";
+        }, this.animDur);
+      }
       elPie.add(dataLabels);
     }
     if (w.config.grid.position === "front" && this.chartType === "polarArea") {
@@ -306,7 +314,13 @@ class Pie {
         elPath.node.addEventListener("mouseup", this.pieClicked.bind(this, i));
       }
       if (typeof w.interact.selectedDataPoints[0] !== "undefined" && w.interact.selectedDataPoints[0].indexOf(i) > -1) {
-        this.pieClicked(i);
+        if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged && this.animDur > 0) {
+          const _this = this;
+          const _i = i;
+          setTimeout(() => _this.pieClicked(_i), this.animDur);
+        } else {
+          this.pieClicked(i);
+        }
       }
       if (w.config.dataLabels.enabled) {
         const xPos = labelPosition.x;
@@ -852,6 +866,8 @@ class Pie {
   }
 }
 const Series = _core.__apex_Series;
+const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
+const Environment = _core.__apex_Environment_Environment;
 class Radial extends Pie {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -897,7 +913,11 @@ class Radial extends Pie {
       size = size - w.config.stroke.width - w.config.chart.dropShadow.blur;
     }
     const colorArr = w.globals.fill.colors;
-    if (w.config.plotOptions.radialBar.track.show) {
+    const rb = w.config.plotOptions.radialBar;
+    const hasBands = Array.isArray(rb.bands) && rb.bands.length > 0;
+    const hideTrack = hasBands && rb.bandsStyle && rb.bandsStyle.hideTrackWhenPresent;
+    const isNeedleShape = rb.shape === "needle";
+    if (rb.track.show && !hideTrack) {
       const elTracks = this.drawTracks({
         size,
         centerX,
@@ -907,13 +927,51 @@ class Radial extends Pie {
       });
       elSeries.add(elTracks);
     }
+    if (hasBands) {
+      const elBands = this.drawBands({
+        size,
+        centerX,
+        centerY,
+        series
+      });
+      elSeries.add(elBands);
+    }
     const elG = this.drawArcs({
       size,
       centerX,
       centerY,
       colorArr,
-      series
+      series,
+      skipValueArc: isNeedleShape
     });
+    if (rb.ticks && rb.ticks.show) {
+      const elTicks = this.drawTicks({
+        size,
+        centerX,
+        centerY,
+        series
+      });
+      const isInitialMount = this.initialAnim && !w.globals.dataChanged && !w.globals.resized;
+      if (isInitialMount && Environment.isBrowser() && w.globals.shouldAnimate) {
+        const ticksNode = elTicks.node;
+        ticksNode.style.opacity = "0";
+        ticksNode.style.transition = "opacity 280ms ease-out";
+        const sweepDur = w.config.chart.animations.speed || 800;
+        setTimeout(() => {
+          ticksNode.style.opacity = "1";
+        }, sweepDur);
+      }
+      elSeries.add(elTicks);
+    }
+    if (isNeedleShape) {
+      const elNeedle = this.drawNeedle({
+        size,
+        centerX,
+        centerY,
+        series
+      });
+      elSeries.add(elNeedle);
+    }
     let totalAngle = 360;
     if (w.config.plotOptions.radialBar.startAngle < 0) {
       totalAngle = this.totalAngle;
@@ -1096,8 +1154,8 @@ class Radial extends Pie {
       const dashArray = Array.isArray(w.config.stroke.dashArray) ? w.config.stroke.dashArray[i] : w.config.stroke.dashArray;
       const elPath = graphics.drawPath({
         d: "",
-        stroke: pathFill,
-        strokeWidth,
+        stroke: opts.skipValueArc ? "transparent" : pathFill,
+        strokeWidth: opts.skipValueArc ? 0 : strokeWidth,
         fill: "none",
         fillOpacity: w.config.fill.opacity,
         classes: "apexcharts-radialbar-area apexcharts-radialbar-slice-" + i,
@@ -1201,6 +1259,248 @@ class Radial extends Pie {
       elHollow,
       dataLabels
     };
+  }
+  /**
+   * Map a domain value (between `min` and `max`) to the corresponding angle
+   * in the gauge's `startAngle`..`endAngle` range. Values outside the
+   * domain are clamped.
+   *
+   * @param {number} value
+   * @returns {number}
+   */
+  _angleAtValue(value) {
+    const rb = this.w.config.plotOptions.radialBar;
+    const min = typeof rb.min === "number" ? rb.min : 0;
+    const max = typeof rb.max === "number" ? rb.max : 100;
+    const safeMax = max === min ? min + 1 : max;
+    const clamped = Math.max(min, Math.min(safeMax, Number(value)));
+    const t = (clamped - min) / (safeMax - min);
+    return this.startAngle + t * (this.endAngle - this.startAngle);
+  }
+  /**
+   * Build an SVG arc path from `startAngle` to `endAngle` at radius `r`
+   * around `(cx, cy)`. Angles are in degrees, with 0° at the top.
+   * Used by drawBands; mirrors the `M ... A ... ` form used elsewhere.
+   *
+   * @param {number} cx
+   * @param {number} cy
+   * @param {number} r
+   * @param {number} startAngle
+   * @param {number} endAngle
+   * @returns {string}
+   */
+  _describeArc(cx, cy, r, startAngle, endAngle) {
+    const start = Utils.polarToCartesian(cx, cy, r, endAngle);
+    const end = Utils.polarToCartesian(cx, cy, r, startAngle);
+    const sweep = endAngle - startAngle;
+    const largeArc = Math.abs(sweep) > 180 ? 1 : 0;
+    return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
+  }
+  /**
+   * Draw threshold bands as colored arc segments along the gauge arc.
+   * Bands sit behind the value-arc and tick marks. Used for gauges that
+   * indicate ranges like 0-30 critical / 30-70 warning / 70-100 healthy.
+   *
+   * @param {Record<string, any>} opts
+   */
+  drawBands(opts) {
+    const w = this.w;
+    const graphics = new Graphics(this.w);
+    const rb = w.config.plotOptions.radialBar;
+    const bands = rb.bands || [];
+    const g = graphics.group({
+      class: "apexcharts-gauge-bands"
+    });
+    const strokeWidth = this.getStrokeWidth(opts);
+    const radius = opts.size - strokeWidth / 2 - strokeWidth - this.margin;
+    const bandStroke = strokeWidth * parseInt(rb.bandsStyle.strokeWidth, 10) / 100;
+    const min = typeof rb.min === "number" ? rb.min : 0;
+    const max = typeof rb.max === "number" ? rb.max : 100;
+    const gapDeg = max === min ? 0 : (rb.bandsStyle.gap || 0) * ((this.endAngle - this.startAngle) / (max - min));
+    for (let b = 0; b < bands.length; b++) {
+      const band = bands[b];
+      if (band.from === void 0 || band.to === void 0) continue;
+      const a1 = this._angleAtValue(band.from);
+      const a2 = this._angleAtValue(band.to);
+      const startA = Math.min(a1, a2) + gapDeg / 2;
+      const endA = Math.max(a1, a2) - gapDeg / 2;
+      if (endA - startA <= 0) continue;
+      const elBand = graphics.drawPath({
+        d: this._describeArc(opts.centerX, opts.centerY, radius, startA, endA),
+        stroke: band.color || "#ccc",
+        strokeWidth: bandStroke,
+        fill: "none",
+        strokeLinecap: rb.bandsStyle.linecap || "butt",
+        classes: "apexcharts-gauge-band"
+      });
+      elBand.node.setAttribute("data-band-index", String(b));
+      g.add(elBand);
+    }
+    return g;
+  }
+  /**
+   * Draw tick marks (major + minor) along the gauge arc, with optional
+   * value labels at each major tick.
+   *
+   * @param {Record<string, any>} opts
+   */
+  drawTicks(opts) {
+    var _a, _b, _c, _d;
+    const w = this.w;
+    const graphics = new Graphics(this.w);
+    const rb = w.config.plotOptions.radialBar;
+    const ticks = rb.ticks;
+    const g = graphics.group({ class: "apexcharts-gauge-ticks" });
+    const strokeWidth = this.getStrokeWidth(opts);
+    const radius = opts.size - strokeWidth / 2 - strokeWidth - this.margin;
+    const min = typeof rb.min === "number" ? rb.min : 0;
+    const max = typeof rb.max === "number" ? rb.max : 100;
+    const majorCount = Math.max(2, (_b = (_a = ticks.major) == null ? void 0 : _a.count) != null ? _b : 11);
+    const minorCount = Math.max(0, (_d = (_c = ticks.minor) == null ? void 0 : _c.count) != null ? _d : 0);
+    const drawTickAt = (value, cfg, isMajor) => {
+      var _a2, _b2, _c2;
+      const angle = this._angleAtValue(value);
+      const length = (_a2 = cfg.length) != null ? _a2 : 8;
+      const inner = cfg.placement === "inside" ? radius - length : radius;
+      const outer = cfg.placement === "inside" ? radius : radius + length;
+      const p1 = Utils.polarToCartesian(
+        opts.centerX,
+        opts.centerY,
+        inner,
+        angle
+      );
+      const p2 = Utils.polarToCartesian(
+        opts.centerX,
+        opts.centerY,
+        outer,
+        angle
+      );
+      const line = graphics.drawLine(
+        p1.x,
+        p1.y,
+        p2.x,
+        p2.y,
+        cfg.color || (isMajor ? "#666" : "#999"),
+        0,
+        cfg.width || (isMajor ? 2 : 1)
+      );
+      g.add(line);
+      if (isMajor && ((_b2 = ticks.labels) == null ? void 0 : _b2.show)) {
+        const labelRadius = (cfg.placement === "inside" ? inner : outer) + (cfg.placement === "inside" ? -1 : 1) * ((_c2 = ticks.labels.offset) != null ? _c2 : 6);
+        const labelPos = Utils.polarToCartesian(
+          opts.centerX,
+          opts.centerY,
+          labelRadius,
+          angle
+        );
+        const labelText = typeof ticks.labels.formatter === "function" ? ticks.labels.formatter(value) : String(value);
+        const elText = graphics.drawText({
+          x: labelPos.x,
+          y: labelPos.y,
+          text: labelText,
+          textAnchor: "middle",
+          dominantBaseline: "middle",
+          fontFamily: ticks.labels.fontFamily,
+          fontSize: ticks.labels.fontSize,
+          fontWeight: ticks.labels.fontWeight,
+          foreColor: ticks.labels.color,
+          cssClass: "apexcharts-gauge-tick-label"
+        });
+        g.add(elText);
+      }
+    };
+    for (let m = 0; m < majorCount; m++) {
+      const t = m / (majorCount - 1);
+      const value = min + t * (max - min);
+      drawTickAt(value, ticks.major || {}, true);
+      if (m < majorCount - 1 && minorCount > 0) {
+        for (let n = 1; n <= minorCount; n++) {
+          const tMinor = (m + n / (minorCount + 1)) / (majorCount - 1);
+          const minorValue = min + tMinor * (max - min);
+          drawTickAt(minorValue, ticks.minor || {}, false);
+        }
+      }
+    }
+    return g;
+  }
+  /**
+   * Draw a rotating needle pointing at the current series value. Only
+   * called when `plotOptions.radialBar.shape === 'needle'`. The needle is
+   * a tapered polygon inside a `<g>` whose rotation transform is animated
+   * from `startAngle` to the value's angle.
+   *
+   * Renders a single needle for the first series value (gauge use case).
+   * Additional series are ignored — drilled-down multi-series gauges are
+   * out of scope for this iteration.
+   *
+   * @param {Record<string, any>} opts
+   */
+  drawNeedle(opts) {
+    var _a, _b, _c, _d, _e;
+    const w = this.w;
+    const graphics = new Graphics(this.w);
+    const rb = w.config.plotOptions.radialBar;
+    const cfg = rb.needle || {};
+    const pivot = rb.pivot || {};
+    const g = graphics.group({ class: "apexcharts-gauge-needle" });
+    if (!opts.series || opts.series.length === 0) return g;
+    const strokeWidth = this.getStrokeWidth(opts);
+    const arcRadius = opts.size - strokeWidth / 2 - strokeWidth - this.margin;
+    const length = typeof cfg.length === "string" && cfg.length.endsWith("%") ? arcRadius * parseInt(cfg.length, 10) / 100 : Number(cfg.length || arcRadius * 0.85);
+    const baseW = (_a = cfg.baseWidth) != null ? _a : 4;
+    const tipW = (_b = cfg.tipWidth) != null ? _b : 1;
+    const color = cfg.color || "#333";
+    const cx = opts.centerX;
+    const cy = opts.centerY;
+    const path = `M ${cx - baseW / 2} ${cy} L ${cx + baseW / 2} ${cy} L ${cx + tipW / 2} ${cy - length} L ${cx - tipW / 2} ${cy - length} Z`;
+    const elNeedle = graphics.drawPath({
+      d: path,
+      stroke: color,
+      strokeWidth: 0,
+      fill: color,
+      classes: "apexcharts-gauge-needle-shape"
+    });
+    g.add(elNeedle);
+    if (pivot.show !== false) {
+      const elPivot = graphics.drawCircle(2 * ((_c = cfg.baseRadius) != null ? _c : 8));
+      elPivot.attr({
+        cx,
+        cy,
+        r: (_d = cfg.baseRadius) != null ? _d : 8,
+        fill: pivot.color || color,
+        stroke: pivot.strokeColor || "#fff",
+        "stroke-width": (_e = pivot.strokeWidth) != null ? _e : 2,
+        class: "apexcharts-gauge-needle-pivot"
+      });
+      g.add(elPivot);
+    }
+    const value = Number(opts.series[0]);
+    const targetAngle = this._angleAtValue(value);
+    const isInitialMount = this.initialAnim && !w.globals.dataChanged && !w.globals.resized;
+    if (isInitialMount && Environment.isBrowser() && w.globals.shouldAnimate) {
+      const fromAngle = this.startAngle;
+      const node = g.node;
+      node.setAttribute("transform-origin", `${cx} ${cy}`);
+      node.setAttribute("transform", `rotate(${fromAngle})`);
+      const speed = cfg.animationSpeed && Number(cfg.animationSpeed) || w.config.chart.animations.speed || 800;
+      const c1 = 1.70158;
+      const c3 = c1 + 1;
+      const ease = (t) => 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      const startAt = performance.now();
+      const step = (now) => {
+        const t = Math.max(0, Math.min(1, (now - startAt) / speed));
+        const angle = fromAngle + (targetAngle - fromAngle) * ease(t);
+        node.setAttribute("transform", `rotate(${angle})`);
+        if (t < 1) BrowserAPIs.requestAnimationFrame(step);
+      };
+      BrowserAPIs.requestAnimationFrame(step);
+    } else {
+      g.attr({
+        "transform-origin": `${cx} ${cy}`,
+        transform: `rotate(${targetAngle})`
+      });
+    }
+    return g;
   }
   /**
    * @param {Record<string, any>} opts

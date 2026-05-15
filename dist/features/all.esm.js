@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.11.0
+ * ApexCharts v5.12.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -2435,6 +2435,7 @@ _core__default.registerFeatures({
   toolbar: Toolbar,
   zoomPanSelection: ZoomPanSelection
 });
+const applyProgressiveReveal = _core.__apex_Animations_applyProgressiveReveal;
 class Helpers2 {
   /**
    * @param {import('./Annotations').default} annoCtx
@@ -2533,6 +2534,10 @@ class Helpers2 {
         const elRect = this.addBackgroundToAnno(annoLabel, anno);
         if (elRect) {
           parent == null ? void 0 : parent.insertBefore(elRect.node, annoLabel);
+          const labelX = annoLabel.getAttribute("x");
+          if (labelX !== null) {
+            applyProgressiveReveal(elRect, parseFloat(labelX), w);
+          }
           if (anno.label.mouseEnter) {
             elRect.node.addEventListener(
               "mouseenter",
@@ -2716,6 +2721,7 @@ class XAnnotations {
         if (anno.id) {
           line.node.classList.add(anno.id);
         }
+        applyProgressiveReveal(line, x1 + anno.offsetX, w);
       }
     } else {
       const result2 = this.helpers.getX1X2("x2", anno);
@@ -2754,6 +2760,7 @@ class XAnnotations {
       if (anno.id) {
         rect.node.classList.add(anno.id);
       }
+      applyProgressiveReveal(rect, x1 + anno.offsetX, w);
     }
     if (!(clipX1 && clipX2)) {
       const textRects = this.annoCtx.graphics.getTextRects(
@@ -2776,6 +2783,7 @@ class XAnnotations {
         rel: index
       });
       parent.appendChild(elText.node);
+      applyProgressiveReveal(elText, x1 + anno.label.offsetX, w);
       this.annoCtx.helpers.setOrientations(anno, index);
     }
   }
@@ -2974,6 +2982,7 @@ class PointAnnotations {
         optsPoints
       );
       parent.appendChild(point.node);
+      applyProgressiveReveal(point, x, w);
       const text = anno.label.text ? anno.label.text : "";
       const elText = this.annoCtx.graphics.drawText({
         x: x + anno.label.offsetX,
@@ -2990,6 +2999,7 @@ class PointAnnotations {
         rel: index
       });
       parent.appendChild(elText.node);
+      applyProgressiveReveal(elText, x, w);
       if (anno.customSVG.SVG) {
         const g = this.annoCtx.graphics.group({
           class: "apexcharts-point-annotations-custom-svg " + anno.customSVG.cssClass
@@ -3079,10 +3089,12 @@ class Annotations {
         yAnnotations.node,
         pointAnnotations.node
       ];
+      const progressiveAnnos = w.config.chart.type === "line" || w.config.chart.type === "area" || w.config.chart.type === "rangeArea";
+      const skipGroupHide = [progressiveAnnos, false, progressiveAnnos];
       for (let i = 0; i < 3; i++) {
         w.dom.elGraphical.add(annoArray[i]);
         if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-          if (w.config.chart.type !== "scatter" && w.config.chart.type !== "bubble" && w.globals.dataPoints > 1) {
+          if (w.config.chart.type !== "scatter" && w.config.chart.type !== "bubble" && w.globals.dataPoints > 1 && !skipGroupHide[i]) {
             annoElArray[i].classList.add("apexcharts-element-hidden");
           }
         }

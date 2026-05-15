@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.11.0
+ * ApexCharts v5.12.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -853,7 +853,8 @@ class Line {
     const w = this.w;
     const dataLabels = new DataLabels(this.w, this.ctx);
     if (!this.pointsChart) {
-      if (w.seriesData.series[i].length > 1) {
+      const useProgressive = !w.globals.dataChanged && !w.globals.resized;
+      if (!useProgressive && w.seriesData.series[i].length > 1) {
         this.elPointsMain.node.classList.add("apexcharts-element-hidden");
       }
       const elPointsWrap = this.markers.plotChartMarkers({

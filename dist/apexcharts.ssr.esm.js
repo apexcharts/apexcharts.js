@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v5.11.0
+ * ApexCharts v5.12.0
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -1449,6 +1449,313 @@ class DateTime {
     }
     return days;
   }
+  // ───────────────────────────────────────────────────────────────────────────
+  // Pure date helpers used by the v6 single-interval TimeScale.
+  // Native Date setters/getters do all rollover work (leap years, month
+  // length, year crossings), eliminating the manual rollover code that was
+  // the source of the historical TimeScale boundary bugs.
+  // ───────────────────────────────────────────────────────────────────────────
+  /**
+   * Extract calendar fields from a timestamp. Month is 0-indexed (matches
+   * Date.getMonth / getUTCMonth).
+   *
+   * @param {number} timestamp
+   * @param {boolean} isUTC
+   * @returns {{ year: number, month: number, date: number, hour: number, minute: number, second: number, ms: number, weekday: number }}
+   */
+  getDateFields(timestamp, isUTC) {
+    const d = new Date(timestamp);
+    return isUTC ? {
+      year: d.getUTCFullYear(),
+      month: d.getUTCMonth(),
+      date: d.getUTCDate(),
+      hour: d.getUTCHours(),
+      minute: d.getUTCMinutes(),
+      second: d.getUTCSeconds(),
+      ms: d.getUTCMilliseconds(),
+      weekday: d.getUTCDay()
+    } : {
+      year: d.getFullYear(),
+      month: d.getMonth(),
+      date: d.getDate(),
+      hour: d.getHours(),
+      minute: d.getMinutes(),
+      second: d.getSeconds(),
+      ms: d.getMilliseconds(),
+      weekday: d.getDay()
+    };
+  }
+  /**
+   * Advance a timestamp by `count` units. Native setters handle cross-month,
+   * cross-year, leap-year, and DST rollover correctly.
+   *
+   * @param {number} timestamp
+   * @param {'year'|'month'|'week'|'day'|'hour'|'minute'|'second'} unit
+   * @param {number} count  may be negative
+   * @param {boolean} isUTC
+   * @returns {number}
+   */
+  addInterval(timestamp, unit, count, isUTC) {
+    const d = new Date(timestamp);
+    if (isUTC) {
+      switch (unit) {
+        case "year":
+          d.setUTCFullYear(d.getUTCFullYear() + count);
+          break;
+        case "month":
+          d.setUTCMonth(d.getUTCMonth() + count);
+          break;
+        case "week":
+          d.setUTCDate(d.getUTCDate() + count * 7);
+          break;
+        case "day":
+          d.setUTCDate(d.getUTCDate() + count);
+          break;
+        case "hour":
+          d.setUTCHours(d.getUTCHours() + count);
+          break;
+        case "minute":
+          d.setUTCMinutes(d.getUTCMinutes() + count);
+          break;
+        case "second":
+          d.setUTCSeconds(d.getUTCSeconds() + count);
+          break;
+      }
+    } else {
+      switch (unit) {
+        case "year":
+          d.setFullYear(d.getFullYear() + count);
+          break;
+        case "month":
+          d.setMonth(d.getMonth() + count);
+          break;
+        case "week":
+          d.setDate(d.getDate() + count * 7);
+          break;
+        case "day":
+          d.setDate(d.getDate() + count);
+          break;
+        case "hour":
+          d.setHours(d.getHours() + count);
+          break;
+        case "minute":
+          d.setMinutes(d.getMinutes() + count);
+          break;
+        case "second":
+          d.setSeconds(d.getSeconds() + count);
+          break;
+      }
+    }
+    return d.getTime();
+  }
+  /**
+   * Snap a timestamp UP to the next boundary aligned with `step` units of
+   * `unit`. Returns the input unchanged if already on a boundary. Alignment
+   * rules per unit:
+   *   - second: 0/step/2*step/... seconds within a minute (step must divide 60)
+   *   - minute: 0/step/2*step/... minutes within an hour (step must divide 60)
+   *   - hour:   0/step/... hours within a day (step must divide 24)
+   *   - day:    every day (step always 1)
+   *   - week:   next Monday on a `step`-week stride from a fixed epoch Monday
+   *   - month:  Jan/Apr/Jul/Oct for step=3, Jan/Jul for step=6 (step must divide 12)
+   *   - year:   year % step === 0
+   *
+   * @param {number} timestamp
+   * @param {'year'|'month'|'week'|'day'|'hour'|'minute'|'second'} unit
+   * @param {number} step
+   * @param {boolean} isUTC
+   * @returns {number}
+   */
+  ceilToBoundary(timestamp, unit, step, isUTC) {
+    const d = new Date(timestamp);
+    if (isUTC) {
+      switch (unit) {
+        case "second": {
+          const s = d.getUTCSeconds();
+          const aligned = Math.ceil(s / step) * step;
+          if (aligned === s && d.getUTCMilliseconds() === 0)
+            return timestamp;
+          d.setUTCMilliseconds(0);
+          d.setUTCSeconds(aligned);
+          return d.getTime();
+        }
+        case "minute": {
+          const m = d.getUTCMinutes();
+          const aligned = Math.ceil(m / step) * step;
+          if (aligned === m && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0)
+            return timestamp;
+          d.setUTCMilliseconds(0);
+          d.setUTCSeconds(0);
+          d.setUTCMinutes(aligned);
+          return d.getTime();
+        }
+        case "hour": {
+          const h = d.getUTCHours();
+          const aligned = Math.ceil(h / step) * step;
+          if (aligned === h && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0)
+            return timestamp;
+          d.setUTCMilliseconds(0);
+          d.setUTCSeconds(0);
+          d.setUTCMinutes(0);
+          d.setUTCHours(aligned);
+          return d.getTime();
+        }
+        case "day": {
+          if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0)
+            return timestamp;
+          d.setUTCMilliseconds(0);
+          d.setUTCSeconds(0);
+          d.setUTCMinutes(0);
+          d.setUTCHours(0);
+          d.setUTCDate(d.getUTCDate() + 1);
+          return d.getTime();
+        }
+        case "week": {
+          const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1e3;
+          const REF_MONDAY_UTC = Date.UTC(1970, 0, 5);
+          d.setUTCMilliseconds(0);
+          d.setUTCSeconds(0);
+          d.setUTCMinutes(0);
+          d.setUTCHours(0);
+          const startOfDay = d.getTime();
+          const weeksSinceRef = Math.ceil(
+            (startOfDay - REF_MONDAY_UTC) / MS_PER_WEEK
+          );
+          const alignedWeeks = Math.ceil(weeksSinceRef / step) * step;
+          const aligned = REF_MONDAY_UTC + alignedWeeks * MS_PER_WEEK;
+          if (aligned >= timestamp) return aligned;
+          return aligned + step * MS_PER_WEEK;
+        }
+        case "month": {
+          const m = d.getUTCMonth();
+          const aligned = Math.ceil(m / step) * step;
+          if (aligned === m && d.getUTCDate() === 1 && d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0)
+            return timestamp;
+          d.setUTCMilliseconds(0);
+          d.setUTCSeconds(0);
+          d.setUTCMinutes(0);
+          d.setUTCHours(0);
+          d.setUTCDate(1);
+          d.setUTCMonth(aligned);
+          return d.getTime();
+        }
+        case "year": {
+          const y = d.getUTCFullYear();
+          const aligned = Math.ceil(y / step) * step;
+          if (aligned === y && d.getUTCMonth() === 0 && d.getUTCDate() === 1 && d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0)
+            return timestamp;
+          return Date.UTC(aligned, 0, 1);
+        }
+      }
+    } else {
+      switch (unit) {
+        case "second": {
+          const s = d.getSeconds();
+          const aligned = Math.ceil(s / step) * step;
+          if (aligned === s && d.getMilliseconds() === 0) return timestamp;
+          d.setMilliseconds(0);
+          d.setSeconds(aligned);
+          return d.getTime();
+        }
+        case "minute": {
+          const m = d.getMinutes();
+          const aligned = Math.ceil(m / step) * step;
+          if (aligned === m && d.getSeconds() === 0 && d.getMilliseconds() === 0)
+            return timestamp;
+          d.setMilliseconds(0);
+          d.setSeconds(0);
+          d.setMinutes(aligned);
+          return d.getTime();
+        }
+        case "hour": {
+          const h = d.getHours();
+          const aligned = Math.ceil(h / step) * step;
+          if (aligned === h && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0)
+            return timestamp;
+          d.setMilliseconds(0);
+          d.setSeconds(0);
+          d.setMinutes(0);
+          d.setHours(aligned);
+          return d.getTime();
+        }
+        case "day": {
+          if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0)
+            return timestamp;
+          d.setMilliseconds(0);
+          d.setSeconds(0);
+          d.setMinutes(0);
+          d.setHours(0);
+          d.setDate(d.getDate() + 1);
+          return d.getTime();
+        }
+        case "week": {
+          const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1e3;
+          const REF_MONDAY_LOCAL = new Date(1970, 0, 5).getTime();
+          d.setMilliseconds(0);
+          d.setSeconds(0);
+          d.setMinutes(0);
+          d.setHours(0);
+          const startOfDay = d.getTime();
+          const weeksSinceRef = Math.ceil(
+            (startOfDay - REF_MONDAY_LOCAL) / MS_PER_WEEK
+          );
+          const alignedWeeks = Math.ceil(weeksSinceRef / step) * step;
+          const aligned = REF_MONDAY_LOCAL + alignedWeeks * MS_PER_WEEK;
+          if (aligned >= timestamp) return aligned;
+          return aligned + step * MS_PER_WEEK;
+        }
+        case "month": {
+          const m = d.getMonth();
+          const aligned = Math.ceil(m / step) * step;
+          if (aligned === m && d.getDate() === 1 && d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0)
+            return timestamp;
+          d.setMilliseconds(0);
+          d.setSeconds(0);
+          d.setMinutes(0);
+          d.setHours(0);
+          d.setDate(1);
+          d.setMonth(aligned);
+          return d.getTime();
+        }
+        case "year": {
+          const y = d.getFullYear();
+          const aligned = Math.ceil(y / step) * step;
+          if (aligned === y && d.getMonth() === 0 && d.getDate() === 1 && d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0)
+            return timestamp;
+          return new Date(aligned, 0, 1).getTime();
+        }
+      }
+    }
+    return timestamp;
+  }
+  /**
+   * Test whether a timestamp falls exactly on a unit boundary (start of year,
+   * start of month, start of day, etc.). Used by the multi-resolution
+   * formatter to upgrade a tick's display unit to a coarser scale.
+   *
+   * @param {number} timestamp
+   * @param {'year'|'month'|'day'|'hour'|'minute'|'second'} unit
+   * @param {boolean} isUTC
+   * @returns {boolean}
+   */
+  isAtBoundary(timestamp, unit, isUTC) {
+    const f = this.getDateFields(timestamp, isUTC);
+    switch (unit) {
+      case "year":
+        return f.month === 0 && f.date === 1 && f.hour === 0 && f.minute === 0 && f.second === 0 && f.ms === 0;
+      case "month":
+        return f.date === 1 && f.hour === 0 && f.minute === 0 && f.second === 0 && f.ms === 0;
+      case "day":
+        return f.hour === 0 && f.minute === 0 && f.second === 0 && f.ms === 0;
+      case "hour":
+        return f.minute === 0 && f.second === 0 && f.ms === 0;
+      case "minute":
+        return f.second === 0 && f.ms === 0;
+      case "second":
+        return f.ms === 0;
+    }
+    return false;
+  }
 }
 class Formatters {
   /**
@@ -1534,8 +1841,10 @@ class Formatters {
               return val.toFixed(w.config.xaxis.decimalsInFloat);
             } else {
               const diff = w.globals.maxX - w.globals.minX;
-              if (diff > 0 && diff < 100) {
-                return val.toFixed(1);
+              if (diff > 0) {
+                const step = diff / 10;
+                const decimals = Math.max(0, -Math.floor(Math.log10(step)));
+                return val.toFixed(decimals);
               }
               return val.toFixed(0);
             }
@@ -1960,6 +2269,40 @@ class Defaults {
         },
         axisTicks: {
           show: false
+        }
+      }
+    });
+  }
+  pyramid() {
+    return this.funnel();
+  }
+  gauge() {
+    const base = this.radialBar();
+    return __spreadProps(__spreadValues({}, base), {
+      plotOptions: {
+        radialBar: {
+          startAngle: -135,
+          endAngle: 135,
+          hollow: {
+            margin: 0,
+            size: "60%"
+          },
+          track: {
+            background: "#e7e7e7",
+            strokeWidth: "100%",
+            margin: 5
+          },
+          dataLabels: {
+            name: {
+              show: false
+            },
+            value: {
+              show: true,
+              fontSize: "32px",
+              fontWeight: 600,
+              offsetY: 8
+            }
+          }
         }
       }
     });
@@ -3009,16 +3352,37 @@ class Options {
       },
       chart: {
         animations: {
+          // Master switch — set false to render charts without any animation.
+          // Each chart type gets a tailored initial-mount animation by default:
+          //   line/area/rangeArea/radar: pen-stroke draw + radial fill bloom
+          //   bar/stacked/range/funnel:  grow from baseline (+ stagger)
+          //   scatter/bubble:            scale-up pop with overshoot
+          //   heatmap:                   diagonal-wave cell reveal
+          //   treemap:                   largest-tile-first cascade
+          //   pie/donut/polar/gauge:     arc sweep + needle settle
+          // Speed is controlled by `speed`; per-element stagger by
+          // `animateGradually.enabled` / `animateGradually.delay`.
           enabled: true,
           speed: 800,
           animateGradually: {
+            // Drives per-element stagger across all chart types. When enabled,
+            // bars/heatmap-cells/scatter-points/treemap-tiles reveal in
+            // sequence; line/area markers fade in progressively along the
+            // draw. `delay` is the requested step in ms (auto-capped per
+            // chart so total stagger ≤ ~half the animation duration).
             delay: 150,
             enabled: true
           },
           dynamicAnimation: {
+            // Data-change (updateSeries) animation. Independent from the
+            // initial-mount animations above.
             enabled: true,
             speed: 350
-          }
+          },
+          // Honor the OS-level prefers-reduced-motion setting. When true (default)
+          // and the user has the accessibility preference enabled, all initial-mount
+          // animations are skipped and the chart renders instantly.
+          respectReducedMotion: true
         },
         background: "",
         locales: [en],
@@ -3273,6 +3637,16 @@ class Options {
             max: void 0
           }
         },
+        funnel: {
+          // 'rectangle' preserves the existing centered-rectangle funnel
+          // geometry. 'trapezoid' produces continuous sloped sides between
+          // consecutive stages (each stage's bottom width matches the next
+          // stage's top width).
+          shape: "rectangle",
+          // For shape: 'trapezoid' only — what to do with the last stage's
+          // bottom edge: 'flat' (parallel sides) or 'taper' (taper to a point).
+          lastShape: "flat"
+        },
         treemap: {
           enableShades: true,
           shadeIntensity: 0.5,
@@ -3319,6 +3693,88 @@ class Options {
           endAngle: 360,
           offsetX: 0,
           offsetY: 0,
+          // Gauge sub-shape. 'arc' (default) renders the existing filled
+          // value-arc gauge; 'needle' replaces the value-arc with a rotating
+          // pointer/needle. Bands and ticks are independent and work for both
+          // shapes.
+          shape: "arc",
+          // Value-to-angle mapping. Defaults to the existing 0..100 range
+          // used by radialBar. Override for gauges that need a custom domain
+          // (e.g. min: 0, max: 240 for a speedometer).
+          min: 0,
+          max: 100,
+          // Threshold bands rendered as colored arc segments along the gauge
+          // arc (e.g. [{from:0,to:30,color:'#FF4560'}, ...]). Bands draw
+          // behind the value-arc and tick marks. Set to [] (default) to
+          // disable.
+          bands: [],
+          bandsStyle: {
+            // % of arc radius. Slightly less than the value-arc stroke so
+            // the value-arc reads on top by default.
+            strokeWidth: "40%",
+            // px gap between consecutive bands.
+            gap: 0,
+            // Hide the track when bands cover the full range; the bands
+            // themselves act as the visual backdrop.
+            hideTrackWhenPresent: true
+          },
+          // Tick marks rendered along (outside) the gauge arc.
+          ticks: {
+            show: false,
+            major: {
+              count: 11,
+              length: 10,
+              width: 2,
+              color: "#666",
+              // 'inside' draws ticks from `radius - length` to `radius`;
+              // 'outside' draws from `radius` to `radius + length`.
+              placement: "outside"
+            },
+            minor: {
+              count: 4,
+              // minor ticks BETWEEN each pair of major ticks
+              length: 5,
+              width: 1,
+              color: "#999",
+              placement: "outside"
+            },
+            labels: {
+              show: false,
+              offset: 6,
+              fontSize: "11px",
+              fontFamily: void 0,
+              fontWeight: 400,
+              color: "#666",
+              /** @param {number} v */
+              formatter(v) {
+                return String(v);
+              }
+            }
+          },
+          // Needle/dial configuration. Only applies when `shape: 'needle'`.
+          needle: {
+            color: "#333",
+            // px radius of the pivot circle at chart center.
+            baseRadius: 8,
+            // Needle length as a % of the gauge radius (string like '85%')
+            // or as an absolute px number.
+            length: "85%",
+            // px width of the needle line at the base.
+            baseWidth: 4,
+            // px width of the needle tip (tapered if smaller than baseWidth).
+            tipWidth: 1,
+            animation: {
+              enabled: true,
+              duration: 800,
+              easing: "ease-out"
+            }
+          },
+          pivot: {
+            show: true,
+            color: "#333",
+            strokeColor: "#fff",
+            strokeWidth: 2
+          },
           hollow: {
             margin: 5,
             size: "50%",
@@ -3875,11 +4331,17 @@ class Options {
           // custom formatter function which will override format
           datetimeUTC: true,
           datetimeFormatter: {
+            // Base format per interval unit. TimeScale.formatDates folds in
+            // coarser context automatically when the data range spans it
+            // (e.g. month-scale across years → 'MMM yyyy', hour-scale across
+            // days → 'dd MMM HH:mm'). Customizing a base format that already
+            // includes the higher-unit token disables the auto-expansion for
+            // that level.
             year: "yyyy",
-            month: "MMM 'yy",
+            month: "MMM",
             day: "dd MMM",
             hour: "HH:mm",
-            minute: "HH:mm:ss",
+            minute: "HH:mm",
             second: "HH:mm:ss"
           }
         },
@@ -4003,6 +4465,7 @@ class Config {
     let opts = this.opts;
     const options2 = new Options();
     const defaults = new Defaults(opts);
+    opts = this.normalizeAliasedChartType(opts);
     this.chartType = opts.chart.type;
     opts = this.extendYAxis(opts);
     opts = this.extendAnnotations(opts);
@@ -4028,7 +4491,13 @@ class Config {
         "radar",
         "radialBar"
       ];
-      if (chartTypes.indexOf(opts.chart.type) !== -1) {
+      const requestedType = opts.chart.requestedType;
+      if (requestedType === "funnel" || requestedType === "pyramid") {
+        chartDefaults = /** @type {any} */
+        defaults[requestedType]();
+      } else if (requestedType === "gauge") {
+        chartDefaults = defaults.gauge();
+      } else if (chartTypes.indexOf(opts.chart.type) !== -1) {
         chartDefaults = /** @type {any} */
         defaults[opts.chart.type]();
       } else {
@@ -4071,6 +4540,35 @@ class Config {
     config = Utils$1.extend(mergedWithDefaultConfig, opts);
     config = this.handleUserInputErrors(config);
     return config;
+  }
+  /**
+   * Promoted chart-type aliases — `funnel`, `pyramid`, `gauge` — render via
+   * the existing `bar` (with `isFunnel`) and `radialBar` pathways. To keep
+   * the ~20 internal `chart.type === 'bar' | 'radialBar'` checks working
+   * unchanged, we normalize `chart.type` to the base renderer name here and
+   * preserve the user-facing name on `chart.requestedType` for the public
+   * API and for default selection.
+   *
+   * @param {Record<string, any>} opts
+   * @returns {Record<string, any>}
+   */
+  normalizeAliasedChartType(opts) {
+    if (!opts || !opts.chart) return opts;
+    const requested = opts.chart.type;
+    if (requested !== "funnel" && requested !== "pyramid" && requested !== "gauge") {
+      return opts;
+    }
+    opts.chart.requestedType = requested;
+    if (requested === "funnel" || requested === "pyramid") {
+      opts.plotOptions = opts.plotOptions || {};
+      opts.plotOptions.bar = opts.plotOptions.bar || {};
+      opts.plotOptions.bar.isFunnel = true;
+      opts.plotOptions.bar.horizontal = true;
+      opts.chart.type = "bar";
+    } else if (requested === "gauge") {
+      opts.chart.type = "radialBar";
+    }
+    return opts;
   }
   /**
    * @param {string} chartType
@@ -5125,7 +5623,11 @@ class CoreUtils {
         )
       );
     } else {
-      return this.w.seriesData.series[index].reduce(
+      const seriesAtIndex = this.w.seriesData.series[index];
+      if (!Array.isArray(seriesAtIndex)) {
+        return seriesAtIndex != null ? seriesAtIndex : 0;
+      }
+      return seriesAtIndex.reduce(
         (acc, cur) => acc + cur,
         0
       );
@@ -5263,14 +5765,16 @@ class CoreUtils {
    */
   isSeriesNull(index = null) {
     let r = [];
+    const series = (
+      /** @type {any[]} */
+      this.w.config.series
+    );
     if (index === null) {
-      r = /** @type {any[]} */
-      this.w.config.series.filter(
-        (d) => d !== null
-      );
+      r = series.filter((d) => d !== null);
+    } else if (series[index] && Array.isArray(series[index].data)) {
+      r = series[index].data.filter((d) => d !== null);
     } else {
-      r = /** @type {Record<string,any>} */
-      this.w.config.series[index].data.filter((d) => d !== null);
+      r = series[index] !== null && series[index] !== void 0 ? [series[index]] : [];
     }
     return r.length === 0;
   }
@@ -5278,7 +5782,11 @@ class CoreUtils {
    * @param {number} index
    */
   seriesHaveSameValues(index) {
-    return this.w.seriesData.series[index].every(
+    const seriesAtIndex = this.w.seriesData.series[index];
+    if (!Array.isArray(seriesAtIndex)) {
+      return true;
+    }
+    return seriesAtIndex.every(
       (val, i, arr) => val === arr[0]
     );
   }
@@ -5630,6 +6138,87 @@ class CoreUtils {
     return graph;
   }
 }
+const SVGNS$1 = "http://www.w3.org/2000/svg";
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+function easeOutBack(t) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+let _reducedMotionMql = null;
+function prefersReducedMotion() {
+  if (!Environment.isBrowser()) return false;
+  try {
+    if (!_reducedMotionMql) {
+      _reducedMotionMql = window.matchMedia("(prefers-reduced-motion: reduce)");
+    }
+    return !!_reducedMotionMql.matches;
+  } catch (_) {
+    return false;
+  }
+}
+function applyProgressiveReveal(el, x, w) {
+  if (!Environment.isBrowser()) return false;
+  if (w.globals.dataChanged || w.globals.resized) return false;
+  const animCfg = w.config.chart.animations;
+  if (!animCfg || animCfg.enabled === false) return false;
+  const chartType = w.config.chart.type;
+  if (chartType !== "line" && chartType !== "area" && chartType !== "rangeArea") {
+    return false;
+  }
+  if (!(w.layout.gridWidth > 0)) return false;
+  const drawSpeed = (animCfg.speed || 800) * 2;
+  const xRatio = Math.max(0, Math.min(1, x / w.layout.gridWidth));
+  const easedT = 1 - Math.cbrt(1 - xRatio);
+  const revealDelay = easedT * drawSpeed;
+  const node = el.node;
+  const style = node.style;
+  style.opacity = "0";
+  let startAnchor = null;
+  const tick = (now) => {
+    if (startAnchor === null) startAnchor = now;
+    if (now - startAnchor >= revealDelay) {
+      style.opacity = "1";
+    } else {
+      BrowserAPIs.requestAnimationFrame(tick);
+    }
+  };
+  BrowserAPIs.requestAnimationFrame(tick);
+  return true;
+}
+function applyAnimationPolicy(w) {
+  const anim = w.config.chart.animations;
+  if (!anim) return;
+  if (anim.respectReducedMotion !== false && prefersReducedMotion()) {
+    anim.enabled = false;
+    if (anim.dynamicAnimation) anim.dynamicAnimation.enabled = false;
+  }
+}
+function computeStagger(opts) {
+  const style = opts.style;
+  const index = opts.index || 0;
+  const baseDelay = typeof opts.baseDelay === "number" ? opts.baseDelay : 40;
+  const row = opts.row || 0;
+  const col = opts.col || 0;
+  const groupIndex = opts.groupIndex || 0;
+  const perGroup = opts.perGroup || 1;
+  const centerDistance = opts.centerDistance || 0;
+  switch (style) {
+    case "none":
+      return 0;
+    case "diagonal":
+      return (row + col) * baseDelay;
+    case "group":
+      return groupIndex * baseDelay + index % perGroup * (baseDelay / 4);
+    case "centroid":
+      return centerDistance * baseDelay * (index + 1);
+    case "sequential":
+    default:
+      return index * baseDelay;
+  }
+}
 class Animations {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -5665,6 +6254,45 @@ class Animations {
       cb();
     });
   }
+  /**
+   * Scale-up "pop" effect for scatter/bubble markers. Animates
+   * `transform: scale(0 → 1)` (with `easeOutBack` overshoot) plus opacity,
+   * around the marker's own center via `transform-box: fill-box`.
+   *
+   * Falls back to instant render in SSR / when shouldAnimate is false.
+   *
+   * @param {any} el
+   * @param {{ speed: number, delay?: number, onComplete?: () => void }} params
+   */
+  animatePop(el, { speed, delay = 0, onComplete }) {
+    const w = this.w;
+    if (!Environment.isBrowser() || !w.globals.shouldAnimate || speed < 1) {
+      if (onComplete) onComplete();
+      return;
+    }
+    const node = el.node;
+    const style = node.style;
+    style.transformBox = "fill-box";
+    style.transformOrigin = "center";
+    style.transform = "scale(0)";
+    style.opacity = "0";
+    const startAt = performance.now() + delay;
+    const step = (now) => {
+      const t = Math.max(0, Math.min(1, (now - startAt) / speed));
+      style.transform = `scale(${easeOutBack(t)})`;
+      style.opacity = String(Math.min(1, t * 2));
+      if (t < 1) {
+        BrowserAPIs.requestAnimationFrame(step);
+      } else {
+        style.transform = "";
+        style.transformOrigin = "";
+        style.transformBox = "";
+        style.opacity = "";
+        if (onComplete) onComplete();
+      }
+    };
+    BrowserAPIs.requestAnimationFrame(step);
+  }
   /*
    ** Animate rect properties
    * @param {any} el
@@ -5673,9 +6301,9 @@ class Animations {
    * @param {number} speed
    * @param {Function} fn
    */
-  /** @param {any} el @param {any} from @param {any} to @param {any} speed @param {any} fn */
-  animateRect(el, from, to, speed, fn) {
-    el.attr(from).animate(speed).attr(to).after(() => fn());
+  /** @param {any} el @param {any} from @param {any} to @param {any} speed @param {any} fn @param {number} [delay] */
+  animateRect(el, from, to, speed, fn, delay = 0) {
+    el.attr(from).animate(speed, delay).attr(to).after(() => fn());
   }
   /**
    * @param {Record<string, any>} params
@@ -5720,6 +6348,135 @@ class Animations {
     if (typeof w.config.chart.events.animationEnd === "function") {
       w.config.chart.events.animationEnd(this.ctx, { el, w });
     }
+  }
+  /**
+   * Initial-mount "pen-stroke" draw effect for line / area / rangeArea paths.
+   *
+   * Stroke paths animate `stroke-dashoffset` from total length → 0.
+   * Fill paths animate the width of a per-series SVG `<mask>` rect from 0 → gridWidth,
+   * which coexists with the existing `clip-path: gridRectMask` (mask + clip-path
+   * are independent SVG attributes).
+   *
+   * For radar / radial shapes, pass `mask: { type: 'radial', cx, cy, r }` to
+   * use a circular mask that blooms from center outward instead of the default
+   * left-to-right rect wipe.
+   *
+   * @param {any} el            - SVG.js path element
+   * @param {{realIndex: number, j?: number, isFill: boolean, isLast: boolean, speed: number, delay: number, mask?: {type: 'rect'|'radial', cx?: number, cy?: number, r?: number}}} params
+   */
+  animateDraw(el, { realIndex, j, isFill, isLast, speed, delay, mask: maskShape }) {
+    const w = this.w;
+    const me = this;
+    const finalize = () => {
+      if (isLast && w.globals.shouldAnimate) {
+        me.animationCompleted(el);
+      }
+      me.showDelayedElements();
+    };
+    if (!Environment.isBrowser() || !w.globals.shouldAnimate || speed < 1) {
+      finalize();
+      return;
+    }
+    const node = el.node;
+    const runMaskReveal = () => {
+      const pad = 4;
+      const isRadial = maskShape && maskShape.type === "radial";
+      const targetWidth = w.layout.gridWidth + pad * 2;
+      const radialCx = maskShape && maskShape.cx || 0;
+      const radialCy = maskShape && maskShape.cy || 0;
+      const targetRadius = (maskShape && maskShape.r || w.layout.gridWidth / 2) + pad;
+      const maskId = `apexDrawMask${w.globals.cuid}-${realIndex}-${j != null ? j : 0}-${isFill ? "f" : "s"}`;
+      const mask = BrowserAPIs.createElementNS(SVGNS$1, "mask");
+      mask.setAttribute("id", maskId);
+      mask.setAttribute("maskUnits", "userSpaceOnUse");
+      let revealEl;
+      if (isRadial) {
+        const region = targetRadius;
+        mask.setAttribute("x", String(radialCx - region));
+        mask.setAttribute("y", String(radialCy - region));
+        mask.setAttribute("width", String(region * 2));
+        mask.setAttribute("height", String(region * 2));
+        revealEl = BrowserAPIs.createElementNS(SVGNS$1, "circle");
+        revealEl.setAttribute("cx", String(radialCx));
+        revealEl.setAttribute("cy", String(radialCy));
+        revealEl.setAttribute("r", "0");
+        revealEl.setAttribute("fill", "#fff");
+      } else {
+        mask.setAttribute("x", String(-pad));
+        mask.setAttribute("y", String(-pad));
+        mask.setAttribute("width", String(targetWidth));
+        mask.setAttribute("height", String(w.layout.gridHeight + pad * 2));
+        revealEl = BrowserAPIs.createElementNS(SVGNS$1, "rect");
+        revealEl.setAttribute("x", String(-pad));
+        revealEl.setAttribute("y", String(-pad));
+        revealEl.setAttribute("width", "0");
+        revealEl.setAttribute("height", String(w.layout.gridHeight + pad * 2));
+        revealEl.setAttribute("fill", "#fff");
+      }
+      mask.appendChild(revealEl);
+      w.dom.elDefs.node.appendChild(mask);
+      node.setAttribute("mask", `url(#${maskId})`);
+      const startAt = performance.now() + (delay || 0);
+      const step = (now) => {
+        const t = Math.max(0, Math.min(1, (now - startAt) / speed));
+        const eased = easeOutCubic(t);
+        if (isRadial) {
+          revealEl.setAttribute("r", String(eased * targetRadius));
+        } else {
+          revealEl.setAttribute("width", String(eased * targetWidth));
+        }
+        if (t < 1) {
+          BrowserAPIs.requestAnimationFrame(step);
+        } else {
+          node.removeAttribute("mask");
+          if (mask.parentNode) mask.parentNode.removeChild(mask);
+          finalize();
+        }
+      };
+      BrowserAPIs.requestAnimationFrame(step);
+    };
+    const runStrokeDraw = (len) => {
+      node.setAttribute("stroke-dasharray", String(len));
+      node.setAttribute("stroke-dashoffset", String(len));
+      const startAt = performance.now() + (delay || 0);
+      const step = (now) => {
+        const t = Math.max(0, Math.min(1, (now - startAt) / speed));
+        node.setAttribute("stroke-dashoffset", String(len * (1 - easeOutCubic(t))));
+        if (t < 1) {
+          BrowserAPIs.requestAnimationFrame(step);
+        } else {
+          node.removeAttribute("stroke-dasharray");
+          node.removeAttribute("stroke-dashoffset");
+          finalize();
+        }
+      };
+      BrowserAPIs.requestAnimationFrame(step);
+    };
+    BrowserAPIs.requestAnimationFrame(() => {
+      if (isFill) {
+        runMaskReveal();
+        return;
+      }
+      const existingDash = node.getAttribute("stroke-dasharray");
+      const hasCustomDash = !!existingDash && existingDash !== "0" && existingDash !== "";
+      if (hasCustomDash) {
+        runMaskReveal();
+        return;
+      }
+      let len = 0;
+      try {
+        if (typeof node.getTotalLength === "function") {
+          len = node.getTotalLength();
+        }
+      } catch (_) {
+        len = 0;
+      }
+      if (!len) {
+        finalize();
+        return;
+      }
+      runStrokeDraw(len);
+    });
   }
   // SVG.js animation for morphing one path to another
   /**
@@ -6286,7 +7043,8 @@ class Graphics {
     chartType,
     shouldClipToGrid = true,
     bindEventsOnPaths = true,
-    drawShadow = true
+    drawShadow = true,
+    drawMask = null
   }) {
     const w = this.w;
     const filters = new Filters(this.w);
@@ -6305,11 +7063,15 @@ class Graphics {
     }
     let d;
     const shouldAnimate = !!(initialAnim && !w.globals.resized || dynamicAnim && w.globals.dataChanged && w.globals.shouldAnimate);
-    if (shouldAnimate) {
+    const isDrawableSeries = typeof className === "string" && (className.indexOf("apexcharts-line") > -1 || className.indexOf("apexcharts-area") > -1 || className.indexOf("apexcharts-rangeArea") > -1 || className.indexOf("apexcharts-radar") > -1);
+    const useDrawMode = !!(initialAnim && !w.globals.resized && !w.globals.dataChanged && isDrawableSeries);
+    if (shouldAnimate && !useDrawMode) {
       d = pathFrom;
     } else {
       d = pathTo;
-      w.globals.animationEnded = true;
+      if (!shouldAnimate) {
+        w.globals.animationEnded = true;
+      }
     }
     const strokeDashArrayOpt = w.config.stroke.dashArray;
     let strokeDashArray = 0;
@@ -6363,9 +7125,25 @@ class Graphics {
       delay: animationDelay
     };
     if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-      anim.animatePathsGradually(__spreadProps(__spreadValues({}, defaultAnimateOpts), {
-        speed: initialSpeed
-      }));
+      if (useDrawMode) {
+        const drawSpeed = initialSpeed * 2;
+        const isFill = stroke === "none" || strokeWidth === 0;
+        const seriesCount = w.seriesData.series.length;
+        const isLast = w.globals.comboCharts ? true : realIndex === seriesCount - 1;
+        anim.animateDraw(el, {
+          realIndex,
+          j,
+          isFill,
+          isLast,
+          speed: drawSpeed,
+          delay: 0,
+          mask: drawMask
+        });
+      } else {
+        anim.animatePathsGradually(__spreadProps(__spreadValues({}, defaultAnimateOpts), {
+          speed: initialSpeed
+        }));
+      }
     } else {
       if (w.globals.resized || !w.globals.dataChanged) {
         anim.showDelayedElements();
@@ -7638,6 +8416,7 @@ class Markers {
             markerElement.attr("j", dataPointIndex);
             markerElement.attr("index", seriesIndex);
             markerElement.node.setAttribute("default-marker-size", opts.pSize);
+            applyProgressiveReveal(markerElement, p.x[q], w);
             this._filters.setSelectionFilter(
               markerElement,
               seriesIndex,
@@ -7897,18 +8676,22 @@ class Scatter {
       filters.dropShadow(el, dropShadow, realIndex);
     }
     if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
-      const speed = w.config.chart.animations.speed;
-      anim.animateMarker(
-        el,
-        speed,
-        /** @type {any} */
-        w.globals.easing,
-        () => {
-          window.setTimeout(() => {
-            anim.animationCompleted(el);
-          }, 100);
-        }
-      );
+      const animCfg = w.config.chart.animations;
+      const popSpeed = animCfg.speed;
+      const totalPoints = w.globals.dataPoints || 1;
+      const gradCfg = animCfg.animateGradually;
+      const gradEnabled = gradCfg && gradCfg.enabled !== false;
+      const baseDelay = gradEnabled ? Math.min(20, popSpeed * 0.5 / Math.max(1, totalPoints)) : 0;
+      const delay = computeStagger({
+        style: baseDelay > 0 ? "sequential" : "none",
+        index: dataPointIndex,
+        baseDelay
+      });
+      anim.animatePop(el, {
+        speed: popSpeed,
+        delay,
+        onComplete: () => anim.animationCompleted(el)
+      });
     } else {
       w.globals.animationEnded = true;
     }
@@ -8201,6 +8984,7 @@ class DataLabels {
         filters.dropShadow(dataLabelText, textShadow);
       }
       parent.add(dataLabelText);
+      applyProgressiveReveal(dataLabelText, x, w);
       if (typeof w.globals.lastDrawnDataLabelsIndexes[i] === "undefined") {
         w.globals.lastDrawnDataLabelsIndexes[i] = [];
       }
@@ -8264,6 +9048,10 @@ class DataLabels {
           elRect.attr({ fill: background });
         }
         el.setAttribute("fill", w.config.dataLabels.background.foreColor);
+        const cxAttr = el.getAttribute("cx");
+        if (cxAttr !== null) {
+          applyProgressiveReveal(elRect, parseFloat(cxAttr), w);
+        }
       }
     }
   }
@@ -8404,7 +9192,6 @@ class AxesUtils {
     let label = rawLabel;
     const xlbFormatter = w.formatters.xLabelFormatter;
     const customFormatter = w.config.xaxis.labels.formatter;
-    let isBold = false;
     const xFormat = new Formatters(this.w);
     const timestamp = rawLabel;
     if (isLeafGroup) {
@@ -8427,23 +9214,7 @@ class AxesUtils {
         });
       }
     }
-    const determineHighestUnit = (unit) => {
-      let highestUnit = null;
-      timescaleLabels.forEach((t) => {
-        if (t.unit === "month") {
-          highestUnit = "year";
-        } else if (t.unit === "day") {
-          highestUnit = "month";
-        } else if (t.unit === "hour") {
-          highestUnit = "day";
-        } else if (t.unit === "minute") {
-          highestUnit = "hour";
-        }
-      });
-      return highestUnit === unit;
-    };
     if (timescaleLabels.length > 0) {
-      isBold = determineHighestUnit(timescaleLabels[i].unit);
       x = timescaleLabels[i].position;
       label = timescaleLabels[i].value;
     } else {
@@ -8473,8 +9244,7 @@ class AxesUtils {
     return {
       x,
       text: label,
-      textRect,
-      isBold
+      textRect
     };
   }
   /**
@@ -8779,6 +9549,7 @@ class XAxis {
    * @param {any} colWidthCb
    */
   drawXAxisLabelAndGroup(isLeafGroup, graphics, elXaxisTexts, labels, isXNumeric, colWidthCb, overwriteStyles = {}) {
+    var _a, _b;
     const drawnLabels = [];
     const drawnLabelsRects = [];
     const w = this.w;
@@ -8842,13 +9613,19 @@ class XAxis {
       const getCatForeColor = () => {
         return isLeafGroup && w.config.xaxis.convertedCatToNumeric ? xaxisForeColors[w.globals.minX + i - 1] : xaxisForeColors[i];
       };
-      if (w.config.xaxis.labels.show) {
+      const labelRectWidth = (
+        /** @type {any} */
+        (_b = (_a = label.textRect) == null ? void 0 : _a.width) != null ? _b : 0
+      );
+      const halfWidth = labelRectWidth / 2;
+      const fullyOutsideGrid = label.x + halfWidth < 0;
+      if (w.config.xaxis.labels.show && !fullyOutsideGrid) {
         const elText = graphics.drawText({
           x: label.x,
           y: this.offY + w.config.xaxis.labels.offsetY + offsetYCorrection - (w.config.xaxis.position === "top" ? w.layout.xAxisHeight + w.config.xaxis.axisTicks.height - 2 : 0),
           text: label.text,
           textAnchor: "middle",
-          fontWeight: label.isBold ? 600 : fontWeight,
+          fontWeight,
           fontSize: xaxisFontSize,
           fontFamily: xaxisFontFamily,
           foreColor: Array.isArray(xaxisForeColors) ? getCatForeColor() : xaxisForeColors,
@@ -10663,16 +11440,18 @@ class Range {
 }
 function getThemePalettes() {
   return {
-    palette1: ["#008FFB", "#00E396", "#FEB019", "#FF4560", "#775DD0"],
-    palette2: ["#3F51B5", "#03A9F4", "#4CAF50", "#F9CE1D", "#FF9800"],
-    palette3: ["#33B2DF", "#546E7A", "#D4526E", "#13D8AA", "#A5978B"],
-    palette4: ["#4ECDC4", "#C7F464", "#81D4FA", "#FD6A6A", "#546E7A"],
-    palette5: ["#2B908F", "#F9A3A4", "#90EE7E", "#FA4443", "#69D2E7"],
-    palette6: ["#449DD1", "#F86624", "#EA3546", "#662E9B", "#C5D86D"],
-    palette7: ["#D7263D", "#1B998B", "#2E294E", "#F46036", "#E2C044"],
-    palette8: ["#662E9B", "#F86624", "#F9C80E", "#EA3546", "#43BCCD"],
-    palette9: ["#5C4742", "#A5978B", "#8D5B4C", "#5A2A27", "#C4BBAF"],
-    palette10: ["#A300D6", "#7D02EB", "#5653FE", "#2983FF", "#00B1F2"],
+    // All colours pass WCAG 1.4.11 non-text contrast (≥ 3:1) against the
+    // default light (#fff) and dark (#293450) theme backgrounds.
+    palette1: ["#008FFB", "#00A86F", "#CA8501", "#FF4560", "#846DD5"],
+    palette2: ["#6978CB", "#039DE2", "#49A84D", "#B39105", "#D68000"],
+    palette3: ["#209FCC", "#648291", "#D4526E", "#0FA783", "#A19285"],
+    palette4: ["#2FA59D", "#73A20B", "#099DE1", "#FD5D5D", "#648291"],
+    palette5: ["#2B908F", "#F56566", "#2EAB16", "#FA4443", "#1EA2BD"],
+    palette6: ["#449DD1", "#F86624", "#EA3A4A", "#9C63D1", "#899E2A"],
+    palette7: ["#DF475B", "#1B998B", "#7E75B7", "#F46036", "#B1911B"],
+    palette8: ["#9C63D1", "#F86624", "#B38F04", "#EA3A4A", "#2FA2B3"],
+    palette9: ["#98776F", "#A19285", "#A8705E", "#BA6560", "#A0927F"],
+    palette10: ["#C91EFF", "#A94BFD", "#6C6AFE", "#2983FF", "#009ED8"],
     // CVD-safe palettes (Wong 2011 / IBM design)
     cvdDeuteranopia: ["#0072B2", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#D55E00", "#CC79A7"],
     cvdProtanopia: ["#0077BB", "#EE7733", "#009988", "#EE3377", "#BBBBBB", "#33BBEE", "#CC3311"],
@@ -11451,6 +12230,22 @@ class Crosshairs {
     w.dom.elGraphical.add(ycrosshairsHidden);
   }
 }
+function mergeYaxisOverride(base, override) {
+  if (!Utils$1.isObject(base) || !Utils$1.isObject(override)) {
+    return override !== void 0 ? override : base;
+  }
+  const out = __spreadValues({}, base);
+  for (const key of Object.keys(override)) {
+    const v = override[key];
+    if (v === void 0) continue;
+    if (Utils$1.isObject(v) && Utils$1.isObject(base[key])) {
+      out[key] = mergeYaxisOverride(base[key], v);
+    } else {
+      out[key] = v;
+    }
+  }
+  return out;
+}
 class Responsive {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -11474,6 +12269,7 @@ class Responsive {
     ).reverse();
     const config = new Config({});
     const iterateResponsiveOptions = (newOptions = {}) => {
+      var _a;
       const largestBreakpoint = res[0].breakpoint;
       const width = Environment.isBrowser() ? window.innerWidth > 0 ? window.innerWidth : screen.width : 0;
       if (width > largestBreakpoint) {
@@ -11489,8 +12285,17 @@ class Responsive {
       } else {
         for (let i = 0; i < res.length; i++) {
           if (width < res[i].breakpoint) {
+            const originalUserYaxis = ((_a = res[i].options) == null ? void 0 : _a.yaxis) ? Utils$1.clone(res[i].options.yaxis) : null;
             newOptions = CoreUtils.extendArrayProps(config, res[i].options, w);
             newOptions = Utils$1.extend(w.config, newOptions);
+            if (Array.isArray(w.config.yaxis) && originalUserYaxis) {
+              const userYaxis = Array.isArray(originalUserYaxis) ? originalUserYaxis : [originalUserYaxis];
+              newOptions = __spreadProps(__spreadValues({}, newOptions), {
+                yaxis: w.config.yaxis.map(
+                  (baseAxis, idx) => mergeYaxisOverride(baseAxis, userYaxis[idx])
+                )
+              });
+            }
             this.overrideResponsiveOptions(newOptions);
             this._activeBreakpoint = res[i].breakpoint;
           }
@@ -13166,9 +13971,43 @@ class Dimensions {
     }
   }
 }
-const MINUTES_IN_DAY = 24 * 60;
-const SECONDS_IN_DAY = MINUTES_IN_DAY * 60;
-const MIN_ZOOM_DAYS = 10 / SECONDS_IN_DAY;
+const SECOND = 1e3;
+const MINUTE = 60 * SECOND;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+const WEEK = 7 * DAY;
+const APPROX_MONTH = 30 * DAY;
+const APPROX_YEAR = 365 * DAY;
+const MIN_ZOOM_DAYS = 10 / (24 * 60 * 60);
+const TICK_LADDER = [
+  { unit: "second", step: 1, approxMs: SECOND },
+  { unit: "second", step: 5, approxMs: 5 * SECOND },
+  { unit: "second", step: 15, approxMs: 15 * SECOND },
+  { unit: "second", step: 30, approxMs: 30 * SECOND },
+  { unit: "minute", step: 1, approxMs: MINUTE },
+  { unit: "minute", step: 5, approxMs: 5 * MINUTE },
+  { unit: "minute", step: 15, approxMs: 15 * MINUTE },
+  { unit: "minute", step: 30, approxMs: 30 * MINUTE },
+  { unit: "hour", step: 1, approxMs: HOUR },
+  { unit: "hour", step: 3, approxMs: 3 * HOUR },
+  { unit: "hour", step: 6, approxMs: 6 * HOUR },
+  { unit: "hour", step: 12, approxMs: 12 * HOUR },
+  { unit: "day", step: 1, approxMs: DAY },
+  { unit: "day", step: 2, approxMs: 2 * DAY },
+  { unit: "week", step: 1, approxMs: WEEK },
+  { unit: "week", step: 2, approxMs: 2 * WEEK },
+  { unit: "month", step: 1, approxMs: APPROX_MONTH },
+  { unit: "month", step: 3, approxMs: 3 * APPROX_MONTH },
+  { unit: "month", step: 6, approxMs: 6 * APPROX_MONTH },
+  { unit: "year", step: 1, approxMs: APPROX_YEAR },
+  { unit: "year", step: 2, approxMs: 2 * APPROX_YEAR },
+  { unit: "year", step: 5, approxMs: 5 * APPROX_YEAR },
+  { unit: "year", step: 10, approxMs: 10 * APPROX_YEAR },
+  { unit: "year", step: 25, approxMs: 25 * APPROX_YEAR },
+  { unit: "year", step: 50, approxMs: 50 * APPROX_YEAR },
+  { unit: "year", step: 100, approxMs: 100 * APPROX_YEAR }
+];
+const DEFAULT_TICK_COUNT = 10;
 class TimeScale {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -13177,23 +14016,30 @@ class TimeScale {
   constructor(w, ctx) {
     this.w = w;
     this.ctx = ctx;
+    this.tickInterval = null;
     this.timeScaleArray = [];
-    this.utc = this.w.config.xaxis.labels.datetimeUTC;
+    this.utc = w.config.xaxis.labels.datetimeUTC;
   }
   /**
+   * Compute raw ticks for a datetime axis spanning [minX, maxX]. Single
+   * uniform stride — one unit, no promotion, no calendar-boundary overlay.
+   * Context (year, day) is folded into each label's format string at
+   * `formatDates` time, not split across promoted ticks.
+   *
    * @param {number} minX
    * @param {number} maxX
+   * @returns {Array<any>} raw ticks (pre-formatting). Pass to recalcDimensionsBasedOnFormat for the final timescaleLabels.
    */
   calculateTimeScaleTicks(minX, maxX) {
     const w = this.w;
     if (w.globals.allSeriesCollapsed) {
       w.labelData.labels = [];
       w.labelData.timescaleLabels = [];
+      this.timeScaleArray = [];
       return [];
     }
-    const dt = new DateTime(this.w);
-    const daysDiff = (maxX - minX) / (1e3 * SECONDS_IN_DAY);
-    this.determineInterval(daysDiff);
+    const span = maxX - minX;
+    const daysDiff = span / DAY;
     w.interact.disableZoomIn = false;
     w.interact.disableZoomOut = false;
     if (daysDiff < MIN_ZOOM_DAYS) {
@@ -13201,793 +14047,217 @@ class TimeScale {
     } else if (daysDiff > 5e4) {
       w.interact.disableZoomOut = true;
     }
-    const timeIntervals = dt.getTimeUnitsfromTimestamp(minX, maxX);
-    const daysWidthOnXAxis = w.layout.gridWidth / daysDiff;
-    const hoursWidthOnXAxis = daysWidthOnXAxis / 24;
-    const minutesWidthOnXAxis = hoursWidthOnXAxis / 60;
-    const secondsWidthOnXAxis = minutesWidthOnXAxis / 60;
-    const numberOfHours = Math.floor(daysDiff * 24);
-    const numberOfMinutes = Math.floor(daysDiff * MINUTES_IN_DAY);
-    const numberOfSeconds = Math.floor(daysDiff * SECONDS_IN_DAY);
-    const numberOfDays = Math.floor(daysDiff);
-    const numberOfMonths = Math.floor(daysDiff / 30);
-    const numberOfYears = Math.floor(daysDiff / 365);
-    const firstVal = {
-      minMillisecond: timeIntervals.minMillisecond,
-      minSecond: timeIntervals.minSecond,
-      minMinute: timeIntervals.minMinute,
-      minHour: timeIntervals.minHour,
-      minDate: timeIntervals.minDate,
-      minMonth: timeIntervals.minMonth,
-      minYear: timeIntervals.minYear
-    };
-    const currentMillisecond = firstVal.minMillisecond;
-    const currentSecond = firstVal.minSecond;
-    const currentMinute = firstVal.minMinute;
-    const currentHour = firstVal.minHour;
-    const currentMonthDate = firstVal.minDate;
-    const currentDate = firstVal.minDate;
-    const currentMonth = firstVal.minMonth;
-    const currentYear = firstVal.minYear;
-    const params = {
-      firstVal,
-      currentMillisecond,
-      currentSecond,
-      currentMinute,
-      currentHour,
-      currentMonthDate,
-      currentDate,
-      currentMonth,
-      currentYear,
-      daysWidthOnXAxis,
-      hoursWidthOnXAxis,
-      minutesWidthOnXAxis,
-      secondsWidthOnXAxis,
-      numberOfSeconds,
-      numberOfMinutes,
-      numberOfHours,
-      numberOfDays,
-      numberOfMonths,
-      numberOfYears
-    };
-    switch (this.tickInterval) {
-      case "years": {
-        this.generateYearScale(params);
-        break;
-      }
-      case "months":
-      case "half_year": {
-        this.generateMonthScale(params);
-        break;
-      }
-      case "months_days":
-      case "months_fortnight":
-      case "days":
-      case "week_days": {
-        this.generateDayScale(params);
-        break;
-      }
-      case "hours": {
-        this.generateHourScale(params);
-        break;
-      }
-      case "minutes_fives":
-      case "minutes":
-        this.generateMinuteScale(params);
-        break;
-      case "seconds_tens":
-      case "seconds_fives":
-      case "seconds":
-        this.generateSecondScale(params);
-        break;
-    }
-    const adjustedMonthInTimeScaleArray = this.timeScaleArray.map(
-      (ts) => {
-        const defaultReturn = {
-          position: ts.position,
-          unit: ts.unit,
-          year: ts.year,
-          day: ts.day ? ts.day : 1,
-          hour: ts.hour ? ts.hour : 0,
-          month: ts.month + 1
-        };
-        if (ts.unit === "month") {
-          return __spreadProps(__spreadValues({}, defaultReturn), {
-            day: 1,
-            value: ts.value + 1
-          });
-        } else if (ts.unit === "day" || ts.unit === "hour") {
-          return __spreadProps(__spreadValues({}, defaultReturn), {
-            value: ts.value
-          });
-        } else if (ts.unit === "minute") {
-          return __spreadProps(__spreadValues({}, defaultReturn), {
-            value: ts.value,
-            minute: ts.value
-          });
-        } else if (ts.unit === "second") {
-          return __spreadProps(__spreadValues({}, defaultReturn), {
-            value: ts.value,
-            minute: ts.minute,
-            second: ts.second
-          });
-        }
-        return ts;
-      }
-    );
-    const filteredTimeScale = adjustedMonthInTimeScaleArray.filter(
-      (ts) => {
-        let modulo = 1;
-        let ticks = Math.ceil(w.layout.gridWidth / 120);
-        const value = ts.value;
-        if (w.config.xaxis.tickAmount !== void 0) {
-          ticks = w.config.xaxis.tickAmount;
-        }
-        if (adjustedMonthInTimeScaleArray.length > ticks) {
-          modulo = Math.floor(adjustedMonthInTimeScaleArray.length / ticks);
-        }
-        let shouldNotSkipUnit = false;
-        let shouldNotPrint = false;
-        switch (this.tickInterval) {
-          case "years":
-            if (ts.unit === "year") {
-              shouldNotSkipUnit = true;
-            }
-            break;
-          case "half_year":
-            modulo = 7;
-            if (ts.unit === "year") {
-              shouldNotSkipUnit = true;
-            }
-            break;
-          case "months":
-            modulo = 1;
-            if (ts.unit === "year") {
-              shouldNotSkipUnit = true;
-            }
-            break;
-          case "months_fortnight":
-            modulo = 15;
-            if (ts.unit === "year" || ts.unit === "month") {
-              shouldNotSkipUnit = true;
-            }
-            if (value === 30) {
-              shouldNotPrint = true;
-            }
-            break;
-          case "months_days":
-            modulo = 10;
-            if (ts.unit === "month") {
-              shouldNotSkipUnit = true;
-            }
-            if (value === 30) {
-              shouldNotPrint = true;
-            }
-            break;
-          case "week_days":
-            modulo = 8;
-            if (ts.unit === "month") {
-              shouldNotSkipUnit = true;
-            }
-            break;
-          case "days":
-            modulo = 1;
-            if (ts.unit === "month") {
-              shouldNotSkipUnit = true;
-            }
-            break;
-          case "hours":
-            if (ts.unit === "day") {
-              shouldNotSkipUnit = true;
-            }
-            break;
-          case "minutes_fives":
-            if (value % 5 !== 0) {
-              shouldNotPrint = true;
-            }
-            break;
-          case "seconds_tens":
-            if (value % 10 !== 0) {
-              shouldNotPrint = true;
-            }
-            break;
-          case "seconds_fives":
-            if (value % 5 !== 0) {
-              shouldNotPrint = true;
-            }
-            break;
-        }
-        if (this.tickInterval === "hours" || this.tickInterval === "minutes_fives" || this.tickInterval === "seconds_tens" || this.tickInterval === "seconds_fives") {
-          if (!shouldNotPrint) {
-            return true;
-          }
-        } else {
-          if ((value % modulo === 0 || shouldNotSkipUnit) && !shouldNotPrint) {
-            return true;
-          }
-        }
-      }
-    );
-    return filteredTimeScale;
+    const targetCount = Number.isFinite(w.config.xaxis.tickAmount) ? (
+      /** @type {number} */
+      w.config.xaxis.tickAmount
+    ) : DEFAULT_TICK_COUNT;
+    this.tickInterval = pickInterval(span, targetCount);
+    const ticks = this.generateBaseTicks(minX, maxX, this.tickInterval);
+    this.timeScaleArray = ticks;
+    return ticks;
   }
   /**
-   * @param {Array<Record<string, any>>} filteredTimeScale
+   * Walk the interval stride from `minX` to `maxX`. Every tick carries
+   * `unit: interval.unit` — no promotion, no snapping. Uniform spacing is
+   * guaranteed.
+   *
+   * @param {number} minX
+   * @param {number} maxX
+   * @param {{ unit: string, step: number }} interval
+   * @returns {Array<any>}
    */
-  recalcDimensionsBasedOnFormat(filteredTimeScale) {
+  generateBaseTicks(minX, maxX, interval) {
     const w = this.w;
-    const reformattedTimescaleArray = this.formatDates(filteredTimeScale);
-    const removedOverlappingTS = this.removeOverlappingTS(
-      reformattedTimescaleArray
+    const dt = new DateTime(w);
+    const isUTC = this.utc;
+    const gridWidth = w.layout.gridWidth;
+    const span = maxX - minX;
+    const ticks = [];
+    let t = dt.ceilToBoundary(
+      minX,
+      /** @type {any} */
+      interval.unit,
+      interval.step,
+      isUTC
     );
-    w.labelData.timescaleLabels = removedOverlappingTS.slice();
+    let iter = 0;
+    const MAX_ITER = 5e3;
+    while (t <= maxX && iter < MAX_ITER) {
+      const f = dt.getDateFields(t, isUTC);
+      const position = span > 0 ? (t - minX) / span * gridWidth : 0;
+      ticks.push({
+        timestamp: t,
+        position,
+        unit: interval.unit,
+        year: f.year,
+        month: f.month + 1,
+        day: f.date,
+        hour: f.hour,
+        minute: f.minute,
+        second: f.second,
+        value: t
+      });
+      t = dt.addInterval(
+        t,
+        /** @type {any} */
+        interval.unit,
+        interval.step,
+        isUTC
+      );
+      iter++;
+    }
+    return ticks;
+  }
+  /**
+   * Public entry called from Core.js after calculateTimeScaleTicks. Formats
+   * the raw ticks into display labels, removes overlapping entries, writes
+   * the result to `w.labelData.timescaleLabels`, and re-runs Dimensions to
+   * lay out the grid based on the final label widths.
+   *
+   * @param {Array<any>} rawTicks
+   */
+  recalcDimensionsBasedOnFormat(rawTicks) {
+    const w = this.w;
+    const formatted = this.formatDates(rawTicks);
+    const filtered = this.removeOverlappingTS(formatted);
+    w.labelData.timescaleLabels = filtered.slice();
     const dimensions = new Dimensions(this.w, this.ctx);
     const layoutState = dimensions.plotCoords();
     this.ctx._writeLayoutCoords(layoutState.layout);
   }
   /**
-   * @param {number} daysDiff
+   * Format each raw tick into a display label. All ticks share one
+   * effective format computed once from the interval unit and the data
+   * range — when the range spans coarser units, the base format from
+   * `datetimeFormatter[unit]` is automatically extended with the higher-
+   * unit context (e.g. month-scale spanning years → `MMM yyyy`, hour-scale
+   * spanning days → `dd MMM HH:mm`). A user-supplied `xaxis.labels.format`
+   * overrides everything.
+   *
+   * @param {Array<any>} rawTicks
+   * @returns {Array<any>}
    */
-  determineInterval(daysDiff) {
-    const yearsDiff = daysDiff / 365;
-    const hoursDiff = daysDiff * 24;
-    const minutesDiff = hoursDiff * 60;
-    const secondsDiff = minutesDiff * 60;
-    switch (true) {
-      case yearsDiff > 5:
-        this.tickInterval = "years";
-        break;
-      case daysDiff > 800:
-        this.tickInterval = "half_year";
-        break;
-      case daysDiff > 180:
-        this.tickInterval = "months";
-        break;
-      case daysDiff > 90:
-        this.tickInterval = "months_fortnight";
-        break;
-      case daysDiff > 60:
-        this.tickInterval = "months_days";
-        break;
-      case daysDiff > 30:
-        this.tickInterval = "week_days";
-        break;
-      case daysDiff > 2:
-        this.tickInterval = "days";
-        break;
-      case hoursDiff > 2.4:
-        this.tickInterval = "hours";
-        break;
-      case minutesDiff > 15:
-        this.tickInterval = "minutes_fives";
-        break;
-      case minutesDiff > 5:
-        this.tickInterval = "minutes";
-        break;
-      case minutesDiff > 1:
-        this.tickInterval = "seconds_tens";
-        break;
-      case secondsDiff > 20:
-        this.tickInterval = "seconds_fives";
-        break;
-      default:
-        this.tickInterval = "seconds";
-        break;
-    }
-  }
-  /** @param {{firstVal: any, currentMonth: any, currentYear: any, daysWidthOnXAxis: any, numberOfYears: any}} opts */
-  generateYearScale({
-    firstVal,
-    currentMonth,
-    currentYear,
-    daysWidthOnXAxis,
-    numberOfYears
-  }) {
-    let firstTickValue = firstVal.minYear;
-    let firstTickPosition = 0;
-    const dt = new DateTime(this.w);
-    const unit = "year";
-    if (firstVal.minDate > 1 || firstVal.minMonth > 0) {
-      const remainingDays = dt.determineRemainingDaysOfYear(
-        firstVal.minYear,
-        firstVal.minMonth,
-        firstVal.minDate
-      );
-      const remainingDaysOfFirstYear = dt.determineDaysOfYear(firstVal.minYear) - remainingDays + 1;
-      firstTickPosition = remainingDaysOfFirstYear * daysWidthOnXAxis;
-      firstTickValue = firstVal.minYear + 1;
-      this.timeScaleArray.push({
-        position: firstTickPosition,
-        value: firstTickValue,
-        unit,
-        year: firstTickValue,
-        month: 1
-      });
-    } else if (firstVal.minDate === 1 && firstVal.minMonth === 0) {
-      this.timeScaleArray.push({
-        position: firstTickPosition,
-        value: firstTickValue,
-        unit,
-        year: currentYear,
-        month: Utils$1.monthMod(currentMonth + 1)
-      });
-    }
-    let year = firstTickValue;
-    let pos = firstTickPosition;
-    for (let i = 0; i < numberOfYears; i++) {
-      year++;
-      pos = dt.determineDaysOfYear(year - 1) * daysWidthOnXAxis + pos;
-      this.timeScaleArray.push({
-        position: pos,
-        value: year,
-        unit,
-        year,
-        month: 1
-      });
-    }
-  }
-  /** @param {{firstVal: any, currentMonthDate: any, currentMonth: any, currentYear: any, daysWidthOnXAxis: any, numberOfMonths: any}} opts */
-  generateMonthScale({
-    firstVal,
-    currentMonthDate,
-    currentMonth,
-    currentYear,
-    daysWidthOnXAxis,
-    numberOfMonths
-  }) {
-    let firstTickValue = currentMonth;
-    let firstTickPosition = 0;
-    const dt = new DateTime(this.w);
-    let unit = "month";
-    let yrCounter = 0;
-    if (firstVal.minDate > 1) {
-      const remainingDaysOfFirstMonth = dt.determineDaysOfMonths(currentMonth + 1, firstVal.minYear) - currentMonthDate + 1;
-      firstTickPosition = remainingDaysOfFirstMonth * daysWidthOnXAxis;
-      firstTickValue = Utils$1.monthMod(currentMonth + 1);
-      let year = currentYear + yrCounter;
-      let month2 = Utils$1.monthMod(firstTickValue);
-      let value = firstTickValue;
-      if (firstTickValue === 0) {
-        unit = "year";
-        value = year;
-        month2 = 1;
-        yrCounter += 1;
-        year = year + yrCounter;
-      }
-      this.timeScaleArray.push({
-        position: firstTickPosition,
-        value,
-        unit,
-        year,
-        month: month2
-      });
-    } else {
-      this.timeScaleArray.push({
-        position: firstTickPosition,
-        value: firstTickValue,
-        unit,
-        year: currentYear,
-        month: Utils$1.monthMod(currentMonth)
-      });
-    }
-    let month = firstTickValue + 1;
-    let pos = firstTickPosition;
-    for (let i = 0, j = 1; i < numberOfMonths; i++, j++) {
-      month = Utils$1.monthMod(month);
-      if (month === 0) {
-        unit = "year";
-        yrCounter += 1;
-      } else {
-        unit = "month";
-      }
-      const year = this._getYear(currentYear, month, yrCounter);
-      pos = dt.determineDaysOfMonths(month, year) * daysWidthOnXAxis + pos;
-      const monthVal = month === 0 ? year : month;
-      this.timeScaleArray.push({
-        position: pos,
-        value: monthVal,
-        unit,
-        year,
-        month: month === 0 ? 1 : month
-      });
-      month++;
-    }
-  }
-  /** @param {{firstVal: any, currentMonth: any, currentYear: any, hoursWidthOnXAxis: any, numberOfDays: any}} opts */
-  generateDayScale({
-    firstVal,
-    currentMonth,
-    currentYear,
-    hoursWidthOnXAxis,
-    numberOfDays
-  }) {
-    const dt = new DateTime(this.w);
-    let unit = "day";
-    let firstTickValue = firstVal.minDate + 1;
-    let date = firstTickValue;
-    const changeMonth = (dateVal, month2, year) => {
-      const monthdays = dt.determineDaysOfMonths(month2 + 1, year);
-      if (dateVal > monthdays) {
-        month2 = month2 + 1;
-        date = 1;
-        unit = "month";
-        val = month2;
-        return month2;
-      }
-      return month2;
-    };
-    const remainingHours = 24 - firstVal.minHour;
-    const yrCounter = 0;
-    let firstTickPosition = remainingHours * hoursWidthOnXAxis;
-    let val = firstTickValue;
-    let month = changeMonth(date, currentMonth, currentYear);
-    if (firstVal.minHour === 0 && firstVal.minDate === 1) {
-      firstTickPosition = 0;
-      val = Utils$1.monthMod(firstVal.minMonth);
-      unit = "month";
-      date = firstVal.minDate;
-    } else if (firstVal.minDate !== 1 && firstVal.minHour === 0 && firstVal.minMinute === 0) {
-      firstTickPosition = 0;
-      firstTickValue = firstVal.minDate;
-      date = firstTickValue;
-      val = firstTickValue;
-      month = changeMonth(date, currentMonth, currentYear);
-      if (val !== 1) {
-        unit = "day";
-      }
-    }
-    this.timeScaleArray.push({
-      position: firstTickPosition,
-      value: val,
-      unit,
-      year: this._getYear(currentYear, month, yrCounter),
-      month: Utils$1.monthMod(month),
-      day: date
-    });
-    let pos = firstTickPosition;
-    for (let i = 0; i < numberOfDays; i++) {
-      date += 1;
-      unit = "day";
-      month = changeMonth(
-        date,
-        month,
-        this._getYear(currentYear, month, yrCounter)
-      );
-      const year = this._getYear(currentYear, month, yrCounter);
-      pos = 24 * hoursWidthOnXAxis + pos;
-      const value = date === 1 ? Utils$1.monthMod(month) : date;
-      this.timeScaleArray.push({
-        position: pos,
-        value,
-        unit,
-        year,
-        month: Utils$1.monthMod(month),
-        day: value
-      });
-    }
-  }
-  /** @param {{firstVal: any, currentDate: any, currentMonth: any, currentYear: any, minutesWidthOnXAxis: any, numberOfHours: any}} opts */
-  generateHourScale({
-    firstVal,
-    currentDate,
-    currentMonth,
-    currentYear,
-    minutesWidthOnXAxis,
-    numberOfHours
-  }) {
-    const dt = new DateTime(this.w);
-    const yrCounter = 0;
-    let unit = "hour";
-    const changeDate = (dateVal, month2) => {
-      const monthdays = dt.determineDaysOfMonths(month2 + 1, currentYear);
-      if (dateVal > monthdays) {
-        date = 1;
-        month2 = month2 + 1;
-      }
-      return { month: month2, date };
-    };
-    const changeMonth = (dateVal, month2) => {
-      const monthdays = dt.determineDaysOfMonths(month2 + 1, currentYear);
-      if (dateVal > monthdays) {
-        month2 = month2 + 1;
-        return month2;
-      }
-      return month2;
-    };
-    const remainingMins = 60 - (firstVal.minMinute + firstVal.minSecond / 60);
-    let firstTickPosition = remainingMins * minutesWidthOnXAxis;
-    let firstTickValue = firstVal.minHour + 1;
-    let hour = firstTickValue;
-    if (remainingMins === 60) {
-      firstTickPosition = 0;
-      firstTickValue = firstVal.minHour;
-      hour = firstTickValue;
-    }
-    let date = currentDate;
-    if (hour >= 24) {
-      hour = 0;
-      date += 1;
-      unit = "day";
-      firstTickValue = date;
-    }
-    const checkNextMonth = changeDate(date, currentMonth);
-    let month = checkNextMonth.month;
-    month = changeMonth(date, month);
-    if (unit === "day") {
-      firstTickValue = date;
-    }
-    this.timeScaleArray.push({
-      position: firstTickPosition,
-      value: firstTickValue,
-      unit,
-      day: date,
-      hour,
-      year: currentYear,
-      month: Utils$1.monthMod(month)
-    });
-    hour++;
-    let pos = firstTickPosition;
-    for (let i = 0; i < numberOfHours; i++) {
-      unit = "hour";
-      if (hour >= 24) {
-        hour = 0;
-        date += 1;
-        unit = "day";
-        const checkNextMonth2 = changeDate(date, month);
-        month = checkNextMonth2.month;
-        month = changeMonth(date, month);
-      }
-      const year = this._getYear(currentYear, month, yrCounter);
-      pos = 60 * minutesWidthOnXAxis + pos;
-      const val = hour === 0 ? date : hour;
-      this.timeScaleArray.push({
-        position: pos,
-        value: val,
-        unit,
-        hour,
-        day: date,
-        year,
-        month: Utils$1.monthMod(month)
-      });
-      hour++;
-    }
-  }
-  /** @param {{currentMillisecond: any, currentSecond: any, currentMinute: any, currentHour: any, currentDate: any, currentMonth: any, currentYear: any, minutesWidthOnXAxis: any, secondsWidthOnXAxis: any, numberOfMinutes: any}} opts */
-  generateMinuteScale({
-    currentMillisecond,
-    currentSecond,
-    currentMinute,
-    currentHour,
-    currentDate,
-    currentMonth,
-    currentYear,
-    minutesWidthOnXAxis,
-    secondsWidthOnXAxis,
-    numberOfMinutes
-  }) {
-    const dt = new DateTime(this.w);
-    const yrCounter = 0;
-    const unit = "minute";
-    const remainingSecs = 60 - currentSecond;
-    let firstTickPosition = (remainingSecs - currentMillisecond / 1e3) * secondsWidthOnXAxis;
-    let minute = currentMinute + 1;
-    if (currentSecond === 0 && currentMillisecond === 0) {
-      firstTickPosition = 0;
-      minute = currentMinute;
-    }
-    let date = currentDate;
-    let month = currentMonth;
-    const year = currentYear;
-    let hour = currentHour;
-    let pos = firstTickPosition;
-    for (let i = 0; i < numberOfMinutes; i++) {
-      if (minute >= 60) {
-        minute = 0;
-        hour += 1;
-        if (hour === 24) {
-          hour = 0;
-          date += 1;
-          const monthDays = dt.determineDaysOfMonths(
-            month + 1,
-            this._getYear(year, month, yrCounter)
-          );
-          if (date > monthDays) {
-            date = 1;
-            month += 1;
-          }
-        }
-      }
-      this.timeScaleArray.push({
-        position: pos,
-        value: minute,
-        unit,
-        hour,
-        minute,
-        day: date,
-        year: this._getYear(year, month, yrCounter),
-        month: Utils$1.monthMod(month)
-      });
-      pos += minutesWidthOnXAxis;
-      minute++;
-    }
-  }
-  /** @param {{currentMillisecond: any, currentSecond: any, currentMinute: any, currentHour: any, currentDate: any, currentMonth: any, currentYear: any, secondsWidthOnXAxis: any, numberOfSeconds: any}} opts */
-  generateSecondScale({
-    currentMillisecond,
-    currentSecond,
-    currentMinute,
-    currentHour,
-    currentDate,
-    currentMonth,
-    currentYear,
-    secondsWidthOnXAxis,
-    numberOfSeconds
-  }) {
-    const yrCounter = 0;
-    const unit = "second";
-    const remainingMillisecs = 1e3 - currentMillisecond;
-    let firstTickPosition = remainingMillisecs / 1e3 * secondsWidthOnXAxis;
-    let second = currentSecond + 1;
-    if (currentMillisecond === 0) {
-      firstTickPosition = 0;
-      second = currentSecond;
-    }
-    let minute = currentMinute;
-    const date = currentDate;
-    const month = currentMonth;
-    const year = currentYear;
-    let hour = currentHour;
-    let pos = firstTickPosition;
-    for (let i = 0; i < numberOfSeconds; i++) {
-      if (second >= 60) {
-        minute++;
-        second = 0;
-        if (minute >= 60) {
-          hour++;
-          minute = 0;
-          if (hour === 24) {
-            hour = 0;
-          }
-        }
-      }
-      this.timeScaleArray.push({
-        position: pos,
-        value: second,
-        unit,
-        hour,
-        minute,
-        second,
-        day: date,
-        year: this._getYear(year, month, yrCounter),
-        month: Utils$1.monthMod(month)
-      });
-      pos += secondsWidthOnXAxis;
-      second++;
-    }
-  }
-  /**
-   * @param {Record<string, any>} ts
-   * @param {string | number} value
-   */
-  createRawDateString(ts, value) {
-    let raw = ts.year;
-    if (ts.month === 0) {
-      ts.month = 1;
-    }
-    raw += "-" + ("0" + ts.month.toString()).slice(-2);
-    if (ts.unit === "day") {
-      raw += "-" + ("0" + value).slice(-2);
-    } else {
-      raw += "-" + ("0" + (ts.day ? ts.day : "1")).slice(-2);
-    }
-    if (ts.unit === "hour") {
-      raw += "T" + ("0" + value).slice(-2);
-    } else {
-      raw += "T" + ("0" + (ts.hour ? ts.hour : "0")).slice(-2);
-    }
-    if (ts.unit === "minute") {
-      raw += ":" + ("0" + value).slice(-2);
-    } else {
-      raw += ":" + (ts.minute ? ("0" + ts.minute).slice(-2) : "00");
-    }
-    if (ts.unit === "second") {
-      raw += ":" + ("0" + value).slice(-2);
-    } else {
-      raw += ":00";
-    }
-    if (this.utc) {
-      raw += ".000Z";
-    }
-    return raw;
-  }
-  /**
-   * @param {Array<Record<string, any>>} filteredTimeScale
-   */
-  formatDates(filteredTimeScale) {
+  formatDates(rawTicks) {
     const w = this.w;
-    const reformattedTimescaleArray = filteredTimeScale.map(
-      (ts) => {
-        let value = ts.value.toString();
-        const dt = new DateTime(this.w);
-        const raw = this.createRawDateString(ts, value);
-        let dateToFormat = dt.getDate(dt.parseDate(raw));
-        if (!this.utc) {
-          dateToFormat = dt.getDate(dt.parseDateWithTimezone(raw));
-        }
-        if (w.config.xaxis.labels.format === void 0) {
-          let customFormat = "dd MMM";
-          const dtFormatter = w.config.xaxis.labels.datetimeFormatter;
-          if (ts.unit === "year") customFormat = dtFormatter.year;
-          if (ts.unit === "month") customFormat = dtFormatter.month;
-          if (ts.unit === "day") customFormat = dtFormatter.day;
-          if (ts.unit === "hour") customFormat = dtFormatter.hour;
-          if (ts.unit === "minute") customFormat = dtFormatter.minute;
-          if (ts.unit === "second") customFormat = dtFormatter.second;
-          value = dt.formatDate(dateToFormat, customFormat);
-        } else {
-          value = dt.formatDate(dateToFormat, w.config.xaxis.labels.format);
-        }
-        return {
-          dateString: raw,
-          position: ts.position,
-          value,
-          unit: ts.unit,
-          year: ts.year,
-          month: ts.month
-        };
-      }
-    );
-    return reformattedTimescaleArray;
+    const dt = new DateTime(w);
+    const userFormat = w.config.xaxis.labels.format;
+    const dtFmt = w.config.xaxis.labels.datetimeFormatter;
+    const isUTC = this.utc;
+    const pad = (n, len = 2) => String(n).padStart(len, "0");
+    const effectiveFormat = userFormat ? userFormat : this._effectiveFormat(rawTicks, dtFmt);
+    return rawTicks.map((tick) => {
+      const date = dt.getDate(tick.timestamp);
+      const value = dt.formatDate(date, effectiveFormat);
+      const ds = `${tick.year}-${pad(tick.month)}-${pad(tick.day)}T${pad(tick.hour)}:${pad(tick.minute)}:${pad(tick.second)}.000${isUTC ? "Z" : ""}`;
+      return {
+        dateString: ds,
+        position: tick.position,
+        value,
+        unit: tick.unit,
+        year: tick.year,
+        month: tick.month
+      };
+    });
   }
   /**
-   * @param {any[]} arr
+   * Pick the format string used for every tick this render. Folds coarser
+   * context into the base `datetimeFormatter[unit]` when the data range
+   * spans it. Skipped when the base format already references the higher
+   * unit's tokens (so user customizations aren't doubled).
+   *
+   * @param {Array<any>} rawTicks
+   * @param {Record<string, string>} dtFmt
+   * @returns {string}
+   */
+  _effectiveFormat(rawTicks, dtFmt) {
+    if (rawTicks.length === 0) return dtFmt.day || "dd MMM";
+    const unit = this.tickInterval && this.tickInterval.unit || rawTicks[0].unit;
+    const base = dtFmt[unit === "week" ? "day" : unit] || dtFmt.day || "dd MMM";
+    const first = rawTicks[0];
+    const last = rawTicks[rawTicks.length - 1];
+    const spansYears = first.year !== last.year;
+    const spansMonths = spansYears || first.month !== last.month;
+    const spansDays = spansMonths || first.day !== last.day;
+    const hasYearToken = /y/i.test(base);
+    const hasMonthToken = /M/.test(base);
+    const hasDayToken = /d/i.test(base);
+    if (unit === "month" || unit === "week") {
+      if (spansYears && !hasYearToken) return base + " yyyy";
+      return base;
+    }
+    if (unit === "day") {
+      if (spansYears && !hasYearToken) return base + " yyyy";
+      return base;
+    }
+    if (unit === "hour" || unit === "minute" || unit === "second") {
+      if (spansDays && !hasDayToken && !hasMonthToken) {
+        const prefix = spansYears ? "dd MMM yyyy" : "dd MMM";
+        return prefix + " " + base;
+      }
+      return base;
+    }
+    return base;
+  }
+  /**
+   * Drop labels that would overlap their predecessor (when
+   * `xaxis.labels.hideOverlappingLabels` is true). The first label is always
+   * kept. Width is measured per-label unless all labels have the same string
+   * length, in which case one measurement is reused.
+   *
+   * @param {Array<any>} arr
+   * @returns {Array<any>}
    */
   removeOverlappingTS(arr) {
-    const graphics = new Graphics(this.w);
+    if (arr.length === 0) return [];
+    const w = this.w;
+    const graphics = new Graphics(w);
     let equalLabelLengthFlag = false;
     let constantLabelWidth;
-    if (arr.length > 0 && // check arr length
-    arr[0].value && // check arr[0] contains value
-    /**
-     * @param {Record<string, any>} lb
-     */
-    arr.every((lb) => lb.value.length === arr[0].value.length)) {
+    if (arr[0].value && arr.every((lb) => lb.value.length === arr[0].value.length)) {
       equalLabelLengthFlag = true;
       constantLabelWidth = graphics.getTextRects(
         arr[0].value,
-        this.w.config.xaxis.labels.style.fontSize
+        w.config.xaxis.labels.style.fontSize
       ).width;
     }
     let lastDrawnIndex = 0;
-    let filteredArray = arr.map((item, index) => {
-      if (index > 0 && this.w.config.xaxis.labels.hideOverlappingLabels) {
-        const prevLabelWidth = !equalLabelLengthFlag ? graphics.getTextRects(
-          /** @type {any} */
-          arr[lastDrawnIndex].value,
-          this.w.config.xaxis.labels.style.fontSize
-        ).width : constantLabelWidth;
-        const prevPos = arr[lastDrawnIndex].position;
-        const pos = item.position;
-        if (pos > prevPos + prevLabelWidth + 10) {
-          lastDrawnIndex = index;
-          return item;
-        } else {
-          return null;
-        }
-      } else {
+    const filtered = arr.map((item, index) => {
+      if (index === 0) return item;
+      if (!w.config.xaxis.labels.hideOverlappingLabels) return item;
+      const prevLabelWidth = equalLabelLengthFlag ? (
+        /** @type {number} */
+        constantLabelWidth
+      ) : graphics.getTextRects(
+        arr[lastDrawnIndex].value,
+        w.config.xaxis.labels.style.fontSize
+      ).width;
+      const prevPos = arr[lastDrawnIndex].position;
+      const pos = item.position;
+      if (pos > prevPos + prevLabelWidth + 10) {
+        lastDrawnIndex = index;
         return item;
       }
-    });
-    filteredArray = filteredArray.filter((f) => f !== null);
-    return filteredArray;
+      return null;
+    }).filter((f) => f !== null);
+    return filtered;
   }
-  /**
-   * @param {number} currentYear
-   * @param {number} month
-   * @param {number} yrCounter
-   */
-  _getYear(currentYear, month, yrCounter) {
-    return currentYear + Math.floor(month / 12) + yrCounter;
+}
+function pickInterval(span, targetCount) {
+  if (!Number.isFinite(targetCount) || targetCount <= 0) {
+    targetCount = DEFAULT_TICK_COUNT;
   }
+  if (span <= 0) return TICK_LADDER[0];
+  const targetMs = span / targetCount;
+  let best = TICK_LADDER[0];
+  let bestDist = Infinity;
+  for (const interval of TICK_LADDER) {
+    const dist = Math.abs(Math.log(interval.approxMs / targetMs));
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = interval;
+    }
+  }
+  return best;
 }
 const REGISTRY_KEY = "__apexcharts_registry__";
 if (!/** @type {any} */
@@ -14104,12 +14374,6 @@ class Core {
         role: svgRole,
         "aria-label": ariaLabel
       });
-      const titleEl = BrowserAPIs.createElementNS(SVGNS, "title");
-      titleEl.textContent = ariaLabel;
-      this.w.dom.Paper.node.insertBefore(
-        titleEl,
-        this.w.dom.elLegendForeign.nextSibling
-      );
       if (cnf.chart.accessibility.description) {
         const descEl = BrowserAPIs.createElementNS(SVGNS, "desc");
         descEl.textContent = cnf.chart.accessibility.description;
@@ -14435,7 +14699,7 @@ class Core {
     });
   }
   resizeNonAxisCharts() {
-    var _a, _b;
+    var _a, _b, _c, _d, _e;
     const { w } = this;
     let legendHeight = 0;
     let offY = w.config.chart.sparkline.enabled ? 1 : 15;
@@ -14449,9 +14713,36 @@ class Core {
     let chartInnerDimensions = w.globals.radialSize * 2.05;
     if (el && !w.config.chart.sparkline.enabled && w.config.plotOptions.radialBar.startAngle !== 0) {
       const elRadialRect = Utils$1.getBoundingClientRect(el);
-      chartInnerDimensions = elRadialRect.bottom;
-      const maxHeight = elRadialRect.bottom - elRadialRect.top;
-      chartInnerDimensions = Math.max(w.globals.radialSize * 2.05, maxHeight);
+      const svgRect = Utils$1.getBoundingClientRect(this.w.dom.Paper.node);
+      const arcTopFromSVGTop = elRadialRect.top - svgRect.top;
+      let arcBottomFromSVGTop = elRadialRect.bottom - svgRect.top;
+      const topPadding = Math.max(offY, w.globals.radialSize * 0.2);
+      const verticalShift = topPadding - arcTopFromSVGTop;
+      if (verticalShift !== 0) {
+        w.layout.translateY = ((_c = w.layout.translateY) != null ? _c : 0) + verticalShift;
+        Graphics.setAttrs(this.w.dom.elGraphical.node, {
+          transform: `translate(${(_d = w.layout.translateX) != null ? _d : 0}, ${w.layout.translateY})`
+        });
+        arcBottomFromSVGTop += verticalShift;
+      }
+      chartInnerDimensions = arcBottomFromSVGTop > 0 ? arcBottomFromSVGTop : w.globals.radialSize * 2.05;
+      const svgHeight = Math.ceil(chartInnerDimensions + legendHeight + offY);
+      const chartOffsetY = (_e = w.config.chart.offsetY) != null ? _e : 0;
+      const elWrapHeight = svgHeight + Math.max(chartOffsetY, 0);
+      if (this.w.dom.elLegendForeign) {
+        this.w.dom.elLegendForeign.setAttribute(
+          "height",
+          String(elWrapHeight)
+        );
+      }
+      if (!(w.config.chart.height && String(w.config.chart.height).includes("%"))) {
+        this.w.dom.elWrap.style.height = `${elWrapHeight}px`;
+        Graphics.setAttrs(this.w.dom.Paper.node, { height: svgHeight });
+        if (Environment.isBrowser()) {
+          this.w.dom.Paper.node.parentNode.parentNode.style.minHeight = `${elWrapHeight}px`;
+        }
+      }
+      return;
     }
     const newHeight = Math.ceil(
       chartInnerDimensions + this.w.layout.translateY + legendHeight + offY
@@ -16047,11 +16338,77 @@ class Utils2 {
       return w.globals.collapsedSeriesIndices.indexOf(seriesIndex) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(seriesIndex) === -1;
     };
     const chartType = w.config.chart.type;
-    const useSegmentDistance = !w.globals.comboCharts && (chartType === "line" || chartType === "area");
+    const isLineArea = !w.globals.comboCharts && (chartType === "line" || chartType === "area");
     let closestDist = Infinity;
     let closestSeriesIndex = null;
     let closestPointIndex = null;
-    const ignoreY = w.config.tooltip.shared && w.globals.allSeriesHasEqualX && this.hasBars();
+    if (w.globals.allSeriesHasEqualX) {
+      let bucketDistX = Infinity;
+      for (let i = 0; i < Xarrays.length; i++) {
+        if (!isActiveSeries(i)) continue;
+        const xArr = Xarrays[i];
+        const yArr = Yarrays[i];
+        const len = Math.min(xArr.length, yArr.length);
+        for (let j = 0; j < len; j++) {
+          const distX = Math.abs(hoverX - xArr[j]);
+          if (distX < bucketDistX) {
+            bucketDistX = distX;
+            closestPointIndex = j;
+          }
+        }
+      }
+      if (closestPointIndex !== null) {
+        if (isLineArea) {
+          let bestSegDist = Infinity;
+          for (let i = 0; i < Xarrays.length; i++) {
+            if (!isActiveSeries(i)) continue;
+            const xArr = Xarrays[i];
+            const yArr = Yarrays[i];
+            const len = Math.min(xArr.length, yArr.length);
+            if (len < 2) {
+              const yVal = yArr[closestPointIndex];
+              if (typeof yVal !== "number") continue;
+              const d = Math.abs(hoverY - yVal);
+              if (d < bestSegDist) {
+                bestSegDist = d;
+                closestSeriesIndex = i;
+              }
+              continue;
+            }
+            for (let j = 0; j < len - 1; j++) {
+              const seg = this._distanceToSegment(
+                hoverX,
+                hoverY,
+                xArr[j],
+                yArr[j],
+                xArr[j + 1],
+                yArr[j + 1]
+              );
+              if (seg.dist < bestSegDist) {
+                bestSegDist = seg.dist;
+                closestSeriesIndex = i;
+              }
+            }
+          }
+        } else {
+          let bestY = Infinity;
+          for (let i = 0; i < Xarrays.length; i++) {
+            if (!isActiveSeries(i)) continue;
+            const yVal = Yarrays[i][closestPointIndex];
+            if (typeof yVal !== "number") continue;
+            const distY = Math.abs(hoverY - yVal);
+            if (distY < bestY) {
+              bestY = distY;
+              closestSeriesIndex = i;
+            }
+          }
+        }
+      }
+      return {
+        index: closestSeriesIndex,
+        j: closestPointIndex
+      };
+    }
     for (let i = 0; i < Xarrays.length; i++) {
       if (!isActiveSeries(i)) {
         continue;
@@ -16059,7 +16416,7 @@ class Utils2 {
       const xArr = Xarrays[i];
       const yArr = Yarrays[i];
       const len = Math.min(xArr.length, yArr.length);
-      if (useSegmentDistance && len >= 2) {
+      if (isLineArea && len >= 2) {
         for (let j = 0; j < len - 1; j++) {
           const seg = this._distanceToSegment(
             hoverX,
@@ -16080,12 +16437,9 @@ class Utils2 {
       for (let j = 0; j < len; j++) {
         const xVal = xArr[j];
         const distX = hoverX - xVal;
-        let dist = Math.sqrt(distX * distX);
-        if (!ignoreY) {
-          const yVal = yArr[j];
-          const distY = hoverY - yVal;
-          dist = Math.sqrt(distX * distX + distY * distY);
-        }
+        const yVal = yArr[j];
+        const distY = hoverY - yVal;
+        const dist = Math.sqrt(distX * distX + distY * distY);
         if (dist < closestDist) {
           closestDist = dist;
           closestSeriesIndex = i;
@@ -21539,6 +21893,7 @@ class ApexCharts {
     this.el = el;
     this.w.globals.cuid = Utils$1.randomId();
     this.w.globals.chartID = this.w.config.chart.id ? Utils$1.escapeString(this.w.config.chart.id) : this.w.globals.cuid;
+    applyAnimationPolicy(this.w);
     const initCtx = new InitCtxVariables(this);
     initCtx.initModules();
     this.lastUpdateOptions = null;
@@ -25191,6 +25546,10 @@ let Helpers$2 = class Helpers3 {
         const elRect = this.addBackgroundToAnno(annoLabel, anno);
         if (elRect) {
           parent == null ? void 0 : parent.insertBefore(elRect.node, annoLabel);
+          const labelX = annoLabel.getAttribute("x");
+          if (labelX !== null) {
+            applyProgressiveReveal(elRect, parseFloat(labelX), w);
+          }
           if (anno.label.mouseEnter) {
             elRect.node.addEventListener(
               "mouseenter",
@@ -25374,6 +25733,7 @@ class XAnnotations {
         if (anno.id) {
           line.node.classList.add(anno.id);
         }
+        applyProgressiveReveal(line, x1 + anno.offsetX, w);
       }
     } else {
       const result2 = this.helpers.getX1X2("x2", anno);
@@ -25412,6 +25772,7 @@ class XAnnotations {
       if (anno.id) {
         rect.node.classList.add(anno.id);
       }
+      applyProgressiveReveal(rect, x1 + anno.offsetX, w);
     }
     if (!(clipX1 && clipX2)) {
       const textRects = this.annoCtx.graphics.getTextRects(
@@ -25434,6 +25795,7 @@ class XAnnotations {
         rel: index
       });
       parent.appendChild(elText.node);
+      applyProgressiveReveal(elText, x1 + anno.label.offsetX, w);
       this.annoCtx.helpers.setOrientations(anno, index);
     }
   }
@@ -25632,6 +25994,7 @@ class PointAnnotations {
         optsPoints
       );
       parent.appendChild(point.node);
+      applyProgressiveReveal(point, x, w);
       const text = anno.label.text ? anno.label.text : "";
       const elText = this.annoCtx.graphics.drawText({
         x: x + anno.label.offsetX,
@@ -25648,6 +26011,7 @@ class PointAnnotations {
         rel: index
       });
       parent.appendChild(elText.node);
+      applyProgressiveReveal(elText, x, w);
       if (anno.customSVG.SVG) {
         const g = this.annoCtx.graphics.group({
           class: "apexcharts-point-annotations-custom-svg " + anno.customSVG.cssClass
@@ -25736,10 +26100,12 @@ class Annotations {
         yAnnotations.node,
         pointAnnotations.node
       ];
+      const progressiveAnnos = w.config.chart.type === "line" || w.config.chart.type === "area" || w.config.chart.type === "rangeArea";
+      const skipGroupHide = [progressiveAnnos, false, progressiveAnnos];
       for (let i = 0; i < 3; i++) {
         w.dom.elGraphical.add(annoArray[i]);
         if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
-          if (w.config.chart.type !== "scatter" && w.config.chart.type !== "bubble" && w.globals.dataPoints > 1) {
+          if (w.config.chart.type !== "scatter" && w.config.chart.type !== "bubble" && w.globals.dataPoints > 1 && !skipGroupHide[i]) {
             annoElArray[i].classList.add("apexcharts-element-hidden");
           }
         }
@@ -27824,6 +28190,67 @@ let Helpers$1 = class Helpers4 {
       pathFrom
     };
   }
+  /**
+   * Build a trapezoidal funnel-stage path. Used when
+   * `plotOptions.funnel.shape === 'trapezoid'` is active alongside `isFunnel`.
+   *
+   * Each stage is a 4-corner polygon whose top width matches the current
+   * stage's value and bottom width matches the next stage's value, producing
+   * continuous sloped sides between consecutive stages.
+   *
+   * For the last stage, the bottom width is configurable:
+   * - `lastShape: 'flat'`  → bottom width = top width (parallel sides)
+   * - `lastShape: 'taper'` → bottom width = 0 (taper to a point)
+   *
+   * @param {{ barYPosition: number, barHeight: number, series: any[][], i: number, j: number, realIndex: number, strokeWidth: number, w: any }} opts
+   */
+  getFunnelTrapezoidPaths({
+    barYPosition,
+    barHeight,
+    series,
+    i,
+    j,
+    realIndex,
+    strokeWidth,
+    w
+  }) {
+    const graphics = new Graphics(this.barCtx.w);
+    const center = w.layout.gridWidth / 2;
+    const halfWidthFor = (v) => Math.abs(v / this.barCtx.invertedYRatio) / 2;
+    const topHalf = halfWidthFor(series[i][j]);
+    const lastIdx = series[i].length - 1;
+    const isLast = j === lastIdx;
+    const lastShape = w.config.plotOptions.funnel.lastShape === "taper" ? "taper" : "flat";
+    let bottomHalf;
+    if (isLast) {
+      bottomHalf = lastShape === "taper" ? 0 : topHalf;
+    } else {
+      bottomHalf = halfWidthFor(series[i][j + 1]);
+    }
+    const strokeCenter = strokeWidth / 2;
+    const y1 = barYPosition + strokeCenter;
+    const y2 = barYPosition + barHeight - strokeCenter;
+    const topLeftX = center - topHalf;
+    const topRightX = center + topHalf;
+    const bottomLeftX = center - bottomHalf;
+    const bottomRightX = center + bottomHalf;
+    const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
+    let pathFrom = graphics.move(center, y1);
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, false);
+    } else {
+      pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
+    }
+    return {
+      pathTo,
+      pathFrom,
+      // x is the right edge of the wider (top) side — used by dataLabel
+      // positioning helpers that expect a "right" reference.
+      x: topRightX,
+      x1: topLeftX,
+      barXPosition: center
+    };
+  }
   /** @param {{ barYPosition?: any, barHeight?: any, x1?: any, x2?: any, strokeWidth?: any, isReversed?: any, series?: any, seriesGroup?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getBarpaths({
     barYPosition,
@@ -27855,14 +28282,17 @@ let Helpers$1 = class Helpers4 {
     const direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1);
     x1 += 1e-3 + strokeCenter * direction;
     x2 += 1e-3 - strokeCenter * direction;
+    const isFunnel = this.barCtx.isFunnel;
+    const fromX = isFunnel ? (x1 + x2) / 2 : x1;
     let pathTo = graphics.move(x1, y1);
-    let pathFrom = graphics.move(x1, y1);
+    let pathFrom = graphics.move(fromX, y1);
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, false);
     }
     const sl = graphics.line(x1, y2);
     pathTo = pathTo + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
-    pathFrom = pathFrom + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
+    const slFrom = isFunnel ? graphics.line(fromX, y2) : sl;
+    pathFrom = pathFrom + graphics.line(fromX, y1) + slFrom + slFrom + slFrom + slFrom + slFrom + graphics.line(fromX, y1) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
     if (this.arrBorderRadius[realIndex][j] !== "none") {
       pathTo = graphics.roundPathCorners(
         pathTo,
@@ -28144,7 +28574,7 @@ class Bar {
    * @return {Element} element which is supplied to parent chart draw method for appending
    **/
   draw(series, seriesIndex) {
-    var _a;
+    var _a, _b;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const coreUtils = new CoreUtils(this.w);
@@ -28265,9 +28695,9 @@ class Bar {
           j,
           realIndex
         );
-        if (this.isFunnel && this.barOptions.isFunnel3d && this.pathArr.length && j > 0) {
+        if (this.isFunnel && this.barOptions.isFunnel3d && ((_a = w.config.plotOptions.funnel) == null ? void 0 : _a.shape) !== "trapezoid" && this.pathArr.length && j > 0) {
           const barShadow = this.barHelpers.drawBarShadow({
-            color: typeof pathFill.color === "string" && ((_a = pathFill.color) == null ? void 0 : _a.indexOf("url")) === -1 ? pathFill.color : Utils$1.hexToRgba(w.globals.colors[i]),
+            color: typeof pathFill.color === "string" && ((_b = pathFill.color) == null ? void 0 : _b.indexOf("url")) === -1 ? pathFill.color : Utils$1.hexToRgba(w.globals.colors[i]),
             prevPaths: this.pathArr[this.pathArr.length - 1],
             currPaths: paths,
             realIndex,
@@ -28421,7 +28851,28 @@ class Bar {
     if (this.isNullValue) {
       pathFill = "none";
     }
-    const delay = j / w.config.chart.animations.animateGradually.delay * (w.config.chart.animations.speed / w.globals.dataPoints) / 2.4;
+    const animCfg = w.config.chart.animations;
+    const gradCfg = animCfg.animateGradually;
+    const staggerEnabled = gradCfg && gradCfg.enabled !== false;
+    let delay = 0;
+    if (staggerEnabled) {
+      const totalBars = w.globals.dataPoints || 1;
+      const configStep = gradCfg.delay || 0;
+      const baseDelayMs = Math.min(
+        configStep,
+        animCfg.speed * 0.5 / Math.max(1, totalBars)
+      );
+      let delayMs = computeStagger({
+        style: "sequential",
+        index: j,
+        baseDelay: baseDelayMs
+      });
+      if (w.config.chart.stacked) {
+        delayMs += i * baseDelayMs * 0.5;
+      }
+      const delayFactor = configStep || 1;
+      delay = delayMs / delayFactor;
+    }
     if (!skipDrawing) {
       const renderedPath = (
         /** @type {any} */
@@ -28513,7 +28964,8 @@ class Bar {
         barYPosition = y + barHeight * this.visibleI;
       }
     }
-    if (this.isFunnel) {
+    const useTrapezoid = this.isFunnel && w.config.plotOptions.funnel.shape === "trapezoid";
+    if (this.isFunnel && !useTrapezoid) {
       const _zeroW = zeroW != null ? zeroW : 0;
       zeroW = _zeroW - /** @type {number} */
       /** @type {any} */
@@ -28530,7 +28982,19 @@ class Bar {
     );
     const paths = (
       /** @type {any} */
-      this.barHelpers.getBarpaths({
+      useTrapezoid ? this.barHelpers.getFunnelTrapezoidPaths({
+        barYPosition,
+        barHeight,
+        series: (
+          /** @type {any} */
+          this.series
+        ),
+        i,
+        j,
+        realIndex: indexes.realIndex,
+        strokeWidth,
+        w
+      }) : this.barHelpers.getBarpaths({
         barYPosition,
         barHeight,
         x1: zeroW,
@@ -28544,6 +29008,10 @@ class Bar {
         w
       })
     );
+    if (useTrapezoid) {
+      zeroW = paths.x1;
+      x = paths.x;
+    }
     if (!w.axisFlags.isXNumeric) {
       y = y + yDivision;
     }
@@ -29778,7 +30246,7 @@ class HeatMap {
           if (!w.globals.resized) {
             speed = w.config.chart.animations.speed;
           }
-          this.animateHeatMap(rect, x1, y1, xDivision, yDivision, speed);
+          this.animateHeatMap(rect, x1, y1, xDivision, yDivision, speed, i, j);
         }
         if (w.globals.dataChanged) {
           let speed = 1;
@@ -29838,9 +30306,32 @@ class HeatMap {
    * @param {number} width
    * @param {number} height
    * @param {number} speed
+   * @param {number} [row] - series index (heatmap row)
+   * @param {number} [col] - data point index (heatmap column)
    */
-  animateHeatMap(el, x, y, width, height, speed) {
+  animateHeatMap(el, x, y, width, height, speed, row = 0, col = 0) {
+    const w = this.w;
     const animations = new Animations(this.w);
+    const animCfg = w.config.chart.animations;
+    const gradCfg = animCfg.animateGradually;
+    const staggerEnabled = gradCfg && gradCfg.enabled !== false;
+    let delay = 0;
+    if (staggerEnabled) {
+      const seriesCount = (w.seriesData.series || []).length || 1;
+      const pointsCount = w.globals.dataPoints || 1;
+      const maxDiag = seriesCount + pointsCount - 2;
+      const baseDelay = Math.min(
+        gradCfg.delay || 0,
+        speed * 0.5 / Math.max(1, maxDiag)
+      );
+      delay = computeStagger({
+        style: "diagonal",
+        index: col,
+        row,
+        col,
+        baseDelay
+      });
+    }
     animations.animateRect(
       el,
       {
@@ -29858,7 +30349,8 @@ class HeatMap {
       speed,
       () => {
         animations.animationCompleted(el);
-      }
+      },
+      delay
     );
   }
   /**
@@ -30696,7 +31188,8 @@ class Line {
     const w = this.w;
     const dataLabels = new DataLabels(this.w, this.ctx);
     if (!this.pointsChart) {
-      if (w.seriesData.series[i].length > 1) {
+      const useProgressive = !w.globals.dataChanged && !w.globals.resized;
+      if (!useProgressive && w.seriesData.series[i].length > 1) {
         this.elPointsMain.node.classList.add("apexcharts-element-hidden");
       }
       const elPointsWrap = this.markers.plotChartMarkers({
@@ -31172,6 +31665,7 @@ class Pie {
     elSeries.add(elG);
     elPie.add(elSeries);
     if (this.donutDataLabels.show) {
+      const shouldFadeInLabels = this.initialAnim && !w.globals.resized && !w.globals.dataChanged && this.animDur > 0;
       const dataLabels = this.renderInnerDataLabels(
         this.dataLabelsGroup,
         this.donutDataLabels,
@@ -31179,9 +31673,16 @@ class Pie {
           hollowSize: this.donutSize,
           centerX: this.centerX,
           centerY: this.centerY,
-          opacity: this.donutDataLabels.show
+          opacity: shouldFadeInLabels ? 0 : this.donutDataLabels.show
         }
       );
+      if (shouldFadeInLabels) {
+        const labelsNode = this.dataLabelsGroup.node;
+        labelsNode.style.transition = "opacity 280ms ease-out";
+        setTimeout(() => {
+          labelsNode.style.opacity = "1";
+        }, this.animDur);
+      }
       elPie.add(dataLabels);
     }
     if (w.config.grid.position === "front" && this.chartType === "polarArea") {
@@ -31323,7 +31824,13 @@ class Pie {
         elPath.node.addEventListener("mouseup", this.pieClicked.bind(this, i));
       }
       if (typeof w.interact.selectedDataPoints[0] !== "undefined" && w.interact.selectedDataPoints[0].indexOf(i) > -1) {
-        this.pieClicked(i);
+        if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged && this.animDur > 0) {
+          const _this = this;
+          const _i = i;
+          setTimeout(() => _this.pieClicked(_i), this.animDur);
+        } else {
+          this.pieClicked(i);
+        }
       }
       if (w.config.dataLabels.enabled) {
         const xPos = labelPosition.x;
@@ -32007,7 +32514,10 @@ class Radar {
           pathTo: paths.areaPathsTo[p],
           strokeWidth: 0,
           fill: pathFill,
-          drawShadow: false
+          drawShadow: false,
+          // Radial mask: the area fill blooms outward from the radar's center
+          // (in this group's local coords) instead of the default L→R rect wipe.
+          drawMask: { type: "radial", cx: 0, cy: 0, r: this.size }
         }));
         if (w.config.chart.dropShadow.enabled) {
           const filters = new Filters(this.w);
@@ -32332,7 +32842,11 @@ class Radial extends Pie {
       size = size - w.config.stroke.width - w.config.chart.dropShadow.blur;
     }
     const colorArr = w.globals.fill.colors;
-    if (w.config.plotOptions.radialBar.track.show) {
+    const rb = w.config.plotOptions.radialBar;
+    const hasBands = Array.isArray(rb.bands) && rb.bands.length > 0;
+    const hideTrack = hasBands && rb.bandsStyle && rb.bandsStyle.hideTrackWhenPresent;
+    const isNeedleShape = rb.shape === "needle";
+    if (rb.track.show && !hideTrack) {
       const elTracks = this.drawTracks({
         size,
         centerX,
@@ -32342,13 +32856,51 @@ class Radial extends Pie {
       });
       elSeries.add(elTracks);
     }
+    if (hasBands) {
+      const elBands = this.drawBands({
+        size,
+        centerX,
+        centerY,
+        series
+      });
+      elSeries.add(elBands);
+    }
     const elG = this.drawArcs({
       size,
       centerX,
       centerY,
       colorArr,
-      series
+      series,
+      skipValueArc: isNeedleShape
     });
+    if (rb.ticks && rb.ticks.show) {
+      const elTicks = this.drawTicks({
+        size,
+        centerX,
+        centerY,
+        series
+      });
+      const isInitialMount = this.initialAnim && !w.globals.dataChanged && !w.globals.resized;
+      if (isInitialMount && Environment.isBrowser() && w.globals.shouldAnimate) {
+        const ticksNode = elTicks.node;
+        ticksNode.style.opacity = "0";
+        ticksNode.style.transition = "opacity 280ms ease-out";
+        const sweepDur = w.config.chart.animations.speed || 800;
+        setTimeout(() => {
+          ticksNode.style.opacity = "1";
+        }, sweepDur);
+      }
+      elSeries.add(elTicks);
+    }
+    if (isNeedleShape) {
+      const elNeedle = this.drawNeedle({
+        size,
+        centerX,
+        centerY,
+        series
+      });
+      elSeries.add(elNeedle);
+    }
     let totalAngle = 360;
     if (w.config.plotOptions.radialBar.startAngle < 0) {
       totalAngle = this.totalAngle;
@@ -32531,8 +33083,8 @@ class Radial extends Pie {
       const dashArray = Array.isArray(w.config.stroke.dashArray) ? w.config.stroke.dashArray[i] : w.config.stroke.dashArray;
       const elPath = graphics.drawPath({
         d: "",
-        stroke: pathFill,
-        strokeWidth,
+        stroke: opts.skipValueArc ? "transparent" : pathFill,
+        strokeWidth: opts.skipValueArc ? 0 : strokeWidth,
         fill: "none",
         fillOpacity: w.config.fill.opacity,
         classes: "apexcharts-radialbar-area apexcharts-radialbar-slice-" + i,
@@ -32636,6 +33188,248 @@ class Radial extends Pie {
       elHollow,
       dataLabels
     };
+  }
+  /**
+   * Map a domain value (between `min` and `max`) to the corresponding angle
+   * in the gauge's `startAngle`..`endAngle` range. Values outside the
+   * domain are clamped.
+   *
+   * @param {number} value
+   * @returns {number}
+   */
+  _angleAtValue(value) {
+    const rb = this.w.config.plotOptions.radialBar;
+    const min = typeof rb.min === "number" ? rb.min : 0;
+    const max = typeof rb.max === "number" ? rb.max : 100;
+    const safeMax = max === min ? min + 1 : max;
+    const clamped = Math.max(min, Math.min(safeMax, Number(value)));
+    const t = (clamped - min) / (safeMax - min);
+    return this.startAngle + t * (this.endAngle - this.startAngle);
+  }
+  /**
+   * Build an SVG arc path from `startAngle` to `endAngle` at radius `r`
+   * around `(cx, cy)`. Angles are in degrees, with 0° at the top.
+   * Used by drawBands; mirrors the `M ... A ... ` form used elsewhere.
+   *
+   * @param {number} cx
+   * @param {number} cy
+   * @param {number} r
+   * @param {number} startAngle
+   * @param {number} endAngle
+   * @returns {string}
+   */
+  _describeArc(cx, cy, r, startAngle, endAngle) {
+    const start = Utils$1.polarToCartesian(cx, cy, r, endAngle);
+    const end = Utils$1.polarToCartesian(cx, cy, r, startAngle);
+    const sweep = endAngle - startAngle;
+    const largeArc = Math.abs(sweep) > 180 ? 1 : 0;
+    return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
+  }
+  /**
+   * Draw threshold bands as colored arc segments along the gauge arc.
+   * Bands sit behind the value-arc and tick marks. Used for gauges that
+   * indicate ranges like 0-30 critical / 30-70 warning / 70-100 healthy.
+   *
+   * @param {Record<string, any>} opts
+   */
+  drawBands(opts) {
+    const w = this.w;
+    const graphics = new Graphics(this.w);
+    const rb = w.config.plotOptions.radialBar;
+    const bands = rb.bands || [];
+    const g = graphics.group({
+      class: "apexcharts-gauge-bands"
+    });
+    const strokeWidth = this.getStrokeWidth(opts);
+    const radius = opts.size - strokeWidth / 2 - strokeWidth - this.margin;
+    const bandStroke = strokeWidth * parseInt(rb.bandsStyle.strokeWidth, 10) / 100;
+    const min = typeof rb.min === "number" ? rb.min : 0;
+    const max = typeof rb.max === "number" ? rb.max : 100;
+    const gapDeg = max === min ? 0 : (rb.bandsStyle.gap || 0) * ((this.endAngle - this.startAngle) / (max - min));
+    for (let b = 0; b < bands.length; b++) {
+      const band = bands[b];
+      if (band.from === void 0 || band.to === void 0) continue;
+      const a1 = this._angleAtValue(band.from);
+      const a2 = this._angleAtValue(band.to);
+      const startA = Math.min(a1, a2) + gapDeg / 2;
+      const endA = Math.max(a1, a2) - gapDeg / 2;
+      if (endA - startA <= 0) continue;
+      const elBand = graphics.drawPath({
+        d: this._describeArc(opts.centerX, opts.centerY, radius, startA, endA),
+        stroke: band.color || "#ccc",
+        strokeWidth: bandStroke,
+        fill: "none",
+        strokeLinecap: rb.bandsStyle.linecap || "butt",
+        classes: "apexcharts-gauge-band"
+      });
+      elBand.node.setAttribute("data-band-index", String(b));
+      g.add(elBand);
+    }
+    return g;
+  }
+  /**
+   * Draw tick marks (major + minor) along the gauge arc, with optional
+   * value labels at each major tick.
+   *
+   * @param {Record<string, any>} opts
+   */
+  drawTicks(opts) {
+    var _a, _b, _c, _d;
+    const w = this.w;
+    const graphics = new Graphics(this.w);
+    const rb = w.config.plotOptions.radialBar;
+    const ticks = rb.ticks;
+    const g = graphics.group({ class: "apexcharts-gauge-ticks" });
+    const strokeWidth = this.getStrokeWidth(opts);
+    const radius = opts.size - strokeWidth / 2 - strokeWidth - this.margin;
+    const min = typeof rb.min === "number" ? rb.min : 0;
+    const max = typeof rb.max === "number" ? rb.max : 100;
+    const majorCount = Math.max(2, (_b = (_a = ticks.major) == null ? void 0 : _a.count) != null ? _b : 11);
+    const minorCount = Math.max(0, (_d = (_c = ticks.minor) == null ? void 0 : _c.count) != null ? _d : 0);
+    const drawTickAt = (value, cfg, isMajor) => {
+      var _a2, _b2, _c2;
+      const angle = this._angleAtValue(value);
+      const length = (_a2 = cfg.length) != null ? _a2 : 8;
+      const inner = cfg.placement === "inside" ? radius - length : radius;
+      const outer = cfg.placement === "inside" ? radius : radius + length;
+      const p1 = Utils$1.polarToCartesian(
+        opts.centerX,
+        opts.centerY,
+        inner,
+        angle
+      );
+      const p2 = Utils$1.polarToCartesian(
+        opts.centerX,
+        opts.centerY,
+        outer,
+        angle
+      );
+      const line = graphics.drawLine(
+        p1.x,
+        p1.y,
+        p2.x,
+        p2.y,
+        cfg.color || (isMajor ? "#666" : "#999"),
+        0,
+        cfg.width || (isMajor ? 2 : 1)
+      );
+      g.add(line);
+      if (isMajor && ((_b2 = ticks.labels) == null ? void 0 : _b2.show)) {
+        const labelRadius = (cfg.placement === "inside" ? inner : outer) + (cfg.placement === "inside" ? -1 : 1) * ((_c2 = ticks.labels.offset) != null ? _c2 : 6);
+        const labelPos = Utils$1.polarToCartesian(
+          opts.centerX,
+          opts.centerY,
+          labelRadius,
+          angle
+        );
+        const labelText = typeof ticks.labels.formatter === "function" ? ticks.labels.formatter(value) : String(value);
+        const elText = graphics.drawText({
+          x: labelPos.x,
+          y: labelPos.y,
+          text: labelText,
+          textAnchor: "middle",
+          dominantBaseline: "middle",
+          fontFamily: ticks.labels.fontFamily,
+          fontSize: ticks.labels.fontSize,
+          fontWeight: ticks.labels.fontWeight,
+          foreColor: ticks.labels.color,
+          cssClass: "apexcharts-gauge-tick-label"
+        });
+        g.add(elText);
+      }
+    };
+    for (let m = 0; m < majorCount; m++) {
+      const t = m / (majorCount - 1);
+      const value = min + t * (max - min);
+      drawTickAt(value, ticks.major || {}, true);
+      if (m < majorCount - 1 && minorCount > 0) {
+        for (let n = 1; n <= minorCount; n++) {
+          const tMinor = (m + n / (minorCount + 1)) / (majorCount - 1);
+          const minorValue = min + tMinor * (max - min);
+          drawTickAt(minorValue, ticks.minor || {}, false);
+        }
+      }
+    }
+    return g;
+  }
+  /**
+   * Draw a rotating needle pointing at the current series value. Only
+   * called when `plotOptions.radialBar.shape === 'needle'`. The needle is
+   * a tapered polygon inside a `<g>` whose rotation transform is animated
+   * from `startAngle` to the value's angle.
+   *
+   * Renders a single needle for the first series value (gauge use case).
+   * Additional series are ignored — drilled-down multi-series gauges are
+   * out of scope for this iteration.
+   *
+   * @param {Record<string, any>} opts
+   */
+  drawNeedle(opts) {
+    var _a, _b, _c, _d, _e;
+    const w = this.w;
+    const graphics = new Graphics(this.w);
+    const rb = w.config.plotOptions.radialBar;
+    const cfg = rb.needle || {};
+    const pivot = rb.pivot || {};
+    const g = graphics.group({ class: "apexcharts-gauge-needle" });
+    if (!opts.series || opts.series.length === 0) return g;
+    const strokeWidth = this.getStrokeWidth(opts);
+    const arcRadius = opts.size - strokeWidth / 2 - strokeWidth - this.margin;
+    const length = typeof cfg.length === "string" && cfg.length.endsWith("%") ? arcRadius * parseInt(cfg.length, 10) / 100 : Number(cfg.length || arcRadius * 0.85);
+    const baseW = (_a = cfg.baseWidth) != null ? _a : 4;
+    const tipW = (_b = cfg.tipWidth) != null ? _b : 1;
+    const color = cfg.color || "#333";
+    const cx = opts.centerX;
+    const cy = opts.centerY;
+    const path = `M ${cx - baseW / 2} ${cy} L ${cx + baseW / 2} ${cy} L ${cx + tipW / 2} ${cy - length} L ${cx - tipW / 2} ${cy - length} Z`;
+    const elNeedle = graphics.drawPath({
+      d: path,
+      stroke: color,
+      strokeWidth: 0,
+      fill: color,
+      classes: "apexcharts-gauge-needle-shape"
+    });
+    g.add(elNeedle);
+    if (pivot.show !== false) {
+      const elPivot = graphics.drawCircle(2 * ((_c = cfg.baseRadius) != null ? _c : 8));
+      elPivot.attr({
+        cx,
+        cy,
+        r: (_d = cfg.baseRadius) != null ? _d : 8,
+        fill: pivot.color || color,
+        stroke: pivot.strokeColor || "#fff",
+        "stroke-width": (_e = pivot.strokeWidth) != null ? _e : 2,
+        class: "apexcharts-gauge-needle-pivot"
+      });
+      g.add(elPivot);
+    }
+    const value = Number(opts.series[0]);
+    const targetAngle = this._angleAtValue(value);
+    const isInitialMount = this.initialAnim && !w.globals.dataChanged && !w.globals.resized;
+    if (isInitialMount && Environment.isBrowser() && w.globals.shouldAnimate) {
+      const fromAngle = this.startAngle;
+      const node = g.node;
+      node.setAttribute("transform-origin", `${cx} ${cy}`);
+      node.setAttribute("transform", `rotate(${fromAngle})`);
+      const speed = cfg.animationSpeed && Number(cfg.animationSpeed) || w.config.chart.animations.speed || 800;
+      const c1 = 1.70158;
+      const c3 = c1 + 1;
+      const ease = (t) => 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      const startAt = performance.now();
+      const step = (now) => {
+        const t = Math.max(0, Math.min(1, (now - startAt) / speed));
+        const angle = fromAngle + (targetAngle - fromAngle) * ease(t);
+        node.setAttribute("transform", `rotate(${angle})`);
+        if (t < 1) BrowserAPIs.requestAnimationFrame(step);
+      };
+      BrowserAPIs.requestAnimationFrame(step);
+    } else {
+      g.attr({
+        "transform-origin": `${cx} ${cy}`,
+        transform: `rotate(${targetAngle})`
+      });
+    }
+    return g;
   }
   /**
    * @param {Record<string, any>} opts
@@ -33329,6 +34123,30 @@ class TreemapChart {
         xMax: -Infinity,
         yMax: -Infinity
       };
+      const animCfg = w.config.chart.animations;
+      const gradCfg = animCfg.animateGradually;
+      const cascadeEnabled = gradCfg && gradCfg.enabled !== false;
+      const cascadeDelays = new Array(node.length).fill(0);
+      if (cascadeEnabled) {
+        const tileCount = node.length || 1;
+        const baseDelay = Math.min(
+          gradCfg.delay || 0,
+          animCfg.speed * 0.5 / tileCount
+        );
+        const ranked = node.map(
+          /** @param {number[]} r @param {number} j */
+          (r, j) => ({ j, area: (r[2] - r[0]) * (r[3] - r[1]) })
+        ).sort(
+          /** @param {{j: number, area: number}} a @param {{j: number, area: number}} b */
+          (a, b) => b.area - a.area
+        );
+        ranked.forEach(
+          /** @param {{j: number, area: number}} item @param {number} rank */
+          (item, rank) => {
+            cascadeDelays[item.j] = rank * baseDelay;
+          }
+        );
+      }
       node.forEach((r, j) => {
         const x1 = r[0];
         const y1 = r[1];
@@ -33389,7 +34207,13 @@ class TreemapChart {
           if (!w.globals.resized) {
             speed = w.config.chart.animations.speed;
           }
-          this.animateTreemap(elRect, fromRect, toRect, speed);
+          this.animateTreemap(
+            elRect,
+            fromRect,
+            toRect,
+            speed,
+            cascadeDelays[j] || 0
+          );
         }
         if (w.globals.dataChanged) {
           let speed = 1;
@@ -33609,12 +34433,20 @@ class TreemapChart {
    * @param {Record<string, any>} fromRect
    * @param {Record<string, any>} toRect
    * @param {number} speed
+   * @param {number} [delay] - per-tile cascade delay in ms
    */
-  animateTreemap(el, fromRect, toRect, speed) {
+  animateTreemap(el, fromRect, toRect, speed, delay = 0) {
     const animations = new Animations(this.w);
-    animations.animateRect(el, fromRect, toRect, speed, () => {
-      animations.animationCompleted(el);
-    });
+    animations.animateRect(
+      el,
+      fromRect,
+      toRect,
+      speed,
+      () => {
+        animations.animationCompleted(el);
+      },
+      delay
+    );
   }
 }
 ApexCharts.use({

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.11.0
+ * ApexCharts v5.12.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -359,6 +359,30 @@ class TreemapChart {
         xMax: -Infinity,
         yMax: -Infinity
       };
+      const animCfg = w.config.chart.animations;
+      const gradCfg = animCfg.animateGradually;
+      const cascadeEnabled = gradCfg && gradCfg.enabled !== false;
+      const cascadeDelays = new Array(node.length).fill(0);
+      if (cascadeEnabled) {
+        const tileCount = node.length || 1;
+        const baseDelay = Math.min(
+          gradCfg.delay || 0,
+          animCfg.speed * 0.5 / tileCount
+        );
+        const ranked = node.map(
+          /** @param {number[]} r @param {number} j */
+          (r, j) => ({ j, area: (r[2] - r[0]) * (r[3] - r[1]) })
+        ).sort(
+          /** @param {{j: number, area: number}} a @param {{j: number, area: number}} b */
+          (a, b) => b.area - a.area
+        );
+        ranked.forEach(
+          /** @param {{j: number, area: number}} item @param {number} rank */
+          (item, rank) => {
+            cascadeDelays[item.j] = rank * baseDelay;
+          }
+        );
+      }
       node.forEach((r, j) => {
         const x1 = r[0];
         const y1 = r[1];
@@ -419,7 +443,13 @@ class TreemapChart {
           if (!w.globals.resized) {
             speed = w.config.chart.animations.speed;
           }
-          this.animateTreemap(elRect, fromRect, toRect, speed);
+          this.animateTreemap(
+            elRect,
+            fromRect,
+            toRect,
+            speed,
+            cascadeDelays[j] || 0
+          );
         }
         if (w.globals.dataChanged) {
           let speed = 1;
@@ -639,12 +669,20 @@ class TreemapChart {
    * @param {Record<string, any>} fromRect
    * @param {Record<string, any>} toRect
    * @param {number} speed
+   * @param {number} [delay] - per-tile cascade delay in ms
    */
-  animateTreemap(el, fromRect, toRect, speed) {
+  animateTreemap(el, fromRect, toRect, speed, delay = 0) {
     const animations = new Animations(this.w);
-    animations.animateRect(el, fromRect, toRect, speed, () => {
-      animations.animationCompleted(el);
-    });
+    animations.animateRect(
+      el,
+      fromRect,
+      toRect,
+      speed,
+      () => {
+        animations.animationCompleted(el);
+      },
+      delay
+    );
   }
 }
 _core__default.use({

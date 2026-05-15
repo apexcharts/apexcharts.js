@@ -1,11 +1,12 @@
 /*!
- * ApexCharts v5.11.0
+ * ApexCharts v5.12.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
 const Animations = _core.__apex_Animations;
+const computeStagger = _core.__apex_Animations_computeStagger;
 const Graphics = _core.__apex_Graphics;
 const Fill = _core.__apex_Fill;
 const Series = _core.__apex_Series;
@@ -272,7 +273,7 @@ class HeatMap {
           if (!w.globals.resized) {
             speed = w.config.chart.animations.speed;
           }
-          this.animateHeatMap(rect, x1, y1, xDivision, yDivision, speed);
+          this.animateHeatMap(rect, x1, y1, xDivision, yDivision, speed, i, j);
         }
         if (w.globals.dataChanged) {
           let speed = 1;
@@ -332,9 +333,32 @@ class HeatMap {
    * @param {number} width
    * @param {number} height
    * @param {number} speed
+   * @param {number} [row] - series index (heatmap row)
+   * @param {number} [col] - data point index (heatmap column)
    */
-  animateHeatMap(el, x, y, width, height, speed) {
+  animateHeatMap(el, x, y, width, height, speed, row = 0, col = 0) {
+    const w = this.w;
     const animations = new Animations(this.w);
+    const animCfg = w.config.chart.animations;
+    const gradCfg = animCfg.animateGradually;
+    const staggerEnabled = gradCfg && gradCfg.enabled !== false;
+    let delay = 0;
+    if (staggerEnabled) {
+      const seriesCount = (w.seriesData.series || []).length || 1;
+      const pointsCount = w.globals.dataPoints || 1;
+      const maxDiag = seriesCount + pointsCount - 2;
+      const baseDelay = Math.min(
+        gradCfg.delay || 0,
+        speed * 0.5 / Math.max(1, maxDiag)
+      );
+      delay = computeStagger({
+        style: "diagonal",
+        index: col,
+        row,
+        col,
+        baseDelay
+      });
+    }
     animations.animateRect(
       el,
       {
@@ -352,7 +376,8 @@ class HeatMap {
       speed,
       () => {
         animations.animationCompleted(el);
-      }
+      },
+      delay
     );
   }
   /**

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.11.0
+ * ApexCharts v5.12.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -956,6 +956,67 @@ class Helpers {
       pathFrom
     };
   }
+  /**
+   * Build a trapezoidal funnel-stage path. Used when
+   * `plotOptions.funnel.shape === 'trapezoid'` is active alongside `isFunnel`.
+   *
+   * Each stage is a 4-corner polygon whose top width matches the current
+   * stage's value and bottom width matches the next stage's value, producing
+   * continuous sloped sides between consecutive stages.
+   *
+   * For the last stage, the bottom width is configurable:
+   * - `lastShape: 'flat'`  → bottom width = top width (parallel sides)
+   * - `lastShape: 'taper'` → bottom width = 0 (taper to a point)
+   *
+   * @param {{ barYPosition: number, barHeight: number, series: any[][], i: number, j: number, realIndex: number, strokeWidth: number, w: any }} opts
+   */
+  getFunnelTrapezoidPaths({
+    barYPosition,
+    barHeight,
+    series,
+    i,
+    j,
+    realIndex,
+    strokeWidth,
+    w
+  }) {
+    const graphics = new Graphics(this.barCtx.w);
+    const center = w.layout.gridWidth / 2;
+    const halfWidthFor = (v) => Math.abs(v / this.barCtx.invertedYRatio) / 2;
+    const topHalf = halfWidthFor(series[i][j]);
+    const lastIdx = series[i].length - 1;
+    const isLast = j === lastIdx;
+    const lastShape = w.config.plotOptions.funnel.lastShape === "taper" ? "taper" : "flat";
+    let bottomHalf;
+    if (isLast) {
+      bottomHalf = lastShape === "taper" ? 0 : topHalf;
+    } else {
+      bottomHalf = halfWidthFor(series[i][j + 1]);
+    }
+    const strokeCenter = strokeWidth / 2;
+    const y1 = barYPosition + strokeCenter;
+    const y2 = barYPosition + barHeight - strokeCenter;
+    const topLeftX = center - topHalf;
+    const topRightX = center + topHalf;
+    const bottomLeftX = center - bottomHalf;
+    const bottomRightX = center + bottomHalf;
+    const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
+    let pathFrom = graphics.move(center, y1);
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, false);
+    } else {
+      pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
+    }
+    return {
+      pathTo,
+      pathFrom,
+      // x is the right edge of the wider (top) side — used by dataLabel
+      // positioning helpers that expect a "right" reference.
+      x: topRightX,
+      x1: topLeftX,
+      barXPosition: center
+    };
+  }
   /** @param {{ barYPosition?: any, barHeight?: any, x1?: any, x2?: any, strokeWidth?: any, isReversed?: any, series?: any, seriesGroup?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getBarpaths({
     barYPosition,
@@ -987,14 +1048,17 @@ class Helpers {
     const direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1);
     x1 += 1e-3 + strokeCenter * direction;
     x2 += 1e-3 - strokeCenter * direction;
+    const isFunnel = this.barCtx.isFunnel;
+    const fromX = isFunnel ? (x1 + x2) / 2 : x1;
     let pathTo = graphics.move(x1, y1);
-    let pathFrom = graphics.move(x1, y1);
+    let pathFrom = graphics.move(fromX, y1);
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, false);
     }
     const sl = graphics.line(x1, y2);
     pathTo = pathTo + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
-    pathFrom = pathFrom + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
+    const slFrom = isFunnel ? graphics.line(fromX, y2) : sl;
+    pathFrom = pathFrom + graphics.line(fromX, y1) + slFrom + slFrom + slFrom + slFrom + slFrom + graphics.line(fromX, y1) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
     if (this.arrBorderRadius[realIndex][j] !== "none") {
       pathTo = graphics.roundPathCorners(
         pathTo,
@@ -1215,6 +1279,7 @@ class Helpers {
 }
 const CoreUtils = _core.__apex_CoreUtils;
 const Filters = _core.__apex_Filters;
+const computeStagger = _core.__apex_Animations_computeStagger;
 class Bar {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -1278,7 +1343,7 @@ class Bar {
    * @return {Element} element which is supplied to parent chart draw method for appending
    **/
   draw(series, seriesIndex) {
-    var _a;
+    var _a, _b;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const coreUtils = new CoreUtils(this.w);
@@ -1399,9 +1464,9 @@ class Bar {
           j,
           realIndex
         );
-        if (this.isFunnel && this.barOptions.isFunnel3d && this.pathArr.length && j > 0) {
+        if (this.isFunnel && this.barOptions.isFunnel3d && ((_a = w.config.plotOptions.funnel) == null ? void 0 : _a.shape) !== "trapezoid" && this.pathArr.length && j > 0) {
           const barShadow = this.barHelpers.drawBarShadow({
-            color: typeof pathFill.color === "string" && ((_a = pathFill.color) == null ? void 0 : _a.indexOf("url")) === -1 ? pathFill.color : Utils.hexToRgba(w.globals.colors[i]),
+            color: typeof pathFill.color === "string" && ((_b = pathFill.color) == null ? void 0 : _b.indexOf("url")) === -1 ? pathFill.color : Utils.hexToRgba(w.globals.colors[i]),
             prevPaths: this.pathArr[this.pathArr.length - 1],
             currPaths: paths,
             realIndex,
@@ -1555,7 +1620,28 @@ class Bar {
     if (this.isNullValue) {
       pathFill = "none";
     }
-    const delay = j / w.config.chart.animations.animateGradually.delay * (w.config.chart.animations.speed / w.globals.dataPoints) / 2.4;
+    const animCfg = w.config.chart.animations;
+    const gradCfg = animCfg.animateGradually;
+    const staggerEnabled = gradCfg && gradCfg.enabled !== false;
+    let delay = 0;
+    if (staggerEnabled) {
+      const totalBars = w.globals.dataPoints || 1;
+      const configStep = gradCfg.delay || 0;
+      const baseDelayMs = Math.min(
+        configStep,
+        animCfg.speed * 0.5 / Math.max(1, totalBars)
+      );
+      let delayMs = computeStagger({
+        style: "sequential",
+        index: j,
+        baseDelay: baseDelayMs
+      });
+      if (w.config.chart.stacked) {
+        delayMs += i * baseDelayMs * 0.5;
+      }
+      const delayFactor = configStep || 1;
+      delay = delayMs / delayFactor;
+    }
     if (!skipDrawing) {
       const renderedPath = (
         /** @type {any} */
@@ -1647,7 +1733,8 @@ class Bar {
         barYPosition = y + barHeight * this.visibleI;
       }
     }
-    if (this.isFunnel) {
+    const useTrapezoid = this.isFunnel && w.config.plotOptions.funnel.shape === "trapezoid";
+    if (this.isFunnel && !useTrapezoid) {
       const _zeroW = zeroW != null ? zeroW : 0;
       zeroW = _zeroW - /** @type {number} */
       /** @type {any} */
@@ -1664,7 +1751,19 @@ class Bar {
     );
     const paths = (
       /** @type {any} */
-      this.barHelpers.getBarpaths({
+      useTrapezoid ? this.barHelpers.getFunnelTrapezoidPaths({
+        barYPosition,
+        barHeight,
+        series: (
+          /** @type {any} */
+          this.series
+        ),
+        i,
+        j,
+        realIndex: indexes.realIndex,
+        strokeWidth,
+        w
+      }) : this.barHelpers.getBarpaths({
         barYPosition,
         barHeight,
         x1: zeroW,
@@ -1678,6 +1777,10 @@ class Bar {
         w
       })
     );
+    if (useTrapezoid) {
+      zeroW = paths.x1;
+      x = paths.x;
+    }
     if (!w.axisFlags.isXNumeric) {
       y = y + yDivision;
     }

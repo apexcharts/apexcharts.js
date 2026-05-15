@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.11.0
+ * ApexCharts v5.12.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -155,6 +155,7 @@ class Pie {
     elSeries.add(elG);
     elPie.add(elSeries);
     if (this.donutDataLabels.show) {
+      const shouldFadeInLabels = this.initialAnim && !w.globals.resized && !w.globals.dataChanged && this.animDur > 0;
       const dataLabels = this.renderInnerDataLabels(
         this.dataLabelsGroup,
         this.donutDataLabels,
@@ -162,9 +163,16 @@ class Pie {
           hollowSize: this.donutSize,
           centerX: this.centerX,
           centerY: this.centerY,
-          opacity: this.donutDataLabels.show
+          opacity: shouldFadeInLabels ? 0 : this.donutDataLabels.show
         }
       );
+      if (shouldFadeInLabels) {
+        const labelsNode = this.dataLabelsGroup.node;
+        labelsNode.style.transition = "opacity 280ms ease-out";
+        setTimeout(() => {
+          labelsNode.style.opacity = "1";
+        }, this.animDur);
+      }
       elPie.add(dataLabels);
     }
     if (w.config.grid.position === "front" && this.chartType === "polarArea") {
@@ -306,7 +314,13 @@ class Pie {
         elPath.node.addEventListener("mouseup", this.pieClicked.bind(this, i));
       }
       if (typeof w.interact.selectedDataPoints[0] !== "undefined" && w.interact.selectedDataPoints[0].indexOf(i) > -1) {
-        this.pieClicked(i);
+        if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged && this.animDur > 0) {
+          const _this = this;
+          const _i = i;
+          setTimeout(() => _this.pieClicked(_i), this.animDur);
+        } else {
+          this.pieClicked(i);
+        }
       }
       if (w.config.dataLabels.enabled) {
         const xPos = labelPosition.x;
