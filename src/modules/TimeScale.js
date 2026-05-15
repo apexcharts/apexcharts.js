@@ -2,18 +2,76 @@
 import DateTime from '../utils/DateTime'
 import Dimensions from './dimensions/Dimensions'
 import Graphics from './Graphics'
-import Utils from '../utils/Utils'
 
-const MINUTES_IN_DAY = 24 * 60
-const SECONDS_IN_DAY = MINUTES_IN_DAY * 60
-const MIN_ZOOM_DAYS = 10 / SECONDS_IN_DAY
+const SECOND = 1000
+const MINUTE = 60 * SECOND
+const HOUR = 60 * MINUTE
+const DAY = 24 * HOUR
+const WEEK = 7 * DAY
+const APPROX_MONTH = 30 * DAY
+const APPROX_YEAR = 365 * DAY
+
+const MIN_ZOOM_DAYS = 10 / (24 * 60 * 60)
+
+// Ladder of "nice" tick intervals, ordered from finest to coarsest.
+// Each entry is { unit, step, approxMs }. `approxMs` is used only by the
+// picker to estimate tick count for a span; actual generation uses calendar-
+// aware addInterval, so month/year ticks land on the correct boundaries
+// regardless of variable month length, leap years, or DST.
+//
+// Step values are constrained so the unit divides the step cleanly:
+//   second/minute step ∈ {1, 5, 15, 30}  (divides 60)
+//   hour          step ∈ {1, 3, 6, 12}   (divides 24)
+//   day           step = 1
+//   week          step ∈ {1, 2}
+//   month         step ∈ {1, 3, 6}       (divides 12)
+//   year          step ∈ {1, 2, 5, 10, 25, 50, 100}
+const TICK_LADDER = [
+  { unit: 'second', step: 1, approxMs: SECOND },
+  { unit: 'second', step: 5, approxMs: 5 * SECOND },
+  { unit: 'second', step: 15, approxMs: 15 * SECOND },
+  { unit: 'second', step: 30, approxMs: 30 * SECOND },
+  { unit: 'minute', step: 1, approxMs: MINUTE },
+  { unit: 'minute', step: 5, approxMs: 5 * MINUTE },
+  { unit: 'minute', step: 15, approxMs: 15 * MINUTE },
+  { unit: 'minute', step: 30, approxMs: 30 * MINUTE },
+  { unit: 'hour', step: 1, approxMs: HOUR },
+  { unit: 'hour', step: 3, approxMs: 3 * HOUR },
+  { unit: 'hour', step: 6, approxMs: 6 * HOUR },
+  { unit: 'hour', step: 12, approxMs: 12 * HOUR },
+  { unit: 'day', step: 1, approxMs: DAY },
+  { unit: 'day', step: 2, approxMs: 2 * DAY },
+  { unit: 'week', step: 1, approxMs: WEEK },
+  { unit: 'week', step: 2, approxMs: 2 * WEEK },
+  { unit: 'month', step: 1, approxMs: APPROX_MONTH },
+  { unit: 'month', step: 3, approxMs: 3 * APPROX_MONTH },
+  { unit: 'month', step: 6, approxMs: 6 * APPROX_MONTH },
+  { unit: 'year', step: 1, approxMs: APPROX_YEAR },
+  { unit: 'year', step: 2, approxMs: 2 * APPROX_YEAR },
+  { unit: 'year', step: 5, approxMs: 5 * APPROX_YEAR },
+  { unit: 'year', step: 10, approxMs: 10 * APPROX_YEAR },
+  { unit: 'year', step: 25, approxMs: 25 * APPROX_YEAR },
+  { unit: 'year', step: 50, approxMs: 50 * APPROX_YEAR },
+  { unit: 'year', step: 100, approxMs: 100 * APPROX_YEAR },
+]
+
+const DEFAULT_TICK_COUNT = 10
 
 /**
- * ApexCharts TimeScale Class for generating time ticks for x-axis.
+ * v6 single-interval TimeScale — replaces the v5 multi-generator approach
+ * with one calendar-aware algorithm:
+ *
+ *   1. Pick a single {unit, step} interval that yields ~10 ticks
+ *   2. Walk calendar boundaries via ceilToBoundary + addInterval (uniform stride)
+ *   3. Format with a range-aware format string that folds coarser context into
+ *      every label (e.g. month-scale spanning years renders "Mar 2023" not
+ *      "Mar"). All labels use the same format — no mix-and-match between units.
+ *
+ * Public output contract (`w.labelData.timescaleLabels[i]`):
+ *   { dateString, position, value, unit, year, month }
  *
  * @module TimeScale
- **/
-
+ */
 class TimeScale {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -21,1017 +79,316 @@ class TimeScale {
    */
   constructor(w, ctx) {
     this.w = w
-    this.ctx = ctx // needed: new Dimensions(this.ctx)
-    /** @type {any} */
+    this.ctx = ctx // needed for new Dimensions(this.ctx) recalc
+    /** @type {{ unit: string, step: number, approxMs: number } | null} */
+    this.tickInterval = null
+    /** @type {Array<any>} */
     this.timeScaleArray = []
-    this.utc = this.w.config.xaxis.labels.datetimeUTC
+    this.utc = w.config.xaxis.labels.datetimeUTC
   }
 
   /**
+   * Compute raw ticks for a datetime axis spanning [minX, maxX]. Single
+   * uniform stride — one unit, no promotion, no calendar-boundary overlay.
+   * Context (year, day) is folded into each label's format string at
+   * `formatDates` time, not split across promoted ticks.
+   *
    * @param {number} minX
    * @param {number} maxX
+   * @returns {Array<any>} raw ticks (pre-formatting). Pass to recalcDimensionsBasedOnFormat for the final timescaleLabels.
    */
   calculateTimeScaleTicks(minX, maxX) {
     const w = this.w
 
-    // null check when no series to show
     if (w.globals.allSeriesCollapsed) {
       w.labelData.labels = []
       w.labelData.timescaleLabels = []
+      this.timeScaleArray = []
       return []
     }
 
-    const dt = new DateTime(this.w)
+    const span = maxX - minX
+    const daysDiff = span / DAY
 
-    const daysDiff = (maxX - minX) / (1000 * SECONDS_IN_DAY)
-    this.determineInterval(daysDiff)
-
+    // Zoom-flag bookkeeping (preserved from v5)
     w.interact.disableZoomIn = false
     w.interact.disableZoomOut = false
-
     if (daysDiff < MIN_ZOOM_DAYS) {
       w.interact.disableZoomIn = true
     } else if (daysDiff > 50000) {
       w.interact.disableZoomOut = true
     }
 
-    const timeIntervals = dt.getTimeUnitsfromTimestamp(minX, maxX)
+    const targetCount = Number.isFinite(w.config.xaxis.tickAmount)
+      ? /** @type {number} */ (w.config.xaxis.tickAmount)
+      : DEFAULT_TICK_COUNT
 
-    const daysWidthOnXAxis = w.layout.gridWidth / daysDiff
-    const hoursWidthOnXAxis = daysWidthOnXAxis / 24
-    const minutesWidthOnXAxis = hoursWidthOnXAxis / 60
-    const secondsWidthOnXAxis = minutesWidthOnXAxis / 60
+    this.tickInterval = pickInterval(span, targetCount)
 
-    const numberOfHours = Math.floor(daysDiff * 24)
-    const numberOfMinutes = Math.floor(daysDiff * MINUTES_IN_DAY)
-    const numberOfSeconds = Math.floor(daysDiff * SECONDS_IN_DAY)
-    const numberOfDays = Math.floor(daysDiff)
-    const numberOfMonths = Math.floor(daysDiff / 30)
-    const numberOfYears = Math.floor(daysDiff / 365)
-
-    const firstVal = {
-      minMillisecond: timeIntervals.minMillisecond,
-      minSecond: timeIntervals.minSecond,
-      minMinute: timeIntervals.minMinute,
-      minHour: timeIntervals.minHour,
-      minDate: timeIntervals.minDate,
-      minMonth: timeIntervals.minMonth,
-      minYear: timeIntervals.minYear,
-    }
-
-    const currentMillisecond = firstVal.minMillisecond
-    const currentSecond = firstVal.minSecond
-    const currentMinute = firstVal.minMinute
-    const currentHour = firstVal.minHour
-    const currentMonthDate = firstVal.minDate
-    const currentDate = firstVal.minDate
-    const currentMonth = firstVal.minMonth
-    const currentYear = firstVal.minYear
-
-    const params = {
-      firstVal,
-      currentMillisecond,
-      currentSecond,
-      currentMinute,
-      currentHour,
-      currentMonthDate,
-      currentDate,
-      currentMonth,
-      currentYear,
-      daysWidthOnXAxis,
-      hoursWidthOnXAxis,
-      minutesWidthOnXAxis,
-      secondsWidthOnXAxis,
-      numberOfSeconds,
-      numberOfMinutes,
-      numberOfHours,
-      numberOfDays,
-      numberOfMonths,
-      numberOfYears,
-    }
-
-    switch (this.tickInterval) {
-      case 'years': {
-        this.generateYearScale(params)
-        break
-      }
-      case 'months':
-      case 'half_year': {
-        this.generateMonthScale(params)
-        break
-      }
-      case 'months_days':
-      case 'months_fortnight':
-      case 'days':
-      case 'week_days': {
-        this.generateDayScale(params)
-        break
-      }
-      case 'hours': {
-        this.generateHourScale(params)
-        break
-      }
-      case 'minutes_fives':
-      case 'minutes':
-        this.generateMinuteScale(params)
-        break
-      case 'seconds_tens':
-      case 'seconds_fives':
-      case 'seconds':
-        this.generateSecondScale(params)
-        break
-    }
-
-    // first, we will adjust the month values index
-    // as in the upper function, it is starting from 0
-    // we will start them from 1
-    const adjustedMonthInTimeScaleArray = this.timeScaleArray.map(
-      (/** @type {any} */ ts) => {
-        const defaultReturn = {
-          position: ts.position,
-          unit: ts.unit,
-          year: ts.year,
-          day: ts.day ? ts.day : 1,
-          hour: ts.hour ? ts.hour : 0,
-          month: ts.month + 1,
-        }
-        if (ts.unit === 'month') {
-          return {
-            ...defaultReturn,
-            day: 1,
-            value: ts.value + 1,
-          }
-        } else if (ts.unit === 'day' || ts.unit === 'hour') {
-          return {
-            ...defaultReturn,
-            value: ts.value,
-          }
-        } else if (ts.unit === 'minute') {
-          return {
-            ...defaultReturn,
-            value: ts.value,
-            minute: ts.value,
-          }
-        } else if (ts.unit === 'second') {
-          return {
-            ...defaultReturn,
-            value: ts.value,
-            minute: ts.minute,
-            second: ts.second,
-          }
-        }
-
-        return ts
-      },
-    )
-
-    const filteredTimeScale = adjustedMonthInTimeScaleArray.filter(
-      (/** @type {any} */ ts) => {
-        let modulo = 1
-        let ticks = Math.ceil(w.layout.gridWidth / 120)
-        const value = ts.value
-        if (w.config.xaxis.tickAmount !== undefined) {
-          ticks = w.config.xaxis.tickAmount
-        }
-        if (adjustedMonthInTimeScaleArray.length > ticks) {
-          modulo = Math.floor(adjustedMonthInTimeScaleArray.length / ticks)
-        }
-
-        let shouldNotSkipUnit = false // there is a big change in unit i.e days to months
-        let shouldNotPrint = false // should skip these values
-
-        switch (this.tickInterval) {
-          case 'years':
-            // make years label denser
-            if (ts.unit === 'year') {
-              shouldNotSkipUnit = true
-            }
-            break
-          case 'half_year':
-            modulo = 7
-            if (ts.unit === 'year') {
-              shouldNotSkipUnit = true
-            }
-            break
-          case 'months':
-            modulo = 1
-            if (ts.unit === 'year') {
-              shouldNotSkipUnit = true
-            }
-            break
-          case 'months_fortnight':
-            modulo = 15
-            if (ts.unit === 'year' || ts.unit === 'month') {
-              shouldNotSkipUnit = true
-            }
-            if (value === 30) {
-              shouldNotPrint = true
-            }
-            break
-          case 'months_days':
-            modulo = 10
-            if (ts.unit === 'month') {
-              shouldNotSkipUnit = true
-            }
-            if (value === 30) {
-              shouldNotPrint = true
-            }
-            break
-          case 'week_days':
-            modulo = 8
-            if (ts.unit === 'month') {
-              shouldNotSkipUnit = true
-            }
-            break
-          case 'days':
-            modulo = 1
-            if (ts.unit === 'month') {
-              shouldNotSkipUnit = true
-            }
-            break
-          case 'hours':
-            if (ts.unit === 'day') {
-              shouldNotSkipUnit = true
-            }
-            break
-          case 'minutes_fives':
-            if (value % 5 !== 0) {
-              shouldNotPrint = true
-            }
-            break
-          case 'seconds_tens':
-            if (value % 10 !== 0) {
-              shouldNotPrint = true
-            }
-            break
-          case 'seconds_fives':
-            if (value % 5 !== 0) {
-              shouldNotPrint = true
-            }
-            break
-        }
-
-        if (
-          this.tickInterval === 'hours' ||
-          this.tickInterval === 'minutes_fives' ||
-          this.tickInterval === 'seconds_tens' ||
-          this.tickInterval === 'seconds_fives'
-        ) {
-          if (!shouldNotPrint) {
-            return true
-          }
-        } else {
-          if ((value % modulo === 0 || shouldNotSkipUnit) && !shouldNotPrint) {
-            return true
-          }
-        }
-      },
-    )
-
-    return filteredTimeScale
+    const ticks = this.generateBaseTicks(minX, maxX, this.tickInterval)
+    this.timeScaleArray = ticks
+    return ticks
   }
 
   /**
-   * @param {Array<Record<string, any>>} filteredTimeScale
+   * Walk the interval stride from `minX` to `maxX`. Every tick carries
+   * `unit: interval.unit` — no promotion, no snapping. Uniform spacing is
+   * guaranteed.
+   *
+   * @param {number} minX
+   * @param {number} maxX
+   * @param {{ unit: string, step: number }} interval
+   * @returns {Array<any>}
    */
-  recalcDimensionsBasedOnFormat(filteredTimeScale) {
+  generateBaseTicks(minX, maxX, interval) {
     const w = this.w
-    const reformattedTimescaleArray = this.formatDates(filteredTimeScale)
+    const dt = new DateTime(w)
+    const isUTC = this.utc
+    const gridWidth = w.layout.gridWidth
+    const span = maxX - minX
 
-    const removedOverlappingTS = this.removeOverlappingTS(
-      reformattedTimescaleArray,
+    const ticks = []
+    let t = dt.ceilToBoundary(
+      minX,
+      /** @type {any} */ (interval.unit),
+      interval.step,
+      isUTC,
     )
 
-    w.labelData.timescaleLabels = removedOverlappingTS.slice()
+    let iter = 0
+    const MAX_ITER = 5000
 
-    // at this stage, we need to re-calculate coords of the grid as timeline labels may have altered the xaxis labels coords
-    // The reason we can't do this prior to this stage is because timeline labels depends on gridWidth, and as the ticks are calculated based on available gridWidth, there can be unknown number of ticks generated for different minX and maxX
-    // Dependency on Dimensions(), need to refactor correctly
-    // TODO - find an alternate way to avoid calling this Heavy method twice
+    while (t <= maxX && iter < MAX_ITER) {
+      const f = dt.getDateFields(t, isUTC)
+      const position = span > 0 ? ((t - minX) / span) * gridWidth : 0
+
+      ticks.push({
+        timestamp: t,
+        position,
+        unit: interval.unit,
+        year: f.year,
+        month: f.month + 1,
+        day: f.date,
+        hour: f.hour,
+        minute: f.minute,
+        second: f.second,
+        value: t,
+      })
+
+      t = dt.addInterval(
+        t,
+        /** @type {any} */ (interval.unit),
+        interval.step,
+        isUTC,
+      )
+      iter++
+    }
+
+    return ticks
+  }
+
+  /**
+   * Public entry called from Core.js after calculateTimeScaleTicks. Formats
+   * the raw ticks into display labels, removes overlapping entries, writes
+   * the result to `w.labelData.timescaleLabels`, and re-runs Dimensions to
+   * lay out the grid based on the final label widths.
+   *
+   * @param {Array<any>} rawTicks
+   */
+  recalcDimensionsBasedOnFormat(rawTicks) {
+    const w = this.w
+    const formatted = this.formatDates(rawTicks)
+    const filtered = this.removeOverlappingTS(formatted)
+    w.labelData.timescaleLabels = filtered.slice()
+
+    // Dependency cycle: tick positions depend on gridWidth, which depends on
+    // the labels we just computed. Recompute Dimensions once with the final
+    // labels so the grid lays out correctly.
     const dimensions = new Dimensions(this.w, this.ctx)
-    // Phase 1: return value captured; writer stub is a no-op.
     const layoutState = dimensions.plotCoords()
     this.ctx._writeLayoutCoords(layoutState.layout)
   }
 
   /**
-   * @param {number} daysDiff
+   * Format each raw tick into a display label. All ticks share one
+   * effective format computed once from the interval unit and the data
+   * range — when the range spans coarser units, the base format from
+   * `datetimeFormatter[unit]` is automatically extended with the higher-
+   * unit context (e.g. month-scale spanning years → `MMM yyyy`, hour-scale
+   * spanning days → `dd MMM HH:mm`). A user-supplied `xaxis.labels.format`
+   * overrides everything.
+   *
+   * @param {Array<any>} rawTicks
+   * @returns {Array<any>}
    */
-  determineInterval(daysDiff) {
-    const yearsDiff = daysDiff / 365
-    const hoursDiff = daysDiff * 24
-    const minutesDiff = hoursDiff * 60
-    const secondsDiff = minutesDiff * 60
-    switch (true) {
-      case yearsDiff > 5:
-        this.tickInterval = 'years'
-        break
-      case daysDiff > 800:
-        this.tickInterval = 'half_year'
-        break
-      case daysDiff > 180:
-        this.tickInterval = 'months'
-        break
-      case daysDiff > 90:
-        this.tickInterval = 'months_fortnight'
-        break
-      case daysDiff > 60:
-        this.tickInterval = 'months_days'
-        break
-      case daysDiff > 30:
-        this.tickInterval = 'week_days'
-        break
-      case daysDiff > 2:
-        this.tickInterval = 'days'
-        break
-      case hoursDiff > 2.4:
-        this.tickInterval = 'hours'
-        break
-      case minutesDiff > 15:
-        this.tickInterval = 'minutes_fives'
-        break
-      case minutesDiff > 5:
-        this.tickInterval = 'minutes'
-        break
-      case minutesDiff > 1:
-        this.tickInterval = 'seconds_tens'
-        break
-      case secondsDiff > 20:
-        this.tickInterval = 'seconds_fives'
-        break
-      default:
-        this.tickInterval = 'seconds'
-        break
-    }
-  }
-
-  /** @param {{firstVal: any, currentMonth: any, currentYear: any, daysWidthOnXAxis: any, numberOfYears: any}} opts */
-  generateYearScale({
-    firstVal,
-    currentMonth,
-    currentYear,
-    daysWidthOnXAxis,
-    numberOfYears,
-  }) {
-    let firstTickValue = firstVal.minYear
-    let firstTickPosition = 0
-    const dt = new DateTime(this.w)
-
-    const unit = 'year'
-
-    if (firstVal.minDate > 1 || firstVal.minMonth > 0) {
-      const remainingDays = dt.determineRemainingDaysOfYear(
-        firstVal.minYear,
-        firstVal.minMonth,
-        firstVal.minDate,
-      )
-
-      // remainingDaysofFirstMonth is used to reacht the 2nd tick position
-      const remainingDaysOfFirstYear =
-        dt.determineDaysOfYear(firstVal.minYear) - remainingDays + 1
-
-      // calculate the first tick position
-      firstTickPosition = remainingDaysOfFirstYear * daysWidthOnXAxis
-      firstTickValue = firstVal.minYear + 1
-      // push the first tick in the array
-      this.timeScaleArray.push({
-        position: firstTickPosition,
-        value: firstTickValue,
-        unit,
-        year: firstTickValue,
-        month: 1,
-      })
-    } else if (firstVal.minDate === 1 && firstVal.minMonth === 0) {
-      // push the first tick in the array
-      this.timeScaleArray.push({
-        position: firstTickPosition,
-        value: firstTickValue,
-        unit,
-        year: currentYear,
-        month: Utils.monthMod(currentMonth + 1),
-      })
-    }
-
-    let year = firstTickValue
-    let pos = firstTickPosition
-
-    // keep drawing rest of the ticks
-    for (let i = 0; i < numberOfYears; i++) {
-      year++
-      pos = dt.determineDaysOfYear(year - 1) * daysWidthOnXAxis + pos
-      this.timeScaleArray.push({
-        position: pos,
-        value: year,
-        unit,
-        year,
-        month: 1,
-      })
-    }
-  }
-
-  /** @param {{firstVal: any, currentMonthDate: any, currentMonth: any, currentYear: any, daysWidthOnXAxis: any, numberOfMonths: any}} opts */
-  generateMonthScale({
-    firstVal,
-    currentMonthDate,
-    currentMonth,
-    currentYear,
-    daysWidthOnXAxis,
-    numberOfMonths,
-  }) {
-    let firstTickValue = currentMonth
-    let firstTickPosition = 0
-    const dt = new DateTime(this.w)
-    let unit = 'month'
-    let yrCounter = 0
-
-    if (firstVal.minDate > 1) {
-      // remainingDaysofFirstMonth is used to reacht the 2nd tick position
-      const remainingDaysOfFirstMonth =
-        dt.determineDaysOfMonths(currentMonth + 1, firstVal.minYear) -
-        currentMonthDate +
-        1
-
-      // calculate the first tick position
-      firstTickPosition = remainingDaysOfFirstMonth * daysWidthOnXAxis
-      firstTickValue = Utils.monthMod(currentMonth + 1)
-
-      let year = currentYear + yrCounter
-      let month = Utils.monthMod(firstTickValue)
-      let value = firstTickValue
-      // it's Jan, so update the year
-      if (firstTickValue === 0) {
-        unit = 'year'
-        value = year
-        month = 1
-        yrCounter += 1
-        year = year + yrCounter
-      }
-
-      // push the first tick in the array
-      this.timeScaleArray.push({
-        position: firstTickPosition,
-        value,
-        unit,
-        year,
-        month,
-      })
-    } else {
-      // push the first tick in the array
-      this.timeScaleArray.push({
-        position: firstTickPosition,
-        value: firstTickValue,
-        unit,
-        year: currentYear,
-        month: Utils.monthMod(currentMonth),
-      })
-    }
-
-    let month = firstTickValue + 1
-    let pos = firstTickPosition
-
-    // keep drawing rest of the ticks
-    for (let i = 0, j = 1; i < numberOfMonths; i++, j++) {
-      month = Utils.monthMod(month)
-
-      if (month === 0) {
-        unit = 'year'
-        yrCounter += 1
-      } else {
-        unit = 'month'
-      }
-      const year = this._getYear(currentYear, month, yrCounter)
-
-      pos = dt.determineDaysOfMonths(month, year) * daysWidthOnXAxis + pos
-      const monthVal = month === 0 ? year : month
-      this.timeScaleArray.push({
-        position: pos,
-        value: monthVal,
-        unit,
-        year,
-        month: month === 0 ? 1 : month,
-      })
-      month++
-    }
-  }
-
-  /** @param {{firstVal: any, currentMonth: any, currentYear: any, hoursWidthOnXAxis: any, numberOfDays: any}} opts */
-  generateDayScale({
-    firstVal,
-    currentMonth,
-    currentYear,
-    hoursWidthOnXAxis,
-    numberOfDays,
-  }) {
-    const dt = new DateTime(this.w)
-    let unit = 'day'
-    let firstTickValue = firstVal.minDate + 1
-    let date = firstTickValue
-
-    /**
-     * @param {number} dateVal
-     * @param {number} month
-     * @param {number} year
-     */
-    const changeMonth = (dateVal, month, year) => {
-      const monthdays = dt.determineDaysOfMonths(month + 1, year)
-
-      if (dateVal > monthdays) {
-        month = month + 1
-        date = 1
-        unit = 'month'
-        val = month
-        return month
-      }
-
-      return month
-    }
-
-    const remainingHours = 24 - firstVal.minHour
-    const yrCounter = 0
-
-    // calculate the first tick position
-    let firstTickPosition = remainingHours * hoursWidthOnXAxis
-
-    let val = firstTickValue
-    let month = changeMonth(date, currentMonth, currentYear)
-
-    if (firstVal.minHour === 0 && firstVal.minDate === 1) {
-      // the first value is the first day of month
-      firstTickPosition = 0
-      val = Utils.monthMod(firstVal.minMonth)
-      unit = 'month'
-      date = firstVal.minDate
-      // numberOfDays++
-      // removed the above line to fix https://github.com/apexcharts/apexcharts.js/issues/305#issuecomment-1019520513
-    } else if (
-      firstVal.minDate !== 1 &&
-      firstVal.minHour === 0 &&
-      firstVal.minMinute === 0
-    ) {
-      // fixes apexcharts/apexcharts.js/issues/1730
-      firstTickPosition = 0
-      firstTickValue = firstVal.minDate
-      date = firstTickValue
-      val = firstTickValue
-      // in case it's the last date of month, we need to check it
-      month = changeMonth(date, currentMonth, currentYear)
-
-      if (val !== 1) {
-        unit = 'day'
-      }
-    }
-
-    // push the first tick in the array
-    this.timeScaleArray.push({
-      position: firstTickPosition,
-      value: val,
-      unit,
-      year: this._getYear(currentYear, month, yrCounter),
-      month: Utils.monthMod(month),
-      day: date,
-    })
-
-    let pos = firstTickPosition
-    // keep drawing rest of the ticks
-    for (let i = 0; i < numberOfDays; i++) {
-      date += 1
-      unit = 'day'
-      month = changeMonth(
-        date,
-        month,
-        this._getYear(currentYear, month, yrCounter),
-      )
-
-      const year = this._getYear(currentYear, month, yrCounter)
-
-      pos = 24 * hoursWidthOnXAxis + pos
-      const value = date === 1 ? Utils.monthMod(month) : date
-      this.timeScaleArray.push({
-        position: pos,
-        value,
-        unit,
-        year,
-        month: Utils.monthMod(month),
-        day: value,
-      })
-    }
-  }
-
-  /** @param {{firstVal: any, currentDate: any, currentMonth: any, currentYear: any, minutesWidthOnXAxis: any, numberOfHours: any}} opts */
-  generateHourScale({
-    firstVal,
-    currentDate,
-    currentMonth,
-    currentYear,
-    minutesWidthOnXAxis,
-    numberOfHours,
-  }) {
-    const dt = new DateTime(this.w)
-
-    const yrCounter = 0
-    let unit = 'hour'
-
-    /**
-     * @param {number} dateVal
-     * @param {number} month
-     */
-    const changeDate = (dateVal, month) => {
-      const monthdays = dt.determineDaysOfMonths(month + 1, currentYear)
-      if (dateVal > monthdays) {
-        date = 1
-        month = month + 1
-      }
-      return { month, date }
-    }
-
-    /**
-     * @param {number} dateVal
-     * @param {number} month
-     */
-    const changeMonth = (dateVal, month) => {
-      const monthdays = dt.determineDaysOfMonths(month + 1, currentYear)
-      if (dateVal > monthdays) {
-        month = month + 1
-        return month
-      }
-
-      return month
-    }
-
-    // factor in minSeconds as well
-    const remainingMins = 60 - (firstVal.minMinute + firstVal.minSecond / 60.0)
-
-    let firstTickPosition = remainingMins * minutesWidthOnXAxis
-    let firstTickValue = firstVal.minHour + 1
-    let hour = firstTickValue
-
-    if (remainingMins === 60) {
-      firstTickPosition = 0
-      firstTickValue = firstVal.minHour
-      hour = firstTickValue
-    }
-
-    let date = currentDate
-
-    // we need to apply date switching logic here as well, to avoid duplicated labels
-    if (hour >= 24) {
-      hour = 0
-      date += 1
-      unit = 'day'
-      // Unit changed to day , Value should align unit
-      firstTickValue = date
-    }
-
-    const checkNextMonth = changeDate(date, currentMonth)
-
-    let month = checkNextMonth.month
-    month = changeMonth(date, month)
-
-    // Sync firstTickValue with date after potential month rollover
-    // (changeDate may have reset date to 1 for months shorter than 31 days)
-    if (unit === 'day') {
-      firstTickValue = date
-    }
-
-    // push the first tick in the array
-    this.timeScaleArray.push({
-      position: firstTickPosition,
-      value: firstTickValue,
-      unit,
-      day: date,
-      hour,
-      year: currentYear,
-      month: Utils.monthMod(month),
-    })
-
-    hour++
-
-    let pos = firstTickPosition
-    // keep drawing rest of the ticks
-    for (let i = 0; i < numberOfHours; i++) {
-      unit = 'hour'
-
-      if (hour >= 24) {
-        hour = 0
-        date += 1
-        unit = 'day'
-
-        const checkNextMonth = changeDate(date, month)
-
-        month = checkNextMonth.month
-        month = changeMonth(date, month)
-      }
-
-      const year = this._getYear(currentYear, month, yrCounter)
-      pos = 60 * minutesWidthOnXAxis + pos
-      const val = hour === 0 ? date : hour
-      this.timeScaleArray.push({
-        position: pos,
-        value: val,
-        unit,
-        hour,
-        day: date,
-        year,
-        month: Utils.monthMod(month),
-      })
-
-      hour++
-    }
-  }
-
-  /** @param {{currentMillisecond: any, currentSecond: any, currentMinute: any, currentHour: any, currentDate: any, currentMonth: any, currentYear: any, minutesWidthOnXAxis: any, secondsWidthOnXAxis: any, numberOfMinutes: any}} opts */
-  generateMinuteScale({
-    currentMillisecond,
-    currentSecond,
-    currentMinute,
-    currentHour,
-    currentDate,
-    currentMonth,
-    currentYear,
-    minutesWidthOnXAxis,
-    secondsWidthOnXAxis,
-    numberOfMinutes,
-  }) {
-    const dt = new DateTime(this.w)
-    const yrCounter = 0
-    const unit = 'minute'
-
-    const remainingSecs = 60 - currentSecond
-    let firstTickPosition =
-      (remainingSecs - currentMillisecond / 1000) * secondsWidthOnXAxis
-    let minute = currentMinute + 1
-
-    if (currentSecond === 0 && currentMillisecond === 0) {
-      firstTickPosition = 0
-      minute = currentMinute
-    }
-
-    let date = currentDate
-    let month = currentMonth
-    const year = currentYear
-    let hour = currentHour
-
-    let pos = firstTickPosition
-    for (let i = 0; i < numberOfMinutes; i++) {
-      if (minute >= 60) {
-        minute = 0
-        hour += 1
-        if (hour === 24) {
-          hour = 0
-          date += 1
-          const monthDays = dt.determineDaysOfMonths(
-            month + 1,
-            this._getYear(year, month, yrCounter),
-          )
-          if (date > monthDays) {
-            date = 1
-            month += 1
-          }
-        }
-      }
-
-      this.timeScaleArray.push({
-        position: pos,
-        value: minute,
-        unit,
-        hour,
-        minute,
-        day: date,
-        year: this._getYear(year, month, yrCounter),
-        month: Utils.monthMod(month),
-      })
-
-      pos += minutesWidthOnXAxis
-      minute++
-    }
-  }
-
-  /** @param {{currentMillisecond: any, currentSecond: any, currentMinute: any, currentHour: any, currentDate: any, currentMonth: any, currentYear: any, secondsWidthOnXAxis: any, numberOfSeconds: any}} opts */
-  generateSecondScale({
-    currentMillisecond,
-    currentSecond,
-    currentMinute,
-    currentHour,
-    currentDate,
-    currentMonth,
-    currentYear,
-    secondsWidthOnXAxis,
-    numberOfSeconds,
-  }) {
-    const yrCounter = 0
-    const unit = 'second'
-
-    const remainingMillisecs = 1000 - currentMillisecond
-    let firstTickPosition = (remainingMillisecs / 1000) * secondsWidthOnXAxis
-
-    let second = currentSecond + 1
-
-    if (currentMillisecond === 0) {
-      firstTickPosition = 0
-      second = currentSecond
-    }
-    let minute = currentMinute
-    const date = currentDate
-    const month = currentMonth
-    const year = currentYear
-    let hour = currentHour
-
-    let pos = firstTickPosition
-    for (let i = 0; i < numberOfSeconds; i++) {
-      if (second >= 60) {
-        minute++
-        second = 0
-        if (minute >= 60) {
-          hour++
-          minute = 0
-          if (hour === 24) {
-            hour = 0
-          }
-        }
-      }
-
-      this.timeScaleArray.push({
-        position: pos,
-        value: second,
-        unit,
-        hour,
-        minute,
-        second,
-        day: date,
-        year: this._getYear(year, month, yrCounter),
-        month: Utils.monthMod(month),
-      })
-
-      pos += secondsWidthOnXAxis
-      second++
-    }
-  }
-
-  /**
-   * @param {Record<string, any>} ts
-   * @param {string | number} value
-   */
-  createRawDateString(ts, value) {
-    let raw = ts.year
-
-    if (ts.month === 0) {
-      // invalid month, correct it
-      ts.month = 1
-    }
-    raw += '-' + ('0' + ts.month.toString()).slice(-2)
-
-    // unit is day
-    if (ts.unit === 'day') {
-      raw += '-' + ('0' + value).slice(-2)
-    } else {
-      raw += '-' + ('0' + (ts.day ? ts.day : '1')).slice(-2)
-    }
-
-    // unit is hour
-    if (ts.unit === 'hour') {
-      raw += 'T' + ('0' + value).slice(-2)
-    } else {
-      raw += 'T' + ('0' + (ts.hour ? ts.hour : '0')).slice(-2)
-    }
-
-    if (ts.unit === 'minute') {
-      raw += ':' + ('0' + value).slice(-2)
-    } else {
-      raw += ':' + (ts.minute ? ('0' + ts.minute).slice(-2) : '00')
-    }
-
-    if (ts.unit === 'second') {
-      raw += ':' + ('0' + value).slice(-2)
-    } else {
-      raw += ':00'
-    }
-
-    if (this.utc) {
-      raw += '.000Z'
-    }
-    return raw
-  }
-
-  /**
-   * @param {Array<Record<string, any>>} filteredTimeScale
-   */
-  formatDates(filteredTimeScale) {
+  formatDates(rawTicks) {
     const w = this.w
+    const dt = new DateTime(w)
+    const userFormat = w.config.xaxis.labels.format
+    const dtFmt = w.config.xaxis.labels.datetimeFormatter
+    const isUTC = this.utc
 
-    /**
-     * @param {Record<string, any>} ts
-     */
-    const reformattedTimescaleArray = filteredTimeScale.map(
-      (/** @type {any} */ ts) => {
-        let value = ts.value.toString()
+    const pad = (/** @type {number} */ n, len = 2) =>
+      String(n).padStart(len, '0')
 
-        const dt = new DateTime(this.w)
+    const effectiveFormat = userFormat
+      ? userFormat
+      : this._effectiveFormat(rawTicks, dtFmt)
 
-        const raw = this.createRawDateString(ts, value)
+    return rawTicks.map((tick) => {
+      const date = dt.getDate(tick.timestamp)
+      const value = dt.formatDate(date, effectiveFormat)
 
-        let dateToFormat = dt.getDate(dt.parseDate(raw))
-        if (!this.utc) {
-          // Fixes #1726, #1544, #1485, #1255
-          dateToFormat = dt.getDate(dt.parseDateWithTimezone(raw))
-        }
+      // Build the ISO-like dateString from raw fields rather than via
+      // formatDate, because `T` is interpreted as the AM/PM token in
+      // formatDate's grammar. UTC mode appends 'Z'; local mode emits no tz
+      // suffix (mirrors v5 behavior).
+      const ds =
+        `${tick.year}-${pad(tick.month)}-${pad(tick.day)}` +
+        `T${pad(tick.hour)}:${pad(tick.minute)}:${pad(tick.second)}` +
+        `.000${isUTC ? 'Z' : ''}`
 
-        if (w.config.xaxis.labels.format === undefined) {
-          let customFormat = 'dd MMM'
-          const dtFormatter = w.config.xaxis.labels.datetimeFormatter
-          if (ts.unit === 'year') customFormat = dtFormatter.year
-          if (ts.unit === 'month') customFormat = dtFormatter.month
-          if (ts.unit === 'day') customFormat = dtFormatter.day
-          if (ts.unit === 'hour') customFormat = dtFormatter.hour
-          if (ts.unit === 'minute') customFormat = dtFormatter.minute
-          if (ts.unit === 'second') customFormat = dtFormatter.second
-
-          value = dt.formatDate(dateToFormat, customFormat)
-        } else {
-          value = dt.formatDate(dateToFormat, w.config.xaxis.labels.format)
-        }
-
-        return {
-          dateString: raw,
-          position: ts.position,
-          value,
-          unit: ts.unit,
-          year: ts.year,
-          month: ts.month,
-        }
-      },
-    )
-
-    return reformattedTimescaleArray
+      return {
+        dateString: ds,
+        position: tick.position,
+        value,
+        unit: tick.unit,
+        year: tick.year,
+        month: tick.month,
+      }
+    })
   }
 
   /**
-   * @param {any[]} arr
+   * Pick the format string used for every tick this render. Folds coarser
+   * context into the base `datetimeFormatter[unit]` when the data range
+   * spans it. Skipped when the base format already references the higher
+   * unit's tokens (so user customizations aren't doubled).
+   *
+   * @param {Array<any>} rawTicks
+   * @param {Record<string, string>} dtFmt
+   * @returns {string}
+   */
+  _effectiveFormat(rawTicks, dtFmt) {
+    if (rawTicks.length === 0) return dtFmt.day || 'dd MMM'
+
+    const unit =
+      (this.tickInterval && this.tickInterval.unit) || rawTicks[0].unit
+    const base =
+      dtFmt[unit === 'week' ? 'day' : unit] || dtFmt.day || 'dd MMM'
+
+    const first = rawTicks[0]
+    const last = rawTicks[rawTicks.length - 1]
+    const spansYears = first.year !== last.year
+    const spansMonths =
+      spansYears || first.month !== last.month
+    const spansDays = spansMonths || first.day !== last.day
+
+    const hasYearToken = /y/i.test(base)
+    const hasMonthToken = /M/.test(base)
+    const hasDayToken = /d/i.test(base)
+
+    if (unit === 'month' || unit === 'week') {
+      if (spansYears && !hasYearToken) return base + ' yyyy'
+      return base
+    }
+    if (unit === 'day') {
+      if (spansYears && !hasYearToken) return base + ' yyyy'
+      return base
+    }
+    if (unit === 'hour' || unit === 'minute' || unit === 'second') {
+      if (spansDays && !hasDayToken && !hasMonthToken) {
+        const prefix = spansYears ? 'dd MMM yyyy' : 'dd MMM'
+        return prefix + ' ' + base
+      }
+      return base
+    }
+    return base
+  }
+
+  /**
+   * Drop labels that would overlap their predecessor (when
+   * `xaxis.labels.hideOverlappingLabels` is true). The first label is always
+   * kept. Width is measured per-label unless all labels have the same string
+   * length, in which case one measurement is reused.
+   *
+   * @param {Array<any>} arr
+   * @returns {Array<any>}
    */
   removeOverlappingTS(arr) {
-    const graphics = new Graphics(this.w)
+    if (arr.length === 0) return []
 
-    let equalLabelLengthFlag = false // These labels got same length?
+    const w = this.w
+    const graphics = new Graphics(w)
+
+    let equalLabelLengthFlag = false
     /** @type {number | undefined} */
-    let constantLabelWidth // If true, what is the constant length to use
+    let constantLabelWidth
     if (
-      arr.length > 0 && // check arr length
-      arr[0].value && // check arr[0] contains value
-      /**
-       * @param {Record<string, any>} lb
-       */
-      arr.every((lb) => lb.value.length === arr[0].value.length) // check every arr label value is the same as the first one
+      arr[0].value &&
+      arr.every((lb) => lb.value.length === arr[0].value.length)
     ) {
-      equalLabelLengthFlag = true // These labels got same length
+      equalLabelLengthFlag = true
       constantLabelWidth = graphics.getTextRects(
         arr[0].value,
-        this.w.config.xaxis.labels.style.fontSize,
-      ).width // The constant label width to use
+        w.config.xaxis.labels.style.fontSize,
+      ).width
     }
 
     let lastDrawnIndex = 0
+    /** @type {Array<any>} */
+    const filtered = arr
+      .map((item, index) => {
+        if (index === 0) return item
+        if (!w.config.xaxis.labels.hideOverlappingLabels) return item
 
-    /**
-     * @param {Record<string, any>} item
-     * @param {number} index
-     */
-    let filteredArray = arr.map((item, index) => {
-      if (index > 0 && this.w.config.xaxis.labels.hideOverlappingLabels) {
-        const prevLabelWidth = !equalLabelLengthFlag // if vary in label length
-          ? graphics.getTextRects(
-              /** @type {any} */ (arr[lastDrawnIndex]).value,
-              this.w.config.xaxis.labels.style.fontSize,
-            ).width // get individual length
-          : constantLabelWidth // else: use constant length
+        const prevLabelWidth = equalLabelLengthFlag
+          ? /** @type {number} */ (constantLabelWidth)
+          : graphics.getTextRects(
+              arr[lastDrawnIndex].value,
+              w.config.xaxis.labels.style.fontSize,
+            ).width
         const prevPos = arr[lastDrawnIndex].position
         const pos = item.position
 
         if (pos > prevPos + prevLabelWidth + 10) {
           lastDrawnIndex = index
           return item
-        } else {
-          return null
         }
-      } else {
-        return item
-      }
-    })
+        return null
+      })
+      .filter((f) => f !== null)
 
-    /**
-     * @param {any} f
-     */
-    filteredArray = filteredArray.filter((/** @type {any} */ f) => f !== null)
-
-    return filteredArray
+    return filtered
   }
+}
 
-  /**
-   * @param {number} currentYear
-   * @param {number} month
-   * @param {number} yrCounter
-   */
-  _getYear(currentYear, month, yrCounter) {
-    return currentYear + Math.floor(month / 12) + yrCounter
+/**
+ * Pick the ladder interval whose duration is closest to span/targetCount in
+ * log space. Mirrors d3-time's tick-interval selection (which uses a bisector
+ * to choose between the two ladder entries straddling the target). Closest-
+ * match in log space gives the same result without needing a sorted bisect.
+ *
+ * @param {number} span  in milliseconds
+ * @param {number} targetCount
+ * @returns {{ unit: string, step: number, approxMs: number }}
+ */
+function pickInterval(span, targetCount) {
+  if (!Number.isFinite(targetCount) || targetCount <= 0) {
+    targetCount = DEFAULT_TICK_COUNT
   }
+  if (span <= 0) return TICK_LADDER[0]
+  const targetMs = span / targetCount
+  let best = TICK_LADDER[0]
+  let bestDist = Infinity
+  for (const interval of TICK_LADDER) {
+    const dist = Math.abs(Math.log(interval.approxMs / targetMs))
+    if (dist < bestDist) {
+      bestDist = dist
+      best = interval
+    }
+  }
+  return best
 }
 
 export default TimeScale

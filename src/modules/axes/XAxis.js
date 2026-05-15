@@ -311,7 +311,14 @@ export default class XAxis {
           : xaxisForeColors[i]
       }
 
-      if (w.config.xaxis.labels.show) {
+      // Skip labels that fall entirely outside the grid (e.g. when zoomed in,
+      // the unrendered fringe ticks would otherwise emit empty <text> nodes at
+      // negative x or past gridWidth).
+      const labelRectWidth = /** @type {any} */ (label.textRect)?.width ?? 0
+      const halfWidth = labelRectWidth / 2
+      const fullyOutsideGrid = label.x + halfWidth < 0
+
+      if (w.config.xaxis.labels.show && !fullyOutsideGrid) {
         const elText = graphics.drawText({
           x: label.x,
           y:
@@ -323,7 +330,7 @@ export default class XAxis {
               : 0),
           text: label.text,
           textAnchor: 'middle',
-          fontWeight: label.isBold ? 600 : fontWeight,
+          fontWeight,
           fontSize: xaxisFontSize,
           fontFamily: xaxisFontFamily,
           foreColor: Array.isArray(xaxisForeColors)

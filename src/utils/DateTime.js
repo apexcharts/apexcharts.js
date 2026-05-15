@@ -287,6 +287,401 @@ class DateTime {
 
     return days
   }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Pure date helpers used by the v6 single-interval TimeScale.
+  // Native Date setters/getters do all rollover work (leap years, month
+  // length, year crossings), eliminating the manual rollover code that was
+  // the source of the historical TimeScale boundary bugs.
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Extract calendar fields from a timestamp. Month is 0-indexed (matches
+   * Date.getMonth / getUTCMonth).
+   *
+   * @param {number} timestamp
+   * @param {boolean} isUTC
+   * @returns {{ year: number, month: number, date: number, hour: number, minute: number, second: number, ms: number, weekday: number }}
+   */
+  getDateFields(timestamp, isUTC) {
+    const d = new Date(timestamp)
+    return isUTC
+      ? {
+          year: d.getUTCFullYear(),
+          month: d.getUTCMonth(),
+          date: d.getUTCDate(),
+          hour: d.getUTCHours(),
+          minute: d.getUTCMinutes(),
+          second: d.getUTCSeconds(),
+          ms: d.getUTCMilliseconds(),
+          weekday: d.getUTCDay(),
+        }
+      : {
+          year: d.getFullYear(),
+          month: d.getMonth(),
+          date: d.getDate(),
+          hour: d.getHours(),
+          minute: d.getMinutes(),
+          second: d.getSeconds(),
+          ms: d.getMilliseconds(),
+          weekday: d.getDay(),
+        }
+  }
+
+  /**
+   * Advance a timestamp by `count` units. Native setters handle cross-month,
+   * cross-year, leap-year, and DST rollover correctly.
+   *
+   * @param {number} timestamp
+   * @param {'year'|'month'|'week'|'day'|'hour'|'minute'|'second'} unit
+   * @param {number} count  may be negative
+   * @param {boolean} isUTC
+   * @returns {number}
+   */
+  addInterval(timestamp, unit, count, isUTC) {
+    const d = new Date(timestamp)
+    if (isUTC) {
+      switch (unit) {
+        case 'year':
+          d.setUTCFullYear(d.getUTCFullYear() + count)
+          break
+        case 'month':
+          d.setUTCMonth(d.getUTCMonth() + count)
+          break
+        case 'week':
+          d.setUTCDate(d.getUTCDate() + count * 7)
+          break
+        case 'day':
+          d.setUTCDate(d.getUTCDate() + count)
+          break
+        case 'hour':
+          d.setUTCHours(d.getUTCHours() + count)
+          break
+        case 'minute':
+          d.setUTCMinutes(d.getUTCMinutes() + count)
+          break
+        case 'second':
+          d.setUTCSeconds(d.getUTCSeconds() + count)
+          break
+      }
+    } else {
+      switch (unit) {
+        case 'year':
+          d.setFullYear(d.getFullYear() + count)
+          break
+        case 'month':
+          d.setMonth(d.getMonth() + count)
+          break
+        case 'week':
+          d.setDate(d.getDate() + count * 7)
+          break
+        case 'day':
+          d.setDate(d.getDate() + count)
+          break
+        case 'hour':
+          d.setHours(d.getHours() + count)
+          break
+        case 'minute':
+          d.setMinutes(d.getMinutes() + count)
+          break
+        case 'second':
+          d.setSeconds(d.getSeconds() + count)
+          break
+      }
+    }
+    return d.getTime()
+  }
+
+  /**
+   * Snap a timestamp UP to the next boundary aligned with `step` units of
+   * `unit`. Returns the input unchanged if already on a boundary. Alignment
+   * rules per unit:
+   *   - second: 0/step/2*step/... seconds within a minute (step must divide 60)
+   *   - minute: 0/step/2*step/... minutes within an hour (step must divide 60)
+   *   - hour:   0/step/... hours within a day (step must divide 24)
+   *   - day:    every day (step always 1)
+   *   - week:   next Monday on a `step`-week stride from a fixed epoch Monday
+   *   - month:  Jan/Apr/Jul/Oct for step=3, Jan/Jul for step=6 (step must divide 12)
+   *   - year:   year % step === 0
+   *
+   * @param {number} timestamp
+   * @param {'year'|'month'|'week'|'day'|'hour'|'minute'|'second'} unit
+   * @param {number} step
+   * @param {boolean} isUTC
+   * @returns {number}
+   */
+  ceilToBoundary(timestamp, unit, step, isUTC) {
+    const d = new Date(timestamp)
+    if (isUTC) {
+      switch (unit) {
+        case 'second': {
+          const s = d.getUTCSeconds()
+          const aligned = Math.ceil(s / step) * step
+          if (
+            aligned === s &&
+            d.getUTCMilliseconds() === 0
+          )
+            return timestamp
+          d.setUTCMilliseconds(0)
+          d.setUTCSeconds(aligned)
+          return d.getTime()
+        }
+        case 'minute': {
+          const m = d.getUTCMinutes()
+          const aligned = Math.ceil(m / step) * step
+          if (
+            aligned === m &&
+            d.getUTCSeconds() === 0 &&
+            d.getUTCMilliseconds() === 0
+          )
+            return timestamp
+          d.setUTCMilliseconds(0)
+          d.setUTCSeconds(0)
+          d.setUTCMinutes(aligned)
+          return d.getTime()
+        }
+        case 'hour': {
+          const h = d.getUTCHours()
+          const aligned = Math.ceil(h / step) * step
+          if (
+            aligned === h &&
+            d.getUTCMinutes() === 0 &&
+            d.getUTCSeconds() === 0 &&
+            d.getUTCMilliseconds() === 0
+          )
+            return timestamp
+          d.setUTCMilliseconds(0)
+          d.setUTCSeconds(0)
+          d.setUTCMinutes(0)
+          d.setUTCHours(aligned)
+          return d.getTime()
+        }
+        case 'day': {
+          if (
+            d.getUTCHours() === 0 &&
+            d.getUTCMinutes() === 0 &&
+            d.getUTCSeconds() === 0 &&
+            d.getUTCMilliseconds() === 0
+          )
+            return timestamp
+          d.setUTCMilliseconds(0)
+          d.setUTCSeconds(0)
+          d.setUTCMinutes(0)
+          d.setUTCHours(0)
+          d.setUTCDate(d.getUTCDate() + 1)
+          return d.getTime()
+        }
+        case 'week': {
+          // Snap to next Monday on a `step`-week stride.
+          // Reference: 1970-01-05 was a Monday.
+          const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000
+          const REF_MONDAY_UTC = Date.UTC(1970, 0, 5)
+          d.setUTCMilliseconds(0)
+          d.setUTCSeconds(0)
+          d.setUTCMinutes(0)
+          d.setUTCHours(0)
+          // Snap to start of current day, then walk to next aligned Monday
+          const startOfDay = d.getTime()
+          const weeksSinceRef = Math.ceil(
+            (startOfDay - REF_MONDAY_UTC) / MS_PER_WEEK,
+          )
+          const alignedWeeks = Math.ceil(weeksSinceRef / step) * step
+          const aligned = REF_MONDAY_UTC + alignedWeeks * MS_PER_WEEK
+          if (aligned >= timestamp) return aligned
+          return aligned + step * MS_PER_WEEK
+        }
+        case 'month': {
+          const m = d.getUTCMonth()
+          const aligned = Math.ceil(m / step) * step
+          if (
+            aligned === m &&
+            d.getUTCDate() === 1 &&
+            d.getUTCHours() === 0 &&
+            d.getUTCMinutes() === 0 &&
+            d.getUTCSeconds() === 0 &&
+            d.getUTCMilliseconds() === 0
+          )
+            return timestamp
+          d.setUTCMilliseconds(0)
+          d.setUTCSeconds(0)
+          d.setUTCMinutes(0)
+          d.setUTCHours(0)
+          d.setUTCDate(1)
+          d.setUTCMonth(aligned)
+          return d.getTime()
+        }
+        case 'year': {
+          const y = d.getUTCFullYear()
+          const aligned = Math.ceil(y / step) * step
+          if (
+            aligned === y &&
+            d.getUTCMonth() === 0 &&
+            d.getUTCDate() === 1 &&
+            d.getUTCHours() === 0 &&
+            d.getUTCMinutes() === 0 &&
+            d.getUTCSeconds() === 0 &&
+            d.getUTCMilliseconds() === 0
+          )
+            return timestamp
+          // Build first instant of `aligned`-year (UTC). Date.UTC handles edge.
+          return Date.UTC(aligned, 0, 1)
+        }
+      }
+    } else {
+      // Local-time variants — same pattern, local getters/setters.
+      switch (unit) {
+        case 'second': {
+          const s = d.getSeconds()
+          const aligned = Math.ceil(s / step) * step
+          if (aligned === s && d.getMilliseconds() === 0) return timestamp
+          d.setMilliseconds(0)
+          d.setSeconds(aligned)
+          return d.getTime()
+        }
+        case 'minute': {
+          const m = d.getMinutes()
+          const aligned = Math.ceil(m / step) * step
+          if (
+            aligned === m &&
+            d.getSeconds() === 0 &&
+            d.getMilliseconds() === 0
+          )
+            return timestamp
+          d.setMilliseconds(0)
+          d.setSeconds(0)
+          d.setMinutes(aligned)
+          return d.getTime()
+        }
+        case 'hour': {
+          const h = d.getHours()
+          const aligned = Math.ceil(h / step) * step
+          if (
+            aligned === h &&
+            d.getMinutes() === 0 &&
+            d.getSeconds() === 0 &&
+            d.getMilliseconds() === 0
+          )
+            return timestamp
+          d.setMilliseconds(0)
+          d.setSeconds(0)
+          d.setMinutes(0)
+          d.setHours(aligned)
+          return d.getTime()
+        }
+        case 'day': {
+          if (
+            d.getHours() === 0 &&
+            d.getMinutes() === 0 &&
+            d.getSeconds() === 0 &&
+            d.getMilliseconds() === 0
+          )
+            return timestamp
+          d.setMilliseconds(0)
+          d.setSeconds(0)
+          d.setMinutes(0)
+          d.setHours(0)
+          d.setDate(d.getDate() + 1)
+          return d.getTime()
+        }
+        case 'week': {
+          const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000
+          const REF_MONDAY_LOCAL = new Date(1970, 0, 5).getTime()
+          d.setMilliseconds(0)
+          d.setSeconds(0)
+          d.setMinutes(0)
+          d.setHours(0)
+          const startOfDay = d.getTime()
+          const weeksSinceRef = Math.ceil(
+            (startOfDay - REF_MONDAY_LOCAL) / MS_PER_WEEK,
+          )
+          const alignedWeeks = Math.ceil(weeksSinceRef / step) * step
+          const aligned = REF_MONDAY_LOCAL + alignedWeeks * MS_PER_WEEK
+          if (aligned >= timestamp) return aligned
+          return aligned + step * MS_PER_WEEK
+        }
+        case 'month': {
+          const m = d.getMonth()
+          const aligned = Math.ceil(m / step) * step
+          if (
+            aligned === m &&
+            d.getDate() === 1 &&
+            d.getHours() === 0 &&
+            d.getMinutes() === 0 &&
+            d.getSeconds() === 0 &&
+            d.getMilliseconds() === 0
+          )
+            return timestamp
+          d.setMilliseconds(0)
+          d.setSeconds(0)
+          d.setMinutes(0)
+          d.setHours(0)
+          d.setDate(1)
+          d.setMonth(aligned)
+          return d.getTime()
+        }
+        case 'year': {
+          const y = d.getFullYear()
+          const aligned = Math.ceil(y / step) * step
+          if (
+            aligned === y &&
+            d.getMonth() === 0 &&
+            d.getDate() === 1 &&
+            d.getHours() === 0 &&
+            d.getMinutes() === 0 &&
+            d.getSeconds() === 0 &&
+            d.getMilliseconds() === 0
+          )
+            return timestamp
+          return new Date(aligned, 0, 1).getTime()
+        }
+      }
+    }
+    return timestamp
+  }
+
+  /**
+   * Test whether a timestamp falls exactly on a unit boundary (start of year,
+   * start of month, start of day, etc.). Used by the multi-resolution
+   * formatter to upgrade a tick's display unit to a coarser scale.
+   *
+   * @param {number} timestamp
+   * @param {'year'|'month'|'day'|'hour'|'minute'|'second'} unit
+   * @param {boolean} isUTC
+   * @returns {boolean}
+   */
+  isAtBoundary(timestamp, unit, isUTC) {
+    const f = this.getDateFields(timestamp, isUTC)
+    switch (unit) {
+      case 'year':
+        return (
+          f.month === 0 &&
+          f.date === 1 &&
+          f.hour === 0 &&
+          f.minute === 0 &&
+          f.second === 0 &&
+          f.ms === 0
+        )
+      case 'month':
+        return (
+          f.date === 1 &&
+          f.hour === 0 &&
+          f.minute === 0 &&
+          f.second === 0 &&
+          f.ms === 0
+        )
+      case 'day':
+        return (
+          f.hour === 0 && f.minute === 0 && f.second === 0 && f.ms === 0
+        )
+      case 'hour':
+        return f.minute === 0 && f.second === 0 && f.ms === 0
+      case 'minute':
+        return f.second === 0 && f.ms === 0
+      case 'second':
+        return f.ms === 0
+    }
+    return false
+  }
 }
 
 export default DateTime

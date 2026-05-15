@@ -114,9 +114,15 @@ class Formatters {
             if (Utils.isNumber(w.config.xaxis.decimalsInFloat)) {
               return val.toFixed(w.config.xaxis.decimalsInFloat)
             } else {
+              // Decimals derived from the tick step's order of magnitude
+              // (≈ diff/10). Replaces the old "diff < 100 → 1 decimal"
+              // heuristic which lost precision for small ranges (e.g.
+              // diff = 0.004 used to print every label as "0.0").
               const diff = w.globals.maxX - w.globals.minX
-              if (diff > 0 && diff < 100) {
-                return val.toFixed(1)
+              if (diff > 0) {
+                const step = diff / 10
+                const decimals = Math.max(0, -Math.floor(Math.log10(step)))
+                return val.toFixed(decimals)
               }
               return val.toFixed(0)
             }
