@@ -112,7 +112,7 @@ export default class TreemapChart {
       const gradCfg = animCfg.animateGradually
       const cascadeEnabled = gradCfg && gradCfg.enabled !== false
       /** @type {number[]} */
-      let cascadeDelays = new Array(node.length).fill(0)
+      const cascadeDelays = new Array(node.length).fill(0)
       if (cascadeEnabled) {
         const tileCount = node.length || 1
         const baseDelay = Math.min(
@@ -120,11 +120,20 @@ export default class TreemapChart {
           (animCfg.speed * 0.5) / tileCount,
         )
         const ranked = node
-          .map((r, j) => ({ j, area: (r[2] - r[0]) * (r[3] - r[1]) }))
-          .sort((a, b) => b.area - a.area)
-        ranked.forEach((item, rank) => {
-          cascadeDelays[item.j] = rank * baseDelay
-        })
+          .map(
+            /** @param {number[]} r @param {number} j */
+            (r, j) => ({ j, area: (r[2] - r[0]) * (r[3] - r[1]) }),
+          )
+          .sort(
+            /** @param {{j: number, area: number}} a @param {{j: number, area: number}} b */
+            (a, b) => b.area - a.area,
+          )
+        ranked.forEach(
+          /** @param {{j: number, area: number}} item @param {number} rank */
+          (item, rank) => {
+            cascadeDelays[item.j] = rank * baseDelay
+          },
+        )
       }
 
       /**

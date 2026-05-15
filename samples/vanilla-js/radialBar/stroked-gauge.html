@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -9,18 +9,14 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
-    
     <script src="../../../dist/apexcharts.js"></script>
-    
 
     <script>
       // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
@@ -31,21 +27,18 @@
         return (_seed - 1) / 2147483646
       }
     </script>
-
-    
   </head>
 
   <body>
-     <div id="chart"></div>
+    <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [67],
-          chart: {
+      var options = {
+        series: [67],
+        chart: {
           height: 350,
           type: 'radialBar',
-          offsetY: -10
+          offsetY: 0,
         },
         plotOptions: {
           radialBar: {
@@ -55,42 +48,38 @@
               name: {
                 fontSize: '16px',
                 color: undefined,
-                offsetY: 120
+                offsetY: 120,
               },
               value: {
                 offsetY: 76,
                 fontSize: '22px',
                 color: undefined,
                 formatter: function (val) {
-                  return val + "%";
-                }
-              }
-            }
-          }
+                  return val + '%'
+                },
+              },
+            },
+          },
         },
         fill: {
           type: 'gradient',
           gradient: {
-              shade: 'dark',
-              shadeIntensity: 0.15,
-              inverseColors: false,
-              opacityFrom: 1,
-              opacityTo: 1,
-              stops: [0, 50, 65, 91]
+            shade: 'dark',
+            shadeIntensity: 0.15,
+            inverseColors: false,
+            opacityFrom: 1,
+            opacityTo: 1,
+            stops: [0, 50, 65, 91],
           },
         },
         stroke: {
-          dashArray: 4
+          dashArray: 4,
         },
         labels: ['Median Ratio'],
-        };
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
-
-    
   </body>
 </html>

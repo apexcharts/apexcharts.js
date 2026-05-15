@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Trapezoid Funnel — Tapered</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      max-width: 650px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      
+        var options = {
+          series: [
+          {
+            name: "Pipeline",
+            data: [1200, 480, 160, 32],
+          },
+        ],
+          chart: {
+          type: 'funnel',
+          height: 420,
+        },
+        plotOptions: {
+          funnel: {
+            shape: 'trapezoid',
+            lastShape: 'taper',
+          },
+          bar: {
+            distributed: true,
+          },
+        },
+        colors: ['#10B981', '#34D399', '#6EE7B7', '#A7F3D0'],
+        dataLabels: {
+          enabled: true,
+          formatter: function (val, opt) {
+            return opt.w.globals.labels[opt.dataPointIndex] + ': ' + val
+          },
+          style: {
+            colors: ['#064E3B'],
+            fontSize: '13px',
+            fontWeight: 600,
+          },
+        },
+        title: {
+          text: 'Recruitment Funnel — Tapered',
+          align: 'middle',
+        },
+        xaxis: {
+          categories: ['Sourced', 'Screened', 'Interviewed', 'Hired'],
+        },
+        legend: {
+          show: false,
+        },
+        };
+
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      
+      
+    </script>
+
+    
+  </body>
+</html>

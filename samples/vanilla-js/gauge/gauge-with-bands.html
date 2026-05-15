@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Gauge with Threshold Bands</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      
+        #chart {
+      padding: 0;
+      max-width: 420px;
+      margin: 35px auto;
+    }
+      
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      
+        var options = {
+          series: [78],
+          chart: {
+          height: 350,
+          type: 'gauge',
+        },
+        plotOptions: {
+          radialBar: {
+            startAngle: -135,
+            endAngle: 135,
+            bands: [
+              { from: 0, to: 30, color: '#FF4560' },
+              { from: 30, to: 70, color: '#FEB019' },
+              { from: 70, to: 100, color: '#00E396' },
+            ],
+            bandsStyle: {
+              strokeWidth: '60%',
+              gap: 2,
+            },
+            hollow: {
+              margin: 0,
+              size: '60%',
+            },
+            dataLabels: {
+              name: { show: false },
+              value: {
+                offsetY: 8,
+                fontSize: '32px',
+                fontWeight: 700,
+                formatter: function (val) {
+                  return val + '%'
+                },
+              },
+            },
+          },
+        },
+        fill: { opacity: 1 },
+        labels: ['System Health'],
+        };
+
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      
+      
+    </script>
+
+    
+  </body>
+</html>
