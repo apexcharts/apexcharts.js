@@ -1,0 +1,92 @@
+<title>Needle Gauge</title>
+
+<style>
+#chart {
+  padding: 0;
+  max-width: 420px;
+  margin: 35px auto;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  height: 360,
+  type: 'gauge',
+},
+plotOptions: {
+  radialBar: {
+    shape: 'needle',
+    startAngle: -135,
+    endAngle: 135,
+    min: 0,
+    max: 100,
+    bands: [
+      { from: 0, to: 30, color: '#FF4560' },
+      { from: 30, to: 70, color: '#FEB019' },
+      { from: 70, to: 100, color: '#00E396' },
+    ],
+    bandsStyle: {
+      strokeWidth: '50%',
+      gap: 1,
+    },
+    ticks: {
+      show: true,
+      major: {
+        count: 11,
+        length: 8,
+        width: 2,
+        color: '#334155',
+        placement: 'outside',
+      },
+      minor: {
+        count: 1,
+        length: 4,
+        width: 1,
+        color: '#94A3B8',
+        placement: 'outside',
+      },
+      labels: {
+        show: true,
+        offset: 6,
+        fontSize: '11px',
+        color: '#334155',
+      },
+    },
+    needle: {
+      color: '#0F172A',
+      baseRadius: 10,
+      length: '60%',
+      baseWidth: 6,
+      tipWidth: 1,
+    },
+    pivot: {
+      show: true,
+      color: '#0F172A',
+      strokeColor: '#fff',
+      strokeWidth: 2,
+    },
+    hollow: {
+      margin: 0,
+      size: '70%',
+    },
+    dataLabels: {
+      name: { show: false },
+      value: {
+        offsetY: 32,
+        fontSize: '28px',
+        fontWeight: 700,
+        formatter: function (val) {
+          return val
+        },
+      },
+    },
+  },
+},
+labels: ['Speed'],
+</options>
+
+<series>
+[68]
+</series>
+</chart>

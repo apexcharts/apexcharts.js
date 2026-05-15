@@ -579,9 +579,52 @@ export default class Core {
       w.config.plotOptions.radialBar.startAngle !== 0
     ) {
       const elRadialRect = Utils.getBoundingClientRect(el)
-      chartInnerDimensions = elRadialRect.bottom
-      const maxHeight = elRadialRect.bottom - elRadialRect.top
-      chartInnerDimensions = Math.max(w.globals.radialSize * 2.05, maxHeight)
+      const svgRect = Utils.getBoundingClientRect(this.w.dom.Paper.node)
+      // Measure relative to the SVG (not elWrap). The SVG can be shifted by
+      // `chart.offsetY` via a transform on the Paper element; auto-balancing
+      // inside SVG coords keeps the user's offsetY as a clean additive shift.
+      const arcTopFromSVGTop = elRadialRect.top - svgRect.top
+      let arcBottomFromSVGTop = elRadialRect.bottom - svgRect.top
+      // Top padding scales with the arc size so larger gauges get
+      // proportionally more breathing room above the track. Falls back to
+      // offY when the arc is small.
+      const topPadding = Math.max(offY, w.globals.radialSize * 0.2)
+      // Target: arc top sits exactly `topPadding` below the SVG top. A
+      // negative shift pulls the graphical group up; positive pushes it
+      // down. Handles ∩-shape, ∪-shape, three-quarter, etc.
+      const verticalShift = topPadding - arcTopFromSVGTop
+      if (verticalShift !== 0) {
+        w.layout.translateY = (w.layout.translateY ?? 0) + verticalShift
+        Graphics.setAttrs(this.w.dom.elGraphical.node, {
+          transform: `translate(${w.layout.translateX ?? 0}, ${w.layout.translateY})`,
+        })
+        arcBottomFromSVGTop += verticalShift
+      }
+      chartInnerDimensions =
+        arcBottomFromSVGTop > 0
+          ? arcBottomFromSVGTop
+          : w.globals.radialSize * 2.05
+      const svgHeight = Math.ceil(chartInnerDimensions + legendHeight + offY)
+      // `chart.offsetY` is applied as a transform on the SVG element, which
+      // shifts the SVG within elWrap. For positive offsetY the SVG's bottom
+      // ends up below elWrap's bottom — grow elWrap by that amount so the
+      // visible drawing area still contains the full SVG.
+      const chartOffsetY = w.config.chart.offsetY ?? 0
+      const elWrapHeight = svgHeight + Math.max(chartOffsetY, 0)
+      if (this.w.dom.elLegendForeign) {
+        this.w.dom.elLegendForeign.setAttribute(
+          'height',
+          String(elWrapHeight),
+        )
+      }
+      if (!(w.config.chart.height && String(w.config.chart.height).includes('%'))) {
+        this.w.dom.elWrap.style.height = `${elWrapHeight}px`
+        Graphics.setAttrs(this.w.dom.Paper.node, { height: svgHeight })
+        if (Environment.isBrowser()) {
+          this.w.dom.Paper.node.parentNode.parentNode.style.minHeight = `${elWrapHeight}px`
+        }
+      }
+      return
     }
 
     const newHeight = Math.ceil(

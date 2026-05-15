@@ -257,6 +257,7 @@ class Bar {
         if (
           this.isFunnel &&
           this.barOptions.isFunnel3d &&
+          w.config.plotOptions.funnel?.shape !== 'trapezoid' &&
           this.pathArr.length &&
           j > 0
         ) {
@@ -569,7 +570,10 @@ class Bar {
       }
     }
 
-    if (this.isFunnel) {
+    const useTrapezoid =
+      this.isFunnel && w.config.plotOptions.funnel.shape === 'trapezoid'
+
+    if (this.isFunnel && !useTrapezoid) {
       const _zeroW = zeroW ?? 0
       zeroW =
         _zeroW -
@@ -591,20 +595,39 @@ class Bar {
     )
 
     const paths = /** @type {any} */ (
-      this.barHelpers.getBarpaths({
-        barYPosition,
-        barHeight,
-        x1: zeroW,
-        x2: x,
-        strokeWidth,
-        isReversed: this.isReversed,
-        series: this.series,
-        realIndex: indexes.realIndex,
-        i,
-        j,
-        w,
-      })
+      useTrapezoid
+        ? this.barHelpers.getFunnelTrapezoidPaths({
+            barYPosition,
+            barHeight,
+            series: /** @type {any} */ (this.series),
+            i,
+            j,
+            realIndex: indexes.realIndex,
+            strokeWidth,
+            w,
+          })
+        : this.barHelpers.getBarpaths({
+            barYPosition,
+            barHeight,
+            x1: zeroW,
+            x2: x,
+            strokeWidth,
+            isReversed: this.isReversed,
+            series: this.series,
+            realIndex: indexes.realIndex,
+            i,
+            j,
+            w,
+          })
     )
+
+    if (useTrapezoid) {
+      // Trapezoid path is keyed to its own left/right edges; expose x1 for
+      // the rest of drawBarPaths and keep zeroW in sync for downstream code
+      // (goal lines, dataLabel positioning).
+      zeroW = paths.x1
+      x = paths.x
+    }
 
     if (!w.axisFlags.isXNumeric) {
       y = y + yDivision

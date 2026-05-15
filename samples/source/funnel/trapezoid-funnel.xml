@@ -1,0 +1,67 @@
+<title>Trapezoid Funnel</title>
+
+<chart>
+<options>
+chart: {
+  type: 'funnel',
+  height: 400,
+  dropShadow: {
+    enabled: true,
+  },
+},
+plotOptions: {
+  funnel: {
+    shape: 'trapezoid',
+    lastShape: 'flat',
+  },
+  bar: {
+    distributed: true,
+  },
+},
+colors: [
+  '#3B82F6',
+  '#6366F1',
+  '#8B5CF6',
+  '#A855F7',
+  '#D946EF',
+  '#EC4899',
+],
+dataLabels: {
+  enabled: true,
+  formatter: function (val, opt) {
+    return opt.w.globals.labels[opt.dataPointIndex] + ': ' + val
+  },
+  style: {
+    colors: ['#fff'],
+    fontSize: '14px',
+    fontWeight: 600,
+  },
+},
+title: {
+  text: 'Sales Funnel — Trapezoid',
+  align: 'middle',
+},
+xaxis: {
+  categories: [
+    'Visits',
+    'Signups',
+    'Activated',
+    'Engaged',
+    'Trial',
+    'Paid',
+  ],
+},
+legend: {
+  show: false,
+},
+</options>
+
+<series>
+[
+  {
+    name: "Conversion",
+    data: [10000, 6400, 3800, 2200, 1100, 420],
+  },
+]
+</series>
+</chart>

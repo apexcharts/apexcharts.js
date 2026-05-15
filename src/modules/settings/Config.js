@@ -23,6 +23,13 @@ export default class Config {
     const options = new Options()
     const defaults = new Defaults(opts)
 
+    // First-class chart-type aliases: 'funnel' / 'pyramid' / 'gauge' are
+    // promoted names for existing renderers (bar with isFunnel, radialBar).
+    // Preserve the requested type for discoverability, then normalize
+    // chart.type to the base renderer so all internal chart.type checks
+    // continue to work unchanged.
+    opts = this.normalizeAliasedChartType(opts)
+
     this.chartType = opts.chart.type
 
     opts = this.extendYAxis(opts)
@@ -51,7 +58,12 @@ export default class Config {
         'radialBar',
       ]
 
-      if (chartTypes.indexOf(opts.chart.type) !== -1) {
+      const requestedType = opts.chart.requestedType
+      if (requestedType === 'funnel' || requestedType === 'pyramid') {
+        chartDefaults = /** @type {any} */ (defaults)[requestedType]()
+      } else if (requestedType === 'gauge') {
+        chartDefaults = defaults.gauge()
+      } else if (chartTypes.indexOf(opts.chart.type) !== -1) {
         chartDefaults = /** @type {any} */ (defaults)[opts.chart.type]()
       } else {
         chartDefaults = defaults.line()
@@ -120,6 +132,36 @@ export default class Config {
     config = this.handleUserInputErrors(config)
 
     return config
+  }
+
+  /**
+   * Promoted chart-type aliases — `funnel`, `pyramid`, `gauge` — render via
+   * the existing `bar` (with `isFunnel`) and `radialBar` pathways. To keep
+   * the ~20 internal `chart.type === 'bar' | 'radialBar'` checks working
+   * unchanged, we normalize `chart.type` to the base renderer name here and
+   * preserve the user-facing name on `chart.requestedType` for the public
+   * API and for default selection.
+   *
+   * @param {Record<string, any>} opts
+   * @returns {Record<string, any>}
+   */
+  normalizeAliasedChartType(opts) {
+    if (!opts || !opts.chart) return opts
+    const requested = opts.chart.type
+    if (requested !== 'funnel' && requested !== 'pyramid' && requested !== 'gauge') {
+      return opts
+    }
+    opts.chart.requestedType = requested
+    if (requested === 'funnel' || requested === 'pyramid') {
+      opts.plotOptions = opts.plotOptions || {}
+      opts.plotOptions.bar = opts.plotOptions.bar || {}
+      opts.plotOptions.bar.isFunnel = true
+      opts.plotOptions.bar.horizontal = true
+      opts.chart.type = 'bar'
+    } else if (requested === 'gauge') {
+      opts.chart.type = 'radialBar'
+    }
+    return opts
   }
 
   /**

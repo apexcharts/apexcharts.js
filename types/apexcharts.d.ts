@@ -399,6 +399,16 @@ type ApexChart = {
   | 'rangeBar'
   | 'rangeArea'
   | 'treemap'
+  | 'funnel'
+  | 'pyramid'
+  | 'gauge'
+  /**
+   * Internal — populated when `type` is a first-class alias (`'funnel'`,
+   * `'pyramid'`, `'gauge'`). The original requested type is preserved here
+   * while `type` is normalized to the underlying renderer (`'bar'` or
+   * `'radialBar'`). Read-only for consumers.
+   */
+  requestedType?: 'funnel' | 'pyramid' | 'gauge'
   foreColor?: string
   fontFamily?: string
   background?: string
@@ -908,6 +918,20 @@ type ApexPlotOptions = {
       max?: number
     }
   }
+  funnel?: {
+    /**
+     * 'rectangle' (default) preserves the existing centered-rectangle funnel
+     * geometry. 'trapezoid' produces continuous sloped sides between
+     * consecutive stages (each stage's bottom width matches the next stage's
+     * top width).
+     */
+    shape?: 'rectangle' | 'trapezoid'
+    /**
+     * For `shape: 'trapezoid'` only — last stage's bottom edge:
+     * 'flat' (default, parallel sides) or 'taper' (taper to a point).
+     */
+    lastShape?: 'flat' | 'taper'
+  }
   treemap?: {
     enableShades?: boolean
     shadeIntensity?: number
@@ -1027,6 +1051,79 @@ type ApexPlotOptions = {
     endAngle?: number
     offsetX?: number
     offsetY?: number
+    /**
+     * Gauge sub-shape. 'arc' (default) renders the existing filled value-arc
+     * gauge; 'needle' replaces the value-arc with a rotating pointer/needle.
+     * Bands and ticks are independent and work for both shapes.
+     */
+    shape?: 'arc' | 'needle'
+    /**
+     * Value-to-angle mapping (gauge). Defaults: min: 0, max: 100. Override
+     * for gauges with a custom domain (e.g. min: 0, max: 240 speedometer).
+     */
+    min?: number
+    max?: number
+    /**
+     * Threshold bands rendered as colored arc segments along the gauge arc.
+     * Each band spans [`from`, `to`] in the gauge's `min..max` domain and is
+     * filled with `color`.
+     */
+    bands?: Array<{
+      from: number
+      to: number
+      color: string
+      label?: string
+    }>
+    bandsStyle?: {
+      strokeWidth?: string
+      gap?: number
+      hideTrackWhenPresent?: boolean
+      linecap?: 'butt' | 'round' | 'square'
+    }
+    ticks?: {
+      show?: boolean
+      major?: {
+        count?: number
+        length?: number
+        width?: number
+        color?: string
+        placement?: 'inside' | 'outside'
+      }
+      minor?: {
+        count?: number
+        length?: number
+        width?: number
+        color?: string
+        placement?: 'inside' | 'outside'
+      }
+      labels?: {
+        show?: boolean
+        offset?: number
+        fontSize?: string
+        fontFamily?: string
+        fontWeight?: string | number
+        color?: string
+        formatter?: (value: number) => string
+      }
+    }
+    needle?: {
+      color?: string
+      baseRadius?: number
+      length?: string | number
+      baseWidth?: number
+      tipWidth?: number
+      animation?: {
+        enabled?: boolean
+        duration?: number
+        easing?: string
+      }
+    }
+    pivot?: {
+      show?: boolean
+      color?: string
+      strokeColor?: string
+      strokeWidth?: number
+    }
     hollow?: {
       margin?: number
       size?: string

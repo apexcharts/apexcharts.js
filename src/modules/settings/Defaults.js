@@ -410,6 +410,47 @@ export default class Defaults {
     }
   }
 
+  pyramid() {
+    // Pyramid is funnel rendered in reverse order (widest at bottom).
+    // Internally reuses the bar funnel renderer; ordering is handled in Config.
+    return this.funnel()
+  }
+
+  gauge() {
+    // Gauge defaults: half-circle, single-series, large center value label.
+    // Internally renders via the radialBar pathway.
+    const base = this.radialBar()
+    return {
+      ...base,
+      plotOptions: {
+        radialBar: {
+          startAngle: -135,
+          endAngle: 135,
+          hollow: {
+            margin: 0,
+            size: '60%',
+          },
+          track: {
+            background: '#e7e7e7',
+            strokeWidth: '100%',
+            margin: 5,
+          },
+          dataLabels: {
+            name: {
+              show: false,
+            },
+            value: {
+              show: true,
+              fontSize: '32px',
+              fontWeight: 600,
+              offsetY: 8,
+            },
+          },
+        },
+      },
+    }
+  }
+
   candlestick() {
     return {
       stroke: {

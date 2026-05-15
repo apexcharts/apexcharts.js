@@ -540,6 +540,90 @@ export default class Helpers {
     }
   }
 
+  /**
+   * Build a trapezoidal funnel-stage path. Used when
+   * `plotOptions.funnel.shape === 'trapezoid'` is active alongside `isFunnel`.
+   *
+   * Each stage is a 4-corner polygon whose top width matches the current
+   * stage's value and bottom width matches the next stage's value, producing
+   * continuous sloped sides between consecutive stages.
+   *
+   * For the last stage, the bottom width is configurable:
+   * - `lastShape: 'flat'`  → bottom width = top width (parallel sides)
+   * - `lastShape: 'taper'` → bottom width = 0 (taper to a point)
+   *
+   * @param {{ barYPosition: number, barHeight: number, series: any[][], i: number, j: number, realIndex: number, strokeWidth: number, w: any }} opts
+   */
+  getFunnelTrapezoidPaths({
+    barYPosition,
+    barHeight,
+    series,
+    i,
+    j,
+    realIndex,
+    strokeWidth,
+    w,
+  }) {
+    const graphics = new Graphics(this.barCtx.w)
+    const center = w.layout.gridWidth / 2
+
+    /** @param {number} v */
+    const halfWidthFor = (v) => Math.abs(v / this.barCtx.invertedYRatio) / 2
+
+    const topHalf = halfWidthFor(series[i][j])
+
+    const lastIdx = series[i].length - 1
+    const isLast = j === lastIdx
+    const lastShape =
+      w.config.plotOptions.funnel.lastShape === 'taper' ? 'taper' : 'flat'
+
+    let bottomHalf
+    if (isLast) {
+      bottomHalf = lastShape === 'taper' ? 0 : topHalf
+    } else {
+      bottomHalf = halfWidthFor(series[i][j + 1])
+    }
+
+    const strokeCenter = strokeWidth / 2
+    const y1 = barYPosition + strokeCenter
+    const y2 = barYPosition + barHeight - strokeCenter
+
+    const topLeftX = center - topHalf
+    const topRightX = center + topHalf
+    const bottomLeftX = center - bottomHalf
+    const bottomRightX = center + bottomHalf
+
+    const pathTo =
+      graphics.move(topLeftX, y1) +
+      graphics.line(topRightX, y1) +
+      graphics.line(bottomRightX, y2) +
+      graphics.line(bottomLeftX, y2) +
+      ' Z'
+
+    let pathFrom = graphics.move(center, y1)
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, false)
+    } else {
+      // Start collapsed at the centerline so the trapezoid expands outward.
+      pathFrom =
+        graphics.move(center, y1) +
+        graphics.line(center, y1) +
+        graphics.line(center, y2) +
+        graphics.line(center, y2) +
+        ' Z'
+    }
+
+    return {
+      pathTo,
+      pathFrom,
+      // x is the right edge of the wider (top) side — used by dataLabel
+      // positioning helpers that expect a "right" reference.
+      x: topRightX,
+      x1: topLeftX,
+      barXPosition: center,
+    }
+  }
+
   /** @param {{ barYPosition?: any, barHeight?: any, x1?: any, x2?: any, strokeWidth?: any, isReversed?: any, series?: any, seriesGroup?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getBarpaths({
     barYPosition,

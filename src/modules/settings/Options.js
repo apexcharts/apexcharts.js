@@ -517,6 +517,16 @@ export default class Options {
             max: undefined,
           },
         },
+        funnel: {
+          // 'rectangle' preserves the existing centered-rectangle funnel
+          // geometry. 'trapezoid' produces continuous sloped sides between
+          // consecutive stages (each stage's bottom width matches the next
+          // stage's top width).
+          shape: 'rectangle',
+          // For shape: 'trapezoid' only — what to do with the last stage's
+          // bottom edge: 'flat' (parallel sides) or 'taper' (taper to a point).
+          lastShape: 'flat',
+        },
         treemap: {
           enableShades: true,
           shadeIntensity: 0.5,
@@ -562,6 +572,87 @@ export default class Options {
           endAngle: 360,
           offsetX: 0,
           offsetY: 0,
+          // Gauge sub-shape. 'arc' (default) renders the existing filled
+          // value-arc gauge; 'needle' replaces the value-arc with a rotating
+          // pointer/needle. Bands and ticks are independent and work for both
+          // shapes.
+          shape: 'arc',
+          // Value-to-angle mapping. Defaults to the existing 0..100 range
+          // used by radialBar. Override for gauges that need a custom domain
+          // (e.g. min: 0, max: 240 for a speedometer).
+          min: 0,
+          max: 100,
+          // Threshold bands rendered as colored arc segments along the gauge
+          // arc (e.g. [{from:0,to:30,color:'#FF4560'}, ...]). Bands draw
+          // behind the value-arc and tick marks. Set to [] (default) to
+          // disable.
+          bands: [],
+          bandsStyle: {
+            // % of arc radius. Slightly less than the value-arc stroke so
+            // the value-arc reads on top by default.
+            strokeWidth: '40%',
+            // px gap between consecutive bands.
+            gap: 0,
+            // Hide the track when bands cover the full range; the bands
+            // themselves act as the visual backdrop.
+            hideTrackWhenPresent: true,
+          },
+          // Tick marks rendered along (outside) the gauge arc.
+          ticks: {
+            show: false,
+            major: {
+              count: 11,
+              length: 10,
+              width: 2,
+              color: '#666',
+              // 'inside' draws ticks from `radius - length` to `radius`;
+              // 'outside' draws from `radius` to `radius + length`.
+              placement: 'outside',
+            },
+            minor: {
+              count: 4, // minor ticks BETWEEN each pair of major ticks
+              length: 5,
+              width: 1,
+              color: '#999',
+              placement: 'outside',
+            },
+            labels: {
+              show: false,
+              offset: 6,
+              fontSize: '11px',
+              fontFamily: undefined,
+              fontWeight: 400,
+              color: '#666',
+              /** @param {number} v */
+              formatter(v) {
+                return String(v)
+              },
+            },
+          },
+          // Needle/dial configuration. Only applies when `shape: 'needle'`.
+          needle: {
+            color: '#333',
+            // px radius of the pivot circle at chart center.
+            baseRadius: 8,
+            // Needle length as a % of the gauge radius (string like '85%')
+            // or as an absolute px number.
+            length: '85%',
+            // px width of the needle line at the base.
+            baseWidth: 4,
+            // px width of the needle tip (tapered if smaller than baseWidth).
+            tipWidth: 1,
+            animation: {
+              enabled: true,
+              duration: 800,
+              easing: 'ease-out',
+            },
+          },
+          pivot: {
+            show: true,
+            color: '#333',
+            strokeColor: '#fff',
+            strokeWidth: 2,
+          },
           hollow: {
             margin: 5,
             size: '50%',
@@ -1101,11 +1192,16 @@ export default class Options {
           formatter: undefined, // custom formatter function which will override format
           datetimeUTC: true,
           datetimeFormatter: {
+            // v6 multi-resolution defaults: year is shown only at year-
+            // boundary ticks (unit:'year'), month name at month-boundary
+            // ticks, smaller units below. The TimeScale promotes a tick's
+            // unit to the coarsest boundary it crosses, so the format
+            // context is always self-consistent.
             year: 'yyyy',
-            month: "MMM 'yy",
+            month: 'MMM',
             day: 'dd MMM',
             hour: 'HH:mm',
-            minute: 'HH:mm:ss',
+            minute: 'HH:mm',
             second: 'HH:mm:ss',
           },
         },

@@ -1,0 +1,23 @@
+<title>Basic Gauge</title>
+
+<style>
+#chart {
+  padding: 0;
+  max-width: 380px;
+  margin: 35px auto;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  height: 350,
+  type: 'gauge',
+},
+labels: ['Progress'],
+</options>
+
+<series>
+[72]
+</series>
+</chart>

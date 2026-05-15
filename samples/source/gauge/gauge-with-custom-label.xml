@@ -1,0 +1,64 @@
+<title>Gauge with Custom Label</title>
+
+<style>
+#chart {
+  padding: 0;
+  max-width: 380px;
+  margin: 35px auto;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  height: 350,
+  type: 'gauge',
+},
+plotOptions: {
+  radialBar: {
+    hollow: {
+      margin: 15,
+      size: '70%',
+    },
+    dataLabels: {
+      name: {
+        show: true,
+        offsetY: -20,
+        fontSize: '16px',
+        color: '#999',
+      },
+      value: {
+        show: true,
+        fontSize: '40px',
+        fontWeight: 700,
+        offsetY: 6,
+        formatter: function (val) {
+          return val + '%'
+        },
+      },
+    },
+  },
+},
+fill: {
+  type: 'gradient',
+  gradient: {
+    shade: 'dark',
+    type: 'horizontal',
+    shadeIntensity: 0.5,
+    gradientToColors: ['#ABE5A1'],
+    inverseColors: true,
+    opacityFrom: 1,
+    opacityTo: 1,
+    stops: [0, 100],
+  },
+},
+stroke: {
+  lineCap: 'round',
+},
+labels: ['CPU Usage'],
+</options>
+
+<series>
+[58]
+</series>
+</chart>

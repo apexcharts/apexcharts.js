@@ -1,0 +1,54 @@
+<title>Gauge with Threshold Bands</title>
+
+<style>
+#chart {
+  padding: 0;
+  max-width: 420px;
+  margin: 35px auto;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  height: 350,
+  type: 'gauge',
+},
+plotOptions: {
+  radialBar: {
+    startAngle: -135,
+    endAngle: 135,
+    bands: [
+      { from: 0, to: 30, color: '#FF4560' },
+      { from: 30, to: 70, color: '#FEB019' },
+      { from: 70, to: 100, color: '#00E396' },
+    ],
+    bandsStyle: {
+      strokeWidth: '60%',
+      gap: 2,
+    },
+    hollow: {
+      margin: 0,
+      size: '60%',
+    },
+    dataLabels: {
+      name: { show: false },
+      value: {
+        offsetY: 8,
+        fontSize: '32px',
+        fontWeight: 700,
+        formatter: function (val) {
+          return val + '%'
+        },
+      },
+    },
+  },
+},
+fill: { opacity: 1 },
+labels: ['System Health'],
+</options>
+
+<series>
+[78]
+</series>
+</chart>

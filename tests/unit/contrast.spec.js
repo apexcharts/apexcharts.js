@@ -3,22 +3,38 @@ import Utils from '../../src/utils/Utils'
 import { getThemePalettes } from '../../src/utils/ThemePalettes'
 
 /**
- * WCAG contrast tests for the `highContrast` palette.
+ * WCAG 1.4.11 Non-text Contrast tests.
  *
- * The `highContrast` palette is selected via
- * `theme.accessibility.colorBlindMode = 'highContrast'` and is the palette we
- * promise meets WCAG 1.4.11 Non-text Contrast (≥ 3.0 : 1) against the default
- * light-theme background.
+ * All built-in palettes (palette1–10 and highContrast) must meet ≥ 3:1
+ * against both default backgrounds:
+ *   - Light theme: #FFFFFF
+ *   - Dark theme:  #293450
  *
- * The CVD palettes (`cvdDeuteranopia`, `cvdProtanopia`, `cvdTritanopia`) are
- * tuned for inter-colour distinguishability *under a simulated CVD transform*,
- * which is not the same as raw luminance contrast. Validating those properly
- * requires a Brettel/Machado simulation step, which is out of scope here — so
- * we don't assert on them. They remain selectable via colorBlindMode.
+ * The CVD palettes (cvdDeuteranopia/Protanopia/Tritanopia) are tuned for
+ * inter-colour distinguishability under a simulated CVD transform, which is
+ * not the same as raw luminance contrast — we only assert their presence.
  */
 
 const LIGHT_BG = '#FFFFFF'
-const MIN_BG_RATIO = 3.0
+const DARK_BG = '#293450'
+const MIN_RATIO = 3.0
+
+// palette1–10 are theme-neutral and must pass both backgrounds.
+const THEME_PALETTES = [
+  'palette1',
+  'palette2',
+  'palette3',
+  'palette4',
+  'palette5',
+  'palette6',
+  'palette7',
+  'palette8',
+  'palette9',
+  'palette10',
+]
+
+// highContrast is explicitly for light themes — only validated against light bg.
+const HIGH_CONTRAST_PALETTES = ['highContrast']
 
 describe('Utils.getContrastRatio', () => {
   it('returns 21 for #000 vs #fff', () => {
@@ -41,15 +57,35 @@ describe('Utils.getContrastRatio', () => {
   })
 })
 
-describe('highContrast palette meets WCAG 1.4.11 against light bg', () => {
+describe('palette1–10 meet WCAG 1.4.11 (≥ 3:1) against both theme backgrounds', () => {
   const palettes = getThemePalettes()
-  palettes.highContrast.forEach((colour, idx) => {
-    it(`#${idx} ${colour} ≥ ${MIN_BG_RATIO}:1 vs #fff`, () => {
-      expect(
-        Utils.getContrastRatio(colour, LIGHT_BG),
-      ).toBeGreaterThanOrEqual(MIN_BG_RATIO)
+  for (const name of THEME_PALETTES) {
+    palettes[name].forEach((colour, idx) => {
+      it(`${name}[${idx}] ${colour} vs light bg (#fff)`, () => {
+        expect(Utils.getContrastRatio(colour, LIGHT_BG)).toBeGreaterThanOrEqual(
+          MIN_RATIO,
+        )
+      })
+      it(`${name}[${idx}] ${colour} vs dark bg (#293450)`, () => {
+        expect(Utils.getContrastRatio(colour, DARK_BG)).toBeGreaterThanOrEqual(
+          MIN_RATIO,
+        )
+      })
     })
-  })
+  }
+})
+
+describe('highContrast palette meets WCAG 1.4.11 (≥ 3:1) against light bg', () => {
+  const palettes = getThemePalettes()
+  for (const name of HIGH_CONTRAST_PALETTES) {
+    palettes[name].forEach((colour, idx) => {
+      it(`${name}[${idx}] ${colour} vs light bg (#fff)`, () => {
+        expect(Utils.getContrastRatio(colour, LIGHT_BG)).toBeGreaterThanOrEqual(
+          MIN_RATIO,
+        )
+      })
+    })
+  }
 })
 
 describe('CVD palettes are present and selectable', () => {

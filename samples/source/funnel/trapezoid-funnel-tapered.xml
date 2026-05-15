@@ -1,0 +1,50 @@
+<title>Trapezoid Funnel — Tapered</title>
+
+<chart>
+<options>
+chart: {
+  type: 'funnel',
+  height: 420,
+},
+plotOptions: {
+  funnel: {
+    shape: 'trapezoid',
+    lastShape: 'taper',
+  },
+  bar: {
+    distributed: true,
+  },
+},
+colors: ['#10B981', '#34D399', '#6EE7B7', '#A7F3D0'],
+dataLabels: {
+  enabled: true,
+  formatter: function (val, opt) {
+    return opt.w.globals.labels[opt.dataPointIndex] + ': ' + val
+  },
+  style: {
+    colors: ['#064E3B'],
+    fontSize: '13px',
+    fontWeight: 600,
+  },
+},
+title: {
+  text: 'Recruitment Funnel — Tapered',
+  align: 'middle',
+},
+xaxis: {
+  categories: ['Sourced', 'Screened', 'Interviewed', 'Hired'],
+},
+legend: {
+  show: false,
+},
+</options>
+
+<series>
+[
+  {
+    name: "Pipeline",
+    data: [1200, 480, 160, 32],
+  },
+]
+</series>
+</chart>
