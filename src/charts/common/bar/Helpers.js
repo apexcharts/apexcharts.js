@@ -46,9 +46,9 @@ export default class Helpers {
 
     this.arrBorderRadius = this.createBorderRadiusArr(w.seriesData.series)
 
-    if (Utils.isSafari()) {
+    if (Utils.isSafari() && w.config.chart.stacked) {
       // https://github.com/apexcharts/apexcharts.js/issues/4996
-      // to temporarily fix the above issue, border radius is disabled
+      // to temporarily fix the above issue, border radius is disabled for stacked charts
       /**
        * @param {any[]} brArr
        */
