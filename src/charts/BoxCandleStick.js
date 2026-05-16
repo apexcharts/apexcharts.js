@@ -283,11 +283,6 @@ class BoxCandleStick extends Bar {
     }
 
     let pathTo
-    let pathFrom = graphics.move(barXPosition + barWidth / 2, y1)
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j)
-    }
-
     if (this.isOHLC) {
       const centerX = barXPosition + barWidth / 2
       const openY = zeroH - ohlc.o / yRatio
@@ -344,7 +339,16 @@ class BoxCandleStick extends Bar {
       ]
     }
 
-    pathFrom = pathFrom + graphics.move(barXPosition, y1)
+    let pathFrom
+    if (w.globals.previousPaths.length > 0) {
+      // Update: survivor with matching command count → animate; else snap.
+      pathFrom = this.getPreviousPath(realIndex, j, pathTo[0])
+    } else {
+      // Initial mount: baseline collapsed at the bar's center.
+      pathFrom =
+        graphics.move(barXPosition + barWidth / 2, y1) +
+        graphics.move(barXPosition, y1)
+    }
 
     if (!w.axisFlags.isXNumeric) {
       x = x + xDivision
@@ -435,11 +439,6 @@ class BoxCandleStick extends Bar {
       m = zeroW + ohlc.m / yRatio
     }
 
-    let pathFrom = graphics.move(x1, barYPosition + barHeight / 2)
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j)
-    }
-
     const pathTo = [
       graphics.move(x1, barYPosition) +
         graphics.line(x1, barYPosition + barHeight / 2) +
@@ -466,7 +465,16 @@ class BoxCandleStick extends Bar {
         'z',
     ]
 
-    pathFrom = pathFrom + graphics.move(x1, barYPosition)
+    let pathFrom
+    if (w.globals.previousPaths.length > 0) {
+      // Update: survivor with matching command count → animate; else snap.
+      pathFrom = this.getPreviousPath(realIndex, j, pathTo[0])
+    } else {
+      // Initial mount: baseline collapsed at the bar's center.
+      pathFrom =
+        graphics.move(x1, barYPosition + barHeight / 2) +
+        graphics.move(x1, barYPosition)
+    }
 
     if (!w.axisFlags.isXNumeric) {
       y = y + yDivision

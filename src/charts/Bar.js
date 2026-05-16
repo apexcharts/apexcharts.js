@@ -608,15 +608,14 @@ class Bar {
       const _zeroW = zeroW ?? 0
       zeroW =
         _zeroW -
-        /** @type {number} */ ((
+        /** @type {number} */ (
           /** @type {any} */ (
             this.barHelpers.getXForValue(
               /** @type {any} */ (this.series)[i][j],
               _zeroW,
             )
-          )
-        ) -
-          _zeroW) /
+          ) - _zeroW
+        ) /
           2
     }
 
@@ -807,29 +806,52 @@ class Bar {
     }
   }
 
-  /** getPreviousPath is a common function for bars/columns which is used to get previous paths when data changes.
-   * @memberof Bar
-   * @param {number} realIndex - current iterating i
-   * @param {number} j - current iterating series's j index
-   * @return {string} pathFrom is the string which will be appended in animations
+  /**
+   * Resolve `pathFrom` for a bar on data update. Returns the previous render's
+   * `d` string for the same `(realIndex, j)` only when its SVG command count
+   * matches `pathTo` — that's the survivor-with-stable-shape case where SVG.js
+   * morph produces a smooth resize. When commands mismatch (corner state
+   * flipped, e.g. bar became new top-of-stack after legend toggle) or the bar
+   * is genuinely new (no captured previous), returns `pathTo` — which makes
+   * pathFrom === pathTo so morph is a visual no-op (snap).
+   *
+   * @param {number} realIndex - stable series index from `data:realIndex`
+   * @param {number} j - data-point index within the series
+   * @param {string} pathTo - the freshly-built path for this bar (post-roundPathCorners)
+   * @returns {string}
    **/
-  getPreviousPath(realIndex, j) {
+  getPreviousPath(realIndex, j, pathTo) {
     const w = this.w
-    let pathFrom = 'M 0 0'
+    let oldD = null
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
       const gpp = w.globals.previousPaths[pp]
-
       if (
         gpp.paths &&
         gpp.paths.length > 0 &&
         parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)
       ) {
-        if (typeof w.globals.previousPaths[pp].paths[j] !== 'undefined') {
-          pathFrom = w.globals.previousPaths[pp].paths[j].d
+        if (typeof gpp.paths[j] !== 'undefined') {
+          oldD = gpp.paths[j].d
         }
       }
     }
-    return pathFrom
+    if (oldD && Bar.pathCommandCount(oldD) === Bar.pathCommandCount(pathTo)) {
+      return oldD
+    }
+    return pathTo
+  }
+
+  /**
+   * Count SVG path commands (M, L, C, Q, Z, etc.). Used to detect whether
+   * two paths can be morphed safely — SVG.js requires matching command counts.
+   *
+   * @param {string} d
+   * @returns {number}
+   */
+  static pathCommandCount(d) {
+    if (!d) return 0
+    const matches = d.match(/[A-Za-z]/g)
+    return matches ? matches.length : 0
   }
 }
 

@@ -485,45 +485,42 @@ export default class Helpers {
     y1 += 0.001 - strokeCenter * direction
     y2 += 0.001 + strokeCenter * direction
 
-    let pathTo = graphics.move(x1, y1)
-    let pathFrom = graphics.move(x1, y1)
-
     const sl = graphics.line(x2, y1)
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, false)
-    }
+    const closing =
+      w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
+      this.arrBorderRadius[realIndex][j] === 'both'
+        ? ' Z'
+        : ' z'
 
-    pathTo =
-      pathTo +
+    let pathTo =
+      graphics.move(x1, y1) +
       graphics.line(x1, y2) +
       graphics.line(x2, y2) +
       sl +
-      (w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
-      this.arrBorderRadius[realIndex][j] === 'both'
-        ? ' Z'
-        : ' z')
-
-    // the lines in pathFrom are repeated to equal it to the points of pathTo
-    // this is to avoid weird animation (bug in svg.js)
-    pathFrom =
-      pathFrom +
-      graphics.line(x1, y1) +
-      sl +
-      sl +
-      sl +
-      sl +
-      sl +
-      graphics.line(x1, y1) +
-      (w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
-      this.arrBorderRadius[realIndex][j] === 'both'
-        ? ' Z'
-        : ' z')
-
+      closing
     if (this.arrBorderRadius[realIndex][j] !== 'none') {
       pathTo = graphics.roundPathCorners(
         pathTo,
         w.config.plotOptions.bar.borderRadius
       )
+    }
+
+    let pathFrom
+    if (w.globals.previousPaths.length > 0) {
+      // Update: survivor with matching command count → animate; else snap.
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo)
+    } else {
+      // Initial mount: rise from baseline; pad command count to match pathTo.
+      pathFrom =
+        graphics.move(x1, y1) +
+        graphics.line(x1, y1) +
+        sl +
+        sl +
+        sl +
+        sl +
+        sl +
+        graphics.line(x1, y1) +
+        closing
     }
 
     if (w.config.chart.stacked) {
@@ -600,11 +597,12 @@ export default class Helpers {
       graphics.line(bottomLeftX, y2) +
       ' Z'
 
-    let pathFrom = graphics.move(center, y1)
+    let pathFrom
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, false)
+      // Update: survivor with matching command count → animate; else snap.
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo)
     } else {
-      // Start collapsed at the centerline so the trapezoid expands outward.
+      // Initial mount: collapsed at the centerline so the trapezoid expands outward.
       pathFrom =
         graphics.move(center, y1) +
         graphics.line(center, y1) +
@@ -672,44 +670,43 @@ export default class Helpers {
     const isFunnel = this.barCtx.isFunnel
     const fromX = isFunnel ? (x1 + x2) / 2 : x1
 
-    let pathTo = graphics.move(x1, y1)
-    let pathFrom = graphics.move(fromX, y1)
-
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, false)
-    }
-
     const sl = graphics.line(x1, y2)
-    pathTo =
-      pathTo +
+    const closing =
+      w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
+      this.arrBorderRadius[realIndex][j] === 'both'
+        ? ' Z'
+        : ' z'
+
+    let pathTo =
+      graphics.move(x1, y1) +
       graphics.line(x2, y1) +
       graphics.line(x2, y2) +
       sl +
-      (w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
-      this.arrBorderRadius[realIndex][j] === 'both'
-        ? ' Z'
-        : ' z')
-
-    const slFrom = isFunnel ? graphics.line(fromX, y2) : sl
-    pathFrom =
-      pathFrom +
-      graphics.line(fromX, y1) +
-      slFrom +
-      slFrom +
-      slFrom +
-      slFrom +
-      slFrom +
-      graphics.line(fromX, y1) +
-      (w.config.plotOptions.bar.borderRadiusApplication === 'around' ||
-      this.arrBorderRadius[realIndex][j] === 'both'
-        ? ' Z'
-        : ' z')
-
+      closing
     if (this.arrBorderRadius[realIndex][j] !== 'none') {
       pathTo = graphics.roundPathCorners(
         pathTo,
         w.config.plotOptions.bar.borderRadius
       )
+    }
+
+    let pathFrom
+    if (w.globals.previousPaths.length > 0) {
+      // Update: survivor with matching command count → animate; else snap.
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo)
+    } else {
+      // Initial mount: rise from baseline; pad command count to match pathTo.
+      const slFrom = isFunnel ? graphics.line(fromX, y2) : sl
+      pathFrom =
+        graphics.move(fromX, y1) +
+        graphics.line(fromX, y1) +
+        slFrom +
+        slFrom +
+        slFrom +
+        slFrom +
+        slFrom +
+        graphics.line(fromX, y1) +
+        closing
     }
 
     if (w.config.chart.stacked) {

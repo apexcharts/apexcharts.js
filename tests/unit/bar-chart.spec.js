@@ -128,17 +128,25 @@ describe('Bar chart', () => {
 
   // =========================================================================
   // getPreviousPath – isolated unit tests
+  //
+  // Signature: getPreviousPath(realIndex, j, pathTo)
+  //   - If a captured `d` exists for (realIndex, j) AND its SVG command count
+  //     matches `pathTo` → returns captured d (survivor → smooth morph).
+  //   - Otherwise → returns `pathTo` (pathFrom === pathTo = snap, no
+  //     animation). Mirrors Highcharts: only survivors animate.
   // =========================================================================
   describe('getPreviousPath', () => {
-    it('should return default "M 0 0" when no previous paths exist', () => {
+    const PATH_TO = 'M 0 0 L 1 1' // 2 commands
+
+    it('returns pathTo (snap) when no previous paths exist', () => {
       const { ctx } = createBarInstance()
       const bar = Object.create(Bar.prototype)
       bar.w = ctx.w
 
-      expect(bar.getPreviousPath(0, 0)).toBe('M 0 0')
+      expect(bar.getPreviousPath(0, 0, PATH_TO)).toBe(PATH_TO)
     })
 
-    it('should return the matching path d when realIndex and j match', () => {
+    it('returns the captured d when realIndex/j match and command count matches', () => {
       const { ctx } = createBarInstance({
         globals: {
           previousPaths: [
@@ -152,11 +160,11 @@ describe('Bar chart', () => {
       const bar = Object.create(Bar.prototype)
       bar.w = ctx.w
 
-      expect(bar.getPreviousPath(0, 0)).toBe('M 10 20 L 30 40')
-      expect(bar.getPreviousPath(0, 1)).toBe('M 50 60 L 70 80')
+      expect(bar.getPreviousPath(0, 0, PATH_TO)).toBe('M 10 20 L 30 40')
+      expect(bar.getPreviousPath(0, 1, PATH_TO)).toBe('M 50 60 L 70 80')
     })
 
-    it('should return "M 0 0" when realIndex does not match', () => {
+    it('returns pathTo (snap) when realIndex does not match', () => {
       const { ctx } = createBarInstance({
         globals: {
           previousPaths: [
@@ -170,10 +178,10 @@ describe('Bar chart', () => {
       const bar = Object.create(Bar.prototype)
       bar.w = ctx.w
 
-      expect(bar.getPreviousPath(0, 0)).toBe('M 0 0')
+      expect(bar.getPreviousPath(0, 0, PATH_TO)).toBe(PATH_TO)
     })
 
-    it('should return "M 0 0" when j is out of bounds', () => {
+    it('returns pathTo (snap) when j is out of bounds', () => {
       const { ctx } = createBarInstance({
         globals: {
           previousPaths: [
@@ -187,10 +195,10 @@ describe('Bar chart', () => {
       const bar = Object.create(Bar.prototype)
       bar.w = ctx.w
 
-      expect(bar.getPreviousPath(0, 5)).toBe('M 0 0')
+      expect(bar.getPreviousPath(0, 5, PATH_TO)).toBe(PATH_TO)
     })
 
-    it('should handle string realIndex via parseInt comparison', () => {
+    it('handles string realIndex via parseInt comparison', () => {
       const { ctx } = createBarInstance({
         globals: {
           previousPaths: [
@@ -204,22 +212,52 @@ describe('Bar chart', () => {
       const bar = Object.create(Bar.prototype)
       bar.w = ctx.w
 
-      expect(bar.getPreviousPath(2, 0)).toBe('M 1 2 L 3 4')
+      expect(bar.getPreviousPath(2, 0, PATH_TO)).toBe('M 1 2 L 3 4')
     })
 
-    it('should skip entries with empty paths array', () => {
+    it('skips previousPaths entries with empty paths array', () => {
       const { ctx } = createBarInstance({
         globals: {
           previousPaths: [
             { realIndex: 0, paths: [] },
-            { realIndex: 0, paths: [{ d: 'M 99 99' }] },
+            { realIndex: 0, paths: [{ d: 'M 99 99 L 1 1' }] },
           ],
         },
       })
       const bar = Object.create(Bar.prototype)
       bar.w = ctx.w
 
-      expect(bar.getPreviousPath(0, 0)).toBe('M 99 99')
+      expect(bar.getPreviousPath(0, 0, PATH_TO)).toBe('M 99 99 L 1 1')
+    })
+
+    it('returns pathTo (snap) when captured d has different command count', () => {
+      // Reproduces the "corner state flipped" case — e.g. a stacked bar that
+      // wasn't previously the top of its stack now becomes the top and picks
+      // up rounded-corner arcs. Command counts diverge → snap, no morph.
+      const { ctx } = createBarInstance({
+        globals: {
+          previousPaths: [
+            {
+              realIndex: 0,
+              paths: [{ d: 'M 10 20 L 30 40 L 50 60 L 70 80 Z' }], // 5 commands
+            },
+          ],
+        },
+      })
+      const bar = Object.create(Bar.prototype)
+      bar.w = ctx.w
+
+      // PATH_TO is 2 commands → mismatch → snap.
+      expect(bar.getPreviousPath(0, 0, PATH_TO)).toBe(PATH_TO)
+    })
+
+    it('pathCommandCount counts SVG command letters', () => {
+      expect(Bar.pathCommandCount('M 0 0')).toBe(1)
+      expect(Bar.pathCommandCount('M 0 0 L 1 1')).toBe(2)
+      expect(Bar.pathCommandCount('M 0 0 L 1 1 L 2 2 L 3 3 Z')).toBe(5)
+      expect(Bar.pathCommandCount('M 0 0 q 5 5 10 0 l 5 5 z')).toBe(4)
+      expect(Bar.pathCommandCount('')).toBe(0)
+      expect(Bar.pathCommandCount(null)).toBe(0)
     })
   })
 
