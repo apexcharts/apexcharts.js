@@ -234,6 +234,15 @@ export interface ChartGlobals
   lastYAxis: object[]
   originalSeries: ApexOptions['series'] | null
 
+  // ── Zoom-aware downsampling (chart.dataReducer) ───────────────────────────
+  // Raw series stash captured on first parse so zoom/pan can re-downsample
+  // against full-resolution data. Cleared by _updateSeries when user pushes
+  // new data. dataReducerRawMinX/MaxX hold the true x-bounds of the raw data
+  // for zoom-out/pan clamps (initialMinX/MaxX track the downsampled window).
+  dataReducerRawSeries: Array<{ data: any }> | null
+  dataReducerRawMinX: number | undefined
+  dataReducerRawMaxX: number | undefined
+
   // ── Collapse state ────────────────────────────────────────────────────────
   allSeriesCollapsed: boolean
   collapsedSeries: Array<{ index: number; data: number[]; type: string }>

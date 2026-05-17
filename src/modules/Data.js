@@ -530,19 +530,32 @@ export default class Data {
         return
       }
 
-      // LTTB downsampling — runs before any parsing so all downstream paths
-      // benefit. Only applies to multiFormat (XY/{x,y}) data where both x and y
-      // are available for triangle-area calculation.
+      // Zoom-aware LTTB downsampling — runs before any parsing so all
+      // downstream paths benefit. Only applies to multiFormat (XY/{x,y}) data
+      // where both x and y are available for triangle-area calculation.
+      // On zoom, cnf.xaxis.min/max define the visible window; we slice the
+      // stashed raw series to that window and downsample the slice so users
+      // see progressively higher-resolution detail as they zoom in.
       const dr = cnf.chart.dataReducer
+      const rawStash = gl.dataReducerRawSeries?.[i]?.data
       if (
         dr?.enabled &&
         this.isMultiFormat() &&
-        ser[i].data.length > (dr.threshold ?? 500)
+        Array.isArray(rawStash) &&
+        rawStash.length > (dr.threshold ?? 500)
       ) {
-        ser[i] = {
-          ...ser[i],
-          data: Data.lttbDownsample(ser[i].data, dr.targetPoints ?? 250),
-        }
+        const targetPoints = dr.targetPoints ?? 250
+        const xmin = cnf.xaxis.min
+        const xmax = cnf.xaxis.max
+        const windowed =
+          xmin == null && xmax == null
+            ? rawStash
+            : Data.sliceByXRange(rawStash, xmin, xmax)
+        const reduced =
+          windowed.length > targetPoints
+            ? Data.lttbDownsample(windowed, targetPoints)
+            : windowed
+        ser[i] = { ...ser[i], data: reduced }
       }
 
       if (
@@ -1163,8 +1176,53 @@ export default class Data {
 
     ser = this.parseRawDataIfNeeded(ser)
 
+    // Stash raw series once per chart lifetime so zoom/pan can re-downsample
+    // against full-resolution data. Cleared by _updateSeries when user pushes
+    // new data. We hold references — parseDataAxisCharts replaces ser[i] but
+    // never mutates the underlying data array.
+    if (
+      cnf.chart.dataReducer?.enabled &&
+      gl.axisCharts &&
+      !gl.dataReducerRawSeries
+    ) {
+      gl.dataReducerRawSeries = ser.map((s) => ({
+        data: Array.isArray(s?.data) ? s.data.slice() : s?.data,
+      }))
+      // Also capture true x-bounds from the raw data so zoom-out/pan clamps
+      // don't shrink to the current window's bounds (initialMinX/initialMaxX
+      // are recomputed from the downsampled-and-sliced data each parse).
+      let rawMinX = Infinity
+      let rawMaxX = -Infinity
+      for (const s of ser) {
+        const d = s?.data
+        if (!Array.isArray(d) || d.length === 0) continue
+        const isXY = !Array.isArray(d[0])
+        const firstX = isXY ? d[0]?.x : d[0]?.[0]
+        const lastX = isXY ? d[d.length - 1]?.x : d[d.length - 1]?.[0]
+        if (typeof firstX === 'number') rawMinX = Math.min(rawMinX, firstX)
+        if (typeof lastX === 'number') rawMaxX = Math.max(rawMaxX, lastX)
+      }
+      if (rawMinX !== Infinity) {
+        gl.dataReducerRawMinX = rawMinX
+        gl.dataReducerRawMaxX = rawMaxX
+      }
+    }
+
     cnf.series = ser
-    gl.initialSeries = Utils.clone(ser)
+    // When zoom-aware downsampling is active, parseDataAxisCharts mutates
+    // ser[i] to the windowed/downsampled view — which leaks into cnf.series.
+    // Re-cloning from cnf.series each parse would corrupt initialSeries and
+    // break resetZoom (it would only restore one zoom step). Instead, snapshot
+    // from the raw stash so initialSeries always represents the true input.
+    if (gl.dataReducerRawSeries && cnf.chart.dataReducer?.enabled) {
+      const stash = gl.dataReducerRawSeries
+      gl.initialSeries = ser.map((s, i) => ({
+        ...s,
+        data: stash[i]?.data?.slice() ?? s.data,
+      }))
+    } else {
+      gl.initialSeries = Utils.clone(ser)
+    }
 
     this.excludeCollapsedSeriesInYAxis()
 
@@ -1273,6 +1331,52 @@ export default class Data {
         seriesGroups: this.w.labelData.seriesGroups,
       },
     }
+  }
+
+  /**
+   * Slice a sorted-by-x series to a [xmin, xmax] window using binary search.
+   *
+   * Pads with one extra point on each side so lines extend cleanly to the
+   * chart edges. Either bound may be null/undefined to disable that side.
+   *
+   * @param {any[]} data - Series data in [{x,y}] or [[x,y]] format, sorted by x.
+   * @param {number|null|undefined} xmin
+   * @param {number|null|undefined} xmax
+   * @returns {any[]} Sliced array (new array, never the input reference).
+   */
+  static sliceByXRange(data, xmin, xmax) {
+    const len = data.length
+    if (len === 0) return data
+    const isXY = !Array.isArray(data[0])
+    const getX = isXY
+      ? (/** @type {any} */ p) => p.x
+      : (/** @type {any} */ p) => p[0]
+
+    let lo = 0
+    if (xmin != null) {
+      let l = 0
+      let r = len - 1
+      while (l <= r) {
+        const m = (l + r) >> 1
+        if (getX(data[m]) < xmin) l = m + 1
+        else r = m - 1
+      }
+      lo = Math.max(0, l - 1)
+    }
+
+    let hi = len
+    if (xmax != null) {
+      let l = 0
+      let r = len - 1
+      while (l <= r) {
+        const m = (l + r) >> 1
+        if (getX(data[m]) > xmax) r = m - 1
+        else l = m + 1
+      }
+      hi = Math.min(len, l + 1)
+    }
+
+    return lo === 0 && hi === len ? data.slice() : data.slice(lo, hi)
   }
 
   /**

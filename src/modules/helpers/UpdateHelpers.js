@@ -146,6 +146,10 @@ export default class UpdateHelpers {
       // Capture previous series count BEFORE parsing (parseData overwrites w.seriesData.series)
       const prevSeriesCount = w.config.series.length
 
+      // User is pushing new data — drop any stashed raw data so the next
+      // parseData re-stashes from this new series (zoom-aware downsampling).
+      w.globals.dataReducerRawSeries = null
+
       this.ctx.data.resetParsingFlags()
       // Phase 1: return value captured; writer stubs are no-ops.
       const parsedState = this.ctx.data.parseData(newSeries)

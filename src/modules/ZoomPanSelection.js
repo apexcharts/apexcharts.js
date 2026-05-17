@@ -327,13 +327,18 @@ export default class ZoomPanSelection extends Toolbar {
       newMaxX = currentMaxX + zoomRange / 2
     }
 
-    // Constrain within original chart bounds
+    // Constrain within original chart bounds. When zoom-aware downsampling is
+    // active, initialMinX/initialMaxX track the downsampled window — fall back
+    // to the raw data bounds captured at stash time so wheel-zoom-out can
+    // expand past the current window.
     if (!w.axisFlags.isRangeBar) {
-      newMinX = Math.max(newMinX, w.globals.initialMinX)
-      newMaxX = Math.min(newMaxX, w.globals.initialMaxX)
+      const clampMin = w.globals.dataReducerRawMinX ?? w.globals.initialMinX
+      const clampMax = w.globals.dataReducerRawMaxX ?? w.globals.initialMaxX
+      newMinX = Math.max(newMinX, clampMin)
+      newMaxX = Math.min(newMaxX, clampMax)
 
       // Ensure minimum range
-      const minRange = (w.globals.initialMaxX - w.globals.initialMinX) * 0.01
+      const minRange = (clampMax - clampMin) * 0.01
       if (newMaxX - newMinX < minRange) {
         const midPoint = (newMinX + newMaxX) / 2
         newMinX = midPoint - minRange / 2
@@ -984,10 +989,9 @@ export default class ZoomPanSelection extends Toolbar {
     }
 
     if (!w.axisFlags.isRangeBar) {
-      if (
-        xLowestValue < w.globals.initialMinX ||
-        xHighestValue > w.globals.initialMaxX
-      ) {
+      const clampMin = w.globals.dataReducerRawMinX ?? w.globals.initialMinX
+      const clampMax = w.globals.dataReducerRawMaxX ?? w.globals.initialMaxX
+      if (xLowestValue < clampMin || xHighestValue > clampMax) {
         xLowestValue = minX
         xHighestValue = maxX
       }
