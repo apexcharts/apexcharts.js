@@ -54,6 +54,16 @@ export default class KeyboardNavigation {
     this._onFocus = this._onFocus.bind(this)
     this._onBlur = this._onBlur.bind(this)
     this._onLegendClick = this._onLegendClick.bind(this)
+    this._onPointerDown = this._onPointerDown.bind(this)
+
+    // Timestamp (ms) of the last pointer-down inside the chart. We use this
+    // in `_onFocus` to skip keyboard-nav activation when the focus was
+    // induced by a mouse click — clicking anywhere on the chart auto-focuses
+    // the SVG which would otherwise force the tooltip to flicker to the
+    // default cursor (j=0). 100 ms is plenty: focus follows mousedown within
+    // microseconds in real browsers; keyboard-driven focus has no recent
+    // pointer activity so the check passes.
+    this._lastPointerDownAt = 0
   }
 
   // ─── Public API ───────────────────────────────────────────────────────────
@@ -71,6 +81,17 @@ export default class KeyboardNavigation {
     svgEl.setAttribute('tabindex', '0')
     svgEl.addEventListener('focus', this._onFocus)
     svgEl.addEventListener('blur', this._onBlur)
+    // Capture-phase pointerdown/mousedown listener so `_onFocus` (which
+    // fires AFTER the pointer event when the browser auto-focuses the SVG)
+    // can detect that the focus is mouse-induced and bail out.
+    svgEl.addEventListener('mousedown', this._onPointerDown, { capture: true })
+    svgEl.addEventListener('pointerdown', this._onPointerDown, {
+      capture: true,
+    })
+    svgEl.addEventListener('touchstart', this._onPointerDown, {
+      capture: true,
+      passive: true,
+    })
     // Use a non-passive keydown listener directly on the SVG so that
     // preventDefault() works (required to suppress page scroll on arrow keys).
     // Events.js listens on the ancestor canvas div as passive:true, so it
@@ -95,8 +116,31 @@ export default class KeyboardNavigation {
     svgEl.removeEventListener('focus', this._onFocus)
     svgEl.removeEventListener('blur', this._onBlur)
     svgEl.removeEventListener('keydown', this._onKeyDown)
+    svgEl.removeEventListener(
+      'mousedown',
+      this._onPointerDown,
+      /** @type {any} */ ({ capture: true }),
+    )
+    svgEl.removeEventListener(
+      'pointerdown',
+      this._onPointerDown,
+      /** @type {any} */ ({ capture: true }),
+    )
+    svgEl.removeEventListener(
+      'touchstart',
+      this._onPointerDown,
+      /** @type {any} */ ({ capture: true }),
+    )
 
     this.ctx.events.removeEventListener('legendClick', this._onLegendClick)
+  }
+
+  // Records the timestamp of the most recent pointer-down inside the SVG.
+  // `_onFocus` reads this to distinguish keyboard-driven focus (no recent
+  // pointer activity) from mouse-driven focus (pointer event within the
+  // last 100 ms). Stays a no-op for keyboard users.
+  _onPointerDown() {
+    this._lastPointerDownAt = Date.now()
   }
 
   /**
@@ -115,6 +159,20 @@ export default class KeyboardNavigation {
 
   _onFocus() {
     if (!this._isNavEnabled()) return
+    // Don't react to mouse-induced focus. When the user clicks anywhere in
+    // the chart, the browser auto-focuses the SVG and fires `focus`, which
+    // would otherwise activate keyboard-nav and force the tooltip to jump
+    // to the default cursor (seriesIndex=0, dataPointIndex=0) — visible as
+    // a one-frame "flicker to j=0" before the mouse-hover tooltip recovers.
+    //
+    // We track the timestamp of the last pointerdown inside the SVG (see
+    // `_onPointerDown`). A focus event firing within 100 ms of a pointer
+    // event means the focus was caused by that pointer event — bail. This
+    // is more reliable than `:focus-visible` (which jsdom doesn't support)
+    // and works identically across real browsers.
+    if (Date.now() - this._lastPointerDownAt < 100) {
+      return
+    }
     this.active = true
     // Clamp cursor to valid range in case series/data changed since last focus
     this._clampCursor()

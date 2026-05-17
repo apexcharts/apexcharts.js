@@ -1138,6 +1138,7 @@ export default class Options {
         followCursor: false, // when disabled, the tooltip will show on top of the series instead of mouse position
         intersect: false, // when enabled, tooltip will only show when user directly hovers over point
         inverseOrder: false,
+        arrow: true,
         custom: undefined,
         fillSeriesColor: false,
         theme: 'light',
@@ -1145,6 +1146,7 @@ export default class Options {
         style: {
           fontSize: '12px',
           fontFamily: undefined,
+          background: undefined,
         },
         onDatasetHover: {
           highlightDataSeries: false,

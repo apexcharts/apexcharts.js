@@ -1404,6 +1404,7 @@ type ApexTooltip = {
   followCursor?: boolean
   intersect?: boolean
   inverseOrder?: boolean
+  arrow?: boolean
   custom?: ((options: any) => any) | ((options: any) => any)[]
   fillSeriesColor?: boolean
   theme?: string
@@ -1412,6 +1413,7 @@ type ApexTooltip = {
   style?: {
     fontSize?: string
     fontFamily?: string
+    background?: string
   }
   onDatasetHover?: {
     highlightDataSeries?: boolean

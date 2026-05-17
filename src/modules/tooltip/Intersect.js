@@ -132,8 +132,22 @@ class Intersect {
       w.interact.capturedSeriesIndex = i
       w.interact.capturedDataPointIndex = j
 
+      const arrowEnabled = !!w.config.tooltip.arrow
+
       x = cx
-      y = cy + w.layout.translateY - ttCtx.tooltipRect.ttHeight * 1.4
+      if (arrowEnabled) {
+        // Arrow mode handles its own centering on (cx, cy) in
+        // computeTooltipPosition (cy assumed to be in grid-local coords).
+        // Don't apply the legacy "above the bubble" pre-shift, which
+        // would otherwise be re-translated downstream → double-translateY
+        // bug placing the arrow nowhere near the bubble.
+        y = cy
+      } else {
+        y = cy + w.layout.translateY - ttCtx.tooltipRect.ttHeight * 1.4
+        if (val < 0) {
+          y = cy
+        }
+      }
 
       if (ttCtx.w.config.tooltip.followCursor) {
         const elGrid = ttCtx.getElGrid()
@@ -142,9 +156,6 @@ class Intersect {
         y = ttCtx.e.clientY + w.layout.translateY - seriesBound.top
       }
 
-      if (val < 0) {
-        y = cy
-      }
       ttCtx.marker.enlargeCurrentPoint(j, opt.paths, x, y)
     }
 
@@ -230,7 +241,6 @@ class Intersect {
       }
     }
 
-    // move tooltip here
     if (
       !ttCtx.fixedTooltip &&
       (!w.config.tooltip.shared ||
@@ -239,8 +249,145 @@ class Intersect {
       y = y + w.layout.translateY - ttCtx.tooltipRect.ttHeight / 2
 
       if (tooltipEl) {
-        tooltipEl.style.left = x + w.layout.translateX + 'px'
-        tooltipEl.style.top = y + 'px'
+        const ttW = ttCtx.tooltipRect.ttWidth || 0
+        const ttH = ttCtx.tooltipRect.ttHeight || 0
+        const arrowEnabled = !!w.config.tooltip.arrow
+        const { barAnchorXInGrid, barAnchorYInGrid, barRectInGrid } = barXY
+        const ARROW_TIP_OVERHANG = 7 // matches the CSS arrow width
+
+        // Convert from grid-local (elGrid-relative) coords into elWrap-local
+        // coords using the LIVE rect offset between elWrap and elGrid, not
+        // `w.layout.translateX`. translateX is the SVG group's internal
+        // translate which only matches the elWrap→elGrid offset for charts
+        // where the SVG starts flush at elWrap.left; for layouts with a
+        // right-side legend or other padding above the SVG, the two values
+        // can differ by tens of pixels — enough to misalign the tooltip by a
+        // full column.
+        const elGridRect = ttCtx.getElGrid()?.getBoundingClientRect()
+        const elWrapRect = w.dom.elWrap.getBoundingClientRect()
+        const gridOffsetXInElWrap = elGridRect
+          ? elGridRect.left - elWrapRect.left
+          : w.layout.translateX
+
+        /** @type {'left'|'right'|'top'|'bottom' | undefined} */
+        let placement
+        /** @type {number | null} */
+        let arrowY = null
+        /** @type {number | null} */
+        let arrowX = null
+        let finalX = x + gridOffsetXInElWrap
+        let finalY = y
+
+        // For horizontal-orientation bar-likes (horizontal bar, range bar
+        // timeline, boxPlot, funnel, pyramid — all flagged via
+        // `isBarHorizontal` after Config normalization), place the tooltip
+        // ABOVE the bar with a downward arrow. Flip to BELOW when there's
+        // no space above the bar.
+        if (
+          arrowEnabled &&
+          w.globals.isBarHorizontal &&
+          barRectInGrid != null
+        ) {
+          const gridTop = w.layout.translateY
+          const gridBottom = w.layout.translateY + w.layout.gridHeight
+          const gridLeft = gridOffsetXInElWrap
+          const gridRight = gridOffsetXInElWrap + w.layout.gridWidth
+
+          const barCenterXInElWrap =
+            (barRectInGrid.left + barRectInGrid.right) / 2 +
+            gridOffsetXInElWrap
+          const barTopInElWrap = barRectInGrid.top + w.layout.translateY
+          const barBottomInElWrap = barRectInGrid.bottom + w.layout.translateY
+
+          // Default: tooltip above bar, arrow tip at bar's top edge.
+          let proposedTop = barTopInElWrap - ttH - ARROW_TIP_OVERHANG
+          placement = 'top'
+
+          // Flip below when no space above.
+          if (proposedTop < gridTop) {
+            const belowTop = barBottomInElWrap + ARROW_TIP_OVERHANG
+            // Only flip if "below" actually fits. Otherwise stay above
+            // (best of two bad options — at least the arrow points
+            // toward the bar from the top).
+            if (belowTop + ttH <= gridBottom) {
+              placement = 'bottom'
+              proposedTop = belowTop
+            }
+          }
+          finalY = proposedTop
+
+          // Horizontally center on the bar; clamp to grid bounds.
+          finalX = barCenterXInElWrap - ttW / 2
+          if (finalX < gridLeft) finalX = gridLeft
+          if (finalX + ttW > gridRight) finalX = gridRight - ttW
+
+          // Arrow X in tooltip-local coords, clamped away from corners.
+          arrowX = Math.max(
+            10,
+            Math.min(ttW - 10, barCenterXInElWrap - finalX),
+          )
+        } else if (
+          arrowEnabled &&
+          barAnchorXInGrid != null &&
+          barAnchorYInGrid != null
+        ) {
+          // Vertical-bar (column) case: tooltip beside the bar, arrow
+          // pointing horizontally at the bar's nearest edge. Anchoring on
+          // the edge (not the center) keeps the tooltip from overlapping
+          // the bar on wide columns (numeric/datetime xaxis tend to draw
+          // visually thicker bars).
+          const barCenterXInElWrap = barAnchorXInGrid + gridOffsetXInElWrap
+          const gridCenterXInElWrap =
+            gridOffsetXInElWrap + w.layout.gridWidth / 2
+          const barLeftInElWrap =
+            (barRectInGrid?.left ?? barAnchorXInGrid) + gridOffsetXInElWrap
+          const barRightInElWrap =
+            (barRectInGrid?.right ?? barAnchorXInGrid) + gridOffsetXInElWrap
+          if (barCenterXInElWrap < gridCenterXInElWrap) {
+            placement = 'right'
+            finalX = barRightInElWrap + ARROW_TIP_OVERHANG
+          } else {
+            placement = 'left'
+            finalX = barLeftInElWrap - ttW - ARROW_TIP_OVERHANG
+          }
+
+          // Center the tooltip vertically on the hovered bar's middle
+          // (rect-derived, not the cy attribute which is offset for
+          // numeric/datetime xaxis). Makes it unambiguous which segment
+          // the tooltip refers to in stacked / grouped column charts.
+          // Clamp to grid bounds so a short top/bottom segment doesn't
+          // push the tooltip outside the chart.
+          if (barRectInGrid) {
+            const barCenterYInElWrap =
+              (barRectInGrid.top + barRectInGrid.bottom) / 2 +
+              w.layout.translateY
+            finalY = barCenterYInElWrap - ttH / 2
+            const gridTop = w.layout.translateY
+            const gridBottom = w.layout.translateY + w.layout.gridHeight
+            if (finalY < gridTop) finalY = gridTop
+            if (finalY + ttH > gridBottom) finalY = gridBottom - ttH
+          }
+
+          // Arrow Y in tooltip-local coords: point at the bar's actual
+          // vertical center even when finalY was clamped at the grid edge.
+          if (ttH > 0 && barRectInGrid) {
+            const barCenterYInElWrap =
+              (barRectInGrid.top + barRectInGrid.bottom) / 2 +
+              w.layout.translateY
+            arrowY = Math.max(
+              10,
+              Math.min(ttH - 10, barCenterYInElWrap - finalY),
+            )
+          }
+        }
+
+        ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, {
+          x: finalX,
+          y: finalY,
+          placement,
+          arrowY,
+          arrowX,
+        })
       }
     }
   }
@@ -255,6 +402,23 @@ class Intersect {
     let y = 0
     let barWidth = 0
     let barHeight = 0
+    /** @type {number | null} */
+    let barCx = null
+    /** @type {number | null} */
+    let barCy = null
+    // Arrow anchor point in grid-local coords — derived from the bar's
+    // rendered DOM rect so it survives any nested SVG transforms.
+    // For column bars: anchor at the bar's TOP (the value/data-point).
+    // For horizontal bars: anchor at the bar's vertical center.
+    /** @type {number | null} */
+    let barAnchorXInGrid = null
+    /** @type {number | null} */
+    let barAnchorYInGrid = null
+    // Full bar rect in grid-local coords (rect-derived; correct under
+    // nested SVG transforms). Used by handleBarTooltip for top/bottom
+    // placement on horizontal-bar/funnel/pyramid/timeline charts.
+    /** @type {{left:number, top:number, right:number, bottom:number} | null} */
+    let barRectInGrid = null
 
     const cl = e.target.classList
 
@@ -275,7 +439,34 @@ class Intersect {
 
       const cx = parseInt(bar.getAttribute('cx'), 10)
       const cy = parseInt(bar.getAttribute('cy'), 10)
+      barCx = cx
+      barCy = cy
       barWidth = parseFloat(bar.getAttribute('barWidth'))
+
+      // Rect-derived bar geometry in grid-local coords (always correct
+      // regardless of nested SVG transforms above the bar element).
+      const rectLeftInGrid = barRect.left - seriesBound.left
+      const rectTopInGrid = barRect.top - seriesBound.top
+      const rectCenterXInGrid = rectLeftInGrid + bw / 2
+      const rectCenterYInGrid = rectTopInGrid + bh / 2
+
+      // Pick the arrow anchor per orientation:
+      //  - column: arrow points at the bar's TOP (the value), which is
+      //    also where the tooltip ends up centered (y = cy + translateY
+      //    − ttH/2). Aligning anchor with tooltip center keeps arrowY
+      //    at the tooltip's vertical mid-line for tall and short bars
+      //    alike.
+      //  - horizontal: bar is uniform vertically; anchor at vertical center.
+      barAnchorXInGrid = rectCenterXInGrid
+      barAnchorYInGrid = w.globals.isBarHorizontal
+        ? rectCenterYInGrid
+        : rectTopInGrid
+      barRectInGrid = {
+        left: rectLeftInGrid,
+        top: rectTopInGrid,
+        right: rectLeftInGrid + bw,
+        bottom: rectTopInGrid + bh,
+      }
       const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
 
       j = parseInt(bar.getAttribute('j'), 10)
@@ -352,6 +543,17 @@ class Intersect {
       barWidth,
       i,
       j,
+      // SVG attribute values — left for any caller that still wants them.
+      barCx,
+      barCy,
+      // Arrow anchor in grid-local coords (rect-derived; column→top,
+      // horizontal→center). Used by handleBarTooltip to place the arrow
+      // exactly on the bar's data point.
+      barAnchorXInGrid,
+      barAnchorYInGrid,
+      // Full rendered bar rect (grid-local). Used for top/bottom
+      // placement and flip-on-overflow detection.
+      barRectInGrid,
     }
   }
 }

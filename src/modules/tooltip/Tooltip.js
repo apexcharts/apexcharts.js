@@ -1,7 +1,7 @@
 // @ts-check
 import Labels from './Labels'
 import Position from './Position'
-import Marker from './Marker'
+import Marker, { renderMarkerSVG } from './Marker'
 import Intersect from './Intersect'
 import AxesTooltip from './AxesTooltip'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
@@ -228,6 +228,60 @@ export default class Tooltip {
     }
     tooltipEl.classList.add(`apexcharts-theme-${this.tConfig.theme || 'light'}`)
 
+    // `fillSeriesColor` paints each series-group with its series colour.
+    // Tag the tooltip so the CSS can drop the glass body (transparent bg,
+    // no border, no backdrop-filter) and clip the coloured series-group(s)
+    // to the body's rounded corners — otherwise the colour block sits
+    // inside a glass shell with visible padding/border around it.
+    if (this.tConfig.fillSeriesColor) {
+      tooltipEl.classList.add('apexcharts-tooltip-fill-series')
+    }
+
+    // Optional user-supplied solid background — set on the CSS variable so
+    // the rest of the glass theme (border, shadow) still applies cleanly.
+    // An opaque value also visually disables the backdrop blur.
+    if (this.tConfig.style && this.tConfig.style.background) {
+      tooltipEl.style.setProperty(
+        '--apx-tt-bg',
+        this.tConfig.style.background,
+      )
+    }
+
+    // Arrow connector (default on via `tooltip.arrow`). Positioned by
+    // Position.applyTooltipPosition() via the `--apx-tt-arrow-y` CSS var.
+    // Skip the arrow in these cases:
+    //  - `followCursor`: the cursor IS the anchor; arrow would be redundant.
+    //  - `fixed.enabled`: tooltip is pinned to a chart corner, not a point,
+    //    so an arrow would point nowhere.
+    //  - shared tooltip on a multi-series chart: there's no single point to
+    //    anchor to, so an arrow would mislead. Exception: horizontal-bar
+    //    charts have a single row of bars per category, so we place the
+    //    tooltip above/below the row union and the arrow still has a
+    //    meaningful target (the row's horizontal center).
+    //  - non-axis charts (pie/donut/radialBar/polarArea): slices radiate
+    //    from a centre, so there's no single "anchor edge" for the arrow.
+    //  - `fillSeriesColor`: the glass arrow would not match the solid
+    //    series-colour body. Better to drop it than render a colour clash.
+    const isSharedMulti =
+      this.tConfig.shared &&
+      w.config.series.length > 1 &&
+      !w.globals.isBarHorizontal
+    const shouldDrawArrow =
+      this.tConfig.arrow &&
+      !this.tConfig.followCursor &&
+      !this.tConfig.fixed.enabled &&
+      !isSharedMulti &&
+      !this.tConfig.fillSeriesColor &&
+      w.globals.axisCharts
+    if (shouldDrawArrow) {
+      const arrowEl = BrowserAPIs.createElementNS(
+        'http://www.w3.org/1999/xhtml',
+        'div',
+      )
+      arrowEl.classList.add('apexcharts-tooltip-arrow')
+      tooltipEl.appendChild(arrowEl)
+    }
+
     // accessibility attributes
     if (
       w.config.chart.accessibility.enabled &&
@@ -240,6 +294,7 @@ export default class Tooltip {
     }
 
     w.dom.elWrap.appendChild(tooltipEl)
+
 
     if (w.globals.axisCharts) {
       this.axesTooltip.drawXaxisTooltip()
@@ -344,6 +399,10 @@ export default class Tooltip {
       }
 
       point.setAttribute('shape', shape)
+      // Inline SVG renders crisper than the previous unicode-glyph
+      // `::before` pseudo-elements (which rendered at different sizes on
+      // Windows vs macOS).
+      point.innerHTML = renderMarkerSVG(shape)
       gTxt.appendChild(point)
 
       const gYZ = BrowserAPIs.createElementNS(
@@ -514,8 +573,10 @@ export default class Tooltip {
       y = y + w.globals.svgHeight - ttHeight - 10
     }
 
-    tooltipEl.style.left = x + 'px'
-    tooltipEl.style.top = y + 'px'
+    // Route through the single tooltip-position writer so the fixed-mode
+    // path uses the same code as moveTooltip/Intersect.
+    // No arrow placement here — fixed-mode tooltips don't track a point.
+    this.tooltipPosition.applyTooltipPosition(tooltipEl, { x, y })
 
     return {
       x,
@@ -1070,6 +1131,10 @@ export default class Tooltip {
     w.dom.baseEl.classList.remove('apexcharts-tooltip-active')
 
     opt.tooltipEl.classList.remove('apexcharts-active')
+    // Clear the first-paint marker so the next show repositions without
+    // animating from the now-stale prior coords. Paired with the
+    // `data-positioned` write in Position.applyTooltipPosition.
+    delete opt.tooltipEl.dataset.positioned
     if (
       w.config.chart.accessibility.enabled &&
       w.config.chart.accessibility.announcements.enabled

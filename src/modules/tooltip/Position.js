@@ -100,11 +100,14 @@ export default class Position {
     if (ttCtx.xaxisTooltip !== null && ttCtx.xcrosshairsWidth !== 0) {
       ttCtx.xaxisTooltip.classList.add('apexcharts-active')
 
+      // +5 nudges the tooltip down so its text baseline sits in line with
+      // the x-axis labels (the new compact style would otherwise float a few
+      // pixels above them).
       const cy =
         ttCtx.xaxisOffY +
         w.config.xaxis.tooltip.offsetY +
         w.layout.translateY +
-        1 +
+        5 +
         w.config.xaxis.offsetY
 
       const xaxisTTText = ttCtx.xaxisTooltip.getBoundingClientRect()
@@ -152,10 +155,35 @@ export default class Position {
     if (ttCtx.yaxisTTEls) {
       const yAxisTTRect = ttCtx.yaxisTTEls[index].getBoundingClientRect()
       const yAxisTTHeight = yAxisTTRect.height
-      let cx = w.globals.translateYAxisX[index] - 2
-
-      if (w.config.yaxis[index].opposite) {
-        cx = cx - yAxisTTRect.width
+      // Center the tooltip horizontally on the actual y-axis labels group
+      // so it "floats over" the labels instead of sitting on top of the
+      // grid. Falls back to `translateYAxisX` when the labels group can't
+      // be measured (e.g. yaxis.show=false but tooltip still drawn).
+      let cx
+      const labelsGroup = /** @type {SVGGElement | null} */ (
+        w.dom.baseEl.querySelector(
+          `.apexcharts-yaxis[rel='${index}'] .apexcharts-yaxis-texts-g`,
+        )
+      )
+      const elWrapRect = w.dom.elWrap.getBoundingClientRect()
+      if (labelsGroup) {
+        const lr = labelsGroup.getBoundingClientRect()
+        if (lr.width > 0) {
+          // Convert labels' screen-coord center to elWrap-local x, then
+          // subtract half the tooltip width so the tooltip is centered on
+          // the labels.
+          const labelsCenterInElWrap =
+            lr.left + lr.width / 2 - elWrapRect.left
+          cx = labelsCenterInElWrap - yAxisTTRect.width / 2
+        }
+      }
+      if (cx == null) {
+        // Fallback: align the tooltip's outer edge just past the axis line
+        // on the label side.
+        const GAP = 4
+        cx = w.config.yaxis[index].opposite
+          ? w.globals.translateYAxisX[index] + GAP
+          : w.globals.translateYAxisX[index] - yAxisTTRect.width - GAP
       }
 
       cy = cy - yAxisTTHeight / 2
@@ -183,23 +211,62 @@ export default class Position {
    * @param {number | null} [markerSize] - point's size
    */
   moveTooltip(cx, cy, markerSize = null) {
-    const w = this.w
-
     const ttCtx = this.ttCtx
     const tooltipEl = ttCtx.getElTooltip()
+    if (!tooltipEl) return
+
+    const pos = this.computeTooltipPosition(cx, cy, markerSize)
+    if (pos === null) return
+
+    this.applyTooltipPosition(tooltipEl, pos)
+  }
+
+  /**
+   * Pure-ish (reads from `this.ttCtx` + `this.w` but performs no DOM writes)
+   * computation of the tooltip box position, edge placement (for arrow),
+   * and arrow vertical offset. Returns null when inputs are not numeric.
+   *
+   * @param {number} cx
+   * @param {number} cy
+   * @param {number | null} [markerSize]
+   * @returns {{ x: number, y: number, placement: 'left'|'right', arrowY: number|null } | null}
+   */
+  computeTooltipPosition(cx, cy, markerSize = null) {
+    const w = this.w
+    const ttCtx = this.ttCtx
     const tooltipRect = ttCtx.tooltipRect
-
+    const arrowEnabled = !!w.config.tooltip.arrow
     const pointSize = markerSize !== null ? parseFloat(String(markerSize)) : 1
+    const ttH = tooltipRect.ttHeight || 0
+    const ttW = tooltipRect.ttWidth || 0
 
-    let x = parseFloat(String(cx)) + pointSize + 5
-    let y = parseFloat(String(cy)) + pointSize / 2 // - tooltipRect.ttHeight / 2
+    const cxNum = parseFloat(String(cx))
+    const cyNum = parseFloat(String(cy))
+    if (isNaN(cxNum)) return null
+
+    let x = cxNum + pointSize + 5
+    // Coord-system note: `style.top` positions the tooltip in elWrap-coords,
+    // but `cy` is the data point's y in elGraphical-local SVG coords (the
+    // grid group is translated by translateY inside the SVG). For arrow
+    // mode the box must sit centered on the *actual* point in elWrap-coords,
+    // so we add translateY here — mirroring how x picks up translateX
+    // further down. Legacy (no-arrow) mode preserves the pre-existing
+    // grid-coord behavior to avoid shifting tooltips for existing users.
+    const pointY = cyNum + w.layout.translateY
+    let y = arrowEnabled
+      ? pointY - ttH / 2 + pointSize / 2
+      : cyNum + pointSize / 2
+
+    /** @type {'left'|'right'} */
+    let placement = 'right'
 
     if (x > w.layout.gridWidth / 2) {
-      x = x - tooltipRect.ttWidth - pointSize - 10
+      x = x - ttW - pointSize - 10
+      placement = 'left'
     }
 
-    if (x > w.layout.gridWidth - tooltipRect.ttWidth - 10) {
-      x = w.layout.gridWidth - tooltipRect.ttWidth
+    if (x > w.layout.gridWidth - ttW - 10) {
+      x = w.layout.gridWidth - ttW
     }
 
     if (x < -20) {
@@ -208,61 +275,143 @@ export default class Position {
 
     if (w.config.tooltip.followCursor) {
       const elGrid = ttCtx.getElGrid()
-      if (!elGrid) return
+      if (!elGrid) return null
       const seriesBound = elGrid.getBoundingClientRect()
 
       x = ttCtx.e.clientX - seriesBound.left
       if (x > w.layout.gridWidth / 2) {
-        x = x - ttCtx.tooltipRect.ttWidth
+        x = x - ttW
+        placement = 'left'
+      } else {
+        placement = 'right'
       }
       y = ttCtx.e.clientY + w.layout.translateY - seriesBound.top
       if (y > w.layout.gridHeight / 2) {
-        y = y - ttCtx.tooltipRect.ttHeight
+        y = y - ttH
       }
     } else {
       if (!w.globals.isBarHorizontal) {
-        if (tooltipRect.ttHeight / 2 + y > w.layout.gridHeight) {
-          y = w.layout.gridHeight - tooltipRect.ttHeight + w.layout.translateY
+        if (arrowEnabled) {
+          // Arrow mode: clamps run in elWrap-coords (grid box top sits at
+          // translateY, bottom at translateY+gridHeight).
+          const gridTop = w.layout.translateY
+          const gridBottom = w.layout.translateY + w.layout.gridHeight
+          if (y + ttH > gridBottom) {
+            y = gridBottom - ttH
+          }
+          if (y < gridTop) {
+            y = gridTop
+          }
+        } else {
+          // Legacy mode: grid-coords bottom clamp (unchanged).
+          if (ttH / 2 + y > w.layout.gridHeight) {
+            y = w.layout.gridHeight - ttH + w.layout.translateY
+          }
         }
       }
     }
 
-    if (!isNaN(x)) {
-      x = x + w.layout.translateX
+    if (isNaN(x)) return null
 
-      // WCAG 2.4.11 Focus Not Obscured: when keyboard nav drives the tooltip,
-      // make sure the tooltip box doesn't sit on top of the focused data
-      // point. If the tooltip's vertical extent overlaps the point, push it
-      // above the point by enough margin to clear the focus stroke.
-      const a11y = w.config?.chart?.accessibility
+    x = x + w.layout.translateX
+
+    // WCAG 2.4.11 Focus Not Obscured: when keyboard nav drives the tooltip,
+    // make sure the tooltip box doesn't sit on top of the focused data
+    // point. If the tooltip's vertical extent overlaps the point, push it
+    // above the point by enough margin to clear the focus stroke.
+    const a11y = w.config?.chart?.accessibility
+    if (
+      a11y?.enabled &&
+      a11y?.keyboard?.navigation?.enabled &&
+      w.dom?.baseEl?.querySelector?.('.apexcharts-keyboard-focused')
+    ) {
+      // a11y check works in the same coord space as `y` (elWrap for arrow
+      // mode, grid for legacy).
+      const refPointY = arrowEnabled ? pointY : cyNum
+      const margin = (pointSize || 1) + 12
+      const tooltipTop = y
+      const tooltipBottom = y + ttH
       if (
-        a11y?.enabled &&
-        a11y?.keyboard?.navigation?.enabled &&
-        w.dom?.baseEl?.querySelector?.('.apexcharts-keyboard-focused')
+        !isNaN(refPointY) &&
+        ttH > 0 &&
+        tooltipTop < refPointY + margin &&
+        tooltipBottom > refPointY - margin
       ) {
-        const cyNum = parseFloat(String(cy))
-        const ttH = tooltipRect.ttHeight || 0
-        const margin = (pointSize || 1) + 12
-        const tooltipTop = y
-        const tooltipBottom = y + ttH
-        if (
-          !isNaN(cyNum) &&
-          ttH > 0 &&
-          tooltipTop < cyNum + margin &&
-          tooltipBottom > cyNum - margin
-        ) {
-          y = cyNum - ttH - margin
-          if (y < 0) {
-            // No room above — fall back below the point.
-            y = cyNum + margin
-          }
+        y = refPointY - ttH - margin
+        if (y < 0) {
+          y = refPointY + margin
         }
       }
+    }
 
-      if (tooltipEl) {
-        tooltipEl.style.left = x + 'px'
-        tooltipEl.style.top = y + 'px'
-      }
+    // Arrow Y in tooltip-local coords = elWrap-coords point Y minus
+    // elWrap-coords tooltip top. Clamped away from the rounded corners.
+    let arrowY = null
+    if (arrowEnabled && ttH > 0) {
+      const localY = pointY - y
+      const minArrowY = 10
+      const maxArrowY = ttH - 10
+      arrowY = Math.max(minArrowY, Math.min(maxArrowY, localY))
+    }
+
+    return { x, y, placement, arrowY }
+  }
+
+  /**
+   * Single DOM-writer used by every positioning path on the main tooltip.
+   * Replaces the duplicated `style.left/top` writes that previously lived
+   * in Position.moveTooltip, Tooltip.drawFixedTooltipRect, and Intersect.
+   *
+   * @param {HTMLElement} tooltipEl
+   * @param {{
+   *   x: number,
+   *   y: number,
+   *   placement?: 'left'|'right'|'top'|'bottom',
+   *   arrowY?: number|null,
+   *   arrowX?: number|null,
+   * }} pos
+   */
+  applyTooltipPosition(tooltipEl, pos) {
+    if (!tooltipEl) return
+    // First paint after the tooltip is shown must NOT animate `left`/`top`,
+    // otherwise the browser interpolates from the prior (often 0,0 or
+    // last-hidden) coordinates and the tooltip visibly slides in from the
+    // wrong place. The CSS rule that adds left/top to the transition list
+    // keys off `data-positioned="true"` — we set the attribute only AFTER
+    // the initial position is committed.
+    //
+    // The `data-positioned`-only guard isn't enough in practice: some
+    // browsers honour the transition rule retroactively when it becomes
+    // active in the same frame as the property change. So we also block
+    // the transition explicitly with an inline `transition-property`
+    // override, force a layout flush, then clear the override on the next
+    // frame. This guarantees zero interpolation on first paint regardless
+    // of how the active class is sequenced.
+    const firstPaint = tooltipEl.dataset.positioned !== 'true'
+    if (firstPaint) {
+      tooltipEl.style.transitionProperty = 'none'
+    }
+    tooltipEl.style.left = pos.x + 'px'
+    tooltipEl.style.top = pos.y + 'px'
+    if (pos.placement) {
+      tooltipEl.dataset.placement = pos.placement
+    }
+    if (pos.arrowY != null) {
+      tooltipEl.style.setProperty('--apx-tt-arrow-y', pos.arrowY + 'px')
+    }
+    if (pos.arrowX != null) {
+      tooltipEl.style.setProperty('--apx-tt-arrow-x', pos.arrowX + 'px')
+    }
+    if (firstPaint) {
+      // Force layout so the position above is committed with transitions
+      // disabled; then in a microtask (after the active class is added by
+      // the caller in the same tick) clear the override so subsequent
+      // moves between data points animate smoothly.
+      void tooltipEl.offsetWidth
+      tooltipEl.dataset.positioned = 'true'
+      requestAnimationFrame(() => {
+        tooltipEl.style.transitionProperty = ''
+      })
     }
   }
 
@@ -473,8 +622,23 @@ export default class Position {
       (jBar.classList.contains('apexcharts-candlestick-area') ||
         jBar.classList.contains('apexcharts-boxPlot-area'))
     if (w.axisFlags.isXNumeric) {
+      // The `cx` attribute on bars is set in bar/DataLabels.js using
+      // `x + barWidth * (visibleSeries + 1)` (numeric path) which does NOT
+      // correspond to the bar's rendered center — especially for stacked
+      // and grouped column charts on a numeric/datetime axis (cx ends up
+      // offset by up to a full barWidth from the actual center). The
+      // legacy `bcx - bw/2` adjustment is a partial fix that only worked
+      // for odd-count series. Use the bar's rendered DOM rect instead so
+      // the data-point center is correct regardless of stack/group layout.
       if (jBar && !isBoxOrCandle) {
-        bcx = bcx - (barLen % 2 !== 0 ? bw / 2 : 0)
+        const center = this._datapointCenterXFromBars(j, seriesBound)
+        if (center != null) {
+          bcx = center
+        } else {
+          // Fallback to the legacy attribute-based math when no bars are
+          // available (e.g. all series at index `j` collapsed).
+          bcx = bcx - (barLen % 2 !== 0 ? bw / 2 : 0)
+        }
       }
 
       if (
@@ -510,7 +674,144 @@ export default class Position {
     }
 
     if (!ttCtx.fixedTooltip) {
+      // Horizontal bar (incl. multi-series shared, funnel, pyramid, timeline,
+      // range-bar horizontal): place tooltip above/below the entire row of
+      // bars at index `j` so it doesn't sit on top of the bar (the legacy
+      // left/right placement put it at the bar's value-end, which reads as
+      // "tooltip goes to the right"). Computed from the union rect of every
+      // bar with `[j='${j}']` across visible series.
+      if (w.globals.isBarHorizontal && !w.config.tooltip.followCursor) {
+        const placed = this.placeHorizontalSharedTooltip(j)
+        if (placed) return
+      }
       this.moveTooltip(bcx, bcy || w.layout.gridHeight)
     }
+  }
+
+  /**
+   * Place tooltip above (or flipped: below) the union rect of all bars at
+   * dataPointIndex `j` for horizontal-bar-likes. Returns true when a
+   * Compute the true horizontal center of dataPointIndex `j` in grid-local
+   * coords from the union of every visible bar's `getBoundingClientRect()`.
+   * Used as a replacement for the (buggy on numeric/datetime xaxis) `cx`
+   * attribute math in `moveStickyTooltipOverBars`. Returns null when no
+   * usable bars are found.
+   * @param {number} j
+   * @param {DOMRect} gridRect
+   * @returns {number | null}
+   */
+  _datapointCenterXFromBars(j, gridRect) {
+    const w = this.w
+    const bars = w.dom.baseEl.querySelectorAll(
+      `.apexcharts-bar-series path[j='${j}'],` +
+        `.apexcharts-rangebar-series path[j='${j}']`,
+    )
+    if (!bars.length) return null
+
+    let unionLeft = Infinity
+    let unionRight = -Infinity
+    for (const bar of bars) {
+      const parent = /** @type {Element|null} */ (bar.parentNode)
+      if (parent?.classList?.contains?.('apexcharts-series-collapsed')) continue
+      const r = /** @type {Element} */ (bar).getBoundingClientRect()
+      if (r.width === 0 && r.height === 0) continue
+      if (r.left < unionLeft) unionLeft = r.left
+      if (r.right > unionRight) unionRight = r.right
+    }
+    if (!isFinite(unionLeft)) return null
+    // grid-local x (no translateX yet — computeTooltipPosition adds that).
+    return (unionLeft + unionRight) / 2 - gridRect.left
+  }
+
+  /**
+   * Place tooltip above (or flipped: below) the union rect of all bars at
+   * dataPointIndex `j` for horizontal-bar-likes. Returns true when a
+   * placement was applied; false when no bars found (caller falls back).
+   * @param {number} j
+   * @returns {boolean}
+   */
+  placeHorizontalSharedTooltip(j) {
+    const w = this.w
+    const ttCtx = this.ttCtx
+    const tooltipEl = ttCtx.getElTooltip()
+    if (!tooltipEl) return false
+
+    const elGrid = ttCtx.getElGrid()
+    if (!elGrid) return false
+    const gridRect = elGrid.getBoundingClientRect()
+
+    // Match every bar variant that uses the j-attribute and isBarHorizontal:
+    // bar, rangeBar, boxPlot (boxPlot's `horizontal` is enforced false at
+    // config-time, but the selector is harmless).
+    const bars = w.dom.baseEl.querySelectorAll(
+      `.apexcharts-bar-series path[j='${j}'],` +
+        `.apexcharts-rangebar-series path[j='${j}'],` +
+        `.apexcharts-boxPlot-series path[j='${j}']`,
+    )
+    if (!bars.length) return false
+
+    let unionLeft = Infinity
+    let unionRight = -Infinity
+    let unionTop = Infinity
+    let unionBottom = -Infinity
+    for (const bar of bars) {
+      // Skip bars belonging to collapsed series (parent has the
+      // `apexcharts-series-collapsed` class).
+      const parent = /** @type {Element|null} */ (bar.parentNode)
+      if (parent?.classList?.contains?.('apexcharts-series-collapsed')) continue
+      const r = /** @type {Element} */ (bar).getBoundingClientRect()
+      if (r.width === 0 && r.height === 0) continue
+      if (r.left < unionLeft) unionLeft = r.left
+      if (r.right > unionRight) unionRight = r.right
+      if (r.top < unionTop) unionTop = r.top
+      if (r.bottom > unionBottom) unionBottom = r.bottom
+    }
+    if (!isFinite(unionLeft)) return false
+
+    const ttW = ttCtx.tooltipRect.ttWidth || 0
+    const ttH = ttCtx.tooltipRect.ttHeight || 0
+    const ARROW_TIP_OVERHANG = 7
+
+    // Convert union rect (viewport-coords) into elWrap-coords. The tooltip
+    // is positioned via style.left/top inside elWrap; elGrid is offset from
+    // elWrap by (translateX, translateY).
+    const rowCenterX =
+      (unionLeft + unionRight) / 2 - gridRect.left + w.layout.translateX
+    const rowTopElWrap = unionTop - gridRect.top + w.layout.translateY
+    const rowBottomElWrap = unionBottom - gridRect.top + w.layout.translateY
+
+    const gridTop = w.layout.translateY
+    const gridBottom = w.layout.translateY + w.layout.gridHeight
+    const gridLeft = w.layout.translateX
+    const gridRight = w.layout.translateX + w.layout.gridWidth
+
+    /** @type {'top'|'bottom'} */
+    let placement = 'top'
+    let finalY = rowTopElWrap - ttH - ARROW_TIP_OVERHANG
+    if (finalY < gridTop) {
+      const belowTop = rowBottomElWrap + ARROW_TIP_OVERHANG
+      if (belowTop + ttH <= gridBottom) {
+        placement = 'bottom'
+        finalY = belowTop
+      }
+    }
+
+    let finalX = rowCenterX - ttW / 2
+    if (finalX < gridLeft) finalX = gridLeft
+    if (finalX + ttW > gridRight) finalX = gridRight - ttW
+
+    // Arrow rendering itself is gated upstream (skipped for shared+multi),
+    // but we still pass arrowX/placement so single-series-shared horizontal
+    // (where arrow IS drawn) lines up correctly.
+    const arrowX = Math.max(10, Math.min(ttW - 10, rowCenterX - finalX))
+
+    this.applyTooltipPosition(tooltipEl, {
+      x: finalX,
+      y: finalY,
+      placement,
+      arrowY: null,
+      arrowX,
+    })
+    return true
   }
 }

@@ -15,6 +15,49 @@ import { SVGNS } from '../../svg/math'
  * @module Tooltip.Marker
  **/
 
+/**
+ * Inline-SVG markup for tooltip series markers. Returns a 12x12 SVG with
+ * `currentColor` fill so the series color can be applied via `style.color`
+ * on the host span (matching the pre-existing pseudo-element behavior).
+ * @param {string} shape - circle | square | rect | line | diamond | triangle | cross | plus | star | sparkle
+ * @returns {string}
+ */
+export function renderMarkerSVG(shape) {
+  /** @param {string} body */
+  const svg = (body) =>
+    `<svg viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${body}</svg>`
+  switch (shape) {
+    case 'square':
+    case 'rect':
+      return svg('<rect x="1" y="1" width="10" height="10" rx="1" fill="currentColor"/>')
+    case 'line':
+      return svg('<rect x="0" y="5" width="12" height="2" rx="1" fill="currentColor"/>')
+    case 'diamond':
+      return svg('<path d="M6 0.5 L11.5 6 L6 11.5 L0.5 6 Z" fill="currentColor"/>')
+    case 'triangle':
+      return svg('<path d="M6 1 L11.2 10.5 L0.8 10.5 Z" fill="currentColor"/>')
+    case 'cross':
+      return svg(
+        '<path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      )
+    case 'plus':
+      return svg(
+        '<path d="M6 1 L6 11 M1 6 L11 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      )
+    case 'star':
+      return svg(
+        '<path d="M6 0.5 L7.5 4.4 L11.5 4.7 L8.4 7.2 L9.5 11.1 L6 8.9 L2.5 11.1 L3.6 7.2 L0.5 4.7 L4.5 4.4 Z" fill="currentColor"/>',
+      )
+    case 'sparkle':
+      return svg(
+        '<path d="M6 0.5 L7 5 L11.5 6 L7 7 L6 11.5 L5 7 L0.5 6 L5 5 Z" fill="currentColor"/>',
+      )
+    case 'circle':
+    default:
+      return svg('<circle cx="6" cy="6" r="5" fill="currentColor"/>')
+  }
+}
+
 export default class Marker {
   /**
    * @param {import('./Tooltip').default} tooltipContext

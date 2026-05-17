@@ -57,160 +57,26 @@ export default class Labels {
   /** @param {{i: any, j: any, values: any, ttItems: any, shared: any, e: any}} opts */
   printLabels({ i, j, values, ttItems, shared, e }) {
     const w = this.w
-    let val
-    let goalVals = /** @type {any[]} */ ([])
-    /**
-     * @param {number} gi
-     */
-    const hasGoalValues = (gi) => {
-      return (
-        w.seriesData.seriesGoals[gi] &&
-        w.seriesData.seriesGoals[gi][j] &&
-        Array.isArray(w.seriesData.seriesGoals[gi][j])
-      )
-    }
-
     const { xVal, zVal, xAxisTTVal } = values
+    const seriesLen = w.seriesData.series.length
 
-    let seriesName = ''
+    const basePColor =
+      j !== null && w.config.plotOptions.bar.distributed
+        ? w.globals.colors[j]
+        : w.globals.colors[i]
 
-    let pColor = w.globals.colors[i] // The pColor here is for the markers inside tooltip
-    if (j !== null && w.config.plotOptions.bar.distributed) {
-      pColor = w.globals.colors[j]
-    }
+    for (let t = 0; t < seriesLen; t++) {
+      const tIndex = w.config.tooltip.inverseOrder ? seriesLen - 1 - t : t
 
-    for (
-      let t = 0, inverset = w.seriesData.series.length - 1;
-      t < w.seriesData.series.length;
-      t++, inverset--
-    ) {
-      let f = this.getFormatters(i)
-      seriesName = this.getSeriesName({
-        fn: f.yLbTitleFormatter,
-        index: i,
-        seriesIndex: i,
+      const row = this.computeSeriesRow({
+        i,
         j,
+        t,
+        tIndex,
+        shared,
+        e,
+        basePColor,
       })
-
-      if (w.config.chart.type === 'treemap') {
-        seriesName = f.yLbTitleFormatter(
-          String(/** @type {any} */ (w.config.series[i]).data[j].x),
-          {
-            series: w.seriesData.series,
-            seriesIndex: i,
-            dataPointIndex: j,
-            w,
-          },
-        )
-      }
-
-      const tIndex = w.config.tooltip.inverseOrder ? inverset : t
-
-      if (w.globals.axisCharts) {
-        /**
-         * @param {number} index
-         */
-        const getValBySeriesIndex = (index) => {
-          if (w.axisFlags.isRangeData) {
-            return (
-              f.yLbFormatter(w.rangeData.seriesRangeStart?.[index]?.[j], {
-                series: w.rangeData.seriesRangeStart,
-                seriesIndex: index,
-                dataPointIndex: j,
-                w,
-              }) +
-              ' - ' +
-              f.yLbFormatter(w.rangeData.seriesRangeEnd?.[index]?.[j], {
-                series: w.rangeData.seriesRangeEnd,
-                seriesIndex: index,
-                dataPointIndex: j,
-                w,
-              })
-            )
-          }
-          return f.yLbFormatter(w.seriesData.series[index][j], {
-            series: w.seriesData.series,
-            seriesIndex: index,
-            dataPointIndex: j,
-            w,
-          })
-        }
-        if (shared) {
-          f = this.getFormatters(tIndex)
-
-          seriesName = this.getSeriesName({
-            fn: f.yLbTitleFormatter,
-            index: tIndex,
-            seriesIndex: i,
-            j,
-          })
-          pColor = w.globals.colors[tIndex]
-
-          val = getValBySeriesIndex(tIndex)
-          if (hasGoalValues(tIndex)) {
-            /**
-             * @param {number} goal
-             */
-            goalVals = w.seriesData.seriesGoals[tIndex][j].map(
-              (/** @type {any} */ goal) => {
-                return {
-                  attrs: goal,
-                  val: f.yLbFormatter(goal.value, {
-                    seriesIndex: tIndex,
-                    dataPointIndex: j,
-                    w,
-                  }),
-                }
-              },
-            )
-          }
-        } else {
-          // get a color from a hover area (if it's a line pattern then get from a first line)
-          const targetFill = e?.target?.getAttribute('fill')
-          if (targetFill) {
-            if (targetFill.indexOf('url') !== -1) {
-              // pattern fill
-              if (targetFill.indexOf('Pattern') !== -1) {
-                pColor = w.dom.baseEl
-                  .querySelector(targetFill.substr(4).slice(0, -1))
-                  .childNodes[0].getAttribute('stroke')
-              }
-            } else {
-              pColor = targetFill
-            }
-          }
-          val = getValBySeriesIndex(i)
-          if (
-            hasGoalValues(i) &&
-            Array.isArray(w.seriesData.seriesGoals[i][j])
-          ) {
-            /**
-             * @param {any} goal
-             */
-            goalVals = w.seriesData.seriesGoals[i][j].map(
-              (/** @type {any} */ goal) => {
-                return {
-                  attrs: goal,
-                  val: f.yLbFormatter(goal.value, {
-                    seriesIndex: i,
-                    dataPointIndex: j,
-                    w,
-                  }),
-                }
-              },
-            )
-          }
-        }
-      }
-
-      // for pie / donuts
-      if (j === null) {
-        val = f.yLbFormatter(w.seriesData.series[i], {
-          ...w,
-          seriesIndex: i,
-          dataPointIndex: i,
-        })
-      }
 
       this.DOMHandling({
         i,
@@ -218,17 +84,153 @@ export default class Labels {
         j,
         ttItems,
         values: {
-          val,
-          goalVals,
+          val: row.val,
+          goalVals: row.goalVals,
           xVal,
           xAxisTTVal,
           zVal,
         },
-        seriesName,
+        seriesName: row.seriesName,
         shared,
-        pColor,
+        pColor: row.pColor,
       })
     }
+  }
+
+  /**
+   * Compute the per-series row values (seriesName, val, goalVals, pColor)
+   * for one iteration of the tooltip's series loop. Extracted from
+   * printLabels() to keep the outer loop scannable.
+   * @param {{i: number, j: any, t: number, tIndex: number, shared: boolean, e: any, basePColor: string}} opts
+   */
+  computeSeriesRow({ i, j, tIndex, shared, e, basePColor }) {
+    const w = this.w
+    let f = this.getFormatters(i)
+    let pColor = basePColor
+    let val
+    let goalVals = /** @type {any[]} */ ([])
+
+    let seriesName =
+      w.config.chart.type === 'treemap'
+        ? f.yLbTitleFormatter(
+            String(/** @type {any} */ (w.config.series[i]).data[j].x),
+            {
+              series: w.seriesData.series,
+              seriesIndex: i,
+              dataPointIndex: j,
+              w,
+            },
+          )
+        : this.getSeriesName({
+            fn: f.yLbTitleFormatter,
+            index: i,
+            seriesIndex: i,
+            j,
+          })
+
+    if (w.globals.axisCharts) {
+      if (shared) {
+        f = this.getFormatters(tIndex)
+        seriesName = this.getSeriesName({
+          fn: f.yLbTitleFormatter,
+          index: tIndex,
+          seriesIndex: i,
+          j,
+        })
+        pColor = w.globals.colors[tIndex]
+        val = this.formatYValue(f, tIndex, j)
+        goalVals = this.formatGoalVals(f, tIndex, j)
+      } else {
+        pColor = this.resolvePatternColor(e, pColor)
+        val = this.formatYValue(f, i, j)
+        goalVals = this.formatGoalVals(f, i, j)
+      }
+    }
+
+    // pie / donut (non-axis charts)
+    if (j === null) {
+      val = f.yLbFormatter(w.seriesData.series[i], {
+        ...w,
+        seriesIndex: i,
+        dataPointIndex: i,
+      })
+    }
+
+    return { seriesName, val, goalVals, pColor }
+  }
+
+  /**
+   * Run the y-value formatter for a given (seriesIndex, dataPointIndex),
+   * handling the range-data case (start - end concatenation).
+   * @param {{yLbFormatter: Function}} f
+   * @param {number} index
+   * @param {any} j
+   */
+  formatYValue(f, index, j) {
+    const w = this.w
+    if (w.axisFlags.isRangeData) {
+      return (
+        f.yLbFormatter(w.rangeData.seriesRangeStart?.[index]?.[j], {
+          series: w.rangeData.seriesRangeStart,
+          seriesIndex: index,
+          dataPointIndex: j,
+          w,
+        }) +
+        ' - ' +
+        f.yLbFormatter(w.rangeData.seriesRangeEnd?.[index]?.[j], {
+          series: w.rangeData.seriesRangeEnd,
+          seriesIndex: index,
+          dataPointIndex: j,
+          w,
+        })
+      )
+    }
+    return f.yLbFormatter(w.seriesData.series[index][j], {
+      series: w.seriesData.series,
+      seriesIndex: index,
+      dataPointIndex: j,
+      w,
+    })
+  }
+
+  /**
+   * Format the goal-line values attached to a given (seriesIndex, dataPointIndex).
+   * Returns an empty array when no goals exist.
+   * @param {{yLbFormatter: Function}} f
+   * @param {number} index
+   * @param {any} j
+   */
+  formatGoalVals(f, index, j) {
+    const w = this.w
+    const goals = w.seriesData.seriesGoals[index]?.[j]
+    if (!Array.isArray(goals)) return []
+    return goals.map((/** @type {any} */ goal) => ({
+      attrs: goal,
+      val: f.yLbFormatter(goal.value, {
+        seriesIndex: index,
+        dataPointIndex: j,
+        w,
+      }),
+    }))
+  }
+
+  /**
+   * When the hovered element has a pattern fill (url(#…Pattern…)), reach
+   * into the pattern's first child to pull a stroke color. Otherwise
+   * return the raw fill attribute or the fallback.
+   * @param {any} e
+   * @param {string} fallback
+   */
+  resolvePatternColor(e, fallback) {
+    const w = this.w
+    const targetFill = e?.target?.getAttribute('fill')
+    if (!targetFill) return fallback
+    if (targetFill.indexOf('url') === -1) return targetFill
+    if (targetFill.indexOf('Pattern') === -1) return fallback
+    const patternEl = w.dom.baseEl.querySelector(
+      targetFill.substr(4).slice(0, -1),
+    )
+    return patternEl?.childNodes[0]?.getAttribute('stroke') ?? fallback
   }
 
   /**
