@@ -573,10 +573,14 @@ export default class Core {
     )
     let chartInnerDimensions = w.globals.radialSize * 2.05
 
+    const radialAngleSpan = Math.abs(
+      w.config.plotOptions.radialBar.endAngle -
+        w.config.plotOptions.radialBar.startAngle,
+    )
     if (
       el &&
       !w.config.chart.sparkline.enabled &&
-      w.config.plotOptions.radialBar.startAngle !== 0
+      radialAngleSpan < 360
     ) {
       const elRadialRect = Utils.getBoundingClientRect(el)
       const svgRect = Utils.getBoundingClientRect(this.w.dom.Paper.node)
