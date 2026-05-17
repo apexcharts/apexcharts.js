@@ -188,7 +188,7 @@ tooltip: { x: { format: 'yyyy-MM-dd HH:mm' } },
 </options>
 
 <series>
-seriesData
+[{ name: 'Sensor reading', data: seriesData }]
 </series>
 </chart>
 
