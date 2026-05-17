@@ -1,134 +1,130 @@
-<p align="center"><img src="https://apexcharts.com/media/apexcharts-logo.png"></p>
+<p align="center"><img src="https://apexcharts.com/media/apexcharts-logo.png" width="180"></p>
+
+<h1 align="center">ApexCharts</h1>
 
 <p align="center">
-  <a href="https://travis-ci.com/apexcharts/apexcharts.js"><img src="https://api.travis-ci.com/apexcharts/apexcharts.js.svg?branch=master" alt="build" /></a>
-  <img alt="downloads" src="https://img.shields.io/npm/dm/apexcharts.svg"/>
-  <a href="https://www.npmjs.com/package/apexcharts"><img src="https://img.shields.io/npm/v/apexcharts.svg" alt="ver"></a>
-  <img alt="size" src="https://badgen.net/bundlephobia/min/apexcharts?label=size">
-  <a href="https://cdn.jsdelivr.net/npm/apexcharts@3.12.0/types/apexcharts.d.ts"><img src="https://badgen.net/npm/types/apexcharts"/></a>
-  <a href="https://github.com/prettier/prettier"><img src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square" alt="prettier"></a>
-  <a href="https://www.jsdelivr.com/package/npm/apexcharts"><img src="https://data.jsdelivr.com/v1/package/npm/apexcharts/badge" alt="jsdelivr" /></a>
+  Modern, interactive JavaScript charts your users will love - built for dashboards, SaaS, and data-heavy UIs.
 </p>
 
 <p align="center">
-  <a href="https://twitter.com/intent/tweet?text=Create%20visualizations%20with%20this%20free%20and%20open-source%20JavaScript%20Chart%20library&url=https://www.apexcharts.com&hashtags=javascript,charts,visualizations,developers,apexcharts"><img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"> </a>
+  <a href="https://www.npmjs.com/package/apexcharts"><img src="https://img.shields.io/npm/v/apexcharts.svg" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/apexcharts"><img src="https://img.shields.io/npm/dm/apexcharts.svg" alt="downloads"></a>
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-ready-3178C6?logo=typescript&logoColor=white">
+  <a href="https://github.com/apexcharts/apexcharts.js/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Revenue--based-blue"></a>
+  <a href="https://www.jsdelivr.com/package/npm/apexcharts"><img src="https://data.jsdelivr.com/v1/package/npm/apexcharts/badge" alt="jsdelivr"></a>
 </p>
 
-<p align="center">A modern JavaScript charting library that allows you to build interactive data visualizations with simple API and 100+ ready-to-use samples. Packed with the features that you expect, ApexCharts includes over a dozen chart types that deliver beautiful, responsive visualizations in your apps and dashboards.</p>
+<p align="center">
+  <a href="https://apexcharts.com/demos/">Live demos</a> ·
+  <a href="https://apexcharts.com/docs/">Documentation</a> ·
+  <a href="#license">License</a>
+</p>
 
-<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img
-      src="https://apexcharts.com/media/apexcharts-banner.png"></a></p>
+<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/"><img src="https://apexcharts.com/media/apexcharts-banner.png" alt="ApexCharts gallery"></a></p>
 
-<br />
+## Why ApexCharts
 
-## Download and Installation
+- **16+ chart types** out of the box — line, area, bar, column, pie, donut, radar, heatmap, treemap, candlestick, boxplot, funnel, pyramid, gauge and more
+- **SSR support** for Next.js, Nuxt, SvelteKit, Astro, and other meta-frameworks — render real SVG on the server, hydrate on the client
+- **Tree-shakable** — import only the chart types and features you need; typical bundles are 30–60% smaller than the full build
+- **TypeScript-first** — full type definitions ship with the package, no `@types/*` install needed
+- **Zero runtime dependencies** — no React/Vue/D3 required; works in any framework or vanilla JS
+- **Accessibility** — keyboard navigation and ARIA support built in
+- **Free for most users** — see [License](#license)
 
-##### Installing via npm
+## Install
 
 ```bash
-npm install apexcharts --save
+npm install apexcharts
 ```
 
-##### Direct &lt;script&gt; include
+Or via CDN:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 ```
 
-## Wrappers for Vue/React/Angular/Stencil
-
-Integrate easily with 3rd party frameworks
-
-- [vue-apexcharts](https://github.com/apexcharts/vue-apexcharts)
-- [react-apexcharts](https://github.com/apexcharts/react-apexcharts)
-- [ng-apexcharts](https://github.com/apexcharts/ng-apexcharts) - Plugin by [Morris Janatzek](https://morrisj.net/)
-- [stencil-apexcharts](https://github.com/apexcharts/stencil-apexcharts)
-
-### Unofficial Wrappers
-
-Useful links to wrappers other than the popular frameworks mentioned above
-
-- [apexcharter](https://github.com/dreamRs/apexcharter) - Htmlwidget for ApexCharts
-- [apexcharts.rb](https://github.com/styd/apexcharts.rb) - Ruby wrapper for ApexCharts
-- [larapex-charts](https://github.com/ArielMejiaDev/larapex-charts) - Laravel wrapper for ApexCharts
-- [blazor-apexcharts](https://github.com/apexcharts/Blazor-ApexCharts) - Blazor wrapper for ApexCharts [demo](https://apexcharts.github.io/Blazor-ApexCharts/)
-- [svelte-apexcharts](https://github.com/galkatz373/svelte-apexcharts) - Svelte wrapper for ApexCharts
-
-
-## Usage
-
-### Client-Side (Browser)
+## Quick start
 
 ```js
 import ApexCharts from 'apexcharts'
-```
 
-To create a basic bar chart with minimal configuration, write as follows:
+const chart = new ApexCharts(document.querySelector('#chart'), {
+  chart: { type: 'bar' },
+  series: [{ name: 'Sales', data: [30, 40, 35, 50, 49, 60, 70, 91, 125] }],
+  xaxis: { categories: [1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999] }
+})
 
-```js
-var options = {
-  chart: {
-    type: 'bar'
-  },
-  series: [
-    {
-      name: 'sales',
-      data: [30, 40, 35, 50, 49, 60, 70, 91, 125]
-    }
-  ],
-  xaxis: {
-    categories: [1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999]
-  }
-}
-
-var chart = new ApexCharts(document.querySelector('#chart'), options)
 chart.render()
 ```
 
-### Server-Side Rendering (SSR)
+Browse [100+ ready-to-use samples](https://apexcharts.com/javascript-chart-demos/) — copy, paste, ship.
 
-ApexCharts now supports SSR for Next.js, Nuxt, SvelteKit, Astro, and other meta-frameworks:
+## Chart types
+
+- [Line](https://apexcharts.com/javascript-chart-demos/line-charts/) · [Area](https://apexcharts.com/javascript-chart-demos/area-charts/) · [Range Area](https://apexcharts.com/javascript-chart-demos/range-area-charts/)
+- [Bar](https://apexcharts.com/javascript-chart-demos/bar-charts/) · [Column](https://apexcharts.com/javascript-chart-demos/column-charts/) · [Range Bar / Timeline](https://apexcharts.com/javascript-chart-demos/range-bar-charts/) 
+- [Scatter](https://apexcharts.com/javascript-chart-demos/scatter-charts/) · [Bubble](https://apexcharts.com/javascript-chart-demos/bubble-charts/)
+- [Candlestick](https://apexcharts.com/javascript-chart-demos/candlestick-charts/) · [BoxPlot](https://apexcharts.com/javascript-chart-demos/boxplot-charts/)
+- [Pie](https://apexcharts.com/javascript-chart-demos/pie-charts/) · [Donut](https://apexcharts.com/javascript-chart-demos/pie-charts/) · [Polar Area](https://apexcharts.com/javascript-chart-demos/polar-area-charts/) · [Radial Bar / Gauge](https://apexcharts.com/javascript-chart-demos/radialbar-charts/)
+- [Radar](https://apexcharts.com/javascript-chart-demos/radar-charts/) · [Heatmap](https://apexcharts.com/javascript-chart-demos/heatmap-charts/) · [Treemap](https://apexcharts.com/javascript-chart-demos/treemap-charts/)
+- [Funnel](https://apexcharts.com/javascript-chart-demos/funnel-charts/)
+
+Combine any of the above as [mixed/combo charts](https://apexcharts.com/javascript-chart-demos/mixed-charts/), [stacked variants](https://apexcharts.com/javascript-chart-demos/column-charts/stacked/), [sparklines](https://apexcharts.com/javascript-chart-demos/sparklines/), or [synchronized multi-chart layouts](https://apexcharts.com/javascript-chart-demos/line-charts/syncing-charts/).
+
+## Framework wrappers
+
+Official:
+
+- **React** — [react-apexcharts](https://github.com/apexcharts/react-apexcharts)
+- **Vue 3** — [vue3-apexcharts](https://github.com/apexcharts/vue3-apexcharts) 
+- **Vue 2** — [vue-apexcharts](https://github.com/apexcharts/vue-apexcharts)
+- **Angular** — [ng-apexcharts](https://github.com/apexcharts/ng-apexcharts)
+- **Blazor** — [Blazor-ApexCharts](https://github.com/apexcharts/Blazor-ApexCharts)
+- **Stencil** — [stencil-apexcharts](https://github.com/apexcharts/stencil-apexcharts)
+
+Community:
+
+- **Svelte** — [svelte-apexcharts](https://github.com/galkatz373/svelte-apexcharts)
+- **Ruby** — [apexcharts.rb](https://github.com/styd/apexcharts.rb)
+- **Laravel** — [larapex-charts](https://github.com/ArielMejiaDev/larapex-charts)
+- **R** — [apexcharter](https://github.com/dreamRs/apexcharter)
+
+## Server-side rendering
+
+Render chart HTML on the server, then hydrate in the browser. Works with Next.js, Nuxt, SvelteKit, Astro, Remix, and any Node-based framework.
 
 ```js
+// Server
 import ApexCharts from 'apexcharts/ssr'
 
 const chartHTML = await ApexCharts.renderToHTML({
-  series: [{ data: [30, 40, 35, 50, 49, 60, 70, 91, 125] }],
   chart: { type: 'bar' },
-  xaxis: {
-    categories: [1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999]
-  }
-}, {
-  width: 500,
-  height: 300
-})
+  series: [{ data: [30, 40, 35, 50, 49, 60, 70, 91, 125] }],
+  xaxis: { categories: [1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999] }
+}, { width: 500, height: 300 })
 
 // Returns hydration-ready HTML with embedded SVG
 ```
 
 ```js
-// Client-side hydration (makes chart interactive)
+// Client
 import ApexCharts from 'apexcharts/client'
 
-// Hydrate specific chart
 ApexCharts.hydrate(document.getElementById('my-chart'))
-
-// Or hydrate all charts on the page
-ApexCharts.hydrateAll()
+// or: ApexCharts.hydrateAll()
 ```
 
-This will render the following chart
+No more `dynamic(() => import(...), { ssr: false })` workarounds — the chart renders on the server and becomes interactive on hydration.
 
-<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/column-charts/"><img src="https://apexcharts.com/media/first-bar-chart.svg"></a></p>
+## Tree-shaking — ship only what you use
 
-### Tree-shaking — ship only what you use
-
-By default `import ApexCharts from 'apexcharts'` includes everything. If you want a smaller bundle, import from `apexcharts/core` and add only the chart types and features you need:
+By default `import ApexCharts from 'apexcharts'` includes everything. For smaller bundles, import from `apexcharts/core` and add only what you need:
 
 ```js
 import ApexCharts from 'apexcharts/core'   // bare class — no chart types, no features
 
-// Import by the exact chart type name you use in { chart: { type: '...' } }
+// Chart types (match the value of chart.type)
 import 'apexcharts/line'
 import 'apexcharts/bar'
 // import 'apexcharts/area'
@@ -142,142 +138,48 @@ import 'apexcharts/features/toolbar'      // zoom/pan toolbar
 // import 'apexcharts/features/keyboard'     // keyboard navigation
 ```
 
-**Vite users:** Vite's dependency pre-bundler can create two separate copies of ApexCharts, causing `"chart type X is not registered"` errors even when the import is present. Fix this by listing all apexcharts sub-entries in `optimizeDeps.include`:
+See the [tree-shaking guide](https://apexcharts.com/docs/tree-shaking/) for the complete list of entry points.
 
-```js
-// vite.config.js
-export default {
-  optimizeDeps: {
-    include: [
-      'apexcharts/core',
-      'apexcharts/line',   // add only the ones you import
-      'apexcharts/bar',
-      'apexcharts/features/legend',
-      'apexcharts/features/toolbar',
-      // ...
-    ],
-  },
-}
-```
+## Browser support
 
-See [tree-shaking](https://apexcharts.com/docs/tree-shaking/) for the full guide.
+ApexCharts works in all modern evergreen browsers (Chrome, Firefox, Safari, Edge). For server-side rendering, Node.js 18+ is required.
 
-### A little more than the basic
+## Documentation
 
-You can create a combination of different charts, sync them and give your desired look with unlimited possibilities.
-Below is an example of synchronized charts with github style.
+- [Getting started](https://apexcharts.com/docs/)
+- [Live demo gallery](https://apexcharts.com/demos/)
 
-<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/area-charts/github-style/"><img src="https://apexcharts.com/media/github-charts.gif"></a></p>
-
-## Interactivity
-
-Zoom, Pan, and Scroll through data. Make selections and load other charts using those selections.
-An example showing some interactivity
-
-<p align="center"><a href="https://codepen.io/apexcharts/pen/QrbEQg" target="_blank"><img src="https://apexcharts.com/media/interactivity.gif" alt="interactive chart"></a></p>
-
-## Dynamic Series Update
-
-Another approach is to Drill down charts where one selection updates the data of other charts.
-An example of loading dynamic series into charts is shown below
-
-<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/column-charts/dynamic-loaded-chart/"><img src="https://apexcharts.com/media/dynamic-selection.gif" alt="dynamic-loading-chart" /></a></p>
-
-## Annotations
-
-Annotations allow you to write custom text on specific values or on axes values. Valuable to expand the visual appeal of your chart and make it more informative.
-
-<p align="center"><a href="https://apexcharts.com/docs/annotations/"><img src="https://apexcharts.com/media/annotations.png" alt="annotations" /></a></p>
-
-## Mixed Charts
-
-You can combine more than one chart type to create a combo/mixed chart. Possible combinations can be line/area/column together in a single chart. Each chart type can have its own y-axis.
-
-<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/mixed-charts/"><img src="https://apexcharts.com/wp-content/uploads/2018/05/line-column-area-mixed-chart.svg" alt="annotations" width="490" /></a></p>
-
-## Candlestick
-
-Use a candlestick chart (a common financial chart) to describe price changes of a security, derivative, or currency. The below image shows how you can use another chart as a brush/preview pane which acts as a handle to browse the main candlestick chart.
-
-<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/candlestick-charts/"><img src="https://apexcharts.com/media/candlestick.png" alt="candlestick" width="490" /></a></p>
-
-## Heatmaps
-
-Use Heatmaps to represent data through colors and shades. Frequently used with bigger data collections, they are valuable for recognizing patterns and areas of focus.
-
-<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/heatmap-charts/"><img src="https://apexcharts.com/media/heatmap-charts.png" alt="heatmap" /></a></p>
-
-## Gauges
-
-The tiny gauges are an important part of a dashboard and are useful in displaying single-series data. A demo of these gauges:
-
-<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/radialbar-charts/"><img src="https://apexcharts.com/media/radialbars-gauges.png" width="490" alt="radialbar-chart" /></a></p>
-
-## Sparklines
-
-Utilize sparklines to indicate trends in data, for example, occasional increments or declines, monetary cycles, or to feature the most extreme and least values:
-
-<p align="center"><a href="https://apexcharts.com/javascript-chart-demos/sparklines/"><img src="https://apexcharts.com/media/sparklines.png" alt="sparkline-chart" /></a></p>
-
-
-## Need Advanced Data Grid for your next project?
-We partnered with Infragistics, creators of the fastest data grids on the planet! Ignite UI Grids can handle unlimited rows and columns of data while providing access to custom templates and real-time data updates.
-
-<p align="center"><a href="https://www.infragistics.com/products/ignite-ui-angular/angular/components/grid/grid" target="_blank"><img src="https://apexcharts.com/media/infragistics-data-grid.png" /></a></p>
-
-Featuring an intuitive API for easy theming and branding, you can quickly bind to data with minimal hand-on coding. The grid is available in most of your favorite frameworks:
-
-<a target="_blank" href="https://www.infragistics.com/products/ignite-ui-angular/angular/components/grid/grid">Angular Data Grid</a> | <a target="_blank" href="https://www.infragistics.com/products/ignite-ui-react/react/components/grids">React Data Grid</a> | <a target="_blank" href="https://www.infragistics.com/products/ignite-ui-blazor/blazor/components/data-grid">Blazor Data Grid</a> | <a target="_blank" href="https://www.infragistics.com/products/ignite-ui-web-components/web-components/components/data-grid">Web Components DataGrid</a> | <a target="_blank" href="https://www.igniteui.com/grid/overview">jQuery Data Grid </a>
-
-## What's included
-
-The download bundle includes the following files and directories providing a minified single file in the dist folder. Every asset including icon/css is bundled in the js itself to avoid loading multiple files.
-
-```
-apexcharts/
-├── dist/
-│   └── apexcharts.min.js
-├── src/
-│   ├── assets/
-│   ├── charts/
-│   ├── modules/
-│   ├── utils/
-│   └── apexcharts.js
-└── samples/
-```
-
-## Development
-
-#### Install dependencies and run the project
+## Contributing
 
 ```bash
 npm install
-npm run dev
+npm run dev     # vite build --watch
+npm test        # e2e + unit
 ```
 
-This will start the webpack watch and any changes you make to `src` folder will auto-compile and output will be produced in the `dist` folder.
-
-More details in [Contributing Guidelines](CONTRIBUTING.md).
-
-#### Minifying the src
-
-```bash
-npm run build
-```
-
-## Where do I go next?
-
-Head over to the <a href="https://apexcharts.com/docs/">documentation</a> section to read more about how to use different kinds of charts and explore all options.
-
-## Contacts
-
-Email: <a href="info@apexcharts.com">info@apexcharts.com</a>
-
-Twitter: <a href="https://twitter.com/apexcharts">@apexcharts</a>
-
-Facebook: <a href="https://facebook.com/apexcharts">fb.com/apexcharts</a>
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding conventions, and PR guidelines.
 
 ## License
 
-ApexCharts is offered under a **dual-license model** to support individuals, startups, and commercial products of all sizes.
-Read full license agreements here: [https://apexcharts.com/license](https://apexcharts.com/license)
+ApexCharts uses a **revenue-based license**:
+
+- **Free** for individuals, and organizations with **under $2M USD in annual gross revenue** — including commercial and internal use. No registration required.
+- **Commercial license required** for organizations at or above $2M USD annual gross revenue.
+
+Full terms: [apexcharts.com/license](https://apexcharts.com/license)
+
+## Need an enterprise data grid?
+
+We've partnered with [Infragistics](https://www.infragistics.com/), creators of Ignite UI — high-performance data grids that handle unlimited rows and columns, with custom templates and real-time updates.
+
+<p align="center"><a href="https://www.infragistics.com/products/ignite-ui-angular/angular/components/grid/grid" target="_blank"><img src="https://apexcharts.com/media/infragistics-data-grid.png" alt="Ignite UI Data Grid" /></a></p>
+
+Available for:
+
+[Angular](https://www.infragistics.com/products/ignite-ui-angular/angular/components/grid/grid) · [React](https://www.infragistics.com/products/ignite-ui-react/react/components/grids) · [Blazor](https://www.infragistics.com/products/ignite-ui-blazor/blazor/components/data-grid) · [Web Components](https://www.infragistics.com/products/ignite-ui-web-components/web-components/components/data-grid) · [jQuery](https://www.igniteui.com/grid/overview)
+
+## Contact
+
+- Issues & bugs: [GitHub Issues](https://github.com/apexcharts/apexcharts.js/issues)
+- Questions: [GitHub Discussions](https://github.com/apexcharts/apexcharts.js/discussions)
+- Email: info@apexcharts.com
