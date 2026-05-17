@@ -9,7 +9,8 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      #chart {
+      
+        #chart {
         max-width: 1000px;
         margin: 20px auto;
       }
@@ -50,203 +51,212 @@
         margin-top: 10px;
         border-radius: 2px;
       }
+      
     </style>
 
+    
     <script src="../../../dist/apexcharts.js"></script>
+    
 
     <script>
-      // Seeded PRNG for reproducible data
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
       var _seed = 42
       Math.random = function () {
         _seed = (_seed * 16807) % 2147483647
         return (_seed - 1) / 2147483646
       }
     </script>
+
+    <script>
+    var TOTAL_POINTS = 500000
+  
+    function generateData(count) {
+      var data = new Array(count)
+      var startTime = new Date('2010-01-01T00:00:00Z').getTime()
+      var step = 60 * 1000 // 1 minute
+      var y = 100
+      for (var i = 0; i < count; i++) {
+        // Random walk with periodic components — gives visible structure at
+        // multiple zoom levels (slow trend + faster cycle + noise).
+        y +=
+          (Math.random() - 0.5) * 2 +
+          Math.sin(i / 5000) * 0.05 +
+          Math.cos(i / 1200) * 0.02
+        data[i] = [startTime + i * step, +y.toFixed(3)]
+      }
+      return data
+    }
+  
+    var seriesData = generateData(TOTAL_POINTS)
+    var lastRenderMs = 0
+    var lastZoomLabel = 'full range'
+  
+    function fmt(ts) {
+      var d = new Date(ts)
+      return (
+        d.getFullYear() +
+        '-' +
+        String(d.getMonth() + 1).padStart(2, '0') +
+        '-' +
+        String(d.getDate()).padStart(2, '0')
+      )
+    }
+  
+    function updateStats() {
+      var statsEl = document.getElementById('stats')
+      if (!statsEl || typeof chart === 'undefined') return
+      var drawn = (chart.w.globals.series[0] || []).length
+      statsEl.innerHTML =
+        'Raw points: <b>' +
+        TOTAL_POINTS.toLocaleString() +
+        '</b> &nbsp;·&nbsp; Currently drawn: <b>' +
+        drawn.toLocaleString() +
+        '</b> &nbsp;·&nbsp; Window: <b>' +
+        lastZoomLabel +
+        '</b> &nbsp;·&nbsp; Render: <b>' +
+        lastRenderMs +
+        ' ms</b>'
+    }
+  </script>
   </head>
 
   <body>
-    <div class="panel">
-      <div class="controls">
-        <label>
-          <input type="checkbox" id="toggleReducer" checked />
-          Enable LTTB downsampling
-        </label>
-        <label>
-          Target points:
-          <input
-            type="number"
-            id="targetPoints"
-            value="500"
-            min="50"
-            max="5000"
-            step="50"
-            style="width: 80px"
-          />
-        </label>
-        <button id="rerender">Re-render</button>
-        <button id="resetZoom">Reset zoom</button>
+     <div class="panel">
+        <div class="controls">
+          <label>
+            <input type="checkbox" id="toggleReducer" checked />
+            Enable LTTB downsampling
+          </label>
+          <label>
+            Target points:
+            <input
+              type="number"
+              id="targetPoints"
+              value="500"
+              min="50"
+              max="5000"
+              step="50"
+              style="width: 80px"
+            />
+          </label>
+          <button id="rerender">Re-render</button>
+          <button id="resetZoom">Reset zoom</button>
+        </div>
+      
+        <div class="stats" id="stats"></div>
+      
+        <div class="note">
+          <b>Try it:</b> drag-select on the chart to zoom in. With downsampling
+          enabled, the chart re-samples from the raw 500k-point series against
+          the visible window — so zooming reveals progressively higher-resolution
+          detail without ever drawing more than ~target SVG paths.
+        </div>
       </div>
-
-      <div class="stats" id="stats"></div>
-
-      <div class="note">
-        <b>Try it:</b> drag-select on the chart to zoom in. With downsampling
-        enabled, the chart re-samples from the raw 500k-point series against
-        the visible window — so zooming reveals progressively higher-resolution
-        detail without ever drawing more than ~target SVG paths.
-      </div>
-    </div>
-
-    <div id="chart"></div>
+      
+      <div id="chart"></div>
 
     <script>
-      var TOTAL_POINTS = 500000
+      
+        var options = {
+          series: seriesData,
+          chart: {
+          height: 460,
+          type: 'line',
+          animations: { enabled: false },
+          zoom: { enabled: true, type: 'x', autoScaleYaxis: true },
+          toolbar: { autoSelected: 'zoom' },
+          dataReducer: {
+            enabled: true,
+            algorithm: 'lttb',
+            targetPoints: 500,
+            threshold: 1000,
+          },
+          events: {
+            zoomed: function (chartCtx, args) {
+              var xaxis = args && args.xaxis
+              lastZoomLabel =
+                xaxis && xaxis.min && xaxis.max
+                  ? fmt(xaxis.min) + ' → ' + fmt(xaxis.max)
+                  : 'full range'
+              requestAnimationFrame(updateStats)
+            },
+            beforeResetZoom: function () {
+              lastZoomLabel = 'full range'
+            },
+          },
+        },
+        stroke: { curve: 'straight', width: 1 },
+        dataLabels: { enabled: false },
+        markers: { size: 0 },
+        title: {
+          text: 'Line chart — 500,000 raw datapoints',
+          align: 'left',
+        },
+        subtitle: {
+          text: 'LTTB downsampling enabled — zoom in to re-sample the raw series at higher resolution within the visible window',
+          align: 'left',
+        },
+        xaxis: {
+          type: 'datetime',
+          labels: { datetimeUTC: false },
+        },
+        yaxis: {
+          labels: {
+            formatter: function (val) {
+              return val.toFixed(2)
+            },
+          },
+        },
+        tooltip: { x: { format: 'yyyy-MM-dd HH:mm' } },
+        };
 
-      function generateData(count) {
-        var data = new Array(count)
-        var startTime = new Date('2010-01-01T00:00:00Z').getTime()
-        var step = 60 * 1000 // 1 minute
-        var y = 100
-        for (var i = 0; i < count; i++) {
-          // Random walk with periodic components — gives visible structure at
-          // multiple zoom levels (slow trend + faster cycle + noise).
-          y +=
-            (Math.random() - 0.5) * 2 +
-            Math.sin(i / 5000) * 0.05 +
-            Math.cos(i / 1200) * 0.02
-          data[i] = [startTime + i * step, +y.toFixed(3)]
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+      
+      
+        // Initial render is started by the template above; wait one frame and update
+      // stats once the chart instance has finished its first paint.
+      requestAnimationFrame(function poll() {
+        if (chart.w && chart.w.globals && chart.w.globals.series) {
+          updateStats()
+        } else {
+          requestAnimationFrame(poll)
         }
-        return data
-      }
-
-      var statsEl = document.getElementById('stats')
-
-      var t0 = performance.now()
-      var seriesData = generateData(TOTAL_POINTS)
-      var genMs = (performance.now() - t0).toFixed(0)
-
-      var lastRenderMs = 0
-      var lastZoomLabel = 'full range'
-
-      function updateStats() {
-        var drawn = chart
-          ? (chart.w.globals.series[0] || []).length
-          : 0
-        statsEl.innerHTML =
-          'Raw points: <b>' +
-          TOTAL_POINTS.toLocaleString() +
-          '</b> &nbsp;·&nbsp; Currently drawn: <b>' +
-          drawn.toLocaleString() +
-          '</b> &nbsp;·&nbsp; Window: <b>' +
-          lastZoomLabel +
-          '</b> &nbsp;·&nbsp; Render: <b>' +
-          lastRenderMs +
-          ' ms</b> &nbsp;·&nbsp; Generated in ' +
-          genMs +
-          ' ms'
-      }
-
-      function fmt(ts) {
-        var d = new Date(ts)
-        return (
-          d.getFullYear() +
-          '-' +
-          String(d.getMonth() + 1).padStart(2, '0') +
-          '-' +
-          String(d.getDate()).padStart(2, '0')
-        )
-      }
-
-      function buildOptions() {
+      })
+      
+      function rebuild() {
         var enabled = document.getElementById('toggleReducer').checked
         var targetPoints = parseInt(
           document.getElementById('targetPoints').value,
           10,
         )
-
-        return {
-          series: [
-            {
-              name: 'Sensor reading',
-              data: seriesData,
-            },
-          ],
-          chart: {
-            height: 460,
-            type: 'line',
-            animations: { enabled: false },
-            zoom: { enabled: true, type: 'x', autoScaleYaxis: true },
-            toolbar: { autoSelected: 'zoom' },
-            dataReducer: {
-              enabled: enabled,
-              algorithm: 'lttb',
-              targetPoints: targetPoints,
-              threshold: 1000,
-            },
-            events: {
-              zoomed: function (chartCtx, { xaxis }) {
-                lastZoomLabel =
-                  xaxis && xaxis.min && xaxis.max
-                    ? fmt(xaxis.min) + ' → ' + fmt(xaxis.max)
-                    : 'full range'
-                requestAnimationFrame(updateStats)
-              },
-              beforeResetZoom: function () {
-                lastZoomLabel = 'full range'
-              },
-            },
-          },
-          stroke: { curve: 'straight', width: 1 },
-          dataLabels: { enabled: false },
-          markers: { size: 0 },
-          title: {
-            text:
-              'Line chart — ' +
-              TOTAL_POINTS.toLocaleString() +
-              ' raw datapoints',
-            align: 'left',
-          },
-          subtitle: {
-            text: enabled
-              ? 'LTTB downsampling enabled — zoom in to re-sample the raw series at higher resolution within the visible window'
-              : 'Downsampling disabled — drawing every raw point',
-            align: 'left',
-          },
-          xaxis: {
-            type: 'datetime',
-            labels: { datetimeUTC: false },
-          },
-          yaxis: {
-            labels: {
-              formatter: function (val) {
-                return val.toFixed(2)
-              },
-            },
-          },
-          tooltip: { x: { format: 'yyyy-MM-dd HH:mm' } },
-        }
-      }
-
-      var chart
-      function render() {
-        var t1 = performance.now()
-        if (chart) chart.destroy()
-        chart = new ApexCharts(document.querySelector('#chart'), buildOptions())
+      
+        options.chart.dataReducer.enabled = enabled
+        options.chart.dataReducer.targetPoints = targetPoints
+        options.subtitle.text = enabled
+          ? 'LTTB downsampling enabled — drawing ~' +
+            targetPoints.toLocaleString() +
+            ' points'
+          : 'Downsampling disabled — drawing every raw point'
+      
+        var t2 = performance.now()
+        chart.destroy()
+        chart = new ApexCharts(document.querySelector('#chart'), options)
         chart.render().then(function () {
-          lastRenderMs = Math.round(performance.now() - t1)
+          lastRenderMs = Math.round(performance.now() - t2)
           updateStats()
         })
       }
-
-      document.getElementById('rerender').addEventListener('click', render)
-      document
-        .getElementById('toggleReducer')
-        .addEventListener('change', render)
+      
+      document.getElementById('rerender').addEventListener('click', rebuild)
+      document.getElementById('toggleReducer').addEventListener('change', rebuild)
       document.getElementById('resetZoom').addEventListener('click', function () {
         if (chart) chart.resetSeries(true, true)
       })
-
-      render()
+      
     </script>
+
+    
   </body>
 </html>
