@@ -425,6 +425,13 @@ export default class Series {
   getPreviousPaths() {
     const w = this.w
 
+    // Non-axis charts (pie/donut/radialBar) overwrite previousPaths with the
+    // raw series values at the end anyway — skip the DOM captures entirely.
+    if (!w.globals.axisCharts) {
+      w.globals.previousPaths = w.seriesData.series
+      return
+    }
+
     w.globals.previousPaths = []
 
     /**
@@ -507,11 +514,6 @@ export default class Series {
         }
         w.globals.previousPaths.push(dArr)
       }
-    }
-
-    if (!w.globals.axisCharts) {
-      // for non-axis charts (i.e., circular charts, pathFrom is not usable. We need whole series)
-      w.globals.previousPaths = w.seriesData.series
     }
   }
 
