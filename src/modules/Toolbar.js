@@ -5,7 +5,7 @@ import Utils from './../utils/Utils'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 import icoPan from './../assets/ico-pan-hand.svg'
 import icoZoom from './../assets/ico-zoom-in.svg'
-import icoReset from './../assets/ico-home.svg'
+import icoReset from './../assets/ico-fit-screen.svg'
 import icoZoomIn from './../assets/ico-plus.svg'
 import icoZoomOut from './../assets/ico-minus.svg'
 import icoSelect from './../assets/ico-select.svg'
@@ -485,17 +485,29 @@ export default class Toolbar {
     })
   }
 
+  /**
+   * Read the current x-range from globals at click time.
+   * Toolbar instance is kept alive across updates (Phase 8 lazy
+   * instantiation), so cached this.minX/maxX go stale after a zoom.
+   * @returns {{minX: number, maxX: number}}
+   */
+  _currentXRange() {
+    const w = this.w
+    if (w.axisFlags.isRangeBar) {
+      return { minX: w.globals.minY, maxX: w.globals.maxY }
+    }
+    return { minX: w.globals.minX, maxX: w.globals.maxX }
+  }
+
   handleZoomIn() {
     const w = this.w
+    const { minX, maxX } = this._currentXRange()
+    this.minX = minX
+    this.maxX = maxX
 
-    if (w.axisFlags.isRangeBar) {
-      this.minX = w.globals.minY
-      this.maxX = w.globals.maxY
-    }
-
-    const centerX = (this.minX + this.maxX) / 2
-    const newMinX = (this.minX + centerX) / 2
-    const newMaxX = (this.maxX + centerX) / 2
+    const centerX = (minX + maxX) / 2
+    const newMinX = (minX + centerX) / 2
+    const newMaxX = (maxX + centerX) / 2
 
     const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX)
 
@@ -506,23 +518,21 @@ export default class Toolbar {
 
   handleZoomOut() {
     const w = this.w
-
-    if (w.axisFlags.isRangeBar) {
-      this.minX = w.globals.minY
-      this.maxX = w.globals.maxY
-    }
+    const { minX, maxX } = this._currentXRange()
+    this.minX = minX
+    this.maxX = maxX
 
     // avoid zooming out beyond 1000 which may result in NaN values being printed on x-axis
     if (
       w.config.xaxis.type === 'datetime' &&
-      new Date(this.minX).getUTCFullYear() < 1000
+      new Date(minX).getUTCFullYear() < 1000
     ) {
       return
     }
 
-    const centerX = (this.minX + this.maxX) / 2
-    const newMinX = this.minX - (centerX - this.minX)
-    const newMaxX = this.maxX - (centerX - this.maxX)
+    const centerX = (minX + maxX) / 2
+    const newMinX = minX - (centerX - minX)
+    const newMaxX = maxX - (centerX - maxX)
 
     const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX)
 

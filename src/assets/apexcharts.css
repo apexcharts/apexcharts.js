@@ -131,36 +131,73 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-tooltip {
-  border-radius: 5px;
-  box-shadow: 2px 2px 6px -4px #999;
+  --apx-tt-bg: #ffffff;
+  --apx-tt-border: rgba(15, 23, 42, 0.06);
+  /* Layered shadow: tight inner contact + soft outer drop. The two Y
+   * offsets are exposed as variables so they flip in sync with the
+   * arrow when the tooltip is below the data point — see the
+   * `[data-placement="bottom"]` rule further down. */
+  --apx-tt-shadow-y-mid: 8px;
+  --apx-tt-shadow-y-far: 16px;
+  --apx-tt-shadow: 0 0 0 1px rgba(15, 23, 42, 0.04), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(15, 23, 42, 0.12), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(15, 23, 42, 0.18);
+  --apx-tt-arrow-bg: var(--apx-tt-bg);
+  /* Two stacked drop-shadows: the first is a tight contact halo for
+   * edge definition against light chart backgrounds; the second is a
+   * softer directional drop that lifts the arrow off the surface.
+   * `--apx-tt-arrow-drop-y` is the Y offset of the directional drop;
+   * a per-placement rule below flips it to negative when the tooltip
+   * is below the data point (arrow on top) so the shadow always
+   * casts outward instead of into the tooltip body. */
+  --apx-tt-arrow-drop-y: 2px;
+  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(15, 23, 42, 0.2)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(15, 23, 42, 0.2));
+  --apx-tt-color: #0f172a;
+  --apx-tt-color-muted: rgba(15, 23, 42, 0.55);
+  border-radius: 8px;
+  background: var(--apx-tt-bg);
+  border: 1px solid var(--apx-tt-border);
+  box-shadow: var(--apx-tt-shadow);
+  color: var(--apx-tt-color);
   cursor: default;
-  font-size: 14px;
-  left: 62px;
+  font-size: 13px;
+  left: 0;
+  top: 0;
   opacity: 0;
   pointer-events: none;
   position: absolute;
-  top: 20px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  padding: 2px 0;
   white-space: nowrap;
   z-index: 12;
-  transition: .15s ease all
+  transition: opacity .12s ease
 }
 
+/* While the tooltip is visible, smoothly animate position changes
+ * between data points. Kept short (160 ms) and ease-out so it stays
+ * responsive — too long would feel laggy when sweeping across many
+ * points fast. The position transition is only attached after the
+ * first paint (Position.applyTooltipPosition flips `data-positioned`
+ * once the tooltip has been placed) so the *first* show doesn't slide
+ * the tooltip in from the previously-stale (0,0) coordinates. */
 .apexcharts-tooltip.apexcharts-active {
   opacity: 1;
-  transition: .15s ease all
+  transition: opacity .12s ease
+}
+.apexcharts-tooltip.apexcharts-active[data-positioned="true"] {
+  transition: opacity .12s ease, left .16s ease-out, top .16s ease-out
 }
 
 .apexcharts-tooltip.apexcharts-theme-light {
-  border: 1px solid #e3e3e3;
-  background: rgba(255, 255, 255, .96)
+  /* defaults already set above; class kept for backward-compat selectors */
 }
 
 .apexcharts-tooltip.apexcharts-theme-dark {
-  color: #fff;
-  background: rgba(30, 30, 30, .8)
+  --apx-tt-bg: #1c1c1f;
+  --apx-tt-border: rgba(255, 255, 255, 0.08);
+  --apx-tt-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(0, 0, 0, 0.45), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(0, 0, 0, 0.55);
+  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.55)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(0, 0, 0, 0.45));
+  --apx-tt-color: #f3f4f6;
+  --apx-tt-color-muted: rgba(243, 244, 246, 0.55);
 }
 
 .apexcharts-tooltip * {
@@ -168,19 +205,107 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-tooltip-title {
-  padding: 6px;
-  font-size: 15px;
-  margin-bottom: 4px
+  padding: 8px 12px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--apx-tt-color-muted);
+  background: transparent;
+  border-bottom: none;
+  margin-bottom: 0
 }
 
-.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title {
-  background: #eceff1;
-  border-bottom: 1px solid #ddd
-}
-
+.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,
 .apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {
-  background: rgba(0, 0, 0, .7);
-  border-bottom: 1px solid #333
+  background: transparent;
+  border-bottom: none
+}
+
+/* `fillSeriesColor`: each series-group already paints itself with the
+ * series colour. Drop the glass body entirely (transparent bg, no
+ * border, no backdrop-filter, no padding) and clip the coloured
+ * series-group(s) to the tooltip's rounded corners so they fill the
+ * shell edge-to-edge. Text inside the coloured group is forced to
+ * white for contrast. */
+.apexcharts-tooltip.apexcharts-tooltip-fill-series {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: none;
+  padding: 0;
+  overflow: hidden;
+  color: #fff
+}
+
+.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title {
+  background: rgba(0, 0, 0, 0.22);
+  color: #fff;
+  opacity: 1;
+  padding: 6px 12px
+}
+
+.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group {
+  color: #fff
+}
+
+/* Arrow connector — sits *entirely outside* the tooltip body. Shares
+ * the body's solid fill so it reads as a single shape. `filter:
+ * drop-shadow` traces the clipped triangle outline (a regular
+ * `box-shadow` would be erased by the `clip-path`). */
+.apexcharts-tooltip-arrow {
+  position: absolute;
+  width: 7px;
+  height: 14px;
+  background: var(--apx-tt-arrow-bg);
+  /* The variable already contains the full `drop-shadow(...) ...` filter
+   * chain (stacked shadows) so it's applied raw. */
+  -webkit-filter: var(--apx-tt-arrow-shadow);
+  filter: var(--apx-tt-arrow-shadow);
+  pointer-events: none;
+  top: calc(var(--apx-tt-arrow-y, 50%) - 7px)
+}
+
+.apexcharts-tooltip[data-placement="right"] .apexcharts-tooltip-arrow {
+  left: -7px;
+  clip-path: polygon(0 50%, 100% 0, 100% 100%)
+}
+
+.apexcharts-tooltip[data-placement="left"] .apexcharts-tooltip-arrow {
+  right: -7px;
+  clip-path: polygon(100% 50%, 0 0, 0 100%)
+}
+
+/* Vertical arrow variants: tooltip is above/below the data point and the
+ * arrow points down/up. The base rule above uses `--apx-tt-arrow-y` for
+ * left/right placement; for top/bottom we re-orient the rectangle and
+ * use `--apx-tt-arrow-x` (set by applyTooltipPosition). */
+.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow,
+.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {
+  width: 14px;
+  height: 7px;
+  top: auto;
+  left: calc(var(--apx-tt-arrow-x, 50%) - 7px)
+}
+
+.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow {
+  bottom: -7px;
+  clip-path: polygon(50% 100%, 0 0, 100% 0)
+}
+
+.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {
+  top: -7px;
+  clip-path: polygon(50% 0, 0 100%, 100% 100%)
+}
+
+/* When the tooltip is flipped below the data point (arrow on top
+ * pointing up), the default downward-biased shadows leave the top
+ * edge of both the body *and* the arrow undefined. Flipping every
+ * Y offset to negative casts the entire elevation upward so the
+ * shadow falls between the tooltip and the bar above. */
+.apexcharts-tooltip[data-placement="bottom"] {
+  --apx-tt-shadow-y-mid: -8px;
+  --apx-tt-shadow-y-far: -16px;
+  --apx-tt-arrow-drop-y: -2px
 }
 
 .apexcharts-tooltip-text-goals-value,
@@ -217,80 +342,27 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-tooltip-marker {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
-  width: 16px;
-  height: 16px;
-  font-size: 16px;
-  line-height: 16px;
-  margin-right: 4px;
-  text-align: center;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
   vertical-align: middle;
   color: inherit;
 }
 
-.apexcharts-tooltip-marker::before {
-  content: "";
-  display: inline-block;
+.apexcharts-tooltip-marker svg {
   width: 100%;
-  text-align: center;
-  color: currentcolor;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  font-size: 26px;
-  font-family: Arial, Helvetica, sans-serif;
-  line-height: 14px;
-  font-weight: 900;
-}
-
-.apexcharts-tooltip-marker[shape="circle"]::before {
-  content: "\25CF";
-}
-
-.apexcharts-tooltip-marker[shape="square"]::before,
-.apexcharts-tooltip-marker[shape="rect"]::before {
-  content: "\25A0";
-  transform: translate(-1px, -2px);
-}
-
-.apexcharts-tooltip-marker[shape="line"]::before {
-  content: "\2500";
-}
-
-.apexcharts-tooltip-marker[shape="diamond"]::before {
-  content: "\25C6";
-  font-size: 28px;
-}
-
-.apexcharts-tooltip-marker[shape="triangle"]::before {
-  content: "\25B2";
-  font-size: 22px;
-}
-
-.apexcharts-tooltip-marker[shape="cross"]::before {
-  content: "\2715";
-  font-size: 18px;
-}
-
-.apexcharts-tooltip-marker[shape="plus"]::before {
-  content: "\2715";
-  transform: rotate(45deg) translate(-1px, -1px);
-  font-size: 18px;
-}
-
-.apexcharts-tooltip-marker[shape="star"]::before {
-  content: "\2605";
-  font-size: 18px;
-}
-
-.apexcharts-tooltip-marker[shape="sparkle"]::before {
-  content: "\2726";
-  font-size: 20px;
+  height: 100%;
+  display: block;
 }
 
 .apexcharts-tooltip-series-group {
-  padding: 0 10px;
+  padding: 4px 12px;
   display: none;
+  gap: 8px;
   text-align: left;
   justify-content: left;
   align-items: center
@@ -300,9 +372,9 @@ rect.legend-mouseover-inactive,
   opacity: 1
 }
 
-.apexcharts-tooltip-series-group.apexcharts-active,
+.apexcharts-tooltip-series-group.apexcharts-active:last-child,
 .apexcharts-tooltip-series-group:last-child {
-  padding-bottom: 4px
+  padding-bottom: 8px
 }
 
 .apexcharts-tooltip-y-group {
@@ -342,29 +414,43 @@ rect.legend-mouseover-inactive,
   margin-bottom: 5px
 }
 
+/* X/Y axis tooltips — small popovers that label the crosshair on the
+ * axes. Restyled to match the modern data-tooltip palette: solid white
+ * body with a subtle border + soft drop-shadow, smaller font, rounded
+ * corners. The arrows still use the CSS border-triangle technique
+ * (cheap, crisp at small sizes); their colours flow from CSS variables
+ * so light/dark themes only need one override per axis. */
 .apexcharts-xaxistooltip,
 .apexcharts-yaxistooltip {
+  --apx-axt-bg: #ffffff;
+  --apx-axt-border: rgba(15, 23, 42, 0.08);
+  --apx-axt-color: #0f172a;
+  --apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.18), 0 1px 3px -1px rgba(15, 23, 42, 0.12);
   opacity: 0;
   pointer-events: none;
-  color: #373d3f;
-  font-size: 13px;
+  color: var(--apx-axt-color);
+  font-size: 12px;
+  font-weight: 500;
   text-align: center;
-  border-radius: 2px;
+  border-radius: 6px;
   position: absolute;
   z-index: 10;
-  background: #eceff1;
-  border: 1px solid #90a4ae
+  background: var(--apx-axt-bg);
+  border: 1px solid var(--apx-axt-border);
+  box-shadow: var(--apx-axt-shadow)
+}
+
+.apexcharts-xaxistooltip.apexcharts-theme-dark,
+.apexcharts-yaxistooltip.apexcharts-theme-dark {
+  --apx-axt-bg: #1c1c1f;
+  --apx-axt-border: rgba(255, 255, 255, 0.1);
+  --apx-axt-color: #f3f4f6;
+  --apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.55), 0 1px 3px -1px rgba(0, 0, 0, 0.45)
 }
 
 .apexcharts-xaxistooltip {
-  padding: 9px 10px;
+  padding: 4px 8px;
   transition: .15s ease all
-}
-
-.apexcharts-xaxistooltip.apexcharts-theme-dark {
-  background: rgba(0, 0, 0, .7);
-  border: 1px solid rgba(0, 0, 0, .5);
-  color: #fff
 }
 
 .apexcharts-xaxistooltip:after,
@@ -378,16 +464,19 @@ rect.legend-mouseover-inactive,
   pointer-events: none
 }
 
+/* :before paints the 1px border outline of the triangle (slightly larger
+ * than :after); :after sits inside and paints the fill — leaves a 1px
+ * ring of :before visible at the edges. */
 .apexcharts-xaxistooltip:after {
   border-color: transparent;
-  border-width: 6px;
-  margin-left: -6px
+  border-width: 5px;
+  margin-left: -5px
 }
 
 .apexcharts-xaxistooltip:before {
   border-color: transparent;
-  border-width: 7px;
-  margin-left: -7px
+  border-width: 6px;
+  margin-left: -6px
 }
 
 .apexcharts-xaxistooltip-bottom:after,
@@ -401,29 +490,19 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-xaxistooltip-bottom:after {
-  border-bottom-color: #eceff1
+  border-bottom-color: var(--apx-axt-bg)
 }
 
 .apexcharts-xaxistooltip-bottom:before {
-  border-bottom-color: #90a4ae
-}
-
-.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:after,
-.apexcharts-xaxistooltip-bottom.apexcharts-theme-dark:before {
-  border-bottom-color: rgba(0, 0, 0, .5)
+  border-bottom-color: var(--apx-axt-border)
 }
 
 .apexcharts-xaxistooltip-top:after {
-  border-top-color: #eceff1
+  border-top-color: var(--apx-axt-bg)
 }
 
 .apexcharts-xaxistooltip-top:before {
-  border-top-color: #90a4ae
-}
-
-.apexcharts-xaxistooltip-top.apexcharts-theme-dark:after,
-.apexcharts-xaxistooltip-top.apexcharts-theme-dark:before {
-  border-top-color: rgba(0, 0, 0, .5)
+  border-top-color: var(--apx-axt-border)
 }
 
 .apexcharts-xaxistooltip.apexcharts-active {
@@ -432,13 +511,7 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-yaxistooltip {
-  padding: 4px 10px
-}
-
-.apexcharts-yaxistooltip.apexcharts-theme-dark {
-  background: rgba(0, 0, 0, .7);
-  border: 1px solid rgba(0, 0, 0, .5);
-  color: #fff
+  padding: 3px 8px
 }
 
 .apexcharts-yaxistooltip:after,
@@ -454,14 +527,14 @@ rect.legend-mouseover-inactive,
 
 .apexcharts-yaxistooltip:after {
   border-color: transparent;
-  border-width: 6px;
-  margin-top: -6px
+  border-width: 5px;
+  margin-top: -5px
 }
 
 .apexcharts-yaxistooltip:before {
   border-color: transparent;
-  border-width: 7px;
-  margin-top: -7px
+  border-width: 6px;
+  margin-top: -6px
 }
 
 .apexcharts-yaxistooltip-left:after,
@@ -475,29 +548,19 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-yaxistooltip-left:after {
-  border-left-color: #eceff1
+  border-left-color: var(--apx-axt-bg)
 }
 
 .apexcharts-yaxistooltip-left:before {
-  border-left-color: #90a4ae
-}
-
-.apexcharts-yaxistooltip-left.apexcharts-theme-dark:after,
-.apexcharts-yaxistooltip-left.apexcharts-theme-dark:before {
-  border-left-color: rgba(0, 0, 0, .5)
+  border-left-color: var(--apx-axt-border)
 }
 
 .apexcharts-yaxistooltip-right:after {
-  border-right-color: #eceff1
+  border-right-color: var(--apx-axt-bg)
 }
 
 .apexcharts-yaxistooltip-right:before {
-  border-right-color: #90a4ae
-}
-
-.apexcharts-yaxistooltip-right.apexcharts-theme-dark:after,
-.apexcharts-yaxistooltip-right.apexcharts-theme-dark:before {
-  border-right-color: rgba(0, 0, 0, .5)
+  border-right-color: var(--apx-axt-border)
 }
 
 .apexcharts-yaxistooltip.apexcharts-active {
@@ -570,7 +633,7 @@ rect.legend-mouseover-inactive,
 .apexcharts-zoomout-icon {
   cursor: pointer;
   /* WCAG 2.5.8 Target Size (Minimum): 24×24 CSS px hit target. */
-  width: 24px;
+  width: 26px;
   height: 24px;
   line-height: 24px;
   color: #6e8192;
@@ -580,48 +643,68 @@ rect.legend-mouseover-inactive,
   margin: 0;
   background: transparent;
   border: 0;
+  border-radius: 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: background-color .12s ease, color .12s ease;
 }
 
 .apexcharts-menu-icon svg,
+.apexcharts-pan-icon svg,
 .apexcharts-reset-icon svg,
+.apexcharts-selection-icon svg,
 .apexcharts-zoom-icon svg,
 .apexcharts-zoomin-icon svg,
 .apexcharts-zoomout-icon svg {
-  fill: #6e8192
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round
 }
 
-.apexcharts-selection-icon svg {
-  fill: #444;
-  transform: scale(.76)
+.apexcharts-theme-dark .apexcharts-menu-icon,
+.apexcharts-theme-dark .apexcharts-pan-icon,
+.apexcharts-theme-dark .apexcharts-reset-icon,
+.apexcharts-theme-dark .apexcharts-selection-icon,
+.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,
+.apexcharts-theme-dark .apexcharts-zoom-icon,
+.apexcharts-theme-dark .apexcharts-zoomin-icon,
+.apexcharts-theme-dark .apexcharts-zoomout-icon {
+  color: #d4d6dc
 }
 
-.apexcharts-theme-dark .apexcharts-menu-icon svg,
-.apexcharts-theme-dark .apexcharts-pan-icon svg,
-.apexcharts-theme-dark .apexcharts-reset-icon svg,
-.apexcharts-theme-dark .apexcharts-selection-icon svg,
-.apexcharts-theme-dark .apexcharts-toolbar-custom-icon svg,
-.apexcharts-theme-dark .apexcharts-zoom-icon svg,
-.apexcharts-theme-dark .apexcharts-zoomin-icon svg,
-.apexcharts-theme-dark .apexcharts-zoomout-icon svg {
-  fill: #f3f4f5
+.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,
+.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,
+.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,
+.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected {
+  background: rgba(0, 143, 251, 0.12);
+  color: #008ffb
 }
 
-.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected svg,
-.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected svg,
-.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected svg {
-  fill: #008ffb
+.apexcharts-theme-light .apexcharts-menu-icon:hover,
+.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,
+.apexcharts-theme-light .apexcharts-reset-icon:hover,
+.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,
+.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,
+.apexcharts-theme-light .apexcharts-zoomin-icon:hover,
+.apexcharts-theme-light .apexcharts-zoomout-icon:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: #1f2937
 }
 
-.apexcharts-theme-light .apexcharts-menu-icon:hover svg,
-.apexcharts-theme-light .apexcharts-reset-icon:hover svg,
-.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover svg,
-.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover svg,
-.apexcharts-theme-light .apexcharts-zoomin-icon:hover svg,
-.apexcharts-theme-light .apexcharts-zoomout-icon:hover svg {
-  fill: #333
+.apexcharts-theme-dark .apexcharts-menu-icon:hover,
+.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,
+.apexcharts-theme-dark .apexcharts-reset-icon:hover,
+.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,
+.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,
+.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,
+.apexcharts-theme-dark .apexcharts-zoomout-icon:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff
 }
 
 .apexcharts-menu-icon,
@@ -629,91 +712,67 @@ rect.legend-mouseover-inactive,
   position: relative
 }
 
-.apexcharts-reset-icon {
-  margin-left: 5px
-}
-
-.apexcharts-menu-icon,
-.apexcharts-reset-icon,
-.apexcharts-zoom-icon {
-  transform: scale(.85)
-}
-
-.apexcharts-zoomin-icon,
-.apexcharts-zoomout-icon {
-  transform: scale(.7)
-}
-
-.apexcharts-zoomout-icon {
-  margin-right: 3px
-}
-
-.apexcharts-pan-icon {
-  transform: scale(.62);
-  position: relative;
-  left: 1px;
-  top: 0
-}
-
-.apexcharts-pan-icon svg {
-  fill: #fff;
-  stroke: #6e8192;
-  stroke-width: 2
-}
-
-.apexcharts-pan-icon.apexcharts-selected svg {
-  stroke: #008ffb
-}
-
-.apexcharts-pan-icon:not(.apexcharts-selected):hover svg {
-  stroke: #333
-}
-
 .apexcharts-toolbar {
   position: absolute;
   z-index: 11;
-  max-width: 176px;
-  text-align: right;
-  border-radius: 3px;
-  padding: 0 6px 2px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.apexcharts-theme-dark .apexcharts-toolbar {
+  background: rgba(28, 28, 31, 0.82);
 }
 
 .apexcharts-menu {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   position: absolute;
-  top: 100%;
-  border: 1px solid #ddd;
-  border-radius: 3px;
-  padding: 3px;
-  right: 10px;
+  top: calc(100% + 4px);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  padding: 4px;
+  right: 0;
   opacity: 0;
-  min-width: 110px;
-  transition: .15s ease all;
-  pointer-events: none
+  min-width: 120px;
+  transition: opacity .15s ease, transform .15s ease;
+  transform: translateY(-2px);
+  pointer-events: none;
+  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.12), 0 2px 4px -1px rgba(15, 23, 42, 0.06)
 }
 
 .apexcharts-menu.apexcharts-menu-open {
   opacity: 1;
-  pointer-events: all;
-  transition: .15s ease all
+  transform: translateY(0);
+  pointer-events: all
 }
 
 .apexcharts-menu-item {
-  padding: 6px 7px;
+  padding: 6px 9px;
   font-size: 12px;
+  border-radius: 5px;
   cursor: pointer
 }
 
 .apexcharts-theme-light .apexcharts-menu-item:hover {
-  background: #eee
+  background: rgba(15, 23, 42, 0.06)
 }
 
 .apexcharts-theme-dark .apexcharts-menu {
-  background: rgba(0, 0, 0, .7);
-  color: #fff
+  background: rgba(28, 28, 31, 0.92);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #f3f4f6;
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4)
+}
+
+.apexcharts-theme-dark .apexcharts-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08)
 }
 
 @media screen and (min-width:768px) {
@@ -737,8 +796,8 @@ rect.legend-mouseover-inactive,
 .apexcharts-zoomin-icon:focus-visible,
 .apexcharts-zoomout-icon:focus-visible {
   outline: 2px solid var(--apexcharts-focus-color, #008FFB);
-  outline-offset: 2px;
-  border-radius: 2px
+  outline-offset: 1px;
+  border-radius: 5px
 }
 
 /* Focus indicator for hamburger menu items */
