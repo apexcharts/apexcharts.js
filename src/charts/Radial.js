@@ -751,7 +751,6 @@ class Radial extends Pie {
     const graphics = new Graphics(this.w)
     const rb = w.config.plotOptions.radialBar
     const cfg = rb.needle || {}
-    const pivot = rb.pivot || {}
 
     const g = graphics.group({ class: 'apexcharts-gauge-needle' })
     if (!opts.series || opts.series.length === 0) return g
@@ -767,18 +766,21 @@ class Radial extends Pie {
     const tipW = cfg.tipWidth ?? 1
     const color = cfg.color || '#333'
 
-    // Build the needle as a tapered polygon. The base (pivot) sits at
-    // (centerX, centerY + pivot.offsetY); needle points straight up at
-    // angle 0 in our polar system. We rotate the wrapping <g> to position
-    // it around the (offset) pivot point.
+    // Build the needle as a tapered shape with a rounded (semi-circular)
+    // base. The base center sits at (centerX, centerY + needle.offsetY);
+    // needle points straight up at angle 0 in our polar system. We rotate
+    // the wrapping <g> to position it around the (offset) base point.
     const cx = opts.centerX
-    const pivotOffsetY = Number(pivot.offsetY ?? 0)
-    const cy = opts.centerY + pivotOffsetY
+    const needleOffsetY = Number(cfg.offsetY ?? 0)
+    const cy = opts.centerY + needleOffsetY
+    // Path: right base → semicircular arc clockwise around the base (bulges
+    // below the baseline, giving a rounded "anchor" look) → left base → up
+    // to left tip → across to right tip → close.
     const path =
-      `M ${cx - baseW / 2} ${cy} ` +
-      `L ${cx + baseW / 2} ${cy} ` +
-      `L ${cx + tipW / 2} ${cy - length} ` +
-      `L ${cx - tipW / 2} ${cy - length} Z`
+      `M ${cx + baseW / 2} ${cy} ` +
+      `A ${baseW / 2} ${baseW / 2} 0 0 1 ${cx - baseW / 2} ${cy} ` +
+      `L ${cx - tipW / 2} ${cy - length} ` +
+      `L ${cx + tipW / 2} ${cy - length} Z`
 
     const elNeedle = graphics.drawPath({
       d: path,
@@ -789,22 +791,7 @@ class Radial extends Pie {
     })
     g.add(elNeedle)
 
-    // Pivot circle on top of the needle base.
-    if (pivot.show !== false) {
-      const elPivot = graphics.drawCircle(2 * (cfg.baseRadius ?? 8))
-      elPivot.attr({
-        cx,
-        cy,
-        r: cfg.baseRadius ?? 8,
-        fill: pivot.color || color,
-        stroke: pivot.strokeColor || '#fff',
-        'stroke-width': pivot.strokeWidth ?? 2,
-        class: 'apexcharts-gauge-needle-pivot',
-      })
-      g.add(elPivot)
-    }
-
-    // Rotate the whole group around the pivot point.
+    // Rotate the whole group around the base point.
     const value = Number(opts.series[0])
     const targetAngle = this._angleAtValue(value)
 

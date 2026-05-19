@@ -1,0 +1,123 @@
+<title>Live Needle Gauge</title>
+
+<style>
+#chart {
+  padding: 0;
+  max-width: 560px;
+  margin: 35px auto;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  height: 360,
+  type: 'gauge',
+  animations: {
+    enabled: true,
+    dynamicAnimation: { enabled: true, speed: 800 },
+  },
+},
+colors: ['#00A86F'],
+plotOptions: {
+  radialBar: {
+    shape: 'needle',
+    startAngle: -90,
+    endAngle: 90,
+    min: 0,
+    max: 100,
+    ticks: {
+      show: true,
+      major: {
+        count: 11,
+        length: 0,
+        width: 0,
+        color: 'transparent',
+        placement: 'outside',
+      },
+      minor: {
+        count: 0,
+        length: 0,
+        width: 0,
+        color: 'transparent',
+      },
+      labels: {
+        show: true,
+        offset: 25,
+        fontSize: '12px',
+        fontWeight: 500,
+        color: '#0F172A',
+        formatter: function (v) {
+          return v + '%'
+        },
+      },
+    },
+    needle: {
+      color: '#1E293B',
+      length: '85%',
+      baseWidth: 10,
+      tipWidth: 1,
+      showValueArc: true,
+    },
+    track: {
+      show: true,
+      background: '#ddd',
+      strokeWidth: '100%',
+      margin: 0,
+    },
+    hollow: {
+      margin: 0,
+      size: '70%',
+      background: 'transparent',
+    },
+    dataLabels: {
+      name: { show: false },
+      value: {
+        offsetY: 20,
+        fontSize: '16px',
+        fontWeight: 700,
+        color: '#0F172A',
+        formatter: function (val) {
+          return val + '%'
+        },
+      },
+    },
+  },
+},
+stroke: {
+  lineCap: 'butt',
+},
+labels: ['Progress'],
+</options>
+
+<series>
+[86]
+</series>
+</chart>
+
+<vanilla-js-script>
+window.setInterval(function () {
+  var next = Math.floor(Math.random() * 101)
+  chart.updateSeries([next])
+}, 2000)
+</vanilla-js-script>
+
+<react-script>
+useEffect(() => {
+  const id = window.setInterval(() => {
+    setState((s) => ({ ...s, series: [Math.floor(Math.random() * 101)] }))
+  }, 2000)
+  return () => window.clearInterval(id)
+}, [])
+</react-script>
+
+<vue-script>
+mounted() {
+  this.tickId = window.setInterval(() => {
+    this.series = [Math.floor(Math.random() * 101)]
+  }, 2000)
+},
+beforeDestroy() {
+  if (this.tickId) window.clearInterval(this.tickId)
+},
+</vue-script>

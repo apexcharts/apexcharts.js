@@ -1184,7 +1184,6 @@ type ApexPlotOptions = {
     }
     needle?: {
       color?: string
-      baseRadius?: number
       length?: string | number
       baseWidth?: number
       tipWidth?: number
@@ -1193,23 +1192,18 @@ type ApexPlotOptions = {
        * Default false preserves needle-only behavior.
        */
       showValueArc?: boolean
+      /**
+       * px offset from the geometric arc center on Y. Positive values push
+       * the needle base down (toward the chord midpoint of a ∩-shape
+       * gauge); negative pushes up. The needle rotates around this shifted
+       * point.
+       */
+      offsetY?: number
       animation?: {
         enabled?: boolean
         duration?: number
         easing?: string
       }
-    }
-    pivot?: {
-      show?: boolean
-      color?: string
-      strokeColor?: string
-      strokeWidth?: number
-      /**
-       * px offset from the geometric arc center on Y. Positive values push
-       * the pivot down; negative pushes up. The needle rotates around this
-       * shifted point.
-       */
-      offsetY?: number
     }
     hollow?: {
       margin?: number

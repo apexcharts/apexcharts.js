@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Needle Gauge</title>
+    <title>Live Needle Gauge</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -12,7 +12,7 @@
       
         #chart {
       padding: 0;
-      max-width: 420px;
+      max-width: 560px;
       margin: 35px auto;
     }
       
@@ -41,79 +41,95 @@
     <script>
       
         var options = {
-          series: [68],
+          series: [86],
           chart: {
           height: 360,
           type: 'gauge',
+          animations: {
+            enabled: true,
+            dynamicAnimation: { enabled: true, speed: 800 },
+          },
         },
+        colors: ['#00A86F'],
         plotOptions: {
           radialBar: {
             shape: 'needle',
-            startAngle: -135,
-            endAngle: 135,
+            startAngle: -90,
+            endAngle: 90,
             min: 0,
             max: 100,
-            bands: [
-              { from: 0, to: 30, color: '#FF4560' },
-              { from: 30, to: 70, color: '#FEB019' },
-              { from: 70, to: 100, color: '#00E396' },
-            ],
-            bandsStyle: {
-              strokeWidth: '50%',
-              gap: 1,
-            },
             ticks: {
               show: true,
               major: {
                 count: 11,
-                length: 8,
-                width: 2,
-                color: '#334155',
+                length: 0,
+                width: 0,
+                color: 'transparent',
                 placement: 'outside',
               },
               minor: {
-                count: 1,
-                length: 4,
-                width: 1,
-                color: '#94A3B8',
-                placement: 'outside',
+                count: 0,
+                length: 0,
+                width: 0,
+                color: 'transparent',
               },
               labels: {
                 show: true,
-                offset: 6,
-                fontSize: '11px',
-                color: '#334155',
+                offset: 25,
+                fontSize: '12px',
+                fontWeight: 500,
+                color: '#0F172A',
+                formatter: function (v) {
+                  return v + '%'
+                },
               },
             },
             needle: {
-              color: '#0F172A',
-              length: '60%',
-              baseWidth: 6,
+              color: '#1E293B',
+              length: '85%',
+              baseWidth: 10,
               tipWidth: 1,
+              showValueArc: true,
+            },
+            track: {
+              show: true,
+              background: '#ddd',
+              strokeWidth: '100%',
+              margin: 0,
             },
             hollow: {
               margin: 0,
               size: '70%',
+              background: 'transparent',
             },
             dataLabels: {
               name: { show: false },
               value: {
-                offsetY: 32,
-                fontSize: '28px',
+                offsetY: 20,
+                fontSize: '16px',
                 fontWeight: 700,
+                color: '#0F172A',
                 formatter: function (val) {
-                  return val
+                  return val + '%'
                 },
               },
             },
           },
         },
-        labels: ['Speed'],
+        stroke: {
+          lineCap: 'butt',
+        },
+        labels: ['Progress'],
         };
 
         var chart = new ApexCharts(document.querySelector("#chart"), options);
         chart.render();
       
+      
+        window.setInterval(function () {
+        var next = Math.floor(Math.random() * 101)
+        chart.updateSeries([next])
+      }, 2000)
       
     </script>
 

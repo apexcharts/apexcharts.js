@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Gauge with Threshold Bands</title>
+    <title>Live Needle Gauge</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -12,7 +12,7 @@
       
         #chart {
       padding: 0;
-      max-width: 420px;
+      max-width: 560px;
       margin: 35px auto;
     }
       
@@ -45,42 +45,82 @@
     <div id="app"></div>
 
     <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;gauge&quot; height={350} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;gauge&quot; height={360} /&gt;
 &lt;/div&gt;</div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
           
-            series: [78],
+            series: [86],
             options: {
               chart: {
-                height: 350,
+                height: 360,
                 type: 'gauge',
+                animations: {
+                  enabled: true,
+                  dynamicAnimation: { enabled: true, speed: 800 },
+                },
               },
+              colors: ['#00A86F'],
               plotOptions: {
                 radialBar: {
-                  startAngle: -135,
-                  endAngle: 135,
-                  bands: [
-                    { from: 0, to: 30, color: '#FF4560' },
-                    { from: 30, to: 70, color: '#FEB019' },
-                    { from: 70, to: 100, color: '#00E396' },
-                  ],
-                  bandsStyle: {
-                    strokeWidth: '60%',
-                    gap: 2,
+                  shape: 'needle',
+                  startAngle: -90,
+                  endAngle: 90,
+                  min: 0,
+                  max: 100,
+                  ticks: {
+                    show: true,
+                    major: {
+                      count: 11,
+                      length: 0,
+                      width: 0,
+                      color: 'transparent',
+                      placement: 'outside',
+                    },
+                    minor: {
+                      count: 0,
+                      length: 0,
+                      width: 0,
+                      color: 'transparent',
+                    },
+                    labels: {
+                      show: true,
+                      offset: 25,
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      color: '#0F172A',
+                      formatter: function (v) {
+                        return v + '%'
+                      },
+                    },
+                  },
+                  needle: {
+                    color: '#1E293B',
+                    length: '85%',
+                    baseWidth: 10,
+                    tipWidth: 1,
+                    showValueArc: true,
+                  },
+                  track: {
+                    show: true,
+                    background: '#ddd',
+                    strokeWidth: '100%',
+                    margin: 0,
                   },
                   hollow: {
                     margin: 0,
-                    size: '60%',
+                    size: '70%',
+                    background: 'transparent',
                   },
                   dataLabels: {
                     name: { show: false },
                     value: {
-                      offsetY: 8,
-                      fontSize: '32px',
+                      offsetY: 20,
+                      fontSize: '16px',
                       fontWeight: 700,
+                      color: '#0F172A',
                       formatter: function (val) {
                         return val + '%'
                       },
@@ -88,19 +128,28 @@
                   },
                 },
               },
-              fill: { opacity: 0.8 },
-              labels: ['System Health'],
+              stroke: {
+                lineCap: 'butt',
+              },
+              labels: ['Progress'],
             },
           
           
         });
 
         
+          useEffect(() => {
+          const id = window.setInterval(() => {
+            setState((s) => ({ ...s, series: [Math.floor(Math.random() * 101)] }))
+          }, 2000)
+          return () => window.clearInterval(id)
+        }, [])
+        
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="gauge" height={350} />
+                <ReactApexChart options={state.options} series={state.series} type="gauge" height={360} />
               </div>
             <div id="html-dist"></div>
           </div>

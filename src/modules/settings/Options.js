@@ -653,8 +653,6 @@ export default class Options {
           // Needle/dial configuration. Only applies when `shape: 'needle'`.
           needle: {
             color: '#333',
-            // px radius of the pivot circle at chart center.
-            baseRadius: 8,
             // Needle length as a % of the gauge radius (string like '85%')
             // or as an absolute px number.
             length: '85%',
@@ -662,6 +660,11 @@ export default class Options {
             baseWidth: 4,
             // px width of the needle tip (tapered if smaller than baseWidth).
             tipWidth: 1,
+            // px offset from the geometric arc center on Y. Positive values
+            // push the needle base down (toward the chord midpoint of a
+            // ∩-shape gauge); negative pushes up. The needle rotates around
+            // this shifted point.
+            offsetY: 0,
             // When true, also render the filled value-arc alongside the
             // needle. Default false preserves the previous needle-only
             // behavior. Useful for gauges that want a progress ring plus a
@@ -672,17 +675,6 @@ export default class Options {
               duration: 800,
               easing: 'ease-out',
             },
-          },
-          pivot: {
-            show: true,
-            color: '#333',
-            strokeColor: '#fff',
-            strokeWidth: 2,
-            // px offset from the geometric arc center on Y. Positive values
-            // push the pivot down (toward the chord midpoint of a ∩-shape
-            // gauge); negative pushes up. The needle rotates around this
-            // shifted point.
-            offsetY: 0,
           },
           hollow: {
             margin: 5,

@@ -95,12 +95,11 @@ describe('Gauge — tick marks', () => {
 })
 
 describe("Gauge — shape: 'needle'", () => {
-  it('renders a needle group with shape + pivot', () => {
+  it('renders a needle group with the shape only', () => {
     gaugeChart({ shape: 'needle' })
     const group = document.querySelector('.apexcharts-gauge-needle')
     expect(group).not.toBeNull()
     expect(group.querySelector('.apexcharts-gauge-needle-shape')).not.toBeNull()
-    expect(group.querySelector('.apexcharts-gauge-needle-pivot')).not.toBeNull()
   })
 
   it('rotates the needle group to the value angle', () => {

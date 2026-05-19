@@ -44,7 +44,7 @@ plotOptions: {
     },
   },
 },
-fill: { opacity: 1 },
+fill: { opacity: 0.8 },
 labels: ['System Health'],
 </options>
 
