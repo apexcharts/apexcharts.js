@@ -1,35 +1,57 @@
-// Typescript declarations for Apex class and module.
-// Note: When you have a class and a module with the same name; the module is merged
-// with the class.  This is necessary since apexcharts exports the main ApexCharts class only.
+// TypeScript declarations for ApexCharts.
+// The ApexCharts class and a namespace of the same name are merged here so
+// that consumers can access sub-types either as named imports
+// (`import type { ApexOptions } from 'apexcharts'`) or via the class
+// namespace (`ApexCharts.ApexOptions`).
 //
-// This is a sparse typed declarations of chart interfaces.  See Apex Chart documentation
-// for comprehensive API:  https://apexcharts.com/docs/options
-//
-// There is on-going work to provide a comprehensive typed definition for this component.
-// See https://github.com/DefinitelyTyped/DefinitelyTyped/pull/28733
+// For the full set of supported options, see https://apexcharts.com/docs/options
 
 // ---------------------------------------------------------------------------
 // Shared formatter/event opts types
 // ---------------------------------------------------------------------------
 
 /**
- * Opts object passed to most chart event callbacks (click, mouseMove, etc.).
+ * The chart state object passed as `w` to formatters, event opts, and
+ * snapshots. Common access patterns:
+ *   - `w.config.chart.type` — the merged user options
+ *   - `w.globals.seriesNames` — runtime state bag
+ *
+ * `globals` is intentionally `any` because it is a large, internal surface;
+ * prefer the typed `ApexCharts.ChartState` returned by `getState()` for
+ * stable access. Other internal slices (`dom`, `formatters`, `interact`,
+ * `layout`, etc.) exist on `w` but are not part of the documented API and
+ * may change between releases — the index signature documents their
+ * presence without committing to a stable shape.
  */
-type ApexChartEventOpts = {
-  seriesIndex: number
-  dataPointIndex: number
-  w: ApexCharts.ApexOptions & { globals: any }
+type ApexChartContext = {
+  config: ApexCharts.ApexOptions
+  globals: any
   [key: string]: any
 }
 
 /**
- * Opts object passed to most value formatters (dataLabels, legend, tooltip y, etc.).
+ * Opts object passed to most chart event callbacks (click, mouseMove,
+ * keyDown, etc.). For some events (mouseMove, click, keyDown, keyUp)
+ * `w` is also spread into the opts object as a convenience, so members
+ * of `w` (config, globals, etc.) may be accessed directly on opts. The
+ * index signature reflects that.
+ */
+type ApexChartEventOpts = {
+  seriesIndex: number
+  dataPointIndex: number
+  w: ApexChartContext
+  [key: string]: any
+}
+
+/**
+ * Opts object passed to most value formatters (dataLabels, tooltip y,
+ * etc.). `series` is included for tooltip formatters; ignore it elsewhere.
  */
 type ApexFormatterOpts = {
   seriesIndex: number
   dataPointIndex: number
-  w: ApexCharts.ApexOptions & { globals: any }
-  [key: string]: any
+  series?: any[][]
+  w: ApexChartContext
 }
 
 /**
@@ -37,8 +59,30 @@ type ApexFormatterOpts = {
  */
 type ApexLegendFormatterOpts = {
   seriesIndex: number
-  w: ApexCharts.ApexOptions & { globals: any }
-  [key: string]: any
+  w: ApexChartContext
+}
+
+/**
+ * Opts object passed to `colors[]` when a color is provided as a function.
+ */
+type ApexColorFormatterOpts = {
+  value: number
+  seriesIndex: number
+  dataPointIndex: number
+  w: ApexChartContext
+}
+
+/**
+ * Opts object passed to `tooltip.custom`. `series` is the parsed series
+ * matrix; `y1`/`y2` are populated for range-bar / range-area tooltips.
+ */
+type ApexTooltipCustomOpts = {
+  series: number[][]
+  seriesIndex: number
+  dataPointIndex: number
+  y1?: number
+  y2?: number
+  w: ApexChartContext
 }
 
 declare class ApexCharts {
@@ -171,7 +215,7 @@ declare class ApexCharts {
    * Triggers a CSV download of the chart's data.
    * Requires the Exports feature: import 'apexcharts/features/exports'.
    */
-  exportToCSV(options?: { series?: any; fileName?: string; columnDelimiter?: string; lineDelimiter?: string }): void
+  exportToCSV(options?: { series?: ApexAxisChartSeries | ApexNonAxisChartSeries; fileName?: string; columnDelimiter?: string; lineDelimiter?: string }): void
 
   /** Returns the SVG.js root element (SVG Paper) for the chart. */
   paper(): any
@@ -240,7 +284,7 @@ declare class ApexCharts {
     dataURI(options?: { scale?: number; width?: number }): Promise<{ imgURI: string } | { blob: Blob }>
     exportToSVG(): void
     exportToPng(): void
-    exportToCSV(options?: { series?: any; fileName?: string; columnDelimiter?: string; lineDelimiter?: string }): void
+    exportToCSV(options?: { series?: ApexAxisChartSeries | ApexNonAxisChartSeries; fileName?: string; columnDelimiter?: string; lineDelimiter?: string }): void
     getSvgString(scale?: number): Promise<string>
     triggerDownload(href: string, filename?: string, ext?: string): void
   }
@@ -307,7 +351,12 @@ declare namespace ApexCharts {
   export interface ApexOptions {
     annotations?: ApexAnnotations
     chart?: ApexChart
-    colors?: any[]
+    /**
+     * Series colors. Each entry is either a CSS color string (hex, rgb, hsl,
+     * named) or a function returning one per-datapoint. The list cycles when
+     * there are more series than colors.
+     */
+    colors?: Array<string | ((opts: ApexColorFormatterOpts) => string)>
     dataLabels?: ApexDataLabels
     fill?: ApexFill
     forecastDataPoints?: ApexForecastDataPoints
@@ -356,9 +405,12 @@ declare namespace ApexCharts {
   export type { ApexNonAxisChartSeries }
   export type { ApexLocale }
   export type { ApexDropShadow }
+  export type { ApexChartContext }
   export type { ApexChartEventOpts }
   export type { ApexFormatterOpts }
   export type { ApexLegendFormatterOpts }
+  export type { ApexColorFormatterOpts }
+  export type { ApexTooltipCustomOpts }
   export type { XAxisAnnotations }
   export type { YAxisAnnotations }
   export type { PointAnnotations }
@@ -372,7 +424,11 @@ type ApexDropShadow = {
   left?: number
   blur?: number
   opacity?: number
-  color?: string
+  /**
+   * Shadow color. A single string applies to all series; an array applies
+   * per-series (only respected by `chart.dropShadow`).
+   */
+  color?: string | string[]
 }
 
 /**
@@ -416,7 +472,6 @@ type ApexChart = {
   offsetY?: number
   dropShadow?: ApexDropShadow & {
     enabledOnSeries?: undefined | number[]
-    color?: string | string[]
   }
   nonce?: string
   events?: {
@@ -488,8 +543,8 @@ type ApexChart = {
         columnDelimiter?: string
         headerCategory?: string
         headerValue?: string
-        categoryFormatter?(value?: string | number): any
-        valueFormatter?(value?: string | number): any
+        categoryFormatter?(value?: string | number): string
+        valueFormatter?(value?: string | number): string
       },
       svg?: {
         filename?: undefined | string
@@ -599,13 +654,13 @@ type ApexChart = {
 type ApexStates = {
   hover?: {
     filter?: {
-      type?: string
+      type?: 'none' | 'lighten' | 'darken'
     }
   }
   active?: {
     allowMultipleDataPointsSelection?: boolean
     filter?: {
-      type?: string
+      type?: 'none' | 'lighten' | 'darken'
     }
   }
 }
@@ -644,12 +699,12 @@ type ApexAxisChartSeries = {
  data:
  | (number | null)[]
  | {
-   x: any;
-   y: any;
+   x: string | number;
+   y: number | null;
    fill?: ApexFill;
    fillColor?: string;
    strokeColor?: string;
-   meta?: any;
+   meta?: unknown;
    goals?: {
      name?: string,
      value: number,
@@ -680,7 +735,7 @@ type ApexStroke = {
   show?: boolean
   curve?: 'smooth' | 'straight' | 'stepline' | 'linestep' | 'monotoneCubic' | ('smooth' | 'straight' | 'stepline' | 'linestep' | 'monotoneCubic')[]
   lineCap?: 'butt' | 'square' | 'round'
-  colors?: any[] | string[]
+  colors?: string[]
   width?: number | number[]
   dashArray?: number | number[]
   fill?: ApexFill
@@ -1038,7 +1093,7 @@ type ApexPlotOptions = {
           fontSize?: string
           label?: string
           color?: string
-          formatter?(w: ApexCharts.ApexOptions & { globals: any }): string
+          formatter?(w: ApexChartContext): string
         }
       }
     }
@@ -1133,6 +1188,11 @@ type ApexPlotOptions = {
       length?: string | number
       baseWidth?: number
       tipWidth?: number
+      /**
+       * When true, also render the filled value-arc alongside the needle.
+       * Default false preserves needle-only behavior.
+       */
+      showValueArc?: boolean
       animation?: {
         enabled?: boolean
         duration?: number
@@ -1144,6 +1204,12 @@ type ApexPlotOptions = {
       color?: string
       strokeColor?: string
       strokeWidth?: number
+      /**
+       * px offset from the geometric arc center on Y. Positive values push
+       * the pivot down; negative pushes up. The needle rotates around this
+       * shifted point.
+       */
+      offsetY?: number
     }
     hollow?: {
       margin?: number
@@ -1156,6 +1222,14 @@ type ApexPlotOptions = {
       imageOffsetY?: number
       imageClipped?: boolean
       position?: 'front' | 'back'
+      /**
+       * Optional stroke color around the hollow ring. Combined with
+       * `strokeDasharray` this produces a dashed indicator circle around
+       * the value text.
+       */
+      stroke?: string
+      strokeWidth?: number
+      strokeDasharray?: string | number
       dropShadow?: ApexDropShadow
     }
     track?: {
@@ -1177,6 +1251,7 @@ type ApexPlotOptions = {
         fontSize?: string
         color?: string
         offsetY?: number
+        formatter?(seriesName: string): string
       }
       value?: {
         show?: boolean
@@ -1194,7 +1269,7 @@ type ApexPlotOptions = {
         fontFamily?: string
         fontWeight?: string | number
         fontSize?: string
-        formatter?(opts: ApexFormatterOpts): string
+        formatter?(w: ApexChartContext): string
       }
     }
     barLabels?: {
@@ -1218,7 +1293,7 @@ type ApexColorStop = {
 }
 
 type ApexFill = {
-  colors?: any[]
+  colors?: string[]
   opacity?: number | number[]
   type?: string | string[]
   gradient?: {
@@ -1269,7 +1344,7 @@ type ApexLegend = {
   tooltipHoverFormatter?(legendName: string, opts?: ApexLegendFormatterOpts): string
   customLegendItems?: string[]
   clusterGroupedSeries?: boolean;
-  clusterGroupedSeriesOrientation?: string;
+  clusterGroupedSeriesOrientation?: 'vertical' | 'horizontal';
   labels?: {
     colors?: string | string[]
     useSeriesColors?: boolean
@@ -1364,7 +1439,7 @@ type ApexDataLabels = {
     fontSize?: string
     fontFamily?: string
     fontWeight?: string | number
-    colors?: any[]
+    colors?: string[]
   }
   background?: {
     enabled?: boolean
@@ -1383,7 +1458,7 @@ type ApexDataLabels = {
 
 type ApexResponsive = {
   breakpoint?: number
-  options?: any
+  options?: ApexCharts.ApexOptions
 }
 
 type ApexTooltipY = {
@@ -1405,9 +1480,11 @@ type ApexTooltip = {
   intersect?: boolean
   inverseOrder?: boolean
   arrow?: boolean
-  custom?: ((options: any) => any) | ((options: any) => any)[]
+  custom?:
+    | ((opts: ApexTooltipCustomOpts) => string | number | Element | { nodeName: string })
+    | Array<(opts: ApexTooltipCustomOpts) => string | number | Element | { nodeName: string }>
   fillSeriesColor?: boolean
-  theme?: string
+  theme?: 'light' | 'dark'
   cssClass?: string
   hideEmptySeries?: boolean
   style?: {
@@ -1449,7 +1526,11 @@ type ApexTooltip = {
  */
 type ApexXAxis = {
   type?: 'category' | 'datetime' | 'numeric'
-  categories?: any;
+  /**
+   * X-axis category labels. Pass a flat array for a single row of labels,
+   * or a 2-D array (`[group, label][]`) to render grouped category axes.
+   */
+  categories?: Array<string | number> | Array<Array<string | number>>;
   overwriteCategories?: number[] | string[] | undefined;
   offsetX?: number;
   offsetY?: number;
@@ -1503,7 +1584,7 @@ type ApexXAxis = {
   }
   axisTicks?: {
     show?: boolean
-    borderType?: string
+    borderType?: 'solid' | 'dotted' | 'dashed'
     color?: string
     height?: number
     offsetX?: number
