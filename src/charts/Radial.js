@@ -108,7 +108,11 @@ class Radial extends Pie {
       centerY,
       colorArr,
       series,
-      skipValueArc: isNeedleShape,
+      // When `needle.showValueArc` is true, render both the filled value-arc
+      // and the needle on top — required for gauges that want a progress
+      // ring with a pointer indicator (default still hides the arc when in
+      // needle shape, preserving prior behavior).
+      skipValueArc: isNeedleShape && !rb.needle?.showValueArc,
     })
 
     if (rb.ticks && rb.ticks.show) {
@@ -763,11 +767,13 @@ class Radial extends Pie {
     const tipW = cfg.tipWidth ?? 1
     const color = cfg.color || '#333'
 
-    // Build the needle as a tapered polygon, centered on (centerX, centerY),
-    // pointing straight up (angle 0 in our polar system). We rotate the
-    // wrapping <g> to position it.
+    // Build the needle as a tapered polygon. The base (pivot) sits at
+    // (centerX, centerY + pivot.offsetY); needle points straight up at
+    // angle 0 in our polar system. We rotate the wrapping <g> to position
+    // it around the (offset) pivot point.
     const cx = opts.centerX
-    const cy = opts.centerY
+    const pivotOffsetY = Number(pivot.offsetY ?? 0)
+    const cy = opts.centerY + pivotOffsetY
     const path =
       `M ${cx - baseW / 2} ${cy} ` +
       `L ${cx + baseW / 2} ${cy} ` +
@@ -798,30 +804,47 @@ class Radial extends Pie {
       g.add(elPivot)
     }
 
-    // Rotate the whole group to the value's angle. We rotate around the
-    // chart center, transform-origin set to (cx, cy).
+    // Rotate the whole group around the pivot point.
     const value = Number(opts.series[0])
     const targetAngle = this._angleAtValue(value)
 
     const isInitialMount =
       this.initialAnim && !w.globals.dataChanged && !w.globals.resized
-    if (isInitialMount && Environment.isBrowser() && w.globals.shouldAnimate) {
-      // Animate the needle from the gauge's start angle to its target with an
-      // ease-out-back curve so it visibly settles past the target and bounces
-      // back, like a real spring-loaded gauge needle.
-      const fromAngle = this.startAngle
+    // Cache the previous angle on the chart instance so updateSeries can
+    // tween from it. First update after mount tweens from `startAngle`.
+    const ctx = /** @type {any} */ (this.ctx)
+    const fromAngle =
+      typeof ctx._lastNeedleAngle === 'number'
+        ? ctx._lastNeedleAngle
+        : this.startAngle
+    ctx._lastNeedleAngle = targetAngle
+
+    const shouldAnimate =
+      Environment.isBrowser() &&
+      w.globals.shouldAnimate &&
+      (isInitialMount || w.globals.dataChanged)
+
+    if (shouldAnimate && fromAngle !== targetAngle) {
+      // Ease-out-back on initial mount (spring-loaded settle); plain ease-out
+      // on data updates (no overshoot — feels mechanical/instrument-like).
       const node = g.node
       node.setAttribute('transform-origin', `${cx} ${cy}`)
       node.setAttribute('transform', `rotate(${fromAngle})`)
 
       const speed =
+        (cfg.animation?.duration && Number(cfg.animation.duration)) ||
         (cfg.animationSpeed && Number(cfg.animationSpeed)) ||
+        w.config.chart.animations.dynamicAnimation?.speed ||
         w.config.chart.animations.speed ||
         800
       const c1 = 1.70158
       const c3 = c1 + 1
       /** @param {number} t */
-      const ease = (t) => 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
+      const easeOutBack = (t) =>
+        1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
+      /** @param {number} t */
+      const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3)
+      const ease = isInitialMount ? easeOutBack : easeOutCubic
 
       const startAt = performance.now()
       /** @param {number} now */
@@ -847,16 +870,28 @@ class Radial extends Pie {
    */
   drawHollow(opts) {
     const graphics = new Graphics(this.w)
+    const hollow = this.w.config.plotOptions.radialBar.hollow
 
     const circle = graphics.drawCircle(opts.size * 2)
 
-    circle.attr({
+    /** @type {Record<string, any>} */
+    const attrs = {
       class: 'apexcharts-radialbar-hollow',
       cx: opts.centerX,
       cy: opts.centerY,
       r: opts.size,
       fill: opts.fill,
-    })
+    }
+    // Optional stroke around the hollow ring — useful for indicator-style
+    // gauges where the value text sits inside a dashed/dotted circle.
+    if (hollow.stroke || hollow.strokeDasharray) {
+      attrs.stroke = hollow.stroke || 'transparent'
+      attrs['stroke-width'] = hollow.strokeWidth ?? 1
+      if (hollow.strokeDasharray) {
+        attrs['stroke-dasharray'] = hollow.strokeDasharray
+      }
+    }
+    circle.attr(attrs)
 
     return circle
   }

@@ -411,6 +411,7 @@ export default class Animations {
       mask.setAttribute('id', maskId)
       mask.setAttribute('maskUnits', 'userSpaceOnUse')
 
+      /** @type {Element} */
       let revealEl
       if (isRadial) {
         // Region must cover the full radar bbox (centered at cx, cy with radius r + pad).

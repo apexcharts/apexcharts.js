@@ -73,10 +73,10 @@ export default class Core {
     this.el.appendChild(this.w.dom.elWrap)
 
     // this.w.dom.Paper = new window.SVG.Doc(this.w.dom.elWrap)
-    // Access SVG from appropriate global scope
-    const SVG = Environment.isBrowser()
-      ? /** @type {any} */ (window).SVG
-      : /** @type {any} */ (global).SVG
+    // Access SVG from appropriate global scope. `globalThis` resolves to
+    // `window` in browsers and `global` in Node — works in both, typed in
+    // both, no env-specific branching needed.
+    const SVG = /** @type {any} */ (globalThis).SVG
     this.w.dom.Paper = SVG().addTo(this.w.dom.elWrap)
 
     this.w.dom.Paper.attr({
@@ -203,20 +203,17 @@ export default class Core {
           ? 'bar'
           : ser[st]?.type || (chartType === 'column' ? 'bar' : chartType)
 
-      if (/** @type {Record<string,any>} */ (seriesTypes)[seriesType]) {
+      const st_ = /** @type {Record<string,any>} */ (seriesTypes)
+      if (st_[seriesType]) {
         if (seriesType === 'rangeArea') {
-          ;/** @type {Record<string,any>} */ (seriesTypes)[
-            seriesType
-          ].series.push(this.w.rangeData.seriesRangeStart[st])
-          ;/** @type {Record<string,any>} */ (seriesTypes)[
-            seriesType
-          ].seriesRangeEnd.push(this.w.rangeData.seriesRangeEnd[st])
+          st_[seriesType].series.push(this.w.rangeData.seriesRangeStart[st])
+          st_[seriesType].seriesRangeEnd.push(
+            this.w.rangeData.seriesRangeEnd[st],
+          )
         } else {
-          ;/** @type {Record<string,any>} */ (seriesTypes)[
-            seriesType
-          ].series.push(serie)
+          st_[seriesType].series.push(serie)
         }
-        ;/** @type {Record<string,any>} */ (seriesTypes)[seriesType].i.push(st)
+        st_[seriesType].i.push(st)
 
         if (seriesType === 'bar') w.globals.columnSeries = seriesTypes.bar
       } else if (
@@ -577,26 +574,55 @@ export default class Core {
       w.config.plotOptions.radialBar.endAngle -
         w.config.plotOptions.radialBar.startAngle,
     )
-    if (
-      el &&
-      !w.config.chart.sparkline.enabled &&
-      radialAngleSpan < 360
-    ) {
-      const elRadialRect = Utils.getBoundingClientRect(el)
+    if (el && !w.config.chart.sparkline.enabled && radialAngleSpan < 360) {
       const svgRect = Utils.getBoundingClientRect(this.w.dom.Paper.node)
-      // Measure relative to the SVG (not elWrap). The SVG can be shifted by
-      // `chart.offsetY` via a transform on the Paper element; auto-balancing
-      // inside SVG coords keeps the user's offsetY as a clean additive shift.
-      const arcTopFromSVGTop = elRadialRect.top - svgRect.top
-      let arcBottomFromSVGTop = elRadialRect.bottom - svgRect.top
-      // Top padding scales with the arc size so larger gauges get
-      // proportionally more breathing room above the track. Falls back to
-      // offY when the arc is small.
-      const topPadding = Math.max(offY, w.globals.radialSize * 0.2)
-      // Target: arc top sits exactly `topPadding` below the SVG top. A
-      // negative shift pulls the graphical group up; positive pushes it
-      // down. Handles ∩-shape, ∪-shape, three-quarter, etc.
-      const verticalShift = topPadding - arcTopFromSVGTop
+      // Compute the visible arc extent by walking children and EXCLUDING the
+      // hollow circle. The hollow is always a full 360° circle, so for
+      // partial-arc gauges its lower half sits below the arc chord with no
+      // visible content — inflating the bbox and breaking auto-sizing.
+      let arcTopFromSVGTop = Infinity
+      let arcBottomFromSVGTop = -Infinity
+      // Walk to leaf nodes only — measuring parent <g> elements would
+      // re-include the hollow's bbox via inheritance, defeating the skip.
+      /** @param {Element} node */
+      const accumulate = (node) => {
+        if (node.classList?.contains('apexcharts-radialbar-hollow')) {
+          return
+        }
+        const children = Array.from(node.children ?? [])
+        if (children.length > 0) {
+          children.forEach((c) => accumulate(/** @type {Element} */ (c)))
+          return
+        }
+        // Leaf node — measure it.
+        const r = Utils.getBoundingClientRect(node)
+        const height = r.bottom - r.top
+        if (height > 0) {
+          const top = r.top - svgRect.top
+          const bottom = r.bottom - svgRect.top
+          if (top < arcTopFromSVGTop) arcTopFromSVGTop = top
+          if (bottom > arcBottomFromSVGTop) arcBottomFromSVGTop = bottom
+        }
+      }
+      Array.from(el.children ?? []).forEach((c) =>
+        accumulate(/** @type {Element} */ (c)),
+      )
+      // Fallback if no measurable children were found.
+      if (!Number.isFinite(arcTopFromSVGTop)) arcTopFromSVGTop = 0
+      if (!Number.isFinite(arcBottomFromSVGTop)) {
+        const elRect = Utils.getBoundingClientRect(el)
+        arcBottomFromSVGTop = elRect.bottom - svgRect.top
+      }
+      // Padding scales with the arc size so larger gauges get proportionally
+      // more breathing room. Same value applied to top AND bottom so the
+      // arc is vertically centered within the SVG regardless of shape.
+      const padding = Math.max(offY, w.globals.radialSize * 0.2)
+      // Only shift the graphical group DOWN to give an arc more top
+      // breathing room when its natural top is too close to the SVG edge.
+      // Never pull the arc UP — that would override the renderer's intent
+      // for charts whose arc geometry (e.g. ∩-shape -135/+135) naturally
+      // sits with ample space at the top.
+      const verticalShift = Math.max(padding - arcTopFromSVGTop, 0)
       if (verticalShift !== 0) {
         w.layout.translateY = (w.layout.translateY ?? 0) + verticalShift
         Graphics.setAttrs(this.w.dom.elGraphical.node, {
@@ -608,7 +634,7 @@ export default class Core {
         arcBottomFromSVGTop > 0
           ? arcBottomFromSVGTop
           : w.globals.radialSize * 2.05
-      const svgHeight = Math.ceil(chartInnerDimensions + legendHeight + offY)
+      const svgHeight = Math.ceil(chartInnerDimensions + legendHeight + padding)
       // `chart.offsetY` is applied as a transform on the SVG element, which
       // shifts the SVG within elWrap. For positive offsetY the SVG's bottom
       // ends up below elWrap's bottom — grow elWrap by that amount so the
@@ -616,12 +642,11 @@ export default class Core {
       const chartOffsetY = w.config.chart.offsetY ?? 0
       const elWrapHeight = svgHeight + Math.max(chartOffsetY, 0)
       if (this.w.dom.elLegendForeign) {
-        this.w.dom.elLegendForeign.setAttribute(
-          'height',
-          String(elWrapHeight),
-        )
+        this.w.dom.elLegendForeign.setAttribute('height', String(elWrapHeight))
       }
-      if (!(w.config.chart.height && String(w.config.chart.height).includes('%'))) {
+      if (
+        !(w.config.chart.height && String(w.config.chart.height).includes('%'))
+      ) {
         this.w.dom.elWrap.style.height = `${elWrapHeight}px`
         Graphics.setAttrs(this.w.dom.Paper.node, { height: svgHeight })
         if (Environment.isBrowser()) {
@@ -818,8 +843,10 @@ export default class Core {
     } else {
       // Pull series names from config.series when globals isn't populated yet.
       const namedSeries = (() => {
-        if (Array.isArray(w.seriesData.seriesNames) &&
-            w.seriesData.seriesNames.length) {
+        if (
+          Array.isArray(w.seriesData.seriesNames) &&
+          w.seriesData.seriesNames.length
+        ) {
           return w.seriesData.seriesNames.filter(Boolean)
         }
         if (Array.isArray(cnf.series)) {

@@ -662,6 +662,11 @@ export default class Options {
             baseWidth: 4,
             // px width of the needle tip (tapered if smaller than baseWidth).
             tipWidth: 1,
+            // When true, also render the filled value-arc alongside the
+            // needle. Default false preserves the previous needle-only
+            // behavior. Useful for gauges that want a progress ring plus a
+            // pointer indicator.
+            showValueArc: false,
             animation: {
               enabled: true,
               duration: 800,
@@ -673,6 +678,11 @@ export default class Options {
             color: '#333',
             strokeColor: '#fff',
             strokeWidth: 2,
+            // px offset from the geometric arc center on Y. Positive values
+            // push the pivot down (toward the chord midpoint of a ∩-shape
+            // gauge); negative pushes up. The needle rotates around this
+            // shifted point.
+            offsetY: 0,
           },
           hollow: {
             margin: 5,
@@ -685,6 +695,13 @@ export default class Options {
             imageOffsetY: 0,
             imageClipped: true,
             position: 'front',
+            // Optional stroke around the hollow ring. Combined with
+            // `strokeDasharray` this produces a dashed indicator circle
+            // around the value text — useful for gauge designs where the
+            // value sits inside its own boundary.
+            stroke: undefined,
+            strokeWidth: 1,
+            strokeDasharray: undefined,
             dropShadow: {
               enabled: false,
               top: 0,
