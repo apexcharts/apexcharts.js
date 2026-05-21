@@ -663,6 +663,12 @@ export default class Scales {
     const minYArr = gl.minYArr
     const maxYArr = gl.maxYArr
 
+    // Axes opted in to share a zero baseline are deferred so we can compute a
+    // common zero ratio after every axis's natural min/max is known.
+    /** @type {Array<{ ai: number, minY: number, maxY: number }>} */
+    const alignZeroParticipants = []
+    const canAlignZero = !gl.isBarHorizontal
+
     // Compute min..max for each yaxis
     gl.allSeriesCollapsed = true
     gl.barGroups = []
@@ -811,20 +817,96 @@ export default class Scales {
          * @param {any[]} a
          */
         gl.barGroups = gl.barGroups.filter((v, i, a) => a.indexOf(v) === i)
-        // Set the scale for this yaxis
-        this.setYScaleForIndex(ai, minY, maxY)
-        // Set individual series min and max to nice values
-        /**
-         * @param {number} si
-         */
-        axisSeries.forEach((si) => {
-          minYArr[si] = gl.yAxisScale[ai].niceMin
-          maxYArr[si] = gl.yAxisScale[ai].niceMax
-        })
+
+        // Determine whether this axis joins the zero-alignment group. User-set
+        // min/max win over alignment (silent override would violate intent),
+        // log axes have no zero in log space, and unresolved bounds are skipped.
+        const yaxe = cnf.yaxis[ai]
+        const participates =
+          canAlignZero &&
+          yaxe.alignZero === true &&
+          !yaxe.logarithmic &&
+          yaxe.min === undefined &&
+          yaxe.max === undefined &&
+          gl.ignoreYAxisIndexes.indexOf(ai) < 0 &&
+          Utils.isNumber(minY) &&
+          Utils.isNumber(maxY)
+
+        if (participates) {
+          alignZeroParticipants.push({ ai, minY, maxY })
+        } else {
+          // Set the scale for this yaxis
+          this.setYScaleForIndex(ai, minY, maxY)
+          // Set individual series min and max to nice values
+          /**
+           * @param {number} si
+           */
+          axisSeries.forEach((si) => {
+            minYArr[si] = gl.yAxisScale[ai].niceMin
+            maxYArr[si] = gl.yAxisScale[ai].niceMax
+          })
+        }
       } else {
         // No series referenced by this yaxis
         this.setYScaleForIndex(ai, 0, -Number.MAX_VALUE)
       }
     })
+
+    // Second pass: align the y=0 pixel position across opted-in axes by picking
+    // R* = max(R_i) where R_i = -minY_i / (maxY_i - minY_i). The max-ratio
+    // anchor never clips a mixed-sign axis's negative range; positive-leaning
+    // axes get their min extended downward to match. With unified R*, the
+    // downstream baseLineY[i] computation in CoreUtils.getCalculatedRatios()
+    // yields the same pixel offset for every participant.
+    if (alignZeroParticipants.length >= 2) {
+      let targetRatio = 0
+      alignZeroParticipants.forEach((p) => {
+        const range = p.maxY - p.minY
+        if (range > 0) {
+          const r = -p.minY / range
+          if (r > targetRatio) targetRatio = r
+        }
+      })
+      if (targetRatio > 1) targetRatio = 1
+      if (targetRatio < 0) targetRatio = 0
+
+      alignZeroParticipants.forEach((p) => {
+        let adjMinY = p.minY
+        let adjMaxY = p.maxY
+        const range = p.maxY - p.minY
+        const r = range > 0 ? -p.minY / range : 0
+        if (Math.abs(r - targetRatio) > 1e-12) {
+          if (targetRatio < 1 - 1e-12 && targetRatio > 1e-12) {
+            // Extend the side that doesn't carry actual data so we never clip
+            // real values. Positive-leaning axes grow downward; negative-
+            // leaning ones grow upward.
+            if (r < targetRatio) {
+              adjMinY = (-targetRatio * p.maxY) / (1 - targetRatio)
+            } else {
+              adjMaxY = (-p.minY * (1 - targetRatio)) / targetRatio
+            }
+          } else if (targetRatio >= 1 - 1e-12) {
+            // All-negative anchor — pin max at zero.
+            adjMaxY = 0
+          } else {
+            // targetRatio ~= 0, all-positive anchor — pin min at zero.
+            adjMinY = 0
+          }
+        }
+        this.setYScaleForIndex(p.ai, adjMinY, adjMaxY)
+        axisSeriesMap[p.ai].forEach((si) => {
+          minYArr[si] = gl.yAxisScale[p.ai].niceMin
+          maxYArr[si] = gl.yAxisScale[p.ai].niceMax
+        })
+      })
+    } else if (alignZeroParticipants.length === 1) {
+      // Single opt-in is a no-op for alignment; still finalize its scale.
+      const p = alignZeroParticipants[0]
+      this.setYScaleForIndex(p.ai, p.minY, p.maxY)
+      axisSeriesMap[p.ai].forEach((si) => {
+        minYArr[si] = gl.yAxisScale[p.ai].niceMin
+        maxYArr[si] = gl.yAxisScale[p.ai].niceMax
+      })
+    }
   }
 }

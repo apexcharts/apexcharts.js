@@ -18,6 +18,7 @@ export default class Options {
       tickAmount: undefined,
       stepSize: undefined,
       forceNiceScale: false,
+      alignZero: false,
       max: undefined,
       min: undefined,
       floating: false,

@@ -1656,6 +1656,7 @@ type ApexYAxis = {
   tickAmount?: number
   stepSize?: number
   forceNiceScale?: boolean
+  alignZero?: boolean
   min?: number | ((min: number) => number)
   max?: number | ((max: number) => number)
   floating?: boolean

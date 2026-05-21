@@ -371,4 +371,121 @@ describe('Multiple Y-axis Scales', () => {
     expect(seriesYAxisMap).toEqual([[2], [0, 1], [3]])
     expect(seriesYAxisReverseMap).toEqual([1, 1, 0, 2])
   })
+
+  describe('alignZero option', () => {
+    it('should not change scales when alignZero is false (default)', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'bar' },
+        series: [
+          { name: 'A', data: [-10, 5, 15, -3] },
+          { name: 'B', data: [1, 2, 3, 2] },
+        ],
+        yaxis: [{ seriesName: 'A' }, { seriesName: 'B', opposite: true }],
+      })
+
+      const { minYArr, maxYArr } = chart.getState()
+      const rA = -minYArr[0] / (maxYArr[0] - minYArr[0])
+      const rB = -minYArr[1] / (maxYArr[1] - minYArr[1])
+      expect(rA).not.toBeCloseTo(rB, 1)
+    })
+
+    it('should align zero pixel position when alignZero is true on both axes', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'bar' },
+        series: [
+          { name: 'A', data: [-10, 5, 15, -3] },
+          { name: 'B', data: [1, 2, 3, 2] },
+        ],
+        yaxis: [
+          { seriesName: 'A', alignZero: true },
+          { seriesName: 'B', alignZero: true, opposite: true },
+        ],
+      })
+
+      const { minYArr, maxYArr } = chart.getState()
+      const rA = -minYArr[0] / (maxYArr[0] - minYArr[0])
+      const rB = -minYArr[1] / (maxYArr[1] - minYArr[1])
+      expect(rA).toBeCloseTo(rB, 1)
+    })
+
+    it('should leave non-opted-in axis independent', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'bar' },
+        series: [
+          { name: 'A', data: [-10, 5, 15, -3] },
+          { name: 'B', data: [1, 2, 3, 2] },
+          { name: 'C', data: [25, 27, 26, 29] },
+        ],
+        yaxis: [
+          { seriesName: 'A', alignZero: true },
+          { seriesName: 'B', alignZero: true, opposite: true },
+          { seriesName: 'C', opposite: true },
+        ],
+      })
+
+      const { minYArr, maxYArr } = chart.getState()
+      // A and B aligned
+      const rA = -minYArr[0] / (maxYArr[0] - minYArr[0])
+      const rB = -minYArr[1] / (maxYArr[1] - minYArr[1])
+      expect(rA).toBeCloseTo(rB, 1)
+      // C untouched — still tightly fit to its positive range
+      expect(minYArr[2]).toBeGreaterThanOrEqual(20)
+    })
+
+    it('should be a no-op when only one axis opts in', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'bar' },
+        series: [
+          { name: 'A', data: [-10, 5, 15, -3] },
+          { name: 'B', data: [1, 2, 3, 2] },
+        ],
+        yaxis: [
+          { seriesName: 'A', alignZero: true },
+          { seriesName: 'B', opposite: true },
+        ],
+      })
+
+      const { minYArr } = chart.getState()
+      // B should not have been forced to a negative min by alignment
+      expect(minYArr[1]).toBeGreaterThanOrEqual(0)
+    })
+
+    it('should skip an opted-in axis that has user-set min', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'bar' },
+        series: [
+          { name: 'A', data: [-10, 5, 15, -3] },
+          { name: 'B', data: [1, 2, 3, 2] },
+        ],
+        yaxis: [
+          { seriesName: 'A', alignZero: true },
+          { seriesName: 'B', alignZero: true, min: 0, opposite: true },
+        ],
+      })
+
+      const { minYArr } = chart.getState()
+      // B kept its user-set min
+      expect(minYArr[1]).toBe(0)
+    })
+
+    it('should skip a logarithmic axis from alignment', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [
+          { name: 'A', data: [-10, 5, 15, -3] },
+          { name: 'B', data: [1, 10, 100, 1000] },
+        ],
+        yaxis: [
+          { seriesName: 'A', alignZero: true },
+          { seriesName: 'B', alignZero: true, logarithmic: true, opposite: true },
+        ],
+      })
+
+      const { minYArr, maxYArr } = chart.getState()
+      // B is logarithmic, so its min should remain positive (not extended negative)
+      expect(minYArr[1]).toBeGreaterThan(0)
+      // A should not have been forced to align because B opted out
+      expect(maxYArr[0]).toBeGreaterThanOrEqual(15)
+    })
+  })
 })
