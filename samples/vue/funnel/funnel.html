@@ -39,12 +39,12 @@
   <body>
     
     <div id="app"><div id="chart">
-      <apexchart type="bar" height="350" :options="chartOptions" :series="series"></apexchart>
+      <apexchart type="funnel" height="350" :options="chartOptions" :series="series"></apexchart>
     </div></div>
 
     <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
     <div id="html">&lt;div id=&quot;chart&quot;&gt;
-        &lt;apexchart type=&quot;bar&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;funnel&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;</div>
 
     <script>
@@ -63,7 +63,7 @@
           ],
           chartOptions: {
             chart: {
-              type: 'bar',
+              type: 'funnel',
               height: 350,
               dropShadow: {
                 enabled: true,
@@ -72,9 +72,7 @@
             plotOptions: {
               bar: {
                 borderRadius: 0,
-                horizontal: true,
                 barHeight: '80%',
-                isFunnel: true,
               },
             },
             dataLabels: {

@@ -44,7 +44,7 @@
     <div id="app"></div>
 
     <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={350} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;funnel&quot; height={350} /&gt;
 &lt;/div&gt;</div>
 
     <script type="text/babel">
@@ -59,7 +59,7 @@
             ],
             options: {
               chart: {
-                type: 'bar',
+                type: 'funnel',
                 height: 350,
                 dropShadow: {
                   enabled: true,
@@ -68,9 +68,7 @@
               plotOptions: {
                 bar: {
                   borderRadius: 0,
-                  horizontal: true,
                   barHeight: '80%',
-                  isFunnel: true,
                 },
               },
               dataLabels: {
@@ -111,7 +109,7 @@
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="bar" height={350} />
+                <ReactApexChart options={state.options} series={state.series} type="funnel" height={350} />
               </div>
             <div id="html-dist"></div>
           </div>

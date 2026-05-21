@@ -3,7 +3,7 @@
 <chart>
 <options>
 chart: {
-  type: 'bar',
+  type: 'funnel',
   height: 350,
   dropShadow: {
     enabled: true,
@@ -12,9 +12,7 @@ chart: {
 plotOptions: {
   bar: {
     borderRadius: 0,
-    horizontal: true,
     barHeight: '80%',
-    isFunnel: true,
   },
 },
 dataLabels: {

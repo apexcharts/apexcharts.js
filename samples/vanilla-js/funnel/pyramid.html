@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Funnel Chart</title>
+    <title>Pyramid Chart (chart.type: 'pyramid')</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -47,7 +47,7 @@
           },
         ],
           chart: {
-          type: 'bar',
+          type: 'pyramid',
           height: 350,
           dropShadow: {
             enabled: true,
@@ -56,10 +56,8 @@
         plotOptions: {
           bar: {
             borderRadius: 0,
-            horizontal: true,
             distributed: true,
             barHeight: '80%',
-            isFunnel: true,
           },
         },
         colors: [
@@ -75,14 +73,14 @@
         dataLabels: {
           enabled: true,
           formatter: function (val, opt) {
-            return opt.w.globals.labels[opt.dataPointIndex] 
+            return opt.w.globals.labels[opt.dataPointIndex]
           },
           dropShadow: {
             enabled: true,
           },
         },
         title: {
-          text: 'Pyramid Chart',
+          text: 'Food Pyramid',
           align: 'middle',
         },
         xaxis: {
