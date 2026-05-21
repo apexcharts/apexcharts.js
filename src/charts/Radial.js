@@ -371,9 +371,21 @@ class Radial extends Pie {
       const startAngle = this.startAngle
       let prevStartAngle
 
-      // if data exceeds 100, make it 100
-      const dataValue =
-        Utils.negToZero(opts.series[i] > 100 ? 100 : opts.series[i]) / 100
+      // Map raw value → [0, 1] fraction of the sweep, using the configured
+      // min/max domain. Defaults (min: 0, max: 100) preserve the historical
+      // percentage behavior; custom domains (e.g. min: 0, max: 240 for a
+      // speedometer) make the filled arc honor the same domain as the
+      // needle, ticks, and threshold bands.
+      const rb = w.config.plotOptions.radialBar
+      const domainMin = typeof rb.min === 'number' ? rb.min : 0
+      const domainMax = typeof rb.max === 'number' ? rb.max : 100
+      const domainSpan = domainMax === domainMin ? 1 : domainMax - domainMin
+      /** @param {number} v */
+      const valueToFraction = (v) => {
+        const clamped = Math.min(Math.max(v, domainMin), domainMax)
+        return Math.max(0, (clamped - domainMin) / domainSpan)
+      }
+      const dataValue = valueToFraction(Utils.negToZero(opts.series[i]))
 
       let endAngle = Math.round(this.totalAngle * dataValue) + this.startAngle
 
@@ -382,8 +394,8 @@ class Radial extends Pie {
         prevStartAngle = this.startAngle
         prevEndAngle =
           Math.round(
-            (this.totalAngle * Utils.negToZero(w.globals.previousPaths[i])) /
-              100,
+            this.totalAngle *
+              valueToFraction(Utils.negToZero(w.globals.previousPaths[i])),
           ) + prevStartAngle
       }
 
