@@ -589,6 +589,12 @@ export default class Core {
         if (node.classList?.contains('apexcharts-radialbar-hollow')) {
           return
         }
+        // Skip text/tspan — datalabels can be placed far from the arc
+        // (e.g. stroked-gauge's "Median Ratio" at offsetY: 120 sits 120px
+        // below center). They're decorative; the chart's vertical sizing
+        // should be driven by the arc geometry, not label position.
+        const tag = node.tagName?.toLowerCase?.()
+        if (tag === 'text' || tag === 'tspan') return
         const children = Array.from(node.children ?? [])
         if (children.length > 0) {
           children.forEach((c) => accumulate(/** @type {Element} */ (c)))
@@ -634,7 +640,15 @@ export default class Core {
         arcBottomFromSVGTop > 0
           ? arcBottomFromSVGTop
           : w.globals.radialSize * 2.05
-      const svgHeight = Math.ceil(chartInnerDimensions + legendHeight + padding)
+      // Pad the bottom with the SAME breathing room the arc has at the top
+      // so the SVG ends up centered around the arc. The previous fixed
+      // padding (radialSize * 0.2 ≈ 25px) was independent of the natural
+      // top space and guaranteed asymmetry — for a 270° ∪-gauge it left
+      // ~57px above the arc and only ~25px below within the SVG.
+      const bottomPadding = Math.max(padding, arcTopFromSVGTop)
+      const svgHeight = Math.ceil(
+        chartInnerDimensions + legendHeight + bottomPadding,
+      )
       // `chart.offsetY` is applied as a transform on the SVG element, which
       // shifts the SVG within elWrap. For positive offsetY the SVG's bottom
       // ends up below elWrap's bottom — grow elWrap by that amount so the
