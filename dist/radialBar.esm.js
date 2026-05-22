@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.12.0
+ * ApexCharts v5.13.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -899,6 +899,7 @@ class Radial extends Pie {
    * @param {any[]} series
    */
   draw(series) {
+    var _a;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const ret = graphics.group({
@@ -942,7 +943,11 @@ class Radial extends Pie {
       centerY,
       colorArr,
       series,
-      skipValueArc: isNeedleShape
+      // When `needle.showValueArc` is true, render both the filled value-arc
+      // and the needle on top — required for gauges that want a progress
+      // ring with a pointer indicator (default still hides the arc when in
+      // needle shape, preserving prior behavior).
+      skipValueArc: isNeedleShape && !((_a = rb.needle) == null ? void 0 : _a.showValueArc)
     });
     if (rb.ticks && rb.ticks.show) {
       const elTicks = this.drawTicks({
@@ -1133,13 +1138,21 @@ class Radial extends Pie {
       });
       const startAngle = this.startAngle;
       let prevStartAngle;
-      const dataValue = Utils.negToZero(opts.series[i] > 100 ? 100 : opts.series[i]) / 100;
+      const rb = w.config.plotOptions.radialBar;
+      const domainMin = typeof rb.min === "number" ? rb.min : 0;
+      const domainMax = typeof rb.max === "number" ? rb.max : 100;
+      const domainSpan = domainMax === domainMin ? 1 : domainMax - domainMin;
+      const valueToFraction = (v) => {
+        const clamped = Math.min(Math.max(v, domainMin), domainMax);
+        return Math.max(0, (clamped - domainMin) / domainSpan);
+      };
+      const dataValue = valueToFraction(Utils.negToZero(opts.series[i]));
       let endAngle = Math.round(this.totalAngle * dataValue) + this.startAngle;
       let prevEndAngle;
       if (w.globals.dataChanged) {
         prevStartAngle = this.startAngle;
         prevEndAngle = Math.round(
-          this.totalAngle * Utils.negToZero(w.globals.previousPaths[i]) / 100
+          this.totalAngle * valueToFraction(Utils.negToZero(w.globals.previousPaths[i]))
         ) + prevStartAngle;
       }
       const currFullAngle = Math.abs(endAngle) + Math.abs(startAngle);
@@ -1441,7 +1454,6 @@ class Radial extends Pie {
     const graphics = new Graphics(this.w);
     const rb = w.config.plotOptions.radialBar;
     const cfg = rb.needle || {};
-    const pivot = rb.pivot || {};
     const g = graphics.group({ class: "apexcharts-gauge-needle" });
     if (!opts.series || opts.series.length === 0) return g;
     const strokeWidth = this.getStrokeWidth(opts);
@@ -1451,8 +1463,9 @@ class Radial extends Pie {
     const tipW = (_b = cfg.tipWidth) != null ? _b : 1;
     const color = cfg.color || "#333";
     const cx = opts.centerX;
-    const cy = opts.centerY;
-    const path = `M ${cx - baseW / 2} ${cy} L ${cx + baseW / 2} ${cy} L ${cx + tipW / 2} ${cy - length} L ${cx - tipW / 2} ${cy - length} Z`;
+    const needleOffsetY = Number((_c = cfg.offsetY) != null ? _c : 0);
+    const cy = opts.centerY + needleOffsetY;
+    const path = `M ${cx + baseW / 2} ${cy} A ${baseW / 2} ${baseW / 2} 0 0 1 ${cx - baseW / 2} ${cy} L ${cx - tipW / 2} ${cy - length} L ${cx + tipW / 2} ${cy - length} Z`;
     const elNeedle = graphics.drawPath({
       d: path,
       stroke: color,
@@ -1461,31 +1474,26 @@ class Radial extends Pie {
       classes: "apexcharts-gauge-needle-shape"
     });
     g.add(elNeedle);
-    if (pivot.show !== false) {
-      const elPivot = graphics.drawCircle(2 * ((_c = cfg.baseRadius) != null ? _c : 8));
-      elPivot.attr({
-        cx,
-        cy,
-        r: (_d = cfg.baseRadius) != null ? _d : 8,
-        fill: pivot.color || color,
-        stroke: pivot.strokeColor || "#fff",
-        "stroke-width": (_e = pivot.strokeWidth) != null ? _e : 2,
-        class: "apexcharts-gauge-needle-pivot"
-      });
-      g.add(elPivot);
-    }
     const value = Number(opts.series[0]);
     const targetAngle = this._angleAtValue(value);
     const isInitialMount = this.initialAnim && !w.globals.dataChanged && !w.globals.resized;
-    if (isInitialMount && Environment.isBrowser() && w.globals.shouldAnimate) {
-      const fromAngle = this.startAngle;
+    const ctx = (
+      /** @type {any} */
+      this.ctx
+    );
+    const fromAngle = typeof ctx._lastNeedleAngle === "number" ? ctx._lastNeedleAngle : this.startAngle;
+    ctx._lastNeedleAngle = targetAngle;
+    const shouldAnimate = Environment.isBrowser() && w.globals.shouldAnimate && (isInitialMount || w.globals.dataChanged);
+    if (shouldAnimate && fromAngle !== targetAngle) {
       const node = g.node;
       node.setAttribute("transform-origin", `${cx} ${cy}`);
       node.setAttribute("transform", `rotate(${fromAngle})`);
-      const speed = cfg.animationSpeed && Number(cfg.animationSpeed) || w.config.chart.animations.speed || 800;
+      const speed = ((_d = cfg.animation) == null ? void 0 : _d.duration) && Number(cfg.animation.duration) || cfg.animationSpeed && Number(cfg.animationSpeed) || ((_e = w.config.chart.animations.dynamicAnimation) == null ? void 0 : _e.speed) || w.config.chart.animations.speed || 800;
       const c1 = 1.70158;
       const c3 = c1 + 1;
-      const ease = (t) => 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      const easeOutBack = (t) => 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+      const ease = isInitialMount ? easeOutBack : easeOutCubic;
       const startAt = performance.now();
       const step = (now) => {
         const t = Math.max(0, Math.min(1, (now - startAt) / speed));
@@ -1506,15 +1514,25 @@ class Radial extends Pie {
    * @param {Record<string, any>} opts
    */
   drawHollow(opts) {
+    var _a;
     const graphics = new Graphics(this.w);
+    const hollow = this.w.config.plotOptions.radialBar.hollow;
     const circle = graphics.drawCircle(opts.size * 2);
-    circle.attr({
+    const attrs = {
       class: "apexcharts-radialbar-hollow",
       cx: opts.centerX,
       cy: opts.centerY,
       r: opts.size,
       fill: opts.fill
-    });
+    };
+    if (hollow.stroke || hollow.strokeDasharray) {
+      attrs.stroke = hollow.stroke || "transparent";
+      attrs["stroke-width"] = (_a = hollow.strokeWidth) != null ? _a : 1;
+      if (hollow.strokeDasharray) {
+        attrs["stroke-dasharray"] = hollow.strokeDasharray;
+      }
+    }
+    circle.attr(attrs);
     return circle;
   }
   /**

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.12.0
+ * ApexCharts v5.13.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -45,6 +45,8 @@ class KeyboardNavigation {
     this._onFocus = this._onFocus.bind(this);
     this._onBlur = this._onBlur.bind(this);
     this._onLegendClick = this._onLegendClick.bind(this);
+    this._onPointerDown = this._onPointerDown.bind(this);
+    this._lastPointerDownAt = 0;
   }
   // ─── Public API ───────────────────────────────────────────────────────────
   /**
@@ -58,6 +60,14 @@ class KeyboardNavigation {
     svgEl.setAttribute("tabindex", "0");
     svgEl.addEventListener("focus", this._onFocus);
     svgEl.addEventListener("blur", this._onBlur);
+    svgEl.addEventListener("mousedown", this._onPointerDown, { capture: true });
+    svgEl.addEventListener("pointerdown", this._onPointerDown, {
+      capture: true
+    });
+    svgEl.addEventListener("touchstart", this._onPointerDown, {
+      capture: true,
+      passive: true
+    });
     svgEl.addEventListener("keydown", this._onKeyDown, { passive: false });
     this.ctx.events.addEventListener("legendClick", this._onLegendClick);
   }
@@ -71,7 +81,32 @@ class KeyboardNavigation {
     svgEl.removeEventListener("focus", this._onFocus);
     svgEl.removeEventListener("blur", this._onBlur);
     svgEl.removeEventListener("keydown", this._onKeyDown);
+    svgEl.removeEventListener(
+      "mousedown",
+      this._onPointerDown,
+      /** @type {any} */
+      { capture: true }
+    );
+    svgEl.removeEventListener(
+      "pointerdown",
+      this._onPointerDown,
+      /** @type {any} */
+      { capture: true }
+    );
+    svgEl.removeEventListener(
+      "touchstart",
+      this._onPointerDown,
+      /** @type {any} */
+      { capture: true }
+    );
     this.ctx.events.removeEventListener("legendClick", this._onLegendClick);
+  }
+  // Records the timestamp of the most recent pointer-down inside the SVG.
+  // `_onFocus` reads this to distinguish keyboard-driven focus (no recent
+  // pointer activity) from mouse-driven focus (pointer event within the
+  // last 100 ms). Stays a no-op for keyboard users.
+  _onPointerDown() {
+    this._lastPointerDownAt = Date.now();
   }
   /**
    * Called from Events.js keydown handler. Navigation keys are already handled
@@ -85,6 +120,9 @@ class KeyboardNavigation {
   // ─── Focus / blur ─────────────────────────────────────────────────────────
   _onFocus() {
     if (!this._isNavEnabled()) return;
+    if (Date.now() - this._lastPointerDownAt < 100) {
+      return;
+    }
     this.active = true;
     this._clampCursor();
     this._snapToVisibleRange();

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.12.0
+ * ApexCharts v5.13.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -931,19 +931,20 @@ class Helpers {
     const direction = (series[i][j] >= 0 ? 1 : -1) * (isReversed ? -1 : 1);
     y1 += 1e-3 - strokeCenter * direction;
     y2 += 1e-3 + strokeCenter * direction;
-    let pathTo = graphics.move(x1, y1);
-    let pathFrom = graphics.move(x1, y1);
     const sl = graphics.line(x2, y1);
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, false);
-    }
-    pathTo = pathTo + graphics.line(x1, y2) + graphics.line(x2, y2) + sl + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
-    pathFrom = pathFrom + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
+    const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z";
+    let pathTo = graphics.move(x1, y1) + graphics.line(x1, y2) + graphics.line(x2, y2) + sl + closing;
     if (this.arrBorderRadius[realIndex][j] !== "none") {
       pathTo = graphics.roundPathCorners(
         pathTo,
         w.config.plotOptions.bar.borderRadius
       );
+    }
+    let pathFrom;
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
+    } else {
+      pathFrom = graphics.move(x1, y1) + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + closing;
     }
     if (w.config.chart.stacked) {
       let _ctx = this.barCtx;
@@ -1002,9 +1003,9 @@ class Helpers {
     const bottomLeftX = center - bottomHalf;
     const bottomRightX = center + bottomHalf;
     const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
-    let pathFrom = graphics.move(center, y1);
+    let pathFrom;
     if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, false);
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
     } else {
       pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
     }
@@ -1051,20 +1052,21 @@ class Helpers {
     x2 += 1e-3 - strokeCenter * direction;
     const isFunnel = this.barCtx.isFunnel;
     const fromX = isFunnel ? (x1 + x2) / 2 : x1;
-    let pathTo = graphics.move(x1, y1);
-    let pathFrom = graphics.move(fromX, y1);
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, false);
-    }
     const sl = graphics.line(x1, y2);
-    pathTo = pathTo + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
-    const slFrom = isFunnel ? graphics.line(fromX, y2) : sl;
-    pathFrom = pathFrom + graphics.line(fromX, y1) + slFrom + slFrom + slFrom + slFrom + slFrom + graphics.line(fromX, y1) + (w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z");
+    const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z";
+    let pathTo = graphics.move(x1, y1) + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + closing;
     if (this.arrBorderRadius[realIndex][j] !== "none") {
       pathTo = graphics.roundPathCorners(
         pathTo,
         w.config.plotOptions.bar.borderRadius
       );
+    }
+    let pathFrom;
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
+    } else {
+      const slFrom = isFunnel ? graphics.line(fromX, y2) : sl;
+      pathFrom = graphics.move(fromX, y1) + graphics.line(fromX, y1) + slFrom + slFrom + slFrom + slFrom + slFrom + graphics.line(fromX, y1) + closing;
     }
     if (w.config.chart.stacked) {
       let _ctx = this.barCtx;
@@ -1915,24 +1917,47 @@ class Bar {
       x
     };
   }
-  /** getPreviousPath is a common function for bars/columns which is used to get previous paths when data changes.
-   * @memberof Bar
-   * @param {number} realIndex - current iterating i
-   * @param {number} j - current iterating series's j index
-   * @return {string} pathFrom is the string which will be appended in animations
+  /**
+   * Resolve `pathFrom` for a bar on data update. Returns the previous render's
+   * `d` string for the same `(realIndex, j)` only when its SVG command count
+   * matches `pathTo` — that's the survivor-with-stable-shape case where SVG.js
+   * morph produces a smooth resize. When commands mismatch (corner state
+   * flipped, e.g. bar became new top-of-stack after legend toggle) or the bar
+   * is genuinely new (no captured previous), returns `pathTo` — which makes
+   * pathFrom === pathTo so morph is a visual no-op (snap).
+   *
+   * @param {number} realIndex - stable series index from `data:realIndex`
+   * @param {number} j - data-point index within the series
+   * @param {string} pathTo - the freshly-built path for this bar (post-roundPathCorners)
+   * @returns {string}
    **/
-  getPreviousPath(realIndex, j) {
+  getPreviousPath(realIndex, j, pathTo) {
     const w = this.w;
-    let pathFrom = "M 0 0";
+    let oldD = null;
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
       const gpp = w.globals.previousPaths[pp];
       if (gpp.paths && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)) {
-        if (typeof w.globals.previousPaths[pp].paths[j] !== "undefined") {
-          pathFrom = w.globals.previousPaths[pp].paths[j].d;
+        if (typeof gpp.paths[j] !== "undefined") {
+          oldD = gpp.paths[j].d;
         }
       }
     }
-    return pathFrom;
+    if (oldD && Bar.pathCommandCount(oldD) === Bar.pathCommandCount(pathTo)) {
+      return oldD;
+    }
+    return pathTo;
+  }
+  /**
+   * Count SVG path commands (M, L, C, Q, Z, etc.). Used to detect whether
+   * two paths can be morphed safely — SVG.js requires matching command counts.
+   *
+   * @param {string} d
+   * @returns {number}
+   */
+  static pathCommandCount(d) {
+    if (!d) return 0;
+    const matches = d.match(/[A-Za-z]/g);
+    return matches ? matches.length : 0;
   }
 }
 class BoxCandleStick extends Bar {
@@ -2147,10 +2172,6 @@ class BoxCandleStick extends Bar {
       m = zeroH - ohlc.m / yRatio;
     }
     let pathTo;
-    let pathFrom = graphics.move(barXPosition + barWidth / 2, y1);
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j);
-    }
     if (this.isOHLC) {
       const centerX = barXPosition + barWidth / 2;
       const openY = zeroH - ohlc.o / yRatio;
@@ -2168,7 +2189,12 @@ class BoxCandleStick extends Bar {
         graphics.move(barXPosition, y2) + graphics.line(barXPosition + barWidth / 2, y2) + graphics.line(barXPosition + barWidth / 2, l1) + graphics.line(barXPosition + barWidth / 2, y2) + graphics.line(barXPosition + barWidth, y2) + graphics.line(barXPosition + barWidth, y1) + graphics.line(barXPosition + barWidth / 2, y1) + graphics.line(barXPosition + barWidth / 2, l2) + graphics.line(barXPosition + barWidth / 2, y1) + graphics.line(barXPosition, y1) + graphics.line(barXPosition, y2 - strokeWidth / 2)
       ];
     }
-    pathFrom = pathFrom + graphics.move(barXPosition, y1);
+    let pathFrom;
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.getPreviousPath(realIndex, j, pathTo[0]);
+    } else {
+      pathFrom = graphics.move(barXPosition + barWidth / 2, y1) + graphics.move(barXPosition, y1);
+    }
     if (!w.axisFlags.isXNumeric) {
       x = x + xDivision;
     }
@@ -2235,15 +2261,16 @@ class BoxCandleStick extends Bar {
       l2 = zeroW + ohlc.l / yRatio;
       m = zeroW + ohlc.m / yRatio;
     }
-    let pathFrom = graphics.move(x1, barYPosition + barHeight / 2);
-    if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.getPreviousPath(realIndex, j);
-    }
     const pathTo = [
       graphics.move(x1, barYPosition) + graphics.line(x1, barYPosition + barHeight / 2) + graphics.line(l1, barYPosition + barHeight / 2) + graphics.line(l1, barYPosition + barHeight / 2 - barHeight / 4) + graphics.line(l1, barYPosition + barHeight / 2 + barHeight / 4) + graphics.line(l1, barYPosition + barHeight / 2) + graphics.line(x1, barYPosition + barHeight / 2) + graphics.line(x1, barYPosition + barHeight) + graphics.line(m, barYPosition + barHeight) + graphics.line(m, barYPosition) + graphics.line(x1 + strokeWidth / 2, barYPosition),
       graphics.move(m, barYPosition) + graphics.line(m, barYPosition + barHeight) + graphics.line(x2, barYPosition + barHeight) + graphics.line(x2, barYPosition + barHeight / 2) + graphics.line(l2, barYPosition + barHeight / 2) + graphics.line(l2, barYPosition + barHeight - barHeight / 4) + graphics.line(l2, barYPosition + barHeight / 4) + graphics.line(l2, barYPosition + barHeight / 2) + graphics.line(x2, barYPosition + barHeight / 2) + graphics.line(x2, barYPosition) + graphics.line(m, barYPosition) + "z"
     ];
-    pathFrom = pathFrom + graphics.move(x1, barYPosition);
+    let pathFrom;
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.getPreviousPath(realIndex, j, pathTo[0]);
+    } else {
+      pathFrom = graphics.move(x1, barYPosition + barHeight / 2) + graphics.move(x1, barYPosition);
+    }
     if (!w.axisFlags.isXNumeric) {
       y = y + yDivision;
     }

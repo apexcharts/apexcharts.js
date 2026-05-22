@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.12.0
+ * ApexCharts v5.13.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -455,13 +455,13 @@ class Exports {
   }
 }
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
-const icoPan = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000" height="24" viewBox="0 0 24 24" width="24">\n    <defs>\n        <path d="M0 0h24v24H0z" id="a"/>\n    </defs>\n    <clipPath id="b">\n        <use overflow="visible" xlink:href="#a"/>\n    </clipPath>\n    <path clip-path="url(#b)" d="M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z"/>\n</svg>';
-const icoZoom = '<svg xmlns="http://www.w3.org/2000/svg" fill="#000000" height="24" viewBox="0 0 24 24" width="24">\n    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>\n    <path d="M0 0h24v24H0V0z" fill="none"/>\n    <path d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z"/>\n</svg>';
-const icoReset = '<svg fill="#000000" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">\n    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>\n    <path d="M0 0h24v24H0z" fill="none"/>\n</svg>';
-const icoZoomIn = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">\n    <path d="M0 0h24v24H0z" fill="none"/>\n    <path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>\n</svg>\n';
-const icoZoomOut = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">\n    <path d="M0 0h24v24H0z" fill="none"/>\n    <path d="M7 11v2h10v-2H7zm5-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>\n</svg>\n';
-const icoSelect = '<svg fill="#6E8192" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">\n    <path d="M0 0h24v24H0z" fill="none"/>\n    <path d="M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2z"/>\n</svg>';
-const icoMenu = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0V0z"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>';
+const icoPan = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M5 9 2 12l3 3"/>\n    <path d="M9 5l3-3 3 3"/>\n    <path d="M15 19l-3 3-3-3"/>\n    <path d="M19 9l3 3-3 3"/>\n    <path d="M2 12h20"/>\n    <path d="M12 2v20"/>\n</svg>\n';
+const icoZoom = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <circle cx="11" cy="11" r="7"/>\n    <path d="m21 21-4.3-4.3M8 11h6M11 8v6"/>\n</svg>\n';
+const icoReset = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M8 3H5a2 2 0 0 0-2 2v3"/>\n    <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>\n    <path d="M3 16v3a2 2 0 0 0 2 2h3"/>\n    <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>\n</svg>\n';
+const icoZoomIn = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M12 5v14M5 12h14"/>\n</svg>\n';
+const icoZoomOut = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M5 12h14"/>\n</svg>\n';
+const icoSelect = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M5 3a2 2 0 0 0-2 2"/>\n    <path d="M19 3a2 2 0 0 1 2 2"/>\n    <path d="M21 19a2 2 0 0 1-2 2"/>\n    <path d="M5 21a2 2 0 0 1-2-2"/>\n    <path d="M9 3h1M14 3h1M9 21h1M14 21h1M3 9v1M3 14v1M21 9v1M21 14v1"/>\n</svg>\n';
+const icoMenu = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M4 6h16M4 12h16M4 18h16"/>\n</svg>\n';
 class Toolbar {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -833,15 +833,27 @@ class Toolbar {
       }
     });
   }
-  handleZoomIn() {
+  /**
+   * Read the current x-range from globals at click time.
+   * Toolbar instance is kept alive across updates (Phase 8 lazy
+   * instantiation), so cached this.minX/maxX go stale after a zoom.
+   * @returns {{minX: number, maxX: number}}
+   */
+  _currentXRange() {
     const w = this.w;
     if (w.axisFlags.isRangeBar) {
-      this.minX = w.globals.minY;
-      this.maxX = w.globals.maxY;
+      return { minX: w.globals.minY, maxX: w.globals.maxY };
     }
-    const centerX = (this.minX + this.maxX) / 2;
-    const newMinX = (this.minX + centerX) / 2;
-    const newMaxX = (this.maxX + centerX) / 2;
+    return { minX: w.globals.minX, maxX: w.globals.maxX };
+  }
+  handleZoomIn() {
+    const w = this.w;
+    const { minX, maxX } = this._currentXRange();
+    this.minX = minX;
+    this.maxX = maxX;
+    const centerX = (minX + maxX) / 2;
+    const newMinX = (minX + centerX) / 2;
+    const newMaxX = (maxX + centerX) / 2;
     const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX);
     if (!w.interact.disableZoomIn) {
       this.zoomUpdateOptions(newMinXMaxX.minX, newMinXMaxX.maxX);
@@ -849,16 +861,15 @@ class Toolbar {
   }
   handleZoomOut() {
     const w = this.w;
-    if (w.axisFlags.isRangeBar) {
-      this.minX = w.globals.minY;
-      this.maxX = w.globals.maxY;
-    }
-    if (w.config.xaxis.type === "datetime" && new Date(this.minX).getUTCFullYear() < 1e3) {
+    const { minX, maxX } = this._currentXRange();
+    this.minX = minX;
+    this.maxX = maxX;
+    if (w.config.xaxis.type === "datetime" && new Date(minX).getUTCFullYear() < 1e3) {
       return;
     }
-    const centerX = (this.minX + this.maxX) / 2;
-    const newMinX = this.minX - (centerX - this.minX);
-    const newMaxX = this.maxX - (centerX - this.maxX);
+    const centerX = (minX + maxX) / 2;
+    const newMinX = minX - (centerX - minX);
+    const newMaxX = maxX - (centerX - maxX);
     const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX);
     if (!w.interact.disableZoomOut) {
       this.zoomUpdateOptions(newMinXMaxX.minX, newMinXMaxX.maxX);
@@ -1225,7 +1236,7 @@ class ZoomPanSelection extends Toolbar {
    * @param {any} e
    */
   executeMouseWheelZoom(e) {
-    var _a;
+    var _a, _b, _c;
     const w = this.w;
     this.minX = w.axisFlags.isRangeBar ? w.globals.minY : w.globals.minX;
     this.maxX = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX;
@@ -1250,9 +1261,11 @@ class ZoomPanSelection extends Toolbar {
       newMaxX = currentMaxX + zoomRange / 2;
     }
     if (!w.axisFlags.isRangeBar) {
-      newMinX = Math.max(newMinX, w.globals.initialMinX);
-      newMaxX = Math.min(newMaxX, w.globals.initialMaxX);
-      const minRange = (w.globals.initialMaxX - w.globals.initialMinX) * 0.01;
+      const clampMin = (_b = w.globals.dataReducerRawMinX) != null ? _b : w.globals.initialMinX;
+      const clampMax = (_c = w.globals.dataReducerRawMaxX) != null ? _c : w.globals.initialMaxX;
+      newMinX = Math.max(newMinX, clampMin);
+      newMaxX = Math.min(newMaxX, clampMax);
+      const minRange = (clampMax - clampMin) * 0.01;
       if (newMaxX - newMinX < minRange) {
         const midPoint = (newMinX + newMaxX) / 2;
         newMinX = midPoint - minRange / 2;
@@ -1686,6 +1699,7 @@ class ZoomPanSelection extends Toolbar {
    * @param {number} xHighestValue
    */
   panScrolled(xLowestValue, xHighestValue) {
+    var _a, _b;
     const w = this.w;
     const xyRatios = this.xyRatios;
     if (!w.globals.initialConfig) return;
@@ -1706,7 +1720,9 @@ class ZoomPanSelection extends Toolbar {
       xHighestValue = maxX - w.layout.gridWidth / 15 * xRatio;
     }
     if (!w.axisFlags.isRangeBar) {
-      if (xLowestValue < w.globals.initialMinX || xHighestValue > w.globals.initialMaxX) {
+      const clampMin = (_a = w.globals.dataReducerRawMinX) != null ? _a : w.globals.initialMinX;
+      const clampMax = (_b = w.globals.dataReducerRawMaxX) != null ? _b : w.globals.initialMaxX;
+      if (xLowestValue < clampMin || xHighestValue > clampMax) {
         xLowestValue = minX;
         xHighestValue = maxX;
       }
