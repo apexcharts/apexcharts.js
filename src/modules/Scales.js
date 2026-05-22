@@ -852,51 +852,119 @@ export default class Scales {
       }
     })
 
-    // Second pass: align the y=0 pixel position across opted-in axes by picking
-    // R* = max(R_i) where R_i = -minY_i / (maxY_i - minY_i). The max-ratio
-    // anchor never clips a mixed-sign axis's negative range; positive-leaning
-    // axes get their min extended downward to match. With unified R*, the
-    // downstream baseLineY[i] computation in CoreUtils.getCalculatedRatios()
-    // yields the same pixel offset for every participant.
+    // Second pass: align the y=0 pixel position across opted-in axes. We run
+    // niceScale first on each participant's natural bounds so the tick step
+    // and rounding are honored, then extend the bottom (or top) tick(s) of
+    // each axis so the post-niceScale ratio matches R* — defined as the max
+    // of natural ratios so no mixed-sign axis loses its negative range.
     if (alignZeroParticipants.length >= 2) {
+      // Pass 2a: run niceScale on each participant's natural bounds.
+      alignZeroParticipants.forEach((p) => {
+        this.setYScaleForIndex(p.ai, p.minY, p.maxY)
+        axisSeriesMap[p.ai].forEach((si) => {
+          minYArr[si] = gl.yAxisScale[p.ai].niceMin
+          maxYArr[si] = gl.yAxisScale[p.ai].niceMax
+        })
+      })
+
+      // Pass 2b: target ratio from post-niceScale bounds (niceScale may have
+      // rounded values outward, so natural ratios are no longer reliable).
       let targetRatio = 0
       alignZeroParticipants.forEach((p) => {
-        const range = p.maxY - p.minY
+        const scale = gl.yAxisScale[p.ai]
+        const range = scale.niceMax - scale.niceMin
         if (range > 0) {
-          const r = -p.minY / range
+          const r = -scale.niceMin / range
           if (r > targetRatio) targetRatio = r
         }
       })
       if (targetRatio > 1) targetRatio = 1
       if (targetRatio < 0) targetRatio = 0
 
+      // Pass 2c: rebuild each participant's tick array with a step sized to
+      // the new range so we keep tick counts reasonable AND land close to R*.
+      // For each axis we (a) compute the exact target bound that satisfies R*,
+      // (b) pick a nice step that yields roughly the original tick count over
+      // the new range, then (c) snap both bounds to step multiples. The
+      // residual ratio drift is bounded by one step / new-range.
+      /** @param {number} raw */
+      const niceRoundUp = (raw) => {
+        if (raw <= 0) return 1
+        const mag = Math.floor(Math.log10(raw))
+        const magPow = Math.pow(10, mag)
+        const msd = raw / magPow // in [1, 10)
+        let mult
+        if (msd <= 1 + 1e-9) mult = 1
+        else if (msd <= 2 + 1e-9) mult = 2
+        else if (msd <= 2.5 + 1e-9) mult = 2.5
+        else if (msd <= 5 + 1e-9) mult = 5
+        else mult = 10
+        return mult * magPow
+      }
+
       alignZeroParticipants.forEach((p) => {
-        let adjMinY = p.minY
-        let adjMaxY = p.maxY
-        const range = p.maxY - p.minY
-        const r = range > 0 ? -p.minY / range : 0
-        if (Math.abs(r - targetRatio) > 1e-12) {
-          if (targetRatio < 1 - 1e-12 && targetRatio > 1e-12) {
-            // Extend the side that doesn't carry actual data so we never clip
-            // real values. Positive-leaning axes grow downward; negative-
-            // leaning ones grow upward.
-            if (r < targetRatio) {
-              adjMinY = (-targetRatio * p.maxY) / (1 - targetRatio)
-            } else {
-              adjMaxY = (-p.minY * (1 - targetRatio)) / targetRatio
-            }
-          } else if (targetRatio >= 1 - 1e-12) {
-            // All-negative anchor — pin max at zero.
-            adjMaxY = 0
-          } else {
-            // targetRatio ~= 0, all-positive anchor — pin min at zero.
-            adjMinY = 0
-          }
+        const scale = gl.yAxisScale[p.ai]
+        if (!scale.result || scale.result.length < 2) return
+        const range = scale.niceMax - scale.niceMin
+        if (range <= 0) return
+        const r = -scale.niceMin / range
+        if (Math.abs(r - targetRatio) <= 1e-9) return
+
+        // Direction: positive-leaning (r < R*) extends min down,
+        // negative-leaning (r > R*) extends max up.
+        const extendMin = r < targetRatio && targetRatio < 1 - 1e-9
+        const extendMaxOnly = !extendMin && r > targetRatio && targetRatio > 1e-9
+        if (!extendMin && !extendMaxOnly) return
+
+        const targetNiceMin = extendMin
+          ? (-targetRatio * scale.niceMax) / (1 - targetRatio)
+          : scale.niceMin
+        const targetNiceMax = extendMaxOnly
+          ? (-scale.niceMin * (1 - targetRatio)) / targetRatio
+          : scale.niceMax
+
+        const newRange = targetNiceMax - targetNiceMin
+        if (newRange <= 0) return
+        const desiredTicks = Math.max(scale.result.length, 5)
+        const newStep = niceRoundUp(newRange / Math.max(desiredTicks - 1, 1))
+        if (newStep <= 0) return
+
+        let newNiceMin
+        let newNiceMax
+        if (extendMin) {
+          // Snap min down to a step multiple, then derive max from R* so
+          // alignment stays exact. Grow max further if data demands it.
+          newNiceMin = Math.floor(targetNiceMin / newStep + 1e-9) * newStep
+          const requiredMax =
+            targetRatio > 1e-9
+              ? (newNiceMin * (targetRatio - 1)) / targetRatio
+              : scale.niceMax
+          const maxNeeded = Math.max(requiredMax, scale.niceMax)
+          newNiceMax = Math.ceil(maxNeeded / newStep - 1e-9) * newStep
+        } else {
+          // Symmetric: snap max up, derive min from R*.
+          newNiceMax = Math.ceil(targetNiceMax / newStep - 1e-9) * newStep
+          const requiredMin =
+            targetRatio < 1 - 1e-9
+              ? (-targetRatio * newNiceMax) / (1 - targetRatio)
+              : scale.niceMin
+          const minNeeded = Math.min(requiredMin, scale.niceMin)
+          newNiceMin = Math.floor(minNeeded / newStep + 1e-9) * newStep
         }
-        this.setYScaleForIndex(p.ai, adjMinY, adjMaxY)
+
+        scale.result = []
+        for (
+          let v = newNiceMin;
+          v <= newNiceMax + newStep * 1e-9;
+          v = Utils.preciseAddition(v, newStep)
+        ) {
+          scale.result.push(Utils.stripNumber(v, 7))
+        }
+        scale.niceMin = newNiceMin
+        scale.niceMax = newNiceMax
         axisSeriesMap[p.ai].forEach((si) => {
-          minYArr[si] = gl.yAxisScale[p.ai].niceMin
-          maxYArr[si] = gl.yAxisScale[p.ai].niceMax
+          minYArr[si] = scale.niceMin
+          maxYArr[si] = scale.niceMax
         })
       })
     } else if (alignZeroParticipants.length === 1) {
