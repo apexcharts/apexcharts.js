@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 380px;
-      padding: 0;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 380px;
+        padding: 0;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -39,21 +37,13 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [25, 15, 44, 55, 41, 17],
-          chart: {
+      var options = {
+        series: [25, 15, 44, 55, 41, 17],
+        chart: {
           width: 380,
           type: 'pie',
         },
-        labels: [
-          'Monday',
-          'Tuesday',
-          'Wednesday',
-          'Thursday',
-          'Friday',
-          'Saturday',
-        ],
+        labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
         theme: {
           monochrome: {
             enabled: true,
@@ -83,12 +73,10 @@
         legend: {
           show: false,
         },
-        };
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

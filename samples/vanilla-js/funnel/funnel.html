@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,15 +36,14 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [
+      var options = {
+        series: [
           {
-            name: "Funnel Series",
+            name: 'Funnel Series',
             data: [1380, 1100, 990, 880, 740, 548, 330, 200],
           },
         ],
-          chart: {
+        chart: {
           type: 'funnel',
           height: 350,
           dropShadow: {
@@ -87,12 +84,10 @@
         legend: {
           show: false,
         },
-        };
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

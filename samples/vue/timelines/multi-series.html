@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -54,7 +52,6 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
           series: [
             {
               name: 'Bob',
@@ -63,24 +60,24 @@
                   x: 'Design',
                   y: [
                     new Date('2019-03-05').getTime(),
-                    new Date('2019-03-08').getTime()
-                  ]
+                    new Date('2019-03-08').getTime(),
+                  ],
                 },
                 {
                   x: 'Code',
                   y: [
                     new Date('2019-03-08').getTime(),
-                    new Date('2019-03-11').getTime()
-                  ]
+                    new Date('2019-03-11').getTime(),
+                  ],
                 },
                 {
                   x: 'Test',
                   y: [
                     new Date('2019-03-11').getTime(),
-                    new Date('2019-03-16').getTime()
-                  ]
-                }
-              ]
+                    new Date('2019-03-16').getTime(),
+                  ],
+                },
+              ],
             },
             {
               name: 'Joe',
@@ -89,45 +86,45 @@
                   x: 'Design',
                   y: [
                     new Date('2019-03-02').getTime(),
-                    new Date('2019-03-05').getTime()
-                  ]
+                    new Date('2019-03-05').getTime(),
+                  ],
                 },
                 {
                   x: 'Code',
                   y: [
                     new Date('2019-03-06').getTime(),
-                    new Date('2019-03-09').getTime()
-                  ]
+                    new Date('2019-03-09').getTime(),
+                  ],
                 },
                 {
                   x: 'Test',
                   y: [
                     new Date('2019-03-10').getTime(),
-                    new Date('2019-03-19').getTime()
-                  ]
-                }
-              ]
-            }
+                    new Date('2019-03-19').getTime(),
+                  ],
+                },
+              ],
+            },
           ],
           chartOptions: {
             chart: {
               height: 350,
-              type: 'rangeBar'
+              type: 'rangeBar',
             },
             plotOptions: {
               bar: {
                 borderRadius: 10,
-                horizontal: true
-              }
+                horizontal: true,
+              },
             },
             dataLabels: {
               enabled: true,
-              formatter: function(val) {
+              formatter: function (val) {
                 var a = moment(val[0])
                 var b = moment(val[1])
                 var diff = b.diff(a, 'days')
                 return diff + (diff > 1 ? ' days' : ' day')
-              }
+              },
             },
             fill: {
               type: 'gradient',
@@ -139,20 +136,17 @@
                 inverseColors: true,
                 opacityFrom: 1,
                 opacityTo: 1,
-                stops: [50, 0, 100, 100]
-              }
+                stops: [50, 0, 100, 100],
+              },
             },
             xaxis: {
-              type: 'datetime'
+              type: 'datetime',
             },
             legend: {
-              position: 'top'
-            }
+              position: 'top',
+            },
           },
-          
-          
         },
-        
       })
     </script>
     

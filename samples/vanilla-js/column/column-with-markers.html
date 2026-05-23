@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,9 +36,8 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [
+      var options = {
+        series: [
           {
             name: 'Actual',
             data: [
@@ -52,9 +49,9 @@
                     name: 'Expected',
                     value: 1400,
                     strokeHeight: 5,
-                    strokeColor: '#775DD0'
-                  }
-                ]
+                    strokeColor: '#775DD0',
+                  },
+                ],
               },
               {
                 x: '2012',
@@ -64,9 +61,9 @@
                     name: 'Expected',
                     value: 5400,
                     strokeHeight: 5,
-                    strokeColor: '#775DD0'
-                  }
-                ]
+                    strokeColor: '#775DD0',
+                  },
+                ],
               },
               {
                 x: '2013',
@@ -76,9 +73,9 @@
                     name: 'Expected',
                     value: 5200,
                     strokeHeight: 5,
-                    strokeColor: '#775DD0'
-                  }
-                ]
+                    strokeColor: '#775DD0',
+                  },
+                ],
               },
               {
                 x: '2014',
@@ -88,9 +85,9 @@
                     name: 'Expected',
                     value: 6500,
                     strokeHeight: 5,
-                    strokeColor: '#775DD0'
-                  }
-                ]
+                    strokeColor: '#775DD0',
+                  },
+                ],
               },
               {
                 x: '2015',
@@ -102,9 +99,9 @@
                     strokeHeight: 13,
                     strokeWidth: 0,
                     strokeLineCap: 'round',
-                    strokeColor: '#775DD0'
-                  }
-                ]
+                    strokeColor: '#775DD0',
+                  },
+                ],
               },
               {
                 x: '2016',
@@ -114,9 +111,9 @@
                     name: 'Expected',
                     value: 7500,
                     strokeHeight: 5,
-                    strokeColor: '#775DD0'
-                  }
-                ]
+                    strokeColor: '#775DD0',
+                  },
+                ],
               },
               {
                 x: '2017',
@@ -126,9 +123,9 @@
                     name: 'Expected',
                     value: 8700,
                     strokeHeight: 5,
-                    strokeColor: '#775DD0'
-                  }
-                ]
+                    strokeColor: '#775DD0',
+                  },
+                ],
               },
               {
                 x: '2018',
@@ -139,40 +136,38 @@
                     value: 7300,
                     strokeHeight: 2,
                     strokeDashArray: 2,
-                    strokeColor: '#775DD0'
-                  }
-                ]
-              }
-            ]
-          }
+                    strokeColor: '#775DD0',
+                  },
+                ],
+              },
+            ],
+          },
         ],
-          chart: {
+        chart: {
           height: 350,
-          type: 'bar'
+          type: 'bar',
         },
         plotOptions: {
           bar: {
-            columnWidth: '60%'
-          }
+            columnWidth: '60%',
+          },
         },
         colors: ['#00E396'],
         dataLabels: {
-          enabled: false
+          enabled: false,
         },
         legend: {
           show: true,
           showForSingleSeries: true,
           customLegendItems: ['Actual', 'Expected'],
           markers: {
-            fillColors: ['#00E396', '#775DD0']
-          }
-        }
-        };
+            fillColors: ['#00E396', '#775DD0'],
+          },
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

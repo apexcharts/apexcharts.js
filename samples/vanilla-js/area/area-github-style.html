@@ -9,47 +9,45 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #wrapper {
-      padding-top: 20px;
-      padding-left: 10px;
-      padding-right: 10px;
-      background: #fff;
-      border: 1px solid #ddd;
-      box-shadow: 0 22px 35px -16px rgba(0, 0, 0, 0.1);
-      max-width: 650px;
-      margin: 35px auto;
-    }
-    
-    .github-style {
-      clear: both;
-      font-weight: 400;
-      height: 40px;
-      margin-left: 6px;
-    }
-    
-    .github-style a {
-      color: #0366d6;
-      font-size: 18px;
-    }
-    
-    .github-style .cmeta {
-      display: block;
-      color: #777;
-      font-weight: 400;
-    }
-    
-    .github-style .userimg {
-      float: left;
-      display: block;
-      border-radius: 3px;
-    }
-    
-    .github-style .userdetails {
-      float: left;
-      margin-left: 10px;
-    }
-      
+      #wrapper {
+        padding-top: 20px;
+        padding-left: 10px;
+        padding-right: 10px;
+        background: #fff;
+        border: 1px solid #ddd;
+        box-shadow: 0 22px 35px -16px rgba(0, 0, 0, 0.1);
+        max-width: 650px;
+        margin: 35px auto;
+      }
+
+      .github-style {
+        clear: both;
+        font-weight: 400;
+        height: 40px;
+        margin-left: 6px;
+      }
+
+      .github-style a {
+        color: #0366d6;
+        font-size: 18px;
+      }
+
+      .github-style .cmeta {
+        display: block;
+        color: #777;
+        font-weight: 400;
+      }
+
+      .github-style .userimg {
+        float: left;
+        display: block;
+        border-radius: 3px;
+      }
+
+      .github-style .userdetails {
+        float: left;
+        margin-left: 10px;
+      }
     </style>
 
     
@@ -87,66 +85,75 @@
       </div>
 
     <script>
-      
-        var options = {
-          series: [{
-          name: 'commits',
-          data: githubdata.series
-        }],
-          chart: {
+      var options = {
+        series: [
+          {
+            name: 'commits',
+            data: githubdata.series,
+          },
+        ],
+        chart: {
           id: 'chartyear',
           type: 'area',
           height: 180,
           background: '#F6F8FA',
           toolbar: {
             show: false,
-            autoSelected: 'pan'
+            autoSelected: 'pan',
           },
           events: {
             mounted: function (chart) {
-              var commitsEl = document.querySelector('.cmeta span.commits');
-              var commits = chart.getSeriesTotalXRange(chart.w.globals.minX, chart.w.globals.maxX)
-        
+              var commitsEl = document.querySelector('.cmeta span.commits')
+              var commits = chart.getSeriesTotalXRange(
+                chart.w.globals.minX,
+                chart.w.globals.maxX,
+              )
+
               commitsEl.innerHTML = commits
             },
             updated: function (chart) {
-              var commitsEl = document.querySelector('.cmeta span.commits');
-              var commits = chart.getSeriesTotalXRange(chart.w.globals.minX, chart.w.globals.maxX)
-        
+              var commitsEl = document.querySelector('.cmeta span.commits')
+              var commits = chart.getSeriesTotalXRange(
+                chart.w.globals.minX,
+                chart.w.globals.maxX,
+              )
+
               commitsEl.innerHTML = commits
-            }
-          }
+            },
+          },
         },
         colors: ['#FF7F00'],
         stroke: {
           width: 0,
-          curve: 'monotoneCubic'
+          curve: 'monotoneCubic',
         },
         dataLabels: {
-          enabled: false
+          enabled: false,
         },
         fill: {
           opacity: 1,
-          type: 'solid'
+          type: 'solid',
         },
         yaxis: {
           show: true,
-          forceNiceScale: true
+          forceNiceScale: true,
         },
         xaxis: {
           type: 'datetime',
-        }
-        };
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart-months"), options);
-        chart.render();
-      
-        var optionsYears = {
-          series: [{
-          name: 'commits',
-          data: githubdata.series
-        }],
-          chart: {
+      var chart = new ApexCharts(document.querySelector('#chart-months'), options)
+      chart.render()
+
+      var optionsYears = {
+        series: [
+          {
+            name: 'commits',
+            data: githubdata.series,
+          },
+        ],
+        chart: {
           height: 150,
           type: 'area',
           background: '#F6F8FA',
@@ -155,41 +162,42 @@
           },
           brush: {
             enabled: true,
-            target: 'chartyear'
+            target: 'chartyear',
           },
           selection: {
             enabled: true,
             xaxis: {
               min: new Date('15 Feb 2016').getTime(),
-              max: new Date('14 Feb 2017').getTime()
-            }
+              max: new Date('14 Feb 2017').getTime(),
+            },
           },
         },
         colors: ['#7BD39A'],
         dataLabels: {
-          enabled: false
+          enabled: false,
         },
         stroke: {
           width: 0,
-          curve: 'monotoneCubic'
+          curve: 'monotoneCubic',
         },
         fill: {
           opacity: 1,
-          type: 'solid'
+          type: 'solid',
         },
         legend: {
           position: 'top',
-          horizontalAlign: 'left'
+          horizontalAlign: 'left',
         },
         xaxis: {
-          type: 'datetime'
+          type: 'datetime',
         },
-        };
+      }
 
-        var chartYears = new ApexCharts(document.querySelector("#chart-years"), optionsYears);
-        chartYears.render();
-      
-      
+      var chartYears = new ApexCharts(
+        document.querySelector('#chart-years'),
+        optionsYears,
+      )
+      chartYears.render()
     </script>
 
     

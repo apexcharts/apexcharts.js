@@ -9,35 +9,33 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #card {
-      background: #fff;
-      max-width: 650px;
-      margin: 35px auto;
-      padding: 0px;
-      text-align: center;
-    }
-    
-    h2 {
-      font-size: 18px;
-      margin-bottom: 0;
-      color: rgb(192, 192, 192);
-    }
-    h1 {
-      font-size: 22px;
-      margin-top: 0;
-      color: #333;
-    }
-    
-    .footer {
-      position: absolute;
-      bottom: 16px;
-      left: 0;
-      right: 0;
-      font-size: 14px;
-      text-align: center
-    }
-      
+      #card {
+        background: #fff;
+        max-width: 650px;
+        margin: 35px auto;
+        padding: 0px;
+        text-align: center;
+      }
+
+      h2 {
+        font-size: 18px;
+        margin-bottom: 0;
+        color: rgb(192, 192, 192);
+      }
+      h1 {
+        font-size: 22px;
+        margin-top: 0;
+        color: #333;
+      }
+
+      .footer {
+        position: absolute;
+        bottom: 16px;
+        left: 0;
+        right: 0;
+        font-size: 14px;
+        text-align: center;
+      }
     </style>
 
     
@@ -63,21 +61,20 @@
       </div>
 
     <script>
-      
-        var options = {
-          series: [75],
-          chart: {
+      var options = {
+        series: [75],
+        chart: {
           height: 350,
           type: 'radialBar',
           toolbar: {
-            show: true
-          }
+            show: true,
+          },
         },
         plotOptions: {
           radialBar: {
             startAngle: -135,
             endAngle: 225,
-             hollow: {
+            hollow: {
               margin: 0,
               size: '70%',
               background: '#fff',
@@ -90,8 +87,8 @@
                 top: 3,
                 left: 0,
                 blur: 4,
-                opacity: 0.5
-              }
+                opacity: 0.5,
+              },
             },
             track: {
               background: '#fff',
@@ -102,28 +99,28 @@
                 top: -3,
                 left: 0,
                 blur: 4,
-                opacity: 0.7
-              }
+                opacity: 0.7,
+              },
             },
-        
+
             dataLabels: {
               show: true,
               name: {
                 offsetY: -10,
                 show: true,
                 color: '#888',
-                fontSize: '17px'
+                fontSize: '17px',
               },
               value: {
-                formatter: function(val) {
-                  return parseInt(val);
+                formatter: function (val) {
+                  return parseInt(val)
                 },
                 color: '#111',
                 fontSize: '36px',
                 show: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
         fill: {
           type: 'gradient',
@@ -135,19 +132,17 @@
             inverseColors: true,
             opacityFrom: 1,
             opacityTo: 1,
-            stops: [0, 100]
-          }
+            stops: [0, 100],
+          },
         },
         stroke: {
-          lineCap: 'round'
+          lineCap: 'round',
         },
         labels: ['Percent'],
-        };
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

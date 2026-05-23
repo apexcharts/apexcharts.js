@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -50,107 +48,107 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [
-              {
-                name: 'New York Temperature',
-                data: [
-                  {
-                    x: 'Jan',
-                    y: [-2, 4]
-                  },
-                  {
-                    x: 'Feb',
-                    y: [-1, 6]
-                  },
-                  {
-                    x: 'Mar',
-                    y: [3, 10]
-                  },
-                  {
-                    x: 'Apr',
-                    y: [8, 16]
-                  },
-                  {
-                    x: 'May',
-                    y: [13, 22]
-                  },
-                  {
-                    x: 'Jun',
-                    y: [18, 26]
-                  },
-                  {
-                    x: 'Jul',
-                    y: [21, 29]
-                  },
-                  {
-                    x: 'Aug',
-                    y: [21, 28]
-                  },
-                  {
-                    x: 'Sep',
-                    y: [17, 24]
-                  },
-                  {
-                    x: 'Oct',
-                    y: [11, 18]
-                  },
-                  {
-                    x: 'Nov',
-                    y: [6, 12]
-                  },
-                  {
-                    x: 'Dec',
-                    y: [1, 7]
-                  }
-                ]
-              }
-            ],
-            options: {
-              chart: {
-                height: 350,
-                type: 'rangeArea'
-              },
-              stroke: {
-                curve: 'monotoneCubic'
-              },
-              title: {
-                text: 'New York Temperature (all year round)'
-              },
-              markers: {
-                hover: {
-                  sizeOffset: 5
-                }
-              },
-              dataLabels: {
-                enabled: false
-              },
-              yaxis: {
-                labels: {
-                  formatter: (val) => {
-                    return val + '°C'
-                  }
-                }
-              }
+          series: [
+            {
+              name: 'New York Temperature',
+              data: [
+                {
+                  x: 'Jan',
+                  y: [-2, 4],
+                },
+                {
+                  x: 'Feb',
+                  y: [-1, 6],
+                },
+                {
+                  x: 'Mar',
+                  y: [3, 10],
+                },
+                {
+                  x: 'Apr',
+                  y: [8, 16],
+                },
+                {
+                  x: 'May',
+                  y: [13, 22],
+                },
+                {
+                  x: 'Jun',
+                  y: [18, 26],
+                },
+                {
+                  x: 'Jul',
+                  y: [21, 29],
+                },
+                {
+                  x: 'Aug',
+                  y: [21, 28],
+                },
+                {
+                  x: 'Sep',
+                  y: [17, 24],
+                },
+                {
+                  x: 'Oct',
+                  y: [11, 18],
+                },
+                {
+                  x: 'Nov',
+                  y: [6, 12],
+                },
+                {
+                  x: 'Dec',
+                  y: [1, 7],
+                },
+              ],
             },
-          
-          
-        });
-
-        
+          ],
+          options: {
+            chart: {
+              height: 350,
+              type: 'rangeArea',
+            },
+            stroke: {
+              curve: 'monotoneCubic',
+            },
+            title: {
+              text: 'New York Temperature (all year round)',
+            },
+            markers: {
+              hover: {
+                sizeOffset: 5,
+              },
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            yaxis: {
+              labels: {
+                formatter: (val) => {
+                  return val + '°C'
+                },
+              },
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="rangeArea" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="rangeArea"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,12 +36,12 @@
 
     <script src="../../assets/irregular-data-series.js"></script>
   <script>
-    var ts2 = 1484418600000;
-    var data = [];
+    var ts2 = 1484418600000
+    var data = []
     var spikes = [5, -5, 3, -3, 8, -8]
     for (var i = 0; i < 30; i++) {
-      ts2 = ts2 + 86400000;
-      var innerArr = [ts2, dataSeries[1][i].value];
+      ts2 = ts2 + 86400000
+      var innerArr = [ts2, dataSeries[1][i].value]
       data.push(innerArr)
     }
   </script>
@@ -60,49 +58,51 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [{
-              data: [34, 44, 54, 21, 12, 43, 33, 23, 66, 66, 58]
-            }],
-            options: {
-              chart: {
-                type: 'line',
-                height: 350
-              },
-              stroke: {
-                curve: 'stepline',
-              },
-              dataLabels: {
-                enabled: false
-              },
-              title: {
-                text: 'Stepline Chart',
-                align: 'left'
-              },
-              markers: {
-                hover: {
-                  sizeOffset: 4
-                }
-              }
+          series: [
+            {
+              data: [34, 44, 54, 21, 12, 43, 33, 23, 66, 66, 58],
             },
-          
-          
-        });
-
-        
+          ],
+          options: {
+            chart: {
+              type: 'line',
+              height: 350,
+            },
+            stroke: {
+              curve: 'stepline',
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            title: {
+              text: 'Stepline Chart',
+              align: 'left',
+            },
+            markers: {
+              hover: {
+                sizeOffset: 4,
+              },
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="line" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="line"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

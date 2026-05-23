@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -54,60 +52,66 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
-          series: [{
-            data: [344, 345, 333, 323, 322, 342, 383, 353, 323, 376]
-          }],
+          series: [
+            {
+              data: [344, 345, 333, 323, 322, 342, 383, 353, 323, 376],
+            },
+          ],
           chartOptions: {
             chart: {
               height: 350,
-              type: "area",
+              type: 'area',
               zoom: {
-                enabled: false
+                enabled: false,
               },
               events: {
-                mounted: function(ctx, config) {
+                mounted: function (ctx, config) {
                   var lowest = ctx.getLowestValueInSeries(0)
                   var highest = ctx.getHighestValueInSeries(0)
-            
+
                   ctx.addPointAnnotation({
-                    x: new Date(ctx.w.globals.seriesX[0][ctx.w.globals.series[0].indexOf(lowest)]).getTime(),
+                    x: new Date(
+                      ctx.w.globals.seriesX[0][
+                        ctx.w.globals.series[0].indexOf(lowest)
+                      ],
+                    ).getTime(),
                     y: lowest,
                     label: {
                       text: 'Lowest: ' + lowest,
-                      offsetY: 2
+                      offsetY: 2,
                     },
                     image: {
                       path: '../../assets/images/ico-instagram.png',
                       width: undefined,
                       height: undefined,
                       offsetX: 0,
-                      offsetY: -18
-                    }
+                      offsetY: -18,
+                    },
                   })
-            
+
                   ctx.addPointAnnotation({
-                    x: new Date(ctx.w.globals.seriesX[0][ctx.w.globals.series[0].indexOf(highest)]).getTime(),
+                    x: new Date(
+                      ctx.w.globals.seriesX[0][
+                        ctx.w.globals.series[0].indexOf(highest)
+                      ],
+                    ).getTime(),
                     y: highest,
                     label: {
                       text: 'Highest: ' + highest,
-                      offsetY: 2
+                      offsetY: 2,
                     },
                   })
-                }
-              }
+                },
+              },
             },
             dataLabels: {
-              enabled: false
+              enabled: false,
             },
             stroke: {
-              curve: "straight"
+              curve: 'straight',
             },
           },
-          
-          
         },
-        
       })
     </script>
     

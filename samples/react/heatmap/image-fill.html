@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -37,22 +35,23 @@
     </script>
 
     <script>
-  function generateData(count, yrange) {
-    var i = 0;
-    var series = [];
-    while (i < count) {
-      var x = 'round' + (i + 1).toString();
-      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
-  
-      series.push({
-        x: x,
-        y: y
-      });
-      i++;
-    }
-    return series;
-  }
-  </script>
+      function generateData(count, yrange) {
+        var i = 0
+        var series = []
+        while (i < count) {
+          var x = 'round' + (i + 1).toString()
+          var y =
+            Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
+
+          series.push({
+            x: x,
+            y: y,
+          })
+          i++
+        }
+        return series
+      }
+    </script>
   </head>
 
   <body>
@@ -66,95 +65,95 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [
-              {
-                name: 'Oliver',
-                data: generateData(15, {
-                  min: 0,
-                  max: 90
-                })
-              },
-              {
-                name: 'Harry',
-                data: generateData(15, {
-                  min: 0,
-                  max: 90
-                })
-              },
-              {
-                name: 'Thomas',
-                data: generateData(15, {
-                  min: 0,
-                  max: 90
-                })
-              },
-              {
-                name: 'Callum',
-                data: generateData(15, {
-                  min: 0,
-                  max: 90
-                })
-              },
-              {
-                name: 'Ethan',
-                data: generateData(15, {
-                  min: 0,
-                  max: 90
-                })
-              },
-              {
-                name: 'Richard',
-                data: generateData(15, {
-                  min: 0,
-                  max: 90
-                })
-              },
-              {
-                name: 'David',
-                data: generateData(15, {
-                  min: 0,
-                  max: 90
-                })
-              }
-            ],
-            options: {
-              chart: {
-                height: 360,
-                type: 'heatmap',
-              },
-              dataLabels: {
-                enabled: false
-              },
-              colors: ["#008FFB"],
-              title: {
-                text: 'HeatMap Chart with image fill'
-              },
-              fill: {
-                type: 'image',
-                image: {
-                  src: '../../assets/images/ico-instagram.png',
-                }
-              }
+          series: [
+            {
+              name: 'Oliver',
+              data: generateData(15, {
+                min: 0,
+                max: 90,
+              }),
             },
-          
-          
-        });
-
-        
+            {
+              name: 'Harry',
+              data: generateData(15, {
+                min: 0,
+                max: 90,
+              }),
+            },
+            {
+              name: 'Thomas',
+              data: generateData(15, {
+                min: 0,
+                max: 90,
+              }),
+            },
+            {
+              name: 'Callum',
+              data: generateData(15, {
+                min: 0,
+                max: 90,
+              }),
+            },
+            {
+              name: 'Ethan',
+              data: generateData(15, {
+                min: 0,
+                max: 90,
+              }),
+            },
+            {
+              name: 'Richard',
+              data: generateData(15, {
+                min: 0,
+                max: 90,
+              }),
+            },
+            {
+              name: 'David',
+              data: generateData(15, {
+                min: 0,
+                max: 90,
+              }),
+            },
+          ],
+          options: {
+            chart: {
+              height: 360,
+              type: 'heatmap',
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            colors: ['#008FFB'],
+            title: {
+              text: 'HeatMap Chart with image fill',
+            },
+            fill: {
+              type: 'image',
+              image: {
+                src: '../../assets/images/ico-instagram.png',
+              },
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="heatmap" height={360} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="heatmap"
+                height={360}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

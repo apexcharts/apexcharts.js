@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 560px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 560px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -39,10 +37,9 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [86],
-          chart: {
+      var options = {
+        series: [86],
+        chart: {
           height: 360,
           type: 'gauge',
           animations: {
@@ -120,17 +117,15 @@
           lineCap: 'butt',
         },
         labels: ['Progress'],
-        };
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
-        window.setInterval(function () {
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      window.setInterval(function () {
         var next = Math.floor(Math.random() * 101)
         chart.updateSeries([next])
       }, 2000)
-      
     </script>
 
     

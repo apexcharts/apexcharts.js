@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -54,16 +52,18 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
-          series: [{
-            data: [44, 55, 41, 64, 22, 43, 21]
-          }, {
-            data: [53, 32, 33, 52, 13, 44, 32]
-          }],
+          series: [
+            {
+              data: [44, 55, 41, 64, 22, 43, 21],
+            },
+            {
+              data: [53, 32, 33, 52, 13, 44, 32],
+            },
+          ],
           chartOptions: {
             chart: {
               type: 'bar',
-              height: 430
+              height: 430,
             },
             plotOptions: {
               bar: {
@@ -71,33 +71,30 @@
                 dataLabels: {
                   position: 'top',
                 },
-              }
+              },
             },
             dataLabels: {
               enabled: true,
               offsetX: -6,
               style: {
                 fontSize: '12px',
-                colors: ['#fff']
-              }
+                colors: ['#fff'],
+              },
             },
             stroke: {
               show: true,
               width: 1,
-              colors: ['#fff']
+              colors: ['#fff'],
             },
             tooltip: {
               shared: true,
-              intersect: false
+              intersect: false,
             },
             xaxis: {
               categories: [2001, 2002, 2003, 2004, 2005, 2006, 2007],
             },
           },
-          
-          
         },
-        
       })
     </script>
     

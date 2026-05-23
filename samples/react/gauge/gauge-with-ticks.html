@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 420px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 420px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -51,84 +49,84 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [64],
-            options: {
-              chart: {
-                height: 360,
-                type: 'gauge',
-              },
-              plotOptions: {
-                radialBar: {
-                  startAngle: -135,
-                  endAngle: 135,
-                  ticks: {
+          series: [64],
+          options: {
+            chart: {
+              height: 360,
+              type: 'gauge',
+            },
+            plotOptions: {
+              radialBar: {
+                startAngle: -135,
+                endAngle: 135,
+                ticks: {
+                  show: true,
+                  major: {
+                    count: 11,
+                    length: 12,
+                    width: 2,
+                    color: '#475569',
+                    placement: 'outside',
+                  },
+                  minor: {
+                    count: 3,
+                    length: 6,
+                    width: 1,
+                    color: '#94A3B8',
+                    placement: 'outside',
+                  },
+                  labels: {
                     show: true,
-                    major: {
-                      count: 11,
-                      length: 12,
-                      width: 2,
-                      color: '#475569',
-                      placement: 'outside',
-                    },
-                    minor: {
-                      count: 3,
-                      length: 6,
-                      width: 1,
-                      color: '#94A3B8',
-                      placement: 'outside',
-                    },
-                    labels: {
-                      show: true,
-                      offset: 8,
-                      fontSize: '11px',
-                      color: '#475569',
-                      formatter: function (v) {
-                        return Math.round(v)
-                      },
+                    offset: 8,
+                    fontSize: '11px',
+                    color: '#475569',
+                    formatter: function (v) {
+                      return Math.round(v)
                     },
                   },
-                  hollow: {
-                    margin: 30,
-                    size: '50%',
-                  },
-                  track: {
-                    strokeWidth: '60%',
-                    background: '#E2E8F0',
-                  },
-                  dataLabels: {
-                    name: { show: false },
-                    value: {
-                      offsetY: 8,
-                      fontSize: '28px',
-                      fontWeight: 600,
-                      formatter: function (val) {
-                        return val + '%'
-                      },
+                },
+                hollow: {
+                  margin: 30,
+                  size: '50%',
+                },
+                track: {
+                  strokeWidth: '60%',
+                  background: '#E2E8F0',
+                },
+                dataLabels: {
+                  name: { show: false },
+                  value: {
+                    offsetY: 8,
+                    fontSize: '28px',
+                    fontWeight: 600,
+                    formatter: function (val) {
+                      return val + '%'
                     },
                   },
                 },
               },
-              labels: ['Progress'],
             },
-          
-          
-        });
-
-        
+            labels: ['Progress'],
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="gauge" height={360} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="gauge"
+                height={360}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

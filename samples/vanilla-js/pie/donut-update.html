@@ -9,38 +9,36 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 480px;
-      margin: 35px auto;
-      padding: 0;
-    }
-    .actions {
-      top: -10px;
-      position: relative;
-      z-index: 10;
-      max-width: 400px;
-      margin: 0 auto;
-    }
-    button {
-      color: #fff;
-      background: #20b2aa;
-      padding: 5px 10px;
-      margin: 2px;
-      font-weight: bold;
-      font-size: 13px;
-      border-radius: 5px;
-    }
-    p {
-      margin: 10px 0;
-    }
-    @media only screen and (max-width: 480px) {
-      .actions {
-        margin-top: 0;
-        left: 0
+      #chart {
+        max-width: 480px;
+        margin: 35px auto;
+        padding: 0;
       }
-    }
-      
+      .actions {
+        top: -10px;
+        position: relative;
+        z-index: 10;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+      button {
+        color: #fff;
+        background: #20b2aa;
+        padding: 5px 10px;
+        margin: 2px;
+        font-weight: bold;
+        font-size: 13px;
+        border-radius: 5px;
+      }
+      p {
+        margin: 10px 0;
+      }
+      @media only screen and (max-width: 480px) {
+        .actions {
+          margin-top: 0;
+          left: 0;
+        }
+      }
     </style>
 
     
@@ -98,76 +96,75 @@
       </div>
 
     <script>
-      
-        var options = {
-          series: [44, 55, 13, 33],
-          chart: {
+      var options = {
+        series: [44, 55, 13, 33],
+        chart: {
           width: 380,
           type: 'donut',
         },
         dataLabels: {
-          enabled: false
+          enabled: false,
         },
-        responsive: [{
-          breakpoint: 480,
-          options: {
-            chart: {
-              width: 200
+        responsive: [
+          {
+            breakpoint: 480,
+            options: {
+              chart: {
+                width: 200,
+              },
+              legend: {
+                show: false,
+              },
             },
-            legend: {
-              show: false
-            }
-          }
-        }],
+          },
+        ],
         legend: {
           position: 'right',
           offsetY: 0,
           height: 230,
-        }
-        };
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
-        function appendData() {
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      function appendData() {
         var arr = chart.w.globals.series.slice()
         arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
-        return arr;
+        return arr
       }
-      
+
       function removeData() {
         var arr = chart.w.globals.series.slice()
         arr.pop()
-        return arr;
+        return arr
       }
-      
+
       function randomize() {
-        return chart.w.globals.series.map(function() {
-            return Math.floor(Math.random() * (100 - 1 + 1)) + 1
+        return chart.w.globals.series.map(function () {
+          return Math.floor(Math.random() * (100 - 1 + 1)) + 1
         })
       }
-      
+
       function reset() {
         return options.series
       }
-      
-      document.querySelector("#randomize").addEventListener("click", function() {
+
+      document.querySelector('#randomize').addEventListener('click', function () {
         chart.updateSeries(randomize())
       })
-      
-      document.querySelector("#add").addEventListener("click", function() {
+
+      document.querySelector('#add').addEventListener('click', function () {
         chart.updateSeries(appendData())
       })
-      
-      document.querySelector("#remove").addEventListener("click", function() {
+
+      document.querySelector('#remove').addEventListener('click', function () {
         chart.updateSeries(removeData())
       })
-      
-      document.querySelector("#reset").addEventListener("click", function() {
+
+      document.querySelector('#reset').addEventListener('click', function () {
         chart.updateSeries(reset())
       })
-      
     </script>
 
     

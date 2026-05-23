@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,9 +36,8 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [
+      var options = {
+        series: [
           {
             name: 'Q1 Budget',
             group: 'budget',
@@ -66,24 +63,24 @@
             data: [20000, 40000, 25000, 10000, 12000],
           },
         ],
-          chart: {
+        chart: {
           type: 'bar',
           height: 350,
           stacked: true,
         },
         stroke: {
           width: 1,
-          colors: ['#fff']
+          colors: ['#fff'],
         },
         dataLabels: {
           formatter: (val) => {
             return val / 1000 + 'K'
-          }
+          },
         },
         plotOptions: {
           bar: {
-            horizontal: true
-          }
+            horizontal: true,
+          },
         },
         xaxis: {
           categories: [
@@ -91,28 +88,26 @@
             'Sales Training',
             'Print advertising',
             'Catalogs',
-            'Meetings'
+            'Meetings',
           ],
           labels: {
             formatter: (val) => {
               return val / 1000 + 'K'
-            }
-          }
+            },
+          },
         },
         fill: {
           opacity: 1,
         },
         legend: {
           position: 'top',
-          clusterGroupedSeriesOrientation: "horizontal",
-          horizontalAlign: "left"
-        }
-        };
+          clusterGroupedSeriesOrientation: 'horizontal',
+          horizontalAlign: 'left',
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

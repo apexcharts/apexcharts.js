@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,9 +36,8 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [
+      var options = {
+        series: [
           {
             name: 'Blue',
             data: [
@@ -110,7 +107,7 @@
             ],
           },
         ],
-          chart: {
+        chart: {
           height: 350,
           width: 600,
           type: 'line',
@@ -152,13 +149,11 @@
           width: [2, 3, 4, 2],
           dashArray: [0, 0, 5, 2],
           curve: 'smooth',
-        }
-        };
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

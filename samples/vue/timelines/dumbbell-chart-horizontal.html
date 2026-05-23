@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -54,92 +52,88 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
           series: [
             {
               data: [
                 {
                   x: 'Operations',
-                  y: [2800, 4500]
+                  y: [2800, 4500],
                 },
                 {
                   x: 'Customer Success',
-                  y: [3200, 4100]
+                  y: [3200, 4100],
                 },
                 {
                   x: 'Engineering',
-                  y: [2950, 7800]
+                  y: [2950, 7800],
                 },
                 {
                   x: 'Marketing',
-                  y: [3000, 4600]
+                  y: [3000, 4600],
                 },
                 {
                   x: 'Product',
-                  y: [3500, 4100]
+                  y: [3500, 4100],
                 },
                 {
                   x: 'Data Science',
-                  y: [4500, 6500]
+                  y: [4500, 6500],
                 },
                 {
                   x: 'Sales',
-                  y: [4100, 5600]
-                }
-              ]
-            }
+                  y: [4100, 5600],
+                },
+              ],
+            },
           ],
           chartOptions: {
             chart: {
               height: 390,
               type: 'rangeBar',
               zoom: {
-                enabled: false
-              }
+                enabled: false,
+              },
             },
             colors: ['#EC7D31', '#36BDCB'],
             plotOptions: {
               bar: {
                 horizontal: true,
                 isDumbbell: true,
-                dumbbellColors: [['#EC7D31', '#36BDCB']]
-              }
+                dumbbellColors: [['#EC7D31', '#36BDCB']],
+              },
             },
             title: {
-              text: 'Paygap Disparity'
+              text: 'Paygap Disparity',
             },
             legend: {
               show: true,
               showForSingleSeries: true,
               position: 'top',
               horizontalAlign: 'left',
-              customLegendItems: ['Female', 'Male']
+              customLegendItems: ['Female', 'Male'],
             },
             fill: {
               type: 'gradient',
               gradient: {
                 gradientToColors: ['#36BDCB'],
                 inverseColors: false,
-                stops: [0, 100]
-              }
+                stops: [0, 100],
+              },
             },
             grid: {
               xaxis: {
                 lines: {
-                  show: true
-                }
+                  show: true,
+                },
               },
               yaxis: {
                 lines: {
-                  show: false
-                }
-              }
-            }
+                  show: false,
+                },
+              },
+            },
           },
-          
-          
         },
-        
       })
     </script>
     

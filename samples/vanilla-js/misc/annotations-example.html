@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,96 +36,103 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [{
+      var options = {
+        series: [
+          {
             type: 'bar',
-            data: series.monthDataSeries2.prices
-        }, {
+            data: series.monthDataSeries2.prices,
+          },
+          {
             type: 'line',
-            data: series.monthDataSeries1.prices
-        }],
-          chart: {
+            data: series.monthDataSeries1.prices,
+          },
+        ],
+        chart: {
           type: 'line',
           id: 'chart',
           sparkline: {
             //  enabled: true
-          }
+          },
         },
         annotations: {
-          yaxis: [{
-            y: 8200,
-            borderColor: '#FEB019',
-            label: {
-              borderColor: '#333',
-              style: {
-                fontSize: '15px',
-                color: '#333',
-                background: '#FEB019',
+          yaxis: [
+            {
+              y: 8200,
+              borderColor: '#FEB019',
+              label: {
+                borderColor: '#333',
+                style: {
+                  fontSize: '15px',
+                  color: '#333',
+                  background: '#FEB019',
+                },
+                text: 'Y-axis annotation',
               },
-              text: 'Y-axis annotation',
-            }
-          }],
-          xaxis: [{
-            x: new Date('23 Nov 2017').getTime(),
-            borderColor: '#00E396',
-            label: {
+            },
+          ],
+          xaxis: [
+            {
+              x: new Date('23 Nov 2017').getTime(),
               borderColor: '#00E396',
-              style: {
-                fontSize: '15px',
-                color: '#fff',
-                background: '#00E396',
+              label: {
+                borderColor: '#00E396',
+                style: {
+                  fontSize: '15px',
+                  color: '#fff',
+                  background: '#00E396',
+                },
+                offsetY: -10,
+                text: 'Vertical',
               },
-              offsetY: -10,
-              text: 'Vertical',
-            }
-          }],
-          points: [{
-            x: new Date('01 Dec 2017').getTime(),
-            y: 9025,
-            label: {
-              borderColor: '#FF4560',
-              offsetY: 0,
-              style: {
-                fontSize: '15px',
-                color: '#fff',
-                background: '#FF4560',
+            },
+          ],
+          points: [
+            {
+              x: new Date('01 Dec 2017').getTime(),
+              y: 9025,
+              label: {
+                borderColor: '#FF4560',
+                offsetY: 0,
+                style: {
+                  fontSize: '15px',
+                  color: '#fff',
+                  background: '#FF4560',
+                },
+                text: 'All time high',
               },
-              text: 'All time high',
-            }
-          }]
+            },
+          ],
         },
         plotOptions: {
           bar: {
-            columnWidth: '50%'
-          }
+            columnWidth: '50%',
+          },
         },
         markers: {
-          size: 0
+          size: 0,
         },
         dataLabels: {
-          enabled: false
+          enabled: false,
         },
         stroke: {
-          curve: 'straight'
+          curve: 'straight',
         },
         legend: {
           show: false,
         },
         labels: series.monthDataSeries1.dates,
         yaxis: {
-          min: 8000
+          min: 8000,
         },
         xaxis: {
           type: 'datetime',
-        }
-        };
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
-        function addAnnos() {
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      function addAnnos() {
         // adding annotation through chart instance by calling direct method
         chart.addYaxisAnnotation({
           id: 'yaxis-anno',
@@ -138,12 +143,12 @@
             style: {
               fontSize: '15px',
               color: '#333',
-              background: '#FEB019'
+              background: '#FEB019',
             },
-            text: 'Y-axis - runtime'
-          }
+            text: 'Y-axis - runtime',
+          },
         })
-      
+
         chart.addXaxisAnnotation({
           id: 'xaxis-anno',
           x: new Date('25 Nov 2017').getTime(),
@@ -154,16 +159,16 @@
             style: {
               fontSize: '15px',
               color: '#fff',
-              background: '#00E396'
+              background: '#00E396',
             },
             offsetY: -10,
-            text: 'xaxis - runtime'
-          }
+            text: 'xaxis - runtime',
+          },
         })
       }
-      
+
       addAnnos()
-      
+
       chart.addPointAnnotation({
         id: 'point-anno',
         x: new Date('17 Nov 2017').getTime(),
@@ -174,22 +179,21 @@
           style: {
             fontSize: '15px',
             color: '#fff',
-            background: '#FF4560'
+            background: '#FF4560',
           },
-          text: 'Point - runtime'
-        }
+          text: 'Point - runtime',
+        },
       })
-      
+
       // removing annotation with method name
       chart.removeAnnotation('point-anno')
-      
+
       // removing annotations with .exec() method
       ApexCharts.exec('chart', 'removeAnnotation', 'xaxis-anno')
       ApexCharts.exec('chart', 'removeAnnotation', 'yaxis-anno')
-      
+
       // add annos again
       // addAnnos()
-      
     </script>
 
     

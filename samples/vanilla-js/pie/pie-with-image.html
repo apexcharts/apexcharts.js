@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 380px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 380px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -39,10 +37,9 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [44, 33, 54, 45],
-          chart: {
+      var options = {
+        series: [44, 33, 54, 45],
+        chart: {
           width: 380,
           type: 'pie',
         },
@@ -51,42 +48,47 @@
           type: 'image',
           opacity: 0.85,
           image: {
-             src: ['../../assets/images/stripes.jpg', '../../assets/images/1101098.png', '../../assets/images/4679113782_ca13e2e6c0_z.jpg', '../../assets/images/2979121308_59539a3898_z.jpg'],
+            src: [
+              '../../assets/images/stripes.jpg',
+              '../../assets/images/1101098.png',
+              '../../assets/images/4679113782_ca13e2e6c0_z.jpg',
+              '../../assets/images/2979121308_59539a3898_z.jpg',
+            ],
             width: 25,
-            imagedHeight: 25
+            imagedHeight: 25,
           },
         },
         stroke: {
-          width: 4
+          width: 4,
         },
         dataLabels: {
           enabled: true,
           style: {
-            colors: ['#111']
+            colors: ['#111'],
           },
           background: {
             enabled: true,
             foreColor: '#fff',
-            borderWidth: 0
-          }
+            borderWidth: 0,
+          },
         },
-        responsive: [{
-          breakpoint: 480,
-          options: {
-            chart: {
-              width: 200
+        responsive: [
+          {
+            breakpoint: 480,
+            options: {
+              chart: {
+                width: 200,
+              },
+              legend: {
+                position: 'bottom',
+              },
             },
-            legend: {
-              position: 'bottom'
-            }
-          }
-        }]
-        };
+          },
+        ],
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,66 +36,63 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [
-                  {
-                    data: [400, 430, 1, 470, 540, 580, 690, 1100, 1200, 1380].map(
-                      (_) => _ * -1
-                    ),
-                  },
-                ],
-          chart: {
-                  type: 'bar',
-                  height: 380,
-                },
-                plotOptions: {
-                  bar: {
-                    horizontal: true,
-                    dataLabels: {
-                      position: 'center',
-                    },
-                  },
-                },
-        
-                dataLabels: {
-                  enabled: true,
-                  textAnchor: 'middle',
-                  style: {
-                    colors: ['#333'],
-                  },
-                  formatter: function (val, opt) {
-                    return opt.w.globals.labels[opt.dataPointIndex] + ':  ' + val
-                  },
-                },
-                fill: {
-                  opacity: 0.5,
-                },
-                xaxis: {
-                  categories: [
-                    'South Korea',
-                    'Canada',
-                    'United Kingdom',
-                    'Netherlands',
-                    'Italy',
-                    'France',
-                    'Japan',
-                    'United States',
-                    'China',
-                    'India',
-                  ],
-                },
-                yaxis: {
-                  labels: {
-                    show: false,
-                  },
-                }
-        };
+      var options = {
+        series: [
+          {
+            data: [400, 430, 1, 470, 540, 580, 690, 1100, 1200, 1380].map(
+              (_) => _ * -1,
+            ),
+          },
+        ],
+        chart: {
+          type: 'bar',
+          height: 380,
+        },
+        plotOptions: {
+          bar: {
+            horizontal: true,
+            dataLabels: {
+              position: 'center',
+            },
+          },
+        },
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+        dataLabels: {
+          enabled: true,
+          textAnchor: 'middle',
+          style: {
+            colors: ['#333'],
+          },
+          formatter: function (val, opt) {
+            return opt.w.globals.labels[opt.dataPointIndex] + ':  ' + val
+          },
+        },
+        fill: {
+          opacity: 0.5,
+        },
+        xaxis: {
+          categories: [
+            'South Korea',
+            'Canada',
+            'United Kingdom',
+            'Netherlands',
+            'Italy',
+            'France',
+            'Japan',
+            'United States',
+            'China',
+            'India',
+          ],
+        },
+        yaxis: {
+          labels: {
+            show: false,
+          },
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

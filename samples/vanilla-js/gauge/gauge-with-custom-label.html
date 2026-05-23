@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 380px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 380px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -39,10 +37,9 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [58],
-          chart: {
+      var options = {
+        series: [58],
+        chart: {
           height: 350,
           type: 'gauge',
         },
@@ -88,12 +85,10 @@
           lineCap: 'round',
         },
         labels: ['CPU Usage'],
-        };
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

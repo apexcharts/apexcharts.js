@@ -9,15 +9,13 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-    #chart .apexcharts-xaxis-label {
-      font-weight: bold;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+      #chart .apexcharts-xaxis-label {
+        font-weight: bold;
+      }
     </style>
 
     
@@ -40,17 +38,17 @@
     </script>
 
     <script>
-    var colors = [
-      '#008FFB',
-      '#00E396',
-      '#FEB019',
-      '#FF4560',
-      '#775DD0',
-      '#546E7A',
-      '#26a69a',
-      '#D10CE8'
-    ]
-  </script>
+      var colors = [
+        '#008FFB',
+        '#00E396',
+        '#FEB019',
+        '#FF4560',
+        '#775DD0',
+        '#546E7A',
+        '#26a69a',
+        '#D10CE8',
+      ]
+    </script>
   </head>
 
   <body>
@@ -64,70 +62,72 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [{
-              data: [21, 22, 10, 28, 16, 21, 13, 30]
-            }],
-            options: {
-              chart: {
-                height: 350,
-                type: 'bar',
-                events: {
-                  click: function(chart, w, e) {
-                    // console.log(chart, w, e)
-                  }
-                }
-              },
-              colors: colors,
-              plotOptions: {
-                bar: {
-                  columnWidth: '45%',
-                  distributed: true,
-                }
-              },
-              dataLabels: {
-                enabled: false
-              },
-              legend: {
-                show: false
-              },
-              xaxis: {
-                categories: [
-                  ['John', 'Doe'],
-                  ['Joe', 'Smith'],
-                  ['Jake', 'Williams'],
-                  'Amber',
-                  ['Peter', 'Brown'],
-                  ['Mary', 'Evans'],
-                  ['David', 'Wilson'],
-                  ['Lily', 'Roberts'], 
-                ],
-                labels: {
-                  style: {
-                    colors: colors,
-                    fontSize: '12px'
-                  }
-                }
-              }
+          series: [
+            {
+              data: [21, 22, 10, 28, 16, 21, 13, 30],
             },
-          
-          
-        });
-
-        
+          ],
+          options: {
+            chart: {
+              height: 350,
+              type: 'bar',
+              events: {
+                click: function (chart, w, e) {
+                  // console.log(chart, w, e)
+                },
+              },
+            },
+            colors: colors,
+            plotOptions: {
+              bar: {
+                columnWidth: '45%',
+                distributed: true,
+              },
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            legend: {
+              show: false,
+            },
+            xaxis: {
+              categories: [
+                ['John', 'Doe'],
+                ['Joe', 'Smith'],
+                ['Jake', 'Williams'],
+                'Amber',
+                ['Peter', 'Brown'],
+                ['Mary', 'Evans'],
+                ['David', 'Wilson'],
+                ['Lily', 'Roberts'],
+              ],
+              labels: {
+                style: {
+                  colors: colors,
+                  fontSize: '12px',
+                },
+              },
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="bar" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="bar"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

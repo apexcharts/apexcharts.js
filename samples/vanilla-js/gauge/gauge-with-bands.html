@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 420px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 420px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -39,10 +37,9 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [78],
-          chart: {
+      var options = {
+        series: [78],
+        chart: {
           height: 350,
           type: 'gauge',
         },
@@ -78,12 +75,10 @@
         },
         fill: { opacity: 0.8 },
         labels: ['System Health'],
-        };
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

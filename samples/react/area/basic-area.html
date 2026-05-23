@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -50,63 +48,65 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [{
-              name: "STOCK ABC",
-              data: series.monthDataSeries1.prices
-            }],
-            options: {
-              chart: {
-                type: 'area',
-                height: 350,
-                zoom: {
-                  enabled: false
-                }
-              },
-              dataLabels: {
-                enabled: false
-              },
-              stroke: {
-                curve: 'straight'
-              },
-              
-              title: {
-                text: 'Fundamental Analysis of Stocks',
-                align: 'left'
-              },
-              subtitle: {
-                text: 'Price Movements',
-                align: 'left'
-              },
-              labels: series.monthDataSeries1.dates,
-              xaxis: {
-                type: 'datetime',
-              },
-              yaxis: {
-                opposite: true
-              },
-              legend: {
-                horizontalAlign: 'left'
-              }
+          series: [
+            {
+              name: 'STOCK ABC',
+              data: series.monthDataSeries1.prices,
             },
-          
-          
-        });
+          ],
+          options: {
+            chart: {
+              type: 'area',
+              height: 350,
+              zoom: {
+                enabled: false,
+              },
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            stroke: {
+              curve: 'straight',
+            },
 
-        
+            title: {
+              text: 'Fundamental Analysis of Stocks',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'Price Movements',
+              align: 'left',
+            },
+            labels: series.monthDataSeries1.dates,
+            xaxis: {
+              type: 'datetime',
+            },
+            yaxis: {
+              opposite: true,
+            },
+            legend: {
+              horizontalAlign: 'left',
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="area" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="area"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

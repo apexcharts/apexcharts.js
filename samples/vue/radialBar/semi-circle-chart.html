@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 450px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 450px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -55,22 +53,21 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
           series: [76],
           chartOptions: {
             chart: {
               type: 'radialBar',
               offsetY: -20,
               sparkline: {
-                enabled: true
-              }
+                enabled: true,
+              },
             },
             plotOptions: {
               radialBar: {
                 startAngle: -90,
                 endAngle: 90,
                 track: {
-                  background: "#e7e7e7",
+                  background: '#e7e7e7',
                   strokeWidth: '97%',
                   margin: 5, // margin is in pixels
                   dropShadow: {
@@ -79,24 +76,24 @@
                     left: 0,
                     color: '#444',
                     opacity: 1,
-                    blur: 2
-                  }
+                    blur: 2,
+                  },
                 },
                 dataLabels: {
                   name: {
-                    show: false
+                    show: false,
                   },
                   value: {
                     offsetY: -2,
-                    fontSize: '22px'
-                  }
-                }
-              }
+                    fontSize: '22px',
+                  },
+                },
+              },
             },
             grid: {
               padding: {
-                top: -10
-              }
+                top: -10,
+              },
             },
             fill: {
               type: 'gradient',
@@ -106,15 +103,12 @@
                 inverseColors: false,
                 opacityFrom: 1,
                 opacityTo: 1,
-                stops: [0, 50, 53, 91]
+                stops: [0, 50, 53, 91],
               },
             },
             labels: ['Average Results'],
           },
-          
-          
         },
-        
       })
     </script>
     

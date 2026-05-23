@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -50,78 +48,79 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [
-              {
-                name: 'Blue',
-                data: [
-                  {
-                    x: 'Jan',
-                    y: 43,
-                  },
-                  {
-                    x: 'Feb',
-                    y: 58,
-                  },
-                ],
-              },
-              {
-                name: 'Green',
-                data: [
-                  {
-                    x: 'Jan',
-                    y: 33,
-                  },
-                  {
-                    x: 'Feb',
-                    y: 38,
-                  },
-                ],
-              },
-              {
-                name: 'Red',
-                data: [
-                  {
-                    x: 'Jan',
-                    y: 55,
-                  },
-                  {
-                    x: 'Feb',
-                    y: 21,
-                  },
-                ],
-              },
-            ],
-            options: {
-              chart: {
-                height: 350,
-                width: 400,
-                type: 'line',
-              },
-              plotOptions: {
-                line: {
-                  isSlopeChart: true,
+          series: [
+            {
+              name: 'Blue',
+              data: [
+                {
+                  x: 'Jan',
+                  y: 43,
                 },
-              }
+                {
+                  x: 'Feb',
+                  y: 58,
+                },
+              ],
             },
-          
-          
-        });
-
-        
+            {
+              name: 'Green',
+              data: [
+                {
+                  x: 'Jan',
+                  y: 33,
+                },
+                {
+                  x: 'Feb',
+                  y: 38,
+                },
+              ],
+            },
+            {
+              name: 'Red',
+              data: [
+                {
+                  x: 'Jan',
+                  y: 55,
+                },
+                {
+                  x: 'Feb',
+                  y: 21,
+                },
+              ],
+            },
+          ],
+          options: {
+            chart: {
+              height: 350,
+              width: 400,
+              type: 'line',
+            },
+            plotOptions: {
+              line: {
+                isSlopeChart: true,
+              },
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="line" height={350} width={400} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="line"
+                height={350}
+                width={400}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

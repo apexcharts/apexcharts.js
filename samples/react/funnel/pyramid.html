@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -50,76 +48,85 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [
-              {
-                name: "",
-                data: [200, 330, 548, 740, 880, 990, 1100, 1380],
-              },
-            ],
-            options: {
-              chart: {
-                type: 'pyramid',
-                height: 350,
-                dropShadow: {
-                  enabled: true,
-                },
-              },
-              plotOptions: {
-                bar: {
-                  borderRadius: 0,
-                  distributed: true,
-                  barHeight: '80%',
-                },
-              },
-              colors: [
-                '#F44F5E',
-                '#E55A89',
-                '#D863B1',
-                '#CA6CD8',
-                '#B57BED',
-                '#8D95EB',
-                '#62ACEA',
-                '#4BC3E6',
-              ],
-              dataLabels: {
+          series: [
+            {
+              name: '',
+              data: [200, 330, 548, 740, 880, 990, 1100, 1380],
+            },
+          ],
+          options: {
+            chart: {
+              type: 'pyramid',
+              height: 350,
+              dropShadow: {
                 enabled: true,
-                formatter: function (val, opt) {
-                  return opt.w.globals.labels[opt.dataPointIndex]
-                },
-                dropShadow: {
-                  enabled: true,
-                },
-              },
-              title: {
-                text: 'Food Pyramid',
-                align: 'middle',
-              },
-              xaxis: {
-                categories: ['Sweets', 'Processed Foods', 'Healthy Fats', 'Meat', 'Beans & Legumes', 'Dairy', 'Fruits & Vegetables', 'Grains'],
-              },
-              legend: {
-                show: false,
               },
             },
-          
-          
-        });
-
-        
+            plotOptions: {
+              bar: {
+                borderRadius: 0,
+                distributed: true,
+                barHeight: '80%',
+              },
+            },
+            colors: [
+              '#F44F5E',
+              '#E55A89',
+              '#D863B1',
+              '#CA6CD8',
+              '#B57BED',
+              '#8D95EB',
+              '#62ACEA',
+              '#4BC3E6',
+            ],
+            dataLabels: {
+              enabled: true,
+              formatter: function (val, opt) {
+                return opt.w.globals.labels[opt.dataPointIndex]
+              },
+              dropShadow: {
+                enabled: true,
+              },
+            },
+            title: {
+              text: 'Food Pyramid',
+              align: 'middle',
+            },
+            xaxis: {
+              categories: [
+                'Sweets',
+                'Processed Foods',
+                'Healthy Fats',
+                'Meat',
+                'Beans & Legumes',
+                'Dairy',
+                'Fruits & Vegetables',
+                'Grains',
+              ],
+            },
+            legend: {
+              show: false,
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="pyramid" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="pyramid"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -54,42 +52,48 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
-          series: [{
-            name: 'PRODUCT A',
-            data: [40, 50, -27, 60, 20, 40]
-          }, {
-            name: 'PRODUCT B',
-            data: [10, 20, 20, 0, 10, 20]
-          }, {
-            name: 'PRODUCT C',
-            data: [10, 10, -10, 10, 20, 10]
-          }, {
-            name: 'PRODUCT D',
-            data: [10, 10, 20, 10, 20, 10]
-          }],
+          series: [
+            {
+              name: 'PRODUCT A',
+              data: [40, 50, -27, 60, 20, 40],
+            },
+            {
+              name: 'PRODUCT B',
+              data: [10, 20, 20, 0, 10, 20],
+            },
+            {
+              name: 'PRODUCT C',
+              data: [10, 10, -10, 10, 20, 10],
+            },
+            {
+              name: 'PRODUCT D',
+              data: [10, 10, 20, 10, 20, 10],
+            },
+          ],
           chartOptions: {
             chart: {
               type: 'bar',
               height: 350,
               stacked: true,
               toolbar: {
-                show: true
+                show: true,
               },
               zoom: {
-                enabled: true
-              }
+                enabled: true,
+              },
             },
-            responsive: [{
-              breakpoint: 650,
-              options: {
-                legend: {
-                  position: 'bottom',
-                  offsetX: -10,
-                  offsetY: 0
-                }
-              }
-            }],
+            responsive: [
+              {
+                breakpoint: 650,
+                options: {
+                  legend: {
+                    position: 'bottom',
+                    offsetX: -10,
+                    offsetY: 0,
+                  },
+                },
+              },
+            ],
             plotOptions: {
               bar: {
                 horizontal: false,
@@ -101,43 +105,45 @@
                     enabled: true,
                     style: {
                       fontSize: '13px',
-                      fontWeight: 900
-                    }
-                  }
-                }
+                      fontWeight: 900,
+                    },
+                  },
+                },
               },
             },
             stroke: {
               show: true,
-              width: 4
+              width: 4,
             },
-            dataLabels:{
+            dataLabels: {
               style: {
-                colors: ['black']
-              }
+                colors: ['black'],
+              },
             },
             xaxis: {
               type: 'datetime',
-              categories: ['01/01/2011 GMT', '01/02/2011 GMT', '01/03/2011 GMT', '01/04/2011 GMT',
-                '01/05/2011 GMT', '01/06/2011 GMT'
+              categories: [
+                '01/01/2011 GMT',
+                '01/02/2011 GMT',
+                '01/03/2011 GMT',
+                '01/04/2011 GMT',
+                '01/05/2011 GMT',
+                '01/06/2011 GMT',
               ],
             },
             yaxis: {
               reversed: false,
-              stepSize: 10
+              stepSize: 10,
             },
             legend: {
               position: 'right',
-              offsetY: 40
+              offsetY: 40,
             },
             fill: {
-              opacity: 0.25
-            }
+              opacity: 0.25,
+            },
           },
-          
-          
         },
-        
       })
     </script>
     

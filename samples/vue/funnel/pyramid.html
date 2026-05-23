@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -54,10 +52,9 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
           series: [
             {
-              name: "",
+              name: '',
               data: [200, 330, 548, 740, 880, 990, 1100, 1380],
             },
           ],
@@ -100,16 +97,22 @@
               align: 'middle',
             },
             xaxis: {
-              categories: ['Sweets', 'Processed Foods', 'Healthy Fats', 'Meat', 'Beans & Legumes', 'Dairy', 'Fruits & Vegetables', 'Grains'],
+              categories: [
+                'Sweets',
+                'Processed Foods',
+                'Healthy Fats',
+                'Meat',
+                'Beans & Legumes',
+                'Dairy',
+                'Fruits & Vegetables',
+                'Grains',
+              ],
             },
             legend: {
               show: false,
             },
           },
-          
-          
         },
-        
       })
     </script>
     

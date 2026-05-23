@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -54,65 +52,75 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
-          series: [{
-            data: [400, 430, 448, 470, 540, 580, 690]
-          }],
+          series: [
+            {
+              data: [400, 430, 448, 470, 540, 580, 690],
+            },
+          ],
           chartOptions: {
             chart: {
               type: 'bar',
-              height: 350
+              height: 350,
             },
             annotations: {
-              xaxis: [{
-                x: 500,
-                borderColor: '#00E396',
-                label: {
+              xaxis: [
+                {
+                  x: 500,
                   borderColor: '#00E396',
-                  style: {
-                    color: '#fff',
-                    background: '#00E396',
+                  label: {
+                    borderColor: '#00E396',
+                    style: {
+                      color: '#fff',
+                      background: '#00E396',
+                    },
+                    text: 'X annotation',
                   },
-                  text: 'X annotation',
-                }
-              }],
-              yaxis: [{
-                y: 'July',
-                y2: 'September',
-                label: {
-                  text: 'Y annotation'
-                }
-              }]
+                },
+              ],
+              yaxis: [
+                {
+                  y: 'July',
+                  y2: 'September',
+                  label: {
+                    text: 'Y annotation',
+                  },
+                },
+              ],
             },
             plotOptions: {
               bar: {
                 horizontal: true,
-              }
+              },
             },
             dataLabels: {
-              enabled: true
+              enabled: true,
             },
             xaxis: {
-              categories: ['June', 'July', 'August', 'September', 'October', 'November', 'December'],
+              categories: [
+                'June',
+                'July',
+                'August',
+                'September',
+                'October',
+                'November',
+                'December',
+              ],
             },
             grid: {
               xaxis: {
                 lines: {
-                  show: true
-                }
-              }
+                  show: true,
+                },
+              },
             },
             yaxis: {
               reversed: true,
               axisTicks: {
-                show: true
-              }
-            }
+                show: true,
+              },
+            },
           },
-          
-          
         },
-        
       })
     </script>
     

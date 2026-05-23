@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,15 +36,14 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [
+      var options = {
+        series: [
           {
-            name: "Conversion",
+            name: 'Conversion',
             data: [10000, 6400, 3800, 2200, 1100, 420],
           },
         ],
-          chart: {
+        chart: {
           type: 'funnel',
           height: 400,
           dropShadow: {
@@ -63,14 +60,7 @@
             distributed: true,
           },
         },
-        colors: [
-          '#3b82f6',
-          '#00a3f4',
-          '#00b7b8',
-          '#00c161',
-          '#93bd00',
-          '#ffa600'
-        ],
+        colors: ['#3b82f6', '#00a3f4', '#00b7b8', '#00c161', '#93bd00', '#ffa600'],
         dataLabels: {
           enabled: true,
           formatter: function (val, opt) {
@@ -87,24 +77,15 @@
           align: 'middle',
         },
         xaxis: {
-          categories: [
-            'Visits',
-            'Signups',
-            'Activated',
-            'Engaged',
-            'Trial',
-            'Paid',
-          ],
+          categories: ['Visits', 'Signups', 'Activated', 'Engaged', 'Trial', 'Paid'],
         },
         legend: {
           show: false,
         },
-        };
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

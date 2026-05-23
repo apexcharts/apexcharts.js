@@ -9,38 +9,36 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 480px;
-      margin: 35px auto;
-      padding: 0;
-    }
-    .actions {
-      top: -10px;
-      position: relative;
-      z-index: 10;
-      max-width: 400px;
-      margin: 0 auto;
-    }
-    button {
-      color: #fff;
-      background: #20b2aa;
-      padding: 5px 10px;
-      margin: 2px;
-      font-weight: bold;
-      font-size: 13px;
-      border-radius: 5px;
-    }
-    p {
-      margin: 10px 0;
-    }
-    @media only screen and (max-width: 480px) {
-      .actions {
-        margin-top: 0;
-        left: 0
+      #chart {
+        max-width: 480px;
+        margin: 35px auto;
+        padding: 0;
       }
-    }
-      
+      .actions {
+        top: -10px;
+        position: relative;
+        z-index: 10;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+      button {
+        color: #fff;
+        background: #20b2aa;
+        padding: 5px 10px;
+        margin: 2px;
+        font-weight: bold;
+        font-size: 13px;
+        border-radius: 5px;
+      }
+      p {
+        margin: 10px 0;
+      }
+      @media only screen and (max-width: 480px) {
+        .actions {
+          margin-top: 0;
+          left: 0;
+        }
+      }
     </style>
 
     
@@ -148,7 +146,6 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
           series: [44, 55, 13, 33],
           chartOptions: {
             chart: {
@@ -156,27 +153,27 @@
               type: 'donut',
             },
             dataLabels: {
-              enabled: false
+              enabled: false,
             },
-            responsive: [{
-              breakpoint: 480,
-              options: {
-                chart: {
-                  width: 200
+            responsive: [
+              {
+                breakpoint: 480,
+                options: {
+                  chart: {
+                    width: 200,
+                  },
+                  legend: {
+                    show: false,
+                  },
                 },
-                legend: {
-                  show: false
-                }
-              }
-            }],
+              },
+            ],
             legend: {
               position: 'right',
               offsetY: 0,
               height: 230,
-            }
+            },
           },
-          
-          
         },
         methods: {
           appendData: function () {
@@ -184,23 +181,23 @@
             arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
             this.series = arr
           },
-        
+
           removeData: function () {
-            if(this.series.length === 1) return
+            if (this.series.length === 1) return
             var arr = this.series.slice()
             arr.pop()
             this.series = arr
           },
-        
+
           randomize: function () {
-            this.series = this.series.map(function() {
+            this.series = this.series.map(function () {
               return Math.floor(Math.random() * (100 - 1 + 1)) + 1
             })
           },
-        
+
           reset: function () {
             this.series = [44, 55, 13, 33]
-          }
+          },
         },
       })
     </script>

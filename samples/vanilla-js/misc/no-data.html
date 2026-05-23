@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,43 +36,44 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [{
+      var options = {
+        series: [
+          {
             name: 'Network In',
             data: [],
-        }],
-          chart: {
+          },
+        ],
+        chart: {
           type: 'area',
           height: 350,
           animations: {
-            enabled: false
+            enabled: false,
           },
           zoom: {
-            enabled: false
+            enabled: false,
           },
         },
         dataLabels: {
-          enabled: false
+          enabled: false,
         },
         stroke: {
-          curve: 'smooth'
+          curve: 'smooth',
         },
         markers: {
           size: 5,
           hover: {
-            size: 9
-          }
+            size: 9,
+          },
         },
         title: {
           text: 'Network Monitoring',
         },
         tooltip: {
           intersect: true,
-          shared: false
+          shared: false,
         },
         theme: {
-          palette: 'palette1'
+          palette: 'palette1',
         },
         xaxis: {
           type: 'datetime',
@@ -84,22 +83,20 @@
           tickAmount: 3,
           min: 0,
           title: {
-            text: 'Received MB'
-          }
+            text: 'Received MB',
+          },
         },
         noData: {
           text: 'No Data',
           style: {
             color: '#FCC',
-            fontSize: '24px'
-          }
-        }
-        };
+            fontSize: '24px',
+          },
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

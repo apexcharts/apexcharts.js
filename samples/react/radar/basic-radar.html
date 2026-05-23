@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 450px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 450px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -50,44 +48,46 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [{
+          series: [
+            {
               name: 'Series 1',
               data: [80, 50, 30, 40, 100, 20],
-            }],
-            options: {
-              chart: {
-                height: 350,
-                type: 'radar',
-              },
-              title: {
-                text: 'Basic Radar Chart'
-              },
-              yaxis: {
-                stepSize: 20
-              },
-              xaxis: {
-                categories: ['January', 'February', 'March', 'April', 'May', 'June']
-              }
             },
-          
-          
-        });
-
-        
+          ],
+          options: {
+            chart: {
+              height: 350,
+              type: 'radar',
+            },
+            title: {
+              text: 'Basic Radar Chart',
+            },
+            yaxis: {
+              stepSize: 20,
+            },
+            xaxis: {
+              categories: ['January', 'February', 'March', 'April', 'May', 'June'],
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="radar" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="radar"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

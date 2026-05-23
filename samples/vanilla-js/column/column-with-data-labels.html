@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,13 +36,14 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [{
-          name: 'Inflation',
-          data: [2.3, 3.1, 4.0, 10.1, 4.0, 3.6, 3.2, 2.3, 1.4, 0.8, 0.5, 0.2]
-        }],
-          chart: {
+      var options = {
+        series: [
+          {
+            name: 'Inflation',
+            data: [2.3, 3.1, 4.0, 10.1, 4.0, 3.6, 3.2, 2.3, 1.4, 0.8, 0.5, 0.2],
+          },
+        ],
+        chart: {
           height: 350,
           type: 'bar',
         },
@@ -54,28 +53,41 @@
             dataLabels: {
               position: 'top', // top, center, bottom
             },
-          }
+          },
         },
         dataLabels: {
           enabled: true,
           formatter: function (val) {
-            return val + "%";
+            return val + '%'
           },
           offsetY: -20,
           style: {
             fontSize: '12px',
-            colors: ["#304758"]
-          }
+            colors: ['#304758'],
+          },
         },
-        
+
         xaxis: {
-          categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+          categories: [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec',
+          ],
           position: 'top',
           axisBorder: {
-            show: false
+            show: false,
           },
           axisTicks: {
-            show: false
+            show: false,
           },
           crosshairs: {
             fill: {
@@ -86,16 +98,16 @@
                 stops: [0, 100],
                 opacityFrom: 0.4,
                 opacityTo: 0.5,
-              }
-            }
+              },
+            },
           },
           tooltip: {
             enabled: true,
-          }
+          },
         },
         yaxis: {
           axisBorder: {
-            show: false
+            show: false,
           },
           axisTicks: {
             show: false,
@@ -103,10 +115,9 @@
           labels: {
             show: false,
             formatter: function (val) {
-              return val + "%";
-            }
-          }
-        
+              return val + '%'
+            },
+          },
         },
         title: {
           text: 'Monthly Inflation in Argentina, 2002',
@@ -114,15 +125,13 @@
           offsetY: 330,
           align: 'center',
           style: {
-            color: '#444'
-          }
-        }
-        };
+            color: '#444',
+          },
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

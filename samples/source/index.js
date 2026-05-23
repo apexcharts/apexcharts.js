@@ -1,6 +1,7 @@
 const fs = require('fs-extra')
 const nunjucks = require('nunjucks')
 const path = require('path')
+const prettier = require('prettier')
 
 const samplesDir = path.join(__dirname, '..')
 
@@ -134,6 +135,74 @@ function extractSampleInfo() {
   return samples
 }
 
+const PRETTIER_OPTIONS = {
+  semi: false,
+  singleQuote: true,
+  arrowParens: 'always',
+  printWidth: 80,
+}
+
+async function formatBlockBody(body, parser, bodyIndent, label) {
+  if (!body.trim()) return body
+  let formatted
+  try {
+    formatted = await prettier.format(body, { ...PRETTIER_OPTIONS, parser })
+  } catch (e) {
+    console.warn(`prettier failed for ${label}: ${e.message}`)
+    return body
+  }
+  formatted = formatted.replace(/\n+$/, '')
+  const indented = formatted
+    .split('\n')
+    .map((line) => (line.length ? bodyIndent + line : line))
+    .join('\n')
+  return '\n' + indented + '\n'
+}
+
+async function formatHtmlBlocks(html, label) {
+  const replaceBlocks = async (str, tagName, parser) => {
+    const re = new RegExp(
+      `([ \\t]*)<${tagName}(\\b[^>]*)>([\\s\\S]*?)</${tagName}>`,
+      'g'
+    )
+    const matches = []
+    let m
+    while ((m = re.exec(str)) !== null) {
+      matches.push({
+        index: m.index,
+        length: m[0].length,
+        tagIndent: m[1],
+        attrs: m[2],
+        body: m[3],
+      })
+    }
+    let out = ''
+    let cursor = 0
+    for (const mm of matches) {
+      out += str.slice(cursor, mm.index)
+      const bodyIndent = mm.tagIndent + '  '
+      const closingIndent = mm.tagIndent
+      const newBody = await formatBlockBody(
+        mm.body,
+        parser,
+        bodyIndent,
+        `${label} <${tagName}>`
+      )
+      const closing = newBody.endsWith('\n')
+        ? closingIndent + `</${tagName}>`
+        : `</${tagName}>`
+      out += `${mm.tagIndent}<${tagName}${mm.attrs}>${newBody}${closing}`
+      cursor = mm.index + mm.length
+    }
+    out += str.slice(cursor)
+    return out
+  }
+
+  let result = await replaceBlocks(html, 'script', 'babel')
+  result = await replaceBlocks(result, 'style', 'css')
+  return result
+}
+
 // BUG: reuse extractSampleInfo()?
 async function generateSampleHtml() {
   const formats = ['vanilla-js', 'react', 'vue']
@@ -222,7 +291,11 @@ async function generateSampleHtml() {
 
           ctx.html = env.renderString(template, { format, charts })
 
-          const html = env.render('template.html', ctx)
+          const rawHtml = env.render('template.html', ctx)
+          const html = await formatHtmlBlocks(
+            rawHtml,
+            `${format}/${dirName}/${fileName}`
+          )
           const outputDir = path.join(samplesDir, format, dirName)
           await fs.ensureDir(outputDir)
           await fs.promises.writeFile(

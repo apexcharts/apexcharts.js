@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 700px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 700px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -34,28 +32,29 @@
     </script>
 
     <script>
-  /*
-  // this function will generate output in this format
-  // data = [
-      [timestamp, 23],
-      [timestamp, 33],
-      [timestamp, 12]
-      ...
-  ]
-  */
-  function generateDayWiseTimeSeries(baseval, count, yrange) {
-    var i = 0;
-    var series = [];
-    while (i < count) {
-      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
-  
-      series.push([baseval, y]);
-      baseval += 86400000;
-      i++;
-    }
-    return series;
-  }
-  </script>
+      /*
+        // this function will generate output in this format
+        // data = [
+            [timestamp, 23],
+            [timestamp, 33],
+            [timestamp, 12]
+            ...
+        ]
+        */
+      function generateDayWiseTimeSeries(baseval, count, yrange) {
+        var i = 0
+        var series = []
+        while (i < count) {
+          var y =
+            Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
+
+          series.push([baseval, y])
+          baseval += 86400000
+          i++
+        }
+        return series
+      }
+    </script>
   </head>
 
   <body>
@@ -76,7 +75,6 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
           series: [
             {
               name: 'DIAMOND',
@@ -86,7 +84,7 @@
                 {
                   min: 5,
                   max: 60,
-                }
+                },
               ),
             },
             {
@@ -97,7 +95,7 @@
                 {
                   min: 54,
                   max: 90,
-                }
+                },
               ),
             },
             {
@@ -108,7 +106,7 @@
                 {
                   min: 10,
                   max: 50,
-                }
+                },
               ),
             },
             {
@@ -119,10 +117,10 @@
                 {
                   min: 30,
                   max: 99,
-                }
+                },
               ),
             },
-          
+
             {
               name: 'SQUARE',
               data: generateDayWiseTimeSeries(
@@ -131,7 +129,7 @@
                 {
                   min: 0,
                   max: 59,
-                }
+                },
               ),
             },
             {
@@ -142,7 +140,7 @@
                 {
                   min: 0,
                   max: 90,
-                }
+                },
               ),
             },
             {
@@ -153,10 +151,10 @@
                 {
                   min: 5,
                   max: 35,
-                }
+                },
               ),
             },
-          
+
             {
               name: 'STAR',
               data: generateDayWiseTimeSeries(
@@ -165,7 +163,7 @@
                 {
                   min: 15,
                   max: 60,
-                }
+                },
               ),
             },
             {
@@ -176,7 +174,7 @@
                 {
                   min: 45,
                   max: 99,
-                }
+                },
               ),
             },
           ],
@@ -193,8 +191,8 @@
               '#33FF57',
               '#3357FF',
               '#FF33A1',
-              '#33FFF6', 
-              '#1E90FF', 
+              '#33FFF6',
+              '#1E90FF',
               '#FFFF33',
               '#A133FF',
               '#FF9933',
@@ -243,13 +241,10 @@
             },
             tooltip: {
               shared: true,
-              intersect: false
+              intersect: false,
             },
           },
-          
-          
         },
-        
       })
     </script>
     

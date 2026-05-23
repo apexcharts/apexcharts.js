@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -50,85 +48,89 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [{
+          series: [
+            {
               name: 'Profit',
               type: 'column',
-              data: [5, 12, -8, 14, -3, 9, -2, 6]
-            }, {
+              data: [5, 12, -8, 14, -3, 9, -2, 6],
+            },
+            {
               name: 'Units Sold',
               type: 'column',
-              data: [1.2, 2.1, 1.8, 2.7, 2.0, 2.4, 1.9, 2.6]
-            }, {
+              data: [1.2, 2.1, 1.8, 2.7, 2.0, 2.4, 1.9, 2.6],
+            },
+            {
               name: 'Index',
               type: 'line',
-              data: [25, 27, 26, 29, 28, 29, 30, 30]
-            }],
-            options: {
-              chart: {
-                height: 350,
-                type: 'line',
-                stacked: false
-              },
-              stroke: {
-                width: [0, 0, 4]
-              },
-              title: {
-                text: 'Multiple Y-Axes With Aligned Zero',
-                align: 'left'
-              },
-              xaxis: {
-                categories: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8'],
-              },
-              yaxis: [
-                {
-                  seriesName: 'Profit',
-                  alignZero: true,
-                  axisTicks: { show: true },
-                  axisBorder: { show: true, color: '#008FFB' },
-                  labels: { style: { colors: '#008FFB' } },
-                  title: { text: 'Profit (mixed +/-)', style: { color: '#008FFB' } }
-                },
-                {
-                  seriesName: 'Units Sold',
-                  alignZero: true,
-                  opposite: true,
-                  axisTicks: { show: true },
-                  axisBorder: { show: true, color: '#00E396' },
-                  labels: { style: { colors: '#00E396' } },
-                  title: { text: 'Units (positive only)', style: { color: '#00E396' } }
-                },
-                {
-                  seriesName: 'Index',
-                  alignZero: true,
-                  opposite: true,
-                  axisTicks: { show: true },
-                  axisBorder: { show: true, color: '#FEB019' },
-                  labels: { style: { colors: '#FEB019' } },
-                  title: { text: 'Index', style: { color: '#FEB019' } }
-                }
-              ],
-              tooltip: { shared: true, intersect: false },
-              legend: { horizontalAlign: 'left' }
+              data: [25, 27, 26, 29, 28, 29, 30, 30],
             },
-          
-          
-        });
-
-        
+          ],
+          options: {
+            chart: {
+              height: 350,
+              type: 'line',
+              stacked: false,
+            },
+            stroke: {
+              width: [0, 0, 4],
+            },
+            title: {
+              text: 'Multiple Y-Axes With Aligned Zero',
+              align: 'left',
+            },
+            xaxis: {
+              categories: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8'],
+            },
+            yaxis: [
+              {
+                seriesName: 'Profit',
+                alignZero: true,
+                axisTicks: { show: true },
+                axisBorder: { show: true, color: '#008FFB' },
+                labels: { style: { colors: '#008FFB' } },
+                title: { text: 'Profit (mixed +/-)', style: { color: '#008FFB' } },
+              },
+              {
+                seriesName: 'Units Sold',
+                alignZero: true,
+                opposite: true,
+                axisTicks: { show: true },
+                axisBorder: { show: true, color: '#00E396' },
+                labels: { style: { colors: '#00E396' } },
+                title: { text: 'Units (positive only)', style: { color: '#00E396' } },
+              },
+              {
+                seriesName: 'Index',
+                alignZero: true,
+                opposite: true,
+                axisTicks: { show: true },
+                axisBorder: { show: true, color: '#FEB019' },
+                labels: { style: { colors: '#FEB019' } },
+                title: { text: 'Index', style: { color: '#FEB019' } },
+              },
+            ],
+            tooltip: { shared: true, intersect: false },
+            legend: { horizontalAlign: 'left' },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="line" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="line"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

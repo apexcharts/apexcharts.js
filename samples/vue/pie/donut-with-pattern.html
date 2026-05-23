@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 380px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 380px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -55,7 +53,6 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
           series: [44, 55, 41, 17, 15],
           chartOptions: {
             chart: {
@@ -67,8 +64,8 @@
                 top: -1,
                 left: 3,
                 blur: 3,
-                opacity: 0.5
-              }
+                opacity: 0.5,
+              },
             },
             stroke: {
               width: 0,
@@ -80,54 +77,59 @@
                     show: true,
                     total: {
                       showAlways: true,
-                      show: true
-                    }
-                  }
-                }
-              }
+                      show: true,
+                    },
+                  },
+                },
+              },
             },
-            labels: ["Comedy", "Action", "SciFi", "Drama", "Horror"],
+            labels: ['Comedy', 'Action', 'SciFi', 'Drama', 'Horror'],
             dataLabels: {
               dropShadow: {
                 blur: 3,
-                opacity: 1
-              }
+                opacity: 1,
+              },
             },
             fill: {
-            type: 'pattern',
+              type: 'pattern',
               opacity: 1,
               pattern: {
                 enabled: true,
-                style: ['verticalLines', 'squares', 'horizontalLines', 'circles','slantedLines'],
+                style: [
+                  'verticalLines',
+                  'squares',
+                  'horizontalLines',
+                  'circles',
+                  'slantedLines',
+                ],
               },
             },
             states: {
               hover: {
-                filter: 'none'
-              }
+                filter: 'none',
+              },
             },
             theme: {
-              palette: 'palette2'
+              palette: 'palette2',
             },
             title: {
-              text: "Favourite Movie Type"
+              text: 'Favourite Movie Type',
             },
-            responsive: [{
-              breakpoint: 480,
-              options: {
-                chart: {
-                  width: 200
+            responsive: [
+              {
+                breakpoint: 480,
+                options: {
+                  chart: {
+                    width: 200,
+                  },
+                  legend: {
+                    position: 'bottom',
+                  },
                 },
-                legend: {
-                  position: 'bottom'
-                }
-              }
-            }]
+              },
+            ],
           },
-          
-          
         },
-        
       })
     </script>
     

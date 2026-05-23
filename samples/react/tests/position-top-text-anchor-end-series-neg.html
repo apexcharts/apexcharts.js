@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -50,79 +48,79 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [
-                      {
-                        data: [400, 430, 1, 470, 540, 580, 690, 1100, 1200, 1380].map(
-                          (_) => _ * -1
-                        ),
-                      },
-                    ],
-            options: {
-              chart: {
-                        type: 'bar',
-                        height: 380,
-                      },
-                      plotOptions: {
-                        bar: {
-                          horizontal: true,
-                          dataLabels: {
-                            position: 'top',
-                          },
-                        },
-                      },
-              
-                      dataLabels: {
-                        enabled: true,
-                        textAnchor: 'end',
-                        style: {
-                          colors: ['#333'],
-                        },
-                        formatter: function (val, opt) {
-                          return opt.w.globals.labels[opt.dataPointIndex] + ':  ' + val
-                        },
-                      },
-                      fill: {
-                        opacity: 0.5,
-                      },
-                      xaxis: {
-                        categories: [
-                          'South Korea',
-                          'Canada',
-                          'United Kingdom',
-                          'Netherlands',
-                          'Italy',
-                          'France',
-                          'Japan',
-                          'United States',
-                          'China',
-                          'India',
-                        ],
-                      },
-                      yaxis: {
-                        labels: {
-                          show: false,
-                        },
-                      }
+          series: [
+            {
+              data: [400, 430, 1, 470, 540, 580, 690, 1100, 1200, 1380].map(
+                (_) => _ * -1,
+              ),
             },
-          
-          
-        });
+          ],
+          options: {
+            chart: {
+              type: 'bar',
+              height: 380,
+            },
+            plotOptions: {
+              bar: {
+                horizontal: true,
+                dataLabels: {
+                  position: 'top',
+                },
+              },
+            },
 
-        
+            dataLabels: {
+              enabled: true,
+              textAnchor: 'end',
+              style: {
+                colors: ['#333'],
+              },
+              formatter: function (val, opt) {
+                return opt.w.globals.labels[opt.dataPointIndex] + ':  ' + val
+              },
+            },
+            fill: {
+              opacity: 0.5,
+            },
+            xaxis: {
+              categories: [
+                'South Korea',
+                'Canada',
+                'United Kingdom',
+                'Netherlands',
+                'Italy',
+                'France',
+                'Japan',
+                'United States',
+                'China',
+                'India',
+              ],
+            },
+            yaxis: {
+              labels: {
+                show: false,
+              },
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="bar" height={380} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="bar"
+                height={380}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

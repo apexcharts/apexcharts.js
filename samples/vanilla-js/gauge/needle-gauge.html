@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 420px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 420px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -39,10 +37,9 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [68],
-          chart: {
+      var options = {
+        series: [68],
+        chart: {
           height: 360,
           type: 'gauge',
         },
@@ -109,12 +106,10 @@
           },
         },
         labels: ['Speed'],
-        };
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

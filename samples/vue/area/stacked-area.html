@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -34,20 +32,21 @@
     </script>
 
     <script>
-    var generateDayWiseTimeSeries = function (baseval, count, yrange) {
-      var i = 0;
-      var series = [];
-      while (i < count) {
-        var x = baseval;
-        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
-  
-        series.push([x, y]);
-        baseval += 86400000;
-        i++;
+      var generateDayWiseTimeSeries = function (baseval, count, yrange) {
+        var i = 0
+        var series = []
+        while (i < count) {
+          var x = baseval
+          var y =
+            Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
+
+          series.push([x, y])
+          baseval += 86400000
+          i++
+        }
+        return series
       }
-      return series;
-    }
-  </script>
+    </script>
   </head>
 
   <body>
@@ -68,29 +67,40 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
           series: [
             {
               name: 'South',
-              data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 20, {
-                min: 10,
-                max: 60
-              })
+              data: generateDayWiseTimeSeries(
+                new Date('11 Feb 2017 GMT').getTime(),
+                20,
+                {
+                  min: 10,
+                  max: 60,
+                },
+              ),
             },
             {
               name: 'North',
-              data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 20, {
-                min: 10,
-                max: 20
-              })
+              data: generateDayWiseTimeSeries(
+                new Date('11 Feb 2017 GMT').getTime(),
+                20,
+                {
+                  min: 10,
+                  max: 20,
+                },
+              ),
             },
             {
               name: 'Central',
-              data: generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 20, {
-                min: 10,
-                max: 15
-              })
-            }
+              data: generateDayWiseTimeSeries(
+                new Date('11 Feb 2017 GMT').getTime(),
+                20,
+                {
+                  min: 10,
+                  max: 15,
+                },
+              ),
+            },
           ],
           chartOptions: {
             chart: {
@@ -100,35 +110,32 @@
               events: {
                 selection: function (chart, e) {
                   console.log(new Date(e.xaxis.min))
-                }
+                },
               },
             },
             colors: ['#008FFB', '#00E396', '#CED4DC'],
             dataLabels: {
-              enabled: false
+              enabled: false,
             },
             stroke: {
-              curve: 'monotoneCubic'
+              curve: 'monotoneCubic',
             },
             fill: {
               type: 'gradient',
               gradient: {
                 opacityFrom: 0.6,
                 opacityTo: 0.8,
-              }
+              },
             },
             legend: {
               position: 'top',
-              horizontalAlign: 'left'
+              horizontalAlign: 'left',
             },
             xaxis: {
-              type: 'datetime'
+              type: 'datetime',
             },
           },
-          
-          
         },
-        
       })
     </script>
     

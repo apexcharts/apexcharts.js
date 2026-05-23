@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -55,7 +53,6 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
           series: [44, 55, 67, 83],
           chartOptions: {
             chart: {
@@ -77,17 +74,14 @@
                     formatter: function (w) {
                       // By default this function returns the average of all series. The below is just an example to show the use of custom formatter function
                       return 249
-                    }
-                  }
-                }
-              }
+                    },
+                  },
+                },
+              },
             },
             labels: ['Apples', 'Oranges', 'Bananas', 'Berries'],
           },
-          
-          
         },
-        
       })
     </script>
     

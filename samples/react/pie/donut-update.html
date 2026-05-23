@@ -9,38 +9,36 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 480px;
-      margin: 35px auto;
-      padding: 0;
-    }
-    .actions {
-      top: -10px;
-      position: relative;
-      z-index: 10;
-      max-width: 400px;
-      margin: 0 auto;
-    }
-    button {
-      color: #fff;
-      background: #20b2aa;
-      padding: 5px 10px;
-      margin: 2px;
-      font-weight: bold;
-      font-size: 13px;
-      border-radius: 5px;
-    }
-    p {
-      margin: 10px 0;
-    }
-    @media only screen and (max-width: 480px) {
-      .actions {
-        margin-top: 0;
-        left: 0
+      #chart {
+        max-width: 480px;
+        margin: 35px auto;
+        padding: 0;
       }
-    }
-      
+      .actions {
+        top: -10px;
+        position: relative;
+        z-index: 10;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+      button {
+        color: #fff;
+        background: #20b2aa;
+        padding: 5px 10px;
+        margin: 2px;
+        font-weight: bold;
+        font-size: 13px;
+        border-radius: 5px;
+      }
+      p {
+        margin: 10px 0;
+      }
+      @media only screen and (max-width: 480px) {
+        .actions {
+          margin-top: 0;
+          left: 0;
+        }
+      }
     </style>
 
     
@@ -110,123 +108,105 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [44, 55, 13, 33],
-            options: {
-              chart: {
-                width: 380,
-                type: 'donut',
-              },
-              dataLabels: {
-                enabled: false
-              },
-              responsive: [{
+          series: [44, 55, 13, 33],
+          options: {
+            chart: {
+              width: 380,
+              type: 'donut',
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            responsive: [
+              {
                 breakpoint: 480,
                 options: {
                   chart: {
-                    width: 200
+                    width: 200,
                   },
                   legend: {
-                    show: false
-                  }
-                }
-              }],
-              legend: {
-                position: 'right',
-                offsetY: 0,
-                height: 230,
-              }
+                    show: false,
+                  },
+                },
+              },
+            ],
+            legend: {
+              position: 'right',
+              offsetY: 0,
+              height: 230,
             },
-          
-          
-        });
+          },
+        })
 
-        
-          function appendData() {
+        function appendData() {
           var arr = state.series.slice()
           arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)
-        
+
           setState({
             ...state,
-            series: arr
+            series: arr,
           })
         }
-        
+
         function removeData() {
-          if(state.series.length === 1) return
-          
+          if (state.series.length === 1) return
+
           var arr = state.series.slice()
           arr.pop()
-        
+
           setState({
             ...state,
-            series: arr
+            series: arr,
           })
         }
-        
+
         function randomize() {
           setState({
             ...state,
-            series: state.series.map(function() {
+            series: state.series.map(function () {
               return Math.floor(Math.random() * (100 - 1 + 1)) + 1
-            })
+            }),
           })
         }
-        
+
         function reset() {
           setState({
             ...state,
-            series: [44, 55, 13, 33]
+            series: [44, 55, 13, 33],
           })
         }
-        
 
         return (
           <div>
             <div>
-                <div class="chart-wrap">
-                  <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="donut" width={380} />
-              </div>
-                </div>
-              
-                <div class="actions">
-                  <button
-                      
-                      onClick={() => appendData()}
-                      >
-                    + ADD
-                  </button>
-                  &nbsp;
-                  <button
-                      
-                      onClick={() => removeData()}
-                      >
-                    - REMOVE
-                  </button>
-                  &nbsp;
-                  <button
-                      
-                      onClick={() => randomize()}
-                      >
-                    RANDOMIZE
-                  </button>
-                  &nbsp;
-                  <button
-                      
-                      onClick={() => reset()}
-                      >
-                    RESET
-                  </button>
+              <div class="chart-wrap">
+                <div id="chart">
+                  <ReactApexChart
+                    options={state.options}
+                    series={state.series}
+                    type="donut"
+                    width={380}
+                  />
                 </div>
               </div>
+
+              <div class="actions">
+                <button onClick={() => appendData()}>+ ADD</button>
+                &nbsp;
+                <button onClick={() => removeData()}>- REMOVE</button>
+                &nbsp;
+                <button onClick={() => randomize()}>RANDOMIZE</button>
+                &nbsp;
+                <button onClick={() => reset()}>RESET</button>
+              </div>
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

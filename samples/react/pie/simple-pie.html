@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 380px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 380px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -51,44 +49,46 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [44, 55, 13, 43, 22],
-            options: {
-              chart: {
-                width: 380,
-                type: 'pie',
-              },
-              labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
-              responsive: [{
+          series: [44, 55, 13, 43, 22],
+          options: {
+            chart: {
+              width: 380,
+              type: 'pie',
+            },
+            labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
+            responsive: [
+              {
                 breakpoint: 480,
                 options: {
                   chart: {
-                    width: 200
+                    width: 200,
                   },
                   legend: {
-                    position: 'bottom'
-                  }
-                }
-              }]
-            },
-          
-          
-        });
-
-        
+                    position: 'bottom',
+                  },
+                },
+              },
+            ],
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="pie" width={380} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="pie"
+                width={380}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

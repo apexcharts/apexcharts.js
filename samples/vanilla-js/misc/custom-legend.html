@@ -9,27 +9,25 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart-wrap {
-      max-width: 650px;
-      position: relative;
-      margin: 35px auto;
-    }
-    
-    #chart {
-      padding-bottom: 30px;
-      max-width: 650px;
-    }
-    
-    .legend {
-      max-width: 650px;
-      left: 80px;
-      bottom: 20px;
-      position: absolute;
-      text-align: center;
-      margin: 0 auto;
-    }
-      
+      #chart-wrap {
+        max-width: 650px;
+        position: relative;
+        margin: 35px auto;
+      }
+
+      #chart {
+        padding-bottom: 30px;
+        max-width: 650px;
+      }
+
+      .legend {
+        max-width: 650px;
+        left: 80px;
+        bottom: 20px;
+        position: absolute;
+        text-align: center;
+        margin: 0 auto;
+      }
     </style>
 
     
@@ -87,98 +85,111 @@
       </div>
 
     <script>
-      
-        var options = {
-          series: [{
-          name: 'Series Column',
-          type: 'column',
-          data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30]
-        }, {
-          name: 'Series Area',
-          type: 'area',
-          data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43]
-        }, {
-          name: 'Series Line',
-          type: 'line',
-          data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39]
-        }],
-          chart: {
+      var options = {
+        series: [
+          {
+            name: 'Series Column',
+            type: 'column',
+            data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30],
+          },
+          {
+            name: 'Series Area',
+            type: 'area',
+            data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43],
+          },
+          {
+            name: 'Series Line',
+            type: 'line',
+            data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39],
+          },
+        ],
+        chart: {
           height: 310,
           type: 'line',
           stacked: false,
         },
         stroke: {
           width: [0, 2, 5],
-          curve: 'smooth'
+          curve: 'smooth',
         },
         plotOptions: {
           bar: {
-            columnWidth: '50%'
-          }
+            columnWidth: '50%',
+          },
         },
         fill: {
-          opacity: [0.85,0.25,1],
+          opacity: [0.85, 0.25, 1],
           gradient: {
             inverseColors: false,
             shade: 'light',
-            type: "vertical",
+            type: 'vertical',
             opacityFrom: 0.85,
             opacityTo: 0.55,
-            stops: [0, 100, 100, 100]
-          }
+            stops: [0, 100, 100, 100],
+          },
         },
-        labels: ['01/01/2003', '02/01/2003','03/01/2003','04/01/2003','05/01/2003','06/01/2003','07/01/2003','08/01/2003','09/01/2003','10/01/2003','11/01/2003'],
+        labels: [
+          '01/01/2003',
+          '02/01/2003',
+          '03/01/2003',
+          '04/01/2003',
+          '05/01/2003',
+          '06/01/2003',
+          '07/01/2003',
+          '08/01/2003',
+          '09/01/2003',
+          '10/01/2003',
+          '11/01/2003',
+        ],
         markers: {
-          size: 0
+          size: 0,
         },
         xaxis: {
-          type:'datetime'
+          type: 'datetime',
         },
         yaxis: {
           title: {
             text: 'Points',
           },
-          min: 0
+          min: 0,
         },
         legend: {
-          show: false
+          show: false,
         },
         tooltip: {
           shared: true,
           intersect: false,
           y: {
             formatter: function (y) {
-              if(typeof y !== "undefined") {
-                return  y.toFixed(0) + " points";
+              if (typeof y !== 'undefined') {
+                return y.toFixed(0) + ' points'
               }
-              return y;
-            }
-          }
-        }
-        };
+              return y
+            },
+          },
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
-        // check if the checkbox has any unchecked item
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      // check if the checkbox has any unchecked item
       checkLegends()
-      
+
       function checkLegends() {
         var allLegends = document.querySelectorAll(".legend input[type='checkbox']")
-      
-        for(var i = 0; i < allLegends.length; i++) {
-          if(!allLegends[i].checked) {
+
+        for (var i = 0; i < allLegends.length; i++) {
+          if (!allLegends[i].checked) {
             chart.toggleSeries(allLegends[i].value)
           }
         }
       }
-      
+
       // toggleSeries accepts a single argument which should match the series name you're trying to toggle
       function toggleSeries(checkbox) {
         chart.toggleSeries(checkbox.value)
       }
-      
     </script>
 
     

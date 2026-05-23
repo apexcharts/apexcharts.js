@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 420px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 420px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -51,95 +49,95 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [68],
-            options: {
-              chart: {
-                height: 360,
-                type: 'gauge',
-              },
-              plotOptions: {
-                radialBar: {
-                  shape: 'needle',
-                  startAngle: -135,
-                  endAngle: 135,
-                  min: 0,
-                  max: 100,
-                  bands: [
-                    { from: 0, to: 30, color: '#FF4560' },
-                    { from: 30, to: 70, color: '#FEB019' },
-                    { from: 70, to: 100, color: '#00E396' },
-                  ],
-                  bandsStyle: {
-                    strokeWidth: '50%',
-                    gap: 1,
+          series: [68],
+          options: {
+            chart: {
+              height: 360,
+              type: 'gauge',
+            },
+            plotOptions: {
+              radialBar: {
+                shape: 'needle',
+                startAngle: -135,
+                endAngle: 135,
+                min: 0,
+                max: 100,
+                bands: [
+                  { from: 0, to: 30, color: '#FF4560' },
+                  { from: 30, to: 70, color: '#FEB019' },
+                  { from: 70, to: 100, color: '#00E396' },
+                ],
+                bandsStyle: {
+                  strokeWidth: '50%',
+                  gap: 1,
+                },
+                ticks: {
+                  show: true,
+                  major: {
+                    count: 11,
+                    length: 8,
+                    width: 2,
+                    color: '#334155',
+                    placement: 'outside',
                   },
-                  ticks: {
+                  minor: {
+                    count: 1,
+                    length: 4,
+                    width: 1,
+                    color: '#94A3B8',
+                    placement: 'outside',
+                  },
+                  labels: {
                     show: true,
-                    major: {
-                      count: 11,
-                      length: 8,
-                      width: 2,
-                      color: '#334155',
-                      placement: 'outside',
-                    },
-                    minor: {
-                      count: 1,
-                      length: 4,
-                      width: 1,
-                      color: '#94A3B8',
-                      placement: 'outside',
-                    },
-                    labels: {
-                      show: true,
-                      offset: 6,
-                      fontSize: '11px',
-                      color: '#334155',
-                    },
+                    offset: 6,
+                    fontSize: '11px',
+                    color: '#334155',
                   },
-                  needle: {
-                    color: '#0F172A',
-                    length: '60%',
-                    baseWidth: 6,
-                    tipWidth: 1,
-                  },
-                  hollow: {
-                    margin: 0,
-                    size: '70%',
-                  },
-                  dataLabels: {
-                    name: { show: false },
-                    value: {
-                      offsetY: 32,
-                      fontSize: '28px',
-                      fontWeight: 700,
-                      formatter: function (val) {
-                        return val
-                      },
+                },
+                needle: {
+                  color: '#0F172A',
+                  length: '60%',
+                  baseWidth: 6,
+                  tipWidth: 1,
+                },
+                hollow: {
+                  margin: 0,
+                  size: '70%',
+                },
+                dataLabels: {
+                  name: { show: false },
+                  value: {
+                    offsetY: 32,
+                    fontSize: '28px',
+                    fontWeight: 700,
+                    formatter: function (val) {
+                      return val
                     },
                   },
                 },
               },
-              labels: ['Speed'],
             },
-          
-          
-        });
-
-        
+            labels: ['Speed'],
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="gauge" height={360} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="gauge"
+                height={360}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

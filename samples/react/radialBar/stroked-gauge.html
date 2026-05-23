@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -51,69 +49,69 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [67],
-            options: {
-              chart: {
-                height: 350,
-                type: 'radialBar',
-                offsetY: -10
-              },
-              plotOptions: {
-                radialBar: {
-                  startAngle: -135,
-                  endAngle: 135,
-                  dataLabels: {
-                    name: {
-                      fontSize: '16px',
-                      color: undefined,
-                      offsetY: 120
+          series: [67],
+          options: {
+            chart: {
+              height: 350,
+              type: 'radialBar',
+              offsetY: -10,
+            },
+            plotOptions: {
+              radialBar: {
+                startAngle: -135,
+                endAngle: 135,
+                dataLabels: {
+                  name: {
+                    fontSize: '16px',
+                    color: undefined,
+                    offsetY: 120,
+                  },
+                  value: {
+                    offsetY: 76,
+                    fontSize: '22px',
+                    color: undefined,
+                    formatter: function (val) {
+                      return val + '%'
                     },
-                    value: {
-                      offsetY: 76,
-                      fontSize: '22px',
-                      color: undefined,
-                      formatter: function (val) {
-                        return val + "%";
-                      }
-                    }
-                  }
-                }
-              },
-              fill: {
-                type: 'gradient',
-                gradient: {
-                    shade: 'dark',
-                    shadeIntensity: 0.15,
-                    inverseColors: false,
-                    opacityFrom: 1,
-                    opacityTo: 1,
-                    stops: [0, 50, 65, 91]
+                  },
                 },
               },
-              stroke: {
-                dashArray: 4
-              },
-              labels: ['Median Ratio'],
             },
-          
-          
-        });
-
-        
+            fill: {
+              type: 'gradient',
+              gradient: {
+                shade: 'dark',
+                shadeIntensity: 0.15,
+                inverseColors: false,
+                opacityFrom: 1,
+                opacityTo: 1,
+                stops: [0, 50, 65, 91],
+              },
+            },
+            stroke: {
+              dashArray: 4,
+            },
+            labels: ['Median Ratio'],
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="radialBar" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="radialBar"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

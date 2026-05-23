@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,9 +36,8 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [
+      var options = {
+        series: [
           {
             data: [
               {
@@ -102,39 +99,36 @@
                 x: 'Category E',
                 y: [41, 49, 58, 61, 67],
               },
-              
             ],
           },
         ],
-          chart: {
+        chart: {
           type: 'boxPlot',
-          height: 350
+          height: 350,
         },
         title: {
           text: 'Horizontal BoxPlot with Outliers',
-          align: 'left'
+          align: 'left',
         },
         plotOptions: {
           bar: {
             horizontal: true,
-            barHeight: '40%'
+            barHeight: '40%',
           },
           boxPlot: {
             colors: {
               upper: '#B6C454',
-              lower: '#EDBFB7'
-            }
-          }
+              lower: '#EDBFB7',
+            },
+          },
         },
         stroke: {
-          colors: ['#333']
-        }
-        };
+          colors: ['#333'],
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

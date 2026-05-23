@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -54,7 +52,6 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
           series: [
             {
               name: 'Q1 Budget',
@@ -89,17 +86,17 @@
             },
             stroke: {
               width: 1,
-              colors: ['#fff']
+              colors: ['#fff'],
             },
             dataLabels: {
               formatter: (val) => {
                 return val / 1000 + 'K'
-              }
+              },
             },
             plotOptions: {
               bar: {
-                horizontal: true
-              }
+                horizontal: true,
+              },
             },
             xaxis: {
               categories: [
@@ -107,27 +104,24 @@
                 'Sales Training',
                 'Print advertising',
                 'Catalogs',
-                'Meetings'
+                'Meetings',
               ],
               labels: {
                 formatter: (val) => {
                   return val / 1000 + 'K'
-                }
-              }
+                },
+              },
             },
             fill: {
               opacity: 1,
             },
             legend: {
               position: 'top',
-              clusterGroupedSeriesOrientation: "horizontal",
-              horizontalAlign: "left"
-            }
+              clusterGroupedSeriesOrientation: 'horizontal',
+              horizontalAlign: 'left',
+            },
           },
-          
-          
         },
-        
       })
     </script>
     

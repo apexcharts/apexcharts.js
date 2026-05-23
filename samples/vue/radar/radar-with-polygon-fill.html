@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 450px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 450px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -54,18 +52,19 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
-          series: [{
-            name: 'Series 1',
-            data: [20, 100, 40, 30, 50, 80, 33],
-          }],
+          series: [
+            {
+              name: 'Series 1',
+              data: [20, 100, 40, 30, 50, 80, 33],
+            },
+          ],
           chartOptions: {
             chart: {
               height: 350,
               type: 'radar',
             },
             dataLabels: {
-              enabled: true
+              enabled: true,
             },
             plotOptions: {
               radar: {
@@ -73,13 +72,13 @@
                 polygons: {
                   strokeColors: '#e9e9e9',
                   fill: {
-                    colors: ['#f8f8f8', '#fff']
-                  }
-                }
-              }
+                    colors: ['#f8f8f8', '#fff'],
+                  },
+                },
+              },
             },
             title: {
-              text: 'Radar with Polygon Fill'
+              text: 'Radar with Polygon Fill',
             },
             colors: ['#FF4560'],
             markers: {
@@ -90,30 +89,35 @@
             },
             tooltip: {
               y: {
-                formatter: function(val) {
+                formatter: function (val) {
                   return val
-                }
-              }
+                },
+              },
             },
             xaxis: {
-              categories: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+              categories: [
+                'Sunday',
+                'Monday',
+                'Tuesday',
+                'Wednesday',
+                'Thursday',
+                'Friday',
+                'Saturday',
+              ],
             },
             yaxis: {
               labels: {
-                formatter: function(val, i) {
+                formatter: function (val, i) {
                   if (i % 2 === 0) {
                     return val
                   } else {
                     return ''
                   }
-                }
-              }
-            }
+                },
+              },
+            },
           },
-          
-          
         },
-        
       })
     </script>
     

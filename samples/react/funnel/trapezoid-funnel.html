@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -50,86 +48,86 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [
-              {
-                name: "Conversion",
-                data: [10000, 6400, 3800, 2200, 1100, 420],
-              },
-            ],
-            options: {
-              chart: {
-                type: 'funnel',
-                height: 400,
-                dropShadow: {
-                  enabled: true,
-                },
-              },
-              plotOptions: {
-                funnel: {
-                  shape: 'trapezoid',
-                  lastShape: 'flat',
-                },
-                bar: {
-                  barHeight: '90%',
-                  distributed: true,
-                },
-              },
-              colors: [
-                '#3b82f6',
-                '#00a3f4',
-                '#00b7b8',
-                '#00c161',
-                '#93bd00',
-                '#ffa600'
-              ],
-              dataLabels: {
+          series: [
+            {
+              name: 'Conversion',
+              data: [10000, 6400, 3800, 2200, 1100, 420],
+            },
+          ],
+          options: {
+            chart: {
+              type: 'funnel',
+              height: 400,
+              dropShadow: {
                 enabled: true,
-                formatter: function (val, opt) {
-                  return opt.w.globals.labels[opt.dataPointIndex] + ': ' + val
-                },
-                style: {
-                  colors: ['#fff'],
-                  fontSize: '14px',
-                  fontWeight: 600,
-                },
-              },
-              title: {
-                text: 'Sales Funnel — Trapezoid',
-                align: 'middle',
-              },
-              xaxis: {
-                categories: [
-                  'Visits',
-                  'Signups',
-                  'Activated',
-                  'Engaged',
-                  'Trial',
-                  'Paid',
-                ],
-              },
-              legend: {
-                show: false,
               },
             },
-          
-          
-        });
-
-        
+            plotOptions: {
+              funnel: {
+                shape: 'trapezoid',
+                lastShape: 'flat',
+              },
+              bar: {
+                barHeight: '90%',
+                distributed: true,
+              },
+            },
+            colors: [
+              '#3b82f6',
+              '#00a3f4',
+              '#00b7b8',
+              '#00c161',
+              '#93bd00',
+              '#ffa600',
+            ],
+            dataLabels: {
+              enabled: true,
+              formatter: function (val, opt) {
+                return opt.w.globals.labels[opt.dataPointIndex] + ': ' + val
+              },
+              style: {
+                colors: ['#fff'],
+                fontSize: '14px',
+                fontWeight: 600,
+              },
+            },
+            title: {
+              text: 'Sales Funnel — Trapezoid',
+              align: 'middle',
+            },
+            xaxis: {
+              categories: [
+                'Visits',
+                'Signups',
+                'Activated',
+                'Engaged',
+                'Trial',
+                'Paid',
+              ],
+            },
+            legend: {
+              show: false,
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="funnel" height={400} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="funnel"
+                height={400}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

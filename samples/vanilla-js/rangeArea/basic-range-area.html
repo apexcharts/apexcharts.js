@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,94 +36,91 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [
+      var options = {
+        series: [
           {
             name: 'New York Temperature',
             data: [
               {
                 x: 'Jan',
-                y: [-2, 4]
+                y: [-2, 4],
               },
               {
                 x: 'Feb',
-                y: [-1, 6]
+                y: [-1, 6],
               },
               {
                 x: 'Mar',
-                y: [3, 10]
+                y: [3, 10],
               },
               {
                 x: 'Apr',
-                y: [8, 16]
+                y: [8, 16],
               },
               {
                 x: 'May',
-                y: [13, 22]
+                y: [13, 22],
               },
               {
                 x: 'Jun',
-                y: [18, 26]
+                y: [18, 26],
               },
               {
                 x: 'Jul',
-                y: [21, 29]
+                y: [21, 29],
               },
               {
                 x: 'Aug',
-                y: [21, 28]
+                y: [21, 28],
               },
               {
                 x: 'Sep',
-                y: [17, 24]
+                y: [17, 24],
               },
               {
                 x: 'Oct',
-                y: [11, 18]
+                y: [11, 18],
               },
               {
                 x: 'Nov',
-                y: [6, 12]
+                y: [6, 12],
               },
               {
                 x: 'Dec',
-                y: [1, 7]
-              }
-            ]
-          }
+                y: [1, 7],
+              },
+            ],
+          },
         ],
-          chart: {
+        chart: {
           height: 350,
-          type: 'rangeArea'
+          type: 'rangeArea',
         },
         stroke: {
-          curve: 'monotoneCubic'
+          curve: 'monotoneCubic',
         },
         title: {
-          text: 'New York Temperature (all year round)'
+          text: 'New York Temperature (all year round)',
         },
         markers: {
           hover: {
-            sizeOffset: 5
-          }
+            sizeOffset: 5,
+          },
         },
         dataLabels: {
-          enabled: false
+          enabled: false,
         },
         yaxis: {
           labels: {
             formatter: (val) => {
               return val + '°C'
-            }
-          }
-        }
-        };
+            },
+          },
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 380px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 380px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -55,7 +53,6 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
           series: [44, 55, 13, 43, 22],
           chartOptions: {
             chart: {
@@ -63,22 +60,21 @@
               type: 'pie',
             },
             labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
-            responsive: [{
-              breakpoint: 480,
-              options: {
-                chart: {
-                  width: 200
+            responsive: [
+              {
+                breakpoint: 480,
+                options: {
+                  chart: {
+                    width: 200,
+                  },
+                  legend: {
+                    position: 'bottom',
+                  },
                 },
-                legend: {
-                  position: 'bottom'
-                }
-              }
-            }]
+              },
+            ],
           },
-          
-          
         },
-        
       })
     </script>
     

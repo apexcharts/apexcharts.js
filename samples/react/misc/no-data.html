@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -50,81 +48,83 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [{
-                name: 'Network In',
-                data: [],
-            }],
-            options: {
-              chart: {
-                type: 'area',
-                height: 350,
-                animations: {
-                  enabled: false
-                },
-                zoom: {
-                  enabled: false
-                },
-              },
-              dataLabels: {
-                enabled: false
-              },
-              stroke: {
-                curve: 'smooth'
-              },
-              markers: {
-                size: 5,
-                hover: {
-                  size: 9
-                }
-              },
-              title: {
-                text: 'Network Monitoring',
-              },
-              tooltip: {
-                intersect: true,
-                shared: false
-              },
-              theme: {
-                palette: 'palette1'
-              },
-              xaxis: {
-                type: 'datetime',
-              },
-              yaxis: {
-                showForNullSeries: false,
-                tickAmount: 3,
-                min: 0,
-                title: {
-                  text: 'Received MB'
-                }
-              },
-              noData: {
-                text: 'No Data',
-                style: {
-                  color: '#FCC',
-                  fontSize: '24px'
-                }
-              }
+          series: [
+            {
+              name: 'Network In',
+              data: [],
             },
-          
-          
-        });
-
-        
+          ],
+          options: {
+            chart: {
+              type: 'area',
+              height: 350,
+              animations: {
+                enabled: false,
+              },
+              zoom: {
+                enabled: false,
+              },
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            stroke: {
+              curve: 'smooth',
+            },
+            markers: {
+              size: 5,
+              hover: {
+                size: 9,
+              },
+            },
+            title: {
+              text: 'Network Monitoring',
+            },
+            tooltip: {
+              intersect: true,
+              shared: false,
+            },
+            theme: {
+              palette: 'palette1',
+            },
+            xaxis: {
+              type: 'datetime',
+            },
+            yaxis: {
+              showForNullSeries: false,
+              tickAmount: 3,
+              min: 0,
+              title: {
+                text: 'Received MB',
+              },
+            },
+            noData: {
+              text: 'No Data',
+              style: {
+                color: '#FCC',
+                fontSize: '24px',
+              },
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="area" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="area"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

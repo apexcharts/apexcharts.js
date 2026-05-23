@@ -9,22 +9,20 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #wrapper {
-      padding-top: 20px;
-      padding-left: 10px;
-      background: #fff;
-      border: 1px solid #ddd;
-      box-shadow: 0 22px 35px -16px rgba(0, 0, 0, 0.1);
-      max-width: 650px;
-      margin: 35px auto;
-    }
-    
-    #chart-line {
-      position: relative;
-      margin-top: 0px;
-    }
-      
+      #wrapper {
+        padding-top: 20px;
+        padding-left: 10px;
+        background: #fff;
+        border: 1px solid #ddd;
+        box-shadow: 0 22px 35px -16px rgba(0, 0, 0, 0.1);
+        max-width: 650px;
+        margin: 35px auto;
+      }
+
+      #chart-line {
+        position: relative;
+        margin-top: 0px;
+      }
     </style>
 
     
@@ -44,39 +42,40 @@
     </script>
 
     <script>
-  /*
-    // this function will generate output in this format
-    // data = [
-        [timestamp, 23],
-        [timestamp, 33],
-        [timestamp, 12]
-        ...
-    ]
-  */
-  function generateDayWiseTimeSeries(baseval, count, yrange) {
-    var i = 0;
-    var series = [];
-    while (i < count) {
-      var x = baseval;
-      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1) * i / count) + yrange.min;
-  
-      series.push([x, y]);
-      baseval += 86400000;
-      i++;
-    }
-    return series;
-  }
-  
-  var data1 = generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 185, {
-    min: 20,
-    max: 100
-  })
-  var data2 = generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 185, {
-    min: 5,
-    max: 50
-  })
-  
-  </script>
+      /*
+          // this function will generate output in this format
+          // data = [
+              [timestamp, 23],
+              [timestamp, 33],
+              [timestamp, 12]
+              ...
+          ]
+        */
+      function generateDayWiseTimeSeries(baseval, count, yrange) {
+        var i = 0
+        var series = []
+        while (i < count) {
+          var x = baseval
+          var y =
+            Math.floor((Math.random() * (yrange.max - yrange.min + 1) * i) / count) +
+            yrange.min
+
+          series.push([x, y])
+          baseval += 86400000
+          i++
+        }
+        return series
+      }
+
+      var data1 = generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 185, {
+        min: 20,
+        max: 100,
+      })
+      var data2 = generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 185, {
+        min: 5,
+        max: 50,
+      })
+    </script>
   </head>
 
   <body>
@@ -107,63 +106,65 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
-          series: [{
-            name: 'Flies',
-            data: data1
-          },{
-            name: 'Spiders',
-            data: data2
-          }],
+          series: [
+            {
+              name: 'Flies',
+              data: data1,
+            },
+            {
+              name: 'Spiders',
+              data: data2,
+            },
+          ],
           chartOptions: {
             chart: {
               id: 'chart2',
               type: 'line',
               height: 230,
               dropShadow: {
-                  enabled: true,
-                  enabledOnSeries: [1]
+                enabled: true,
+                enabledOnSeries: [1],
               },
               toolbar: {
                 autoSelected: 'pan',
-                show: false
-              }
+                show: false,
+              },
             },
             colors: ['#008FFB', '#00E396'],
             dataLabels: {
-              enabled: false
+              enabled: false,
             },
             stroke: {
-              width: [2,6],
-              curve: ['straight','monotoneCubic']
+              width: [2, 6],
+              curve: ['straight', 'monotoneCubic'],
             },
             fill: {
-              opacity: [1,0.75],
+              opacity: [1, 0.75],
             },
             markers: {
-              size: 0
+              size: 0,
             },
             yaxis: [
               {
                 seriesName: 'Flies',
                 axisTicks: {
                   show: true,
-                  color: '#008FFB'
+                  color: '#008FFB',
                 },
                 axisBorder: {
                   show: true,
-                  color: '#008FFB'
+                  color: '#008FFB',
                 },
                 labels: {
                   style: {
                     colors: '#008FFB',
-                  }
+                  },
                 },
                 title: {
-                  text: "Flies",
+                  text: 'Flies',
                   style: {
-                    color: '#008FFB'
-                  }
+                    color: '#008FFB',
+                  },
                 },
               },
               {
@@ -171,81 +172,81 @@
                 opposite: true,
                 axisTicks: {
                   show: true,
-                  color: '#00E396'
+                  color: '#00E396',
                 },
                 axisBorder: {
                   show: true,
-                  color: '#00E396'
+                  color: '#00E396',
                 },
                 labels: {
                   style: {
-                    colors: '#00E396'
-                  }
+                    colors: '#00E396',
+                  },
                 },
                 title: {
-                  text: "Spiders",
+                  text: 'Spiders',
                   style: {
-                    color: '#00E396'
-                  }
+                    color: '#00E396',
+                  },
                 },
-              }
+              },
             ],
             xaxis: {
-              type: 'datetime'
-            }
+              type: 'datetime',
+            },
           },
-          
-          seriesLine: [{
-            name: 'Flies',
-            data: data1
-          },{
-            name: 'Spiders',
-            data: data2
-          }],
+
+          seriesLine: [
+            {
+              name: 'Flies',
+              data: data1,
+            },
+            {
+              name: 'Spiders',
+              data: data2,
+            },
+          ],
           chartOptionsLine: {
             chart: {
               id: 'chart1',
               height: 130,
               type: 'area',
-              brush:{
+              brush: {
                 target: 'chart2',
-                enabled: true
+                enabled: true,
               },
               selection: {
                 enabled: true,
                 xaxis: {
                   min: new Date('24 April 2017').getTime(),
-                  max: new Date('29 May 2017').getTime()
-                }
+                  max: new Date('29 May 2017').getTime(),
+                },
               },
             },
             colors: ['#008FFB', '#00E396'],
             stroke: {
               width: [1, 3],
-              curve: ['straight', 'monotoneCubic']
+              curve: ['straight', 'monotoneCubic'],
             },
             fill: {
               type: 'gradient',
               gradient: {
                 opacityFrom: 0.91,
                 opacityTo: 0.1,
-              }
+              },
             },
             xaxis: {
               type: 'datetime',
               tooltip: {
-                enabled: false
-              }
+                enabled: false,
+              },
             },
             yaxis: {
               max: 100,
-              tickAmount: 2
-            }
+              tickAmount: 2,
+            },
           },
-          
-          
         },
-        
       })
     </script>
     

@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -37,32 +35,33 @@
     </script>
 
     <script>
-  /*
-  // this function will generate output in this format
-  // every array in data is of the format [x, y, z] where x (timestamp) and y are the two axes coordinates,
-  // z is the third coordinate, which you can interpret as the size of the bubble formed too.
-  // data = [
-     [timestamp, 23, 10],
-     [timestamp, 33, 11],
-     [timestamp, 12, 8]
-      ...
-  ]
-  */
-  function generateData(baseval, count, yrange) {
-    var i = 0;
-    var series = [];
-    while (i < count) {
-      var x = Math.floor(Math.random() * (750 - 1 + 1)) + 1;;
-      var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
-      var z = Math.floor(Math.random() * (75 - 15 + 1)) + 15;
-  
-      series.push([x, y, z]);
-      baseval += 86400000;
-      i++;
-    }
-    return series;
-  }
-  </script>
+      /*
+        // this function will generate output in this format
+        // every array in data is of the format [x, y, z] where x (timestamp) and y are the two axes coordinates,
+        // z is the third coordinate, which you can interpret as the size of the bubble formed too.
+        // data = [
+           [timestamp, 23, 10],
+           [timestamp, 33, 11],
+           [timestamp, 12, 8]
+            ...
+        ]
+        */
+      function generateData(baseval, count, yrange) {
+        var i = 0
+        var series = []
+        while (i < count) {
+          var x = Math.floor(Math.random() * (750 - 1 + 1)) + 1
+          var y =
+            Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
+          var z = Math.floor(Math.random() * (75 - 15 + 1)) + 15
+
+          series.push([x, y, z])
+          baseval += 86400000
+          i++
+        }
+        return series
+      }
+    </script>
   </head>
 
   <body>
@@ -76,75 +75,77 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [{
+          series: [
+            {
               name: 'Bubble1',
               data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
                 min: 10,
-                max: 60
-              })
+                max: 60,
+              }),
             },
             {
               name: 'Bubble2',
               data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
                 min: 10,
-                max: 60
-              })
+                max: 60,
+              }),
             },
             {
               name: 'Bubble3',
               data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
                 min: 10,
-                max: 60
-              })
+                max: 60,
+              }),
             },
             {
               name: 'Bubble4',
               data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
                 min: 10,
-                max: 60
-              })
-            }],
-            options: {
-              chart: {
-                  height: 350,
-                  type: 'bubble',
-              },
-              dataLabels: {
-                  enabled: false
-              },
-              fill: {
-                  opacity: 0.8
-              },
-              title: {
-                  text: 'Simple Bubble Chart'
-              },
-              xaxis: {
-                  tickAmount: 12,
-                  type: 'category',
-              },
-              yaxis: {
-                  max: 70
-              }
+                max: 60,
+              }),
             },
-          
-          
-        });
-
-        
+          ],
+          options: {
+            chart: {
+              height: 350,
+              type: 'bubble',
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            fill: {
+              opacity: 0.8,
+            },
+            title: {
+              text: 'Simple Bubble Chart',
+            },
+            xaxis: {
+              tickAmount: 12,
+              type: 'category',
+            },
+            yaxis: {
+              max: 70,
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="bubble" height={350} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="bubble"
+                height={350}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

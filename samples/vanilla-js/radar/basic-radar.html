@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 450px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 450px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,31 +36,30 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [{
-          name: 'Series 1',
-          data: [80, 50, 30, 40, 100, 20],
-        }],
-          chart: {
+      var options = {
+        series: [
+          {
+            name: 'Series 1',
+            data: [80, 50, 30, 40, 100, 20],
+          },
+        ],
+        chart: {
           height: 350,
           type: 'radar',
         },
         title: {
-          text: 'Basic Radar Chart'
+          text: 'Basic Radar Chart',
         },
         yaxis: {
-          stepSize: 20
+          stepSize: 20,
         },
         xaxis: {
-          categories: ['January', 'February', 'March', 'April', 'May', 'June']
-        }
-        };
+          categories: ['January', 'February', 'March', 'April', 'May', 'June'],
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

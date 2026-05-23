@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 560px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 560px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -51,113 +49,113 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [86],
-            options: {
-              chart: {
-                height: 360,
-                type: 'gauge',
-                animations: {
-                  enabled: true,
-                  dynamicAnimation: { enabled: true, speed: 800 },
-                },
+          series: [86],
+          options: {
+            chart: {
+              height: 360,
+              type: 'gauge',
+              animations: {
+                enabled: true,
+                dynamicAnimation: { enabled: true, speed: 800 },
               },
-              colors: ['#00A86F'],
-              plotOptions: {
-                radialBar: {
-                  shape: 'needle',
-                  startAngle: -90,
-                  endAngle: 90,
-                  min: 0,
-                  max: 100,
-                  ticks: {
-                    show: true,
-                    major: {
-                      count: 11,
-                      length: 0,
-                      width: 0,
-                      color: 'transparent',
-                      placement: 'outside',
-                    },
-                    minor: {
-                      count: 0,
-                      length: 0,
-                      width: 0,
-                      color: 'transparent',
-                    },
-                    labels: {
-                      show: true,
-                      offset: 25,
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      color: '#0F172A',
-                      formatter: function (v) {
-                        return v + '%'
-                      },
-                    },
-                  },
-                  needle: {
-                    color: '#1E293B',
-                    length: '85%',
-                    baseWidth: 10,
-                    tipWidth: 1,
-                    showValueArc: true,
-                  },
-                  track: {
-                    show: true,
-                    background: '#ddd',
-                    strokeWidth: '100%',
-                    margin: 0,
-                  },
-                  hollow: {
-                    margin: 0,
-                    size: '70%',
-                    background: 'transparent',
-                  },
-                  dataLabels: {
-                    name: { show: false },
-                    value: {
-                      offsetY: 20,
-                      fontSize: '16px',
-                      fontWeight: 700,
-                      color: '#0F172A',
-                      formatter: function (val) {
-                        return val + '%'
-                      },
-                    },
-                  },
-                },
-              },
-              stroke: {
-                lineCap: 'butt',
-              },
-              labels: ['Progress'],
             },
-          
-          
-        });
+            colors: ['#00A86F'],
+            plotOptions: {
+              radialBar: {
+                shape: 'needle',
+                startAngle: -90,
+                endAngle: 90,
+                min: 0,
+                max: 100,
+                ticks: {
+                  show: true,
+                  major: {
+                    count: 11,
+                    length: 0,
+                    width: 0,
+                    color: 'transparent',
+                    placement: 'outside',
+                  },
+                  minor: {
+                    count: 0,
+                    length: 0,
+                    width: 0,
+                    color: 'transparent',
+                  },
+                  labels: {
+                    show: true,
+                    offset: 25,
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: '#0F172A',
+                    formatter: function (v) {
+                      return v + '%'
+                    },
+                  },
+                },
+                needle: {
+                  color: '#1E293B',
+                  length: '85%',
+                  baseWidth: 10,
+                  tipWidth: 1,
+                  showValueArc: true,
+                },
+                track: {
+                  show: true,
+                  background: '#ddd',
+                  strokeWidth: '100%',
+                  margin: 0,
+                },
+                hollow: {
+                  margin: 0,
+                  size: '70%',
+                  background: 'transparent',
+                },
+                dataLabels: {
+                  name: { show: false },
+                  value: {
+                    offsetY: 20,
+                    fontSize: '16px',
+                    fontWeight: 700,
+                    color: '#0F172A',
+                    formatter: function (val) {
+                      return val + '%'
+                    },
+                  },
+                },
+              },
+            },
+            stroke: {
+              lineCap: 'butt',
+            },
+            labels: ['Progress'],
+          },
+        })
 
-        
-          useEffect(() => {
+        useEffect(() => {
           const id = window.setInterval(() => {
             setState((s) => ({ ...s, series: [Math.floor(Math.random() * 101)] }))
           }, 2000)
           return () => window.clearInterval(id)
         }, [])
-        
 
         return (
           <div>
             <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="gauge" height={360} />
-              </div>
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="gauge"
+                height={360}
+              />
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

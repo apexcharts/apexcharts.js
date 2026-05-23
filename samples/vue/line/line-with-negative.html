@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -54,11 +52,10 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
           series: [
             {
-              data: [-33, -13, -45, 95, 12, 15, -34, -61, 66, 82, 1, -36]
-            }
+              data: [-33, -13, -45, 95, 12, 15, -34, -61, 66, 82, 1, -36],
+            },
           ],
           chartOptions: {
             chart: {
@@ -93,7 +90,7 @@
             },
             stroke: {
               width: 5,
-              curve: "monotoneCubic"
+              curve: 'monotoneCubic',
             },
             plotOptions: {
               line: {
@@ -103,12 +100,9 @@
                   colorBelowThreshold: '#ff0000',
                 },
               },
-            }
+            },
           },
-          
-          
         },
-        
       })
     </script>
     

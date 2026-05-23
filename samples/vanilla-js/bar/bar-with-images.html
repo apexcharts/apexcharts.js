@@ -9,16 +9,14 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-    
-    #apexcharts-canvas {
-      margin: 0 auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+
+      #apexcharts-canvas {
+        margin: 0 auto;
+      }
     </style>
 
     
@@ -42,26 +40,27 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [{
-          name: 'coins',
-          data: [2, 4, 3, 4, 3, 5, 5, 6.5, 6, 5, 4, 5, 8, 7, 7, 8, 8, 10, 9, 9, 12, 12,
-            11, 12, 13, 14, 16, 14, 15, 17, 19, 21
-          ]
-        }],
-          chart: {
+      var options = {
+        series: [
+          {
+            name: 'coins',
+            data: [
+              2, 4, 3, 4, 3, 5, 5, 6.5, 6, 5, 4, 5, 8, 7, 7, 8, 8, 10, 9, 9, 12, 12,
+              11, 12, 13, 14, 16, 14, 15, 17, 19, 21,
+            ],
+          },
+        ],
+        chart: {
           type: 'bar',
           height: 410,
           animations: {
-            enabled: false
-          }
+            enabled: false,
+          },
         },
         plotOptions: {
           bar: {
             horizontal: true,
             barHeight: '100%',
-        
           },
         },
         dataLabels: {
@@ -71,30 +70,30 @@
           width: 1,
           colors: ['#000'],
         },
-        labels: Array.apply(null, {length: 32}).map(function(el, index){
-          return index + 1;
+        labels: Array.apply(null, { length: 32 }).map(function (el, index) {
+          return index + 1
         }),
         yaxis: {
           axisBorder: {
-            show: false
+            show: false,
           },
           axisTicks: {
-            show: false
+            show: false,
           },
           labels: {
-            show: false
+            show: false,
           },
           title: {
             text: 'Weight',
           },
         },
         grid: {
-          position: 'back'
+          position: 'back',
         },
         title: {
           text: 'Paths filled by clipped image',
           align: 'right',
-          offsetY: 30
+          offsetY: 30,
         },
         fill: {
           type: 'image',
@@ -105,12 +104,10 @@
             height: 600,
           },
         },
-        };
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,46 +36,45 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [],
-          chart: {
+      var options = {
+        series: [],
+        chart: {
           height: 350,
           type: 'bar',
         },
         dataLabels: {
-          enabled: false
+          enabled: false,
         },
         title: {
           text: 'Ajax Example',
         },
         noData: {
-          text: 'Loading...'
+          text: 'Loading...',
         },
         xaxis: {
           type: 'category',
           tickPlacement: 'on',
           labels: {
             rotate: -45,
-            rotateAlways: true
-          }
-        }
-        };
+            rotateAlways: true,
+          },
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
-        axios({
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      axios({
         method: 'GET',
         url: 'http://my-json-server.typicode.com/apexcharts/apexcharts.js/yearly',
-      }).then(function(response) {
-        chart.updateSeries([{
-          name: 'Sales',
-          data: response.data
-        }])
+      }).then(function (response) {
+        chart.updateSeries([
+          {
+            name: 'Sales',
+            data: response.data,
+          },
+        ])
       })
-      
     </script>
 
     

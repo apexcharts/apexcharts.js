@@ -9,13 +9,11 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 380px;
-      margin: 35px auto;
-      padding: 0;
-    }
-      
+      #chart {
+        max-width: 380px;
+        margin: 35px auto;
+        padding: 0;
+      }
     </style>
 
     
@@ -55,34 +53,32 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
           series: [14, 23, 21, 17, 15, 10, 12, 17, 21],
           chartOptions: {
             chart: {
               type: 'polarArea',
             },
             stroke: {
-              colors: ['#fff']
+              colors: ['#fff'],
             },
             fill: {
-              opacity: 0.8
+              opacity: 0.8,
             },
-            responsive: [{
-              breakpoint: 480,
-              options: {
-                chart: {
-                  width: 200
+            responsive: [
+              {
+                breakpoint: 480,
+                options: {
+                  chart: {
+                    width: 200,
+                  },
+                  legend: {
+                    position: 'bottom',
+                  },
                 },
-                legend: {
-                  position: 'bottom'
-                }
-              }
-            }]
+              },
+            ],
           },
-          
-          
         },
-        
       })
     </script>
     

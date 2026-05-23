@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -35,12 +33,12 @@
 
     <script src="../../assets/irregular-data-series.js"></script>
   <script>
-    var ts2 = 1484418600000;
-    var data = [];
+    var ts2 = 1484418600000
+    var data = []
     var spikes = [5, -5, 3, -3, 8, -8]
     for (var i = 0; i < 30; i++) {
-      ts2 = ts2 + 86400000;
-      var innerArr = [ts2, dataSeries[1][i].value];
+      ts2 = ts2 + 86400000
+      var innerArr = [ts2, dataSeries[1][i].value]
       data.push(innerArr)
     }
   </script>
@@ -64,35 +62,33 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
-          series: [{
-            data: [34, 44, 54, 21, 12, 43, 33, 23, 66, 66, 58]
-          }],
+          series: [
+            {
+              data: [34, 44, 54, 21, 12, 43, 33, 23, 66, 66, 58],
+            },
+          ],
           chartOptions: {
             chart: {
               type: 'line',
-              height: 350
+              height: 350,
             },
             stroke: {
               curve: 'linestep',
             },
             dataLabels: {
-              enabled: false
+              enabled: false,
             },
             title: {
               text: 'Linestep Chart',
-              align: 'left'
+              align: 'left',
             },
             markers: {
               hover: {
-                sizeOffset: 4
-              }
-            }
+                sizeOffset: 4,
+              },
+            },
           },
-          
-          
         },
-        
       })
     </script>
     

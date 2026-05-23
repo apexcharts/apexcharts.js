@@ -9,17 +9,15 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      padding: 0;
-      max-width: 650px;
-      margin: 35px auto;
-    }
-    
-    .apexcharts-legend text {
-      font-weight: 900;
-    }
-      
+      #chart {
+        padding: 0;
+        max-width: 650px;
+        margin: 35px auto;
+      }
+
+      .apexcharts-legend text {
+        font-weight: 900;
+      }
     </style>
 
     
@@ -43,10 +41,9 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [76, 67, 61, 90],
-          chart: {
+      var options = {
+        series: [76, 67, 61, 90],
+        chart: {
           height: 390,
           type: 'radialBar',
         },
@@ -67,35 +64,35 @@
               },
               value: {
                 show: false,
-              }
+              },
             },
             barLabels: {
               enabled: true,
               useSeriesColors: true,
               offsetX: -8,
               fontSize: '16px',
-              formatter: function(seriesName, opts) {
-                return seriesName + ":  " + opts.w.globals.series[opts.seriesIndex]
+              formatter: function (seriesName, opts) {
+                return seriesName + ':  ' + opts.w.globals.series[opts.seriesIndex]
               },
             },
-          }
+          },
         },
         colors: ['#1ab7ea', '#0084ff', '#39539E', '#0077B5'],
         labels: ['Vimeo', 'Messenger', 'Facebook', 'LinkedIn'],
-        responsive: [{
-          breakpoint: 480,
-          options: {
-            legend: {
-                show: false
-            }
-          }
-        }]
-        };
+        responsive: [
+          {
+            breakpoint: 480,
+            options: {
+              legend: {
+                show: false,
+              },
+            },
+          },
+        ],
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

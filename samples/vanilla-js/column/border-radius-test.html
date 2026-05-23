@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,9 +36,8 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [
+      var options = {
+        series: [
           {
             name: 'PRODUCT A',
             data: [0, 0, 41, 67, 22, 0],
@@ -58,7 +55,7 @@
             data: [30, 7, 25, 13, 10, 8],
           },
         ],
-          chart: {
+        chart: {
           type: 'bar',
           height: 350,
           stacked: true,
@@ -74,7 +71,7 @@
             horizontal: false,
             borderRadius: 10,
             borderRadiusApplication: 'end',
-            borderRadiusWhenStacked: 'last', 
+            borderRadiusWhenStacked: 'last',
             dataLabels: {
               total: {
                 enabled: true,
@@ -118,13 +115,11 @@
               show: true,
             },
           },
-        }
-        };
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

@@ -9,9 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart { max-width: 700px; margin: 30px auto; }
-      
+      #chart {
+        max-width: 700px;
+        margin: 30px auto;
+      }
     </style>
 
     
@@ -35,14 +36,17 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [{
-          name: 'Sales',
-          data: [10, 40, 28, 51, 42, 109, 100, 120, 80, 90,
-                 60, 75, 55, 130, 95, 110, 70, 85, 45, 65]
-        }],
-          chart: {
+      var options = {
+        series: [
+          {
+            name: 'Sales',
+            data: [
+              10, 40, 28, 51, 42, 109, 100, 120, 80, 90, 60, 75, 55, 130, 95, 110, 70,
+              85, 45, 65,
+            ],
+          },
+        ],
+        chart: {
           type: 'line',
           height: 400,
           zoom: {
@@ -58,17 +62,17 @@
         dataLabels: { enabled: false },
         markers: { size: 0 },
         xaxis: {
-          categories: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
+          categories: [
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+          ],
           type: 'numeric',
         },
         yaxis: { min: 0, max: 150 },
         stroke: { curve: 'smooth' },
-        };
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

@@ -9,15 +9,13 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-    #chart-zoom-wrapper {
-      zoom: 80%;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+      #chart-zoom-wrapper {
+        zoom: 80%;
+      }
     </style>
 
     
@@ -55,18 +53,20 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          
-            series: [{
-              data: series.monthDataSeries1.prices
-            }],
-            options: {
-              chart: {
-                height: 350,
-                type: 'line',
-                id: 'areachart-2'
-              },
-              annotations: {
-                yaxis: [{
+          series: [
+            {
+              data: series.monthDataSeries1.prices,
+            },
+          ],
+          options: {
+            chart: {
+              height: 350,
+              type: 'line',
+              id: 'areachart-2',
+            },
+            annotations: {
+              yaxis: [
+                {
                   y: 8200,
                   borderColor: '#00E396',
                   label: {
@@ -76,8 +76,9 @@
                       background: '#00E396',
                     },
                     text: 'Support',
-                  }
-                }, {
+                  },
+                },
+                {
                   y: 8600,
                   y2: 9000,
                   borderColor: '#000',
@@ -91,9 +92,11 @@
                       background: '#FEB019',
                     },
                     text: 'Y-axis range',
-                  }
-                }],
-                xaxis: [{
+                  },
+                },
+              ],
+              xaxis: [
+                {
                   x: new Date('23 Nov 2017').getTime(),
                   strokeDashArray: 0,
                   borderColor: '#775DD0',
@@ -104,8 +107,9 @@
                       background: '#775DD0',
                     },
                     text: 'Anno Test',
-                  }
-                }, {
+                  },
+                },
+                {
                   x: new Date('26 Nov 2017').getTime(),
                   x2: new Date('28 Nov 2017').getTime(),
                   fillColor: '#B3F7CA',
@@ -119,9 +123,11 @@
                     },
                     offsetY: -10,
                     text: 'X-axis range',
-                  }
-                }],
-                points: [{
+                  },
+                },
+              ],
+              points: [
+                {
                   x: new Date('01 Dec 2017').getTime(),
                   y: 8607.55,
                   marker: {
@@ -129,7 +135,7 @@
                     fillColor: '#fff',
                     strokeColor: 'red',
                     radius: 2,
-                    cssClass: 'apexcharts-custom-class'
+                    cssClass: 'apexcharts-custom-class',
                   },
                   label: {
                     borderColor: '#FF4560',
@@ -138,61 +144,64 @@
                       color: '#fff',
                       background: '#FF4560',
                     },
-              
+
                     text: 'Point Annotation',
-                  }
-                }, {
+                  },
+                },
+                {
                   x: new Date('08 Dec 2017').getTime(),
                   y: 9340.85,
                   marker: {
-                    size: 0
+                    size: 0,
                   },
                   image: {
-                    path: '../../assets/images/ico-instagram.png'
-                  }
-                }]
-              },
-              dataLabels: {
-                enabled: false
-              },
-              stroke: {
-                curve: 'straight'
-              },
-              grid: {
-                padding: {
-                  right: 30,
-                  left: 20
-                }
-              },
-              title: {
-                text: 'Line with Annotations',
-                align: 'left'
-              },
-              labels: series.monthDataSeries1.dates,
-              xaxis: {
-                type: 'datetime',
+                    path: '../../assets/images/ico-instagram.png',
+                  },
+                },
+              ],
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            stroke: {
+              curve: 'straight',
+            },
+            grid: {
+              padding: {
+                right: 30,
+                left: 20,
               },
             },
-          
-          
-        });
-
-        
+            title: {
+              text: 'Line with Annotations',
+              align: 'left',
+            },
+            labels: series.monthDataSeries1.dates,
+            xaxis: {
+              type: 'datetime',
+            },
+          },
+        })
 
         return (
           <div>
             <div id="chart-zoom-wrapper">
-                <div id="chart">
-                <ReactApexChart options={state.options} series={state.series} type="line" height={350} />
+              <div id="chart">
+                <ReactApexChart
+                  options={state.options}
+                  series={state.series}
+                  type="line"
+                  height={350}
+                />
               </div>
-              </div>
+            </div>
             <div id="html-dist"></div>
           </div>
-        );
+        )
       }
 
-      const domContainer = document.querySelector('#app');
-      ReactDOM.render(<ApexChart />, domContainer);
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
     </script>
 
     

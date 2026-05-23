@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -38,14 +36,13 @@
      <div id="chart"></div>
 
     <script>
-      
-        var options = {
-          series: [
+      var options = {
+        series: [
           {
-            data: [-33, -13, -45, 95, 12, 15, -34, -61, 66, 82, 1, -36]
-          }
+            data: [-33, -13, -45, 95, 12, 15, -34, -61, 66, 82, 1, -36],
+          },
         ],
-          chart: {
+        chart: {
           height: 350,
           type: 'line',
           zoom: {
@@ -77,7 +74,7 @@
         },
         stroke: {
           width: 5,
-          curve: "monotoneCubic"
+          curve: 'monotoneCubic',
         },
         plotOptions: {
           line: {
@@ -87,13 +84,11 @@
               colorBelowThreshold: '#ff0000',
             },
           },
-        }
-        };
+        },
+      }
 
-        var chart = new ApexCharts(document.querySelector("#chart"), options);
-        chart.render();
-      
-      
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
     </script>
 
     

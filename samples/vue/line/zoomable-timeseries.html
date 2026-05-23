@@ -9,12 +9,10 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      
-        #chart {
-      max-width: 650px;
-      margin: 35px auto;
-    }
-      
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
     </style>
 
     
@@ -35,14 +33,14 @@
 
     <script src="../../assets/irregular-data-series.js"></script>
   <script>
-  var ts2 = 1484418600000;
-  var dates = [];
-  var spikes = [5, -5, 3, -3, 8, -8]
-  for (var i = 0; i < 120; i++) {
-    ts2 = ts2 + 86400000;
-    var innerArr = [ts2, dataSeries[1][i].value];
-    dates.push(innerArr)
-  }
+    var ts2 = 1484418600000
+    var dates = []
+    var spikes = [5, -5, 3, -3, 8, -8]
+    for (var i = 0; i < 120; i++) {
+      ts2 = ts2 + 86400000
+      var innerArr = [ts2, dataSeries[1][i].value]
+      dates.push(innerArr)
+    }
   </script>
   </head>
 
@@ -64,11 +62,12 @@
           apexchart: VueApexCharts,
         },
         data: {
-          
-          series: [{
-            name: 'XYZ MOTORS',
-            data: dates
-          }],
+          series: [
+            {
+              name: 'XYZ MOTORS',
+              data: dates,
+            },
+          ],
           chartOptions: {
             chart: {
               type: 'area',
@@ -77,21 +76,21 @@
               zoom: {
                 type: 'x',
                 enabled: true,
-                autoScaleYaxis: true
+                autoScaleYaxis: true,
               },
               toolbar: {
-                autoSelected: 'zoom'
-              }
+                autoSelected: 'zoom',
+              },
             },
             dataLabels: {
-              enabled: false
+              enabled: false,
             },
             markers: {
               size: 0,
             },
             title: {
               text: 'Stock Price Movement',
-              align: 'left'
+              align: 'left',
             },
             fill: {
               type: 'gradient',
@@ -100,17 +99,17 @@
                 inverseColors: false,
                 opacityFrom: 0.5,
                 opacityTo: 0,
-                stops: [0, 90, 100]
+                stops: [0, 90, 100],
               },
             },
             yaxis: {
               labels: {
                 formatter: function (val) {
-                  return (val / 1000000).toFixed(0);
+                  return (val / 1000000).toFixed(0)
                 },
               },
               title: {
-                text: 'Price'
+                text: 'Price',
               },
             },
             xaxis: {
@@ -121,14 +120,11 @@
               y: {
                 formatter: function (val) {
                   return (val / 1000000).toFixed(0)
-                }
-              }
-            }
+                },
+              },
+            },
           },
-          
-          
         },
-        
       })
     </script>
     
