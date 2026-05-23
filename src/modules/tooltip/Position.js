@@ -172,8 +172,7 @@ export default class Position {
           // Convert labels' screen-coord center to elWrap-local x, then
           // subtract half the tooltip width so the tooltip is centered on
           // the labels.
-          const labelsCenterInElWrap =
-            lr.left + lr.width / 2 - elWrapRect.left
+          const labelsCenterInElWrap = lr.left + lr.width / 2 - elWrapRect.left
           cx = labelsCenterInElWrap - yAxisTTRect.width / 2
         }
       }
@@ -719,8 +718,18 @@ export default class Position {
       if (r.right > unionRight) unionRight = r.right
     }
     if (!isFinite(unionLeft)) return null
-    // grid-local x (no translateX yet — computeTooltipPosition adds that).
-    return (unionLeft + unionRight) / 2 - gridRect.left
+    // Convert to data-area-local x. `gridRect` is the `.apexcharts-grid`
+    // element rect, whose `.left` extends `barPadForNumericAxis` pixels LEFT
+    // of the data area on numeric/datetime axes (the apexcharts-gridlines-
+    // horizontal group is widened by that pad on each side so corner bars
+    // don't clip). The hover-test path subtracts the same offset in
+    // tooltip/Utils.getNearestValues; do it here too so the crosshair lands
+    // on the bar center instead of one xDivision to the right.
+    return (
+      (unionLeft + unionRight) / 2 -
+      gridRect.left -
+      (w.globals.barPadForNumericAxis || 0)
+    )
   }
 
   /**
