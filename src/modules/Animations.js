@@ -120,7 +120,10 @@ export function applyProgressiveReveal(el, x, w) {
   const tick = (now) => {
     if (startAnchor === null) startAnchor = now
     if (now - startAnchor >= revealDelay) {
-      style.opacity = '1'
+      // Clear the inline opacity rather than forcing '1' — an inline style
+      // would override the element's SVG `opacity` attribute (e.g. an
+      // x-axis range annotation rect with `opacity: 0.4`).
+      style.opacity = ''
     } else {
       BrowserAPIs.requestAnimationFrame(tick)
     }
