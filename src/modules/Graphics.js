@@ -501,7 +501,8 @@ class Graphics {
       initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled
 
     // Fix for paths starting with M 0 0
-    if (pathFrom && pathFrom.startsWith('M 0 0') && pathTo) {
+    // Extra space avoids matching decimal values like "M 0 0.239"
+    if (pathFrom && pathFrom.startsWith('M 0 0 ') && pathTo) {
       const moveCommand = pathTo.match(/^M\s+[\d.-]+\s+[\d.-]+/)
       if (moveCommand) {
         pathFrom = pathFrom.replace(/^M\s+0\s+0/, moveCommand[0])
