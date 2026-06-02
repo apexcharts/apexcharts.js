@@ -723,7 +723,7 @@ type ApexAxisChartSeries = {
  | Record<string, any>[];
 }[]
 
-type ApexNonAxisChartSeries = 
+type ApexNonAxisChartSeries =
   | number[]
   | ApexAxisChartSeries
 
@@ -886,6 +886,7 @@ type ApexLocale = {
       zoomOut?: string
       pan?: string
       reset?: string
+      menu?: string
       exportToSVG?: string
       exportToPNG?: string
       exportToCSV?: string
