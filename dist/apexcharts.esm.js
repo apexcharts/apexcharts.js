@@ -3360,6 +3360,16 @@ class Options {
             enabled: true,
             speed: 350
           },
+          chartTypeMorph: {
+            // Cross-type morph (updateOptions changing chart.type). Bridges
+            // the destroy+recreate flicker by capturing old paths and morphing
+            // them into the new chart-type's paths via the existing PathMorphing
+            // engine. Supported pairs include bar ↔ pie/donut/radialBar/polarArea/
+            // funnel/pyramid (plus the trivial pie↔donut↔polarArea cases).
+            // Falls back to instant snap when types or data shape are incompatible.
+            enabled: true,
+            speed: 600
+          },
           // Honor the OS-level prefers-reduced-motion setting. When true (default)
           // and the user has the accessibility preference enabled, all initial-mount
           // animations are skipped and the chart renders instantly.
@@ -6172,7 +6182,7 @@ function applyProgressiveReveal(el, x, w) {
   const tick = (now) => {
     if (startAnchor === null) startAnchor = now;
     if (now - startAnchor >= revealDelay) {
-      style.opacity = "1";
+      style.opacity = "";
     } else {
       BrowserAPIs.requestAnimationFrame(tick);
     }
@@ -7047,7 +7057,7 @@ class Graphics {
     );
     const initialAnim = this.w.config.chart.animations.enabled;
     const dynamicAnim = initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled;
-    if (pathFrom && pathFrom.startsWith("M 0 0") && pathTo) {
+    if (pathFrom && pathFrom.startsWith("M 0 0 ") && pathTo) {
       const moveCommand = pathTo.match(/^M\s+[\d.-]+\s+[\d.-]+/);
       if (moveCommand) {
         pathFrom = pathFrom.replace(/^M\s+0\s+0/, moveCommand[0]);
@@ -7829,12 +7839,13 @@ class Point {
 }
 class Matrix {
   /**
-   * @param {number} a
-   * @param {number} b
-   * @param {number} c
-   * @param {number} d
-   * @param {number} e
-   * @param {number} f
+   * Defaults to the identity matrix when called with no args.
+   * @param {number} [a]
+   * @param {number} [b]
+   * @param {number} [c]
+   * @param {number} [d]
+   * @param {number} [e]
+   * @param {number} [f]
    */
   constructor(a, b, c, d, e, f) {
     this.a = a != null ? a : 1;
@@ -14796,7 +14807,10 @@ class Core {
       height: gl.svgHeight
     });
     if (heightUnit !== "%" && Environment.isBrowser()) {
-      const offsetY = cnf.chart.sparkline.enabled ? 0 : gl.axisCharts ? cnf.chart.parentHeightOffset : 0;
+      const needsAxisPadding = gl.axisCharts && (cnf.grid.show || cnf.dataLabels.enabled || cnf.xaxis.labels.show || cnf.xaxis.axisBorder.show || cnf.xaxis.axisTicks.show || cnf.yaxis.some(
+        (y) => y.show && (y.labels.show || y.axisBorder.show || y.axisTicks.show)
+      ));
+      const offsetY = cnf.chart.sparkline.enabled || !needsAxisPadding ? 0 : cnf.chart.parentHeightOffset;
       const paperNode = this.w.dom.Paper.node;
       if ((_a = paperNode.parentNode) == null ? void 0 : _a.parentNode) {
         paperNode.parentNode.parentNode.style.minHeight = `${gl.svgHeight + offsetY}px`;
@@ -14815,6 +14829,8 @@ class Core {
   resizeNonAxisCharts() {
     var _a, _b, _c, _d, _e, _f;
     const { w } = this;
+    const heightStr = w.config.chart.height ? String(w.config.chart.height) : "";
+    const userSetFixedHeight = heightStr !== "" && heightStr !== "auto";
     let legendHeight = 0;
     let offY = w.config.chart.sparkline.enabled ? 1 : 15;
     offY += w.config.grid.padding.bottom;
@@ -14883,10 +14899,13 @@ class Core {
       );
       const chartOffsetY = (_f = w.config.chart.offsetY) != null ? _f : 0;
       const elWrapHeight = svgHeight + Math.max(chartOffsetY, 0);
-      if (this.w.dom.elLegendForeign) {
-        this.w.dom.elLegendForeign.setAttribute("height", String(elWrapHeight));
-      }
-      if (!(w.config.chart.height && String(w.config.chart.height).includes("%"))) {
+      if (!userSetFixedHeight) {
+        if (this.w.dom.elLegendForeign) {
+          this.w.dom.elLegendForeign.setAttribute(
+            "height",
+            String(elWrapHeight)
+          );
+        }
         this.w.dom.elWrap.style.height = `${elWrapHeight}px`;
         Graphics.setAttrs(this.w.dom.Paper.node, { height: svgHeight });
         if (Environment.isBrowser()) {
@@ -14898,11 +14917,10 @@ class Core {
     const newHeight = Math.ceil(
       chartInnerDimensions + this.w.layout.translateY + legendHeight + offY
     );
+    if (userSetFixedHeight) return;
     if (this.w.dom.elLegendForeign) {
       this.w.dom.elLegendForeign.setAttribute("height", String(newHeight));
     }
-    if (w.config.chart.height && String(w.config.chart.height).includes("%"))
-      return;
     this.w.dom.elWrap.style.height = `${newHeight}px`;
     Graphics.setAttrs(this.w.dom.Paper.node, { height: newHeight });
     if (Environment.isBrowser()) {
@@ -16162,6 +16180,7 @@ class UpdateHelpers {
         this.w.globals.isExecCalled = false;
       }
       charts.forEach((ch, chartIndex) => {
+        var _a, _b;
         const w = ch.w;
         w.globals.shouldAnimate = animate;
         if (!redraw) {
@@ -16169,6 +16188,16 @@ class UpdateHelpers {
           w.globals.dataChanged = true;
           if (animate) {
             ch.series.getPreviousPaths();
+          }
+        }
+        if (animate && options2 && typeof options2 === "object") {
+          const newType = (_a = options2 == null ? void 0 : options2.chart) == null ? void 0 : _a.type;
+          if (newType && newType !== w.config.chart.type) {
+            (_b = ch.morphTypeChange) == null ? void 0 : _b.captureBeforeDestroy({
+              fromType: w.config.chart.type,
+              toType: newType,
+              newSeries: options2.series || w.config.series
+            });
           }
         }
         if (options2 && typeof options2 === "object") {
@@ -17916,7 +17945,7 @@ class Position {
       if (r.right > unionRight) unionRight = r.right;
     }
     if (!isFinite(unionLeft)) return null;
-    return (unionLeft + unionRight) / 2 - gridRect.left;
+    return (unionLeft + unionRight) / 2 - gridRect.left - (w.globals.barPadForNumericAxis || 0);
   }
   /**
    * Place tooltip above (or flipped: below) the union rect of all bars at
@@ -20563,8 +20592,12 @@ function arcToBezier(pos, val) {
     return [["C", A.x, A.y, B.x, B.y, B.x, B.y]];
   }
   primedCoord = new Point((A.x - B.x) / 2, (A.y - B.y) / 2).transform(
+    // Start with the identity matrix (no args → Matrix defaults a=d=1, others 0).
+    // Passing all-zero args here would produce a degenerate zero matrix, since
+    // `0 ?? 1` is `0`, not `1` — every subsequent transform then yields (0,0)
+    // and the arc-to-bezier conversion crashes on a NaN cascade.
     /** @type {any} */
-    new Matrix(0, 0, 0, 0, 0, 0).rotate(xAxisRotation)
+    new Matrix().rotate(xAxisRotation)
   );
   lambda = primedCoord.x * primedCoord.x / (rx * rx) + primedCoord.y * primedCoord.y / (ry * ry);
   if (lambda > 1) {
@@ -20573,7 +20606,7 @@ function arcToBezier(pos, val) {
     ry = lambda * ry;
   }
   mat = /** @type {any} */
-  new Matrix(0, 0, 0, 0, 0, 0).rotate(xAxisRotation).scale(1 / rx, 1 / ry).rotate(-xAxisRotation);
+  new Matrix().rotate(xAxisRotation).scale(1 / rx, 1 / ry).rotate(-xAxisRotation);
   A = A.transform(mat);
   B = B.transform(mat);
   k = [B.x - A.x, B.y - A.y];
@@ -20617,7 +20650,7 @@ function arcToBezier(pos, val) {
   arcSegPoints[0][0] = arcSegPoints[0][1].clone();
   arcSegPoints[arcSegPoints.length - 1][2] = arcSegPoints[arcSegPoints.length - 1][1].clone();
   mat = /** @type {any} */
-  new Matrix(0, 0, 0, 0, 0, 0).rotate(xAxisRotation).scale(rx, ry).rotate(-xAxisRotation);
+  new Matrix().rotate(xAxisRotation).scale(rx, ry).rotate(-xAxisRotation);
   for (i = 0, il = arcSegPoints.length; i < il; i++) {
     arcSegPoints[i][0] = arcSegPoints[i][0].transform(mat);
     arcSegPoints[i][1] = arcSegPoints[i][1].transform(mat);
@@ -21400,6 +21433,8 @@ const _InitCtxVariables = class _InitCtxVariables {
     ctx.exports = ExportsCtor ? new ExportsCtor(w, ctx) : null;
     const LegendCtor = reg.get("legend");
     ctx.legend = LegendCtor ? new LegendCtor(w, ctx) : null;
+    const MorphCtor = reg.get("morphTypeChange");
+    ctx.morphTypeChange = MorphCtor ? new MorphCtor(w, ctx) : null;
     const ToolbarCtor = reg.get("toolbar");
     Object.defineProperty(ctx, "toolbar", {
       get() {
@@ -21647,6 +21682,8 @@ class ApexCharts {
     __publicField(this, "keyboardNavigation");
     /** @type {any} */
     __publicField(this, "annotations");
+    /** @type {any} */
+    __publicField(this, "morphTypeChange");
     /** @type {any} */
     __publicField(this, "timeScale");
     /** @type {any} */
@@ -22166,6 +22203,8 @@ class ApexCharts {
       const graphData = this.create(this.w.config.series, options2 != null ? options2 : {});
       if (!graphData) return resolve(this);
       this.mount(graphData).then(() => {
+        var _a;
+        (_a = this.morphTypeChange) == null ? void 0 : _a.applyChromeFade();
         if (typeof this.w.config.chart.events.updated === "function") {
           this.w.config.chart.events.updated(this, this.w);
         }
@@ -23933,7 +23972,7 @@ class Legend {
 ApexCharts.registerFeatures({ legend: Legend });
 const icoPan = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M5 9 2 12l3 3"/>\n    <path d="M9 5l3-3 3 3"/>\n    <path d="M15 19l-3 3-3-3"/>\n    <path d="M19 9l3 3-3 3"/>\n    <path d="M2 12h20"/>\n    <path d="M12 2v20"/>\n</svg>\n';
 const icoZoom = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <circle cx="11" cy="11" r="7"/>\n    <path d="m21 21-4.3-4.3M8 11h6M11 8v6"/>\n</svg>\n';
-const icoReset = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M8 3H5a2 2 0 0 0-2 2v3"/>\n    <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>\n    <path d="M3 16v3a2 2 0 0 0 2 2h3"/>\n    <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>\n</svg>\n';
+const icoReset = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>\n    <path d="M3 3v5h5"/>\n</svg>\n';
 const icoZoomIn = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M12 5v14M5 12h14"/>\n</svg>\n';
 const icoZoomOut = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M5 12h14"/>\n</svg>\n';
 const icoSelect = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M5 3a2 2 0 0 0-2 2"/>\n    <path d="M19 3a2 2 0 0 1 2 2"/>\n    <path d="M21 19a2 2 0 0 1-2 2"/>\n    <path d="M5 21a2 2 0 0 1-2-2"/>\n    <path d="M9 3h1M14 3h1M9 21h1M14 21h1M3 9v1M3 14v1M21 9v1M21 14v1"/>\n</svg>\n';
@@ -27091,6 +27130,439 @@ class KeyboardNavigation {
   }
 }
 ApexCharts.registerFeatures({ keyboardNavigation: KeyboardNavigation });
+const BAR_FAMILY = /* @__PURE__ */ new Set(["bar"]);
+const RADIAL_FAMILY = /* @__PURE__ */ new Set(["pie", "donut", "polarArea", "radialBar"]);
+function familyOf(type) {
+  if (BAR_FAMILY.has(type)) return "bar";
+  if (RADIAL_FAMILY.has(type)) return "radial";
+  return null;
+}
+class MorphTypeChange {
+  /**
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {import('../types/internal').ChartContext} ctx
+   */
+  constructor(w, ctx) {
+    this.w = w;
+    this.ctx = ctx;
+    this._snapshot = null;
+  }
+  /**
+   * @param {string} fromType
+   * @param {string} toType
+   * @returns {boolean}
+   */
+  canMorphTypes(fromType, toType) {
+    if (fromType === toType) return false;
+    const ff = familyOf(fromType);
+    const tf = familyOf(toType);
+    if (!ff || !tf) return false;
+    return true;
+  }
+  /**
+   * @param {string} fromType
+   * @param {string} toType
+   * @param {any} newSeries
+   * @returns {boolean}
+   */
+  isCompatibleSeriesShape(fromType, toType, newSeries) {
+    if (!Array.isArray(newSeries) || newSeries.length === 0) return false;
+    const ff = familyOf(fromType);
+    const tf = familyOf(toType);
+    if (tf === "radial") {
+      return newSeries.every((v) => typeof v === "number");
+    }
+    if (tf === "bar") {
+      return newSeries.every(
+        (s) => s && typeof s === "object" && Array.isArray(s.data)
+      );
+    }
+    return ff !== null && tf !== null;
+  }
+  /**
+   * Capture the live DOM of the *current* (outgoing) chart and stash it on
+   * this module. Called from `apexcharts._updateOptions` before the config
+   * merge that flips `chart.type`.
+   *
+   * Returns true if a morph is queued — caller doesn't need the value, but
+   * tests use it.
+   *
+   * @param {{ fromType: string, toType: string, newSeries: any }} args
+   * @returns {boolean}
+   */
+  captureBeforeDestroy({ fromType, toType, newSeries }) {
+    this._snapshot = null;
+    if (!Environment.isBrowser()) return false;
+    const animCfg = this.w.config.chart.animations;
+    if (!animCfg || animCfg.enabled === false) return false;
+    if (animCfg.chartTypeMorph && animCfg.chartTypeMorph.enabled === false)
+      return false;
+    if (animCfg.respectReducedMotion && prefersReducedMotion()) return false;
+    if (!this.canMorphTypes(fromType, toType)) return false;
+    if (!this.isCompatibleSeriesShape(fromType, toType, newSeries)) return false;
+    const captured = this._captureFromDOM(fromType);
+    if (!captured.length) return false;
+    const mapping = this._buildMapping(captured, fromType, toType, newSeries);
+    if (mapping.size === 0) return false;
+    this._snapshot = {
+      fromType,
+      toType,
+      mapping,
+      oldLayout: {
+        translateX: this.w.layout.translateX || 0,
+        translateY: this.w.layout.translateY || 0
+      }
+    };
+    this.w.globals.previousPaths = [];
+    return true;
+  }
+  /**
+   * Walk the outgoing chart's DOM and collect path `d` strings keyed by
+   * (realIndex, j). The selectors are scoped to the chart family — bar
+   * elements have `pathTo` set; pie/radial elements use their final `d`.
+   *
+   * @param {string} fromType
+   * @returns {Array<{ realIndex: number, j: number, d: string, fill: string|null }>}
+   */
+  _captureFromDOM(fromType) {
+    var _a;
+    const baseEl = (_a = this.w.globals.dom) == null ? void 0 : _a.baseEl;
+    if (!baseEl) return [];
+    const captured = [];
+    const fam = familyOf(fromType);
+    if (fam === "bar") {
+      const seriesNodes = baseEl.querySelectorAll(
+        ".apexcharts-bar-series .apexcharts-series"
+      );
+      seriesNodes.forEach((seriesNode) => {
+        var _a2;
+        const realIndex = parseInt(
+          (_a2 = seriesNode.getAttribute("data:realIndex")) != null ? _a2 : "0",
+          10
+        );
+        const paths = seriesNode.querySelectorAll("path[pathTo]");
+        paths.forEach((p, j) => {
+          const d = p.getAttribute("pathTo") || p.getAttribute("d");
+          if (!d) return;
+          captured.push({
+            realIndex,
+            j,
+            d,
+            fill: p.getAttribute("fill")
+          });
+        });
+      });
+    } else if (fam === "radial") {
+      if (fromType === "radialBar") {
+        const centerX = this.w.layout.gridWidth / 2;
+        const centerY = Math.min(this.w.layout.gridWidth, this.w.layout.gridHeight) / 2;
+        const rings = baseEl.querySelectorAll(
+          ".apexcharts-radial-series .apexcharts-radialbar-area"
+        );
+        rings.forEach((p) => {
+          var _a2;
+          const parent = (
+            /** @type {Element|null} */
+            p.parentElement
+          );
+          const realIndex = parseInt(
+            (_a2 = parent == null ? void 0 : parent.getAttribute("data:realIndex")) != null ? _a2 : "0",
+            10
+          );
+          const rawD = p.getAttribute("d");
+          if (!rawD) return;
+          const strokeWidth = parseFloat(p.getAttribute("stroke-width") || "0");
+          const d = strokeWidth > 1 ? this._radialArcToFilledSegment(
+            rawD,
+            strokeWidth,
+            centerX,
+            centerY
+          ) || rawD : rawD;
+          captured.push({
+            realIndex,
+            j: 0,
+            d,
+            fill: p.getAttribute("stroke")
+          });
+        });
+      } else {
+        const slices = baseEl.querySelectorAll(
+          ".apexcharts-pie-series .apexcharts-pie-area"
+        );
+        slices.forEach(
+          (p, i) => {
+            const d = p.getAttribute("d");
+            if (!d) return;
+            captured.push({
+              realIndex: i,
+              j: 0,
+              d,
+              fill: p.getAttribute("fill")
+            });
+          }
+        );
+      }
+    }
+    return captured;
+  }
+  /**
+   * Convert a radialBar's stroked open-arc `d` ("M x1 y1 A r r 0 large sweep
+   * x2 y2") into a closed donut-segment polygon whose FILLED rendering
+   * visually matches the original stroked arc — needed because the morph
+   * target (pie/donut/polarArea) renders by fill, not stroke. Returns null
+   * if the input doesn't match the expected M-then-A shape.
+   *
+   * @param {string} rawD
+   * @param {number} strokeWidth
+   * @param {number} centerX
+   * @param {number} centerY
+   * @returns {string | null}
+   */
+  _radialArcToFilledSegment(rawD, strokeWidth, centerX, centerY) {
+    const m = rawD.match(
+      /M\s*(-?[\d.]+)\s+(-?[\d.]+)\s+A\s*(-?[\d.]+)\s+(?:-?[\d.]+)\s+(?:-?[\d.]+)\s+(\d)\s+(\d)\s+(-?[\d.]+)\s+(-?[\d.]+)/
+    );
+    if (!m) return null;
+    const x1 = parseFloat(m[1]);
+    const y1 = parseFloat(m[2]);
+    const r = parseFloat(m[3]);
+    const large = parseInt(m[4], 10);
+    const sweep = parseInt(m[5], 10);
+    const x2 = parseFloat(m[6]);
+    const y2 = parseFloat(m[7]);
+    if (!isFinite(r) || r <= 0) return null;
+    const half = strokeWidth / 2;
+    const rOuter = r + half;
+    const rInner = Math.max(0, r - half);
+    const proj = (px, py, newR) => {
+      const dx = px - centerX;
+      const dy = py - centerY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist === 0) return { x: centerX, y: centerY };
+      const k = newR / dist;
+      return { x: centerX + dx * k, y: centerY + dy * k };
+    };
+    const o1 = proj(x1, y1, rOuter);
+    const o2 = proj(x2, y2, rOuter);
+    const i1 = proj(x1, y1, rInner);
+    const i2 = proj(x2, y2, rInner);
+    const sweepBack = sweep ? 0 : 1;
+    return `M ${o1.x} ${o1.y} A ${rOuter} ${rOuter} 0 ${large} ${sweep} ${o2.x} ${o2.y} L ${i2.x} ${i2.y} A ${rInner} ${rInner} 0 ${large} ${sweepBack} ${i1.x} ${i1.y} Z`;
+  }
+  /**
+   * Build a closed donut-segment path for the given polar arc geometry. Used
+   * by Radial.drawArcs when morphing FROM a filled wedge (pie/donut/polarArea)
+   * TO a radialBar arc: the final radialBar is rendered as a stroked open arc,
+   * but during the morph we tween d toward this closed-segment form (which
+   * looks identical to the stroked arc when filled with the same color) so
+   * the in-between frames remain visually consistent filled shapes rather
+   * than a thick-outlined wedge.
+   *
+   * @param {number} centerX
+   * @param {number} centerY
+   * @param {number} ringRadius - centerline radius of the radialBar ring
+   * @param {number} strokeWidth - the ring's stroke thickness
+   * @param {number} startAngleDeg - in degrees, 0° = top (12 o'clock)
+   * @param {number} endAngleDeg
+   * @returns {string}
+   */
+  buildRingSegmentPath(centerX, centerY, ringRadius, strokeWidth, startAngleDeg, endAngleDeg) {
+    const halfStroke = strokeWidth / 2;
+    const rOuter = ringRadius + halfStroke;
+    const rInner = Math.max(0, ringRadius - halfStroke);
+    const sRad = (startAngleDeg - 90) * Math.PI / 180;
+    const eRad = (endAngleDeg - 90) * Math.PI / 180;
+    const oStart = {
+      x: centerX + rOuter * Math.cos(sRad),
+      y: centerY + rOuter * Math.sin(sRad)
+    };
+    const oEnd = {
+      x: centerX + rOuter * Math.cos(eRad),
+      y: centerY + rOuter * Math.sin(eRad)
+    };
+    const iStart = {
+      x: centerX + rInner * Math.cos(sRad),
+      y: centerY + rInner * Math.sin(sRad)
+    };
+    const iEnd = {
+      x: centerX + rInner * Math.cos(eRad),
+      y: centerY + rInner * Math.sin(eRad)
+    };
+    const sweep = endAngleDeg > startAngleDeg ? 1 : 0;
+    const large = Math.abs(endAngleDeg - startAngleDeg) > 180 ? 1 : 0;
+    return `M ${oStart.x} ${oStart.y} A ${rOuter} ${rOuter} 0 ${large} ${sweep} ${oEnd.x} ${oEnd.y} L ${iEnd.x} ${iEnd.y} A ${rInner} ${rInner} 0 ${large} ${1 - sweep} ${iStart.x} ${iStart.y} Z`;
+  }
+  /**
+   * @returns {string | null} the chart-type the active snapshot was captured
+   *   from, or null when no morph is in flight.
+   */
+  getFromType() {
+    return this._snapshot ? this._snapshot.fromType : null;
+  }
+  /**
+   * Build a (targetKey → captured) map. The targetKey matches the lookup
+   * pattern each chart-type renderer uses when it asks
+   * `getInitialPathFor(realIndex, j)`.
+   *
+   * Strategy: flatten the captured items into a linear sequence (matching the
+   * source chart's natural DOM iteration order: series-then-point for bar,
+   * ring-by-ring for radial), then walk the target's iteration positions in
+   * the same order and pair them up 1:1. This handles every supported shape
+   * without per-pair branching:
+   *
+   *   - bar (1 series, N pts) ↔ radial-family (N items)  → linear[k] ↔ k
+   *   - bar (M series, 1 pt)  ↔ radial-family (M items)  → linear[k] ↔ k
+   *   - radial-family (N items) ↔ bar (any matching shape) → linear[k] ↔ flat target
+   *   - radial-family ↔ radial-family                    → linear[k] ↔ k
+   *
+   * @param {Array<{ realIndex: number, j: number, d: string, fill: string|null }>} captured
+   * @param {string} _fromType
+   * @param {string} toType
+   * @param {any} newSeries - the series array being passed to the new chart;
+   *   used only to derive the bar target's (realIndex, j) iteration positions.
+   */
+  _buildMapping(captured, _fromType, toType, newSeries) {
+    const map = /* @__PURE__ */ new Map();
+    const tf = familyOf(toType);
+    const flat = captured.slice().sort((a, b) => a.realIndex - b.realIndex || a.j - b.j);
+    if (tf === "radial") {
+      flat.forEach((c, i) => {
+        map.set(`${i}:0`, { d: c.d, fill: c.fill });
+      });
+      return map;
+    }
+    if (tf === "bar") {
+      const positions = [];
+      const series = Array.isArray(newSeries) ? newSeries : [];
+      series.forEach((s, seriesIdx) => {
+        const data = s && Array.isArray(s.data) ? s.data : [];
+        for (let j = 0; j < data.length; j++) {
+          positions.push({ realIndex: seriesIdx, j });
+        }
+      });
+      flat.forEach((c, i) => {
+        const pos = positions[i];
+        if (pos) {
+          map.set(`${pos.realIndex}:${pos.j}`, { d: c.d, fill: c.fill });
+        }
+      });
+      return map;
+    }
+    return map;
+  }
+  isActive() {
+    return this._snapshot !== null;
+  }
+  /**
+   * @param {number} realIndex
+   * @param {number} j
+   * @returns {string | null}
+   */
+  getInitialPathFor(realIndex, j) {
+    if (!this._snapshot) return null;
+    const entry = this._snapshot.mapping.get(`${realIndex}:${j}`);
+    if (!entry) return null;
+    const dx = this._snapshot.oldLayout.translateX - (this.w.layout.translateX || 0);
+    const dy = this._snapshot.oldLayout.translateY - (this.w.layout.translateY || 0);
+    return dx === 0 && dy === 0 ? entry.d : this._translatePathD(entry.d, dx, dy);
+  }
+  /**
+   * Offset every absolute coordinate in an SVG path `d` by (dx, dy).
+   *
+   * Assumes the path uses only uppercase (absolute) commands — every path
+   * ApexCharts generates does. Relative-command paths would pass through
+   * unchanged at the lowercase, which is also semantically correct (deltas
+   * don't shift under a parent translate).
+   *
+   * @param {string} d
+   * @param {number} dx
+   * @param {number} dy
+   * @returns {string}
+   */
+  _translatePathD(d, dx, dy) {
+    if (dx === 0 && dy === 0) return d;
+    const commands = parsePath(d);
+    return commands.map(
+      /** @param {any[]} c */
+      (c) => {
+        const cmd = c[0];
+        if (cmd === "Z") return "Z";
+        if (cmd === "M" || cmd === "L" || cmd === "T") {
+          return `${cmd} ${c[1] + dx} ${c[2] + dy}`;
+        }
+        if (cmd === "H") return `${cmd} ${c[1] + dx}`;
+        if (cmd === "V") return `${cmd} ${c[1] + dy}`;
+        if (cmd === "C") {
+          return `${cmd} ${c[1] + dx} ${c[2] + dy} ${c[3] + dx} ${c[4] + dy} ${c[5] + dx} ${c[6] + dy}`;
+        }
+        if (cmd === "S" || cmd === "Q") {
+          return `${cmd} ${c[1] + dx} ${c[2] + dy} ${c[3] + dx} ${c[4] + dy}`;
+        }
+        if (cmd === "A") {
+          return `${cmd} ${c[1]} ${c[2]} ${c[3]} ${c[4]} ${c[5]} ${c[6] + dx} ${c[7] + dy}`;
+        }
+        return c.join(" ");
+      }
+    ).join(" ");
+  }
+  /**
+   * @param {number} realIndex
+   * @param {number} j
+   * @returns {string | null}
+   */
+  getInitialFillFor(realIndex, j) {
+    if (!this._snapshot) return null;
+    const entry = this._snapshot.mapping.get(`${realIndex}:${j}`);
+    return entry ? entry.fill : null;
+  }
+  /** @returns {number} */
+  getSpeed() {
+    const animCfg = this.w.config.chart.animations;
+    return animCfg.chartTypeMorph && animCfg.chartTypeMorph.speed || animCfg.speed || 600;
+  }
+  /**
+   * Fade newly-mounted axes / grid / legend / titles from opacity 0 → 1 in
+   * parallel with the morph. Without this the chart's chrome would pop in
+   * abruptly while the series elements are still mid-tween, which reads as a
+   * jarring layout shift.
+   */
+  applyChromeFade() {
+    var _a;
+    if (!this._snapshot || !Environment.isBrowser()) return;
+    const baseEl = (_a = this.w.globals.dom) == null ? void 0 : _a.baseEl;
+    if (!baseEl) return;
+    const speed = this.getSpeed();
+    const chromeSelectors = [
+      ".apexcharts-xaxis",
+      ".apexcharts-yaxis",
+      ".apexcharts-grid",
+      ".apexcharts-gridlines-horizontal",
+      ".apexcharts-gridlines-vertical",
+      ".apexcharts-legend",
+      ".apexcharts-title-text",
+      ".apexcharts-subtitle-text"
+    ];
+    chromeSelectors.forEach((sel) => {
+      baseEl.querySelectorAll(sel).forEach((el) => {
+        if (!el.style) return;
+        el.style.opacity = "0";
+        el.style.transition = `opacity ${speed}ms ease-out`;
+        BrowserAPIs.requestAnimationFrame(() => {
+          el.style.opacity = "1";
+        });
+        setTimeout(() => {
+          el.style.transition = "";
+          el.style.opacity = "";
+        }, speed + 80);
+      });
+    });
+    setTimeout(() => this.cleanup(), speed + 100);
+  }
+  cleanup() {
+    this._snapshot = null;
+  }
+}
+ApexCharts.registerFeatures({ morphTypeChange: MorphTypeChange });
 class BarDataLabels {
   /**
    * @param {import('../../../charts/Bar').default} barCtx
@@ -27976,7 +28448,7 @@ let Helpers$1 = class Helpers4 {
     j,
     w
   }) {
-    var _a;
+    var _a, _b, _c;
     const graphics = new Graphics(this.barCtx.w);
     strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
     if (!strokeWidth) strokeWidth = 0;
@@ -28002,7 +28474,13 @@ let Helpers$1 = class Helpers4 {
       );
     }
     let pathFrom;
-    if (w.globals.previousPaths.length > 0) {
+    const morphFrom = (_c = (_b = this.barCtx.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(
+      realIndex,
+      j
+    );
+    if (morphFrom) {
+      pathFrom = morphFrom;
+    } else if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
     } else {
       pathFrom = graphics.move(x1, y1) + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + closing;
@@ -28043,6 +28521,7 @@ let Helpers$1 = class Helpers4 {
     strokeWidth,
     w
   }) {
+    var _a, _b;
     const graphics = new Graphics(this.barCtx.w);
     const center = w.layout.gridWidth / 2;
     const halfWidthFor = (v) => Math.abs(v / this.barCtx.invertedYRatio) / 2;
@@ -28065,7 +28544,13 @@ let Helpers$1 = class Helpers4 {
     const bottomRightX = center + bottomHalf;
     const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
     let pathFrom;
-    if (w.globals.previousPaths.length > 0) {
+    const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
+      realIndex,
+      j
+    );
+    if (morphFrom) {
+      pathFrom = morphFrom;
+    } else if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
     } else {
       pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
@@ -28095,7 +28580,7 @@ let Helpers$1 = class Helpers4 {
     j,
     w
   }) {
-    var _a;
+    var _a, _b, _c;
     const graphics = new Graphics(this.barCtx.w);
     strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
     if (!strokeWidth) strokeWidth = 0;
@@ -28123,7 +28608,13 @@ let Helpers$1 = class Helpers4 {
       );
     }
     let pathFrom;
-    if (w.globals.previousPaths.length > 0) {
+    const morphFrom = (_c = (_b = this.barCtx.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(
+      realIndex,
+      j
+    );
+    if (morphFrom) {
+      pathFrom = morphFrom;
+    } else if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
     } else {
       const slFrom = isFunnel ? graphics.line(fromX, y2) : sl;
@@ -28618,6 +29109,7 @@ class Bar {
     type,
     classes
   }) {
+    var _a;
     const w = this.w;
     const graphics = new Graphics(this.w, this.ctx);
     let skipDrawing = false;
@@ -28704,6 +29196,8 @@ class Bar {
       delay = delayMs / delayFactor;
     }
     if (!skipDrawing) {
+      const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
+      const dataChangeSpeed = morphActive ? this.ctx.morphTypeChange.getSpeed() : w.config.chart.animations.dynamicAnimation.speed;
       const renderedPath = (
         /** @type {any} */
         graphics.renderPaths({
@@ -28718,7 +29212,7 @@ class Bar {
           fill: pathFill,
           animationDelay: delay,
           initialSpeed: w.config.chart.animations.speed,
-          dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
+          dataChangeSpeed,
           className: `apexcharts-${type}-area ${classes}`,
           chartType: type,
           bindEventsOnPaths: false
@@ -31452,6 +31946,7 @@ class Pie {
    * @param {any[]} series
    */
   draw(series) {
+    var _a;
     const self = this;
     const w = this.w;
     const graphics = new Graphics(this.w);
@@ -31487,7 +31982,8 @@ class Pie {
         this.sliceSizes.push(w.globals.radialSize);
       }
     }
-    if (w.globals.dataChanged) {
+    const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
+    if (w.globals.dataChanged && !morphActive) {
       let prevTotal = 0;
       for (let k = 0; k < w.globals.previousPaths.length; k++) {
         prevTotal += Utils$1.negToZero(w.globals.previousPaths[k]);
@@ -31551,6 +32047,7 @@ class Pie {
    * @param {any[]} series
    */
   drawArcs(sectorAngleArr, series) {
+    var _a;
     const w = this.w;
     const filters = new Filters(this.w);
     const graphics = new Graphics(this.w);
@@ -31563,6 +32060,7 @@ class Pie {
     let endAngle = this.initialAngle;
     let prevEndAngle = this.initialAngle;
     this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0;
+    const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
     for (let i = 0; i < sectorAngleArr.length; i++) {
       const elPieArc = graphics.group({
         class: `apexcharts-series apexcharts-pie-series`,
@@ -31581,7 +32079,8 @@ class Pie {
         size: this.sliceSizes[i],
         value: series[i]
       });
-      const path = this.getChangedPath(prevStartAngle, prevEndAngle);
+      const morphFrom = morphActive ? this.ctx.morphTypeChange.getInitialPathFor(i, 0) : null;
+      const path = morphFrom || this.getChangedPath(prevStartAngle, prevEndAngle);
       const elPath = graphics.drawPath({
         d: path,
         stroke: Array.isArray(this.lineColorArr) ? this.lineColorArr[i] : this.lineColorArr,
@@ -31651,7 +32150,17 @@ class Pie {
       } else {
         this.animBeginArr.push(0);
       }
-      if (this.dynamicAnim && w.globals.dataChanged) {
+      if (morphActive && morphFrom) {
+        const targetD = this.getPiePath({
+          me: this,
+          startAngle,
+          angle,
+          size: this.sliceSizes[i]
+        });
+        const morphSpeed = this.ctx.morphTypeChange.getSpeed();
+        elPath.node.setAttribute("data:pathOrig", targetD);
+        elPath.animate(morphSpeed).plot(targetD).attr({ "stroke-width": this.strokeWidth });
+      } else if (this.dynamicAnim && w.globals.dataChanged) {
         this.animatePaths(elPath, {
           size: this.sliceSizes[i],
           endAngle,
@@ -32850,6 +33359,7 @@ class Radial extends Pie {
    * @param {Record<string, any>} opts
    */
   drawArcs(opts) {
+    var _a;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const fill = new Fill(this.w);
@@ -32903,6 +33413,7 @@ class Radial extends Pie {
     if (w.config.plotOptions.radialBar.inverseOrder) {
       reverseLoop = true;
     }
+    const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
     for (let i = reverseLoop ? opts.series.length - 1 : 0; reverseLoop ? i >= 0 : i < opts.series.length; reverseLoop ? i-- : i++) {
       const elRadialBarArc = graphics.group({
         class: `apexcharts-series apexcharts-radial-series`,
@@ -32949,11 +33460,14 @@ class Radial extends Pie {
       }
       const angle = endAngle - startAngle;
       const dashArray = Array.isArray(w.config.stroke.dashArray) ? w.config.stroke.dashArray[i] : w.config.stroke.dashArray;
+      const morphFrom = morphActive ? this.ctx.morphTypeChange.getInitialPathFor(i, 0) : null;
+      const morphFromType = morphActive ? this.ctx.morphTypeChange.getFromType() : null;
+      const morphFromFilled = !!morphFrom && (morphFromType === "bar" || morphFromType === "pie" || morphFromType === "donut" || morphFromType === "polarArea");
       const elPath = graphics.drawPath({
-        d: "",
-        stroke: opts.skipValueArc ? "transparent" : pathFill,
-        strokeWidth: opts.skipValueArc ? 0 : strokeWidth,
-        fill: "none",
+        d: morphFrom || "",
+        stroke: morphFromFilled ? "transparent" : opts.skipValueArc ? "transparent" : pathFill,
+        strokeWidth: morphFromFilled ? 0 : opts.skipValueArc ? 0 : strokeWidth,
+        fill: morphFromFilled ? pathFill : "none",
         fillOpacity: w.config.fill.opacity,
         classes: "apexcharts-radialbar-area apexcharts-radialbar-slice-" + i,
         strokeDashArray: dashArray
@@ -33036,20 +33550,53 @@ class Radial extends Pie {
       }
       this.animDur = dur / (opts.series.length * 1.2) + this.animDur;
       this.animBeginArr.push(this.animDur);
-      this.animatePaths(elPath, {
-        centerX: opts.centerX,
-        centerY: opts.centerY,
-        endAngle,
-        startAngle,
-        prevEndAngle,
-        prevStartAngle,
-        size: opts.size,
-        i,
-        totalItems: 2,
-        animBeginArr: this.animBeginArr,
-        dur,
-        shouldSetPrevPaths: true
-      });
+      if (morphActive && morphFrom) {
+        const morphSpeed = this.ctx.morphTypeChange.getSpeed();
+        const actualArcD = this.getPiePath({
+          me: this,
+          startAngle,
+          angle,
+          size: opts.size
+        });
+        if (morphFromFilled) {
+          const targetD = this.ctx.morphTypeChange.buildRingSegmentPath(
+            opts.centerX,
+            opts.centerY,
+            opts.size,
+            strokeWidth,
+            startAngle,
+            startAngle + angle
+          );
+          elPath.animate(morphSpeed).plot(targetD).after(
+            /** @this {any} */
+            function() {
+              this.attr({
+                d: actualArcD,
+                fill: "none",
+                stroke: opts.skipValueArc ? "transparent" : pathFill,
+                "stroke-width": opts.skipValueArc ? 0 : strokeWidth
+              });
+            }
+          );
+        } else {
+          elPath.animate(morphSpeed).plot(actualArcD).attr({ "stroke-width": strokeWidth });
+        }
+      } else {
+        this.animatePaths(elPath, {
+          centerX: opts.centerX,
+          centerY: opts.centerY,
+          endAngle,
+          startAngle,
+          prevEndAngle,
+          prevStartAngle,
+          size: opts.size,
+          i,
+          totalItems: 2,
+          animBeginArr: this.animBeginArr,
+          dur,
+          shouldSetPrevPaths: true
+        });
+      }
     }
     return {
       g,
@@ -34345,3 +34892,4 @@ ApexCharts.use({
 export {
   ApexCharts as default
 };
+//# sourceMappingURL=apexcharts.esm.js.map

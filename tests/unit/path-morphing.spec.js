@@ -236,6 +236,46 @@ describe('morphPaths(fromD, toD)', () => {
     // After bezier normalisation coords may differ, so we just check it's a valid path
     expect(mid).toMatch(/^[MLCQZSHVAT\s\d.,-]+$/)
   })
+
+  // Regression: arc-containing targets used to crash via NaN cascade because
+  // `new Matrix(0,0,0,0,0,0)` was a zero matrix (the `0 ?? 1` defaults
+  // preserve 0). Every transform inside arcToBezier collapsed to (0,0), the
+  // for-loop guard never executed, and `arcSegPoints[0]` was undefined.
+  // The fix is to use `new Matrix()` (identity) everywhere in arcToBezier.
+  it('morphs a bar rectangle into a pie arc without crashing', () => {
+    const barRect =
+      'M 31.4 283 L 31.4 81 C 31.4 79 33.4 77 35.4 77 L 93.4 77 ' +
+      'C 95.4 77 97.4 79 97.4 81 L 97.4 283 C 97.4 285 95.4 287 93.4 287 ' +
+      'L 35.4 287 C 33.4 287 31.4 285 31.4 283 Z'
+    const pieArc =
+      'M 335.8 9.2 A 163.8 163.8 0 0 1 496.7 142.3 L 337.8 172.6 ' +
+      'C 336.8 172.8 335.8 172 335.8 171 L 335.8 9.2 Z'
+    expect(() => morphPaths(barRect, pieArc)).not.toThrow()
+    const morph = morphPaths(barRect, pieArc)
+    const mid = morph(0.5)
+    expect(typeof mid).toBe('string')
+    expect(mid).not.toMatch(/NaN/)
+  })
+
+  it('morphs between two arcs without producing NaN', () => {
+    const fromArc = 'M 100 100 A 50 50 0 0 1 200 100 Z'
+    const toArc = 'M 50 50 A 80 80 0 0 1 300 50 Z'
+    const morph = morphPaths(fromArc, toArc)
+    for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+      const d = morph(t)
+      expect(d).not.toMatch(/NaN/)
+    }
+  })
+
+  it('handles a target arc spanning the full sweep range', () => {
+    // Large-arc-flag = 1 hits a different branch in arcToBezier
+    const morph = morphPaths(
+      'M 0 0 L 100 0',
+      'M 0 0 A 50 50 0 1 1 100 0 L 100 0',
+    )
+    expect(typeof morph(0.5)).toBe('string')
+    expect(morph(0.5)).not.toMatch(/NaN/)
+  })
 })
 
 // ─────────────────────────────────────────────────────────────────────────────

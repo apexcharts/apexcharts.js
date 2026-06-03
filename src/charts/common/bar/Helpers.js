@@ -506,7 +506,16 @@ export default class Helpers {
     }
 
     let pathFrom
-    if (w.globals.previousPaths.length > 0) {
+    // Cross-type morph: use the captured outgoing path as the start so the
+    // morphPaths engine bridges (pie/radial) → bar. No-op when the morph
+    // feature isn't registered or no snapshot is active.
+    const morphFrom = this.barCtx.ctx?.morphTypeChange?.getInitialPathFor(
+      realIndex,
+      j,
+    )
+    if (morphFrom) {
+      pathFrom = morphFrom
+    } else if (w.globals.previousPaths.length > 0) {
       // Update: survivor with matching command count → animate; else snap.
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo)
     } else {
@@ -598,7 +607,13 @@ export default class Helpers {
       ' Z'
 
     let pathFrom
-    if (w.globals.previousPaths.length > 0) {
+    const morphFrom = this.barCtx.ctx?.morphTypeChange?.getInitialPathFor(
+      realIndex,
+      j,
+    )
+    if (morphFrom) {
+      pathFrom = morphFrom
+    } else if (w.globals.previousPaths.length > 0) {
       // Update: survivor with matching command count → animate; else snap.
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo)
     } else {
@@ -691,7 +706,13 @@ export default class Helpers {
     }
 
     let pathFrom
-    if (w.globals.previousPaths.length > 0) {
+    const morphFrom = this.barCtx.ctx?.morphTypeChange?.getInitialPathFor(
+      realIndex,
+      j,
+    )
+    if (morphFrom) {
+      pathFrom = morphFrom
+    } else if (w.globals.previousPaths.length > 0) {
       // Update: survivor with matching command count → animate; else snap.
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo)
     } else {

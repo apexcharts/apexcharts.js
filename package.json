@@ -145,6 +145,10 @@
       "import": "./dist/features/keyboard.esm.js",
       "require": "./dist/features/keyboard.common.js"
     },
+    "./features/morph": {
+      "import": "./dist/features/morph.esm.js",
+      "require": "./dist/features/morph.common.js"
+    },
     "./features/all": {
       "import": "./dist/features/all.esm.js",
       "require": "./dist/features/all.common.js"

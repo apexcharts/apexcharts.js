@@ -30,12 +30,13 @@ class Point {
 
 class Matrix {
   /**
-   * @param {number} a
-   * @param {number} b
-   * @param {number} c
-   * @param {number} d
-   * @param {number} e
-   * @param {number} f
+   * Defaults to the identity matrix when called with no args.
+   * @param {number} [a]
+   * @param {number} [b]
+   * @param {number} [c]
+   * @param {number} [d]
+   * @param {number} [e]
+   * @param {number} [f]
    */
   constructor(a, b, c, d, e, f) {
     this.a = a ?? 1

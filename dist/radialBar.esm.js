@@ -87,6 +87,7 @@ class Pie {
    * @param {any[]} series
    */
   draw(series) {
+    var _a;
     const self = this;
     const w = this.w;
     const graphics = new Graphics(this.w);
@@ -122,7 +123,8 @@ class Pie {
         this.sliceSizes.push(w.globals.radialSize);
       }
     }
-    if (w.globals.dataChanged) {
+    const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
+    if (w.globals.dataChanged && !morphActive) {
       let prevTotal = 0;
       for (let k = 0; k < w.globals.previousPaths.length; k++) {
         prevTotal += Utils.negToZero(w.globals.previousPaths[k]);
@@ -186,6 +188,7 @@ class Pie {
    * @param {any[]} series
    */
   drawArcs(sectorAngleArr, series) {
+    var _a;
     const w = this.w;
     const filters = new Filters(this.w);
     const graphics = new Graphics(this.w);
@@ -198,6 +201,7 @@ class Pie {
     let endAngle = this.initialAngle;
     let prevEndAngle = this.initialAngle;
     this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0;
+    const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
     for (let i = 0; i < sectorAngleArr.length; i++) {
       const elPieArc = graphics.group({
         class: `apexcharts-series apexcharts-pie-series`,
@@ -216,7 +220,8 @@ class Pie {
         size: this.sliceSizes[i],
         value: series[i]
       });
-      const path = this.getChangedPath(prevStartAngle, prevEndAngle);
+      const morphFrom = morphActive ? this.ctx.morphTypeChange.getInitialPathFor(i, 0) : null;
+      const path = morphFrom || this.getChangedPath(prevStartAngle, prevEndAngle);
       const elPath = graphics.drawPath({
         d: path,
         stroke: Array.isArray(this.lineColorArr) ? this.lineColorArr[i] : this.lineColorArr,
@@ -286,7 +291,17 @@ class Pie {
       } else {
         this.animBeginArr.push(0);
       }
-      if (this.dynamicAnim && w.globals.dataChanged) {
+      if (morphActive && morphFrom) {
+        const targetD = this.getPiePath({
+          me: this,
+          startAngle,
+          angle,
+          size: this.sliceSizes[i]
+        });
+        const morphSpeed = this.ctx.morphTypeChange.getSpeed();
+        elPath.node.setAttribute("data:pathOrig", targetD);
+        elPath.animate(morphSpeed).plot(targetD).attr({ "stroke-width": this.strokeWidth });
+      } else if (this.dynamicAnim && w.globals.dataChanged) {
         this.animatePaths(elPath, {
           size: this.sliceSizes[i],
           endAngle,
@@ -1066,6 +1081,7 @@ class Radial extends Pie {
    * @param {Record<string, any>} opts
    */
   drawArcs(opts) {
+    var _a;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const fill = new Fill(this.w);
@@ -1119,6 +1135,7 @@ class Radial extends Pie {
     if (w.config.plotOptions.radialBar.inverseOrder) {
       reverseLoop = true;
     }
+    const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
     for (let i = reverseLoop ? opts.series.length - 1 : 0; reverseLoop ? i >= 0 : i < opts.series.length; reverseLoop ? i-- : i++) {
       const elRadialBarArc = graphics.group({
         class: `apexcharts-series apexcharts-radial-series`,
@@ -1165,11 +1182,14 @@ class Radial extends Pie {
       }
       const angle = endAngle - startAngle;
       const dashArray = Array.isArray(w.config.stroke.dashArray) ? w.config.stroke.dashArray[i] : w.config.stroke.dashArray;
+      const morphFrom = morphActive ? this.ctx.morphTypeChange.getInitialPathFor(i, 0) : null;
+      const morphFromType = morphActive ? this.ctx.morphTypeChange.getFromType() : null;
+      const morphFromFilled = !!morphFrom && (morphFromType === "bar" || morphFromType === "pie" || morphFromType === "donut" || morphFromType === "polarArea");
       const elPath = graphics.drawPath({
-        d: "",
-        stroke: opts.skipValueArc ? "transparent" : pathFill,
-        strokeWidth: opts.skipValueArc ? 0 : strokeWidth,
-        fill: "none",
+        d: morphFrom || "",
+        stroke: morphFromFilled ? "transparent" : opts.skipValueArc ? "transparent" : pathFill,
+        strokeWidth: morphFromFilled ? 0 : opts.skipValueArc ? 0 : strokeWidth,
+        fill: morphFromFilled ? pathFill : "none",
         fillOpacity: w.config.fill.opacity,
         classes: "apexcharts-radialbar-area apexcharts-radialbar-slice-" + i,
         strokeDashArray: dashArray
@@ -1252,20 +1272,53 @@ class Radial extends Pie {
       }
       this.animDur = dur / (opts.series.length * 1.2) + this.animDur;
       this.animBeginArr.push(this.animDur);
-      this.animatePaths(elPath, {
-        centerX: opts.centerX,
-        centerY: opts.centerY,
-        endAngle,
-        startAngle,
-        prevEndAngle,
-        prevStartAngle,
-        size: opts.size,
-        i,
-        totalItems: 2,
-        animBeginArr: this.animBeginArr,
-        dur,
-        shouldSetPrevPaths: true
-      });
+      if (morphActive && morphFrom) {
+        const morphSpeed = this.ctx.morphTypeChange.getSpeed();
+        const actualArcD = this.getPiePath({
+          me: this,
+          startAngle,
+          angle,
+          size: opts.size
+        });
+        if (morphFromFilled) {
+          const targetD = this.ctx.morphTypeChange.buildRingSegmentPath(
+            opts.centerX,
+            opts.centerY,
+            opts.size,
+            strokeWidth,
+            startAngle,
+            startAngle + angle
+          );
+          elPath.animate(morphSpeed).plot(targetD).after(
+            /** @this {any} */
+            function() {
+              this.attr({
+                d: actualArcD,
+                fill: "none",
+                stroke: opts.skipValueArc ? "transparent" : pathFill,
+                "stroke-width": opts.skipValueArc ? 0 : strokeWidth
+              });
+            }
+          );
+        } else {
+          elPath.animate(morphSpeed).plot(actualArcD).attr({ "stroke-width": strokeWidth });
+        }
+      } else {
+        this.animatePaths(elPath, {
+          centerX: opts.centerX,
+          centerY: opts.centerY,
+          endAngle,
+          startAngle,
+          prevEndAngle,
+          prevStartAngle,
+          size: opts.size,
+          i,
+          totalItems: 2,
+          animBeginArr: this.animBeginArr,
+          dur,
+          shouldSetPrevPaths: true
+        });
+      }
     }
     return {
       g,

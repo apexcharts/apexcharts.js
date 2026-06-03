@@ -57,6 +57,21 @@ export default class UpdateHelpers {
           }
         }
 
+        // Cross-type morph capture (opt-in via the 'morph' feature). Runs
+        // before the config merge so it sees the OLD chart.type while the
+        // outgoing DOM is still mounted. Null-safe — if the feature isn't
+        // registered, this no-ops via optional chaining.
+        if (animate && options && typeof options === 'object') {
+          const newType = options?.chart?.type
+          if (newType && newType !== w.config.chart.type) {
+            ch.morphTypeChange?.captureBeforeDestroy({
+              fromType: w.config.chart.type,
+              toType: newType,
+              newSeries: options.series || w.config.series,
+            })
+          }
+        }
+
         if (options && typeof options === 'object') {
           ch.config = new Config(options)
           options = CoreUtils.extendArrayProps(ch.config, options, w)

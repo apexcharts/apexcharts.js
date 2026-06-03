@@ -3360,6 +3360,16 @@ class Options {
             enabled: true,
             speed: 350
           },
+          typeChange: {
+            // Cross-type morph (updateOptions changing chart.type). Bridges
+            // the destroy+recreate flicker by capturing old paths and morphing
+            // them into the new chart-type's paths via the existing PathMorphing
+            // engine. Supported pairs include bar ↔ pie/donut/radialBar/polarArea/
+            // funnel/pyramid (plus the trivial pie↔donut↔polarArea cases).
+            // Falls back to instant snap when types or data shape are incompatible.
+            enabled: true,
+            speed: 600
+          },
           // Honor the OS-level prefers-reduced-motion setting. When true (default)
           // and the user has the accessibility preference enabled, all initial-mount
           // animations are skipped and the chart renders instantly.
@@ -6172,7 +6182,7 @@ function applyProgressiveReveal(el, x, w) {
   const tick = (now) => {
     if (startAnchor === null) startAnchor = now;
     if (now - startAnchor >= revealDelay) {
-      style.opacity = "1";
+      style.opacity = "";
     } else {
       BrowserAPIs.requestAnimationFrame(tick);
     }
@@ -7047,7 +7057,7 @@ class Graphics {
     );
     const initialAnim = this.w.config.chart.animations.enabled;
     const dynamicAnim = initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled;
-    if (pathFrom && pathFrom.startsWith("M 0 0") && pathTo) {
+    if (pathFrom && pathFrom.startsWith("M 0 0 ") && pathTo) {
       const moveCommand = pathTo.match(/^M\s+[\d.-]+\s+[\d.-]+/);
       if (moveCommand) {
         pathFrom = pathFrom.replace(/^M\s+0\s+0/, moveCommand[0]);
@@ -7829,12 +7839,13 @@ class Point {
 }
 class Matrix {
   /**
-   * @param {number} a
-   * @param {number} b
-   * @param {number} c
-   * @param {number} d
-   * @param {number} e
-   * @param {number} f
+   * Defaults to the identity matrix when called with no args.
+   * @param {number} [a]
+   * @param {number} [b]
+   * @param {number} [c]
+   * @param {number} [d]
+   * @param {number} [e]
+   * @param {number} [f]
    */
   constructor(a, b, c, d, e, f) {
     this.a = a != null ? a : 1;
@@ -14796,7 +14807,10 @@ class Core {
       height: gl.svgHeight
     });
     if (heightUnit !== "%" && Environment.isBrowser()) {
-      const offsetY = cnf.chart.sparkline.enabled ? 0 : gl.axisCharts ? cnf.chart.parentHeightOffset : 0;
+      const needsAxisPadding = gl.axisCharts && (cnf.grid.show || cnf.dataLabels.enabled || cnf.xaxis.labels.show || cnf.xaxis.axisBorder.show || cnf.xaxis.axisTicks.show || cnf.yaxis.some(
+        (y) => y.show && (y.labels.show || y.axisBorder.show || y.axisTicks.show)
+      ));
+      const offsetY = cnf.chart.sparkline.enabled || !needsAxisPadding ? 0 : cnf.chart.parentHeightOffset;
       const paperNode = this.w.dom.Paper.node;
       if ((_a = paperNode.parentNode) == null ? void 0 : _a.parentNode) {
         paperNode.parentNode.parentNode.style.minHeight = `${gl.svgHeight + offsetY}px`;
@@ -14815,6 +14829,8 @@ class Core {
   resizeNonAxisCharts() {
     var _a, _b, _c, _d, _e, _f;
     const { w } = this;
+    const heightStr = w.config.chart.height ? String(w.config.chart.height) : "";
+    const userSetFixedHeight = heightStr !== "" && heightStr !== "auto";
     let legendHeight = 0;
     let offY = w.config.chart.sparkline.enabled ? 1 : 15;
     offY += w.config.grid.padding.bottom;
@@ -14883,10 +14899,13 @@ class Core {
       );
       const chartOffsetY = (_f = w.config.chart.offsetY) != null ? _f : 0;
       const elWrapHeight = svgHeight + Math.max(chartOffsetY, 0);
-      if (this.w.dom.elLegendForeign) {
-        this.w.dom.elLegendForeign.setAttribute("height", String(elWrapHeight));
-      }
-      if (!(w.config.chart.height && String(w.config.chart.height).includes("%"))) {
+      if (!userSetFixedHeight) {
+        if (this.w.dom.elLegendForeign) {
+          this.w.dom.elLegendForeign.setAttribute(
+            "height",
+            String(elWrapHeight)
+          );
+        }
         this.w.dom.elWrap.style.height = `${elWrapHeight}px`;
         Graphics.setAttrs(this.w.dom.Paper.node, { height: svgHeight });
         if (Environment.isBrowser()) {
@@ -14898,11 +14917,10 @@ class Core {
     const newHeight = Math.ceil(
       chartInnerDimensions + this.w.layout.translateY + legendHeight + offY
     );
+    if (userSetFixedHeight) return;
     if (this.w.dom.elLegendForeign) {
       this.w.dom.elLegendForeign.setAttribute("height", String(newHeight));
     }
-    if (w.config.chart.height && String(w.config.chart.height).includes("%"))
-      return;
     this.w.dom.elWrap.style.height = `${newHeight}px`;
     Graphics.setAttrs(this.w.dom.Paper.node, { height: newHeight });
     if (Environment.isBrowser()) {
@@ -16162,6 +16180,7 @@ class UpdateHelpers {
         this.w.globals.isExecCalled = false;
       }
       charts.forEach((ch, chartIndex) => {
+        var _a, _b;
         const w = ch.w;
         w.globals.shouldAnimate = animate;
         if (!redraw) {
@@ -16169,6 +16188,16 @@ class UpdateHelpers {
           w.globals.dataChanged = true;
           if (animate) {
             ch.series.getPreviousPaths();
+          }
+        }
+        if (animate && options2 && typeof options2 === "object") {
+          const newType = (_a = options2 == null ? void 0 : options2.chart) == null ? void 0 : _a.type;
+          if (newType && newType !== w.config.chart.type) {
+            (_b = ch.morphTypeChange) == null ? void 0 : _b.captureBeforeDestroy({
+              fromType: w.config.chart.type,
+              toType: newType,
+              newSeries: options2.series || w.config.series
+            });
           }
         }
         if (options2 && typeof options2 === "object") {
@@ -17916,7 +17945,7 @@ class Position {
       if (r.right > unionRight) unionRight = r.right;
     }
     if (!isFinite(unionLeft)) return null;
-    return (unionLeft + unionRight) / 2 - gridRect.left;
+    return (unionLeft + unionRight) / 2 - gridRect.left - (w.globals.barPadForNumericAxis || 0);
   }
   /**
    * Place tooltip above (or flipped: below) the union rect of all bars at
@@ -20563,8 +20592,12 @@ function arcToBezier(pos, val) {
     return [["C", A.x, A.y, B.x, B.y, B.x, B.y]];
   }
   primedCoord = new Point((A.x - B.x) / 2, (A.y - B.y) / 2).transform(
+    // Start with the identity matrix (no args → Matrix defaults a=d=1, others 0).
+    // Passing all-zero args here would produce a degenerate zero matrix, since
+    // `0 ?? 1` is `0`, not `1` — every subsequent transform then yields (0,0)
+    // and the arc-to-bezier conversion crashes on a NaN cascade.
     /** @type {any} */
-    new Matrix(0, 0, 0, 0, 0, 0).rotate(xAxisRotation)
+    new Matrix().rotate(xAxisRotation)
   );
   lambda = primedCoord.x * primedCoord.x / (rx * rx) + primedCoord.y * primedCoord.y / (ry * ry);
   if (lambda > 1) {
@@ -20573,7 +20606,7 @@ function arcToBezier(pos, val) {
     ry = lambda * ry;
   }
   mat = /** @type {any} */
-  new Matrix(0, 0, 0, 0, 0, 0).rotate(xAxisRotation).scale(1 / rx, 1 / ry).rotate(-xAxisRotation);
+  new Matrix().rotate(xAxisRotation).scale(1 / rx, 1 / ry).rotate(-xAxisRotation);
   A = A.transform(mat);
   B = B.transform(mat);
   k = [B.x - A.x, B.y - A.y];
@@ -20617,7 +20650,7 @@ function arcToBezier(pos, val) {
   arcSegPoints[0][0] = arcSegPoints[0][1].clone();
   arcSegPoints[arcSegPoints.length - 1][2] = arcSegPoints[arcSegPoints.length - 1][1].clone();
   mat = /** @type {any} */
-  new Matrix(0, 0, 0, 0, 0, 0).rotate(xAxisRotation).scale(rx, ry).rotate(-xAxisRotation);
+  new Matrix().rotate(xAxisRotation).scale(rx, ry).rotate(-xAxisRotation);
   for (i = 0, il = arcSegPoints.length; i < il; i++) {
     arcSegPoints[i][0] = arcSegPoints[i][0].transform(mat);
     arcSegPoints[i][1] = arcSegPoints[i][1].transform(mat);
@@ -21400,6 +21433,8 @@ const _InitCtxVariables = class _InitCtxVariables {
     ctx.exports = ExportsCtor ? new ExportsCtor(w, ctx) : null;
     const LegendCtor = reg.get("legend");
     ctx.legend = LegendCtor ? new LegendCtor(w, ctx) : null;
+    const MorphCtor = reg.get("morphTypeChange");
+    ctx.morphTypeChange = MorphCtor ? new MorphCtor(w, ctx) : null;
     const ToolbarCtor = reg.get("toolbar");
     Object.defineProperty(ctx, "toolbar", {
       get() {
@@ -21647,6 +21682,8 @@ class ApexCharts {
     __publicField(this, "keyboardNavigation");
     /** @type {any} */
     __publicField(this, "annotations");
+    /** @type {any} */
+    __publicField(this, "morphTypeChange");
     /** @type {any} */
     __publicField(this, "timeScale");
     /** @type {any} */
@@ -22166,6 +22203,8 @@ class ApexCharts {
       const graphData = this.create(this.w.config.series, options2 != null ? options2 : {});
       if (!graphData) return resolve(this);
       this.mount(graphData).then(() => {
+        var _a;
+        (_a = this.morphTypeChange) == null ? void 0 : _a.applyChromeFade();
         if (typeof this.w.config.chart.events.updated === "function") {
           this.w.config.chart.events.updated(this, this.w);
         }

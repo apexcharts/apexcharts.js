@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Chart Type Morph</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 24px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .actions {
+        margin: 24px auto 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+      }
+      .actions button {
+        color: #fff;
+        background: #008ffb;
+        border: none;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.active {
+        background: #00543d;
+      }
+      .speed-row {
+        margin: 16px auto;
+        text-align: center;
+        color: #5b6b78;
+        font-size: 13px;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+     <div class="wrap">
+        <h1>Chart-type morph</h1>
+        <p>
+          Click the buttons to switch chart types. With the optional
+          <code>apexcharts/features/morph</code> module loaded, supported pairs
+          (bar ↔ pie / donut / polarArea / radialBar) tween between paths
+          instead of flickering through a destroy + recreate.
+        </p>
+      
+        <div class="chart-wrap">
+          <div id="chart"></div>
+        </div>
+      
+        <div class="actions">
+          <button data-type="bar" data-horizontal="false">Column</button>
+          <button data-type="bar" data-horizontal="true">Horizontal bar</button>
+          <button data-type="pie">Pie</button>
+          <button data-type="donut">Donut</button>
+          <button data-type="polarArea">Polar area</button>
+          <button data-type="radialBar">Radial bar</button>
+        </div>
+      
+        <div class="actions">
+          <button id="randomize">Randomize values</button>
+        </div>
+      
+        <div class="speed-row">
+          Morph speed:
+          <input type="range" id="speed" min="100" max="15000" step="50" value="700" />
+          <span id="speed-value">700</span> ms
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: [{ name: 'Sessions', data: [44, 55, 41, 27, 33] }],
+        chart: {
+          type: 'bar',
+          height: 380,
+          toolbar: {
+            show: false,
+          },
+          animations: {
+            enabled: true,
+            speed: 800,
+            chartTypeMorph: {
+              enabled: true,
+              speed: 700,
+            },
+          },
+        },
+        grid: {
+          show: false,
+        },
+        labels: ['Direct', 'Organic', 'Referral', 'Social', 'Email'],
+        legend: { position: 'bottom' },
+        plotOptions: {
+          bar: {
+            borderRadius: 4,
+            columnWidth: '52%',
+            distributed: true,
+          },
+          radialBar: {
+            hollow: {
+              size: '5%',
+            },
+            track: {
+              show: false,
+            },
+          },
+        },
+        yaxis: {
+          show: false,
+          axisBorder: {
+            show: false,
+          },
+        },
+        xaxis: {
+          labels: {
+            show: false,
+          },
+          axisBorder: {
+            show: false,
+          },
+          axisTicks: {
+            show: false,
+          },
+        },
+        dataLabels: { enabled: false },
+        stroke: { width: 1, colors: ['#fff'] },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      var LABELS = ['Direct', 'Organic', 'Referral', 'Social', 'Email']
+      var currentType = 'bar'
+      var currentHorizontal = false
+      var currentValues = [44, 55, 41, 27, 33]
+
+      function buildSeriesFor(type, values) {
+        if (type === 'bar') {
+          return [{ name: 'Sessions', data: values.slice() }]
+        }
+        return values.slice()
+      }
+
+      function setActive(type, horizontal) {
+        document
+          .querySelectorAll('.actions button[data-type]')
+          .forEach(function (btn) {
+            var btnType = btn.getAttribute('data-type')
+            var btnH = btn.getAttribute('data-horizontal')
+            var active =
+              btnType === type && (type !== 'bar' || String(horizontal) === btnH)
+            btn.classList.toggle('active', active)
+          })
+      }
+      setActive(currentType, currentHorizontal)
+
+      document.querySelectorAll('.actions button[data-type]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var nextType = btn.getAttribute('data-type')
+          var nextHorizontal = btn.getAttribute('data-horizontal') === 'true'
+          if (nextType === currentType && nextHorizontal === currentHorizontal) return
+          currentType = nextType
+          currentHorizontal = nextHorizontal
+          setActive(currentType, currentHorizontal)
+          chart.updateOptions({
+            chart: { type: currentType },
+            plotOptions: { bar: { horizontal: currentHorizontal } },
+            series: buildSeriesFor(currentType, currentValues),
+            labels: LABELS,
+          })
+        })
+      })
+
+      document.querySelector('#randomize').addEventListener('click', function () {
+        currentValues = currentValues.map(function () {
+          return Math.floor(Math.random() * 80) + 10
+        })
+        chart.updateSeries(buildSeriesFor(currentType, currentValues))
+      })
+
+      var speedInput = document.querySelector('#speed')
+      var speedValue = document.querySelector('#speed-value')
+      speedInput.addEventListener('input', function () {
+        var v = parseInt(speedInput.value, 10)
+        speedValue.textContent = v
+        chart.updateOptions(
+          { chart: { animations: { chartTypeMorph: { speed: v } } } },
+          false,
+          false,
+        )
+      })
+    </script>
+
+    
+  </body>
+</html>

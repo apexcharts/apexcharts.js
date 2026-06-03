@@ -288,6 +288,16 @@ export default class Options {
             enabled: true,
             speed: 350,
           },
+          chartTypeMorph: {
+            // Cross-type morph (updateOptions changing chart.type). Bridges
+            // the destroy+recreate flicker by capturing old paths and morphing
+            // them into the new chart-type's paths via the existing PathMorphing
+            // engine. Supported pairs include bar ↔ pie/donut/radialBar/polarArea/
+            // funnel/pyramid (plus the trivial pie↔donut↔polarArea cases).
+            // Falls back to instant snap when types or data shape are incompatible.
+            enabled: true,
+            speed: 600,
+          },
           // Honor the OS-level prefers-reduced-motion setting. When true (default)
           // and the user has the accessibility preference enabled, all initial-mount
           // animations are skipped and the chart renders instantly.

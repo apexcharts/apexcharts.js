@@ -56,6 +56,7 @@ export default class ApexCharts {
   /** @type {any} */ zoomPanSelection
   /** @type {any} */ keyboardNavigation
   /** @type {any} */ annotations
+  /** @type {any} */ morphTypeChange
   /** @type {any} */ timeScale
   /** @type {any} */ _keyboardNavigation
   /** @type {any} */ windowResizeHandler
@@ -758,6 +759,10 @@ export default class ApexCharts {
       if (!graphData) return resolve(this)
       this.mount(graphData)
         .then(() => {
+          // Chrome cross-fade for cross-type morph (no-op when the morph
+          // feature isn't registered or no morph was captured this update).
+          this.morphTypeChange?.applyChromeFade()
+
           if (typeof this.w.config.chart.events.updated === 'function') {
             this.w.config.chart.events.updated(this, this.w)
           }

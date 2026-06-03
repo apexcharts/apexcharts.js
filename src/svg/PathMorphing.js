@@ -301,7 +301,11 @@ function arcToBezier(pos, val) {
   }
 
   primedCoord = new Point((A.x - B.x) / 2, (A.y - B.y) / 2).transform(
-    /** @type {any} */ (new Matrix(0, 0, 0, 0, 0, 0)).rotate(xAxisRotation),
+    // Start with the identity matrix (no args → Matrix defaults a=d=1, others 0).
+    // Passing all-zero args here would produce a degenerate zero matrix, since
+    // `0 ?? 1` is `0`, not `1` — every subsequent transform then yields (0,0)
+    // and the arc-to-bezier conversion crashes on a NaN cascade.
+    /** @type {any} */ (new Matrix()).rotate(xAxisRotation),
   )
   lambda =
     (primedCoord.x * primedCoord.x) / (rx * rx) +
@@ -312,7 +316,7 @@ function arcToBezier(pos, val) {
     ry = lambda * ry
   }
 
-  mat = /** @type {any} */ (new Matrix(0, 0, 0, 0, 0, 0))
+  mat = /** @type {any} */ (new Matrix())
     .rotate(xAxisRotation)
     .scale(1 / rx, 1 / ry)
     .rotate(-xAxisRotation)
@@ -370,7 +374,7 @@ function arcToBezier(pos, val) {
   arcSegPoints[arcSegPoints.length - 1][2] =
     arcSegPoints[arcSegPoints.length - 1][1].clone()
 
-  mat = /** @type {any} */ (new Matrix(0, 0, 0, 0, 0, 0))
+  mat = /** @type {any} */ (new Matrix())
     .rotate(xAxisRotation)
     .scale(rx, ry)
     .rotate(-xAxisRotation)

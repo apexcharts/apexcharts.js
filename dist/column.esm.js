@@ -914,7 +914,7 @@ class Helpers {
     j,
     w
   }) {
-    var _a;
+    var _a, _b, _c;
     const graphics = new Graphics(this.barCtx.w);
     strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
     if (!strokeWidth) strokeWidth = 0;
@@ -940,7 +940,13 @@ class Helpers {
       );
     }
     let pathFrom;
-    if (w.globals.previousPaths.length > 0) {
+    const morphFrom = (_c = (_b = this.barCtx.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(
+      realIndex,
+      j
+    );
+    if (morphFrom) {
+      pathFrom = morphFrom;
+    } else if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
     } else {
       pathFrom = graphics.move(x1, y1) + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + closing;
@@ -981,6 +987,7 @@ class Helpers {
     strokeWidth,
     w
   }) {
+    var _a, _b;
     const graphics = new Graphics(this.barCtx.w);
     const center = w.layout.gridWidth / 2;
     const halfWidthFor = (v) => Math.abs(v / this.barCtx.invertedYRatio) / 2;
@@ -1003,7 +1010,13 @@ class Helpers {
     const bottomRightX = center + bottomHalf;
     const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
     let pathFrom;
-    if (w.globals.previousPaths.length > 0) {
+    const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
+      realIndex,
+      j
+    );
+    if (morphFrom) {
+      pathFrom = morphFrom;
+    } else if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
     } else {
       pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
@@ -1033,7 +1046,7 @@ class Helpers {
     j,
     w
   }) {
-    var _a;
+    var _a, _b, _c;
     const graphics = new Graphics(this.barCtx.w);
     strokeWidth = Array.isArray(strokeWidth) ? strokeWidth[realIndex] : strokeWidth;
     if (!strokeWidth) strokeWidth = 0;
@@ -1061,7 +1074,13 @@ class Helpers {
       );
     }
     let pathFrom;
-    if (w.globals.previousPaths.length > 0) {
+    const morphFrom = (_c = (_b = this.barCtx.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(
+      realIndex,
+      j
+    );
+    if (morphFrom) {
+      pathFrom = morphFrom;
+    } else if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
     } else {
       const slFrom = isFunnel ? graphics.line(fromX, y2) : sl;
@@ -1559,6 +1578,7 @@ class Bar {
     type,
     classes
   }) {
+    var _a;
     const w = this.w;
     const graphics = new Graphics(this.w, this.ctx);
     let skipDrawing = false;
@@ -1645,6 +1665,8 @@ class Bar {
       delay = delayMs / delayFactor;
     }
     if (!skipDrawing) {
+      const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
+      const dataChangeSpeed = morphActive ? this.ctx.morphTypeChange.getSpeed() : w.config.chart.animations.dynamicAnimation.speed;
       const renderedPath = (
         /** @type {any} */
         graphics.renderPaths({
@@ -1659,7 +1681,7 @@ class Bar {
           fill: pathFill,
           animationDelay: delay,
           initialSpeed: w.config.chart.animations.speed,
-          dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
+          dataChangeSpeed,
           className: `apexcharts-${type}-area ${classes}`,
           chartType: type,
           bindEventsOnPaths: false

@@ -87,6 +87,7 @@ class Pie {
    * @param {any[]} series
    */
   draw(series) {
+    var _a;
     const self = this;
     const w = this.w;
     const graphics = new Graphics(this.w);
@@ -122,7 +123,8 @@ class Pie {
         this.sliceSizes.push(w.globals.radialSize);
       }
     }
-    if (w.globals.dataChanged) {
+    const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
+    if (w.globals.dataChanged && !morphActive) {
       let prevTotal = 0;
       for (let k = 0; k < w.globals.previousPaths.length; k++) {
         prevTotal += Utils.negToZero(w.globals.previousPaths[k]);
@@ -186,6 +188,7 @@ class Pie {
    * @param {any[]} series
    */
   drawArcs(sectorAngleArr, series) {
+    var _a;
     const w = this.w;
     const filters = new Filters(this.w);
     const graphics = new Graphics(this.w);
@@ -198,6 +201,7 @@ class Pie {
     let endAngle = this.initialAngle;
     let prevEndAngle = this.initialAngle;
     this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0;
+    const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
     for (let i = 0; i < sectorAngleArr.length; i++) {
       const elPieArc = graphics.group({
         class: `apexcharts-series apexcharts-pie-series`,
@@ -216,7 +220,8 @@ class Pie {
         size: this.sliceSizes[i],
         value: series[i]
       });
-      const path = this.getChangedPath(prevStartAngle, prevEndAngle);
+      const morphFrom = morphActive ? this.ctx.morphTypeChange.getInitialPathFor(i, 0) : null;
+      const path = morphFrom || this.getChangedPath(prevStartAngle, prevEndAngle);
       const elPath = graphics.drawPath({
         d: path,
         stroke: Array.isArray(this.lineColorArr) ? this.lineColorArr[i] : this.lineColorArr,
@@ -286,7 +291,17 @@ class Pie {
       } else {
         this.animBeginArr.push(0);
       }
-      if (this.dynamicAnim && w.globals.dataChanged) {
+      if (morphActive && morphFrom) {
+        const targetD = this.getPiePath({
+          me: this,
+          startAngle,
+          angle,
+          size: this.sliceSizes[i]
+        });
+        const morphSpeed = this.ctx.morphTypeChange.getSpeed();
+        elPath.node.setAttribute("data:pathOrig", targetD);
+        elPath.animate(morphSpeed).plot(targetD).attr({ "stroke-width": this.strokeWidth });
+      } else if (this.dynamicAnim && w.globals.dataChanged) {
         this.animatePaths(elPath, {
           size: this.sliceSizes[i],
           endAngle,

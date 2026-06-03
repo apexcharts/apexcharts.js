@@ -51,6 +51,7 @@ export const SUB_ENTRIES = {
   'features/keyboard': resolve(__dirname, 'src/features/keyboard.js'),
   'features/legend': resolve(__dirname, 'src/features/legend.js'),
   'features/toolbar': resolve(__dirname, 'src/features/toolbar.js'),
+  'features/morph': resolve(__dirname, 'src/features/morph.js'),
   'features/all': resolve(__dirname, 'src/features/all.js'),
 }
 

@@ -493,6 +493,14 @@ class Bar {
     }
 
     if (!skipDrawing) {
+      // Cross-type morph (e.g. pie → bar) uses its own dedicated speed so the
+      // transition reads as a distinct step rather than blending into the
+      // default dataChange tempo. No-op when the morph feature isn't loaded.
+      const morphActive = this.ctx.morphTypeChange?.isActive() === true
+      const dataChangeSpeed = morphActive
+        ? this.ctx.morphTypeChange.getSpeed()
+        : w.config.chart.animations.dynamicAnimation.speed
+
       const renderedPath = /** @type {any} */ (
         graphics.renderPaths({
           i,
@@ -506,7 +514,7 @@ class Bar {
           fill: pathFill,
           animationDelay: delay,
           initialSpeed: w.config.chart.animations.speed,
-          dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
+          dataChangeSpeed,
           className: `apexcharts-${type}-area ${classes}`,
           chartType: type,
           bindEventsOnPaths: false,

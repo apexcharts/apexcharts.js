@@ -623,6 +623,18 @@ type ApexChart = {
       speed?: number
     }
     /**
+     * Cross-type morph (updateOptions changing chart.type). Requires the
+     * optional `apexcharts/features/morph` feature to be registered; without
+     * that import these settings have no effect. Supported pairs include
+     * bar ↔ pie/donut/radialBar/polarArea (and the trivial pie↔donut↔polarArea
+     * cases). Falls back to instant snap when types or data shape are
+     * incompatible.
+     */
+    chartTypeMorph?: {
+      enabled?: boolean
+      speed?: number
+    }
+    /**
      * When true (default), honors the OS-level prefers-reduced-motion media
      * query — all initial-mount animations are skipped and the chart renders
      * instantly. Set to false to override (e.g. for QA / demo screens).

@@ -342,6 +342,8 @@ class Radial extends Pie {
       reverseLoop = true
     }
 
+    const morphActive = this.ctx.morphTypeChange?.isActive() === true
+
     for (
       let i = reverseLoop ? opts.series.length - 1 : 0;
       reverseLoop ? i >= 0 : i < opts.series.length;
@@ -415,11 +417,36 @@ class Radial extends Pie {
         ? w.config.stroke.dashArray[i]
         : w.config.stroke.dashArray
 
+      const morphFrom = morphActive
+        ? this.ctx.morphTypeChange.getInitialPathFor(i, 0)
+        : null
+
+      // radialBar normally renders as fill=none + stroked-thick. But when
+      // morphing FROM a fill-based shape (bar/pie/donut/polarArea), the
+      // captured path is a closed FILLED shape — stroking it produces a
+      // thick-outlined silhouette until the morph completes. So during the
+      // morph, render this element in fill mode (matching the source's
+      // appearance), then swap to the real stroked-arc styling in the
+      // morph's .after() callback.
+      const morphFromType = morphActive
+        ? this.ctx.morphTypeChange.getFromType()
+        : null
+      const morphFromFilled =
+        !!morphFrom &&
+        (morphFromType === 'bar' ||
+          morphFromType === 'pie' ||
+          morphFromType === 'donut' ||
+          morphFromType === 'polarArea')
+
       const elPath = graphics.drawPath({
-        d: '',
-        stroke: opts.skipValueArc ? 'transparent' : pathFill,
-        strokeWidth: opts.skipValueArc ? 0 : strokeWidth,
-        fill: 'none',
+        d: morphFrom || '',
+        stroke: morphFromFilled
+          ? 'transparent'
+          : opts.skipValueArc
+            ? 'transparent'
+            : pathFill,
+        strokeWidth: morphFromFilled ? 0 : opts.skipValueArc ? 0 : strokeWidth,
+        fill: morphFromFilled ? pathFill : 'none',
         fillOpacity: w.config.fill.opacity,
         classes: 'apexcharts-radialbar-area apexcharts-radialbar-slice-' + i,
         strokeDashArray: dashArray,
@@ -521,20 +548,68 @@ class Radial extends Pie {
       this.animDur = dur / (opts.series.length * 1.2) + this.animDur
       this.animBeginArr.push(this.animDur)
 
-      this.animatePaths(elPath, {
-        centerX: opts.centerX,
-        centerY: opts.centerY,
-        endAngle,
-        startAngle,
-        prevEndAngle,
-        prevStartAngle,
-        size: opts.size,
-        i,
-        totalItems: 2,
-        animBeginArr: this.animBeginArr,
-        dur,
-        shouldSetPrevPaths: true,
-      })
+      if (morphActive && morphFrom) {
+        // Cross-type morph into radialBar ring. The final radialBar is a
+        // stroked open arc (M+A only), but for sources whose appearance comes
+        // from fill (pie/donut/polarArea), we morph d toward a CLOSED
+        // donut-segment of the same geometry instead — visually identical to
+        // the stroked arc when filled the same color — and swap to the real
+        // stroked-arc styling once the morph settles. For other sources
+        // (bar's stroked-rect → arc) the existing open-arc target works.
+        const morphSpeed = this.ctx.morphTypeChange.getSpeed()
+        const actualArcD = this.getPiePath({
+          me: this,
+          startAngle,
+          angle,
+          size: opts.size,
+        })
+
+        if (morphFromFilled) {
+          const targetD = this.ctx.morphTypeChange.buildRingSegmentPath(
+            opts.centerX,
+            opts.centerY,
+            opts.size,
+            strokeWidth,
+            startAngle,
+            startAngle + angle,
+          )
+          elPath
+            .animate(morphSpeed)
+            .plot(targetD)
+            .after(
+              /** @this {any} */ function () {
+                // Swap to the real radialBar rendering — visually identical
+                // to the filled donut-segment, just stroked open arc.
+                this.attr({
+                  d: actualArcD,
+                  fill: 'none',
+                  stroke: opts.skipValueArc ? 'transparent' : pathFill,
+                  'stroke-width': opts.skipValueArc ? 0 : strokeWidth,
+                })
+              },
+            )
+        } else {
+          elPath
+            .animate(morphSpeed)
+            .plot(actualArcD)
+            .attr({ 'stroke-width': strokeWidth })
+        }
+      } else {
+        this.animatePaths(elPath, {
+          centerX: opts.centerX,
+          centerY: opts.centerY,
+          endAngle,
+          startAngle,
+          prevEndAngle,
+          prevStartAngle,
+          size: opts.size,
+          i,
+          totalItems: 2,
+          animBeginArr: this.animBeginArr,
+          dur,
+          shouldSetPrevPaths: true,
+        })
+      }
     }
 
     return {

@@ -193,6 +193,11 @@ export default class InitCtxVariables {
     const LegendCtor = reg.get('legend')
     ctx.legend = LegendCtor ? new LegendCtor(w, ctx) : null
 
+    // MorphTypeChange: ctx.morphTypeChange (cross-type morph orchestrator).
+    // When unregistered, all `ctx.morphTypeChange?.X` call sites no-op.
+    const MorphCtor = reg.get('morphTypeChange')
+    ctx.morphTypeChange = MorphCtor ? new MorphCtor(w, ctx) : null
+
     // — Lazy-getter optional modules —
     // Each getter instantiates on first access only if the ctor was registered.
 

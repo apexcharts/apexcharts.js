@@ -525,11 +525,26 @@ export default class Core {
     })
 
     if (heightUnit !== '%' && Environment.isBrowser()) {
-      const offsetY = cnf.chart.sparkline.enabled
-        ? 0
-        : gl.axisCharts
-          ? cnf.chart.parentHeightOffset
-          : 0
+      // parentHeightOffset gives breathing room above the SVG so the topmost
+      // axis label / gridline / data label isn't clipped. When the chart has
+      // no axis adornments visible (grid, x/y labels, axis borders, axis
+      // ticks) and no data labels, nothing reaches the top edge — skip it.
+      const needsAxisPadding =
+        gl.axisCharts &&
+        (cnf.grid.show ||
+          cnf.dataLabels.enabled ||
+          cnf.xaxis.labels.show ||
+          cnf.xaxis.axisBorder.show ||
+          cnf.xaxis.axisTicks.show ||
+          cnf.yaxis.some(
+            (/** @type {any} */ y) =>
+              y.show &&
+              (y.labels.show || y.axisBorder.show || y.axisTicks.show),
+          ))
+      const offsetY =
+        cnf.chart.sparkline.enabled || !needsAxisPadding
+          ? 0
+          : cnf.chart.parentHeightOffset
       const paperNode = this.w.dom.Paper.node
       if (paperNode.parentNode?.parentNode) {
         paperNode.parentNode.parentNode.style.minHeight = `${gl.svgHeight + offsetY}px`
@@ -551,6 +566,14 @@ export default class Core {
 
   resizeNonAxisCharts() {
     const { w } = this
+
+    // When the user supplies an explicit chart.height (px or %), honor it —
+    // don't re-derive SVG / wrap heights from arc geometry. Only 'auto' (and
+    // empty) means "size yourself to fit the arc + legend".
+    const heightStr = w.config.chart.height
+      ? String(w.config.chart.height)
+      : ''
+    const userSetFixedHeight = heightStr !== '' && heightStr !== 'auto'
 
     let legendHeight = 0
     let offY = w.config.chart.sparkline.enabled ? 1 : 15
@@ -655,12 +678,13 @@ export default class Core {
       // visible drawing area still contains the full SVG.
       const chartOffsetY = w.config.chart.offsetY ?? 0
       const elWrapHeight = svgHeight + Math.max(chartOffsetY, 0)
-      if (this.w.dom.elLegendForeign) {
-        this.w.dom.elLegendForeign.setAttribute('height', String(elWrapHeight))
-      }
-      if (
-        !(w.config.chart.height && String(w.config.chart.height).includes('%'))
-      ) {
+      if (!userSetFixedHeight) {
+        if (this.w.dom.elLegendForeign) {
+          this.w.dom.elLegendForeign.setAttribute(
+            'height',
+            String(elWrapHeight),
+          )
+        }
         this.w.dom.elWrap.style.height = `${elWrapHeight}px`
         Graphics.setAttrs(this.w.dom.Paper.node, { height: svgHeight })
         if (Environment.isBrowser()) {
@@ -674,12 +698,11 @@ export default class Core {
       chartInnerDimensions + this.w.layout.translateY + legendHeight + offY,
     )
 
+    if (userSetFixedHeight) return
+
     if (this.w.dom.elLegendForeign) {
       this.w.dom.elLegendForeign.setAttribute('height', String(newHeight))
     }
-
-    if (w.config.chart.height && String(w.config.chart.height).includes('%'))
-      return
 
     this.w.dom.elWrap.style.height = `${newHeight}px`
     Graphics.setAttrs(this.w.dom.Paper.node, { height: newHeight })

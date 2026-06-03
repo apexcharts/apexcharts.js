@@ -143,7 +143,13 @@ class Pie {
       }
     }
 
-    if (w.globals.dataChanged) {
+    // Skip the previous-angle reconstruction when a cross-type morph is
+    // active: drawArcs will use the captured path directly via the morph
+    // feature, so the per-angle interpolation here would just compute
+    // garbage on previousPaths that came from a different chart family.
+    const morphActive = this.ctx.morphTypeChange?.isActive() === true
+
+    if (w.globals.dataChanged && !morphActive) {
       let prevTotal = 0
       for (let k = 0; k < w.globals.previousPaths.length; k++) {
         // CALCULATE THE PREV TOTAL
@@ -256,6 +262,8 @@ class Pie {
 
     this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0
 
+    const morphActive = this.ctx.morphTypeChange?.isActive() === true
+
     for (let i = 0; i < sectorAngleArr.length; i++) {
       const elPieArc = graphics.group({
         class: `apexcharts-series apexcharts-pie-series`,
@@ -283,7 +291,15 @@ class Pie {
         value: series[i],
       }) // additionally, pass size for gradient drawing in the fillPath function
 
-      const path = this.getChangedPath(prevStartAngle, prevEndAngle)
+      // For a cross-type morph, the initial path comes from the captured
+      // outgoing snapshot (bar rect, radialBar arc, etc.). The SVGAnimation
+      // .plot() chain below will interpolate that into the final pie path
+      // via the existing morphPaths engine. Falls back to getChangedPath
+      // for normal data-change updates when no morph is queued.
+      const morphFrom = morphActive
+        ? this.ctx.morphTypeChange.getInitialPathFor(i, 0)
+        : null
+      const path = morphFrom || this.getChangedPath(prevStartAngle, prevEndAngle)
 
       const elPath = graphics.drawPath({
         d: path,
@@ -371,7 +387,23 @@ class Pie {
         this.animBeginArr.push(0)
       }
 
-      if (this.dynamicAnim && w.globals.dataChanged) {
+      if (morphActive && morphFrom) {
+        // Cross-type morph: bypass the angle-based animateArc loop and let
+        // SVGAnimation's morphPaths interpolate from the captured outgoing
+        // path to the final pie/donut/polarArea arc directly.
+        const targetD = this.getPiePath({
+          me: this,
+          startAngle,
+          angle,
+          size: this.sliceSizes[i],
+        })
+        const morphSpeed = this.ctx.morphTypeChange.getSpeed()
+        elPath.node.setAttribute('data:pathOrig', targetD)
+        elPath
+          .animate(morphSpeed)
+          .plot(targetD)
+          .attr({ 'stroke-width': this.strokeWidth })
+      } else if (this.dynamicAnim && w.globals.dataChanged) {
         this.animatePaths(elPath, {
           size: this.sliceSizes[i],
           endAngle,
