@@ -633,6 +633,18 @@ type ApexChart = {
     chartTypeMorph?: {
       enabled?: boolean
       speed?: number
+      /**
+       * Morph interpolator for cross-type transitions.
+       *
+       * 'commands' (default) — per-SVG-command lerp. Preserves curves but
+       *   can produce "wings/flips" mid-frame when source and target have
+       *   very different anchor-point counts (e.g. bar rect → pie wedge).
+       * 'polygons' — resamples both paths into N evenly-spaced perimeter
+       *   points and tweens point-by-point with rotation-search alignment.
+       *   Always smooth + non-self-intersecting; every frame is a closed
+       *   N-segment polyline (curves are lost during the tween).
+       */
+      algorithm?: 'commands' | 'polygons'
     }
     /**
      * When true (default), honors the OS-level prefers-reduced-motion media

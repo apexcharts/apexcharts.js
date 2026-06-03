@@ -4373,7 +4373,8 @@ class MorphTypeChange {
     if (!Environment.isBrowser()) return false;
     const animCfg = this.w.config.chart.animations;
     if (!animCfg || animCfg.enabled === false) return false;
-    if (animCfg.typeChange && animCfg.typeChange.enabled === false) return false;
+    if (animCfg.chartTypeMorph && animCfg.chartTypeMorph.enabled === false)
+      return false;
     if (animCfg.respectReducedMotion && prefersReducedMotion()) return false;
     if (!this.canMorphTypes(fromType, toType)) return false;
     if (!this.isCompatibleSeriesShape(fromType, toType, newSeries)) return false;
@@ -4695,7 +4696,20 @@ class MorphTypeChange {
   /** @returns {number} */
   getSpeed() {
     const animCfg = this.w.config.chart.animations;
-    return animCfg.typeChange && animCfg.typeChange.speed || animCfg.speed || 600;
+    return animCfg.chartTypeMorph && animCfg.chartTypeMorph.speed || animCfg.speed || 600;
+  }
+  /**
+   * Which morph interpolator to use for this transition.
+   * 'commands' (default) — per-SVG-command lerp; preserves curves but can
+   *   "wing/flip" when shapes have different anchor-point counts.
+   * 'polygons' — N-point perimeter resample with rotation-search alignment;
+   *   always smooth + non-self-intersecting, but every frame is a polyline.
+   * @returns {'commands' | 'polygons'}
+   */
+  getAlgorithm() {
+    const animCfg = this.w.config.chart.animations;
+    const algo = animCfg.chartTypeMorph && animCfg.chartTypeMorph.algorithm;
+    return algo === "polygons" ? "polygons" : "commands";
   }
   /**
    * Fade newly-mounted axes / grid / legend / titles from opacity 0 → 1 in

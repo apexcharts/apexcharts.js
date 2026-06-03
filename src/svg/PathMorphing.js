@@ -1,10 +1,20 @@
 // @ts-check
 import { Point, Matrix } from './math'
+import { Environment } from '../utils/Environment.js'
 
 /*!
  * Path morphing for SVG path animations
  * Based on svg.pathmorphing.js by Ulrich-Matthias Schäfer (MIT License)
  * Refactored to be standalone (no SVG.js dependency)
+ *
+ * Two algorithms are exported:
+ *   - morphPaths()    — command-level interpolation; preserves curves but can
+ *                       produce "wings/flips" when two shapes have very
+ *                       different topology (e.g. bar rect → pie arc).
+ *   - morphPolygons() — resamples both shapes into N evenly-spaced perimeter
+ *                       points and tweens point-by-point with rotation-search
+ *                       alignment; always smooth and non-self-intersecting,
+ *                       at the cost of throwing away curve smoothness.
  */
 
 // Parse an SVG path 'd' string into an array of command arrays
@@ -604,4 +614,167 @@ function morphPaths(fromD, toD) {
   }
 }
 
-export { parsePath, morphPaths, pathBbox, arrayToPath }
+// --- Polygon-resample morph (algorithm: 'polygons') -----------------------
+//
+// Command-level morphing (morphPaths) pads shorter paths with phantom cubic
+// commands stuck at the cursor's last position. When two shapes have very
+// different anchor-point counts (e.g. a 4-corner bar rect vs a pie wedge
+// whose arc explodes to ~16 cubic-bezier segments), those phantom points
+// have to fan out across half the arc mid-transition, producing visible
+// "wings" and self-intersecting flips.
+//
+// The polygon algorithm sidesteps this by sampling both paths into the
+// SAME number of evenly-spaced perimeter points (via the live SVG
+// getTotalLength / getPointAtLength APIs), rotation-searches for the
+// starting-index alignment with smallest sum-of-squared distances, then
+// linearly tweens N point pairs. Every intermediate frame is a closed
+// N-segment polyline — at N≥64 visually indistinguishable from curves.
+
+/** @type {SVGSVGElement | null} */
+let _measureSvg = null
+/** @type {SVGPathElement | null} */
+let _measurePath = null
+
+/**
+ * Sample N evenly-spaced perimeter points from a path's `d` string.
+ * Uses an off-DOM hidden SVG for getTotalLength / getPointAtLength so the
+ * caller doesn't need to attach anything.
+ *
+ * @param {string} d
+ * @param {number} n
+ * @returns {{x:number, y:number}[]}
+ */
+function samplePathPoints(d, n) {
+  const pts = new Array(n)
+
+  if (!Environment.isBrowser()) {
+    // SSR: fall back to the M-anchor + simple resample of the parsed array.
+    // This is approximate, but morph animations are skipped in SSR anyway —
+    // this branch exists only so the function is callable in unit tests.
+    const arr = parsePath(d)
+    const bbox = pathBbox(arr)
+    const cx = bbox.x + bbox.width / 2
+    const cy = bbox.y + bbox.height / 2
+    for (let i = 0; i < n; i++) pts[i] = { x: cx, y: cy }
+    return pts
+  }
+
+  if (!_measureSvg) {
+    _measureSvg = /** @type {SVGSVGElement} */ (
+      document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    )
+    _measureSvg.setAttribute('width', '0')
+    _measureSvg.setAttribute('height', '0')
+    _measureSvg.setAttribute(
+      'style',
+      'position:absolute;width:0;height:0;visibility:hidden;pointer-events:none;',
+    )
+    _measurePath = /** @type {SVGPathElement} */ (
+      document.createElementNS('http://www.w3.org/2000/svg', 'path')
+    )
+    _measureSvg.appendChild(_measurePath)
+    document.body.appendChild(_measureSvg)
+  }
+
+  // @ts-ignore — _measurePath is non-null after the init block above
+  _measurePath.setAttribute('d', d || 'M0 0')
+  /** @type {number} */
+  let len = 0
+  try {
+    // @ts-ignore — _measurePath is non-null after the init block above
+    len = _measurePath.getTotalLength()
+  } catch (e) {
+    len = 0
+  }
+
+  if (!len || !isFinite(len)) {
+    // Degenerate path → collapse to bbox center so the morph still has
+    // a well-defined start/end and just appears to "grow" from the center.
+    const arr = parsePath(d)
+    const bbox = pathBbox(arr)
+    const cx = bbox.x + bbox.width / 2
+    const cy = bbox.y + bbox.height / 2
+    for (let i = 0; i < n; i++) pts[i] = { x: cx, y: cy }
+    return pts
+  }
+
+  for (let i = 0; i < n; i++) {
+    try {
+      // @ts-ignore — _measurePath is non-null after the init block above
+      const p = _measurePath.getPointAtLength((i / n) * len)
+      pts[i] = { x: p.x, y: p.y }
+    } catch (e) {
+      pts[i] = { x: 0, y: 0 }
+    }
+  }
+  return pts
+}
+
+/**
+ * Create a polygon-resample interpolation function.
+ *
+ * Both inputs are sampled into N points, the source polygon is rotated to
+ * the starting-index that minimizes sum-of-squared distance to the dest,
+ * then per-frame the interpolator emits a closed `M L L ... Z` polyline
+ * tweening between the N aligned point pairs.
+ *
+ * @param {string} fromD
+ * @param {string} toD
+ * @param {number} [n=96] - sample count; higher = smoother + slower align.
+ *                          O(N²) rotation search means N=96 ≈ 9k distance
+ *                          checks per morph start, which is negligible.
+ * @returns {(pos: number) => string}
+ */
+function morphPolygons(fromD, toD, n = 96) {
+  const fromPts = samplePathPoints(fromD, n)
+  const toPts = samplePathPoints(toD, n)
+
+  // Rotation-search: try all N shifts of fromPts and pick the one whose
+  // i-th point is closest to toPts[i] in aggregate. This is what stops the
+  // polygon from "untwisting" mid-morph when the two paths happen to start
+  // at very different perimeter positions.
+  let bestOffset = 0
+  let bestDist = Infinity
+  for (let off = 0; off < n; off++) {
+    let dist = 0
+    for (let i = 0; i < n; i++) {
+      const a = fromPts[(i + off) % n]
+      const b = toPts[i]
+      const dx = a.x - b.x
+      const dy = a.y - b.y
+      dist += dx * dx + dy * dy
+      // Early termination — once we're worse than the best, give up.
+      if (dist >= bestDist) break
+    }
+    if (dist < bestDist) {
+      bestDist = dist
+      bestOffset = off
+    }
+  }
+
+  const aligned = new Array(n)
+  for (let i = 0; i < n; i++) {
+    aligned[i] = fromPts[(i + bestOffset) % n]
+  }
+
+  return function (pos) {
+    let out = ''
+    for (let i = 0; i < n; i++) {
+      const a = aligned[i]
+      const b = toPts[i]
+      const x = a.x + (b.x - a.x) * pos
+      const y = a.y + (b.y - a.y) * pos
+      out += (i === 0 ? 'M' : 'L') + x.toFixed(3) + ' ' + y.toFixed(3) + ' '
+    }
+    return out + 'Z'
+  }
+}
+
+export {
+  parsePath,
+  morphPaths,
+  morphPolygons,
+  samplePathPoints,
+  pathBbox,
+  arrayToPath,
+}

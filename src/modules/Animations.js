@@ -573,11 +573,17 @@ export default class Animations {
       speed = 1
     }
 
+    // Only use the configurable algorithm when a cross-type morph snapshot
+    // is active. Same-type bar updates keep the default 'commands' engine.
+    const morphMod = this.ctx?.morphTypeChange
+    const morphAlgo =
+      morphMod && morphMod.isActive() ? morphMod.getAlgorithm() : 'commands'
+
     el.plot(pathFrom)
       .animate(1, delay)
       .plot(pathFrom)
       .animate(speed, delay)
-      .plot(pathTo)
+      .plot(pathTo, morphAlgo)
       .after(() => {
         // a flag to indicate that the original mount function can return true now as animation finished here
         if (Utils.isNumber(j)) {

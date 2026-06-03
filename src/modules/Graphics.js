@@ -494,7 +494,9 @@ class Graphics {
   }) {
     const w = this.w
     const filters = new Filters(this.w)
-    const anim = new Animations(this.w, /** @type {any} */ (undefined))
+    // Pass ctx through so Animations can look up morphTypeChange.getAlgorithm()
+    // during the cross-type morph chain. Falls back gracefully when ctx is null.
+    const anim = new Animations(this.w, this.ctx ?? undefined)
 
     const initialAnim = this.w.config.chart.animations.enabled
     const dynamicAnim =

@@ -3360,7 +3360,7 @@ class Options {
             enabled: true,
             speed: 350
           },
-          typeChange: {
+          chartTypeMorph: {
             // Cross-type morph (updateOptions changing chart.type). Bridges
             // the destroy+recreate flicker by capturing old paths and morphing
             // them into the new chart-type's paths via the existing PathMorphing
@@ -3368,7 +3368,15 @@ class Options {
             // funnel/pyramid (plus the trivial pie↔donut↔polarArea cases).
             // Falls back to instant snap when types or data shape are incompatible.
             enabled: true,
-            speed: 600
+            speed: 600,
+            // 'commands' (default) — per-SVG-command lerp. Preserves curves;
+            // may produce "wings/flips" mid-frame for shapes with very
+            // different anchor counts (bar rect ↔ pie wedge).
+            // 'polygons' — resamples both paths into N evenly-spaced points
+            // and tweens point-by-point with rotation-search alignment.
+            // Always smooth + non-self-intersecting; every frame is a
+            // closed N-segment polyline (curves lost during the tween).
+            algorithm: "commands"
           },
           // Honor the OS-level prefers-reduced-motion setting. When true (default)
           // and the user has the accessibility preference enabled, all initial-mount
@@ -6492,6 +6500,7 @@ class Animations {
    * @param {number} delay
    */
   morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay) {
+    var _a;
     const w = this.w;
     if (!pathFrom) {
       pathFrom = el.attr("pathFrom");
@@ -6514,7 +6523,9 @@ class Animations {
     if (!w.globals.shouldAnimate) {
       speed = 1;
     }
-    el.plot(pathFrom).animate(1, delay).plot(pathFrom).animate(speed, delay).plot(pathTo).after(() => {
+    const morphMod = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange;
+    const morphAlgo = morphMod && morphMod.isActive() ? morphMod.getAlgorithm() : "commands";
+    el.plot(pathFrom).animate(1, delay).plot(pathFrom).animate(speed, delay).plot(pathTo, morphAlgo).after(() => {
       if (Utils$1.isNumber(j)) {
         if (j === w.seriesData.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
           this.animationCompleted(el);
@@ -7048,13 +7059,10 @@ class Graphics {
     drawShadow = true,
     drawMask = null
   }) {
+    var _a;
     const w = this.w;
     const filters = new Filters(this.w);
-    const anim = new Animations(
-      this.w,
-      /** @type {any} */
-      void 0
-    );
+    const anim = new Animations(this.w, (_a = this.ctx) != null ? _a : void 0);
     const initialAnim = this.w.config.chart.animations.enabled;
     const dynamicAnim = initialAnim && this.w.config.chart.animations.dynamicAnimation.enabled;
     if (pathFrom && pathFrom.startsWith("M 0 0 ") && pathTo) {
@@ -20403,6 +20411,15 @@ function installFilterMethods(ElementClass) {
  * Path morphing for SVG path animations
  * Based on svg.pathmorphing.js by Ulrich-Matthias Schäfer (MIT License)
  * Refactored to be standalone (no SVG.js dependency)
+ *
+ * Two algorithms are exported:
+ *   - morphPaths()    — command-level interpolation; preserves curves but can
+ *                       produce "wings/flips" when two shapes have very
+ *                       different topology (e.g. bar rect → pie arc).
+ *   - morphPolygons() — resamples both shapes into N evenly-spaced perimeter
+ *                       points and tweens point-by-point with rotation-search
+ *                       alignment; always smooth and non-self-intersecting,
+ *                       at the cost of throwing away curve smoothness.
  */
 function parsePath(d) {
   if (!d || typeof d !== "string") return [["M", 0, 0]];
@@ -20815,6 +20832,93 @@ function morphPaths(fromD, toD) {
     return arrayToPath(result);
   };
 }
+let _measureSvg = null;
+let _measurePath = null;
+function samplePathPoints(d, n) {
+  const pts = new Array(n);
+  if (!Environment.isBrowser()) {
+    const arr = parsePath(d);
+    const bbox = pathBbox(arr);
+    const cx = bbox.x + bbox.width / 2;
+    const cy = bbox.y + bbox.height / 2;
+    for (let i = 0; i < n; i++) pts[i] = { x: cx, y: cy };
+    return pts;
+  }
+  if (!_measureSvg) {
+    _measureSvg = /** @type {SVGSVGElement} */
+    document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    _measureSvg.setAttribute("width", "0");
+    _measureSvg.setAttribute("height", "0");
+    _measureSvg.setAttribute(
+      "style",
+      "position:absolute;width:0;height:0;visibility:hidden;pointer-events:none;"
+    );
+    _measurePath = /** @type {SVGPathElement} */
+    document.createElementNS("http://www.w3.org/2000/svg", "path");
+    _measureSvg.appendChild(_measurePath);
+    document.body.appendChild(_measureSvg);
+  }
+  _measurePath.setAttribute("d", d || "M0 0");
+  let len = 0;
+  try {
+    len = _measurePath.getTotalLength();
+  } catch (e) {
+    len = 0;
+  }
+  if (!len || !isFinite(len)) {
+    const arr = parsePath(d);
+    const bbox = pathBbox(arr);
+    const cx = bbox.x + bbox.width / 2;
+    const cy = bbox.y + bbox.height / 2;
+    for (let i = 0; i < n; i++) pts[i] = { x: cx, y: cy };
+    return pts;
+  }
+  for (let i = 0; i < n; i++) {
+    try {
+      const p = _measurePath.getPointAtLength(i / n * len);
+      pts[i] = { x: p.x, y: p.y };
+    } catch (e) {
+      pts[i] = { x: 0, y: 0 };
+    }
+  }
+  return pts;
+}
+function morphPolygons(fromD, toD, n = 96) {
+  const fromPts = samplePathPoints(fromD, n);
+  const toPts = samplePathPoints(toD, n);
+  let bestOffset = 0;
+  let bestDist = Infinity;
+  for (let off = 0; off < n; off++) {
+    let dist = 0;
+    for (let i = 0; i < n; i++) {
+      const a = fromPts[(i + off) % n];
+      const b = toPts[i];
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      dist += dx * dx + dy * dy;
+      if (dist >= bestDist) break;
+    }
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestOffset = off;
+    }
+  }
+  const aligned = new Array(n);
+  for (let i = 0; i < n; i++) {
+    aligned[i] = fromPts[(i + bestOffset) % n];
+  }
+  return function(pos) {
+    let out = "";
+    for (let i = 0; i < n; i++) {
+      const a = aligned[i];
+      const b = toPts[i];
+      const x = a.x + (b.x - a.x) * pos;
+      const y = a.y + (b.y - a.y) * pos;
+      out += (i === 0 ? "M" : "L") + x.toFixed(3) + " " + y.toFixed(3) + " ";
+    }
+    return out + "Z";
+  };
+}
 function easeInOut(t) {
   return -Math.cos(t * Math.PI) / 2 + 0.5;
 }
@@ -20848,6 +20952,7 @@ class SVGAnimationRunner {
     this.delay = delay || 0;
     this._attrTarget = null;
     this._plotTarget = null;
+    this._plotAlgorithm = "commands";
     this._afterCb = null;
     this._duringCb = null;
     this._next = null;
@@ -20864,9 +20969,15 @@ class SVGAnimationRunner {
   }
   /**
    * @param {string} d
+   * @param {'commands' | 'polygons'} [algorithm] - morph engine to use for
+   *   the d→d interpolation. 'commands' (default) is the legacy
+   *   per-command lerp; 'polygons' resamples both paths into N evenly
+   *   spaced points and tweens point-by-point (smoother for shapes with
+   *   very different anchor-point counts).
    */
-  plot(d) {
+  plot(d, algorithm) {
     this._plotTarget = d;
+    if (algorithm) this._plotAlgorithm = algorithm;
     this._schedule();
     return this;
   }
@@ -20965,7 +21076,7 @@ class SVGAnimationRunner {
       if (this._plotTarget) {
         const fromPath = el.attr("d") || "";
         try {
-          morphFn = morphPaths(fromPath, this._plotTarget);
+          morphFn = this._plotAlgorithm === "polygons" ? morphPolygons(fromPath, this._plotTarget) : morphPaths(fromPath, this._plotTarget);
         } catch (e) {
           morphFn = null;
         }

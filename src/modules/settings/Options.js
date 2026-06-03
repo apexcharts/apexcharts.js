@@ -297,6 +297,14 @@ export default class Options {
             // Falls back to instant snap when types or data shape are incompatible.
             enabled: true,
             speed: 600,
+            // 'commands' (default) — per-SVG-command lerp. Preserves curves;
+            // may produce "wings/flips" mid-frame for shapes with very
+            // different anchor counts (bar rect ↔ pie wedge).
+            // 'polygons' — resamples both paths into N evenly-spaced points
+            // and tweens point-by-point with rotation-search alignment.
+            // Always smooth + non-self-intersecting; every frame is a
+            // closed N-segment polyline (curves lost during the tween).
+            algorithm: 'commands',
           },
           // Honor the OS-level prefers-reduced-motion setting. When true (default)
           // and the user has the accessibility preference enabled, all initial-mount

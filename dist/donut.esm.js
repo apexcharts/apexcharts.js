@@ -299,8 +299,9 @@ class Pie {
           size: this.sliceSizes[i]
         });
         const morphSpeed = this.ctx.morphTypeChange.getSpeed();
+        const morphAlgo = this.ctx.morphTypeChange.getAlgorithm();
         elPath.node.setAttribute("data:pathOrig", targetD);
-        elPath.animate(morphSpeed).plot(targetD).attr({ "stroke-width": this.strokeWidth });
+        elPath.animate(morphSpeed).plot(targetD, morphAlgo).attr({ "stroke-width": this.strokeWidth });
       } else if (this.dynamicAnim && w.globals.dataChanged) {
         this.animatePaths(elPath, {
           size: this.sliceSizes[i],

@@ -1,5 +1,5 @@
 // @ts-check
-import { morphPaths } from './PathMorphing'
+import { morphPaths, morphPolygons } from './PathMorphing'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 
 // Sine ease in-out (matches SVG.js default '<>' easing)
@@ -53,6 +53,8 @@ class SVGAnimationRunner {
     this.delay = delay || 0
     this._attrTarget = null
     this._plotTarget = null
+    /** @type {'commands' | 'polygons'} */
+    this._plotAlgorithm = 'commands'
     this._afterCb = null
     this._duringCb = null
     this._next = null
@@ -72,9 +74,15 @@ class SVGAnimationRunner {
 
   /**
    * @param {string} d
+   * @param {'commands' | 'polygons'} [algorithm] - morph engine to use for
+   *   the d→d interpolation. 'commands' (default) is the legacy
+   *   per-command lerp; 'polygons' resamples both paths into N evenly
+   *   spaced points and tweens point-by-point (smoother for shapes with
+   *   very different anchor-point counts).
    */
-  plot(d) {
+  plot(d, algorithm) {
     this._plotTarget = d
+    if (algorithm) this._plotAlgorithm = algorithm
     this._schedule()
     return this
   }
@@ -179,7 +187,10 @@ class SVGAnimationRunner {
       if (this._plotTarget) {
         const fromPath = el.attr('d') || ''
         try {
-          morphFn = morphPaths(fromPath, this._plotTarget)
+          morphFn =
+            this._plotAlgorithm === 'polygons'
+              ? morphPolygons(fromPath, this._plotTarget)
+              : morphPaths(fromPath, this._plotTarget)
         } catch (e) {
           // If path morphing fails, just snap at the end
           morphFn = null
