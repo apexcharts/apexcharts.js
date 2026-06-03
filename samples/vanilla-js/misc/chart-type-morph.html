@@ -109,16 +109,6 @@
         </div>
       
         <div class="speed-row">
-          Morph algorithm:
-          <label style="margin: 0 8px;">
-            <input type="radio" name="algo" value="commands" checked /> commands (curves)
-          </label>
-          <label>
-            <input type="radio" name="algo" value="polygons" /> polygons (smooth)
-          </label>
-        </div>
-      
-        <div class="speed-row">
           Morph speed:
           <input type="range" id="speed" min="100" max="15000" step="50" value="700" />
           <span id="speed-value">700</span> ms
@@ -140,7 +130,6 @@
             chartTypeMorph: {
               enabled: true,
               speed: 700,
-              algorithm: 'commands',
             },
           },
         },
@@ -185,7 +174,7 @@
         fill: {
           opacity: 0.9,
         },
-        stroke: { width: 1, colors: ['#fff'] },
+        stroke: { lineCap: 'butt', width: 1, colors: ['#fff'] },
       }
 
       var chart = new ApexCharts(document.querySelector('#chart'), options)
@@ -252,16 +241,6 @@
         )
       })
 
-      document.querySelectorAll('input[name="algo"]').forEach(function (radio) {
-        radio.addEventListener('change', function () {
-          if (!radio.checked) return
-          chart.updateOptions(
-            { chart: { animations: { chartTypeMorph: { algorithm: radio.value } } } },
-            false,
-            false,
-          )
-        })
-      })
     </script>
 
     

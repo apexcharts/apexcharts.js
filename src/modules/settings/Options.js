@@ -290,21 +290,16 @@ export default class Options {
           },
           chartTypeMorph: {
             // Cross-type morph (updateOptions changing chart.type). Bridges
-            // the destroy+recreate flicker by capturing old paths and morphing
-            // them into the new chart-type's paths via the existing PathMorphing
-            // engine. Supported pairs include bar ↔ pie/donut/radialBar/polarArea/
-            // funnel/pyramid (plus the trivial pie↔donut↔polarArea cases).
-            // Falls back to instant snap when types or data shape are incompatible.
+            // the destroy+recreate flicker by sampling source + target paths
+            // into N evenly-spaced perimeter points and tweening point-by-point
+            // with rotation-search alignment, so the transition is always smooth
+            // and non-self-intersecting even between very different shapes (bar
+            // rect ↔ pie wedge / radial arc). Supported pairs include bar ↔
+            // pie / donut / radialBar / polarArea / funnel / pyramid (plus the
+            // trivial pie ↔ donut ↔ polarArea cases). Falls back to instant
+            // snap when types or data shape are incompatible.
             enabled: true,
             speed: 600,
-            // 'commands' (default) — per-SVG-command lerp. Preserves curves;
-            // may produce "wings/flips" mid-frame for shapes with very
-            // different anchor counts (bar rect ↔ pie wedge).
-            // 'polygons' — resamples both paths into N evenly-spaced points
-            // and tweens point-by-point with rotation-search alignment.
-            // Always smooth + non-self-intersecting; every frame is a
-            // closed N-segment polyline (curves lost during the tween).
-            algorithm: 'commands',
           },
           // Honor the OS-level prefers-reduced-motion setting. When true (default)
           // and the user has the accessibility preference enabled, all initial-mount

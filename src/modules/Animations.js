@@ -573,11 +573,11 @@ export default class Animations {
       speed = 1
     }
 
-    // Only use the configurable algorithm when a cross-type morph snapshot
-    // is active. Same-type bar updates keep the default 'commands' engine.
-    const morphMod = this.ctx?.morphTypeChange
-    const morphAlgo =
-      morphMod && morphMod.isActive() ? morphMod.getAlgorithm() : 'commands'
+    // Cross-type morph chains use the polygon-resample engine (smooth tween
+    // between very different shapes via N-point perimeter sampling). Within-
+    // type updates fall back to the default per-command lerp.
+    const crossTypeMorph = this.ctx?.morphTypeChange?.isActive() === true
+    const morphAlgo = crossTypeMorph ? 'polygons' : 'commands'
 
     el.plot(pathFrom)
       .animate(1, delay)

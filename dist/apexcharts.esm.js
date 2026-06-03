@@ -3019,6 +3019,16 @@ class Defaults {
           show: false
         }
       },
+      stroke: {
+        // Radial value arcs are stroked open arcs; square/round caps would
+        // extend the stroke half a stroke-width past each endpoint, making
+        // the "starting edge" visibly stick out past the geometric arc.
+        // Butt cap is the only one that aligns with the arc's true angular
+        // span. Without this, a chart that previously was a bar (whose
+        // defaults set lineCap='square') would carry that cap across into
+        // the radial render after a type morph.
+        lineCap: "butt"
+      },
       fill: {
         gradient: {
           shade: "dark",
@@ -3362,21 +3372,16 @@ class Options {
           },
           chartTypeMorph: {
             // Cross-type morph (updateOptions changing chart.type). Bridges
-            // the destroy+recreate flicker by capturing old paths and morphing
-            // them into the new chart-type's paths via the existing PathMorphing
-            // engine. Supported pairs include bar ↔ pie/donut/radialBar/polarArea/
-            // funnel/pyramid (plus the trivial pie↔donut↔polarArea cases).
-            // Falls back to instant snap when types or data shape are incompatible.
+            // the destroy+recreate flicker by sampling source + target paths
+            // into N evenly-spaced perimeter points and tweening point-by-point
+            // with rotation-search alignment, so the transition is always smooth
+            // and non-self-intersecting even between very different shapes (bar
+            // rect ↔ pie wedge / radial arc). Supported pairs include bar ↔
+            // pie / donut / radialBar / polarArea / funnel / pyramid (plus the
+            // trivial pie ↔ donut ↔ polarArea cases). Falls back to instant
+            // snap when types or data shape are incompatible.
             enabled: true,
-            speed: 600,
-            // 'commands' (default) — per-SVG-command lerp. Preserves curves;
-            // may produce "wings/flips" mid-frame for shapes with very
-            // different anchor counts (bar rect ↔ pie wedge).
-            // 'polygons' — resamples both paths into N evenly-spaced points
-            // and tweens point-by-point with rotation-search alignment.
-            // Always smooth + non-self-intersecting; every frame is a
-            // closed N-segment polyline (curves lost during the tween).
-            algorithm: "commands"
+            speed: 600
           },
           // Honor the OS-level prefers-reduced-motion setting. When true (default)
           // and the user has the accessibility preference enabled, all initial-mount
@@ -6500,7 +6505,7 @@ class Animations {
    * @param {number} delay
    */
   morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay) {
-    var _a;
+    var _a, _b;
     const w = this.w;
     if (!pathFrom) {
       pathFrom = el.attr("pathFrom");
@@ -6523,8 +6528,8 @@ class Animations {
     if (!w.globals.shouldAnimate) {
       speed = 1;
     }
-    const morphMod = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange;
-    const morphAlgo = morphMod && morphMod.isActive() ? morphMod.getAlgorithm() : "commands";
+    const crossTypeMorph = ((_b = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.isActive()) === true;
+    const morphAlgo = crossTypeMorph ? "polygons" : "commands";
     el.plot(pathFrom).animate(1, delay).plot(pathFrom).animate(speed, delay).plot(pathTo, morphAlgo).after(() => {
       if (Utils$1.isNumber(j)) {
         if (j === w.seriesData.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
@@ -27632,19 +27637,6 @@ class MorphTypeChange {
     return animCfg.chartTypeMorph && animCfg.chartTypeMorph.speed || animCfg.speed || 600;
   }
   /**
-   * Which morph interpolator to use for this transition.
-   * 'commands' (default) — per-SVG-command lerp; preserves curves but can
-   *   "wing/flip" when shapes have different anchor-point counts.
-   * 'polygons' — N-point perimeter resample with rotation-search alignment;
-   *   always smooth + non-self-intersecting, but every frame is a polyline.
-   * @returns {'commands' | 'polygons'}
-   */
-  getAlgorithm() {
-    const animCfg = this.w.config.chart.animations;
-    const algo = animCfg.chartTypeMorph && animCfg.chartTypeMorph.algorithm;
-    return algo === "polygons" ? "polygons" : "commands";
-  }
-  /**
    * Fade newly-mounted axes / grid / legend / titles from opacity 0 → 1 in
    * parallel with the morph. Without this the chart's chrome would pop in
    * abruptly while the series elements are still mid-tween, which reads as a
@@ -32282,9 +32274,8 @@ class Pie {
           size: this.sliceSizes[i]
         });
         const morphSpeed = this.ctx.morphTypeChange.getSpeed();
-        const morphAlgo = this.ctx.morphTypeChange.getAlgorithm();
         elPath.node.setAttribute("data:pathOrig", targetD);
-        elPath.animate(morphSpeed).plot(targetD, morphAlgo).attr({ "stroke-width": this.strokeWidth });
+        elPath.animate(morphSpeed).plot(targetD, "polygons").attr({ "stroke-width": this.strokeWidth });
       } else if (this.dynamicAnim && w.globals.dataChanged) {
         this.animatePaths(elPath, {
           size: this.sliceSizes[i],
@@ -33677,7 +33668,6 @@ class Radial extends Pie {
       this.animBeginArr.push(this.animDur);
       if (morphActive && morphFrom) {
         const morphSpeed = this.ctx.morphTypeChange.getSpeed();
-        const morphAlgo = this.ctx.morphTypeChange.getAlgorithm();
         const actualArcD = this.getPiePath({
           me: this,
           startAngle,
@@ -33693,7 +33683,7 @@ class Radial extends Pie {
             startAngle,
             startAngle + angle
           );
-          elPath.animate(morphSpeed).plot(targetD, morphAlgo).after(
+          elPath.animate(morphSpeed).plot(targetD, "polygons").after(
             /** @this {any} */
             function() {
               this.attr({
@@ -33705,7 +33695,7 @@ class Radial extends Pie {
             }
           );
         } else {
-          elPath.animate(morphSpeed).plot(actualArcD, morphAlgo).attr({ "stroke-width": strokeWidth });
+          elPath.animate(morphSpeed).plot(actualArcD, "polygons").attr({ "stroke-width": strokeWidth });
         }
       } else {
         this.animatePaths(elPath, {

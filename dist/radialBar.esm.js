@@ -299,9 +299,8 @@ class Pie {
           size: this.sliceSizes[i]
         });
         const morphSpeed = this.ctx.morphTypeChange.getSpeed();
-        const morphAlgo = this.ctx.morphTypeChange.getAlgorithm();
         elPath.node.setAttribute("data:pathOrig", targetD);
-        elPath.animate(morphSpeed).plot(targetD, morphAlgo).attr({ "stroke-width": this.strokeWidth });
+        elPath.animate(morphSpeed).plot(targetD, "polygons").attr({ "stroke-width": this.strokeWidth });
       } else if (this.dynamicAnim && w.globals.dataChanged) {
         this.animatePaths(elPath, {
           size: this.sliceSizes[i],
@@ -1275,7 +1274,6 @@ class Radial extends Pie {
       this.animBeginArr.push(this.animDur);
       if (morphActive && morphFrom) {
         const morphSpeed = this.ctx.morphTypeChange.getSpeed();
-        const morphAlgo = this.ctx.morphTypeChange.getAlgorithm();
         const actualArcD = this.getPiePath({
           me: this,
           startAngle,
@@ -1291,7 +1289,7 @@ class Radial extends Pie {
             startAngle,
             startAngle + angle
           );
-          elPath.animate(morphSpeed).plot(targetD, morphAlgo).after(
+          elPath.animate(morphSpeed).plot(targetD, "polygons").after(
             /** @this {any} */
             function() {
               this.attr({
@@ -1303,7 +1301,7 @@ class Radial extends Pie {
             }
           );
         } else {
-          elPath.animate(morphSpeed).plot(actualArcD, morphAlgo).attr({ "stroke-width": strokeWidth });
+          elPath.animate(morphSpeed).plot(actualArcD, "polygons").attr({ "stroke-width": strokeWidth });
         }
       } else {
         this.animatePaths(elPath, {

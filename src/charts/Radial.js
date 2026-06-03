@@ -557,7 +557,6 @@ class Radial extends Pie {
         // stroked-arc styling once the morph settles. For other sources
         // (bar's stroked-rect → arc) the existing open-arc target works.
         const morphSpeed = this.ctx.morphTypeChange.getSpeed()
-        const morphAlgo = this.ctx.morphTypeChange.getAlgorithm()
         const actualArcD = this.getPiePath({
           me: this,
           startAngle,
@@ -576,7 +575,7 @@ class Radial extends Pie {
           )
           elPath
             .animate(morphSpeed)
-            .plot(targetD, morphAlgo)
+            .plot(targetD, 'polygons')
             .after(
               /** @this {any} */ function () {
                 // Swap to the real radialBar rendering — visually identical
@@ -592,7 +591,7 @@ class Radial extends Pie {
         } else {
           elPath
             .animate(morphSpeed)
-            .plot(actualArcD, morphAlgo)
+            .plot(actualArcD, 'polygons')
             .attr({ 'stroke-width': strokeWidth })
         }
       } else {

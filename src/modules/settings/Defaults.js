@@ -1260,6 +1260,16 @@ export default class Defaults {
           show: false,
         },
       },
+      stroke: {
+        // Radial value arcs are stroked open arcs; square/round caps would
+        // extend the stroke half a stroke-width past each endpoint, making
+        // the "starting edge" visibly stick out past the geometric arc.
+        // Butt cap is the only one that aligns with the arc's true angular
+        // span. Without this, a chart that previously was a bar (whose
+        // defaults set lineCap='square') would carry that cap across into
+        // the radial render after a type morph.
+        lineCap: 'butt',
+      },
       fill: {
         gradient: {
           shade: 'dark',
