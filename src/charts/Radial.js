@@ -431,9 +431,13 @@ class Radial extends Pie {
       const morphFromType = morphActive
         ? this.ctx.morphTypeChange.getFromType()
         : null
+      // funnel + pyramid are Bar.js variants — same fill-based rendering as
+      // a regular bar, so they take the same morph-from-filled treatment.
       const morphFromFilled =
         !!morphFrom &&
         (morphFromType === 'bar' ||
+          morphFromType === 'funnel' ||
+          morphFromType === 'pyramid' ||
           morphFromType === 'pie' ||
           morphFromType === 'donut' ||
           morphFromType === 'polarArea')

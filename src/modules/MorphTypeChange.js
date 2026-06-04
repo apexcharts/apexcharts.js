@@ -27,8 +27,13 @@ import { parsePath } from '../svg/PathMorphing'
  * chaining and the chart behaves exactly as before.
  */
 
-const BAR_FAMILY = new Set(['bar'])
-const RADIAL_FAMILY = new Set(['pie', 'donut', 'polarArea', 'radialBar'])
+// funnel + pyramid are rendered by Bar.js internally (Config.js aliases them
+// to `chart.type: 'bar'` with `plotOptions.bar.isFunnel: true, horizontal:
+// true`). gauge is aliased to radialBar. Treating them as members of the
+// bar / radial families lets the morph engine accept them as source or
+// target without any renderer-side changes.
+const BAR_FAMILY = new Set(['bar', 'funnel', 'pyramid'])
+const RADIAL_FAMILY = new Set(['pie', 'donut', 'polarArea', 'radialBar', 'gauge'])
 
 /** @param {string} type */
 function familyOf(type) {
@@ -180,7 +185,9 @@ export default class MorphTypeChange {
         })
       })
     } else if (fam === 'radial') {
-      if (fromType === 'radialBar') {
+      // `gauge` is an alias for radialBar (see Config.normalizeAliasedChartType),
+      // so it captures from the same selector / arc-shape.
+      if (fromType === 'radialBar' || fromType === 'gauge') {
         // radialBar paths are STROKED open arcs (fill=none, stroke=color,
         // stroke-width ≈ ring thickness). If we hand the raw `d` to a pie/
         // polarArea/donut element (which fills, not strokes), the implicit

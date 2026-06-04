@@ -76,6 +76,8 @@ p {
     <button data-type="donut">Donut</button>
     <button data-type="polarArea">Polar area</button>
     <button data-type="radialBar">Radial bar</button>
+    <button data-type="funnel">Funnel</button>
+    <button data-type="pyramid">Pyramid</button>
   </div>
 
   <div class="actions">
@@ -86,6 +88,12 @@ p {
     Morph speed:
     <input type="range" id="speed" min="100" max="15000" step="50" value="700" />
     <span id="speed-value">700</span> ms
+  </div>
+
+  <div class="speed-row">
+    Bar height (horizontal bar / funnel / pyramid):
+    <input type="range" id="bar-height" min="30" max="100" step="5" value="70" />
+    <span id="bar-height-value">70</span>%
   </div>
 </div>
 </html>
@@ -119,13 +127,17 @@ plotOptions: {
     distributed: true,
   },
   radialBar: {
+    inverseOrder: true,
     hollow: {
       size: '5%'
     },
     track: {
       show: false
     }
-  }
+  },
+  funnel: {
+    shape: 'trapezoid',
+  },
 },
 yaxis: {
   show: false,
@@ -161,9 +173,10 @@ var LABELS = ['Direct', 'Organic', 'Referral', 'Social', 'Email']
 var currentType = 'bar'
 var currentHorizontal = false
 var currentValues = [44, 55, 41, 27, 33]
+var currentBarHeight = 70
 
 function buildSeriesFor(type, values) {
-  if (type === 'bar') {
+  if (type === 'bar' || type === 'funnel' || type === 'pyramid') {
     return [{ name: 'Sessions', data: values.slice() }]
   }
   return values.slice()
@@ -191,7 +204,12 @@ document.querySelectorAll('.actions button[data-type]').forEach(function (btn) {
     setActive(currentType, currentHorizontal)
     chart.updateOptions({
       chart: { type: currentType },
-      plotOptions: { bar: { horizontal: currentHorizontal } },
+      plotOptions: {
+        bar: {
+          horizontal: currentHorizontal,
+          barHeight: currentBarHeight + '%',
+        },
+      },
       series: buildSeriesFor(currentType, currentValues),
       labels: LABELS,
     })
@@ -212,6 +230,19 @@ speedInput.addEventListener('input', function () {
   speedValue.textContent = v
   chart.updateOptions(
     { chart: { animations: { chartTypeMorph: { speed: v } } } },
+    false,
+    false,
+  )
+})
+
+var barHeightInput = document.querySelector('#bar-height')
+var barHeightValue = document.querySelector('#bar-height-value')
+barHeightInput.addEventListener('input', function () {
+  var v = parseInt(barHeightInput.value, 10)
+  barHeightValue.textContent = v
+  currentBarHeight = v
+  chart.updateOptions(
+    { plotOptions: { bar: { barHeight: v + '%' } } },
     false,
     false,
   )

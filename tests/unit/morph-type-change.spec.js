@@ -88,6 +88,24 @@ describe('MorphTypeChange.canMorphTypes', () => {
     expect(morph.canMorphTypes('polarArea', 'radialBar')).toBe(true)
   })
 
+  it('accepts funnel / pyramid as bar-family aliases', () => {
+    // Cross-family with radial members.
+    expect(morph.canMorphTypes('funnel', 'pie')).toBe(true)
+    expect(morph.canMorphTypes('pyramid', 'donut')).toBe(true)
+    expect(morph.canMorphTypes('pie', 'funnel')).toBe(true)
+    expect(morph.canMorphTypes('radialBar', 'pyramid')).toBe(true)
+    // Within bar family.
+    expect(morph.canMorphTypes('bar', 'funnel')).toBe(true)
+    expect(morph.canMorphTypes('funnel', 'pyramid')).toBe(true)
+    expect(morph.canMorphTypes('pyramid', 'bar')).toBe(true)
+  })
+
+  it('accepts gauge as a radial-family alias', () => {
+    expect(morph.canMorphTypes('gauge', 'bar')).toBe(true)
+    expect(morph.canMorphTypes('pie', 'gauge')).toBe(true)
+    expect(morph.canMorphTypes('gauge', 'radialBar')).toBe(true)
+  })
+
   it('rejects same-type', () => {
     expect(morph.canMorphTypes('bar', 'bar')).toBe(false)
     expect(morph.canMorphTypes('pie', 'pie')).toBe(false)
@@ -119,6 +137,22 @@ describe('MorphTypeChange.isCompatibleSeriesShape', () => {
       ]),
     ).toBe(true)
     expect(morph.isCompatibleSeriesShape('pie', 'bar', [1, 2, 3])).toBe(false)
+  })
+
+  it('funnel / pyramid take the same shape rules as bar', () => {
+    // Targeting funnel/pyramid is bar-family → expects [{data: number[]}].
+    expect(
+      morph.isCompatibleSeriesShape('pie', 'funnel', [
+        { name: 'A', data: [1, 2, 3] },
+      ]),
+    ).toBe(true)
+    expect(
+      morph.isCompatibleSeriesShape('pie', 'pyramid', [1, 2, 3]),
+    ).toBe(false)
+    // Source funnel → radial-family target expects flat number[].
+    expect(
+      morph.isCompatibleSeriesShape('funnel', 'pie', [1, 2, 3]),
+    ).toBe(true)
   })
 
   it('rejects null / non-array input', () => {

@@ -61,11 +61,20 @@ export default class UpdateHelpers {
         // before the config merge so it sees the OLD chart.type while the
         // outgoing DOM is still mounted. Null-safe — if the feature isn't
         // registered, this no-ops via optional chaining.
+        //
+        // `requestedType` preserves the user-facing alias (funnel, pyramid,
+        // gauge) that Config.normalizeAliasedChartType collapses into the
+        // internal chart.type (bar, radialBar). Without it, a chart that
+        // started as funnel would report `fromType: 'bar'` and lose the
+        // ability to morph FROM funnel into anything in the bar family
+        // (funnel → pyramid, funnel → bar). The incoming `options.chart.type`
+        // is the raw value the user passed and has not yet been normalized.
         if (animate && options && typeof options === 'object') {
           const newType = options?.chart?.type
-          if (newType && newType !== w.config.chart.type) {
+          const fromType = w.config.chart.requestedType || w.config.chart.type
+          if (newType && newType !== fromType) {
             ch.morphTypeChange?.captureBeforeDestroy({
-              fromType: w.config.chart.type,
+              fromType,
               toType: newType,
               newSeries: options.series || w.config.series,
             })
@@ -74,6 +83,42 @@ export default class UpdateHelpers {
 
         if (options && typeof options === 'object') {
           ch.config = new Config(options)
+          // Collapse user-facing chart-type aliases (funnel / pyramid → bar
+          // with isFunnel; gauge → radialBar). On the initial render this
+          // runs inside Config.init(), but the update path constructs Config
+          // directly and skips init(), so we'd otherwise merge an
+          // unrecognized chart.type into w.config and crash in
+          // Core.plotChartType's switch fallthrough.
+          //
+          // When transitioning OUT of an alias state (the previous render
+          // was funnel/pyramid/gauge and the new request is a non-alias
+          // type), explicitly clear the alias residue on `options` so the
+          // Utils.extend merge below overrides w.config's stale fields.
+          // We can't clear them in `normalizeAliasedChartType` itself —
+          // that runs on initial chart creation too, where the legacy
+          // contract `chart.type: 'bar' + plotOptions.bar.isFunnel: true`
+          // must leave both `requestedType` undefined and `isFunnel: true`.
+          const incomingType = options.chart && options.chart.type
+          const isAliasRequest =
+            incomingType === 'funnel' ||
+            incomingType === 'pyramid' ||
+            incomingType === 'gauge'
+          const wasAlias = !!w.config.chart.requestedType
+          if (incomingType && !isAliasRequest && wasAlias) {
+            options.chart = options.chart || {}
+            options.chart.requestedType = incomingType
+            // Only clear isFunnel when the previous alias was funnel/pyramid
+            // (gauge doesn't touch this flag).
+            const prev = w.config.chart.requestedType
+            if (prev === 'funnel' || prev === 'pyramid') {
+              options.plotOptions = options.plotOptions || {}
+              options.plotOptions.bar = options.plotOptions.bar || {}
+              if (options.plotOptions.bar.isFunnel === undefined) {
+                options.plotOptions.bar.isFunnel = false
+              }
+            }
+          }
+          ch.config.normalizeAliasedChartType(options)
           options = CoreUtils.extendArrayProps(ch.config, options, w)
 
           // fixes #914, #623

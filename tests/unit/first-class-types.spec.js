@@ -59,6 +59,50 @@ describe("chart.type: 'pyramid' first-class alias", () => {
     expect(chart.w.config.plotOptions.bar.isFunnel).toBe(true)
     expect(chart.w.config.plotOptions.bar.horizontal).toBe(true)
   })
+
+  it('sorts series data ascending so the narrowest stage is at the top', () => {
+    const userData = [44, 55, 41, 27, 33]
+    const userCats = ['Direct', 'Organic', 'Referral', 'Social', 'Email']
+    const chart = createChartWithOptions({
+      chart: { type: 'pyramid' },
+      series: [{ name: 'Sessions', data: userData.slice() }],
+      xaxis: { categories: userCats.slice() },
+    })
+    // Internal config holds the sorted view (paired with categories).
+    expect(chart.w.config.series[0].data).toEqual([27, 33, 41, 44, 55])
+    expect(chart.w.config.xaxis.categories).toEqual([
+      'Social',
+      'Email',
+      'Referral',
+      'Direct',
+      'Organic',
+    ])
+    // User's original arrays are untouched (no mutation).
+    expect(userData).toEqual([44, 55, 41, 27, 33])
+    expect(userCats).toEqual([
+      'Direct',
+      'Organic',
+      'Referral',
+      'Social',
+      'Email',
+    ])
+  })
+
+  it('sorts top-level labels alongside series data', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'pyramid' },
+      series: [{ name: 'S', data: [44, 55, 41, 27, 33] }],
+      labels: ['Direct', 'Organic', 'Referral', 'Social', 'Email'],
+    })
+    expect(chart.w.config.series[0].data).toEqual([27, 33, 41, 44, 55])
+    expect(chart.w.config.labels).toEqual([
+      'Social',
+      'Email',
+      'Referral',
+      'Direct',
+      'Organic',
+    ])
+  })
 })
 
 describe("chart.type: 'gauge' first-class alias", () => {

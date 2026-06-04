@@ -158,10 +158,81 @@ export default class Config {
       opts.plotOptions.bar.isFunnel = true
       opts.plotOptions.bar.horizontal = true
       opts.chart.type = 'bar'
+      if (requested === 'pyramid') {
+        this._applyPyramidSort(opts)
+      }
     } else if (requested === 'gauge') {
       opts.chart.type = 'radialBar'
     }
     return opts
+  }
+
+  /**
+   * Pyramid wants the smallest value at the top (the apex) and the largest
+   * at the bottom (the base), regardless of the order the user passed data
+   * in. We reuse the funnel renderer with the data array sorted ascending,
+   * keeping `xaxis.categories` paired up so the legend / category labels
+   * stay aligned with the rendered stages.
+   *
+   * Sorting is done on *clones* of the user-supplied arrays — the original
+   * input objects they passed to updateOptions / new ApexCharts are never
+   * mutated. Only `opts.series` / `opts.xaxis.categories` (which are about
+   * to be merged into `w.config`) carry the sorted view.
+   *
+   * @param {Record<string, any>} opts
+   */
+  _applyPyramidSort(opts) {
+    if (!Array.isArray(opts.series) || opts.series.length === 0) return
+
+    /** @param {any} v */
+    const valueOf = (v) => {
+      if (typeof v === 'number') return v
+      if (v && typeof v === 'object') {
+        if (typeof v.y === 'number') return v.y
+        if (Array.isArray(v)) return Number(v[1])
+      }
+      return Number(v)
+    }
+
+    // Funnel / pyramid is normally single-series. Use the first series'
+    // original data order to derive a single index permutation, then apply
+    // it to every series + the categories so they all stay paired up.
+    const firstSeries = opts.series[0]
+    if (!firstSeries || !Array.isArray(firstSeries.data)) return
+
+    const order = firstSeries.data
+      .map(/** @param {any} _v @param {number} i */ (_v, i) => i)
+      .sort(
+        /** @param {number} a @param {number} b */
+        (a, b) => valueOf(firstSeries.data[a]) - valueOf(firstSeries.data[b]),
+      )
+
+    opts.series = opts.series.map(
+      /** @param {any} s */ (s) => {
+        if (!s || !Array.isArray(s.data)) return s
+        return {
+          ...s,
+          data: order.map(/** @param {number} i */ (i) => s.data[i]),
+        }
+      },
+    )
+
+    const rawCats = opts.xaxis?.categories
+    if (Array.isArray(rawCats)) {
+      opts.xaxis = { ...opts.xaxis }
+      opts.xaxis.categories = order.map(
+        /** @param {number} i */ (i) => rawCats[i],
+      )
+    }
+
+    // Some callers pass categories via the top-level `labels` (pie-style
+    // contract that also works for distributed bars / funnel charts).
+    // Reorder it the same way so the legend and tooltip labels track.
+    if (Array.isArray(opts.labels)) {
+      opts.labels = order.map(
+        /** @param {number} i */ (i) => opts.labels[i],
+      )
+    }
   }
 
   /**
