@@ -550,6 +550,40 @@ export default class Options {
             ranges: [],
             min: undefined,
             max: undefined,
+            // Replaces the default categorical legend with a continuous
+            // gradient stripe + a hover indicator arrow. Honors
+            // `chart.legend.position` (top / right / bottom / left).
+            gradientLegend: {
+              enabled: false,
+              // Strip length along the legend's long axis. Accepts a number
+              // (pixels) or a percentage string. For top/bottom placement the
+              // percentage is resolved against the chart's SVG width; for
+              // left/right placement, against the SVG height.
+              width: '70%',
+              height: '70%',
+              thickness: 12,
+              // Alignment of the strip within the legend area:
+              //  - top/bottom: 'start' = left, 'center', 'end' = right
+              //  - left/right: 'start' = top,  'center', 'end' = bottom
+              align: 'center',
+              // Number of gradient stops sampled from the shade function when
+              // no explicit `ranges` are provided.
+              stops: 16,
+              // Show min/max labels at the ends of the strip.
+              showLabels: true,
+              // Show a value tooltip next to the arrow when hovering a cell.
+              showHoverValue: true,
+              labelStyle: {
+                fontSize: '11px',
+                fontFamily: undefined,
+                colors: undefined,
+              },
+              arrow: {
+                size: 8,
+                color: undefined, // falls back to chart.foreColor
+              },
+              formatter: undefined, // (val) => string, for min/max + hover value
+            },
           },
         },
         funnel: {

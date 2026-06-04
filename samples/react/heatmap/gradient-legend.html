@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>HeatMap with Gradient Legend</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      function generateData(count, yrange) {
+        var i = 0
+        var series = []
+        while (i < count) {
+          var x = (i + 1).toString()
+          var y =
+            Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
+
+          series.push({
+            x: x,
+            y: y,
+          })
+          i++
+        }
+        return series
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;heatmap&quot; height={380} /&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [
+            {
+              name: 'Mon',
+              data: generateData(18, { min: 0, max: 90 }),
+            },
+            {
+              name: 'Tue',
+              data: generateData(18, { min: 0, max: 90 }),
+            },
+            {
+              name: 'Wed',
+              data: generateData(18, { min: 0, max: 90 }),
+            },
+            {
+              name: 'Thu',
+              data: generateData(18, { min: 0, max: 90 }),
+            },
+            {
+              name: 'Fri',
+              data: generateData(18, { min: 0, max: 90 }),
+            },
+            {
+              name: 'Sat',
+              data: generateData(18, { min: 0, max: 90 }),
+            },
+            {
+              name: 'Sun',
+              data: generateData(18, { min: 0, max: 90 }),
+            },
+          ],
+          options: {
+            chart: {
+              height: 380,
+              type: 'heatmap',
+            },
+            plotOptions: {
+              heatmap: {
+                shadeIntensity: 0.5,
+                radius: 2,
+                useFillColorAsStroke: false,
+                colorScale: {
+                  // Continuous gradient legend replaces the default categorical legend.
+                  // The arrow tracks the hovered cell's value along the spectrum and
+                  // automatically reorients based on legend.position.
+                  gradientLegend: {
+                    enabled: true,
+                    width: 240,
+                    thickness: 14,
+                    showHoverValue: true,
+                  },
+                },
+              },
+            },
+            colors: ['#008FFB'],
+            dataLabels: {
+              enabled: false,
+            },
+            stroke: {
+              width: 1,
+            },
+            legend: {
+              position: 'bottom',
+            },
+            title: {
+              text: 'Temperature Heatmap — hover a cell to see its value on the gradient',
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div id="chart">
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="heatmap"
+                height={380}
+              />
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

@@ -5,6 +5,7 @@ import Graphics from '../Graphics'
 import Series from '../Series'
 import Utils from '../../utils/Utils'
 import Helpers from './Helpers'
+import HeatmapGradientLegend from './HeatmapGradientLegend'
 import Markers from '../Markers'
 import { Environment } from '../../utils/Environment.js'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
@@ -61,15 +62,32 @@ class Legend {
         elLegendWrap.removeChild(elLegendWrap.firstChild)
       }
 
-      this.drawLegends()
+      // Tear down any previous gradient-legend listeners before re-rendering.
+      if (this.heatmapGradientLegend) {
+        this.heatmapGradientLegend.destroy()
+        this.heatmapGradientLegend = null
+      }
 
-      if (cnf.legend.position === 'bottom' || cnf.legend.position === 'top') {
-        this.legendAlignHorizontal()
-      } else if (
-        cnf.legend.position === 'right' ||
-        cnf.legend.position === 'left'
+      if (
+        cnf.chart.type === 'heatmap' &&
+        HeatmapGradientLegend.isEnabled(w)
       ) {
-        this.legendAlignVertical()
+        this.heatmapGradientLegend = new HeatmapGradientLegend(w, this.ctx)
+        this.heatmapGradientLegend.draw()
+        // Gradient legend handles its own wrap positioning + alignment via
+        // flexbox; skip the standard `setLegendWrapXY` path which would
+        // size the wrap to its content and break the centering.
+      } else {
+        this.drawLegends()
+
+        if (cnf.legend.position === 'bottom' || cnf.legend.position === 'top') {
+          this.legendAlignHorizontal()
+        } else if (
+          cnf.legend.position === 'right' ||
+          cnf.legend.position === 'left'
+        ) {
+          this.legendAlignVertical()
+        }
       }
     }
   }

@@ -1,0 +1,93 @@
+<title>HeatMap with Gradient Legend</title>
+
+<scripts>
+<script>
+function generateData(count, yrange) {
+  var i = 0;
+  var series = [];
+  while (i < count) {
+    var x = (i + 1).toString();
+    var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+
+    series.push({
+      x: x,
+      y: y
+    });
+    i++;
+  }
+  return series;
+}
+</script>
+</scripts>
+
+<chart>
+<options>
+chart: {
+  height: 380,
+  type: 'heatmap',
+},
+plotOptions: {
+  heatmap: {
+    shadeIntensity: 0.5,
+    radius: 2,
+    useFillColorAsStroke: false,
+    colorScale: {
+      // Continuous gradient legend replaces the default categorical legend.
+      // The arrow tracks the hovered cell's value along the spectrum and
+      // automatically reorients based on legend.position.
+      gradientLegend: {
+        enabled: true,
+        width: 240,
+        thickness: 14,
+        showHoverValue: true,
+      }
+    }
+  }
+},
+colors: ['#008FFB'],
+dataLabels: {
+  enabled: false
+},
+stroke: {
+  width: 1
+},
+legend: {
+  position: 'bottom'
+},
+title: {
+  text: 'Temperature Heatmap — hover a cell to see its value on the gradient'
+},
+</options>
+
+<series>
+[{
+    name: 'Mon',
+    data: generateData(18, { min: 0, max: 90 })
+  },
+  {
+    name: 'Tue',
+    data: generateData(18, { min: 0, max: 90 })
+  },
+  {
+    name: 'Wed',
+    data: generateData(18, { min: 0, max: 90 })
+  },
+  {
+    name: 'Thu',
+    data: generateData(18, { min: 0, max: 90 })
+  },
+  {
+    name: 'Fri',
+    data: generateData(18, { min: 0, max: 90 })
+  },
+  {
+    name: 'Sat',
+    data: generateData(18, { min: 0, max: 90 })
+  },
+  {
+    name: 'Sun',
+    data: generateData(18, { min: 0, max: 90 })
+  }
+]
+</series>
+</chart>

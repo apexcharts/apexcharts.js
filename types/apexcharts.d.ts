@@ -1005,6 +1005,57 @@ type ApexPlotOptions = {
       inverse?: boolean
       min?: number
       max?: number
+      /**
+       * When enabled, replaces the default categorical heatmap legend with a
+       * continuous color gradient strip and a hover indicator arrow that
+       * tracks the currently hovered cell's value along the spectrum.
+       * Follows `legend.position` (top / right / bottom / left); the arrow
+       * orientation flips to point at the strip from the chart-facing side.
+       */
+      gradientLegend?: {
+        enabled?: boolean
+        /**
+         * Strip length for horizontal placements (top/bottom). Accepts a
+         * number (pixels) or percentage string (e.g. `'70%'`, resolved against
+         * the chart's SVG width). Default `'70%'`.
+         */
+        width?: number | string
+        /**
+         * Strip length for vertical placements (left/right). Accepts a number
+         * (pixels) or percentage string (e.g. `'70%'`, resolved against the
+         * chart's SVG height). Default `'70%'`.
+         */
+        height?: number | string
+        /** Strip thickness (short axis) in pixels. Default 12. */
+        thickness?: number
+        /**
+         * Strip alignment within the legend area.
+         * - top/bottom: 'start' = left, 'center', 'end' = right
+         * - left/right: 'start' = top,  'center', 'end' = bottom
+         * Default `'center'`.
+         */
+        align?: 'start' | 'center' | 'end'
+        /**
+         * Number of color stops sampled from the shade function when no
+         * explicit `ranges` are provided. Default 16.
+         */
+        stops?: number
+        /** Show min/max labels at the ends of the strip. Default true. */
+        showLabels?: boolean
+        /** Show a value tooltip next to the arrow on cell hover. Default true. */
+        showHoverValue?: boolean
+        labelStyle?: {
+          fontSize?: string
+          fontFamily?: string
+          colors?: string
+        }
+        arrow?: {
+          size?: number
+          color?: string
+        }
+        /** Formatter for min/max labels and the hover value tooltip. */
+        formatter?(value: number): string
+      }
     }
   }
   funnel?: {

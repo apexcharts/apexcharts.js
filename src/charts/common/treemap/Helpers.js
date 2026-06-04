@@ -140,7 +140,11 @@ export default class TreemapHelpers {
 
     const total = Math.abs(max) + Math.abs(min)
 
-    let percent = (100 * val) / (total === 0 ? total - 0.000001 : total)
+    // When min === max (total === 0), every cell sits at the midpoint of the
+    // scale. Use a tiny positive epsilon so percent → 0 instead of exploding
+    // to a large negative number (the previous `total - 0.000001` fallback
+    // produced a negative divisor).
+    let percent = total === 0 ? 0 : (100 * val) / total
 
     if (chartOpts.colorScale.ranges.length > 0) {
       const colorRange = chartOpts.colorScale.ranges
@@ -154,7 +158,7 @@ export default class TreemapHelpers {
           min = range.from
           max = range.to
           const rTotal = Math.abs(max) + Math.abs(min)
-          percent = (100 * val) / (rTotal === 0 ? rTotal - 0.000001 : rTotal)
+          percent = rTotal === 0 ? 0 : (100 * val) / rTotal
         }
       })
     }

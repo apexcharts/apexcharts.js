@@ -316,15 +316,14 @@ export default class Series {
 
     /**
      * @param {Record<string, any>} range
-     * @param {number} rangeMax
      */
-    const removeInactiveClassFromHoveredRange = (range, rangeMax) => {
+    const removeInactiveClassFromHoveredRange = (range) => {
       for (let i = 0; i < allHeatMapElements.length; i++) {
         const val = Number(allHeatMapElements[i].getAttribute('val'))
-        if (
-          val >= range.from &&
-          (val < range.to || (range.to === rangeMax && val === rangeMax))
-        ) {
+        // Match the inclusive bounds used by determineColor (treemap/Helpers.js)
+        // so the same cells that were colored by this range get highlighted
+        // when the user hovers its legend item.
+        if (val >= range.from && val <= range.to) {
           allHeatMapElements[i].classList.remove(this.legendInactiveClass)
         }
       }
@@ -336,17 +335,8 @@ export default class Series {
 
       const ranges = w.config.plotOptions.heatmap.colorScale.ranges
       const range = ranges[seriesCnt]
-      /**
-       * @param {number} acc
-       * @param {Record<string, any>} cur
-       */
-      const rangeMax = ranges.reduce(
-        (/** @type {number} */ acc, /** @type {any} */ cur) =>
-          Math.max(acc, cur.to),
-        0,
-      )
 
-      removeInactiveClassFromHoveredRange(range, rangeMax)
+      removeInactiveClassFromHoveredRange(range)
     } else if (e.type === 'mouseout') {
       activeInactive('remove')
     }
