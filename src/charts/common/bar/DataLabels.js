@@ -67,7 +67,14 @@ export default class BarDataLabels {
     const barDataLabelsConfig = this.barCtx.barOptions.dataLabels
     const barTotalDataLabelsConfig = this.barCtx.barOptions.dataLabels.total
 
-    if (typeof barYPosition !== 'undefined' && this.barCtx.isRangeBar) {
+    if (
+      typeof barYPosition !== 'undefined' &&
+      (this.barCtx.isRangeBar || this.barCtx.isPyramid)
+    ) {
+      // Both rangeBar and pyramid have per-segment y/height that doesn't
+      // follow the equal-step `yDivision` cadence the default bar
+      // dataLabelsY formula assumes. Anchor positioning at the actual
+      // barYPosition (segment top) instead.
       bcy = barYPosition
       dataLabelsY = barYPosition
     }
@@ -417,13 +424,27 @@ export default class BarDataLabels {
 
     barWidth = Math.abs(barWidth)
 
-    let dataLabelsY =
-      bcy -
-      (this.barCtx.isRangeBar ? 0 : dataPointsDividedHeight) +
-      barHeight / 2 +
-      textRects.height / 2 +
-      offY -
-      3
+    let dataLabelsY
+    if (this.barCtx.isPyramid) {
+      // For pyramid we want the *visual* center of the rendered text to
+      // sit on the segment's vertical center. `textRects.centerOffset`
+      // (measured live by Graphics.getTextRects) is the signed distance
+      // from the SVG `y` attribute (alphabetic baseline) to the bbox
+      // center for THIS exact font/size/family — negative for typical
+      // fonts where the ascender dominates the descender. Subtracting it
+      // lands the bbox center exactly on segment center, no matter the
+      // font.
+      const centerOffset = textRects.centerOffset ?? 0
+      dataLabelsY = bcy + barHeight / 2 + offY - centerOffset
+    } else {
+      dataLabelsY =
+        bcy -
+        (this.barCtx.isRangeBar ? 0 : dataPointsDividedHeight) +
+        barHeight / 2 +
+        textRects.height / 2 +
+        offY -
+        3
+    }
 
     if (
       !w.config.chart.stacked &&
@@ -444,29 +465,39 @@ export default class BarDataLabels {
       totalDataLabelsAnchor = valIsNegative ? 'start' : 'end'
     }
 
-    switch (barDataLabelsConfig.position) {
-      case 'center':
-        if (valIsNegative) {
-          dataLabelsX = newX + barWidth / 2 - offX
-        } else {
-          dataLabelsX =
-            Math.max(textRects.width / 2, newX - barWidth / 2) + offX
-        }
-        break
-      case 'bottom':
-        if (valIsNegative) {
-          dataLabelsX = newX + barWidth - strokeWidth - offX
-        } else {
-          dataLabelsX = newX - barWidth + strokeWidth + offX
-        }
-        break
-      case 'top':
-        if (valIsNegative) {
-          dataLabelsX = newX - strokeWidth - offX
-        } else {
-          dataLabelsX = newX - strokeWidth + offX
-        }
-        break
+    if (this.barCtx.isPyramid) {
+      // Pyramid segments are horizontally centered on the plot area's
+      // midline (their geometry is a triangle expanding outward from
+      // gridWidth/2). The standard horizontal-bar formulas anchor x to
+      // the segment's right edge minus a value-proportional barWidth,
+      // which only matches normal left-rooted bars — for pyramid that
+      // produces a left-shifted label. Just center on the midline.
+      dataLabelsX = w.layout.gridWidth / 2 + offX
+    } else {
+      switch (barDataLabelsConfig.position) {
+        case 'center':
+          if (valIsNegative) {
+            dataLabelsX = newX + barWidth / 2 - offX
+          } else {
+            dataLabelsX =
+              Math.max(textRects.width / 2, newX - barWidth / 2) + offX
+          }
+          break
+        case 'bottom':
+          if (valIsNegative) {
+            dataLabelsX = newX + barWidth - strokeWidth - offX
+          } else {
+            dataLabelsX = newX - barWidth + strokeWidth + offX
+          }
+          break
+        case 'top':
+          if (valIsNegative) {
+            dataLabelsX = newX - strokeWidth - offX
+          } else {
+            dataLabelsX = newX - strokeWidth + offX
+          }
+          break
+      }
     }
 
     let lowestPrevX = newX

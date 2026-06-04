@@ -13,19 +13,10 @@ plotOptions: {
   bar: {
     borderRadius: 0,
     distributed: true,
-    barHeight: '80%',
   },
 },
-colors: [
-  '#F44F5E',
-  '#E55A89',
-  '#D863B1',
-  '#CA6CD8',
-  '#B57BED',
-  '#8D95EB',
-  '#62ACEA',
-  '#4BC3E6',
-],
+colors: ["#809bce","#95b8d1","#b8e0d4","#d6eadf","#eac4d5","#d1625c","#e89c81","#ffd6a5"]
+,
 dataLabels: {
   enabled: true,
   formatter: function (val, opt) {

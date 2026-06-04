@@ -1401,6 +1401,11 @@ class Graphics {
     w.dom.Paper.add(virtualText)
 
     let rect = virtualText.bbox()
+    // `bboxY` is the bbox top in the same coord system as the y attribute we
+    // drew at (-200). We use it to compute how far the rendered glyphs
+    // extend above the baseline — needed for accurate vertical centering
+    // (see `centerOffset`).
+    const bboxY = rect.y
     if (!useBBox) {
       rect = virtualText.node.getBoundingClientRect()
     }
@@ -1410,6 +1415,12 @@ class Graphics {
     const result = {
       width: rect.width,
       height: rect.height,
+      // Offset from the text element's `y` (alphabetic baseline) to the
+      // bbox vertical center. For most fonts this is NEGATIVE (bbox center
+      // sits above the baseline because the ascender is taller than the
+      // descender). Use as: `text_y = desired_visual_center_y - centerOffset`.
+      // Only populated when useBBox=true (the default).
+      centerOffset: useBBox ? bboxY + rect.height / 2 - -200 : 0,
     }
 
     if (cache) {

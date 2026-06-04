@@ -116,6 +116,9 @@ export default class UpdateHelpers {
               if (options.plotOptions.bar.isFunnel === undefined) {
                 options.plotOptions.bar.isFunnel = false
               }
+              if (options.plotOptions.bar.isPyramid === undefined) {
+                options.plotOptions.bar.isPyramid = false
+              }
             }
           }
           ch.config.normalizeAliasedChartType(options)

@@ -637,6 +637,117 @@ export default class Helpers {
     }
   }
 
+  /**
+   * Pre-compute the per-segment layout for a value-proportional pyramid.
+   *
+   * Each segment is a horizontal slice of a triangle whose apex sits at the
+   * top of the plot area (width = 0) and whose base spans `gridWidth` at the
+   * bottom. The vertical extent of each slice is its share of the total
+   * series value, so areas track value contribution and segments share
+   * edges (no gaps). The first data point is the apex, the last is the base.
+   *
+   * @param {any[]} seriesData - 1D array of values for a single series row
+   * @returns {{ y: number, height: number, topHalf: number, bottomHalf: number }[]}
+   */
+  computePyramidLayout(seriesData) {
+    const w = this.w
+    const gridHeight = w.layout.gridHeight
+    const gridWidth = w.layout.gridWidth
+
+    const values = seriesData.map(
+      /** @param {any} v */ (v) => Math.abs(Number(v) || 0),
+    )
+    const total = values.reduce(
+      /** @param {number} a @param {number} b */ (a, b) => a + b,
+      0,
+    )
+
+    if (total === 0 || gridHeight <= 0) {
+      return values.map(() => ({ y: 0, height: 0, topHalf: 0, bottomHalf: 0 }))
+    }
+
+    const halfWidth = gridWidth / 2
+    let cumulative = 0
+    const layout = []
+    for (let j = 0; j < values.length; j++) {
+      const topRatio = cumulative / total
+      cumulative += values[j]
+      const bottomRatio = cumulative / total
+      const topY = topRatio * gridHeight
+      const bottomY = bottomRatio * gridHeight
+      layout.push({
+        y: topY,
+        height: bottomY - topY,
+        topHalf: topRatio * halfWidth,
+        bottomHalf: bottomRatio * halfWidth,
+      })
+    }
+    return layout
+  }
+
+  /**
+   * Build a single pyramid stage path. Geometry is precomputed by
+   * `computePyramidLayout`; this method only renders that geometry into an
+   * SVG path string plus a `pathFrom` for entry/morph animations.
+   *
+   * @param {{ barYPosition: number, barHeight: number, topHalf: number, bottomHalf: number, realIndex: number, j: number, strokeWidth: number, w: any }} opts
+   */
+  getPyramidPaths({
+    barYPosition,
+    barHeight,
+    topHalf,
+    bottomHalf,
+    realIndex,
+    j,
+    strokeWidth,
+    w,
+  }) {
+    const graphics = new Graphics(this.barCtx.w)
+    const center = w.layout.gridWidth / 2
+
+    const strokeCenter = strokeWidth / 2
+    const y1 = barYPosition + strokeCenter
+    const y2 = barYPosition + barHeight - strokeCenter
+
+    const topLeftX = center - topHalf
+    const topRightX = center + topHalf
+    const bottomLeftX = center - bottomHalf
+    const bottomRightX = center + bottomHalf
+
+    const pathTo =
+      graphics.move(topLeftX, y1) +
+      graphics.line(topRightX, y1) +
+      graphics.line(bottomRightX, y2) +
+      graphics.line(bottomLeftX, y2) +
+      ' Z'
+
+    let pathFrom
+    const morphFrom = this.barCtx.ctx?.morphTypeChange?.getInitialPathFor(
+      realIndex,
+      j,
+    )
+    if (morphFrom) {
+      pathFrom = morphFrom
+    } else if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo)
+    } else {
+      pathFrom =
+        graphics.move(center, y1) +
+        graphics.line(center, y1) +
+        graphics.line(center, y2) +
+        graphics.line(center, y2) +
+        ' Z'
+    }
+
+    return {
+      pathTo,
+      pathFrom,
+      x: topRightX,
+      x1: topLeftX,
+      barXPosition: center,
+    }
+  }
+
   /** @param {{ barYPosition?: any, barHeight?: any, x1?: any, x2?: any, strokeWidth?: any, isReversed?: any, series?: any, seriesGroup?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getBarpaths({
     barYPosition,

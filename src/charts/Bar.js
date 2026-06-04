@@ -37,6 +37,9 @@ class Bar {
       w.config.plotOptions.bar.rangeBarGroupRows
 
     this.isFunnel = this.barOptions.isFunnel
+    this.isPyramid = this.barOptions.isPyramid
+    /** @type {null | { y: number, height: number, topHalf: number, bottomHalf: number }[]} */
+    this.pyramidLayout = null
     this.xyRatios = xyRatios
 
     /** @type {number} */
@@ -170,6 +173,14 @@ class Bar {
         w.config.yaxis[this.yaxisIndex] &&
         w.config.yaxis[this.yaxisIndex].reversed
 
+      if (this.isPyramid) {
+        // Recompute the per-segment trapezoid layout once per series, before
+        // drawing any of its segments. Each entry yields the segment's top
+        // y / height / top-half-width / bottom-half-width, derived from the
+        // running cumulative share of the series total.
+        this.pyramidLayout = this.barHelpers.computePyramidLayout(series[i])
+      }
+
       const initPositions = this.barHelpers.initialPositions(realIndex)
       const {
         y: initY,
@@ -257,6 +268,7 @@ class Bar {
 
         if (
           this.isFunnel &&
+          !this.isPyramid &&
           this.barOptions.isFunnel3d &&
           w.config.plotOptions.funnel?.shape !== 'trapezoid' &&
           this.pathArr.length &&
@@ -611,8 +623,16 @@ class Bar {
 
     const useTrapezoid =
       this.isFunnel && w.config.plotOptions.funnel.shape === 'trapezoid'
+    const pyramidSeg =
+      this.isPyramid && this.pyramidLayout ? this.pyramidLayout[j] : null
+    const usePyramid = !!pyramidSeg
 
-    if (this.isFunnel && !useTrapezoid) {
+    if (pyramidSeg) {
+      // Pyramid stages own their own y / barHeight (cumulative-share based);
+      // ignore the equal-height layout that drawBarPaths computed above.
+      barYPosition = pyramidSeg.y
+      barHeight = pyramidSeg.height
+    } else if (this.isFunnel && !useTrapezoid) {
       const _zeroW = zeroW ?? 0
       zeroW =
         _zeroW -
@@ -632,43 +652,71 @@ class Bar {
       zeroW ?? 0,
     )
 
-    const paths = /** @type {any} */ (
-      useTrapezoid
-        ? this.barHelpers.getFunnelTrapezoidPaths({
-            barYPosition,
-            barHeight,
-            series: /** @type {any} */ (this.series),
-            i,
-            j,
-            realIndex: indexes.realIndex,
-            strokeWidth,
-            w,
-          })
-        : this.barHelpers.getBarpaths({
-            barYPosition,
-            barHeight,
-            x1: zeroW,
-            x2: x,
-            strokeWidth,
-            isReversed: this.isReversed,
-            series: this.series,
-            realIndex: indexes.realIndex,
-            i,
-            j,
-            w,
-          })
-    )
+    let paths
+    if (pyramidSeg) {
+      paths = /** @type {any} */ (
+        this.barHelpers.getPyramidPaths({
+          barYPosition,
+          barHeight,
+          topHalf: pyramidSeg.topHalf,
+          bottomHalf: pyramidSeg.bottomHalf,
+          realIndex: indexes.realIndex,
+          j,
+          strokeWidth,
+          w,
+        })
+      )
+    } else if (useTrapezoid) {
+      paths = /** @type {any} */ (
+        this.barHelpers.getFunnelTrapezoidPaths({
+          barYPosition,
+          barHeight,
+          series: /** @type {any} */ (this.series),
+          i,
+          j,
+          realIndex: indexes.realIndex,
+          strokeWidth,
+          w,
+        })
+      )
+    } else {
+      paths = /** @type {any} */ (
+        this.barHelpers.getBarpaths({
+          barYPosition,
+          barHeight,
+          x1: zeroW,
+          x2: x,
+          strokeWidth,
+          isReversed: this.isReversed,
+          series: this.series,
+          realIndex: indexes.realIndex,
+          i,
+          j,
+          w,
+        })
+      )
+    }
 
-    if (useTrapezoid) {
-      // Trapezoid path is keyed to its own left/right edges; expose x1 for
-      // the rest of drawBarPaths and keep zeroW in sync for downstream code
-      // (goal lines, dataLabel positioning).
+    if (useTrapezoid || usePyramid) {
+      // These shapes own their own left/right edges; expose them to downstream
+      // code (goal lines, dataLabel positioning) so it uses the actual
+      // segment geometry instead of the bar-style x1/x derived above.
       zeroW = paths.x1
       x = paths.x
     }
 
-    if (!w.axisFlags.isXNumeric) {
+    if (!w.axisFlags.isXNumeric && !usePyramid) {
       y = y + yDivision
+    }
+
+    if (usePyramid) {
+      // Pyramid stages have variable heights, so the standard equal-step
+      // `y += yDivision` advance doesn't apply. Point `y` at the current
+      // segment's top so `w.globals.seriesYvalues` — pushed below as
+      // `yArrj.push(y)` and read by tooltip/hover code — reflects each
+      // segment's actual position instead of the leftover initialPositions
+      // seed.
+      y = barYPosition
     }
 
     this.barHelpers.barBackground({
