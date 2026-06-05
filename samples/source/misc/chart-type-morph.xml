@@ -176,7 +176,11 @@ var currentValues = [44, 55, 41, 27, 33]
 var currentBarHeight = 70
 
 function buildSeriesFor(type, values) {
-  if (type === 'bar' || type === 'funnel' || type === 'pyramid') {
+  if (type === 'funnel') {
+    var sorted = values.slice().sort(function (a, b) { return b - a })
+    return [{ name: 'Sessions', data: sorted }]
+  }
+  if (type === 'bar' || type === 'pyramid') {
     return [{ name: 'Sessions', data: values.slice() }]
   }
   return values.slice()

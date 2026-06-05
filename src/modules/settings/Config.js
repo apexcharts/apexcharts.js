@@ -164,6 +164,11 @@ export default class Config {
         // share, producing a continuous triangle). `isFunnel` stays true so
         // the layout/centering/no-axis-labels defaults still apply.
         opts.plotOptions.bar.isPyramid = true
+      } else {
+        // Funnel must explicitly clear a stale isPyramid that may linger on
+        // w.config from a previous pyramid render — Utils.extend won't drop
+        // it on its own.
+        opts.plotOptions.bar.isPyramid = false
       }
     } else if (requested === 'gauge') {
       opts.chart.type = 'radialBar'
