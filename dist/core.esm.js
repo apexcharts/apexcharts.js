@@ -19,7 +19,7 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v5.13.0
+ * ApexCharts v5.14.0
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -3638,7 +3638,43 @@ class Options {
             inverse: false,
             ranges: [],
             min: void 0,
-            max: void 0
+            max: void 0,
+            // Replaces the default categorical legend with a continuous
+            // gradient stripe + a hover indicator arrow. Honors
+            // `chart.legend.position` (top / right / bottom / left).
+            gradientLegend: {
+              enabled: false,
+              // Strip length along the legend's long axis. Accepts a number
+              // (pixels) or a percentage string. For top/bottom placement the
+              // percentage is resolved against the chart's SVG width; for
+              // left/right placement, against the SVG height.
+              width: "70%",
+              height: "70%",
+              thickness: 12,
+              // Alignment of the strip within the legend area:
+              //  - top/bottom: 'start' = left, 'center', 'end' = right
+              //  - left/right: 'start' = top,  'center', 'end' = bottom
+              align: "center",
+              // Number of gradient stops sampled from the shade function when
+              // no explicit `ranges` are provided.
+              stops: 16,
+              // Show min/max labels at the ends of the strip.
+              showLabels: true,
+              // Show a value tooltip next to the arrow when hovering a cell.
+              showHoverValue: true,
+              labelStyle: {
+                fontSize: "11px",
+                fontFamily: void 0,
+                colors: void 0
+              },
+              arrow: {
+                size: 8,
+                color: void 0
+                // falls back to chart.foreColor
+              },
+              formatter: void 0
+              // (val) => string, for min/max + hover value
+            }
           }
         },
         funnel: {
@@ -4580,6 +4616,11 @@ class Config {
       opts.plotOptions.bar.isFunnel = true;
       opts.plotOptions.bar.horizontal = true;
       opts.chart.type = "bar";
+      if (requested === "pyramid") {
+        opts.plotOptions.bar.isPyramid = true;
+      } else {
+        opts.plotOptions.bar.isPyramid = false;
+      }
     } else if (requested === "gauge") {
       opts.chart.type = "radialBar";
     }
@@ -7788,13 +7829,20 @@ class Graphics {
     }
     w.dom.Paper.add(virtualText);
     let rect = virtualText.bbox();
+    const bboxY = rect.y;
     if (!useBBox) {
       rect = virtualText.node.getBoundingClientRect();
     }
     virtualText.remove();
     const result = {
       width: rect.width,
-      height: rect.height
+      height: rect.height,
+      // Offset from the text element's `y` (alphabetic baseline) to the
+      // bbox vertical center. For most fonts this is NEGATIVE (bbox center
+      // sits above the baseline because the ascender is taller than the
+      // descender). Use as: `text_y = desired_visual_center_y - centerOffset`.
+      // Only populated when useBBox=true (the default).
+      centerOffset: useBBox ? bboxY + rect.height / 2 - -200 : 0
     };
     if (cache) {
       cache.set(cacheKey, result);
@@ -12700,49 +12748,44 @@ class Series {
     }
   }
   /**
-   * @param {Event} e
-   * @param {any} targetElement
+   * Dim every heatmap cell except those whose value falls inside the color
+   * range at `rangeIndex`. Shared by the categorical legend (hover a legend
+   * item) and the gradient legend (hover a band) — both supply an index into
+   * `colorScale.ranges` plus an action, decoupling the highlight from any
+   * particular DOM element / event shape.
+   *
+   * @param {number} rangeIndex index into `colorScale.ranges`
+   * @param {'highlight'|'reset'} action
    */
-  highlightRangeInSeries(e, targetElement) {
+  highlightRangeInSeries(rangeIndex, action) {
     const w = this.w;
     const allHeatMapElements = w.dom.baseEl.getElementsByClassName(
       "apexcharts-heatmap-rect"
     );
-    const activeInactive = (action) => {
+    const toggleAllInactive = (op) => {
       for (let i = 0; i < allHeatMapElements.length; i++) {
-        const actionFn = (
+        const classList = (
           /** @type {any} */
-          allHeatMapElements[i].classList[action]
+          allHeatMapElements[i].classList
         );
-        if (typeof actionFn === "function") {
-          actionFn.call(
-            /** @type {any} */
-            allHeatMapElements[i].classList,
-            this.legendInactiveClass
-          );
+        if (typeof classList[op] === "function") {
+          classList[op](this.legendInactiveClass);
         }
       }
     };
-    const removeInactiveClassFromHoveredRange = (range, rangeMax) => {
-      for (let i = 0; i < allHeatMapElements.length; i++) {
-        const val = Number(allHeatMapElements[i].getAttribute("val"));
-        if (val >= range.from && (val < range.to || range.to === rangeMax && val === rangeMax)) {
-          allHeatMapElements[i].classList.remove(this.legendInactiveClass);
-        }
+    if (action === "reset") {
+      toggleAllInactive("remove");
+      return;
+    }
+    const ranges = w.config.plotOptions.heatmap.colorScale.ranges;
+    const range = ranges && ranges[rangeIndex];
+    if (!range) return;
+    toggleAllInactive("add");
+    for (let i = 0; i < allHeatMapElements.length; i++) {
+      const val = Number(allHeatMapElements[i].getAttribute("val"));
+      if (val >= range.from && val <= range.to) {
+        allHeatMapElements[i].classList.remove(this.legendInactiveClass);
       }
-    };
-    if (e.type === "mousemove") {
-      const seriesCnt = parseInt(targetElement.getAttribute("rel"), 10) - 1;
-      activeInactive("add");
-      const ranges = w.config.plotOptions.heatmap.colorScale.ranges;
-      const range = ranges[seriesCnt];
-      const rangeMax = ranges.reduce(
-        (acc, cur) => Math.max(acc, cur.to),
-        0
-      );
-      removeInactiveClassFromHoveredRange(range, rangeMax);
-    } else if (e.type === "mouseout") {
-      activeInactive("remove");
     }
   }
   /**
@@ -14844,6 +14887,7 @@ class Core {
     const { w } = this;
     const heightStr = w.config.chart.height ? String(w.config.chart.height) : "";
     const userSetFixedHeight = heightStr !== "" && heightStr !== "auto";
+    const isPercentHeight = heightStr.includes("%");
     let legendHeight = 0;
     let offY = w.config.chart.sparkline.enabled ? 1 : 15;
     offY += w.config.grid.padding.bottom;
@@ -14912,7 +14956,7 @@ class Core {
       );
       const chartOffsetY = (_f = w.config.chart.offsetY) != null ? _f : 0;
       const elWrapHeight = svgHeight + Math.max(chartOffsetY, 0);
-      if (!userSetFixedHeight) {
+      if (!isPercentHeight) {
         if (this.w.dom.elLegendForeign) {
           this.w.dom.elLegendForeign.setAttribute(
             "height",
@@ -16205,9 +16249,10 @@ class UpdateHelpers {
         }
         if (animate && options2 && typeof options2 === "object") {
           const newType = (_a = options2 == null ? void 0 : options2.chart) == null ? void 0 : _a.type;
-          if (newType && newType !== w.config.chart.type) {
+          const fromType = w.config.chart.requestedType || w.config.chart.type;
+          if (newType && newType !== fromType) {
             (_b = ch.morphTypeChange) == null ? void 0 : _b.captureBeforeDestroy({
-              fromType: w.config.chart.type,
+              fromType,
               toType: newType,
               newSeries: options2.series || w.config.series
             });
@@ -16215,6 +16260,25 @@ class UpdateHelpers {
         }
         if (options2 && typeof options2 === "object") {
           ch.config = new Config(options2);
+          const incomingType = options2.chart && options2.chart.type;
+          const isAliasRequest = incomingType === "funnel" || incomingType === "pyramid" || incomingType === "gauge";
+          const wasAlias = !!w.config.chart.requestedType;
+          if (incomingType && !isAliasRequest && wasAlias) {
+            options2.chart = options2.chart || {};
+            options2.chart.requestedType = incomingType;
+            const prev = w.config.chart.requestedType;
+            if (prev === "funnel" || prev === "pyramid") {
+              options2.plotOptions = options2.plotOptions || {};
+              options2.plotOptions.bar = options2.plotOptions.bar || {};
+              if (options2.plotOptions.bar.isFunnel === void 0) {
+                options2.plotOptions.bar.isFunnel = false;
+              }
+              if (options2.plotOptions.bar.isPyramid === void 0) {
+                options2.plotOptions.bar.isPyramid = false;
+              }
+            }
+          }
+          ch.config.normalizeAliasedChartType(options2);
           options2 = CoreUtils.extendArrayProps(ch.config, options2, w);
           if (ch.w.globals.chartID !== this.w.globals.chartID) {
             delete options2.series;
@@ -21924,7 +21988,7 @@ class ApexCharts {
    * @param {object} opts
    */
   create(ser, opts) {
-    var _a;
+    var _a, _b, _c;
     const w = this.w;
     if (!this.core) {
       const initCtx = new InitCtxVariables(this);
@@ -22008,6 +22072,7 @@ class ApexCharts {
       dataLabels.dataLabelsBackground();
     }
     this.core.shiftGraphPosition();
+    (_c = (_b = this.legend) == null ? void 0 : _b.heatmapGradientLegend) == null ? void 0 : _c.repositionToPlot();
     if (w.globals.dataPoints > 50) {
       w.dom.elWrap.classList.add("apexcharts-disable-transitions");
     }

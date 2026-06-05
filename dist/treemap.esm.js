@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.13.0
+ * ApexCharts v5.14.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -242,7 +242,7 @@ class TreemapHelpers {
       max = chartOpts.colorScale.max > w.globals.maxY ? chartOpts.colorScale.max : w.globals.maxY;
     }
     const total = Math.abs(max) + Math.abs(min);
-    let percent = 100 * val / (total === 0 ? total - 1e-6 : total);
+    let percent = total === 0 ? 0 : 100 * val / total;
     if (chartOpts.colorScale.ranges.length > 0) {
       const colorRange = chartOpts.colorScale.ranges;
       colorRange.map((range) => {
@@ -252,7 +252,7 @@ class TreemapHelpers {
           min = range.from;
           max = range.to;
           const rTotal = Math.abs(max) + Math.abs(min);
-          percent = 100 * val / (rTotal === 0 ? rTotal - 1e-6 : rTotal);
+          percent = rTotal === 0 ? 0 : 100 * val / rTotal;
         }
       });
     }

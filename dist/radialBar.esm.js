@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.13.0
+ * ApexCharts v5.14.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1184,7 +1184,7 @@ class Radial extends Pie {
       const dashArray = Array.isArray(w.config.stroke.dashArray) ? w.config.stroke.dashArray[i] : w.config.stroke.dashArray;
       const morphFrom = morphActive ? this.ctx.morphTypeChange.getInitialPathFor(i, 0) : null;
       const morphFromType = morphActive ? this.ctx.morphTypeChange.getFromType() : null;
-      const morphFromFilled = !!morphFrom && (morphFromType === "bar" || morphFromType === "pie" || morphFromType === "donut" || morphFromType === "polarArea");
+      const morphFromFilled = !!morphFrom && (morphFromType === "bar" || morphFromType === "funnel" || morphFromType === "pyramid" || morphFromType === "pie" || morphFromType === "donut" || morphFromType === "polarArea");
       const elPath = graphics.drawPath({
         d: morphFrom || "",
         stroke: morphFromFilled ? "transparent" : opts.skipValueArc ? "transparent" : pathFill,

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.13.0
+ * ApexCharts v5.14.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -85,7 +85,7 @@ class BarDataLabels {
     const dataLabelsConfig = w.config.dataLabels;
     const barDataLabelsConfig = this.barCtx.barOptions.dataLabels;
     const barTotalDataLabelsConfig = this.barCtx.barOptions.dataLabels.total;
-    if (typeof barYPosition !== "undefined" && this.barCtx.isRangeBar) {
+    if (typeof barYPosition !== "undefined" && (this.barCtx.isRangeBar || this.barCtx.isPyramid)) {
       bcy = barYPosition;
       dataLabelsY = barYPosition;
     }
@@ -331,6 +331,7 @@ class BarDataLabels {
    * @param {Record<string, any>} opts
    */
   calculateBarsDataLabelsPosition(opts) {
+    var _a;
     const w = this.w;
     let {
       x,
@@ -355,7 +356,13 @@ class BarDataLabels {
       j
     });
     barWidth = Math.abs(barWidth);
-    let dataLabelsY = bcy - (this.barCtx.isRangeBar ? 0 : dataPointsDividedHeight) + barHeight / 2 + textRects.height / 2 + offY - 3;
+    let dataLabelsY;
+    if (this.barCtx.isPyramid) {
+      const centerOffset = (_a = textRects.centerOffset) != null ? _a : 0;
+      dataLabelsY = bcy + barHeight / 2 + offY - centerOffset;
+    } else {
+      dataLabelsY = bcy - (this.barCtx.isRangeBar ? 0 : dataPointsDividedHeight) + barHeight / 2 + textRects.height / 2 + offY - 3;
+    }
     if (!w.config.chart.stacked && zeroEncounters > 0 && w.config.plotOptions.bar.hideZeroBarsWhenGrouped) {
       dataLabelsY -= barHeight * zeroEncounters;
     }
@@ -368,33 +375,37 @@ class BarDataLabels {
       newX = x + (valIsNegative ? -barWidth : barWidth);
       totalDataLabelsAnchor = valIsNegative ? "start" : "end";
     }
-    switch (barDataLabelsConfig.position) {
-      case "center":
-        if (valIsNegative) {
-          dataLabelsX = newX + barWidth / 2 - offX;
-        } else {
-          dataLabelsX = Math.max(textRects.width / 2, newX - barWidth / 2) + offX;
-        }
-        break;
-      case "bottom":
-        if (valIsNegative) {
-          dataLabelsX = newX + barWidth - strokeWidth - offX;
-        } else {
-          dataLabelsX = newX - barWidth + strokeWidth + offX;
-        }
-        break;
-      case "top":
-        if (valIsNegative) {
-          dataLabelsX = newX - strokeWidth - offX;
-        } else {
-          dataLabelsX = newX - strokeWidth + offX;
-        }
-        break;
+    if (this.barCtx.isPyramid) {
+      dataLabelsX = w.layout.gridWidth / 2 + offX;
+    } else {
+      switch (barDataLabelsConfig.position) {
+        case "center":
+          if (valIsNegative) {
+            dataLabelsX = newX + barWidth / 2 - offX;
+          } else {
+            dataLabelsX = Math.max(textRects.width / 2, newX - barWidth / 2) + offX;
+          }
+          break;
+        case "bottom":
+          if (valIsNegative) {
+            dataLabelsX = newX + barWidth - strokeWidth - offX;
+          } else {
+            dataLabelsX = newX - barWidth + strokeWidth + offX;
+          }
+          break;
+        case "top":
+          if (valIsNegative) {
+            dataLabelsX = newX - strokeWidth - offX;
+          } else {
+            dataLabelsX = newX - strokeWidth + offX;
+          }
+          break;
+      }
     }
     let lowestPrevX = newX;
     w.labelData.seriesGroups.forEach((sg) => {
-      var _a;
-      (_a = this.barCtx[sg.join(",")]) == null ? void 0 : _a.prevX.forEach(
+      var _a2;
+      (_a2 = this.barCtx[sg.join(",")]) == null ? void 0 : _a2.prevX.forEach(
         (arr) => {
           if (valIsNegative) {
             lowestPrevX = Math.min(arr[j], lowestPrevX);
@@ -1031,6 +1042,100 @@ class Helpers {
       barXPosition: center
     };
   }
+  /**
+   * Pre-compute the per-segment layout for a value-proportional pyramid.
+   *
+   * Each segment is a horizontal slice of a triangle whose apex sits at the
+   * top of the plot area (width = 0) and whose base spans `gridWidth` at the
+   * bottom. The vertical extent of each slice is its share of the total
+   * series value, so areas track value contribution and segments share
+   * edges (no gaps). The first data point is the apex, the last is the base.
+   *
+   * @param {any[]} seriesData - 1D array of values for a single series row
+   * @returns {{ y: number, height: number, topHalf: number, bottomHalf: number }[]}
+   */
+  computePyramidLayout(seriesData) {
+    const w = this.w;
+    const gridHeight = w.layout.gridHeight;
+    const gridWidth = w.layout.gridWidth;
+    const values = seriesData.map(
+      /** @param {any} v */
+      (v) => Math.abs(Number(v) || 0)
+    );
+    const total = values.reduce(
+      /** @param {number} a @param {number} b */
+      (a, b) => a + b,
+      0
+    );
+    if (total === 0 || gridHeight <= 0) {
+      return values.map(() => ({ y: 0, height: 0, topHalf: 0, bottomHalf: 0 }));
+    }
+    const halfWidth = gridWidth / 2;
+    let cumulative = 0;
+    const layout = [];
+    for (let j = 0; j < values.length; j++) {
+      const topRatio = cumulative / total;
+      cumulative += values[j];
+      const bottomRatio = cumulative / total;
+      const topY = topRatio * gridHeight;
+      const bottomY = bottomRatio * gridHeight;
+      layout.push({
+        y: topY,
+        height: bottomY - topY,
+        topHalf: topRatio * halfWidth,
+        bottomHalf: bottomRatio * halfWidth
+      });
+    }
+    return layout;
+  }
+  /**
+   * Build a single pyramid stage path. Geometry is precomputed by
+   * `computePyramidLayout`; this method only renders that geometry into an
+   * SVG path string plus a `pathFrom` for entry/morph animations.
+   *
+   * @param {{ barYPosition: number, barHeight: number, topHalf: number, bottomHalf: number, realIndex: number, j: number, strokeWidth: number, w: any }} opts
+   */
+  getPyramidPaths({
+    barYPosition,
+    barHeight,
+    topHalf,
+    bottomHalf,
+    realIndex,
+    j,
+    strokeWidth,
+    w
+  }) {
+    var _a, _b;
+    const graphics = new Graphics(this.barCtx.w);
+    const center = w.layout.gridWidth / 2;
+    const strokeCenter = strokeWidth / 2;
+    const y1 = barYPosition + strokeCenter;
+    const y2 = barYPosition + barHeight - strokeCenter;
+    const topLeftX = center - topHalf;
+    const topRightX = center + topHalf;
+    const bottomLeftX = center - bottomHalf;
+    const bottomRightX = center + bottomHalf;
+    const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
+    let pathFrom;
+    const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
+      realIndex,
+      j
+    );
+    if (morphFrom) {
+      pathFrom = morphFrom;
+    } else if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
+    } else {
+      pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
+    }
+    return {
+      pathTo,
+      pathFrom,
+      x: topRightX,
+      x1: topLeftX,
+      barXPosition: center
+    };
+  }
   /** @param {{ barYPosition?: any, barHeight?: any, x1?: any, x2?: any, strokeWidth?: any, isReversed?: any, series?: any, seriesGroup?: any, realIndex?: any, i?: any, j?: any, w?: any }} opts */
   getBarpaths({
     barYPosition,
@@ -1317,6 +1422,8 @@ class Bar {
     this.isRangeBar = w.rangeData.seriesRange.length && this.isHorizontal;
     this.isVerticalGroupedRangeBar = !w.globals.isBarHorizontal && w.rangeData.seriesRange.length && w.config.plotOptions.bar.rangeBarGroupRows;
     this.isFunnel = this.barOptions.isFunnel;
+    this.isPyramid = this.barOptions.isPyramid;
+    this.pyramidLayout = null;
     this.xyRatios = xyRatios;
     this.xRatio = 0;
     this.yRatio = [];
@@ -1407,6 +1514,9 @@ class Bar {
       }
       const translationsIndex = this.translationsIndex;
       this.isReversed = w.config.yaxis[this.yaxisIndex] && w.config.yaxis[this.yaxisIndex].reversed;
+      if (this.isPyramid) {
+        this.pyramidLayout = this.barHelpers.computePyramidLayout(series[i]);
+      }
       const initPositions = this.barHelpers.initialPositions(realIndex);
       const {
         y: initY,
@@ -1485,7 +1595,7 @@ class Bar {
           j,
           realIndex
         );
-        if (this.isFunnel && this.barOptions.isFunnel3d && ((_a = w.config.plotOptions.funnel) == null ? void 0 : _a.shape) !== "trapezoid" && this.pathArr.length && j > 0) {
+        if (this.isFunnel && !this.isPyramid && this.barOptions.isFunnel3d && ((_a = w.config.plotOptions.funnel) == null ? void 0 : _a.shape) !== "trapezoid" && this.pathArr.length && j > 0) {
           const barShadow = this.barHelpers.drawBarShadow({
             color: typeof pathFill.color === "string" && ((_b = pathFill.color) == null ? void 0 : _b.indexOf("url")) === -1 ? pathFill.color : Utils.hexToRgba(w.globals.colors[i]),
             prevPaths: this.pathArr[this.pathArr.length - 1],
@@ -1758,7 +1868,12 @@ class Bar {
       }
     }
     const useTrapezoid = this.isFunnel && w.config.plotOptions.funnel.shape === "trapezoid";
-    if (this.isFunnel && !useTrapezoid) {
+    const pyramidSeg = this.isPyramid && this.pyramidLayout ? this.pyramidLayout[j] : null;
+    const usePyramid = !!pyramidSeg;
+    if (pyramidSeg) {
+      barYPosition = pyramidSeg.y;
+      barHeight = pyramidSeg.height;
+    } else if (this.isFunnel && !useTrapezoid) {
       const _zeroW = zeroW != null ? zeroW : 0;
       zeroW = _zeroW - /** @type {number} */
       /** @type {any} */
@@ -1773,9 +1888,22 @@ class Bar {
       this.series[i][j],
       zeroW != null ? zeroW : 0
     );
-    const paths = (
-      /** @type {any} */
-      useTrapezoid ? this.barHelpers.getFunnelTrapezoidPaths({
+    let paths;
+    if (pyramidSeg) {
+      paths = /** @type {any} */
+      this.barHelpers.getPyramidPaths({
+        barYPosition,
+        barHeight,
+        topHalf: pyramidSeg.topHalf,
+        bottomHalf: pyramidSeg.bottomHalf,
+        realIndex: indexes.realIndex,
+        j,
+        strokeWidth,
+        w
+      });
+    } else if (useTrapezoid) {
+      paths = /** @type {any} */
+      this.barHelpers.getFunnelTrapezoidPaths({
         barYPosition,
         barHeight,
         series: (
@@ -1787,7 +1915,10 @@ class Bar {
         realIndex: indexes.realIndex,
         strokeWidth,
         w
-      }) : this.barHelpers.getBarpaths({
+      });
+    } else {
+      paths = /** @type {any} */
+      this.barHelpers.getBarpaths({
         barYPosition,
         barHeight,
         x1: zeroW,
@@ -1799,14 +1930,17 @@ class Bar {
         i,
         j,
         w
-      })
-    );
-    if (useTrapezoid) {
+      });
+    }
+    if (useTrapezoid || usePyramid) {
       zeroW = paths.x1;
       x = paths.x;
     }
-    if (!w.axisFlags.isXNumeric) {
+    if (!w.axisFlags.isXNumeric && !usePyramid) {
       y = y + yDivision;
+    }
+    if (usePyramid) {
+      y = barYPosition;
     }
     this.barHelpers.barBackground({
       j,

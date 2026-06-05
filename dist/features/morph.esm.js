@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.13.0
+ * ApexCharts v5.14.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -9,8 +9,8 @@ const Environment = _core.__apex_Environment_Environment;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const prefersReducedMotion = _core.__apex_Animations_prefersReducedMotion;
 const parsePath = _core.__apex_PathMorphing_parsePath;
-const BAR_FAMILY = /* @__PURE__ */ new Set(["bar"]);
-const RADIAL_FAMILY = /* @__PURE__ */ new Set(["pie", "donut", "polarArea", "radialBar"]);
+const BAR_FAMILY = /* @__PURE__ */ new Set(["bar", "funnel", "pyramid"]);
+const RADIAL_FAMILY = /* @__PURE__ */ new Set(["pie", "donut", "polarArea", "radialBar", "gauge"]);
 function familyOf(type) {
   if (BAR_FAMILY.has(type)) return "bar";
   if (RADIAL_FAMILY.has(type)) return "radial";
@@ -132,7 +132,7 @@ class MorphTypeChange {
         });
       });
     } else if (fam === "radial") {
-      if (fromType === "radialBar") {
+      if (fromType === "radialBar" || fromType === "gauge") {
         const centerX = this.w.layout.gridWidth / 2;
         const centerY = Math.min(this.w.layout.gridWidth, this.w.layout.gridHeight) / 2;
         const rings = baseEl.querySelectorAll(

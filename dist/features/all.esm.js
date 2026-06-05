@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.13.0
+ * ApexCharts v5.14.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -723,8 +723,664 @@ let Helpers$1 = class Helpers {
     return series;
   }
 };
-const Markers = _core.__apex_Markers;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
+const SVG_NS = "http://www.w3.org/2000/svg";
+class HeatmapGradientLegend {
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {import('../../types/internal').ChartContext} ctx
+   */
+  constructor(w, ctx) {
+    this.w = w;
+    this.ctx = ctx;
+    this.svgEl = null;
+    this.arrowEl = null;
+    this.hoverValueEl = null;
+    this._min = 0;
+    this._max = 0;
+    this._geom = null;
+    this._bandHitEls = [];
+    this._activeBandIndex = -1;
+    this._onCellEnter = this._onCellEnter.bind(this);
+    this._onCellLeave = this._onCellLeave.bind(this);
+    this._onBandEnter = this._onBandEnter.bind(this);
+    this._onBandLeave = this._onBandLeave.bind(this);
+  }
+  /** Default value formatter for min/max labels and the hover tooltip. */
+  _getFormatter() {
+    const cfg = this.w.config.plotOptions.heatmap.colorScale.gradientLegend;
+    if (typeof cfg.formatter === "function") return cfg.formatter;
+    return (v) => {
+      if (!Number.isFinite(v)) return String(v);
+      const abs = Math.abs(v);
+      if (abs >= 1e3) return v.toFixed(0);
+      if (abs >= 10) return v.toFixed(1);
+      return v.toFixed(2);
+    };
+  }
+  /**
+   * True when the user has opted into the gradient legend variant.
+   * @param {any} w
+   */
+  static isEnabled(w) {
+    var _a, _b, _c, _d;
+    const cfg = (_d = (_c = (_b = (_a = w == null ? void 0 : w.config) == null ? void 0 : _a.plotOptions) == null ? void 0 : _b.heatmap) == null ? void 0 : _c.colorScale) == null ? void 0 : _d.gradientLegend;
+    return !!(cfg && cfg.enabled);
+  }
+  /**
+   * Build the gradient legend DOM into `elLegendWrap`.
+   * Caller is responsible for clearing the wrap first.
+   */
+  draw() {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    const w = this.w;
+    const elLegendWrap = (
+      /** @type {HTMLElement} */
+      w.dom.elLegendWrap
+    );
+    if (!elLegendWrap) return;
+    const cfg = w.config.plotOptions.heatmap.colorScale.gradientLegend;
+    const position = w.config.legend.position;
+    const isVertical = position === "left" || position === "right";
+    const arrowSize = (_b = (_a = cfg.arrow) == null ? void 0 : _a.size) != null ? _b : 8;
+    const arrowGutter = arrowSize + 4;
+    const labelPadAlongStrip = cfg.showLabels ? 28 : 4;
+    const labelPadAcrossStrip = cfg.showLabels ? 20 : 4;
+    const minLabelWidth = cfg.showLabels ? 44 : 0;
+    const stripLength = this._resolveStripLength(isVertical ? cfg.height : cfg.width, isVertical);
+    const stripThickness = cfg.thickness;
+    const svgWidth = isVertical ? Math.max(stripThickness + arrowGutter + 4, minLabelWidth) : stripLength + labelPadAlongStrip * 2;
+    const svgHeight = isVertical ? stripLength + labelPadAcrossStrip * 2 : stripThickness + arrowGutter + 4;
+    const verticalGroupWidth = stripThickness + arrowGutter;
+    const verticalGroupLeftPad = (svgWidth - verticalGroupWidth) / 2;
+    const stripX = isVertical ? position === "left" ? verticalGroupLeftPad : verticalGroupLeftPad + arrowGutter : labelPadAlongStrip;
+    const stripY = isVertical ? labelPadAcrossStrip : position === "top" ? arrowGutter : 4;
+    const svg = BrowserAPIs.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "apexcharts-heatmap-gradient-legend");
+    svg.setAttribute("width", String(svgWidth));
+    svg.setAttribute("height", String(svgHeight));
+    svg.setAttribute("overflow", "visible");
+    const defs = BrowserAPIs.createElementNS(SVG_NS, "defs");
+    const gradId = `apexcharts-heatmap-gradient-${w.globals.cuid}`;
+    const linearGrad = BrowserAPIs.createElementNS(SVG_NS, "linearGradient");
+    linearGrad.setAttribute("id", gradId);
+    if (isVertical) {
+      linearGrad.setAttribute("x1", "0");
+      linearGrad.setAttribute("y1", "1");
+      linearGrad.setAttribute("x2", "0");
+      linearGrad.setAttribute("y2", "0");
+    } else {
+      linearGrad.setAttribute("x1", "0");
+      linearGrad.setAttribute("y1", "0");
+      linearGrad.setAttribute("x2", "1");
+      linearGrad.setAttribute("y2", "0");
+    }
+    const { min, max, stops, bands } = this._computeStops();
+    this._min = min;
+    this._max = max;
+    stops.forEach((s) => {
+      const stopEl = BrowserAPIs.createElementNS(SVG_NS, "stop");
+      stopEl.setAttribute("offset", `${(s.percent * 100).toFixed(2)}%`);
+      stopEl.setAttribute("stop-color", s.color);
+      linearGrad.appendChild(stopEl);
+    });
+    defs.appendChild(linearGrad);
+    svg.appendChild(defs);
+    const rect = BrowserAPIs.createElementNS(SVG_NS, "rect");
+    rect.setAttribute("x", String(stripX));
+    rect.setAttribute("y", String(stripY));
+    rect.setAttribute("width", String(isVertical ? stripThickness : stripLength));
+    rect.setAttribute("height", String(isVertical ? stripLength : stripThickness));
+    rect.setAttribute("rx", "2");
+    rect.setAttribute("fill", `url(#${gradId})`);
+    svg.appendChild(rect);
+    if (cfg.showLabels) {
+      const labelColor = ((_c = cfg.labelStyle) == null ? void 0 : _c.colors) || (Array.isArray(w.config.legend.labels.colors) ? w.config.legend.labels.colors[0] : w.config.legend.labels.colors) || w.config.chart.foreColor;
+      const labelFontSize = ((_d = cfg.labelStyle) == null ? void 0 : _d.fontSize) || "11px";
+      const labelFontFamily = ((_e = cfg.labelStyle) == null ? void 0 : _e.fontFamily) || w.config.chart.fontFamily;
+      const fmt = this._getFormatter();
+      const makeLabel = (text, x, y, anchor) => {
+        const t = BrowserAPIs.createElementNS(SVG_NS, "text");
+        t.setAttribute("x", String(x));
+        t.setAttribute("y", String(y));
+        t.setAttribute("text-anchor", anchor);
+        t.setAttribute("dominant-baseline", "middle");
+        t.setAttribute("fill", labelColor);
+        t.setAttribute("font-size", labelFontSize);
+        if (labelFontFamily) t.setAttribute("font-family", labelFontFamily);
+        t.textContent = String(text);
+        return t;
+      };
+      if (isVertical) {
+        const midX = stripX + stripThickness / 2;
+        svg.appendChild(makeLabel(fmt(min), midX, stripY + stripLength + 10, "middle"));
+        svg.appendChild(makeLabel(fmt(max), midX, stripY - 10, "middle"));
+      } else {
+        const midY = stripY + stripThickness / 2;
+        svg.appendChild(makeLabel(fmt(min), stripX - 6, midY, "end"));
+        svg.appendChild(makeLabel(fmt(max), stripX + stripLength + 6, midY, "start"));
+      }
+    }
+    const arrowColor = ((_f = cfg.arrow) == null ? void 0 : _f.color) || w.config.chart.foreColor;
+    const arrow = this._buildArrow(arrowSize, arrowColor, position);
+    svg.appendChild(arrow);
+    this.arrowEl = arrow;
+    this._bandHitEls = [];
+    if (w.config.legend.onItemHover.highlightDataSeries && bands.length > 0) {
+      bands.forEach((b) => {
+        const hit = BrowserAPIs.createElementNS(SVG_NS, "rect");
+        if (isVertical) {
+          const yTop = stripY + stripLength - b.p2 * stripLength;
+          const yBot = stripY + stripLength - b.p1 * stripLength;
+          hit.setAttribute("x", String(stripX));
+          hit.setAttribute("y", String(yTop));
+          hit.setAttribute("width", String(stripThickness));
+          hit.setAttribute("height", String(Math.max(0, yBot - yTop)));
+        } else {
+          hit.setAttribute("x", String(stripX + b.p1 * stripLength));
+          hit.setAttribute("y", String(stripY));
+          hit.setAttribute(
+            "width",
+            String(Math.max(0, (b.p2 - b.p1) * stripLength))
+          );
+          hit.setAttribute("height", String(stripThickness));
+        }
+        hit.setAttribute("fill", "transparent");
+        hit.setAttribute("class", "apexcharts-heatmap-gradient-band");
+        hit.setAttribute("data:range-index", String(b.index));
+        hit.style.cursor = "pointer";
+        svg.appendChild(hit);
+        this._bandHitEls.push(hit);
+      });
+    }
+    this._geom = {
+      isVertical,
+      position,
+      stripX,
+      stripY,
+      stripLength,
+      stripThickness,
+      arrowSize,
+      svgWidth,
+      svgHeight
+    };
+    if (cfg.showHoverValue) {
+      const tt = BrowserAPIs.createElement("div");
+      tt.classList.add("apexcharts-heatmap-gradient-legend-value");
+      tt.style.position = "absolute";
+      tt.style.fontSize = ((_g = cfg.labelStyle) == null ? void 0 : _g.fontSize) || "11px";
+      tt.style.fontFamily = ((_h = cfg.labelStyle) == null ? void 0 : _h.fontFamily) || w.config.chart.fontFamily || "";
+      tt.style.color = w.config.chart.foreColor;
+      tt.style.background = "rgba(0,0,0,0.65)";
+      tt.style.color = "#fff";
+      tt.style.padding = "2px 6px";
+      tt.style.borderRadius = "3px";
+      tt.style.pointerEvents = "none";
+      tt.style.whiteSpace = "nowrap";
+      tt.style.opacity = "0";
+      tt.style.transition = "opacity 120ms ease";
+      this.hoverValueEl = tt;
+    }
+    elLegendWrap.classList.add("apexcharts-heatmap-gradient-legend-wrap");
+    elLegendWrap.classList.add(
+      "apx-legend-position-" + position
+    );
+    elLegendWrap.appendChild(svg);
+    if (this.hoverValueEl) elLegendWrap.appendChild(this.hoverValueEl);
+    this.svgEl = svg;
+    this._applyWrapAlignment(elLegendWrap, position, isVertical, svgWidth, svgHeight);
+    this._attachHoverListeners();
+    this._attachBandHoverListeners();
+  }
+  /**
+   * Resolve a configured length (number = px, string ending in '%' =
+   * percentage of the chart's SVG width/height) to a pixel length.
+   * @param {number|string} value
+   * @param {boolean} isVertical
+   * @returns {number}
+   */
+  _resolveStripLength(value, isVertical) {
+    const w = this.w;
+    const basis = isVertical ? w.globals.svgHeight || w.config.chart.height || 300 : w.globals.svgWidth || w.config.chart.width || 600;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed.endsWith("%")) {
+        const pct = parseFloat(trimmed) || 0;
+        return Math.max(20, basis * pct / 100);
+      }
+      const n = parseFloat(trimmed);
+      return Number.isFinite(n) ? n : 200;
+    }
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    return 200;
+  }
+  /**
+   * Position the legend wrap and align the gradient strip within it. The
+   * wrap spans the chart's long axis (full width for top/bottom; full
+   * height for left/right) and uses flexbox to honor the `align` config.
+   * Bypasses the standard `setLegendWrapXY` which sizes the wrap to its
+   * content.
+   * @param {HTMLElement} elLegendWrap
+   * @param {'top'|'right'|'bottom'|'left'} position
+   * @param {boolean} isVertical
+   * @param {number} svgWidth
+   * @param {number} svgHeight
+   */
+  _applyWrapAlignment(elLegendWrap, position, isVertical, svgWidth, svgHeight) {
+    const w = this.w;
+    const cfg = w.config.plotOptions.heatmap.colorScale.gradientLegend;
+    const align = cfg.align || "center";
+    const edgePad = 12;
+    const chartWidth = w.globals.svgWidth || w.config.chart.width || 600;
+    const chartHeight = w.globals.svgHeight || w.config.chart.height || 300;
+    const userOffsetX = w.config.legend.offsetX || 0;
+    const userOffsetY = w.config.legend.offsetY || 0;
+    elLegendWrap.style.position = "absolute";
+    elLegendWrap.style.display = "block";
+    elLegendWrap.style.overflow = "visible";
+    elLegendWrap.style.padding = "0";
+    elLegendWrap.style.width = svgWidth + "px";
+    elLegendWrap.style.height = svgHeight + "px";
+    elLegendWrap.style.right = "auto";
+    elLegendWrap.style.bottom = "auto";
+    if (isVertical) {
+      const availableHeight = chartHeight - svgHeight - edgePad * 2;
+      let y;
+      if (align === "start") y = edgePad;
+      else if (align === "end") y = edgePad + Math.max(0, availableHeight);
+      else y = edgePad + Math.max(0, availableHeight) / 2;
+      elLegendWrap.style.top = y + userOffsetY + "px";
+      if (position === "left") {
+        elLegendWrap.style.left = edgePad + userOffsetX + "px";
+      } else {
+        elLegendWrap.style.left = chartWidth - svgWidth - edgePad + userOffsetX + "px";
+      }
+    } else {
+      const availableWidth = chartWidth - svgWidth - edgePad * 2;
+      let x;
+      if (align === "start") x = edgePad;
+      else if (align === "end") x = edgePad + Math.max(0, availableWidth);
+      else x = edgePad + Math.max(0, availableWidth) / 2;
+      elLegendWrap.style.left = x + userOffsetX + "px";
+      if (position === "top") {
+        elLegendWrap.style.top = edgePad + userOffsetY + "px";
+      } else {
+        elLegendWrap.style.top = chartHeight - svgHeight - edgePad + userOffsetY + "px";
+      }
+    }
+  }
+  /**
+   * Re-position the strip once the final layout is known.
+   *
+   * `_applyWrapAlignment` (called during `draw()`, before `plotCoords()`) can
+   * only pin to the chart's outer edge. This runs after layout — when
+   * `translateX/Y`, `gridWidth/Height` and `xAxisHeight` are populated — and:
+   *   - centers the strip within its reserved band on the perpendicular axis
+   *     (between the title and the plot for `top`; the x-axis and the chart
+   *     bottom for `bottom`; the chart edge and the plot for `left`/`right`),
+   *     so the slack is split evenly instead of dumped on one side, and
+   *   - aligns it along the plot's own extent (so `align: 'center'` centers
+   *     over the heatmap, not the whole canvas).
+   * Honors `legend.offsetX/offsetY` for user nudging. Safe to call repeatedly.
+   */
+  repositionToPlot() {
+    var _a, _b;
+    if (!Environment.isBrowser()) return;
+    const w = this.w;
+    const g = w.globals;
+    const wrap = (
+      /** @type {HTMLElement} */
+      w.dom.elLegendWrap
+    );
+    if (!wrap || !this._geom) return;
+    if (!Number.isFinite(g.gridWidth) || !Number.isFinite(g.gridHeight)) return;
+    const { isVertical, position, svgWidth, svgHeight, stripX, stripY, stripThickness } = this._geom;
+    const align = w.config.plotOptions.heatmap.colorScale.gradientLegend.align || "center";
+    const ox = w.config.legend.offsetX || 0;
+    const oy = w.config.legend.offsetY || 0;
+    const dimHelpers = (_b = (_a = this.ctx) == null ? void 0 : _a.dimensions) == null ? void 0 : _b.dimHelpers;
+    const titleArea = dimHelpers ? dimHelpers.getTitleSubtitleCoords("title").height + dimHelpers.getTitleSubtitleCoords("subtitle").height : 0;
+    const xAxisArea = w.layout.xAxisHeight || 0;
+    const alongOffset = (extent, size) => {
+      const avail = Math.max(0, extent - size);
+      if (align === "start") return 0;
+      if (align === "end") return avail;
+      return avail / 2;
+    };
+    if (isVertical) {
+      wrap.style.top = g.translateY + alongOffset(g.gridHeight, svgHeight) + oy + "px";
+      const bandStart = position === "left" ? 0 : g.translateX + g.gridWidth;
+      const bandEnd = position === "left" ? g.translateX : g.svgWidth;
+      const stripCenter = (bandStart + bandEnd) / 2;
+      wrap.style.left = stripCenter - stripX - stripThickness / 2 + ox + "px";
+    } else {
+      wrap.style.left = g.translateX + alongOffset(g.gridWidth, svgWidth) + ox + "px";
+      const bandStart = position === "top" ? titleArea : g.translateY + g.gridHeight + xAxisArea;
+      const bandEnd = position === "top" ? g.translateY : g.svgHeight;
+      const stripCenter = (bandStart + bandEnd) / 2;
+      wrap.style.top = stripCenter - stripY - stripThickness / 2 + oy + "px";
+    }
+    BrowserAPIs.requestAnimationFrame(() => this._enforceMinPlotGap());
+  }
+  /**
+   * Guarantee a minimum gap between the strip's chart-facing edge and the plot.
+   * Measured in viewport space (immune to the wrap↔SVG coordinate offset) and
+   * applied as a *relative* shift to the wrap's current position, so it only
+   * nudges a strip that ended up too close — placements with ample room are
+   * left exactly where centering put them. Runs post-paint (see caller).
+   */
+  _enforceMinPlotGap() {
+    const w = this.w;
+    const wrap = (
+      /** @type {HTMLElement} */
+      w.dom.elLegendWrap
+    );
+    const strip = this.svgEl && this.svgEl.querySelector("rect");
+    const grid = w.dom.baseEl.querySelector(".apexcharts-grid");
+    if (!wrap || !strip || !grid || !this._geom) return;
+    const s = strip.getBoundingClientRect();
+    const gr = grid.getBoundingClientRect();
+    if (!s.width || !s.height || !gr.width || !gr.height) return;
+    const MIN_GAP = 16;
+    const { isVertical, position } = this._geom;
+    if (isVertical) {
+      const gap = position === "left" ? gr.left - s.right : s.left - gr.right;
+      if (gap < MIN_GAP) {
+        const curLeft = parseFloat(wrap.style.left) || 0;
+        const shift = MIN_GAP - gap;
+        wrap.style.left = curLeft + (position === "left" ? -shift : shift) + "px";
+      }
+    } else {
+      const gap = position === "top" ? gr.top - s.bottom : s.top - gr.bottom;
+      if (gap < MIN_GAP) {
+        const curTop = parseFloat(wrap.style.top) || 0;
+        const shift = MIN_GAP - gap;
+        wrap.style.top = curTop + (position === "top" ? -shift : shift) + "px";
+      }
+    }
+  }
+  /**
+   * Tear down listeners (called before re-render).
+   */
+  destroy() {
+    var _a, _b, _c, _d, _e, _f, _g;
+    for (let i = 0; i < this._bandHitEls.length; i++) {
+      const el = this._bandHitEls[i];
+      (_a = el.removeEventListener) == null ? void 0 : _a.call(el, "mousemove", this._onBandEnter);
+      (_b = el.removeEventListener) == null ? void 0 : _b.call(el, "mouseout", this._onBandLeave);
+    }
+    this._bandHitEls = [];
+    this._activeBandIndex = -1;
+    if (!((_c = this.ctx) == null ? void 0 : _c.events)) return;
+    try {
+      (_e = (_d = this.ctx.events).removeEventListener) == null ? void 0 : _e.call(
+        _d,
+        "dataPointMouseEnter",
+        this._onCellEnter
+      );
+      (_g = (_f = this.ctx.events).removeEventListener) == null ? void 0 : _g.call(
+        _f,
+        "dataPointMouseLeave",
+        this._onCellLeave
+      );
+    } catch (_) {
+    }
+  }
+  /** Wire mousemove/mouseout on each per-band hit-region (ranges mode). */
+  _attachBandHoverListeners() {
+    if (!Environment.isBrowser()) return;
+    for (let i = 0; i < this._bandHitEls.length; i++) {
+      const el = this._bandHitEls[i];
+      el.addEventListener("mousemove", this._onBandEnter);
+      el.addEventListener("mouseout", this._onBandLeave);
+    }
+  }
+  /**
+   * Hovering a gradient band highlights its cells and dims the rest. Guarded
+   * so the repeated mousemove stream only re-applies on an actual band change.
+   * @param {Event} e
+   */
+  _onBandEnter(e) {
+    var _a, _b, _c, _d;
+    const w = this.w;
+    const target = (
+      /** @type {Element} */
+      e.currentTarget
+    );
+    const idx = parseInt((_a = target.getAttribute("data:range-index")) != null ? _a : "-1", 10);
+    if (idx < 0 || idx === this._activeBandIndex) return;
+    this._activeBandIndex = idx;
+    (_d = (_c = (_b = this.ctx) == null ? void 0 : _b.events) == null ? void 0 : _c.fireEvent) == null ? void 0 : _d.call(_c, "legendHover", [this.ctx, idx, w]);
+    new Series(w).highlightRangeInSeries(idx, "highlight");
+  }
+  /** Leaving a band clears the highlight. */
+  _onBandLeave() {
+    if (this._activeBandIndex < 0) return;
+    const idx = this._activeBandIndex;
+    this._activeBandIndex = -1;
+    new Series(this.w).highlightRangeInSeries(idx, "reset");
+  }
+  _attachHoverListeners() {
+    var _a, _b;
+    if (!Environment.isBrowser()) return;
+    if (!((_b = (_a = this.ctx) == null ? void 0 : _a.events) == null ? void 0 : _b.addEventListener)) return;
+    this.ctx.events.addEventListener(
+      "dataPointMouseEnter",
+      this._onCellEnter
+    );
+    this.ctx.events.addEventListener(
+      "dataPointMouseLeave",
+      this._onCellLeave
+    );
+  }
+  /**
+   * dataPointMouseEnter fires as `(e, ctx, { seriesIndex, dataPointIndex, w })`.
+   * Graphics._fireEvent forwards listener args in the same shape.
+   * @param {...any} args
+   */
+  _onCellEnter(...args) {
+    var _a, _b;
+    const w = this.w;
+    if (!this.arrowEl) return;
+    const opts = args[args.length - 1];
+    if (!opts || typeof opts !== "object") return;
+    const i = opts.seriesIndex;
+    const j = opts.dataPointIndex;
+    if (typeof i !== "number" || typeof j !== "number") return;
+    if (w.config.chart.type !== "heatmap") return;
+    const row = (_b = (_a = w.seriesData) == null ? void 0 : _a.series) == null ? void 0 : _b[i];
+    const val = row == null ? void 0 : row[j];
+    if (val == null || Number.isNaN(val)) return;
+    this._positionArrow(val);
+  }
+  _onCellLeave() {
+    if (!this.arrowEl) return;
+    this.arrowEl.setAttribute("opacity", "0");
+    if (this.hoverValueEl) {
+      this.hoverValueEl.style.opacity = "0";
+    }
+  }
+  /**
+   * Move the arrow to the position corresponding to `val` along the strip.
+   * @param {number} val
+   */
+  _positionArrow(val) {
+    if (!this.arrowEl || !this._geom) return;
+    const { isVertical, position, stripX, stripY, stripLength, stripThickness, arrowSize } = this._geom;
+    const min = this._min;
+    const max = this._max;
+    const span = max - min;
+    let pct;
+    if (span === 0) {
+      pct = 0.5;
+    } else {
+      pct = (val - min) / span;
+    }
+    if (pct < 0) pct = 0;
+    if (pct > 1) pct = 1;
+    if (isVertical) {
+      const yCenter = stripY + stripLength - pct * stripLength;
+      let tipX, baseX;
+      if (position === "left") {
+        tipX = stripX + stripThickness;
+        baseX = tipX + arrowSize;
+      } else {
+        tipX = stripX;
+        baseX = tipX - arrowSize;
+      }
+      const points = [
+        `${tipX},${yCenter}`,
+        `${baseX},${yCenter - arrowSize / 2}`,
+        `${baseX},${yCenter + arrowSize / 2}`
+      ].join(" ");
+      this.arrowEl.setAttribute("points", points);
+    } else {
+      const xCenter = stripX + pct * stripLength;
+      let tipY, baseY;
+      if (position === "top") {
+        tipY = stripY + stripThickness;
+        baseY = tipY + arrowSize;
+      } else {
+        tipY = stripY;
+        baseY = tipY - arrowSize;
+      }
+      const points = [
+        `${xCenter},${tipY}`,
+        `${xCenter - arrowSize / 2},${baseY}`,
+        `${xCenter + arrowSize / 2},${baseY}`
+      ].join(" ");
+      this.arrowEl.setAttribute("points", points);
+    }
+    this.arrowEl.setAttribute("opacity", "1");
+    if (this.hoverValueEl) {
+      const fmt = this._getFormatter();
+      this.hoverValueEl.textContent = fmt(val);
+      if (isVertical) {
+        const yCenter = stripY + stripLength - pct * stripLength;
+        if (position === "left") {
+          this.hoverValueEl.style.left = `${stripX + stripThickness + arrowSize + 8}px`;
+        } else {
+          this.hoverValueEl.style.left = `${stripX - arrowSize - 8}px`;
+          this.hoverValueEl.style.transform = "translateX(-100%)";
+        }
+        this.hoverValueEl.style.top = `${yCenter - 9}px`;
+      } else {
+        const xCenter = stripX + pct * stripLength;
+        this.hoverValueEl.style.left = `${xCenter}px`;
+        this.hoverValueEl.style.transform = "translateX(-50%)";
+        if (position === "top") {
+          this.hoverValueEl.style.top = `${stripY + stripThickness + arrowSize + 8}px`;
+        } else {
+          this.hoverValueEl.style.top = `${stripY - arrowSize - 18}px`;
+        }
+      }
+      this.hoverValueEl.style.opacity = "1";
+    }
+  }
+  /**
+   * @param {number} size
+   * @param {string} color
+   * @param {'top'|'right'|'bottom'|'left'} _position
+   */
+  _buildArrow(size, color, _position) {
+    const polygon = BrowserAPIs.createElementNS(SVG_NS, "polygon");
+    polygon.setAttribute("fill", color);
+    polygon.setAttribute("opacity", "0");
+    polygon.setAttribute("class", "apexcharts-heatmap-gradient-arrow");
+    polygon.setAttribute("points", "0,0 0,0 0,0");
+    polygon.setAttribute("pointer-events", "none");
+    return polygon;
+  }
+  /**
+   * Build gradient stops + return effective min/max.
+   * - If `colorScale.ranges` is set, stops are placed at each range boundary
+   *   so the gradient reflects the user's discrete palette.
+   * - Otherwise, samples N stops from the same shadeColor function the cells
+   *   use, so the strip visually matches the heatmap.
+   * @returns {{ min: number, max: number, stops: Array<{percent:number,color:string}>, bands: Array<{index:number,p1:number,p2:number}> }}
+   */
+  _computeStops() {
+    var _a, _b;
+    const w = this.w;
+    const cs = w.config.plotOptions.heatmap.colorScale;
+    const cfg = cs.gradientLegend;
+    let dataMin = Infinity;
+    let dataMax = -Infinity;
+    const rows = ((_a = w.seriesData) == null ? void 0 : _a.series) || [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row) continue;
+      for (let j = 0; j < row.length; j++) {
+        const v = row[j];
+        if (v == null || Number.isNaN(v)) continue;
+        if (v < dataMin) dataMin = v;
+        if (v > dataMax) dataMax = v;
+      }
+    }
+    if (!Number.isFinite(dataMin)) dataMin = 0;
+    if (!Number.isFinite(dataMax)) dataMax = 0;
+    let min = dataMin;
+    let max = dataMax;
+    if (typeof cs.min !== "undefined") {
+      min = cs.min < dataMin ? cs.min : dataMin;
+    }
+    if (typeof cs.max !== "undefined") {
+      max = cs.max > dataMax ? cs.max : dataMax;
+    }
+    const stops = [];
+    const bands = [];
+    if (cs.ranges && cs.ranges.length > 0) {
+      const ranges = cs.ranges.map((r, originalIndex) => __spreadProps(__spreadValues({}, r), {
+        _originalIndex: originalIndex
+      })).sort((a, b) => a.from - b.from);
+      const lo = ranges[0].from;
+      const hi = ranges[ranges.length - 1].to;
+      min = lo;
+      max = hi;
+      const span = hi - lo || 1;
+      ranges.forEach((r) => {
+        const p1 = (r.from - lo) / span;
+        const p2 = (r.to - lo) / span;
+        stops.push({ percent: (p1 + p2) / 2, color: r.color });
+        bands.push({ index: r._originalIndex, p1, p2 });
+      });
+    } else {
+      const baseColor = w.globals.colors[0] || "#008FFB";
+      const utils = new Utils();
+      const shadeIntensity = (_b = w.config.plotOptions.heatmap.shadeIntensity) != null ? _b : 0.5;
+      const hasNegs = (
+        /** @type {any} */
+        w.globals.hasNegs
+      );
+      const n = Math.max(2, cfg.stops || 16);
+      for (let s = 0; s < n; s++) {
+        const t = s / (n - 1);
+        const v = min + t * (max - min);
+        const total = Math.abs(max) + Math.abs(min);
+        const percent_v = total === 0 ? 0 : 100 * v / total;
+        let colorShadePercent;
+        if (hasNegs) {
+          if (w.config.plotOptions.heatmap.reverseNegativeShade) {
+            colorShadePercent = percent_v < 0 ? percent_v / 100 * (shadeIntensity * 1.25) : (1 - percent_v / 100) * (shadeIntensity * 1.25);
+          } else {
+            colorShadePercent = percent_v <= 0 ? 1 - (1 + percent_v / 100) * shadeIntensity : (1 - percent_v / 100) * shadeIntensity;
+          }
+        } else {
+          colorShadePercent = 1 - percent_v / 100;
+        }
+        if (colorShadePercent > 1) colorShadePercent = 1;
+        if (colorShadePercent < -1) colorShadePercent = -1;
+        const shaded = w.config.plotOptions.heatmap.enableShades ? utils.shadeColor(
+          w.config.theme.mode === "dark" ? colorShadePercent * -1 : colorShadePercent,
+          baseColor
+        ) : baseColor;
+        stops.push({ percent: t, color: shaded });
+      }
+    }
+    return { min, max, stops, bands };
+  }
+}
+const Markers = _core.__apex_Markers;
 class Legend {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -747,7 +1403,10 @@ class Legend {
     const w = this.w;
     const gl = w.globals;
     const cnf = w.config;
-    const showLegendAlways = cnf.legend.showForSingleSeries && this.w.seriesData.series.length === 1 || this.isBarsDistributed || this.w.seriesData.series.length > 1;
+    const showLegendAlways = cnf.legend.showForSingleSeries && this.w.seriesData.series.length === 1 || this.isBarsDistributed || // Heatmap legends are colorScale-driven (discrete ranges or the
+    // gradient strip), not series-driven, so they must render even for a
+    // single-row heatmap.
+    cnf.chart.type === "heatmap" || this.w.seriesData.series.length > 1;
     this.legendHelpers.appendToForeignObject();
     if ((showLegendAlways || !gl.axisCharts) && cnf.legend.show) {
       const elLegendWrap = (
@@ -757,11 +1416,20 @@ class Legend {
       while (elLegendWrap.firstChild) {
         elLegendWrap.removeChild(elLegendWrap.firstChild);
       }
-      this.drawLegends();
-      if (cnf.legend.position === "bottom" || cnf.legend.position === "top") {
-        this.legendAlignHorizontal();
-      } else if (cnf.legend.position === "right" || cnf.legend.position === "left") {
-        this.legendAlignVertical();
+      if (this.heatmapGradientLegend) {
+        this.heatmapGradientLegend.destroy();
+        this.heatmapGradientLegend = null;
+      }
+      if (cnf.chart.type === "heatmap" && HeatmapGradientLegend.isEnabled(w)) {
+        this.heatmapGradientLegend = new HeatmapGradientLegend(w, this.ctx);
+        this.heatmapGradientLegend.draw();
+      } else {
+        this.drawLegends();
+        if (cnf.legend.position === "bottom" || cnf.legend.position === "top") {
+          this.legendAlignHorizontal();
+        } else if (cnf.legend.position === "right" || cnf.legend.position === "left") {
+          this.legendAlignVertical();
+        }
       }
     }
   }
@@ -1077,7 +1745,11 @@ class Legend {
         const seriesCnt = parseInt((_a = target.getAttribute("rel")) != null ? _a : "0", 10) - 1;
         this.ctx.events.fireEvent("legendHover", [this.ctx, seriesCnt, this.w]);
         const series = new Series(this.ctx.w);
-        series.highlightRangeInSeries(e, target);
+        if (e.type === "mousemove") {
+          series.highlightRangeInSeries(seriesCnt, "highlight");
+        } else if (e.type === "mouseout") {
+          series.highlightRangeInSeries(seriesCnt, "reset");
+        }
       }
     }
   }
@@ -4308,8 +4980,8 @@ class KeyboardNavigation {
 }
 _core__default.registerFeatures({ keyboardNavigation: KeyboardNavigation });
 const parsePath = _core.__apex_PathMorphing_parsePath;
-const BAR_FAMILY = /* @__PURE__ */ new Set(["bar"]);
-const RADIAL_FAMILY = /* @__PURE__ */ new Set(["pie", "donut", "polarArea", "radialBar"]);
+const BAR_FAMILY = /* @__PURE__ */ new Set(["bar", "funnel", "pyramid"]);
+const RADIAL_FAMILY = /* @__PURE__ */ new Set(["pie", "donut", "polarArea", "radialBar", "gauge"]);
 function familyOf(type) {
   if (BAR_FAMILY.has(type)) return "bar";
   if (RADIAL_FAMILY.has(type)) return "radial";
@@ -4431,7 +5103,7 @@ class MorphTypeChange {
         });
       });
     } else if (fam === "radial") {
-      if (fromType === "radialBar") {
+      if (fromType === "radialBar" || fromType === "gauge") {
         const centerX = this.w.layout.gridWidth / 2;
         const centerY = Math.min(this.w.layout.gridWidth, this.w.layout.gridHeight) / 2;
         const rings = baseEl.querySelectorAll(
