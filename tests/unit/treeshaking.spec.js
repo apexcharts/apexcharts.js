@@ -55,6 +55,7 @@ const SUB_ENTRIES = [
   'features/exports.esm.js',
   'features/keyboard.esm.js',
   'features/legend.esm.js',
+  'features/morph.esm.js',
   'features/toolbar.esm.js',
 ]
 
@@ -136,6 +137,7 @@ describe('optional feature classes are absent from core.esm.js', () => {
     { name: 'Annotations',        feature: 'features/annotations.esm.js' },
     { name: 'Toolbar',            feature: 'features/toolbar.esm.js' },
     { name: 'KeyboardNavigation', feature: 'features/keyboard.esm.js' },
+    { name: 'MorphTypeChange',    feature: 'features/morph.esm.js' },
   ]
 
   let coreContent
