@@ -60,7 +60,10 @@ describe("chart.type: 'pyramid' first-class alias", () => {
     expect(chart.w.config.plotOptions.bar.horizontal).toBe(true)
   })
 
-  it('sorts series data ascending so the narrowest stage is at the top', () => {
+  it('preserves the user-supplied data order (first point is the apex)', () => {
+    // The value-proportional pyramid renderer keeps the order the user gave —
+    // the first data point is the apex, the last is the base. No internal
+    // sort is applied (it was dropped when the geometry was reworked).
     const userData = [44, 55, 41, 27, 33]
     const userCats = ['Direct', 'Organic', 'Referral', 'Social', 'Email']
     const chart = createChartWithOptions({
@@ -68,14 +71,13 @@ describe("chart.type: 'pyramid' first-class alias", () => {
       series: [{ name: 'Sessions', data: userData.slice() }],
       xaxis: { categories: userCats.slice() },
     })
-    // Internal config holds the sorted view (paired with categories).
-    expect(chart.w.config.series[0].data).toEqual([27, 33, 41, 44, 55])
+    expect(chart.w.config.series[0].data).toEqual([44, 55, 41, 27, 33])
     expect(chart.w.config.xaxis.categories).toEqual([
-      'Social',
-      'Email',
-      'Referral',
       'Direct',
       'Organic',
+      'Referral',
+      'Social',
+      'Email',
     ])
     // User's original arrays are untouched (no mutation).
     expect(userData).toEqual([44, 55, 41, 27, 33])
@@ -88,19 +90,19 @@ describe("chart.type: 'pyramid' first-class alias", () => {
     ])
   })
 
-  it('sorts top-level labels alongside series data', () => {
+  it('preserves top-level labels alongside the data order', () => {
     const chart = createChartWithOptions({
       chart: { type: 'pyramid' },
       series: [{ name: 'S', data: [44, 55, 41, 27, 33] }],
       labels: ['Direct', 'Organic', 'Referral', 'Social', 'Email'],
     })
-    expect(chart.w.config.series[0].data).toEqual([27, 33, 41, 44, 55])
+    expect(chart.w.config.series[0].data).toEqual([44, 55, 41, 27, 33])
     expect(chart.w.config.labels).toEqual([
-      'Social',
-      'Email',
-      'Referral',
       'Direct',
       'Organic',
+      'Referral',
+      'Social',
+      'Email',
     ])
   })
 })
