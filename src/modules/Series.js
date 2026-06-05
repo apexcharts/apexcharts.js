@@ -288,57 +288,50 @@ export default class Series {
   }
 
   /**
-   * @param {Event} e
-   * @param {any} targetElement
+   * Dim every heatmap cell except those whose value falls inside the color
+   * range at `rangeIndex`. Shared by the categorical legend (hover a legend
+   * item) and the gradient legend (hover a band) — both supply an index into
+   * `colorScale.ranges` plus an action, decoupling the highlight from any
+   * particular DOM element / event shape.
+   *
+   * @param {number} rangeIndex index into `colorScale.ranges`
+   * @param {'highlight'|'reset'} action
    */
-  highlightRangeInSeries(e, targetElement) {
+  highlightRangeInSeries(rangeIndex, action) {
     const w = this.w
     const allHeatMapElements = w.dom.baseEl.getElementsByClassName(
       'apexcharts-heatmap-rect',
     )
 
     /**
-     * @param {string} action
+     * @param {'add'|'remove'} op
      */
-    const activeInactive = (action) => {
+    const toggleAllInactive = (op) => {
       for (let i = 0; i < allHeatMapElements.length; i++) {
-        const actionFn = /** @type {any} */ (allHeatMapElements[i]).classList[
-          action
-        ]
-        if (typeof actionFn === 'function') {
-          actionFn.call(
-            /** @type {any} */ (allHeatMapElements[i]).classList,
-            this.legendInactiveClass,
-          )
+        const classList = /** @type {any} */ (allHeatMapElements[i]).classList
+        if (typeof classList[op] === 'function') {
+          classList[op](this.legendInactiveClass)
         }
       }
     }
 
-    /**
-     * @param {Record<string, any>} range
-     */
-    const removeInactiveClassFromHoveredRange = (range) => {
-      for (let i = 0; i < allHeatMapElements.length; i++) {
-        const val = Number(allHeatMapElements[i].getAttribute('val'))
-        // Match the inclusive bounds used by determineColor (treemap/Helpers.js)
-        // so the same cells that were colored by this range get highlighted
-        // when the user hovers its legend item.
-        if (val >= range.from && val <= range.to) {
-          allHeatMapElements[i].classList.remove(this.legendInactiveClass)
-        }
-      }
+    if (action === 'reset') {
+      toggleAllInactive('remove')
+      return
     }
 
-    if (e.type === 'mousemove') {
-      const seriesCnt = parseInt(targetElement.getAttribute('rel'), 10) - 1
-      activeInactive('add')
+    const ranges = w.config.plotOptions.heatmap.colorScale.ranges
+    const range = ranges && ranges[rangeIndex]
+    if (!range) return
 
-      const ranges = w.config.plotOptions.heatmap.colorScale.ranges
-      const range = ranges[seriesCnt]
-
-      removeInactiveClassFromHoveredRange(range)
-    } else if (e.type === 'mouseout') {
-      activeInactive('remove')
+    toggleAllInactive('add')
+    for (let i = 0; i < allHeatMapElements.length; i++) {
+      const val = Number(allHeatMapElements[i].getAttribute('val'))
+      // Match the inclusive bounds used by determineColor (treemap/Helpers.js)
+      // so the same cells that were colored by this range get highlighted.
+      if (val >= range.from && val <= range.to) {
+        allHeatMapElements[i].classList.remove(this.legendInactiveClass)
+      }
     }
   }
 

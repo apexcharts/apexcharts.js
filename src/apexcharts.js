@@ -356,6 +356,11 @@ export default class ApexCharts {
     // after all the drawing calculations, shift the graphical area (actual charts/bars) excluding legends
     this.core.shiftGraphPosition()
 
+    // The heatmap gradient legend is drawn before plotCoords (so it can be
+    // measured), so it can only pin to the chart's outer edge at that point.
+    // Now that the plot geometry is final, re-pin it to hug the plot.
+    this.legend?.heatmapGradientLegend?.repositionToPlot()
+
     if (w.globals.dataPoints > 50) {
       w.dom.elWrap.classList.add('apexcharts-disable-transitions')
     }

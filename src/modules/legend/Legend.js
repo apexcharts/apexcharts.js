@@ -52,6 +52,10 @@ class Legend {
       (cnf.legend.showForSingleSeries &&
         this.w.seriesData.series.length === 1) ||
       this.isBarsDistributed ||
+      // Heatmap legends are colorScale-driven (discrete ranges or the
+      // gradient strip), not series-driven, so they must render even for a
+      // single-row heatmap.
+      cnf.chart.type === 'heatmap' ||
       this.w.seriesData.series.length > 1
 
     this.legendHelpers.appendToForeignObject()
@@ -538,7 +542,11 @@ class Legend {
         this.ctx.events.fireEvent('legendHover', [this.ctx, seriesCnt, this.w])
 
         const series = new Series(this.ctx.w)
-        series.highlightRangeInSeries(e, target)
+        if (e.type === 'mousemove') {
+          series.highlightRangeInSeries(seriesCnt, 'highlight')
+        } else if (e.type === 'mouseout') {
+          series.highlightRangeInSeries(seriesCnt, 'reset')
+        }
       }
     }
   }

@@ -1,5 +1,6 @@
 // @ts-check
 import Utils from '../../utils/Utils'
+import Series from '../Series'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { Environment } from '../../utils/Environment.js'
 
@@ -37,8 +38,14 @@ export default class HeatmapGradientLegend {
     this._max = 0
     /** @type {any} */
     this._geom = null
+    /** @type {any[]} */
+    this._bandHitEls = []
+    /** @type {number} Currently highlighted band index (-1 = none). */
+    this._activeBandIndex = -1
     this._onCellEnter = this._onCellEnter.bind(this)
     this._onCellLeave = this._onCellLeave.bind(this)
+    this._onBandEnter = this._onBandEnter.bind(this)
+    this._onBandLeave = this._onBandLeave.bind(this)
   }
 
   /** Default value formatter for min/max labels and the hover tooltip. */
@@ -146,7 +153,7 @@ export default class HeatmapGradientLegend {
       linearGrad.setAttribute('y2', '0')
     }
 
-    const { min, max, stops } = this._computeStops()
+    const { min, max, stops, bands } = this._computeStops()
     this._min = min
     this._max = max
     stops.forEach((s) => {
@@ -219,7 +226,42 @@ export default class HeatmapGradientLegend {
     svg.appendChild(arrow)
     this.arrowEl = arrow
 
-    // Stash geometry for the hover handler.
+    // Per-band hover hit-regions (ranges mode only): hovering a band highlights
+    // the cells in that range and dims the rest — parity with the categorical
+    // legend. Gated on the same `legend.onItemHover.highlightDataSeries` flag,
+    // so both legend variants share one behavior switch. Appended last (above
+    // the strip + arrow) so they reliably receive the pointer.
+    this._bandHitEls = []
+    if (w.config.legend.onItemHover.highlightDataSeries && bands.length > 0) {
+      bands.forEach((/** @type {any} */ b) => {
+        const hit = BrowserAPIs.createElementNS(SVG_NS, 'rect')
+        if (isVertical) {
+          // p=0 at the bottom (min), p=1 at the top (max).
+          const yTop = stripY + stripLength - b.p2 * stripLength
+          const yBot = stripY + stripLength - b.p1 * stripLength
+          hit.setAttribute('x', String(stripX))
+          hit.setAttribute('y', String(yTop))
+          hit.setAttribute('width', String(stripThickness))
+          hit.setAttribute('height', String(Math.max(0, yBot - yTop)))
+        } else {
+          hit.setAttribute('x', String(stripX + b.p1 * stripLength))
+          hit.setAttribute('y', String(stripY))
+          hit.setAttribute(
+            'width',
+            String(Math.max(0, (b.p2 - b.p1) * stripLength)),
+          )
+          hit.setAttribute('height', String(stripThickness))
+        }
+        hit.setAttribute('fill', 'transparent')
+        hit.setAttribute('class', 'apexcharts-heatmap-gradient-band')
+        hit.setAttribute('data:range-index', String(b.index))
+        hit.style.cursor = 'pointer'
+        svg.appendChild(hit)
+        this._bandHitEls.push(hit)
+      })
+    }
+
+    // Stash geometry for the hover handler + post-layout repositioning.
     this._geom = {
       isVertical,
       position,
@@ -228,6 +270,8 @@ export default class HeatmapGradientLegend {
       stripLength,
       stripThickness,
       arrowSize,
+      svgWidth,
+      svgHeight,
     }
 
     // Hover value tooltip — a tiny floating label that tracks the arrow.
@@ -263,6 +307,7 @@ export default class HeatmapGradientLegend {
 
     this._applyWrapAlignment(elLegendWrap, position, isVertical, svgWidth, svgHeight)
     this._attachHoverListeners()
+    this._attachBandHoverListeners()
   }
 
   /**
@@ -367,9 +412,138 @@ export default class HeatmapGradientLegend {
   }
 
   /**
+   * Re-position the strip once the final layout is known.
+   *
+   * `_applyWrapAlignment` (called during `draw()`, before `plotCoords()`) can
+   * only pin to the chart's outer edge. This runs after layout — when
+   * `translateX/Y`, `gridWidth/Height` and `xAxisHeight` are populated — and:
+   *   - centers the strip within its reserved band on the perpendicular axis
+   *     (between the title and the plot for `top`; the x-axis and the chart
+   *     bottom for `bottom`; the chart edge and the plot for `left`/`right`),
+   *     so the slack is split evenly instead of dumped on one side, and
+   *   - aligns it along the plot's own extent (so `align: 'center'` centers
+   *     over the heatmap, not the whole canvas).
+   * Honors `legend.offsetX/offsetY` for user nudging. Safe to call repeatedly.
+   */
+  repositionToPlot() {
+    if (!Environment.isBrowser()) return
+    const w = this.w
+    const g = w.globals
+    const wrap = /** @type {HTMLElement} */ (w.dom.elLegendWrap)
+    if (!wrap || !this._geom) return
+    if (!Number.isFinite(g.gridWidth) || !Number.isFinite(g.gridHeight)) return
+
+    const { isVertical, position, svgWidth, svgHeight, stripX, stripY, stripThickness } =
+      this._geom
+    const align =
+      w.config.plotOptions.heatmap.colorScale.gradientLegend.align || 'center'
+    const ox = w.config.legend.offsetX || 0
+    const oy = w.config.legend.offsetY || 0
+
+    // Title/subtitle area reserved at the top of the chart — the far boundary
+    // of the band for `position: 'top'`.
+    const dimHelpers = this.ctx?.dimensions?.dimHelpers
+    const titleArea = dimHelpers
+      ? dimHelpers.getTitleSubtitleCoords('title').height +
+        dimHelpers.getTitleSubtitleCoords('subtitle').height
+      : 0
+    const xAxisArea = w.layout.xAxisHeight || 0
+
+    /**
+     * @param {number} extent plot length along the strip's long axis
+     * @param {number} size strip wrap size along that axis
+     */
+    const alongOffset = (extent, size) => {
+      const avail = Math.max(0, extent - size)
+      if (align === 'start') return 0
+      if (align === 'end') return avail
+      return avail / 2
+    }
+
+    if (isVertical) {
+      // Along axis = vertical: center over the plot height.
+      wrap.style.top =
+        g.translateY + alongOffset(g.gridHeight, svgHeight) + oy + 'px'
+      // Perpendicular = horizontal: center the strip in the side band.
+      const bandStart = position === 'left' ? 0 : g.translateX + g.gridWidth
+      const bandEnd = position === 'left' ? g.translateX : g.svgWidth
+      const stripCenter = (bandStart + bandEnd) / 2
+      wrap.style.left =
+        stripCenter - stripX - stripThickness / 2 + ox + 'px'
+    } else {
+      // Along axis = horizontal: center over the plot width.
+      wrap.style.left =
+        g.translateX + alongOffset(g.gridWidth, svgWidth) + ox + 'px'
+      // Perpendicular = vertical: center the strip in the top/bottom band.
+      const bandStart =
+        position === 'top' ? titleArea : g.translateY + g.gridHeight + xAxisArea
+      const bandEnd = position === 'top' ? g.translateY : g.svgHeight
+      const stripCenter = (bandStart + bandEnd) / 2
+      wrap.style.top =
+        stripCenter - stripY - stripThickness / 2 + oy + 'px'
+    }
+
+    // The style-space centering above can land too close to the plot when the
+    // reserved band is barely wider than the strip (notably `position: right`),
+    // because the wrap's positioning origin differs from the SVG transform
+    // origin by a layout-dependent offset. Correct it with a real measurement —
+    // but only once the chart is painted, since the freshly-built grid/strip
+    // aren't laid out yet at create()-time (getBoundingClientRect would be 0).
+    BrowserAPIs.requestAnimationFrame(() => this._enforceMinPlotGap())
+  }
+
+  /**
+   * Guarantee a minimum gap between the strip's chart-facing edge and the plot.
+   * Measured in viewport space (immune to the wrap↔SVG coordinate offset) and
+   * applied as a *relative* shift to the wrap's current position, so it only
+   * nudges a strip that ended up too close — placements with ample room are
+   * left exactly where centering put them. Runs post-paint (see caller).
+   */
+  _enforceMinPlotGap() {
+    const w = this.w
+    const wrap = /** @type {HTMLElement} */ (w.dom.elLegendWrap)
+    const strip = this.svgEl && this.svgEl.querySelector('rect')
+    const grid = w.dom.baseEl.querySelector('.apexcharts-grid')
+    if (!wrap || !strip || !grid || !this._geom) return
+
+    const s = strip.getBoundingClientRect()
+    const gr = grid.getBoundingClientRect()
+    // Not laid out yet (e.g. detached / zero-size) — nothing reliable to do.
+    if (!s.width || !s.height || !gr.width || !gr.height) return
+
+    const MIN_GAP = 16
+    const { isVertical, position } = this._geom
+
+    if (isVertical) {
+      const gap = position === 'left' ? gr.left - s.right : s.left - gr.right
+      if (gap < MIN_GAP) {
+        const curLeft = parseFloat(wrap.style.left) || 0
+        const shift = MIN_GAP - gap
+        wrap.style.left =
+          curLeft + (position === 'left' ? -shift : shift) + 'px'
+      }
+    } else {
+      const gap = position === 'top' ? gr.top - s.bottom : s.top - gr.bottom
+      if (gap < MIN_GAP) {
+        const curTop = parseFloat(wrap.style.top) || 0
+        const shift = MIN_GAP - gap
+        wrap.style.top = curTop + (position === 'top' ? -shift : shift) + 'px'
+      }
+    }
+  }
+
+  /**
    * Tear down listeners (called before re-render).
    */
   destroy() {
+    for (let i = 0; i < this._bandHitEls.length; i++) {
+      const el = this._bandHitEls[i]
+      el.removeEventListener?.('mousemove', this._onBandEnter)
+      el.removeEventListener?.('mouseout', this._onBandLeave)
+    }
+    this._bandHitEls = []
+    this._activeBandIndex = -1
+
     if (!this.ctx?.events) return
     try {
       this.ctx.events.removeEventListener?.(
@@ -383,6 +557,39 @@ export default class HeatmapGradientLegend {
     } catch (_) {
       // ignore
     }
+  }
+
+  /** Wire mousemove/mouseout on each per-band hit-region (ranges mode). */
+  _attachBandHoverListeners() {
+    if (!Environment.isBrowser()) return
+    for (let i = 0; i < this._bandHitEls.length; i++) {
+      const el = this._bandHitEls[i]
+      el.addEventListener('mousemove', this._onBandEnter)
+      el.addEventListener('mouseout', this._onBandLeave)
+    }
+  }
+
+  /**
+   * Hovering a gradient band highlights its cells and dims the rest. Guarded
+   * so the repeated mousemove stream only re-applies on an actual band change.
+   * @param {Event} e
+   */
+  _onBandEnter(e) {
+    const w = this.w
+    const target = /** @type {Element} */ (e.currentTarget)
+    const idx = parseInt(target.getAttribute('data:range-index') ?? '-1', 10)
+    if (idx < 0 || idx === this._activeBandIndex) return
+    this._activeBandIndex = idx
+    this.ctx?.events?.fireEvent?.('legendHover', [this.ctx, idx, w])
+    new Series(w).highlightRangeInSeries(idx, 'highlight')
+  }
+
+  /** Leaving a band clears the highlight. */
+  _onBandLeave() {
+    if (this._activeBandIndex < 0) return
+    const idx = this._activeBandIndex
+    this._activeBandIndex = -1
+    new Series(this.w).highlightRangeInSeries(idx, 'reset')
   }
 
   _attachHoverListeners() {
@@ -534,6 +741,9 @@ export default class HeatmapGradientLegend {
     polygon.setAttribute('opacity', '0')
     polygon.setAttribute('class', 'apexcharts-heatmap-gradient-arrow')
     polygon.setAttribute('points', '0,0 0,0 0,0')
+    // Pure indicator — must never intercept pointer events from the band
+    // hit-regions sitting beneath it.
+    polygon.setAttribute('pointer-events', 'none')
     return polygon
   }
 
@@ -543,7 +753,7 @@ export default class HeatmapGradientLegend {
    *   so the gradient reflects the user's discrete palette.
    * - Otherwise, samples N stops from the same shadeColor function the cells
    *   use, so the strip visually matches the heatmap.
-   * @returns {{ min: number, max: number, stops: Array<{percent:number,color:string}> }}
+   * @returns {{ min: number, max: number, stops: Array<{percent:number,color:string}>, bands: Array<{index:number,p1:number,p2:number}> }}
    */
   _computeStops() {
     const w = this.w
@@ -582,12 +792,24 @@ export default class HeatmapGradientLegend {
 
     /** @type {Array<{percent:number,color:string}>} */
     const stops = []
+    /**
+     * Fractional band extents along the strip, carrying the band's index in
+     * the *original* (unsorted) `colorScale.ranges` array — so the hover
+     * handler can pass it straight to `Series.highlightRangeInSeries`, which
+     * indexes that same array.
+     * @type {Array<{index:number,p1:number,p2:number}>}
+     */
+    const bands = []
 
     if (cs.ranges && cs.ranges.length > 0) {
-      // Use ranges as the palette. Sort and place a hard stop on each side of
-      // every range boundary so the gradient reads as discrete bands.
+      // Use the ranges as the palette. Tag each range with its original index
+      // before sorting so band hit-regions stay aligned with the unsorted
+      // ranges array.
       const ranges = cs.ranges
-        .slice()
+        .map((/** @type {any} */ r, /** @type {number} */ originalIndex) => ({
+          ...r,
+          _originalIndex: originalIndex,
+        }))
         .sort((/** @type {any} */ a, /** @type {any} */ b) => a.from - b.from)
       const lo = ranges[0].from
       const hi = ranges[ranges.length - 1].to
@@ -597,8 +819,15 @@ export default class HeatmapGradientLegend {
       ranges.forEach((/** @type {any} */ r) => {
         const p1 = (r.from - lo) / span
         const p2 = (r.to - lo) / span
-        stops.push({ percent: p1, color: r.color })
-        stops.push({ percent: p2, color: r.color })
+        // Anchor each range color at its midpoint so the strip blends smoothly
+        // green→blue→yellow→red — matching the shaded cells, which vary
+        // continuously within each range. SVG clamps the first/last stop colors
+        // past their offsets, so one midpoint stop per range gives solid ends
+        // plus smooth middles.
+        stops.push({ percent: (p1 + p2) / 2, color: r.color })
+        // Hit-regions always span the true range boundaries, regardless of how
+        // the gradient itself is drawn.
+        bands.push({ index: r._originalIndex, p1, p2 })
       })
     } else {
       // Sample the shade function. Use the first series' base color as the
@@ -651,6 +880,6 @@ export default class HeatmapGradientLegend {
       }
     }
 
-    return { min, max, stops }
+    return { min, max, stops, bands }
   }
 }

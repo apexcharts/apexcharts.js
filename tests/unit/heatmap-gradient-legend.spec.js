@@ -125,7 +125,7 @@ describe('Heatmap legend hover — boundary inclusive on both sides', () => {
     })
     expect(activeCellsForLowRange.length).toBeGreaterThan(0)
     for (const c of activeCellsForLowRange) {
-      expect(c.classList.contains('apexcharts-inactive-legend')).toBe(false)
+      expect(c.classList.contains('legend-mouseover-inactive')).toBe(false)
     }
 
     // Cells in the High range must be marked inactive when Low is hovered.
@@ -134,7 +134,7 @@ describe('Heatmap legend hover — boundary inclusive on both sides', () => {
       return v > 50
     })
     for (const c of inactiveCellsForHighRange) {
-      expect(c.classList.contains('apexcharts-inactive-legend')).toBe(true)
+      expect(c.classList.contains('legend-mouseover-inactive')).toBe(true)
     }
   })
 })
@@ -207,7 +207,7 @@ describe('Heatmap gradient legend — DOM structure', () => {
     expect(polygon.getAttribute('opacity')).toBe('0')
   })
 
-  it('places hard color stops at each range boundary in ranges mode', () => {
+  it('blends smoothly with one stop per range midpoint', () => {
     const chart = heatmapChart({
       heatmap: {
         colorScale: {
@@ -224,10 +224,105 @@ describe('Heatmap gradient legend — DOM structure', () => {
     const colors = Array.from(stops).map((s) =>
       (s.getAttribute('stop-color') || '').toLowerCase(),
     )
-    // 2 ranges × 2 stops each (boundary doubled to produce a hard band).
-    expect(colors.length).toBe(4)
-    expect(colors).toContain('#00a100')
-    expect(colors).toContain('#ff0000')
+    // One stop per range, anchored at its midpoint, so the strip interpolates
+    // between the colors instead of hard-banding.
+    expect(colors.length).toBe(2)
+    expect(colors).toEqual(['#00a100', '#ff0000'])
+    const offsets = Array.from(stops).map((s) =>
+      parseFloat(s.getAttribute('offset') || '0'),
+    )
+    expect(offsets[0]).toBeGreaterThan(0)
+    expect(offsets[0]).toBeLessThan(offsets[1])
+    expect(offsets[1]).toBeLessThan(100)
+  })
+
+})
+
+// ===========================================================================
+// Gradient legend — band hover highlights cells (parity with the categorical
+// legend's hover-to-highlight, driven by the shared Series.highlightRangeInSeries)
+// ===========================================================================
+describe('Heatmap gradient legend — band hover highlight', () => {
+  function rangesGradientChart() {
+    return heatmapChart({
+      series: [makeRow('row', [10, 30, 50, 70, 90])],
+      heatmap: {
+        colorScale: {
+          ranges: [
+            { from: 0, to: 50, name: 'Low', color: '#00A100' },
+            { from: 51, to: 100, name: 'High', color: '#FF0000' },
+          ],
+          gradientLegend: { enabled: true },
+        },
+      },
+    })
+  }
+
+  it('renders one hit-region per range, keyed to the original range index', () => {
+    const chart = rangesGradientChart()
+    const bands = getGradientSvg(chart).querySelectorAll(
+      '.apexcharts-heatmap-gradient-band',
+    )
+    expect(bands.length).toBe(2)
+    const indices = Array.from(bands).map((b) =>
+      b.getAttribute('data:range-index'),
+    )
+    expect(indices).toContain('0')
+    expect(indices).toContain('1')
+  })
+
+  it('dims cells outside the hovered band and keeps the band cells active', () => {
+    const chart = rangesGradientChart()
+    const lowBand = Array.from(
+      getGradientSvg(chart).querySelectorAll(
+        '.apexcharts-heatmap-gradient-band',
+      ),
+    ).find((b) => b.getAttribute('data:range-index') === '0')
+    expect(lowBand).not.toBeUndefined()
+
+    lowBand.dispatchEvent(
+      new MouseEvent('mousemove', { bubbles: true, cancelable: true }),
+    )
+
+    const cells = chart.el.querySelectorAll('.apexcharts-heatmap-rect')
+    for (const c of cells) {
+      const v = Number(c.getAttribute('val'))
+      const inactive = c.classList.contains('legend-mouseover-inactive')
+      // Low range owns 0..50 inclusive; everything above must be dimmed.
+      expect(inactive).toBe(v > 50)
+    }
+
+    // Leaving the band clears the highlight everywhere.
+    lowBand.dispatchEvent(
+      new MouseEvent('mouseout', { bubbles: true, cancelable: true }),
+    )
+    for (const c of cells) {
+      expect(c.classList.contains('legend-mouseover-inactive')).toBe(false)
+    }
+  })
+
+  it('omits band hit-regions when highlightDataSeries is disabled', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'heatmap', height: 320, width: 600 },
+      series: [makeRow('row', [10, 30, 50, 70, 90])],
+      legend: { show: true, onItemHover: { highlightDataSeries: false } },
+      dataLabels: { enabled: false },
+      plotOptions: {
+        heatmap: {
+          colorScale: {
+            ranges: [
+              { from: 0, to: 50, name: 'Low', color: '#00A100' },
+              { from: 51, to: 100, name: 'High', color: '#FF0000' },
+            ],
+            gradientLegend: { enabled: true },
+          },
+        },
+      },
+    })
+    const bands = getGradientSvg(chart).querySelectorAll(
+      '.apexcharts-heatmap-gradient-band',
+    )
+    expect(bands.length).toBe(0)
   })
 })
 

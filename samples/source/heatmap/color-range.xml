@@ -56,7 +56,16 @@ plotOptions: {
           name: 'extreme',
           color: '#FF0000'
         }
-      ]
+      ],
+      // Render the discrete ranges as a smooth gradient strip instead of the
+      // categorical legend. Hovering a band highlights the cells in that range
+      // and dims the rest; hovering a cell slides the arrow to its value.
+      gradientLegend: {
+        enabled: true,
+        width: '80%',
+        thickness: 10,
+        showHoverValue: true
+      }
     }
   }
 },
@@ -69,6 +78,9 @@ stroke: {
 title: {
   text: 'HeatMap Chart with Color Range'
 },
+legend: {
+  position: 'top'
+}
 </options>
 
 <series>
