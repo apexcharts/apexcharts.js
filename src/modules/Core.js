@@ -567,13 +567,19 @@ export default class Core {
   resizeNonAxisCharts() {
     const { w } = this
 
-    // When the user supplies an explicit chart.height (px or %), honor it —
-    // don't re-derive SVG / wrap heights from arc geometry. Only 'auto' (and
-    // empty) means "size yourself to fit the arc + legend".
+    // When the user supplies an explicit chart.height (px or %), honor it for
+    // FULL circles — don't re-derive SVG / wrap heights from arc geometry.
+    // Only 'auto' (and empty) means "size yourself to fit the arc + legend".
+    // Partial arcs (semi-circle / sector gauges) are the exception: their
+    // arc occupies only part of the circle, so honoring a square-ish pixel
+    // height leaves dead space below the chord. Those always fit-to-content
+    // (see the radialAngleSpan < 360 branch), and only a '%' height — which
+    // is parent-relative and must not be overwritten in px — opts out.
     const heightStr = w.config.chart.height
       ? String(w.config.chart.height)
       : ''
     const userSetFixedHeight = heightStr !== '' && heightStr !== 'auto'
+    const isPercentHeight = heightStr.includes('%')
 
     let legendHeight = 0
     let offY = w.config.chart.sparkline.enabled ? 1 : 15
@@ -678,7 +684,8 @@ export default class Core {
       // visible drawing area still contains the full SVG.
       const chartOffsetY = w.config.chart.offsetY ?? 0
       const elWrapHeight = svgHeight + Math.max(chartOffsetY, 0)
-      if (!userSetFixedHeight) {
+      // Partial arcs always fit-to-content (skip only for '%' heights).
+      if (!isPercentHeight) {
         if (this.w.dom.elLegendForeign) {
           this.w.dom.elLegendForeign.setAttribute(
             'height',
