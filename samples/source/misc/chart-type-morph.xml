@@ -89,12 +89,6 @@ p {
     <input type="range" id="speed" min="100" max="15000" step="50" value="700" />
     <span id="speed-value">700</span> ms
   </div>
-
-  <div class="speed-row">
-    Bar height (horizontal bar / funnel / pyramid):
-    <input type="range" id="bar-height" min="30" max="100" step="5" value="70" />
-    <span id="bar-height-value">70</span>%
-  </div>
 </div>
 </html>
 
@@ -119,12 +113,12 @@ grid: {
   show: false
 },
 labels: ['Direct', 'Organic', 'Referral', 'Social', 'Email'],
-legend: { position: 'bottom' },
+legend: { show: false },
 plotOptions: {
   bar: {
     borderRadius: 4,
-    columnWidth: '52%',
     distributed: true,
+    barHeight: '99%',
   },
   radialBar: {
     inverseOrder: true,
@@ -173,7 +167,6 @@ var LABELS = ['Direct', 'Organic', 'Referral', 'Social', 'Email']
 var currentType = 'bar'
 var currentHorizontal = false
 var currentValues = [44, 55, 41, 27, 33]
-var currentBarHeight = 70
 
 function buildSeriesFor(type, values) {
   if (type === 'funnel') {
@@ -211,7 +204,6 @@ document.querySelectorAll('.actions button[data-type]').forEach(function (btn) {
       plotOptions: {
         bar: {
           horizontal: currentHorizontal,
-          barHeight: currentBarHeight + '%',
         },
       },
       series: buildSeriesFor(currentType, currentValues),
@@ -234,19 +226,6 @@ speedInput.addEventListener('input', function () {
   speedValue.textContent = v
   chart.updateOptions(
     { chart: { animations: { chartTypeMorph: { speed: v } } } },
-    false,
-    false,
-  )
-})
-
-var barHeightInput = document.querySelector('#bar-height')
-var barHeightValue = document.querySelector('#bar-height-value')
-barHeightInput.addEventListener('input', function () {
-  var v = parseInt(barHeightInput.value, 10)
-  barHeightValue.textContent = v
-  currentBarHeight = v
-  chart.updateOptions(
-    { plotOptions: { bar: { barHeight: v + '%' } } },
     false,
     false,
   )
