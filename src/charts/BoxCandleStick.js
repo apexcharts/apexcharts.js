@@ -5,6 +5,7 @@ import Fill from '../modules/Fill'
 import Graphics from '../modules/Graphics'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
+import { buildJitterGroups, renderJitter } from './common/Jitter'
 
 /**
  * ApexCharts BoxCandleStick Class responsible for drawing both Stacked Columns and Bars.
@@ -107,6 +108,13 @@ class BoxCandleStick extends Bar {
         class: 'apexcharts-bar-goals-markers',
       })
 
+      // Optional jitter (raw observations supplied via `points`) per box —
+      // collected here, then rendered as one delayed-reveal overlay after all
+      // boxes. boxPlot only; candlesticks have no raw-observation channel.
+      const boxPointsOpts = this.isBoxPlot ? this.boxOptions.points : null
+      /** @type {{groups:{fill:string|null,d:string}[], j:number}[]} */
+      const pointsByCat = []
+
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
@@ -204,6 +212,63 @@ class BoxCandleStick extends Bar {
             })
           },
         )
+
+        // Build jitter sub-paths for this box (scattered within the box width).
+        if (boxPointsOpts && boxPointsOpts.show !== false) {
+          const pts = w.candleData.seriesBoxPoints[realIndex]?.[j]
+          if (pts && pts.length) {
+            /** @param {number} v */
+            const logVal = (v) =>
+              /** @type {any} */ (this.coreUtils).getLogValAtSeriesIndex(
+                v,
+                realIndex,
+              )
+            let center, halfExtent, alongFn
+            if (this.isHorizontal) {
+              const yRatio = this.invertedYRatio
+              const bh = barHeight ?? 0
+              const z = zeroW ?? 0
+              center = paths.barYPosition + bh / 2
+              halfExtent = bh / 2
+              alongFn = (/** @type {number} */ v) => z + logVal(v) / yRatio
+            } else {
+              const yRatio = this.yRatio[translationsIndex]
+              const bw = barWidth ?? 0
+              const z = zeroH ?? 0
+              center = paths.barXPosition + bw / 2
+              halfExtent = bw / 2
+              alongFn = (/** @type {number} */ v) => z - logVal(v) / yRatio
+            }
+            const groups = buildJitterGroups({
+              w,
+              points: pts,
+              seedA: realIndex,
+              seedB: j,
+              center,
+              halfExtent,
+              alongFn,
+              isHorizontal: this.isHorizontal,
+              options: boxPointsOpts,
+            })
+            if (groups.length) pointsByCat.push({ groups, j })
+          }
+        }
+      }
+
+      // Jitter overlay (shared module): one packed path per box, revealed
+      // gradually after the box paths animate.
+      if (boxPointsOpts) {
+        renderJitter({
+          graphics,
+          w,
+          elSeries,
+          pointsByCat,
+          options: boxPointsOpts,
+          distributed: w.config.plotOptions.bar.distributed,
+          realIndex,
+          wrapClass: 'apexcharts-boxPlot-points-wrap',
+          pointClass: 'apexcharts-boxPlot-points',
+        })
       }
 
       // push all x val arrays into main xArr
