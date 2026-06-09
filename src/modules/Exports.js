@@ -452,6 +452,13 @@ class Exports {
             columns.push(w.rangeData.seriesRangeEnd[sI][i])
           }
 
+          if (w.config.chart.type === 'violin' || (s.type && s.type === 'violin')) {
+            columns.pop()
+            columns.push(w.violinData.seriesViolinMin[sI]?.[i])
+            columns.push(w.violinData.seriesViolinMax[sI]?.[i])
+            columns.push(w.violinData.seriesViolinPoints[sI]?.[i]?.length ?? 0)
+          }
+
           if (columns.length) {
             rows.push(columns.join(columnDelimiter))
           }
@@ -523,6 +530,10 @@ class Exports {
     } else if (w.config.chart.type === 'rangeBar') {
       columns.push('minimum')
       columns.push('maximum')
+    } else if (w.config.chart.type === 'violin') {
+      columns.push('minimum')
+      columns.push('maximum')
+      columns.push('observations')
     } else {
       /**
        * @param {Record<string, any>} s

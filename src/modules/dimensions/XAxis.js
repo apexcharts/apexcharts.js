@@ -374,7 +374,8 @@ export default class DimXAxis {
           (cnf.chart.type === 'bar' ||
             cnf.chart.type === 'candlestick' ||
             cnf.chart.type === 'rangeBar' ||
-            cnf.chart.type === 'boxPlot')
+            cnf.chart.type === 'boxPlot' ||
+            cnf.chart.type === 'violin')
             ? lbWidth / 1.75
             : 10)
         ) {

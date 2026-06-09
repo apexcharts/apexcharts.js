@@ -31,6 +31,7 @@ export const SUB_ENTRIES = {
   line: resolve(__dirname, 'src/entries/line.js'),
   bar: resolve(__dirname, 'src/entries/bar.js'),
   candlestick: resolve(__dirname, 'src/entries/candlestick.js'),
+  violin: resolve(__dirname, 'src/entries/violin.js'),
   pie: resolve(__dirname, 'src/entries/pie.js'),
   radialBar: resolve(__dirname, 'src/entries/radialBar.js'),
   radar: resolve(__dirname, 'src/entries/radar.js'),

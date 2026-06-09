@@ -85,6 +85,11 @@
       "import": "./dist/boxPlot.esm.js",
       "require": "./dist/boxPlot.common.js"
     },
+    "./violin": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/violin.esm.js",
+      "require": "./dist/violin.common.js"
+    },
     "./pie": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/pie.esm.js",

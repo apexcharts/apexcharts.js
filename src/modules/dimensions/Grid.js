@@ -29,7 +29,7 @@ export default class DimGrid {
      * @param {string} type
      */
     const hasBar = (type) =>
-      ['bar', 'rangeBar', 'candlestick', 'boxPlot'].includes(type)
+      ['bar', 'rangeBar', 'candlestick', 'boxPlot', 'violin'].includes(type)
 
     const type = cnf.chart.type
     let barWidth = 0

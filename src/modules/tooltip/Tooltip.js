@@ -458,6 +458,7 @@ export default class Tooltip {
       type === 'bar' ||
       type === 'candlestick' ||
       type === 'boxPlot' ||
+      type === 'violin' ||
       type === 'rangeBar'
     )
 
@@ -498,7 +499,7 @@ export default class Tooltip {
         )
       } else if (commonBar) {
         points = w.dom.baseEl.querySelectorAll(
-          '.apexcharts-series .apexcharts-bar-area, .apexcharts-series .apexcharts-candlestick-area, .apexcharts-series .apexcharts-boxPlot-area, .apexcharts-series .apexcharts-rangebar-area',
+          '.apexcharts-series .apexcharts-bar-area, .apexcharts-series .apexcharts-candlestick-area, .apexcharts-series .apexcharts-boxPlot-area, .apexcharts-series .apexcharts-violin-area, .apexcharts-series .apexcharts-rangebar-area',
         )
       } else if (type === 'heatmap' || type === 'treemap') {
         points = w.dom.baseEl.querySelectorAll(

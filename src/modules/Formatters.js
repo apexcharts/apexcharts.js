@@ -177,6 +177,18 @@ class Formatters {
     w.config.yaxis.forEach((yaxe, i) => {
       if (yaxe.labels.formatter !== undefined) {
         fmt.yLabelFormatters[i] = yaxe.labels.formatter
+      } else if (w.config.chart.type === 'violin') {
+        // Density grids often carry long fractional values; round violin axis
+        // labels to at most 2 decimals (trailing zeros stripped). A
+        // user-supplied yaxis formatter (checked above) still wins.
+        const round = (/** @type {any} */ v) =>
+          typeof v === 'number' && isFinite(v)
+            ? `${Math.round(v * 100) / 100}`
+            : v
+        fmt.yLabelFormatters[i] = (/** @type {any} */ val) => {
+          if (!w.globals.xyCharts) return val
+          return Array.isArray(val) ? val.map(round) : round(val)
+        }
       } else {
         fmt.yLabelFormatters[i] = (/** @type {any} */ val) => {
           if (!w.globals.xyCharts) return val

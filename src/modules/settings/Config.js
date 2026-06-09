@@ -45,6 +45,7 @@ export default class Config {
         'bar',
         'candlestick',
         'boxPlot',
+        'violin',
         'rangeBar',
         'rangeArea',
         'bubble',
@@ -185,7 +186,9 @@ export default class Config {
     const defaults = new Defaults(opts)
 
     const isBarHorizontal =
-      (chartType === 'bar' || chartType === 'boxPlot') &&
+      (chartType === 'bar' ||
+        chartType === 'boxPlot' ||
+        chartType === 'violin') &&
       opts.plotOptions?.bar?.horizontal
 
     const unsupportedZoom =

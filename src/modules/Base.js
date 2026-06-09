@@ -83,6 +83,9 @@ export default class Base {
         seriesCandleM: [],
         seriesCandleL: [],
         seriesCandleC: [],
+        // Optional raw observations per boxPlot data point ([i][j] = number[]),
+        // rendered as jitter dots. Empty unless boxPlot points are supplied.
+        seriesBoxPoints: [],
       },
       // Range chart arrays — written by Data.handleRangeData() each render;
       // empty for all other chart types.
@@ -90,6 +93,17 @@ export default class Base {
         seriesRangeStart: [],
         seriesRangeEnd: [],
         seriesRange: [],
+      },
+      // Violin distribution arrays — written by Data.handleViolinData() each
+      // render; empty for all other chart types.
+      //   seriesViolinDensity[i][j] = { values:number[], weights:number[], maxWeight:number }
+      //   seriesViolinPoints[i][j]  = number[] (raw observations, value-axis units)
+      //   seriesViolinMin/Max[i][j] = number (extent of density + points — drives Range.js)
+      violinData: {
+        seriesViolinDensity: [],
+        seriesViolinPoints: [],
+        seriesViolinMin: [],
+        seriesViolinMax: [],
       },
       // Label / category data — written by Data.parseData() and TimeScale each render.
       labelData: {
@@ -354,6 +368,25 @@ export default class Base {
         },
         set(v) {
           /** @type {Record<string,any>} */ (w.candleData)[key] = v
+        },
+        enumerable: false,
+        configurable: true,
+      })
+    }
+
+    // w.globals.<violinData> → w.violinData.<violinData>
+    for (const key of [
+      'seriesViolinDensity',
+      'seriesViolinPoints',
+      'seriesViolinMin',
+      'seriesViolinMax',
+    ]) {
+      Object.defineProperty(globals, key, {
+        get() {
+          return /** @type {Record<string,any>} */ (w.violinData)[key]
+        },
+        set(v) {
+          /** @type {Record<string,any>} */ (w.violinData)[key] = v
         },
         enumerable: false,
         configurable: true,

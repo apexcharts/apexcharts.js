@@ -41,6 +41,7 @@ export default class Core {
       'rangeArea',
       'candlestick',
       'boxPlot',
+      'violin',
       'scatter',
       'bubble',
     ]
@@ -56,7 +57,7 @@ export default class Core {
     gl.xyCharts = xyChartsArrTypes.includes(ct)
 
     gl.isBarHorizontal =
-      ['bar', 'rangeBar', 'boxPlot'].includes(ct) &&
+      ['bar', 'rangeBar', 'boxPlot', 'violin'].includes(ct) &&
       cnf.plotOptions.bar.horizontal
 
     gl.chartClass = `.apexcharts${gl.chartID}`
@@ -185,6 +186,7 @@ export default class Core {
       bar: { series: [], i: [] },
       candlestick: { series: [], i: [] },
       boxPlot: { series: [], i: [] },
+      violin: { series: [], i: [] },
       rangeBar: { series: [], i: [] },
       rangeArea: { series: [], seriesRangeEnd: [], i: [] },
     }
@@ -279,6 +281,13 @@ export default class Core {
       ? new (getChartClass('candlestick'))(ctx.w, ctx, xyRatios)
       : null
 
+    const needsViolin =
+      seriesTypes.violin.series.length > 0 ||
+      (!gl.comboCharts && cnf.chart.type === 'violin')
+    const violin = needsViolin
+      ? new (getChartClass('violin'))(ctx.w, ctx, xyRatios)
+      : null
+
     const needsPie =
       !gl.comboCharts && ['pie', 'donut', 'polarArea'].includes(cnf.chart.type)
     ctx.pie = needsPie ? new (getChartClass('pie'))(ctx.w, ctx) : null
@@ -357,6 +366,11 @@ export default class Core {
           ),
         )
       }
+      if (seriesTypes.violin.series.length > 0) {
+        elGraph.push(
+          violin.draw(seriesTypes.violin.series, 'violin', seriesTypes.violin.i),
+        )
+      }
       if (seriesTypes.rangeBar.series.length > 0) {
         elGraph.push(
           ctx.rangeBar.draw(
@@ -422,6 +436,9 @@ export default class Core {
           break
         case 'boxPlot':
           elGraph = boxCandlestick.draw(this.w.seriesData.series, type)
+          break
+        case 'violin':
+          elGraph = violin.draw(this.w.seriesData.series, 'violin')
           break
         case 'rangeBar':
           elGraph = ctx.rangeBar.draw(this.w.seriesData.series)

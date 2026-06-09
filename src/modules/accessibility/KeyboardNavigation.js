@@ -548,6 +548,7 @@ export default class KeyboardNavigation {
       type === 'bar' ||
       type === 'candlestick' ||
       type === 'boxPlot' ||
+      type === 'violin' ||
       type === 'rangeBar'
     ) {
       this._showTooltipBar(i, j, ttCtx)
@@ -1132,6 +1133,7 @@ export default class KeyboardNavigation {
       type === 'bar' ||
       type === 'candlestick' ||
       type === 'boxPlot' ||
+      type === 'violin' ||
       type === 'rangeBar'
     ) {
       return baseEl.querySelector(

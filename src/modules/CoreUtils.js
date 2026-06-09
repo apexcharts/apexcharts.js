@@ -38,7 +38,8 @@ class CoreUtils {
           s.type === 'bar' ||
           s.type === 'column' ||
           s.type === 'candlestick' ||
-          s.type === 'boxPlot'
+          s.type === 'boxPlot' ||
+          s.type === 'violin'
         ) {
           comboBarCount++
         }

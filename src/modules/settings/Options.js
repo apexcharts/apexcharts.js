@@ -537,6 +537,52 @@ export default class Options {
             upper: '#00E396',
             lower: '#008FFB',
           },
+          // Optional individual observations ("jitter") overlaid on each box.
+          // Inert unless a data point supplies a `points: number[]` array; off
+          // by default so existing boxPlot charts are unchanged.
+          points: {
+            show: false,
+            shape: 'circle', // 'circle' | 'square'
+            size: 2.5, // radius (px)
+            jitter: 0.5, // 0..1 fraction of the box half-width to scatter within
+            maxPoints: 3000, // cap per box; excess is stride-thinned
+            opacity: 0.9,
+            // 'series-dark' (default) → a darker shade of the series colour,
+            // 'series' → the series colour, or any literal colour string.
+            fillColor: 'series-dark',
+            strokeColor: '#fff',
+            strokeWidth: 1,
+            // Optional `colorScale` (undeclared so a user object merges cleanly)
+            // colours each dot by its value: { colors, min, max, steps }
+          },
+        },
+        violin: {
+          // Multiply the density-derived half-width. 1 = density's own maxWeight
+          // maps to half the category slot.
+          bandwidthScale: 1,
+          // 'individual' → every violin uses the full slot width (scaled to its
+          // own peak). 'group' → all violins share one scale (the densest in the
+          // series), so widths stay proportional to density across categories.
+          normalize: 'individual',
+          // Individual observations ("jitter") overlaid on the violin shape.
+          points: {
+            show: true,
+            shape: 'circle', // 'circle' | 'square'
+            size: 2.5, // radius (px)
+            jitter: 0.5, // 0..1 fraction of the half-width to scatter within
+            constrainToViolin: true, // clamp jitter to the density width at each value
+            maxPoints: 3000, // cap per violin; excess is stride-thinned
+            opacity: 0.9,
+            // Default: a darker shade of each violin's own colour, with a white
+            // outline. fillColor accepts 'series-dark' (default), 'series' (the
+            // violin's colour as-is), or any literal colour string.
+            fillColor: 'series-dark',
+            strokeColor: '#fff',
+            strokeWidth: 1,
+            // Optional `colorScale` (left undeclared so a user object merges
+            // cleanly) colours each dot by its value along a ramp:
+            //   { colors: ['#0d0887', … '#f0f921'], min, max, steps }
+          },
         },
         heatmap: {
           radius: 2,

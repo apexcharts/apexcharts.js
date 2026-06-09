@@ -107,6 +107,8 @@ export interface CandleData {
   seriesCandleM: number[][]
   seriesCandleL: number[][]
   seriesCandleC: number[][]
+  /** Raw observations per boxPlot data point ([i][j]) for optional jitter. */
+  seriesBoxPoints: number[][][]
 }
 
 /** Range chart arrays — lives on `w.rangeData` */
@@ -114,6 +116,16 @@ export interface RangeData {
   seriesRangeStart: number[][]
   seriesRangeEnd: number[][]
   seriesRange: Array<Array<{ y: number; y2: number }>>
+}
+
+/** Violin distribution arrays — lives on `w.violinData` */
+export interface ViolinData {
+  seriesViolinDensity: Array<
+    Array<{ values: number[]; weights: number[]; maxWeight: number }>
+  >
+  seriesViolinPoints: number[][][]
+  seriesViolinMin: number[][]
+  seriesViolinMax: number[][]
 }
 
 /** Label / category data — lives on `w.labelData` */
@@ -437,6 +449,7 @@ export interface ChartStateW {
   formatters: FormatterState
   candleData: CandleData
   rangeData: RangeData
+  violinData: ViolinData
   labelData: LabelData
   axisFlags: AxisFlags
   seriesData: SeriesData

@@ -300,8 +300,94 @@ export default class Data {
     this.w.candleData.seriesCandleM[i] = ohlc.m
     this.w.candleData.seriesCandleL[i] = ohlc.l
     this.w.candleData.seriesCandleC[i] = ohlc.c
+    this.w.candleData.seriesBoxPoints[i] = ohlc.points || []
 
     return ohlc
+  }
+
+  /**
+   * Parse a violin series. Each data point carries a precomputed density
+   * profile (the violin shape) and an array of raw observations (the jitter):
+   *
+   *   { x, y: { density: [[value, weight], ...], points: [v1, v2, ...] } }
+   *
+   * Array fallback form: [x, densityPairs, pointsArray].
+   *
+   * Density `weight` need not be normalized — Violin.js scales each violin by
+   * its own maxWeight. The representative scalar pushed into the main series
+   * (so generic code paths see a non-null y) is the density mode — the value
+   * carrying the greatest weight.
+   *
+   * @param {any[]} ser
+   * @param {number} i
+   */
+  handleViolinData(ser, i) {
+    const w = this.w
+    const data = ser[i].data
+
+    /** @type {any[]} */ const densityArr = []
+    /** @type {any[]} */ const pointsArr = []
+    /** @type {number[]} */ const minArr = []
+    /** @type {number[]} */ const maxArr = []
+    /** @type {number[]} */ const placeholders = []
+
+    for (let j = 0; j < data.length; j++) {
+      const d = data[j]
+      const dens = d?.y?.density ?? d?.[1] ?? []
+      const pts = d?.y?.points ?? d?.[2] ?? []
+
+      /** @type {number[]} */ const values = []
+      /** @type {number[]} */ const weights = []
+      let maxWeight = 0
+      let modeValue = null
+      let minVal = Infinity
+      let maxVal = -Infinity
+
+      for (let k = 0; k < dens.length; k++) {
+        const v = Utils.parseNumber(dens[k][0])
+        const wt = Utils.parseNumber(dens[k][1])
+        if (v === null || wt === null) continue
+        values.push(v)
+        weights.push(wt)
+        if (wt > maxWeight) {
+          maxWeight = wt
+          modeValue = v
+        }
+        if (v < minVal) minVal = v
+        if (v > maxVal) maxVal = v
+      }
+
+      /** @type {number[]} */ const cleanPts = []
+      for (let k = 0; k < pts.length; k++) {
+        const p = Utils.parseNumber(pts[k])
+        if (p === null) continue
+        cleanPts.push(p)
+        if (p < minVal) minVal = p
+        if (p > maxVal) maxVal = p
+      }
+
+      densityArr.push({ values, weights, maxWeight })
+      pointsArr.push(cleanPts)
+      minArr.push(minVal === Infinity ? 0 : minVal)
+      maxArr.push(maxVal === -Infinity ? 0 : maxVal)
+      // Representative value: density mode, else median of points, else 0.
+      placeholders.push(
+        modeValue !== null
+          ? modeValue
+          : cleanPts.length
+            ? cleanPts[Math.floor(cleanPts.length / 2)]
+            : 0,
+      )
+    }
+
+    w.violinData.seriesViolinDensity[i] = densityArr
+    w.violinData.seriesViolinPoints[i] = pointsArr
+    w.violinData.seriesViolinMin[i] = minArr
+    w.violinData.seriesViolinMax[i] = maxArr
+
+    // Overwrite the y-placeholders that handleFormatXY/2DArray pushed (it could
+    // not interpret the object/array y) with the representative scalars.
+    this.twoDSeries = placeholders
   }
 
   /**
@@ -391,6 +477,9 @@ export default class Data {
     const serM = []
     const serL = []
     const serC = []
+    // Raw observations for optional boxPlot jitter (object form only — the
+    // flat-array form has no slot for them).
+    const serPoints = []
 
     const data = ser[i].data
     let getVals
@@ -432,6 +521,8 @@ export default class Data {
           serC.push(vals[3])
         }
       }
+      const pts = data[j] && /** @type {any} */ (data[j]).points
+      serPoints.push(Array.isArray(pts) ? pts : [])
     }
 
     return {
@@ -440,6 +531,7 @@ export default class Data {
       m: serM,
       l: serL,
       c: serC,
+      points: serPoints,
     }
   }
 
@@ -582,6 +674,12 @@ export default class Data {
           ser[i].type === 'boxPlot'
         ) {
           this.handleCandleStickBoxData(ser, i)
+        }
+
+        if (cnf.chart.type === 'violin' || ser[i].type === 'violin') {
+          // Must run after handleFormatXY/2DArray — it rebuilds this.twoDSeries
+          // with representative scalars before the push below.
+          this.handleViolinData(ser, i)
         }
 
         this.w.seriesData.series.push(this.twoDSeries)
@@ -1311,6 +1409,7 @@ export default class Data {
         seriesCandleM: this.w.candleData.seriesCandleM,
         seriesCandleL: this.w.candleData.seriesCandleL,
         seriesCandleC: this.w.candleData.seriesCandleC,
+        seriesBoxPoints: this.w.candleData.seriesBoxPoints,
       },
       // w.labelData (future slice)
       labelData: {

@@ -13,6 +13,7 @@ import '../features/all.js'
 import Bar from '../charts/Bar'
 import BarStacked from '../charts/BarStacked'
 import BoxCandleStick from '../charts/BoxCandleStick'
+import Violin from '../charts/Violin'
 import HeatMap from '../charts/HeatMap'
 import Line from '../charts/Line'
 import Pie from '../charts/Pie'
@@ -33,6 +34,7 @@ ApexCharts.use({
   rangeBar: RangeBar,
   candlestick: BoxCandleStick,
   boxPlot: BoxCandleStick,
+  violin: Violin,
   pie: Pie,
   donut: Pie,
   polarArea: Pie,

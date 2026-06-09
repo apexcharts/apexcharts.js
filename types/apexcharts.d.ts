@@ -450,6 +450,7 @@ type ApexChart = {
   | 'heatmap'
   | 'candlestick'
   | 'boxPlot'
+  | 'violin'
   | 'radar'
   | 'polarArea'
   | 'rangeBar'
@@ -712,7 +713,22 @@ type ApexAxisChartSeries = {
  | (number | null)[]
  | {
    x: string | number;
-   y: number | null;
+   /**
+    * A plain value for most charts. For `candlestick`/`boxPlot`, the
+    * summary array (`[O,H,L,C]` / `[min,Q1,median,Q3,max]`). For `violin`, an
+    * object carrying the precomputed density profile (`[value, weight]` pairs)
+    * plus the raw observations rendered as jitter.
+    */
+   y:
+     | number
+     | null
+     | number[]
+     | { density: [number, number][]; points?: number[] };
+   /**
+    * Optional raw observations for a `boxPlot` data point, rendered as jitter
+    * dots when `plotOptions.boxPlot.points.show` is enabled.
+    */
+   points?: number[];
    fill?: ApexFill;
    fillColor?: string;
    strokeColor?: string;
@@ -986,6 +1002,94 @@ type ApexPlotOptions = {
       upper?: string | string[]
       lower?: string | string[]
     }
+    /**
+     * Individual observations ("jitter") overlaid on each box. Inert unless a
+     * data point supplies a `points: number[]` array; `show` is false by
+     * default so existing boxPlot charts are unchanged.
+     */
+    points?: {
+      show?: boolean
+      shape?: 'circle' | 'square'
+      /** Marker radius in pixels. */
+      size?: number
+      /** 0..1 fraction of the box half-width to scatter within. */
+      jitter?: number
+      /** Cap per box; observations beyond this are stride-thinned. */
+      maxPoints?: number
+      opacity?: number
+      /**
+       * Dot fill colour. Defaults to 'series-dark' (a darker shade of the
+       * series colour). Use 'series' for the series colour, or any literal
+       * colour string.
+       */
+      fillColor?: string
+      /** Colour of the outline around each dot. Defaults to '#fff'. */
+      strokeColor?: string
+      /** Width of the dot's outline in pixels. Defaults to 1; 0 disables it. */
+      strokeWidth?: number
+      /**
+       * Colour each dot by its value along a colour ramp (overrides fillColor).
+       * Points are bucketed into `steps` shades to keep rendering performant.
+       */
+      colorScale?: {
+        colors: string[]
+        min?: number
+        max?: number
+        steps?: number
+      }
+    }
+  }
+  violin?: {
+    /**
+     * Multiplies the density-derived half-width. 1 maps the density's own
+     * maxWeight to half the category slot.
+     */
+    bandwidthScale?: number
+    /**
+     * 'individual' (default): each violin is scaled to its own peak density, so
+     * all violins reach the full slot width. 'group': all violins share the
+     * densest violin's scale, keeping widths proportional to density across
+     * categories.
+     */
+    normalize?: 'individual' | 'group'
+    /** Individual observations ("jitter") overlaid on the violin shape. */
+    points?: {
+      show?: boolean
+      shape?: 'circle' | 'square'
+      /** Marker radius in pixels. */
+      size?: number
+      /** 0..1 fraction of the half-width to scatter within. */
+      jitter?: number
+      /** Clamp jitter to the density width at each value so points stay inside. */
+      constrainToViolin?: boolean
+      /** Cap per violin; observations beyond this are stride-thinned. */
+      maxPoints?: number
+      opacity?: number
+      /**
+       * Dot fill colour. Defaults to 'series-dark' (a darker shade of each
+       * violin's own colour). Use 'series' for the violin's colour as-is, or
+       * any literal colour string (e.g. '#fff').
+       */
+      fillColor?: string
+      /** Colour of the ring/outline around each dot. Defaults to '#fff'. */
+      strokeColor?: string
+      /** Width of the dot's outline in pixels. Defaults to 1; 0 disables it. */
+      strokeWidth?: number
+      /**
+       * Colour each dot by its value along a colour ramp (overrides fillColor).
+       * Points are bucketed into `steps` shades to keep rendering performant.
+       */
+      colorScale?: {
+        /** Hex colour stops, low → high (a sequential colour ramp). */
+        colors: string[]
+        /** Value mapped to the first stop. Defaults to the data minimum. */
+        min?: number
+        /** Value mapped to the last stop. Defaults to the data maximum. */
+        max?: number
+        /** Number of shade buckets. Defaults to 24. */
+        steps?: number
+      }
+    }
   }
   heatmap?: {
     radius?: number
@@ -1178,7 +1282,7 @@ type ApexPlotOptions = {
     offsetY?: number
     polygons?: {
       strokeColors?: string | string[]
-      strokeWidth?: string | string[]
+      strokeWidth?: number | number[] | string | string[]
       connectorColors?: string | string[]
       fill?: {
         colors?: string[]

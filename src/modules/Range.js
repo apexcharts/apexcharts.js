@@ -52,6 +52,9 @@ class Range {
     } else if (cnf.chart.type === 'boxPlot') {
       seriesMin = this.w.candleData.seriesCandleO
       seriesMax = this.w.candleData.seriesCandleC
+    } else if (cnf.chart.type === 'violin') {
+      seriesMin = this.w.violinData.seriesViolinMin
+      seriesMax = this.w.violinData.seriesViolinMax
     } else if (this.w.axisFlags.isRangeData) {
       seriesMin = this.w.rangeData.seriesRangeStart
       seriesMax = this.w.rangeData.seriesRangeEnd
@@ -167,6 +170,20 @@ class Range {
                 }
               }
               break
+            case 'violin':
+              {
+                if (
+                  typeof this.w.violinData.seriesViolinMax[i]?.[j] !==
+                  'undefined'
+                ) {
+                  maxY = Math.max(maxY, this.w.violinData.seriesViolinMax[i][j])
+                  lowestY = Math.min(
+                    lowestY,
+                    this.w.violinData.seriesViolinMin[i][j],
+                  )
+                }
+              }
+              break
           }
 
           // there is a combo chart and the specified series in not either
@@ -175,6 +192,7 @@ class Range {
             seriesType &&
             seriesType !== 'candlestick' &&
             seriesType !== 'boxPlot' &&
+            seriesType !== 'violin' &&
             seriesType !== 'rangeArea' &&
             seriesType !== 'rangeBar'
           ) {
@@ -193,6 +211,22 @@ class Range {
                 lowestY = Math.min(lowestY, g.value)
               },
             )
+          }
+
+          // boxPlot raw observations (optional jitter) — included regardless of
+          // how seriesType resolves, so outliers beyond the box min/max stay in
+          // the axis extent.
+          if (this.w.config.chart.type === 'boxPlot' || seriesType === 'boxPlot') {
+            const boxPts = this.w.candleData.seriesBoxPoints?.[i]?.[j]
+            if (boxPts) {
+              for (let p = 0; p < boxPts.length; p++) {
+                const pv = boxPts[p]
+                if (typeof pv === 'number') {
+                  maxY = Math.max(maxY, pv)
+                  lowestY = Math.min(lowestY, pv)
+                }
+              }
+            }
           }
           highestY = maxY
 
@@ -299,6 +333,7 @@ class Range {
       cnf.chart.type === 'scatter' ||
       cnf.chart.type === 'candlestick' ||
       cnf.chart.type === 'boxPlot' ||
+      cnf.chart.type === 'violin' ||
       (cnf.chart.type === 'rangeBar' && !gl.isBarHorizontal)
     ) {
       if (

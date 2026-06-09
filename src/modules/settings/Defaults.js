@@ -530,6 +530,51 @@ export default class Defaults {
     }
   }
 
+  violin() {
+    return {
+      chart: {
+        // Violins are a per-category distribution plot (discrete category
+        // x-axis), so range zooming/panning is meaningless — off by default.
+        zoom: {
+          enabled: false,
+        },
+        animations: {
+          dynamicAnimation: {
+            enabled: false,
+          },
+        },
+      },
+      stroke: {
+        width: 1,
+        colors: ['#24292e'],
+      },
+      fill: {
+        opacity: 0.7,
+      },
+      dataLabels: {
+        enabled: false,
+      },
+      tooltip: {
+        shared: true,
+        custom: (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
+          return this._getViolinTooltip(w, seriesIndex, dataPointIndex)
+        },
+      },
+      states: {
+        active: {
+          filter: {
+            type: 'none',
+          },
+        },
+      },
+      xaxis: {
+        crosshairs: {
+          width: 1,
+        },
+      },
+    }
+  }
+
   rangeBar() {
     /**
      * @param {any} opts
@@ -1343,5 +1388,33 @@ export default class Defaults {
         '</div>'
       )
     }
+  }
+
+  /**
+   * Shared tooltip for a violin: distribution value range and observation
+   * count. Per-point hover is intentionally unsupported (jitter renders as a
+   * single path), so the tooltip summarizes the violin as a whole.
+   *
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {number} seriesIndex
+   * @param {number} dataPointIndex
+   */
+  _getViolinTooltip(w, seriesIndex, dataPointIndex) {
+    const minV = w.violinData.seriesViolinMin[seriesIndex]?.[dataPointIndex]
+    const maxV = w.violinData.seriesViolinMax[seriesIndex]?.[dataPointIndex]
+    const pts =
+      w.violinData.seriesViolinPoints[seriesIndex]?.[dataPointIndex] || []
+    const name =
+      /** @type {Record<string,any>} */ (w.config.series[seriesIndex]).name ||
+      'series-' + (seriesIndex + 1)
+
+    return (
+      `<div class="apexcharts-tooltip-box apexcharts-tooltip-${w.config.chart.type}">` +
+      `<div class="apexcharts-tooltip-violin-name">${name}</div>` +
+      `<div>Min: <span class="value">${minV}</span></div>` +
+      `<div>Max: <span class="value">${maxV}</span></div>` +
+      `<div>Observations: <span class="value">${pts.length}</span></div>` +
+      '</div>'
+    )
   }
 }

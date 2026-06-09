@@ -460,7 +460,8 @@ export default class Position {
       serType &&
       (serType === 'column' ||
         serType === 'candlestick' ||
-        serType === 'boxPlot')
+        serType === 'boxPlot' ||
+        serType === 'violin')
     ) {
       // fix error mentioned in #811
       return
@@ -596,7 +597,7 @@ export default class Position {
       i = series.getActiveConfigSeriesIndex('desc') + 1
     }
     let jBar = w.dom.baseEl.querySelector(
-      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`,
+      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-violin-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`,
     )
     if (!jBar && typeof capturedSeries === 'number') {
       // Try with captured series index
@@ -604,6 +605,7 @@ export default class Position {
         `.apexcharts-bar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
         .apexcharts-candlestick-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
         .apexcharts-boxPlot-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
+        .apexcharts-violin-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
         .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}']`,
       )
     }

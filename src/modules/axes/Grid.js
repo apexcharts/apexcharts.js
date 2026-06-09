@@ -104,7 +104,7 @@ class Grid {
     w.dom.elNonForecastMask = createClipPath(`nonForecastMask${gl.cuid}`)
 
     const hasBar =
-      ['bar', 'rangeBar', 'candlestick', 'boxPlot'].includes(
+      ['bar', 'rangeBar', 'candlestick', 'boxPlot', 'violin'].includes(
         w.config.chart.type,
       ) || w.globals.comboBarCount > 0
 
