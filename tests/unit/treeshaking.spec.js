@@ -47,6 +47,7 @@ const SUB_ENTRIES = [
   'line.esm.js',
   'bar.esm.js',
   'candlestick.esm.js',
+  'violin.esm.js',
   'pie.esm.js',
   'radialBar.esm.js',
   'radar.esm.js',
@@ -180,6 +181,9 @@ describe('chart-type classes are confined to their own sub-entry', () => {
     { name: 'Radar',         ownEntry: 'radar.esm.js',       absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js', 'radialBar.esm.js', 'heatmap.esm.js'] },
     { name: 'HeatMap',       ownEntry: 'heatmap.esm.js',     absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js', 'radialBar.esm.js', 'radar.esm.js'] },
     { name: 'BoxCandleStick',ownEntry: 'candlestick.esm.js', absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js', 'radialBar.esm.js', 'radar.esm.js'] },
+    // Violin extends Bar (like BoxCandleStick), so Bar is legitimately bundled
+    // into violin.esm.js — only the Violin class itself must be confined.
+    { name: 'Violin',        ownEntry: 'violin.esm.js',      absentFrom: ['bar.esm.js', 'line.esm.js', 'pie.esm.js', 'candlestick.esm.js', 'radialBar.esm.js', 'radar.esm.js'] },
   ]
 
   for (const { name, ownEntry, absentFrom } of CHART_TYPE_ISOLATION) {

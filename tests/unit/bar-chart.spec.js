@@ -133,7 +133,7 @@ describe('Bar chart', () => {
   //   - If a captured `d` exists for (realIndex, j) AND its SVG command count
   //     matches `pathTo` → returns captured d (survivor → smooth morph).
   //   - Otherwise → returns `pathTo` (pathFrom === pathTo = snap, no
-  //     animation). Mirrors Highcharts: only survivors animate.
+  //     animation).
   // =========================================================================
   describe('getPreviousPath', () => {
     const PATH_TO = 'M 0 0 L 1 1' // 2 commands
@@ -398,8 +398,8 @@ describe('Bar chart', () => {
 
       expect(spy).toHaveBeenCalledWith(
         expect.stringContaining(
-          'WARNING: DataLabels are enabled but there are too many'
-        )
+          'WARNING: DataLabels are enabled but there are too many',
+        ),
       )
 
       spy.mockRestore()
@@ -416,8 +416,8 @@ describe('Bar chart', () => {
 
       expect(spy).not.toHaveBeenCalledWith(
         expect.stringContaining(
-          'WARNING: DataLabels are enabled but there are too many'
-        )
+          'WARNING: DataLabels are enabled but there are too many',
+        ),
       )
 
       spy.mockRestore()
@@ -450,7 +450,7 @@ describe('Bar chart', () => {
       const seriesGroups = el.querySelectorAll('.apexcharts-series')
       // At least 2 series groups for bar data
       const barSeriesGroups = Array.from(seriesGroups).filter((g) =>
-        g.closest('.apexcharts-bar-series')
+        g.closest('.apexcharts-bar-series'),
       )
       expect(barSeriesGroups.length).toBe(2)
     })
@@ -496,7 +496,7 @@ describe('Bar chart', () => {
       const el = chart.el
       const barPaths = el.querySelectorAll('.apexcharts-bar-area')
       const vals = Array.from(barPaths).map((p) =>
-        parseFloat(p.getAttribute('val'))
+        parseFloat(p.getAttribute('val')),
       )
       expect(vals).toEqual([42, 88])
     })
@@ -583,7 +583,7 @@ describe('Bar chart', () => {
       const barPaths = el.querySelectorAll('.apexcharts-bar-area')
       // Last 2 bars should have forecast fill-opacity
       const forecastBars = Array.from(barPaths).filter(
-        (p) => p.getAttribute('fill-opacity') === '0.5'
+        (p) => p.getAttribute('fill-opacity') === '0.5',
       )
       expect(forecastBars.length).toBe(2)
     })
@@ -652,12 +652,23 @@ describe('Bar chart', () => {
           { name: 'Incidents', type: 'bar', data: [1, 9, 2, 1, 0, 1] },
           { name: 'Invites', type: 'bar', data: [2, 16, 2, 1, 3, 1] },
           { name: 'Accepted', type: 'bar', data: [2, 8, 2, 1, 1, 1] },
-          { name: '% Accepted', type: 'line', data: [100, 50, 100, 100, 0, 100] },
+          {
+            name: '% Accepted',
+            type: 'line',
+            data: [100, 50, 100, 100, 0, 100],
+          },
         ],
         dataLabels: { enabled: true },
         stroke: { width: [0, 0, 0, 3] },
         xaxis: {
-          categories: ['Mar-2021', 'Aug-2021', 'Sep-2021', 'Nov-2021', 'Jan-2022', 'Jan-2023'],
+          categories: [
+            'Mar-2021',
+            'Aug-2021',
+            'Sep-2021',
+            'Nov-2021',
+            'Jan-2022',
+            'Jan-2023',
+          ],
         },
         yaxis: [
           { seriesName: 'Incidents', min: 0, max: 20 },
@@ -670,11 +681,9 @@ describe('Bar chart', () => {
 
       const el = chart.el
       const datalabelTexts = el.querySelectorAll(
-        '.apexcharts-datalabels .apexcharts-datalabel'
+        '.apexcharts-datalabels .apexcharts-datalabel',
       )
-      const labels = Array.from(datalabelTexts).map((t) =>
-        t.textContent.trim()
-      )
+      const labels = Array.from(datalabelTexts).map((t) => t.textContent.trim())
 
       const barLabels = labels.filter((l) => l !== '')
       const firstCategoryLabels = labels.slice(0, 4).filter((l) => l !== '')
