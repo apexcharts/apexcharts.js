@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v5.14.0
+ * ApexCharts v5.15.0
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -1886,6 +1886,12 @@ class Formatters {
     w.config.yaxis.forEach((yaxe, i) => {
       if (yaxe.labels.formatter !== void 0) {
         fmt.yLabelFormatters[i] = yaxe.labels.formatter;
+      } else if (w.config.chart.type === "violin") {
+        const round = (v) => typeof v === "number" && isFinite(v) ? `${Math.round(v * 100) / 100}` : v;
+        fmt.yLabelFormatters[i] = (val) => {
+          if (!w.globals.xyCharts) return val;
+          return Array.isArray(val) ? val.map(round) : round(val);
+        };
       } else {
         fmt.yLabelFormatters[i] = (val) => {
           if (!w.globals.xyCharts) return val;
@@ -2376,6 +2382,50 @@ class Defaults {
         size: 7,
         strokeWidth: 1,
         strokeColors: "#111"
+      },
+      xaxis: {
+        crosshairs: {
+          width: 1
+        }
+      }
+    };
+  }
+  violin() {
+    return {
+      chart: {
+        // Violins are a per-category distribution plot (discrete category
+        // x-axis), so range zooming/panning is meaningless — off by default.
+        zoom: {
+          enabled: false
+        },
+        animations: {
+          dynamicAnimation: {
+            enabled: false
+          }
+        }
+      },
+      stroke: {
+        width: 1,
+        colors: ["#24292e"]
+      },
+      fill: {
+        opacity: 0.7
+      },
+      dataLabels: {
+        enabled: false
+      },
+      tooltip: {
+        shared: true,
+        custom: ({ seriesIndex, dataPointIndex, w }) => {
+          return this._getViolinTooltip(w, seriesIndex, dataPointIndex);
+        }
+      },
+      states: {
+        active: {
+          filter: {
+            type: "none"
+          }
+        }
       },
       xaxis: {
         crosshairs: {
@@ -3103,6 +3153,26 @@ class Defaults {
       return `<div class="apexcharts-tooltip-box apexcharts-tooltip-${w.config.chart.type}"><div>${labels[0]}: <span class="value">` + o + `</span></div><div>${labels[1]}: <span class="value">` + h + "</span></div>" + (m ? `<div>${labels[2]}: <span class="value">` + m + "</span></div>" : "") + `<div>${labels[3]}: <span class="value">` + l + `</span></div><div>${labels[4]}: <span class="value">` + c + "</span></div></div>";
     }
   }
+  /**
+   * Shared tooltip for a violin: distribution value range and observation
+   * count. Per-point hover is intentionally unsupported (jitter renders as a
+   * single path), so the tooltip summarizes the violin as a whole.
+   *
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {number} seriesIndex
+   * @param {number} dataPointIndex
+   */
+  _getViolinTooltip(w, seriesIndex, dataPointIndex) {
+    var _a, _b, _c;
+    const minV = (_a = w.violinData.seriesViolinMin[seriesIndex]) == null ? void 0 : _a[dataPointIndex];
+    const maxV = (_b = w.violinData.seriesViolinMax[seriesIndex]) == null ? void 0 : _b[dataPointIndex];
+    const pts = ((_c = w.violinData.seriesViolinPoints[seriesIndex]) == null ? void 0 : _c[dataPointIndex]) || [];
+    const name2 = (
+      /** @type {Record<string,any>} */
+      w.config.series[seriesIndex].name || "series-" + (seriesIndex + 1)
+    );
+    return `<div class="apexcharts-tooltip-box apexcharts-tooltip-${w.config.chart.type}"><div class="apexcharts-tooltip-violin-name">${name2}</div><div>Min: <span class="value">${minV}</span></div><div>Max: <span class="value">${maxV}</span></div><div>Observations: <span class="value">${pts.length}</span></div></div>`;
+  }
 }
 const name = "en";
 const options = { "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], "shortMonths": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], "days": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], "shortDays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], "toolbar": { "exportToSVG": "Download SVG", "exportToPNG": "Download PNG", "exportToCSV": "Download CSV", "menu": "Menu", "selection": "Selection", "selectionZoom": "Selection Zoom", "zoomIn": "Zoom In", "zoomOut": "Zoom Out", "pan": "Panning", "reset": "Reset Zoom" } };
@@ -3645,6 +3715,61 @@ class Options {
           colors: {
             upper: "#00E396",
             lower: "#008FFB"
+          },
+          // Optional individual observations ("jitter") overlaid on each box.
+          // Inert unless a data point supplies a `points: number[]` array; off
+          // by default so existing boxPlot charts are unchanged.
+          points: {
+            show: false,
+            shape: "circle",
+            // 'circle' | 'square'
+            size: 2.5,
+            // radius (px)
+            jitter: 0.5,
+            // 0..1 fraction of the box half-width to scatter within
+            maxPoints: 3e3,
+            // cap per box; excess is stride-thinned
+            opacity: 0.9,
+            // 'series-dark' (default) → a darker shade of the series colour,
+            // 'series' → the series colour, or any literal colour string.
+            fillColor: "series-dark",
+            strokeColor: "#fff",
+            strokeWidth: 1
+            // Optional `colorScale` (undeclared so a user object merges cleanly)
+            // colours each dot by its value: { colors, min, max, steps }
+          }
+        },
+        violin: {
+          // Multiply the density-derived half-width. 1 = density's own maxWeight
+          // maps to half the category slot.
+          bandwidthScale: 1,
+          // 'individual' → every violin uses the full slot width (scaled to its
+          // own peak). 'group' → all violins share one scale (the densest in the
+          // series), so widths stay proportional to density across categories.
+          normalize: "individual",
+          // Individual observations ("jitter") overlaid on the violin shape.
+          points: {
+            show: true,
+            shape: "circle",
+            // 'circle' | 'square'
+            size: 2.5,
+            // radius (px)
+            jitter: 0.5,
+            // 0..1 fraction of the half-width to scatter within
+            constrainToViolin: true,
+            // clamp jitter to the density width at each value
+            maxPoints: 3e3,
+            // cap per violin; excess is stride-thinned
+            opacity: 0.9,
+            // Default: a darker shade of each violin's own colour, with a white
+            // outline. fillColor accepts 'series-dark' (default), 'series' (the
+            // violin's colour as-is), or any literal colour string.
+            fillColor: "series-dark",
+            strokeColor: "#fff",
+            strokeWidth: 1
+            // Optional `colorScale` (left undeclared so a user object merges
+            // cleanly) colours each dot by its value along a ramp:
+            //   { colors: ['#0d0887', … '#f0f921'], min, max, steps }
           }
         },
         heatmap: {
@@ -4550,6 +4675,7 @@ class Config {
         "bar",
         "candlestick",
         "boxPlot",
+        "violin",
         "rangeBar",
         "rangeArea",
         "bubble",
@@ -4654,7 +4780,7 @@ class Config {
   checkForCatToNumericXAxis(chartType, chartDefaults, opts) {
     var _a, _b;
     const defaults = new Defaults(opts);
-    const isBarHorizontal = (chartType === "bar" || chartType === "boxPlot") && ((_b = (_a = opts.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.horizontal);
+    const isBarHorizontal = (chartType === "bar" || chartType === "boxPlot" || chartType === "violin") && ((_b = (_a = opts.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.horizontal);
     const unsupportedZoom = chartType === "pie" || chartType === "polarArea" || chartType === "donut" || chartType === "radar" || chartType === "radialBar" || chartType === "heatmap";
     const notNumericXAxis = opts.xaxis.type !== "datetime" && opts.xaxis.type !== "numeric";
     const tickPlacement = opts.xaxis.tickPlacement ? opts.xaxis.tickPlacement : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement;
@@ -5355,7 +5481,10 @@ class Base {
         seriesCandleH: [],
         seriesCandleM: [],
         seriesCandleL: [],
-        seriesCandleC: []
+        seriesCandleC: [],
+        // Optional raw observations per boxPlot data point ([i][j] = number[]),
+        // rendered as jitter dots. Empty unless boxPlot points are supplied.
+        seriesBoxPoints: []
       },
       // Range chart arrays — written by Data.handleRangeData() each render;
       // empty for all other chart types.
@@ -5363,6 +5492,17 @@ class Base {
         seriesRangeStart: [],
         seriesRangeEnd: [],
         seriesRange: []
+      },
+      // Violin distribution arrays — written by Data.handleViolinData() each
+      // render; empty for all other chart types.
+      //   seriesViolinDensity[i][j] = { values:number[], weights:number[], maxWeight:number }
+      //   seriesViolinPoints[i][j]  = number[] (raw observations, value-axis units)
+      //   seriesViolinMin/Max[i][j] = number (extent of density + points — drives Range.js)
+      violinData: {
+        seriesViolinDensity: [],
+        seriesViolinPoints: [],
+        seriesViolinMin: [],
+        seriesViolinMax: []
       },
       // Label / category data — written by Data.parseData() and TimeScale each render.
       labelData: {
@@ -5620,6 +5760,26 @@ class Base {
         configurable: true
       });
     }
+    for (const key of [
+      "seriesViolinDensity",
+      "seriesViolinPoints",
+      "seriesViolinMin",
+      "seriesViolinMax"
+    ]) {
+      Object.defineProperty(globals, key, {
+        get() {
+          return (
+            /** @type {Record<string,any>} */
+            w.violinData[key]
+          );
+        },
+        set(v) {
+          w.violinData[key] = v;
+        },
+        enumerable: false,
+        configurable: true
+      });
+    }
     return (
       /** @type {import('../types/internal').ChartStateW} */
       /** @type {unknown} */
@@ -5647,7 +5807,7 @@ class CoreUtils {
     }
     if (series.length && typeof series[0].type !== "undefined") {
       series.forEach((s) => {
-        if (s.type === "bar" || s.type === "column" || s.type === "candlestick" || s.type === "boxPlot") {
+        if (s.type === "bar" || s.type === "column" || s.type === "candlestick" || s.type === "boxPlot" || s.type === "violin") {
           comboBarCount++;
         }
         if (typeof s.type !== "undefined" && s.type !== chartType) {
@@ -10086,7 +10246,7 @@ class Grid {
     w.dom.elGridRectMarkerMask = createClipPath(`gridRectMarkerMask${gl.cuid}`);
     w.dom.elForecastMask = createClipPath(`forecastMask${gl.cuid}`);
     w.dom.elNonForecastMask = createClipPath(`nonForecastMask${gl.cuid}`);
-    const hasBar = ["bar", "rangeBar", "candlestick", "boxPlot"].includes(
+    const hasBar = ["bar", "rangeBar", "candlestick", "boxPlot", "violin"].includes(
       w.config.chart.type
     ) || w.globals.comboBarCount > 0;
     let barWidthLeft = 0;
@@ -11099,7 +11259,7 @@ class Range {
    * @param {number | null} [endingSeriesIndex]
    */
   getMinYMaxY(startingSeriesIndex, lowestY = Number.MAX_VALUE, highestY = -Number.MAX_VALUE, endingSeriesIndex = null) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     const cnf = this.w.config;
     const gl = this.w.globals;
     let maxY = -Number.MAX_VALUE;
@@ -11116,6 +11276,9 @@ class Range {
     } else if (cnf.chart.type === "boxPlot") {
       seriesMin = this.w.candleData.seriesCandleO;
       seriesMax = this.w.candleData.seriesCandleC;
+    } else if (cnf.chart.type === "violin") {
+      seriesMin = this.w.violinData.seriesViolinMin;
+      seriesMax = this.w.violinData.seriesViolinMax;
     } else if (this.w.axisFlags.isRangeData) {
       seriesMin = this.w.rangeData.seriesRangeStart;
       seriesMax = this.w.rangeData.seriesRangeEnd;
@@ -11194,8 +11357,19 @@ class Range {
                 }
               }
               break;
+            case "violin":
+              {
+                if (typeof ((_d = this.w.violinData.seriesViolinMax[i]) == null ? void 0 : _d[j]) !== "undefined") {
+                  maxY = Math.max(maxY, this.w.violinData.seriesViolinMax[i][j]);
+                  lowestY = Math.min(
+                    lowestY,
+                    this.w.violinData.seriesViolinMin[i][j]
+                  );
+                }
+              }
+              break;
           }
-          if (seriesType && seriesType !== "candlestick" && seriesType !== "boxPlot" && seriesType !== "rangeArea" && seriesType !== "rangeBar") {
+          if (seriesType && seriesType !== "candlestick" && seriesType !== "boxPlot" && seriesType !== "violin" && seriesType !== "rangeArea" && seriesType !== "rangeBar") {
             maxY = Math.max(maxY, this.w.seriesData.series[i][j]);
             lowestY = Math.min(lowestY, this.w.seriesData.series[i][j]);
           }
@@ -11207,6 +11381,18 @@ class Range {
               }
             );
           }
+          if (this.w.config.chart.type === "boxPlot" || seriesType === "boxPlot") {
+            const boxPts = (_f = (_e = this.w.candleData.seriesBoxPoints) == null ? void 0 : _e[i]) == null ? void 0 : _f[j];
+            if (boxPts) {
+              for (let p = 0; p < boxPts.length; p++) {
+                const pv = boxPts[p];
+                if (typeof pv === "number") {
+                  maxY = Math.max(maxY, pv);
+                  lowestY = Math.min(lowestY, pv);
+                }
+              }
+            }
+          }
           highestY = maxY;
           val = Utils$1.noExponents(val);
           if (Utils$1.isFloat(val)) {
@@ -11215,7 +11401,7 @@ class Range {
               val.toString().split(".")[1].length
             );
           }
-          if (minY > ((_d = seriesMin[i]) == null ? void 0 : _d[j]) && ((_e = seriesMin[i]) == null ? void 0 : _e[j]) < 0) {
+          if (minY > ((_g = seriesMin[i]) == null ? void 0 : _g[j]) && ((_h = seriesMin[i]) == null ? void 0 : _h[j]) < 0) {
             minY = seriesMin[i][j];
           }
         } else {
@@ -11284,7 +11470,7 @@ class Range {
     if (cnf.chart.stacked) {
       this._setStackedMinMax();
     }
-    if (cnf.chart.type === "line" || cnf.chart.type === "area" || cnf.chart.type === "scatter" || cnf.chart.type === "candlestick" || cnf.chart.type === "boxPlot" || cnf.chart.type === "rangeBar" && !gl.isBarHorizontal) {
+    if (cnf.chart.type === "line" || cnf.chart.type === "area" || cnf.chart.type === "scatter" || cnf.chart.type === "candlestick" || cnf.chart.type === "boxPlot" || cnf.chart.type === "violin" || cnf.chart.type === "rangeBar" && !gl.isBarHorizontal) {
       if (gl.minY === Number.MIN_VALUE && lowestYInAllSeries !== -Number.MAX_VALUE && lowestYInAllSeries !== gl.maxY) {
         gl.minY = lowestYInAllSeries;
       }
@@ -13623,7 +13809,7 @@ class DimXAxis {
         if (lastLabelPosition > gl.svgWidth - w.layout.translateX - lgRightRectWidth) {
           gl.skipLastTimelinelabel = true;
         }
-        if (firstLabelPosition < -((!yaxe.show || yaxe.floating) && (cnf.chart.type === "bar" || cnf.chart.type === "candlestick" || cnf.chart.type === "rangeBar" || cnf.chart.type === "boxPlot") ? lbWidth / 1.75 : 10)) {
+        if (firstLabelPosition < -((!yaxe.show || yaxe.floating) && (cnf.chart.type === "bar" || cnf.chart.type === "candlestick" || cnf.chart.type === "rangeBar" || cnf.chart.type === "boxPlot" || cnf.chart.type === "violin") ? lbWidth / 1.75 : 10)) {
           gl.skipFirstTimelinelabel = true;
         }
       } else if (xtype === "datetime") {
@@ -13827,7 +14013,7 @@ class DimGrid {
     if (gl.noData || gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length === cnf.series.length) {
       return 0;
     }
-    const hasBar = (type2) => ["bar", "rangeBar", "candlestick", "boxPlot"].includes(type2);
+    const hasBar = (type2) => ["bar", "rangeBar", "candlestick", "boxPlot", "violin"].includes(type2);
     const type = cnf.chart.type;
     let barWidth = 0;
     let seriesLen = hasBar(type) ? cnf.series.length : 1;
@@ -14505,6 +14691,7 @@ class Core {
       "rangeArea",
       "candlestick",
       "boxPlot",
+      "violin",
       "scatter",
       "bubble"
     ];
@@ -14516,7 +14703,7 @@ class Core {
     ];
     gl.axisCharts = axisChartsArrTypes.includes(ct);
     gl.xyCharts = xyChartsArrTypes.includes(ct);
-    gl.isBarHorizontal = ["bar", "rangeBar", "boxPlot"].includes(ct) && cnf.plotOptions.bar.horizontal;
+    gl.isBarHorizontal = ["bar", "rangeBar", "boxPlot", "violin"].includes(ct) && cnf.plotOptions.bar.horizontal;
     gl.chartClass = `.apexcharts${gl.chartID}`;
     this.w.dom.baseEl = this.el;
     this.w.dom.elWrap = BrowserAPIs.createElementNS(
@@ -14603,6 +14790,7 @@ class Core {
       bar: { series: [], i: [] },
       candlestick: { series: [], i: [] },
       boxPlot: { series: [], i: [] },
+      violin: { series: [], i: [] },
       rangeBar: { series: [], i: [] },
       rangeArea: { series: [], seriesRangeEnd: [], i: [] }
     };
@@ -14666,6 +14854,8 @@ class Core {
     const line = needsLine ? new (getChartClass("line"))(ctx.w, ctx, xyRatios) : null;
     const needsCandlestick = seriesTypes.candlestick.series.length > 0 || seriesTypes.boxPlot.series.length > 0 || !gl.comboCharts && ["candlestick", "boxPlot"].includes(cnf.chart.type);
     const boxCandlestick = needsCandlestick ? new (getChartClass("candlestick"))(ctx.w, ctx, xyRatios) : null;
+    const needsViolin = seriesTypes.violin.series.length > 0 || !gl.comboCharts && cnf.chart.type === "violin";
+    const violin = needsViolin ? new (getChartClass("violin"))(ctx.w, ctx, xyRatios) : null;
     const needsPie = !gl.comboCharts && ["pie", "donut", "polarArea"].includes(cnf.chart.type);
     ctx.pie = needsPie ? new (getChartClass("pie"))(ctx.w, ctx) : null;
     const needsRangeBar = seriesTypes.rangeBar.series.length > 0 || !gl.comboCharts && cnf.chart.type === "rangeBar";
@@ -14736,6 +14926,11 @@ class Core {
           )
         );
       }
+      if (seriesTypes.violin.series.length > 0) {
+        elGraph.push(
+          violin.draw(seriesTypes.violin.series, "violin", seriesTypes.violin.i)
+        );
+      }
       if (seriesTypes.rangeBar.series.length > 0) {
         elGraph.push(
           ctx.rangeBar.draw(
@@ -14801,6 +14996,9 @@ class Core {
           break;
         case "boxPlot":
           elGraph = boxCandlestick.draw(this.w.seriesData.series, type);
+          break;
+        case "violin":
+          elGraph = violin.draw(this.w.seriesData.series, "violin");
           break;
         case "rangeBar":
           elGraph = ctx.rangeBar.draw(this.w.seriesData.series);
@@ -15401,7 +15599,78 @@ class Data {
     this.w.candleData.seriesCandleM[i] = ohlc.m;
     this.w.candleData.seriesCandleL[i] = ohlc.l;
     this.w.candleData.seriesCandleC[i] = ohlc.c;
+    this.w.candleData.seriesBoxPoints[i] = ohlc.points || [];
     return ohlc;
+  }
+  /**
+   * Parse a violin series. Each data point carries a precomputed density
+   * profile (the violin shape) and an array of raw observations (the jitter):
+   *
+   *   { x, y: { density: [[value, weight], ...], points: [v1, v2, ...] } }
+   *
+   * Array fallback form: [x, densityPairs, pointsArray].
+   *
+   * Density `weight` need not be normalized — Violin.js scales each violin by
+   * its own maxWeight. The representative scalar pushed into the main series
+   * (so generic code paths see a non-null y) is the density mode — the value
+   * carrying the greatest weight.
+   *
+   * @param {any[]} ser
+   * @param {number} i
+   */
+  handleViolinData(ser, i) {
+    var _a, _b, _c, _d, _e, _f;
+    const w = this.w;
+    const data = ser[i].data;
+    const densityArr = [];
+    const pointsArr = [];
+    const minArr = [];
+    const maxArr = [];
+    const placeholders = [];
+    for (let j = 0; j < data.length; j++) {
+      const d = data[j];
+      const dens = (_c = (_b = (_a = d == null ? void 0 : d.y) == null ? void 0 : _a.density) != null ? _b : d == null ? void 0 : d[1]) != null ? _c : [];
+      const pts = (_f = (_e = (_d = d == null ? void 0 : d.y) == null ? void 0 : _d.points) != null ? _e : d == null ? void 0 : d[2]) != null ? _f : [];
+      const values = [];
+      const weights = [];
+      let maxWeight = 0;
+      let modeValue = null;
+      let minVal = Infinity;
+      let maxVal = -Infinity;
+      for (let k = 0; k < dens.length; k++) {
+        const v = Utils$1.parseNumber(dens[k][0]);
+        const wt = Utils$1.parseNumber(dens[k][1]);
+        if (v === null || wt === null) continue;
+        values.push(v);
+        weights.push(wt);
+        if (wt > maxWeight) {
+          maxWeight = wt;
+          modeValue = v;
+        }
+        if (v < minVal) minVal = v;
+        if (v > maxVal) maxVal = v;
+      }
+      const cleanPts = [];
+      for (let k = 0; k < pts.length; k++) {
+        const p = Utils$1.parseNumber(pts[k]);
+        if (p === null) continue;
+        cleanPts.push(p);
+        if (p < minVal) minVal = p;
+        if (p > maxVal) maxVal = p;
+      }
+      densityArr.push({ values, weights, maxWeight });
+      pointsArr.push(cleanPts);
+      minArr.push(minVal === Infinity ? 0 : minVal);
+      maxArr.push(maxVal === -Infinity ? 0 : maxVal);
+      placeholders.push(
+        modeValue !== null ? modeValue : cleanPts.length ? cleanPts[Math.floor(cleanPts.length / 2)] : 0
+      );
+    }
+    w.violinData.seriesViolinDensity[i] = densityArr;
+    w.violinData.seriesViolinPoints[i] = pointsArr;
+    w.violinData.seriesViolinMin[i] = minArr;
+    w.violinData.seriesViolinMax[i] = maxArr;
+    this.twoDSeries = placeholders;
   }
   /**
    * @param {string} format
@@ -15473,6 +15742,7 @@ class Data {
     const serM = [];
     const serL = [];
     const serC = [];
+    const serPoints = [];
     const data = ser[i].data;
     let getVals;
     if (format === "array") {
@@ -15499,13 +15769,17 @@ class Data {
           serC.push(vals[3]);
         }
       }
+      const pts = data[j] && /** @type {any} */
+      data[j].points;
+      serPoints.push(Array.isArray(pts) ? pts : []);
     }
     return {
       o: serO,
       h: serH,
       m: serM,
       l: serL,
-      c: serC
+      c: serC,
+      points: serPoints
     };
   }
   /**
@@ -15590,6 +15864,9 @@ class Data {
         }
         if (cnf.chart.type === "candlestick" || ser[i].type === "candlestick" || cnf.chart.type === "boxPlot" || ser[i].type === "boxPlot") {
           this.handleCandleStickBoxData(ser, i);
+        }
+        if (cnf.chart.type === "violin" || ser[i].type === "violin") {
+          this.handleViolinData(ser, i);
         }
         this.w.seriesData.series.push(this.twoDSeries);
         this.w.labelData.labels.push(this.twoDSeriesX);
@@ -16097,7 +16374,8 @@ class Data {
         seriesCandleH: this.w.candleData.seriesCandleH,
         seriesCandleM: this.w.candleData.seriesCandleM,
         seriesCandleL: this.w.candleData.seriesCandleL,
-        seriesCandleC: this.w.candleData.seriesCandleC
+        seriesCandleC: this.w.candleData.seriesCandleC,
+        seriesBoxPoints: this.w.candleData.seriesBoxPoints
       },
       // w.labelData (future slice)
       labelData: {
@@ -16967,7 +17245,7 @@ class Utils2 {
   }
   getElBars() {
     return this.w.dom.baseEl.querySelectorAll(
-      ".apexcharts-bar-series,  .apexcharts-candlestick-series, .apexcharts-boxPlot-series, .apexcharts-rangebar-series"
+      ".apexcharts-bar-series,  .apexcharts-candlestick-series, .apexcharts-boxPlot-series, .apexcharts-violin-series, .apexcharts-rangebar-series"
     );
   }
   hasBars() {
@@ -17844,7 +18122,7 @@ class Position {
       /** @type {any} */
       w.config.series[capturedSeries].type
     );
-    if (serType && (serType === "column" || serType === "candlestick" || serType === "boxPlot")) {
+    if (serType && (serType === "column" || serType === "candlestick" || serType === "boxPlot" || serType === "violin")) {
       return;
     }
     cx = (_b = (_a = pointsArr[capturedSeries]) == null ? void 0 : _a[j]) == null ? void 0 : _b[0];
@@ -17946,13 +18224,14 @@ class Position {
       i = series.getActiveConfigSeriesIndex("desc") + 1;
     }
     let jBar = w.dom.baseEl.querySelector(
-      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
+      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-violin-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
     );
     if (!jBar && typeof capturedSeries === "number") {
       jBar = w.dom.baseEl.querySelector(
         `.apexcharts-bar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
         .apexcharts-candlestick-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
         .apexcharts-boxPlot-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
+        .apexcharts-violin-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
         .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}']`
       );
     }
@@ -19139,7 +19418,7 @@ class Tooltip {
     const type = w.config.chart.type;
     const tooltipEl = this.getElTooltip();
     if (!tooltipEl) return;
-    const commonBar = !!(type === "bar" || type === "candlestick" || type === "boxPlot" || type === "rangeBar");
+    const commonBar = !!(type === "bar" || type === "candlestick" || type === "boxPlot" || type === "violin" || type === "rangeBar");
     const chartWithmarkers = type === "area" || type === "line" || type === "scatter" || type === "bubble" || type === "radar";
     const hoverArea = w.dom.Paper.node;
     const elGrid = this.getElGrid();
@@ -19164,7 +19443,7 @@ class Tooltip {
         );
       } else if (commonBar) {
         points = w.dom.baseEl.querySelectorAll(
-          ".apexcharts-series .apexcharts-bar-area, .apexcharts-series .apexcharts-candlestick-area, .apexcharts-series .apexcharts-boxPlot-area, .apexcharts-series .apexcharts-rangebar-area"
+          ".apexcharts-series .apexcharts-bar-area, .apexcharts-series .apexcharts-candlestick-area, .apexcharts-series .apexcharts-boxPlot-area, .apexcharts-series .apexcharts-violin-area, .apexcharts-series .apexcharts-rangebar-area"
         );
       } else if (type === "heatmap" || type === "treemap") {
         points = w.dom.baseEl.querySelectorAll(
@@ -23334,7 +23613,7 @@ class Exports {
       return [...Array(seriesMaxDataLength)].map(() => "");
     };
     const handleAxisRowsColumns = (s, sI) => {
-      var _a;
+      var _a, _b, _c, _d, _e, _f;
       if (columns.length && sI === 0) {
         rows.push(columns.join(columnDelimiter));
       }
@@ -23377,6 +23656,12 @@ class Exports {
             columns.pop();
             columns.push(w.rangeData.seriesRangeStart[sI][i]);
             columns.push(w.rangeData.seriesRangeEnd[sI][i]);
+          }
+          if (w.config.chart.type === "violin" || s.type && s.type === "violin") {
+            columns.pop();
+            columns.push((_b = w.violinData.seriesViolinMin[sI]) == null ? void 0 : _b[i]);
+            columns.push((_c = w.violinData.seriesViolinMax[sI]) == null ? void 0 : _c[i]);
+            columns.push((_f = (_e = (_d = w.violinData.seriesViolinPoints[sI]) == null ? void 0 : _d[i]) == null ? void 0 : _e.length) != null ? _f : 0);
           }
           if (columns.length) {
             rows.push(columns.join(columnDelimiter));
@@ -23435,6 +23720,10 @@ class Exports {
     } else if (w.config.chart.type === "rangeBar") {
       columns.push("minimum");
       columns.push("maximum");
+    } else if (w.config.chart.type === "violin") {
+      columns.push("minimum");
+      columns.push("maximum");
+      columns.push("observations");
     } else {
       series.map((s, sI) => {
         const sname = (s.name ? s.name : `series-${sI}`) + "";
@@ -27441,7 +27730,7 @@ class KeyboardNavigation {
       this._showTooltipRadialBar(i, j, ttCtx, tooltipEl);
     } else if (type === "heatmap" || type === "treemap") {
       this._showTooltipHeatTree(i, j, ttCtx, tooltipEl, type);
-    } else if (type === "bar" || type === "candlestick" || type === "boxPlot" || type === "rangeBar") {
+    } else if (type === "bar" || type === "candlestick" || type === "boxPlot" || type === "violin" || type === "rangeBar") {
       this._showTooltipBar(i, j, ttCtx);
     } else {
       this._showTooltipAxisLine(i, j, ttCtx);
@@ -27850,7 +28139,7 @@ class KeyboardNavigation {
         `.apexcharts-radialbar-series[data\\:realIndex='${i}'] path`
       );
     }
-    if (type === "bar" || type === "candlestick" || type === "boxPlot" || type === "rangeBar") {
+    if (type === "bar" || type === "candlestick" || type === "boxPlot" || type === "violin" || type === "rangeBar") {
       return baseEl.querySelector(
         `.apexcharts-series[data\\:realIndex='${i}'] path[j='${j}']`
       );
@@ -30985,6 +31274,145 @@ class BarStacked extends Bar {
     };
   }
 }
+function buildJitterGroups({
+  w,
+  points,
+  seedA,
+  seedB,
+  center,
+  halfExtent,
+  alongFn,
+  isHorizontal,
+  options: options2,
+  clampAt
+}) {
+  const opts = options2;
+  if (!opts || opts.show === false) return [];
+  if (!points || !points.length) return [];
+  const maxPoints = opts.maxPoints || 3e3;
+  const stride = points.length > maxPoints ? Math.ceil(points.length / maxPoints) : 1;
+  const r = opts.size != null ? opts.size : 2.5;
+  const jitterFrac = opts.jitter != null ? opts.jitter : 0.5;
+  const jitterPx = halfExtent * jitterFrac;
+  const constrain = opts.constrainToViolin !== false && typeof clampAt === "function";
+  const isSquare = opts.shape === "square";
+  const scale = opts.colorScale;
+  const useScale = scale && Array.isArray(scale.colors) && scale.colors.length > 0;
+  const steps = useScale ? Math.max(2, scale.steps || 24) : 1;
+  const sMin = useScale && scale.min != null ? scale.min : w.globals.minY;
+  const sMax = useScale && scale.max != null ? scale.max : w.globals.maxY;
+  const span = sMax - sMin || 1;
+  const buckets = useScale ? new Array(steps).fill("") : [""];
+  for (let k = 0; k < points.length; k += stride) {
+    const v = points[k];
+    const a = alongFn(v);
+    let off = (hash01(seedA * 7919 + seedB * 100003 + k) - 0.5) * 2 * jitterPx;
+    if (constrain) {
+      const cap = (
+        /** @type {(v:number)=>number} */
+        clampAt(v)
+      );
+      if (off > cap) off = cap;
+      if (off < -cap) off = -cap;
+    }
+    const px = isHorizontal ? a : center + off;
+    const py = isHorizontal ? center + off : a;
+    const sub = isSquare ? squareSubPath(px, py, r) : circleSubPath(px, py, r);
+    if (useScale) {
+      let t = (v - sMin) / span;
+      if (t < 0) t = 0;
+      if (t > 1) t = 1;
+      buckets[Math.round(t * (steps - 1))] += sub;
+    } else {
+      buckets[0] += sub;
+    }
+  }
+  if (!useScale) {
+    return buckets[0] ? [{ fill: null, d: buckets[0] }] : [];
+  }
+  const groups = [];
+  for (let b = 0; b < steps; b++) {
+    if (!buckets[b]) continue;
+    groups.push({
+      fill: rampColorAt(scale.colors, b / (steps - 1)),
+      d: buckets[b]
+    });
+  }
+  return groups;
+}
+function renderJitter({
+  graphics,
+  w,
+  elSeries,
+  pointsByCat,
+  options: options2,
+  distributed,
+  realIndex,
+  wrapClass,
+  pointClass
+}) {
+  if (!options2 || options2.show === false || !pointsByCat.length) return;
+  const pOpacity = options2.opacity != null ? options2.opacity : 0.9;
+  const strokeColor = options2.strokeColor != null ? options2.strokeColor : "#fff";
+  const strokeW = options2.strokeWidth != null ? options2.strokeWidth : 1;
+  const willAnimateIn = w.config.chart.animations.enabled && !w.globals.resized && !w.globals.dataChanged;
+  const elPointsWrap = graphics.group({
+    class: willAnimateIn ? `${wrapClass} apexcharts-element-hidden` : wrapClass
+  });
+  if (willAnimateIn) {
+    w.globals.delayedElements.push({ el: elPointsWrap.node });
+  }
+  pointsByCat.forEach(({ groups, j }) => {
+    const catColor = distributed ? w.globals.colors[j] : w.globals.colors[realIndex];
+    const fc = options2.fillColor;
+    const defaultFill = fc === "series" ? catColor : fc === "series-dark" ? darkenColor(catColor, 0.45) : fc || darkenColor(catColor, 0.45);
+    groups.forEach((g) => {
+      const elPoints = graphics.drawPath({
+        d: g.d,
+        fill: g.fill != null ? g.fill : defaultFill,
+        stroke: strokeW > 0 ? strokeColor : "none",
+        strokeWidth: strokeW,
+        fillOpacity: pOpacity,
+        classes: pointClass
+      });
+      elPoints.attr("data:realIndex", realIndex);
+      elPoints.attr("j", j);
+      elPoints.attr("clip-path", `url(#gridRectBarMask${w.globals.cuid})`);
+      elPoints.node.style.pointerEvents = "none";
+      elPointsWrap.add(elPoints);
+    });
+  });
+  elSeries.add(elPointsWrap);
+}
+function darkenColor(color, amount) {
+  const rgb = Utils$1.parseHex(color);
+  if (!rgb) return color;
+  const f = Math.max(0, 1 - amount);
+  return `rgb(${Math.round(rgb[0] * f)},${Math.round(rgb[1] * f)},${Math.round(rgb[2] * f)})`;
+}
+function rampColorAt(colors, t) {
+  if (!colors.length) return "#000";
+  if (colors.length === 1) return colors[0];
+  const x = Math.max(0, Math.min(1, t)) * (colors.length - 1);
+  const i = Math.floor(x);
+  const frac = x - i;
+  const c0 = Utils$1.parseHex(colors[i]) || [0, 0, 0];
+  const c1 = Utils$1.parseHex(colors[Math.min(i + 1, colors.length - 1)]) || c0;
+  const mix = (a, b) => Math.round(a + (b - a) * frac);
+  return `rgb(${mix(c0[0], c1[0])},${mix(c0[1], c1[1])},${mix(c0[2], c1[2])})`;
+}
+function hash01(n) {
+  let h = (n ^ 2654435769) >>> 0;
+  h = Math.imul(h ^ h >>> 16, 73244475);
+  h = Math.imul(h ^ h >>> 16, 73244475);
+  return ((h ^ h >>> 16) >>> 0) / 4294967296;
+}
+function circleSubPath(px, py, r) {
+  return `M ${px - r} ${py} a ${r} ${r} 0 1 0 ${2 * r} 0 a ${r} ${r} 0 1 0 ${-2 * r} 0 `;
+}
+function squareSubPath(px, py, r) {
+  return `M ${px - r} ${py - r} h ${2 * r} v ${2 * r} h ${-2 * r} z `;
+}
 class BoxCandleStick extends Bar {
   /**
    * @param {any[]} series
@@ -30993,6 +31421,7 @@ class BoxCandleStick extends Bar {
    */
   // @ts-ignore -- BoxCandleStick.draw has an extra ctype param compared to Bar.draw
   draw(series, ctype, seriesIndex) {
+    var _a;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const type = w.globals.comboCharts ? ctype : w.config.chart.type;
@@ -31062,6 +31491,8 @@ class BoxCandleStick extends Bar {
       const elGoalsMarkers = graphics.group({
         class: "apexcharts-bar-goals-markers"
       });
+      const boxPointsOpts = this.isBoxPlot ? this.boxOptions.points : null;
+      const pointsByCat = [];
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
         let paths = (
@@ -31142,6 +31573,59 @@ class BoxCandleStick extends Bar {
             });
           }
         );
+        if (boxPointsOpts && boxPointsOpts.show !== false) {
+          const pts = (_a = w.candleData.seriesBoxPoints[realIndex]) == null ? void 0 : _a[j];
+          if (pts && pts.length) {
+            const logVal = (v) => (
+              /** @type {any} */
+              this.coreUtils.getLogValAtSeriesIndex(
+                v,
+                realIndex
+              )
+            );
+            let center, halfExtent, alongFn;
+            if (this.isHorizontal) {
+              const yRatio = this.invertedYRatio;
+              const bh = barHeight != null ? barHeight : 0;
+              const z = zeroW != null ? zeroW : 0;
+              center = paths.barYPosition + bh / 2;
+              halfExtent = bh / 2;
+              alongFn = (v) => z + logVal(v) / yRatio;
+            } else {
+              const yRatio = this.yRatio[translationsIndex];
+              const bw = barWidth != null ? barWidth : 0;
+              const z = zeroH != null ? zeroH : 0;
+              center = paths.barXPosition + bw / 2;
+              halfExtent = bw / 2;
+              alongFn = (v) => z - logVal(v) / yRatio;
+            }
+            const groups = buildJitterGroups({
+              w,
+              points: pts,
+              seedA: realIndex,
+              seedB: j,
+              center,
+              halfExtent,
+              alongFn,
+              isHorizontal: this.isHorizontal,
+              options: boxPointsOpts
+            });
+            if (groups.length) pointsByCat.push({ groups, j });
+          }
+        }
+      }
+      if (boxPointsOpts) {
+        renderJitter({
+          graphics,
+          w,
+          elSeries,
+          pointsByCat,
+          options: boxPointsOpts,
+          distributed: w.config.plotOptions.bar.distributed,
+          realIndex,
+          wrapClass: "apexcharts-boxPlot-points-wrap",
+          pointClass: "apexcharts-boxPlot-points"
+        });
       }
       w.globals.seriesXvalues[realIndex] = xArrj;
       w.globals.seriesYvalues[realIndex] = yArrj;
@@ -31341,6 +31825,592 @@ class BoxCandleStick extends Bar {
       c: this.isBoxPlot ? l : c
     };
   }
+}
+const tangents = (points) => {
+  const m = finiteDifferences(points);
+  const n = points.length - 1;
+  const ε = 1e-6;
+  const tgts = [];
+  let a, b, d, s;
+  for (let i = 0; i < n; i++) {
+    d = slope(points[i], points[i + 1]);
+    if (Math.abs(d) < ε) {
+      m[i] = m[i + 1] = 0;
+    } else {
+      a = m[i] / d;
+      b = m[i + 1] / d;
+      s = a * a + b * b;
+      if (s > 9) {
+        s = d * 3 / Math.sqrt(s);
+        m[i] = s * a;
+        m[i + 1] = s * b;
+      }
+    }
+  }
+  for (let i = 0; i <= n; i++) {
+    s = (points[Math.min(n, i + 1)][0] - points[Math.max(0, i - 1)][0]) / (6 * (1 + m[i] * m[i]));
+    tgts.push([s || 0, m[i] * s || 0]);
+  }
+  return tgts;
+};
+const svgPath = (points) => {
+  let p = "";
+  for (let i = 0; i < points.length; i++) {
+    const point = points[i];
+    const n = point.length;
+    if (n > 4) {
+      p += `C${point[0]}, ${point[1]}`;
+      p += `, ${point[2]}, ${point[3]}`;
+      p += `, ${point[4]}, ${point[5]}`;
+    } else if (n > 2) {
+      p += `S${point[0]}, ${point[1]}`;
+      p += `, ${point[2]}, ${point[3]}`;
+    }
+  }
+  return p;
+};
+const spline = {
+  /**
+   * Convert 'points' to bezier
+   * @param {any[]} points
+   * @returns {any[]}
+   */
+  points(points) {
+    const tgts = tangents(points);
+    const p = points[1];
+    const p0 = points[0];
+    const pts = [];
+    const t = tgts[1];
+    const t0 = tgts[0];
+    pts.push(p0, [
+      p0[0] + t0[0],
+      p0[1] + t0[1],
+      p[0] - t[0],
+      p[1] - t[1],
+      p[0],
+      p[1]
+    ]);
+    for (let i = 2, n = tgts.length; i < n; i++) {
+      const p2 = points[i];
+      const t2 = tgts[i];
+      pts.push([p2[0] - t2[0], p2[1] - t2[1], p2[0], p2[1]]);
+    }
+    return pts;
+  },
+  /**
+   * Slice out a segment of 'points'
+   * @param {any[]} points
+   * @param {Number} start
+   * @param {Number} end
+   * @returns {any[]}
+   */
+  slice(points, start, end) {
+    const pts = points.slice(start, end);
+    if (start) {
+      if (end - start > 1 && pts[1].length < 6) {
+        const n = pts[0].length;
+        pts[1] = [
+          pts[0][n - 2] * 2 - pts[0][n - 4],
+          pts[0][n - 1] * 2 - pts[0][n - 3]
+        ].concat(pts[1]);
+      }
+      pts[0] = pts[0].slice(-2);
+    }
+    return pts;
+  }
+};
+function slope(p0, p1) {
+  return (p1[1] - p0[1]) / (p1[0] - p0[0]);
+}
+function finiteDifferences(points) {
+  const m = [];
+  let p0 = points[0];
+  let p1 = points[1];
+  let d = m[0] = slope(p0, p1);
+  let i = 1;
+  for (let n = points.length - 1; i < n; i++) {
+    p0 = p1;
+    p1 = points[i + 1];
+    m[i] = (d + (d = slope(p0, p1))) * 0.5;
+  }
+  m[i] = d;
+  return m;
+}
+class Violin extends Bar {
+  /**
+   * @param {any[]} series
+   * @param {string} ctype
+   * @param {number} [seriesIndex]
+   */
+  // @ts-ignore -- Violin.draw has extra ctype param compared to Bar.draw
+  draw(series, ctype, seriesIndex) {
+    const w = this.w;
+    const graphics = new Graphics(this.w);
+    const fill = new Fill(this.w);
+    this.violinOptions = w.config.plotOptions.violin;
+    this.pointsOptions = this.violinOptions.points;
+    this.bandwidthScale = this.violinOptions.bandwidthScale || 1;
+    this.normalize = this.violinOptions.normalize || "individual";
+    this.distributed = w.config.plotOptions.bar.distributed;
+    this.isHorizontal = w.config.plotOptions.bar.horizontal;
+    this.coreUtils = new CoreUtils(this.w);
+    series = this.coreUtils.getLogSeries(series);
+    this.series = series;
+    this.yRatio = this.coreUtils.getLogYRatios(this.yRatio);
+    this.barHelpers.initVariables(series);
+    const ret = graphics.group({
+      class: "apexcharts-violin-series apexcharts-plot-series"
+    });
+    for (let i = 0; i < series.length; i++) {
+      let x;
+      let y;
+      const yArrj = [];
+      const xArrj = [];
+      const realIndex = w.globals.comboCharts ? (
+        /** @type {any} */
+        seriesIndex[i]
+      ) : i;
+      const { columnGroupIndex } = this.barHelpers.getGroupIndex(realIndex);
+      const elSeries = graphics.group({
+        class: "apexcharts-series",
+        seriesName: Utils$1.escapeString(w.seriesData.seriesNames[realIndex]),
+        rel: i + 1,
+        "data:realIndex": realIndex
+      });
+      Series.addCollapsedClassToSeries(this.w, elSeries, realIndex);
+      if (series[i].length > 0) {
+        this.visibleI = this.visibleI + 1;
+      }
+      let translationsIndex = 0;
+      if (this.yRatio.length > 1) {
+        this.yaxisIndex = /** @type {any} */
+        w.globals.seriesYAxisReverseMap[realIndex][0];
+        translationsIndex = realIndex;
+      }
+      const initPositions = this.barHelpers.initialPositions(realIndex);
+      const {
+        y: initY,
+        barHeight,
+        yDivision,
+        zeroW,
+        x: initX,
+        barWidth,
+        xDivision,
+        zeroH
+      } = initPositions;
+      y = initY;
+      x = initX;
+      xArrj.push(x + (barWidth != null ? barWidth : 0) / 2);
+      const elDataLabelsWrap = graphics.group({
+        class: "apexcharts-datalabels",
+        "data:realIndex": realIndex
+      });
+      this.seriesMaxWeight = 0;
+      if (this.normalize === "group") {
+        const dens = w.violinData.seriesViolinDensity[realIndex] || [];
+        dens.forEach((d) => {
+          if (d && d.maxWeight > this.seriesMaxWeight) {
+            this.seriesMaxWeight = d.maxWeight;
+          }
+        });
+      }
+      const pointsByViolin = [];
+      for (let j = 0; j < w.globals.dataPoints; j++) {
+        const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
+        const paths = this.isHorizontal ? this.drawHorizontalViolin({
+          indexes: { i, j, realIndex, translationsIndex },
+          y,
+          yDivision,
+          barHeight,
+          zeroW
+        }) : this.drawVerticalViolin({
+          indexes: { i, j, realIndex, translationsIndex },
+          x,
+          xDivision,
+          barWidth,
+          zeroH
+        });
+        x = paths.x;
+        y = paths.y;
+        if (j > 0) {
+          xArrj.push(paths.center);
+        }
+        yArrj.push(paths.alongRepresentative);
+        const pointGroups = this.buildPointsSubPath({
+          realIndex,
+          j,
+          center: paths.center,
+          halfExtent: paths.halfExtent,
+          alongFn: paths.alongFn,
+          density: paths.density,
+          maxWeight: paths.maxWeight
+        });
+        if (pointGroups.length) pointsByViolin.push({ groups: pointGroups, j });
+        const pathFill = fill.fillPath({
+          // distributed → color per category (data point) instead of per series
+          seriesNumber: this.distributed ? j : realIndex,
+          dataPointIndex: j,
+          color: this.distributed ? w.globals.colors[j] : void 0,
+          value: series[i][j]
+        });
+        this.renderSeries({
+          realIndex,
+          pathFill,
+          lineFill: w.globals.stroke.colors[realIndex],
+          j,
+          i,
+          pathFrom: paths.pathFrom,
+          pathTo: paths.pathTo,
+          strokeWidth,
+          elSeries,
+          x,
+          y,
+          series,
+          columnGroupIndex,
+          barHeight,
+          barWidth,
+          elDataLabelsWrap,
+          visibleSeries: this.visibleI,
+          type: "violin"
+        });
+        const bodyEl = elSeries.node.querySelector(
+          `path.apexcharts-violin-area[j='${j}']`
+        );
+        if (bodyEl && isFinite(paths.alongRepresentative)) {
+          bodyEl.setAttribute(
+            this.isHorizontal ? "cx" : "cy",
+            `${paths.alongRepresentative}`
+          );
+        }
+      }
+      renderJitter({
+        graphics,
+        w,
+        elSeries,
+        pointsByCat: pointsByViolin,
+        options: this.pointsOptions,
+        distributed: this.distributed,
+        realIndex,
+        wrapClass: "apexcharts-violin-points-wrap",
+        pointClass: "apexcharts-violin-points"
+      });
+      w.globals.seriesXvalues[realIndex] = xArrj;
+      w.globals.seriesYvalues[realIndex] = yArrj;
+      ret.add(elSeries);
+    }
+    return ret;
+  }
+  /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any}} opts */
+  drawVerticalViolin({ indexes, x, xDivision, barWidth, zeroH }) {
+    var _a;
+    const w = this.w;
+    const { realIndex, j, translationsIndex } = indexes;
+    const yRatio = this.yRatio[translationsIndex];
+    if (w.axisFlags.isXNumeric) {
+      x = (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.xRatio - barWidth / 2;
+    }
+    const barXPosition = x + barWidth * this.visibleI;
+    const center = barXPosition + barWidth / 2;
+    const halfExtent = barWidth / 2;
+    const density = this.getDensity(realIndex, j);
+    const maxWeight = this.effectiveMaxWeight(density);
+    const alongFn = (v) => zeroH - this.logVal(v, realIndex) / yRatio;
+    const pathTo = this.buildBodyPath({
+      nodes: density.nodes,
+      center,
+      halfExtent,
+      maxWeight,
+      vertical: true,
+      alongFn,
+      collapsed: false
+    });
+    let pathFrom;
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.getPreviousPath(realIndex, j, pathTo);
+    } else {
+      pathFrom = this.buildBodyPath({
+        nodes: density.nodes,
+        center,
+        halfExtent,
+        maxWeight,
+        vertical: true,
+        alongFn,
+        collapsed: true
+      });
+    }
+    if (!w.axisFlags.isXNumeric) {
+      x = x + xDivision;
+    }
+    return {
+      pathTo,
+      pathFrom,
+      x,
+      y: zeroH,
+      center,
+      halfExtent,
+      alongFn,
+      density,
+      maxWeight,
+      alongRepresentative: alongFn((_a = this.series[indexes.i][j]) != null ? _a : 0)
+    };
+  }
+  /** @param {{indexes: any, y: any, yDivision: any, barHeight: any, zeroW: any}} opts */
+  drawHorizontalViolin({ indexes, y, yDivision, barHeight, zeroW }) {
+    var _a;
+    const w = this.w;
+    const { realIndex, j } = indexes;
+    const yRatio = this.invertedYRatio;
+    if (w.axisFlags.isXNumeric) {
+      y = (w.seriesData.seriesX[realIndex][j] - w.globals.minX) / this.invertedXRatio - barHeight / 2;
+    }
+    const barYPosition = y + barHeight * this.visibleI;
+    const center = barYPosition + barHeight / 2;
+    const halfExtent = barHeight / 2;
+    const density = this.getDensity(realIndex, j);
+    const maxWeight = this.effectiveMaxWeight(density);
+    const alongFn = (v) => zeroW + this.logVal(v, realIndex) / yRatio;
+    const pathTo = this.buildBodyPath({
+      nodes: density.nodes,
+      center,
+      halfExtent,
+      maxWeight,
+      vertical: false,
+      alongFn,
+      collapsed: false
+    });
+    let pathFrom;
+    if (w.globals.previousPaths.length > 0) {
+      pathFrom = this.getPreviousPath(realIndex, j, pathTo);
+    } else {
+      pathFrom = this.buildBodyPath({
+        nodes: density.nodes,
+        center,
+        halfExtent,
+        maxWeight,
+        vertical: false,
+        alongFn,
+        collapsed: true
+      });
+    }
+    if (!w.axisFlags.isXNumeric) {
+      y = y + yDivision;
+    }
+    return {
+      pathTo,
+      pathFrom,
+      x: zeroW,
+      y,
+      center,
+      halfExtent,
+      alongFn,
+      maxWeight,
+      density,
+      alongRepresentative: alongFn((_a = this.series[indexes.i][j]) != null ? _a : 0)
+    };
+  }
+  /**
+   * Read the parsed density for one violin and return sorted, de-duplicated
+   * nodes (strictly increasing value — a hard requirement for the spline).
+   * @param {number} realIndex
+   * @param {number} j
+   */
+  getDensity(realIndex, j) {
+    var _a;
+    const w = this.w;
+    const d = (_a = w.violinData.seriesViolinDensity[realIndex]) == null ? void 0 : _a[j];
+    if (!d || !d.values.length) {
+      return { nodes: [], maxWeight: 0 };
+    }
+    const order = d.values.map(
+      (_, k) => k
+    );
+    order.sort(
+      (a, b) => d.values[a] - d.values[b]
+    );
+    const nodes = [];
+    let prevV = null;
+    for (const k of order) {
+      const v = d.values[k];
+      if (prevV !== null && v === prevV) continue;
+      nodes.push({ v, w: d.weights[k] });
+      prevV = v;
+    }
+    return { nodes, maxWeight: d.maxWeight };
+  }
+  /**
+   * The peak weight used to scale a violin's width: its own ('individual') or
+   * the densest violin in the series ('group', preserving relative widths).
+   * @param {{maxWeight:number}} density
+   */
+  effectiveMaxWeight(density) {
+    return this.normalize === "group" && this.seriesMaxWeight > 0 ? this.seriesMaxWeight : density.maxWeight;
+  }
+  /**
+   * Build the closed, smooth violin outline. The value axis is the monotonic
+   * parameter for the spline (vertical → Y, horizontal → X); the spline is fed
+   * with that axis first and the control points swapped back to screen space.
+   *
+   * @param {{nodes:{v:number,w:number}[], center:number, halfExtent:number, maxWeight:number, vertical:boolean, alongFn:(v:number)=>number, collapsed:boolean}} opts
+   */
+  buildBodyPath({
+    nodes,
+    center,
+    halfExtent,
+    maxWeight,
+    vertical,
+    alongFn,
+    collapsed
+  }) {
+    const graphics = new Graphics(this.w);
+    if (nodes.length === 0) {
+      const a = alongFn(0);
+      return vertical ? graphics.move(center, a) + graphics.line(center, a) : graphics.move(a, center) + graphics.line(a, center);
+    }
+    const wpxOf = (weight) => {
+      if (collapsed || maxWeight <= 0) return 0;
+      const wp = weight / maxWeight * halfExtent * this.bandwidthScale;
+      return Math.min(halfExtent, Math.max(0, wp));
+    };
+    const rightPts = [];
+    const leftPts = [];
+    for (let k = 0; k < nodes.length; k++) {
+      const a = alongFn(nodes[k].v);
+      const wp = wpxOf(nodes[k].w);
+      if (vertical) {
+        rightPts.push([center + wp, a]);
+        leftPts.push([center - wp, a]);
+      } else {
+        rightPts.push([a, center + wp]);
+        leftPts.push([a, center - wp]);
+      }
+    }
+    leftPts.reverse();
+    return this.smoothSegment(rightPts, vertical, false) + this.smoothSegment(leftPts, vertical, true) + "z";
+  }
+  /**
+   * Emit one edge as a smooth (monotone-cubic) path segment, or a polyline
+   * when there are too few nodes for a spline.
+   *
+   * @param {[number,number][]} screenPts ordered screen points for this edge
+   * @param {boolean} monotonicIsY true when the value axis is vertical
+   * @param {boolean} continued false → start with M; true → start with L (joins the previous edge)
+   */
+  smoothSegment(screenPts, monotonicIsY, continued) {
+    const graphics = new Graphics(this.w);
+    const first = screenPts[0];
+    let d = continued ? graphics.line(first[0], first[1]) : graphics.move(first[0], first[1]);
+    const usePolyline = screenPts.length < 3 || !this.strictlyMonotonic(screenPts, monotonicIsY);
+    if (usePolyline) {
+      for (let k = 1; k < screenPts.length; k++) {
+        d += graphics.line(screenPts[k][0], screenPts[k][1]);
+      }
+      return d;
+    }
+    const input = screenPts.map(
+      ([px, py]) => monotonicIsY ? [py, px] : [px, py]
+    );
+    const bez = spline.points(input);
+    const out = monotonicIsY ? bez.map(swapPairs) : bez;
+    d += svgPath(out);
+    return d;
+  }
+  /**
+   * @param {[number,number][]} screenPts
+   * @param {boolean} monotonicIsY
+   */
+  strictlyMonotonic(screenPts, monotonicIsY) {
+    const axis = monotonicIsY ? 1 : 0;
+    for (let k = 1; k < screenPts.length; k++) {
+      if (screenPts[k][axis] === screenPts[k - 1][axis]) return false;
+    }
+    return true;
+  }
+  /**
+   * Build the jitter sub-paths for one violin, grouped for rendering. Returns
+   * `[]` when points are hidden or absent. Normally one group (single dot
+   * colour); with `points.colorScale` the dots are bucketed by value into shade
+   * groups, each carrying its ramp colour. Offsets are a deterministic index
+   * hash (SSR-safe); points beyond maxPoints are stride-thinned.
+   *
+   * @param {{realIndex:number, j:number, center:number, halfExtent:number, alongFn:(v:number)=>number, density:{nodes:{v:number,w:number}[], maxWeight:number}, maxWeight:number}} opts
+   * @returns {{fill:string|null, d:string}[]}
+   */
+  buildPointsSubPath({
+    realIndex,
+    j,
+    center,
+    halfExtent,
+    alongFn,
+    density,
+    maxWeight
+  }) {
+    var _a;
+    return buildJitterGroups({
+      w: this.w,
+      points: (_a = this.w.violinData.seriesViolinPoints[realIndex]) == null ? void 0 : _a[j],
+      seedA: realIndex,
+      seedB: j,
+      center,
+      halfExtent,
+      alongFn,
+      isHorizontal: this.isHorizontal,
+      options: this.pointsOptions,
+      // Violin clamps jitter to the density half-width at each value so dots
+      // stay inside the shape.
+      clampAt: (v) => this.halfWidthAtValue(v, density, halfExtent, maxWeight)
+    });
+  }
+  /**
+   * Density half-width (pixels) at a given value — used to keep jitter inside
+   * the violin. Linear interpolation between the two nearest density nodes.
+   * @param {number} value
+   * @param {{nodes:{v:number,w:number}[], maxWeight:number}} density
+   * @param {number} halfExtent
+   * @param {number} [maxWeightOverride] use the group max for 'group' normalize
+   */
+  halfWidthAtValue(value, density, halfExtent, maxWeightOverride) {
+    const { nodes } = density;
+    const maxWeight = maxWeightOverride != null ? maxWeightOverride : density.maxWeight;
+    if (!nodes.length || maxWeight <= 0) return 0;
+    const toPx = (weight) => Math.min(
+      halfExtent,
+      weight / maxWeight * halfExtent * this.bandwidthScale
+    );
+    if (value <= nodes[0].v) return toPx(nodes[0].w);
+    if (value >= nodes[nodes.length - 1].v)
+      return toPx(nodes[nodes.length - 1].w);
+    for (let k = 1; k < nodes.length; k++) {
+      if (value <= nodes[k].v) {
+        const a = nodes[k - 1];
+        const b = nodes[k];
+        const t = b.v === a.v ? 0 : (value - a.v) / (b.v - a.v);
+        return toPx(a.w + (b.w - a.w) * t);
+      }
+    }
+    return 0;
+  }
+  /**
+   * Apply the y-axis log transform to a value when that axis is logarithmic,
+   * mirroring BoxCandleStick. Linear axes return the value unchanged.
+   * @param {number} value
+   * @param {number} realIndex
+   */
+  logVal(value, realIndex) {
+    return (
+      /** @type {any} */
+      this.coreUtils.getLogValAtSeriesIndex(
+        value,
+        realIndex
+      )
+    );
+  }
+}
+function swapPairs(arr) {
+  const out = [];
+  for (let k = 0; k < arr.length; k += 2) {
+    out.push(arr[k + 1], arr[k]);
+  }
+  return out;
 }
 class TreemapHelpers {
   /**
@@ -31835,116 +32905,6 @@ class Helpers5 {
       lineYPosition
     };
   }
-}
-const tangents = (points) => {
-  const m = finiteDifferences(points);
-  const n = points.length - 1;
-  const ε = 1e-6;
-  const tgts = [];
-  let a, b, d, s;
-  for (let i = 0; i < n; i++) {
-    d = slope(points[i], points[i + 1]);
-    if (Math.abs(d) < ε) {
-      m[i] = m[i + 1] = 0;
-    } else {
-      a = m[i] / d;
-      b = m[i + 1] / d;
-      s = a * a + b * b;
-      if (s > 9) {
-        s = d * 3 / Math.sqrt(s);
-        m[i] = s * a;
-        m[i + 1] = s * b;
-      }
-    }
-  }
-  for (let i = 0; i <= n; i++) {
-    s = (points[Math.min(n, i + 1)][0] - points[Math.max(0, i - 1)][0]) / (6 * (1 + m[i] * m[i]));
-    tgts.push([s || 0, m[i] * s || 0]);
-  }
-  return tgts;
-};
-const svgPath = (points) => {
-  let p = "";
-  for (let i = 0; i < points.length; i++) {
-    const point = points[i];
-    const n = point.length;
-    if (n > 4) {
-      p += `C${point[0]}, ${point[1]}`;
-      p += `, ${point[2]}, ${point[3]}`;
-      p += `, ${point[4]}, ${point[5]}`;
-    } else if (n > 2) {
-      p += `S${point[0]}, ${point[1]}`;
-      p += `, ${point[2]}, ${point[3]}`;
-    }
-  }
-  return p;
-};
-const spline = {
-  /**
-   * Convert 'points' to bezier
-   * @param {any[]} points
-   * @returns {any[]}
-   */
-  points(points) {
-    const tgts = tangents(points);
-    const p = points[1];
-    const p0 = points[0];
-    const pts = [];
-    const t = tgts[1];
-    const t0 = tgts[0];
-    pts.push(p0, [
-      p0[0] + t0[0],
-      p0[1] + t0[1],
-      p[0] - t[0],
-      p[1] - t[1],
-      p[0],
-      p[1]
-    ]);
-    for (let i = 2, n = tgts.length; i < n; i++) {
-      const p2 = points[i];
-      const t2 = tgts[i];
-      pts.push([p2[0] - t2[0], p2[1] - t2[1], p2[0], p2[1]]);
-    }
-    return pts;
-  },
-  /**
-   * Slice out a segment of 'points'
-   * @param {any[]} points
-   * @param {Number} start
-   * @param {Number} end
-   * @returns {any[]}
-   */
-  slice(points, start, end) {
-    const pts = points.slice(start, end);
-    if (start) {
-      if (end - start > 1 && pts[1].length < 6) {
-        const n = pts[0].length;
-        pts[1] = [
-          pts[0][n - 2] * 2 - pts[0][n - 4],
-          pts[0][n - 1] * 2 - pts[0][n - 3]
-        ].concat(pts[1]);
-      }
-      pts[0] = pts[0].slice(-2);
-    }
-    return pts;
-  }
-};
-function slope(p0, p1) {
-  return (p1[1] - p0[1]) / (p1[0] - p0[0]);
-}
-function finiteDifferences(points) {
-  const m = [];
-  let p0 = points[0];
-  let p1 = points[1];
-  let d = m[0] = slope(p0, p1);
-  let i = 1;
-  for (let n = points.length - 1; i < n; i++) {
-    p0 = p1;
-    p1 = points[i + 1];
-    m[i] = (d + (d = slope(p0, p1))) * 0.5;
-  }
-  m[i] = d;
-  return m;
 }
 class Line {
   /**
@@ -35888,6 +36848,7 @@ ApexCharts.use({
   rangeBar: RangeBar,
   candlestick: BoxCandleStick,
   boxPlot: BoxCandleStick,
+  violin: Violin,
   pie: Pie,
   donut: Pie,
   polarArea: Pie,

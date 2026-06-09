@@ -19,7 +19,7 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v5.14.0
+ * ApexCharts v5.15.0
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -1866,6 +1866,12 @@ class Formatters {
     w.config.yaxis.forEach((yaxe, i) => {
       if (yaxe.labels.formatter !== void 0) {
         fmt.yLabelFormatters[i] = yaxe.labels.formatter;
+      } else if (w.config.chart.type === "violin") {
+        const round = (v) => typeof v === "number" && isFinite(v) ? `${Math.round(v * 100) / 100}` : v;
+        fmt.yLabelFormatters[i] = (val) => {
+          if (!w.globals.xyCharts) return val;
+          return Array.isArray(val) ? val.map(round) : round(val);
+        };
       } else {
         fmt.yLabelFormatters[i] = (val) => {
           if (!w.globals.xyCharts) return val;
@@ -2356,6 +2362,50 @@ class Defaults {
         size: 7,
         strokeWidth: 1,
         strokeColors: "#111"
+      },
+      xaxis: {
+        crosshairs: {
+          width: 1
+        }
+      }
+    };
+  }
+  violin() {
+    return {
+      chart: {
+        // Violins are a per-category distribution plot (discrete category
+        // x-axis), so range zooming/panning is meaningless — off by default.
+        zoom: {
+          enabled: false
+        },
+        animations: {
+          dynamicAnimation: {
+            enabled: false
+          }
+        }
+      },
+      stroke: {
+        width: 1,
+        colors: ["#24292e"]
+      },
+      fill: {
+        opacity: 0.7
+      },
+      dataLabels: {
+        enabled: false
+      },
+      tooltip: {
+        shared: true,
+        custom: ({ seriesIndex, dataPointIndex, w }) => {
+          return this._getViolinTooltip(w, seriesIndex, dataPointIndex);
+        }
+      },
+      states: {
+        active: {
+          filter: {
+            type: "none"
+          }
+        }
       },
       xaxis: {
         crosshairs: {
@@ -3083,6 +3133,26 @@ class Defaults {
       return `<div class="apexcharts-tooltip-box apexcharts-tooltip-${w.config.chart.type}"><div>${labels[0]}: <span class="value">` + o + `</span></div><div>${labels[1]}: <span class="value">` + h + "</span></div>" + (m ? `<div>${labels[2]}: <span class="value">` + m + "</span></div>" : "") + `<div>${labels[3]}: <span class="value">` + l + `</span></div><div>${labels[4]}: <span class="value">` + c + "</span></div></div>";
     }
   }
+  /**
+   * Shared tooltip for a violin: distribution value range and observation
+   * count. Per-point hover is intentionally unsupported (jitter renders as a
+   * single path), so the tooltip summarizes the violin as a whole.
+   *
+   * @param {import('../../types/internal').ChartStateW} w
+   * @param {number} seriesIndex
+   * @param {number} dataPointIndex
+   */
+  _getViolinTooltip(w, seriesIndex, dataPointIndex) {
+    var _a, _b, _c;
+    const minV = (_a = w.violinData.seriesViolinMin[seriesIndex]) == null ? void 0 : _a[dataPointIndex];
+    const maxV = (_b = w.violinData.seriesViolinMax[seriesIndex]) == null ? void 0 : _b[dataPointIndex];
+    const pts = ((_c = w.violinData.seriesViolinPoints[seriesIndex]) == null ? void 0 : _c[dataPointIndex]) || [];
+    const name2 = (
+      /** @type {Record<string,any>} */
+      w.config.series[seriesIndex].name || "series-" + (seriesIndex + 1)
+    );
+    return `<div class="apexcharts-tooltip-box apexcharts-tooltip-${w.config.chart.type}"><div class="apexcharts-tooltip-violin-name">${name2}</div><div>Min: <span class="value">${minV}</span></div><div>Max: <span class="value">${maxV}</span></div><div>Observations: <span class="value">${pts.length}</span></div></div>`;
+  }
 }
 const name = "en";
 const options = { "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], "shortMonths": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], "days": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], "shortDays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], "toolbar": { "exportToSVG": "Download SVG", "exportToPNG": "Download PNG", "exportToCSV": "Download CSV", "menu": "Menu", "selection": "Selection", "selectionZoom": "Selection Zoom", "zoomIn": "Zoom In", "zoomOut": "Zoom Out", "pan": "Panning", "reset": "Reset Zoom" } };
@@ -3625,6 +3695,61 @@ class Options {
           colors: {
             upper: "#00E396",
             lower: "#008FFB"
+          },
+          // Optional individual observations ("jitter") overlaid on each box.
+          // Inert unless a data point supplies a `points: number[]` array; off
+          // by default so existing boxPlot charts are unchanged.
+          points: {
+            show: false,
+            shape: "circle",
+            // 'circle' | 'square'
+            size: 2.5,
+            // radius (px)
+            jitter: 0.5,
+            // 0..1 fraction of the box half-width to scatter within
+            maxPoints: 3e3,
+            // cap per box; excess is stride-thinned
+            opacity: 0.9,
+            // 'series-dark' (default) → a darker shade of the series colour,
+            // 'series' → the series colour, or any literal colour string.
+            fillColor: "series-dark",
+            strokeColor: "#fff",
+            strokeWidth: 1
+            // Optional `colorScale` (undeclared so a user object merges cleanly)
+            // colours each dot by its value: { colors, min, max, steps }
+          }
+        },
+        violin: {
+          // Multiply the density-derived half-width. 1 = density's own maxWeight
+          // maps to half the category slot.
+          bandwidthScale: 1,
+          // 'individual' → every violin uses the full slot width (scaled to its
+          // own peak). 'group' → all violins share one scale (the densest in the
+          // series), so widths stay proportional to density across categories.
+          normalize: "individual",
+          // Individual observations ("jitter") overlaid on the violin shape.
+          points: {
+            show: true,
+            shape: "circle",
+            // 'circle' | 'square'
+            size: 2.5,
+            // radius (px)
+            jitter: 0.5,
+            // 0..1 fraction of the half-width to scatter within
+            constrainToViolin: true,
+            // clamp jitter to the density width at each value
+            maxPoints: 3e3,
+            // cap per violin; excess is stride-thinned
+            opacity: 0.9,
+            // Default: a darker shade of each violin's own colour, with a white
+            // outline. fillColor accepts 'series-dark' (default), 'series' (the
+            // violin's colour as-is), or any literal colour string.
+            fillColor: "series-dark",
+            strokeColor: "#fff",
+            strokeWidth: 1
+            // Optional `colorScale` (left undeclared so a user object merges
+            // cleanly) colours each dot by its value along a ramp:
+            //   { colors: ['#0d0887', … '#f0f921'], min, max, steps }
           }
         },
         heatmap: {
@@ -4530,6 +4655,7 @@ class Config {
         "bar",
         "candlestick",
         "boxPlot",
+        "violin",
         "rangeBar",
         "rangeArea",
         "bubble",
@@ -4634,7 +4760,7 @@ class Config {
   checkForCatToNumericXAxis(chartType, chartDefaults, opts) {
     var _a, _b;
     const defaults = new Defaults(opts);
-    const isBarHorizontal = (chartType === "bar" || chartType === "boxPlot") && ((_b = (_a = opts.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.horizontal);
+    const isBarHorizontal = (chartType === "bar" || chartType === "boxPlot" || chartType === "violin") && ((_b = (_a = opts.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.horizontal);
     const unsupportedZoom = chartType === "pie" || chartType === "polarArea" || chartType === "donut" || chartType === "radar" || chartType === "radialBar" || chartType === "heatmap";
     const notNumericXAxis = opts.xaxis.type !== "datetime" && opts.xaxis.type !== "numeric";
     const tickPlacement = opts.xaxis.tickPlacement ? opts.xaxis.tickPlacement : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement;
@@ -5335,7 +5461,10 @@ class Base {
         seriesCandleH: [],
         seriesCandleM: [],
         seriesCandleL: [],
-        seriesCandleC: []
+        seriesCandleC: [],
+        // Optional raw observations per boxPlot data point ([i][j] = number[]),
+        // rendered as jitter dots. Empty unless boxPlot points are supplied.
+        seriesBoxPoints: []
       },
       // Range chart arrays — written by Data.handleRangeData() each render;
       // empty for all other chart types.
@@ -5343,6 +5472,17 @@ class Base {
         seriesRangeStart: [],
         seriesRangeEnd: [],
         seriesRange: []
+      },
+      // Violin distribution arrays — written by Data.handleViolinData() each
+      // render; empty for all other chart types.
+      //   seriesViolinDensity[i][j] = { values:number[], weights:number[], maxWeight:number }
+      //   seriesViolinPoints[i][j]  = number[] (raw observations, value-axis units)
+      //   seriesViolinMin/Max[i][j] = number (extent of density + points — drives Range.js)
+      violinData: {
+        seriesViolinDensity: [],
+        seriesViolinPoints: [],
+        seriesViolinMin: [],
+        seriesViolinMax: []
       },
       // Label / category data — written by Data.parseData() and TimeScale each render.
       labelData: {
@@ -5600,6 +5740,26 @@ class Base {
         configurable: true
       });
     }
+    for (const key of [
+      "seriesViolinDensity",
+      "seriesViolinPoints",
+      "seriesViolinMin",
+      "seriesViolinMax"
+    ]) {
+      Object.defineProperty(globals, key, {
+        get() {
+          return (
+            /** @type {Record<string,any>} */
+            w.violinData[key]
+          );
+        },
+        set(v) {
+          w.violinData[key] = v;
+        },
+        enumerable: false,
+        configurable: true
+      });
+    }
     return (
       /** @type {import('../types/internal').ChartStateW} */
       /** @type {unknown} */
@@ -5627,7 +5787,7 @@ class CoreUtils {
     }
     if (series.length && typeof series[0].type !== "undefined") {
       series.forEach((s) => {
-        if (s.type === "bar" || s.type === "column" || s.type === "candlestick" || s.type === "boxPlot") {
+        if (s.type === "bar" || s.type === "column" || s.type === "candlestick" || s.type === "boxPlot" || s.type === "violin") {
           comboBarCount++;
         }
         if (typeof s.type !== "undefined" && s.type !== chartType) {
@@ -10066,7 +10226,7 @@ class Grid {
     w.dom.elGridRectMarkerMask = createClipPath(`gridRectMarkerMask${gl.cuid}`);
     w.dom.elForecastMask = createClipPath(`forecastMask${gl.cuid}`);
     w.dom.elNonForecastMask = createClipPath(`nonForecastMask${gl.cuid}`);
-    const hasBar = ["bar", "rangeBar", "candlestick", "boxPlot"].includes(
+    const hasBar = ["bar", "rangeBar", "candlestick", "boxPlot", "violin"].includes(
       w.config.chart.type
     ) || w.globals.comboBarCount > 0;
     let barWidthLeft = 0;
@@ -11079,7 +11239,7 @@ class Range {
    * @param {number | null} [endingSeriesIndex]
    */
   getMinYMaxY(startingSeriesIndex, lowestY = Number.MAX_VALUE, highestY = -Number.MAX_VALUE, endingSeriesIndex = null) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     const cnf = this.w.config;
     const gl = this.w.globals;
     let maxY = -Number.MAX_VALUE;
@@ -11096,6 +11256,9 @@ class Range {
     } else if (cnf.chart.type === "boxPlot") {
       seriesMin = this.w.candleData.seriesCandleO;
       seriesMax = this.w.candleData.seriesCandleC;
+    } else if (cnf.chart.type === "violin") {
+      seriesMin = this.w.violinData.seriesViolinMin;
+      seriesMax = this.w.violinData.seriesViolinMax;
     } else if (this.w.axisFlags.isRangeData) {
       seriesMin = this.w.rangeData.seriesRangeStart;
       seriesMax = this.w.rangeData.seriesRangeEnd;
@@ -11174,8 +11337,19 @@ class Range {
                 }
               }
               break;
+            case "violin":
+              {
+                if (typeof ((_d = this.w.violinData.seriesViolinMax[i]) == null ? void 0 : _d[j]) !== "undefined") {
+                  maxY = Math.max(maxY, this.w.violinData.seriesViolinMax[i][j]);
+                  lowestY = Math.min(
+                    lowestY,
+                    this.w.violinData.seriesViolinMin[i][j]
+                  );
+                }
+              }
+              break;
           }
-          if (seriesType && seriesType !== "candlestick" && seriesType !== "boxPlot" && seriesType !== "rangeArea" && seriesType !== "rangeBar") {
+          if (seriesType && seriesType !== "candlestick" && seriesType !== "boxPlot" && seriesType !== "violin" && seriesType !== "rangeArea" && seriesType !== "rangeBar") {
             maxY = Math.max(maxY, this.w.seriesData.series[i][j]);
             lowestY = Math.min(lowestY, this.w.seriesData.series[i][j]);
           }
@@ -11187,6 +11361,18 @@ class Range {
               }
             );
           }
+          if (this.w.config.chart.type === "boxPlot" || seriesType === "boxPlot") {
+            const boxPts = (_f = (_e = this.w.candleData.seriesBoxPoints) == null ? void 0 : _e[i]) == null ? void 0 : _f[j];
+            if (boxPts) {
+              for (let p = 0; p < boxPts.length; p++) {
+                const pv = boxPts[p];
+                if (typeof pv === "number") {
+                  maxY = Math.max(maxY, pv);
+                  lowestY = Math.min(lowestY, pv);
+                }
+              }
+            }
+          }
           highestY = maxY;
           val = Utils$1.noExponents(val);
           if (Utils$1.isFloat(val)) {
@@ -11195,7 +11381,7 @@ class Range {
               val.toString().split(".")[1].length
             );
           }
-          if (minY > ((_d = seriesMin[i]) == null ? void 0 : _d[j]) && ((_e = seriesMin[i]) == null ? void 0 : _e[j]) < 0) {
+          if (minY > ((_g = seriesMin[i]) == null ? void 0 : _g[j]) && ((_h = seriesMin[i]) == null ? void 0 : _h[j]) < 0) {
             minY = seriesMin[i][j];
           }
         } else {
@@ -11264,7 +11450,7 @@ class Range {
     if (cnf.chart.stacked) {
       this._setStackedMinMax();
     }
-    if (cnf.chart.type === "line" || cnf.chart.type === "area" || cnf.chart.type === "scatter" || cnf.chart.type === "candlestick" || cnf.chart.type === "boxPlot" || cnf.chart.type === "rangeBar" && !gl.isBarHorizontal) {
+    if (cnf.chart.type === "line" || cnf.chart.type === "area" || cnf.chart.type === "scatter" || cnf.chart.type === "candlestick" || cnf.chart.type === "boxPlot" || cnf.chart.type === "violin" || cnf.chart.type === "rangeBar" && !gl.isBarHorizontal) {
       if (gl.minY === Number.MIN_VALUE && lowestYInAllSeries !== -Number.MAX_VALUE && lowestYInAllSeries !== gl.maxY) {
         gl.minY = lowestYInAllSeries;
       }
@@ -13603,7 +13789,7 @@ class DimXAxis {
         if (lastLabelPosition > gl.svgWidth - w.layout.translateX - lgRightRectWidth) {
           gl.skipLastTimelinelabel = true;
         }
-        if (firstLabelPosition < -((!yaxe.show || yaxe.floating) && (cnf.chart.type === "bar" || cnf.chart.type === "candlestick" || cnf.chart.type === "rangeBar" || cnf.chart.type === "boxPlot") ? lbWidth / 1.75 : 10)) {
+        if (firstLabelPosition < -((!yaxe.show || yaxe.floating) && (cnf.chart.type === "bar" || cnf.chart.type === "candlestick" || cnf.chart.type === "rangeBar" || cnf.chart.type === "boxPlot" || cnf.chart.type === "violin") ? lbWidth / 1.75 : 10)) {
           gl.skipFirstTimelinelabel = true;
         }
       } else if (xtype === "datetime") {
@@ -13807,7 +13993,7 @@ class DimGrid {
     if (gl.noData || gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length === cnf.series.length) {
       return 0;
     }
-    const hasBar = (type2) => ["bar", "rangeBar", "candlestick", "boxPlot"].includes(type2);
+    const hasBar = (type2) => ["bar", "rangeBar", "candlestick", "boxPlot", "violin"].includes(type2);
     const type = cnf.chart.type;
     let barWidth = 0;
     let seriesLen = hasBar(type) ? cnf.series.length : 1;
@@ -14485,6 +14671,7 @@ class Core {
       "rangeArea",
       "candlestick",
       "boxPlot",
+      "violin",
       "scatter",
       "bubble"
     ];
@@ -14496,7 +14683,7 @@ class Core {
     ];
     gl.axisCharts = axisChartsArrTypes.includes(ct);
     gl.xyCharts = xyChartsArrTypes.includes(ct);
-    gl.isBarHorizontal = ["bar", "rangeBar", "boxPlot"].includes(ct) && cnf.plotOptions.bar.horizontal;
+    gl.isBarHorizontal = ["bar", "rangeBar", "boxPlot", "violin"].includes(ct) && cnf.plotOptions.bar.horizontal;
     gl.chartClass = `.apexcharts${gl.chartID}`;
     this.w.dom.baseEl = this.el;
     this.w.dom.elWrap = BrowserAPIs.createElementNS(
@@ -14583,6 +14770,7 @@ class Core {
       bar: { series: [], i: [] },
       candlestick: { series: [], i: [] },
       boxPlot: { series: [], i: [] },
+      violin: { series: [], i: [] },
       rangeBar: { series: [], i: [] },
       rangeArea: { series: [], seriesRangeEnd: [], i: [] }
     };
@@ -14646,6 +14834,8 @@ class Core {
     const line = needsLine ? new (getChartClass("line"))(ctx.w, ctx, xyRatios) : null;
     const needsCandlestick = seriesTypes.candlestick.series.length > 0 || seriesTypes.boxPlot.series.length > 0 || !gl.comboCharts && ["candlestick", "boxPlot"].includes(cnf.chart.type);
     const boxCandlestick = needsCandlestick ? new (getChartClass("candlestick"))(ctx.w, ctx, xyRatios) : null;
+    const needsViolin = seriesTypes.violin.series.length > 0 || !gl.comboCharts && cnf.chart.type === "violin";
+    const violin = needsViolin ? new (getChartClass("violin"))(ctx.w, ctx, xyRatios) : null;
     const needsPie = !gl.comboCharts && ["pie", "donut", "polarArea"].includes(cnf.chart.type);
     ctx.pie = needsPie ? new (getChartClass("pie"))(ctx.w, ctx) : null;
     const needsRangeBar = seriesTypes.rangeBar.series.length > 0 || !gl.comboCharts && cnf.chart.type === "rangeBar";
@@ -14716,6 +14906,11 @@ class Core {
           )
         );
       }
+      if (seriesTypes.violin.series.length > 0) {
+        elGraph.push(
+          violin.draw(seriesTypes.violin.series, "violin", seriesTypes.violin.i)
+        );
+      }
       if (seriesTypes.rangeBar.series.length > 0) {
         elGraph.push(
           ctx.rangeBar.draw(
@@ -14781,6 +14976,9 @@ class Core {
           break;
         case "boxPlot":
           elGraph = boxCandlestick.draw(this.w.seriesData.series, type);
+          break;
+        case "violin":
+          elGraph = violin.draw(this.w.seriesData.series, "violin");
           break;
         case "rangeBar":
           elGraph = ctx.rangeBar.draw(this.w.seriesData.series);
@@ -15381,7 +15579,78 @@ class Data {
     this.w.candleData.seriesCandleM[i] = ohlc.m;
     this.w.candleData.seriesCandleL[i] = ohlc.l;
     this.w.candleData.seriesCandleC[i] = ohlc.c;
+    this.w.candleData.seriesBoxPoints[i] = ohlc.points || [];
     return ohlc;
+  }
+  /**
+   * Parse a violin series. Each data point carries a precomputed density
+   * profile (the violin shape) and an array of raw observations (the jitter):
+   *
+   *   { x, y: { density: [[value, weight], ...], points: [v1, v2, ...] } }
+   *
+   * Array fallback form: [x, densityPairs, pointsArray].
+   *
+   * Density `weight` need not be normalized — Violin.js scales each violin by
+   * its own maxWeight. The representative scalar pushed into the main series
+   * (so generic code paths see a non-null y) is the density mode — the value
+   * carrying the greatest weight.
+   *
+   * @param {any[]} ser
+   * @param {number} i
+   */
+  handleViolinData(ser, i) {
+    var _a, _b, _c, _d, _e, _f;
+    const w = this.w;
+    const data = ser[i].data;
+    const densityArr = [];
+    const pointsArr = [];
+    const minArr = [];
+    const maxArr = [];
+    const placeholders = [];
+    for (let j = 0; j < data.length; j++) {
+      const d = data[j];
+      const dens = (_c = (_b = (_a = d == null ? void 0 : d.y) == null ? void 0 : _a.density) != null ? _b : d == null ? void 0 : d[1]) != null ? _c : [];
+      const pts = (_f = (_e = (_d = d == null ? void 0 : d.y) == null ? void 0 : _d.points) != null ? _e : d == null ? void 0 : d[2]) != null ? _f : [];
+      const values = [];
+      const weights = [];
+      let maxWeight = 0;
+      let modeValue = null;
+      let minVal = Infinity;
+      let maxVal = -Infinity;
+      for (let k = 0; k < dens.length; k++) {
+        const v = Utils$1.parseNumber(dens[k][0]);
+        const wt = Utils$1.parseNumber(dens[k][1]);
+        if (v === null || wt === null) continue;
+        values.push(v);
+        weights.push(wt);
+        if (wt > maxWeight) {
+          maxWeight = wt;
+          modeValue = v;
+        }
+        if (v < minVal) minVal = v;
+        if (v > maxVal) maxVal = v;
+      }
+      const cleanPts = [];
+      for (let k = 0; k < pts.length; k++) {
+        const p = Utils$1.parseNumber(pts[k]);
+        if (p === null) continue;
+        cleanPts.push(p);
+        if (p < minVal) minVal = p;
+        if (p > maxVal) maxVal = p;
+      }
+      densityArr.push({ values, weights, maxWeight });
+      pointsArr.push(cleanPts);
+      minArr.push(minVal === Infinity ? 0 : minVal);
+      maxArr.push(maxVal === -Infinity ? 0 : maxVal);
+      placeholders.push(
+        modeValue !== null ? modeValue : cleanPts.length ? cleanPts[Math.floor(cleanPts.length / 2)] : 0
+      );
+    }
+    w.violinData.seriesViolinDensity[i] = densityArr;
+    w.violinData.seriesViolinPoints[i] = pointsArr;
+    w.violinData.seriesViolinMin[i] = minArr;
+    w.violinData.seriesViolinMax[i] = maxArr;
+    this.twoDSeries = placeholders;
   }
   /**
    * @param {string} format
@@ -15453,6 +15722,7 @@ class Data {
     const serM = [];
     const serL = [];
     const serC = [];
+    const serPoints = [];
     const data = ser[i].data;
     let getVals;
     if (format === "array") {
@@ -15479,13 +15749,17 @@ class Data {
           serC.push(vals[3]);
         }
       }
+      const pts = data[j] && /** @type {any} */
+      data[j].points;
+      serPoints.push(Array.isArray(pts) ? pts : []);
     }
     return {
       o: serO,
       h: serH,
       m: serM,
       l: serL,
-      c: serC
+      c: serC,
+      points: serPoints
     };
   }
   /**
@@ -15570,6 +15844,9 @@ class Data {
         }
         if (cnf.chart.type === "candlestick" || ser[i].type === "candlestick" || cnf.chart.type === "boxPlot" || ser[i].type === "boxPlot") {
           this.handleCandleStickBoxData(ser, i);
+        }
+        if (cnf.chart.type === "violin" || ser[i].type === "violin") {
+          this.handleViolinData(ser, i);
         }
         this.w.seriesData.series.push(this.twoDSeries);
         this.w.labelData.labels.push(this.twoDSeriesX);
@@ -16077,7 +16354,8 @@ class Data {
         seriesCandleH: this.w.candleData.seriesCandleH,
         seriesCandleM: this.w.candleData.seriesCandleM,
         seriesCandleL: this.w.candleData.seriesCandleL,
-        seriesCandleC: this.w.candleData.seriesCandleC
+        seriesCandleC: this.w.candleData.seriesCandleC,
+        seriesBoxPoints: this.w.candleData.seriesBoxPoints
       },
       // w.labelData (future slice)
       labelData: {
@@ -16947,7 +17225,7 @@ class Utils2 {
   }
   getElBars() {
     return this.w.dom.baseEl.querySelectorAll(
-      ".apexcharts-bar-series,  .apexcharts-candlestick-series, .apexcharts-boxPlot-series, .apexcharts-rangebar-series"
+      ".apexcharts-bar-series,  .apexcharts-candlestick-series, .apexcharts-boxPlot-series, .apexcharts-violin-series, .apexcharts-rangebar-series"
     );
   }
   hasBars() {
@@ -17824,7 +18102,7 @@ class Position {
       /** @type {any} */
       w.config.series[capturedSeries].type
     );
-    if (serType && (serType === "column" || serType === "candlestick" || serType === "boxPlot")) {
+    if (serType && (serType === "column" || serType === "candlestick" || serType === "boxPlot" || serType === "violin")) {
       return;
     }
     cx = (_b = (_a = pointsArr[capturedSeries]) == null ? void 0 : _a[j]) == null ? void 0 : _b[0];
@@ -17926,13 +18204,14 @@ class Position {
       i = series.getActiveConfigSeriesIndex("desc") + 1;
     }
     let jBar = w.dom.baseEl.querySelector(
-      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
+      `.apexcharts-bar-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-candlestick-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-boxPlot-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-violin-series .apexcharts-series[rel='${i}'] path[j='${j}'], .apexcharts-rangebar-series .apexcharts-series[rel='${i}'] path[j='${j}']`
     );
     if (!jBar && typeof capturedSeries === "number") {
       jBar = w.dom.baseEl.querySelector(
         `.apexcharts-bar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
         .apexcharts-candlestick-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
         .apexcharts-boxPlot-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
+        .apexcharts-violin-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}'],
         .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}']`
       );
     }
@@ -19119,7 +19398,7 @@ class Tooltip {
     const type = w.config.chart.type;
     const tooltipEl = this.getElTooltip();
     if (!tooltipEl) return;
-    const commonBar = !!(type === "bar" || type === "candlestick" || type === "boxPlot" || type === "rangeBar");
+    const commonBar = !!(type === "bar" || type === "candlestick" || type === "boxPlot" || type === "violin" || type === "rangeBar");
     const chartWithmarkers = type === "area" || type === "line" || type === "scatter" || type === "bubble" || type === "radar";
     const hoverArea = w.dom.Paper.node;
     const elGrid = this.getElGrid();
@@ -19144,7 +19423,7 @@ class Tooltip {
         );
       } else if (commonBar) {
         points = w.dom.baseEl.querySelectorAll(
-          ".apexcharts-series .apexcharts-bar-area, .apexcharts-series .apexcharts-candlestick-area, .apexcharts-series .apexcharts-boxPlot-area, .apexcharts-series .apexcharts-rangebar-area"
+          ".apexcharts-series .apexcharts-bar-area, .apexcharts-series .apexcharts-candlestick-area, .apexcharts-series .apexcharts-boxPlot-area, .apexcharts-series .apexcharts-violin-area, .apexcharts-series .apexcharts-rangebar-area"
         );
       } else if (type === "heatmap" || type === "treemap") {
         points = w.dom.baseEl.querySelectorAll(

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.14.0
+ * ApexCharts v5.15.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -2116,6 +2116,145 @@ class Bar {
     return matches ? matches.length : 0;
   }
 }
+function buildJitterGroups({
+  w,
+  points,
+  seedA,
+  seedB,
+  center,
+  halfExtent,
+  alongFn,
+  isHorizontal,
+  options,
+  clampAt
+}) {
+  const opts = options;
+  if (!opts || opts.show === false) return [];
+  if (!points || !points.length) return [];
+  const maxPoints = opts.maxPoints || 3e3;
+  const stride = points.length > maxPoints ? Math.ceil(points.length / maxPoints) : 1;
+  const r = opts.size != null ? opts.size : 2.5;
+  const jitterFrac = opts.jitter != null ? opts.jitter : 0.5;
+  const jitterPx = halfExtent * jitterFrac;
+  const constrain = opts.constrainToViolin !== false && typeof clampAt === "function";
+  const isSquare = opts.shape === "square";
+  const scale = opts.colorScale;
+  const useScale = scale && Array.isArray(scale.colors) && scale.colors.length > 0;
+  const steps = useScale ? Math.max(2, scale.steps || 24) : 1;
+  const sMin = useScale && scale.min != null ? scale.min : w.globals.minY;
+  const sMax = useScale && scale.max != null ? scale.max : w.globals.maxY;
+  const span = sMax - sMin || 1;
+  const buckets = useScale ? new Array(steps).fill("") : [""];
+  for (let k = 0; k < points.length; k += stride) {
+    const v = points[k];
+    const a = alongFn(v);
+    let off = (hash01(seedA * 7919 + seedB * 100003 + k) - 0.5) * 2 * jitterPx;
+    if (constrain) {
+      const cap = (
+        /** @type {(v:number)=>number} */
+        clampAt(v)
+      );
+      if (off > cap) off = cap;
+      if (off < -cap) off = -cap;
+    }
+    const px = isHorizontal ? a : center + off;
+    const py = isHorizontal ? center + off : a;
+    const sub = isSquare ? squareSubPath(px, py, r) : circleSubPath(px, py, r);
+    if (useScale) {
+      let t = (v - sMin) / span;
+      if (t < 0) t = 0;
+      if (t > 1) t = 1;
+      buckets[Math.round(t * (steps - 1))] += sub;
+    } else {
+      buckets[0] += sub;
+    }
+  }
+  if (!useScale) {
+    return buckets[0] ? [{ fill: null, d: buckets[0] }] : [];
+  }
+  const groups = [];
+  for (let b = 0; b < steps; b++) {
+    if (!buckets[b]) continue;
+    groups.push({
+      fill: rampColorAt(scale.colors, b / (steps - 1)),
+      d: buckets[b]
+    });
+  }
+  return groups;
+}
+function renderJitter({
+  graphics,
+  w,
+  elSeries,
+  pointsByCat,
+  options,
+  distributed,
+  realIndex,
+  wrapClass,
+  pointClass
+}) {
+  if (!options || options.show === false || !pointsByCat.length) return;
+  const pOpacity = options.opacity != null ? options.opacity : 0.9;
+  const strokeColor = options.strokeColor != null ? options.strokeColor : "#fff";
+  const strokeW = options.strokeWidth != null ? options.strokeWidth : 1;
+  const willAnimateIn = w.config.chart.animations.enabled && !w.globals.resized && !w.globals.dataChanged;
+  const elPointsWrap = graphics.group({
+    class: willAnimateIn ? `${wrapClass} apexcharts-element-hidden` : wrapClass
+  });
+  if (willAnimateIn) {
+    w.globals.delayedElements.push({ el: elPointsWrap.node });
+  }
+  pointsByCat.forEach(({ groups, j }) => {
+    const catColor = distributed ? w.globals.colors[j] : w.globals.colors[realIndex];
+    const fc = options.fillColor;
+    const defaultFill = fc === "series" ? catColor : fc === "series-dark" ? darkenColor(catColor, 0.45) : fc || darkenColor(catColor, 0.45);
+    groups.forEach((g) => {
+      const elPoints = graphics.drawPath({
+        d: g.d,
+        fill: g.fill != null ? g.fill : defaultFill,
+        stroke: strokeW > 0 ? strokeColor : "none",
+        strokeWidth: strokeW,
+        fillOpacity: pOpacity,
+        classes: pointClass
+      });
+      elPoints.attr("data:realIndex", realIndex);
+      elPoints.attr("j", j);
+      elPoints.attr("clip-path", `url(#gridRectBarMask${w.globals.cuid})`);
+      elPoints.node.style.pointerEvents = "none";
+      elPointsWrap.add(elPoints);
+    });
+  });
+  elSeries.add(elPointsWrap);
+}
+function darkenColor(color, amount) {
+  const rgb = Utils.parseHex(color);
+  if (!rgb) return color;
+  const f = Math.max(0, 1 - amount);
+  return `rgb(${Math.round(rgb[0] * f)},${Math.round(rgb[1] * f)},${Math.round(rgb[2] * f)})`;
+}
+function rampColorAt(colors, t) {
+  if (!colors.length) return "#000";
+  if (colors.length === 1) return colors[0];
+  const x = Math.max(0, Math.min(1, t)) * (colors.length - 1);
+  const i = Math.floor(x);
+  const frac = x - i;
+  const c0 = Utils.parseHex(colors[i]) || [0, 0, 0];
+  const c1 = Utils.parseHex(colors[Math.min(i + 1, colors.length - 1)]) || c0;
+  const mix = (a, b) => Math.round(a + (b - a) * frac);
+  return `rgb(${mix(c0[0], c1[0])},${mix(c0[1], c1[1])},${mix(c0[2], c1[2])})`;
+}
+function hash01(n) {
+  let h = (n ^ 2654435769) >>> 0;
+  h = Math.imul(h ^ h >>> 16, 73244475);
+  h = Math.imul(h ^ h >>> 16, 73244475);
+  return ((h ^ h >>> 16) >>> 0) / 4294967296;
+}
+function circleSubPath(px, py, r) {
+  return `M ${px - r} ${py} a ${r} ${r} 0 1 0 ${2 * r} 0 a ${r} ${r} 0 1 0 ${-2 * r} 0 `;
+}
+function squareSubPath(px, py, r) {
+  return `M ${px - r} ${py - r} h ${2 * r} v ${2 * r} h ${-2 * r} z `;
+}
 class BoxCandleStick extends Bar {
   /**
    * @param {any[]} series
@@ -2124,6 +2263,7 @@ class BoxCandleStick extends Bar {
    */
   // @ts-ignore -- BoxCandleStick.draw has an extra ctype param compared to Bar.draw
   draw(series, ctype, seriesIndex) {
+    var _a;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const type = w.globals.comboCharts ? ctype : w.config.chart.type;
@@ -2193,6 +2333,8 @@ class BoxCandleStick extends Bar {
       const elGoalsMarkers = graphics.group({
         class: "apexcharts-bar-goals-markers"
       });
+      const boxPointsOpts = this.isBoxPlot ? this.boxOptions.points : null;
+      const pointsByCat = [];
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
         let paths = (
@@ -2273,6 +2415,59 @@ class BoxCandleStick extends Bar {
             });
           }
         );
+        if (boxPointsOpts && boxPointsOpts.show !== false) {
+          const pts = (_a = w.candleData.seriesBoxPoints[realIndex]) == null ? void 0 : _a[j];
+          if (pts && pts.length) {
+            const logVal = (v) => (
+              /** @type {any} */
+              this.coreUtils.getLogValAtSeriesIndex(
+                v,
+                realIndex
+              )
+            );
+            let center, halfExtent, alongFn;
+            if (this.isHorizontal) {
+              const yRatio = this.invertedYRatio;
+              const bh = barHeight != null ? barHeight : 0;
+              const z = zeroW != null ? zeroW : 0;
+              center = paths.barYPosition + bh / 2;
+              halfExtent = bh / 2;
+              alongFn = (v) => z + logVal(v) / yRatio;
+            } else {
+              const yRatio = this.yRatio[translationsIndex];
+              const bw = barWidth != null ? barWidth : 0;
+              const z = zeroH != null ? zeroH : 0;
+              center = paths.barXPosition + bw / 2;
+              halfExtent = bw / 2;
+              alongFn = (v) => z - logVal(v) / yRatio;
+            }
+            const groups = buildJitterGroups({
+              w,
+              points: pts,
+              seedA: realIndex,
+              seedB: j,
+              center,
+              halfExtent,
+              alongFn,
+              isHorizontal: this.isHorizontal,
+              options: boxPointsOpts
+            });
+            if (groups.length) pointsByCat.push({ groups, j });
+          }
+        }
+      }
+      if (boxPointsOpts) {
+        renderJitter({
+          graphics,
+          w,
+          elSeries,
+          pointsByCat,
+          options: boxPointsOpts,
+          distributed: w.config.plotOptions.bar.distributed,
+          realIndex,
+          wrapClass: "apexcharts-boxPlot-points-wrap",
+          pointClass: "apexcharts-boxPlot-points"
+        });
       }
       w.globals.seriesXvalues[realIndex] = xArrj;
       w.globals.seriesYvalues[realIndex] = yArrj;

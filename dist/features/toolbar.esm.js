@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.14.0
+ * ApexCharts v5.15.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -303,7 +303,7 @@ class Exports {
       return [...Array(seriesMaxDataLength)].map(() => "");
     };
     const handleAxisRowsColumns = (s, sI) => {
-      var _a;
+      var _a, _b, _c, _d, _e, _f;
       if (columns.length && sI === 0) {
         rows.push(columns.join(columnDelimiter));
       }
@@ -346,6 +346,12 @@ class Exports {
             columns.pop();
             columns.push(w.rangeData.seriesRangeStart[sI][i]);
             columns.push(w.rangeData.seriesRangeEnd[sI][i]);
+          }
+          if (w.config.chart.type === "violin" || s.type && s.type === "violin") {
+            columns.pop();
+            columns.push((_b = w.violinData.seriesViolinMin[sI]) == null ? void 0 : _b[i]);
+            columns.push((_c = w.violinData.seriesViolinMax[sI]) == null ? void 0 : _c[i]);
+            columns.push((_f = (_e = (_d = w.violinData.seriesViolinPoints[sI]) == null ? void 0 : _d[i]) == null ? void 0 : _e.length) != null ? _f : 0);
           }
           if (columns.length) {
             rows.push(columns.join(columnDelimiter));
@@ -404,6 +410,10 @@ class Exports {
     } else if (w.config.chart.type === "rangeBar") {
       columns.push("minimum");
       columns.push("maximum");
+    } else if (w.config.chart.type === "violin") {
+      columns.push("minimum");
+      columns.push("maximum");
+      columns.push("observations");
     } else {
       series.map((s, sI) => {
         const sname = (s.name ? s.name : `series-${sI}`) + "";
