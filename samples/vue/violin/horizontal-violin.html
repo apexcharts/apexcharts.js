@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Horizontal Violin Chart</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 760px;
+        margin: 20px auto;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Build a Gaussian density profile + raw observations for a group.
+      // The sample template seeds Math.random, so this renders identically across reloads.
+      function gaussianViolin(mean, sd, n) {
+        var density = []
+        for (var v = mean - 3 * sd; v <= mean + 3 * sd; v += sd / 6) {
+          var z = (v - mean) / sd
+          density.push([Math.round(v * 10) / 10, Math.exp(-0.5 * z * z)])
+        }
+        var points = []
+        for (var k = 0; k < n; k++) {
+          // Box–Muller transform on two uniform samples
+          var u1 = Math.random(),
+            u2 = Math.random()
+          var g = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
+          points.push(mean + g * sd)
+        }
+        return { density: density, points: points }
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div id="chart">
+      <apexchart type="violin" height="460" :options="chartOptions" :series="series"></apexchart>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;violin&quot; height=&quot;460&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [
+            {
+              name: 'Latency',
+              data: [
+                { x: 'Auth', y: gaussianViolin(120, 18, 400) },
+                { x: 'Search', y: gaussianViolin(210, 35, 500) },
+                { x: 'Checkout', y: gaussianViolin(160, 22, 350) },
+                { x: 'Recommend', y: gaussianViolin(260, 45, 300) },
+              ],
+            },
+          ],
+          chartOptions: {
+            chart: {
+              type: 'violin',
+              height: 460,
+            },
+            title: {
+              text: 'Response time distribution by service (ms)',
+            },
+            plotOptions: {
+              bar: {
+                horizontal: true,
+                distributed: true,
+              },
+              violin: {
+                normalize: 'group',
+                // dots in a darker shade of each violin's colour, no outline (strokeWidth: 0)
+                points: { show: true, size: 3, jitter: 0.9, strokeWidth: 0 },
+              },
+            },
+            colors: ['#14b8a6', '#6366f1', '#f59e0b', '#ef4444'],
+            stroke: { width: 1, colors: ['#888'] },
+            legend: { show: false },
+            xaxis: {
+              title: { text: 'Response time (ms)' },
+            },
+          },
+        },
+      })
+    </script>
+    
+  </body>
+</html>

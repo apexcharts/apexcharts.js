@@ -1,4 +1,4 @@
-<title>Horizontal BoxPlot with Outliers</title>
+<title>Horizontal BoxPlot with Markers as Outliers</title>
 
 <chart>
 <options>
@@ -7,7 +7,7 @@ chart: {
   height: 350
 },
 title: {
-  text: 'Horizontal BoxPlot with Outliers',
+  text: 'Horizontal BoxPlot with Markers as Outliers',
   align: 'left'
 },
 plotOptions: {

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Basic Violin Chart</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 820px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Build a Gaussian density profile + raw observations for a group.
+      // The sample template seeds Math.random, so this renders identically across reloads.
+      function gaussianViolin(mean, sd, n) {
+        var density = []
+        for (var v = mean - 3 * sd; v <= mean + 3 * sd; v += sd / 6) {
+          var z = (v - mean) / sd
+          density.push([v, Math.exp(-0.5 * z * z)])
+        }
+        var points = []
+        for (var k = 0; k < n; k++) {
+          // Box–Muller transform on two uniform samples
+          var u1 = Math.random(),
+            u2 = Math.random()
+          var g = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
+          points.push(mean + g * sd)
+        }
+        return { density: density, points: points }
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;violin&quot; height={420} /&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [
+            {
+              name: 'Measurement',
+              data: [
+                { x: 'Group A', y: gaussianViolin(50, 8, 400) },
+                { x: 'Group B', y: gaussianViolin(62, 5, 600) },
+                { x: 'Group C', y: gaussianViolin(45, 12, 250) },
+                { x: 'Group D', y: gaussianViolin(55, 6, 500) },
+                { x: 'Group E', y: gaussianViolin(48, 10, 350) },
+                { x: 'Group F', y: gaussianViolin(58, 7, 450) },
+                { x: 'Group G', y: gaussianViolin(52, 9, 300) },
+              ],
+            },
+          ],
+          options: {
+            chart: {
+              type: 'violin',
+              height: 420,
+            },
+            title: {
+              text: 'Distribution by group',
+            },
+            plotOptions: {
+              violin: {
+                bandwidthScale: 1,
+                points: {
+                  show: false, // density curve only — no jitter overlay
+                },
+              },
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div id="chart">
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="violin"
+                height={420}
+              />
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

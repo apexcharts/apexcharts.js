@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Horizontal Violin — Bimodal Distributions</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 820px;
+        margin: 20px auto;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // ── Reproducible synthetic data (seeded PRNG, no network) ──────────────
+      function mulberry32(a) {
+        return function () {
+          a |= 0
+          a = (a + 0x6d2b79f5) | 0
+          var t = Math.imul(a ^ (a >>> 15), 1 | a)
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+        }
+      }
+      var rng = mulberry32(24681012)
+
+      function gauss(mean, sd) {
+        var u = 0,
+          v = 0
+        while (u === 0) u = rng()
+        while (v === 0) v = rng()
+        return mean + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
+      }
+
+      // Draw n samples from a mixture of two well-separated normal components — the
+      // two clusters give each distribution its characteristic twin-hump shape.
+      function bimodal(n, a, b) {
+        var out = []
+        for (var i = 0; i < n; i++) {
+          var c = rng() < a.w ? a : b
+          out.push(Math.max(0, Math.round(gauss(c.mean, c.sd) * 10) / 10))
+        }
+        return out
+      }
+
+      // Session duration (minutes) per channel — a quick-bounce cluster and an
+      // engaged-visit cluster, mixed in different proportions.
+      var CHANNELS = [
+        {
+          name: 'Direct',
+          data: bimodal(320, { w: 0.4, mean: 2, sd: 1 }, { mean: 22, sd: 5 }),
+        },
+        {
+          name: 'Search',
+          data: bimodal(320, { w: 0.55, mean: 2, sd: 1 }, { mean: 18, sd: 5 }),
+        },
+        {
+          name: 'Social',
+          data: bimodal(320, { w: 0.7, mean: 2, sd: 1 }, { mean: 14, sd: 4 }),
+        },
+        {
+          name: 'Email',
+          data: bimodal(320, { w: 0.3, mean: 3, sd: 1.5 }, { mean: 26, sd: 6 }),
+        },
+      ]
+
+      // Gaussian KDE with a loose bandwidth + coarse step, so the two humps stay
+      // distinct (a tighter bandwidth would smear them into one) and the outline
+      // keeps its angular, twin-peaked character.
+      function kde(values, bw, step) {
+        var min = Math.min.apply(null, values) - bw
+        var max = Math.max.apply(null, values) + bw
+        var N = values.length
+        var profile = []
+        for (var x = min; x <= max; x += step) {
+          var sum = 0
+          for (var k = 0; k < N; k++) {
+            var d = (x - values[k]) / bw
+            sum += Math.exp(-0.5 * d * d)
+          }
+          profile.push([Math.round(x * 100) / 100, sum / (N * bw)])
+        }
+        return profile
+      }
+    </script>
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            name: 'Sessions',
+            data: CHANNELS.map(function (c) {
+              return {
+                x: c.name,
+                y: { density: kde(c.data, 2.5, 1.5), points: c.data },
+              }
+            }),
+          },
+        ],
+        chart: {
+          type: 'violin',
+          height: 480,
+        },
+        title: {
+          text: 'Session duration by channel',
+        },
+        plotOptions: {
+          bar: {
+            horizontal: true,
+            distributed: true,
+          },
+          violin: {
+            normalize: 'group',
+            points: { show: false }, // density curves only
+          },
+        },
+        colors: ['#0ea5e9', '#8b5cf6', '#f97316', '#10b981'],
+        stroke: { width: 1, colors: ['#888'] },
+        legend: { show: false },
+        xaxis: {
+          title: { text: 'Session duration (minutes)' },
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+
+    
+  </body>
+</html>
