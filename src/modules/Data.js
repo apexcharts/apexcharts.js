@@ -643,10 +643,27 @@ export default class Data {
           xmin == null && xmax == null
             ? rawStash
             : Data.sliceByXRange(rawStash, xmin, xmax)
-        const reduced =
-          windowed.length > targetPoints
-            ? Data.lttbDownsample(windowed, targetPoints)
-            : windowed
+
+        // Pick the reduction strategy by the data's *shape*, not the chart-type
+        // config (so combo charts work too). A point whose y is a 4-tuple is
+        // candlestick/OHLC: aggregate into OHLC buckets so the high/low extremes
+        // survive — LTTB would silently drop them. Scalar-y series (line/area)
+        // use LTTB, which preserves visual shape. Any other array-y data (e.g.
+        // a boxPlot 5-tuple) can't be meaningfully merged, so it's left as the
+        // windowed slice rather than corrupted.
+        let reduced = windowed
+        if (windowed.length > targetPoints) {
+          const sampleY = !Array.isArray(windowed[0])
+            ? windowed[0]?.y
+            : windowed[0]?.[1]
+          if (Array.isArray(sampleY)) {
+            if (sampleY.length === 4) {
+              reduced = Data.ohlcAggregate(windowed, targetPoints)
+            }
+          } else {
+            reduced = Data.lttbDownsample(windowed, targetPoints)
+          }
+        }
         ser[i] = { ...ser[i], data: reduced }
       }
 
@@ -1555,6 +1572,65 @@ export default class Data {
     // Always include the last point.
     sampled.push(data[len - 1])
     return sampled
+  }
+
+  /**
+   * OHLC-aware bucket aggregation for candlestick / OHLC series.
+   *
+   * Each point's y is a 4-tuple `[open, high, low, close]`. LTTB is unusable
+   * here — it treats y as a scalar, so the triangle-area math degenerates and
+   * silently discards the high/low extremes that *define* a candle. Instead we
+   * split the series into `targetPoints` contiguous buckets and roll each up
+   * into a single candle: open = first bucket open, close = last bucket close,
+   * high = max of highs, low = min of lows. The x is the first point's x in the
+   * bucket. Output keeps the input's format ([{x,y}] or [[x,y]]).
+   *
+   * @param {any[]} data         - Raw OHLC series in [{x,y:[o,h,l,c]}] or [[x,[o,h,l,c]]] format.
+   * @param {number} targetPoints - Desired output length (>= 1).
+   * @returns {any[]} Aggregated array in the same format as the input.
+   */
+  static ohlcAggregate(data, targetPoints) {
+    const len = data.length
+    if (targetPoints >= len || targetPoints < 1) return data
+
+    const isXY = !Array.isArray(data[0])
+    const getX = isXY
+      ? (/** @type {any} */ p) => p.x
+      : (/** @type {any} */ p) => p[0]
+    const getY = isXY
+      ? (/** @type {any} */ p) => p.y
+      : (/** @type {any} */ p) => p[1]
+    const make = isXY
+      ? (/** @type {any} */ x, /** @type {any} */ y) => ({ x, y })
+      : (/** @type {any} */ x, /** @type {any} */ y) => [x, y]
+
+    const out = []
+    const bucketSize = len / targetPoints
+
+    for (let i = 0; i < targetPoints; i++) {
+      const start = Math.floor(i * bucketSize)
+      // Last bucket absorbs any remainder so the final close is never dropped.
+      const end =
+        i === targetPoints - 1 ? len : Math.floor((i + 1) * bucketSize)
+      if (end <= start) continue
+
+      const firstY = getY(data[start])
+      let open = firstY[0]
+      let high = firstY[1]
+      let low = firstY[2]
+      let close = firstY[3]
+
+      for (let j = start + 1; j < end; j++) {
+        const y = getY(data[j])
+        if (y[1] > high) high = y[1]
+        if (y[2] < low) low = y[2]
+        close = y[3]
+      }
+
+      out.push(make(getX(data[start]), [open, high, low, close]))
+    }
+
+    return out
   }
 
   excludeCollapsedSeriesInYAxis() {

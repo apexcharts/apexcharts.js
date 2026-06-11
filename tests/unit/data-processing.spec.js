@@ -230,3 +230,59 @@ describe('Data.lttbDownsample', () => {
     expect(ys).toContain(100)
   })
 })
+
+describe('Data.ohlcAggregate', () => {
+  // y = [open, high, low, close]
+  const mkXY = (n) =>
+    Array.from({ length: n }, (_, i) => ({ x: i, y: [i, i + 1, i - 1, i + 0.5] }))
+
+  it('returns original data when length <= targetPoints', () => {
+    const data = mkXY(3)
+    expect(Data.ohlcAggregate(data, 5)).toBe(data)
+  })
+
+  it('reduces to exactly targetPoints', () => {
+    const result = Data.ohlcAggregate(mkXY(500), 100)
+    expect(result.length).toBe(100)
+  })
+
+  it('rolls up open=first, close=last, high=max, low=min per bucket', () => {
+    // 4 candles → 1 bucket. open=10 (first), close=13 (last), high=99, low=1.
+    const data = [
+      { x: 0, y: [10, 20, 5, 11] },
+      { x: 1, y: [11, 99, 8, 12] }, // the high
+      { x: 2, y: [12, 30, 1, 13] }, // the low
+      { x: 3, y: [13, 25, 9, 13] },
+    ]
+    const [candle] = Data.ohlcAggregate(data, 1)
+    expect(candle.x).toBe(0)
+    expect(candle.y).toEqual([10, 99, 1, 13])
+  })
+
+  it('does NOT drop high/low extremes (the LTTB-on-OHLC bug)', () => {
+    // A spike high in the middle must survive aggregation.
+    const data = mkXY(100).map((p, i) =>
+      i === 50 ? { x: i, y: [i, 1000, -1000, i + 0.5] } : p,
+    )
+    const result = Data.ohlcAggregate(data, 10)
+    const highs = result.map((p) => p.y[1])
+    const lows = result.map((p) => p.y[2])
+    expect(Math.max(...highs)).toBe(1000)
+    expect(Math.min(...lows)).toBe(-1000)
+  })
+
+  it('works with 2D array format [[x, [o,h,l,c]]]', () => {
+    const data = Array.from({ length: 200 }, (_, i) => [i, [i, i + 1, i - 1, i + 0.5]])
+    const result = Data.ohlcAggregate(data, 50)
+    expect(result.length).toBe(50)
+    expect(Array.isArray(result[0])).toBe(true)
+    expect(Array.isArray(result[0][1])).toBe(true)
+  })
+
+  it('keeps the final close (last bucket absorbs the remainder)', () => {
+    // 10 points, 3 buckets → uneven; last close must be the series last close.
+    const data = mkXY(10)
+    const result = Data.ohlcAggregate(data, 3)
+    expect(result[result.length - 1].y[3]).toBe(data[9].y[3])
+  })
+})
