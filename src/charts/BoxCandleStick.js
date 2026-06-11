@@ -115,6 +115,18 @@ class BoxCandleStick extends Bar {
       /** @type {{groups:{fill:string|null,d:string}[], j:number}[]} */
       const pointsByCat = []
 
+      // Viewport culling (vertical candlestick / OHLC / boxPlot): for bars whose
+      // pixel-x falls outside the plot area (+ a one-bar buffer) drawVerticalBoxPaths
+      // returns before building the (costly) path string + pathFrom, and we skip
+      // DOM creation here. Pixel-space testing means this is automatic on zoom/pan
+      // (off-screen bars get a barXPosition < 0 or > gridWidth) and a complete no-op
+      // when the whole series fits. drawVerticalBoxPaths still computes each bar's
+      // x/y positions before the early-out, so the seriesXvalues/seriesYvalues
+      // arrays below stay filled for every j and tooltip/crosshair index-mapping
+      // stays correct for the culled bars.
+      const gridW = w.layout.gridWidth
+      const cullBuffer = barWidth ?? 0
+
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex)
 
@@ -145,11 +157,25 @@ class BoxCandleStick extends Bar {
             xDivision,
             barWidth,
             zeroH,
+            cullBounds: { lo: -cullBuffer, hi: gridW + cullBuffer },
           })
         }
 
         y = paths.y
         x = paths.x
+
+        // push current X / Y for every bar — even culled ones — so downstream
+        // tooltip/crosshair index-mapping (seriesXvalues/seriesYvalues) is dense.
+        if (j > 0) {
+          xArrj.push(x + (barWidth ?? 0) / 2)
+        }
+        yArrj.push(y)
+
+        // drawVerticalBoxPaths returns culled:true for off-screen bars (it
+        // skipped the path-string build). Horizontal bars are never culled.
+        if (paths.culled) {
+          continue
+        }
 
         const barGoalLine = this.barHelpers.drawGoalLine({
           barXPosition: paths.barXPosition,
@@ -163,13 +189,6 @@ class BoxCandleStick extends Bar {
         if (barGoalLine) {
           elGoalsMarkers.add(barGoalLine)
         }
-
-        // push current X
-        if (j > 0) {
-          xArrj.push(x + (barWidth ?? 0) / 2)
-        }
-
-        yArrj.push(y)
 
         /**
          * @param {string} pathTo
@@ -281,7 +300,7 @@ class BoxCandleStick extends Bar {
     return ret
   }
 
-  /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any, strokeWidth: any}} opts */
+  /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any, strokeWidth: any, cullBounds?: {lo: number, hi: number}|null}} opts */
   drawVerticalBoxPaths({
     indexes,
     x,
@@ -289,6 +308,7 @@ class BoxCandleStick extends Bar {
     barWidth,
     zeroH,
     strokeWidth,
+    cullBounds = null,
   }) {
     const w = this.w
     const graphics = new Graphics(this.w)
@@ -345,6 +365,28 @@ class BoxCandleStick extends Bar {
       l1 = zeroH - ohlc.h / yRatio
       l2 = zeroH - ohlc.l / yRatio
       m = zeroH - ohlc.m / yRatio
+    }
+
+    // Viewport cull: an off-screen bar skips the path-string build below (and
+    // pathFrom). Positions (barXPosition / y2 / advanced x) are already computed,
+    // so the caller still fills seriesXvalues/seriesYvalues densely — only the
+    // string concatenation + DOM work is avoided. x advances exactly as the
+    // normal return path would (category axis accumulates xDivision; numeric
+    // recomputes from seriesX next iteration so its returned x is moot).
+    if (
+      cullBounds &&
+      (barXPosition + barWidth < cullBounds.lo ||
+        barXPosition > cullBounds.hi)
+    ) {
+      return {
+        pathTo: null,
+        pathFrom: null,
+        x: w.axisFlags.isXNumeric ? x : x + xDivision,
+        y: y2,
+        barXPosition,
+        color,
+        culled: true,
+      }
     }
 
     let pathTo
