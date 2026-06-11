@@ -305,6 +305,15 @@ export default class Options {
           // and the user has the accessibility preference enabled, all initial-mount
           // animations are skipped and the chart renders instantly.
           respectReducedMotion: true,
+          // Above this many data points, per-element morph + stagger (which
+          // spins up one JS-driven animation timeline per path — three chained
+          // tweens each in morphSVG) is replaced by a single GPU-composited
+          // opacity fade of the whole series. Thousands of candlesticks/bars
+          // otherwise jank the main thread on initial render and on every zoom.
+          // The fade reuses the existing delayedElements reveal so the result
+          // still animates in, just at O(1) cost instead of O(n). Set to 0 to
+          // always animate per-element regardless of dataset size.
+          largeDatasetThreshold: 1000,
         },
         background: '',
         locales: [en],

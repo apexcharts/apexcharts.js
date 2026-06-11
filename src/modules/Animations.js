@@ -339,6 +339,41 @@ export default class Animations {
     )
   }
 
+  /**
+   * Opacity-fade reveal (see Graphics.renderPaths `revealViaFade`): hide this
+   * path immediately, then reveal the whole series in a single CSS opacity fade
+   * once the synchronous draw pass has finished. Used for two cases that both
+   * want to avoid per-path morphs: the large-dataset bulk render (>
+   * largeDatasetThreshold) and candlestick/boxPlot data-change updates (where an
+   * index-based morph would slide candles around on zoom). Every faded path is
+   * pushed to delayedElements, but only the first one schedules the reveal — a
+   * lone requestAnimationFrame fires after all paths are in the DOM, so N paths
+   * cost one frame callback instead of N morph timelines. The guard flag is
+   * reset inside the callback (and in initGlobalVars) so subsequent renders
+   * re-arm it.
+   * @param {any} el
+   */
+  revealBulk(el) {
+    const w = this.w
+    el.node.classList.add('apexcharts-element-hidden')
+    w.globals.delayedElements.push({ el: el.node })
+
+    if (!Environment.isBrowser() || !w.globals.shouldAnimate) {
+      // No animation frame to wait on (SSR / animation off) — reveal at once so
+      // the serialized output isn't frozen at opacity 0.
+      this.animationCompleted(el)
+      return
+    }
+
+    if (!w.globals.bulkRevealScheduled) {
+      w.globals.bulkRevealScheduled = true
+      BrowserAPIs.requestAnimationFrame(() => {
+        w.globals.bulkRevealScheduled = false
+        this.animationCompleted(el)
+      })
+    }
+  }
+
   showDelayedElements() {
     /**
      * @param {object} d

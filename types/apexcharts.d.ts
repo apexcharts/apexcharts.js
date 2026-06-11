@@ -641,6 +641,15 @@ type ApexChart = {
      * instantly. Set to false to override (e.g. for QA / demo screens).
      */
     respectReducedMotion?: boolean
+    /**
+     * Above this many data points (default 1000), the per-element morph +
+     * stagger — which spins up one JS-driven animation timeline per path — is
+     * replaced by a single GPU-composited opacity fade of the whole series.
+     * Keeps initial render and zoom transitions smooth on large datasets
+     * (e.g. thousands of candlesticks/bars). Set to 0 to always animate
+     * per-element regardless of dataset size.
+     */
+    largeDatasetThreshold?: number
   }
   accessibility?: {
     enabled?: boolean

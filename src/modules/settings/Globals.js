@@ -102,6 +102,9 @@ export default class Globals {
 
     // ── Animation (ephemeral — reset at the start of each render pass) ──
     gl.animationEnded = false
+    // Guards the single rAF that reveals a large-dataset bulk render (see
+    // Animations.revealBulk). Re-armed each render so updates fade in too.
+    gl.bulkRevealScheduled = false
 
     // ── Caches (ephemeral — cleared so stale DOM refs/measurements don't persist) ──
     gl.resizeTimer = null

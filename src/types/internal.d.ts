@@ -335,6 +335,9 @@ export interface ChartGlobals
   animationEnded: boolean
   shouldAnimate: boolean
   previousPaths: any[]
+  // Guards the single rAF that reveals a large-dataset bulk render
+  // (see Animations.revealBulk). Re-armed each render so updates fade in too.
+  bulkRevealScheduled: boolean
 
   // ── Data format flags ─────────────────────────────────────────────────────
   columnSeries: object | null

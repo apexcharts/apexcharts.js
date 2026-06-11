@@ -533,7 +533,43 @@ class Graphics {
       isDrawableSeries
     )
 
-    if (shouldAnimate && !useDrawMode) {
+    // Large-dataset fast path: morphSVG chains three JS-driven tweens per path,
+    // so animating thousands of candlesticks/bars individually ties up the main
+    // thread and janks the initial render (and every zoom re-render). Above
+    // chart.animations.largeDatasetThreshold we instead render each path at its
+    // final position and reveal the whole series with a single GPU-composited
+    // opacity fade (reusing delayedElements + apexcharts-element-hidden). Set the
+    // threshold to 0 to always animate per-element regardless of dataset size.
+    const largeThreshold = w.config.chart.animations.largeDatasetThreshold ?? 0
+    const bulkRender = !!(
+      shouldAnimate &&
+      !useDrawMode &&
+      largeThreshold > 0 &&
+      w.globals.dataPoints > largeThreshold
+    )
+
+    // Candlestick / OHLC / boxPlot data-change reveal. The per-path morph is
+    // index-based (candle j → candle j), so on a data change — especially zoom /
+    // pan, where the index→x mapping shifts — every candle slides to a new x and
+    // reshapes, which reads as chaotic churn. For these types we instead render
+    // in the final position and fade the series in (same opacity reveal as the
+    // large-dataset bulk path). Initial mount keeps its grow-from-baseline morph
+    // (dataChanged is false there). Honors dynamicAnimation.enabled via
+    // shouldAnimate — when off, the branch below snaps with no fade.
+    const isCandleOrBox =
+      chartType === 'candlestick' || chartType === 'boxPlot'
+    const fadeOnDataChange = !!(
+      isCandleOrBox &&
+      shouldAnimate &&
+      !useDrawMode &&
+      w.globals.dataChanged
+    )
+
+    // Either path renders at the final position and reveals via one CSS opacity
+    // fade rather than a per-path morph.
+    const revealViaFade = bulkRender || fadeOnDataChange
+
+    if (shouldAnimate && !useDrawMode && !revealViaFade) {
       d = pathFrom
     } else {
       d = pathTo
@@ -629,23 +665,34 @@ class Graphics {
           delay: 0,
           mask: drawMask,
         })
-      } else {
+      } else if (!revealViaFade) {
         anim.animatePathsGradually({
           ...defaultAnimateOpts,
           speed: initialSpeed,
         })
       }
     } else {
-      if (w.globals.resized || !w.globals.dataChanged) {
+      // Skip the immediate reveal when we're fading in via revealBulk — it owns
+      // the reveal (a single scheduled rAF), so revealing here would pre-empt it.
+      if ((w.globals.resized || !w.globals.dataChanged) && !revealViaFade) {
         anim.showDelayedElements()
       }
     }
 
-    if (w.globals.dataChanged && dynamicAnim && shouldAnimate) {
+    if (
+      w.globals.dataChanged &&
+      dynamicAnim &&
+      shouldAnimate &&
+      !revealViaFade
+    ) {
       anim.animatePathsGradually({
         ...defaultAnimateOpts,
         speed: dataChangeSpeed,
       })
+    }
+
+    if (revealViaFade) {
+      anim.revealBulk(el)
     }
 
     return el
