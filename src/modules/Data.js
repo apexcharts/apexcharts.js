@@ -1615,7 +1615,7 @@ export default class Data {
       if (end <= start) continue
 
       const firstY = getY(data[start])
-      let open = firstY[0]
+      const open = firstY[0]
       let high = firstY[1]
       let low = firstY[2]
       let close = firstY[3]
