@@ -2335,6 +2335,8 @@ class BoxCandleStick extends Bar {
       });
       const boxPointsOpts = this.isBoxPlot ? this.boxOptions.points : null;
       const pointsByCat = [];
+      const gridW = w.layout.gridWidth;
+      const cullBuffer = barWidth != null ? barWidth : 0;
       for (let j = 0; j < w.globals.dataPoints; j++) {
         const strokeWidth = this.barHelpers.getStrokeWidth(i, j, realIndex);
         let paths = (
@@ -2363,11 +2365,19 @@ class BoxCandleStick extends Bar {
           paths = this.drawVerticalBoxPaths(__spreadProps(__spreadValues({}, pathsParams), {
             xDivision,
             barWidth,
-            zeroH
+            zeroH,
+            cullBounds: { lo: -cullBuffer, hi: gridW + cullBuffer }
           }));
         }
         y = paths.y;
         x = paths.x;
+        if (j > 0) {
+          xArrj.push(x + (barWidth != null ? barWidth : 0) / 2);
+        }
+        yArrj.push(y);
+        if (paths.culled) {
+          continue;
+        }
         const barGoalLine = this.barHelpers.drawGoalLine({
           barXPosition: paths.barXPosition,
           barYPosition: paths.barYPosition,
@@ -2379,10 +2389,6 @@ class BoxCandleStick extends Bar {
         if (barGoalLine) {
           elGoalsMarkers.add(barGoalLine);
         }
-        if (j > 0) {
-          xArrj.push(x + (barWidth != null ? barWidth : 0) / 2);
-        }
-        yArrj.push(y);
         paths.pathTo.forEach(
           (pathTo, pi) => {
             const lineFill = !this.isBoxPlot && this.candlestickOptions.wick.useFillColor ? paths.color[pi] : w.globals.stroke.colors[i];
@@ -2475,14 +2481,15 @@ class BoxCandleStick extends Bar {
     }
     return ret;
   }
-  /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any, strokeWidth: any}} opts */
+  /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any, strokeWidth: any, cullBounds?: {lo: number, hi: number}|null}} opts */
   drawVerticalBoxPaths({
     indexes,
     x,
     xDivision,
     barWidth,
     zeroH,
-    strokeWidth
+    strokeWidth,
+    cullBounds = null
   }) {
     var _a, _b;
     const w = this.w;
@@ -2521,6 +2528,17 @@ class BoxCandleStick extends Bar {
       l1 = zeroH - ohlc.h / yRatio;
       l2 = zeroH - ohlc.l / yRatio;
       m = zeroH - ohlc.m / yRatio;
+    }
+    if (cullBounds && (barXPosition + barWidth < cullBounds.lo || barXPosition > cullBounds.hi)) {
+      return {
+        pathTo: null,
+        pathFrom: null,
+        x: w.axisFlags.isXNumeric ? x : x + xDivision,
+        y: y2,
+        barXPosition,
+        color,
+        culled: true
+      };
     }
     let pathTo;
     if (this.isOHLC) {

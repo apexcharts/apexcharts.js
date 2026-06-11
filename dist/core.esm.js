@@ -3456,7 +3456,16 @@ class Options {
           // Honor the OS-level prefers-reduced-motion setting. When true (default)
           // and the user has the accessibility preference enabled, all initial-mount
           // animations are skipped and the chart renders instantly.
-          respectReducedMotion: true
+          respectReducedMotion: true,
+          // Above this many data points, per-element morph + stagger (which
+          // spins up one JS-driven animation timeline per path — three chained
+          // tweens each in morphSVG) is replaced by a single GPU-composited
+          // opacity fade of the whole series. Thousands of candlesticks/bars
+          // otherwise jank the main thread on initial render and on every zoom.
+          // The fade reuses the existing delayedElements reveal so the result
+          // still animates in, just at O(1) cost instead of O(n). Set to 0 to
+          // always animate per-element regardless of dataset size.
+          largeDatasetThreshold: 1e3
         },
         background: "",
         locales: [en],
@@ -5044,6 +5053,7 @@ class Globals {
     gl.barHeight = 0;
     gl.barWidth = 0;
     gl.animationEnded = false;
+    gl.bulkRevealScheduled = false;
     gl.resizeTimer = null;
     gl.selectionResizeTimer = null;
     gl.lastWheelExecution = 0;
@@ -6546,6 +6556,36 @@ class Animations {
       delay * delayFactor
     );
   }
+  /**
+   * Opacity-fade reveal (see Graphics.renderPaths `revealViaFade`): hide this
+   * path immediately, then reveal the whole series in a single CSS opacity fade
+   * once the synchronous draw pass has finished. Used for two cases that both
+   * want to avoid per-path morphs: the large-dataset bulk render (>
+   * largeDatasetThreshold) and candlestick/boxPlot data-change updates (where an
+   * index-based morph would slide candles around on zoom). Every faded path is
+   * pushed to delayedElements, but only the first one schedules the reveal — a
+   * lone requestAnimationFrame fires after all paths are in the DOM, so N paths
+   * cost one frame callback instead of N morph timelines. The guard flag is
+   * reset inside the callback (and in initGlobalVars) so subsequent renders
+   * re-arm it.
+   * @param {any} el
+   */
+  revealBulk(el) {
+    const w = this.w;
+    el.node.classList.add("apexcharts-element-hidden");
+    w.globals.delayedElements.push({ el: el.node });
+    if (!Environment.isBrowser() || !w.globals.shouldAnimate) {
+      this.animationCompleted(el);
+      return;
+    }
+    if (!w.globals.bulkRevealScheduled) {
+      w.globals.bulkRevealScheduled = true;
+      BrowserAPIs.requestAnimationFrame(() => {
+        w.globals.bulkRevealScheduled = false;
+        this.animationCompleted(el);
+      });
+    }
+  }
   showDelayedElements() {
     this.w.globals.delayedElements.forEach((d) => {
       const ele = d.el;
@@ -7265,7 +7305,7 @@ class Graphics {
     drawShadow = true,
     drawMask = null
   }) {
-    var _a;
+    var _a, _b;
     const w = this.w;
     const filters = new Filters(this.w);
     const anim = new Animations(this.w, (_a = this.ctx) != null ? _a : void 0);
@@ -7281,7 +7321,12 @@ class Graphics {
     const shouldAnimate = !!(initialAnim && !w.globals.resized || dynamicAnim && w.globals.dataChanged && w.globals.shouldAnimate);
     const isDrawableSeries = typeof className === "string" && (className.indexOf("apexcharts-line") > -1 || className.indexOf("apexcharts-area") > -1 || className.indexOf("apexcharts-rangeArea") > -1 || className.indexOf("apexcharts-radar") > -1);
     const useDrawMode = !!(initialAnim && !w.globals.resized && !w.globals.dataChanged && isDrawableSeries);
-    if (shouldAnimate && !useDrawMode) {
+    const largeThreshold = (_b = w.config.chart.animations.largeDatasetThreshold) != null ? _b : 0;
+    const bulkRender = !!(shouldAnimate && !useDrawMode && largeThreshold > 0 && w.globals.dataPoints > largeThreshold);
+    const isCandleOrBox = chartType === "candlestick" || chartType === "boxPlot";
+    const fadeOnDataChange = !!(isCandleOrBox && shouldAnimate && !useDrawMode && w.globals.dataChanged);
+    const revealViaFade = bulkRender || fadeOnDataChange;
+    if (shouldAnimate && !useDrawMode && !revealViaFade) {
       d = pathFrom;
     } else {
       d = pathTo;
@@ -7355,20 +7400,23 @@ class Graphics {
           delay: 0,
           mask: drawMask
         });
-      } else {
+      } else if (!revealViaFade) {
         anim.animatePathsGradually(__spreadProps(__spreadValues({}, defaultAnimateOpts), {
           speed: initialSpeed
         }));
       }
     } else {
-      if (w.globals.resized || !w.globals.dataChanged) {
+      if ((w.globals.resized || !w.globals.dataChanged) && !revealViaFade) {
         anim.showDelayedElements();
       }
     }
-    if (w.globals.dataChanged && dynamicAnim && shouldAnimate) {
+    if (w.globals.dataChanged && dynamicAnim && shouldAnimate && !revealViaFade) {
       anim.animatePathsGradually(__spreadProps(__spreadValues({}, defaultAnimateOpts), {
         speed: dataChangeSpeed
       }));
+    }
+    if (revealViaFade) {
+      anim.revealBulk(el);
     }
     return el;
   }
@@ -15766,7 +15814,7 @@ class Data {
    * @param {any[]} ser
    */
   parseDataAxisCharts(ser) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e, _f;
     const cnf = this.w.config;
     const gl = this.w.globals;
     const dt = new DateTime(this.w);
@@ -15829,7 +15877,17 @@ class Data {
         const xmin = cnf.xaxis.min;
         const xmax = cnf.xaxis.max;
         const windowed = xmin == null && xmax == null ? rawStash : Data.sliceByXRange(rawStash, xmin, xmax);
-        const reduced = windowed.length > targetPoints ? Data.lttbDownsample(windowed, targetPoints) : windowed;
+        let reduced = windowed;
+        if (windowed.length > targetPoints) {
+          const sampleY = !Array.isArray(windowed[0]) ? (_e = windowed[0]) == null ? void 0 : _e.y : (_f = windowed[0]) == null ? void 0 : _f[1];
+          if (Array.isArray(sampleY)) {
+            if (sampleY.length === 4) {
+              reduced = Data.ohlcAggregate(windowed, targetPoints);
+            }
+          } else {
+            reduced = Data.lttbDownsample(windowed, targetPoints);
+          }
+        }
         ser[i] = __spreadProps(__spreadValues({}, ser[i]), { data: reduced });
       }
       if (cnf.chart.type === "rangeBar" || cnf.chart.type === "rangeArea" || ser[i].type === "rangeBar" || ser[i].type === "rangeArea") {
@@ -16469,6 +16527,49 @@ class Data {
     }
     sampled.push(data[len - 1]);
     return sampled;
+  }
+  /**
+   * OHLC-aware bucket aggregation for candlestick / OHLC series.
+   *
+   * Each point's y is a 4-tuple `[open, high, low, close]`. LTTB is unusable
+   * here — it treats y as a scalar, so the triangle-area math degenerates and
+   * silently discards the high/low extremes that *define* a candle. Instead we
+   * split the series into `targetPoints` contiguous buckets and roll each up
+   * into a single candle: open = first bucket open, close = last bucket close,
+   * high = max of highs, low = min of lows. The x is the first point's x in the
+   * bucket. Output keeps the input's format ([{x,y}] or [[x,y]]).
+   *
+   * @param {any[]} data         - Raw OHLC series in [{x,y:[o,h,l,c]}] or [[x,[o,h,l,c]]] format.
+   * @param {number} targetPoints - Desired output length (>= 1).
+   * @returns {any[]} Aggregated array in the same format as the input.
+   */
+  static ohlcAggregate(data, targetPoints) {
+    const len = data.length;
+    if (targetPoints >= len || targetPoints < 1) return data;
+    const isXY = !Array.isArray(data[0]);
+    const getX = isXY ? (p) => p.x : (p) => p[0];
+    const getY = isXY ? (p) => p.y : (p) => p[1];
+    const make = isXY ? (x, y) => ({ x, y }) : (x, y) => [x, y];
+    const out = [];
+    const bucketSize = len / targetPoints;
+    for (let i = 0; i < targetPoints; i++) {
+      const start = Math.floor(i * bucketSize);
+      const end = i === targetPoints - 1 ? len : Math.floor((i + 1) * bucketSize);
+      if (end <= start) continue;
+      const firstY = getY(data[start]);
+      let open = firstY[0];
+      let high = firstY[1];
+      let low = firstY[2];
+      let close = firstY[3];
+      for (let j = start + 1; j < end; j++) {
+        const y = getY(data[j]);
+        if (y[1] > high) high = y[1];
+        if (y[2] < low) low = y[2];
+        close = y[3];
+      }
+      out.push(make(getX(data[start]), [open, high, low, close]));
+    }
+    return out;
   }
   excludeCollapsedSeriesInYAxis() {
     const w = this.w;

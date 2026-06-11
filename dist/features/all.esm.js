@@ -2635,7 +2635,8 @@ class ZoomPanSelection extends Toolbar {
       const clampMax = (_c = w.globals.dataReducerRawMaxX) != null ? _c : w.globals.initialMaxX;
       newMinX = Math.max(newMinX, clampMin);
       newMaxX = Math.min(newMaxX, clampMax);
-      const minRange = (clampMax - clampMin) * 0.01;
+      const minXDiff = w.globals.minXDiff > 0 && isFinite(w.globals.minXDiff) ? w.globals.minXDiff : 0;
+      const minRange = Math.max(minXDiff * 2, (clampMax - clampMin) * 1e-6);
       if (newMaxX - newMinX < minRange) {
         const midPoint = (newMinX + newMaxX) / 2;
         newMinX = midPoint - minRange / 2;

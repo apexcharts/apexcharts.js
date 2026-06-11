@@ -188,7 +188,7 @@ class Pie {
    * @param {any[]} series
    */
   drawArcs(sectorAngleArr, series) {
-    var _a;
+    var _a, _b;
     const w = this.w;
     const filters = new Filters(this.w);
     const graphics = new Graphics(this.w);
@@ -224,7 +224,13 @@ class Pie {
       const path = morphFrom || this.getChangedPath(prevStartAngle, prevEndAngle);
       const elPath = graphics.drawPath({
         d: path,
-        stroke: Array.isArray(this.lineColorArr) ? this.lineColorArr[i] : this.lineColorArr,
+        // Pie/donut/polarArea data is a single series, so a user-supplied
+        // `stroke.colors` shorter than the slice count is NOT padded by the
+        // theme engine (unlike fill colors, which cycle). Without this, only
+        // slice 0 gets the requested color and the rest fall back to a grey
+        // default. Cycle the array — matching fill-color behaviour — so a
+        // single `stroke.colors: ['#fff']` borders every slice as expected.
+        stroke: Array.isArray(this.lineColorArr) ? (_b = this.lineColorArr[i]) != null ? _b : this.lineColorArr[i % this.lineColorArr.length] : this.lineColorArr,
         strokeWidth: 0,
         fill: pathFill,
         fillOpacity: w.config.fill.opacity,
