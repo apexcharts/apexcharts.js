@@ -19,6 +19,16 @@ test.describe('Heatmap gradient legend — hover arrow', () => {
   test('arrow tracks hovered cell value along the strip', async ({ page, loadChart }) => {
     await loadChart('heatmap', 'gradient-legend')
 
+    // The sample places the legend on the right (vertical strip). Force a
+    // horizontal placement so we can assert the arrow tip moves along X.
+    // (The vertical case is covered by the sibling test below.)
+    await page.evaluate(() => {
+      window.chart.updateOptions({ legend: { position: 'bottom' } })
+    })
+    await page.waitForFunction(
+      () => !!document.querySelector('polygon.apexcharts-heatmap-gradient-arrow'),
+    )
+
     // Sanity — gradient legend SVG and arrow are present, arrow hidden.
     const arrow = page.locator('polygon.apexcharts-heatmap-gradient-arrow')
     await expect(arrow).toHaveCount(1)
@@ -77,14 +87,10 @@ test.describe('Heatmap gradient legend — hover arrow', () => {
     // rightward as value increases.
     expect(highTipX).toBeGreaterThan(lowTipX)
 
-    // Move the mouse outside the chart to fire mouseleave; the arrow should
-    // hide again.
-    await page.evaluate(() => {
-      const cells = document.querySelectorAll('.apexcharts-heatmap-rect')
-      for (const c of cells) {
-        c.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }))
-      }
-    })
+    // Move the real mouse off the chart so the cell fires a genuine mouseout
+    // (heatmap hover uses mouseover/mouseout delegation, so a synthetic
+    // non-bubbling 'mouseleave' wouldn't reach the handler). The arrow hides.
+    await page.mouse.move(1, 1)
     await expect(arrow).toHaveAttribute('opacity', '0')
   })
 
