@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>CandleStick Chart - Large Dataset (Data Reducer)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Deterministic OHLC generator (no Math.random, so snapshots stay stable
+      // across runs). 2000 daily candles — far more than can be visually resolved in
+      // the chart's width, so chart.dataReducer downsamples them with OHLC-aware
+      // bucket aggregation (open=first, high=max, low=min, close=last) down to
+      // ~targetPoints. The reducer is zoom-aware: it re-slices the raw series to the
+      // visible x-window on each zoom and re-aggregates, so zooming in progressively
+      // reveals more detail while every frame stays cheap to render. See
+      // Data.parseDataAxisCharts (the dataReducer block) + Data.ohlcAggregate.
+      window.generateCandles = function (count) {
+        var data = []
+        var base = new Date(2015, 0, 1).getTime()
+        var day = 86400000
+        var last = 100
+        for (var i = 0; i < count; i++) {
+          // Pseudo-random in [0,1) from a hashed sine — deterministic per index.
+          var noise = Math.sin(i * 12.9898) * 43758.5453
+          noise = noise - Math.floor(noise)
+          var move = (noise - 0.5) * 4 + Math.sin(i / 50) * 2
+          var open = last
+          var close = Math.round((open + move) * 100) / 100
+          var high = Math.round((Math.max(open, close) + noise * 3) * 100) / 100
+          var low = Math.round((Math.min(open, close) - noise * 3) * 100) / 100
+          data.push({ x: base + i * day, y: [open, high, low, close] })
+          last = close
+        }
+        return data
+      }
+    </script>
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            data: generateCandles(2000),
+          },
+        ],
+        chart: {
+          type: 'candlestick',
+          height: 350,
+          // Zoom-aware OHLC downsampling. The raw 2000 candles can't be resolved at the
+          // chart's pixel width, so they're bucket-aggregated down to ~targetPoints for
+          // a cheap render; zooming re-slices the raw data to the visible window and
+          // re-aggregates, so detail increases as you zoom in (once the window holds
+          // fewer than targetPoints candles, every raw candle is shown).
+          dataReducer: {
+            enabled: true,
+            targetPoints: 250,
+          },
+          zoom: {
+            // Rescale the y-axis to the high/low range of the candles inside the
+            // zoomed x-window. Range.js already narrows the y-scan to the visible
+            // window for candlesticks; this flag (off by default library-wide) opts
+            // this large-dataset demo into the stock-chart-style autoscale on zoom.
+            autoScaleYaxis: true,
+          },
+        },
+        title: {
+          text: 'Large Dataset (2000 candles) — Data Reducer',
+          align: 'left',
+        },
+        xaxis: {
+          type: 'datetime',
+        },
+        yaxis: {
+          tooltip: {
+            enabled: true,
+          },
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+
+    
+  </body>
+</html>
