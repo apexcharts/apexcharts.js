@@ -337,8 +337,20 @@ export default class ZoomPanSelection extends Toolbar {
       newMinX = Math.max(newMinX, clampMin)
       newMaxX = Math.min(newMaxX, clampMax)
 
-      // Ensure minimum range
-      const minRange = (clampMax - clampMin) * 0.01
+      // Floor the zoom-in window at ~2 data points' worth of x-span (minXDiff is
+      // the smallest gap between consecutive x values), not a fixed 1% of the
+      // full data span. The old 1% floor stopped wheel-zoom far short of the
+      // toolbar's zoom-in button (which has no floor): on a 2000-point series 1%
+      // ≈ 20 points, after which the window stopped shrinking and just panned
+      // toward the cursor each scroll (looked like "zoom does nothing but shift
+      // the timeline a few pixels"). Tying the floor to point spacing lets the
+      // wheel zoom in as deep as the toolbar while still preventing a degenerate
+      // (zero-width / NaN-producing) range.
+      const minXDiff =
+        w.globals.minXDiff > 0 && isFinite(w.globals.minXDiff)
+          ? w.globals.minXDiff
+          : 0
+      const minRange = Math.max(minXDiff * 2, (clampMax - clampMin) * 1e-6)
       if (newMaxX - newMinX < minRange) {
         const midPoint = (newMinX + newMaxX) / 2
         newMinX = midPoint - minRange / 2
