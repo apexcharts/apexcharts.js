@@ -10,6 +10,7 @@ tests/e2e/diffs
 .nyc_output
 .vscode
 bundle-analysis.html
+dist/demos/
 /nbproject/private/
 
 # Vite
