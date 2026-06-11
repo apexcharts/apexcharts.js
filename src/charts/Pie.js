@@ -303,8 +303,15 @@ class Pie {
 
       const elPath = graphics.drawPath({
         d: path,
+        // Pie/donut/polarArea data is a single series, so a user-supplied
+        // `stroke.colors` shorter than the slice count is NOT padded by the
+        // theme engine (unlike fill colors, which cycle). Without this, only
+        // slice 0 gets the requested color and the rest fall back to a grey
+        // default. Cycle the array — matching fill-color behaviour — so a
+        // single `stroke.colors: ['#fff']` borders every slice as expected.
         stroke: Array.isArray(this.lineColorArr)
-          ? this.lineColorArr[i]
+          ? this.lineColorArr[i] ??
+            this.lineColorArr[i % this.lineColorArr.length]
           : this.lineColorArr,
         strokeWidth: 0,
         fill: pathFill,
