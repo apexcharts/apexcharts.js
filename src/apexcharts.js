@@ -551,10 +551,13 @@ export default class ApexCharts {
         /** @type {Element} */ (this.el.parentNode),
         this.parentResizeHandler,
       )
+      // cancel any pending resize redraw so a queued update() can't run against
+      // a torn-down chart after destroy(). See react-apexcharts#602.
+      clearTimeout(this.w.globals.resizeTimer ?? undefined)
     }
     // remove the chart's instance from the global Apex._chartInstances
     const chartID = this.w.config.chart.id
-    if (chartID) {
+    if (chartID && Array.isArray(Apex._chartInstances)) {
       /**
        * @param {Record<string, any>} c
        * @param {number} i

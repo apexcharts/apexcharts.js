@@ -91,7 +91,12 @@ export default class Destroy {
   clearDomElements({ isUpdating }) {
     const domEls = /** @type {any} */ (this.w.dom)
 
-    if (Environment.isBrowser()) {
+    // When the chart never completed setupElements() — e.g. it was rendered
+    // while detached from the DOM, so create() bailed out early — domEls.Paper
+    // is undefined. Guard the browser teardown so destroy()/clear() on such an
+    // un-mounted chart doesn't throw "Cannot read properties of undefined
+    // (reading 'node')". See react-apexcharts#602 / vue-apexcharts#256.
+    if (Environment.isBrowser() && domEls.Paper) {
       const elSVG = domEls.Paper.node
       // fixes apexcharts.js#1654 & vue-apexcharts#256
       if (elSVG.parentNode && elSVG.parentNode.parentNode && !isUpdating) {
