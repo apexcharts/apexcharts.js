@@ -102,6 +102,11 @@ export default class Globals {
 
     // ── Animation (ephemeral — reset at the start of each render pass) ──
     gl.animationEnded = false
+    // Set true by Destroy.clear() on a real destroy(). Deferred work scheduled
+    // before teardown (rAF animation callbacks) checks this and bails, so a
+    // chart torn down mid-render (e.g. React StrictMode double-mount) can't
+    // touch its now-cleared DOM. Reset here so a re-render re-arms animations.
+    gl.isDestroyed = false
     // Guards the single rAF that reveals a large-dataset bulk render (see
     // Animations.revealBulk). Re-armed each render so updates fade in too.
     gl.bulkRevealScheduled = false

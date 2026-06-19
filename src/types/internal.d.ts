@@ -333,6 +333,9 @@ export interface ChartGlobals
 
   // ── Animation ─────────────────────────────────────────────────────────────
   animationEnded: boolean
+  // Set true by Destroy.clear() on a real destroy(); deferred rAF animation
+  // callbacks check this and bail so they can't touch a torn-down chart's DOM.
+  isDestroyed: boolean
   shouldAnimate: boolean
   previousPaths: any[]
   // Guards the single rAF that reveals a large-dataset bulk render

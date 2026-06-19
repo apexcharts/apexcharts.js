@@ -368,6 +368,8 @@ export default class Animations {
     if (!w.globals.bulkRevealScheduled) {
       w.globals.bulkRevealScheduled = true
       BrowserAPIs.requestAnimationFrame(() => {
+        // chart may have been destroyed before this frame ran (see animateDraw)
+        if (w.globals.isDestroyed) return
         w.globals.bulkRevealScheduled = false
         this.animationCompleted(el)
       })
@@ -485,6 +487,7 @@ export default class Animations {
       const startAt = performance.now() + (delay || 0)
       /** @param {number} now */
       const step = (now) => {
+        if (w.globals.isDestroyed) return
         const t = Math.max(0, Math.min(1, (now - startAt) / speed))
         const eased = easeOutCubic(t)
         if (isRadial) {
@@ -512,6 +515,7 @@ export default class Animations {
       const startAt = performance.now() + (delay || 0)
       /** @param {number} now */
       const step = (now) => {
+        if (w.globals.isDestroyed) return
         const t = Math.max(0, Math.min(1, (now - startAt) / speed))
         node.setAttribute('stroke-dashoffset', String(len * (1 - easeOutCubic(t))))
         if (t < 1) {
@@ -528,6 +532,12 @@ export default class Animations {
     // Defer one frame: callers (e.g. Line.js for forecast paths) set stroke-dasharray
     // *after* renderPaths returns, so a sync check would miss it.
     BrowserAPIs.requestAnimationFrame(() => {
+      // The chart may have been destroyed before this frame ran (e.g. React
+      // StrictMode mounts, unmounts, then remounts). Its DOM is gone, so bail
+      // before touching it. Fixes "Cannot read properties of null (reading
+      // 'node')" in runMaskReveal. See react-apexcharts#602.
+      if (w.globals.isDestroyed) return
+
       if (isFill) {
         runMaskReveal()
         return

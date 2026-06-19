@@ -15,6 +15,13 @@ export default class Destroy {
    * @param {{ isUpdating: boolean }} opts
    */
   clear({ isUpdating }) {
+    // Mark a real destroy so any deferred work scheduled before teardown
+    // (e.g. rAF draw-animation callbacks) bails instead of touching cleared
+    // DOM. Not set during updates: the chart is rebuilt right after, and
+    // initGlobalVars() resets the flag on the re-render anyway.
+    if (!isUpdating) {
+      this.w.globals.isDestroyed = true
+    }
     if (this.ctx._zoomPanSelection) {
       this.ctx._zoomPanSelection.destroy()
     }
