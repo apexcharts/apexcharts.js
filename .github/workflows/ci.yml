@@ -28,12 +28,12 @@ jobs:
         run: mkdir -p ${{ runner.temp }}/artifacts/head-repository
 
       - name: Checkout base repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ github.event.pull_request.base.repo.full_name }}
           ref: ${{ github.event.pull_request.base.ref }}
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'yarn'
@@ -49,7 +49,7 @@ jobs:
         run: cp -r tests/e2e/snapshots ${{ runner.temp }}/artifacts/base-repository/snapshots
 
       - name: Checkout head repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install head repository's packages
         run: yarn install --frozen-lockfile
       - name: Generate head repository's samples
@@ -76,7 +76,7 @@ jobs:
         run: cp -r coverage ${{ runner.temp }}/artifacts/head-repository/coverage
       - name: Upload Artifacts
         if: '!cancelled()'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: node${{ matrix.node-version }}${{ runner.os }}results
           path: ${{ runner.temp }}/artifacts
@@ -92,9 +92,9 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup Node ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'yarn'

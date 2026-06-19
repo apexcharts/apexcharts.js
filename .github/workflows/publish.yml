@@ -12,7 +12,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check commit message for release trigger
         id: check
@@ -42,10 +42,10 @@ jobs:
           fi
           echo "✅ Version $PKG_VERSION confirmed"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         if: steps.check.outputs.triggered == 'true'
         with:
-          node-version: "20"
+          node-version: "22"
 
       - run: npm install -g npm@latest
         if: steps.check.outputs.triggered == 'true'
