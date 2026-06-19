@@ -22,7 +22,7 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v5.15.1
+ * ApexCharts v5.15.2
  * (c) 2018-2026 ApexCharts
  */
 
@@ -5057,6 +5057,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       gl.barHeight = 0;
       gl.barWidth = 0;
       gl.animationEnded = false;
+      gl.isDestroyed = false;
       gl.bulkRevealScheduled = false;
       gl.resizeTimer = null;
       gl.selectionResizeTimer = null;
@@ -6585,6 +6586,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (!w.globals.bulkRevealScheduled) {
         w.globals.bulkRevealScheduled = true;
         BrowserAPIs.requestAnimationFrame(() => {
+          if (w.globals.isDestroyed) return;
           w.globals.bulkRevealScheduled = false;
           this.animationCompleted(el);
         });
@@ -6678,6 +6680,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         node.setAttribute("mask", `url(#${maskId})`);
         const startAt = performance.now() + (delay || 0);
         const step = (now) => {
+          if (w.globals.isDestroyed) return;
           const t = Math.max(0, Math.min(1, (now - startAt) / speed));
           const eased = easeOutCubic(t);
           if (isRadial) {
@@ -6700,6 +6703,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         node.setAttribute("stroke-dashoffset", String(len));
         const startAt = performance.now() + (delay || 0);
         const step = (now) => {
+          if (w.globals.isDestroyed) return;
           const t = Math.max(0, Math.min(1, (now - startAt) / speed));
           node.setAttribute("stroke-dashoffset", String(len * (1 - easeOutCubic(t))));
           if (t < 1) {
@@ -6713,6 +6717,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         BrowserAPIs.requestAnimationFrame(step);
       };
       BrowserAPIs.requestAnimationFrame(() => {
+        if (w.globals.isDestroyed) return;
         if (isFill) {
           runMaskReveal();
           return;
@@ -22055,6 +22060,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {{ isUpdating: boolean }} opts
      */
     clear({ isUpdating }) {
+      if (!isUpdating) {
+        this.w.globals.isDestroyed = true;
+      }
       if (this.ctx._zoomPanSelection) {
         this.ctx._zoomPanSelection.destroy();
       }

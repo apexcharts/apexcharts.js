@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v5.15.1
+ * ApexCharts v5.15.2
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -5073,6 +5073,7 @@ class Globals {
     gl.barHeight = 0;
     gl.barWidth = 0;
     gl.animationEnded = false;
+    gl.isDestroyed = false;
     gl.bulkRevealScheduled = false;
     gl.resizeTimer = null;
     gl.selectionResizeTimer = null;
@@ -6601,6 +6602,7 @@ class Animations {
     if (!w.globals.bulkRevealScheduled) {
       w.globals.bulkRevealScheduled = true;
       BrowserAPIs.requestAnimationFrame(() => {
+        if (w.globals.isDestroyed) return;
         w.globals.bulkRevealScheduled = false;
         this.animationCompleted(el);
       });
@@ -6694,6 +6696,7 @@ class Animations {
       node.setAttribute("mask", `url(#${maskId})`);
       const startAt = performance.now() + (delay || 0);
       const step = (now) => {
+        if (w.globals.isDestroyed) return;
         const t = Math.max(0, Math.min(1, (now - startAt) / speed));
         const eased = easeOutCubic(t);
         if (isRadial) {
@@ -6716,6 +6719,7 @@ class Animations {
       node.setAttribute("stroke-dashoffset", String(len));
       const startAt = performance.now() + (delay || 0);
       const step = (now) => {
+        if (w.globals.isDestroyed) return;
         const t = Math.max(0, Math.min(1, (now - startAt) / speed));
         node.setAttribute("stroke-dashoffset", String(len * (1 - easeOutCubic(t))));
         if (t < 1) {
@@ -6729,6 +6733,7 @@ class Animations {
       BrowserAPIs.requestAnimationFrame(step);
     };
     BrowserAPIs.requestAnimationFrame(() => {
+      if (w.globals.isDestroyed) return;
       if (isFill) {
         runMaskReveal();
         return;
@@ -22071,6 +22076,9 @@ class Destroy {
    * @param {{ isUpdating: boolean }} opts
    */
   clear({ isUpdating }) {
+    if (!isUpdating) {
+      this.w.globals.isDestroyed = true;
+    }
     if (this.ctx._zoomPanSelection) {
       this.ctx._zoomPanSelection.destroy();
     }
