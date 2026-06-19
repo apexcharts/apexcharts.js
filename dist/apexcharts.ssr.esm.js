@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v5.15.0
+ * ApexCharts v5.15.1
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -16577,7 +16577,7 @@ class Data {
       const end = i === targetPoints - 1 ? len : Math.floor((i + 1) * bucketSize);
       if (end <= start) continue;
       const firstY = getY(data[start]);
-      let open = firstY[0];
+      const open = firstY[0];
       let high = firstY[1];
       let low = firstY[2];
       let close = firstY[3];
@@ -22133,7 +22133,7 @@ class Destroy {
       /** @type {any} */
       this.w.dom
     );
-    if (Environment.isBrowser()) {
+    if (Environment.isBrowser() && domEls.Paper) {
       const elSVG = domEls.Paper.node;
       if (elSVG.parentNode && elSVG.parentNode.parentNode && !isUpdating) {
         elSVG.parentNode.parentNode.style.minHeight = "unset";
@@ -22611,6 +22611,7 @@ class ApexCharts {
    * After calling this, the instance should not be used again.
    */
   destroy() {
+    var _a;
     if (Environment.isBrowser()) {
       window.removeEventListener("resize", this.windowResizeHandler);
       removeResizeListener(
@@ -22618,9 +22619,10 @@ class ApexCharts {
         this.el.parentNode,
         this.parentResizeHandler
       );
+      clearTimeout((_a = this.w.globals.resizeTimer) != null ? _a : void 0);
     }
     const chartID = this.w.config.chart.id;
-    if (chartID) {
+    if (chartID && Array.isArray(Apex._chartInstances)) {
       Apex._chartInstances.forEach(
         (c, i) => {
           if (c.id === Utils$1.escapeString(chartID)) {
