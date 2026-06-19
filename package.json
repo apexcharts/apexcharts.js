@@ -198,7 +198,7 @@
     "pre-push": "npm run lint >&2"
   },
   "devDependencies": {
-    "@babel/core": "7.29.0",
+    "@babel/core": "7.29.6",
     "@babel/preset-env": "7.29.0",
     "@blazediff/core": "1.0.0",
     "@eslint/js": "^9.0.0",
