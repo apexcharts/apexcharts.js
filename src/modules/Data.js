@@ -647,10 +647,12 @@ export default class Data {
         // Pick the reduction strategy by the data's *shape*, not the chart-type
         // config (so combo charts work too). A point whose y is a 4-tuple is
         // candlestick/OHLC: aggregate into OHLC buckets so the high/low extremes
-        // survive — LTTB would silently drop them. Scalar-y series (line/area)
-        // use LTTB, which preserves visual shape. Any other array-y data (e.g.
-        // a boxPlot 5-tuple) can't be meaningfully merged, so it's left as the
-        // windowed slice rather than corrupted.
+        // survive — LTTB would silently drop them. A 2-tuple is range data
+        // (rangeArea/rangeBar): aggregate into [min low, max high] buckets, same
+        // extreme-preserving idea. Scalar-y series (line/area) use LTTB, which
+        // preserves visual shape. Any other array-y data (e.g. a boxPlot
+        // 5-tuple) can't be meaningfully merged, so it's left as the windowed
+        // slice rather than corrupted.
         let reduced = windowed
         if (windowed.length > targetPoints) {
           const sampleY = !Array.isArray(windowed[0])
@@ -659,6 +661,8 @@ export default class Data {
           if (Array.isArray(sampleY)) {
             if (sampleY.length === 4) {
               reduced = Data.ohlcAggregate(windowed, targetPoints)
+            } else if (sampleY.length === 2) {
+              reduced = Data.rangeAggregate(windowed, targetPoints)
             }
           } else {
             reduced = Data.lttbDownsample(windowed, targetPoints)
@@ -1628,6 +1632,69 @@ export default class Data {
       }
 
       out.push(make(getX(data[start]), [open, high, low, close]))
+    }
+
+    return out
+  }
+
+  /**
+   * Bucket-aggregate 2-tuple range data (`y: [low, high]`, rangeArea/rangeBar)
+   * into `targetPoints` points, the range analog of {@link ohlcAggregate}. Each
+   * bucket emits `[min low, max high]` so the band's vertical extent is never
+   * understated by downsampling (LTTB, built for scalar y, would drop these
+   * extremes). Order-agnostic: the min/max scan both tuple slots, so it is
+   * correct whether a point is stored `[low, high]` or `[high, low]`.
+   *
+   * Null bounds (e.g. an indicator's warm-up period) are ignored, not treated
+   * as 0 — `Math.min(null, x)` would coerce to 0 and pin the band to the
+   * baseline. A bucket with no finite bounds emits `[null, null]` so it renders
+   * as a gap, matching the un-downsampled series.
+   * @param {any[]} data
+   * @param {number} targetPoints
+   * @returns {any[]}
+   */
+  static rangeAggregate(data, targetPoints) {
+    const len = data.length
+    if (targetPoints >= len || targetPoints < 1) return data
+
+    const isXY = !Array.isArray(data[0])
+    const getX = isXY
+      ? (/** @type {any} */ p) => p.x
+      : (/** @type {any} */ p) => p[0]
+    const getY = isXY
+      ? (/** @type {any} */ p) => p.y
+      : (/** @type {any} */ p) => p[1]
+    const make = isXY
+      ? (/** @type {any} */ x, /** @type {any} */ y) => ({ x, y })
+      : (/** @type {any} */ x, /** @type {any} */ y) => [x, y]
+
+    const out = []
+    const bucketSize = len / targetPoints
+
+    for (let i = 0; i < targetPoints; i++) {
+      const start = Math.floor(i * bucketSize)
+      const end =
+        i === targetPoints - 1 ? len : Math.floor((i + 1) * bucketSize)
+      if (end <= start) continue
+
+      let low = Infinity
+      let high = -Infinity
+      for (let j = start; j < end; j++) {
+        const y = getY(data[j])
+        if (y == null) continue
+        // Scan both slots independently so a single finite bound still counts
+        // and tuple order does not matter.
+        for (let k = 0; k < 2; k++) {
+          const v = y[k]
+          if (v == null || !isFinite(v)) continue
+          if (v < low) low = v
+          if (v > high) high = v
+        }
+      }
+
+      out.push(
+        make(getX(data[start]), low === Infinity ? [null, null] : [low, high]),
+      )
     }
 
     return out

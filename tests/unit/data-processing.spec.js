@@ -286,3 +286,87 @@ describe('Data.ohlcAggregate', () => {
     expect(result[result.length - 1].y[3]).toBe(data[9].y[3])
   })
 })
+
+describe('Data.rangeAggregate', () => {
+  // y = [low, high]
+  const mkXY = (n) =>
+    Array.from({ length: n }, (_, i) => ({ x: i, y: [i - 1, i + 1] }))
+
+  it('returns original data when length <= targetPoints', () => {
+    const data = mkXY(3)
+    expect(Data.rangeAggregate(data, 5)).toBe(data)
+  })
+
+  it('reduces to exactly targetPoints', () => {
+    const result = Data.rangeAggregate(mkXY(500), 100)
+    expect(result.length).toBe(100)
+  })
+
+  it('rolls up low=min, high=max per bucket', () => {
+    // 4 points → 1 bucket. low = 1 (min), high = 99 (max).
+    const data = [
+      { x: 0, y: [10, 20] },
+      { x: 1, y: [8, 99] }, // the high
+      { x: 2, y: [1, 30] }, // the low
+      { x: 3, y: [9, 25] },
+    ]
+    const [band] = Data.rangeAggregate(data, 1)
+    expect(band.x).toBe(0)
+    expect(band.y).toEqual([1, 99])
+  })
+
+  it('does NOT drop band extremes (what LTTB would lose)', () => {
+    const data = mkXY(100).map((p, i) =>
+      i === 50 ? { x: i, y: [-1000, 1000] } : p,
+    )
+    const result = Data.rangeAggregate(data, 10)
+    const lows = result.map((p) => p.y[0])
+    const highs = result.map((p) => p.y[1])
+    expect(Math.min(...lows)).toBe(-1000)
+    expect(Math.max(...highs)).toBe(1000)
+  })
+
+  it('is order-agnostic ([high, low] tuples aggregate the same)', () => {
+    const data = [
+      { x: 0, y: [20, 10] },
+      { x: 1, y: [99, 8] },
+      { x: 2, y: [30, 1] },
+    ]
+    const [band] = Data.rangeAggregate(data, 1)
+    expect(band.y).toEqual([1, 99])
+  })
+
+  it('works with 2D array format [[x, [low, high]]]', () => {
+    const data = Array.from({ length: 200 }, (_, i) => [i, [i - 1, i + 1]])
+    const result = Data.rangeAggregate(data, 50)
+    expect(result.length).toBe(50)
+    expect(Array.isArray(result[0])).toBe(true)
+    expect(Array.isArray(result[0][1])).toBe(true)
+    expect(result[0][1].length).toBe(2)
+  })
+
+  it('ignores null bounds instead of coercing them to 0', () => {
+    // A bucket mixing a null warm-up point with a real one must aggregate to
+    // the real bounds — NOT [0, high] (which Math.min(null, x) would produce
+    // and which pinned the band to the baseline).
+    const data = [
+      { x: 0, y: [null, null] },
+      { x: 1, y: [100, 110] },
+    ]
+    const [band] = Data.rangeAggregate(data, 1)
+    expect(band.y).toEqual([100, 110])
+  })
+
+  it('emits a [null, null] gap for an all-null bucket', () => {
+    // 4 leading null points (an indicator warm-up) → 2 buckets, first all-null.
+    const data = [
+      { x: 0, y: [null, null] },
+      { x: 1, y: [null, null] },
+      { x: 2, y: [50, 60] },
+      { x: 3, y: [55, 65] },
+    ]
+    const result = Data.rangeAggregate(data, 2)
+    expect(result[0].y).toEqual([null, null])
+    expect(result[1].y).toEqual([50, 65])
+  })
+})
