@@ -15908,6 +15908,8 @@ class Data {
           if (Array.isArray(sampleY)) {
             if (sampleY.length === 4) {
               reduced = Data.ohlcAggregate(windowed, targetPoints);
+            } else if (sampleY.length === 2) {
+              reduced = Data.rangeAggregate(windowed, targetPoints);
             }
           } else {
             reduced = Data.lttbDownsample(windowed, targetPoints);
@@ -16593,6 +16595,53 @@ class Data {
         close = y[3];
       }
       out.push(make(getX(data[start]), [open, high, low, close]));
+    }
+    return out;
+  }
+  /**
+   * Bucket-aggregate 2-tuple range data (`y: [low, high]`, rangeArea/rangeBar)
+   * into `targetPoints` points, the range analog of {@link ohlcAggregate}. Each
+   * bucket emits `[min low, max high]` so the band's vertical extent is never
+   * understated by downsampling (LTTB, built for scalar y, would drop these
+   * extremes). Order-agnostic: the min/max scan both tuple slots, so it is
+   * correct whether a point is stored `[low, high]` or `[high, low]`.
+   *
+   * Null bounds (e.g. an indicator's warm-up period) are ignored, not treated
+   * as 0 — `Math.min(null, x)` would coerce to 0 and pin the band to the
+   * baseline. A bucket with no finite bounds emits `[null, null]` so it renders
+   * as a gap, matching the un-downsampled series.
+   * @param {any[]} data
+   * @param {number} targetPoints
+   * @returns {any[]}
+   */
+  static rangeAggregate(data, targetPoints) {
+    const len = data.length;
+    if (targetPoints >= len || targetPoints < 1) return data;
+    const isXY = !Array.isArray(data[0]);
+    const getX = isXY ? (p) => p.x : (p) => p[0];
+    const getY = isXY ? (p) => p.y : (p) => p[1];
+    const make = isXY ? (x, y) => ({ x, y }) : (x, y) => [x, y];
+    const out = [];
+    const bucketSize = len / targetPoints;
+    for (let i = 0; i < targetPoints; i++) {
+      const start = Math.floor(i * bucketSize);
+      const end = i === targetPoints - 1 ? len : Math.floor((i + 1) * bucketSize);
+      if (end <= start) continue;
+      let low = Infinity;
+      let high = -Infinity;
+      for (let j = start; j < end; j++) {
+        const y = getY(data[j]);
+        if (y == null) continue;
+        for (let k = 0; k < 2; k++) {
+          const v = y[k];
+          if (v == null || !isFinite(v)) continue;
+          if (v < low) low = v;
+          if (v > high) high = v;
+        }
+      }
+      out.push(
+        make(getX(data[start]), low === Infinity ? [null, null] : [low, high])
+      );
     }
     return out;
   }
