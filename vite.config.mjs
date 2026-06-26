@@ -53,6 +53,7 @@ export const SUB_ENTRIES = {
   'features/legend': resolve(__dirname, 'src/features/legend.js'),
   'features/toolbar': resolve(__dirname, 'src/features/toolbar.js'),
   'features/morph': resolve(__dirname, 'src/features/morph.js'),
+  'features/drilldown': resolve(__dirname, 'src/features/drilldown.js'),
   'features/all': resolve(__dirname, 'src/features/all.js'),
 }
 

@@ -81,8 +81,17 @@ export default class MorphTypeChange {
     const tf = familyOf(toType)
 
     if (tf === 'radial') {
-      // pie/donut/polarArea/radialBar expects a flat number[]
-      return newSeries.every((v) => typeof v === 'number')
+      // pie/donut/polarArea/radialBar accepts either a flat number[] or the
+      // object form [{ data: [...] }] that the pie/donut data parser also
+      // accepts (e.g. a drilldown level carrying per-slice {x,y} points). The
+      // radial mapping is positional, so the exact value shape is irrelevant.
+      if (newSeries.every((v) => typeof v === 'number')) return true
+      return (
+        newSeries.length === 1 &&
+        newSeries[0] &&
+        typeof newSeries[0] === 'object' &&
+        Array.isArray(newSeries[0].data)
+      )
     }
     if (tf === 'bar') {
       // bar expects [{ name?, data: number[] }, ...]

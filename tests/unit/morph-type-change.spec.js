@@ -122,10 +122,21 @@ describe('MorphTypeChange.canMorphTypes', () => {
 describe('MorphTypeChange.isCompatibleSeriesShape', () => {
   const morph = new MorphTypeChange(makeStubChart().w, makeStubChart())
 
-  it('bar → pie needs flat number[]', () => {
+  it('bar → pie accepts a flat number[] or the object form [{data:[...]}]', () => {
     expect(morph.isCompatibleSeriesShape('bar', 'pie', [1, 2, 3])).toBe(true)
+    // Object form is accepted too (e.g. a drilldown level with per-slice {x,y}
+    // points). The radial mapping is positional, so the value shape is moot.
     expect(
       morph.isCompatibleSeriesShape('bar', 'pie', [{ data: [1, 2] }]),
+    ).toBe(true)
+    expect(
+      morph.isCompatibleSeriesShape('bar', 'donut', [
+        { data: [{ x: 'Q1', y: 1 }, { x: 'Q2', y: 2 }] },
+      ]),
+    ).toBe(true)
+    // Multiple series is not a valid radial shape.
+    expect(
+      morph.isCompatibleSeriesShape('bar', 'pie', [{ data: [1] }, { data: [2] }]),
     ).toBe(false)
     expect(morph.isCompatibleSeriesShape('bar', 'pie', [])).toBe(false)
   })

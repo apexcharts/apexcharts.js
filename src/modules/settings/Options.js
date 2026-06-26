@@ -1097,6 +1097,31 @@ export default class Options {
         },
       },
       labels: [],
+      drilldown: {
+        // Opt-in. When false, the Drilldown feature module stays inert even if
+        // it was imported. Requires `import 'apexcharts/features/drilldown'`.
+        enabled: false,
+        // Child levels referenced by a data point's `drilldown: '<id>'` field.
+        // Each: { id, name?, data, chart?, xaxis?, yaxis?, colors?, plotOptions? }
+        series: [],
+        breadcrumb: {
+          show: true,
+          position: 'top-left', // 'top-left' | 'top-right'
+          separator: ' / ',
+          rootLabel: 'All',
+          offsetX: 0,
+          offsetY: 0,
+          // formatter: (label, { index, depth }) => label,
+        },
+        // Animation is delegated to the chart's update pipeline; this flag only
+        // gates whether the drill transition animates at all.
+        animation: {
+          enabled: true,
+        },
+        // Optional async resolver, called when a drillable point has no inline
+        // match in `series`: ({ point, seriesIndex, dataPointIndex }) => childSeries
+        // onDrillDown: undefined,
+      },
       legend: {
         show: true,
         showForSingleSeries: false,

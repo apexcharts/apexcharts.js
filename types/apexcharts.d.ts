@@ -220,6 +220,24 @@ declare class ApexCharts {
   /** Returns the SVG.js root element (SVG Paper) for the chart. */
   paper(): any
 
+  /**
+   * Drills into the child level referenced by `id` (a `drilldown.series` entry).
+   * Requires the Drilldown feature: import 'apexcharts/features/drilldown'.
+   */
+  drillDown(id: string | number): Promise<ApexCharts>
+
+  /**
+   * Navigates back one drilldown level.
+   * Requires the Drilldown feature: import 'apexcharts/features/drilldown'.
+   */
+  drillUp(): Promise<ApexCharts>
+
+  /**
+   * Navigates back to the root drilldown level.
+   * Requires the Drilldown feature: import 'apexcharts/features/drilldown'.
+   */
+  drillToRoot(): Promise<ApexCharts>
+
   /** Returns the inner SVG group element containing all chart graphics. */
   getChartArea(): Element | null
 
@@ -348,6 +366,70 @@ declare namespace ApexCharts {
     seriesGoals: any[][]
   }
 
+  /** A single drilldown level, referenced by a data point's `drilldown` id. */
+  export interface ApexDrilldownSeries {
+    /** Unique id referenced by a data point's `drilldown` field. */
+    id: string | number
+    /** Display name used by the breadcrumb and as the (single-series) child series name. */
+    name?: string
+    /** Child data points for a single-series level. Use this OR `series`. */
+    data?: any[]
+    /** Full multi-series array for a grouped/stacked drilldown level. Use this OR `data`. */
+    series?: ApexAxisChartSeries
+    /** Optional chart-type override applied when this level is shown. */
+    chart?: Pick<ApexChart, 'type' | 'stacked' | 'stackType'>
+    plotOptions?: ApexPlotOptions
+    xaxis?: ApexXAxis
+    yaxis?: ApexYAxis | ApexYAxis[]
+    colors?: Array<string | ((opts: ApexColorFormatterOpts) => string)>
+    /** Optional fill override (e.g. a pattern fill to visually distinguish drilled levels). */
+    fill?: ApexFill
+    /** Optional legend override (e.g. show a legend when a level is a pie/donut). */
+    legend?: ApexLegend
+  }
+
+  /** Payload passed to drill events (`drillDownStart`, `drillDownEnd`, `drillUp`). */
+  export interface ApexDrilldownEvent {
+    /** The level id navigated away from. */
+    from: string | number
+    /** The level id navigated to (`'root'` at the top). */
+    to: string | number
+    /** The clicked data point (drill-down only). */
+    point?: any
+    seriesIndex?: number
+    dataPointIndex?: number
+  }
+
+  /** Context passed to the async `onDrillDown` resolver. */
+  export interface ApexDrilldownContext {
+    point: any
+    seriesIndex?: number
+    dataPointIndex?: number
+  }
+
+  export interface ApexDrilldown {
+    /** Master switch. When false the feature stays inert even if imported. */
+    enabled?: boolean
+    /** Inline child levels referenced by data-point `drilldown` ids. */
+    series?: ApexDrilldownSeries[]
+    breadcrumb?:
+      | false
+      | {
+          show?: boolean
+          position?: 'top-left' | 'top-right'
+          separator?: string
+          rootLabel?: string
+          offsetX?: number
+          offsetY?: number
+          formatter?(label: string, opts: { index: number; depth: number }): string
+        }
+    animation?: { enabled?: boolean }
+    /** Async resolver called when a drillable point has no inline `series` match. */
+    onDrillDown?(
+      ctx: ApexDrilldownContext
+    ): ApexDrilldownSeries | Promise<ApexDrilldownSeries>
+  }
+
   export interface ApexOptions {
     annotations?: ApexAnnotations
     chart?: ApexChart
@@ -358,6 +440,8 @@ declare namespace ApexCharts {
      */
     colors?: Array<string | ((opts: ApexColorFormatterOpts) => string)>
     dataLabels?: ApexDataLabels
+    /** Opt-in drilldown navigation. Requires `import 'apexcharts/features/drilldown'`. */
+    drilldown?: ApexDrilldown
     fill?: ApexFill
     forecastDataPoints?: ApexForecastDataPoints
     grid?: ApexGrid
@@ -497,6 +581,14 @@ type ApexChart = {
     brushScrolled?(chart: ApexCharts, options?: { xaxis: { min: number; max: number }; yaxis?: { min: number; max: number }[] }): void
     keyDown?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     keyUp?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    /** Fired before a drill-down transition begins. Requires the Drilldown feature. */
+    drillDownStart?(info: ApexDrilldownEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    /** Fired after a drill-down transition completes. Requires the Drilldown feature. */
+    drillDownEnd?(info: ApexDrilldownEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    /** Fired after navigating back up a drilldown level. Requires the Drilldown feature. */
+    drillUp?(info: ApexDrilldownEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    /** Fired when an async onDrillDown resolver throws or rejects. Requires the Drilldown feature. */
+    drillDownError?(info: { id: string | number | null; error: any }, chart?: ApexCharts, options?: ApexChartEventOpts): void
   }
   brush?: {
     enabled?: boolean
@@ -742,6 +834,11 @@ type ApexAxisChartSeries = {
    fillColor?: string;
    strokeColor?: string;
    meta?: unknown;
+   /**
+    * Drilldown target: the `id` of a `drilldown.series` entry. Clicking this
+    * point drills into that level. Requires the Drilldown feature.
+    */
+   drilldown?: string | number;
    goals?: {
      name?: string,
      value: number,

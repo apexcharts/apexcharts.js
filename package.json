@@ -154,6 +154,10 @@
       "import": "./dist/features/morph.esm.js",
       "require": "./dist/features/morph.common.js"
     },
+    "./features/drilldown": {
+      "import": "./dist/features/drilldown.esm.js",
+      "require": "./dist/features/drilldown.common.js"
+    },
     "./features/all": {
       "import": "./dist/features/all.esm.js",
       "require": "./dist/features/all.common.js"

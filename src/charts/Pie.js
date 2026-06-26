@@ -405,11 +405,21 @@ class Pie {
           size: this.sliceSizes[i],
         })
         const morphSpeed = this.ctx.morphTypeChange.getSpeed()
+        const animations = this.ctx.animations
         elPath.node.setAttribute('data:pathOrig', targetD)
-        elPath
+        const morphRunner = elPath
           .animate(morphSpeed)
           .plot(targetD, 'polygons')
           .attr({ 'stroke-width': this.strokeWidth })
+        // The angle-based branches flag animationCompleted via animateArc; the
+        // morph branch must do the same or w.globals.animationEnded stays false
+        // after a cross-type morph. animationCompleted is idempotent, so firing
+        // it per slice is safe.
+        if (morphRunner && typeof morphRunner.after === 'function') {
+          morphRunner.after(() => animations.animationCompleted(elPath))
+        } else {
+          animations.animationCompleted(elPath)
+        }
       } else if (this.dynamicAnim && w.globals.dataChanged) {
         this.animatePaths(elPath, {
           size: this.sliceSizes[i],

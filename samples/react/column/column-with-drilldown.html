@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Column Chart with Drilldown</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Shared overrides for every drilled-down level: the root is a single-series
+      // chart, but each drill reveals a 3-series (Online / Retail / Wholesale)
+      // grouped column breakdown — so drilling explores more data beneath.
+      var childPlot = {
+        bar: {
+          horizontal: false,
+          distributed: false,
+          columnWidth: '70%',
+          borderRadius: 3,
+          borderRadiusApplication: 'end',
+        },
+      }
+      var childLegend = { show: true, position: 'top' }
+
+      // Each year column is tinted with the base hue of its drilldown palette, so the
+      // drilled breakdown reads as "shades of that year's colour".
+      var yearColors = ['#1565C0', '#2E7D32', '#EF6C00', '#6A1B9A']
+      var bluePalette = ['#1565C0', '#42A5F5', '#90CAF9'] // 2021
+      var greenPalette = ['#2E7D32', '#66BB6A', '#A5D6A7'] // 2022
+      var amberPalette = ['#EF6C00', '#FB8C00', '#FFB74D'] // 2023
+      var purplePalette = ['#6A1B9A', '#AB47BC', '#CE93D8'] // 2024
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={420} /&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [
+            {
+              name: 'Total Sales',
+              data: [
+                { x: '2021', y: 480, drilldown: '2021' },
+                { x: '2022', y: 530, drilldown: '2022' },
+                { x: '2023', y: 610, drilldown: '2023' },
+                { x: '2024', y: 705, drilldown: '2024' },
+              ],
+            },
+          ],
+          options: {
+            chart: {
+              type: 'bar',
+              height: 420,
+              toolbar: {
+                show: false,
+              },
+            },
+            colors: yearColors,
+            plotOptions: {
+              bar: {
+                horizontal: false,
+                columnWidth: '55%',
+                borderRadius: 6,
+                borderRadiusApplication: 'end',
+                distributed: true,
+              },
+            },
+            legend: {
+              show: false,
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            title: {
+              text: 'Drilldown',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'Click a year to drill into its channel breakdown (Online / Retail / Wholesale). Use the breadcrumb to go back.',
+              align: 'left',
+            },
+            yaxis: {
+              title: {
+                text: 'Sales ($k)',
+              },
+            },
+            drilldown: {
+              enabled: true,
+              breadcrumb: {
+                show: true,
+                position: 'top-right',
+                rootLabel: 'All Years',
+                separator: ' / ',
+              },
+              series: [
+                {
+                  id: '2021',
+                  name: '2021 by Channel',
+                  plotOptions: childPlot,
+                  legend: childLegend,
+                  colors: bluePalette,
+                  series: [
+                    {
+                      name: 'Online',
+                      data: [
+                        { x: 'Q1', y: 50 },
+                        { x: 'Q2', y: 55 },
+                        { x: 'Q3', y: 55 },
+                        { x: 'Q4', y: 60 },
+                      ],
+                    },
+                    {
+                      name: 'Retail',
+                      data: [
+                        { x: 'Q1', y: 35 },
+                        { x: 'Q2', y: 38 },
+                        { x: 'Q3', y: 40 },
+                        { x: 'Q4', y: 42 },
+                      ],
+                    },
+                    {
+                      name: 'Wholesale',
+                      data: [
+                        { x: 'Q1', y: 22 },
+                        { x: 'Q2', y: 25 },
+                        { x: 'Q3', y: 28 },
+                        { x: 'Q4', y: 30 },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  id: '2022',
+                  name: '2022 by Channel',
+                  plotOptions: childPlot,
+                  legend: childLegend,
+                  colors: greenPalette,
+                  series: [
+                    {
+                      name: 'Online',
+                      data: [
+                        { x: 'Q1', y: 55 },
+                        { x: 'Q2', y: 60 },
+                        { x: 'Q3', y: 62 },
+                        { x: 'Q4', y: 68 },
+                      ],
+                    },
+                    {
+                      name: 'Retail',
+                      data: [
+                        { x: 'Q1', y: 40 },
+                        { x: 'Q2', y: 42 },
+                        { x: 'Q3', y: 43 },
+                        { x: 'Q4', y: 45 },
+                      ],
+                    },
+                    {
+                      name: 'Wholesale',
+                      data: [
+                        { x: 'Q1', y: 26 },
+                        { x: 'Q2', y: 28 },
+                        { x: 'Q3', y: 30 },
+                        { x: 'Q4', y: 31 },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  id: '2023',
+                  name: '2023 by Channel',
+                  plotOptions: childPlot,
+                  legend: childLegend,
+                  colors: amberPalette,
+                  series: [
+                    {
+                      name: 'Online',
+                      data: [
+                        { x: 'Q1', y: 62 },
+                        { x: 'Q2', y: 68 },
+                        { x: 'Q3', y: 72 },
+                        { x: 'Q4', y: 78 },
+                      ],
+                    },
+                    {
+                      name: 'Retail',
+                      data: [
+                        { x: 'Q1', y: 45 },
+                        { x: 'Q2', y: 48 },
+                        { x: 'Q3', y: 50 },
+                        { x: 'Q4', y: 52 },
+                      ],
+                    },
+                    {
+                      name: 'Wholesale',
+                      data: [
+                        { x: 'Q1', y: 32 },
+                        { x: 'Q2', y: 33 },
+                        { x: 'Q3', y: 35 },
+                        { x: 'Q4', y: 35 },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  id: '2024',
+                  name: '2024 by Channel',
+                  plotOptions: childPlot,
+                  legend: childLegend,
+                  colors: purplePalette,
+                  series: [
+                    {
+                      name: 'Online',
+                      data: [
+                        { x: 'Q1', y: 72 },
+                        { x: 'Q2', y: 78 },
+                        { x: 'Q3', y: 82 },
+                        { x: 'Q4', y: 88 },
+                      ],
+                    },
+                    {
+                      name: 'Retail',
+                      data: [
+                        { x: 'Q1', y: 52 },
+                        { x: 'Q2', y: 55 },
+                        { x: 'Q3', y: 56 },
+                        { x: 'Q4', y: 57 },
+                      ],
+                    },
+                    {
+                      name: 'Wholesale',
+                      data: [
+                        { x: 'Q1', y: 40 },
+                        { x: 'Q2', y: 41 },
+                        { x: 'Q3', y: 42 },
+                        { x: 'Q4', y: 42 },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div id="chart">
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="bar"
+                height={420}
+              />
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

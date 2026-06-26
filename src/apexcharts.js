@@ -1419,6 +1419,49 @@ export default class ApexCharts {
     return this.w.dom.Paper
   }
 
+  /**
+   * Drills into the child level referenced by `id` (a `chart.drilldown.series` entry).
+   * Requires the Drilldown feature: `import 'apexcharts/features/drilldown'`.
+   *
+   * @param {string|number} id - The drilldown series id to navigate into.
+   * @returns {Promise<ApexCharts>}
+   */
+  drillDown(id) {
+    if (!this.ctx.drilldown)
+      throw new Error(
+        'apexcharts: Drilldown feature is not registered. Import apexcharts/features/drilldown.',
+      )
+    return this.ctx.drilldown.drillDown(id)
+  }
+
+  /**
+   * Navigates back one drilldown level.
+   * Requires the Drilldown feature: `import 'apexcharts/features/drilldown'`.
+   *
+   * @returns {Promise<ApexCharts>}
+   */
+  drillUp() {
+    if (!this.ctx.drilldown)
+      throw new Error(
+        'apexcharts: Drilldown feature is not registered. Import apexcharts/features/drilldown.',
+      )
+    return this.ctx.drilldown.drillUp()
+  }
+
+  /**
+   * Navigates back to the root drilldown level.
+   * Requires the Drilldown feature: `import 'apexcharts/features/drilldown'`.
+   *
+   * @returns {Promise<ApexCharts>}
+   */
+  drillToRoot() {
+    if (!this.ctx.drilldown)
+      throw new Error(
+        'apexcharts: Drilldown feature is not registered. Import apexcharts/features/drilldown.',
+      )
+    return this.ctx.drilldown.drillToRoot()
+  }
+
   // ─── Slice write-back stubs ─────────────────────────────────────────────────
   /**
    * @param {Partial<import('./types/internal').SeriesData>} slice

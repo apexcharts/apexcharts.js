@@ -104,6 +104,9 @@ export default class InitCtxVariables {
       'addPointAnnotation',
       'clearAnnotations',
       'removeAnnotation',
+      'drillDown',
+      'drillUp',
+      'drillToRoot',
       'paper',
       'destroy',
     ]
@@ -197,6 +200,12 @@ export default class InitCtxVariables {
     // When unregistered, all `ctx.morphTypeChange?.X` call sites no-op.
     const MorphCtor = reg.get('morphTypeChange')
     ctx.morphTypeChange = MorphCtor ? new MorphCtor(w, ctx) : null
+
+    // Drilldown: ctx.drilldown (opt-in click→drill navigation + breadcrumb).
+    // Eager so the history stack exists before the first click and survives
+    // updates. The constructor self-wires its listeners when drilldown.enabled.
+    const DrilldownCtor = reg.get('drilldown')
+    ctx.drilldown = DrilldownCtor ? new DrilldownCtor(w, ctx) : null
 
     // — Lazy-getter optional modules —
     // Each getter instantiates on first access only if the ctor was registered.

@@ -312,6 +312,11 @@ export default class Labels {
 
     const { val, goalVals, xVal, xAxisTTVal, zVal } = values
 
+    // A hover processed mid-render (e.g. during a cross-type updateOptions, where
+    // the new type's series count can momentarily outpace the rebuilt tooltip
+    // rows) can index past ttItems. Bail for that row rather than crash.
+    if (!ttItems || !ttItems[t]) return
+
     let ttItemsChildren = null
     ttItemsChildren = ttItems[t].children
 

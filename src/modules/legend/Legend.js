@@ -48,6 +48,16 @@ class Legend {
     const gl = w.globals
     const cnf = w.config
 
+    // Recompute each render: the Legend instance is reused across updates, so a
+    // value cached in the constructor would go stale when updateOptions changes
+    // the type / distributed flag / series count (e.g. a distributed single-series
+    // bar drilling into a non-distributed multi-series breakdown). When stale-true
+    // the legend would wrongly show per-category labels instead of series names.
+    this.isBarsDistributed =
+      cnf.chart.type === 'bar' &&
+      cnf.plotOptions.bar.distributed &&
+      cnf.series.length === 1
+
     const showLegendAlways =
       (cnf.legend.showForSingleSeries &&
         this.w.seriesData.series.length === 1) ||
