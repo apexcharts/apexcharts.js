@@ -78,7 +78,19 @@ export default class Breadcrumb {
         )
         btn.setAttribute('type', 'button')
         btn.setAttribute('class', 'apexcharts-breadcrumb-item')
-        btn.textContent = label
+        // Prefix the leftmost crumb with a back-arrow so it reads as the
+        // "go back" affordance, e.g. "← All Years / 2021 by Channel".
+        if (i === 0) {
+          const arrow = BrowserAPIs.createElementNS(XHTML, 'span')
+          arrow.setAttribute('class', 'apexcharts-breadcrumb-arrow')
+          arrow.setAttribute('aria-hidden', 'true')
+          arrow.textContent = '←'
+          btn.appendChild(arrow)
+        }
+        const text = BrowserAPIs.createElementNS(XHTML, 'span')
+        text.setAttribute('class', 'apexcharts-breadcrumb-label')
+        text.textContent = label
+        btn.appendChild(text)
         btn.addEventListener('click', () => this.drilldown.drillToLevel(i))
         nav.appendChild(btn)
       }

@@ -91,6 +91,11 @@ test.describe('drilldown', () => {
     await expect(page.locator('.apexcharts-breadcrumb-current')).toHaveText(
       '2024 by Quarter',
     )
+    // The leftmost crumb carries a back-arrow affordance before its label.
+    await expect(page.locator('.apexcharts-breadcrumb-arrow')).toHaveText('←')
+    await expect(
+      page.locator('button.apexcharts-breadcrumb-item .apexcharts-breadcrumb-label'),
+    ).toHaveText('All')
 
     expect(await getDepth(page)).toBe(1)
     expect(await getSeries(page)).toEqual([35, 40, 38, 37])
@@ -394,6 +399,63 @@ test.describe('drilldown — multi-series child', () => {
     await page.locator('button.apexcharts-breadcrumb-item').first().click()
     await page.waitForFunction(() => window.chart.drilldown.depth === 0)
     expect(await page.evaluate(() => window.chart.getState().series.length)).toBe(1)
+
+    expect(errors, errors.join('\n')).toHaveLength(0)
+  })
+
+  // Regression: hiding a series via the legend inside a multi-series child, then
+  // drilling back, must NOT blank the chart. Legend-collapse state is stored by
+  // series index in w.globals; left in place it re-collapses whatever series now
+  // sits at that index in the destination level. Hiding child series 0 then
+  // returning to a single-series root used to collapse the root's only series,
+  // which got the `apexcharts-series-collapsed` class (opacity: 0) — a blank
+  // chart with no console error. _apply() now clears that state on every drill.
+  test('hiding a child series then drilling up does not blank the root', async ({ page }) => {
+    const errors = []
+    page.on('pageerror', (err) => errors.push(err.stack || err.message))
+
+    await page.setContent('<div id="chart"></div>')
+    await page.addScriptTag({ path: umdPath })
+    await page.evaluate((opts) => {
+      window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
+      return window.chart.render()
+    }, MULTI_OPTIONS)
+    await page.waitForFunction(
+      () => window.chart && window.chart.w.globals.animationEnded === true,
+    )
+
+    // Drill into the 3-series child.
+    await page.locator('[index="0"][j="1"]').first().click({ force: true })
+    await page.waitForFunction(() => window.chart.drilldown.depth === 1)
+    await page.waitForFunction(() => window.chart.w.globals.animationEnded === true)
+
+    // Hide the FIRST series (index 0) via its legend item.
+    await page.locator('.apexcharts-legend-series').first().click()
+    await page.waitForFunction(
+      () => window.chart.w.globals.collapsedSeriesIndices.length === 1,
+    )
+
+    // Drill back to the single-series root.
+    await page.locator('button.apexcharts-breadcrumb-item').first().click()
+    await page.waitForFunction(() => window.chart.drilldown.depth === 0)
+    await page.waitForFunction(() => window.chart.w.globals.animationEnded === true)
+
+    // Collapse state is cleared, and the root series is visible (opacity 1).
+    expect(
+      await page.evaluate(() => window.chart.w.globals.collapsedSeriesIndices),
+    ).toEqual([])
+    const rootOpacity = await page.evaluate(() => {
+      const g = document.querySelector('.apexcharts-series')
+      return g
+        ? {
+            collapsed: g.classList.contains('apexcharts-series-collapsed'),
+            opacity: getComputedStyle(g).opacity,
+          }
+        : null
+    })
+    expect(rootOpacity).toEqual({ collapsed: false, opacity: '1' })
+    // Root bars are present and drawn.
+    expect(await page.locator('.apexcharts-bar-area').count()).toBeGreaterThan(0)
 
     expect(errors, errors.join('\n')).toHaveLength(0)
   })

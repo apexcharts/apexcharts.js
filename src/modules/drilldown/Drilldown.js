@@ -315,6 +315,22 @@ export default class Drilldown {
     // morph. (See Pie.pieClicked's "reset all elems" pass.)
     w.interact.selectedDataPoints = []
 
+    // Legend-collapse state is per-level and indexed by series position, so it
+    // is meaningless at the destination: a series hidden at this level points at
+    // a different (or non-existent) series in the level we navigate to. Left in
+    // place, a stale collapsed index re-collapses whatever series now sits at
+    // that position — e.g. hiding series 0 in a multi-series child then drilling
+    // back to a single-series root collapses the root's only series, which gets
+    // the `apexcharts-series-collapsed` class (opacity 0) and the chart renders
+    // blank. Reset it like resetSeries() does. (Re-collapsing on every navigation
+    // would also be wrong: a fresh level should show all of its series.)
+    w.globals.collapsedSeries = []
+    w.globals.collapsedSeriesIndices = []
+    w.globals.ancillaryCollapsedSeries = []
+    w.globals.ancillaryCollapsedSeriesIndices = []
+    w.globals.allSeriesCollapsed = false
+    w.globals.risingSeries = []
+
     const animate =
       (!w.config.drilldown.animation || w.config.drilldown.animation.enabled !== false) &&
       w.config.chart.animations.enabled !== false

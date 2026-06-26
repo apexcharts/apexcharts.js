@@ -937,6 +937,12 @@ rect.legend-mouseover-inactive,
   background: rgba(0, 0, 0, 0.08)
 }
 
+.apexcharts-breadcrumb-arrow {
+  margin-right: 4px;
+  font-weight: 600;
+  user-select: none
+}
+
 .apexcharts-breadcrumb-current {
   cursor: default;
   font-weight: 600;

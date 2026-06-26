@@ -343,7 +343,9 @@ describe('Drilldown — breadcrumb', () => {
     await chart.drillDown('2024-q2-m')
 
     const rootBtn = document.querySelector('button.apexcharts-breadcrumb-item')
-    expect(rootBtn.textContent).toBe('All')
+    // The leftmost crumb carries a back-arrow affordance before its label.
+    expect(rootBtn.querySelector('.apexcharts-breadcrumb-arrow').textContent).toBe('←')
+    expect(rootBtn.querySelector('.apexcharts-breadcrumb-label').textContent).toBe('All')
     rootBtn.click()
     // click handler kicks off an async update; flush microtasks
     await new Promise((r) => setTimeout(r, 0))
