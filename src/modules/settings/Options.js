@@ -1113,10 +1113,17 @@ export default class Options {
           offsetY: 0,
           // formatter: (label, { index, depth }) => label,
         },
-        // Animation is delegated to the chart's update pipeline; this flag only
+        // Animation is delegated to the chart's update pipeline; `enabled`
         // gates whether the drill transition animates at all.
         animation: {
           enabled: true,
+          // Anchor the drill transition at the clicked point: the child unfolds
+          // outward from it (and settles back on drill-up) instead of the chart
+          // simply re-rendering. A gentle scale layered on the SVG; opt-in.
+          zoomFromPoint: false,
+          // Base duration (ms) of the transition, used only when zoomFromPoint
+          // is true. The fade-out phase runs a little shorter than this.
+          speed: 260,
         },
         // Optional async resolver, called when a drillable point has no inline
         // match in `series`: ({ point, seriesIndex, dataPointIndex }) => childSeries

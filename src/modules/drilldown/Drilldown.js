@@ -337,35 +337,208 @@ export default class Drilldown {
 
     if (direction === 'down') this._fire('drillDownStart', meta)
 
-    const typeChanged =
-      view.chart && view.chart.type && view.chart.type !== w.config.chart.type
-    const stackedChanged =
-      view.chart &&
-      view.chart.stacked != null &&
-      view.chart.stacked !== w.config.chart.stacked
-    const otherOverrides = !!(
-      view.xaxis ||
-      view.yaxis ||
-      view.colors ||
-      view.plotOptions ||
-      view.fill ||
-      view.legend ||
-      view.labels
-    )
-    // Pure series swap on an axis chart → fastUpdate path morphs old → new.
-    const canFastSwap =
-      w.globals.axisCharts && !typeChanged && !stackedChanged && !otherOverrides
-
+    // Always go through updateOptions, never the updateSeries fast path. A drill
+    // navigates to a different dataset, so the child's x-axis categories almost
+    // always differ from the parent's (years → quarters, sectors → companies).
+    // updateSeries' fast path morphs the series in place but does NOT re-derive
+    // category labels, so a same-type drill would leave the parent's axis labels
+    // under the child's bars. updateOptions re-parses and rebuilds the axes, so
+    // labels, scale, and series all match the level we navigated to.
+    //
     // overwriteInitial* stay false: resetSeries() must still return to the user's
     // original top-level data, not whichever level we drilled to.
-    const p = canFastSwap
-      ? this.ctx.updateSeries(view.series, animate, false)
-      : this.ctx.updateOptions(view, false, animate, false, false)
+    const runUpdate = (anim) =>
+      this.ctx.updateOptions(view, false, anim, false, false)
 
-    return p.then(() => {
+    const done = () => {
       this._fire(direction === 'down' ? 'drillDownEnd' : 'drillUp', meta)
       return this.ctx
-    })
+    }
+
+    // Trigger-point zoom: when enabled, the transition is a camera move anchored
+    // at the clicked point — the current view scales up/out and fades, the child
+    // is rendered instantly underneath (no morph, so the two don't fight), then
+    // the child scales in from that same point. Additive polish: gated behind
+    // drilldown.animation.zoomFromPoint, layered on top of the SVG via the Web
+    // Animations API, and a no-op (falls back to the normal animated update) when
+    // disabled, animations are off, or we are not in a capable browser.
+    if (animate && this._zoomEnabled()) {
+      const origin = this._triggerOrigin(meta)
+      if (origin) {
+        return this._zoomDrill(origin, direction, () => runUpdate(false)).then(done)
+      }
+    }
+
+    return runUpdate(animate).then(done)
+  }
+
+  /** @returns {boolean} whether trigger-point zoom is configured on. */
+  _zoomEnabled() {
+    const a = this.w.config.drilldown && this.w.config.drilldown.animation
+    return !!(a && a.zoomFromPoint)
+  }
+
+  /** @returns {SVGSVGElement|null} the chart's root <svg> node, if present. */
+  _svgNode() {
+    const paper = this.w.dom && this.w.dom.Paper
+    return paper && paper.node ? paper.node : null
+  }
+
+  /**
+   * The group wrapping ONLY the data marks (bars/cells/tiles) — not the axes,
+   * grid, or titles. Animating this keeps the chart frame still while the marks
+   * move. Covers bar/line/area (`.apexcharts-plot-series`), heatmap, and treemap.
+   * @returns {SVGElement|null}
+   */
+  _markGroup() {
+    const svg = this._svgNode()
+    if (!svg || typeof svg.querySelector !== 'function') return null
+    return svg.querySelector(
+      '.apexcharts-plot-series, .apexcharts-heatmap, .apexcharts-treemap',
+    )
+  }
+
+  /**
+   * Centre of the clicked point in the SVG's view-box pixel space, used as the
+   * transform-origin for the mark-group scale (which uses `transform-box:
+   * view-box`, so the origin is resolved in SVG coordinates and stays stable
+   * across the parent and child renders). Falls back to the mark group's centre
+   * when there is no trigger point (e.g. drillUp / imperative drill). Returns
+   * null when the marks / SVG / WAAPI are unavailable (SSR / old browsers).
+   * @param {object} meta
+   * @returns {{ x: number, y: number }|null}
+   */
+  _triggerOrigin(meta) {
+    if (!Environment.isBrowser()) return null
+    const svg = this._svgNode()
+    const group = this._markGroup()
+    if (
+      !svg ||
+      !group ||
+      typeof group.animate !== 'function' ||
+      typeof svg.getBoundingClientRect !== 'function'
+    ) {
+      return null
+    }
+    const svgRect = svg.getBoundingClientRect()
+    let el = null
+    if (meta && meta.seriesIndex != null && meta.dataPointIndex != null && this.w.dom.baseEl) {
+      el = this.w.dom.baseEl.querySelector(
+        `[index="${meta.seriesIndex}"][j="${meta.dataPointIndex}"]`,
+      )
+    }
+    if (el && typeof el.getBoundingClientRect === 'function') {
+      const r = el.getBoundingClientRect()
+      return {
+        x: r.left + r.width / 2 - svgRect.left,
+        y: r.top + r.height / 2 - svgRect.top,
+      }
+    }
+    const gRect = group.getBoundingClientRect()
+    return {
+      x: gRect.left + gRect.width / 2 - svgRect.left,
+      y: gRect.top + gRect.height / 2 - svgRect.top,
+    }
+  }
+
+  /**
+   * Run the "expand from the clicked point" choreography around an instant
+   * (un-animated) update. Only the data-mark group is animated — the axes, grid,
+   * and titles stay fixed, so the effect doesn't drag the whole chart frame. The
+   * current marks fade out near-in-place (a quick fade, not a balloon), the child
+   * renders invisibly underneath, then the child marks unfold outward from the
+   * clicked point: a horizontal-biased scale anchored there, so the bars read as
+   * emerging from the column you clicked. Drilling up has no trigger column, so
+   * it settles gently from the marks' centre.
+   *
+   * `transform-box: view-box` resolves the origin in SVG coordinates, so the same
+   * origin applies cleanly to the parent and the freshly-rendered child group.
+   * @param {{ x: number, y: number }} origin
+   * @param {'down'|'up'} direction
+   * @param {() => Promise<any>} runUpdate
+   * @returns {Promise<void>}
+   */
+  async _zoomDrill(origin, direction, runUpdate) {
+    const dur = this._zoomDuration()
+    const down = direction === 'down'
+
+    // Out phase: a quick fade, barely any scale (no dramatic zoom-out). It runs
+    // shorter than the in phase so the child reveal carries the motion.
+    const outDur = Math.round(dur * 0.55)
+    const outTo = down ? 'scale(1.03)' : 'scale(0.97)'
+    // In phase: drill-in unfolds the child outward from the point (X compressed
+    // more than Y, so it spreads sideways out of the column); drill-up just
+    // eases the parent in from a hair oversized.
+    const inFrom = down ? 'scaleX(0.55) scaleY(0.85)' : 'scale(1.04)'
+
+    /** @param {SVGElement} el */
+    const anchor = (el) => {
+      el.style.transformBox = 'view-box'
+      el.style.transformOrigin = `${origin.x}px ${origin.y}px`
+    }
+    /** @param {SVGElement} el */
+    const clear = (el) => {
+      el.style.transform = ''
+      el.style.opacity = ''
+      el.style.transformOrigin = ''
+      el.style.transformBox = ''
+    }
+
+    const outGroup = this._markGroup()
+    let outAnim = null
+    if (outGroup) {
+      anchor(outGroup)
+      outAnim = outGroup.animate(
+        [
+          { transform: 'scale(1)', opacity: 1 },
+          { transform: outTo, opacity: 0 },
+        ],
+        { duration: outDur, easing: 'ease-in', fill: 'forwards' },
+      )
+      try {
+        await outAnim.finished
+      } catch (e) {
+        /* cancelled by a rapid follow-up drill — fall through */
+      }
+    }
+
+    // Swap content while the marks are invisible, so the change is unseen. The
+    // update rebuilds the chart, so the mark group is a fresh element afterwards.
+    await runUpdate()
+
+    const inGroup = this._markGroup()
+    if (inGroup) {
+      // Pin the invisible start state inline before the first paint, so the
+      // freshly-rendered marks never flash at full size for a frame.
+      anchor(inGroup)
+      inGroup.style.opacity = '0'
+      inGroup.style.transform = inFrom
+      if (outAnim && outGroup === inGroup) outAnim.cancel()
+
+      const inAnim = inGroup.animate(
+        [
+          { transform: inFrom, opacity: 0 },
+          { transform: 'scale(1)', opacity: 1 },
+        ],
+        // Decelerating ease so the unfold settles softly into place.
+        { duration: dur, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' },
+      )
+      try {
+        await inAnim.finished
+      } catch (e) {
+        /* cancelled */
+      }
+      // Restore the natural (untransformed) state and drop the WAAPI fill.
+      clear(inGroup)
+      inAnim.cancel()
+    }
+  }
+
+  /** @returns {number} per-phase zoom duration in ms. */
+  _zoomDuration() {
+    const a = this.w.config.drilldown && this.w.config.drilldown.animation
+    const speed = a && typeof a.speed === 'number' ? a.speed : 260
+    return Math.max(80, speed)
   }
 
   /**

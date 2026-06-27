@@ -460,3 +460,343 @@ test.describe('drilldown — multi-series child', () => {
     expect(errors, errors.join('\n')).toHaveLength(0)
   })
 })
+
+// Trigger-point zoom: the drill transition is anchored at the clicked point so
+// the chart appears to dive into it. Opt-in via drilldown.animation.zoomFromPoint.
+const ZOOM_OPTIONS = {
+  chart: { type: 'bar', height: 360 },
+  plotOptions: { bar: { distributed: true } },
+  legend: { show: false },
+  series: [
+    {
+      name: 'Revenue',
+      data: [
+        { x: '2021', y: 480, drilldown: '2021' },
+        { x: '2022', y: 530, drilldown: '2022' },
+        { x: '2023', y: 610, drilldown: '2023' },
+        { x: '2024', y: 705, drilldown: '2024' },
+      ],
+    },
+  ],
+  drilldown: {
+    enabled: true,
+    animation: { enabled: true, zoomFromPoint: true, speed: 200 },
+    series: [
+      {
+        id: '2023',
+        name: '2023 by Quarter',
+        data: [{ x: 'Q1', y: 140 }, { x: 'Q2', y: 152 }, { x: 'Q3', y: 158 }, { x: 'Q4', y: 160 }],
+      },
+    ],
+  },
+}
+
+test.describe('drilldown — trigger-point zoom', () => {
+  test('scales the SVG from the clicked point, then settles clean', async ({ page }) => {
+    const errors = []
+    page.on('pageerror', (err) => errors.push(err.stack || err.message))
+
+    await page.setContent('<div id="chart"></div>')
+    await page.addScriptTag({ path: umdPath })
+    await page.evaluate((opts) => {
+      window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
+      return window.chart.render()
+    }, ZOOM_OPTIONS)
+    await page.waitForFunction(
+      () => window.chart && window.chart.w.globals.animationEnded === true,
+    )
+
+    const svgWidth = await page.evaluate(() => window.chart.w.dom.Paper.node.getBoundingClientRect().width)
+
+    // Click the third column (2023, j=2) — right-of-centre, so the zoom origin's
+    // x should land in the right half of the SVG.
+    await page.locator('[index="0"][j="2"]').first().click({ force: true })
+
+    // Sample through the transition: only the data-mark group should scale away
+    // from 1 (anchored in the right half), while the SVG frame — axes, grid,
+    // title — must NOT scale.
+    let sawMarkScale = false
+    let sawAnimation = false
+    let originX = null
+    let svgStayedStill = true
+    for (let i = 0; i < 18; i++) {
+      const s = await page.evaluate(() => {
+        const scaleOf = (t) => (t === 'none' ? 1 : new DOMMatrixReadOnly(t).a)
+        const svg = window.chart.w.dom.Paper.node
+        const g = svg.querySelector('.apexcharts-plot-series')
+        return {
+          markScale: g ? scaleOf(getComputedStyle(g).transform) : 1,
+          anims: g && g.getAnimations ? g.getAnimations().length : 0,
+          origin: g ? g.style.transformOrigin : '',
+          svgScale: scaleOf(getComputedStyle(svg).transform),
+        }
+      })
+      if (Math.abs(s.markScale - 1) > 0.1) sawMarkScale = true
+      if (s.anims > 0) sawAnimation = true
+      if (!originX && s.origin) originX = parseFloat(s.origin)
+      if (Math.abs(s.svgScale - 1) > 0.001) svgStayedStill = false
+      await page.waitForTimeout(25)
+    }
+    expect(sawMarkScale, 'the data-mark group should scale during the transition').toBe(true)
+    expect(sawAnimation, 'a WAAPI animation should run on the mark group').toBe(true)
+    expect(originX, 'origin should be in the right half (clicked 3rd of 4)').toBeGreaterThan(svgWidth / 2)
+    expect(svgStayedStill, 'the SVG frame (axes/grid/title) must not scale').toBe(true)
+
+    // Drill landed correctly: child data + child x-axis labels. (depth flips
+    // synchronously before the async transition finishes its restore, so wait on
+    // the data itself + the mark-group animation draining, not on depth.)
+    await page.waitForFunction(
+      () => {
+        const s = window.chart.getState().series[0]
+        const g = window.chart.w.dom.Paper.node.querySelector('.apexcharts-plot-series')
+        return s && s[0] === 140 && (g && g.getAnimations ? g.getAnimations().length === 0 : true)
+      },
+      { timeout: 5000 },
+    )
+    expect(await page.evaluate(() => window.chart.getState().series[0])).toEqual([140, 152, 158, 160])
+    // The x-axis must show the CHILD categories (Q1..Q4), not the parent years.
+    expect(
+      await page.evaluate(() =>
+        Array.from(
+          new Set(
+            Array.from(document.querySelectorAll('.apexcharts-xaxis-texts-g text')).map(
+              (t) => t.textContent.replace(/(.+)\1/, '$1'), // de-dupe doubled tspan text
+            ),
+          ),
+        ),
+      ),
+    ).toEqual(['Q1', 'Q2', 'Q3', 'Q4'])
+
+    // After settling, the mark group is back to natural (no residual transform,
+    // inline cleared) and the SVG frame was never transformed.
+    const settled = await page.evaluate(() => {
+      const norm = (t) => (t === 'none' ? 'matrix(1, 0, 0, 1, 0, 0)' : t)
+      const svg = window.chart.w.dom.Paper.node
+      const g = svg.querySelector('.apexcharts-plot-series')
+      return {
+        markTransform: norm(getComputedStyle(g).transform),
+        markInline: g.style.transform,
+        svgTransform: norm(getComputedStyle(svg).transform),
+      }
+    })
+    expect(settled).toEqual({
+      markTransform: 'matrix(1, 0, 0, 1, 0, 0)',
+      markInline: '',
+      svgTransform: 'matrix(1, 0, 0, 1, 0, 0)',
+    })
+
+    // Drill back: parent restored, no residual transform on the marks.
+    await page.locator('button.apexcharts-breadcrumb-item').first().click()
+    await page.waitForFunction(
+      () => {
+        const s = window.chart.getState().series[0]
+        const g = window.chart.w.dom.Paper.node.querySelector('.apexcharts-plot-series')
+        return s && s[0] === 480 && (g && g.getAnimations ? g.getAnimations().length === 0 : true)
+      },
+      { timeout: 5000 },
+    )
+    expect(await page.evaluate(() => window.chart.getState().series[0])).toEqual([480, 530, 610, 705])
+    expect(
+      await page.evaluate(() => {
+        const g = window.chart.w.dom.Paper.node.querySelector('.apexcharts-plot-series')
+        const t = getComputedStyle(g).transform
+        return t === 'none' ? 'matrix(1, 0, 0, 1, 0, 0)' : t
+      }),
+    ).toBe('matrix(1, 0, 0, 1, 0, 0)')
+
+    expect(errors, errors.join('\n')).toHaveLength(0)
+  })
+})
+
+// Treemap drilldown. Treemap is an axis chart whose tiles carry [index][j]
+// attrs and preserve a per-point `drilldown` field, so the same click wiring
+// drives it with no chart-type-specific code. A single-series tile hierarchy
+// drills into deeper single-series levels (sector → industry → company).
+const TREEMAP_OPTIONS = {
+  chart: { type: 'treemap', height: 360 },
+  legend: { show: false },
+  colors: ['#1565C0', '#2E7D32', '#C62828'],
+  plotOptions: { treemap: { distributed: true, enableShades: false } },
+  series: [
+    {
+      data: [
+        { x: 'Technology', y: 620, drilldown: 'tech' },
+        { x: 'Financials', y: 430, drilldown: 'fin' },
+        { x: 'Healthcare', y: 380 }, // not drillable
+      ],
+    },
+  ],
+  drilldown: {
+    enabled: true,
+    series: [
+      {
+        id: 'tech',
+        name: 'Technology',
+        colors: ['#0D47A1', '#1976D2', '#42A5F5'], // per-level palette
+        plotOptions: { treemap: { distributed: true, enableShades: false } },
+        data: [
+          { x: 'Cloud', y: 260, drilldown: 'tech-cloud' }, // drills deeper
+          { x: 'Devices', y: 190 },
+          { x: 'Software', y: 120 },
+        ],
+      },
+      {
+        id: 'tech-cloud',
+        name: 'Cloud',
+        plotOptions: { treemap: { distributed: true, enableShades: false } },
+        data: [
+          { x: 'Compute', y: 110 },
+          { x: 'Storage', y: 80 },
+        ],
+      },
+      {
+        id: 'fin',
+        name: 'Financials',
+        data: [
+          { x: 'Banking', y: 210 },
+          { x: 'Insurance', y: 140 },
+        ],
+      },
+    ],
+  },
+}
+
+test.describe('drilldown — treemap', () => {
+  test('drills sector → industry → company and back, with per-level colours', async ({ page }) => {
+    const errors = []
+    page.on('pageerror', (err) => errors.push(err.stack || err.message))
+
+    await page.setContent('<div id="chart"></div>')
+    await page.addScriptTag({ path: umdPath })
+    await page.evaluate((opts) => {
+      window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
+      return window.chart.render()
+    }, TREEMAP_OPTIONS)
+    await page.waitForFunction(
+      () => window.chart && window.chart.w.globals.animationEnded === true,
+    )
+
+    // Three sectors; the two with a `drilldown` field are marked drillable.
+    expect(await page.locator('.apexcharts-treemap-rect').count()).toBe(3)
+    expect(await page.locator('.apexcharts-drilldown-target').count()).toBe(2)
+
+    // Drill into Technology (index 0, j 0).
+    await page.locator('.apexcharts-treemap-rect[index="0"][j="0"]').first().click({ force: true })
+    await page.waitForFunction(() => window.chart.drilldown.depth === 1)
+    await page.waitForFunction(() => window.chart.w.globals.animationEnded === true)
+    await expect(page.locator('.apexcharts-breadcrumb-current')).toHaveText('Technology')
+    expect(await page.locator('.apexcharts-treemap-rect').count()).toBe(3) // Cloud/Devices/Software
+    // Per-level palette applied to the tiles.
+    expect(
+      await page.evaluate(() => window.chart.w.globals.colors.slice(0, 3)),
+    ).toEqual(['#0D47A1', '#1976D2', '#42A5F5'])
+
+    // Drill deeper into Cloud (index 0, j 0) → company level (depth 2).
+    await page.locator('.apexcharts-treemap-rect[index="0"][j="0"]').first().click({ force: true })
+    await page.waitForFunction(() => window.chart.drilldown.depth === 2)
+    await page.waitForFunction(() => window.chart.w.globals.animationEnded === true)
+    await expect(page.locator('.apexcharts-breadcrumb-current')).toHaveText('Cloud')
+    expect(await page.locator('.apexcharts-treemap-rect').count()).toBe(2) // Compute/Storage
+
+    // Breadcrumb back to the root.
+    await page.locator('button.apexcharts-breadcrumb-item').first().click()
+    await page.waitForFunction(() => window.chart.drilldown.depth === 0)
+    await page.waitForFunction(() => window.chart.w.globals.animationEnded === true)
+    expect(await page.locator('.apexcharts-treemap-rect').count()).toBe(3)
+    expect(
+      await page.evaluate(() => window.chart.w.globals.colors.slice(0, 3)),
+    ).toEqual(['#1565C0', '#2E7D32', '#C62828']) // root palette restored
+    await expect(page.locator('.apexcharts-breadcrumb')).toHaveCount(0)
+
+    expect(errors, errors.join('\n')).toHaveLength(0)
+  })
+})
+
+// Heatmap drilldown. Heatmap is multi-series (each series = a row); a cell
+// carries [index][j] and a `drilldown` field, so a click drills into a full
+// child heatmap with a different row/column shape (a full rebuild, since the
+// series count changes) plus a per-level colorScale override.
+const HEATMAP_OPTIONS = {
+  chart: { type: 'heatmap', height: 360 },
+  dataLabels: { enabled: false },
+  plotOptions: {
+    heatmap: {
+      colorScale: {
+        ranges: [
+          { from: 0, to: 50, color: '#C8E6C9' },
+          { from: 51, to: 100, color: '#E53935' },
+        ],
+      },
+    },
+  },
+  series: [
+    { name: 'North', data: [{ x: 'Q1', y: 22, drilldown: 'north-q1' }, { x: 'Q2', y: 70 }, { x: 'Q3', y: 31 }] },
+    { name: 'South', data: [{ x: 'Q1', y: 41 }, { x: 'Q2', y: 35 }, { x: 'Q3', y: 28 }] },
+    { name: 'East', data: [{ x: 'Q1', y: 18 }, { x: 'Q2', y: 24 }, { x: 'Q3', y: 33 }] },
+  ],
+  drilldown: {
+    enabled: true,
+    series: [
+      {
+        id: 'north-q1',
+        name: 'North / Q1',
+        plotOptions: {
+          heatmap: {
+            colorScale: {
+              ranges: [
+                { from: 0, to: 5, color: '#C8E6C9' },
+                { from: 6, to: 10, color: '#FB8C00' },
+              ],
+            },
+          },
+        },
+        series: [
+          { name: 'Jan', data: [{ x: 'Wk1', y: 5 }, { x: 'Wk2', y: 7 }, { x: 'Wk3', y: 9 }, { x: 'Wk4', y: 6 }] },
+          { name: 'Feb', data: [{ x: 'Wk1', y: 8 }, { x: 'Wk2', y: 6 }, { x: 'Wk3', y: 7 }, { x: 'Wk4', y: 5 }] },
+        ],
+      },
+    ],
+  },
+}
+
+test.describe('drilldown — heatmap', () => {
+  test('drills a cell into a child heatmap and back', async ({ page }) => {
+    const errors = []
+    page.on('pageerror', (err) => errors.push(err.stack || err.message))
+
+    await page.setContent('<div id="chart"></div>')
+    await page.addScriptTag({ path: umdPath })
+    await page.evaluate((opts) => {
+      window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
+      return window.chart.render()
+    }, HEATMAP_OPTIONS)
+    await page.waitForFunction(
+      () => window.chart && window.chart.w.globals.animationEnded === true,
+    )
+
+    // 3 rows × 3 cols = 9 cells; only North/Q1 carries a drilldown id.
+    expect(await page.locator('.apexcharts-heatmap-rect').count()).toBe(9)
+    expect(await page.locator('.apexcharts-drilldown-target').count()).toBe(1)
+
+    // Click North/Q1 (row index 0, col j 0).
+    await page.locator('.apexcharts-heatmap-rect[index="0"][j="0"]').first().click({ force: true })
+    await page.waitForFunction(() => window.chart.drilldown.depth === 1)
+    await page.waitForFunction(() => window.chart.w.globals.animationEnded === true)
+
+    await expect(page.locator('.apexcharts-breadcrumb-current')).toHaveText('North / Q1')
+    // Child heatmap: 2 rows (Jan/Feb) × 4 weeks = 8 cells.
+    expect(await page.evaluate(() => window.chart.w.config.series.length)).toBe(2)
+    expect(await page.evaluate(() => window.chart.w.globals.seriesNames)).toEqual(['Jan', 'Feb'])
+    expect(await page.locator('.apexcharts-heatmap-rect').count()).toBe(8)
+
+    // Back to the root grid.
+    await page.locator('button.apexcharts-breadcrumb-item').first().click()
+    await page.waitForFunction(() => window.chart.drilldown.depth === 0)
+    await page.waitForFunction(() => window.chart.w.globals.animationEnded === true)
+    expect(await page.evaluate(() => window.chart.w.config.series.length)).toBe(3)
+    expect(await page.locator('.apexcharts-heatmap-rect').count()).toBe(9)
+    await expect(page.locator('.apexcharts-breadcrumb')).toHaveCount(0)
+
+    expect(errors, errors.join('\n')).toHaveLength(0)
+  })
+})

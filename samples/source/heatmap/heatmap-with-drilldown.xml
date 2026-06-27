@@ -1,0 +1,121 @@
+<title>HeatMap with Drilldown</title>
+
+<scripts>
+<script>
+// Root grid: regions (rows) x quarters (columns). Every cell carries a drilldown
+// id, so clicking any cell opens that region+quarter broken down into a
+// months (rows) x weeks (columns) heatmap. Values are deterministic so a
+// re-drill always shows the same detail.
+var regions = ['North America', 'Europe', 'Asia Pacific', 'Latin America']
+var quarters = ['Q1', 'Q2', 'Q3', 'Q4']
+var monthsByQuarter = [
+  ['Jan', 'Feb', 'Mar'],
+  ['Apr', 'May', 'Jun'],
+  ['Jul', 'Aug', 'Sep'],
+  ['Oct', 'Nov', 'Dec']
+]
+var weeks = ['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4']
+
+function pseudo(seed, lo, hi) {
+  var x = Math.sin(seed) * 10000
+  x = x - Math.floor(x)
+  return Math.round(lo + x * (hi - lo))
+}
+
+// Per-level colour scales: the root spans 0-100, the weekly detail spans 0-40,
+// so each level stays readable. The child override restores on drill-up.
+var rootHeatPlot = {
+  heatmap: {
+    radius: 2,
+    shadeIntensity: 0.5,
+    colorScale: {
+      ranges: [
+        { from: 0, to: 30, color: '#C8E6C9', name: 'Low' },
+        { from: 31, to: 60, color: '#66BB6A', name: 'Medium' },
+        { from: 61, to: 80, color: '#FB8C00', name: 'High' },
+        { from: 81, to: 100, color: '#E53935', name: 'Peak' }
+      ]
+    }
+  }
+}
+var childHeatPlot = {
+  heatmap: {
+    radius: 2,
+    shadeIntensity: 0.5,
+    colorScale: {
+      ranges: [
+        { from: 0, to: 12, color: '#C8E6C9', name: 'Low' },
+        { from: 13, to: 24, color: '#66BB6A', name: 'Medium' },
+        { from: 25, to: 40, color: '#FB8C00', name: 'High' }
+      ]
+    }
+  }
+}
+
+var heatRootSeries = regions.map(function (region, ri) {
+  return {
+    name: region,
+    data: quarters.map(function (q, qi) {
+      return { x: q, y: pseudo(ri * 31 + qi * 7 + 3, 20, 95), drilldown: 'r' + ri + '-q' + qi }
+    })
+  }
+})
+
+var heatChildren = []
+regions.forEach(function (region, ri) {
+  quarters.forEach(function (q, qi) {
+    heatChildren.push({
+      id: 'r' + ri + '-q' + qi,
+      name: region + ' / ' + q,
+      plotOptions: childHeatPlot,
+      series: monthsByQuarter[qi].map(function (m, mi) {
+        return {
+          name: m,
+          data: weeks.map(function (wk, wi) {
+            return { x: wk, y: pseudo(ri * 101 + qi * 53 + mi * 17 + wi * 3 + 11, 5, 40) }
+          })
+        }
+      })
+    })
+  })
+})
+</script>
+</scripts>
+
+<chart>
+<options>
+chart: {
+  type: 'heatmap',
+  height: 450,
+  toolbar: {
+    show: false
+  }
+},
+dataLabels: {
+  enabled: true
+},
+plotOptions: rootHeatPlot,
+title: {
+  text: 'Sales Intensity by Region and Quarter',
+  align: 'left'
+},
+subtitle: {
+  text: 'Click any cell to drill into its weekly breakdown (pointer cursor marks drillable cells). Use the breadcrumb to go back.',
+  align: 'left'
+},
+drilldown: {
+  enabled: true,
+  breadcrumb: {
+    show: true,
+    position: 'top-right',
+    rootLabel: 'All Regions',
+    separator: ' / '
+  },
+  series: heatChildren
+}
+</options>
+
+<series>
+heatRootSeries
+</series>
+</chart>

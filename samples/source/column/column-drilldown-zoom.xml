@@ -1,0 +1,106 @@
+<title>Column Drilldown with Trigger-Point Zoom</title>
+
+<chart>
+<options>
+chart: {
+  type: 'bar',
+  height: 420,
+  toolbar: {
+    show: false
+  }
+},
+plotOptions: {
+  bar: {
+    distributed: true,
+    columnWidth: '55%',
+    borderRadius: 6,
+    borderRadiusApplication: 'end'
+  }
+},
+legend: {
+  show: false
+},
+dataLabels: {
+  enabled: false
+},
+colors: ['#1565C0', '#2E7D32', '#EF6C00', '#6A1B9A'],
+title: {
+  text: 'Revenue by Year',
+  align: 'left'
+},
+subtitle: {
+  text: 'Click a year: its quarterly breakdown unfolds outward from the column you click. Use the breadcrumb to go back.',
+  align: 'left'
+},
+yaxis: {
+  title: {
+    text: 'Revenue ($k)'
+  }
+},
+drilldown: {
+  enabled: true,
+  // Anchor the drill transition at the clicked column: the child's bars unfold
+  // outward from that column rather than the chart simply re-rendering.
+  animation: {
+    enabled: true,
+    zoomFromPoint: true,
+    speed: 260
+  },
+  breadcrumb: {
+    show: true,
+    position: 'top-right',
+    rootLabel: 'All Years',
+    separator: ' / '
+  },
+  series: [{
+    id: '2021',
+    name: '2021 by Quarter',
+    data: [
+      { x: 'Q1', y: 105 },
+      { x: 'Q2', y: 118 },
+      { x: 'Q3', y: 125 },
+      { x: 'Q4', y: 132 }
+    ]
+  }, {
+    id: '2022',
+    name: '2022 by Quarter',
+    data: [
+      { x: 'Q1', y: 121 },
+      { x: 'Q2', y: 130 },
+      { x: 'Q3', y: 138 },
+      { x: 'Q4', y: 141 }
+    ]
+  }, {
+    id: '2023',
+    name: '2023 by Quarter',
+    data: [
+      { x: 'Q1', y: 140 },
+      { x: 'Q2', y: 152 },
+      { x: 'Q3', y: 158 },
+      { x: 'Q4', y: 160 }
+    ]
+  }, {
+    id: '2024',
+    name: '2024 by Quarter',
+    data: [
+      { x: 'Q1', y: 165 },
+      { x: 'Q2', y: 174 },
+      { x: 'Q3', y: 182 },
+      { x: 'Q4', y: 184 }
+    ]
+  }]
+}
+</options>
+
+<series>
+[{
+  name: 'Revenue',
+  data: [
+    { x: '2021', y: 480, drilldown: '2021' },
+    { x: '2022', y: 530, drilldown: '2022' },
+    { x: '2023', y: 610, drilldown: '2023' },
+    { x: '2024', y: 705, drilldown: '2024' }
+  ]
+}]
+</series>
+</chart>

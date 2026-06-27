@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>HeatMap with Drilldown</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Root grid: regions (rows) x quarters (columns). Every cell carries a drilldown
+      // id, so clicking any cell opens that region+quarter broken down into a
+      // months (rows) x weeks (columns) heatmap. Values are deterministic so a
+      // re-drill always shows the same detail.
+      var regions = ['North America', 'Europe', 'Asia Pacific', 'Latin America']
+      var quarters = ['Q1', 'Q2', 'Q3', 'Q4']
+      var monthsByQuarter = [
+        ['Jan', 'Feb', 'Mar'],
+        ['Apr', 'May', 'Jun'],
+        ['Jul', 'Aug', 'Sep'],
+        ['Oct', 'Nov', 'Dec'],
+      ]
+      var weeks = ['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4']
+
+      function pseudo(seed, lo, hi) {
+        var x = Math.sin(seed) * 10000
+        x = x - Math.floor(x)
+        return Math.round(lo + x * (hi - lo))
+      }
+
+      // Per-level colour scales: the root spans 0-100, the weekly detail spans 0-40,
+      // so each level stays readable. The child override restores on drill-up.
+      var rootHeatPlot = {
+        heatmap: {
+          radius: 2,
+          shadeIntensity: 0.5,
+          colorScale: {
+            ranges: [
+              { from: 0, to: 30, color: '#C8E6C9', name: 'Low' },
+              { from: 31, to: 60, color: '#66BB6A', name: 'Medium' },
+              { from: 61, to: 80, color: '#FB8C00', name: 'High' },
+              { from: 81, to: 100, color: '#E53935', name: 'Peak' },
+            ],
+          },
+        },
+      }
+      var childHeatPlot = {
+        heatmap: {
+          radius: 2,
+          shadeIntensity: 0.5,
+          colorScale: {
+            ranges: [
+              { from: 0, to: 12, color: '#C8E6C9', name: 'Low' },
+              { from: 13, to: 24, color: '#66BB6A', name: 'Medium' },
+              { from: 25, to: 40, color: '#FB8C00', name: 'High' },
+            ],
+          },
+        },
+      }
+
+      var heatRootSeries = regions.map(function (region, ri) {
+        return {
+          name: region,
+          data: quarters.map(function (q, qi) {
+            return {
+              x: q,
+              y: pseudo(ri * 31 + qi * 7 + 3, 20, 95),
+              drilldown: 'r' + ri + '-q' + qi,
+            }
+          }),
+        }
+      })
+
+      var heatChildren = []
+      regions.forEach(function (region, ri) {
+        quarters.forEach(function (q, qi) {
+          heatChildren.push({
+            id: 'r' + ri + '-q' + qi,
+            name: region + ' / ' + q,
+            plotOptions: childHeatPlot,
+            series: monthsByQuarter[qi].map(function (m, mi) {
+              return {
+                name: m,
+                data: weeks.map(function (wk, wi) {
+                  return {
+                    x: wk,
+                    y: pseudo(ri * 101 + qi * 53 + mi * 17 + wi * 3 + 11, 5, 40),
+                  }
+                }),
+              }
+            }),
+          })
+        })
+      })
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;heatmap&quot; height={450} /&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: heatRootSeries,
+          options: {
+            chart: {
+              type: 'heatmap',
+              height: 450,
+              toolbar: {
+                show: false,
+              },
+            },
+            dataLabels: {
+              enabled: true,
+            },
+            plotOptions: rootHeatPlot,
+            title: {
+              text: 'Sales Intensity by Region and Quarter',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'Click any cell to drill into its weekly breakdown (pointer cursor marks drillable cells). Use the breadcrumb to go back.',
+              align: 'left',
+            },
+            drilldown: {
+              enabled: true,
+              breadcrumb: {
+                show: true,
+                position: 'top-right',
+                rootLabel: 'All Regions',
+                separator: ' / ',
+              },
+              series: heatChildren,
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div id="chart">
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="heatmap"
+                height={450}
+              />
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

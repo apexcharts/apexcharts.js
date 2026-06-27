@@ -1,0 +1,134 @@
+<title>Treemap with Drilldown</title>
+
+<scripts>
+<script>
+// Per-level colour palettes. Treemap uses distributed colouring (one colour per
+// tile), so a level's palette tints that level's tiles and signals which branch
+// you are inside. Drilling back restores the parent palette.
+var sectorColors = ['#1565C0', '#2E7D32', '#C62828', '#EF6C00', '#6A1B9A']
+var bluePalette = ['#0D47A1', '#1976D2', '#42A5F5', '#90CAF9']  // Technology
+var cyanPalette = ['#006064', '#00838F', '#00ACC1', '#4DD0E1']  // Tech > Cloud
+var greenPalette = ['#1B5E20', '#388E3C', '#66BB6A']            // Financials
+var redPalette = ['#B71C1C', '#E53935', '#EF9A9A']              // Healthcare
+var amberPalette = ['#E65100', '#FB8C00', '#FFB74D']            // Energy
+var purplePalette = ['#4A148C', '#8E24AA', '#CE93D8']           // Consumer
+
+// Distributed colouring shared by every level.
+var distributed = { treemap: { distributed: true, enableShades: false } }
+</script>
+</scripts>
+
+<chart>
+<options>
+chart: {
+  type: 'treemap',
+  height: 450,
+  toolbar: {
+    show: false
+  }
+},
+legend: {
+  show: false
+},
+colors: sectorColors,
+plotOptions: distributed,
+dataLabels: {
+  enabled: true,
+  style: {
+    fontSize: '14px'
+  }
+},
+title: {
+  text: 'Market Capitalisation by Sector',
+  align: 'left'
+},
+subtitle: {
+  text: 'Click a sector to drill into its industries, then into companies. Use the breadcrumb to go back.',
+  align: 'left'
+},
+drilldown: {
+  enabled: true,
+  breadcrumb: {
+    show: true,
+    position: 'top-right',
+    rootLabel: 'All Sectors',
+    separator: ' / '
+  },
+  series: [{
+    id: 'tech',
+    name: 'Technology',
+    colors: bluePalette,
+    plotOptions: distributed,
+    data: [
+      { x: 'Cloud', y: 260, drilldown: 'tech-cloud' },
+      { x: 'Devices', y: 190 },
+      { x: 'Software', y: 120 },
+      { x: 'Semiconductors', y: 50 }
+    ]
+  }, {
+    id: 'tech-cloud',
+    name: 'Cloud',
+    colors: cyanPalette,
+    plotOptions: distributed,
+    data: [
+      { x: 'Compute', y: 110 },
+      { x: 'Storage', y: 80 },
+      { x: 'Networking', y: 45 },
+      { x: 'Analytics', y: 25 }
+    ]
+  }, {
+    id: 'fin',
+    name: 'Financials',
+    colors: greenPalette,
+    plotOptions: distributed,
+    data: [
+      { x: 'Banking', y: 210 },
+      { x: 'Insurance', y: 140 },
+      { x: 'Payments', y: 80 }
+    ]
+  }, {
+    id: 'health',
+    name: 'Healthcare',
+    colors: redPalette,
+    plotOptions: distributed,
+    data: [
+      { x: 'Pharma', y: 200 },
+      { x: 'Devices', y: 110 },
+      { x: 'Services', y: 70 }
+    ]
+  }, {
+    id: 'energy',
+    name: 'Energy',
+    colors: amberPalette,
+    plotOptions: distributed,
+    data: [
+      { x: 'Renewables', y: 160 },
+      { x: 'Oil & Gas', y: 90 },
+      { x: 'Utilities', y: 40 }
+    ]
+  }, {
+    id: 'consumer',
+    name: 'Consumer',
+    colors: purplePalette,
+    plotOptions: distributed,
+    data: [
+      { x: 'Retail', y: 180 },
+      { x: 'Food & Beverage', y: 100 },
+      { x: 'Apparel', y: 60 }
+    ]
+  }]
+}
+</options>
+
+<series>
+[{
+  data: [
+    { x: 'Technology', y: 620, drilldown: 'tech' },
+    { x: 'Financials', y: 430, drilldown: 'fin' },
+    { x: 'Healthcare', y: 380, drilldown: 'health' },
+    { x: 'Energy', y: 290, drilldown: 'energy' },
+    { x: 'Consumer', y: 340, drilldown: 'consumer' }
+  ]
+}]
+</series>
+</chart>

@@ -423,7 +423,18 @@ declare namespace ApexCharts {
           offsetY?: number
           formatter?(label: string, opts: { index: number; depth: number }): string
         }
-    animation?: { enabled?: boolean }
+    animation?: {
+      enabled?: boolean
+      /**
+       * Anchor the drill transition at the clicked point: the child unfolds
+       * outward from it (and settles back on drill-up) instead of the chart
+       * simply re-rendering. A gentle scale layered on the SVG. Opt-in.
+       * Defaults to false.
+       */
+      zoomFromPoint?: boolean
+      /** Base transition duration in ms when `zoomFromPoint` is true. Default 260. */
+      speed?: number
+    }
     /** Async resolver called when a drillable point has no inline `series` match. */
     onDrillDown?(
       ctx: ApexDrilldownContext
