@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Donut with Drilldown</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 480px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Per-level colour palettes. Each breakdown is tinted with shades of its
+      // parent slice's hue, so drilling reads as "going deeper into this slice".
+      // Pie/donut drilldown needs object-form data ({ x, y, drilldown }) so each
+      // slice can carry its own child id; flat numeric series can't.
+      var deviceColors = ['#1565C0', '#2E7D32', '#EF6C00'] // Mobile / Desktop / Tablet
+      var mobileOsColors = ['#0D47A1', '#1976D2', '#64B5F6'] // Mobile by OS
+      var iosColors = ['#1565C0', '#42A5F5', '#90CAF9'] // iOS versions
+      var desktopOsColors = ['#1B5E20', '#388E3C', '#66BB6A'] // Desktop by OS
+      var tabletOsColors = ['#E65100', '#FB8C00'] // Tablet by OS
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div id="chart">
+      <apexchart type="donut" height="420" :options="chartOptions" :series="series"></apexchart>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;donut&quot; height=&quot;420&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [
+            {
+              data: [
+                { x: 'Mobile', y: 55, drilldown: 'mobile' },
+                { x: 'Desktop', y: 33, drilldown: 'desktop' },
+                { x: 'Tablet', y: 12, drilldown: 'tablet' },
+              ],
+            },
+          ],
+          chartOptions: {
+            chart: {
+              type: 'donut',
+              height: 420,
+            },
+            colors: deviceColors,
+            legend: {
+              position: 'bottom',
+            },
+            dataLabels: {
+              enabled: true,
+            },
+            plotOptions: {
+              pie: {
+                donut: {
+                  size: '60%',
+                },
+              },
+            },
+            title: {
+              text: 'Website Traffic by Device',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'Click a slice to drill into its breakdown. Use the breadcrumb to go back.',
+              align: 'left',
+            },
+            drilldown: {
+              enabled: true,
+              breadcrumb: {
+                show: true,
+                position: 'top-right',
+                rootLabel: 'All Devices',
+                separator: ' / ',
+              },
+              series: [
+                {
+                  id: 'mobile',
+                  name: 'Mobile by OS',
+                  colors: mobileOsColors,
+                  data: [
+                    { x: 'iOS', y: 30, drilldown: 'mobile-ios' },
+                    { x: 'Android', y: 23 },
+                    { x: 'Other', y: 2 },
+                  ],
+                },
+                {
+                  id: 'mobile-ios',
+                  name: 'iOS Versions',
+                  colors: iosColors,
+                  data: [
+                    { x: 'iOS 17', y: 18 },
+                    { x: 'iOS 16', y: 9 },
+                    { x: 'iOS 15', y: 3 },
+                  ],
+                },
+                {
+                  id: 'desktop',
+                  name: 'Desktop by OS',
+                  colors: desktopOsColors,
+                  data: [
+                    { x: 'Windows', y: 20 },
+                    { x: 'macOS', y: 10 },
+                    { x: 'Linux', y: 3 },
+                  ],
+                },
+                {
+                  id: 'tablet',
+                  name: 'Tablet by OS',
+                  colors: tabletOsColors,
+                  data: [
+                    { x: 'iPadOS', y: 8 },
+                    { x: 'Android', y: 4 },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      })
+    </script>
+    
+  </body>
+</html>

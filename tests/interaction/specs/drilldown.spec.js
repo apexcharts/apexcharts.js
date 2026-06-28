@@ -800,3 +800,107 @@ test.describe('drilldown — heatmap', () => {
     expect(errors, errors.join('\n')).toHaveLength(0)
   })
 })
+
+// Pie/donut drilldown. Slices carry index=0 / j=<sliceIndex> and fire
+// dataPointSelection on mousedown, so a click drills exactly like a bar. The one
+// requirement is object-form data ([{ x, y, drilldown }]) so each slice can carry
+// its own child id — flat numeric pie can't. Clicks are dispatched as a mousedown
+// on the arc path (the donut's bbox centre is the empty hole, so a centre-click
+// would miss the wedge).
+const DONUT_OPTIONS_DD = {
+  chart: { type: 'donut', height: 360 },
+  colors: ['#1565C0', '#2E7D32', '#EF6C00'],
+  legend: { show: true, position: 'bottom' },
+  series: [
+    {
+      data: [
+        { x: 'Mobile', y: 55, drilldown: 'mobile' },
+        { x: 'Desktop', y: 33, drilldown: 'desktop' },
+        { x: 'Tablet', y: 12 }, // no id → not drillable
+      ],
+    },
+  ],
+  drilldown: {
+    enabled: true,
+    series: [
+      {
+        id: 'mobile',
+        name: 'Mobile by OS',
+        colors: ['#0D47A1', '#1976D2', '#64B5F6'], // per-level palette
+        data: [
+          { x: 'iOS', y: 30, drilldown: 'mobile-ios' }, // drills deeper
+          { x: 'Android', y: 23 },
+          { x: 'Other', y: 2 },
+        ],
+      },
+      {
+        id: 'mobile-ios',
+        name: 'iOS Versions',
+        data: [{ x: 'iOS 17', y: 18 }, { x: 'iOS 16', y: 9 }, { x: 'iOS 15', y: 3 }],
+      },
+      {
+        id: 'desktop',
+        name: 'Desktop by OS',
+        data: [{ x: 'Windows', y: 20 }, { x: 'macOS', y: 10 }, { x: 'Linux', y: 3 }],
+      },
+    ],
+  },
+}
+
+test.describe('drilldown — pie/donut', () => {
+  test('clicking a slice drills into its breakdown (and deeper), then back', async ({ page }) => {
+    const errors = []
+    page.on('pageerror', (err) => errors.push(err.stack || err.message))
+
+    await page.setContent('<div id="chart"></div>')
+    await page.addScriptTag({ path: umdPath })
+    await page.evaluate((opts) => {
+      window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
+      return window.chart.render()
+    }, DONUT_OPTIONS_DD)
+    await page.waitForFunction(
+      () => window.chart && window.chart.w.globals.animationEnded === true,
+    )
+
+    const legend = () =>
+      page.evaluate(() =>
+        Array.from(document.querySelectorAll('.apexcharts-legend-text')).map((e) => e.textContent),
+      )
+
+    // Three slices; the two carrying a drilldown id are marked drillable.
+    expect(await page.locator('.apexcharts-pie-area').count()).toBe(3)
+    expect(await page.locator('.apexcharts-drilldown-target').count()).toBe(2)
+    expect(await legend()).toEqual(['Mobile', 'Desktop', 'Tablet'])
+
+    // Drill into Mobile (slice j=0) via a mousedown on the arc path.
+    await page.locator('.apexcharts-pie-area[j="0"]').first().dispatchEvent('mousedown')
+    await page.waitForFunction(() => window.chart.drilldown.depth === 1, { timeout: 5000 })
+    await page.waitForFunction(() => window.chart.w.globals.animationEnded === true)
+    await expect(page.locator('.apexcharts-breadcrumb-current')).toHaveText('Mobile by OS')
+    expect(await legend()).toEqual(['iOS', 'Android', 'Other'])
+    // Per-level palette applied to the slices.
+    expect(await page.evaluate(() => window.chart.w.globals.colors.slice(0, 3))).toEqual([
+      '#0D47A1', '#1976D2', '#64B5F6',
+    ])
+
+    // Drill deeper into iOS (slice j=0) → iOS Versions (depth 2).
+    await page.locator('.apexcharts-pie-area[j="0"]').first().dispatchEvent('mousedown')
+    await page.waitForFunction(() => window.chart.drilldown.depth === 2, { timeout: 5000 })
+    await page.waitForFunction(() => window.chart.w.globals.animationEnded === true)
+    await expect(page.locator('.apexcharts-breadcrumb-current')).toHaveText('iOS Versions')
+    expect(await legend()).toEqual(['iOS 17', 'iOS 16', 'iOS 15'])
+
+    // Breadcrumb back to the root donut: colours and slices restored.
+    await page.locator('button.apexcharts-breadcrumb-item').first().click()
+    await page.waitForFunction(() => window.chart.drilldown.depth === 0, { timeout: 5000 })
+    await page.waitForFunction(() => window.chart.w.globals.animationEnded === true)
+    expect(await page.locator('.apexcharts-pie-area').count()).toBe(3)
+    expect(await legend()).toEqual(['Mobile', 'Desktop', 'Tablet'])
+    expect(await page.evaluate(() => window.chart.w.globals.colors.slice(0, 3))).toEqual([
+      '#1565C0', '#2E7D32', '#EF6C00',
+    ])
+    await expect(page.locator('.apexcharts-breadcrumb')).toHaveCount(0)
+
+    expect(errors, errors.join('\n')).toHaveLength(0)
+  })
+})
