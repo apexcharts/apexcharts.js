@@ -829,7 +829,8 @@ type ApexAxisChartSeries = {
     * A plain value for most charts. For `candlestick`/`boxPlot`, the
     * summary array (`[O,H,L,C]` / `[min,Q1,median,Q3,max]`). For `violin`, an
     * object carrying the precomputed density profile (`[value, weight]` pairs)
-    * plus the raw observations rendered as jitter.
+    * plus the raw observations rendered as jitter. For a `scatter` strip plot
+    * (`plotOptions.scatter.jitter`), the array of observations in this category.
     */
    y:
      | number
@@ -1103,6 +1104,28 @@ type ApexPlotOptions = {
     zScaling?: boolean
     minBubbleRadius?: number
     maxBubbleRadius?: number
+  }
+  scatter?: {
+    /**
+     * Spread overlapping points apart ("jitter"). Two uses, one engine:
+     *  - Strip plot: supply data as `{ x: 'Category', y: [v1, v2, ...] }`. Each
+     *    category becomes a band and the values scatter horizontally within it.
+     *  - Overplotting: ordinary `{ x, y }` points get a small random offset so
+     *    dense clusters fan out. The underlying data (and tooltip values) stay
+     *    exact; only the drawn position moves.
+     * Offsets are in axis units and deterministic (stable across re-renders).
+     */
+    jitter?: {
+      enabled?: boolean
+      /** Max ± horizontal offset, in x-axis units (1 = one category step). */
+      x?: number
+      /** Max ± vertical offset, in y-axis units. */
+      y?: number
+      /** Single series: colour each band differently (by its position). */
+      distributed?: boolean
+      /** Per-band cap; values beyond this are stride-thinned. */
+      maxPoints?: number
+    }
   }
   candlestick?: {
     type?: string,

@@ -532,6 +532,25 @@ export default class Options {
           minBubbleRadius: undefined,
           maxBubbleRadius: undefined,
         },
+        scatter: {
+          // Spread overlapping points apart ("jitter"). Two uses, one engine:
+          //  - Strip plot: supply data as { x: 'Category', y: [v1, v2, ...] }.
+          //    Each category becomes a band and the values are scattered
+          //    horizontally within it. Marker styling comes from the standard
+          //    `markers` / `colors` config.
+          //  - Overplotting: ordinary { x, y } points get a small random offset
+          //    so dense clusters fan out. The underlying data (and tooltip
+          //    values) stay exact — only the drawn position moves.
+          // Offsets are in axis units (x: 1 = one category step) and are
+          // deterministic (stable across re-renders, SSR-safe).
+          jitter: {
+            enabled: false,
+            x: 0, // max ± horizontal offset, in x-axis units
+            y: 0, // max ± vertical offset, in y-axis units
+            distributed: false, // single series: colour each band differently
+            maxPoints: 5000, // per band; excess values are stride-thinned
+          },
+        },
         candlestick: {
           colors: {
             upward: '#00B746',
@@ -1479,7 +1498,7 @@ export default class Options {
           },
         },
         tooltip: {
-          enabled: true,
+          enabled: false,
           offsetY: 0,
           formatter: undefined,
           style: {

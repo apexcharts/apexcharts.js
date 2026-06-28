@@ -1284,6 +1284,151 @@ export default class Data {
     return current
   }
 
+  /**
+   * Scatter strip-plot support. When `plotOptions.scatter.jitter.enabled` and a
+   * series carries compact `{ x: 'Category', y: [v1, v2, ...] }` data, expand
+   * each observation into its own `{ x: bandIndex, y }` point (so every dot is a
+   * first-class, hoverable marker) and frame the x-axis as evenly-spaced,
+   * labelled bands. The reference per-point form (numeric x + `xaxis.categories`)
+   * is reframed too, without expansion. Returns `ser` unchanged for non-scatter
+   * charts and for plain numeric/datetime data (continuous overplotting jitter
+   * is offset at render time instead).
+   *
+   * @param {any[]} ser
+   * @returns {any[]}
+   */
+  expandScatterJitterData(ser) {
+    const cnf = this.w.config
+    const isScatter =
+      cnf.chart.type === 'scatter' || cnf.chart.type === 'bubble'
+    const jt = cnf.plotOptions?.scatter?.jitter
+    if (!isScatter || !jt || !jt.enabled || !Array.isArray(ser)) return ser
+
+    const hasArrayY = ser.some(
+      (/** @type {any} */ s) =>
+        Array.isArray(s?.data) &&
+        s.data.some(
+          (/** @type {any} */ d) =>
+            d && !Array.isArray(d) && Array.isArray(d.y),
+        ),
+    )
+
+    if (!hasArrayY) {
+      // Reference form: plain points at numeric band indices + xaxis.categories.
+      // Just frame the axis; the data is already one point per observation.
+      if (
+        cnf.xaxis.type !== 'datetime' &&
+        Array.isArray(cnf.xaxis.categories) &&
+        cnf.xaxis.categories.length
+      ) {
+        this._applyBandAxis(cnf.xaxis.categories.slice())
+      }
+      return ser
+    }
+
+    // Compact form: collect bands (in first-seen order) then expand.
+    /** @type {any[]} */
+    const bandLabels = []
+    const bandIndex = new Map()
+    ser.forEach((/** @type {any} */ s) => {
+      if (!Array.isArray(s?.data)) return
+      s.data.forEach((/** @type {any} */ d) => {
+        if (d && Array.isArray(d.y)) {
+          const key = String(d.x)
+          if (!bandIndex.has(key)) {
+            bandIndex.set(key, bandLabels.length)
+            bandLabels.push(d.x)
+          }
+        }
+      })
+    })
+
+    const maxPoints = jt.maxPoints || 5000
+
+    const expanded = ser.map((/** @type {any} */ s) => {
+      if (!Array.isArray(s?.data)) return s
+      /** @type {any[]} */
+      const out = []
+      s.data.forEach((/** @type {any} */ d) => {
+        if (d && Array.isArray(d.y)) {
+          const bi = bandIndex.get(String(d.x))
+          const ys = d.y
+          const stride =
+            ys.length > maxPoints ? Math.ceil(ys.length / maxPoints) : 1
+          for (let k = 0; k < ys.length; k += stride) {
+            const yv = Utils.parseNumber(ys[k])
+            if (yv === null) continue
+            out.push({ x: bi, y: yv })
+          }
+        } else if (d && typeof d === 'object' && !Array.isArray(d)) {
+          // a plain { x, y } mixed into compact data — map known labels to bands
+          const key = String(d.x)
+          out.push({ x: bandIndex.has(key) ? bandIndex.get(key) : d.x, y: d.y })
+        } else {
+          out.push(d)
+        }
+      })
+      return { ...s, data: out }
+    })
+
+    this._applyBandAxis(bandLabels)
+    return expanded
+  }
+
+  /**
+   * Frame the x-axis as N evenly-spaced bands (one per category) on a numeric
+   * scale. Bands sit at integer positions 0..N-1; the range is padded by a full
+   * band on each side (min -1, max N) so jittered dots never clip. Crucially the
+   * range bounds and tick count are integers, so the ticks land exactly on the
+   * band centers regardless of how the numeric scale "nices" the step (e.g. the
+   * small-range reduction in Scales._adjustTicksForSmallRange triggered by a
+   * y-axis formatter). Only fills in options the user hasn't set, so explicit
+   * min/max/tickAmount/formatter still win.
+   *
+   * @param {any[]} bandLabels
+   */
+  _applyBandAxis(bandLabels) {
+    const xa = this.w.config.xaxis
+    const n = bandLabels.length
+    if (!n) return
+
+    // Track which options we auto-assigned so a re-render with a different band
+    // set refreshes them, while values the user set explicitly are left alone.
+    const owned =
+      /** @type {Record<string, boolean>} */ (
+        (xa._scatterBand = xa._scatterBand || {})
+      )
+
+    xa.type = 'numeric'
+    if (xa.min == null || owned.min) {
+      xa.min = -1
+      owned.min = true
+    }
+    if (xa.max == null || owned.max) {
+      xa.max = n
+      owned.max = true
+    }
+    if (xa.tickAmount == null || xa.tickAmount === 'dataPoints' || owned.tick) {
+      xa.tickAmount = n + 1
+      owned.tick = true
+    }
+
+    xa.labels = xa.labels || {}
+    const existing = /** @type {any} */ (xa.labels.formatter)
+    if (typeof existing !== 'function' || existing._scatterBand) {
+      const fmt = /** @type {any} */ (
+        (/** @type {number} */ val) => {
+          const r = Math.round(val)
+          return Math.abs(val - r) < 1e-6 && bandLabels[r] !== undefined
+            ? bandLabels[r]
+            : ''
+        }
+      )
+      fmt._scatterBand = true
+      xa.labels.formatter = fmt
+    }
+  }
+
   // Segregate user provided data into appropriate vars
   /**
    * @param {any[]} ser
@@ -1294,6 +1439,12 @@ export default class Data {
     const gl = w.globals
 
     ser = this.parseRawDataIfNeeded(ser)
+
+    // Scatter "jitter": expand compact { x, y:[...] } strip-plot data into one
+    // point per observation and frame the x-axis as evenly-spaced bands. A no-op
+    // for non-scatter charts and for plain { x, y } data (overplotting jitter is
+    // applied at render time instead — see Scatter.drawPoint).
+    ser = this.expandScatterJitterData(ser)
 
     // Stash raw series once per chart lifetime so zoom/pan can re-downsample
     // against full-resolution data. Cleared by _updateSeries when user pushes

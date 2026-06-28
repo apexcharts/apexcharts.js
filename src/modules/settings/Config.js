@@ -202,12 +202,20 @@ export default class Config {
     const notNumericXAxis =
       opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric'
 
+    // Scatter jitter (strip plots) owns its own numeric band axis in
+    // Data.expandScatterJitterData, so the auto category→numeric conversion
+    // (and its default floor-based label formatter) must not run for it.
+    const isScatterJitter =
+      (chartType === 'scatter' || chartType === 'bubble') &&
+      opts.plotOptions?.scatter?.jitter?.enabled
+
     const tickPlacement = opts.xaxis.tickPlacement
       ? opts.xaxis.tickPlacement
       : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement
     if (
       !isBarHorizontal &&
       !unsupportedZoom &&
+      !isScatterJitter &&
       notNumericXAxis &&
       tickPlacement !== 'between'
     ) {

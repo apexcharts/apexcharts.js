@@ -158,6 +158,16 @@ export default class Scatter {
       }
     }
 
+    // Distributed jitter: colour each band by its position (x value) instead of
+    // by series — lets a single-series strip plot show one colour per band.
+    const jt = w.config.plotOptions.scatter?.jitter
+    if (jt?.enabled && jt.distributed && w.globals.colors.length) {
+      const bandIdx = Math.round(w.seriesData.seriesX[realIndex]?.[dataPointIndex])
+      if (!isNaN(bandIdx)) {
+        pathFillCircle = w.globals.colors[bandIdx % w.globals.colors.length]
+      }
+    }
+
     el.attr({
       fill: pathFillCircle,
     })

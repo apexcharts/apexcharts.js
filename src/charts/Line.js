@@ -8,6 +8,7 @@ import Scatter from './Scatter'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 import Helpers from './common/line/Helpers'
+import { hash01 } from './common/Jitter'
 import { svgPath, spline } from '../libs/monotone-cubic'
 /**
  * ApexCharts Line Class responsible for drawing Line / Area / RangeArea Charts.
@@ -660,6 +661,12 @@ class Line {
     let pathState = 0
     let segmentStartX
 
+    // Scatter jitter: max ± offsets (px) for this series, or null. Applied to
+    // the stored point positions below so markers, seriesXvalues/seriesYvalues
+    // and the tooltip's nearest-point picker all share the same jittered coords
+    // (keeps the sticky tooltip anchored to the dot the cursor is actually over).
+    const jitterPx = this.pointsChart ? this._scatterJitterPx(realIndex) : null
+
     for (let j = 0; j < iterations; j++) {
       if (series[i].length === 0) break
 
@@ -721,8 +728,19 @@ class Line {
         }
       }
 
+      // Jittered copies for the marker position (path drawing keeps the
+      // un-jittered x/y). Deterministic per (series, dataPoint) so the layout is
+      // stable across re-renders and SSR-safe.
+      let xj = x
+      let yj = y
+      if (jitterPx) {
+        const seed = realIndex * 100003 + (j + 1)
+        if (jitterPx.x) xj = x + (hash01(seed * 7919 + 13) - 0.5) * 2 * jitterPx.x
+        if (jitterPx.y) yj = y + (hash01(seed * 6271 + 97) - 0.5) * 2 * jitterPx.y
+      }
+
       // push current X
-      xArrj.push(series[i][j + 1] === null ? null : x)
+      xArrj.push(series[i][j + 1] === null ? null : xj)
 
       // push current Y that will be used as next series's bottom position
       if (
@@ -733,14 +751,14 @@ class Line {
         yArrj.push(null)
         y2Arrj.push(null)
       } else {
-        yArrj.push(y)
+        yArrj.push(yj)
         y2Arrj.push(y2)
       }
 
       const pointsPos = this.lineHelpers.calculatePoints({
         series,
-        x,
-        y,
+        x: xj,
+        y: yj,
         realIndex,
         i,
         j,
@@ -835,7 +853,8 @@ class Line {
         this.elPointsMain.add(elPointsWrap)
       }
     } else {
-      // scatter / bubble chart points creation
+      // scatter / bubble chart points creation (jitter is already baked into
+      // pointsPos above, so the markers, seriesXvalues and tooltip stay in sync)
       this.scatter.draw(this.elSeries, j, {
         realIndex,
         pointsPos,
@@ -853,6 +872,33 @@ class Line {
     })
     if (drawnLabels !== null) {
       this.elDataLabelsWrap.add(drawnLabels)
+    }
+  }
+
+  /**
+   * Max scatter-jitter offsets in pixels for this series, or null when jitter is
+   * off. The config offsets are in axis units (x: 1 = one category step / x-data
+   * unit, y: 1 = one y-data unit); convert each to pixels using the chart's
+   * ratios. The actual per-point offset is a deterministic fraction of these
+   * (see Scatter.drawPoint).
+   * @param {number} realIndex
+   * @returns {{ x: number, y: number } | null}
+   */
+  _scatterJitterPx(realIndex) {
+    const w = this.w
+    const jt = w.config.plotOptions.scatter?.jitter
+    if (!jt || !jt.enabled || (!jt.x && !jt.y)) return null
+
+    // px per x-unit: numeric axis → gridWidth/xRange (= 1/xRatio); category axis
+    // → one category slot (xDivision).
+    const xUnitPx =
+      w.axisFlags.isXNumeric && this.xRatio ? 1 / this.xRatio : this.xDivision
+    const ti = this.yRatio.length > 1 ? realIndex : 0
+    const yUnitPx = this.yRatio[ti] ? 1 / this.yRatio[ti] : 0
+
+    return {
+      x: (jt.x || 0) * xUnitPx,
+      y: (jt.y || 0) * yUnitPx,
     }
   }
 
