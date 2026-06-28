@@ -326,6 +326,8 @@ export interface ChartGlobals
   barPadForNumericAxis: number
   padHorizontal: number
   radialSize: number
+  /** vertical band (px) reserved above/below a pie for outer name labels */
+  pieExternalLabelMarginY: number
   barHeight: number
   barWidth: number
   defaultLabels: boolean

@@ -11,7 +11,7 @@
     <style>
       #chart {
         padding: 0;
-        max-width: 380px;
+        max-width: 480px;
         margin: 35px auto;
       }
     </style>
@@ -38,12 +38,12 @@
   <body>
     
     <div id="app"><div id="chart">
-      <apexchart type="pie" width="380" :options="chartOptions" :series="series"></apexchart>
+      <apexchart type="pie" width="480" :options="chartOptions" :series="series"></apexchart>
     </div></div>
 
     <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
     <div id="html">&lt;div id=&quot;chart&quot;&gt;
-        &lt;apexchart type=&quot;pie&quot; width=&quot;380&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;pie&quot; width=&quot;480&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;</div>
 
     <script>
@@ -56,9 +56,10 @@
           series: [44, 33, 54, 45],
           chartOptions: {
             chart: {
-              width: 380,
+              width: 480,
               type: 'pie',
             },
+            labels: ['Q1', 'Q2', 'Q3', 'Q4'],
             colors: ['#93C3EE', '#E5C6A0', '#669DB5', '#94A74A'],
             fill: {
               type: 'image',
@@ -77,6 +78,9 @@
             stroke: {
               width: 4,
             },
+            legend: {
+              show: false,
+            },
             dataLabels: {
               enabled: true,
               style: {
@@ -88,15 +92,21 @@
                 borderWidth: 0,
               },
             },
+            plotOptions: {
+              pie: {
+                dataLabels: {
+                  external: {
+                    show: true,
+                  },
+                },
+              },
+            },
             responsive: [
               {
                 breakpoint: 480,
                 options: {
                   chart: {
-                    width: 200,
-                  },
-                  legend: {
-                    position: 'bottom',
+                    width: 320,
                   },
                 },
               },

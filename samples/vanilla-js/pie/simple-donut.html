@@ -10,7 +10,7 @@
 
     <style>
       #chart {
-        max-width: 380px;
+        max-width: 480px;
         margin: 35px auto;
         padding: 0;
       }
@@ -40,17 +40,28 @@
       var options = {
         series: [44, 55, 41, 17, 15],
         chart: {
+          width: 480,
           type: 'donut',
+        },
+        labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
+        legend: {
+          show: false,
+        },
+        plotOptions: {
+          pie: {
+            dataLabels: {
+              external: {
+                show: true,
+              },
+            },
+          },
         },
         responsive: [
           {
             breakpoint: 480,
             options: {
               chart: {
-                width: 200,
-              },
-              legend: {
-                position: 'bottom',
+                width: 320,
               },
             },
           },

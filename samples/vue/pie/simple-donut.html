@@ -10,7 +10,7 @@
 
     <style>
       #chart {
-        max-width: 380px;
+        max-width: 480px;
         margin: 35px auto;
         padding: 0;
       }
@@ -38,12 +38,12 @@
   <body>
     
     <div id="app"><div id="chart">
-      <apexchart type="donut" :options="chartOptions" :series="series"></apexchart>
+      <apexchart type="donut" width="480" :options="chartOptions" :series="series"></apexchart>
     </div></div>
 
     <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
     <div id="html">&lt;div id=&quot;chart&quot;&gt;
-        &lt;apexchart type=&quot;donut&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;donut&quot; width=&quot;480&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;</div>
 
     <script>
@@ -56,17 +56,28 @@
           series: [44, 55, 41, 17, 15],
           chartOptions: {
             chart: {
+              width: 480,
               type: 'donut',
+            },
+            labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
+            legend: {
+              show: false,
+            },
+            plotOptions: {
+              pie: {
+                dataLabels: {
+                  external: {
+                    show: true,
+                  },
+                },
+              },
             },
             responsive: [
               {
                 breakpoint: 480,
                 options: {
                   chart: {
-                    width: 200,
-                  },
-                  legend: {
-                    position: 'bottom',
+                    width: 320,
                   },
                 },
               },

@@ -1346,6 +1346,43 @@ type ApexPlotOptions = {
     dataLabels?: {
       offset?: number
       minAngleToShowLabel?: number
+      /**
+       * External (outer) labels: render the category/series name outside the
+       * slice, joined by a leader (connector) line, so the chart is readable
+       * without the legend. The percentage keeps rendering inside the slice.
+       * Applies to pie and donut only (ignored for polarArea, where the radial
+       * length already encodes the value).
+       */
+      external?: {
+        show?: boolean
+        offsetX?: number
+        offsetY?: number
+        fontSize?: string
+        fontFamily?: string
+        fontWeight?: string | number
+        color?: string
+        /**
+         * Return a string for a single-line label, or an array of strings to
+         * stack multiple lines (e.g. `[name, percent + '%']`).
+         */
+        formatter?(
+          name: string,
+          opts: {
+            seriesIndex: number
+            percent: number
+            value: number
+            w: ApexChartContext
+          }
+        ): string | string[]
+        /** Leader line from the slice edge to the label. */
+        connector?: {
+          show?: boolean
+          width?: number
+          color?: string
+          length?: number
+          gap?: number
+        }
+      }
     }
     donut?: {
       size?: string

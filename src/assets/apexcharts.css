@@ -822,9 +822,16 @@ rect.legend-mouseover-inactive,
 .apexcharts-datalabel-label,
 .apexcharts-datalabel-value,
 .apexcharts-datalabels,
-.apexcharts-pie-label {
+.apexcharts-pie-label,
+.apexcharts-pie-name-label,
+.apexcharts-pie-name-label-group,
+.apexcharts-pie-label-connector {
   cursor: default;
   pointer-events: none
+}
+
+.apexcharts-pie-label-connector {
+  fill: none
 }
 
 .apexcharts-pie-label-delay {

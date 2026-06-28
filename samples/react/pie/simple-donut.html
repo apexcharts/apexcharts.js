@@ -10,7 +10,7 @@
 
     <style>
       #chart {
-        max-width: 380px;
+        max-width: 480px;
         margin: 35px auto;
         padding: 0;
       }
@@ -43,7 +43,7 @@
     <div id="app"></div>
 
     <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;donut&quot; /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;donut&quot; width={480} /&gt;
 &lt;/div&gt;</div>
 
     <script type="text/babel">
@@ -52,17 +52,28 @@
           series: [44, 55, 41, 17, 15],
           options: {
             chart: {
+              width: 480,
               type: 'donut',
+            },
+            labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
+            legend: {
+              show: false,
+            },
+            plotOptions: {
+              pie: {
+                dataLabels: {
+                  external: {
+                    show: true,
+                  },
+                },
+              },
             },
             responsive: [
               {
                 breakpoint: 480,
                 options: {
                   chart: {
-                    width: 200,
-                  },
-                  legend: {
-                    position: 'bottom',
+                    width: 320,
                   },
                 },
               },
@@ -77,6 +88,7 @@
                 options={state.options}
                 series={state.series}
                 type="donut"
+                width={480}
               />
             </div>
             <div id="html-dist"></div>

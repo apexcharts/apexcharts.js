@@ -43,6 +43,20 @@ describe('Polar Area chart', () => {
       expect(slices.length).toBe(4)
     })
 
+    it('should ignore pie.dataLabels.external.show (no outer labels)', () => {
+      const chart = polarAreaChart({
+        series: [30, 40, 20, 10],
+        labels: ['A', 'B', 'C', 'D'],
+        pie: { dataLabels: { external: { show: true } } },
+      })
+      const el = chart.el
+
+      // Outer name labels are pie/donut only — radial length already encodes
+      // the value for polarArea, so the feature is a no-op here.
+      expect(el.querySelectorAll('.apexcharts-pie-name-label').length).toBe(0)
+      expect(chart.w.globals.pieExternalLabelMarginY).toBe(0)
+    })
+
     it('should render single value polar area', () => {
       const chart = polarAreaChart({
         series: [50],

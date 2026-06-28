@@ -614,7 +614,14 @@ export default class Core {
     const el = w.dom.baseEl.querySelector(
       '.apexcharts-radialbar, .apexcharts-pie',
     )
-    let chartInnerDimensions = w.globals.radialSize * 2.05
+    // When outer (name) labels are shown, the pie was shrunk and re-centered to
+    // `radius + marginY` from the top; reserve a matching band top AND bottom so
+    // the labels don't clip. Falls back to the historical 2.05 slack otherwise.
+    const externalLabelMarginY = w.globals.pieExternalLabelMarginY || 0
+    let chartInnerDimensions =
+      externalLabelMarginY > 0
+        ? w.globals.radialSize * 2 + externalLabelMarginY * 2
+        : w.globals.radialSize * 2.05
 
     const radialAngleSpan = Math.abs(
       w.config.plotOptions.radialBar.endAngle -

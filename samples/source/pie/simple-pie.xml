@@ -3,7 +3,7 @@
 <style>
 #chart {
   padding: 0;
-  max-width: 380px;
+  max-width: 480px;
   margin: 35px auto;
 }
 </style>
@@ -11,18 +11,27 @@
 <chart>
 <options>
 chart: {
-  width: 380,
+  width: 480,
   type: 'pie',
 },
 labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
+legend: {
+  show: false
+},
+plotOptions: {
+  pie: {
+    dataLabels: {
+      external: {
+        show: true
+      }
+    }
+  }
+},
 responsive: [{
   breakpoint: 480,
   options: {
     chart: {
-      width: 200
-    },
-    legend: {
-      position: 'bottom'
+      width: 320
     }
   }
 }]

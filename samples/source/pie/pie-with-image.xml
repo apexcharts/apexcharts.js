@@ -3,7 +3,7 @@
 <style>
 #chart {
   padding: 0;
-  max-width: 380px;
+  max-width: 480px;
   margin: 35px auto;
 }
 </style>
@@ -11,9 +11,10 @@
 <chart>
 <options>
 chart: {
-  width: 380,
+  width: 480,
   type: 'pie',
 },
+labels: ['Q1', 'Q2', 'Q3', 'Q4'],
 colors: ['#93C3EE', '#E5C6A0', '#669DB5', '#94A74A'],
 fill: {
   type: 'image',
@@ -27,6 +28,9 @@ fill: {
 stroke: {
   width: 4
 },
+legend: {
+  show: false
+},
 dataLabels: {
   enabled: true,
   style: {
@@ -38,14 +42,20 @@ dataLabels: {
     borderWidth: 0
   }
 },
+plotOptions: {
+  pie: {
+    dataLabels: {
+      external: {
+        show: true
+      }
+    }
+  }
+},
 responsive: [{
   breakpoint: 480,
   options: {
     chart: {
-      width: 200
-    },
-    legend: {
-      position: 'bottom'
+      width: 320
     }
   }
 }]

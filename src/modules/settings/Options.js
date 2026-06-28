@@ -904,6 +904,36 @@ export default class Options {
             // These are the percentage values which are displayed on slice
             offset: 0, // offset by which labels will move outside
             minAngleToShowLabel: 10,
+            // External (outer) labels: render the category/series name outside
+            // the slice, joined to it by a leader (connector) line, so users
+            // don't have to map legend colors back to slices. The percentage
+            // keeps rendering inside the slice (governed by dataLabels.enabled).
+            // Pie + donut only; ignored for polarArea (radial length already
+            // encodes the value there).
+            external: {
+              show: false, // master switch for the external (outer) labels
+              offsetX: 0,
+              offsetY: 0,
+              fontSize: undefined, // falls back to dataLabels.style.fontSize
+              fontFamily: undefined, // falls back to dataLabels.style.fontFamily
+              fontWeight: undefined, // falls back to dataLabels.style.fontWeight
+              color: undefined, // defaults to chart.foreColor (readable text)
+              /**
+               * Return a string (single line) or an array of strings (stacked
+               * lines, e.g. [name, percent + '%']).
+               * @param {string} name
+               * @param {{ seriesIndex: number, percent: number, value: number, w: any }} opts
+               * @returns {string | string[]}
+               */
+              formatter: undefined,
+              connector: {
+                show: true,
+                width: 1,
+                color: undefined, // defaults to the slice color
+                length: 16, // horizontal run after the radial elbow (px)
+                gap: 6, // radial gap from slice edge to the elbow point (px)
+              },
+            },
           },
           donut: {
             size: '65%',

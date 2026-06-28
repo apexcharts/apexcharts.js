@@ -6,6 +6,7 @@ import Graphics from '../modules/Graphics'
 import Filters from '../modules/Filters'
 import Scales from '../modules/Scales'
 import Helpers from './common/circle/Helpers'
+import { Environment } from '../utils/Environment'
 /**
  * ApexCharts Pie Class for drawing Pie / Donut Charts.
  * @module Pie
@@ -56,6 +57,32 @@ class Pie {
       w.config.stroke.width -
       (!w.config.chart.sparkline.enabled ? w.config.chart.dropShadow.blur : 0)
 
+    // Outer name labels (category name + leader line). Resolve config + the
+    // font used for the names, then shrink the radius so the labels and their
+    // connectors fit without clipping (see reserveExternalLabelSpace).
+    this.externalCfg = w.config.plotOptions.pie.dataLabels.external
+    const dlStyle = w.config.dataLabels.style
+    this.externalLabelStyle = {
+      fontSize: this.externalCfg.fontSize || dlStyle.fontSize,
+      fontFamily: this.externalCfg.fontFamily || dlStyle.fontFamily,
+      fontWeight: this.externalCfg.fontWeight || dlStyle.fontWeight,
+    }
+    /** @type {any[]} collected outer-label layout, drawn after de-overlap */
+    this.externalLabels = []
+    this.externalLabelMaxLines = 1
+    this.externalLabelLineH = parseFloat(this.externalLabelStyle.fontSize) || 12
+    w.globals.pieExternalLabelMarginY = 0
+
+    // Outer name labels are only meaningful for pie/donut, where every slice
+    // reaches the same outer edge. polarArea encodes value as the radial
+    // length, so a rim-anchored leader line detaches from short slices and
+    // reads like an axis label — skip it there.
+    this.showExternalLabels = this.externalCfg.show && this.chartType !== 'polarArea'
+
+    if (this.showExternalLabels && !w.globals.noData) {
+      this.reserveExternalLabelSpace()
+    }
+
     this.donutSize =
       (w.globals.radialSize *
         parseInt(w.config.plotOptions.pie.donut.size, 10)) /
@@ -81,6 +108,93 @@ class Pie {
 
     /** @type {any} */
     this.prevSectorAngleArr = [] // for dynamic animations
+  }
+
+  /**
+   * The text shown in an outer (name) label for slice `i`. Applies the
+   * user `name.formatter` if provided, otherwise the raw series name. The
+   * formatter may return a string or an array of strings (one per line, e.g.
+   * `[name, percent]`); normalize via `getExternalLabelLines`.
+   * @param {number} i
+   * @returns {string | string[]}
+   */
+  getExternalLabelText(i) {
+    const w = this.w
+    const name = w.seriesData.seriesNames[i]
+    const fn = this.externalCfg.formatter
+    if (typeof fn === 'function') {
+      return fn(name, {
+        seriesIndex: i,
+        percent: w.globals.seriesPercent?.[i]?.[0],
+        value: w.globals.seriesTotals?.[i],
+        w,
+      })
+    }
+    return name == null ? '' : `${name}`
+  }
+
+  /**
+   * Outer label content for slice `i` normalized to an array of line strings.
+   * Supports a formatter returning an array, or a string with `\n` separators.
+   * @param {number} i
+   * @returns {string[]}
+   */
+  getExternalLabelLines(i) {
+    const raw = this.getExternalLabelText(i)
+    const arr = Array.isArray(raw) ? raw : `${raw == null ? '' : raw}`.split('\n')
+    return arr.map((l) => (l == null ? '' : `${l}`))
+  }
+
+  /**
+   * Shrink the pie radius (and reposition its center) so outer name labels and
+   * their connector lines fit inside the chart area without clipping. Stores
+   * the reserved vertical band on `w.globals.pieExternalLabelMarginY` so
+   * Core.resizeNonAxisCharts can grow the SVG height to match.
+   */
+  reserveExternalLabelSpace() {
+    const w = this.w
+    const helpers = new Helpers(w)
+
+    // Labels may be multi-line (e.g. name + percent). Measure every line and
+    // track the tallest label so the reserved bands fit a 2-line block etc.
+    const lineSets = (w.seriesData.seriesNames || []).map((_, i) =>
+      this.getExternalLabelLines(i),
+    )
+    const maxLabelWidth = helpers.getMaxLabelWidth(lineSets.flat(), {
+      fontSize: this.externalLabelStyle.fontSize,
+      fontFamily: this.externalLabelStyle.fontFamily,
+    })
+    this.externalLabelMaxLines = lineSets.reduce((m, s) => Math.max(m, s.length), 1)
+    this.externalLabelLineH = Math.round(
+      (parseFloat(this.externalLabelStyle.fontSize) || 12) * 1.35,
+    )
+
+    const cn = this.externalCfg.connector
+    const blockHeight = this.externalLabelMaxLines * this.externalLabelLineH
+    // horizontal band on each side: text + connector run/gap + breathing room
+    const mh = maxLabelWidth + (cn.length || 0) + (cn.gap || 0) + 12
+    // vertical band above/below: half the tallest label + connector gap + pad
+    const mv = blockHeight / 2 + (cn.gap || 0) + 6
+
+    const fitted = Math.min(
+      w.globals.radialSize,
+      w.layout.gridWidth / 2 - mh,
+      w.layout.gridHeight / 2 - mv,
+    )
+    // never collapse below a sane floor for very long labels / tiny charts
+    w.globals.radialSize = Math.max(fitted, this.defaultSize * 0.15)
+    w.globals.pieExternalLabelMarginY = mv
+
+    const heightStr = w.config.chart.height ? String(w.config.chart.height) : ''
+    const userSetFixedHeight = heightStr !== '' && heightStr !== 'auto'
+
+    // For a fixed / percent height the container is NOT resized to hug the pie
+    // (Core.resizeNonAxisCharts returns early), so center within gridHeight.
+    // For an auto height the container is grown to 2*(radius+mv), so place the
+    // center one band below the top.
+    this.centerY = userSetFixedHeight
+      ? w.layout.gridHeight / 2
+      : w.globals.radialSize + mv
   }
 
   /**
@@ -526,9 +640,135 @@ class Pie {
           this.sliceLabels.push(elPieLabelWrap)
         }
       }
+
+      // Outer (name) label: collect geometry now, draw after the loop so the
+      // de-overlap pass can space crowded labels before they hit the DOM.
+      if (this.showExternalLabels && angle !== 0) {
+        const lines = this.getExternalLabelLines(i)
+        if (lines.some((l) => l !== '')) {
+          const anchor = Utils.polarToCartesian(
+            this.centerX,
+            this.centerY,
+            w.globals.radialSize,
+            midAngle,
+          )
+          const elbow = Utils.polarToCartesian(
+            this.centerX,
+            this.centerY,
+            w.globals.radialSize + (this.externalCfg.connector.gap || 0),
+            midAngle,
+          )
+          const isRight = elbow.x >= this.centerX
+          const baseLabelX = isRight
+            ? elbow.x + (this.externalCfg.connector.length || 0)
+            : elbow.x - (this.externalCfg.connector.length || 0)
+
+          this.externalLabels.push({
+            lines,
+            anchor,
+            elbow,
+            side: isRight ? 'right' : 'left',
+            labelX: baseLabelX + parseFloat(this.externalCfg.offsetX || 0),
+            idealY: elbow.y + parseFloat(this.externalCfg.offsetY || 0),
+            connectorColor: this.externalCfg.connector.color || w.globals.colors[i],
+            foreColor: this.externalCfg.color || w.config.chart.foreColor,
+          })
+        }
+      }
+    }
+
+    if (this.showExternalLabels && this.externalLabels.length) {
+      this.placeExternalLabels()
+
+      // External labels + connectors are overlays on top of the animated slice
+      // sweep, so reveal them gradually once the sweep finishes instead of
+      // popping in instantly — same mechanism as markers / data labels
+      // (delayedElements + apexcharts-element-hidden, faded back in by
+      // Animations.showDelayedElements on animationCompleted). Only arm this
+      // when a sweep that actually fires animationCompleted will run — matching
+      // the three animating branches below (morph, dynamic data-change, initial
+      // mount). For resize / animations-off / SSR (no animationCompleted) the
+      // labels must render visible so they don't stay stuck hidden.
+      const revealOnAnimEnd =
+        Environment.isBrowser() &&
+        (morphActive ||
+          (this.dynamicAnim && w.globals.dataChanged) ||
+          (this.initialAnim && !w.globals.resized && !w.globals.dataChanged))
+
+      this.externalLabels.forEach((lbl) => {
+        const group = new Helpers(w).drawExternalLabel({
+          lines: lbl.lines,
+          lineHeight: this.externalLabelLineH,
+          anchor: lbl.anchor,
+          elbow: lbl.elbow,
+          labelX: lbl.labelX,
+          labelY: lbl.labelY,
+          side: lbl.side,
+          connector: {
+            show: this.externalCfg.connector.show,
+            width: this.externalCfg.connector.width,
+            color: lbl.connectorColor,
+          },
+          style: this.externalLabelStyle,
+          foreColor: lbl.foreColor,
+        })
+
+        if (revealOnAnimEnd) {
+          group.node.classList.add('apexcharts-element-hidden')
+          w.globals.delayedElements.push({ el: group.node })
+        }
+
+        g.add(group)
+      })
     }
 
     return g
+  }
+
+  /**
+   * Vertical de-overlap for outer (name) labels: per side, sort by ideal y and
+   * push neighbours apart so they keep at least one line-height of spacing.
+   * Mutates each entry's `labelY`. Connector lines re-route to the moved y.
+   */
+  placeExternalLabels() {
+    const w = this.w
+    // Minimum spacing is a full label block (n lines) so multi-line labels
+    // (e.g. name + percent) don't overlap their neighbours.
+    const lineHeight = this.externalLabelMaxLines * this.externalLabelLineH + 2
+    const maxY =
+      this.centerY + w.globals.radialSize + w.globals.pieExternalLabelMarginY
+
+    ;['left', 'right'].forEach((side) => {
+      const items = this.externalLabels
+        .filter((l) => l.side === side)
+        .sort((a, b) => a.idealY - b.idealY)
+
+      items.forEach((l) => {
+        l.labelY = l.idealY
+      })
+
+      // forward pass: push each label down to keep the minimum gap
+      for (let k = 1; k < items.length; k++) {
+        if (items[k].labelY - items[k - 1].labelY < lineHeight) {
+          items[k].labelY = items[k - 1].labelY + lineHeight
+        }
+      }
+
+      // if the column ran past the bottom, pull it back up as a block
+      const last = items[items.length - 1]
+      const overflow = last ? last.labelY - maxY : 0
+      if (overflow > 0) {
+        for (let k = items.length - 1; k >= 0; k--) {
+          items[k].labelY -= overflow
+          if (
+            k < items.length - 1 &&
+            items[k + 1].labelY - items[k].labelY < lineHeight
+          ) {
+            items[k].labelY = items[k + 1].labelY - lineHeight
+          }
+        }
+      }
+    })
   }
 
   /**

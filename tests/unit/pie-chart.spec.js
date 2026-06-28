@@ -194,6 +194,131 @@ describe('Pie chart', () => {
       expect(w.globals.seriesPercent.length).toBe(4)
     })
   })
+
+  describe('outer name labels', () => {
+    it('should not render outer name labels by default', () => {
+      const chart = pieChart()
+      const el = chart.el
+
+      expect(el.querySelectorAll('.apexcharts-pie-name-label').length).toBe(0)
+      expect(el.querySelectorAll('.apexcharts-pie-label-connector').length).toBe(
+        0
+      )
+    })
+
+    it('should render one outer name label per slice when name.show is true', () => {
+      const chart = pieChart({
+        series: [63, 20, 8, 6, 3],
+        labels: ['Webform', 'Call', 'Email', 'Webchat', 'Other'],
+        pie: { dataLabels: { external: { show: true } } },
+      })
+      const el = chart.el
+
+      const names = el.querySelectorAll('.apexcharts-pie-name-label')
+      expect(names.length).toBe(5)
+      const texts = Array.from(names).map((n) => n.textContent)
+      expect(texts).toContain('Webform')
+      expect(texts).toContain('Other')
+    })
+
+    it('should render connector lines when name.show is true', () => {
+      const chart = pieChart({
+        series: [63, 20, 8, 6, 3],
+        labels: ['Webform', 'Call', 'Email', 'Webchat', 'Other'],
+        pie: { dataLabels: { external: { show: true } } },
+      })
+      const el = chart.el
+
+      expect(
+        el.querySelectorAll('.apexcharts-pie-label-connector').length
+      ).toBe(5)
+    })
+
+    it('should omit connector lines when connector.show is false', () => {
+      const chart = pieChart({
+        series: [60, 40],
+        labels: ['A', 'B'],
+        pie: {
+          dataLabels: { external: { show: true, connector: { show: false } } },
+        },
+      })
+      const el = chart.el
+
+      expect(el.querySelectorAll('.apexcharts-pie-name-label').length).toBe(2)
+      expect(
+        el.querySelectorAll('.apexcharts-pie-label-connector').length
+      ).toBe(0)
+    })
+
+    it('should apply the name formatter', () => {
+      const chart = pieChart({
+        series: [60, 40],
+        labels: ['A', 'B'],
+        pie: {
+          dataLabels: {
+            external: {
+              show: true,
+              formatter: (name, { percent }) =>
+                `${name} (${Math.round(percent)}%)`,
+            },
+          },
+        },
+      })
+      const el = chart.el
+
+      const texts = Array.from(
+        el.querySelectorAll('.apexcharts-pie-name-label')
+      ).map((n) => n.textContent)
+      expect(texts).toContain('A (60%)')
+      expect(texts).toContain('B (40%)')
+    })
+
+    it('should stack multiple lines when the formatter returns an array', () => {
+      const chart = pieChart({
+        series: [60, 40],
+        labels: ['Webform', 'Call'],
+        pie: {
+          dataLabels: {
+            external: {
+              show: true,
+              formatter: (name, { percent }) => [name, `${Math.round(percent)}%`],
+            },
+          },
+        },
+      })
+      const el = chart.el
+
+      const labels = el.querySelectorAll('.apexcharts-pie-name-label')
+      expect(labels.length).toBe(2)
+      // each label is one <text> with one <tspan> per line
+      labels.forEach((label) => {
+        expect(label.getElementsByTagName('tspan').length).toBe(2)
+      })
+      const webform = Array.from(labels).find((l) =>
+        l.textContent.includes('Webform')
+      )
+      expect(webform.textContent).toContain('60%')
+    })
+
+    it('should shrink the pie radius to make room for outer labels', () => {
+      const baseline = pieChart({
+        chart: { width: 400, height: 400 },
+        series: [60, 40],
+        labels: ['A', 'B'],
+      })
+      const withLabels = pieChart({
+        chart: { width: 400, height: 400 },
+        series: [60, 40],
+        labels: ['LongCategoryNameHere', 'AnotherLongCategory'],
+        pie: { dataLabels: { external: { show: true } } },
+      })
+
+      expect(withLabels.w.globals.radialSize).toBeLessThan(
+        baseline.w.globals.radialSize
+      )
+      expect(withLabels.w.globals.pieExternalLabelMarginY).toBeGreaterThan(0)
+    })
+  })
 })
 
 // ===========================================================================
