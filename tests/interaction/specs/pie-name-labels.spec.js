@@ -39,7 +39,6 @@ test.describe('Pie outer name labels', () => {
 
   test('reveals labels + connectors gradually (delayedElements), not instantly', async ({
     page,
-    loadChart,
   }) => {
     // Mid-sweep: each label group is hidden via apexcharts-element-hidden.
     await page.goto(
