@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.15.2
+ * ApexCharts v5.16.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -40,7 +40,102 @@ class CircularChartsHelpers {
     });
     return yaxisLabel;
   }
+  /**
+   * Widest rendered width among the given label strings. Used to reserve
+   * horizontal room for outer (name) labels so the pie can shrink to fit them.
+   * @param {string[]} labels
+   * @param {{ fontSize?: string, fontFamily?: string }} style
+   * @returns {number}
+   */
+  getMaxLabelWidth(labels, { fontSize, fontFamily } = {}) {
+    const graphics = new Graphics(this.w);
+    let maxWidth = 0;
+    labels.forEach((text) => {
+      if (text === null || typeof text === "undefined" || text === "") return;
+      const rect = graphics.getTextRects(
+        `${text}`,
+        fontSize || "12px",
+        fontFamily,
+        ""
+      );
+      maxWidth = Math.max(maxWidth, rect.width);
+    });
+    return maxWidth;
+  }
+  /**
+   * Draw a single outer (name) label: an optional leader line from the slice
+   * edge (anchor -> radial elbow -> label) plus the name text (one or more
+   * lines, e.g. name + percent). Geometry is computed by the caller (Pie.js)
+   * so it can run a de-overlap pass first. The text block is vertically
+   * centered on `labelY`, which is where the connector terminates.
+   * @param {{
+   *   lines: string[],
+   *   lineHeight: number,
+   *   anchor: { x: number, y: number },
+   *   elbow: { x: number, y: number },
+   *   labelX: number,
+   *   labelY: number,
+   *   side: 'left' | 'right',
+   *   connector: { show: boolean, width: number, color: string },
+   *   style: { fontSize?: string, fontFamily?: string, fontWeight?: string | number },
+   *   foreColor: string,
+   * }} opts
+   */
+  drawExternalLabel({
+    lines,
+    lineHeight,
+    anchor,
+    elbow,
+    labelX,
+    labelY,
+    side,
+    connector,
+    style,
+    foreColor
+  }) {
+    const graphics = new Graphics(this.w);
+    const group = graphics.group({
+      class: "apexcharts-pie-name-label-group"
+    });
+    if (connector.show) {
+      const d = `M ${anchor.x} ${anchor.y} L ${elbow.x} ${elbow.y} L ${labelX} ${labelY}`;
+      const line = graphics.drawPath({
+        d,
+        stroke: connector.color,
+        strokeWidth: connector.width,
+        fill: "none",
+        strokeLinecap: "round"
+      });
+      line.node.classList.add("apexcharts-pie-label-connector");
+      group.add(line);
+    }
+    const textX = side === "right" ? labelX + 4 : labelX - 4;
+    const n = lines.length;
+    const startY = labelY - (n - 1) * lineHeight / 2;
+    const elText = graphics.drawText({
+      x: textX,
+      y: startY,
+      text: n === 1 ? lines[0] : lines,
+      textAnchor: side === "right" ? "start" : "end",
+      fontSize: style.fontSize,
+      fontFamily: style.fontFamily,
+      fontWeight: style.fontWeight,
+      foreColor,
+      dominantBaseline: "central",
+      cssClass: "apexcharts-pie-name-label"
+    });
+    if (n > 1) {
+      const tspans = elText.node.getElementsByTagName("tspan");
+      for (let li = 0; li < tspans.length; li++) {
+        tspans[li].setAttribute("x", `${textX}`);
+        tspans[li].setAttribute("dy", li === 0 ? "0" : `${lineHeight}`);
+      }
+    }
+    group.add(elText);
+    return group;
+  }
 }
+const Environment = _core.__apex_Environment_Environment;
 class Pie {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -68,6 +163,21 @@ class Pie {
     }
     this.initialAngle = w.config.plotOptions.pie.startAngle % this.fullAngle;
     w.globals.radialSize = this.defaultSize / 2.05 - w.config.stroke.width - (!w.config.chart.sparkline.enabled ? w.config.chart.dropShadow.blur : 0);
+    this.externalCfg = w.config.plotOptions.pie.dataLabels.external;
+    const dlStyle = w.config.dataLabels.style;
+    this.externalLabelStyle = {
+      fontSize: this.externalCfg.fontSize || dlStyle.fontSize,
+      fontFamily: this.externalCfg.fontFamily || dlStyle.fontFamily,
+      fontWeight: this.externalCfg.fontWeight || dlStyle.fontWeight
+    };
+    this.externalLabels = [];
+    this.externalLabelMaxLines = 1;
+    this.externalLabelLineH = parseFloat(this.externalLabelStyle.fontSize) || 12;
+    w.globals.pieExternalLabelMarginY = 0;
+    this.showExternalLabels = this.externalCfg.show && this.chartType !== "polarArea";
+    if (this.showExternalLabels && !w.globals.noData) {
+      this.reserveExternalLabelSpace();
+    }
     this.donutSize = w.globals.radialSize * parseInt(w.config.plotOptions.pie.donut.size, 10) / 100;
     const scaleSize = w.config.plotOptions.pie.customScale;
     const halfW = w.layout.gridWidth / 2;
@@ -82,6 +192,75 @@ class Pie {
     this.sliceLabels = [];
     this.sliceSizes = [];
     this.prevSectorAngleArr = [];
+  }
+  /**
+   * The text shown in an outer (name) label for slice `i`. Applies the
+   * user `name.formatter` if provided, otherwise the raw series name. The
+   * formatter may return a string or an array of strings (one per line, e.g.
+   * `[name, percent]`); normalize via `getExternalLabelLines`.
+   * @param {number} i
+   * @returns {string | string[]}
+   */
+  getExternalLabelText(i) {
+    var _a, _b, _c;
+    const w = this.w;
+    const name = w.seriesData.seriesNames[i];
+    const fn = this.externalCfg.formatter;
+    if (typeof fn === "function") {
+      return fn(name, {
+        seriesIndex: i,
+        percent: (_b = (_a = w.globals.seriesPercent) == null ? void 0 : _a[i]) == null ? void 0 : _b[0],
+        value: (_c = w.globals.seriesTotals) == null ? void 0 : _c[i],
+        w
+      });
+    }
+    return name == null ? "" : `${name}`;
+  }
+  /**
+   * Outer label content for slice `i` normalized to an array of line strings.
+   * Supports a formatter returning an array, or a string with `\n` separators.
+   * @param {number} i
+   * @returns {string[]}
+   */
+  getExternalLabelLines(i) {
+    const raw = this.getExternalLabelText(i);
+    const arr = Array.isArray(raw) ? raw : `${raw == null ? "" : raw}`.split("\n");
+    return arr.map((l) => l == null ? "" : `${l}`);
+  }
+  /**
+   * Shrink the pie radius (and reposition its center) so outer name labels and
+   * their connector lines fit inside the chart area without clipping. Stores
+   * the reserved vertical band on `w.globals.pieExternalLabelMarginY` so
+   * Core.resizeNonAxisCharts can grow the SVG height to match.
+   */
+  reserveExternalLabelSpace() {
+    const w = this.w;
+    const helpers = new CircularChartsHelpers(w);
+    const lineSets = (w.seriesData.seriesNames || []).map(
+      (_, i) => this.getExternalLabelLines(i)
+    );
+    const maxLabelWidth = helpers.getMaxLabelWidth(lineSets.flat(), {
+      fontSize: this.externalLabelStyle.fontSize,
+      fontFamily: this.externalLabelStyle.fontFamily
+    });
+    this.externalLabelMaxLines = lineSets.reduce((m, s) => Math.max(m, s.length), 1);
+    this.externalLabelLineH = Math.round(
+      (parseFloat(this.externalLabelStyle.fontSize) || 12) * 1.35
+    );
+    const cn = this.externalCfg.connector;
+    const blockHeight = this.externalLabelMaxLines * this.externalLabelLineH;
+    const mh = maxLabelWidth + (cn.length || 0) + (cn.gap || 0) + 12;
+    const mv = blockHeight / 2 + (cn.gap || 0) + 6;
+    const fitted = Math.min(
+      w.globals.radialSize,
+      w.layout.gridWidth / 2 - mh,
+      w.layout.gridHeight / 2 - mv
+    );
+    w.globals.radialSize = Math.max(fitted, this.defaultSize * 0.15);
+    w.globals.pieExternalLabelMarginY = mv;
+    const heightStr = w.config.chart.height ? String(w.config.chart.height) : "";
+    const userSetFixedHeight = heightStr !== "" && heightStr !== "auto";
+    this.centerY = userSetFixedHeight ? w.layout.gridHeight / 2 : w.globals.radialSize + mv;
   }
   /**
    * @param {any[]} series
@@ -305,8 +484,14 @@ class Pie {
           size: this.sliceSizes[i]
         });
         const morphSpeed = this.ctx.morphTypeChange.getSpeed();
+        const animations = this.ctx.animations;
         elPath.node.setAttribute("data:pathOrig", targetD);
-        elPath.animate(morphSpeed).plot(targetD, "polygons").attr({ "stroke-width": this.strokeWidth });
+        const morphRunner = elPath.animate(morphSpeed).plot(targetD, "polygons").attr({ "stroke-width": this.strokeWidth });
+        if (morphRunner && typeof morphRunner.after === "function") {
+          morphRunner.after(() => animations.animationCompleted(elPath));
+        } else {
+          animations.animationCompleted(elPath);
+        }
       } else if (this.dynamicAnim && w.globals.dataChanged) {
         this.animatePaths(elPath, {
           size: this.sliceSizes[i],
@@ -382,8 +567,95 @@ class Pie {
           this.sliceLabels.push(elPieLabelWrap);
         }
       }
+      if (this.showExternalLabels && angle !== 0) {
+        const lines = this.getExternalLabelLines(i);
+        if (lines.some((l) => l !== "")) {
+          const anchor = Utils.polarToCartesian(
+            this.centerX,
+            this.centerY,
+            w.globals.radialSize,
+            midAngle
+          );
+          const elbow = Utils.polarToCartesian(
+            this.centerX,
+            this.centerY,
+            w.globals.radialSize + (this.externalCfg.connector.gap || 0),
+            midAngle
+          );
+          const isRight = elbow.x >= this.centerX;
+          const baseLabelX = isRight ? elbow.x + (this.externalCfg.connector.length || 0) : elbow.x - (this.externalCfg.connector.length || 0);
+          this.externalLabels.push({
+            lines,
+            anchor,
+            elbow,
+            side: isRight ? "right" : "left",
+            labelX: baseLabelX + parseFloat(this.externalCfg.offsetX || 0),
+            idealY: elbow.y + parseFloat(this.externalCfg.offsetY || 0),
+            connectorColor: this.externalCfg.connector.color || w.globals.colors[i],
+            foreColor: this.externalCfg.color || w.config.chart.foreColor
+          });
+        }
+      }
+    }
+    if (this.showExternalLabels && this.externalLabels.length) {
+      this.placeExternalLabels();
+      const revealOnAnimEnd = Environment.isBrowser() && (morphActive || this.dynamicAnim && w.globals.dataChanged || this.initialAnim && !w.globals.resized && !w.globals.dataChanged);
+      this.externalLabels.forEach((lbl) => {
+        const group = new CircularChartsHelpers(w).drawExternalLabel({
+          lines: lbl.lines,
+          lineHeight: this.externalLabelLineH,
+          anchor: lbl.anchor,
+          elbow: lbl.elbow,
+          labelX: lbl.labelX,
+          labelY: lbl.labelY,
+          side: lbl.side,
+          connector: {
+            show: this.externalCfg.connector.show,
+            width: this.externalCfg.connector.width,
+            color: lbl.connectorColor
+          },
+          style: this.externalLabelStyle,
+          foreColor: lbl.foreColor
+        });
+        if (revealOnAnimEnd) {
+          group.node.classList.add("apexcharts-element-hidden");
+          w.globals.delayedElements.push({ el: group.node });
+        }
+        g.add(group);
+      });
     }
     return g;
+  }
+  /**
+   * Vertical de-overlap for outer (name) labels: per side, sort by ideal y and
+   * push neighbours apart so they keep at least one line-height of spacing.
+   * Mutates each entry's `labelY`. Connector lines re-route to the moved y.
+   */
+  placeExternalLabels() {
+    const w = this.w;
+    const lineHeight = this.externalLabelMaxLines * this.externalLabelLineH + 2;
+    const maxY = this.centerY + w.globals.radialSize + w.globals.pieExternalLabelMarginY;
+    ["left", "right"].forEach((side) => {
+      const items = this.externalLabels.filter((l) => l.side === side).sort((a, b) => a.idealY - b.idealY);
+      items.forEach((l) => {
+        l.labelY = l.idealY;
+      });
+      for (let k = 1; k < items.length; k++) {
+        if (items[k].labelY - items[k - 1].labelY < lineHeight) {
+          items[k].labelY = items[k - 1].labelY + lineHeight;
+        }
+      }
+      const last = items[items.length - 1];
+      const overflow = last ? last.labelY - maxY : 0;
+      if (overflow > 0) {
+        for (let k = items.length - 1; k >= 0; k--) {
+          items[k].labelY -= overflow;
+          if (k < items.length - 1 && items[k + 1].labelY - items[k].labelY < lineHeight) {
+            items[k].labelY = items[k + 1].labelY - lineHeight;
+          }
+        }
+      }
+    });
   }
   /**
    * @param {any} elPath
@@ -888,7 +1160,6 @@ class Pie {
 }
 const Series = _core.__apex_Series;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
-const Environment = _core.__apex_Environment_Environment;
 class Radial extends Pie {
   /**
    * @param {import('../types/internal').ChartStateW} w

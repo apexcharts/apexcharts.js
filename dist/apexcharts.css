@@ -822,9 +822,16 @@ rect.legend-mouseover-inactive,
 .apexcharts-datalabel-label,
 .apexcharts-datalabel-value,
 .apexcharts-datalabels,
-.apexcharts-pie-label {
+.apexcharts-pie-label,
+.apexcharts-pie-name-label,
+.apexcharts-pie-name-label-group,
+.apexcharts-pie-label-connector {
   cursor: default;
   pointer-events: none
+}
+
+.apexcharts-pie-label-connector {
+  fill: none
 }
 
 .apexcharts-pie-label-delay {
@@ -905,6 +912,57 @@ rect.legend-mouseover-inactive,
 
 .apexcharts-rangebar-goals-markers {
   pointer-events: none
+}
+
+.apexcharts-drilldown-target {
+  cursor: pointer
+}
+
+.apexcharts-breadcrumb {
+  position: absolute;
+  z-index: 11;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 2px 4px
+}
+
+.apexcharts-breadcrumb-item {
+  background: transparent;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  line-height: 1.2
+}
+
+.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {
+  background: rgba(0, 0, 0, 0.08)
+}
+
+.apexcharts-breadcrumb-arrow {
+  margin-right: 4px;
+  font-weight: 600;
+  user-select: none
+}
+
+.apexcharts-breadcrumb-current {
+  cursor: default;
+  font-weight: 600;
+  opacity: 0.85
+}
+
+.apexcharts-breadcrumb-separator {
+  opacity: 0.5;
+  user-select: none
+}
+
+.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {
+  background: rgba(255, 255, 255, 0.12)
 }
 
 .apexcharts-disable-transitions * {

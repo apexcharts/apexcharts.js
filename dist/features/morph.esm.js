@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v5.15.2
+ * ApexCharts v5.16.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -49,7 +49,8 @@ class MorphTypeChange {
     const ff = familyOf(fromType);
     const tf = familyOf(toType);
     if (tf === "radial") {
-      return newSeries.every((v) => typeof v === "number");
+      if (newSeries.every((v) => typeof v === "number")) return true;
+      return newSeries.length === 1 && newSeries[0] && typeof newSeries[0] === "object" && Array.isArray(newSeries[0].data);
     }
     if (tf === "bar") {
       return newSeries.every(

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.15.2
+ * ApexCharts v5.16.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -144,6 +144,12 @@ class Helpers {
       lineYPosition
     };
   }
+}
+function hash01(n) {
+  let h = (n ^ 2654435769) >>> 0;
+  h = Math.imul(h ^ h >>> 16, 73244475);
+  h = Math.imul(h ^ h >>> 16, 73244475);
+  return ((h ^ h >>> 16) >>> 0) / 4294967296;
 }
 const tangents = (points) => {
   const m = finiteDifferences(points);
@@ -735,6 +741,7 @@ class Line {
     }
     let pathState = 0;
     let segmentStartX;
+    const jitterPx = this.pointsChart ? this._scatterJitterPx(realIndex) : null;
     for (let j = 0; j < iterations; j++) {
       if (series[i].length === 0) break;
       const isNull = typeof series[i][j + 1] === "undefined" || series[i][j + 1] === null;
@@ -776,18 +783,25 @@ class Line {
           y2 = getY(seriesRangeEnd[i][j + 1], lineYPosition);
         }
       }
-      xArrj.push(series[i][j + 1] === null ? null : x);
+      let xj = x;
+      let yj = y;
+      if (jitterPx) {
+        const seed = realIndex * 100003 + (j + 1);
+        if (jitterPx.x) xj = x + (hash01(seed * 7919 + 13) - 0.5) * 2 * jitterPx.x;
+        if (jitterPx.y) yj = y + (hash01(seed * 6271 + 97) - 0.5) * 2 * jitterPx.y;
+      }
+      xArrj.push(series[i][j + 1] === null ? null : xj);
       if (isNull && (w.config.stroke.curve === "smooth" || w.config.stroke.curve === "monotoneCubic")) {
         yArrj.push(null);
         y2Arrj.push(null);
       } else {
-        yArrj.push(y);
+        yArrj.push(yj);
         y2Arrj.push(y2);
       }
       const pointsPos = this.lineHelpers.calculatePoints({
         series,
-        x,
-        y,
+        x: xj,
+        y: yj,
         realIndex,
         i,
         j,
@@ -883,6 +897,28 @@ class Line {
     if (drawnLabels !== null) {
       this.elDataLabelsWrap.add(drawnLabels);
     }
+  }
+  /**
+   * Max scatter-jitter offsets in pixels for this series, or null when jitter is
+   * off. The config offsets are in axis units (x: 1 = one category step / x-data
+   * unit, y: 1 = one y-data unit); convert each to pixels using the chart's
+   * ratios. The actual per-point offset is a deterministic fraction of these
+   * (see Scatter.drawPoint).
+   * @param {number} realIndex
+   * @returns {{ x: number, y: number } | null}
+   */
+  _scatterJitterPx(realIndex) {
+    var _a;
+    const w = this.w;
+    const jt = (_a = w.config.plotOptions.scatter) == null ? void 0 : _a.jitter;
+    if (!jt || !jt.enabled || !jt.x && !jt.y) return null;
+    const xUnitPx = w.axisFlags.isXNumeric && this.xRatio ? 1 / this.xRatio : this.xDivision;
+    const ti = this.yRatio.length > 1 ? realIndex : 0;
+    const yUnitPx = this.yRatio[ti] ? 1 / this.yRatio[ti] : 0;
+    return {
+      x: (jt.x || 0) * xUnitPx,
+      y: (jt.y || 0) * yUnitPx
+    };
   }
   /** @param {{type: any, series: any, i: any, j: any, x: any, y: any, xArrj: any, yArrj: any, y2: any, y2Arrj: any, pX: any, pY: any, pathState: any, segmentStartX: any, linePath: any, areaPath: any, linePaths: any, areaPaths: any, curve: any, isRangeStart: any}} opts */
   _createPaths({

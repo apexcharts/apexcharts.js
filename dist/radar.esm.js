@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.15.2
+ * ApexCharts v5.16.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -58,6 +58,100 @@ class CircularChartsHelpers {
       foreColor: Array.isArray(yaxisConfig.labels.style.colors) ? yaxisConfig.labels.style.colors[i] : yaxisConfig.labels.style.colors
     });
     return yaxisLabel;
+  }
+  /**
+   * Widest rendered width among the given label strings. Used to reserve
+   * horizontal room for outer (name) labels so the pie can shrink to fit them.
+   * @param {string[]} labels
+   * @param {{ fontSize?: string, fontFamily?: string }} style
+   * @returns {number}
+   */
+  getMaxLabelWidth(labels, { fontSize, fontFamily } = {}) {
+    const graphics = new Graphics(this.w);
+    let maxWidth = 0;
+    labels.forEach((text) => {
+      if (text === null || typeof text === "undefined" || text === "") return;
+      const rect = graphics.getTextRects(
+        `${text}`,
+        fontSize || "12px",
+        fontFamily,
+        ""
+      );
+      maxWidth = Math.max(maxWidth, rect.width);
+    });
+    return maxWidth;
+  }
+  /**
+   * Draw a single outer (name) label: an optional leader line from the slice
+   * edge (anchor -> radial elbow -> label) plus the name text (one or more
+   * lines, e.g. name + percent). Geometry is computed by the caller (Pie.js)
+   * so it can run a de-overlap pass first. The text block is vertically
+   * centered on `labelY`, which is where the connector terminates.
+   * @param {{
+   *   lines: string[],
+   *   lineHeight: number,
+   *   anchor: { x: number, y: number },
+   *   elbow: { x: number, y: number },
+   *   labelX: number,
+   *   labelY: number,
+   *   side: 'left' | 'right',
+   *   connector: { show: boolean, width: number, color: string },
+   *   style: { fontSize?: string, fontFamily?: string, fontWeight?: string | number },
+   *   foreColor: string,
+   * }} opts
+   */
+  drawExternalLabel({
+    lines,
+    lineHeight,
+    anchor,
+    elbow,
+    labelX,
+    labelY,
+    side,
+    connector,
+    style,
+    foreColor
+  }) {
+    const graphics = new Graphics(this.w);
+    const group = graphics.group({
+      class: "apexcharts-pie-name-label-group"
+    });
+    if (connector.show) {
+      const d = `M ${anchor.x} ${anchor.y} L ${elbow.x} ${elbow.y} L ${labelX} ${labelY}`;
+      const line = graphics.drawPath({
+        d,
+        stroke: connector.color,
+        strokeWidth: connector.width,
+        fill: "none",
+        strokeLinecap: "round"
+      });
+      line.node.classList.add("apexcharts-pie-label-connector");
+      group.add(line);
+    }
+    const textX = side === "right" ? labelX + 4 : labelX - 4;
+    const n = lines.length;
+    const startY = labelY - (n - 1) * lineHeight / 2;
+    const elText = graphics.drawText({
+      x: textX,
+      y: startY,
+      text: n === 1 ? lines[0] : lines,
+      textAnchor: side === "right" ? "start" : "end",
+      fontSize: style.fontSize,
+      fontFamily: style.fontFamily,
+      fontWeight: style.fontWeight,
+      foreColor,
+      dominantBaseline: "central",
+      cssClass: "apexcharts-pie-name-label"
+    });
+    if (n > 1) {
+      const tspans = elText.node.getElementsByTagName("tspan");
+      for (let li = 0; li < tspans.length; li++) {
+        tspans[li].setAttribute("x", `${textX}`);
+        tspans[li].setAttribute("dy", li === 0 ? "0" : `${lineHeight}`);
+      }
+    }
+    group.add(elText);
+    return group;
   }
 }
 const CoreUtils = _core.__apex_CoreUtils;
