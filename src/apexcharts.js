@@ -912,16 +912,9 @@ export default class ApexCharts {
    * @returns {ApexCharts[]}
    */
   getSyncedCharts() {
-    const chartGroups = this.getGroupedCharts()
-    let allCharts = /** @type {ApexCharts[]} */ ([this])
-    if (chartGroups.length) {
-      allCharts = []
-      chartGroups.forEach((ch) => {
-        allCharts.push(ch)
-      })
-    }
-
-    return allCharts
+    const group = /** @type {ApexCharts[]} */ (this.getGroupedCharts())
+    group.splice(0, 0, this)
+    return group
   }
 
   /**
@@ -931,20 +924,12 @@ export default class ApexCharts {
    * @returns {ApexCharts[]}
    */
   getGroupedCharts() {
-    return (
-      Apex._chartInstances
-        .filter((/** @type {any} */ ch) => {
-          if (ch.group) {
-            return true
-          }
-        })
-        /**
-         * @param {Record<string, any>} ch
-         */
-        .map((/** @type {any} */ ch) =>
-          this.w.config.chart.group === ch.group ? ch.chart : this,
-        )
-    )
+    return Apex._chartInstances
+      .filter(
+        (/** @type {any} */ ch) =>
+          this !== ch.chart && this.w.config.chart.group === ch.group,
+      )
+      .map((/** @type {any} */ ch) => ch.chart)
   }
 
   /**

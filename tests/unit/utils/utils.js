@@ -33,3 +33,18 @@ export function createChartWithOptions(options) {
 
   return chart
 }
+
+export function createChartsWithOptions(/*optionsList...*/) {
+
+  let content = ''
+  for(let i = 0; i < arguments.length; ++i){
+    content += '<div id="chart-' + i + '" />'
+  }
+  document.body.innerHTML = content
+
+  return Array.prototype.map.call(arguments, (options, i) => {
+    const chart = new ApexCharts(document.querySelector('#chart-' + i), options)
+    chart.render()
+    return chart
+  })
+}
