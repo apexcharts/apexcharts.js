@@ -415,6 +415,17 @@ export default class Series {
       return
     }
 
+    // A synced sibling chart (see getSyncedCharts()) can land here mid
+    // teardown/rebuild: a wrapping component (e.g. a templating card that
+    // re-renders its child on every data-driven config change) may have
+    // already detached this chart's host element - or never finished
+    // mounting it - while this chart's own _updateOptions() call is still
+    // in flight. Either way there's no live DOM to capture paths from.
+    if (!Utils.elementExists(w.dom.baseEl)) {
+      w.globals.previousPaths = []
+      return
+    }
+
     w.globals.previousPaths = []
 
     /**
