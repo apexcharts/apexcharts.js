@@ -298,6 +298,12 @@ async function processSamples(command, paths, isCI) {
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_BROWSER,
     maxConcurrency: Math.min(os.availableParallelism(), 4),
+    // CI runners (GitHub Actions) can't start Chromium under the SUID
+    // sandbox, so the browser fails to launch without these flags. They
+    // are rendering-neutral, so snapshots are unaffected.
+    puppeteerOptions: {
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    },
   })
 
   await cluster.task(async ({ page, data: sample }) => {
