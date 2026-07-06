@@ -128,6 +128,13 @@ export default class UpdateHelpers {
           if (ch.w.globals.chartID !== this.w.globals.chartID) {
             // don't overwrite series of synchronized charts
             delete options.series
+            // don't overwrite yaxis of synchronized charts - a chart's own
+            // yaxis count/shape may differ from the chart that triggered
+            // this sync (e.g. differing series counts per chart), and
+            // applying a mismatched yaxis array here leaves w.config.yaxis
+            // out of sync with this chart's own series-to-axis indices,
+            // which can throw in Scales.setYScaleForIndex on next render
+            delete options.yaxis
           }
 
           w.config = Utils.extend(w.config, options)
