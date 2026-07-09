@@ -593,11 +593,11 @@ type ApexChart = {
     keyDown?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     keyUp?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     /** Fired before a drill-down transition begins. Requires the Drilldown feature. */
-    drillDownStart?(info: ApexDrilldownEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    drillDownStart?(info: ApexCharts.ApexDrilldownEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     /** Fired after a drill-down transition completes. Requires the Drilldown feature. */
-    drillDownEnd?(info: ApexDrilldownEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    drillDownEnd?(info: ApexCharts.ApexDrilldownEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     /** Fired after navigating back up a drilldown level. Requires the Drilldown feature. */
-    drillUp?(info: ApexDrilldownEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
+    drillUp?(info: ApexCharts.ApexDrilldownEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     /** Fired when an async onDrillDown resolver throws or rejects. Requires the Drilldown feature. */
     drillDownError?(info: { id: string | number | null; error: any }, chart?: ApexCharts, options?: ApexChartEventOpts): void
   }
