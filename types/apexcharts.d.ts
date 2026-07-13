@@ -317,6 +317,14 @@ declare class ApexCharts {
   static registerRenderer(kind: string, factory: (w: any, ctx: any) => any): void
 
   /**
+   * Registers a custom series type (Marks #11): a `{ renderItem }` definition
+   * that draws primitives per datum. Requires the Marks feature to be bundled
+   * (`import 'apexcharts/features/marks'`, included in the full bundle).
+   * Once registered, reference it via `series[].type` or `chart.type`.
+   */
+  static registerSeriesType(name: string, def: ApexSeriesTypeDef): typeof ApexCharts
+
+  /**
    * Static, pure Perspectives helpers. Available once the feature is imported:
    * `import 'apexcharts/features/perspectives'`.
    */
@@ -513,6 +521,69 @@ interface ApexPluginActivation {
   name: string
   options?: Record<string, any>
   order?: number
+}
+
+/**
+ * Marks (#11): the per-datum primitive API passed to `renderItem`. Each call
+ * emits a mark (renderer-agnostic: SVG today, canvas above `rendererThreshold`),
+ * tags it with the datum identity so tooltip/selection/keyboard work, and adds
+ * it to the series group. Coordinates are pixels in series space.
+ */
+interface ApexMarksAPI {
+  path(opts: { d: string; stroke?: string; width?: number; fill?: string; opacity?: number; fillOpacity?: number; strokeOpacity?: number; dash?: number | number[]; lineCap?: string }): any
+  line(opts: { x1: number; y1: number; x2: number; y2: number; stroke?: string; width?: number; dash?: number | number[] }): any
+  rect(opts: { x?: number; y?: number; w?: number; h?: number; r?: number; fill?: string; stroke?: string; strokeWidth?: number; opacity?: number }): any
+  circle(opts: { cx?: number; cy?: number; r?: number; fill?: string; stroke?: string; strokeWidth?: number }): any
+  text(opts: { x?: number; y?: number; text?: string | string[]; anchor?: 'start' | 'middle' | 'end'; size?: number; color?: string; weight?: number | string }): any
+}
+
+/** Marks (#11): series-space scales (elGraphical-local pixels). */
+interface ApexMarksScales {
+  /** data x value -> pixel */
+  x(value: number): number
+  /** data y value -> pixel (optionally a specific y-axis index) */
+  y(value: number, axis?: number): number
+  gridWidth: number
+  gridHeight: number
+  /** pixel width of one category slot */
+  band: number
+}
+
+/** Marks (#11): context passed to `renderItem` for one datum. */
+interface ApexMarksItemContext {
+  /** the raw datum from `series[].data` */
+  datum: any
+  /** resolved x pixel of this datum */
+  x: number
+  /** resolved y pixel of this datum's primary value */
+  y: number
+  scales: ApexMarksScales
+  api: ApexMarksAPI
+  seriesIndex: number
+  dataPointIndex: number
+  /** the series palette colour */
+  color: string
+}
+
+/** Marks (#11): a custom series type definition for `registerSeriesType`. */
+interface ApexSeriesTypeDef {
+  /** Draw one datum by returning/emitting primitives via `ctx.api`. */
+  renderItem(ctx: ApexMarksItemContext): any
+  /**
+   * Data shape hint. Default 'xy' (scalar y). Set 'rangeXY' when a datum's `y`
+   * is a `[lo, hi]` pair (dumbbell/range mark): both bounds fold into the
+   * y-axis scale and the tooltip renders "lo - hi".
+   */
+  dataType?: 'xy' | 'rangeXY' | 'custom'
+  /**
+   * Per-datum y-extent override for auto-scaling, when the drawn span is not
+   * simply `y` (e.g. a bullet whose target/bands extend past the value).
+   * Return the value(s) the datum occupies; the min and max fold into the
+   * y-axis scale. Takes precedence over `dataType`.
+   */
+  yExtent?: (datum: any, dataPointIndex: number) => number | number[]
+  /** Tooltip value(s) for a datum. */
+  tooltip?: (datum: any) => number | number[] | string
 }
 
 declare namespace ApexCharts {

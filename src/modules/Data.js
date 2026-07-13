@@ -4,6 +4,7 @@ import DateTime from './../utils/DateTime'
 import Series from './Series'
 import Utils from '../utils/Utils'
 import Defaults from './settings/Defaults'
+import { isCustom, getChartClass } from './ChartFactory'
 
 export default class Data {
   /**
@@ -280,6 +281,49 @@ export default class Data {
     })
 
     return range
+  }
+
+  /**
+   * Marks (#11) P3: fold a custom series' per-datum y-extent into the
+   * range-data slice so both bounds drive the y-axis scale. When `yExtent` is
+   * given it supplies the values a datum occupies (scalar or array => min/max
+   * across them); otherwise the datum's `y` is used (array => first/last,
+   * scalar => itself). The datum still carries a representative scalar `y`
+   * (folded by handleFormatXY into seriesData.series) that gates Range.
+   * @param {any[]} ser @param {number} i @param {Function|null} yExtent
+   */
+  handleCustomRangeData(ser, i, yExtent) {
+    const data = ser[i].data || []
+    /** @type {any[]} */
+    const start = []
+    /** @type {any[]} */
+    const end = []
+    for (let j = 0; j < data.length; j++) {
+      const datum = data[j]
+      let lo
+      let hi
+      if (typeof yExtent === 'function') {
+        let ext = yExtent(datum, j)
+        if (!Array.isArray(ext)) ext = [ext]
+        const nums = ext
+          .map((/** @type {any} */ v) => Utils.parseNumber(v))
+          .filter((/** @type {any} */ v) => v !== null && !isNaN(v))
+        lo = nums.length ? Math.min(...nums) : null
+        hi = nums.length ? Math.max(...nums) : null
+      } else {
+        const y = datum == null ? null : datum.y
+        if (Array.isArray(y)) {
+          lo = Utils.parseNumber(y[0])
+          hi = Utils.parseNumber(y[y.length - 1])
+        } else {
+          lo = hi = Utils.parseNumber(y)
+        }
+      }
+      start.push(lo)
+      end.push(hi)
+    }
+    this.w.rangeData.seriesRangeStart[i] = start
+    this.w.rangeData.seriesRangeEnd[i] = end
   }
 
   /**
@@ -679,6 +723,20 @@ export default class Data {
       ) {
         this.w.axisFlags.isRangeData = true
         this.handleRangeData(ser, i)
+      }
+
+      // Marks (#11) P3: a custom series type may declare range/extent semantics
+      // (dumbbell y:[lo,hi], bullet, ...) so BOTH y-bounds fold into the axis
+      // scale. Reuses the range-data slice: Range.getMinYMaxY folds
+      // seriesRangeStart/End, and the tooltip renders "lo - hi".
+      const customType = ser[i].type || cnf.chart.type
+      if (isCustom(customType)) {
+        const cls = /** @type {any} */ (getChartClass(customType))
+        const yExtent = cls && cls.yExtent
+        if ((cls && cls.dataType === 'rangeXY') || typeof yExtent === 'function') {
+          this.w.axisFlags.isRangeData = true
+          this.handleCustomRangeData(ser, i, yExtent)
+        }
       }
 
       if (this.isMultiFormat()) {

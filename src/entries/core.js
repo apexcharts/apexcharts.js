@@ -29,7 +29,7 @@ export {
   applyProgressiveReveal as __apex_Animations_applyProgressiveReveal,
 } from '../modules/Animations.js'
 export { default as __apex_Base } from '../modules/Base.js'
-export { register as __apex_ChartFactory_register, getChartClass as __apex_ChartFactory_getChartClass } from '../modules/ChartFactory.js'
+export { register as __apex_ChartFactory_register, getChartClass as __apex_ChartFactory_getChartClass, isCustom as __apex_ChartFactory_isCustom } from '../modules/ChartFactory.js'
 export { default as __apex_Core } from '../modules/Core.js'
 export { default as __apex_CoreUtils } from '../modules/CoreUtils.js'
 export { default as __apex_Crosshairs } from '../modules/Crosshairs.js'

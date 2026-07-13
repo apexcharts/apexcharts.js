@@ -85,6 +85,10 @@ export function computeMarkCount(w) {
     if (scatterish || markersOn) total += n
     if (labelsOn) total += n
   })
+  // Marks (#11): custom series are NOT auto-promoted. Their per-datum primitives
+  // are object commands (no columnar fast path), so canvas paint is only fast at
+  // low/moderate density; auto-promoting at the threshold would regress. Users
+  // opt in explicitly with renderer:'canvas' when their renderItem is cheap.
 
   // Even a bare line/area re-rasterizes slowly with a huge `d` on zoom.
   const LARGE_D = 50000

@@ -17,14 +17,43 @@
  */
 
 const REGISTRY_KEY = '__apexcharts_registry__'
+// Marks (#11): names registered via registerSeriesType, so dispatch + the
+// canvas-promotion heuristic can tell a custom series from a built-in without
+// duplicating the built-in list. globalThis-backed like the type registry.
+const CUSTOM_KEY = '__apexcharts_custom_types__'
 
 if (!/** @type {any} */ (globalThis)[REGISTRY_KEY]) {
   ;/** @type {any} */ (globalThis)[REGISTRY_KEY] = {}
+}
+if (!/** @type {any} */ (globalThis)[CUSTOM_KEY]) {
+  ;/** @type {any} */ (globalThis)[CUSTOM_KEY] = new Set()
 }
 
 /** @returns {Record<string, new (...args: any[]) => any>} */
 function getRegistry() {
   return /** @type {any} */ (globalThis)[REGISTRY_KEY]
+}
+
+/** @returns {Set<string>} */
+function getCustomTypes() {
+  return /** @type {any} */ (globalThis)[CUSTOM_KEY]
+}
+
+/**
+ * Mark a type name as a custom (Marks) series type.
+ * @param {string} name
+ */
+export function markCustom(name) {
+  getCustomTypes().add(name)
+}
+
+/**
+ * Whether a type name is a registered custom (Marks) series type.
+ * @param {string} name
+ * @returns {boolean}
+ */
+export function isCustom(name) {
+  return getCustomTypes().has(name)
 }
 
 /**

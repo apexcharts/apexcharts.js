@@ -14,7 +14,7 @@ import YAxis from './modules/axes/YAxis'
 import InitCtxVariables from './modules/helpers/InitCtxVariables'
 import { applyAnimationPolicy } from './modules/Animations'
 import Destroy from './modules/helpers/Destroy'
-import { register } from './modules/ChartFactory'
+import { register, markCustom } from './modules/ChartFactory'
 import { registerPlugin as registerPluginImpl } from './modules/weave/PluginRegistry'
 import RendererController from './modules/RendererController'
 import { addResizeListener, removeResizeListener } from './utils/Resize'
@@ -1096,6 +1096,36 @@ export default class ApexCharts {
    */
   static registerRenderer(kind, factory) {
     RendererController.registerRenderer(kind, factory)
+  }
+
+  /**
+   * Register a custom series type (Marks #11): a `{ renderItem }` definition
+   * that draws primitives (path/line/rect/circle/text) per datum. Requires the
+   * Marks feature to be bundled (`import 'apexcharts/features/marks'`, included
+   * in the full bundle); without it this warns and no-ops. Once registered, use
+   * it via `series[].type` or `chart.type`.
+   *
+   * @param {string} name  the type name, e.g. 'dumbbell'
+   * @param {{ renderItem: Function, dataType?: string, yExtent?: Function, tooltip?: Function }} def
+   * @returns {typeof ApexCharts}
+   */
+  static registerSeriesType(name, def) {
+    const factory = /** @type {any} */ (ApexCharts)._customSeriesFactory
+    if (!factory) {
+      console.warn(
+        `[apexcharts] registerSeriesType("${name}") requires the Marks feature: import 'apexcharts/features/marks'.`,
+      )
+      return ApexCharts
+    }
+    if (!def || typeof def.renderItem !== 'function') {
+      console.warn(
+        `[apexcharts] registerSeriesType("${name}") needs a def with a renderItem() function.`,
+      )
+      return ApexCharts
+    }
+    register({ [name]: factory(name, def) })
+    markCustom(name)
+    return ApexCharts
   }
 
   /**

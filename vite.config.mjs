@@ -61,6 +61,7 @@ export const SUB_ENTRIES = {
     __dirname,
     'src/features/renderer-canvas.js',
   ),
+  'features/marks': resolve(__dirname, 'src/features/marks.js'),
   'features/all': resolve(__dirname, 'src/features/all.js'),
 }
 
@@ -147,7 +148,7 @@ export default defineConfig(({ mode }) => {
       [resolve(__dirname, 'src/modules/Base.js')]:
         { default: '__apex_Base' },
       [resolve(__dirname, 'src/modules/ChartFactory.js')]:
-        { named: { register: '__apex_ChartFactory_register', getChartClass: '__apex_ChartFactory_getChartClass' } },
+        { named: { register: '__apex_ChartFactory_register', getChartClass: '__apex_ChartFactory_getChartClass', isCustom: '__apex_ChartFactory_isCustom' } },
       [resolve(__dirname, 'src/modules/Core.js')]:
         { default: '__apex_Core' },
       [resolve(__dirname, 'src/modules/CoreUtils.js')]:
