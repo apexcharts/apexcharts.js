@@ -535,7 +535,10 @@ export default class Position {
             points.splice(p, 0, null)
           }
         }
-        if (pointArr && pointArr.length) {
+        // points[p] is null when the series has no marker node (canvas mode
+        // paints markers to a bitmap): the box still positions off pointsArr
+        // below, only the hover-indicator dot update is skipped.
+        if (points[p] && pointArr && pointArr.length) {
           let pcy = pointsArr[p][j][1]
           let pcy2
           points[p].setAttribute('cx', cx)
@@ -610,9 +613,31 @@ export default class Position {
       )
     }
 
-    let bcx = jBar ? parseFloat(jBar.getAttribute('cx') ?? '0') : 0
-    let bcy = jBar ? parseFloat(jBar.getAttribute('cy') ?? '0') : 0
-    const bw = jBar ? parseFloat(jBar.getAttribute('barWidth') ?? '0') : 0
+    // Strata (#2): canvas has no bar/candle path node, so fall back to the
+    // center coords cached at draw time (Bar.renderSeries) — otherwise the
+    // tooltip would anchor to the origin. Keyed by realIndex: try the captured
+    // series first, then any series that has a bar at j.
+    let bc = null
+    const bcc = /** @type {any} */ (w.globals).barCanvasCoords
+    if (!jBar && bcc) {
+      bc = (typeof capturedSeries === 'number' && bcc[capturedSeries]?.[j]) || null
+      if (!bc) {
+        for (const key in bcc) {
+          if (bcc[key]?.[j]) {
+            bc = bcc[key][j]
+            break
+          }
+        }
+      }
+    }
+
+    let bcx = jBar ? parseFloat(jBar.getAttribute('cx') ?? '0') : bc ? bc.cx : 0
+    let bcy = jBar ? parseFloat(jBar.getAttribute('cy') ?? '0') : bc ? bc.cy : 0
+    const bw = jBar
+      ? parseFloat(jBar.getAttribute('barWidth') ?? '0')
+      : bc
+        ? bc.barWidth
+        : 0
 
     const elGrid = ttCtx.getElGrid()
     if (!elGrid) return
@@ -649,7 +674,10 @@ export default class Position {
         bcx = bcx - bw / 2
       }
     } else {
-      if (!w.globals.isBarHorizontal) {
+      // Canvas cache (bc) already holds the rendered center; the tick-position
+      // math is both unnecessary and unreliable at canvas densities (sparse
+      // xAxisTicksPositions -> NaN), so keep bc.cx when present.
+      if (!w.globals.isBarHorizontal && !bc) {
         bcx =
           ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2
         if (isNaN(bcx)) {

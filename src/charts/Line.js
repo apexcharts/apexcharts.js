@@ -10,6 +10,7 @@ import Utils from '../utils/Utils'
 import Helpers from './common/line/Helpers'
 import { hash01 } from './common/Jitter'
 import { svgPath, spline } from '../libs/monotone-cubic'
+import { seriesEmitter } from '../renderers/Renderer'
 /**
  * ApexCharts Line Class responsible for drawing Line / Area / RangeArea Charts.
  * This class is also responsible for generating values for Bubble/Scatter charts, so need to rename it to Axis Charts to avoid confusions
@@ -443,6 +444,10 @@ class Line {
   _handlePaths({ type, realIndex, i, paths }) {
     const w = this.w
     const graphics = new Graphics(this.w)
+    // Strata (#2): series body paths emit through the active renderer (canvas
+    // records them; SVG returns `graphics` unchanged). Chrome (forecast masks)
+    // stays on `graphics`.
+    const emit = seriesEmitter(this.ctx, graphics)
     const fill = new Fill(this.w)
 
     // push all current y values array to main PrevY Array
@@ -500,7 +505,7 @@ class Line {
       })
 
       for (let p = 0; p < paths.areaPaths.length; p++) {
-        const renderedPath = graphics.renderPaths({
+        const renderedPath = emit.renderPaths({
           ...defaultRenderedPathOptions,
           pathFrom: paths.pathFromArea,
           pathTo: paths.areaPaths[p],
@@ -552,12 +557,12 @@ class Line {
           strokeLineCap: w.config.stroke.lineCap,
           fill: type === 'rangeArea' ? pathFill : 'none',
         }
-        const renderedPath = graphics.renderPaths(linePathCommonOpts)
+        const renderedPath = emit.renderPaths(linePathCommonOpts)
         this.elSeries.add(renderedPath)
         renderedPath.attr('fill-rule', `evenodd`)
 
         if (forecast.count > 0 && type !== 'rangeArea') {
-          const renderedForecastPath = graphics.renderPaths(linePathCommonOpts)
+          const renderedForecastPath = emit.renderPaths(linePathCommonOpts)
 
           renderedForecastPath.node.setAttribute(
             'stroke-dasharray',

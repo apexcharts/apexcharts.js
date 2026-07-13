@@ -15,6 +15,9 @@ export default class Destroy {
    * @param {{ isUpdating: boolean }} opts
    */
   clear({ isUpdating }) {
+    // Weave plugin host — run plugin destroy() on full destroy only (layers in
+    // elGraphical auto-clear on both paths via clearDomElements).
+    this.ctx.weave?.teardown(isUpdating)
     // Mark a real destroy so any deferred work scheduled before teardown
     // (e.g. rAF draw-animation callbacks) bails instead of touching cleared
     // DOM. Not set during updates: the chart is rebuilt right after, and
@@ -51,6 +54,10 @@ export default class Destroy {
       this.ctx._keyboardNavigation = null
     } else {
       // Full destroy — null everything so GC can collect the instances.
+      this.ctx.perspectives?.teardown()
+      this.ctx.perspectives = null
+      this.ctx.history?.teardown()
+      this.ctx.history = null
       this.ctx.animations = null
       this.ctx.axes = null
       this.ctx.annotations = null

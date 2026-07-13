@@ -1,0 +1,389 @@
+// @ts-check
+import SVGElement from '../../svg/SVGElement'
+import { SVGNS } from '../../svg/math'
+import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
+
+/**
+ * Strata (#2) P2 — CanvasCompositor: owns the `<foreignObject><canvas>` series
+ * layer and paints a display list into it.
+ *
+ * Layer placement (spec §4, Option A): the foreignObject lives INSIDE
+ * `elGraphical`, so it inherits the plot-position transform
+ * (`translate(translateX, translateY)`, `Core.shiftGraphPosition`) plus the
+ * Paper offset. Series `d`-strings are elGraphical-local (0-based at the plot
+ * origin), so the canvas only needs DPR scaling — no extra translate. A small
+ * margin around the plot rect keeps edge markers from being clipped.
+ *
+ * @module renderers/canvas/CanvasCompositor
+ */
+
+const TWO_PI = Math.PI * 2
+
+/** Cap the backing store at 2× to bound memory on hi-DPI at large sizes (§17.5). */
+const DPR_CAP = 2
+
+export default class CanvasCompositor {
+  /** @param {any} w */
+  constructor(w) {
+    this.w = w
+    /** @type {any} */
+    this._host = null
+    /** @type {any} */
+    this._canvas = null
+    /** @type {any} */
+    this._c2d = null
+    this._margin = 0
+    this._dpr = 1
+    // Per-series dim spec for restyle (hover / legend). null = no dimming.
+    /** @type {{active:number, opacity:number}|null} */
+    this._dim = null
+    // Current per-mark opacity multiplier (1 unless dimming an inactive series).
+    this._alpha = 1
+  }
+
+  /**
+   * Opacity multiplier for a series index under the active dim spec: 1 for the
+   * highlighted series (or when not dimming, or for unidentified marks), else
+   * the inactive opacity.
+   * @param {number} si
+   * @returns {number}
+   */
+  _seriesAlpha(si) {
+    const d = this._dim
+    if (!d || d.active == null || d.active < 0 || si == null || si < 0) return 1
+    return si === d.active ? 1 : d.opacity == null ? 0.2 : d.opacity
+  }
+
+  _plotDims() {
+    const gw = Math.max(0, Math.ceil(this.w.layout.gridWidth || 0))
+    const gh = Math.max(0, Math.ceil(this.w.layout.gridHeight || 0))
+    const largest = this.w.globals.markers?.largestSize || 0
+    const margin = Math.ceil(largest + 8)
+    return { gw, gh, margin }
+  }
+
+  /**
+   * Create (or recreate) the foreignObject + canvas sized to the plot rect and
+   * return the SVGElement host that `plotChartType` inserts into the tree.
+   * @returns {any}
+   */
+  createHost() {
+    const win = BrowserAPIs.getWindow()
+    this._dpr = Math.min(DPR_CAP, (win && win.devicePixelRatio) || 1)
+    const { gw, gh, margin } = this._plotDims()
+    this._margin = margin
+
+    const w = gw + margin * 2
+    const h = gh + margin * 2
+
+    const fo = BrowserAPIs.createElementNS(SVGNS, 'foreignObject')
+    fo.setAttribute('x', String(-margin))
+    fo.setAttribute('y', String(-margin))
+    fo.setAttribute('width', String(w))
+    fo.setAttribute('height', String(h))
+    fo.setAttribute('class', 'apexcharts-canvas-series')
+    // Never intercept pointer events — the SVG chrome + hit-test bridge (P3)
+    // own interaction; the canvas is paint-only.
+    fo.style.overflow = 'visible'
+
+    const canvas = /** @type {any} */ (BrowserAPIs.createElement('canvas'))
+    canvas.setAttribute('class', 'apexcharts-series-canvas')
+    canvas.width = Math.max(1, Math.round(w * this._dpr))
+    canvas.height = Math.max(1, Math.round(h * this._dpr))
+    canvas.style.width = w + 'px'
+    canvas.style.height = h + 'px'
+    canvas.style.pointerEvents = 'none'
+    fo.appendChild(canvas)
+
+    this._canvas = canvas
+    this._c2d = canvas.getContext('2d')
+    this._host = new SVGElement(fo)
+    return this._host
+  }
+
+  getHost() {
+    return this._host
+  }
+
+  clear() {
+    if (!this._c2d || !this._canvas) return
+    this._c2d.setTransform(1, 0, 0, 1, 0, 0)
+    this._c2d.clearRect(0, 0, this._canvas.width, this._canvas.height)
+  }
+
+  /**
+   * Paint the recorded scene: object commands (series bodies / rects / lines /
+   * text) first, then the columnar markers on top (matching SVG z-order where
+   * markers sit above the series path). `shim` supplies the columnar marker
+   * arrays + lazy non-circle marker geometry.
+   * @param {any[]} list
+   * @param {any} shim
+   * @param {{active:number, opacity:number}|null} [dim] per-series dim spec
+   *   (hover / legend restyle); null repaints at full opacity.
+   */
+  paint(list, shim, dim = null) {
+    const ctx = this._c2d
+    if (!ctx) return
+
+    this._dim = dim || null
+    this.clear()
+    const dpr = this._dpr
+    const m = this._margin
+    // Grid-local (0,0) → device (m*dpr) so it lands at the foreignObject's
+    // plot origin (which is inset by the margin).
+    ctx.setTransform(dpr, 0, 0, dpr, m * dpr, m * dpr)
+
+    // ── object commands (paths / rects / lines / text), z-ordered ──
+    if (list.length) {
+      const ordered =
+        list.length > 1
+          ? list
+              .map((/** @type {any} */ c, /** @type {number} */ i) => [c, i])
+              .sort((/** @type {any} */ a, /** @type {any} */ b) =>
+                a[0].z === b[0].z ? a[1] - b[1] : a[0].z - b[0].z,
+              )
+              .map((/** @type {any} */ pair) => pair[0])
+          : list
+      for (let i = 0; i < ordered.length; i++) {
+        const c = ordered[i]
+        this._alpha = this._dim ? this._seriesAlpha(c.si) : 1
+        this._paintOne(ctx, c)
+      }
+    }
+
+    // ── columnar markers ──
+    this._paintMarkers(ctx, shim)
+    this._alpha = 1
+  }
+
+  /**
+   * @param {any} ctx
+   * @param {any} shim
+   */
+  _paintMarkers(ctx, shim) {
+    const n = shim.markerCount()
+    if (!n) return
+    const mx = shim._mx
+    const my = shim._my
+    const msize = shim._msize
+    const mshape = shim._mshape
+    const mstyle = shim._mstyle
+    const dimming = !!this._dim
+    if (!dimming) this._alpha = 1
+
+    let i = 0
+    while (i < n) {
+      const styleId = mstyle[i]
+      const shapeId = mshape[i]
+      const style = shim.markerStyle(i)
+      if (!style) {
+        i++
+        continue
+      }
+
+      if (shapeId === 0) {
+        // Circle run of one style. Set the paint state ONCE, then draw each
+        // circle with its own beginPath/arc/fill. (Accumulating all circles
+        // into a single path and filling once is far slower — the fill has to
+        // scan-convert the entire 50k-subpath path in one shot; per-circle
+        // fills after one state change are the fast pattern.)
+        const doFill = this._applyFill(ctx, style)
+        const doStroke = this._applyStroke(ctx, style)
+        // Base opacities for the per-marker dim path (colours stay set above;
+        // only globalAlpha varies by series when a dim spec is active).
+        const baseFillA = style.fillOpacity == null ? 1 : Number(style.fillOpacity)
+        const baseStrokeA =
+          style.strokeOpacity == null ? 1 : Number(style.strokeOpacity)
+        let j = i
+        while (j < n && mshape[j] === 0 && mstyle[j] === styleId) {
+          const r = msize[j] || 0
+          const y = my[j]
+          if (r > 0 && y === y) {
+            // y===y rejects NaN (invalid point)
+            ctx.beginPath()
+            ctx.arc(mx[j], y, r, 0, TWO_PI)
+            if (dimming) {
+              const f = this._seriesAlpha(shim.markerSeries(j))
+              if (doFill) {
+                ctx.globalAlpha = baseFillA * f
+                ctx.fill()
+              }
+              if (doStroke) {
+                ctx.globalAlpha = baseStrokeA * f
+                ctx.stroke()
+              }
+            } else {
+              if (doFill) ctx.fill()
+              if (doStroke) ctx.stroke()
+            }
+          }
+          j++
+        }
+        ctx.globalAlpha = 1
+        i = j
+      } else {
+        // non-circle shape — its own SVG path
+        const y = my[i]
+        if (y === y && msize[i] > 0) {
+          this._alpha = dimming ? this._seriesAlpha(shim.markerSeries(i)) : 1
+          try {
+            const p = new Path2D(shim.markerPath(mx[i], y, shapeId, msize[i]))
+            this._fillStrokePath(ctx, style, p)
+          } catch (e) {
+            /* skip malformed */
+          }
+        }
+        i++
+      }
+    }
+  }
+
+  /**
+   * @param {any} ctx
+   * @param {any} cmd style-bearing flat command
+   */
+  _paintOne(ctx, cmd) {
+    switch (cmd.tag) {
+      case 'path': {
+        if (!cmd.d) return
+        if (!cmd.path2d) {
+          try {
+            cmd.path2d = new Path2D(cmd.d)
+          } catch (e) {
+            return
+          }
+        }
+        this._fillStrokePath(ctx, cmd, cmd.path2d)
+        break
+      }
+      case 'rect': {
+        const p = new Path2D()
+        if (cmd.radius && typeof (/** @type {any} */ (p).roundRect) === 'function') {
+          /** @type {any} */ (p).roundRect(cmd.x1, cmd.y1, cmd.rw, cmd.rh, cmd.radius)
+        } else {
+          p.rect(cmd.x1, cmd.y1, cmd.rw, cmd.rh)
+        }
+        this._fillStrokePath(ctx, cmd, p)
+        break
+      }
+      case 'circle': {
+        if (!(cmd.r > 0)) return
+        ctx.beginPath()
+        ctx.arc(cmd.cx, cmd.cy, cmd.r, 0, TWO_PI)
+        this._fillStroke(ctx, cmd)
+        break
+      }
+      case 'line': {
+        ctx.beginPath()
+        ctx.moveTo(cmd.lx1, cmd.ly1)
+        ctx.lineTo(cmd.lx2, cmd.ly2)
+        this._strokeOnly(ctx, cmd)
+        break
+      }
+      case 'text': {
+        if (cmd.text == null) return
+        ctx.save()
+        ctx.globalAlpha = this._alpha
+        ctx.fillStyle = cmd.fill || '#000'
+        const size = cmd.fontSize || '11px'
+        ctx.font = `${typeof size === 'number' ? size + 'px' : size} ${cmd.fontFamily || 'Helvetica, Arial, sans-serif'}`
+        ctx.textAlign =
+          cmd.textAnchor === 'middle'
+            ? 'center'
+            : cmd.textAnchor === 'end'
+              ? 'right'
+              : 'left'
+        ctx.fillText(String(cmd.text), cmd.tx, cmd.ty)
+        ctx.restore()
+        break
+      }
+    }
+  }
+
+  /**
+   * @param {any} ctx
+   * @param {any} style
+   * @param {any} path2d
+   */
+  _fillStrokePath(ctx, style, path2d) {
+    if (this._applyFill(ctx, style)) {
+      ctx.fill(path2d, style.fillRule === 'evenodd' ? 'evenodd' : 'nonzero')
+    }
+    if (this._applyStroke(ctx, style)) {
+      ctx.stroke(path2d)
+    }
+    ctx.globalAlpha = 1
+  }
+
+  /**
+   * @param {any} ctx
+   * @param {any} style
+   */
+  _fillStroke(ctx, style) {
+    if (this._applyFill(ctx, style)) ctx.fill()
+    if (this._applyStroke(ctx, style)) ctx.stroke()
+    ctx.globalAlpha = 1
+  }
+
+  /**
+   * @param {any} ctx
+   * @param {any} style
+   */
+  _strokeOnly(ctx, style) {
+    if (this._applyStroke(ctx, style)) ctx.stroke()
+    ctx.globalAlpha = 1
+  }
+
+  /**
+   * Set fill state. Returns false when there's nothing to fill.
+   * @param {any} ctx
+   * @param {any} style
+   */
+  _applyFill(ctx, style) {
+    const fill = style.fill
+    if (!fill || fill === 'none') return false
+    // Gradient/pattern url()s are gated to the SVG renderer; if one slips
+    // through, skip the fill rather than throw.
+    if (typeof fill === 'string' && fill.indexOf('url(') === 0) return false
+    ctx.globalAlpha =
+      (style.fillOpacity == null ? 1 : Number(style.fillOpacity)) * this._alpha
+    ctx.fillStyle = fill
+    return true
+  }
+
+  /**
+   * Set stroke state. Returns false when there's nothing to stroke.
+   * @param {any} ctx
+   * @param {any} style
+   */
+  _applyStroke(ctx, style) {
+    const stroke = style.stroke
+    const sw = style.strokeWidth == null ? 1 : Number(style.strokeWidth)
+    if (!stroke || stroke === 'none' || !(sw > 0)) return false
+    if (typeof stroke === 'string' && stroke.indexOf('url(') === 0) return false
+    ctx.globalAlpha =
+      (style.strokeOpacity == null ? 1 : Number(style.strokeOpacity)) *
+      this._alpha
+    ctx.strokeStyle = stroke
+    ctx.lineWidth = sw
+    ctx.lineCap = style.lineCap || 'butt'
+    const dash = style.strokeDash
+    if (dash && dash !== 0) {
+      ctx.setLineDash(Array.isArray(dash) ? dash : [Number(dash)])
+    } else {
+      ctx.setLineDash([])
+    }
+    return true
+  }
+
+  /** Series bitmap for the export composite bridge (P4). @returns {string|null} */
+  toDataURL() {
+    return this._canvas ? this._canvas.toDataURL() : null
+  }
+
+  destroy() {
+    this._host = null
+    this._canvas = null
+    this._c2d = null
+  }
+}

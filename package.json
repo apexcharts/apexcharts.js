@@ -158,6 +158,22 @@
       "import": "./dist/features/drilldown.esm.js",
       "require": "./dist/features/drilldown.common.js"
     },
+    "./features/perspectives": {
+      "import": "./dist/features/perspectives.esm.js",
+      "require": "./dist/features/perspectives.common.js"
+    },
+    "./features/history": {
+      "import": "./dist/features/history.esm.js",
+      "require": "./dist/features/history.common.js"
+    },
+    "./features/weave": {
+      "import": "./dist/features/weave.esm.js",
+      "require": "./dist/features/weave.common.js"
+    },
+    "./features/renderer-canvas": {
+      "import": "./dist/features/renderer-canvas.esm.js",
+      "require": "./dist/features/renderer-canvas.common.js"
+    },
     "./features/all": {
       "import": "./dist/features/all.esm.js",
       "require": "./dist/features/all.common.js"

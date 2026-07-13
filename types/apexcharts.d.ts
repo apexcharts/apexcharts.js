@@ -221,6 +221,13 @@ declare class ApexCharts {
   paper(): any
 
   /**
+   * Returns the active series renderer for the last render (Strata #2):
+   * `'svg'` (default) or `'canvas'`. Resolves to `'svg'` unless the canvas
+   * renderer feature is bundled and no canvas-unsupported feature is in use.
+   */
+  getActiveRenderer(): 'svg' | 'canvas' | 'gpu'
+
+  /**
    * Drills into the child level referenced by `id` (a `drilldown.series` entry).
    * Requires the Drilldown feature: import 'apexcharts/features/drilldown'.
    */
@@ -296,6 +303,28 @@ declare class ApexCharts {
    */
   static registerFeatures(featureMap: Record<string, new (...args: any[]) => any>): void
 
+  /**
+   * Registers a Weave plugin definition. Available in every bundle; the plugin
+   * activates only when the Weave host is bundled and listed in a chart's
+   * `plugins` config.
+   */
+  static registerPlugin(def: ApexPlugin): void
+
+  /**
+   * Registers a non-SVG series renderer (Strata #2). The canvas backend
+   * registers itself via `import 'apexcharts/features/renderer-canvas'`.
+   */
+  static registerRenderer(kind: string, factory: (w: any, ctx: any) => any): void
+
+  /**
+   * Static, pure Perspectives helpers. Available once the feature is imported:
+   * `import 'apexcharts/features/perspectives'`.
+   */
+  static perspectives: {
+    decode(str: string): ApexPerspective | null
+    fromURL(href?: string): ApexPerspective | null
+  }
+
   exports: {
     cleanup(): string
     svgUrl(): string
@@ -306,6 +335,184 @@ declare class ApexCharts {
     getSvgString(scale?: number): Promise<string>
     triggerDownload(href: string, filename?: string, ext?: string): void
   }
+
+  /**
+   * Perspectives (#10) — serializable, shareable view state.
+   * Requires the Perspectives feature: `import 'apexcharts/features/perspectives'`.
+   */
+  perspectives: {
+    capture(): ApexPerspective
+    encode(token?: ApexPerspective): string
+    decode(str: string): ApexPerspective | null
+    toURL(): string
+    apply(token: ApexPerspective | string, opts?: { animate?: boolean }): void
+    save(name: string): string
+    list(): { id: string; name: string; token: ApexPerspective }[]
+    delete(id: string): void
+  }
+
+  /**
+   * Rewind (#3) — undo/redo history.
+   * Requires the History feature (`import 'apexcharts/features/history'`) and
+   * chart.history.enabled: true.
+   */
+  history: {
+    undo(animate?: boolean): void
+    redo(animate?: boolean): void
+    canUndo(): boolean
+    canRedo(): boolean
+    jump(id: string, animate?: boolean): void
+    clear(): void
+    transaction(fn: () => void | Promise<any>, opts?: { label?: string }): Promise<void>
+    entries(): ApexHistoryEntry[]
+  }
+}
+
+interface ApexHistoryEntry {
+  id: string
+  label: string
+  at: number
+}
+
+interface ApexViewState {
+  v: number
+  window: {
+    xaxis: { min: number | null; max: number | null } | null
+    yaxis: ({ min: number | null; max: number | null } | null)[] | null
+  }
+  zoomed: boolean
+  collapsed: number[]
+  ancillaryCollapsed: number[]
+  selectedDataPoints: number[][]
+  theme: { mode: string | null; palette: string | null } | null
+  locale: string | null
+  annotations: {
+    static: any
+    dynamic: { kind: string; params: any }[]
+  }
+  drill: { path: (string | number)[] } | null
+}
+
+interface ApexPerspective {
+  v: number
+  view: ApexViewState
+  options?: Record<string, any>
+}
+
+// ── Weave (#1) — public plugin platform ──
+type ApexPluginHook =
+  | 'afterParse'
+  | 'afterScales'
+  | 'draw'
+  | 'afterUpdate'
+  | 'destroy'
+
+interface ApexPluginScales {
+  x(v: number): number
+  y(v: number, axis?: number): number
+  domainX: [number, number]
+  domainY(axis?: number): [number, number]
+  gridWidth: number
+  gridHeight: number
+  ratios: any
+}
+
+interface ApexPluginSeries {
+  name?: string
+  hidden: boolean
+  color?: string
+  points: { x: any; y: any }[]
+}
+
+interface ApexPluginLayer {
+  readonly node: SVGGElement
+  path(opts: {
+    d: string
+    stroke?: string
+    width?: number
+    fill?: string
+    opacity?: number
+    dash?: number
+    className?: string
+  }): any
+  line(opts: {
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+    stroke?: string
+    width?: number
+    dash?: number
+  }): any
+  rect(opts: {
+    x?: number
+    y?: number
+    w?: number
+    h?: number
+    r?: number
+    fill?: string
+    stroke?: string
+    opacity?: number
+  }): any
+  circle(opts: {
+    cx?: number
+    cy?: number
+    r?: number
+    fill?: string
+    stroke?: string
+  }): any
+  text(opts: {
+    x?: number
+    y?: number
+    text?: string
+    color?: string
+    size?: string
+    anchor?: string
+    weight?: string
+  }): any
+  clear(): ApexPluginLayer
+}
+
+interface ApexPluginPayload {
+  api: ApexPluginAPI
+  scales: ApexPluginScales | null
+  data: ApexPluginSeries[]
+  pass: 'full' | 'fast' | 'update'
+  hook: ApexPluginHook
+}
+
+interface ApexPluginAPI {
+  readonly name: string
+  readonly version: number
+  readonly options: Record<string, any>
+  on(hook: ApexPluginHook, fn: (payload: ApexPluginPayload) => void): ApexPluginAPI
+  off(hook: ApexPluginHook, fn: (payload: ApexPluginPayload) => void): ApexPluginAPI
+  store: Record<string, any>
+  layer(opts?: { z?: 'front' | 'behind'; className?: string }): ApexPluginLayer
+  readonly scales: ApexPluginScales | null
+  readonly data: ApexPluginSeries[]
+  theme: {
+    readonly mode: string
+    readonly foreColor: string
+    seriesColor(i: number): string
+    token(name: string): any
+  }
+  chart: Record<string, (...args: any[]) => any>
+  emit(name: string, detail?: any): void
+  readonly el: Element
+}
+
+interface ApexPlugin {
+  name: string
+  apiVersion?: number
+  setup(api: ApexPluginAPI): void
+  destroy?(api: ApexPluginAPI): void
+}
+
+interface ApexPluginActivation {
+  name: string
+  options?: Record<string, any>
+  order?: number
 }
 
 declare namespace ApexCharts {
@@ -460,6 +667,8 @@ declare namespace ApexCharts {
     legend?: ApexLegend
     markers?: ApexMarkers
     noData?: ApexNoData
+    /** Weave (#1) plugin activation list. Requires `import 'apexcharts/features/weave'`. */
+    plugins?: ApexPluginActivation[]
     plotOptions?: ApexPlotOptions
     responsive?: ApexResponsive[]
     parsing?: ApexParsing;
@@ -612,6 +821,24 @@ type ApexChart = {
   group?: string
   locales?: ApexLocale[]
   defaultLocale?: string
+  perspectives?: {
+    serializeOptions?: string[]
+  }
+  history?: {
+    enabled?: boolean
+    maxDepth?: number
+    coalesceMs?: number
+    keyboard?: boolean
+  }
+  /** Strata (#2) series renderer. Requires `import 'apexcharts/features/renderer-canvas'` for non-SVG. */
+  renderer?: 'svg' | 'canvas' | 'auto'
+  rendererThreshold?: number
+  layers?: {
+    series?: 'svg' | 'canvas' | 'auto'
+    grid?: 'svg'
+    annotations?: 'svg'
+    dataLabels?: 'svg'
+  }
   parentHeightOffset?: number
   redrawOnParentResize?: boolean
   redrawOnWindowResize?: boolean | ((...args: any[]) => boolean)

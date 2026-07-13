@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>High-Density Candlestick with the Canvas Renderer</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 1000px;
+        margin: 20px auto;
+      }
+      .panel {
+        max-width: 1000px;
+        margin: 16px auto;
+        font-family: sans-serif;
+      }
+      .controls {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .controls label {
+        font-size: 14px;
+      }
+      .controls select {
+        padding: 4px 6px;
+        font-size: 14px;
+      }
+      .controls button {
+        padding: 6px 14px;
+        cursor: pointer;
+      }
+      .stats {
+        font-family: monospace;
+        font-size: 13px;
+        color: #555;
+        line-height: 1.6;
+      }
+      .stats b {
+        color: #111;
+      }
+      .note {
+        background: #f4f8ff;
+        border-left: 3px solid #5b8cff;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: #234;
+        margin-top: 10px;
+        border-radius: 2px;
+      }
+      .note code {
+        background: #e6eeff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      var candleCount = 10000
+
+      // OHLC random walk: each candle opens at the previous close so the series
+      // reads as a continuous price, dense enough that individual candles blur into
+      // a band (which is exactly where the canvas renderer earns its keep).
+      function generateCandles(count) {
+        var data = new Array(count)
+        var t = new Date('2015-01-01T00:00:00Z').getTime()
+        var step = 60 * 60 * 1000 // 1 hour
+        var o = 100
+        for (var i = 0; i < count; i++) {
+          var h = o + Math.random() * 6
+          var l = o - Math.random() * 6
+          var c = l + Math.random() * (h - l)
+          data[i] = {
+            x: t + i * step,
+            y: [+o.toFixed(2), +h.toFixed(2), +l.toFixed(2), +c.toFixed(2)],
+          }
+          o = c
+        }
+        return data
+      }
+
+      var candleData = generateCandles(candleCount)
+      var lastRenderMs = 0
+
+      function domNodeCount() {
+        var el = document.querySelector('#chart')
+        return el ? el.getElementsByTagName('*').length : 0
+      }
+
+      function updateStats() {
+        var el = document.getElementById('stats')
+        if (!el || typeof chart === 'undefined') return
+        var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
+        el.innerHTML =
+          'Candles: <b>' +
+          candleCount.toLocaleString() +
+          '</b> &nbsp;·&nbsp; Active renderer: <b>' +
+          active.toUpperCase() +
+          '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
+          domNodeCount().toLocaleString() +
+          '</b> &nbsp;·&nbsp; Render: <b>' +
+          (lastRenderMs > 0 ? lastRenderMs + ' ms' : 'change a control to time it') +
+          '</b>'
+      }
+    </script>
+  </head>
+
+  <body>
+     <div class="panel">
+        <div class="controls">
+          <label>
+            Renderer:
+            <select id="rendererMode">
+              <option value="canvas" selected>canvas</option>
+              <option value="svg">svg</option>
+              <option value="auto">auto</option>
+            </select>
+          </label>
+          <label>
+            Candles:
+            <select id="candleCount">
+              <option value="2000">2,000</option>
+              <option value="10000" selected>10,000</option>
+              <option value="50000">50,000</option>
+              <option value="100000">100,000</option>
+            </select>
+          </label>
+          <button id="rerender">Re-render</button>
+          <button id="resetZoom">Reset zoom</button>
+        </div>
+      
+        <div class="stats" id="stats"></div>
+      
+        <div class="note">
+          The candle bodies and wicks are painted into a single <code>&lt;canvas&gt;</code>
+          while the axes, grid, crosshair, zoom selection, and the OHLC tooltip stay as
+          SVG. Hover to read Open/High/Low/Close, and drag to zoom, exactly as in SVG
+          mode: the y-axis auto-scales to the visible price range on every zoom (via
+          <code>zoom.autoScaleYaxis: true</code>). Note that with <b>renderer: 'auto'</b> candlesticks only promote to
+          canvas at 50,000 candles (they have no per-point markers or data labels for
+          the threshold to count), so this demo selects <b>canvas</b> explicitly. Switch
+          to <b>svg</b> at 50,000+ candles to feel the difference.
+        </div>
+      </div>
+      
+      <div id="chart"></div>
+
+    <script>
+      var options = {
+        series: [{ name: 'Price', data: candleData }],
+        chart: {
+          height: 480,
+          type: 'candlestick',
+          renderer: 'canvas',
+          rendererThreshold: 8000,
+          animations: { enabled: false },
+          zoom: { enabled: true, type: 'x', autoScaleYaxis: true },
+          toolbar: { autoSelected: 'zoom' },
+        },
+        title: {
+          text: 'Candlestick: 10,000 candles on the canvas renderer',
+          align: 'left',
+        },
+        subtitle: {
+          text: 'Bodies and wicks paint to a canvas layer; axes, crosshair, zoom and the OHLC tooltip stay SVG',
+          align: 'left',
+        },
+        xaxis: {
+          type: 'datetime',
+          labels: { datetimeUTC: false },
+        },
+        yaxis: {
+          tooltip: { enabled: true },
+          labels: {
+            formatter: function (val) {
+              return val.toFixed(0)
+            },
+          },
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      // The template starts the first render; poll one frame for the instance, then
+      // fill in the live metrics.
+      requestAnimationFrame(function poll() {
+        if (chart && chart.w && chart.w.globals && chart.w.globals.series) {
+          updateStats()
+        } else {
+          requestAnimationFrame(poll)
+        }
+      })
+
+      function rebuild() {
+        candleCount = parseInt(document.getElementById('candleCount').value, 10)
+        var mode = document.getElementById('rendererMode').value
+
+        candleData = generateCandles(candleCount)
+        options.chart.renderer = mode
+        options.series = [{ name: 'Price', data: candleData }]
+        options.title.text =
+          'Candlestick: ' +
+          candleCount.toLocaleString() +
+          ' candles on the ' +
+          (mode === 'auto' ? 'auto-selected' : mode) +
+          ' renderer'
+
+        var t = performance.now()
+        chart.destroy()
+        chart = new ApexCharts(document.querySelector('#chart'), options)
+        chart.render().then(function () {
+          lastRenderMs = Math.round(performance.now() - t)
+          updateStats()
+        })
+      }
+
+      document.getElementById('rerender').addEventListener('click', rebuild)
+      document.getElementById('rendererMode').addEventListener('change', rebuild)
+      document.getElementById('candleCount').addEventListener('change', rebuild)
+      document.getElementById('resetZoom').addEventListener('click', function () {
+        if (chart) chart.resetSeries(true, true)
+      })
+    </script>
+
+    
+  </body>
+</html>

@@ -178,6 +178,12 @@ export default class Core {
     const { w, ctx } = this
     const { config: cnf, globals: gl } = w
 
+    // Strata (#2): start a fresh series display list for the canvas renderer.
+    // Series marks emitted during draw() below are recorded, not added to the
+    // DOM; they are painted at the end of this method (see the wrap below).
+    const canvasMode = ctx.renderer && ctx.renderer.kind === 'canvas'
+    if (canvasMode) ctx.renderer.beginSeries()
+
     const seriesTypes = {
       line: { series: [], i: [] },
       area: { series: [], i: [] },
@@ -478,6 +484,31 @@ export default class Core {
         }
         default:
           elGraph = line.draw(this.w.seriesData.series)
+      }
+    }
+
+    if (canvasMode) {
+      // Paint the recorded series display list into a <foreignObject><canvas>
+      // and wrap it with the real SVG chrome groups (data labels etc.) the
+      // draw() built. Canvas sits at the back of the wrap (behind the chrome);
+      // the whole wrap composites into elGraphical exactly like the SVG elGraph
+      // the two plotChartType consumers already handle. The series marks live
+      // only on the canvas — the chrome groups carry no marks (they were
+      // skipped by SVGElement.add).
+      const host = ctx.renderer.present()
+      // A renderer may decline a host (present() → null) when it emits straight
+      // into the SVG tree via delegation instead of a canvas layer; then the
+      // marks are already in elGraph and there's nothing extra to composite.
+      if (host) {
+        const wrap = new Graphics(w).group({
+          class: 'apexcharts-canvas-series-wrap',
+        })
+        wrap.add(host)
+        const groups = Array.isArray(elGraph) ? elGraph : [elGraph]
+        groups.forEach((g) => {
+          if (g) wrap.add(g)
+        })
+        return wrap
       }
     }
 

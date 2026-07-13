@@ -3,6 +3,7 @@ import Filters from './Filters'
 import Graphics from './Graphics'
 import Utils from '../utils/Utils'
 import { applyProgressiveReveal } from './Animations'
+import { seriesEmitter } from '../renderers/Renderer'
 
 /**
  * ApexCharts Markers Class for drawing markers on y values in axes charts.
@@ -61,6 +62,9 @@ export default class Markers {
     let elMarkersWrap = null
 
     const graphics = new Graphics(this.w)
+    // Strata (#2): markers are the per-point node killer, so they emit through
+    // the active renderer (canvas records them). The wrap group stays SVG.
+    const emit = seriesEmitter(this.ctx, graphics)
 
     const hasDiscreteMarkers =
       w.config.markers.discrete && w.config.markers.discrete.length
@@ -99,6 +103,15 @@ export default class Markers {
           : w.config.markers.size > 0
 
         if (shouldMarkerDraw || alwaysDrawMarker || hasDiscreteMarkers) {
+          // Strata (#2): in canvas mode markers paint to a bitmap and expose no
+          // cx/cy nodes, so mirror the markers-off pointsArray cache here to
+          // feed the tooltip/crosshair position path.
+          if (emit.kind === 'canvas') {
+            if (typeof w.globals.pointsArray[seriesIndex] === 'undefined') {
+              w.globals.pointsArray[seriesIndex] = []
+            }
+            w.globals.pointsArray[seriesIndex][dataPointIndex] = [p.x[q], p.y[q]]
+          }
           if (!invalidMarker) {
             markerClasses += ` w${Utils.randomId()}`
           }
@@ -139,7 +152,7 @@ export default class Markers {
               alwaysDrawMarker ||
               hasDiscreteMarkers
             if (shouldCreateMarkerWrap && !elMarkersWrap) {
-              elMarkersWrap = graphics.group({
+              elMarkersWrap = emit.group({
                 class:
                   alwaysDrawMarker || hasDiscreteMarkers
                     ? ''
@@ -152,7 +165,7 @@ export default class Markers {
               // Set up event delegation once on the group
               this.setupMarkerDelegation(elMarkersWrap)
             }
-            markerElement = graphics.drawMarker(p.x[q], p.y[q], opts)
+            markerElement = emit.drawMarker(p.x[q], p.y[q], opts)
 
             markerElement.attr('rel', dataPointIndex)
             markerElement.attr('j', dataPointIndex)

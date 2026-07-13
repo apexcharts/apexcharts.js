@@ -17,3 +17,6 @@ dist/demos/
 .vite
 dist-ssr
 *.local
+
+# Claude Code local (machine-specific) settings
+.claude/settings.local.json

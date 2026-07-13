@@ -15,6 +15,8 @@ import InitCtxVariables from './modules/helpers/InitCtxVariables'
 import { applyAnimationPolicy } from './modules/Animations'
 import Destroy from './modules/helpers/Destroy'
 import { register } from './modules/ChartFactory'
+import { registerPlugin as registerPluginImpl } from './modules/weave/PluginRegistry'
+import RendererController from './modules/RendererController'
 import { addResizeListener, removeResizeListener } from './utils/Resize'
 import apexCSS from './assets/apexcharts.css'
 import { Environment } from './utils/Environment.js'
@@ -64,6 +66,20 @@ export default class ApexCharts {
   /** @type {string[]} */ publicMethods = []
   /** @type {string[]} */ eventList = []
   /** @type {any} */ config
+  /** @type {any} */ perspectives
+  /** @type {any} */ history
+  /** @type {any} */ weave
+  /** @type {any} */ renderer
+  /** @type {any} */ rendererController
+
+  /**
+   * Static Perspectives helpers (decode/fromURL), populated by the perspectives
+   * feature when imported (`import 'apexcharts/features/perspectives'`); null
+   * otherwise. Declared here as a placeholder so core stays free of the
+   * Perspectives module while the assignment in the feature file type-checks.
+   * @type {any}
+   */
+  static perspectives = null
 
   /**
    * Creates a new ApexCharts instance.
@@ -290,6 +306,12 @@ export default class ApexCharts {
     this._writeParsedLabelData(parsedState.labelData)
     this._writeParsedAxisFlags(parsedState.axisFlags)
 
+    // Strata: choose the active series renderer now that mark count is known.
+    this.rendererController?.resolve()
+
+    // Weave: plugins react to freshly parsed data (geometry not computed yet).
+    this.weave?.dispatch('afterParse')
+
     // this is a good time to set theme colors first
     this.theme.init()
 
@@ -342,6 +364,9 @@ export default class ApexCharts {
     this._writeLayoutCoords(layoutState.layout)
 
     const xyRatios = this.core.xySettings()
+
+    // Weave: plugins compute against final geometry (scales are ready).
+    this.weave?.dispatch('afterScales', { xyRatios })
 
     this.grid.createGridMask()
 
@@ -525,6 +550,12 @@ export default class ApexCharts {
           me.toolbar?.createToolbar()
         }
       }
+
+      // Weave: main render hook — series/grid/axes are live in elGraphical now.
+      me.weave?.dispatch('draw', {
+        pass: 'full',
+        xyRatios: graphData?.xyRatios,
+      })
 
       if (w.globals.memory.methodsToExec.length > 0) {
         w.globals.memory.methodsToExec.forEach((fn) => {
@@ -829,6 +860,7 @@ export default class ApexCharts {
         gl2.xTickAmount = 0
         gl2.multiAxisTickAmount = 0
         gl2.pointsArray = []
+        gl2.barCanvasCoords = null
         gl2.dataLabelsRects = []
         gl2.lastDrawnDataLabelsIndexes = []
         gl2.textRectsCache = new Map()
@@ -848,11 +880,14 @@ export default class ApexCharts {
         // Compute per-pixel ratios from the existing layout.
         const xyRatios = this.core.xySettings()
 
+        // Weave: geometry refreshed on the fast path.
+        this.weave?.dispatch('afterScales', { pass: 'fast', xyRatios })
+
         // Remove only the series and data-label elements from elGraphical.
         // Grid, axes, crosshairs, and masks are preserved in place.
         const innerEl = w.dom.elGraphical.node
         const toRemove = innerEl.querySelectorAll(
-          '.apexcharts-series, .apexcharts-datalabels, .apexcharts-datalabels-background',
+          '.apexcharts-canvas-series-wrap, .apexcharts-series, .apexcharts-datalabels, .apexcharts-datalabels-background',
         )
         /**
          * @param {Element} el
@@ -891,6 +926,9 @@ export default class ApexCharts {
         if (Environment.isBrowser() && w.config.tooltip.enabled && !gl.noData) {
           w.globals.tooltip?.drawTooltip(xyRatios)
         }
+
+        // Weave: main render hook (fast path) — rebuild plugin layers.
+        this.weave?.dispatch('draw', { pass: 'fast', xyRatios })
 
         if (typeof w.config.chart.events.updated === 'function') {
           w.config.chart.events.updated(this, w)
@@ -1034,6 +1072,30 @@ export default class ApexCharts {
    */
   static registerFeatures(featureMap) {
     InitCtxVariables.registerFeatures(featureMap)
+  }
+
+  /**
+   * Register a Weave plugin definition (a plain { name, setup } object).
+   * Lives in core so plugins can always be registered; they only activate when
+   * the Weave host is bundled (`import 'apexcharts/features/weave'`, included in
+   * the full bundle) and listed in a chart's `plugins` config.
+   *
+   * @param {{ name: string, apiVersion?: number, setup: Function, destroy?: Function }} def
+   */
+  static registerPlugin(def) {
+    registerPluginImpl(def)
+  }
+
+  /**
+   * Register a non-SVG series renderer (Strata #2). SVG is built in; the canvas
+   * backend registers itself via `import 'apexcharts/features/renderer-canvas'`.
+   * When a `kind` is not registered, selection falls back to SVG.
+   *
+   * @param {string} kind  e.g. 'canvas'
+   * @param {(w: any, ctx: any) => any} factory  returns a Renderer instance
+   */
+  static registerRenderer(kind, factory) {
+    RendererController.registerRenderer(kind, factory)
   }
 
   /**
@@ -1402,6 +1464,20 @@ export default class ApexCharts {
 
   paper() {
     return this.w.dom.Paper
+  }
+
+  /**
+   * Returns the active series renderer for the last render: `'svg'` (default)
+   * or `'canvas'` (Strata #2). `'auto'`/`'canvas'` resolve to `'svg'` unless the
+   * canvas renderer feature is bundled and no canvas-unsupported feature is in
+   * use. See `chart.renderer` / `chart.rendererThreshold`.
+   *
+   * @returns {'svg' | 'canvas' | 'gpu'}
+   */
+  getActiveRenderer() {
+    return this.rendererController
+      ? this.rendererController.getActiveKind()
+      : 'svg'
   }
 
   /**

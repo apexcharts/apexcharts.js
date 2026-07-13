@@ -1218,13 +1218,25 @@ export default class Tooltip {
     if (shared === null) shared = this.tConfig.shared
 
     const hasMarkers = this.tooltipUtil.hasMarkers(capturedSeries)
+    // Strata (#2): in canvas mode there are no per-point marker nodes, so the
+    // DOM-driven position path (hasMarkers) is skipped and the tooltip would
+    // stay pinned at the origin. The pixel coords live in w.globals.pointsArray
+    // (populated by the canvas emit sites), so route positioning through the
+    // pointsArray-based dynamic positioners instead.
+    const canvasMode = this.ctx?.renderer?.kind === 'canvas'
+    // Bars/candles keep the hasBars() -> moveStickyTooltipOverBars path (which
+    // reads the canvas coord cache); only non-bar canvas series (line/area/
+    // scatter markers) route through the pointsArray positioners here.
+    const canvasNonBar = canvasMode && !this.tooltipUtil.hasBars()
 
     const bars = this.tooltipUtil.getElBars()
 
     const handlePoints = () => {
-      if (w.globals.markers.largestSize > 0) {
+      if (w.globals.markers.largestSize > 0 && !canvasMode) {
         ttCtx.marker.enlargePoints(j)
       } else {
+        // canvas: markers paint to a bitmap with no node to enlarge, so the
+        // box is positioned off the cached pointsArray coords instead.
         ttCtx.tooltipPosition.moveDynamicPointsOnHover(j)
       }
     }
@@ -1290,9 +1302,16 @@ export default class Tooltip {
         shared: this.showOnIntersect ? false : this.tConfig.shared,
       })
 
-      if (hasMarkers) {
+      if (hasMarkers || canvasNonBar) {
         handlePoints()
       } else if (this.tooltipUtil.hasBars()) {
+        if (canvasMode) {
+          // canvas: bars/candles paint to the bitmap, so the barSeriesHeight /
+          // paths / hover-filter machinery below is DOM-only and no-ops here.
+          // Position straight off the cached bar coords (barSeriesHeight then
+          // resolves to 0, so the SVG block is skipped).
+          ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
+        }
         this.barSeriesHeight = this.tooltipUtil.getBarsHeight(
           /** @type {any[]} */ ([...bars]),
         )
@@ -1331,6 +1350,10 @@ export default class Tooltip {
 
       if (hasMarkers) {
         ttCtx.tooltipPosition.moveMarkers(capturedSeries, j)
+      } else if (canvasNonBar) {
+        // canvas: no marker node to enlarge; position off the cached coords.
+        // (bars already positioned above via moveStickyTooltipOverBars.)
+        ttCtx.tooltipPosition.moveDynamicPointOnHover(j, capturedSeries)
       }
     }
   }

@@ -117,6 +117,8 @@ export default class Globals {
     gl.lastWheelExecution = 0
     gl.delayedElements = []
     gl.pointsArray = []
+    gl.barCanvasCoords = null // Strata (#2): per-render bar/candle center cache (canvas tooltip position)
+    gl.activeRenderer = null // Strata (#2): active renderer handle for w-only modules (Series restyle); set by RendererController.resolve()
     gl.dataLabelsRects = []
     gl.lastDrawnDataLabelsIndexes = [] // tracks which data labels were drawn per series to prevent collisions
     gl.textRectsCache = new Map()

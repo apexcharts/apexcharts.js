@@ -191,6 +191,24 @@ export default class Series {
   /**
    * @param {string} seriesName
    */
+  /**
+   * Bridge SVG series-dim state to the canvas renderer: SVG opacity classes
+   * (legend-mouseover-inactive) don't touch the painted canvas series layer, so
+   * repaint it with a matching per-series opacity. No-op unless the canvas
+   * renderer is active. The renderer is mirrored on globals by RendererController
+   * (Series has no ctx handle).
+   * @param {{active:number, opacity:number}|null} dim
+   */
+  canvasRestyle(dim) {
+    const r = this.w.globals.activeRenderer
+    if (r && r.kind === 'canvas' && typeof r.restyle === 'function') {
+      r.restyle(dim)
+    }
+  }
+
+  /**
+   * @param {string} seriesName
+   */
   highlightSeries(seriesName) {
     const w = this.w
 
@@ -261,6 +279,12 @@ export default class Series {
         serEl.classList.remove(this.legendInactiveClass)
       }
     }
+
+    this.canvasRestyle(
+      seriesEl && !Number.isNaN(realIndex)
+        ? { active: realIndex, opacity: 0.2 }
+        : null,
+    )
   }
 
   /**
@@ -284,6 +308,7 @@ export default class Series {
       for (let se = 0; se < allSeriesEls.length; se++) {
         allSeriesEls[se].classList.remove(this.legendInactiveClass)
       }
+      this.canvasRestyle(null)
     }
   }
 

@@ -356,6 +356,10 @@ export interface ChartGlobals
   dimensionCache: Record<string, { value: any; lastUpdate: number }>
   cachedSelectors: Record<string, NodeList>
   pointsArray: number[][][]
+  // Strata (#2): per-render bar/candle center cache + active renderer handle
+  // (mirrored from ctx.renderer so w-only modules can reach it).
+  barCanvasCoords: Record<number, Record<number, any>> | null
+  activeRenderer: any
   dataLabelsRects: DOMRect[]
   lastDrawnDataLabelsIndexes: number[][]
   delayedElements: Array<{ el: Element; index?: number }>
@@ -537,6 +541,11 @@ export interface ChartContext {
   toolbar: any
   zoomPanSelection: any
   keyboardNavigation: any
+  perspectives: any
+  history: any
+  weave: any
+  renderer: any
+  rendererController: any
 
   // Internal sub-modules instantiated during render
   annotations?: any

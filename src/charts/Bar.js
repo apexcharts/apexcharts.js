@@ -7,6 +7,7 @@ import Filters from '../modules/Filters'
 import Graphics from '../modules/Graphics'
 import { computeStagger } from '../modules/Animations'
 import Series from '../modules/Series'
+import { seriesEmitter } from '../renderers/Renderer'
 
 /**
  * ApexCharts Bar Class responsible for drawing both Columns and Bars.
@@ -382,6 +383,9 @@ class Bar {
   }) {
     const w = this.w
     const graphics = new Graphics(this.w, this.ctx)
+    // Strata (#2): the bar body path emits through the active renderer (canvas
+    // records per-bar paths). Goal-line markers / shadows stay SVG.
+    const emit = seriesEmitter(this.ctx, graphics)
     let skipDrawing = false
 
     // Set up event delegation once per series group instead of per-element listeners
@@ -514,7 +518,7 @@ class Bar {
         : w.config.chart.animations.dynamicAnimation.speed
 
       const renderedPath = /** @type {any} */ (
-        graphics.renderPaths({
+        emit.renderPaths({
           i,
           j,
           realIndex,
@@ -561,6 +565,22 @@ class Bar {
         barHeight,
         barWidth,
       })
+
+      // Strata (#2): canvas paints the bar/candle to a bitmap, so there is no
+      // path node for the tooltip positioner to read cx/cy/barWidth off. Cache
+      // the same values here (keyed by realIndex + j); moveStickyTooltipOverBars
+      // falls back to this when the DOM node is absent.
+      if (emit.kind === 'canvas') {
+        if (!w.globals.barCanvasCoords) w.globals.barCanvasCoords = {}
+        if (!w.globals.barCanvasCoords[realIndex]) {
+          w.globals.barCanvasCoords[realIndex] = {}
+        }
+        w.globals.barCanvasCoords[realIndex][j] = {
+          cx: dataLabelsObj.dataLabelsPos.bcx,
+          cy: dataLabelsObj.dataLabelsPos.bcy,
+          barWidth,
+        }
+      }
 
       if (dataLabelsObj.dataLabels !== null) {
         elDataLabelsWrap.add(dataLabelsObj.dataLabels)

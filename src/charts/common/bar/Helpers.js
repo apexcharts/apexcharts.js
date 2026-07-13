@@ -975,6 +975,18 @@ export default class Helpers {
     barWidth,
     barHeight,
   }) {
+    // Only bars/candles that actually have a goal line need a group. Skipping
+    // the empty group (the common case) avoids one dead <g> per bar: negligible
+    // in SVG but the ENTIRE node count in canvas mode (bodies/wicks paint to the
+    // bitmap, so these empty groups are all that is left), and wasteful on large
+    // datasets either way.
+    const hasGoals =
+      (Array.isArray(goalX) && goalX.length > 0) ||
+      (Array.isArray(goalY) && goalY.length > 0)
+    if (!hasGoals) {
+      return null
+    }
+
     const graphics = new Graphics(this.barCtx.w)
     const lineGroup = graphics.group({
       className: 'apexcharts-bar-goals-groups',
