@@ -178,6 +178,10 @@
       "import": "./dist/features/marks.esm.js",
       "require": "./dist/features/marks.common.js"
     },
+    "./features/facet": {
+      "import": "./dist/features/facet.esm.js",
+      "require": "./dist/features/facet.common.js"
+    },
     "./features/all": {
       "import": "./dist/features/all.esm.js",
       "require": "./dist/features/all.common.js"

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Design Tokens and OS-Aware Theming (Facet)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      /* Facet (#13): define the chart's colors as CSS design tokens ONCE. Every
+               ApexCharts instance on the page reads them, so the chart is part of your
+               design system, not a separate color config. */
+      :root {
+        --apx-accent: #4f46e5;
+        --apx-fore: #1f2937;
+        --apx-grid: #e5e7eb;
+        --apx-surface: #ffffff;
+        --page-bg: #ffffff;
+        --page-fore: #1f2937;
+      }
+      /* The dark palette: the same tokens, different values. Toggling the theme
+               needs no per-series color config in JS. */
+      :root.apx-dark {
+        --apx-accent: #818cf8;
+        --apx-fore: #e5e7eb;
+        --apx-grid: #374151;
+        --apx-surface: #0b0f19;
+        --page-bg: #0b0f19;
+        --page-fore: #e5e7eb;
+      }
+
+      body {
+        background: var(--page-bg);
+        color: var(--page-fore);
+        transition:
+          background 0.25s ease,
+          color 0.25s ease;
+      }
+      #chart {
+        max-width: 720px;
+        margin: 16px auto;
+      }
+      .panel {
+        max-width: 720px;
+        margin: 16px auto;
+        font-family: sans-serif;
+      }
+      .controls {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .controls button {
+        padding: 7px 16px;
+        cursor: pointer;
+        border: 1px solid var(--apx-grid);
+        background: var(--apx-surface);
+        color: var(--page-fore);
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .note {
+        border-left: 3px solid var(--apx-accent);
+        padding: 10px 14px;
+        font-size: 13px;
+        line-height: 1.55;
+        background: color-mix(in srgb, var(--apx-accent) 8%, transparent);
+        border-radius: 2px;
+      }
+      .note code {
+        background: color-mix(in srgb, var(--apx-accent) 16%, transparent);
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // No per-series colors, no foreColor, no grid.borderColor: the chart reads the
+      // --apx-* tokens from the cascade. theme.follow:'os' additionally tracks the
+      // operating system's light/dark setting with zero JS.
+    </script>
+  </head>
+
+  <body>
+     <div class="panel">
+        <div class="controls">
+          <button id="toggle">Toggle light / dark</button>
+          <span id="state" style="font-size:13px;"></span>
+        </div>
+      </div>
+      
+      <div id="chart"></div>
+      
+      <div class="panel">
+        <div class="note">
+          Every color here comes from CSS <code>--apx-*</code> tokens
+          (<code>--apx-accent</code>, <code>--apx-fore</code>, <code>--apx-grid</code>,
+          <code>--apx-surface</code>) defined once in the stylesheet. The chart config
+          sets no colors at all. The button flips a class that swaps the token values;
+          with <code>theme: { follow: 'os' }</code> the chart also tracks the OS
+          <code>prefers-color-scheme</code> automatically, no JS required.
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: [{ name: 'Users', data: [3100, 4200, 3800, 5100, 4700, 6200, 5800] }],
+        chart: {
+          height: 400,
+          type: 'area',
+          fontFamily: 'sans-serif',
+          animations: { enabled: true },
+          toolbar: { show: false },
+        },
+        theme: {
+          follow: 'os',
+        },
+        stroke: { curve: 'smooth', width: 2 },
+        fill: { type: 'gradient', gradient: { opacityFrom: 0.35, opacityTo: 0.05 } },
+        dataLabels: { enabled: false },
+        title: {
+          text: 'Weekly active users',
+          align: 'left',
+        },
+        subtitle: {
+          text: 'Colors come entirely from CSS --apx-* design tokens',
+          align: 'left',
+        },
+        xaxis: {
+          type: 'category',
+          categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        },
+        grid: {
+          borderColor: '#e0e0e0',
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      var root = document.documentElement
+      var stateEl = document.getElementById('state')
+
+      function currentMode() {
+        return root.classList.contains('apx-dark') ? 'dark' : 'light'
+      }
+      function syncState() {
+        stateEl.textContent = 'Current: ' + currentMode()
+      }
+      syncState()
+
+      document.getElementById('toggle').addEventListener('click', function () {
+        root.classList.toggle('apx-dark')
+        var mode = currentMode()
+        // Re-render so the chart re-reads the (now swapped) --apx-* token values and
+        // applies the matching built-in mode. With follow:'os' this happens on its
+        // own when the OS setting changes.
+        chart.updateOptions({ theme: { mode: mode } })
+        syncState()
+      })
+    </script>
+
+    
+  </body>
+</html>

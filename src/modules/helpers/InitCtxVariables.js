@@ -234,6 +234,13 @@ export default class InitCtxVariables {
     const WeaveCtor = reg.get('weave')
     ctx.weave = WeaveCtor ? new WeaveCtor(w, ctx) : null
 
+    // Facet OS watcher: ctx.osThemeWatcher (opt-in `theme.follow:'os'`). Eager
+    // so the initial mode is resolved onto w.config before Theme.init in the
+    // same create(); the constructor self-wires the matchMedia listener only
+    // when follow:'os' and browser, and it is a no-op otherwise.
+    const OSThemeCtor = reg.get('osThemeWatcher')
+    ctx.osThemeWatcher = OSThemeCtor ? new OSThemeCtor(w, ctx) : null
+
     // — Lazy-getter optional modules —
     // Each getter instantiates on first access only if the ctor was registered.
 

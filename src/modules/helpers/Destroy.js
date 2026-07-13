@@ -58,6 +58,10 @@ export default class Destroy {
       this.ctx.perspectives = null
       this.ctx.history?.teardown()
       this.ctx.history = null
+      // Facet: remove the OS-theme matchMedia listener (survives updates, so it
+      // is torn down only on a full destroy).
+      this.ctx.osThemeWatcher?.teardown()
+      this.ctx.osThemeWatcher = null
       this.ctx.animations = null
       this.ctx.axes = null
       this.ctx.annotations = null

@@ -325,6 +325,13 @@ declare class ApexCharts {
   static registerSeriesType(name: string, def: ApexSeriesTypeDef): typeof ApexCharts
 
   /**
+   * Registers a named theme (Facet #13): a palette + design-token + mode bundle
+   * referenceable via `theme: { name }`. Sits below explicit config and CSS
+   * `--apx-*` tokens, above the built-in palette/mode defaults.
+   */
+  static registerTheme(name: string, def: ApexThemeDef): typeof ApexCharts
+
+  /**
    * Static, pure Perspectives helpers. Available once the feature is imported:
    * `import 'apexcharts/features/perspectives'`.
    */
@@ -2414,6 +2421,20 @@ type ApexGrid = {
 type ApexTheme = {
   mode?: 'light' | 'dark'
   palette?: string
+  /**
+   * Facet (#13): read `--apx-*` CSS design tokens from the cascade
+   * (`--apx-accent`, `--apx-fore`, `--apx-grid`, `--apx-surface`,
+   * `--apx-series-1..N`). They top the resolution chain, below explicit config.
+   * 'auto' (default) and true read any present; false disables.
+   */
+  tokens?: 'auto' | boolean
+  /**
+   * Facet (#13): 'os' follows the operating system's `prefers-color-scheme`
+   * (light/dark) and `prefers-contrast` reactively, with no JS. SSR-safe.
+   */
+  follow?: 'os' | false
+  /** Facet (#13): a theme registered via `ApexCharts.registerTheme(name, def)`. */
+  name?: string
   monochrome?: {
     enabled?: boolean
     color?: string
@@ -2423,6 +2444,17 @@ type ApexTheme = {
   accessibility?: {
     colorBlindMode?: 'deuteranopia' | 'protanopia' | 'tritanopia' | 'highContrast' | ''
   }
+}
+
+/** Facet (#13): a named theme definition for `ApexCharts.registerTheme`. */
+interface ApexThemeDef {
+  mode?: 'light' | 'dark'
+  /** Series palette (overrides the built-in palette). */
+  palette?: string[]
+  /** Design-token values applied as chrome + palette seed. */
+  tokens?: { accent?: string; fore?: string; grid?: string; surface?: string; series?: string[] }
+  monochrome?: ApexTheme['monochrome']
+  accessibility?: ApexTheme['accessibility']
 }
 
 export = ApexCharts;

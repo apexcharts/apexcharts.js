@@ -15,6 +15,7 @@ import InitCtxVariables from './modules/helpers/InitCtxVariables'
 import { applyAnimationPolicy } from './modules/Animations'
 import Destroy from './modules/helpers/Destroy'
 import { register, markCustom } from './modules/ChartFactory'
+import { registerTheme } from './modules/ThemeRegistry'
 import { registerPlugin as registerPluginImpl } from './modules/weave/PluginRegistry'
 import RendererController from './modules/RendererController'
 import { addResizeListener, removeResizeListener } from './utils/Resize'
@@ -1125,6 +1126,20 @@ export default class ApexCharts {
     }
     register({ [name]: factory(name, def) })
     markCustom(name)
+    return ApexCharts
+  }
+
+  /**
+   * Facet (#13): register a named theme (palette + design tokens + mode)
+   * referenceable via `theme: { name }`. The theme sits below explicit config
+   * and CSS `--apx-*` tokens, above the built-in palette/mode defaults.
+   *
+   * @param {string} name  the theme name, e.g. 'brand'
+   * @param {any} def  { mode?, palette?, tokens?, monochrome?, accessibility? }
+   * @returns {typeof ApexCharts}
+   */
+  static registerTheme(name, def) {
+    registerTheme(name, def)
     return ApexCharts
   }
 

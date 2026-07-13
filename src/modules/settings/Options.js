@@ -1544,6 +1544,15 @@ export default class Options {
       theme: {
         mode: '',
         palette: 'palette1', // If defined, it will overwrite globals.colors variable
+        // Facet (#13): read `--apx-*` CSS design tokens from the cascade
+        // (accent/fore/grid/surface + series-1..N). 'auto' (default) reads any
+        // present; false disables. Tokens top the resolution chain below config.
+        tokens: 'auto', // 'auto' | true | false
+        // Facet (#13): 'os' follows prefers-color-scheme + prefers-contrast
+        // reactively (SSR-safe, cleaned up on destroy). false disables.
+        follow: false, // 'os' | false
+        // Facet (#13): a theme registered via ApexCharts.registerTheme(name, def)
+        name: '', // '' | registered theme name
         monochrome: {
           // monochrome allows you to select just 1 color and fill out the rest with light/dark shade (intensity can be selected)
           enabled: false,

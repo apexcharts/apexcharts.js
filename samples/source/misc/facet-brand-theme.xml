@@ -1,0 +1,128 @@
+<title>Registered Brand Themes (Facet)</title>
+
+<style>
+  #chart {
+    max-width: 720px;
+    margin: 16px auto;
+  }
+  .panel {
+    max-width: 720px;
+    margin: 16px auto;
+    font-family: sans-serif;
+  }
+  .controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .controls select {
+    padding: 5px 8px;
+    font-size: 14px;
+  }
+  .note {
+    background: #f6f6fb;
+    border-left: 3px solid #6c5ce7;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #234;
+    border-radius: 2px;
+    line-height: 1.55;
+  }
+  .note code {
+    background: #e9e7fb;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+</style>
+
+<scripts>
+<script>
+  // Facet (#13): register named themes ONCE (palette + design tokens + mode).
+  // Any chart can then reference one by name via theme:{ name }, and switching
+  // themes is a single updateOptions call.
+  ApexCharts.registerTheme('sunset', {
+    palette: ['#ff6b6b', '#f06595', '#cc5de8', '#845ef7', '#ff922b'],
+    tokens: { fore: '#5c3d2e', grid: '#f3d9c4', surface: '#fff8f2' },
+  })
+  ApexCharts.registerTheme('ocean', {
+    palette: ['#0ca678', '#1098ad', '#1971c2', '#3b5bdb', '#0b7285'],
+    tokens: { fore: '#0b3d4d', grid: '#c5e4ec', surface: '#f2fbfd' },
+  })
+  ApexCharts.registerTheme('slate', {
+    mode: 'dark',
+    palette: ['#94a3b8', '#38bdf8', '#a78bfa', '#f472b6', '#fbbf24'],
+    tokens: { fore: '#e2e8f0', grid: '#334155', surface: '#0f172a' },
+  })
+</script>
+</scripts>
+
+<html>
+<div class="panel">
+  <div class="controls">
+    <label>
+      Theme:
+      <select id="themePick">
+        <option value="sunset" selected>sunset</option>
+        <option value="ocean">ocean</option>
+        <option value="slate">slate (dark)</option>
+      </select>
+    </label>
+  </div>
+</div>
+
+{{ charts[0] }}
+
+<div class="panel">
+  <div class="note">
+    Three themes are registered once with
+    <code>ApexCharts.registerTheme(name, { palette, tokens, mode })</code>. The
+    chart references one via <code>theme: { name: 'sunset' }</code> and the
+    dropdown switches with <code>chart.updateOptions({ theme: { name } })</code>.
+    A registered theme sits below explicit config and CSS <code>--apx-*</code>
+    tokens, so a page-level token can still override a brand default.
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  height: 400,
+  type: 'bar',
+  fontFamily: 'sans-serif',
+  animations: { enabled: true },
+  toolbar: { show: false },
+},
+theme: {
+  name: 'sunset',
+},
+plotOptions: { bar: { columnWidth: '55%', borderRadius: 4, distributed: true } },
+dataLabels: { enabled: false },
+legend: { show: false },
+title: {
+  text: 'Revenue by channel',
+  align: 'left',
+},
+subtitle: {
+  text: 'Palette and chrome come from a registered brand theme',
+  align: 'left',
+},
+xaxis: {
+  type: 'category',
+  categories: ['Direct', 'Search', 'Social', 'Email', 'Referral'],
+},
+</options>
+
+<series>
+[
+  { name: 'Revenue', data: [44, 62, 51, 38, 47] }
+]
+</series>
+</chart>
+
+<vanilla-js-script>
+document.getElementById('themePick').addEventListener('change', function (e) {
+  chart.updateOptions({ theme: { name: e.target.value } })
+})
+</vanilla-js-script>

@@ -107,6 +107,24 @@ export class BrowserAPIs {
   }
 
   /**
+   * Evaluate a media query. Returns the live MediaQueryList in a browser (so
+   * callers can attach a `change` listener) or null under SSR / when
+   * unsupported. Facet (#13) uses this for `theme.follow: 'os'`.
+   * @param {string} query
+   * @returns {MediaQueryList|null}
+   */
+  static matchMedia(query) {
+    if (Environment.isSSR() || typeof window.matchMedia !== 'function') {
+      return null
+    }
+    try {
+      return window.matchMedia(query)
+    } catch (e) {
+      return null
+    }
+  }
+
+  /**
    * Get bounding client rect for an element
    * @param {Element} element - Element to measure
    * @returns {DOMRect|object}

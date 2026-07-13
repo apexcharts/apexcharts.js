@@ -62,6 +62,7 @@ export const SUB_ENTRIES = {
     'src/features/renderer-canvas.js',
   ),
   'features/marks': resolve(__dirname, 'src/features/marks.js'),
+  'features/facet': resolve(__dirname, 'src/features/facet.js'),
   'features/all': resolve(__dirname, 'src/features/all.js'),
 }
 
