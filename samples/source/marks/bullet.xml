@@ -70,10 +70,15 @@
     },
     renderItem: function (ctx) {
       var datum = ctx.datum
-      var x = ctx.x
       var scales = ctx.scales
       var api = ctx.api
-      var half = (scales.band * 0.7) / 2
+
+      // Bullets are bar-like. With xaxis.tickPlacement:'between' the axis is a
+      // band axis, so ctx.x is the center of this datum's band and scales.band
+      // is the band width. Sizing the bullet under the band keeps it inside the
+      // plot and aligned with its label.
+      var cx = ctx.x
+      var half = (scales.band * 0.62) / 2
 
       // qualitative range bands, light to dark, stacked from the baseline up
       var shades = ['#e8eef5', '#cdd8e6', '#aebfd4']
@@ -81,18 +86,18 @@
       for (var r = 0; r < datum.ranges.length; r++) {
         var top = scales.y(datum.ranges[r])
         var bottom = scales.y(prev)
-        api.rect({ x: x - half, y: top, w: half * 2, h: bottom - top, fill: shades[r] })
+        api.rect({ x: cx - half, y: top, w: half * 2, h: bottom - top, fill: shades[r] })
         prev = datum.ranges[r]
       }
 
       // measured value: a narrow dark bar from the baseline up to y
       var yVal = scales.y(datum.y)
       var mHalf = half * 0.38
-      api.rect({ x: x - mHalf, y: yVal, w: mHalf * 2, h: scales.y(0) - yVal, fill: '#2d3748' })
+      api.rect({ x: cx - mHalf, y: yVal, w: mHalf * 2, h: scales.y(0) - yVal, fill: '#2d3748' })
 
       // target: a red tick across the band
       var yTarget = scales.y(datum.target)
-      api.line({ x1: x - half, y1: yTarget, x2: x + half, y2: yTarget, stroke: '#e53e3e', width: 3 })
+      api.line({ x1: cx - half, y1: yTarget, x2: cx + half, y2: yTarget, stroke: '#e53e3e', width: 3 })
     },
   })
 
@@ -151,6 +156,7 @@ subtitle: {
 },
 xaxis: {
   type: 'category',
+  tickPlacement: 'between',
   tooltip: { enabled: false },
 },
 yaxis: {
@@ -161,6 +167,23 @@ yaxis: {
     formatter: function (val) {
       return Math.round(val) + '%'
     },
+  },
+},
+tooltip: {
+  // The default tooltip would show the yExtent range (0% - 100%), which is not
+  // meaningful for a bullet. Show the datum's actual value vs its target.
+  custom: function (opts) {
+    var d = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex]
+    var hit = d.y >= d.target
+    return (
+      '<div style="padding:7px 11px;font-family:sans-serif;font-size:12px;line-height:1.5">' +
+      '<div style="font-weight:600;margin-bottom:3px">' + d.x + '</div>' +
+      'Actual: <b>' + d.y + '%</b><br>' +
+      'Target: <b>' + d.target + '%</b> ' +
+      '<span style="color:' + (hit ? '#1f9d57' : '#e53e3e') + '">' +
+      (hit ? '(met)' : '(below)') + '</span>' +
+      '</div>'
+    )
   },
 },
 </options>
