@@ -85,17 +85,29 @@ export default class LinkedViews {
   }
 
   /**
-   * The source chart's rectangle brush produced a data-x range: broadcast a dim
-   * to the group and fire `crossFilter` on the source. Called (null-safe) from
-   * ZoomPanSelection.selectionDrawn.
+   * The source chart's rectangle brush produced a data-x range. In FILTER mode
+   * this becomes a `[min,max]` range filter on the chart's dimension (the other
+   * charts re-aggregate). In HIGHLIGHT mode (P1) it dims out-of-range marks
+   * across the group. Called (null-safe) from ZoomPanSelection selectionDrawn /
+   * selectionDragging.
    * @param {{min:number, max:number}} xaxis
    */
   onSourceSelection(xaxis) {
-    if (!this._enabled()) return
+    const mode = this._mode()
+    if (mode === 'off') return
     if (!xaxis || xaxis.min == null || xaxis.max == null) return
     const min = Math.min(xaxis.min, xaxis.max)
     const max = Math.max(xaxis.min, xaxis.max)
 
+    if (mode === 'filter') {
+      const cf = this._cf()
+      if (!cf) return
+      cf.filter(this._chartId(), [min, max]) // emits 'change' -> fan-out
+      this._fireFilterChange(cf, [min, max])
+      return
+    }
+
+    // highlight mode (P1)
     this._group().forEach((ch) => {
       ch?.linkedViews?.applyDim(min, max)
     })
@@ -223,25 +235,40 @@ export default class LinkedViews {
   }
 
   /**
+   * Build the chart's series value from an aggregation, shaped by chart type:
+   *   pie/donut  -> number[]
+   *   axis + category -> [{ name, data:number[] }] (categories set separately)
+   *   axis + range    -> [{ name, data:[x,value][] }] on a numeric/time x-axis
+   * @param {{type:string, labels:any[], values:number[]}} agg
+   */
+  _seriesFromAgg(agg) {
+    if (this._isPie()) return agg.values.slice()
+    const name = this.w.config.chart.link.seriesName || 'Count'
+    if (agg.type === 'range') {
+      return [
+        { name, data: agg.labels.map((x, i) => [x, agg.values[i]]) },
+      ]
+    }
+    return [{ name, data: agg.values.slice() }]
+  }
+
+  /**
    * Write the aggregation into w.config as the chart's series/labels. Runs once
    * before the first paint; later updates go through updateSeries.
    * @param {{type:string, labels:any[], values:number[]}} agg
    */
   _injectSeries(agg) {
     const w = this.w
-    const link = w.config.chart.link
     this._lastValues = JSON.stringify(agg.values)
+    w.config.series = this._seriesFromAgg(agg)
     if (this._isPie()) {
-      w.config.series = agg.values.slice()
       w.config.labels = agg.labels.map(String)
-    } else {
-      const name = link.seriesName || 'Count'
-      w.config.series = [{ name, data: agg.values.slice() }]
-      if (agg.type === 'category') {
-        if (!w.config.xaxis) w.config.xaxis = {}
-        w.config.xaxis.categories = agg.labels.map(String)
-      }
+    } else if (agg.type === 'category') {
+      if (!w.config.xaxis) w.config.xaxis = {}
+      w.config.xaxis.categories = agg.labels.map(String)
     }
+    // range dims plot [x,value] tuples on the user's numeric/datetime x-axis;
+    // no categories to inject (the bin edges are the x values).
   }
 
   /** @param {import('./Crossfilter').default} cf */
@@ -303,12 +330,7 @@ export default class LinkedViews {
       return
     }
     this._lastValues = sig
-    if (this._isPie()) {
-      this.ctx.updateSeries(agg.values, true)
-    } else {
-      const name = this.w.config.chart.link.seriesName || 'Count'
-      this.ctx.updateSeries([{ name, data: agg.values }], true)
-    }
+    this.ctx.updateSeries(this._seriesFromAgg(agg), true)
     // updateSeries re-renders -> 'updated' -> _afterRender applies self-dim.
   }
 
@@ -318,8 +340,10 @@ export default class LinkedViews {
   }
 
   /**
-   * Dim this chart's own buckets not in its own filter Set (no filter -> none
-   * dimmed). Keyed by each mark's `j` (dataPointIndex) -> the aggregation key.
+   * Dim this chart's own buckets that are not in its own filter (no filter ->
+   * none dimmed). Categorical: dim buckets whose key is not in the selected Set.
+   * Range: dim bins lying fully outside the selected `[min,max]`. Keyed by each
+   * mark's `j` (dataPointIndex) -> the aggregation key.
    */
   _applySelfDim() {
     const cf = this._cf()
@@ -328,17 +352,25 @@ export default class LinkedViews {
     const baseEl = w.dom.baseEl
     if (!baseEl) return
     const chartId = this._chartId()
-    const filter = cf.filterOf(chartId) // Set of selected keys, or null
+    const filter = cf.filterOf(chartId) // Set (category) | [min,max] (range) | null
     const dimOpacity = w.config.chart.link.dimOpacity
     if (w.dom.elWrap && typeof dimOpacity === 'number') {
       w.dom.elWrap.style.setProperty('--apx-cf-dim', String(dimOpacity))
     }
+    const isCategory = filter instanceof Set
+    const isRange = Array.isArray(filter)
     const keys = cf.aggregateFor(chartId).keys
     baseEl.querySelectorAll(FILTER_MARK_SELECTOR).forEach((node) => {
       const jAttr = node.getAttribute('j')
       if (jAttr === null) return
       const key = keys[parseInt(jAttr, 10)]
-      const dim = filter ? !filter.has(key) : false
+      let dim = false
+      if (isCategory) {
+        dim = !(/** @type {Set<any>} */ (filter).has(key))
+      } else if (isRange && Array.isArray(key)) {
+        // key = [lo, hi] bin range; dim when the bin is fully outside [min,max].
+        dim = key[1] <= filter[0] || key[0] >= filter[1]
+      }
       node.classList.toggle(DIMMED_CLASS, dim)
     })
     this._dimmed = !!filter

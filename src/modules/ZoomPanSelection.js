@@ -718,11 +718,13 @@ export default class ZoomPanSelection extends Toolbar {
     // Run the range recompute when the user has a selection callback OR Linked
     // Views (#4) crossfilter is on, so dragging/resizing the persistent
     // selection rect re-crossfilters even without a user events.selection.
-    const linkEnabled = !!(
-      w.config.chart.link && w.config.chart.link.enabled
+    // Covers both highlight mode (link.enabled) and filter mode (link.dimension).
+    const link = w.config.chart.link
+    const linkActive = !!(
+      link && (link.enabled || typeof link.dimension === 'function')
     )
     if (
-      (typeof w.config.chart.events.selection === 'function' || linkEnabled) &&
+      (typeof w.config.chart.events.selection === 'function' || linkActive) &&
       w.interact.selectionEnabled
     ) {
       // a small debouncer is required when resizing to avoid freezing the chart
