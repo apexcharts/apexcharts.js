@@ -139,3 +139,54 @@ test.describe('Ink Layer: inline label editing', () => {
     expect(after.edited.text).toBe('Launch')
   })
 })
+
+test.describe('Ink Layer: click-to-create', () => {
+  test.beforeEach(async ({ loadChart }) => {
+    await loadChart('misc', 'ink-draggable-annotations')
+  })
+
+  test('the palette arms create mode and a plot click drops a note', async ({ page }) => {
+    await page.evaluate(() => {
+      window.__created = null
+      window.chart.addEventListener('annotationCreated', (c, o) => { window.__created = o })
+    })
+
+    const before = await page.evaluate(() => window.chart.w.config.annotations.points.length)
+
+    // click "+ Note" to arm, then click the middle of the grid
+    await page.evaluate(() => {
+      window.chart.el
+        .querySelector('.apexcharts-ink-add')
+        .dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }))
+    })
+    expect(await page.evaluate(() => window.chart.ink._creating)).toBe(true)
+
+    const created = await page.evaluate(() => {
+      const g = window.chart.el.querySelector('.apexcharts-grid').getBoundingClientRect()
+      const svg = window.chart.el.querySelector('.apexcharts-svg')
+      svg.dispatchEvent(new MouseEvent('click', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: g.left + g.width * 0.5, clientY: g.top + g.height * 0.5,
+      }))
+      const pts = window.chart.w.config.annotations.points
+      const anno = pts[pts.length - 1]
+      return {
+        count: pts.length,
+        draggable: anno.draggable,
+        text: anno.label.text,
+        markerDrawn: !!window.chart.el.querySelector('.apexcharts-point-annotation-marker.' + anno.id),
+        editorOpen: !!window.chart.el.querySelector('input.apexcharts-ink-editor'),
+        creating: window.chart.ink._creating,
+        event: window.__created,
+      }
+    })
+
+    expect(created.count).toBe(before + 1)
+    expect(created.draggable).toBe(true)
+    expect(created.text).toBe('Note')
+    expect(created.markerDrawn).toBe(true)
+    expect(created.editorOpen).toBe(true) // opens the label editor immediately
+    expect(created.creating).toBe(false) // single-shot
+    expect(created.event).toBeTruthy()
+  })
+})

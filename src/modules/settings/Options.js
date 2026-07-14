@@ -390,6 +390,7 @@ export default class Options {
           filterChange: undefined,
           annotationDragged: undefined,
           annotationEdited: undefined,
+          annotationCreated: undefined,
           keyDown: undefined,
           keyUp: undefined,
         },
@@ -465,6 +466,9 @@ export default class Options {
         // `ink` feature. Fires the annotationDragged event.
         ink: {
           enabled: false,
+          // Show a minimal "add note" tool palette; clicking it arms create
+          // mode (the next plot click drops an editable, draggable annotation).
+          palette: false,
         },
         stacked: false,
         stackOnlyBar: true, // mixed chart with stacked bars and line series - incorrect line draw #907

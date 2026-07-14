@@ -1,6 +1,9 @@
 // @ts-check
+import Utils from '../../utils/Utils'
+import Options from '../settings/Options'
+
 /**
- * Ink Layer (#7) P1: direct-manipulation drag for point annotations.
+ * Ink Layer (#7): direct-manipulation annotation authoring (drag, edit, create).
  *
  * Point annotations are declarative (`chart.annotations.points`). This eager,
  * opt-in feature lets the user drag one directly: the marker + label move under
@@ -41,11 +44,21 @@ export default class InkLayer {
     this._drag = null
     /** @type {any} */
     this._editor = null
+    this._creating = false
+    this._createSeq = 0
     this._attach = this._attach.bind(this)
     this._onMove = this._onMove.bind(this)
     this._onUp = this._onUp.bind(this)
+    this._onCreateClick = this._onCreateClick.bind(this)
 
-    if (this._enabledGlobally() || this._hasDraggable()) this._wire()
+    if (this._enabledGlobally() || this._hasDraggable() || this._paletteEnabled()) {
+      this._wire()
+    }
+  }
+
+  _paletteEnabled() {
+    const ink = this.w.config.chart.ink
+    return !!(ink && ink.palette)
   }
 
   _enabledGlobally() {
@@ -112,6 +125,7 @@ export default class InkLayer {
         })
       })
     })
+    if (this._paletteEnabled()) this._renderPalette()
   }
 
   /**
@@ -247,6 +261,165 @@ export default class InkLayer {
     return { newX, newY }
   }
 
+  // ─── P3: click-to-create ─────────────────────────────────────────────────
+
+  /**
+   * Enter create mode: the next click on the plot area drops a new draggable
+   * point annotation there and opens its label editor. Public via chart.ink.
+   */
+  startCreate() {
+    if (this._creating) return
+    const svg = this.w.dom.Paper && this.w.dom.Paper.node
+    if (!svg) return
+    this._creating = true
+    svg.style.cursor = 'crosshair'
+    svg.addEventListener('click', this._onCreateClick, true)
+    this._syncPalette()
+  }
+
+  /** Leave create mode. */
+  stopCreate() {
+    if (!this._creating) return
+    this._creating = false
+    const svg = this.w.dom.Paper && this.w.dom.Paper.node
+    if (svg) {
+      svg.style.cursor = ''
+      svg.removeEventListener('click', this._onCreateClick, true)
+    }
+    this._syncPalette()
+  }
+
+  /** @param {any} e */
+  _onCreateClick(e) {
+    if (!this._creating) return
+    e.preventDefault()
+    e.stopPropagation()
+    const pos = this._pixelToData(e.clientX, e.clientY)
+    this.stopCreate()
+    if (!pos) return
+
+    const w = this.w
+    this._createSeq += 1
+    const id = 'apexcharts-ink-new-' + this._createSeq + '-' + w.globals.chartID
+    const anno = Utils.extend(new Options().pointAnnotation, {
+      x: pos.x,
+      y: pos.y,
+      id,
+      draggable: true,
+      label: { text: 'Note' },
+    })
+
+    if (!w.config.annotations) w.config.annotations = {}
+    if (!Array.isArray(w.config.annotations.points)) w.config.annotations.points = []
+    w.config.annotations.points.push(anno)
+    const index = w.config.annotations.points.length - 1
+
+    this._redrawAnno(anno, index)
+    this._fireCreated(anno, index)
+    // Immediately edit the fresh note's label.
+    this._startEdit(index)
+  }
+
+  /**
+   * Convert a client-space point to data coordinates (absolute, for create).
+   * @param {number} clientX @param {number} clientY
+   * @returns {{x:any, y:any}|null}
+   */
+  _pixelToData(clientX, clientY) {
+    const w = this.w
+    const gridEl = w.dom.baseEl && w.dom.baseEl.querySelector('.apexcharts-grid')
+    if (!gridEl) return null
+    const g = gridEl.getBoundingClientRect()
+    if (!g.width || !g.height) return null
+    const fx = (clientX - g.left) / g.width
+    const fy = (clientY - g.top) / g.height
+
+    const minX = w.globals.minX
+    const xRange = w.globals.xRange
+    const minY =
+      w.globals.minYArr && w.globals.minYArr[0] != null
+        ? w.globals.minYArr[0]
+        : w.globals.minY
+    const yRange =
+      w.globals.yRange && w.globals.yRange[0] != null
+        ? w.globals.yRange[0]
+        : w.globals.maxY - w.globals.minY
+
+    let x = minX + fx * xRange
+    const y = minY + (1 - fy) * yRange
+    const categoryX =
+      (w.config.xaxis.type === 'category' ||
+        w.config.xaxis.convertedCatToNumeric) &&
+      !w.axisFlags.dataFormatXNumeric
+    if (categoryX) x = Math.round(x)
+    return { x, y }
+  }
+
+  /** @param {any} anno @param {number} index */
+  _fireCreated(anno, index) {
+    const args = { id: anno.id, index, x: anno.x, y: anno.y }
+    const events = this.w.config.chart.events
+    if (typeof events.annotationCreated === 'function') {
+      events.annotationCreated(this.ctx, args)
+    }
+    this.ctx.events?.fireEvent('annotationCreated', [this.ctx, args])
+  }
+
+  // ─── P3: tool palette ────────────────────────────────────────────────────
+
+  /** Render a minimal "add note" toggle into the chart wrap (once per render). */
+  _renderPalette() {
+    const w = this.w
+    const elWrap = w.dom.elWrap
+    if (!elWrap || elWrap.querySelector('.apexcharts-ink-palette')) return
+    const doc = elWrap.ownerDocument
+    const bar = doc.createElement('div')
+    bar.className = 'apexcharts-ink-palette'
+    const s = bar.style
+    s.position = 'absolute'
+    s.top = '6px'
+    s.left = '6px'
+    s.zIndex = '15'
+    const btn = doc.createElement('button')
+    btn.type = 'button'
+    btn.className = 'apexcharts-ink-add'
+    btn.textContent = '+ Note'
+    const bs = btn.style
+    bs.cursor = 'pointer'
+    bs.font = '12px sans-serif'
+    bs.padding = '4px 9px'
+    bs.borderRadius = '5px'
+    bs.border = '1px solid #6366f1'
+    bs.color = '#4338ca'
+    bs.background = '#fff'
+    btn.addEventListener('click', (/** @type {any} */ e) => {
+      e.stopPropagation()
+      if (this._creating) this.stopCreate()
+      else this.startCreate()
+    })
+    bar.appendChild(btn)
+    elWrap.appendChild(bar)
+    this._syncPalette()
+  }
+
+  /** Reflect create-mode state on the palette button. */
+  _syncPalette() {
+    const elWrap = this.w.dom.elWrap
+    const btn = /** @type {any} */ (
+      elWrap && elWrap.querySelector('.apexcharts-ink-add')
+    )
+    if (!btn) return
+    if (this._creating) {
+      btn.style.background = '#6366f1'
+      btn.style.color = '#fff'
+      btn.textContent = 'Click chart...'
+    } else {
+      btn.style.background = '#fff'
+      btn.style.color = '#4338ca'
+      btn.textContent = '+ Note'
+    }
+  }
+
   // ─── P2: inline label editing ────────────────────────────────────────────
 
   /**
@@ -358,6 +531,7 @@ export default class InkLayer {
   teardown() {
     this._teardownDocListeners()
     this._removeEditor()
+    this.stopCreate()
     this._drag = null
     if (this._wired) {
       this.ctx.removeEventListener?.('mounted', this._attach)

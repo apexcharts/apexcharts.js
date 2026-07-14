@@ -82,8 +82,10 @@
           <b>draggable</b>: grab a labelled marker and move it. Double-click a label to rename it inline. On release the new
           position is converted back to data coordinates and written to
           <code>annotations.points[].x/y</code>, so the annotation stays glued to that
-          data location on later zoom or resize. Each drag fires
-          <code>annotationDragged</code>. Needs the <code>ink</code> feature. (Set
+          data location on later zoom or resize. Use <b>+ Note</b> (the palette, from
+          <code>chart.ink.palette</code>) then click the plot to drop a new labelled
+          note. Fires <code>annotationDragged</code> / <code>annotationEdited</code> /
+          <code>annotationCreated</code>. Needs the <code>ink</code> feature. (Set
           <code>draggable:false</code> on a single annotation to pin it.)
         </div>
       </div>
@@ -97,7 +99,7 @@
           height: 380,
           fontFamily: 'Helvetica, Arial, sans-serif',
           animations: { enabled: false },
-          ink: { enabled: true },
+          ink: { enabled: true, palette: true },
           toolbar: { show: false },
           zoom: { enabled: false },
         },
