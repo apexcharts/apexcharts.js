@@ -97,6 +97,34 @@ rect.legend-mouseover-inactive,
   opacity: var(--apx-cf-dim, .2)
 }
 
+/* Linked Views (#4): default styling for the built-in crossfilter data table
+   (cf.dataTable). Deliberately light so host styles can override. */
+.apexcharts-cf-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+.apexcharts-cf-table caption {
+  caption-side: bottom;
+  text-align: right;
+  padding: 6px 2px;
+  font-size: 12px;
+  opacity: .7
+}
+.apexcharts-cf-table th,
+.apexcharts-cf-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(0, 0, 0, .08)
+}
+.apexcharts-cf-table th {
+  font-weight: 600;
+  border-bottom-width: 2px
+}
+.apexcharts-cf-table tbody tr:hover {
+  background: rgba(99, 102, 241, .06)
+}
+
 .apexcharts-legend-text {
   padding-left: 15px;
   margin-left: -15px;

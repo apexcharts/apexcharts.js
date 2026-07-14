@@ -2628,6 +2628,19 @@ interface ApexCrossfilter {
   aggregateAll(): Record<string, ApexCrossfilterAggregation>
   /** Active filters + filtered/total record counts. */
   state(): { filters: Record<string, any[] | [number, number]>; filteredCount: number; total: number }
+  /**
+   * Bind an HTML table of the filtered rows to `el`; re-renders on every filter
+   * change. `columns` may be field-name strings or `{field, label, format}`;
+   * omit to derive from the record keys. Returns a refresh()/destroy() handle.
+   */
+  dataTable(
+    el: HTMLElement,
+    opts?: {
+      columns?: Array<string | { field: string; label?: string; format?: (v: any, row: any) => any }>
+      page?: number
+      pageSize?: number
+    },
+  ): { refresh(): void; destroy(): void }
   /** Subscribe to 'change' | 'records'; returns an unsubscribe fn. */
   on(
     event: 'change' | 'records',

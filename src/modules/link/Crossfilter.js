@@ -545,6 +545,98 @@ export default class Crossfilter {
     })
   }
 
+  // ----- data table (presentation helper) ---------------------------------
+  // Renders the filtered rows into a user-provided element and keeps it in sync
+  // on every filter change. Only the passed `el` is touched (no window/document
+  // globals), so the engine stays SSR-safe and unit-testable.
+
+  /** @param {string} s @returns {string} HTML-escaped */
+  _esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+  }
+
+  /**
+   * @param {Array<string|{field:string,label?:string,format?:(v:any,row:any)=>any}>|undefined} columns
+   * @returns {Array<{field:string,label:string,format?:Function}>}
+   */
+  _resolveColumns(columns) {
+    if (Array.isArray(columns) && columns.length) {
+      return columns.map((c) =>
+        typeof c === 'string'
+          ? { field: c, label: c }
+          : { field: c.field, label: c.label || c.field, format: c.format },
+      )
+    }
+    const first = this.records[0]
+    const fields = first ? Object.keys(first) : []
+    return fields.map((f) => ({ field: f, label: f }))
+  }
+
+  /**
+   * @param {Array<{field:string,label:string,format?:Function}>} columns
+   * @param {any[]} rows @param {number} total
+   * @returns {string}
+   */
+  _tableHTML(columns, rows, total) {
+    const head =
+      '<thead><tr>' +
+      columns.map((c) => `<th>${this._esc(c.label)}</th>`).join('') +
+      '</tr></thead>'
+    const body =
+      '<tbody>' +
+      rows
+        .map(
+          (row) =>
+            '<tr>' +
+            columns
+              .map((c) => {
+                const raw = row[c.field]
+                const val = c.format ? c.format(raw, row) : raw
+                return `<td>${this._esc(val)}</td>`
+              })
+              .join('') +
+            '</tr>',
+        )
+        .join('') +
+      '</tbody>'
+    const caption = `<caption>${rows.length} of ${total} rows</caption>`
+    return `<table class="apexcharts-cf-table">${caption}${head}${body}</table>`
+  }
+
+  /**
+   * Bind an HTML table of the filtered rows to `el`; it re-renders on every
+   * filter change. Returns a handle with refresh()/destroy().
+   * @param {HTMLElement} el
+   * @param {{columns?:any[], page?:number, pageSize?:number}} [opts]
+   */
+  dataTable(el, opts) {
+    if (!el) return { refresh() {}, destroy() {} }
+    const o = opts || {}
+    const columns = this._resolveColumns(o.columns)
+    const pageSize = o.pageSize || 0 // 0 = show all
+    const page = o.page || 0
+    const render = () => {
+      const rows = this.filteredRows()
+      const shown = pageSize
+        ? rows.slice(page * pageSize, page * pageSize + pageSize)
+        : rows
+      el.innerHTML = this._tableHTML(columns, shown, rows.length)
+    }
+    render()
+    const off = this.on('change', render)
+    return {
+      refresh: render,
+      destroy: () => {
+        off()
+        el.innerHTML = ''
+      },
+    }
+  }
+
   /** Remove this coordinator from the registry and drop all state. */
   destroy() {
     Crossfilter._store().delete(this.id)
