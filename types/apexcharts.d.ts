@@ -546,13 +546,19 @@ interface ApexMarksAPI {
 
 /** Marks (#11): series-space scales (elGraphical-local pixels). */
 interface ApexMarksScales {
-  /** data x value -> pixel */
+  /** data x value -> pixel (numeric axes) */
   x(value: number): number
+  /**
+   * Resolve a datum's x pixel by index and value: numeric axes map by value,
+   * categorical band axes (e.g. xaxis.tickPlacement:'between') map by index to
+   * the band center. `ctx.x` is `xAt(dataPointIndex, datum.x)`.
+   */
+  xAt(index: number, value: any): number
   /** data y value -> pixel (optionally a specific y-axis index) */
   y(value: number, axis?: number): number
   gridWidth: number
   gridHeight: number
-  /** pixel width of one category slot */
+  /** pixel width of one x step (numeric) or one band (categorical) */
   band: number
 }
 

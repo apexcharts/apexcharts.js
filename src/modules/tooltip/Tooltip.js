@@ -9,6 +9,7 @@ import Graphics from '../Graphics'
 import Series from '../Series'
 import XAxis from './../axes/XAxis'
 import Utils from './Utils'
+import { isCustom } from '../ChartFactory'
 
 /**
  * ApexCharts Core Tooltip Class to handle the tooltip generation.
@@ -1200,6 +1201,20 @@ export default class Tooltip {
   }
 
   /**
+   * Marks (#11): whether the chart's type (or any series' type) is a registered
+   * custom series, whose marks live outside the built-in marker DOM.
+   * @returns {boolean}
+   */
+  _hasCustomSeries() {
+    const w = this.w
+    if (isCustom(w.config.chart.type)) return true
+    const series = w.config.series || []
+    return series.some(
+      (/** @type {any} */ s) => s && s.type && isCustom(s.type),
+    )
+  }
+
+  /**
    * @param {Event} e
    * @param {any} context
    * @param {number} capturedSeries
@@ -1228,6 +1243,17 @@ export default class Tooltip {
     // reads the canvas coord cache); only non-bar canvas series (line/area/
     // scatter markers) route through the pointsArray positioners here.
     const canvasNonBar = canvasMode && !this.tooltipUtil.hasBars()
+    // Marks (#11): custom series paint their own marks (no .apexcharts-marker
+    // nodes to enlarge/position), but they populate w.globals.pointsArray just
+    // like canvas does. So when a custom-series chart has no markers and no
+    // bars, route positioning through the same pointsArray positioners; without
+    // this the tooltip activates but never moves off the origin.
+    const marksMode =
+      !canvasMode &&
+      !hasMarkers &&
+      !this.tooltipUtil.hasBars() &&
+      this._hasCustomSeries()
+    const dynamicPoints = canvasNonBar || marksMode
 
     const bars = this.tooltipUtil.getElBars()
 
@@ -1302,7 +1328,7 @@ export default class Tooltip {
         shared: this.showOnIntersect ? false : this.tConfig.shared,
       })
 
-      if (hasMarkers || canvasNonBar) {
+      if (hasMarkers || dynamicPoints) {
         handlePoints()
       } else if (this.tooltipUtil.hasBars()) {
         if (canvasMode) {
@@ -1350,9 +1376,9 @@ export default class Tooltip {
 
       if (hasMarkers) {
         ttCtx.tooltipPosition.moveMarkers(capturedSeries, j)
-      } else if (canvasNonBar) {
-        // canvas: no marker node to enlarge; position off the cached coords.
-        // (bars already positioned above via moveStickyTooltipOverBars.)
+      } else if (dynamicPoints) {
+        // canvas / custom marks: no marker node to enlarge; position off the
+        // cached pointsArray coords. (bars already positioned above.)
         ttCtx.tooltipPosition.moveDynamicPointOnHover(j, capturedSeries)
       }
     }

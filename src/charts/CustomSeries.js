@@ -60,7 +60,10 @@ export function makeCustomSeriesClass(name, def) {
           'data:realIndex': realIndex,
         })
 
-        const scales = this._scales(realIndex)
+        const scales = this._scales(
+          realIndex,
+          (w.seriesData.series[realIndex] || []).length,
+        )
         const color = w.globals.colors[realIndex]
         const rawData = /** @type {any} */ (w.config.series[realIndex])?.data || []
         const xvals = w.seriesData.seriesX[realIndex] || []
@@ -78,7 +81,10 @@ export function makeCustomSeriesClass(name, def) {
           const yVal = yvals[j]
           if (yVal === null || typeof yVal === 'undefined') continue
           const xVal = xvals[j]
-          const xPx = scales.x(xVal)
+          // xAt resolves numeric x by value and categorical x (band axis, e.g.
+          // xaxis.tickPlacement:'between', where seriesX holds label strings) by
+          // index, so ctx.x + the coordinate caches are always valid pixels.
+          const xPx = scales.xAt(j, xVal)
           const yPx = scales.y(yVal)
 
           const api = this._api(emit, elSeries, realIndex, j)
@@ -103,8 +109,13 @@ export function makeCustomSeriesClass(name, def) {
             }
           }
 
-          w.globals.seriesXvalues[realIndex][j] = xVal
-          w.globals.seriesYvalues[realIndex][j] = yVal
+          // seriesXvalues/seriesYvalues hold PIXEL coordinates (matching the
+          // built-ins, e.g. Line.js paths.xArrj/yArrj), NOT data values: the
+          // shared-tooltip closest-point detector compares the hover pixel
+          // against these. Storing data values here made every hover resolve to
+          // the max-x point. pointsArray likewise holds pixels.
+          w.globals.seriesXvalues[realIndex][j] = xPx
+          w.globals.seriesYvalues[realIndex][j] = yPx
           w.globals.pointsArray[realIndex][j] = [xPx, yPx]
         }
 
@@ -125,9 +136,11 @@ export function makeCustomSeriesClass(name, def) {
      * built-ins compute pixels, so custom marks align with axes and gridlines
      * and paint correctly on the elGraphical-local canvas.
      * @param {number} realIndex
+     * @param {number} [nPts] number of data points (for categorical band sizing)
      */
-    _scales(realIndex) {
+    _scales(realIndex, nPts) {
       const gl = this.w.globals
+      const cnf = this.w.config
       const xRatio = this.xyRatios.xRatio
       const yRatioArr = this.xyRatios.yRatio
       const axis = gl.seriesYAxisReverseMap?.[realIndex] ?? 0
@@ -139,18 +152,43 @@ export function makeCustomSeriesClass(name, def) {
         Array.isArray(maxYArr) && maxYArr.length ? maxYArr[axis] ?? gl.maxY : gl.maxY
       const gridWidth = gl.gridWidth
       const gridHeight = gl.gridHeight
+
+      // Categorical band axis: when x is NOT numeric (e.g. a category axis with
+      // xaxis.tickPlacement:'between', where the parser keeps seriesX as label
+      // strings), x() cannot map a value, so points are placed by INDEX in one
+      // of N equal bands. The default category axis is converted to numeric
+      // (isXNumeric true), so this only affects the band-axis case.
+      const catMode = !gl.isXNumeric
+      const n = nPts || gl.dataPoints || 1
+      const bandW = n > 0 ? gridWidth / n : gridWidth
+      const tickOn = cnf.xaxis.tickPlacement === 'on'
+
       /** @param {number} v */
       const x = (v) => (v - gl.minX) / xRatio
       /** @param {number} v */
       const y = (v) => (maxY - v) / yr
+      // Resolve a datum's x pixel: numeric axes map by value; categorical band
+      // axes map by index (band center, or the tick for tickPlacement:'on').
+      /** @param {number} index @param {any} v */
+      const xAt = (index, v) => {
+        if (!catMode) return x(v)
+        if (tickOn && n > 1) return (index / (n - 1)) * gridWidth
+        return (index + 0.5) * bandW
+      }
+
+      // Pixel span of one x step, for bar-like custom shapes. On a numeric axis
+      // x() maps data as v/xRatio (xRatio = data-units-per-pixel), so one step
+      // (minXDiff data units) is minXDiff/xRatio pixels; on a band axis it is
+      // one band. Guard a zero/absent xRatio (single-point/degenerate domains).
+      const step = gl.minXDiff || 1
+      const band = catMode ? bandW : xRatio ? step / xRatio : gridWidth
       return {
         x,
+        xAt,
         y,
         gridWidth,
         gridHeight,
-        // Category slot width (mirrors the bar column math): the pixel span of
-        // one x step, for bar-like custom shapes.
-        band: xRatio * (gl.minXDiff || 1),
+        band,
       }
     }
 
