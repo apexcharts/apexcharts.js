@@ -248,6 +248,12 @@ export default class ApexCharts {
 
     this.responsive.checkResponsiveConfig(opts)
 
+    // Cadence (#6) P1: re-resolve chart.animations.easing on every render so an
+    // updateOptions that changes the easing (name / cubic-bezier / fn) actually
+    // takes effect on the next tween. Runs after responsive merge so it sees the
+    // final config; idempotent, so the constructor's earlier call is harmless.
+    applyAnimationPolicy(w)
+
     // @ts-ignore — convertedCatToNumeric is an internal property set by Defaults
     if (w.config.xaxis.convertedCatToNumeric) {
       const defaults = new Defaults(w.config)

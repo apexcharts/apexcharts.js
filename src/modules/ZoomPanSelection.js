@@ -1310,7 +1310,7 @@ export default class ZoomPanSelection extends Toolbar {
     if (m.pinch) {
       if (e.touches.length < 2) this._endPinch()
     } else if (m.panState) {
-      if (e.touches.length === 0) this._endPan(e)
+      if (e.touches.length === 0) this._endPan()
     }
     if (e.touches.length === 0) {
       // a passive-path touchstart may have flagged mousedown before momentum
@@ -1405,7 +1405,6 @@ export default class ZoomPanSelection extends Toolbar {
 
   /** @param {any} e */
   _movePan(e) {
-    const w = this.w
     const m = this._m()
     const s = m.panState
     const t = e.touches[0]
@@ -1439,8 +1438,7 @@ export default class ZoomPanSelection extends Toolbar {
     this._applyXRange(s.minX0 - deltaData, s.maxX0 - deltaData, false)
   }
 
-  /** @param {any} e */
-  _endPan(e) {
+  _endPan() {
     const m = this._m()
     const s = m.panState
     m.panState = null

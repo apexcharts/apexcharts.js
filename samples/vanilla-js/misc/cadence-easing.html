@@ -121,8 +121,9 @@
           <code>[0.34, 1.56, 0.64, 1]</code>, or a function. Register your own with
           <code>ApexCharts.registerEasing('bounce', fn)</code>. The default,
           <code>'easeInOutSine'</code>, is the historical curve, so existing charts
-          animate exactly as before. Easing governs the data-update tweens; the tuned
-          initial-draw pen and pop animations keep their own feel.
+          animate exactly as before. Easing governs the data-update tweens whose tempo
+          is <code>dynamicAnimation.speed</code> (set to 900ms here so the curve reads
+          clearly); the tuned initial-draw pen and pop animations keep their own feel.
         </div>
       </div>
 
@@ -138,6 +139,16 @@
             enabled: true,
             speed: 900,
             easing: 'easeInOutSine',
+            // The Shuffle button changes data, so the tween you watch is the
+            // data-update (dynamicAnimation) one. Slow it down so the easing curve is
+            // easy to read; chart.animations.speed above governs the initial draw.
+            dynamicAnimation: {
+              enabled: true,
+              speed: 900,
+            },
+            animateGradually: {
+              enabled: false,
+            },
           },
         },
         colors: ['#14b8a6'],
