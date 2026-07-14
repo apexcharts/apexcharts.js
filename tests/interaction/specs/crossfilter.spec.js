@@ -34,7 +34,7 @@ async function clickSlice(page, chartVar, j) {
 const cfState = (page, id) =>
   page.evaluate((id) => window.ApexCharts.getCrossfilter(id).state(), id)
 
-test.describe('Crossfilter — categorical click-to-filter', () => {
+test.describe('Crossfilter: categorical click-to-filter', () => {
   test.beforeEach(async ({ loadChart }) => {
     await loadChart('misc', 'crossfilter-categorical')
   })
@@ -99,7 +99,7 @@ test.describe('Crossfilter — categorical click-to-filter', () => {
   })
 })
 
-test.describe('Crossfilter — range brush-to-filter', () => {
+test.describe('Crossfilter: range brush-to-filter', () => {
   test.beforeEach(async ({ loadChart }) => {
     await loadChart('misc', 'crossfilter-range-brush')
   })
@@ -153,7 +153,60 @@ test.describe('Crossfilter — range brush-to-filter', () => {
   })
 })
 
-test.describe('Crossfilter — data table', () => {
+test.describe('Crossfilter: heatmap 2D target', () => {
+  test.beforeEach(async ({ loadChart }) => {
+    await loadChart('misc', 'crossfilter-heatmap')
+  })
+
+  const heatSum = (page) =>
+    page.evaluate(() =>
+      window.chart.w.config.series.reduce(
+        (a, s) => a + s.data.reduce((b, c) => b + c.y, 0),
+        0,
+      ),
+    )
+
+  test('the heatmap re-aggregates when another chart filters', async ({ page }) => {
+    // initial matrix: 4 quarters x 5 days, summing to all 90 trades
+    const init = await page.evaluate(() => ({
+      series: window.chart.w.config.series.length,
+      cells: window.chart.el.querySelectorAll('.apexcharts-heatmap-rect').length,
+    }))
+    expect(init.series).toBe(4)
+    expect(init.cells).toBe(20)
+    expect(await heatSum(page)).toBe(90)
+
+    // click "Gain" on the outcome donut (chart1) -> heatmap re-aggregates
+    await page.evaluate(() => {
+      const j = window.chart1.w.config.labels.indexOf('Gain')
+      window.chart1.el
+        .querySelector(`.apexcharts-pie-area[j="${j}"]`)
+        .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }))
+    })
+    await page.waitForFunction(
+      () =>
+        window.chart.w.config.series.reduce(
+          (a, s) => a + s.data.reduce((b, c) => b + c.y, 0),
+          0,
+        ) === 60,
+    )
+    expect(await heatSum(page)).toBe(60) // 60 Gain trades
+
+    // Phase A: clicking a heatmap CELL must not add a filter (target-only)
+    await page.evaluate(() => {
+      window.chart.el
+        .querySelector('.apexcharts-heatmap-rect')
+        .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }))
+    })
+    await page.waitForTimeout(150)
+    const filters = await page.evaluate(() =>
+      Object.keys(window.ApexCharts.getCrossfilter('trades').state().filters),
+    )
+    expect(filters).toEqual(['byOutcome'])
+  })
+})
+
+test.describe('Crossfilter: data table', () => {
   test.beforeEach(async ({ loadChart }) => {
     await loadChart('misc', 'crossfilter-dashboard')
   })
