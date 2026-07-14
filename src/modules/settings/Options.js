@@ -471,6 +471,10 @@ export default class Options {
           type: 'x',
           autoScaleYaxis: false,
           allowMouseWheelZoom: true,
+          // Momentum: two-finger pinch-zoom on touch devices. Zooms the x-axis
+          // around the pinch centroid (matching the x-only wheel/toolbar zoom),
+          // frame-by-frame rather than the 400ms wheel throttle.
+          pinch: true,
           zoomedArea: {
             fill: {
               color: '#90CAF9',
@@ -482,6 +486,13 @@ export default class Options {
               width: 1,
             },
           },
+        },
+        // Momentum: kinetic panning on touch. When a one-finger pan is released
+        // with velocity, the chart keeps gliding and decelerates by `friction`
+        // each frame, clamping (no elastic overshoot) at the data edges.
+        pan: {
+          inertia: true,
+          friction: 0.92,
         },
         accessibility: {
           enabled: true,

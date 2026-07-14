@@ -117,10 +117,36 @@ export default class ZoomPanSelection extends Toolbar {
         passive: false,
       })
     }
+
+    // Momentum: passive:false touch listeners (following the wheel-listener
+    // template above) so two-finger pinch and horizontal pan can preventDefault
+    // the browser's native page zoom/scroll. Every _updateOptions destroys and
+    // recreates this instance (see Destroy.clear), and applying a gesture frame
+    // triggers exactly that re-render, so ALL gesture state lives on w.interact
+    // (which survives re-renders) rather than on the instance. The browser keeps
+    // delivering the touch sequence to its original target node, whose listener
+    // is bound to the now-detached old instance; that old instance keeps driving
+    // the gesture using the persistent w state. init() just (re)binds listeners
+    // to the current hover area for the NEXT gesture; old nodes are GC'd.
+    if (this._momentumEnabled()) {
+      ;['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(
+        (event) => {
+          this.hoverArea?.addEventListener(event, me.momentumTouch.bind(me), {
+            capture: false,
+            passive: false,
+          })
+        },
+      )
+    }
   }
 
   // remove the event listeners which were previously added on hover area
   destroy() {
+    // Momentum: no teardown here. destroy() runs on every update (isUpdating),
+    // not only on a real destroy, so cancelling inertia here would kill a glide
+    // on its first frame. The inertia loop self-terminates on
+    // w.globals.isDestroyed (set only on a full destroy), and the gesture state
+    // on w.interact is discarded with w when the chart is truly destroyed.
     if (this.slDraggableRect) {
       this.slDraggableRect.draggable(false)
       this.slDraggableRect.off()
@@ -139,6 +165,15 @@ export default class ZoomPanSelection extends Toolbar {
   svgMouseEvents(xyRatios, e) {
     const w = this.w
     const toolbar = this.ctx.toolbar
+
+    // Momentum owns multi-touch and any in-progress touch gesture: stand down
+    // the single-touch pan/selection path so they do not fight. (momentum.busy
+    // also covers touchend, where e.touches has already emptied.) Mouse events
+    // carry no e.touches and never set momentum.busy, so they are unaffected.
+    if (w.interact.momentum && w.interact.momentum.busy) return
+    if (this._momentumEnabled() && e.touches && e.touches.length > 1) {
+      return
+    }
 
     const zoomtype = w.interact.zoomEnabled
       ? w.config.chart.zoom.type
@@ -1048,5 +1083,441 @@ export default class ZoomPanSelection extends Toolbar {
       w.config.chart.events.scrolled(this.ctx, args)
       this.ctx.events.fireEvent('scrolled', args)
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Momentum: multi-touch pinch-zoom, two-finger pan and kinetic inertia.
+  //
+  // Every _updateOptions destroys and recreates this instance, and applying a
+  // gesture frame IS an _updateOptions, so the gesture must not depend on the
+  // instance surviving. All runtime state lives on w.interact.momentum (the
+  // interaction slice that persists across re-renders, like the crude pan's
+  // lastClientPosition). The instance that received touchstart keeps driving
+  // the gesture off the persistent state; inertia is a self-contained rAF loop
+  // that stops on w.globals.isDestroyed (a real destroy) rather than being
+  // cancelled by the per-update destroy().
+  // ---------------------------------------------------------------------------
+
+  _momentumEnabled() {
+    return this._pinchEnabled() || this._panInertiaEnabled()
+  }
+
+  _pinchEnabled() {
+    const c = this.w.config.chart
+    return !!(c.zoom && c.zoom.enabled && c.zoom.pinch)
+  }
+
+  _panInertiaEnabled() {
+    const c = this.w.config.chart
+    return !!(c.pan && c.pan.inertia)
+  }
+
+  /** Lazily-created, re-render-surviving gesture state on the interaction slice. */
+  _m() {
+    const it = this.w.interact
+    if (!it.momentum) {
+      it.momentum = {
+        busy: false,
+        /** @type {any} */ pinch: null,
+        /** @type {any} */ panState: null,
+        /** @type {{x:number,t:number}[]} */ samples: [],
+        /** @type {number|null} */ inertiaRAF: null,
+      }
+    }
+    return it.momentum
+  }
+
+  /** Current x data-window (rangeBars carry the datetime domain on y). */
+  _currentXWindow() {
+    const w = this.w
+    return w.axisFlags.isRangeBar
+      ? { min: w.globals.minY, max: w.globals.maxY }
+      : { min: w.globals.minX, max: w.globals.maxX }
+  }
+
+  /** Live grid rect from the current DOM (this.gridRect goes stale/null after
+   * the re-render a gesture frame triggers). */
+  _gridRect() {
+    const baseEl = this.w.dom.baseEl
+    const grid = baseEl && baseEl.querySelector('.apexcharts-grid')
+    return grid ? grid.getBoundingClientRect() : null
+  }
+
+  /**
+   * Raw data bounds to clamp against. When zoom-aware downsampling is active,
+   * the raw stash tracks the full domain; fall back to the initial window.
+   * Returns null for rangeBars (no raw-x clamp available).
+   * @returns {{min:number, max:number}|null}
+   */
+  _clampBounds() {
+    const w = this.w
+    if (w.axisFlags.isRangeBar) return null
+    return {
+      min: w.globals.dataReducerRawMinX ?? w.globals.initialMinX,
+      max: w.globals.dataReducerRawMaxX ?? w.globals.initialMaxX,
+    }
+  }
+
+  /**
+   * Apply an x-window immediately (no animation), mirroring panScrolled but
+   * pixel-accurate: clamp to the raw bounds (preserving window width so a pan
+   * stops flush at the edge rather than shrinking), floor for category axes,
+   * then route through the fast _updateOptions path.
+   * @param {number} newMinX @param {number} newMaxX @param {boolean} isZoom
+   * @returns {{minX:number, maxX:number}|false} applied window, or false if rejected
+   */
+  _applyXRange(newMinX, newMaxX, isZoom) {
+    const w = this.w
+    if (!w.globals.initialConfig) return false
+
+    const bounds = this._clampBounds()
+    if (bounds) {
+      const range = newMaxX - newMinX
+      if (newMinX < bounds.min) {
+        newMinX = bounds.min
+        newMaxX = newMinX + range
+      }
+      if (newMaxX > bounds.max) {
+        newMaxX = bounds.max
+        newMinX = newMaxX - range
+      }
+      // range wider than the full domain: clamp both edges (pinch-out floor)
+      if (newMinX < bounds.min) newMinX = bounds.min
+    }
+
+    if (w.config.xaxis.convertedCatToNumeric) {
+      newMinX = Math.floor(newMinX)
+      newMaxX = Math.floor(newMaxX)
+      if (newMinX < 1) newMinX = 1
+      if (newMaxX - newMinX < 2) return false
+    }
+
+    if (!(newMaxX > newMinX)) return false
+
+    /** @type {{ xaxis: any; yaxis?: any }} */
+    const options = { xaxis: { min: newMinX, max: newMaxX } }
+    if (!w.config.chart.group) {
+      options.yaxis = Utils.clone(w.globals.initialConfig.yaxis)
+    }
+    if (isZoom) w.interact.zoomed = true
+
+    this.ctx.updateHelpers._updateOptions(options, false, false)
+    return { minX: newMinX, maxX: newMaxX }
+  }
+
+  _cancelInertia() {
+    const m = this._m()
+    if (m.inertiaRAF != null) {
+      cancelAnimationFrame(m.inertiaRAF)
+      m.inertiaRAF = null
+    }
+  }
+
+  _fireScrolled() {
+    const w = this.w
+    if (typeof w.config.chart.events.scrolled !== 'function') return
+    const { min, max } = this._currentXWindow()
+    const args = { xaxis: { min, max } }
+    w.config.chart.events.scrolled(this.ctx, args)
+    this.ctx.events.fireEvent('scrolled', args)
+  }
+
+  /** @param {number} x @param {number} t */
+  _pushSample(x, t) {
+    const s = this._m().samples
+    s.push({ x, t })
+    // keep a short trailing window for a stable release velocity
+    while (s.length > 6) s.shift()
+  }
+
+  /**
+   * Single passive:false handler for all touch phases. Two fingers => pinch /
+   * two-finger pan (zoom). One finger, in pan mode => kinetic pan with inertia.
+   * @param {any} e
+   */
+  momentumTouch(e) {
+    const w = this.w
+    const m = this._m()
+    const type = e.type
+
+    if (type === 'touchstart') {
+      this._cancelInertia()
+      const gridRectDim = this._gridRect()
+      if (!gridRectDim) return
+
+      if (e.touches.length >= 2 && this._pinchEnabled()) {
+        e.preventDefault()
+        m.busy = true
+        m.panState = null
+        this._beginPinch(e, gridRectDim)
+      } else if (
+        e.touches.length === 1 &&
+        this._panInertiaEnabled() &&
+        w.interact.panEnabled
+      ) {
+        m.busy = true
+        m.pinch = null
+        const t = e.touches[0]
+        const win = this._currentXWindow()
+        const gw = w.layout.gridWidth || 1
+        m.panState = {
+          startX: t.clientX,
+          startY: t.clientY,
+          axis: null, // decided on first move (rails)
+          minX0: win.min,
+          maxX0: win.max,
+          ratio0: (win.max - win.min) / gw,
+        }
+        m.samples = [{ x: t.clientX, t: e.timeStamp }]
+      }
+      return
+    }
+
+    if (type === 'touchmove') {
+      if (m.pinch && e.touches.length >= 2) {
+        e.preventDefault()
+        this._movePinch(e)
+      } else if (m.panState && e.touches.length === 1) {
+        this._movePan(e)
+      }
+      return
+    }
+
+    // touchend / touchcancel
+    if (m.pinch) {
+      if (e.touches.length < 2) this._endPinch()
+    } else if (m.panState) {
+      if (e.touches.length === 0) this._endPan(e)
+    }
+    if (e.touches.length === 0) {
+      // a passive-path touchstart may have flagged mousedown before momentum
+      // took over; clear it (and only release busy if inertia is not running).
+      w.interact.mousedown = false
+      this.dragged = false
+      if (m.inertiaRAF == null && !m.pinch && !m.panState) {
+        m.busy = false
+      }
+    }
+  }
+
+  /** @param {any} e @param {DOMRect} gridRectDim */
+  _beginPinch(e, gridRectDim) {
+    const w = this.w
+    const t0 = e.touches[0]
+    const t1 = e.touches[1]
+    const dist =
+      Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1
+    const cx =
+      (t0.clientX + t1.clientX) / 2 -
+      gridRectDim.left -
+      w.globals.barPadForNumericAxis
+    const { min, max } = this._currentXWindow()
+    this._m().pinch = {
+      d0: dist,
+      cx0: cx,
+      minX0: min,
+      maxX0: max,
+      gridWidth: w.layout.gridWidth || 1,
+    }
+  }
+
+  /** @param {any} e */
+  _movePinch(e) {
+    const w = this.w
+    const p = this._m().pinch
+    if (!p) return
+    const gridRectDim = this._gridRect()
+    if (!gridRectDim) return
+
+    const t0 = e.touches[0]
+    const t1 = e.touches[1]
+    const dist =
+      Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1
+    const cx =
+      (t0.clientX + t1.clientX) / 2 -
+      gridRectDim.left -
+      w.globals.barPadForNumericAxis
+
+    const range0 = p.maxX0 - p.minX0
+    // fingers spread => dist > d0 => scale < 1 => window shrinks (zoom in)
+    const newRange = range0 * (p.d0 / dist)
+
+    // keep the data value under the pinch centroid pinned to the current
+    // centroid, which folds two-finger pan into the same transform
+    const anchorData = p.minX0 + (p.cx0 / p.gridWidth) * range0
+    let newMinX = anchorData - (cx / p.gridWidth) * newRange
+    let newMaxX = newMinX + newRange
+
+    // floor the zoom-in window at ~2 point-spacings (same reasoning as wheel
+    // zoom) so it never collapses to a zero-width / NaN range
+    const bounds = this._clampBounds()
+    if (bounds) {
+      const minXDiff =
+        w.globals.minXDiff > 0 && isFinite(w.globals.minXDiff)
+          ? w.globals.minXDiff
+          : 0
+      const minRange = Math.max(minXDiff * 2, (bounds.max - bounds.min) * 1e-6)
+      if (newMaxX - newMinX < minRange) {
+        const mid = (newMinX + newMaxX) / 2
+        newMinX = mid - minRange / 2
+        newMaxX = mid + minRange / 2
+      }
+    }
+
+    this._applyXRange(newMinX, newMaxX, true)
+  }
+
+  _endPinch() {
+    const w = this.w
+    const m = this._m()
+    m.pinch = null
+    const { min, max } = this._currentXWindow()
+    const xaxis = { min, max }
+    const yaxis = w.globals.initialConfig
+      ? Utils.clone(w.globals.initialConfig.yaxis)
+      : []
+    const toolbar = this.ctx.toolbar
+    if (toolbar) toolbar.zoomCallback(xaxis, yaxis)
+  }
+
+  /** @param {any} e */
+  _movePan(e) {
+    const w = this.w
+    const m = this._m()
+    const s = m.panState
+    const t = e.touches[0]
+
+    // rails: lock to the dominant axis once past a small threshold. Chart x-pan
+    // only exists on the x-axis, so a vertical-dominant drag is a page scroll:
+    // release the gesture and let the browser scroll.
+    if (!s.axis) {
+      const dx = Math.abs(t.clientX - s.startX)
+      const dy = Math.abs(t.clientY - s.startY)
+      if (dx < 6 && dy < 6) {
+        this._pushSample(t.clientX, e.timeStamp)
+        return
+      }
+      if (dy > dx) {
+        m.busy = false
+        m.panState = null
+        return
+      }
+      s.axis = 'x'
+    }
+    if (s.axis !== 'x') return
+
+    // horizontal pan owns the gesture: stop the page from scrolling sideways
+    e.preventDefault()
+
+    const totalDeltaPx = t.clientX - s.startX
+    const deltaData = totalDeltaPx * s.ratio0
+    // finger drags right (deltaPx > 0) => reveal earlier data => window shifts left
+    this._pushSample(t.clientX, e.timeStamp)
+    this._applyXRange(s.minX0 - deltaData, s.maxX0 - deltaData, false)
+  }
+
+  /** @param {any} e */
+  _endPan(e) {
+    const m = this._m()
+    const s = m.panState
+    m.panState = null
+
+    // release velocity (px/ms) from the trailing samples
+    let vel = 0
+    const samples = m.samples
+    if (samples.length >= 2) {
+      const a = samples[0]
+      const b = samples[samples.length - 1]
+      const dt = b.t - a.t
+      if (dt > 0) vel = (b.x - a.x) / dt
+    }
+    m.samples = []
+
+    if (
+      s &&
+      s.axis === 'x' &&
+      this._panInertiaEnabled() &&
+      Math.abs(vel) > 0.05
+    ) {
+      this._startInertia(vel)
+    } else {
+      m.busy = false
+      this._fireScrolled()
+    }
+  }
+
+  /**
+   * Kinetic glide after a one-finger pan release: decay the velocity by
+   * `friction` each frame and shift the window, stopping at the data edge
+   * (clamp, not elastic overshoot). The loop is w-driven, so it keeps running
+   * across the re-renders each frame triggers and stops only on a real destroy.
+   * @param {number} vel0 px/ms, sign is the finger direction
+   */
+  _startInertia(vel0) {
+    const w = this.w
+    const m = this._m()
+    const cfgFriction = w.config.chart.pan && w.config.chart.pan.friction
+    const friction =
+      typeof cfgFriction === 'number'
+        ? Math.min(Math.max(cfgFriction, 0.5), 0.999)
+        : 0.92
+
+    let vel = vel0
+    /** @type {number|null} */ let lastT = null
+    m.busy = true
+
+    /** @param {number} ts */
+    const step = (ts) => {
+      if (w.globals.isDestroyed) {
+        m.inertiaRAF = null
+        m.busy = false
+        return
+      }
+      if (lastT == null) {
+        lastT = ts
+        m.inertiaRAF = requestAnimationFrame(step)
+        return
+      }
+      const dt = ts - lastT
+      lastT = ts
+
+      // decay normalized to a 60fps frame so the glide feels the same regardless
+      // of the actual refresh rate
+      vel *= Math.pow(friction, dt / 16.6667)
+      if (Math.abs(vel) < 0.02) {
+        m.inertiaRAF = null
+        m.busy = false
+        this._fireScrolled()
+        return
+      }
+
+      const win = this._currentXWindow()
+      const gw = w.layout.gridWidth || 1
+      const ratio = (win.max - win.min) / gw
+      const deltaData = vel * dt * ratio
+      const applied = this._applyXRange(
+        win.min - deltaData,
+        win.max - deltaData,
+        false,
+      )
+
+      const bounds = this._clampBounds()
+      const hitEdge =
+        !applied ||
+        (bounds &&
+          ((deltaData > 0 &&
+            applied.minX <= bounds.min + (bounds.max - bounds.min) * 1e-6) ||
+            (deltaData < 0 &&
+              applied.maxX >= bounds.max - (bounds.max - bounds.min) * 1e-6)))
+      if (hitEdge) {
+        m.inertiaRAF = null
+        m.busy = false
+        this._fireScrolled()
+        return
+      }
+
+      m.inertiaRAF = requestAnimationFrame(step)
+    }
+    m.inertiaRAF = requestAnimationFrame(step)
   }
 }

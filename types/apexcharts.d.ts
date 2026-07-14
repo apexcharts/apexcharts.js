@@ -977,6 +977,12 @@ type ApexChart = {
     type?: 'x' | 'y' | 'xy'
     autoScaleYaxis?: boolean
     allowMouseWheelZoom?: boolean
+    /**
+     * Momentum: enable two-finger pinch-zoom on touch devices. Zooms the x-axis
+     * around the pinch centroid, frame-by-frame. Requires `enabled: true`.
+     * @default true
+     */
+    pinch?: boolean
     zoomedArea?: {
       fill?: {
         color?: string
@@ -988,6 +994,16 @@ type ApexChart = {
         width?: number
       }
     }
+  }
+  /**
+   * Momentum: kinetic panning on touch. A one-finger pan released with velocity
+   * keeps gliding and decelerates, clamping at the data edges.
+   */
+  pan?: {
+    /** @default true */
+    inertia?: boolean
+    /** Velocity decay applied each animation frame (0-1). @default 0.92 */
+    friction?: number
   }
   selection?: {
     enabled?: boolean

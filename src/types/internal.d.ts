@@ -87,6 +87,16 @@ export interface InteractState {
   disableZoomOut: boolean
   // Device
   isTouchDevice: boolean
+  // Momentum (touch gestures): pinch/pan/inertia runtime state. Lives here (not
+  // on the ZoomPanSelection instance) so it survives the destroy+recreate every
+  // _updateOptions performs, letting a gesture outlast the re-renders it triggers.
+  momentum?: {
+    busy: boolean
+    pinch: any
+    panState: any
+    samples: { x: number; t: number }[]
+    inertiaRAF: number | null
+  }
 }
 
 /** Label formatter functions — lives on `w.formatters` */
