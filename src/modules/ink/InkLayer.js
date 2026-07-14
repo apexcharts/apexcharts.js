@@ -3,33 +3,40 @@ import Utils from '../../utils/Utils'
 import Options from '../settings/Options'
 
 /**
- * Ink Layer (#7): direct-manipulation annotation authoring (drag, edit, create).
+ * Ink Layer (#7): direct-manipulation annotation authoring.
  *
- * Point annotations are declarative (`chart.annotations.points`). This eager,
- * opt-in feature lets the user drag one directly: the marker + label move under
- * the pointer, and on release the new position is inverted back to data space,
- * written to `w.config.annotations.points[i].x/y`, and the annotation is
- * re-drawn at its new anchor (so it stays glued on later zoom/filter/resize).
+ * Turns declarative annotations into point-and-drag editing. Opt in per
+ * annotation with `<annotation>.draggable: true`, or globally with
+ * `chart.ink.enabled: true` (every annotation becomes draggable unless it sets
+ * `draggable: false`). Tree-shakeable `ink` feature; eager module (`ctx.ink`)
+ * that rebinds handlers after each (re)render.
  *
- * Opt in per annotation with `annotations.points[].draggable: true`, or globally
- * with `chart.ink.enabled: true` (every point annotation becomes draggable
- * unless it sets `draggable: false`). Fires `annotationDragged`.
+ * Capabilities:
+ *  - P1 drag point annotations (marker + label move together).
+ *  - P2 double-click a label to edit its text inline.
+ *  - P3 click-to-create: `chart.ink.palette` / `ctx.ink.startCreate()` arms
+ *    create mode; the next plot click drops an editable, draggable note.
+ *  - P4 drag xaxis/yaxis annotations (a line moves along its axis; a range moves
+ *    both edges) and resize an xaxis range by dragging its left/right edge.
  *
- * P1 covers numeric/datetime x + linear (non-log) y on a non-inverted axis; a
- * category x-axis keeps its x and drags y only. Text editing, click-to-create,
- * resize, and Rewind integration are later phases.
+ * Mechanics: annotation elements are paths/lines/rects appended un-grouped to
+ * their `.apexcharts-<type>-annotations` group and share the annotation's `id`
+ * CSS class, so Ink uses its own pointer handler (found by `.<id>`) rather than
+ * SVGElement.draggable (which moves via x/y attributes). During a drag the
+ * elements get a live `transform` (move) or the rect is stretched (resize); on
+ * release the pixel delta is inverted to data, written to the annotation's
+ * config slot, and the annotation is re-drawn at its new anchor via a targeted
+ * redraw (no full re-render, and repeat-safe unlike updateOptions({})).
  *
- * Drag mechanics: the marker is a path and the elements are not wrapped per
- * annotation, so this uses its own pointer handler (not SVGElement.draggable,
- * which moves via x/y attributes). During the drag the annotation's elements
- * (found by the annotation's `id` class) get a live `transform: translate`; on
- * release the pixel delta is inverted to data and the annotation is re-drawn via
- * the annotation module (a targeted redraw, no full chart re-render).
+ * P4 covers numeric/datetime x + linear (non-log) y on a non-inverted axis; a
+ * category x keeps its x. Editing works for every annotation type.
  *
  * @module modules/ink/InkLayer
  */
 
 const DRAG_CLASS = 'apexcharts-ink-draggable'
+const TYPES = ['point', 'xaxis', 'yaxis']
+const EDGE_PX = 8
 
 export default class InkLayer {
   /**
@@ -51,14 +58,13 @@ export default class InkLayer {
     this._onUp = this._onUp.bind(this)
     this._onCreateClick = this._onCreateClick.bind(this)
 
-    if (this._enabledGlobally() || this._hasDraggable() || this._paletteEnabled()) {
+    if (
+      this._enabledGlobally() ||
+      this._hasDraggable() ||
+      this._paletteEnabled()
+    ) {
       this._wire()
     }
-  }
-
-  _paletteEnabled() {
-    const ink = this.w.config.chart.ink
-    return !!(ink && ink.palette)
   }
 
   _enabledGlobally() {
@@ -66,10 +72,17 @@ export default class InkLayer {
     return !!(ink && ink.enabled)
   }
 
-  /** @returns {any[]} the configured point annotations */
-  _points() {
+  _paletteEnabled() {
+    const ink = this.w.config.chart.ink
+    return !!(ink && ink.palette)
+  }
+
+  /** @param {string} type @returns {any[]} the config annotations of a type */
+  _annoList(type) {
     const a = this.w.config.annotations
-    return a && Array.isArray(a.points) ? a.points : []
+    if (!a) return []
+    const key = type === 'point' ? 'points' : type
+    return Array.isArray(a[key]) ? a[key] : []
   }
 
   /** @param {any} anno */
@@ -81,7 +94,7 @@ export default class InkLayer {
   }
 
   _hasDraggable() {
-    return this._points().some((p) => this._isDraggable(p))
+    return TYPES.some((t) => this._annoList(t).some((p) => this._isDraggable(p)))
   }
 
   _wire() {
@@ -93,45 +106,48 @@ export default class InkLayer {
   }
 
   /**
-   * After each (re)render, bind a drag handler to every draggable point
-   * annotation's elements. Idempotent: a per-node flag prevents double-binding
-   * when a targeted redraw re-runs this without a full re-render.
+   * After each (re)render, bind drag + edit handlers to every draggable
+   * annotation's elements. Idempotent via a per-node flag so a targeted redraw
+   * re-runs this without double-binding the untouched annotations.
    */
   _attach() {
     const w = this.w
     const baseEl = w.dom.baseEl
     if (!baseEl) return
-    this._points().forEach((anno, index) => {
-      if (!this._isDraggable(anno)) return
-      if (!anno.id) {
-        anno.id = 'apexcharts-ink-' + index + '-' + w.globals.chartID
-      }
-      baseEl.querySelectorAll('.' + anno.id).forEach((/** @type {any} */ el) => {
-        if (el.__inkBound) return
-        el.__inkBound = true
-        el.style.cursor = 'move'
-        el.classList.add(DRAG_CLASS)
-        el.addEventListener('mousedown', (/** @type {any} */ e) =>
-          this._onDown(e, index),
-        )
-        el.addEventListener('touchstart', (/** @type {any} */ e) =>
-          this._onDown(e, index),
-        )
-        // P2: double-click to edit the label text inline.
-        el.addEventListener('dblclick', (/** @type {any} */ e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          this._startEdit(index)
+    TYPES.forEach((type) => {
+      this._annoList(type).forEach((anno, index) => {
+        if (!this._isDraggable(anno)) return
+        if (!anno.id) {
+          anno.id = 'apexcharts-ink-' + type + '-' + index + '-' + w.globals.chartID
+        }
+        baseEl.querySelectorAll('.' + anno.id).forEach((/** @type {any} */ el) => {
+          if (el.__inkBound) return
+          el.__inkBound = true
+          el.style.cursor = 'move'
+          el.classList.add(DRAG_CLASS)
+          el.addEventListener('mousedown', (/** @type {any} */ e) =>
+            this._onDown(e, type, index),
+          )
+          el.addEventListener('touchstart', (/** @type {any} */ e) =>
+            this._onDown(e, type, index),
+          )
+          el.addEventListener('dblclick', (/** @type {any} */ e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            this._startEdit(type, index)
+          })
         })
       })
     })
     if (this._paletteEnabled()) this._renderPalette()
   }
 
+  // ─── drag / resize ────────────────────────────────────────────────────────
+
   /**
-   * @param {any} e @param {number} index
+   * @param {any} e @param {string} type @param {number} index
    */
-  _onDown(e, index) {
+  _onDown(e, type, index) {
     if (e.button && e.button !== 0) return
     const w = this.w
     const doc = w.dom.baseEl && w.dom.baseEl.ownerDocument
@@ -144,11 +160,34 @@ export default class InkLayer {
     const ev = isTouch ? e.touches[0] : e
     const svgRoot = w.dom.Paper && w.dom.Paper.node
     const ctm = svgRoot && svgRoot.getScreenCTM ? svgRoot.getScreenCTM() : null
+    const anno = this._annoList(type)[index]
+
+    // Mode: an xaxis range grabbed near an edge resizes; everything else moves.
+    let mode = 'move'
+    /** @type {any} */
+    let rect = null
+    let origX = 0
+    let origW = 0
+    if (type === 'xaxis' && anno.x2 != null) {
+      rect = w.dom.baseEl.querySelector('.apexcharts-annotation-rect.' + anno.id)
+      if (rect) {
+        const r = rect.getBoundingClientRect()
+        if (Math.abs(ev.clientX - r.left) <= EDGE_PX) mode = 'resize-x1'
+        else if (Math.abs(ev.clientX - r.right) <= EDGE_PX) mode = 'resize-x2'
+        origX = parseFloat(rect.getAttribute('x')) || 0
+        origW = parseFloat(rect.getAttribute('width')) || 0
+      }
+    }
 
     this._drag = {
+      type,
       index,
-      anno: this._points()[index],
-      els: Array.from(w.dom.baseEl.querySelectorAll('.' + this._points()[index].id)),
+      anno,
+      els: Array.from(w.dom.baseEl.querySelectorAll('.' + anno.id)),
+      mode,
+      rect,
+      origX,
+      origW,
       startX: ev.clientX,
       startY: ev.clientY,
       scaleX: ctm && ctm.a ? ctm.a : 1,
@@ -173,8 +212,18 @@ export default class InkLayer {
     d.dxPixel = (mev.clientX - d.startX) / d.scaleX
     d.dyPixel = (mev.clientY - d.startY) / d.scaleY
     if (d.dxPixel || d.dyPixel) d.moved = true
-    const t = `translate(${d.dxPixel} ${d.dyPixel})`
-    d.els.forEach((/** @type {any} */ el) => el.setAttribute('transform', t))
+
+    if (d.mode === 'move') {
+      const t = `translate(${d.dxPixel} ${d.dyPixel})`
+      d.els.forEach((/** @type {any} */ el) => el.setAttribute('transform', t))
+    } else if (d.rect) {
+      if (d.mode === 'resize-x1') {
+        d.rect.setAttribute('x', d.origX + d.dxPixel)
+        d.rect.setAttribute('width', Math.max(1, d.origW - d.dxPixel))
+      } else if (d.mode === 'resize-x2') {
+        d.rect.setAttribute('width', Math.max(1, d.origW + d.dxPixel))
+      }
+    }
   }
 
   _onUp() {
@@ -182,61 +231,69 @@ export default class InkLayer {
     this._drag = null
     this._teardownDocListeners()
     if (!d || !d.moved) {
-      // A plain click (no movement): clear any residual transform.
       if (d) d.els.forEach((/** @type {any} */ el) => el.removeAttribute('transform'))
       return
     }
-
-    const w = this.w
-    const anno = w.config.annotations.points[d.index]
+    const anno = this._annoList(d.type)[d.index]
     if (!anno) return
 
-    const { newX, newY } = this._invert(anno, d.dxPixel, d.dyPixel)
-    anno.x = newX
-    if (newY != null) anno.y = newY
-
-    this._redrawAnno(anno, d.index)
-    this._fireDragged(anno, d.index)
+    this._applyDelta(d, anno)
+    d.els.forEach((/** @type {any} */ el) => el.removeAttribute('transform'))
+    this._redrawAnno(d.type, anno, d.index)
+    this._fireDragged(d.type, anno, d.index)
   }
 
   /**
-   * Targeted redraw of one point annotation: drop its elements and re-add the
-   * marker + label + label background at the current config x/y (no full chart
-   * re-render, and repeat-safe unlike updateOptions({}), which early-returns on
-   * a repeat empty call).
-   * @param {any} anno @param {number} index
+   * Mutate the annotation's config from the pixel drag delta (type + mode aware).
+   * @param {any} d @param {any} anno
    */
-  _redrawAnno(anno, index) {
+  _applyDelta(d, anno) {
     const w = this.w
-    const baseEl = w.dom.baseEl
-    if (!baseEl) return
-    baseEl.querySelectorAll('.' + anno.id).forEach((/** @type {any} */ el) => el.remove())
-    const group = baseEl.querySelector('.apexcharts-point-annotations')
-    const annotations = this.ctx.annotations
-    if (group && annotations && annotations.pointsAnnotations) {
-      annotations.pointsAnnotations.addPointAnnotation(anno, group, index)
-      // The label background is drawn by annotationsBackground() (after the main
-      // draw), not by addPointAnnotation, so re-add just this label's bg rect.
-      const labelEl = baseEl.querySelector(
-        '.apexcharts-point-annotation-label.' + anno.id,
-      )
-      if (labelEl && annotations.helpers && anno.label && anno.label.text) {
-        const elRect = annotations.helpers.addBackgroundToAnno(labelEl, anno)
-        if (elRect && labelEl.parentNode) {
-          labelEl.parentNode.insertBefore(elRect.node, labelEl)
-        }
-      }
+    const dxData = w.layout.gridWidth
+      ? d.dxPixel * (w.globals.xRange / w.layout.gridWidth)
+      : 0
+
+    if (d.type === 'point') {
+      const { newX, newY } = this._invertPoint(anno, d.dxPixel, d.dyPixel)
+      anno.x = newX
+      if (newY != null) anno.y = newY
+      return
     }
-    this._attach() // bind the freshly drawn elements (idempotent for the rest)
+
+    if (d.type === 'xaxis') {
+      if (typeof anno.x !== 'number') return // category/string x: leave as-is
+      if (d.mode === 'move') {
+        anno.x += dxData
+        if (typeof anno.x2 === 'number') anno.x2 += dxData
+      } else {
+        // resize: the left edge is the smaller value, the right edge the larger
+        const xIsLeft = anno.x2 == null || anno.x <= anno.x2
+        const grow = d.mode === 'resize-x2' ? !xIsLeft : xIsLeft
+        // grow === true -> adjust anno.x, else adjust anno.x2
+        if (grow) anno.x += dxData
+        else if (typeof anno.x2 === 'number') anno.x2 += dxData
+      }
+      return
+    }
+
+    if (d.type === 'yaxis') {
+      const yi = anno.yAxisIndex || 0
+      const map = w.globals.seriesYAxisMap
+      const si = map && map[yi] ? map[yi][0] : 0
+      const yRange = w.globals.yRange ? w.globals.yRange[si] : null
+      if (yRange == null || !w.layout.gridHeight) return
+      const dyData = -d.dyPixel * (yRange / w.layout.gridHeight)
+      if (typeof anno.y === 'number') anno.y += dyData
+      if (typeof anno.y2 === 'number') anno.y2 += dyData
+    }
   }
 
   /**
-   * Invert a pixel drag delta to a data-space position for this annotation.
-   * Numeric/datetime x + linear y (non-inverted). Category x keeps its x.
+   * Invert a pixel drag delta to a point annotation's data x/y.
    * @param {any} anno @param {number} dxPixel @param {number} dyPixel
    * @returns {{newX:any, newY:any}}
    */
-  _invert(anno, dxPixel, dyPixel) {
+  _invertPoint(anno, dxPixel, dyPixel) {
     const w = this.w
     const categoryX =
       (w.config.xaxis.type === 'category' ||
@@ -257,15 +314,64 @@ export default class InkLayer {
     if (typeof anno.y === 'number' && yRange != null && !logY && w.layout.gridHeight) {
       newY = anno.y - dyPixel * (yRange / w.layout.gridHeight)
     }
-
     return { newX, newY }
+  }
+
+  /**
+   * Targeted redraw of one annotation: drop its elements and re-add the shape +
+   * label + label background at the current config coordinates (no full chart
+   * re-render, and repeat-safe unlike updateOptions({})).
+   * @param {string} type @param {any} anno @param {number} index
+   */
+  _redrawAnno(type, anno, index) {
+    const w = this.w
+    const baseEl = w.dom.baseEl
+    const annotations = this.ctx.annotations
+    if (!baseEl || !annotations) return
+    baseEl.querySelectorAll('.' + anno.id).forEach((/** @type {any} */ el) => el.remove())
+    const group = baseEl.querySelector('.apexcharts-' + type + '-annotations')
+    if (!group) return
+
+    if (type === 'point' && annotations.pointsAnnotations) {
+      annotations.pointsAnnotations.addPointAnnotation(anno, group, index)
+    } else if (type === 'xaxis' && annotations.xAxisAnnotations) {
+      annotations.xAxisAnnotations.addXaxisAnnotation(anno, group, index)
+    } else if (type === 'yaxis' && annotations.yAxisAnnotations) {
+      annotations.yAxisAnnotations.addYaxisAnnotation(anno, group, index)
+    }
+
+    // The label background is drawn by annotationsBackground() (after the main
+    // draw), not by the per-annotation add, so re-add just this label's bg.
+    const labelEl = baseEl.querySelector(
+      '.apexcharts-' + type + '-annotation-label.' + anno.id,
+    )
+    if (labelEl && annotations.helpers && anno.label && anno.label.text) {
+      const elRect = annotations.helpers.addBackgroundToAnno(labelEl, anno)
+      if (elRect && labelEl.parentNode) {
+        labelEl.parentNode.insertBefore(elRect.node, labelEl)
+      }
+    }
+    this._attach() // bind the freshly drawn elements (idempotent for the rest)
+  }
+
+  /** @param {string} type @param {any} anno @param {number} index */
+  _fireDragged(type, anno, index) {
+    /** @type {any} */
+    const args = { type, id: anno.id, index, x: anno.x, y: anno.y }
+    if (anno.x2 != null) args.x2 = anno.x2
+    if (anno.y2 != null) args.y2 = anno.y2
+    const events = this.w.config.chart.events
+    if (typeof events.annotationDragged === 'function') {
+      events.annotationDragged(this.ctx, args)
+    }
+    this.ctx.events?.fireEvent('annotationDragged', [this.ctx, args])
   }
 
   // ─── P3: click-to-create ─────────────────────────────────────────────────
 
   /**
    * Enter create mode: the next click on the plot area drops a new draggable
-   * point annotation there and opens its label editor. Public via chart.ink.
+   * point annotation there and opens its label editor.
    */
   startCreate() {
     if (this._creating) return
@@ -314,10 +420,9 @@ export default class InkLayer {
     w.config.annotations.points.push(anno)
     const index = w.config.annotations.points.length - 1
 
-    this._redrawAnno(anno, index)
+    this._redrawAnno('point', anno, index)
     this._fireCreated(anno, index)
-    // Immediately edit the fresh note's label.
-    this._startEdit(index)
+    this._startEdit('point', index)
   }
 
   /**
@@ -423,19 +528,19 @@ export default class InkLayer {
   // ─── P2: inline label editing ────────────────────────────────────────────
 
   /**
-   * Open an inline text editor over a point annotation's label (an absolutely
+   * Open an inline text editor over an annotation's label (an absolutely
    * positioned input in the chart wrap). Commit on Enter/blur, cancel on Escape.
-   * @param {number} index
+   * @param {string} type @param {number} index
    */
-  _startEdit(index) {
+  _startEdit(type, index) {
     const w = this.w
-    const anno = this._points()[index]
+    const anno = this._annoList(type)[index]
     const baseEl = w.dom.baseEl
     const elWrap = w.dom.elWrap
     if (!anno || !anno.id || !baseEl || !elWrap) return
 
     const anchor =
-      baseEl.querySelector('.apexcharts-point-annotation-label.' + anno.id) ||
+      baseEl.querySelector('.apexcharts-' + type + '-annotation-label.' + anno.id) ||
       baseEl.querySelector('.' + anno.id)
     if (!anchor) return
 
@@ -462,7 +567,7 @@ export default class InkLayer {
     input.focus()
     input.select()
 
-    this._editor = { input, index }
+    this._editor = { input, type, index }
     input.addEventListener('keydown', (/** @type {any} */ e) => {
       if (e.key === 'Enter') {
         e.preventDefault()
@@ -480,16 +585,15 @@ export default class InkLayer {
     if (!ed) return
     this._editor = null // guard the re-entrant blur that removing the input fires
     const text = ed.input.value
-    const index = ed.index
     if (ed.input.parentNode) ed.input.parentNode.removeChild(ed.input)
 
-    const anno = this.w.config.annotations.points[index]
+    const anno = this._annoList(ed.type)[ed.index]
     if (!anno) return
     if (!anno.label) anno.label = {}
     if (anno.label.text === text) return
     anno.label.text = text
-    this._redrawAnno(anno, index)
-    this._fireEdited(anno, index)
+    this._redrawAnno(ed.type, anno, ed.index)
+    this._fireEdited(ed.type, anno, ed.index)
   }
 
   _removeEditor() {
@@ -499,9 +603,9 @@ export default class InkLayer {
     if (ed.input.parentNode) ed.input.parentNode.removeChild(ed.input)
   }
 
-  /** @param {any} anno @param {number} index */
-  _fireEdited(anno, index) {
-    const args = { id: anno.id, index, text: anno.label ? anno.label.text : '' }
+  /** @param {string} type @param {any} anno @param {number} index */
+  _fireEdited(type, anno, index) {
+    const args = { type, id: anno.id, index, text: anno.label ? anno.label.text : '' }
     const events = this.w.config.chart.events
     if (typeof events.annotationEdited === 'function') {
       events.annotationEdited(this.ctx, args)
@@ -509,15 +613,7 @@ export default class InkLayer {
     this.ctx.events?.fireEvent('annotationEdited', [this.ctx, args])
   }
 
-  /** @param {any} anno @param {number} index */
-  _fireDragged(anno, index) {
-    const args = { id: anno.id, index, x: anno.x, y: anno.y }
-    const events = this.w.config.chart.events
-    if (typeof events.annotationDragged === 'function') {
-      events.annotationDragged(this.ctx, args)
-    }
-    this.ctx.events?.fireEvent('annotationDragged', [this.ctx, args])
-  }
+  // ─── lifecycle ────────────────────────────────────────────────────────────
 
   _teardownDocListeners() {
     const doc = this.w.dom.baseEl && this.w.dom.baseEl.ownerDocument

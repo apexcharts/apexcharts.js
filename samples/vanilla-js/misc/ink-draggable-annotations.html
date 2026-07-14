@@ -84,7 +84,9 @@
           <code>annotations.points[].x/y</code>, so the annotation stays glued to that
           data location on later zoom or resize. Use <b>+ Note</b> (the palette, from
           <code>chart.ink.palette</code>) then click the plot to drop a new labelled
-          note. Fires <code>annotationDragged</code> / <code>annotationEdited</code> /
+          note. The x-axis <b>Window</b> band moves (drag its middle) or resizes (drag
+          an edge), and the y-axis <b>Target</b> line drags vertically. Fires
+          <code>annotationDragged</code> / <code>annotationEdited</code> /
           <code>annotationCreated</code>. Needs the <code>ink</code> feature. (Set
           <code>draggable:false</code> on a single annotation to pin it.)
         </div>
@@ -140,6 +142,31 @@
                 text: 'Watch',
                 borderColor: '#ef4444',
                 style: { color: '#fff', background: '#ef4444' },
+              },
+            },
+          ],
+          xaxis: [
+            {
+              x: 10,
+              x2: 16,
+              id: 'window',
+              fillColor: '#a5b4fc',
+              opacity: 0.28,
+              label: {
+                text: 'Window',
+                style: { color: '#fff', background: '#6366f1' },
+              },
+            },
+          ],
+          yaxis: [
+            {
+              y: 62,
+              id: 'target',
+              borderColor: '#f59e0b',
+              strokeDashArray: 4,
+              label: {
+                text: 'Target',
+                style: { color: '#fff', background: '#f59e0b' },
               },
             },
           ],

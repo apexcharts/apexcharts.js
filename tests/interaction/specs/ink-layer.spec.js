@@ -190,3 +190,48 @@ test.describe('Ink Layer: click-to-create', () => {
     expect(created.event).toBeTruthy()
   })
 })
+
+test.describe('Ink Layer: axis annotations', () => {
+  test.beforeEach(async ({ loadChart }) => {
+    await loadChart('misc', 'ink-draggable-annotations')
+  })
+
+  // Drag an element (by CSS selector) from a start point by a client delta.
+  async function dragEl(page, selector, startAt, dx, dy) {
+    return page.evaluate(
+      ({ selector, startAt, dx, dy }) => {
+        const el = window.chart.el.querySelector(selector)
+        const r = el.getBoundingClientRect()
+        const sx = startAt === 'left' ? r.left + 2 : r.left + r.width / 2
+        const sy = r.top + r.height / 2
+        el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window, clientX: sx, clientY: sy, button: 0 }))
+        document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true, view: window, clientX: sx + dx, clientY: sy + dy, button: 0 }))
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window, clientX: sx + dx, clientY: sy + dy, button: 0 }))
+      },
+      { selector, startAt, dx, dy },
+    )
+  }
+
+  test('a yaxis line annotation drags vertically', async ({ page }) => {
+    const before = await page.evaluate(() => window.chart.w.config.annotations.yaxis[0].y)
+    await dragEl(page, 'line.target', 'center', 0, -40) // up -> y increases
+    const after = await page.evaluate(() => window.chart.w.config.annotations.yaxis[0].y)
+    expect(after).toBeGreaterThan(before)
+  })
+
+  test('an xaxis range moves as a whole and resizes from an edge', async ({ page }) => {
+    const before = await page.evaluate(() => ({ ...window.chart.w.config.annotations.xaxis[0] }))
+    // move: drag the middle right -> both edges shift, span preserved
+    await dragEl(page, 'rect.window', 'center', 40, 0)
+    const moved = await page.evaluate(() => ({ x: window.chart.w.config.annotations.xaxis[0].x, x2: window.chart.w.config.annotations.xaxis[0].x2 }))
+    expect(moved.x).toBeGreaterThan(before.x)
+    expect(moved.x2).toBeGreaterThan(before.x2)
+    expect(moved.x2 - moved.x).toBeCloseTo(before.x2 - before.x, 5)
+
+    // resize: grab the left edge -> x changes, x2 fixed
+    await dragEl(page, 'rect.window', 'left', 22, 0)
+    const resized = await page.evaluate(() => ({ x: window.chart.w.config.annotations.xaxis[0].x, x2: window.chart.w.config.annotations.xaxis[0].x2 }))
+    expect(resized.x).toBeGreaterThan(moved.x)
+    expect(resized.x2).toBeCloseTo(moved.x2, 5)
+  })
+})

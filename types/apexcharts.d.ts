@@ -920,15 +920,16 @@ type ApexChart = {
      */
     filterChange?(chart: ApexCharts, options?: { filters: Record<string, any>; filteredCount: number; total: number; sourceChartID?: string; key?: any }): void
     /**
-     * Ink Layer (#7): fired after a point annotation is dragged to a new
-     * position. `options` carries the annotation id/index and its new data x/y.
+     * Ink Layer (#7): fired after an annotation is dragged or resized. `options`
+     * carries the annotation type ('point' | 'xaxis' | 'yaxis'), id/index, and
+     * the new data coordinates (x/y, plus x2/y2 for range annotations).
      */
-    annotationDragged?(chart: ApexCharts, options?: { id?: string; index: number; x: any; y: any }): void
+    annotationDragged?(chart: ApexCharts, options?: { type?: 'point' | 'xaxis' | 'yaxis'; id?: string; index: number; x: any; y: any; x2?: any; y2?: any }): void
     /**
      * Ink Layer (#7): fired after a point annotation's label is edited inline.
      * `options` carries the annotation id/index and the new label text.
      */
-    annotationEdited?(chart: ApexCharts, options?: { id?: string; index: number; text: string }): void
+    annotationEdited?(chart: ApexCharts, options?: { type?: 'point' | 'xaxis' | 'yaxis'; id?: string; index: number; text: string }): void
     /**
      * Ink Layer (#7): fired after a point annotation is created by clicking the
      * plot in create mode. `options` carries the new annotation id/index + x/y.
@@ -1385,6 +1386,11 @@ type XAxisAnnotations = {
   offsetX?: number
   offsetY?: number
   label?: AnnotationLabel
+  /**
+   * Ink Layer (#7): make this annotation draggable (a line moves along x; a
+   * range moves as a whole or resizes from an edge). Requires the `ink` feature.
+   */
+  draggable?: boolean
 }
 
 type YAxisAnnotations = {
@@ -1401,6 +1407,11 @@ type YAxisAnnotations = {
   width?: number | string
   yAxisIndex?: number
   label?: AnnotationLabel
+  /**
+   * Ink Layer (#7): make this annotation draggable (a line moves along y; a
+   * range moves as a whole). Requires the `ink` feature.
+   */
+  draggable?: boolean
 }
 
 type PointAnnotations = {
