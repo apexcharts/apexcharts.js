@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Cadence: Pluggable Easing (chart.animations.easing)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 820px;
+        margin: 12px auto 4px;
+      }
+      .panel {
+        max-width: 820px;
+        margin: 14px auto;
+        font-family: sans-serif;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+      }
+      .controls .label {
+        font-size: 13px;
+        color: #556;
+        margin-right: 2px;
+      }
+      .controls button {
+        padding: 6px 12px;
+        cursor: pointer;
+        border: 1px solid #d3d8e3;
+        background: #fff;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+      .controls button.active {
+        border-color: #14b8a6;
+        color: #0f766e;
+        background: #f0fdfa;
+        font-weight: 600;
+      }
+      .controls .shuffle {
+        margin-left: auto;
+        border-color: #14b8a6;
+        color: #0f766e;
+        font-weight: 600;
+      }
+      .note {
+        background: #f0fdfa;
+        border-left: 3px solid #14b8a6;
+        padding: 11px 15px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.6;
+      }
+      .note code {
+        background: #c7f0ea;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Cadence: a custom named easing, registered before the chart is created.
+      // A springy overshoot-and-settle bounce.
+      ApexCharts.registerEasing('bounce', function (t) {
+        var c4 = (2 * Math.PI) / 3
+        if (t === 0 || t === 1) return t
+        return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1
+      })
+
+      function shuffledData() {
+        var out = []
+        for (var i = 0; i < 8; i++) out.push(20 + Math.round(Math.random() * 80))
+        return out
+      }
+    </script>
+  </head>
+
+  <body>
+     <div class="panel">
+        <div class="controls">
+          <span class="label">Easing:</span>
+          <button data-ease="easeInOutSine" class="active">easeInOutSine (default)</button>
+          <button data-ease="linear">linear</button>
+          <button data-ease="easeOutBack">easeOutBack</button>
+          <button data-ease="bounce">bounce (custom)</button>
+          <button data-ease='[0.34,1.56,0.64,1]'>cubic-bezier</button>
+          <button class="shuffle" id="shuffle">Shuffle data</button>
+        </div>
+      </div>
+      
+      <div id="chart"></div>
+      
+      <div class="panel">
+        <div class="note">
+          Pick an easing, then <b>Shuffle data</b> to watch the bars tween to their new
+          heights with that curve. Set it via
+          <code>chart.animations.easing</code>: a registered name
+          (<code>'easeOutBack'</code>), a cubic-bezier
+          <code>[0.34, 1.56, 0.64, 1]</code>, or a function. Register your own with
+          <code>ApexCharts.registerEasing('bounce', fn)</code>. The default,
+          <code>'easeInOutSine'</code>, is the historical curve, so existing charts
+          animate exactly as before. Easing governs the data-update tweens; the tuned
+          initial-draw pen and pop animations keep their own feel.
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: [{ name: 'Value', data: [42, 68, 35, 80, 55, 24, 71, 60] }],
+        chart: {
+          height: 400,
+          type: 'bar',
+          fontFamily: 'Helvetica, Arial, sans-serif',
+          toolbar: { show: false },
+          animations: {
+            enabled: true,
+            speed: 900,
+            easing: 'easeInOutSine',
+          },
+        },
+        colors: ['#14b8a6'],
+        plotOptions: { bar: { columnWidth: '55%', borderRadius: 4 } },
+        dataLabels: { enabled: false },
+        title: { text: 'Data-update tween easing', align: 'left' },
+        xaxis: {
+          categories: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+        },
+        yaxis: { min: 0, max: 100 },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      var buttons = Array.prototype.slice.call(
+        document.querySelectorAll('.controls button[data-ease]'),
+      )
+      var currentEasing = 'easeInOutSine'
+
+      function parseEase(raw) {
+        // a bracketed value is a cubic-bezier array; otherwise a registered name
+        if (raw.charAt(0) === '[') {
+          try {
+            return JSON.parse(raw)
+          } catch (e) {
+            return raw
+          }
+        }
+        return raw
+      }
+
+      buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          buttons.forEach(function (b) {
+            b.classList.remove('active')
+          })
+          btn.classList.add('active')
+          currentEasing = parseEase(btn.getAttribute('data-ease'))
+          // Apply the new easing; the next update will tween with it.
+          chart.updateOptions({ chart: { animations: { easing: currentEasing } } })
+        })
+      })
+
+      document.getElementById('shuffle').addEventListener('click', function () {
+        chart.updateSeries([{ name: 'Value', data: shuffledData() }])
+      })
+    </script>
+
+    
+  </body>
+</html>
