@@ -205,6 +205,10 @@ export default class LinkedViews {
     return PIE_TYPES.indexOf(this.w.config.chart.type) !== -1
   }
 
+  _isHeatmap() {
+    return this.w.config.chart.type === 'heatmap'
+  }
+
   /**
    * Before the first render: resolve the coordinator, register this chart's
    * dimension, inject the initial aggregated series into w.config (so the first
@@ -225,7 +229,8 @@ export default class LinkedViews {
       cf.registerDimension(chartId, {
         dimension: link.dimension,
         reduce: link.reduce,
-        type: link.type,
+        // heatmap => 2D matrix dimension (accessor returns [xKey, yKey]).
+        type: link.type || (this._isHeatmap() ? 'matrix' : undefined),
         bins: link.bins,
         order: link.order,
       })
@@ -236,31 +241,48 @@ export default class LinkedViews {
 
   /**
    * Build the chart's series value from an aggregation, shaped by chart type:
+   *   matrix (heatmap) -> [{ name:yKey, data:[{x:xKey, y:value}] }]
    *   pie/donut  -> number[]
    *   axis + category -> [{ name, data:number[] }] (categories set separately)
    *   axis + range    -> [{ name, data:[x,value][] }] on a numeric/time x-axis
-   * @param {{type:string, labels:any[], values:number[]}} agg
+   * @param {any} agg
    */
   _seriesFromAgg(agg) {
+    if (agg.type === 'matrix') {
+      return agg.yLabels.map((/** @type {any} */ yl, /** @type {number} */ yi) => ({
+        name: String(yl),
+        data: agg.xLabels.map((/** @type {any} */ xl, /** @type {number} */ xi) => ({
+          x: String(xl),
+          y: agg.matrix[yi][xi],
+        })),
+      }))
+    }
     if (this._isPie()) return agg.values.slice()
     const name = this.w.config.chart.link.seriesName || 'Count'
     if (agg.type === 'range') {
-      return [
-        { name, data: agg.labels.map((x, i) => [x, agg.values[i]]) },
-      ]
+      return [{ name, data: agg.labels.map((/** @type {any} */ x, /** @type {number} */ i) => [x, agg.values[i]]) }]
     }
     return [{ name, data: agg.values.slice() }]
   }
 
   /**
+   * Value signature used to skip a reflow when only dimming changed.
+   * @param {any} agg
+   */
+  _sigOf(agg) {
+    return JSON.stringify(agg.matrix || agg.values)
+  }
+
+  /**
    * Write the aggregation into w.config as the chart's series/labels. Runs once
    * before the first paint; later updates go through updateSeries.
-   * @param {{type:string, labels:any[], values:number[]}} agg
+   * @param {any} agg
    */
   _injectSeries(agg) {
     const w = this.w
-    this._lastValues = JSON.stringify(agg.values)
+    this._lastValues = this._sigOf(agg)
     w.config.series = this._seriesFromAgg(agg)
+    if (agg.type === 'matrix') return // heatmap x/y come from the series data
     if (this._isPie()) {
       w.config.labels = agg.labels.map(String)
     } else if (agg.type === 'category') {
@@ -295,6 +317,9 @@ export default class LinkedViews {
     if (!cf) return
     const chartId = this._chartId()
     const agg = cf.aggregateFor(chartId)
+    // Phase A: heatmap (matrix) is a re-aggregating target only; cell
+    // click-to-filter is Phase B. Ignore clicks safely.
+    if (agg.type === 'matrix') return
     const key = agg.keys[opts.dataPointIndex]
     if (key == null) return
     cf.toggleKey(chartId, key) // emits 'change' -> fan-out (deferred per chart)
@@ -324,7 +349,7 @@ export default class LinkedViews {
     const cf = this._cf()
     if (!cf) return
     const agg = cf.aggregateFor(this._chartId())
-    const sig = JSON.stringify(agg.values)
+    const sig = this._sigOf(agg)
     if (sig === this._lastValues) {
       this._applySelfDim() // data unchanged: only the dimming may differ
       return

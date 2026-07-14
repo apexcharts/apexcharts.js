@@ -79,6 +79,20 @@ function makeReducer(reduce) {
 }
 
 /**
+ * Order a discovered key list: 'first-seen' (default), 'asc', 'desc', or a
+ * comparator fn.
+ * @param {any[]} keys
+ * @param {'first-seen'|'asc'|'desc'|((a:any,b:any)=>number)|undefined} order
+ * @returns {any[]}
+ */
+function applyOrder(keys, order) {
+  if (typeof order === 'function') return keys.slice().sort(order)
+  if (order === 'asc') return keys.slice().sort((a, b) => (a > b ? 1 : a < b ? -1 : 0))
+  if (order === 'desc') return keys.slice().sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))
+  return keys // first-seen (data order)
+}
+
+/**
  * Discover the ordered, distinct categorical keys over the full record set.
  * @param {any[]} records
  * @param {(row:any)=>any} accessor
@@ -96,18 +110,37 @@ function categoryDomain(records, accessor, order) {
       keys.push(k)
     }
   }
-  if (typeof order === 'function') return keys.slice().sort(order)
-  if (order === 'asc') {
-    return keys
-      .slice()
-      .sort((a, b) => (a > b ? 1 : a < b ? -1 : 0))
+  return applyOrder(keys, order)
+}
+
+/**
+ * Discover the ordered, distinct x and y keys for a 2D (matrix) dimension whose
+ * accessor returns `[xKey, yKey]`.
+ * @param {any[]} records
+ * @param {(row:any)=>any} accessor
+ * @param {any} order
+ * @returns {{xLabels:any[], yLabels:any[]}}
+ */
+function matrixDomain(records, accessor, order) {
+  const xSeen = new Set()
+  const ySeen = new Set()
+  const xLabels = []
+  const yLabels = []
+  for (let i = 0; i < records.length; i++) {
+    const pair = accessor(records[i])
+    if (!pair) continue
+    const x = pair[0]
+    const y = pair[1]
+    if (x != null && !xSeen.has(x)) {
+      xSeen.add(x)
+      xLabels.push(x)
+    }
+    if (y != null && !ySeen.has(y)) {
+      ySeen.add(y)
+      yLabels.push(y)
+    }
   }
-  if (order === 'desc') {
-    return keys
-      .slice()
-      .sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))
-  }
-  return keys // first-seen (data order)
+  return { xLabels: applyOrder(xLabels, order), yLabels: applyOrder(yLabels, order) }
 }
 
 /**
@@ -296,6 +329,13 @@ export default class Crossfilter {
 
   /** @param {any} dim */
   _recomputeDomain(dim) {
+    if (dim.type === 'matrix') {
+      const dom = matrixDomain(this.records, dim.accessor, dim.order)
+      dim.xLabels = dom.xLabels
+      dim.yLabels = dom.yLabels
+      dim.edges = null
+      return
+    }
     if (dim.type === 'range') {
       dim.edges = rangeEdges(this.records, dim.accessor, dim.bins)
       dim.labels = dim.edges.slice(0, -1) // bin lower edges
@@ -426,15 +466,37 @@ export default class Crossfilter {
 
   /**
    * The crossfilter aggregation for one chart: reduce over records passing all
-   * OTHER charts' filters, bucketed by this chart's dimension.
+   * OTHER charts' filters, bucketed by this chart's dimension. Category/range
+   * dims return `{type, labels, values, keys, edges?}`; a matrix (2D) dim
+   * returns `{type:'matrix', xLabels, yLabels, matrix}`.
    * @param {string} chartId
-   * @returns {{type:'category'|'range', labels:any[], values:number[], keys:any[], edges?:number[]}}
+   * @returns {any}
    */
   aggregateFor(chartId) {
     const dim = this.dims.get(chartId)
     if (!dim) return { type: 'category', labels: [], values: [], keys: [] }
 
     const rows = this.filteredRecords(chartId)
+
+    if (dim.type === 'matrix') {
+      const xIndex = new Map(dim.xLabels.map((/** @type {any} */ k, /** @type {number} */ i) => [k, i]))
+      const yIndex = new Map(dim.yLabels.map((/** @type {any} */ k, /** @type {number} */ i) => [k, i]))
+      /** @type {any[][][]} */
+      const buckets = dim.yLabels.map(() => dim.xLabels.map(() => []))
+      for (let i = 0; i < rows.length; i++) {
+        const pair = dim.accessor(rows[i])
+        if (!pair) continue
+        const xi = xIndex.get(pair[0])
+        const yi = yIndex.get(pair[1])
+        if (xi != null && yi != null) buckets[yi][xi].push(rows[i])
+      }
+      return {
+        type: 'matrix',
+        xLabels: dim.xLabels.slice(),
+        yLabels: dim.yLabels.slice(),
+        matrix: buckets.map((brow) => brow.map((cell) => dim.reducer(cell))),
+      }
+    }
 
     if (dim.type === 'range') {
       const edges = dim.edges || [0, 1]

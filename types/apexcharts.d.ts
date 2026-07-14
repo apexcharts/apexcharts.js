@@ -959,12 +959,18 @@ type ApexChart = {
     dimOpacity?: number
     /** FILTER mode: crossfilter coordinator id (defaults to `chart.group`). */
     id?: string
-    /** FILTER mode: `(row) => key`. Its presence selects filter mode. */
+    /**
+     * FILTER mode: `(row) => key`. Its presence selects filter mode. For a
+     * heatmap (matrix) dimension it returns `[xKey, yKey]`.
+     */
     dimension?: (row: any) => any
     /** FILTER mode: reduction over a bucket's rows. @default 'count' */
     reduce?: 'count' | { sum?: string; avg?: string; min?: string; max?: string } | ((rows: any[]) => number)
-    /** FILTER mode: bucket kind (else inferred: `bins` present => 'range'). */
-    type?: 'category' | 'range'
+    /**
+     * FILTER mode: bucket kind. Else inferred: `bins` present => 'range', a
+     * heatmap chart => 'matrix' (2D), otherwise 'category'.
+     */
+    type?: 'category' | 'range' | 'matrix'
     /** FILTER mode (range dims): binning spec. */
     bins?: { width?: number; count?: number; thresholds?: number[] }
     /** FILTER mode (category dims): key ordering. @default 'first-seen' */
@@ -2571,15 +2577,21 @@ type ApexCrossfilterReduce =
 
 /** One chart's aggregation returned by `aggregateFor`. */
 interface ApexCrossfilterAggregation {
-  type: 'category' | 'range'
-  /** Bucket labels in stable order (category keys, or bin-start numbers). */
-  labels: any[]
-  /** Reduced value per bucket. */
-  values: number[]
-  /** Category key, or `[lo, hi]` bin range, per bucket. */
-  keys: any[]
+  type: 'category' | 'range' | 'matrix'
+  /** Category/range: bucket labels in stable order (category keys, or bin-start numbers). */
+  labels?: any[]
+  /** Category/range: reduced value per bucket. */
+  values?: number[]
+  /** Category/range: category key, or `[lo, hi]` bin range, per bucket. */
+  keys?: any[]
   /** Range dimensions only: bin edges (length labels.length + 1). */
   edges?: number[]
+  /** Matrix (2D) only: x-axis keys (columns). */
+  xLabels?: any[]
+  /** Matrix (2D) only: y-axis keys (rows / series). */
+  yLabels?: any[]
+  /** Matrix (2D) only: reduced value per cell, `matrix[yIndex][xIndex]`. */
+  matrix?: number[][]
 }
 
 /**
