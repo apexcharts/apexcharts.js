@@ -332,6 +332,13 @@ declare class ApexCharts {
   static registerTheme(name: string, def: ApexThemeDef): typeof ApexCharts
 
   /**
+   * Registers a named easing (Cadence #6) referenceable via
+   * `chart.animations.easing: '<name>'`. `fn` maps linear progress t in [0,1]
+   * to eased progress (back/elastic curves may overshoot 1).
+   */
+  static registerEasing(name: string, fn: (t: number) => number): typeof ApexCharts
+
+  /**
    * Static, pure Perspectives helpers. Available once the feature is imported:
    * `import 'apexcharts/features/perspectives'`.
    */
@@ -1037,6 +1044,18 @@ type ApexChart = {
     enabled?: boolean
     /** Animation duration in ms (default 800). */
     speed?: number
+    /**
+     * Cadence (#6): easing for the generic tweens (data-update value
+     * transitions, path morphs, marker animate). A registered name
+     * (e.g. 'linear', 'easeOutCubic', 'easeOutBack'), a cubic-bezier
+     * `[x1, y1, x2, y2]` array, or a function mapping t in [0,1] to eased
+     * progress. Register custom names with `ApexCharts.registerEasing`.
+     * @default 'easeInOutSine'
+     */
+    easing?:
+      | string
+      | [number, number, number, number]
+      | ((t: number) => number)
     /**
      * Drives per-element stagger across all chart types. When enabled, bars,
      * heatmap cells, scatter points, and treemap tiles reveal in sequence;

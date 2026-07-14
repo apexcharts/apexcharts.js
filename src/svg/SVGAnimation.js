@@ -2,12 +2,30 @@
 import { morphPaths, morphPolygons } from './PathMorphing'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 
-// Sine ease in-out (matches SVG.js default '<>' easing)
+// Sine ease in-out (matches SVG.js default '<>' easing). Kept as the fallback
+// so behavior is unchanged when no easing is configured.
 /**
  * @param {number} t
  */
 function easeInOut(t) {
   return -Math.cos(t * Math.PI) / 2 + 0.5
+}
+
+// Cadence (#6) P1: pluggable easing. The runner tweens attrs, colors, and path
+// morphs against a single eased position. `_defaultEasing` is the module-level
+// easing Animations resolves from `chart.animations.easing` (see
+// setDefaultEasing); an individual runner can override it via `.ease(fn)`.
+/** @type {(t:number)=>number} */
+let _defaultEasing = easeInOut
+
+/**
+ * Set the process-wide default easing used by all runners that do not set their
+ * own via `.ease()`. Matches the pre-existing single-global-easing design; the
+ * last render to resolve config wins for concurrent multi-chart cases.
+ * @param {(t:number)=>number} fn
+ */
+export function setDefaultEasing(fn) {
+  _defaultEasing = typeof fn === 'function' ? fn : easeInOut
 }
 
 // Parse color string to [r, g, b, a]
@@ -57,10 +75,22 @@ class SVGAnimationRunner {
     this._plotAlgorithm = 'commands'
     this._afterCb = null
     this._duringCb = null
+    /** @type {((t:number)=>number) | null} */
+    this._easing = null
     this._next = null
     /** @type {SVGAnimationRunner | null} */
     this._root = null
     this._scheduled = false
+  }
+
+  /**
+   * Override the easing for this runner (else the module default is used).
+   * @param {(t:number)=>number} fn
+   */
+  ease(fn) {
+    if (typeof fn === 'function') this._easing = fn
+    this._schedule()
+    return this
   }
 
   /**
@@ -198,6 +228,7 @@ class SVGAnimationRunner {
       }
 
       const start = performance.now()
+      const easing = this._easing || _defaultEasing
 
       /**
        * @param {number} now
@@ -205,7 +236,7 @@ class SVGAnimationRunner {
       const tick = (now) => {
         const elapsed = now - start
         const rawPos = Math.min(elapsed / duration, 1)
-        const pos = easeInOut(rawPos)
+        const pos = easing(rawPos)
 
         // Interpolate attributes
         if (this._attrTarget) {

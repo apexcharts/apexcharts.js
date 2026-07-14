@@ -278,6 +278,12 @@ export default class Options {
           // `animateGradually.enabled` / `animateGradually.delay`.
           enabled: true,
           speed: 800,
+          // Cadence (#6): easing for the generic tweens (data-update value
+          // transitions, path morphs, marker animate). A registered name, a
+          // cubic-bezier [x1,y1,x2,y2] array, or a function (t in [0,1]).
+          // 'easeInOutSine' is the historical curve, so the default is
+          // behavior-neutral. The tuned initial-draw pen/pop easings are fixed.
+          easing: 'easeInOutSine',
           animateGradually: {
             // Drives per-element stagger across all chart types. When enabled,
             // bars/heatmap-cells/scatter-points/treemap-tiles reveal in

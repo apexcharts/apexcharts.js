@@ -16,6 +16,7 @@ import { applyAnimationPolicy } from './modules/Animations'
 import Destroy from './modules/helpers/Destroy'
 import { register, markCustom } from './modules/ChartFactory'
 import { registerTheme } from './modules/ThemeRegistry'
+import { registerEasing } from './modules/animations/Easing'
 import { registerPlugin as registerPluginImpl } from './modules/weave/PluginRegistry'
 import RendererController from './modules/RendererController'
 import { addResizeListener, removeResizeListener } from './utils/Resize'
@@ -1140,6 +1141,20 @@ export default class ApexCharts {
    */
   static registerTheme(name, def) {
     registerTheme(name, def)
+    return ApexCharts
+  }
+
+  /**
+   * Cadence (#6): register a named easing function referenceable via
+   * `chart.animations.easing: '<name>'`. `fn` maps linear progress t in [0,1]
+   * to eased progress (back/elastic curves may overshoot 1).
+   *
+   * @param {string} name  the easing name, e.g. 'bounce'
+   * @param {(t:number)=>number} fn
+   * @returns {typeof ApexCharts}
+   */
+  static registerEasing(name, fn) {
+    registerEasing(name, fn)
     return ApexCharts
   }
 

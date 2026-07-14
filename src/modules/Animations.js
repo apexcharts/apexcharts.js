@@ -2,6 +2,8 @@
 import Utils from '../utils/Utils'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
 import { Environment } from '../utils/Environment'
+import { setDefaultEasing } from '../svg/SVGAnimation'
+import { resolveEasing } from './animations/Easing'
 
 const SVGNS = 'http://www.w3.org/2000/svg'
 
@@ -150,6 +152,11 @@ export function applyAnimationPolicy(w) {
     anim.enabled = false
     if (anim.dynamicAnimation) anim.dynamicAnimation.enabled = false
   }
+  // Cadence (#6) P1: resolve chart.animations.easing (name | cubic-bezier array
+  // | fn) and set it as the runner's default for the generic tweens. Defaults
+  // to 'easeInOutSine', which is the runner's historical curve, so unspecified
+  // charts animate exactly as before.
+  setDefaultEasing(resolveEasing(anim.easing))
 }
 
 /**
