@@ -1,0 +1,117 @@
+<title>Ink Layer: Drag Annotations Directly (chart.ink)</title>
+
+<style>
+  .ink-wrap {
+    max-width: 820px;
+    margin: 12px auto;
+    font-family: Helvetica, Arial, sans-serif;
+  }
+  .ink-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 4px 6px 10px;
+  }
+  .ink-bar .readout {
+    font-family: monospace;
+    font-size: 13px;
+    color: #445;
+  }
+  .ink-note {
+    background: #eef2ff;
+    border-left: 3px solid #6366f1;
+    padding: 11px 15px;
+    font-size: 13px;
+    color: #234;
+    border-radius: 2px;
+    line-height: 1.6;
+    margin: 12px 6px;
+  }
+  .ink-note code {
+    background: #dfe3ff;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+</style>
+
+<scripts>
+<script>
+  function signal() {
+    var out = []
+    for (var i = 0; i < 40; i++) {
+      var v = 50 + 22 * Math.sin(i / 4.0) + 9 * Math.sin(i / 1.4) + i * 0.4
+      out.push([i, Math.round(v)])
+    }
+    return out
+  }
+</script>
+</scripts>
+
+<html>
+<div class="ink-wrap">
+  <div class="ink-bar">
+    <span class="readout" id="ink-readout">Drag a labelled point to reposition it</span>
+  </div>
+
+  {{ charts[0] }}
+
+  <div class="ink-note">
+    The chart sets <code>chart.ink.enabled</code>, so its point annotations are
+    <b>draggable</b>: grab a labelled marker and move it. On release the new
+    position is converted back to data coordinates and written to
+    <code>annotations.points[].x/y</code>, so the annotation stays glued to that
+    data location on later zoom or resize. Each drag fires
+    <code>annotationDragged</code>. Needs the <code>ink</code> feature. (Set
+    <code>draggable:false</code> on a single annotation to pin it.)
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'signal',
+  type: 'line',
+  height: 380,
+  fontFamily: 'Helvetica, Arial, sans-serif',
+  animations: { enabled: false },
+  ink: { enabled: true },
+  toolbar: { show: false },
+  zoom: { enabled: false },
+},
+stroke: { width: 2, curve: 'smooth' },
+colors: ['#6366f1'],
+title: { text: 'Signal (drag the callouts)', align: 'left' },
+xaxis: { type: 'numeric', title: { text: 'Sample' } },
+yaxis: { title: { text: 'Value' } },
+annotations: {
+  points: [
+    {
+      x: 6, y: 74, id: 'peak',
+      marker: { size: 7, fillColor: '#fff', strokeColor: '#6366f1', strokeWidth: 3 },
+      label: { text: 'Peak', borderColor: '#6366f1', style: { color: '#fff', background: '#6366f1' } },
+    },
+    {
+      x: 20, y: 52, id: 'dip',
+      marker: { size: 7, fillColor: '#fff', strokeColor: '#ef4444', strokeWidth: 3 },
+      label: { text: 'Watch', borderColor: '#ef4444', style: { color: '#fff', background: '#ef4444' } },
+    },
+  ],
+},
+</options>
+
+<series>
+[
+  { name: 'Signal', data: signal() }
+]
+</series>
+</chart>
+
+<vanilla-js-script>
+var readout = document.getElementById('ink-readout')
+chart.addEventListener('annotationDragged', function (c, o) {
+  readout.textContent =
+    "Moved '" + o.id + "' to x=" + Number(o.x).toFixed(2) + ', y=' + Number(o.y).toFixed(2)
+})
+</vanilla-js-script>
