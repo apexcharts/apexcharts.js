@@ -85,3 +85,57 @@ test.describe('Ink Layer: drag point annotations', () => {
     expect(second.dropErrorPx).toBeLessThanOrEqual(4)
   })
 })
+
+test.describe('Ink Layer: inline label editing', () => {
+  test.beforeEach(async ({ loadChart }) => {
+    await loadChart('misc', 'ink-draggable-annotations')
+  })
+
+  test('double-clicking a callout edits its label text', async ({ page }) => {
+    await page.evaluate(() => {
+      window.__edited = null
+      window.chart.addEventListener('annotationEdited', (c, o) => { window.__edited = o })
+    })
+
+    const before = await page.evaluate(
+      () => window.chart.w.config.annotations.points.find((p) => p.id === 'peak').label.text,
+    )
+    expect(before).toBe('Peak')
+
+    // dblclick the label -> an editor input appears prefilled
+    await page.evaluate(() => {
+      window.chart.el
+        .querySelector('.apexcharts-point-annotation-label.peak')
+        .dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true, view: window }))
+    })
+    const editorVal = await page.evaluate(() => {
+      const i = window.chart.el.querySelector('input.apexcharts-ink-editor')
+      return i ? i.value : null
+    })
+    expect(editorVal).toBe('Peak')
+
+    // type a new label and commit with Enter
+    await page.evaluate(() => {
+      const i = window.chart.el.querySelector('input.apexcharts-ink-editor')
+      i.value = 'Launch'
+      i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+    await page.waitForFunction(
+      () => window.chart.w.config.annotations.points.find((p) => p.id === 'peak').label.text === 'Launch',
+    )
+
+    const after = await page.evaluate(() => ({
+      text: window.chart.w.config.annotations.points.find((p) => p.id === 'peak').label.text,
+      labelText: window.chart.el.querySelector('.apexcharts-point-annotation-label.peak').textContent,
+      editorGone: !window.chart.el.querySelector('input.apexcharts-ink-editor'),
+      bgCount: window.chart.el.querySelectorAll('rect.peak').length,
+      edited: window.__edited,
+    }))
+    expect(after.text).toBe('Launch')
+    expect(after.labelText).toBe('Launch')
+    expect(after.editorGone).toBe(true)
+    expect(after.bgCount).toBe(1) // background re-added once (no stale/dup)
+    expect(after.edited.id).toBe('peak')
+    expect(after.edited.text).toBe('Launch')
+  })
+})

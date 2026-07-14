@@ -924,6 +924,11 @@ type ApexChart = {
      * position. `options` carries the annotation id/index and its new data x/y.
      */
     annotationDragged?(chart: ApexCharts, options?: { id?: string; index: number; x: any; y: any }): void
+    /**
+     * Ink Layer (#7): fired after a point annotation's label is edited inline.
+     * `options` carries the annotation id/index and the new label text.
+     */
+    annotationEdited?(chart: ApexCharts, options?: { id?: string; index: number; text: string }): void
     keyDown?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     keyUp?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     /** Fired before a drill-down transition begins. Requires the Drilldown feature. */

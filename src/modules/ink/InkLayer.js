@@ -39,6 +39,8 @@ export default class InkLayer {
     this._wired = false
     /** @type {any} */
     this._drag = null
+    /** @type {any} */
+    this._editor = null
     this._attach = this._attach.bind(this)
     this._onMove = this._onMove.bind(this)
     this._onUp = this._onUp.bind(this)
@@ -102,6 +104,12 @@ export default class InkLayer {
         el.addEventListener('touchstart', (/** @type {any} */ e) =>
           this._onDown(e, index),
         )
+        // P2: double-click to edit the label text inline.
+        el.addEventListener('dblclick', (/** @type {any} */ e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          this._startEdit(index)
+        })
       })
     })
   }
@@ -173,17 +181,39 @@ export default class InkLayer {
     anno.x = newX
     if (newY != null) anno.y = newY
 
-    // Targeted redraw: drop the dragged annotation's elements and re-add it at
-    // the new anchor (no full chart re-render). updateOptions({}) is unreliable
-    // here (it early-returns on a repeat empty call).
-    d.els.forEach((/** @type {any} */ el) => el.remove())
-    const group = w.dom.baseEl.querySelector('.apexcharts-point-annotations')
-    if (group && this.ctx.annotations && this.ctx.annotations.pointsAnnotations) {
-      this.ctx.annotations.pointsAnnotations.addPointAnnotation(anno, group, d.index)
+    this._redrawAnno(anno, d.index)
+    this._fireDragged(anno, d.index)
+  }
+
+  /**
+   * Targeted redraw of one point annotation: drop its elements and re-add the
+   * marker + label + label background at the current config x/y (no full chart
+   * re-render, and repeat-safe unlike updateOptions({}), which early-returns on
+   * a repeat empty call).
+   * @param {any} anno @param {number} index
+   */
+  _redrawAnno(anno, index) {
+    const w = this.w
+    const baseEl = w.dom.baseEl
+    if (!baseEl) return
+    baseEl.querySelectorAll('.' + anno.id).forEach((/** @type {any} */ el) => el.remove())
+    const group = baseEl.querySelector('.apexcharts-point-annotations')
+    const annotations = this.ctx.annotations
+    if (group && annotations && annotations.pointsAnnotations) {
+      annotations.pointsAnnotations.addPointAnnotation(anno, group, index)
+      // The label background is drawn by annotationsBackground() (after the main
+      // draw), not by addPointAnnotation, so re-add just this label's bg rect.
+      const labelEl = baseEl.querySelector(
+        '.apexcharts-point-annotation-label.' + anno.id,
+      )
+      if (labelEl && annotations.helpers && anno.label && anno.label.text) {
+        const elRect = annotations.helpers.addBackgroundToAnno(labelEl, anno)
+        if (elRect && labelEl.parentNode) {
+          labelEl.parentNode.insertBefore(elRect.node, labelEl)
+        }
+      }
     }
     this._attach() // bind the freshly drawn elements (idempotent for the rest)
-
-    this._fireDragged(anno, d.index)
   }
 
   /**
@@ -217,6 +247,95 @@ export default class InkLayer {
     return { newX, newY }
   }
 
+  // ─── P2: inline label editing ────────────────────────────────────────────
+
+  /**
+   * Open an inline text editor over a point annotation's label (an absolutely
+   * positioned input in the chart wrap). Commit on Enter/blur, cancel on Escape.
+   * @param {number} index
+   */
+  _startEdit(index) {
+    const w = this.w
+    const anno = this._points()[index]
+    const baseEl = w.dom.baseEl
+    const elWrap = w.dom.elWrap
+    if (!anno || !anno.id || !baseEl || !elWrap) return
+
+    const anchor =
+      baseEl.querySelector('.apexcharts-point-annotation-label.' + anno.id) ||
+      baseEl.querySelector('.' + anno.id)
+    if (!anchor) return
+
+    this._removeEditor()
+
+    const doc = baseEl.ownerDocument
+    const wrapRect = elWrap.getBoundingClientRect()
+    const aRect = anchor.getBoundingClientRect()
+    const input = doc.createElement('input')
+    input.type = 'text'
+    input.value = (anno.label && anno.label.text) || ''
+    input.className = 'apexcharts-ink-editor'
+    const s = input.style
+    s.position = 'absolute'
+    s.left = Math.round(aRect.left - wrapRect.left) + 'px'
+    s.top = Math.round(aRect.top - wrapRect.top) + 'px'
+    s.zIndex = '20'
+    s.font = (anno.label?.style?.fontSize || '12px') + ' sans-serif'
+    s.padding = '2px 4px'
+    s.border = '1px solid #6366f1'
+    s.borderRadius = '3px'
+    s.minWidth = '60px'
+    elWrap.appendChild(input)
+    input.focus()
+    input.select()
+
+    this._editor = { input, index }
+    input.addEventListener('keydown', (/** @type {any} */ e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        this._commitEdit()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        this._removeEditor()
+      }
+    })
+    input.addEventListener('blur', () => this._commitEdit())
+  }
+
+  _commitEdit() {
+    const ed = this._editor
+    if (!ed) return
+    this._editor = null // guard the re-entrant blur that removing the input fires
+    const text = ed.input.value
+    const index = ed.index
+    if (ed.input.parentNode) ed.input.parentNode.removeChild(ed.input)
+
+    const anno = this.w.config.annotations.points[index]
+    if (!anno) return
+    if (!anno.label) anno.label = {}
+    if (anno.label.text === text) return
+    anno.label.text = text
+    this._redrawAnno(anno, index)
+    this._fireEdited(anno, index)
+  }
+
+  _removeEditor() {
+    const ed = this._editor
+    if (!ed) return
+    this._editor = null
+    if (ed.input.parentNode) ed.input.parentNode.removeChild(ed.input)
+  }
+
+  /** @param {any} anno @param {number} index */
+  _fireEdited(anno, index) {
+    const args = { id: anno.id, index, text: anno.label ? anno.label.text : '' }
+    const events = this.w.config.chart.events
+    if (typeof events.annotationEdited === 'function') {
+      events.annotationEdited(this.ctx, args)
+    }
+    this.ctx.events?.fireEvent('annotationEdited', [this.ctx, args])
+  }
+
   /** @param {any} anno @param {number} index */
   _fireDragged(anno, index) {
     const args = { id: anno.id, index, x: anno.x, y: anno.y }
@@ -238,6 +357,7 @@ export default class InkLayer {
 
   teardown() {
     this._teardownDocListeners()
+    this._removeEditor()
     this._drag = null
     if (this._wired) {
       this.ctx.removeEventListener?.('mounted', this._attach)

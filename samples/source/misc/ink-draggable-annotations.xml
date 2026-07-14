@@ -58,7 +58,7 @@
 
   <div class="ink-note">
     The chart sets <code>chart.ink.enabled</code>, so its point annotations are
-    <b>draggable</b>: grab a labelled marker and move it. On release the new
+    <b>draggable</b>: grab a labelled marker and move it. Double-click a label to rename it inline. On release the new
     position is converted back to data coordinates and written to
     <code>annotations.points[].x/y</code>, so the annotation stays glued to that
     data location on later zoom or resize. Each drag fires

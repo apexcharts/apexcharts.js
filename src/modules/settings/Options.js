@@ -389,6 +389,7 @@ export default class Options {
           crossFilter: undefined,
           filterChange: undefined,
           annotationDragged: undefined,
+          annotationEdited: undefined,
           keyDown: undefined,
           keyUp: undefined,
         },
