@@ -66,8 +66,10 @@
     note. The x-axis <b>Window</b> band moves (drag its middle) or resizes (drag
     an edge), and the y-axis <b>Target</b> line drags vertically. Fires
     <code>annotationDragged</code> / <code>annotationEdited</code> /
-    <code>annotationCreated</code>. Needs the <code>ink</code> feature. (Set
-    <code>draggable:false</code> on a single annotation to pin it.)
+    <code>annotationCreated</code>. With the history (Rewind) feature enabled,
+    <b>Ctrl/Cmd+Z</b> undoes any edit and Shift+Ctrl/Cmd+Z redoes it. Needs the
+    <code>ink</code> feature. (Set <code>draggable:false</code> on a single
+    annotation to pin it.)
   </div>
 </div>
 </html>
@@ -81,6 +83,7 @@ chart: {
   fontFamily: 'Helvetica, Arial, sans-serif',
   animations: { enabled: false },
   ink: { enabled: true, palette: true },
+  history: { enabled: true },
   toolbar: { show: false },
   zoom: { enabled: false },
 },

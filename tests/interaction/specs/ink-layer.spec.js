@@ -235,3 +235,54 @@ test.describe('Ink Layer: axis annotations', () => {
     expect(resized.x2).toBeCloseTo(moved.x2, 5)
   })
 })
+
+test.describe('Ink Layer: undo/redo + snap', () => {
+  test.beforeEach(async ({ loadChart }) => {
+    await loadChart('misc', 'ink-draggable-annotations')
+  })
+
+  async function dragPoint(page, id, dx, dy) {
+    return page.evaluate(
+      ({ id, dx, dy }) => {
+        const m = window.chart.el.querySelector('.apexcharts-point-annotation-marker.' + id)
+        const r = m.getBoundingClientRect()
+        const sx = r.left + r.width / 2, sy = r.top + r.height / 2
+        m.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window, clientX: sx, clientY: sy, button: 0 }))
+        document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true, view: window, clientX: sx + dx, clientY: sy + dy, button: 0 }))
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window, clientX: sx + dx, clientY: sy + dy, button: 0 }))
+        return window.chart.w.config.annotations.points.find((p) => p.id === id).x
+      },
+      { id, dx, dy },
+    )
+  }
+  const peakX = (page) =>
+    page.evaluate(() => window.chart.w.config.annotations.points.find((p) => p.id === 'peak').x)
+
+  test('a drag is undoable and redoable (Rewind)', async ({ page }) => {
+    const before = await peakX(page)
+    const afterDrag = await dragPoint(page, 'peak', 60, -30)
+    expect(afterDrag).toBeGreaterThan(before)
+    expect(await page.evaluate(() => window.chart.history.canUndo())).toBe(true)
+
+    await page.evaluate(() => window.chart.history.undo(false))
+    await page.waitForFunction(
+      (b) => window.chart.w.config.annotations.points.find((p) => p.id === 'peak').x === b,
+      before,
+    )
+    expect(await peakX(page)).toBe(before)
+    // the annotation is still there and draggable after the restore re-render
+    expect(await page.evaluate(() => !!window.chart.el.querySelector('.apexcharts-point-annotation-marker.peak'))).toBe(true)
+
+    await page.evaluate(() => window.chart.history.redo(false))
+    await page.waitForTimeout(60)
+    expect(await peakX(page)).toBeCloseTo(afterDrag, 5)
+  })
+
+  test('snap pulls a dragged annotation onto a gridline', async ({ page }) => {
+    // enable snap at runtime (read live from config on each drag)
+    await page.evaluate(() => { window.chart.w.config.chart.ink.snap = true })
+    const ticks = await page.evaluate(() => window.chart.w.globals.xAxisScale.result)
+    const snapped = await dragPoint(page, 'dip', 18, 0)
+    expect(ticks.indexOf(snapped)).toBeGreaterThan(-1) // exactly on a gridline
+  })
+})

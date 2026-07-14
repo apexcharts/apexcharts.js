@@ -303,6 +303,18 @@ export default class History {
   // ─── Public API ─────────────────────────────────────────────────────────
 
   /**
+   * Commit a checkpoint of the current state now (a discrete undo step). Used by
+   * callers that mutate `w.config` without going through a full re-render (e.g.
+   * Ink Layer's targeted annotation redraws, which fire no 'updated' event).
+   * No-op when disabled or while a restore is applying.
+   * @param {string} [label]
+   */
+  snapshot(label) {
+    if (!this.enabled || this.applying) return
+    this._commit(label || 'change')
+  }
+
+  /**
    * @param {boolean} [animate]
    */
   undo(animate = true) {

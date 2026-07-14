@@ -77,6 +77,52 @@ export default class InkLayer {
     return !!(ink && ink.palette)
   }
 
+  _snapEnabled() {
+    const ink = this.w.config.chart.ink
+    return !!(ink && ink.snap)
+  }
+
+  // ─── P5: snap to gridlines ────────────────────────────────────────────────
+
+  /** @param {number} v @param {number[]} ticks @returns {number} nearest tick */
+  _nearest(v, ticks) {
+    let best = v
+    let bd = Infinity
+    for (let i = 0; i < ticks.length; i++) {
+      const d = Math.abs(ticks[i] - v)
+      if (d < bd) {
+        bd = d
+        best = ticks[i]
+      }
+    }
+    return best
+  }
+
+  /**
+   * Snap an x value to the nearest x gridline (numeric axes only).
+   * @param {number} x
+   */
+  _snapX(x) {
+    if (!this._snapEnabled() || typeof x !== 'number') return x
+    const s = this.w.globals.xAxisScale
+    return s && Array.isArray(s.result) && s.result.length
+      ? this._nearest(x, s.result)
+      : x
+  }
+
+  /**
+   * Snap a y value to the nearest y gridline.
+   * @param {number} y @param {number} si
+   */
+  _snapY(y, si) {
+    if (!this._snapEnabled() || typeof y !== 'number') return y
+    const scales = this.w.globals.yAxisScale
+    const s = scales && scales[si]
+    return s && Array.isArray(s.result) && s.result.length
+      ? this._nearest(y, s.result)
+      : y
+  }
+
   /** @param {string} type @returns {any[]} the config annotations of a type */
   _annoList(type) {
     const a = this.w.config.annotations
@@ -240,7 +286,18 @@ export default class InkLayer {
     this._applyDelta(d, anno)
     d.els.forEach((/** @type {any} */ el) => el.removeAttribute('transform'))
     this._redrawAnno(d.type, anno, d.index)
+    this._checkpoint('ink:drag')
     this._fireDragged(d.type, anno, d.index)
+  }
+
+  /**
+   * Record a Rewind (undo) checkpoint for an ink edit. Targeted redraws fire no
+   * 'updated' event, so History would otherwise miss them. No-op when the
+   * history feature is absent or disabled.
+   * @param {string} label
+   */
+  _checkpoint(label) {
+    this.ctx.history?.snapshot?.(label)
   }
 
   /**
@@ -255,23 +312,33 @@ export default class InkLayer {
 
     if (d.type === 'point') {
       const { newX, newY } = this._invertPoint(anno, d.dxPixel, d.dyPixel)
-      anno.x = newX
-      if (newY != null) anno.y = newY
+      anno.x = this._snapX(newX)
+      if (newY != null) {
+        const yi = anno.yAxisIndex || 0
+        const map = w.globals.seriesYAxisMap
+        anno.y = this._snapY(newY, map && map[yi] ? map[yi][0] : 0)
+      }
       return
     }
 
     if (d.type === 'xaxis') {
       if (typeof anno.x !== 'number') return // category/string x: leave as-is
       if (d.mode === 'move') {
-        anno.x += dxData
-        if (typeof anno.x2 === 'number') anno.x2 += dxData
-      } else {
+        if (typeof anno.x2 === 'number') {
+          // range move: shift both edges, keep the span (no snap)
+          anno.x += dxData
+          anno.x2 += dxData
+        } else {
+          // line move: snap the single value to a gridline
+          anno.x = this._snapX(anno.x + dxData)
+        }
+      } else if (d.mode === 'resize-x1' || d.mode === 'resize-x2') {
         // resize: the left edge is the smaller value, the right edge the larger
         const xIsLeft = anno.x2 == null || anno.x <= anno.x2
         const grow = d.mode === 'resize-x2' ? !xIsLeft : xIsLeft
-        // grow === true -> adjust anno.x, else adjust anno.x2
-        if (grow) anno.x += dxData
-        else if (typeof anno.x2 === 'number') anno.x2 += dxData
+        // grow === true -> adjust anno.x, else adjust anno.x2 (snap the edge)
+        if (grow) anno.x = this._snapX(anno.x + dxData)
+        else if (typeof anno.x2 === 'number') anno.x2 = this._snapX(anno.x2 + dxData)
       }
       return
     }
@@ -283,8 +350,14 @@ export default class InkLayer {
       const yRange = w.globals.yRange ? w.globals.yRange[si] : null
       if (yRange == null || !w.layout.gridHeight) return
       const dyData = -d.dyPixel * (yRange / w.layout.gridHeight)
-      if (typeof anno.y === 'number') anno.y += dyData
-      if (typeof anno.y2 === 'number') anno.y2 += dyData
+      if (typeof anno.y2 === 'number') {
+        // range move: shift both edges, keep the span (no snap)
+        if (typeof anno.y === 'number') anno.y += dyData
+        anno.y2 += dyData
+      } else if (typeof anno.y === 'number') {
+        // line move: snap the single value to a gridline
+        anno.y = this._snapY(anno.y + dyData, si)
+      }
     }
   }
 
@@ -421,6 +494,7 @@ export default class InkLayer {
     const index = w.config.annotations.points.length - 1
 
     this._redrawAnno('point', anno, index)
+    this._checkpoint('ink:create')
     this._fireCreated(anno, index)
     this._startEdit('point', index)
   }
@@ -593,6 +667,7 @@ export default class InkLayer {
     if (anno.label.text === text) return
     anno.label.text = text
     this._redrawAnno(ed.type, anno, ed.index)
+    this._checkpoint('ink:edit')
     this._fireEdited(ed.type, anno, ed.index)
   }
 

@@ -1008,6 +1008,11 @@ type ApexChart = {
      * next plot click drops an editable, draggable annotation). @default false
      */
     palette?: boolean
+    /**
+     * Snap a dragged point / axis-line annotation to the nearest gridline
+     * (numeric x + linear y). @default false
+     */
+    snap?: boolean
   }
   id?: string
   injectStyleSheet?: boolean

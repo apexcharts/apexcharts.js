@@ -469,6 +469,10 @@ export default class Options {
           // Show a minimal "add note" tool palette; clicking it arms create
           // mode (the next plot click drops an editable, draggable annotation).
           palette: false,
+          // Snap a dragged point / axis-line annotation to the nearest gridline
+          // (numeric x + linear y). Undo/redo of ink edits is automatic when the
+          // history (Rewind) feature is enabled.
+          snap: false,
         },
         stacked: false,
         stackOnlyBar: true, // mixed chart with stacked bars and line series - incorrect line draw #907
