@@ -913,6 +913,12 @@ type ApexChart = {
      * crossfilter across the group.
      */
     crossFilter?(chart: ApexCharts, options?: { xaxis: { min: number; max: number }; sourceChartID?: string }): void
+    /**
+     * Linked Views (#4) FILTER mode: fired on the source chart when a click
+     * toggles a crossfilter bucket. `options` carries the coordinator state
+     * (active filters, filtered/total counts), the source chartID, and the key.
+     */
+    filterChange?(chart: ApexCharts, options?: { filters: Record<string, any>; filteredCount: number; total: number; sourceChartID?: string; key?: any }): void
     keyDown?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     keyUp?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     /** Fired before a drill-down transition begins. Requires the Drilldown feature. */
@@ -931,19 +937,40 @@ type ApexChart = {
     targets?: string[]
   }
   /**
-   * Linked Views (#4): crossfilter / linked highlighting. Charts that share a
-   * `chart.group` and set `link.enabled` form a crossfilter set. Brushing a
-   * range (needs `chart.selection.enabled`) on any member dims every member's
-   * data marks whose x falls outside the range, in place (no re-render).
-   * Requires the `link` feature (`import 'apexcharts/features/link'`).
+   * Linked Views (#4): crossfilter / linked highlighting. Requires the `link`
+   * feature (`import 'apexcharts/features/link'`). Two modes:
+   *
+   * HIGHLIGHT (P1): `enabled` with no `dimension`. Charts sharing a
+   * `chart.group` form a set; brushing a range (needs `chart.selection.enabled`)
+   * on any member dims every member's marks whose x is outside the range, in
+   * place (no re-render).
+   *
+   * FILTER (P2): set `dimension` (its presence selects this path). Each chart
+   * declares a dimension + reduction over a shared record set registered with
+   * `ApexCharts.crossfilter({ id, records })`; clicking a bucket re-aggregates
+   * every other participating chart over the filtered subset.
    */
   link?: {
     /** @default false */
     enabled?: boolean
-    /** Only 'highlight' (dim in place) is supported for now. @default 'highlight' */
-    mode?: 'highlight'
-    /** Opacity applied to dimmed (out-of-range) marks. @default 0.2 */
+    /** Highlight mode (P1) label; filter mode is selected by `dimension`. @default 'highlight' */
+    mode?: 'highlight' | 'filter'
+    /** Opacity applied to dimmed (unselected / out-of-range) marks. @default 0.2 */
     dimOpacity?: number
+    /** FILTER mode: crossfilter coordinator id (defaults to `chart.group`). */
+    id?: string
+    /** FILTER mode: `(row) => key`. Its presence selects filter mode. */
+    dimension?: (row: any) => any
+    /** FILTER mode: reduction over a bucket's rows. @default 'count' */
+    reduce?: 'count' | { sum?: string; avg?: string; min?: string; max?: string } | ((rows: any[]) => number)
+    /** FILTER mode: bucket kind (else inferred: `bins` present => 'range'). */
+    type?: 'category' | 'range'
+    /** FILTER mode (range dims): binning spec. */
+    bins?: { width?: number; count?: number; thresholds?: number[] }
+    /** FILTER mode (category dims): key ordering. @default 'first-seen' */
+    order?: 'first-seen' | 'asc' | 'desc' | ((a: any, b: any) => number)
+    /** FILTER mode (axis charts): the derived series name. @default 'Count' */
+    seriesName?: string
   }
   id?: string
   injectStyleSheet?: boolean
@@ -2579,6 +2606,8 @@ interface ApexCrossfilter {
     },
   ): this
   removeDimension(chartId: string): this
+  /** Whether a chart's dimension is registered. */
+  hasDimension(chartId: string): boolean
   /** Replace a chart's filter (keys for category, `[min,max]` for range, null clears). */
   filter(chartId: string, filter: any[] | Set<any> | [number, number] | null): this
   /** Toggle one categorical key (multi-select, OR). */

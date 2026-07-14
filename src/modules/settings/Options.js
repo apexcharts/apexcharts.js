@@ -387,6 +387,7 @@ export default class Options {
           scrolled: undefined,
           brushScrolled: undefined,
           crossFilter: undefined,
+          filterChange: undefined,
           keyDown: undefined,
           keyUp: undefined,
         },
@@ -434,15 +435,27 @@ export default class Options {
           target: undefined,
           targets: undefined,
         },
-        // Linked Views (#4): crossfilter / linked highlighting. Charts sharing a
-        // `chart.group` and opting in here form a crossfilter set. Brushing a
-        // range (needs `chart.selection.enabled`) on any member dims every
-        // member's data marks whose x is outside the range, in place (no
-        // re-render). Requires the `link` feature. mode 'highlight' only for now.
+        // Linked Views (#4): crossfilter / linked highlighting. Requires the
+        // `link` feature. Two modes:
+        //   HIGHLIGHT (P1): `enabled` with no `dimension`. Charts sharing a
+        //   `chart.group` form a set; brushing a range (needs
+        //   `chart.selection.enabled`) dims out-of-range marks in place.
+        //   FILTER (P2): set `dimension` (its presence selects this path). Each
+        //   chart declares a dimension + reduction over a shared record set
+        //   registered with ApexCharts.crossfilter({ id, records }); clicking a
+        //   bucket re-aggregates the other charts. See docs/spec.
         link: {
           enabled: false,
           mode: 'highlight',
           dimOpacity: 0.2,
+          // FILTER-mode config (all optional except dimension):
+          id: undefined, // crossfilter coordinator id (defaults to chart.group)
+          dimension: undefined, // (row) => key; presence selects filter mode
+          reduce: undefined, // 'count' | { sum|avg|min|max: field } | (rows)=>n
+          type: undefined, // 'category' | 'range' (else inferred from bins)
+          bins: undefined, // range dims: { width } | { count } | { thresholds }
+          order: undefined, // category order: 'first-seen' | 'asc' | 'desc' | fn
+          seriesName: undefined, // axis-chart series name (default 'Count')
         },
         stacked: false,
         stackOnlyBar: true, // mixed chart with stacked bars and line series - incorrect line draw #907

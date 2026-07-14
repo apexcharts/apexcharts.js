@@ -283,6 +283,11 @@ export default class Crossfilter {
     return this
   }
 
+  /** @param {string} chartId @returns {boolean} */
+  hasDimension(chartId) {
+    return this.dims.has(chartId)
+  }
+
   /** @param {string} chartId */
   removeDimension(chartId) {
     this.dims.delete(chartId)
