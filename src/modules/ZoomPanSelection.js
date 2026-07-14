@@ -715,8 +715,14 @@ export default class ZoomPanSelection extends Toolbar {
     w.interact.selection = draggedProps
     // update selection ends
 
+    // Run the range recompute when the user has a selection callback OR Linked
+    // Views (#4) crossfilter is on, so dragging/resizing the persistent
+    // selection rect re-crossfilters even without a user events.selection.
+    const linkEnabled = !!(
+      w.config.chart.link && w.config.chart.link.enabled
+    )
     if (
-      typeof w.config.chart.events.selection === 'function' &&
+      (typeof w.config.chart.events.selection === 'function' || linkEnabled) &&
       w.interact.selectionEnabled
     ) {
       // a small debouncer is required when resizing to avoid freezing the chart
@@ -728,15 +734,21 @@ export default class ZoomPanSelection extends Toolbar {
 
         let minX, maxX, minY, maxY
 
+        // Convert the rect's pixel edges to data-x. Subtract barPadForNumericAxis
+        // so this matches selectionDrawn (the initial-draw path): numeric/datetime
+        // bar charts inset the plot by ~half a bar, so without this the drag path
+        // reports an x-range shifted by half a bar (the first bar could never be
+        // reached, and the crossfilter/selection boundaries were off).
+        const relLeft =
+          selectionRect.left - gridRectDim.left - w.globals.barPadForNumericAxis
+        const relRight =
+          selectionRect.right - gridRectDim.left - w.globals.barPadForNumericAxis
+
         if (!w.axisFlags.isRangeBar) {
           // normal XY charts
           if (!w.globals.xAxisScale) return
-          minX =
-            w.globals.xAxisScale.niceMin +
-            (selectionRect.left - gridRectDim.left) * xyRatios.xRatio
-          maxX =
-            w.globals.xAxisScale.niceMin +
-            (selectionRect.right - gridRectDim.left) * xyRatios.xRatio
+          minX = w.globals.xAxisScale.niceMin + relLeft * xyRatios.xRatio
+          maxX = w.globals.xAxisScale.niceMin + relRight * xyRatios.xRatio
 
           minY =
             w.globals.yAxisScale[0].niceMin +
@@ -747,11 +759,9 @@ export default class ZoomPanSelection extends Toolbar {
         } else {
           // rangeBars use y for datetime
           minX =
-            w.globals.yAxisScale[0].niceMin +
-            (selectionRect.left - gridRectDim.left) * xyRatios.invertedYRatio
+            w.globals.yAxisScale[0].niceMin + relLeft * xyRatios.invertedYRatio
           maxX =
-            w.globals.yAxisScale[0].niceMin +
-            (selectionRect.right - gridRectDim.left) * xyRatios.invertedYRatio
+            w.globals.yAxisScale[0].niceMin + relRight * xyRatios.invertedYRatio
 
           minY = 0
           maxY = 1
@@ -767,7 +777,9 @@ export default class ZoomPanSelection extends Toolbar {
             max: maxY,
           },
         }
-        w.config.chart.events.selection(this.ctx, xyAxis)
+        if (typeof w.config.chart.events.selection === 'function') {
+          w.config.chart.events.selection(this.ctx, xyAxis)
+        }
 
         if (
           w.config.chart.brush.enabled &&
@@ -775,6 +787,11 @@ export default class ZoomPanSelection extends Toolbar {
         ) {
           w.config.chart.events.brushScrolled(this.ctx, xyAxis)
         }
+
+        // Linked Views (#4): re-crossfilter live as the persistent selection
+        // rect is dragged or resized (the initial draw + handle-resize go
+        // through selectionDrawn; the drag path lands here).
+        this.ctx.linkedViews?.onSourceSelection(xyAxis.xaxis)
       }, timerInterval)
     }
   }
@@ -936,6 +953,10 @@ export default class ZoomPanSelection extends Toolbar {
             yaxis,
           })
         }
+        // Linked Views (#4): feed the brushed data-x range to the crossfilter
+        // coordinator, which dims out-of-range marks across the group. Null-safe
+        // no-op unless the `link` feature is bundled and chart.link.enabled.
+        me.ctx.linkedViews?.onSourceSelection(xaxis)
       }
     }
   }
