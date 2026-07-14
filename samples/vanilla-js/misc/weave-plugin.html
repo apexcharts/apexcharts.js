@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Weave Plugin Platform (custom plugin drawing into its own layer)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 760px;
+        margin: 16px auto;
+      }
+      .panel {
+        max-width: 760px;
+        margin: 16px auto;
+        font-family: sans-serif;
+      }
+      .controls {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .controls button {
+        padding: 7px 16px;
+        cursor: pointer;
+        border: 1px solid #cdd3de;
+        background: #fff;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .readout {
+        font-family: monospace;
+        font-size: 13px;
+        color: #444;
+      }
+      .readout b {
+        color: #111;
+      }
+      .note {
+        background: #f0fbfa;
+        border-left: 3px solid #0e9d9a;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        margin-top: 12px;
+        line-height: 1.55;
+      }
+      .note code {
+        background: #d7f2f0;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Weave (#1): a third-party plugin registered ONCE, globally, by name. It
+      // never touches internal state: it subscribes to the 'draw' lifecycle hook
+      // and paints into its own sandboxed layer using the api (scales, data, theme,
+      // emit). Activate it per-chart via the top-level plugins array.
+      ApexCharts.registerPlugin({
+        name: 'mean-line',
+        apiVersion: 1,
+        setup(api) {
+          api.on('draw', function (ctx) {
+            var scales = ctx.scales
+            var data = ctx.data
+            if (!scales || !data || !data.length) return
+
+            var layer = api.layer({ z: 'front' })
+            layer.clear()
+
+            var series = data.filter(function (s) {
+              return !s.hidden
+            })[0]
+            if (!series || !series.points.length) return
+
+            var sum = 0
+            var n = 0
+            series.points.forEach(function (p) {
+              if (p.y != null) {
+                sum += p.y
+                n++
+              }
+            })
+            if (!n) return
+
+            var mean = sum / n
+            var y = scales.y(mean)
+            var accent = api.theme.token('accent') || '#0e9d9a'
+
+            layer.line({
+              x1: 0,
+              y1: y,
+              x2: scales.gridWidth,
+              y2: y,
+              stroke: accent,
+              width: 2,
+              dash: 5,
+            })
+            layer.text({
+              x: scales.gridWidth - 6,
+              y: y - 7,
+              text: 'mean ' + mean.toFixed(1),
+              color: accent,
+              size: 12,
+              anchor: 'end',
+              weight: 600,
+            })
+
+            // hand the computed value back to the page via a custom event
+            api.emit('meanComputed', { value: mean })
+          })
+        },
+      })
+
+      function randomSeries() {
+        var d = []
+        for (var i = 0; i < 8; i++) d.push(Math.round(20 + Math.random() * 80))
+        return d
+      }
+    </script>
+  </head>
+
+  <body>
+     <div class="panel">
+        <div class="controls">
+          <button id="newData">New data</button>
+          <span class="readout" id="readout">Mean line drawn by the plugin. Press New data to recompute.</span>
+        </div>
+      </div>
+      
+      <div id="chart"></div>
+      
+      <div class="panel">
+        <div class="note">
+          The dashed mean line is not part of the chart: it is drawn by a plugin
+          registered with <code>ApexCharts.registerPlugin({ name, setup })</code> and
+          activated via <code>plugins: [{ name: 'mean-line' }]</code>. On every
+          <code>draw</code> hook the plugin reads <code>api.data</code>, converts the
+          mean to a pixel with <code>api.scales.y()</code>, paints into its own
+          <code>api.layer()</code>, and reports the value back through
+          <code>api.emit()</code>. Press New data: the plugin recomputes and redraws.
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: [{ name: 'Value', data: [42, 61, 38, 74, 55, 48, 67, 52] }],
+        chart: {
+          height: 380,
+          type: 'line',
+          animations: { enabled: true },
+          toolbar: { show: false },
+        },
+        colors: ['#0e9d9a'],
+        stroke: { curve: 'smooth', width: 3 },
+        markers: { size: 4 },
+        title: { text: 'Series with a plugin-drawn mean line', align: 'left' },
+        subtitle: {
+          text: 'The mean line comes from a Weave plugin, not the chart config',
+          align: 'left',
+        },
+        xaxis: { categories: [1, 2, 3, 4, 5, 6, 7, 8] },
+        plugins: [{ name: 'mean-line' }],
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      var readout = document.getElementById('readout')
+
+      chart.addEventListener('meanComputed', function (c, payload) {
+        var detail =
+          payload && payload.value != null ? payload : c && c.value != null ? c : null
+        var v = detail ? detail.value : null
+        if (v != null) {
+          readout.innerHTML =
+            'plugin mean-line emitted: <b>mean = ' + v.toFixed(1) + '</b>'
+        }
+      })
+
+      document.getElementById('newData').addEventListener('click', function () {
+        chart.updateSeries([{ name: 'Value', data: randomSeries() }])
+      })
+    </script>
+
+    
+  </body>
+</html>
