@@ -554,6 +554,7 @@ export interface ChartContext {
   perspectives: any
   history: any
   linkedViews: any
+  ink: any
   weave: any
   renderer: any
   rendererController: any

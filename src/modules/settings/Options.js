@@ -388,6 +388,7 @@ export default class Options {
           brushScrolled: undefined,
           crossFilter: undefined,
           filterChange: undefined,
+          annotationDragged: undefined,
           keyDown: undefined,
           keyUp: undefined,
         },
@@ -456,6 +457,13 @@ export default class Options {
           bins: undefined, // range dims: { width } | { count } | { thresholds }
           order: undefined, // category order: 'first-seen' | 'asc' | 'desc' | fn
           seriesName: undefined, // axis-chart series name (default 'Count')
+        },
+        // Ink Layer (#7): direct-manipulation annotations. When enabled, every
+        // point annotation is draggable (unless it sets draggable:false); or opt
+        // in per annotation with annotations.points[].draggable. Requires the
+        // `ink` feature. Fires the annotationDragged event.
+        ink: {
+          enabled: false,
         },
         stacked: false,
         stackOnlyBar: true, // mixed chart with stacked bars and line series - incorrect line draw #907

@@ -71,6 +71,7 @@ export default class ApexCharts {
   /** @type {any} */ perspectives
   /** @type {any} */ history
   /** @type {any} */ linkedViews
+  /** @type {any} */ ink
   /** @type {any} */ weave
   /** @type {any} */ renderer
   /** @type {any} */ rendererController

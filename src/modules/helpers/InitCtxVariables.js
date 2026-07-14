@@ -234,6 +234,12 @@ export default class InitCtxVariables {
     const LinkedViewsCtor = reg.get('linkedViews')
     ctx.linkedViews = LinkedViewsCtor ? new LinkedViewsCtor(w, ctx) : null
 
+    // Ink Layer (#7): ctx.ink (opt-in direct-manipulation annotations via
+    // chart.ink.enabled or annotations.points[].draggable). Eager so it survives
+    // update() and rebinds drag handlers after each render; inert otherwise.
+    const InkCtor = reg.get('ink')
+    ctx.ink = InkCtor ? new InkCtor(w, ctx) : null
+
     // Weave: ctx.weave (public plugin platform host). Eager so plugin setup()
     // runs before the first render and the host survives update(). Inert when
     // no plugins are configured; every `weave?.dispatch(...)` seam no-ops when

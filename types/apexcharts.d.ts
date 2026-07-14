@@ -919,6 +919,11 @@ type ApexChart = {
      * (active filters, filtered/total counts), the source chartID, and the key.
      */
     filterChange?(chart: ApexCharts, options?: { filters: Record<string, any>; filteredCount: number; total: number; sourceChartID?: string; key?: any }): void
+    /**
+     * Ink Layer (#7): fired after a point annotation is dragged to a new
+     * position. `options` carries the annotation id/index and its new data x/y.
+     */
+    annotationDragged?(chart: ApexCharts, options?: { id?: string; index: number; x: any; y: any }): void
     keyDown?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     keyUp?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     /** Fired before a drill-down transition begins. Requires the Drilldown feature. */
@@ -977,6 +982,16 @@ type ApexChart = {
     order?: 'first-seen' | 'asc' | 'desc' | ((a: any, b: any) => number)
     /** FILTER mode (axis charts): the derived series name. @default 'Count' */
     seriesName?: string
+  }
+  /**
+   * Ink Layer (#7): direct-manipulation annotations. When enabled, every point
+   * annotation is draggable (unless it sets `draggable:false`); or opt in per
+   * annotation with `annotations.points[].draggable`. Requires the `ink` feature
+   * (`import 'apexcharts/features/ink'`). Fires the `annotationDragged` event.
+   */
+  ink?: {
+    /** @default false */
+    enabled?: boolean
   }
   id?: string
   injectStyleSheet?: boolean
@@ -1379,6 +1394,11 @@ type PointAnnotations = {
   y?: null | number
   yAxisIndex?: number
   seriesIndex?: number
+  /**
+   * Ink Layer (#7): make this point annotation draggable. Overrides
+   * `chart.ink.enabled`. Requires the `ink` feature.
+   */
+  draggable?: boolean
   mouseEnter?: (annotation: PointAnnotations, e: MouseEvent) => void
   mouseLeave?: (annotation: PointAnnotations, e: MouseEvent) => void
   click?: (annotation: PointAnnotations, e: MouseEvent) => void

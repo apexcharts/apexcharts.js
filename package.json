@@ -186,6 +186,10 @@
       "import": "./dist/features/link.esm.js",
       "require": "./dist/features/link.common.js"
     },
+    "./features/ink": {
+      "import": "./dist/features/ink.esm.js",
+      "require": "./dist/features/ink.common.js"
+    },
     "./features/all": {
       "import": "./dist/features/all.esm.js",
       "require": "./dist/features/all.common.js"
