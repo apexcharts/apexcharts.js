@@ -135,6 +135,12 @@ declare class ApexCharts {
   /** Toggles (show/hide) the series by name. Mirrors a click on the legend item. */
   toggleSeries(seriesName: string): object | undefined
 
+  /**
+   * Linked Views (#4): clears crossfilter dimming across this chart and every
+   * chart in its `chart.group`. No-op unless the `link` feature is bundled.
+   */
+  clearCrossfilter(): void
+
   /** Highlights or un-highlights a series when a legend marker is hovered. */
   highlightSeriesOnLegendHover(e: MouseEvent, targetElement: HTMLElement): void
 
@@ -890,6 +896,11 @@ type ApexChart = {
     zoomed?(chart: ApexCharts, options?: { xaxis: { min: number; max: number }; yaxis?: { min: number; max: number }[] }): void
     scrolled?(chart: ApexCharts, options?: { xaxis: { min: number; max: number } }): void
     brushScrolled?(chart: ApexCharts, options?: { xaxis: { min: number; max: number }; yaxis?: { min: number; max: number }[] }): void
+    /**
+     * Linked Views (#4): fired on the source chart when a brush range drives a
+     * crossfilter across the group.
+     */
+    crossFilter?(chart: ApexCharts, options?: { xaxis: { min: number; max: number }; sourceChartID?: string }): void
     keyDown?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     keyUp?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     /** Fired before a drill-down transition begins. Requires the Drilldown feature. */
@@ -906,6 +917,21 @@ type ApexChart = {
     autoScaleYaxis?: boolean
     target?: string
     targets?: string[]
+  }
+  /**
+   * Linked Views (#4): crossfilter / linked highlighting. Charts that share a
+   * `chart.group` and set `link.enabled` form a crossfilter set. Brushing a
+   * range (needs `chart.selection.enabled`) on any member dims every member's
+   * data marks whose x falls outside the range, in place (no re-render).
+   * Requires the `link` feature (`import 'apexcharts/features/link'`).
+   */
+  link?: {
+    /** @default false */
+    enabled?: boolean
+    /** Only 'highlight' (dim in place) is supported for now. @default 'highlight' */
+    mode?: 'highlight'
+    /** Opacity applied to dimmed (out-of-range) marks. @default 0.2 */
+    dimOpacity?: number
   }
   id?: string
   injectStyleSheet?: boolean

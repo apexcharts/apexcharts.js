@@ -553,6 +553,7 @@ export interface ChartContext {
   keyboardNavigation: any
   perspectives: any
   history: any
+  linkedViews: any
   weave: any
   renderer: any
   rendererController: any

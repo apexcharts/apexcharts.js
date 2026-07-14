@@ -386,6 +386,7 @@ export default class Options {
           zoomed: undefined,
           scrolled: undefined,
           brushScrolled: undefined,
+          crossFilter: undefined,
           keyDown: undefined,
           keyUp: undefined,
         },
@@ -432,6 +433,16 @@ export default class Options {
           autoScaleYaxis: true,
           target: undefined,
           targets: undefined,
+        },
+        // Linked Views (#4): crossfilter / linked highlighting. Charts sharing a
+        // `chart.group` and opting in here form a crossfilter set. Brushing a
+        // range (needs `chart.selection.enabled`) on any member dims every
+        // member's data marks whose x is outside the range, in place (no
+        // re-render). Requires the `link` feature. mode 'highlight' only for now.
+        link: {
+          enabled: false,
+          mode: 'highlight',
+          dimOpacity: 0.2,
         },
         stacked: false,
         stackOnlyBar: true, // mixed chart with stacked bars and line series - incorrect line draw #907

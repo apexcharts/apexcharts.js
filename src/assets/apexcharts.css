@@ -89,6 +89,14 @@ rect.legend-mouseover-inactive,
   opacity: .2
 }
 
+/* Linked Views (#4): per-mark crossfilter dim. Applied to individual data
+   marks (not whole series) whose x is outside the brushed range. Opacity is
+   overridable per chart via the --apx-cf-dim custom property. */
+.apexcharts-crossfilter-dimmed {
+  transition: opacity .25s ease;
+  opacity: var(--apx-cf-dim, .2)
+}
+
 .apexcharts-legend-text {
   padding-left: 15px;
   margin-left: -15px;

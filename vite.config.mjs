@@ -63,6 +63,7 @@ export const SUB_ENTRIES = {
   ),
   'features/marks': resolve(__dirname, 'src/features/marks.js'),
   'features/facet': resolve(__dirname, 'src/features/facet.js'),
+  'features/link': resolve(__dirname, 'src/features/link.js'),
   'features/all': resolve(__dirname, 'src/features/all.js'),
 }
 

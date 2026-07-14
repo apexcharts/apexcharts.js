@@ -182,6 +182,10 @@
       "import": "./dist/features/facet.esm.js",
       "require": "./dist/features/facet.common.js"
     },
+    "./features/link": {
+      "import": "./dist/features/link.esm.js",
+      "require": "./dist/features/link.common.js"
+    },
     "./features/all": {
       "import": "./dist/features/all.esm.js",
       "require": "./dist/features/all.common.js"

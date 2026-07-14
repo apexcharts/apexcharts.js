@@ -70,6 +70,7 @@ export default class ApexCharts {
   /** @type {any} */ config
   /** @type {any} */ perspectives
   /** @type {any} */ history
+  /** @type {any} */ linkedViews
   /** @type {any} */ weave
   /** @type {any} */ renderer
   /** @type {any} */ rendererController
@@ -1156,6 +1157,14 @@ export default class ApexCharts {
   static registerEasing(name, fn) {
     registerEasing(name, fn)
     return ApexCharts
+  }
+
+  /**
+   * Linked Views (#4): clear crossfilter dimming across this chart and every
+   * chart in its `chart.group`. No-op unless the `link` feature is bundled.
+   */
+  clearCrossfilter() {
+    this.linkedViews?.clearGroup()
   }
 
   /**

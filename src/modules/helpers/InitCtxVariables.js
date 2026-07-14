@@ -227,6 +227,13 @@ export default class InitCtxVariables {
     const HistoryCtor = reg.get('history')
     ctx.history = HistoryCtor ? new HistoryCtor(w, ctx) : null
 
+    // Linked Views (#4): ctx.linkedViews (opt-in crossfilter/linked highlighting
+    // via `chart.link.enabled`). Eager so it survives update() and so a grouped
+    // sibling can be a dim target even if it never brushes. Inert unless
+    // chart.link.enabled; the ZoomPanSelection source hook is null-safe.
+    const LinkedViewsCtor = reg.get('linkedViews')
+    ctx.linkedViews = LinkedViewsCtor ? new LinkedViewsCtor(w, ctx) : null
+
     // Weave: ctx.weave (public plugin platform host). Eager so plugin setup()
     // runs before the first render and the host survives update(). Inert when
     // no plugins are configured; every `weave?.dispatch(...)` seam no-ops when
