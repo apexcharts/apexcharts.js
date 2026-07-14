@@ -965,10 +965,17 @@ export default class ApexCharts {
    * @returns {ApexCharts[]}
    */
   getGroupedCharts() {
+    // Require a truthy group: charts are registered in Apex._chartInstances
+    // whenever chart.id is set (regardless of group), so without this guard two
+    // ungrouped charts both store group === undefined and `undefined ===
+    // undefined` would sync their zoom/pan/hover with each other. Only charts
+    // that opt into the SAME explicit group should coordinate.
     return Apex._chartInstances
       .filter(
         (/** @type {any} */ ch) =>
-          this !== ch.chart && this.w.config.chart.group === ch.group,
+          this !== ch.chart &&
+          !!this.w.config.chart.group &&
+          this.w.config.chart.group === ch.group,
       )
       .map((/** @type {any} */ ch) => ch.chart)
   }
