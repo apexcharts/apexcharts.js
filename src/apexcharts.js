@@ -1160,6 +1160,41 @@ export default class ApexCharts {
   }
 
   /**
+   * Linked Views (#4) Phase 2: get-or-create a crossfilter coordinator by id.
+   * Register one shared record set, then let each chart declare a dimension +
+   * reduction under `chart.link`. Selecting in one chart re-aggregates the
+   * others over the filtered subset.
+   *
+   * Lives in core (always callable) but the engine ships in the `link` feature
+   * (`import 'apexcharts/features/link'`, included in the full bundle); without
+   * it this warns and returns null so the engine shakes out when unused.
+   *
+   * @param {{ id: string, records?: any[] }} opts
+   * @returns {any} the coordinator handle, or null if the feature is absent
+   */
+  static crossfilter(opts) {
+    const factory = /** @type {any} */ (ApexCharts)._crossfilterFactory
+    if (!factory) {
+      console.warn(
+        `[apexcharts] ApexCharts.crossfilter(...) requires the link feature: import 'apexcharts/features/link'.`,
+      )
+      return null
+    }
+    return factory(opts)
+  }
+
+  /**
+   * Look up an existing crossfilter coordinator by id (null if none / feature
+   * absent).
+   * @param {string} id
+   * @returns {any}
+   */
+  static getCrossfilter(id) {
+    const get = /** @type {any} */ (ApexCharts)._crossfilterGet
+    return get ? get(id) : null
+  }
+
+  /**
    * Linked Views (#4): clear crossfilter dimming across this chart and every
    * chart in its `chart.group`. No-op unless the `link` feature is bundled.
    */

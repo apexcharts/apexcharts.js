@@ -345,6 +345,18 @@ declare class ApexCharts {
   static registerEasing(name: string, fn: (t: number) => number): typeof ApexCharts
 
   /**
+   * Linked Views (#4) Phase 2: get-or-create a crossfilter coordinator by id.
+   * Register one shared record set; each participating chart declares a
+   * dimension + reduction under `chart.link`, and selecting in one chart
+   * re-aggregates the others over the filtered subset. Requires the `link`
+   * feature (`import 'apexcharts/features/link'`); returns null without it.
+   */
+  static crossfilter(opts: { id: string; records?: any[] }): ApexCrossfilter | null
+
+  /** Look up an existing crossfilter coordinator by id (null if none). */
+  static getCrossfilter(id: string): ApexCrossfilter | null
+
+  /**
    * Static, pure Perspectives helpers. Available once the feature is imported:
    * `import 'apexcharts/features/perspectives'`.
    */
@@ -2522,6 +2534,79 @@ interface ApexThemeDef {
   tokens?: { accent?: string; fore?: string; grid?: string; surface?: string; series?: string[] }
   monochrome?: ApexTheme['monochrome']
   accessibility?: ApexTheme['accessibility']
+}
+
+/** A `reduce` spec: 'count' (default), a field aggregation, or a custom fn. */
+type ApexCrossfilterReduce =
+  | 'count'
+  | { sum?: string; avg?: string; min?: string; max?: string }
+  | ((rows: any[]) => number)
+
+/** One chart's aggregation returned by `aggregateFor`. */
+interface ApexCrossfilterAggregation {
+  type: 'category' | 'range'
+  /** Bucket labels in stable order (category keys, or bin-start numbers). */
+  labels: any[]
+  /** Reduced value per bucket. */
+  values: number[]
+  /** Category key, or `[lo, hi]` bin range, per bucket. */
+  keys: any[]
+  /** Range dimensions only: bin edges (length labels.length + 1). */
+  edges?: number[]
+}
+
+/**
+ * Linked Views (#4) Phase 2: the crossfilter coordinator returned by
+ * `ApexCharts.crossfilter(...)`. Holds one shared record set and per-chart
+ * dimensions; selecting in one chart re-aggregates the others over the
+ * filtered subset (a chart never filters itself).
+ */
+interface ApexCrossfilter {
+  id: string
+  records: any[]
+  /** Swap the dataset and recompute every dimension's domain. */
+  setRecords(records: any[]): this
+  /** Register (or replace) a chart's dimension + reduction. */
+  registerDimension(
+    chartId: string,
+    spec: {
+      dimension: (row: any) => any
+      reduce?: ApexCrossfilterReduce
+      type?: 'category' | 'range'
+      bins?: { width?: number; count?: number; thresholds?: number[] }
+      order?: 'first-seen' | 'asc' | 'desc' | ((a: any, b: any) => number)
+      filter?: any
+    },
+  ): this
+  removeDimension(chartId: string): this
+  /** Replace a chart's filter (keys for category, `[min,max]` for range, null clears). */
+  filter(chartId: string, filter: any[] | Set<any> | [number, number] | null): this
+  /** Toggle one categorical key (multi-select, OR). */
+  toggleKey(chartId: string, key: any): this
+  /** Clear one chart's filter. */
+  clear(chartId: string): this
+  /** Clear all filters. */
+  reset(): this
+  /** The current filter for a chart (Set/range copy, or null). */
+  filterOf(chartId: string): any
+  /** Rows passing all OTHER charts' filters (all filters when null/omitted). */
+  filteredRecords(exceptChartId?: string | null): any[]
+  /** Rows passing every active filter. */
+  filteredRows(): any[]
+  /** The crossfilter aggregation for one chart. */
+  aggregateFor(chartId: string): ApexCrossfilterAggregation
+  /** Aggregate every registered chart, keyed by chartId. */
+  aggregateAll(): Record<string, ApexCrossfilterAggregation>
+  /** Active filters + filtered/total record counts. */
+  state(): { filters: Record<string, any[] | [number, number]>; filteredCount: number; total: number }
+  /** Subscribe to 'change' | 'records'; returns an unsubscribe fn. */
+  on(
+    event: 'change' | 'records',
+    cb: (state: { filters: Record<string, any>; filteredCount: number; total: number }) => void,
+  ): () => void
+  off(event: string, cb: Function): this
+  /** Remove this coordinator from the registry and drop all state. */
+  destroy(): void
 }
 
 export = ApexCharts;
