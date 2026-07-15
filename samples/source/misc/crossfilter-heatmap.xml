@@ -140,7 +140,9 @@ title: { text: 'Outcome', align: 'left' },
 legend: { position: 'bottom', fontSize: '12px' },
 plotOptions: { pie: { expandOnClick: false } },
 dataLabels: { enabled: true, formatter: function (v, o) { return o.w.config.series[o.seriesIndex] } },
-colors: ['#22c55e', '#ef4444'],
+// Records are first-seen ordered, and the data emits 'Loss' first, so the
+// domain is [Loss, Gain]: red for Loss, green for Gain.
+colors: ['#ef4444', '#22c55e'],
 </options>
 
 <series>
