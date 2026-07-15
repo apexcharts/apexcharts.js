@@ -24,7 +24,7 @@ function lineChart(overrides = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// captureViewState — reads the right sources
+// captureViewState: reads the right sources
 // ---------------------------------------------------------------------------
 
 describe('captureViewState', () => {
@@ -71,7 +71,7 @@ describe('captureViewState', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Perspectives — capture / encode / decode
+// Perspectives: capture / encode / decode
 // ---------------------------------------------------------------------------
 
 describe('Perspectives capture/encode/decode', () => {
@@ -131,7 +131,7 @@ describe('Perspectives capture/encode/decode', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Function handling — the crux difference from Rewind
+// Function handling: the crux difference from Rewind
 // ---------------------------------------------------------------------------
 
 describe('function handling', () => {
@@ -157,7 +157,7 @@ describe('function handling', () => {
 })
 
 // ---------------------------------------------------------------------------
-// apply — deterministic round-trip on a live chart
+// apply: deterministic round-trip on a live chart
 // ---------------------------------------------------------------------------
 
 describe('apply (round-trip on a live chart)', () => {
@@ -247,7 +247,7 @@ describe('save / list / delete', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Lifetime — survive update(), teardown on destroy()
+// Lifetime: survive update(), teardown on destroy()
 // ---------------------------------------------------------------------------
 
 describe('lifetime', () => {

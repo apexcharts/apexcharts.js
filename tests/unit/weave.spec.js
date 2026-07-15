@@ -146,14 +146,14 @@ function scatterChart(plugins, extra = {}) {
 
 // ---------------------------------------------------------------------------
 
-describe('Weave — registry', () => {
+describe('Weave: registry', () => {
   it('registerPlugin is a static function; bad shape does not throw', () => {
     expect(typeof ApexCharts.registerPlugin).toBe('function')
     expect(() => ApexCharts.registerPlugin({ nope: true })).not.toThrow()
   })
 })
 
-describe('Weave — activation + layers', () => {
+describe('Weave: activation + layers', () => {
   it('activates plugins and draws their layers', async () => {
     const chart = scatterChart([
       { name: 'regression' },
@@ -198,7 +198,7 @@ describe('Weave — activation + layers', () => {
   })
 })
 
-describe('Weave — facade integrity', () => {
+describe('Weave: facade integrity', () => {
   it('never exposes raw internals; freezes api/options; whitelists chart methods', async () => {
     const chart = scatterChart([{ name: 'probe' }])
     await chart.render()
@@ -211,7 +211,7 @@ describe('Weave — facade integrity', () => {
   })
 })
 
-describe('Weave — layer lifecycle', () => {
+describe('Weave: layer lifecycle', () => {
   it('does not duplicate layers across a fast-path redraw; destroy hook fires on destroy only', async () => {
     probeState.drawCount = 0
     probeState.destroyed = false
@@ -237,7 +237,7 @@ describe('Weave — layer lifecycle', () => {
   })
 })
 
-describe('Weave — order + isolation + version gate', () => {
+describe('Weave: order + isolation + version gate', () => {
   it('fires plugins in ascending order', async () => {
     orderLog.length = 0
     const chart = scatterChart([
@@ -286,7 +286,63 @@ describe('Weave — order + isolation + version gate', () => {
   })
 })
 
-describe('Weave — dynamic add/remove via updateOptions', () => {
+describe('Weave: emit namespacing + live options', () => {
+  it('namespaces api.emit so a plugin cannot fire internal events', async () => {
+    let payload = null
+    let rawFired = false
+    ApexCharts.registerPlugin({
+      name: 'emitter',
+      apiVersion: 1,
+      setup(api) {
+        api.on('draw', () => api.emit('ping', { ok: true }))
+      },
+    })
+    const chart = scatterChart([{ name: 'emitter' }])
+    await chart.render()
+    chart.addEventListener('plugin:emitter:ping', (c, d) => {
+      payload = d
+    })
+    chart.addEventListener('ping', () => {
+      rawFired = true
+    })
+    // trigger another draw pass now that the listeners are attached
+    await chart.updateSeries(
+      [
+        { name: 'S1', data: [[0, 1], [2, 5], [4, 9], [6, 13], [8, 17]] },
+        { name: 'S2', data: [[0, 10], [2, 8], [4, 6], [6, 4], [8, 2]] },
+      ],
+      false,
+    )
+    expect(payload).toEqual({ ok: true })
+    expect(rawFired).toBe(false)
+    chart.destroy()
+  })
+
+  it('refreshes api.options when the plugins config changes (no stale reconcile)', async () => {
+    let seen = null
+    ApexCharts.registerPlugin({
+      name: 'optprobe',
+      apiVersion: 1,
+      setup(api) {
+        api.on('draw', () => {
+          seen = api.options.label
+        })
+      },
+    })
+    const chart = scatterChart([{ name: 'optprobe', options: { label: 'one' } }])
+    await chart.render()
+    expect(seen).toBe('one')
+    await chart.updateOptions(
+      { plugins: [{ name: 'optprobe', options: { label: 'two' } }] },
+      false,
+      false,
+    )
+    expect(seen).toBe('two')
+    chart.destroy()
+  })
+})
+
+describe('Weave: dynamic add/remove via updateOptions', () => {
   it('adds and removes plugins when the plugins config changes', async () => {
     const chart = scatterChart([{ name: 'regression' }])
     await chart.render()

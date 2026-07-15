@@ -27,7 +27,7 @@ function historyChart(historyOverrides = {}) {
 
 // ---------------------------------------------------------------------------
 
-describe('History — feature + baseline', () => {
+describe('History: feature + baseline', () => {
   it('exposes chart.history when the feature is bundled and enabled', async () => {
     const chart = historyChart()
     await settle()
@@ -53,9 +53,29 @@ describe('History — feature + baseline', () => {
     expect(chart.history.entries()).toHaveLength(0)
     chart.destroy()
   })
+
+  it('can be enabled at runtime via updateOptions', async () => {
+    const chart = historyChart({ enabled: false })
+    await settle()
+    expect(chart.history.entries()).toHaveLength(0)
+
+    await chart.updateOptions(
+      { chart: { history: { enabled: true, coalesceMs: COALESCE } } },
+      false,
+      false,
+    )
+    await settle()
+    // the enabling update is captured as the baseline
+    expect(chart.history.entries().length).toBeGreaterThanOrEqual(1)
+
+    await chart.updateOptions({ title: { text: 'on' } }, false, false)
+    await settle()
+    expect(chart.history.canUndo()).toBe(true)
+    chart.destroy()
+  })
 })
 
-describe('History — capture / undo / redo', () => {
+describe('History: capture / undo / redo', () => {
   it('adds a checkpoint on a committed change', async () => {
     const chart = historyChart()
     await settle()
@@ -120,6 +140,29 @@ describe('History — capture / undo / redo', () => {
     chart.destroy()
   })
 
+  it('captures in-place series mutations passed by the same reference (COW by value)', async () => {
+    const chart = historyChart()
+    await settle()
+
+    // The audited failure mode: mutate a point in place and hand the SAME
+    // outer array reference back to updateSeries. Reference-identity COW
+    // shared the previous checkpoint's stale clone here.
+    const sameRef = chart.w.config.series
+    sameRef[0].data = [...sameRef[0].data]
+    sameRef[0].data[2] = 999
+    await chart.updateSeries(sameRef, false)
+    await settle()
+
+    chart.history.undo(false)
+    await settle()
+    expect(chart.w.config.series[0].data[2]).toBe(30) // original value
+
+    chart.history.redo(false)
+    await settle()
+    expect(chart.w.config.series[0].data[2]).toBe(999) // the mutated value
+    chart.destroy()
+  })
+
   it('undo restores a hidden series (collapse restore, no spurious checkpoint)', async () => {
     const chart = historyChart()
     await settle()
@@ -135,7 +178,7 @@ describe('History — capture / undo / redo', () => {
   })
 })
 
-describe('History — coalesce / transaction / ring buffer', () => {
+describe('History: coalesce / transaction / ring buffer', () => {
   it('collapses a rapid burst into a single checkpoint', async () => {
     const chart = historyChart()
     await settle()
@@ -175,7 +218,7 @@ describe('History — coalesce / transaction / ring buffer', () => {
   })
 })
 
-describe('History — jump / clear / event / lifetime', () => {
+describe('History: jump / clear / event / lifetime', () => {
   it('jump(id) restores that checkpoint', async () => {
     const chart = historyChart()
     await settle()

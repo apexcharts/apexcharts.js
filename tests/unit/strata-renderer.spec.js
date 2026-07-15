@@ -3,7 +3,7 @@ import { createChartWithOptions } from './utils/utils.js'
 import ApexCharts from '../../src/entries/full.js'
 import RendererController from '../../src/modules/RendererController.js'
 
-// Strata P1 — renderer interface + selection. The canvas backend is not built
+// Strata P1: renderer interface + selection. The canvas backend is not built
 // yet (P2), so real usage always resolves 'svg'; these tests exercise the
 // selection engine + SVG adapter, and register a STUB canvas renderer to prove
 // the registry mechanism P2 plugs into.
@@ -28,7 +28,7 @@ function chartOf(chartExtra = {}, { n = 5, type = 'line', top = {} } = {}) {
 // These run FIRST, before any canvas renderer is registered.
 // ---------------------------------------------------------------------------
 
-describe('Strata — defaults + fallback (no canvas renderer bundled)', () => {
+describe('Strata: defaults + fallback (no canvas renderer bundled)', () => {
   // full.js now bundles the real canvas renderer (Strata P2), which registers
   // itself on import. These tests exercise the NOT-bundled fallback path, so
   // temporarily remove it, then restore for the later blocks.
@@ -82,7 +82,7 @@ describe('Strata — defaults + fallback (no canvas renderer bundled)', () => {
   })
 })
 
-describe('Strata — SVG adapter delegates to Graphics', () => {
+describe('Strata: SVG adapter delegates to Graphics', () => {
   it('primitives return real SVG nodes; capabilities match SVG', () => {
     const chart = chartOf()
     const r = chart.renderer
@@ -103,7 +103,7 @@ describe('Strata — SVG adapter delegates to Graphics', () => {
 // registry). P1 does not route emit through it, so pixels stay SVG.
 // ---------------------------------------------------------------------------
 
-describe('Strata — selection with a registered canvas renderer', () => {
+describe('Strata: selection with a registered canvas renderer', () => {
   beforeAll(() => {
     ApexCharts.registerRenderer('canvas', (w, ctx) => ({
       kind: 'canvas',
