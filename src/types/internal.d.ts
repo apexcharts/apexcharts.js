@@ -556,6 +556,7 @@ export interface ChartContext {
   linkedViews: any
   ink: any
   measure: any
+  contextMenu: any
   weave: any
   renderer: any
   rendererController: any

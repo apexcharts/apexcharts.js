@@ -194,6 +194,10 @@
       "import": "./dist/features/measure.esm.js",
       "require": "./dist/features/measure.common.js"
     },
+    "./features/context-menu": {
+      "import": "./dist/features/context-menu.esm.js",
+      "require": "./dist/features/context-menu.common.js"
+    },
     "./features/all": {
       "import": "./dist/features/all.esm.js",
       "require": "./dist/features/all.common.js"

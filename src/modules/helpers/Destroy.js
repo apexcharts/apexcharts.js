@@ -64,6 +64,8 @@ export default class Destroy {
       this.ctx.ink = null
       this.ctx.measure?.teardown()
       this.ctx.measure = null
+      this.ctx.contextMenu?.teardown()
+      this.ctx.contextMenu = null
       // Facet: remove the OS-theme matchMedia listener (survives updates, so it
       // is torn down only on a full destroy).
       this.ctx.osThemeWatcher?.teardown()

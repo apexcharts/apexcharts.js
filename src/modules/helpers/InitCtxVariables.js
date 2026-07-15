@@ -247,6 +247,12 @@ export default class InitCtxVariables {
     const MeasureCtor = reg.get('measure')
     ctx.measure = MeasureCtor ? new MeasureCtor(w, ctx) : null
 
+    // Radial Actions (#chrome): ctx.contextMenu (opt-in right-click menu via
+    // chart.contextMenu.enabled). Eager so it re-attaches its trigger after
+    // each render; inert otherwise. Self-wires on mounted/updated.
+    const ContextMenuCtor = reg.get('contextMenu')
+    ctx.contextMenu = ContextMenuCtor ? new ContextMenuCtor(w, ctx) : null
+
     // Weave: ctx.weave (public plugin platform host). Eager so plugin setup()
     // runs before the first render and the host survives update(). Inert when
     // no plugins are configured; every `weave?.dispatch(...)` seam no-ops when

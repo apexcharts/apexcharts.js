@@ -66,6 +66,7 @@ export const SUB_ENTRIES = {
   'features/link': resolve(__dirname, 'src/features/link.js'),
   'features/ink': resolve(__dirname, 'src/features/ink.js'),
   'features/measure': resolve(__dirname, 'src/features/measure.js'),
+  'features/context-menu': resolve(__dirname, 'src/features/context-menu.js'),
   'features/all': resolve(__dirname, 'src/features/all.js'),
 }
 

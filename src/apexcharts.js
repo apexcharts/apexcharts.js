@@ -73,6 +73,7 @@ export default class ApexCharts {
   /** @type {any} */ linkedViews
   /** @type {any} */ ink
   /** @type {any} */ measure
+  /** @type {any} */ contextMenu
   /** @type {any} */ weave
   /** @type {any} */ renderer
   /** @type {any} */ rendererController

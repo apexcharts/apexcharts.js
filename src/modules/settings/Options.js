@@ -516,6 +516,21 @@ export default class Options {
           format: { x: undefined, y: undefined, percent: undefined },
           label: undefined,
         },
+        // Radial Actions (#chrome): right-click / long-press context menu.
+        // Requires the `contextMenu` feature. Each action receives the clicked
+        // data coordinates, so verbs act at the point (not chart-wide like a
+        // toolbar button). `items` is an ordered list of built-in ids
+        // ('annotate' | 'measure') and/or custom
+        // { id, label, icon, onClick(ctx, { x, y, seriesIndex, dataPointIndex,
+        // clientX, clientY }) }. 'measure' is shown only when the measure tool
+        // is enabled. `labels` overrides built-in text; `noteText` is the label
+        // dropped by 'annotate'.
+        contextMenu: {
+          enabled: false,
+          items: ['annotate', 'measure'],
+          labels: { annotate: undefined, measure: undefined },
+          noteText: 'Note',
+        },
         stacked: false,
         stackOnlyBar: true, // mixed chart with stacked bars and line series - incorrect line draw #907
         stackType: 'normal',

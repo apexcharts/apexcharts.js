@@ -1,0 +1,130 @@
+<title>Context Menu: Right-Click Actions (chart.contextMenu)</title>
+
+<style>
+  #chart {
+    max-width: 820px;
+    margin: 12px auto;
+  }
+  .cm-panel {
+    max-width: 820px;
+    margin: 12px auto;
+    font-family: Helvetica, Arial, sans-serif;
+  }
+  .cm-note {
+    background: #eef6ff;
+    border-left: 3px solid #2563eb;
+    padding: 11px 15px;
+    font-size: 13px;
+    color: #234;
+    border-radius: 2px;
+    line-height: 1.6;
+    margin: 12px 6px;
+  }
+  .cm-note code {
+    background: #dbeafe;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .cm-readout {
+    font-family: monospace;
+    font-size: 13px;
+    color: #445;
+    margin: 6px 6px 0;
+  }
+</style>
+
+<scripts>
+<script>
+  function series() {
+    var out = []
+    var v = 2200
+    for (var i = 0; i < 60; i++) {
+      v += Math.sin(i / 4) * 55 + (i * 5) - 6
+      out.push([i, Math.round(v)])
+    }
+    return out
+  }
+</script>
+</scripts>
+
+<html>
+<div class="cm-panel">
+  <div class="cm-readout" id="cm-readout">Right-click anywhere on the plot to open the actions menu.</div>
+</div>
+
+{{ charts[0] }}
+
+<div class="cm-panel">
+  <div class="cm-note">
+    Right-click (or long-press) the plot to open an anchored actions menu.
+    Because each verb receives the clicked data point, it acts <b>right there</b>,
+    not chart-wide like a toolbar button: <b>Add note here</b> drops an editable,
+    draggable callout at the click and opens its floating editor (type to
+    rename; the card also offers accent colors, bold, text size, marker
+    size/shape and delete, via <code>chart.ink</code>). Click any note later to
+    reopen its editor. <b>Measure from here</b> seeds the ruler at the click,
+    then a second click completes the measurement (<code>chart.measure</code>).
+    The <b>Copy value</b> entry below is a custom item wired via
+    <code>contextMenu.items[].onClick</code>. Arrow keys move, Enter activates,
+    Escape closes.
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'ctxmenu',
+  type: 'line',
+  height: 400,
+  fontFamily: 'Helvetica, Arial, sans-serif',
+  animations: { enabled: false },
+  toolbar: { show: false },
+  zoom: { enabled: true, type: 'x' },
+  contextMenu: {
+    enabled: true,
+    items: [
+      'annotate',
+      'measure',
+      {
+        id: 'copyValue',
+        label: 'Copy value',
+        onClick: function (chart, ctx) {
+          var msg = 'x=' + Math.round(ctx.x) + ', y=' + Math.round(ctx.y)
+          var readout = document.getElementById('cm-readout')
+          if (readout) readout.textContent = 'Copied ' + msg
+          if (navigator.clipboard) navigator.clipboard.writeText(msg).catch(function () {})
+        },
+      },
+    ],
+  },
+  measure: { enabled: true },
+  ink: { enabled: true },
+},
+stroke: { width: 2, curve: 'smooth' },
+colors: ['#2563eb'],
+dataLabels: { enabled: false },
+title: { text: 'Revenue (right-click to add notes or measure)', align: 'left' },
+xaxis: { type: 'numeric', title: { text: 'Session' } },
+yaxis: { title: { text: 'Revenue' }, decimalsInFloat: 0 },
+</options>
+
+<series>
+[
+  { name: 'Revenue', data: series() }
+]
+</series>
+</chart>
+
+<vanilla-js-script>
+var readout = document.getElementById('cm-readout')
+chart.addEventListener('measured', function (c, o) {
+  readout.textContent =
+    'Measured: dy=' + Number(o.dy).toFixed(0) +
+    ' (' + (o.percentChange >= 0 ? '+' : '') + Number(o.percentChange).toFixed(1) + '%)'
+})
+chart.addEventListener('annotationCreated', function () {
+  readout.textContent =
+    'Note added. Type to rename it; the floating card restyles or deletes it. Drag to move.'
+})
+</vanilla-js-script>

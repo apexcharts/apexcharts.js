@@ -146,6 +146,48 @@ rect.legend-mouseover-inactive,
   cursor: crosshair;
 }
 
+/* Radial Actions (#chrome): right-click context menu. Theme via these classes
+   or the --apx-menu-* custom properties. */
+.apexcharts-canvas {
+  --apx-menu-bg: #ffffff;
+  --apx-menu-fg: #1e293b;
+  --apx-menu-border: #e2e8f0;
+  --apx-menu-hover: #f1f5f9;
+  --apx-menu-shadow: rgba(15, 23, 42, 0.18);
+}
+.apexcharts-context-menu {
+  min-width: 168px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--apx-menu-bg);
+  border: 1px solid var(--apx-menu-border);
+  box-shadow: 0 6px 22px var(--apx-menu-shadow);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  z-index: 20;
+  user-select: none;
+}
+.apexcharts-context-menu-item {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--apx-menu-fg);
+  font: inherit;
+  cursor: pointer;
+}
+.apexcharts-context-menu-item:hover,
+.apexcharts-context-menu-item--active {
+  background: var(--apx-menu-hover);
+}
+.apexcharts-context-menu-item:focus {
+  outline: none;
+}
+
 /* Ink Layer (#7): the floating note editor card, opened by clicking an
    ink-managed annotation. Theme via these classes or the --apx-ink-* vars. */
 .apexcharts-canvas {

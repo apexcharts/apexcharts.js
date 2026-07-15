@@ -1104,6 +1104,46 @@ type ApexChart = {
       mode: 'span' | 'free'
     }) => string | string[]
   }
+  /**
+   * Radial Actions (#chrome): right-click / long-press context menu. Requires
+   * the `contextMenu` feature (`import 'apexcharts/features/context-menu'`).
+   * Each action receives the clicked data coordinates, so verbs act at that
+   * point rather than chart-wide. 'measure' is shown only when the measure tool
+   * is enabled. When the ink feature is bundled, 'annotate' drops an
+   * ink-managed note that opens its floating editor (rename, restyle, delete).
+   */
+  contextMenu?: {
+    /** @default false */
+    enabled?: boolean
+    /**
+     * Ordered menu items: built-in ids and/or custom entries. @default
+     * ['annotate','measure']
+     */
+    items?: Array<
+      | 'annotate'
+      | 'measure'
+      | {
+          id?: string
+          label?: string
+          icon?: string
+          onClick?: (
+            chart: ApexCharts,
+            context: {
+              x: any
+              y: any
+              seriesIndex: number | null
+              dataPointIndex: number | null
+              clientX: number
+              clientY: number
+            },
+          ) => void
+        }
+    >
+    /** Override the built-in item labels. */
+    labels?: { annotate?: string; measure?: string }
+    /** Text of the annotation dropped by the built-in 'annotate' item. @default 'Note' */
+    noteText?: string
+  }
   id?: string
   injectStyleSheet?: boolean
   group?: string
