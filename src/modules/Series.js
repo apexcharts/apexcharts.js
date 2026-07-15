@@ -1,6 +1,7 @@
 // @ts-check
 import Graphics from './Graphics'
 import Utils from '../utils/Utils'
+import { captureStreamFrame } from './animations/StreamScroll'
 
 /**
  * ApexCharts Series Class for interaction with the Series of the chart.
@@ -432,6 +433,11 @@ export default class Series {
 
   getPreviousPaths() {
     const w = this.w
+
+    // Streaming scroll: snapshot the outgoing frame's parsed rows + pixel
+    // positions so a windowed-continuation update (rolling window / append
+    // under xaxis.range) can be animated as a slide. See StreamScroll.
+    captureStreamFrame(w)
 
     // Non-axis charts (pie/donut/radialBar) overwrite previousPaths with the
     // raw series values at the end anyway — skip the DOM captures entirely.

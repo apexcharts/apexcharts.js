@@ -313,7 +313,8 @@ export default class Animations {
    * @param {Record<string, any>} params
    */
   animatePathsGradually(params) {
-    const { el, realIndex, j, fill, pathFrom, pathTo, speed, delay } = params
+    const { el, realIndex, j, fill, pathFrom, pathTo, speed, delay, scrollMorph } =
+      params
 
     const me = this
     const w = this.w
@@ -343,6 +344,7 @@ export default class Animations {
       pathTo,
       speed,
       delay * delayFactor,
+      scrollMorph,
     )
   }
 
@@ -585,8 +587,9 @@ export default class Animations {
    * @param {string} pathTo
    * @param {number} speed
    * @param {number} delay
+   * @param {boolean} [scrollMorph] - this morph is a streaming scroll (StreamScroll)
    */
-  morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay) {
+  morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay, scrollMorph) {
     const w = this.w
 
     if (!pathFrom) {
@@ -631,10 +634,25 @@ export default class Animations {
     const crossTypeMorph = this.ctx?.morphTypeChange?.isActive() === true
     const morphAlgo = crossTypeMorph ? 'polygons' : 'commands'
 
-    el.plot(pathFrom)
-      .animate(1, delay)
-      .plot(pathFrom)
-      .animate(speed, delay)
+    // Data-change easing: `dynamicAnimation.easing` (when set) overrides the
+    // chart-wide default for update morphs; a detected streaming scroll
+    // defaults to linear, since a window slide only reads as continuous motion
+    // at constant velocity (the default sine in-out makes it pulse each tick).
+    let morphEase = null
+    if (w.globals.dataChanged) {
+      const dynEasing = w.config.chart.animations.dynamicAnimation.easing
+      if (dynEasing != null) {
+        morphEase = resolveEasing(dynEasing)
+      } else if (scrollMorph) {
+        morphEase = resolveEasing('linear')
+      }
+    }
+
+    const runner = el.plot(pathFrom).animate(1, delay).plot(pathFrom).animate(speed, delay)
+    if (morphEase) {
+      runner.ease(morphEase)
+    }
+    runner
       .plot(pathTo, morphAlgo)
       .after(() => {
         // a flag to indicate that the original mount function can return true now as animation finished here

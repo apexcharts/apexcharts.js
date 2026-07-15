@@ -298,6 +298,12 @@ export default class Options {
             // initial-mount animations above.
             enabled: true,
             speed: 350,
+            // Easing for data-change morphs only (same accepted forms as
+            // `animations.easing`). Unset -> inherit the chart-wide easing,
+            // except detected streaming scrolls (rolling window / append
+            // under xaxis.range) which default to 'linear' so the window
+            // slides at constant velocity instead of pulsing each tick.
+            easing: undefined,
           },
           chartTypeMorph: {
             // Cross-type morph (updateOptions changing chart.type). Bridges
@@ -534,6 +540,18 @@ export default class Options {
         stacked: false,
         stackOnlyBar: true, // mixed chart with stacked bars and line series - incorrect line draw #907
         stackType: 'normal',
+        // Real-time streaming mode. When enabled, appendData() bounds memory
+        // automatically: each series is trimmed to `maxPoints` (when set) or
+        // to the visible `xaxis.range` window plus a two-point off-screen
+        // runway (so exiting segments slide off the left edge instead of
+        // popping). The scroll animation itself needs no opt-in; updates
+        // that continue the previous window (appendData, or updateSeries with
+        // a shifted fixed-length window) always translate at constant
+        // velocity; see modules/animations/StreamScroll.
+        streaming: {
+          enabled: false,
+          maxPoints: undefined,
+        },
         toolbar: {
           show: true,
           offsetX: 0,

@@ -17,6 +17,7 @@ import Destroy from './modules/helpers/Destroy'
 import { register, markCustom } from './modules/ChartFactory'
 import { registerTheme } from './modules/ThemeRegistry'
 import { registerEasing } from './modules/animations/Easing'
+import { trimStreamingSeries } from './modules/animations/StreamScroll'
 import { registerPlugin as registerPluginImpl } from './modules/weave/PluginRegistry'
 import RendererController from './modules/RendererController'
 import { addResizeListener, removeResizeListener } from './utils/Resize'
@@ -781,6 +782,12 @@ export default class ApexCharts {
         }
       }
     }
+
+    // chart.streaming: bound memory: drop points that scrolled out of the
+    // window (xaxis.range + runway) or beyond maxPoints. Without it a
+    // long-running stream grows the series array without limit.
+    trimStreamingSeries(newSeries, me.w)
+
     me.w.config.series = newSeries
     if (overwriteInitialSeries) {
       me.w.globals.initialSeries = Utils.clone(me.w.config.series)

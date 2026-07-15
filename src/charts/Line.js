@@ -11,6 +11,10 @@ import Helpers from './common/line/Helpers'
 import { hash01 } from './common/Jitter'
 import { svgPath, spline } from '../libs/monotone-cubic'
 import { seriesEmitter } from '../renderers/Renderer'
+import {
+  detectStreamScroll,
+  projectPathToPrevFrame,
+} from '../modules/animations/StreamScroll'
 /**
  * ApexCharts Line Class responsible for drawing Line / Area / RangeArea Charts.
  * This class is also responsible for generating values for Bubble/Scatter charts, so need to rename it to Axis Charts to avoid confusions
@@ -453,6 +457,16 @@ class Line {
     // push all current y values array to main PrevY Array
     this.prevSeriesY.push(paths.yArrj)
 
+    // Streaming scroll: when this update is a windowed continuation of the
+    // previous render (rolling window / append under xaxis.range), morph from
+    // the new path re-projected into the previous frame's pixel space instead
+    // of the captured previous path, so the morph translates the window
+    // (points slide left) rather than crossfading y at fixed x.
+    let streamScroll = null
+    if ((type === 'line' || type === 'area') && w.globals.dataChanged) {
+      streamScroll = detectStreamScroll(w, realIndex, paths.xArrj, paths.yArrj)
+    }
+
     // push all x val arrays into main xArr
     w.globals.seriesXvalues[realIndex] = paths.xArrj
     w.globals.seriesYvalues[realIndex] = paths.yArrj
@@ -507,8 +521,11 @@ class Line {
       for (let p = 0; p < paths.areaPaths.length; p++) {
         const renderedPath = emit.renderPaths({
           ...defaultRenderedPathOptions,
-          pathFrom: paths.pathFromArea,
+          pathFrom: streamScroll
+            ? projectPathToPrevFrame(paths.areaPaths[p], streamScroll)
+            : paths.pathFromArea,
           pathTo: paths.areaPaths[p],
+          scrollMorph: !!streamScroll,
           stroke: 'none',
           strokeWidth: 0,
           strokeLineCap: null,
@@ -550,8 +567,11 @@ class Line {
         }
         const linePathCommonOpts = {
           ...defaultRenderedPathOptions,
-          pathFrom: paths.pathFromLine,
+          pathFrom: streamScroll
+            ? projectPathToPrevFrame(paths.linePaths[p], streamScroll)
+            : paths.pathFromLine,
           pathTo: paths.linePaths[p],
+          scrollMorph: !!streamScroll,
           stroke: lineFill,
           strokeWidth: this.strokeWidth,
           strokeLineCap: w.config.stroke.lineCap,

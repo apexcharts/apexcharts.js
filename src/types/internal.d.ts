@@ -350,6 +350,14 @@ export interface ChartGlobals
   isDestroyed: boolean
   shouldAnimate: boolean
   previousPaths: any[]
+  // Streaming scroll (StreamScroll): previous frame's parsed rows + pixel
+  // positions, captured by Series.getPreviousPaths() before parseData().
+  prevStreamFrame: {
+    seriesX: (number | null)[][]
+    seriesY: (number | null)[][]
+    xPixels: (number | null)[][]
+    yPixels: (number | null)[][]
+  } | null
   // Guards the single rAF that reveals a large-dataset bulk render
   // (see Animations.revealBulk). Re-armed each render so updates fade in too.
   bulkRevealScheduled: boolean

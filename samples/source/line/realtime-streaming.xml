@@ -1,0 +1,129 @@
+<title>Streaming Line Chart (chart.streaming)</title>
+
+<scripts>
+<script>
+var TICKINTERVAL = 1000
+var XAXISRANGE = 29 * TICKINTERVAL
+var lastX = new Date().getTime() - XAXISRANGE
+var lastY = 50
+var data = []
+
+function nextValue() {
+  lastY = Math.max(5, Math.min(95, lastY + (Math.random() - 0.5) * 20))
+  return Math.round(lastY)
+}
+
+while (data.length < 30) {
+  data.push({ x: lastX, y: nextValue() })
+  lastX += TICKINTERVAL
+}
+</script>
+</scripts>
+
+<html>
+{{ charts[0] }}
+
+<div class="explanation" style="max-width: 620px; margin: 0 auto 12px; font-size: 13px; color: #777">
+  Real-time streaming with <code>chart.streaming.enabled</code>: each tick
+  appends one point with <code>appendData()</code>. The window slides left at
+  constant velocity (no easing pulse, no in-place warp), and the series array
+  is trimmed automatically to the visible <code>xaxis.range</code> window, so
+  memory stays flat no matter how long the stream runs. The same scroll works
+  when a fixed-length rolling window is passed to <code>updateSeries()</code>.
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'realtime-streaming',
+  height: 350,
+  type: 'line',
+  streaming: {
+    enabled: true
+  },
+  animations: {
+    dynamicAnimation: {
+      speed: 1000
+    }
+  },
+  toolbar: {
+    show: false
+  },
+  zoom: {
+    enabled: false
+  }
+},
+dataLabels: {
+  enabled: false
+},
+stroke: {
+  curve: 'smooth'
+},
+title: {
+  text: 'Streaming (bounded memory + linear scroll)',
+  align: 'left'
+},
+markers: {
+  size: 0
+},
+xaxis: {
+  type: 'datetime',
+  range: XAXISRANGE
+},
+yaxis: {
+  min: 0,
+  max: 100
+},
+legend: {
+  show: false
+}
+</options>
+
+<series>
+[{
+  name: 'Signal',
+  data: data.slice()
+}]
+</series>
+</chart>
+
+<vanilla-js-script>
+var intervalRuns = 0;
+var interval = window.setInterval(function () {
+  intervalRuns++
+
+  lastX += TICKINTERVAL
+  chart.appendData([{
+    data: [{ x: lastX, y: nextValue() }]
+  }])
+
+  if (intervalRuns === 2 && window.isATest === true) {
+    clearInterval(interval)
+  }
+}, TICKINTERVAL)
+</vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  const interval = window.setInterval(() => {
+    lastX += TICKINTERVAL
+    ApexCharts.exec('realtime-streaming', 'appendData', [{
+      data: [{ x: lastX, y: nextValue() }]
+    }])
+  }, TICKINTERVAL)
+  return () => window.clearInterval(interval)
+}, [])
+</react-script>
+
+<vue-script>
+mounted: function () {
+  var me = this
+  window.setInterval(function () {
+    lastX += TICKINTERVAL
+    me.$refs.chart.appendData([{
+      data: [{ x: lastX, y: nextValue() }]
+    }])
+  }, TICKINTERVAL)
+},
+</vue-script>

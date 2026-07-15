@@ -438,6 +438,10 @@ export default class Globals {
       // ── Animation control ─────────────────────────────────────────────────────
       shouldAnimate: true,
       previousPaths: [], // paths from previous render — source for enter animation
+      // Streaming scroll: previous frame's parsed rows + pixel positions,
+      // captured by Series.getPreviousPaths(). Consulted (like previousPaths)
+      // only while a data-change morph renders. See StreamScroll.
+      prevStreamFrame: null,
 
       // ── SVG viewport (set by Dimensions, but persistent as layout anchor) ─────
       svgWidth: 0,

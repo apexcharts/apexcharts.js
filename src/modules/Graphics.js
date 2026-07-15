@@ -471,6 +471,8 @@ class Graphics {
    *  animationDelay = how much to delay when starting animation (in milliseconds)
    *  dataChangeSpeed = for dynamic animations, when data changes
    *  className = class attribute to add
+   *  scrollMorph = this data-change morph is a streaming scroll (see StreamScroll);
+   *                defaults the morph easing to linear so the slide is constant-velocity
    * @return {any} svg.js path object
    **/
   renderPaths({
@@ -491,6 +493,7 @@ class Graphics {
     bindEventsOnPaths = true,
     drawShadow = true,
     drawMask = null,
+    scrollMorph = false,
   }) {
     const w = this.w
     const filters = new Filters(this.w)
@@ -638,6 +641,7 @@ class Graphics {
       fill,
       strokeWidth,
       delay: animationDelay,
+      scrollMorph,
     }
 
     if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {

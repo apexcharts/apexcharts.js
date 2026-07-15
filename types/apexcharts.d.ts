@@ -1176,6 +1176,18 @@ type ApexChart = {
   stacked?: boolean
   stackType?: 'normal' | '100%'
   stackOnlyBar?: boolean;
+  /**
+   * Real-time streaming mode. When enabled, appendData() bounds memory
+   * automatically: each series is trimmed to `maxPoints` (when set) or to the
+   * visible `xaxis.range` window plus a small off-screen runway. The
+   * constant-velocity scroll animation for windowed updates needs no opt-in.
+   */
+  streaming?: {
+    enabled?: boolean
+    /** Maximum points kept per series by appendData(). Unset: derived from
+     *  `xaxis.range` when that is set; otherwise no trimming occurs. */
+    maxPoints?: number
+  }
   toolbar?: {
     show?: boolean
     offsetX?: number
@@ -1308,6 +1320,17 @@ type ApexChart = {
     dynamicAnimation?: {
       enabled?: boolean
       speed?: number
+      /**
+       * Easing for data-change morphs only (same accepted forms as
+       * `animations.easing`). Unset: inherits the chart-wide easing, except
+       * detected streaming scrolls (appendData or a shifted fixed-length
+       * window under `xaxis.range`) which default to 'linear' so the window
+       * slides at constant velocity.
+       */
+      easing?:
+        | string
+        | [number, number, number, number]
+        | ((t: number) => number)
     }
     /**
      * Cross-type morph (updateOptions changing chart.type). Requires the
