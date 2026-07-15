@@ -190,6 +190,10 @@
       "import": "./dist/features/ink.esm.js",
       "require": "./dist/features/ink.common.js"
     },
+    "./features/overlay-compare": {
+      "import": "./dist/features/overlay-compare.esm.js",
+      "require": "./dist/features/overlay-compare.common.js"
+    },
     "./features/all": {
       "import": "./dist/features/all.esm.js",
       "require": "./dist/features/all.common.js"

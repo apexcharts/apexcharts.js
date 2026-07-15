@@ -62,6 +62,8 @@ export default class Destroy {
       this.ctx.linkedViews = null
       this.ctx.ink?.teardown()
       this.ctx.ink = null
+      this.ctx.overlayCompare?.teardown()
+      this.ctx.overlayCompare = null
       // Facet: remove the OS-theme matchMedia listener (survives updates, so it
       // is torn down only on a full destroy).
       this.ctx.osThemeWatcher?.teardown()

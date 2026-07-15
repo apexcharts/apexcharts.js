@@ -141,6 +141,19 @@ declare class ApexCharts {
    */
   clearCrossfilter(): void
 
+  /**
+   * Overlay Compare (#18): arm a sticky measure-ruler mode. Drag A->B on the
+   * plot to read dx/dy/%change/slope. Requires the `overlayCompare` feature and
+   * `chart.measure.enabled`.
+   */
+  startMeasure(): void
+
+  /** Overlay Compare (#18): leave measure mode. */
+  stopMeasure(): void
+
+  /** Overlay Compare (#18): remove all pinned measure rulers. */
+  clearMeasures(): void
+
   /** Highlights or un-highlights a series when a legend marker is hovered. */
   highlightSeriesOnLegendHover(e: MouseEvent, targetElement: HTMLElement): void
 
@@ -935,6 +948,13 @@ type ApexChart = {
      * plot in create mode. `options` carries the new annotation id/index + x/y.
      */
     annotationCreated?(chart: ApexCharts, options?: { id?: string; index: number; x: any; y: any }): void
+    /**
+     * Overlay Compare (#18): fired when a measure ruler is drawn. Requires the
+     * `overlayCompare` feature. `options` carries the endpoints and the deltas.
+     */
+    measured?(chart: ApexCharts, options?: { from: { x: any; y: any }; to: { x: any; y: any }; dx: number; dy: number; percentChange: number; slope: number }): void
+    /** Overlay Compare (#18): fired when the period-compare reference changes. */
+    compareChanged?(chart: ApexCharts, options?: { from: any; to: any }): void
     keyDown?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     keyUp?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     /** Fired before a drill-down transition begins. Requires the Drilldown feature. */
@@ -1013,6 +1033,37 @@ type ApexChart = {
      * (numeric x + linear y). @default false
      */
     snap?: boolean
+  }
+  /**
+   * Overlay Compare (#18): a measure/delta ruler. Requires the `overlayCompare`
+   * feature (`import 'apexcharts/features/overlay-compare'`). Hold `key` and
+   * drag A->B on the plot, or call `chart.startMeasure()`, to read
+   * dx/dy/%change/slope in data space; on release the ruler pins as a
+   * data-anchored overlay that re-projects on zoom/resize. Fires `measured`.
+   */
+  measure?: {
+    /** @default false */
+    enabled?: boolean
+    /** Key held to arm a drag when not in sticky mode. @default 'm' */
+    key?: string
+    /** Pin the ruler as a data-anchored overlay on release. @default true */
+    pinOnRelease?: boolean
+  }
+  /**
+   * Overlay Compare (#18): period-over-period ghosting (P2). Requires the
+   * `overlayCompare` feature. `chart.compareRange({ from, to })` overlays a
+   * translucent copy of the reference window on the current window. Fires
+   * `compareChanged`.
+   */
+  compare?: {
+    /** @default false */
+    enabled?: boolean
+    /** @default 'ghost' */
+    mode?: 'ghost' | 'delta'
+    /** Align the reference to the current window. @default 'start' */
+    align?: 'start' | 'end'
+    /** @default 0.35 */
+    opacity?: number
   }
   id?: string
   injectStyleSheet?: boolean

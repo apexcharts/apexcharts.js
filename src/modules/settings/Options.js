@@ -391,6 +391,8 @@ export default class Options {
           annotationDragged: undefined,
           annotationEdited: undefined,
           annotationCreated: undefined,
+          measured: undefined,
+          compareChanged: undefined,
           keyDown: undefined,
           keyUp: undefined,
         },
@@ -473,6 +475,26 @@ export default class Options {
           // (numeric x + linear y). Undo/redo of ink edits is automatic when the
           // history (Rewind) feature is enabled.
           snap: false,
+        },
+        // Overlay Compare (#18): a measure/delta ruler. Requires the
+        // `overlayCompare` feature. Hold `key` (default 'm') and drag A->B on the
+        // plot, or call chart.measure()/chart.stopMeasure() to arm it. The live
+        // ruler reads dx, dy, %change and slope; on release it pins as a
+        // data-anchored overlay that re-projects on zoom/resize. Fires `measured`.
+        measure: {
+          enabled: false,
+          key: 'm',
+          pinOnRelease: true,
+        },
+        // Overlay Compare (#18): period-over-period ghosting (P2). Requires the
+        // `overlayCompare` feature. chart.compareRange({ from, to }) overlays a
+        // translucent copy of the reference window on the current window, time-
+        // aligned, with a delta readout. Fires `compareChanged`.
+        compare: {
+          enabled: false,
+          mode: 'ghost', // 'ghost' | 'delta'
+          align: 'start', // align reference to current window at 'start' | 'end'
+          opacity: 0.35,
         },
         stacked: false,
         stackOnlyBar: true, // mixed chart with stacked bars and line series - incorrect line draw #907

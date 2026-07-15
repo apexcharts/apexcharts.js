@@ -65,6 +65,10 @@ export const SUB_ENTRIES = {
   'features/facet': resolve(__dirname, 'src/features/facet.js'),
   'features/link': resolve(__dirname, 'src/features/link.js'),
   'features/ink': resolve(__dirname, 'src/features/ink.js'),
+  'features/overlay-compare': resolve(
+    __dirname,
+    'src/features/overlay-compare.js',
+  ),
   'features/all': resolve(__dirname, 'src/features/all.js'),
 }
 
