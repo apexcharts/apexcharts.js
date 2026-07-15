@@ -94,8 +94,11 @@ export default class OSThemeWatcher {
         // clear the contrast override when the OS leaves high-contrast
         themeOpt.accessibility = { colorBlindMode: '' }
       }
-      // redraw=true, animate=true, updateSyncedCharts=true
-      ctx.updateOptions({ theme: themeOpt }, false, true, true)
+      // (options, redraw:false, animate:true, updateSyncedCharts:false).
+      // Synced charts are NOT updated from here: following the OS is per-chart
+      // opt-in, and every follow:'os' group member has its own watcher firing
+      // on the same media event, so syncing would double-update each of them.
+      ctx.updateOptions({ theme: themeOpt }, false, true, false)
     }
 
     OSThemeWatcher._add(media.dark, handler)

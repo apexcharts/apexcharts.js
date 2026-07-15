@@ -14,11 +14,20 @@ import YAxis from './modules/axes/YAxis'
 import InitCtxVariables from './modules/helpers/InitCtxVariables'
 import { applyAnimationPolicy } from './modules/Animations'
 import Destroy from './modules/helpers/Destroy'
-import { register, markCustom } from './modules/ChartFactory'
-import { registerTheme } from './modules/ThemeRegistry'
+import {
+  register,
+  markCustom,
+  isCustom,
+  hasChartClass,
+  unregister,
+} from './modules/ChartFactory'
+import { registerTheme, unregisterTheme } from './modules/ThemeRegistry'
 import { registerEasing } from './modules/animations/Easing'
 import { trimStreamingSeries } from './modules/animations/StreamScroll'
-import { registerPlugin as registerPluginImpl } from './modules/weave/PluginRegistry'
+import {
+  registerPlugin as registerPluginImpl,
+  unregisterPlugin as unregisterPluginImpl,
+} from './modules/weave/PluginRegistry'
 import RendererController from './modules/RendererController'
 import { addResizeListener, removeResizeListener } from './utils/Resize'
 import apexCSS from './assets/apexcharts.css'
@@ -564,7 +573,7 @@ export default class ApexCharts {
         }
       }
 
-      // Weave: main render hook — series/grid/axes are live in elGraphical now.
+      // Weave: main render hook: series/grid/axes are live in elGraphical now.
       me.weave?.dispatch('draw', {
         pass: 'full',
         xyRatios: graphData?.xyRatios,
@@ -976,7 +985,7 @@ export default class ApexCharts {
           w.globals.tooltip?.drawTooltip(xyRatios)
         }
 
-        // Weave: main render hook (fast path) — rebuild plugin layers.
+        // Weave: main render hook (fast path): rebuild plugin layers.
         this.weave?.dispatch('draw', { pass: 'fast', xyRatios })
 
         if (typeof w.config.chart.events.updated === 'function') {
@@ -1137,9 +1146,24 @@ export default class ApexCharts {
    * the full bundle) and listed in a chart's `plugins` config.
    *
    * @param {{ name: string, apiVersion?: number, setup: Function, destroy?: Function }} def
+   * @returns {typeof ApexCharts}
    */
   static registerPlugin(def) {
     registerPluginImpl(def)
+    return ApexCharts
+  }
+
+  /**
+   * Remove a registered Weave plugin definition. Charts already holding an
+   * active instance keep it until their plugins config changes or they are
+   * destroyed; the name simply stops resolving for new activations. Intended
+   * for tests and hot-reload flows.
+   * @param {string} name
+   * @returns {typeof ApexCharts}
+   */
+  static unregisterPlugin(name) {
+    unregisterPluginImpl(name)
+    return ApexCharts
   }
 
   /**
@@ -1179,8 +1203,29 @@ export default class ApexCharts {
       )
       return ApexCharts
     }
+    // The type registry is global (all charts, all bundle copies), so letting a
+    // custom type shadow a built-in would silently break every chart on the
+    // page. Re-registering a CUSTOM name replaces it (idempotent, like
+    // registerPlugin); a built-in name is rejected.
+    if (hasChartClass(name) && !isCustom(name)) {
+      console.warn(
+        `[apexcharts] registerSeriesType("${name}") would override the built-in "${name}" chart type; pick another name.`,
+      )
+      return ApexCharts
+    }
     register({ [name]: factory(name, def) })
     markCustom(name)
+    return ApexCharts
+  }
+
+  /**
+   * Remove a custom series type registered via registerSeriesType. Built-in
+   * chart types cannot be unregistered. Intended for tests and hot-reload.
+   * @param {string} name
+   * @returns {typeof ApexCharts}
+   */
+  static unregisterSeriesType(name) {
+    if (isCustom(name)) unregister(name)
     return ApexCharts
   }
 
@@ -1195,6 +1240,18 @@ export default class ApexCharts {
    */
   static registerTheme(name, def) {
     registerTheme(name, def)
+    return ApexCharts
+  }
+
+  /**
+   * Remove a theme registered via registerTheme. Charts referencing it by
+   * `theme.name` fall back to the built-in defaults on their next render.
+   * Intended for tests and hot-reload flows.
+   * @param {string} name
+   * @returns {typeof ApexCharts}
+   */
+  static unregisterTheme(name) {
+    unregisterTheme(name)
     return ApexCharts
   }
 
@@ -1421,6 +1478,12 @@ export default class ApexCharts {
     if (context) {
       me = context
     }
+    // This mutates the rendered DOM out of band, so the memoized "last rendered
+    // options" no longer matches what is on screen. Invalidate it, or a
+    // subsequent updateOptions() with identical options short-circuits and
+    // leaves the annotations cleared-but-not-redrawn (hit by Rewind /
+    // Perspectives restore, which clear then re-apply the same config).
+    me.lastUpdateOptions = null
     me.annotations?.clearAnnotations(me)
   }
 
@@ -1435,6 +1498,9 @@ export default class ApexCharts {
     if (context) {
       me = context
     }
+    // See clearAnnotations: removing an annotation changes the rendered DOM, so
+    // invalidate the update memo to keep a following identical updateOptions().
+    me.lastUpdateOptions = null
     me.annotations?.removeAnnotation(me, id)
   }
 
@@ -1655,6 +1721,21 @@ export default class ApexCharts {
     return this.rendererController
       ? this.rendererController.getActiveKind()
       : 'svg'
+  }
+
+  /**
+   * Facet (#13): re-resolve the `--apx-*` design tokens and re-render.
+   *
+   * Tokens are read from the CSS cascade once per render, so a runtime change
+   * that is NOT an OS color-scheme flip (e.g. the host app swaps its own
+   * design-system theme by toggling a class or setting style properties) is
+   * invisible until the next render, and `updateOptions({})` is memoized away.
+   * This busts the memo and re-renders, picking up the current token values.
+   * @returns {Promise<any>}
+   */
+  refreshTokens() {
+    this.lastUpdateOptions = null
+    return this.update()
   }
 
   /**

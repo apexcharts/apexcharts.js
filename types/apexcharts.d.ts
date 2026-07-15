@@ -247,6 +247,14 @@ declare class ApexCharts {
   getActiveRenderer(): 'svg' | 'canvas' | 'gpu'
 
   /**
+   * Facet (#13): re-resolves the `--apx-*` design tokens from the CSS cascade
+   * and re-renders. Use after a runtime token change that is not an OS
+   * color-scheme flip (e.g. the host app swaps its design-system theme), since
+   * tokens are otherwise only re-read when something else triggers a render.
+   */
+  refreshTokens(): Promise<any>
+
+  /**
    * Drills into the child level referenced by `id` (a `drilldown.series` entry).
    * Requires the Drilldown feature: import 'apexcharts/features/drilldown'.
    */
@@ -325,9 +333,16 @@ declare class ApexCharts {
   /**
    * Registers a Weave plugin definition. Available in every bundle; the plugin
    * activates only when the Weave host is bundled and listed in a chart's
-   * `plugins` config.
+   * `plugins` config. Re-registering a name replaces the definition.
    */
-  static registerPlugin(def: ApexPlugin): void
+  static registerPlugin(def: ApexPlugin): typeof ApexCharts
+
+  /**
+   * Removes a registered Weave plugin definition. Charts holding an active
+   * instance keep it until their plugins config changes or they are destroyed.
+   * Intended for tests and hot-reload flows.
+   */
+  static unregisterPlugin(name: string): typeof ApexCharts
 
   /**
    * Registers a non-SVG series renderer (Strata #2). The canvas backend
@@ -336,12 +351,27 @@ declare class ApexCharts {
   static registerRenderer(kind: string, factory: (w: any, ctx: any) => any): void
 
   /**
+   * Removes a registered renderer backend; charts fall back to SVG on their
+   * next render. Intended for tests and hot-reload flows.
+   */
+  static unregisterRenderer(kind: string): void
+
+  /**
    * Registers a custom series type (Marks #11): a `{ renderItem }` definition
    * that draws primitives per datum. Requires the Marks feature to be bundled
    * (`import 'apexcharts/features/marks'`, included in the full bundle).
    * Once registered, reference it via `series[].type` or `chart.type`.
+   * Re-registering a custom name replaces it; a built-in chart type name is
+   * rejected with a console warning (the registry is global, so shadowing a
+   * built-in would affect every chart on the page).
    */
   static registerSeriesType(name: string, def: ApexSeriesTypeDef): typeof ApexCharts
+
+  /**
+   * Removes a custom series type registered via registerSeriesType. Built-in
+   * chart types cannot be unregistered. Intended for tests and hot-reload.
+   */
+  static unregisterSeriesType(name: string): typeof ApexCharts
 
   /**
    * Registers a named theme (Facet #13): a palette + design-token + mode bundle
@@ -349,6 +379,13 @@ declare class ApexCharts {
    * `--apx-*` tokens, above the built-in palette/mode defaults.
    */
   static registerTheme(name: string, def: ApexThemeDef): typeof ApexCharts
+
+  /**
+   * Removes a registered theme. Charts referencing it via `theme.name` fall
+   * back to the built-in defaults on their next render. Intended for tests and
+   * hot-reload flows.
+   */
+  static unregisterTheme(name: string): typeof ApexCharts
 
   /**
    * Registers a named easing (Cadence #6) referenceable via
@@ -390,7 +427,7 @@ declare class ApexCharts {
   }
 
   /**
-   * Perspectives (#10) — serializable, shareable view state.
+   * Perspectives (#10): serializable, shareable view state.
    * Requires the Perspectives feature: `import 'apexcharts/features/perspectives'`.
    */
   perspectives: {
@@ -405,7 +442,7 @@ declare class ApexCharts {
   }
 
   /**
-   * Rewind (#3) — undo/redo history.
+   * Rewind (#3): undo/redo history.
    * Requires the History feature (`import 'apexcharts/features/history'`) and
    * chart.history.enabled: true.
    */
@@ -452,7 +489,7 @@ interface ApexPerspective {
   options?: Record<string, any>
 }
 
-// ── Weave (#1) — public plugin platform ──
+// ── Weave (#1): public plugin platform ──
 type ApexPluginHook =
   | 'afterParse'
   | 'afterScales'
@@ -537,10 +574,20 @@ interface ApexPluginPayload {
 interface ApexPluginAPI {
   readonly name: string
   readonly version: number
+  /**
+   * Live: refreshed when the chart's `plugins` config changes, so
+   * `updateOptions({ plugins: [{ name, options }] })` reconfigures an active
+   * plugin in place. The returned object is frozen.
+   */
   readonly options: Record<string, any>
   on(hook: ApexPluginHook, fn: (payload: ApexPluginPayload) => void): ApexPluginAPI
   off(hook: ApexPluginHook, fn: (payload: ApexPluginPayload) => void): ApexPluginAPI
   store: Record<string, any>
+  /**
+   * Call INSIDE each draw handler: plugin layers are wiped at the start of
+   * every draw pass, so a handle cached across draws points at a detached node
+   * and its writes vanish silently.
+   */
   layer(opts?: { z?: 'front' | 'behind'; className?: string }): ApexPluginLayer
   readonly scales: ApexPluginScales | null
   readonly data: ApexPluginSeries[]
@@ -551,6 +598,11 @@ interface ApexPluginAPI {
     token(name: string): any
   }
   chart: Record<string, (...args: any[]) => any>
+  /**
+   * Fires on the chart's event bus as `plugin:<pluginName>:<name>` (namespaced
+   * so a plugin can never trigger internal lifecycle subscribers). Listen with
+   * `chart.addEventListener('plugin:myplugin:myevent', fn)`.
+   */
   emit(name: string, detail?: any): void
   readonly el: Element
 }
@@ -2741,9 +2793,11 @@ type ApexTheme = {
    * Facet (#13): read `--apx-*` CSS design tokens from the cascade
    * (`--apx-accent`, `--apx-fore`, `--apx-grid`, `--apx-surface`,
    * `--apx-series-1..N`). They top the resolution chain, below explicit config.
-   * 'auto' (default) and true read any present; false disables.
+   * true (default) reads any present (absence is a no-op); false disables.
+   * Tokens are re-read on each render; use `chart.refreshTokens()` after a
+   * runtime CSS change that does not itself trigger a render.
    */
-  tokens?: 'auto' | boolean
+  tokens?: boolean
   /**
    * Facet (#13): 'os' follows the operating system's `prefers-color-scheme`
    * (light/dark) and `prefers-contrast` reactively, with no JS. SSR-safe.

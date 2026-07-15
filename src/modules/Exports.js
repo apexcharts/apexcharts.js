@@ -62,7 +62,7 @@ class Exports {
       try {
         dataURL = /** @type {HTMLCanvasElement} */ (origCanvases[i]).toDataURL()
       } catch (e) {
-        // A tainted canvas (should not happen — no cross-origin draws) throws;
+        // A tainted canvas (should not happen: no cross-origin draws) throws;
         // skip rather than break the whole export.
         continue
       }

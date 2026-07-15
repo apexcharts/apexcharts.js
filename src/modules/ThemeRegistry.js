@@ -33,6 +33,12 @@ export function registerTheme(name, def) {
     console.warn('ApexCharts: registerTheme requires a non-empty name.')
     return
   }
+  if (def != null && (typeof def !== 'object' || Array.isArray(def))) {
+    console.warn(
+      `ApexCharts: registerTheme("${name}") expects an object like { mode, palette, tokens, monochrome, accessibility }.`,
+    )
+    return
+  }
   getThemes()[name] = def || {}
 }
 
@@ -44,4 +50,14 @@ export function registerTheme(name, def) {
 export function getTheme(name) {
   if (!name) return null
   return getThemes()[name] || null
+}
+
+/**
+ * Remove a registered theme. Charts referencing it by `theme.name` fall back
+ * to the built-in defaults on their next render.
+ * @param {string} name
+ */
+export function unregisterTheme(name) {
+  if (!name) return
+  delete getThemes()[name]
 }

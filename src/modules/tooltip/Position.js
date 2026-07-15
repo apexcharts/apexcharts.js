@@ -614,7 +614,7 @@ export default class Position {
     }
 
     // Strata (#2): canvas has no bar/candle path node, so fall back to the
-    // center coords cached at draw time (Bar.renderSeries) — otherwise the
+    // center coords cached at draw time (Bar.renderSeries): otherwise the
     // tooltip would anchor to the origin. Keyed by realIndex: try the captured
     // series first, then any series that has a bar at j.
     let bc = null

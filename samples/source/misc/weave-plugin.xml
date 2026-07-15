@@ -90,7 +90,9 @@
           color: accent, size: 12, anchor: 'end', weight: 600,
         })
 
-        // hand the computed value back to the page via a custom event
+        // hand the computed value back to the page via a custom event; it
+        // fires namespaced as 'plugin:mean-line:meanComputed' so plugin events
+        // can never collide with the chart's internal lifecycle events
         api.emit('meanComputed', { value: mean })
       })
     },
@@ -156,7 +158,7 @@ plugins: [
 <vanilla-js-script>
 var readout = document.getElementById('readout')
 
-chart.addEventListener('meanComputed', function (c, payload) {
+chart.addEventListener('plugin:mean-line:meanComputed', function (c, payload) {
   var detail = payload && payload.value != null ? payload : (c && c.value != null ? c : null)
   var v = detail ? detail.value : null
   if (v != null) {

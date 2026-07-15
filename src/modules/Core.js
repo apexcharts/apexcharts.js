@@ -526,7 +526,7 @@ export default class Core {
       // draw() built. Canvas sits at the back of the wrap (behind the chrome);
       // the whole wrap composites into elGraphical exactly like the SVG elGraph
       // the two plotChartType consumers already handle. The series marks live
-      // only on the canvas — the chrome groups carry no marks (they were
+      // only on the canvas: the chrome groups carry no marks (they were
       // skipped by SVGElement.add).
       const host = ctx.renderer.present()
       // A renderer may decline a host (present() → null) when it emits straight

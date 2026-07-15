@@ -15,7 +15,7 @@ export default class Destroy {
    * @param {{ isUpdating: boolean }} opts
    */
   clear({ isUpdating }) {
-    // Weave plugin host — run plugin destroy() on full destroy only (layers in
+    // Weave plugin host: run plugin destroy() on full destroy only (layers in
     // elGraphical auto-clear on both paths via clearDomElements).
     this.ctx.weave?.teardown(isUpdating)
     // Mark a real destroy so any deferred work scheduled before teardown
@@ -70,6 +70,16 @@ export default class Destroy {
       // is torn down only on a full destroy).
       this.ctx.osThemeWatcher?.teardown()
       this.ctx.osThemeWatcher = null
+      // Weave host was torn down above; drop the reference too.
+      this.ctx.weave = null
+      // Strata: destroy the owned non-SVG renderer instances (canvas contexts,
+      // future GPU devices) and drop the controller/renderer handles.
+      this.ctx.rendererController?.teardown?.()
+      this.ctx.rendererController = null
+      this.ctx.renderer = null
+      this.ctx.drilldown = null
+      this.ctx.morphTypeChange = null
+      this.ctx.exports = null
       this.ctx.animations = null
       this.ctx.axes = null
       this.ctx.annotations = null

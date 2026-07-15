@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * Weave plugin registry — global store of plugin *definitions* by name.
+ * Weave plugin registry: global store of plugin *definitions* by name.
  *
  * Mirrors the chart-type registry's `globalThis` pattern (ChartFactory.js), NOT
  * the feature registry's static Map: a third-party plugin may be registered
@@ -43,4 +43,13 @@ export function registerPlugin(def) {
  */
 export function getPlugin(name) {
   return getRegistry()[name] || null
+}
+
+/**
+ * Remove a plugin definition by name. Active instances on live charts are
+ * unaffected until their plugins config changes or the chart is destroyed.
+ * @param {string} name
+ */
+export function unregisterPlugin(name) {
+  delete getRegistry()[name]
 }

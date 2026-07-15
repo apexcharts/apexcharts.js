@@ -1,14 +1,14 @@
 // @ts-check
 /**
- * Strata (#2) — the `Renderer` interface and shared selection helpers.
+ * Strata (#2): the `Renderer` interface and shared selection helpers.
  *
  * The interface abstracts emit, identity, state, and export for the SERIES
  * layer. Both the SVG path (today) and the opt-in Canvas path implement it;
  * Prism (#20, WebGPU) will too. Keeping this contract right is the whole point
- * of sequencing Strata into the foundation — Marks (#11) emit through it and
+ * of sequencing Strata into the foundation: Marks (#11) emit through it and
  * Weave (#1) `api.layer` targets it.
  *
- * P1 ships the interface + selection + the SVG adapter (core, ~zero weight — it
+ * P1 ships the interface + selection + the SVG adapter (core, ~zero weight: it
  * wraps the Graphics/Fill/Filters that already ship). The Canvas renderer is a
  * separate tree-shakeable feature (`apexcharts/features/renderer-canvas`); when
  * it is not bundled, selection falls back to SVG.
@@ -45,7 +45,7 @@ const OK_FILTER_TYPES = ['none', 'lighten', 'darken']
  * are RECORDED through `ctx.renderer`; in SVG mode we return the caller's own
  * `Graphics` instance untouched, so the SVG render path is byte-for-byte the
  * same as before Strata (the P1 promise). Only leaf mark calls (`renderPaths`,
- * `drawMarker`) are diverted — structural groups, string builders, and chrome
+ * `drawMarker`) are diverted: structural groups, string builders, and chrome
  * stay on `Graphics`.
  *
  * @param {any} ctx
@@ -58,8 +58,8 @@ export function seriesEmitter(ctx, graphics) {
 }
 
 /**
- * Count the marks a render will emit — markers, data labels, and scatter/bubble
- * points — NOT the raw data length. The spike showed the SVG node-count killer
+ * Count the marks a render will emit: markers, data labels, and scatter/bubble
+ * points: NOT the raw data length. The spike showed the SVG node-count killer
  * is per-point decorations, not the series line: a bare line/area path is O(1)
  * nodes. A separate large-`d` trigger still routes a giant plain line to canvas.
  *
@@ -121,7 +121,7 @@ export function hasCanvasUnsupportedFeature(w) {
   }
 
   // Multi-color line (colorAboveThreshold/BelowThreshold) is drawn via a
-  // gradient internally — same P2 gate as above.
+  // gradient internally: same P2 gate as above.
   const lineColors = w.config.plotOptions?.line?.colors
   if (lineColors && lineColors.colorAboveThreshold && lineColors.colorBelowThreshold) {
     return true

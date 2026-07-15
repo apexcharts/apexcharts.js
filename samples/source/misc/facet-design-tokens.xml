@@ -79,6 +79,7 @@
 <div class="panel">
   <div class="controls">
     <button id="toggle">Toggle light / dark</button>
+    <button id="shuffle">Shuffle accent token</button>
     <span id="state" style="font-size:13px;"></span>
   </div>
 </div>
@@ -90,9 +91,13 @@
     Every color here comes from CSS <code>--apx-*</code> tokens
     (<code>--apx-accent</code>, <code>--apx-fore</code>, <code>--apx-grid</code>,
     <code>--apx-surface</code>) defined once in the stylesheet. The chart config
-    sets no colors at all. The button flips a class that swaps the token values;
-    with <code>theme: { follow: 'os' }</code> the chart also tracks the OS
-    <code>prefers-color-scheme</code> automatically, no JS required.
+    sets no colors at all. The first button flips a class that swaps the token
+    values; with <code>theme: { follow: 'os' }</code> the chart also tracks the
+    OS <code>prefers-color-scheme</code> automatically, no JS required.
+    <b>Shuffle accent token</b> changes only the CSS variable at runtime and
+    calls <code>chart.refreshTokens()</code>, which re-reads the cascade and
+    re-renders: the path for design-system theme switches that are not an OS
+    color-scheme flip.
   </div>
 </div>
 </html>
@@ -156,5 +161,15 @@ document.getElementById('toggle').addEventListener('click', function () {
   // own when the OS setting changes.
   chart.updateOptions({ theme: { mode: mode } })
   syncState()
+})
+
+var accents = ['#e11d48', '#0e9d9a', '#d97706', '#7c3aed', '#4f46e5']
+var accentIdx = -1
+document.getElementById('shuffle').addEventListener('click', function () {
+  accentIdx = (accentIdx + 1) % accents.length
+  // A pure token change: no chart option differs, so updateOptions({}) would
+  // be memoized away. refreshTokens() re-reads the CSS cascade and re-renders.
+  root.style.setProperty('--apx-accent', accents[accentIdx])
+  chart.refreshTokens()
 })
 </vanilla-js-script>

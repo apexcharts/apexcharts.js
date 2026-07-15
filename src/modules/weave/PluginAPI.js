@@ -1,7 +1,7 @@
 // @ts-check
 /**
  * The frozen facade handed to each Weave plugin. Plugins NEVER receive raw `w`,
- * internal module instances, or the `__apex_*` internals — only this stable,
+ * internal module instances, or the `__apex_*` internals: only this stable,
  * versioned surface, so ApexCharts internals stay free to change.
  *
  * @module weave/PluginAPI
@@ -174,7 +174,13 @@ export function buildPluginAPI(host, record) {
   const api = {
     name: record.def.name,
     version: WEAVE_API_VERSION,
-    options: record.options,
+
+    // Live: reconcile refreshes record.options when the chart's plugins config
+    // changes, so updateOptions({ plugins: [{ name, options }] }) reconfigures
+    // an active plugin in place. The returned object is frozen.
+    get options() {
+      return record.options
+    },
 
     // ── lifecycle subscription ──
     /**
@@ -205,6 +211,9 @@ export function buildPluginAPI(host, record) {
     store: {},
 
     // ── drawing (renderer-agnostic) ──
+    // Call this INSIDE each draw handler: the host wipes plugin layers at the
+    // start of every draw pass, so a handle cached across draws points at a
+    // detached node and its writes vanish silently.
     /** @param {any} [opts] */
     layer(opts) {
       return host._layer(record.def.name, opts || {})
@@ -214,10 +223,13 @@ export function buildPluginAPI(host, record) {
     get scales() {
       return host._currentScales
     },
+    // Served from the per-dispatch snapshot when one exists (invalidated at
+    // every dispatch), so reading api.data in a loop does not rebuild the
+    // point arrays on each property access.
     get data() {
-      return host._dataSnapshot()
+      return host._lastData || (host._lastData = host._dataSnapshot())
     },
-    theme: {
+    theme: Object.freeze({
       get mode() {
         return w.config.theme.mode
       },
@@ -232,21 +244,26 @@ export function buildPluginAPI(host, record) {
       token(name) {
         return host._token(name)
       },
-    },
+    }),
 
     // ── curated actions (bound public methods only; NEVER raw w) ──
     chart: buildBoundPublicMethods(ctx),
 
     // ── custom events out to the host app ──
     /**
+     * Fires as `plugin:<pluginName>:<name>` on the chart's event bus. The
+     * namespace is not optional: the bus also carries the internal lifecycle
+     * events ('updated', 'mounted', ...), and an un-namespaced emit could
+     * trigger every internal subscriber (history capture, re-render hooks).
+     * Listen with chart.addEventListener('plugin:myplugin:myevent', fn).
      * @param {string} name
      * @param {any} [detail]
      */
     emit(name, detail) {
-      ctx.events.fireEvent(name, [ctx, detail])
+      ctx.events.fireEvent(`plugin:${record.def.name}:${name}`, [ctx, detail])
     },
 
-    // ── host element (read; lazy — baseEl is not set until render) ──
+    // ── host element (read; lazy: baseEl is not set until render) ──
     get el() {
       return w.dom.baseEl
     },

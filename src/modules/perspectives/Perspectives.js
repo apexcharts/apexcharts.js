@@ -4,13 +4,13 @@ import { Environment } from '../../utils/Environment.js'
 import { captureViewState, applyViewState } from '../state/ViewState'
 
 /**
- * Perspectives (#10) — serializable, shareable view state.
+ * Perspectives (#10): serializable, shareable view state.
  *
  * "Capture the chart as I'm looking at it" as a compact token: zoom window,
  * hidden series, selected points, theme, locale and annotations. Encode it to a
  * base64url string / URL hash; a colleague opening the link restores the exact
  * view (functions such as formatters are supplied by their own page config, not
- * carried in the token — see encode()).
+ * carried in the token: see encode()).
  *
  * Eager module (like drilldown): constructed once in InitCtxVariables so the
  * in-memory saved-views registry survives update() and is dropped on destroy().
@@ -89,7 +89,7 @@ function base64urlDecode(b64url) {
 }
 
 /**
- * Deep copy of data only — JSON.stringify silently drops functions and
+ * Deep copy of data only: JSON.stringify silently drops functions and
  * undefined, which is exactly what we want for a serialisable option delta.
  * @param {any} obj
  * @returns {any}
@@ -155,7 +155,7 @@ export default class Perspectives {
   /**
    * Encode a token (or the current capture) to a compact base64url string.
    * JSON.stringify drops any functions embedded in annotation params / option
-   * overrides by construction — a shared link carries data; the opening page
+   * overrides by construction: a shared link carries data; the opening page
    * supplies its own functions from config.
    * @param {any} [token]
    * @returns {string}
@@ -166,7 +166,7 @@ export default class Perspectives {
   }
 
   /**
-   * Decode a base64url token string. Never throws — returns null on any error
+   * Decode a base64url token string. Never throws: returns null on any error
    * or version mismatch (with a console warning).
    * @param {string} str
    * @returns {any | null}
@@ -266,7 +266,7 @@ export default class Perspectives {
       const token = JSON.parse(base64urlDecode(str))
       if (!token || typeof token !== 'object') return null
       if (token.v !== PERSPECTIVE_VERSION) {
-        // No migrations defined yet — warn and bail rather than throw.
+        // No migrations defined yet: warn and bail rather than throw.
         console.warn(
           `apexcharts: unsupported perspective version ${token.v} (expected ${PERSPECTIVE_VERSION}).`,
         )

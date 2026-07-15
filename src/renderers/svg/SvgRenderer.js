@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * The SVG `Renderer` implementation — a thin adapter over the existing
+ * The SVG `Renderer` implementation: a thin adapter over the existing
  * `Graphics` (and, later, `Fill`/`Filters`). It IS today's render path, just
  * behind the interface. Lives in core (always present): it adds ~no weight
  * because it delegates to modules that already ship.
@@ -35,7 +35,7 @@ export default class SvgRenderer {
   }
   clear() {}
 
-  // ── emit primitives (delegate to Graphics — the canvas renderer mirrors
+  // ── emit primitives (delegate to Graphics: the canvas renderer mirrors
   //    this exact surface) ──
   /** @param {any} attrs */
   group(attrs) {
@@ -67,7 +67,7 @@ export default class SvgRenderer {
   /**
    * A series mark path (animation-aware). Faithful passthrough to Graphics.
    * Note: the SVG emit path in the per-type draw() methods routes through
-   * `seriesEmitter`, which returns the caller's own `Graphics` in SVG mode — so
+   * `seriesEmitter`, which returns the caller's own `Graphics` in SVG mode: so
    * this method is the interface contract surface (mirrored by the canvas
    * renderer), not the hot path.
    * @param {any} opts
@@ -84,19 +84,19 @@ export default class SvgRenderer {
     return this.ctx.graphics.drawMarker(x, y, opts)
   }
 
-  // ── capabilities — SVG supports everything the interface enumerates ──
+  // ── capabilities: SVG supports everything the interface enumerates ──
   /** @param {string} _feature */
   supports(_feature) {
     return true
   }
 
-  // ── interaction — the DOM does this natively in SVG mode ──
+  // ── interaction: the DOM does this natively in SVG mode ──
   hitTest() {
     return null
   }
   restyle() {}
 
-  // ── export — SVG serializes directly; no bitmap to composite ──
+  // ── export: SVG serializes directly; no bitmap to composite ──
   toBitmap() {
     return null
   }

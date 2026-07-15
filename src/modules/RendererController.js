@@ -7,13 +7,13 @@ import {
 } from '../renderers/Renderer'
 
 /**
- * Strata (#2) — selects the active series `Renderer` and owns fallback.
+ * Strata (#2): selects the active series `Renderer` and owns fallback.
  *
  * SVG is always available (core). Non-SVG renderers (canvas, later gpu) register
  * a factory via `RendererController.registerRenderer(kind, factory)` from their
  * tree-shakeable feature file (e.g. `apexcharts/features/renderer-canvas`).
  * When a requested/auto-selected backend is not registered, selection falls
- * back to SVG — so `renderer:'auto'`/`'canvas'` is safe even without the canvas
+ * back to SVG, so `renderer:'auto'`/`'canvas'` is safe even without the canvas
  * feature bundled.
  *
  * One controller per chart instance (`ctx.rendererController`, eager, core).
@@ -22,20 +22,43 @@ import {
  *
  * @module RendererController
  */
+const RENDERER_REGISTRY_KEY = '__apexcharts_renderers__'
+
+/**
+ * kind -> factory(w, ctx) => Renderer. Stored on `globalThis` (like the
+ * chart-type, plugin and theme registries) so a renderer registered against one
+ * bundle copy (dual CJS+ESM instances) is visible to charts rendered by
+ * another. SVG is NOT in here (it is the built-in default); this holds only
+ * opt-in backends.
+ * @returns {Map<string, (w: any, ctx: any) => any>}
+ */
+function getRendererRegistry() {
+  const g = /** @type {any} */ (globalThis)
+  if (!g[RENDERER_REGISTRY_KEY]) g[RENDERER_REGISTRY_KEY] = new Map()
+  return g[RENDERER_REGISTRY_KEY]
+}
+
 export default class RendererController {
-  /**
-   * kind -> factory(w, ctx) => Renderer. SVG is NOT in here (it is the built-in
-   * default); this holds only opt-in backends.
-   * @type {Map<string, (w: any, ctx: any) => any>}
-   */
-  static _rendererRegistry = new Map()
+  /** Same Map as getRendererRegistry(); exposed for tests/tooling. */
+  static get _rendererRegistry() {
+    return getRendererRegistry()
+  }
 
   /**
    * @param {string} kind
    * @param {(w: any, ctx: any) => any} factory
    */
   static registerRenderer(kind, factory) {
-    RendererController._rendererRegistry.set(kind, factory)
+    getRendererRegistry().set(kind, factory)
+  }
+
+  /**
+   * Remove a registered renderer backend (tests / hot-reload). Charts fall
+   * back to SVG on their next resolve().
+   * @param {string} kind
+   */
+  static unregisterRenderer(kind) {
+    getRendererRegistry().delete(kind)
   }
 
   /**
@@ -50,6 +73,15 @@ export default class RendererController {
     this.active = this.svg
     /** @type {import('../renderers/Renderer').RendererKind} */
     this._activeKind = 'svg'
+    /**
+     * Non-SVG renderer instances, one per kind, created on first resolve and
+     * REUSED across renders (their per-pass state resets in beginSeries()).
+     * Owning them here is what makes Renderer.destroy() a real contract:
+     * teardown() destroys each once, instead of resolve() leaking a fresh
+     * instance per render.
+     * @type {Record<string, any>}
+     */
+    this._instances = {}
   }
 
   /**
@@ -67,7 +99,7 @@ export default class RendererController {
     if (hasCanvasUnsupportedFeature(this.w)) return 'svg'
     if (mode === 'canvas') return 'canvas'
 
-    // 'auto' — pick canvas once the rendered-mark count crosses the threshold.
+    // 'auto': pick canvas once the rendered-mark count crosses the threshold.
     const marks = computeMarkCount(this.w)
     const threshold = cfg.rendererThreshold || 8000
     return marks >= threshold ? 'canvas' : 'svg'
@@ -84,9 +116,12 @@ export default class RendererController {
     const desired = this._desiredKind()
 
     if (desired !== 'svg') {
-      const factory = RendererController._rendererRegistry.get(desired)
+      const factory = getRendererRegistry().get(desired)
       if (factory) {
-        this.active = factory(this.w, this.ctx)
+        if (!this._instances[desired]) {
+          this._instances[desired] = factory(this.w, this.ctx)
+        }
+        this.active = this._instances[desired]
         this._activeKind = desired
         this.ctx.renderer = this.active
         // Mirror on globals so w-only modules (Series hover/legend restyle)
@@ -103,7 +138,7 @@ export default class RendererController {
       }
     } else if (mode === 'canvas' && hasCanvasUnsupportedFeature(this.w)) {
       // Explicit canvas, but a configured feature (gradient/pattern/image fill,
-      // or a state color-matrix filter) can't render on canvas yet — 'auto'
+      // or a state color-matrix filter) can't render on canvas yet: 'auto'
       // declines silently, explicit 'canvas' says why.
       console.warn(
         `[apexcharts] renderer:"canvas" requested but this chart uses a feature the ` +
@@ -122,5 +157,16 @@ export default class RendererController {
   /** @returns {import('../renderers/Renderer').RendererKind} */
   getActiveKind() {
     return this._activeKind
+  }
+
+  /** Destroy the owned non-SVG renderer instances (full chart destroy). */
+  teardown() {
+    for (const kind in this._instances) {
+      const r = this._instances[kind]
+      if (r && typeof r.destroy === 'function') r.destroy()
+    }
+    this._instances = {}
+    this.active = this.svg
+    this._activeKind = 'svg'
   }
 }

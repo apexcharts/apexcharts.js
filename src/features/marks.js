@@ -3,7 +3,7 @@ import ApexCharts from '../apexcharts'
 import { makeCustomSeriesClass } from '../charts/CustomSeries'
 
 /**
- * Marks (#11) — the tree-shakeable feature that enables custom series types.
+ * Marks (#11): the tree-shakeable feature that enables custom series types.
  *
  * `ApexCharts.registerSeriesType(name, def)` lives in core (always callable),
  * but building the type-class adapter is THIS opt-in feature: importing it sets

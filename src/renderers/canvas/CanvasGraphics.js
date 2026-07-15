@@ -2,22 +2,22 @@
 import Graphics from '../../modules/Graphics'
 
 /**
- * Strata (#2) P2 — CanvasGraphics: an svg.js-compatible display-list shim.
+ * Strata (#2) P2: CanvasGraphics: an svg.js-compatible display-list shim.
  *
  * The per-type `draw()` methods emit series marks by calling primitive methods
  * (`renderPaths`, `drawMarker`, ...) and then reading back from the returned
  * element (`.attr()`, `.node.setAttribute()`, `.add()`, filter/animation
  * helpers). Rather than hoist a scene description out of those tangled sites,
- * the canvas renderer implements the SAME element API — but instead of creating
+ * the canvas renderer implements the SAME element API, but instead of creating
  * a DOM node it records a paint command. The returned handle quacks like an
  * svg.js element so the emit sites need no structural change.
  *
- * PERFORMANCE — the whole point of canvas mode is dense data, so the per-point
+ * PERFORMANCE: the whole point of canvas mode is dense data, so the per-point
  * primitive (`drawMarker`) MUST NOT allocate a retained object per point.
  * Allocating tens of thousands of retained objects into a growing array while
  * the render pipeline churns transient garbage triggers a V8 scavenge blow-up
  * (measured: 50k object-cmds = ~5s, columnar number arrays = a few ms). So
- * markers are stored COLUMNAR — parallel unboxed-number arrays (x/y/size/shape/
+ * markers are stored COLUMNAR: parallel unboxed-number arrays (x/y/size/shape/
  * styleId) plus a tiny deduped style palette. The returned handle is a
  * transient index ref (dies after the emit site, never retained). Lower-count
  * primitives (series paths, rects, lines, text) keep object commands.
@@ -132,7 +132,7 @@ const SHARED_MARKER_NODE = {
 
 /**
  * A single shared no-op group. Series draw() creates wrap groups per point that
- * carry no paint state in canvas mode, so they all share this — zero per-point
+ * carry no paint state in canvas mode, so they all share this: zero per-point
  * group allocation (the difference between a GC blow-up and a fast render).
  */
 const SHARED_GROUP = {
@@ -257,7 +257,7 @@ class CanvasMarkerRef {
  * Object-command handle for lower-count primitives (series paths, rects, lines,
  * text). Style-relevant `attr()` / `node.setAttribute()` writes flow into the
  * bound command so late edits (forecast dashArray, fill-rule) paint. It
- * deliberately omits `filterWith`/`unfilter` — `Filters` guards on their
+ * deliberately omits `filterWith`/`unfilter`: `Filters` guards on their
  * presence, so filter/dropShadow effects safely no-op in canvas mode.
  */
 class CanvasMark {
@@ -375,7 +375,7 @@ export default class CanvasGraphics {
     // Initialized here (not only in reset()) so their types are non-nullable.
     /** @type {any[]} object commands: paths / rects / lines / text */
     this._list = []
-    // Columnar marker store — PRE-SIZED typed arrays, index-assigned (never
+    // Columnar marker store: PRE-SIZED typed arrays, index-assigned (never
     // .push()). Growing a retained array per point while the render churns
     // transient garbage triggers a V8 scavenge blow-up (measured: 50k pushes ~
     // 4.8s); a fixed typed array whose contents aren't GC-traced avoids it
@@ -465,7 +465,7 @@ export default class CanvasGraphics {
     this._msi = new Int32Array(cap)
   }
 
-  /** Grow the marker columns (rare — capacity estimate was low). */
+  /** Grow the marker columns (rare: capacity estimate was low). */
   _growMarkers() {
     const cap = this._mcap * 2
     const nx = new Float64Array(cap)
@@ -593,15 +593,15 @@ export default class CanvasGraphics {
   // ── organizational (groups don't paint or record) ──
   // Series draw() creates a wrap group PER POINT (scatter.draw / plotChartMarkers
   // run per point), so allocating a handle per group is ~50k heavy allocations
-  // at scale — enough transient churn to tip V8 into a GC blow-up. Groups carry
+  // at scale: enough transient churn to tip V8 into a GC blow-up. Groups carry
   // no paint state in canvas mode (attr/add are no-ops), so every group shares
-  // one singleton — zero per-point allocation.
+  // one singleton: zero per-point allocation.
   /** @param {any} _attrs */
   group(_attrs) {
     return SHARED_GROUP
   }
 
-  // ── per-point marker (line/area markers, scatter, bubble) — COLUMNAR ──
+  // ── per-point marker (line/area markers, scatter, bubble): COLUMNAR ──
   /**
    * @param {number} x
    * @param {number} y
@@ -665,7 +665,7 @@ export default class CanvasGraphics {
     return id
   }
 
-  // ── series body path (line/area/bar) — object command ──
+  // ── series body path (line/area/bar): object command ──
   /** @param {any} opts */
   renderPaths(opts) {
     const cmd = this._cmd('path', opts.realIndex)
@@ -713,10 +713,25 @@ export default class CanvasGraphics {
   }
 
   /**
+   * Mirrors Graphics.drawRect's full signature (including stroke), so callers
+   * that stroke rects (Marks api.rect, chart code) paint the same on canvas.
    * @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2
    * @param {number} radius @param {string} color @param {number} opacity
+   * @param {number|null} [strokeWidth] @param {string|null} [strokeColor]
+   * @param {any} [strokeDashArray]
    */
-  drawRect(x1 = 0, y1 = 0, x2 = 0, y2 = 0, radius = 0, color = '#fefefe', opacity = 1) {
+  drawRect(
+    x1 = 0,
+    y1 = 0,
+    x2 = 0,
+    y2 = 0,
+    radius = 0,
+    color = '#fefefe',
+    opacity = 1,
+    strokeWidth = null,
+    strokeColor = null,
+    strokeDashArray = 0,
+  ) {
     const cmd = this._cmd('rect', 0)
     cmd.x1 = x1
     cmd.y1 = y1
@@ -725,6 +740,11 @@ export default class CanvasGraphics {
     cmd.radius = radius
     cmd.fill = color
     cmd.fillOpacity = opacity
+    if (strokeColor != null) {
+      cmd.stroke = strokeColor
+      cmd.strokeWidth = strokeWidth == null ? 1 : strokeWidth
+      cmd.strokeDash = strokeDashArray
+    }
     return new CanvasMark(cmd)
   }
 

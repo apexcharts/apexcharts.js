@@ -217,7 +217,7 @@ export default class InitCtxVariables {
 
     // Perspectives: ctx.perspectives (opt-in serializable/shareable view state).
     // Eager so the in-memory saved-views registry survives update() and is
-    // dropped only on a full destroy(). Passive — adds no listeners.
+    // dropped only on a full destroy(). Passive: adds no listeners.
     const PerspectivesCtor = reg.get('perspectives')
     ctx.perspectives = PerspectivesCtor ? new PerspectivesCtor(w, ctx) : null
 

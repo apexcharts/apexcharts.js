@@ -4,14 +4,14 @@ import { SVGNS } from '../../svg/math'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 
 /**
- * Strata (#2) P2 — CanvasCompositor: owns the `<foreignObject><canvas>` series
+ * Strata (#2) P2: CanvasCompositor: owns the `<foreignObject><canvas>` series
  * layer and paints a display list into it.
  *
  * Layer placement (spec §4, Option A): the foreignObject lives INSIDE
  * `elGraphical`, so it inherits the plot-position transform
  * (`translate(translateX, translateY)`, `Core.shiftGraphPosition`) plus the
  * Paper offset. Series `d`-strings are elGraphical-local (0-based at the plot
- * origin), so the canvas only needs DPR scaling — no extra translate. A small
+ * origin), so the canvas only needs DPR scaling: no extra translate. A small
  * margin around the plot rect keeps edge markers from being clipped.
  *
  * @module renderers/canvas/CanvasCompositor
@@ -82,7 +82,7 @@ export default class CanvasCompositor {
     fo.setAttribute('width', String(w))
     fo.setAttribute('height', String(h))
     fo.setAttribute('class', 'apexcharts-canvas-series')
-    // Never intercept pointer events — the SVG chrome + hit-test bridge (P3)
+    // Never intercept pointer events: the SVG chrome + hit-test bridge (P3)
     // own interaction; the canvas is paint-only.
     fo.style.overflow = 'visible'
 
@@ -112,6 +112,24 @@ export default class CanvasCompositor {
   }
 
   /**
+   * Re-check devicePixelRatio before painting: a restyle() repaint after the
+   * window moved between monitors would otherwise keep the stale backing-store
+   * scale (blurry or over-sized) until the next full render rebuilds the host.
+   * The canvas CSS size is unchanged; only the backing store is resized.
+   */
+  _syncDpr() {
+    if (!this._canvas) return
+    const win = BrowserAPIs.getWindow()
+    const dpr = Math.min(DPR_CAP, (win && win.devicePixelRatio) || 1)
+    if (dpr === this._dpr) return
+    this._dpr = dpr
+    const wCss = parseFloat(this._canvas.style.width) || 0
+    const hCss = parseFloat(this._canvas.style.height) || 0
+    this._canvas.width = Math.max(1, Math.round(wCss * dpr))
+    this._canvas.height = Math.max(1, Math.round(hCss * dpr))
+  }
+
+  /**
    * Paint the recorded scene: object commands (series bodies / rects / lines /
    * text) first, then the columnar markers on top (matching SVG z-order where
    * markers sit above the series path). `shim` supplies the columnar marker
@@ -126,6 +144,7 @@ export default class CanvasCompositor {
     if (!ctx) return
 
     this._dim = dim || null
+    this._syncDpr()
     this.clear()
     const dpr = this._dpr
     const m = this._margin
@@ -184,7 +203,7 @@ export default class CanvasCompositor {
       if (shapeId === 0) {
         // Circle run of one style. Set the paint state ONCE, then draw each
         // circle with its own beginPath/arc/fill. (Accumulating all circles
-        // into a single path and filling once is far slower — the fill has to
+        // into a single path and filling once is far slower: the fill has to
         // scan-convert the entire 50k-subpath path in one shot; per-circle
         // fills after one state change are the fast pattern.)
         const doFill = this._applyFill(ctx, style)
@@ -222,7 +241,7 @@ export default class CanvasCompositor {
         ctx.globalAlpha = 1
         i = j
       } else {
-        // non-circle shape — its own SVG path
+        // non-circle shape: its own SVG path
         const y = my[i]
         if (y === y && msize[i] > 0) {
           this._alpha = dimming ? this._seriesAlpha(shim.markerSeries(i)) : 1

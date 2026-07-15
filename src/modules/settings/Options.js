@@ -259,7 +259,7 @@ export default class Options {
         images: [],
         shapes: [],
       },
-      // Weave (#1) — public plugin platform. Per-chart activation list:
+      // Weave (#1): public plugin platform. Per-chart activation list:
       // { name, options?, order? }. Requires the Weave host to be bundled
       // (`import 'apexcharts/features/weave'`, included in the full bundle) and
       // the plugin registered via ApexCharts.registerPlugin().
@@ -335,13 +335,13 @@ export default class Options {
         background: '',
         locales: [en],
         defaultLocale: 'en',
-        // Perspectives (#10) — serializable/shareable view state. Passive:
+        // Perspectives (#10): serializable/shareable view state. Passive:
         // requires `import 'apexcharts/features/perspectives'`. serializeOptions
         // is the whitelist of function-free option paths stored in a token.
         perspectives: {
           serializeOptions: ['theme', 'xaxis', 'yaxis', 'title', 'subtitle'],
         },
-        // Rewind (#3) — undo/redo history. Opt-in (bundle + behavior): requires
+        // Rewind (#3): undo/redo history. Opt-in (bundle + behavior): requires
         // `import 'apexcharts/features/history'` AND chart.history.enabled.
         history: {
           enabled: false,
@@ -349,11 +349,11 @@ export default class Options {
           coalesceMs: 250,
           keyboard: true,
         },
-        // Strata (#2) — hybrid SVG+canvas series renderer. 'svg' (default) |
+        // Strata (#2): hybrid SVG+canvas series renderer. 'svg' (default) |
         // 'canvas' | 'auto'. 'auto'/'canvas' need the canvas renderer feature
-        // (`import 'apexcharts/features/renderer-canvas'`); without it — or with
+        // (`import 'apexcharts/features/renderer-canvas'`); without it, or with
         // a canvas-unsupported feature (pattern/image fill, color-matrix state
-        // filters) — selection falls back to 'svg'. Only the series layer is
+        // filters), selection falls back to 'svg'. Only the series layer is
         // canvas-capable in v1; chrome stays SVG.
         renderer: 'svg',
         rendererThreshold: 8000,
@@ -1678,9 +1678,12 @@ export default class Options {
         mode: '',
         palette: 'palette1', // If defined, it will overwrite globals.colors variable
         // Facet (#13): read `--apx-*` CSS design tokens from the cascade
-        // (accent/fore/grid/surface + series-1..N). 'auto' (default) reads any
-        // present; false disables. Tokens top the resolution chain below config.
-        tokens: 'auto', // 'auto' | true | false
+        // (accent/fore/grid/surface + series-1..N). true (default) reads any
+        // present (absence is a no-op); false disables. Tokens top the
+        // resolution chain below explicit config. Tokens are re-read on every
+        // render; call chart.refreshTokens() to pick up a runtime CSS change
+        // that does not itself trigger a render.
+        tokens: true,
         // Facet (#13): 'os' follows prefers-color-scheme + prefers-contrast
         // reactively (SSR-safe, cleaned up on destroy). false disables.
         follow: false, // 'os' | false

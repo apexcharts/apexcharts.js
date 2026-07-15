@@ -5,13 +5,13 @@ import { buildPluginAPI, makeLayerHandle, WEAVE_API_VERSION } from './PluginAPI'
 export { WEAVE_API_VERSION }
 
 /**
- * Weave (#1) — one host per chart instance (`ctx.weave`).
+ * Weave (#1): one host per chart instance (`ctx.weave`).
  *
  * Reads `w.config.plugins`, resolves registered definitions, version-gates
  * them, builds a frozen PluginAPI per active plugin, runs `setup(api)` once,
  * and owns hook dispatch + layer lifecycle. Eager module (like drilldown) so it
  * exists before the first render and survives update(); it is the tree-shakeable
- * *host* — `ApexCharts.registerPlugin` lives in core, so plugins can always be
+ * *host*: `ApexCharts.registerPlugin` lives in core, so plugins can always be
  * registered, but they only activate when this host is bundled.
  *
  * Hooks: afterParse, afterScales, draw, afterUpdate, destroy. `draw` is the
@@ -34,6 +34,8 @@ export default class WeaveHost {
     this._layers = new Map()
     /** @type {any} */ this._currentScales = null
     /** @type {any} */ this._lastPluginsRef = null
+    /** @type {any} per-dispatch data snapshot backing api.data reads */
+    this._lastData = null
     /** @type {boolean} */ this._updatedWired = false
 
     this._onUpdated = this._onUpdated.bind(this)
@@ -104,10 +106,13 @@ export default class WeaveHost {
       this._reconcile()
       this._resetLayers()
     }
+    // Data changed (or may have): invalidate the api.data read cache so a
+    // between-hooks read never sees a stale snapshot.
+    this._lastData = null
     if (!this.active.length) return
 
     if (hook === 'afterParse') {
-      // geometry not computed yet — no scales.
+      // geometry not computed yet: no scales.
       this._currentScales = null
     } else if (extra && 'xyRatios' in extra) {
       this._setScales(extra.xyRatios)
@@ -119,7 +124,10 @@ export default class WeaveHost {
       if (record.disabled) continue
       const fns = record.handlers.get(hook)
       if (!fns || !fns.length) continue
-      if (data === null) data = this._dataSnapshot()
+      if (data === null) {
+        data = this._dataSnapshot()
+        this._lastData = data // cache for api.data reads during/after this pass
+      }
       const payload = {
         api: record.api,
         scales: this._currentScales,
@@ -288,8 +296,11 @@ export default class WeaveHost {
 
   /**
    * Diff w.config.plugins by name: teardown removed, activate added; unchanged
-   * plugins (and their store) stay intact. Skipped when the plugins array
-   * reference is unchanged (fast redraws), so it costs nothing on hover.
+   * plugins keep their instance + store, but their `options` are refreshed from
+   * the new entry (api.options is a live getter), so
+   * updateOptions({ plugins: [{ name, options }] }) reconfigures in place.
+   * Skipped when the plugins array reference is unchanged (fast redraws), so it
+   * costs nothing on hover.
    */
   _reconcile() {
     const plugins = this.w.config.plugins || []
@@ -303,12 +314,15 @@ export default class WeaveHost {
       ]),
     )
 
-    // Remove plugins no longer desired.
+    // Remove plugins no longer desired; refresh options on the survivors.
     for (let i = this.active.length - 1; i >= 0; i--) {
       const r = this.active[i]
-      if (!desired.has(r.def.name)) {
+      const want = desired.get(r.def.name)
+      if (!want) {
         this._guard(r, 'destroy', () => r.def.destroy && r.def.destroy(r.api))
         this.active.splice(i, 1)
+      } else {
+        r.options = Object.freeze({ ...(want.entry.options || {}) })
       }
     }
 

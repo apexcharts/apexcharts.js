@@ -3,10 +3,10 @@ import CanvasGraphics from './CanvasGraphics'
 import CanvasCompositor from './CanvasCompositor'
 
 /**
- * Strata (#2) P2 — the Canvas `Renderer`. Records series marks into a display
+ * Strata (#2) P2: the Canvas `Renderer`. Records series marks into a display
  * list (via {@link CanvasGraphics}) and paints them into a `<canvas>` composited
- * inside the SVG tree (via {@link CanvasCompositor}). Everything else — axes,
- * grid, crosshairs, annotations, data labels, tooltip, legend — stays SVG, so
+ * inside the SVG tree (via {@link CanvasCompositor}). Everything else: axes,
+ * grid, crosshairs, annotations, data labels, tooltip, legend: stays SVG, so
  * only the dense series layer leaves the DOM. This is the surgical-hybrid thesis.
  *
  * Lives in the tree-shakeable `apexcharts/features/renderer-canvas` feature;

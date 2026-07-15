@@ -6,15 +6,18 @@ import Utils from '../../utils/Utils'
  *
  * `captureViewState` / `applyViewState` are the single contract that both
  * Perspectives (#10, serializable/shareable view state) and the future Rewind
- * (#3, undo/redo history) build on. Keeping the capture/apply logic here — as a
- * pure module with no feature registration — means the two features stay in
+ * (#3, undo/redo history) build on. Keeping the capture/apply logic here: as a
+ * pure module with no feature registration: means the two features stay in
  * lock-step and there is exactly one place that knows where each piece of view
  * state lives in `w`.
  *
- * A `ViewState` is intentionally FUNCTION-FREE and JSON-safe: every field reads
- * from a config/globals/interact source that holds data, not callbacks. That is
- * what lets Perspectives serialise it to a URL. Rewind, which must also restore
- * option/annotation edits that carry functions, pairs this view with a separate
+ * A `ViewState` is JSON-SERIALIZABLE: every field reads from a config/globals/
+ * interact source that holds data, not callbacks. One honest caveat: captured
+ * annotation params are `Utils.clone`d, which passes any function values (label
+ * formatters, event handlers) through BY REFERENCE so in-memory consumers
+ * (Rewind) restore them intact; JSON serialisation (Perspectives URL tokens)
+ * drops those functions, so annotations restored from a token render with
+ * default formatting. Rewind additionally pairs this view with a separate
  * function-preserving `Utils.clone(w.config)` snapshot (that layer is Rewind's,
  * not here).
  *
@@ -30,6 +33,7 @@ import Utils from '../../utils/Utils'
  *   - annotations.static  ← w.config.annotations (declarative set)
  *   - annotations.dynamic ← w.globals.memory.methodsToExec (add*Annotation calls)
  *   - drill               ← ctx.drilldown.path (informational)
+ *   - measure             ← ctx.measure.getPins() (pinned rulers, data space)
  *
  * @module ViewState
  */
@@ -125,6 +129,21 @@ function captureAnnotations(w, ctx) {
 }
 
 /**
+ * Capture the pinned measure rulers (Measure #18) as JSON-safe data. Returns
+ * null when the feature is absent or nothing is pinned, so a pin-free view
+ * keeps a lean token. Pins are already in data space, so they re-project on
+ * restore at whatever zoom the target view lands in.
+ * @param {any} ctx
+ * @returns {{ pins: any[] } | null}
+ */
+function captureMeasure(ctx) {
+  const m = ctx && ctx.measure
+  if (!m || typeof m.getPins !== 'function') return null
+  const pins = m.getPins()
+  return Array.isArray(pins) && pins.length ? { pins } : null
+}
+
+/**
  * Read the current view state off `w`. Pure: no DOM, no mutation, Node-safe.
  * @param {any} w   chart state object
  * @param {any} ctx chart instance (for method-reference and drilldown reads)
@@ -162,6 +181,7 @@ export function captureViewState(w, ctx) {
     annotations: captureAnnotations(w, ctx),
     drill:
       drilldown && drilldown.depth > 0 ? { path: drilldown.path.slice() } : null,
+    measure: captureMeasure(ctx),
   }
 }
 
@@ -172,7 +192,7 @@ export function captureViewState(w, ctx) {
  * sets are left untouched.
  *
  * Note: showSeries/hideSeries route through the legend helper, so an unbundled
- * legend feature makes this a no-op — acceptable, as the default bundle ships
+ * legend feature makes this a no-op: acceptable, as the default bundle ships
  * the legend.
  *
  * @param {any} ctx
@@ -235,6 +255,15 @@ export function restoreSelection(ctx, selectedDataPoints) {
 export function applyViewState(ctx, view, { animate = true } = {}) {
   if (!ctx || !view) return
 
+  // 0. Version gate: a token minted by a NEWER schema may carry fields this
+  //    build does not understand. Apply best-effort, but say so, instead of
+  //    silently rendering a half-restored view.
+  if (typeof view.v === 'number' && view.v > VIEWSTATE_VERSION) {
+    console.warn(
+      `[apexcharts] ViewState v${view.v} is newer than this build understands (v${VIEWSTATE_VERSION}); applying best-effort.`,
+    )
+  }
+
   // 1. Purge current dynamic annotations BEFORE the re-render so the mount-time
   //    replay of memory.methodsToExec cannot resurrect stale ones (resolves the
   //    static/dynamic double-render, spec §10.1). clearAnnotations() drops both
@@ -289,8 +318,8 @@ export function applyViewState(ctx, view, { animate = true } = {}) {
  * Restore the parts of a view that do NOT live in `w.config`: the zoom flag,
  * the collapsed-series set, dynamic annotations, the selection, and the locale.
  *
- * Assumes the config-level state (zoom window, theme, static annotations, and —
- * for Rewind — series/title) has ALREADY been applied by the caller's own
+ * Assumes the config-level state (zoom window, theme, static annotations, and,
+ * for Rewind, series/title) has ALREADY been applied by the caller's own
  * updateOptions, and that dynamic annotations were cleared before that
  * re-render (so the mount replay did not resurrect stale ones). Shared by
  * Perspectives.applyViewState (partial config) and History._restore (full
@@ -303,13 +332,13 @@ export function applyViewInteraction(ctx, view) {
   if (!ctx || !view) return
   const w = ctx.w
 
-  // Zoom flag — Series.resetSeries clears it; set it explicitly here.
+  // Zoom flag: Series.resetSeries clears it; set it explicitly here.
   w.interact.zoomed = !!view.zoomed
 
-  // Collapsed set — toggle the delta via public show/hide.
+  // Collapsed set: toggle the delta via public show/hide.
   applyCollapsedSet(ctx, view.collapsed, view.ancillaryCollapsed)
 
-  // Dynamic annotations — replay the captured data-level params. pushToMemory
+  // Dynamic annotations: replay the captured data-level params. pushToMemory
   // is true so they persist across subsequent re-renders like a real add.
   if (view.annotations && Array.isArray(view.annotations.dynamic)) {
     view.annotations.dynamic.forEach((/** @type {any} */ a) => {
@@ -326,5 +355,11 @@ export function applyViewInteraction(ctx, view) {
   // Locale.
   if (view.locale && view.locale !== w.config.chart.defaultLocale) {
     ctx.setLocale(view.locale)
+  }
+
+  // Measure rulers (#18): restore the pinned set; an absent/empty measure
+  // state clears any current pins so the restored view matches exactly.
+  if (ctx.measure && typeof ctx.measure.setPins === 'function') {
+    ctx.measure.setPins((view.measure && view.measure.pins) || [])
   }
 }

@@ -197,8 +197,9 @@ export default class Theme {
 
   /**
    * Facet (#13): tokens are on unless explicitly disabled (`theme.tokens:false`).
-   * `'auto'` (default) and `true` both read; `readTokens` returns only the
-   * tokens actually present, so absence is a no-op.
+   * `true` is the default (the legacy `'auto'` value is accepted and means the
+   * same); `readTokens` returns only the tokens actually present, so absence
+   * is a no-op.
    * @returns {boolean}
    */
   _shouldUseTokens() {

@@ -4,7 +4,7 @@ import Utils from '../utils/Utils'
 import { seriesEmitter } from '../renderers/Renderer'
 
 /**
- * Marks (#11) — build a chart-type class from a `registerSeriesType` definition.
+ * Marks (#11): build a chart-type class from a `registerSeriesType` definition.
  *
  * The returned class implements the standard type-class contract
  * (`new Ctor(w, ctx, xyRatios).draw(series, ctype, iArray)` returning an SVG
@@ -127,6 +127,15 @@ export function makeCustomSeriesClass(name, def) {
 
         ret.add(elSeries)
       })
+
+      // Custom series render their final geometry directly (no animation bridge
+      // yet), so complete the animation state the way a non-animated built-in
+      // render does: without this, animationEnded stays false forever, which
+      // blocks redrawOnParentResize, keeps overlay layers hidden, and never
+      // fires the user's animationEnd event. (In a combo with an animated
+      // built-in series this completes early; animationCompleted itself is
+      // idempotent and does not cancel running tweens.)
+      this.ctx.animations?.animationCompleted?.(ret)
 
       return ret
     }

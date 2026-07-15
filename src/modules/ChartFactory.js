@@ -57,6 +57,27 @@ export function isCustom(name) {
 }
 
 /**
+ * Whether a chart type is registered (built-in or custom). Non-throwing lookup
+ * so callers can guard without try/catch.
+ * @param {string} type
+ * @returns {boolean}
+ */
+export function hasChartClass(type) {
+  return !!getRegistry()[type]
+}
+
+/**
+ * Remove a registered type + its custom flag. Used by
+ * ApexCharts.unregisterSeriesType (tests, hot-reload); built-ins re-register on
+ * the next entry-point import, custom types are simply gone.
+ * @param {string} name
+ */
+export function unregister(name) {
+  delete getRegistry()[name]
+  getCustomTypes().delete(name)
+}
+
+/**
  * Register one or more chart type constructors.
  *
  * @param {Record<string, new (...args: any[]) => any>} typeMap  e.g. { line: Line, area: Line }
