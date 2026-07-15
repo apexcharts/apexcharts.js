@@ -81,6 +81,48 @@ test.describe('Crossfilter: categorical click-to-filter', () => {
     expect(src.dimmed).toBe(3)
   })
 
+  test('a crossfilter click does not leave the mark stuck in the darken/active state', async ({
+    page,
+  }) => {
+    // Regression: clicking a bucket on a filter-mode chart must act as a filter
+    // gesture only. The core point-selection state (selected attr + darken
+    // brightness filter + selectedDataPoints tracking) used to apply too,
+    // leaving the clicked bar permanently dark next to the engine's own
+    // self-dim visuals.
+    const bar = () =>
+      page.evaluate(() => {
+        const el = window.chart2.el.querySelector('.apexcharts-bar-area[j="4"]')
+        return {
+          selected: el.getAttribute('selected'),
+          filter: el.getAttribute('filter'),
+          tracked: window.chart2.w.interact.selectedDataPoints.reduce(
+            (a, arr) => a + ((arr && arr.length) || 0),
+            0,
+          ),
+        }
+      })
+    const before = await bar()
+
+    await page.evaluate(() => {
+      window.chart2.el
+        .querySelector('.apexcharts-bar-area[j="4"]')
+        .dispatchEvent(
+          new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }),
+        )
+    })
+    // the click still filters (the engine listens to dataPointSelection)
+    await page.waitForFunction(
+      () =>
+        Object.keys(window.ApexCharts.getCrossfilter('trades').state().filters)
+          .length === 1,
+    )
+
+    const after = await bar()
+    expect(after.selected).not.toBe('true')
+    expect(after.filter).toBe(before.filter) // no darken brightness filter added
+    expect(after.tracked).toBe(0) // no point-selection bookkeeping
+  })
+
   test('clicking the same slice again clears the filter', async ({ page }) => {
     await clickSlice(page, 'chart', 0)
     await page.waitForFunction(

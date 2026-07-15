@@ -1191,76 +1191,87 @@ class Graphics {
     const j = parseInt(path.node.getAttribute('j') ?? '', 10)
     if (isNaN(i) || isNaN(j)) return
 
-    let selected = 'false'
-    if (path.node.getAttribute('selected') === 'true') {
-      path.node.setAttribute('selected', 'false')
+    // Crossfilter click-source (Linked Views filter mode): a click toggles a
+    // bucket on the shared coordinator, which owns the visual state (it dims
+    // the unselected buckets itself). Skip the point-selection bookkeeping and
+    // the sticky active/darken filter so the clicked mark does not stay dark;
+    // the dataPointSelection events below still fire (the crossfilter engine
+    // listens to them).
+    const link = w.config.chart.link
+    const crossfilterClick = !!(link && typeof link.dimension === 'function')
 
-      const index = w.interact.selectedDataPoints[i].indexOf(j)
-      if (index > -1) {
-        w.interact.selectedDataPoints[i].splice(index, 1)
-      }
-    } else {
-      if (
-        !w.config.states.active.allowMultipleDataPointsSelection &&
-        w.interact.selectedDataPoints.length > 0
-      ) {
-        w.interact.selectedDataPoints = []
-        const elPaths = w.dom.Paper.find(
-          '.apexcharts-series path:not(.apexcharts-decoration-element)',
-        )
-        const elCircles = w.dom.Paper.find(
-          '.apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)',
-        )
+    if (!crossfilterClick) {
+      let selected = 'false'
+      if (path.node.getAttribute('selected') === 'true') {
+        path.node.setAttribute('selected', 'false')
 
-        /**
-         * @param {any[]} els
-         */
-        const deSelect = (els) => {
-          /**
-           * @param {any} el
-           */
-          Array.prototype.forEach.call(els, (el) => {
-            el.node.setAttribute('selected', 'false')
-            filters.getDefaultFilter(el, i)
-          })
+        const index = w.interact.selectedDataPoints[i].indexOf(j)
+        if (index > -1) {
+          w.interact.selectedDataPoints[i].splice(index, 1)
         }
-        deSelect(elPaths)
-        deSelect(elCircles)
-      }
-
-      path.node.setAttribute('selected', 'true')
-      selected = 'true'
-
-      if (typeof w.interact.selectedDataPoints[i] === 'undefined') {
-        w.interact.selectedDataPoints[i] = []
-      }
-      w.interact.selectedDataPoints[i].push(j)
-    }
-
-    if (selected === 'true') {
-      const activeFilter = w.config.states.active.filter
-      if (activeFilter !== 'none') {
-        filters.applyFilter(path, i, activeFilter.type)
       } else {
-        // Reapply the hover filter in case it was removed by `deselect`when there is no active filter and it is not a touch device
-        if (w.config.states.hover.filter !== 'none') {
-          if (!w.interact.isTouchDevice) {
-            const hoverFilter = w.config.states.hover.filter
-            filters.applyFilter(path, i, hoverFilter.type)
+        if (
+          !w.config.states.active.allowMultipleDataPointsSelection &&
+          w.interact.selectedDataPoints.length > 0
+        ) {
+          w.interact.selectedDataPoints = []
+          const elPaths = w.dom.Paper.find(
+            '.apexcharts-series path:not(.apexcharts-decoration-element)',
+          )
+          const elCircles = w.dom.Paper.find(
+            '.apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)',
+          )
+
+          /**
+           * @param {any[]} els
+           */
+          const deSelect = (els) => {
+            /**
+             * @param {any} el
+             */
+            Array.prototype.forEach.call(els, (el) => {
+              el.node.setAttribute('selected', 'false')
+              filters.getDefaultFilter(el, i)
+            })
+          }
+          deSelect(elPaths)
+          deSelect(elCircles)
+        }
+
+        path.node.setAttribute('selected', 'true')
+        selected = 'true'
+
+        if (typeof w.interact.selectedDataPoints[i] === 'undefined') {
+          w.interact.selectedDataPoints[i] = []
+        }
+        w.interact.selectedDataPoints[i].push(j)
+      }
+
+      if (selected === 'true') {
+        const activeFilter = w.config.states.active.filter
+        if (activeFilter !== 'none') {
+          filters.applyFilter(path, i, activeFilter.type)
+        } else {
+          // Reapply the hover filter in case it was removed by `deselect`when there is no active filter and it is not a touch device
+          if (w.config.states.hover.filter !== 'none') {
+            if (!w.interact.isTouchDevice) {
+              const hoverFilter = w.config.states.hover.filter
+              filters.applyFilter(path, i, hoverFilter.type)
+            }
           }
         }
-      }
-    } else {
-      // If the item was deselected, apply hover state filter if it is not a touch device
-      if (w.config.states.active.filter.type !== 'none') {
-        if (
-          w.config.states.hover.filter.type !== 'none' &&
-          !w.interact.isTouchDevice
-        ) {
-          const hoverFilter = w.config.states.hover.filter
-          filters.applyFilter(path, i, hoverFilter.type)
-        } else {
-          filters.getDefaultFilter(path, i)
+      } else {
+        // If the item was deselected, apply hover state filter if it is not a touch device
+        if (w.config.states.active.filter.type !== 'none') {
+          if (
+            w.config.states.hover.filter.type !== 'none' &&
+            !w.interact.isTouchDevice
+          ) {
+            const hoverFilter = w.config.states.hover.filter
+            filters.applyFilter(path, i, hoverFilter.type)
+          } else {
+            filters.getDefaultFilter(path, i)
+          }
         }
       }
     }
