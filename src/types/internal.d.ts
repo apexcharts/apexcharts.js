@@ -519,7 +519,7 @@ export interface ChartContext {
   update(options?: any): Promise<any>
   getSyncedCharts(): any[]
   getGroupedCharts(): any[]
-  fastUpdate(options?: any): Promise<any>
+  fastUpdate(animate?: boolean, prevAxisScaleSig?: string): Promise<any>
 
   // Core modules — always present (typed as `any` until individual module
   // class types are created; matches `/** @type {any} */` in apexcharts.js)

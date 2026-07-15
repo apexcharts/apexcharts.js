@@ -204,6 +204,65 @@ test.describe('Crossfilter: heatmap 2D target', () => {
     )
     expect(filters).toEqual(['byOutcome'])
   })
+
+  // Regression: a companion bar chart re-aggregated via the updateSeries fast
+  // path must rescale its rendered y-axis to the new domain. Previously the
+  // bars shrank to the new max but the y-axis ruler stayed at the old top, so
+  // a bar worth 6 was drawn full-height against a 0-20 ruler.
+  const yAxisTop = (page, chartVar) =>
+    page.evaluate((chartVar) => {
+      const vals = Array.from(
+        window[chartVar].el.querySelectorAll('.apexcharts-yaxis-label tspan'),
+      )
+        .map((s) => parseFloat(s.textContent))
+        .filter((n) => !isNaN(n))
+      return vals.length ? Math.max(...vals) : null
+    }, chartVar)
+
+  test('a companion bar chart rescales its y-axis when the filtered domain drops', async ({
+    page,
+  }) => {
+    // chart2 = "Day of week" bar; unfiltered it scales to ~18 trades/day.
+    expect(await yAxisTop(page, 'chart2')).toBeGreaterThanOrEqual(15)
+
+    // Filter to Loss on the outcome donut -> each day drops to 6 Loss trades.
+    await page.evaluate(() => {
+      const j = window.chart1.w.config.labels.indexOf('Loss')
+      window.chart1.el
+        .querySelector(`.apexcharts-pie-area[j="${j}"]`)
+        .dispatchEvent(
+          new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }),
+        )
+    })
+
+    // The rendered ruler must follow the data down (poll to ride out animation).
+    await page.waitForFunction(() => {
+      const vals = Array.from(
+        window.chart2.el.querySelectorAll('.apexcharts-yaxis-label tspan'),
+      )
+        .map((s) => parseFloat(s.textContent))
+        .filter((n) => !isNaN(n))
+      return vals.length && Math.max(...vals) <= 12
+    })
+
+    const after = await page.evaluate(() => {
+      const vals = Array.from(
+        window.chart2.el.querySelectorAll('.apexcharts-yaxis-label tspan'),
+      )
+        .map((s) => parseFloat(s.textContent))
+        .filter((n) => !isNaN(n))
+      const top = Math.max(...vals)
+      const maxVal = Math.max(
+        ...window.chart2.w.config.series[0].data.map((v) =>
+          typeof v === 'object' ? v.y : v,
+        ),
+      )
+      return { top, maxVal }
+    })
+    // ruler covers the tallest bar and no longer sits at the stale ~20 top
+    expect(after.top).toBeGreaterThanOrEqual(after.maxVal)
+    expect(after.top).toBeLessThanOrEqual(12)
+  })
 })
 
 test.describe('Crossfilter: data table', () => {

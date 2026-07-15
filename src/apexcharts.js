@@ -835,9 +835,13 @@ export default class ApexCharts {
    * Called automatically by _updateSeries() when the fast path is eligible.
    *
    * @param {boolean} animate - Whether to animate the update.
+   * @param {string} [prevAxisScaleSig] - Signature of the on-screen axis scale
+   *   captured by _updateSeries() before parseData recomputed bounds. When the
+   *   recomputed scale differs, the fast path can't repaint the ruler in place,
+   *   so it delegates to a full render. Omitted -> the check is skipped.
    * @returns {Promise<ApexCharts>} Resolves with the chart instance.
    */
-  fastUpdate(animate) {
+  fastUpdate(animate, prevAxisScaleSig) {
     return new Promise((resolve, reject) => {
       try {
         const w = this.w
@@ -889,6 +893,32 @@ export default class ApexCharts {
 
         // Compute per-pixel ratios from the existing layout.
         const xyRatios = this.core.xySettings()
+
+        // The fast path repaints only the series layer; the axes and grid are
+        // preserved in place (below). That is safe only while the axis domain is
+        // unchanged. `prevAxisScaleSig` is the scale currently on screen,
+        // captured by _updateSeries before parseData wiped it. If the freshly
+        // recomputed scale differs, the rendered ruler would go stale while the
+        // series rescale to the new domain, so fall back to a full render (what
+        // the non-fast updateSeries path does anyway). Compares the y-axis
+        // nice-scale ticks (the y-label source) and the numeric x-domain;
+        // xAxisScale is excluded (reset to null here, not rebuilt for category
+        // axes before this point, so it would false-positive on every update).
+        // The common fixed-axis case (streaming) keeps the fast path.
+        const newAxisScaleSig = JSON.stringify({
+          y: (gl.yAxisScale || []).map((s) => (s ? s.result : null)),
+          xMin: gl.minX,
+          xMax: gl.maxX,
+        })
+        if (
+          gl.axisCharts &&
+          prevAxisScaleSig != null &&
+          newAxisScaleSig !== prevAxisScaleSig
+        ) {
+          return this.update()
+            .then(() => resolve(this))
+            .catch(reject)
+        }
 
         // Weave: geometry refreshed on the fast path.
         this.weave?.dispatch('afterScales', { pass: 'fast', xyRatios })

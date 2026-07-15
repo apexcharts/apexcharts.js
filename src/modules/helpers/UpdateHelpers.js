@@ -207,6 +207,16 @@ export default class UpdateHelpers {
 
       w.globals.dataChanged = true
 
+      // Snapshot the axis scale currently on screen BEFORE parseData recomputes
+      // bounds. fastUpdate() compares this against the recomputed scale to
+      // detect a domain change it cannot repaint in place (axes are preserved
+      // on the fast path), and falls back to a full render when they differ.
+      const prevAxisScaleSig = JSON.stringify({
+        y: (w.globals.yAxisScale || []).map((s) => (s ? s.result : null)),
+        xMin: w.globals.minX,
+        xMax: w.globals.maxX,
+      })
+
       PerformanceCache.invalidateSelectors(w)
 
       if (animate) {
@@ -239,7 +249,7 @@ export default class UpdateHelpers {
       // Use the fast path when the series structure is compatible:
       // same series count, same chart type, axis chart, no series collapse in progress.
       if (this._canUseFastPath(newSeries, prevSeriesCount, w)) {
-        return this.ctx.fastUpdate(animate).then(() => {
+        return this.ctx.fastUpdate(animate, prevAxisScaleSig).then(() => {
           resolve(this.ctx)
         })
       }
