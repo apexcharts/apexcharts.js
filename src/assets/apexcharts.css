@@ -125,6 +125,27 @@ rect.legend-mouseover-inactive,
   background: rgba(99, 102, 241, .06)
 }
 
+/* Measure ruler (#18): measure / delta ruler.
+   Theme via these classes or the --apx-measure-* custom properties below
+   (config `chart.measure.colors` overrides both). The ruler group also carries
+   a direction class: apexcharts-measure-up | -down | -flat.
+   Element classes:
+     .apexcharts-measure-band     shaded span band
+     .apexcharts-measure-vline    vertical guide lines
+     .apexcharts-measure-line     free-mode diagonal line
+     .apexcharts-measure-label-bg readout box     .apexcharts-measure-label text
+   Colors are applied as SVG presentation attributes, so any rule you write on
+   these classes overrides them. */
+.apexcharts-canvas {
+  --apx-measure-up: #16a34a;
+  --apx-measure-down: #dc2626;
+  --apx-measure-neutral: #64748b;
+  --apx-measure-guide: #94a3b8;
+}
+.apexcharts-measure-capture {
+  cursor: crosshair;
+}
+
 /* Ink Layer (#7): the floating note editor card, opened by clicking an
    ink-managed annotation. Theme via these classes or the --apx-ink-* vars. */
 .apexcharts-canvas {

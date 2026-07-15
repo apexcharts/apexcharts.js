@@ -142,16 +142,16 @@ declare class ApexCharts {
   clearCrossfilter(): void
 
   /**
-   * Overlay Compare (#18): arm a sticky measure-ruler mode. Drag A->B on the
-   * plot to read dx/dy/%change/slope. Requires the `overlayCompare` feature and
+   * Measure ruler (#18): arm a sticky measure-ruler mode. Drag A->B on the
+   * plot to read dx/dy/%change/slope. Requires the `measure` feature and
    * `chart.measure.enabled`.
    */
   startMeasure(): void
 
-  /** Overlay Compare (#18): leave measure mode. */
+  /** Measure ruler (#18): leave measure mode. */
   stopMeasure(): void
 
-  /** Overlay Compare (#18): remove all pinned measure rulers. */
+  /** Measure ruler (#18): remove all pinned measure rulers. */
   clearMeasures(): void
 
   /** Highlights or un-highlights a series when a legend marker is hovered. */
@@ -961,12 +961,10 @@ type ApexChart = {
      */
     annotationDeleted?(chart: ApexCharts, options?: { type?: 'point' | 'xaxis' | 'yaxis'; id?: string; index: number }): void
     /**
-     * Overlay Compare (#18): fired when a measure ruler is drawn. Requires the
-     * `overlayCompare` feature. `options` carries the endpoints and the deltas.
+     * Measure ruler (#18): fired when a measure ruler is drawn. Requires the
+     * `measure` feature. `options` carries the endpoints and the deltas.
      */
     measured?(chart: ApexCharts, options?: { from: { x: any; y: any }; to: { x: any; y: any }; dx: number; dy: number; percentChange: number; slope: number }): void
-    /** Overlay Compare (#18): fired when the period-compare reference changes. */
-    compareChanged?(chart: ApexCharts, options?: { from: any; to: any }): void
     keyDown?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     keyUp?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     /** Fired before a drill-down transition begins. Requires the Drilldown feature. */
@@ -1056,35 +1054,55 @@ type ApexChart = {
     noteColors?: string[]
   }
   /**
-   * Overlay Compare (#18): a measure/delta ruler. Requires the `overlayCompare`
-   * feature (`import 'apexcharts/features/overlay-compare'`). Hold `key` and
-   * drag A->B on the plot, or call `chart.startMeasure()`, to read
+   * Measure ruler (#18): a measure/delta ruler. Requires the `measure`
+   * feature (`import 'apexcharts/features/measure'`). Hold `key` and drag
+   * A->B on the plot, or call `chart.startMeasure()`, to read
    * dx/dy/%change/slope in data space; on release the ruler pins as a
    * data-anchored overlay that re-projects on zoom/resize. Fires `measured`.
    */
   measure?: {
     /** @default false */
     enabled?: boolean
+    /**
+     * 'span': finance-style vertical band between two x-positions with a
+     * change/%/range readout, endpoints snapped to the first series. 'free':
+     * a diagonal ruler between two arbitrary points. @default 'span'
+     */
+    mode?: 'span' | 'free'
     /** Key held to arm a drag when not in sticky mode. @default 'm' */
     key?: string
     /** Pin the ruler as a data-anchored overlay on release. @default true */
     pinOnRelease?: boolean
-  }
-  /**
-   * Overlay Compare (#18): period-over-period ghosting (P2). Requires the
-   * `overlayCompare` feature. `chart.compareRange({ from, to })` overlays a
-   * translucent copy of the reference window on the current window. Fires
-   * `compareChanged`.
-   */
-  compare?: {
-    /** @default false */
-    enabled?: boolean
-    /** @default 'ghost' */
-    mode?: 'ghost' | 'delta'
-    /** Align the reference to the current window. @default 'start' */
-    align?: 'start' | 'end'
-    /** @default 0.35 */
-    opacity?: number
+    /**
+     * Semantic colors. Every element also has a stable CSS class and a
+     * direction class (apexcharts-measure-up|down|flat) for stylesheet theming.
+     */
+    colors?: { up?: string; down?: string; neutral?: string; guide?: string }
+    /** Span mode: draw the shaded band between the two x-positions. @default true */
+    band?: boolean
+    /** Span mode: draw the vertical dashed reference lines. @default true */
+    guides?: boolean
+    /** Draw the endpoint dots on the series line. @default true */
+    markers?: boolean
+    /** Value formatters for the readout. */
+    format?: {
+      x?: (x: number) => string
+      y?: (y: number) => string
+      percent?: (pct: number) => string
+    }
+    /**
+     * Full readout override. Receives the measure info and returns a string or
+     * an array of lines. Overrides the default readout text.
+     */
+    label?: (info: {
+      from: { x: any; y: any }
+      to: { x: any; y: any }
+      dx: number
+      dy: number
+      percentChange: number
+      slope: number
+      mode: 'span' | 'free'
+    }) => string | string[]
   }
   id?: string
   injectStyleSheet?: boolean

@@ -72,7 +72,7 @@ export default class ApexCharts {
   /** @type {any} */ history
   /** @type {any} */ linkedViews
   /** @type {any} */ ink
-  /** @type {any} */ overlayCompare
+  /** @type {any} */ measure
   /** @type {any} */ weave
   /** @type {any} */ renderer
   /** @type {any} */ rendererController
@@ -1248,23 +1248,23 @@ export default class ApexCharts {
   }
 
   /**
-   * Overlay Compare (#18): arm a sticky measure-ruler mode (drag A->B on the
+   * Measure ruler (#18): arm a sticky measure-ruler mode (drag A->B on the
    * plot to read dx/dy/%change/slope). Alternatively hold the measure key
-   * (chart.measure.key, default 'm') and drag. No-op unless the
-   * `overlayCompare` feature is bundled and chart.measure.enabled.
+   * (chart.measure.key, default 'm') and drag. No-op unless the `measure`
+   * feature is bundled and chart.measure.enabled.
    */
   startMeasure() {
-    this.overlayCompare?.startMeasure()
+    this.measure?.startMeasure()
   }
 
-  /** Overlay Compare (#18): leave measure mode. */
+  /** Measure ruler (#18): leave measure mode. */
   stopMeasure() {
-    this.overlayCompare?.stopMeasure()
+    this.measure?.stopMeasure()
   }
 
-  /** Overlay Compare (#18): remove all pinned measure rulers. */
+  /** Measure ruler (#18): remove all pinned measure rulers. */
   clearMeasures() {
-    this.overlayCompare?.clearMeasures()
+    this.measure?.clearMeasures()
   }
 
   /**

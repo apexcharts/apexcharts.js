@@ -1,0 +1,198 @@
+<title>Measure Ruler: Persist and Share Pinned Rulers</title>
+
+<style>
+  #chart {
+    max-width: 780px;
+    margin: 12px auto;
+  }
+  .mp-panel {
+    max-width: 780px;
+    margin: 12px auto;
+    font-family: Helvetica, Arial, sans-serif;
+  }
+  .mp-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 6px 6px 8px;
+  }
+  .mp-bar button {
+    padding: 6px 13px;
+    cursor: pointer;
+    border: 1px solid #0ea5e9;
+    color: #0369a1;
+    background: #fff;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .mp-bar button.active {
+    background: #0ea5e9;
+    color: #fff;
+  }
+  .mp-bar button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .mp-bar .readout {
+    font-family: monospace;
+    font-size: 13px;
+    color: #445;
+  }
+  .mp-link {
+    font-family: monospace;
+    font-size: 12px;
+    color: #555;
+    word-break: break-all;
+    margin: 0 6px 6px;
+  }
+  .mp-note {
+    background: #f0f9ff;
+    border-left: 3px solid #0ea5e9;
+    padding: 11px 15px;
+    font-size: 13px;
+    color: #234;
+    border-radius: 2px;
+    line-height: 1.6;
+    margin: 12px 6px;
+  }
+  .mp-note code {
+    background: #dceafb;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+</style>
+
+<scripts>
+<script>
+  // Pinned measure rulers live in data space on the chart, not in your app, so
+  // they can be captured into the shared view state: Perspectives carries them
+  // in a URL and Rewind (history) makes each pin an undo step.
+  function series() {
+    var out = []
+    var v = 2400
+    for (var i = 0; i < 60; i++) {
+      v += Math.sin(i / 5) * 40 + i * 6 - 8
+      out.push([i, Math.round(v)])
+    }
+    return out
+  }
+</script>
+</scripts>
+
+<html>
+<div class="mp-panel">
+  <div class="mp-bar">
+    <button id="mp-toggle">Measure</button>
+    <button id="mp-clear">Clear</button>
+    <button id="mp-undo">Undo</button>
+    <button id="mp-redo">Redo</button>
+    <button id="mp-share">Copy shareable link</button>
+    <span class="readout" id="mp-readout">Turn on Measure and drag A to B, then share or undo</span>
+  </div>
+  <div class="mp-link" id="mp-link"></div>
+</div>
+
+{{ charts[0] }}
+
+<div class="mp-panel">
+  <div class="mp-note">
+    Draw one or more rulers, then <b>Copy shareable link</b>
+    (<code>chart.perspectives.toURL()</code>): the rulers travel in the
+    <code>#apex=</code> URL fragment alongside the zoom window, so opening that
+    link elsewhere restores the exact drawing on load via
+    <code>ApexCharts.perspectives.fromURL()</code>. Because
+    <code>chart.history.enabled</code> is on, every pin is an undo step:
+    <b>Undo</b> / <b>Redo</b> (or <code>Ctrl</code>+<code>Z</code>) steps through
+    them. Pins are stored in data coordinates, so a restored ruler re-projects
+    at whatever zoom the view lands in.
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'measure-persist',
+  type: 'line',
+  height: 380,
+  fontFamily: 'Helvetica, Arial, sans-serif',
+  animations: { enabled: true },
+  measure: { enabled: true, pinOnRelease: true },
+  history: { enabled: true },
+  toolbar: { show: true, tools: { zoom: true, pan: true, reset: true, download: false } },
+  zoom: { enabled: true, type: 'x' },
+},
+stroke: { width: 2, curve: 'straight' },
+colors: ['#0ea5e9'],
+dataLabels: { enabled: false },
+title: { text: 'Revenue (draw rulers, then share or undo)', align: 'left' },
+xaxis: { type: 'numeric', title: { text: 'Session' } },
+yaxis: { title: { text: 'Revenue' }, decimalsInFloat: 0 },
+</options>
+
+<series>
+[
+  { name: 'Revenue', data: series() }
+]
+</series>
+</chart>
+
+<vanilla-js-script>
+var toggle = document.getElementById('mp-toggle')
+var readout = document.getElementById('mp-readout')
+var linkEl = document.getElementById('mp-link')
+var on = false
+
+function refreshHistoryButtons() {
+  if (!chart.history) return
+  document.getElementById('mp-undo').disabled = !chart.history.canUndo()
+  document.getElementById('mp-redo').disabled = !chart.history.canRedo()
+}
+
+toggle.addEventListener('click', function () {
+  on = !on
+  if (on) {
+    chart.startMeasure()
+    toggle.classList.add('active')
+    readout.textContent = 'Drag from A to B on the chart'
+  } else {
+    chart.stopMeasure()
+    toggle.classList.remove('active')
+  }
+})
+
+document.getElementById('mp-clear').addEventListener('click', function () {
+  chart.clearMeasures()
+})
+
+document.getElementById('mp-undo').addEventListener('click', function () {
+  if (chart.history) chart.history.undo()
+})
+
+document.getElementById('mp-redo').addEventListener('click', function () {
+  if (chart.history) chart.history.redo()
+})
+
+document.getElementById('mp-share').addEventListener('click', function () {
+  var url = chart.perspectives.toURL()
+  linkEl.textContent = url
+  if (navigator.clipboard) navigator.clipboard.writeText(url).catch(function () {})
+})
+
+chart.addEventListener('measured', function () {
+  readout.textContent = 'Pinned. Share the link or press Undo (Ctrl+Z).'
+})
+
+// Keep Undo/Redo in sync with keyboard shortcuts too.
+chart.addEventListener('historyChange', refreshHistoryButtons)
+
+// Restore a shared drawing if the page was opened with a #apex= fragment.
+try {
+  var shared = ApexCharts.perspectives && ApexCharts.perspectives.fromURL()
+  if (shared) chart.perspectives.apply(shared, { animate: false })
+} catch (e) {}
+
+refreshHistoryButtons()
+</vanilla-js-script>

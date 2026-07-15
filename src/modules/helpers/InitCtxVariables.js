@@ -240,14 +240,12 @@ export default class InitCtxVariables {
     const InkCtor = reg.get('ink')
     ctx.ink = InkCtor ? new InkCtor(w, ctx) : null
 
-    // Overlay Compare (#18): ctx.overlayCompare (opt-in measure/delta ruler via
-    // chart.measure.enabled, period ghosting via chart.compare.enabled). Eager
-    // so pinned rulers survive update() and re-project after each render; inert
-    // otherwise. The constructor self-wires its key listeners.
-    const OverlayCompareCtor = reg.get('overlayCompare')
-    ctx.overlayCompare = OverlayCompareCtor
-      ? new OverlayCompareCtor(w, ctx)
-      : null
+    // Measure ruler (#18): ctx.measure (opt-in measure/delta ruler via
+    // chart.measure.enabled). Eager so pinned rulers survive update() and
+    // re-project after each render; inert otherwise. The constructor self-wires
+    // its key listeners.
+    const MeasureCtor = reg.get('measure')
+    ctx.measure = MeasureCtor ? new MeasureCtor(w, ctx) : null
 
     // Weave: ctx.weave (public plugin platform host). Eager so plugin setup()
     // runs before the first render and the host survives update(). Inert when

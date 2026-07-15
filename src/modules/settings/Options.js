@@ -394,7 +394,6 @@ export default class Options {
           annotationStyled: undefined,
           annotationDeleted: undefined,
           measured: undefined,
-          compareChanged: undefined,
           keyDown: undefined,
           keyUp: undefined,
         },
@@ -484,25 +483,38 @@ export default class Options {
           // built-in 6-color palette when undefined.
           noteColors: undefined,
         },
-        // Overlay Compare (#18): a measure/delta ruler. Requires the
-        // `overlayCompare` feature. Hold `key` (default 'm') and drag A->B on the
-        // plot, or call chart.measure()/chart.stopMeasure() to arm it. The live
-        // ruler reads dx, dy, %change and slope; on release it pins as a
-        // data-anchored overlay that re-projects on zoom/resize. Fires `measured`.
+        // Measure ruler (#18): a measure/delta ruler. Requires the `measure`
+        // feature. Hold `key` (default 'm') and drag A->B on the plot, or call
+        // chart.startMeasure()/chart.stopMeasure() to arm it. The live ruler
+        // reads dx, dy, %change and slope; on release it pins as a data-anchored
+        // overlay that re-projects on zoom/resize. Fires `measured`.
         measure: {
           enabled: false,
+          // 'span' (default): finance-style vertical band between two x-points
+          // with a "change (%) + range" readout, endpoints snapped to the first
+          // series. 'free': a diagonal ruler between two arbitrary points.
+          mode: 'span',
           key: 'm',
           pinOnRelease: true,
-        },
-        // Overlay Compare (#18): period-over-period ghosting (P2). Requires the
-        // `overlayCompare` feature. chart.compareRange({ from, to }) overlays a
-        // translucent copy of the reference window on the current window, time-
-        // aligned, with a delta readout. Fires `compareChanged`.
-        compare: {
-          enabled: false,
-          mode: 'ghost', // 'ghost' | 'delta'
-          align: 'start', // align reference to current window at 'start' | 'end'
-          opacity: 0.35,
+          // Styling tokens. Every element also carries a stable CSS class
+          // (apexcharts-measure-band / -vline / -line / -label-bg / -label,
+          // group gets apexcharts-measure-up|down|flat). Colors are left
+          // undefined so they resolve config -> `--apx-measure-*` CSS custom
+          // property -> built-in default; set them here to force a color from JS.
+          colors: {
+            up: undefined,
+            down: undefined,
+            neutral: undefined,
+            guide: undefined,
+          },
+          band: true, // span mode: shaded band between the two x-positions
+          guides: true, // span mode: vertical dashed reference lines
+          markers: true, // endpoint dots on the series line
+          // Content: value formatters and a full readout override. `label`
+          // receives { from, to, dx, dy, percentChange, slope, mode } and
+          // returns a string or string[] (lines).
+          format: { x: undefined, y: undefined, percent: undefined },
+          label: undefined,
         },
         stacked: false,
         stackOnlyBar: true, // mixed chart with stacked bars and line series - incorrect line draw #907

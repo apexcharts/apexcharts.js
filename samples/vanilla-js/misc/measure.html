@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Overlay Compare: Measure Ruler (chart.measure)</title>
+    <title>Measure Ruler (chart.measure)</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -74,9 +74,9 @@
     <script>
       function series() {
         var out = []
-        var v = 120
+        var v = 100
         for (var i = 0; i < 60; i++) {
-          v += Math.sin(i / 5) * 6 + (i % 7 === 0 ? 9 : 0) - 2
+          v += 2 + Math.sin(i / 5) * 3
           out.push([i, Math.round(v)])
         }
         return out
@@ -95,12 +95,15 @@
         <div id="chart"></div>
       
         <div class="mz-note">
-          Click <b>Measure</b> (or hold <code>m</code>) and drag across the plot: a live
-          ruler reads <b>dx</b>, <b>dy</b>, and <b>% change</b> between the two points in
-          data space. Release to pin it; a pinned ruler is stored in data coordinates,
-          so it stays glued to those points when you zoom or resize. Green means the
-          move is up, red means down. Fires the <code>measured</code> event. Needs the
-          <code>overlayCompare</code> feature. <b>Clear</b> removes all rulers.
+          Click <b>Measure</b> (or hold <code>m</code>) and drag across the plot: a
+          shaded band spans the two points and a readout shows the <b>change</b>, the
+          <b>% change</b> and the <b>range</b> between them, with the endpoints snapped
+          to the price line (the finance-style default, <code>measure.mode: 'span'</code>).
+          Green means the move is up, red means down. Release to pin it; a pinned ruler
+          is stored in data coordinates, so it stays glued when you zoom or resize.
+          Fires the <code>measured</code> event. Set <code>measure.mode: 'free'</code>
+          for a diagonal ruler between any two points. Needs the
+          <code>measure</code> feature. <b>Clear</b> removes all rulers.
         </div>
       </div>
 
