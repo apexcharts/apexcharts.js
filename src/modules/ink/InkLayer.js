@@ -18,6 +18,9 @@ import Options from '../settings/Options'
  *    create mode; the next plot click drops an editable, draggable note.
  *  - P4 drag xaxis/yaxis annotations (a line moves along its axis; a range moves
  *    both edges) and resize an xaxis range by dragging its left/right edge.
+ *  - P6 floating note editor: click (or double-click) an ink-managed annotation
+ *    to open a card anchored to it: rename inline, recolor (swatches), toggle
+ *    bold, step the font size, size/reshape the marker, or delete the note.
  *
  * Mechanics: annotation elements are paths/lines/rects appended un-grouped to
  * their `.apexcharts-<type>-annotations` group and share the annotation's `id`
@@ -37,6 +40,28 @@ import Options from '../settings/Options'
 const DRAG_CLASS = 'apexcharts-ink-draggable'
 const TYPES = ['point', 'xaxis', 'yaxis']
 const EDGE_PX = 8
+// A press that travels no further than this is a click (select), not a drag.
+const CLICK_SLOP_PX = 2
+const FONT_STEPS = [10, 11, 12, 14, 17, 20]
+const MARKER_SHAPES = ['circle', 'square', 'diamond', 'triangle']
+/** @type {Record<string, string>} */
+const SHAPE_GLYPHS = {
+  circle: '●',
+  square: '■',
+  diamond: '◆',
+  triangle: '▲',
+}
+// Default note accent swatches; override with chart.ink.noteColors.
+const NOTE_COLORS = [
+  '#ffffff',
+  '#334155',
+  '#2563eb',
+  '#16a34a',
+  '#d97706',
+  '#dc2626',
+]
+const TRASH_ICON =
+  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>'
 
 export default class InkLayer {
   /**
@@ -54,9 +79,11 @@ export default class InkLayer {
     this._creating = false
     this._createSeq = 0
     this._attach = this._attach.bind(this)
+    this._onRerender = this._onRerender.bind(this)
     this._onMove = this._onMove.bind(this)
     this._onUp = this._onUp.bind(this)
     this._onCreateClick = this._onCreateClick.bind(this)
+    this._onDocDownEditor = this._onDocDownEditor.bind(this)
 
     if (
       this._enabledGlobally() ||
@@ -147,8 +174,19 @@ export default class InkLayer {
     if (this._wired) return
     this._wired = true
     // Listeners survive update(); the DOM is rebound after each (re)render.
-    this.ctx.addEventListener('mounted', this._attach)
-    this.ctx.addEventListener('updated', this._attach)
+    this.ctx.addEventListener('mounted', this._onRerender)
+    this.ctx.addEventListener('updated', this._onRerender)
+  }
+
+  /**
+   * A full (re)render rebuilds the SVG and may swap the annotations config
+   * (updateOptions, undo restore), so an open editor card points at stale
+   * state: drop it (without committing) before rebinding handlers. Targeted
+   * redraws call _attach() directly and keep the card open.
+   */
+  _onRerender() {
+    this._closeEditor(false)
+    this._attach()
   }
 
   /**
@@ -180,7 +218,7 @@ export default class InkLayer {
           el.addEventListener('dblclick', (/** @type {any} */ e) => {
             e.preventDefault()
             e.stopPropagation()
-            this._startEdit(type, index)
+            this._startEdit(type, index, { select: true })
           })
         })
       })
@@ -257,7 +295,9 @@ export default class InkLayer {
     const mev = me.type === 'touchmove' ? me.touches[0] : me
     d.dxPixel = (mev.clientX - d.startX) / d.scaleX
     d.dyPixel = (mev.clientY - d.startY) / d.scaleY
-    if (d.dxPixel || d.dyPixel) d.moved = true
+    if (Math.abs(d.dxPixel) > CLICK_SLOP_PX || Math.abs(d.dyPixel) > CLICK_SLOP_PX) {
+      d.moved = true
+    }
 
     if (d.mode === 'move') {
       const t = `translate(${d.dxPixel} ${d.dyPixel})`
@@ -277,7 +317,11 @@ export default class InkLayer {
     this._drag = null
     this._teardownDocListeners()
     if (!d || !d.moved) {
-      if (d) d.els.forEach((/** @type {any} */ el) => el.removeAttribute('transform'))
+      if (d) {
+        d.els.forEach((/** @type {any} */ el) => el.removeAttribute('transform'))
+        // A press without a drag is a select: open the note editor card.
+        this._startEdit(d.type, d.index)
+      }
       return
     }
     const anno = this._annoList(d.type)[d.index]
@@ -476,16 +520,27 @@ export default class InkLayer {
     const pos = this._pixelToData(e.clientX, e.clientY)
     this.stopCreate()
     if (!pos) return
+    this.createAt(pos.x, pos.y)
+  }
 
+  /**
+   * Create a draggable note at data coordinates and open its editor card.
+   * Public: the context menu's "Add note here" routes here so its notes are
+   * config-backed too, and thus draggable, editable, persistable and undoable.
+   * @param {any} x @param {any} y @param {{text?: string}} [opts]
+   * @returns {any} the created annotation config
+   */
+  createAt(x, y, opts = {}) {
     const w = this.w
+    this._wire() // the note is ink-managed even when chart.ink is otherwise off
     this._createSeq += 1
     const id = 'apexcharts-ink-new-' + this._createSeq + '-' + w.globals.chartID
     const anno = Utils.extend(new Options().pointAnnotation, {
-      x: pos.x,
-      y: pos.y,
+      x,
+      y,
       id,
       draggable: true,
-      label: { text: 'Note' },
+      label: { text: opts.text || 'Note' },
     })
 
     if (!w.config.annotations) w.config.annotations = {}
@@ -496,7 +551,8 @@ export default class InkLayer {
     this._redrawAnno('point', anno, index)
     this._checkpoint('ink:create')
     this._fireCreated(anno, index)
-    this._startEdit('point', index)
+    this._startEdit('point', index, { select: true })
+    return anno
   }
 
   /**
@@ -599,70 +655,272 @@ export default class InkLayer {
     }
   }
 
-  // ─── P2: inline label editing ────────────────────────────────────────────
+  // ─── P2 + P6: the floating note editor card ──────────────────────────────
+  // Click (or double-click) an ink-managed annotation to open a small card
+  // anchored to it: rename inline, recolor via accent swatches, toggle bold,
+  // step the font size, size/reshape the marker (points), or delete the note.
+
+  /** @returns {string[]} the accent swatches offered by the editor */
+  _noteColors() {
+    const ink = this.w.config.chart.ink
+    return ink && Array.isArray(ink.noteColors) && ink.noteColors.length
+      ? ink.noteColors
+      : NOTE_COLORS
+  }
 
   /**
-   * Open an inline text editor over an annotation's label (an absolutely
-   * positioned input in the chart wrap). Commit on Enter/blur, cancel on Escape.
-   * @param {string} type @param {number} index
+   * Perceived-luminance check so text/border contrast follows the accent.
+   * @param {string} hex
    */
-  _startEdit(type, index) {
+  static _isLight(hex) {
+    const h = String(hex || '').replace('#', '')
+    const full =
+      h.length === 3
+        ? h
+            .split('')
+            .map((c) => c + c)
+            .join('')
+        : h
+    const n = parseInt(full, 16)
+    if (isNaN(n) || full.length !== 6) return false
+    const r = (n >> 16) & 255
+    const g = (n >> 8) & 255
+    const b = n & 255
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.72
+  }
+
+  /** @param {any} style */
+  static _isBold(style) {
+    const fw = style && style.fontWeight
+    return fw === 'bold' || parseInt(String(fw), 10) >= 600
+  }
+
+  /**
+   * Small icon/text button for the editor card. mousedown is prevented so the
+   * text input keeps focus while formatting.
+   * @param {any} doc @param {string} content @param {string} title
+   * @param {Function} onClick @param {string} [extraClass] @param {boolean} [isSvg]
+   */
+  _cardBtn(doc, content, title, onClick, extraClass, isSvg) {
+    const b = doc.createElement('button')
+    b.type = 'button'
+    b.className = 'apexcharts-ink-btn' + (extraClass ? ' ' + extraClass : '')
+    b.title = title
+    b.setAttribute('aria-label', title)
+    if (isSvg) b.innerHTML = content
+    else b.textContent = content
+    b.addEventListener('mousedown', (/** @type {any} */ e) => e.preventDefault())
+    b.addEventListener('click', (/** @type {any} */ e) => {
+      e.stopPropagation()
+      onClick()
+    })
+    return b
+  }
+
+  /**
+   * Open the floating editor card for an annotation.
+   * @param {string} type @param {number} index
+   * @param {{select?: boolean}} [opts] select: preselect the text (create / dblclick)
+   */
+  _startEdit(type, index, opts = {}) {
     const w = this.w
     const anno = this._annoList(type)[index]
     const baseEl = w.dom.baseEl
     const elWrap = w.dom.elWrap
     if (!anno || !anno.id || !baseEl || !elWrap) return
 
-    const anchor =
-      baseEl.querySelector('.apexcharts-' + type + '-annotation-label.' + anno.id) ||
-      baseEl.querySelector('.' + anno.id)
-    if (!anchor) return
-
-    this._removeEditor()
+    this._closeEditor(false)
 
     const doc = baseEl.ownerDocument
-    const wrapRect = elWrap.getBoundingClientRect()
-    const aRect = anchor.getBoundingClientRect()
+    const card = doc.createElement('div')
+    card.className = 'apexcharts-ink-card'
+    card.setAttribute('role', 'dialog')
+    card.setAttribute('aria-label', 'Edit note')
+    card.style.visibility = 'hidden'
+
+    // row 1: the label text + delete
+    const rowText = doc.createElement('div')
+    rowText.className = 'apexcharts-ink-card-row'
     const input = doc.createElement('input')
     input.type = 'text'
-    input.value = (anno.label && anno.label.text) || ''
     input.className = 'apexcharts-ink-editor'
-    const s = input.style
-    s.position = 'absolute'
-    s.left = Math.round(aRect.left - wrapRect.left) + 'px'
-    s.top = Math.round(aRect.top - wrapRect.top) + 'px'
-    s.zIndex = '20'
-    s.font = (anno.label?.style?.fontSize || '12px') + ' sans-serif'
-    s.padding = '2px 4px'
-    s.border = '1px solid #6366f1'
-    s.borderRadius = '3px'
-    s.minWidth = '60px'
-    elWrap.appendChild(input)
-    input.focus()
-    input.select()
+    input.placeholder = 'Note text'
+    input.value = (anno.label && anno.label.text) || ''
+    rowText.appendChild(input)
+    rowText.appendChild(
+      this._cardBtn(
+        doc,
+        TRASH_ICON,
+        'Delete note',
+        () => this._deleteAnno(),
+        'apexcharts-ink-btn--delete',
+        true,
+      ),
+    )
+    card.appendChild(rowText)
 
-    this._editor = { input, type, index }
-    input.addEventListener('keydown', (/** @type {any} */ e) => {
-      if (e.key === 'Enter') {
+    // row 2: accent swatches + text formatting
+    const rowStyle = doc.createElement('div')
+    rowStyle.className = 'apexcharts-ink-card-row'
+    this._noteColors().forEach((c) => {
+      const sw = doc.createElement('button')
+      sw.type = 'button'
+      sw.className = 'apexcharts-ink-swatch'
+      sw.title = c
+      sw.setAttribute('aria-label', 'Color ' + c)
+      sw.dataset.color = c
+      sw.style.background = c
+      sw.addEventListener('mousedown', (/** @type {any} */ e) => e.preventDefault())
+      sw.addEventListener('click', (/** @type {any} */ e) => {
+        e.stopPropagation()
+        this._applyColor(c)
+      })
+      rowStyle.appendChild(sw)
+    })
+    const sep = doc.createElement('span')
+    sep.className = 'apexcharts-ink-sep'
+    rowStyle.appendChild(sep)
+    rowStyle.appendChild(
+      this._cardBtn(doc, 'B', 'Bold', () => this._toggleBold(), 'apexcharts-ink-btn--bold'),
+    )
+    rowStyle.appendChild(this._cardBtn(doc, 'A-', 'Smaller text', () => this._stepFont(-1)))
+    rowStyle.appendChild(this._cardBtn(doc, 'A+', 'Larger text', () => this._stepFont(1)))
+    card.appendChild(rowStyle)
+
+    // row 3 (point annotations): marker options
+    if (type === 'point') {
+      const rowMarker = doc.createElement('div')
+      rowMarker.className = 'apexcharts-ink-card-row'
+      const lab = doc.createElement('span')
+      lab.className = 'apexcharts-ink-cardlabel'
+      lab.textContent = 'Marker'
+      rowMarker.appendChild(lab)
+      rowMarker.appendChild(
+        this._cardBtn(doc, '-', 'Smaller marker', () => this._stepMarker(-1)),
+      )
+      const sizeOut = doc.createElement('span')
+      sizeOut.className = 'apexcharts-ink-marker-size'
+      rowMarker.appendChild(sizeOut)
+      rowMarker.appendChild(
+        this._cardBtn(doc, '+', 'Larger marker', () => this._stepMarker(1)),
+      )
+      rowMarker.appendChild(
+        this._cardBtn(
+          doc,
+          SHAPE_GLYPHS.circle,
+          'Marker shape',
+          () => this._cycleShape(),
+          'apexcharts-ink-btn--shape',
+        ),
+      )
+      card.appendChild(rowMarker)
+    }
+
+    elWrap.appendChild(card)
+    this._editor = { card, input, type, index }
+    this._positionCard()
+    this._syncCard()
+    card.style.visibility = ''
+    input.focus()
+    if (opts.select) input.select()
+
+    card.addEventListener('keydown', (/** @type {any} */ e) => {
+      if (e.key === 'Escape') {
         e.preventDefault()
-        this._commitEdit()
-      } else if (e.key === 'Escape') {
+        e.stopPropagation()
+        this._closeEditor(false)
+      } else if (e.key === 'Enter' && e.target === input) {
         e.preventDefault()
-        this._removeEditor()
+        this._closeEditor(true)
       }
     })
-    input.addEventListener('blur', () => this._commitEdit())
+    doc.addEventListener('mousedown', this._onDocDownEditor, true)
+    doc.addEventListener('touchstart', this._onDocDownEditor, true)
   }
 
-  _commitEdit() {
+  /**
+   * Commit + close on any press outside the card.
+   * @param {any} e
+   */
+  _onDocDownEditor(e) {
+    const ed = this._editor
+    if (!ed || ed.card.contains(e.target)) return
+    this._closeEditor(true)
+  }
+
+  /**
+   * Anchor the card to the annotation's label (below it, or above when there
+   * is no room), clamped inside the chart wrap. Re-run after each restyle
+   * since the label rect changes.
+   */
+  _positionCard() {
     const ed = this._editor
     if (!ed) return
-    this._editor = null // guard the re-entrant blur that removing the input fires
-    const text = ed.input.value
-    if (ed.input.parentNode) ed.input.parentNode.removeChild(ed.input)
+    const w = this.w
+    const baseEl = w.dom.baseEl
+    const elWrap = w.dom.elWrap
+    const anno = this._annoList(ed.type)[ed.index]
+    if (!baseEl || !elWrap || !anno) return
+    const anchor =
+      baseEl.querySelector(
+        '.apexcharts-' + ed.type + '-annotation-label.' + anno.id,
+      ) || baseEl.querySelector('.' + anno.id)
+    if (!anchor) return
+    const wrapRect = elWrap.getBoundingClientRect()
+    const aRect = anchor.getBoundingClientRect()
+    const cw = ed.card.offsetWidth
+    const ch = ed.card.offsetHeight
+    let left = Math.round(aRect.left - wrapRect.left)
+    let top = Math.round(aRect.bottom - wrapRect.top) + 8
+    if (top + ch > elWrap.clientHeight - 4) {
+      top = Math.round(aRect.top - wrapRect.top) - ch - 8
+    }
+    if (left + cw > elWrap.clientWidth - 4) left = elWrap.clientWidth - cw - 4
+    ed.card.style.left = Math.max(4, left) + 'px'
+    ed.card.style.top = Math.max(4, top) + 'px'
+  }
 
+  /** Reflect the annotation's current style on the card controls. */
+  _syncCard() {
+    const ed = this._editor
+    if (!ed) return
     const anno = this._annoList(ed.type)[ed.index]
     if (!anno) return
+    const style = (anno.label && anno.label.style) || {}
+    const bg = String(style.background || '').toLowerCase()
+    ed.card
+      .querySelectorAll('.apexcharts-ink-swatch')
+      .forEach((/** @type {any} */ sw) => {
+        sw.classList.toggle(
+          'apexcharts-ink-swatch--active',
+          (sw.dataset.color || '').toLowerCase() === bg,
+        )
+      })
+    const boldBtn = ed.card.querySelector('.apexcharts-ink-btn--bold')
+    if (boldBtn) {
+      boldBtn.classList.toggle('apexcharts-ink-btn--active', InkLayer._isBold(style))
+    }
+    const m = anno.marker || {}
+    const sizeOut = ed.card.querySelector('.apexcharts-ink-marker-size')
+    if (sizeOut) {
+      sizeOut.textContent = String(typeof m.size === 'number' ? m.size : 4)
+    }
+    const shapeBtn = ed.card.querySelector('.apexcharts-ink-btn--shape')
+    if (shapeBtn) {
+      shapeBtn.textContent = SHAPE_GLYPHS[m.shape] || SHAPE_GLYPHS.circle
+    }
+  }
+
+  /**
+   * Commit the input's text into the annotation (the card stays open). Also
+   * runs before any style apply so typed-but-unconfirmed text survives the
+   * redraw.
+   * @param {any} ed
+   */
+  _commitTextOf(ed) {
+    const anno = this._annoList(ed.type)[ed.index]
+    if (!anno) return
+    const text = ed.input.value
     if (!anno.label) anno.label = {}
     if (anno.label.text === text) return
     anno.label.text = text
@@ -671,11 +929,134 @@ export default class InkLayer {
     this._fireEdited(ed.type, anno, ed.index)
   }
 
-  _removeEditor() {
+  /**
+   * Close the editor card. commit=true also commits the pending text. Style
+   * edits apply immediately and are not rolled back by Escape; use undo.
+   * @param {boolean} commit
+   */
+  _closeEditor(commit) {
     const ed = this._editor
     if (!ed) return
     this._editor = null
-    if (ed.input.parentNode) ed.input.parentNode.removeChild(ed.input)
+    const doc = this.w.dom.baseEl && this.w.dom.baseEl.ownerDocument
+    if (doc) {
+      doc.removeEventListener('mousedown', this._onDocDownEditor, true)
+      doc.removeEventListener('touchstart', this._onDocDownEditor, true)
+    }
+    if (ed.card.parentNode) ed.card.parentNode.removeChild(ed.card)
+    if (commit) this._commitTextOf(ed)
+  }
+
+  /**
+   * Apply a config mutation from a card control: commit pending text, mutate,
+   * redraw, checkpoint for undo, then refresh + re-anchor the card.
+   * @param {string} label @param {(anno: any) => void} mutate
+   */
+  _applyStyle(label, mutate) {
+    const ed = this._editor
+    if (!ed) return
+    const anno = this._annoList(ed.type)[ed.index]
+    if (!anno) return
+    this._commitTextOf(ed)
+    if (!anno.label) anno.label = {}
+    if (!anno.label.style) anno.label.style = {}
+    mutate(anno)
+    this._redrawAnno(ed.type, anno, ed.index)
+    this._checkpoint(label)
+    this._fireStyled(ed.type, anno, ed.index)
+    this._syncCard()
+    this._positionCard()
+  }
+
+  /**
+   * Apply an accent color: label chip + marker (points) or line/range fill
+   * (axis annotations), with text/border contrast following the luminance.
+   * @param {string} c
+   */
+  _applyColor(c) {
+    const ed = this._editor
+    if (!ed) return
+    const light = InkLayer._isLight(c)
+    this._applyStyle('ink:style', (anno) => {
+      anno.label.style.background = c
+      anno.label.style.color = light ? '#334155' : '#ffffff'
+      anno.label.borderColor = light ? '#cbd5e1' : c
+      if (ed.type === 'point') {
+        if (!anno.marker) anno.marker = {}
+        anno.marker.strokeColor = light ? '#334155' : c
+        anno.marker.fillColor = light ? '#ffffff' : c
+      } else {
+        anno.borderColor = c
+        if (anno.x2 != null || anno.y2 != null) anno.fillColor = c
+      }
+    })
+  }
+
+  /**
+   * Step the label font size through the preset scale.
+   * @param {number} dir
+   */
+  _stepFont(dir) {
+    this._applyStyle('ink:style', (anno) => {
+      const cur = parseFloat(anno.label.style.fontSize) || 11
+      let i = 0
+      for (let k = 1; k < FONT_STEPS.length; k++) {
+        if (Math.abs(FONT_STEPS[k] - cur) < Math.abs(FONT_STEPS[i] - cur)) i = k
+      }
+      i = Math.min(FONT_STEPS.length - 1, Math.max(0, i + dir))
+      anno.label.style.fontSize = FONT_STEPS[i] + 'px'
+    })
+  }
+
+  _toggleBold() {
+    this._applyStyle('ink:style', (anno) => {
+      anno.label.style.fontWeight = InkLayer._isBold(anno.label.style) ? 400 : 700
+    })
+  }
+
+  /**
+   * Grow/shrink the point marker.
+   * @param {number} dir
+   */
+  _stepMarker(dir) {
+    this._applyStyle('ink:style', (anno) => {
+      if (!anno.marker) anno.marker = {}
+      const cur = typeof anno.marker.size === 'number' ? anno.marker.size : 4
+      anno.marker.size = Math.min(14, Math.max(2, cur + dir))
+    })
+  }
+
+  /** Cycle the point marker shape (circle, square, diamond, triangle). */
+  _cycleShape() {
+    this._applyStyle('ink:style', (anno) => {
+      if (!anno.marker) anno.marker = {}
+      const i = MARKER_SHAPES.indexOf(anno.marker.shape)
+      anno.marker.shape = MARKER_SHAPES[(i + 1) % MARKER_SHAPES.length]
+    })
+  }
+
+  /** Delete the annotation the editor is open on (undoable via Rewind). */
+  _deleteAnno() {
+    const ed = this._editor
+    if (!ed) return
+    const list = this._annoList(ed.type)
+    const anno = list[ed.index]
+    this._closeEditor(false)
+    if (!anno) return
+    const baseEl = this.w.dom.baseEl
+    if (baseEl && anno.id) {
+      baseEl
+        .querySelectorAll('.' + anno.id)
+        .forEach((/** @type {any} */ el) => el.remove())
+    }
+    list.splice(ed.index, 1)
+    // Annotations after the removed one shift down a slot; redraw them so the
+    // rebound handlers close over their new indices.
+    for (let i = ed.index; i < list.length; i++) {
+      this._redrawAnno(ed.type, list[i], i)
+    }
+    this._checkpoint('ink:delete')
+    this._fireDeleted(ed.type, anno, ed.index)
   }
 
   /** @param {string} type @param {any} anno @param {number} index */
@@ -686,6 +1067,26 @@ export default class InkLayer {
       events.annotationEdited(this.ctx, args)
     }
     this.ctx.events?.fireEvent('annotationEdited', [this.ctx, args])
+  }
+
+  /** @param {string} type @param {any} anno @param {number} index */
+  _fireStyled(type, anno, index) {
+    const args = { type, id: anno.id, index, label: anno.label, marker: anno.marker }
+    const events = this.w.config.chart.events
+    if (typeof events.annotationStyled === 'function') {
+      events.annotationStyled(this.ctx, args)
+    }
+    this.ctx.events?.fireEvent('annotationStyled', [this.ctx, args])
+  }
+
+  /** @param {string} type @param {any} anno @param {number} index */
+  _fireDeleted(type, anno, index) {
+    const args = { type, id: anno.id, index }
+    const events = this.w.config.chart.events
+    if (typeof events.annotationDeleted === 'function') {
+      events.annotationDeleted(this.ctx, args)
+    }
+    this.ctx.events?.fireEvent('annotationDeleted', [this.ctx, args])
   }
 
   // ─── lifecycle ────────────────────────────────────────────────────────────
@@ -701,12 +1102,12 @@ export default class InkLayer {
 
   teardown() {
     this._teardownDocListeners()
-    this._removeEditor()
+    this._closeEditor(false)
     this.stopCreate()
     this._drag = null
     if (this._wired) {
-      this.ctx.removeEventListener?.('mounted', this._attach)
-      this.ctx.removeEventListener?.('updated', this._attach)
+      this.ctx.removeEventListener?.('mounted', this._onRerender)
+      this.ctx.removeEventListener?.('updated', this._onRerender)
       this._wired = false
     }
   }

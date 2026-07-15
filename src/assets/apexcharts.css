@@ -125,6 +125,121 @@ rect.legend-mouseover-inactive,
   background: rgba(99, 102, 241, .06)
 }
 
+/* Ink Layer (#7): the floating note editor card, opened by clicking an
+   ink-managed annotation. Theme via these classes or the --apx-ink-* vars. */
+.apexcharts-canvas {
+  --apx-ink-card-bg: #ffffff;
+  --apx-ink-card-fg: #1e293b;
+  --apx-ink-card-border: #e2e8f0;
+  --apx-ink-card-hover: #f1f5f9;
+  --apx-ink-card-accent: #6366f1;
+  --apx-ink-card-shadow: rgba(15, 23, 42, 0.18);
+}
+.apexcharts-ink-card {
+  position: absolute;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--apx-ink-card-bg);
+  border: 1px solid var(--apx-ink-card-border);
+  box-shadow: 0 6px 22px var(--apx-ink-card-shadow);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  color: var(--apx-ink-card-fg);
+  user-select: none;
+}
+.apexcharts-ink-card-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.apexcharts-ink-card input.apexcharts-ink-editor {
+  flex: 1 1 auto;
+  width: 150px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--apx-ink-card-border);
+  border-radius: 5px;
+}
+.apexcharts-ink-card input.apexcharts-ink-editor:focus {
+  outline: none;
+  border-color: var(--apx-ink-card-accent);
+}
+.apexcharts-ink-btn {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+.apexcharts-ink-btn:hover,
+.apexcharts-ink-btn--active {
+  background: var(--apx-ink-card-hover);
+}
+.apexcharts-ink-btn:focus-visible,
+.apexcharts-ink-swatch:focus-visible {
+  outline: 2px solid var(--apx-ink-card-accent);
+  outline-offset: 1px;
+}
+.apexcharts-ink-btn--bold {
+  font-weight: 700;
+}
+.apexcharts-ink-btn--delete:hover {
+  color: #dc2626;
+}
+.apexcharts-ink-swatch {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid rgba(100, 116, 139, 0.45);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.apexcharts-ink-swatch--active {
+  box-shadow:
+    0 0 0 2px var(--apx-ink-card-bg),
+    0 0 0 4px var(--apx-ink-card-accent);
+}
+.apexcharts-ink-sep {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: var(--apx-ink-card-border);
+}
+.apexcharts-ink-cardlabel {
+  flex: 0 0 auto;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  opacity: 0.65;
+  margin-right: 2px;
+}
+.apexcharts-ink-marker-size {
+  flex: 0 0 auto;
+  min-width: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .apexcharts-legend-text {
   padding-left: 15px;
   margin-left: -15px;

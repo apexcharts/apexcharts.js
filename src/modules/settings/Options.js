@@ -391,6 +391,8 @@ export default class Options {
           annotationDragged: undefined,
           annotationEdited: undefined,
           annotationCreated: undefined,
+          annotationStyled: undefined,
+          annotationDeleted: undefined,
           measured: undefined,
           compareChanged: undefined,
           keyDown: undefined,
@@ -464,8 +466,11 @@ export default class Options {
         },
         // Ink Layer (#7): direct-manipulation annotations. When enabled, every
         // point annotation is draggable (unless it sets draggable:false); or opt
-        // in per annotation with annotations.points[].draggable. Requires the
-        // `ink` feature. Fires the annotationDragged event.
+        // in per annotation with annotations.points[].draggable. Clicking an
+        // ink-managed annotation opens a floating editor card: rename inline,
+        // recolor, toggle bold, step the font size, size/reshape the marker, or
+        // delete the note. Requires the `ink` feature. Fires annotationDragged,
+        // annotationEdited, annotationStyled and annotationDeleted.
         ink: {
           enabled: false,
           // Show a minimal "add note" tool palette; clicking it arms create
@@ -475,6 +480,9 @@ export default class Options {
           // (numeric x + linear y). Undo/redo of ink edits is automatic when the
           // history (Rewind) feature is enabled.
           snap: false,
+          // Accent swatches offered by the floating note editor; defaults to a
+          // built-in 6-color palette when undefined.
+          noteColors: undefined,
         },
         // Overlay Compare (#18): a measure/delta ruler. Requires the
         // `overlayCompare` feature. Hold `key` (default 'm') and drag A->B on the

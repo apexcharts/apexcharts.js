@@ -278,11 +278,263 @@ test.describe('Ink Layer: undo/redo + snap', () => {
     expect(await peakX(page)).toBeCloseTo(afterDrag, 5)
   })
 
+  test('a drag is undoable via the keyboard (Ctrl+Z) after the gesture', async ({
+    page,
+  }) => {
+    const before = await peakX(page)
+    const afterDrag = await dragPoint(page, 'peak', 60, -30)
+    expect(afterDrag).toBeGreaterThan(before)
+
+    // A pointer gesture preventDefaults focus, so document.activeElement stays
+    // on <body>; the shortcut must still reach the chart the pointer engaged.
+    await page.evaluate(() => {
+      document.body.focus()
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true }),
+      )
+    })
+    await page.waitForFunction(
+      (b) => window.chart.w.config.annotations.points.find((p) => p.id === 'peak').x === b,
+      before,
+    )
+    expect(await peakX(page)).toBe(before)
+
+    // Shift+Ctrl+Z redoes.
+    await page.evaluate(() => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true }),
+      )
+    })
+    await page.waitForTimeout(60)
+    expect(await peakX(page)).toBeCloseTo(afterDrag, 5)
+  })
+
+  test('the chart shortcut defers to a focused text field', async ({ page }) => {
+    const before = await peakX(page)
+    const afterDrag = await dragPoint(page, 'peak', 60, -30)
+    expect(afterDrag).toBeGreaterThan(before)
+
+    // An external input owns Ctrl+Z while focused; the chart must not steal it.
+    await page.evaluate(() => {
+      const inp = document.createElement('input')
+      inp.id = 'ext-input'
+      document.body.appendChild(inp)
+      inp.focus()
+      inp.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true }),
+      )
+    })
+    await page.waitForTimeout(60)
+    expect(await peakX(page)).toBeCloseTo(afterDrag, 5) // unchanged
+  })
+
+  test('repeated drag+undo cycles keep every annotation (no vanishing)', async ({
+    page,
+  }) => {
+    // Regression: clearAnnotations() must invalidate the updateOptions memo, or
+    // the 2nd restore to the same checkpoint no-ops the re-render and leaves the
+    // annotations cleared-but-not-redrawn (they all disappear).
+    const markers = () =>
+      page.evaluate(() => window.chart.el.querySelectorAll('.apexcharts-point-annotation-marker').length)
+    const start = await markers()
+    expect(start).toBe(2)
+
+    for (let i = 0; i < 3; i++) {
+      await dragPoint(page, 'peak', 40, -20)
+      await page.evaluate(() => window.chart.history.undo(false))
+      await page.waitForTimeout(120)
+      expect(await markers()).toBe(start) // all annotations still present
+    }
+    expect(await peakX(page)).toBe(6) // and back at the original data x
+  })
+
   test('snap pulls a dragged annotation onto a gridline', async ({ page }) => {
     // enable snap at runtime (read live from config on each drag)
     await page.evaluate(() => { window.chart.w.config.chart.ink.snap = true })
     const ticks = await page.evaluate(() => window.chart.w.globals.xAxisScale.result)
     const snapped = await dragPoint(page, 'dip', 18, 0)
     expect(ticks.indexOf(snapped)).toBeGreaterThan(-1) // exactly on a gridline
+  })
+})
+
+test.describe('Ink Layer: floating note editor', () => {
+  test.beforeEach(async ({ loadChart }) => {
+    await loadChart('misc', 'ink-draggable-annotations')
+  })
+
+  // A press + release without movement on an annotation element = select.
+  async function clickAnno(page, selector) {
+    return page.evaluate((selector) => {
+      const el = window.chart.el.querySelector(selector)
+      const r = el.getBoundingClientRect()
+      const cx = r.left + r.width / 2
+      const cy = r.top + r.height / 2
+      el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window, clientX: cx, clientY: cy, button: 0 }))
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window, clientX: cx, clientY: cy, button: 0 }))
+      return !!window.chart.el.querySelector('.apexcharts-ink-card')
+    }, selector)
+  }
+
+  const clickCardBtn = (page, title) =>
+    page.evaluate((title) => {
+      const b = Array.from(window.chart.el.querySelectorAll('.apexcharts-ink-btn')).find(
+        (x) => x.title === title,
+      )
+      if (b) b.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }))
+      return !!b
+    }, title)
+
+  test('clicking a note opens the editor card with its text and controls', async ({ page }) => {
+    expect(await clickAnno(page, '.apexcharts-point-annotation-marker.peak')).toBe(true)
+    const c = await page.evaluate(() => {
+      const card = window.chart.el.querySelector('.apexcharts-ink-card')
+      return {
+        input: card.querySelector('input.apexcharts-ink-editor').value,
+        swatches: card.querySelectorAll('.apexcharts-ink-swatch').length,
+        hasMarkerRow: !!card.querySelector('.apexcharts-ink-marker-size'),
+        focused: document.activeElement === card.querySelector('input.apexcharts-ink-editor'),
+      }
+    })
+    expect(c.input).toBe('Peak')
+    expect(c.swatches).toBe(6)
+    expect(c.hasMarkerRow).toBe(true)
+    expect(c.focused).toBe(true)
+  })
+
+  test('an axis annotation opens the card too, without the marker row', async ({ page }) => {
+    expect(await clickAnno(page, 'line.target')).toBe(true)
+    const c = await page.evaluate(() => {
+      const card = window.chart.el.querySelector('.apexcharts-ink-card')
+      return {
+        input: card.querySelector('input.apexcharts-ink-editor').value,
+        hasMarkerRow: !!card.querySelector('.apexcharts-ink-marker-size'),
+      }
+    })
+    expect(c.input).toBe('Target')
+    expect(c.hasMarkerRow).toBe(false)
+  })
+
+  test('a swatch recolors the label chip and the marker together', async ({ page }) => {
+    await clickAnno(page, '.apexcharts-point-annotation-marker.peak')
+    await page.evaluate(() => {
+      window.__styled = null
+      window.chart.addEventListener('annotationStyled', (c, o) => { window.__styled = o })
+      const sw = window.chart.el.querySelectorAll('.apexcharts-ink-swatch')[2] // #2563eb
+      sw.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }))
+    })
+    const r = await page.evaluate(() => {
+      const a = window.chart.w.config.annotations.points.find((p) => p.id === 'peak')
+      return {
+        bg: a.label.style.background,
+        fg: a.label.style.color,
+        markerStroke: a.marker.strokeColor,
+        rectFill: window.chart.el.querySelector('rect.peak').getAttribute('fill'),
+        cardOpen: !!window.chart.el.querySelector('.apexcharts-ink-card'),
+        styledId: window.__styled && window.__styled.id,
+      }
+    })
+    expect(r.bg).toBe('#2563eb')
+    expect(r.fg).toBe('#ffffff')
+    expect(r.markerStroke).toBe('#2563eb')
+    expect(r.rectFill).toBe('#2563eb') // the drawn chip picked it up immediately
+    expect(r.cardOpen).toBe(true) // restyling keeps the editor open
+    expect(r.styledId).toBe('peak')
+  })
+
+  test('bold, font size and the marker controls restyle the note', async ({ page }) => {
+    await clickAnno(page, '.apexcharts-point-annotation-marker.dip')
+    expect(await clickCardBtn(page, 'Bold')).toBe(true)
+    await clickCardBtn(page, 'Larger text')
+    await clickCardBtn(page, 'Larger marker')
+    await clickCardBtn(page, 'Marker shape')
+    const a = await page.evaluate(() => {
+      const p = window.chart.w.config.annotations.points.find((x) => x.id === 'dip')
+      return {
+        fw: p.label.style.fontWeight,
+        fs: p.label.style.fontSize,
+        markerSize: p.marker.size,
+        shape: p.marker.shape,
+        drawn: !!window.chart.el.querySelector('.apexcharts-point-annotation-marker.dip'),
+      }
+    })
+    expect(a.fw).toBe(700)
+    expect(a.fs).toBe('12px') // default 11px stepped up once
+    expect(a.markerSize).toBe(8) // fixture size 7 stepped up once
+    expect(a.shape).toBe('square') // circle cycled once
+    expect(a.drawn).toBe(true)
+  })
+
+  test('delete removes the note; undo (Rewind) restores it', async ({ page }) => {
+    const count = () =>
+      page.evaluate(() => window.chart.w.config.annotations.points.length)
+    const start = await count()
+    await clickAnno(page, '.apexcharts-point-annotation-marker.peak')
+    await page.evaluate(() => {
+      window.__deleted = null
+      window.chart.addEventListener('annotationDeleted', (c, o) => { window.__deleted = o })
+    })
+    await clickCardBtn(page, 'Delete note')
+    const afterDelete = await page.evaluate(() => ({
+      count: window.chart.w.config.annotations.points.length,
+      markerGone: !window.chart.el.querySelector('.apexcharts-point-annotation-marker.peak'),
+      cardGone: !window.chart.el.querySelector('.apexcharts-ink-card'),
+      deletedId: window.__deleted && window.__deleted.id,
+      othersAlive: !!window.chart.el.querySelector('.apexcharts-point-annotation-marker.dip'),
+    }))
+    expect(afterDelete.count).toBe(start - 1)
+    expect(afterDelete.markerGone).toBe(true)
+    expect(afterDelete.cardGone).toBe(true)
+    expect(afterDelete.deletedId).toBe('peak')
+    expect(afterDelete.othersAlive).toBe(true)
+
+    await page.evaluate(() => window.chart.history.undo(false))
+    await page.waitForFunction(
+      () => !!window.chart.el.querySelector('.apexcharts-point-annotation-marker.peak'),
+    )
+    expect(await count()).toBe(start)
+  })
+
+  test('the surviving note still drags correctly after a delete', async ({ page }) => {
+    // Regression: deleting points[0] shifts 'dip' to index 0; its handlers must
+    // rebind to the new index or a drag would mutate the wrong slot.
+    await clickAnno(page, '.apexcharts-point-annotation-marker.peak')
+    await clickCardBtn(page, 'Delete note')
+    const r = await dragAnnotation(page, 'dip', 50, 0)
+    expect(r.after.x).toBeGreaterThan(r.before.x)
+    expect(r.dropErrorPx).toBeLessThanOrEqual(4)
+  })
+
+  test('Escape closes the card without committing the pending text', async ({ page }) => {
+    await clickAnno(page, '.apexcharts-point-annotation-marker.peak')
+    await page.evaluate(() => {
+      const i = window.chart.el.querySelector('input.apexcharts-ink-editor')
+      i.value = 'Scrapped'
+      i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
+    })
+    const r = await page.evaluate(() => ({
+      cardGone: !window.chart.el.querySelector('.apexcharts-ink-card'),
+      text: window.chart.w.config.annotations.points.find((p) => p.id === 'peak').label.text,
+    }))
+    expect(r.cardGone).toBe(true)
+    expect(r.text).toBe('Peak')
+  })
+
+  test('a click outside the card commits the typed text', async ({ page }) => {
+    await clickAnno(page, '.apexcharts-point-annotation-marker.peak')
+    await page.evaluate(() => {
+      const i = window.chart.el.querySelector('input.apexcharts-ink-editor')
+      i.value = 'Summit'
+      document.body.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window, clientX: 4, clientY: 4, button: 0 }),
+      )
+    })
+    const r = await page.evaluate(() => ({
+      cardGone: !window.chart.el.querySelector('.apexcharts-ink-card'),
+      text: window.chart.w.config.annotations.points.find((p) => p.id === 'peak').label.text,
+      labelText: window.chart.el.querySelector('.apexcharts-point-annotation-label.peak').textContent,
+    }))
+    expect(r.cardGone).toBe(true)
+    expect(r.text).toBe('Summit')
+    expect(r.labelText).toBe('Summit')
   })
 })

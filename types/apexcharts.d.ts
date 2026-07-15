@@ -949,6 +949,18 @@ type ApexChart = {
      */
     annotationCreated?(chart: ApexCharts, options?: { id?: string; index: number; x: any; y: any }): void
     /**
+     * Ink Layer (#7): fired after an annotation is restyled from the floating
+     * note editor (accent color, bold, font size, marker size/shape). `options`
+     * carries the annotation type/id/index and its current label + marker config.
+     */
+    annotationStyled?(chart: ApexCharts, options?: { type?: 'point' | 'xaxis' | 'yaxis'; id?: string; index: number; label?: any; marker?: any }): void
+    /**
+     * Ink Layer (#7): fired after an annotation is deleted from the floating
+     * note editor. `options` carries the annotation type/id and the index it
+     * occupied before removal.
+     */
+    annotationDeleted?(chart: ApexCharts, options?: { type?: 'point' | 'xaxis' | 'yaxis'; id?: string; index: number }): void
+    /**
      * Overlay Compare (#18): fired when a measure ruler is drawn. Requires the
      * `overlayCompare` feature. `options` carries the endpoints and the deltas.
      */
@@ -1017,8 +1029,12 @@ type ApexChart = {
   /**
    * Ink Layer (#7): direct-manipulation annotations. When enabled, every point
    * annotation is draggable (unless it sets `draggable:false`); or opt in per
-   * annotation with `annotations.points[].draggable`. Requires the `ink` feature
-   * (`import 'apexcharts/features/ink'`). Fires the `annotationDragged` event.
+   * annotation with `annotations.points[].draggable`. Clicking an ink-managed
+   * annotation opens a floating editor card anchored to it: rename inline,
+   * recolor via accent swatches, toggle bold, step the font size, size/reshape
+   * the marker, or delete the note. Requires the `ink` feature
+   * (`import 'apexcharts/features/ink'`). Fires the `annotationDragged`,
+   * `annotationEdited`, `annotationStyled` and `annotationDeleted` events.
    */
   ink?: {
     /** @default false */
@@ -1033,6 +1049,11 @@ type ApexChart = {
      * (numeric x + linear y). @default false
      */
     snap?: boolean
+    /**
+     * Accent swatches offered by the floating note editor. Defaults to a
+     * built-in 6-color palette when omitted.
+     */
+    noteColors?: string[]
   }
   /**
    * Overlay Compare (#18): a measure/delta ruler. Requires the `overlayCompare`

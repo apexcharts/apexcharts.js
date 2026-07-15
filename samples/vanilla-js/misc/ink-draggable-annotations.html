@@ -79,7 +79,11 @@
       
         <div class="ink-note">
           The chart sets <code>chart.ink.enabled</code>, so its point annotations are
-          <b>draggable</b>: grab a labelled marker and move it. Double-click a label to rename it inline. On release the new
+          <b>draggable</b>: grab a labelled marker and move it. <b>Click a note</b> to
+          open its floating editor card: rename it inline, pick an accent color,
+          toggle bold, step the text size, grow/shrink or reshape the <b>marker</b>,
+          or <b>delete</b> the note (Enter commits, Escape closes; the swatches come
+          from <code>chart.ink.noteColors</code>). On release of a drag the new
           position is converted back to data coordinates and written to
           <code>annotations.points[].x/y</code>, so the annotation stays glued to that
           data location on later zoom or resize. Use <b>+ Note</b> (the palette, from
@@ -87,7 +91,8 @@
           note. The x-axis <b>Window</b> band moves (drag its middle) or resizes (drag
           an edge), and the y-axis <b>Target</b> line drags vertically. Fires
           <code>annotationDragged</code> / <code>annotationEdited</code> /
-          <code>annotationCreated</code>. With the history (Rewind) feature enabled,
+          <code>annotationStyled</code> / <code>annotationCreated</code> /
+          <code>annotationDeleted</code>. With the history (Rewind) feature enabled,
           <b>Ctrl/Cmd+Z</b> undoes any edit and Shift+Ctrl/Cmd+Z redoes it. Needs the
           <code>ink</code> feature. (Set <code>draggable:false</code> on a single
           annotation to pin it.)
@@ -188,6 +193,12 @@
           Number(o.x).toFixed(2) +
           ', y=' +
           Number(o.y).toFixed(2)
+      })
+      chart.addEventListener('annotationStyled', function (c, o) {
+        readout.textContent = "Restyled '" + o.id + "'"
+      })
+      chart.addEventListener('annotationDeleted', function (c, o) {
+        readout.textContent = "Deleted '" + o.id + "' (Ctrl/Cmd+Z restores it)"
       })
     </script>
 
