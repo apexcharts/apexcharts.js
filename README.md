@@ -24,13 +24,31 @@
 
 ## Why ApexCharts
 
-- **16+ chart types** out of the box — line, area, bar, column, pie, donut, radar, heatmap, treemap, candlestick, boxplot, funnel, pyramid, gauge and more
+- **17+ chart types** out of the box — line, area, bar, column, pie, donut, radar, heatmap, treemap, candlestick, boxplot, violin, funnel, pyramid, gauge and more
 - **SSR support** for Next.js, Nuxt, SvelteKit, Astro, and other meta-frameworks — render real SVG on the server, hydrate on the client
 - **Tree-shakable** — import only the chart types and features you need; typical bundles are 30–60% smaller than the full build
 - **TypeScript-first** — full type definitions ship with the package, no `@types/*` install needed
 - **Zero runtime dependencies** — no React/Vue/D3 required; works in any framework or vanilla JS
 - **Accessibility** — keyboard navigation and ARIA support built in
 - **Free for most users** — see [License](#license)
+
+## New in v6
+
+Version 6 turns a chart from a picture you look at into a surface you investigate, author, and share. Every feature below is opt-in and tree-shakeable; existing configs keep working unchanged.
+
+- **Plugin platform**: publish reusable chart plugins to npm against a stable, versioned API. `ApexCharts.registerPlugin(def)`, then activate per chart with `plugins: [{ name }]`.
+- **Canvas rendering for dense series**: `chart: { renderer: 'auto' }` paints the series layer to canvas above a point threshold while axes, tooltips, annotations, and exports stay SVG. Hundreds of thousands of points, same config.
+- **Undo / redo**: `chart: { history: { enabled: true } }` records zooms, series toggles, option changes, and annotation edits. Ctrl-Z just works, and `chart.history` exposes undo, redo, jump, and transactions.
+- **Shareable view state**: `chart.perspectives.capture()` serializes the exact view (zoom window, hidden series, selections, annotations, theme) into a compact token you can put in a URL and restore anywhere.
+- **Design tokens and OS-aware themes**: define `--apx-*` CSS custom properties once and every chart reads them; `theme: { follow: 'os' }` tracks the system light/dark preference with zero JS, and `ApexCharts.registerTheme` registers named brand themes.
+- **Custom series types**: `ApexCharts.registerSeriesType(name, { renderItem })` draws primitives per datum and inherits tooltips, events, legend, and keyboard navigation for free.
+- **Native-feeling touch**: two-finger pinch-zoom, two-finger pan, and kinetic inertia with axis rails, on by default.
+- **Pluggable easing**: `chart.animations.easing` accepts named curves, cubic-bezier arrays, or functions; add your own with `ApexCharts.registerEasing`.
+- **Crossfilter dashboards**: link charts into a shared filter engine with `ApexCharts.crossfilter`. Click a slice or brush a range in one chart and every linked chart filters to match.
+- **Annotation authoring**: `chart: { ink: { enabled: true } }` makes annotations draggable and resizable, adds click-to-create, snap, and a floating editor card (rename, recolor, restyle, delete), all wired into undo.
+- **Measure ruler**: hold a key and drag to read the change, percent, and slope between two points; pinned rulers re-project on zoom and resize (`chart.measure`).
+- **Context menu**: right-click or long-press a data point for actions that operate at that exact point, with custom items supported (`chart.contextMenu`).
+- **Real-time streaming**: rolling-window updates scroll at constant velocity instead of warping in place, and `chart.streaming` bounds memory for long-running feeds.
 
 ## Install
 
@@ -65,7 +83,7 @@ Browse [100+ ready-to-use samples](https://apexcharts.com/javascript-chart-demos
 - [Line](https://apexcharts.com/javascript-chart-demos/line-charts/) · [Area](https://apexcharts.com/javascript-chart-demos/area-charts/) · [Range Area](https://apexcharts.com/javascript-chart-demos/range-area-charts/)
 - [Bar](https://apexcharts.com/javascript-chart-demos/bar-charts/) · [Column](https://apexcharts.com/javascript-chart-demos/column-charts/) · [Range Bar / Timeline](https://apexcharts.com/javascript-chart-demos/range-bar-charts/) 
 - [Scatter](https://apexcharts.com/javascript-chart-demos/scatter-charts/) · [Bubble](https://apexcharts.com/javascript-chart-demos/bubble-charts/)
-- [Candlestick](https://apexcharts.com/javascript-chart-demos/candlestick-charts/) · [BoxPlot](https://apexcharts.com/javascript-chart-demos/boxplot-charts/)
+- [Candlestick](https://apexcharts.com/javascript-chart-demos/candlestick-charts/) · [BoxPlot](https://apexcharts.com/javascript-chart-demos/boxplot-charts/) · [Violin](samples/vanilla-js/violin/)
 - [Pie](https://apexcharts.com/javascript-chart-demos/pie-charts/) · [Donut](https://apexcharts.com/javascript-chart-demos/pie-charts/) · [Polar Area](https://apexcharts.com/javascript-chart-demos/polar-area-charts/) · [Radial Bar / Gauge](https://apexcharts.com/javascript-chart-demos/radialbar-charts/)
 - [Radar](https://apexcharts.com/javascript-chart-demos/radar-charts/) · [Heatmap](https://apexcharts.com/javascript-chart-demos/heatmap-charts/) · [Treemap](https://apexcharts.com/javascript-chart-demos/treemap-charts/)
 - [Funnel](https://apexcharts.com/javascript-chart-demos/funnel-charts/)
@@ -136,6 +154,13 @@ import 'apexcharts/features/toolbar'      // zoom/pan toolbar
 // import 'apexcharts/features/exports'      // SVG/PNG/CSV download
 // import 'apexcharts/features/annotations'
 // import 'apexcharts/features/keyboard'     // keyboard navigation
+// import 'apexcharts/features/drilldown'    // hierarchical drill-down
+// import 'apexcharts/features/morph'        // animated chart-type morphs
+// import 'apexcharts/features/history'      // undo/redo
+// import 'apexcharts/features/facet'        // design tokens + OS themes
+// import 'apexcharts/features/link'         // crossfilter / linked views
+// import 'apexcharts/features/ink'          // on-chart annotation editing
+// import 'apexcharts/features/renderer-canvas' // canvas series renderer
 ```
 
 See the [tree-shaking guide](https://apexcharts.com/docs/tree-shaking/) for the complete list of entry points.
