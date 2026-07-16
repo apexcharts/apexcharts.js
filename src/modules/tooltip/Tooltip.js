@@ -673,9 +673,22 @@ export default class Tooltip {
     let chartGroups = []
     const w = this.w
 
+    // Crossfilter filter-mode member (Linked Views #4): its categories are one
+    // dimension of a shared record set, unrelated to a sibling's dimension, so
+    // the group's index-matched tooltip sync is meaningless there (hovering
+    // "Loss" would caption the sibling's same-index bucket, e.g. "Q1"). Such
+    // charts neither source nor receive the sync; the coordinator owns their
+    // cross-chart behavior.
+    const isCfMember = (/** @type {any} */ chart) => {
+      const link = chart?.w?.config?.chart?.link
+      return !!(link && typeof link.dimension === 'function')
+    }
+
     // if user has more than one charts in group, we need to sync
-    if (w.config.chart.group) {
-      chartGroups = this.ctx.getGroupedCharts()
+    if (w.config.chart.group && !isCfMember(this.ctx)) {
+      chartGroups = this.ctx
+        .getGroupedCharts()
+        .filter((/** @type {any} */ ch) => !isCfMember(ch))
     }
 
     if (

@@ -123,6 +123,113 @@ test.describe('Crossfilter: categorical click-to-filter', () => {
     expect(after.tracked).toBe(0) // no point-selection bookkeeping
   })
 
+  test('hovering one chart never paints a sibling tooltip (no index-synced leak)', async ({
+    page,
+  }) => {
+    // Regression: the demo charts used to share chart.group, so hovering the
+    // outcome donut's "Loss" slice painted an index-matched "Q1" tooltip on
+    // the quarter donut (and vice versa). Hover must stay local.
+    const r = await page.evaluate(async () => {
+      const slice = window.chart1.el.querySelector('.apexcharts-pie-area')
+      const b = slice.getBoundingClientRect()
+      const opts = {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: b.x + b.width / 2,
+        clientY: b.y + b.height / 2,
+      }
+      slice.dispatchEvent(new MouseEvent('mouseenter', opts))
+      slice.dispatchEvent(new MouseEvent('mousemove', opts))
+      await new Promise((res) => setTimeout(res, 200))
+      const active = (c) => {
+        const t = c.el.querySelector('.apexcharts-tooltip')
+        return !!t && t.classList.contains('apexcharts-active')
+      }
+      return {
+        own: active(window.chart1),
+        quarter: active(window.chart),
+        day: active(window.chart2),
+      }
+    })
+    expect(r.own).toBe(true)
+    expect(r.quarter).toBe(false)
+    expect(r.day).toBe(false)
+  })
+
+  test('grouped filter-mode members still opt out of index-synced tooltips', async ({
+    page,
+  }) => {
+    // Even when a user DOES put crossfilter members in a chart.group, the
+    // tooltip sync must skip them: their dimensions are unrelated, so an
+    // index match across charts is meaningless.
+    const r = await page.evaluate(async () => {
+      window.ApexCharts.crossfilter({
+        id: 'cfg2',
+        records: [
+          { k: 'A', g: 'X' },
+          { k: 'B', g: 'Y' },
+          { k: 'A', g: 'Y' },
+        ],
+      })
+      const mk = (el, dim) =>
+        new window.ApexCharts(el, {
+          chart: {
+            type: 'donut',
+            width: 240,
+            group: 'g2',
+            animations: { enabled: false },
+            link: { id: 'cfg2', dimension: dim, reduce: 'count' },
+          },
+          series: [],
+        })
+      const d1 = document.createElement('div')
+      const d2 = document.createElement('div')
+      document.body.appendChild(d1)
+      document.body.appendChild(d2)
+      const c1 = mk(d1, (rec) => rec.k)
+      const c2 = mk(d2, (rec) => rec.g)
+      await c1.render()
+      await c2.render()
+
+      const slice = d1.querySelector('.apexcharts-pie-area')
+      const b = slice.getBoundingClientRect()
+      const opts = {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: b.x + b.width / 2,
+        clientY: b.y + b.height / 2,
+      }
+      slice.dispatchEvent(new MouseEvent('mouseenter', opts))
+      slice.dispatchEvent(new MouseEvent('mousemove', opts))
+      await new Promise((res) => setTimeout(res, 200))
+      const active = (root) => {
+        const t = root.querySelector('.apexcharts-tooltip')
+        return !!t && t.classList.contains('apexcharts-active')
+      }
+      const out = { own: active(d1), sibling: active(d2) }
+      c1.destroy()
+      c2.destroy()
+      d1.remove()
+      d2.remove()
+      return out
+    })
+    expect(r.own).toBe(true)
+    expect(r.sibling).toBe(false) // the index-synced leak
+  })
+
+  test('outcome donut orders Gain before Loss with semantic pastel colors', async ({
+    page,
+  }) => {
+    const r = await page.evaluate(() => ({
+      labels: window.chart1.w.config.labels,
+      colors: window.chart1.w.globals.colors.slice(0, 2),
+    }))
+    expect(r.labels).toEqual(['Gain', 'Loss'])
+    expect(r.colors).toEqual(['#86efac', '#fca5a5']) // green = Gain, red = Loss
+  })
+
   test('clicking the same slice again clears the filter', async ({ page }) => {
     await clickSlice(page, 'chart', 0)
     await page.waitForFunction(

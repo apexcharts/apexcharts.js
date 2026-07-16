@@ -102,7 +102,6 @@ chart: {
   id: 'fluctuation',
   type: 'bar',
   height: 260,
-  group: 'market',
   fontFamily: 'Helvetica, Arial, sans-serif',
   animations: { speed: 450 },
   zoom: { enabled: false },
@@ -136,7 +135,6 @@ chart: {
   id: 'byQuarter',
   type: 'bar',
   height: 240,
-  group: 'market',
   fontFamily: 'Helvetica, Arial, sans-serif',
   animations: { speed: 450 },
   link: {

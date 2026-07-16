@@ -45,9 +45,18 @@
         grid-column: 1 / -1;
       }
       .cf-card {
-        border: 1px solid #eef;
+        border: 1px solid #e4e7f2;
         border-radius: 8px;
         padding: 6px;
+        background: #fff;
+      }
+      /* The shared demo stylesheet gives the FIRST chart container (#chart) a
+               white panel + border; the cards style all three uniformly instead. */
+      #chart {
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
       }
       .cf-note {
         background: #eef2ff;
@@ -134,7 +143,6 @@
           id: 'byQuarter',
           type: 'donut',
           height: 300,
-          group: 'trades',
           fontFamily: 'Helvetica, Arial, sans-serif',
           animations: { speed: 500 },
           link: {
@@ -154,8 +162,11 @@
           formatter: function (val, opts) {
             return opts.w.config.series[opts.seriesIndex]
           },
+          style: { colors: ['#334155'], fontWeight: 600 },
+          dropShadow: { enabled: false },
         },
-        colors: ['#6366f1', '#0ea5e9', '#22c55e', '#f59e0b'],
+        colors: ['#a5b4fc', '#7dd3fc', '#86efac', '#fcd34d'],
+        stroke: { width: 2, colors: ['#fff'] },
       }
 
       var chart = new ApexCharts(document.querySelector('#chart'), options)
@@ -167,7 +178,6 @@
           id: 'byOutcome',
           type: 'donut',
           height: 300,
-          group: 'trades',
           fontFamily: 'Helvetica, Arial, sans-serif',
           animations: { speed: 500 },
           link: {
@@ -176,6 +186,7 @@
               return r.gl
             },
             reduce: 'count',
+            order: 'asc', // Gain before Loss, so the colors below map semantically
             dimOpacity: 0.18,
           },
         },
@@ -187,8 +198,11 @@
           formatter: function (val, opts) {
             return opts.w.config.series[opts.seriesIndex]
           },
+          style: { colors: ['#334155'], fontWeight: 600 },
+          dropShadow: { enabled: false },
         },
-        colors: ['#22c55e', '#ef4444'],
+        colors: ['#86efac', '#fca5a5'],
+        stroke: { width: 2, colors: ['#fff'] },
       }
 
       var chart1 = new ApexCharts(document.querySelector('#chart2'), options1)
@@ -200,7 +214,6 @@
           id: 'byDay',
           type: 'bar',
           height: 280,
-          group: 'trades',
           fontFamily: 'Helvetica, Arial, sans-serif',
           animations: { speed: 500 },
           link: {
@@ -210,7 +223,12 @@
             },
             reduce: 'count',
             seriesName: 'Trades',
-            order: 'first-seen',
+            // `order` also takes a comparator: keep the weekdays in calendar order
+            // instead of the order they first appear in the records.
+            order: function (a, b) {
+              var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+              return days.indexOf(a) - days.indexOf(b)
+            },
             dimOpacity: 0.18,
           },
         },
@@ -220,7 +238,7 @@
         },
         legend: { show: false },
         dataLabels: { enabled: false },
-        colors: ['#6366f1'],
+        colors: ['#a5b4fc', '#7dd3fc', '#86efac', '#fcd34d', '#f9a8d4'],
       }
 
       var chart2 = new ApexCharts(document.querySelector('#chart3'), options2)
