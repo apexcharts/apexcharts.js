@@ -389,7 +389,8 @@ declare class ApexCharts {
 
   /**
    * Registers a named easing (Cadence #6) referenceable via
-   * `chart.animations.easing: '<name>'`. `fn` maps linear progress t in [0,1]
+   * `chart.animations.easing: '<name>'`, alongside the built-in curves listed
+   * on `ApexEasing`. `fn` maps linear progress t in [0,1]
    * to eased progress (back/elastic curves may overshoot 1).
    */
   static registerEasing(name: string, fn: (t: number) => number): typeof ApexCharts
@@ -862,6 +863,7 @@ declare namespace ApexCharts {
   //   const yaxis: ApexCharts.ApexYAxis = { ... }
   export type { ApexAnnotations }
   export type { ApexChart }
+  export type { ApexEasing }
   export type { ApexDataLabels }
   export type { ApexFill }
   export type { ApexForecastDataPoints }
@@ -908,6 +910,32 @@ type ApexDropShadow = {
    */
   color?: string | string[]
 }
+
+/**
+ * Easing for the generic tween runner (Cadence #6): data-update value
+ * transitions, path morphs, marker animate. Accepts a built-in curve name
+ * (the union below is the complete built-in registry), any custom name
+ * registered via `ApexCharts.registerEasing` (hence the widened string), a
+ * CSS-style cubic-bezier control array `[x1, y1, x2, y2]`, or a function
+ * mapping linear progress t in [0,1] to eased progress (back-style curves
+ * may overshoot [0,1]).
+ */
+type ApexEasing =
+  | 'linear'
+  | 'easeInSine'
+  | 'easeOutSine'
+  | 'easeInOutSine'
+  | 'easeInQuad'
+  | 'easeOutQuad'
+  | 'easeInOutQuad'
+  | 'easeInCubic'
+  | 'easeOutCubic'
+  | 'easeInOutCubic'
+  | 'easeOutBack'
+  | 'easeInOutBack'
+  | (string & {})
+  | [number, number, number, number]
+  | ((t: number) => number)
 
 /**
  * Main Chart options
@@ -1369,17 +1397,12 @@ type ApexChart = {
     /** Animation duration in ms (default 800). */
     speed?: number
     /**
-     * Cadence (#6): easing for the generic tweens (data-update value
-     * transitions, path morphs, marker animate). A registered name
-     * (e.g. 'linear', 'easeOutCubic', 'easeOutBack'), a cubic-bezier
-     * `[x1, y1, x2, y2]` array, or a function mapping t in [0,1] to eased
-     * progress. Register custom names with `ApexCharts.registerEasing`.
+     * Cadence (#6): easing for the generic tweens. See `ApexEasing` for the
+     * complete built-in curve list and the accepted forms; register custom
+     * names with `ApexCharts.registerEasing`.
      * @default 'easeInOutSine'
      */
-    easing?:
-      | string
-      | [number, number, number, number]
-      | ((t: number) => number)
+    easing?: ApexEasing
     /**
      * Drives per-element stagger across all chart types. When enabled, bars,
      * heatmap cells, scatter points, and treemap tiles reveal in sequence;
@@ -1397,15 +1420,12 @@ type ApexChart = {
       speed?: number
       /**
        * Easing for data-change morphs only (same accepted forms as
-       * `animations.easing`). Unset: inherits the chart-wide easing, except
-       * detected streaming scrolls (appendData or a shifted fixed-length
-       * window under `xaxis.range`) which default to 'linear' so the window
-       * slides at constant velocity.
+       * `animations.easing`; see `ApexEasing`). Unset: inherits the
+       * chart-wide easing, except detected streaming scrolls (appendData or
+       * a shifted fixed-length window under `xaxis.range`) which default to
+       * 'linear' so the window slides at constant velocity.
        */
-      easing?:
-        | string
-        | [number, number, number, number]
-        | ((t: number) => number)
+      easing?: ApexEasing
     }
     /**
      * Cross-type morph (updateOptions changing chart.type). Requires the
