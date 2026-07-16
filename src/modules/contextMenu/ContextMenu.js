@@ -1,5 +1,6 @@
 // @ts-check
 import { Environment } from '../../utils/Environment.js'
+import Utils from '../../utils/Utils.js'
 
 /**
  * Radial Actions (#chrome): a right-click / long-press context menu anchored to
@@ -16,6 +17,14 @@ import { Environment } from '../../utils/Environment.js'
  *   - 'annotate' -> ctx.ink.createAt(x, y) when the ink feature is bundled
  *                   (config-backed note that opens its floating editor), else
  *                   chart.addPointAnnotation({ x, y, ... }) at the click
+ *   - 'xline' / 'yline' -> ctx.ink.createLineAt('x'|'y', value) when ink is
+ *                   bundled (dashed draggable line that opens the floating
+ *                   editor), else chart.addXaxisAnnotation /
+ *                   addYaxisAnnotation. 'xline' drops a vertical line at the
+ *                   clicked x, 'yline' a horizontal line at the clicked y.
+ *                   Lines only, never a range rectangle; both styled via
+ *                   chart.contextMenu.line ({ text, strokeDashArray, color }),
+ *                   the same way noteText configures the note.
  *   - 'measure'  -> ctx.measure.seedFromClient(clientX, clientY) (only shown
  *                   when the measure tool is bundled + enabled)
  * A custom item is `{ id, label, icon?, onClick(ctx, context) }`, where context
@@ -123,7 +132,7 @@ export default class ContextMenu {
     const raw =
       Array.isArray(cfg.items) && cfg.items.length
         ? cfg.items
-        : ['annotate', 'measure']
+        : ['annotate', 'xline', 'yline', 'measure']
     const labels = cfg.labels || {}
     /** @type {Array<{id:string,label:string,run:Function}>} */
     const out = []
@@ -134,6 +143,18 @@ export default class ContextMenu {
             id: 'annotate',
             label: labels.annotate || 'Add note here',
             run: () => this._annotate(context),
+          })
+        } else if (it === 'xline') {
+          out.push({
+            id: 'xline',
+            label: labels.xline || 'Annotate here',
+            run: () => this._line(context, 'x'),
+          })
+        } else if (it === 'yline') {
+          out.push({
+            id: 'yline',
+            label: labels.yline || 'Mark this level',
+            run: () => this._line(context, 'y'),
           })
         } else if (it === 'measure') {
           const m = this.ctx.measure
@@ -183,6 +204,46 @@ export default class ContextMenu {
       },
       true,
     )
+  }
+
+  /**
+   * The 'xline' / 'yline' items: drop a dashed line annotation at the clicked
+   * data point ('x' = vertical line at the clicked x, 'y' = horizontal line
+   * at the clicked y). Lines only: no x2/y2 is ever set, so this never
+   * creates a range rectangle. Both items share chart.contextMenu.line
+   * ({ text, strokeDashArray, color }) for styling.
+   * @param {any} context @param {'x'|'y'} axis
+   */
+  _line(context, axis) {
+    const lc = this._cfg().line || {}
+    const val = axis === 'x' ? context.x : context.y
+    if (val == null) return
+    const ink = this.ctx.ink
+    if (ink && typeof ink.createLineAt === 'function') {
+      // Route through the ink layer: the line is config-backed, draggable
+      // along its axis, restylable from the floating editor, and undoable.
+      ink.createLineAt(axis, val, {
+        text: lc.text,
+        strokeDashArray: lc.strokeDashArray,
+        color: lc.color,
+      })
+      return
+    }
+    // Ink feature not bundled: drop a plain (static) dashed line.
+    /** @type {any} */
+    const anno = {
+      strokeDashArray: lc.strokeDashArray != null ? lc.strokeDashArray : 4,
+    }
+    if (lc.text) anno.label = { text: lc.text }
+    if (lc.color) {
+      anno.borderColor = lc.color
+      anno.label = Utils.extend(anno.label || {}, { borderColor: lc.color })
+    }
+    if (axis === 'x') {
+      this.ctx.addXaxisAnnotation(Utils.extend(anno, { x: val }), true)
+    } else {
+      this.ctx.addYaxisAnnotation(Utils.extend(anno, { y: val }), true)
+    }
   }
 
   /**

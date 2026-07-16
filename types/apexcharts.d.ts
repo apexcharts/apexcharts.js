@@ -996,10 +996,11 @@ type ApexChart = {
      */
     annotationEdited?(chart: ApexCharts, options?: { type?: 'point' | 'xaxis' | 'yaxis'; id?: string; index: number; text: string }): void
     /**
-     * Ink Layer (#7): fired after a point annotation is created by clicking the
-     * plot in create mode. `options` carries the new annotation id/index + x/y.
+     * Ink Layer (#7): fired after an annotation is created by clicking the
+     * plot in create mode or from the context menu (note or dashed line).
+     * `options` carries the new annotation type/id/index and its x and/or y.
      */
-    annotationCreated?(chart: ApexCharts, options?: { id?: string; index: number; x: any; y: any }): void
+    annotationCreated?(chart: ApexCharts, options?: { type?: 'point' | 'xaxis' | 'yaxis'; id?: string; index: number; x?: any; y?: any }): void
     /**
      * Ink Layer (#7): fired after an annotation is restyled from the floating
      * note editor (accent color, bold, font size, marker size/shape). `options`
@@ -1082,9 +1083,11 @@ type ApexChart = {
    * annotation with `annotations.points[].draggable`. Clicking an ink-managed
    * annotation opens a floating editor card anchored to it: rename inline,
    * recolor via accent swatches, toggle bold, step the font size, size/reshape
-   * the marker, or delete the note. Requires the `ink` feature
-   * (`import 'apexcharts/features/ink'`). Fires the `annotationDragged`,
-   * `annotationEdited`, `annotationStyled` and `annotationDeleted` events.
+   * the marker, or delete the note. Axis-line annotations get separate Label
+   * and Line color rows, so restyling the label chip never touches the stroke.
+   * Requires the `ink` feature (`import 'apexcharts/features/ink'`). Fires the
+   * `annotationDragged`, `annotationEdited`, `annotationStyled` and
+   * `annotationDeleted` events.
    */
   ink?: {
     /** @default false */
@@ -1162,17 +1165,21 @@ type ApexChart = {
    * Each action receives the clicked data coordinates, so verbs act at that
    * point rather than chart-wide. 'measure' is shown only when the measure tool
    * is enabled. When the ink feature is bundled, 'annotate' drops an
-   * ink-managed note that opens its floating editor (rename, restyle, delete).
+   * ink-managed note that opens its floating editor (rename, restyle, delete),
+   * and 'xline' / 'yline' drop ink-managed dashed lines the same way ('xline'
+   * vertical at the clicked x, 'yline' horizontal at the clicked y).
    */
   contextMenu?: {
     /** @default false */
     enabled?: boolean
     /**
      * Ordered menu items: built-in ids and/or custom entries. @default
-     * ['annotate','measure']
+     * ['annotate','xline','yline','measure']
      */
     items?: Array<
       | 'annotate'
+      | 'xline'
+      | 'yline'
       | 'measure'
       | {
           id?: string
@@ -1192,9 +1199,25 @@ type ApexChart = {
         }
     >
     /** Override the built-in item labels. */
-    labels?: { annotate?: string; measure?: string }
+    labels?: { annotate?: string; xline?: string; yline?: string; measure?: string }
     /** Text of the annotation dropped by the built-in 'annotate' item. @default 'Note' */
     noteText?: string
+    /**
+     * Shared styling for the built-in 'xline' ("Annotate here", vertical at
+     * the clicked x) and 'yline' ("Mark this level", horizontal at the
+     * clicked y) items. Lines only, never a range rectangle. With the ink
+     * feature bundled the line opens the floating editor, whose Label and
+     * Line color rows restyle the chip and the stroke independently, and is
+     * draggable and undoable, like the note.
+     */
+    line?: {
+      /** Label drawn on the line. @default '' (no label) */
+      text?: string
+      /** @default 4 */
+      strokeDashArray?: number
+      /** Line color; omit to keep the annotation default. */
+      color?: string
+    }
   }
   id?: string
   injectStyleSheet?: boolean

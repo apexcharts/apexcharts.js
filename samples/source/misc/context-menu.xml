@@ -61,10 +61,17 @@
     not chart-wide like a toolbar button: <b>Add note here</b> drops an editable,
     draggable callout at the click and opens its floating editor (type to
     rename; the card also offers accent colors, bold, text size, marker
-    size/shape and delete, via <code>chart.ink</code>). Click any note later to
-    reopen its editor. <b>Measure from here</b> seeds the ruler at the click,
-    then a second click completes the measurement (<code>chart.measure</code>).
-    The <b>Copy value</b> entry below is a custom item wired via
+    size/shape and delete, via <code>chart.ink</code>). <b>Annotate here</b>
+    drops a dashed vertical line at the clicked x, and <b>Mark this level</b>
+    a dashed horizontal line at the clicked y: always a line, never a
+    rectangle, styled via <code>contextMenu.line</code> (label text, dash
+    pattern, color) and just as draggable, restylable and undoable as the
+    note. A line's editor card has separate <b>Label</b> and <b>Line</b> color
+    rows, so a white label chip never blanks the stroke. Click any note or
+    line later to reopen its editor.
+    <b>Measure from here</b> seeds the ruler at the click, then a second click
+    completes the measurement (<code>chart.measure</code>). The <b>Copy
+    value</b> entry below is a custom item wired via
     <code>contextMenu.items[].onClick</code>. Arrow keys move, Enter activates,
     Escape closes.
   </div>
@@ -83,8 +90,11 @@ chart: {
   zoom: { enabled: true, type: 'x' },
   contextMenu: {
     enabled: true,
+    line: { text: 'Event', strokeDashArray: 5, color: '#7c3aed' },
     items: [
       'annotate',
+      'xline',
+      'yline',
       'measure',
       {
         id: 'copyValue',
@@ -123,8 +133,9 @@ chart.addEventListener('measured', function (c, o) {
     'Measured: dy=' + Number(o.dy).toFixed(0) +
     ' (' + (o.percentChange >= 0 ? '+' : '') + Number(o.percentChange).toFixed(1) + '%)'
 })
-chart.addEventListener('annotationCreated', function () {
+chart.addEventListener('annotationCreated', function (c, o) {
+  var kind = o && o.type === 'xaxis' ? 'Dashed line' : o && o.type === 'yaxis' ? 'Level line' : 'Note'
   readout.textContent =
-    'Note added. Type to rename it; the floating card restyles or deletes it. Drag to move.'
+    kind + ' added. Type to rename it; the floating card restyles or deletes it. Drag to move.'
 })
 </vanilla-js-script>

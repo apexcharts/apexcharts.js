@@ -474,7 +474,9 @@ export default class Options {
         // in per annotation with annotations.points[].draggable. Clicking an
         // ink-managed annotation opens a floating editor card: rename inline,
         // recolor, toggle bold, step the font size, size/reshape the marker, or
-        // delete the note. Requires the `ink` feature. Fires annotationDragged,
+        // delete the note. Axis-line annotations get separate Label and Line
+        // color rows, so restyling the label chip never touches the stroke.
+        // Requires the `ink` feature. Fires annotationDragged,
         // annotationEdited, annotationStyled and annotationDeleted.
         ink: {
           enabled: false,
@@ -526,16 +528,33 @@ export default class Options {
         // Requires the `contextMenu` feature. Each action receives the clicked
         // data coordinates, so verbs act at the point (not chart-wide like a
         // toolbar button). `items` is an ordered list of built-in ids
-        // ('annotate' | 'measure') and/or custom
+        // ('annotate' | 'xline' | 'yline' | 'measure') and/or custom
         // { id, label, icon, onClick(ctx, { x, y, seriesIndex, dataPointIndex,
         // clientX, clientY }) }. 'measure' is shown only when the measure tool
         // is enabled. `labels` overrides built-in text; `noteText` is the label
         // dropped by 'annotate'.
         contextMenu: {
           enabled: false,
-          items: ['annotate', 'measure'],
-          labels: { annotate: undefined, measure: undefined },
+          items: ['annotate', 'xline', 'yline', 'measure'],
+          labels: {
+            annotate: undefined,
+            xline: undefined,
+            yline: undefined,
+            measure: undefined,
+          },
           noteText: 'Note',
+          // 'xline' ("Annotate here") drops a dashed vertical LINE at the
+          // clicked x; 'yline' ("Mark this level") a dashed horizontal line at
+          // the clicked y. Lines only, never a range rectangle. Like the note,
+          // a line is ink-managed when the ink feature is bundled: it opens
+          // the floating editor (rename; separate Label and Line color rows,
+          // so restyling the chip cannot blank the stroke; delete), drags
+          // along its axis, and undoes via Rewind. `line` styles both items.
+          line: {
+            text: '', // label drawn on the line; empty for no label
+            strokeDashArray: 4,
+            color: undefined, // undefined keeps the annotation default color
+          },
         },
         stacked: false,
         stackOnlyBar: true, // mixed chart with stacked bars and line series - incorrect line draw #907

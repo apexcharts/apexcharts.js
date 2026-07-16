@@ -401,17 +401,64 @@ test.describe('Ink Layer: floating note editor', () => {
     expect(c.focused).toBe(true)
   })
 
-  test('an axis annotation opens the card too, without the marker row', async ({ page }) => {
+  test('an axis annotation opens the card too: no marker row, separate Line color row', async ({
+    page,
+  }) => {
     expect(await clickAnno(page, 'line.target')).toBe(true)
     const c = await page.evaluate(() => {
       const card = window.chart.el.querySelector('.apexcharts-ink-card')
       return {
         input: card.querySelector('input.apexcharts-ink-editor').value,
         hasMarkerRow: !!card.querySelector('.apexcharts-ink-marker-size'),
+        labelSwatches: card.querySelectorAll(
+          '.apexcharts-ink-swatch:not(.apexcharts-ink-swatch--line)',
+        ).length,
+        lineSwatches: card.querySelectorAll('.apexcharts-ink-swatch--line').length,
       }
     })
     expect(c.input).toBe('Target')
     expect(c.hasMarkerRow).toBe(false)
+    expect(c.labelSwatches).toBe(6)
+    expect(c.lineSwatches).toBe(6)
+  })
+
+  test('a Label swatch on an axis line never touches the stroke; the Line row does', async ({
+    page,
+  }) => {
+    await clickAnno(page, 'line.target')
+    const before = await page.evaluate(() => {
+      const a = window.chart.w.config.annotations.yaxis.find((p) => p.id === 'target')
+      return a.borderColor
+    })
+    // White label chip: the reported regression turned the dashed line white.
+    await page.evaluate(() => {
+      const sw = window.chart.el.querySelector(
+        '.apexcharts-ink-card .apexcharts-ink-swatch:not(.apexcharts-ink-swatch--line)[data-color="#ffffff"]',
+      )
+      sw.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }))
+    })
+    await page.waitForTimeout(80)
+    const mid = await page.evaluate(() => {
+      const a = window.chart.w.config.annotations.yaxis.find((p) => p.id === 'target')
+      return { chipBg: a.label.style.background, stroke: a.borderColor }
+    })
+    expect(mid.chipBg).toBe('#ffffff')
+    expect(mid.stroke).toBe(before)
+
+    await page.evaluate(() => {
+      const sw = window.chart.el.querySelector(
+        '.apexcharts-ink-card .apexcharts-ink-swatch--line[data-color="#16a34a"]',
+      )
+      sw.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }))
+    })
+    await page.waitForTimeout(80)
+    const after = await page.evaluate(() => {
+      const a = window.chart.w.config.annotations.yaxis.find((p) => p.id === 'target')
+      const line = window.chart.el.querySelector('line.target')
+      return { cfg: a.borderColor, drawn: line && line.getAttribute('stroke') }
+    })
+    expect(after.cfg).toBe('#16a34a')
+    expect(after.drawn).toBe('#16a34a')
   })
 
   test('a swatch recolors the label chip and the marker together', async ({ page }) => {

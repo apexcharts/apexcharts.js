@@ -550,8 +550,54 @@ export default class InkLayer {
 
     this._redrawAnno('point', anno, index)
     this._checkpoint('ink:create')
-    this._fireCreated(anno, index)
+    this._fireCreated('point', anno, index)
     this._startEdit('point', index, { select: true })
+    return anno
+  }
+
+  /**
+   * Create a draggable dashed LINE annotation at a data value and open its
+   * editor card: axis 'x' drops a vertical line at a data x, axis 'y' a
+   * horizontal line at a data y. Public: the context menu's "Annotate here"
+   * routes here so its lines are config-backed too, and thus draggable,
+   * editable, persistable and undoable. Lines only: x2/y2 are never set, so
+   * this can never produce a range rectangle.
+   * @param {'x'|'y'} axis @param {any} val
+   * @param {{text?: string, strokeDashArray?: number, color?: string, select?: boolean}} [opts]
+   * @returns {any} the created annotation config
+   */
+  createLineAt(axis, val, opts = {}) {
+    const w = this.w
+    this._wire() // the line is ink-managed even when chart.ink is otherwise off
+    this._createSeq += 1
+    const id = 'apexcharts-ink-new-' + this._createSeq + '-' + w.globals.chartID
+    const type = axis === 'y' ? 'yaxis' : 'xaxis'
+    const defaults =
+      type === 'yaxis' ? new Options().yAxisAnnotation : new Options().xAxisAnnotation
+    /** @type {any} */
+    const over = {
+      id,
+      draggable: true,
+      strokeDashArray: opts.strokeDashArray != null ? opts.strokeDashArray : 4,
+      label: { text: opts.text || '' },
+    }
+    if (opts.color) {
+      over.borderColor = opts.color
+      over.label.borderColor = opts.color
+    }
+    if (type === 'yaxis') over.y = val
+    else over.x = val
+    const anno = Utils.extend(defaults, over)
+
+    if (!w.config.annotations) w.config.annotations = {}
+    if (!Array.isArray(w.config.annotations[type])) w.config.annotations[type] = []
+    w.config.annotations[type].push(anno)
+    const index = w.config.annotations[type].length - 1
+
+    this._redrawAnno(type, anno, index)
+    this._checkpoint('ink:create')
+    this._fireCreated(type, anno, index)
+    if (opts.select !== false) this._startEdit(type, index, { select: true })
     return anno
   }
 
@@ -590,9 +636,12 @@ export default class InkLayer {
     return { x, y }
   }
 
-  /** @param {any} anno @param {number} index */
-  _fireCreated(anno, index) {
-    const args = { id: anno.id, index, x: anno.x, y: anno.y }
+  /** @param {string} type @param {any} anno @param {number} index */
+  _fireCreated(type, anno, index) {
+    /** @type {any} */
+    const args = { type, id: anno.id, index }
+    if (typeof anno.x !== 'undefined') args.x = anno.x
+    if (typeof anno.y !== 'undefined') args.y = anno.y
     const events = this.w.config.chart.events
     if (typeof events.annotationCreated === 'function') {
       events.annotationCreated(this.ctx, args)
@@ -718,6 +767,39 @@ export default class InkLayer {
   }
 
   /**
+   * Uppercase row caption ("Label" / "Line" / "Marker") for the editor card.
+   * @param {any} doc @param {string} text
+   */
+  _cardLabel(doc, text) {
+    const lab = doc.createElement('span')
+    lab.className = 'apexcharts-ink-cardlabel'
+    lab.textContent = text
+    return lab
+  }
+
+  /**
+   * Color swatch button for the editor card. mousedown is prevented so the
+   * text input keeps focus while restyling.
+   * @param {any} doc @param {string} c
+   * @param {(c: string) => void} pick @param {string} [extraClass]
+   */
+  _mkSwatch(doc, c, pick, extraClass) {
+    const sw = doc.createElement('button')
+    sw.type = 'button'
+    sw.className = 'apexcharts-ink-swatch' + (extraClass ? ' ' + extraClass : '')
+    sw.title = c
+    sw.setAttribute('aria-label', 'Color ' + c)
+    sw.dataset.color = c
+    sw.style.background = c
+    sw.addEventListener('mousedown', (/** @type {any} */ e) => e.preventDefault())
+    sw.addEventListener('click', (/** @type {any} */ e) => {
+      e.stopPropagation()
+      pick(c)
+    })
+    return sw
+  }
+
+  /**
    * Open the floating editor card for an annotation.
    * @param {string} type @param {number} index
    * @param {{select?: boolean}} [opts] select: preselect the text (create / dblclick)
@@ -759,23 +841,15 @@ export default class InkLayer {
     )
     card.appendChild(rowText)
 
-    // row 2: accent swatches + text formatting
+    // row 2: accent swatches + text formatting. For axis annotations these
+    // swatches style the LABEL chip only; the line stroke gets its own row.
     const rowStyle = doc.createElement('div')
     rowStyle.className = 'apexcharts-ink-card-row'
+    if (type !== 'point') {
+      rowStyle.appendChild(this._cardLabel(doc, 'Label'))
+    }
     this._noteColors().forEach((c) => {
-      const sw = doc.createElement('button')
-      sw.type = 'button'
-      sw.className = 'apexcharts-ink-swatch'
-      sw.title = c
-      sw.setAttribute('aria-label', 'Color ' + c)
-      sw.dataset.color = c
-      sw.style.background = c
-      sw.addEventListener('mousedown', (/** @type {any} */ e) => e.preventDefault())
-      sw.addEventListener('click', (/** @type {any} */ e) => {
-        e.stopPropagation()
-        this._applyColor(c)
-      })
-      rowStyle.appendChild(sw)
+      rowStyle.appendChild(this._mkSwatch(doc, c, (col) => this._applyColor(col)))
     })
     const sep = doc.createElement('span')
     sep.className = 'apexcharts-ink-sep'
@@ -787,14 +861,30 @@ export default class InkLayer {
     rowStyle.appendChild(this._cardBtn(doc, 'A+', 'Larger text', () => this._stepFont(1)))
     card.appendChild(rowStyle)
 
+    // row 3 (axis annotations): the line's own stroke color, separate from the
+    // label chip, so restyling the chip cannot blank the line.
+    if (type !== 'point') {
+      const rowLine = doc.createElement('div')
+      rowLine.className = 'apexcharts-ink-card-row'
+      rowLine.appendChild(this._cardLabel(doc, 'Line'))
+      this._noteColors().forEach((c) => {
+        rowLine.appendChild(
+          this._mkSwatch(
+            doc,
+            c,
+            (col) => this._applyLineColor(col),
+            'apexcharts-ink-swatch--line',
+          ),
+        )
+      })
+      card.appendChild(rowLine)
+    }
+
     // row 3 (point annotations): marker options
     if (type === 'point') {
       const rowMarker = doc.createElement('div')
       rowMarker.className = 'apexcharts-ink-card-row'
-      const lab = doc.createElement('span')
-      lab.className = 'apexcharts-ink-cardlabel'
-      lab.textContent = 'Marker'
-      rowMarker.appendChild(lab)
+      rowMarker.appendChild(this._cardLabel(doc, 'Marker'))
       rowMarker.appendChild(
         this._cardBtn(doc, '-', 'Smaller marker', () => this._stepMarker(-1)),
       )
@@ -889,11 +979,20 @@ export default class InkLayer {
     const style = (anno.label && anno.label.style) || {}
     const bg = String(style.background || '').toLowerCase()
     ed.card
-      .querySelectorAll('.apexcharts-ink-swatch')
+      .querySelectorAll('.apexcharts-ink-swatch:not(.apexcharts-ink-swatch--line)')
       .forEach((/** @type {any} */ sw) => {
         sw.classList.toggle(
           'apexcharts-ink-swatch--active',
           (sw.dataset.color || '').toLowerCase() === bg,
+        )
+      })
+    const stroke = String(anno.borderColor || '').toLowerCase()
+    ed.card
+      .querySelectorAll('.apexcharts-ink-swatch--line')
+      .forEach((/** @type {any} */ sw) => {
+        sw.classList.toggle(
+          'apexcharts-ink-swatch--active',
+          (sw.dataset.color || '').toLowerCase() === stroke,
         )
       })
     const boldBtn = ed.card.querySelector('.apexcharts-ink-btn--bold')
@@ -985,10 +1084,23 @@ export default class InkLayer {
         if (!anno.marker) anno.marker = {}
         anno.marker.strokeColor = light ? '#334155' : c
         anno.marker.fillColor = light ? '#ffffff' : c
-      } else {
-        anno.borderColor = c
-        if (anno.x2 != null || anno.y2 != null) anno.fillColor = c
       }
+      // Axis annotations: the label chip only. The line stroke has its own
+      // swatch row (_applyLineColor); coupling them meant a white chip
+      // background turned the dashed line white and invisible.
+    })
+  }
+
+  /**
+   * Line-stroke color for axis annotations, separate from the label chip.
+   * @param {string} c
+   */
+  _applyLineColor(c) {
+    const ed = this._editor
+    if (!ed || ed.type === 'point') return
+    this._applyStyle('ink:style', (anno) => {
+      anno.borderColor = c
+      if (anno.x2 != null || anno.y2 != null) anno.fillColor = c
     })
   }
 
