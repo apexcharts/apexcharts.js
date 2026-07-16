@@ -116,13 +116,17 @@
       
       <div class="panel">
         <div class="note">
-          Zoom into a region (drag on the plot) or hide a series in the legend, then
-          press Save current view: <code>chart.perspectives.capture()</code> plus
-          <code>save(name)</code> stores it. Pick a saved view to
-          <code>apply()</code> it back (the chart animates to that exact state).
-          Copy shareable link uses <code>chart.perspectives.toURL()</code> to encode
-          the view into a <code>#apex=</code> fragment; opening that link restores it
-          on load via <code>ApexCharts.perspectives.fromURL()</code>.
+          Zoom into a region (drag on the plot), hide a series in the legend, or
+          right-click the plot to drop a note or a dashed line
+          (<code>chart.contextMenu</code> + <code>chart.ink</code>), then press
+          Save current view: <code>chart.perspectives.capture()</code> plus
+          <code>save(name)</code> stores it. Annotations are part of the view, so a
+          saved or shared view brings your notes and lines back, still draggable
+          and editable. Pick a saved view to <code>apply()</code> it back (the chart
+          animates to that exact state). Copy shareable link uses
+          <code>chart.perspectives.toURL()</code> to encode the view into a
+          <code>#apex=</code> fragment; opening that link restores it on load via
+          <code>ApexCharts.perspectives.fromURL()</code>.
         </div>
       </div>
 
@@ -142,6 +146,8 @@
             tools: { zoom: true, pan: true, reset: true, download: false },
           },
           zoom: { enabled: true, type: 'x' },
+          ink: { enabled: true },
+          contextMenu: { enabled: true },
         },
         colors: ['#1971c2', '#e0447e'],
         stroke: { curve: 'smooth', width: 2 },
