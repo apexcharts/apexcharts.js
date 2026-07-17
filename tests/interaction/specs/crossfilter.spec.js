@@ -227,7 +227,7 @@ test.describe('Crossfilter: categorical click-to-filter', () => {
       colors: window.chart1.w.globals.colors.slice(0, 2),
     }))
     expect(r.labels).toEqual(['Gain', 'Loss'])
-    expect(r.colors).toEqual(['#86efac', '#fca5a5']) // green = Gain, red = Loss
+    expect(r.colors).toEqual(['#4ade80', '#f87171']) // green = Gain, red = Loss
   })
 
   test('clicking the same slice again clears the filter', async ({ page }) => {

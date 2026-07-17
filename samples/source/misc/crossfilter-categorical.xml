@@ -140,7 +140,7 @@ dataLabels: {
   style: { colors: ['#334155'], fontWeight: 600 },
   dropShadow: { enabled: false },
 },
-colors: ['#a5b4fc', '#7dd3fc', '#86efac', '#fcd34d'],
+colors: ['#818cf8', '#38bdf8', '#4ade80', '#fbbf24'],
 stroke: { width: 2, colors: ['#fff'] },
 </options>
 
@@ -174,7 +174,7 @@ dataLabels: {
   style: { colors: ['#334155'], fontWeight: 600 },
   dropShadow: { enabled: false },
 },
-colors: ['#86efac', '#fca5a5'],
+colors: ['#4ade80', '#f87171'],
 stroke: { width: 2, colors: ['#fff'] },
 </options>
 
@@ -209,7 +209,7 @@ title: { text: 'By day of week (click a bar too)', align: 'left' },
 plotOptions: { bar: { columnWidth: '55%', borderRadius: 3, distributed: true } },
 legend: { show: false },
 dataLabels: { enabled: false },
-colors: ['#a5b4fc', '#7dd3fc', '#86efac', '#fcd34d', '#f9a8d4'],
+colors: ['#818cf8', '#38bdf8', '#4ade80', '#fbbf24', '#f472b6'],
 </options>
 
 <series>
