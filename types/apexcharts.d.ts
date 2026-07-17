@@ -52,6 +52,9 @@ type ApexFormatterOpts = {
   dataPointIndex: number
   series?: any[][]
   w: ApexChartContext
+  // Some formatter call sites spread extra state into the opts object (e.g.
+  // the bar total-label formatter spreads `w`), so allow arbitrary reads.
+  [key: string]: any
 }
 
 /**
@@ -415,6 +418,47 @@ declare class ApexCharts {
     decode(str: string): ApexPerspective | null
     fromURL(href?: string): ApexPerspective | null
   }
+
+  /**
+   * SSR: render a chart to an SVG string on the server. Available from the
+   * `apexcharts/ssr` entry (`import ApexCharts from 'apexcharts/ssr'`).
+   */
+  static renderToString(
+    options: ApexCharts.ApexOptions,
+    ssrOptions?: { width?: number; height?: number; scale?: number },
+  ): Promise<string>
+
+  /**
+   * SSR: render a chart to hydration-ready HTML (SVG wrapped in the chart
+   * container). Available from the `apexcharts/ssr` entry.
+   */
+  static renderToHTML(
+    options: ApexCharts.ApexOptions,
+    ssrOptions?: {
+      width?: number
+      height?: number
+      scale?: number
+      className?: string
+    },
+  ): Promise<string>
+
+  /**
+   * SSR: hydrate a server-rendered chart container into a live, interactive
+   * chart. Available from the `apexcharts/client` (or `apexcharts/ssr`) entry.
+   */
+  static hydrate(el: HTMLElement, clientOptions?: ApexCharts.ApexOptions): ApexCharts
+
+  /**
+   * SSR: hydrate every server-rendered chart container matching `selector`
+   * (defaults to all ApexCharts containers on the page).
+   */
+  static hydrateAll(
+    selector?: string,
+    clientOptions?: ApexCharts.ApexOptions,
+  ): ApexCharts[]
+
+  /** SSR: whether a container has already been hydrated. */
+  static isHydrated(el: HTMLElement): boolean
 
   exports: {
     cleanup(): string
@@ -1769,6 +1813,16 @@ type PointAnnotations = {
     offsetX?: number
     offsetY?: number
   }
+  /**
+   * Render arbitrary SVG markup at the annotation's position. Deprecated in
+   * favor of `image`/`marker`, but still supported.
+   */
+  customSVG?: {
+    SVG?: string
+    cssClass?: string
+    offsetX?: number
+    offsetY?: number
+  }
 }
 
 
@@ -1781,6 +1835,8 @@ type TextAnnotations = {
   fontSize?: string | number
   fontFamily?: undefined | string
   fontWeight?: string | number
+  /** CSS selector for the parent element the text is appended to. */
+  appendTo?: string
   backgroundColor?: string
   borderColor?: string
   borderRadius?: number
@@ -2703,6 +2759,7 @@ type ApexXAxis = {
   axisBorder?: {
     show?: boolean
     color?: string
+    width?: string | number
     height?: number
     offsetX?: number
     offsetY?: number
@@ -2900,7 +2957,8 @@ type ApexGrid = {
 }
 
 type ApexTheme = {
-  mode?: 'light' | 'dark'
+  /** '' (the default) inherits / auto-resolves; 'light' | 'dark' force a mode. */
+  mode?: 'light' | 'dark' | ''
   palette?: string
   /**
    * Facet (#13): read `--apx-*` CSS design tokens from the cascade
