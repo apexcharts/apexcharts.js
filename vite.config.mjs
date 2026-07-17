@@ -55,6 +55,7 @@ export const SUB_ENTRIES = {
   'features/morph': resolve(__dirname, 'src/features/morph.js'),
   'features/drilldown': resolve(__dirname, 'src/features/drilldown.js'),
   'features/perspectives': resolve(__dirname, 'src/features/perspectives.js'),
+  'features/storyboard': resolve(__dirname, 'src/features/storyboard.js'),
   'features/history': resolve(__dirname, 'src/features/history.js'),
   'features/weave': resolve(__dirname, 'src/features/weave.js'),
   'features/renderer-canvas': resolve(

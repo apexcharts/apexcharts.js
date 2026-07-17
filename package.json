@@ -162,6 +162,10 @@
       "import": "./dist/features/perspectives.esm.js",
       "require": "./dist/features/perspectives.common.js"
     },
+    "./features/storyboard": {
+      "import": "./dist/features/storyboard.esm.js",
+      "require": "./dist/features/storyboard.common.js"
+    },
     "./features/history": {
       "import": "./dist/features/history.esm.js",
       "require": "./dist/features/history.common.js"

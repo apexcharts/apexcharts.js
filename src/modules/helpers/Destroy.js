@@ -56,6 +56,8 @@ export default class Destroy {
       // Full destroy — null everything so GC can collect the instances.
       this.ctx.perspectives?.teardown()
       this.ctx.perspectives = null
+      this.ctx.storyboard?.teardown()
+      this.ctx.storyboard = null
       this.ctx.history?.teardown()
       this.ctx.history = null
       this.ctx.linkedViews?.teardown()

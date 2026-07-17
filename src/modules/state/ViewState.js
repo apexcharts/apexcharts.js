@@ -250,9 +250,18 @@ export function restoreSelection(ctx, selectedDataPoints) {
  *
  * @param {any} ctx
  * @param {any} view a ViewState produced by captureViewState
- * @param {{ animate?: boolean }} [opts]
+ * @param {{ animate?: boolean, mergeOptions?: Record<string, any> }} [opts]
+ *   mergeOptions: extra updateOptions payload applied IN THE SAME render as
+ *   the view (the view's own fields win on collision). One render instead of
+ *   two matters: a second immediate updateOptions would kill the first one's
+ *   animation mid-flight, and a chart.type change merged here lets the
+ *   cross-type morph play out inside the single re-render.
  */
-export function applyViewState(ctx, view, { animate = true } = {}) {
+export function applyViewState(
+  ctx,
+  view,
+  { animate = true, mergeOptions } = {},
+) {
   if (!ctx || !view) return
 
   // 0. Version gate: a token minted by a NEWER schema may carry fields this
@@ -270,17 +279,23 @@ export function applyViewState(ctx, view, { animate = true } = {}) {
   //    the DOM nodes and the 'addAnnotation'/'addText' memory entries.
   ctx.clearAnnotations()
 
-  // 2. Window + theme + static annotations in ONE merge. overwriteInitialConfig
-  //    is false so the reset/drilldown baseline is preserved.
+  // 2. Window + theme + static annotations (+ caller extras) in ONE merge.
+  //    overwriteInitialConfig is false so the reset/drilldown baseline is
+  //    preserved. Cloned because updateOptions mutates its payload.
   /** @type {Record<string, any>} */
-  const options = {}
+  const options = mergeOptions ? Utils.clone(mergeOptions) : {}
 
   const xw = view.window && view.window.xaxis
   // An explicit {min,max} restores a zoom; {min:undefined,max:undefined} clears
-  // it back to the full range when the captured view was not zoomed.
-  options.xaxis = xw
-    ? { min: xw.min ?? undefined, max: xw.max ?? undefined }
-    : { min: undefined, max: undefined }
+  // it back to the full range when the captured view was not zoomed. Merged
+  // over any caller-supplied xaxis so its other keys (ticks, labels) survive.
+  options.xaxis = Object.assign(
+    {},
+    options.xaxis,
+    xw
+      ? { min: xw.min ?? undefined, max: xw.max ?? undefined }
+      : { min: undefined, max: undefined },
+  )
 
   const yw = view.window && view.window.yaxis
   if (Array.isArray(yw)) {
@@ -294,7 +309,9 @@ export function applyViewState(ctx, view, { animate = true } = {}) {
     const theme = {}
     if (view.theme.mode != null) theme.mode = view.theme.mode
     if (view.theme.palette != null) theme.palette = view.theme.palette
-    if (Object.keys(theme).length) options.theme = theme
+    if (Object.keys(theme).length) {
+      options.theme = Object.assign({}, options.theme, theme)
+    }
   }
 
   if (view.annotations && view.annotations.static) {

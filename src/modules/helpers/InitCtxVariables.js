@@ -221,6 +221,12 @@ export default class InitCtxVariables {
     const PerspectivesCtor = reg.get('perspectives')
     ctx.perspectives = PerspectivesCtor ? new PerspectivesCtor(w, ctx) : null
 
+    // Storyboard: ctx.storyboard (opt-in scroll-driven choreography). Eager so
+    // a binding survives update()/re-render: the observed beat elements are
+    // page prose outside the chart's DOM. Passive until bind() is called.
+    const StoryboardCtor = reg.get('storyboard')
+    ctx.storyboard = StoryboardCtor ? new StoryboardCtor(w, ctx) : null
+
     // History (Rewind): ctx.history (opt-in undo/redo). Eager so the checkpoint
     // stack exists before the first change and survives update(). The
     // constructor self-wires its listeners only when chart.history.enabled.

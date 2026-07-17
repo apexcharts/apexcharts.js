@@ -436,10 +436,24 @@ declare class ApexCharts {
     encode(token?: ApexPerspective): string
     decode(str: string): ApexPerspective | null
     toURL(): string
-    apply(token: ApexPerspective | string, opts?: { animate?: boolean }): void
+    apply(token: ApexPerspective | string, opts?: { animate?: boolean; mergeOptions?: ApexCharts.ApexOptions }): void
     save(name: string): string
     list(): { id: string; name: string; token: ApexPerspective }[]
     delete(id: string): void
+  }
+
+  /**
+   * Storyboard: scroll-driven chart choreography (scrollytelling). Beats are
+   * prose elements paired with Perspective views; scrolling a beat across the
+   * trigger line applies its view, and scrolling back reverses it.
+   * Requires the Storyboard feature: `import 'apexcharts/features/storyboard'`
+   * (which includes Perspectives).
+   */
+  storyboard: {
+    bind(opts?: ApexStoryboardBindOptions): number
+    unbind(): void
+    goTo(beat: number | string, opts?: { animate?: boolean }): void
+    current(): { index: number; key: string | null } | null
   }
 
   /**
@@ -488,6 +502,54 @@ interface ApexPerspective {
   v: number
   view: ApexViewState
   options?: Record<string, any>
+}
+
+// ── Storyboard: scroll-driven chart choreography ──
+interface ApexStoryboardBeatInfo {
+  index: number
+  key: string | null
+  el: Element
+  direction: 'up' | 'down'
+}
+
+interface ApexStoryboardBeat {
+  /** The prose element that triggers the beat (or use `selector`). */
+  el?: Element
+  selector?: string
+  /** Author key for goTo() and events; defaults to data-apex-beat or the index. */
+  key?: string
+  /**
+   * The view to apply: a bare ViewState object (partial is fine; a beat
+   * describes the WHOLE target state, e.g. omitting `window` clears the
+   * zoom), a full Perspective token, or an encoded token string.
+   */
+  view?: Partial<ApexViewState> | ApexPerspective | string
+  /**
+   * updateOptions payload merged into the SAME render as the view, so a beat
+   * can restyle or swap chart.type in one animated transition (cross-type
+   * morphs play out inside it). updateOptions merges, so each beat should
+   * carry every option it depends on, like the view.
+   */
+  options?: ApexCharts.ApexOptions
+  /** Text pushed to the chart's aria-live region when the beat activates. */
+  announce?: string
+  /** Escape hatch for arbitrary per-beat work. */
+  onEnter?(chart: ApexCharts, info: ApexStoryboardBeatInfo): void
+}
+
+interface ApexStoryboardBindOptions {
+  /**
+   * Beats in story order. Omit to auto-discover [data-apex-beat] elements in
+   * document order (data-apex-view holds an encoded token, data-apex-announce
+   * an announcement).
+   */
+  beats?: ApexStoryboardBeat[]
+  /** Custom scroll container (element or selector); default: the viewport. */
+  scroller?: Element | string
+  /** 0..1 fraction of the viewport height for the trigger line (default 0.5). */
+  offset?: number
+  /** Animate beat transitions (default true; prefers-reduced-motion wins). */
+  animate?: boolean
 }
 
 // ── Weave (#1): public plugin platform ──
@@ -896,6 +958,9 @@ declare namespace ApexCharts {
   export type { PointAnnotations }
   export type { TextAnnotations }
   export type { ImageAnnotations }
+  export type { ApexStoryboardBeat }
+  export type { ApexStoryboardBeatInfo }
+  export type { ApexStoryboardBindOptions }
 }
 
 type ApexDropShadow = {
@@ -1046,6 +1111,11 @@ type ApexChart = {
      * `measure` feature. `options` carries the endpoints and the deltas.
      */
     measured?(chart: ApexCharts, options?: { from: { x: any; y: any }; to: { x: any; y: any }; dx: number; dy: number; percentChange: number; slope: number }): void
+    /**
+     * Storyboard: fired when scrolling (or goTo) activates a beat. Requires
+     * the `storyboard` feature and an active chart.storyboard.bind().
+     */
+    beatChange?(chart: ApexCharts, options?: ApexStoryboardBeatInfo): void
     keyDown?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     keyUp?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     /** Fired before a drill-down transition begins. Requires the Drilldown feature. */

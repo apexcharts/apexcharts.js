@@ -191,8 +191,17 @@ export default class Perspectives {
   /**
    * Restore a perspective. Accepts a token object or an encoded string. When
    * the chart is grouped, applies to every synced chart.
+   *
+   * The token's option overrides and `opts.mergeOptions` are folded into the
+   * view restore's ONE updateOptions call (mergeOptions wins over
+   * token.options; the view's own fields win over both). A single render is
+   * deliberate: a second immediate updateOptions would kill the first one's
+   * animation mid-flight, and a chart.type change applied this way morphs
+   * (morph feature) inside the same re-render instead of being re-rendered
+   * over. Consumed by Storyboard for per-beat option payloads.
+   *
    * @param {any} tokenOrString
-   * @param {{ animate?: boolean }} [opts]
+   * @param {{ animate?: boolean, mergeOptions?: Record<string, any> }} [opts]
    */
   apply(tokenOrString, opts = {}) {
     const token =
@@ -202,21 +211,17 @@ export default class Perspectives {
     if (!token || !token.view) return
 
     const animate = opts.animate !== undefined ? opts.animate : true
+    const combined = Utils.extend(
+      token.options ? Utils.clone(token.options) : {},
+      opts.mergeOptions || {},
+    )
+    const mergeOptions = Object.keys(combined).length ? combined : undefined
     const targets = this.w.config.chart.group
       ? this.ctx.getSyncedCharts()
       : [this.ctx]
 
     targets.forEach((/** @type {any} */ chart) => {
-      if (token.options && Object.keys(token.options).length) {
-        chart.updateOptions(
-          Utils.clone(token.options),
-          false,
-          animate,
-          false,
-          false,
-        )
-      }
-      applyViewState(chart, token.view, { animate })
+      applyViewState(chart, token.view, { animate, mergeOptions })
     })
   }
 
