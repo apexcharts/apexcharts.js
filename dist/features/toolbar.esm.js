@@ -31,6 +31,7 @@ const Data = _core.__apex_Data;
 const Series = _core.__apex_Series;
 const Utils = _core.__apex_Utils;
 const Environment = _core.__apex_Environment_Environment;
+const SVGNS = _core.__apex_math_SVGNS;
 class Exports {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -60,6 +61,42 @@ class Exports {
     svg.setAttributeNS(null, "viewBox", "0 0 " + svgWidth + " " + svgHeight);
   }
   /**
+   * Inline any Strata canvas series layer into the clone as an SVG `<image>`.
+   * A serialized `<canvas>` loses its bitmap, so a canvas-mode export would drop
+   * the series; an `<image>` carrying the canvas `toDataURL()` preserves it in
+   * place. Because it replaces the `<foreignObject>` at the same DOM position,
+   * the grid-behind / annotations-in-front z-order is retained automatically.
+   * No-op in SVG mode (no series canvas present).
+   * @param {any} clonedNode the cloned elWrap about to be serialized
+   */
+  inlineCanvasLayers(clonedNode) {
+    const w = this.w;
+    const XLINK = "http://www.w3.org/1999/xlink";
+    const origCanvases = w.dom.elWrap.querySelectorAll(
+      ".apexcharts-series-canvas"
+    );
+    if (!origCanvases.length) return;
+    const clonedFOs = clonedNode.querySelectorAll(".apexcharts-canvas-series");
+    for (let i = 0; i < origCanvases.length && i < clonedFOs.length; i++) {
+      let dataURL;
+      try {
+        dataURL = /** @type {HTMLCanvasElement} */
+        origCanvases[i].toDataURL();
+      } catch (e) {
+        continue;
+      }
+      const fo = clonedFOs[i];
+      const img = document.createElementNS(SVGNS, "image");
+      img.setAttribute("x", fo.getAttribute("x") || "0");
+      img.setAttribute("y", fo.getAttribute("y") || "0");
+      img.setAttribute("width", fo.getAttribute("width") || "0");
+      img.setAttribute("height", fo.getAttribute("height") || "0");
+      img.setAttribute("href", dataURL);
+      img.setAttributeNS(XLINK, "xlink:href", dataURL);
+      if (fo.parentNode) fo.parentNode.replaceChild(img, fo);
+    }
+  }
+  /**
    * @param {number} [_scale]
    */
   getSvgString(_scale) {
@@ -77,6 +114,7 @@ class Exports {
       );
       clonedNode.style.width = width + "px";
       clonedNode.style.height = height + "px";
+      this.inlineCanvasLayers(clonedNode);
       const serializedNode = new XMLSerializer().serializeToString(clonedNode);
       const shouldIncludeLegendStyles = w.config.legend.show && w.dom.elLegendWrap && w.dom.elLegendWrap.children.length > 0;
       let exportStyles = `
@@ -1126,6 +1164,17 @@ class ZoomPanSelection extends Toolbar {
         passive: false
       });
     }
+    if (this._momentumEnabled()) {
+      ["touchstart", "touchmove", "touchend", "touchcancel"].forEach(
+        (event) => {
+          var _a;
+          (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me.momentumTouch.bind(me), {
+            capture: false,
+            passive: false
+          });
+        }
+      );
+    }
   }
   // remove the event listeners which were previously added on hover area
   destroy() {
@@ -1146,6 +1195,10 @@ class ZoomPanSelection extends Toolbar {
     var _a;
     const w = this.w;
     const toolbar = this.ctx.toolbar;
+    if (w.interact.momentum && w.interact.momentum.busy) return;
+    if (this._momentumEnabled() && e.touches && e.touches.length > 1) {
+      return;
+    }
     const zoomtype = w.interact.zoomEnabled ? w.config.chart.zoom.type : w.config.chart.selection.type;
     const autoSelected = w.config.chart.toolbar.autoSelected;
     if (e.shiftKey) {
@@ -1513,23 +1566,27 @@ class ZoomPanSelection extends Toolbar {
       height: getSelAttr("height")
     };
     w.interact.selection = draggedProps;
-    if (typeof w.config.chart.events.selection === "function" && w.interact.selectionEnabled) {
+    const link = w.config.chart.link;
+    const linkActive = !!(link && (link.enabled || typeof link.dimension === "function"));
+    if ((typeof w.config.chart.events.selection === "function" || linkActive) && w.interact.selectionEnabled) {
       clearTimeout((_a = this.w.globals.selectionResizeTimer) != null ? _a : void 0);
       this.w.globals.selectionResizeTimer = window.setTimeout(() => {
-        var _a2;
+        var _a2, _b;
         const gridRectDim = (_a2 = this.gridRect) == null ? void 0 : _a2.getBoundingClientRect();
         if (!gridRectDim) return;
         const selectionRect = selRect.node.getBoundingClientRect();
         let minX, maxX, minY, maxY;
+        const relLeft = selectionRect.left - gridRectDim.left - w.globals.barPadForNumericAxis;
+        const relRight = selectionRect.right - gridRectDim.left - w.globals.barPadForNumericAxis;
         if (!w.axisFlags.isRangeBar) {
           if (!w.globals.xAxisScale) return;
-          minX = w.globals.xAxisScale.niceMin + (selectionRect.left - gridRectDim.left) * xyRatios.xRatio;
-          maxX = w.globals.xAxisScale.niceMin + (selectionRect.right - gridRectDim.left) * xyRatios.xRatio;
+          minX = w.globals.xAxisScale.niceMin + relLeft * xyRatios.xRatio;
+          maxX = w.globals.xAxisScale.niceMin + relRight * xyRatios.xRatio;
           minY = w.globals.yAxisScale[0].niceMin + (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0];
           maxY = w.globals.yAxisScale[0].niceMax - (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0];
         } else {
-          minX = w.globals.yAxisScale[0].niceMin + (selectionRect.left - gridRectDim.left) * xyRatios.invertedYRatio;
-          maxX = w.globals.yAxisScale[0].niceMin + (selectionRect.right - gridRectDim.left) * xyRatios.invertedYRatio;
+          minX = w.globals.yAxisScale[0].niceMin + relLeft * xyRatios.invertedYRatio;
+          maxX = w.globals.yAxisScale[0].niceMin + relRight * xyRatios.invertedYRatio;
           minY = 0;
           maxY = 1;
         }
@@ -1543,16 +1600,19 @@ class ZoomPanSelection extends Toolbar {
             max: maxY
           }
         };
-        w.config.chart.events.selection(this.ctx, xyAxis);
+        if (typeof w.config.chart.events.selection === "function") {
+          w.config.chart.events.selection(this.ctx, xyAxis);
+        }
         if (w.config.chart.brush.enabled && w.config.chart.events.brushScrolled !== void 0) {
           w.config.chart.events.brushScrolled(this.ctx, xyAxis);
         }
+        (_b = this.ctx.linkedViews) == null ? void 0 : _b.onSourceSelection(xyAxis.xaxis);
       }, timerInterval);
     }
   }
   /** @param {{context: any, zoomtype: any}} opts */
   selectionDrawn({ context, zoomtype }) {
-    var _a, _b;
+    var _a, _b, _c;
     const w = this.w;
     const me = context;
     const xyRatios = this.xyRatios;
@@ -1656,6 +1716,7 @@ class ZoomPanSelection extends Toolbar {
             yaxis
           });
         }
+        (_c = me.ctx.linkedViews) == null ? void 0 : _c.onSourceSelection(xaxis);
       }
     }
   }
@@ -1768,6 +1829,349 @@ class ZoomPanSelection extends Toolbar {
       w.config.chart.events.scrolled(this.ctx, args);
       this.ctx.events.fireEvent("scrolled", args);
     }
+  }
+  // ---------------------------------------------------------------------------
+  // Momentum: multi-touch pinch-zoom, two-finger pan and kinetic inertia.
+  //
+  // Every _updateOptions destroys and recreates this instance, and applying a
+  // gesture frame IS an _updateOptions, so the gesture must not depend on the
+  // instance surviving. All runtime state lives on w.interact.momentum (the
+  // interaction slice that persists across re-renders, like the crude pan's
+  // lastClientPosition). The instance that received touchstart keeps driving
+  // the gesture off the persistent state; inertia is a self-contained rAF loop
+  // that stops on w.globals.isDestroyed (a real destroy) rather than being
+  // cancelled by the per-update destroy().
+  // ---------------------------------------------------------------------------
+  _momentumEnabled() {
+    return this._pinchEnabled() || this._panInertiaEnabled();
+  }
+  _pinchEnabled() {
+    const c = this.w.config.chart;
+    return !!(c.zoom && c.zoom.enabled && c.zoom.pinch);
+  }
+  _panInertiaEnabled() {
+    const c = this.w.config.chart;
+    return !!(c.pan && c.pan.inertia);
+  }
+  /** Lazily-created, re-render-surviving gesture state on the interaction slice. */
+  _m() {
+    const it = this.w.interact;
+    if (!it.momentum) {
+      it.momentum = {
+        busy: false,
+        /** @type {any} */
+        pinch: null,
+        /** @type {any} */
+        panState: null,
+        /** @type {{x:number,t:number}[]} */
+        samples: [],
+        /** @type {number|null} */
+        inertiaRAF: null
+      };
+    }
+    return it.momentum;
+  }
+  /** Current x data-window (rangeBars carry the datetime domain on y). */
+  _currentXWindow() {
+    const w = this.w;
+    return w.axisFlags.isRangeBar ? { min: w.globals.minY, max: w.globals.maxY } : { min: w.globals.minX, max: w.globals.maxX };
+  }
+  /** Live grid rect from the current DOM (this.gridRect goes stale/null after
+   * the re-render a gesture frame triggers). */
+  _gridRect() {
+    const baseEl = this.w.dom.baseEl;
+    const grid = baseEl && baseEl.querySelector(".apexcharts-grid");
+    return grid ? grid.getBoundingClientRect() : null;
+  }
+  /**
+   * Raw data bounds to clamp against. When zoom-aware downsampling is active,
+   * the raw stash tracks the full domain; fall back to the initial window.
+   * Returns null for rangeBars (no raw-x clamp available).
+   * @returns {{min:number, max:number}|null}
+   */
+  _clampBounds() {
+    var _a, _b;
+    const w = this.w;
+    if (w.axisFlags.isRangeBar) return null;
+    return {
+      min: (_a = w.globals.dataReducerRawMinX) != null ? _a : w.globals.initialMinX,
+      max: (_b = w.globals.dataReducerRawMaxX) != null ? _b : w.globals.initialMaxX
+    };
+  }
+  /**
+   * Apply an x-window immediately (no animation), mirroring panScrolled but
+   * pixel-accurate: clamp to the raw bounds (preserving window width so a pan
+   * stops flush at the edge rather than shrinking), floor for category axes,
+   * then route through the fast _updateOptions path.
+   * @param {number} newMinX @param {number} newMaxX @param {boolean} isZoom
+   * @returns {{minX:number, maxX:number}|false} applied window, or false if rejected
+   */
+  _applyXRange(newMinX, newMaxX, isZoom) {
+    const w = this.w;
+    if (!w.globals.initialConfig) return false;
+    const bounds = this._clampBounds();
+    if (bounds) {
+      const range = newMaxX - newMinX;
+      if (newMinX < bounds.min) {
+        newMinX = bounds.min;
+        newMaxX = newMinX + range;
+      }
+      if (newMaxX > bounds.max) {
+        newMaxX = bounds.max;
+        newMinX = newMaxX - range;
+      }
+      if (newMinX < bounds.min) newMinX = bounds.min;
+    }
+    if (w.config.xaxis.convertedCatToNumeric) {
+      newMinX = Math.floor(newMinX);
+      newMaxX = Math.floor(newMaxX);
+      if (newMinX < 1) newMinX = 1;
+      if (newMaxX - newMinX < 2) return false;
+    }
+    if (!(newMaxX > newMinX)) return false;
+    const options = { xaxis: { min: newMinX, max: newMaxX } };
+    if (!w.config.chart.group) {
+      options.yaxis = Utils.clone(w.globals.initialConfig.yaxis);
+    }
+    if (isZoom) w.interact.zoomed = true;
+    this.ctx.updateHelpers._updateOptions(options, false, false);
+    return { minX: newMinX, maxX: newMaxX };
+  }
+  _cancelInertia() {
+    const m = this._m();
+    if (m.inertiaRAF != null) {
+      cancelAnimationFrame(m.inertiaRAF);
+      m.inertiaRAF = null;
+    }
+  }
+  _fireScrolled() {
+    const w = this.w;
+    if (typeof w.config.chart.events.scrolled !== "function") return;
+    const { min, max } = this._currentXWindow();
+    const args = { xaxis: { min, max } };
+    w.config.chart.events.scrolled(this.ctx, args);
+    this.ctx.events.fireEvent("scrolled", args);
+  }
+  /** @param {number} x @param {number} t */
+  _pushSample(x, t) {
+    const s = this._m().samples;
+    s.push({ x, t });
+    while (s.length > 6) s.shift();
+  }
+  /**
+   * Single passive:false handler for all touch phases. Two fingers => pinch /
+   * two-finger pan (zoom). One finger, in pan mode => kinetic pan with inertia.
+   * @param {any} e
+   */
+  momentumTouch(e) {
+    const w = this.w;
+    const m = this._m();
+    const type = e.type;
+    if (type === "touchstart") {
+      this._cancelInertia();
+      const gridRectDim = this._gridRect();
+      if (!gridRectDim) return;
+      if (e.touches.length >= 2 && this._pinchEnabled()) {
+        e.preventDefault();
+        m.busy = true;
+        m.panState = null;
+        this._beginPinch(e, gridRectDim);
+      } else if (e.touches.length === 1 && this._panInertiaEnabled() && w.interact.panEnabled) {
+        m.busy = true;
+        m.pinch = null;
+        const t = e.touches[0];
+        const win = this._currentXWindow();
+        const gw = w.layout.gridWidth || 1;
+        m.panState = {
+          startX: t.clientX,
+          startY: t.clientY,
+          axis: null,
+          // decided on first move (rails)
+          minX0: win.min,
+          maxX0: win.max,
+          ratio0: (win.max - win.min) / gw
+        };
+        m.samples = [{ x: t.clientX, t: e.timeStamp }];
+      }
+      return;
+    }
+    if (type === "touchmove") {
+      if (m.pinch && e.touches.length >= 2) {
+        e.preventDefault();
+        this._movePinch(e);
+      } else if (m.panState && e.touches.length === 1) {
+        this._movePan(e);
+      }
+      return;
+    }
+    if (m.pinch) {
+      if (e.touches.length < 2) this._endPinch();
+    } else if (m.panState) {
+      if (e.touches.length === 0) this._endPan();
+    }
+    if (e.touches.length === 0) {
+      w.interact.mousedown = false;
+      this.dragged = false;
+      if (m.inertiaRAF == null && !m.pinch && !m.panState) {
+        m.busy = false;
+      }
+    }
+  }
+  /** @param {any} e @param {DOMRect} gridRectDim */
+  _beginPinch(e, gridRectDim) {
+    const w = this.w;
+    const t0 = e.touches[0];
+    const t1 = e.touches[1];
+    const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1;
+    const cx = (t0.clientX + t1.clientX) / 2 - gridRectDim.left - w.globals.barPadForNumericAxis;
+    const { min, max } = this._currentXWindow();
+    this._m().pinch = {
+      d0: dist,
+      cx0: cx,
+      minX0: min,
+      maxX0: max,
+      gridWidth: w.layout.gridWidth || 1
+    };
+  }
+  /** @param {any} e */
+  _movePinch(e) {
+    const w = this.w;
+    const p = this._m().pinch;
+    if (!p) return;
+    const gridRectDim = this._gridRect();
+    if (!gridRectDim) return;
+    const t0 = e.touches[0];
+    const t1 = e.touches[1];
+    const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1;
+    const cx = (t0.clientX + t1.clientX) / 2 - gridRectDim.left - w.globals.barPadForNumericAxis;
+    const range0 = p.maxX0 - p.minX0;
+    const newRange = range0 * (p.d0 / dist);
+    const anchorData = p.minX0 + p.cx0 / p.gridWidth * range0;
+    let newMinX = anchorData - cx / p.gridWidth * newRange;
+    let newMaxX = newMinX + newRange;
+    const bounds = this._clampBounds();
+    if (bounds) {
+      const minXDiff = w.globals.minXDiff > 0 && isFinite(w.globals.minXDiff) ? w.globals.minXDiff : 0;
+      const minRange = Math.max(minXDiff * 2, (bounds.max - bounds.min) * 1e-6);
+      if (newMaxX - newMinX < minRange) {
+        const mid = (newMinX + newMaxX) / 2;
+        newMinX = mid - minRange / 2;
+        newMaxX = mid + minRange / 2;
+      }
+    }
+    this._applyXRange(newMinX, newMaxX, true);
+  }
+  _endPinch() {
+    const w = this.w;
+    const m = this._m();
+    m.pinch = null;
+    const { min, max } = this._currentXWindow();
+    const xaxis = { min, max };
+    const yaxis = w.globals.initialConfig ? Utils.clone(w.globals.initialConfig.yaxis) : [];
+    const toolbar = this.ctx.toolbar;
+    if (toolbar) toolbar.zoomCallback(xaxis, yaxis);
+  }
+  /** @param {any} e */
+  _movePan(e) {
+    const m = this._m();
+    const s = m.panState;
+    const t = e.touches[0];
+    if (!s.axis) {
+      const dx = Math.abs(t.clientX - s.startX);
+      const dy = Math.abs(t.clientY - s.startY);
+      if (dx < 6 && dy < 6) {
+        this._pushSample(t.clientX, e.timeStamp);
+        return;
+      }
+      if (dy > dx) {
+        m.busy = false;
+        m.panState = null;
+        return;
+      }
+      s.axis = "x";
+    }
+    if (s.axis !== "x") return;
+    e.preventDefault();
+    const totalDeltaPx = t.clientX - s.startX;
+    const deltaData = totalDeltaPx * s.ratio0;
+    this._pushSample(t.clientX, e.timeStamp);
+    this._applyXRange(s.minX0 - deltaData, s.maxX0 - deltaData, false);
+  }
+  _endPan() {
+    const m = this._m();
+    const s = m.panState;
+    m.panState = null;
+    let vel = 0;
+    const samples = m.samples;
+    if (samples.length >= 2) {
+      const a = samples[0];
+      const b = samples[samples.length - 1];
+      const dt = b.t - a.t;
+      if (dt > 0) vel = (b.x - a.x) / dt;
+    }
+    m.samples = [];
+    if (s && s.axis === "x" && this._panInertiaEnabled() && Math.abs(vel) > 0.05) {
+      this._startInertia(vel);
+    } else {
+      m.busy = false;
+      this._fireScrolled();
+    }
+  }
+  /**
+   * Kinetic glide after a one-finger pan release: decay the velocity by
+   * `friction` each frame and shift the window, stopping at the data edge
+   * (clamp, not elastic overshoot). The loop is w-driven, so it keeps running
+   * across the re-renders each frame triggers and stops only on a real destroy.
+   * @param {number} vel0 px/ms, sign is the finger direction
+   */
+  _startInertia(vel0) {
+    const w = this.w;
+    const m = this._m();
+    const cfgFriction = w.config.chart.pan && w.config.chart.pan.friction;
+    const friction = typeof cfgFriction === "number" ? Math.min(Math.max(cfgFriction, 0.5), 0.999) : 0.92;
+    let vel = vel0;
+    let lastT = null;
+    m.busy = true;
+    const step = (ts) => {
+      if (w.globals.isDestroyed) {
+        m.inertiaRAF = null;
+        m.busy = false;
+        return;
+      }
+      if (lastT == null) {
+        lastT = ts;
+        m.inertiaRAF = requestAnimationFrame(step);
+        return;
+      }
+      const dt = ts - lastT;
+      lastT = ts;
+      vel *= Math.pow(friction, dt / 16.6667);
+      if (Math.abs(vel) < 0.02) {
+        m.inertiaRAF = null;
+        m.busy = false;
+        this._fireScrolled();
+        return;
+      }
+      const win = this._currentXWindow();
+      const gw = w.layout.gridWidth || 1;
+      const ratio = (win.max - win.min) / gw;
+      const deltaData = vel * dt * ratio;
+      const applied = this._applyXRange(
+        win.min - deltaData,
+        win.max - deltaData,
+        false
+      );
+      const bounds = this._clampBounds();
+      const hitEdge = !applied || bounds && (deltaData > 0 && applied.minX <= bounds.min + (bounds.max - bounds.min) * 1e-6 || deltaData < 0 && applied.maxX >= bounds.max - (bounds.max - bounds.min) * 1e-6);
+      if (hitEdge) {
+        m.inertiaRAF = null;
+        m.busy = false;
+        this._fireScrolled();
+        return;
+      }
+      m.inertiaRAF = requestAnimationFrame(step);
+    };
+    m.inertiaRAF = requestAnimationFrame(step);
   }
 }
 _core__default.registerFeatures({
