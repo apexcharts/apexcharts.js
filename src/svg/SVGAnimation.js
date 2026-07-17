@@ -71,6 +71,8 @@ class SVGAnimationRunner {
     this.delay = delay || 0
     this._attrTarget = null
     this._plotTarget = null
+    /** @type {string | null} */
+    this._plotSnap = null
     /** @type {'commands' | 'polygons'} */
     this._plotAlgorithm = 'commands'
     this._afterCb = null
@@ -109,10 +111,16 @@ class SVGAnimationRunner {
    *   per-command lerp; 'polygons' resamples both paths into N evenly
    *   spaced points and tweens point-by-point (smoother for shapes with
    *   very different anchor-point counts).
+   * @param {string} [snapTo] - final d to land on when it differs from the
+   *   interpolation target. Used by reconciled length-change morphs: the
+   *   tween runs against a padded path (extra anchors lying exactly on the
+   *   final geometry) but the element must end with the renderer's clean,
+   *   un-padded d so later captures and morphs stay stable.
    */
-  plot(d, algorithm) {
+  plot(d, algorithm, snapTo) {
     this._plotTarget = d
     if (algorithm) this._plotAlgorithm = algorithm
+    this._plotSnap = snapTo || null
     this._schedule()
     return this
   }
@@ -181,7 +189,7 @@ class SVGAnimationRunner {
       // Near-instant: just apply final state after delay
       const apply = () => {
         if (this._attrTarget) el.attr(this._attrTarget)
-        if (this._plotTarget) el.plot(this._plotTarget)
+        if (this._plotTarget) el.plot(this._plotSnap || this._plotTarget)
         if (this._afterCb) this._afterCb.call(el)
       }
       if (startDelay > 0) {
@@ -276,7 +284,7 @@ class SVGAnimationRunner {
         } else {
           // Set final path
           if (this._plotTarget) {
-            el.attr('d', this._plotTarget)
+            el.attr('d', this._plotSnap || this._plotTarget)
           }
           if (this._afterCb) this._afterCb.call(el)
         }

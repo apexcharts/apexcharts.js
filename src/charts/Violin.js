@@ -267,10 +267,13 @@ class Violin extends Bar {
       collapsed: false,
     })
 
-    let pathFrom
+    let pathFrom = null
     if (w.globals.previousPaths.length > 0) {
+      // Keyed survivor → morph; shape-changed → snap; entering → null
+      // (falls through to the collapsed-centerline enter below).
       pathFrom = this.getPreviousPath(realIndex, j, pathTo)
-    } else {
+    }
+    if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
         nodes: density.nodes,
         center,
@@ -332,10 +335,13 @@ class Violin extends Bar {
       collapsed: false,
     })
 
-    let pathFrom
+    let pathFrom = null
     if (w.globals.previousPaths.length > 0) {
+      // Keyed survivor → morph; shape-changed → snap; entering → null
+      // (falls through to the collapsed-centerline enter below).
       pathFrom = this.getPreviousPath(realIndex, j, pathTo)
-    } else {
+    }
+    if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
         nodes: density.nodes,
         center,

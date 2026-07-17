@@ -24,6 +24,7 @@ import {
 import { registerTheme, unregisterTheme } from './modules/ThemeRegistry'
 import { registerEasing } from './modules/animations/Easing'
 import { trimStreamingSeries } from './modules/animations/StreamScroll'
+import { applyAxisTransition } from './modules/animations/AxisTransition'
 import {
   registerPlugin as registerPluginImpl,
   unregisterPlugin as unregisterPluginImpl,
@@ -79,6 +80,7 @@ export default class ApexCharts {
   /** @type {string[]} */ eventList = []
   /** @type {any} */ config
   /** @type {any} */ perspectives
+  /** @type {any} */ storyboard
   /** @type {any} */ history
   /** @type {any} */ linkedViews
   /** @type {any} */ ink
@@ -829,6 +831,11 @@ export default class ApexCharts {
           // Chrome cross-fade for cross-type morph (no-op when the morph
           // feature isn't registered or no morph was captured this update).
           this.morphTypeChange?.applyChromeFade()
+
+          // Variable-length update: slide surviving tick labels/gridlines to
+          // their new positions and fade in the new ones, on the same clock
+          // as the series morph (no-op otherwise; consumes prevChromeFrame).
+          applyAxisTransition(this.w)
 
           if (typeof this.w.config.chart.events.updated === 'function') {
             this.w.config.chart.events.updated(this, this.w)

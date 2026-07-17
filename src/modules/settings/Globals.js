@@ -442,6 +442,10 @@ export default class Globals {
       // captured by Series.getPreviousPaths(). Consulted (like previousPaths)
       // only while a data-change morph renders. See StreamScroll.
       prevStreamFrame: null,
+      // Axis-chrome snapshot (tick label texts/positions + gridline positions)
+      // captured alongside prevStreamFrame; consumed once by AxisTransition
+      // after a variable-length re-render mounts.
+      prevChromeFrame: null,
 
       // ── SVG viewport (set by Dimensions, but persistent as layout anchor) ─────
       svgWidth: 0,

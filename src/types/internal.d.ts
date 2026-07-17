@@ -350,13 +350,39 @@ export interface ChartGlobals
   isDestroyed: boolean
   shouldAnimate: boolean
   previousPaths: any[]
-  // Streaming scroll (StreamScroll): previous frame's parsed rows + pixel
-  // positions, captured by Series.getPreviousPaths() before parseData().
+  // Streaming scroll (StreamScroll) + variable-length transitions
+  // (LengthTransition/PathReconcile): previous frame's parsed rows, pixel
+  // positions, and datum-key sources, captured by Series.getPreviousPaths()
+  // before parseData().
   prevStreamFrame: {
     seriesX: (number | null)[][]
     seriesY: (number | null)[][]
     xPixels: (number | null)[][]
     yPixels: (number | null)[][]
+    rPixels?: number[][]
+    labels: any[]
+    isXNumeric: boolean
+  } | null
+  // Axis-chrome snapshot (tick label texts/positions + gridline positions),
+  // captured alongside prevStreamFrame and consumed once by AxisTransition
+  // after a variable-length re-render mounts.
+  prevChromeFrame: {
+    xLabels: {
+      text: string
+      display: string
+      pos: number
+      transform: string | null
+    }[]
+    yLabels: {
+      text: string
+      display: string
+      pos: number
+      transform: string | null
+    }[]
+    vGrid: number[]
+    hGrid: number[]
+    xScale: { min: number; max: number; width: number } | null
+    yAnchors: { min: number; max: number; pLo: number; pHi: number } | null
   } | null
   // Guards the single rAF that reveals a large-dataset bulk render
   // (see Animations.revealBulk). Re-armed each render so updates fade in too.
@@ -380,7 +406,13 @@ export interface ChartGlobals
   activeRenderer: any
   dataLabelsRects: DOMRect[]
   lastDrawnDataLabelsIndexes: number[][]
-  delayedElements: Array<{ el: Element; index?: number }>
+  // holdUntilComplete: stay hidden through the data-change morph even when an
+  // early reveal fires (see Animations.showDelayedElements).
+  delayedElements: Array<{
+    el: Element
+    index?: number
+    holdUntilComplete?: boolean
+  }>
   resizeTimer: number | null
   selectionResizeTimer: number | null
   resizeObserver: ResizeObserver | null
@@ -560,6 +592,7 @@ export interface ChartContext {
   zoomPanSelection: any
   keyboardNavigation: any
   perspectives: any
+  storyboard: any
   history: any
   linkedViews: any
   ink: any

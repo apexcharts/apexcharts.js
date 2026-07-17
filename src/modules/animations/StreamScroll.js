@@ -52,19 +52,53 @@ export function captureStreamFrame(w) {
   const gl = w.globals
   if (
     !gl.axisCharts ||
-    !w.axisFlags?.isXNumeric ||
     !w.seriesData ||
-    !Array.isArray(w.seriesData.seriesX) ||
-    w.seriesData.seriesX.length === 0
+    !Array.isArray(w.seriesData.series) ||
+    w.seriesData.series.length === 0
   ) {
     gl.prevStreamFrame = null
     return
   }
+  // Marker radii of the outgoing render, keyed [realIndex][j]. Bubble z
+  // updates change radius, not just position, so the marker ride scales
+  // size too. Circle markers carry r; path-shaped markers (bubbles) bake
+  // the radius into the path data but expose it as default-marker-size.
+  // The DOM read is skipped in SSR (no updates happen there anyway).
+  /** @type {number[][]} */
+  const rPixels = []
+  if (w.dom?.baseEl?.querySelectorAll) {
+    w.dom.baseEl
+      .querySelectorAll('.apexcharts-marker')
+      .forEach((/** @type {Element} */ node) => {
+        const ri = parseInt(node.getAttribute('index') ?? '', 10)
+        const j = parseInt(
+          node.getAttribute('j') ?? node.getAttribute('rel') ?? '',
+          10,
+        )
+        const r = parseFloat(
+          node.getAttribute('r') ??
+            node.getAttribute('default-marker-size') ??
+            '',
+        )
+        if (isFinite(ri) && isFinite(j) && isFinite(r)) {
+          ;(rPixels[ri] = rPixels[ri] || [])[j] = r
+        }
+      })
+  }
+
+  // Captured for every axis chart (not just numeric x): the same frame also
+  // feeds the variable-length transition layer (LengthTransition /
+  // PathReconcile), which joins old and new datums by category label on
+  // category axes (where seriesX is empty). detectStreamScroll() still
+  // requires numeric x rows itself.
   gl.prevStreamFrame = {
-    seriesX: w.seriesData.seriesX.slice(),
+    seriesX: (w.seriesData.seriesX || []).slice(),
     seriesY: w.seriesData.series.slice(),
     xPixels: (gl.seriesXvalues || []).slice(),
     yPixels: (gl.seriesYvalues || []).slice(),
+    rPixels,
+    labels: (gl.labels || []).slice(),
+    isXNumeric: !!w.axisFlags?.isXNumeric,
   }
 }
 

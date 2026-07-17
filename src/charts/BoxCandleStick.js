@@ -446,12 +446,14 @@ class BoxCandleStick extends Bar {
       ]
     }
 
-    let pathFrom
+    let pathFrom = null
     if (w.globals.previousPaths.length > 0) {
-      // Update: survivor with matching command count → animate; else snap.
+      // Update: keyed survivor → morph; shape-changed → snap; entering
+      // datum → null (falls through to the baseline collapse below).
       pathFrom = this.getPreviousPath(realIndex, j, pathTo[0])
-    } else {
-      // Initial mount: baseline collapsed at the bar's center.
+    }
+    if (pathFrom == null) {
+      // Initial mount or entering datum: baseline collapsed at the bar's center.
       pathFrom =
         graphics.move(barXPosition + barWidth / 2, y1) +
         graphics.move(barXPosition, y1)
@@ -572,12 +574,14 @@ class BoxCandleStick extends Bar {
         'z',
     ]
 
-    let pathFrom
+    let pathFrom = null
     if (w.globals.previousPaths.length > 0) {
-      // Update: survivor with matching command count → animate; else snap.
+      // Update: keyed survivor → morph; shape-changed → snap; entering
+      // datum → null (falls through to the baseline collapse below).
       pathFrom = this.getPreviousPath(realIndex, j, pathTo[0])
-    } else {
-      // Initial mount: baseline collapsed at the bar's center.
+    }
+    if (pathFrom == null) {
+      // Initial mount or entering datum: baseline collapsed at the bar's center.
       pathFrom =
         graphics.move(x1, barYPosition + barHeight / 2) +
         graphics.move(x1, barYPosition)

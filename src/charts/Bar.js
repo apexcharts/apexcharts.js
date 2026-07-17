@@ -6,6 +6,11 @@ import Utils from '../utils/Utils'
 import Filters from '../modules/Filters'
 import Graphics from '../modules/Graphics'
 import { computeStagger } from '../modules/Animations'
+import {
+  datumKey,
+  lengthTransitionEnabled,
+  renderBarExitGhosts,
+} from '../modules/animations/LengthTransition'
 import Series from '../modules/Series'
 import { seriesEmitter } from '../renderers/Renderer'
 
@@ -69,6 +74,10 @@ class Bar {
     this.seriesLen = 0
     /** @type {any} */
     this.pathArr = []
+    /** @type {Record<number, Map<string, any> | null> | null} */
+    this._prevKeyed = null
+    /** @type {Record<number, boolean> | null} */
+    this._ltCache = null
 
     /** @type {any[]} */
     this.series = []
@@ -209,6 +218,10 @@ class Bar {
 
       w.globals.delayedElements.push({
         el: elDataLabelsWrap.node,
+        // On a layout-changing update the labels must stay hidden through the
+        // reflow morph (the updateOptions flow otherwise reveals them at
+        // frame 0, where they float over sliding bars).
+        holdUntilComplete: this.isLengthTransition(realIndex),
       })
       elDataLabelsWrap.node.classList.add('apexcharts-element-hidden')
 
@@ -346,6 +359,23 @@ class Bar {
       // push all x val arrays into main xArr
       w.globals.seriesXvalues[realIndex] = xArrj
       w.globals.seriesYvalues[realIndex] = yArrj
+
+      // Exit ghosts: previous datums whose keys are gone shrink to their
+      // baseline edge and fade under the reflowing survivors.
+      if (w.globals.previousPaths.length > 0) {
+        const newKeys = []
+        for (let j = 0; j < series[i].length; j++) {
+          newKeys.push(datumKey(w, realIndex, j))
+        }
+        renderBarExitGhosts({
+          w,
+          elSeries,
+          record: this._prevRecord(realIndex),
+          newKeys,
+          isHorizontal: this.isHorizontal,
+          speed: w.config.chart.animations.dynamicAnimation.speed,
+        })
+      }
 
       ret.add(elSeries)
     }
@@ -485,7 +515,13 @@ class Bar {
     // cancels — otherwise a 40ms intended delay would become 40×150=6000ms.
     const animCfg = w.config.chart.animations
     const gradCfg = animCfg.animateGradually
-    const staggerEnabled = gradCfg && gradCfg.enabled !== false
+    // Layout-changing updates (points entered/exited) run every survivor on
+    // one shared clock: staggered starts read as incoherent churn when bars
+    // are also sliding to new slots. Pure value updates keep the stagger.
+    const staggerEnabled =
+      gradCfg &&
+      gradCfg.enabled !== false &&
+      !(w.globals.dataChanged && this.isLengthTransition(realIndex))
     let delay = 0
     if (staggerEnabled) {
       const totalBars = w.globals.dataPoints || 1
@@ -564,6 +600,9 @@ class Bar {
         val: w.seriesData.series[i][j],
         barHeight,
         barWidth,
+        // Datum identity for the next update's keyed join (see
+        // LengthTransition): survivors match by key, not array position.
+        'data:pathKey': datumKey(w, realIndex, j),
       })
 
       // Strata (#2): canvas paints the bar/candle to a bitmap, so there is no
@@ -883,22 +922,15 @@ class Bar {
   }
 
   /**
-   * Resolve `pathFrom` for a bar on data update. Returns the previous render's
-   * `d` string for the same `(realIndex, j)` only when its SVG command count
-   * matches `pathTo` — that's the survivor-with-stable-shape case where SVG.js
-   * morph produces a smooth resize. When commands mismatch (corner state
-   * flipped, e.g. bar became new top-of-stack after legend toggle) or the bar
-   * is genuinely new (no captured previous), returns `pathTo` — which makes
-   * pathFrom === pathTo so morph is a visual no-op (snap).
+   * The captured previous-render record for a series (last match wins, same
+   * as the historical scan order).
    *
-   * @param {number} realIndex - stable series index from `data:realIndex`
-   * @param {number} j - data-point index within the series
-   * @param {string} pathTo - the freshly-built path for this bar (post-roundPathCorners)
-   * @returns {string}
-   **/
-  getPreviousPath(realIndex, j, pathTo) {
+   * @param {number} realIndex
+   * @returns {any | null}
+   */
+  _prevRecord(realIndex) {
     const w = this.w
-    let oldD = null
+    let record = null
     for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
       const gpp = w.globals.previousPaths[pp]
       if (
@@ -906,13 +938,128 @@ class Bar {
         gpp.paths.length > 0 &&
         parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)
       ) {
-        if (typeof gpp.paths[j] !== 'undefined') {
-          oldD = gpp.paths[j].d
+        record = gpp
+      }
+    }
+    return record
+  }
+
+  /**
+   * Previous paths of a series re-keyed by datum key (stamped as
+   * `data:pathKey` on each bar path and captured by Series.getPreviousPaths).
+   * Returns null when the previous render carries no keys (so the caller
+   * falls back to positional matching).
+   *
+   * @param {number} realIndex
+   * @returns {Map<string, {d: string}> | null}
+   */
+  _prevKeyedPaths(realIndex) {
+    if (!this._prevKeyed) this._prevKeyed = {}
+    if (this._prevKeyed[realIndex] !== undefined) {
+      return this._prevKeyed[realIndex]
+    }
+    const record = this._prevRecord(realIndex)
+    /** @type {Map<string, any> | null} */
+    let map = null
+    if (record && record.paths.every((/** @type {any} */ p) => p.key != null)) {
+      const keyed = new Map()
+      record.paths.forEach((/** @type {any} */ p) => {
+        keyed.set(p.key, p)
+      })
+      map = keyed
+    }
+    this._prevKeyed[realIndex] = map
+    return map
+  }
+
+  /**
+   * Whether this series' update changes its datum layout (points entered,
+   * exited, or changed identity). Layout-changing updates run all survivors
+   * on one shared clock (no per-bar stagger) so the reflow reads as a single
+   * coordinated motion; pure value updates keep the stagger.
+   *
+   * @param {number} realIndex
+   * @returns {boolean}
+   */
+  isLengthTransition(realIndex) {
+    if (!this._ltCache) this._ltCache = {}
+    if (this._ltCache[realIndex] !== undefined) return this._ltCache[realIndex]
+
+    const w = this.w
+    let result = false
+    if (lengthTransitionEnabled(w) && w.globals.previousPaths.length > 0) {
+      const record = this._prevRecord(realIndex)
+      const dataLen = w.seriesData.series[realIndex]?.length ?? 0
+      if (!record) {
+        result = dataLen > 0 // a brand-new series entering
+      } else if (record.paths.length !== dataLen) {
+        result = true
+      } else {
+        const keyed = this._prevKeyedPaths(realIndex)
+        if (keyed) {
+          for (let j = 0; j < dataLen; j++) {
+            if (!keyed.has(datumKey(w, realIndex, j))) {
+              result = true
+              break
+            }
+          }
         }
       }
     }
+    this._ltCache[realIndex] = result
+    return result
+  }
+
+  /**
+   * Resolve `pathFrom` for a bar on data update, joining old and new datums
+   * by KEY (category label / x value) so survivors keep their identity across
+   * inserts, prepends, and removals. Three outcomes:
+   *
+   *  - survivor with stable shape → the previous `d` (smooth reflow morph);
+   *  - survivor whose command count changed (corner state flipped, e.g. bar
+   *    became new top-of-stack) → `pathTo` (pathFrom === pathTo, a snap);
+   *  - genuinely new datum (key absent from the previous render, or the whole
+   *    series is new) → null, telling the path builder to use its
+   *    grow-from-baseline enter path.
+   *
+   * Falls back to positional (index j) matching when the previous render
+   * carries no datum keys.
+   *
+   * @param {number} realIndex - stable series index from `data:realIndex`
+   * @param {number} j - data-point index within the series
+   * @param {string} pathTo - the freshly-built path for this bar (post-roundPathCorners)
+   * @returns {string | null}
+   **/
+  getPreviousPath(realIndex, j, pathTo) {
+    const w = this.w
+    const record = this._prevRecord(realIndex)
+    if (!record) {
+      // The series itself is new: enter from the baseline when this render is
+      // an animated length transition; otherwise keep the historical snap.
+      return lengthTransitionEnabled(w) ? null : pathTo
+    }
+
+    let oldD = null
+    let isNewDatum = false
+    const keyed = this._prevKeyedPaths(realIndex)
+    if (keyed) {
+      const prev = keyed.get(datumKey(w, realIndex, j))
+      if (prev) {
+        oldD = prev.d
+      } else {
+        isNewDatum = true
+      }
+    } else if (typeof record.paths[j] !== 'undefined') {
+      oldD = record.paths[j].d
+    } else {
+      isNewDatum = true
+    }
+
     if (oldD && Bar.pathCommandCount(oldD) === Bar.pathCommandCount(pathTo)) {
       return oldD
+    }
+    if (isNewDatum && lengthTransitionEnabled(w)) {
+      return null
     }
     return pathTo
   }
