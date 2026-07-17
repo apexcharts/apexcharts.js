@@ -1,0 +1,148 @@
+<title>Rewind: History and Undo / Redo</title>
+
+<style>
+  #chart {
+    max-width: 760px;
+    margin: 16px auto;
+  }
+  .panel {
+    max-width: 760px;
+    margin: 16px auto;
+    font-family: sans-serif;
+  }
+  .controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .controls button {
+    padding: 7px 15px;
+    cursor: pointer;
+    border: 1px solid #cdd3de;
+    background: #fff;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .controls button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .controls .primary {
+    border-color: #7c5cf6;
+    color: #7c5cf6;
+    font-weight: 600;
+  }
+  .readout {
+    font-family: monospace;
+    font-size: 13px;
+    color: #444;
+    margin-left: auto;
+  }
+  .readout b { color: #111; }
+  .note {
+    background: #f6f4fe;
+    border-left: 3px solid #7c5cf6;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #234;
+    border-radius: 2px;
+    margin-top: 12px;
+    line-height: 1.55;
+  }
+  .note code {
+    background: #e9e4fd;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+</style>
+
+<scripts>
+<script>
+  function randomSeries() {
+    var d = []
+    for (var i = 0; i < 7; i++) d.push(Math.round(10 + Math.random() * 90))
+    return d
+  }
+</script>
+</scripts>
+
+<html>
+<div class="panel">
+  <div class="controls">
+    <button id="undo" class="primary" disabled>Undo</button>
+    <button id="redo" class="primary" disabled>Redo</button>
+    <button id="randomize">Randomize data</button>
+    <button id="reset">Clear history</button>
+    <span class="readout" id="readout">history: empty</span>
+  </div>
+</div>
+
+{{ charts[0] }}
+
+<div class="panel">
+  <div class="note">
+    History is enabled with <code>chart: { history: { enabled: true } }</code>.
+    Every data update, zoom, and point selection commits a checkpoint. Press
+    Randomize a few times, then step back with Undo / Redo (or press
+    <code>Cmd/Ctrl + Z</code> and <code>Shift + Cmd/Ctrl + Z</code>). Toggling a
+    series in the legend and zooming also create checkpoints. The buttons enable
+    from the <code>historyChange</code> event via <code>chart.history.state()</code>.
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  height: 380,
+  type: 'bar',
+  animations: { enabled: true },
+  toolbar: { show: false },
+  history: { enabled: true, maxDepth: 50, coalesceMs: 250, keyboard: true },
+  zoom: { enabled: true },
+},
+colors: ['#7c5cf6'],
+plotOptions: { bar: { columnWidth: '55%', borderRadius: 4 } },
+dataLabels: { enabled: false },
+title: { text: 'Undo / redo over data, zoom, and selection', align: 'left' },
+xaxis: { categories: ['A', 'B', 'C', 'D', 'E', 'F', 'G'] },
+</options>
+
+<series>
+[
+  { name: 'Value', data: [34, 55, 41, 67, 22, 48, 60] }
+]
+</series>
+</chart>
+
+<vanilla-js-script>
+var undoBtn = document.getElementById('undo')
+var redoBtn = document.getElementById('redo')
+var readout = document.getElementById('readout')
+
+function syncButtons(state) {
+  if (!state) state = chart.history.state()
+  undoBtn.disabled = !state.canUndo
+  redoBtn.disabled = !state.canRedo
+  readout.innerHTML =
+    'history: <b>' + (state.index + 1) + ' / ' + state.length + '</b> checkpoints'
+}
+
+chart.addEventListener('historyChange', function (c, state) {
+  syncButtons(state && state.length != null ? state : undefined)
+})
+
+undoBtn.addEventListener('click', function () { chart.history.undo() })
+redoBtn.addEventListener('click', function () { chart.history.redo() })
+document.getElementById('randomize').addEventListener('click', function () {
+  chart.updateSeries([{ name: 'Value', data: randomSeries() }])
+})
+document.getElementById('reset').addEventListener('click', function () {
+  chart.history.clear()
+})
+
+// initial state once the baseline checkpoint lands
+setTimeout(syncButtons, 300)
+</vanilla-js-script>

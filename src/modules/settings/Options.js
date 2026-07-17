@@ -259,6 +259,11 @@ export default class Options {
         images: [],
         shapes: [],
       },
+      // Weave (#1): public plugin platform. Per-chart activation list:
+      // { name, options?, order? }. Requires the Weave host to be bundled
+      // (`import 'apexcharts/features/weave'`, included in the full bundle) and
+      // the plugin registered via ApexCharts.registerPlugin().
+      plugins: [],
       chart: {
         animations: {
           // Master switch — set false to render charts without any animation.
@@ -273,6 +278,12 @@ export default class Options {
           // `animateGradually.enabled` / `animateGradually.delay`.
           enabled: true,
           speed: 800,
+          // Cadence (#6): easing for the generic tweens (data-update value
+          // transitions, path morphs, marker animate). A registered name, a
+          // cubic-bezier [x1,y1,x2,y2] array, or a function (t in [0,1]).
+          // 'easeInOutSine' is the historical curve, so the default is
+          // behavior-neutral. The tuned initial-draw pen/pop easings are fixed.
+          easing: 'easeInOutSine',
           animateGradually: {
             // Drives per-element stagger across all chart types. When enabled,
             // bars/heatmap-cells/scatter-points/treemap-tiles reveal in
@@ -287,6 +298,12 @@ export default class Options {
             // initial-mount animations above.
             enabled: true,
             speed: 350,
+            // Easing for data-change morphs only (same accepted forms as
+            // `animations.easing`). Unset -> inherit the chart-wide easing,
+            // except detected streaming scrolls (rolling window / append
+            // under xaxis.range) which default to 'linear' so the window
+            // slides at constant velocity instead of pulsing each tick.
+            easing: undefined,
           },
           chartTypeMorph: {
             // Cross-type morph (updateOptions changing chart.type). Bridges
@@ -318,6 +335,34 @@ export default class Options {
         background: '',
         locales: [en],
         defaultLocale: 'en',
+        // Perspectives (#10): serializable/shareable view state. Passive:
+        // requires `import 'apexcharts/features/perspectives'`. serializeOptions
+        // is the whitelist of function-free option paths stored in a token.
+        perspectives: {
+          serializeOptions: ['theme', 'xaxis', 'yaxis', 'title', 'subtitle'],
+        },
+        // Rewind (#3): undo/redo history. Opt-in (bundle + behavior): requires
+        // `import 'apexcharts/features/history'` AND chart.history.enabled.
+        history: {
+          enabled: false,
+          maxDepth: 100,
+          coalesceMs: 250,
+          keyboard: true,
+        },
+        // Strata (#2): hybrid SVG+canvas series renderer. 'svg' (default) |
+        // 'canvas' | 'auto'. 'auto'/'canvas' need the canvas renderer feature
+        // (`import 'apexcharts/features/renderer-canvas'`); without it, or with
+        // a canvas-unsupported feature (pattern/image fill, color-matrix state
+        // filters), selection falls back to 'svg'. Only the series layer is
+        // canvas-capable in v1; chrome stays SVG.
+        renderer: 'svg',
+        rendererThreshold: 8000,
+        layers: {
+          series: 'auto',
+          grid: 'svg',
+          annotations: 'svg',
+          dataLabels: 'svg',
+        },
         dropShadow: {
           enabled: false,
           enabledOnSeries: undefined,
@@ -347,6 +392,14 @@ export default class Options {
           zoomed: undefined,
           scrolled: undefined,
           brushScrolled: undefined,
+          crossFilter: undefined,
+          filterChange: undefined,
+          annotationDragged: undefined,
+          annotationEdited: undefined,
+          annotationCreated: undefined,
+          annotationStyled: undefined,
+          annotationDeleted: undefined,
+          measured: undefined,
           keyDown: undefined,
           keyUp: undefined,
         },
@@ -394,9 +447,130 @@ export default class Options {
           target: undefined,
           targets: undefined,
         },
+        // Linked Views (#4): crossfilter / linked highlighting. Requires the
+        // `link` feature. Two modes:
+        //   HIGHLIGHT (P1): `enabled` with no `dimension`. Charts sharing a
+        //   `chart.group` form a set; brushing a range (needs
+        //   `chart.selection.enabled`) dims out-of-range marks in place.
+        //   FILTER (P2): set `dimension` (its presence selects this path). Each
+        //   chart declares a dimension + reduction over a shared record set
+        //   registered with ApexCharts.crossfilter({ id, records }); clicking a
+        //   bucket re-aggregates the other charts. See docs/spec.
+        link: {
+          enabled: false,
+          mode: 'highlight',
+          dimOpacity: 0.2,
+          // FILTER-mode config (all optional except dimension):
+          id: undefined, // crossfilter coordinator id (defaults to chart.group)
+          dimension: undefined, // (row) => key; presence selects filter mode
+          reduce: undefined, // 'count' | { sum|avg|min|max: field } | (rows)=>n
+          type: undefined, // 'category' | 'range' (else inferred from bins)
+          bins: undefined, // range dims: { width } | { count } | { thresholds }
+          order: undefined, // category order: 'first-seen' | 'asc' | 'desc' | fn
+          seriesName: undefined, // axis-chart series name (default 'Count')
+        },
+        // Ink Layer (#7): direct-manipulation annotations. When enabled, every
+        // point annotation is draggable (unless it sets draggable:false); or opt
+        // in per annotation with annotations.points[].draggable. Clicking an
+        // ink-managed annotation opens a floating editor card: rename inline,
+        // recolor, toggle bold, step the font size, size/reshape the marker, or
+        // delete the note. Axis-line annotations get separate Label and Line
+        // color rows, so restyling the label chip never touches the stroke.
+        // Requires the `ink` feature. Fires annotationDragged,
+        // annotationEdited, annotationStyled and annotationDeleted.
+        ink: {
+          enabled: false,
+          // Show a minimal "add note" tool palette; clicking it arms create
+          // mode (the next plot click drops an editable, draggable annotation).
+          palette: false,
+          // Snap a dragged point / axis-line annotation to the nearest gridline
+          // (numeric x + linear y). Undo/redo of ink edits is automatic when the
+          // history (Rewind) feature is enabled.
+          snap: false,
+          // Accent swatches offered by the floating note editor; defaults to a
+          // built-in 6-color palette when undefined.
+          noteColors: undefined,
+        },
+        // Measure ruler (#18): a measure/delta ruler. Requires the `measure`
+        // feature. Hold `key` (default 'm') and drag A->B on the plot, or call
+        // chart.startMeasure()/chart.stopMeasure() to arm it. The live ruler
+        // reads dx, dy, %change and slope; on release it pins as a data-anchored
+        // overlay that re-projects on zoom/resize. Fires `measured`.
+        measure: {
+          enabled: false,
+          // 'span' (default): finance-style vertical band between two x-points
+          // with a "change (%) + range" readout, endpoints snapped to the first
+          // series. 'free': a diagonal ruler between two arbitrary points.
+          mode: 'span',
+          key: 'm',
+          pinOnRelease: true,
+          // Styling tokens. Every element also carries a stable CSS class
+          // (apexcharts-measure-band / -vline / -line / -label-bg / -label,
+          // group gets apexcharts-measure-up|down|flat). Colors are left
+          // undefined so they resolve config -> `--apx-measure-*` CSS custom
+          // property -> built-in default; set them here to force a color from JS.
+          colors: {
+            up: undefined,
+            down: undefined,
+            neutral: undefined,
+            guide: undefined,
+          },
+          band: true, // span mode: shaded band between the two x-positions
+          guides: true, // span mode: vertical dashed reference lines
+          markers: true, // endpoint dots on the series line
+          // Content: value formatters and a full readout override. `label`
+          // receives { from, to, dx, dy, percentChange, slope, mode } and
+          // returns a string or string[] (lines).
+          format: { x: undefined, y: undefined, percent: undefined },
+          label: undefined,
+        },
+        // Radial Actions (#chrome): right-click / long-press context menu.
+        // Requires the `contextMenu` feature. Each action receives the clicked
+        // data coordinates, so verbs act at the point (not chart-wide like a
+        // toolbar button). `items` is an ordered list of built-in ids
+        // ('annotate' | 'xline' | 'yline' | 'measure') and/or custom
+        // { id, label, icon, onClick(ctx, { x, y, seriesIndex, dataPointIndex,
+        // clientX, clientY }) }. 'measure' is shown only when the measure tool
+        // is enabled. `labels` overrides built-in text; `noteText` is the label
+        // dropped by 'annotate'.
+        contextMenu: {
+          enabled: false,
+          items: ['annotate', 'xline', 'yline', 'measure'],
+          labels: {
+            annotate: undefined,
+            xline: undefined,
+            yline: undefined,
+            measure: undefined,
+          },
+          noteText: 'Note',
+          // 'xline' ("Annotate here") drops a dashed vertical LINE at the
+          // clicked x; 'yline' ("Mark this level") a dashed horizontal line at
+          // the clicked y. Lines only, never a range rectangle. Like the note,
+          // a line is ink-managed when the ink feature is bundled: it opens
+          // the floating editor (rename; separate Label and Line color rows,
+          // so restyling the chip cannot blank the stroke; delete), drags
+          // along its axis, and undoes via Rewind. `line` styles both items.
+          line: {
+            text: '', // label drawn on the line; empty for no label
+            strokeDashArray: 4,
+            color: undefined, // undefined keeps the annotation default color
+          },
+        },
         stacked: false,
         stackOnlyBar: true, // mixed chart with stacked bars and line series - incorrect line draw #907
         stackType: 'normal',
+        // Real-time streaming mode. When enabled, appendData() bounds memory
+        // automatically: each series is trimmed to `maxPoints` (when set) or
+        // to the visible `xaxis.range` window plus a two-point off-screen
+        // runway (so exiting segments slide off the left edge instead of
+        // popping). The scroll animation itself needs no opt-in; updates
+        // that continue the previous window (appendData, or updateSeries with
+        // a shifted fixed-length window) always translate at constant
+        // velocity; see modules/animations/StreamScroll.
+        streaming: {
+          enabled: false,
+          maxPoints: undefined,
+        },
         toolbar: {
           show: true,
           offsetX: 0,
@@ -438,6 +612,10 @@ export default class Options {
           type: 'x',
           autoScaleYaxis: false,
           allowMouseWheelZoom: true,
+          // Momentum: two-finger pinch-zoom on touch devices. Zooms the x-axis
+          // around the pinch centroid (matching the x-only wheel/toolbar zoom),
+          // frame-by-frame rather than the 400ms wheel throttle.
+          pinch: true,
           zoomedArea: {
             fill: {
               color: '#90CAF9',
@@ -449,6 +627,13 @@ export default class Options {
               width: 1,
             },
           },
+        },
+        // Momentum: kinetic panning on touch. When a one-finger pan is released
+        // with velocity, the chart keeps gliding and decelerates by `friction`
+        // each frame, clamping (no elastic overshoot) at the data edges.
+        pan: {
+          inertia: true,
+          friction: 0.92,
         },
         accessibility: {
           enabled: true,
@@ -1511,6 +1696,18 @@ export default class Options {
       theme: {
         mode: '',
         palette: 'palette1', // If defined, it will overwrite globals.colors variable
+        // Facet (#13): read `--apx-*` CSS design tokens from the cascade
+        // (accent/fore/grid/surface + series-1..N). true (default) reads any
+        // present (absence is a no-op); false disables. Tokens top the
+        // resolution chain below explicit config. Tokens are re-read on every
+        // render; call chart.refreshTokens() to pick up a runtime CSS change
+        // that does not itself trigger a render.
+        tokens: true,
+        // Facet (#13): 'os' follows prefers-color-scheme + prefers-contrast
+        // reactively (SSR-safe, cleaned up on destroy). false disables.
+        follow: false, // 'os' | false
+        // Facet (#13): a theme registered via ApexCharts.registerTheme(name, def)
+        name: '', // '' | registered theme name
         monochrome: {
           // monochrome allows you to select just 1 color and fill out the rest with light/dark shade (intensity can be selected)
           enabled: false,

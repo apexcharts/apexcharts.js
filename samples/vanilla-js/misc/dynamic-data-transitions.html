@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Dynamic Data: Smooth Add / Remove / Insert Transitions</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      .dt-wrap {
+        max-width: 780px;
+        margin: 14px auto;
+        font-family: Helvetica, Arial, sans-serif;
+      }
+      .dt-bar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 4px 6px 14px;
+      }
+      .dt-bar button {
+        padding: 6px 13px;
+        cursor: pointer;
+        border: 1px solid #6366f1;
+        color: #4338ca;
+        background: #fff;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .dt-bar button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      .dt-bar label {
+        font-size: 13px;
+        color: #445;
+        margin-left: 6px;
+        user-select: none;
+      }
+      .dt-card {
+        border: 1px solid #e4e7f2;
+        border-radius: 8px;
+        padding: 6px;
+        background: #fff;
+        margin-bottom: 10px;
+      }
+      /* The shared demo stylesheet gives the FIRST chart container (#chart) a
+               white panel + border; the cards style both charts uniformly instead. */
+      #chart {
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+      }
+      .dt-note {
+        background: #eef2ff;
+        border-left: 3px solid #6366f1;
+        padding: 11px 15px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.6;
+        margin: 14px 6px;
+      }
+      .dt-note code {
+        background: #dfe3ff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+     <div class="dt-wrap">
+        <div class="dt-bar">
+          <button id="dt-add">+ Add month</button>
+          <button id="dt-insert">Insert middle</button>
+          <button id="dt-remove-last">Remove last</button>
+          <button id="dt-remove-mid">Remove middle</button>
+          <button id="dt-rotate">Rotate values</button>
+          <button id="dt-reset">Reset</button>
+          <label><input type="checkbox" id="dt-slow" /> Slow motion</label>
+        </div>
+      
+        <div class="dt-card"><div id="chart"></div></div>
+        <div class="dt-card"><div id="chart2"></div></div>
+      
+        <div class="dt-note">
+          Every button changes the NUMBER of data points, not just their values.
+          Entering columns grow from the baseline of their final slot while the
+          survivors slide over on one clock; a removed column shrinks out as a
+          fading ghost; inserting in the middle keeps each datum's identity (bars
+          are matched by category, so existing columns slide instead of morphing
+          into their neighbor's value). On the area chart the fill stays intact
+          mid-transition, markers ride the moving line, and the axis labels travel
+          with their columns. All of this is default behavior of
+          <code>updateOptions()</code> / <code>updateSeries()</code>: no extra
+          config. <b>Rotate values</b> is the same-length control case, which keeps
+          the classic value morph.
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            name: 'Revenue',
+            data: [42, 61, 45, 78, 52, 89, 66],
+          },
+        ],
+        chart: {
+          type: 'bar',
+          height: 280,
+          fontFamily: 'Helvetica, Arial, sans-serif',
+          toolbar: { show: false },
+          zoom: { enabled: false },
+          animations: { speed: 700, dynamicAnimation: { speed: 650 } },
+        },
+        title: { text: 'Monthly revenue (k$)', align: 'left' },
+        colors: ['#6366f1'],
+        plotOptions: { bar: { columnWidth: '60%', borderRadius: 2 } },
+        dataLabels: { enabled: false },
+        xaxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'] },
+        yaxis: { min: 0, max: 100, tickAmount: 4 },
+        grid: { padding: { top: -10 } },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      var options1 = {
+        series: [
+          {
+            name: 'Users',
+            data: [35, 47, 37, 57, 41, 63, 50],
+          },
+        ],
+        chart: {
+          type: 'area',
+          height: 280,
+          fontFamily: 'Helvetica, Arial, sans-serif',
+          toolbar: { show: false },
+          zoom: { enabled: false },
+          animations: { speed: 700, dynamicAnimation: { speed: 650 } },
+        },
+        title: { text: 'Active users (k)', align: 'left' },
+        colors: ['#0ea5e9'],
+        stroke: { curve: 'smooth', width: 3 },
+        fill: { type: 'gradient', gradient: { opacityFrom: 0.45, opacityTo: 0.05 } },
+        markers: { size: 4 },
+        dataLabels: { enabled: true, offsetY: -6 },
+        xaxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'] },
+        yaxis: { min: 0, max: 70, tickAmount: 4 },
+        grid: { padding: { top: -10 } },
+      }
+
+      var chart1 = new ApexCharts(document.querySelector('#chart2'), options1)
+      chart1.render()
+
+      var MONTHS = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ]
+      var INITIAL = {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+        values: [42, 61, 45, 78, 52, 89, 66],
+      }
+
+      var state = {
+        labels: INITIAL.labels.slice(),
+        values: INITIAL.values.slice(),
+        monthCursor: INITIAL.labels.length, // next month to append
+        insertCount: 0,
+      }
+
+      // Deterministic "random" value so the demo replays identically.
+      function nextValue(seed) {
+        return 30 + ((seed * 37) % 60)
+      }
+
+      function monthLabel(i) {
+        var name = MONTHS[i % 12]
+        return i > 11 ? name + " '26" : name
+      }
+
+      function speed() {
+        return document.getElementById('dt-slow').checked ? 1800 : 650
+      }
+
+      function pushState() {
+        var payload = {
+          chart: { animations: { dynamicAnimation: { speed: speed() } } },
+          xaxis: { categories: state.labels.slice() },
+        }
+        chart.updateOptions(
+          Object.assign(
+            { series: [{ name: 'Revenue', data: state.values.slice() }] },
+            payload,
+          ),
+          false,
+          true,
+        )
+        chart1.updateOptions(
+          Object.assign(
+            {
+              series: [
+                {
+                  name: 'Users',
+                  data: state.values.map(function (v) {
+                    return Math.round(v * 0.6 + 10)
+                  }),
+                },
+              ],
+            },
+            payload,
+          ),
+          false,
+          true,
+        )
+        syncButtons()
+      }
+
+      function syncButtons() {
+        document.getElementById('dt-add').disabled = state.labels.length >= 20
+        document.getElementById('dt-insert').disabled = state.labels.length >= 20
+        document.getElementById('dt-remove-last').disabled = state.labels.length <= 3
+        document.getElementById('dt-remove-mid').disabled = state.labels.length <= 3
+      }
+
+      document.getElementById('dt-add').addEventListener('click', function () {
+        state.labels.push(monthLabel(state.monthCursor))
+        state.values.push(nextValue(state.monthCursor))
+        state.monthCursor++
+        pushState()
+      })
+
+      document.getElementById('dt-insert').addEventListener('click', function () {
+        var at = Math.floor(state.labels.length / 2)
+        state.insertCount++
+        state.labels.splice(at, 0, 'New ' + state.insertCount)
+        state.values.splice(at, 0, nextValue(state.insertCount * 5 + 3))
+        pushState()
+      })
+
+      document
+        .getElementById('dt-remove-last')
+        .addEventListener('click', function () {
+          state.labels.pop()
+          state.values.pop()
+          pushState()
+        })
+
+      document.getElementById('dt-remove-mid').addEventListener('click', function () {
+        var at = Math.floor(state.labels.length / 2)
+        state.labels.splice(at, 1)
+        state.values.splice(at, 1)
+        pushState()
+      })
+
+      document.getElementById('dt-rotate').addEventListener('click', function () {
+        state.values.push(state.values.shift())
+        pushState()
+      })
+
+      document.getElementById('dt-reset').addEventListener('click', function () {
+        state.labels = INITIAL.labels.slice()
+        state.values = INITIAL.values.slice()
+        state.monthCursor = INITIAL.labels.length
+        state.insertCount = 0
+        pushState()
+      })
+
+      syncButtons()
+    </script>
+
+    
+  </body>
+</html>

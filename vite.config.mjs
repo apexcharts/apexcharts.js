@@ -54,6 +54,20 @@ export const SUB_ENTRIES = {
   'features/toolbar': resolve(__dirname, 'src/features/toolbar.js'),
   'features/morph': resolve(__dirname, 'src/features/morph.js'),
   'features/drilldown': resolve(__dirname, 'src/features/drilldown.js'),
+  'features/perspectives': resolve(__dirname, 'src/features/perspectives.js'),
+  'features/storyboard': resolve(__dirname, 'src/features/storyboard.js'),
+  'features/history': resolve(__dirname, 'src/features/history.js'),
+  'features/weave': resolve(__dirname, 'src/features/weave.js'),
+  'features/renderer-canvas': resolve(
+    __dirname,
+    'src/features/renderer-canvas.js',
+  ),
+  'features/marks': resolve(__dirname, 'src/features/marks.js'),
+  'features/facet': resolve(__dirname, 'src/features/facet.js'),
+  'features/link': resolve(__dirname, 'src/features/link.js'),
+  'features/ink': resolve(__dirname, 'src/features/ink.js'),
+  'features/measure': resolve(__dirname, 'src/features/measure.js'),
+  'features/context-menu': resolve(__dirname, 'src/features/context-menu.js'),
   'features/all': resolve(__dirname, 'src/features/all.js'),
 }
 
@@ -140,7 +154,7 @@ export default defineConfig(({ mode }) => {
       [resolve(__dirname, 'src/modules/Base.js')]:
         { default: '__apex_Base' },
       [resolve(__dirname, 'src/modules/ChartFactory.js')]:
-        { named: { register: '__apex_ChartFactory_register', getChartClass: '__apex_ChartFactory_getChartClass' } },
+        { named: { register: '__apex_ChartFactory_register', getChartClass: '__apex_ChartFactory_getChartClass', isCustom: '__apex_ChartFactory_isCustom' } },
       [resolve(__dirname, 'src/modules/Core.js')]:
         { default: '__apex_Core' },
       [resolve(__dirname, 'src/modules/CoreUtils.js')]:

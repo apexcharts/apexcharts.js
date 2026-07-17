@@ -9,6 +9,7 @@ import Graphics from '../Graphics'
 import Series from '../Series'
 import XAxis from './../axes/XAxis'
 import Utils from './Utils'
+import { isCustom } from '../ChartFactory'
 
 /**
  * ApexCharts Core Tooltip Class to handle the tooltip generation.
@@ -672,9 +673,22 @@ export default class Tooltip {
     let chartGroups = []
     const w = this.w
 
+    // Crossfilter filter-mode member (Linked Views #4): its categories are one
+    // dimension of a shared record set, unrelated to a sibling's dimension, so
+    // the group's index-matched tooltip sync is meaningless there (hovering
+    // "Loss" would caption the sibling's same-index bucket, e.g. "Q1"). Such
+    // charts neither source nor receive the sync; the coordinator owns their
+    // cross-chart behavior.
+    const isCfMember = (/** @type {any} */ chart) => {
+      const link = chart?.w?.config?.chart?.link
+      return !!(link && typeof link.dimension === 'function')
+    }
+
     // if user has more than one charts in group, we need to sync
-    if (w.config.chart.group) {
-      chartGroups = this.ctx.getGroupedCharts()
+    if (w.config.chart.group && !isCfMember(this.ctx)) {
+      chartGroups = this.ctx
+        .getGroupedCharts()
+        .filter((/** @type {any} */ ch) => !isCfMember(ch))
     }
 
     if (
@@ -1200,6 +1214,20 @@ export default class Tooltip {
   }
 
   /**
+   * Marks (#11): whether the chart's type (or any series' type) is a registered
+   * custom series, whose marks live outside the built-in marker DOM.
+   * @returns {boolean}
+   */
+  _hasCustomSeries() {
+    const w = this.w
+    if (isCustom(w.config.chart.type)) return true
+    const series = w.config.series || []
+    return series.some(
+      (/** @type {any} */ s) => s && s.type && isCustom(s.type),
+    )
+  }
+
+  /**
    * @param {Event} e
    * @param {any} context
    * @param {number} capturedSeries
@@ -1218,13 +1246,36 @@ export default class Tooltip {
     if (shared === null) shared = this.tConfig.shared
 
     const hasMarkers = this.tooltipUtil.hasMarkers(capturedSeries)
+    // Strata (#2): in canvas mode there are no per-point marker nodes, so the
+    // DOM-driven position path (hasMarkers) is skipped and the tooltip would
+    // stay pinned at the origin. The pixel coords live in w.globals.pointsArray
+    // (populated by the canvas emit sites), so route positioning through the
+    // pointsArray-based dynamic positioners instead.
+    const canvasMode = this.ctx?.renderer?.kind === 'canvas'
+    // Bars/candles keep the hasBars() -> moveStickyTooltipOverBars path (which
+    // reads the canvas coord cache); only non-bar canvas series (line/area/
+    // scatter markers) route through the pointsArray positioners here.
+    const canvasNonBar = canvasMode && !this.tooltipUtil.hasBars()
+    // Marks (#11): custom series paint their own marks (no .apexcharts-marker
+    // nodes to enlarge/position), but they populate w.globals.pointsArray just
+    // like canvas does. So when a custom-series chart has no markers and no
+    // bars, route positioning through the same pointsArray positioners; without
+    // this the tooltip activates but never moves off the origin.
+    const marksMode =
+      !canvasMode &&
+      !hasMarkers &&
+      !this.tooltipUtil.hasBars() &&
+      this._hasCustomSeries()
+    const dynamicPoints = canvasNonBar || marksMode
 
     const bars = this.tooltipUtil.getElBars()
 
     const handlePoints = () => {
-      if (w.globals.markers.largestSize > 0) {
+      if (w.globals.markers.largestSize > 0 && !canvasMode) {
         ttCtx.marker.enlargePoints(j)
       } else {
+        // canvas: markers paint to a bitmap with no node to enlarge, so the
+        // box is positioned off the cached pointsArray coords instead.
         ttCtx.tooltipPosition.moveDynamicPointsOnHover(j)
       }
     }
@@ -1290,9 +1341,16 @@ export default class Tooltip {
         shared: this.showOnIntersect ? false : this.tConfig.shared,
       })
 
-      if (hasMarkers) {
+      if (hasMarkers || dynamicPoints) {
         handlePoints()
       } else if (this.tooltipUtil.hasBars()) {
+        if (canvasMode) {
+          // canvas: bars/candles paint to the bitmap, so the barSeriesHeight /
+          // paths / hover-filter machinery below is DOM-only and no-ops here.
+          // Position straight off the cached bar coords (barSeriesHeight then
+          // resolves to 0, so the SVG block is skipped).
+          ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries)
+        }
         this.barSeriesHeight = this.tooltipUtil.getBarsHeight(
           /** @type {any[]} */ ([...bars]),
         )
@@ -1331,6 +1389,10 @@ export default class Tooltip {
 
       if (hasMarkers) {
         ttCtx.tooltipPosition.moveMarkers(capturedSeries, j)
+      } else if (dynamicPoints) {
+        // canvas / custom marks: no marker node to enlarge; position off the
+        // cached pointsArray coords. (bars already positioned above.)
+        ttCtx.tooltipPosition.moveDynamicPointOnHover(j, capturedSeries)
       }
     }
   }

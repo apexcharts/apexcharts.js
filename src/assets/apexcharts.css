@@ -89,6 +89,220 @@ rect.legend-mouseover-inactive,
   opacity: .2
 }
 
+/* Linked Views (#4): per-mark crossfilter dim. Applied to individual data
+   marks (not whole series) whose x is outside the brushed range. Opacity is
+   overridable per chart via the --apx-cf-dim custom property. */
+.apexcharts-crossfilter-dimmed {
+  transition: opacity .25s ease;
+  opacity: var(--apx-cf-dim, .2)
+}
+
+/* Linked Views (#4): default styling for the built-in crossfilter data table
+   (cf.dataTable). Deliberately light so host styles can override. */
+.apexcharts-cf-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+.apexcharts-cf-table caption {
+  caption-side: bottom;
+  text-align: right;
+  padding: 6px 2px;
+  font-size: 12px;
+  opacity: .7
+}
+.apexcharts-cf-table th,
+.apexcharts-cf-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(0, 0, 0, .08)
+}
+.apexcharts-cf-table th {
+  font-weight: 600;
+  border-bottom-width: 2px
+}
+.apexcharts-cf-table tbody tr:hover {
+  background: rgba(99, 102, 241, .06)
+}
+
+/* Measure ruler (#18): measure / delta ruler.
+   Theme via these classes or the --apx-measure-* custom properties below
+   (config `chart.measure.colors` overrides both). The ruler group also carries
+   a direction class: apexcharts-measure-up | -down | -flat.
+   Element classes:
+     .apexcharts-measure-band     shaded span band
+     .apexcharts-measure-vline    vertical guide lines
+     .apexcharts-measure-line     free-mode diagonal line
+     .apexcharts-measure-label-bg readout box     .apexcharts-measure-label text
+   Colors are applied as SVG presentation attributes, so any rule you write on
+   these classes overrides them. */
+.apexcharts-canvas {
+  --apx-measure-up: #16a34a;
+  --apx-measure-down: #dc2626;
+  --apx-measure-neutral: #64748b;
+  --apx-measure-guide: #94a3b8;
+}
+.apexcharts-measure-capture {
+  cursor: crosshair;
+}
+
+/* Radial Actions (#chrome): right-click context menu. Theme via these classes
+   or the --apx-menu-* custom properties. */
+.apexcharts-canvas {
+  --apx-menu-bg: #ffffff;
+  --apx-menu-fg: #1e293b;
+  --apx-menu-border: #e2e8f0;
+  --apx-menu-hover: #f1f5f9;
+  --apx-menu-shadow: rgba(15, 23, 42, 0.18);
+}
+.apexcharts-context-menu {
+  min-width: 168px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--apx-menu-bg);
+  border: 1px solid var(--apx-menu-border);
+  box-shadow: 0 6px 22px var(--apx-menu-shadow);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  z-index: 20;
+  user-select: none;
+}
+.apexcharts-context-menu-item {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--apx-menu-fg);
+  font: inherit;
+  cursor: pointer;
+}
+.apexcharts-context-menu-item:hover,
+.apexcharts-context-menu-item--active {
+  background: var(--apx-menu-hover);
+}
+.apexcharts-context-menu-item:focus {
+  outline: none;
+}
+
+/* Ink Layer (#7): the floating note editor card, opened by clicking an
+   ink-managed annotation. Theme via these classes or the --apx-ink-* vars. */
+.apexcharts-canvas {
+  --apx-ink-card-bg: #ffffff;
+  --apx-ink-card-fg: #1e293b;
+  --apx-ink-card-border: #e2e8f0;
+  --apx-ink-card-hover: #f1f5f9;
+  --apx-ink-card-accent: #6366f1;
+  --apx-ink-card-shadow: rgba(15, 23, 42, 0.18);
+}
+.apexcharts-ink-card {
+  position: absolute;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--apx-ink-card-bg);
+  border: 1px solid var(--apx-ink-card-border);
+  box-shadow: 0 6px 22px var(--apx-ink-card-shadow);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  color: var(--apx-ink-card-fg);
+  user-select: none;
+}
+.apexcharts-ink-card-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.apexcharts-ink-card input.apexcharts-ink-editor {
+  flex: 1 1 auto;
+  width: 150px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--apx-ink-card-border);
+  border-radius: 5px;
+}
+.apexcharts-ink-card input.apexcharts-ink-editor:focus {
+  outline: none;
+  border-color: var(--apx-ink-card-accent);
+}
+.apexcharts-ink-btn {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+.apexcharts-ink-btn:hover,
+.apexcharts-ink-btn--active {
+  background: var(--apx-ink-card-hover);
+}
+.apexcharts-ink-btn:focus-visible,
+.apexcharts-ink-swatch:focus-visible {
+  outline: 2px solid var(--apx-ink-card-accent);
+  outline-offset: 1px;
+}
+.apexcharts-ink-btn--bold {
+  font-weight: 700;
+}
+.apexcharts-ink-btn--delete:hover {
+  color: #dc2626;
+}
+.apexcharts-ink-swatch {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid rgba(100, 116, 139, 0.45);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.apexcharts-ink-swatch--active {
+  box-shadow:
+    0 0 0 2px var(--apx-ink-card-bg),
+    0 0 0 4px var(--apx-ink-card-accent);
+}
+.apexcharts-ink-sep {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: var(--apx-ink-card-border);
+}
+.apexcharts-ink-cardlabel {
+  flex: 0 0 auto;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  opacity: 0.65;
+  margin-right: 2px;
+}
+.apexcharts-ink-marker-size {
+  flex: 0 0 auto;
+  min-width: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .apexcharts-legend-text {
   padding-left: 15px;
   margin-left: -15px;

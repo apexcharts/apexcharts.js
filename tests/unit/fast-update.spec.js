@@ -2,20 +2,49 @@ import { describe, it, expect, vi } from 'vitest'
 import { createChart, createChartWithOptions } from './utils/utils.js'
 
 describe('fastUpdate() — partial updateSeries fast path', () => {
-  it('updates series data without a full SVG rebuild (axis chart)', async () => {
-    const chart = createChart('line', [{ data: [1, 2, 3] }])
+  it('updates series data without a full SVG rebuild (stable-domain axis chart)', async () => {
+    // A fixed y-axis keeps the rendered scale identical across the update, so
+    // the pure fast path applies: series repaint only, no axis/grid rebuild and
+    // no fallback to update().
+    const chart = createChartWithOptions({
+      chart: { type: 'line' },
+      series: [{ data: [1, 2, 3] }],
+      yaxis: { min: 0, max: 100 },
+    })
 
     const fastUpdateSpy = vi.spyOn(chart, 'fastUpdate')
     const updateSpy = vi.spyOn(chart, 'update')
 
     await chart.updateSeries([{ data: [10, 20, 30] }])
 
-    // Fast path should have been chosen (axis chart, same series count, no collapsed)
+    // Fast path chosen (axis chart, same series count) and, because the axis
+    // domain is unchanged, it stays on the fast path (no full rebuild).
     expect(fastUpdateSpy).toHaveBeenCalledOnce()
     expect(updateSpy).not.toHaveBeenCalled()
 
     // Series data must reflect the new values
     expect(chart.getState().series).toEqual([[10, 20, 30]])
+  })
+
+  it('falls back to a full render when a fast update changes the axis domain', async () => {
+    // Auto y-axis: lowering the data domain must repaint the ruler, which the
+    // fast path cannot do in place (axes are preserved), so it delegates to a
+    // full update() rather than leave a bar drawn full-height against a stale
+    // 0-20 ruler.
+    const chart = createChart('bar', [{ data: [18, 20, 17, 19, 16] }])
+
+    const fastUpdateSpy = vi.spyOn(chart, 'fastUpdate')
+    const updateSpy = vi.spyOn(chart, 'update')
+
+    await chart.updateSeries([{ data: [6, 6, 6, 5, 6] }])
+
+    // fast path is entered (eligible) but detects the domain change and delegates
+    expect(fastUpdateSpy).toHaveBeenCalledOnce()
+    expect(updateSpy).toHaveBeenCalledOnce()
+
+    const state = chart.getState()
+    expect(state.series).toEqual([[6, 6, 6, 5, 6]])
+    expect(state.maxY).toBe(6)
   })
 
   it('series values are correct after fast update', async () => {

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Ink Layer: Drag Annotations Directly (chart.ink)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      .ink-wrap {
+        max-width: 820px;
+        margin: 12px auto;
+        font-family: Helvetica, Arial, sans-serif;
+      }
+      .ink-bar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 4px 6px 10px;
+      }
+      .ink-bar .readout {
+        font-family: monospace;
+        font-size: 13px;
+        color: #445;
+      }
+      .ink-note {
+        background: #eef2ff;
+        border-left: 3px solid #6366f1;
+        padding: 11px 15px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.6;
+        margin: 12px 6px;
+      }
+      .ink-note code {
+        background: #dfe3ff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      function signal() {
+        var out = []
+        for (var i = 0; i < 40; i++) {
+          var v = 50 + 22 * Math.sin(i / 4.0) + 9 * Math.sin(i / 1.4) + i * 0.4
+          out.push([i, Math.round(v)])
+        }
+        return out
+      }
+    </script>
+  </head>
+
+  <body>
+     <div class="ink-wrap">
+        <div class="ink-bar">
+          <span class="readout" id="ink-readout">Drag a labelled point to reposition it</span>
+        </div>
+      
+        <div id="chart"></div>
+      
+        <div class="ink-note">
+          The chart sets <code>chart.ink.enabled</code>, so its point annotations are
+          <b>draggable</b>: grab a labelled marker and move it. <b>Click a note</b> to
+          open its floating editor card: rename it inline, pick an accent color,
+          toggle bold, step the text size, grow/shrink or reshape the <b>marker</b>,
+          or <b>delete</b> the note (Enter commits, Escape closes; the swatches come
+          from <code>chart.ink.noteColors</code>). On release of a drag the new
+          position is converted back to data coordinates and written to
+          <code>annotations.points[].x/y</code>, so the annotation stays glued to that
+          data location on later zoom or resize. Use <b>+ Note</b> (the palette, from
+          <code>chart.ink.palette</code>) then click the plot to drop a new labelled
+          note. The x-axis <b>Window</b> band moves (drag its middle) or resizes (drag
+          an edge), and the y-axis <b>Target</b> line drags vertically. Fires
+          <code>annotationDragged</code> / <code>annotationEdited</code> /
+          <code>annotationStyled</code> / <code>annotationCreated</code> /
+          <code>annotationDeleted</code>. With the history (Rewind) feature enabled,
+          <b>Ctrl/Cmd+Z</b> undoes any edit and Shift+Ctrl/Cmd+Z redoes it. Needs the
+          <code>ink</code> feature. (Set <code>draggable:false</code> on a single
+          annotation to pin it.)
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: [{ name: 'Signal', data: signal() }],
+        chart: {
+          id: 'signal',
+          type: 'line',
+          height: 380,
+          fontFamily: 'Helvetica, Arial, sans-serif',
+          animations: { enabled: false },
+          ink: { enabled: true, palette: true },
+          history: { enabled: true },
+          toolbar: { show: false },
+          zoom: { enabled: false },
+        },
+        stroke: { width: 2, curve: 'smooth' },
+        colors: ['#6366f1'],
+        title: { text: 'Signal (drag the callouts)', align: 'left' },
+        xaxis: { type: 'numeric', title: { text: 'Sample' } },
+        yaxis: { title: { text: 'Value' } },
+        annotations: {
+          points: [
+            {
+              x: 6,
+              y: 74,
+              id: 'peak',
+              marker: {
+                size: 7,
+                fillColor: '#fff',
+                strokeColor: '#6366f1',
+                strokeWidth: 3,
+              },
+              label: {
+                text: 'Peak',
+                borderColor: '#6366f1',
+                style: { color: '#fff', background: '#6366f1' },
+              },
+            },
+            {
+              x: 20,
+              y: 52,
+              id: 'dip',
+              marker: {
+                size: 7,
+                fillColor: '#fff',
+                strokeColor: '#ef4444',
+                strokeWidth: 3,
+              },
+              label: {
+                text: 'Watch',
+                borderColor: '#ef4444',
+                style: { color: '#fff', background: '#ef4444' },
+              },
+            },
+          ],
+          xaxis: [
+            {
+              x: 10,
+              x2: 16,
+              id: 'window',
+              fillColor: '#a5b4fc',
+              opacity: 0.28,
+              label: {
+                text: 'Window',
+                style: { color: '#fff', background: '#6366f1' },
+              },
+            },
+          ],
+          yaxis: [
+            {
+              y: 62,
+              id: 'target',
+              borderColor: '#f59e0b',
+              strokeDashArray: 4,
+              label: {
+                text: 'Target',
+                style: { color: '#fff', background: '#f59e0b' },
+              },
+            },
+          ],
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      var readout = document.getElementById('ink-readout')
+      chart.addEventListener('annotationDragged', function (c, o) {
+        readout.textContent =
+          "Moved '" +
+          o.id +
+          "' to x=" +
+          Number(o.x).toFixed(2) +
+          ', y=' +
+          Number(o.y).toFixed(2)
+      })
+      chart.addEventListener('annotationStyled', function (c, o) {
+        readout.textContent = "Restyled '" + o.id + "'"
+      })
+      chart.addEventListener('annotationDeleted', function (c, o) {
+        readout.textContent = "Deleted '" + o.id + "' (Ctrl/Cmd+Z restores it)"
+      })
+    </script>
+
+    
+  </body>
+</html>

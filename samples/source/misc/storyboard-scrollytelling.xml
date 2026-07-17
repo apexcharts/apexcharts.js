@@ -1,0 +1,445 @@
+<title>Storyboard: Scroll-Driven Chart Choreography (chart.storyboard)</title>
+
+<style>
+  .sb-wrap {
+    max-width: 1060px;
+    margin: 0 auto;
+    font-family: Helvetica, Arial, sans-serif;
+    color: #1f2937;
+  }
+  .sb-hero {
+    padding: 40px 8px 20px;
+    max-width: 640px;
+  }
+  .sb-hero h1 {
+    font-size: 30px;
+    margin: 0 0 10px;
+    letter-spacing: -0.5px;
+  }
+  .sb-hero p {
+    font-size: 15px;
+    line-height: 1.65;
+    color: #4b5563;
+    margin: 0;
+  }
+  .sb-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  .sb-steps {
+    padding-bottom: 24vh;
+  }
+  .sb-step {
+    min-height: 72vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0.35;
+    transition: opacity 0.3s ease;
+  }
+  .sb-step.is-active {
+    opacity: 1;
+  }
+  .sb-step .card {
+    border-left: 3px solid #c7d2fe;
+    background: #fff;
+    border-radius: 0 8px 8px 0;
+    padding: 16px 18px;
+    box-shadow: 0 1px 4px rgba(30, 41, 59, 0.08);
+  }
+  .sb-step.is-active .card {
+    border-left-color: #6366f1;
+  }
+  .sb-step h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+  }
+  .sb-step p {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: #4b5563;
+  }
+  .sb-graphic {
+    position: sticky;
+    top: 18px;
+  }
+  .sb-chart-card {
+    background: #fff;
+    border: 1px solid #e4e7f2;
+    border-radius: 10px;
+    padding: 14px 14px 8px;
+    box-shadow: 0 2px 10px rgba(30, 41, 59, 0.06);
+  }
+  .sb-chart-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 6px 10px;
+  }
+  .sb-chart-head b {
+    font-size: 14px;
+  }
+  .sb-beat-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sb-chip {
+    font-family: monospace;
+    font-size: 12px;
+    color: #4338ca;
+    background: #eef2ff;
+    border-radius: 999px;
+    padding: 3px 10px;
+  }
+  .sb-dot {
+    width: 10px;
+    height: 10px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid #a5b4fc;
+    background: #fff;
+    cursor: pointer;
+  }
+  .sb-dot.is-active {
+    background: #6366f1;
+    border-color: #6366f1;
+  }
+  /* The shared demo stylesheet gives the first chart container (#chart) its
+     own white panel; the card provides it here instead. */
+  #chart {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+  .sb-note {
+    background: #eef2ff;
+    border-left: 3px solid #6366f1;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #234;
+    border-radius: 2px;
+    line-height: 1.65;
+    margin: 24px 8px 40px;
+  }
+  .sb-note code {
+    background: #dfe3ff;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  @media (max-width: 820px) {
+    .sb-layout {
+      display: block;
+    }
+    .sb-graphic {
+      top: 0;
+      z-index: 5;
+      margin-bottom: 12px;
+    }
+    .sb-step {
+      min-height: 55vh;
+    }
+  }
+</style>
+
+<html>
+<div class="sb-wrap">
+  <div class="sb-hero">
+    <h1>One year, one chart</h1>
+    <p>
+      A scrollytelling story on a single live chart. The same twelve columns
+      stay on screen the whole way: scrolling recolors them, annotates them,
+      and finally reshapes them, and scrolling back up rewinds the story.
+    </p>
+  </div>
+
+  <div class="sb-layout">
+    <div class="sb-steps">
+      <section class="sb-step" id="sb-step-1">
+        <div class="card">
+          <h3>One year of revenue</h3>
+          <p>
+            Fiscal 2025, month by month: 341 k$ across twelve columns. A slow
+            start and a strong finish, with two turning points hiding in
+            plain sight.
+          </p>
+        </div>
+      </section>
+      <section class="sb-step" id="sb-step-2">
+        <div class="card">
+          <h3>March: the outage</h3>
+          <p>
+            A bad deploy took sign-ups offline for two days, and March is the
+            only month that broke the climb. The spotlight narrows; the rest
+            of the year steps back.
+          </p>
+        </div>
+      </section>
+      <section class="sb-step" id="sb-step-3">
+        <div class="card">
+          <h3>May: v2 ships</h3>
+          <p>
+            The hinge of the year. From May on, every month tops the last,
+            and the slope never looks back.
+          </p>
+        </div>
+      </section>
+      <section class="sb-step" id="sb-step-4">
+        <div class="card">
+          <h3>The quarters take shape</h3>
+          <p>
+            Same columns, new grouping. Each quarter beats the last by half
+            again or more: 35 k$ in Q1 grows to 157 k$ by Q4.
+          </p>
+        </div>
+      </section>
+      <section class="sb-step" id="sb-step-5">
+        <div class="card">
+          <h3>The year in one circle</h3>
+          <p>
+            The twelve months curl into a ring, each column becoming its own
+            slice. The quarter colors survive the change of shape, and Q4's
+            arc is nearly half the year.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <div class="sb-graphic">
+      <div class="sb-chart-card">
+        <div class="sb-chart-head">
+          <b>FY25 revenue, monthly</b>
+          <div class="sb-beat-nav">
+            <button class="sb-dot is-active" aria-label="Go to beat 1"></button>
+            <button class="sb-dot" aria-label="Go to beat 2"></button>
+            <button class="sb-dot" aria-label="Go to beat 3"></button>
+            <button class="sb-dot" aria-label="Go to beat 4"></button>
+            <button class="sb-dot" aria-label="Go to beat 5"></button>
+            <span class="sb-chip" id="sb-chip">Beat 1 of 5</span>
+          </div>
+        </div>
+        {{ charts[0] }}
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-note">
+    <code>chart.storyboard.bind({ beats })</code> pairs prose elements with
+    views; beats apply as their element crosses the middle of the viewport
+    (IntersectionObserver, no scroll listeners) and re-apply in reverse on
+    the way up. The design rule that keeps every transition smooth: all five
+    beats keep the <b>same twelve marks</b>. Emphasis moves by color
+    (spotlights, quarter groups) and annotations, never by cropping or
+    re-binning, so nothing pops in or out. The finale's <code>options</code>
+    payload (merged into the same render as the view) swaps
+    <code>chart.type</code>, and the <code>morph</code> feature curls each
+    column into its own donut slice, a one-to-one morph. The dots call
+    <code>chart.storyboard.goTo(i)</code>, each beat announces itself to the
+    aria-live region, and <code>beatChange</code> drives the step highlight.
+    Transitions are cut instead of animated under prefers-reduced-motion.
+    Needs the <code>storyboard</code> feature (bundles
+    <code>perspectives</code>).
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'storyChart',
+  type: 'bar',
+  height: 400,
+  fontFamily: 'Helvetica, Arial, sans-serif',
+  animations: { speed: 700, dynamicAnimation: { speed: 500 } },
+  toolbar: { show: false },
+  zoom: { enabled: false },
+},
+colors: ['#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8'],
+plotOptions: { bar: { columnWidth: '58%', borderRadius: 3, distributed: true } },
+stroke: { width: 0 },
+dataLabels: { enabled: false },
+legend: { show: false },
+grid: { borderColor: '#eef0f6' },
+xaxis: {
+  categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+},
+</options>
+
+<series>
+[
+  {
+    name: 'Revenue (k$)',
+    data: [12, 14, 9, 15, 18, 22, 26, 31, 37, 44, 52, 61]
+  }
+]
+</series>
+</chart>
+
+<vanilla-js-script>
+// The design rule of this story: every beat keeps the SAME twelve marks.
+// Emphasis changes via per-column colors and annotations (values, axes and
+// mark count never change), so each transition tweens element-for-element
+// instead of popping marks in and out. The finale is the one shape change:
+// a 1:1 bar-to-donut morph, each column curling into its own slice.
+var REV = [12, 14, 9, 15, 18, 22, 26, 31, 37, 44, 52, 61]
+var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+var INDIGO = '#818cf8'
+var FADE = '#e3e8f4' // out-of-spotlight months step back to this
+var RED = '#f87171'
+var QCOLORS = ['#818cf8', '#7dd3fc', '#4ade80', '#fbbf24'] // one per quarter
+
+function colors12(fn) {
+  var a = []
+  for (var i = 0; i < 12; i++) a.push(fn(i))
+  return a
+}
+var C_ALL = colors12(function () { return INDIGO })
+var C_OUTAGE = colors12(function (i) {
+  if (i === 2) return RED // March
+  return i >= 1 && i <= 3 ? INDIGO : FADE
+})
+var C_V2 = colors12(function (i) { return i >= 4 ? INDIGO : FADE }) // May on
+var C_QUARTERS = colors12(function (i) { return QCOLORS[Math.floor(i / 3)] })
+
+// The shared column payload; a beat only swaps the colors array. labels []
+// resets the donut's month labels so they never leak into the axis mapping.
+var COLUMN_OPTS = {
+  chart: { type: 'bar' },
+  series: [{ name: 'Revenue (k$)', data: REV }],
+  labels: [],
+  stroke: { width: 0, colors: undefined },
+  plotOptions: { bar: { columnWidth: '58%', borderRadius: 3, distributed: true } },
+  legend: { show: false },
+}
+function columnBeat(colors) {
+  return Object.assign({}, COLUMN_OPTS, { colors: colors })
+}
+
+// The finale: same twelve values, same quarter colors, new shape. The morph
+// feature pairs the 12 columns with the 12 slices.
+var DONUT_OPTS = {
+  chart: { type: 'donut' },
+  series: REV,
+  labels: MONTHS,
+  colors: C_QUARTERS,
+  stroke: { width: 2, colors: ['#fff'] },
+  legend: { show: false },
+  plotOptions: {
+    pie: {
+      expandOnClick: false,
+      donut: {
+        size: '68%',
+        labels: {
+          show: true,
+          total: {
+            show: true,
+            label: 'FY25 revenue',
+            formatter: function () { return '341 k$' },
+          },
+        },
+      },
+    },
+  },
+}
+
+var BEATS = [
+  {
+    selector: '#sb-step-1',
+    view: { window: { xaxis: null, yaxis: [null] }, theme: { mode: 'light' } },
+    options: columnBeat(C_ALL),
+    announce: 'Overview: fiscal 2025 revenue, month by month',
+  },
+  {
+    selector: '#sb-step-2',
+    view: {
+      window: { xaxis: null, yaxis: [null] },
+      theme: { mode: 'light' },
+      annotations: {
+        static: {
+          xaxis: [
+            {
+              x: 'Mar',
+              strokeDashArray: 4,
+              borderColor: '#f87171',
+              label: {
+                text: 'The outage',
+                borderColor: '#fca5a5',
+                style: { color: '#7f1d1d', background: '#fee2e2' },
+              },
+            },
+          ],
+        },
+      },
+    },
+    options: columnBeat(C_OUTAGE),
+    announce: 'Spotlight on March: the outage month',
+  },
+  {
+    selector: '#sb-step-3',
+    view: {
+      window: { xaxis: null, yaxis: [null] },
+      theme: { mode: 'light' },
+      annotations: {
+        static: {
+          xaxis: [
+            {
+              x: 'May',
+              strokeDashArray: 4,
+              borderColor: '#4ade80',
+              label: {
+                text: 'v2 ships',
+                borderColor: '#86efac',
+                style: { color: '#14532d', background: '#dcfce7' },
+              },
+            },
+          ],
+        },
+      },
+    },
+    options: columnBeat(C_V2),
+    announce: 'Spotlight from May on: v2 changes the slope',
+  },
+  {
+    selector: '#sb-step-4',
+    view: { window: { xaxis: null, yaxis: [null] }, theme: { mode: 'light' } },
+    options: columnBeat(C_QUARTERS),
+    announce: 'The months grouped into quarters by color',
+  },
+  {
+    selector: '#sb-step-5',
+    view: { window: { xaxis: null, yaxis: [null] }, theme: { mode: 'light' } },
+    options: DONUT_OPTS,
+    announce: 'The twelve months as a donut ring',
+  },
+]
+
+var steps = document.querySelectorAll('.sb-step')
+var dots = document.querySelectorAll('.sb-dot')
+var chip = document.getElementById('sb-chip')
+
+// beatChange fires on every activation (scroll or goTo): drive the page UI.
+chart.addEventListener('beatChange', function (c, info) {
+  steps.forEach(function (el, i) {
+    el.classList.toggle('is-active', i === info.index)
+  })
+  dots.forEach(function (dot, i) {
+    dot.classList.toggle('is-active', i === info.index)
+  })
+  chip.textContent = 'Beat ' + (info.index + 1) + ' of ' + BEATS.length
+})
+
+dots.forEach(function (dot, i) {
+  dot.addEventListener('click', function () {
+    chart.storyboard.goTo(i)
+  })
+})
+
+window.addEventListener('load', function () {
+  chart.storyboard.bind({ beats: BEATS })
+})
+</vanilla-js-script>

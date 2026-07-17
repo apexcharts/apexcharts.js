@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Streaming Line Chart (chart.streaming)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      var TICKINTERVAL = 1000
+      var XAXISRANGE = 29 * TICKINTERVAL
+      var lastX = new Date().getTime() - XAXISRANGE
+      var lastY = 50
+      var data = []
+
+      function nextValue() {
+        lastY = Math.max(5, Math.min(95, lastY + (Math.random() - 0.5) * 20))
+        return Math.round(lastY)
+      }
+
+      while (data.length < 30) {
+        data.push({ x: lastX, y: nextValue() })
+        lastX += TICKINTERVAL
+      }
+    </script>
+  </head>
+
+  <body>
+     <div id="chart"></div>
+      
+      <div class="explanation" style="max-width: 620px; margin: 0 auto 12px; font-size: 13px; color: #777">
+        Real-time streaming with <code>chart.streaming.enabled</code>: each tick
+        appends one point with <code>appendData()</code>. The window slides left at
+        constant velocity (no easing pulse, no in-place warp), and the series array
+        is trimmed automatically to the visible <code>xaxis.range</code> window, so
+        memory stays flat no matter how long the stream runs. The same scroll works
+        when a fixed-length rolling window is passed to <code>updateSeries()</code>.
+      </div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            name: 'Signal',
+            data: data.slice(),
+          },
+        ],
+        chart: {
+          id: 'realtime-streaming',
+          height: 350,
+          type: 'line',
+          streaming: {
+            enabled: true,
+          },
+          animations: {
+            dynamicAnimation: {
+              speed: 1000,
+            },
+          },
+          toolbar: {
+            show: false,
+          },
+          zoom: {
+            enabled: false,
+          },
+        },
+        dataLabels: {
+          enabled: false,
+        },
+        stroke: {
+          curve: 'smooth',
+        },
+        title: {
+          text: 'Streaming (bounded memory + linear scroll)',
+          align: 'left',
+        },
+        markers: {
+          size: 0,
+        },
+        xaxis: {
+          type: 'datetime',
+          range: XAXISRANGE,
+        },
+        yaxis: {
+          min: 0,
+          max: 100,
+        },
+        legend: {
+          show: false,
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      var intervalRuns = 0
+      var interval = window.setInterval(function () {
+        intervalRuns++
+
+        lastX += TICKINTERVAL
+        chart.appendData([
+          {
+            data: [{ x: lastX, y: nextValue() }],
+          },
+        ])
+
+        if (intervalRuns === 2 && window.isATest === true) {
+          clearInterval(interval)
+        }
+      }, TICKINTERVAL)
+    </script>
+
+    
+  </body>
+</html>

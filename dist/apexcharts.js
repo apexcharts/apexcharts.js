@@ -20,6 +20,18 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __objRest = (source, exclude) => {
+  var target = {};
+  for (var prop in source)
+    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
+      target[prop] = source[prop];
+  if (source != null && __getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(source)) {
+      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
+        target[prop] = source[prop];
+    }
+  return target;
+};
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
@@ -42,7 +54,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v5.16.0
+ * ApexCharts v6.0.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -482,6 +494,23 @@ var __async = (__this, __arguments, generator) => {
         return {};
       }
       return window.getComputedStyle(element);
+    }
+    /**
+     * Evaluate a media query. Returns the live MediaQueryList in a browser (so
+     * callers can attach a `change` listener) or null under SSR / when
+     * unsupported. Facet (#13) uses this for `theme.follow: 'os'`.
+     * @param {string} query
+     * @returns {MediaQueryList|null}
+     */
+    static matchMedia(query) {
+      if (Environment.isSSR() || typeof window.matchMedia !== "function") {
+        return null;
+      }
+      try {
+        return window.matchMedia(query);
+      } catch (e) {
+        return null;
+      }
     }
     /**
      * Get bounding client rect for an element
@@ -3435,6 +3464,11 @@ var __async = (__this, __arguments, generator) => {
           images: [],
           shapes: []
         },
+        // Weave (#1): public plugin platform. Per-chart activation list:
+        // { name, options?, order? }. Requires the Weave host to be bundled
+        // (`import 'apexcharts/features/weave'`, included in the full bundle) and
+        // the plugin registered via ApexCharts.registerPlugin().
+        plugins: [],
         chart: {
           animations: {
             // Master switch — set false to render charts without any animation.
@@ -3449,6 +3483,12 @@ var __async = (__this, __arguments, generator) => {
             // `animateGradually.enabled` / `animateGradually.delay`.
             enabled: true,
             speed: 800,
+            // Cadence (#6): easing for the generic tweens (data-update value
+            // transitions, path morphs, marker animate). A registered name, a
+            // cubic-bezier [x1,y1,x2,y2] array, or a function (t in [0,1]).
+            // 'easeInOutSine' is the historical curve, so the default is
+            // behavior-neutral. The tuned initial-draw pen/pop easings are fixed.
+            easing: "easeInOutSine",
             animateGradually: {
               // Drives per-element stagger across all chart types. When enabled,
               // bars/heatmap-cells/scatter-points/treemap-tiles reveal in
@@ -3462,7 +3502,13 @@ var __async = (__this, __arguments, generator) => {
               // Data-change (updateSeries) animation. Independent from the
               // initial-mount animations above.
               enabled: true,
-              speed: 350
+              speed: 350,
+              // Easing for data-change morphs only (same accepted forms as
+              // `animations.easing`). Unset -> inherit the chart-wide easing,
+              // except detected streaming scrolls (rolling window / append
+              // under xaxis.range) which default to 'linear' so the window
+              // slides at constant velocity instead of pulsing each tick.
+              easing: void 0
             },
             chartTypeMorph: {
               // Cross-type morph (updateOptions changing chart.type). Bridges
@@ -3494,6 +3540,34 @@ var __async = (__this, __arguments, generator) => {
           background: "",
           locales: [en],
           defaultLocale: "en",
+          // Perspectives (#10): serializable/shareable view state. Passive:
+          // requires `import 'apexcharts/features/perspectives'`. serializeOptions
+          // is the whitelist of function-free option paths stored in a token.
+          perspectives: {
+            serializeOptions: ["theme", "xaxis", "yaxis", "title", "subtitle"]
+          },
+          // Rewind (#3): undo/redo history. Opt-in (bundle + behavior): requires
+          // `import 'apexcharts/features/history'` AND chart.history.enabled.
+          history: {
+            enabled: false,
+            maxDepth: 100,
+            coalesceMs: 250,
+            keyboard: true
+          },
+          // Strata (#2): hybrid SVG+canvas series renderer. 'svg' (default) |
+          // 'canvas' | 'auto'. 'auto'/'canvas' need the canvas renderer feature
+          // (`import 'apexcharts/features/renderer-canvas'`); without it, or with
+          // a canvas-unsupported feature (pattern/image fill, color-matrix state
+          // filters), selection falls back to 'svg'. Only the series layer is
+          // canvas-capable in v1; chrome stays SVG.
+          renderer: "svg",
+          rendererThreshold: 8e3,
+          layers: {
+            series: "auto",
+            grid: "svg",
+            annotations: "svg",
+            dataLabels: "svg"
+          },
           dropShadow: {
             enabled: false,
             enabledOnSeries: void 0,
@@ -3523,6 +3597,14 @@ var __async = (__this, __arguments, generator) => {
             zoomed: void 0,
             scrolled: void 0,
             brushScrolled: void 0,
+            crossFilter: void 0,
+            filterChange: void 0,
+            annotationDragged: void 0,
+            annotationEdited: void 0,
+            annotationCreated: void 0,
+            annotationStyled: void 0,
+            annotationDeleted: void 0,
+            measured: void 0,
             keyDown: void 0,
             keyUp: void 0
           },
@@ -3570,10 +3652,143 @@ var __async = (__this, __arguments, generator) => {
             target: void 0,
             targets: void 0
           },
+          // Linked Views (#4): crossfilter / linked highlighting. Requires the
+          // `link` feature. Two modes:
+          //   HIGHLIGHT (P1): `enabled` with no `dimension`. Charts sharing a
+          //   `chart.group` form a set; brushing a range (needs
+          //   `chart.selection.enabled`) dims out-of-range marks in place.
+          //   FILTER (P2): set `dimension` (its presence selects this path). Each
+          //   chart declares a dimension + reduction over a shared record set
+          //   registered with ApexCharts.crossfilter({ id, records }); clicking a
+          //   bucket re-aggregates the other charts. See docs/spec.
+          link: {
+            enabled: false,
+            mode: "highlight",
+            dimOpacity: 0.2,
+            // FILTER-mode config (all optional except dimension):
+            id: void 0,
+            // crossfilter coordinator id (defaults to chart.group)
+            dimension: void 0,
+            // (row) => key; presence selects filter mode
+            reduce: void 0,
+            // 'count' | { sum|avg|min|max: field } | (rows)=>n
+            type: void 0,
+            // 'category' | 'range' (else inferred from bins)
+            bins: void 0,
+            // range dims: { width } | { count } | { thresholds }
+            order: void 0,
+            // category order: 'first-seen' | 'asc' | 'desc' | fn
+            seriesName: void 0
+            // axis-chart series name (default 'Count')
+          },
+          // Ink Layer (#7): direct-manipulation annotations. When enabled, every
+          // point annotation is draggable (unless it sets draggable:false); or opt
+          // in per annotation with annotations.points[].draggable. Clicking an
+          // ink-managed annotation opens a floating editor card: rename inline,
+          // recolor, toggle bold, step the font size, size/reshape the marker, or
+          // delete the note. Axis-line annotations get separate Label and Line
+          // color rows, so restyling the label chip never touches the stroke.
+          // Requires the `ink` feature. Fires annotationDragged,
+          // annotationEdited, annotationStyled and annotationDeleted.
+          ink: {
+            enabled: false,
+            // Show a minimal "add note" tool palette; clicking it arms create
+            // mode (the next plot click drops an editable, draggable annotation).
+            palette: false,
+            // Snap a dragged point / axis-line annotation to the nearest gridline
+            // (numeric x + linear y). Undo/redo of ink edits is automatic when the
+            // history (Rewind) feature is enabled.
+            snap: false,
+            // Accent swatches offered by the floating note editor; defaults to a
+            // built-in 6-color palette when undefined.
+            noteColors: void 0
+          },
+          // Measure ruler (#18): a measure/delta ruler. Requires the `measure`
+          // feature. Hold `key` (default 'm') and drag A->B on the plot, or call
+          // chart.startMeasure()/chart.stopMeasure() to arm it. The live ruler
+          // reads dx, dy, %change and slope; on release it pins as a data-anchored
+          // overlay that re-projects on zoom/resize. Fires `measured`.
+          measure: {
+            enabled: false,
+            // 'span' (default): finance-style vertical band between two x-points
+            // with a "change (%) + range" readout, endpoints snapped to the first
+            // series. 'free': a diagonal ruler between two arbitrary points.
+            mode: "span",
+            key: "m",
+            pinOnRelease: true,
+            // Styling tokens. Every element also carries a stable CSS class
+            // (apexcharts-measure-band / -vline / -line / -label-bg / -label,
+            // group gets apexcharts-measure-up|down|flat). Colors are left
+            // undefined so they resolve config -> `--apx-measure-*` CSS custom
+            // property -> built-in default; set them here to force a color from JS.
+            colors: {
+              up: void 0,
+              down: void 0,
+              neutral: void 0,
+              guide: void 0
+            },
+            band: true,
+            // span mode: shaded band between the two x-positions
+            guides: true,
+            // span mode: vertical dashed reference lines
+            markers: true,
+            // endpoint dots on the series line
+            // Content: value formatters and a full readout override. `label`
+            // receives { from, to, dx, dy, percentChange, slope, mode } and
+            // returns a string or string[] (lines).
+            format: { x: void 0, y: void 0, percent: void 0 },
+            label: void 0
+          },
+          // Radial Actions (#chrome): right-click / long-press context menu.
+          // Requires the `contextMenu` feature. Each action receives the clicked
+          // data coordinates, so verbs act at the point (not chart-wide like a
+          // toolbar button). `items` is an ordered list of built-in ids
+          // ('annotate' | 'xline' | 'yline' | 'measure') and/or custom
+          // { id, label, icon, onClick(ctx, { x, y, seriesIndex, dataPointIndex,
+          // clientX, clientY }) }. 'measure' is shown only when the measure tool
+          // is enabled. `labels` overrides built-in text; `noteText` is the label
+          // dropped by 'annotate'.
+          contextMenu: {
+            enabled: false,
+            items: ["annotate", "xline", "yline", "measure"],
+            labels: {
+              annotate: void 0,
+              xline: void 0,
+              yline: void 0,
+              measure: void 0
+            },
+            noteText: "Note",
+            // 'xline' ("Annotate here") drops a dashed vertical LINE at the
+            // clicked x; 'yline' ("Mark this level") a dashed horizontal line at
+            // the clicked y. Lines only, never a range rectangle. Like the note,
+            // a line is ink-managed when the ink feature is bundled: it opens
+            // the floating editor (rename; separate Label and Line color rows,
+            // so restyling the chip cannot blank the stroke; delete), drags
+            // along its axis, and undoes via Rewind. `line` styles both items.
+            line: {
+              text: "",
+              // label drawn on the line; empty for no label
+              strokeDashArray: 4,
+              color: void 0
+              // undefined keeps the annotation default color
+            }
+          },
           stacked: false,
           stackOnlyBar: true,
           // mixed chart with stacked bars and line series - incorrect line draw #907
           stackType: "normal",
+          // Real-time streaming mode. When enabled, appendData() bounds memory
+          // automatically: each series is trimmed to `maxPoints` (when set) or
+          // to the visible `xaxis.range` window plus a two-point off-screen
+          // runway (so exiting segments slide off the left edge instead of
+          // popping). The scroll animation itself needs no opt-in; updates
+          // that continue the previous window (appendData, or updateSeries with
+          // a shifted fixed-length window) always translate at constant
+          // velocity; see modules/animations/StreamScroll.
+          streaming: {
+            enabled: false,
+            maxPoints: void 0
+          },
           toolbar: {
             show: true,
             offsetX: 0,
@@ -3616,6 +3831,10 @@ var __async = (__this, __arguments, generator) => {
             type: "x",
             autoScaleYaxis: false,
             allowMouseWheelZoom: true,
+            // Momentum: two-finger pinch-zoom on touch devices. Zooms the x-axis
+            // around the pinch centroid (matching the x-only wheel/toolbar zoom),
+            // frame-by-frame rather than the 400ms wheel throttle.
+            pinch: true,
             zoomedArea: {
               fill: {
                 color: "#90CAF9",
@@ -3627,6 +3846,13 @@ var __async = (__this, __arguments, generator) => {
                 width: 1
               }
             }
+          },
+          // Momentum: kinetic panning on touch. When a one-finger pan is released
+          // with velocity, the chart keeps gliding and decelerates by `friction`
+          // each frame, clamping (no elastic overshoot) at the data edges.
+          pan: {
+            inertia: true,
+            friction: 0.92
           },
           accessibility: {
             enabled: true,
@@ -4740,6 +4966,20 @@ var __async = (__this, __arguments, generator) => {
           mode: "",
           palette: "palette1",
           // If defined, it will overwrite globals.colors variable
+          // Facet (#13): read `--apx-*` CSS design tokens from the cascade
+          // (accent/fore/grid/surface + series-1..N). true (default) reads any
+          // present (absence is a no-op); false disables. Tokens top the
+          // resolution chain below explicit config. Tokens are re-read on every
+          // render; call chart.refreshTokens() to pick up a runtime CSS change
+          // that does not itself trigger a render.
+          tokens: true,
+          // Facet (#13): 'os' follows prefers-color-scheme + prefers-contrast
+          // reactively (SSR-safe, cleaned up on destroy). false disables.
+          follow: false,
+          // 'os' | false
+          // Facet (#13): a theme registered via ApexCharts.registerTheme(name, def)
+          name: "",
+          // '' | registered theme name
           monochrome: {
             // monochrome allows you to select just 1 color and fill out the rest with light/dark shade (intensity can be selected)
             enabled: false,
@@ -5179,6 +5419,8 @@ var __async = (__this, __arguments, generator) => {
       gl.lastWheelExecution = 0;
       gl.delayedElements = [];
       gl.pointsArray = [];
+      gl.barCanvasCoords = null;
+      gl.activeRenderer = null;
       gl.dataLabelsRects = [];
       gl.lastDrawnDataLabelsIndexes = [];
       gl.textRectsCache = /* @__PURE__ */ new Map();
@@ -5470,6 +5712,14 @@ var __async = (__this, __arguments, generator) => {
         shouldAnimate: true,
         previousPaths: [],
         // paths from previous render — source for enter animation
+        // Streaming scroll: previous frame's parsed rows + pixel positions,
+        // captured by Series.getPreviousPaths(). Consulted (like previousPaths)
+        // only while a data-change morph renders. See StreamScroll.
+        prevStreamFrame: null,
+        // Axis-chrome snapshot (tick label texts/positions + gridline positions)
+        // captured alongside prevStreamFrame; consumed once by AxisTransition
+        // after a variable-length re-render mounts.
+        prevChromeFrame: null,
         // ── SVG viewport (set by Dimensions, but persistent as layout anchor) ─────
         svgWidth: 0,
         svgHeight: 0,
@@ -6485,6 +6735,950 @@ var __async = (__this, __arguments, generator) => {
     }
   }
   const SVGNS$1 = "http://www.w3.org/2000/svg";
+  class Point {
+    /**
+     * @param {number|{x:number,y:number}} x
+     * @param {number} [y]
+     */
+    constructor(x, y) {
+      if (typeof x === "object") {
+        this.x = x.x;
+        this.y = x.y;
+      } else {
+        this.x = x || 0;
+        this.y = y || 0;
+      }
+    }
+    /**
+     * @param {Matrix} matrix
+     */
+    transform(matrix) {
+      return matrix.apply(this);
+    }
+    clone() {
+      return new Point(this.x, this.y);
+    }
+  }
+  class Matrix {
+    /**
+     * Defaults to the identity matrix when called with no args.
+     * @param {number} [a]
+     * @param {number} [b]
+     * @param {number} [c]
+     * @param {number} [d]
+     * @param {number} [e]
+     * @param {number} [f]
+     */
+    constructor(a, b, c, d, e, f) {
+      this.a = a != null ? a : 1;
+      this.b = b != null ? b : 0;
+      this.c = c != null ? c : 0;
+      this.d = d != null ? d : 1;
+      this.e = e != null ? e : 0;
+      this.f = f != null ? f : 0;
+    }
+    /**
+     * @param {number} deg
+     */
+    rotate(deg) {
+      const rad = deg * Math.PI / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      return this.multiply(new Matrix(cos, sin, -sin, cos, 0, 0));
+    }
+    /**
+     * @param {number} sx
+     * @param {number} sy
+     */
+    scale(sx, sy) {
+      return this.multiply(new Matrix(sx, 0, 0, sy != null ? sy : sx, 0, 0));
+    }
+    /**
+     * @param {Matrix} m
+     */
+    multiply(m) {
+      return new Matrix(
+        this.a * m.a + this.c * m.b,
+        this.b * m.a + this.d * m.b,
+        this.a * m.c + this.c * m.d,
+        this.b * m.c + this.d * m.d,
+        this.a * m.e + this.c * m.f + this.e,
+        this.b * m.e + this.d * m.f + this.f
+      );
+    }
+    /**
+     * @param {Point} point
+     */
+    apply(point) {
+      return new Point(
+        this.a * point.x + this.c * point.y + this.e,
+        this.b * point.x + this.d * point.y + this.f
+      );
+    }
+  }
+  class Box {
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @param {number} w
+     * @param {number} h
+     */
+    constructor(x, y, w, h) {
+      this.x = x;
+      this.y = y;
+      this.w = w;
+      this.h = h;
+      this.width = w;
+      this.height = h;
+      this.x2 = x + w;
+      this.y2 = y + h;
+    }
+  }
+  /*!
+   * Path morphing for SVG path animations
+   * Based on svg.pathmorphing.js by Ulrich-Matthias Schäfer (MIT License)
+   * Refactored to be standalone (no SVG.js dependency)
+   *
+   * Two algorithms are exported:
+   *   - morphPaths()    — command-level interpolation; preserves curves but can
+   *                       produce "wings/flips" when two shapes have very
+   *                       different topology (e.g. bar rect → pie arc).
+   *   - morphPolygons() — resamples both shapes into N evenly-spaced perimeter
+   *                       points and tweens point-by-point with rotation-search
+   *                       alignment; always smooth and non-self-intersecting,
+   *                       at the cost of throwing away curve smoothness.
+   */
+  function parsePath(d) {
+    if (!d || typeof d !== "string") return [["M", 0, 0]];
+    const commands = [];
+    const re = /([MmLlHhVvCcSsQqTtAaZz])\s*/g;
+    const numRe = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
+    let match;
+    const letters = [];
+    const positions = [];
+    while ((match = re.exec(d)) !== null) {
+      letters.push(match[1]);
+      positions.push(match.index);
+    }
+    for (let i = 0; i < letters.length; i++) {
+      const start = positions[i] + letters[i].length;
+      const end = i + 1 < positions.length ? positions[i + 1] : d.length;
+      const paramStr = d.substring(start, end);
+      const nums = [];
+      let numMatch;
+      numRe.lastIndex = 0;
+      while ((numMatch = numRe.exec(paramStr)) !== null) {
+        nums.push(parseFloat(numMatch[0]));
+      }
+      const cmd = letters[i].toUpperCase();
+      if (cmd === "Z") {
+        commands.push(["Z"]);
+      } else if (cmd === "M" || cmd === "L" || cmd === "T") {
+        for (let j = 0; j < nums.length; j += 2) {
+          commands.push([cmd, nums[j], nums[j + 1]]);
+        }
+      } else if (cmd === "H") {
+        for (let j = 0; j < nums.length; j++) {
+          commands.push([cmd, nums[j]]);
+        }
+      } else if (cmd === "V") {
+        for (let j = 0; j < nums.length; j++) {
+          commands.push([cmd, nums[j]]);
+        }
+      } else if (cmd === "C") {
+        for (let j = 0; j < nums.length; j += 6) {
+          commands.push([
+            cmd,
+            nums[j],
+            nums[j + 1],
+            nums[j + 2],
+            nums[j + 3],
+            nums[j + 4],
+            nums[j + 5]
+          ]);
+        }
+      } else if (cmd === "S" || cmd === "Q") {
+        for (let j = 0; j < nums.length; j += 4) {
+          commands.push([cmd, nums[j], nums[j + 1], nums[j + 2], nums[j + 3]]);
+        }
+      } else if (cmd === "A") {
+        for (let j = 0; j < nums.length; j += 7) {
+          commands.push([
+            cmd,
+            nums[j],
+            nums[j + 1],
+            nums[j + 2],
+            nums[j + 3],
+            nums[j + 4],
+            nums[j + 5],
+            nums[j + 6]
+          ]);
+        }
+      }
+    }
+    if (commands.length === 0) {
+      commands.push(["M", 0, 0]);
+    }
+    return commands;
+  }
+  function pathBbox(arr) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    arr.forEach((cmd) => {
+      for (let i = 1; i < cmd.length; i += 2) {
+        if (i + 1 <= cmd.length) {
+          const x = cmd[i];
+          const y = cmd[i + 1];
+          if (typeof x === "number" && typeof y === "number") {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+    });
+    if (minX === Infinity) {
+      return { x: 0, y: 0, width: 0, height: 0 };
+    }
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }
+  function arrayToPath(arr) {
+    return arr.map((cmd) => cmd.join(" ")).join(" ");
+  }
+  function simplify(val) {
+    switch (val[0]) {
+      case "z":
+      case "Z":
+        val[0] = "L";
+        val[1] = this.start[0];
+        val[2] = this.start[1];
+        break;
+      case "H":
+        val[0] = "L";
+        val[2] = this.pos[1];
+        break;
+      case "V":
+        val[0] = "L";
+        val[2] = val[1];
+        val[1] = this.pos[0];
+        break;
+      case "T":
+        val[0] = "Q";
+        val[3] = val[1];
+        val[4] = val[2];
+        val[1] = this.reflection[1];
+        val[2] = this.reflection[0];
+        break;
+      case "S":
+        val[0] = "C";
+        val[6] = val[4];
+        val[5] = val[3];
+        val[4] = val[2];
+        val[3] = val[1];
+        val[2] = this.reflection[1];
+        val[1] = this.reflection[0];
+        break;
+    }
+    return val;
+  }
+  function setPosAndReflection(val) {
+    var len = val.length;
+    this.pos = [val[len - 2], val[len - 1]];
+    if ("SCQT".indexOf(val[0]) != -1) {
+      this.reflection = [
+        2 * this.pos[0] - val[len - 4],
+        2 * this.pos[1] - val[len - 3]
+      ];
+    }
+    return val;
+  }
+  function toBezier(val) {
+    var _a;
+    var retVal = [val];
+    switch (val[0]) {
+      case "M":
+        this.pos = this.start = [val[1], val[2]];
+        return retVal;
+      case "L":
+        val[5] = val[3] = val[1];
+        val[6] = val[4] = val[2];
+        val[1] = this.pos[0];
+        val[2] = this.pos[1];
+        break;
+      case "Q":
+        val[6] = val[4];
+        val[5] = val[3];
+        val[4] = val[4] * 1 / 3 + val[2] * 2 / 3;
+        val[3] = val[3] * 1 / 3 + val[1] * 2 / 3;
+        val[2] = this.pos[1] * 1 / 3 + val[2] * 2 / 3;
+        val[1] = this.pos[0] * 1 / 3 + val[1] * 2 / 3;
+        break;
+      case "A":
+        retVal = arcToBezier((_a = this.pos) != null ? _a : [], val);
+        val = retVal[0];
+        break;
+    }
+    val[0] = "C";
+    this.pos = [val[5], val[6]];
+    this.reflection = [2 * val[5] - val[3], 2 * val[6] - val[4]];
+    return retVal;
+  }
+  function findNextM(arr, offset) {
+    if (offset === false) return false;
+    for (var i = offset, len = arr.length; i < len; ++i) {
+      if (arr[i][0] == "M") return i;
+    }
+    return false;
+  }
+  function arcToBezier(pos, val) {
+    var rx = Math.abs(val[1]), ry = Math.abs(val[2]), xAxisRotation = val[3] % 360, largeArcFlag = val[4], sweepFlag = val[5], x = val[6], y = val[7], A = new Point(pos[0], pos[1]), B = new Point(x, y), primedCoord, lambda, mat, k, c, cSquare, t, O, OA, OB, tetaStart, tetaEnd, deltaTeta, nbSectors, f, arcSegPoints, angle, sinAngle, cosAngle, pt, i, il, retVal = [], x1, y1, x2, y2;
+    if (rx === 0 || ry === 0 || A.x === B.x && A.y === B.y) {
+      return [["C", A.x, A.y, B.x, B.y, B.x, B.y]];
+    }
+    primedCoord = new Point((A.x - B.x) / 2, (A.y - B.y) / 2).transform(
+      // Start with the identity matrix (no args → Matrix defaults a=d=1, others 0).
+      // Passing all-zero args here would produce a degenerate zero matrix, since
+      // `0 ?? 1` is `0`, not `1` — every subsequent transform then yields (0,0)
+      // and the arc-to-bezier conversion crashes on a NaN cascade.
+      /** @type {any} */
+      new Matrix().rotate(xAxisRotation)
+    );
+    lambda = primedCoord.x * primedCoord.x / (rx * rx) + primedCoord.y * primedCoord.y / (ry * ry);
+    if (lambda > 1) {
+      lambda = Math.sqrt(lambda);
+      rx = lambda * rx;
+      ry = lambda * ry;
+    }
+    mat = /** @type {any} */
+    new Matrix().rotate(xAxisRotation).scale(1 / rx, 1 / ry).rotate(-xAxisRotation);
+    A = A.transform(mat);
+    B = B.transform(mat);
+    k = [B.x - A.x, B.y - A.y];
+    cSquare = k[0] * k[0] + k[1] * k[1];
+    c = Math.sqrt(cSquare);
+    k[0] /= c;
+    k[1] /= c;
+    t = cSquare < 4 ? Math.sqrt(1 - cSquare / 4) : 0;
+    if (largeArcFlag === sweepFlag) {
+      t *= -1;
+    }
+    O = new Point((B.x + A.x) / 2 + t * -k[1], (B.y + A.y) / 2 + t * k[0]);
+    OA = new Point(A.x - O.x, A.y - O.y);
+    OB = new Point(B.x - O.x, B.y - O.y);
+    tetaStart = Math.acos(OA.x / Math.sqrt(OA.x * OA.x + OA.y * OA.y));
+    if (OA.y < 0) tetaStart *= -1;
+    tetaEnd = Math.acos(OB.x / Math.sqrt(OB.x * OB.x + OB.y * OB.y));
+    if (OB.y < 0) tetaEnd *= -1;
+    if (sweepFlag && tetaStart > tetaEnd) {
+      tetaEnd += 2 * Math.PI;
+    }
+    if (!sweepFlag && tetaStart < tetaEnd) {
+      tetaEnd -= 2 * Math.PI;
+    }
+    nbSectors = Math.ceil(Math.abs(tetaStart - tetaEnd) * 2 / Math.PI);
+    arcSegPoints = [];
+    angle = tetaStart;
+    deltaTeta = (tetaEnd - tetaStart) / nbSectors;
+    f = 4 * Math.tan(deltaTeta / 4) / 3;
+    for (i = 0; i <= nbSectors; i++) {
+      cosAngle = Math.cos(angle);
+      sinAngle = Math.sin(angle);
+      pt = new Point(O.x + cosAngle, O.y + sinAngle);
+      arcSegPoints[i] = [
+        new Point(pt.x + f * sinAngle, pt.y - f * cosAngle),
+        pt,
+        new Point(pt.x - f * sinAngle, pt.y + f * cosAngle)
+      ];
+      angle += deltaTeta;
+    }
+    arcSegPoints[0][0] = arcSegPoints[0][1].clone();
+    arcSegPoints[arcSegPoints.length - 1][2] = arcSegPoints[arcSegPoints.length - 1][1].clone();
+    mat = /** @type {any} */
+    new Matrix().rotate(xAxisRotation).scale(rx, ry).rotate(-xAxisRotation);
+    for (i = 0, il = arcSegPoints.length; i < il; i++) {
+      arcSegPoints[i][0] = arcSegPoints[i][0].transform(mat);
+      arcSegPoints[i][1] = arcSegPoints[i][1].transform(mat);
+      arcSegPoints[i][2] = arcSegPoints[i][2].transform(mat);
+    }
+    for (i = 1, il = arcSegPoints.length; i < il; i++) {
+      pt = arcSegPoints[i - 1][2];
+      x1 = pt.x;
+      y1 = pt.y;
+      pt = arcSegPoints[i][0];
+      x2 = pt.x;
+      y2 = pt.y;
+      pt = arcSegPoints[i][1];
+      x = pt.x;
+      y = pt.y;
+      retVal.push(["C", x1, y1, x2, y2, x, y]);
+    }
+    return retVal;
+  }
+  function handleBlock(startArr, startOffsetM, startOffsetNextM, destArr, destOffsetM, destOffsetNextM) {
+    var startArrTemp = startArr.slice(startOffsetM, startOffsetNextM || void 0);
+    var destArrTemp = destArr.slice(destOffsetM, destOffsetNextM || void 0);
+    var i = 0, posStart = { pos: [0, 0], start: [0, 0] }, posDest = { pos: [0, 0], start: [0, 0] };
+    while (true) {
+      startArrTemp[i] = simplify.call(posStart, startArrTemp[i]);
+      destArrTemp[i] = simplify.call(posDest, destArrTemp[i]);
+      if (startArrTemp[i][0] != destArrTemp[i][0] || startArrTemp[i][0] == "M" || startArrTemp[i][0] == "A" && (startArrTemp[i][4] != destArrTemp[i][4] || startArrTemp[i][5] != destArrTemp[i][5])) {
+        Array.prototype.splice.apply(
+          startArrTemp,
+          /** @type {[number, number, ...any[]]} */
+          [i, 1].concat(
+            /** @type {any} */
+            toBezier.call(posStart, startArrTemp[i])
+          )
+        );
+        Array.prototype.splice.apply(
+          destArrTemp,
+          /** @type {[number, number, ...any[]]} */
+          [i, 1].concat(
+            /** @type {any} */
+            toBezier.call(posDest, destArrTemp[i])
+          )
+        );
+      } else {
+        startArrTemp[i] = /** @type {any} */
+        setPosAndReflection.call(
+          posStart,
+          startArrTemp[i]
+        );
+        destArrTemp[i] = /** @type {any} */
+        setPosAndReflection.call(
+          posDest,
+          destArrTemp[i]
+        );
+      }
+      if (++i == startArrTemp.length && i == destArrTemp.length) break;
+      if (i == startArrTemp.length) {
+        startArrTemp.push([
+          "C",
+          posStart.pos[0],
+          posStart.pos[1],
+          posStart.pos[0],
+          posStart.pos[1],
+          posStart.pos[0],
+          posStart.pos[1]
+        ]);
+      }
+      if (i == destArrTemp.length) {
+        destArrTemp.push([
+          "C",
+          posDest.pos[0],
+          posDest.pos[1],
+          posDest.pos[0],
+          posDest.pos[1],
+          posDest.pos[0],
+          posDest.pos[1]
+        ]);
+      }
+    }
+    return { start: startArrTemp, dest: destArrTemp };
+  }
+  function synchronizePaths(fromD, toD) {
+    var startArr = parsePath(fromD);
+    var destArr = parsePath(toD);
+    var startOffsetM = 0;
+    var destOffsetM = 0;
+    var startOffsetNextM = false;
+    var destOffsetNextM = false;
+    var result;
+    while (true) {
+      if (startOffsetM === false && destOffsetM === false) break;
+      startOffsetNextM = findNextM(
+        startArr,
+        startOffsetM === false ? false : startOffsetM + 1
+      );
+      destOffsetNextM = findNextM(
+        destArr,
+        destOffsetM === false ? false : destOffsetM + 1
+      );
+      if (startOffsetM === false) {
+        const bbox = pathBbox(
+          /** @type {any} */
+          result.start
+        );
+        if (bbox.height == 0 || bbox.width == 0) {
+          startOffsetM = startArr.push(startArr[0]) - 1;
+        } else {
+          startOffsetM = startArr.push([
+            "M",
+            bbox.x + bbox.width / 2,
+            bbox.y + bbox.height / 2
+          ]) - 1;
+        }
+      }
+      if (destOffsetM === false) {
+        const bbox = pathBbox(
+          /** @type {any} */
+          result.dest
+        );
+        if (bbox.height == 0 || bbox.width == 0) {
+          destOffsetM = destArr.push(destArr[0]) - 1;
+        } else {
+          destOffsetM = destArr.push([
+            "M",
+            bbox.x + bbox.width / 2,
+            bbox.y + bbox.height / 2
+          ]) - 1;
+        }
+      }
+      result = handleBlock(
+        startArr,
+        startOffsetM,
+        startOffsetNextM,
+        destArr,
+        destOffsetM,
+        destOffsetNextM
+      );
+      startArr = startArr.slice(0, startOffsetM).concat(
+        result.start,
+        startOffsetNextM === false ? [] : startArr.slice(startOffsetNextM)
+      );
+      destArr = destArr.slice(0, destOffsetM).concat(
+        result.dest,
+        destOffsetNextM === false ? [] : destArr.slice(destOffsetNextM)
+      );
+      startOffsetM = startOffsetNextM === false ? false : startOffsetM + result.start.length;
+      destOffsetM = destOffsetNextM === false ? false : destOffsetM + result.dest.length;
+    }
+    return { start: startArr, dest: destArr };
+  }
+  function morphPaths(fromD, toD) {
+    var synced = synchronizePaths(fromD, toD);
+    var startArr = synced.start;
+    var destArr = synced.dest;
+    return function(pos) {
+      var result = startArr.map(function(from, idx) {
+        return destArr[idx].map(function(to, toIdx) {
+          if (toIdx === 0) return to;
+          return from[toIdx] + (destArr[idx][toIdx] - from[toIdx]) * pos;
+        });
+      });
+      return arrayToPath(result);
+    };
+  }
+  let _measureSvg = null;
+  let _measurePath = null;
+  function samplePathPoints(d, n) {
+    const pts = new Array(n);
+    if (!Environment.isBrowser()) {
+      const arr = parsePath(d);
+      const bbox = pathBbox(arr);
+      const cx = bbox.x + bbox.width / 2;
+      const cy = bbox.y + bbox.height / 2;
+      for (let i = 0; i < n; i++) pts[i] = { x: cx, y: cy };
+      return pts;
+    }
+    if (!_measureSvg) {
+      _measureSvg = /** @type {SVGSVGElement} */
+      document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      _measureSvg.setAttribute("width", "0");
+      _measureSvg.setAttribute("height", "0");
+      _measureSvg.setAttribute(
+        "style",
+        "position:absolute;width:0;height:0;visibility:hidden;pointer-events:none;"
+      );
+      _measurePath = /** @type {SVGPathElement} */
+      document.createElementNS("http://www.w3.org/2000/svg", "path");
+      _measureSvg.appendChild(_measurePath);
+      document.body.appendChild(_measureSvg);
+    }
+    _measurePath.setAttribute("d", d || "M0 0");
+    let len = 0;
+    try {
+      len = _measurePath.getTotalLength();
+    } catch (e) {
+      len = 0;
+    }
+    if (!len || !isFinite(len)) {
+      const arr = parsePath(d);
+      const bbox = pathBbox(arr);
+      const cx = bbox.x + bbox.width / 2;
+      const cy = bbox.y + bbox.height / 2;
+      for (let i = 0; i < n; i++) pts[i] = { x: cx, y: cy };
+      return pts;
+    }
+    for (let i = 0; i < n; i++) {
+      try {
+        const p = _measurePath.getPointAtLength(i / n * len);
+        pts[i] = { x: p.x, y: p.y };
+      } catch (e) {
+        pts[i] = { x: 0, y: 0 };
+      }
+    }
+    return pts;
+  }
+  function morphPolygons(fromD, toD, n = 96) {
+    const fromPts = samplePathPoints(fromD, n);
+    const toPts = samplePathPoints(toD, n);
+    let bestOffset = 0;
+    let bestDist = Infinity;
+    for (let off = 0; off < n; off++) {
+      let dist = 0;
+      for (let i = 0; i < n; i++) {
+        const a = fromPts[(i + off) % n];
+        const b = toPts[i];
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        dist += dx * dx + dy * dy;
+        if (dist >= bestDist) break;
+      }
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestOffset = off;
+      }
+    }
+    const aligned = new Array(n);
+    for (let i = 0; i < n; i++) {
+      aligned[i] = fromPts[(i + bestOffset) % n];
+    }
+    return function(pos) {
+      let out = "";
+      for (let i = 0; i < n; i++) {
+        const a = aligned[i];
+        const b = toPts[i];
+        const x = a.x + (b.x - a.x) * pos;
+        const y = a.y + (b.y - a.y) * pos;
+        out += (i === 0 ? "M" : "L") + x.toFixed(3) + " " + y.toFixed(3) + " ";
+      }
+      return out + "Z";
+    };
+  }
+  function easeInOut(t) {
+    return -Math.cos(t * Math.PI) / 2 + 0.5;
+  }
+  let _defaultEasing = easeInOut;
+  function setDefaultEasing(fn) {
+    _defaultEasing = typeof fn === "function" ? fn : easeInOut;
+  }
+  function parseColor(str) {
+    if (!str || typeof str !== "string") return null;
+    if (str[0] === "#") {
+      let hex = str.slice(1);
+      if (hex.length === 3)
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+      const n = parseInt(hex, 16);
+      return [n >> 16 & 255, n >> 8 & 255, n & 255, 1];
+    }
+    const m = str.match(
+      /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/
+    );
+    if (m) return [+m[1], +m[2], +m[3], m[4] !== void 0 ? +m[4] : 1];
+    return null;
+  }
+  function interpolateColor(from, to, pos) {
+    return `rgba(${Math.round(from[0] + (to[0] - from[0]) * pos)},${Math.round(from[1] + (to[1] - from[1]) * pos)},${Math.round(from[2] + (to[2] - from[2]) * pos)},${from[3] + (to[3] - from[3]) * pos})`;
+  }
+  class SVGAnimationRunner {
+    /**
+     * @param {any} element
+     * @param {number} duration
+     * @param {number} delay
+     */
+    constructor(element, duration, delay) {
+      this.el = element;
+      this.duration = duration != null ? duration : 300;
+      this.delay = delay || 0;
+      this._attrTarget = null;
+      this._plotTarget = null;
+      this._plotSnap = null;
+      this._plotAlgorithm = "commands";
+      this._afterCb = null;
+      this._duringCb = null;
+      this._easing = null;
+      this._next = null;
+      this._root = null;
+      this._scheduled = false;
+    }
+    /**
+     * Override the easing for this runner (else the module default is used).
+     * @param {(t:number)=>number} fn
+     */
+    ease(fn) {
+      if (typeof fn === "function") this._easing = fn;
+      this._schedule();
+      return this;
+    }
+    /**
+     * @param {Record<string, any>} to
+     */
+    attr(to) {
+      this._attrTarget = to;
+      this._schedule();
+      return this;
+    }
+    /**
+     * @param {string} d
+     * @param {'commands' | 'polygons'} [algorithm] - morph engine to use for
+     *   the d→d interpolation. 'commands' (default) is the legacy
+     *   per-command lerp; 'polygons' resamples both paths into N evenly
+     *   spaced points and tweens point-by-point (smoother for shapes with
+     *   very different anchor-point counts).
+     * @param {string} [snapTo] - final d to land on when it differs from the
+     *   interpolation target. Used by reconciled length-change morphs: the
+     *   tween runs against a padded path (extra anchors lying exactly on the
+     *   final geometry) but the element must end with the renderer's clean,
+     *   un-padded d so later captures and morphs stay stable.
+     */
+    plot(d, algorithm, snapTo) {
+      this._plotTarget = d;
+      if (algorithm) this._plotAlgorithm = algorithm;
+      this._plotSnap = snapTo || null;
+      this._schedule();
+      return this;
+    }
+    /**
+     * @param {Function} fn
+     */
+    after(fn) {
+      this._afterCb = fn;
+      this._schedule();
+      return this;
+    }
+    /**
+     * @param {Function} fn
+     */
+    during(fn) {
+      this._duringCb = fn;
+      this._schedule();
+      return this;
+    }
+    /**
+     * @param {number} duration
+     * @param {number} delay
+     */
+    animate(duration, delay) {
+      const next = new SVGAnimationRunner(this.el, duration, delay);
+      this._next = next;
+      next._root = this._root || this;
+      return next;
+    }
+    _schedule() {
+      const root = this._root || this;
+      if (!root._scheduled) {
+        root._scheduled = true;
+        queueMicrotask(() => root._executeChain());
+      }
+    }
+    _executeChain() {
+      const chain = [];
+      let r = this;
+      while (r) {
+        chain.push(r);
+        r = r._next;
+      }
+      let cumulativeDelay = 0;
+      chain.forEach((runner) => {
+        cumulativeDelay += runner.delay;
+        runner._execute(cumulativeDelay);
+        cumulativeDelay += runner.duration;
+      });
+    }
+    /**
+     * @param {number} startDelay
+     */
+    _execute(startDelay) {
+      const el = this.el;
+      const duration = this.duration;
+      if (duration <= 1) {
+        const apply = () => {
+          if (this._attrTarget) el.attr(this._attrTarget);
+          if (this._plotTarget) el.plot(this._plotSnap || this._plotTarget);
+          if (this._afterCb) this._afterCb.call(el);
+        };
+        if (startDelay > 0) {
+          setTimeout(apply, startDelay);
+        } else {
+          apply();
+        }
+        return;
+      }
+      const run = () => {
+        const fromAttrs = (
+          /** @type {Record<string, any>} */
+          {}
+        );
+        const fromColors = (
+          /** @type {Record<string, any>} */
+          {}
+        );
+        const toColors = (
+          /** @type {Record<string, any>} */
+          {}
+        );
+        if (this._attrTarget) {
+          for (const key of Object.keys(this._attrTarget)) {
+            const fromVal = el.attr(key);
+            fromAttrs[key] = fromVal;
+            const fc = parseColor(fromVal);
+            const tc = parseColor(String(this._attrTarget[key]));
+            if (fc && tc) {
+              fromColors[key] = fc;
+              toColors[key] = tc;
+            }
+          }
+        }
+        let morphFn = null;
+        if (this._plotTarget) {
+          const fromPath = el.attr("d") || "";
+          try {
+            morphFn = this._plotAlgorithm === "polygons" ? morphPolygons(fromPath, this._plotTarget) : morphPaths(fromPath, this._plotTarget);
+          } catch (e) {
+            morphFn = null;
+          }
+        }
+        const start = performance.now();
+        const easing = this._easing || _defaultEasing;
+        const tick = (now) => {
+          const elapsed = now - start;
+          const rawPos = Math.min(elapsed / duration, 1);
+          const pos = easing(rawPos);
+          if (this._attrTarget) {
+            if (rawPos >= 1) {
+              el.attr(this._attrTarget);
+            } else {
+              const current = (
+                /** @type {Record<string, any>} */
+                {}
+              );
+              for (const key of Object.keys(this._attrTarget)) {
+                if (fromColors[key] && toColors[key]) {
+                  current[key] = interpolateColor(
+                    fromColors[key],
+                    toColors[key],
+                    pos
+                  );
+                } else {
+                  const from = parseFloat(fromAttrs[key]);
+                  const to = parseFloat(this._attrTarget[key]);
+                  if (!isNaN(from) && !isNaN(to)) {
+                    current[key] = from + (to - from) * pos;
+                  }
+                }
+              }
+              el.attr(current);
+            }
+          }
+          if (morphFn && rawPos < 1) {
+            el.attr(
+              "d",
+              /** @type {any} */
+              morphFn(pos)
+            );
+          }
+          if (this._duringCb) this._duringCb(pos);
+          if (rawPos < 1) {
+            BrowserAPIs.requestAnimationFrame(tick);
+          } else {
+            if (this._plotTarget) {
+              el.attr("d", this._plotSnap || this._plotTarget);
+            }
+            if (this._afterCb) this._afterCb.call(el);
+          }
+        };
+        BrowserAPIs.requestAnimationFrame(tick);
+      };
+      if (startDelay > 0) {
+        setTimeout(run, startDelay);
+      } else {
+        run();
+      }
+    }
+  }
+  function installAnimationMethods(ElementClass) {
+    ElementClass.prototype.animate = function(duration, delay) {
+      return new SVGAnimationRunner(this, duration, delay);
+    };
+  }
+  function easeInOutSine(t) {
+    return -Math.cos(t * Math.PI) / 2 + 0.5;
+  }
+  function cubicBezier(x1, y1, x2, y2) {
+    x1 = Math.min(Math.max(x1, 0), 1);
+    x2 = Math.min(Math.max(x2, 0), 1);
+    const cx = 3 * x1;
+    const bx = 3 * (x2 - x1) - cx;
+    const ax = 1 - cx - bx;
+    const cy = 3 * y1;
+    const by = 3 * (y2 - y1) - cy;
+    const ay = 1 - cy - by;
+    const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
+    const sampleY = (t) => ((ay * t + by) * t + cy) * t;
+    const slopeX = (t) => (3 * ax * t + 2 * bx) * t + cx;
+    const solveT = (x) => {
+      let t = x;
+      for (let i = 0; i < 5; i++) {
+        const d = slopeX(t);
+        if (d === 0) break;
+        t -= (sampleX(t) - x) / d;
+      }
+      let lo = 0;
+      let hi = 1;
+      t = x;
+      if (t < lo) return lo;
+      if (t > hi) return hi;
+      while (lo < hi) {
+        const xt = sampleX(t);
+        if (Math.abs(xt - x) < 1e-4) return t;
+        if (x > xt) lo = t;
+        else hi = t;
+        t = (lo + hi) / 2;
+      }
+      return t;
+    };
+    return (t) => t <= 0 ? 0 : t >= 1 ? 1 : sampleY(solveT(t));
+  }
+  const REGISTRY = /* @__PURE__ */ new Map();
+  const linear = (t) => t;
+  REGISTRY.set("linear", linear);
+  REGISTRY.set("easeInOutSine", easeInOutSine);
+  REGISTRY.set("easeInSine", (t) => 1 - Math.cos(t * Math.PI / 2));
+  REGISTRY.set("easeOutSine", (t) => Math.sin(t * Math.PI / 2));
+  REGISTRY.set("easeInQuad", (t) => t * t);
+  REGISTRY.set("easeOutQuad", (t) => 1 - (1 - t) * (1 - t));
+  REGISTRY.set(
+    "easeInOutQuad",
+    (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+  );
+  REGISTRY.set("easeInCubic", (t) => t * t * t);
+  REGISTRY.set("easeOutCubic", (t) => 1 - Math.pow(1 - t, 3));
+  REGISTRY.set(
+    "easeInOutCubic",
+    (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+  );
+  REGISTRY.set("easeOutBack", (t) => {
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  });
+  REGISTRY.set("easeInOutBack", (t) => {
+    const c1 = 1.70158;
+    const c2 = c1 * 1.525;
+    return t < 0.5 ? Math.pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2) / 2 : (Math.pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2;
+  });
+  function registerEasing(name2, fn) {
+    if (typeof name2 === "string" && name2 && typeof fn === "function") {
+      REGISTRY.set(name2, fn);
+    }
+  }
+  function isBezierArray(v) {
+    return Array.isArray(v) && v.length === 4 && v.every((n) => typeof n === "number");
+  }
+  function resolveEasing(value) {
+    if (typeof value === "function") return value;
+    if (isBezierArray(value))
+      return cubicBezier(value[0], value[1], value[2], value[3]);
+    if (typeof value === "string" && REGISTRY.has(value)) {
+      return (
+        /** @type {(t:number)=>number} */
+        REGISTRY.get(value)
+      );
+    }
+    return easeInOutSine;
+  }
+  const SVGNS = "http://www.w3.org/2000/svg";
   function easeOutCubic(t) {
     return 1 - Math.pow(1 - t, 3);
   }
@@ -6541,6 +7735,7 @@ var __async = (__this, __arguments, generator) => {
       anim.enabled = false;
       if (anim.dynamicAnimation) anim.dynamicAnimation.enabled = false;
     }
+    setDefaultEasing(resolveEasing(anim.easing));
   }
   function computeStagger(opts) {
     const style = opts.style;
@@ -6655,7 +7850,18 @@ var __async = (__this, __arguments, generator) => {
      * @param {Record<string, any>} params
      */
     animatePathsGradually(params) {
-      const { el, realIndex, j, fill, pathFrom, pathTo, speed, delay } = params;
+      const {
+        el,
+        realIndex,
+        j,
+        fill,
+        pathFrom,
+        pathTo,
+        pathToInterp,
+        speed,
+        delay,
+        scrollMorph
+      } = params;
       const me = this;
       const w = this.w;
       let delayFactor = 0;
@@ -6673,7 +7879,9 @@ var __async = (__this, __arguments, generator) => {
         pathFrom,
         pathTo,
         speed,
-        delay * delayFactor
+        delay * delayFactor,
+        scrollMorph,
+        pathToInterp
       );
     }
     /**
@@ -6709,6 +7917,7 @@ var __async = (__this, __arguments, generator) => {
     }
     showDelayedElements() {
       this.w.globals.delayedElements.forEach((d) => {
+        if (d.holdUntilComplete && !this.w.globals.animationEnded) return;
         const ele = d.el;
         ele.classList.remove("apexcharts-element-hidden");
         ele.classList.add("apexcharts-hidden-element-shown");
@@ -6763,7 +7972,7 @@ var __async = (__this, __arguments, generator) => {
         const radialCy = maskShape && maskShape.cy || 0;
         const targetRadius = (maskShape && maskShape.r || w.layout.gridWidth / 2) + pad;
         const maskId = `apexDrawMask${w.globals.cuid}-${realIndex}-${j != null ? j : 0}-${isFill ? "f" : "s"}`;
-        const mask = BrowserAPIs.createElementNS(SVGNS$1, "mask");
+        const mask = BrowserAPIs.createElementNS(SVGNS, "mask");
         mask.setAttribute("id", maskId);
         mask.setAttribute("maskUnits", "userSpaceOnUse");
         let revealEl;
@@ -6773,7 +7982,7 @@ var __async = (__this, __arguments, generator) => {
           mask.setAttribute("y", String(radialCy - region));
           mask.setAttribute("width", String(region * 2));
           mask.setAttribute("height", String(region * 2));
-          revealEl = BrowserAPIs.createElementNS(SVGNS$1, "circle");
+          revealEl = BrowserAPIs.createElementNS(SVGNS, "circle");
           revealEl.setAttribute("cx", String(radialCx));
           revealEl.setAttribute("cy", String(radialCy));
           revealEl.setAttribute("r", "0");
@@ -6783,7 +7992,7 @@ var __async = (__this, __arguments, generator) => {
           mask.setAttribute("y", String(-pad));
           mask.setAttribute("width", String(targetWidth));
           mask.setAttribute("height", String(w.layout.gridHeight + pad * 2));
-          revealEl = BrowserAPIs.createElementNS(SVGNS$1, "rect");
+          revealEl = BrowserAPIs.createElementNS(SVGNS, "rect");
           revealEl.setAttribute("x", String(-pad));
           revealEl.setAttribute("y", String(-pad));
           revealEl.setAttribute("width", "0");
@@ -6868,8 +8077,13 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} pathTo
      * @param {number} speed
      * @param {number} delay
+     * @param {boolean} [scrollMorph] - this morph is a streaming scroll (StreamScroll)
+     * @param {string} [pathToInterp] - interpolation target that differs from the
+     *   final path. Reconciled length-change morphs tween toward a padded copy of
+     *   pathTo (extra anchors sitting exactly on the final geometry) and snap to
+     *   the clean pathTo at the end.
      */
-    morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay) {
+    morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay, scrollMorph, pathToInterp) {
       var _a, _b;
       const w = this.w;
       if (!pathFrom) {
@@ -6889,13 +8103,34 @@ var __async = (__this, __arguments, generator) => {
       }
       if (!pathTo.trim() || pathTo.indexOf("undefined") > -1 || pathTo.indexOf("NaN") > -1) {
         pathTo = disableAnimationForCorrupPath();
+        pathToInterp = void 0;
+      }
+      if (pathToInterp && (!pathToInterp.trim() || pathToInterp.indexOf("undefined") > -1 || pathToInterp.indexOf("NaN") > -1)) {
+        pathToInterp = void 0;
       }
       if (!w.globals.shouldAnimate) {
         speed = 1;
       }
       const crossTypeMorph = ((_b = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.isActive()) === true;
       const morphAlgo = crossTypeMorph ? "polygons" : "commands";
-      el.plot(pathFrom).animate(1, delay).plot(pathFrom).animate(speed, delay).plot(pathTo, morphAlgo).after(() => {
+      let morphEase = null;
+      if (w.globals.dataChanged) {
+        const dynEasing = w.config.chart.animations.dynamicAnimation.easing;
+        if (dynEasing != null) {
+          morphEase = resolveEasing(dynEasing);
+        } else if (scrollMorph) {
+          morphEase = resolveEasing("linear");
+        }
+      }
+      const runner = el.plot(pathFrom).animate(1, delay).plot(pathFrom).animate(speed, delay);
+      if (morphEase) {
+        runner.ease(morphEase);
+      }
+      runner.plot(
+        pathToInterp || pathTo,
+        morphAlgo,
+        pathToInterp ? pathTo : void 0
+      ).after(() => {
         if (Utils$1.isNumber(j)) {
           if (j === w.seriesData.series[w.globals.maxValsInArrayIndex].length - 2 && w.globals.shouldAnimate) {
             this.animationCompleted(el);
@@ -7408,6 +8643,8 @@ var __async = (__this, __arguments, generator) => {
      *  animationDelay = how much to delay when starting animation (in milliseconds)
      *  dataChangeSpeed = for dynamic animations, when data changes
      *  className = class attribute to add
+     *  scrollMorph = this data-change morph is a streaming scroll (see StreamScroll);
+     *                defaults the morph easing to linear so the slide is constant-velocity
      * @return {any} svg.js path object
      **/
     renderPaths({
@@ -7415,6 +8652,7 @@ var __async = (__this, __arguments, generator) => {
       realIndex,
       pathFrom,
       pathTo,
+      pathToInterp,
       stroke,
       strokeWidth,
       strokeLinecap,
@@ -7427,7 +8665,8 @@ var __async = (__this, __arguments, generator) => {
       shouldClipToGrid = true,
       bindEventsOnPaths = true,
       drawShadow = true,
-      drawMask = null
+      drawMask = null,
+      scrollMorph = false
     }) {
       var _a, _b;
       const w = this.w;
@@ -7505,9 +8744,11 @@ var __async = (__this, __arguments, generator) => {
         realIndex,
         pathFrom,
         pathTo,
+        pathToInterp,
         fill,
         strokeWidth,
-        delay: animationDelay
+        delay: animationDelay,
+        scrollMorph
       };
       if (initialAnim && !w.globals.resized && !w.globals.dataChanged) {
         if (useDrawMode) {
@@ -7933,57 +9174,61 @@ var __async = (__this, __arguments, generator) => {
       const i = parseInt((_a = path.node.getAttribute("index")) != null ? _a : "", 10);
       const j = parseInt((_b = path.node.getAttribute("j")) != null ? _b : "", 10);
       if (isNaN(i) || isNaN(j)) return;
-      let selected = "false";
-      if (path.node.getAttribute("selected") === "true") {
-        path.node.setAttribute("selected", "false");
-        const index = w.interact.selectedDataPoints[i].indexOf(j);
-        if (index > -1) {
-          w.interact.selectedDataPoints[i].splice(index, 1);
-        }
-      } else {
-        if (!w.config.states.active.allowMultipleDataPointsSelection && w.interact.selectedDataPoints.length > 0) {
-          w.interact.selectedDataPoints = [];
-          const elPaths = w.dom.Paper.find(
-            ".apexcharts-series path:not(.apexcharts-decoration-element)"
-          );
-          const elCircles = w.dom.Paper.find(
-            ".apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)"
-          );
-          const deSelect = (els) => {
-            Array.prototype.forEach.call(els, (el) => {
-              el.node.setAttribute("selected", "false");
-              filters.getDefaultFilter(el, i);
-            });
-          };
-          deSelect(elPaths);
-          deSelect(elCircles);
-        }
-        path.node.setAttribute("selected", "true");
-        selected = "true";
-        if (typeof w.interact.selectedDataPoints[i] === "undefined") {
-          w.interact.selectedDataPoints[i] = [];
-        }
-        w.interact.selectedDataPoints[i].push(j);
-      }
-      if (selected === "true") {
-        const activeFilter = w.config.states.active.filter;
-        if (activeFilter !== "none") {
-          filters.applyFilter(path, i, activeFilter.type);
+      const link = w.config.chart.link;
+      const crossfilterClick = !!(link && typeof link.dimension === "function");
+      if (!crossfilterClick) {
+        let selected = "false";
+        if (path.node.getAttribute("selected") === "true") {
+          path.node.setAttribute("selected", "false");
+          const index = w.interact.selectedDataPoints[i].indexOf(j);
+          if (index > -1) {
+            w.interact.selectedDataPoints[i].splice(index, 1);
+          }
         } else {
-          if (w.config.states.hover.filter !== "none") {
-            if (!w.interact.isTouchDevice) {
-              const hoverFilter = w.config.states.hover.filter;
-              filters.applyFilter(path, i, hoverFilter.type);
+          if (!w.config.states.active.allowMultipleDataPointsSelection && w.interact.selectedDataPoints.length > 0) {
+            w.interact.selectedDataPoints = [];
+            const elPaths = w.dom.Paper.find(
+              ".apexcharts-series path:not(.apexcharts-decoration-element)"
+            );
+            const elCircles = w.dom.Paper.find(
+              ".apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)"
+            );
+            const deSelect = (els) => {
+              Array.prototype.forEach.call(els, (el) => {
+                el.node.setAttribute("selected", "false");
+                filters.getDefaultFilter(el, i);
+              });
+            };
+            deSelect(elPaths);
+            deSelect(elCircles);
+          }
+          path.node.setAttribute("selected", "true");
+          selected = "true";
+          if (typeof w.interact.selectedDataPoints[i] === "undefined") {
+            w.interact.selectedDataPoints[i] = [];
+          }
+          w.interact.selectedDataPoints[i].push(j);
+        }
+        if (selected === "true") {
+          const activeFilter = w.config.states.active.filter;
+          if (activeFilter !== "none") {
+            filters.applyFilter(path, i, activeFilter.type);
+          } else {
+            if (w.config.states.hover.filter !== "none") {
+              if (!w.interact.isTouchDevice) {
+                const hoverFilter = w.config.states.hover.filter;
+                filters.applyFilter(path, i, hoverFilter.type);
+              }
             }
           }
-        }
-      } else {
-        if (w.config.states.active.filter.type !== "none") {
-          if (w.config.states.hover.filter.type !== "none" && !w.interact.isTouchDevice) {
-            const hoverFilter = w.config.states.hover.filter;
-            filters.applyFilter(path, i, hoverFilter.type);
-          } else {
-            filters.getDefaultFilter(path, i);
+        } else {
+          if (w.config.states.active.filter.type !== "none") {
+            if (w.config.states.hover.filter.type !== "none" && !w.interact.isTouchDevice) {
+              const hoverFilter = w.config.states.hover.filter;
+              filters.applyFilter(path, i, hoverFilter.type);
+            } else {
+              filters.getDefaultFilter(path, i);
+            }
           }
         }
       }
@@ -8205,106 +9450,6 @@ var __async = (__this, __arguments, generator) => {
       }
     }
   }
-  const SVGNS = "http://www.w3.org/2000/svg";
-  class Point {
-    /**
-     * @param {number|{x:number,y:number}} x
-     * @param {number} [y]
-     */
-    constructor(x, y) {
-      if (typeof x === "object") {
-        this.x = x.x;
-        this.y = x.y;
-      } else {
-        this.x = x || 0;
-        this.y = y || 0;
-      }
-    }
-    /**
-     * @param {Matrix} matrix
-     */
-    transform(matrix) {
-      return matrix.apply(this);
-    }
-    clone() {
-      return new Point(this.x, this.y);
-    }
-  }
-  class Matrix {
-    /**
-     * Defaults to the identity matrix when called with no args.
-     * @param {number} [a]
-     * @param {number} [b]
-     * @param {number} [c]
-     * @param {number} [d]
-     * @param {number} [e]
-     * @param {number} [f]
-     */
-    constructor(a, b, c, d, e, f) {
-      this.a = a != null ? a : 1;
-      this.b = b != null ? b : 0;
-      this.c = c != null ? c : 0;
-      this.d = d != null ? d : 1;
-      this.e = e != null ? e : 0;
-      this.f = f != null ? f : 0;
-    }
-    /**
-     * @param {number} deg
-     */
-    rotate(deg) {
-      const rad = deg * Math.PI / 180;
-      const cos = Math.cos(rad);
-      const sin = Math.sin(rad);
-      return this.multiply(new Matrix(cos, sin, -sin, cos, 0, 0));
-    }
-    /**
-     * @param {number} sx
-     * @param {number} sy
-     */
-    scale(sx, sy) {
-      return this.multiply(new Matrix(sx, 0, 0, sy != null ? sy : sx, 0, 0));
-    }
-    /**
-     * @param {Matrix} m
-     */
-    multiply(m) {
-      return new Matrix(
-        this.a * m.a + this.c * m.b,
-        this.b * m.a + this.d * m.b,
-        this.a * m.c + this.c * m.d,
-        this.b * m.c + this.d * m.d,
-        this.a * m.e + this.c * m.f + this.e,
-        this.b * m.e + this.d * m.f + this.f
-      );
-    }
-    /**
-     * @param {Point} point
-     */
-    apply(point) {
-      return new Point(
-        this.a * point.x + this.c * point.y + this.e,
-        this.b * point.x + this.d * point.y + this.f
-      );
-    }
-  }
-  class Box {
-    /**
-     * @param {number} x
-     * @param {number} y
-     * @param {number} w
-     * @param {number} h
-     */
-    constructor(x, y, w, h) {
-      this.x = x;
-      this.y = y;
-      this.w = w;
-      this.h = h;
-      this.width = w;
-      this.height = h;
-      this.x2 = x + w;
-      this.y2 = y + h;
-    }
-  }
   class Fill {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -8339,14 +9484,14 @@ var __async = (__this, __arguments, generator) => {
         imgWidth = params.width;
         imgHeight = params.height;
       }
-      const elPattern = BrowserAPIs.createElementNS(SVGNS, "pattern");
+      const elPattern = BrowserAPIs.createElementNS(SVGNS$1, "pattern");
       Graphics.setAttrs(elPattern, {
         id: params.patternID,
         patternUnits: params.patternUnits ? params.patternUnits : "userSpaceOnUse",
         width: imgWidth + "px",
         height: imgHeight + "px"
       });
-      const elImage = BrowserAPIs.createElementNS(SVGNS, "image");
+      const elImage = BrowserAPIs.createElementNS(SVGNS$1, "image");
       elPattern.appendChild(elImage);
       const SVGLib = Environment.isBrowser() ? (
         /** @type {any} */
@@ -8707,6 +9852,48 @@ var __async = (__this, __arguments, generator) => {
       );
     }
   }
+  const OK_FILTER_TYPES = ["none", "lighten", "darken"];
+  function seriesEmitter(ctx, graphics) {
+    const r = ctx && ctx.renderer;
+    return r && r.kind && r.kind !== "svg" ? r : graphics;
+  }
+  function computeMarkCount(w) {
+    const series = w.config.series || [];
+    const type = w.config.chart.type;
+    const scatterish = type === "scatter" || type === "bubble";
+    const markerSize = w.config.markers && w.config.markers.size;
+    const markersOn = Array.isArray(markerSize) ? markerSize.some((s) => s > 0) : (markerSize || 0) > 0;
+    const labelsOn = !!(w.config.dataLabels && w.config.dataLabels.enabled);
+    let total = 0;
+    let maxLen = 0;
+    series.forEach((s) => {
+      const n = Array.isArray(s.data) ? s.data.length : 0;
+      if (n > maxLen) maxLen = n;
+      if (scatterish || markersOn) total += n;
+      if (labelsOn) total += n;
+    });
+    const LARGE_D = 5e4;
+    if (maxLen >= LARGE_D) total = Math.max(total, maxLen);
+    return total;
+  }
+  function hasCanvasUnsupportedFeature(w) {
+    var _a, _b;
+    const fillType = w.config.fill && w.config.fill.type;
+    const isUnsupportedFill = (t) => t === "pattern" || t === "image" || t === "gradient";
+    if (Array.isArray(fillType) ? fillType.some(isUnsupportedFill) : isUnsupportedFill(fillType)) {
+      return true;
+    }
+    const lineColors = (_b = (_a = w.config.plotOptions) == null ? void 0 : _a.line) == null ? void 0 : _b.colors;
+    if (lineColors && lineColors.colorAboveThreshold && lineColors.colorBelowThreshold) {
+      return true;
+    }
+    const states = w.config.states || {};
+    const hoverFilter = states.hover && states.hover.filter && states.hover.filter.type;
+    const activeFilter = states.active && states.active.filter && states.active.filter.type;
+    if (hoverFilter && !OK_FILTER_TYPES.includes(hoverFilter)) return true;
+    if (activeFilter && !OK_FILTER_TYPES.includes(activeFilter)) return true;
+    return false;
+  }
   class Markers {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -8752,6 +9939,7 @@ var __async = (__this, __arguments, generator) => {
       const p = pointsPos;
       let elMarkersWrap = null;
       const graphics = new Graphics(this.w);
+      const emit = seriesEmitter(this.ctx, graphics);
       const hasDiscreteMarkers = w.config.markers.discrete && w.config.markers.discrete.length;
       if (Array.isArray(p.x)) {
         for (let q = 0; q < p.x.length; q++) {
@@ -8769,6 +9957,12 @@ var __async = (__this, __arguments, generator) => {
           }
           const shouldMarkerDraw = Array.isArray(w.config.markers.size) ? w.globals.markers.size[seriesIndex] > 0 : w.config.markers.size > 0;
           if (shouldMarkerDraw || alwaysDrawMarker || hasDiscreteMarkers) {
+            if (emit.kind === "canvas") {
+              if (typeof w.globals.pointsArray[seriesIndex] === "undefined") {
+                w.globals.pointsArray[seriesIndex] = [];
+              }
+              w.globals.pointsArray[seriesIndex][dataPointIndex] = [p.x[q], p.y[q]];
+            }
             if (!invalidMarker) {
               markerClasses += ` w${Utils$1.randomId()}`;
             }
@@ -8798,7 +9992,7 @@ var __async = (__this, __arguments, generator) => {
             if (!invalidMarker) {
               const shouldCreateMarkerWrap = w.globals.markers.size[seriesIndex] > 0 || alwaysDrawMarker || hasDiscreteMarkers;
               if (shouldCreateMarkerWrap && !elMarkersWrap) {
-                elMarkersWrap = graphics.group({
+                elMarkersWrap = emit.group({
                   class: alwaysDrawMarker || hasDiscreteMarkers ? "" : "apexcharts-series-markers"
                 });
                 elMarkersWrap.attr(
@@ -8807,7 +10001,7 @@ var __async = (__this, __arguments, generator) => {
                 );
                 this.setupMarkerDelegation(elMarkersWrap);
               }
-              markerElement = graphics.drawMarker(p.x[q], p.y[q], opts);
+              markerElement = emit.drawMarker(p.x[q], p.y[q], opts);
               markerElement.attr("rel", dataPointIndex);
               markerElement.attr("j", dataPointIndex);
               markerElement.attr("index", seriesIndex);
@@ -8974,11 +10168,12 @@ var __async = (__this, __arguments, generator) => {
     draw(elSeries, j, opts) {
       const w = this.w;
       const graphics = this.graphics;
+      const emit = seriesEmitter(this.ctx, graphics);
       const realIndex = opts.realIndex;
       const pointsPos = opts.pointsPos;
       const zRatio = opts.zRatio;
       const elPointsMain = opts.elParent;
-      const elPointsWrap = graphics.group({
+      const elPointsWrap = emit.group({
         class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`
       });
       elPointsWrap.attr("clip-path", `url(#gridRectMarkerMask${w.globals.cuid})`);
@@ -9019,6 +10214,12 @@ var __async = (__this, __arguments, generator) => {
               j
             );
             elPointsWrap.add(point);
+            if (emit.kind === "canvas") {
+              if (typeof w.globals.pointsArray[realIndex] === "undefined") {
+                w.globals.pointsArray[realIndex] = [];
+              }
+              w.globals.pointsArray[realIndex][dataPointIndex] = [x, y];
+            }
           }
           elPointsMain.add(elPointsWrap);
         }
@@ -9041,6 +10242,7 @@ var __async = (__this, __arguments, generator) => {
       const fill = this.fill;
       const markers = this.markers;
       const graphics = this.graphics;
+      const emit = seriesEmitter(this.ctx, graphics);
       const markerConfig = markers.getMarkerConfig({
         cssClass: "apexcharts-marker",
         seriesIndex: i,
@@ -9055,7 +10257,7 @@ var __async = (__this, __arguments, generator) => {
         patternUnits: "objectBoundingBox",
         value: w.seriesData.series[realIndex][j]
       });
-      const el = graphics.drawMarker(x, y, markerConfig);
+      const el = emit.drawMarker(x, y, markerConfig);
       const _si = (
         /** @type {Record<string,any>} */
         w.config.series[i]
@@ -10046,7 +11248,7 @@ var __async = (__this, __arguments, generator) => {
             }
           });
           if (isLeafGroup) {
-            const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS, "title");
+            const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS$1, "title");
             elTooltipTitle.textContent = Array.isArray(label.text) ? label.text.join(" ") : label.text;
             elText.node.appendChild(elTooltipTitle);
             if (label.text !== "") {
@@ -10142,7 +11344,7 @@ var __async = (__this, __arguments, generator) => {
               w.config.chart.events.xAxisLabelClick(e, this.ctx, opts);
             }
           });
-          const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS, "title");
+          const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS$1, "title");
           elTooltipTitle.textContent = Array.isArray(label) ? label.join(" ") : label;
           elLabel.node.appendChild(elTooltipTitle);
           if (w.config.yaxis[realIndex].labels.rotate !== 0) {
@@ -10397,7 +11599,7 @@ var __async = (__this, __arguments, generator) => {
       const graphics = new Graphics(this.w);
       const strokeSize = Array.isArray(w.config.stroke.width) ? Math.max(...w.config.stroke.width) : w.config.stroke.width;
       const createClipPath = (id) => {
-        const clipPath = BrowserAPIs.createElementNS(SVGNS, "clipPath");
+        const clipPath = BrowserAPIs.createElementNS(SVGNS$1, "clipPath");
         clipPath.setAttribute("id", id);
         return clipPath;
       };
@@ -12126,7 +13328,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {any} val
      */
     addTooltip(label, val) {
-      const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS, "title");
+      const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS$1, "title");
       elTooltipTitle.textContent = Array.isArray(val) ? val.join(" ") : val;
       label.node.appendChild(elTooltipTitle);
     }
@@ -12871,6 +14073,959 @@ var __async = (__this, __arguments, generator) => {
       newConfig;
     }
   }
+  function captureStreamFrame(w) {
+    var _a, _b, _c;
+    const gl = w.globals;
+    if (!gl.axisCharts || !w.seriesData || !Array.isArray(w.seriesData.series) || w.seriesData.series.length === 0) {
+      gl.prevStreamFrame = null;
+      return;
+    }
+    const rPixels = [];
+    if ((_b = (_a = w.dom) == null ? void 0 : _a.baseEl) == null ? void 0 : _b.querySelectorAll) {
+      w.dom.baseEl.querySelectorAll(".apexcharts-marker").forEach((node) => {
+        var _a2, _b2, _c2, _d, _e;
+        const ri = parseInt((_a2 = node.getAttribute("index")) != null ? _a2 : "", 10);
+        const j = parseInt(
+          (_c2 = (_b2 = node.getAttribute("j")) != null ? _b2 : node.getAttribute("rel")) != null ? _c2 : "",
+          10
+        );
+        const r = parseFloat(
+          (_e = (_d = node.getAttribute("r")) != null ? _d : node.getAttribute("default-marker-size")) != null ? _e : ""
+        );
+        if (isFinite(ri) && isFinite(j) && isFinite(r)) {
+          (rPixels[ri] = rPixels[ri] || [])[j] = r;
+        }
+      });
+    }
+    gl.prevStreamFrame = {
+      seriesX: (w.seriesData.seriesX || []).slice(),
+      seriesY: w.seriesData.series.slice(),
+      xPixels: (gl.seriesXvalues || []).slice(),
+      yPixels: (gl.seriesYvalues || []).slice(),
+      rPixels,
+      labels: (gl.labels || []).slice(),
+      isXNumeric: !!((_c = w.axisFlags) == null ? void 0 : _c.isXNumeric)
+    };
+  }
+  function detectStreamScroll(w, realIndex, newXPixels, newYPixels) {
+    var _a;
+    const gl = w.globals;
+    const frame = gl.prevStreamFrame;
+    if (!frame || !gl.dataChanged || !((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric)) return null;
+    const oldX = frame.seriesX[realIndex];
+    const oldY = frame.seriesY[realIndex];
+    const newX = w.seriesData.seriesX[realIndex];
+    const newY = w.seriesData.series[realIndex];
+    if (!oldX || !oldY || !newX || !newY) return null;
+    if (oldX.length < 3 || newX.length < 3) return null;
+    let k = -1;
+    for (let i = 0; i < oldX.length; i++) {
+      if (oldX[i] === newX[0]) {
+        k = i;
+        break;
+      }
+    }
+    if (k === -1) return null;
+    const overlap = Math.min(oldX.length - k, newX.length);
+    if (overlap < 2) return null;
+    const appended = newX.length - overlap;
+    if (k === 0 && appended === 0) return null;
+    for (let i = 0; i < overlap; i++) {
+      if (oldX[k + i] !== newX[i]) return null;
+      const oy = oldY[k + i];
+      const ny = newY[i];
+      if (oy !== ny && !(oy == null && ny == null)) return null;
+    }
+    const oldXP = frame.xPixels[realIndex];
+    const oldYP = frame.yPixels[realIndex];
+    if (!oldXP || !oldYP) return null;
+    let a = -1;
+    let b = -1;
+    for (let i = 0; i < overlap; i++) {
+      if (oldXP[k + i] == null || oldYP[k + i] == null || newXPixels[i] == null || newYPixels[i] == null) {
+        continue;
+      }
+      if (a === -1) a = i;
+      b = i;
+    }
+    if (a === -1 || b <= a) return null;
+    const nxA = (
+      /** @type {number} */
+      newXPixels[a]
+    );
+    const nxB = (
+      /** @type {number} */
+      newXPixels[b]
+    );
+    const oxA = (
+      /** @type {number} */
+      oldXP[k + a]
+    );
+    const oxB = (
+      /** @type {number} */
+      oldXP[k + b]
+    );
+    if (Math.abs(nxB - nxA) < 1e-6) return null;
+    const ax = (oxB - oxA) / (nxB - nxA);
+    const bx = oxA - ax * nxA;
+    if (!isFinite(ax) || !isFinite(bx)) return null;
+    if (Math.abs(ax - 1) > 0.02) return null;
+    if (Math.abs(bx) < 0.5) return null;
+    let yLo = a;
+    let yHi = a;
+    for (let i = a; i <= b; i++) {
+      const ny = newYPixels[i];
+      if (ny == null || oldYP[k + i] == null) continue;
+      if (ny < /** @type {number} */
+      newYPixels[yLo]) yLo = i;
+      if (ny > /** @type {number} */
+      newYPixels[yHi]) yHi = i;
+    }
+    let ay = 1;
+    let by = 0;
+    const nyLo = (
+      /** @type {number} */
+      newYPixels[yLo]
+    );
+    const nyHi = (
+      /** @type {number} */
+      newYPixels[yHi]
+    );
+    if (Math.abs(nyHi - nyLo) > 1e-6) {
+      ay = /** @type {number} */
+      (oldYP[k + yHi] - /** @type {number} */
+      oldYP[k + yLo]) / (nyHi - nyLo);
+      by = /** @type {number} */
+      oldYP[k + yLo] - ay * nyLo;
+    } else {
+      by = /** @type {number} */
+      oldYP[k + yLo] - nyLo;
+    }
+    if (!isFinite(ay) || !isFinite(by) || ay < 0.2 || ay > 5) return null;
+    const m = Math.floor((a + b) / 2);
+    if (m !== a && m !== b && newXPixels[m] != null && oldXP[k + m] != null) {
+      const predX = ax * /** @type {number} */
+      newXPixels[m] + bx;
+      if (Math.abs(predX - /** @type {number} */
+      oldXP[k + m]) > 1.5) {
+        return null;
+      }
+      if (newYPixels[m] != null && oldYP[k + m] != null) {
+        const predY = ay * /** @type {number} */
+        newYPixels[m] + by;
+        if (Math.abs(predY - /** @type {number} */
+        oldYP[k + m]) > 1.5) {
+          return null;
+        }
+      }
+    }
+    return { ax, bx, ay, by };
+  }
+  const NUM_RE = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
+  function projectPathToPrevFrame(d, t) {
+    const { ax, bx, ay, by } = t;
+    const out = [];
+    const re = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
+    let match;
+    while ((match = re.exec(d)) !== null) {
+      const cmd = match[1].toUpperCase();
+      const nums = (match[2].match(NUM_RE) || []).map(parseFloat);
+      if (cmd === "Z") {
+        out.push("z");
+        continue;
+      }
+      if (cmd === "H") {
+        for (const x of nums) out.push(`H ${ax * x + bx}`);
+        continue;
+      }
+      if (cmd === "V") {
+        for (const y of nums) out.push(`V ${ay * y + by}`);
+        continue;
+      }
+      if (cmd === "A") {
+        for (let i = 0; i + 6 < nums.length; i += 7) {
+          out.push(
+            `A ${nums[i]} ${nums[i + 1]} ${nums[i + 2]} ${nums[i + 3]} ${nums[i + 4]} ${ax * nums[i + 5] + bx} ${ay * nums[i + 6] + by}`
+          );
+        }
+        continue;
+      }
+      const coords = [];
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        coords.push(`${ax * nums[i] + bx} ${ay * nums[i + 1] + by}`);
+      }
+      if (coords.length) out.push(`${cmd} ${coords.join(" ")}`);
+    }
+    return out.join(" ");
+  }
+  function trimStreamingSeries(newSeries, w) {
+    const cfg = w.config.chart.streaming;
+    if (!cfg || !cfg.enabled) return;
+    const maxPoints = cfg.maxPoints;
+    const range = w.config.xaxis.range;
+    const xOf = (p) => {
+      if (p == null) return null;
+      if (Array.isArray(p)) return typeof p[0] === "number" ? p[0] : null;
+      if (typeof p === "object") return typeof p.x === "number" ? p.x : null;
+      return null;
+    };
+    newSeries.forEach((s) => {
+      var _a;
+      const data = s == null ? void 0 : s.data;
+      if (!Array.isArray(data) || data.length < 2) return;
+      if (typeof maxPoints === "number" && maxPoints > 0) {
+        if (data.length > maxPoints) s.data = data.slice(data.length - maxPoints);
+        return;
+      }
+      if (!range) return;
+      const lastX = xOf(data[data.length - 1]);
+      const firstX = xOf(data[0]);
+      if (lastX == null || firstX == null || lastX <= firstX) return;
+      const avgSpacing = (lastX - firstX) / (data.length - 1);
+      const cutoff = lastX - range - 2 * avgSpacing;
+      let idx = 0;
+      while (idx < data.length && ((_a = xOf(data[idx])) != null ? _a : cutoff) < cutoff) idx++;
+      if (idx > 0) s.data = data.slice(idx);
+    });
+  }
+  function buildUnionEntries(join, oldN) {
+    const exitSet = new Set(join.exits);
+    const entries = [];
+    let oi = 0;
+    for (let nj = 0; nj < join.toOld.length; nj++) {
+      const oj = join.toOld[nj];
+      if (oj !== -1) {
+        while (oi < oj) {
+          if (exitSet.has(oi)) entries.push({ oldJ: oi, newJ: -1 });
+          oi++;
+        }
+        entries.push({ oldJ: oj, newJ: nj });
+        oi = oj + 1;
+      } else {
+        entries.push({ oldJ: -1, newJ: nj });
+      }
+    }
+    while (oi < oldN) {
+      if (exitSet.has(oi)) entries.push({ oldJ: oi, newJ: -1 });
+      oi++;
+    }
+    return entries;
+  }
+  function analyzeSeriesPath(d, expectedAnchors, isArea) {
+    if (!d || typeof d !== "string") return null;
+    const cmds = parsePath(d);
+    if (!cmds.length || cmds[0][0] !== "M") return null;
+    for (let i = 1; i < cmds.length; i++) {
+      if (cmds[i][0] === "M") return null;
+    }
+    let body = cmds;
+    let closing = null;
+    if (isArea) {
+      if (cmds.length < 5) return null;
+      closing = cmds.slice(-3);
+      body = cmds.slice(0, -3);
+      if (closing[2][0] !== "Z") return null;
+      if (closing[1][0] !== "L") return null;
+      if (closing[0][0] !== "L" && closing[0][0] !== "C") return null;
+    } else if (cmds[cmds.length - 1][0] === "Z") {
+      return null;
+    }
+    if (body.length !== expectedAnchors || body.length < 2) return null;
+    const segType = body[1][0];
+    if (segType !== "L" && segType !== "C") return null;
+    for (let i = 2; i < body.length; i++) {
+      if (body[i][0] !== segType) return null;
+    }
+    const anchors = body.map(
+      (c) => c[0] === "C" ? [Number(c[5]), Number(c[6])] : [Number(c[1]), Number(c[2])]
+    );
+    for (const a of anchors) {
+      if (!isFinite(a[0]) || !isFinite(a[1])) return null;
+    }
+    return { body, closing, segType, anchors };
+  }
+  function lerpPt(a, b, t) {
+    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  }
+  function splitCubic(s, cmd, t) {
+    const p0 = s;
+    const p1 = [cmd[1], cmd[2]];
+    const p2 = [cmd[3], cmd[4]];
+    const p3 = [cmd[5], cmd[6]];
+    const p01 = lerpPt(p0, p1, t);
+    const p12 = lerpPt(p1, p2, t);
+    const p23 = lerpPt(p2, p3, t);
+    const p012 = lerpPt(p01, p12, t);
+    const p123 = lerpPt(p12, p23, t);
+    const mid = lerpPt(p012, p123, t);
+    return {
+      first: ["C", p01[0], p01[1], p012[0], p012[1], mid[0], mid[1]],
+      second: ["C", p123[0], p123[1], p23[0], p23[1], p3[0], p3[1]],
+      mid
+    };
+  }
+  function splitLine(s, cmd, t) {
+    const e = [cmd[1], cmd[2]];
+    const mid = lerpPt(s, e, t);
+    return {
+      first: ["L", mid[0], mid[1]],
+      second: ["L", e[0], e[1]],
+      mid
+    };
+  }
+  function expandPath(analysis, ownIdx) {
+    const { body, closing, segType, anchors } = analysis;
+    const n = anchors.length;
+    const m = ownIdx.length;
+    const degen = (p) => segType === "C" ? ["C", p[0], p[1], p[0], p[1], p[0], p[1]] : ["L", p[0], p[1]];
+    const out = [["M", anchors[0][0], anchors[0][1]]];
+    let firstOwn = 0;
+    while (firstOwn < m && ownIdx[firstOwn] !== 0) firstOwn++;
+    for (let q = 1; q <= firstOwn; q++) out.push(degen(anchors[0]));
+    let entry = firstOwn + 1;
+    for (let s = 0; s < n - 1; s++) {
+      let interior = 0;
+      while (entry + interior < m && ownIdx[entry + interior] === -1) interior++;
+      const cmd = body[s + 1];
+      if (!interior) {
+        out.push(cmd.slice());
+      } else {
+        const totalParts = interior + 1;
+        let start = anchors[s];
+        let rest = cmd;
+        for (let q = 0; q < interior; q++) {
+          const t = 1 / (totalParts - q);
+          const sp = segType === "C" ? splitCubic(start, rest, t) : splitLine(start, rest, t);
+          out.push(sp.first);
+          start = sp.mid;
+          rest = sp.second;
+        }
+        out.push(rest);
+      }
+      entry += interior + 1;
+    }
+    while (entry < m) {
+      out.push(degen(anchors[n - 1]));
+      entry++;
+    }
+    if (closing) closing.forEach((c) => out.push(c.slice()));
+    return out;
+  }
+  function reconcilePathPair(fromD, toD, entries, oldN, newN, isArea) {
+    const fromAnalysis = analyzeSeriesPath(fromD, oldN, isArea);
+    if (!fromAnalysis) return null;
+    const toAnalysis = analyzeSeriesPath(toD, newN, isArea);
+    if (!toAnalysis) return null;
+    if (fromAnalysis.segType !== toAnalysis.segType) return null;
+    if ((fromAnalysis.closing || toAnalysis.closing) && (!fromAnalysis.closing || !toAnalysis.closing || fromAnalysis.closing[0][0] !== toAnalysis.closing[0][0])) {
+      return null;
+    }
+    const fromOwn = entries.map((e) => e.oldJ);
+    const toOwn = entries.map((e) => e.newJ);
+    return {
+      from: arrayToPath(expandPath(fromAnalysis, fromOwn)),
+      toInterp: arrayToPath(expandPath(toAnalysis, toOwn))
+    };
+  }
+  function lengthTransitionEnabled(w) {
+    var _a;
+    const anim = w.config.chart.animations;
+    if (!anim || anim.enabled === false) return false;
+    if (!anim.dynamicAnimation || anim.dynamicAnimation.enabled === false) {
+      return false;
+    }
+    const largeThreshold = (_a = anim.largeDatasetThreshold) != null ? _a : 0;
+    if (largeThreshold > 0 && w.globals.dataPoints > largeThreshold) return false;
+    return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
+  }
+  function datumKey(w, realIndex, j) {
+    var _a, _b, _c, _d;
+    if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
+      const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
+      if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
+    }
+    const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j];
+    if (lbl != null && String(lbl) !== "") {
+      return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
+    }
+    return "j:" + j;
+  }
+  function frameDatumKey(frame, realIndex, j) {
+    var _a, _b;
+    if (frame.isXNumeric) {
+      const sx = (_a = frame.seriesX) == null ? void 0 : _a[realIndex];
+      if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
+    }
+    const lbl = (_b = frame.labels) == null ? void 0 : _b[j];
+    if (lbl != null && String(lbl) !== "") {
+      return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
+    }
+    return "j:" + j;
+  }
+  function joinKeys(oldKeys, newKeys) {
+    const oldIndex = /* @__PURE__ */ new Map();
+    oldKeys.forEach((k, i) => {
+      if (!oldIndex.has(k)) oldIndex.set(k, i);
+    });
+    const toOld = new Array(newKeys.length);
+    const usedOld = /* @__PURE__ */ new Set();
+    let prev = -1;
+    let ordered = true;
+    let identity = oldKeys.length === newKeys.length;
+    newKeys.forEach((k, i) => {
+      const oi = oldIndex.has(k) && !usedOld.has(oldIndex.get(k)) ? oldIndex.get(k) : -1;
+      toOld[i] = oi;
+      if (oi !== -1) {
+        usedOld.add(oi);
+        if (oi < prev) ordered = false;
+        prev = oi;
+      }
+      if (oi !== i) identity = false;
+    });
+    const exits = [];
+    for (let i = 0; i < oldKeys.length; i++) {
+      if (!usedOld.has(i)) exits.push(i);
+    }
+    return { toOld, exits, ordered, changed: !identity };
+  }
+  function uniquifyKeys(keys) {
+    const seen = /* @__PURE__ */ new Map();
+    return keys.map((k) => {
+      const count = seen.get(k) || 0;
+      seen.set(k, count + 1);
+      return count === 0 ? k : `${k}#${count}`;
+    });
+  }
+  function seriesJoin(w, realIndex, includeIdentity = false) {
+    var _a, _b;
+    if (!lengthTransitionEnabled(w)) return null;
+    const frame = w.globals.prevStreamFrame;
+    if (!frame) return null;
+    const oldY = (_a = frame.seriesY) == null ? void 0 : _a[realIndex];
+    const newY = (_b = w.seriesData.series) == null ? void 0 : _b[realIndex];
+    if (!Array.isArray(oldY) || !Array.isArray(newY)) return null;
+    if (!oldY.length || !newY.length) return null;
+    const oldKeys = uniquifyKeys(
+      oldY.map((_, j) => frameDatumKey(frame, realIndex, j))
+    );
+    const newKeys = uniquifyKeys(newY.map((_, j) => datumKey(w, realIndex, j)));
+    const join = joinKeys(oldKeys, newKeys);
+    if (!join.ordered) return null;
+    if (!join.changed && !includeIdentity) return null;
+    return { join, oldKeys, newKeys };
+  }
+  function morphEasing(w) {
+    var _a, _b;
+    const anim = w.config.chart.animations;
+    return resolveEasing((_b = (_a = anim.dynamicAnimation) == null ? void 0 : _a.easing) != null ? _b : anim.easing);
+  }
+  function rafTween(w, duration, ease, onFrame, onDone) {
+    const startAt = performance.now();
+    const step = (now) => {
+      if (w.globals.isDestroyed) return;
+      const raw = Math.max(0, Math.min(1, (now - startAt) / duration));
+      onFrame(ease(raw), raw);
+      if (raw < 1) {
+        BrowserAPIs.requestAnimationFrame(step);
+      } else if (onDone) {
+        onDone();
+      }
+    };
+    BrowserAPIs.requestAnimationFrame(step);
+  }
+  function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed }) {
+    var _a, _b, _c, _d;
+    if (!(elPointsMain == null ? void 0 : elPointsMain.node)) return false;
+    const sj = seriesJoin(w, realIndex, true);
+    if (!sj) return false;
+    const frame = w.globals.prevStreamFrame;
+    if (!frame) return false;
+    const oldXP = (_a = frame.xPixels) == null ? void 0 : _a[realIndex];
+    const oldYP = (_b = frame.yPixels) == null ? void 0 : _b[realIndex];
+    if (!oldXP || !oldYP) return false;
+    const markers = elPointsMain.node.querySelectorAll(".apexcharts-marker");
+    if (!markers.length) return false;
+    const newXP = ((_c = w.globals.seriesXvalues) == null ? void 0 : _c[realIndex]) || [];
+    const newYP = ((_d = w.globals.seriesYvalues) == null ? void 0 : _d[realIndex]) || [];
+    const ease = morphEasing(w);
+    const duration = Math.max(1, speed || 1);
+    elPointsMain.node.classList.remove("apexcharts-element-hidden");
+    markers.forEach((node) => {
+      var _a2, _b2, _c2, _d2, _e, _f, _g, _h, _i;
+      const j = parseInt(
+        (_b2 = (_a2 = node.getAttribute("j")) != null ? _a2 : node.getAttribute("rel")) != null ? _b2 : "",
+        10
+      );
+      if (!isFinite(j) || j < 0 || j >= sj.join.toOld.length) return;
+      const oldJ = sj.join.toOld[j];
+      const to = newXP[j] != null && newYP[j] != null ? [newXP[j], newYP[j]] : null;
+      if (oldJ === -1 || !to) {
+        const style = (
+          /** @type {any} */
+          node.style
+        );
+        style.opacity = "0";
+        rafTween(
+          w,
+          duration,
+          ease,
+          (eased) => {
+            style.opacity = String(eased);
+          },
+          () => {
+            style.opacity = "";
+          }
+        );
+        return;
+      }
+      const dx = ((_c2 = oldXP[oldJ]) != null ? _c2 : NaN) - to[0];
+      const dy = ((_d2 = oldYP[oldJ]) != null ? _d2 : NaN) - to[1];
+      if (!isFinite(dx) || !isFinite(dy)) return;
+      const rFrom = (_g = (_f = (_e = frame.rPixels) == null ? void 0 : _e[realIndex]) == null ? void 0 : _f[oldJ]) != null ? _g : NaN;
+      const rTo = parseFloat(
+        (_i = (_h = node.getAttribute("r")) != null ? _h : node.getAttribute("default-marker-size")) != null ? _i : ""
+      );
+      const scales = isFinite(rFrom) && isFinite(rTo) && rTo > 0 && Math.abs(rFrom - rTo) > 0.25;
+      const moves = Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5;
+      if (!moves && !scales) return;
+      const apply = (eased) => {
+        const offX = dx * (1 - eased);
+        const offY = dy * (1 - eased);
+        if (scales) {
+          const s = (rFrom + (rTo - rFrom) * eased) / rTo;
+          node.setAttribute(
+            "transform",
+            `translate(${offX + to[0] * (1 - s)}, ${offY + to[1] * (1 - s)}) scale(${s})`
+          );
+        } else {
+          node.setAttribute("transform", `translate(${offX}, ${offY})`);
+        }
+      };
+      apply(0);
+      rafTween(w, duration, ease, apply, () => {
+        node.removeAttribute("transform");
+      });
+    });
+    return true;
+  }
+  function reconcileSeriesPaths(w, { type, realIndex, pathFromLine, pathFromArea, linePaths, areaPaths }) {
+    var _a, _b;
+    const sj = seriesJoin(w, realIndex);
+    if (!sj) return null;
+    const { join, oldKeys, newKeys } = sj;
+    const frame = w.globals.prevStreamFrame;
+    if (!frame) return null;
+    const oldY = (_a = frame.seriesY) == null ? void 0 : _a[realIndex];
+    const newY = (_b = w.seriesData.series) == null ? void 0 : _b[realIndex];
+    if (oldY.length < 2 || newY.length < 2) return null;
+    if (oldY.some((v) => v === null) || newY.some((v) => v === null)) return null;
+    const entries = buildUnionEntries(join, oldKeys.length);
+    const out = {};
+    if (Array.isArray(linePaths) && linePaths.length === 1 && pathFromLine) {
+      out.line = reconcilePathPair(
+        pathFromLine,
+        linePaths[0],
+        entries,
+        oldKeys.length,
+        newKeys.length,
+        false
+      );
+    }
+    if (type === "area" && Array.isArray(areaPaths) && areaPaths.length === 1 && pathFromArea) {
+      out.area = reconcilePathPair(
+        pathFromArea,
+        areaPaths[0],
+        entries,
+        oldKeys.length,
+        newKeys.length,
+        true
+      );
+    }
+    if (!out.line && !out.area) return null;
+    return out;
+  }
+  function firstMove(d) {
+    const m = /^M\s*([+-]?[\d.eE]+)[\s,]+([+-]?[\d.eE]+)/.exec(d || "");
+    if (!m) return null;
+    const x = parseFloat(m[1]);
+    const y = parseFloat(m[2]);
+    return isFinite(x) && isFinite(y) ? { x, y } : null;
+  }
+  function renderBarExitGhosts({
+    w,
+    elSeries,
+    record,
+    newKeys,
+    isHorizontal,
+    speed
+  }) {
+    var _a;
+    if (!lengthTransitionEnabled(w)) return;
+    if (!record || !Array.isArray(record.paths) || !(elSeries == null ? void 0 : elSeries.node)) return;
+    const newKeySet = new Set(newKeys);
+    const exits = record.paths.filter(
+      (p) => p && p.d && p.key != null && !newKeySet.has(p.key)
+    );
+    if (!exits.length) return;
+    const graphics = new Graphics(w);
+    const fallbackFill = (_a = w.globals.colors) == null ? void 0 : _a[parseInt(String(record.realIndex), 10)];
+    exits.forEach((p) => {
+      let fill = p.fill || fallbackFill || "#c8c8c8";
+      if (String(fill).indexOf("url(") === 0) fill = fallbackFill || "#c8c8c8";
+      const ghost = graphics.drawPath({
+        d: p.d,
+        stroke: "none",
+        strokeWidth: 0,
+        fill,
+        fillOpacity: 1,
+        classes: "apexcharts-bar-ghost"
+      });
+      const node = ghost.node;
+      node.setAttribute("pointer-events", "none");
+      ghost.attr(
+        "clip-path",
+        `url(#gridRectBarMask${w.globals.cuid})`
+      );
+      elSeries.node.insertBefore(node, elSeries.node.firstChild);
+      const start = firstMove(p.d);
+      let origin = isHorizontal ? "left center" : "center bottom";
+      try {
+        const bb = node.getBBox();
+        if (start && bb) {
+          if (isHorizontal) {
+            origin = Math.abs(start.x - bb.x) <= Math.abs(start.x - (bb.x + bb.width)) ? "left center" : "right center";
+          } else {
+            origin = Math.abs(start.y - (bb.y + bb.height)) <= Math.abs(start.y - bb.y) ? "center bottom" : "center top";
+          }
+        }
+      } catch (_) {
+      }
+      const style = node.style;
+      style.transformBox = "fill-box";
+      style.transformOrigin = origin;
+      const duration = Math.max(1, speed || 1);
+      const startAt = performance.now();
+      const step = (now) => {
+        if (w.globals.isDestroyed || !node.parentNode) return;
+        const t = Math.max(0, Math.min(1, (now - startAt) / duration));
+        const eased = 1 - Math.pow(1 - t, 3);
+        const scale = 1 - eased;
+        style.transform = isHorizontal ? `scaleX(${scale})` : `scaleY(${scale})`;
+        style.opacity = String(1 - eased);
+        if (t < 1) {
+          BrowserAPIs.requestAnimationFrame(step);
+        } else {
+          node.parentNode.removeChild(node);
+        }
+      };
+      BrowserAPIs.requestAnimationFrame(step);
+    });
+  }
+  function grabLabels(root, sel, posAttr) {
+    return [...root.querySelectorAll(sel)].map((el) => {
+      var _a, _b, _c;
+      return {
+        // `text` is the matching KEY (textContent, which doubles tspan + title
+        // but does so consistently on both sides); `display` is the visible
+        // string, used when rendering an exit ghost.
+        text: el.textContent || "",
+        display: (_c = (_b = (_a = el.querySelector("tspan")) == null ? void 0 : _a.textContent) != null ? _b : el.textContent) != null ? _c : "",
+        pos: parseFloat(el.getAttribute(posAttr) || ""),
+        transform: el.getAttribute("transform")
+      };
+    });
+  }
+  function grabLines(root, sel, posAttr) {
+    return [...root.querySelectorAll(sel)].map(
+      (el) => parseFloat(el.getAttribute(posAttr) || "")
+    );
+  }
+  const NO_GHOST = ":not(.apexcharts-tick-ghost)";
+  const X_LABELS_SEL = `.apexcharts-xaxis-texts-g text:not(.apexcharts-xaxis-group-label)${NO_GHOST}`;
+  const Y_LABELS_SEL = `.apexcharts-yaxis-texts-g text${NO_GHOST}`;
+  const V_GRID_SEL = `.apexcharts-gridlines-vertical line${NO_GHOST}`;
+  const H_GRID_SEL = `.apexcharts-gridlines-horizontal line${NO_GHOST}`;
+  function currentXScale(w) {
+    var _a, _b;
+    const gl = w.globals;
+    if (!((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) || gl.isBarHorizontal) return null;
+    if ((_b = w.config.xaxis) == null ? void 0 : _b.reversed) return null;
+    const min = gl.minX;
+    const max = gl.maxX;
+    const width = w.layout.gridWidth;
+    if (!isFinite(min) || !isFinite(max) || !(max > min) || !(width > 0)) {
+      return null;
+    }
+    return { min, max, width };
+  }
+  function currentYAnchors(w, labels) {
+    var _a;
+    const gl = w.globals;
+    if (gl.isBarHorizontal) return null;
+    if (!Array.isArray(w.config.yaxis) || w.config.yaxis.length !== 1) return null;
+    if ((_a = w.config.yaxis[0]) == null ? void 0 : _a.logarithmic) return null;
+    const min = gl.minY;
+    const max = gl.maxY;
+    if (!isFinite(min) || !isFinite(max) || !(max > min)) return null;
+    const ps = labels.map((l) => l.pos).filter((p) => isFinite(p));
+    if (ps.length < 2) return null;
+    return { min, max, pLo: Math.max(...ps), pHi: Math.min(...ps) };
+  }
+  function composeXMap(o, n) {
+    if (!o || !n) return null;
+    const os = o.max - o.min;
+    const ns = n.max - n.min;
+    if (!(os > 0) || !(ns > 0) || !(o.width > 0) || !(n.width > 0)) return null;
+    return {
+      toNew: (p) => (o.min + p / o.width * os - n.min) / ns * n.width,
+      toOld: (p) => (n.min + p / n.width * ns - o.min) / os * o.width
+    };
+  }
+  function composeYMap(o, n) {
+    if (!o || !n) return null;
+    const oSpanP = o.pHi - o.pLo;
+    const nSpanP = n.pHi - n.pLo;
+    const oSpanV = o.max - o.min;
+    const nSpanV = n.max - n.min;
+    if (!oSpanP || !nSpanP || !(oSpanV > 0) || !(nSpanV > 0)) return null;
+    const oldVal = (p) => o.min + (p - o.pLo) / oSpanP * oSpanV;
+    const newVal = (p) => n.min + (p - n.pLo) / nSpanP * nSpanV;
+    return {
+      toNew: (p) => n.pLo + (oldVal(p) - n.min) / nSpanV * nSpanP,
+      toOld: (p) => o.pLo + (newVal(p) - o.min) / oSpanV * oSpanP
+    };
+  }
+  function captureAxisChrome(w) {
+    const gl = w.globals;
+    gl.prevChromeFrame = null;
+    if (!gl.axisCharts || !Environment.isBrowser()) return;
+    const root = w.dom.baseEl;
+    if (!Utils$1.elementExists(root)) return;
+    try {
+      const yLabels = grabLabels(root, Y_LABELS_SEL, "y");
+      gl.prevChromeFrame = {
+        xLabels: grabLabels(root, X_LABELS_SEL, "x"),
+        yLabels,
+        vGrid: grabLines(root, V_GRID_SEL, "x1"),
+        hGrid: grabLines(root, H_GRID_SEL, "y1"),
+        // Value scales of the outgoing render, so ticks whose TEXT has no
+        // counterpart (e.g. a zoom across datetime granularities) can still be
+        // re-projected: new ticks slide in from where their value sat, old
+        // ticks ghost out to where their value lands.
+        xScale: currentXScale(w),
+        yAnchors: currentYAnchors(w, yLabels)
+      };
+    } catch (_) {
+      gl.prevChromeFrame = null;
+    }
+  }
+  function fadeIn(w, node, duration, ease) {
+    const style = (
+      /** @type {any} */
+      node.style
+    );
+    style.opacity = "0";
+    rafTween(
+      w,
+      duration,
+      ease,
+      (eased) => {
+        style.opacity = String(eased);
+      },
+      () => {
+        style.opacity = "";
+      }
+    );
+  }
+  function tweenPos(w, node, attrs, from, to, duration, ease) {
+    attrs.forEach((a) => node.setAttribute(a, String(from)));
+    rafTween(
+      w,
+      duration,
+      ease,
+      (eased) => {
+        const v = String(from + (to - from) * eased);
+        attrs.forEach((a) => node.setAttribute(a, v));
+      },
+      () => {
+        attrs.forEach((a) => node.setAttribute(a, String(to)));
+      }
+    );
+  }
+  function spawnGhost(w, { template, display, attrs, from, to, duration, ease }) {
+    const parent = template.parentNode;
+    if (!parent) return;
+    const ghost = (
+      /** @type {Element} */
+      template.cloneNode(true)
+    );
+    ghost.classList.add("apexcharts-tick-ghost");
+    ghost.setAttribute("pointer-events", "none");
+    ghost.removeAttribute("id");
+    if (display !== void 0) {
+      const tspan = ghost.querySelector("tspan");
+      if (tspan) tspan.textContent = display;
+      else ghost.textContent = display;
+      const title = ghost.querySelector("title");
+      if (title) title.textContent = display;
+    }
+    attrs.forEach((a) => ghost.setAttribute(a, String(from)));
+    const style = (
+      /** @type {any} */
+      ghost.style
+    );
+    style.opacity = "1";
+    parent.appendChild(ghost);
+    rafTween(
+      w,
+      duration,
+      ease,
+      (eased) => {
+        const v = String(from + (to - from) * eased);
+        attrs.forEach((a) => ghost.setAttribute(a, v));
+        style.opacity = String(1 - eased);
+      },
+      () => {
+        if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
+      }
+    );
+  }
+  const MAX_GHOSTS = 20;
+  function transitionAxis(w, {
+    newLabels,
+    oldLabels,
+    posAttr,
+    newLines,
+    oldLines,
+    lineAttrs,
+    duration,
+    ease,
+    project
+  }) {
+    const oldByText = /* @__PURE__ */ new Map();
+    oldLabels.forEach((l, i) => {
+      if (!oldByText.has(l.text)) oldByText.set(l.text, __spreadProps(__spreadValues({}, l), { i }));
+    });
+    const matchedOld = /* @__PURE__ */ new Set();
+    const newLinesAligned = newLines.length === newLabels.length;
+    const oldLinesAligned = oldLines.length === oldLabels.length;
+    const spanPs = oldLabels.map((l) => l.pos).concat(
+      newLabels.map((l) => parseFloat(l.getAttribute(posAttr) || ""))
+    ).filter((p) => isFinite(p));
+    const spanLo = Math.min(...spanPs);
+    const spanHi = Math.max(...spanPs);
+    const margin = Math.max(40, (spanHi - spanLo) * 0.25);
+    const clamp = (p) => Math.max(spanLo - margin, Math.min(spanHi + margin, p));
+    newLabels.forEach((label, i) => {
+      const to = parseFloat(label.getAttribute(posAttr) || "");
+      const old = oldByText.get(label.textContent || "");
+      const line = newLinesAligned ? newLines[i] : null;
+      if (old) matchedOld.add(old.i);
+      if (!old || !isFinite(old.pos) || old.transform || label.getAttribute("transform")) {
+        if (!old) {
+          if (project && isFinite(to) && !label.getAttribute("transform")) {
+            const from = isFinite(project.toOld(to)) ? clamp(project.toOld(to)) : NaN;
+            if (isFinite(from) && Math.abs(from - to) > 0.5) {
+              tweenPos(w, label, [posAttr], from, to, duration, ease);
+              if (line) tweenPos(w, line, lineAttrs, from, to, duration, ease);
+            }
+          }
+          fadeIn(w, label, duration, ease);
+          if (line) fadeIn(w, line, duration, ease);
+        }
+        return;
+      }
+      if (!isFinite(to) || Math.abs(old.pos - to) < 0.5) return;
+      tweenPos(w, label, [posAttr], old.pos, to, duration, ease);
+      if (line) {
+        const lineTo = parseFloat(line.getAttribute(lineAttrs[0]) || "");
+        const lineFrom = oldLines[old.i];
+        if (isFinite(lineTo) && isFinite(lineFrom)) {
+          tweenPos(w, line, lineAttrs, lineFrom, lineTo, duration, ease);
+        }
+      }
+    });
+    if (!project || !newLabels.length) return;
+    let ghosts = 0;
+    oldLabels.forEach((old, i) => {
+      if (matchedOld.has(i)) return;
+      if (!isFinite(old.pos) || old.transform) return;
+      if (ghosts >= MAX_GHOSTS) return;
+      const rawTo = project.toNew(old.pos);
+      if (!isFinite(rawTo) || Math.abs(rawTo - old.pos) < 0.5) return;
+      ghosts++;
+      spawnGhost(w, {
+        template: newLabels[0],
+        display: old.display,
+        attrs: [posAttr],
+        from: old.pos,
+        to: clamp(rawTo),
+        duration,
+        ease
+      });
+      if (oldLinesAligned && newLines.length && isFinite(oldLines[i])) {
+        spawnGhost(w, {
+          template: newLines[0],
+          attrs: lineAttrs,
+          from: oldLines[i],
+          to: clamp(project.toNew(oldLines[i])),
+          duration,
+          ease
+        });
+      }
+    });
+  }
+  function applyAxisTransition(w) {
+    const gl = w.globals;
+    const chrome = gl.prevChromeFrame;
+    gl.prevChromeFrame = null;
+    if (!chrome || !gl.axisCharts || !Environment.isBrowser()) return;
+    if (!lengthTransitionEnabled(w)) return;
+    const anyMotion = (w.seriesData.series || []).some(
+      (_, i) => seriesJoin(w, i, true) !== null
+    );
+    if (!anyMotion) return;
+    const root = w.dom.baseEl;
+    if (!Utils$1.elementExists(root)) return;
+    const duration = Math.max(1, w.config.chart.animations.dynamicAnimation.speed || 1);
+    const ease = morphEasing(w);
+    try {
+      const newYLabels = [...root.querySelectorAll(Y_LABELS_SEL)];
+      const projX = composeXMap(chrome.xScale, currentXScale(w));
+      const projY = composeYMap(
+        chrome.yAnchors,
+        currentYAnchors(
+          w,
+          newYLabels.map((el) => ({
+            pos: parseFloat(el.getAttribute("y") || "")
+          }))
+        )
+      );
+      transitionAxis(w, {
+        newLabels: [...root.querySelectorAll(X_LABELS_SEL)],
+        oldLabels: chrome.xLabels,
+        posAttr: "x",
+        newLines: [...root.querySelectorAll(V_GRID_SEL)],
+        oldLines: chrome.vGrid,
+        lineAttrs: ["x1", "x2"],
+        duration,
+        ease,
+        project: projX
+      });
+      transitionAxis(w, {
+        newLabels: newYLabels,
+        oldLabels: chrome.yLabels,
+        posAttr: "y",
+        newLines: [...root.querySelectorAll(H_GRID_SEL)],
+        oldLines: chrome.hGrid,
+        lineAttrs: ["y1", "y2"],
+        duration,
+        ease,
+        project: projY
+      });
+    } catch (_) {
+    }
+  }
   class Series {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -13021,6 +15176,23 @@ var __async = (__this, __arguments, generator) => {
     /**
      * @param {string} seriesName
      */
+    /**
+     * Bridge SVG series-dim state to the canvas renderer: SVG opacity classes
+     * (legend-mouseover-inactive) don't touch the painted canvas series layer, so
+     * repaint it with a matching per-series opacity. No-op unless the canvas
+     * renderer is active. The renderer is mirrored on globals by RendererController
+     * (Series has no ctx handle).
+     * @param {{active:number, opacity:number}|null} dim
+     */
+    canvasRestyle(dim) {
+      const r = this.w.globals.activeRenderer;
+      if (r && r.kind === "canvas" && typeof r.restyle === "function") {
+        r.restyle(dim);
+      }
+    }
+    /**
+     * @param {string} seriesName
+     */
     highlightSeries(seriesName) {
       var _a;
       const w = this.w;
@@ -13093,6 +15265,9 @@ var __async = (__this, __arguments, generator) => {
           serEl.classList.remove(this.legendInactiveClass);
         }
       }
+      this.canvasRestyle(
+        seriesEl && !Number.isNaN(realIndex) ? { active: realIndex, opacity: 0.2 } : null
+      );
     }
     /**
      * @param {Event} e
@@ -13111,6 +15286,7 @@ var __async = (__this, __arguments, generator) => {
         for (let se = 0; se < allSeriesEls.length; se++) {
           allSeriesEls[se].classList.remove(this.legendInactiveClass);
         }
+        this.canvasRestyle(null);
       }
     }
     /**
@@ -13203,8 +15379,14 @@ var __async = (__this, __arguments, generator) => {
     getPreviousPaths() {
       var _a, _b, _c, _d;
       const w = this.w;
+      captureStreamFrame(w);
+      captureAxisChrome(w);
       if (!w.globals.axisCharts) {
         w.globals.previousPaths = w.seriesData.series;
+        return;
+      }
+      if (!Utils$1.elementExists(w.dom.baseEl)) {
+        w.globals.previousPaths = [];
         return;
       }
       w.globals.previousPaths = [];
@@ -13221,7 +15403,11 @@ var __async = (__this, __arguments, generator) => {
         for (let j = 0; j < paths.length; j++) {
           if (paths[j].hasAttribute("pathTo")) {
             const d = paths[j].getAttribute("pathTo");
-            dArr.paths.push({ d });
+            dArr.paths.push({
+              d,
+              key: paths[j].getAttribute("data:pathKey"),
+              fill: paths[j].getAttribute("fill")
+            });
           }
         }
         w.globals.previousPaths.push(dArr);
@@ -13358,6 +15544,81 @@ var __async = (__this, __arguments, generator) => {
       return filteredSeriesX;
     }
   }
+  const TOKEN_MAP = {
+    accent: "--apx-accent",
+    fore: "--apx-fore",
+    grid: "--apx-grid",
+    surface: "--apx-surface"
+  };
+  const MAX_SERIES_TOKENS = 24;
+  function readTokens(w) {
+    if (!Environment.isBrowser()) return {};
+    const el = w.dom && (w.dom.elWrap || w.dom.baseEl) || null;
+    if (!el) return {};
+    const cs = BrowserAPIs.getComputedStyle(el);
+    if (!cs || typeof /** @type {any} */
+    cs.getPropertyValue !== "function") {
+      return {};
+    }
+    const read = (name2) => {
+      const v = (
+        /** @type {any} */
+        cs.getPropertyValue(name2)
+      );
+      return v ? String(v).trim() : "";
+    };
+    const out = {};
+    for (const key in TOKEN_MAP) {
+      const v = read(
+        /** @type {any} */
+        TOKEN_MAP[key]
+      );
+      if (v) out[key] = v;
+    }
+    const series = [];
+    for (let i = 1; i <= MAX_SERIES_TOKENS; i++) {
+      const v = read(`--apx-series-${i}`);
+      if (!v) break;
+      series.push(v);
+    }
+    if (series.length) out.series = series;
+    return out;
+  }
+  const THEME_KEY = "__apexcharts_themes__";
+  if (!/** @type {any} */
+  globalThis[THEME_KEY]) {
+    globalThis[THEME_KEY] = {};
+  }
+  function getThemes() {
+    return (
+      /** @type {any} */
+      globalThis[THEME_KEY]
+    );
+  }
+  function registerTheme(name2, def) {
+    if (!name2 || typeof name2 !== "string") {
+      console.warn("ApexCharts: registerTheme requires a non-empty name.");
+      return;
+    }
+    if (def != null && (typeof def !== "object" || Array.isArray(def))) {
+      console.warn(
+        `ApexCharts: registerTheme("${name2}") expects an object like { mode, palette, tokens, monochrome, accessibility }.`
+      );
+      return;
+    }
+    getThemes()[name2] = def || {};
+  }
+  function getTheme(name2) {
+    if (!name2) return null;
+    return getThemes()[name2] || null;
+  }
+  function unregisterTheme(name2) {
+    if (!name2) return;
+    delete getThemes()[name2];
+  }
+  const DEFAULT_FORECOLOR_LIGHT = "#373d3f";
+  const DEFAULT_FORECOLOR_DARK = "#f6f7f8";
+  const DEFAULT_AXIS_GRID = "#e0e0e0";
   class Theme {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -13368,6 +15629,8 @@ var __async = (__this, __arguments, generator) => {
       this.isColorFn = false;
       this.isHeatmapDistributed = this.checkHeatmapDistributed();
       this.isBarDistributed = this.checkBarDistributed();
+      this._tokens = {};
+      this._namedTheme = null;
     }
     checkHeatmapDistributed() {
       const { chart, plotOptions } = this.w.config;
@@ -13384,9 +15647,14 @@ var __async = (__this, __arguments, generator) => {
       var _a;
       const w = this.w;
       const utils = new Utils$1();
+      this._namedTheme = getTheme(w.config.theme.name);
+      this._applyNamedThemeMode();
       w.dom.elWrap.classList.add(
         `apexcharts-theme-${w.config.theme.mode || "light"}`
       );
+      this._applyModeDefaults();
+      this._tokens = this._resolveTokens();
+      this.applyTokenChrome(this._tokens);
       const colorBlindMode = (_a = w.config.theme.accessibility) == null ? void 0 : _a.colorBlindMode;
       if (colorBlindMode) {
         w.globals.colors = this.getColorBlindColors(colorBlindMode);
@@ -13418,6 +15686,114 @@ var __async = (__this, __arguments, generator) => {
       this.applyDataLabelsColors(defaultColors);
       this.applyRadarPolygonsColors();
       this.applyMarkersColors(defaultColors);
+    }
+    /**
+     * Facet (#13): normalize the mode's concrete defaults (foreColor + palette +
+     * tooltip theme) at render time. Only overwrites a value still at its
+     * opposite-mode default sentinel, so an explicit user value or a value
+     * already normalized by checkForDarkTheme/updateThemeOptions is untouched.
+     */
+    _applyModeDefaults() {
+      const w = this.w;
+      const mode = w.config.theme.mode;
+      if (mode === "dark") {
+        if (w.config.chart.foreColor === DEFAULT_FORECOLOR_LIGHT) {
+          w.config.chart.foreColor = DEFAULT_FORECOLOR_DARK;
+        }
+        if (w.config.theme.palette === "palette1") {
+          w.config.theme.palette = "palette4";
+        }
+        if (w.config.tooltip && w.config.tooltip.theme !== "light") {
+          w.config.tooltip.theme = "dark";
+        }
+      } else if (mode === "light") {
+        if (w.config.chart.foreColor === DEFAULT_FORECOLOR_DARK) {
+          w.config.chart.foreColor = DEFAULT_FORECOLOR_LIGHT;
+        }
+        if (w.config.theme.palette === "palette4") {
+          w.config.theme.palette = "palette1";
+        }
+      }
+    }
+    /**
+     * Facet (#13): apply a registered named theme's mode / accessibility /
+     * monochrome, each only when the user (or the OS watcher) has not set it, so
+     * explicit config and `follow:'os'` both win over the named theme.
+     */
+    _applyNamedThemeMode() {
+      const named = this._namedTheme;
+      if (!named) return;
+      const theme = this.w.config.theme;
+      if (named.mode && !theme.mode) {
+        theme.mode = named.mode;
+      }
+      if (named.accessibility && named.accessibility.colorBlindMode && !(theme.accessibility && theme.accessibility.colorBlindMode)) {
+        theme.accessibility = theme.accessibility || {};
+        theme.accessibility.colorBlindMode = named.accessibility.colorBlindMode;
+      }
+      if (named.monochrome && named.monochrome.enabled && !theme.monochrome.enabled) {
+        theme.monochrome = __spreadValues(__spreadValues({}, theme.monochrome), named.monochrome);
+      }
+    }
+    /**
+     * Facet (#13): the effective token set. CSS `--apx-*` tokens (when enabled)
+     * layer over the named theme's `tokens`, so a page-level token overrides a
+     * registered brand default.
+     * @returns {{accent?:string, fore?:string, grid?:string, surface?:string, series?:string[]}}
+     */
+    _resolveTokens() {
+      const named = this._namedTheme && this._namedTheme.tokens || {};
+      const css = this._shouldUseTokens() ? readTokens(this.w) : {};
+      return __spreadValues(__spreadValues({}, named), css);
+    }
+    /**
+     * Facet (#13): tokens are on unless explicitly disabled (`theme.tokens:false`).
+     * `true` is the default (the legacy `'auto'` value is accepted and means the
+     * same); `readTokens` returns only the tokens actually present, so absence
+     * is a no-op.
+     * @returns {boolean}
+     */
+    _shouldUseTokens() {
+      return this.w.config.theme.tokens !== false;
+    }
+    /**
+     * Facet (#13): overwrite chrome defaults with `--apx-*` tokens, but only where
+     * the value still equals its built-in default (so explicit config wins).
+     * @param {{fore?:string, grid?:string, surface?:string}} tokens
+     */
+    applyTokenChrome(tokens) {
+      if (!tokens) return;
+      const w = this.w;
+      if (tokens.fore && (w.config.chart.foreColor === DEFAULT_FORECOLOR_LIGHT || w.config.chart.foreColor === DEFAULT_FORECOLOR_DARK)) {
+        w.config.chart.foreColor = tokens.fore;
+      }
+      if (tokens.grid) {
+        if (w.config.grid.borderColor === DEFAULT_AXIS_GRID) {
+          w.config.grid.borderColor = tokens.grid;
+        }
+        const applyAxis = (axis) => {
+          if (!axis) return;
+          if (axis.axisBorder && axis.axisBorder.color === DEFAULT_AXIS_GRID) {
+            axis.axisBorder.color = tokens.grid;
+          }
+          if (axis.axisTicks && axis.axisTicks.color === DEFAULT_AXIS_GRID) {
+            axis.axisTicks.color = tokens.grid;
+          }
+        };
+        applyAxis(w.config.xaxis);
+        if (Array.isArray(w.config.yaxis)) {
+          w.config.yaxis.forEach(applyAxis);
+        } else {
+          applyAxis(w.config.yaxis);
+        }
+      }
+      if (tokens.surface && !w.config.chart.background) {
+        w.config.chart.background = tokens.surface;
+        const paperNode = w.dom.Paper && w.dom.Paper.node;
+        if (paperNode && paperNode.style) {
+          paperNode.style.background = tokens.surface;
+        }
+      }
     }
     /**
      * @param {any[]} configColors
@@ -13558,10 +15934,22 @@ var __async = (__this, __arguments, generator) => {
     predefined() {
       const palette = this.w.config.theme.palette;
       const palettes = getThemePalettes();
-      return (
+      const builtin = (
         /** @type {Record<string,any>} */
         palettes[palette] || palettes.palette1
       );
+      const tokens = this._tokens || {};
+      if (Array.isArray(tokens.series) && tokens.series.length) {
+        return tokens.series.slice();
+      }
+      if (tokens.accent) {
+        return [tokens.accent, ...builtin];
+      }
+      const named = this._namedTheme;
+      if (named && Array.isArray(named.palette) && named.palette.length) {
+        return named.palette.slice();
+      }
+      return builtin;
     }
   }
   class TitleSubtitle {
@@ -14806,22 +17194,46 @@ var __async = (__this, __arguments, generator) => {
     }
     return best;
   }
-  const REGISTRY_KEY = "__apexcharts_registry__";
+  const REGISTRY_KEY$2 = "__apexcharts_registry__";
+  const CUSTOM_KEY = "__apexcharts_custom_types__";
   if (!/** @type {any} */
-  globalThis[REGISTRY_KEY]) {
-    globalThis[REGISTRY_KEY] = {};
+  globalThis[REGISTRY_KEY$2]) {
+    globalThis[REGISTRY_KEY$2] = {};
   }
-  function getRegistry() {
+  if (!/** @type {any} */
+  globalThis[CUSTOM_KEY]) {
+    globalThis[CUSTOM_KEY] = /* @__PURE__ */ new Set();
+  }
+  function getRegistry$1() {
     return (
       /** @type {any} */
-      globalThis[REGISTRY_KEY]
+      globalThis[REGISTRY_KEY$2]
     );
   }
+  function getCustomTypes() {
+    return (
+      /** @type {any} */
+      globalThis[CUSTOM_KEY]
+    );
+  }
+  function markCustom(name2) {
+    getCustomTypes().add(name2);
+  }
+  function isCustom(name2) {
+    return getCustomTypes().has(name2);
+  }
+  function hasChartClass(type) {
+    return !!getRegistry$1()[type];
+  }
+  function unregister(name2) {
+    delete getRegistry$1()[name2];
+    getCustomTypes().delete(name2);
+  }
   function register(typeMap) {
-    Object.assign(getRegistry(), typeMap);
+    Object.assign(getRegistry$1(), typeMap);
   }
   function getChartClass(type) {
-    const Cls = getRegistry()[type];
+    const Cls = getRegistry$1()[type];
     if (!Cls) {
       throw new Error(
         `ApexCharts: chart type "${type}" is not registered. Import it via ApexCharts.use() or use the full apexcharts bundle.`
@@ -14861,8 +17273,9 @@ var __async = (__this, __arguments, generator) => {
         "heatmap",
         "treemap"
       ];
-      gl.axisCharts = axisChartsArrTypes.includes(ct);
-      gl.xyCharts = xyChartsArrTypes.includes(ct);
+      const isCustomType = !axisChartsArrTypes.includes(ct) && !["pie", "donut", "polarArea", "radialBar"].includes(ct) && isCustom(ct);
+      gl.axisCharts = axisChartsArrTypes.includes(ct) || isCustomType;
+      gl.xyCharts = xyChartsArrTypes.includes(ct) || isCustomType;
       gl.isBarHorizontal = ["bar", "rangeBar", "boxPlot", "violin"].includes(ct) && cnf.plotOptions.bar.horizontal;
       gl.chartClass = `.apexcharts${gl.chartID}`;
       this.w.dom.baseEl = this.el;
@@ -14888,7 +17301,7 @@ var __async = (__this, __arguments, generator) => {
       this.w.dom.Paper.node.style.background = cnf.theme.mode === "dark" && !cnf.chart.background ? "#343A3F" : cnf.theme.mode === "light" && !cnf.chart.background ? "#fff" : cnf.chart.background;
       this.setSVGDimensions();
       this.w.dom.elLegendForeign = BrowserAPIs.createElementNS(
-        SVGNS,
+        SVGNS$1,
         "foreignObject"
       );
       Graphics.setAttrs(this.w.dom.elLegendForeign, {
@@ -14920,7 +17333,7 @@ var __async = (__this, __arguments, generator) => {
           "aria-label": ariaLabel
         });
         if (cnf.chart.accessibility.description) {
-          const descEl = BrowserAPIs.createElementNS(SVGNS, "desc");
+          const descEl = BrowserAPIs.createElementNS(SVGNS$1, "desc");
           descEl.textContent = cnf.chart.accessibility.description;
           this.w.dom.Paper.node.insertBefore(
             descEl,
@@ -14942,6 +17355,8 @@ var __async = (__this, __arguments, generator) => {
     plotChartType(ser, xyRatios) {
       const { w, ctx } = this;
       const { config: cnf, globals: gl } = w;
+      const canvasMode = ctx.renderer && ctx.renderer.kind === "canvas";
+      if (canvasMode) ctx.renderer.beginSeries();
       const seriesTypes = {
         line: { series: [], i: [] },
         area: { series: [], i: [] },
@@ -14954,6 +17369,7 @@ var __async = (__this, __arguments, generator) => {
         rangeBar: { series: [], i: [] },
         rangeArea: { series: [], seriesRangeEnd: [], i: [] }
       };
+      const customBuckets = {};
       const chartType = cnf.chart.type || "line";
       let nonComboType = null;
       let comboCount = 0;
@@ -14985,6 +17401,12 @@ var __async = (__this, __arguments, generator) => {
           "radar"
         ].includes(seriesType)) {
           nonComboType = seriesType;
+        } else if (isCustom(seriesType)) {
+          if (!customBuckets[seriesType]) {
+            customBuckets[seriesType] = { series: [], i: [] };
+          }
+          customBuckets[seriesType].series.push(serie);
+          customBuckets[seriesType].i.push(st);
         } else {
           console.warn(
             `You have specified an unrecognized series type (${seriesType}).`
@@ -15129,6 +17551,13 @@ var __async = (__this, __arguments, generator) => {
             )
           );
         }
+        Object.keys(customBuckets).forEach((cname) => {
+          const bucket = customBuckets[cname];
+          if (bucket.series.length > 0) {
+            const cs = new (getChartClass(cname))(ctx.w, ctx, xyRatios);
+            elGraph.push(cs.draw(bucket.series, cname, bucket.i));
+          }
+        });
       } else {
         const type = cnf.chart.type;
         switch (type) {
@@ -15197,7 +17626,26 @@ var __async = (__this, __arguments, generator) => {
             break;
           }
           default:
-            elGraph = line.draw(this.w.seriesData.series);
+            if (isCustom(type)) {
+              const cs = new (getChartClass(type))(ctx.w, ctx, xyRatios);
+              elGraph = cs.draw(this.w.seriesData.series, type);
+            } else {
+              elGraph = line.draw(this.w.seriesData.series);
+            }
+        }
+      }
+      if (canvasMode) {
+        const host = ctx.renderer.present();
+        if (host) {
+          const wrap = new Graphics(w).group({
+            class: "apexcharts-canvas-series-wrap"
+          });
+          wrap.add(host);
+          const groups = Array.isArray(elGraph) ? elGraph : [elGraph];
+          groups.forEach((g) => {
+            if (g) wrap.add(g);
+          });
+          return wrap;
         }
       }
       return elGraph;
@@ -15745,6 +18193,44 @@ var __async = (__this, __arguments, generator) => {
       return range;
     }
     /**
+     * Marks (#11) P3: fold a custom series' per-datum y-extent into the
+     * range-data slice so both bounds drive the y-axis scale. When `yExtent` is
+     * given it supplies the values a datum occupies (scalar or array => min/max
+     * across them); otherwise the datum's `y` is used (array => first/last,
+     * scalar => itself). The datum still carries a representative scalar `y`
+     * (folded by handleFormatXY into seriesData.series) that gates Range.
+     * @param {any[]} ser @param {number} i @param {Function|null} yExtent
+     */
+    handleCustomRangeData(ser, i, yExtent) {
+      const data = ser[i].data || [];
+      const start = [];
+      const end = [];
+      for (let j = 0; j < data.length; j++) {
+        const datum = data[j];
+        let lo;
+        let hi;
+        if (typeof yExtent === "function") {
+          let ext = yExtent(datum, j);
+          if (!Array.isArray(ext)) ext = [ext];
+          const nums = ext.map((v) => Utils$1.parseNumber(v)).filter((v) => v !== null && !isNaN(v));
+          lo = nums.length ? Math.min(...nums) : null;
+          hi = nums.length ? Math.max(...nums) : null;
+        } else {
+          const y = datum == null ? null : datum.y;
+          if (Array.isArray(y)) {
+            lo = Utils$1.parseNumber(y[0]);
+            hi = Utils$1.parseNumber(y[y.length - 1]);
+          } else {
+            lo = hi = Utils$1.parseNumber(y);
+          }
+        }
+        start.push(lo);
+        end.push(hi);
+      }
+      this.w.rangeData.seriesRangeStart[i] = start;
+      this.w.rangeData.seriesRangeEnd[i] = end;
+    }
+    /**
      * @param {any[]} ser
      * @param {number} i
      */
@@ -16028,6 +18514,18 @@ var __async = (__this, __arguments, generator) => {
         if (cnf.chart.type === "rangeBar" || cnf.chart.type === "rangeArea" || ser[i].type === "rangeBar" || ser[i].type === "rangeArea") {
           this.w.axisFlags.isRangeData = true;
           this.handleRangeData(ser, i);
+        }
+        const customType = ser[i].type || cnf.chart.type;
+        if (isCustom(customType)) {
+          const cls = (
+            /** @type {any} */
+            getChartClass(customType)
+          );
+          const yExtent = cls && cls.yExtent;
+          if (cls && cls.dataType === "rangeXY" || typeof yExtent === "function") {
+            this.w.axisFlags.isRangeData = true;
+            this.handleCustomRangeData(ser, i, yExtent);
+          }
         }
         if (this.isMultiFormat()) {
           if (this.isFormat2DArray()) {
@@ -16471,8 +18969,12 @@ var __async = (__this, __arguments, generator) => {
         )
       );
       if (!hasArrayY) {
-        if (cnf.xaxis.type !== "datetime" && Array.isArray(cnf.xaxis.categories) && cnf.xaxis.categories.length) {
-          this._applyBandAxis(cnf.xaxis.categories.slice());
+        if (cnf.xaxis.type !== "datetime") {
+          if (Array.isArray(cnf.xaxis.categories) && cnf.xaxis.categories.length) {
+            this._applyBandAxis(cnf.xaxis.categories.slice());
+          } else if (Array.isArray(cnf.xaxis._scatterBandLabels) && cnf.xaxis._scatterBandLabels.length) {
+            this._applyBandAxis(cnf.xaxis._scatterBandLabels);
+          }
         }
         return ser;
       }
@@ -16524,11 +19026,15 @@ var __async = (__this, __arguments, generator) => {
      * band centers regardless of how the numeric scale "nices" the step (e.g. the
      * small-range reduction in Scales._adjustTicksForSmallRange triggered by a
      * y-axis formatter). Only fills in options the user hasn't set, so explicit
-     * min/max/tickAmount/formatter still win.
+     * min/max/tickAmount/formatter still win. The exception is an interactive
+     * zoom/pan window (w.interact.zoomed): its fractional bounds are snapped to
+     * whole bands so tick labels stay on band centers and edge bands are never
+     * half-cropped.
      *
      * @param {any[]} bandLabels
      */
     _applyBandAxis(bandLabels) {
+      var _a;
       const xa = this.w.config.xaxis;
       const n = bandLabels.length;
       if (!n) return;
@@ -16536,18 +19042,34 @@ var __async = (__this, __arguments, generator) => {
         /** @type {Record<string, boolean>} */
         xa._scatterBand = xa._scatterBand || {}
       );
+      xa._scatterBandLabels = bandLabels.slice();
       xa.type = "numeric";
-      if (xa.min == null || owned.min) {
-        xa.min = -1;
+      if (((_a = this.w.interact) == null ? void 0 : _a.zoomed) && typeof xa.min === "number" && typeof xa.max === "number" && isFinite(xa.min) && isFinite(xa.max)) {
+        const clampBand = (b) => Math.max(0, Math.min(n - 1, b));
+        let first = clampBand(Math.round(xa.min + 0.49));
+        let last = clampBand(Math.round(xa.max - 0.49));
+        if (last < first) {
+          first = last = clampBand(Math.round((xa.min + xa.max) / 2));
+        }
+        xa.min = first - 1;
+        xa.max = last + 1;
+        xa.tickAmount = last - first + 2;
         owned.min = true;
-      }
-      if (xa.max == null || owned.max) {
-        xa.max = n;
         owned.max = true;
-      }
-      if (xa.tickAmount == null || xa.tickAmount === "dataPoints" || owned.tick) {
-        xa.tickAmount = n + 1;
         owned.tick = true;
+      } else {
+        if (xa.min == null || owned.min) {
+          xa.min = -1;
+          owned.min = true;
+        }
+        if (xa.max == null || owned.max) {
+          xa.max = n;
+          owned.max = true;
+        }
+        if (xa.tickAmount == null || xa.tickAmount === "dataPoints" || owned.tick) {
+          xa.tickAmount = n + 1;
+          owned.tick = true;
+        }
       }
       xa.labels = xa.labels || {};
       const existing = (
@@ -16964,6 +19486,7 @@ var __async = (__this, __arguments, generator) => {
             options2 = CoreUtils.extendArrayProps(ch.config, options2, w);
             if (ch.w.globals.chartID !== this.w.globals.chartID) {
               delete options2.series;
+              delete options2.yaxis;
             }
             w.config = Utils$1.extend(w.config, options2);
             if (overwriteInitialConfig) {
@@ -17009,11 +19532,22 @@ var __async = (__this, __arguments, generator) => {
         const w = this.w;
         w.globals.shouldAnimate = animate;
         w.globals.dataChanged = true;
+        const prevAxisScaleSig = JSON.stringify({
+          y: (w.globals.yAxisScale || []).map((s) => s ? s.result : null),
+          xMin: w.globals.minX,
+          xMax: w.globals.maxX
+        });
         PerformanceCache.invalidateSelectors(w);
         if (animate) {
           this.ctx.series.getPreviousPaths();
         }
         const prevSeriesCount = w.config.series.length;
+        const prevDataLengths = w.config.series.map(
+          (s) => {
+            var _a, _b;
+            return (_b = (_a = s == null ? void 0 : s.data) == null ? void 0 : _a.length) != null ? _b : 0;
+          }
+        );
         w.globals.dataReducerRawSeries = null;
         this.ctx.data.resetParsingFlags();
         const parsedState = this.ctx.data.parseData(newSeries);
@@ -17028,8 +19562,8 @@ var __async = (__this, __arguments, generator) => {
           }
           w.globals.initialSeries = Utils$1.clone(w.config.series);
         }
-        if (this._canUseFastPath(newSeries, prevSeriesCount, w)) {
-          return this.ctx.fastUpdate(animate).then(() => {
+        if (this._canUseFastPath(newSeries, prevSeriesCount, prevDataLengths, w)) {
+          return this.ctx.fastUpdate(animate, prevAxisScaleSig).then(() => {
             resolve(this.ctx);
           });
         }
@@ -17046,17 +19580,31 @@ var __async = (__this, __arguments, generator) => {
      * - Chart has been fully rendered (DOM exists)
      * - Axis chart (non-axis charts like pie always need full rebuild due to radial layout)
      * - Series count unchanged (grid column/row counts depend on it)
+     * - Per-series data lengths unchanged (the fast path preserves the axis DOM,
+     *   and a changed point count re-slots categories/ticks: with explicit
+     *   categories the axis-scale signature can still match, leaving a stale
+     *   ruler under the re-slotted marks; length changes also want the full
+     *   render so enter/exit and axis transitions run)
      * - No series currently collapsing (collapsed series changes visible data range)
      * - Not a combo chart (combo charts mix types and need coordinated axis recalc)
      * - Not currently zoomed (zoomed charts have altered x-labels that need recalculation)
      * @param {any[]} newSeries
      * @param {number} prevSeriesCount
+     * @param {number[]} prevDataLengths
      * @param {import('../../types/internal').ChartStateW} w
      */
-    _canUseFastPath(newSeries, prevSeriesCount, w) {
+    _canUseFastPath(newSeries, prevSeriesCount, prevDataLengths, w) {
       if (!w.dom.elGraphical) return false;
       if (!w.globals.axisCharts) return false;
       if (newSeries.length !== prevSeriesCount) return false;
+      if (newSeries.some(
+        (s, i) => {
+          var _a, _b;
+          return ((_b = (_a = s == null ? void 0 : s.data) == null ? void 0 : _a.length) != null ? _b : 0) !== prevDataLengths[i];
+        }
+      )) {
+        return false;
+      }
       if (w.globals.collapsedSeries.length > 0) return false;
       if (w.globals.ancillaryCollapsedSeries.length > 0) return false;
       if (w.globals.risingSeries.length > 0) return false;
@@ -18563,7 +21111,7 @@ var __async = (__this, __arguments, generator) => {
               points.splice(p, 0, null);
             }
           }
-          if (pointArr && pointArr.length) {
+          if (points[p] && pointArr && pointArr.length) {
             let pcy = pointsArr[p][j][1];
             let pcy2;
             points[p].setAttribute("cx", cx);
@@ -18593,7 +21141,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} capturedSeries
      */
     moveStickyTooltipOverBars(j, capturedSeries) {
-      var _a, _b, _c;
+      var _a, _b, _c, _d, _e;
       const w = this.w;
       const ttCtx = this.ttCtx;
       let barLen = w.globals.columnSeries ? (
@@ -18620,9 +21168,25 @@ var __async = (__this, __arguments, generator) => {
         .apexcharts-rangebar-series .apexcharts-series[data\\:realIndex='${capturedSeries}'] path[j='${j}']`
         );
       }
-      let bcx = jBar ? parseFloat((_a = jBar.getAttribute("cx")) != null ? _a : "0") : 0;
-      let bcy = jBar ? parseFloat((_b = jBar.getAttribute("cy")) != null ? _b : "0") : 0;
-      const bw = jBar ? parseFloat((_c = jBar.getAttribute("barWidth")) != null ? _c : "0") : 0;
+      let bc = null;
+      const bcc = (
+        /** @type {any} */
+        w.globals.barCanvasCoords
+      );
+      if (!jBar && bcc) {
+        bc = typeof capturedSeries === "number" && ((_a = bcc[capturedSeries]) == null ? void 0 : _a[j]) || null;
+        if (!bc) {
+          for (const key in bcc) {
+            if ((_b = bcc[key]) == null ? void 0 : _b[j]) {
+              bc = bcc[key][j];
+              break;
+            }
+          }
+        }
+      }
+      let bcx = jBar ? parseFloat((_c = jBar.getAttribute("cx")) != null ? _c : "0") : bc ? bc.cx : 0;
+      let bcy = jBar ? parseFloat((_d = jBar.getAttribute("cy")) != null ? _d : "0") : bc ? bc.cy : 0;
+      const bw = jBar ? parseFloat((_e = jBar.getAttribute("barWidth")) != null ? _e : "0") : bc ? bc.barWidth : 0;
       const elGrid = ttCtx.getElGrid();
       if (!elGrid) return;
       const seriesBound = elGrid.getBoundingClientRect();
@@ -18641,7 +21205,7 @@ var __async = (__this, __arguments, generator) => {
           bcx = bcx - bw / 2;
         }
       } else {
-        if (!w.globals.isBarHorizontal) {
+        if (!w.globals.isBarHorizontal && !bc) {
           bcx = ttCtx.xAxisTicksPositions[j - 1] + ttCtx.dataPointsDividedWidth / 2;
           if (isNaN(bcx)) {
             bcx = ttCtx.xAxisTicksPositions[j] - ttCtx.dataPointsDividedWidth / 2;
@@ -18856,7 +21420,7 @@ var __async = (__this, __arguments, generator) => {
           });
           const point = graphics.drawMarker(0, 0, elPointOptions);
           point.node.setAttribute("default-marker-size", 0);
-          const elPointsG = BrowserAPIs.createElementNS(SVGNS, "g");
+          const elPointsG = BrowserAPIs.createElementNS(SVGNS$1, "g");
           elPointsG.classList.add("apexcharts-series-markers");
           elPointsG.appendChild(point.node);
           pointsMain.appendChild(elPointsG);
@@ -19957,8 +22521,13 @@ var __async = (__this, __arguments, generator) => {
       this.lastHoverTime = Date.now();
       let chartGroups = [];
       const w = this.w;
-      if (w.config.chart.group) {
-        chartGroups = this.ctx.getGroupedCharts();
+      const isCfMember = (chart) => {
+        var _a, _b, _c;
+        const link = (_c = (_b = (_a = chart == null ? void 0 : chart.w) == null ? void 0 : _a.config) == null ? void 0 : _b.chart) == null ? void 0 : _c.link;
+        return !!(link && typeof link.dimension === "function");
+      };
+      if (w.config.chart.group && !isCfMember(this.ctx)) {
+        chartGroups = this.ctx.getGroupedCharts().filter((ch) => !isCfMember(ch));
       }
       if (w.globals.axisCharts && (w.globals.minX === -Infinity && w.globals.maxX === Infinity || w.globals.dataPoints === 0)) {
         return;
@@ -20349,6 +22918,19 @@ var __async = (__this, __arguments, generator) => {
       ]);
     }
     /**
+     * Marks (#11): whether the chart's type (or any series' type) is a registered
+     * custom series, whose marks live outside the built-in marker DOM.
+     * @returns {boolean}
+     */
+    _hasCustomSeries() {
+      const w = this.w;
+      if (isCustom(w.config.chart.type)) return true;
+      const series = w.config.series || [];
+      return series.some(
+        (s) => s && s.type && isCustom(s.type)
+      );
+    }
+    /**
      * @param {Event} e
      * @param {any} context
      * @param {number} capturedSeries
@@ -20357,7 +22939,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {boolean | null} shared
      */
     create(e, context, capturedSeries, j, ttItems, shared = null) {
-      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u;
       const w = this.w;
       const ttCtx = context;
       if (e.type === "mouseup") {
@@ -20365,9 +22947,13 @@ var __async = (__this, __arguments, generator) => {
       }
       if (shared === null) shared = this.tConfig.shared;
       const hasMarkers = this.tooltipUtil.hasMarkers(capturedSeries);
+      const canvasMode = ((_b = (_a = this.ctx) == null ? void 0 : _a.renderer) == null ? void 0 : _b.kind) === "canvas";
+      const canvasNonBar = canvasMode && !this.tooltipUtil.hasBars();
+      const marksMode = !canvasMode && !hasMarkers && !this.tooltipUtil.hasBars() && this._hasCustomSeries();
+      const dynamicPoints = canvasNonBar || marksMode;
       const bars = this.tooltipUtil.getElBars();
       const handlePoints = () => {
-        if (w.globals.markers.largestSize > 0) {
+        if (w.globals.markers.largestSize > 0 && !canvasMode) {
           ttCtx.marker.enlargePoints(j);
         } else {
           ttCtx.tooltipPosition.moveDynamicPointsOnHover(j);
@@ -20377,7 +22963,7 @@ var __async = (__this, __arguments, generator) => {
         const legendFormatter = w.config.legend.tooltipHoverFormatter;
         const els = (
           /** @type {HTMLElement[]} */
-          Array.from((_a = this.legendLabels) != null ? _a : [])
+          Array.from((_c = this.legendLabels) != null ? _c : [])
         );
         els.forEach((l) => {
           const legendName = l.getAttribute("data:default-text");
@@ -20385,9 +22971,9 @@ var __async = (__this, __arguments, generator) => {
         });
         for (let i = 0; i < els.length; i++) {
           const l = els[i];
-          const lsIndex = parseInt((_b = l.getAttribute("i")) != null ? _b : "", 10);
+          const lsIndex = parseInt((_d = l.getAttribute("i")) != null ? _d : "", 10);
           const legendName = decodeURIComponent(
-            (_c = l.getAttribute("data:default-text")) != null ? _c : ""
+            (_e = l.getAttribute("data:default-text")) != null ? _e : ""
           );
           const text = legendFormatter(legendName, {
             seriesIndex: shared ? lsIndex : capturedSeries,
@@ -20412,18 +22998,21 @@ var __async = (__this, __arguments, generator) => {
         ttItems,
         i: capturedSeries,
         j
-      }, ((_g = (_f = (_e = (_d = _rangeData.seriesRange) == null ? void 0 : _d[capturedSeries]) == null ? void 0 : _e[j]) == null ? void 0 : _f.y[0]) == null ? void 0 : _g.y1) !== void 0 && {
-        y1: (_k = (_j = (_i = (_h = _rangeData.seriesRange) == null ? void 0 : _h[capturedSeries]) == null ? void 0 : _i[j]) == null ? void 0 : _j.y[0]) == null ? void 0 : _k.y1
-      }), ((_o = (_n = (_m = (_l = _rangeData.seriesRange) == null ? void 0 : _l[capturedSeries]) == null ? void 0 : _m[j]) == null ? void 0 : _n.y[0]) == null ? void 0 : _o.y2) !== void 0 && {
-        y2: (_s = (_r = (_q = (_p = _rangeData.seriesRange) == null ? void 0 : _p[capturedSeries]) == null ? void 0 : _q[j]) == null ? void 0 : _r.y[0]) == null ? void 0 : _s.y2
+      }, ((_i = (_h = (_g = (_f = _rangeData.seriesRange) == null ? void 0 : _f[capturedSeries]) == null ? void 0 : _g[j]) == null ? void 0 : _h.y[0]) == null ? void 0 : _i.y1) !== void 0 && {
+        y1: (_m = (_l = (_k = (_j = _rangeData.seriesRange) == null ? void 0 : _j[capturedSeries]) == null ? void 0 : _k[j]) == null ? void 0 : _l.y[0]) == null ? void 0 : _m.y1
+      }), ((_q = (_p = (_o = (_n = _rangeData.seriesRange) == null ? void 0 : _n[capturedSeries]) == null ? void 0 : _o[j]) == null ? void 0 : _p.y[0]) == null ? void 0 : _q.y2) !== void 0 && {
+        y2: (_u = (_t = (_s = (_r = _rangeData.seriesRange) == null ? void 0 : _r[capturedSeries]) == null ? void 0 : _s[j]) == null ? void 0 : _t.y[0]) == null ? void 0 : _u.y2
       });
       if (shared) {
         ttCtx.tooltipLabels.drawSeriesTexts(__spreadProps(__spreadValues({}, commonSeriesTextsParams), {
           shared: this.showOnIntersect ? false : this.tConfig.shared
         }));
-        if (hasMarkers) {
+        if (hasMarkers || dynamicPoints) {
           handlePoints();
         } else if (this.tooltipUtil.hasBars()) {
+          if (canvasMode) {
+            ttCtx.tooltipPosition.moveStickyTooltipOverBars(j, capturedSeries);
+          }
           this.barSeriesHeight = this.tooltipUtil.getBarsHeight(
             /** @type {any[]} */
             [...bars]
@@ -20456,8 +23045,202 @@ var __async = (__this, __arguments, generator) => {
         }
         if (hasMarkers) {
           ttCtx.tooltipPosition.moveMarkers(capturedSeries, j);
+        } else if (dynamicPoints) {
+          ttCtx.tooltipPosition.moveDynamicPointOnHover(j, capturedSeries);
         }
       }
+    }
+  }
+  class SvgRenderer {
+    /**
+     * @param {any} w
+     * @param {any} ctx
+     */
+    constructor(w, ctx) {
+      this.w = w;
+      this.ctx = ctx;
+      this.kind = "svg";
+    }
+    // ── lifecycle (SVG builds its layer via the existing plotChartType flow) ──
+    beginSeries() {
+    }
+    present() {
+      return null;
+    }
+    clear() {
+    }
+    // ── emit primitives (delegate to Graphics: the canvas renderer mirrors
+    //    this exact surface) ──
+    /** @param {any} attrs */
+    group(attrs) {
+      return this.ctx.graphics.group(attrs);
+    }
+    /** @param {any} opts */
+    drawPath(opts) {
+      return this.ctx.graphics.drawPath(opts);
+    }
+    /** @param {any[]} args */
+    drawLine(...args) {
+      return this.ctx.graphics.drawLine(...args);
+    }
+    /** @param {any[]} args */
+    drawRect(...args) {
+      return this.ctx.graphics.drawRect(...args);
+    }
+    /**
+     * @param {number} r
+     * @param {any} attrs
+     */
+    drawCircle(r, attrs) {
+      return this.ctx.graphics.drawCircle(r, attrs);
+    }
+    /** @param {any} opts */
+    drawText(opts) {
+      return this.ctx.graphics.drawText(opts);
+    }
+    /**
+     * A series mark path (animation-aware). Faithful passthrough to Graphics.
+     * Note: the SVG emit path in the per-type draw() methods routes through
+     * `seriesEmitter`, which returns the caller's own `Graphics` in SVG mode: so
+     * this method is the interface contract surface (mirrored by the canvas
+     * renderer), not the hot path.
+     * @param {any} opts
+     */
+    renderPaths(opts) {
+      return this.ctx.graphics.renderPaths(opts);
+    }
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @param {any} opts
+     */
+    drawMarker(x, y, opts = {}) {
+      return this.ctx.graphics.drawMarker(x, y, opts);
+    }
+    // ── capabilities: SVG supports everything the interface enumerates ──
+    /** @param {string} _feature */
+    supports(_feature) {
+      return true;
+    }
+    // ── interaction: the DOM does this natively in SVG mode ──
+    hitTest() {
+      return null;
+    }
+    restyle() {
+    }
+    // ── export: SVG serializes directly; no bitmap to composite ──
+    toBitmap() {
+      return null;
+    }
+    destroy() {
+    }
+  }
+  const RENDERER_REGISTRY_KEY = "__apexcharts_renderers__";
+  function getRendererRegistry() {
+    const g = (
+      /** @type {any} */
+      globalThis
+    );
+    if (!g[RENDERER_REGISTRY_KEY]) g[RENDERER_REGISTRY_KEY] = /* @__PURE__ */ new Map();
+    return g[RENDERER_REGISTRY_KEY];
+  }
+  class RendererController {
+    /** Same Map as getRendererRegistry(); exposed for tests/tooling. */
+    static get _rendererRegistry() {
+      return getRendererRegistry();
+    }
+    /**
+     * @param {string} kind
+     * @param {(w: any, ctx: any) => any} factory
+     */
+    static registerRenderer(kind, factory) {
+      getRendererRegistry().set(kind, factory);
+    }
+    /**
+     * Remove a registered renderer backend (tests / hot-reload). Charts fall
+     * back to SVG on their next resolve().
+     * @param {string} kind
+     */
+    static unregisterRenderer(kind) {
+      getRendererRegistry().delete(kind);
+    }
+    /**
+     * @param {any} w
+     * @param {any} ctx
+     */
+    constructor(w, ctx) {
+      this.w = w;
+      this.ctx = ctx;
+      this.svg = new SvgRenderer(w, ctx);
+      this.active = this.svg;
+      this._activeKind = "svg";
+      this._instances = {};
+    }
+    /**
+     * The kind selection WANTS (before availability/fallback). Pure.
+     * @returns {import('../renderers/Renderer').RendererKind}
+     */
+    _desiredKind() {
+      const cfg = this.w.config.chart;
+      const mode = cfg.renderer || "svg";
+      if (!Environment.isBrowser()) return "svg";
+      if (mode === "svg") return "svg";
+      if (hasCanvasUnsupportedFeature(this.w)) return "svg";
+      if (mode === "canvas") return "canvas";
+      const marks = computeMarkCount(this.w);
+      const threshold = cfg.rendererThreshold || 8e3;
+      return marks >= threshold ? "canvas" : "svg";
+    }
+    /**
+     * Resolve + instantiate the active renderer and set `ctx.renderer`. Falls
+     * back to SVG (with a warning only when canvas was explicitly requested) if
+     * the desired backend is not registered.
+     * @returns {import('../renderers/Renderer').RendererKind}
+     */
+    resolve() {
+      const mode = this.w.config.chart.renderer || "svg";
+      const desired = this._desiredKind();
+      if (desired !== "svg") {
+        const factory = getRendererRegistry().get(desired);
+        if (factory) {
+          if (!this._instances[desired]) {
+            this._instances[desired] = factory(this.w, this.ctx);
+          }
+          this.active = this._instances[desired];
+          this._activeKind = desired;
+          this.ctx.renderer = this.active;
+          this.w.globals.activeRenderer = this.active;
+          return this._activeKind;
+        }
+        if (mode === desired) {
+          console.warn(
+            `[apexcharts] renderer:"${desired}" requested but that renderer is not bundled (import 'apexcharts/features/renderer-${desired}'); falling back to SVG.`
+          );
+        }
+      } else if (mode === "canvas" && hasCanvasUnsupportedFeature(this.w)) {
+        console.warn(
+          `[apexcharts] renderer:"canvas" requested but this chart uses a feature the canvas renderer does not render yet (gradient/pattern/image fill or a state color-matrix filter); falling back to SVG.`
+        );
+      }
+      this.active = this.svg;
+      this._activeKind = "svg";
+      this.ctx.renderer = this.active;
+      this.w.globals.activeRenderer = this.active;
+      return this._activeKind;
+    }
+    /** @returns {import('../renderers/Renderer').RendererKind} */
+    getActiveKind() {
+      return this._activeKind;
+    }
+    /** Destroy the owned non-SVG renderer instances (full chart destroy). */
+    teardown() {
+      for (const kind in this._instances) {
+        const r = this._instances[kind];
+        if (r && typeof r.destroy === "function") r.destroy();
+      }
+      this._instances = {};
+      this.active = this.svg;
+      this._activeKind = "svg";
     }
   }
   class SVGElement {
@@ -20563,6 +23346,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {any} child
      */
     add(child) {
+      if (child && child.__isCanvasMark) return this;
       this.node.appendChild(child.node || child);
       return this;
     }
@@ -20764,7 +23548,7 @@ var __async = (__this, __arguments, generator) => {
      */
     constructor(container, type, builder) {
       const tag = type === "radial" ? "radialGradient" : "linearGradient";
-      const node = BrowserAPIs.createElementNS(SVGNS, tag);
+      const node = BrowserAPIs.createElementNS(SVGNS$1, tag);
       super(node);
       this._id = "SvgjsGradient" + ++gradientCounter;
       this.attr("id", this._id);
@@ -20773,7 +23557,7 @@ var __async = (__this, __arguments, generator) => {
       }
       let defs = container.node.querySelector("defs");
       if (!defs) {
-        defs = BrowserAPIs.createElementNS(SVGNS, "defs");
+        defs = BrowserAPIs.createElementNS(SVGNS$1, "defs");
         container.node.appendChild(defs);
       }
       defs.appendChild(this.node);
@@ -20784,7 +23568,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} opacity
      */
     stop(offset, color, opacity) {
-      const s = BrowserAPIs.createElementNS(SVGNS, "stop");
+      const s = BrowserAPIs.createElementNS(SVGNS$1, "stop");
       s.setAttribute("offset", offset);
       s.setAttribute("stop-color", color);
       if (opacity !== void 0) s.setAttribute("stop-opacity", String(opacity));
@@ -20844,7 +23628,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {Function} builder
      */
     constructor(container, w, h, builder) {
-      const node = BrowserAPIs.createElementNS(SVGNS, "pattern");
+      const node = BrowserAPIs.createElementNS(SVGNS$1, "pattern");
       super(node);
       this._id = "SvgjsPattern" + ++patternCounter;
       this.attr({
@@ -20859,7 +23643,7 @@ var __async = (__this, __arguments, generator) => {
       }
       let defs = container.node.querySelector("defs");
       if (!defs) {
-        defs = BrowserAPIs.createElementNS(SVGNS, "defs");
+        defs = BrowserAPIs.createElementNS(SVGNS$1, "defs");
         container.node.appendChild(defs);
       }
       defs.appendChild(this.node);
@@ -20938,7 +23722,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} textContent
      */
     plain(textContent) {
-      const node = BrowserAPIs.createElementNS(SVGNS, "text");
+      const node = BrowserAPIs.createElementNS(SVGNS$1, "text");
       node.textContent = textContent;
       const el = new SVGElement(node);
       this.node.appendChild(node);
@@ -20948,7 +23732,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {object} builder
      */
     text(builder) {
-      const node = BrowserAPIs.createElementNS(SVGNS, "text");
+      const node = BrowserAPIs.createElementNS(SVGNS$1, "text");
       const el = new SVGElement(node);
       this.node.appendChild(node);
       if (typeof builder === "function") {
@@ -20961,7 +23745,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {Function} callback
      */
     image(url, callback) {
-      const node = BrowserAPIs.createElementNS(SVGNS, "image");
+      const node = BrowserAPIs.createElementNS(SVGNS$1, "image");
       node.setAttributeNS("http://www.w3.org/1999/xlink", "href", url);
       const el = new SVGElement(node);
       this.node.appendChild(node);
@@ -20994,7 +23778,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} tag
      */
     _make(tag) {
-      const node = BrowserAPIs.createElementNS(SVGNS, tag);
+      const node = BrowserAPIs.createElementNS(SVGNS$1, tag);
       this.node.appendChild(node);
       return new SVGElement(node);
     }
@@ -21002,7 +23786,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} tag
      */
     _makeContainer(tag) {
-      const node = BrowserAPIs.createElementNS(SVGNS, tag);
+      const node = BrowserAPIs.createElementNS(SVGNS$1, tag);
       this.node.appendChild(node);
       return new SVGContainer(node);
     }
@@ -21018,7 +23802,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} text
      */
     tspan(text) {
-      const tspan = BrowserAPIs.createElementNS(SVGNS, "tspan");
+      const tspan = BrowserAPIs.createElementNS(SVGNS$1, "tspan");
       tspan.textContent = text;
       this.textNode.appendChild(tspan);
       return new TspanWrapper(tspan, this.textNode);
@@ -21042,7 +23826,7 @@ var __async = (__this, __arguments, generator) => {
   let filterCounter = 0;
   class SVGFilter extends SVGElement {
     constructor() {
-      const node = BrowserAPIs.createElementNS(SVGNS, "filter");
+      const node = BrowserAPIs.createElementNS(SVGNS$1, "filter");
       super(node);
       this._id = "SvgjsFilter" + ++filterCounter;
       this.attr("id", this._id);
@@ -21104,9 +23888,9 @@ var __async = (__this, __arguments, generator) => {
      * @param {string[]} sources
      */
     merge(sources) {
-      const m = BrowserAPIs.createElementNS(SVGNS, "feMerge");
+      const m = BrowserAPIs.createElementNS(SVGNS$1, "feMerge");
       sources.forEach((src) => {
-        const mn = BrowserAPIs.createElementNS(SVGNS, "feMergeNode");
+        const mn = BrowserAPIs.createElementNS(SVGNS$1, "feMergeNode");
         mn.setAttribute("in", src);
         m.appendChild(mn);
       });
@@ -21118,7 +23902,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {Record<string, any>} attrs
      */
     _primitive(tag, attrs) {
-      const el = BrowserAPIs.createElementNS(SVGNS, tag);
+      const el = BrowserAPIs.createElementNS(SVGNS$1, tag);
       for (const key in attrs) {
         el.setAttribute(key, attrs[key]);
       }
@@ -21137,7 +23921,7 @@ var __async = (__this, __arguments, generator) => {
       if (svgRoot) {
         let defs = svgRoot.querySelector("defs");
         if (!defs) {
-          defs = BrowserAPIs.createElementNS(SVGNS, "defs");
+          defs = BrowserAPIs.createElementNS(SVGNS$1, "defs");
           svgRoot.insertBefore(defs, svgRoot.firstChild);
         }
         defs.appendChild(filter.node);
@@ -21158,742 +23942,6 @@ var __async = (__this, __arguments, generator) => {
     };
     ElementClass.prototype.filterer = function() {
       return this._filter;
-    };
-  }
-  /*!
-   * Path morphing for SVG path animations
-   * Based on svg.pathmorphing.js by Ulrich-Matthias Schäfer (MIT License)
-   * Refactored to be standalone (no SVG.js dependency)
-   *
-   * Two algorithms are exported:
-   *   - morphPaths()    — command-level interpolation; preserves curves but can
-   *                       produce "wings/flips" when two shapes have very
-   *                       different topology (e.g. bar rect → pie arc).
-   *   - morphPolygons() — resamples both shapes into N evenly-spaced perimeter
-   *                       points and tweens point-by-point with rotation-search
-   *                       alignment; always smooth and non-self-intersecting,
-   *                       at the cost of throwing away curve smoothness.
-   */
-  function parsePath(d) {
-    if (!d || typeof d !== "string") return [["M", 0, 0]];
-    const commands = [];
-    const re = /([MmLlHhVvCcSsQqTtAaZz])\s*/g;
-    const numRe = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
-    let match;
-    const letters = [];
-    const positions = [];
-    while ((match = re.exec(d)) !== null) {
-      letters.push(match[1]);
-      positions.push(match.index);
-    }
-    for (let i = 0; i < letters.length; i++) {
-      const start = positions[i] + letters[i].length;
-      const end = i + 1 < positions.length ? positions[i + 1] : d.length;
-      const paramStr = d.substring(start, end);
-      const nums = [];
-      let numMatch;
-      numRe.lastIndex = 0;
-      while ((numMatch = numRe.exec(paramStr)) !== null) {
-        nums.push(parseFloat(numMatch[0]));
-      }
-      const cmd = letters[i].toUpperCase();
-      if (cmd === "Z") {
-        commands.push(["Z"]);
-      } else if (cmd === "M" || cmd === "L" || cmd === "T") {
-        for (let j = 0; j < nums.length; j += 2) {
-          commands.push([cmd, nums[j], nums[j + 1]]);
-        }
-      } else if (cmd === "H") {
-        for (let j = 0; j < nums.length; j++) {
-          commands.push([cmd, nums[j]]);
-        }
-      } else if (cmd === "V") {
-        for (let j = 0; j < nums.length; j++) {
-          commands.push([cmd, nums[j]]);
-        }
-      } else if (cmd === "C") {
-        for (let j = 0; j < nums.length; j += 6) {
-          commands.push([
-            cmd,
-            nums[j],
-            nums[j + 1],
-            nums[j + 2],
-            nums[j + 3],
-            nums[j + 4],
-            nums[j + 5]
-          ]);
-        }
-      } else if (cmd === "S" || cmd === "Q") {
-        for (let j = 0; j < nums.length; j += 4) {
-          commands.push([cmd, nums[j], nums[j + 1], nums[j + 2], nums[j + 3]]);
-        }
-      } else if (cmd === "A") {
-        for (let j = 0; j < nums.length; j += 7) {
-          commands.push([
-            cmd,
-            nums[j],
-            nums[j + 1],
-            nums[j + 2],
-            nums[j + 3],
-            nums[j + 4],
-            nums[j + 5],
-            nums[j + 6]
-          ]);
-        }
-      }
-    }
-    if (commands.length === 0) {
-      commands.push(["M", 0, 0]);
-    }
-    return commands;
-  }
-  function pathBbox(arr) {
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    arr.forEach((cmd) => {
-      for (let i = 1; i < cmd.length; i += 2) {
-        if (i + 1 <= cmd.length) {
-          const x = cmd[i];
-          const y = cmd[i + 1];
-          if (typeof x === "number" && typeof y === "number") {
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
-          }
-        }
-      }
-    });
-    if (minX === Infinity) {
-      return { x: 0, y: 0, width: 0, height: 0 };
-    }
-    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-  }
-  function arrayToPath(arr) {
-    return arr.map((cmd) => cmd.join(" ")).join(" ");
-  }
-  function simplify(val) {
-    switch (val[0]) {
-      case "z":
-      case "Z":
-        val[0] = "L";
-        val[1] = this.start[0];
-        val[2] = this.start[1];
-        break;
-      case "H":
-        val[0] = "L";
-        val[2] = this.pos[1];
-        break;
-      case "V":
-        val[0] = "L";
-        val[2] = val[1];
-        val[1] = this.pos[0];
-        break;
-      case "T":
-        val[0] = "Q";
-        val[3] = val[1];
-        val[4] = val[2];
-        val[1] = this.reflection[1];
-        val[2] = this.reflection[0];
-        break;
-      case "S":
-        val[0] = "C";
-        val[6] = val[4];
-        val[5] = val[3];
-        val[4] = val[2];
-        val[3] = val[1];
-        val[2] = this.reflection[1];
-        val[1] = this.reflection[0];
-        break;
-    }
-    return val;
-  }
-  function setPosAndReflection(val) {
-    var len = val.length;
-    this.pos = [val[len - 2], val[len - 1]];
-    if ("SCQT".indexOf(val[0]) != -1) {
-      this.reflection = [
-        2 * this.pos[0] - val[len - 4],
-        2 * this.pos[1] - val[len - 3]
-      ];
-    }
-    return val;
-  }
-  function toBezier(val) {
-    var _a;
-    var retVal = [val];
-    switch (val[0]) {
-      case "M":
-        this.pos = this.start = [val[1], val[2]];
-        return retVal;
-      case "L":
-        val[5] = val[3] = val[1];
-        val[6] = val[4] = val[2];
-        val[1] = this.pos[0];
-        val[2] = this.pos[1];
-        break;
-      case "Q":
-        val[6] = val[4];
-        val[5] = val[3];
-        val[4] = val[4] * 1 / 3 + val[2] * 2 / 3;
-        val[3] = val[3] * 1 / 3 + val[1] * 2 / 3;
-        val[2] = this.pos[1] * 1 / 3 + val[2] * 2 / 3;
-        val[1] = this.pos[0] * 1 / 3 + val[1] * 2 / 3;
-        break;
-      case "A":
-        retVal = arcToBezier((_a = this.pos) != null ? _a : [], val);
-        val = retVal[0];
-        break;
-    }
-    val[0] = "C";
-    this.pos = [val[5], val[6]];
-    this.reflection = [2 * val[5] - val[3], 2 * val[6] - val[4]];
-    return retVal;
-  }
-  function findNextM(arr, offset) {
-    if (offset === false) return false;
-    for (var i = offset, len = arr.length; i < len; ++i) {
-      if (arr[i][0] == "M") return i;
-    }
-    return false;
-  }
-  function arcToBezier(pos, val) {
-    var rx = Math.abs(val[1]), ry = Math.abs(val[2]), xAxisRotation = val[3] % 360, largeArcFlag = val[4], sweepFlag = val[5], x = val[6], y = val[7], A = new Point(pos[0], pos[1]), B = new Point(x, y), primedCoord, lambda, mat, k, c, cSquare, t, O, OA, OB, tetaStart, tetaEnd, deltaTeta, nbSectors, f, arcSegPoints, angle, sinAngle, cosAngle, pt, i, il, retVal = [], x1, y1, x2, y2;
-    if (rx === 0 || ry === 0 || A.x === B.x && A.y === B.y) {
-      return [["C", A.x, A.y, B.x, B.y, B.x, B.y]];
-    }
-    primedCoord = new Point((A.x - B.x) / 2, (A.y - B.y) / 2).transform(
-      // Start with the identity matrix (no args → Matrix defaults a=d=1, others 0).
-      // Passing all-zero args here would produce a degenerate zero matrix, since
-      // `0 ?? 1` is `0`, not `1` — every subsequent transform then yields (0,0)
-      // and the arc-to-bezier conversion crashes on a NaN cascade.
-      /** @type {any} */
-      new Matrix().rotate(xAxisRotation)
-    );
-    lambda = primedCoord.x * primedCoord.x / (rx * rx) + primedCoord.y * primedCoord.y / (ry * ry);
-    if (lambda > 1) {
-      lambda = Math.sqrt(lambda);
-      rx = lambda * rx;
-      ry = lambda * ry;
-    }
-    mat = /** @type {any} */
-    new Matrix().rotate(xAxisRotation).scale(1 / rx, 1 / ry).rotate(-xAxisRotation);
-    A = A.transform(mat);
-    B = B.transform(mat);
-    k = [B.x - A.x, B.y - A.y];
-    cSquare = k[0] * k[0] + k[1] * k[1];
-    c = Math.sqrt(cSquare);
-    k[0] /= c;
-    k[1] /= c;
-    t = cSquare < 4 ? Math.sqrt(1 - cSquare / 4) : 0;
-    if (largeArcFlag === sweepFlag) {
-      t *= -1;
-    }
-    O = new Point((B.x + A.x) / 2 + t * -k[1], (B.y + A.y) / 2 + t * k[0]);
-    OA = new Point(A.x - O.x, A.y - O.y);
-    OB = new Point(B.x - O.x, B.y - O.y);
-    tetaStart = Math.acos(OA.x / Math.sqrt(OA.x * OA.x + OA.y * OA.y));
-    if (OA.y < 0) tetaStart *= -1;
-    tetaEnd = Math.acos(OB.x / Math.sqrt(OB.x * OB.x + OB.y * OB.y));
-    if (OB.y < 0) tetaEnd *= -1;
-    if (sweepFlag && tetaStart > tetaEnd) {
-      tetaEnd += 2 * Math.PI;
-    }
-    if (!sweepFlag && tetaStart < tetaEnd) {
-      tetaEnd -= 2 * Math.PI;
-    }
-    nbSectors = Math.ceil(Math.abs(tetaStart - tetaEnd) * 2 / Math.PI);
-    arcSegPoints = [];
-    angle = tetaStart;
-    deltaTeta = (tetaEnd - tetaStart) / nbSectors;
-    f = 4 * Math.tan(deltaTeta / 4) / 3;
-    for (i = 0; i <= nbSectors; i++) {
-      cosAngle = Math.cos(angle);
-      sinAngle = Math.sin(angle);
-      pt = new Point(O.x + cosAngle, O.y + sinAngle);
-      arcSegPoints[i] = [
-        new Point(pt.x + f * sinAngle, pt.y - f * cosAngle),
-        pt,
-        new Point(pt.x - f * sinAngle, pt.y + f * cosAngle)
-      ];
-      angle += deltaTeta;
-    }
-    arcSegPoints[0][0] = arcSegPoints[0][1].clone();
-    arcSegPoints[arcSegPoints.length - 1][2] = arcSegPoints[arcSegPoints.length - 1][1].clone();
-    mat = /** @type {any} */
-    new Matrix().rotate(xAxisRotation).scale(rx, ry).rotate(-xAxisRotation);
-    for (i = 0, il = arcSegPoints.length; i < il; i++) {
-      arcSegPoints[i][0] = arcSegPoints[i][0].transform(mat);
-      arcSegPoints[i][1] = arcSegPoints[i][1].transform(mat);
-      arcSegPoints[i][2] = arcSegPoints[i][2].transform(mat);
-    }
-    for (i = 1, il = arcSegPoints.length; i < il; i++) {
-      pt = arcSegPoints[i - 1][2];
-      x1 = pt.x;
-      y1 = pt.y;
-      pt = arcSegPoints[i][0];
-      x2 = pt.x;
-      y2 = pt.y;
-      pt = arcSegPoints[i][1];
-      x = pt.x;
-      y = pt.y;
-      retVal.push(["C", x1, y1, x2, y2, x, y]);
-    }
-    return retVal;
-  }
-  function handleBlock(startArr, startOffsetM, startOffsetNextM, destArr, destOffsetM, destOffsetNextM) {
-    var startArrTemp = startArr.slice(startOffsetM, startOffsetNextM || void 0);
-    var destArrTemp = destArr.slice(destOffsetM, destOffsetNextM || void 0);
-    var i = 0, posStart = { pos: [0, 0], start: [0, 0] }, posDest = { pos: [0, 0], start: [0, 0] };
-    while (true) {
-      startArrTemp[i] = simplify.call(posStart, startArrTemp[i]);
-      destArrTemp[i] = simplify.call(posDest, destArrTemp[i]);
-      if (startArrTemp[i][0] != destArrTemp[i][0] || startArrTemp[i][0] == "M" || startArrTemp[i][0] == "A" && (startArrTemp[i][4] != destArrTemp[i][4] || startArrTemp[i][5] != destArrTemp[i][5])) {
-        Array.prototype.splice.apply(
-          startArrTemp,
-          /** @type {[number, number, ...any[]]} */
-          [i, 1].concat(
-            /** @type {any} */
-            toBezier.call(posStart, startArrTemp[i])
-          )
-        );
-        Array.prototype.splice.apply(
-          destArrTemp,
-          /** @type {[number, number, ...any[]]} */
-          [i, 1].concat(
-            /** @type {any} */
-            toBezier.call(posDest, destArrTemp[i])
-          )
-        );
-      } else {
-        startArrTemp[i] = /** @type {any} */
-        setPosAndReflection.call(
-          posStart,
-          startArrTemp[i]
-        );
-        destArrTemp[i] = /** @type {any} */
-        setPosAndReflection.call(
-          posDest,
-          destArrTemp[i]
-        );
-      }
-      if (++i == startArrTemp.length && i == destArrTemp.length) break;
-      if (i == startArrTemp.length) {
-        startArrTemp.push([
-          "C",
-          posStart.pos[0],
-          posStart.pos[1],
-          posStart.pos[0],
-          posStart.pos[1],
-          posStart.pos[0],
-          posStart.pos[1]
-        ]);
-      }
-      if (i == destArrTemp.length) {
-        destArrTemp.push([
-          "C",
-          posDest.pos[0],
-          posDest.pos[1],
-          posDest.pos[0],
-          posDest.pos[1],
-          posDest.pos[0],
-          posDest.pos[1]
-        ]);
-      }
-    }
-    return { start: startArrTemp, dest: destArrTemp };
-  }
-  function synchronizePaths(fromD, toD) {
-    var startArr = parsePath(fromD);
-    var destArr = parsePath(toD);
-    var startOffsetM = 0;
-    var destOffsetM = 0;
-    var startOffsetNextM = false;
-    var destOffsetNextM = false;
-    var result;
-    while (true) {
-      if (startOffsetM === false && destOffsetM === false) break;
-      startOffsetNextM = findNextM(
-        startArr,
-        startOffsetM === false ? false : startOffsetM + 1
-      );
-      destOffsetNextM = findNextM(
-        destArr,
-        destOffsetM === false ? false : destOffsetM + 1
-      );
-      if (startOffsetM === false) {
-        const bbox = pathBbox(
-          /** @type {any} */
-          result.start
-        );
-        if (bbox.height == 0 || bbox.width == 0) {
-          startOffsetM = startArr.push(startArr[0]) - 1;
-        } else {
-          startOffsetM = startArr.push([
-            "M",
-            bbox.x + bbox.width / 2,
-            bbox.y + bbox.height / 2
-          ]) - 1;
-        }
-      }
-      if (destOffsetM === false) {
-        const bbox = pathBbox(
-          /** @type {any} */
-          result.dest
-        );
-        if (bbox.height == 0 || bbox.width == 0) {
-          destOffsetM = destArr.push(destArr[0]) - 1;
-        } else {
-          destOffsetM = destArr.push([
-            "M",
-            bbox.x + bbox.width / 2,
-            bbox.y + bbox.height / 2
-          ]) - 1;
-        }
-      }
-      result = handleBlock(
-        startArr,
-        startOffsetM,
-        startOffsetNextM,
-        destArr,
-        destOffsetM,
-        destOffsetNextM
-      );
-      startArr = startArr.slice(0, startOffsetM).concat(
-        result.start,
-        startOffsetNextM === false ? [] : startArr.slice(startOffsetNextM)
-      );
-      destArr = destArr.slice(0, destOffsetM).concat(
-        result.dest,
-        destOffsetNextM === false ? [] : destArr.slice(destOffsetNextM)
-      );
-      startOffsetM = startOffsetNextM === false ? false : startOffsetM + result.start.length;
-      destOffsetM = destOffsetNextM === false ? false : destOffsetM + result.dest.length;
-    }
-    return { start: startArr, dest: destArr };
-  }
-  function morphPaths(fromD, toD) {
-    var synced = synchronizePaths(fromD, toD);
-    var startArr = synced.start;
-    var destArr = synced.dest;
-    return function(pos) {
-      var result = startArr.map(function(from, idx) {
-        return destArr[idx].map(function(to, toIdx) {
-          if (toIdx === 0) return to;
-          return from[toIdx] + (destArr[idx][toIdx] - from[toIdx]) * pos;
-        });
-      });
-      return arrayToPath(result);
-    };
-  }
-  let _measureSvg = null;
-  let _measurePath = null;
-  function samplePathPoints(d, n) {
-    const pts = new Array(n);
-    if (!Environment.isBrowser()) {
-      const arr = parsePath(d);
-      const bbox = pathBbox(arr);
-      const cx = bbox.x + bbox.width / 2;
-      const cy = bbox.y + bbox.height / 2;
-      for (let i = 0; i < n; i++) pts[i] = { x: cx, y: cy };
-      return pts;
-    }
-    if (!_measureSvg) {
-      _measureSvg = /** @type {SVGSVGElement} */
-      document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      _measureSvg.setAttribute("width", "0");
-      _measureSvg.setAttribute("height", "0");
-      _measureSvg.setAttribute(
-        "style",
-        "position:absolute;width:0;height:0;visibility:hidden;pointer-events:none;"
-      );
-      _measurePath = /** @type {SVGPathElement} */
-      document.createElementNS("http://www.w3.org/2000/svg", "path");
-      _measureSvg.appendChild(_measurePath);
-      document.body.appendChild(_measureSvg);
-    }
-    _measurePath.setAttribute("d", d || "M0 0");
-    let len = 0;
-    try {
-      len = _measurePath.getTotalLength();
-    } catch (e) {
-      len = 0;
-    }
-    if (!len || !isFinite(len)) {
-      const arr = parsePath(d);
-      const bbox = pathBbox(arr);
-      const cx = bbox.x + bbox.width / 2;
-      const cy = bbox.y + bbox.height / 2;
-      for (let i = 0; i < n; i++) pts[i] = { x: cx, y: cy };
-      return pts;
-    }
-    for (let i = 0; i < n; i++) {
-      try {
-        const p = _measurePath.getPointAtLength(i / n * len);
-        pts[i] = { x: p.x, y: p.y };
-      } catch (e) {
-        pts[i] = { x: 0, y: 0 };
-      }
-    }
-    return pts;
-  }
-  function morphPolygons(fromD, toD, n = 96) {
-    const fromPts = samplePathPoints(fromD, n);
-    const toPts = samplePathPoints(toD, n);
-    let bestOffset = 0;
-    let bestDist = Infinity;
-    for (let off = 0; off < n; off++) {
-      let dist = 0;
-      for (let i = 0; i < n; i++) {
-        const a = fromPts[(i + off) % n];
-        const b = toPts[i];
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
-        dist += dx * dx + dy * dy;
-        if (dist >= bestDist) break;
-      }
-      if (dist < bestDist) {
-        bestDist = dist;
-        bestOffset = off;
-      }
-    }
-    const aligned = new Array(n);
-    for (let i = 0; i < n; i++) {
-      aligned[i] = fromPts[(i + bestOffset) % n];
-    }
-    return function(pos) {
-      let out = "";
-      for (let i = 0; i < n; i++) {
-        const a = aligned[i];
-        const b = toPts[i];
-        const x = a.x + (b.x - a.x) * pos;
-        const y = a.y + (b.y - a.y) * pos;
-        out += (i === 0 ? "M" : "L") + x.toFixed(3) + " " + y.toFixed(3) + " ";
-      }
-      return out + "Z";
-    };
-  }
-  function easeInOut(t) {
-    return -Math.cos(t * Math.PI) / 2 + 0.5;
-  }
-  function parseColor(str) {
-    if (!str || typeof str !== "string") return null;
-    if (str[0] === "#") {
-      let hex = str.slice(1);
-      if (hex.length === 3)
-        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-      const n = parseInt(hex, 16);
-      return [n >> 16 & 255, n >> 8 & 255, n & 255, 1];
-    }
-    const m = str.match(
-      /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/
-    );
-    if (m) return [+m[1], +m[2], +m[3], m[4] !== void 0 ? +m[4] : 1];
-    return null;
-  }
-  function interpolateColor(from, to, pos) {
-    return `rgba(${Math.round(from[0] + (to[0] - from[0]) * pos)},${Math.round(from[1] + (to[1] - from[1]) * pos)},${Math.round(from[2] + (to[2] - from[2]) * pos)},${from[3] + (to[3] - from[3]) * pos})`;
-  }
-  class SVGAnimationRunner {
-    /**
-     * @param {any} element
-     * @param {number} duration
-     * @param {number} delay
-     */
-    constructor(element, duration, delay) {
-      this.el = element;
-      this.duration = duration != null ? duration : 300;
-      this.delay = delay || 0;
-      this._attrTarget = null;
-      this._plotTarget = null;
-      this._plotAlgorithm = "commands";
-      this._afterCb = null;
-      this._duringCb = null;
-      this._next = null;
-      this._root = null;
-      this._scheduled = false;
-    }
-    /**
-     * @param {Record<string, any>} to
-     */
-    attr(to) {
-      this._attrTarget = to;
-      this._schedule();
-      return this;
-    }
-    /**
-     * @param {string} d
-     * @param {'commands' | 'polygons'} [algorithm] - morph engine to use for
-     *   the d→d interpolation. 'commands' (default) is the legacy
-     *   per-command lerp; 'polygons' resamples both paths into N evenly
-     *   spaced points and tweens point-by-point (smoother for shapes with
-     *   very different anchor-point counts).
-     */
-    plot(d, algorithm) {
-      this._plotTarget = d;
-      if (algorithm) this._plotAlgorithm = algorithm;
-      this._schedule();
-      return this;
-    }
-    /**
-     * @param {Function} fn
-     */
-    after(fn) {
-      this._afterCb = fn;
-      this._schedule();
-      return this;
-    }
-    /**
-     * @param {Function} fn
-     */
-    during(fn) {
-      this._duringCb = fn;
-      this._schedule();
-      return this;
-    }
-    /**
-     * @param {number} duration
-     * @param {number} delay
-     */
-    animate(duration, delay) {
-      const next = new SVGAnimationRunner(this.el, duration, delay);
-      this._next = next;
-      next._root = this._root || this;
-      return next;
-    }
-    _schedule() {
-      const root = this._root || this;
-      if (!root._scheduled) {
-        root._scheduled = true;
-        queueMicrotask(() => root._executeChain());
-      }
-    }
-    _executeChain() {
-      const chain = [];
-      let r = this;
-      while (r) {
-        chain.push(r);
-        r = r._next;
-      }
-      let cumulativeDelay = 0;
-      chain.forEach((runner) => {
-        cumulativeDelay += runner.delay;
-        runner._execute(cumulativeDelay);
-        cumulativeDelay += runner.duration;
-      });
-    }
-    /**
-     * @param {number} startDelay
-     */
-    _execute(startDelay) {
-      const el = this.el;
-      const duration = this.duration;
-      if (duration <= 1) {
-        const apply = () => {
-          if (this._attrTarget) el.attr(this._attrTarget);
-          if (this._plotTarget) el.plot(this._plotTarget);
-          if (this._afterCb) this._afterCb.call(el);
-        };
-        if (startDelay > 0) {
-          setTimeout(apply, startDelay);
-        } else {
-          apply();
-        }
-        return;
-      }
-      const run = () => {
-        const fromAttrs = (
-          /** @type {Record<string, any>} */
-          {}
-        );
-        const fromColors = (
-          /** @type {Record<string, any>} */
-          {}
-        );
-        const toColors = (
-          /** @type {Record<string, any>} */
-          {}
-        );
-        if (this._attrTarget) {
-          for (const key of Object.keys(this._attrTarget)) {
-            const fromVal = el.attr(key);
-            fromAttrs[key] = fromVal;
-            const fc = parseColor(fromVal);
-            const tc = parseColor(String(this._attrTarget[key]));
-            if (fc && tc) {
-              fromColors[key] = fc;
-              toColors[key] = tc;
-            }
-          }
-        }
-        let morphFn = null;
-        if (this._plotTarget) {
-          const fromPath = el.attr("d") || "";
-          try {
-            morphFn = this._plotAlgorithm === "polygons" ? morphPolygons(fromPath, this._plotTarget) : morphPaths(fromPath, this._plotTarget);
-          } catch (e) {
-            morphFn = null;
-          }
-        }
-        const start = performance.now();
-        const tick = (now) => {
-          const elapsed = now - start;
-          const rawPos = Math.min(elapsed / duration, 1);
-          const pos = easeInOut(rawPos);
-          if (this._attrTarget) {
-            if (rawPos >= 1) {
-              el.attr(this._attrTarget);
-            } else {
-              const current = (
-                /** @type {Record<string, any>} */
-                {}
-              );
-              for (const key of Object.keys(this._attrTarget)) {
-                if (fromColors[key] && toColors[key]) {
-                  current[key] = interpolateColor(
-                    fromColors[key],
-                    toColors[key],
-                    pos
-                  );
-                } else {
-                  const from = parseFloat(fromAttrs[key]);
-                  const to = parseFloat(this._attrTarget[key]);
-                  if (!isNaN(from) && !isNaN(to)) {
-                    current[key] = from + (to - from) * pos;
-                  }
-                }
-              }
-              el.attr(current);
-            }
-          }
-          if (morphFn && rawPos < 1) {
-            el.attr(
-              "d",
-              /** @type {any} */
-              morphFn(pos)
-            );
-          }
-          if (this._duringCb) this._duringCb(pos);
-          if (rawPos < 1) {
-            BrowserAPIs.requestAnimationFrame(tick);
-          } else {
-            if (this._plotTarget) {
-              el.attr("d", this._plotTarget);
-            }
-            if (this._afterCb) this._afterCb.call(el);
-          }
-        };
-        BrowserAPIs.requestAnimationFrame(tick);
-      };
-      if (startDelay > 0) {
-        setTimeout(run, startDelay);
-      } else {
-        run();
-      }
-    }
-  }
-  function installAnimationMethods(ElementClass) {
-    ElementClass.prototype.animate = function(duration, delay) {
-      return new SVGAnimationRunner(this, duration, delay);
     };
   }
   function installDraggable(ElementClass) {
@@ -22002,7 +24050,7 @@ var __async = (__this, __arguments, generator) => {
       }
       const el = this;
       const { createHandle, updateHandle } = opts;
-      const handleGroup = document.createElementNS(SVGNS, "g");
+      const handleGroup = document.createElementNS(SVGNS$1, "g");
       handleGroup.setAttribute("class", "svg_select_points");
       const parent = el.node.parentNode;
       if (parent) {
@@ -22011,7 +24059,7 @@ var __async = (__this, __arguments, generator) => {
       const handles = {};
       const handleNames = ["t", "b", "l", "r", "lt", "rt", "lb", "rb"];
       handleNames.forEach((name2, index) => {
-        const subGroup = new SVGContainer(document.createElementNS(SVGNS, "g"));
+        const subGroup = new SVGContainer(document.createElementNS(SVGNS$1, "g"));
         handleGroup.appendChild(subGroup.node);
         const handle = createHandle(subGroup, [0, 0], index, [], name2);
         handles[name2] = { group: subGroup, handle };
@@ -22150,9 +24198,9 @@ var __async = (__this, __arguments, generator) => {
   installDraggable(SVGElement);
   installSelectable(SVGElement);
   function SVG() {
-    const svgEl = BrowserAPIs.createElementNS(SVGNS, "svg");
+    const svgEl = BrowserAPIs.createElementNS(SVGNS$1, "svg");
     const svg = new SVGContainer(svgEl);
-    svg.attr({ xmlns: SVGNS });
+    svg.attr({ xmlns: SVGNS$1 });
     return svg;
   }
   SVG.xlink = "http://www.w3.org/1999/xlink";
@@ -22226,6 +24274,7 @@ var __async = (__this, __arguments, generator) => {
         "drillUp",
         "drillToRoot",
         "paper",
+        "getActiveRenderer",
         "destroy"
       ];
       this.ctx.eventList = [
@@ -22272,6 +24321,8 @@ var __async = (__this, __arguments, generator) => {
       this.ctx.titleSubtitle = new TitleSubtitle(this.w);
       this.ctx.dimensions = new Dimensions(this.w, this.ctx);
       this.ctx.updateHelpers = new UpdateHelpers(this.w, this.ctx);
+      this.ctx.rendererController = new RendererController(this.w, this.ctx);
+      this.ctx.renderer = this.ctx.rendererController.active;
       const tooltipInstance = new Tooltip(this.w, this.ctx);
       this.w.globals.tooltip = tooltipInstance;
       Object.defineProperty(this.ctx, "tooltip", {
@@ -22304,6 +24355,24 @@ var __async = (__this, __arguments, generator) => {
       ctx.morphTypeChange = MorphCtor ? new MorphCtor(w, ctx) : null;
       const DrilldownCtor = reg.get("drilldown");
       ctx.drilldown = DrilldownCtor ? new DrilldownCtor(w, ctx) : null;
+      const PerspectivesCtor = reg.get("perspectives");
+      ctx.perspectives = PerspectivesCtor ? new PerspectivesCtor(w, ctx) : null;
+      const StoryboardCtor = reg.get("storyboard");
+      ctx.storyboard = StoryboardCtor ? new StoryboardCtor(w, ctx) : null;
+      const HistoryCtor = reg.get("history");
+      ctx.history = HistoryCtor ? new HistoryCtor(w, ctx) : null;
+      const LinkedViewsCtor = reg.get("linkedViews");
+      ctx.linkedViews = LinkedViewsCtor ? new LinkedViewsCtor(w, ctx) : null;
+      const InkCtor = reg.get("ink");
+      ctx.ink = InkCtor ? new InkCtor(w, ctx) : null;
+      const MeasureCtor = reg.get("measure");
+      ctx.measure = MeasureCtor ? new MeasureCtor(w, ctx) : null;
+      const ContextMenuCtor = reg.get("contextMenu");
+      ctx.contextMenu = ContextMenuCtor ? new ContextMenuCtor(w, ctx) : null;
+      const WeaveCtor = reg.get("weave");
+      ctx.weave = WeaveCtor ? new WeaveCtor(w, ctx) : null;
+      const OSThemeCtor = reg.get("osThemeWatcher");
+      ctx.osThemeWatcher = OSThemeCtor ? new OSThemeCtor(w, ctx) : null;
       const ToolbarCtor = reg.get("toolbar");
       Object.defineProperty(ctx, "toolbar", {
         get() {
@@ -22360,6 +24429,8 @@ var __async = (__this, __arguments, generator) => {
      * @param {{ isUpdating: boolean }} opts
      */
     clear({ isUpdating }) {
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
+      (_a = this.ctx.weave) == null ? void 0 : _a.teardown(isUpdating);
       if (!isUpdating) {
         this.w.globals.isDestroyed = true;
       }
@@ -22379,6 +24450,29 @@ var __async = (__this, __arguments, generator) => {
         this.ctx._toolbar = null;
         this.ctx._keyboardNavigation = null;
       } else {
+        (_b = this.ctx.perspectives) == null ? void 0 : _b.teardown();
+        this.ctx.perspectives = null;
+        (_c = this.ctx.storyboard) == null ? void 0 : _c.teardown();
+        this.ctx.storyboard = null;
+        (_d = this.ctx.history) == null ? void 0 : _d.teardown();
+        this.ctx.history = null;
+        (_e = this.ctx.linkedViews) == null ? void 0 : _e.teardown();
+        this.ctx.linkedViews = null;
+        (_f = this.ctx.ink) == null ? void 0 : _f.teardown();
+        this.ctx.ink = null;
+        (_g = this.ctx.measure) == null ? void 0 : _g.teardown();
+        this.ctx.measure = null;
+        (_h = this.ctx.contextMenu) == null ? void 0 : _h.teardown();
+        this.ctx.contextMenu = null;
+        (_i = this.ctx.osThemeWatcher) == null ? void 0 : _i.teardown();
+        this.ctx.osThemeWatcher = null;
+        this.ctx.weave = null;
+        (_k = (_j = this.ctx.rendererController) == null ? void 0 : _j.teardown) == null ? void 0 : _k.call(_j);
+        this.ctx.rendererController = null;
+        this.ctx.renderer = null;
+        this.ctx.drilldown = null;
+        this.ctx.morphTypeChange = null;
+        this.ctx.exports = null;
         this.ctx.animations = null;
         this.ctx.axes = null;
         this.ctx.annotations = null;
@@ -22458,6 +24552,30 @@ var __async = (__this, __arguments, generator) => {
       domEls.elDefs = null;
     }
   }
+  const REGISTRY_KEY$1 = "__apexcharts_plugins__";
+  function getRegistry() {
+    const g = (
+      /** @type {any} */
+      globalThis
+    );
+    if (!g[REGISTRY_KEY$1]) g[REGISTRY_KEY$1] = {};
+    return g[REGISTRY_KEY$1];
+  }
+  function registerPlugin(def) {
+    if (!def || typeof def.name !== "string" || typeof def.setup !== "function") {
+      console.error(
+        "[apexcharts] registerPlugin: a plugin needs a { name, setup } shape."
+      );
+      return;
+    }
+    getRegistry()[def.name] = def;
+  }
+  function getPlugin(name2) {
+    return getRegistry()[name2] || null;
+  }
+  function unregisterPlugin(name2) {
+    delete getRegistry()[name2];
+  }
   const ros = /* @__PURE__ */ new WeakMap();
   function addResizeListener(el, fn) {
     if (Environment.isSSR()) return;
@@ -22489,8 +24607,8 @@ var __async = (__this, __arguments, generator) => {
       ros.delete(fn);
     }
   }
-  const apexCSS = '@keyframes opaque {\n  0% {\n    opacity: 0\n  }\n\n  to {\n    opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n\n  0%,\n  to {\n    opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  direction: ltr !important;\n  user-select: none;\n  /* Focus indicator colour. Themes override below. */\n  --apexcharts-focus-color: #008FFB;\n}\n\n/* Dark theme & high-contrast: brighter focus colour for sufficient contrast. */\n.apexcharts-canvas .apexcharts-theme-dark,\n.apexcharts-theme-dark.apexcharts-canvas {\n  --apexcharts-focus-color: #FFD500;\n}\n.apexcharts-canvas.apexcharts-high-contrast,\n.apexcharts-high-contrast.apexcharts-canvas {\n  --apexcharts-focus-color: #FFFF00;\n}\n\n/* Visually-hidden aria-live status region (WCAG 4.1.3 Status Messages). */\n.apexcharts-sr-status {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}\n\n/* Respect OS-level reduced-motion preference (WCAG 2.3.3). */\n@media (prefers-reduced-motion: reduce) {\n  .apexcharts-canvas *,\n  .apexcharts-canvas *::before,\n  .apexcharts-canvas *::after {\n    animation-duration: 0.01ms !important;\n    animation-iteration-count: 1 !important;\n    transition-duration: 0.01ms !important;\n  }\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0, 0, 0, .5);\n  box-shadow: 0 0 1px rgba(255, 255, 255, .5);\n  -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\nrect.legend-mouseover-inactive,\n.legend-mouseover-inactive rect,\n.legend-mouseover-inactive path,\n.legend-mouseover-inactive circle,\n.legend-mouseover-inactive line,\n.legend-mouseover-inactive text.apexcharts-yaxis-title-text,\n.legend-mouseover-inactive text.apexcharts-yaxis-label {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-legend-series[role="button"]:focus {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-legend-series[role="button"]:focus:not(:focus-visible) {\n  outline: none;\n}\n\n.apexcharts-legend-series[role="button"]:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n.apexcharts-canvas svg:focus:not(:focus-visible) {\n  outline: none;\n}\n\n/* Keyboard navigation focus indicator on SVG data elements.\n   SVG elements don\'t support CSS outline, so we use stroke. */\n.apexcharts-bar-area.apexcharts-keyboard-focused,\n.apexcharts-candlestick-area.apexcharts-keyboard-focused,\n.apexcharts-boxPlot-area.apexcharts-keyboard-focused,\n.apexcharts-rangebar-area.apexcharts-keyboard-focused,\n.apexcharts-pie-area.apexcharts-keyboard-focused,\n.apexcharts-heatmap-rect.apexcharts-keyboard-focused,\n.apexcharts-treemap-rect.apexcharts-keyboard-focused {\n  stroke: var(--apexcharts-focus-color, #008FFB);\n  stroke-width: 2;\n  stroke-opacity: 1;\n}\n\n.apexcharts-tooltip {\n  --apx-tt-bg: #ffffff;\n  --apx-tt-border: rgba(15, 23, 42, 0.06);\n  /* Layered shadow: tight inner contact + soft outer drop. The two Y\n   * offsets are exposed as variables so they flip in sync with the\n   * arrow when the tooltip is below the data point — see the\n   * `[data-placement="bottom"]` rule further down. */\n  --apx-tt-shadow-y-mid: 8px;\n  --apx-tt-shadow-y-far: 16px;\n  --apx-tt-shadow: 0 0 0 1px rgba(15, 23, 42, 0.04), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(15, 23, 42, 0.12), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(15, 23, 42, 0.18);\n  --apx-tt-arrow-bg: var(--apx-tt-bg);\n  /* Two stacked drop-shadows: the first is a tight contact halo for\n   * edge definition against light chart backgrounds; the second is a\n   * softer directional drop that lifts the arrow off the surface.\n   * `--apx-tt-arrow-drop-y` is the Y offset of the directional drop;\n   * a per-placement rule below flips it to negative when the tooltip\n   * is below the data point (arrow on top) so the shadow always\n   * casts outward instead of into the tooltip body. */\n  --apx-tt-arrow-drop-y: 2px;\n  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(15, 23, 42, 0.2)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(15, 23, 42, 0.2));\n  --apx-tt-color: #0f172a;\n  --apx-tt-color-muted: rgba(15, 23, 42, 0.55);\n  border-radius: 8px;\n  background: var(--apx-tt-bg);\n  border: 1px solid var(--apx-tt-border);\n  box-shadow: var(--apx-tt-shadow);\n  color: var(--apx-tt-color);\n  cursor: default;\n  font-size: 13px;\n  left: 0;\n  top: 0;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  display: flex;\n  flex-direction: column;\n  padding: 2px 0;\n  white-space: nowrap;\n  z-index: 12;\n  transition: opacity .12s ease\n}\n\n/* While the tooltip is visible, smoothly animate position changes\n * between data points. Kept short (160 ms) and ease-out so it stays\n * responsive — too long would feel laggy when sweeping across many\n * points fast. The position transition is only attached after the\n * first paint (Position.applyTooltipPosition flips `data-positioned`\n * once the tooltip has been placed) so the *first* show doesn\'t slide\n * the tooltip in from the previously-stale (0,0) coordinates. */\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: opacity .12s ease\n}\n.apexcharts-tooltip.apexcharts-active[data-positioned="true"] {\n  transition: opacity .12s ease, left .16s ease-out, top .16s ease-out\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  /* defaults already set above; class kept for backward-compat selectors */\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  --apx-tt-bg: #1c1c1f;\n  --apx-tt-border: rgba(255, 255, 255, 0.08);\n  --apx-tt-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(0, 0, 0, 0.45), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(0, 0, 0, 0.55);\n  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.55)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(0, 0, 0, 0.45));\n  --apx-tt-color: #f3f4f6;\n  --apx-tt-color-muted: rgba(243, 244, 246, 0.55);\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n.apexcharts-tooltip-title {\n  padding: 8px 12px 4px;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.01em;\n  color: var(--apx-tt-color-muted);\n  background: transparent;\n  border-bottom: none;\n  margin-bottom: 0\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: transparent;\n  border-bottom: none\n}\n\n/* `fillSeriesColor`: each series-group already paints itself with the\n * series colour. Drop the glass body entirely (transparent bg, no\n * border, no backdrop-filter, no padding) and clip the coloured\n * series-group(s) to the tooltip\'s rounded corners so they fill the\n * shell edge-to-edge. Text inside the coloured group is forced to\n * white for contrast. */\n.apexcharts-tooltip.apexcharts-tooltip-fill-series {\n  background: transparent;\n  -webkit-backdrop-filter: none;\n  backdrop-filter: none;\n  border: none;\n  padding: 0;\n  overflow: hidden;\n  color: #fff\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, 0.22);\n  color: #fff;\n  opacity: 1;\n  padding: 6px 12px\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group {\n  color: #fff\n}\n\n/* Arrow connector — sits *entirely outside* the tooltip body. Shares\n * the body\'s solid fill so it reads as a single shape. `filter:\n * drop-shadow` traces the clipped triangle outline (a regular\n * `box-shadow` would be erased by the `clip-path`). */\n.apexcharts-tooltip-arrow {\n  position: absolute;\n  width: 7px;\n  height: 14px;\n  background: var(--apx-tt-arrow-bg);\n  /* The variable already contains the full `drop-shadow(...) ...` filter\n   * chain (stacked shadows) so it\'s applied raw. */\n  -webkit-filter: var(--apx-tt-arrow-shadow);\n  filter: var(--apx-tt-arrow-shadow);\n  pointer-events: none;\n  top: calc(var(--apx-tt-arrow-y, 50%) - 7px)\n}\n\n.apexcharts-tooltip[data-placement="right"] .apexcharts-tooltip-arrow {\n  left: -7px;\n  clip-path: polygon(0 50%, 100% 0, 100% 100%)\n}\n\n.apexcharts-tooltip[data-placement="left"] .apexcharts-tooltip-arrow {\n  right: -7px;\n  clip-path: polygon(100% 50%, 0 0, 0 100%)\n}\n\n/* Vertical arrow variants: tooltip is above/below the data point and the\n * arrow points down/up. The base rule above uses `--apx-tt-arrow-y` for\n * left/right placement; for top/bottom we re-orient the rectangle and\n * use `--apx-tt-arrow-x` (set by applyTooltipPosition). */\n.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow,\n.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {\n  width: 14px;\n  height: 7px;\n  top: auto;\n  left: calc(var(--apx-tt-arrow-x, 50%) - 7px)\n}\n\n.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow {\n  bottom: -7px;\n  clip-path: polygon(50% 100%, 0 0, 100% 0)\n}\n\n.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {\n  top: -7px;\n  clip-path: polygon(50% 0, 0 100%, 100% 100%)\n}\n\n/* When the tooltip is flipped below the data point (arrow on top\n * pointing up), the default downward-biased shadows leave the top\n * edge of both the body *and* the arrow undefined. Flipping every\n * Y offset to negative casts the entire elevation upward so the\n * shadow falls between the tooltip and the bar above. */\n.apexcharts-tooltip[data-placement="bottom"] {\n  --apx-tt-shadow-y-mid: -8px;\n  --apx-tt-shadow-y-far: -16px;\n  --apx-tt-arrow-drop-y: -2px\n}\n\n.apexcharts-tooltip-text-goals-value,\n.apexcharts-tooltip-text-y-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,\n.apexcharts-tooltip-text-goals-value:empty,\n.apexcharts-tooltip-text-y-label:empty,\n.apexcharts-tooltip-text-y-value:empty,\n.apexcharts-tooltip-text-z-value:empty,\n.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),\n.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  width: 12px;\n  height: 12px;\n  margin-right: 6px;\n  vertical-align: middle;\n  color: inherit;\n}\n\n.apexcharts-tooltip-marker svg {\n  width: 100%;\n  height: 100%;\n  display: block;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 4px 12px;\n  display: none;\n  gap: 8px;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active:last-child,\n.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 8px\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n.apexcharts-custom-tooltip,\n.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n/* X/Y axis tooltips — small popovers that label the crosshair on the\n * axes. Restyled to match the modern data-tooltip palette: solid white\n * body with a subtle border + soft drop-shadow, smaller font, rounded\n * corners. The arrows still use the CSS border-triangle technique\n * (cheap, crisp at small sizes); their colours flow from CSS variables\n * so light/dark themes only need one override per axis. */\n.apexcharts-xaxistooltip,\n.apexcharts-yaxistooltip {\n  --apx-axt-bg: #ffffff;\n  --apx-axt-border: rgba(15, 23, 42, 0.08);\n  --apx-axt-color: #0f172a;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.18), 0 1px 3px -1px rgba(15, 23, 42, 0.12);\n  opacity: 0;\n  pointer-events: none;\n  color: var(--apx-axt-color);\n  font-size: 12px;\n  font-weight: 500;\n  text-align: center;\n  border-radius: 6px;\n  position: absolute;\n  z-index: 10;\n  background: var(--apx-axt-bg);\n  border: 1px solid var(--apx-axt-border);\n  box-shadow: var(--apx-axt-shadow)\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark,\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  --apx-axt-bg: #1c1c1f;\n  --apx-axt-border: rgba(255, 255, 255, 0.1);\n  --apx-axt-color: #f3f4f6;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.55), 0 1px 3px -1px rgba(0, 0, 0, 0.45)\n}\n\n.apexcharts-xaxistooltip {\n  padding: 4px 8px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip:after,\n.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n/* :before paints the 1px border outline of the triangle (slightly larger\n * than :after); :after sits inside and paints the fill — leaves a 1px\n * ring of :before visible at the edges. */\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-left: -5px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip-bottom:after,\n.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,\n.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 3px 8px\n}\n\n.apexcharts-yaxistooltip:after,\n.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-top: -5px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip-left:after,\n.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,\n.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,\n.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,\n.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_shape {\n  stroke-width: 1;\n  stroke-dasharray: 10 10;\n  stroke: black;\n  stroke-opacity: 0.1;\n  pointer-events: none;\n  fill: none;\n}\n\n.svg_select_handle {\n  stroke-width: 3;\n  stroke: black;\n  fill: none;\n}\n\n.svg_select_handle_r {\n  cursor: e-resize;\n}\n\n.svg_select_handle_l {\n  cursor: w-resize;\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,\n.apexcharts-pan-icon,\n.apexcharts-reset-icon,\n.apexcharts-selection-icon,\n.apexcharts-toolbar-custom-icon,\n.apexcharts-zoom-icon,\n.apexcharts-zoomin-icon,\n.apexcharts-zoomout-icon {\n  cursor: pointer;\n  /* WCAG 2.5.8 Target Size (Minimum): 24×24 CSS px hit target. */\n  width: 26px;\n  height: 24px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center;\n  /* Reset native <button> chrome — these are styled via SVG icons. */\n  padding: 0;\n  margin: 0;\n  background: transparent;\n  border: 0;\n  border-radius: 5px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  transition: background-color .12s ease, color .12s ease;\n}\n\n.apexcharts-menu-icon svg,\n.apexcharts-pan-icon svg,\n.apexcharts-reset-icon svg,\n.apexcharts-selection-icon svg,\n.apexcharts-zoom-icon svg,\n.apexcharts-zoomin-icon svg,\n.apexcharts-zoomout-icon svg {\n  width: 18px;\n  height: 18px;\n  fill: none;\n  stroke: currentColor;\n  stroke-width: 2;\n  stroke-linecap: round;\n  stroke-linejoin: round\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon,\n.apexcharts-theme-dark .apexcharts-pan-icon,\n.apexcharts-theme-dark .apexcharts-reset-icon,\n.apexcharts-theme-dark .apexcharts-selection-icon,\n.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,\n.apexcharts-theme-dark .apexcharts-zoom-icon,\n.apexcharts-theme-dark .apexcharts-zoomin-icon,\n.apexcharts-theme-dark .apexcharts-zoomout-icon {\n  color: #d4d6dc\n}\n\n.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected {\n  background: rgba(0, 143, 251, 0.12);\n  color: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover,\n.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-reset-icon:hover,\n.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-light .apexcharts-zoomout-icon:hover {\n  background: rgba(15, 23, 42, 0.06);\n  color: #1f2937\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon:hover,\n.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-reset-icon:hover,\n.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-dark .apexcharts-zoomout-icon:hover {\n  background: rgba(255, 255, 255, 0.08);\n  color: #fff\n}\n\n.apexcharts-menu-icon,\n.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 1px;\n  padding: 3px;\n  border-radius: 8px;\n  background: rgba(255, 255, 255, 0.85);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n}\n\n.apexcharts-theme-dark .apexcharts-toolbar {\n  background: rgba(28, 28, 31, 0.82);\n}\n\n.apexcharts-menu {\n  background: rgba(255, 255, 255, 0.95);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n  position: absolute;\n  top: calc(100% + 4px);\n  border: 1px solid rgba(15, 23, 42, 0.08);\n  border-radius: 8px;\n  padding: 4px;\n  right: 0;\n  opacity: 0;\n  min-width: 120px;\n  transition: opacity .15s ease, transform .15s ease;\n  transform: translateY(-2px);\n  pointer-events: none;\n  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.12), 0 2px 4px -1px rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  transform: translateY(0);\n  pointer-events: all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 9px;\n  font-size: 12px;\n  border-radius: 5px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(28, 28, 31, 0.92);\n  border-color: rgba(255, 255, 255, 0.08);\n  color: #f3f4f6;\n  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-item:hover {\n  background: rgba(255, 255, 255, 0.08)\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1\n  }\n}\n\n/* Toolbar keyboard accessibility: show toolbar when any button inside it is focused */\n.apexcharts-toolbar:focus-within {\n  opacity: 1\n}\n\n/* Focus indicator for toolbar icon buttons */\n.apexcharts-menu-icon:focus-visible,\n.apexcharts-pan-icon:focus-visible,\n.apexcharts-reset-icon:focus-visible,\n.apexcharts-selection-icon:focus-visible,\n.apexcharts-toolbar-custom-icon:focus-visible,\n.apexcharts-zoom-icon:focus-visible,\n.apexcharts-zoomin-icon:focus-visible,\n.apexcharts-zoomout-icon:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 1px;\n  border-radius: 5px\n}\n\n/* Focus indicator for hamburger menu items */\n.apexcharts-menu-item:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: -2px;\n  background: #eee\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,\n.apexcharts-datalabel.apexcharts-element-hidden,\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-hidden-element-shown {\n  opacity: 1;\n  transition: 0.25s ease all;\n}\n\n.apexcharts-datalabel,\n.apexcharts-datalabel-label,\n.apexcharts-datalabel-value,\n.apexcharts-datalabels,\n.apexcharts-pie-label,\n.apexcharts-pie-name-label,\n.apexcharts-pie-name-label-group,\n.apexcharts-pie-label-connector {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-connector {\n  fill: none\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n.apexcharts-radialbar-label {\n  cursor: pointer;\n}\n\n.apexcharts-annotation-rect,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-gridline,\n.apexcharts-line,\n.apexcharts-point-annotation-label,\n.apexcharts-radar-series path:not(.apexcharts-marker),\n.apexcharts-radar-series polygon,\n.apexcharts-toolbar svg,\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-xaxis-annotation-label,\n.apexcharts-yaxis-annotation-label,\n.apexcharts-zoom-rect,\n.no-pointer-events {\n  pointer-events: none\n}\n\n.apexcharts-tooltip-active .apexcharts-marker {\n  transition: .15s ease all\n}\n\n.apexcharts-radar-series .apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,\n.resize-triggers,\n.resize-triggers>div {\n  content: " ";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n\n.apexcharts-bar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-bar-shadows {\n  pointer-events: none\n}\n\n.apexcharts-rangebar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-drilldown-target {\n  cursor: pointer\n}\n\n.apexcharts-breadcrumb {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 2px;\n  font-size: 12px;\n  font-family: inherit;\n  padding: 2px 4px\n}\n\n.apexcharts-breadcrumb-item {\n  background: transparent;\n  border: none;\n  padding: 2px 6px;\n  border-radius: 3px;\n  font: inherit;\n  color: inherit;\n  cursor: pointer;\n  line-height: 1.2\n}\n\n.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(0, 0, 0, 0.08)\n}\n\n.apexcharts-breadcrumb-arrow {\n  margin-right: 4px;\n  font-weight: 600;\n  user-select: none\n}\n\n.apexcharts-breadcrumb-current {\n  cursor: default;\n  font-weight: 600;\n  opacity: 0.85\n}\n\n.apexcharts-breadcrumb-separator {\n  opacity: 0.5;\n  user-select: none\n}\n\n.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(255, 255, 255, 0.12)\n}\n\n.apexcharts-disable-transitions * {\n  transition: none !important;\n}';
-  class ApexCharts {
+  const apexCSS = '@keyframes opaque {\n  0% {\n    opacity: 0\n  }\n\n  to {\n    opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n\n  0%,\n  to {\n    opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  direction: ltr !important;\n  user-select: none;\n  /* Focus indicator colour. Themes override below. */\n  --apexcharts-focus-color: #008FFB;\n}\n\n/* Dark theme & high-contrast: brighter focus colour for sufficient contrast. */\n.apexcharts-canvas .apexcharts-theme-dark,\n.apexcharts-theme-dark.apexcharts-canvas {\n  --apexcharts-focus-color: #FFD500;\n}\n.apexcharts-canvas.apexcharts-high-contrast,\n.apexcharts-high-contrast.apexcharts-canvas {\n  --apexcharts-focus-color: #FFFF00;\n}\n\n/* Visually-hidden aria-live status region (WCAG 4.1.3 Status Messages). */\n.apexcharts-sr-status {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}\n\n/* Respect OS-level reduced-motion preference (WCAG 2.3.3). */\n@media (prefers-reduced-motion: reduce) {\n  .apexcharts-canvas *,\n  .apexcharts-canvas *::before,\n  .apexcharts-canvas *::after {\n    animation-duration: 0.01ms !important;\n    animation-iteration-count: 1 !important;\n    transition-duration: 0.01ms !important;\n  }\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0, 0, 0, .5);\n  box-shadow: 0 0 1px rgba(255, 255, 255, .5);\n  -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\nrect.legend-mouseover-inactive,\n.legend-mouseover-inactive rect,\n.legend-mouseover-inactive path,\n.legend-mouseover-inactive circle,\n.legend-mouseover-inactive line,\n.legend-mouseover-inactive text.apexcharts-yaxis-title-text,\n.legend-mouseover-inactive text.apexcharts-yaxis-label {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n/* Linked Views (#4): per-mark crossfilter dim. Applied to individual data\n   marks (not whole series) whose x is outside the brushed range. Opacity is\n   overridable per chart via the --apx-cf-dim custom property. */\n.apexcharts-crossfilter-dimmed {\n  transition: opacity .25s ease;\n  opacity: var(--apx-cf-dim, .2)\n}\n\n/* Linked Views (#4): default styling for the built-in crossfilter data table\n   (cf.dataTable). Deliberately light so host styles can override. */\n.apexcharts-cf-table {\n  border-collapse: collapse;\n  width: 100%;\n  font-size: 13px;\n}\n.apexcharts-cf-table caption {\n  caption-side: bottom;\n  text-align: right;\n  padding: 6px 2px;\n  font-size: 12px;\n  opacity: .7\n}\n.apexcharts-cf-table th,\n.apexcharts-cf-table td {\n  padding: 6px 10px;\n  text-align: left;\n  border-bottom: 1px solid rgba(0, 0, 0, .08)\n}\n.apexcharts-cf-table th {\n  font-weight: 600;\n  border-bottom-width: 2px\n}\n.apexcharts-cf-table tbody tr:hover {\n  background: rgba(99, 102, 241, .06)\n}\n\n/* Measure ruler (#18): measure / delta ruler.\n   Theme via these classes or the --apx-measure-* custom properties below\n   (config `chart.measure.colors` overrides both). The ruler group also carries\n   a direction class: apexcharts-measure-up | -down | -flat.\n   Element classes:\n     .apexcharts-measure-band     shaded span band\n     .apexcharts-measure-vline    vertical guide lines\n     .apexcharts-measure-line     free-mode diagonal line\n     .apexcharts-measure-label-bg readout box     .apexcharts-measure-label text\n   Colors are applied as SVG presentation attributes, so any rule you write on\n   these classes overrides them. */\n.apexcharts-canvas {\n  --apx-measure-up: #16a34a;\n  --apx-measure-down: #dc2626;\n  --apx-measure-neutral: #64748b;\n  --apx-measure-guide: #94a3b8;\n}\n.apexcharts-measure-capture {\n  cursor: crosshair;\n}\n\n/* Radial Actions (#chrome): right-click context menu. Theme via these classes\n   or the --apx-menu-* custom properties. */\n.apexcharts-canvas {\n  --apx-menu-bg: #ffffff;\n  --apx-menu-fg: #1e293b;\n  --apx-menu-border: #e2e8f0;\n  --apx-menu-hover: #f1f5f9;\n  --apx-menu-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-context-menu {\n  min-width: 168px;\n  padding: 4px;\n  border-radius: 8px;\n  background: var(--apx-menu-bg);\n  border: 1px solid var(--apx-menu-border);\n  box-shadow: 0 6px 22px var(--apx-menu-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 13px;\n  z-index: 20;\n  user-select: none;\n}\n.apexcharts-context-menu-item {\n  display: block;\n  width: 100%;\n  box-sizing: border-box;\n  text-align: left;\n  padding: 7px 12px;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: var(--apx-menu-fg);\n  font: inherit;\n  cursor: pointer;\n}\n.apexcharts-context-menu-item:hover,\n.apexcharts-context-menu-item--active {\n  background: var(--apx-menu-hover);\n}\n.apexcharts-context-menu-item:focus {\n  outline: none;\n}\n\n/* Ink Layer (#7): the floating note editor card, opened by clicking an\n   ink-managed annotation. Theme via these classes or the --apx-ink-* vars. */\n.apexcharts-canvas {\n  --apx-ink-card-bg: #ffffff;\n  --apx-ink-card-fg: #1e293b;\n  --apx-ink-card-border: #e2e8f0;\n  --apx-ink-card-hover: #f1f5f9;\n  --apx-ink-card-accent: #6366f1;\n  --apx-ink-card-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-ink-card {\n  position: absolute;\n  z-index: 25;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  padding: 8px;\n  border-radius: 8px;\n  background: var(--apx-ink-card-bg);\n  border: 1px solid var(--apx-ink-card-border);\n  box-shadow: 0 6px 22px var(--apx-ink-card-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 12px;\n  color: var(--apx-ink-card-fg);\n  user-select: none;\n}\n.apexcharts-ink-card-row {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor {\n  flex: 1 1 auto;\n  width: 150px;\n  min-width: 0;\n  box-sizing: border-box;\n  padding: 4px 6px;\n  font: inherit;\n  color: inherit;\n  background: transparent;\n  border: 1px solid var(--apx-ink-card-border);\n  border-radius: 5px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor:focus {\n  outline: none;\n  border-color: var(--apx-ink-card-accent);\n}\n.apexcharts-ink-btn {\n  flex: 0 0 auto;\n  width: 24px;\n  height: 24px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  padding: 0;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: inherit;\n  font: inherit;\n  font-size: 12px;\n  line-height: 1;\n  cursor: pointer;\n}\n.apexcharts-ink-btn:hover,\n.apexcharts-ink-btn--active {\n  background: var(--apx-ink-card-hover);\n}\n.apexcharts-ink-btn:focus-visible,\n.apexcharts-ink-swatch:focus-visible {\n  outline: 2px solid var(--apx-ink-card-accent);\n  outline-offset: 1px;\n}\n.apexcharts-ink-btn--bold {\n  font-weight: 700;\n}\n.apexcharts-ink-btn--delete:hover {\n  color: #dc2626;\n}\n.apexcharts-ink-swatch {\n  flex: 0 0 auto;\n  width: 16px;\n  height: 16px;\n  padding: 0;\n  border: 1px solid rgba(100, 116, 139, 0.45);\n  border-radius: 50%;\n  cursor: pointer;\n}\n.apexcharts-ink-swatch--active {\n  box-shadow:\n    0 0 0 2px var(--apx-ink-card-bg),\n    0 0 0 4px var(--apx-ink-card-accent);\n}\n.apexcharts-ink-sep {\n  flex: 0 0 auto;\n  width: 1px;\n  height: 16px;\n  margin: 0 2px;\n  background: var(--apx-ink-card-border);\n}\n.apexcharts-ink-cardlabel {\n  flex: 0 0 auto;\n  font-size: 10px;\n  letter-spacing: 0.4px;\n  text-transform: uppercase;\n  opacity: 0.65;\n  margin-right: 2px;\n}\n.apexcharts-ink-marker-size {\n  flex: 0 0 auto;\n  min-width: 16px;\n  text-align: center;\n  font-variant-numeric: tabular-nums;\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-legend-series[role="button"]:focus {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-legend-series[role="button"]:focus:not(:focus-visible) {\n  outline: none;\n}\n\n.apexcharts-legend-series[role="button"]:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n.apexcharts-canvas svg:focus:not(:focus-visible) {\n  outline: none;\n}\n\n/* Keyboard navigation focus indicator on SVG data elements.\n   SVG elements don\'t support CSS outline, so we use stroke. */\n.apexcharts-bar-area.apexcharts-keyboard-focused,\n.apexcharts-candlestick-area.apexcharts-keyboard-focused,\n.apexcharts-boxPlot-area.apexcharts-keyboard-focused,\n.apexcharts-rangebar-area.apexcharts-keyboard-focused,\n.apexcharts-pie-area.apexcharts-keyboard-focused,\n.apexcharts-heatmap-rect.apexcharts-keyboard-focused,\n.apexcharts-treemap-rect.apexcharts-keyboard-focused {\n  stroke: var(--apexcharts-focus-color, #008FFB);\n  stroke-width: 2;\n  stroke-opacity: 1;\n}\n\n.apexcharts-tooltip {\n  --apx-tt-bg: #ffffff;\n  --apx-tt-border: rgba(15, 23, 42, 0.06);\n  /* Layered shadow: tight inner contact + soft outer drop. The two Y\n   * offsets are exposed as variables so they flip in sync with the\n   * arrow when the tooltip is below the data point — see the\n   * `[data-placement="bottom"]` rule further down. */\n  --apx-tt-shadow-y-mid: 8px;\n  --apx-tt-shadow-y-far: 16px;\n  --apx-tt-shadow: 0 0 0 1px rgba(15, 23, 42, 0.04), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(15, 23, 42, 0.12), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(15, 23, 42, 0.18);\n  --apx-tt-arrow-bg: var(--apx-tt-bg);\n  /* Two stacked drop-shadows: the first is a tight contact halo for\n   * edge definition against light chart backgrounds; the second is a\n   * softer directional drop that lifts the arrow off the surface.\n   * `--apx-tt-arrow-drop-y` is the Y offset of the directional drop;\n   * a per-placement rule below flips it to negative when the tooltip\n   * is below the data point (arrow on top) so the shadow always\n   * casts outward instead of into the tooltip body. */\n  --apx-tt-arrow-drop-y: 2px;\n  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(15, 23, 42, 0.2)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(15, 23, 42, 0.2));\n  --apx-tt-color: #0f172a;\n  --apx-tt-color-muted: rgba(15, 23, 42, 0.55);\n  border-radius: 8px;\n  background: var(--apx-tt-bg);\n  border: 1px solid var(--apx-tt-border);\n  box-shadow: var(--apx-tt-shadow);\n  color: var(--apx-tt-color);\n  cursor: default;\n  font-size: 13px;\n  left: 0;\n  top: 0;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  display: flex;\n  flex-direction: column;\n  padding: 2px 0;\n  white-space: nowrap;\n  z-index: 12;\n  transition: opacity .12s ease\n}\n\n/* While the tooltip is visible, smoothly animate position changes\n * between data points. Kept short (160 ms) and ease-out so it stays\n * responsive — too long would feel laggy when sweeping across many\n * points fast. The position transition is only attached after the\n * first paint (Position.applyTooltipPosition flips `data-positioned`\n * once the tooltip has been placed) so the *first* show doesn\'t slide\n * the tooltip in from the previously-stale (0,0) coordinates. */\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: opacity .12s ease\n}\n.apexcharts-tooltip.apexcharts-active[data-positioned="true"] {\n  transition: opacity .12s ease, left .16s ease-out, top .16s ease-out\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  /* defaults already set above; class kept for backward-compat selectors */\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  --apx-tt-bg: #1c1c1f;\n  --apx-tt-border: rgba(255, 255, 255, 0.08);\n  --apx-tt-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(0, 0, 0, 0.45), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(0, 0, 0, 0.55);\n  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.55)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(0, 0, 0, 0.45));\n  --apx-tt-color: #f3f4f6;\n  --apx-tt-color-muted: rgba(243, 244, 246, 0.55);\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n.apexcharts-tooltip-title {\n  padding: 8px 12px 4px;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.01em;\n  color: var(--apx-tt-color-muted);\n  background: transparent;\n  border-bottom: none;\n  margin-bottom: 0\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: transparent;\n  border-bottom: none\n}\n\n/* `fillSeriesColor`: each series-group already paints itself with the\n * series colour. Drop the glass body entirely (transparent bg, no\n * border, no backdrop-filter, no padding) and clip the coloured\n * series-group(s) to the tooltip\'s rounded corners so they fill the\n * shell edge-to-edge. Text inside the coloured group is forced to\n * white for contrast. */\n.apexcharts-tooltip.apexcharts-tooltip-fill-series {\n  background: transparent;\n  -webkit-backdrop-filter: none;\n  backdrop-filter: none;\n  border: none;\n  padding: 0;\n  overflow: hidden;\n  color: #fff\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, 0.22);\n  color: #fff;\n  opacity: 1;\n  padding: 6px 12px\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group {\n  color: #fff\n}\n\n/* Arrow connector — sits *entirely outside* the tooltip body. Shares\n * the body\'s solid fill so it reads as a single shape. `filter:\n * drop-shadow` traces the clipped triangle outline (a regular\n * `box-shadow` would be erased by the `clip-path`). */\n.apexcharts-tooltip-arrow {\n  position: absolute;\n  width: 7px;\n  height: 14px;\n  background: var(--apx-tt-arrow-bg);\n  /* The variable already contains the full `drop-shadow(...) ...` filter\n   * chain (stacked shadows) so it\'s applied raw. */\n  -webkit-filter: var(--apx-tt-arrow-shadow);\n  filter: var(--apx-tt-arrow-shadow);\n  pointer-events: none;\n  top: calc(var(--apx-tt-arrow-y, 50%) - 7px)\n}\n\n.apexcharts-tooltip[data-placement="right"] .apexcharts-tooltip-arrow {\n  left: -7px;\n  clip-path: polygon(0 50%, 100% 0, 100% 100%)\n}\n\n.apexcharts-tooltip[data-placement="left"] .apexcharts-tooltip-arrow {\n  right: -7px;\n  clip-path: polygon(100% 50%, 0 0, 0 100%)\n}\n\n/* Vertical arrow variants: tooltip is above/below the data point and the\n * arrow points down/up. The base rule above uses `--apx-tt-arrow-y` for\n * left/right placement; for top/bottom we re-orient the rectangle and\n * use `--apx-tt-arrow-x` (set by applyTooltipPosition). */\n.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow,\n.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {\n  width: 14px;\n  height: 7px;\n  top: auto;\n  left: calc(var(--apx-tt-arrow-x, 50%) - 7px)\n}\n\n.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow {\n  bottom: -7px;\n  clip-path: polygon(50% 100%, 0 0, 100% 0)\n}\n\n.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {\n  top: -7px;\n  clip-path: polygon(50% 0, 0 100%, 100% 100%)\n}\n\n/* When the tooltip is flipped below the data point (arrow on top\n * pointing up), the default downward-biased shadows leave the top\n * edge of both the body *and* the arrow undefined. Flipping every\n * Y offset to negative casts the entire elevation upward so the\n * shadow falls between the tooltip and the bar above. */\n.apexcharts-tooltip[data-placement="bottom"] {\n  --apx-tt-shadow-y-mid: -8px;\n  --apx-tt-shadow-y-far: -16px;\n  --apx-tt-arrow-drop-y: -2px\n}\n\n.apexcharts-tooltip-text-goals-value,\n.apexcharts-tooltip-text-y-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,\n.apexcharts-tooltip-text-goals-value:empty,\n.apexcharts-tooltip-text-y-label:empty,\n.apexcharts-tooltip-text-y-value:empty,\n.apexcharts-tooltip-text-z-value:empty,\n.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),\n.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  width: 12px;\n  height: 12px;\n  margin-right: 6px;\n  vertical-align: middle;\n  color: inherit;\n}\n\n.apexcharts-tooltip-marker svg {\n  width: 100%;\n  height: 100%;\n  display: block;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 4px 12px;\n  display: none;\n  gap: 8px;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active:last-child,\n.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 8px\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n.apexcharts-custom-tooltip,\n.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n/* X/Y axis tooltips — small popovers that label the crosshair on the\n * axes. Restyled to match the modern data-tooltip palette: solid white\n * body with a subtle border + soft drop-shadow, smaller font, rounded\n * corners. The arrows still use the CSS border-triangle technique\n * (cheap, crisp at small sizes); their colours flow from CSS variables\n * so light/dark themes only need one override per axis. */\n.apexcharts-xaxistooltip,\n.apexcharts-yaxistooltip {\n  --apx-axt-bg: #ffffff;\n  --apx-axt-border: rgba(15, 23, 42, 0.08);\n  --apx-axt-color: #0f172a;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.18), 0 1px 3px -1px rgba(15, 23, 42, 0.12);\n  opacity: 0;\n  pointer-events: none;\n  color: var(--apx-axt-color);\n  font-size: 12px;\n  font-weight: 500;\n  text-align: center;\n  border-radius: 6px;\n  position: absolute;\n  z-index: 10;\n  background: var(--apx-axt-bg);\n  border: 1px solid var(--apx-axt-border);\n  box-shadow: var(--apx-axt-shadow)\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark,\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  --apx-axt-bg: #1c1c1f;\n  --apx-axt-border: rgba(255, 255, 255, 0.1);\n  --apx-axt-color: #f3f4f6;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.55), 0 1px 3px -1px rgba(0, 0, 0, 0.45)\n}\n\n.apexcharts-xaxistooltip {\n  padding: 4px 8px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip:after,\n.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n/* :before paints the 1px border outline of the triangle (slightly larger\n * than :after); :after sits inside and paints the fill — leaves a 1px\n * ring of :before visible at the edges. */\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-left: -5px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip-bottom:after,\n.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,\n.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 3px 8px\n}\n\n.apexcharts-yaxistooltip:after,\n.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-top: -5px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip-left:after,\n.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,\n.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,\n.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,\n.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_shape {\n  stroke-width: 1;\n  stroke-dasharray: 10 10;\n  stroke: black;\n  stroke-opacity: 0.1;\n  pointer-events: none;\n  fill: none;\n}\n\n.svg_select_handle {\n  stroke-width: 3;\n  stroke: black;\n  fill: none;\n}\n\n.svg_select_handle_r {\n  cursor: e-resize;\n}\n\n.svg_select_handle_l {\n  cursor: w-resize;\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,\n.apexcharts-pan-icon,\n.apexcharts-reset-icon,\n.apexcharts-selection-icon,\n.apexcharts-toolbar-custom-icon,\n.apexcharts-zoom-icon,\n.apexcharts-zoomin-icon,\n.apexcharts-zoomout-icon {\n  cursor: pointer;\n  /* WCAG 2.5.8 Target Size (Minimum): 24×24 CSS px hit target. */\n  width: 26px;\n  height: 24px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center;\n  /* Reset native <button> chrome — these are styled via SVG icons. */\n  padding: 0;\n  margin: 0;\n  background: transparent;\n  border: 0;\n  border-radius: 5px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  transition: background-color .12s ease, color .12s ease;\n}\n\n.apexcharts-menu-icon svg,\n.apexcharts-pan-icon svg,\n.apexcharts-reset-icon svg,\n.apexcharts-selection-icon svg,\n.apexcharts-zoom-icon svg,\n.apexcharts-zoomin-icon svg,\n.apexcharts-zoomout-icon svg {\n  width: 18px;\n  height: 18px;\n  fill: none;\n  stroke: currentColor;\n  stroke-width: 2;\n  stroke-linecap: round;\n  stroke-linejoin: round\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon,\n.apexcharts-theme-dark .apexcharts-pan-icon,\n.apexcharts-theme-dark .apexcharts-reset-icon,\n.apexcharts-theme-dark .apexcharts-selection-icon,\n.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,\n.apexcharts-theme-dark .apexcharts-zoom-icon,\n.apexcharts-theme-dark .apexcharts-zoomin-icon,\n.apexcharts-theme-dark .apexcharts-zoomout-icon {\n  color: #d4d6dc\n}\n\n.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected {\n  background: rgba(0, 143, 251, 0.12);\n  color: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover,\n.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-reset-icon:hover,\n.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-light .apexcharts-zoomout-icon:hover {\n  background: rgba(15, 23, 42, 0.06);\n  color: #1f2937\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon:hover,\n.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-reset-icon:hover,\n.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-dark .apexcharts-zoomout-icon:hover {\n  background: rgba(255, 255, 255, 0.08);\n  color: #fff\n}\n\n.apexcharts-menu-icon,\n.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 1px;\n  padding: 3px;\n  border-radius: 8px;\n  background: rgba(255, 255, 255, 0.85);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n}\n\n.apexcharts-theme-dark .apexcharts-toolbar {\n  background: rgba(28, 28, 31, 0.82);\n}\n\n.apexcharts-menu {\n  background: rgba(255, 255, 255, 0.95);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n  position: absolute;\n  top: calc(100% + 4px);\n  border: 1px solid rgba(15, 23, 42, 0.08);\n  border-radius: 8px;\n  padding: 4px;\n  right: 0;\n  opacity: 0;\n  min-width: 120px;\n  transition: opacity .15s ease, transform .15s ease;\n  transform: translateY(-2px);\n  pointer-events: none;\n  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.12), 0 2px 4px -1px rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  transform: translateY(0);\n  pointer-events: all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 9px;\n  font-size: 12px;\n  border-radius: 5px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(28, 28, 31, 0.92);\n  border-color: rgba(255, 255, 255, 0.08);\n  color: #f3f4f6;\n  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-item:hover {\n  background: rgba(255, 255, 255, 0.08)\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1\n  }\n}\n\n/* Toolbar keyboard accessibility: show toolbar when any button inside it is focused */\n.apexcharts-toolbar:focus-within {\n  opacity: 1\n}\n\n/* Focus indicator for toolbar icon buttons */\n.apexcharts-menu-icon:focus-visible,\n.apexcharts-pan-icon:focus-visible,\n.apexcharts-reset-icon:focus-visible,\n.apexcharts-selection-icon:focus-visible,\n.apexcharts-toolbar-custom-icon:focus-visible,\n.apexcharts-zoom-icon:focus-visible,\n.apexcharts-zoomin-icon:focus-visible,\n.apexcharts-zoomout-icon:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 1px;\n  border-radius: 5px\n}\n\n/* Focus indicator for hamburger menu items */\n.apexcharts-menu-item:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: -2px;\n  background: #eee\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,\n.apexcharts-datalabel.apexcharts-element-hidden,\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-hidden-element-shown {\n  opacity: 1;\n  transition: 0.25s ease all;\n}\n\n.apexcharts-datalabel,\n.apexcharts-datalabel-label,\n.apexcharts-datalabel-value,\n.apexcharts-datalabels,\n.apexcharts-pie-label,\n.apexcharts-pie-name-label,\n.apexcharts-pie-name-label-group,\n.apexcharts-pie-label-connector {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-connector {\n  fill: none\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n.apexcharts-radialbar-label {\n  cursor: pointer;\n}\n\n.apexcharts-annotation-rect,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-gridline,\n.apexcharts-line,\n.apexcharts-point-annotation-label,\n.apexcharts-radar-series path:not(.apexcharts-marker),\n.apexcharts-radar-series polygon,\n.apexcharts-toolbar svg,\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-xaxis-annotation-label,\n.apexcharts-yaxis-annotation-label,\n.apexcharts-zoom-rect,\n.no-pointer-events {\n  pointer-events: none\n}\n\n.apexcharts-tooltip-active .apexcharts-marker {\n  transition: .15s ease all\n}\n\n.apexcharts-radar-series .apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,\n.resize-triggers,\n.resize-triggers>div {\n  content: " ";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n\n.apexcharts-bar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-bar-shadows {\n  pointer-events: none\n}\n\n.apexcharts-rangebar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-drilldown-target {\n  cursor: pointer\n}\n\n.apexcharts-breadcrumb {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 2px;\n  font-size: 12px;\n  font-family: inherit;\n  padding: 2px 4px\n}\n\n.apexcharts-breadcrumb-item {\n  background: transparent;\n  border: none;\n  padding: 2px 6px;\n  border-radius: 3px;\n  font: inherit;\n  color: inherit;\n  cursor: pointer;\n  line-height: 1.2\n}\n\n.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(0, 0, 0, 0.08)\n}\n\n.apexcharts-breadcrumb-arrow {\n  margin-right: 4px;\n  font-weight: 600;\n  user-select: none\n}\n\n.apexcharts-breadcrumb-current {\n  cursor: default;\n  font-weight: 600;\n  opacity: 0.85\n}\n\n.apexcharts-breadcrumb-separator {\n  opacity: 0.5;\n  user-select: none\n}\n\n.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(255, 255, 255, 0.12)\n}\n\n.apexcharts-disable-transitions * {\n  transition: none !important;\n}';
+  const _ApexCharts = class _ApexCharts {
     /**
      * Creates a new ApexCharts instance.
      *
@@ -22568,8 +24686,30 @@ var __async = (__this, __arguments, generator) => {
       __publicField(this, "publicMethods", []);
       /** @type {string[]} */
       __publicField(this, "eventList", []);
+      /** @type {Promise<any> | null} */
+      __publicField(this, "_renderPromise", null);
       /** @type {any} */
       __publicField(this, "config");
+      /** @type {any} */
+      __publicField(this, "perspectives");
+      /** @type {any} */
+      __publicField(this, "storyboard");
+      /** @type {any} */
+      __publicField(this, "history");
+      /** @type {any} */
+      __publicField(this, "linkedViews");
+      /** @type {any} */
+      __publicField(this, "ink");
+      /** @type {any} */
+      __publicField(this, "measure");
+      /** @type {any} */
+      __publicField(this, "contextMenu");
+      /** @type {any} */
+      __publicField(this, "weave");
+      /** @type {any} */
+      __publicField(this, "renderer");
+      /** @type {any} */
+      __publicField(this, "rendererController");
       this.opts = opts;
       this.ctx = this;
       this.w = new Base(opts).init();
@@ -22600,7 +24740,8 @@ var __async = (__this, __arguments, generator) => {
           )
         );
       }
-      return new Promise((resolve, reject) => {
+      if (this._renderPromise) return this._renderPromise;
+      const renderPromise = new Promise((resolve, reject) => {
         var _a2;
         if (Utils$1.elementExists(this.el)) {
           if (typeof Apex._chartInstances === "undefined") {
@@ -22674,13 +24815,18 @@ var __async = (__this, __arguments, generator) => {
           reject(new Error("Element not found"));
         }
       });
+      this._renderPromise = renderPromise;
+      renderPromise.catch(() => {
+        if (this._renderPromise === renderPromise) this._renderPromise = null;
+      });
+      return renderPromise;
     }
     /**
      * @param {any[]} ser
      * @param {object} opts
      */
     create(ser, opts) {
-      var _a, _b, _c;
+      var _a, _b, _c, _d, _e, _f;
       const w = this.w;
       if (!this.core) {
         const initCtx = new InitCtxVariables(this);
@@ -22694,6 +24840,7 @@ var __async = (__this, __arguments, generator) => {
         return null;
       }
       this.responsive.checkResponsiveConfig(opts);
+      applyAnimationPolicy(w);
       if (w.config.xaxis.convertedCatToNumeric) {
         const defaults = new Defaults(w.config);
         defaults.convertCatToNumericXaxis(w.config, this.ctx);
@@ -22731,13 +24878,15 @@ var __async = (__this, __arguments, generator) => {
       this._writeParsedCandleData(parsedState.candleData);
       this._writeParsedLabelData(parsedState.labelData);
       this._writeParsedAxisFlags(parsedState.axisFlags);
+      (_a = this.rendererController) == null ? void 0 : _a.resolve();
+      (_b = this.weave) == null ? void 0 : _b.dispatch("afterParse");
       this.theme.init();
       const markers = new Markers(this.w, this);
       markers.setGlobalMarkerSize();
       this.formatters.setLabelFormatters();
       this.titleSubtitle.draw();
       if (!gl.noData || gl.collapsedSeries.length === w.seriesData.series.length || w.config.legend.showForSingleSeries) {
-        (_a = this.legend) == null ? void 0 : _a.init();
+        (_c = this.legend) == null ? void 0 : _c.init();
       }
       this.series.hasAllSeriesEqualX();
       if (gl.axisCharts) {
@@ -22756,6 +24905,7 @@ var __async = (__this, __arguments, generator) => {
       const layoutState = this.dimensions.plotCoords();
       this._writeLayoutCoords(layoutState.layout);
       const xyRatios = this.core.xySettings();
+      (_d = this.weave) == null ? void 0 : _d.dispatch("afterScales", { xyRatios });
       this.grid.createGridMask();
       const elGraph = this.core.plotChartType(series, xyRatios);
       const dataLabels = new DataLabels(this.w, this);
@@ -22764,7 +24914,7 @@ var __async = (__this, __arguments, generator) => {
         dataLabels.dataLabelsBackground();
       }
       this.core.shiftGraphPosition();
-      (_c = (_b = this.legend) == null ? void 0 : _b.heatmapGradientLegend) == null ? void 0 : _c.repositionToPlot();
+      (_f = (_e = this.legend) == null ? void 0 : _e.heatmapGradientLegend) == null ? void 0 : _f.repositionToPlot();
       if (w.globals.dataPoints > 50) {
         w.dom.elWrap.classList.add("apexcharts-disable-transitions");
       }
@@ -22789,7 +24939,7 @@ var __async = (__this, __arguments, generator) => {
       const me = this;
       const w = me.w;
       return new Promise((resolve, reject) => {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
         if (me.el === null) {
           return reject(
             new Error("Not enough data to display or target element not found")
@@ -22887,6 +25037,10 @@ var __async = (__this, __arguments, generator) => {
             (_i = me.toolbar) == null ? void 0 : _i.createToolbar();
           }
         }
+        (_j = me.weave) == null ? void 0 : _j.dispatch("draw", {
+          pass: "full",
+          xyRatios: graphData == null ? void 0 : graphData.xyRatios
+        });
         if (w.globals.memory.methodsToExec.length > 0) {
           w.globals.memory.methodsToExec.forEach((fn) => {
             fn.method(fn.params, false, fn.context);
@@ -22904,6 +25058,7 @@ var __async = (__this, __arguments, generator) => {
      */
     destroy() {
       var _a;
+      this._renderPromise = null;
       if (Environment.isBrowser()) {
         window.removeEventListener("resize", this.windowResizeHandler);
         removeResizeListener(
@@ -23059,6 +25214,7 @@ var __async = (__this, __arguments, generator) => {
           }
         }
       }
+      trimStreamingSeries(newSeries, me.w);
       me.w.config.series = newSeries;
       if (overwriteInitialSeries) {
         me.w.globals.initialSeries = Utils$1.clone(me.w.config.series);
@@ -23080,6 +25236,7 @@ var __async = (__this, __arguments, generator) => {
         this.mount(graphData).then(() => {
           var _a;
           (_a = this.morphTypeChange) == null ? void 0 : _a.applyChromeFade();
+          applyAxisTransition(this.w);
           if (typeof this.w.config.chart.events.updated === "function") {
             this.w.config.chart.events.updated(this, this.w);
           }
@@ -23099,11 +25256,15 @@ var __async = (__this, __arguments, generator) => {
      * Called automatically by _updateSeries() when the fast path is eligible.
      *
      * @param {boolean} animate - Whether to animate the update.
+     * @param {string} [prevAxisScaleSig] - Signature of the on-screen axis scale
+     *   captured by _updateSeries() before parseData recomputed bounds. When the
+     *   recomputed scale differs, the fast path can't repaint the ruler in place,
+     *   so it delegates to a full render. Omitted -> the check is skipped.
      * @returns {Promise<ApexCharts>} Resolves with the chart instance.
      */
-    fastUpdate(animate) {
+    fastUpdate(animate, prevAxisScaleSig) {
       return new Promise((resolve, reject) => {
-        var _a;
+        var _a, _b, _c;
         try {
           const w = this.w;
           const gl = w.globals;
@@ -23129,6 +25290,7 @@ var __async = (__this, __arguments, generator) => {
           gl2.xTickAmount = 0;
           gl2.multiAxisTickAmount = 0;
           gl2.pointsArray = [];
+          gl2.barCanvasCoords = null;
           gl2.dataLabelsRects = [];
           gl2.lastDrawnDataLabelsIndexes = [];
           gl2.textRectsCache = /* @__PURE__ */ new Map();
@@ -23143,9 +25305,18 @@ var __async = (__this, __arguments, generator) => {
             }
           }
           const xyRatios = this.core.xySettings();
+          const newAxisScaleSig = JSON.stringify({
+            y: (gl.yAxisScale || []).map((s) => s ? s.result : null),
+            xMin: gl.minX,
+            xMax: gl.maxX
+          });
+          if (gl.axisCharts && prevAxisScaleSig != null && newAxisScaleSig !== prevAxisScaleSig) {
+            return this.update().then(() => resolve(this)).catch(reject);
+          }
+          (_a = this.weave) == null ? void 0 : _a.dispatch("afterScales", { pass: "fast", xyRatios });
           const innerEl = w.dom.elGraphical.node;
           const toRemove = innerEl.querySelectorAll(
-            ".apexcharts-series, .apexcharts-datalabels, .apexcharts-datalabels-background"
+            ".apexcharts-canvas-series-wrap, .apexcharts-series, .apexcharts-datalabels, .apexcharts-datalabels-background"
           );
           toRemove.forEach(
             (el) => {
@@ -23172,8 +25343,9 @@ var __async = (__this, __arguments, generator) => {
             dataLabels.dataLabelsBackground();
           }
           if (Environment.isBrowser() && w.config.tooltip.enabled && !gl.noData) {
-            (_a = w.globals.tooltip) == null ? void 0 : _a.drawTooltip(xyRatios);
+            (_b = w.globals.tooltip) == null ? void 0 : _b.drawTooltip(xyRatios);
           }
+          (_c = this.weave) == null ? void 0 : _c.dispatch("draw", { pass: "fast", xyRatios });
           if (typeof w.config.chart.events.updated === "function") {
             w.config.chart.events.updated(this, w);
           }
@@ -23192,18 +25364,12 @@ var __async = (__this, __arguments, generator) => {
      * @returns {ApexCharts[]}
      */
     getSyncedCharts() {
-      const chartGroups = this.getGroupedCharts();
-      let allCharts = (
+      const group = (
         /** @type {ApexCharts[]} */
-        [this]
+        this.getGroupedCharts()
       );
-      if (chartGroups.length) {
-        allCharts = [];
-        chartGroups.forEach((ch) => {
-          allCharts.push(ch);
-        });
-      }
-      return allCharts;
+      group.splice(0, 0, this);
+      return group;
     }
     /**
      * Returns all charts in the same `chart.group`, excluding this instance.
@@ -23212,13 +25378,9 @@ var __async = (__this, __arguments, generator) => {
      * @returns {ApexCharts[]}
      */
     getGroupedCharts() {
-      return Apex._chartInstances.filter((ch) => {
-        if (ch.group) {
-          return true;
-        }
-      }).map(
-        (ch) => this.w.config.chart.group === ch.group ? ch.chart : this
-      );
+      return Apex._chartInstances.filter(
+        (ch) => this !== ch.chart && !!this.w.config.chart.group && this.w.config.chart.group === ch.group
+      ).map((ch) => ch.chart);
     }
     /**
      * Retrieves a rendered chart instance by its `chart.id` config value.
@@ -23248,7 +25410,7 @@ var __async = (__this, __arguments, generator) => {
           els[i]
         );
         const options2 = JSON.parse((_a = els[i].getAttribute("data-options")) != null ? _a : "");
-        const apexChart = new ApexCharts(el, options2);
+        const apexChart = new _ApexCharts(el, options2);
         apexChart.render();
       }
     }
@@ -23313,6 +25475,194 @@ var __async = (__this, __arguments, generator) => {
      */
     static registerFeatures(featureMap) {
       InitCtxVariables.registerFeatures(featureMap);
+    }
+    /**
+     * Register a Weave plugin definition (a plain { name, setup } object).
+     * Lives in core so plugins can always be registered; they only activate when
+     * the Weave host is bundled (`import 'apexcharts/features/weave'`, included in
+     * the full bundle) and listed in a chart's `plugins` config.
+     *
+     * @param {{ name: string, apiVersion?: number, setup: Function, destroy?: Function }} def
+     * @returns {typeof ApexCharts}
+     */
+    static registerPlugin(def) {
+      registerPlugin(def);
+      return _ApexCharts;
+    }
+    /**
+     * Remove a registered Weave plugin definition. Charts already holding an
+     * active instance keep it until their plugins config changes or they are
+     * destroyed; the name simply stops resolving for new activations. Intended
+     * for tests and hot-reload flows.
+     * @param {string} name
+     * @returns {typeof ApexCharts}
+     */
+    static unregisterPlugin(name2) {
+      unregisterPlugin(name2);
+      return _ApexCharts;
+    }
+    /**
+     * Register a non-SVG series renderer (Strata #2). SVG is built in; the canvas
+     * backend registers itself via `import 'apexcharts/features/renderer-canvas'`.
+     * When a `kind` is not registered, selection falls back to SVG.
+     *
+     * @param {string} kind  e.g. 'canvas'
+     * @param {(w: any, ctx: any) => any} factory  returns a Renderer instance
+     */
+    static registerRenderer(kind, factory) {
+      RendererController.registerRenderer(kind, factory);
+    }
+    /**
+     * Register a custom series type (Marks #11): a `{ renderItem }` definition
+     * that draws primitives (path/line/rect/circle/text) per datum. Requires the
+     * Marks feature to be bundled (`import 'apexcharts/features/marks'`, included
+     * in the full bundle); without it this warns and no-ops. Once registered, use
+     * it via `series[].type` or `chart.type`.
+     *
+     * @param {string} name  the type name, e.g. 'dumbbell'
+     * @param {{ renderItem: Function, dataType?: string, yExtent?: Function, tooltip?: Function }} def
+     * @returns {typeof ApexCharts}
+     */
+    static registerSeriesType(name2, def) {
+      const factory = (
+        /** @type {any} */
+        _ApexCharts._customSeriesFactory
+      );
+      if (!factory) {
+        console.warn(
+          `[apexcharts] registerSeriesType("${name2}") requires the Marks feature: import 'apexcharts/features/marks'.`
+        );
+        return _ApexCharts;
+      }
+      if (!def || typeof def.renderItem !== "function") {
+        console.warn(
+          `[apexcharts] registerSeriesType("${name2}") needs a def with a renderItem() function.`
+        );
+        return _ApexCharts;
+      }
+      if (hasChartClass(name2) && !isCustom(name2)) {
+        console.warn(
+          `[apexcharts] registerSeriesType("${name2}") would override the built-in "${name2}" chart type; pick another name.`
+        );
+        return _ApexCharts;
+      }
+      register({ [name2]: factory(name2, def) });
+      markCustom(name2);
+      return _ApexCharts;
+    }
+    /**
+     * Remove a custom series type registered via registerSeriesType. Built-in
+     * chart types cannot be unregistered. Intended for tests and hot-reload.
+     * @param {string} name
+     * @returns {typeof ApexCharts}
+     */
+    static unregisterSeriesType(name2) {
+      if (isCustom(name2)) unregister(name2);
+      return _ApexCharts;
+    }
+    /**
+     * Facet (#13): register a named theme (palette + design tokens + mode)
+     * referenceable via `theme: { name }`. The theme sits below explicit config
+     * and CSS `--apx-*` tokens, above the built-in palette/mode defaults.
+     *
+     * @param {string} name  the theme name, e.g. 'brand'
+     * @param {any} def  { mode?, palette?, tokens?, monochrome?, accessibility? }
+     * @returns {typeof ApexCharts}
+     */
+    static registerTheme(name2, def) {
+      registerTheme(name2, def);
+      return _ApexCharts;
+    }
+    /**
+     * Remove a theme registered via registerTheme. Charts referencing it by
+     * `theme.name` fall back to the built-in defaults on their next render.
+     * Intended for tests and hot-reload flows.
+     * @param {string} name
+     * @returns {typeof ApexCharts}
+     */
+    static unregisterTheme(name2) {
+      unregisterTheme(name2);
+      return _ApexCharts;
+    }
+    /**
+     * Cadence (#6): register a named easing function referenceable via
+     * `chart.animations.easing: '<name>'`. `fn` maps linear progress t in [0,1]
+     * to eased progress (back/elastic curves may overshoot 1).
+     *
+     * @param {string} name  the easing name, e.g. 'bounce'
+     * @param {(t:number)=>number} fn
+     * @returns {typeof ApexCharts}
+     */
+    static registerEasing(name2, fn) {
+      registerEasing(name2, fn);
+      return _ApexCharts;
+    }
+    /**
+     * Linked Views (#4) Phase 2: get-or-create a crossfilter coordinator by id.
+     * Register one shared record set, then let each chart declare a dimension +
+     * reduction under `chart.link`. Selecting in one chart re-aggregates the
+     * others over the filtered subset.
+     *
+     * Lives in core (always callable) but the engine ships in the `link` feature
+     * (`import 'apexcharts/features/link'`, included in the full bundle); without
+     * it this warns and returns null so the engine shakes out when unused.
+     *
+     * @param {{ id: string, records?: any[] }} opts
+     * @returns {any} the coordinator handle, or null if the feature is absent
+     */
+    static crossfilter(opts) {
+      const factory = (
+        /** @type {any} */
+        _ApexCharts._crossfilterFactory
+      );
+      if (!factory) {
+        console.warn(
+          `[apexcharts] ApexCharts.crossfilter(...) requires the link feature: import 'apexcharts/features/link'.`
+        );
+        return null;
+      }
+      return factory(opts);
+    }
+    /**
+     * Look up an existing crossfilter coordinator by id (null if none / feature
+     * absent).
+     * @param {string} id
+     * @returns {any}
+     */
+    static getCrossfilter(id) {
+      const get = (
+        /** @type {any} */
+        _ApexCharts._crossfilterGet
+      );
+      return get ? get(id) : null;
+    }
+    /**
+     * Linked Views (#4): clear crossfilter dimming across this chart and every
+     * chart in its `chart.group`. No-op unless the `link` feature is bundled.
+     */
+    clearCrossfilter() {
+      var _a;
+      (_a = this.linkedViews) == null ? void 0 : _a.clearGroup();
+    }
+    /**
+     * Measure ruler (#18): arm a sticky measure-ruler mode (drag A->B on the
+     * plot to read dx/dy/%change/slope). Alternatively hold the measure key
+     * (chart.measure.key, default 'm') and drag. No-op unless the `measure`
+     * feature is bundled and chart.measure.enabled.
+     */
+    startMeasure() {
+      var _a;
+      (_a = this.measure) == null ? void 0 : _a.startMeasure();
+    }
+    /** Measure ruler (#18): leave measure mode. */
+    stopMeasure() {
+      var _a;
+      (_a = this.measure) == null ? void 0 : _a.stopMeasure();
+    }
+    /** Measure ruler (#18): remove all pinned measure rulers. */
+    clearMeasures() {
+      var _a;
+      (_a = this.measure) == null ? void 0 : _a.clearMeasures();
     }
     /**
      * Toggles (show/hide) the series identified by name.
@@ -23468,6 +25818,7 @@ var __async = (__this, __arguments, generator) => {
       if (context) {
         me = context;
       }
+      me.lastUpdateOptions = null;
       (_a = me.annotations) == null ? void 0 : _a.clearAnnotations(me);
     }
     /**
@@ -23486,6 +25837,7 @@ var __async = (__this, __arguments, generator) => {
       if (context) {
         me = context;
       }
+      me.lastUpdateOptions = null;
       (_a = me.annotations) == null ? void 0 : _a.removeAnnotation(me, id);
     }
     /**
@@ -23673,6 +26025,31 @@ var __async = (__this, __arguments, generator) => {
       return this.w.dom.Paper;
     }
     /**
+     * Returns the active series renderer for the last render: `'svg'` (default)
+     * or `'canvas'` (Strata #2). `'auto'`/`'canvas'` resolve to `'svg'` unless the
+     * canvas renderer feature is bundled and no canvas-unsupported feature is in
+     * use. See `chart.renderer` / `chart.rendererThreshold`.
+     *
+     * @returns {'svg' | 'canvas' | 'gpu'}
+     */
+    getActiveRenderer() {
+      return this.rendererController ? this.rendererController.getActiveKind() : "svg";
+    }
+    /**
+     * Facet (#13): re-resolve the `--apx-*` design tokens and re-render.
+     *
+     * Tokens are read from the CSS cascade once per render, so a runtime change
+     * that is NOT an OS color-scheme flip (e.g. the host app swaps its own
+     * design-system theme by toggling a class or setting style properties) is
+     * invisible until the next render, and `updateOptions({})` is memoized away.
+     * This busts the memo and re-renders, picking up the current token values.
+     * @returns {Promise<any>}
+     */
+    refreshTokens() {
+      this.lastUpdateOptions = null;
+      return this.update();
+    }
+    /**
      * Drills into the child level referenced by `id` (a `chart.drilldown.series` entry).
      * Requires the Drilldown feature: `import 'apexcharts/features/drilldown'`.
      *
@@ -23774,7 +26151,16 @@ var __async = (__this, __arguments, generator) => {
       }
       redraw && this._windowResize();
     }
-  }
+  };
+  /**
+   * Static Perspectives helpers (decode/fromURL), populated by the perspectives
+   * feature when imported (`import 'apexcharts/features/perspectives'`); null
+   * otherwise. Declared here as a placeholder so core stays free of the
+   * Perspectives module while the assignment in the feature file type-checks.
+   * @type {any}
+   */
+  __publicField(_ApexCharts, "perspectives", null);
+  let ApexCharts = _ApexCharts;
   const apexchartsLegendCSS = ".apexcharts-flip-y {\n  transform: scaleY(-1) translateY(-100%);\n  transform-origin: top;\n  transform-box: fill-box;\n}\n.apexcharts-flip-x {\n  transform: scaleX(-1);\n  transform-origin: center;\n  transform-box: fill-box;\n}\n.apexcharts-legend {\n  display: flex;\n  overflow: auto;\n  padding: 0 10px;\n}\n.apexcharts-legend.apexcharts-legend-group-horizontal {\n  flex-direction: column;\n}\n.apexcharts-legend-group {\n  display: flex;\n}\n.apexcharts-legend-group-vertical {\n  flex-direction: column-reverse;\n}\n.apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\n  flex-wrap: wrap\n}\n.apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n  flex-direction: column;\n  bottom: 0;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n  justify-content: flex-start;\n  align-items: flex-start;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\n  justify-content: center;\n  align-items: center;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\n  justify-content: flex-end;\n  align-items: flex-end;\n}\n.apexcharts-legend-series {\n  cursor: pointer;\n  line-height: normal;\n  display: flex;\n  align-items: center;\n}\n.apexcharts-legend-text {\n  position: relative;\n  font-size: 14px;\n}\n.apexcharts-legend-text *, .apexcharts-legend-marker * {\n  pointer-events: none;\n}\n.apexcharts-legend-marker {\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  cursor: pointer;\n  margin-right: 1px;\n}\n\n.apexcharts-legend-series.apexcharts-no-click {\n  cursor: auto;\n}\n.apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n  display: none !important;\n}\n.apexcharts-inactive-legend {\n  opacity: 0.45;\n} ";
   class Exports {
     /**
@@ -23805,6 +26191,42 @@ var __async = (__this, __arguments, generator) => {
       svg.setAttributeNS(null, "viewBox", "0 0 " + svgWidth + " " + svgHeight);
     }
     /**
+     * Inline any Strata canvas series layer into the clone as an SVG `<image>`.
+     * A serialized `<canvas>` loses its bitmap, so a canvas-mode export would drop
+     * the series; an `<image>` carrying the canvas `toDataURL()` preserves it in
+     * place. Because it replaces the `<foreignObject>` at the same DOM position,
+     * the grid-behind / annotations-in-front z-order is retained automatically.
+     * No-op in SVG mode (no series canvas present).
+     * @param {any} clonedNode the cloned elWrap about to be serialized
+     */
+    inlineCanvasLayers(clonedNode) {
+      const w = this.w;
+      const XLINK = "http://www.w3.org/1999/xlink";
+      const origCanvases = w.dom.elWrap.querySelectorAll(
+        ".apexcharts-series-canvas"
+      );
+      if (!origCanvases.length) return;
+      const clonedFOs = clonedNode.querySelectorAll(".apexcharts-canvas-series");
+      for (let i = 0; i < origCanvases.length && i < clonedFOs.length; i++) {
+        let dataURL;
+        try {
+          dataURL = /** @type {HTMLCanvasElement} */
+          origCanvases[i].toDataURL();
+        } catch (e) {
+          continue;
+        }
+        const fo = clonedFOs[i];
+        const img = document.createElementNS(SVGNS$1, "image");
+        img.setAttribute("x", fo.getAttribute("x") || "0");
+        img.setAttribute("y", fo.getAttribute("y") || "0");
+        img.setAttribute("width", fo.getAttribute("width") || "0");
+        img.setAttribute("height", fo.getAttribute("height") || "0");
+        img.setAttribute("href", dataURL);
+        img.setAttributeNS(XLINK, "xlink:href", dataURL);
+        if (fo.parentNode) fo.parentNode.replaceChild(img, fo);
+      }
+    }
+    /**
      * @param {number} [_scale]
      */
     getSvgString(_scale) {
@@ -23822,6 +26244,7 @@ var __async = (__this, __arguments, generator) => {
         );
         clonedNode.style.width = width + "px";
         clonedNode.style.height = height + "px";
+        this.inlineCanvasLayers(clonedNode);
         const serializedNode = new XMLSerializer().serializeToString(clonedNode);
         const shouldIncludeLegendStyles = w.config.legend.show && w.dom.elLegendWrap && w.dom.elLegendWrap.children.length > 0;
         let exportStyles = `
@@ -24254,7 +26677,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {boolean} isHidden
      */
     toggleDataSeries(seriesCnt, isHidden) {
-      var _a, _b;
+      var _a, _b, _c;
       const w = this.w;
       if (w.globals.axisCharts || w.config.chart.type === "radialBar") {
         w.globals.resized = true;
@@ -24262,17 +26685,18 @@ var __async = (__this, __arguments, generator) => {
         let realIndex = null;
         w.globals.risingSeries = [];
         if (w.globals.axisCharts) {
-          seriesEl = w.dom.baseEl.querySelector(
-            `.apexcharts-series[data\\:realIndex='${seriesCnt}']`
-          );
+          seriesEl = (_a = Array.prototype.find.call(
+            w.dom.baseEl.querySelectorAll(".apexcharts-series"),
+            (el) => el.getAttribute("data:realIndex") === String(seriesCnt)
+          )) != null ? _a : null;
           if (!seriesEl) return;
-          realIndex = parseInt((_a = seriesEl.getAttribute("data:realIndex")) != null ? _a : "", 10);
+          realIndex = parseInt((_b = seriesEl.getAttribute("data:realIndex")) != null ? _b : "", 10);
         } else {
           seriesEl = w.dom.baseEl.querySelector(
             `.apexcharts-series[rel='${seriesCnt + 1}']`
           );
           if (!seriesEl) return;
-          realIndex = parseInt((_b = seriesEl.getAttribute("rel")) != null ? _b : "", 10) - 1;
+          realIndex = parseInt((_c = seriesEl.getAttribute("rel")) != null ? _c : "", 10) - 1;
         }
         if (isHidden) {
           const seriesToMakeVisible = [
@@ -26228,6 +28652,17 @@ var __async = (__this, __arguments, generator) => {
           passive: false
         });
       }
+      if (this._momentumEnabled()) {
+        ["touchstart", "touchmove", "touchend", "touchcancel"].forEach(
+          (event) => {
+            var _a;
+            (_a = this.hoverArea) == null ? void 0 : _a.addEventListener(event, me.momentumTouch.bind(me), {
+              capture: false,
+              passive: false
+            });
+          }
+        );
+      }
     }
     // remove the event listeners which were previously added on hover area
     destroy() {
@@ -26248,6 +28683,10 @@ var __async = (__this, __arguments, generator) => {
       var _a;
       const w = this.w;
       const toolbar = this.ctx.toolbar;
+      if (w.interact.momentum && w.interact.momentum.busy) return;
+      if (this._momentumEnabled() && e.touches && e.touches.length > 1) {
+        return;
+      }
       const zoomtype = w.interact.zoomEnabled ? w.config.chart.zoom.type : w.config.chart.selection.type;
       const autoSelected = w.config.chart.toolbar.autoSelected;
       if (e.shiftKey) {
@@ -26615,23 +29054,27 @@ var __async = (__this, __arguments, generator) => {
         height: getSelAttr("height")
       };
       w.interact.selection = draggedProps;
-      if (typeof w.config.chart.events.selection === "function" && w.interact.selectionEnabled) {
+      const link = w.config.chart.link;
+      const linkActive = !!(link && (link.enabled || typeof link.dimension === "function"));
+      if ((typeof w.config.chart.events.selection === "function" || linkActive) && w.interact.selectionEnabled) {
         clearTimeout((_a = this.w.globals.selectionResizeTimer) != null ? _a : void 0);
         this.w.globals.selectionResizeTimer = window.setTimeout(() => {
-          var _a2;
+          var _a2, _b;
           const gridRectDim = (_a2 = this.gridRect) == null ? void 0 : _a2.getBoundingClientRect();
           if (!gridRectDim) return;
           const selectionRect = selRect.node.getBoundingClientRect();
           let minX, maxX, minY, maxY;
+          const relLeft = selectionRect.left - gridRectDim.left - w.globals.barPadForNumericAxis;
+          const relRight = selectionRect.right - gridRectDim.left - w.globals.barPadForNumericAxis;
           if (!w.axisFlags.isRangeBar) {
             if (!w.globals.xAxisScale) return;
-            minX = w.globals.xAxisScale.niceMin + (selectionRect.left - gridRectDim.left) * xyRatios.xRatio;
-            maxX = w.globals.xAxisScale.niceMin + (selectionRect.right - gridRectDim.left) * xyRatios.xRatio;
+            minX = w.globals.xAxisScale.niceMin + relLeft * xyRatios.xRatio;
+            maxX = w.globals.xAxisScale.niceMin + relRight * xyRatios.xRatio;
             minY = w.globals.yAxisScale[0].niceMin + (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0];
             maxY = w.globals.yAxisScale[0].niceMax - (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0];
           } else {
-            minX = w.globals.yAxisScale[0].niceMin + (selectionRect.left - gridRectDim.left) * xyRatios.invertedYRatio;
-            maxX = w.globals.yAxisScale[0].niceMin + (selectionRect.right - gridRectDim.left) * xyRatios.invertedYRatio;
+            minX = w.globals.yAxisScale[0].niceMin + relLeft * xyRatios.invertedYRatio;
+            maxX = w.globals.yAxisScale[0].niceMin + relRight * xyRatios.invertedYRatio;
             minY = 0;
             maxY = 1;
           }
@@ -26645,16 +29088,19 @@ var __async = (__this, __arguments, generator) => {
               max: maxY
             }
           };
-          w.config.chart.events.selection(this.ctx, xyAxis);
+          if (typeof w.config.chart.events.selection === "function") {
+            w.config.chart.events.selection(this.ctx, xyAxis);
+          }
           if (w.config.chart.brush.enabled && w.config.chart.events.brushScrolled !== void 0) {
             w.config.chart.events.brushScrolled(this.ctx, xyAxis);
           }
+          (_b = this.ctx.linkedViews) == null ? void 0 : _b.onSourceSelection(xyAxis.xaxis);
         }, timerInterval);
       }
     }
     /** @param {{context: any, zoomtype: any}} opts */
     selectionDrawn({ context, zoomtype }) {
-      var _a, _b;
+      var _a, _b, _c;
       const w = this.w;
       const me = context;
       const xyRatios = this.xyRatios;
@@ -26758,6 +29204,7 @@ var __async = (__this, __arguments, generator) => {
               yaxis
             });
           }
+          (_c = me.ctx.linkedViews) == null ? void 0 : _c.onSourceSelection(xaxis);
         }
       }
     }
@@ -26870,6 +29317,349 @@ var __async = (__this, __arguments, generator) => {
         w.config.chart.events.scrolled(this.ctx, args);
         this.ctx.events.fireEvent("scrolled", args);
       }
+    }
+    // ---------------------------------------------------------------------------
+    // Momentum: multi-touch pinch-zoom, two-finger pan and kinetic inertia.
+    //
+    // Every _updateOptions destroys and recreates this instance, and applying a
+    // gesture frame IS an _updateOptions, so the gesture must not depend on the
+    // instance surviving. All runtime state lives on w.interact.momentum (the
+    // interaction slice that persists across re-renders, like the crude pan's
+    // lastClientPosition). The instance that received touchstart keeps driving
+    // the gesture off the persistent state; inertia is a self-contained rAF loop
+    // that stops on w.globals.isDestroyed (a real destroy) rather than being
+    // cancelled by the per-update destroy().
+    // ---------------------------------------------------------------------------
+    _momentumEnabled() {
+      return this._pinchEnabled() || this._panInertiaEnabled();
+    }
+    _pinchEnabled() {
+      const c = this.w.config.chart;
+      return !!(c.zoom && c.zoom.enabled && c.zoom.pinch);
+    }
+    _panInertiaEnabled() {
+      const c = this.w.config.chart;
+      return !!(c.pan && c.pan.inertia);
+    }
+    /** Lazily-created, re-render-surviving gesture state on the interaction slice. */
+    _m() {
+      const it = this.w.interact;
+      if (!it.momentum) {
+        it.momentum = {
+          busy: false,
+          /** @type {any} */
+          pinch: null,
+          /** @type {any} */
+          panState: null,
+          /** @type {{x:number,t:number}[]} */
+          samples: [],
+          /** @type {number|null} */
+          inertiaRAF: null
+        };
+      }
+      return it.momentum;
+    }
+    /** Current x data-window (rangeBars carry the datetime domain on y). */
+    _currentXWindow() {
+      const w = this.w;
+      return w.axisFlags.isRangeBar ? { min: w.globals.minY, max: w.globals.maxY } : { min: w.globals.minX, max: w.globals.maxX };
+    }
+    /** Live grid rect from the current DOM (this.gridRect goes stale/null after
+     * the re-render a gesture frame triggers). */
+    _gridRect() {
+      const baseEl = this.w.dom.baseEl;
+      const grid = baseEl && baseEl.querySelector(".apexcharts-grid");
+      return grid ? grid.getBoundingClientRect() : null;
+    }
+    /**
+     * Raw data bounds to clamp against. When zoom-aware downsampling is active,
+     * the raw stash tracks the full domain; fall back to the initial window.
+     * Returns null for rangeBars (no raw-x clamp available).
+     * @returns {{min:number, max:number}|null}
+     */
+    _clampBounds() {
+      var _a, _b;
+      const w = this.w;
+      if (w.axisFlags.isRangeBar) return null;
+      return {
+        min: (_a = w.globals.dataReducerRawMinX) != null ? _a : w.globals.initialMinX,
+        max: (_b = w.globals.dataReducerRawMaxX) != null ? _b : w.globals.initialMaxX
+      };
+    }
+    /**
+     * Apply an x-window immediately (no animation), mirroring panScrolled but
+     * pixel-accurate: clamp to the raw bounds (preserving window width so a pan
+     * stops flush at the edge rather than shrinking), floor for category axes,
+     * then route through the fast _updateOptions path.
+     * @param {number} newMinX @param {number} newMaxX @param {boolean} isZoom
+     * @returns {{minX:number, maxX:number}|false} applied window, or false if rejected
+     */
+    _applyXRange(newMinX, newMaxX, isZoom) {
+      const w = this.w;
+      if (!w.globals.initialConfig) return false;
+      const bounds = this._clampBounds();
+      if (bounds) {
+        const range = newMaxX - newMinX;
+        if (newMinX < bounds.min) {
+          newMinX = bounds.min;
+          newMaxX = newMinX + range;
+        }
+        if (newMaxX > bounds.max) {
+          newMaxX = bounds.max;
+          newMinX = newMaxX - range;
+        }
+        if (newMinX < bounds.min) newMinX = bounds.min;
+      }
+      if (w.config.xaxis.convertedCatToNumeric) {
+        newMinX = Math.floor(newMinX);
+        newMaxX = Math.floor(newMaxX);
+        if (newMinX < 1) newMinX = 1;
+        if (newMaxX - newMinX < 2) return false;
+      }
+      if (!(newMaxX > newMinX)) return false;
+      const options2 = { xaxis: { min: newMinX, max: newMaxX } };
+      if (!w.config.chart.group) {
+        options2.yaxis = Utils$1.clone(w.globals.initialConfig.yaxis);
+      }
+      if (isZoom) w.interact.zoomed = true;
+      this.ctx.updateHelpers._updateOptions(options2, false, false);
+      return { minX: newMinX, maxX: newMaxX };
+    }
+    _cancelInertia() {
+      const m = this._m();
+      if (m.inertiaRAF != null) {
+        cancelAnimationFrame(m.inertiaRAF);
+        m.inertiaRAF = null;
+      }
+    }
+    _fireScrolled() {
+      const w = this.w;
+      if (typeof w.config.chart.events.scrolled !== "function") return;
+      const { min, max } = this._currentXWindow();
+      const args = { xaxis: { min, max } };
+      w.config.chart.events.scrolled(this.ctx, args);
+      this.ctx.events.fireEvent("scrolled", args);
+    }
+    /** @param {number} x @param {number} t */
+    _pushSample(x, t) {
+      const s = this._m().samples;
+      s.push({ x, t });
+      while (s.length > 6) s.shift();
+    }
+    /**
+     * Single passive:false handler for all touch phases. Two fingers => pinch /
+     * two-finger pan (zoom). One finger, in pan mode => kinetic pan with inertia.
+     * @param {any} e
+     */
+    momentumTouch(e) {
+      const w = this.w;
+      const m = this._m();
+      const type = e.type;
+      if (type === "touchstart") {
+        this._cancelInertia();
+        const gridRectDim = this._gridRect();
+        if (!gridRectDim) return;
+        if (e.touches.length >= 2 && this._pinchEnabled()) {
+          e.preventDefault();
+          m.busy = true;
+          m.panState = null;
+          this._beginPinch(e, gridRectDim);
+        } else if (e.touches.length === 1 && this._panInertiaEnabled() && w.interact.panEnabled) {
+          m.busy = true;
+          m.pinch = null;
+          const t = e.touches[0];
+          const win = this._currentXWindow();
+          const gw = w.layout.gridWidth || 1;
+          m.panState = {
+            startX: t.clientX,
+            startY: t.clientY,
+            axis: null,
+            // decided on first move (rails)
+            minX0: win.min,
+            maxX0: win.max,
+            ratio0: (win.max - win.min) / gw
+          };
+          m.samples = [{ x: t.clientX, t: e.timeStamp }];
+        }
+        return;
+      }
+      if (type === "touchmove") {
+        if (m.pinch && e.touches.length >= 2) {
+          e.preventDefault();
+          this._movePinch(e);
+        } else if (m.panState && e.touches.length === 1) {
+          this._movePan(e);
+        }
+        return;
+      }
+      if (m.pinch) {
+        if (e.touches.length < 2) this._endPinch();
+      } else if (m.panState) {
+        if (e.touches.length === 0) this._endPan();
+      }
+      if (e.touches.length === 0) {
+        w.interact.mousedown = false;
+        this.dragged = false;
+        if (m.inertiaRAF == null && !m.pinch && !m.panState) {
+          m.busy = false;
+        }
+      }
+    }
+    /** @param {any} e @param {DOMRect} gridRectDim */
+    _beginPinch(e, gridRectDim) {
+      const w = this.w;
+      const t0 = e.touches[0];
+      const t1 = e.touches[1];
+      const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1;
+      const cx = (t0.clientX + t1.clientX) / 2 - gridRectDim.left - w.globals.barPadForNumericAxis;
+      const { min, max } = this._currentXWindow();
+      this._m().pinch = {
+        d0: dist,
+        cx0: cx,
+        minX0: min,
+        maxX0: max,
+        gridWidth: w.layout.gridWidth || 1
+      };
+    }
+    /** @param {any} e */
+    _movePinch(e) {
+      const w = this.w;
+      const p = this._m().pinch;
+      if (!p) return;
+      const gridRectDim = this._gridRect();
+      if (!gridRectDim) return;
+      const t0 = e.touches[0];
+      const t1 = e.touches[1];
+      const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1;
+      const cx = (t0.clientX + t1.clientX) / 2 - gridRectDim.left - w.globals.barPadForNumericAxis;
+      const range0 = p.maxX0 - p.minX0;
+      const newRange = range0 * (p.d0 / dist);
+      const anchorData = p.minX0 + p.cx0 / p.gridWidth * range0;
+      let newMinX = anchorData - cx / p.gridWidth * newRange;
+      let newMaxX = newMinX + newRange;
+      const bounds = this._clampBounds();
+      if (bounds) {
+        const minXDiff = w.globals.minXDiff > 0 && isFinite(w.globals.minXDiff) ? w.globals.minXDiff : 0;
+        const minRange = Math.max(minXDiff * 2, (bounds.max - bounds.min) * 1e-6);
+        if (newMaxX - newMinX < minRange) {
+          const mid = (newMinX + newMaxX) / 2;
+          newMinX = mid - minRange / 2;
+          newMaxX = mid + minRange / 2;
+        }
+      }
+      this._applyXRange(newMinX, newMaxX, true);
+    }
+    _endPinch() {
+      const w = this.w;
+      const m = this._m();
+      m.pinch = null;
+      const { min, max } = this._currentXWindow();
+      const xaxis = { min, max };
+      const yaxis = w.globals.initialConfig ? Utils$1.clone(w.globals.initialConfig.yaxis) : [];
+      const toolbar = this.ctx.toolbar;
+      if (toolbar) toolbar.zoomCallback(xaxis, yaxis);
+    }
+    /** @param {any} e */
+    _movePan(e) {
+      const m = this._m();
+      const s = m.panState;
+      const t = e.touches[0];
+      if (!s.axis) {
+        const dx = Math.abs(t.clientX - s.startX);
+        const dy = Math.abs(t.clientY - s.startY);
+        if (dx < 6 && dy < 6) {
+          this._pushSample(t.clientX, e.timeStamp);
+          return;
+        }
+        if (dy > dx) {
+          m.busy = false;
+          m.panState = null;
+          return;
+        }
+        s.axis = "x";
+      }
+      if (s.axis !== "x") return;
+      e.preventDefault();
+      const totalDeltaPx = t.clientX - s.startX;
+      const deltaData = totalDeltaPx * s.ratio0;
+      this._pushSample(t.clientX, e.timeStamp);
+      this._applyXRange(s.minX0 - deltaData, s.maxX0 - deltaData, false);
+    }
+    _endPan() {
+      const m = this._m();
+      const s = m.panState;
+      m.panState = null;
+      let vel = 0;
+      const samples = m.samples;
+      if (samples.length >= 2) {
+        const a = samples[0];
+        const b = samples[samples.length - 1];
+        const dt = b.t - a.t;
+        if (dt > 0) vel = (b.x - a.x) / dt;
+      }
+      m.samples = [];
+      if (s && s.axis === "x" && this._panInertiaEnabled() && Math.abs(vel) > 0.05) {
+        this._startInertia(vel);
+      } else {
+        m.busy = false;
+        this._fireScrolled();
+      }
+    }
+    /**
+     * Kinetic glide after a one-finger pan release: decay the velocity by
+     * `friction` each frame and shift the window, stopping at the data edge
+     * (clamp, not elastic overshoot). The loop is w-driven, so it keeps running
+     * across the re-renders each frame triggers and stops only on a real destroy.
+     * @param {number} vel0 px/ms, sign is the finger direction
+     */
+    _startInertia(vel0) {
+      const w = this.w;
+      const m = this._m();
+      const cfgFriction = w.config.chart.pan && w.config.chart.pan.friction;
+      const friction = typeof cfgFriction === "number" ? Math.min(Math.max(cfgFriction, 0.5), 0.999) : 0.92;
+      let vel = vel0;
+      let lastT = null;
+      m.busy = true;
+      const step = (ts) => {
+        if (w.globals.isDestroyed) {
+          m.inertiaRAF = null;
+          m.busy = false;
+          return;
+        }
+        if (lastT == null) {
+          lastT = ts;
+          m.inertiaRAF = requestAnimationFrame(step);
+          return;
+        }
+        const dt = ts - lastT;
+        lastT = ts;
+        vel *= Math.pow(friction, dt / 16.6667);
+        if (Math.abs(vel) < 0.02) {
+          m.inertiaRAF = null;
+          m.busy = false;
+          this._fireScrolled();
+          return;
+        }
+        const win = this._currentXWindow();
+        const gw = w.layout.gridWidth || 1;
+        const ratio = (win.max - win.min) / gw;
+        const deltaData = vel * dt * ratio;
+        const applied = this._applyXRange(
+          win.min - deltaData,
+          win.max - deltaData,
+          false
+        );
+        const bounds = this._clampBounds();
+        const hitEdge = !applied || bounds && (deltaData > 0 && applied.minX <= bounds.min + (bounds.max - bounds.min) * 1e-6 || deltaData < 0 && applied.maxX >= bounds.max - (bounds.max - bounds.min) * 1e-6);
+        if (hitEdge) {
+          m.inertiaRAF = null;
+          m.busy = false;
+          this._fireScrolled();
+          return;
+        }
+        m.inertiaRAF = requestAnimationFrame(step);
+      };
+      m.inertiaRAF = requestAnimationFrame(step);
     }
   }
   ApexCharts.registerFeatures({
@@ -29745,6 +32535,6007 @@ var __async = (__this, __arguments, generator) => {
     }
   }
   ApexCharts.registerFeatures({ drilldown: Drilldown });
+  const VIEWSTATE_VERSION = 1;
+  function axisWindow(min, max) {
+    const hasMin = min !== void 0 && min !== null;
+    const hasMax = max !== void 0 && max !== null;
+    if (!hasMin && !hasMax) return null;
+    return { min: hasMin ? min : null, max: hasMax ? max : null };
+  }
+  function cloneSelection(sel) {
+    if (!Array.isArray(sel)) return [];
+    return sel.map((a) => Array.isArray(a) ? a.slice() : a);
+  }
+  function annotationKind(method, ctx) {
+    if (typeof method !== "function" || !ctx) return null;
+    if (method === ctx.addXaxisAnnotation) return "xaxis";
+    if (method === ctx.addYaxisAnnotation) return "yaxis";
+    if (method === ctx.addPointAnnotation) return "point";
+    return null;
+  }
+  function addMethodName(kind) {
+    switch (kind) {
+      case "xaxis":
+        return "addXaxisAnnotation";
+      case "yaxis":
+        return "addYaxisAnnotation";
+      case "point":
+        return "addPointAnnotation";
+      default:
+        return null;
+    }
+  }
+  function captureAnnotations(w, ctx) {
+    const staticAnno = w.config.annotations ? Utils$1.clone(w.config.annotations) : null;
+    const dynamic = [];
+    const mem = w.globals.memory && w.globals.memory.methodsToExec || [];
+    for (const entry of mem) {
+      if (!entry || entry.label !== "addAnnotation") continue;
+      const kind = annotationKind(entry.method, ctx);
+      if (!kind) continue;
+      dynamic.push({ kind, params: Utils$1.clone(entry.params) });
+    }
+    return { static: staticAnno, dynamic };
+  }
+  function captureMeasure(ctx) {
+    const m = ctx && ctx.measure;
+    if (!m || typeof m.getPins !== "function") return null;
+    const pins = m.getPins();
+    return Array.isArray(pins) && pins.length ? { pins } : null;
+  }
+  function captureViewState(w, ctx) {
+    var _a, _b;
+    const cfgX = w.config.xaxis || {};
+    const cfgYArr = Array.isArray(w.config.yaxis) ? w.config.yaxis : w.config.yaxis ? [w.config.yaxis] : [];
+    const yWindows = cfgYArr.map(
+      (y) => axisWindow(y && y.min, y && y.max)
+    );
+    const anyY = yWindows.some((yw) => yw !== null);
+    const theme = w.config.theme;
+    const drilldown = ctx && ctx.drilldown;
+    return {
+      v: VIEWSTATE_VERSION,
+      window: {
+        xaxis: axisWindow(cfgX.min, cfgX.max),
+        yaxis: anyY ? yWindows : null
+      },
+      zoomed: !!w.interact.zoomed,
+      collapsed: (w.globals.collapsedSeriesIndices || []).slice(),
+      ancillaryCollapsed: (w.globals.ancillaryCollapsedSeriesIndices || []).slice(),
+      selectedDataPoints: cloneSelection(w.interact.selectedDataPoints),
+      theme: theme ? { mode: (_a = theme.mode) != null ? _a : null, palette: (_b = theme.palette) != null ? _b : null } : null,
+      locale: w.config.chart && w.config.chart.defaultLocale || null,
+      annotations: captureAnnotations(w, ctx),
+      drill: drilldown && drilldown.depth > 0 ? { path: drilldown.path.slice() } : null,
+      measure: captureMeasure(ctx)
+    };
+  }
+  function applyCollapsedSet(ctx, targetCollapsed, targetAncillary) {
+    const w = ctx.w;
+    const names = w.globals.seriesNames || [];
+    const target = /* @__PURE__ */ new Set([
+      ...targetCollapsed || [],
+      ...targetAncillary || []
+    ]);
+    const current = /* @__PURE__ */ new Set([
+      ...w.globals.collapsedSeriesIndices || [],
+      ...w.globals.ancillaryCollapsedSeriesIndices || []
+    ]);
+    for (let realIndex = 0; realIndex < names.length; realIndex++) {
+      const name2 = names[realIndex];
+      if (name2 == null) continue;
+      const shouldCollapse = target.has(realIndex);
+      const isCollapsed = current.has(realIndex);
+      if (shouldCollapse && !isCollapsed) {
+        ctx.hideSeries(name2);
+      } else if (!shouldCollapse && isCollapsed) {
+        ctx.showSeries(name2);
+      }
+    }
+  }
+  function restoreSelection(ctx, selectedDataPoints) {
+    if (!Array.isArray(selectedDataPoints)) return;
+    ctx.w.interact.selectedDataPoints = cloneSelection(selectedDataPoints);
+  }
+  function applyViewState(ctx, view, { animate = true, mergeOptions } = {}) {
+    var _a, _b;
+    if (!ctx || !view) return;
+    if (typeof view.v === "number" && view.v > VIEWSTATE_VERSION) {
+      console.warn(
+        `[apexcharts] ViewState v${view.v} is newer than this build understands (v${VIEWSTATE_VERSION}); applying best-effort.`
+      );
+    }
+    ctx.clearAnnotations();
+    const options2 = mergeOptions ? Utils$1.clone(mergeOptions) : {};
+    const xw = view.window && view.window.xaxis;
+    options2.xaxis = Object.assign(
+      {},
+      options2.xaxis,
+      xw ? { min: (_a = xw.min) != null ? _a : void 0, max: (_b = xw.max) != null ? _b : void 0 } : { min: void 0, max: void 0 }
+    );
+    const yw = view.window && view.window.yaxis;
+    if (Array.isArray(yw)) {
+      options2.yaxis = yw.map(
+        (y) => {
+          var _a2, _b2;
+          return y ? { min: (_a2 = y.min) != null ? _a2 : void 0, max: (_b2 = y.max) != null ? _b2 : void 0 } : {};
+        }
+      );
+    }
+    if (view.theme) {
+      const theme = {};
+      if (view.theme.mode != null) theme.mode = view.theme.mode;
+      if (view.theme.palette != null) theme.palette = view.theme.palette;
+      if (Object.keys(theme).length) {
+        options2.theme = Object.assign({}, options2.theme, theme);
+      }
+    }
+    if (view.annotations && view.annotations.static) {
+      options2.annotations = Utils$1.clone(view.annotations.static);
+    }
+    ctx.updateOptions(
+      options2,
+      false,
+      animate,
+      false,
+      false
+    );
+    applyViewInteraction(ctx, view);
+  }
+  function applyViewInteraction(ctx, view) {
+    if (!ctx || !view) return;
+    const w = ctx.w;
+    w.interact.zoomed = !!view.zoomed;
+    applyCollapsedSet(ctx, view.collapsed, view.ancillaryCollapsed);
+    if (view.annotations && Array.isArray(view.annotations.dynamic)) {
+      view.annotations.dynamic.forEach((a) => {
+        const method = addMethodName(a.kind);
+        if (method && typeof ctx[method] === "function") {
+          ctx[method](a.params, true);
+        }
+      });
+    }
+    restoreSelection(ctx, view.selectedDataPoints);
+    if (view.locale && view.locale !== w.config.chart.defaultLocale) {
+      ctx.setLocale(view.locale);
+    }
+    if (ctx.measure && typeof ctx.measure.setPins === "function") {
+      ctx.measure.setPins(view.measure && view.measure.pins || []);
+    }
+  }
+  const PERSPECTIVE_VERSION = 1;
+  const HASH_KEY = "apex";
+  function toBase64(str) {
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(str, "utf-8").toString("base64");
+    }
+    const bytes = new TextEncoder().encode(str);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+  function fromBase64(b64) {
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(b64, "base64").toString("utf-8");
+    }
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+  function base64urlEncode(str) {
+    return toBase64(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function base64urlDecode(b64url) {
+    let b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    return fromBase64(b64);
+  }
+  function stripFunctions(obj) {
+    try {
+      return JSON.parse(JSON.stringify(obj));
+    } catch (e) {
+      return void 0;
+    }
+  }
+  class Perspectives {
+    /**
+     * @param {import('../../types/internal').ChartStateW} w
+     * @param {import('../../types/internal').ChartContext} ctx
+     */
+    constructor(w, ctx) {
+      this.w = w;
+      this.ctx = ctx;
+      this._saved = [];
+      this._counter = 0;
+    }
+    /**
+     * Capture the current chart view as a Perspective token.
+     * @returns {{ v: number, view: object, options?: Record<string, any> }}
+     */
+    capture() {
+      const view = captureViewState(this.w, this.ctx);
+      const token = (
+        /** @type {any} */
+        { v: PERSPECTIVE_VERSION, view }
+      );
+      const options2 = this._serializableDelta();
+      if (options2 && Object.keys(options2).length) token.options = options2;
+      return token;
+    }
+    /**
+     * Build the whitelisted, function-free option override recorded in the token.
+     * @returns {Record<string, any>}
+     * @private
+     */
+    _serializableDelta() {
+      const cfg = this.w.config;
+      const whitelist = cfg.chart && cfg.chart.perspectives && cfg.chart.perspectives.serializeOptions || ["theme", "xaxis", "yaxis", "title", "subtitle"];
+      const delta = {};
+      whitelist.forEach((path) => {
+        if (cfg[path] !== void 0) {
+          const stripped = stripFunctions(cfg[path]);
+          if (stripped !== void 0) delta[path] = stripped;
+        }
+      });
+      return delta;
+    }
+    /**
+     * Encode a token (or the current capture) to a compact base64url string.
+     * JSON.stringify drops any functions embedded in annotation params / option
+     * overrides by construction: a shared link carries data; the opening page
+     * supplies its own functions from config.
+     * @param {any} [token]
+     * @returns {string}
+     */
+    encode(token) {
+      const t = token || this.capture();
+      return base64urlEncode(JSON.stringify(t));
+    }
+    /**
+     * Decode a base64url token string. Never throws: returns null on any error
+     * or version mismatch (with a console warning).
+     * @param {string} str
+     * @returns {any | null}
+     */
+    decode(str) {
+      return Perspectives.decode(str);
+    }
+    /**
+     * Encode the current capture into a `#apex=<token>` URL hash fragment on the
+     * current location. Browser-only; returns '' under SSR.
+     * @returns {string}
+     */
+    toURL() {
+      if (!Environment.isBrowser()) return "";
+      const encoded = this.encode(this.capture());
+      const url = new URL(window.location.href);
+      url.hash = `${HASH_KEY}=${encoded}`;
+      return url.toString();
+    }
+    /**
+     * Restore a perspective. Accepts a token object or an encoded string. When
+     * the chart is grouped, applies to every synced chart.
+     *
+     * The token's option overrides and `opts.mergeOptions` are folded into the
+     * view restore's ONE updateOptions call (mergeOptions wins over
+     * token.options; the view's own fields win over both). A single render is
+     * deliberate: a second immediate updateOptions would kill the first one's
+     * animation mid-flight, and a chart.type change applied this way morphs
+     * (morph feature) inside the same re-render instead of being re-rendered
+     * over. Consumed by Storyboard for per-beat option payloads.
+     *
+     * @param {any} tokenOrString
+     * @param {{ animate?: boolean, mergeOptions?: Record<string, any> }} [opts]
+     */
+    apply(tokenOrString, opts = {}) {
+      const token = typeof tokenOrString === "string" ? Perspectives.decode(tokenOrString) : tokenOrString;
+      if (!token || !token.view) return;
+      const animate = opts.animate !== void 0 ? opts.animate : true;
+      const combined = Utils$1.extend(
+        token.options ? Utils$1.clone(token.options) : {},
+        opts.mergeOptions || {}
+      );
+      const mergeOptions = Object.keys(combined).length ? combined : void 0;
+      const targets = this.w.config.chart.group ? this.ctx.getSyncedCharts() : [this.ctx];
+      targets.forEach((chart) => {
+        applyViewState(chart, token.view, { animate, mergeOptions });
+      });
+    }
+    /**
+     * Save the current view under a name in the in-memory registry.
+     * @param {string} name
+     * @returns {string} generated id
+     */
+    save(name2) {
+      const id = `perspective-${++this._counter}`;
+      this._saved.push({ id, name: name2 || id, token: this.capture() });
+      return id;
+    }
+    /**
+     * List saved perspectives.
+     * @returns {{ id: string, name: string, token: any }[]}
+     */
+    list() {
+      return this._saved.map((s) => ({ id: s.id, name: s.name, token: s.token }));
+    }
+    /**
+     * Delete a saved perspective by id.
+     * @param {string} id
+     */
+    delete(id) {
+      const i = this._saved.findIndex((s) => s.id === id);
+      if (i > -1) this._saved.splice(i, 1);
+    }
+    /** Drop the saved-views registry (called on full destroy). */
+    teardown() {
+      this._saved = [];
+      this._counter = 0;
+    }
+    // ── static, pure helpers (available once the feature is imported) ─────────
+    /**
+     * @param {string} str base64url token
+     * @returns {any | null}
+     */
+    static decode(str) {
+      if (typeof str !== "string" || !str) return null;
+      try {
+        const token = JSON.parse(base64urlDecode(str));
+        if (!token || typeof token !== "object") return null;
+        if (token.v !== PERSPECTIVE_VERSION) {
+          console.warn(
+            `apexcharts: unsupported perspective version ${token.v} (expected ${PERSPECTIVE_VERSION}).`
+          );
+          return null;
+        }
+        return token;
+      } catch (e) {
+        console.warn("apexcharts: failed to decode perspective token.", e);
+        return null;
+      }
+    }
+    /**
+     * Parse a `#apex=<token>` fragment out of an href (or the current location in
+     * a browser). Pure and Node-safe when given an explicit href.
+     * @param {string} [href]
+     * @returns {any | null}
+     */
+    static fromURL(href) {
+      try {
+        const target = href || (Environment.isBrowser() ? window.location.href : "");
+        if (!target) return null;
+        const url = new URL(target);
+        const hash = url.hash.replace(/^#/, "");
+        if (!hash) return null;
+        const pair = hash.split("&").map((p) => p.split("=")).find((p) => p[0] === HASH_KEY);
+        if (!pair || pair[1] == null) return null;
+        return Perspectives.decode(decodeURIComponent(pair[1]));
+      } catch (e) {
+        return null;
+      }
+    }
+  }
+  ApexCharts.registerFeatures({ perspectives: Perspectives });
+  ApexCharts.perspectives = {
+    /** @param {string} str */
+    decode: (str) => Perspectives.decode(str),
+    /** @param {string} [href] */
+    fromURL: (href) => Perspectives.fromURL(href)
+  };
+  class Storyboard {
+    /**
+     * @param {import('../../types/internal').ChartStateW} w
+     * @param {import('../../types/internal').ChartContext} ctx
+     */
+    constructor(w, ctx) {
+      this.w = w;
+      this.ctx = ctx;
+      this._beats = [];
+      this._observer = null;
+      this._activeIndex = -1;
+      this._animate = true;
+      this._warnedNoPerspectives = false;
+    }
+    /**
+     * Bind beats to scroll position. Rebinding replaces the previous binding.
+     * @param {{
+     *   beats?: Array<{ el?: Element, selector?: string, key?: string, view?: any, announce?: string, onEnter?: (chart: any, info: StoryboardBeatInfo) => void }>,
+     *   scroller?: Element | string,
+     *   offset?: number,
+     *   animate?: boolean,
+     * }} [opts]
+     * @returns {number} the number of beats bound
+     */
+    bind(opts = {}) {
+      var _a;
+      this.unbind();
+      if (!Environment.isBrowser()) return 0;
+      const doc = this.ctx.el && this.ctx.el.ownerDocument;
+      if (!doc || typeof IntersectionObserver === "undefined") return 0;
+      let root = null;
+      if (opts.scroller) {
+        root = typeof opts.scroller === "string" ? doc.querySelector(opts.scroller) : opts.scroller;
+      }
+      this._beats = this._resolveBeats(doc, root, opts.beats);
+      if (!this._beats.length) return 0;
+      this._animate = opts.animate !== false;
+      const offset = Math.min(Math.max((_a = opts.offset) != null ? _a : 0.5, 0), 1);
+      const top = +(offset * 100).toFixed(3);
+      const bottom = +(100 - offset * 100).toFixed(3);
+      this._observer = new IntersectionObserver(
+        (entries) => this._onIntersect(entries),
+        { root, rootMargin: `-${top}% 0px -${bottom}%`, threshold: 0 }
+      );
+      this._beats.forEach((b) => {
+        var _a2;
+        return (_a2 = this._observer) == null ? void 0 : _a2.observe(b.el);
+      });
+      return this._beats.length;
+    }
+    /**
+     * Normalize the beats option, or auto-discover [data-apex-beat] elements in
+     * document order when no explicit list is given.
+     * @param {Document} doc
+     * @param {Element | null} root
+     * @param {Array<any>} [beatsOpt]
+     * @returns {StoryboardBeat[]}
+     * @private
+     */
+    _resolveBeats(doc, root, beatsOpt) {
+      const beats = [];
+      if (Array.isArray(beatsOpt)) {
+        beatsOpt.forEach((b, i) => {
+          var _a, _b;
+          if (!b) return;
+          const el = b.el && typeof b.el === "object" ? b.el : b.selector ? doc.querySelector(b.selector) : null;
+          if (!el) {
+            console.warn(
+              `apexcharts: storyboard beat ${i} has no resolvable element; skipped.`
+            );
+            return;
+          }
+          beats.push({
+            el,
+            key: (_b = (_a = b.key) != null ? _a : el.getAttribute("data-apex-beat")) != null ? _b : String(i),
+            view: b.view,
+            options: b.options,
+            announce: b.announce,
+            onEnter: typeof b.onEnter === "function" ? b.onEnter : void 0
+          });
+        });
+        return beats;
+      }
+      const scope = root || doc;
+      scope.querySelectorAll("[data-apex-beat]").forEach((el, i) => {
+        beats.push({
+          el,
+          key: el.getAttribute("data-apex-beat") || String(i),
+          view: el.getAttribute("data-apex-view") || void 0,
+          options: void 0,
+          announce: el.getAttribute("data-apex-announce") || void 0,
+          onEnter: void 0
+        });
+      });
+      return beats;
+    }
+    /**
+     * @param {IntersectionObserverEntry[]} entries
+     * @private
+     */
+    _onIntersect(entries) {
+      entries.forEach((entry) => {
+        const idx = this._beats.findIndex((b) => b.el === entry.target);
+        if (idx < 0) return;
+        if (entry.isIntersecting) {
+          this._activate(idx);
+        } else if (idx === this._activeIndex && entry.rootBounds) {
+          if (entry.boundingClientRect.top >= entry.rootBounds.bottom && idx > 0) {
+            this._activate(idx - 1);
+          }
+        }
+      });
+    }
+    /**
+     * Activate a beat: apply its view token, run its callback, announce it and
+     * fire `beatChange`. Idempotent per beat (re-activating the current beat is
+     * a no-op), so IO chatter never re-applies a view.
+     * @param {number} idx
+     * @param {{ animate?: boolean }} [opts]
+     * @private
+     */
+    _activate(idx, opts = {}) {
+      var _a, _b;
+      if (idx === this._activeIndex) return;
+      const beat = this._beats[idx];
+      if (!beat) return;
+      const direction = idx > this._activeIndex ? "down" : "up";
+      this._activeIndex = idx;
+      const animate = (opts.animate !== void 0 ? opts.animate : this._animate) && !prefersReducedMotion();
+      if (beat.view != null || beat.options) {
+        if (this.ctx.perspectives) {
+          const v = (_a = beat.view) != null ? _a : {};
+          const token = typeof v === "string" || v.view ? v : { view: this._normalizeView(v) };
+          this.ctx.perspectives.apply(token, {
+            animate,
+            mergeOptions: beat.options
+          });
+        } else if (!this._warnedNoPerspectives) {
+          this._warnedNoPerspectives = true;
+          console.warn(
+            'apexcharts: storyboard beats carry views but the perspectives feature is not bundled. import "apexcharts/features/storyboard" (which includes it) or drive beats via onEnter.'
+          );
+        }
+      }
+      const info = { index: idx, key: beat.key, el: beat.el, direction };
+      if (beat.onEnter) beat.onEnter(this.ctx, info);
+      if (beat.announce) this._announce(beat.announce);
+      if (typeof this.w.config.chart.events.beatChange === "function") {
+        this.w.config.chart.events.beatChange(this.ctx, info);
+      }
+      (_b = this.ctx.events) == null ? void 0 : _b.fireEvent("beatChange", [this.ctx, info]);
+    }
+    /**
+     * Fill in the parts of a hand-authored (bare) ViewState that would
+     * otherwise LEAK between beats. updateOptions merges objects, so a beat
+     * listing only xaxis annotations would keep a previous beat's point
+     * annotations; padding every annotation kind with an empty array makes
+     * each beat fully describe its own state, which is what allows scrubbing
+     * in both directions. Full tokens (from capture()/encode()) already carry
+     * the complete set and never pass through here.
+     * @param {any} view
+     * @returns {any}
+     * @private
+     */
+    _normalizeView(view) {
+      const provided = view.annotations && view.annotations.static || {};
+      return __spreadProps(__spreadValues({}, view), {
+        annotations: {
+          static: __spreadValues({
+            points: [],
+            xaxis: [],
+            yaxis: [],
+            texts: [],
+            images: []
+          }, provided),
+          dynamic: view.annotations && view.annotations.dynamic || []
+        }
+      });
+    }
+    /**
+     * Programmatically jump to a beat by index or author key (also usable
+     * without scrolling, e.g. from next/prev buttons).
+     * @param {number | string} indexOrKey
+     * @param {{ animate?: boolean }} [opts]
+     */
+    goTo(indexOrKey, opts = {}) {
+      const idx = typeof indexOrKey === "number" ? indexOrKey : this._beats.findIndex((b) => b.key === indexOrKey);
+      if (idx >= 0 && idx < this._beats.length) this._activate(idx, opts);
+    }
+    /**
+     * @returns {{ index: number, key: string | null } | null} the active beat
+     */
+    current() {
+      if (this._activeIndex < 0) return null;
+      const beat = this._beats[this._activeIndex];
+      return { index: this._activeIndex, key: beat ? beat.key : null };
+    }
+    /** Disconnect the observer and drop the beat list. */
+    unbind() {
+      if (this._observer) {
+        this._observer.disconnect();
+        this._observer = null;
+      }
+      this._beats = [];
+      this._activeIndex = -1;
+    }
+    /** Full-destroy cleanup (called from Destroy). */
+    teardown() {
+      this.unbind();
+    }
+    /**
+     * Push a beat's announcement to the chart's visually-hidden aria-live
+     * status region so screen-reader users follow the story too. No-op when
+     * announcements are disabled or the region is absent.
+     * @param {string} message
+     * @private
+     */
+    _announce(message) {
+      const w = this.w;
+      if (!w.config.chart.accessibility.announcements.enabled) return;
+      const baseEl = w.dom.baseEl;
+      if (!baseEl) return;
+      const region = baseEl.querySelector(".apexcharts-sr-status");
+      if (!region) return;
+      region.textContent = "";
+      setTimeout(() => {
+        region.textContent = message;
+      }, 0);
+    }
+  }
+  ApexCharts.registerFeatures({ storyboard: Storyboard });
+  function isEditableTarget(node) {
+    if (!node) return false;
+    const tag = node.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || node.isContentEditable === true;
+  }
+  class History {
+    /**
+     * @param {import('../../types/internal').ChartStateW} w
+     * @param {import('../../types/internal').ChartContext} ctx
+     */
+    constructor(w, ctx) {
+      this.w = w;
+      this.ctx = ctx;
+      this.stack = [];
+      this.pointer = -1;
+      this.applying = false;
+      this._batching = false;
+      this._counter = 0;
+      this._coalesceTimer = null;
+      this._settleTimer = null;
+      this._pendingLabel = void 0;
+      this._keydownTarget = null;
+      this._pointerTarget = null;
+      this._engaged = false;
+      this._wired = false;
+      this._readConfig();
+      this._onMounted = this._onMounted.bind(this);
+      this._onUpdated = this._onUpdated.bind(this);
+      this._onSelection = this._onSelection.bind(this);
+      this._onKeyDown = this._onKeyDown.bind(this);
+      this._onPointerDown = this._onPointerDown.bind(this);
+      this.init();
+    }
+    /**
+     * (Re)read chart.history config. Called at construction and again on every
+     * mounted/updated event so `updateOptions({ chart: { history: {...} } })`
+     * takes effect at runtime: enabling wires the keyboard + starts capturing,
+     * disabling stops capturing (the stack is kept for a later re-enable).
+     */
+    _readConfig() {
+      const w = this.w;
+      const cfg = w.config.chart && w.config.chart.history || {};
+      this.enabled = !!cfg.enabled;
+      this.maxDepth = cfg.maxDepth > 0 ? cfg.maxDepth : 100;
+      this.coalesceMs = cfg.coalesceMs != null ? cfg.coalesceMs : 250;
+      this.keyboard = cfg.keyboard !== false;
+    }
+    /** Re-sync config, then wire/unwire the keyboard to match. */
+    _syncConfig() {
+      this._readConfig();
+      if (this.enabled && this.keyboard) this._wireKeyboard();
+      else this._unwireKeyboard();
+    }
+    init() {
+      if (this._wired) return;
+      this._wired = true;
+      this.ctx.addEventListener("mounted", this._onMounted);
+      this.ctx.addEventListener("updated", this._onUpdated);
+      this.ctx.addEventListener("scrolled", this._onUpdated);
+      this.ctx.addEventListener("dataPointSelection", this._onSelection);
+      if (this.enabled && this.keyboard) this._wireKeyboard();
+    }
+    /**
+     * Keyboard: Cmd/Ctrl+Z = undo, Shift+Cmd/Ctrl+Z or Ctrl+Y = redo. Bound on
+     * the document (not the chart element) because pointer gestures that create
+     * an undo step (annotation drag, zoom, pan) call preventDefault and so never
+     * move focus into the chart, leaving an el-scoped listener unreachable. To
+     * stay non-intrusive it acts only when this chart is "engaged" (see
+     * _onKeyDown): a capture-phase pointerdown marks engagement so the shortcut
+     * follows the chart the user last touched, and defers to text editing.
+     */
+    _wireKeyboard() {
+      if (this._keydownTarget) return;
+      const el = (
+        /** @type {any} */
+        this.ctx.el
+      );
+      const doc = el && el.ownerDocument;
+      if (!Environment.isBrowser() || !doc) return;
+      doc.addEventListener("keydown", this._onKeyDown);
+      doc.addEventListener("pointerdown", this._onPointerDown, true);
+      doc.addEventListener("mousedown", this._onPointerDown, true);
+      this._keydownTarget = doc;
+      this._pointerTarget = doc;
+    }
+    _unwireKeyboard() {
+      if (this._keydownTarget) {
+        this._keydownTarget.removeEventListener("keydown", this._onKeyDown);
+        this._keydownTarget = null;
+      }
+      if (this._pointerTarget) {
+        this._pointerTarget.removeEventListener("pointerdown", this._onPointerDown, true);
+        this._pointerTarget.removeEventListener("mousedown", this._onPointerDown, true);
+        this._pointerTarget = null;
+      }
+      this._engaged = false;
+    }
+    // ─── Event handlers ─────────────────────────────────────────────────────
+    _onMounted() {
+      this._syncConfig();
+      if (!this.enabled) return;
+      if (this.stack.length === 0) this._commit("initial", true);
+    }
+    _onUpdated() {
+      this._syncConfig();
+      if (!this.enabled) return;
+      if (this.applying) {
+        this._refreshSettle();
+        return;
+      }
+      this._schedule("update");
+    }
+    _onSelection() {
+      if (!this.enabled || this.applying) return;
+      this._schedule("selection");
+    }
+    /**
+     * Mark whether the chart is engaged: a capture-phase pointerdown inside `el`
+     * engages it (runs before feature handlers stopPropagation), one elsewhere
+     * releases it. Capture phase so an annotation/zoom gesture that stops
+     * propagation still registers.
+     * @param {any} e
+     */
+    _onPointerDown(e) {
+      const el = (
+        /** @type {any} */
+        this.ctx.el
+      );
+      this._engaged = !!(el && e.target && el.contains(e.target));
+    }
+    /**
+     * @param {KeyboardEvent} e
+     */
+    _onKeyDown(e) {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const key = (e.key || "").toLowerCase();
+      if (key !== "z" && key !== "y") return;
+      const el = (
+        /** @type {any} */
+        this.ctx.el
+      );
+      if (!el) return;
+      const doc = el.ownerDocument;
+      const active = doc && doc.activeElement;
+      if (isEditableTarget(active)) return;
+      if (!(el.contains(active) || this._engaged)) return;
+      const redo = key === "y" || e.shiftKey;
+      e.preventDefault();
+      if (redo) this.redo();
+      else this.undo();
+    }
+    // ─── Capture (coalesced) ────────────────────────────────────────────────
+    /**
+     * @param {string} label
+     */
+    _schedule(label) {
+      if (this.applying || this._batching || !this.enabled) return;
+      this._pendingLabel = label;
+      if (this.coalesceMs > 0 && Environment.isBrowser()) {
+        clearTimeout(this._coalesceTimer);
+        this._coalesceTimer = setTimeout(
+          () => this._commit(this._pendingLabel),
+          this.coalesceMs
+        );
+      } else {
+        this._commit(label);
+      }
+    }
+    /**
+     * @param {string} [label]
+     * @param {boolean} [force] bypass the applying/batching guard (baseline / transaction)
+     */
+    _commit(label, force) {
+      clearTimeout(this._coalesceTimer);
+      this._coalesceTimer = null;
+      if (!force && (this.applying || this._batching)) return;
+      const cp = this._capture(label);
+      const current = this.stack[this.pointer];
+      if (current && current.sig === cp.sig) return;
+      if (this.pointer < this.stack.length - 1) {
+        this.stack.splice(this.pointer + 1);
+      }
+      this.stack.push(cp);
+      this.pointer = this.stack.length - 1;
+      while (this.stack.length > this.maxDepth) {
+        this.stack.shift();
+        this.pointer--;
+      }
+      this._emitChange();
+    }
+    /**
+     * @param {string} [label]
+     */
+    _capture(label) {
+      const view = captureViewState(this.w, this.ctx);
+      const { config, seriesSig } = this._cloneConfigCOW();
+      return {
+        id: `hist-${++this._counter}`,
+        view,
+        config,
+        seriesSig,
+        label: label || "change",
+        at: Environment.isBrowser() ? Date.now() : 0,
+        origin: "local",
+        // reserved for per-user scoping (Live Rooms)
+        sig: this._signature(view, config)
+      };
+    }
+    /**
+     * Clone w.config, sharing the previous checkpoint's cloned series when the
+     * live series CONTENT is unchanged (copy-on-write). Sharing is decided by a
+     * value signature, not reference identity: callers commonly mutate a kept
+     * series array in place and pass the same reference back to updateSeries, and
+     * an identity check would share a stale clone for exactly that case. The
+     * stringify is not extra cost: _signature already serialises the series as
+     * part of dedup.
+     * @returns {{ config: any, seriesSig: string|null }}
+     */
+    _cloneConfigCOW() {
+      const w = this.w;
+      const prev = this.stack[this.pointer];
+      let seriesSig = null;
+      try {
+        seriesSig = JSON.stringify(w.config.series);
+      } catch (e) {
+        seriesSig = null;
+      }
+      let cloned;
+      if (prev && seriesSig !== null && prev.seriesSig === seriesSig) {
+        const _a = w.config, { series: _series } = _a, rest = __objRest(_a, ["series"]);
+        cloned = Utils$1.clone(rest);
+        cloned.series = prev.config.series;
+      } else {
+        cloned = Utils$1.clone(w.config);
+      }
+      return { config: cloned, seriesSig };
+    }
+    /**
+     * Data-level signature for dedup. Functions are dropped by JSON (fine: a
+     * checkpoint whose only change is a function reference is not a meaningful
+     * undo step). Runs once per committed checkpoint, not per raw event.
+     * @param {any} view
+     * @param {any} config
+     * @returns {string}
+     */
+    _signature(view, config) {
+      try {
+        return JSON.stringify(view) + "|" + JSON.stringify(config);
+      } catch (e) {
+        return `nosig-${this._counter}`;
+      }
+    }
+    // ─── Restore ────────────────────────────────────────────────────────────
+    /**
+     * @param {any} cp
+     * @param {boolean} animate
+     */
+    _restore(cp, animate) {
+      if (!cp) return;
+      this.applying = true;
+      let p;
+      try {
+        this.ctx.clearAnnotations();
+        p = this.ctx.updateOptions(Utils$1.clone(cp.config), false, animate, false, false);
+      } catch (e) {
+        this.applying = false;
+        throw e;
+      }
+      Promise.resolve(p).then(() => {
+        applyViewInteraction(this.ctx, cp.view);
+        this._refreshSettle();
+        this._emitChange();
+      }).catch(() => {
+        this.applying = false;
+      });
+    }
+    /**
+     * Hold `applying` true until the restore's burst of async 'updated' events
+     * has drained (one macrotask after the last one). Refreshed by _onUpdated.
+     */
+    _refreshSettle() {
+      if (!Environment.isBrowser()) {
+        this.applying = false;
+        return;
+      }
+      clearTimeout(this._settleTimer);
+      this._settleTimer = setTimeout(() => {
+        this.applying = false;
+      }, 0);
+    }
+    // ─── Public API ─────────────────────────────────────────────────────────
+    /**
+     * Commit a checkpoint of the current state now (a discrete undo step). Used by
+     * callers that mutate `w.config` without going through a full re-render (e.g.
+     * Ink Layer's targeted annotation redraws, which fire no 'updated' event).
+     * No-op when disabled or while a restore is applying.
+     * @param {string} [label]
+     */
+    snapshot(label) {
+      if (!this.enabled || this.applying) return;
+      this._commit(label || "change");
+    }
+    /**
+     * @param {boolean} [animate]
+     */
+    undo(animate = true) {
+      if (!this.canUndo()) return;
+      this.pointer--;
+      this._restore(this.stack[this.pointer], animate);
+    }
+    /**
+     * @param {boolean} [animate]
+     */
+    redo(animate = true) {
+      if (!this.canRedo()) return;
+      this.pointer++;
+      this._restore(this.stack[this.pointer], animate);
+    }
+    canUndo() {
+      return this.pointer > 0;
+    }
+    canRedo() {
+      return this.pointer > -1 && this.pointer < this.stack.length - 1;
+    }
+    /**
+     * @param {string} id
+     * @param {boolean} [animate]
+     */
+    jump(id, animate = true) {
+      const idx = this.stack.findIndex((c) => c.id === id);
+      if (idx === -1 || idx === this.pointer) return;
+      this.pointer = idx;
+      this._restore(this.stack[idx], animate);
+    }
+    /** Clear the history, keeping the current state as the new baseline. */
+    clear() {
+      clearTimeout(this._coalesceTimer);
+      this._coalesceTimer = null;
+      const current = this.stack[this.pointer];
+      this.stack = current ? [current] : [];
+      this.pointer = this.stack.length - 1;
+      this._emitChange();
+    }
+    /**
+     * Group multiple edits into a single undo step. `fn` may be async; await your
+     * updateOptions/updateSeries calls inside it so the intermediate 'updated'
+     * events are suppressed and only one checkpoint is committed afterwards.
+     * @param {() => (void | Promise<any>)} fn
+     * @param {{ label?: string }} [opts]
+     * @returns {Promise<void>}
+     */
+    transaction(fn, opts = {}) {
+      if (typeof fn !== "function") return Promise.resolve();
+      const wasBatching = this._batching;
+      this._batching = true;
+      return Promise.resolve().then(() => fn()).finally(() => {
+        this._batching = wasBatching;
+        if (!wasBatching) this._commit(opts.label || "transaction", true);
+      });
+    }
+    /**
+     * @returns {{ id: string, label: string, at: number }[]}
+     */
+    entries() {
+      return this.stack.map((c) => ({ id: c.id, label: c.label, at: c.at }));
+    }
+    /** Lightweight state for the historyChange event / a history-rail UI. */
+    state() {
+      return {
+        canUndo: this.canUndo(),
+        canRedo: this.canRedo(),
+        index: this.pointer,
+        length: this.stack.length
+      };
+    }
+    _emitChange() {
+      this.ctx.events.fireEvent("historyChange", [this.ctx, this.state()]);
+    }
+    /** Drop the stack + detach listeners (called on full destroy). */
+    teardown() {
+      var _a, _b, _c, _d, _e, _f, _g, _h;
+      clearTimeout(this._coalesceTimer);
+      clearTimeout(this._settleTimer);
+      this._coalesceTimer = null;
+      this._settleTimer = null;
+      this._unwireKeyboard();
+      if (this._wired) {
+        (_b = (_a = this.ctx).removeEventListener) == null ? void 0 : _b.call(_a, "mounted", this._onMounted);
+        (_d = (_c = this.ctx).removeEventListener) == null ? void 0 : _d.call(_c, "updated", this._onUpdated);
+        (_f = (_e = this.ctx).removeEventListener) == null ? void 0 : _f.call(_e, "scrolled", this._onUpdated);
+        (_h = (_g = this.ctx).removeEventListener) == null ? void 0 : _h.call(_g, "dataPointSelection", this._onSelection);
+      }
+      this.stack = [];
+      this.pointer = -1;
+      this._wired = false;
+    }
+  }
+  ApexCharts.registerFeatures({ history: History });
+  const WEAVE_API_VERSION = 1;
+  const PLUGIN_CHART_METHODS = [
+    "updateOptions",
+    "updateSeries",
+    "appendData",
+    "appendSeries",
+    "toggleSeries",
+    "showSeries",
+    "hideSeries",
+    "highlightSeries",
+    "isSeriesHidden",
+    "zoomX",
+    "addXaxisAnnotation",
+    "addYaxisAnnotation",
+    "addPointAnnotation",
+    "clearAnnotations",
+    "removeAnnotation",
+    "dataURI",
+    "exportToCSV"
+  ];
+  function buildBoundPublicMethods(ctx) {
+    const out = {};
+    PLUGIN_CHART_METHODS.forEach((m) => {
+      if (typeof ctx[m] === "function") out[m] = ctx[m].bind(ctx);
+    });
+    return Object.freeze(out);
+  }
+  function makeLayerHandle(g, graphics) {
+    const add = (el) => {
+      if (el) g.add(el);
+      return el;
+    };
+    const handle = {
+      get node() {
+        return g.node;
+      },
+      /** @param {any} opts */
+      path(opts = {}) {
+        const {
+          d = "",
+          stroke = "#000",
+          width = 1,
+          fill = "none",
+          opacity = 1,
+          dash = 0,
+          className = ""
+        } = opts;
+        return add(
+          graphics.drawPath({
+            d,
+            stroke,
+            strokeWidth: width,
+            fill,
+            fillOpacity: fill === "none" ? 0 : opacity,
+            strokeOpacity: opacity,
+            strokeDashArray: dash,
+            classes: className
+          })
+        );
+      },
+      /** @param {any} opts */
+      line(opts = {}) {
+        const { x1, y1, x2, y2, stroke = "#000", width = 1, dash = 0 } = opts;
+        return add(graphics.drawLine(x1, y1, x2, y2, stroke, dash, width));
+      },
+      /** @param {any} opts */
+      rect(opts = {}) {
+        const {
+          x = 0,
+          y = 0,
+          w = 0,
+          h = 0,
+          r = 0,
+          fill = "#000",
+          stroke = null,
+          opacity = 1
+        } = opts;
+        return add(
+          graphics.drawRect(
+            x,
+            y,
+            w,
+            h,
+            r,
+            fill,
+            opacity,
+            stroke != null ? 1 : null,
+            stroke
+          )
+        );
+      },
+      /** @param {any} opts */
+      circle(opts = {}) {
+        const { cx = 0, cy = 0, r = 0, fill = "#000", stroke = null } = opts;
+        return add(
+          graphics.drawCircle(r, { cx, cy, fill, stroke: stroke || "none" })
+        );
+      },
+      /** @param {any} opts */
+      text(opts = {}) {
+        const {
+          x = 0,
+          y = 0,
+          text = "",
+          color,
+          size,
+          anchor = "start",
+          weight
+        } = opts;
+        return add(
+          graphics.drawText({
+            x,
+            y,
+            text,
+            textAnchor: anchor,
+            fontSize: size,
+            foreColor: color,
+            fontWeight: weight
+          })
+        );
+      },
+      clear() {
+        const node = g.node;
+        while (node.firstChild) node.removeChild(node.firstChild);
+        return handle;
+      }
+    };
+    return handle;
+  }
+  function buildPluginAPI(host, record) {
+    const ctx = host.ctx;
+    const w = host.w;
+    const api = {
+      name: record.def.name,
+      version: WEAVE_API_VERSION,
+      // Live: reconcile refreshes record.options when the chart's plugins config
+      // changes, so updateOptions({ plugins: [{ name, options }] }) reconfigures
+      // an active plugin in place. The returned object is frozen.
+      get options() {
+        return record.options;
+      },
+      // ── lifecycle subscription ──
+      /**
+       * @param {string} hook
+       * @param {Function} fn
+       */
+      on(hook, fn) {
+        const m = record.handlers;
+        if (!m.has(hook)) m.set(hook, []);
+        m.get(hook).push(fn);
+        return api;
+      },
+      /**
+       * @param {string} hook
+       * @param {Function} fn
+       */
+      off(hook, fn) {
+        const a = record.handlers.get(hook);
+        if (a) {
+          const i = a.indexOf(fn);
+          if (i > -1) a.splice(i, 1);
+        }
+        return api;
+      },
+      // ── per-plugin, per-chart scratch state (survives updates, dropped on
+      //    destroy). The api object is frozen, but this object is mutable. ──
+      store: {},
+      // ── drawing (renderer-agnostic) ──
+      // Call this INSIDE each draw handler: the host wipes plugin layers at the
+      // start of every draw pass, so a handle cached across draws points at a
+      // detached node and its writes vanish silently.
+      /** @param {any} [opts] */
+      layer(opts) {
+        return host._layer(record.def.name, opts || {});
+      },
+      // ── reads ──
+      get scales() {
+        return host._currentScales;
+      },
+      // Served from the per-dispatch snapshot when one exists (invalidated at
+      // every dispatch), so reading api.data in a loop does not rebuild the
+      // point arrays on each property access.
+      get data() {
+        return host._lastData || (host._lastData = host._dataSnapshot());
+      },
+      theme: Object.freeze({
+        get mode() {
+          return w.config.theme.mode;
+        },
+        get foreColor() {
+          return w.config.chart.foreColor;
+        },
+        /** @param {number} i */
+        seriesColor(i) {
+          return w.globals.colors[i];
+        },
+        /** @param {string} name */
+        token(name2) {
+          return host._token(name2);
+        }
+      }),
+      // ── curated actions (bound public methods only; NEVER raw w) ──
+      chart: buildBoundPublicMethods(ctx),
+      // ── custom events out to the host app ──
+      /**
+       * Fires as `plugin:<pluginName>:<name>` on the chart's event bus. The
+       * namespace is not optional: the bus also carries the internal lifecycle
+       * events ('updated', 'mounted', ...), and an un-namespaced emit could
+       * trigger every internal subscriber (history capture, re-render hooks).
+       * Listen with chart.addEventListener('plugin:myplugin:myevent', fn).
+       * @param {string} name
+       * @param {any} [detail]
+       */
+      emit(name2, detail) {
+        ctx.events.fireEvent(`plugin:${record.def.name}:${name2}`, [ctx, detail]);
+      },
+      // ── host element (read; lazy: baseEl is not set until render) ──
+      get el() {
+        return w.dom.baseEl;
+      }
+    };
+    return Object.freeze(api);
+  }
+  class WeaveHost {
+    /**
+     * @param {import('../../types/internal').ChartStateW} w
+     * @param {import('../../types/internal').ChartContext} ctx
+     */
+    constructor(w, ctx) {
+      this.w = w;
+      this.ctx = ctx;
+      this.active = [];
+      this._layers = /* @__PURE__ */ new Map();
+      this._currentScales = null;
+      this._lastPluginsRef = null;
+      this._lastData = null;
+      this._updatedWired = false;
+      this._onUpdated = this._onUpdated.bind(this);
+      this._init();
+    }
+    _init() {
+      const list = this.w.config.plugins || [];
+      list.map((entry, i) => ({
+        entry,
+        order: entry.order != null ? entry.order : i
+      })).sort((a, b) => a.order - b.order).forEach((o) => this._activate(o.entry));
+      this._lastPluginsRef = this.w.config.plugins;
+      this._wireUpdated();
+    }
+    _wireUpdated() {
+      if (this._updatedWired) return;
+      this.ctx.addEventListener("updated", this._onUpdated);
+      this._updatedWired = true;
+    }
+    _onUpdated() {
+      this.dispatch("afterUpdate", { pass: "update" });
+    }
+    /**
+     * @param {any} entry { name, options?, order? }
+     */
+    _activate(entry) {
+      const def = getPlugin(entry.name);
+      if (!def) {
+        console.error(`[apexcharts] plugin "${entry.name}" is not registered.`);
+        return;
+      }
+      const v = def.apiVersion != null ? def.apiVersion : 1;
+      if (Math.trunc(v) !== WEAVE_API_VERSION) {
+        console.error(
+          `[apexcharts] plugin "${def.name}" targets Weave API v${v}, host is v${WEAVE_API_VERSION}; skipped.`
+        );
+        return;
+      }
+      const record = {
+        def,
+        options: Object.freeze(__spreadValues({}, entry.options || {})),
+        handlers: /* @__PURE__ */ new Map(),
+        disabled: false,
+        failures: 0,
+        api: null
+      };
+      record.api = buildPluginAPI(this, record);
+      this.active.push(record);
+      this._guard(record, "setup", () => def.setup(record.api));
+    }
+    /**
+     * @param {string} hook
+     * @param {{ pass?: string, xyRatios?: any }} [extra]
+     */
+    dispatch(hook, extra) {
+      if (hook === "draw") {
+        this._reconcile();
+        this._resetLayers();
+      }
+      this._lastData = null;
+      if (!this.active.length) return;
+      if (hook === "afterParse") {
+        this._currentScales = null;
+      } else if (extra && "xyRatios" in extra) {
+        this._setScales(extra.xyRatios);
+      }
+      const pass = extra && extra.pass || "full";
+      let data = null;
+      for (const record of this.active) {
+        if (record.disabled) continue;
+        const fns = record.handlers.get(hook);
+        if (!fns || !fns.length) continue;
+        if (data === null) {
+          data = this._dataSnapshot();
+          this._lastData = data;
+        }
+        const payload = {
+          api: record.api,
+          scales: this._currentScales,
+          data,
+          pass,
+          hook
+        };
+        for (const fn of fns.slice()) {
+          this._guard(record, hook, () => fn(payload));
+        }
+      }
+    }
+    /**
+     * @param {any} record
+     * @param {string} where
+     * @param {Function} fn
+     */
+    _guard(record, where, fn) {
+      if (record.disabled) return;
+      try {
+        fn();
+      } catch (e) {
+        console.error(
+          `[apexcharts] plugin "${record.def.name}" threw in "${where}":`,
+          e
+        );
+        record.failures = (record.failures || 0) + 1;
+        if (record.failures >= 3) {
+          record.disabled = true;
+          console.error(
+            `[apexcharts] plugin "${record.def.name}" disabled after repeated errors.`
+          );
+        }
+      }
+    }
+    // ─── Scales facade ──────────────────────────────────────────────────────
+    /**
+     * Build api.scales from the SAME xyRatios the series were drawn with, so
+     * plugin pixels align with series pixels by construction.
+     * @param {any} xyRatios
+     */
+    _setScales(xyRatios) {
+      const w = this.w;
+      const gl = w.globals;
+      const L = w.layout;
+      if (!xyRatios || !gl.axisCharts) {
+        this._currentScales = null;
+        return;
+      }
+      const xRatio = xyRatios.xRatio;
+      const yRatio = xyRatios.yRatio || [];
+      const yr = (axis) => yRatio[axis] != null ? yRatio[axis] : yRatio[0];
+      const maxY = (axis) => gl.maxYArr[axis] != null ? gl.maxYArr[axis] : gl.maxY;
+      const minY = (axis) => gl.minYArr[axis] != null ? gl.minYArr[axis] : gl.minY;
+      this._currentScales = {
+        /** @param {number} v */
+        x: (v) => L.translateX + (v - gl.minX) / xRatio,
+        /**
+         * @param {number} v
+         * @param {number} [axis]
+         */
+        y: (v, axis = 0) => L.translateY + (maxY(axis) - v) / yr(axis),
+        domainX: [gl.minX, gl.maxX],
+        /** @param {number} [axis] */
+        domainY: (axis = 0) => [minY(axis), maxY(axis)],
+        gridWidth: L.gridWidth,
+        gridHeight: L.gridHeight,
+        ratios: xyRatios
+      };
+    }
+    // ─── Read-only data snapshot ────────────────────────────────────────────
+    /**
+     * @returns {any[]} defensive per-series snapshot (never the live slice)
+     */
+    _dataSnapshot() {
+      const w = this.w;
+      const gl = w.globals;
+      const series = w.seriesData.series || [];
+      const seriesX = w.seriesData.seriesX || [];
+      return series.map((sData, i) => {
+        const xs = seriesX[i] || [];
+        const points = (sData || []).map((y, j) => ({
+          x: xs[j] != null ? xs[j] : j,
+          y
+        }));
+        return {
+          name: gl.seriesNames ? gl.seriesNames[i] : void 0,
+          hidden: (gl.collapsedSeriesIndices || []).includes(i),
+          color: gl.colors ? gl.colors[i] : void 0,
+          points
+        };
+      });
+    }
+    // ─── Theme tokens ───────────────────────────────────────────────────────
+    /**
+     * @param {string} name
+     * @returns {any}
+     */
+    _token(name2) {
+      const w = this.w;
+      const gl = w.globals;
+      switch (name2) {
+        case "foreColor":
+          return w.config.chart.foreColor;
+        case "background":
+          return w.config.chart.background;
+        case "accent":
+        case "primary":
+          return gl.colors ? gl.colors[0] : void 0;
+        default:
+          if (/^series-\d+$/.test(name2)) {
+            return gl.colors ? gl.colors[Number(name2.split("-")[1])] : void 0;
+          }
+          return void 0;
+      }
+    }
+    // ─── Layers ─────────────────────────────────────────────────────────────
+    /**
+     * @param {string} name
+     * @param {{ z?: 'front'|'behind', className?: string }} opts
+     */
+    _layer(name2, { z = "front", className = "" } = {}) {
+      let g = this._layers.get(name2);
+      if (!g) {
+        g = this.ctx.graphics.group({
+          class: `apexcharts-plugin-${name2} ${className}`.trim()
+        });
+        const parent = this.w.dom.elGraphical.node;
+        if (z === "behind") parent.insertBefore(g.node, parent.firstChild);
+        else parent.appendChild(g.node);
+        g.node.setAttribute("aria-hidden", "true");
+        this._layers.set(name2, g);
+      }
+      return makeLayerHandle(g, this.ctx.graphics);
+    }
+    /**
+     * Remove all plugin layers. Run at the start of every `draw` because
+     * fastUpdate only removes series/data-label groups (not arbitrary plugin
+     * groups), so without this, fast-path redraws would duplicate plugin output.
+     */
+    _resetLayers() {
+      const el = this.w.dom.elGraphical;
+      const parent = el && el.node;
+      if (parent) {
+        const groups = parent.querySelectorAll('g[class*="apexcharts-plugin-"]');
+        Array.prototype.forEach.call(groups, (n) => n.remove());
+      }
+      this._layers.clear();
+    }
+    // ─── Config-change reconciliation ───────────────────────────────────────
+    /**
+     * Diff w.config.plugins by name: teardown removed, activate added; unchanged
+     * plugins keep their instance + store, but their `options` are refreshed from
+     * the new entry (api.options is a live getter), so
+     * updateOptions({ plugins: [{ name, options }] }) reconfigures in place.
+     * Skipped when the plugins array reference is unchanged (fast redraws), so it
+     * costs nothing on hover.
+     */
+    _reconcile() {
+      const plugins = this.w.config.plugins || [];
+      if (plugins === this._lastPluginsRef) return;
+      this._lastPluginsRef = plugins;
+      const desired = new Map(
+        plugins.map((e, i) => [
+          e.name,
+          { entry: e, order: e.order != null ? e.order : i }
+        ])
+      );
+      for (let i = this.active.length - 1; i >= 0; i--) {
+        const r = this.active[i];
+        const want = desired.get(r.def.name);
+        if (!want) {
+          this._guard(r, "destroy", () => r.def.destroy && r.def.destroy(r.api));
+          this.active.splice(i, 1);
+        } else {
+          r.options = Object.freeze(__spreadValues({}, want.entry.options || {}));
+        }
+      }
+      const activeNames = new Set(this.active.map((r) => r.def.name));
+      const toAdd = [];
+      desired.forEach((v, name2) => {
+        if (!activeNames.has(name2)) toAdd.push(v);
+      });
+      toAdd.sort((a, b) => a.order - b.order).forEach((v) => this._activate(v.entry));
+    }
+    /**
+     * @param {boolean} [isUpdating]
+     */
+    teardown(isUpdating) {
+      if (!isUpdating) {
+        this.dispatch("destroy");
+        for (const record of this.active) {
+          this._guard(record, "destroy", () => record.def.destroy && record.def.destroy(record.api));
+        }
+        this.active = [];
+        if (this._updatedWired) {
+          this.ctx.removeEventListener && this.ctx.removeEventListener("updated", this._onUpdated);
+          this._updatedWired = false;
+        }
+      }
+      this._layers.clear();
+    }
+  }
+  ApexCharts.registerFeatures({ weave: WeaveHost });
+  const STYLE_KEYS = {
+    fill: "fill",
+    stroke: "stroke",
+    "stroke-width": "strokeWidth",
+    "stroke-dasharray": "strokeDash",
+    "stroke-linecap": "lineCap",
+    "fill-opacity": "fillOpacity",
+    "stroke-opacity": "strokeOpacity",
+    "fill-rule": "fillRule"
+  };
+  const NEVER = Symbol("never");
+  const SHAPE_ID = {
+    circle: 0,
+    square: 1,
+    rect: 1,
+    triangle: 2,
+    diamond: 3,
+    star: 4,
+    sparkle: 5,
+    cross: 6,
+    plus: 7,
+    line: 8
+  };
+  const SHAPE_NAME = [
+    "circle",
+    "square",
+    "triangle",
+    "diamond",
+    "star",
+    "sparkle",
+    "cross",
+    "plus",
+    "line"
+  ];
+  const NOOP_RUNNER = {
+    /** @returns {any} */
+    attr() {
+      return NOOP_RUNNER;
+    },
+    plot() {
+      return NOOP_RUNNER;
+    },
+    during() {
+      return NOOP_RUNNER;
+    },
+    after(fn) {
+      if (typeof fn === "function") fn();
+      return NOOP_RUNNER;
+    },
+    animate() {
+      return NOOP_RUNNER;
+    },
+    delay() {
+      return NOOP_RUNNER;
+    },
+    loop() {
+      return NOOP_RUNNER;
+    },
+    finish() {
+      return NOOP_RUNNER;
+    },
+    stop() {
+      return NOOP_RUNNER;
+    }
+  };
+  const SHARED_MARKER_NODE = {
+    nodeName: "path",
+    style: {},
+    classList: { add() {
+    }, remove() {
+    }, toggle() {
+    }, contains: () => false },
+    setAttribute() {
+    },
+    getAttribute: () => null,
+    removeAttribute() {
+    },
+    hasAttribute: () => false,
+    addEventListener() {
+    },
+    removeEventListener() {
+    },
+    appendChild() {
+    },
+    getBBox: () => ({ x: 0, y: 0, width: 0, height: 0 })
+  };
+  const SHARED_GROUP = {
+    __isCanvasMark: true,
+    node: {
+      nodeName: "g",
+      instance: null,
+      style: {},
+      classList: { add() {
+      }, remove() {
+      }, toggle() {
+      }, contains: () => false },
+      setAttribute() {
+      },
+      getAttribute: () => null,
+      removeAttribute() {
+      },
+      addEventListener() {
+      },
+      removeEventListener() {
+      },
+      appendChild() {
+      },
+      getBBox: () => ({ x: 0, y: 0, width: 0, height: 0 })
+    },
+    /** @returns {any} */
+    attr() {
+      return SHARED_GROUP;
+    },
+    add() {
+      return SHARED_GROUP;
+    },
+    addTo() {
+      return SHARED_GROUP;
+    },
+    remove() {
+      return SHARED_GROUP;
+    },
+    clear() {
+      return SHARED_GROUP;
+    },
+    css() {
+      return SHARED_GROUP;
+    },
+    hide() {
+      return SHARED_GROUP;
+    },
+    show() {
+      return SHARED_GROUP;
+    },
+    removeClass() {
+      return SHARED_GROUP;
+    },
+    animate() {
+      return NOOP_RUNNER;
+    }
+  };
+  class CanvasMarkerRef {
+    /**
+     * @param {CanvasGraphics} g
+     * @param {number} i
+     */
+    constructor(g, i) {
+      this.__isCanvasMark = true;
+      this._g = g;
+      this._i = i;
+    }
+    get node() {
+      return SHARED_MARKER_NODE;
+    }
+    /**
+     * @param {any} a
+     * @param {any} [v]
+     * @returns {any}
+     */
+    attr(a, v) {
+      if (typeof a === "string") {
+        if (a === "fill" && v !== void 0) this._g._setMarkerFill(this._i, v);
+        return v === void 0 ? null : this;
+      }
+      if (a && a.fill !== void 0) this._g._setMarkerFill(this._i, a.fill);
+      return this;
+    }
+    /** @param {any} _c */
+    add(_c) {
+      return this;
+    }
+    /** @param {any} _p */
+    addTo(_p) {
+      return this;
+    }
+    remove() {
+      return this;
+    }
+    /** @param {any} _s */
+    css(_s) {
+      return this;
+    }
+    /** @param {any} _v */
+    fill(_v) {
+      if (_v !== void 0) this._g._setMarkerFill(this._i, _v);
+      return this;
+    }
+    /** @param {any} _v */
+    stroke(_v) {
+      return this;
+    }
+    hide() {
+      return this;
+    }
+    show() {
+      return this;
+    }
+    /** @param {string} _c */
+    removeClass(_c) {
+      return this;
+    }
+    animate() {
+      return NOOP_RUNNER;
+    }
+  }
+  class CanvasMark {
+    /** @param {any} cmd */
+    constructor(cmd) {
+      this.__isCanvasMark = true;
+      this._cmd = cmd;
+      const self2 = this;
+      this.node = {
+        nodeName: cmd ? cmd.tag : "g",
+        instance: this,
+        style: {},
+        classList: { add() {
+        }, remove() {
+        }, toggle() {
+        }, contains: () => false },
+        /** @param {string} k @param {any} v */
+        setAttribute(k, v) {
+          self2._applyAttr(k, v);
+        },
+        getAttribute: () => null,
+        removeAttribute() {
+        },
+        hasAttribute: () => false,
+        addEventListener() {
+        },
+        removeEventListener() {
+        },
+        appendChild() {
+        },
+        getBBox: () => ({ x: 0, y: 0, width: 0, height: 0 })
+      };
+    }
+    /**
+     * @param {string} k
+     * @param {any} v
+     */
+    _applyAttr(k, v) {
+      const cmd = this._cmd;
+      if (!cmd) return;
+      const sk = STYLE_KEYS[k];
+      if (sk !== void 0) cmd[sk] = v;
+    }
+    /**
+     * @param {any} a
+     * @param {any} [v]
+     * @returns {any}
+     */
+    attr(a, v) {
+      if (typeof a === "string") {
+        if (v === void 0) return null;
+        this._applyAttr(a, v);
+        return this;
+      }
+      for (const k in a) {
+        if (a[k] !== void 0) this._applyAttr(k, a[k]);
+      }
+      return this;
+    }
+    /** @param {any} _c */
+    add(_c) {
+      return this;
+    }
+    /** @param {any} _p */
+    addTo(_p) {
+      return this;
+    }
+    remove() {
+      return this;
+    }
+    clear() {
+      return this;
+    }
+    /** @param {any} _s */
+    css(_s) {
+      return this;
+    }
+    /** @param {any} v */
+    fill(v) {
+      if (typeof v === "object") return this.attr(v);
+      return this.attr("fill", v);
+    }
+    /** @param {any} v */
+    stroke(v) {
+      if (typeof v === "object") {
+        if (v.color !== void 0) this.attr("stroke", v.color);
+        if (v.width !== void 0) this.attr("stroke-width", v.width);
+        return this;
+      }
+      return this.attr("stroke", v);
+    }
+    /** @param {string} d */
+    plot(d) {
+      if (typeof d === "string" && this._cmd && this._cmd.tag === "path") {
+        this._cmd.d = d;
+      }
+      return this;
+    }
+    hide() {
+      return this;
+    }
+    show() {
+      return this;
+    }
+    /** @param {string} _c */
+    removeClass(_c) {
+      return this;
+    }
+    bbox() {
+      return { x: 0, y: 0, width: 0, height: 0 };
+    }
+    animate() {
+      return NOOP_RUNNER;
+    }
+  }
+  class CanvasGraphics {
+    /** @param {any} w */
+    constructor(w) {
+      this.w = w;
+      this._g = new Graphics(w);
+      this._list = [];
+      this._mx = new Float64Array(16);
+      this._my = new Float64Array(16);
+      this._msize = new Float64Array(16);
+      this._mshape = new Int16Array(16);
+      this._mstyle = new Int32Array(16);
+      this._msi = new Int32Array(16);
+      this._mn = 0;
+      this._mcap = 16;
+      this._styles = [];
+      this._styleMap = /* @__PURE__ */ new Map();
+      this._lf = NEVER;
+      this._ls = NEVER;
+      this._lsw = NEVER;
+      this._ld = NEVER;
+      this._lfo = NEVER;
+      this._lso = NEVER;
+      this._lid = -1;
+      this._lofFill = NEVER;
+      this._lofBase = -1;
+      this._lofId = -1;
+    }
+    _resetStyleCache() {
+      this._lf = NEVER;
+      this._ls = NEVER;
+      this._lsw = NEVER;
+      this._ld = NEVER;
+      this._lfo = NEVER;
+      this._lso = NEVER;
+      this._lid = -1;
+      this._lofFill = NEVER;
+      this._lofBase = -1;
+      this._lofId = -1;
+    }
+    /** Start a fresh scene (columnar marker store + object-command list). */
+    reset() {
+      this._list = [];
+      this._mn = 0;
+      this._styles = [];
+      this._styleMap = /* @__PURE__ */ new Map();
+      this._resetStyleCache();
+      const series = this.w.config.series || [];
+      let cap = 16;
+      for (let i = 0; i < series.length; i++) {
+        const d = series[i] && series[i].data;
+        if (Array.isArray(d)) cap += d.length;
+      }
+      cap = Math.ceil(cap * 1.15) + 16;
+      if (cap > this._mcap) this._allocMarkers(cap);
+    }
+    /** @param {number} cap */
+    _allocMarkers(cap) {
+      this._mcap = cap;
+      this._mx = new Float64Array(cap);
+      this._my = new Float64Array(cap);
+      this._msize = new Float64Array(cap);
+      this._mshape = new Int16Array(cap);
+      this._mstyle = new Int32Array(cap);
+      this._msi = new Int32Array(cap);
+    }
+    /** Grow the marker columns (rare: capacity estimate was low). */
+    _growMarkers() {
+      const cap = this._mcap * 2;
+      const nx = new Float64Array(cap);
+      nx.set(this._mx);
+      this._mx = nx;
+      const ny = new Float64Array(cap);
+      ny.set(this._my);
+      this._my = ny;
+      const ns = new Float64Array(cap);
+      ns.set(this._msize);
+      this._msize = ns;
+      const nsh = new Int16Array(cap);
+      nsh.set(this._mshape);
+      this._mshape = nsh;
+      const nst = new Int32Array(cap);
+      nst.set(this._mstyle);
+      this._mstyle = nst;
+      const nsi = new Int32Array(cap);
+      nsi.set(this._msi);
+      this._msi = nsi;
+      this._mcap = cap;
+    }
+    displayList() {
+      return this._list;
+    }
+    markerCount() {
+      return this._mn;
+    }
+    /**
+     * Intern a marker style; returns its palette id. Keeps the per-point columns
+     * numeric (no retained per-point object).
+     * @param {any} fill @param {any} stroke @param {any} sw @param {any} dash
+     * @param {any} fo @param {any} so
+     * @returns {number}
+     */
+    _internStyle(fill, stroke, sw, dash, fo, so) {
+      const key = `${fill}|${stroke}|${sw}|${dash}|${fo}|${so}`;
+      const cached = this._styleMap.get(key);
+      if (cached !== void 0) return cached;
+      const id = this._styles.length;
+      this._styles.push({
+        fill,
+        stroke,
+        strokeWidth: sw,
+        strokeDash: dash,
+        fillOpacity: fo,
+        strokeOpacity: so
+      });
+      this._styleMap.set(key, id);
+      return id;
+    }
+    /**
+     * Override a recorded marker's fill (scatter sets a per-point fill via `attr`
+     * right after drawMarker). Like the draw path, the string-key intern is cached
+     * on (base style, fill) so the Map/string work stays OFF the per-point path
+     * (it otherwise mixes with the `_mstyle[i]` typed-array write → the ~80× slow
+     * path). For a scatter series the base + fill are uniform, so it interns once.
+     * @param {number} i @param {any} fill
+     */
+    _setMarkerFill(i, fill) {
+      const base = this._mstyle[i];
+      if (fill === this._lofFill && base === this._lofBase) {
+        this._mstyle[i] = this._lofId;
+        return;
+      }
+      const s = this._styles[base];
+      if (!s || s.fill === fill) {
+        this._lofFill = fill;
+        this._lofBase = base;
+        this._lofId = base;
+        return;
+      }
+      const id = this._internStyle(
+        fill,
+        s.stroke,
+        s.strokeWidth,
+        s.strokeDash,
+        s.fillOpacity,
+        s.strokeOpacity
+      );
+      this._mstyle[i] = id;
+      this._lofFill = fill;
+      this._lofBase = base;
+      this._lofId = id;
+    }
+    /** @param {number} i @returns {any} the style object for a marker index */
+    markerStyle(i) {
+      return this._styles[this._mstyle[i]];
+    }
+    /** @param {number} i @returns {number} series (realIndex) of a marker, -1 if none */
+    markerSeries(i) {
+      return this._msi[i];
+    }
+    /** @param {number} id @returns {string} */
+    shapeName(id) {
+      return SHAPE_NAME[id] || "circle";
+    }
+    /**
+     * @param {string} tag
+     * @param {number} z
+     * @returns {any}
+     */
+    _cmd(tag, z) {
+      const cmd = {
+        tag,
+        z: z || 0,
+        fill: void 0,
+        stroke: void 0,
+        strokeWidth: void 0,
+        strokeDash: void 0,
+        lineCap: void 0,
+        fillOpacity: void 0,
+        strokeOpacity: void 0,
+        fillRule: void 0
+      };
+      this._list.push(cmd);
+      return cmd;
+    }
+    // ── organizational (groups don't paint or record) ──
+    // Series draw() creates a wrap group PER POINT (scatter.draw / plotChartMarkers
+    // run per point), so allocating a handle per group is ~50k heavy allocations
+    // at scale: enough transient churn to tip V8 into a GC blow-up. Groups carry
+    // no paint state in canvas mode (attr/add are no-ops), so every group shares
+    // one singleton: zero per-point allocation.
+    /** @param {any} _attrs */
+    group(_attrs) {
+      return SHARED_GROUP;
+    }
+    // ── per-point marker (line/area markers, scatter, bubble): COLUMNAR ──
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @param {any} opts
+     */
+    drawMarker(x, y, opts = {}) {
+      var _a;
+      const styleId = this._markerStyleId(opts);
+      if (this._mn >= this._mcap) this._growMarkers();
+      const i = this._mn++;
+      this._mx[i] = x || 0;
+      this._my[i] = typeof y === "number" ? y : NaN;
+      this._msize[i] = opts.pSize || 0;
+      this._mshape[i] = (_a = SHAPE_ID[opts.shape || "circle"]) != null ? _a : 0;
+      this._mstyle[i] = styleId;
+      this._msi[i] = opts.seriesIndex == null ? -1 : opts.seriesIndex;
+      return new CanvasMarkerRef(this, i);
+    }
+    /**
+     * Resolve (and dedupe) a marker style → palette id. A last-style cache keeps
+     * the Map/string work off the path when consecutive markers share a style
+     * (the common case), so intern runs once per style run.
+     * @param {any} opts
+     * @returns {number}
+     */
+    _markerStyleId(opts) {
+      const shape = opts.shape || "circle";
+      const strokeTinted = shape === "line" || shape === "plus" || shape === "cross";
+      const fill = strokeTinted ? "none" : opts.pointFillColor;
+      const stroke = strokeTinted ? opts.pointFillColor : opts.pointStrokeColor;
+      const sw = opts.pointStrokeWidth;
+      const dash = opts.pointStrokeDashArray;
+      const fo = opts.pointFillOpacity;
+      const so = strokeTinted ? opts.pointFillOpacity : opts.pointStrokeOpacity;
+      if (fill === this._lf && stroke === this._ls && sw === this._lsw && dash === this._ld && fo === this._lfo && so === this._lso) {
+        return this._lid;
+      }
+      const id = this._internStyle(fill, stroke, sw, dash, fo, so);
+      this._lf = fill;
+      this._ls = stroke;
+      this._lsw = sw;
+      this._ld = dash;
+      this._lfo = fo;
+      this._lso = so;
+      this._lid = id;
+      return id;
+    }
+    // ── series body path (line/area/bar): object command ──
+    /** @param {any} opts */
+    renderPaths(opts) {
+      const cmd = this._cmd("path", opts.realIndex);
+      cmd.d = opts.pathTo;
+      cmd.stroke = opts.stroke;
+      cmd.strokeWidth = opts.strokeWidth;
+      cmd.fill = opts.fill;
+      cmd.lineCap = opts.strokeLinecap;
+      cmd.si = opts.realIndex;
+      this.w.globals.animationEnded = true;
+      return new CanvasMark(cmd);
+    }
+    /** @param {any} opts */
+    drawPath(opts) {
+      const cmd = this._cmd("path", 0);
+      cmd.d = opts.d;
+      cmd.stroke = opts.stroke;
+      cmd.strokeWidth = opts.strokeWidth;
+      cmd.fill = opts.fill;
+      cmd.fillOpacity = opts.fillOpacity;
+      cmd.strokeOpacity = opts.strokeOpacity;
+      cmd.lineCap = opts.strokeLinecap;
+      cmd.strokeDash = opts.strokeDashArray;
+      return new CanvasMark(cmd);
+    }
+    // ── remaining primitives (contract completeness / Marks #11 forward-compat) ──
+    /**
+     * @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2
+     * @param {string} lineColor @param {any} dashArray @param {number} strokeWidth
+     */
+    drawLine(x1, y1, x2, y2, lineColor = "#a8a8a8", dashArray = 0, strokeWidth = 1) {
+      const cmd = this._cmd("line", 0);
+      cmd.lx1 = x1;
+      cmd.ly1 = y1;
+      cmd.lx2 = x2;
+      cmd.ly2 = y2;
+      cmd.stroke = lineColor;
+      cmd.strokeDash = dashArray;
+      cmd.strokeWidth = strokeWidth;
+      return new CanvasMark(cmd);
+    }
+    /**
+     * Mirrors Graphics.drawRect's full signature (including stroke), so callers
+     * that stroke rects (Marks api.rect, chart code) paint the same on canvas.
+     * @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2
+     * @param {number} radius @param {string} color @param {number} opacity
+     * @param {number|null} [strokeWidth] @param {string|null} [strokeColor]
+     * @param {any} [strokeDashArray]
+     */
+    drawRect(x1 = 0, y1 = 0, x2 = 0, y2 = 0, radius = 0, color = "#fefefe", opacity = 1, strokeWidth = null, strokeColor = null, strokeDashArray = 0) {
+      const cmd = this._cmd("rect", 0);
+      cmd.x1 = x1;
+      cmd.y1 = y1;
+      cmd.rw = x2 > 0 ? x2 : 0;
+      cmd.rh = y2 > 0 ? y2 : 0;
+      cmd.radius = radius;
+      cmd.fill = color;
+      cmd.fillOpacity = opacity;
+      if (strokeColor != null) {
+        cmd.stroke = strokeColor;
+        cmd.strokeWidth = strokeWidth == null ? 1 : strokeWidth;
+        cmd.strokeDash = strokeDashArray;
+      }
+      return new CanvasMark(cmd);
+    }
+    /**
+     * @param {number} radius
+     * @param {any} attrs
+     */
+    drawCircle(radius, attrs = null) {
+      const cmd = this._cmd("circle", 0);
+      cmd.r = radius < 0 ? 0 : radius;
+      if (attrs) {
+        cmd.cx = attrs.cx;
+        cmd.cy = attrs.cy;
+        if (attrs.fill !== void 0) cmd.fill = attrs.fill;
+        if (attrs.stroke !== void 0) cmd.stroke = attrs.stroke;
+      }
+      return new CanvasMark(cmd);
+    }
+    /** @param {any} opts */
+    drawText(opts) {
+      const cmd = this._cmd("text", 0);
+      cmd.text = Array.isArray(opts.text) ? opts.text.join(" ") : opts.text;
+      cmd.tx = opts.x;
+      cmd.ty = opts.y;
+      cmd.textAnchor = opts.textAnchor || "start";
+      cmd.fontSize = opts.fontSize;
+      cmd.fontFamily = opts.fontFamily;
+      cmd.fill = opts.foreColor;
+      return new CanvasMark(cmd);
+    }
+    /**
+     * Resolve a marker's SVG path `d` (non-circle shapes) lazily at paint time.
+     * @param {number} x @param {number} y @param {number} shapeId @param {number} size
+     * @returns {string}
+     */
+    markerPath(x, y, shapeId, size) {
+      return this._g.getMarkerPath(x, y, SHAPE_NAME[shapeId] || "circle", size);
+    }
+  }
+  const TWO_PI = Math.PI * 2;
+  const DPR_CAP = 2;
+  class CanvasCompositor {
+    /** @param {any} w */
+    constructor(w) {
+      this.w = w;
+      this._host = null;
+      this._canvas = null;
+      this._c2d = null;
+      this._margin = 0;
+      this._dpr = 1;
+      this._dim = null;
+      this._alpha = 1;
+    }
+    /**
+     * Opacity multiplier for a series index under the active dim spec: 1 for the
+     * highlighted series (or when not dimming, or for unidentified marks), else
+     * the inactive opacity.
+     * @param {number} si
+     * @returns {number}
+     */
+    _seriesAlpha(si) {
+      const d = this._dim;
+      if (!d || d.active == null || d.active < 0 || si == null || si < 0) return 1;
+      return si === d.active ? 1 : d.opacity == null ? 0.2 : d.opacity;
+    }
+    _plotDims() {
+      var _a;
+      const gw = Math.max(0, Math.ceil(this.w.layout.gridWidth || 0));
+      const gh = Math.max(0, Math.ceil(this.w.layout.gridHeight || 0));
+      const largest = ((_a = this.w.globals.markers) == null ? void 0 : _a.largestSize) || 0;
+      const margin = Math.ceil(largest + 8);
+      return { gw, gh, margin };
+    }
+    /**
+     * Create (or recreate) the foreignObject + canvas sized to the plot rect and
+     * return the SVGElement host that `plotChartType` inserts into the tree.
+     * @returns {any}
+     */
+    createHost() {
+      const win = BrowserAPIs.getWindow();
+      this._dpr = Math.min(DPR_CAP, win && win.devicePixelRatio || 1);
+      const { gw, gh, margin } = this._plotDims();
+      this._margin = margin;
+      const w = gw + margin * 2;
+      const h = gh + margin * 2;
+      const fo = BrowserAPIs.createElementNS(SVGNS$1, "foreignObject");
+      fo.setAttribute("x", String(-margin));
+      fo.setAttribute("y", String(-margin));
+      fo.setAttribute("width", String(w));
+      fo.setAttribute("height", String(h));
+      fo.setAttribute("class", "apexcharts-canvas-series");
+      fo.style.overflow = "visible";
+      const canvas = (
+        /** @type {any} */
+        BrowserAPIs.createElement("canvas")
+      );
+      canvas.setAttribute("class", "apexcharts-series-canvas");
+      canvas.width = Math.max(1, Math.round(w * this._dpr));
+      canvas.height = Math.max(1, Math.round(h * this._dpr));
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      canvas.style.pointerEvents = "none";
+      fo.appendChild(canvas);
+      this._canvas = canvas;
+      this._c2d = canvas.getContext("2d");
+      this._host = new SVGElement(fo);
+      return this._host;
+    }
+    getHost() {
+      return this._host;
+    }
+    clear() {
+      if (!this._c2d || !this._canvas) return;
+      this._c2d.setTransform(1, 0, 0, 1, 0, 0);
+      this._c2d.clearRect(0, 0, this._canvas.width, this._canvas.height);
+    }
+    /**
+     * Re-check devicePixelRatio before painting: a restyle() repaint after the
+     * window moved between monitors would otherwise keep the stale backing-store
+     * scale (blurry or over-sized) until the next full render rebuilds the host.
+     * The canvas CSS size is unchanged; only the backing store is resized.
+     */
+    _syncDpr() {
+      if (!this._canvas) return;
+      const win = BrowserAPIs.getWindow();
+      const dpr = Math.min(DPR_CAP, win && win.devicePixelRatio || 1);
+      if (dpr === this._dpr) return;
+      this._dpr = dpr;
+      const wCss = parseFloat(this._canvas.style.width) || 0;
+      const hCss = parseFloat(this._canvas.style.height) || 0;
+      this._canvas.width = Math.max(1, Math.round(wCss * dpr));
+      this._canvas.height = Math.max(1, Math.round(hCss * dpr));
+    }
+    /**
+     * Paint the recorded scene: object commands (series bodies / rects / lines /
+     * text) first, then the columnar markers on top (matching SVG z-order where
+     * markers sit above the series path). `shim` supplies the columnar marker
+     * arrays + lazy non-circle marker geometry.
+     * @param {any[]} list
+     * @param {any} shim
+     * @param {{active:number, opacity:number}|null} [dim] per-series dim spec
+     *   (hover / legend restyle); null repaints at full opacity.
+     */
+    paint(list, shim2, dim = null) {
+      const ctx = this._c2d;
+      if (!ctx) return;
+      this._dim = dim || null;
+      this._syncDpr();
+      this.clear();
+      const dpr = this._dpr;
+      const m = this._margin;
+      ctx.setTransform(dpr, 0, 0, dpr, m * dpr, m * dpr);
+      if (list.length) {
+        const ordered = list.length > 1 ? list.map((c, i) => [c, i]).sort(
+          (a, b) => a[0].z === b[0].z ? a[1] - b[1] : a[0].z - b[0].z
+        ).map((pair) => pair[0]) : list;
+        for (let i = 0; i < ordered.length; i++) {
+          const c = ordered[i];
+          this._alpha = this._dim ? this._seriesAlpha(c.si) : 1;
+          this._paintOne(ctx, c);
+        }
+      }
+      this._paintMarkers(ctx, shim2);
+      this._alpha = 1;
+    }
+    /**
+     * @param {any} ctx
+     * @param {any} shim
+     */
+    _paintMarkers(ctx, shim2) {
+      const n = shim2.markerCount();
+      if (!n) return;
+      const mx = shim2._mx;
+      const my = shim2._my;
+      const msize = shim2._msize;
+      const mshape = shim2._mshape;
+      const mstyle = shim2._mstyle;
+      const dimming = !!this._dim;
+      if (!dimming) this._alpha = 1;
+      let i = 0;
+      while (i < n) {
+        const styleId = mstyle[i];
+        const shapeId = mshape[i];
+        const style = shim2.markerStyle(i);
+        if (!style) {
+          i++;
+          continue;
+        }
+        if (shapeId === 0) {
+          const doFill = this._applyFill(ctx, style);
+          const doStroke = this._applyStroke(ctx, style);
+          const baseFillA = style.fillOpacity == null ? 1 : Number(style.fillOpacity);
+          const baseStrokeA = style.strokeOpacity == null ? 1 : Number(style.strokeOpacity);
+          let j = i;
+          while (j < n && mshape[j] === 0 && mstyle[j] === styleId) {
+            const r = msize[j] || 0;
+            const y = my[j];
+            if (r > 0 && y === y) {
+              ctx.beginPath();
+              ctx.arc(mx[j], y, r, 0, TWO_PI);
+              if (dimming) {
+                const f = this._seriesAlpha(shim2.markerSeries(j));
+                if (doFill) {
+                  ctx.globalAlpha = baseFillA * f;
+                  ctx.fill();
+                }
+                if (doStroke) {
+                  ctx.globalAlpha = baseStrokeA * f;
+                  ctx.stroke();
+                }
+              } else {
+                if (doFill) ctx.fill();
+                if (doStroke) ctx.stroke();
+              }
+            }
+            j++;
+          }
+          ctx.globalAlpha = 1;
+          i = j;
+        } else {
+          const y = my[i];
+          if (y === y && msize[i] > 0) {
+            this._alpha = dimming ? this._seriesAlpha(shim2.markerSeries(i)) : 1;
+            try {
+              const p = new Path2D(shim2.markerPath(mx[i], y, shapeId, msize[i]));
+              this._fillStrokePath(ctx, style, p);
+            } catch (e) {
+            }
+          }
+          i++;
+        }
+      }
+    }
+    /**
+     * @param {any} ctx
+     * @param {any} cmd style-bearing flat command
+     */
+    _paintOne(ctx, cmd) {
+      switch (cmd.tag) {
+        case "path": {
+          if (!cmd.d) return;
+          if (!cmd.path2d) {
+            try {
+              cmd.path2d = new Path2D(cmd.d);
+            } catch (e) {
+              return;
+            }
+          }
+          this._fillStrokePath(ctx, cmd, cmd.path2d);
+          break;
+        }
+        case "rect": {
+          const p = new Path2D();
+          if (cmd.radius && typeof /** @type {any} */
+          p.roundRect === "function") {
+            p.roundRect(cmd.x1, cmd.y1, cmd.rw, cmd.rh, cmd.radius);
+          } else {
+            p.rect(cmd.x1, cmd.y1, cmd.rw, cmd.rh);
+          }
+          this._fillStrokePath(ctx, cmd, p);
+          break;
+        }
+        case "circle": {
+          if (!(cmd.r > 0)) return;
+          ctx.beginPath();
+          ctx.arc(cmd.cx, cmd.cy, cmd.r, 0, TWO_PI);
+          this._fillStroke(ctx, cmd);
+          break;
+        }
+        case "line": {
+          ctx.beginPath();
+          ctx.moveTo(cmd.lx1, cmd.ly1);
+          ctx.lineTo(cmd.lx2, cmd.ly2);
+          this._strokeOnly(ctx, cmd);
+          break;
+        }
+        case "text": {
+          if (cmd.text == null) return;
+          ctx.save();
+          ctx.globalAlpha = this._alpha;
+          ctx.fillStyle = cmd.fill || "#000";
+          const size = cmd.fontSize || "11px";
+          ctx.font = `${typeof size === "number" ? size + "px" : size} ${cmd.fontFamily || "Helvetica, Arial, sans-serif"}`;
+          ctx.textAlign = cmd.textAnchor === "middle" ? "center" : cmd.textAnchor === "end" ? "right" : "left";
+          ctx.fillText(String(cmd.text), cmd.tx, cmd.ty);
+          ctx.restore();
+          break;
+        }
+      }
+    }
+    /**
+     * @param {any} ctx
+     * @param {any} style
+     * @param {any} path2d
+     */
+    _fillStrokePath(ctx, style, path2d) {
+      if (this._applyFill(ctx, style)) {
+        ctx.fill(path2d, style.fillRule === "evenodd" ? "evenodd" : "nonzero");
+      }
+      if (this._applyStroke(ctx, style)) {
+        ctx.stroke(path2d);
+      }
+      ctx.globalAlpha = 1;
+    }
+    /**
+     * @param {any} ctx
+     * @param {any} style
+     */
+    _fillStroke(ctx, style) {
+      if (this._applyFill(ctx, style)) ctx.fill();
+      if (this._applyStroke(ctx, style)) ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    /**
+     * @param {any} ctx
+     * @param {any} style
+     */
+    _strokeOnly(ctx, style) {
+      if (this._applyStroke(ctx, style)) ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    /**
+     * Set fill state. Returns false when there's nothing to fill.
+     * @param {any} ctx
+     * @param {any} style
+     */
+    _applyFill(ctx, style) {
+      const fill = style.fill;
+      if (!fill || fill === "none") return false;
+      if (typeof fill === "string" && fill.indexOf("url(") === 0) return false;
+      ctx.globalAlpha = (style.fillOpacity == null ? 1 : Number(style.fillOpacity)) * this._alpha;
+      ctx.fillStyle = fill;
+      return true;
+    }
+    /**
+     * Set stroke state. Returns false when there's nothing to stroke.
+     * @param {any} ctx
+     * @param {any} style
+     */
+    _applyStroke(ctx, style) {
+      const stroke = style.stroke;
+      const sw = style.strokeWidth == null ? 1 : Number(style.strokeWidth);
+      if (!stroke || stroke === "none" || !(sw > 0)) return false;
+      if (typeof stroke === "string" && stroke.indexOf("url(") === 0) return false;
+      ctx.globalAlpha = (style.strokeOpacity == null ? 1 : Number(style.strokeOpacity)) * this._alpha;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = sw;
+      ctx.lineCap = style.lineCap || "butt";
+      const dash = style.strokeDash;
+      if (dash && dash !== 0) {
+        ctx.setLineDash(Array.isArray(dash) ? dash : [Number(dash)]);
+      } else {
+        ctx.setLineDash([]);
+      }
+      return true;
+    }
+    /** Series bitmap for the export composite bridge (P4). @returns {string|null} */
+    toDataURL() {
+      return this._canvas ? this._canvas.toDataURL() : null;
+    }
+    destroy() {
+      this._host = null;
+      this._canvas = null;
+      this._c2d = null;
+    }
+  }
+  class CanvasRenderer {
+    /**
+     * @param {any} w
+     * @param {any} ctx
+     */
+    constructor(w, ctx) {
+      this.w = w;
+      this.ctx = ctx;
+      this.kind = "canvas";
+      this._g = new CanvasGraphics(w);
+      this._compositor = new CanvasCompositor(w);
+    }
+    // ── lifecycle ──
+    /** Start a fresh series display list for this render pass. */
+    beginSeries() {
+      this._g.reset();
+    }
+    /**
+     * Finalize the pass: paint the recorded display list and return the SVG host
+     * (a `<foreignObject><canvas>`) for `plotChartType` to composite into the tree.
+     * @returns {any}
+     */
+    present() {
+      const host = this._compositor.createHost();
+      this._compositor.paint(this._g.displayList(), this._g);
+      return host;
+    }
+    /** Fast-path wipe of the series layer. */
+    clear() {
+      this._compositor.clear();
+    }
+    // ── emit primitives (delegate to the display-list shim) ──
+    /** @param {any} attrs */
+    group(attrs) {
+      return this._g.group(attrs);
+    }
+    /** @param {any} opts */
+    drawPath(opts) {
+      return this._g.drawPath(opts);
+    }
+    /** @param {any[]} args */
+    drawLine(...args) {
+      return (
+        /** @type {any} */
+        this._g.drawLine(...args)
+      );
+    }
+    /** @param {any[]} args */
+    drawRect(...args) {
+      return (
+        /** @type {any} */
+        this._g.drawRect(...args)
+      );
+    }
+    /**
+     * @param {number} r
+     * @param {any} attrs
+     */
+    drawCircle(r, attrs) {
+      return this._g.drawCircle(r, attrs);
+    }
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @param {any} opts
+     */
+    drawMarker(x, y, opts) {
+      return this._g.drawMarker(x, y, opts);
+    }
+    /** @param {any} opts */
+    renderPaths(opts) {
+      return this._g.renderPaths(opts);
+    }
+    /** @param {any} opts */
+    drawText(opts) {
+      return this._g.drawText(opts);
+    }
+    // ── capabilities ──
+    /** @param {string} feature */
+    supports(feature) {
+      return feature === "solidFill" || feature === "dashArray";
+    }
+    // ── interaction ──
+    // Shared tooltip/zoom/click resolve via coordinate lookup (pointsArray), so
+    // there is no per-mark hit surface to query; hitTest stays a no-op unless a
+    // future per-point feature needs it.
+    /**
+     * @param {number} _px
+     * @param {number} _py
+     */
+    hitTest(_px, _py) {
+      return null;
+    }
+    /**
+     * Repaint the retained series scene with a per-series dim spec (hover /
+     * legend restyle). No geometry recompute: reuses the display list + marker
+     * columns recorded at render time. Pass null to repaint at full opacity.
+     * @param {{active:number, opacity:number}|null} [dim]
+     */
+    restyle(dim) {
+      this._compositor.paint(this._g.displayList(), this._g, dim || null);
+    }
+    // ── export ── toBitmap() and the compositor's toDataURL() back
+    //    Exports.inlineCanvasLayers, which inlines the series bitmap as an SVG
+    //    <image> so PNG/SVG export includes the canvas layer in correct z-order.
+    /** @returns {{dataURL:string,x:number,y:number,w:number,h:number}|null} */
+    toBitmap() {
+      const url = this._compositor.toDataURL();
+      if (!url) return null;
+      const gl = this.w.globals;
+      const cfg = this.w.config.chart;
+      const margin = this._compositor._margin;
+      return {
+        dataURL: url,
+        x: (gl.translateX || 0) + (cfg.offsetX || 0) - margin,
+        y: (gl.translateY || 0) + (cfg.offsetY || 0) - margin,
+        w: (this.w.layout.gridWidth || 0) + margin * 2,
+        h: (this.w.layout.gridHeight || 0) + margin * 2
+      };
+    }
+    destroy() {
+      this._compositor.destroy();
+    }
+  }
+  ApexCharts.registerRenderer(
+    "canvas",
+    /**
+     * @param {any} w
+     * @param {any} ctx
+     */
+    (w, ctx) => new CanvasRenderer(w, ctx)
+  );
+  function makeCustomSeriesClass(name2, def) {
+    const cls = class CustomSeries {
+      /**
+       * @param {any} w @param {any} ctx @param {any} xyRatios
+       */
+      constructor(w, ctx, xyRatios) {
+        this.w = w;
+        this.ctx = ctx;
+        this.xyRatios = xyRatios;
+        this._warned = false;
+      }
+      /**
+       * @param {any[]} series parsed y-arrays (one per drawn series)
+       * @param {string} [_ctype]
+       * @param {number[]} [seriesIndices] realIndex per entry (combo dispatch)
+       * @returns {any} the wrap group
+       */
+      draw(series, _ctype, seriesIndices) {
+        var _a, _b;
+        const w = this.w;
+        const graphics = new Graphics(w, this.ctx);
+        const emit = seriesEmitter(this.ctx, graphics);
+        const ret = graphics.group({ class: "apexcharts-marks-series" });
+        series.forEach((_s, idx) => {
+          var _a2;
+          const realIndex = Array.isArray(seriesIndices) ? seriesIndices[idx] : idx;
+          const elSeries = graphics.group({
+            class: "apexcharts-series",
+            rel: realIndex + 1,
+            seriesName: Utils$1.escapeString(w.seriesData.seriesNames[realIndex]),
+            "data:realIndex": realIndex
+          });
+          const scales = this._scales(
+            realIndex,
+            (w.seriesData.series[realIndex] || []).length
+          );
+          const color = w.globals.colors[realIndex];
+          const rawData = (
+            /** @type {any} */
+            ((_a2 = w.config.series[realIndex]) == null ? void 0 : _a2.data) || []
+          );
+          const xvals = w.seriesData.seriesX[realIndex] || [];
+          const yvals = w.seriesData.series[realIndex] || [];
+          w.globals.seriesXvalues[realIndex] = [];
+          w.globals.seriesYvalues[realIndex] = [];
+          if (typeof w.globals.pointsArray[realIndex] === "undefined") {
+            w.globals.pointsArray[realIndex] = [];
+          }
+          for (let j = 0; j < yvals.length; j++) {
+            const yVal = yvals[j];
+            if (yVal === null || typeof yVal === "undefined") continue;
+            const xVal = xvals[j];
+            const xPx = scales.xAt(j, xVal);
+            const yPx = scales.y(yVal);
+            const api = this._api(emit, elSeries, realIndex, j);
+            try {
+              def.renderItem({
+                datum: rawData[j],
+                x: xPx,
+                y: yPx,
+                scales,
+                api,
+                seriesIndex: realIndex,
+                dataPointIndex: j,
+                color
+              });
+            } catch (e) {
+              if (!this._warned) {
+                console.warn(
+                  `[apexcharts] renderItem for series type "${name2}" threw; skipping datum:`,
+                  e
+                );
+                this._warned = true;
+              }
+            }
+            w.globals.seriesXvalues[realIndex][j] = xPx;
+            w.globals.seriesYvalues[realIndex][j] = yPx;
+            w.globals.pointsArray[realIndex][j] = [xPx, yPx];
+          }
+          graphics.setupEventDelegation(elSeries, ".apexcharts-marks-mark");
+          ret.add(elSeries);
+        });
+        (_b = (_a = this.ctx.animations) == null ? void 0 : _a.animationCompleted) == null ? void 0 : _b.call(_a, ret);
+        return ret;
+      }
+      /**
+       * Series-space (elGraphical-local, translate-free) scales, matching how the
+       * built-ins compute pixels, so custom marks align with axes and gridlines
+       * and paint correctly on the elGraphical-local canvas.
+       * @param {number} realIndex
+       * @param {number} [nPts] number of data points (for categorical band sizing)
+       */
+      _scales(realIndex, nPts) {
+        var _a, _b, _c, _d;
+        const gl = this.w.globals;
+        const cnf = this.w.config;
+        const xRatio = this.xyRatios.xRatio;
+        const yRatioArr = this.xyRatios.yRatio;
+        const axis = (_b = (_a = gl.seriesYAxisReverseMap) == null ? void 0 : _a[realIndex]) != null ? _b : 0;
+        const yr = Array.isArray(yRatioArr) ? (_c = yRatioArr[axis]) != null ? _c : yRatioArr[0] : yRatioArr;
+        const maxYArr = (
+          /** @type {any} */
+          gl.maxYArr
+        );
+        const maxY = Array.isArray(maxYArr) && maxYArr.length ? (_d = maxYArr[axis]) != null ? _d : gl.maxY : gl.maxY;
+        const gridWidth = gl.gridWidth;
+        const gridHeight = gl.gridHeight;
+        const catMode = !gl.isXNumeric;
+        const n = nPts || gl.dataPoints || 1;
+        const bandW = n > 0 ? gridWidth / n : gridWidth;
+        const tickOn = cnf.xaxis.tickPlacement === "on";
+        const x = (v) => (v - gl.minX) / xRatio;
+        const y = (v) => (maxY - v) / yr;
+        const xAt = (index, v) => {
+          if (!catMode) return x(v);
+          if (tickOn && n > 1) return index / (n - 1) * gridWidth;
+          return (index + 0.5) * bandW;
+        };
+        const step = gl.minXDiff || 1;
+        const band = catMode ? bandW : xRatio ? step / xRatio : gridWidth;
+        return {
+          x,
+          xAt,
+          y,
+          gridWidth,
+          gridHeight,
+          band
+        };
+      }
+      /**
+       * Per-datum primitive API. Each call emits immediately (canvas-aware via
+       * `emit`), tags the node with the datum's identity, and adds it to the
+       * series group; on canvas the tag/add are inert (marks live on the canvas,
+       * events are coordinate-based).
+       * @param {any} emit @param {any} elSeries @param {number} realIndex @param {number} j
+       */
+      _api(emit, elSeries, realIndex, j) {
+        const tag = (el) => {
+          if (el) {
+            try {
+              el.node.setAttribute("index", String(realIndex));
+              el.node.setAttribute("j", String(j));
+              el.node.classList.add("apexcharts-marks-mark");
+            } catch (e) {
+            }
+            elSeries.add(el);
+          }
+          return el;
+        };
+        return {
+          /** @param {any} o */
+          path: (o = {}) => {
+            var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+            return tag(
+              emit.drawPath({
+                d: o.d || "",
+                stroke: (_a = o.stroke) != null ? _a : "#000",
+                strokeWidth: (_c = (_b = o.width) != null ? _b : o.strokeWidth) != null ? _c : 1,
+                fill: (_d = o.fill) != null ? _d : "none",
+                fillOpacity: (_f = o.fillOpacity) != null ? _f : o.fill && o.fill !== "none" ? (_e = o.opacity) != null ? _e : 1 : 0,
+                strokeOpacity: (_h = (_g = o.strokeOpacity) != null ? _g : o.opacity) != null ? _h : 1,
+                strokeDashArray: (_i = o.dash) != null ? _i : 0,
+                strokeLinecap: o.lineCap
+              })
+            );
+          },
+          /** @param {any} o */
+          line: (o = {}) => {
+            var _a, _b, _c, _d;
+            return tag(
+              emit.drawLine(
+                o.x1,
+                o.y1,
+                o.x2,
+                o.y2,
+                (_a = o.stroke) != null ? _a : "#000",
+                (_b = o.dash) != null ? _b : 0,
+                (_d = (_c = o.width) != null ? _c : o.strokeWidth) != null ? _d : 1
+              )
+            );
+          },
+          /** @param {any} o */
+          rect: (o = {}) => {
+            var _a, _b, _c, _d, _e, _f, _g, _h;
+            return tag(
+              emit.drawRect(
+                (_a = o.x) != null ? _a : 0,
+                (_b = o.y) != null ? _b : 0,
+                (_c = o.w) != null ? _c : 0,
+                (_d = o.h) != null ? _d : 0,
+                (_e = o.r) != null ? _e : 0,
+                (_f = o.fill) != null ? _f : "#000",
+                (_g = o.opacity) != null ? _g : 1,
+                o.stroke != null ? (_h = o.strokeWidth) != null ? _h : 1 : null,
+                o.stroke
+              )
+            );
+          },
+          /** @param {any} o */
+          circle: (o = {}) => {
+            var _a, _b, _c, _d, _e;
+            return tag(
+              emit.drawCircle((_a = o.r) != null ? _a : 0, {
+                cx: (_b = o.cx) != null ? _b : 0,
+                cy: (_c = o.cy) != null ? _c : 0,
+                fill: (_d = o.fill) != null ? _d : "#000",
+                stroke: o.stroke || "none",
+                "stroke-width": (_e = o.strokeWidth) != null ? _e : o.stroke ? 1 : 0
+              })
+            );
+          },
+          /** @param {any} o */
+          text: (o = {}) => {
+            var _a, _b, _c, _d;
+            return tag(
+              emit.drawText({
+                x: (_a = o.x) != null ? _a : 0,
+                y: (_b = o.y) != null ? _b : 0,
+                text: (_c = o.text) != null ? _c : "",
+                textAnchor: (_d = o.anchor) != null ? _d : "start",
+                fontSize: o.size,
+                foreColor: o.color,
+                fontWeight: o.weight
+              })
+            );
+          }
+        };
+      }
+    };
+    cls.dataType = def.dataType || "xy";
+    cls.yExtent = typeof def.yExtent === "function" ? def.yExtent : null;
+    return cls;
+  }
+  ApexCharts._customSeriesFactory = makeCustomSeriesClass;
+  const DARK_QUERY = "(prefers-color-scheme: dark)";
+  const CONTRAST_QUERY = "(prefers-contrast: more)";
+  class OSThemeWatcher {
+    /**
+     * @param {any} w @param {any} ctx
+     */
+    constructor(w, ctx) {
+      this.w = w;
+      this.ctx = ctx;
+      if (w.config.theme.follow !== "os" || !Environment.isBrowser()) return;
+      const media = this._ensureMedia();
+      if (!media) return;
+      this._applyToConfig(media);
+      this._ensureListeners(media);
+    }
+    /**
+     * Create (once per instance) the MediaQueryLists and stash them on `ctx` so
+     * they persist across the re-render that `updateOptions` triggers.
+     * @returns {{dark: MediaQueryList|null, contrast: MediaQueryList|null, handler: null|(()=>void)}|null}
+     */
+    _ensureMedia() {
+      if (!this.ctx._osThemeMedia) {
+        const dark = BrowserAPIs.matchMedia(DARK_QUERY);
+        const contrast = BrowserAPIs.matchMedia(CONTRAST_QUERY);
+        if (!dark && !contrast) return null;
+        this.ctx._osThemeMedia = { dark, contrast, handler: null };
+      }
+      return this.ctx._osThemeMedia;
+    }
+    /**
+     * Write the OS-resolved mode / high-contrast onto the live `w.config.theme`.
+     * @param {{dark: MediaQueryList|null, contrast: MediaQueryList|null}} media
+     */
+    _applyToConfig(media) {
+      const theme = this.w.config.theme;
+      if (media.dark) {
+        theme.mode = media.dark.matches ? "dark" : "light";
+      }
+      if (media.contrast && media.contrast.matches) {
+        theme.accessibility = theme.accessibility || {};
+        theme.accessibility.colorBlindMode = "highContrast";
+      }
+    }
+    /**
+     * Attach the `change` listener once. The handler closes over `ctx` + `media`
+     * (both stable across re-renders), NOT over `this` (a fresh watcher is built
+     * each create), so it never goes stale.
+     * @param {{dark: MediaQueryList|null, contrast: MediaQueryList|null, handler: null|(()=>void)}} media
+     */
+    _ensureListeners(media) {
+      if (media.handler) return;
+      const ctx = this.ctx;
+      const handler = () => {
+        const m = ctx._osThemeMedia;
+        if (!m) return;
+        const themeOpt = { mode: m.dark && m.dark.matches ? "dark" : "light" };
+        if (m.contrast && m.contrast.matches) {
+          themeOpt.accessibility = { colorBlindMode: "highContrast" };
+        } else {
+          themeOpt.accessibility = { colorBlindMode: "" };
+        }
+        ctx.updateOptions({ theme: themeOpt }, false, true, false);
+      };
+      OSThemeWatcher._add(media.dark, handler);
+      OSThemeWatcher._add(media.contrast, handler);
+      media.handler = handler;
+    }
+    /** Remove the listeners and drop the stashed media. Called on full destroy. */
+    teardown() {
+      const media = this.ctx._osThemeMedia;
+      if (!media) return;
+      if (media.handler) {
+        OSThemeWatcher._remove(media.dark, media.handler);
+        OSThemeWatcher._remove(media.contrast, media.handler);
+      }
+      this.ctx._osThemeMedia = null;
+    }
+    /**
+     * @param {MediaQueryList|null} mql @param {()=>void} handler
+     */
+    static _add(mql, handler) {
+      if (!mql) return;
+      if (typeof mql.addEventListener === "function") {
+        mql.addEventListener("change", handler);
+      } else if (typeof /** @type {any} */
+      mql.addListener === "function") {
+        mql.addListener(handler);
+      }
+    }
+    /**
+     * @param {MediaQueryList|null} mql @param {()=>void} handler
+     */
+    static _remove(mql, handler) {
+      if (!mql) return;
+      if (typeof mql.removeEventListener === "function") {
+        mql.removeEventListener("change", handler);
+      } else if (typeof /** @type {any} */
+      mql.removeListener === "function") {
+        mql.removeListener(handler);
+      }
+    }
+  }
+  ApexCharts.registerFeatures({ osThemeWatcher: OSThemeWatcher });
+  const REGISTRY_KEY = "__apexcharts_crossfilters__";
+  function cleanFloat(x) {
+    if (!Number.isFinite(x)) return x;
+    const n = Number(x.toPrecision(12));
+    return Object.is(n, -0) ? 0 : n;
+  }
+  function isNum(v) {
+    return typeof v === "number" && Number.isFinite(v);
+  }
+  function makeReducer(reduce) {
+    if (typeof reduce === "function") return reduce;
+    if (reduce && typeof reduce === "object") {
+      if (typeof reduce.sum === "string") {
+        const f = reduce.sum;
+        return (rows) => rows.reduce((a, r) => a + (Number(r[f]) || 0), 0);
+      }
+      if (typeof reduce.avg === "string") {
+        const f = reduce.avg;
+        return (rows) => rows.length ? rows.reduce((a, r) => a + (Number(r[f]) || 0), 0) / rows.length : 0;
+      }
+      if (typeof reduce.min === "string") {
+        const f = reduce.min;
+        return (rows) => rows.length ? Math.min(...rows.map((r) => Number(r[f]) || 0)) : 0;
+      }
+      if (typeof reduce.max === "string") {
+        const f = reduce.max;
+        return (rows) => rows.length ? Math.max(...rows.map((r) => Number(r[f]) || 0)) : 0;
+      }
+    }
+    return (rows) => rows.length;
+  }
+  function applyOrder(keys, order) {
+    if (typeof order === "function") return keys.slice().sort(order);
+    if (order === "asc") return keys.slice().sort((a, b) => a > b ? 1 : a < b ? -1 : 0);
+    if (order === "desc") return keys.slice().sort((a, b) => a < b ? 1 : a > b ? -1 : 0);
+    return keys;
+  }
+  function categoryDomain(records, accessor, order) {
+    const seen = /* @__PURE__ */ new Set();
+    const keys = [];
+    for (let i = 0; i < records.length; i++) {
+      const k = accessor(records[i]);
+      if (k == null) continue;
+      if (!seen.has(k)) {
+        seen.add(k);
+        keys.push(k);
+      }
+    }
+    return applyOrder(keys, order);
+  }
+  function matrixDomain(records, accessor, order) {
+    const xSeen = /* @__PURE__ */ new Set();
+    const ySeen = /* @__PURE__ */ new Set();
+    const xLabels = [];
+    const yLabels = [];
+    for (let i = 0; i < records.length; i++) {
+      const pair = accessor(records[i]);
+      if (!pair) continue;
+      const x = pair[0];
+      const y = pair[1];
+      if (x != null && !xSeen.has(x)) {
+        xSeen.add(x);
+        xLabels.push(x);
+      }
+      if (y != null && !ySeen.has(y)) {
+        ySeen.add(y);
+        yLabels.push(y);
+      }
+    }
+    return { xLabels: applyOrder(xLabels, order), yLabels: applyOrder(yLabels, order) };
+  }
+  function rangeEdges(records, accessor, bins) {
+    if (bins && Array.isArray(bins.thresholds) && bins.thresholds.length >= 2) {
+      const t = Array.from(new Set(bins.thresholds.filter(isNum))).sort(
+        (a, b) => a - b
+      );
+      return t.length >= 2 ? t.map(cleanFloat) : [0, 1];
+    }
+    let min = Infinity;
+    let max = -Infinity;
+    for (let i = 0; i < records.length; i++) {
+      const v = accessor(records[i]);
+      if (!isNum(v)) continue;
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+    if (min === Infinity) return [0, 1];
+    if (min === max) {
+      const pad = Math.abs(min) > 0 ? Math.abs(min) : 1;
+      return [cleanFloat(min), cleanFloat(min + pad)];
+    }
+    if (bins && isNum(bins.width) && bins.width > 0) {
+      const w2 = bins.width;
+      const start = Math.floor(min / w2) * w2;
+      let end = Math.ceil(max / w2) * w2;
+      if (end <= start) end = start + w2;
+      const count2 = Math.max(1, Math.round((end - start) / w2));
+      const edges2 = new Array(count2 + 1);
+      for (let i = 0; i <= count2; i++) edges2[i] = cleanFloat(start + i * w2);
+      return edges2;
+    }
+    const count = bins && isNum(bins.count) && bins.count >= 1 ? Math.floor(bins.count) : 30;
+    const w = (max - min) / count;
+    const edges = new Array(count + 1);
+    for (let i = 0; i <= count; i++) edges[i] = cleanFloat(min + i * w);
+    edges[count] = cleanFloat(max);
+    return edges;
+  }
+  function binIndexOf(v, edges) {
+    if (!isNum(v)) return -1;
+    const last = edges.length - 1;
+    if (v < edges[0] || v > edges[last]) return -1;
+    if (v === edges[last]) return last - 1;
+    for (let i = 0; i < last; i++) {
+      if (v >= edges[i] && v < edges[i + 1]) return i;
+    }
+    return -1;
+  }
+  class Crossfilter {
+    /**
+     * @param {string} id
+     * @param {any[]} [records]
+     */
+    constructor(id, records) {
+      this.id = id;
+      this.records = Array.isArray(records) ? records : [];
+      this.dims = /* @__PURE__ */ new Map();
+      this._listeners = /* @__PURE__ */ new Map();
+    }
+    // ----- registry ---------------------------------------------------------
+    /** @returns {Map<string, Crossfilter>} */
+    static _store() {
+      const g = (
+        /** @type {any} */
+        globalThis
+      );
+      if (!g[REGISTRY_KEY]) g[REGISTRY_KEY] = /* @__PURE__ */ new Map();
+      return g[REGISTRY_KEY];
+    }
+    /**
+     * Get-or-create a coordinator by id. Passing `records` on an existing
+     * coordinator swaps its dataset (re-aggregates).
+     * @param {{id:string, records?:any[]}} opts
+     * @returns {Crossfilter}
+     */
+    static getOrCreate(opts) {
+      if (!opts || typeof opts.id !== "string") {
+        throw new Error("ApexCharts.crossfilter requires an { id } string.");
+      }
+      const store = Crossfilter._store();
+      let cf = store.get(opts.id);
+      if (cf) {
+        if (opts.records) cf.setRecords(opts.records);
+        return cf;
+      }
+      cf = new Crossfilter(opts.id, opts.records);
+      store.set(opts.id, cf);
+      return cf;
+    }
+    /** @param {string} id @returns {Crossfilter|null} */
+    static get(id) {
+      return Crossfilter._store().get(id) || null;
+    }
+    // ----- data + dimensions ------------------------------------------------
+    /**
+     * Swap the shared dataset and recompute every dimension's domain. Existing
+     * filters are kept where still valid (categorical keys no longer present are
+     * pruned); the change is broadcast.
+     * @param {any[]} records
+     */
+    setRecords(records) {
+      this.records = Array.isArray(records) ? records : [];
+      this.dims.forEach((dim) => this._recomputeDomain(dim));
+      this._emit("records", this.state());
+      this._emit("change", this.state());
+      return this;
+    }
+    /**
+     * Register (or replace) a chart's dimension + reduction.
+     * @param {string} chartId
+     * @param {{
+     *   dimension:(row:any)=>any, reduce?:any, type?:'category'|'range',
+     *   bins?:{width?:number,count?:number,thresholds?:number[]},
+     *   order?:'first-seen'|'asc'|'desc'|((a:any,b:any)=>number),
+     *   filter?:any }} spec
+     */
+    registerDimension(chartId, spec) {
+      if (!spec || typeof spec.dimension !== "function") {
+        throw new Error(
+          `crossfilter.registerDimension("${chartId}") needs a dimension function.`
+        );
+      }
+      const type = spec.type || (spec.bins ? "range" : "category");
+      const dim = {
+        accessor: spec.dimension,
+        reducer: makeReducer(spec.reduce),
+        type,
+        bins: spec.bins,
+        order: spec.order,
+        /** @type {Set<any>|[number,number]|null} */
+        filter: null,
+        /** @type {any[]} */
+        labels: [],
+        /** @type {number[]|null} */
+        edges: null
+      };
+      this.dims.set(chartId, dim);
+      this._recomputeDomain(dim);
+      if (spec.filter != null) this._setFilterOn(dim, spec.filter);
+      return this;
+    }
+    /** @param {string} chartId @returns {boolean} */
+    hasDimension(chartId) {
+      return this.dims.has(chartId);
+    }
+    /** @param {string} chartId */
+    removeDimension(chartId) {
+      this.dims.delete(chartId);
+      return this;
+    }
+    /** @param {any} dim */
+    _recomputeDomain(dim) {
+      if (dim.type === "matrix") {
+        const dom = matrixDomain(this.records, dim.accessor, dim.order);
+        dim.xLabels = dom.xLabels;
+        dim.yLabels = dom.yLabels;
+        dim.edges = null;
+        return;
+      }
+      if (dim.type === "range") {
+        dim.edges = rangeEdges(this.records, dim.accessor, dim.bins);
+        dim.labels = dim.edges.slice(0, -1);
+      } else {
+        dim.labels = categoryDomain(this.records, dim.accessor, dim.order);
+        dim.edges = null;
+        if (dim.filter instanceof Set) {
+          const domain = new Set(dim.labels);
+          Array.from(dim.filter).forEach((k) => {
+            if (!domain.has(k)) dim.filter.delete(k);
+          });
+        }
+      }
+    }
+    // ----- filters ----------------------------------------------------------
+    /**
+     * Set (replace) a chart's filter. Categorical: an array/Set of keys (or null
+     * to clear). Range: a `[min,max]` tuple (or null to clear).
+     * @param {string} chartId
+     * @param {any[]|Set<any>|[number,number]|null} filter
+     */
+    filter(chartId, filter) {
+      const dim = this.dims.get(chartId);
+      if (!dim) return this;
+      this._setFilterOn(dim, filter);
+      this._emit("change", this.state());
+      return this;
+    }
+    /**
+     * Toggle one categorical key in a chart's filter Set (multi-select, OR).
+     * @param {string} chartId @param {any} key
+     */
+    toggleKey(chartId, key) {
+      const dim = this.dims.get(chartId);
+      if (!dim || dim.type !== "category") return this;
+      if (!(dim.filter instanceof Set)) dim.filter = /* @__PURE__ */ new Set();
+      const set = (
+        /** @type {Set<any>} */
+        dim.filter
+      );
+      if (set.has(key)) set.delete(key);
+      else set.add(key);
+      if (set.size === 0) dim.filter = null;
+      this._emit("change", this.state());
+      return this;
+    }
+    /** @param {any} dim @param {any} filter */
+    _setFilterOn(dim, filter) {
+      if (filter == null) {
+        dim.filter = null;
+        return;
+      }
+      if (dim.type === "range") {
+        if (Array.isArray(filter) && filter.length === 2 && filter.every(isNum)) {
+          dim.filter = [Math.min(filter[0], filter[1]), Math.max(filter[0], filter[1])];
+        } else {
+          dim.filter = null;
+        }
+        return;
+      }
+      const set = filter instanceof Set ? new Set(filter) : new Set(filter);
+      dim.filter = set.size ? set : null;
+    }
+    /**
+     * Clear one chart's filter.
+     * @param {string} chartId
+     */
+    clear(chartId) {
+      const dim = this.dims.get(chartId);
+      if (dim) dim.filter = null;
+      this._emit("change", this.state());
+      return this;
+    }
+    /** Clear all filters across every dimension. */
+    reset() {
+      this.dims.forEach((dim) => {
+        dim.filter = null;
+      });
+      this._emit("change", this.state());
+      return this;
+    }
+    /** @param {any} dim @returns {boolean} does this dimension have an active filter */
+    _hasFilter(dim) {
+      if (dim.filter == null) return false;
+      if (dim.filter instanceof Set) return dim.filter.size > 0;
+      return true;
+    }
+    /** @param {any} dim @param {any} row @returns {boolean} does row pass this dim's filter */
+    _passes(dim, row) {
+      if (!this._hasFilter(dim)) return true;
+      const v = dim.accessor(row);
+      if (dim.filter instanceof Set) return dim.filter.has(v);
+      if (!isNum(v)) return false;
+      return v >= dim.filter[0] && v <= dim.filter[1];
+    }
+    // ----- aggregation ------------------------------------------------------
+    /**
+     * Records passing every ACTIVE filter except the one on `exceptChartId`
+     * (pass null/undefined to apply all filters).
+     * @param {string|null} [exceptChartId]
+     * @returns {any[]}
+     */
+    filteredRecords(exceptChartId) {
+      const active = [];
+      this.dims.forEach((dim, id) => {
+        if (id === exceptChartId) return;
+        if (this._hasFilter(dim)) active.push(dim);
+      });
+      if (active.length === 0) return this.records;
+      return this.records.filter((row) => active.every((dim) => this._passes(dim, row)));
+    }
+    /** Rows passing ALL active filters (the fully filtered set). @returns {any[]} */
+    filteredRows() {
+      return this.filteredRecords(null);
+    }
+    /**
+     * The crossfilter aggregation for one chart: reduce over records passing all
+     * OTHER charts' filters, bucketed by this chart's dimension. Category/range
+     * dims return `{type, labels, values, keys, edges?}`; a matrix (2D) dim
+     * returns `{type:'matrix', xLabels, yLabels, matrix}`.
+     * @param {string} chartId
+     * @returns {any}
+     */
+    aggregateFor(chartId) {
+      const dim = this.dims.get(chartId);
+      if (!dim) return { type: "category", labels: [], values: [], keys: [] };
+      const rows = this.filteredRecords(chartId);
+      if (dim.type === "matrix") {
+        const xIndex = new Map(dim.xLabels.map((k, i) => [k, i]));
+        const yIndex = new Map(dim.yLabels.map((k, i) => [k, i]));
+        const buckets = dim.yLabels.map(() => dim.xLabels.map(() => []));
+        for (let i = 0; i < rows.length; i++) {
+          const pair = dim.accessor(rows[i]);
+          if (!pair) continue;
+          const xi = xIndex.get(pair[0]);
+          const yi = yIndex.get(pair[1]);
+          if (xi != null && yi != null) buckets[yi][xi].push(rows[i]);
+        }
+        return {
+          type: "matrix",
+          xLabels: dim.xLabels.slice(),
+          yLabels: dim.yLabels.slice(),
+          matrix: buckets.map((brow) => brow.map((cell) => dim.reducer(cell)))
+        };
+      }
+      if (dim.type === "range") {
+        const edges = dim.edges || [0, 1];
+        const nBins = edges.length - 1;
+        const buckets = Array.from({ length: nBins }, () => []);
+        for (let i = 0; i < rows.length; i++) {
+          const idx = binIndexOf(dim.accessor(rows[i]), edges);
+          if (idx >= 0) buckets[idx].push(rows[i]);
+        }
+        return {
+          type: "range",
+          labels: edges.slice(0, -1),
+          values: buckets.map((b) => dim.reducer(b)),
+          keys: buckets.map((_, i) => [edges[i], edges[i + 1]]),
+          edges
+        };
+      }
+      const index = /* @__PURE__ */ new Map();
+      dim.labels.forEach((k) => index.set(k, []));
+      for (let i = 0; i < rows.length; i++) {
+        const k = dim.accessor(rows[i]);
+        const bucket = index.get(k);
+        if (bucket) bucket.push(rows[i]);
+      }
+      return {
+        type: "category",
+        labels: dim.labels.slice(),
+        values: dim.labels.map(
+          (k) => dim.reducer(index.get(k) || [])
+        ),
+        keys: dim.labels.slice()
+      };
+    }
+    /**
+     * Aggregate every registered chart.
+     * @returns {Record<string, ReturnType<Crossfilter['aggregateFor']>>}
+     */
+    aggregateAll() {
+      const out = {};
+      this.dims.forEach((_dim, id) => {
+        out[id] = this.aggregateFor(id);
+      });
+      return out;
+    }
+    // ----- state + events ---------------------------------------------------
+    /**
+     * A serializable snapshot: active filters, filtered/total record counts.
+     * @returns {{filters:Record<string, any[]|[number,number]>, filteredCount:number, total:number}}
+     */
+    state() {
+      const filters = {};
+      this.dims.forEach((dim, id) => {
+        if (!this._hasFilter(dim)) return;
+        filters[id] = dim.filter instanceof Set ? Array.from(dim.filter) : dim.filter.slice();
+      });
+      return {
+        filters,
+        filteredCount: this.filteredRows().length,
+        total: this.records.length
+      };
+    }
+    /** @param {string} chartId @returns {any} the current filter (Set copy / range copy / null) */
+    filterOf(chartId) {
+      const dim = this.dims.get(chartId);
+      if (!dim || !this._hasFilter(dim)) return null;
+      return dim.filter instanceof Set ? new Set(dim.filter) : dim.filter.slice();
+    }
+    /**
+     * Subscribe to an event ('change' | 'records'). Returns an unsubscribe fn.
+     * @param {string} event @param {Function} cb
+     */
+    on(event, cb) {
+      let set = this._listeners.get(event);
+      if (!set) {
+        set = /* @__PURE__ */ new Set();
+        this._listeners.set(event, set);
+      }
+      set.add(cb);
+      return () => this.off(event, cb);
+    }
+    /** @param {string} event @param {Function} cb */
+    off(event, cb) {
+      var _a;
+      (_a = this._listeners.get(event)) == null ? void 0 : _a.delete(cb);
+      return this;
+    }
+    /** @param {string} event @param {any} payload */
+    _emit(event, payload) {
+      var _a;
+      (_a = this._listeners.get(event)) == null ? void 0 : _a.forEach((cb) => {
+        try {
+          cb(payload);
+        } catch (e) {
+          console.error(e);
+        }
+      });
+    }
+    // ----- data table (presentation helper) ---------------------------------
+    // Renders the filtered rows into a user-provided element and keeps it in sync
+    // on every filter change. Only the passed `el` is touched (no window/document
+    // globals), so the engine stays SSR-safe and unit-testable.
+    /** @param {string} s @returns {string} HTML-escaped */
+    _esc(s) {
+      return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+    /**
+     * @param {Array<string|{field:string,label?:string,format?:(v:any,row:any)=>any}>|undefined} columns
+     * @returns {Array<{field:string,label:string,format?:Function}>}
+     */
+    _resolveColumns(columns) {
+      if (Array.isArray(columns) && columns.length) {
+        return columns.map(
+          (c) => typeof c === "string" ? { field: c, label: c } : { field: c.field, label: c.label || c.field, format: c.format }
+        );
+      }
+      const first = this.records[0];
+      const fields = first ? Object.keys(first) : [];
+      return fields.map((f) => ({ field: f, label: f }));
+    }
+    /**
+     * @param {Array<{field:string,label:string,format?:Function}>} columns
+     * @param {any[]} rows @param {number} total
+     * @returns {string}
+     */
+    _tableHTML(columns, rows, total) {
+      const head = "<thead><tr>" + columns.map((c) => `<th>${this._esc(c.label)}</th>`).join("") + "</tr></thead>";
+      const body = "<tbody>" + rows.map(
+        (row) => "<tr>" + columns.map((c) => {
+          const raw = row[c.field];
+          const val = c.format ? c.format(raw, row) : raw;
+          return `<td>${this._esc(val)}</td>`;
+        }).join("") + "</tr>"
+      ).join("") + "</tbody>";
+      const caption = `<caption>${rows.length} of ${total} rows</caption>`;
+      return `<table class="apexcharts-cf-table">${caption}${head}${body}</table>`;
+    }
+    /**
+     * Bind an HTML table of the filtered rows to `el`; it re-renders on every
+     * filter change. Returns a handle with refresh()/destroy().
+     * @param {HTMLElement} el
+     * @param {{columns?:any[], page?:number, pageSize?:number}} [opts]
+     */
+    dataTable(el, opts) {
+      if (!el) return { refresh() {
+      }, destroy() {
+      } };
+      const o = opts || {};
+      const columns = this._resolveColumns(o.columns);
+      const pageSize = o.pageSize || 0;
+      const page = o.page || 0;
+      const render = () => {
+        const rows = this.filteredRows();
+        const shown = pageSize ? rows.slice(page * pageSize, page * pageSize + pageSize) : rows;
+        el.innerHTML = this._tableHTML(columns, shown, rows.length);
+      };
+      render();
+      const off = this.on("change", render);
+      return {
+        refresh: render,
+        destroy: () => {
+          off();
+          el.innerHTML = "";
+        }
+      };
+    }
+    /** Remove this coordinator from the registry and drop all state. */
+    destroy() {
+      Crossfilter._store().delete(this.id);
+      this.dims.clear();
+      this._listeners.clear();
+      this.records = [];
+    }
+  }
+  const MARK_SELECTOR = [
+    ".apexcharts-bar-area",
+    ".apexcharts-candlestick-area",
+    ".apexcharts-boxPlot-area",
+    ".apexcharts-rangebar-area",
+    ".apexcharts-marker"
+  ].join(", ");
+  const FILTER_MARK_SELECTOR = [
+    ".apexcharts-pie-area",
+    ".apexcharts-bar-area"
+  ].join(", ");
+  const DIMMED_CLASS = "apexcharts-crossfilter-dimmed";
+  const PIE_TYPES = ["pie", "donut", "polarArea", "radialBar"];
+  class LinkedViews {
+    /**
+     * @param {import('../../types/internal').ChartStateW} w
+     * @param {import('../../types/internal').ChartContext} ctx
+     */
+    constructor(w, ctx) {
+      this.w = w;
+      this.ctx = ctx;
+      this._dimmed = false;
+      this._wired = false;
+      this._pending = false;
+      this._lastValues = null;
+      this._onPointSelect = this._onPointSelect.bind(this);
+      this._afterRender = this._afterRender.bind(this);
+      this._onChange = this._onChange.bind(this);
+      if (this._mode() === "filter") this._initEngine();
+    }
+    /** @returns {'highlight'|'filter'|'off'} */
+    _mode() {
+      const link = this.w.config.chart.link;
+      if (link && typeof link.dimension === "function") return "filter";
+      if (link && link.enabled) return "highlight";
+      return "off";
+    }
+    _enabled() {
+      const link = this.w.config.chart.link;
+      return !!(link && link.enabled);
+    }
+    /**
+     * The source chart's rectangle brush produced a data-x range. In FILTER mode
+     * this becomes a `[min,max]` range filter on the chart's dimension (the other
+     * charts re-aggregate). In HIGHLIGHT mode (P1) it dims out-of-range marks
+     * across the group. Called (null-safe) from ZoomPanSelection selectionDrawn /
+     * selectionDragging.
+     * @param {{min:number, max:number}} xaxis
+     */
+    onSourceSelection(xaxis) {
+      var _a;
+      const mode = this._mode();
+      if (mode === "off") return;
+      if (!xaxis || xaxis.min == null || xaxis.max == null) return;
+      const min = Math.min(xaxis.min, xaxis.max);
+      const max = Math.max(xaxis.min, xaxis.max);
+      if (mode === "filter") {
+        const cf = this._cf();
+        if (!cf) return;
+        cf.filter(this._chartId(), [min, max]);
+        this._fireFilterChange(cf, [min, max]);
+        return;
+      }
+      this._group().forEach((ch) => {
+        var _a2;
+        (_a2 = ch == null ? void 0 : ch.linkedViews) == null ? void 0 : _a2.applyDim(min, max);
+      });
+      const args = { xaxis: { min, max }, sourceChartID: this.w.globals.chartID };
+      if (typeof this.w.config.chart.events.crossFilter === "function") {
+        this.w.config.chart.events.crossFilter(this.ctx, args);
+      }
+      (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("crossFilter", [this.ctx, args]);
+    }
+    /** self + grouped siblings (dedup-safe; getGroupedCharts excludes self). */
+    _group() {
+      const siblings = typeof this.ctx.getGroupedCharts === "function" ? this.ctx.getGroupedCharts() : [];
+      return [this.ctx, ...siblings];
+    }
+    /**
+     * Dim this chart's marks whose x is outside [min,max]; un-dim those inside.
+     * No re-render, so mark identities are preserved.
+     * @param {number} min @param {number} max
+     */
+    applyDim(min, max) {
+      if (!this._enabled()) return;
+      const w = this.w;
+      const baseEl = w.dom.baseEl;
+      if (!baseEl) return;
+      const dimOpacity = w.config.chart.link.dimOpacity;
+      if (w.dom.elWrap && typeof dimOpacity === "number") {
+        w.dom.elWrap.style.setProperty("--apx-cf-dim", String(dimOpacity));
+      }
+      const seriesX = w.globals.seriesX || [];
+      const marks = baseEl.querySelectorAll(MARK_SELECTOR);
+      marks.forEach((node) => {
+        const jAttr = node.getAttribute("j");
+        if (jAttr === null) return;
+        const j = parseInt(jAttr, 10);
+        const iAttr = node.getAttribute("index");
+        const i = iAttr === null ? 0 : parseInt(iAttr, 10);
+        const row = seriesX[i] || seriesX[0];
+        if (!row) return;
+        const x = row[j];
+        if (x == null) return;
+        node.classList.toggle(DIMMED_CLASS, x < min || x > max);
+      });
+      this._dimmed = true;
+    }
+    /** Remove dimming from this chart only. */
+    clear() {
+      const baseEl = this.w.dom.baseEl;
+      if (!baseEl) return;
+      baseEl.querySelectorAll("." + DIMMED_CLASS).forEach((n) => n.classList.remove(DIMMED_CLASS));
+      this._dimmed = false;
+    }
+    /** Clear dimming across the whole group (backs chart.clearCrossfilter). */
+    clearGroup() {
+      if (this._mode() === "filter") {
+        const cf = this._cf();
+        if (cf) cf.reset();
+        return;
+      }
+      this._group().forEach((ch) => {
+        var _a;
+        return (_a = ch == null ? void 0 : ch.linkedViews) == null ? void 0 : _a.clear();
+      });
+    }
+    // ─── FILTER mode (crossfilter engine glue) ───────────────────────────────
+    /**
+     * The chart's stable internal id (keys its dimension in the coordinator).
+     * Always set by the ApexCharts constructor (falls back to a cuid).
+     * @returns {string}
+     */
+    _chartId() {
+      return (
+        /** @type {string} */
+        this.w.globals.chartID
+      );
+    }
+    /** @returns {import('./Crossfilter').default|null} the coordinator, or null */
+    _cf() {
+      const link = this.w.config.chart.link;
+      const id = link && (link.id || this.w.config.chart.group);
+      return id ? Crossfilter.get(id) : null;
+    }
+    _isPie() {
+      return PIE_TYPES.indexOf(this.w.config.chart.type) !== -1;
+    }
+    _isHeatmap() {
+      return this.w.config.chart.type === "heatmap";
+    }
+    /**
+     * Before the first render: resolve the coordinator, register this chart's
+     * dimension, inject the initial aggregated series into w.config (so the first
+     * paint is already aggregated, no empty flash), and wire the listeners.
+     */
+    _initEngine() {
+      const cf = this._cf();
+      const link = this.w.config.chart.link;
+      if (!cf) {
+        const id = link && link.id || this.w.config.chart.group;
+        console.warn(
+          `[apexcharts] chart.link.dimension is set but no crossfilter coordinator "${id}" exists. Call ApexCharts.crossfilter({ id, records }) before creating the chart.`
+        );
+        return;
+      }
+      const chartId = this._chartId();
+      if (!cf.hasDimension(chartId)) {
+        cf.registerDimension(chartId, {
+          dimension: link.dimension,
+          reduce: link.reduce,
+          // heatmap => 2D matrix dimension (accessor returns [xKey, yKey]).
+          type: link.type || (this._isHeatmap() ? "matrix" : void 0),
+          bins: link.bins,
+          order: link.order
+        });
+      }
+      this._injectSeries(cf.aggregateFor(chartId));
+      this._wire(cf);
+    }
+    /**
+     * Build the chart's series value from an aggregation, shaped by chart type:
+     *   matrix (heatmap) -> [{ name:yKey, data:[{x:xKey, y:value}] }]
+     *   pie/donut  -> number[]
+     *   axis + category -> [{ name, data:number[] }] (categories set separately)
+     *   axis + range    -> [{ name, data:[x,value][] }] on a numeric/time x-axis
+     * @param {any} agg
+     */
+    _seriesFromAgg(agg) {
+      if (agg.type === "matrix") {
+        return agg.yLabels.map((yl, yi) => ({
+          name: String(yl),
+          data: agg.xLabels.map((xl, xi) => ({
+            x: String(xl),
+            y: agg.matrix[yi][xi]
+          }))
+        }));
+      }
+      if (this._isPie()) return agg.values.slice();
+      const name2 = this.w.config.chart.link.seriesName || "Count";
+      if (agg.type === "range") {
+        return [{ name: name2, data: agg.labels.map((x, i) => [x, agg.values[i]]) }];
+      }
+      return [{ name: name2, data: agg.values.slice() }];
+    }
+    /**
+     * Value signature used to skip a reflow when only dimming changed.
+     * @param {any} agg
+     */
+    _sigOf(agg) {
+      return JSON.stringify(agg.matrix || agg.values);
+    }
+    /**
+     * Write the aggregation into w.config as the chart's series/labels. Runs once
+     * before the first paint; later updates go through updateSeries.
+     * @param {any} agg
+     */
+    _injectSeries(agg) {
+      const w = this.w;
+      this._lastValues = this._sigOf(agg);
+      w.config.series = this._seriesFromAgg(agg);
+      if (agg.type === "matrix") return;
+      if (this._isPie()) {
+        w.config.labels = agg.labels.map(String);
+      } else if (agg.type === "category") {
+        if (!w.config.xaxis) w.config.xaxis = {};
+        w.config.xaxis.categories = agg.labels.map(String);
+      }
+    }
+    /** @param {import('./Crossfilter').default} cf */
+    _wire(cf) {
+      if (this._wired) return;
+      this._wired = true;
+      this.ctx.addEventListener("dataPointSelection", this._onPointSelect);
+      this.ctx.addEventListener("mounted", this._afterRender);
+      this.ctx.addEventListener("updated", this._afterRender);
+      cf.on("change", this._onChange);
+    }
+    /**
+     * A pie slice / bar was clicked: toggle its bucket key on the coordinator.
+     * @param {any} _e @param {any} _ctx @param {{dataPointIndex?:number}} opts
+     */
+    _onPointSelect(_e, _ctx, opts) {
+      if (this._mode() !== "filter" || !opts || opts.dataPointIndex == null) return;
+      const cf = this._cf();
+      if (!cf) return;
+      const chartId = this._chartId();
+      const agg = cf.aggregateFor(chartId);
+      if (agg.type === "matrix") return;
+      const key = agg.keys[opts.dataPointIndex];
+      if (key == null) return;
+      cf.toggleKey(chartId, key);
+      this._fireFilterChange(cf, key);
+    }
+    /** Coordinator filter changed: re-aggregate this chart on a microtask so the
+     *  triggering click handler unwinds before we destroy/redraw the DOM. */
+    _onChange() {
+      if (this._mode() !== "filter" || this._pending) return;
+      this._pending = true;
+      Promise.resolve().then(() => {
+        this._pending = false;
+        if (this.w.globals.isDestroyed) return;
+        this._applyAggregation();
+      });
+    }
+    /**
+     * Pull this chart's crossfilter aggregation and push it through updateSeries
+     * (animated). When the values are unchanged (e.g. only this chart's own
+     * filter moved, which it ignores for itself), skip the reflow and just
+     * refresh the self-dim.
+     */
+    _applyAggregation() {
+      if (this._mode() !== "filter") return;
+      const cf = this._cf();
+      if (!cf) return;
+      const agg = cf.aggregateFor(this._chartId());
+      const sig = this._sigOf(agg);
+      if (sig === this._lastValues) {
+        this._applySelfDim();
+        return;
+      }
+      this._lastValues = sig;
+      this.ctx.updateSeries(this._seriesFromAgg(agg), true);
+    }
+    _afterRender() {
+      if (this._mode() !== "filter") return;
+      this._applySelfDim();
+    }
+    /**
+     * Dim this chart's own buckets that are not in its own filter (no filter ->
+     * none dimmed). Categorical: dim buckets whose key is not in the selected Set.
+     * Range: dim bins lying fully outside the selected `[min,max]`. Keyed by each
+     * mark's `j` (dataPointIndex) -> the aggregation key.
+     */
+    _applySelfDim() {
+      const cf = this._cf();
+      if (!cf) return;
+      const w = this.w;
+      const baseEl = w.dom.baseEl;
+      if (!baseEl) return;
+      const chartId = this._chartId();
+      const filter = cf.filterOf(chartId);
+      const dimOpacity = w.config.chart.link.dimOpacity;
+      if (w.dom.elWrap && typeof dimOpacity === "number") {
+        w.dom.elWrap.style.setProperty("--apx-cf-dim", String(dimOpacity));
+      }
+      const isCategory = filter instanceof Set;
+      const isRange = Array.isArray(filter);
+      const keys = cf.aggregateFor(chartId).keys;
+      baseEl.querySelectorAll(FILTER_MARK_SELECTOR).forEach((node) => {
+        const jAttr = node.getAttribute("j");
+        if (jAttr === null) return;
+        const key = keys[parseInt(jAttr, 10)];
+        let dim = false;
+        if (isCategory) {
+          dim = !/** @type {Set<any>} */
+          filter.has(key);
+        } else if (isRange && Array.isArray(key)) {
+          dim = key[1] <= filter[0] || key[0] >= filter[1];
+        }
+        node.classList.toggle(DIMMED_CLASS, dim);
+      });
+      this._dimmed = !!filter;
+    }
+    /**
+     * Fire the `filterChange` event on this (source) chart.
+     * @param {import('./Crossfilter').default} cf @param {any} key
+     */
+    _fireFilterChange(cf, key) {
+      var _a;
+      const args = __spreadProps(__spreadValues({}, cf.state()), {
+        sourceChartID: this._chartId(),
+        key
+      });
+      const events = this.w.config.chart.events;
+      if (typeof events.filterChange === "function") {
+        events.filterChange(this.ctx, args);
+      }
+      (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("filterChange", [this.ctx, args]);
+    }
+    teardown() {
+      var _a, _b, _c, _d, _e, _f;
+      this.clear();
+      if (this._wired) {
+        (_b = (_a = this.ctx).removeEventListener) == null ? void 0 : _b.call(_a, "dataPointSelection", this._onPointSelect);
+        (_d = (_c = this.ctx).removeEventListener) == null ? void 0 : _d.call(_c, "mounted", this._afterRender);
+        (_f = (_e = this.ctx).removeEventListener) == null ? void 0 : _f.call(_e, "updated", this._afterRender);
+        const cf = this._cf();
+        if (cf) {
+          cf.off("change", this._onChange);
+          cf.removeDimension(this._chartId());
+        }
+        this._wired = false;
+      }
+    }
+  }
+  ApexCharts.registerFeatures({ linkedViews: LinkedViews });
+  const AC = (
+    /** @type {any} */
+    ApexCharts
+  );
+  AC._crossfilterFactory = (opts) => Crossfilter.getOrCreate(opts);
+  AC._crossfilterGet = (id) => Crossfilter.get(id);
+  const DRAG_CLASS = "apexcharts-ink-draggable";
+  const TYPES = ["point", "xaxis", "yaxis"];
+  const EDGE_PX = 8;
+  const CLICK_SLOP_PX = 2;
+  const FONT_STEPS = [10, 11, 12, 14, 17, 20];
+  const MARKER_SHAPES = ["circle", "square", "diamond", "triangle"];
+  const SHAPE_GLYPHS = {
+    circle: "●",
+    square: "■",
+    diamond: "◆",
+    triangle: "▲"
+  };
+  const NOTE_COLORS = [
+    "#ffffff",
+    "#334155",
+    "#2563eb",
+    "#16a34a",
+    "#d97706",
+    "#dc2626"
+  ];
+  const TRASH_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>';
+  class InkLayer {
+    /**
+     * @param {import('../../types/internal').ChartStateW} w
+     * @param {import('../../types/internal').ChartContext} ctx
+     */
+    constructor(w, ctx) {
+      this.w = w;
+      this.ctx = ctx;
+      this._wired = false;
+      this._drag = null;
+      this._editor = null;
+      this._creating = false;
+      this._createSeq = 0;
+      this._attach = this._attach.bind(this);
+      this._onRerender = this._onRerender.bind(this);
+      this._onMove = this._onMove.bind(this);
+      this._onUp = this._onUp.bind(this);
+      this._onCreateClick = this._onCreateClick.bind(this);
+      this._onDocDownEditor = this._onDocDownEditor.bind(this);
+      if (this._enabledGlobally() || this._hasDraggable() || this._paletteEnabled()) {
+        this._wire();
+      }
+    }
+    _enabledGlobally() {
+      const ink = this.w.config.chart.ink;
+      return !!(ink && ink.enabled);
+    }
+    _paletteEnabled() {
+      const ink = this.w.config.chart.ink;
+      return !!(ink && ink.palette);
+    }
+    _snapEnabled() {
+      const ink = this.w.config.chart.ink;
+      return !!(ink && ink.snap);
+    }
+    // ─── P5: snap to gridlines ────────────────────────────────────────────────
+    /** @param {number} v @param {number[]} ticks @returns {number} nearest tick */
+    _nearest(v, ticks) {
+      let best = v;
+      let bd = Infinity;
+      for (let i = 0; i < ticks.length; i++) {
+        const d = Math.abs(ticks[i] - v);
+        if (d < bd) {
+          bd = d;
+          best = ticks[i];
+        }
+      }
+      return best;
+    }
+    /**
+     * Snap an x value to the nearest x gridline (numeric axes only).
+     * @param {number} x
+     */
+    _snapX(x) {
+      if (!this._snapEnabled() || typeof x !== "number") return x;
+      const s = this.w.globals.xAxisScale;
+      return s && Array.isArray(s.result) && s.result.length ? this._nearest(x, s.result) : x;
+    }
+    /**
+     * Snap a y value to the nearest y gridline.
+     * @param {number} y @param {number} si
+     */
+    _snapY(y, si) {
+      if (!this._snapEnabled() || typeof y !== "number") return y;
+      const scales = this.w.globals.yAxisScale;
+      const s = scales && scales[si];
+      return s && Array.isArray(s.result) && s.result.length ? this._nearest(y, s.result) : y;
+    }
+    /** @param {string} type @returns {any[]} the config annotations of a type */
+    _annoList(type) {
+      const a = this.w.config.annotations;
+      if (!a) return [];
+      const key = type === "point" ? "points" : type;
+      return Array.isArray(a[key]) ? a[key] : [];
+    }
+    /** @param {any} anno */
+    _isDraggable(anno) {
+      if (!anno) return false;
+      if (anno.draggable === true) return true;
+      if (anno.draggable === false) return false;
+      return this._enabledGlobally();
+    }
+    _hasDraggable() {
+      return TYPES.some((t) => this._annoList(t).some((p) => this._isDraggable(p)));
+    }
+    _wire() {
+      if (this._wired) return;
+      this._wired = true;
+      this.ctx.addEventListener("mounted", this._onRerender);
+      this.ctx.addEventListener("updated", this._onRerender);
+    }
+    /**
+     * A full (re)render rebuilds the SVG and may swap the annotations config
+     * (updateOptions, undo restore), so an open editor card points at stale
+     * state: drop it (without committing) before rebinding handlers. Targeted
+     * redraws call _attach() directly and keep the card open.
+     */
+    _onRerender() {
+      this._closeEditor(false);
+      this._attach();
+    }
+    /**
+     * After each (re)render, bind drag + edit handlers to every draggable
+     * annotation's elements. Idempotent via a per-node flag so a targeted redraw
+     * re-runs this without double-binding the untouched annotations.
+     */
+    _attach() {
+      const w = this.w;
+      const baseEl = w.dom.baseEl;
+      if (!baseEl) return;
+      TYPES.forEach((type) => {
+        this._annoList(type).forEach((anno, index) => {
+          if (!this._isDraggable(anno)) return;
+          if (!anno.id) {
+            anno.id = "apexcharts-ink-" + type + "-" + index + "-" + w.globals.chartID;
+          }
+          baseEl.querySelectorAll("." + anno.id).forEach((el) => {
+            if (el.__inkBound) return;
+            el.__inkBound = true;
+            el.style.cursor = "move";
+            el.classList.add(DRAG_CLASS);
+            el.addEventListener(
+              "mousedown",
+              (e) => this._onDown(e, type, index)
+            );
+            el.addEventListener(
+              "touchstart",
+              (e) => this._onDown(e, type, index)
+            );
+            el.addEventListener("dblclick", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              this._startEdit(type, index, { select: true });
+            });
+          });
+        });
+      });
+      if (this._paletteEnabled()) this._renderPalette();
+    }
+    // ─── drag / resize ────────────────────────────────────────────────────────
+    /**
+     * @param {any} e @param {string} type @param {number} index
+     */
+    _onDown(e, type, index) {
+      if (e.button && e.button !== 0) return;
+      const w = this.w;
+      const doc = w.dom.baseEl && w.dom.baseEl.ownerDocument;
+      if (!doc) return;
+      e.stopPropagation();
+      if (e.cancelable) e.preventDefault();
+      const isTouch = e.type === "touchstart";
+      const ev = isTouch ? e.touches[0] : e;
+      const svgRoot = w.dom.Paper && w.dom.Paper.node;
+      const ctm = svgRoot && svgRoot.getScreenCTM ? svgRoot.getScreenCTM() : null;
+      const anno = this._annoList(type)[index];
+      let mode = "move";
+      let rect = null;
+      let origX = 0;
+      let origW = 0;
+      if (type === "xaxis" && anno.x2 != null) {
+        rect = w.dom.baseEl.querySelector(".apexcharts-annotation-rect." + anno.id);
+        if (rect) {
+          const r = rect.getBoundingClientRect();
+          if (Math.abs(ev.clientX - r.left) <= EDGE_PX) mode = "resize-x1";
+          else if (Math.abs(ev.clientX - r.right) <= EDGE_PX) mode = "resize-x2";
+          origX = parseFloat(rect.getAttribute("x")) || 0;
+          origW = parseFloat(rect.getAttribute("width")) || 0;
+        }
+      }
+      this._drag = {
+        type,
+        index,
+        anno,
+        els: Array.from(w.dom.baseEl.querySelectorAll("." + anno.id)),
+        mode,
+        rect,
+        origX,
+        origW,
+        startX: ev.clientX,
+        startY: ev.clientY,
+        scaleX: ctm && ctm.a ? ctm.a : 1,
+        scaleY: ctm && ctm.d ? ctm.d : 1,
+        dxPixel: 0,
+        dyPixel: 0,
+        moved: false
+      };
+      doc.addEventListener("mousemove", this._onMove);
+      doc.addEventListener("touchmove", this._onMove, { passive: false });
+      doc.addEventListener("mouseup", this._onUp);
+      doc.addEventListener("touchend", this._onUp);
+    }
+    /** @param {any} me */
+    _onMove(me) {
+      const d = this._drag;
+      if (!d) return;
+      if (me.cancelable) me.preventDefault();
+      const mev = me.type === "touchmove" ? me.touches[0] : me;
+      d.dxPixel = (mev.clientX - d.startX) / d.scaleX;
+      d.dyPixel = (mev.clientY - d.startY) / d.scaleY;
+      if (Math.abs(d.dxPixel) > CLICK_SLOP_PX || Math.abs(d.dyPixel) > CLICK_SLOP_PX) {
+        d.moved = true;
+      }
+      if (d.mode === "move") {
+        const t = `translate(${d.dxPixel} ${d.dyPixel})`;
+        d.els.forEach((el) => el.setAttribute("transform", t));
+      } else if (d.rect) {
+        if (d.mode === "resize-x1") {
+          d.rect.setAttribute("x", d.origX + d.dxPixel);
+          d.rect.setAttribute("width", Math.max(1, d.origW - d.dxPixel));
+        } else if (d.mode === "resize-x2") {
+          d.rect.setAttribute("width", Math.max(1, d.origW + d.dxPixel));
+        }
+      }
+    }
+    _onUp() {
+      const d = this._drag;
+      this._drag = null;
+      this._teardownDocListeners();
+      if (!d || !d.moved) {
+        if (d) {
+          d.els.forEach((el) => el.removeAttribute("transform"));
+          this._startEdit(d.type, d.index);
+        }
+        return;
+      }
+      const anno = this._annoList(d.type)[d.index];
+      if (!anno) return;
+      this._applyDelta(d, anno);
+      d.els.forEach((el) => el.removeAttribute("transform"));
+      this._redrawAnno(d.type, anno, d.index);
+      this._checkpoint("ink:drag");
+      this._fireDragged(d.type, anno, d.index);
+    }
+    /**
+     * Record a Rewind (undo) checkpoint for an ink edit. Targeted redraws fire no
+     * 'updated' event, so History would otherwise miss them. No-op when the
+     * history feature is absent or disabled.
+     * @param {string} label
+     */
+    _checkpoint(label) {
+      var _a, _b;
+      (_b = (_a = this.ctx.history) == null ? void 0 : _a.snapshot) == null ? void 0 : _b.call(_a, label);
+    }
+    /**
+     * Mutate the annotation's config from the pixel drag delta (type + mode aware).
+     * @param {any} d @param {any} anno
+     */
+    _applyDelta(d, anno) {
+      const w = this.w;
+      const dxData = w.layout.gridWidth ? d.dxPixel * (w.globals.xRange / w.layout.gridWidth) : 0;
+      if (d.type === "point") {
+        const { newX, newY } = this._invertPoint(anno, d.dxPixel, d.dyPixel);
+        anno.x = this._snapX(newX);
+        if (newY != null) {
+          const yi = anno.yAxisIndex || 0;
+          const map = w.globals.seriesYAxisMap;
+          anno.y = this._snapY(newY, map && map[yi] ? map[yi][0] : 0);
+        }
+        return;
+      }
+      if (d.type === "xaxis") {
+        if (typeof anno.x !== "number") return;
+        if (d.mode === "move") {
+          if (typeof anno.x2 === "number") {
+            anno.x += dxData;
+            anno.x2 += dxData;
+          } else {
+            anno.x = this._snapX(anno.x + dxData);
+          }
+        } else if (d.mode === "resize-x1" || d.mode === "resize-x2") {
+          const xIsLeft = anno.x2 == null || anno.x <= anno.x2;
+          const grow = d.mode === "resize-x2" ? !xIsLeft : xIsLeft;
+          if (grow) anno.x = this._snapX(anno.x + dxData);
+          else if (typeof anno.x2 === "number") anno.x2 = this._snapX(anno.x2 + dxData);
+        }
+        return;
+      }
+      if (d.type === "yaxis") {
+        const yi = anno.yAxisIndex || 0;
+        const map = w.globals.seriesYAxisMap;
+        const si = map && map[yi] ? map[yi][0] : 0;
+        const yRange = w.globals.yRange ? w.globals.yRange[si] : null;
+        if (yRange == null || !w.layout.gridHeight) return;
+        const dyData = -d.dyPixel * (yRange / w.layout.gridHeight);
+        if (typeof anno.y2 === "number") {
+          if (typeof anno.y === "number") anno.y += dyData;
+          anno.y2 += dyData;
+        } else if (typeof anno.y === "number") {
+          anno.y = this._snapY(anno.y + dyData, si);
+        }
+      }
+    }
+    /**
+     * Invert a pixel drag delta to a point annotation's data x/y.
+     * @param {any} anno @param {number} dxPixel @param {number} dyPixel
+     * @returns {{newX:any, newY:any}}
+     */
+    _invertPoint(anno, dxPixel, dyPixel) {
+      const w = this.w;
+      const categoryX = (w.config.xaxis.type === "category" || w.config.xaxis.convertedCatToNumeric) && !w.axisFlags.dataFormatXNumeric;
+      let newX = anno.x;
+      if (!categoryX && typeof anno.x === "number" && w.layout.gridWidth) {
+        newX = anno.x + dxPixel * (w.globals.xRange / w.layout.gridWidth);
+      }
+      let newY = anno.y;
+      const yi = anno.yAxisIndex || 0;
+      const map = w.globals.seriesYAxisMap;
+      const si = map && map[yi] ? map[yi][0] : 0;
+      const yRange = w.globals.yRange ? w.globals.yRange[si] : null;
+      const logY = w.config.yaxis[yi] && w.config.yaxis[yi].logarithmic;
+      if (typeof anno.y === "number" && yRange != null && !logY && w.layout.gridHeight) {
+        newY = anno.y - dyPixel * (yRange / w.layout.gridHeight);
+      }
+      return { newX, newY };
+    }
+    /**
+     * Targeted redraw of one annotation: drop its elements and re-add the shape +
+     * label + label background at the current config coordinates (no full chart
+     * re-render, and repeat-safe unlike updateOptions({})).
+     * @param {string} type @param {any} anno @param {number} index
+     */
+    _redrawAnno(type, anno, index) {
+      const w = this.w;
+      const baseEl = w.dom.baseEl;
+      const annotations = this.ctx.annotations;
+      if (!baseEl || !annotations) return;
+      baseEl.querySelectorAll("." + anno.id).forEach((el) => el.remove());
+      const group = baseEl.querySelector(".apexcharts-" + type + "-annotations");
+      if (!group) return;
+      if (type === "point" && annotations.pointsAnnotations) {
+        annotations.pointsAnnotations.addPointAnnotation(anno, group, index);
+      } else if (type === "xaxis" && annotations.xAxisAnnotations) {
+        annotations.xAxisAnnotations.addXaxisAnnotation(anno, group, index);
+      } else if (type === "yaxis" && annotations.yAxisAnnotations) {
+        annotations.yAxisAnnotations.addYaxisAnnotation(anno, group, index);
+      }
+      const labelEl = baseEl.querySelector(
+        ".apexcharts-" + type + "-annotation-label." + anno.id
+      );
+      if (labelEl && annotations.helpers && anno.label && anno.label.text) {
+        const elRect = annotations.helpers.addBackgroundToAnno(labelEl, anno);
+        if (elRect && labelEl.parentNode) {
+          labelEl.parentNode.insertBefore(elRect.node, labelEl);
+        }
+      }
+      this._attach();
+    }
+    /** @param {string} type @param {any} anno @param {number} index */
+    _fireDragged(type, anno, index) {
+      var _a;
+      const args = { type, id: anno.id, index, x: anno.x, y: anno.y };
+      if (anno.x2 != null) args.x2 = anno.x2;
+      if (anno.y2 != null) args.y2 = anno.y2;
+      const events = this.w.config.chart.events;
+      if (typeof events.annotationDragged === "function") {
+        events.annotationDragged(this.ctx, args);
+      }
+      (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationDragged", [this.ctx, args]);
+    }
+    // ─── P3: click-to-create ─────────────────────────────────────────────────
+    /**
+     * Enter create mode: the next click on the plot area drops a new draggable
+     * point annotation there and opens its label editor.
+     */
+    startCreate() {
+      if (this._creating) return;
+      const svg = this.w.dom.Paper && this.w.dom.Paper.node;
+      if (!svg) return;
+      this._creating = true;
+      svg.style.cursor = "crosshair";
+      svg.addEventListener("click", this._onCreateClick, true);
+      this._syncPalette();
+    }
+    /** Leave create mode. */
+    stopCreate() {
+      if (!this._creating) return;
+      this._creating = false;
+      const svg = this.w.dom.Paper && this.w.dom.Paper.node;
+      if (svg) {
+        svg.style.cursor = "";
+        svg.removeEventListener("click", this._onCreateClick, true);
+      }
+      this._syncPalette();
+    }
+    /** @param {any} e */
+    _onCreateClick(e) {
+      if (!this._creating) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const pos = this._pixelToData(e.clientX, e.clientY);
+      this.stopCreate();
+      if (!pos) return;
+      this.createAt(pos.x, pos.y);
+    }
+    /**
+     * Create a draggable note at data coordinates and open its editor card.
+     * Public: the context menu's "Add note here" routes here so its notes are
+     * config-backed too, and thus draggable, editable, persistable and undoable.
+     * @param {any} x @param {any} y @param {{text?: string}} [opts]
+     * @returns {any} the created annotation config
+     */
+    createAt(x, y, opts = {}) {
+      const w = this.w;
+      this._wire();
+      this._createSeq += 1;
+      const id = "apexcharts-ink-new-" + this._createSeq + "-" + w.globals.chartID;
+      const anno = Utils$1.extend(new Options().pointAnnotation, {
+        x,
+        y,
+        id,
+        draggable: true,
+        label: { text: opts.text || "Note" }
+      });
+      if (!w.config.annotations) w.config.annotations = {};
+      if (!Array.isArray(w.config.annotations.points)) w.config.annotations.points = [];
+      w.config.annotations.points.push(anno);
+      const index = w.config.annotations.points.length - 1;
+      this._redrawAnno("point", anno, index);
+      this._checkpoint("ink:create");
+      this._fireCreated("point", anno, index);
+      this._startEdit("point", index, { select: true });
+      return anno;
+    }
+    /**
+     * Create a draggable dashed LINE annotation at a data value and open its
+     * editor card: axis 'x' drops a vertical line at a data x, axis 'y' a
+     * horizontal line at a data y. Public: the context menu's "Annotate here"
+     * routes here so its lines are config-backed too, and thus draggable,
+     * editable, persistable and undoable. Lines only: x2/y2 are never set, so
+     * this can never produce a range rectangle.
+     * @param {'x'|'y'} axis @param {any} val
+     * @param {{text?: string, strokeDashArray?: number, color?: string, select?: boolean}} [opts]
+     * @returns {any} the created annotation config
+     */
+    createLineAt(axis, val, opts = {}) {
+      const w = this.w;
+      this._wire();
+      this._createSeq += 1;
+      const id = "apexcharts-ink-new-" + this._createSeq + "-" + w.globals.chartID;
+      const type = axis === "y" ? "yaxis" : "xaxis";
+      const defaults = type === "yaxis" ? new Options().yAxisAnnotation : new Options().xAxisAnnotation;
+      const over = {
+        id,
+        draggable: true,
+        strokeDashArray: opts.strokeDashArray != null ? opts.strokeDashArray : 4,
+        label: { text: opts.text || "" }
+      };
+      if (opts.color) {
+        over.borderColor = opts.color;
+        over.label.borderColor = opts.color;
+      }
+      if (type === "yaxis") over.y = val;
+      else over.x = val;
+      const anno = Utils$1.extend(defaults, over);
+      if (!w.config.annotations) w.config.annotations = {};
+      if (!Array.isArray(w.config.annotations[type])) w.config.annotations[type] = [];
+      w.config.annotations[type].push(anno);
+      const index = w.config.annotations[type].length - 1;
+      this._redrawAnno(type, anno, index);
+      this._checkpoint("ink:create");
+      this._fireCreated(type, anno, index);
+      if (opts.select !== false) this._startEdit(type, index, { select: true });
+      return anno;
+    }
+    /**
+     * Convert a client-space point to data coordinates (absolute, for create).
+     * @param {number} clientX @param {number} clientY
+     * @returns {{x:any, y:any}|null}
+     */
+    _pixelToData(clientX, clientY) {
+      const w = this.w;
+      const gridEl = w.dom.baseEl && w.dom.baseEl.querySelector(".apexcharts-grid");
+      if (!gridEl) return null;
+      const g = gridEl.getBoundingClientRect();
+      if (!g.width || !g.height) return null;
+      const fx = (clientX - g.left) / g.width;
+      const fy = (clientY - g.top) / g.height;
+      const minX = w.globals.minX;
+      const xRange = w.globals.xRange;
+      const minY = w.globals.minYArr && w.globals.minYArr[0] != null ? w.globals.minYArr[0] : w.globals.minY;
+      const yRange = w.globals.yRange && w.globals.yRange[0] != null ? w.globals.yRange[0] : w.globals.maxY - w.globals.minY;
+      let x = minX + fx * xRange;
+      const y = minY + (1 - fy) * yRange;
+      const categoryX = (w.config.xaxis.type === "category" || w.config.xaxis.convertedCatToNumeric) && !w.axisFlags.dataFormatXNumeric;
+      if (categoryX) x = Math.round(x);
+      return { x, y };
+    }
+    /** @param {string} type @param {any} anno @param {number} index */
+    _fireCreated(type, anno, index) {
+      var _a;
+      const args = { type, id: anno.id, index };
+      if (typeof anno.x !== "undefined") args.x = anno.x;
+      if (typeof anno.y !== "undefined") args.y = anno.y;
+      const events = this.w.config.chart.events;
+      if (typeof events.annotationCreated === "function") {
+        events.annotationCreated(this.ctx, args);
+      }
+      (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationCreated", [this.ctx, args]);
+    }
+    // ─── P3: tool palette ────────────────────────────────────────────────────
+    /** Render a minimal "add note" toggle into the chart wrap (once per render). */
+    _renderPalette() {
+      const w = this.w;
+      const elWrap = w.dom.elWrap;
+      if (!elWrap || elWrap.querySelector(".apexcharts-ink-palette")) return;
+      const doc = elWrap.ownerDocument;
+      const bar = doc.createElement("div");
+      bar.className = "apexcharts-ink-palette";
+      const s = bar.style;
+      s.position = "absolute";
+      s.top = "6px";
+      s.left = "6px";
+      s.zIndex = "15";
+      const btn = doc.createElement("button");
+      btn.type = "button";
+      btn.className = "apexcharts-ink-add";
+      btn.textContent = "+ Note";
+      const bs = btn.style;
+      bs.cursor = "pointer";
+      bs.font = "12px sans-serif";
+      bs.padding = "4px 9px";
+      bs.borderRadius = "5px";
+      bs.border = "1px solid #6366f1";
+      bs.color = "#4338ca";
+      bs.background = "#fff";
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (this._creating) this.stopCreate();
+        else this.startCreate();
+      });
+      bar.appendChild(btn);
+      elWrap.appendChild(bar);
+      this._syncPalette();
+    }
+    /** Reflect create-mode state on the palette button. */
+    _syncPalette() {
+      const elWrap = this.w.dom.elWrap;
+      const btn = (
+        /** @type {any} */
+        elWrap && elWrap.querySelector(".apexcharts-ink-add")
+      );
+      if (!btn) return;
+      if (this._creating) {
+        btn.style.background = "#6366f1";
+        btn.style.color = "#fff";
+        btn.textContent = "Click chart...";
+      } else {
+        btn.style.background = "#fff";
+        btn.style.color = "#4338ca";
+        btn.textContent = "+ Note";
+      }
+    }
+    // ─── P2 + P6: the floating note editor card ──────────────────────────────
+    // Click (or double-click) an ink-managed annotation to open a small card
+    // anchored to it: rename inline, recolor via accent swatches, toggle bold,
+    // step the font size, size/reshape the marker (points), or delete the note.
+    /** @returns {string[]} the accent swatches offered by the editor */
+    _noteColors() {
+      const ink = this.w.config.chart.ink;
+      return ink && Array.isArray(ink.noteColors) && ink.noteColors.length ? ink.noteColors : NOTE_COLORS;
+    }
+    /**
+     * Perceived-luminance check so text/border contrast follows the accent.
+     * @param {string} hex
+     */
+    static _isLight(hex) {
+      const h = String(hex || "").replace("#", "");
+      const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+      const n = parseInt(full, 16);
+      if (isNaN(n) || full.length !== 6) return false;
+      const r = n >> 16 & 255;
+      const g = n >> 8 & 255;
+      const b = n & 255;
+      return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.72;
+    }
+    /** @param {any} style */
+    static _isBold(style) {
+      const fw = style && style.fontWeight;
+      return fw === "bold" || parseInt(String(fw), 10) >= 600;
+    }
+    /**
+     * Small icon/text button for the editor card. mousedown is prevented so the
+     * text input keeps focus while formatting.
+     * @param {any} doc @param {string} content @param {string} title
+     * @param {Function} onClick @param {string} [extraClass] @param {boolean} [isSvg]
+     */
+    _cardBtn(doc, content, title, onClick, extraClass, isSvg) {
+      const b = doc.createElement("button");
+      b.type = "button";
+      b.className = "apexcharts-ink-btn" + (extraClass ? " " + extraClass : "");
+      b.title = title;
+      b.setAttribute("aria-label", title);
+      if (isSvg) b.innerHTML = content;
+      else b.textContent = content;
+      b.addEventListener("mousedown", (e) => e.preventDefault());
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onClick();
+      });
+      return b;
+    }
+    /**
+     * Uppercase row caption ("Label" / "Line" / "Marker") for the editor card.
+     * @param {any} doc @param {string} text
+     */
+    _cardLabel(doc, text) {
+      const lab = doc.createElement("span");
+      lab.className = "apexcharts-ink-cardlabel";
+      lab.textContent = text;
+      return lab;
+    }
+    /**
+     * Color swatch button for the editor card. mousedown is prevented so the
+     * text input keeps focus while restyling.
+     * @param {any} doc @param {string} c
+     * @param {(c: string) => void} pick @param {string} [extraClass]
+     */
+    _mkSwatch(doc, c, pick, extraClass) {
+      const sw = doc.createElement("button");
+      sw.type = "button";
+      sw.className = "apexcharts-ink-swatch" + (extraClass ? " " + extraClass : "");
+      sw.title = c;
+      sw.setAttribute("aria-label", "Color " + c);
+      sw.dataset.color = c;
+      sw.style.background = c;
+      sw.addEventListener("mousedown", (e) => e.preventDefault());
+      sw.addEventListener("click", (e) => {
+        e.stopPropagation();
+        pick(c);
+      });
+      return sw;
+    }
+    /**
+     * Open the floating editor card for an annotation.
+     * @param {string} type @param {number} index
+     * @param {{select?: boolean}} [opts] select: preselect the text (create / dblclick)
+     */
+    _startEdit(type, index, opts = {}) {
+      const w = this.w;
+      const anno = this._annoList(type)[index];
+      const baseEl = w.dom.baseEl;
+      const elWrap = w.dom.elWrap;
+      if (!anno || !anno.id || !baseEl || !elWrap) return;
+      this._closeEditor(false);
+      const doc = baseEl.ownerDocument;
+      const card = doc.createElement("div");
+      card.className = "apexcharts-ink-card";
+      card.setAttribute("role", "dialog");
+      card.setAttribute("aria-label", "Edit note");
+      card.style.visibility = "hidden";
+      const rowText = doc.createElement("div");
+      rowText.className = "apexcharts-ink-card-row";
+      const input = doc.createElement("input");
+      input.type = "text";
+      input.className = "apexcharts-ink-editor";
+      input.placeholder = "Note text";
+      input.value = anno.label && anno.label.text || "";
+      rowText.appendChild(input);
+      rowText.appendChild(
+        this._cardBtn(
+          doc,
+          TRASH_ICON,
+          "Delete note",
+          () => this._deleteAnno(),
+          "apexcharts-ink-btn--delete",
+          true
+        )
+      );
+      card.appendChild(rowText);
+      const rowStyle = doc.createElement("div");
+      rowStyle.className = "apexcharts-ink-card-row";
+      if (type !== "point") {
+        rowStyle.appendChild(this._cardLabel(doc, "Label"));
+      }
+      this._noteColors().forEach((c) => {
+        rowStyle.appendChild(this._mkSwatch(doc, c, (col) => this._applyColor(col)));
+      });
+      const sep = doc.createElement("span");
+      sep.className = "apexcharts-ink-sep";
+      rowStyle.appendChild(sep);
+      rowStyle.appendChild(
+        this._cardBtn(doc, "B", "Bold", () => this._toggleBold(), "apexcharts-ink-btn--bold")
+      );
+      rowStyle.appendChild(this._cardBtn(doc, "A-", "Smaller text", () => this._stepFont(-1)));
+      rowStyle.appendChild(this._cardBtn(doc, "A+", "Larger text", () => this._stepFont(1)));
+      card.appendChild(rowStyle);
+      if (type !== "point") {
+        const rowLine = doc.createElement("div");
+        rowLine.className = "apexcharts-ink-card-row";
+        rowLine.appendChild(this._cardLabel(doc, "Line"));
+        this._noteColors().forEach((c) => {
+          rowLine.appendChild(
+            this._mkSwatch(
+              doc,
+              c,
+              (col) => this._applyLineColor(col),
+              "apexcharts-ink-swatch--line"
+            )
+          );
+        });
+        card.appendChild(rowLine);
+      }
+      if (type === "point") {
+        const rowMarker = doc.createElement("div");
+        rowMarker.className = "apexcharts-ink-card-row";
+        rowMarker.appendChild(this._cardLabel(doc, "Marker"));
+        rowMarker.appendChild(
+          this._cardBtn(doc, "-", "Smaller marker", () => this._stepMarker(-1))
+        );
+        const sizeOut = doc.createElement("span");
+        sizeOut.className = "apexcharts-ink-marker-size";
+        rowMarker.appendChild(sizeOut);
+        rowMarker.appendChild(
+          this._cardBtn(doc, "+", "Larger marker", () => this._stepMarker(1))
+        );
+        rowMarker.appendChild(
+          this._cardBtn(
+            doc,
+            SHAPE_GLYPHS.circle,
+            "Marker shape",
+            () => this._cycleShape(),
+            "apexcharts-ink-btn--shape"
+          )
+        );
+        card.appendChild(rowMarker);
+      }
+      elWrap.appendChild(card);
+      this._editor = { card, input, type, index };
+      this._positionCard();
+      this._syncCard();
+      card.style.visibility = "";
+      input.focus();
+      if (opts.select) input.select();
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          this._closeEditor(false);
+        } else if (e.key === "Enter" && e.target === input) {
+          e.preventDefault();
+          this._closeEditor(true);
+        }
+      });
+      doc.addEventListener("mousedown", this._onDocDownEditor, true);
+      doc.addEventListener("touchstart", this._onDocDownEditor, true);
+    }
+    /**
+     * Commit + close on any press outside the card.
+     * @param {any} e
+     */
+    _onDocDownEditor(e) {
+      const ed = this._editor;
+      if (!ed || ed.card.contains(e.target)) return;
+      this._closeEditor(true);
+    }
+    /**
+     * Anchor the card to the annotation's label (below it, or above when there
+     * is no room), clamped inside the chart wrap. Re-run after each restyle
+     * since the label rect changes.
+     */
+    _positionCard() {
+      const ed = this._editor;
+      if (!ed) return;
+      const w = this.w;
+      const baseEl = w.dom.baseEl;
+      const elWrap = w.dom.elWrap;
+      const anno = this._annoList(ed.type)[ed.index];
+      if (!baseEl || !elWrap || !anno) return;
+      const anchor = baseEl.querySelector(
+        ".apexcharts-" + ed.type + "-annotation-label." + anno.id
+      ) || baseEl.querySelector("." + anno.id);
+      if (!anchor) return;
+      const wrapRect = elWrap.getBoundingClientRect();
+      const aRect = anchor.getBoundingClientRect();
+      const cw = ed.card.offsetWidth;
+      const ch = ed.card.offsetHeight;
+      let left = Math.round(aRect.left - wrapRect.left);
+      let top = Math.round(aRect.bottom - wrapRect.top) + 8;
+      if (top + ch > elWrap.clientHeight - 4) {
+        top = Math.round(aRect.top - wrapRect.top) - ch - 8;
+      }
+      if (left + cw > elWrap.clientWidth - 4) left = elWrap.clientWidth - cw - 4;
+      ed.card.style.left = Math.max(4, left) + "px";
+      ed.card.style.top = Math.max(4, top) + "px";
+    }
+    /** Reflect the annotation's current style on the card controls. */
+    _syncCard() {
+      const ed = this._editor;
+      if (!ed) return;
+      const anno = this._annoList(ed.type)[ed.index];
+      if (!anno) return;
+      const style = anno.label && anno.label.style || {};
+      const bg = String(style.background || "").toLowerCase();
+      ed.card.querySelectorAll(".apexcharts-ink-swatch:not(.apexcharts-ink-swatch--line)").forEach((sw) => {
+        sw.classList.toggle(
+          "apexcharts-ink-swatch--active",
+          (sw.dataset.color || "").toLowerCase() === bg
+        );
+      });
+      const stroke = String(anno.borderColor || "").toLowerCase();
+      ed.card.querySelectorAll(".apexcharts-ink-swatch--line").forEach((sw) => {
+        sw.classList.toggle(
+          "apexcharts-ink-swatch--active",
+          (sw.dataset.color || "").toLowerCase() === stroke
+        );
+      });
+      const boldBtn = ed.card.querySelector(".apexcharts-ink-btn--bold");
+      if (boldBtn) {
+        boldBtn.classList.toggle("apexcharts-ink-btn--active", InkLayer._isBold(style));
+      }
+      const m = anno.marker || {};
+      const sizeOut = ed.card.querySelector(".apexcharts-ink-marker-size");
+      if (sizeOut) {
+        sizeOut.textContent = String(typeof m.size === "number" ? m.size : 4);
+      }
+      const shapeBtn = ed.card.querySelector(".apexcharts-ink-btn--shape");
+      if (shapeBtn) {
+        shapeBtn.textContent = SHAPE_GLYPHS[m.shape] || SHAPE_GLYPHS.circle;
+      }
+    }
+    /**
+     * Commit the input's text into the annotation (the card stays open). Also
+     * runs before any style apply so typed-but-unconfirmed text survives the
+     * redraw.
+     * @param {any} ed
+     */
+    _commitTextOf(ed) {
+      const anno = this._annoList(ed.type)[ed.index];
+      if (!anno) return;
+      const text = ed.input.value;
+      if (!anno.label) anno.label = {};
+      if (anno.label.text === text) return;
+      anno.label.text = text;
+      this._redrawAnno(ed.type, anno, ed.index);
+      this._checkpoint("ink:edit");
+      this._fireEdited(ed.type, anno, ed.index);
+    }
+    /**
+     * Close the editor card. commit=true also commits the pending text. Style
+     * edits apply immediately and are not rolled back by Escape; use undo.
+     * @param {boolean} commit
+     */
+    _closeEditor(commit) {
+      const ed = this._editor;
+      if (!ed) return;
+      this._editor = null;
+      const doc = this.w.dom.baseEl && this.w.dom.baseEl.ownerDocument;
+      if (doc) {
+        doc.removeEventListener("mousedown", this._onDocDownEditor, true);
+        doc.removeEventListener("touchstart", this._onDocDownEditor, true);
+      }
+      if (ed.card.parentNode) ed.card.parentNode.removeChild(ed.card);
+      if (commit) this._commitTextOf(ed);
+    }
+    /**
+     * Apply a config mutation from a card control: commit pending text, mutate,
+     * redraw, checkpoint for undo, then refresh + re-anchor the card.
+     * @param {string} label @param {(anno: any) => void} mutate
+     */
+    _applyStyle(label, mutate) {
+      const ed = this._editor;
+      if (!ed) return;
+      const anno = this._annoList(ed.type)[ed.index];
+      if (!anno) return;
+      this._commitTextOf(ed);
+      if (!anno.label) anno.label = {};
+      if (!anno.label.style) anno.label.style = {};
+      mutate(anno);
+      this._redrawAnno(ed.type, anno, ed.index);
+      this._checkpoint(label);
+      this._fireStyled(ed.type, anno, ed.index);
+      this._syncCard();
+      this._positionCard();
+    }
+    /**
+     * Apply an accent color: label chip + marker (points) or line/range fill
+     * (axis annotations), with text/border contrast following the luminance.
+     * @param {string} c
+     */
+    _applyColor(c) {
+      const ed = this._editor;
+      if (!ed) return;
+      const light = InkLayer._isLight(c);
+      this._applyStyle("ink:style", (anno) => {
+        anno.label.style.background = c;
+        anno.label.style.color = light ? "#334155" : "#ffffff";
+        anno.label.borderColor = light ? "#cbd5e1" : c;
+        if (ed.type === "point") {
+          if (!anno.marker) anno.marker = {};
+          anno.marker.strokeColor = light ? "#334155" : c;
+          anno.marker.fillColor = light ? "#ffffff" : c;
+        }
+      });
+    }
+    /**
+     * Line-stroke color for axis annotations, separate from the label chip.
+     * @param {string} c
+     */
+    _applyLineColor(c) {
+      const ed = this._editor;
+      if (!ed || ed.type === "point") return;
+      this._applyStyle("ink:style", (anno) => {
+        anno.borderColor = c;
+        if (anno.x2 != null || anno.y2 != null) anno.fillColor = c;
+      });
+    }
+    /**
+     * Step the label font size through the preset scale.
+     * @param {number} dir
+     */
+    _stepFont(dir) {
+      this._applyStyle("ink:style", (anno) => {
+        const cur = parseFloat(anno.label.style.fontSize) || 11;
+        let i = 0;
+        for (let k = 1; k < FONT_STEPS.length; k++) {
+          if (Math.abs(FONT_STEPS[k] - cur) < Math.abs(FONT_STEPS[i] - cur)) i = k;
+        }
+        i = Math.min(FONT_STEPS.length - 1, Math.max(0, i + dir));
+        anno.label.style.fontSize = FONT_STEPS[i] + "px";
+      });
+    }
+    _toggleBold() {
+      this._applyStyle("ink:style", (anno) => {
+        anno.label.style.fontWeight = InkLayer._isBold(anno.label.style) ? 400 : 700;
+      });
+    }
+    /**
+     * Grow/shrink the point marker.
+     * @param {number} dir
+     */
+    _stepMarker(dir) {
+      this._applyStyle("ink:style", (anno) => {
+        if (!anno.marker) anno.marker = {};
+        const cur = typeof anno.marker.size === "number" ? anno.marker.size : 4;
+        anno.marker.size = Math.min(14, Math.max(2, cur + dir));
+      });
+    }
+    /** Cycle the point marker shape (circle, square, diamond, triangle). */
+    _cycleShape() {
+      this._applyStyle("ink:style", (anno) => {
+        if (!anno.marker) anno.marker = {};
+        const i = MARKER_SHAPES.indexOf(anno.marker.shape);
+        anno.marker.shape = MARKER_SHAPES[(i + 1) % MARKER_SHAPES.length];
+      });
+    }
+    /** Delete the annotation the editor is open on (undoable via Rewind). */
+    _deleteAnno() {
+      const ed = this._editor;
+      if (!ed) return;
+      const list = this._annoList(ed.type);
+      const anno = list[ed.index];
+      this._closeEditor(false);
+      if (!anno) return;
+      const baseEl = this.w.dom.baseEl;
+      if (baseEl && anno.id) {
+        baseEl.querySelectorAll("." + anno.id).forEach((el) => el.remove());
+      }
+      list.splice(ed.index, 1);
+      for (let i = ed.index; i < list.length; i++) {
+        this._redrawAnno(ed.type, list[i], i);
+      }
+      this._checkpoint("ink:delete");
+      this._fireDeleted(ed.type, anno, ed.index);
+    }
+    /** @param {string} type @param {any} anno @param {number} index */
+    _fireEdited(type, anno, index) {
+      var _a;
+      const args = { type, id: anno.id, index, text: anno.label ? anno.label.text : "" };
+      const events = this.w.config.chart.events;
+      if (typeof events.annotationEdited === "function") {
+        events.annotationEdited(this.ctx, args);
+      }
+      (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationEdited", [this.ctx, args]);
+    }
+    /** @param {string} type @param {any} anno @param {number} index */
+    _fireStyled(type, anno, index) {
+      var _a;
+      const args = { type, id: anno.id, index, label: anno.label, marker: anno.marker };
+      const events = this.w.config.chart.events;
+      if (typeof events.annotationStyled === "function") {
+        events.annotationStyled(this.ctx, args);
+      }
+      (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationStyled", [this.ctx, args]);
+    }
+    /** @param {string} type @param {any} anno @param {number} index */
+    _fireDeleted(type, anno, index) {
+      var _a;
+      const args = { type, id: anno.id, index };
+      const events = this.w.config.chart.events;
+      if (typeof events.annotationDeleted === "function") {
+        events.annotationDeleted(this.ctx, args);
+      }
+      (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationDeleted", [this.ctx, args]);
+    }
+    // ─── lifecycle ────────────────────────────────────────────────────────────
+    _teardownDocListeners() {
+      const doc = this.w.dom.baseEl && this.w.dom.baseEl.ownerDocument;
+      if (!doc) return;
+      doc.removeEventListener("mousemove", this._onMove);
+      doc.removeEventListener("touchmove", this._onMove);
+      doc.removeEventListener("mouseup", this._onUp);
+      doc.removeEventListener("touchend", this._onUp);
+    }
+    teardown() {
+      var _a, _b, _c, _d;
+      this._teardownDocListeners();
+      this._closeEditor(false);
+      this.stopCreate();
+      this._drag = null;
+      if (this._wired) {
+        (_b = (_a = this.ctx).removeEventListener) == null ? void 0 : _b.call(_a, "mounted", this._onRerender);
+        (_d = (_c = this.ctx).removeEventListener) == null ? void 0 : _d.call(_c, "updated", this._onRerender);
+        this._wired = false;
+      }
+    }
+  }
+  ApexCharts.registerFeatures({ ink: InkLayer });
+  class Measure {
+    /**
+     * @param {import('../../types/internal').ChartStateW} w
+     * @param {import('../../types/internal').ChartContext} ctx
+     */
+    constructor(w, ctx) {
+      this.w = w;
+      this.ctx = ctx;
+      this.graphics = new Graphics(w);
+      this.pins = [];
+      this.drag = null;
+      this.armed = false;
+      this.persistent = false;
+      this.pane = null;
+      this._seedActive = false;
+      this._onKeyDown = this._onKeyDown.bind(this);
+      this._onKeyUp = this._onKeyUp.bind(this);
+      this._onDown = this._onDown.bind(this);
+      this._onMove = this._onMove.bind(this);
+      this._onUp = this._onUp.bind(this);
+      this._onSeedDown = this._onSeedDown.bind(this);
+      this._onSeedKey = this._onSeedKey.bind(this);
+      this._afterRender = this._afterRender.bind(this);
+      ctx.addEventListener("mounted", this._afterRender);
+      ctx.addEventListener("updated", this._afterRender);
+      this._bindKeys();
+    }
+    _cfg() {
+      return this.w.config.chart.measure || {};
+    }
+    _enabled() {
+      return this.w.globals.axisCharts && this._cfg().enabled === true;
+    }
+    _mode() {
+      return this._cfg().mode === "free" ? "free" : "span";
+    }
+    /**
+     * Nearest first-series data point to a data x (used to snap span endpoints
+     * onto the series line).
+     * @param {number} dataX
+     * @returns {{x:number,y:number}|null}
+     */
+    _snapToSeries(dataX) {
+      const s0 = (
+        /** @type {any} */
+        (this.w.config.series || [])[0]
+      );
+      if (!s0) return null;
+      const pts = this._points(s0.data || []);
+      if (!pts.length) return null;
+      let best = pts[0];
+      let bd = Math.abs(pts[0].x - dataX);
+      for (let i = 1; i < pts.length; i++) {
+        const d = Math.abs(pts[i].x - dataX);
+        if (d < bd) {
+          bd = d;
+          best = pts[i];
+        }
+      }
+      return best;
+    }
+    /**
+     * Resolve a raw projected point to the endpoint that is actually drawn: span
+     * mode snaps x to the nearest first-series data point (y follows the line);
+     * free mode keeps the raw point.
+     * @param {{x:number,y:number,gx:number,gy:number}} raw
+     */
+    _resolve(raw) {
+      if (this._mode() === "free") return raw;
+      const snapped = this._snapToSeries(raw.x);
+      if (!snapped) return raw;
+      const g = this._dataToGrid(snapped.x, snapped.y);
+      return { x: snapped.x, y: snapped.y, gx: g.gx, gy: g.gy };
+    }
+    _doc() {
+      return this.w.dom.baseEl && this.w.dom.baseEl.ownerDocument;
+    }
+    /** Bind the measure-key listeners once on the owner document. */
+    _bindKeys() {
+      if (this._keysBound) return;
+      const doc = this._doc();
+      if (!doc) return;
+      doc.addEventListener("keydown", this._onKeyDown);
+      doc.addEventListener("keyup", this._onKeyUp);
+      this._keysBound = true;
+    }
+    /** @param {any} e */
+    _onKeyDown(e) {
+      if (!this._enabled() || this.persistent) return;
+      const key = this._cfg().key || "m";
+      if (e.key && e.key.toLowerCase() === String(key).toLowerCase()) {
+        this._arm();
+      } else if (e.key === "Escape") {
+        this._cancelDrag();
+      }
+    }
+    /** @param {any} e */
+    _onKeyUp(e) {
+      if (this.persistent) return;
+      const key = this._cfg().key || "m";
+      if (e.key && e.key.toLowerCase() === String(key).toLowerCase()) {
+        if (!this.drag) this._disarm();
+      }
+    }
+    /** Public: arm a sticky measure mode (survives key release) until stopped. */
+    startMeasure() {
+      if (!this._enabled()) return;
+      this.persistent = true;
+      this._arm();
+    }
+    /** Public: leave measure mode. */
+    stopMeasure() {
+      this.persistent = false;
+      this._cancelDrag();
+      this._disarm();
+    }
+    /**
+     * Public: begin a measurement anchored at a client-space point (used by the
+     * context menu's "Measure from here"). Endpoint A is fixed at (cx,cy), the
+     * ruler follows the cursor, and the next pointer press sets B and pins it.
+     * Escape cancels. No-op unless the measure tool is enabled.
+     * @param {number} cx @param {number} cy
+     */
+    seedFromClient(cx, cy) {
+      if (!this._enabled()) return;
+      this._cancelDrag();
+      this._endSeed(false);
+      const a = this._project(cx, cy);
+      this.drag = { a, b: a };
+      this._seedActive = true;
+      const doc = this._doc();
+      if (doc) {
+        doc.addEventListener("mousemove", this._onMove);
+        doc.addEventListener("touchmove", this._onMove, { passive: false });
+        doc.addEventListener("mousedown", this._onSeedDown, true);
+        doc.addEventListener("touchstart", this._onSeedDown, true);
+        doc.addEventListener("keydown", this._onSeedKey, true);
+      }
+      this._renderLive();
+    }
+    /** @param {any} e */
+    _onSeedDown(e) {
+      if (!this._seedActive || !this.drag) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const { cx, cy } = this._clientXY(e);
+      this.drag.b = this._project(cx, cy);
+      this._endSeed(true);
+    }
+    /** @param {any} e */
+    _onSeedKey(e) {
+      if (e.key === "Escape") this._endSeed(false);
+    }
+    /**
+     * Finish (commit) or cancel a "measure from here" seed and detach listeners.
+     * @param {boolean} commit
+     */
+    _endSeed(commit) {
+      var _a, _b;
+      if (!this._seedActive) return;
+      this._seedActive = false;
+      const doc = this._doc();
+      if (doc) {
+        doc.removeEventListener("mousemove", this._onMove);
+        doc.removeEventListener("touchmove", this._onMove);
+        doc.removeEventListener("mousedown", this._onSeedDown, true);
+        doc.removeEventListener("touchstart", this._onSeedDown, true);
+        doc.removeEventListener("keydown", this._onSeedKey, true);
+      }
+      const d = this.drag;
+      this.drag = null;
+      this._clearLive();
+      if (!commit || !d) return;
+      const a = this._resolve(d.a);
+      const b = this._resolve(d.b);
+      if (Math.abs(a.gx - b.gx) < 2 && Math.abs(a.gy - b.gy) < 2) return;
+      const mode = this._mode();
+      if (this._cfg().pinOnRelease !== false) {
+        this.pins.push({ xa: a.x, ya: a.y, xb: b.x, yb: b.y, mode });
+        this._renderPins();
+        (_b = (_a = this.ctx.history) == null ? void 0 : _a.snapshot) == null ? void 0 : _b.call(_a, "measure");
+      }
+      this._fireMeasured(a, b);
+    }
+    /** Public: remove all pinned rulers. */
+    clearMeasures() {
+      var _a, _b;
+      this.pins = [];
+      this._renderPins();
+      (_b = (_a = this.ctx.history) == null ? void 0 : _a.snapshot) == null ? void 0 : _b.call(_a, "clear measures");
+    }
+    /**
+     * Snapshot of the pinned rulers as JSON-safe plain data. This is the piece of
+     * state ViewState / Perspectives (shareable URL) / Rewind (undo) persist:
+     * pins already live in data space, so they round-trip and re-project.
+     * Returns a deep copy so callers cannot mutate ours.
+     * @returns {Array<{xa:number,ya:number,xb:number,yb:number,mode:string}>}
+     */
+    getPins() {
+      return this.pins.map((p) => ({
+        xa: p.xa,
+        ya: p.ya,
+        xb: p.xb,
+        yb: p.yb,
+        mode: p.mode === "free" ? "free" : "span"
+      }));
+    }
+    /**
+     * Replace the pinned rulers with a restored set and redraw. Accepts the shape
+     * getPins() returns; a nullish / non-array value (or an old token without
+     * measure state) clears all pins. Non-finite entries are dropped. Does NOT
+     * record a Rewind step (the restore itself is the caller's undo boundary).
+     * @param {any} pins
+     */
+    setPins(pins) {
+      this.pins = Array.isArray(pins) ? pins.filter(
+        (p) => p && isFinite(p.xa) && isFinite(p.ya) && isFinite(p.xb) && isFinite(p.yb)
+      ).map((p) => ({
+        xa: +p.xa,
+        ya: +p.ya,
+        xb: +p.xb,
+        yb: +p.yb,
+        mode: p.mode === "free" ? "free" : "span"
+      })) : [];
+      this._renderPins();
+    }
+    /**
+     * Normalize a series `data` array into {x,y} points (numeric/datetime x or
+     * category index). Non-finite / non-scalar (range/candle) points drop out.
+     * @param {any[]} data
+     * @returns {Array<{x:number,y:number}>}
+     */
+    _points(data) {
+      const out = [];
+      for (let i = 0; i < data.length; i++) {
+        const p = data[i];
+        let x;
+        let y;
+        if (Array.isArray(p)) {
+          x = +p[0];
+          y = +p[1];
+        } else if (p && typeof p === "object") {
+          x = +p.x;
+          y = +p.y;
+        } else {
+          x = i;
+          y = +p;
+        }
+        if (isFinite(x) && isFinite(y)) out.push({ x, y });
+      }
+      return out;
+    }
+    /** Lay the transparent capture pane over the plot so our pointer handlers own
+     *  the drag (ZoomPanSelection never sees it). */
+    _arm() {
+      if (this.armed || !this._enabled()) return;
+      const w = this.w;
+      const parent = w.dom.elGraphical;
+      if (!parent) return;
+      this.armed = true;
+      const pane = this.graphics.drawRect(0, 0, w.layout.gridWidth, w.layout.gridHeight);
+      pane.node.setAttribute("class", "apexcharts-measure-capture");
+      pane.node.setAttribute("fill", "transparent");
+      pane.node.style.cursor = "crosshair";
+      pane.node.style.pointerEvents = "all";
+      pane.node.addEventListener("mousedown", this._onDown);
+      pane.node.addEventListener("touchstart", this._onDown, { passive: false });
+      parent.add(pane);
+      this.pane = pane;
+    }
+    _disarm() {
+      this.armed = false;
+      if (this.pane) {
+        this.pane.node.removeEventListener("mousedown", this._onDown);
+        this.pane.node.removeEventListener("touchstart", this._onDown);
+        const p = this.pane.node;
+        if (p.parentNode) p.parentNode.removeChild(p);
+        this.pane = null;
+      }
+    }
+    /** @param {any} e @returns {{cx:number,cy:number}} */
+    _clientXY(e) {
+      const t = e.touches && e.touches[0] ? e.touches[0] : e;
+      return { cx: t.clientX, cy: t.clientY };
+    }
+    _gridRect() {
+      const g = this.w.dom.baseEl.querySelector(".apexcharts-grid");
+      return g ? g.getBoundingClientRect() : null;
+    }
+    /** [min,max] for the primary y-axis, preferring the rendered nice scale. */
+    _yRange() {
+      const g = this.w.globals;
+      const s = g.yAxisScale && g.yAxisScale[0];
+      if (s && isFinite(s.niceMin) && isFinite(s.niceMax) && s.niceMax !== s.niceMin) {
+        return [s.niceMin, s.niceMax];
+      }
+      return [g.minY, g.maxY];
+    }
+    /**
+     * Client pixel -> { x, y (data), gx, gy (grid-local SVG units) }.
+     * @param {number} cx @param {number} cy
+     */
+    _project(cx, cy) {
+      const w = this.w;
+      const rect = this._gridRect();
+      const gw = w.layout.gridWidth;
+      const gh = w.layout.gridHeight;
+      const clamp = (v) => v < 0 ? 0 : v > 1 ? 1 : v;
+      const fx = rect ? clamp((cx - rect.left) / rect.width) : 0;
+      const fy = rect ? clamp((cy - rect.top) / rect.height) : 0;
+      const [ymin, ymax] = this._yRange();
+      const x = w.globals.minX + fx * (w.globals.maxX - w.globals.minX);
+      const y = ymax - fy * (ymax - ymin);
+      return { x, y, gx: fx * gw, gy: fy * gh };
+    }
+    /**
+     * Data (x,y) -> grid-local SVG coords, for redrawing pinned rulers.
+     * @param {number} x @param {number} y
+     */
+    _dataToGrid(x, y) {
+      const w = this.w;
+      const gw = w.layout.gridWidth;
+      const gh = w.layout.gridHeight;
+      const xr = w.globals.maxX - w.globals.minX || 1;
+      const [ymin, ymax] = this._yRange();
+      const yr = ymax - ymin || 1;
+      return {
+        gx: (x - w.globals.minX) / xr * gw,
+        gy: gh - (y - ymin) / yr * gh
+      };
+    }
+    /** @param {any} e */
+    _onDown(e) {
+      if (!this.armed) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const { cx, cy } = this._clientXY(e);
+      const a = this._project(cx, cy);
+      this.drag = { a, b: a };
+      const doc = this._doc();
+      if (doc) {
+        doc.addEventListener("mousemove", this._onMove);
+        doc.addEventListener("mouseup", this._onUp);
+        doc.addEventListener("touchmove", this._onMove, { passive: false });
+        doc.addEventListener("touchend", this._onUp);
+      }
+      this._renderLive();
+    }
+    /** @param {any} e */
+    _onMove(e) {
+      if (!this.drag) return;
+      if (e.cancelable) e.preventDefault();
+      const { cx, cy } = this._clientXY(e);
+      this.drag.b = this._project(cx, cy);
+      this._renderLive();
+    }
+    /** @param {any} _e */
+    _onUp(_e) {
+      var _a, _b;
+      const doc = this._doc();
+      if (doc) {
+        doc.removeEventListener("mousemove", this._onMove);
+        doc.removeEventListener("mouseup", this._onUp);
+        doc.removeEventListener("touchmove", this._onMove);
+        doc.removeEventListener("touchend", this._onUp);
+      }
+      if (!this.drag) return;
+      const rawA = this.drag.a;
+      const rawB = this.drag.b;
+      this.drag = null;
+      this._clearLive();
+      if (Math.abs(rawA.gx - rawB.gx) < 2 && Math.abs(rawA.gy - rawB.gy) < 2) {
+        if (!this.persistent) this._disarm();
+        return;
+      }
+      const mode = this._mode();
+      const a = this._resolve(rawA);
+      const b = this._resolve(rawB);
+      if (this._cfg().pinOnRelease !== false) {
+        this.pins.push({ xa: a.x, ya: a.y, xb: b.x, yb: b.y, mode });
+        this._renderPins();
+        (_b = (_a = this.ctx.history) == null ? void 0 : _a.snapshot) == null ? void 0 : _b.call(_a, "measure");
+      }
+      this._fireMeasured(a, b);
+      if (!this.persistent) this._disarm();
+    }
+    _cancelDrag() {
+      const doc = this._doc();
+      if (doc) {
+        doc.removeEventListener("mousemove", this._onMove);
+        doc.removeEventListener("mouseup", this._onUp);
+        doc.removeEventListener("touchmove", this._onMove);
+        doc.removeEventListener("touchend", this._onUp);
+      }
+      this.drag = null;
+      this._clearLive();
+    }
+    /**
+     * @param {{x:number,y:number}} a @param {{x:number,y:number}} b
+     * @returns {{dx:number,dy:number,pct:number,slope:number}}
+     */
+    _stats(a, b) {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      return {
+        dx,
+        dy,
+        pct: a.y !== 0 ? dy / Math.abs(a.y) * 100 : NaN,
+        slope: dx !== 0 ? dy / dx : NaN
+      };
+    }
+    /** @param {number} v */
+    _fmt(v) {
+      if (!isFinite(v)) return "n/a";
+      const a = Math.abs(v);
+      if (a !== 0 && (a < 0.01 || a >= 1e6)) return v.toExponential(2);
+      return String(Math.round(v * 100) / 100);
+    }
+    /** getComputedStyle of the graphical layer (browser only), for CSS vars. */
+    _computedStyle() {
+      if (!Environment.isBrowser()) return null;
+      const node = this.w.dom.elGraphical && this.w.dom.elGraphical.node;
+      if (!node || typeof getComputedStyle !== "function") return null;
+      try {
+        return getComputedStyle(node);
+      } catch (e) {
+        return null;
+      }
+    }
+    /**
+     * Resolve a color: explicit config value, else a `--apx-measure-*` CSS custom
+     * property, else the built-in default.
+     * @param {any} cfgVal @param {string} varName @param {string} fallback
+     * @param {CSSStyleDeclaration|null} [cs]
+     */
+    _resolveColor(cfgVal, varName, fallback, cs) {
+      if (cfgVal) return cfgVal;
+      const style = cs !== void 0 ? cs : this._computedStyle();
+      const v = style ? style.getPropertyValue(varName).trim() : "";
+      return v || fallback;
+    }
+    /** Resolved semantic colors (config -> CSS var -> built-in default). */
+    _colors() {
+      const c = this._cfg().colors || {};
+      const cs = this._computedStyle();
+      return {
+        up: this._resolveColor(c.up, "--apx-measure-up", "#16a34a", cs),
+        down: this._resolveColor(c.down, "--apx-measure-down", "#dc2626", cs),
+        neutral: this._resolveColor(c.neutral, "--apx-measure-neutral", "#64748b", cs),
+        guide: this._resolveColor(c.guide, "--apx-measure-guide", "#94a3b8", cs)
+      };
+    }
+    /** @param {number} dy */
+    _dirColor(dy) {
+      const c = this._colors();
+      return dy === 0 ? c.neutral : dy > 0 ? c.up : c.down;
+    }
+    /** @param {number} dy */
+    _dirClass(dy) {
+      return dy === 0 ? "apexcharts-measure-flat" : dy > 0 ? "apexcharts-measure-up" : "apexcharts-measure-down";
+    }
+    /**
+     * Format a percentage, via `measure.format.percent` when set.
+     * @param {number} p
+     */
+    _fmtPct(p) {
+      if (!isFinite(p)) return "n/a";
+      const f = this._cfg().format && this._cfg().format.percent;
+      if (typeof f === "function") {
+        try {
+          const s = f(p);
+          if (s != null) return String(s);
+        } catch (e) {
+        }
+      }
+      return (p >= 0 ? "+" : "") + this._fmt(p) + "%";
+    }
+    /**
+     * The readout lines for a ruler: `measure.label` override, else the default
+     * per-mode text.
+     * @param {{x:number,y:number}} a @param {{x:number,y:number}} b
+     * @param {{dx:number,dy:number,pct:number,slope:number}} st @param {string} mode
+     * @returns {string[]}
+     */
+    _label(a, b, st, mode) {
+      const fn = this._cfg().label;
+      if (typeof fn === "function") {
+        const out = fn({
+          from: { x: a.x, y: a.y },
+          to: { x: b.x, y: b.y },
+          dx: st.dx,
+          dy: st.dy,
+          percentChange: st.pct,
+          slope: st.slope,
+          mode
+        });
+        return Array.isArray(out) ? out.map(String) : [String(out)];
+      }
+      if (mode === "span") {
+        const arrow = st.dy === 0 ? "" : st.dy > 0 ? " ↑" : " ↓";
+        const pct = isFinite(st.pct) ? "(" + this._fmtPct(st.pct) + ")" : "";
+        return [this._fmtY(st.dy) + "  " + pct + arrow, this._fmtX(a.x) + "  to  " + this._fmtX(b.x)];
+      }
+      return ["Δx " + this._fmtDx(st.dx), "Δy " + this._fmtY(st.dy), this._fmtPct(st.pct)];
+    }
+    /**
+     * Format an x delta, treating datetime x as a day count.
+     * @param {number} dx
+     */
+    _fmtDx(dx) {
+      if (this.w.config.xaxis.type === "datetime") {
+        const days = dx / 864e5;
+        return Math.round(days * 10) / 10 + "d";
+      }
+      return this._fmt(dx);
+    }
+    /**
+     * Format a y value (a delta) via the y-axis label formatter when present.
+     * @param {number} v
+     */
+    _fmtY(v) {
+      const cf = this._cfg().format && this._cfg().format.y;
+      if (typeof cf === "function") {
+        try {
+          const s = cf(v);
+          if (s != null) return String(s);
+        } catch (e) {
+        }
+      }
+      const f = this.w.globals.yLabelFormatters && this.w.globals.yLabelFormatters[0];
+      if (typeof f === "function") {
+        try {
+          const s = f(v, { seriesIndex: 0, dataPointIndex: -1, w: this.w });
+          if (s != null && s !== "") return String(s);
+        } catch (e) {
+        }
+      }
+      return this._fmt(v);
+    }
+    /**
+     * Format an x value: a short date for datetime x, else the x-label formatter
+     * or a plain number.
+     * @param {number} x
+     */
+    _fmtX(x) {
+      const w = this.w;
+      const cf = this._cfg().format && this._cfg().format.x;
+      if (typeof cf === "function") {
+        try {
+          const s = cf(x);
+          if (s != null) return String(s);
+        } catch (e) {
+        }
+      }
+      if (w.config.xaxis.type === "datetime") {
+        const d = new Date(x);
+        return d.toLocaleDateString(void 0, {
+          day: "numeric",
+          month: "short",
+          year: "numeric"
+        });
+      }
+      const f = w.globals.xLabelFormatter;
+      if (typeof f === "function") {
+        try {
+          const s = f(x, { w });
+          if (s != null && s !== "") return String(s);
+        } catch (e) {
+        }
+      }
+      return this._fmt(x);
+    }
+    /** The live overlay group, created lazily inside elGraphical. */
+    _liveGroup() {
+      const w = this.w;
+      if (this._live && this._live.node && this._live.node.parentNode) {
+        return this._live;
+      }
+      const g = this.graphics.group({ class: "apexcharts-measure-live" });
+      g.node.style.pointerEvents = "none";
+      if (w.dom.elGraphical) w.dom.elGraphical.add(g);
+      this._live = g;
+      return g;
+    }
+    _clearLive() {
+      if (this._live && this._live.node) {
+        const n = this._live.node;
+        if (n.parentNode) n.parentNode.removeChild(n);
+      }
+      this._live = null;
+    }
+    _renderLive() {
+      if (!this.drag) return;
+      const g = this._liveGroup();
+      while (g.node.firstChild) g.node.removeChild(g.node.firstChild);
+      const a = this._resolve(this.drag.a);
+      const b = this._resolve(this.drag.b);
+      this._drawRuler(g, a, b, false, this._mode());
+    }
+    /** Redraw all pinned rulers into a fresh group (called after each render). */
+    _renderPins() {
+      const w = this.w;
+      const old = w.dom.baseEl && w.dom.baseEl.querySelector(".apexcharts-measure-pins");
+      if (old && old.parentNode) old.parentNode.removeChild(old);
+      if (!this.pins.length || !w.dom.elGraphical) return;
+      const g = this.graphics.group({ class: "apexcharts-measure-pins" });
+      g.node.style.pointerEvents = "none";
+      w.dom.elGraphical.add(g);
+      this.pins.forEach((p) => {
+        const a = __spreadProps(__spreadValues({}, this._dataToGrid(p.xa, p.ya)), { x: p.xa, y: p.ya });
+        const b = __spreadProps(__spreadValues({}, this._dataToGrid(p.xb, p.yb)), { x: p.xb, y: p.yb });
+        this._drawRuler(g, a, b, true, p.mode || "span");
+      });
+    }
+    /**
+     * Draw one ruler into `g`, dispatching on style.
+     * @param {any} g
+     * @param {{gx:number,gy:number,x:number,y:number}} a
+     * @param {{gx:number,gy:number,x:number,y:number}} b
+     * @param {boolean} [pinned]
+     * @param {string} [mode] 'span' (finance-style band, default) | 'free'
+     */
+    _drawRuler(g, a, b, pinned, mode) {
+      const st = this._stats(a, b);
+      const rg = this.graphics.group({
+        class: "apexcharts-measure-ruler " + this._dirClass(st.dy) + (pinned ? " apexcharts-measure-pinned" : "")
+      });
+      if ((mode || this._mode()) === "free") this._drawFree(rg, a, b, st);
+      else this._drawSpan(rg, a, b, st);
+      g.add(rg);
+    }
+    /** Endpoint dots on the series line (skipped when markers:false).
+     * @param {any} g @param {{gx:number,gy:number}} p @param {string} color */
+    _dot(g, p, color) {
+      if (this._cfg().markers === false) return;
+      const dot = this.graphics.drawMarker(p.gx, p.gy, {
+        pSize: 4,
+        shape: "circle",
+        pointFillColor: color,
+        pointFillOpacity: 1,
+        pointStrokeColor: "#fff",
+        pointStrokeWidth: 2,
+        pointStrokeOpacity: 1
+      });
+      g.add(dot);
+    }
+    /** Draw the readout label box + text into `g` at (bx,by).
+     * @param {any} g @param {string[]} lines @param {number} bx @param {number} by
+     * @param {number} boxW @param {number} boxH @param {string} color */
+    _readout(g, lines, bx, by, boxW, boxH, color) {
+      const box = this.graphics.drawRect(bx, by, boxW, boxH, 4);
+      box.node.setAttribute("class", "apexcharts-measure-label-bg");
+      box.attr({ fill: "#ffffff", "fill-opacity": 0.95, stroke: color, "stroke-width": 1 });
+      g.add(box);
+      const label = this.graphics.drawText({
+        x: bx + 9,
+        y: by + 15,
+        text: lines,
+        textAnchor: "start",
+        fontSize: "11px",
+        foreColor: "#1e293b",
+        cssClass: "apexcharts-measure-label"
+      });
+      g.add(label);
+    }
+    /**
+     * Finance-style ruler: vertical guides + shaded band + endpoints on the
+     * series line + a top readout. Guides/band/markers are individually
+     * toggleable via config.
+     * @param {any} g
+     * @param {{gx:number,gy:number,x:number,y:number}} a
+     * @param {{gx:number,gy:number,x:number,y:number}} b
+     * @param {{dx:number,dy:number,pct:number,slope:number}} st
+     */
+    _drawSpan(g, a, b, st) {
+      const w = this.w;
+      const cfg = this._cfg();
+      const gh = w.layout.gridHeight;
+      const color = this._dirColor(st.dy);
+      const lx = Math.min(a.gx, b.gx);
+      const rx = Math.max(a.gx, b.gx);
+      if (cfg.band !== false) {
+        const band = this.graphics.drawRect(lx, 0, Math.max(0, rx - lx), gh, 0);
+        band.node.setAttribute("class", "apexcharts-measure-band");
+        band.attr({ fill: color, "fill-opacity": 0.09, stroke: "none" });
+        g.add(band);
+      }
+      if (cfg.guides !== false) {
+        [a, b].forEach((p) => {
+          const vline = this.graphics.drawLine(p.gx, 0, p.gx, gh, this._colors().guide, 4, 1);
+          vline.node.setAttribute("class", "apexcharts-measure-vline");
+          g.add(vline);
+        });
+      }
+      [a, b].forEach((p) => this._dot(g, p, color));
+      const lines = this._label(a, b, st, "span");
+      const longest = lines.reduce((m, s) => Math.max(m, s.length), 0);
+      const boxW = Math.max(148, longest * 6.4);
+      const boxH = 20 + lines.length * 15;
+      let bx = (lx + rx) / 2 - boxW / 2;
+      bx = Math.max(2, Math.min(bx, w.layout.gridWidth - boxW - 2));
+      this._readout(g, lines, bx, 4, boxW, boxH, color);
+    }
+    /**
+     * Free 2D ruler: a diagonal line between two arbitrary points + a readout.
+     * @param {any} g
+     * @param {{gx:number,gy:number,x:number,y:number}} a
+     * @param {{gx:number,gy:number,x:number,y:number}} b
+     * @param {{dx:number,dy:number,pct:number,slope:number}} st
+     */
+    _drawFree(g, a, b, st) {
+      const color = this._dirColor(st.dy);
+      const line = this.graphics.drawLine(a.gx, a.gy, b.gx, b.gy, color, 0, 2);
+      line.node.setAttribute("class", "apexcharts-measure-line");
+      g.add(line);
+      [a, b].forEach((p) => this._dot(g, p, color));
+      const lines = this._label(a, b, st, "free");
+      const longest = lines.reduce((m, s) => Math.max(m, s.length), 0);
+      const boxW = Math.max(72, longest * 6.2);
+      const boxH = 16 + lines.length * 15;
+      let bx = (a.gx + b.gx) / 2 + 8;
+      let by = (a.gy + b.gy) / 2 - boxH / 2;
+      bx = Math.max(2, Math.min(bx, this.w.layout.gridWidth - boxW - 2));
+      by = Math.max(2, Math.min(by, this.w.layout.gridHeight - boxH - 2));
+      this._readout(g, lines, bx, by, boxW, boxH, color);
+    }
+    /**
+     * @param {{x:number,y:number}} a @param {{x:number,y:number}} b
+     */
+    _fireMeasured(a, b) {
+      const st = this._stats(a, b);
+      const payload = {
+        from: { x: a.x, y: a.y },
+        to: { x: b.x, y: b.y },
+        dx: st.dx,
+        dy: st.dy,
+        percentChange: st.pct,
+        slope: st.slope
+      };
+      const fn = this.w.config.chart.events.measured;
+      if (typeof fn === "function") fn(this.ctx, payload);
+      this.ctx.events.fireEvent("measured", [this.ctx, payload]);
+    }
+    /** Re-project the measure pins after each render. */
+    _afterRender() {
+      if (this._enabled()) {
+        if (this.pins.length) this._renderPins();
+        if (this.persistent && !this.pane) this._arm();
+      }
+    }
+    teardown() {
+      this._cancelDrag();
+      this._endSeed(false);
+      this._disarm();
+      const doc = this._doc();
+      if (doc && this._keysBound) {
+        doc.removeEventListener("keydown", this._onKeyDown);
+        doc.removeEventListener("keyup", this._onKeyUp);
+      }
+      this._keysBound = false;
+      this.pins = [];
+    }
+  }
+  ApexCharts.registerFeatures({ measure: Measure });
+  class ContextMenu {
+    /**
+     * @param {import('../../types/internal').ChartStateW} w
+     * @param {import('../../types/internal').ChartContext} ctx
+     */
+    constructor(w, ctx) {
+      this.w = w;
+      this.ctx = ctx;
+      this.menu = null;
+      this._items = [];
+      this._focusIndex = -1;
+      this._trigger = null;
+      this._onContext = this._onContext.bind(this);
+      this._onDocDown = this._onDocDown.bind(this);
+      this._onKey = this._onKey.bind(this);
+      this._afterRender = this._afterRender.bind(this);
+      ctx.addEventListener("mounted", this._afterRender);
+      ctx.addEventListener("updated", this._afterRender);
+    }
+    _cfg() {
+      return this.w.config.chart.contextMenu || {};
+    }
+    _enabled() {
+      return this._cfg().enabled === true;
+    }
+    _doc() {
+      return this.w.dom.baseEl && this.w.dom.baseEl.ownerDocument;
+    }
+    /** (Re)attach the contextmenu trigger to the freshly (re)built SVG. */
+    _afterRender() {
+      this._detachTrigger();
+      this.close();
+      if (!this._enabled() || !Environment.isBrowser()) return;
+      const svg = this.w.dom.Paper && this.w.dom.Paper.node;
+      if (!svg) return;
+      svg.addEventListener("contextmenu", this._onContext);
+      this._trigger = svg;
+    }
+    _detachTrigger() {
+      if (this._trigger) {
+        this._trigger.removeEventListener("contextmenu", this._onContext);
+        this._trigger = null;
+      }
+    }
+    /** @param {any} e */
+    _onContext(e) {
+      if (!this._enabled()) return;
+      e.preventDefault();
+      this.open(e.clientX, e.clientY);
+    }
+    /**
+     * Client pixel -> data {x,y} via the grid client-rect fraction (scale
+     * independent). Null when the grid is not measurable.
+     * @param {number} cx @param {number} cy
+     * @returns {{x:number,y:number}|null}
+     */
+    _clientToData(cx, cy) {
+      const w = this.w;
+      const grid = w.dom.baseEl && w.dom.baseEl.querySelector(".apexcharts-grid");
+      if (!grid) return null;
+      const r = grid.getBoundingClientRect();
+      if (!r.width || !r.height) return null;
+      const clamp = (v) => v < 0 ? 0 : v > 1 ? 1 : v;
+      const fx = clamp((cx - r.left) / r.width);
+      const fy = clamp((cy - r.top) / r.height);
+      const x = w.globals.minX + fx * (w.globals.maxX - w.globals.minX);
+      const s = w.globals.yAxisScale && w.globals.yAxisScale[0];
+      const ymin = s && isFinite(s.niceMin) ? s.niceMin : w.globals.minY;
+      const ymax = s && isFinite(s.niceMax) ? s.niceMax : w.globals.maxY;
+      const y = ymax - fy * (ymax - ymin);
+      return { x, y };
+    }
+    /**
+     * Resolve the configured items into runnable entries, dropping built-ins
+     * whose dependency is absent (e.g. measure not enabled).
+     * @param {any} context
+     * @returns {Array<{id:string,label:string,run:Function}>}
+     */
+    _resolveItems(context) {
+      const cfg = this._cfg();
+      const raw = Array.isArray(cfg.items) && cfg.items.length ? cfg.items : ["annotate", "xline", "yline", "measure"];
+      const labels = cfg.labels || {};
+      const out = [];
+      raw.forEach((it) => {
+        if (typeof it === "string") {
+          if (it === "annotate") {
+            out.push({
+              id: "annotate",
+              label: labels.annotate || "Add note here",
+              run: () => this._annotate(context)
+            });
+          } else if (it === "xline") {
+            out.push({
+              id: "xline",
+              label: labels.xline || "Annotate here",
+              run: () => this._line(context, "x")
+            });
+          } else if (it === "yline") {
+            out.push({
+              id: "yline",
+              label: labels.yline || "Mark this level",
+              run: () => this._line(context, "y")
+            });
+          } else if (it === "measure") {
+            const m = this.ctx.measure;
+            const on = m && this.w.config.chart.measure && this.w.config.chart.measure.enabled;
+            if (on) {
+              out.push({
+                id: "measure",
+                label: labels.measure || "Measure from here",
+                run: () => m.seedFromClient(context.clientX, context.clientY)
+              });
+            }
+          }
+        } else if (it && typeof it === "object" && typeof it.onClick === "function") {
+          out.push({
+            id: it.id || "custom",
+            label: it.label || "Action",
+            run: () => it.onClick(this.ctx, context)
+          });
+        }
+      });
+      return out;
+    }
+    /** @param {any} context */
+    _annotate(context) {
+      if (context.x == null || context.y == null) return;
+      const cfg = this._cfg();
+      const ink = this.ctx.ink;
+      if (ink && typeof ink.createAt === "function") {
+        ink.createAt(context.x, context.y, { text: cfg.noteText || "Note" });
+        return;
+      }
+      this.ctx.addPointAnnotation(
+        {
+          x: context.x,
+          y: context.y,
+          marker: { size: 5 },
+          label: {
+            text: cfg.noteText || "Note",
+            style: { background: "#fff", color: "#334155" }
+          }
+        },
+        true
+      );
+    }
+    /**
+     * The 'xline' / 'yline' items: drop a dashed line annotation at the clicked
+     * data point ('x' = vertical line at the clicked x, 'y' = horizontal line
+     * at the clicked y). Lines only: no x2/y2 is ever set, so this never
+     * creates a range rectangle. Both items share chart.contextMenu.line
+     * ({ text, strokeDashArray, color }) for styling.
+     * @param {any} context @param {'x'|'y'} axis
+     */
+    _line(context, axis) {
+      const lc = this._cfg().line || {};
+      const val = axis === "x" ? context.x : context.y;
+      if (val == null) return;
+      const ink = this.ctx.ink;
+      if (ink && typeof ink.createLineAt === "function") {
+        ink.createLineAt(axis, val, {
+          text: lc.text,
+          strokeDashArray: lc.strokeDashArray,
+          color: lc.color
+        });
+        return;
+      }
+      const anno = {
+        strokeDashArray: lc.strokeDashArray != null ? lc.strokeDashArray : 4
+      };
+      if (lc.text) anno.label = { text: lc.text };
+      if (lc.color) {
+        anno.borderColor = lc.color;
+        anno.label = Utils$1.extend(anno.label || {}, { borderColor: lc.color });
+      }
+      if (axis === "x") {
+        this.ctx.addXaxisAnnotation(Utils$1.extend(anno, { x: val }), true);
+      } else {
+        this.ctx.addYaxisAnnotation(Utils$1.extend(anno, { y: val }), true);
+      }
+    }
+    /**
+     * Open the menu at a client-space point.
+     * @param {number} clientX @param {number} clientY
+     */
+    open(clientX, clientY) {
+      this.close();
+      const w = this.w;
+      const elWrap = w.dom.elWrap;
+      const doc = this._doc();
+      if (!elWrap || !doc) return;
+      const data = this._clientToData(clientX, clientY);
+      const g = w.globals;
+      const context = {
+        x: data ? data.x : null,
+        y: data ? data.y : null,
+        seriesIndex: g.capturedSeriesIndex >= 0 ? g.capturedSeriesIndex : null,
+        dataPointIndex: g.capturedDataPointIndex >= 0 ? g.capturedDataPointIndex : null,
+        clientX,
+        clientY
+      };
+      const items = this._resolveItems(context);
+      if (!items.length) return;
+      this._items = items;
+      const menu = doc.createElement("div");
+      menu.className = "apexcharts-context-menu";
+      menu.setAttribute("role", "menu");
+      menu.style.position = "absolute";
+      menu.style.visibility = "hidden";
+      items.forEach((it, i) => {
+        const btn = doc.createElement("button");
+        btn.type = "button";
+        btn.className = "apexcharts-context-menu-item";
+        btn.setAttribute("role", "menuitem");
+        btn.tabIndex = -1;
+        btn.textContent = it.label;
+        btn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          this._activate(i);
+        });
+        btn.addEventListener("mouseenter", () => this._focus(i));
+        menu.appendChild(btn);
+      });
+      elWrap.appendChild(menu);
+      this.menu = menu;
+      const wrapRect = elWrap.getBoundingClientRect();
+      let left = clientX - wrapRect.left;
+      let top = clientY - wrapRect.top;
+      const mw = menu.offsetWidth;
+      const mh = menu.offsetHeight;
+      const maxLeft = Math.max(0, elWrap.clientWidth - mw);
+      const maxTop = Math.max(0, elWrap.clientHeight - mh);
+      if (left > maxLeft) left = maxLeft;
+      if (top > maxTop) top = maxTop;
+      menu.style.left = Math.max(0, left) + "px";
+      menu.style.top = Math.max(0, top) + "px";
+      menu.style.visibility = "visible";
+      doc.addEventListener("mousedown", this._onDocDown, true);
+      doc.addEventListener("keydown", this._onKey, true);
+      this._focus(0);
+    }
+    /** @param {number} i */
+    _focus(i) {
+      if (!this.menu) return;
+      const btns = this.menu.querySelectorAll(".apexcharts-context-menu-item");
+      if (this._focusIndex >= 0 && btns[this._focusIndex]) {
+        btns[this._focusIndex].classList.remove("apexcharts-context-menu-item--active");
+      }
+      this._focusIndex = i;
+      if (btns[i]) {
+        btns[i].classList.add("apexcharts-context-menu-item--active");
+        if (typeof btns[i].focus === "function") btns[i].focus();
+      }
+    }
+    /** @param {number} i */
+    _activate(i) {
+      const it = this._items[i];
+      this.close();
+      if (it) it.run();
+    }
+    /** @param {any} e */
+    _onDocDown(e) {
+      if (this.menu && this.menu.contains(e.target)) return;
+      this.close();
+    }
+    /** @param {any} e */
+    _onKey(e) {
+      if (!this.menu || !this._items.length) return;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        this.close();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        this._focus((this._focusIndex + 1) % this._items.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        this._focus((this._focusIndex - 1 + this._items.length) % this._items.length);
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        this._activate(this._focusIndex < 0 ? 0 : this._focusIndex);
+      }
+    }
+    close() {
+      const doc = this._doc();
+      if (doc) {
+        doc.removeEventListener("mousedown", this._onDocDown, true);
+        doc.removeEventListener("keydown", this._onKey, true);
+      }
+      if (this.menu && this.menu.parentNode) {
+        this.menu.parentNode.removeChild(this.menu);
+      }
+      this.menu = null;
+      this._items = [];
+      this._focusIndex = -1;
+    }
+    teardown() {
+      this.close();
+      this._detachTrigger();
+    }
+  }
+  ApexCharts.registerFeatures({ contextMenu: ContextMenu });
   class BarDataLabels {
     /**
      * @param {import('../../../charts/Bar').default} barCtx
@@ -30666,7 +39457,7 @@ var __async = (__this, __arguments, generator) => {
           w.config.plotOptions.bar.borderRadius
         );
       }
-      let pathFrom;
+      let pathFrom = null;
       const morphFrom = (_c = (_b = this.barCtx.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(
         realIndex,
         j
@@ -30675,7 +39466,8 @@ var __async = (__this, __arguments, generator) => {
         pathFrom = morphFrom;
       } else if (w.globals.previousPaths.length > 0) {
         pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
-      } else {
+      }
+      if (pathFrom == null) {
         pathFrom = graphics.move(x1, y1) + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + closing;
       }
       if (w.config.chart.stacked) {
@@ -30736,7 +39528,7 @@ var __async = (__this, __arguments, generator) => {
       const bottomLeftX = center - bottomHalf;
       const bottomRightX = center + bottomHalf;
       const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
-      let pathFrom;
+      let pathFrom = null;
       const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
         realIndex,
         j
@@ -30745,7 +39537,8 @@ var __async = (__this, __arguments, generator) => {
         pathFrom = morphFrom;
       } else if (w.globals.previousPaths.length > 0) {
         pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
-      } else {
+      }
+      if (pathFrom == null) {
         pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
       }
       return {
@@ -30832,7 +39625,7 @@ var __async = (__this, __arguments, generator) => {
       const bottomLeftX = center - bottomHalf;
       const bottomRightX = center + bottomHalf;
       const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
-      let pathFrom;
+      let pathFrom = null;
       const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
         realIndex,
         j
@@ -30841,7 +39634,8 @@ var __async = (__this, __arguments, generator) => {
         pathFrom = morphFrom;
       } else if (w.globals.previousPaths.length > 0) {
         pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
-      } else {
+      }
+      if (pathFrom == null) {
         pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
       }
       return {
@@ -30894,7 +39688,7 @@ var __async = (__this, __arguments, generator) => {
           w.config.plotOptions.bar.borderRadius
         );
       }
-      let pathFrom;
+      let pathFrom = null;
       const morphFrom = (_c = (_b = this.barCtx.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(
         realIndex,
         j
@@ -30903,7 +39697,8 @@ var __async = (__this, __arguments, generator) => {
         pathFrom = morphFrom;
       } else if (w.globals.previousPaths.length > 0) {
         pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
-      } else {
+      }
+      if (pathFrom == null) {
         const slFrom = isFunnel ? graphics.line(fromX, y2) : sl;
         pathFrom = graphics.move(fromX, y1) + graphics.line(fromX, y1) + slFrom + slFrom + slFrom + slFrom + slFrom + graphics.line(fromX, y1) + closing;
       }
@@ -31002,6 +39797,10 @@ var __async = (__this, __arguments, generator) => {
       barWidth,
       barHeight
     }) {
+      const hasGoals = Array.isArray(goalX) && goalX.length > 0 || Array.isArray(goalY) && goalY.length > 0;
+      if (!hasGoals) {
+        return null;
+      }
       const graphics = new Graphics(this.barCtx.w);
       const lineGroup = graphics.group({
         className: "apexcharts-bar-goals-groups"
@@ -31156,6 +39955,8 @@ var __async = (__this, __arguments, generator) => {
       this.translationsIndex = 0;
       this.seriesLen = 0;
       this.pathArr = [];
+      this._prevKeyed = null;
+      this._ltCache = null;
       this.series = [];
       this.elSeries = null;
       this.visibleI = 0;
@@ -31255,7 +40056,11 @@ var __async = (__this, __arguments, generator) => {
           "data:realIndex": realIndex
         });
         w.globals.delayedElements.push({
-          el: elDataLabelsWrap.node
+          el: elDataLabelsWrap.node,
+          // On a layout-changing update the labels must stay hidden through the
+          // reflow morph (the updateOptions flow otherwise reveals them at
+          // frame 0, where they float over sliding bars).
+          holdUntilComplete: this.isLengthTransition(realIndex)
         });
         elDataLabelsWrap.node.classList.add("apexcharts-element-hidden");
         const elGoalsMarkers = graphics.group({
@@ -31365,6 +40170,20 @@ var __async = (__this, __arguments, generator) => {
         }
         w.globals.seriesXvalues[realIndex] = xArrj;
         w.globals.seriesYvalues[realIndex] = yArrj;
+        if (w.globals.previousPaths.length > 0) {
+          const newKeys = [];
+          for (let j = 0; j < series[i].length; j++) {
+            newKeys.push(datumKey(w, realIndex, j));
+          }
+          renderBarExitGhosts({
+            w,
+            elSeries,
+            record: this._prevRecord(realIndex),
+            newKeys,
+            isHorizontal: this.isHorizontal,
+            speed: w.config.chart.animations.dynamicAnimation.speed
+          });
+        }
         ret.add(elSeries);
       }
       return ret;
@@ -31404,6 +40223,7 @@ var __async = (__this, __arguments, generator) => {
       var _a;
       const w = this.w;
       const graphics = new Graphics(this.w, this.ctx);
+      const emit = seriesEmitter(this.ctx, graphics);
       let skipDrawing = false;
       if (!elSeries._bindingsDelegated) {
         elSeries._bindingsDelegated = true;
@@ -31467,7 +40287,7 @@ var __async = (__this, __arguments, generator) => {
       }
       const animCfg = w.config.chart.animations;
       const gradCfg = animCfg.animateGradually;
-      const staggerEnabled = gradCfg && gradCfg.enabled !== false;
+      const staggerEnabled = gradCfg && gradCfg.enabled !== false && !(w.globals.dataChanged && this.isLengthTransition(realIndex));
       let delay = 0;
       if (staggerEnabled) {
         const totalBars = w.globals.dataPoints || 1;
@@ -31492,7 +40312,7 @@ var __async = (__this, __arguments, generator) => {
         const dataChangeSpeed = morphActive ? this.ctx.morphTypeChange.getSpeed() : w.config.chart.animations.dynamicAnimation.speed;
         const renderedPath = (
           /** @type {any} */
-          graphics.renderPaths({
+          emit.renderPaths({
             i,
             j,
             realIndex,
@@ -31532,8 +40352,22 @@ var __async = (__this, __arguments, generator) => {
           j,
           val: w.seriesData.series[i][j],
           barHeight,
-          barWidth
+          barWidth,
+          // Datum identity for the next update's keyed join (see
+          // LengthTransition): survivors match by key, not array position.
+          "data:pathKey": datumKey(w, realIndex, j)
         });
+        if (emit.kind === "canvas") {
+          if (!w.globals.barCanvasCoords) w.globals.barCanvasCoords = {};
+          if (!w.globals.barCanvasCoords[realIndex]) {
+            w.globals.barCanvasCoords[realIndex] = {};
+          }
+          w.globals.barCanvasCoords[realIndex][j] = {
+            cx: dataLabelsObj.dataLabelsPos.bcx,
+            cy: dataLabelsObj.dataLabelsPos.bcy,
+            barWidth
+          };
+        }
         if (dataLabelsObj.dataLabels !== null) {
           elDataLabelsWrap.add(dataLabelsObj.dataLabels);
         }
@@ -31787,32 +40621,132 @@ var __async = (__this, __arguments, generator) => {
       };
     }
     /**
-     * Resolve `pathFrom` for a bar on data update. Returns the previous render's
-     * `d` string for the same `(realIndex, j)` only when its SVG command count
-     * matches `pathTo` — that's the survivor-with-stable-shape case where SVG.js
-     * morph produces a smooth resize. When commands mismatch (corner state
-     * flipped, e.g. bar became new top-of-stack after legend toggle) or the bar
-     * is genuinely new (no captured previous), returns `pathTo` — which makes
-     * pathFrom === pathTo so morph is a visual no-op (snap).
+     * The captured previous-render record for a series (last match wins, same
+     * as the historical scan order).
+     *
+     * @param {number} realIndex
+     * @returns {any | null}
+     */
+    _prevRecord(realIndex) {
+      const w = this.w;
+      let record = null;
+      for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
+        const gpp = w.globals.previousPaths[pp];
+        if (gpp.paths && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)) {
+          record = gpp;
+        }
+      }
+      return record;
+    }
+    /**
+     * Previous paths of a series re-keyed by datum key (stamped as
+     * `data:pathKey` on each bar path and captured by Series.getPreviousPaths).
+     * Returns null when the previous render carries no keys (so the caller
+     * falls back to positional matching).
+     *
+     * @param {number} realIndex
+     * @returns {Map<string, {d: string}> | null}
+     */
+    _prevKeyedPaths(realIndex) {
+      if (!this._prevKeyed) this._prevKeyed = {};
+      if (this._prevKeyed[realIndex] !== void 0) {
+        return this._prevKeyed[realIndex];
+      }
+      const record = this._prevRecord(realIndex);
+      let map = null;
+      if (record && record.paths.every((p) => p.key != null)) {
+        const keyed = /* @__PURE__ */ new Map();
+        record.paths.forEach((p) => {
+          keyed.set(p.key, p);
+        });
+        map = keyed;
+      }
+      this._prevKeyed[realIndex] = map;
+      return map;
+    }
+    /**
+     * Whether this series' update changes its datum layout (points entered,
+     * exited, or changed identity). Layout-changing updates run all survivors
+     * on one shared clock (no per-bar stagger) so the reflow reads as a single
+     * coordinated motion; pure value updates keep the stagger.
+     *
+     * @param {number} realIndex
+     * @returns {boolean}
+     */
+    isLengthTransition(realIndex) {
+      var _a, _b;
+      if (!this._ltCache) this._ltCache = {};
+      if (this._ltCache[realIndex] !== void 0) return this._ltCache[realIndex];
+      const w = this.w;
+      let result = false;
+      if (lengthTransitionEnabled(w) && w.globals.previousPaths.length > 0) {
+        const record = this._prevRecord(realIndex);
+        const dataLen = (_b = (_a = w.seriesData.series[realIndex]) == null ? void 0 : _a.length) != null ? _b : 0;
+        if (!record) {
+          result = dataLen > 0;
+        } else if (record.paths.length !== dataLen) {
+          result = true;
+        } else {
+          const keyed = this._prevKeyedPaths(realIndex);
+          if (keyed) {
+            for (let j = 0; j < dataLen; j++) {
+              if (!keyed.has(datumKey(w, realIndex, j))) {
+                result = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+      this._ltCache[realIndex] = result;
+      return result;
+    }
+    /**
+     * Resolve `pathFrom` for a bar on data update, joining old and new datums
+     * by KEY (category label / x value) so survivors keep their identity across
+     * inserts, prepends, and removals. Three outcomes:
+     *
+     *  - survivor with stable shape → the previous `d` (smooth reflow morph);
+     *  - survivor whose command count changed (corner state flipped, e.g. bar
+     *    became new top-of-stack) → `pathTo` (pathFrom === pathTo, a snap);
+     *  - genuinely new datum (key absent from the previous render, or the whole
+     *    series is new) → null, telling the path builder to use its
+     *    grow-from-baseline enter path.
+     *
+     * Falls back to positional (index j) matching when the previous render
+     * carries no datum keys.
      *
      * @param {number} realIndex - stable series index from `data:realIndex`
      * @param {number} j - data-point index within the series
      * @param {string} pathTo - the freshly-built path for this bar (post-roundPathCorners)
-     * @returns {string}
+     * @returns {string | null}
      **/
     getPreviousPath(realIndex, j, pathTo) {
       const w = this.w;
+      const record = this._prevRecord(realIndex);
+      if (!record) {
+        return lengthTransitionEnabled(w) ? null : pathTo;
+      }
       let oldD = null;
-      for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
-        const gpp = w.globals.previousPaths[pp];
-        if (gpp.paths && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)) {
-          if (typeof gpp.paths[j] !== "undefined") {
-            oldD = gpp.paths[j].d;
-          }
+      let isNewDatum = false;
+      const keyed = this._prevKeyedPaths(realIndex);
+      if (keyed) {
+        const prev = keyed.get(datumKey(w, realIndex, j));
+        if (prev) {
+          oldD = prev.d;
+        } else {
+          isNewDatum = true;
         }
+      } else if (typeof record.paths[j] !== "undefined") {
+        oldD = record.paths[j].d;
+      } else {
+        isNewDatum = true;
       }
       if (oldD && Bar.pathCommandCount(oldD) === Bar.pathCommandCount(pathTo)) {
         return oldD;
+      }
+      if (isNewDatum && lengthTransitionEnabled(w)) {
+        return null;
       }
       return pathTo;
     }
@@ -32736,10 +41670,11 @@ var __async = (__this, __arguments, generator) => {
           graphics.move(barXPosition, y2) + graphics.line(barXPosition + barWidth / 2, y2) + graphics.line(barXPosition + barWidth / 2, l1) + graphics.line(barXPosition + barWidth / 2, y2) + graphics.line(barXPosition + barWidth, y2) + graphics.line(barXPosition + barWidth, y1) + graphics.line(barXPosition + barWidth / 2, y1) + graphics.line(barXPosition + barWidth / 2, l2) + graphics.line(barXPosition + barWidth / 2, y1) + graphics.line(barXPosition, y1) + graphics.line(barXPosition, y2 - strokeWidth / 2)
         ];
       }
-      let pathFrom;
+      let pathFrom = null;
       if (w.globals.previousPaths.length > 0) {
         pathFrom = this.getPreviousPath(realIndex, j, pathTo[0]);
-      } else {
+      }
+      if (pathFrom == null) {
         pathFrom = graphics.move(barXPosition + barWidth / 2, y1) + graphics.move(barXPosition, y1);
       }
       if (!w.axisFlags.isXNumeric) {
@@ -32812,10 +41747,11 @@ var __async = (__this, __arguments, generator) => {
         graphics.move(x1, barYPosition) + graphics.line(x1, barYPosition + barHeight / 2) + graphics.line(l1, barYPosition + barHeight / 2) + graphics.line(l1, barYPosition + barHeight / 2 - barHeight / 4) + graphics.line(l1, barYPosition + barHeight / 2 + barHeight / 4) + graphics.line(l1, barYPosition + barHeight / 2) + graphics.line(x1, barYPosition + barHeight / 2) + graphics.line(x1, barYPosition + barHeight) + graphics.line(m, barYPosition + barHeight) + graphics.line(m, barYPosition) + graphics.line(x1 + strokeWidth / 2, barYPosition),
         graphics.move(m, barYPosition) + graphics.line(m, barYPosition + barHeight) + graphics.line(x2, barYPosition + barHeight) + graphics.line(x2, barYPosition + barHeight / 2) + graphics.line(l2, barYPosition + barHeight / 2) + graphics.line(l2, barYPosition + barHeight - barHeight / 4) + graphics.line(l2, barYPosition + barHeight / 4) + graphics.line(l2, barYPosition + barHeight / 2) + graphics.line(x2, barYPosition + barHeight / 2) + graphics.line(x2, barYPosition) + graphics.line(m, barYPosition) + "z"
       ];
-      let pathFrom;
+      let pathFrom = null;
       if (w.globals.previousPaths.length > 0) {
         pathFrom = this.getPreviousPath(realIndex, j, pathTo[0]);
-      } else {
+      }
+      if (pathFrom == null) {
         pathFrom = graphics.move(x1, barYPosition + barHeight / 2) + graphics.move(x1, barYPosition);
       }
       if (!w.axisFlags.isXNumeric) {
@@ -33162,10 +42098,11 @@ var __async = (__this, __arguments, generator) => {
         alongFn,
         collapsed: false
       });
-      let pathFrom;
+      let pathFrom = null;
       if (w.globals.previousPaths.length > 0) {
         pathFrom = this.getPreviousPath(realIndex, j, pathTo);
-      } else {
+      }
+      if (pathFrom == null) {
         pathFrom = this.buildBodyPath({
           nodes: density.nodes,
           center,
@@ -33216,10 +42153,11 @@ var __async = (__this, __arguments, generator) => {
         alongFn,
         collapsed: false
       });
-      let pathFrom;
+      let pathFrom = null;
       if (w.globals.previousPaths.length > 0) {
         pathFrom = this.getPreviousPath(realIndex, j, pathTo);
-      } else {
+      }
+      if (pathFrom == null) {
         pathFrom = this.buildBodyPath({
           nodes: density.nodes,
           center,
@@ -34116,7 +43054,7 @@ var __async = (__this, __arguments, generator) => {
           }
           paths.linePaths.splice(segments);
           paths.pathFromLine = rangePaths.pathFromLine + paths.pathFromLine;
-        } else {
+        } else if (!/z\s*$/i.test(paths.pathFromArea)) {
           paths.pathFromArea += "z";
         }
         this._handlePaths({ type, realIndex, i, paths });
@@ -34257,10 +43195,27 @@ var __async = (__this, __arguments, generator) => {
     }
     /** @param {{type: any, realIndex: any, i: any, paths: any}} opts */
     _handlePaths({ type, realIndex, i, paths }) {
+      var _a, _b, _c, _d, _e, _f, _g;
       const w = this.w;
       const graphics = new Graphics(this.w);
+      const emit = seriesEmitter(this.ctx, graphics);
       const fill = new Fill(this.w);
       this.prevSeriesY.push(paths.yArrj);
+      let streamScroll = null;
+      if ((type === "line" || type === "area") && w.globals.dataChanged) {
+        streamScroll = detectStreamScroll(w, realIndex, paths.xArrj, paths.yArrj);
+      }
+      let reconcile = null;
+      if (!streamScroll && (type === "line" || type === "area")) {
+        reconcile = reconcileSeriesPaths(w, {
+          type,
+          realIndex,
+          pathFromLine: paths.pathFromLine,
+          pathFromArea: paths.pathFromArea,
+          linePaths: paths.linePaths,
+          areaPaths: paths.areaPaths
+        });
+      }
       w.globals.seriesXvalues[realIndex] = paths.xArrj;
       w.globals.seriesYvalues[realIndex] = paths.yArrj;
       const forecast = w.config.forecastDataPoints;
@@ -34288,6 +43243,24 @@ var __async = (__this, __arguments, generator) => {
           el: this.elPointsMain.node,
           index: realIndex
         });
+        tweenSeriesMarkers(w, {
+          elPointsMain: this.elPointsMain,
+          realIndex,
+          speed: w.config.chart.animations.dynamicAnimation.speed
+        });
+        if (seriesJoin(w, realIndex) && ((_a = this.elDataLabelsWrap) == null ? void 0 : _a.node)) {
+          this.elDataLabelsWrap.node.classList.add("apexcharts-element-hidden");
+          w.globals.delayedElements.push({
+            el: this.elDataLabelsWrap.node,
+            holdUntilComplete: true
+          });
+        }
+      } else {
+        tweenSeriesMarkers(w, {
+          elPointsMain: this.elPointsMain,
+          realIndex,
+          speed: w.config.chart.animations.dynamicAnimation.speed
+        });
       }
       const defaultRenderedPathOptions = {
         i,
@@ -34302,9 +43275,11 @@ var __async = (__this, __arguments, generator) => {
           seriesNumber: realIndex
         });
         for (let p = 0; p < paths.areaPaths.length; p++) {
-          const renderedPath = graphics.renderPaths(__spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
-            pathFrom: paths.pathFromArea,
+          const renderedPath = emit.renderPaths(__spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
+            pathFrom: streamScroll ? projectPathToPrevFrame(paths.areaPaths[p], streamScroll) : (_c = (_b = reconcile == null ? void 0 : reconcile.area) == null ? void 0 : _b.from) != null ? _c : paths.pathFromArea,
             pathTo: paths.areaPaths[p],
+            pathToInterp: (_d = reconcile == null ? void 0 : reconcile.area) == null ? void 0 : _d.toInterp,
+            scrollMorph: !!streamScroll,
             stroke: "none",
             strokeWidth: 0,
             strokeLineCap: null,
@@ -34341,18 +43316,20 @@ var __async = (__this, __arguments, generator) => {
             });
           }
           const linePathCommonOpts = __spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
-            pathFrom: paths.pathFromLine,
+            pathFrom: streamScroll ? projectPathToPrevFrame(paths.linePaths[p], streamScroll) : (_f = (_e = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _e.from) != null ? _f : paths.pathFromLine,
             pathTo: paths.linePaths[p],
+            pathToInterp: (_g = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _g.toInterp,
+            scrollMorph: !!streamScroll,
             stroke: lineFill,
             strokeWidth: this.strokeWidth,
             strokeLineCap: w.config.stroke.lineCap,
             fill: type === "rangeArea" ? pathFill : "none"
           });
-          const renderedPath = graphics.renderPaths(linePathCommonOpts);
+          const renderedPath = emit.renderPaths(linePathCommonOpts);
           this.elSeries.add(renderedPath);
           renderedPath.attr("fill-rule", `evenodd`);
           if (forecast.count > 0 && type !== "rangeArea") {
-            const renderedForecastPath = graphics.renderPaths(linePathCommonOpts);
+            const renderedForecastPath = emit.renderPaths(linePathCommonOpts);
             renderedForecastPath.node.setAttribute(
               "stroke-dasharray",
               forecast.dashArray

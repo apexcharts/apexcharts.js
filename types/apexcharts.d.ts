@@ -52,6 +52,9 @@ type ApexFormatterOpts = {
   dataPointIndex: number
   series?: any[][]
   w: ApexChartContext
+  // Some formatter call sites spread extra state into the opts object (e.g.
+  // the bar total-label formatter spreads `w`), so allow arbitrary reads.
+  [key: string]: any
 }
 
 /**
@@ -134,6 +137,25 @@ declare class ApexCharts {
 
   /** Toggles (show/hide) the series by name. Mirrors a click on the legend item. */
   toggleSeries(seriesName: string): object | undefined
+
+  /**
+   * Linked Views (#4): clears crossfilter dimming across this chart and every
+   * chart in its `chart.group`. No-op unless the `link` feature is bundled.
+   */
+  clearCrossfilter(): void
+
+  /**
+   * Measure ruler (#18): arm a sticky measure-ruler mode. Drag A->B on the
+   * plot to read dx/dy/%change/slope. Requires the `measure` feature and
+   * `chart.measure.enabled`.
+   */
+  startMeasure(): void
+
+  /** Measure ruler (#18): leave measure mode. */
+  stopMeasure(): void
+
+  /** Measure ruler (#18): remove all pinned measure rulers. */
+  clearMeasures(): void
 
   /** Highlights or un-highlights a series when a legend marker is hovered. */
   highlightSeriesOnLegendHover(e: MouseEvent, targetElement: HTMLElement): void
@@ -221,6 +243,21 @@ declare class ApexCharts {
   paper(): any
 
   /**
+   * Returns the active series renderer for the last render (Strata #2):
+   * `'svg'` (default) or `'canvas'`. Resolves to `'svg'` unless the canvas
+   * renderer feature is bundled and no canvas-unsupported feature is in use.
+   */
+  getActiveRenderer(): 'svg' | 'canvas' | 'gpu'
+
+  /**
+   * Facet (#13): re-resolves the `--apx-*` design tokens from the CSS cascade
+   * and re-renders. Use after a runtime token change that is not an OS
+   * color-scheme flip (e.g. the host app swaps its design-system theme), since
+   * tokens are otherwise only re-read when something else triggers a render.
+   */
+  refreshTokens(): Promise<any>
+
+  /**
    * Drills into the child level referenced by `id` (a `drilldown.series` entry).
    * Requires the Drilldown feature: import 'apexcharts/features/drilldown'.
    */
@@ -296,6 +333,133 @@ declare class ApexCharts {
    */
   static registerFeatures(featureMap: Record<string, new (...args: any[]) => any>): void
 
+  /**
+   * Registers a Weave plugin definition. Available in every bundle; the plugin
+   * activates only when the Weave host is bundled and listed in a chart's
+   * `plugins` config. Re-registering a name replaces the definition.
+   */
+  static registerPlugin(def: ApexPlugin): typeof ApexCharts
+
+  /**
+   * Removes a registered Weave plugin definition. Charts holding an active
+   * instance keep it until their plugins config changes or they are destroyed.
+   * Intended for tests and hot-reload flows.
+   */
+  static unregisterPlugin(name: string): typeof ApexCharts
+
+  /**
+   * Registers a non-SVG series renderer (Strata #2). The canvas backend
+   * registers itself via `import 'apexcharts/features/renderer-canvas'`.
+   */
+  static registerRenderer(kind: string, factory: (w: any, ctx: any) => any): void
+
+  /**
+   * Removes a registered renderer backend; charts fall back to SVG on their
+   * next render. Intended for tests and hot-reload flows.
+   */
+  static unregisterRenderer(kind: string): void
+
+  /**
+   * Registers a custom series type (Marks #11): a `{ renderItem }` definition
+   * that draws primitives per datum. Requires the Marks feature to be bundled
+   * (`import 'apexcharts/features/marks'`, included in the full bundle).
+   * Once registered, reference it via `series[].type` or `chart.type`.
+   * Re-registering a custom name replaces it; a built-in chart type name is
+   * rejected with a console warning (the registry is global, so shadowing a
+   * built-in would affect every chart on the page).
+   */
+  static registerSeriesType(name: string, def: ApexSeriesTypeDef): typeof ApexCharts
+
+  /**
+   * Removes a custom series type registered via registerSeriesType. Built-in
+   * chart types cannot be unregistered. Intended for tests and hot-reload.
+   */
+  static unregisterSeriesType(name: string): typeof ApexCharts
+
+  /**
+   * Registers a named theme (Facet #13): a palette + design-token + mode bundle
+   * referenceable via `theme: { name }`. Sits below explicit config and CSS
+   * `--apx-*` tokens, above the built-in palette/mode defaults.
+   */
+  static registerTheme(name: string, def: ApexThemeDef): typeof ApexCharts
+
+  /**
+   * Removes a registered theme. Charts referencing it via `theme.name` fall
+   * back to the built-in defaults on their next render. Intended for tests and
+   * hot-reload flows.
+   */
+  static unregisterTheme(name: string): typeof ApexCharts
+
+  /**
+   * Registers a named easing (Cadence #6) referenceable via
+   * `chart.animations.easing: '<name>'`, alongside the built-in curves listed
+   * on `ApexEasing`. `fn` maps linear progress t in [0,1]
+   * to eased progress (back/elastic curves may overshoot 1).
+   */
+  static registerEasing(name: string, fn: (t: number) => number): typeof ApexCharts
+
+  /**
+   * Linked Views (#4) Phase 2: get-or-create a crossfilter coordinator by id.
+   * Register one shared record set; each participating chart declares a
+   * dimension + reduction under `chart.link`, and selecting in one chart
+   * re-aggregates the others over the filtered subset. Requires the `link`
+   * feature (`import 'apexcharts/features/link'`); returns null without it.
+   */
+  static crossfilter(opts: { id: string; records?: any[] }): ApexCrossfilter | null
+
+  /** Look up an existing crossfilter coordinator by id (null if none). */
+  static getCrossfilter(id: string): ApexCrossfilter | null
+
+  /**
+   * Static, pure Perspectives helpers. Available once the feature is imported:
+   * `import 'apexcharts/features/perspectives'`.
+   */
+  static perspectives: {
+    decode(str: string): ApexPerspective | null
+    fromURL(href?: string): ApexPerspective | null
+  }
+
+  /**
+   * SSR: render a chart to an SVG string on the server. Available from the
+   * `apexcharts/ssr` entry (`import ApexCharts from 'apexcharts/ssr'`).
+   */
+  static renderToString(
+    options: ApexCharts.ApexOptions,
+    ssrOptions?: { width?: number; height?: number; scale?: number },
+  ): Promise<string>
+
+  /**
+   * SSR: render a chart to hydration-ready HTML (SVG wrapped in the chart
+   * container). Available from the `apexcharts/ssr` entry.
+   */
+  static renderToHTML(
+    options: ApexCharts.ApexOptions,
+    ssrOptions?: {
+      width?: number
+      height?: number
+      scale?: number
+      className?: string
+    },
+  ): Promise<string>
+
+  /**
+   * SSR: hydrate a server-rendered chart container into a live, interactive
+   * chart. Available from the `apexcharts/client` (or `apexcharts/ssr`) entry.
+   */
+  static hydrate(el: HTMLElement, clientOptions?: ApexCharts.ApexOptions): ApexCharts
+
+  /**
+   * SSR: hydrate every server-rendered chart container matching `selector`
+   * (defaults to all ApexCharts containers on the page).
+   */
+  static hydrateAll(
+    selector?: string,
+    clientOptions?: ApexCharts.ApexOptions,
+  ): ApexCharts[]
+
+  /** SSR: whether a container has already been hydrated. */
+  static isHydrated(el: HTMLElement): boolean
+
   exports: {
     cleanup(): string
     svgUrl(): string
@@ -306,6 +470,330 @@ declare class ApexCharts {
     getSvgString(scale?: number): Promise<string>
     triggerDownload(href: string, filename?: string, ext?: string): void
   }
+
+  /**
+   * Perspectives (#10): serializable, shareable view state.
+   * Requires the Perspectives feature: `import 'apexcharts/features/perspectives'`.
+   */
+  perspectives: {
+    capture(): ApexPerspective
+    encode(token?: ApexPerspective): string
+    decode(str: string): ApexPerspective | null
+    toURL(): string
+    apply(token: ApexPerspective | string, opts?: { animate?: boolean; mergeOptions?: ApexCharts.ApexOptions }): void
+    save(name: string): string
+    list(): { id: string; name: string; token: ApexPerspective }[]
+    delete(id: string): void
+  }
+
+  /**
+   * Storyboard: scroll-driven chart choreography (scrollytelling). Beats are
+   * prose elements paired with Perspective views; scrolling a beat across the
+   * trigger line applies its view, and scrolling back reverses it.
+   * Requires the Storyboard feature: `import 'apexcharts/features/storyboard'`
+   * (which includes Perspectives).
+   */
+  storyboard: {
+    bind(opts?: ApexStoryboardBindOptions): number
+    unbind(): void
+    goTo(beat: number | string, opts?: { animate?: boolean }): void
+    current(): { index: number; key: string | null } | null
+  }
+
+  /**
+   * Rewind (#3): undo/redo history.
+   * Requires the History feature (`import 'apexcharts/features/history'`) and
+   * chart.history.enabled: true.
+   */
+  history: {
+    undo(animate?: boolean): void
+    redo(animate?: boolean): void
+    canUndo(): boolean
+    canRedo(): boolean
+    jump(id: string, animate?: boolean): void
+    clear(): void
+    transaction(fn: () => void | Promise<any>, opts?: { label?: string }): Promise<void>
+    entries(): ApexHistoryEntry[]
+  }
+}
+
+interface ApexHistoryEntry {
+  id: string
+  label: string
+  at: number
+}
+
+interface ApexViewState {
+  v: number
+  window: {
+    xaxis: { min: number | null; max: number | null } | null
+    yaxis: ({ min: number | null; max: number | null } | null)[] | null
+  }
+  zoomed: boolean
+  collapsed: number[]
+  ancillaryCollapsed: number[]
+  selectedDataPoints: number[][]
+  theme: { mode: string | null; palette: string | null } | null
+  locale: string | null
+  annotations: {
+    static: any
+    dynamic: { kind: string; params: any }[]
+  }
+  drill: { path: (string | number)[] } | null
+}
+
+interface ApexPerspective {
+  v: number
+  view: ApexViewState
+  options?: Record<string, any>
+}
+
+// ── Storyboard: scroll-driven chart choreography ──
+interface ApexStoryboardBeatInfo {
+  index: number
+  key: string | null
+  el: Element
+  direction: 'up' | 'down'
+}
+
+interface ApexStoryboardBeat {
+  /** The prose element that triggers the beat (or use `selector`). */
+  el?: Element
+  selector?: string
+  /** Author key for goTo() and events; defaults to data-apex-beat or the index. */
+  key?: string
+  /**
+   * The view to apply: a bare ViewState object (partial is fine; a beat
+   * describes the WHOLE target state, e.g. omitting `window` clears the
+   * zoom), a full Perspective token, or an encoded token string.
+   */
+  view?: Partial<ApexViewState> | ApexPerspective | string
+  /**
+   * updateOptions payload merged into the SAME render as the view, so a beat
+   * can restyle or swap chart.type in one animated transition (cross-type
+   * morphs play out inside it). updateOptions merges, so each beat should
+   * carry every option it depends on, like the view.
+   */
+  options?: ApexCharts.ApexOptions
+  /** Text pushed to the chart's aria-live region when the beat activates. */
+  announce?: string
+  /** Escape hatch for arbitrary per-beat work. */
+  onEnter?(chart: ApexCharts, info: ApexStoryboardBeatInfo): void
+}
+
+interface ApexStoryboardBindOptions {
+  /**
+   * Beats in story order. Omit to auto-discover [data-apex-beat] elements in
+   * document order (data-apex-view holds an encoded token, data-apex-announce
+   * an announcement).
+   */
+  beats?: ApexStoryboardBeat[]
+  /** Custom scroll container (element or selector); default: the viewport. */
+  scroller?: Element | string
+  /** 0..1 fraction of the viewport height for the trigger line (default 0.5). */
+  offset?: number
+  /** Animate beat transitions (default true; prefers-reduced-motion wins). */
+  animate?: boolean
+}
+
+// ── Weave (#1): public plugin platform ──
+type ApexPluginHook =
+  | 'afterParse'
+  | 'afterScales'
+  | 'draw'
+  | 'afterUpdate'
+  | 'destroy'
+
+interface ApexPluginScales {
+  x(v: number): number
+  y(v: number, axis?: number): number
+  domainX: [number, number]
+  domainY(axis?: number): [number, number]
+  gridWidth: number
+  gridHeight: number
+  ratios: any
+}
+
+interface ApexPluginSeries {
+  name?: string
+  hidden: boolean
+  color?: string
+  points: { x: any; y: any }[]
+}
+
+interface ApexPluginLayer {
+  readonly node: SVGGElement
+  path(opts: {
+    d: string
+    stroke?: string
+    width?: number
+    fill?: string
+    opacity?: number
+    dash?: number
+    className?: string
+  }): any
+  line(opts: {
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+    stroke?: string
+    width?: number
+    dash?: number
+  }): any
+  rect(opts: {
+    x?: number
+    y?: number
+    w?: number
+    h?: number
+    r?: number
+    fill?: string
+    stroke?: string
+    opacity?: number
+  }): any
+  circle(opts: {
+    cx?: number
+    cy?: number
+    r?: number
+    fill?: string
+    stroke?: string
+  }): any
+  text(opts: {
+    x?: number
+    y?: number
+    text?: string
+    color?: string
+    size?: string
+    anchor?: string
+    weight?: string
+  }): any
+  clear(): ApexPluginLayer
+}
+
+interface ApexPluginPayload {
+  api: ApexPluginAPI
+  scales: ApexPluginScales | null
+  data: ApexPluginSeries[]
+  pass: 'full' | 'fast' | 'update'
+  hook: ApexPluginHook
+}
+
+interface ApexPluginAPI {
+  readonly name: string
+  readonly version: number
+  /**
+   * Live: refreshed when the chart's `plugins` config changes, so
+   * `updateOptions({ plugins: [{ name, options }] })` reconfigures an active
+   * plugin in place. The returned object is frozen.
+   */
+  readonly options: Record<string, any>
+  on(hook: ApexPluginHook, fn: (payload: ApexPluginPayload) => void): ApexPluginAPI
+  off(hook: ApexPluginHook, fn: (payload: ApexPluginPayload) => void): ApexPluginAPI
+  store: Record<string, any>
+  /**
+   * Call INSIDE each draw handler: plugin layers are wiped at the start of
+   * every draw pass, so a handle cached across draws points at a detached node
+   * and its writes vanish silently.
+   */
+  layer(opts?: { z?: 'front' | 'behind'; className?: string }): ApexPluginLayer
+  readonly scales: ApexPluginScales | null
+  readonly data: ApexPluginSeries[]
+  theme: {
+    readonly mode: string
+    readonly foreColor: string
+    seriesColor(i: number): string
+    token(name: string): any
+  }
+  chart: Record<string, (...args: any[]) => any>
+  /**
+   * Fires on the chart's event bus as `plugin:<pluginName>:<name>` (namespaced
+   * so a plugin can never trigger internal lifecycle subscribers). Listen with
+   * `chart.addEventListener('plugin:myplugin:myevent', fn)`.
+   */
+  emit(name: string, detail?: any): void
+  readonly el: Element
+}
+
+interface ApexPlugin {
+  name: string
+  apiVersion?: number
+  setup(api: ApexPluginAPI): void
+  destroy?(api: ApexPluginAPI): void
+}
+
+interface ApexPluginActivation {
+  name: string
+  options?: Record<string, any>
+  order?: number
+}
+
+/**
+ * Marks (#11): the per-datum primitive API passed to `renderItem`. Each call
+ * emits a mark (renderer-agnostic: SVG today, canvas above `rendererThreshold`),
+ * tags it with the datum identity so tooltip/selection/keyboard work, and adds
+ * it to the series group. Coordinates are pixels in series space.
+ */
+interface ApexMarksAPI {
+  path(opts: { d: string; stroke?: string; width?: number; fill?: string; opacity?: number; fillOpacity?: number; strokeOpacity?: number; dash?: number | number[]; lineCap?: string }): any
+  line(opts: { x1: number; y1: number; x2: number; y2: number; stroke?: string; width?: number; dash?: number | number[] }): any
+  rect(opts: { x?: number; y?: number; w?: number; h?: number; r?: number; fill?: string; stroke?: string; strokeWidth?: number; opacity?: number }): any
+  circle(opts: { cx?: number; cy?: number; r?: number; fill?: string; stroke?: string; strokeWidth?: number }): any
+  text(opts: { x?: number; y?: number; text?: string | string[]; anchor?: 'start' | 'middle' | 'end'; size?: number; color?: string; weight?: number | string }): any
+}
+
+/** Marks (#11): series-space scales (elGraphical-local pixels). */
+interface ApexMarksScales {
+  /** data x value -> pixel (numeric axes) */
+  x(value: number): number
+  /**
+   * Resolve a datum's x pixel by index and value: numeric axes map by value,
+   * categorical band axes (e.g. xaxis.tickPlacement:'between') map by index to
+   * the band center. `ctx.x` is `xAt(dataPointIndex, datum.x)`.
+   */
+  xAt(index: number, value: any): number
+  /** data y value -> pixel (optionally a specific y-axis index) */
+  y(value: number, axis?: number): number
+  gridWidth: number
+  gridHeight: number
+  /** pixel width of one x step (numeric) or one band (categorical) */
+  band: number
+}
+
+/** Marks (#11): context passed to `renderItem` for one datum. */
+interface ApexMarksItemContext {
+  /** the raw datum from `series[].data` */
+  datum: any
+  /** resolved x pixel of this datum */
+  x: number
+  /** resolved y pixel of this datum's primary value */
+  y: number
+  scales: ApexMarksScales
+  api: ApexMarksAPI
+  seriesIndex: number
+  dataPointIndex: number
+  /** the series palette colour */
+  color: string
+}
+
+/** Marks (#11): a custom series type definition for `registerSeriesType`. */
+interface ApexSeriesTypeDef {
+  /** Draw one datum by returning/emitting primitives via `ctx.api`. */
+  renderItem(ctx: ApexMarksItemContext): any
+  /**
+   * Data shape hint. Default 'xy' (scalar y). Set 'rangeXY' when a datum's `y`
+   * is a `[lo, hi]` pair (dumbbell/range mark): both bounds fold into the
+   * y-axis scale and the tooltip renders "lo - hi".
+   */
+  dataType?: 'xy' | 'rangeXY' | 'custom'
+  /**
+   * Per-datum y-extent override for auto-scaling, when the drawn span is not
+   * simply `y` (e.g. a bullet whose target/bands extend past the value).
+   * Return the value(s) the datum occupies; the min and max fold into the
+   * y-axis scale. Takes precedence over `dataType`.
+   */
+  yExtent?: (datum: any, dataPointIndex: number) => number | number[]
+  /** Tooltip value(s) for a datum. */
+  tooltip?: (datum: any) => number | number[] | string
 }
 
 declare namespace ApexCharts {
@@ -460,6 +948,8 @@ declare namespace ApexCharts {
     legend?: ApexLegend
     markers?: ApexMarkers
     noData?: ApexNoData
+    /** Weave (#1) plugin activation list. Requires `import 'apexcharts/features/weave'`. */
+    plugins?: ApexPluginActivation[]
     plotOptions?: ApexPlotOptions
     responsive?: ApexResponsive[]
     parsing?: ApexParsing;
@@ -479,6 +969,7 @@ declare namespace ApexCharts {
   //   const yaxis: ApexCharts.ApexYAxis = { ... }
   export type { ApexAnnotations }
   export type { ApexChart }
+  export type { ApexEasing }
   export type { ApexDataLabels }
   export type { ApexFill }
   export type { ApexForecastDataPoints }
@@ -511,6 +1002,9 @@ declare namespace ApexCharts {
   export type { PointAnnotations }
   export type { TextAnnotations }
   export type { ImageAnnotations }
+  export type { ApexStoryboardBeat }
+  export type { ApexStoryboardBeatInfo }
+  export type { ApexStoryboardBindOptions }
 }
 
 type ApexDropShadow = {
@@ -525,6 +1019,32 @@ type ApexDropShadow = {
    */
   color?: string | string[]
 }
+
+/**
+ * Easing for the generic tween runner (Cadence #6): data-update value
+ * transitions, path morphs, marker animate. Accepts a built-in curve name
+ * (the union below is the complete built-in registry), any custom name
+ * registered via `ApexCharts.registerEasing` (hence the widened string), a
+ * CSS-style cubic-bezier control array `[x1, y1, x2, y2]`, or a function
+ * mapping linear progress t in [0,1] to eased progress (back-style curves
+ * may overshoot [0,1]).
+ */
+type ApexEasing =
+  | 'linear'
+  | 'easeInSine'
+  | 'easeOutSine'
+  | 'easeInOutSine'
+  | 'easeInQuad'
+  | 'easeOutQuad'
+  | 'easeInOutQuad'
+  | 'easeInCubic'
+  | 'easeOutCubic'
+  | 'easeInOutCubic'
+  | 'easeOutBack'
+  | 'easeInOutBack'
+  | (string & {})
+  | [number, number, number, number]
+  | ((t: number) => number)
 
 /**
  * Main Chart options
@@ -590,6 +1110,56 @@ type ApexChart = {
     zoomed?(chart: ApexCharts, options?: { xaxis: { min: number; max: number }; yaxis?: { min: number; max: number }[] }): void
     scrolled?(chart: ApexCharts, options?: { xaxis: { min: number; max: number } }): void
     brushScrolled?(chart: ApexCharts, options?: { xaxis: { min: number; max: number }; yaxis?: { min: number; max: number }[] }): void
+    /**
+     * Linked Views (#4): fired on the source chart when a brush range drives a
+     * crossfilter across the group.
+     */
+    crossFilter?(chart: ApexCharts, options?: { xaxis: { min: number; max: number }; sourceChartID?: string }): void
+    /**
+     * Linked Views (#4) FILTER mode: fired on the source chart when a click
+     * toggles a crossfilter bucket. `options` carries the coordinator state
+     * (active filters, filtered/total counts), the source chartID, and the key.
+     */
+    filterChange?(chart: ApexCharts, options?: { filters: Record<string, any>; filteredCount: number; total: number; sourceChartID?: string; key?: any }): void
+    /**
+     * Ink Layer (#7): fired after an annotation is dragged or resized. `options`
+     * carries the annotation type ('point' | 'xaxis' | 'yaxis'), id/index, and
+     * the new data coordinates (x/y, plus x2/y2 for range annotations).
+     */
+    annotationDragged?(chart: ApexCharts, options?: { type?: 'point' | 'xaxis' | 'yaxis'; id?: string; index: number; x: any; y: any; x2?: any; y2?: any }): void
+    /**
+     * Ink Layer (#7): fired after a point annotation's label is edited inline.
+     * `options` carries the annotation id/index and the new label text.
+     */
+    annotationEdited?(chart: ApexCharts, options?: { type?: 'point' | 'xaxis' | 'yaxis'; id?: string; index: number; text: string }): void
+    /**
+     * Ink Layer (#7): fired after an annotation is created by clicking the
+     * plot in create mode or from the context menu (note or dashed line).
+     * `options` carries the new annotation type/id/index and its x and/or y.
+     */
+    annotationCreated?(chart: ApexCharts, options?: { type?: 'point' | 'xaxis' | 'yaxis'; id?: string; index: number; x?: any; y?: any }): void
+    /**
+     * Ink Layer (#7): fired after an annotation is restyled from the floating
+     * note editor (accent color, bold, font size, marker size/shape). `options`
+     * carries the annotation type/id/index and its current label + marker config.
+     */
+    annotationStyled?(chart: ApexCharts, options?: { type?: 'point' | 'xaxis' | 'yaxis'; id?: string; index: number; label?: any; marker?: any }): void
+    /**
+     * Ink Layer (#7): fired after an annotation is deleted from the floating
+     * note editor. `options` carries the annotation type/id and the index it
+     * occupied before removal.
+     */
+    annotationDeleted?(chart: ApexCharts, options?: { type?: 'point' | 'xaxis' | 'yaxis'; id?: string; index: number }): void
+    /**
+     * Measure ruler (#18): fired when a measure ruler is drawn. Requires the
+     * `measure` feature. `options` carries the endpoints and the deltas.
+     */
+    measured?(chart: ApexCharts, options?: { from: { x: any; y: any }; to: { x: any; y: any }; dx: number; dy: number; percentChange: number; slope: number }): void
+    /**
+     * Storyboard: fired when scrolling (or goTo) activates a beat. Requires
+     * the `storyboard` feature and an active chart.storyboard.bind().
+     */
+    beatChange?(chart: ApexCharts, options?: ApexStoryboardBeatInfo): void
     keyDown?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     keyUp?(e: KeyboardEvent, chart?: ApexCharts, options?: ApexChartEventOpts): void
     /** Fired before a drill-down transition begins. Requires the Drilldown feature. */
@@ -607,11 +1177,213 @@ type ApexChart = {
     target?: string
     targets?: string[]
   }
+  /**
+   * Linked Views (#4): crossfilter / linked highlighting. Requires the `link`
+   * feature (`import 'apexcharts/features/link'`). Two modes:
+   *
+   * HIGHLIGHT (P1): `enabled` with no `dimension`. Charts sharing a
+   * `chart.group` form a set; brushing a range (needs `chart.selection.enabled`)
+   * on any member dims every member's marks whose x is outside the range, in
+   * place (no re-render).
+   *
+   * FILTER (P2): set `dimension` (its presence selects this path). Each chart
+   * declares a dimension + reduction over a shared record set registered with
+   * `ApexCharts.crossfilter({ id, records })`; clicking a bucket re-aggregates
+   * every other participating chart over the filtered subset.
+   */
+  link?: {
+    /** @default false */
+    enabled?: boolean
+    /** Highlight mode (P1) label; filter mode is selected by `dimension`. @default 'highlight' */
+    mode?: 'highlight' | 'filter'
+    /** Opacity applied to dimmed (unselected / out-of-range) marks. @default 0.2 */
+    dimOpacity?: number
+    /** FILTER mode: crossfilter coordinator id (defaults to `chart.group`). */
+    id?: string
+    /**
+     * FILTER mode: `(row) => key`. Its presence selects filter mode. For a
+     * heatmap (matrix) dimension it returns `[xKey, yKey]`.
+     */
+    dimension?: (row: any) => any
+    /** FILTER mode: reduction over a bucket's rows. @default 'count' */
+    reduce?: 'count' | { sum?: string; avg?: string; min?: string; max?: string } | ((rows: any[]) => number)
+    /**
+     * FILTER mode: bucket kind. Else inferred: `bins` present => 'range', a
+     * heatmap chart => 'matrix' (2D), otherwise 'category'.
+     */
+    type?: 'category' | 'range' | 'matrix'
+    /** FILTER mode (range dims): binning spec. */
+    bins?: { width?: number; count?: number; thresholds?: number[] }
+    /** FILTER mode (category dims): key ordering. @default 'first-seen' */
+    order?: 'first-seen' | 'asc' | 'desc' | ((a: any, b: any) => number)
+    /** FILTER mode (axis charts): the derived series name. @default 'Count' */
+    seriesName?: string
+  }
+  /**
+   * Ink Layer (#7): direct-manipulation annotations. When enabled, every point
+   * annotation is draggable (unless it sets `draggable:false`); or opt in per
+   * annotation with `annotations.points[].draggable`. Clicking an ink-managed
+   * annotation opens a floating editor card anchored to it: rename inline,
+   * recolor via accent swatches, toggle bold, step the font size, size/reshape
+   * the marker, or delete the note. Axis-line annotations get separate Label
+   * and Line color rows, so restyling the label chip never touches the stroke.
+   * Requires the `ink` feature (`import 'apexcharts/features/ink'`). Fires the
+   * `annotationDragged`, `annotationEdited`, `annotationStyled` and
+   * `annotationDeleted` events.
+   */
+  ink?: {
+    /** @default false */
+    enabled?: boolean
+    /**
+     * Show a minimal "add note" tool palette; clicking it arms create mode (the
+     * next plot click drops an editable, draggable annotation). @default false
+     */
+    palette?: boolean
+    /**
+     * Snap a dragged point / axis-line annotation to the nearest gridline
+     * (numeric x + linear y). @default false
+     */
+    snap?: boolean
+    /**
+     * Accent swatches offered by the floating note editor. Defaults to a
+     * built-in 6-color palette when omitted.
+     */
+    noteColors?: string[]
+  }
+  /**
+   * Measure ruler (#18): a measure/delta ruler. Requires the `measure`
+   * feature (`import 'apexcharts/features/measure'`). Hold `key` and drag
+   * A->B on the plot, or call `chart.startMeasure()`, to read
+   * dx/dy/%change/slope in data space; on release the ruler pins as a
+   * data-anchored overlay that re-projects on zoom/resize. Fires `measured`.
+   */
+  measure?: {
+    /** @default false */
+    enabled?: boolean
+    /**
+     * 'span': finance-style vertical band between two x-positions with a
+     * change/%/range readout, endpoints snapped to the first series. 'free':
+     * a diagonal ruler between two arbitrary points. @default 'span'
+     */
+    mode?: 'span' | 'free'
+    /** Key held to arm a drag when not in sticky mode. @default 'm' */
+    key?: string
+    /** Pin the ruler as a data-anchored overlay on release. @default true */
+    pinOnRelease?: boolean
+    /**
+     * Semantic colors. Every element also has a stable CSS class and a
+     * direction class (apexcharts-measure-up|down|flat) for stylesheet theming.
+     */
+    colors?: { up?: string; down?: string; neutral?: string; guide?: string }
+    /** Span mode: draw the shaded band between the two x-positions. @default true */
+    band?: boolean
+    /** Span mode: draw the vertical dashed reference lines. @default true */
+    guides?: boolean
+    /** Draw the endpoint dots on the series line. @default true */
+    markers?: boolean
+    /** Value formatters for the readout. */
+    format?: {
+      x?: (x: number) => string
+      y?: (y: number) => string
+      percent?: (pct: number) => string
+    }
+    /**
+     * Full readout override. Receives the measure info and returns a string or
+     * an array of lines. Overrides the default readout text.
+     */
+    label?: (info: {
+      from: { x: any; y: any }
+      to: { x: any; y: any }
+      dx: number
+      dy: number
+      percentChange: number
+      slope: number
+      mode: 'span' | 'free'
+    }) => string | string[]
+  }
+  /**
+   * Radial Actions (#chrome): right-click / long-press context menu. Requires
+   * the `contextMenu` feature (`import 'apexcharts/features/context-menu'`).
+   * Each action receives the clicked data coordinates, so verbs act at that
+   * point rather than chart-wide. 'measure' is shown only when the measure tool
+   * is enabled. When the ink feature is bundled, 'annotate' drops an
+   * ink-managed note that opens its floating editor (rename, restyle, delete),
+   * and 'xline' / 'yline' drop ink-managed dashed lines the same way ('xline'
+   * vertical at the clicked x, 'yline' horizontal at the clicked y).
+   */
+  contextMenu?: {
+    /** @default false */
+    enabled?: boolean
+    /**
+     * Ordered menu items: built-in ids and/or custom entries. @default
+     * ['annotate','xline','yline','measure']
+     */
+    items?: Array<
+      | 'annotate'
+      | 'xline'
+      | 'yline'
+      | 'measure'
+      | {
+          id?: string
+          label?: string
+          icon?: string
+          onClick?: (
+            chart: ApexCharts,
+            context: {
+              x: any
+              y: any
+              seriesIndex: number | null
+              dataPointIndex: number | null
+              clientX: number
+              clientY: number
+            },
+          ) => void
+        }
+    >
+    /** Override the built-in item labels. */
+    labels?: { annotate?: string; xline?: string; yline?: string; measure?: string }
+    /** Text of the annotation dropped by the built-in 'annotate' item. @default 'Note' */
+    noteText?: string
+    /**
+     * Shared styling for the built-in 'xline' ("Annotate here", vertical at
+     * the clicked x) and 'yline' ("Mark this level", horizontal at the
+     * clicked y) items. Lines only, never a range rectangle. With the ink
+     * feature bundled the line opens the floating editor, whose Label and
+     * Line color rows restyle the chip and the stroke independently, and is
+     * draggable and undoable, like the note.
+     */
+    line?: {
+      /** Label drawn on the line. @default '' (no label) */
+      text?: string
+      /** @default 4 */
+      strokeDashArray?: number
+      /** Line color; omit to keep the annotation default. */
+      color?: string
+    }
+  }
   id?: string
   injectStyleSheet?: boolean
   group?: string
   locales?: ApexLocale[]
   defaultLocale?: string
+  perspectives?: {
+    serializeOptions?: string[]
+  }
+  history?: {
+    enabled?: boolean
+    maxDepth?: number
+    coalesceMs?: number
+    keyboard?: boolean
+  }
+  /** Strata (#2) series renderer. Requires `import 'apexcharts/features/renderer-canvas'` for non-SVG. */
+  renderer?: 'svg' | 'canvas' | 'auto'
+  rendererThreshold?: number
+  layers?: {
+    series?: 'svg' | 'canvas' | 'auto'
+    grid?: 'svg'
+    annotations?: 'svg'
+    dataLabels?: 'svg'
+  }
   parentHeightOffset?: number
   redrawOnParentResize?: boolean
   redrawOnWindowResize?: boolean | ((...args: any[]) => boolean)
@@ -621,6 +1393,18 @@ type ApexChart = {
   stacked?: boolean
   stackType?: 'normal' | '100%'
   stackOnlyBar?: boolean;
+  /**
+   * Real-time streaming mode. When enabled, appendData() bounds memory
+   * automatically: each series is trimmed to `maxPoints` (when set) or to the
+   * visible `xaxis.range` window plus a small off-screen runway. The
+   * constant-velocity scroll animation for windowed updates needs no opt-in.
+   */
+  streaming?: {
+    enabled?: boolean
+    /** Maximum points kept per series by appendData(). Unset: derived from
+     *  `xaxis.range` when that is set; otherwise no trimming occurs. */
+    maxPoints?: number
+  }
   toolbar?: {
     show?: boolean
     offsetX?: number
@@ -666,6 +1450,12 @@ type ApexChart = {
     type?: 'x' | 'y' | 'xy'
     autoScaleYaxis?: boolean
     allowMouseWheelZoom?: boolean
+    /**
+     * Momentum: enable two-finger pinch-zoom on touch devices. Zooms the x-axis
+     * around the pinch centroid, frame-by-frame. Requires `enabled: true`.
+     * @default true
+     */
+    pinch?: boolean
     zoomedArea?: {
       fill?: {
         color?: string
@@ -677,6 +1467,16 @@ type ApexChart = {
         width?: number
       }
     }
+  }
+  /**
+   * Momentum: kinetic panning on touch. A one-finger pan released with velocity
+   * keeps gliding and decelerates, clamping at the data edges.
+   */
+  pan?: {
+    /** @default true */
+    inertia?: boolean
+    /** Velocity decay applied each animation frame (0-1). @default 0.92 */
+    friction?: number
   }
   selection?: {
     enabled?: boolean
@@ -711,6 +1511,13 @@ type ApexChart = {
     /** Animation duration in ms (default 800). */
     speed?: number
     /**
+     * Cadence (#6): easing for the generic tweens. See `ApexEasing` for the
+     * complete built-in curve list and the accepted forms; register custom
+     * names with `ApexCharts.registerEasing`.
+     * @default 'easeInOutSine'
+     */
+    easing?: ApexEasing
+    /**
      * Drives per-element stagger across all chart types. When enabled, bars,
      * heatmap cells, scatter points, and treemap tiles reveal in sequence;
      * line/area markers fade in progressively as the line draws.
@@ -725,6 +1532,14 @@ type ApexChart = {
     dynamicAnimation?: {
       enabled?: boolean
       speed?: number
+      /**
+       * Easing for data-change morphs only (same accepted forms as
+       * `animations.easing`; see `ApexEasing`). Unset: inherits the
+       * chart-wide easing, except detected streaming scrolls (appendData or
+       * a shifted fixed-length window under `xaxis.range`) which default to
+       * 'linear' so the window slides at constant velocity.
+       */
+      easing?: ApexEasing
     }
     /**
      * Cross-type morph (updateOptions changing chart.type). Requires the
@@ -938,6 +1753,11 @@ type XAxisAnnotations = {
   offsetX?: number
   offsetY?: number
   label?: AnnotationLabel
+  /**
+   * Ink Layer (#7): make this annotation draggable (a line moves along x; a
+   * range moves as a whole or resizes from an edge). Requires the `ink` feature.
+   */
+  draggable?: boolean
 }
 
 type YAxisAnnotations = {
@@ -954,6 +1774,11 @@ type YAxisAnnotations = {
   width?: number | string
   yAxisIndex?: number
   label?: AnnotationLabel
+  /**
+   * Ink Layer (#7): make this annotation draggable (a line moves along y; a
+   * range moves as a whole). Requires the `ink` feature.
+   */
+  draggable?: boolean
 }
 
 type PointAnnotations = {
@@ -962,6 +1787,11 @@ type PointAnnotations = {
   y?: null | number
   yAxisIndex?: number
   seriesIndex?: number
+  /**
+   * Ink Layer (#7): make this point annotation draggable. Overrides
+   * `chart.ink.enabled`. Requires the `ink` feature.
+   */
+  draggable?: boolean
   mouseEnter?: (annotation: PointAnnotations, e: MouseEvent) => void
   mouseLeave?: (annotation: PointAnnotations, e: MouseEvent) => void
   click?: (annotation: PointAnnotations, e: MouseEvent) => void
@@ -983,6 +1813,16 @@ type PointAnnotations = {
     offsetX?: number
     offsetY?: number
   }
+  /**
+   * Render arbitrary SVG markup at the annotation's position. Deprecated in
+   * favor of `image`/`marker`, but still supported.
+   */
+  customSVG?: {
+    SVG?: string
+    cssClass?: string
+    offsetX?: number
+    offsetY?: number
+  }
 }
 
 
@@ -995,6 +1835,8 @@ type TextAnnotations = {
   fontSize?: string | number
   fontFamily?: undefined | string
   fontWeight?: string | number
+  /** CSS selector for the parent element the text is appended to. */
+  appendTo?: string
   backgroundColor?: string
   borderColor?: string
   borderRadius?: number
@@ -1917,6 +2759,7 @@ type ApexXAxis = {
   axisBorder?: {
     show?: boolean
     color?: string
+    width?: string | number
     height?: number
     offsetX?: number
     offsetY?: number
@@ -2114,8 +2957,25 @@ type ApexGrid = {
 }
 
 type ApexTheme = {
-  mode?: 'light' | 'dark'
+  /** '' (the default) inherits / auto-resolves; 'light' | 'dark' force a mode. */
+  mode?: 'light' | 'dark' | ''
   palette?: string
+  /**
+   * Facet (#13): read `--apx-*` CSS design tokens from the cascade
+   * (`--apx-accent`, `--apx-fore`, `--apx-grid`, `--apx-surface`,
+   * `--apx-series-1..N`). They top the resolution chain, below explicit config.
+   * true (default) reads any present (absence is a no-op); false disables.
+   * Tokens are re-read on each render; use `chart.refreshTokens()` after a
+   * runtime CSS change that does not itself trigger a render.
+   */
+  tokens?: boolean
+  /**
+   * Facet (#13): 'os' follows the operating system's `prefers-color-scheme`
+   * (light/dark) and `prefers-contrast` reactively, with no JS. SSR-safe.
+   */
+  follow?: 'os' | false
+  /** Facet (#13): a theme registered via `ApexCharts.registerTheme(name, def)`. */
+  name?: string
   monochrome?: {
     enabled?: boolean
     color?: string
@@ -2125,6 +2985,111 @@ type ApexTheme = {
   accessibility?: {
     colorBlindMode?: 'deuteranopia' | 'protanopia' | 'tritanopia' | 'highContrast' | ''
   }
+}
+
+/** Facet (#13): a named theme definition for `ApexCharts.registerTheme`. */
+interface ApexThemeDef {
+  mode?: 'light' | 'dark'
+  /** Series palette (overrides the built-in palette). */
+  palette?: string[]
+  /** Design-token values applied as chrome + palette seed. */
+  tokens?: { accent?: string; fore?: string; grid?: string; surface?: string; series?: string[] }
+  monochrome?: ApexTheme['monochrome']
+  accessibility?: ApexTheme['accessibility']
+}
+
+/** A `reduce` spec: 'count' (default), a field aggregation, or a custom fn. */
+type ApexCrossfilterReduce =
+  | 'count'
+  | { sum?: string; avg?: string; min?: string; max?: string }
+  | ((rows: any[]) => number)
+
+/** One chart's aggregation returned by `aggregateFor`. */
+interface ApexCrossfilterAggregation {
+  type: 'category' | 'range' | 'matrix'
+  /** Category/range: bucket labels in stable order (category keys, or bin-start numbers). */
+  labels?: any[]
+  /** Category/range: reduced value per bucket. */
+  values?: number[]
+  /** Category/range: category key, or `[lo, hi]` bin range, per bucket. */
+  keys?: any[]
+  /** Range dimensions only: bin edges (length labels.length + 1). */
+  edges?: number[]
+  /** Matrix (2D) only: x-axis keys (columns). */
+  xLabels?: any[]
+  /** Matrix (2D) only: y-axis keys (rows / series). */
+  yLabels?: any[]
+  /** Matrix (2D) only: reduced value per cell, `matrix[yIndex][xIndex]`. */
+  matrix?: number[][]
+}
+
+/**
+ * Linked Views (#4) Phase 2: the crossfilter coordinator returned by
+ * `ApexCharts.crossfilter(...)`. Holds one shared record set and per-chart
+ * dimensions; selecting in one chart re-aggregates the others over the
+ * filtered subset (a chart never filters itself).
+ */
+interface ApexCrossfilter {
+  id: string
+  records: any[]
+  /** Swap the dataset and recompute every dimension's domain. */
+  setRecords(records: any[]): this
+  /** Register (or replace) a chart's dimension + reduction. */
+  registerDimension(
+    chartId: string,
+    spec: {
+      dimension: (row: any) => any
+      reduce?: ApexCrossfilterReduce
+      type?: 'category' | 'range'
+      bins?: { width?: number; count?: number; thresholds?: number[] }
+      order?: 'first-seen' | 'asc' | 'desc' | ((a: any, b: any) => number)
+      filter?: any
+    },
+  ): this
+  removeDimension(chartId: string): this
+  /** Whether a chart's dimension is registered. */
+  hasDimension(chartId: string): boolean
+  /** Replace a chart's filter (keys for category, `[min,max]` for range, null clears). */
+  filter(chartId: string, filter: any[] | Set<any> | [number, number] | null): this
+  /** Toggle one categorical key (multi-select, OR). */
+  toggleKey(chartId: string, key: any): this
+  /** Clear one chart's filter. */
+  clear(chartId: string): this
+  /** Clear all filters. */
+  reset(): this
+  /** The current filter for a chart (Set/range copy, or null). */
+  filterOf(chartId: string): any
+  /** Rows passing all OTHER charts' filters (all filters when null/omitted). */
+  filteredRecords(exceptChartId?: string | null): any[]
+  /** Rows passing every active filter. */
+  filteredRows(): any[]
+  /** The crossfilter aggregation for one chart. */
+  aggregateFor(chartId: string): ApexCrossfilterAggregation
+  /** Aggregate every registered chart, keyed by chartId. */
+  aggregateAll(): Record<string, ApexCrossfilterAggregation>
+  /** Active filters + filtered/total record counts. */
+  state(): { filters: Record<string, any[] | [number, number]>; filteredCount: number; total: number }
+  /**
+   * Bind an HTML table of the filtered rows to `el`; re-renders on every filter
+   * change. `columns` may be field-name strings or `{field, label, format}`;
+   * omit to derive from the record keys. Returns a refresh()/destroy() handle.
+   */
+  dataTable(
+    el: HTMLElement,
+    opts?: {
+      columns?: Array<string | { field: string; label?: string; format?: (v: any, row: any) => any }>
+      page?: number
+      pageSize?: number
+    },
+  ): { refresh(): void; destroy(): void }
+  /** Subscribe to 'change' | 'records'; returns an unsubscribe fn. */
+  on(
+    event: 'change' | 'records',
+    cb: (state: { filters: Record<string, any>; filteredCount: number; total: number }) => void,
+  ): () => void
+  off(event: string, cb: Function): this
+  /** Remove this coordinator from the registry and drop all state. */
+  destroy(): void
 }
 
 export = ApexCharts;

@@ -20,6 +20,7 @@ import Core from '../Core'
 import Data from '../Data'
 import UpdateHelpers from './UpdateHelpers'
 import Tooltip from '../tooltip/Tooltip'
+import RendererController from '../RendererController'
 
 import { SVG } from '../../svg/index'
 import { Environment } from '../../utils/Environment.js'
@@ -108,6 +109,7 @@ export default class InitCtxVariables {
       'drillUp',
       'drillToRoot',
       'paper',
+      'getActiveRenderer',
       'destroy',
     ]
 
@@ -156,6 +158,12 @@ export default class InitCtxVariables {
     this.ctx.titleSubtitle = new TitleSubtitle(this.w)
     this.ctx.dimensions = new Dimensions(this.w, this.ctx)
     this.ctx.updateHelpers = new UpdateHelpers(this.w, this.ctx)
+
+    // Strata (#2): the series-renderer selector. SVG is the always-available
+    // default; ctx.renderer is (re)resolved in create() once marks are known.
+    // The canvas backend registers via its tree-shakeable feature.
+    this.ctx.rendererController = new RendererController(this.w, this.ctx)
+    this.ctx.renderer = this.ctx.rendererController.active
 
     // Tooltip is core — always instantiated. w.globals.tooltip is kept as a
     // compat alias so external code and KeyboardNavigation can reach it.
@@ -206,6 +214,64 @@ export default class InitCtxVariables {
     // updates. The constructor self-wires its listeners when drilldown.enabled.
     const DrilldownCtor = reg.get('drilldown')
     ctx.drilldown = DrilldownCtor ? new DrilldownCtor(w, ctx) : null
+
+    // Perspectives: ctx.perspectives (opt-in serializable/shareable view state).
+    // Eager so the in-memory saved-views registry survives update() and is
+    // dropped only on a full destroy(). Passive: adds no listeners.
+    const PerspectivesCtor = reg.get('perspectives')
+    ctx.perspectives = PerspectivesCtor ? new PerspectivesCtor(w, ctx) : null
+
+    // Storyboard: ctx.storyboard (opt-in scroll-driven choreography). Eager so
+    // a binding survives update()/re-render: the observed beat elements are
+    // page prose outside the chart's DOM. Passive until bind() is called.
+    const StoryboardCtor = reg.get('storyboard')
+    ctx.storyboard = StoryboardCtor ? new StoryboardCtor(w, ctx) : null
+
+    // History (Rewind): ctx.history (opt-in undo/redo). Eager so the checkpoint
+    // stack exists before the first change and survives update(). The
+    // constructor self-wires its listeners only when chart.history.enabled.
+    const HistoryCtor = reg.get('history')
+    ctx.history = HistoryCtor ? new HistoryCtor(w, ctx) : null
+
+    // Linked Views (#4): ctx.linkedViews (opt-in crossfilter/linked highlighting
+    // via `chart.link.enabled`). Eager so it survives update() and so a grouped
+    // sibling can be a dim target even if it never brushes. Inert unless
+    // chart.link.enabled; the ZoomPanSelection source hook is null-safe.
+    const LinkedViewsCtor = reg.get('linkedViews')
+    ctx.linkedViews = LinkedViewsCtor ? new LinkedViewsCtor(w, ctx) : null
+
+    // Ink Layer (#7): ctx.ink (opt-in direct-manipulation annotations via
+    // chart.ink.enabled or annotations.points[].draggable). Eager so it survives
+    // update() and rebinds drag handlers after each render; inert otherwise.
+    const InkCtor = reg.get('ink')
+    ctx.ink = InkCtor ? new InkCtor(w, ctx) : null
+
+    // Measure ruler (#18): ctx.measure (opt-in measure/delta ruler via
+    // chart.measure.enabled). Eager so pinned rulers survive update() and
+    // re-project after each render; inert otherwise. The constructor self-wires
+    // its key listeners.
+    const MeasureCtor = reg.get('measure')
+    ctx.measure = MeasureCtor ? new MeasureCtor(w, ctx) : null
+
+    // Radial Actions (#chrome): ctx.contextMenu (opt-in right-click menu via
+    // chart.contextMenu.enabled). Eager so it re-attaches its trigger after
+    // each render; inert otherwise. Self-wires on mounted/updated.
+    const ContextMenuCtor = reg.get('contextMenu')
+    ctx.contextMenu = ContextMenuCtor ? new ContextMenuCtor(w, ctx) : null
+
+    // Weave: ctx.weave (public plugin platform host). Eager so plugin setup()
+    // runs before the first render and the host survives update(). Inert when
+    // no plugins are configured; every `weave?.dispatch(...)` seam no-ops when
+    // the host feature isn't bundled.
+    const WeaveCtor = reg.get('weave')
+    ctx.weave = WeaveCtor ? new WeaveCtor(w, ctx) : null
+
+    // Facet OS watcher: ctx.osThemeWatcher (opt-in `theme.follow:'os'`). Eager
+    // so the initial mode is resolved onto w.config before Theme.init in the
+    // same create(); the constructor self-wires the matchMedia listener only
+    // when follow:'os' and browser, and it is a no-op otherwise.
+    const OSThemeCtor = reg.get('osThemeWatcher')
+    ctx.osThemeWatcher = OSThemeCtor ? new OSThemeCtor(w, ctx) : null
 
     // — Lazy-getter optional modules —
     // Each getter instantiates on first access only if the ctor was registered.

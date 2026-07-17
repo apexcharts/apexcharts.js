@@ -239,3 +239,33 @@ const _series: ApexCharts.ApexAxisChartSeries = [{ name: 'a', data: [1, 2, 3] }]
 void _ann; void _chart; void _dl; void _fill; void _grid; void _legend
 void _markers; void _po; void _stroke; void _theme; void _title; void _tooltip
 void _xaxis; void _series
+
+// ---------------------------------------------------------------------------
+// 11. v6 surface additions must type-check (audit regressions)
+// ---------------------------------------------------------------------------
+
+// theme.mode auto/inherit
+const _themeAuto: ApexCharts.ApexTheme = { mode: '' }
+void _themeAuto
+
+// xaxis.axisBorder.width
+const _xb: ApexCharts.ApexXAxis = { axisBorder: { width: '100%' } }
+void _xb
+
+// point annotation customSVG + text annotation appendTo
+const _pointSvg: ApexCharts.ApexAnnotations = {
+  points: [{ x: 1, y: 2, customSVG: { SVG: '<circle r="3" />', offsetX: 0 } }],
+  texts: [{ x: 1, y: 2, text: 'hi', appendTo: '.apexcharts-annotations' }],
+}
+void _pointSvg
+
+// SSR statics from the apexcharts/ssr entry
+async function _ssrUse() {
+  const html = await ApexChartsClass.renderToHTML({ chart: { type: 'bar' } }, { width: 500 })
+  const svg = await ApexChartsClass.renderToString({ chart: { type: 'bar' } })
+  const hydrated: ApexCharts = ApexChartsClass.hydrate(el)
+  const all: ApexCharts[] = ApexChartsClass.hydrateAll('.chart')
+  const done: boolean = ApexChartsClass.isHydrated(el)
+  void html; void svg; void hydrated; void all; void done
+}
+void _ssrUse

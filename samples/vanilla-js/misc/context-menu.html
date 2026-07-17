@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Context Menu: Right-Click Actions (chart.contextMenu)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 820px;
+        margin: 12px auto;
+      }
+      .cm-panel {
+        max-width: 820px;
+        margin: 12px auto;
+        font-family: Helvetica, Arial, sans-serif;
+      }
+      .cm-note {
+        background: #eef6ff;
+        border-left: 3px solid #2563eb;
+        padding: 11px 15px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.6;
+        margin: 12px 6px;
+      }
+      .cm-note code {
+        background: #dbeafe;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+      .cm-readout {
+        font-family: monospace;
+        font-size: 13px;
+        color: #445;
+        margin: 6px 6px 0;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      function series() {
+        var out = []
+        var v = 2200
+        for (var i = 0; i < 60; i++) {
+          v += Math.sin(i / 4) * 55 + i * 5 - 6
+          out.push([i, Math.round(v)])
+        }
+        return out
+      }
+    </script>
+  </head>
+
+  <body>
+     <div class="cm-panel">
+        <div class="cm-readout" id="cm-readout">Right-click anywhere on the plot to open the actions menu.</div>
+      </div>
+      
+      <div id="chart"></div>
+      
+      <div class="cm-panel">
+        <div class="cm-note">
+          Right-click (or long-press) the plot to open an anchored actions menu.
+          Because each verb receives the clicked data point, it acts <b>right there</b>,
+          not chart-wide like a toolbar button: <b>Add note here</b> drops an editable,
+          draggable callout at the click and opens its floating editor (type to
+          rename; the card also offers accent colors, bold, text size, marker
+          size/shape and delete, via <code>chart.ink</code>). <b>Annotate here</b>
+          drops a dashed vertical line at the clicked x, and <b>Mark this level</b>
+          a dashed horizontal line at the clicked y: always a line, never a
+          rectangle, styled via <code>contextMenu.line</code> (label text, dash
+          pattern, color) and just as draggable, restylable and undoable as the
+          note. A line's editor card has separate <b>Label</b> and <b>Line</b> color
+          rows, so a white label chip never blanks the stroke. Click any note or
+          line later to reopen its editor.
+          <b>Measure from here</b> seeds the ruler at the click, then a second click
+          completes the measurement (<code>chart.measure</code>). The <b>Copy
+          value</b> entry below is a custom item wired via
+          <code>contextMenu.items[].onClick</code>. Arrow keys move, Enter activates,
+          Escape closes.
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: [{ name: 'Revenue', data: series() }],
+        chart: {
+          id: 'ctxmenu',
+          type: 'line',
+          height: 400,
+          fontFamily: 'Helvetica, Arial, sans-serif',
+          animations: { enabled: false },
+          toolbar: { show: false },
+          zoom: { enabled: true, type: 'x' },
+          contextMenu: {
+            enabled: true,
+            line: { text: 'Event', strokeDashArray: 5, color: '#7c3aed' },
+            items: [
+              'annotate',
+              'xline',
+              'yline',
+              'measure',
+              {
+                id: 'copyValue',
+                label: 'Copy value',
+                onClick: function (chart, ctx) {
+                  var msg = 'x=' + Math.round(ctx.x) + ', y=' + Math.round(ctx.y)
+                  var readout = document.getElementById('cm-readout')
+                  if (readout) readout.textContent = 'Copied ' + msg
+                  if (navigator.clipboard)
+                    navigator.clipboard.writeText(msg).catch(function () {})
+                },
+              },
+            ],
+          },
+          measure: { enabled: true },
+          ink: { enabled: true },
+        },
+        stroke: { width: 2, curve: 'smooth' },
+        colors: ['#2563eb'],
+        dataLabels: { enabled: false },
+        title: {
+          text: 'Revenue (right-click to add notes or measure)',
+          align: 'left',
+        },
+        xaxis: { type: 'numeric', title: { text: 'Session' } },
+        yaxis: { title: { text: 'Revenue' }, decimalsInFloat: 0 },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      var readout = document.getElementById('cm-readout')
+      chart.addEventListener('measured', function (c, o) {
+        readout.textContent =
+          'Measured: dy=' +
+          Number(o.dy).toFixed(0) +
+          ' (' +
+          (o.percentChange >= 0 ? '+' : '') +
+          Number(o.percentChange).toFixed(1) +
+          '%)'
+      })
+      chart.addEventListener('annotationCreated', function (c, o) {
+        var kind =
+          o && o.type === 'xaxis'
+            ? 'Dashed line'
+            : o && o.type === 'yaxis'
+              ? 'Level line'
+              : 'Note'
+        readout.textContent =
+          kind +
+          ' added. Type to rename it; the floating card restyles or deletes it. Drag to move.'
+      })
+    </script>
+
+    
+  </body>
+</html>

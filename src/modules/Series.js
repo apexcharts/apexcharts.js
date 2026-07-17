@@ -1,6 +1,8 @@
 // @ts-check
 import Graphics from './Graphics'
 import Utils from '../utils/Utils'
+import { captureStreamFrame } from './animations/StreamScroll'
+import { captureAxisChrome } from './animations/AxisTransition'
 
 /**
  * ApexCharts Series Class for interaction with the Series of the chart.
@@ -191,6 +193,24 @@ export default class Series {
   /**
    * @param {string} seriesName
    */
+  /**
+   * Bridge SVG series-dim state to the canvas renderer: SVG opacity classes
+   * (legend-mouseover-inactive) don't touch the painted canvas series layer, so
+   * repaint it with a matching per-series opacity. No-op unless the canvas
+   * renderer is active. The renderer is mirrored on globals by RendererController
+   * (Series has no ctx handle).
+   * @param {{active:number, opacity:number}|null} dim
+   */
+  canvasRestyle(dim) {
+    const r = this.w.globals.activeRenderer
+    if (r && r.kind === 'canvas' && typeof r.restyle === 'function') {
+      r.restyle(dim)
+    }
+  }
+
+  /**
+   * @param {string} seriesName
+   */
   highlightSeries(seriesName) {
     const w = this.w
 
@@ -261,6 +281,12 @@ export default class Series {
         serEl.classList.remove(this.legendInactiveClass)
       }
     }
+
+    this.canvasRestyle(
+      seriesEl && !Number.isNaN(realIndex)
+        ? { active: realIndex, opacity: 0.2 }
+        : null,
+    )
   }
 
   /**
@@ -284,6 +310,7 @@ export default class Series {
       for (let se = 0; se < allSeriesEls.length; se++) {
         allSeriesEls[se].classList.remove(this.legendInactiveClass)
       }
+      this.canvasRestyle(null)
     }
   }
 
@@ -408,6 +435,16 @@ export default class Series {
   getPreviousPaths() {
     const w = this.w
 
+    // Streaming scroll: snapshot the outgoing frame's parsed rows + pixel
+    // positions so a windowed-continuation update (rolling window / append
+    // under xaxis.range) can be animated as a slide. See StreamScroll.
+    captureStreamFrame(w)
+
+    // Axis-chrome snapshot: tick labels + gridlines of the outgoing render,
+    // so a variable-length update can slide/fade the ruler along with the
+    // reflowing marks. See AxisTransition.
+    captureAxisChrome(w)
+
     // Non-axis charts (pie/donut/radialBar) overwrite previousPaths with the
     // raw series values at the end anyway — skip the DOM captures entirely.
     if (!w.globals.axisCharts) {
@@ -444,7 +481,14 @@ export default class Series {
       for (let j = 0; j < paths.length; j++) {
         if (paths[j].hasAttribute('pathTo')) {
           const d = paths[j].getAttribute('pathTo')
-          dArr.paths.push({ d })
+          // Datum key + fill stamped by the bar renderer: the key lets the
+          // next render match survivors by identity (not position) and detect
+          // exited datums; the fill paints their exit ghosts.
+          dArr.paths.push({
+            d,
+            key: paths[j].getAttribute('data:pathKey'),
+            fill: paths[j].getAttribute('fill'),
+          })
         }
       }
 

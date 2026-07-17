@@ -1,0 +1,201 @@
+<title>Bullet Chart via a Custom Series Type (Marks + yExtent)</title>
+
+<style>
+  #chart {
+    max-width: 780px;
+    margin: 20px auto;
+  }
+  .panel {
+    max-width: 780px;
+    margin: 16px auto;
+    font-family: sans-serif;
+  }
+  .legend {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    font-size: 13px;
+    color: #334;
+    margin: 4px 4px 0;
+    flex-wrap: wrap;
+  }
+  .legend .item {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+  }
+  .legend .swatch {
+    width: 16px;
+    height: 12px;
+    border-radius: 2px;
+  }
+  .legend .measure {
+    width: 8px;
+    height: 16px;
+    background: #2d3748;
+    border-radius: 1px;
+  }
+  .legend .target {
+    width: 16px;
+    height: 3px;
+    background: #e53e3e;
+  }
+  .note {
+    background: #fff7f5;
+    border-left: 3px solid #e53e3e;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #234;
+    border-radius: 2px;
+    margin-top: 12px;
+    line-height: 1.55;
+  }
+  .note code {
+    background: #ffe6e0;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+</style>
+
+<scripts>
+<script>
+  // Marks (#11): a bullet mark's drawn span is not simply its value: the target
+  // tick and the top qualitative band extend past it. yExtent lets the type
+  // declare the [min, max] each datum occupies, so those bounds fold into the
+  // y-axis scale (here the 100 band and the targets all fit) even though the
+  // measured values are lower.
+  ApexCharts.registerSeriesType('bullet', {
+    yExtent: function (datum) {
+      return [0, Math.max(datum.target, datum.ranges[datum.ranges.length - 1])]
+    },
+    renderItem: function (ctx) {
+      var datum = ctx.datum
+      var scales = ctx.scales
+      var api = ctx.api
+
+      // Bullets are bar-like. With xaxis.tickPlacement:'between' the axis is a
+      // band axis, so ctx.x is the center of this datum's band and scales.band
+      // is the band width. Sizing the bullet under the band keeps it inside the
+      // plot and aligned with its label.
+      var cx = ctx.x
+      var half = (scales.band * 0.62) / 2
+
+      // qualitative range bands, light to dark, stacked from the baseline up
+      var shades = ['#e8eef5', '#cdd8e6', '#aebfd4']
+      var prev = 0
+      for (var r = 0; r < datum.ranges.length; r++) {
+        var top = scales.y(datum.ranges[r])
+        var bottom = scales.y(prev)
+        api.rect({ x: cx - half, y: top, w: half * 2, h: bottom - top, fill: shades[r] })
+        prev = datum.ranges[r]
+      }
+
+      // measured value: a narrow dark bar from the baseline up to y
+      var yVal = scales.y(datum.y)
+      var mHalf = half * 0.38
+      api.rect({ x: cx - mHalf, y: yVal, w: mHalf * 2, h: scales.y(0) - yVal, fill: '#2d3748' })
+
+      // target: a red tick across the band
+      var yTarget = scales.y(datum.target)
+      api.line({ x1: cx - half, y1: yTarget, x2: cx + half, y2: yTarget, stroke: '#e53e3e', width: 3 })
+    },
+  })
+
+  var bulletData = [
+    { x: 'Revenue', y: 78, target: 85, ranges: [50, 75, 100] },
+    { x: 'Profit', y: 62, target: 70, ranges: [40, 65, 90] },
+    { x: 'Cust. Sat', y: 88, target: 80, ranges: [60, 80, 95] },
+    { x: 'Retention', y: 71, target: 75, ranges: [55, 70, 90] },
+    { x: 'On-time', y: 94, target: 90, ranges: [70, 85, 100] },
+  ]
+</script>
+</scripts>
+
+<html>
+<div class="panel">
+  <div class="legend">
+    <span class="item"><span class="measure"></span> Actual</span>
+    <span class="item"><span class="target"></span> Target</span>
+    <span class="item"><span class="swatch" style="background:#e8eef5"></span> Poor</span>
+    <span class="item"><span class="swatch" style="background:#cdd8e6"></span> OK</span>
+    <span class="item"><span class="swatch" style="background:#aebfd4"></span> Good</span>
+  </div>
+</div>
+
+{{ charts[0] }}
+
+<div class="panel">
+  <div class="note">
+    Each bullet is drawn by <code>renderItem</code> from a rich datum
+    (<code>{ y, target, ranges }</code>). Because the target and top band sit
+    above the measured value, the type declares <code>yExtent</code> so the
+    y-axis fits the full mark, not just <code>y</code>. Without it the 100 band
+    and the higher targets would render above the plot.
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  height: 440,
+  type: 'bullet',
+  animations: { enabled: false },
+  toolbar: { show: false },
+},
+grid: {
+  padding: { left: 15, right: 15 },
+},
+title: {
+  text: 'Q2 KPIs vs target (percent of goal)',
+  align: 'left',
+},
+subtitle: {
+  text: 'A custom "bullet" series type built with Marks; yExtent drives auto-scaling',
+  align: 'left',
+},
+xaxis: {
+  type: 'category',
+  tickPlacement: 'between',
+  tooltip: { enabled: false },
+},
+yaxis: {
+  min: 0,
+  max: 100,
+  tickAmount: 5,
+  labels: {
+    formatter: function (val) {
+      return Math.round(val) + '%'
+    },
+  },
+},
+tooltip: {
+  // The default tooltip would show the yExtent range (0% - 100%), which is not
+  // meaningful for a bullet. Show the datum's actual value vs its target.
+  custom: function (opts) {
+    var d = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex]
+    var hit = d.y >= d.target
+    return (
+      '<div style="padding:7px 11px;font-family:sans-serif;font-size:12px;line-height:1.5">' +
+      '<div style="font-weight:600;margin-bottom:3px">' + d.x + '</div>' +
+      'Actual: <b>' + d.y + '%</b><br>' +
+      'Target: <b>' + d.target + '%</b> ' +
+      '<span style="color:' + (hit ? '#1f9d57' : '#e53e3e') + '">' +
+      (hit ? '(met)' : '(below)') + '</span>' +
+      '</div>'
+    )
+  },
+},
+</options>
+
+<series>
+[
+  { name: 'Performance', data: bulletData }
+]
+</series>
+</chart>
+
+<vanilla-js-script>
+// The registered "bullet" type is already used by the chart above; this block
+// keeps sample generation scoped to vanilla-js.
+</vanilla-js-script>

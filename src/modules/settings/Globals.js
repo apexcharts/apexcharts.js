@@ -117,6 +117,8 @@ export default class Globals {
     gl.lastWheelExecution = 0
     gl.delayedElements = []
     gl.pointsArray = []
+    gl.barCanvasCoords = null // Strata (#2): per-render bar/candle center cache (canvas tooltip position)
+    gl.activeRenderer = null // Strata (#2): active renderer handle for w-only modules (Series restyle); set by RendererController.resolve()
     gl.dataLabelsRects = []
     gl.lastDrawnDataLabelsIndexes = [] // tracks which data labels were drawn per series to prevent collisions
     gl.textRectsCache = new Map()
@@ -436,6 +438,14 @@ export default class Globals {
       // ── Animation control ─────────────────────────────────────────────────────
       shouldAnimate: true,
       previousPaths: [], // paths from previous render — source for enter animation
+      // Streaming scroll: previous frame's parsed rows + pixel positions,
+      // captured by Series.getPreviousPaths(). Consulted (like previousPaths)
+      // only while a data-change morph renders. See StreamScroll.
+      prevStreamFrame: null,
+      // Axis-chrome snapshot (tick label texts/positions + gridline positions)
+      // captured alongside prevStreamFrame; consumed once by AxisTransition
+      // after a variable-length re-render mounts.
+      prevChromeFrame: null,
 
       // ── SVG viewport (set by Dimensions, but persistent as layout anchor) ─────
       svgWidth: 0,

@@ -1,0 +1,194 @@
+<title>Crossfilter Heatmap: 2D Cross-Tab that Re-Aggregates (chart.link)</title>
+
+<style>
+  .cf-wrap {
+    max-width: 820px;
+    margin: 12px auto;
+    font-family: Helvetica, Arial, sans-serif;
+  }
+  .cf-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 4px 6px 12px;
+  }
+  .cf-bar button {
+    padding: 6px 13px;
+    cursor: pointer;
+    border: 1px solid #6366f1;
+    color: #4338ca;
+    background: #fff;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .cf-bar .readout {
+    font-family: monospace;
+    font-size: 13px;
+    color: #445;
+  }
+  .cf-card {
+    border: 1px solid #eef;
+    border-radius: 8px;
+    padding: 6px;
+    margin-bottom: 8px;
+  }
+  .cf-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .cf-note {
+    background: #eef2ff;
+    border-left: 3px solid #6366f1;
+    padding: 11px 15px;
+    font-size: 13px;
+    color: #234;
+    border-radius: 2px;
+    line-height: 1.6;
+    margin: 12px 6px;
+  }
+  .cf-note code {
+    background: #dfe3ff;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+</style>
+
+<scripts>
+<script>
+  function tradesData() {
+    var quarters = ['Q1', 'Q2', 'Q3', 'Q4']
+    var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+    var out = []
+    for (var i = 0; i < 90; i++) {
+      out.push({
+        quarter: quarters[Math.floor(i / 23) % 4],
+        day: days[i % 5],
+        outcome: i % 3 === 0 ? 'Loss' : 'Gain',
+      })
+    }
+    return out
+  }
+
+  // Register the shared records BEFORE the charts are constructed.
+  ApexCharts.crossfilter({ id: 'trades', records: tradesData() })
+</script>
+</scripts>
+
+<html>
+<div class="cf-wrap">
+  <div class="cf-bar">
+    <button id="cf-reset">Reset</button>
+    <span class="readout" id="cf-readout">Click a slice or bar to re-aggregate the heatmap</span>
+  </div>
+
+  <div class="cf-card">{{ charts[0] }}</div>
+  <div class="cf-row">
+    <div class="cf-card">{{ charts[1] }}</div>
+    <div class="cf-card">{{ charts[2] }}</div>
+  </div>
+
+  <div class="cf-note">
+    The heatmap is a <b>2D cross-tab</b>: its <code>chart.link.dimension</code>
+    returns <code>[day, quarter]</code>, so the engine aggregates a day-by-quarter
+    matrix of trade counts. Clicking the <b>outcome</b> donut or the
+    <b>day</b> bar re-aggregates the heatmap over just the matching trades and it
+    recolors in place. (Phase A: the heatmap is a re-aggregating target; clicking
+    a heatmap cell to filter is a later phase.) <b>Reset</b> clears everything.
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'byDayQuarter',
+  type: 'heatmap',
+  height: 300,
+  fontFamily: 'Helvetica, Arial, sans-serif',
+  animations: { speed: 450 },
+  link: {
+    id: 'trades',
+    dimension: function (r) { return [r.day, r.quarter] },
+    reduce: 'count',
+  },
+},
+title: { text: 'Trades by day x quarter', align: 'left' },
+dataLabels: { enabled: true },
+plotOptions: { heatmap: { radius: 3, enableShades: true, shadeIntensity: 0.6 } },
+colors: ['#6366f1'],
+</options>
+
+<series>
+[]
+</series>
+</chart>
+
+<chart>
+<options>
+chart: {
+  id: 'byOutcome',
+  type: 'donut',
+  height: 250,
+  fontFamily: 'Helvetica, Arial, sans-serif',
+  animations: { speed: 450 },
+  link: { id: 'trades', dimension: function (r) { return r.outcome }, reduce: 'count', dimOpacity: 0.18 },
+},
+title: { text: 'Outcome', align: 'left' },
+legend: { position: 'bottom', fontSize: '12px' },
+plotOptions: { pie: { expandOnClick: false } },
+dataLabels: { enabled: true, formatter: function (v, o) { return o.w.config.series[o.seriesIndex] } },
+// Records are first-seen ordered, and the data emits 'Loss' first, so the
+// domain is [Loss, Gain]: red for Loss, green for Gain.
+colors: ['#ef4444', '#22c55e'],
+</options>
+
+<series>
+[]
+</series>
+</chart>
+
+<chart>
+<options>
+chart: {
+  id: 'byDay',
+  type: 'bar',
+  height: 250,
+  fontFamily: 'Helvetica, Arial, sans-serif',
+  animations: { speed: 450 },
+  link: { id: 'trades', dimension: function (r) { return r.day }, reduce: 'count', seriesName: 'Trades', dimOpacity: 0.18 },
+},
+title: { text: 'Day of week', align: 'left' },
+plotOptions: { bar: { columnWidth: '55%', borderRadius: 3, distributed: true } },
+legend: { show: false },
+dataLabels: { enabled: false },
+colors: ['#6366f1', '#0ea5e9', '#22c55e', '#f59e0b', '#a855f7'],
+</options>
+
+<series>
+[]
+</series>
+</chart>
+
+<vanilla-js-script>
+// charts[0] = heatmap (target), charts[1] = outcome donut, charts[2] = day bar.
+var cf = ApexCharts.getCrossfilter('trades')
+var readout = document.getElementById('cf-readout')
+
+if (cf) {
+  cf.on('change', function (state) {
+    var ids = Object.keys(state.filters)
+    readout.textContent =
+      state.filteredCount + ' / ' + state.total + ' trades   (active: ' +
+      (ids.length ? ids.join(', ') : 'none') + ')'
+  })
+  var s = cf.state()
+  readout.textContent = s.filteredCount + ' / ' + s.total + ' trades   (active: none)'
+}
+
+document.getElementById('cf-reset').addEventListener('click', function () {
+  if (cf) cf.reset()
+})
+</vanilla-js-script>

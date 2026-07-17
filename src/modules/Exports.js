@@ -5,6 +5,7 @@ import Data from '../modules/Data'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment.js'
+import { SVGNS } from '../svg/math'
 
 class Exports {
   /**
@@ -40,6 +41,44 @@ class Exports {
   }
 
   /**
+   * Inline any Strata canvas series layer into the clone as an SVG `<image>`.
+   * A serialized `<canvas>` loses its bitmap, so a canvas-mode export would drop
+   * the series; an `<image>` carrying the canvas `toDataURL()` preserves it in
+   * place. Because it replaces the `<foreignObject>` at the same DOM position,
+   * the grid-behind / annotations-in-front z-order is retained automatically.
+   * No-op in SVG mode (no series canvas present).
+   * @param {any} clonedNode the cloned elWrap about to be serialized
+   */
+  inlineCanvasLayers(clonedNode) {
+    const w = this.w
+    const XLINK = 'http://www.w3.org/1999/xlink'
+    const origCanvases = w.dom.elWrap.querySelectorAll(
+      '.apexcharts-series-canvas',
+    )
+    if (!origCanvases.length) return
+    const clonedFOs = clonedNode.querySelectorAll('.apexcharts-canvas-series')
+    for (let i = 0; i < origCanvases.length && i < clonedFOs.length; i++) {
+      let dataURL
+      try {
+        dataURL = /** @type {HTMLCanvasElement} */ (origCanvases[i]).toDataURL()
+      } catch (e) {
+        // A tainted canvas (should not happen: no cross-origin draws) throws;
+        // skip rather than break the whole export.
+        continue
+      }
+      const fo = clonedFOs[i]
+      const img = document.createElementNS(SVGNS, 'image')
+      img.setAttribute('x', fo.getAttribute('x') || '0')
+      img.setAttribute('y', fo.getAttribute('y') || '0')
+      img.setAttribute('width', fo.getAttribute('width') || '0')
+      img.setAttribute('height', fo.getAttribute('height') || '0')
+      img.setAttribute('href', dataURL)
+      img.setAttributeNS(XLINK, 'xlink:href', dataURL)
+      if (fo.parentNode) fo.parentNode.replaceChild(img, fo)
+    }
+  }
+
+  /**
    * @param {number} [_scale]
    */
   getSvgString(_scale) {
@@ -62,6 +101,8 @@ class Exports {
       )
       clonedNode.style.width = width + 'px'
       clonedNode.style.height = height + 'px'
+      // Strata: replace any series-canvas with an <image> before serialization.
+      this.inlineCanvasLayers(clonedNode)
       const serializedNode = new XMLSerializer().serializeToString(clonedNode)
 
       // Check if legend is shown and should be included in export

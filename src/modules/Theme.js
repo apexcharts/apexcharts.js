@@ -1,12 +1,21 @@
 // @ts-check
 import Utils from '../utils/Utils'
 import { getThemePalettes } from '../utils/ThemePalettes.js'
+import { readTokens } from './theme/Tokens.js'
+import { getTheme } from './ThemeRegistry.js'
 
 /**
  * ApexCharts Theme Class for setting the colors and palettes.
  *
  * @module Theme
  **/
+
+// Facet (#13): default sentinels. A `--apx-*` token replaces a chrome value
+// ONLY while it still equals its built-in default, so an explicit user config
+// (which is not one of these) always wins over a token.
+const DEFAULT_FORECOLOR_LIGHT = '#373d3f'
+const DEFAULT_FORECOLOR_DARK = '#f6f7f8'
+const DEFAULT_AXIS_GRID = '#e0e0e0'
 
 export default class Theme {
   /**
@@ -18,6 +27,10 @@ export default class Theme {
     this.isColorFn = false
     this.isHeatmapDistributed = this.checkHeatmapDistributed()
     this.isBarDistributed = this.checkBarDistributed()
+    /** @type {{accent?:string, fore?:string, grid?:string, surface?:string, series?:string[]}} */
+    this._tokens = {}
+    /** @type {any} */
+    this._namedTheme = null
   }
 
   checkHeatmapDistributed() {
@@ -49,9 +62,29 @@ export default class Theme {
     const w = this.w
     const utils = new Utils()
 
+    // Facet (#13): resolve a registered named theme (theme.name) and apply its
+    // mode / monochrome / accessibility BEFORE the class + mode defaults, but
+    // only where the user (or the OS watcher) has not already set them.
+    this._namedTheme = getTheme(w.config.theme.name)
+    this._applyNamedThemeMode()
+
     w.dom.elWrap.classList.add(
       `apexcharts-theme-${w.config.theme.mode || 'light'}`,
     )
+
+    // Facet (#13): apply the concrete dark/light foreColor + palette defaults
+    // for the CURRENT mode. Config-time (checkForDarkTheme) and update-time
+    // (updateThemeOptions) both do this, but a mode set late in create() (the
+    // theme.follow:'os' watcher runs in _initOptionalModules, after config) has
+    // no other chance. Sentinel-gated, so it is a no-op when the value is
+    // already correct or explicitly overridden.
+    this._applyModeDefaults()
+
+    // Facet (#13): resolve tokens (CSS `--apx-*` layered over the named theme's
+    // tokens). They top the resolution chain (below explicit config) for the
+    // palette (predefined) and the chrome.
+    this._tokens = this._resolveTokens()
+    this.applyTokenChrome(this._tokens)
 
     const colorBlindMode = w.config.theme.accessibility?.colorBlindMode
     if (colorBlindMode) {
@@ -90,6 +123,138 @@ export default class Theme {
     this.applyDataLabelsColors(defaultColors)
     this.applyRadarPolygonsColors()
     this.applyMarkersColors(defaultColors)
+  }
+
+  /**
+   * Facet (#13): normalize the mode's concrete defaults (foreColor + palette +
+   * tooltip theme) at render time. Only overwrites a value still at its
+   * opposite-mode default sentinel, so an explicit user value or a value
+   * already normalized by checkForDarkTheme/updateThemeOptions is untouched.
+   */
+  _applyModeDefaults() {
+    const w = this.w
+    const mode = w.config.theme.mode
+    if (mode === 'dark') {
+      if (w.config.chart.foreColor === DEFAULT_FORECOLOR_LIGHT) {
+        w.config.chart.foreColor = DEFAULT_FORECOLOR_DARK
+      }
+      if (w.config.theme.palette === 'palette1') {
+        w.config.theme.palette = 'palette4'
+      }
+      if (w.config.tooltip && w.config.tooltip.theme !== 'light') {
+        w.config.tooltip.theme = 'dark'
+      }
+    } else if (mode === 'light') {
+      if (w.config.chart.foreColor === DEFAULT_FORECOLOR_DARK) {
+        w.config.chart.foreColor = DEFAULT_FORECOLOR_LIGHT
+      }
+      if (w.config.theme.palette === 'palette4') {
+        w.config.theme.palette = 'palette1'
+      }
+    }
+  }
+
+  /**
+   * Facet (#13): apply a registered named theme's mode / accessibility /
+   * monochrome, each only when the user (or the OS watcher) has not set it, so
+   * explicit config and `follow:'os'` both win over the named theme.
+   */
+  _applyNamedThemeMode() {
+    const named = this._namedTheme
+    if (!named) return
+    const theme = this.w.config.theme
+    if (named.mode && !theme.mode) {
+      theme.mode = named.mode
+    }
+    if (
+      named.accessibility &&
+      named.accessibility.colorBlindMode &&
+      !(theme.accessibility && theme.accessibility.colorBlindMode)
+    ) {
+      theme.accessibility = theme.accessibility || {}
+      theme.accessibility.colorBlindMode = named.accessibility.colorBlindMode
+    }
+    if (
+      named.monochrome &&
+      named.monochrome.enabled &&
+      !theme.monochrome.enabled
+    ) {
+      theme.monochrome = { ...theme.monochrome, ...named.monochrome }
+    }
+  }
+
+  /**
+   * Facet (#13): the effective token set. CSS `--apx-*` tokens (when enabled)
+   * layer over the named theme's `tokens`, so a page-level token overrides a
+   * registered brand default.
+   * @returns {{accent?:string, fore?:string, grid?:string, surface?:string, series?:string[]}}
+   */
+  _resolveTokens() {
+    const named = (this._namedTheme && this._namedTheme.tokens) || {}
+    const css = this._shouldUseTokens() ? readTokens(this.w) : {}
+    return { ...named, ...css }
+  }
+
+  /**
+   * Facet (#13): tokens are on unless explicitly disabled (`theme.tokens:false`).
+   * `true` is the default (the legacy `'auto'` value is accepted and means the
+   * same); `readTokens` returns only the tokens actually present, so absence
+   * is a no-op.
+   * @returns {boolean}
+   */
+  _shouldUseTokens() {
+    return this.w.config.theme.tokens !== false
+  }
+
+  /**
+   * Facet (#13): overwrite chrome defaults with `--apx-*` tokens, but only where
+   * the value still equals its built-in default (so explicit config wins).
+   * @param {{fore?:string, grid?:string, surface?:string}} tokens
+   */
+  applyTokenChrome(tokens) {
+    if (!tokens) return
+    const w = this.w
+
+    if (
+      tokens.fore &&
+      (w.config.chart.foreColor === DEFAULT_FORECOLOR_LIGHT ||
+        w.config.chart.foreColor === DEFAULT_FORECOLOR_DARK)
+    ) {
+      // axis labels + legend text funnel to chart.foreColor
+      w.config.chart.foreColor = tokens.fore
+    }
+
+    if (tokens.grid) {
+      if (w.config.grid.borderColor === DEFAULT_AXIS_GRID) {
+        w.config.grid.borderColor = tokens.grid
+      }
+      /** @param {any} axis */
+      const applyAxis = (axis) => {
+        if (!axis) return
+        if (axis.axisBorder && axis.axisBorder.color === DEFAULT_AXIS_GRID) {
+          axis.axisBorder.color = tokens.grid
+        }
+        if (axis.axisTicks && axis.axisTicks.color === DEFAULT_AXIS_GRID) {
+          axis.axisTicks.color = tokens.grid
+        }
+      }
+      applyAxis(w.config.xaxis)
+      if (Array.isArray(w.config.yaxis)) {
+        w.config.yaxis.forEach(applyAxis)
+      } else {
+        applyAxis(w.config.yaxis)
+      }
+    }
+
+    if (tokens.surface && !w.config.chart.background) {
+      w.config.chart.background = tokens.surface
+      // The SVG paper background is set in Core.setupElements, which runs before
+      // Theme.init, so re-apply the resolved surface to the paper node here.
+      const paperNode = w.dom.Paper && w.dom.Paper.node
+      if (paperNode && paperNode.style) {
+        paperNode.style.background = tokens.surface
+      }
+    }
   }
 
   /**
@@ -304,8 +469,26 @@ export default class Theme {
   predefined() {
     const palette = this.w.config.theme.palette
     const palettes = getThemePalettes()
-    return (
+    const builtin =
       /** @type {Record<string,any>} */ (palettes)[palette] || palettes.palette1
-    )
+
+    // Facet (#13): tokens top the palette chain (below explicit config colors,
+    // which are handled by getColors before this runs).
+    const tokens = this._tokens || {}
+    if (Array.isArray(tokens.series) && tokens.series.length) {
+      // an explicit --apx-series-* palette
+      return tokens.series.slice()
+    }
+    if (tokens.accent) {
+      // a single brand accent seeds colors[0]; the built-in palette fills the
+      // rest so multi-series charts keep distinct hues
+      return [tokens.accent, ...builtin]
+    }
+    // Facet (#13): a registered named theme's palette (below tokens).
+    const named = this._namedTheme
+    if (named && Array.isArray(named.palette) && named.palette.length) {
+      return named.palette.slice()
+    }
+    return builtin
   }
 }

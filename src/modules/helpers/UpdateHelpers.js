@@ -207,14 +207,28 @@ export default class UpdateHelpers {
 
       w.globals.dataChanged = true
 
+      // Snapshot the axis scale currently on screen BEFORE parseData recomputes
+      // bounds. fastUpdate() compares this against the recomputed scale to
+      // detect a domain change it cannot repaint in place (axes are preserved
+      // on the fast path), and falls back to a full render when they differ.
+      const prevAxisScaleSig = JSON.stringify({
+        y: (w.globals.yAxisScale || []).map((s) => (s ? s.result : null)),
+        xMin: w.globals.minX,
+        xMax: w.globals.maxX,
+      })
+
       PerformanceCache.invalidateSelectors(w)
 
       if (animate) {
         this.ctx.series.getPreviousPaths()
       }
 
-      // Capture previous series count BEFORE parsing (parseData overwrites w.seriesData.series)
+      // Capture previous series count and per-series data lengths BEFORE
+      // parsing (parseData overwrites w.seriesData.series)
       const prevSeriesCount = w.config.series.length
+      const prevDataLengths = w.config.series.map(
+        (/** @type {any} */ s) => s?.data?.length ?? 0,
+      )
 
       // User is pushing new data — drop any stashed raw data so the next
       // parseData re-stashes from this new series (zoom-aware downsampling).
@@ -237,9 +251,10 @@ export default class UpdateHelpers {
       }
 
       // Use the fast path when the series structure is compatible:
-      // same series count, same chart type, axis chart, no series collapse in progress.
-      if (this._canUseFastPath(newSeries, prevSeriesCount, w)) {
-        return this.ctx.fastUpdate(animate).then(() => {
+      // same series count, same data lengths, same chart type, axis chart,
+      // no series collapse in progress.
+      if (this._canUseFastPath(newSeries, prevSeriesCount, prevDataLengths, w)) {
+        return this.ctx.fastUpdate(animate, prevAxisScaleSig).then(() => {
           resolve(this.ctx)
         })
       }
@@ -258,17 +273,31 @@ export default class UpdateHelpers {
    * - Chart has been fully rendered (DOM exists)
    * - Axis chart (non-axis charts like pie always need full rebuild due to radial layout)
    * - Series count unchanged (grid column/row counts depend on it)
+   * - Per-series data lengths unchanged (the fast path preserves the axis DOM,
+   *   and a changed point count re-slots categories/ticks: with explicit
+   *   categories the axis-scale signature can still match, leaving a stale
+   *   ruler under the re-slotted marks; length changes also want the full
+   *   render so enter/exit and axis transitions run)
    * - No series currently collapsing (collapsed series changes visible data range)
    * - Not a combo chart (combo charts mix types and need coordinated axis recalc)
    * - Not currently zoomed (zoomed charts have altered x-labels that need recalculation)
    * @param {any[]} newSeries
    * @param {number} prevSeriesCount
+   * @param {number[]} prevDataLengths
    * @param {import('../../types/internal').ChartStateW} w
    */
-  _canUseFastPath(newSeries, prevSeriesCount, w) {
+  _canUseFastPath(newSeries, prevSeriesCount, prevDataLengths, w) {
     if (!w.dom.elGraphical) return false
     if (!w.globals.axisCharts) return false
     if (newSeries.length !== prevSeriesCount) return false
+    if (
+      newSeries.some(
+        (/** @type {any} */ s, /** @type {number} */ i) =>
+          (s?.data?.length ?? 0) !== prevDataLengths[i],
+      )
+    ) {
+      return false
+    }
     if (w.globals.collapsedSeries.length > 0) return false
     if (w.globals.ancillaryCollapsedSeries.length > 0) return false
     if (w.globals.risingSeries.length > 0) return false

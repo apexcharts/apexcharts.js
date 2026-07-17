@@ -122,6 +122,10 @@ export default class SVGElement {
    * @param {any} child
    */
   add(child) {
+    // Strata (#2) canvas mode: series marks are recorded into a display list,
+    // not the DOM. A recorded mark carries no real node, so adding it to a real
+    // SVG group is a no-op (the mark paints on the canvas layer instead).
+    if (child && child.__isCanvasMark) return this
     this.node.appendChild(child.node || child)
     return this
   }

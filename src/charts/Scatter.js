@@ -4,6 +4,7 @@ import Fill from '../modules/Fill'
 import Filters from '../modules/Filters'
 import Graphics from '../modules/Graphics'
 import Markers from '../modules/Markers'
+import { seriesEmitter } from '../renderers/Renderer'
 
 /**
  * ApexCharts Scatter Class.
@@ -37,13 +38,16 @@ export default class Scatter {
     const w = this.w
 
     const graphics = this.graphics
+    // Strata (#2): in canvas mode the per-point wrap holds only diverted marks,
+    // so it too emits through the renderer (no per-point DOM group).
+    const emit = seriesEmitter(this.ctx, graphics)
 
     const realIndex = opts.realIndex
     const pointsPos = opts.pointsPos
     const zRatio = opts.zRatio
     const elPointsMain = opts.elParent
 
-    const elPointsWrap = graphics.group({
+    const elPointsWrap = emit.group({
       class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`,
     })
 
@@ -103,6 +107,17 @@ export default class Scatter {
             j,
           )
           elPointsWrap.add(point)
+
+          // Strata (#2): canvas paints points to a bitmap with no per-point
+          // node, so the tooltip/crosshair position path can't read cx/cy off
+          // the markers. Cache the pixel coords in pointsArray (the same lookup
+          // the markers-off SVG path uses) so nearest/shared tooltips position.
+          if (emit.kind === 'canvas') {
+            if (typeof w.globals.pointsArray[realIndex] === 'undefined') {
+              w.globals.pointsArray[realIndex] = []
+            }
+            w.globals.pointsArray[realIndex][dataPointIndex] = [x, y]
+          }
         }
 
         elPointsMain.add(elPointsWrap)
@@ -127,6 +142,8 @@ export default class Scatter {
     const fill = this.fill
     const markers = this.markers
     const graphics = this.graphics
+    // Strata (#2): scatter/bubble points emit through the active renderer.
+    const emit = seriesEmitter(this.ctx, graphics)
 
     const markerConfig = markers.getMarkerConfig({
       cssClass: 'apexcharts-marker',
@@ -149,7 +166,7 @@ export default class Scatter {
       value: w.seriesData.series[realIndex][j],
     })
 
-    const el = graphics.drawMarker(x, y, markerConfig)
+    const el = emit.drawMarker(x, y, markerConfig)
 
     const _si = /** @type {Record<string,any>} */ (w.config.series[i])
     if (_si.data[dataPointIndex]) {

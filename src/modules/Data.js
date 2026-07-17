@@ -4,6 +4,7 @@ import DateTime from './../utils/DateTime'
 import Series from './Series'
 import Utils from '../utils/Utils'
 import Defaults from './settings/Defaults'
+import { isCustom, getChartClass } from './ChartFactory'
 
 export default class Data {
   /**
@@ -280,6 +281,49 @@ export default class Data {
     })
 
     return range
+  }
+
+  /**
+   * Marks (#11) P3: fold a custom series' per-datum y-extent into the
+   * range-data slice so both bounds drive the y-axis scale. When `yExtent` is
+   * given it supplies the values a datum occupies (scalar or array => min/max
+   * across them); otherwise the datum's `y` is used (array => first/last,
+   * scalar => itself). The datum still carries a representative scalar `y`
+   * (folded by handleFormatXY into seriesData.series) that gates Range.
+   * @param {any[]} ser @param {number} i @param {Function|null} yExtent
+   */
+  handleCustomRangeData(ser, i, yExtent) {
+    const data = ser[i].data || []
+    /** @type {any[]} */
+    const start = []
+    /** @type {any[]} */
+    const end = []
+    for (let j = 0; j < data.length; j++) {
+      const datum = data[j]
+      let lo
+      let hi
+      if (typeof yExtent === 'function') {
+        let ext = yExtent(datum, j)
+        if (!Array.isArray(ext)) ext = [ext]
+        const nums = ext
+          .map((/** @type {any} */ v) => Utils.parseNumber(v))
+          .filter((/** @type {any} */ v) => v !== null && !isNaN(v))
+        lo = nums.length ? Math.min(...nums) : null
+        hi = nums.length ? Math.max(...nums) : null
+      } else {
+        const y = datum == null ? null : datum.y
+        if (Array.isArray(y)) {
+          lo = Utils.parseNumber(y[0])
+          hi = Utils.parseNumber(y[y.length - 1])
+        } else {
+          lo = hi = Utils.parseNumber(y)
+        }
+      }
+      start.push(lo)
+      end.push(hi)
+    }
+    this.w.rangeData.seriesRangeStart[i] = start
+    this.w.rangeData.seriesRangeEnd[i] = end
   }
 
   /**
@@ -679,6 +723,20 @@ export default class Data {
       ) {
         this.w.axisFlags.isRangeData = true
         this.handleRangeData(ser, i)
+      }
+
+      // Marks (#11) P3: a custom series type may declare range/extent semantics
+      // (dumbbell y:[lo,hi], bullet, ...) so BOTH y-bounds fold into the axis
+      // scale. Reuses the range-data slice: Range.getMinYMaxY folds
+      // seriesRangeStart/End, and the tooltip renders "lo - hi".
+      const customType = ser[i].type || cnf.chart.type
+      if (isCustom(customType)) {
+        const cls = /** @type {any} */ (getChartClass(customType))
+        const yExtent = cls && cls.yExtent
+        if ((cls && cls.dataType === 'rangeXY') || typeof yExtent === 'function') {
+          this.w.axisFlags.isRangeData = true
+          this.handleCustomRangeData(ser, i, yExtent)
+        }
       }
 
       if (this.isMultiFormat()) {
@@ -1316,12 +1374,22 @@ export default class Data {
     if (!hasArrayY) {
       // Reference form: plain points at numeric band indices + xaxis.categories.
       // Just frame the axis; the data is already one point per observation.
-      if (
-        cnf.xaxis.type !== 'datetime' &&
-        Array.isArray(cnf.xaxis.categories) &&
-        cnf.xaxis.categories.length
-      ) {
-        this._applyBandAxis(cnf.xaxis.categories.slice())
+      if (cnf.xaxis.type !== 'datetime') {
+        if (
+          Array.isArray(cnf.xaxis.categories) &&
+          cnf.xaxis.categories.length
+        ) {
+          this._applyBandAxis(cnf.xaxis.categories.slice())
+        } else if (
+          Array.isArray(cnf.xaxis._scatterBandLabels) &&
+          cnf.xaxis._scatterBandLabels.length
+        ) {
+          // Re-render after the compact data was expanded in place (zoom,
+          // pan, any updateOptions): the config now carries plain points and
+          // no categories, so re-frame from the labels persisted by the
+          // first pass. Without this, zoom windows never get band-snapped.
+          this._applyBandAxis(cnf.xaxis._scatterBandLabels)
+        }
       }
       return ser
     }
@@ -1383,7 +1451,10 @@ export default class Data {
    * band centers regardless of how the numeric scale "nices" the step (e.g. the
    * small-range reduction in Scales._adjustTicksForSmallRange triggered by a
    * y-axis formatter). Only fills in options the user hasn't set, so explicit
-   * min/max/tickAmount/formatter still win.
+   * min/max/tickAmount/formatter still win. The exception is an interactive
+   * zoom/pan window (w.interact.zoomed): its fractional bounds are snapped to
+   * whole bands so tick labels stay on band centers and edge bands are never
+   * half-cropped.
    *
    * @param {any[]} bandLabels
    */
@@ -1399,18 +1470,62 @@ export default class Data {
         (xa._scatterBand = xa._scatterBand || {})
       )
 
+    // Persist the labels: once the compact data has been expanded into plain
+    // points, re-renders can no longer derive the bands from the series (see
+    // expandScatterJitterData's reference-form branch).
+    xa._scatterBandLabels = bandLabels.slice()
+
     xa.type = 'numeric'
-    if (xa.min == null || owned.min) {
-      xa.min = -1
+    if (
+      this.w.interact?.zoomed &&
+      typeof xa.min === 'number' &&
+      typeof xa.max === 'number' &&
+      isFinite(xa.min) &&
+      isFinite(xa.max)
+    ) {
+      // A zoom or pan window arrives with fractional bounds (a rubber-band
+      // selection, wheel zoom, pinch). On a band axis a fractional window is
+      // doubly broken: ticks no longer land on band centers (every label
+      // formats to ''), and a band sitting on the window edge shows half a
+      // dot cloud. Snap the window to the touched band centers plus one full
+      // band of padding per side, mirroring the initial frame: integer bounds
+      // and an integer tick count survive the numeric scale's nicing, so
+      // every tick lands exactly on a band center. Neighbouring bands peek in
+      // half-cropped at the window edges (zoom context); the selected bands
+      // themselves are never edge-cropped. The 0.49 bias keeps a band whose
+      // center sits exactly on the window edge (a zoom-out clamped to the
+      // data bounds 0..n-1 must keep the outermost bands).
+      const clampBand = (/** @type {number} */ b) =>
+        Math.max(0, Math.min(n - 1, b))
+      let first = clampBand(Math.round(xa.min + 0.49))
+      let last = clampBand(Math.round(xa.max - 0.49))
+      if (last < first) {
+        // window narrower than one band: show the band nearest its center
+        first = last = clampBand(Math.round((xa.min + xa.max) / 2))
+      }
+      xa.min = first - 1
+      xa.max = last + 1
+      xa.tickAmount = last - first + 2
       owned.min = true
-    }
-    if (xa.max == null || owned.max) {
-      xa.max = n
       owned.max = true
-    }
-    if (xa.tickAmount == null || xa.tickAmount === 'dataPoints' || owned.tick) {
-      xa.tickAmount = n + 1
       owned.tick = true
+    } else {
+      if (xa.min == null || owned.min) {
+        xa.min = -1
+        owned.min = true
+      }
+      if (xa.max == null || owned.max) {
+        xa.max = n
+        owned.max = true
+      }
+      if (
+        xa.tickAmount == null ||
+        xa.tickAmount === 'dataPoints' ||
+        owned.tick
+      ) {
+        xa.tickAmount = n + 1
+        owned.tick = true
+      }
     }
 
     xa.labels = xa.labels || {}

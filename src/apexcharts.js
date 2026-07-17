@@ -14,7 +14,22 @@ import YAxis from './modules/axes/YAxis'
 import InitCtxVariables from './modules/helpers/InitCtxVariables'
 import { applyAnimationPolicy } from './modules/Animations'
 import Destroy from './modules/helpers/Destroy'
-import { register } from './modules/ChartFactory'
+import {
+  register,
+  markCustom,
+  isCustom,
+  hasChartClass,
+  unregister,
+} from './modules/ChartFactory'
+import { registerTheme, unregisterTheme } from './modules/ThemeRegistry'
+import { registerEasing } from './modules/animations/Easing'
+import { trimStreamingSeries } from './modules/animations/StreamScroll'
+import { applyAxisTransition } from './modules/animations/AxisTransition'
+import {
+  registerPlugin as registerPluginImpl,
+  unregisterPlugin as unregisterPluginImpl,
+} from './modules/weave/PluginRegistry'
+import RendererController from './modules/RendererController'
 import { addResizeListener, removeResizeListener } from './utils/Resize'
 import apexCSS from './assets/apexcharts.css'
 import { Environment } from './utils/Environment.js'
@@ -63,7 +78,27 @@ export default class ApexCharts {
   /** @type {any} */ parentResizeHandler
   /** @type {string[]} */ publicMethods = []
   /** @type {string[]} */ eventList = []
+  /** @type {Promise<any> | null} */ _renderPromise = null
   /** @type {any} */ config
+  /** @type {any} */ perspectives
+  /** @type {any} */ storyboard
+  /** @type {any} */ history
+  /** @type {any} */ linkedViews
+  /** @type {any} */ ink
+  /** @type {any} */ measure
+  /** @type {any} */ contextMenu
+  /** @type {any} */ weave
+  /** @type {any} */ renderer
+  /** @type {any} */ rendererController
+
+  /**
+   * Static Perspectives helpers (decode/fromURL), populated by the perspectives
+   * feature when imported (`import 'apexcharts/features/perspectives'`); null
+   * otherwise. Declared here as a placeholder so core stays free of the
+   * Perspectives module while the assignment in the feature file type-checks.
+   * @type {any}
+   */
+  static perspectives = null
 
   /**
    * Creates a new ApexCharts instance.
@@ -114,8 +149,13 @@ export default class ApexCharts {
         ),
       )
     }
-    // main method
-    return new Promise((resolve, reject) => {
+    // Idempotent: a second render() call (deliberate or a framework double
+    // effect) must not build a duplicate chart tree in the same element.
+    // Return the in-flight/settled promise instead; destroy() clears it so a
+    // destroyed instance can be rendered fresh, and a rejected render clears
+    // itself so callers can retry (e.g. after attaching the element).
+    if (this._renderPromise) return this._renderPromise
+    const renderPromise = new Promise((resolve, reject) => {
       // only draw chart, if element found
       if (Utils.elementExists(this.el)) {
         if (typeof Apex._chartInstances === 'undefined') {
@@ -201,6 +241,11 @@ export default class ApexCharts {
         reject(new Error('Element not found'))
       }
     })
+    this._renderPromise = renderPromise
+    renderPromise.catch(() => {
+      if (this._renderPromise === renderPromise) this._renderPromise = null
+    })
+    return renderPromise
   }
 
   /**
@@ -227,6 +272,12 @@ export default class ApexCharts {
     }
 
     this.responsive.checkResponsiveConfig(opts)
+
+    // Cadence (#6) P1: re-resolve chart.animations.easing on every render so an
+    // updateOptions that changes the easing (name / cubic-bezier / fn) actually
+    // takes effect on the next tween. Runs after responsive merge so it sees the
+    // final config; idempotent, so the constructor's earlier call is harmless.
+    applyAnimationPolicy(w)
 
     // @ts-ignore — convertedCatToNumeric is an internal property set by Defaults
     if (w.config.xaxis.convertedCatToNumeric) {
@@ -290,6 +341,12 @@ export default class ApexCharts {
     this._writeParsedLabelData(parsedState.labelData)
     this._writeParsedAxisFlags(parsedState.axisFlags)
 
+    // Strata: choose the active series renderer now that mark count is known.
+    this.rendererController?.resolve()
+
+    // Weave: plugins react to freshly parsed data (geometry not computed yet).
+    this.weave?.dispatch('afterParse')
+
     // this is a good time to set theme colors first
     this.theme.init()
 
@@ -342,6 +399,9 @@ export default class ApexCharts {
     this._writeLayoutCoords(layoutState.layout)
 
     const xyRatios = this.core.xySettings()
+
+    // Weave: plugins compute against final geometry (scales are ready).
+    this.weave?.dispatch('afterScales', { xyRatios })
 
     this.grid.createGridMask()
 
@@ -526,6 +586,12 @@ export default class ApexCharts {
         }
       }
 
+      // Weave: main render hook: series/grid/axes are live in elGraphical now.
+      me.weave?.dispatch('draw', {
+        pass: 'full',
+        xyRatios: graphData?.xyRatios,
+      })
+
       if (w.globals.memory.methodsToExec.length > 0) {
         w.globals.memory.methodsToExec.forEach((fn) => {
           fn.method(fn.params, false, fn.context)
@@ -544,6 +610,8 @@ export default class ApexCharts {
    * After calling this, the instance should not be used again.
    */
   destroy() {
+    // allow a fresh render() on this instance after teardown
+    this._renderPromise = null
     // remove event listeners in browser environment
     if (Environment.isBrowser()) {
       window.removeEventListener('resize', this.windowResizeHandler)
@@ -738,6 +806,12 @@ export default class ApexCharts {
         }
       }
     }
+
+    // chart.streaming: bound memory: drop points that scrolled out of the
+    // window (xaxis.range + runway) or beyond maxPoints. Without it a
+    // long-running stream grows the series array without limit.
+    trimStreamingSeries(newSeries, me.w)
+
     me.w.config.series = newSeries
     if (overwriteInitialSeries) {
       me.w.globals.initialSeries = Utils.clone(me.w.config.series)
@@ -771,6 +845,11 @@ export default class ApexCharts {
           // feature isn't registered or no morph was captured this update).
           this.morphTypeChange?.applyChromeFade()
 
+          // Variable-length update: slide surviving tick labels/gridlines to
+          // their new positions and fade in the new ones, on the same clock
+          // as the series morph (no-op otherwise; consumes prevChromeFrame).
+          applyAxisTransition(this.w)
+
           if (typeof this.w.config.chart.events.updated === 'function') {
             this.w.config.chart.events.updated(this, this.w)
           }
@@ -794,9 +873,13 @@ export default class ApexCharts {
    * Called automatically by _updateSeries() when the fast path is eligible.
    *
    * @param {boolean} animate - Whether to animate the update.
+   * @param {string} [prevAxisScaleSig] - Signature of the on-screen axis scale
+   *   captured by _updateSeries() before parseData recomputed bounds. When the
+   *   recomputed scale differs, the fast path can't repaint the ruler in place,
+   *   so it delegates to a full render. Omitted -> the check is skipped.
    * @returns {Promise<ApexCharts>} Resolves with the chart instance.
    */
-  fastUpdate(animate) {
+  fastUpdate(animate, prevAxisScaleSig) {
     return new Promise((resolve, reject) => {
       try {
         const w = this.w
@@ -829,6 +912,7 @@ export default class ApexCharts {
         gl2.xTickAmount = 0
         gl2.multiAxisTickAmount = 0
         gl2.pointsArray = []
+        gl2.barCanvasCoords = null
         gl2.dataLabelsRects = []
         gl2.lastDrawnDataLabelsIndexes = []
         gl2.textRectsCache = new Map()
@@ -848,11 +932,40 @@ export default class ApexCharts {
         // Compute per-pixel ratios from the existing layout.
         const xyRatios = this.core.xySettings()
 
+        // The fast path repaints only the series layer; the axes and grid are
+        // preserved in place (below). That is safe only while the axis domain is
+        // unchanged. `prevAxisScaleSig` is the scale currently on screen,
+        // captured by _updateSeries before parseData wiped it. If the freshly
+        // recomputed scale differs, the rendered ruler would go stale while the
+        // series rescale to the new domain, so fall back to a full render (what
+        // the non-fast updateSeries path does anyway). Compares the y-axis
+        // nice-scale ticks (the y-label source) and the numeric x-domain;
+        // xAxisScale is excluded (reset to null here, not rebuilt for category
+        // axes before this point, so it would false-positive on every update).
+        // The common fixed-axis case (streaming) keeps the fast path.
+        const newAxisScaleSig = JSON.stringify({
+          y: (gl.yAxisScale || []).map((s) => (s ? s.result : null)),
+          xMin: gl.minX,
+          xMax: gl.maxX,
+        })
+        if (
+          gl.axisCharts &&
+          prevAxisScaleSig != null &&
+          newAxisScaleSig !== prevAxisScaleSig
+        ) {
+          return this.update()
+            .then(() => resolve(this))
+            .catch(reject)
+        }
+
+        // Weave: geometry refreshed on the fast path.
+        this.weave?.dispatch('afterScales', { pass: 'fast', xyRatios })
+
         // Remove only the series and data-label elements from elGraphical.
         // Grid, axes, crosshairs, and masks are preserved in place.
         const innerEl = w.dom.elGraphical.node
         const toRemove = innerEl.querySelectorAll(
-          '.apexcharts-series, .apexcharts-datalabels, .apexcharts-datalabels-background',
+          '.apexcharts-canvas-series-wrap, .apexcharts-series, .apexcharts-datalabels, .apexcharts-datalabels-background',
         )
         /**
          * @param {Element} el
@@ -892,6 +1005,9 @@ export default class ApexCharts {
           w.globals.tooltip?.drawTooltip(xyRatios)
         }
 
+        // Weave: main render hook (fast path): rebuild plugin layers.
+        this.weave?.dispatch('draw', { pass: 'fast', xyRatios })
+
         if (typeof w.config.chart.events.updated === 'function') {
           w.config.chart.events.updated(this, w)
         }
@@ -924,10 +1040,17 @@ export default class ApexCharts {
    * @returns {ApexCharts[]}
    */
   getGroupedCharts() {
+    // Require a truthy group: charts are registered in Apex._chartInstances
+    // whenever chart.id is set (regardless of group), so without this guard two
+    // ungrouped charts both store group === undefined and `undefined ===
+    // undefined` would sync their zoom/pan/hover with each other. Only charts
+    // that opt into the SAME explicit group should coordinate.
     return Apex._chartInstances
       .filter(
         (/** @type {any} */ ch) =>
-          this !== ch.chart && this.w.config.chart.group === ch.group,
+          this !== ch.chart &&
+          !!this.w.config.chart.group &&
+          this.w.config.chart.group === ch.group,
       )
       .map((/** @type {any} */ ch) => ch.chart)
   }
@@ -1034,6 +1157,199 @@ export default class ApexCharts {
    */
   static registerFeatures(featureMap) {
     InitCtxVariables.registerFeatures(featureMap)
+  }
+
+  /**
+   * Register a Weave plugin definition (a plain { name, setup } object).
+   * Lives in core so plugins can always be registered; they only activate when
+   * the Weave host is bundled (`import 'apexcharts/features/weave'`, included in
+   * the full bundle) and listed in a chart's `plugins` config.
+   *
+   * @param {{ name: string, apiVersion?: number, setup: Function, destroy?: Function }} def
+   * @returns {typeof ApexCharts}
+   */
+  static registerPlugin(def) {
+    registerPluginImpl(def)
+    return ApexCharts
+  }
+
+  /**
+   * Remove a registered Weave plugin definition. Charts already holding an
+   * active instance keep it until their plugins config changes or they are
+   * destroyed; the name simply stops resolving for new activations. Intended
+   * for tests and hot-reload flows.
+   * @param {string} name
+   * @returns {typeof ApexCharts}
+   */
+  static unregisterPlugin(name) {
+    unregisterPluginImpl(name)
+    return ApexCharts
+  }
+
+  /**
+   * Register a non-SVG series renderer (Strata #2). SVG is built in; the canvas
+   * backend registers itself via `import 'apexcharts/features/renderer-canvas'`.
+   * When a `kind` is not registered, selection falls back to SVG.
+   *
+   * @param {string} kind  e.g. 'canvas'
+   * @param {(w: any, ctx: any) => any} factory  returns a Renderer instance
+   */
+  static registerRenderer(kind, factory) {
+    RendererController.registerRenderer(kind, factory)
+  }
+
+  /**
+   * Register a custom series type (Marks #11): a `{ renderItem }` definition
+   * that draws primitives (path/line/rect/circle/text) per datum. Requires the
+   * Marks feature to be bundled (`import 'apexcharts/features/marks'`, included
+   * in the full bundle); without it this warns and no-ops. Once registered, use
+   * it via `series[].type` or `chart.type`.
+   *
+   * @param {string} name  the type name, e.g. 'dumbbell'
+   * @param {{ renderItem: Function, dataType?: string, yExtent?: Function, tooltip?: Function }} def
+   * @returns {typeof ApexCharts}
+   */
+  static registerSeriesType(name, def) {
+    const factory = /** @type {any} */ (ApexCharts)._customSeriesFactory
+    if (!factory) {
+      console.warn(
+        `[apexcharts] registerSeriesType("${name}") requires the Marks feature: import 'apexcharts/features/marks'.`,
+      )
+      return ApexCharts
+    }
+    if (!def || typeof def.renderItem !== 'function') {
+      console.warn(
+        `[apexcharts] registerSeriesType("${name}") needs a def with a renderItem() function.`,
+      )
+      return ApexCharts
+    }
+    // The type registry is global (all charts, all bundle copies), so letting a
+    // custom type shadow a built-in would silently break every chart on the
+    // page. Re-registering a CUSTOM name replaces it (idempotent, like
+    // registerPlugin); a built-in name is rejected.
+    if (hasChartClass(name) && !isCustom(name)) {
+      console.warn(
+        `[apexcharts] registerSeriesType("${name}") would override the built-in "${name}" chart type; pick another name.`,
+      )
+      return ApexCharts
+    }
+    register({ [name]: factory(name, def) })
+    markCustom(name)
+    return ApexCharts
+  }
+
+  /**
+   * Remove a custom series type registered via registerSeriesType. Built-in
+   * chart types cannot be unregistered. Intended for tests and hot-reload.
+   * @param {string} name
+   * @returns {typeof ApexCharts}
+   */
+  static unregisterSeriesType(name) {
+    if (isCustom(name)) unregister(name)
+    return ApexCharts
+  }
+
+  /**
+   * Facet (#13): register a named theme (palette + design tokens + mode)
+   * referenceable via `theme: { name }`. The theme sits below explicit config
+   * and CSS `--apx-*` tokens, above the built-in palette/mode defaults.
+   *
+   * @param {string} name  the theme name, e.g. 'brand'
+   * @param {any} def  { mode?, palette?, tokens?, monochrome?, accessibility? }
+   * @returns {typeof ApexCharts}
+   */
+  static registerTheme(name, def) {
+    registerTheme(name, def)
+    return ApexCharts
+  }
+
+  /**
+   * Remove a theme registered via registerTheme. Charts referencing it by
+   * `theme.name` fall back to the built-in defaults on their next render.
+   * Intended for tests and hot-reload flows.
+   * @param {string} name
+   * @returns {typeof ApexCharts}
+   */
+  static unregisterTheme(name) {
+    unregisterTheme(name)
+    return ApexCharts
+  }
+
+  /**
+   * Cadence (#6): register a named easing function referenceable via
+   * `chart.animations.easing: '<name>'`. `fn` maps linear progress t in [0,1]
+   * to eased progress (back/elastic curves may overshoot 1).
+   *
+   * @param {string} name  the easing name, e.g. 'bounce'
+   * @param {(t:number)=>number} fn
+   * @returns {typeof ApexCharts}
+   */
+  static registerEasing(name, fn) {
+    registerEasing(name, fn)
+    return ApexCharts
+  }
+
+  /**
+   * Linked Views (#4) Phase 2: get-or-create a crossfilter coordinator by id.
+   * Register one shared record set, then let each chart declare a dimension +
+   * reduction under `chart.link`. Selecting in one chart re-aggregates the
+   * others over the filtered subset.
+   *
+   * Lives in core (always callable) but the engine ships in the `link` feature
+   * (`import 'apexcharts/features/link'`, included in the full bundle); without
+   * it this warns and returns null so the engine shakes out when unused.
+   *
+   * @param {{ id: string, records?: any[] }} opts
+   * @returns {any} the coordinator handle, or null if the feature is absent
+   */
+  static crossfilter(opts) {
+    const factory = /** @type {any} */ (ApexCharts)._crossfilterFactory
+    if (!factory) {
+      console.warn(
+        `[apexcharts] ApexCharts.crossfilter(...) requires the link feature: import 'apexcharts/features/link'.`,
+      )
+      return null
+    }
+    return factory(opts)
+  }
+
+  /**
+   * Look up an existing crossfilter coordinator by id (null if none / feature
+   * absent).
+   * @param {string} id
+   * @returns {any}
+   */
+  static getCrossfilter(id) {
+    const get = /** @type {any} */ (ApexCharts)._crossfilterGet
+    return get ? get(id) : null
+  }
+
+  /**
+   * Linked Views (#4): clear crossfilter dimming across this chart and every
+   * chart in its `chart.group`. No-op unless the `link` feature is bundled.
+   */
+  clearCrossfilter() {
+    this.linkedViews?.clearGroup()
+  }
+
+  /**
+   * Measure ruler (#18): arm a sticky measure-ruler mode (drag A->B on the
+   * plot to read dx/dy/%change/slope). Alternatively hold the measure key
+   * (chart.measure.key, default 'm') and drag. No-op unless the `measure`
+   * feature is bundled and chart.measure.enabled.
+   */
+  startMeasure() {
+    this.measure?.startMeasure()
+  }
+
+  /** Measure ruler (#18): leave measure mode. */
+  stopMeasure() {
+    this.measure?.stopMeasure()
+  }
+
+  /** Measure ruler (#18): remove all pinned measure rulers. */
+  clearMeasures() {
+    this.measure?.clearMeasures()
   }
 
   /**
@@ -1182,6 +1498,12 @@ export default class ApexCharts {
     if (context) {
       me = context
     }
+    // This mutates the rendered DOM out of band, so the memoized "last rendered
+    // options" no longer matches what is on screen. Invalidate it, or a
+    // subsequent updateOptions() with identical options short-circuits and
+    // leaves the annotations cleared-but-not-redrawn (hit by Rewind /
+    // Perspectives restore, which clear then re-apply the same config).
+    me.lastUpdateOptions = null
     me.annotations?.clearAnnotations(me)
   }
 
@@ -1196,6 +1518,9 @@ export default class ApexCharts {
     if (context) {
       me = context
     }
+    // See clearAnnotations: removing an annotation changes the rendered DOM, so
+    // invalidate the update memo to keep a following identical updateOptions().
+    me.lastUpdateOptions = null
     me.annotations?.removeAnnotation(me, id)
   }
 
@@ -1402,6 +1727,35 @@ export default class ApexCharts {
 
   paper() {
     return this.w.dom.Paper
+  }
+
+  /**
+   * Returns the active series renderer for the last render: `'svg'` (default)
+   * or `'canvas'` (Strata #2). `'auto'`/`'canvas'` resolve to `'svg'` unless the
+   * canvas renderer feature is bundled and no canvas-unsupported feature is in
+   * use. See `chart.renderer` / `chart.rendererThreshold`.
+   *
+   * @returns {'svg' | 'canvas' | 'gpu'}
+   */
+  getActiveRenderer() {
+    return this.rendererController
+      ? this.rendererController.getActiveKind()
+      : 'svg'
+  }
+
+  /**
+   * Facet (#13): re-resolve the `--apx-*` design tokens and re-render.
+   *
+   * Tokens are read from the CSS cascade once per render, so a runtime change
+   * that is NOT an OS color-scheme flip (e.g. the host app swaps its own
+   * design-system theme by toggling a class or setting style properties) is
+   * invisible until the next render, and `updateOptions({})` is memoized away.
+   * This busts the memo and re-renders, picking up the current token values.
+   * @returns {Promise<any>}
+   */
+  refreshTokens() {
+    this.lastUpdateOptions = null
+    return this.update()
   }
 
   /**

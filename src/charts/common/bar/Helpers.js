@@ -505,7 +505,7 @@ export default class Helpers {
       )
     }
 
-    let pathFrom
+    let pathFrom = null
     // Cross-type morph: use the captured outgoing path as the start so the
     // morphPaths engine bridges (pie/radial) → bar. No-op when the morph
     // feature isn't registered or no snapshot is active.
@@ -516,10 +516,14 @@ export default class Helpers {
     if (morphFrom) {
       pathFrom = morphFrom
     } else if (w.globals.previousPaths.length > 0) {
-      // Update: survivor with matching command count → animate; else snap.
+      // Update: keyed survivor → its old geometry (reflow morph); survivor
+      // whose shape changed → pathTo (snap); ENTERING datum → null, which
+      // falls through to the baseline rise below.
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo)
-    } else {
-      // Initial mount: rise from baseline; pad command count to match pathTo.
+    }
+    if (pathFrom == null) {
+      // Initial mount or entering datum: rise from the baseline of the final
+      // slot; pad command count to match pathTo.
       pathFrom =
         graphics.move(x1, y1) +
         graphics.line(x1, y1) +
@@ -606,7 +610,7 @@ export default class Helpers {
       graphics.line(bottomLeftX, y2) +
       ' Z'
 
-    let pathFrom
+    let pathFrom = null
     const morphFrom = this.barCtx.ctx?.morphTypeChange?.getInitialPathFor(
       realIndex,
       j,
@@ -614,10 +618,13 @@ export default class Helpers {
     if (morphFrom) {
       pathFrom = morphFrom
     } else if (w.globals.previousPaths.length > 0) {
-      // Update: survivor with matching command count → animate; else snap.
+      // Update: keyed survivor → morph; shape-changed survivor → snap;
+      // entering datum → null (falls through to the centerline collapse).
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo)
-    } else {
-      // Initial mount: collapsed at the centerline so the trapezoid expands outward.
+    }
+    if (pathFrom == null) {
+      // Initial mount or entering datum: collapsed at the centerline so the
+      // trapezoid expands outward.
       pathFrom =
         graphics.move(center, y1) +
         graphics.line(center, y1) +
@@ -721,7 +728,7 @@ export default class Helpers {
       graphics.line(bottomLeftX, y2) +
       ' Z'
 
-    let pathFrom
+    let pathFrom = null
     const morphFrom = this.barCtx.ctx?.morphTypeChange?.getInitialPathFor(
       realIndex,
       j,
@@ -729,8 +736,10 @@ export default class Helpers {
     if (morphFrom) {
       pathFrom = morphFrom
     } else if (w.globals.previousPaths.length > 0) {
+      // Keyed survivor → morph; shape-changed → snap; entering → null.
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo)
-    } else {
+    }
+    if (pathFrom == null) {
       pathFrom =
         graphics.move(center, y1) +
         graphics.line(center, y1) +
@@ -816,7 +825,7 @@ export default class Helpers {
       )
     }
 
-    let pathFrom
+    let pathFrom = null
     const morphFrom = this.barCtx.ctx?.morphTypeChange?.getInitialPathFor(
       realIndex,
       j,
@@ -824,10 +833,14 @@ export default class Helpers {
     if (morphFrom) {
       pathFrom = morphFrom
     } else if (w.globals.previousPaths.length > 0) {
-      // Update: survivor with matching command count → animate; else snap.
+      // Update: keyed survivor → its old geometry (reflow morph); survivor
+      // whose shape changed → pathTo (snap); ENTERING datum → null, which
+      // falls through to the baseline rise below.
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo)
-    } else {
-      // Initial mount: rise from baseline; pad command count to match pathTo.
+    }
+    if (pathFrom == null) {
+      // Initial mount or entering datum: rise from the baseline of the final
+      // slot; pad command count to match pathTo.
       const slFrom = isFunnel ? graphics.line(fromX, y2) : sl
       pathFrom =
         graphics.move(fromX, y1) +
@@ -975,6 +988,18 @@ export default class Helpers {
     barWidth,
     barHeight,
   }) {
+    // Only bars/candles that actually have a goal line need a group. Skipping
+    // the empty group (the common case) avoids one dead <g> per bar: negligible
+    // in SVG but the ENTIRE node count in canvas mode (bodies/wicks paint to the
+    // bitmap, so these empty groups are all that is left), and wasteful on large
+    // datasets either way.
+    const hasGoals =
+      (Array.isArray(goalX) && goalX.length > 0) ||
+      (Array.isArray(goalY) && goalY.length > 0)
+    if (!hasGoals) {
+      return null
+    }
+
     const graphics = new Graphics(this.barCtx.w)
     const lineGroup = graphics.group({
       className: 'apexcharts-bar-goals-groups',

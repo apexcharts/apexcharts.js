@@ -77,4 +77,24 @@ describe('charts can be grouped in several independent groups', () => {
     expectSameElements(charts[3].getSyncedCharts(), [charts[4], charts[3]])
     expectSameElements(charts[4].getSyncedCharts(), [charts[3], charts[4]])
   })
+
+  it('does not coordinate two UNGROUPED charts (group === undefined must not match)', () => {
+    // Regression: charts are registered in Apex._chartInstances whenever
+    // chart.id is set, so two charts without a group both stored group ===
+    // undefined and `undefined === undefined` synced their zoom/pan/hover.
+    const charts = createChartsWithOptions(
+      { chart: { type: 'line', id: 'solo-a' }, series: [] },
+      { chart: { type: 'line', id: 'solo-b' }, series: [] },
+      { chart: { type: 'line', id: 'grp-a', group: 'gg' }, series: [] },
+      { chart: { type: 'line', id: 'grp-b', group: 'gg' }, series: [] },
+    )
+    // The two ungrouped charts must NOT see each other.
+    expectSameElements(charts[0].getGroupedCharts(), [])
+    expectSameElements(charts[1].getGroupedCharts(), [])
+    expectSameElements(charts[0].getSyncedCharts(), [charts[0]])
+    expectSameElements(charts[1].getSyncedCharts(), [charts[1]])
+    // An explicit shared group still coordinates.
+    expectSameElements(charts[2].getGroupedCharts(), [charts[3]])
+    expectSameElements(charts[3].getGroupedCharts(), [charts[2]])
+  })
 })

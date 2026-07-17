@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Crossfilter: Click to Filter Across Charts (chart.link)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      .cf-wrap {
+        max-width: 900px;
+        margin: 12px auto;
+        font-family: Helvetica, Arial, sans-serif;
+      }
+      .cf-bar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 4px 6px 14px;
+      }
+      .cf-bar button {
+        padding: 6px 13px;
+        cursor: pointer;
+        border: 1px solid #6366f1;
+        color: #4338ca;
+        background: #fff;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .cf-bar .readout {
+        font-family: monospace;
+        font-size: 13px;
+        color: #445;
+      }
+      .cf-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .cf-grid .full {
+        grid-column: 1 / -1;
+      }
+      .cf-card {
+        border: 1px solid #e4e7f2;
+        border-radius: 8px;
+        padding: 6px;
+        background: #fff;
+      }
+      /* The shared demo stylesheet gives the FIRST chart container (#chart) a
+               white panel + border; the cards style all three uniformly instead. */
+      #chart {
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+      }
+      .cf-note {
+        background: #eef2ff;
+        border-left: 3px solid #6366f1;
+        padding: 11px 15px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.6;
+        margin: 14px 6px;
+      }
+      .cf-note code {
+        background: #dfe3ff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Deterministic trade records (one row per trade). No randomness: stable demo.
+      function tradesData() {
+        var quarters = ['Q1', 'Q2', 'Q3', 'Q4']
+        var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+        var out = []
+        for (var i = 0; i < 60; i++) {
+          out.push({
+            q: quarters[i % 4],
+            day: days[(i * 3) % 5],
+            gl: i % 3 === 0 ? 'Loss' : 'Gain',
+            vol: 50 + ((i * 37) % 120),
+          })
+        }
+        return out
+      }
+
+      // Register the shared record set BEFORE the charts are constructed, so each
+      // chart's initial paint is already the aggregation (no empty flash).
+      ApexCharts.crossfilter({ id: 'trades', records: tradesData() })
+    </script>
+  </head>
+
+  <body>
+     <div class="cf-wrap">
+        <div class="cf-bar">
+          <button id="cf-reset">Reset filters</button>
+          <span class="readout" id="cf-readout">Click a slice or bar to filter every chart</span>
+        </div>
+      
+        <div class="cf-grid">
+          <div class="cf-card"><div id="chart"></div></div>
+          <div class="cf-card"><div id="chart2"></div></div>
+          <div class="cf-card full"><div id="chart3"></div></div>
+        </div>
+      
+        <div class="cf-note">
+          All three charts declare a <code>chart.link.dimension</code> over one record
+          set registered with <code>ApexCharts.crossfilter({ id, records })</code>.
+          Clicking a slice or bar toggles that bucket: the clicked chart dims its
+          other buckets, and every other chart <b>re-aggregates over the filtered
+          trades</b> and animates to its new values. Selections combine (a chart
+          never filters itself), so you always see what is still available.
+          <b>Reset filters</b> clears everything. Needs the <code>link</code> feature.
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: [],
+        chart: {
+          id: 'byQuarter',
+          type: 'donut',
+          height: 300,
+          fontFamily: 'Helvetica, Arial, sans-serif',
+          animations: { speed: 500 },
+          link: {
+            id: 'trades',
+            dimension: function (r) {
+              return r.q
+            },
+            reduce: 'count',
+            dimOpacity: 0.18,
+          },
+        },
+        title: { text: 'By quarter', align: 'left' },
+        legend: { position: 'bottom' },
+        plotOptions: { pie: { expandOnClick: false } },
+        dataLabels: {
+          enabled: true,
+          formatter: function (val, opts) {
+            return opts.w.config.series[opts.seriesIndex]
+          },
+          style: { colors: ['#334155'], fontWeight: 600 },
+          dropShadow: { enabled: false },
+        },
+        colors: ['#818cf8', '#38bdf8', '#4ade80', '#fbbf24'],
+        stroke: { width: 2, colors: ['#fff'] },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      var options1 = {
+        series: [],
+        chart: {
+          id: 'byOutcome',
+          type: 'donut',
+          height: 300,
+          fontFamily: 'Helvetica, Arial, sans-serif',
+          animations: { speed: 500 },
+          link: {
+            id: 'trades',
+            dimension: function (r) {
+              return r.gl
+            },
+            reduce: 'count',
+            order: 'asc', // Gain before Loss, so the colors below map semantically
+            dimOpacity: 0.18,
+          },
+        },
+        title: { text: 'By outcome', align: 'left' },
+        legend: { position: 'bottom' },
+        plotOptions: { pie: { expandOnClick: false } },
+        dataLabels: {
+          enabled: true,
+          formatter: function (val, opts) {
+            return opts.w.config.series[opts.seriesIndex]
+          },
+          style: { colors: ['#334155'], fontWeight: 600 },
+          dropShadow: { enabled: false },
+        },
+        colors: ['#4ade80', '#f87171'],
+        stroke: { width: 2, colors: ['#fff'] },
+      }
+
+      var chart1 = new ApexCharts(document.querySelector('#chart2'), options1)
+      chart1.render()
+
+      var options2 = {
+        series: [],
+        chart: {
+          id: 'byDay',
+          type: 'bar',
+          height: 280,
+          fontFamily: 'Helvetica, Arial, sans-serif',
+          animations: { speed: 500 },
+          link: {
+            id: 'trades',
+            dimension: function (r) {
+              return r.day
+            },
+            reduce: 'count',
+            seriesName: 'Trades',
+            // `order` also takes a comparator: keep the weekdays in calendar order
+            // instead of the order they first appear in the records.
+            order: function (a, b) {
+              var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+              return days.indexOf(a) - days.indexOf(b)
+            },
+            dimOpacity: 0.18,
+          },
+        },
+        title: { text: 'By day of week (click a bar too)', align: 'left' },
+        plotOptions: {
+          bar: { columnWidth: '55%', borderRadius: 3, distributed: true },
+        },
+        legend: { show: false },
+        dataLabels: { enabled: false },
+        colors: ['#818cf8', '#38bdf8', '#4ade80', '#fbbf24', '#f472b6'],
+      }
+
+      var chart2 = new ApexCharts(document.querySelector('#chart3'), options2)
+      chart2.render()
+
+      // charts[0]=byQuarter, charts[1]=byOutcome, charts[2]=byDay.
+      // The generated file exposes them as chart, chart1, chart2.
+      var cf = ApexCharts.getCrossfilter('trades')
+      var readout = document.getElementById('cf-readout')
+
+      function fmtFilters(state) {
+        var keys = Object.keys(state.filters)
+        if (!keys.length) return 'No filter (all ' + state.total + ' trades)'
+        var parts = keys.map(function (id) {
+          return id + ': ' + state.filters[id].join(', ')
+        })
+        return (
+          parts.join('  |  ') +
+          '   ->   ' +
+          state.filteredCount +
+          ' / ' +
+          state.total +
+          ' trades'
+        )
+      }
+
+      if (cf) {
+        cf.on('change', function (state) {
+          readout.textContent = fmtFilters(state)
+        })
+      }
+
+      document.getElementById('cf-reset').addEventListener('click', function () {
+        if (cf) cf.reset()
+      })
+    </script>
+
+    
+  </body>
+</html>

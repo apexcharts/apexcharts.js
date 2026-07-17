@@ -86,9 +86,7 @@ var optionsColumn = {
   chart: {
     height: 350,
     type: 'bar',
-    animations: {
-      enabled: false
-    },
+   
     events: {
       animationEnd: function (chartCtx, opts) {
         const newData = chartCtx.w.config.series[0].data.slice()

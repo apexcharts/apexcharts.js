@@ -1,6 +1,6 @@
 {
   "name": "apexcharts",
-  "version": "5.16.0",
+  "version": "6.0.0",
   "description": "A JavaScript Chart Library",
   "repository": {
     "type": "git",
@@ -157,6 +157,50 @@
     "./features/drilldown": {
       "import": "./dist/features/drilldown.esm.js",
       "require": "./dist/features/drilldown.common.js"
+    },
+    "./features/perspectives": {
+      "import": "./dist/features/perspectives.esm.js",
+      "require": "./dist/features/perspectives.common.js"
+    },
+    "./features/storyboard": {
+      "import": "./dist/features/storyboard.esm.js",
+      "require": "./dist/features/storyboard.common.js"
+    },
+    "./features/history": {
+      "import": "./dist/features/history.esm.js",
+      "require": "./dist/features/history.common.js"
+    },
+    "./features/weave": {
+      "import": "./dist/features/weave.esm.js",
+      "require": "./dist/features/weave.common.js"
+    },
+    "./features/renderer-canvas": {
+      "import": "./dist/features/renderer-canvas.esm.js",
+      "require": "./dist/features/renderer-canvas.common.js"
+    },
+    "./features/marks": {
+      "import": "./dist/features/marks.esm.js",
+      "require": "./dist/features/marks.common.js"
+    },
+    "./features/facet": {
+      "import": "./dist/features/facet.esm.js",
+      "require": "./dist/features/facet.common.js"
+    },
+    "./features/link": {
+      "import": "./dist/features/link.esm.js",
+      "require": "./dist/features/link.common.js"
+    },
+    "./features/ink": {
+      "import": "./dist/features/ink.esm.js",
+      "require": "./dist/features/ink.common.js"
+    },
+    "./features/measure": {
+      "import": "./dist/features/measure.esm.js",
+      "require": "./dist/features/measure.common.js"
+    },
+    "./features/context-menu": {
+      "import": "./dist/features/context-menu.esm.js",
+      "require": "./dist/features/context-menu.common.js"
     },
     "./features/all": {
       "import": "./dist/features/all.esm.js",

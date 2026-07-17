@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.16.0
+ * ApexCharts v6.0.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -951,7 +951,7 @@ class Helpers {
         w.config.plotOptions.bar.borderRadius
       );
     }
-    let pathFrom;
+    let pathFrom = null;
     const morphFrom = (_c = (_b = this.barCtx.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(
       realIndex,
       j
@@ -960,7 +960,8 @@ class Helpers {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
-    } else {
+    }
+    if (pathFrom == null) {
       pathFrom = graphics.move(x1, y1) + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + closing;
     }
     if (w.config.chart.stacked) {
@@ -1021,7 +1022,7 @@ class Helpers {
     const bottomLeftX = center - bottomHalf;
     const bottomRightX = center + bottomHalf;
     const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
-    let pathFrom;
+    let pathFrom = null;
     const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
       realIndex,
       j
@@ -1030,7 +1031,8 @@ class Helpers {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
-    } else {
+    }
+    if (pathFrom == null) {
       pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
     }
     return {
@@ -1117,7 +1119,7 @@ class Helpers {
     const bottomLeftX = center - bottomHalf;
     const bottomRightX = center + bottomHalf;
     const pathTo = graphics.move(topLeftX, y1) + graphics.line(topRightX, y1) + graphics.line(bottomRightX, y2) + graphics.line(bottomLeftX, y2) + " Z";
-    let pathFrom;
+    let pathFrom = null;
     const morphFrom = (_b = (_a = this.barCtx.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(
       realIndex,
       j
@@ -1126,7 +1128,8 @@ class Helpers {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
-    } else {
+    }
+    if (pathFrom == null) {
       pathFrom = graphics.move(center, y1) + graphics.line(center, y1) + graphics.line(center, y2) + graphics.line(center, y2) + " Z";
     }
     return {
@@ -1179,7 +1182,7 @@ class Helpers {
         w.config.plotOptions.bar.borderRadius
       );
     }
-    let pathFrom;
+    let pathFrom = null;
     const morphFrom = (_c = (_b = this.barCtx.ctx) == null ? void 0 : _b.morphTypeChange) == null ? void 0 : _c.getInitialPathFor(
       realIndex,
       j
@@ -1188,7 +1191,8 @@ class Helpers {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
       pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
-    } else {
+    }
+    if (pathFrom == null) {
       const slFrom = isFunnel ? graphics.line(fromX, y2) : sl;
       pathFrom = graphics.move(fromX, y1) + graphics.line(fromX, y1) + slFrom + slFrom + slFrom + slFrom + slFrom + graphics.line(fromX, y1) + closing;
     }
@@ -1287,6 +1291,10 @@ class Helpers {
     barWidth,
     barHeight
   }) {
+    const hasGoals = Array.isArray(goalX) && goalX.length > 0 || Array.isArray(goalY) && goalY.length > 0;
+    if (!hasGoals) {
+      return null;
+    }
     const graphics = new Graphics(this.barCtx.w);
     const lineGroup = graphics.group({
       className: "apexcharts-bar-goals-groups"
@@ -1406,6 +1414,112 @@ class Helpers {
 }
 const Filters = _core.__apex_Filters;
 const computeStagger = _core.__apex_Animations_computeStagger;
+const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
+const Environment = _core.__apex_Environment_Environment;
+function lengthTransitionEnabled(w) {
+  var _a;
+  const anim = w.config.chart.animations;
+  if (!anim || anim.enabled === false) return false;
+  if (!anim.dynamicAnimation || anim.dynamicAnimation.enabled === false) {
+    return false;
+  }
+  const largeThreshold = (_a = anim.largeDatasetThreshold) != null ? _a : 0;
+  if (largeThreshold > 0 && w.globals.dataPoints > largeThreshold) return false;
+  return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
+}
+function datumKey(w, realIndex, j) {
+  var _a, _b, _c, _d;
+  if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
+    const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
+    if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
+  }
+  const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j];
+  if (lbl != null && String(lbl) !== "") {
+    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
+  }
+  return "j:" + j;
+}
+function firstMove(d) {
+  const m = /^M\s*([+-]?[\d.eE]+)[\s,]+([+-]?[\d.eE]+)/.exec(d || "");
+  if (!m) return null;
+  const x = parseFloat(m[1]);
+  const y = parseFloat(m[2]);
+  return isFinite(x) && isFinite(y) ? { x, y } : null;
+}
+function renderBarExitGhosts({
+  w,
+  elSeries,
+  record,
+  newKeys,
+  isHorizontal,
+  speed
+}) {
+  var _a;
+  if (!lengthTransitionEnabled(w)) return;
+  if (!record || !Array.isArray(record.paths) || !(elSeries == null ? void 0 : elSeries.node)) return;
+  const newKeySet = new Set(newKeys);
+  const exits = record.paths.filter(
+    (p) => p && p.d && p.key != null && !newKeySet.has(p.key)
+  );
+  if (!exits.length) return;
+  const graphics = new Graphics(w);
+  const fallbackFill = (_a = w.globals.colors) == null ? void 0 : _a[parseInt(String(record.realIndex), 10)];
+  exits.forEach((p) => {
+    let fill = p.fill || fallbackFill || "#c8c8c8";
+    if (String(fill).indexOf("url(") === 0) fill = fallbackFill || "#c8c8c8";
+    const ghost = graphics.drawPath({
+      d: p.d,
+      stroke: "none",
+      strokeWidth: 0,
+      fill,
+      fillOpacity: 1,
+      classes: "apexcharts-bar-ghost"
+    });
+    const node = ghost.node;
+    node.setAttribute("pointer-events", "none");
+    ghost.attr(
+      "clip-path",
+      `url(#gridRectBarMask${w.globals.cuid})`
+    );
+    elSeries.node.insertBefore(node, elSeries.node.firstChild);
+    const start = firstMove(p.d);
+    let origin = isHorizontal ? "left center" : "center bottom";
+    try {
+      const bb = node.getBBox();
+      if (start && bb) {
+        if (isHorizontal) {
+          origin = Math.abs(start.x - bb.x) <= Math.abs(start.x - (bb.x + bb.width)) ? "left center" : "right center";
+        } else {
+          origin = Math.abs(start.y - (bb.y + bb.height)) <= Math.abs(start.y - bb.y) ? "center bottom" : "center top";
+        }
+      }
+    } catch (_) {
+    }
+    const style = node.style;
+    style.transformBox = "fill-box";
+    style.transformOrigin = origin;
+    const duration = Math.max(1, speed || 1);
+    const startAt = performance.now();
+    const step = (now) => {
+      if (w.globals.isDestroyed || !node.parentNode) return;
+      const t = Math.max(0, Math.min(1, (now - startAt) / duration));
+      const eased = 1 - Math.pow(1 - t, 3);
+      const scale = 1 - eased;
+      style.transform = isHorizontal ? `scaleX(${scale})` : `scaleY(${scale})`;
+      style.opacity = String(1 - eased);
+      if (t < 1) {
+        BrowserAPIs.requestAnimationFrame(step);
+      } else {
+        node.parentNode.removeChild(node);
+      }
+    };
+    BrowserAPIs.requestAnimationFrame(step);
+  });
+}
+function seriesEmitter(ctx, graphics) {
+  const r = ctx && ctx.renderer;
+  return r && r.kind && r.kind !== "svg" ? r : graphics;
+}
 class Bar {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -1443,6 +1557,8 @@ class Bar {
     this.translationsIndex = 0;
     this.seriesLen = 0;
     this.pathArr = [];
+    this._prevKeyed = null;
+    this._ltCache = null;
     this.series = [];
     this.elSeries = null;
     this.visibleI = 0;
@@ -1542,7 +1658,11 @@ class Bar {
         "data:realIndex": realIndex
       });
       w.globals.delayedElements.push({
-        el: elDataLabelsWrap.node
+        el: elDataLabelsWrap.node,
+        // On a layout-changing update the labels must stay hidden through the
+        // reflow morph (the updateOptions flow otherwise reveals them at
+        // frame 0, where they float over sliding bars).
+        holdUntilComplete: this.isLengthTransition(realIndex)
       });
       elDataLabelsWrap.node.classList.add("apexcharts-element-hidden");
       const elGoalsMarkers = graphics.group({
@@ -1652,6 +1772,20 @@ class Bar {
       }
       w.globals.seriesXvalues[realIndex] = xArrj;
       w.globals.seriesYvalues[realIndex] = yArrj;
+      if (w.globals.previousPaths.length > 0) {
+        const newKeys = [];
+        for (let j = 0; j < series[i].length; j++) {
+          newKeys.push(datumKey(w, realIndex, j));
+        }
+        renderBarExitGhosts({
+          w,
+          elSeries,
+          record: this._prevRecord(realIndex),
+          newKeys,
+          isHorizontal: this.isHorizontal,
+          speed: w.config.chart.animations.dynamicAnimation.speed
+        });
+      }
       ret.add(elSeries);
     }
     return ret;
@@ -1691,6 +1825,7 @@ class Bar {
     var _a;
     const w = this.w;
     const graphics = new Graphics(this.w, this.ctx);
+    const emit = seriesEmitter(this.ctx, graphics);
     let skipDrawing = false;
     if (!elSeries._bindingsDelegated) {
       elSeries._bindingsDelegated = true;
@@ -1754,7 +1889,7 @@ class Bar {
     }
     const animCfg = w.config.chart.animations;
     const gradCfg = animCfg.animateGradually;
-    const staggerEnabled = gradCfg && gradCfg.enabled !== false;
+    const staggerEnabled = gradCfg && gradCfg.enabled !== false && !(w.globals.dataChanged && this.isLengthTransition(realIndex));
     let delay = 0;
     if (staggerEnabled) {
       const totalBars = w.globals.dataPoints || 1;
@@ -1779,7 +1914,7 @@ class Bar {
       const dataChangeSpeed = morphActive ? this.ctx.morphTypeChange.getSpeed() : w.config.chart.animations.dynamicAnimation.speed;
       const renderedPath = (
         /** @type {any} */
-        graphics.renderPaths({
+        emit.renderPaths({
           i,
           j,
           realIndex,
@@ -1819,8 +1954,22 @@ class Bar {
         j,
         val: w.seriesData.series[i][j],
         barHeight,
-        barWidth
+        barWidth,
+        // Datum identity for the next update's keyed join (see
+        // LengthTransition): survivors match by key, not array position.
+        "data:pathKey": datumKey(w, realIndex, j)
       });
+      if (emit.kind === "canvas") {
+        if (!w.globals.barCanvasCoords) w.globals.barCanvasCoords = {};
+        if (!w.globals.barCanvasCoords[realIndex]) {
+          w.globals.barCanvasCoords[realIndex] = {};
+        }
+        w.globals.barCanvasCoords[realIndex][j] = {
+          cx: dataLabelsObj.dataLabelsPos.bcx,
+          cy: dataLabelsObj.dataLabelsPos.bcy,
+          barWidth
+        };
+      }
       if (dataLabelsObj.dataLabels !== null) {
         elDataLabelsWrap.add(dataLabelsObj.dataLabels);
       }
@@ -2074,32 +2223,132 @@ class Bar {
     };
   }
   /**
-   * Resolve `pathFrom` for a bar on data update. Returns the previous render's
-   * `d` string for the same `(realIndex, j)` only when its SVG command count
-   * matches `pathTo` — that's the survivor-with-stable-shape case where SVG.js
-   * morph produces a smooth resize. When commands mismatch (corner state
-   * flipped, e.g. bar became new top-of-stack after legend toggle) or the bar
-   * is genuinely new (no captured previous), returns `pathTo` — which makes
-   * pathFrom === pathTo so morph is a visual no-op (snap).
+   * The captured previous-render record for a series (last match wins, same
+   * as the historical scan order).
+   *
+   * @param {number} realIndex
+   * @returns {any | null}
+   */
+  _prevRecord(realIndex) {
+    const w = this.w;
+    let record = null;
+    for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
+      const gpp = w.globals.previousPaths[pp];
+      if (gpp.paths && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)) {
+        record = gpp;
+      }
+    }
+    return record;
+  }
+  /**
+   * Previous paths of a series re-keyed by datum key (stamped as
+   * `data:pathKey` on each bar path and captured by Series.getPreviousPaths).
+   * Returns null when the previous render carries no keys (so the caller
+   * falls back to positional matching).
+   *
+   * @param {number} realIndex
+   * @returns {Map<string, {d: string}> | null}
+   */
+  _prevKeyedPaths(realIndex) {
+    if (!this._prevKeyed) this._prevKeyed = {};
+    if (this._prevKeyed[realIndex] !== void 0) {
+      return this._prevKeyed[realIndex];
+    }
+    const record = this._prevRecord(realIndex);
+    let map = null;
+    if (record && record.paths.every((p) => p.key != null)) {
+      const keyed = /* @__PURE__ */ new Map();
+      record.paths.forEach((p) => {
+        keyed.set(p.key, p);
+      });
+      map = keyed;
+    }
+    this._prevKeyed[realIndex] = map;
+    return map;
+  }
+  /**
+   * Whether this series' update changes its datum layout (points entered,
+   * exited, or changed identity). Layout-changing updates run all survivors
+   * on one shared clock (no per-bar stagger) so the reflow reads as a single
+   * coordinated motion; pure value updates keep the stagger.
+   *
+   * @param {number} realIndex
+   * @returns {boolean}
+   */
+  isLengthTransition(realIndex) {
+    var _a, _b;
+    if (!this._ltCache) this._ltCache = {};
+    if (this._ltCache[realIndex] !== void 0) return this._ltCache[realIndex];
+    const w = this.w;
+    let result = false;
+    if (lengthTransitionEnabled(w) && w.globals.previousPaths.length > 0) {
+      const record = this._prevRecord(realIndex);
+      const dataLen = (_b = (_a = w.seriesData.series[realIndex]) == null ? void 0 : _a.length) != null ? _b : 0;
+      if (!record) {
+        result = dataLen > 0;
+      } else if (record.paths.length !== dataLen) {
+        result = true;
+      } else {
+        const keyed = this._prevKeyedPaths(realIndex);
+        if (keyed) {
+          for (let j = 0; j < dataLen; j++) {
+            if (!keyed.has(datumKey(w, realIndex, j))) {
+              result = true;
+              break;
+            }
+          }
+        }
+      }
+    }
+    this._ltCache[realIndex] = result;
+    return result;
+  }
+  /**
+   * Resolve `pathFrom` for a bar on data update, joining old and new datums
+   * by KEY (category label / x value) so survivors keep their identity across
+   * inserts, prepends, and removals. Three outcomes:
+   *
+   *  - survivor with stable shape → the previous `d` (smooth reflow morph);
+   *  - survivor whose command count changed (corner state flipped, e.g. bar
+   *    became new top-of-stack) → `pathTo` (pathFrom === pathTo, a snap);
+   *  - genuinely new datum (key absent from the previous render, or the whole
+   *    series is new) → null, telling the path builder to use its
+   *    grow-from-baseline enter path.
+   *
+   * Falls back to positional (index j) matching when the previous render
+   * carries no datum keys.
    *
    * @param {number} realIndex - stable series index from `data:realIndex`
    * @param {number} j - data-point index within the series
    * @param {string} pathTo - the freshly-built path for this bar (post-roundPathCorners)
-   * @returns {string}
+   * @returns {string | null}
    **/
   getPreviousPath(realIndex, j, pathTo) {
     const w = this.w;
+    const record = this._prevRecord(realIndex);
+    if (!record) {
+      return lengthTransitionEnabled(w) ? null : pathTo;
+    }
     let oldD = null;
-    for (let pp = 0; pp < w.globals.previousPaths.length; pp++) {
-      const gpp = w.globals.previousPaths[pp];
-      if (gpp.paths && gpp.paths.length > 0 && parseInt(gpp.realIndex, 10) === parseInt(String(realIndex), 10)) {
-        if (typeof gpp.paths[j] !== "undefined") {
-          oldD = gpp.paths[j].d;
-        }
+    let isNewDatum = false;
+    const keyed = this._prevKeyedPaths(realIndex);
+    if (keyed) {
+      const prev = keyed.get(datumKey(w, realIndex, j));
+      if (prev) {
+        oldD = prev.d;
+      } else {
+        isNewDatum = true;
       }
+    } else if (typeof record.paths[j] !== "undefined") {
+      oldD = record.paths[j].d;
+    } else {
+      isNewDatum = true;
     }
     if (oldD && Bar.pathCommandCount(oldD) === Bar.pathCommandCount(pathTo)) {
       return oldD;
+    }
+    if (isNewDatum && lengthTransitionEnabled(w)) {
+      return null;
     }
     return pathTo;
   }
@@ -2553,10 +2802,11 @@ class Violin extends Bar {
       alongFn,
       collapsed: false
     });
-    let pathFrom;
+    let pathFrom = null;
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j, pathTo);
-    } else {
+    }
+    if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
         nodes: density.nodes,
         center,
@@ -2607,10 +2857,11 @@ class Violin extends Bar {
       alongFn,
       collapsed: false
     });
-    let pathFrom;
+    let pathFrom = null;
     if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j, pathTo);
-    } else {
+    }
+    if (pathFrom == null) {
       pathFrom = this.buildBodyPath({
         nodes: density.nodes,
         center,

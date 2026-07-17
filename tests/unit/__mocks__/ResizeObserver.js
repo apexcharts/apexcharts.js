@@ -5,6 +5,9 @@ class ResizeObserver {
   unobserve() {
     // do nothing
   }
+  disconnect() {
+    // do nothing
+  }
 }
 
 window.ResizeObserver = ResizeObserver

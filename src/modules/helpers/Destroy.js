@@ -15,6 +15,9 @@ export default class Destroy {
    * @param {{ isUpdating: boolean }} opts
    */
   clear({ isUpdating }) {
+    // Weave plugin host: run plugin destroy() on full destroy only (layers in
+    // elGraphical auto-clear on both paths via clearDomElements).
+    this.ctx.weave?.teardown(isUpdating)
     // Mark a real destroy so any deferred work scheduled before teardown
     // (e.g. rAF draw-animation callbacks) bails instead of touching cleared
     // DOM. Not set during updates: the chart is rebuilt right after, and
@@ -51,6 +54,34 @@ export default class Destroy {
       this.ctx._keyboardNavigation = null
     } else {
       // Full destroy — null everything so GC can collect the instances.
+      this.ctx.perspectives?.teardown()
+      this.ctx.perspectives = null
+      this.ctx.storyboard?.teardown()
+      this.ctx.storyboard = null
+      this.ctx.history?.teardown()
+      this.ctx.history = null
+      this.ctx.linkedViews?.teardown()
+      this.ctx.linkedViews = null
+      this.ctx.ink?.teardown()
+      this.ctx.ink = null
+      this.ctx.measure?.teardown()
+      this.ctx.measure = null
+      this.ctx.contextMenu?.teardown()
+      this.ctx.contextMenu = null
+      // Facet: remove the OS-theme matchMedia listener (survives updates, so it
+      // is torn down only on a full destroy).
+      this.ctx.osThemeWatcher?.teardown()
+      this.ctx.osThemeWatcher = null
+      // Weave host was torn down above; drop the reference too.
+      this.ctx.weave = null
+      // Strata: destroy the owned non-SVG renderer instances (canvas contexts,
+      // future GPU devices) and drop the controller/renderer handles.
+      this.ctx.rendererController?.teardown?.()
+      this.ctx.rendererController = null
+      this.ctx.renderer = null
+      this.ctx.drilldown = null
+      this.ctx.morphTypeChange = null
+      this.ctx.exports = null
       this.ctx.animations = null
       this.ctx.axes = null
       this.ctx.annotations = null

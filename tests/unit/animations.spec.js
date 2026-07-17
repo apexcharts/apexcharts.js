@@ -273,13 +273,16 @@ describe('Animations — animatePathsGradually() delayFactor', () => {
       delay: 1,
     })
 
-    // delay * delayFactor = 1 * 0 = 0
+    // delay * delayFactor = 1 * 0 = 0; the two trailing args are the
+    // stream-scroll flag and the reconciled interp target (both unset here)
     expect(morphSpy).toHaveBeenCalledWith(
       {}, 0, 0,
       expect.any(String),
       'M 0 0', 'M 10 10',
       300,
-      0
+      0,
+      undefined,
+      undefined
     )
   })
 
@@ -310,13 +313,16 @@ describe('Animations — animatePathsGradually() delayFactor', () => {
       delay: 2,
     })
 
-    // delay * delayFactor = 2 * 50 = 100
+    // delay * delayFactor = 2 * 50 = 100; trailing stream-scroll flag and
+    // interp target are unset outside a data-change morph
     expect(morphSpy).toHaveBeenCalledWith(
       {}, 0, 0,
       expect.any(String),
       'M 0 0', 'M 10 10',
       300,
-      100
+      100,
+      undefined,
+      undefined
     )
   })
 })

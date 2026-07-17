@@ -9,7 +9,7 @@ import TimeScale from './TimeScale'
 import { Environment } from '../utils/Environment.js'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 import { SVGNS } from '../svg/math'
-import { getChartClass } from './ChartFactory'
+import { getChartClass, isCustom } from './ChartFactory'
 
 /**
  * ApexCharts Core Class responsible for major calculations and creating elements.
@@ -53,8 +53,16 @@ export default class Core {
       'treemap',
     ]
 
-    gl.axisCharts = axisChartsArrTypes.includes(ct)
-    gl.xyCharts = xyChartsArrTypes.includes(ct)
+    // Marks (#11): a registered custom series type used as the chart type is an
+    // xy/axis chart (it draws in series space and needs the axis/grid/scale
+    // pipeline). Non-axis built-ins (pie/radialBar/...) are never custom here.
+    const isCustomType =
+      !axisChartsArrTypes.includes(ct) &&
+      !['pie', 'donut', 'polarArea', 'radialBar'].includes(ct) &&
+      isCustom(ct)
+
+    gl.axisCharts = axisChartsArrTypes.includes(ct) || isCustomType
+    gl.xyCharts = xyChartsArrTypes.includes(ct) || isCustomType
 
     gl.isBarHorizontal =
       ['bar', 'rangeBar', 'boxPlot', 'violin'].includes(ct) &&
@@ -178,6 +186,12 @@ export default class Core {
     const { w, ctx } = this
     const { config: cnf, globals: gl } = w
 
+    // Strata (#2): start a fresh series display list for the canvas renderer.
+    // Series marks emitted during draw() below are recorded, not added to the
+    // DOM; they are painted at the end of this method (see the wrap below).
+    const canvasMode = ctx.renderer && ctx.renderer.kind === 'canvas'
+    if (canvasMode) ctx.renderer.beginSeries()
+
     const seriesTypes = {
       line: { series: [], i: [] },
       area: { series: [], i: [] },
@@ -190,6 +204,10 @@ export default class Core {
       rangeBar: { series: [], i: [] },
       rangeArea: { series: [], seriesRangeEnd: [], i: [] },
     }
+
+    // Marks (#11): registered custom series types, bucketed by type name.
+    /** @type {Record<string, {series: any[], i: number[]}>} */
+    const customBuckets = {}
 
     const chartType = cnf.chart.type || 'line'
     let nonComboType = null
@@ -230,6 +248,13 @@ export default class Core {
         ].includes(seriesType)
       ) {
         nonComboType = seriesType
+      } else if (isCustom(seriesType)) {
+        // Marks (#11): a registered custom series type.
+        if (!customBuckets[seriesType]) {
+          customBuckets[seriesType] = { series: [], i: [] }
+        }
+        customBuckets[seriesType].series.push(serie)
+        customBuckets[seriesType].i.push(st)
       } else {
         console.warn(
           `You have specified an unrecognized series type (${seriesType}).`,
@@ -409,6 +434,14 @@ export default class Core {
           ),
         )
       }
+      // Marks (#11): registered custom series types in a combo.
+      Object.keys(customBuckets).forEach((cname) => {
+        const bucket = customBuckets[cname]
+        if (bucket.series.length > 0) {
+          const cs = new (getChartClass(cname))(ctx.w, ctx, xyRatios)
+          elGraph.push(cs.draw(bucket.series, cname, bucket.i))
+        }
+      })
     } else {
       const type = cnf.chart.type
       switch (type) {
@@ -477,7 +510,38 @@ export default class Core {
           break
         }
         default:
-          elGraph = line.draw(this.w.seriesData.series)
+          if (isCustom(type)) {
+            // Marks (#11): a registered custom series type as the chart type.
+            const cs = new (getChartClass(type))(ctx.w, ctx, xyRatios)
+            elGraph = cs.draw(this.w.seriesData.series, type)
+          } else {
+            elGraph = line.draw(this.w.seriesData.series)
+          }
+      }
+    }
+
+    if (canvasMode) {
+      // Paint the recorded series display list into a <foreignObject><canvas>
+      // and wrap it with the real SVG chrome groups (data labels etc.) the
+      // draw() built. Canvas sits at the back of the wrap (behind the chrome);
+      // the whole wrap composites into elGraphical exactly like the SVG elGraph
+      // the two plotChartType consumers already handle. The series marks live
+      // only on the canvas: the chrome groups carry no marks (they were
+      // skipped by SVGElement.add).
+      const host = ctx.renderer.present()
+      // A renderer may decline a host (present() → null) when it emits straight
+      // into the SVG tree via delegation instead of a canvas layer; then the
+      // marks are already in elGraph and there's nothing extra to composite.
+      if (host) {
+        const wrap = new Graphics(w).group({
+          class: 'apexcharts-canvas-series-wrap',
+        })
+        wrap.add(host)
+        const groups = Array.isArray(elGraph) ? elGraph : [elGraph]
+        groups.forEach((g) => {
+          if (g) wrap.add(g)
+        })
+        return wrap
       }
     }
 

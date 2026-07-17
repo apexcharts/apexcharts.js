@@ -68,9 +68,15 @@ export default class Helpers {
       w.globals.risingSeries = []
 
       if (w.globals.axisCharts) {
-        seriesEl = w.dom.baseEl.querySelector(
-          `.apexcharts-series[data\\:realIndex='${seriesCnt}']`,
-        )
+        // Scan instead of an escaped-colon attribute selector
+        // ([data\:realIndex='n']): some selector engines (jsdom/nwsapi)
+        // silently fail to match attribute names containing a colon.
+        seriesEl =
+          Array.prototype.find.call(
+            w.dom.baseEl.querySelectorAll('.apexcharts-series'),
+            (/** @type {Element} */ el) =>
+              el.getAttribute('data:realIndex') === String(seriesCnt),
+          ) ?? null
         if (!seriesEl) return
         realIndex = parseInt(seriesEl.getAttribute('data:realIndex') ?? '', 10)
       } else {

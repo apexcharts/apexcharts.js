@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v5.16.0
+ * ApexCharts v6.0.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -261,6 +261,602 @@ function finiteDifferences(points) {
   m[i] = d;
   return m;
 }
+function seriesEmitter(ctx, graphics) {
+  const r = ctx && ctx.renderer;
+  return r && r.kind && r.kind !== "svg" ? r : graphics;
+}
+function detectStreamScroll(w, realIndex, newXPixels, newYPixels) {
+  var _a;
+  const gl = w.globals;
+  const frame = gl.prevStreamFrame;
+  if (!frame || !gl.dataChanged || !((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric)) return null;
+  const oldX = frame.seriesX[realIndex];
+  const oldY = frame.seriesY[realIndex];
+  const newX = w.seriesData.seriesX[realIndex];
+  const newY = w.seriesData.series[realIndex];
+  if (!oldX || !oldY || !newX || !newY) return null;
+  if (oldX.length < 3 || newX.length < 3) return null;
+  let k = -1;
+  for (let i = 0; i < oldX.length; i++) {
+    if (oldX[i] === newX[0]) {
+      k = i;
+      break;
+    }
+  }
+  if (k === -1) return null;
+  const overlap = Math.min(oldX.length - k, newX.length);
+  if (overlap < 2) return null;
+  const appended = newX.length - overlap;
+  if (k === 0 && appended === 0) return null;
+  for (let i = 0; i < overlap; i++) {
+    if (oldX[k + i] !== newX[i]) return null;
+    const oy = oldY[k + i];
+    const ny = newY[i];
+    if (oy !== ny && !(oy == null && ny == null)) return null;
+  }
+  const oldXP = frame.xPixels[realIndex];
+  const oldYP = frame.yPixels[realIndex];
+  if (!oldXP || !oldYP) return null;
+  let a = -1;
+  let b = -1;
+  for (let i = 0; i < overlap; i++) {
+    if (oldXP[k + i] == null || oldYP[k + i] == null || newXPixels[i] == null || newYPixels[i] == null) {
+      continue;
+    }
+    if (a === -1) a = i;
+    b = i;
+  }
+  if (a === -1 || b <= a) return null;
+  const nxA = (
+    /** @type {number} */
+    newXPixels[a]
+  );
+  const nxB = (
+    /** @type {number} */
+    newXPixels[b]
+  );
+  const oxA = (
+    /** @type {number} */
+    oldXP[k + a]
+  );
+  const oxB = (
+    /** @type {number} */
+    oldXP[k + b]
+  );
+  if (Math.abs(nxB - nxA) < 1e-6) return null;
+  const ax = (oxB - oxA) / (nxB - nxA);
+  const bx = oxA - ax * nxA;
+  if (!isFinite(ax) || !isFinite(bx)) return null;
+  if (Math.abs(ax - 1) > 0.02) return null;
+  if (Math.abs(bx) < 0.5) return null;
+  let yLo = a;
+  let yHi = a;
+  for (let i = a; i <= b; i++) {
+    const ny = newYPixels[i];
+    if (ny == null || oldYP[k + i] == null) continue;
+    if (ny < /** @type {number} */
+    newYPixels[yLo]) yLo = i;
+    if (ny > /** @type {number} */
+    newYPixels[yHi]) yHi = i;
+  }
+  let ay = 1;
+  let by = 0;
+  const nyLo = (
+    /** @type {number} */
+    newYPixels[yLo]
+  );
+  const nyHi = (
+    /** @type {number} */
+    newYPixels[yHi]
+  );
+  if (Math.abs(nyHi - nyLo) > 1e-6) {
+    ay = /** @type {number} */
+    (oldYP[k + yHi] - /** @type {number} */
+    oldYP[k + yLo]) / (nyHi - nyLo);
+    by = /** @type {number} */
+    oldYP[k + yLo] - ay * nyLo;
+  } else {
+    by = /** @type {number} */
+    oldYP[k + yLo] - nyLo;
+  }
+  if (!isFinite(ay) || !isFinite(by) || ay < 0.2 || ay > 5) return null;
+  const m = Math.floor((a + b) / 2);
+  if (m !== a && m !== b && newXPixels[m] != null && oldXP[k + m] != null) {
+    const predX = ax * /** @type {number} */
+    newXPixels[m] + bx;
+    if (Math.abs(predX - /** @type {number} */
+    oldXP[k + m]) > 1.5) {
+      return null;
+    }
+    if (newYPixels[m] != null && oldYP[k + m] != null) {
+      const predY = ay * /** @type {number} */
+      newYPixels[m] + by;
+      if (Math.abs(predY - /** @type {number} */
+      oldYP[k + m]) > 1.5) {
+        return null;
+      }
+    }
+  }
+  return { ax, bx, ay, by };
+}
+const NUM_RE = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
+function projectPathToPrevFrame(d, t) {
+  const { ax, bx, ay, by } = t;
+  const out = [];
+  const re = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
+  let match;
+  while ((match = re.exec(d)) !== null) {
+    const cmd = match[1].toUpperCase();
+    const nums = (match[2].match(NUM_RE) || []).map(parseFloat);
+    if (cmd === "Z") {
+      out.push("z");
+      continue;
+    }
+    if (cmd === "H") {
+      for (const x of nums) out.push(`H ${ax * x + bx}`);
+      continue;
+    }
+    if (cmd === "V") {
+      for (const y of nums) out.push(`V ${ay * y + by}`);
+      continue;
+    }
+    if (cmd === "A") {
+      for (let i = 0; i + 6 < nums.length; i += 7) {
+        out.push(
+          `A ${nums[i]} ${nums[i + 1]} ${nums[i + 2]} ${nums[i + 3]} ${nums[i + 4]} ${ax * nums[i + 5] + bx} ${ay * nums[i + 6] + by}`
+        );
+      }
+      continue;
+    }
+    const coords = [];
+    for (let i = 0; i + 1 < nums.length; i += 2) {
+      coords.push(`${ax * nums[i] + bx} ${ay * nums[i + 1] + by}`);
+    }
+    if (coords.length) out.push(`${cmd} ${coords.join(" ")}`);
+  }
+  return out.join(" ");
+}
+const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
+const Environment = _core.__apex_Environment_Environment;
+function easeInOutSine(t) {
+  return -Math.cos(t * Math.PI) / 2 + 0.5;
+}
+function cubicBezier(x1, y1, x2, y2) {
+  x1 = Math.min(Math.max(x1, 0), 1);
+  x2 = Math.min(Math.max(x2, 0), 1);
+  const cx = 3 * x1;
+  const bx = 3 * (x2 - x1) - cx;
+  const ax = 1 - cx - bx;
+  const cy = 3 * y1;
+  const by = 3 * (y2 - y1) - cy;
+  const ay = 1 - cy - by;
+  const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
+  const sampleY = (t) => ((ay * t + by) * t + cy) * t;
+  const slopeX = (t) => (3 * ax * t + 2 * bx) * t + cx;
+  const solveT = (x) => {
+    let t = x;
+    for (let i = 0; i < 5; i++) {
+      const d = slopeX(t);
+      if (d === 0) break;
+      t -= (sampleX(t) - x) / d;
+    }
+    let lo = 0;
+    let hi = 1;
+    t = x;
+    if (t < lo) return lo;
+    if (t > hi) return hi;
+    while (lo < hi) {
+      const xt = sampleX(t);
+      if (Math.abs(xt - x) < 1e-4) return t;
+      if (x > xt) lo = t;
+      else hi = t;
+      t = (lo + hi) / 2;
+    }
+    return t;
+  };
+  return (t) => t <= 0 ? 0 : t >= 1 ? 1 : sampleY(solveT(t));
+}
+const REGISTRY = /* @__PURE__ */ new Map();
+const linear = (t) => t;
+REGISTRY.set("linear", linear);
+REGISTRY.set("easeInOutSine", easeInOutSine);
+REGISTRY.set("easeInSine", (t) => 1 - Math.cos(t * Math.PI / 2));
+REGISTRY.set("easeOutSine", (t) => Math.sin(t * Math.PI / 2));
+REGISTRY.set("easeInQuad", (t) => t * t);
+REGISTRY.set("easeOutQuad", (t) => 1 - (1 - t) * (1 - t));
+REGISTRY.set(
+  "easeInOutQuad",
+  (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+);
+REGISTRY.set("easeInCubic", (t) => t * t * t);
+REGISTRY.set("easeOutCubic", (t) => 1 - Math.pow(1 - t, 3));
+REGISTRY.set(
+  "easeInOutCubic",
+  (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+);
+REGISTRY.set("easeOutBack", (t) => {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+});
+REGISTRY.set("easeInOutBack", (t) => {
+  const c1 = 1.70158;
+  const c2 = c1 * 1.525;
+  return t < 0.5 ? Math.pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2) / 2 : (Math.pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2;
+});
+function isBezierArray(v) {
+  return Array.isArray(v) && v.length === 4 && v.every((n) => typeof n === "number");
+}
+function resolveEasing(value) {
+  if (typeof value === "function") return value;
+  if (isBezierArray(value))
+    return cubicBezier(value[0], value[1], value[2], value[3]);
+  if (typeof value === "string" && REGISTRY.has(value)) {
+    return (
+      /** @type {(t:number)=>number} */
+      REGISTRY.get(value)
+    );
+  }
+  return easeInOutSine;
+}
+const parsePath = _core.__apex_PathMorphing_parsePath;
+const arrayToPath = _core.__apex_PathMorphing_arrayToPath;
+function buildUnionEntries(join, oldN) {
+  const exitSet = new Set(join.exits);
+  const entries = [];
+  let oi = 0;
+  for (let nj = 0; nj < join.toOld.length; nj++) {
+    const oj = join.toOld[nj];
+    if (oj !== -1) {
+      while (oi < oj) {
+        if (exitSet.has(oi)) entries.push({ oldJ: oi, newJ: -1 });
+        oi++;
+      }
+      entries.push({ oldJ: oj, newJ: nj });
+      oi = oj + 1;
+    } else {
+      entries.push({ oldJ: -1, newJ: nj });
+    }
+  }
+  while (oi < oldN) {
+    if (exitSet.has(oi)) entries.push({ oldJ: oi, newJ: -1 });
+    oi++;
+  }
+  return entries;
+}
+function analyzeSeriesPath(d, expectedAnchors, isArea) {
+  if (!d || typeof d !== "string") return null;
+  const cmds = parsePath(d);
+  if (!cmds.length || cmds[0][0] !== "M") return null;
+  for (let i = 1; i < cmds.length; i++) {
+    if (cmds[i][0] === "M") return null;
+  }
+  let body = cmds;
+  let closing = null;
+  if (isArea) {
+    if (cmds.length < 5) return null;
+    closing = cmds.slice(-3);
+    body = cmds.slice(0, -3);
+    if (closing[2][0] !== "Z") return null;
+    if (closing[1][0] !== "L") return null;
+    if (closing[0][0] !== "L" && closing[0][0] !== "C") return null;
+  } else if (cmds[cmds.length - 1][0] === "Z") {
+    return null;
+  }
+  if (body.length !== expectedAnchors || body.length < 2) return null;
+  const segType = body[1][0];
+  if (segType !== "L" && segType !== "C") return null;
+  for (let i = 2; i < body.length; i++) {
+    if (body[i][0] !== segType) return null;
+  }
+  const anchors = body.map(
+    (c) => c[0] === "C" ? [Number(c[5]), Number(c[6])] : [Number(c[1]), Number(c[2])]
+  );
+  for (const a of anchors) {
+    if (!isFinite(a[0]) || !isFinite(a[1])) return null;
+  }
+  return { body, closing, segType, anchors };
+}
+function lerpPt(a, b, t) {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+}
+function splitCubic(s, cmd, t) {
+  const p0 = s;
+  const p1 = [cmd[1], cmd[2]];
+  const p2 = [cmd[3], cmd[4]];
+  const p3 = [cmd[5], cmd[6]];
+  const p01 = lerpPt(p0, p1, t);
+  const p12 = lerpPt(p1, p2, t);
+  const p23 = lerpPt(p2, p3, t);
+  const p012 = lerpPt(p01, p12, t);
+  const p123 = lerpPt(p12, p23, t);
+  const mid = lerpPt(p012, p123, t);
+  return {
+    first: ["C", p01[0], p01[1], p012[0], p012[1], mid[0], mid[1]],
+    second: ["C", p123[0], p123[1], p23[0], p23[1], p3[0], p3[1]],
+    mid
+  };
+}
+function splitLine(s, cmd, t) {
+  const e = [cmd[1], cmd[2]];
+  const mid = lerpPt(s, e, t);
+  return {
+    first: ["L", mid[0], mid[1]],
+    second: ["L", e[0], e[1]],
+    mid
+  };
+}
+function expandPath(analysis, ownIdx) {
+  const { body, closing, segType, anchors } = analysis;
+  const n = anchors.length;
+  const m = ownIdx.length;
+  const degen = (p) => segType === "C" ? ["C", p[0], p[1], p[0], p[1], p[0], p[1]] : ["L", p[0], p[1]];
+  const out = [["M", anchors[0][0], anchors[0][1]]];
+  let firstOwn = 0;
+  while (firstOwn < m && ownIdx[firstOwn] !== 0) firstOwn++;
+  for (let q = 1; q <= firstOwn; q++) out.push(degen(anchors[0]));
+  let entry = firstOwn + 1;
+  for (let s = 0; s < n - 1; s++) {
+    let interior = 0;
+    while (entry + interior < m && ownIdx[entry + interior] === -1) interior++;
+    const cmd = body[s + 1];
+    if (!interior) {
+      out.push(cmd.slice());
+    } else {
+      const totalParts = interior + 1;
+      let start = anchors[s];
+      let rest = cmd;
+      for (let q = 0; q < interior; q++) {
+        const t = 1 / (totalParts - q);
+        const sp = segType === "C" ? splitCubic(start, rest, t) : splitLine(start, rest, t);
+        out.push(sp.first);
+        start = sp.mid;
+        rest = sp.second;
+      }
+      out.push(rest);
+    }
+    entry += interior + 1;
+  }
+  while (entry < m) {
+    out.push(degen(anchors[n - 1]));
+    entry++;
+  }
+  if (closing) closing.forEach((c) => out.push(c.slice()));
+  return out;
+}
+function reconcilePathPair(fromD, toD, entries, oldN, newN, isArea) {
+  const fromAnalysis = analyzeSeriesPath(fromD, oldN, isArea);
+  if (!fromAnalysis) return null;
+  const toAnalysis = analyzeSeriesPath(toD, newN, isArea);
+  if (!toAnalysis) return null;
+  if (fromAnalysis.segType !== toAnalysis.segType) return null;
+  if ((fromAnalysis.closing || toAnalysis.closing) && (!fromAnalysis.closing || !toAnalysis.closing || fromAnalysis.closing[0][0] !== toAnalysis.closing[0][0])) {
+    return null;
+  }
+  const fromOwn = entries.map((e) => e.oldJ);
+  const toOwn = entries.map((e) => e.newJ);
+  return {
+    from: arrayToPath(expandPath(fromAnalysis, fromOwn)),
+    toInterp: arrayToPath(expandPath(toAnalysis, toOwn))
+  };
+}
+function lengthTransitionEnabled(w) {
+  var _a;
+  const anim = w.config.chart.animations;
+  if (!anim || anim.enabled === false) return false;
+  if (!anim.dynamicAnimation || anim.dynamicAnimation.enabled === false) {
+    return false;
+  }
+  const largeThreshold = (_a = anim.largeDatasetThreshold) != null ? _a : 0;
+  if (largeThreshold > 0 && w.globals.dataPoints > largeThreshold) return false;
+  return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
+}
+function datumKey(w, realIndex, j) {
+  var _a, _b, _c, _d;
+  if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
+    const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
+    if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
+  }
+  const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j];
+  if (lbl != null && String(lbl) !== "") {
+    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
+  }
+  return "j:" + j;
+}
+function frameDatumKey(frame, realIndex, j) {
+  var _a, _b;
+  if (frame.isXNumeric) {
+    const sx = (_a = frame.seriesX) == null ? void 0 : _a[realIndex];
+    if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
+  }
+  const lbl = (_b = frame.labels) == null ? void 0 : _b[j];
+  if (lbl != null && String(lbl) !== "") {
+    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
+  }
+  return "j:" + j;
+}
+function joinKeys(oldKeys, newKeys) {
+  const oldIndex = /* @__PURE__ */ new Map();
+  oldKeys.forEach((k, i) => {
+    if (!oldIndex.has(k)) oldIndex.set(k, i);
+  });
+  const toOld = new Array(newKeys.length);
+  const usedOld = /* @__PURE__ */ new Set();
+  let prev = -1;
+  let ordered = true;
+  let identity = oldKeys.length === newKeys.length;
+  newKeys.forEach((k, i) => {
+    const oi = oldIndex.has(k) && !usedOld.has(oldIndex.get(k)) ? oldIndex.get(k) : -1;
+    toOld[i] = oi;
+    if (oi !== -1) {
+      usedOld.add(oi);
+      if (oi < prev) ordered = false;
+      prev = oi;
+    }
+    if (oi !== i) identity = false;
+  });
+  const exits = [];
+  for (let i = 0; i < oldKeys.length; i++) {
+    if (!usedOld.has(i)) exits.push(i);
+  }
+  return { toOld, exits, ordered, changed: !identity };
+}
+function uniquifyKeys(keys) {
+  const seen = /* @__PURE__ */ new Map();
+  return keys.map((k) => {
+    const count = seen.get(k) || 0;
+    seen.set(k, count + 1);
+    return count === 0 ? k : `${k}#${count}`;
+  });
+}
+function seriesJoin(w, realIndex, includeIdentity = false) {
+  var _a, _b;
+  if (!lengthTransitionEnabled(w)) return null;
+  const frame = w.globals.prevStreamFrame;
+  if (!frame) return null;
+  const oldY = (_a = frame.seriesY) == null ? void 0 : _a[realIndex];
+  const newY = (_b = w.seriesData.series) == null ? void 0 : _b[realIndex];
+  if (!Array.isArray(oldY) || !Array.isArray(newY)) return null;
+  if (!oldY.length || !newY.length) return null;
+  const oldKeys = uniquifyKeys(
+    oldY.map((_, j) => frameDatumKey(frame, realIndex, j))
+  );
+  const newKeys = uniquifyKeys(newY.map((_, j) => datumKey(w, realIndex, j)));
+  const join = joinKeys(oldKeys, newKeys);
+  if (!join.ordered) return null;
+  if (!join.changed && !includeIdentity) return null;
+  return { join, oldKeys, newKeys };
+}
+function morphEasing(w) {
+  var _a, _b;
+  const anim = w.config.chart.animations;
+  return resolveEasing((_b = (_a = anim.dynamicAnimation) == null ? void 0 : _a.easing) != null ? _b : anim.easing);
+}
+function rafTween(w, duration, ease, onFrame, onDone) {
+  const startAt = performance.now();
+  const step = (now) => {
+    if (w.globals.isDestroyed) return;
+    const raw = Math.max(0, Math.min(1, (now - startAt) / duration));
+    onFrame(ease(raw), raw);
+    if (raw < 1) {
+      BrowserAPIs.requestAnimationFrame(step);
+    } else if (onDone) {
+      onDone();
+    }
+  };
+  BrowserAPIs.requestAnimationFrame(step);
+}
+function tweenSeriesMarkers(w, { elPointsMain, realIndex, speed }) {
+  var _a, _b, _c, _d;
+  if (!(elPointsMain == null ? void 0 : elPointsMain.node)) return false;
+  const sj = seriesJoin(w, realIndex, true);
+  if (!sj) return false;
+  const frame = w.globals.prevStreamFrame;
+  if (!frame) return false;
+  const oldXP = (_a = frame.xPixels) == null ? void 0 : _a[realIndex];
+  const oldYP = (_b = frame.yPixels) == null ? void 0 : _b[realIndex];
+  if (!oldXP || !oldYP) return false;
+  const markers = elPointsMain.node.querySelectorAll(".apexcharts-marker");
+  if (!markers.length) return false;
+  const newXP = ((_c = w.globals.seriesXvalues) == null ? void 0 : _c[realIndex]) || [];
+  const newYP = ((_d = w.globals.seriesYvalues) == null ? void 0 : _d[realIndex]) || [];
+  const ease = morphEasing(w);
+  const duration = Math.max(1, speed || 1);
+  elPointsMain.node.classList.remove("apexcharts-element-hidden");
+  markers.forEach((node) => {
+    var _a2, _b2, _c2, _d2, _e, _f, _g, _h, _i;
+    const j = parseInt(
+      (_b2 = (_a2 = node.getAttribute("j")) != null ? _a2 : node.getAttribute("rel")) != null ? _b2 : "",
+      10
+    );
+    if (!isFinite(j) || j < 0 || j >= sj.join.toOld.length) return;
+    const oldJ = sj.join.toOld[j];
+    const to = newXP[j] != null && newYP[j] != null ? [newXP[j], newYP[j]] : null;
+    if (oldJ === -1 || !to) {
+      const style = (
+        /** @type {any} */
+        node.style
+      );
+      style.opacity = "0";
+      rafTween(
+        w,
+        duration,
+        ease,
+        (eased) => {
+          style.opacity = String(eased);
+        },
+        () => {
+          style.opacity = "";
+        }
+      );
+      return;
+    }
+    const dx = ((_c2 = oldXP[oldJ]) != null ? _c2 : NaN) - to[0];
+    const dy = ((_d2 = oldYP[oldJ]) != null ? _d2 : NaN) - to[1];
+    if (!isFinite(dx) || !isFinite(dy)) return;
+    const rFrom = (_g = (_f = (_e = frame.rPixels) == null ? void 0 : _e[realIndex]) == null ? void 0 : _f[oldJ]) != null ? _g : NaN;
+    const rTo = parseFloat(
+      (_i = (_h = node.getAttribute("r")) != null ? _h : node.getAttribute("default-marker-size")) != null ? _i : ""
+    );
+    const scales = isFinite(rFrom) && isFinite(rTo) && rTo > 0 && Math.abs(rFrom - rTo) > 0.25;
+    const moves = Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5;
+    if (!moves && !scales) return;
+    const apply = (eased) => {
+      const offX = dx * (1 - eased);
+      const offY = dy * (1 - eased);
+      if (scales) {
+        const s = (rFrom + (rTo - rFrom) * eased) / rTo;
+        node.setAttribute(
+          "transform",
+          `translate(${offX + to[0] * (1 - s)}, ${offY + to[1] * (1 - s)}) scale(${s})`
+        );
+      } else {
+        node.setAttribute("transform", `translate(${offX}, ${offY})`);
+      }
+    };
+    apply(0);
+    rafTween(w, duration, ease, apply, () => {
+      node.removeAttribute("transform");
+    });
+  });
+  return true;
+}
+function reconcileSeriesPaths(w, { type, realIndex, pathFromLine, pathFromArea, linePaths, areaPaths }) {
+  var _a, _b;
+  const sj = seriesJoin(w, realIndex);
+  if (!sj) return null;
+  const { join, oldKeys, newKeys } = sj;
+  const frame = w.globals.prevStreamFrame;
+  if (!frame) return null;
+  const oldY = (_a = frame.seriesY) == null ? void 0 : _a[realIndex];
+  const newY = (_b = w.seriesData.series) == null ? void 0 : _b[realIndex];
+  if (oldY.length < 2 || newY.length < 2) return null;
+  if (oldY.some((v) => v === null) || newY.some((v) => v === null)) return null;
+  const entries = buildUnionEntries(join, oldKeys.length);
+  const out = {};
+  if (Array.isArray(linePaths) && linePaths.length === 1 && pathFromLine) {
+    out.line = reconcilePathPair(
+      pathFromLine,
+      linePaths[0],
+      entries,
+      oldKeys.length,
+      newKeys.length,
+      false
+    );
+  }
+  if (type === "area" && Array.isArray(areaPaths) && areaPaths.length === 1 && pathFromArea) {
+    out.area = reconcilePathPair(
+      pathFromArea,
+      areaPaths[0],
+      entries,
+      oldKeys.length,
+      newKeys.length,
+      true
+    );
+  }
+  if (!out.line && !out.area) return null;
+  return out;
+}
 class Line {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -433,7 +1029,7 @@ class Line {
         }
         paths.linePaths.splice(segments);
         paths.pathFromLine = rangePaths.pathFromLine + paths.pathFromLine;
-      } else {
+      } else if (!/z\s*$/i.test(paths.pathFromArea)) {
         paths.pathFromArea += "z";
       }
       this._handlePaths({ type, realIndex, i, paths });
@@ -574,10 +1170,27 @@ class Line {
   }
   /** @param {{type: any, realIndex: any, i: any, paths: any}} opts */
   _handlePaths({ type, realIndex, i, paths }) {
+    var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
     const graphics = new Graphics(this.w);
+    const emit = seriesEmitter(this.ctx, graphics);
     const fill = new Fill(this.w);
     this.prevSeriesY.push(paths.yArrj);
+    let streamScroll = null;
+    if ((type === "line" || type === "area") && w.globals.dataChanged) {
+      streamScroll = detectStreamScroll(w, realIndex, paths.xArrj, paths.yArrj);
+    }
+    let reconcile = null;
+    if (!streamScroll && (type === "line" || type === "area")) {
+      reconcile = reconcileSeriesPaths(w, {
+        type,
+        realIndex,
+        pathFromLine: paths.pathFromLine,
+        pathFromArea: paths.pathFromArea,
+        linePaths: paths.linePaths,
+        areaPaths: paths.areaPaths
+      });
+    }
     w.globals.seriesXvalues[realIndex] = paths.xArrj;
     w.globals.seriesYvalues[realIndex] = paths.yArrj;
     const forecast = w.config.forecastDataPoints;
@@ -605,6 +1218,24 @@ class Line {
         el: this.elPointsMain.node,
         index: realIndex
       });
+      tweenSeriesMarkers(w, {
+        elPointsMain: this.elPointsMain,
+        realIndex,
+        speed: w.config.chart.animations.dynamicAnimation.speed
+      });
+      if (seriesJoin(w, realIndex) && ((_a = this.elDataLabelsWrap) == null ? void 0 : _a.node)) {
+        this.elDataLabelsWrap.node.classList.add("apexcharts-element-hidden");
+        w.globals.delayedElements.push({
+          el: this.elDataLabelsWrap.node,
+          holdUntilComplete: true
+        });
+      }
+    } else {
+      tweenSeriesMarkers(w, {
+        elPointsMain: this.elPointsMain,
+        realIndex,
+        speed: w.config.chart.animations.dynamicAnimation.speed
+      });
     }
     const defaultRenderedPathOptions = {
       i,
@@ -619,9 +1250,11 @@ class Line {
         seriesNumber: realIndex
       });
       for (let p = 0; p < paths.areaPaths.length; p++) {
-        const renderedPath = graphics.renderPaths(__spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
-          pathFrom: paths.pathFromArea,
+        const renderedPath = emit.renderPaths(__spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
+          pathFrom: streamScroll ? projectPathToPrevFrame(paths.areaPaths[p], streamScroll) : (_c = (_b = reconcile == null ? void 0 : reconcile.area) == null ? void 0 : _b.from) != null ? _c : paths.pathFromArea,
           pathTo: paths.areaPaths[p],
+          pathToInterp: (_d = reconcile == null ? void 0 : reconcile.area) == null ? void 0 : _d.toInterp,
+          scrollMorph: !!streamScroll,
           stroke: "none",
           strokeWidth: 0,
           strokeLineCap: null,
@@ -658,18 +1291,20 @@ class Line {
           });
         }
         const linePathCommonOpts = __spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
-          pathFrom: paths.pathFromLine,
+          pathFrom: streamScroll ? projectPathToPrevFrame(paths.linePaths[p], streamScroll) : (_f = (_e = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _e.from) != null ? _f : paths.pathFromLine,
           pathTo: paths.linePaths[p],
+          pathToInterp: (_g = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _g.toInterp,
+          scrollMorph: !!streamScroll,
           stroke: lineFill,
           strokeWidth: this.strokeWidth,
           strokeLineCap: w.config.stroke.lineCap,
           fill: type === "rangeArea" ? pathFill : "none"
         });
-        const renderedPath = graphics.renderPaths(linePathCommonOpts);
+        const renderedPath = emit.renderPaths(linePathCommonOpts);
         this.elSeries.add(renderedPath);
         renderedPath.attr("fill-rule", `evenodd`);
         if (forecast.count > 0 && type !== "rangeArea") {
-          const renderedForecastPath = graphics.renderPaths(linePathCommonOpts);
+          const renderedForecastPath = emit.renderPaths(linePathCommonOpts);
           renderedForecastPath.node.setAttribute(
             "stroke-dasharray",
             forecast.dashArray

@@ -10,6 +10,16 @@ import Utils from '../utils/Utils'
 import Helpers from './common/line/Helpers'
 import { hash01 } from './common/Jitter'
 import { svgPath, spline } from '../libs/monotone-cubic'
+import { seriesEmitter } from '../renderers/Renderer'
+import {
+  detectStreamScroll,
+  projectPathToPrevFrame,
+} from '../modules/animations/StreamScroll'
+import {
+  reconcileSeriesPaths,
+  seriesJoin,
+  tweenSeriesMarkers,
+} from '../modules/animations/LengthTransition'
 /**
  * ApexCharts Line Class responsible for drawing Line / Area / RangeArea Charts.
  * This class is also responsible for generating values for Bubble/Scatter charts, so need to rename it to Axis Charts to avoid confusions
@@ -241,7 +251,11 @@ class Line {
         }
         paths.linePaths.splice(segments)
         paths.pathFromLine = rangePaths.pathFromLine + paths.pathFromLine
-      } else {
+      } else if (!/z\s*$/i.test(paths.pathFromArea)) {
+        // Close the initial-mount baseline pathFrom. A pathFrom taken from a
+        // captured previous render already ends with `z`; appending another
+        // used to produce a double-z path that broke reconciliation and fed
+        // the morph a malformed command list.
         paths.pathFromArea += 'z'
       }
 
@@ -443,10 +457,40 @@ class Line {
   _handlePaths({ type, realIndex, i, paths }) {
     const w = this.w
     const graphics = new Graphics(this.w)
+    // Strata (#2): series body paths emit through the active renderer (canvas
+    // records them; SVG returns `graphics` unchanged). Chrome (forecast masks)
+    // stays on `graphics`.
+    const emit = seriesEmitter(this.ctx, graphics)
     const fill = new Fill(this.w)
 
     // push all current y values array to main PrevY Array
     this.prevSeriesY.push(paths.yArrj)
+
+    // Streaming scroll: when this update is a windowed continuation of the
+    // previous render (rolling window / append under xaxis.range), morph from
+    // the new path re-projected into the previous frame's pixel space instead
+    // of the captured previous path, so the morph translates the window
+    // (points slide left) rather than crossfading y at fixed x.
+    let streamScroll = null
+    if ((type === 'line' || type === 'area') && w.globals.dataChanged) {
+      streamScroll = detectStreamScroll(w, realIndex, paths.xArrj, paths.yArrj)
+    }
+
+    // Variable-length update (points entered/exited): rebuild the morph pair
+    // over the union of old+new datums so entering points grow out of the old
+    // curve, exiting points melt into the new one, and area fills never tear.
+    // The runner tweens toward the padded target and snaps to the clean path.
+    let reconcile = null
+    if (!streamScroll && (type === 'line' || type === 'area')) {
+      reconcile = reconcileSeriesPaths(w, {
+        type,
+        realIndex,
+        pathFromLine: paths.pathFromLine,
+        pathFromArea: paths.pathFromArea,
+        linePaths: paths.linePaths,
+        areaPaths: paths.areaPaths,
+      })
+    }
 
     // push all x val arrays into main xArr
     w.globals.seriesXvalues[realIndex] = paths.xArrj
@@ -483,6 +527,34 @@ class Line {
         el: this.elPointsMain.node,
         index: realIndex,
       })
+
+      // Animated update: ride the markers along the morph instead of hiding
+      // them (survivors translate, enters fade). Applies to zooms and value
+      // updates too (identity joins), not just length changes.
+      tweenSeriesMarkers(w, {
+        elPointsMain: this.elPointsMain,
+        realIndex,
+        speed: w.config.chart.animations.dynamicAnimation.speed,
+      })
+      // On a LAYOUT change additionally hide the data labels until the morph
+      // settles so they never float off the line.
+      if (seriesJoin(w, realIndex) && this.elDataLabelsWrap?.node) {
+        this.elDataLabelsWrap.node.classList.add('apexcharts-element-hidden')
+        w.globals.delayedElements.push({
+          el: this.elDataLabelsWrap.node,
+          holdUntilComplete: true,
+        })
+      }
+    } else {
+      // Scatter/bubble: the markers ARE the series. Ride them across animated
+      // data updates and zoom re-projections the same way (survivors translate,
+      // bubbles retween radius, enters fade); without this the points snap to
+      // their new spots on frame 0.
+      tweenSeriesMarkers(w, {
+        elPointsMain: this.elPointsMain,
+        realIndex,
+        speed: w.config.chart.animations.dynamicAnimation.speed,
+      })
     }
 
     const defaultRenderedPathOptions = {
@@ -500,10 +572,14 @@ class Line {
       })
 
       for (let p = 0; p < paths.areaPaths.length; p++) {
-        const renderedPath = graphics.renderPaths({
+        const renderedPath = emit.renderPaths({
           ...defaultRenderedPathOptions,
-          pathFrom: paths.pathFromArea,
+          pathFrom: streamScroll
+            ? projectPathToPrevFrame(paths.areaPaths[p], streamScroll)
+            : (reconcile?.area?.from ?? paths.pathFromArea),
           pathTo: paths.areaPaths[p],
+          pathToInterp: reconcile?.area?.toInterp,
+          scrollMorph: !!streamScroll,
           stroke: 'none',
           strokeWidth: 0,
           strokeLineCap: null,
@@ -545,19 +621,23 @@ class Line {
         }
         const linePathCommonOpts = {
           ...defaultRenderedPathOptions,
-          pathFrom: paths.pathFromLine,
+          pathFrom: streamScroll
+            ? projectPathToPrevFrame(paths.linePaths[p], streamScroll)
+            : (reconcile?.line?.from ?? paths.pathFromLine),
           pathTo: paths.linePaths[p],
+          pathToInterp: reconcile?.line?.toInterp,
+          scrollMorph: !!streamScroll,
           stroke: lineFill,
           strokeWidth: this.strokeWidth,
           strokeLineCap: w.config.stroke.lineCap,
           fill: type === 'rangeArea' ? pathFill : 'none',
         }
-        const renderedPath = graphics.renderPaths(linePathCommonOpts)
+        const renderedPath = emit.renderPaths(linePathCommonOpts)
         this.elSeries.add(renderedPath)
         renderedPath.attr('fill-rule', `evenodd`)
 
         if (forecast.count > 0 && type !== 'rangeArea') {
-          const renderedForecastPath = graphics.renderPaths(linePathCommonOpts)
+          const renderedForecastPath = emit.renderPaths(linePathCommonOpts)
 
           renderedForecastPath.node.setAttribute(
             'stroke-dasharray',

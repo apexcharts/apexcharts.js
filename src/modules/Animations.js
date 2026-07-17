@@ -2,6 +2,8 @@
 import Utils from '../utils/Utils'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
 import { Environment } from '../utils/Environment'
+import { setDefaultEasing } from '../svg/SVGAnimation'
+import { resolveEasing } from './animations/Easing'
 
 const SVGNS = 'http://www.w3.org/2000/svg'
 
@@ -150,6 +152,11 @@ export function applyAnimationPolicy(w) {
     anim.enabled = false
     if (anim.dynamicAnimation) anim.dynamicAnimation.enabled = false
   }
+  // Cadence (#6) P1: resolve chart.animations.easing (name | cubic-bezier array
+  // | fn) and set it as the runner's default for the generic tweens. Defaults
+  // to 'easeInOutSine', which is the runner's historical curve, so unspecified
+  // charts animate exactly as before.
+  setDefaultEasing(resolveEasing(anim.easing))
 }
 
 /**
@@ -306,7 +313,18 @@ export default class Animations {
    * @param {Record<string, any>} params
    */
   animatePathsGradually(params) {
-    const { el, realIndex, j, fill, pathFrom, pathTo, speed, delay } = params
+    const {
+      el,
+      realIndex,
+      j,
+      fill,
+      pathFrom,
+      pathTo,
+      pathToInterp,
+      speed,
+      delay,
+      scrollMorph,
+    } = params
 
     const me = this
     const w = this.w
@@ -336,6 +354,8 @@ export default class Animations {
       pathTo,
       speed,
       delay * delayFactor,
+      scrollMorph,
+      pathToInterp,
     )
   }
 
@@ -381,6 +401,12 @@ export default class Animations {
      * @param {object} d
      */
     this.w.globals.delayedElements.forEach((d) => {
+      // Entries marked holdUntilComplete stay hidden through the data-change
+      // morph even when an early reveal fires (the updateOptions flow sets
+      // `resized` and reveals immediately in renderPaths). They are released
+      // by animationCompleted, which flips animationEnded first; when
+      // animations are off entirely, animationEnded is already true here.
+      if (d.holdUntilComplete && !this.w.globals.animationEnded) return
       const ele = d.el
       ele.classList.remove('apexcharts-element-hidden')
       ele.classList.add('apexcharts-hidden-element-shown')
@@ -578,8 +604,24 @@ export default class Animations {
    * @param {string} pathTo
    * @param {number} speed
    * @param {number} delay
+   * @param {boolean} [scrollMorph] - this morph is a streaming scroll (StreamScroll)
+   * @param {string} [pathToInterp] - interpolation target that differs from the
+   *   final path. Reconciled length-change morphs tween toward a padded copy of
+   *   pathTo (extra anchors sitting exactly on the final geometry) and snap to
+   *   the clean pathTo at the end.
    */
-  morphSVG(el, realIndex, j, fill, pathFrom, pathTo, speed, delay) {
+  morphSVG(
+    el,
+    realIndex,
+    j,
+    fill,
+    pathFrom,
+    pathTo,
+    speed,
+    delay,
+    scrollMorph,
+    pathToInterp,
+  ) {
     const w = this.w
 
     if (!pathFrom) {
@@ -613,6 +655,17 @@ export default class Animations {
       pathTo.indexOf('NaN') > -1
     ) {
       pathTo = disableAnimationForCorrupPath()
+      pathToInterp = undefined
+    }
+    if (
+      pathToInterp &&
+      (!pathToInterp.trim() ||
+        pathToInterp.indexOf('undefined') > -1 ||
+        pathToInterp.indexOf('NaN') > -1)
+    ) {
+      // A corrupt padded target must not poison the tween; fall back to the
+      // plain (clean) target morph.
+      pathToInterp = undefined
     }
     if (!w.globals.shouldAnimate) {
       speed = 1
@@ -624,11 +677,30 @@ export default class Animations {
     const crossTypeMorph = this.ctx?.morphTypeChange?.isActive() === true
     const morphAlgo = crossTypeMorph ? 'polygons' : 'commands'
 
-    el.plot(pathFrom)
-      .animate(1, delay)
-      .plot(pathFrom)
-      .animate(speed, delay)
-      .plot(pathTo, morphAlgo)
+    // Data-change easing: `dynamicAnimation.easing` (when set) overrides the
+    // chart-wide default for update morphs; a detected streaming scroll
+    // defaults to linear, since a window slide only reads as continuous motion
+    // at constant velocity (the default sine in-out makes it pulse each tick).
+    let morphEase = null
+    if (w.globals.dataChanged) {
+      const dynEasing = w.config.chart.animations.dynamicAnimation.easing
+      if (dynEasing != null) {
+        morphEase = resolveEasing(dynEasing)
+      } else if (scrollMorph) {
+        morphEase = resolveEasing('linear')
+      }
+    }
+
+    const runner = el.plot(pathFrom).animate(1, delay).plot(pathFrom).animate(speed, delay)
+    if (morphEase) {
+      runner.ease(morphEase)
+    }
+    runner
+      .plot(
+        pathToInterp || pathTo,
+        morphAlgo,
+        pathToInterp ? pathTo : undefined,
+      )
       .after(() => {
         // a flag to indicate that the original mount function can return true now as animation finished here
         if (Utils.isNumber(j)) {
