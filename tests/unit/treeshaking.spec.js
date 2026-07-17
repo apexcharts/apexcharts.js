@@ -36,9 +36,11 @@ function read(rel) {
 /**
  * Count class declarations of exactly `name` (not a prefix of another class).
  * Matches "class Name {" and "class Name extends" but not "class NameFoo".
+ * esbuild lowers a class with static members to `const _Name = class _Name {`,
+ * so the underscore-prefixed expression name counts as the same class.
  */
 function countClass(content, name) {
-  const re = new RegExp(`class ${name}[\\s{]`, 'g')
+  const re = new RegExp(`class _?${name}[\\s{]`, 'g')
   return (content.match(re) ?? []).length
 }
 

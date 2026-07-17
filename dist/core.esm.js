@@ -24169,6 +24169,8 @@ const _ApexCharts = class _ApexCharts {
     __publicField(this, "publicMethods", []);
     /** @type {string[]} */
     __publicField(this, "eventList", []);
+    /** @type {Promise<any> | null} */
+    __publicField(this, "_renderPromise", null);
     /** @type {any} */
     __publicField(this, "config");
     /** @type {any} */
@@ -24221,7 +24223,8 @@ const _ApexCharts = class _ApexCharts {
         )
       );
     }
-    return new Promise((resolve, reject) => {
+    if (this._renderPromise) return this._renderPromise;
+    const renderPromise = new Promise((resolve, reject) => {
       var _a2;
       if (Utils$1.elementExists(this.el)) {
         if (typeof Apex._chartInstances === "undefined") {
@@ -24295,6 +24298,11 @@ const _ApexCharts = class _ApexCharts {
         reject(new Error("Element not found"));
       }
     });
+    this._renderPromise = renderPromise;
+    renderPromise.catch(() => {
+      if (this._renderPromise === renderPromise) this._renderPromise = null;
+    });
+    return renderPromise;
   }
   /**
    * @param {any[]} ser
@@ -24533,6 +24541,7 @@ const _ApexCharts = class _ApexCharts {
    */
   destroy() {
     var _a;
+    this._renderPromise = null;
     if (Environment.isBrowser()) {
       window.removeEventListener("resize", this.windowResizeHandler);
       removeResizeListener(

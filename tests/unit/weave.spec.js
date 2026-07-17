@@ -130,6 +130,10 @@ function scatterChart(plugins, extra = {}) {
   return createChartWithOptions({
     chart: {
       type: 'scatter',
+      // explicit pixel size: jsdom has no layout, so without it the grid
+      // geometry (and the api.scales pixel assertions) would be NaN
+      width: 400,
+      height: 300,
       animations: { enabled: false },
       toolbar: { show: false },
       ...extra.chart,

@@ -78,6 +78,7 @@ export default class ApexCharts {
   /** @type {any} */ parentResizeHandler
   /** @type {string[]} */ publicMethods = []
   /** @type {string[]} */ eventList = []
+  /** @type {Promise<any> | null} */ _renderPromise = null
   /** @type {any} */ config
   /** @type {any} */ perspectives
   /** @type {any} */ storyboard
@@ -148,8 +149,13 @@ export default class ApexCharts {
         ),
       )
     }
-    // main method
-    return new Promise((resolve, reject) => {
+    // Idempotent: a second render() call (deliberate or a framework double
+    // effect) must not build a duplicate chart tree in the same element.
+    // Return the in-flight/settled promise instead; destroy() clears it so a
+    // destroyed instance can be rendered fresh, and a rejected render clears
+    // itself so callers can retry (e.g. after attaching the element).
+    if (this._renderPromise) return this._renderPromise
+    const renderPromise = new Promise((resolve, reject) => {
       // only draw chart, if element found
       if (Utils.elementExists(this.el)) {
         if (typeof Apex._chartInstances === 'undefined') {
@@ -235,6 +241,11 @@ export default class ApexCharts {
         reject(new Error('Element not found'))
       }
     })
+    this._renderPromise = renderPromise
+    renderPromise.catch(() => {
+      if (this._renderPromise === renderPromise) this._renderPromise = null
+    })
+    return renderPromise
   }
 
   /**
@@ -599,6 +610,8 @@ export default class ApexCharts {
    * After calling this, the instance should not be used again.
    */
   destroy() {
+    // allow a fresh render() on this instance after teardown
+    this._renderPromise = null
     // remove event listeners in browser environment
     if (Environment.isBrowser()) {
       window.removeEventListener('resize', this.windowResizeHandler)

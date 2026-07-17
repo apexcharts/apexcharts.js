@@ -24686,6 +24686,8 @@ var __async = (__this, __arguments, generator) => {
       __publicField(this, "publicMethods", []);
       /** @type {string[]} */
       __publicField(this, "eventList", []);
+      /** @type {Promise<any> | null} */
+      __publicField(this, "_renderPromise", null);
       /** @type {any} */
       __publicField(this, "config");
       /** @type {any} */
@@ -24738,7 +24740,8 @@ var __async = (__this, __arguments, generator) => {
           )
         );
       }
-      return new Promise((resolve, reject) => {
+      if (this._renderPromise) return this._renderPromise;
+      const renderPromise = new Promise((resolve, reject) => {
         var _a2;
         if (Utils$1.elementExists(this.el)) {
           if (typeof Apex._chartInstances === "undefined") {
@@ -24812,6 +24815,11 @@ var __async = (__this, __arguments, generator) => {
           reject(new Error("Element not found"));
         }
       });
+      this._renderPromise = renderPromise;
+      renderPromise.catch(() => {
+        if (this._renderPromise === renderPromise) this._renderPromise = null;
+      });
+      return renderPromise;
     }
     /**
      * @param {any[]} ser
@@ -25050,6 +25058,7 @@ var __async = (__this, __arguments, generator) => {
      */
     destroy() {
       var _a;
+      this._renderPromise = null;
       if (Environment.isBrowser()) {
         window.removeEventListener("resize", this.windowResizeHandler);
         removeResizeListener(
@@ -26668,7 +26677,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {boolean} isHidden
      */
     toggleDataSeries(seriesCnt, isHidden) {
-      var _a, _b;
+      var _a, _b, _c;
       const w = this.w;
       if (w.globals.axisCharts || w.config.chart.type === "radialBar") {
         w.globals.resized = true;
@@ -26676,17 +26685,18 @@ var __async = (__this, __arguments, generator) => {
         let realIndex = null;
         w.globals.risingSeries = [];
         if (w.globals.axisCharts) {
-          seriesEl = w.dom.baseEl.querySelector(
-            `.apexcharts-series[data\\:realIndex='${seriesCnt}']`
-          );
+          seriesEl = (_a = Array.prototype.find.call(
+            w.dom.baseEl.querySelectorAll(".apexcharts-series"),
+            (el) => el.getAttribute("data:realIndex") === String(seriesCnt)
+          )) != null ? _a : null;
           if (!seriesEl) return;
-          realIndex = parseInt((_a = seriesEl.getAttribute("data:realIndex")) != null ? _a : "", 10);
+          realIndex = parseInt((_b = seriesEl.getAttribute("data:realIndex")) != null ? _b : "", 10);
         } else {
           seriesEl = w.dom.baseEl.querySelector(
             `.apexcharts-series[rel='${seriesCnt + 1}']`
           );
           if (!seriesEl) return;
-          realIndex = parseInt((_b = seriesEl.getAttribute("rel")) != null ? _b : "", 10) - 1;
+          realIndex = parseInt((_c = seriesEl.getAttribute("rel")) != null ? _c : "", 10) - 1;
         }
         if (isHidden) {
           const seriesToMakeVisible = [

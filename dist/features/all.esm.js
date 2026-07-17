@@ -580,7 +580,7 @@ let Helpers$1 = class Helpers {
    * @param {boolean} isHidden
    */
   toggleDataSeries(seriesCnt, isHidden) {
-    var _a, _b;
+    var _a, _b, _c;
     const w = this.w;
     if (w.globals.axisCharts || w.config.chart.type === "radialBar") {
       w.globals.resized = true;
@@ -588,17 +588,18 @@ let Helpers$1 = class Helpers {
       let realIndex = null;
       w.globals.risingSeries = [];
       if (w.globals.axisCharts) {
-        seriesEl = w.dom.baseEl.querySelector(
-          `.apexcharts-series[data\\:realIndex='${seriesCnt}']`
-        );
+        seriesEl = (_a = Array.prototype.find.call(
+          w.dom.baseEl.querySelectorAll(".apexcharts-series"),
+          (el) => el.getAttribute("data:realIndex") === String(seriesCnt)
+        )) != null ? _a : null;
         if (!seriesEl) return;
-        realIndex = parseInt((_a = seriesEl.getAttribute("data:realIndex")) != null ? _a : "", 10);
+        realIndex = parseInt((_b = seriesEl.getAttribute("data:realIndex")) != null ? _b : "", 10);
       } else {
         seriesEl = w.dom.baseEl.querySelector(
           `.apexcharts-series[rel='${seriesCnt + 1}']`
         );
         if (!seriesEl) return;
-        realIndex = parseInt((_b = seriesEl.getAttribute("rel")) != null ? _b : "", 10) - 1;
+        realIndex = parseInt((_c = seriesEl.getAttribute("rel")) != null ? _c : "", 10) - 1;
       }
       if (isHidden) {
         const seriesToMakeVisible = [

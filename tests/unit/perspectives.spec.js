@@ -188,7 +188,7 @@ describe('apply (round-trip on a live chart)', () => {
     await chart.updateOptions({ xaxis: { min: 1, max: 3 } }, false, false)
     chart.hideSeries('B')
     const mutated = chart.perspectives.capture()
-    expect(mutated.window.xaxis).toEqual({ min: 1, max: 3 })
+    expect(mutated.view.window.xaxis).toEqual({ min: 1, max: 3 })
     expect(mutated.view.collapsed).toContain(1)
 
     // Reset to a clean baseline.
