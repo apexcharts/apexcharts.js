@@ -96,8 +96,23 @@ export default class LinkedViews {
     const mode = this._mode()
     if (mode === 'off') return
     if (!xaxis || xaxis.min == null || xaxis.max == null) return
-    const min = Math.min(xaxis.min, xaxis.max)
-    const max = Math.max(xaxis.min, xaxis.max)
+    let min = Math.min(xaxis.min, xaxis.max)
+    let max = Math.max(xaxis.min, xaxis.max)
+
+    // Snap to the plot's data bounds when the brush reaches an edge. The brush
+    // clamps to the axis extent, but the pixel->data round-trip can leave min a
+    // few units above globals.minX (or max below maxX), which would wrongly dim
+    // the very first / last mark the brush visibly covers ("can't select past
+    // the first column"). The tolerance is a tiny fraction of the range, far
+    // smaller than the gap between marks, so a genuine near-edge selection (one
+    // that should exclude the boundary mark) is left untouched.
+    const gMinX = this.w.globals.minX
+    const gMaxX = this.w.globals.maxX
+    if (isFinite(gMinX) && isFinite(gMaxX) && gMaxX > gMinX) {
+      const tol = (gMaxX - gMinX) * 1e-6
+      if (min - gMinX <= tol) min = gMinX
+      if (gMaxX - max <= tol) max = gMaxX
+    }
 
     if (mode === 'filter') {
       const cf = this._cf()
