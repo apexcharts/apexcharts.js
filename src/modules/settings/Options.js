@@ -583,6 +583,10 @@ export default class Options {
             zoomout: true,
             pan: true,
             reset: true,
+            // Shown only when the measure ruler is active (chart.measure.enabled
+            // and the `measure` feature bundled). Toggles the measure tool; set
+            // false to keep the ruler key-driven only. See chart.measure.
+            measure: true,
             customIcons: [],
           },
           export: {
@@ -603,7 +607,7 @@ export default class Options {
             scale: undefined,
             width: undefined,
           },
-          autoSelected: 'zoom', // accepts -> zoom, pan, selection
+          autoSelected: 'zoom', // accepts -> zoom, pan, selection, measure
         },
         type: 'line',
         width: '100%',

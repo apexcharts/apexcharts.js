@@ -68,6 +68,7 @@ export interface InteractState {
   zoomEnabled: boolean
   panEnabled: boolean
   selectionEnabled: boolean
+  measureEnabled: boolean
   // Zoom / pan state
   zoomed: boolean
   selection: { x: number; y: number; width: number; height: number } | null | undefined

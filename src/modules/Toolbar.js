@@ -9,6 +9,7 @@ import icoReset from './../assets/ico-reset.svg'
 import icoZoomIn from './../assets/ico-plus.svg'
 import icoZoomOut from './../assets/ico-minus.svg'
 import icoSelect from './../assets/ico-select.svg'
+import icoMeasure from './../assets/ico-measure.svg'
 import icoMenu from './../assets/ico-menu.svg'
 
 /**
@@ -38,6 +39,7 @@ export default class Toolbar {
     /** @type {HTMLElement | null} */ this.elZoomOut = null
     /** @type {HTMLElement | null} */ this.elPan = null
     /** @type {HTMLElement | null} */ this.elSelection = null
+    /** @type {HTMLElement | null} */ this.elMeasure = null
     /** @type {HTMLElement | null} */ this.elZoomReset = null
     /** @type {HTMLElement | null} */ this.elMenuIcon = null
     /** @type {HTMLElement | null} */ this.elMenu = null
@@ -72,6 +74,7 @@ export default class Toolbar {
     this.elZoomOut = createBtn()
     this.elPan = createBtn()
     this.elSelection = createBtn()
+    this.elMeasure = createBtn()
     this.elZoomReset = createBtn()
     this.elMenuIcon = createBtn()
     // The menu (popup container) stays a <div> — it's not a button.
@@ -142,6 +145,17 @@ export default class Toolbar {
       })
     }
 
+    // Measure ruler toggle — independent of zoom.enabled; shown only when the
+    // measure feature is active (chart.measure.enabled).
+    if (this.t.measure && w.config.chart.measure && w.config.chart.measure.enabled) {
+      toolbarControls.push({
+        el: this.elMeasure,
+        icon: typeof this.t.measure === 'string' ? this.t.measure : icoMeasure,
+        title: /** @type {any} */ (this.localeValues).measure || 'Measure',
+        class: 'apexcharts-measure-icon',
+      })
+    }
+
     appendZoomControl('reset', this.elZoomReset, icoReset)
 
     if (this.t.download) {
@@ -194,6 +208,12 @@ export default class Toolbar {
     if (this.elPan.parentNode) {
       this.elPan.setAttribute('aria-pressed', String(!!w.interact.panEnabled))
     }
+    if (this.elMeasure.parentNode) {
+      this.elMeasure.setAttribute(
+        'aria-pressed',
+        String(!!w.interact.measureEnabled),
+      )
+    }
 
     // Menu icon: popup indicator
     if (this.elMenuIcon.parentNode) {
@@ -209,6 +229,11 @@ export default class Toolbar {
       this.elPan.classList.add(this.selectedClass)
     } else if (w.interact.selectionEnabled) {
       this.elSelection.classList.add(this.selectedClass)
+    } else if (w.interact.measureEnabled && this.elMeasure) {
+      // Pre-selected via toolbar.autoSelected: 'measure'. Arm the ruler now; the
+      // Measure module also self-arms on mount, so this is null-safe/idempotent.
+      this.elMeasure.classList.add(this.selectedClass)
+      this.ctx.measure?.startMeasure?.()
     }
 
     this.addToolbarEventListeners()
@@ -269,6 +294,7 @@ export default class Toolbar {
     this.elZoomIn?.addEventListener('click', this.handleZoomIn.bind(this))
     this.elZoomOut?.addEventListener('click', this.handleZoomOut.bind(this))
     this.elPan?.addEventListener('click', this.togglePanning.bind(this))
+    this.elMeasure?.addEventListener('click', this.toggleMeasure.bind(this))
     this.elMenuIcon?.addEventListener('click', this.toggleMenu.bind(this))
     this.elMenuItems.forEach((m) => {
       if (m.classList.contains('exportSVG')) {
@@ -296,6 +322,7 @@ export default class Toolbar {
       this.elZoomIn,
       this.elZoomOut,
       this.elPan,
+      this.elMeasure,
       this.elMenuIcon,
       ...this.elCustomIcons,
     ]
@@ -388,25 +415,50 @@ export default class Toolbar {
      * @param {Record<string, any>} ch
      */
     charts.forEach((ch) => {
-      ch.ctx.toolbar.toggleOtherControls()
-
-      const el =
-        type === 'selection'
-          ? ch.ctx.toolbar.elSelection
-          : ch.ctx.toolbar.elZoom
+      const tb = ch.ctx.toolbar
       const enabledType =
         type === 'selection' ? 'selectionEnabled' : 'zoomEnabled'
 
-      ch.w.globals[enabledType] = !ch.w.globals[enabledType]
+      // Capture the state BEFORE toggleOtherControls resets every tool, so a
+      // click on the already-selected tool turns it OFF (leaving no active
+      // tool) instead of clearing and immediately re-selecting it.
+      const wasEnabled = !!ch.w.globals[enabledType]
 
-      if (!el.classList.contains(ch.ctx.toolbar.selectedClass)) {
-        el.classList.add(ch.ctx.toolbar.selectedClass)
-      } else {
-        el.classList.remove(ch.ctx.toolbar.selectedClass)
+      tb.toggleOtherControls()
+
+      const el = type === 'selection' ? tb.elSelection : tb.elZoom
+
+      if (!wasEnabled) {
+        ch.w.globals[enabledType] = true
+        el.classList.add(tb.selectedClass)
       }
 
-      el.setAttribute('aria-pressed', String(ch.w.globals[enabledType]))
+      el.setAttribute('aria-pressed', String(!!ch.w.globals[enabledType]))
     })
+  }
+
+  /**
+   * Toggle the measure ruler tool. Mutually exclusive with zoom/pan/selection
+   * (toggleOtherControls deselects those and disarms any active measure), so a
+   * fresh enable arms the ruler via the Measure module's sticky mode.
+   */
+  toggleMeasure() {
+    const w = this.w
+    const enabling = !w.interact.measureEnabled
+
+    // Deselect zoom/pan/selection and disarm any current measure.
+    this.toggleOtherControls()
+
+    if (enabling) {
+      w.interact.measureEnabled = true
+      this.elMeasure?.classList.add(this.selectedClass)
+      this.ctx.measure?.startMeasure?.()
+    }
+
+    this.elMeasure?.setAttribute(
+      'aria-pressed',
+      String(w.interact.measureEnabled),
+    )
   }
 
   getToolbarIconsReference() {
@@ -421,6 +473,9 @@ export default class Toolbar {
       this.elSelection = w.dom.baseEl.querySelector(
         '.apexcharts-selection-icon',
       )
+    }
+    if (!this.elMeasure) {
+      this.elMeasure = w.dom.baseEl.querySelector('.apexcharts-measure-icon')
     }
   }
 
@@ -451,21 +506,18 @@ export default class Toolbar {
      * @param {Record<string, any>} ch
      */
     charts.forEach((ch) => {
-      ch.ctx.toolbar.toggleOtherControls()
-      ch.w.interact.panEnabled = !ch.w.interact.panEnabled
+      const tb = ch.ctx.toolbar
+      // Capture BEFORE the reset so clicking the active pan tool turns it off.
+      const wasEnabled = !!ch.w.interact.panEnabled
 
-      if (
-        !ch.ctx.toolbar.elPan.classList.contains(ch.ctx.toolbar.selectedClass)
-      ) {
-        ch.ctx.toolbar.elPan.classList.add(ch.ctx.toolbar.selectedClass)
-      } else {
-        ch.ctx.toolbar.elPan.classList.remove(ch.ctx.toolbar.selectedClass)
+      tb.toggleOtherControls()
+
+      if (!wasEnabled) {
+        ch.w.interact.panEnabled = true
+        tb.elPan.classList.add(tb.selectedClass)
       }
 
-      ch.ctx.toolbar.elPan.setAttribute(
-        'aria-pressed',
-        String(ch.w.interact.panEnabled),
-      )
+      tb.elPan.setAttribute('aria-pressed', String(!!ch.w.interact.panEnabled))
     })
   }
 
@@ -475,9 +527,17 @@ export default class Toolbar {
     w.interact.zoomEnabled = false
     w.interact.selectionEnabled = false
 
+    // Measure is mutually exclusive with zoom/pan/selection: leaving measure
+    // mode disarms the ruler's capture pane so the plot regains zoom/pan/hover.
+    if (w.interact.measureEnabled) {
+      w.interact.measureEnabled = false
+      this.ctx.measure?.stopMeasure?.()
+      this.elMeasure?.setAttribute('aria-pressed', 'false')
+    }
+
     this.getToolbarIconsReference()
 
-    const toggleEls = [this.elPan, this.elSelection, this.elZoom]
+    const toggleEls = [this.elPan, this.elSelection, this.elZoom, this.elMeasure]
     toggleEls.forEach((el) => {
       if (el) {
         el.classList.remove(this.selectedClass)
@@ -733,6 +793,7 @@ export default class Toolbar {
     this.elZoomOut = null
     this.elPan = null
     this.elSelection = null
+    this.elMeasure = null
     this.elZoomReset = null
     this.elMenuIcon = null
   }

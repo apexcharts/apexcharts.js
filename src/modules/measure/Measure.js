@@ -867,9 +867,26 @@ export default class Measure {
   _afterRender() {
     // pins/arm only when the measure tool is enabled. The armed pane and live
     // overlay are per-gesture; only pins persist across a render.
-    if (this._enabled()) {
-      if (this.pins.length) this._renderPins()
-      if (this.persistent && !this.pane) this._arm()
+    if (!this._enabled()) return
+
+    // Pre-selected via toolbar.autoSelected: 'measure' — enter sticky measure
+    // mode on mount so the ruler is ready to drag with no key held and no
+    // toolbar click (works even when the toolbar isn't bundled/shown).
+    if (this.w.interact.measureEnabled && !this.persistent) {
+      this.persistent = true
+    }
+
+    if (this.pins.length) this._renderPins()
+
+    // Re-arm into the freshly rendered graphical layer. A re-render (e.g.
+    // updateOptions) tears down the old capture pane with the old DOM but leaves
+    // this.armed/this.pane pointing at the detached node, so a plain
+    // `!this.pane` guard would short-circuit and never rebuild it. Disarm first
+    // to clear that stale state, then arm a new pane. Skip mid-drag so an
+    // in-flight gesture is not interrupted.
+    if (this.persistent && !this.drag) {
+      this._disarm()
+      this._arm()
     }
   }
 

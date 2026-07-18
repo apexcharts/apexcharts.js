@@ -1417,6 +1417,12 @@ type ApexChart = {
       zoomout?: boolean | string
       pan?: boolean | string
       reset?: boolean | string
+      /**
+       * Measure ruler toggle. Shown only when `chart.measure.enabled` is true
+       * and the `measure` feature is bundled. `false` keeps the ruler
+       * key-driven only; a string supplies a custom SVG icon.
+       */
+      measure?: boolean | string
       customIcons?: {
         icon?: string
         title?: string
@@ -1443,7 +1449,7 @@ type ApexChart = {
       width?: number
       scale?: number
     }
-    autoSelected?: 'zoom' | 'selection' | 'pan'
+    autoSelected?: 'zoom' | 'selection' | 'pan' | 'measure'
   }
   zoom?: {
     enabled?: boolean
@@ -1874,6 +1880,7 @@ type ApexLocale = {
       zoomOut?: string
       pan?: string
       reset?: string
+      measure?: string
       menu?: string
       exportToSVG?: string
       exportToPNG?: string

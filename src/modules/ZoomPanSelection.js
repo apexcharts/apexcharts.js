@@ -181,13 +181,18 @@ export default class ZoomPanSelection extends Toolbar {
 
     const autoSelected = w.config.chart.toolbar.autoSelected
 
-    if (e.shiftKey) {
-      this.shiftWasPressed = true
-      toolbar.enableZoomPanFromToolbar(autoSelected === 'pan' ? 'zoom' : 'pan')
-    } else {
-      if (this.shiftWasPressed) {
-        toolbar.enableZoomPanFromToolbar(autoSelected)
-        this.shiftWasPressed = false
+    // Shift temporarily flips zoom<->pan, restoring the auto-selected tool on
+    // release. 'measure' is not a zoom/pan tool (it captures the plot via its
+    // own pane), so it opts out of this shift dance entirely.
+    if (autoSelected !== 'measure') {
+      if (e.shiftKey) {
+        this.shiftWasPressed = true
+        toolbar.enableZoomPanFromToolbar(autoSelected === 'pan' ? 'zoom' : 'pan')
+      } else {
+        if (this.shiftWasPressed) {
+          toolbar.enableZoomPanFromToolbar(autoSelected)
+          this.shiftWasPressed = false
+        }
       }
     }
 

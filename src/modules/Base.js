@@ -43,6 +43,12 @@ export default class Base {
         selectionEnabled:
           config.chart.toolbar.autoSelected === 'selection' &&
           config.chart.toolbar.tools.selection,
+        // Measure tool pre-selected via toolbar.autoSelected: 'measure'. Armed by
+        // the Measure module (self-arms on mount) and the toolbar button.
+        measureEnabled:
+          config.chart.toolbar.autoSelected === 'measure' &&
+          !!config.chart.toolbar.tools.measure &&
+          !!(config.chart.measure && config.chart.measure.enabled),
         // Zoom / pan state (user-driven, must persist across re-renders)
         zoomed: false,
         selection: undefined,
