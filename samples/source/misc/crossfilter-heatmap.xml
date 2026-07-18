@@ -2,7 +2,7 @@
 
 <style>
   .cf-wrap {
-    max-width: 820px;
+    max-width: 700px;
     margin: 12px auto;
     font-family: Helvetica, Arial, sans-serif;
   }
@@ -36,7 +36,8 @@
   }
   .cf-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* Outcome donut + day bar sit side by side, stacking when the tile narrows. */
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 8px;
   }
   .cf-note {

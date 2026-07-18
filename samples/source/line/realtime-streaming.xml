@@ -1,5 +1,18 @@
 <title>Streaming Line Chart (chart.streaming)</title>
 
+<style>
+#chart {
+  max-width: 650px;
+  margin: 35px auto;
+}
+.explanation {
+  max-width: 620px;
+  margin: 0 auto 12px;
+  font-size: 13px;
+  color: #777;
+}
+</style>
+
 <scripts>
 <script>
 var TICKINTERVAL = 1000
@@ -23,7 +36,7 @@ while (data.length < 30) {
 <html>
 {{ charts[0] }}
 
-<div class="explanation" style="max-width: 620px; margin: 0 auto 12px; font-size: 13px; color: #777">
+<div {% if format == 'react' %}className{% else %}class{% endif %}="explanation">
   Real-time streaming with <code>chart.streaming.enabled</code>: each tick
   appends one point with <code>appendData()</code>. The window slides left at
   constant velocity (no easing pulse, no in-place warp), and the series array

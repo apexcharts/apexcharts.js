@@ -2,7 +2,7 @@
 
 <style>
   .cfd {
-    max-width: 1000px;
+    max-width: 700px;
     margin: 10px auto;
     font-family: Helvetica, Arial, sans-serif;
     color: #1f2430;
@@ -31,7 +31,9 @@
   }
   .cfd-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    /* Auto-fit reflows the three categorical charts from 3 columns down to 2,
+       then 1, as the container narrows, so they never get crushed at ~700px. */
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
     gap: 8px;
   }
   .cfd-card {
@@ -39,19 +41,9 @@
     border-radius: 8px;
     padding: 6px;
   }
-  .cfd-card.wide {
-    grid-column: span 3;
-  }
-  .cfd-card.half {
-    grid-column: span 3;
-  }
-  @media (min-width: 720px) {
-    .cfd-card.half {
-      grid-column: span 3;
-    }
-    .cfd-card.brush {
-      grid-column: span 3;
-    }
+  /* The two brush histograms always take a full row, whatever the column count. */
+  .cfd-card.brush {
+    grid-column: 1 / -1;
   }
   .cfd-tablewrap {
     margin: 12px 6px;

@@ -13,6 +13,12 @@
         max-width: 650px;
         margin: 35px auto;
       }
+      .explanation {
+        max-width: 620px;
+        margin: 0 auto 12px;
+        font-size: 13px;
+        color: #777;
+      }
     </style>
 
     
@@ -61,7 +67,7 @@
   &lt;ReactApexChart options={state.options} series={state.series} type=&quot;line&quot; height={350} /&gt;
 &lt;/div&gt;
 
-&lt;div class=&quot;explanation&quot; style=&quot;max-width: 620px; margin: 0 auto 12px; font-size: 13px; color: #777&quot;&gt;
+&lt;div className=&quot;explanation&quot;&gt;
   Real-time streaming with &lt;code&gt;chart.streaming.enabled&lt;/code&gt;: each tick
   appends one point with &lt;code&gt;appendData()&lt;/code&gt;. The window slides left at
   constant velocity (no easing pulse, no in-place warp), and the series array
@@ -149,10 +155,7 @@
               />
             </div>
 
-            <div
-              class="explanation"
-              style="max-width: 620px; margin: 0 auto 12px; font-size: 13px; color: #777"
-            >
+            <div className="explanation">
               Real-time streaming with <code>chart.streaming.enabled</code>: each tick
               appends one point with <code>appendData()</code>. The window slides left
               at constant velocity (no easing pulse, no in-place warp), and the series

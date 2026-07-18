@@ -66,23 +66,24 @@
 <html>
 <div class="mz-wrap">
   <div class="mz-bar">
-    <button id="mz-toggle">Measure</button>
     <button id="mz-clear">Clear</button>
-    <span class="readout" id="mz-readout">Turn on Measure, then drag from A to B on the chart</span>
+    <span class="readout" id="mz-readout">The ruler tool is pre-selected in the toolbar. Drag from A to B on the chart.</span>
   </div>
 
   {{ charts[0] }}
 
   <div class="mz-note">
-    Click <b>Measure</b> (or hold <code>m</code>) and drag across the plot: a
-    shaded band spans the two points and a readout shows the <b>change</b>, the
+    The ruler is a built-in <b>toolbar tool</b>, pre-selected here with
+    <code>toolbar.autoSelected: 'measure'</code>. Drag across the plot: a shaded
+    band spans the two points and a readout shows the <b>change</b>, the
     <b>% change</b> and the <b>range</b> between them, with the endpoints snapped
     to the price line (the finance-style default, <code>measure.mode: 'span'</code>).
     Green means the move is up, red means down. Release to pin it; a pinned ruler
     is stored in data coordinates, so it stays glued when you zoom or resize.
-    Fires the <code>measured</code> event. Set <code>measure.mode: 'free'</code>
-    for a diagonal ruler between any two points. Needs the
-    <code>measure</code> feature. <b>Clear</b> removes all rulers.
+    Click the ruler icon again to deselect it and hand the plot back to zoom; the
+    <code>m</code> key still works too. Fires the <code>measured</code> event. Set
+    <code>measure.mode: 'free'</code> for a diagonal ruler between any two points.
+    Needs the <code>measure</code> feature. <b>Clear</b> removes all rulers.
   </div>
 </div>
 </html>
@@ -91,16 +92,16 @@
 <options>
 chart: {
   id: 'price',
-  type: 'line',
+  type: 'area',
   height: 380,
   fontFamily: 'Helvetica, Arial, sans-serif',
   animations: { enabled: false },
   measure: { enabled: true, pinOnRelease: true },
-  toolbar: { show: false },
+  toolbar: { show: true, autoSelected: 'measure' },
   zoom: { enabled: true, type: 'x' },
 },
 stroke: { width: 2, curve: 'straight' },
-colors: ['#0ea5e9'],
+dataLabels: { enabled: false },
 title: { text: 'Price (measure any move)', align: 'left' },
 xaxis: { type: 'numeric', title: { text: 'Session' } },
 yaxis: { title: { text: 'Price' }, decimalsInFloat: 0 },
@@ -114,21 +115,10 @@ yaxis: { title: { text: 'Price' }, decimalsInFloat: 0 },
 </chart>
 
 <vanilla-js-script>
-var toggle = document.getElementById('mz-toggle')
+// The ruler tool is pre-selected via toolbar.autoSelected: 'measure', so the
+// plot is already armed on load -- just drag. The toolbar icon toggles it (and
+// the 'm' key still works); no custom wiring needed here.
 var readout = document.getElementById('mz-readout')
-var on = false
-
-toggle.addEventListener('click', function () {
-  on = !on
-  if (on) {
-    chart.startMeasure()
-    toggle.classList.add('active')
-    readout.textContent = 'Drag from A to B on the chart'
-  } else {
-    chart.stopMeasure()
-    toggle.classList.remove('active')
-  }
-})
 
 document.getElementById('mz-clear').addEventListener('click', function () {
   chart.clearMeasures()

@@ -2,7 +2,7 @@
 
 <style>
   .cf-wrap {
-    max-width: 900px;
+    max-width: 700px;
     margin: 12px auto;
     font-family: Helvetica, Arial, sans-serif;
   }
@@ -30,7 +30,8 @@
   }
   .cf-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* Two donuts side by side at ~700px, collapsing to one column when narrow. */
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 8px;
   }
   .cf-grid .full {
@@ -69,19 +70,38 @@
 
 <scripts>
 <script>
-  // Deterministic trade records (one row per trade). No randomness: stable demo.
+  // Deterministic trade records (one row per trade). No randomness, but the
+  // distributions are intentionally uneven so the crossfilter is visible:
+  //   - quarters have different totals (the donut is 18 / 12 / 16 / 14, not 4x15)
+  //   - each quarter peaks on a different weekday
+  //   - outcome leans Gain early in the week and Loss later
+  // So clicking a quarter OR an outcome noticeably reshapes the day bar below.
   function tradesData() {
-    var quarters = ['Q1', 'Q2', 'Q3', 'Q4']
     var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
-    var out = []
-    for (var i = 0; i < 60; i++) {
-      out.push({
-        q: quarters[i % 4],
-        day: days[(i * 3) % 5],
-        gl: i % 3 === 0 ? 'Loss' : 'Gain',
-        vol: 50 + ((i * 37) % 120),
-      })
+
+    // quarter -> trades per weekday (Mon..Fri); column totals differ per quarter.
+    var plan = {
+      Q1: [8, 4, 3, 2, 1], // early-week heavy
+      Q2: [1, 2, 5, 3, 1], // mid-week heavy
+      Q3: [2, 2, 3, 4, 5], // late-week heavy
+      Q4: [3, 6, 2, 2, 1], // Tuesday spike
     }
+    // Share of Gains by weekday index (Mon..Fri): high early, low late.
+    var gainByDay = [0.85, 0.7, 0.5, 0.3, 0.15]
+
+    var out = []
+    Object.keys(plan).forEach(function (q) {
+      plan[q].forEach(function (count, di) {
+        var gains = Math.round(count * gainByDay[di])
+        for (var k = 0; k < count; k++) {
+          out.push({
+            q: q,
+            day: days[di],
+            gl: k < gains ? 'Gain' : 'Loss',
+          })
+        }
+      })
+    })
     return out
   }
 
