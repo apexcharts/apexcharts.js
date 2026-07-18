@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Measure Ruler (chart.measure)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      .mz-wrap {
+        max-width: 820px;
+        margin: 12px auto;
+        font-family: Helvetica, Arial, sans-serif;
+      }
+      .mz-bar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 4px 6px 10px;
+      }
+      .mz-bar button {
+        padding: 6px 13px;
+        cursor: pointer;
+        border: 1px solid #0ea5e9;
+        color: #0369a1;
+        background: #fff;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .mz-bar button.active {
+        background: #0ea5e9;
+        color: #fff;
+      }
+      .mz-bar .readout {
+        font-family: monospace;
+        font-size: 13px;
+        color: #445;
+      }
+      .mz-note {
+        background: #f0f9ff;
+        border-left: 3px solid #0ea5e9;
+        padding: 11px 15px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.6;
+        margin: 12px 6px;
+      }
+      .mz-note code {
+        background: #dceafb;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      function series() {
+        var out = []
+        var v = 100
+        for (var i = 0; i < 60; i++) {
+          v += 2 + Math.sin(i / 5) * 3
+          out.push([i, Math.round(v)])
+        }
+        return out
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="mz-wrap">
+      <div class="mz-bar">
+        <button id="mz-clear">Clear</button>
+        <span class="readout" id="mz-readout">The ruler tool is pre-selected in the toolbar. Drag from A to B on the chart.</span>
+      </div>
+    
+      <div id="chart">
+      <apexchart type="area" height="380" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    
+      <div class="mz-note">
+        The ruler is a built-in <b>toolbar tool</b>, pre-selected here with
+        <code>toolbar.autoSelected: 'measure'</code>. Drag across the plot: a shaded
+        band spans the two points and a readout shows the <b>change</b>, the
+        <b>% change</b> and the <b>range</b> between them, with the endpoints snapped
+        to the price line (the finance-style default, <code>measure.mode: 'span'</code>).
+        Green means the move is up, red means down. Release to pin it; a pinned ruler
+        is stored in data coordinates, so it stays glued when you zoom or resize.
+        Click the ruler icon again to deselect it and hand the plot back to zoom; the
+        <code>m</code> key still works too. Fires the <code>measured</code> event. Set
+        <code>measure.mode: 'free'</code> for a diagonal ruler between any two points.
+        Needs the <code>measure</code> feature. <b>Clear</b> removes all rulers.
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;mz-wrap&quot;&gt;
+        &lt;div class=&quot;mz-bar&quot;&gt;
+          &lt;button id=&quot;mz-clear&quot;&gt;Clear&lt;/button&gt;
+          &lt;span class=&quot;readout&quot; id=&quot;mz-readout&quot;&gt;The ruler tool is pre-selected in the toolbar. Drag from A to B on the chart.&lt;/span&gt;
+        &lt;/div&gt;
+      
+        &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;380&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+      
+        &lt;div class=&quot;mz-note&quot;&gt;
+          The ruler is a built-in &lt;b&gt;toolbar tool&lt;/b&gt;, pre-selected here with
+          &lt;code&gt;toolbar.autoSelected: &#39;measure&#39;&lt;/code&gt;. Drag across the plot: a shaded
+          band spans the two points and a readout shows the &lt;b&gt;change&lt;/b&gt;, the
+          &lt;b&gt;% change&lt;/b&gt; and the &lt;b&gt;range&lt;/b&gt; between them, with the endpoints snapped
+          to the price line (the finance-style default, &lt;code&gt;measure.mode: &#39;span&#39;&lt;/code&gt;).
+          Green means the move is up, red means down. Release to pin it; a pinned ruler
+          is stored in data coordinates, so it stays glued when you zoom or resize.
+          Click the ruler icon again to deselect it and hand the plot back to zoom; the
+          &lt;code&gt;m&lt;/code&gt; key still works too. Fires the &lt;code&gt;measured&lt;/code&gt; event. Set
+          &lt;code&gt;measure.mode: &#39;free&#39;&lt;/code&gt; for a diagonal ruler between any two points.
+          Needs the &lt;code&gt;measure&lt;/code&gt; feature. &lt;b&gt;Clear&lt;/b&gt; removes all rulers.
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [{ name: 'Price', data: series() }],
+          chartOptions: {
+            chart: {
+              id: 'price',
+              type: 'area',
+              height: 380,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { enabled: false },
+              measure: { enabled: true, pinOnRelease: true },
+              toolbar: { show: true, autoSelected: 'measure' },
+              zoom: { enabled: true, type: 'x' },
+            },
+            stroke: { width: 2, curve: 'straight' },
+            dataLabels: { enabled: false },
+            title: { text: 'Price (measure any move)', align: 'left' },
+            xaxis: { type: 'numeric', title: { text: 'Session' } },
+            yaxis: { title: { text: 'Price' }, decimalsInFloat: 0 },
+          },
+
+          pollTimer: null,
+        },
+        mounted: function () {
+          // The vue-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id, then wire the same handlers the vanilla build does.
+          // (series() lives in the shared head script.)
+          var me = this
+          me.pollTimer = window.setInterval(function () {
+            var chart = ApexCharts.getChartByID('price')
+            if (!chart) return
+            window.clearInterval(me.pollTimer)
+            me.pollTimer = null
+
+            var readout = document.getElementById('mz-readout')
+
+            document
+              .getElementById('mz-clear')
+              .addEventListener('click', function () {
+                chart.clearMeasures()
+              })
+
+            chart.addEventListener('measured', function (c, o) {
+              readout.textContent =
+                'dx=' +
+                Number(o.dx).toFixed(2) +
+                '  dy=' +
+                Number(o.dy).toFixed(2) +
+                '  (' +
+                (o.percentChange >= 0 ? '+' : '') +
+                Number(o.percentChange).toFixed(1) +
+                '%)'
+            })
+          }, 50)
+        },
+        beforeDestroy: function () {
+          if (this.pollTimer) window.clearInterval(this.pollTimer)
+        },
+      })
+    </script>
+    
+  </body>
+</html>

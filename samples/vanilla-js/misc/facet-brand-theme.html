@@ -97,9 +97,9 @@
       <div class="panel">
         <div class="note">
           Three themes are registered once with
-          <code>ApexCharts.registerTheme(name, { palette, tokens, mode })</code>. The
-          chart references one via <code>theme: { name: 'sunset' }</code> and the
-          dropdown switches with <code>chart.updateOptions({ theme: { name } })</code>.
+          <code>ApexCharts.registerTheme(name, &#123; palette, tokens, mode &#125;)</code>. The
+          chart references one via <code>theme: &#123; name: 'sunset' &#125;</code> and the
+          dropdown switches with <code>chart.updateOptions(&#123; theme: &#123; name &#125; &#125;)</code>.
           A registered theme sits below explicit config and CSS <code>--apx-*</code>
           tokens, so a page-level token can still override a brand default.
         </div>
@@ -109,6 +109,7 @@
       var options = {
         series: [{ name: 'Revenue', data: [44, 62, 51, 38, 47] }],
         chart: {
+          id: 'facetBrandChart',
           height: 400,
           type: 'bar',
           fontFamily: 'sans-serif',

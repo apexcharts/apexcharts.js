@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Rewind: History and Undo / Redo</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 760px;
+        margin: 16px auto;
+      }
+      .panel {
+        max-width: 760px;
+        margin: 16px auto;
+        font-family: sans-serif;
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .controls button {
+        padding: 7px 15px;
+        cursor: pointer;
+        border: 1px solid #cdd3de;
+        background: #fff;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .controls button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .controls .primary {
+        border-color: #7c5cf6;
+        color: #7c5cf6;
+        font-weight: 600;
+      }
+      .readout {
+        font-family: monospace;
+        font-size: 13px;
+        color: #444;
+        margin-left: auto;
+      }
+      .readout b {
+        color: #111;
+      }
+      .note {
+        background: #f6f4fe;
+        border-left: 3px solid #7c5cf6;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        margin-top: 12px;
+        line-height: 1.55;
+      }
+      .note code {
+        background: #e9e4fd;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      function randomSeries() {
+        var d = []
+        for (var i = 0; i < 7; i++) d.push(Math.round(10 + Math.random() * 90))
+        return d
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;panel&quot;&gt;
+  &lt;div class=&quot;controls&quot;&gt;
+    &lt;button id=&quot;undo&quot; class=&quot;primary&quot; disabled&gt;Undo&lt;/button&gt;
+    &lt;button id=&quot;redo&quot; class=&quot;primary&quot; disabled&gt;Redo&lt;/button&gt;
+    &lt;button id=&quot;randomize&quot;&gt;Randomize data&lt;/button&gt;
+    &lt;button id=&quot;reset&quot;&gt;Clear history&lt;/button&gt;
+    &lt;span class=&quot;readout&quot; id=&quot;readout&quot;&gt;history: empty&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={380} /&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;panel&quot;&gt;
+  &lt;div class=&quot;note&quot;&gt;
+    History is enabled with &lt;code&gt;chart: &amp;#123; history: &amp;#123; enabled: true &amp;#125; &amp;#125;&lt;/code&gt;.
+    Every data update, zoom, and point selection commits a checkpoint. Press
+    Randomize a few times, then step back with Undo / Redo (or press
+    &lt;code&gt;Cmd/Ctrl + Z&lt;/code&gt; and &lt;code&gt;Shift + Cmd/Ctrl + Z&lt;/code&gt;). Toggling a
+    series in the legend and zooming also create checkpoints. The buttons enable
+    from the &lt;code&gt;historyChange&lt;/code&gt; event via &lt;code&gt;chart.history.state()&lt;/code&gt;.
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [{ name: 'Value', data: [34, 55, 41, 67, 22, 48, 60] }],
+          options: {
+            chart: {
+              height: 380,
+              type: 'bar',
+              id: 'rewind-demo',
+              animations: { enabled: true },
+              toolbar: { show: false },
+              history: {
+                enabled: true,
+                maxDepth: 50,
+                coalesceMs: 250,
+                keyboard: true,
+              },
+              zoom: { enabled: true },
+            },
+            colors: ['#7c5cf6'],
+            plotOptions: { bar: { columnWidth: '55%', borderRadius: 4 } },
+            dataLabels: { enabled: false },
+            title: {
+              text: 'Undo / redo over data, zoom, and selection',
+              align: 'left',
+            },
+            xaxis: { categories: ['A', 'B', 'C', 'D', 'E', 'F', 'G'] },
+          },
+        })
+
+        React.useEffect(() => {
+          // The react-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id, then wire the same buttons the vanilla build does.
+          // (randomSeries lives in the shared head script.) History drives the chart
+          // instance directly, so no React state changes and the chart is never
+          // re-rendered under it.
+          let chart
+          const timer = window.setInterval(() => {
+            chart = ApexCharts.getChartByID('rewind-demo')
+            if (!chart) return
+            window.clearInterval(timer)
+
+            const undoBtn = document.getElementById('undo')
+            const redoBtn = document.getElementById('redo')
+            const readout = document.getElementById('readout')
+
+            function syncButtons(state) {
+              if (!state) state = chart.history.state()
+              undoBtn.disabled = !state.canUndo
+              redoBtn.disabled = !state.canRedo
+              readout.innerHTML =
+                'history: <b>' +
+                (state.index + 1) +
+                ' / ' +
+                state.length +
+                '</b> checkpoints'
+            }
+
+            chart.addEventListener('historyChange', function (c, state) {
+              syncButtons(state && state.length != null ? state : undefined)
+            })
+
+            undoBtn.addEventListener('click', function () {
+              chart.history.undo()
+            })
+            redoBtn.addEventListener('click', function () {
+              chart.history.redo()
+            })
+            document
+              .getElementById('randomize')
+              .addEventListener('click', function () {
+                chart.updateSeries([{ name: 'Value', data: randomSeries() }])
+              })
+            document.getElementById('reset').addEventListener('click', function () {
+              chart.history.clear()
+            })
+
+            // initial state once the baseline checkpoint lands
+            window.setTimeout(syncButtons, 300)
+          }, 50)
+
+          return () => {
+            window.clearInterval(timer)
+          }
+        }, [])
+
+        return (
+          <div>
+            <div class="panel">
+              <div class="controls">
+                <button id="undo" class="primary" disabled>
+                  Undo
+                </button>
+                <button id="redo" class="primary" disabled>
+                  Redo
+                </button>
+                <button id="randomize">Randomize data</button>
+                <button id="reset">Clear history</button>
+                <span class="readout" id="readout">
+                  history: empty
+                </span>
+              </div>
+            </div>
+
+            <div id="chart">
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="bar"
+                height={380}
+              />
+            </div>
+
+            <div class="panel">
+              <div class="note">
+                History is enabled with{' '}
+                <code>chart: &#123; history: &#123; enabled: true &#125; &#125;</code>
+                . Every data update, zoom, and point selection commits a checkpoint.
+                Press Randomize a few times, then step back with Undo / Redo (or press
+                <code>Cmd/Ctrl + Z</code> and <code>Shift + Cmd/Ctrl + Z</code>).
+                Toggling a series in the legend and zooming also create checkpoints.
+                The buttons enable from the <code>historyChange</code> event via{' '}
+                <code>chart.history.state()</code>.
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

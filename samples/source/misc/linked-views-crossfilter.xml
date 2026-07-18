@@ -70,6 +70,9 @@
     }
     return out
   }
+
+  // Shared by the vanilla-js, React and Vue builds.
+  function fmt(ts) { return new Date(ts).toISOString().slice(0, 10) }
 </script>
 </scripts>
 
@@ -156,9 +159,8 @@ yaxis: { labels: { formatter: function (v) { return '$' + Math.round(v) } } },
 <vanilla-js-script>
 // charts[0] = orders (brush source), charts[1] = value (target).
 // The generated file exposes each chart as chart, chart1, chart2, ...
+// (fmt lives in the shared head script.)
 var readout = document.getElementById('readout')
-
-function fmt(ts) { return new Date(ts).toISOString().slice(0, 10) }
 
 chart.addEventListener('crossFilter', function (c, opts) {
   readout.textContent = 'Filtered: ' + fmt(opts.xaxis.min) + ' to ' + fmt(opts.xaxis.max)
@@ -169,3 +171,69 @@ document.getElementById('clear').addEventListener('click', function () {
   readout.textContent = 'Cleared'
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the brush-source
+  // chart ('orders') by its chart.id. Poll until it exists, then wire the same
+  // crossfilter readout + clear button the vanilla build does. (fmt lives in the
+  // shared head script.) The link feature drives the chart instances directly,
+  // so no React state changes and the charts are not re-rendered under it.
+  let chart
+  const readout = document.getElementById('readout')
+  const onClear = () => {
+    if (chart) chart.clearCrossfilter()
+    if (readout) readout.textContent = 'Cleared'
+  }
+  const onCrossFilter = (c, opts) => {
+    readout.textContent = 'Filtered: ' + fmt(opts.xaxis.min) + ' to ' + fmt(opts.xaxis.max)
+  }
+
+  const timer = window.setInterval(() => {
+    chart = ApexCharts.getChartByID('orders')
+    if (!chart) return
+    window.clearInterval(timer)
+    chart.addEventListener('crossFilter', onCrossFilter)
+    document.getElementById('clear').addEventListener('click', onClear)
+  }, 50)
+
+  return () => {
+    window.clearInterval(timer)
+    const btn = document.getElementById('clear')
+    if (btn) btn.removeEventListener('click', onClear)
+  }
+}, [])
+</react-script>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the brush-source chart
+  // ('orders') by its chart.id. Poll until it exists, then wire the same
+  // crossfilter readout + clear button the vanilla build does. (fmt lives in the
+  // shared head script.) The link feature drives the chart instances directly,
+  // so no reactive data changes and the charts are not re-rendered under it.
+  var me = this
+  var readout = document.getElementById('readout')
+  me._onClear = function () {
+    if (me._chart) me._chart.clearCrossfilter()
+    if (readout) readout.textContent = 'Cleared'
+  }
+  var timer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('orders')
+    if (!chart) return
+    window.clearInterval(timer)
+    me._timer = null
+    me._chart = chart
+    chart.addEventListener('crossFilter', function (c, opts) {
+      readout.textContent = 'Filtered: ' + fmt(opts.xaxis.min) + ' to ' + fmt(opts.xaxis.max)
+    })
+    document.getElementById('clear').addEventListener('click', me._onClear)
+  }, 50)
+  me._timer = timer
+},
+beforeDestroy: function () {
+  if (this._timer) window.clearInterval(this._timer)
+  var btn = document.getElementById('clear')
+  if (btn && this._onClear) btn.removeEventListener('click', this._onClear)
+},
+</vue-script>

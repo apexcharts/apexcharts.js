@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Registered Brand Themes (Facet)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 720px;
+        margin: 16px auto;
+      }
+      .panel {
+        max-width: 720px;
+        margin: 16px auto;
+        font-family: sans-serif;
+      }
+      .controls {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .controls select {
+        padding: 5px 8px;
+        font-size: 14px;
+      }
+      .note {
+        background: #f6f6fb;
+        border-left: 3px solid #6c5ce7;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.55;
+      }
+      .note code {
+        background: #e9e7fb;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Facet (#13): register named themes ONCE (palette + design tokens + mode).
+      // Any chart can then reference one by name via theme:{ name }, and switching
+      // themes is a single updateOptions call.
+      ApexCharts.registerTheme('sunset', {
+        palette: ['#ff6b6b', '#f06595', '#cc5de8', '#845ef7', '#ff922b'],
+        tokens: { fore: '#5c3d2e', grid: '#f3d9c4', surface: '#fff8f2' },
+      })
+      ApexCharts.registerTheme('ocean', {
+        palette: ['#0ca678', '#1098ad', '#1971c2', '#3b5bdb', '#0b7285'],
+        tokens: { fore: '#0b3d4d', grid: '#c5e4ec', surface: '#f2fbfd' },
+      })
+      ApexCharts.registerTheme('slate', {
+        mode: 'dark',
+        palette: ['#94a3b8', '#38bdf8', '#a78bfa', '#f472b6', '#fbbf24'],
+        tokens: { fore: '#e2e8f0', grid: '#334155', surface: '#0f172a' },
+      })
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;panel&quot;&gt;
+  &lt;div class=&quot;controls&quot;&gt;
+    &lt;label&gt;
+      Theme:
+      &lt;select id=&quot;themePick&quot;&gt;
+        &lt;option value=&quot;sunset&quot; selected&gt;sunset&lt;/option&gt;
+        &lt;option value=&quot;ocean&quot;&gt;ocean&lt;/option&gt;
+        &lt;option value=&quot;slate&quot;&gt;slate (dark)&lt;/option&gt;
+      &lt;/select&gt;
+    &lt;/label&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={400} /&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;panel&quot;&gt;
+  &lt;div class=&quot;note&quot;&gt;
+    Three themes are registered once with
+    &lt;code&gt;ApexCharts.registerTheme(name, &amp;#123; palette, tokens, mode &amp;#125;)&lt;/code&gt;. The
+    chart references one via &lt;code&gt;theme: &amp;#123; name: &#39;sunset&#39; &amp;#125;&lt;/code&gt; and the
+    dropdown switches with &lt;code&gt;chart.updateOptions(&amp;#123; theme: &amp;#123; name &amp;#125; &amp;#125;)&lt;/code&gt;.
+    A registered theme sits below explicit config and CSS &lt;code&gt;--apx-*&lt;/code&gt;
+    tokens, so a page-level token can still override a brand default.
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [{ name: 'Revenue', data: [44, 62, 51, 38, 47] }],
+          options: {
+            chart: {
+              id: 'facetBrandChart',
+              height: 400,
+              type: 'bar',
+              fontFamily: 'sans-serif',
+              animations: { enabled: true },
+              toolbar: { show: false },
+            },
+            theme: {
+              name: 'sunset',
+            },
+            plotOptions: {
+              bar: { columnWidth: '55%', borderRadius: 4, distributed: true },
+            },
+            dataLabels: { enabled: false },
+            legend: { show: false },
+            title: {
+              text: 'Revenue by channel',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'Palette and chrome come from a registered brand theme',
+              align: 'left',
+            },
+            xaxis: {
+              type: 'category',
+              categories: ['Direct', 'Search', 'Social', 'Email', 'Referral'],
+            },
+          },
+        })
+
+        React.useEffect(() => {
+          // The react-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id at event time. The dropdown lives in the html block (not the
+          // chart wrapper), so it is in the DOM by the time this effect runs.
+          const pick = document.getElementById('themePick')
+          const onChange = (e) => {
+            const chart = ApexCharts.getChartByID('facetBrandChart')
+            if (chart) chart.updateOptions({ theme: { name: e.target.value } })
+          }
+          pick.addEventListener('change', onChange)
+          return () => pick.removeEventListener('change', onChange)
+        }, [])
+
+        return (
+          <div>
+            <div class="panel">
+              <div class="controls">
+                <label>
+                  Theme:
+                  <select id="themePick">
+                    <option value="sunset" selected>
+                      sunset
+                    </option>
+                    <option value="ocean">ocean</option>
+                    <option value="slate">slate (dark)</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div id="chart">
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="bar"
+                height={400}
+              />
+            </div>
+
+            <div class="panel">
+              <div class="note">
+                Three themes are registered once with
+                <code>
+                  ApexCharts.registerTheme(name, &#123; palette, tokens, mode &#125;)
+                </code>
+                . The chart references one via{' '}
+                <code>theme: &#123; name: 'sunset' &#125;</code> and the dropdown
+                switches with{' '}
+                <code>
+                  chart.updateOptions(&#123; theme: &#123; name &#125; &#125;)
+                </code>
+                . A registered theme sits below explicit config and CSS{' '}
+                <code>--apx-*</code>
+                tokens, so a page-level token can still override a brand default.
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

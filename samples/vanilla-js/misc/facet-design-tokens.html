@@ -75,6 +75,9 @@
         padding: 1px 5px;
         border-radius: 3px;
       }
+      .state {
+        font-size: 13px;
+      }
     </style>
 
     
@@ -95,6 +98,9 @@
       // No per-series colors, no foreColor, no grid.borderColor: the chart reads the
       // --apx-* tokens from the cascade. theme.follow:'os' additionally tracks the
       // operating system's light/dark setting with zero JS.
+      // Shared by the vanilla-js, React and Vue builds: the accent tokens the
+      // Shuffle button cycles through at runtime.
+      var ACCENTS = ['#e11d48', '#0e9d9a', '#d97706', '#7c3aed', '#4f46e5']
     </script>
   </head>
 
@@ -103,7 +109,7 @@
         <div class="controls">
           <button id="toggle">Toggle light / dark</button>
           <button id="shuffle">Shuffle accent token</button>
-          <span id="state" style="font-size:13px;"></span>
+          <span id="state" class="state"></span>
         </div>
       </div>
       
@@ -115,7 +121,7 @@
           (<code>--apx-accent</code>, <code>--apx-fore</code>, <code>--apx-grid</code>,
           <code>--apx-surface</code>) defined once in the stylesheet. The chart config
           sets no colors at all. The first button flips a class that swaps the token
-          values; with <code>theme: { follow: 'os' }</code> the chart also tracks the
+          values; with <code>theme: &#123; follow: 'os' &#125;</code> the chart also tracks the
           OS <code>prefers-color-scheme</code> automatically, no JS required.
           <b>Shuffle accent token</b> changes only the CSS variable at runtime and
           calls <code>chart.refreshTokens()</code>, which re-reads the cascade and
@@ -128,6 +134,7 @@
       var options = {
         series: [{ name: 'Users', data: [3100, 4200, 3800, 5100, 4700, 6200, 5800] }],
         chart: {
+          id: 'facetTokensChart',
           height: 400,
           type: 'area',
           fontFamily: 'sans-serif',
@@ -160,6 +167,7 @@
       var chart = new ApexCharts(document.querySelector('#chart'), options)
       chart.render()
 
+      // ACCENTS lives in the shared head script so all three builds cycle the same set.
       var root = document.documentElement
       var stateEl = document.getElementById('state')
 
@@ -181,13 +189,12 @@
         syncState()
       })
 
-      var accents = ['#e11d48', '#0e9d9a', '#d97706', '#7c3aed', '#4f46e5']
       var accentIdx = -1
       document.getElementById('shuffle').addEventListener('click', function () {
-        accentIdx = (accentIdx + 1) % accents.length
+        accentIdx = (accentIdx + 1) % ACCENTS.length
         // A pure token change: no chart option differs, so updateOptions({}) would
         // be memoized away. refreshTokens() re-reads the CSS cascade and re-renders.
-        root.style.setProperty('--apx-accent', accents[accentIdx])
+        root.style.setProperty('--apx-accent', ACCENTS[accentIdx])
         chart.refreshTokens()
       })
     </script>

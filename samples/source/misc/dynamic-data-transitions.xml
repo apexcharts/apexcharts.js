@@ -65,6 +65,139 @@
   }
 </style>
 
+<scripts>
+<script>
+// State + data helpers shared by the vanilla-js, React and Vue builds. Both
+// charts are driven directly through their chart.id, so the wiring is one
+// implementation for all three formats.
+var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+var INITIAL = { labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'], values: [42, 61, 45, 78, 52, 89, 66] }
+
+var state = {
+  labels: INITIAL.labels.slice(),
+  values: INITIAL.values.slice(),
+  monthCursor: INITIAL.labels.length, // next month to append
+  insertCount: 0,
+}
+
+// Deterministic "random" value so the demo replays identically.
+function nextValue(seed) {
+  return 30 + ((seed * 37) % 60)
+}
+
+function monthLabel(i) {
+  var name = MONTHS[i % 12]
+  return i > 11 ? name + " '26" : name
+}
+
+function speed() {
+  return document.getElementById('dt-slow').checked ? 1800 : 650
+}
+
+function pushState() {
+  var barChart = ApexCharts.getChartByID('dtBar')
+  var areaChart = ApexCharts.getChartByID('dtArea')
+  if (!barChart || !areaChart) return
+
+  var payload = {
+    chart: { animations: { dynamicAnimation: { speed: speed() } } },
+    xaxis: { categories: state.labels.slice() },
+  }
+  barChart.updateOptions(
+    Object.assign({ series: [{ name: 'Revenue', data: state.values.slice() }] }, payload),
+    false,
+    true
+  )
+  areaChart.updateOptions(
+    Object.assign(
+      {
+        series: [
+          {
+            name: 'Users',
+            data: state.values.map(function (v) {
+              return Math.round(v * 0.6 + 10)
+            }),
+          },
+        ],
+      },
+      payload
+    ),
+    false,
+    true
+  )
+  syncButtons()
+}
+
+function syncButtons() {
+  document.getElementById('dt-add').disabled = state.labels.length >= 20
+  document.getElementById('dt-insert').disabled = state.labels.length >= 20
+  document.getElementById('dt-remove-last').disabled = state.labels.length <= 3
+  document.getElementById('dt-remove-mid').disabled = state.labels.length <= 3
+}
+
+// Attach every button, then set the initial disabled state. Returns a cleanup
+// function that detaches the listeners (used by the React/Vue teardown).
+function wireDynamicData() {
+  var handlers = []
+  function on(id, fn) {
+    var el = document.getElementById(id)
+    if (!el) return
+    el.addEventListener('click', fn)
+    handlers.push({ el: el, fn: fn })
+  }
+
+  on('dt-add', function () {
+    state.labels.push(monthLabel(state.monthCursor))
+    state.values.push(nextValue(state.monthCursor))
+    state.monthCursor++
+    pushState()
+  })
+
+  on('dt-insert', function () {
+    var at = Math.floor(state.labels.length / 2)
+    state.insertCount++
+    state.labels.splice(at, 0, 'New ' + state.insertCount)
+    state.values.splice(at, 0, nextValue(state.insertCount * 5 + 3))
+    pushState()
+  })
+
+  on('dt-remove-last', function () {
+    state.labels.pop()
+    state.values.pop()
+    pushState()
+  })
+
+  on('dt-remove-mid', function () {
+    var at = Math.floor(state.labels.length / 2)
+    state.labels.splice(at, 1)
+    state.values.splice(at, 1)
+    pushState()
+  })
+
+  on('dt-rotate', function () {
+    state.values.push(state.values.shift())
+    pushState()
+  })
+
+  on('dt-reset', function () {
+    state.labels = INITIAL.labels.slice()
+    state.values = INITIAL.values.slice()
+    state.monthCursor = INITIAL.labels.length
+    state.insertCount = 0
+    pushState()
+  })
+
+  syncButtons()
+
+  return function () {
+    handlers.forEach(function (h) {
+      h.el.removeEventListener('click', h.fn)
+    })
+  }
+}
+</script>
+</scripts>
+
 <html>
 <div class="dt-wrap">
   <div class="dt-bar">
@@ -99,6 +232,7 @@
 <chart>
 <options>
 chart: {
+  id: 'dtBar',
   type: 'bar',
   height: 280,
   fontFamily: 'Helvetica, Arial, sans-serif',
@@ -125,6 +259,7 @@ grid: { padding: { top: -10 } }
 <chart>
 <options>
 chart: {
+  id: 'dtArea',
   type: 'area',
   height: 280,
   fontFamily: 'Helvetica, Arial, sans-serif',
@@ -151,107 +286,51 @@ grid: { padding: { top: -10 } }
 </chart>
 
 <vanilla-js-script>
-var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-var INITIAL = { labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'], values: [42, 61, 45, 78, 52, 89, 66] }
-
-var state = {
-  labels: INITIAL.labels.slice(),
-  values: INITIAL.values.slice(),
-  monthCursor: INITIAL.labels.length, // next month to append
-  insertCount: 0,
-}
-
-// Deterministic "random" value so the demo replays identically.
-function nextValue(seed) {
-  return 30 + ((seed * 37) % 60)
-}
-
-function monthLabel(i) {
-  var name = MONTHS[i % 12]
-  return i > 11 ? name + " '26" : name
-}
-
-function speed() {
-  return document.getElementById('dt-slow').checked ? 1800 : 650
-}
-
-function pushState() {
-  var payload = {
-    chart: { animations: { dynamicAnimation: { speed: speed() } } },
-    xaxis: { categories: state.labels.slice() },
-  }
-  chart.updateOptions(
-    Object.assign({ series: [{ name: 'Revenue', data: state.values.slice() }] }, payload),
-    false,
-    true
-  )
-  chart1.updateOptions(
-    Object.assign(
-      {
-        series: [
-          {
-            name: 'Users',
-            data: state.values.map(function (v) {
-              return Math.round(v * 0.6 + 10)
-            }),
-          },
-        ],
-      },
-      payload
-    ),
-    false,
-    true
-  )
-  syncButtons()
-}
-
-function syncButtons() {
-  document.getElementById('dt-add').disabled = state.labels.length >= 20
-  document.getElementById('dt-insert').disabled = state.labels.length >= 20
-  document.getElementById('dt-remove-last').disabled = state.labels.length <= 3
-  document.getElementById('dt-remove-mid').disabled = state.labels.length <= 3
-}
-
-document.getElementById('dt-add').addEventListener('click', function () {
-  state.labels.push(monthLabel(state.monthCursor))
-  state.values.push(nextValue(state.monthCursor))
-  state.monthCursor++
-  pushState()
-})
-
-document.getElementById('dt-insert').addEventListener('click', function () {
-  var at = Math.floor(state.labels.length / 2)
-  state.insertCount++
-  state.labels.splice(at, 0, 'New ' + state.insertCount)
-  state.values.splice(at, 0, nextValue(state.insertCount * 5 + 3))
-  pushState()
-})
-
-document.getElementById('dt-remove-last').addEventListener('click', function () {
-  state.labels.pop()
-  state.values.pop()
-  pushState()
-})
-
-document.getElementById('dt-remove-mid').addEventListener('click', function () {
-  var at = Math.floor(state.labels.length / 2)
-  state.labels.splice(at, 1)
-  state.values.splice(at, 1)
-  pushState()
-})
-
-document.getElementById('dt-rotate').addEventListener('click', function () {
-  state.values.push(state.values.shift())
-  pushState()
-})
-
-document.getElementById('dt-reset').addEventListener('click', function () {
-  state.labels = INITIAL.labels.slice()
-  state.values = INITIAL.values.slice()
-  state.monthCursor = INITIAL.labels.length
-  state.insertCount = 0
-  pushState()
-})
-
-syncButtons()
+// Both charts are already rendered here, so wire the buttons straight away.
+// (All the state + helpers live in the shared head script.)
+wireDynamicData()
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instances by
+  // their chart.id. Poll until BOTH exist, then wire the same buttons the
+  // vanilla build does. (State + helpers live in the shared head script.) The
+  // buttons drive the chart instances directly, so no React state changes and
+  // the <ReactApexChart> tags are never re-rendered under them.
+  let cleanup
+  const timer = window.setInterval(() => {
+    const bar = ApexCharts.getChartByID('dtBar')
+    const area = ApexCharts.getChartByID('dtArea')
+    if (!bar || !area) return
+    window.clearInterval(timer)
+    cleanup = wireDynamicData()
+  }, 50)
+
+  return () => {
+    window.clearInterval(timer)
+    if (cleanup) cleanup()
+  }
+}, [])
+</react-script>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instances by
+  // their chart.id. Poll until BOTH exist, then wire the same buttons the
+  // vanilla build does. (State + helpers live in the shared head script.) The
+  // buttons drive the chart instances directly, so no reactive data changes and
+  // the <apexchart> tags are never re-rendered under them.
+  var me = this
+  var timer = window.setInterval(function () {
+    var bar = ApexCharts.getChartByID('dtBar')
+    var area = ApexCharts.getChartByID('dtArea')
+    if (!bar || !area) return
+    window.clearInterval(timer)
+    me.dtCleanup = wireDynamicData()
+  }, 50)
+},
+beforeDestroy: function () {
+  if (this.dtCleanup) this.dtCleanup()
+},
+</vue-script>

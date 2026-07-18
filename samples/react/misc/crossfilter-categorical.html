@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Crossfilter: Click to Filter Across Charts (chart.link)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      .cf-wrap {
+        max-width: 700px;
+        margin: 12px auto;
+        font-family: Helvetica, Arial, sans-serif;
+      }
+      .cf-bar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 4px 6px 14px;
+      }
+      .cf-bar button {
+        padding: 6px 13px;
+        cursor: pointer;
+        border: 1px solid #6366f1;
+        color: #4338ca;
+        background: #fff;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .cf-bar .readout {
+        font-family: monospace;
+        font-size: 13px;
+        color: #445;
+      }
+      .cf-grid {
+        display: grid;
+        /* Two donuts side by side at ~700px, collapsing to one column when narrow. */
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 8px;
+      }
+      .cf-grid .full {
+        grid-column: 1 / -1;
+      }
+      .cf-card {
+        border: 1px solid #e4e7f2;
+        border-radius: 8px;
+        padding: 6px;
+        background: #fff;
+      }
+      /* The shared demo stylesheet gives the FIRST chart container (#chart) a
+               white panel + border; the cards style all three uniformly instead. */
+      #chart {
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+      }
+      .cf-note {
+        background: #eef2ff;
+        border-left: 3px solid #6366f1;
+        padding: 11px 15px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.6;
+        margin: 14px 6px;
+      }
+      .cf-note code {
+        background: #dfe3ff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Deterministic trade records (one row per trade). No randomness, but the
+      // distributions are intentionally uneven so the crossfilter is visible:
+      //   - quarters have different totals (the donut is 18 / 12 / 16 / 14, not 4x15)
+      //   - each quarter peaks on a different weekday
+      //   - outcome leans Gain early in the week and Loss later
+      // So clicking a quarter OR an outcome noticeably reshapes the day bar below.
+      function tradesData() {
+        var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+
+        // quarter -> trades per weekday (Mon..Fri); column totals differ per quarter.
+        var plan = {
+          Q1: [8, 4, 3, 2, 1], // early-week heavy
+          Q2: [1, 2, 5, 3, 1], // mid-week heavy
+          Q3: [2, 2, 3, 4, 5], // late-week heavy
+          Q4: [3, 6, 2, 2, 1], // Tuesday spike
+        }
+        // Share of Gains by weekday index (Mon..Fri): high early, low late.
+        var gainByDay = [0.85, 0.7, 0.5, 0.3, 0.15]
+
+        var out = []
+        Object.keys(plan).forEach(function (q) {
+          plan[q].forEach(function (count, di) {
+            var gains = Math.round(count * gainByDay[di])
+            for (var k = 0; k < count; k++) {
+              out.push({
+                q: q,
+                day: days[di],
+                gl: k < gains ? 'Gain' : 'Loss',
+              })
+            }
+          })
+        })
+        return out
+      }
+
+      // Register the shared record set BEFORE the charts are constructed, so each
+      // chart's initial paint is already the aggregation (no empty flash).
+      ApexCharts.crossfilter({ id: 'trades', records: tradesData() })
+
+      // Readout formatter, shared by the vanilla-js, React and Vue builds.
+      function fmtFilters(state) {
+        var keys = Object.keys(state.filters)
+        if (!keys.length) return 'No filter (all ' + state.total + ' trades)'
+        var parts = keys.map(function (id) {
+          return id + ': ' + state.filters[id].join(', ')
+        })
+        return (
+          parts.join('  |  ') +
+          '   ->   ' +
+          state.filteredCount +
+          ' / ' +
+          state.total +
+          ' trades'
+        )
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;cf-wrap&quot;&gt;
+  &lt;div class=&quot;cf-bar&quot;&gt;
+    &lt;button id=&quot;cf-reset&quot;&gt;Reset filters&lt;/button&gt;
+    &lt;span class=&quot;readout&quot; id=&quot;cf-readout&quot;&gt;Click a slice or bar to filter every chart&lt;/span&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;cf-grid&quot;&gt;
+    &lt;div class=&quot;cf-card&quot;&gt;&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;donut&quot; height={300} /&gt;
+&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;cf-card&quot;&gt;&lt;div id=&quot;chart2&quot;&gt;
+  &lt;ReactApexChart options={state.options1} series={state.series1} type=&quot;donut&quot; height={300} /&gt;
+&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;cf-card full&quot;&gt;&lt;div id=&quot;chart3&quot;&gt;
+  &lt;ReactApexChart options={state.options2} series={state.series2} type=&quot;bar&quot; height={280} /&gt;
+&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;cf-note&quot;&gt;
+    All three charts declare a &lt;code&gt;chart.link.dimension&lt;/code&gt; over one record
+    set registered with &lt;code&gt;ApexCharts.crossfilter(&amp;#123; id, records &amp;#125;)&lt;/code&gt;.
+    Clicking a slice or bar toggles that bucket: the clicked chart dims its
+    other buckets, and every other chart &lt;b&gt;re-aggregates over the filtered
+    trades&lt;/b&gt; and animates to its new values. Selections combine (a chart
+    never filters itself), so you always see what is still available.
+    &lt;b&gt;Reset filters&lt;/b&gt; clears everything. Needs the &lt;code&gt;link&lt;/code&gt; feature.
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [],
+          options: {
+            chart: {
+              id: 'byQuarter',
+              type: 'donut',
+              height: 300,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { speed: 500 },
+              link: {
+                id: 'trades',
+                dimension: function (r) {
+                  return r.q
+                },
+                reduce: 'count',
+                dimOpacity: 0.18,
+              },
+            },
+            title: { text: 'By quarter', align: 'left' },
+            legend: { position: 'bottom' },
+            plotOptions: { pie: { expandOnClick: false } },
+            dataLabels: {
+              enabled: true,
+              formatter: function (val, opts) {
+                return opts.w.config.series[opts.seriesIndex]
+              },
+              style: { colors: ['#334155'], fontWeight: 600 },
+              dropShadow: { enabled: false },
+            },
+            colors: ['#818cf8', '#38bdf8', '#4ade80', '#fbbf24'],
+            stroke: { width: 2, colors: ['#fff'] },
+          },
+
+          series1: [],
+          options1: {
+            chart: {
+              id: 'byOutcome',
+              type: 'donut',
+              height: 300,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { speed: 500 },
+              link: {
+                id: 'trades',
+                dimension: function (r) {
+                  return r.gl
+                },
+                reduce: 'count',
+                order: 'asc', // Gain before Loss, so the colors below map semantically
+                dimOpacity: 0.18,
+              },
+            },
+            title: { text: 'By outcome', align: 'left' },
+            legend: { position: 'bottom' },
+            plotOptions: { pie: { expandOnClick: false } },
+            dataLabels: {
+              enabled: true,
+              formatter: function (val, opts) {
+                return opts.w.config.series[opts.seriesIndex]
+              },
+              style: { colors: ['#334155'], fontWeight: 600 },
+              dropShadow: { enabled: false },
+            },
+            colors: ['#4ade80', '#f87171'],
+            stroke: { width: 2, colors: ['#fff'] },
+          },
+
+          series2: [],
+          options2: {
+            chart: {
+              id: 'byDay',
+              type: 'bar',
+              height: 280,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { speed: 500 },
+              link: {
+                id: 'trades',
+                dimension: function (r) {
+                  return r.day
+                },
+                reduce: 'count',
+                seriesName: 'Trades',
+                // `order` also takes a comparator: keep the weekdays in calendar order
+                // instead of the order they first appear in the records.
+                order: function (a, b) {
+                  var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+                  return days.indexOf(a) - days.indexOf(b)
+                },
+                dimOpacity: 0.18,
+              },
+            },
+            title: { text: 'By day of week (click a bar too)', align: 'left' },
+            plotOptions: {
+              bar: { columnWidth: '55%', borderRadius: 3, distributed: true },
+            },
+            legend: { show: false },
+            dataLabels: { enabled: false },
+            colors: ['#818cf8', '#38bdf8', '#4ade80', '#fbbf24', '#f472b6'],
+          },
+        })
+
+        React.useEffect(() => {
+          // The react-apexcharts wrapper owns the render, and the crossfilter engine is
+          // registered by the shared head script (ApexCharts.crossfilter). Poll until the
+          // engine exists, then wire the readout + Reset button the same way the vanilla
+          // build does. (fmtFilters lives in the shared head script.)
+          const timer = window.setInterval(() => {
+            const cf = ApexCharts.getCrossfilter('trades')
+            if (!cf) return
+            window.clearInterval(timer)
+
+            const readout = document.getElementById('cf-readout')
+            cf.on('change', (state) => {
+              readout.textContent = fmtFilters(state)
+            })
+
+            document
+              .getElementById('cf-reset')
+              .addEventListener('click', () => cf.reset())
+          }, 50)
+
+          return () => window.clearInterval(timer)
+        }, [])
+
+        return (
+          <div>
+            <div class="cf-wrap">
+              <div class="cf-bar">
+                <button id="cf-reset">Reset filters</button>
+                <span class="readout" id="cf-readout">
+                  Click a slice or bar to filter every chart
+                </span>
+              </div>
+
+              <div class="cf-grid">
+                <div class="cf-card">
+                  <div id="chart">
+                    <ReactApexChart
+                      options={state.options}
+                      series={state.series}
+                      type="donut"
+                      height={300}
+                    />
+                  </div>
+                </div>
+                <div class="cf-card">
+                  <div id="chart2">
+                    <ReactApexChart
+                      options={state.options1}
+                      series={state.series1}
+                      type="donut"
+                      height={300}
+                    />
+                  </div>
+                </div>
+                <div class="cf-card full">
+                  <div id="chart3">
+                    <ReactApexChart
+                      options={state.options2}
+                      series={state.series2}
+                      type="bar"
+                      height={280}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div class="cf-note">
+                All three charts declare a <code>chart.link.dimension</code> over one
+                record set registered with{' '}
+                <code>ApexCharts.crossfilter(&#123; id, records &#125;)</code>.
+                Clicking a slice or bar toggles that bucket: the clicked chart dims
+                its other buckets, and every other chart{' '}
+                <b>re-aggregates over the filtered trades</b> and animates to its new
+                values. Selections combine (a chart never filters itself), so you
+                always see what is still available.
+                <b>Reset filters</b> clears everything. Needs the <code>link</code>{' '}
+                feature.
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

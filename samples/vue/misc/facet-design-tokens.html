@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Design Tokens and OS-Aware Theming (Facet)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      /* Facet (#13): define the chart's colors as CSS design tokens ONCE. Every
+               ApexCharts instance on the page reads them, so the chart is part of your
+               design system, not a separate color config. */
+      :root {
+        --apx-accent: #4f46e5;
+        --apx-fore: #1f2937;
+        --apx-grid: #e5e7eb;
+        --apx-surface: #ffffff;
+        --page-bg: #ffffff;
+        --page-fore: #1f2937;
+      }
+      /* The dark palette: the same tokens, different values. Toggling the theme
+               needs no per-series color config in JS. */
+      :root.apx-dark {
+        --apx-accent: #818cf8;
+        --apx-fore: #e5e7eb;
+        --apx-grid: #374151;
+        --apx-surface: #0b0f19;
+        --page-bg: #0b0f19;
+        --page-fore: #e5e7eb;
+      }
+
+      body {
+        background: var(--page-bg);
+        color: var(--page-fore);
+        transition:
+          background 0.25s ease,
+          color 0.25s ease;
+      }
+      #chart {
+        max-width: 720px;
+        margin: 16px auto;
+      }
+      .panel {
+        max-width: 720px;
+        margin: 16px auto;
+        font-family: sans-serif;
+      }
+      .controls {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .controls button {
+        padding: 7px 16px;
+        cursor: pointer;
+        border: 1px solid var(--apx-grid);
+        background: var(--apx-surface);
+        color: var(--page-fore);
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .note {
+        border-left: 3px solid var(--apx-accent);
+        padding: 10px 14px;
+        font-size: 13px;
+        line-height: 1.55;
+        background: color-mix(in srgb, var(--apx-accent) 8%, transparent);
+        border-radius: 2px;
+      }
+      .note code {
+        background: color-mix(in srgb, var(--apx-accent) 16%, transparent);
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+      .state {
+        font-size: 13px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // No per-series colors, no foreColor, no grid.borderColor: the chart reads the
+      // --apx-* tokens from the cascade. theme.follow:'os' additionally tracks the
+      // operating system's light/dark setting with zero JS.
+      // Shared by the vanilla-js, React and Vue builds: the accent tokens the
+      // Shuffle button cycles through at runtime.
+      var ACCENTS = ['#e11d48', '#0e9d9a', '#d97706', '#7c3aed', '#4f46e5']
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="panel">
+      <div class="controls">
+        <button id="toggle">Toggle light / dark</button>
+        <button id="shuffle">Shuffle accent token</button>
+        <span id="state" class="state"></span>
+      </div>
+    </div>
+    
+    <div id="chart">
+      <apexchart type="area" height="400" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    
+    <div class="panel">
+      <div class="note">
+        Every color here comes from CSS <code>--apx-*</code> tokens
+        (<code>--apx-accent</code>, <code>--apx-fore</code>, <code>--apx-grid</code>,
+        <code>--apx-surface</code>) defined once in the stylesheet. The chart config
+        sets no colors at all. The first button flips a class that swaps the token
+        values; with <code>theme: &#123; follow: 'os' &#125;</code> the chart also tracks the
+        OS <code>prefers-color-scheme</code> automatically, no JS required.
+        <b>Shuffle accent token</b> changes only the CSS variable at runtime and
+        calls <code>chart.refreshTokens()</code>, which re-reads the cascade and
+        re-renders: the path for design-system theme switches that are not an OS
+        color-scheme flip.
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;panel&quot;&gt;
+        &lt;div class=&quot;controls&quot;&gt;
+          &lt;button id=&quot;toggle&quot;&gt;Toggle light / dark&lt;/button&gt;
+          &lt;button id=&quot;shuffle&quot;&gt;Shuffle accent token&lt;/button&gt;
+          &lt;span id=&quot;state&quot; class=&quot;state&quot;&gt;&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;400&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+      
+      &lt;div class=&quot;panel&quot;&gt;
+        &lt;div class=&quot;note&quot;&gt;
+          Every color here comes from CSS &lt;code&gt;--apx-*&lt;/code&gt; tokens
+          (&lt;code&gt;--apx-accent&lt;/code&gt;, &lt;code&gt;--apx-fore&lt;/code&gt;, &lt;code&gt;--apx-grid&lt;/code&gt;,
+          &lt;code&gt;--apx-surface&lt;/code&gt;) defined once in the stylesheet. The chart config
+          sets no colors at all. The first button flips a class that swaps the token
+          values; with &lt;code&gt;theme: &amp;#123; follow: &#39;os&#39; &amp;#125;&lt;/code&gt; the chart also tracks the
+          OS &lt;code&gt;prefers-color-scheme&lt;/code&gt; automatically, no JS required.
+          &lt;b&gt;Shuffle accent token&lt;/b&gt; changes only the CSS variable at runtime and
+          calls &lt;code&gt;chart.refreshTokens()&lt;/code&gt;, which re-reads the cascade and
+          re-renders: the path for design-system theme switches that are not an OS
+          color-scheme flip.
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [
+            { name: 'Users', data: [3100, 4200, 3800, 5100, 4700, 6200, 5800] },
+          ],
+          chartOptions: {
+            chart: {
+              id: 'facetTokensChart',
+              height: 400,
+              type: 'area',
+              fontFamily: 'sans-serif',
+              animations: { enabled: true },
+              toolbar: { show: false },
+            },
+            theme: {
+              follow: 'os',
+            },
+            stroke: { curve: 'smooth', width: 2 },
+            fill: {
+              type: 'gradient',
+              gradient: { opacityFrom: 0.35, opacityTo: 0.05 },
+            },
+            dataLabels: { enabled: false },
+            title: {
+              text: 'Weekly active users',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'Colors come entirely from CSS --apx-* design tokens',
+              align: 'left',
+            },
+            xaxis: {
+              type: 'category',
+              categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            },
+            grid: {
+              borderColor: '#e0e0e0',
+            },
+          },
+        },
+        mounted: function () {
+          // The vue-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id at event time. (ACCENTS lives in the shared head script.)
+          var root = document.documentElement
+          var stateEl = document.getElementById('state')
+          var accentIdx = -1
+
+          function currentMode() {
+            return root.classList.contains('apx-dark') ? 'dark' : 'light'
+          }
+          function syncState() {
+            stateEl.textContent = 'Current: ' + currentMode()
+          }
+          syncState()
+
+          var onToggle = function () {
+            root.classList.toggle('apx-dark')
+            var chart = ApexCharts.getChartByID('facetTokensChart')
+            if (chart) chart.updateOptions({ theme: { mode: currentMode() } })
+            syncState()
+          }
+          var onShuffle = function () {
+            accentIdx = (accentIdx + 1) % ACCENTS.length
+            root.style.setProperty('--apx-accent', ACCENTS[accentIdx])
+            var chart = ApexCharts.getChartByID('facetTokensChart')
+            if (chart) chart.refreshTokens()
+          }
+
+          var toggleBtn = document.getElementById('toggle')
+          var shuffleBtn = document.getElementById('shuffle')
+          toggleBtn.addEventListener('click', onToggle)
+          shuffleBtn.addEventListener('click', onShuffle)
+
+          this._toggleBtn = toggleBtn
+          this._shuffleBtn = shuffleBtn
+          this._onToggle = onToggle
+          this._onShuffle = onShuffle
+        },
+        beforeDestroy: function () {
+          if (this._toggleBtn)
+            this._toggleBtn.removeEventListener('click', this._onToggle)
+          if (this._shuffleBtn)
+            this._shuffleBtn.removeEventListener('click', this._onShuffle)
+        },
+      })
+    </script>
+    
+  </body>
+</html>

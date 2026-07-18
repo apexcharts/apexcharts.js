@@ -139,3 +139,64 @@ chart.addEventListener('annotationCreated', function (c, o) {
     kind + ' added. Type to rename it; the floating card restyles or deletes it. Drag to move.'
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the same readout events the vanilla build does.
+  // (The context menu, ink and measure config all live in the chart options.)
+  let chart
+  const timer = window.setInterval(() => {
+    chart = ApexCharts.getChartByID('ctxmenu')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    const readout = document.getElementById('cm-readout')
+    chart.addEventListener('measured', (c, o) => {
+      readout.textContent =
+        'Measured: dy=' + Number(o.dy).toFixed(0) +
+        ' (' + (o.percentChange >= 0 ? '+' : '') + Number(o.percentChange).toFixed(1) + '%)'
+    })
+    chart.addEventListener('annotationCreated', (c, o) => {
+      const kind = o && o.type === 'xaxis' ? 'Dashed line' : o && o.type === 'yaxis' ? 'Level line' : 'Note'
+      readout.textContent =
+        kind + ' added. Type to rename it; the floating card restyles or deletes it. Drag to move.'
+    })
+  }, 50)
+
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+ctxTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the same readout events the vanilla build does.
+  // (The context menu, ink and measure config all live in the chart options.)
+  var me = this
+  me.ctxTimer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('ctxmenu')
+    if (!chart) return
+    window.clearInterval(me.ctxTimer)
+
+    var readout = document.getElementById('cm-readout')
+    chart.addEventListener('measured', function (c, o) {
+      readout.textContent =
+        'Measured: dy=' + Number(o.dy).toFixed(0) +
+        ' (' + (o.percentChange >= 0 ? '+' : '') + Number(o.percentChange).toFixed(1) + '%)'
+    })
+    chart.addEventListener('annotationCreated', function (c, o) {
+      var kind = o && o.type === 'xaxis' ? 'Dashed line' : o && o.type === 'yaxis' ? 'Level line' : 'Note'
+      readout.textContent =
+        kind + ' added. Type to rename it; the floating card restyles or deletes it. Drag to move.'
+    })
+  }, 50)
+},
+beforeDestroy: function () {
+  window.clearInterval(this.ctxTimer)
+},
+</vue-script>

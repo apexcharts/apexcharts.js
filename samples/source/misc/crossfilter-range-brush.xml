@@ -86,7 +86,7 @@
 
   <div class="cf-note">
     The top chart is a <b>histogram</b> of daily fluctuation %, binned by the
-    <code>link</code> engine (<code>bins: { count }</code>) on a numeric x-axis.
+    <code>link</code> engine (<code>bins: &#123; count &#125;</code>) on a numeric x-axis.
     It has <code>chart.selection.enabled</code>, so brushing a range sets a
     <code>[min, max]</code> filter on the fluctuation dimension: the bottom chart
     <b>re-aggregates</b> to just the days in that range, and the histogram dims
@@ -158,6 +158,7 @@ colors: ['#6366f1', '#0ea5e9', '#22c55e', '#f59e0b'],
 
 <vanilla-js-script>
 // charts[0] = fluctuation histogram (brush source), charts[1] = byQuarter.
+// The wiring talks to the crossfilter engine (not the chart instances).
 var cf = ApexCharts.getCrossfilter('market')
 var readout = document.getElementById('cf-readout')
 
@@ -178,3 +179,70 @@ document.getElementById('cf-reset').addEventListener('click', function () {
   if (cf) cf.reset()
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, and the crossfilter engine is
+  // registered by the shared head script (ApexCharts.crossfilter). Poll until the
+  // engine exists, then wire the readout + Reset button the same way the vanilla
+  // build does.
+  const timer = window.setInterval(() => {
+    const cf = ApexCharts.getCrossfilter('market')
+    if (!cf) return
+    window.clearInterval(timer)
+
+    const readout = document.getElementById('cf-readout')
+    cf.on('change', (state) => {
+      const r = state.filters.fluctuation
+      if (r) {
+        readout.textContent =
+          'Fluctuation ' + r[0].toFixed(2) + '% to ' + r[1].toFixed(2) +
+          '%   ->   ' + state.filteredCount + ' / ' + state.total + ' days'
+      } else {
+        readout.textContent = 'No filter (all ' + state.total + ' days)'
+      }
+    })
+
+    document.getElementById('cf-reset').addEventListener('click', () => cf.reset())
+  }, 50)
+
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+cfTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, and the crossfilter engine is
+  // registered by the shared head script (ApexCharts.crossfilter). Poll until the
+  // engine exists, then wire the readout + Reset button the same way the vanilla
+  // build does.
+  this.cfTimer = window.setInterval(function () {
+    var cf = ApexCharts.getCrossfilter('market')
+    if (!cf) return
+    window.clearInterval(this.cfTimer)
+
+    var readout = document.getElementById('cf-readout')
+    cf.on('change', function (state) {
+      var r = state.filters.fluctuation
+      if (r) {
+        readout.textContent =
+          'Fluctuation ' + r[0].toFixed(2) + '% to ' + r[1].toFixed(2) +
+          '%   ->   ' + state.filteredCount + ' / ' + state.total + ' days'
+      } else {
+        readout.textContent = 'No filter (all ' + state.total + ' days)'
+      }
+    })
+
+    document.getElementById('cf-reset').addEventListener('click', function () {
+      cf.reset()
+    })
+  }.bind(this), 50)
+},
+beforeDestroy: function () {
+  window.clearInterval(this.cfTimer)
+},
+</vue-script>

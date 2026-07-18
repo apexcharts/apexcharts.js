@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Crossfilter Heatmap: 2D Cross-Tab that Re-Aggregates (chart.link)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      .cf-wrap {
+        max-width: 700px;
+        margin: 12px auto;
+        font-family: Helvetica, Arial, sans-serif;
+      }
+      .cf-bar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 4px 6px 12px;
+      }
+      .cf-bar button {
+        padding: 6px 13px;
+        cursor: pointer;
+        border: 1px solid #6366f1;
+        color: #4338ca;
+        background: #fff;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .cf-bar .readout {
+        font-family: monospace;
+        font-size: 13px;
+        color: #445;
+      }
+      .cf-card {
+        border: 1px solid #eef;
+        border-radius: 8px;
+        padding: 6px;
+        margin-bottom: 8px;
+      }
+      .cf-row {
+        display: grid;
+        /* Outcome donut + day bar sit side by side, stacking when the tile narrows. */
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 8px;
+      }
+      .cf-note {
+        background: #eef2ff;
+        border-left: 3px solid #6366f1;
+        padding: 11px 15px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.6;
+        margin: 12px 6px;
+      }
+      .cf-note code {
+        background: #dfe3ff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      function tradesData() {
+        var quarters = ['Q1', 'Q2', 'Q3', 'Q4']
+        var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+        var out = []
+        for (var i = 0; i < 90; i++) {
+          out.push({
+            quarter: quarters[Math.floor(i / 23) % 4],
+            day: days[i % 5],
+            outcome: i % 3 === 0 ? 'Loss' : 'Gain',
+          })
+        }
+        return out
+      }
+
+      // Register the shared records BEFORE the charts are constructed.
+      ApexCharts.crossfilter({ id: 'trades', records: tradesData() })
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="cf-wrap">
+      <div class="cf-bar">
+        <button id="cf-reset">Reset</button>
+        <span class="readout" id="cf-readout">Click a slice or bar to re-aggregate the heatmap</span>
+      </div>
+    
+      <div class="cf-card"><div id="chart">
+      <apexchart type="heatmap" height="300" :options="chartOptions" :series="series"></apexchart>
+    </div></div>
+      <div class="cf-row">
+        <div class="cf-card"><div id="chart2">
+      <apexchart type="donut" height="250" :options="chartOptions1" :series="series1"></apexchart>
+    </div></div>
+        <div class="cf-card"><div id="chart3">
+      <apexchart type="bar" height="250" :options="chartOptions2" :series="series2"></apexchart>
+    </div></div>
+      </div>
+    
+      <div class="cf-note">
+        The heatmap is a <b>2D cross-tab</b>: its <code>chart.link.dimension</code>
+        returns <code>[day, quarter]</code>, so the engine aggregates a day-by-quarter
+        matrix of trade counts. Clicking the <b>outcome</b> donut or the
+        <b>day</b> bar re-aggregates the heatmap over just the matching trades and it
+        recolors in place. (Phase A: the heatmap is a re-aggregating target; clicking
+        a heatmap cell to filter is a later phase.) <b>Reset</b> clears everything.
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;cf-wrap&quot;&gt;
+        &lt;div class=&quot;cf-bar&quot;&gt;
+          &lt;button id=&quot;cf-reset&quot;&gt;Reset&lt;/button&gt;
+          &lt;span class=&quot;readout&quot; id=&quot;cf-readout&quot;&gt;Click a slice or bar to re-aggregate the heatmap&lt;/span&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;cf-card&quot;&gt;&lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;heatmap&quot; height=&quot;300&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;cf-row&quot;&gt;
+          &lt;div class=&quot;cf-card&quot;&gt;&lt;div id=&quot;chart2&quot;&gt;
+        &lt;apexchart type=&quot;donut&quot; height=&quot;250&quot; :options=&quot;chartOptions1&quot; :series=&quot;series1&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;cf-card&quot;&gt;&lt;div id=&quot;chart3&quot;&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;250&quot; :options=&quot;chartOptions2&quot; :series=&quot;series2&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;cf-note&quot;&gt;
+          The heatmap is a &lt;b&gt;2D cross-tab&lt;/b&gt;: its &lt;code&gt;chart.link.dimension&lt;/code&gt;
+          returns &lt;code&gt;[day, quarter]&lt;/code&gt;, so the engine aggregates a day-by-quarter
+          matrix of trade counts. Clicking the &lt;b&gt;outcome&lt;/b&gt; donut or the
+          &lt;b&gt;day&lt;/b&gt; bar re-aggregates the heatmap over just the matching trades and it
+          recolors in place. (Phase A: the heatmap is a re-aggregating target; clicking
+          a heatmap cell to filter is a later phase.) &lt;b&gt;Reset&lt;/b&gt; clears everything.
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [],
+          chartOptions: {
+            chart: {
+              id: 'byDayQuarter',
+              type: 'heatmap',
+              height: 300,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { speed: 450 },
+              link: {
+                id: 'trades',
+                dimension: function (r) {
+                  return [r.day, r.quarter]
+                },
+                reduce: 'count',
+              },
+            },
+            title: { text: 'Trades by day x quarter', align: 'left' },
+            dataLabels: { enabled: true },
+            plotOptions: {
+              heatmap: { radius: 3, enableShades: true, shadeIntensity: 0.6 },
+            },
+            colors: ['#6366f1'],
+          },
+
+          series1: [],
+          chartOptions1: {
+            chart: {
+              id: 'byOutcome',
+              type: 'donut',
+              height: 250,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { speed: 450 },
+              link: {
+                id: 'trades',
+                dimension: function (r) {
+                  return r.outcome
+                },
+                reduce: 'count',
+                dimOpacity: 0.18,
+              },
+            },
+            title: { text: 'Outcome', align: 'left' },
+            legend: { position: 'bottom', fontSize: '12px' },
+            plotOptions: { pie: { expandOnClick: false } },
+            dataLabels: {
+              enabled: true,
+              formatter: function (v, o) {
+                return o.w.config.series[o.seriesIndex]
+              },
+            },
+            // Records are first-seen ordered, and the data emits 'Loss' first, so the
+            // domain is [Loss, Gain]: red for Loss, green for Gain.
+            colors: ['#ef4444', '#22c55e'],
+          },
+
+          series2: [],
+          chartOptions2: {
+            chart: {
+              id: 'byDay',
+              type: 'bar',
+              height: 250,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { speed: 450 },
+              link: {
+                id: 'trades',
+                dimension: function (r) {
+                  return r.day
+                },
+                reduce: 'count',
+                seriesName: 'Trades',
+                dimOpacity: 0.18,
+              },
+            },
+            title: { text: 'Day of week', align: 'left' },
+            plotOptions: {
+              bar: { columnWidth: '55%', borderRadius: 3, distributed: true },
+            },
+            legend: { show: false },
+            dataLabels: { enabled: false },
+            colors: ['#6366f1', '#0ea5e9', '#22c55e', '#f59e0b', '#a855f7'],
+          },
+
+          cfTimer: null,
+        },
+        mounted: function () {
+          // The vue-apexcharts wrapper owns the render, and the crossfilter engine is
+          // registered by the shared head script (ApexCharts.crossfilter). Poll until the
+          // engine exists, then wire the readout + Reset button the same way the vanilla
+          // build does.
+          this.cfTimer = window.setInterval(
+            function () {
+              var cf = ApexCharts.getCrossfilter('trades')
+              if (!cf) return
+              window.clearInterval(this.cfTimer)
+
+              var readout = document.getElementById('cf-readout')
+              cf.on('change', function (state) {
+                var ids = Object.keys(state.filters)
+                readout.textContent =
+                  state.filteredCount +
+                  ' / ' +
+                  state.total +
+                  ' trades   (active: ' +
+                  (ids.length ? ids.join(', ') : 'none') +
+                  ')'
+              })
+              var s = cf.state()
+              readout.textContent =
+                s.filteredCount + ' / ' + s.total + ' trades   (active: none)'
+
+              document
+                .getElementById('cf-reset')
+                .addEventListener('click', function () {
+                  cf.reset()
+                })
+            }.bind(this),
+            50,
+          )
+        },
+        beforeDestroy: function () {
+          window.clearInterval(this.cfTimer)
+        },
+      })
+    </script>
+    
+  </body>
+</html>

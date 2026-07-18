@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Chart Type Morph</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 24px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .actions {
+        margin: 24px auto 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+      }
+      .actions button {
+        color: #fff;
+        background: #008ffb;
+        border: none;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.active {
+        background: #00543d;
+      }
+      .speed-row {
+        margin: 16px auto;
+        text-align: center;
+        color: #5b6b78;
+        font-size: 13px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Shared by the vanilla-js, React and Vue builds: the labels, the per-type
+      // series shape and the active-button sync. The mutable current* state lives in
+      // each format's own wiring below (one live chart per generated page).
+      var LABELS = ['Direct', 'Organic', 'Referral', 'Social', 'Email']
+
+      function buildSeriesFor(type, values) {
+        if (type === 'funnel') {
+          var sorted = values.slice().sort(function (a, b) {
+            return b - a
+          })
+          return [{ name: 'Sessions', data: sorted }]
+        }
+        if (type === 'bar' || type === 'pyramid') {
+          return [{ name: 'Sessions', data: values.slice() }]
+        }
+        return values.slice()
+      }
+
+      function setActive(type, horizontal) {
+        document
+          .querySelectorAll('.actions button[data-type]')
+          .forEach(function (btn) {
+            var btnType = btn.getAttribute('data-type')
+            var btnH = btn.getAttribute('data-horizontal')
+            var active =
+              btnType === type && (type !== 'bar' || String(horizontal) === btnH)
+            btn.classList.toggle('active', active)
+          })
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+  &lt;h1&gt;Chart-type morph&lt;/h1&gt;
+  &lt;p&gt;
+    Click the buttons to switch chart types. With the optional
+    &lt;code&gt;apexcharts/features/morph&lt;/code&gt; module loaded, supported pairs
+    (bar ↔ pie / donut / polarArea / radialBar) tween between paths
+    instead of flickering through a destroy + recreate.
+  &lt;/p&gt;
+
+  &lt;div class=&quot;chart-wrap&quot;&gt;
+    &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={380} /&gt;
+&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;actions&quot;&gt;
+    &lt;button data-type=&quot;bar&quot; data-horizontal=&quot;false&quot;&gt;Column&lt;/button&gt;
+    &lt;button data-type=&quot;bar&quot; data-horizontal=&quot;true&quot;&gt;Horizontal bar&lt;/button&gt;
+    &lt;button data-type=&quot;pie&quot;&gt;Pie&lt;/button&gt;
+    &lt;button data-type=&quot;donut&quot;&gt;Donut&lt;/button&gt;
+    &lt;button data-type=&quot;polarArea&quot;&gt;Polar area&lt;/button&gt;
+    &lt;button data-type=&quot;radialBar&quot;&gt;Radial bar&lt;/button&gt;
+    &lt;button data-type=&quot;funnel&quot;&gt;Funnel&lt;/button&gt;
+    &lt;button data-type=&quot;pyramid&quot;&gt;Pyramid&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;actions&quot;&gt;
+    &lt;button id=&quot;randomize&quot;&gt;Randomize values&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;speed-row&quot;&gt;
+    Morph speed:
+    &lt;input type=&quot;range&quot; id=&quot;speed&quot; min=&quot;100&quot; max=&quot;15000&quot; step=&quot;50&quot; value=&quot;700&quot; /&gt;
+    &lt;span id=&quot;speed-value&quot;&gt;700&lt;/span&gt; ms
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [{ name: 'Sessions', data: [44, 55, 41, 27, 33] }],
+          options: {
+            chart: {
+              id: 'morphChart',
+              type: 'bar',
+              height: 380,
+              toolbar: {
+                show: false,
+              },
+              animations: {
+                enabled: true,
+                speed: 800,
+                chartTypeMorph: {
+                  enabled: true,
+                  speed: 700,
+                },
+              },
+            },
+            grid: {
+              show: false,
+            },
+            labels: ['Direct', 'Organic', 'Referral', 'Social', 'Email'],
+            legend: { show: false },
+            plotOptions: {
+              bar: {
+                borderRadius: 4,
+                distributed: true,
+                barHeight: '99%',
+              },
+              radialBar: {
+                inverseOrder: true,
+                hollow: {
+                  size: '5%',
+                },
+                track: {
+                  show: false,
+                },
+              },
+              funnel: {
+                shape: 'trapezoid',
+              },
+            },
+            yaxis: {
+              show: false,
+              axisBorder: {
+                show: false,
+              },
+            },
+            xaxis: {
+              labels: {
+                show: false,
+              },
+              axisBorder: {
+                show: false,
+              },
+              axisTicks: {
+                show: false,
+              },
+            },
+            dataLabels: { enabled: false },
+            fill: {
+              opacity: 0.9,
+            },
+            stroke: { lineCap: 'butt', width: 1, colors: ['#fff'] },
+          },
+        })
+
+        React.useEffect(() => {
+          // The react-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id, then wire the same controls the vanilla build does. (LABELS,
+          // buildSeriesFor and setActive live in the shared head script.) updateOptions
+          // drives the chart instance directly, so no React state changes and the
+          // <ReactApexChart> is never re-rendered under it.
+          let chart
+          let currentType = 'bar'
+          let currentHorizontal = false
+          let currentValues = [44, 55, 41, 27, 33]
+
+          const timer = window.setInterval(() => {
+            chart = ApexCharts.getChartByID('morphChart')
+            if (!chart) return
+            window.clearInterval(timer)
+
+            setActive(currentType, currentHorizontal)
+
+            document.querySelectorAll('.actions button[data-type]').forEach((btn) => {
+              btn.addEventListener('click', () => {
+                const nextType = btn.getAttribute('data-type')
+                const nextHorizontal = btn.getAttribute('data-horizontal') === 'true'
+                if (nextType === currentType && nextHorizontal === currentHorizontal)
+                  return
+                currentType = nextType
+                currentHorizontal = nextHorizontal
+                setActive(currentType, currentHorizontal)
+                chart.updateOptions({
+                  chart: { type: currentType },
+                  plotOptions: { bar: { horizontal: currentHorizontal } },
+                  series: buildSeriesFor(currentType, currentValues),
+                  labels: LABELS,
+                })
+              })
+            })
+
+            document.querySelector('#randomize').addEventListener('click', () => {
+              currentValues = currentValues.map(
+                () => Math.floor(Math.random() * 80) + 10,
+              )
+              chart.updateSeries(buildSeriesFor(currentType, currentValues))
+            })
+
+            const speedInput = document.querySelector('#speed')
+            const speedValue = document.querySelector('#speed-value')
+            speedInput.addEventListener('input', () => {
+              const v = parseInt(speedInput.value, 10)
+              speedValue.textContent = v
+              chart.updateOptions(
+                { chart: { animations: { chartTypeMorph: { speed: v } } } },
+                false,
+                false,
+              )
+            })
+          }, 50)
+
+          return () => window.clearInterval(timer)
+        }, [])
+
+        return (
+          <div>
+            <div class="wrap">
+              <h1>Chart-type morph</h1>
+              <p>
+                Click the buttons to switch chart types. With the optional
+                <code>apexcharts/features/morph</code> module loaded, supported pairs
+                (bar ↔ pie / donut / polarArea / radialBar) tween between paths
+                instead of flickering through a destroy + recreate.
+              </p>
+
+              <div class="chart-wrap">
+                <div id="chart">
+                  <ReactApexChart
+                    options={state.options}
+                    series={state.series}
+                    type="bar"
+                    height={380}
+                  />
+                </div>
+              </div>
+
+              <div class="actions">
+                <button data-type="bar" data-horizontal="false">
+                  Column
+                </button>
+                <button data-type="bar" data-horizontal="true">
+                  Horizontal bar
+                </button>
+                <button data-type="pie">Pie</button>
+                <button data-type="donut">Donut</button>
+                <button data-type="polarArea">Polar area</button>
+                <button data-type="radialBar">Radial bar</button>
+                <button data-type="funnel">Funnel</button>
+                <button data-type="pyramid">Pyramid</button>
+              </div>
+
+              <div class="actions">
+                <button id="randomize">Randomize values</button>
+              </div>
+
+              <div class="speed-row">
+                Morph speed:
+                <input
+                  type="range"
+                  id="speed"
+                  min="100"
+                  max="15000"
+                  step="50"
+                  value="700"
+                />
+                <span id="speed-value">700</span> ms
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

@@ -196,3 +196,154 @@ try {
 
 refreshHistoryButtons()
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the same persistence/share/undo controls the
+  // vanilla build does. (series() lives in the shared head script.)
+  let chart
+  let on = false
+
+  const refreshHistoryButtons = () => {
+    if (!chart || !chart.history) return
+    document.getElementById('mp-undo').disabled = !chart.history.canUndo()
+    document.getElementById('mp-redo').disabled = !chart.history.canRedo()
+  }
+
+  const timer = window.setInterval(() => {
+    chart = ApexCharts.getChartByID('measure-persist')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    const toggle = document.getElementById('mp-toggle')
+    const readout = document.getElementById('mp-readout')
+    const linkEl = document.getElementById('mp-link')
+
+    toggle.addEventListener('click', () => {
+      on = !on
+      if (on) {
+        chart.startMeasure()
+        toggle.classList.add('active')
+        readout.textContent = 'Drag from A to B on the chart'
+      } else {
+        chart.stopMeasure()
+        toggle.classList.remove('active')
+      }
+    })
+
+    document.getElementById('mp-clear').addEventListener('click', () => {
+      chart.clearMeasures()
+    })
+
+    document.getElementById('mp-undo').addEventListener('click', () => {
+      if (chart.history) chart.history.undo()
+    })
+
+    document.getElementById('mp-redo').addEventListener('click', () => {
+      if (chart.history) chart.history.redo()
+    })
+
+    document.getElementById('mp-share').addEventListener('click', () => {
+      const url = chart.perspectives.toURL()
+      linkEl.textContent = url
+      if (navigator.clipboard) navigator.clipboard.writeText(url).catch(() => {})
+    })
+
+    chart.addEventListener('measured', () => {
+      readout.textContent = 'Pinned. Share the link or press Undo (Ctrl+Z).'
+    })
+
+    // Keep Undo/Redo in sync with keyboard shortcuts too.
+    chart.addEventListener('historyChange', refreshHistoryButtons)
+
+    // Restore a shared drawing if the page was opened with a #apex= fragment.
+    try {
+      const shared = ApexCharts.perspectives && ApexCharts.perspectives.fromURL()
+      if (shared) chart.perspectives.apply(shared, { animate: false })
+    } catch (e) {}
+
+    refreshHistoryButtons()
+  }, 50)
+
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+pollTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the same persistence/share/undo controls the
+  // vanilla build does. (series() lives in the shared head script.)
+  var me = this
+  me.pollTimer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('measure-persist')
+    if (!chart) return
+    window.clearInterval(me.pollTimer)
+    me.pollTimer = null
+
+    var on = false
+    var toggle = document.getElementById('mp-toggle')
+    var readout = document.getElementById('mp-readout')
+    var linkEl = document.getElementById('mp-link')
+
+    function refreshHistoryButtons() {
+      if (!chart.history) return
+      document.getElementById('mp-undo').disabled = !chart.history.canUndo()
+      document.getElementById('mp-redo').disabled = !chart.history.canRedo()
+    }
+
+    toggle.addEventListener('click', function () {
+      on = !on
+      if (on) {
+        chart.startMeasure()
+        toggle.classList.add('active')
+        readout.textContent = 'Drag from A to B on the chart'
+      } else {
+        chart.stopMeasure()
+        toggle.classList.remove('active')
+      }
+    })
+
+    document.getElementById('mp-clear').addEventListener('click', function () {
+      chart.clearMeasures()
+    })
+
+    document.getElementById('mp-undo').addEventListener('click', function () {
+      if (chart.history) chart.history.undo()
+    })
+
+    document.getElementById('mp-redo').addEventListener('click', function () {
+      if (chart.history) chart.history.redo()
+    })
+
+    document.getElementById('mp-share').addEventListener('click', function () {
+      var url = chart.perspectives.toURL()
+      linkEl.textContent = url
+      if (navigator.clipboard) navigator.clipboard.writeText(url).catch(function () {})
+    })
+
+    chart.addEventListener('measured', function () {
+      readout.textContent = 'Pinned. Share the link or press Undo (Ctrl+Z).'
+    })
+
+    // Keep Undo/Redo in sync with keyboard shortcuts too.
+    chart.addEventListener('historyChange', refreshHistoryButtons)
+
+    // Restore a shared drawing if the page was opened with a #apex= fragment.
+    try {
+      var shared = ApexCharts.perspectives && ApexCharts.perspectives.fromURL()
+      if (shared) chart.perspectives.apply(shared, { animate: false })
+    } catch (e) {}
+
+    refreshHistoryButtons()
+  }, 50)
+},
+beforeDestroy: function () {
+  if (this.pollTimer) window.clearInterval(this.pollTimer)
+},
+</vue-script>

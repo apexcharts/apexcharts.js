@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>CSS Variables as Fill Colors</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      :root,
+      [data-theme='default'] {
+        --chart-primary: #008ffb;
+        --chart-secondary: #00e396;
+        --chart-tertiary: #feb019;
+      }
+
+      [data-theme='ocean'] {
+        --chart-primary: #0077b6;
+        --chart-secondary: #00b4d8;
+        --chart-tertiary: #90e0ef;
+      }
+
+      [data-theme='sunset'] {
+        --chart-primary: #e63946;
+        --chart-secondary: #f4a261;
+        --chart-tertiary: #e9c46a;
+      }
+
+      [data-theme='forest'] {
+        --chart-primary: #2d6a4f;
+        --chart-secondary: #52b788;
+        --chart-tertiary: #95d5b2;
+      }
+
+      [data-theme='neon'] {
+        --chart-primary: #9b5de5;
+        --chart-secondary: #f15bb5;
+        --chart-tertiary: #00f5d4;
+      }
+
+      [data-theme='candy'] {
+        --chart-primary: #ff69b4;
+        --chart-secondary: #ff85cb;
+        --chart-tertiary: #ffc8dd;
+      }
+
+      [data-theme='arctic'] {
+        --chart-primary: #4cc9f0;
+        --chart-secondary: #4895ef;
+        --chart-tertiary: #4361ee;
+      }
+
+      body {
+        transition: background-color 0.3s;
+      }
+
+      .controls {
+        max-width: 650px;
+        margin: 20px auto 0;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .controls button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: 0.2s;
+      }
+
+      .btn-theme {
+        background: #333;
+        color: #fff;
+      }
+
+      .btn-theme:hover {
+        background: #555;
+      }
+
+      .btn-color {
+        color: #fff;
+      }
+
+      .btn-color[data-palette='ocean'] {
+        background: #0077b6;
+      }
+      .btn-color[data-palette='sunset'] {
+        background: #e63946;
+      }
+      .btn-color[data-palette='forest'] {
+        background: #2d6a4f;
+      }
+      .btn-color[data-palette='neon'] {
+        background: #9b5de5;
+      }
+      .btn-color[data-palette='candy'] {
+        background: #ff69b4;
+      }
+      .btn-color[data-palette='arctic'] {
+        background: #4cc9f0;
+      }
+
+      .info {
+        max-width: 650px;
+        margin: 12px auto;
+        padding: 12px;
+        background: #f0f4ff;
+        border-radius: 6px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      #chart,
+      #chart2,
+      #chart3 {
+        max-width: 650px;
+        margin: 35px auto;
+        padding-top: 20px;
+        padding-left: 10px;
+        background: #fff;
+        border: 1px solid #ddd;
+        box-shadow: 0 22px 35px -16px rgba(0, 0, 0, 0.1);
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // The palette buttons only flip data-theme on the document root element; the SVG
+      // fills are var(--chart-*), so all three charts recolor via CSS with no JS
+      // color resolution and no chart re-render. Shared by the vanilla-js, React
+      // and Vue builds.
+      function setPalette(name) {
+        document.documentElement.setAttribute('data-theme', name)
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;controls&quot;&gt;
+  &lt;button class=&quot;btn-color&quot; data-palette=&quot;ocean&quot;&gt;Ocean&lt;/button&gt;
+  &lt;button class=&quot;btn-color&quot; data-palette=&quot;sunset&quot;&gt;Sunset&lt;/button&gt;
+  &lt;button class=&quot;btn-color&quot; data-palette=&quot;forest&quot;&gt;Forest&lt;/button&gt;
+  &lt;button class=&quot;btn-color&quot; data-palette=&quot;neon&quot;&gt;Neon&lt;/button&gt;
+  &lt;button class=&quot;btn-color&quot; data-palette=&quot;candy&quot;&gt;Candy&lt;/button&gt;
+  &lt;button class=&quot;btn-color&quot; data-palette=&quot;arctic&quot;&gt;Arctic&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;info&quot;&gt;
+  This example uses &lt;strong&gt;CSS variables&lt;/strong&gt; as chart colors.
+  The SVG fill uses &lt;code&gt;var(--chart-primary)&lt;/code&gt; directly — no JavaScript color resolution needed.
+  Toggle the theme or change palettes to see the chart react instantly via CSS.
+&lt;/div&gt;
+
+&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={380} /&gt;
+&lt;/div&gt;
+&lt;div id=&quot;chart2&quot;&gt;
+  &lt;ReactApexChart options={state.options1} series={state.series1} type=&quot;area&quot; height={350} /&gt;
+&lt;/div&gt;
+&lt;div id=&quot;chart3&quot;&gt;
+  &lt;ReactApexChart options={state.options2} series={state.series2} type=&quot;donut&quot; height={350} /&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [
+            {
+              name: 'Series A',
+              data: [44, 55, 41, 67, 22, 43],
+            },
+            {
+              name: 'Series B',
+              data: [13, 23, 20, 8, 13, 27],
+            },
+            {
+              name: 'Series C',
+              data: [11, 17, 15, 15, 21, 14],
+            },
+          ],
+          options: {
+            chart: {
+              id: 'cssVarBar',
+              type: 'bar',
+              height: 380,
+              stacked: true,
+            },
+            colors: [
+              'var(--chart-primary)',
+              'var(--chart-secondary)',
+              'var(--chart-tertiary)',
+            ],
+            fill: {
+              opacity: 0.85,
+            },
+            plotOptions: {
+              bar: {
+                borderRadius: 4,
+                borderRadiusApplication: 'end',
+                borderRadiusWhenStacked: 'last',
+                horizontal: false,
+                columnWidth: '55%',
+              },
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            xaxis: {
+              categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            },
+            legend: {
+              position: 'top',
+            },
+          },
+
+          series1: [
+            {
+              name: 'Series A',
+              data: [31, 40, 28, 51, 42, 109, 80],
+            },
+            {
+              name: 'Series B',
+              data: [11, 32, 45, 32, 34, 52, 41],
+            },
+            {
+              name: 'Series C',
+              data: [5, 18, 12, 26, 15, 31, 22],
+            },
+          ],
+          options1: {
+            chart: { id: 'cssVarArea', type: 'area', height: 350 },
+            colors: [
+              'var(--chart-primary)',
+              'var(--chart-secondary)',
+              'var(--chart-tertiary)',
+            ],
+            fill: { type: 'solid', opacity: 0.3 },
+            stroke: { curve: 'smooth', width: 2 },
+            dataLabels: { enabled: false },
+            xaxis: { categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
+            legend: { position: 'top' },
+          },
+
+          series2: [44, 33, 23],
+          options2: {
+            chart: { id: 'cssVarDonut', type: 'donut', height: 350 },
+            colors: [
+              'var(--chart-primary)',
+              'var(--chart-secondary)',
+              'var(--chart-tertiary)',
+            ],
+            labels: ['Desktop', 'Tablet', 'Mobile'],
+            fill: { opacity: 1 },
+            legend: { position: 'bottom' },
+          },
+        })
+
+        React.useEffect(() => {
+          // The buttons live in the html block, so they are in the DOM when this effect
+          // runs. setPalette lives in the shared head script; only CSS drives the
+          // recolor, so no chart instance is needed here.
+          const buttons = Array.from(document.querySelectorAll('.btn-color'))
+          const handlers = buttons.map((btn) => {
+            const handler = () => setPalette(btn.getAttribute('data-palette'))
+            btn.addEventListener('click', handler)
+            return handler
+          })
+          return () => {
+            buttons.forEach((btn, i) => btn.removeEventListener('click', handlers[i]))
+          }
+        }, [])
+
+        return (
+          <div>
+            <div class="controls">
+              <button class="btn-color" data-palette="ocean">
+                Ocean
+              </button>
+              <button class="btn-color" data-palette="sunset">
+                Sunset
+              </button>
+              <button class="btn-color" data-palette="forest">
+                Forest
+              </button>
+              <button class="btn-color" data-palette="neon">
+                Neon
+              </button>
+              <button class="btn-color" data-palette="candy">
+                Candy
+              </button>
+              <button class="btn-color" data-palette="arctic">
+                Arctic
+              </button>
+            </div>
+
+            <div class="info">
+              This example uses <strong>CSS variables</strong> as chart colors. The
+              SVG fill uses <code>var(--chart-primary)</code> directly — no JavaScript
+              color resolution needed. Toggle the theme or change palettes to see the
+              chart react instantly via CSS.
+            </div>
+
+            <div id="chart">
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="bar"
+                height={380}
+              />
+            </div>
+            <div id="chart2">
+              <ReactApexChart
+                options={state.options1}
+                series={state.series1}
+                type="area"
+                height={350}
+              />
+            </div>
+            <div id="chart3">
+              <ReactApexChart
+                options={state.options2}
+                series={state.series2}
+                type="donut"
+                height={350}
+              />
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

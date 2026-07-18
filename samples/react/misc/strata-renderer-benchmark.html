@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Strata: Canvas Rendering at Scale (hybrid renderer benchmark)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      .strata {
+        max-width: 700px;
+        margin: 12px auto;
+        font-family: Helvetica, Arial, sans-serif;
+        color: #101a2b;
+      }
+      .strata-lede {
+        font-size: 13.5px;
+        line-height: 1.6;
+        color: #47536b;
+        margin: 4px 6px 14px;
+      }
+      .strata-lede code {
+        background: #eef2fa;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 12px;
+      }
+      .strata-console {
+        background: #fff;
+        border: 1px solid #dce3f0;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      /* controls */
+      .strata-controls {
+        display: flex;
+        gap: 18px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        padding: 14px 16px;
+        border-bottom: 1px solid #dce3f0;
+        background: #eef2fa;
+      }
+      .strata-ctl {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .strata-ctl-label {
+        font-family: monospace;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #8b97ae;
+      }
+      .strata-seg {
+        display: inline-flex;
+        background: #f3f6fc;
+        border: 1px solid #c4cee0;
+        border-radius: 8px;
+        padding: 3px;
+        gap: 2px;
+      }
+      .strata-seg button {
+        font-family: monospace;
+        font-size: 12.5px;
+        color: #47536b;
+        background: transparent;
+        border: 0;
+        border-radius: 6px;
+        padding: 5px 11px;
+        cursor: pointer;
+      }
+      .strata-seg button[aria-pressed='true'] {
+        background: #0891b2;
+        color: #fff;
+        font-weight: 600;
+      }
+      .strata-seg button:hover:not([aria-pressed='true']) {
+        color: #101a2b;
+      }
+      .strata-run {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+      }
+      .strata-btn {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 13.5px;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 8px;
+        padding: 8px 15px;
+        border: 1px solid transparent;
+        white-space: nowrap;
+      }
+      .strata-btn.primary {
+        background: #0891b2;
+        color: #fff;
+      }
+      .strata-btn.ghost {
+        background: transparent;
+        color: #101a2b;
+        border-color: #c4cee0;
+      }
+      .strata-btn:disabled {
+        opacity: 0.5;
+        cursor: progress;
+      }
+      /* metric readout */
+      .strata-readout {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border-bottom: 1px solid #dce3f0;
+      }
+      .strata-metric {
+        padding: 12px 14px;
+        border-right: 1px solid #dce3f0;
+      }
+      .strata-metric:last-child {
+        border-right: 0;
+      }
+      .strata-metric .k {
+        font-family: monospace;
+        font-size: 10px;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+        color: #8b97ae;
+      }
+      .strata-metric .v {
+        font-family: monospace;
+        font-size: 22px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        margin-top: 4px;
+      }
+      .strata-metric .v small {
+        font-size: 12px;
+        color: #8b97ae;
+        font-weight: 500;
+        margin-left: 2px;
+      }
+      .strata-metric .v.trace {
+        color: #0891b2;
+      }
+      .strata-metric .v.renderer {
+        font-size: 18px;
+        margin-top: 8px;
+      }
+      .strata-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: monospace;
+        font-size: 12px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-weight: 600;
+      }
+      .strata-pill.canvas {
+        background: #cff4fb;
+        color: #0891b2;
+      }
+      .strata-pill.svg {
+        background: #fdead0;
+        color: #b45309;
+      }
+      .strata-pill .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      /* chart stage */
+      .strata-stage {
+        padding: 6px 10px 12px;
+        position: relative;
+      }
+      .strata-hint {
+        font-family: monospace;
+        font-size: 11px;
+        color: #8b97ae;
+        padding: 4px 6px 2px;
+      }
+      #chart {
+        min-height: 380px;
+      }
+      .strata-busy {
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.72);
+        z-index: 5;
+        font-family: monospace;
+        font-size: 13px;
+        color: #47536b;
+      }
+      .strata-busy.on {
+        display: flex;
+      }
+      /* comparison bars */
+      .strata-compare {
+        margin-top: 14px;
+        background: #fff;
+        border: 1px solid #dce3f0;
+        border-radius: 12px;
+        padding: 16px 18px;
+      }
+      .strata-compare h2 {
+        font-family: monospace;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8b97ae;
+        font-weight: 600;
+        margin: 0 0 12px;
+      }
+      .strata-empty {
+        color: #8b97ae;
+        font-family: monospace;
+        font-size: 12.5px;
+        margin: 0;
+      }
+      .strata-barrow {
+        display: grid;
+        grid-template-columns: 80px 1fr;
+        gap: 14px;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .strata-rlabel {
+        font-family: monospace;
+        font-size: 10.5px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8b97ae;
+      }
+      .strata-track {
+        display: grid;
+        gap: 8px;
+      }
+      .strata-lane {
+        display: grid;
+        grid-template-columns: 62px 1fr auto;
+        gap: 10px;
+        align-items: center;
+      }
+      .strata-who {
+        font-family: monospace;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .strata-who .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .strata-lane.svg .strata-who {
+        color: #b45309;
+      }
+      .strata-lane.canvas .strata-who {
+        color: #0891b2;
+      }
+      .strata-meter {
+        height: 20px;
+        background: #eef2fa;
+        border-radius: 5px;
+        overflow: hidden;
+      }
+      .strata-meter > span {
+        display: block;
+        height: 100%;
+        width: 0;
+        border-radius: 5px;
+        transition: width 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+      }
+      .strata-lane.svg .strata-meter > span {
+        background: #b45309;
+      }
+      .strata-lane.canvas .strata-meter > span {
+        background: #0891b2;
+      }
+      .strata-num {
+        font-family: monospace;
+        font-size: 12.5px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        min-width: 84px;
+        text-align: right;
+      }
+      .strata-verdict {
+        font-family: monospace;
+        font-size: 13px;
+        color: #47536b;
+        margin: 4px 0 0;
+      }
+      .strata-verdict b {
+        color: #047857;
+        font-size: 14px;
+      }
+      /* notes */
+      .strata-notes {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .strata-note {
+        background: #fff;
+        border: 1px solid #dce3f0;
+        border-radius: 10px;
+        padding: 14px;
+      }
+      .strata-note h3 {
+        margin: 0 0 6px;
+        font-size: 13.5px;
+      }
+      .strata-note h3 .n {
+        font-family: monospace;
+        color: #0891b2;
+        font-size: 11px;
+        margin-right: 7px;
+      }
+      .strata-note p {
+        margin: 0;
+        font-size: 12.5px;
+        color: #47536b;
+        line-height: 1.5;
+      }
+      .strata-note code {
+        font-family: monospace;
+        font-size: 11.5px;
+        background: #eef2fa;
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
+      @media (max-width: 560px) {
+        .strata-readout {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .strata-metric:nth-child(2n) {
+          border-right: 0;
+        }
+        .strata-metric:nth-child(-n + 2) {
+          border-bottom: 1px solid #dce3f0;
+        }
+        .strata-notes {
+          grid-template-columns: 1fr;
+        }
+        .strata-run {
+          margin-left: 0;
+          width: 100%;
+        }
+        .strata-run .strata-btn {
+          flex: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .strata-meter > span {
+          transition: none;
+        }
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      var pointCount = 10000
+
+      // Seeded PRNG (mulberry32) so the two clusters are identical on every reload
+      // and, crucially, identical across the SVG and canvas benchmark runs: the
+      // comparison is over the same scene, not two different random ones.
+      function makeRng(seed) {
+        return function () {
+          seed |= 0
+          seed = (seed + 0x6d2b79f5) | 0
+          var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+        }
+      }
+
+      // Box-Muller gaussian off the seeded stream: two legible clusters at any
+      // density, so the plotted shape stays readable from 1k to 100k points.
+      function generateClusters(count) {
+        var rng = makeRng(0x513a7a)
+        function gauss(mean, sd) {
+          var u = 1 - rng()
+          var v = rng()
+          return mean + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
+        }
+        var half = Math.floor(count / 2)
+        var a = new Array(half)
+        var b = new Array(count - half)
+        for (var i = 0; i < a.length; i++) {
+          a[i] = [+gauss(32, 9).toFixed(2), +gauss(62, 15).toFixed(2)]
+        }
+        for (var j = 0; j < b.length; j++) {
+          b[j] = [+gauss(70, 10).toFixed(2), +gauss(34, 13).toFixed(2)]
+        }
+        return [a, b]
+      }
+
+      var clusters = generateClusters(pointCount)
+
+      // Every SVG mark is a live DOM node, so counting nodes inside the chart makes
+      // the hybrid renderer visible: canvas keeps this in the dozens no matter how
+      // many points are plotted.
+      function strataNodeCount() {
+        var el = document.querySelector('#chart')
+        return el ? el.getElementsByTagName('*').length : 0
+      }
+
+      // Stateless console helpers (no chart/options refs), shared by the vanilla,
+      // React and Vue builds so each per-format script only holds the chart wiring.
+      function selected(segId) {
+        var pressed = document
+          .getElementById(segId)
+          .querySelector('button[aria-pressed="true"]')
+        return pressed || document.getElementById(segId).querySelector('button')
+      }
+
+      function setPressed(segId, btn) {
+        var seg = document.getElementById(segId)
+        Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
+          b.setAttribute('aria-pressed', b === btn ? 'true' : 'false')
+        })
+      }
+
+      function rendererPill(mode) {
+        var cls = mode === 'canvas' ? 'canvas' : 'svg'
+        return (
+          '<span class="strata-pill ' +
+          cls +
+          '"><span class="dot"></span>' +
+          mode +
+          '</span>'
+        )
+      }
+
+      function setMeter(id, value, max) {
+        var pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0
+        document.getElementById(id).style.width = pct + '%'
+      }
+
+      function showComparison(out) {
+        document.getElementById('strataBarsEmpty').hidden = true
+        document.getElementById('strataBarsData').hidden = false
+
+        var maxTime = Math.max(out.svg.ms, out.canvas.ms, 1)
+        setMeter('tSvg', out.svg.ms, maxTime)
+        setMeter('tCan', out.canvas.ms, maxTime)
+        document.getElementById('tSvgN').textContent = out.svg.ms + ' ms'
+        document.getElementById('tCanN').textContent = out.canvas.ms + ' ms'
+
+        var maxNodes = Math.max(out.svg.nodes, out.canvas.nodes, 1)
+        setMeter('nSvg', out.svg.nodes, maxNodes)
+        setMeter('nCan', out.canvas.nodes, maxNodes)
+        document.getElementById('nSvgN').textContent = out.svg.nodes.toLocaleString()
+        document.getElementById('nCanN').textContent =
+          out.canvas.nodes.toLocaleString()
+
+        var speedup =
+          out.canvas.ms > 0 ? (out.svg.ms / out.canvas.ms).toFixed(1) : '-'
+        var nodeCut =
+          out.canvas.nodes > 0 ? Math.round(out.svg.nodes / out.canvas.nodes) : '-'
+        document.getElementById('strataVerdict').innerHTML =
+          'At ' +
+          pointCount.toLocaleString() +
+          ' points, canvas rendered <b>' +
+          speedup +
+          '&times; faster</b> with about <b>' +
+          nodeCut +
+          '&times; fewer</b> DOM nodes on this device.'
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;strata&quot;&gt;
+  &lt;p class=&quot;strata-lede&quot;&gt;
+    Every SVG mark is a live DOM node, so a 50k-point scatter is roughly 100k
+    nodes: slow to build and slow to restyle on hover. &lt;b&gt;Strata&lt;/b&gt; keeps that
+    DOM for the chart chrome but paints the dense series into a single
+    &lt;code&gt;&amp;lt;canvas&amp;gt;&lt;/code&gt;. Crank the points and flip the renderer to feel
+    the difference.
+  &lt;/p&gt;
+
+  &lt;section class=&quot;strata-console&quot; aria-label=&quot;Renderer benchmark&quot;&gt;
+    &lt;div class=&quot;strata-controls&quot;&gt;
+      &lt;div class=&quot;strata-ctl&quot;&gt;
+        &lt;span class=&quot;strata-ctl-label&quot;&gt;Points&lt;/span&gt;
+        &lt;div class=&quot;strata-seg&quot; id=&quot;strataCount&quot; role=&quot;group&quot; aria-label=&quot;Point count&quot;&gt;
+          &lt;button type=&quot;button&quot; data-n=&quot;1000&quot;&gt;1k&lt;/button&gt;
+          &lt;button type=&quot;button&quot; data-n=&quot;10000&quot; aria-pressed=&quot;true&quot;&gt;10k&lt;/button&gt;
+          &lt;button type=&quot;button&quot; data-n=&quot;50000&quot;&gt;50k&lt;/button&gt;
+          &lt;button type=&quot;button&quot; data-n=&quot;100000&quot;&gt;100k&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;strata-ctl&quot;&gt;
+        &lt;span class=&quot;strata-ctl-label&quot;&gt;Renderer&lt;/span&gt;
+        &lt;div class=&quot;strata-seg&quot; id=&quot;strataMode&quot; role=&quot;group&quot; aria-label=&quot;Renderer mode&quot;&gt;
+          &lt;button type=&quot;button&quot; data-m=&quot;auto&quot; aria-pressed=&quot;true&quot;&gt;auto&lt;/button&gt;
+          &lt;button type=&quot;button&quot; data-m=&quot;svg&quot;&gt;svg&lt;/button&gt;
+          &lt;button type=&quot;button&quot; data-m=&quot;canvas&quot;&gt;canvas&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;strata-run&quot;&gt;
+        &lt;button class=&quot;strata-btn ghost&quot; id=&quot;strataBench&quot; type=&quot;button&quot;&gt;Benchmark both&lt;/button&gt;
+        &lt;button class=&quot;strata-btn primary&quot; id=&quot;strataRender&quot; type=&quot;button&quot;&gt;Render&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;strata-readout&quot;&gt;
+      &lt;div class=&quot;strata-metric&quot;&gt;
+        &lt;div class=&quot;k&quot;&gt;Active renderer&lt;/div&gt;
+        &lt;div class=&quot;v renderer&quot; id=&quot;mRenderer&quot;&gt;
+          &lt;span class=&quot;strata-pill canvas&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;canvas&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;strata-metric&quot;&gt;
+        &lt;div class=&quot;k&quot;&gt;Render time&lt;/div&gt;
+        &lt;div class=&quot;v trace&quot; id=&quot;mTime&quot;&gt;-&lt;small&gt;ms&lt;/small&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;strata-metric&quot;&gt;
+        &lt;div class=&quot;k&quot;&gt;DOM nodes in chart&lt;/div&gt;
+        &lt;div class=&quot;v&quot; id=&quot;mNodes&quot;&gt;-&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;strata-metric&quot;&gt;
+        &lt;div class=&quot;k&quot;&gt;Points plotted&lt;/div&gt;
+        &lt;div class=&quot;v&quot; id=&quot;mPoints&quot;&gt;-&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;strata-stage&quot;&gt;
+      &lt;div class=&quot;strata-hint&quot;&gt;
+        Scatter &amp;middot; two clusters &amp;middot; zoom and pan with the toolbar; the
+        canvas layer stays smooth where SVG would stutter.
+      &lt;/div&gt;
+      &lt;div id=&quot;chart&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;strata-busy&quot; id=&quot;strataBusy&quot;&gt;rendering&amp;hellip;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section class=&quot;strata-compare&quot;&gt;
+    &lt;h2&gt;Head to head &amp;middot; same data, both renderers&lt;/h2&gt;
+    &lt;p class=&quot;strata-empty&quot; id=&quot;strataBarsEmpty&quot;&gt;
+      Press &lt;b&gt;Benchmark both&lt;/b&gt; to render the current dataset once as SVG and
+      once as canvas, and compare.
+    &lt;/p&gt;
+    &lt;div id=&quot;strataBarsData&quot; hidden&gt;
+      &lt;div class=&quot;strata-barrow&quot;&gt;
+        &lt;span class=&quot;strata-rlabel&quot;&gt;Render time&lt;/span&gt;
+        &lt;div class=&quot;strata-track&quot;&gt;
+          &lt;div class=&quot;strata-lane svg&quot;&gt;
+            &lt;span class=&quot;strata-who&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;SVG&lt;/span&gt;
+            &lt;div class=&quot;strata-meter&quot;&gt;&lt;span id=&quot;tSvg&quot;&gt;&lt;/span&gt;&lt;/div&gt;
+            &lt;span class=&quot;strata-num&quot; id=&quot;tSvgN&quot;&gt;&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;strata-lane canvas&quot;&gt;
+            &lt;span class=&quot;strata-who&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;Canvas&lt;/span&gt;
+            &lt;div class=&quot;strata-meter&quot;&gt;&lt;span id=&quot;tCan&quot;&gt;&lt;/span&gt;&lt;/div&gt;
+            &lt;span class=&quot;strata-num&quot; id=&quot;tCanN&quot;&gt;&lt;/span&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;strata-barrow&quot;&gt;
+        &lt;span class=&quot;strata-rlabel&quot;&gt;DOM nodes&lt;/span&gt;
+        &lt;div class=&quot;strata-track&quot;&gt;
+          &lt;div class=&quot;strata-lane svg&quot;&gt;
+            &lt;span class=&quot;strata-who&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;SVG&lt;/span&gt;
+            &lt;div class=&quot;strata-meter&quot;&gt;&lt;span id=&quot;nSvg&quot;&gt;&lt;/span&gt;&lt;/div&gt;
+            &lt;span class=&quot;strata-num&quot; id=&quot;nSvgN&quot;&gt;&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;strata-lane canvas&quot;&gt;
+            &lt;span class=&quot;strata-who&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;/span&gt;Canvas&lt;/span&gt;
+            &lt;div class=&quot;strata-meter&quot;&gt;&lt;span id=&quot;nCan&quot;&gt;&lt;/span&gt;&lt;/div&gt;
+            &lt;span class=&quot;strata-num&quot; id=&quot;nCanN&quot;&gt;&lt;/span&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;p class=&quot;strata-verdict&quot; id=&quot;strataVerdict&quot;&gt;&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section class=&quot;strata-notes&quot;&gt;
+    &lt;div class=&quot;strata-note&quot;&gt;
+      &lt;h3&gt;&lt;span class=&quot;n&quot;&gt;01&lt;/span&gt;Opt in, one line&lt;/h3&gt;
+      &lt;p&gt;
+        Set &lt;code&gt;chart.renderer: &#39;auto&#39;&lt;/code&gt; and Strata switches to canvas
+        once the mark count crosses &lt;code&gt;rendererThreshold&lt;/code&gt;. Below it,
+        output is identical SVG.
+      &lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;strata-note&quot;&gt;
+      &lt;h3&gt;&lt;span class=&quot;n&quot;&gt;02&lt;/span&gt;Hybrid, not a rewrite&lt;/h3&gt;
+      &lt;p&gt;
+        Only the series paths and markers move to canvas. Axes, gridlines,
+        crosshairs, tooltips and annotations stay real SVG: crisp text, native
+        events, SVG export.
+      &lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;strata-note&quot;&gt;
+      &lt;h3&gt;&lt;span class=&quot;n&quot;&gt;03&lt;/span&gt;Tree shakeable&lt;/h3&gt;
+      &lt;p&gt;
+        The interface and SVG adapter are core. The canvas backend is a separate
+        feature, &lt;code&gt;import &#39;apexcharts/features/renderer-canvas&#39;&lt;/code&gt;, that
+        shakes out when unused.
+      &lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [
+            { name: 'Cluster A', data: clusters[0] },
+            { name: 'Cluster B', data: clusters[1] },
+          ],
+          options: {
+            chart: {
+              height: 400,
+              type: 'scatter',
+              renderer: 'auto',
+              rendererThreshold: 8000,
+              animations: { enabled: false },
+              zoom: { enabled: true, type: 'xy' },
+              toolbar: { autoSelected: 'zoom' },
+              fontFamily: 'Helvetica, Arial, sans-serif',
+            },
+            markers: { size: 3, strokeWidth: 0 },
+            colors: ['#0891b2', '#f59e0b'],
+            grid: { borderColor: '#e7ecf5' },
+            legend: { position: 'top' },
+            xaxis: {
+              type: 'numeric',
+              tickAmount: 10,
+              labels: {
+                formatter: function (val) {
+                  return parseFloat(val).toFixed(0)
+                },
+              },
+            },
+            yaxis: {
+              tickAmount: 8,
+              labels: {
+                formatter: function (val) {
+                  return val.toFixed(0)
+                },
+              },
+            },
+            tooltip: { shared: false, intersect: true },
+          },
+        })
+
+        React.useEffect(() => {
+          // Strata drives its own chart lifecycle (destroy + rebuild per renderer), so
+          // this build skips the react-apexcharts wrapper and creates the instance in
+          // #chart directly, exactly like the vanilla build. pointCount, clusters,
+          // generateClusters, strataNodeCount and the DOM helpers (selected, setPressed,
+          // rendererPill, setMeter, showComparison) live in the shared head script.
+          const busy = document.getElementById('strataBusy')
+          const elRenderer = document.getElementById('mRenderer')
+          const elTime = document.getElementById('mTime')
+          const elNodes = document.getElementById('mNodes')
+          const elPoints = document.getElementById('mPoints')
+          let lastRenderMs = 0
+          let chart = null
+          let disposed = false
+
+          // The vanilla build gets a mutable `options` global from the template; rebuild
+          // it here from the parsed chart state.
+          const options = Object.assign({ series: state.series }, state.options)
+          options.chart = Object.assign({}, state.options.chart)
+
+          function updateMetrics() {
+            if (!chart || !chart.w) return
+            const active =
+              typeof chart.getActiveRenderer === 'function'
+                ? chart.getActiveRenderer()
+                : 'svg'
+            elRenderer.innerHTML = rendererPill(active)
+            elTime.innerHTML =
+              (lastRenderMs > 0 ? lastRenderMs : '-') + '<small>ms</small>'
+            elNodes.textContent = strataNodeCount().toLocaleString()
+            elPoints.textContent = pointCount.toLocaleString()
+          }
+
+          // Build a fresh instance in the #chart container with a forced renderer,
+          // returning the render time and resulting DOM-node count.
+          function renderWith(mode) {
+            if (disposed) return Promise.resolve({ ms: 0, nodes: 0 })
+            options.chart.renderer = mode
+            options.series = [
+              { name: 'Cluster A', data: clusters[0] },
+              { name: 'Cluster B', data: clusters[1] },
+            ]
+            const t = performance.now()
+            if (chart) chart.destroy()
+            chart = new ApexCharts(document.querySelector('#chart'), options)
+            return chart.render().then(function () {
+              return {
+                ms: Math.round(performance.now() - t),
+                nodes: strataNodeCount(),
+              }
+            })
+          }
+
+          function rebuild() {
+            pointCount = parseInt(selected('strataCount').getAttribute('data-n'), 10)
+            const mode = selected('strataMode').getAttribute('data-m')
+            clusters = generateClusters(pointCount)
+            busy.classList.add('on')
+            return renderWith(mode).then(function (r) {
+              lastRenderMs = r.ms
+              busy.classList.remove('on')
+              updateMetrics()
+            })
+          }
+
+          function benchmarkBoth() {
+            pointCount = parseInt(selected('strataCount').getAttribute('data-n'), 10)
+            clusters = generateClusters(pointCount)
+            const currentMode = selected('strataMode').getAttribute('data-m')
+            const benchBtn = document.getElementById('strataBench')
+            const renderBtn = document.getElementById('strataRender')
+            benchBtn.disabled = true
+            renderBtn.disabled = true
+            busy.classList.add('on')
+
+            const out = {}
+            // Render SVG, then canvas, then restore the user's selected renderer.
+            // Chained so the two heavy renders never overlap.
+            renderWith('svg')
+              .then(function (r) {
+                out.svg = r
+                return renderWith('canvas')
+              })
+              .then(function (r) {
+                out.canvas = r
+                return renderWith(currentMode)
+              })
+              .then(function () {
+                if (disposed) return
+                lastRenderMs = currentMode === 'svg' ? out.svg.ms : out.canvas.ms
+                showComparison(out)
+                busy.classList.remove('on')
+                benchBtn.disabled = false
+                renderBtn.disabled = false
+                updateMetrics()
+              })
+          }
+
+          // Wire the segmented buttons: pressing one just marks it selected (no render
+          // until Render / Benchmark), matching a console feel.
+          ;['strataCount', 'strataMode'].forEach(function (segId) {
+            document.getElementById(segId).addEventListener('click', function (e) {
+              const btn = e.target.closest('button')
+              if (btn) setPressed(segId, btn)
+            })
+          })
+
+          document.getElementById('strataRender').addEventListener('click', rebuild)
+          document
+            .getElementById('strataBench')
+            .addEventListener('click', benchmarkBoth)
+
+          // Initial render into #chart, then seed the readout.
+          chart = new ApexCharts(document.querySelector('#chart'), options)
+          chart.render().then(updateMetrics)
+
+          return () => {
+            disposed = true
+            if (chart) chart.destroy()
+          }
+        }, [])
+
+        return (
+          <div>
+            <div class="strata">
+              <p class="strata-lede">
+                Every SVG mark is a live DOM node, so a 50k-point scatter is roughly
+                100k nodes: slow to build and slow to restyle on hover. <b>Strata</b>{' '}
+                keeps that DOM for the chart chrome but paints the dense series into a
+                single
+                <code>&lt;canvas&gt;</code>. Crank the points and flip the renderer to
+                feel the difference.
+              </p>
+
+              <section class="strata-console" aria-label="Renderer benchmark">
+                <div class="strata-controls">
+                  <div class="strata-ctl">
+                    <span class="strata-ctl-label">Points</span>
+                    <div
+                      class="strata-seg"
+                      id="strataCount"
+                      role="group"
+                      aria-label="Point count"
+                    >
+                      <button type="button" data-n="1000">
+                        1k
+                      </button>
+                      <button type="button" data-n="10000" aria-pressed="true">
+                        10k
+                      </button>
+                      <button type="button" data-n="50000">
+                        50k
+                      </button>
+                      <button type="button" data-n="100000">
+                        100k
+                      </button>
+                    </div>
+                  </div>
+                  <div class="strata-ctl">
+                    <span class="strata-ctl-label">Renderer</span>
+                    <div
+                      class="strata-seg"
+                      id="strataMode"
+                      role="group"
+                      aria-label="Renderer mode"
+                    >
+                      <button type="button" data-m="auto" aria-pressed="true">
+                        auto
+                      </button>
+                      <button type="button" data-m="svg">
+                        svg
+                      </button>
+                      <button type="button" data-m="canvas">
+                        canvas
+                      </button>
+                    </div>
+                  </div>
+                  <div class="strata-run">
+                    <button class="strata-btn ghost" id="strataBench" type="button">
+                      Benchmark both
+                    </button>
+                    <button
+                      class="strata-btn primary"
+                      id="strataRender"
+                      type="button"
+                    >
+                      Render
+                    </button>
+                  </div>
+                </div>
+
+                <div class="strata-readout">
+                  <div class="strata-metric">
+                    <div class="k">Active renderer</div>
+                    <div class="v renderer" id="mRenderer">
+                      <span class="strata-pill canvas">
+                        <span class="dot"></span>canvas
+                      </span>
+                    </div>
+                  </div>
+                  <div class="strata-metric">
+                    <div class="k">Render time</div>
+                    <div class="v trace" id="mTime">
+                      -<small>ms</small>
+                    </div>
+                  </div>
+                  <div class="strata-metric">
+                    <div class="k">DOM nodes in chart</div>
+                    <div class="v" id="mNodes">
+                      -
+                    </div>
+                  </div>
+                  <div class="strata-metric">
+                    <div class="k">Points plotted</div>
+                    <div class="v" id="mPoints">
+                      -
+                    </div>
+                  </div>
+                </div>
+
+                <div class="strata-stage">
+                  <div class="strata-hint">
+                    Scatter &middot; two clusters &middot; zoom and pan with the
+                    toolbar; the canvas layer stays smooth where SVG would stutter.
+                  </div>
+                  <div id="chart"></div>
+                  <div class="strata-busy" id="strataBusy">
+                    rendering&hellip;
+                  </div>
+                </div>
+              </section>
+
+              <section class="strata-compare">
+                <h2>Head to head &middot; same data, both renderers</h2>
+                <p class="strata-empty" id="strataBarsEmpty">
+                  Press <b>Benchmark both</b> to render the current dataset once as
+                  SVG and once as canvas, and compare.
+                </p>
+                <div id="strataBarsData" hidden>
+                  <div class="strata-barrow">
+                    <span class="strata-rlabel">Render time</span>
+                    <div class="strata-track">
+                      <div class="strata-lane svg">
+                        <span class="strata-who">
+                          <span class="dot"></span>SVG
+                        </span>
+                        <div class="strata-meter">
+                          <span id="tSvg"></span>
+                        </div>
+                        <span class="strata-num" id="tSvgN"></span>
+                      </div>
+                      <div class="strata-lane canvas">
+                        <span class="strata-who">
+                          <span class="dot"></span>Canvas
+                        </span>
+                        <div class="strata-meter">
+                          <span id="tCan"></span>
+                        </div>
+                        <span class="strata-num" id="tCanN"></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="strata-barrow">
+                    <span class="strata-rlabel">DOM nodes</span>
+                    <div class="strata-track">
+                      <div class="strata-lane svg">
+                        <span class="strata-who">
+                          <span class="dot"></span>SVG
+                        </span>
+                        <div class="strata-meter">
+                          <span id="nSvg"></span>
+                        </div>
+                        <span class="strata-num" id="nSvgN"></span>
+                      </div>
+                      <div class="strata-lane canvas">
+                        <span class="strata-who">
+                          <span class="dot"></span>Canvas
+                        </span>
+                        <div class="strata-meter">
+                          <span id="nCan"></span>
+                        </div>
+                        <span class="strata-num" id="nCanN"></span>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="strata-verdict" id="strataVerdict"></p>
+                </div>
+              </section>
+
+              <section class="strata-notes">
+                <div class="strata-note">
+                  <h3>
+                    <span class="n">01</span>Opt in, one line
+                  </h3>
+                  <p>
+                    Set <code>chart.renderer: 'auto'</code> and Strata switches to
+                    canvas once the mark count crosses <code>rendererThreshold</code>.
+                    Below it, output is identical SVG.
+                  </p>
+                </div>
+                <div class="strata-note">
+                  <h3>
+                    <span class="n">02</span>Hybrid, not a rewrite
+                  </h3>
+                  <p>
+                    Only the series paths and markers move to canvas. Axes, gridlines,
+                    crosshairs, tooltips and annotations stay real SVG: crisp text,
+                    native events, SVG export.
+                  </p>
+                </div>
+                <div class="strata-note">
+                  <h3>
+                    <span class="n">03</span>Tree shakeable
+                  </h3>
+                  <p>
+                    The interface and SVG adapter are core. The canvas backend is a
+                    separate feature,{' '}
+                    <code>import 'apexcharts/features/renderer-canvas'</code>, that
+                    shakes out when unused.
+                  </p>
+                </div>
+              </section>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

@@ -156,8 +156,8 @@
       <div class="panel">
         <div class="note">
           The dashed mean line is not part of the chart: it is drawn by a plugin
-          registered with <code>ApexCharts.registerPlugin({ name, setup })</code> and
-          activated via <code>plugins: [{ name: 'mean-line' }]</code>. On every
+          registered with <code>ApexCharts.registerPlugin(&#123; name, setup &#125;)</code> and
+          activated via <code>plugins: [&#123; name: 'mean-line' &#125;]</code>. On every
           <code>draw</code> hook the plugin reads <code>api.data</code>, converts the
           mean to a pixel with <code>api.scales.y()</code>, paints into its own
           <code>api.layer()</code>, and reports the value back through
@@ -169,6 +169,7 @@
       var options = {
         series: [{ name: 'Value', data: [42, 61, 38, 74, 55, 48, 67, 52] }],
         chart: {
+          id: 'weaveChart',
           height: 380,
           type: 'line',
           animations: { enabled: true },

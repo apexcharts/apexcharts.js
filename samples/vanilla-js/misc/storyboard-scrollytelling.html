@@ -10,90 +10,54 @@
 
     <style>
       .sb-wrap {
-        max-width: 1060px;
+        max-width: 640px;
         margin: 0 auto;
+        padding: 8px;
         font-family: Helvetica, Arial, sans-serif;
         color: #1f2937;
       }
       .sb-hero {
-        padding: 40px 8px 20px;
-        max-width: 640px;
+        padding: 18px 4px 14px;
       }
       .sb-hero h1 {
-        font-size: 30px;
-        margin: 0 0 10px;
-        letter-spacing: -0.5px;
+        font-size: 22px;
+        margin: 0 0 8px;
+        letter-spacing: -0.4px;
       }
       .sb-hero p {
-        font-size: 15px;
-        line-height: 1.65;
+        font-size: 14px;
+        line-height: 1.6;
         color: #4b5563;
         margin: 0;
       }
-      .sb-layout {
-        display: grid;
-        grid-template-columns: 300px 1fr;
-        gap: 32px;
-        align-items: start;
-      }
-      .sb-steps {
-        padding-bottom: 24vh;
-      }
-      .sb-step {
-        min-height: 72vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        opacity: 0.35;
-        transition: opacity 0.3s ease;
-      }
-      .sb-step.is-active {
-        opacity: 1;
-      }
-      .sb-step .card {
-        border-left: 3px solid #c7d2fe;
-        background: #fff;
-        border-radius: 0 8px 8px 0;
-        padding: 16px 18px;
-        box-shadow: 0 1px 4px rgba(30, 41, 59, 0.08);
-      }
-      .sb-step.is-active .card {
-        border-left-color: #6366f1;
-      }
-      .sb-step h3 {
-        margin: 0 0 8px;
-        font-size: 16px;
-      }
-      .sb-step p {
-        margin: 0;
-        font-size: 13.5px;
-        line-height: 1.65;
-        color: #4b5563;
-      }
-      .sb-graphic {
-        position: sticky;
-        top: 18px;
-      }
-      .sb-chart-card {
+
+      /* One self-contained card: the chart stays visible while the story scrolls
+               inside a fixed-height panel below it. A fixed pixel height (never vh) keeps
+               the whole sample bounded, so the demo page's auto-resizing iframe can't feed
+               a viewport-relative layout back into a runaway height. */
+      .sb-card {
         background: #fff;
         border: 1px solid #e4e7f2;
-        border-radius: 10px;
-        padding: 14px 14px 8px;
+        border-radius: 12px;
+        padding: 14px 14px 10px;
         box-shadow: 0 2px 10px rgba(30, 41, 59, 0.06);
       }
       .sb-chart-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 2px 6px 10px;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 0 2px 8px;
       }
       .sb-chart-head b {
         font-size: 14px;
+        color: #111827;
       }
       .sb-beat-nav {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
       }
       .sb-chip {
         font-family: monospace;
@@ -124,6 +88,81 @@
         border: 0;
         box-shadow: none;
       }
+      .sb-scroll-hint {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #98a2b3;
+        padding: 8px 2px 2px;
+      }
+      .sb-scroll-hint .sb-arrow {
+        display: inline-block;
+        animation: sb-nudge 1.5s ease-in-out infinite;
+      }
+      @keyframes sb-nudge {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(3px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .sb-scroll-hint .sb-arrow {
+          animation: none;
+        }
+      }
+      /* The scroll panel: the story steps live here and scrolling it drives the
+               beats. The storyboard binds this element as its scroller, so its
+               IntersectionObserver watches this panel's own scroll rather than the
+               page/iframe viewport. */
+      .sb-scroller {
+        height: 232px;
+        overflow-y: auto;
+        border-top: 1px solid #eef0f6;
+        margin-top: 6px;
+        overscroll-behavior: contain;
+      }
+      .sb-steps {
+        margin: 0;
+        /* Top/bottom room so the first and last steps can reach the panel's middle
+                 trigger line. */
+        padding: 74px 6px 118px;
+      }
+      .sb-step {
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        opacity: 0.32;
+        transition: opacity 0.3s ease;
+      }
+      .sb-step.is-active {
+        opacity: 1;
+      }
+      .sb-step .card {
+        border-left: 3px solid #c7d2fe;
+        background: #fbfcff;
+        border-radius: 0 8px 8px 0;
+        padding: 12px 14px;
+        box-shadow: 0 1px 3px rgba(30, 41, 59, 0.06);
+      }
+      .sb-step.is-active .card {
+        border-left-color: #6366f1;
+      }
+      .sb-step h3 {
+        margin: 0 0 6px;
+        font-size: 15px;
+        color: #101828;
+      }
+      .sb-step p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #4b5563;
+      }
       .sb-note {
         background: #eef2ff;
         border-left: 3px solid #6366f1;
@@ -132,25 +171,12 @@
         color: #234;
         border-radius: 2px;
         line-height: 1.65;
-        margin: 24px 8px 40px;
+        margin: 20px 4px 30px;
       }
       .sb-note code {
         background: #dfe3ff;
         padding: 1px 5px;
         border-radius: 3px;
-      }
-      @media (max-width: 820px) {
-        .sb-layout {
-          display: block;
-        }
-        .sb-graphic {
-          top: 0;
-          z-index: 5;
-          margin-bottom: 12px;
-        }
-        .sb-step {
-          min-height: 55vh;
-        }
       }
     </style>
 
@@ -168,173 +194,13 @@
       }
     </script>
 
-    
-  </head>
-
-  <body>
-     <div class="sb-wrap">
-        <div class="sb-hero">
-          <h1>One year, one chart</h1>
-          <p>
-            A scrollytelling story on a single live chart. The same twelve columns
-            stay on screen the whole way: scrolling recolors them, annotates them,
-            and finally reshapes them, and scrolling back up rewinds the story.
-          </p>
-        </div>
-      
-        <div class="sb-layout">
-          <div class="sb-steps">
-            <section class="sb-step" id="sb-step-1">
-              <div class="card">
-                <h3>One year of revenue</h3>
-                <p>
-                  Fiscal 2025, month by month: 341 k$ across twelve columns. A slow
-                  start and a strong finish, with two turning points hiding in
-                  plain sight.
-                </p>
-              </div>
-            </section>
-            <section class="sb-step" id="sb-step-2">
-              <div class="card">
-                <h3>March: the outage</h3>
-                <p>
-                  A bad deploy took sign-ups offline for two days, and March is the
-                  only month that broke the climb. The spotlight narrows; the rest
-                  of the year steps back.
-                </p>
-              </div>
-            </section>
-            <section class="sb-step" id="sb-step-3">
-              <div class="card">
-                <h3>May: v2 ships</h3>
-                <p>
-                  The hinge of the year. From May on, every month tops the last,
-                  and the slope never looks back.
-                </p>
-              </div>
-            </section>
-            <section class="sb-step" id="sb-step-4">
-              <div class="card">
-                <h3>The quarters take shape</h3>
-                <p>
-                  Same columns, new grouping. Each quarter beats the last by half
-                  again or more: 35 k$ in Q1 grows to 157 k$ by Q4.
-                </p>
-              </div>
-            </section>
-            <section class="sb-step" id="sb-step-5">
-              <div class="card">
-                <h3>The year in one circle</h3>
-                <p>
-                  The twelve months curl into a ring, each column becoming its own
-                  slice. The quarter colors survive the change of shape, and Q4's
-                  arc is nearly half the year.
-                </p>
-              </div>
-            </section>
-          </div>
-      
-          <div class="sb-graphic">
-            <div class="sb-chart-card">
-              <div class="sb-chart-head">
-                <b>FY25 revenue, monthly</b>
-                <div class="sb-beat-nav">
-                  <button class="sb-dot is-active" aria-label="Go to beat 1"></button>
-                  <button class="sb-dot" aria-label="Go to beat 2"></button>
-                  <button class="sb-dot" aria-label="Go to beat 3"></button>
-                  <button class="sb-dot" aria-label="Go to beat 4"></button>
-                  <button class="sb-dot" aria-label="Go to beat 5"></button>
-                  <span class="sb-chip" id="sb-chip">Beat 1 of 5</span>
-                </div>
-              </div>
-              <div id="chart"></div>
-            </div>
-          </div>
-        </div>
-      
-        <div class="sb-note">
-          <code>chart.storyboard.bind({ beats })</code> pairs prose elements with
-          views; beats apply as their element crosses the middle of the viewport
-          (IntersectionObserver, no scroll listeners) and re-apply in reverse on
-          the way up. The design rule that keeps every transition smooth: all five
-          beats keep the <b>same twelve marks</b>. Emphasis moves by color
-          (spotlights, quarter groups) and annotations, never by cropping or
-          re-binning, so nothing pops in or out. The finale's <code>options</code>
-          payload (merged into the same render as the view) swaps
-          <code>chart.type</code>, and the <code>morph</code> feature curls each
-          column into its own donut slice, a one-to-one morph. The dots call
-          <code>chart.storyboard.goTo(i)</code>, each beat announces itself to the
-          aria-live region, and <code>beatChange</code> drives the step highlight.
-          Transitions are cut instead of animated under prefers-reduced-motion.
-          Needs the <code>storyboard</code> feature (bundles
-          <code>perspectives</code>).
-        </div>
-      </div>
-
     <script>
-      var options = {
-        series: [
-          {
-            name: 'Revenue (k$)',
-            data: [12, 14, 9, 15, 18, 22, 26, 31, 37, 44, 52, 61],
-          },
-        ],
-        chart: {
-          id: 'storyChart',
-          type: 'bar',
-          height: 400,
-          fontFamily: 'Helvetica, Arial, sans-serif',
-          animations: { speed: 700, dynamicAnimation: { speed: 500 } },
-          toolbar: { show: false },
-          zoom: { enabled: false },
-        },
-        colors: [
-          '#818cf8',
-          '#818cf8',
-          '#818cf8',
-          '#818cf8',
-          '#818cf8',
-          '#818cf8',
-          '#818cf8',
-          '#818cf8',
-          '#818cf8',
-          '#818cf8',
-          '#818cf8',
-          '#818cf8',
-        ],
-        plotOptions: {
-          bar: { columnWidth: '58%', borderRadius: 3, distributed: true },
-        },
-        stroke: { width: 0 },
-        dataLabels: { enabled: false },
-        legend: { show: false },
-        grid: { borderColor: '#eef0f6' },
-        xaxis: {
-          categories: [
-            'Jan',
-            'Feb',
-            'Mar',
-            'Apr',
-            'May',
-            'Jun',
-            'Jul',
-            'Aug',
-            'Sep',
-            'Oct',
-            'Nov',
-            'Dec',
-          ],
-        },
-      }
-
-      var chart = new ApexCharts(document.querySelector('#chart'), options)
-      chart.render()
-
       // The design rule of this story: every beat keeps the SAME twelve marks.
       // Emphasis changes via per-column colors and annotations (values, axes and
       // mark count never change), so each transition tweens element-for-element
       // instead of popping marks in and out. The finale is the one shape change:
       // a 1:1 bar-to-donut morph, each column curling into its own slice.
+      // These definitions are shared by the vanilla-js, React and Vue builds.
       var REV = [12, 14, 9, 15, 18, 22, 26, 31, 37, 44, 52, 61]
       var MONTHS = [
         'Jan',
@@ -490,12 +356,174 @@
           announce: 'The twelve months as a donut ring',
         },
       ]
+    </script>
+  </head>
 
+  <body>
+     <div class="sb-wrap">
+        <div class="sb-hero">
+          <h1>One year, one chart</h1>
+          <p>
+            A scrollytelling story on a single live chart. Scroll the panel below and
+            the same twelve columns recolor, annotate, and finally reshape; scrolling
+            back up rewinds the story.
+          </p>
+        </div>
+      
+        <div class="sb-card">
+          <div class="sb-chart-head">
+            <b>FY25 revenue, monthly</b>
+            <div class="sb-beat-nav">
+              <button class="sb-dot is-active" aria-label="Go to beat 1"></button>
+              <button class="sb-dot" aria-label="Go to beat 2"></button>
+              <button class="sb-dot" aria-label="Go to beat 3"></button>
+              <button class="sb-dot" aria-label="Go to beat 4"></button>
+              <button class="sb-dot" aria-label="Go to beat 5"></button>
+              <span class="sb-chip" id="sb-chip">Beat 1 of 5</span>
+            </div>
+          </div>
+      
+          <div id="chart"></div>
+      
+          <div class="sb-scroll-hint" aria-hidden="true">
+            <span class="sb-arrow">&#8595;</span> Scroll the story, or tap the dots
+          </div>
+      
+          <div class="sb-scroller" id="sb-scroller">
+            <div class="sb-steps">
+              <section class="sb-step" id="sb-step-1">
+                <div class="card">
+                  <h3>One year of revenue</h3>
+                  <p>
+                    Fiscal 2025, month by month: 341 k$ across twelve columns. A slow
+                    start and a strong finish, with two turning points hiding in
+                    plain sight.
+                  </p>
+                </div>
+              </section>
+              <section class="sb-step" id="sb-step-2">
+                <div class="card">
+                  <h3>March: the outage</h3>
+                  <p>
+                    A bad deploy took sign-ups offline for two days, and March is the
+                    only month that broke the climb. The spotlight narrows.
+                  </p>
+                </div>
+              </section>
+              <section class="sb-step" id="sb-step-3">
+                <div class="card">
+                  <h3>May: v2 ships</h3>
+                  <p>
+                    The hinge of the year. From May on, every month tops the last,
+                    and the slope never looks back.
+                  </p>
+                </div>
+              </section>
+              <section class="sb-step" id="sb-step-4">
+                <div class="card">
+                  <h3>The quarters take shape</h3>
+                  <p>
+                    Same columns, new grouping. Each quarter beats the last by half
+                    again or more: 35 k$ in Q1 grows to 157 k$ by Q4.
+                  </p>
+                </div>
+              </section>
+              <section class="sb-step" id="sb-step-5">
+                <div class="card">
+                  <h3>The year in one circle</h3>
+                  <p>
+                    The twelve months curl into a ring, each column becoming its own
+                    slice. The quarter colors survive the change of shape.
+                  </p>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      
+        <div class="sb-note">
+          <code>chart.storyboard.bind(&#123; beats, scroller &#125;)</code> pairs prose elements
+          with views; here <code>scroller</code> points the observer at the scroll
+          panel, so beats apply as their step crosses the middle of that panel
+          (IntersectionObserver, no scroll listeners) and re-apply in reverse on the
+          way up. The design rule that keeps every transition smooth: all five beats
+          keep the <b>same twelve marks</b>. Emphasis moves by color (spotlights,
+          quarter groups) and annotations, never by cropping or re-binning, so nothing
+          pops in or out. The finale's <code>options</code> payload swaps
+          <code>chart.type</code>, and the <code>morph</code> feature curls each column
+          into its own donut slice, a one-to-one morph. The dots call
+          <code>chart.storyboard.goTo(i)</code>, each beat announces itself to the
+          aria-live region, and <code>beatChange</code> drives the step highlight.
+          Transitions are cut instead of animated under prefers-reduced-motion. Needs
+          the <code>storyboard</code> feature (bundles <code>perspectives</code>).
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            name: 'Revenue (k$)',
+            data: [12, 14, 9, 15, 18, 22, 26, 31, 37, 44, 52, 61],
+          },
+        ],
+        chart: {
+          id: 'storyChart',
+          type: 'bar',
+          height: 300,
+          fontFamily: 'Helvetica, Arial, sans-serif',
+          animations: { speed: 700, dynamicAnimation: { speed: 500 } },
+          toolbar: { show: false },
+          zoom: { enabled: false },
+        },
+        colors: [
+          '#818cf8',
+          '#818cf8',
+          '#818cf8',
+          '#818cf8',
+          '#818cf8',
+          '#818cf8',
+          '#818cf8',
+          '#818cf8',
+          '#818cf8',
+          '#818cf8',
+          '#818cf8',
+          '#818cf8',
+        ],
+        plotOptions: {
+          bar: { columnWidth: '58%', borderRadius: 3, distributed: true },
+        },
+        stroke: { width: 0 },
+        dataLabels: { enabled: false },
+        legend: { show: false },
+        grid: { borderColor: '#eef0f6' },
+        xaxis: {
+          categories: [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec',
+          ],
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      // beatChange fires on every activation (scroll or goTo): drive the page UI.
+      // (REV, MONTHS, the color palettes and BEATS live in the shared head script.)
       var steps = document.querySelectorAll('.sb-step')
       var dots = document.querySelectorAll('.sb-dot')
       var chip = document.getElementById('sb-chip')
 
-      // beatChange fires on every activation (scroll or goTo): drive the page UI.
       chart.addEventListener('beatChange', function (c, info) {
         steps.forEach(function (el, i) {
           el.classList.toggle('is-active', i === info.index)
@@ -513,7 +541,9 @@
       })
 
       window.addEventListener('load', function () {
-        chart.storyboard.bind({ beats: BEATS })
+        // scroller binds the observer to the scroll panel, so the story is driven by
+        // that panel's own scroll (not the page/iframe viewport).
+        chart.storyboard.bind({ beats: BEATS, scroller: '#sb-scroller' })
       })
     </script>
 

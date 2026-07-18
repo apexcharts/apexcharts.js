@@ -136,3 +136,57 @@ toggle.addEventListener('click', function () {
   else { chart.stopMeasure(); toggle.classList.remove('active') }
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the same toggle the vanilla build does. (price()
+  // lives in the shared head script.)
+  let chart
+  const timer = window.setInterval(() => {
+    chart = ApexCharts.getChartByID('themed')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    const toggle = document.getElementById('oc-toggle')
+    let on = false
+    toggle.addEventListener('click', () => {
+      on = !on
+      if (on) { chart.startMeasure(); toggle.classList.add('active') }
+      else { chart.stopMeasure(); toggle.classList.remove('active') }
+    })
+  }, 50)
+
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+pollTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the same toggle the vanilla build does. (price()
+  // lives in the shared head script.)
+  var me = this
+  me.pollTimer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('themed')
+    if (!chart) return
+    window.clearInterval(me.pollTimer)
+    me.pollTimer = null
+
+    var toggle = document.getElementById('oc-toggle')
+    var on = false
+    toggle.addEventListener('click', function () {
+      on = !on
+      if (on) { chart.startMeasure(); toggle.classList.add('active') }
+      else { chart.stopMeasure(); toggle.classList.remove('active') }
+    })
+  }, 50)
+},
+beforeDestroy: function () {
+  if (this.pollTimer) window.clearInterval(this.pollTimer)
+},
+</vue-script>

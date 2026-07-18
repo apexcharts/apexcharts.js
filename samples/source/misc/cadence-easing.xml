@@ -73,6 +73,15 @@
     for (var i = 0; i < 8; i++) out.push(20 + Math.round(Math.random() * 80))
     return out
   }
+
+  // A bracketed value is a cubic-bezier array; otherwise a registered name.
+  // Shared by the vanilla-js, React and Vue builds.
+  function parseEase(raw) {
+    if (raw.charAt(0) === '[') {
+      try { return JSON.parse(raw) } catch (e) { return raw }
+    }
+    return raw
+  }
 </script>
 </scripts>
 
@@ -110,6 +119,7 @@
 <chart>
 <options>
 chart: {
+  id: 'cadenceChart',
   height: 400,
   type: 'bar',
   fontFamily: 'Helvetica, Arial, sans-serif',
@@ -148,16 +158,9 @@ yaxis: { min: 0, max: 100 },
 </chart>
 
 <vanilla-js-script>
+// parseEase and shuffledData live in the shared head script.
 var buttons = Array.prototype.slice.call(document.querySelectorAll('.controls button[data-ease]'))
 var currentEasing = 'easeInOutSine'
-
-function parseEase(raw) {
-  // a bracketed value is a cubic-bezier array; otherwise a registered name
-  if (raw.charAt(0) === '[') {
-    try { return JSON.parse(raw) } catch (e) { return raw }
-  }
-  return raw
-}
 
 buttons.forEach(function (btn) {
   btn.addEventListener('click', function () {
@@ -173,3 +176,74 @@ document.getElementById('shuffle').addEventListener('click', function () {
   chart.updateSeries([{ name: 'Value', data: shuffledData() }])
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the same controls the vanilla build does.
+  // (parseEase and shuffledData live in the shared head script.) updateOptions /
+  // updateSeries drive the chart instance directly, so no React state changes.
+  let chart
+  const timer = window.setInterval(() => {
+    chart = ApexCharts.getChartByID('cadenceChart')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    const buttons = Array.prototype.slice.call(
+      document.querySelectorAll('.controls button[data-ease]')
+    )
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        buttons.forEach((b) => b.classList.remove('active'))
+        btn.classList.add('active')
+        const currentEasing = parseEase(btn.getAttribute('data-ease'))
+        chart.updateOptions({ chart: { animations: { easing: currentEasing } } })
+      })
+    })
+
+    document.getElementById('shuffle').addEventListener('click', () => {
+      chart.updateSeries([{ name: 'Value', data: shuffledData() }])
+    })
+  }, 50)
+
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+cadenceTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the same controls the vanilla build does.
+  // (parseEase and shuffledData live in the shared head script.) updateOptions /
+  // updateSeries drive the chart instance directly, so no reactive data changes.
+  var me = this
+  me.cadenceTimer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('cadenceChart')
+    if (!chart) return
+    window.clearInterval(me.cadenceTimer)
+
+    var buttons = Array.prototype.slice.call(
+      document.querySelectorAll('.controls button[data-ease]')
+    )
+    buttons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        buttons.forEach(function (b) { b.classList.remove('active') })
+        btn.classList.add('active')
+        var currentEasing = parseEase(btn.getAttribute('data-ease'))
+        chart.updateOptions({ chart: { animations: { easing: currentEasing } } })
+      })
+    })
+
+    document.getElementById('shuffle').addEventListener('click', function () {
+      chart.updateSeries([{ name: 'Value', data: shuffledData() }])
+    })
+  }, 50)
+},
+beforeDestroy: function () {
+  window.clearInterval(this.cadenceTimer)
+},
+</vue-script>

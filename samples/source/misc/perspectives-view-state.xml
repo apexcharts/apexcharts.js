@@ -184,3 +184,134 @@ try {
   if (shared) chart.perspectives.apply(shared, { animate: false })
 } catch (e) {}
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the same controls the vanilla build does.
+  // (bigSeries lives in the shared head script.) Perspectives drives the chart
+  // instance directly, so no React state changes and the chart is never
+  // re-rendered under it.
+  let chart
+  const timer = window.setInterval(() => {
+    chart = ApexCharts.getChartByID('perspectives-demo')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    const viewsSel = document.getElementById('views')
+    const linkEl = document.getElementById('link')
+    let saveCount = 0
+
+    function refreshList() {
+      const list = chart.perspectives.list()
+      viewsSel.innerHTML = '<option value="">' +
+        (list.length ? 'Pick a saved view...' : '(none yet)') + '</option>'
+      list.forEach(function (p) {
+        const o = document.createElement('option')
+        o.value = p.id
+        o.textContent = p.name
+        viewsSel.appendChild(o)
+      })
+    }
+
+    document.getElementById('save').addEventListener('click', function () {
+      saveCount++
+      chart.perspectives.save('View ' + saveCount)
+      refreshList()
+    })
+
+    viewsSel.addEventListener('change', function () {
+      const id = viewsSel.value
+      if (!id) return
+      const entry = chart.perspectives.list().filter(function (p) { return p.id === id })[0]
+      if (entry) chart.perspectives.apply(entry.token, { animate: true })
+    })
+
+    document.getElementById('copy').addEventListener('click', function () {
+      const url = chart.perspectives.toURL()
+      linkEl.textContent = url
+      if (navigator.clipboard) navigator.clipboard.writeText(url).catch(function () {})
+    })
+
+    document.getElementById('resetZoom').addEventListener('click', function () {
+      chart.resetSeries(true, true)
+    })
+
+    // Restore a shared view if the page was opened with a #apex= fragment.
+    try {
+      const shared = ApexCharts.perspectives && ApexCharts.perspectives.fromURL()
+      if (shared) chart.perspectives.apply(shared, { animate: false })
+    } catch (e) {}
+  }, 50)
+
+  return () => {
+    window.clearInterval(timer)
+  }
+}, [])
+</react-script>
+
+<vue-data>
+perspTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the same controls the vanilla build does.
+  // (bigSeries lives in the shared head script.)
+  var me = this
+  me.perspTimer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('perspectives-demo')
+    if (!chart) return
+    window.clearInterval(me.perspTimer)
+
+    var viewsSel = document.getElementById('views')
+    var linkEl = document.getElementById('link')
+    var saveCount = 0
+
+    function refreshList() {
+      var list = chart.perspectives.list()
+      viewsSel.innerHTML = '<option value="">' +
+        (list.length ? 'Pick a saved view...' : '(none yet)') + '</option>'
+      list.forEach(function (p) {
+        var o = document.createElement('option')
+        o.value = p.id
+        o.textContent = p.name
+        viewsSel.appendChild(o)
+      })
+    }
+
+    document.getElementById('save').addEventListener('click', function () {
+      saveCount++
+      chart.perspectives.save('View ' + saveCount)
+      refreshList()
+    })
+
+    viewsSel.addEventListener('change', function () {
+      var id = viewsSel.value
+      if (!id) return
+      var entry = chart.perspectives.list().filter(function (p) { return p.id === id })[0]
+      if (entry) chart.perspectives.apply(entry.token, { animate: true })
+    })
+
+    document.getElementById('copy').addEventListener('click', function () {
+      var url = chart.perspectives.toURL()
+      linkEl.textContent = url
+      if (navigator.clipboard) navigator.clipboard.writeText(url).catch(function () {})
+    })
+
+    document.getElementById('resetZoom').addEventListener('click', function () {
+      chart.resetSeries(true, true)
+    })
+
+    // Restore a shared view if the page was opened with a #apex= fragment.
+    try {
+      var shared = ApexCharts.perspectives && ApexCharts.perspectives.fromURL()
+      if (shared) chart.perspectives.apply(shared, { animate: false })
+    } catch (e) {}
+  }, 50)
+},
+beforeDestroy: function () {
+  if (this.perspTimer) window.clearInterval(this.perspTimer)
+},
+</vue-script>

@@ -109,7 +109,7 @@
       
         <div class="cf-note">
           The top chart is a <b>histogram</b> of daily fluctuation %, binned by the
-          <code>link</code> engine (<code>bins: { count }</code>) on a numeric x-axis.
+          <code>link</code> engine (<code>bins: &#123; count &#125;</code>) on a numeric x-axis.
           It has <code>chart.selection.enabled</code>, so brushing a range sets a
           <code>[min, max]</code> filter on the fluctuation dimension: the bottom chart
           <b>re-aggregates</b> to just the days in that range, and the histogram dims
@@ -196,6 +196,7 @@
       chart1.render()
 
       // charts[0] = fluctuation histogram (brush source), charts[1] = byQuarter.
+      // The wiring talks to the crossfilter engine (not the chart instances).
       var cf = ApexCharts.getCrossfilter('market')
       var readout = document.getElementById('cf-readout')
 

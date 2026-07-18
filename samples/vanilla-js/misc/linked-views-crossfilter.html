@@ -91,6 +91,11 @@
         }
         return out
       }
+
+      // Shared by the vanilla-js, React and Vue builds.
+      function fmt(ts) {
+        return new Date(ts).toISOString().slice(0, 10)
+      }
     </script>
   </head>
 
@@ -183,11 +188,8 @@
 
       // charts[0] = orders (brush source), charts[1] = value (target).
       // The generated file exposes each chart as chart, chart1, chart2, ...
+      // (fmt lives in the shared head script.)
       var readout = document.getElementById('readout')
-
-      function fmt(ts) {
-        return new Date(ts).toISOString().slice(0, 10)
-      }
 
       chart.addEventListener('crossFilter', function (c, opts) {
         readout.textContent =

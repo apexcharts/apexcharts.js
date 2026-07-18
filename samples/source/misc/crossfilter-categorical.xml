@@ -108,6 +108,16 @@
   // Register the shared record set BEFORE the charts are constructed, so each
   // chart's initial paint is already the aggregation (no empty flash).
   ApexCharts.crossfilter({ id: 'trades', records: tradesData() })
+
+  // Readout formatter, shared by the vanilla-js, React and Vue builds.
+  function fmtFilters(state) {
+    var keys = Object.keys(state.filters)
+    if (!keys.length) return 'No filter (all ' + state.total + ' trades)'
+    var parts = keys.map(function (id) {
+      return id + ': ' + state.filters[id].join(', ')
+    })
+    return parts.join('  |  ') + '   ->   ' + state.filteredCount + ' / ' + state.total + ' trades'
+  }
 </script>
 </scripts>
 
@@ -126,7 +136,7 @@
 
   <div class="cf-note">
     All three charts declare a <code>chart.link.dimension</code> over one record
-    set registered with <code>ApexCharts.crossfilter({ id, records })</code>.
+    set registered with <code>ApexCharts.crossfilter(&#123; id, records &#125;)</code>.
     Clicking a slice or bar toggles that bucket: the clicked chart dims its
     other buckets, and every other chart <b>re-aggregates over the filtered
     trades</b> and animates to its new values. Selections combine (a chart
@@ -239,18 +249,11 @@ colors: ['#818cf8', '#38bdf8', '#4ade80', '#fbbf24', '#f472b6'],
 
 <vanilla-js-script>
 // charts[0]=byQuarter, charts[1]=byOutcome, charts[2]=byDay.
-// The generated file exposes them as chart, chart1, chart2.
+// The generated file exposes them as chart, chart1, chart2. The wiring talks to
+// the crossfilter engine (not the chart instances), and fmtFilters lives in the
+// shared head script.
 var cf = ApexCharts.getCrossfilter('trades')
 var readout = document.getElementById('cf-readout')
-
-function fmtFilters(state) {
-  var keys = Object.keys(state.filters)
-  if (!keys.length) return 'No filter (all ' + state.total + ' trades)'
-  var parts = keys.map(function (id) {
-    return id + ': ' + state.filters[id].join(', ')
-  })
-  return parts.join('  |  ') + '   ->   ' + state.filteredCount + ' / ' + state.total + ' trades'
-}
 
 if (cf) {
   cf.on('change', function (state) {
@@ -262,3 +265,56 @@ document.getElementById('cf-reset').addEventListener('click', function () {
   if (cf) cf.reset()
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, and the crossfilter engine is
+  // registered by the shared head script (ApexCharts.crossfilter). Poll until the
+  // engine exists, then wire the readout + Reset button the same way the vanilla
+  // build does. (fmtFilters lives in the shared head script.)
+  const timer = window.setInterval(() => {
+    const cf = ApexCharts.getCrossfilter('trades')
+    if (!cf) return
+    window.clearInterval(timer)
+
+    const readout = document.getElementById('cf-readout')
+    cf.on('change', (state) => {
+      readout.textContent = fmtFilters(state)
+    })
+
+    document.getElementById('cf-reset').addEventListener('click', () => cf.reset())
+  }, 50)
+
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+cfTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, and the crossfilter engine is
+  // registered by the shared head script (ApexCharts.crossfilter). Poll until the
+  // engine exists, then wire the readout + Reset button the same way the vanilla
+  // build does. (fmtFilters lives in the shared head script.)
+  this.cfTimer = window.setInterval(function () {
+    var cf = ApexCharts.getCrossfilter('trades')
+    if (!cf) return
+    window.clearInterval(this.cfTimer)
+
+    var readout = document.getElementById('cf-readout')
+    cf.on('change', function (state) {
+      readout.textContent = fmtFilters(state)
+    })
+
+    document.getElementById('cf-reset').addEventListener('click', function () {
+      cf.reset()
+    })
+  }.bind(this), 50)
+},
+beforeDestroy: function () {
+  window.clearInterval(this.cfTimer)
+},
+</vue-script>

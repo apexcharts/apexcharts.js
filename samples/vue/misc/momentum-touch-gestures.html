@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Momentum: Pinch Zoom, Two-Finger Pan and Kinetic Inertia</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 820px;
+        margin: 16px auto;
+      }
+      .panel {
+        max-width: 820px;
+        margin: 16px auto;
+        font-family: sans-serif;
+      }
+      .readout {
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        flex-wrap: wrap;
+        font-size: 13px;
+        color: #334;
+        margin-bottom: 6px;
+      }
+      .readout b {
+        font-family: monospace;
+      }
+      .pill {
+        background: #eef2ff;
+        color: #4338ca;
+        border-radius: 999px;
+        padding: 3px 11px;
+        font-weight: 600;
+      }
+      .note {
+        background: #f5f8ff;
+        border-left: 3px solid #4f46e5;
+        padding: 11px 15px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.6;
+      }
+      .note code {
+        background: #e6ecff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+      .gestures {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 10px;
+        margin: 4px 0 2px;
+      }
+      .gesture {
+        border: 1px solid #e2e6f0;
+        border-radius: 8px;
+        padding: 10px 13px;
+        font-family: sans-serif;
+      }
+      .gesture h4 {
+        margin: 0 0 3px;
+        font-size: 13px;
+        color: #4338ca;
+      }
+      .gesture p {
+        margin: 0;
+        font-size: 12.5px;
+        color: #445;
+        line-height: 1.5;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // A deterministic daily time series (no randomness, so the demo is stable).
+      // Enough points that a pinch/pan actually has somewhere to go.
+      function momentumSeries() {
+        var out = []
+        var start = new Date('2023-01-01').getTime()
+        var day = 86400000
+        var v = 120
+        for (var i = 0; i < 220; i++) {
+          // smooth composite drift: a couple of sines plus a slow trend
+          v = 120 + 38 * Math.sin(i / 13) + 18 * Math.sin(i / 4.5) + i * 0.32
+          out.push([start + i * day, Math.round(v * 100) / 100])
+        }
+        return out
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="panel">
+      <div class="readout">
+        <span class="pill" id="gesture">ready</span>
+        <span>window: <b id="window">full range</b></span>
+      </div>
+    
+      <div class="gestures">
+        <div class="gesture">
+          <h4>Pinch</h4>
+          <p>Two fingers, spread or squeeze. Zooms the x-axis around the point between your fingers, frame by frame.</p>
+        </div>
+        <div class="gesture">
+          <h4>Two-finger drag</h4>
+          <p>Slide both fingers together to pan while pinched. The point under your fingers stays put.</p>
+        </div>
+        <div class="gesture">
+          <h4>Flick to glide</h4>
+          <p>In pan mode, drag with one finger and release with speed. The chart keeps gliding and eases to a stop at the data edge.</p>
+        </div>
+      </div>
+    </div>
+    
+    <div id="chart">
+      <apexchart type="area" height="400" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    
+    <div class="panel">
+      <div class="note">
+        Momentum is on by default: <code>chart.zoom.pinch</code> and
+        <code>chart.pan.inertia</code>. Pinch-zoom and kinetic inertia are
+        <b>touch gestures</b>, so try this on a phone or tablet, or turn on device
+        (touch) emulation in your browser dev tools. On desktop you can still
+        mouse-wheel zoom and use the toolbar's pan tool; the readout above tracks the
+        x-window from the <code>zoomed</code> and <code>scrolled</code> events.
+        A one-finger drag that is mostly vertical is treated as a page scroll (axis
+        rails), so the chart never traps the page.
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;panel&quot;&gt;
+        &lt;div class=&quot;readout&quot;&gt;
+          &lt;span class=&quot;pill&quot; id=&quot;gesture&quot;&gt;ready&lt;/span&gt;
+          &lt;span&gt;window: &lt;b id=&quot;window&quot;&gt;full range&lt;/b&gt;&lt;/span&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;gestures&quot;&gt;
+          &lt;div class=&quot;gesture&quot;&gt;
+            &lt;h4&gt;Pinch&lt;/h4&gt;
+            &lt;p&gt;Two fingers, spread or squeeze. Zooms the x-axis around the point between your fingers, frame by frame.&lt;/p&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;gesture&quot;&gt;
+            &lt;h4&gt;Two-finger drag&lt;/h4&gt;
+            &lt;p&gt;Slide both fingers together to pan while pinched. The point under your fingers stays put.&lt;/p&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;gesture&quot;&gt;
+            &lt;h4&gt;Flick to glide&lt;/h4&gt;
+            &lt;p&gt;In pan mode, drag with one finger and release with speed. The chart keeps gliding and eases to a stop at the data edge.&lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;400&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+      
+      &lt;div class=&quot;panel&quot;&gt;
+        &lt;div class=&quot;note&quot;&gt;
+          Momentum is on by default: &lt;code&gt;chart.zoom.pinch&lt;/code&gt; and
+          &lt;code&gt;chart.pan.inertia&lt;/code&gt;. Pinch-zoom and kinetic inertia are
+          &lt;b&gt;touch gestures&lt;/b&gt;, so try this on a phone or tablet, or turn on device
+          (touch) emulation in your browser dev tools. On desktop you can still
+          mouse-wheel zoom and use the toolbar&#39;s pan tool; the readout above tracks the
+          x-window from the &lt;code&gt;zoomed&lt;/code&gt; and &lt;code&gt;scrolled&lt;/code&gt; events.
+          A one-finger drag that is mostly vertical is treated as a page scroll (axis
+          rails), so the chart never traps the page.
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [{ name: 'Reading', data: momentumSeries() }],
+          chartOptions: {
+            chart: {
+              id: 'momentumChart',
+              height: 400,
+              type: 'area',
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { enabled: false },
+              toolbar: {
+                autoSelected: 'pan',
+                tools: {
+                  pan: true,
+                  zoom: true,
+                  zoomin: true,
+                  zoomout: true,
+                  reset: true,
+                  download: false,
+                },
+              },
+              zoom: {
+                enabled: true,
+                type: 'x',
+                pinch: true,
+              },
+              pan: {
+                inertia: true,
+                friction: 0.92,
+              },
+            },
+            colors: ['#4f46e5'],
+            dataLabels: { enabled: false },
+            stroke: { curve: 'smooth', width: 2 },
+            fill: {
+              type: 'gradient',
+              gradient: {
+                shadeIntensity: 0.3,
+                opacityFrom: 0.35,
+                opacityTo: 0.03,
+                stops: [0, 100],
+              },
+            },
+            title: { text: 'Sensor reading (220 days)', align: 'left' },
+            subtitle: {
+              text: 'Pinch to zoom, two-finger pan, flick to glide',
+              align: 'left',
+            },
+            xaxis: {
+              type: 'datetime',
+            },
+            yaxis: {
+              labels: {
+                formatter: function (v) {
+                  return Math.round(v)
+                },
+              },
+            },
+            tooltip: { x: { format: 'dd MMM yyyy' } },
+          },
+        },
+        mounted: function () {
+          // The vue-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id. Poll until it exists, then wire the same readout the vanilla
+          // build does. (momentumSeries lives in the shared head script.)
+          var timer = window.setInterval(function () {
+            var chart = ApexCharts.getChartByID('momentumChart')
+            if (!chart) return
+            window.clearInterval(timer)
+
+            var gestureEl = document.getElementById('gesture')
+            var windowEl = document.getElementById('window')
+
+            function fmt(ts) {
+              return new Date(ts).toISOString().slice(0, 10)
+            }
+            function showWindow(label, xaxis) {
+              gestureEl.innerHTML = label
+              if (xaxis && xaxis.min != null && xaxis.max != null) {
+                windowEl.innerHTML = fmt(xaxis.min) + '  to  ' + fmt(xaxis.max)
+              }
+            }
+
+            // zoomed fires at the end of a pinch (and on wheel / toolbar zoom); scrolled
+            // fires continuously while panning and once the inertia glide comes to rest.
+            chart.addEventListener('zoomed', function (c, opts) {
+              showWindow('zoomed', opts.xaxis)
+            })
+            chart.addEventListener('scrolled', function (c, opts) {
+              showWindow('panned', opts.xaxis)
+            })
+          }, 50)
+        },
+      })
+    </script>
+    
+  </body>
+</html>

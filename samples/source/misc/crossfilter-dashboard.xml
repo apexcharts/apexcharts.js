@@ -117,7 +117,7 @@
 
   <div class="cfd-note">
     Five views over one record set registered with
-    <code>ApexCharts.crossfilter({ id, records })</code>. The donuts and the
+    <code>ApexCharts.crossfilter(&#123; id, records &#125;)</code>. The donuts and the
     day bar filter by <b>clicking a bucket</b>; the two histograms filter by
     <b>brushing a range</b> (they set <code>chart.selection.enabled</code>).
     Every selection combines: each chart re-aggregates over the rows passing all
@@ -278,3 +278,130 @@ document.getElementById('cfd-reset').addEventListener('click', function () {
   if (cf) cf.reset()
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // Five linked views (byQuarter..byVolume) + a live data table, all over the
+  // shared 'trades' record set (registered in the head script). The wrapper owns
+  // the render, so poll until every chart instance and the crossfilter exist,
+  // then wire the table + readout + reset exactly as the vanilla build does.
+  let cf
+  let table
+  let offChange
+  const onReset = () => { if (cf) cf.reset() }
+
+  const timer = window.setInterval(() => {
+    cf = ApexCharts.getCrossfilter('trades')
+    const ready =
+      cf &&
+      ApexCharts.getChartByID('byQuarter') &&
+      ApexCharts.getChartByID('byOutcome') &&
+      ApexCharts.getChartByID('byDay') &&
+      ApexCharts.getChartByID('byFluctuation') &&
+      ApexCharts.getChartByID('byVolume')
+    if (!ready) return
+    window.clearInterval(timer)
+
+    const readout = document.getElementById('cfd-readout')
+
+    // Bind the data table to the filtered rows; it re-renders on every change.
+    table = cf.dataTable(document.getElementById('cfd-table'), {
+      columns: [
+        { field: 'id', label: '#' },
+        { field: 'quarter', label: 'Quarter' },
+        { field: 'day', label: 'Day' },
+        { field: 'outcome', label: 'Outcome' },
+        { field: 'pct', label: 'Fluctuation %', format: (v) => v.toFixed(2) + '%' },
+        { field: 'volume', label: 'Volume' },
+      ],
+    })
+
+    offChange = cf.on('change', (state) => {
+      const ids = Object.keys(state.filters)
+      const label = ids.length ? ids.join(', ') : 'none'
+      readout.textContent =
+        state.filteredCount + ' / ' + state.total + ' trades   (active: ' + label + ')'
+    })
+
+    // Seed the readout with the unfiltered totals.
+    const s = cf.state()
+    readout.textContent = s.filteredCount + ' / ' + s.total + ' trades   (active: none)'
+
+    document.getElementById('cfd-reset').addEventListener('click', onReset)
+  }, 50)
+
+  return () => {
+    window.clearInterval(timer)
+    if (offChange) offChange()
+    if (table) table.destroy()
+    const btn = document.getElementById('cfd-reset')
+    if (btn) btn.removeEventListener('click', onReset)
+  }
+}, [])
+</react-script>
+
+<vue-data>
+cfTrades: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // Five linked views (byQuarter..byVolume) + a live data table, all over the
+  // shared 'trades' record set (registered in the head script). The wrapper owns
+  // the render, so poll until every chart instance and the crossfilter exist,
+  // then wire the table + readout + reset exactly as the vanilla build does.
+  var me = this
+  me._onReset = function () {
+    if (me.cfTrades) me.cfTrades.reset()
+  }
+  var timer = window.setInterval(function () {
+    var cf = ApexCharts.getCrossfilter('trades')
+    var ready =
+      cf &&
+      ApexCharts.getChartByID('byQuarter') &&
+      ApexCharts.getChartByID('byOutcome') &&
+      ApexCharts.getChartByID('byDay') &&
+      ApexCharts.getChartByID('byFluctuation') &&
+      ApexCharts.getChartByID('byVolume')
+    if (!ready) return
+    window.clearInterval(timer)
+    me._timer = null
+    me.cfTrades = cf
+
+    var readout = document.getElementById('cfd-readout')
+
+    // Bind the data table to the filtered rows; it re-renders on every change.
+    me._table = cf.dataTable(document.getElementById('cfd-table'), {
+      columns: [
+        { field: 'id', label: '#' },
+        { field: 'quarter', label: 'Quarter' },
+        { field: 'day', label: 'Day' },
+        { field: 'outcome', label: 'Outcome' },
+        { field: 'pct', label: 'Fluctuation %', format: function (v) { return v.toFixed(2) + '%' } },
+        { field: 'volume', label: 'Volume' },
+      ],
+    })
+
+    me._offChange = cf.on('change', function (state) {
+      var ids = Object.keys(state.filters)
+      var label = ids.length ? ids.join(', ') : 'none'
+      readout.textContent =
+        state.filteredCount + ' / ' + state.total + ' trades   (active: ' + label + ')'
+    })
+
+    // Seed the readout with the unfiltered totals.
+    var s = cf.state()
+    readout.textContent = s.filteredCount + ' / ' + s.total + ' trades   (active: none)'
+
+    document.getElementById('cfd-reset').addEventListener('click', me._onReset)
+  }, 50)
+  me._timer = timer
+},
+beforeDestroy: function () {
+  if (this._timer) window.clearInterval(this._timer)
+  if (this._offChange) this._offChange()
+  if (this._table) this._table.destroy()
+  var btn = document.getElementById('cfd-reset')
+  if (btn && this._onReset) btn.removeEventListener('click', this._onReset)
+},
+</vue-script>

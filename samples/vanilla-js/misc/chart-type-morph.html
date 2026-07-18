@@ -78,7 +78,37 @@
       }
     </script>
 
-    
+    <script>
+      // Shared by the vanilla-js, React and Vue builds: the labels, the per-type
+      // series shape and the active-button sync. The mutable current* state lives in
+      // each format's own wiring below (one live chart per generated page).
+      var LABELS = ['Direct', 'Organic', 'Referral', 'Social', 'Email']
+
+      function buildSeriesFor(type, values) {
+        if (type === 'funnel') {
+          var sorted = values.slice().sort(function (a, b) {
+            return b - a
+          })
+          return [{ name: 'Sessions', data: sorted }]
+        }
+        if (type === 'bar' || type === 'pyramid') {
+          return [{ name: 'Sessions', data: values.slice() }]
+        }
+        return values.slice()
+      }
+
+      function setActive(type, horizontal) {
+        document
+          .querySelectorAll('.actions button[data-type]')
+          .forEach(function (btn) {
+            var btnType = btn.getAttribute('data-type')
+            var btnH = btn.getAttribute('data-horizontal')
+            var active =
+              btnType === type && (type !== 'bar' || String(horizontal) === btnH)
+            btn.classList.toggle('active', active)
+          })
+      }
+    </script>
   </head>
 
   <body>
@@ -121,6 +151,7 @@
       var options = {
         series: [{ name: 'Sessions', data: [44, 55, 41, 27, 33] }],
         chart: {
+          id: 'morphChart',
           type: 'bar',
           height: 380,
           toolbar: {
@@ -186,35 +217,12 @@
       var chart = new ApexCharts(document.querySelector('#chart'), options)
       chart.render()
 
-      var LABELS = ['Direct', 'Organic', 'Referral', 'Social', 'Email']
+      // LABELS, buildSeriesFor and setActive live in the shared head script; the
+      // current* state and the DOM wiring stay per-format.
       var currentType = 'bar'
       var currentHorizontal = false
       var currentValues = [44, 55, 41, 27, 33]
 
-      function buildSeriesFor(type, values) {
-        if (type === 'funnel') {
-          var sorted = values.slice().sort(function (a, b) {
-            return b - a
-          })
-          return [{ name: 'Sessions', data: sorted }]
-        }
-        if (type === 'bar' || type === 'pyramid') {
-          return [{ name: 'Sessions', data: values.slice() }]
-        }
-        return values.slice()
-      }
-
-      function setActive(type, horizontal) {
-        document
-          .querySelectorAll('.actions button[data-type]')
-          .forEach(function (btn) {
-            var btnType = btn.getAttribute('data-type')
-            var btnH = btn.getAttribute('data-horizontal')
-            var active =
-              btnType === type && (type !== 'bar' || String(horizontal) === btnH)
-            btn.classList.toggle('active', active)
-          })
-      }
       setActive(currentType, currentHorizontal)
 
       document.querySelectorAll('.actions button[data-type]').forEach(function (btn) {

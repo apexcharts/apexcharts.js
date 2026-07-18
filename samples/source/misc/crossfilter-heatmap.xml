@@ -175,6 +175,7 @@ colors: ['#6366f1', '#0ea5e9', '#22c55e', '#f59e0b', '#a855f7'],
 
 <vanilla-js-script>
 // charts[0] = heatmap (target), charts[1] = outcome donut, charts[2] = day bar.
+// The wiring talks to the crossfilter engine (not the chart instances).
 var cf = ApexCharts.getCrossfilter('trades')
 var readout = document.getElementById('cf-readout')
 
@@ -193,3 +194,66 @@ document.getElementById('cf-reset').addEventListener('click', function () {
   if (cf) cf.reset()
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, and the crossfilter engine is
+  // registered by the shared head script (ApexCharts.crossfilter). Poll until the
+  // engine exists, then wire the readout + Reset button the same way the vanilla
+  // build does.
+  const timer = window.setInterval(() => {
+    const cf = ApexCharts.getCrossfilter('trades')
+    if (!cf) return
+    window.clearInterval(timer)
+
+    const readout = document.getElementById('cf-readout')
+    cf.on('change', (state) => {
+      const ids = Object.keys(state.filters)
+      readout.textContent =
+        state.filteredCount + ' / ' + state.total + ' trades   (active: ' +
+        (ids.length ? ids.join(', ') : 'none') + ')'
+    })
+    const s = cf.state()
+    readout.textContent = s.filteredCount + ' / ' + s.total + ' trades   (active: none)'
+
+    document.getElementById('cf-reset').addEventListener('click', () => cf.reset())
+  }, 50)
+
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+cfTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, and the crossfilter engine is
+  // registered by the shared head script (ApexCharts.crossfilter). Poll until the
+  // engine exists, then wire the readout + Reset button the same way the vanilla
+  // build does.
+  this.cfTimer = window.setInterval(function () {
+    var cf = ApexCharts.getCrossfilter('trades')
+    if (!cf) return
+    window.clearInterval(this.cfTimer)
+
+    var readout = document.getElementById('cf-readout')
+    cf.on('change', function (state) {
+      var ids = Object.keys(state.filters)
+      readout.textContent =
+        state.filteredCount + ' / ' + state.total + ' trades   (active: ' +
+        (ids.length ? ids.join(', ') : 'none') + ')'
+    })
+    var s = cf.state()
+    readout.textContent = s.filteredCount + ' / ' + s.total + ' trades   (active: none)'
+
+    document.getElementById('cf-reset').addEventListener('click', function () {
+      cf.reset()
+    })
+  }.bind(this), 50)
+},
+beforeDestroy: function () {
+  window.clearInterval(this.cfTimer)
+},
+</vue-script>

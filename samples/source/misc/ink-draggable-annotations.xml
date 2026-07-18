@@ -145,3 +145,62 @@ chart.addEventListener('annotationDeleted', function (c, o) {
   readout.textContent = "Deleted '" + o.id + "' (Ctrl/Cmd+Z restores it)"
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id. Poll until it exists, then wire the same readout the vanilla
+  // build does. The ink feature drives the chart instance directly (drag / edit
+  // annotations), so no React state changes and the chart is not re-rendered.
+  let chart
+  const timer = window.setInterval(() => {
+    chart = ApexCharts.getChartByID('signal')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    const readout = document.getElementById('ink-readout')
+
+    chart.addEventListener('annotationDragged', (c, o) => {
+      readout.textContent =
+        "Moved '" + o.id + "' to x=" + Number(o.x).toFixed(2) + ', y=' + Number(o.y).toFixed(2)
+    })
+    chart.addEventListener('annotationStyled', (c, o) => {
+      readout.textContent = "Restyled '" + o.id + "'"
+    })
+    chart.addEventListener('annotationDeleted', (c, o) => {
+      readout.textContent = "Deleted '" + o.id + "' (Ctrl/Cmd+Z restores it)"
+    })
+  }, 50)
+
+  return () => {
+    window.clearInterval(timer)
+  }
+}, [])
+</react-script>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id. Poll until it exists, then wire the same readout the vanilla
+  // build does. The ink feature drives the chart instance directly (drag / edit
+  // annotations), so no reactive data changes and the chart is not re-rendered.
+  var timer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('signal')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    var readout = document.getElementById('ink-readout')
+
+    chart.addEventListener('annotationDragged', function (c, o) {
+      readout.textContent =
+        "Moved '" + o.id + "' to x=" + Number(o.x).toFixed(2) + ', y=' + Number(o.y).toFixed(2)
+    })
+    chart.addEventListener('annotationStyled', function (c, o) {
+      readout.textContent = "Restyled '" + o.id + "'"
+    })
+    chart.addEventListener('annotationDeleted', function (c, o) {
+      readout.textContent = "Deleted '" + o.id + "' (Ctrl/Cmd+Z restores it)"
+    })
+  }, 50)
+},
+</vue-script>

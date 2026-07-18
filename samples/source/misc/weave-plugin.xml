@@ -119,8 +119,8 @@
 <div class="panel">
   <div class="note">
     The dashed mean line is not part of the chart: it is drawn by a plugin
-    registered with <code>ApexCharts.registerPlugin({ name, setup })</code> and
-    activated via <code>plugins: [{ name: 'mean-line' }]</code>. On every
+    registered with <code>ApexCharts.registerPlugin(&#123; name, setup &#125;)</code> and
+    activated via <code>plugins: [&#123; name: 'mean-line' &#125;]</code>. On every
     <code>draw</code> hook the plugin reads <code>api.data</code>, converts the
     mean to a pixel with <code>api.scales.y()</code>, paints into its own
     <code>api.layer()</code>, and reports the value back through
@@ -132,6 +132,7 @@
 <chart>
 <options>
 chart: {
+  id: 'weaveChart',
   height: 380,
   type: 'line',
   animations: { enabled: true },
@@ -170,3 +171,64 @@ document.getElementById('newData').addEventListener('click', function () {
   chart.updateSeries([{ name: 'Value', data: randomSeries() }])
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id. Poll until it exists, then wire the same UI the vanilla build
+  // does. (The mean-line plugin is registered ONCE in the shared head script,
+  // before any chart is created, and randomSeries lives there too.)
+  let chart
+  const timer = window.setInterval(() => {
+    chart = ApexCharts.getChartByID('weaveChart')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    const readout = document.getElementById('readout')
+
+    chart.addEventListener('plugin:mean-line:meanComputed', (c, payload) => {
+      const detail = payload && payload.value != null ? payload : (c && c.value != null ? c : null)
+      const v = detail ? detail.value : null
+      if (v != null) {
+        readout.innerHTML = 'plugin mean-line emitted: <b>mean = ' + v.toFixed(1) + '</b>'
+      }
+    })
+
+    document.getElementById('newData').addEventListener('click', () => {
+      chart.updateSeries([{ name: 'Value', data: randomSeries() }])
+    })
+  }, 50)
+
+  return () => {
+    window.clearInterval(timer)
+  }
+}, [])
+</react-script>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id. Poll until it exists, then wire the same UI the vanilla build
+  // does. (The mean-line plugin is registered ONCE in the shared head script,
+  // before any chart is created, and randomSeries lives there too.)
+  var timer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('weaveChart')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    var readout = document.getElementById('readout')
+
+    chart.addEventListener('plugin:mean-line:meanComputed', function (c, payload) {
+      var detail = payload && payload.value != null ? payload : (c && c.value != null ? c : null)
+      var v = detail ? detail.value : null
+      if (v != null) {
+        readout.innerHTML = 'plugin mean-line emitted: <b>mean = ' + v.toFixed(1) + '</b>'
+      }
+    })
+
+    document.getElementById('newData').addEventListener('click', function () {
+      chart.updateSeries([{ name: 'Value', data: randomSeries() }])
+    })
+  }, 50)
+},
+</vue-script>

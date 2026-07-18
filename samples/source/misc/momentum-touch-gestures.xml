@@ -133,6 +133,7 @@
 <chart>
 <options>
 chart: {
+  id: 'momentumChart',
   height: 400,
   type: 'area',
   fontFamily: 'Helvetica, Arial, sans-serif',
@@ -200,3 +201,72 @@ chart.addEventListener('scrolled', function (c, opts) {
   showWindow('panned', opts.xaxis)
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id. Poll until it exists, then wire the same readout the vanilla
+  // build does. (momentumSeries lives in the shared head script.)
+  let chart
+  const timer = window.setInterval(() => {
+    chart = ApexCharts.getChartByID('momentumChart')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    const gestureEl = document.getElementById('gesture')
+    const windowEl = document.getElementById('window')
+
+    const fmt = (ts) => new Date(ts).toISOString().slice(0, 10)
+    const showWindow = (label, xaxis) => {
+      gestureEl.innerHTML = label
+      if (xaxis && xaxis.min != null && xaxis.max != null) {
+        windowEl.innerHTML = fmt(xaxis.min) + '  to  ' + fmt(xaxis.max)
+      }
+    }
+
+    // zoomed fires at the end of a pinch (and on wheel / toolbar zoom); scrolled
+    // fires continuously while panning and once the inertia glide comes to rest.
+    chart.addEventListener('zoomed', (c, opts) => showWindow('zoomed', opts.xaxis))
+    chart.addEventListener('scrolled', (c, opts) => showWindow('panned', opts.xaxis))
+  }, 50)
+
+  return () => {
+    window.clearInterval(timer)
+  }
+}, [])
+</react-script>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id. Poll until it exists, then wire the same readout the vanilla
+  // build does. (momentumSeries lives in the shared head script.)
+  var timer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('momentumChart')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    var gestureEl = document.getElementById('gesture')
+    var windowEl = document.getElementById('window')
+
+    function fmt(ts) {
+      return new Date(ts).toISOString().slice(0, 10)
+    }
+    function showWindow(label, xaxis) {
+      gestureEl.innerHTML = label
+      if (xaxis && xaxis.min != null && xaxis.max != null) {
+        windowEl.innerHTML = fmt(xaxis.min) + '  to  ' + fmt(xaxis.max)
+      }
+    }
+
+    // zoomed fires at the end of a pinch (and on wheel / toolbar zoom); scrolled
+    // fires continuously while panning and once the inertia glide comes to rest.
+    chart.addEventListener('zoomed', function (c, opts) {
+      showWindow('zoomed', opts.xaxis)
+    })
+    chart.addEventListener('scrolled', function (c, opts) {
+      showWindow('panned', opts.xaxis)
+    })
+  }, 50)
+},
+</vue-script>

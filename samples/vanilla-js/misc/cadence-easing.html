@@ -94,6 +94,19 @@
         for (var i = 0; i < 8; i++) out.push(20 + Math.round(Math.random() * 80))
         return out
       }
+
+      // A bracketed value is a cubic-bezier array; otherwise a registered name.
+      // Shared by the vanilla-js, React and Vue builds.
+      function parseEase(raw) {
+        if (raw.charAt(0) === '[') {
+          try {
+            return JSON.parse(raw)
+          } catch (e) {
+            return raw
+          }
+        }
+        return raw
+      }
     </script>
   </head>
 
@@ -131,6 +144,7 @@
       var options = {
         series: [{ name: 'Value', data: [42, 68, 35, 80, 55, 24, 71, 60] }],
         chart: {
+          id: 'cadenceChart',
           height: 400,
           type: 'bar',
           fontFamily: 'Helvetica, Arial, sans-serif',
@@ -164,22 +178,11 @@
       var chart = new ApexCharts(document.querySelector('#chart'), options)
       chart.render()
 
+      // parseEase and shuffledData live in the shared head script.
       var buttons = Array.prototype.slice.call(
         document.querySelectorAll('.controls button[data-ease]'),
       )
       var currentEasing = 'easeInOutSine'
-
-      function parseEase(raw) {
-        // a bracketed value is a cubic-bezier array; otherwise a registered name
-        if (raw.charAt(0) === '[') {
-          try {
-            return JSON.parse(raw)
-          } catch (e) {
-            return raw
-          }
-        }
-        return raw
-      }
 
       buttons.forEach(function (btn) {
         btn.addEventListener('click', function () {

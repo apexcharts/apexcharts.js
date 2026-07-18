@@ -106,7 +106,7 @@
       
       <div class="panel">
         <div class="note">
-          History is enabled with <code>chart: { history: { enabled: true } }</code>.
+          History is enabled with <code>chart: &#123; history: &#123; enabled: true &#125; &#125;</code>.
           Every data update, zoom, and point selection commits a checkpoint. Press
           Randomize a few times, then step back with Undo / Redo (or press
           <code>Cmd/Ctrl + Z</code> and <code>Shift + Cmd/Ctrl + Z</code>). Toggling a
@@ -121,6 +121,7 @@
         chart: {
           height: 380,
           type: 'bar',
+          id: 'rewind-demo',
           animations: { enabled: true },
           toolbar: { show: false },
           history: { enabled: true, maxDepth: 50, coalesceMs: 250, keyboard: true },

@@ -87,96 +87,10 @@
       }
     </script>
 
-    
-  </head>
-
-  <body>
-     <div class="dt-wrap">
-        <div class="dt-bar">
-          <button id="dt-add">+ Add month</button>
-          <button id="dt-insert">Insert middle</button>
-          <button id="dt-remove-last">Remove last</button>
-          <button id="dt-remove-mid">Remove middle</button>
-          <button id="dt-rotate">Rotate values</button>
-          <button id="dt-reset">Reset</button>
-          <label><input type="checkbox" id="dt-slow" /> Slow motion</label>
-        </div>
-      
-        <div class="dt-card"><div id="chart"></div></div>
-        <div class="dt-card"><div id="chart2"></div></div>
-      
-        <div class="dt-note">
-          Every button changes the NUMBER of data points, not just their values.
-          Entering columns grow from the baseline of their final slot while the
-          survivors slide over on one clock; a removed column shrinks out as a
-          fading ghost; inserting in the middle keeps each datum's identity (bars
-          are matched by category, so existing columns slide instead of morphing
-          into their neighbor's value). On the area chart the fill stays intact
-          mid-transition, markers ride the moving line, and the axis labels travel
-          with their columns. All of this is default behavior of
-          <code>updateOptions()</code> / <code>updateSeries()</code>: no extra
-          config. <b>Rotate values</b> is the same-length control case, which keeps
-          the classic value morph.
-        </div>
-      </div>
-
     <script>
-      var options = {
-        series: [
-          {
-            name: 'Revenue',
-            data: [42, 61, 45, 78, 52, 89, 66],
-          },
-        ],
-        chart: {
-          type: 'bar',
-          height: 280,
-          fontFamily: 'Helvetica, Arial, sans-serif',
-          toolbar: { show: false },
-          zoom: { enabled: false },
-          animations: { speed: 700, dynamicAnimation: { speed: 650 } },
-        },
-        title: { text: 'Monthly revenue (k$)', align: 'left' },
-        colors: ['#6366f1'],
-        plotOptions: { bar: { columnWidth: '60%', borderRadius: 2 } },
-        dataLabels: { enabled: false },
-        xaxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'] },
-        yaxis: { min: 0, max: 100, tickAmount: 4 },
-        grid: { padding: { top: -10 } },
-      }
-
-      var chart = new ApexCharts(document.querySelector('#chart'), options)
-      chart.render()
-
-      var options1 = {
-        series: [
-          {
-            name: 'Users',
-            data: [35, 47, 37, 57, 41, 63, 50],
-          },
-        ],
-        chart: {
-          type: 'area',
-          height: 280,
-          fontFamily: 'Helvetica, Arial, sans-serif',
-          toolbar: { show: false },
-          zoom: { enabled: false },
-          animations: { speed: 700, dynamicAnimation: { speed: 650 } },
-        },
-        title: { text: 'Active users (k)', align: 'left' },
-        colors: ['#0ea5e9'],
-        stroke: { curve: 'smooth', width: 3 },
-        fill: { type: 'gradient', gradient: { opacityFrom: 0.45, opacityTo: 0.05 } },
-        markers: { size: 4 },
-        dataLabels: { enabled: true, offsetY: -6 },
-        xaxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'] },
-        yaxis: { min: 0, max: 70, tickAmount: 4 },
-        grid: { padding: { top: -10 } },
-      }
-
-      var chart1 = new ApexCharts(document.querySelector('#chart2'), options1)
-      chart1.render()
-
+      // State + data helpers shared by the vanilla-js, React and Vue builds. Both
+      // charts are driven directly through their chart.id, so the wiring is one
+      // implementation for all three formats.
       var MONTHS = [
         'Jan',
         'Feb',
@@ -218,11 +132,15 @@
       }
 
       function pushState() {
+        var barChart = ApexCharts.getChartByID('dtBar')
+        var areaChart = ApexCharts.getChartByID('dtArea')
+        if (!barChart || !areaChart) return
+
         var payload = {
           chart: { animations: { dynamicAnimation: { speed: speed() } } },
           xaxis: { categories: state.labels.slice() },
         }
-        chart.updateOptions(
+        barChart.updateOptions(
           Object.assign(
             { series: [{ name: 'Revenue', data: state.values.slice() }] },
             payload,
@@ -230,7 +148,7 @@
           false,
           true,
         )
-        chart1.updateOptions(
+        areaChart.updateOptions(
           Object.assign(
             {
               series: [
@@ -257,50 +175,161 @@
         document.getElementById('dt-remove-mid').disabled = state.labels.length <= 3
       }
 
-      document.getElementById('dt-add').addEventListener('click', function () {
-        state.labels.push(monthLabel(state.monthCursor))
-        state.values.push(nextValue(state.monthCursor))
-        state.monthCursor++
-        pushState()
-      })
+      // Attach every button, then set the initial disabled state. Returns a cleanup
+      // function that detaches the listeners (used by the React/Vue teardown).
+      function wireDynamicData() {
+        var handlers = []
+        function on(id, fn) {
+          var el = document.getElementById(id)
+          if (!el) return
+          el.addEventListener('click', fn)
+          handlers.push({ el: el, fn: fn })
+        }
 
-      document.getElementById('dt-insert').addEventListener('click', function () {
-        var at = Math.floor(state.labels.length / 2)
-        state.insertCount++
-        state.labels.splice(at, 0, 'New ' + state.insertCount)
-        state.values.splice(at, 0, nextValue(state.insertCount * 5 + 3))
-        pushState()
-      })
+        on('dt-add', function () {
+          state.labels.push(monthLabel(state.monthCursor))
+          state.values.push(nextValue(state.monthCursor))
+          state.monthCursor++
+          pushState()
+        })
 
-      document
-        .getElementById('dt-remove-last')
-        .addEventListener('click', function () {
+        on('dt-insert', function () {
+          var at = Math.floor(state.labels.length / 2)
+          state.insertCount++
+          state.labels.splice(at, 0, 'New ' + state.insertCount)
+          state.values.splice(at, 0, nextValue(state.insertCount * 5 + 3))
+          pushState()
+        })
+
+        on('dt-remove-last', function () {
           state.labels.pop()
           state.values.pop()
           pushState()
         })
 
-      document.getElementById('dt-remove-mid').addEventListener('click', function () {
-        var at = Math.floor(state.labels.length / 2)
-        state.labels.splice(at, 1)
-        state.values.splice(at, 1)
-        pushState()
-      })
+        on('dt-remove-mid', function () {
+          var at = Math.floor(state.labels.length / 2)
+          state.labels.splice(at, 1)
+          state.values.splice(at, 1)
+          pushState()
+        })
 
-      document.getElementById('dt-rotate').addEventListener('click', function () {
-        state.values.push(state.values.shift())
-        pushState()
-      })
+        on('dt-rotate', function () {
+          state.values.push(state.values.shift())
+          pushState()
+        })
 
-      document.getElementById('dt-reset').addEventListener('click', function () {
-        state.labels = INITIAL.labels.slice()
-        state.values = INITIAL.values.slice()
-        state.monthCursor = INITIAL.labels.length
-        state.insertCount = 0
-        pushState()
-      })
+        on('dt-reset', function () {
+          state.labels = INITIAL.labels.slice()
+          state.values = INITIAL.values.slice()
+          state.monthCursor = INITIAL.labels.length
+          state.insertCount = 0
+          pushState()
+        })
 
-      syncButtons()
+        syncButtons()
+
+        return function () {
+          handlers.forEach(function (h) {
+            h.el.removeEventListener('click', h.fn)
+          })
+        }
+      }
+    </script>
+  </head>
+
+  <body>
+     <div class="dt-wrap">
+        <div class="dt-bar">
+          <button id="dt-add">+ Add month</button>
+          <button id="dt-insert">Insert middle</button>
+          <button id="dt-remove-last">Remove last</button>
+          <button id="dt-remove-mid">Remove middle</button>
+          <button id="dt-rotate">Rotate values</button>
+          <button id="dt-reset">Reset</button>
+          <label><input type="checkbox" id="dt-slow" /> Slow motion</label>
+        </div>
+      
+        <div class="dt-card"><div id="chart"></div></div>
+        <div class="dt-card"><div id="chart2"></div></div>
+      
+        <div class="dt-note">
+          Every button changes the NUMBER of data points, not just their values.
+          Entering columns grow from the baseline of their final slot while the
+          survivors slide over on one clock; a removed column shrinks out as a
+          fading ghost; inserting in the middle keeps each datum's identity (bars
+          are matched by category, so existing columns slide instead of morphing
+          into their neighbor's value). On the area chart the fill stays intact
+          mid-transition, markers ride the moving line, and the axis labels travel
+          with their columns. All of this is default behavior of
+          <code>updateOptions()</code> / <code>updateSeries()</code>: no extra
+          config. <b>Rotate values</b> is the same-length control case, which keeps
+          the classic value morph.
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            name: 'Revenue',
+            data: [42, 61, 45, 78, 52, 89, 66],
+          },
+        ],
+        chart: {
+          id: 'dtBar',
+          type: 'bar',
+          height: 280,
+          fontFamily: 'Helvetica, Arial, sans-serif',
+          toolbar: { show: false },
+          zoom: { enabled: false },
+          animations: { speed: 700, dynamicAnimation: { speed: 650 } },
+        },
+        title: { text: 'Monthly revenue (k$)', align: 'left' },
+        colors: ['#6366f1'],
+        plotOptions: { bar: { columnWidth: '60%', borderRadius: 2 } },
+        dataLabels: { enabled: false },
+        xaxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'] },
+        yaxis: { min: 0, max: 100, tickAmount: 4 },
+        grid: { padding: { top: -10 } },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      var options1 = {
+        series: [
+          {
+            name: 'Users',
+            data: [35, 47, 37, 57, 41, 63, 50],
+          },
+        ],
+        chart: {
+          id: 'dtArea',
+          type: 'area',
+          height: 280,
+          fontFamily: 'Helvetica, Arial, sans-serif',
+          toolbar: { show: false },
+          zoom: { enabled: false },
+          animations: { speed: 700, dynamicAnimation: { speed: 650 } },
+        },
+        title: { text: 'Active users (k)', align: 'left' },
+        colors: ['#0ea5e9'],
+        stroke: { curve: 'smooth', width: 3 },
+        fill: { type: 'gradient', gradient: { opacityFrom: 0.45, opacityTo: 0.05 } },
+        markers: { size: 4 },
+        dataLabels: { enabled: true, offsetY: -6 },
+        xaxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'] },
+        yaxis: { min: 0, max: 70, tickAmount: 4 },
+        grid: { padding: { top: -10 } },
+      }
+
+      var chart1 = new ApexCharts(document.querySelector('#chart2'), options1)
+      chart1.render()
+
+      // Both charts are already rendered here, so wire the buttons straight away.
+      // (All the state + helpers live in the shared head script.)
+      wireDynamicData()
     </script>
 
     

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Measure Ruler: Themed (config + CSS)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      /* The card sets a dark surface and overrides the ruler's CSS custom
+               properties + element classes to match. This is the "style it to match your
+               app" path; the chart also passes config tokens (colors, currency format,
+               custom label). */
+      .oc-card {
+        max-width: 820px;
+        margin: 16px auto;
+        padding: 8px 8px 2px;
+        border-radius: 14px;
+        background: #0b1220;
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        --apx-measure-guide: #3b4a63;
+      }
+      .oc-card .apexcharts-title-text {
+        fill: #e7ecf5;
+      }
+      .oc-card .apexcharts-text tspan {
+        fill: #93a4bd;
+      }
+      /* Ruler theming via the element classes */
+      .oc-card .apexcharts-measure-band {
+        fill-opacity: 0.16;
+      }
+      .oc-card .apexcharts-measure-vline {
+        stroke-dasharray: 2;
+        stroke-opacity: 0.7;
+      }
+      .oc-card .apexcharts-measure-label-bg {
+        fill: #111b2e;
+        fill-opacity: 0.96;
+        rx: 7;
+      }
+      .oc-card .apexcharts-measure-label tspan {
+        fill: #e7ecf5;
+        font-weight: 600;
+      }
+      .oc-bar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin: 8px 10px;
+      }
+      .oc-bar button {
+        padding: 6px 13px;
+        cursor: pointer;
+        border: 1px solid #24d1a6;
+        color: #24d1a6;
+        background: transparent;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .oc-bar button.active {
+        background: #24d1a6;
+        color: #06121f;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      function price() {
+        var out = []
+        var v = 2400
+        for (var i = 0; i < 60; i++) {
+          v += Math.sin(i / 5) * 60 + i * 8 - 10
+          out.push([i, Math.round(v)])
+        }
+        return out
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="oc-card">
+      <div class="oc-bar">
+        <button id="oc-toggle">Measure</button>
+      </div>
+      <div id="chart">
+      <apexchart type="area" height="380" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;oc-card&quot;&gt;
+        &lt;div class=&quot;oc-bar&quot;&gt;
+          &lt;button id=&quot;oc-toggle&quot;&gt;Measure&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;380&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [{ name: 'Revenue', data: price() }],
+          chartOptions: {
+            chart: {
+              id: 'themed',
+              type: 'area',
+              height: 380,
+              background: '#0b1220',
+              foreColor: '#93a4bd',
+              fontFamily: "'Helvetica Neue', Arial, sans-serif",
+              animations: { enabled: false },
+              toolbar: { show: false },
+              zoom: { enabled: true, type: 'x' },
+              measure: {
+                enabled: true,
+                mode: 'span',
+                // config tokens: brand up/down + currency readout + custom two-line label
+                colors: { up: '#24d1a6', down: '#f0637c' },
+                format: {
+                  y: function (v) {
+                    return (v >= 0 ? '+' : '') + '$' + Math.abs(v).toLocaleString()
+                  },
+                },
+                label: function (info) {
+                  var pct =
+                    (info.percentChange >= 0 ? '+' : '') +
+                    info.percentChange.toFixed(1) +
+                    '%'
+                  return [
+                    (info.dy >= 0 ? '+' : '') +
+                      '$' +
+                      Math.abs(info.dy).toLocaleString() +
+                      '  ' +
+                      pct,
+                    'sessions ' + info.from.x + ' to ' + info.to.x,
+                  ]
+                },
+              },
+            },
+            theme: { mode: 'dark' },
+            stroke: { width: 2, curve: 'smooth' },
+            dataLabels: { enabled: false },
+            fill: {
+              type: 'gradient',
+              gradient: { opacityFrom: 0.35, opacityTo: 0.02 },
+            },
+            colors: ['#24d1a6'],
+            grid: { borderColor: '#1c2740' },
+            title: { text: 'Revenue (drag to measure a move)', align: 'left' },
+            xaxis: { type: 'numeric', title: { text: 'Session' } },
+            yaxis: {
+              labels: {
+                formatter: function (v) {
+                  return '$' + (v / 1000).toFixed(1) + 'k'
+                },
+              },
+            },
+          },
+
+          pollTimer: null,
+        },
+        mounted: function () {
+          // The vue-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id, then wire the same toggle the vanilla build does. (price()
+          // lives in the shared head script.)
+          var me = this
+          me.pollTimer = window.setInterval(function () {
+            var chart = ApexCharts.getChartByID('themed')
+            if (!chart) return
+            window.clearInterval(me.pollTimer)
+            me.pollTimer = null
+
+            var toggle = document.getElementById('oc-toggle')
+            var on = false
+            toggle.addEventListener('click', function () {
+              on = !on
+              if (on) {
+                chart.startMeasure()
+                toggle.classList.add('active')
+              } else {
+                chart.stopMeasure()
+                toggle.classList.remove('active')
+              }
+            })
+          }, 50)
+        },
+        beforeDestroy: function () {
+          if (this.pollTimer) window.clearInterval(this.pollTimer)
+        },
+      })
+    </script>
+    
+  </body>
+</html>

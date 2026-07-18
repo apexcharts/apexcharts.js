@@ -145,6 +145,10 @@
       .strata-metric .v.trace {
         color: #0891b2;
       }
+      .strata-metric .v.renderer {
+        font-size: 18px;
+        margin-top: 8px;
+      }
       .strata-pill {
         display: inline-flex;
         align-items: center;
@@ -425,6 +429,69 @@
         var el = document.querySelector('#chart')
         return el ? el.getElementsByTagName('*').length : 0
       }
+
+      // Stateless console helpers (no chart/options refs), shared by the vanilla,
+      // React and Vue builds so each per-format script only holds the chart wiring.
+      function selected(segId) {
+        var pressed = document
+          .getElementById(segId)
+          .querySelector('button[aria-pressed="true"]')
+        return pressed || document.getElementById(segId).querySelector('button')
+      }
+
+      function setPressed(segId, btn) {
+        var seg = document.getElementById(segId)
+        Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
+          b.setAttribute('aria-pressed', b === btn ? 'true' : 'false')
+        })
+      }
+
+      function rendererPill(mode) {
+        var cls = mode === 'canvas' ? 'canvas' : 'svg'
+        return (
+          '<span class="strata-pill ' +
+          cls +
+          '"><span class="dot"></span>' +
+          mode +
+          '</span>'
+        )
+      }
+
+      function setMeter(id, value, max) {
+        var pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0
+        document.getElementById(id).style.width = pct + '%'
+      }
+
+      function showComparison(out) {
+        document.getElementById('strataBarsEmpty').hidden = true
+        document.getElementById('strataBarsData').hidden = false
+
+        var maxTime = Math.max(out.svg.ms, out.canvas.ms, 1)
+        setMeter('tSvg', out.svg.ms, maxTime)
+        setMeter('tCan', out.canvas.ms, maxTime)
+        document.getElementById('tSvgN').textContent = out.svg.ms + ' ms'
+        document.getElementById('tCanN').textContent = out.canvas.ms + ' ms'
+
+        var maxNodes = Math.max(out.svg.nodes, out.canvas.nodes, 1)
+        setMeter('nSvg', out.svg.nodes, maxNodes)
+        setMeter('nCan', out.canvas.nodes, maxNodes)
+        document.getElementById('nSvgN').textContent = out.svg.nodes.toLocaleString()
+        document.getElementById('nCanN').textContent =
+          out.canvas.nodes.toLocaleString()
+
+        var speedup =
+          out.canvas.ms > 0 ? (out.svg.ms / out.canvas.ms).toFixed(1) : '-'
+        var nodeCut =
+          out.canvas.nodes > 0 ? Math.round(out.svg.nodes / out.canvas.nodes) : '-'
+        document.getElementById('strataVerdict').innerHTML =
+          'At ' +
+          pointCount.toLocaleString() +
+          ' points, canvas rendered <b>' +
+          speedup +
+          '&times; faster</b> with about <b>' +
+          nodeCut +
+          '&times; fewer</b> DOM nodes on this device.'
+      }
     </script>
   </head>
 
@@ -466,7 +533,7 @@
           <div class="strata-readout">
             <div class="strata-metric">
               <div class="k">Active renderer</div>
-              <div class="v" id="mRenderer" style="font-size: 18px; margin-top: 8px">
+              <div class="v renderer" id="mRenderer">
                 <span class="strata-pill canvas"><span class="dot"></span>canvas</span>
               </div>
             </div>
@@ -617,31 +684,9 @@
       var elPoints = document.getElementById('mPoints')
       var lastRenderMs = 0
 
-      function selected(segId) {
-        var pressed = document
-          .getElementById(segId)
-          .querySelector('button[aria-pressed="true"]')
-        return pressed || document.getElementById(segId).querySelector('button')
-      }
-
-      function setPressed(segId, btn) {
-        var seg = document.getElementById(segId)
-        Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
-          b.setAttribute('aria-pressed', b === btn ? 'true' : 'false')
-        })
-      }
-
-      function rendererPill(mode) {
-        var cls = mode === 'canvas' ? 'canvas' : 'svg'
-        return (
-          '<span class="strata-pill ' +
-          cls +
-          '"><span class="dot"></span>' +
-          mode +
-          '</span>'
-        )
-      }
-
+      // selected, setPressed, rendererPill, setMeter and showComparison live in the
+      // shared head script (stateless DOM helpers); this script keeps only the
+      // chart-bound wiring.
       function updateMetrics() {
         if (typeof chart === 'undefined' || !chart.w) return
         var active =
@@ -683,11 +728,6 @@
         })
       }
 
-      function setMeter(id, value, max) {
-        var pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0
-        document.getElementById(id).style.width = pct + '%'
-      }
-
       function benchmarkBoth() {
         pointCount = parseInt(selected('strataCount').getAttribute('data-n'), 10)
         clusters = generateClusters(pointCount)
@@ -718,37 +758,6 @@
             renderBtn.disabled = false
             updateMetrics()
           })
-      }
-
-      function showComparison(out) {
-        document.getElementById('strataBarsEmpty').hidden = true
-        document.getElementById('strataBarsData').hidden = false
-
-        var maxTime = Math.max(out.svg.ms, out.canvas.ms, 1)
-        setMeter('tSvg', out.svg.ms, maxTime)
-        setMeter('tCan', out.canvas.ms, maxTime)
-        document.getElementById('tSvgN').textContent = out.svg.ms + ' ms'
-        document.getElementById('tCanN').textContent = out.canvas.ms + ' ms'
-
-        var maxNodes = Math.max(out.svg.nodes, out.canvas.nodes, 1)
-        setMeter('nSvg', out.svg.nodes, maxNodes)
-        setMeter('nCan', out.canvas.nodes, maxNodes)
-        document.getElementById('nSvgN').textContent = out.svg.nodes.toLocaleString()
-        document.getElementById('nCanN').textContent =
-          out.canvas.nodes.toLocaleString()
-
-        var speedup =
-          out.canvas.ms > 0 ? (out.svg.ms / out.canvas.ms).toFixed(1) : '-'
-        var nodeCut =
-          out.canvas.nodes > 0 ? Math.round(out.svg.nodes / out.canvas.nodes) : '-'
-        document.getElementById('strataVerdict').innerHTML =
-          'At ' +
-          pointCount.toLocaleString() +
-          ' points, canvas rendered <b>' +
-          speedup +
-          '&times; faster</b> with about <b>' +
-          nodeCut +
-          '&times; fewer</b> DOM nodes on this device.'
       }
 
       // Wire the segmented buttons: pressing one just marks it selected (no render

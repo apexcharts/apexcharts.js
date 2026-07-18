@@ -108,14 +108,26 @@ body {
 }
 </style>
 
+<scripts>
+<script>
+  // The palette buttons only flip data-theme on the document root element; the SVG
+  // fills are var(--chart-*), so all three charts recolor via CSS with no JS
+  // color resolution and no chart re-render. Shared by the vanilla-js, React
+  // and Vue builds.
+  function setPalette(name) {
+    document.documentElement.setAttribute('data-theme', name)
+  }
+</script>
+</scripts>
+
 <html>
 <div class="controls">
-  <button class="btn-color" data-palette="ocean" onclick="setPalette('ocean')">Ocean</button>
-  <button class="btn-color" data-palette="sunset" onclick="setPalette('sunset')">Sunset</button>
-  <button class="btn-color" data-palette="forest" onclick="setPalette('forest')">Forest</button>
-  <button class="btn-color" data-palette="neon" onclick="setPalette('neon')">Neon</button>
-  <button class="btn-color" data-palette="candy" onclick="setPalette('candy')">Candy</button>
-  <button class="btn-color" data-palette="arctic" onclick="setPalette('arctic')">Arctic</button>
+  <button class="btn-color" data-palette="ocean">Ocean</button>
+  <button class="btn-color" data-palette="sunset">Sunset</button>
+  <button class="btn-color" data-palette="forest">Forest</button>
+  <button class="btn-color" data-palette="neon">Neon</button>
+  <button class="btn-color" data-palette="candy">Candy</button>
+  <button class="btn-color" data-palette="arctic">Arctic</button>
 </div>
 
 <div class="info">
@@ -132,6 +144,7 @@ body {
 <chart>
 <options>
 chart: {
+  id: 'cssVarBar',
   type: 'bar',
   height: 380,
   stacked: true,
@@ -180,7 +193,7 @@ legend: {
 
 <chart>
 <options>
-chart: { type: 'area', height: 350 },
+chart: { id: 'cssVarArea', type: 'area', height: 350 },
 colors: [
   'var(--chart-primary)',
   'var(--chart-secondary)',
@@ -209,7 +222,7 @@ legend: { position: 'top' },
 
 <chart>
 <options>
-chart: { type: 'donut', height: 350 },
+chart: { id: 'cssVarDonut', type: 'donut', height: 350 },
 colors: [
   'var(--chart-primary)',
   'var(--chart-secondary)',
@@ -226,7 +239,54 @@ legend: { position: 'bottom' },
 </chart>
 
 <vanilla-js-script>
-function setPalette(name) {
-  document.documentElement.setAttribute('data-theme', name)
-}
+// setPalette lives in the shared head script. Wire the palette buttons by their
+// data-palette attribute (the inline onclick was removed so this works the same
+// way in every build).
+document.querySelectorAll('.btn-color').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    setPalette(btn.getAttribute('data-palette'))
+  })
+})
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The buttons live in the html block, so they are in the DOM when this effect
+  // runs. setPalette lives in the shared head script; only CSS drives the
+  // recolor, so no chart instance is needed here.
+  const buttons = Array.from(document.querySelectorAll('.btn-color'))
+  const handlers = buttons.map((btn) => {
+    const handler = () => setPalette(btn.getAttribute('data-palette'))
+    btn.addEventListener('click', handler)
+    return handler
+  })
+  return () => {
+    buttons.forEach((btn, i) => btn.removeEventListener('click', handlers[i]))
+  }
+}, [])
+</react-script>
+
+<vue-script>
+mounted: function () {
+  // The buttons live in the template, so they are in the DOM here. setPalette
+  // lives in the shared head script; only CSS drives the recolor, so no chart
+  // instance is needed.
+  var buttons = Array.prototype.slice.call(document.querySelectorAll('.btn-color'))
+  this._paletteCleanup = buttons.map(function (btn) {
+    var handler = function () {
+      setPalette(btn.getAttribute('data-palette'))
+    }
+    btn.addEventListener('click', handler)
+    return function () {
+      btn.removeEventListener('click', handler)
+    }
+  })
+},
+beforeDestroy: function () {
+  if (this._paletteCleanup) {
+    this._paletteCleanup.forEach(function (off) {
+      off()
+    })
+  }
+},
+</vue-script>

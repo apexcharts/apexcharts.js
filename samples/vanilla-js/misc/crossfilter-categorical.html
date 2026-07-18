@@ -129,6 +129,23 @@
       // Register the shared record set BEFORE the charts are constructed, so each
       // chart's initial paint is already the aggregation (no empty flash).
       ApexCharts.crossfilter({ id: 'trades', records: tradesData() })
+
+      // Readout formatter, shared by the vanilla-js, React and Vue builds.
+      function fmtFilters(state) {
+        var keys = Object.keys(state.filters)
+        if (!keys.length) return 'No filter (all ' + state.total + ' trades)'
+        var parts = keys.map(function (id) {
+          return id + ': ' + state.filters[id].join(', ')
+        })
+        return (
+          parts.join('  |  ') +
+          '   ->   ' +
+          state.filteredCount +
+          ' / ' +
+          state.total +
+          ' trades'
+        )
+      }
     </script>
   </head>
 
@@ -147,7 +164,7 @@
       
         <div class="cf-note">
           All three charts declare a <code>chart.link.dimension</code> over one record
-          set registered with <code>ApexCharts.crossfilter({ id, records })</code>.
+          set registered with <code>ApexCharts.crossfilter(&#123; id, records &#125;)</code>.
           Clicking a slice or bar toggles that bucket: the clicked chart dims its
           other buckets, and every other chart <b>re-aggregates over the filtered
           trades</b> and animates to its new values. Selections combine (a chart
@@ -265,25 +282,11 @@
       chart2.render()
 
       // charts[0]=byQuarter, charts[1]=byOutcome, charts[2]=byDay.
-      // The generated file exposes them as chart, chart1, chart2.
+      // The generated file exposes them as chart, chart1, chart2. The wiring talks to
+      // the crossfilter engine (not the chart instances), and fmtFilters lives in the
+      // shared head script.
       var cf = ApexCharts.getCrossfilter('trades')
       var readout = document.getElementById('cf-readout')
-
-      function fmtFilters(state) {
-        var keys = Object.keys(state.filters)
-        if (!keys.length) return 'No filter (all ' + state.total + ' trades)'
-        var parts = keys.map(function (id) {
-          return id + ': ' + state.filters[id].join(', ')
-        })
-        return (
-          parts.join('  |  ') +
-          '   ->   ' +
-          state.filteredCount +
-          ' / ' +
-          state.total +
-          ' trades'
-        )
-      }
 
       if (cf) {
         cf.on('change', function (state) {

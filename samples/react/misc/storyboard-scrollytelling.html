@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Storyboard: Scroll-Driven Chart Choreography (chart.storyboard)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      .sb-wrap {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 8px;
+        font-family: Helvetica, Arial, sans-serif;
+        color: #1f2937;
+      }
+      .sb-hero {
+        padding: 18px 4px 14px;
+      }
+      .sb-hero h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+        letter-spacing: -0.4px;
+      }
+      .sb-hero p {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #4b5563;
+        margin: 0;
+      }
+
+      /* One self-contained card: the chart stays visible while the story scrolls
+               inside a fixed-height panel below it. A fixed pixel height (never vh) keeps
+               the whole sample bounded, so the demo page's auto-resizing iframe can't feed
+               a viewport-relative layout back into a runaway height. */
+      .sb-card {
+        background: #fff;
+        border: 1px solid #e4e7f2;
+        border-radius: 12px;
+        padding: 14px 14px 10px;
+        box-shadow: 0 2px 10px rgba(30, 41, 59, 0.06);
+      }
+      .sb-chart-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 0 2px 8px;
+      }
+      .sb-chart-head b {
+        font-size: 14px;
+        color: #111827;
+      }
+      .sb-beat-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sb-chip {
+        font-family: monospace;
+        font-size: 12px;
+        color: #4338ca;
+        background: #eef2ff;
+        border-radius: 999px;
+        padding: 3px 10px;
+      }
+      .sb-dot {
+        width: 10px;
+        height: 10px;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid #a5b4fc;
+        background: #fff;
+        cursor: pointer;
+      }
+      .sb-dot.is-active {
+        background: #6366f1;
+        border-color: #6366f1;
+      }
+      /* The shared demo stylesheet gives the first chart container (#chart) its
+               own white panel; the card provides it here instead. */
+      #chart {
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+      }
+      .sb-scroll-hint {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #98a2b3;
+        padding: 8px 2px 2px;
+      }
+      .sb-scroll-hint .sb-arrow {
+        display: inline-block;
+        animation: sb-nudge 1.5s ease-in-out infinite;
+      }
+      @keyframes sb-nudge {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(3px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .sb-scroll-hint .sb-arrow {
+          animation: none;
+        }
+      }
+      /* The scroll panel: the story steps live here and scrolling it drives the
+               beats. The storyboard binds this element as its scroller, so its
+               IntersectionObserver watches this panel's own scroll rather than the
+               page/iframe viewport. */
+      .sb-scroller {
+        height: 232px;
+        overflow-y: auto;
+        border-top: 1px solid #eef0f6;
+        margin-top: 6px;
+        overscroll-behavior: contain;
+      }
+      .sb-steps {
+        margin: 0;
+        /* Top/bottom room so the first and last steps can reach the panel's middle
+                 trigger line. */
+        padding: 74px 6px 118px;
+      }
+      .sb-step {
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        opacity: 0.32;
+        transition: opacity 0.3s ease;
+      }
+      .sb-step.is-active {
+        opacity: 1;
+      }
+      .sb-step .card {
+        border-left: 3px solid #c7d2fe;
+        background: #fbfcff;
+        border-radius: 0 8px 8px 0;
+        padding: 12px 14px;
+        box-shadow: 0 1px 3px rgba(30, 41, 59, 0.06);
+      }
+      .sb-step.is-active .card {
+        border-left-color: #6366f1;
+      }
+      .sb-step h3 {
+        margin: 0 0 6px;
+        font-size: 15px;
+        color: #101828;
+      }
+      .sb-step p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #4b5563;
+      }
+      .sb-note {
+        background: #eef2ff;
+        border-left: 3px solid #6366f1;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.65;
+        margin: 20px 4px 30px;
+      }
+      .sb-note code {
+        background: #dfe3ff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // The design rule of this story: every beat keeps the SAME twelve marks.
+      // Emphasis changes via per-column colors and annotations (values, axes and
+      // mark count never change), so each transition tweens element-for-element
+      // instead of popping marks in and out. The finale is the one shape change:
+      // a 1:1 bar-to-donut morph, each column curling into its own slice.
+      // These definitions are shared by the vanilla-js, React and Vue builds.
+      var REV = [12, 14, 9, 15, 18, 22, 26, 31, 37, 44, 52, 61]
+      var MONTHS = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ]
+
+      var INDIGO = '#818cf8'
+      var FADE = '#e3e8f4' // out-of-spotlight months step back to this
+      var RED = '#f87171'
+      var QCOLORS = ['#818cf8', '#7dd3fc', '#4ade80', '#fbbf24'] // one per quarter
+
+      function colors12(fn) {
+        var a = []
+        for (var i = 0; i < 12; i++) a.push(fn(i))
+        return a
+      }
+      var C_ALL = colors12(function () {
+        return INDIGO
+      })
+      var C_OUTAGE = colors12(function (i) {
+        if (i === 2) return RED // March
+        return i >= 1 && i <= 3 ? INDIGO : FADE
+      })
+      var C_V2 = colors12(function (i) {
+        return i >= 4 ? INDIGO : FADE
+      }) // May on
+      var C_QUARTERS = colors12(function (i) {
+        return QCOLORS[Math.floor(i / 3)]
+      })
+
+      // The shared column payload; a beat only swaps the colors array. labels []
+      // resets the donut's month labels so they never leak into the axis mapping.
+      var COLUMN_OPTS = {
+        chart: { type: 'bar' },
+        series: [{ name: 'Revenue (k$)', data: REV }],
+        labels: [],
+        stroke: { width: 0, colors: undefined },
+        plotOptions: {
+          bar: { columnWidth: '58%', borderRadius: 3, distributed: true },
+        },
+        legend: { show: false },
+      }
+      function columnBeat(colors) {
+        return Object.assign({}, COLUMN_OPTS, { colors: colors })
+      }
+
+      // The finale: same twelve values, same quarter colors, new shape. The morph
+      // feature pairs the 12 columns with the 12 slices.
+      var DONUT_OPTS = {
+        chart: { type: 'donut' },
+        series: REV,
+        labels: MONTHS,
+        colors: C_QUARTERS,
+        stroke: { width: 2, colors: ['#fff'] },
+        legend: { show: false },
+        plotOptions: {
+          pie: {
+            expandOnClick: false,
+            donut: {
+              size: '68%',
+              labels: {
+                show: true,
+                total: {
+                  show: true,
+                  label: 'FY25 revenue',
+                  formatter: function () {
+                    return '341 k$'
+                  },
+                },
+              },
+            },
+          },
+        },
+      }
+
+      var BEATS = [
+        {
+          selector: '#sb-step-1',
+          view: { window: { xaxis: null, yaxis: [null] }, theme: { mode: 'light' } },
+          options: columnBeat(C_ALL),
+          announce: 'Overview: fiscal 2025 revenue, month by month',
+        },
+        {
+          selector: '#sb-step-2',
+          view: {
+            window: { xaxis: null, yaxis: [null] },
+            theme: { mode: 'light' },
+            annotations: {
+              static: {
+                xaxis: [
+                  {
+                    x: 'Mar',
+                    strokeDashArray: 4,
+                    borderColor: '#f87171',
+                    label: {
+                      text: 'The outage',
+                      borderColor: '#fca5a5',
+                      style: { color: '#7f1d1d', background: '#fee2e2' },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          options: columnBeat(C_OUTAGE),
+          announce: 'Spotlight on March: the outage month',
+        },
+        {
+          selector: '#sb-step-3',
+          view: {
+            window: { xaxis: null, yaxis: [null] },
+            theme: { mode: 'light' },
+            annotations: {
+              static: {
+                xaxis: [
+                  {
+                    x: 'May',
+                    strokeDashArray: 4,
+                    borderColor: '#4ade80',
+                    label: {
+                      text: 'v2 ships',
+                      borderColor: '#86efac',
+                      style: { color: '#14532d', background: '#dcfce7' },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          options: columnBeat(C_V2),
+          announce: 'Spotlight from May on: v2 changes the slope',
+        },
+        {
+          selector: '#sb-step-4',
+          view: { window: { xaxis: null, yaxis: [null] }, theme: { mode: 'light' } },
+          options: columnBeat(C_QUARTERS),
+          announce: 'The months grouped into quarters by color',
+        },
+        {
+          selector: '#sb-step-5',
+          view: { window: { xaxis: null, yaxis: [null] }, theme: { mode: 'light' } },
+          options: DONUT_OPTS,
+          announce: 'The twelve months as a donut ring',
+        },
+      ]
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;sb-wrap&quot;&gt;
+  &lt;div class=&quot;sb-hero&quot;&gt;
+    &lt;h1&gt;One year, one chart&lt;/h1&gt;
+    &lt;p&gt;
+      A scrollytelling story on a single live chart. Scroll the panel below and
+      the same twelve columns recolor, annotate, and finally reshape; scrolling
+      back up rewinds the story.
+    &lt;/p&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;sb-card&quot;&gt;
+    &lt;div class=&quot;sb-chart-head&quot;&gt;
+      &lt;b&gt;FY25 revenue, monthly&lt;/b&gt;
+      &lt;div class=&quot;sb-beat-nav&quot;&gt;
+        &lt;button class=&quot;sb-dot is-active&quot; aria-label=&quot;Go to beat 1&quot;&gt;&lt;/button&gt;
+        &lt;button class=&quot;sb-dot&quot; aria-label=&quot;Go to beat 2&quot;&gt;&lt;/button&gt;
+        &lt;button class=&quot;sb-dot&quot; aria-label=&quot;Go to beat 3&quot;&gt;&lt;/button&gt;
+        &lt;button class=&quot;sb-dot&quot; aria-label=&quot;Go to beat 4&quot;&gt;&lt;/button&gt;
+        &lt;button class=&quot;sb-dot&quot; aria-label=&quot;Go to beat 5&quot;&gt;&lt;/button&gt;
+        &lt;span class=&quot;sb-chip&quot; id=&quot;sb-chip&quot;&gt;Beat 1 of 5&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={300} /&gt;
+&lt;/div&gt;
+
+    &lt;div class=&quot;sb-scroll-hint&quot; aria-hidden=&quot;true&quot;&gt;
+      &lt;span class=&quot;sb-arrow&quot;&gt;&amp;#8595;&lt;/span&gt; Scroll the story, or tap the dots
+    &lt;/div&gt;
+
+    &lt;div class=&quot;sb-scroller&quot; id=&quot;sb-scroller&quot;&gt;
+      &lt;div class=&quot;sb-steps&quot;&gt;
+        &lt;section class=&quot;sb-step&quot; id=&quot;sb-step-1&quot;&gt;
+          &lt;div class=&quot;card&quot;&gt;
+            &lt;h3&gt;One year of revenue&lt;/h3&gt;
+            &lt;p&gt;
+              Fiscal 2025, month by month: 341 k$ across twelve columns. A slow
+              start and a strong finish, with two turning points hiding in
+              plain sight.
+            &lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/section&gt;
+        &lt;section class=&quot;sb-step&quot; id=&quot;sb-step-2&quot;&gt;
+          &lt;div class=&quot;card&quot;&gt;
+            &lt;h3&gt;March: the outage&lt;/h3&gt;
+            &lt;p&gt;
+              A bad deploy took sign-ups offline for two days, and March is the
+              only month that broke the climb. The spotlight narrows.
+            &lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/section&gt;
+        &lt;section class=&quot;sb-step&quot; id=&quot;sb-step-3&quot;&gt;
+          &lt;div class=&quot;card&quot;&gt;
+            &lt;h3&gt;May: v2 ships&lt;/h3&gt;
+            &lt;p&gt;
+              The hinge of the year. From May on, every month tops the last,
+              and the slope never looks back.
+            &lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/section&gt;
+        &lt;section class=&quot;sb-step&quot; id=&quot;sb-step-4&quot;&gt;
+          &lt;div class=&quot;card&quot;&gt;
+            &lt;h3&gt;The quarters take shape&lt;/h3&gt;
+            &lt;p&gt;
+              Same columns, new grouping. Each quarter beats the last by half
+              again or more: 35 k$ in Q1 grows to 157 k$ by Q4.
+            &lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/section&gt;
+        &lt;section class=&quot;sb-step&quot; id=&quot;sb-step-5&quot;&gt;
+          &lt;div class=&quot;card&quot;&gt;
+            &lt;h3&gt;The year in one circle&lt;/h3&gt;
+            &lt;p&gt;
+              The twelve months curl into a ring, each column becoming its own
+              slice. The quarter colors survive the change of shape.
+            &lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/section&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;sb-note&quot;&gt;
+    &lt;code&gt;chart.storyboard.bind(&amp;#123; beats, scroller &amp;#125;)&lt;/code&gt; pairs prose elements
+    with views; here &lt;code&gt;scroller&lt;/code&gt; points the observer at the scroll
+    panel, so beats apply as their step crosses the middle of that panel
+    (IntersectionObserver, no scroll listeners) and re-apply in reverse on the
+    way up. The design rule that keeps every transition smooth: all five beats
+    keep the &lt;b&gt;same twelve marks&lt;/b&gt;. Emphasis moves by color (spotlights,
+    quarter groups) and annotations, never by cropping or re-binning, so nothing
+    pops in or out. The finale&#39;s &lt;code&gt;options&lt;/code&gt; payload swaps
+    &lt;code&gt;chart.type&lt;/code&gt;, and the &lt;code&gt;morph&lt;/code&gt; feature curls each column
+    into its own donut slice, a one-to-one morph. The dots call
+    &lt;code&gt;chart.storyboard.goTo(i)&lt;/code&gt;, each beat announces itself to the
+    aria-live region, and &lt;code&gt;beatChange&lt;/code&gt; drives the step highlight.
+    Transitions are cut instead of animated under prefers-reduced-motion. Needs
+    the &lt;code&gt;storyboard&lt;/code&gt; feature (bundles &lt;code&gt;perspectives&lt;/code&gt;).
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [
+            {
+              name: 'Revenue (k$)',
+              data: [12, 14, 9, 15, 18, 22, 26, 31, 37, 44, 52, 61],
+            },
+          ],
+          options: {
+            chart: {
+              id: 'storyChart',
+              type: 'bar',
+              height: 300,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { speed: 700, dynamicAnimation: { speed: 500 } },
+              toolbar: { show: false },
+              zoom: { enabled: false },
+            },
+            colors: [
+              '#818cf8',
+              '#818cf8',
+              '#818cf8',
+              '#818cf8',
+              '#818cf8',
+              '#818cf8',
+              '#818cf8',
+              '#818cf8',
+              '#818cf8',
+              '#818cf8',
+              '#818cf8',
+              '#818cf8',
+            ],
+            plotOptions: {
+              bar: { columnWidth: '58%', borderRadius: 3, distributed: true },
+            },
+            stroke: { width: 0 },
+            dataLabels: { enabled: false },
+            legend: { show: false },
+            grid: { borderColor: '#eef0f6' },
+            xaxis: {
+              categories: [
+                'Jan',
+                'Feb',
+                'Mar',
+                'Apr',
+                'May',
+                'Jun',
+                'Jul',
+                'Aug',
+                'Sep',
+                'Oct',
+                'Nov',
+                'Dec',
+              ],
+            },
+          },
+        })
+
+        React.useEffect(() => {
+          // The react-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id. Poll until it exists, then wire the same story the vanilla
+          // build does. (REV, MONTHS, the palettes and BEATS live in the shared head
+          // script.) The storyboard drives the chart instance directly, so no React
+          // state changes and the <ReactApexChart> is never re-rendered under it.
+          let chart
+          const timer = window.setInterval(() => {
+            chart = ApexCharts.getChartByID('storyChart')
+            if (!chart) return
+            window.clearInterval(timer)
+
+            const steps = document.querySelectorAll('.sb-step')
+            const dots = document.querySelectorAll('.sb-dot')
+            const chip = document.getElementById('sb-chip')
+
+            chart.addEventListener('beatChange', (c, info) => {
+              steps.forEach((el, i) =>
+                el.classList.toggle('is-active', i === info.index),
+              )
+              dots.forEach((dot, i) =>
+                dot.classList.toggle('is-active', i === info.index),
+              )
+              chip.textContent = 'Beat ' + (info.index + 1) + ' of ' + BEATS.length
+            })
+
+            dots.forEach((dot, i) => {
+              dot.addEventListener('click', () => chart.storyboard.goTo(i))
+            })
+
+            // scroller binds the observer to the scroll panel, so the story is driven
+            // by that panel's own scroll (not the page/iframe viewport).
+            chart.storyboard.bind({ beats: BEATS, scroller: '#sb-scroller' })
+          }, 50)
+
+          return () => {
+            window.clearInterval(timer)
+            if (chart && chart.storyboard) chart.storyboard.unbind()
+          }
+        }, [])
+
+        return (
+          <div>
+            <div class="sb-wrap">
+              <div class="sb-hero">
+                <h1>One year, one chart</h1>
+                <p>
+                  A scrollytelling story on a single live chart. Scroll the panel
+                  below and the same twelve columns recolor, annotate, and finally
+                  reshape; scrolling back up rewinds the story.
+                </p>
+              </div>
+
+              <div class="sb-card">
+                <div class="sb-chart-head">
+                  <b>FY25 revenue, monthly</b>
+                  <div class="sb-beat-nav">
+                    <button
+                      class="sb-dot is-active"
+                      aria-label="Go to beat 1"
+                    ></button>
+                    <button class="sb-dot" aria-label="Go to beat 2"></button>
+                    <button class="sb-dot" aria-label="Go to beat 3"></button>
+                    <button class="sb-dot" aria-label="Go to beat 4"></button>
+                    <button class="sb-dot" aria-label="Go to beat 5"></button>
+                    <span class="sb-chip" id="sb-chip">
+                      Beat 1 of 5
+                    </span>
+                  </div>
+                </div>
+
+                <div id="chart">
+                  <ReactApexChart
+                    options={state.options}
+                    series={state.series}
+                    type="bar"
+                    height={300}
+                  />
+                </div>
+
+                <div class="sb-scroll-hint" aria-hidden="true">
+                  <span class="sb-arrow">&#8595;</span> Scroll the story, or tap the
+                  dots
+                </div>
+
+                <div class="sb-scroller" id="sb-scroller">
+                  <div class="sb-steps">
+                    <section class="sb-step" id="sb-step-1">
+                      <div class="card">
+                        <h3>One year of revenue</h3>
+                        <p>
+                          Fiscal 2025, month by month: 341 k$ across twelve columns. A
+                          slow start and a strong finish, with two turning points
+                          hiding in plain sight.
+                        </p>
+                      </div>
+                    </section>
+                    <section class="sb-step" id="sb-step-2">
+                      <div class="card">
+                        <h3>March: the outage</h3>
+                        <p>
+                          A bad deploy took sign-ups offline for two days, and March
+                          is the only month that broke the climb. The spotlight
+                          narrows.
+                        </p>
+                      </div>
+                    </section>
+                    <section class="sb-step" id="sb-step-3">
+                      <div class="card">
+                        <h3>May: v2 ships</h3>
+                        <p>
+                          The hinge of the year. From May on, every month tops the
+                          last, and the slope never looks back.
+                        </p>
+                      </div>
+                    </section>
+                    <section class="sb-step" id="sb-step-4">
+                      <div class="card">
+                        <h3>The quarters take shape</h3>
+                        <p>
+                          Same columns, new grouping. Each quarter beats the last by
+                          half again or more: 35 k$ in Q1 grows to 157 k$ by Q4.
+                        </p>
+                      </div>
+                    </section>
+                    <section class="sb-step" id="sb-step-5">
+                      <div class="card">
+                        <h3>The year in one circle</h3>
+                        <p>
+                          The twelve months curl into a ring, each column becoming its
+                          own slice. The quarter colors survive the change of shape.
+                        </p>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sb-note">
+                <code>chart.storyboard.bind(&#123; beats, scroller &#125;)</code>{' '}
+                pairs prose elements with views; here <code>scroller</code> points the
+                observer at the scroll panel, so beats apply as their step crosses the
+                middle of that panel (IntersectionObserver, no scroll listeners) and
+                re-apply in reverse on the way up. The design rule that keeps every
+                transition smooth: all five beats keep the <b>same twelve marks</b>.
+                Emphasis moves by color (spotlights, quarter groups) and annotations,
+                never by cropping or re-binning, so nothing pops in or out. The
+                finale's <code>options</code> payload swaps
+                <code>chart.type</code>, and the <code>morph</code> feature curls each
+                column into its own donut slice, a one-to-one morph. The dots call
+                <code>chart.storyboard.goTo(i)</code>, each beat announces itself to
+                the aria-live region, and <code>beatChange</code> drives the step
+                highlight. Transitions are cut instead of animated under
+                prefers-reduced-motion. Needs the <code>storyboard</code> feature
+                (bundles <code>perspectives</code>).
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

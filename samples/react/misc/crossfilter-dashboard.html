@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Crossfilter Dashboard: Coordinated Charts + Data Table (chart.link)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      .cfd {
+        max-width: 700px;
+        margin: 10px auto;
+        font-family: Helvetica, Arial, sans-serif;
+        color: #1f2430;
+      }
+      .cfd-bar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 4px 6px 12px;
+      }
+      .cfd-bar button {
+        padding: 6px 13px;
+        cursor: pointer;
+        border: 1px solid #6366f1;
+        color: #4338ca;
+        background: #fff;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .cfd-bar .readout {
+        font-family: monospace;
+        font-size: 13px;
+        color: #445;
+      }
+      .cfd-grid {
+        display: grid;
+        /* Auto-fit reflows the three categorical charts from 3 columns down to 2,
+                 then 1, as the container narrows, so they never get crushed at ~700px. */
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 8px;
+      }
+      .cfd-card {
+        border: 1px solid #eef;
+        border-radius: 8px;
+        padding: 6px;
+      }
+      /* The two brush histograms always take a full row, whatever the column count. */
+      .cfd-card.brush {
+        grid-column: 1 / -1;
+      }
+      .cfd-tablewrap {
+        margin: 12px 6px;
+        max-height: 280px;
+        overflow: auto;
+        border: 1px solid #eef;
+        border-radius: 8px;
+      }
+      .cfd-note {
+        background: #eef2ff;
+        border-left: 3px solid #6366f1;
+        padding: 11px 15px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.6;
+        margin: 12px 6px;
+      }
+      .cfd-note code {
+        background: #dfe3ff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Deterministic trade records. outcome is derived from the fluctuation sign,
+      // so brushing the fluctuation histogram visibly reshapes the outcome donut.
+      function tradesData() {
+        var quarters = ['Q1', 'Q2', 'Q3', 'Q4']
+        var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+        var out = []
+        for (var i = 0; i < 120; i++) {
+          var pct =
+            3.0 * Math.sin(i / 5.0) +
+            1.3 * Math.sin(i / 1.7) +
+            0.4 * Math.cos(i / 3.1)
+          var vol = Math.round(120 + 70 * Math.sin(i / 6.0) + 40 * Math.cos(i / 2.3))
+          out.push({
+            id: i + 1,
+            quarter: quarters[Math.floor(i / 30) % 4],
+            day: days[(i * 3) % 5],
+            outcome: pct >= 0 ? 'Gain' : 'Loss',
+            pct: Math.round(pct * 100) / 100,
+            volume: Math.max(20, vol),
+          })
+        }
+        return out
+      }
+
+      // Register the shared record set BEFORE the charts are constructed.
+      ApexCharts.crossfilter({ id: 'trades', records: tradesData() })
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;cfd&quot;&gt;
+  &lt;div class=&quot;cfd-bar&quot;&gt;
+    &lt;button id=&quot;cfd-reset&quot;&gt;Reset all filters&lt;/button&gt;
+    &lt;span class=&quot;readout&quot; id=&quot;cfd-readout&quot;&gt;&lt;/span&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;cfd-grid&quot;&gt;
+    &lt;div class=&quot;cfd-card&quot;&gt;&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;donut&quot; height={260} /&gt;
+&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;cfd-card&quot;&gt;&lt;div id=&quot;chart2&quot;&gt;
+  &lt;ReactApexChart options={state.options1} series={state.series1} type=&quot;donut&quot; height={260} /&gt;
+&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;cfd-card&quot;&gt;&lt;div id=&quot;chart3&quot;&gt;
+  &lt;ReactApexChart options={state.options2} series={state.series2} type=&quot;bar&quot; height={260} /&gt;
+&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;cfd-card brush&quot;&gt;&lt;div id=&quot;chart4&quot;&gt;
+  &lt;ReactApexChart options={state.options3} series={state.series3} type=&quot;bar&quot; height={240} /&gt;
+&lt;/div&gt;&lt;/div&gt;
+    &lt;div class=&quot;cfd-card brush&quot;&gt;&lt;div id=&quot;chart5&quot;&gt;
+  &lt;ReactApexChart options={state.options4} series={state.series4} type=&quot;bar&quot; height={240} /&gt;
+&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;cfd-tablewrap&quot; id=&quot;cfd-table&quot;&gt;&lt;/div&gt;
+
+  &lt;div class=&quot;cfd-note&quot;&gt;
+    Five views over one record set registered with
+    &lt;code&gt;ApexCharts.crossfilter(&amp;#123; id, records &amp;#125;)&lt;/code&gt;. The donuts and the
+    day bar filter by &lt;b&gt;clicking a bucket&lt;/b&gt;; the two histograms filter by
+    &lt;b&gt;brushing a range&lt;/b&gt; (they set &lt;code&gt;chart.selection.enabled&lt;/code&gt;).
+    Every selection combines: each chart re-aggregates over the rows passing all
+    the &lt;i&gt;other&lt;/i&gt; charts&#39; filters (never its own), and the table below lists
+    exactly those rows. Try brushing the fluctuation histogram and watch the
+    outcome donut reshape. &lt;b&gt;Reset all filters&lt;/b&gt; clears everything.
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [],
+          options: {
+            chart: {
+              id: 'byQuarter',
+              type: 'donut',
+              height: 260,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { speed: 450 },
+              link: {
+                id: 'trades',
+                dimension: function (r) {
+                  return r.quarter
+                },
+                reduce: 'count',
+                dimOpacity: 0.18,
+              },
+            },
+            title: { text: 'Quarter', align: 'left' },
+            legend: { position: 'bottom', fontSize: '12px' },
+            plotOptions: { pie: { expandOnClick: false } },
+            dataLabels: {
+              enabled: true,
+              formatter: function (v, o) {
+                return o.w.config.series[o.seriesIndex]
+              },
+            },
+            colors: ['#6366f1', '#0ea5e9', '#22c55e', '#f59e0b'],
+          },
+
+          series1: [],
+          options1: {
+            chart: {
+              id: 'byOutcome',
+              type: 'donut',
+              height: 260,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { speed: 450 },
+              link: {
+                id: 'trades',
+                dimension: function (r) {
+                  return r.outcome
+                },
+                reduce: 'count',
+                dimOpacity: 0.18,
+              },
+            },
+            title: { text: 'Outcome', align: 'left' },
+            legend: { position: 'bottom', fontSize: '12px' },
+            plotOptions: { pie: { expandOnClick: false } },
+            dataLabels: {
+              enabled: true,
+              formatter: function (v, o) {
+                return o.w.config.series[o.seriesIndex]
+              },
+            },
+            colors: ['#22c55e', '#ef4444'],
+          },
+
+          series2: [],
+          options2: {
+            chart: {
+              id: 'byDay',
+              type: 'bar',
+              height: 260,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { speed: 450 },
+              link: {
+                id: 'trades',
+                dimension: function (r) {
+                  return r.day
+                },
+                reduce: 'count',
+                seriesName: 'Trades',
+                dimOpacity: 0.18,
+              },
+            },
+            title: { text: 'Day of week', align: 'left' },
+            plotOptions: {
+              bar: { columnWidth: '55%', borderRadius: 3, distributed: true },
+            },
+            legend: { show: false },
+            dataLabels: { enabled: false },
+            colors: ['#6366f1', '#0ea5e9', '#22c55e', '#f59e0b', '#a855f7'],
+          },
+
+          series3: [],
+          options3: {
+            chart: {
+              id: 'byFluctuation',
+              type: 'bar',
+              height: 240,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { speed: 400 },
+              zoom: { enabled: false },
+              selection: { enabled: true },
+              toolbar: {
+                autoSelected: 'selection',
+                tools: {
+                  selection: true,
+                  zoom: false,
+                  pan: false,
+                  reset: false,
+                  download: false,
+                },
+              },
+              link: {
+                id: 'trades',
+                dimension: function (r) {
+                  return r.pct
+                },
+                bins: { count: 26 },
+                dimOpacity: 0.16,
+              },
+            },
+            title: { text: 'Fluctuation % (brush a range)', align: 'left' },
+            plotOptions: { bar: { columnWidth: '92%' } },
+            dataLabels: { enabled: false },
+            xaxis: {
+              type: 'numeric',
+              tickAmount: 8,
+              labels: {
+                formatter: function (v) {
+                  return Number(v).toFixed(1)
+                },
+              },
+            },
+            colors: ['#6366f1'],
+          },
+
+          series4: [],
+          options4: {
+            chart: {
+              id: 'byVolume',
+              type: 'bar',
+              height: 240,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: { speed: 400 },
+              zoom: { enabled: false },
+              selection: { enabled: true },
+              toolbar: {
+                autoSelected: 'selection',
+                tools: {
+                  selection: true,
+                  zoom: false,
+                  pan: false,
+                  reset: false,
+                  download: false,
+                },
+              },
+              link: {
+                id: 'trades',
+                dimension: function (r) {
+                  return r.volume
+                },
+                bins: { count: 22 },
+                dimOpacity: 0.16,
+              },
+            },
+            title: { text: 'Volume (brush a range)', align: 'left' },
+            plotOptions: { bar: { columnWidth: '92%' } },
+            dataLabels: { enabled: false },
+            xaxis: {
+              type: 'numeric',
+              tickAmount: 8,
+              labels: {
+                formatter: function (v) {
+                  return Math.round(v)
+                },
+              },
+            },
+            colors: ['#0ea5e9'],
+          },
+        })
+
+        React.useEffect(() => {
+          // Five linked views (byQuarter..byVolume) + a live data table, all over the
+          // shared 'trades' record set (registered in the head script). The wrapper owns
+          // the render, so poll until every chart instance and the crossfilter exist,
+          // then wire the table + readout + reset exactly as the vanilla build does.
+          let cf
+          let table
+          let offChange
+          const onReset = () => {
+            if (cf) cf.reset()
+          }
+
+          const timer = window.setInterval(() => {
+            cf = ApexCharts.getCrossfilter('trades')
+            const ready =
+              cf &&
+              ApexCharts.getChartByID('byQuarter') &&
+              ApexCharts.getChartByID('byOutcome') &&
+              ApexCharts.getChartByID('byDay') &&
+              ApexCharts.getChartByID('byFluctuation') &&
+              ApexCharts.getChartByID('byVolume')
+            if (!ready) return
+            window.clearInterval(timer)
+
+            const readout = document.getElementById('cfd-readout')
+
+            // Bind the data table to the filtered rows; it re-renders on every change.
+            table = cf.dataTable(document.getElementById('cfd-table'), {
+              columns: [
+                { field: 'id', label: '#' },
+                { field: 'quarter', label: 'Quarter' },
+                { field: 'day', label: 'Day' },
+                { field: 'outcome', label: 'Outcome' },
+                {
+                  field: 'pct',
+                  label: 'Fluctuation %',
+                  format: (v) => v.toFixed(2) + '%',
+                },
+                { field: 'volume', label: 'Volume' },
+              ],
+            })
+
+            offChange = cf.on('change', (state) => {
+              const ids = Object.keys(state.filters)
+              const label = ids.length ? ids.join(', ') : 'none'
+              readout.textContent =
+                state.filteredCount +
+                ' / ' +
+                state.total +
+                ' trades   (active: ' +
+                label +
+                ')'
+            })
+
+            // Seed the readout with the unfiltered totals.
+            const s = cf.state()
+            readout.textContent =
+              s.filteredCount + ' / ' + s.total + ' trades   (active: none)'
+
+            document.getElementById('cfd-reset').addEventListener('click', onReset)
+          }, 50)
+
+          return () => {
+            window.clearInterval(timer)
+            if (offChange) offChange()
+            if (table) table.destroy()
+            const btn = document.getElementById('cfd-reset')
+            if (btn) btn.removeEventListener('click', onReset)
+          }
+        }, [])
+
+        return (
+          <div>
+            <div class="cfd">
+              <div class="cfd-bar">
+                <button id="cfd-reset">Reset all filters</button>
+                <span class="readout" id="cfd-readout"></span>
+              </div>
+
+              <div class="cfd-grid">
+                <div class="cfd-card">
+                  <div id="chart">
+                    <ReactApexChart
+                      options={state.options}
+                      series={state.series}
+                      type="donut"
+                      height={260}
+                    />
+                  </div>
+                </div>
+                <div class="cfd-card">
+                  <div id="chart2">
+                    <ReactApexChart
+                      options={state.options1}
+                      series={state.series1}
+                      type="donut"
+                      height={260}
+                    />
+                  </div>
+                </div>
+                <div class="cfd-card">
+                  <div id="chart3">
+                    <ReactApexChart
+                      options={state.options2}
+                      series={state.series2}
+                      type="bar"
+                      height={260}
+                    />
+                  </div>
+                </div>
+                <div class="cfd-card brush">
+                  <div id="chart4">
+                    <ReactApexChart
+                      options={state.options3}
+                      series={state.series3}
+                      type="bar"
+                      height={240}
+                    />
+                  </div>
+                </div>
+                <div class="cfd-card brush">
+                  <div id="chart5">
+                    <ReactApexChart
+                      options={state.options4}
+                      series={state.series4}
+                      type="bar"
+                      height={240}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div class="cfd-tablewrap" id="cfd-table"></div>
+
+              <div class="cfd-note">
+                Five views over one record set registered with
+                <code>ApexCharts.crossfilter(&#123; id, records &#125;)</code>. The
+                donuts and the day bar filter by <b>clicking a bucket</b>; the two
+                histograms filter by
+                <b>brushing a range</b> (they set <code>chart.selection.enabled</code>
+                ). Every selection combines: each chart re-aggregates over the rows
+                passing all the <i>other</i> charts' filters (never its own), and the
+                table below lists exactly those rows. Try brushing the fluctuation
+                histogram and watch the outcome donut reshape.{' '}
+                <b>Reset all filters</b> clears everything.
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

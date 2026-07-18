@@ -215,6 +215,7 @@
       chart2.render()
 
       // charts[0] = heatmap (target), charts[1] = outcome donut, charts[2] = day bar.
+      // The wiring talks to the crossfilter engine (not the chart instances).
       var cf = ApexCharts.getCrossfilter('trades')
       var readout = document.getElementById('cf-readout')
 

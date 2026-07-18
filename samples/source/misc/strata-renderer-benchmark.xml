@@ -137,6 +137,10 @@
   .strata-metric .v.trace {
     color: #0891b2;
   }
+  .strata-metric .v.renderer {
+    font-size: 18px;
+    margin-top: 8px;
+  }
   .strata-pill {
     display: inline-flex;
     align-items: center;
@@ -404,6 +408,62 @@
     var el = document.querySelector('#chart')
     return el ? el.getElementsByTagName('*').length : 0
   }
+
+  // Stateless console helpers (no chart/options refs), shared by the vanilla,
+  // React and Vue builds so each per-format script only holds the chart wiring.
+  function selected(segId) {
+    var pressed = document
+      .getElementById(segId)
+      .querySelector('button[aria-pressed="true"]')
+    return pressed || document.getElementById(segId).querySelector('button')
+  }
+
+  function setPressed(segId, btn) {
+    var seg = document.getElementById(segId)
+    Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
+      b.setAttribute('aria-pressed', b === btn ? 'true' : 'false')
+    })
+  }
+
+  function rendererPill(mode) {
+    var cls = mode === 'canvas' ? 'canvas' : 'svg'
+    return '<span class="strata-pill ' + cls + '"><span class="dot"></span>' + mode + '</span>'
+  }
+
+  function setMeter(id, value, max) {
+    var pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0
+    document.getElementById(id).style.width = pct + '%'
+  }
+
+  function showComparison(out) {
+    document.getElementById('strataBarsEmpty').hidden = true
+    document.getElementById('strataBarsData').hidden = false
+
+    var maxTime = Math.max(out.svg.ms, out.canvas.ms, 1)
+    setMeter('tSvg', out.svg.ms, maxTime)
+    setMeter('tCan', out.canvas.ms, maxTime)
+    document.getElementById('tSvgN').textContent = out.svg.ms + ' ms'
+    document.getElementById('tCanN').textContent = out.canvas.ms + ' ms'
+
+    var maxNodes = Math.max(out.svg.nodes, out.canvas.nodes, 1)
+    setMeter('nSvg', out.svg.nodes, maxNodes)
+    setMeter('nCan', out.canvas.nodes, maxNodes)
+    document.getElementById('nSvgN').textContent = out.svg.nodes.toLocaleString()
+    document.getElementById('nCanN').textContent = out.canvas.nodes.toLocaleString()
+
+    var speedup =
+      out.canvas.ms > 0 ? (out.svg.ms / out.canvas.ms).toFixed(1) : '-'
+    var nodeCut =
+      out.canvas.nodes > 0 ? Math.round(out.svg.nodes / out.canvas.nodes) : '-'
+    document.getElementById('strataVerdict').innerHTML =
+      'At ' +
+      pointCount.toLocaleString() +
+      ' points, canvas rendered <b>' +
+      speedup +
+      '&times; faster</b> with about <b>' +
+      nodeCut +
+      '&times; fewer</b> DOM nodes on this device.'
+  }
 </script>
 </scripts>
 
@@ -445,7 +505,7 @@
     <div class="strata-readout">
       <div class="strata-metric">
         <div class="k">Active renderer</div>
-        <div class="v" id="mRenderer" style="font-size: 18px; margin-top: 8px">
+        <div class="v renderer" id="mRenderer">
           <span class="strata-pill canvas"><span class="dot"></span>canvas</span>
         </div>
       </div>
@@ -591,25 +651,9 @@ var elNodes = document.getElementById('mNodes')
 var elPoints = document.getElementById('mPoints')
 var lastRenderMs = 0
 
-function selected(segId) {
-  var pressed = document
-    .getElementById(segId)
-    .querySelector('button[aria-pressed="true"]')
-  return pressed || document.getElementById(segId).querySelector('button')
-}
-
-function setPressed(segId, btn) {
-  var seg = document.getElementById(segId)
-  Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
-    b.setAttribute('aria-pressed', b === btn ? 'true' : 'false')
-  })
-}
-
-function rendererPill(mode) {
-  var cls = mode === 'canvas' ? 'canvas' : 'svg'
-  return '<span class="strata-pill ' + cls + '"><span class="dot"></span>' + mode + '</span>'
-}
-
+// selected, setPressed, rendererPill, setMeter and showComparison live in the
+// shared head script (stateless DOM helpers); this script keeps only the
+// chart-bound wiring.
 function updateMetrics() {
   if (typeof chart === 'undefined' || !chart.w) return
   var active =
@@ -649,11 +693,6 @@ function rebuild() {
   })
 }
 
-function setMeter(id, value, max) {
-  var pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0
-  document.getElementById(id).style.width = pct + '%'
-}
-
 function benchmarkBoth() {
   pointCount = parseInt(selected('strataCount').getAttribute('data-n'), 10)
   clusters = generateClusters(pointCount)
@@ -686,36 +725,6 @@ function benchmarkBoth() {
     })
 }
 
-function showComparison(out) {
-  document.getElementById('strataBarsEmpty').hidden = true
-  document.getElementById('strataBarsData').hidden = false
-
-  var maxTime = Math.max(out.svg.ms, out.canvas.ms, 1)
-  setMeter('tSvg', out.svg.ms, maxTime)
-  setMeter('tCan', out.canvas.ms, maxTime)
-  document.getElementById('tSvgN').textContent = out.svg.ms + ' ms'
-  document.getElementById('tCanN').textContent = out.canvas.ms + ' ms'
-
-  var maxNodes = Math.max(out.svg.nodes, out.canvas.nodes, 1)
-  setMeter('nSvg', out.svg.nodes, maxNodes)
-  setMeter('nCan', out.canvas.nodes, maxNodes)
-  document.getElementById('nSvgN').textContent = out.svg.nodes.toLocaleString()
-  document.getElementById('nCanN').textContent = out.canvas.nodes.toLocaleString()
-
-  var speedup =
-    out.canvas.ms > 0 ? (out.svg.ms / out.canvas.ms).toFixed(1) : '-'
-  var nodeCut =
-    out.canvas.nodes > 0 ? Math.round(out.svg.nodes / out.canvas.nodes) : '-'
-  document.getElementById('strataVerdict').innerHTML =
-    'At ' +
-    pointCount.toLocaleString() +
-    ' points, canvas rendered <b>' +
-    speedup +
-    '&times; faster</b> with about <b>' +
-    nodeCut +
-    '&times; fewer</b> DOM nodes on this device.'
-}
-
 // Wire the segmented buttons: pressing one just marks it selected (no render
 // until Render / Benchmark), matching a console feel.
 ;['strataCount', 'strataMode'].forEach(function (segId) {
@@ -737,3 +746,243 @@ requestAnimationFrame(function poll() {
   }
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // Strata drives its own chart lifecycle (destroy + rebuild per renderer), so
+  // this build skips the react-apexcharts wrapper and creates the instance in
+  // #chart directly, exactly like the vanilla build. pointCount, clusters,
+  // generateClusters, strataNodeCount and the DOM helpers (selected, setPressed,
+  // rendererPill, setMeter, showComparison) live in the shared head script.
+  const busy = document.getElementById('strataBusy')
+  const elRenderer = document.getElementById('mRenderer')
+  const elTime = document.getElementById('mTime')
+  const elNodes = document.getElementById('mNodes')
+  const elPoints = document.getElementById('mPoints')
+  let lastRenderMs = 0
+  let chart = null
+  let disposed = false
+
+  // The vanilla build gets a mutable `options` global from the template; rebuild
+  // it here from the parsed chart state.
+  const options = Object.assign({ series: state.series }, state.options)
+  options.chart = Object.assign({}, state.options.chart)
+
+  function updateMetrics() {
+    if (!chart || !chart.w) return
+    const active =
+      typeof chart.getActiveRenderer === 'function' ? chart.getActiveRenderer() : 'svg'
+    elRenderer.innerHTML = rendererPill(active)
+    elTime.innerHTML =
+      (lastRenderMs > 0 ? lastRenderMs : '-') + '<small>ms</small>'
+    elNodes.textContent = strataNodeCount().toLocaleString()
+    elPoints.textContent = pointCount.toLocaleString()
+  }
+
+  // Build a fresh instance in the #chart container with a forced renderer,
+  // returning the render time and resulting DOM-node count.
+  function renderWith(mode) {
+    if (disposed) return Promise.resolve({ ms: 0, nodes: 0 })
+    options.chart.renderer = mode
+    options.series = [
+      { name: 'Cluster A', data: clusters[0] },
+      { name: 'Cluster B', data: clusters[1] },
+    ]
+    const t = performance.now()
+    if (chart) chart.destroy()
+    chart = new ApexCharts(document.querySelector('#chart'), options)
+    return chart.render().then(function () {
+      return { ms: Math.round(performance.now() - t), nodes: strataNodeCount() }
+    })
+  }
+
+  function rebuild() {
+    pointCount = parseInt(selected('strataCount').getAttribute('data-n'), 10)
+    const mode = selected('strataMode').getAttribute('data-m')
+    clusters = generateClusters(pointCount)
+    busy.classList.add('on')
+    return renderWith(mode).then(function (r) {
+      lastRenderMs = r.ms
+      busy.classList.remove('on')
+      updateMetrics()
+    })
+  }
+
+  function benchmarkBoth() {
+    pointCount = parseInt(selected('strataCount').getAttribute('data-n'), 10)
+    clusters = generateClusters(pointCount)
+    const currentMode = selected('strataMode').getAttribute('data-m')
+    const benchBtn = document.getElementById('strataBench')
+    const renderBtn = document.getElementById('strataRender')
+    benchBtn.disabled = true
+    renderBtn.disabled = true
+    busy.classList.add('on')
+
+    const out = {}
+    // Render SVG, then canvas, then restore the user's selected renderer.
+    // Chained so the two heavy renders never overlap.
+    renderWith('svg')
+      .then(function (r) {
+        out.svg = r
+        return renderWith('canvas')
+      })
+      .then(function (r) {
+        out.canvas = r
+        return renderWith(currentMode)
+      })
+      .then(function () {
+        if (disposed) return
+        lastRenderMs = currentMode === 'svg' ? out.svg.ms : out.canvas.ms
+        showComparison(out)
+        busy.classList.remove('on')
+        benchBtn.disabled = false
+        renderBtn.disabled = false
+        updateMetrics()
+      })
+  }
+
+  // Wire the segmented buttons: pressing one just marks it selected (no render
+  // until Render / Benchmark), matching a console feel.
+  ;['strataCount', 'strataMode'].forEach(function (segId) {
+    document.getElementById(segId).addEventListener('click', function (e) {
+      const btn = e.target.closest('button')
+      if (btn) setPressed(segId, btn)
+    })
+  })
+
+  document.getElementById('strataRender').addEventListener('click', rebuild)
+  document.getElementById('strataBench').addEventListener('click', benchmarkBoth)
+
+  // Initial render into #chart, then seed the readout.
+  chart = new ApexCharts(document.querySelector('#chart'), options)
+  chart.render().then(updateMetrics)
+
+  return () => {
+    disposed = true
+    if (chart) chart.destroy()
+  }
+}, [])
+</react-script>
+
+<vue-data>
+strataChart: null,
+strataDisposed: false,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // Strata drives its own chart lifecycle (destroy + rebuild per renderer), so
+  // this build skips the vue-apexcharts wrapper and creates the instance in
+  // #chart directly, exactly like the vanilla build. pointCount, clusters,
+  // generateClusters, strataNodeCount and the DOM helpers (selected, setPressed,
+  // rendererPill, setMeter, showComparison) live in the shared head script.
+  var me = this
+  var busy = document.getElementById('strataBusy')
+  var elRenderer = document.getElementById('mRenderer')
+  var elTime = document.getElementById('mTime')
+  var elNodes = document.getElementById('mNodes')
+  var elPoints = document.getElementById('mPoints')
+  var lastRenderMs = 0
+  var chart = null
+
+  // The vanilla build gets a mutable `options` global from the template; rebuild
+  // it here from the parsed chart state.
+  var options = Object.assign({ series: me.series }, me.chartOptions)
+  options.chart = Object.assign({}, me.chartOptions.chart)
+
+  function updateMetrics() {
+    if (!chart || !chart.w) return
+    var active =
+      typeof chart.getActiveRenderer === 'function' ? chart.getActiveRenderer() : 'svg'
+    elRenderer.innerHTML = rendererPill(active)
+    elTime.innerHTML =
+      (lastRenderMs > 0 ? lastRenderMs : '-') + '<small>ms</small>'
+    elNodes.textContent = strataNodeCount().toLocaleString()
+    elPoints.textContent = pointCount.toLocaleString()
+  }
+
+  // Build a fresh instance in the #chart container with a forced renderer,
+  // returning the render time and resulting DOM-node count.
+  function renderWith(mode) {
+    if (me.strataDisposed) return Promise.resolve({ ms: 0, nodes: 0 })
+    options.chart.renderer = mode
+    options.series = [
+      { name: 'Cluster A', data: clusters[0] },
+      { name: 'Cluster B', data: clusters[1] },
+    ]
+    var t = performance.now()
+    if (chart) chart.destroy()
+    chart = new ApexCharts(document.querySelector('#chart'), options)
+    me.strataChart = chart
+    return chart.render().then(function () {
+      return { ms: Math.round(performance.now() - t), nodes: strataNodeCount() }
+    })
+  }
+
+  function rebuild() {
+    pointCount = parseInt(selected('strataCount').getAttribute('data-n'), 10)
+    var mode = selected('strataMode').getAttribute('data-m')
+    clusters = generateClusters(pointCount)
+    busy.classList.add('on')
+    return renderWith(mode).then(function (r) {
+      lastRenderMs = r.ms
+      busy.classList.remove('on')
+      updateMetrics()
+    })
+  }
+
+  function benchmarkBoth() {
+    pointCount = parseInt(selected('strataCount').getAttribute('data-n'), 10)
+    clusters = generateClusters(pointCount)
+    var currentMode = selected('strataMode').getAttribute('data-m')
+    var benchBtn = document.getElementById('strataBench')
+    var renderBtn = document.getElementById('strataRender')
+    benchBtn.disabled = true
+    renderBtn.disabled = true
+    busy.classList.add('on')
+
+    var out = {}
+    // Render SVG, then canvas, then restore the user's selected renderer.
+    // Chained so the two heavy renders never overlap.
+    renderWith('svg')
+      .then(function (r) {
+        out.svg = r
+        return renderWith('canvas')
+      })
+      .then(function (r) {
+        out.canvas = r
+        return renderWith(currentMode)
+      })
+      .then(function () {
+        if (me.strataDisposed) return
+        lastRenderMs = currentMode === 'svg' ? out.svg.ms : out.canvas.ms
+        showComparison(out)
+        busy.classList.remove('on')
+        benchBtn.disabled = false
+        renderBtn.disabled = false
+        updateMetrics()
+      })
+  }
+
+  // Wire the segmented buttons: pressing one just marks it selected (no render
+  // until Render / Benchmark), matching a console feel.
+  ;['strataCount', 'strataMode'].forEach(function (segId) {
+    document.getElementById(segId).addEventListener('click', function (e) {
+      var btn = e.target.closest('button')
+      if (btn) setPressed(segId, btn)
+    })
+  })
+
+  document.getElementById('strataRender').addEventListener('click', rebuild)
+  document.getElementById('strataBench').addEventListener('click', benchmarkBoth)
+
+  // Initial render into #chart, then seed the readout.
+  chart = new ApexCharts(document.querySelector('#chart'), options)
+  me.strataChart = chart
+  chart.render().then(updateMetrics)
+},
+beforeDestroy: function () {
+  this.strataDisposed = true
+  if (this.strataChart) this.strataChart.destroy()
+},
+</vue-script>

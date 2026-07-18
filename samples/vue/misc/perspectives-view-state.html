@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Perspectives: Serializable and Shareable View State</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 760px;
+        margin: 16px auto;
+      }
+      .panel {
+        max-width: 760px;
+        margin: 16px auto;
+        font-family: sans-serif;
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .controls button {
+        padding: 7px 15px;
+        cursor: pointer;
+        border: 1px solid #cdd3de;
+        background: #fff;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .controls .primary {
+        border-color: #1971c2;
+        color: #1971c2;
+        font-weight: 600;
+      }
+      .controls select {
+        padding: 6px 10px;
+        font-size: 14px;
+        border-radius: 6px;
+        border: 1px solid #cdd3de;
+      }
+      .link {
+        font-family: monospace;
+        font-size: 12px;
+        color: #555;
+        word-break: break-all;
+        margin-top: 4px;
+      }
+      .note {
+        background: #eef6fd;
+        border-left: 3px solid #1971c2;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        margin-top: 12px;
+        line-height: 1.55;
+      }
+      .note code {
+        background: #d8ebfb;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Perspectives (#10): capture the full VIEW state (zoom window, hidden series,
+      // selection, theme, annotations) as a token, apply it back, or encode it into
+      // a shareable URL. Passive: no config flag needed.
+      function bigSeries(seed, amp) {
+        var d = []
+        var v = seed
+        for (var i = 0; i < 40; i++) {
+          v += (Math.random() - 0.5) * amp
+          d.push({ x: i + 1, y: Math.round(v) })
+        }
+        return d
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="panel">
+      <div class="controls">
+        <button id="save" class="primary">Save current view</button>
+        <label>
+          Saved:
+          <select id="views"><option value="">(none yet)</option></select>
+        </label>
+        <button id="copy">Copy shareable link</button>
+        <button id="resetZoom">Reset zoom</button>
+      </div>
+      <div class="link" id="link"></div>
+    </div>
+    
+    <div id="chart">
+      <apexchart type="line" height="380" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    
+    <div class="panel">
+      <div class="note">
+        Zoom into a region (drag on the plot), hide a series in the legend, or
+        right-click the plot to drop a note or a dashed line
+        (<code>chart.contextMenu</code> + <code>chart.ink</code>), then press
+        Save current view: <code>chart.perspectives.capture()</code> plus
+        <code>save(name)</code> stores it. Annotations are part of the view, so a
+        saved or shared view brings your notes and lines back, still draggable
+        and editable. Pick a saved view to <code>apply()</code> it back (the chart
+        animates to that exact state). Copy shareable link uses
+        <code>chart.perspectives.toURL()</code> to encode the view into a
+        <code>#apex=</code> fragment; opening that link restores it on load via
+        <code>ApexCharts.perspectives.fromURL()</code>.
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;panel&quot;&gt;
+        &lt;div class=&quot;controls&quot;&gt;
+          &lt;button id=&quot;save&quot; class=&quot;primary&quot;&gt;Save current view&lt;/button&gt;
+          &lt;label&gt;
+            Saved:
+            &lt;select id=&quot;views&quot;&gt;&lt;option value=&quot;&quot;&gt;(none yet)&lt;/option&gt;&lt;/select&gt;
+          &lt;/label&gt;
+          &lt;button id=&quot;copy&quot;&gt;Copy shareable link&lt;/button&gt;
+          &lt;button id=&quot;resetZoom&quot;&gt;Reset zoom&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;link&quot; id=&quot;link&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;line&quot; height=&quot;380&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+      
+      &lt;div class=&quot;panel&quot;&gt;
+        &lt;div class=&quot;note&quot;&gt;
+          Zoom into a region (drag on the plot), hide a series in the legend, or
+          right-click the plot to drop a note or a dashed line
+          (&lt;code&gt;chart.contextMenu&lt;/code&gt; + &lt;code&gt;chart.ink&lt;/code&gt;), then press
+          Save current view: &lt;code&gt;chart.perspectives.capture()&lt;/code&gt; plus
+          &lt;code&gt;save(name)&lt;/code&gt; stores it. Annotations are part of the view, so a
+          saved or shared view brings your notes and lines back, still draggable
+          and editable. Pick a saved view to &lt;code&gt;apply()&lt;/code&gt; it back (the chart
+          animates to that exact state). Copy shareable link uses
+          &lt;code&gt;chart.perspectives.toURL()&lt;/code&gt; to encode the view into a
+          &lt;code&gt;#apex=&lt;/code&gt; fragment; opening that link restores it on load via
+          &lt;code&gt;ApexCharts.perspectives.fromURL()&lt;/code&gt;.
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [
+            { name: 'North', data: bigSeries(50, 14) },
+            { name: 'South', data: bigSeries(70, 10) },
+          ],
+          chartOptions: {
+            chart: {
+              height: 380,
+              type: 'line',
+              id: 'perspectives-demo',
+              animations: { enabled: true },
+              toolbar: {
+                show: true,
+                tools: { zoom: true, pan: true, reset: true, download: false },
+              },
+              zoom: { enabled: true, type: 'x' },
+              ink: { enabled: true },
+              contextMenu: { enabled: true },
+            },
+            colors: ['#1971c2', '#e0447e'],
+            stroke: { curve: 'smooth', width: 2 },
+            dataLabels: { enabled: false },
+            title: {
+              text: 'Capture, apply, and share the exact view',
+              align: 'left',
+            },
+            xaxis: { type: 'numeric', title: { text: 'Step' } },
+            legend: { position: 'top' },
+          },
+
+          perspTimer: null,
+        },
+        mounted: function () {
+          // The vue-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id, then wire the same controls the vanilla build does.
+          // (bigSeries lives in the shared head script.)
+          var me = this
+          me.perspTimer = window.setInterval(function () {
+            var chart = ApexCharts.getChartByID('perspectives-demo')
+            if (!chart) return
+            window.clearInterval(me.perspTimer)
+
+            var viewsSel = document.getElementById('views')
+            var linkEl = document.getElementById('link')
+            var saveCount = 0
+
+            function refreshList() {
+              var list = chart.perspectives.list()
+              viewsSel.innerHTML =
+                '<option value="">' +
+                (list.length ? 'Pick a saved view...' : '(none yet)') +
+                '</option>'
+              list.forEach(function (p) {
+                var o = document.createElement('option')
+                o.value = p.id
+                o.textContent = p.name
+                viewsSel.appendChild(o)
+              })
+            }
+
+            document.getElementById('save').addEventListener('click', function () {
+              saveCount++
+              chart.perspectives.save('View ' + saveCount)
+              refreshList()
+            })
+
+            viewsSel.addEventListener('change', function () {
+              var id = viewsSel.value
+              if (!id) return
+              var entry = chart.perspectives.list().filter(function (p) {
+                return p.id === id
+              })[0]
+              if (entry) chart.perspectives.apply(entry.token, { animate: true })
+            })
+
+            document.getElementById('copy').addEventListener('click', function () {
+              var url = chart.perspectives.toURL()
+              linkEl.textContent = url
+              if (navigator.clipboard)
+                navigator.clipboard.writeText(url).catch(function () {})
+            })
+
+            document
+              .getElementById('resetZoom')
+              .addEventListener('click', function () {
+                chart.resetSeries(true, true)
+              })
+
+            // Restore a shared view if the page was opened with a #apex= fragment.
+            try {
+              var shared =
+                ApexCharts.perspectives && ApexCharts.perspectives.fromURL()
+              if (shared) chart.perspectives.apply(shared, { animate: false })
+            } catch (e) {}
+          }, 50)
+        },
+        beforeDestroy: function () {
+          if (this.perspTimer) window.clearInterval(this.perspTimer)
+        },
+      })
+    </script>
+    
+  </body>
+</html>

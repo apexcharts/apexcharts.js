@@ -131,3 +131,68 @@ chart.addEventListener('measured', function (c, o) {
     '  (' + (o.percentChange >= 0 ? '+' : '') + Number(o.percentChange).toFixed(1) + '%)'
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The ruler tool is pre-selected via toolbar.autoSelected: 'measure', so the
+  // plot is armed on load. The react-apexcharts wrapper owns the render, so
+  // reach the live instance by its chart.id, then wire the same handlers the
+  // vanilla build does. (series() lives in the shared head script.)
+  let chart
+  const timer = window.setInterval(() => {
+    chart = ApexCharts.getChartByID('price')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    const readout = document.getElementById('mz-readout')
+
+    document.getElementById('mz-clear').addEventListener('click', () => {
+      chart.clearMeasures()
+    })
+
+    chart.addEventListener('measured', (c, o) => {
+      readout.textContent =
+        'dx=' + Number(o.dx).toFixed(2) +
+        '  dy=' + Number(o.dy).toFixed(2) +
+        '  (' + (o.percentChange >= 0 ? '+' : '') + Number(o.percentChange).toFixed(1) + '%)'
+    })
+  }, 50)
+
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+pollTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the same handlers the vanilla build does.
+  // (series() lives in the shared head script.)
+  var me = this
+  me.pollTimer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('price')
+    if (!chart) return
+    window.clearInterval(me.pollTimer)
+    me.pollTimer = null
+
+    var readout = document.getElementById('mz-readout')
+
+    document.getElementById('mz-clear').addEventListener('click', function () {
+      chart.clearMeasures()
+    })
+
+    chart.addEventListener('measured', function (c, o) {
+      readout.textContent =
+        'dx=' + Number(o.dx).toFixed(2) +
+        '  dy=' + Number(o.dy).toFixed(2) +
+        '  (' + (o.percentChange >= 0 ? '+' : '') + Number(o.percentChange).toFixed(1) + '%)'
+    })
+  }, 50)
+},
+beforeDestroy: function () {
+  if (this.pollTimer) window.clearInterval(this.pollTimer)
+},
+</vue-script>
