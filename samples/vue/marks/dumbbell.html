@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Dumbbell Chart via a Custom Series Type (Marks)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 780px;
+        margin: 20px auto;
+      }
+      .panel {
+        max-width: 780px;
+        margin: 16px auto;
+        font-family: sans-serif;
+      }
+      .legend {
+        display: flex;
+        gap: 22px;
+        align-items: center;
+        font-size: 13px;
+        color: #334;
+        margin: 4px 4px 0;
+      }
+      .legend .item {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+      }
+      .legend .dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+      }
+      .legend .hollow {
+        background: #fff;
+        border: 3px solid #008ffb;
+        box-sizing: border-box;
+      }
+      .legend .filled {
+        background: #00b894;
+      }
+      .note {
+        background: #f4f8ff;
+        border-left: 3px solid #5b8cff;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: #234;
+        margin-top: 12px;
+        border-radius: 2px;
+        line-height: 1.55;
+      }
+      .note code {
+        background: #e6eeff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Marks (#11): register a reusable "dumbbell" series type once. Each datum is
+      // a { x, y: [start, end] } pair. dataType 'rangeXY' tells ApexCharts to fold
+      // BOTH y-bounds into the axis scale (so the axis fits the full range, not just
+      // the end value) and to render the tooltip as "start - end".
+      ApexCharts.registerSeriesType('dumbbell', {
+        dataType: 'rangeXY',
+        renderItem: function (ctx) {
+          var datum = ctx.datum
+          var x = ctx.x
+          var scales = ctx.scales
+          var api = ctx.api
+          var yStart = scales.y(datum.y[0])
+          var yEnd = scales.y(datum.y[1])
+          // connecting stem
+          api.line({
+            x1: x,
+            y1: yStart,
+            x2: x,
+            y2: yEnd,
+            stroke: '#d0d5dd',
+            width: 4,
+            lineCap: 'round',
+          })
+          // start marker (hollow ring) and end marker (filled)
+          api.circle({
+            cx: x,
+            cy: yStart,
+            r: 7,
+            fill: '#fff',
+            stroke: '#008FFB',
+            strokeWidth: 3,
+          })
+          api.circle({ cx: x, cy: yEnd, r: 7, fill: '#00B894' })
+        },
+      })
+
+      var dumbbellData = [
+        { x: 'Austin', y: [312, 498] },
+        { x: 'Denver', y: [398, 545] },
+        { x: 'Miami', y: [285, 610] },
+        { x: 'Seattle', y: [512, 720] },
+        { x: 'Boise', y: [255, 415] },
+        { x: 'Raleigh', y: [268, 402] },
+        { x: 'Phoenix', y: [295, 468] },
+      ]
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="panel">
+      <div class="legend">
+        <span class="item"><span class="dot hollow"></span> 2019</span>
+        <span class="item"><span class="dot filled"></span> 2024</span>
+      </div>
+    </div>
+    
+    <div id="chart">
+      <apexchart type="dumbbell" height="440" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    
+    <div class="panel">
+      <div class="note">
+        There is no built-in dumbbell type here. It is a custom series registered with
+        <code>ApexCharts.registerSeriesType('dumbbell', &#123; dataType: 'rangeXY', renderItem &#125;)</code>.
+        <code>renderItem</code> draws one stem and two circles per datum through the
+        primitive <code>api</code>, and <code>dataType: 'rangeXY'</code> routes the
+        <code>y: [start, end]</code> pair through the range path so the y-axis fits
+        both bounds and the tooltip reads "start - end". Hover a marker to see it.
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;panel&quot;&gt;
+        &lt;div class=&quot;legend&quot;&gt;
+          &lt;span class=&quot;item&quot;&gt;&lt;span class=&quot;dot hollow&quot;&gt;&lt;/span&gt; 2019&lt;/span&gt;
+          &lt;span class=&quot;item&quot;&gt;&lt;span class=&quot;dot filled&quot;&gt;&lt;/span&gt; 2024&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;dumbbell&quot; height=&quot;440&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+      
+      &lt;div class=&quot;panel&quot;&gt;
+        &lt;div class=&quot;note&quot;&gt;
+          There is no built-in dumbbell type here. It is a custom series registered with
+          &lt;code&gt;ApexCharts.registerSeriesType(&#39;dumbbell&#39;, &amp;#123; dataType: &#39;rangeXY&#39;, renderItem &amp;#125;)&lt;/code&gt;.
+          &lt;code&gt;renderItem&lt;/code&gt; draws one stem and two circles per datum through the
+          primitive &lt;code&gt;api&lt;/code&gt;, and &lt;code&gt;dataType: &#39;rangeXY&#39;&lt;/code&gt; routes the
+          &lt;code&gt;y: [start, end]&lt;/code&gt; pair through the range path so the y-axis fits
+          both bounds and the tooltip reads &quot;start - end&quot;. Hover a marker to see it.
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [{ name: 'Price range', data: dumbbellData }],
+          chartOptions: {
+            chart: {
+              height: 440,
+              type: 'dumbbell',
+              animations: { enabled: false },
+              toolbar: { show: false },
+            },
+            grid: {
+              padding: { left: 15, right: 15 },
+              xaxis: { lines: { show: true } },
+            },
+            title: {
+              text: 'Median home price by city: 2019 vs 2024',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'A custom "dumbbell" series type built with Marks (registerSeriesType)',
+              align: 'left',
+            },
+            xaxis: {
+              type: 'category',
+              tooltip: { enabled: false },
+            },
+            yaxis: {
+              min: 200,
+              tickAmount: 6,
+              labels: {
+                formatter: function (val) {
+                  return '$' + Math.round(val) + 'k'
+                },
+              },
+            },
+            tooltip: {
+              y: {
+                formatter: function (val) {
+                  return '$' + val + 'k'
+                },
+              },
+            },
+          },
+        },
+      })
+    </script>
+    
+  </body>
+</html>

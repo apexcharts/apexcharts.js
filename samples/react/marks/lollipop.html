@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Lollipop Chart via a Custom Series Type (Marks)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 780px;
+        margin: 20px auto;
+      }
+      .panel {
+        max-width: 780px;
+        margin: 16px auto;
+        font-family: sans-serif;
+      }
+      .note {
+        background: #f4fbf6;
+        border-left: 3px solid #00b894;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.55;
+      }
+      .note code {
+        background: #dff3e8;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Marks (#11): a lollipop is a scalar-y series (the default dataType), so no
+      // range routing is needed. renderItem draws a stem from the baseline up to the
+      // value, capped with a circle. Each mark is tagged with its datum identity, so
+      // the shared tooltip, legend toggle and dataPointSelection all work for free.
+      ApexCharts.registerSeriesType('lollipop', {
+        renderItem: function (ctx) {
+          var x = ctx.x
+          var y = ctx.y
+          var scales = ctx.scales
+          var api = ctx.api
+          var color = ctx.color
+          var baseline = scales.y(0)
+          api.line({ x1: x, y1: baseline, x2: x, y2: y, stroke: color, width: 2 })
+          api.circle({ cx: x, cy: y, r: 6, fill: color })
+        },
+      })
+
+      var lollipopData = [
+        { x: 'Jan', y: 41 },
+        { x: 'Feb', y: 58 },
+        { x: 'Mar', y: 45 },
+        { x: 'Apr', y: 72 },
+        { x: 'May', y: 68 },
+        { x: 'Jun', y: 91 },
+        { x: 'Jul', y: 84 },
+        { x: 'Aug', y: 63 },
+        { x: 'Sep', y: 49 },
+        { x: 'Oct', y: 77 },
+        { x: 'Nov', y: 88 },
+        { x: 'Dec', y: 102 },
+      ]
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;lollipop&quot; height={440} /&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;panel&quot;&gt;
+  &lt;div class=&quot;note&quot;&gt;
+    A lollipop is a scalar-y custom series: &lt;code&gt;renderItem&lt;/code&gt; draws a stem
+    from &lt;code&gt;scales.y(0)&lt;/code&gt; up to the value and caps it with a circle. Marks
+    carry their datum identity, so hover, the shared tooltip and legend toggle
+    work without any extra wiring.
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [{ name: 'Signups', data: lollipopData }],
+          options: {
+            chart: {
+              height: 440,
+              type: 'lollipop',
+              animations: { enabled: false },
+              toolbar: { show: false },
+            },
+            colors: ['#775DD0'],
+            grid: {
+              padding: { left: 12, right: 12 },
+            },
+            title: {
+              text: 'Monthly active signups',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'A custom "lollipop" series type built with Marks (registerSeriesType)',
+              align: 'left',
+            },
+            xaxis: {
+              type: 'category',
+              tooltip: { enabled: false },
+            },
+            yaxis: {
+              min: 0,
+              max: 120,
+              tickAmount: 6,
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div id="chart">
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="lollipop"
+                height={440}
+              />
+            </div>
+
+            <div class="panel">
+              <div class="note">
+                A lollipop is a scalar-y custom series: <code>renderItem</code> draws
+                a stem from <code>scales.y(0)</code> up to the value and caps it with
+                a circle. Marks carry their datum identity, so hover, the shared
+                tooltip and legend toggle work without any extra wiring.
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

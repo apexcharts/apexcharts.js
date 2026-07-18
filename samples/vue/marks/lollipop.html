@@ -35,7 +35,9 @@
     </style>
 
     
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
     <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
     
 
     <script>
@@ -84,53 +86,74 @@
   </head>
 
   <body>
-     <div id="chart"></div>
+    
+    <div id="app"><div id="chart">
+      <apexchart type="lollipop" height="440" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    
+    <div class="panel">
+      <div class="note">
+        A lollipop is a scalar-y custom series: <code>renderItem</code> draws a stem
+        from <code>scales.y(0)</code> up to the value and caps it with a circle. Marks
+        carry their datum identity, so hover, the shared tooltip and legend toggle
+        work without any extra wiring.
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;lollipop&quot; height=&quot;440&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
       
-      <div class="panel">
-        <div class="note">
-          A lollipop is a scalar-y custom series: <code>renderItem</code> draws a stem
-          from <code>scales.y(0)</code> up to the value and caps it with a circle. Marks
+      &lt;div class=&quot;panel&quot;&gt;
+        &lt;div class=&quot;note&quot;&gt;
+          A lollipop is a scalar-y custom series: &lt;code&gt;renderItem&lt;/code&gt; draws a stem
+          from &lt;code&gt;scales.y(0)&lt;/code&gt; up to the value and caps it with a circle. Marks
           carry their datum identity, so hover, the shared tooltip and legend toggle
           work without any extra wiring.
-        </div>
-      </div>
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
 
     <script>
-      var options = {
-        series: [{ name: 'Signups', data: lollipopData }],
-        chart: {
-          height: 440,
-          type: 'lollipop',
-          animations: { enabled: false },
-          toolbar: { show: false },
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
         },
-        colors: ['#775DD0'],
-        grid: {
-          padding: { left: 12, right: 12 },
+        data: {
+          series: [{ name: 'Signups', data: lollipopData }],
+          chartOptions: {
+            chart: {
+              height: 440,
+              type: 'lollipop',
+              animations: { enabled: false },
+              toolbar: { show: false },
+            },
+            colors: ['#775DD0'],
+            grid: {
+              padding: { left: 12, right: 12 },
+            },
+            title: {
+              text: 'Monthly active signups',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'A custom "lollipop" series type built with Marks (registerSeriesType)',
+              align: 'left',
+            },
+            xaxis: {
+              type: 'category',
+              tooltip: { enabled: false },
+            },
+            yaxis: {
+              min: 0,
+              max: 120,
+              tickAmount: 6,
+            },
+          },
         },
-        title: {
-          text: 'Monthly active signups',
-          align: 'left',
-        },
-        subtitle: {
-          text: 'A custom "lollipop" series type built with Marks (registerSeriesType)',
-          align: 'left',
-        },
-        xaxis: {
-          type: 'category',
-          tooltip: { enabled: false },
-        },
-        yaxis: {
-          min: 0,
-          max: 120,
-          tickAmount: 6,
-        },
-      }
-
-      var chart = new ApexCharts(document.querySelector('#chart'), options)
-      chart.render()
+      })
     </script>
-
     
   </body>
 </html>

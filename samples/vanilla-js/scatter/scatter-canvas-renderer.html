@@ -111,9 +111,11 @@
         return el ? el.getElementsByTagName('*').length : 0
       }
 
-      function updateStats() {
+      // Accepts the live chart instance as an argument so the React and Vue builds
+      // (which have no global `chart` var) can share this stateless helper.
+      function updateStats(chart) {
         var el = document.getElementById('stats')
-        if (!el || typeof chart === 'undefined') return
+        if (!el || !chart) return
         var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
         el.innerHTML =
           'Points: <b>' +
@@ -221,7 +223,7 @@
       // fill in the live metrics.
       requestAnimationFrame(function poll() {
         if (chart && chart.w && chart.w.globals && chart.w.globals.series) {
-          updateStats()
+          updateStats(chart)
         } else {
           requestAnimationFrame(poll)
         }
@@ -249,7 +251,7 @@
         chart = new ApexCharts(document.querySelector('#chart'), options)
         chart.render().then(function () {
           lastRenderMs = Math.round(performance.now() - t)
-          updateStats()
+          updateStats(chart)
         })
       }
 

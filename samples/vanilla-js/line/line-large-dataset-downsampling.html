@@ -32,6 +32,9 @@
         padding: 6px 14px;
         cursor: pointer;
       }
+      .target-input {
+        width: 80px;
+      }
       .stats {
         font-family: monospace;
         font-size: 13px;
@@ -101,9 +104,11 @@
         )
       }
 
-      function updateStats() {
+      // Accepts the live chart instance as an argument so the React and Vue builds
+      // (which have no global `chart` var) can share this stateless helper.
+      function updateStats(chart) {
         var statsEl = document.getElementById('stats')
-        if (!statsEl || typeof chart === 'undefined') return
+        if (!statsEl || !chart || !chart.w) return
         var drawn = (chart.w.globals.series[0] || []).length
         statsEl.innerHTML =
           'Raw points: <b>' +
@@ -131,11 +136,11 @@
             <input
               type="number"
               id="targetPoints"
+              class="target-input"
               value="500"
               min="50"
               max="5000"
               step="50"
-              style="width: 80px"
             />
           </label>
           <button id="rerender">Re-render</button>
@@ -143,8 +148,6 @@
         </div>
       
         <div class="stats" id="stats"></div>
-      
-       
       </div>
       
       <div id="chart"></div>
@@ -171,7 +174,9 @@
                 xaxis && xaxis.min && xaxis.max
                   ? fmt(xaxis.min) + ' → ' + fmt(xaxis.max)
                   : 'full range'
-              requestAnimationFrame(updateStats)
+              requestAnimationFrame(function () {
+                updateStats(chartCtx)
+              })
             },
             beforeResetZoom: function () {
               lastZoomLabel = 'full range'
@@ -210,7 +215,7 @@
       // stats once the chart instance has finished its first paint.
       requestAnimationFrame(function poll() {
         if (chart.w && chart.w.globals && chart.w.globals.series) {
-          updateStats()
+          updateStats(chart)
         } else {
           requestAnimationFrame(poll)
         }
@@ -233,7 +238,7 @@
         chart = new ApexCharts(document.querySelector('#chart'), options)
         chart.render().then(function () {
           lastRenderMs = Math.round(performance.now() - t2)
-          updateStats()
+          updateStats(chart)
         })
       }
 

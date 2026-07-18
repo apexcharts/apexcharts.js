@@ -112,8 +112,3 @@ yaxis: {
 ]
 </series>
 </chart>
-
-<vanilla-js-script>
-// The registered "lollipop" type is already used by the chart above; this block
-// keeps sample generation scoped to vanilla-js.
-</vanilla-js-script>

@@ -90,9 +90,11 @@
     return el ? el.getElementsByTagName('*').length : 0
   }
 
-  function updateStats() {
+  // Accepts the live chart instance as an argument so the React and Vue builds
+  // (which have no global `chart` var) can share this stateless helper.
+  function updateStats(chart) {
     var el = document.getElementById('stats')
-    if (!el || typeof chart === 'undefined') return
+    if (!el || !chart) return
     var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
     el.innerHTML =
       'Points: <b>' +
@@ -113,18 +115,18 @@
   <div class="controls">
     <label>
       Renderer:
-      <select id="rendererMode">
-        <option value="auto" selected>auto</option>
+      <select id="rendererMode"{% if format == 'react' %} defaultValue="auto"{% endif %}>
+        <option value="auto"{% if format == 'vanilla-js' or format == 'vue' %} selected{% endif %}>auto</option>
         <option value="svg">svg</option>
         <option value="canvas">canvas</option>
       </select>
     </label>
     <label>
       Points:
-      <select id="pointCount">
+      <select id="pointCount"{% if format == 'react' %} defaultValue="50000"{% endif %}>
         <option value="2000">2,000</option>
         <option value="10000">10,000</option>
-        <option value="50000" selected>50,000</option>
+        <option value="50000"{% if format == 'vanilla-js' or format == 'vue' %} selected{% endif %}>50,000</option>
         <option value="100000">100,000</option>
       </select>
     </label>
@@ -145,7 +147,7 @@
   </div>
 </div>
 
-{{ charts[0] }}
+<div id="chart"></div>
 </html>
 
 <chart>
@@ -203,7 +205,7 @@ tooltip: { shared: true, intersect: false },
 // fill in the live metrics.
 requestAnimationFrame(function poll() {
   if (chart && chart.w && chart.w.globals && chart.w.globals.series) {
-    updateStats()
+    updateStats(chart)
   } else {
     requestAnimationFrame(poll)
   }
@@ -231,7 +233,7 @@ function rebuild() {
   chart = new ApexCharts(document.querySelector('#chart'), options)
   chart.render().then(function () {
     lastRenderMs = Math.round(performance.now() - t)
-    updateStats()
+    updateStats(chart)
   })
 }
 
@@ -242,3 +244,137 @@ document.getElementById('resetZoom').addEventListener('click', function () {
   if (chart) chart.resetSeries(true, true)
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // This demo destroys and recreates the chart imperatively on every re-render,
+  // so it skips the react-apexcharts wrapper and creates the instance in #chart
+  // directly, exactly like the vanilla build. pointCount, clusters,
+  // generateClusters, domNodeCount and updateStats live in the shared head
+  // script.
+  let chart = null
+  let disposed = false
+
+  // The vanilla build gets a mutable `options` global from the template; rebuild
+  // it here from the parsed chart state.
+  const options = Object.assign({ series: state.series }, state.options)
+  options.chart = Object.assign({}, state.options.chart)
+  options.title = Object.assign({}, state.options.title)
+
+  function rebuild() {
+    pointCount = parseInt(document.getElementById('pointCount').value, 10)
+    const mode = document.getElementById('rendererMode').value
+
+    clusters = generateClusters(pointCount)
+    options.chart.renderer = mode
+    options.series = [
+      { name: 'Cluster A', data: clusters[0] },
+      { name: 'Cluster B', data: clusters[1] },
+    ]
+    options.title.text =
+      'Scatter: ' +
+      pointCount.toLocaleString() +
+      ' points on the ' +
+      (mode === 'auto' ? 'auto-selected' : mode) +
+      ' renderer'
+
+    const t = performance.now()
+    if (chart) chart.destroy()
+    chart = new ApexCharts(document.querySelector('#chart'), options)
+    chart.render().then(function () {
+      if (disposed) return
+      lastRenderMs = Math.round(performance.now() - t)
+      updateStats(chart)
+    })
+  }
+
+  document.getElementById('rerender').addEventListener('click', rebuild)
+  document.getElementById('rendererMode').addEventListener('change', rebuild)
+  document.getElementById('pointCount').addEventListener('change', rebuild)
+  document.getElementById('resetZoom').addEventListener('click', function () {
+    if (chart) chart.resetSeries(true, true)
+  })
+
+  // Initial render into #chart, then fill in the live metrics.
+  chart = new ApexCharts(document.querySelector('#chart'), options)
+  chart.render().then(function () {
+    if (disposed) return
+    updateStats(chart)
+  })
+
+  return () => {
+    disposed = true
+    if (chart) chart.destroy()
+  }
+}, [])
+</react-script>
+
+<vue-data>
+scatterChart: null,
+scatterDisposed: false,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // This demo destroys and recreates the chart imperatively on every re-render,
+  // so it skips the vue-apexcharts wrapper and creates the instance in #chart
+  // directly, exactly like the vanilla build. pointCount, clusters,
+  // generateClusters, domNodeCount and updateStats live in the shared head
+  // script.
+  var me = this
+  var chart = null
+
+  // The vanilla build gets a mutable `options` global from the template; rebuild
+  // it here from the parsed chart state.
+  var options = Object.assign({ series: me.series }, me.chartOptions)
+  options.chart = Object.assign({}, me.chartOptions.chart)
+  options.title = Object.assign({}, me.chartOptions.title)
+
+  function rebuild() {
+    pointCount = parseInt(document.getElementById('pointCount').value, 10)
+    var mode = document.getElementById('rendererMode').value
+
+    clusters = generateClusters(pointCount)
+    options.chart.renderer = mode
+    options.series = [
+      { name: 'Cluster A', data: clusters[0] },
+      { name: 'Cluster B', data: clusters[1] },
+    ]
+    options.title.text =
+      'Scatter: ' +
+      pointCount.toLocaleString() +
+      ' points on the ' +
+      (mode === 'auto' ? 'auto-selected' : mode) +
+      ' renderer'
+
+    var t = performance.now()
+    if (chart) chart.destroy()
+    chart = new ApexCharts(document.querySelector('#chart'), options)
+    me.scatterChart = chart
+    chart.render().then(function () {
+      if (me.scatterDisposed) return
+      lastRenderMs = Math.round(performance.now() - t)
+      updateStats(chart)
+    })
+  }
+
+  document.getElementById('rerender').addEventListener('click', rebuild)
+  document.getElementById('rendererMode').addEventListener('change', rebuild)
+  document.getElementById('pointCount').addEventListener('change', rebuild)
+  document.getElementById('resetZoom').addEventListener('click', function () {
+    if (chart) chart.resetSeries(true, true)
+  })
+
+  // Initial render into #chart, then fill in the live metrics.
+  chart = new ApexCharts(document.querySelector('#chart'), options)
+  me.scatterChart = chart
+  chart.render().then(function () {
+    if (me.scatterDisposed) return
+    updateStats(chart)
+  })
+},
+beforeDestroy: function () {
+  this.scatterDisposed = true
+  if (this.scatterChart) this.scatterChart.destroy()
+},
+</vue-script>

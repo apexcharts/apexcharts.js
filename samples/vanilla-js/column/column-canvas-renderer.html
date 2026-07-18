@@ -92,27 +92,13 @@
       }
 
       var barData = generateBars(barCount)
-      var lastRenderMs = 0
 
+      // Stateless helper shared by the vanilla, React and Vue builds. The chart-bound
+      // updateStats (and its lastRenderMs) live in each per-format script instead,
+      // since they read the live instance and per-render timing.
       function domNodeCount() {
         var el = document.querySelector('#chart')
         return el ? el.getElementsByTagName('*').length : 0
-      }
-
-      function updateStats() {
-        var el = document.getElementById('stats')
-        if (!el || typeof chart === 'undefined') return
-        var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
-        el.innerHTML =
-          'Bars: <b>' +
-          barCount.toLocaleString() +
-          '</b> &nbsp;·&nbsp; Active renderer: <b>' +
-          active.toUpperCase() +
-          '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
-          domNodeCount().toLocaleString() +
-          '</b> &nbsp;·&nbsp; Render: <b>' +
-          (lastRenderMs > 0 ? lastRenderMs + ' ms' : 'change a control to time it') +
-          '</b>'
       }
     </script>
   </head>
@@ -198,6 +184,27 @@
 
       var chart = new ApexCharts(document.querySelector('#chart'), options)
       chart.render()
+
+      // updateStats and lastRenderMs are chart-bound, so they live here (per format)
+      // rather than the shared head script. barCount, barData, generateBars and
+      // domNodeCount come from the shared head script.
+      var lastRenderMs = 0
+
+      function updateStats() {
+        var el = document.getElementById('stats')
+        if (!el || typeof chart === 'undefined') return
+        var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
+        el.innerHTML =
+          'Bars: <b>' +
+          barCount.toLocaleString() +
+          '</b> &nbsp;·&nbsp; Active renderer: <b>' +
+          active.toUpperCase() +
+          '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
+          domNodeCount().toLocaleString() +
+          '</b> &nbsp;·&nbsp; Render: <b>' +
+          (lastRenderMs > 0 ? lastRenderMs + ' ms' : 'change a control to time it') +
+          '</b>'
+      }
 
       // The template starts the first render; poll one frame for the instance, then
       // fill in the live metrics.

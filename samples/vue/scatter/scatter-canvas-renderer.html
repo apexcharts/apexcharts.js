@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>High-Density Scatter with the Canvas Renderer</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 1000px;
+        margin: 20px auto;
+      }
+      .panel {
+        max-width: 1000px;
+        margin: 16px auto;
+        font-family: sans-serif;
+      }
+      .controls {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .controls label {
+        font-size: 14px;
+      }
+      .controls select {
+        padding: 4px 6px;
+        font-size: 14px;
+      }
+      .controls button {
+        padding: 6px 14px;
+        cursor: pointer;
+      }
+      .stats {
+        font-family: monospace;
+        font-size: 13px;
+        color: #555;
+        line-height: 1.6;
+      }
+      .stats b {
+        color: #111;
+      }
+      .note {
+        background: #f4f8ff;
+        border-left: 3px solid #5b8cff;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: #234;
+        margin-top: 10px;
+        border-radius: 2px;
+      }
+      .note code {
+        background: #e6eeff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      var pointCount = 50000
+
+      // Box-Muller gaussian: gives two legible clusters at any density instead of
+      // uniform noise, so the plotted shape stays readable whether it is 2,000 or
+      // 100,000 points.
+      function gauss(mean, sd) {
+        var u = 1 - Math.random()
+        var v = Math.random()
+        return mean + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
+      }
+
+      function generateClusters(count) {
+        var half = Math.floor(count / 2)
+        var a = new Array(half)
+        var b = new Array(count - half)
+        for (var i = 0; i < a.length; i++) {
+          a[i] = [+gauss(32, 9).toFixed(2), +gauss(62, 15).toFixed(2)]
+        }
+        for (var j = 0; j < b.length; j++) {
+          b[j] = [+gauss(70, 10).toFixed(2), +gauss(34, 13).toFixed(2)]
+        }
+        return [a, b]
+      }
+
+      var clusters = generateClusters(pointCount)
+      var lastRenderMs = 0
+
+      // Every SVG mark is a live DOM node, so counting nodes inside the chart makes
+      // the hybrid renderer visible: canvas keeps this in the dozens no matter how
+      // many points are plotted.
+      function domNodeCount() {
+        var el = document.querySelector('#chart')
+        return el ? el.getElementsByTagName('*').length : 0
+      }
+
+      // Accepts the live chart instance as an argument so the React and Vue builds
+      // (which have no global `chart` var) can share this stateless helper.
+      function updateStats(chart) {
+        var el = document.getElementById('stats')
+        if (!el || !chart) return
+        var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
+        el.innerHTML =
+          'Points: <b>' +
+          pointCount.toLocaleString() +
+          '</b> &nbsp;·&nbsp; Active renderer: <b>' +
+          active.toUpperCase() +
+          '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
+          domNodeCount().toLocaleString() +
+          '</b> &nbsp;·&nbsp; Render: <b>' +
+          (lastRenderMs > 0 ? lastRenderMs + ' ms' : 'change a control to time it') +
+          '</b>'
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="panel">
+      <div class="controls">
+        <label>
+          Renderer:
+          <select id="rendererMode">
+            <option value="auto" selected>auto</option>
+            <option value="svg">svg</option>
+            <option value="canvas">canvas</option>
+          </select>
+        </label>
+        <label>
+          Points:
+          <select id="pointCount">
+            <option value="2000">2,000</option>
+            <option value="10000">10,000</option>
+            <option value="50000" selected>50,000</option>
+            <option value="100000">100,000</option>
+          </select>
+        </label>
+        <button id="rerender">Re-render</button>
+        <button id="resetZoom">Reset zoom</button>
+      </div>
+    
+      <div class="stats" id="stats"></div>
+    
+      <div class="note">
+        The series markers are painted into a single <code>&lt;canvas&gt;</code> while
+        the axes, grid, zoom selection, legend, and shared tooltip stay as SVG. With
+        <b>renderer: 'auto'</b> the canvas layer switches on once the rendered-mark
+        count crosses <code>rendererThreshold</code> (8,000), so 2,000 points draw as
+        SVG and 10,000+ promote to canvas. Switch the Renderer control to <b>svg</b> at
+        50,000+ points to feel the difference: the DOM-node count jumps from a few
+        dozen to one node per marker.
+      </div>
+    </div>
+    
+    <div id="chart"></div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;panel&quot;&gt;
+        &lt;div class=&quot;controls&quot;&gt;
+          &lt;label&gt;
+            Renderer:
+            &lt;select id=&quot;rendererMode&quot;&gt;
+              &lt;option value=&quot;auto&quot; selected&gt;auto&lt;/option&gt;
+              &lt;option value=&quot;svg&quot;&gt;svg&lt;/option&gt;
+              &lt;option value=&quot;canvas&quot;&gt;canvas&lt;/option&gt;
+            &lt;/select&gt;
+          &lt;/label&gt;
+          &lt;label&gt;
+            Points:
+            &lt;select id=&quot;pointCount&quot;&gt;
+              &lt;option value=&quot;2000&quot;&gt;2,000&lt;/option&gt;
+              &lt;option value=&quot;10000&quot;&gt;10,000&lt;/option&gt;
+              &lt;option value=&quot;50000&quot; selected&gt;50,000&lt;/option&gt;
+              &lt;option value=&quot;100000&quot;&gt;100,000&lt;/option&gt;
+            &lt;/select&gt;
+          &lt;/label&gt;
+          &lt;button id=&quot;rerender&quot;&gt;Re-render&lt;/button&gt;
+          &lt;button id=&quot;resetZoom&quot;&gt;Reset zoom&lt;/button&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;stats&quot; id=&quot;stats&quot;&gt;&lt;/div&gt;
+      
+        &lt;div class=&quot;note&quot;&gt;
+          The series markers are painted into a single &lt;code&gt;&amp;lt;canvas&amp;gt;&lt;/code&gt; while
+          the axes, grid, zoom selection, legend, and shared tooltip stay as SVG. With
+          &lt;b&gt;renderer: &#39;auto&#39;&lt;/b&gt; the canvas layer switches on once the rendered-mark
+          count crosses &lt;code&gt;rendererThreshold&lt;/code&gt; (8,000), so 2,000 points draw as
+          SVG and 10,000+ promote to canvas. Switch the Renderer control to &lt;b&gt;svg&lt;/b&gt; at
+          50,000+ points to feel the difference: the DOM-node count jumps from a few
+          dozen to one node per marker.
+        &lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;div id=&quot;chart&quot;&gt;&lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [
+            { name: 'Cluster A', data: clusters[0] },
+            { name: 'Cluster B', data: clusters[1] },
+          ],
+          chartOptions: {
+            chart: {
+              height: 480,
+              type: 'scatter',
+              renderer: 'auto',
+              rendererThreshold: 8000,
+              animations: { enabled: false },
+              zoom: { enabled: true, type: 'xy' },
+              toolbar: { autoSelected: 'zoom' },
+            },
+            markers: { size: 3, strokeWidth: 0 },
+            colors: ['#008FFB', '#FF4560'],
+            title: {
+              text: 'Scatter: 50,000 points on the auto-selected renderer',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'Dense series marks paint to a canvas layer; axes, grid, zoom and tooltip stay SVG',
+              align: 'left',
+            },
+            xaxis: {
+              type: 'numeric',
+              tickAmount: 10,
+              labels: {
+                formatter: function (val) {
+                  return parseFloat(val).toFixed(0)
+                },
+              },
+            },
+            yaxis: {
+              tickAmount: 8,
+              labels: {
+                formatter: function (val) {
+                  return val.toFixed(0)
+                },
+              },
+            },
+            legend: { position: 'top' },
+            tooltip: { shared: true, intersect: false },
+          },
+
+          scatterChart: null,
+          scatterDisposed: false,
+        },
+        mounted: function () {
+          // This demo destroys and recreates the chart imperatively on every re-render,
+          // so it skips the vue-apexcharts wrapper and creates the instance in #chart
+          // directly, exactly like the vanilla build. pointCount, clusters,
+          // generateClusters, domNodeCount and updateStats live in the shared head
+          // script.
+          var me = this
+          var chart = null
+
+          // The vanilla build gets a mutable `options` global from the template; rebuild
+          // it here from the parsed chart state.
+          var options = Object.assign({ series: me.series }, me.chartOptions)
+          options.chart = Object.assign({}, me.chartOptions.chart)
+          options.title = Object.assign({}, me.chartOptions.title)
+
+          function rebuild() {
+            pointCount = parseInt(document.getElementById('pointCount').value, 10)
+            var mode = document.getElementById('rendererMode').value
+
+            clusters = generateClusters(pointCount)
+            options.chart.renderer = mode
+            options.series = [
+              { name: 'Cluster A', data: clusters[0] },
+              { name: 'Cluster B', data: clusters[1] },
+            ]
+            options.title.text =
+              'Scatter: ' +
+              pointCount.toLocaleString() +
+              ' points on the ' +
+              (mode === 'auto' ? 'auto-selected' : mode) +
+              ' renderer'
+
+            var t = performance.now()
+            if (chart) chart.destroy()
+            chart = new ApexCharts(document.querySelector('#chart'), options)
+            me.scatterChart = chart
+            chart.render().then(function () {
+              if (me.scatterDisposed) return
+              lastRenderMs = Math.round(performance.now() - t)
+              updateStats(chart)
+            })
+          }
+
+          document.getElementById('rerender').addEventListener('click', rebuild)
+          document.getElementById('rendererMode').addEventListener('change', rebuild)
+          document.getElementById('pointCount').addEventListener('change', rebuild)
+          document.getElementById('resetZoom').addEventListener('click', function () {
+            if (chart) chart.resetSeries(true, true)
+          })
+
+          // Initial render into #chart, then fill in the live metrics.
+          chart = new ApexCharts(document.querySelector('#chart'), options)
+          me.scatterChart = chart
+          chart.render().then(function () {
+            if (me.scatterDisposed) return
+            updateStats(chart)
+          })
+        },
+        beforeDestroy: function () {
+          this.scatterDisposed = true
+          if (this.scatterChart) this.scatterChart.destroy()
+        },
+      })
+    </script>
+    
+  </body>
+</html>

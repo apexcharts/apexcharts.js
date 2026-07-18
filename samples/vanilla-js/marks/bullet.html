@@ -37,6 +37,15 @@
         height: 12px;
         border-radius: 2px;
       }
+      .legend .swatch.poor {
+        background: #e8eef5;
+      }
+      .legend .swatch.ok {
+        background: #cdd8e6;
+      }
+      .legend .swatch.good {
+        background: #aebfd4;
+      }
       .legend .measure {
         width: 8px;
         height: 16px;
@@ -156,9 +165,9 @@
         <div class="legend">
           <span class="item"><span class="measure"></span> Actual</span>
           <span class="item"><span class="target"></span> Target</span>
-          <span class="item"><span class="swatch" style="background:#e8eef5"></span> Poor</span>
-          <span class="item"><span class="swatch" style="background:#cdd8e6"></span> OK</span>
-          <span class="item"><span class="swatch" style="background:#aebfd4"></span> Good</span>
+          <span class="item"><span class="swatch poor"></span> Poor</span>
+          <span class="item"><span class="swatch ok"></span> OK</span>
+          <span class="item"><span class="swatch good"></span> Good</span>
         </div>
       </div>
       
@@ -167,7 +176,7 @@
       <div class="panel">
         <div class="note">
           Each bullet is drawn by <code>renderItem</code> from a rich datum
-          (<code>{ y, target, ranges }</code>). Because the target and top band sit
+          (<code>&#123; y, target, ranges &#125;</code>). Because the target and top band sit
           above the measured value, the type declares <code>yExtent</code> so the
           y-axis fits the full mark, not just <code>y</code>. Without it the 100 band
           and the higher targets would render above the plot.
@@ -239,9 +248,6 @@
 
       var chart = new ApexCharts(document.querySelector('#chart'), options)
       chart.render()
-
-      // The registered "bullet" type is already used by the chart above; this block
-      // keeps sample generation scoped to vanilla-js.
     </script>
 
     

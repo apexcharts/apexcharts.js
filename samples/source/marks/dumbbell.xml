@@ -109,7 +109,7 @@
 <div class="panel">
   <div class="note">
     There is no built-in dumbbell type here. It is a custom series registered with
-    <code>ApexCharts.registerSeriesType('dumbbell', { dataType: 'rangeXY', renderItem })</code>.
+    <code>ApexCharts.registerSeriesType('dumbbell', &#123; dataType: 'rangeXY', renderItem &#125;)</code>.
     <code>renderItem</code> draws one stem and two circles per datum through the
     primitive <code>api</code>, and <code>dataType: 'rangeXY'</code> routes the
     <code>y: [start, end]</code> pair through the range path so the y-axis fits
@@ -166,9 +166,3 @@ tooltip: {
 ]
 </series>
 </chart>
-
-<vanilla-js-script>
-// Registered types live on the ApexCharts global, so the chart the template
-// creates above already renders as a dumbbell. Nothing more is required here;
-// this block keeps generation scoped to the vanilla-js sample.
-</vanilla-js-script>

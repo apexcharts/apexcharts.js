@@ -71,27 +71,13 @@
   }
 
   var barData = generateBars(barCount)
-  var lastRenderMs = 0
 
+  // Stateless helper shared by the vanilla, React and Vue builds. The chart-bound
+  // updateStats (and its lastRenderMs) live in each per-format script instead,
+  // since they read the live instance and per-render timing.
   function domNodeCount() {
     var el = document.querySelector('#chart')
     return el ? el.getElementsByTagName('*').length : 0
-  }
-
-  function updateStats() {
-    var el = document.getElementById('stats')
-    if (!el || typeof chart === 'undefined') return
-    var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
-    el.innerHTML =
-      'Bars: <b>' +
-      barCount.toLocaleString() +
-      '</b> &nbsp;·&nbsp; Active renderer: <b>' +
-      active.toUpperCase() +
-      '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
-      domNodeCount().toLocaleString() +
-      '</b> &nbsp;·&nbsp; Render: <b>' +
-      (lastRenderMs > 0 ? lastRenderMs + ' ms' : 'change a control to time it') +
-      '</b>'
   }
 </script>
 </scripts>
@@ -136,7 +122,7 @@
   </div>
 </div>
 
-{{ charts[0] }}
+<div id="chart"></div>
 </html>
 
 <chart>
@@ -181,6 +167,27 @@ tooltip: { shared: true, intersect: false },
 </chart>
 
 <vanilla-js-script>
+// updateStats and lastRenderMs are chart-bound, so they live here (per format)
+// rather than the shared head script. barCount, barData, generateBars and
+// domNodeCount come from the shared head script.
+var lastRenderMs = 0
+
+function updateStats() {
+  var el = document.getElementById('stats')
+  if (!el || typeof chart === 'undefined') return
+  var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
+  el.innerHTML =
+    'Bars: <b>' +
+    barCount.toLocaleString() +
+    '</b> &nbsp;·&nbsp; Active renderer: <b>' +
+    active.toUpperCase() +
+    '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
+    domNodeCount().toLocaleString() +
+    '</b> &nbsp;·&nbsp; Render: <b>' +
+    (lastRenderMs > 0 ? lastRenderMs + ' ms' : 'change a control to time it') +
+    '</b>'
+}
+
 // The template starts the first render; poll one frame for the instance, then
 // fill in the live metrics.
 requestAnimationFrame(function poll() {
@@ -221,3 +228,165 @@ document.getElementById('resetZoom').addEventListener('click', function () {
   if (chart) chart.resetSeries(true, true)
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // This demo destroys and recreates the chart instance on every control change,
+  // so it skips the react-apexcharts wrapper and creates the instance in #chart
+  // directly, exactly like the vanilla build. barCount, barData, generateBars
+  // and domNodeCount live in the shared head script.
+  let lastRenderMs = 0
+  let chart = null
+  let disposed = false
+
+  // The vanilla build gets a mutable `options` global from the template; rebuild
+  // it here from the parsed chart state (copy the sub-objects we mutate so the
+  // component state is left untouched).
+  const options = Object.assign({ series: state.series }, state.options)
+  options.chart = Object.assign({}, state.options.chart)
+  options.title = Object.assign({}, state.options.title)
+
+  function updateStats() {
+    const el = document.getElementById('stats')
+    if (!el || !chart) return
+    const active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
+    el.innerHTML =
+      'Bars: <b>' +
+      barCount.toLocaleString() +
+      '</b> &nbsp;·&nbsp; Active renderer: <b>' +
+      active.toUpperCase() +
+      '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
+      domNodeCount().toLocaleString() +
+      '</b> &nbsp;·&nbsp; Render: <b>' +
+      (lastRenderMs > 0 ? lastRenderMs + ' ms' : 'change a control to time it') +
+      '</b>'
+  }
+
+  function rebuild() {
+    barCount = parseInt(document.getElementById('barCount').value, 10)
+    const mode = document.getElementById('rendererMode').value
+
+    barData = generateBars(barCount)
+    options.chart.renderer = mode
+    options.series = [{ name: 'Value', data: barData }]
+    options.title.text =
+      'Column chart: ' +
+      barCount.toLocaleString() +
+      ' bars on the ' +
+      (mode === 'auto' ? 'auto-selected' : mode) +
+      ' renderer'
+
+    const t = performance.now()
+    if (chart) chart.destroy()
+    chart = new ApexCharts(document.querySelector('#chart'), options)
+    chart.render().then(function () {
+      if (disposed) return
+      lastRenderMs = Math.round(performance.now() - t)
+      updateStats()
+    })
+  }
+
+  document.getElementById('rerender').addEventListener('click', rebuild)
+  document.getElementById('rendererMode').addEventListener('change', rebuild)
+  document.getElementById('barCount').addEventListener('change', rebuild)
+  document.getElementById('resetZoom').addEventListener('click', function () {
+    if (chart) chart.resetSeries(true, true)
+  })
+
+  // Initial render into #chart, then fill in the live metrics.
+  chart = new ApexCharts(document.querySelector('#chart'), options)
+  chart.render().then(function () {
+    if (disposed) return
+    updateStats()
+  })
+
+  return () => {
+    disposed = true
+    if (chart) chart.destroy()
+  }
+}, [])
+</react-script>
+
+<vue-data>
+barChart: null,
+barDisposed: false,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // This demo destroys and recreates the chart instance on every control change,
+  // so it skips the vue-apexcharts wrapper and creates the instance in #chart
+  // directly, exactly like the vanilla build. barCount, barData, generateBars
+  // and domNodeCount live in the shared head script.
+  var me = this
+  var lastRenderMs = 0
+  var chart = null
+
+  // The vanilla build gets a mutable `options` global from the template; rebuild
+  // it here from the parsed chart state (copy the sub-objects we mutate so the
+  // component data is left untouched).
+  var options = Object.assign({ series: me.series }, me.chartOptions)
+  options.chart = Object.assign({}, me.chartOptions.chart)
+  options.title = Object.assign({}, me.chartOptions.title)
+
+  function updateStats() {
+    var el = document.getElementById('stats')
+    if (!el || !chart) return
+    var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
+    el.innerHTML =
+      'Bars: <b>' +
+      barCount.toLocaleString() +
+      '</b> &nbsp;·&nbsp; Active renderer: <b>' +
+      active.toUpperCase() +
+      '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
+      domNodeCount().toLocaleString() +
+      '</b> &nbsp;·&nbsp; Render: <b>' +
+      (lastRenderMs > 0 ? lastRenderMs + ' ms' : 'change a control to time it') +
+      '</b>'
+  }
+
+  function rebuild() {
+    barCount = parseInt(document.getElementById('barCount').value, 10)
+    var mode = document.getElementById('rendererMode').value
+
+    barData = generateBars(barCount)
+    options.chart.renderer = mode
+    options.series = [{ name: 'Value', data: barData }]
+    options.title.text =
+      'Column chart: ' +
+      barCount.toLocaleString() +
+      ' bars on the ' +
+      (mode === 'auto' ? 'auto-selected' : mode) +
+      ' renderer'
+
+    var t = performance.now()
+    if (chart) chart.destroy()
+    chart = new ApexCharts(document.querySelector('#chart'), options)
+    me.barChart = chart
+    chart.render().then(function () {
+      if (me.barDisposed) return
+      lastRenderMs = Math.round(performance.now() - t)
+      updateStats()
+    })
+  }
+
+  document.getElementById('rerender').addEventListener('click', rebuild)
+  document.getElementById('rendererMode').addEventListener('change', rebuild)
+  document.getElementById('barCount').addEventListener('change', rebuild)
+  document.getElementById('resetZoom').addEventListener('click', function () {
+    if (chart) chart.resetSeries(true, true)
+  })
+
+  // Initial render into #chart, then fill in the live metrics.
+  chart = new ApexCharts(document.querySelector('#chart'), options)
+  me.barChart = chart
+  chart.render().then(function () {
+    if (me.barDisposed) return
+    updateStats()
+  })
+},
+beforeDestroy: function () {
+  this.barDisposed = true
+  if (this.barChart) this.barChart.destroy()
+},
+</vue-script>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>High-Density Candlestick with the Canvas Renderer</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 1000px;
+        margin: 20px auto;
+      }
+      .panel {
+        max-width: 1000px;
+        margin: 16px auto;
+        font-family: sans-serif;
+      }
+      .controls {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .controls label {
+        font-size: 14px;
+      }
+      .controls select {
+        padding: 4px 6px;
+        font-size: 14px;
+      }
+      .controls button {
+        padding: 6px 14px;
+        cursor: pointer;
+      }
+      .stats {
+        font-family: monospace;
+        font-size: 13px;
+        color: #555;
+        line-height: 1.6;
+      }
+      .stats b {
+        color: #111;
+      }
+      .note {
+        background: #f4f8ff;
+        border-left: 3px solid #5b8cff;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: #234;
+        margin-top: 10px;
+        border-radius: 2px;
+      }
+      .note code {
+        background: #e6eeff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      var candleCount = 10000
+
+      // OHLC random walk: each candle opens at the previous close so the series
+      // reads as a continuous price, dense enough that individual candles blur into
+      // a band (which is exactly where the canvas renderer earns its keep).
+      function generateCandles(count) {
+        var data = new Array(count)
+        var t = new Date('2015-01-01T00:00:00Z').getTime()
+        var step = 60 * 60 * 1000 // 1 hour
+        var o = 100
+        for (var i = 0; i < count; i++) {
+          var h = o + Math.random() * 6
+          var l = o - Math.random() * 6
+          var c = l + Math.random() * (h - l)
+          data[i] = {
+            x: t + i * step,
+            y: [+o.toFixed(2), +h.toFixed(2), +l.toFixed(2), +c.toFixed(2)],
+          }
+          o = c
+        }
+        return data
+      }
+
+      var candleData = generateCandles(candleCount)
+
+      // Stateless helper shared by the vanilla, React and Vue builds. The chart-bound
+      // updateStats (and its lastRenderMs) live in each per-format script instead,
+      // since they read the live instance and per-render timing.
+      function domNodeCount() {
+        var el = document.querySelector('#chart')
+        return el ? el.getElementsByTagName('*').length : 0
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="panel">
+      <div class="controls">
+        <label>
+          Renderer:
+          <select id="rendererMode">
+            <option value="canvas" selected>canvas</option>
+            <option value="svg">svg</option>
+            <option value="auto">auto</option>
+          </select>
+        </label>
+        <label>
+          Candles:
+          <select id="candleCount">
+            <option value="2000">2,000</option>
+            <option value="10000" selected>10,000</option>
+            <option value="50000">50,000</option>
+            <option value="100000">100,000</option>
+          </select>
+        </label>
+        <button id="rerender">Re-render</button>
+        <button id="resetZoom">Reset zoom</button>
+      </div>
+    
+      <div class="stats" id="stats"></div>
+    
+      <div class="note">
+        The candle bodies and wicks are painted into a single <code>&lt;canvas&gt;</code>
+        while the axes, grid, crosshair, zoom selection, and the OHLC tooltip stay as
+        SVG. Hover to read Open/High/Low/Close, and drag to zoom, exactly as in SVG
+        mode: the y-axis auto-scales to the visible price range on every zoom (via
+        <code>zoom.autoScaleYaxis: true</code>). Note that with <b>renderer: 'auto'</b> candlesticks only promote to
+        canvas at 50,000 candles (they have no per-point markers or data labels for
+        the threshold to count), so this demo selects <b>canvas</b> explicitly. Switch
+        to <b>svg</b> at 50,000+ candles to feel the difference.
+      </div>
+    </div>
+    
+    <div id="chart"></div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;panel&quot;&gt;
+        &lt;div class=&quot;controls&quot;&gt;
+          &lt;label&gt;
+            Renderer:
+            &lt;select id=&quot;rendererMode&quot;&gt;
+              &lt;option value=&quot;canvas&quot; selected&gt;canvas&lt;/option&gt;
+              &lt;option value=&quot;svg&quot;&gt;svg&lt;/option&gt;
+              &lt;option value=&quot;auto&quot;&gt;auto&lt;/option&gt;
+            &lt;/select&gt;
+          &lt;/label&gt;
+          &lt;label&gt;
+            Candles:
+            &lt;select id=&quot;candleCount&quot;&gt;
+              &lt;option value=&quot;2000&quot;&gt;2,000&lt;/option&gt;
+              &lt;option value=&quot;10000&quot; selected&gt;10,000&lt;/option&gt;
+              &lt;option value=&quot;50000&quot;&gt;50,000&lt;/option&gt;
+              &lt;option value=&quot;100000&quot;&gt;100,000&lt;/option&gt;
+            &lt;/select&gt;
+          &lt;/label&gt;
+          &lt;button id=&quot;rerender&quot;&gt;Re-render&lt;/button&gt;
+          &lt;button id=&quot;resetZoom&quot;&gt;Reset zoom&lt;/button&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;stats&quot; id=&quot;stats&quot;&gt;&lt;/div&gt;
+      
+        &lt;div class=&quot;note&quot;&gt;
+          The candle bodies and wicks are painted into a single &lt;code&gt;&amp;lt;canvas&amp;gt;&lt;/code&gt;
+          while the axes, grid, crosshair, zoom selection, and the OHLC tooltip stay as
+          SVG. Hover to read Open/High/Low/Close, and drag to zoom, exactly as in SVG
+          mode: the y-axis auto-scales to the visible price range on every zoom (via
+          &lt;code&gt;zoom.autoScaleYaxis: true&lt;/code&gt;). Note that with &lt;b&gt;renderer: &#39;auto&#39;&lt;/b&gt; candlesticks only promote to
+          canvas at 50,000 candles (they have no per-point markers or data labels for
+          the threshold to count), so this demo selects &lt;b&gt;canvas&lt;/b&gt; explicitly. Switch
+          to &lt;b&gt;svg&lt;/b&gt; at 50,000+ candles to feel the difference.
+        &lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;div id=&quot;chart&quot;&gt;&lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [{ name: 'Price', data: candleData }],
+          chartOptions: {
+            chart: {
+              height: 480,
+              type: 'candlestick',
+              renderer: 'canvas',
+              rendererThreshold: 8000,
+              animations: { enabled: true },
+              zoom: { enabled: true, type: 'x', autoScaleYaxis: true },
+              toolbar: { autoSelected: 'zoom' },
+            },
+            title: {
+              text: 'Candlestick: 10,000 candles on the canvas renderer',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'Bodies and wicks paint to a canvas layer; axes, crosshair, zoom and the OHLC tooltip stay SVG',
+              align: 'left',
+            },
+            xaxis: {
+              type: 'datetime',
+              labels: { datetimeUTC: false },
+            },
+            yaxis: {
+              tooltip: { enabled: true },
+              labels: {
+                formatter: function (val) {
+                  return val.toFixed(0)
+                },
+              },
+            },
+          },
+
+          candleChart: null,
+          candleDisposed: false,
+        },
+        mounted: function () {
+          // This demo destroys and recreates the chart instance on every control change,
+          // so it skips the vue-apexcharts wrapper and creates the instance in #chart
+          // directly, exactly like the vanilla build. candleCount, candleData,
+          // generateCandles and domNodeCount live in the shared head script.
+          var me = this
+          var lastRenderMs = 0
+          var chart = null
+
+          // The vanilla build gets a mutable `options` global from the template; rebuild
+          // it here from the parsed chart state (copy the sub-objects we mutate so the
+          // component data is left untouched).
+          var options = Object.assign({ series: me.series }, me.chartOptions)
+          options.chart = Object.assign({}, me.chartOptions.chart)
+          options.title = Object.assign({}, me.chartOptions.title)
+
+          function updateStats() {
+            var el = document.getElementById('stats')
+            if (!el || !chart) return
+            var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
+            el.innerHTML =
+              'Candles: <b>' +
+              candleCount.toLocaleString() +
+              '</b> &nbsp;·&nbsp; Active renderer: <b>' +
+              active.toUpperCase() +
+              '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
+              domNodeCount().toLocaleString() +
+              '</b> &nbsp;·&nbsp; Render: <b>' +
+              (lastRenderMs > 0
+                ? lastRenderMs + ' ms'
+                : 'change a control to time it') +
+              '</b>'
+          }
+
+          function rebuild() {
+            candleCount = parseInt(document.getElementById('candleCount').value, 10)
+            var mode = document.getElementById('rendererMode').value
+
+            candleData = generateCandles(candleCount)
+            options.chart.renderer = mode
+            options.series = [{ name: 'Price', data: candleData }]
+            options.title.text =
+              'Candlestick: ' +
+              candleCount.toLocaleString() +
+              ' candles on the ' +
+              (mode === 'auto' ? 'auto-selected' : mode) +
+              ' renderer'
+
+            var t = performance.now()
+            if (chart) chart.destroy()
+            chart = new ApexCharts(document.querySelector('#chart'), options)
+            me.candleChart = chart
+            chart.render().then(function () {
+              if (me.candleDisposed) return
+              lastRenderMs = Math.round(performance.now() - t)
+              updateStats()
+            })
+          }
+
+          document.getElementById('rerender').addEventListener('click', rebuild)
+          document.getElementById('rendererMode').addEventListener('change', rebuild)
+          document.getElementById('candleCount').addEventListener('change', rebuild)
+          document.getElementById('resetZoom').addEventListener('click', function () {
+            if (chart) chart.resetSeries(true, true)
+          })
+
+          // Initial render into #chart, then fill in the live metrics.
+          chart = new ApexCharts(document.querySelector('#chart'), options)
+          me.candleChart = chart
+          chart.render().then(function () {
+            if (me.candleDisposed) return
+            updateStats()
+          })
+        },
+        beforeDestroy: function () {
+          this.candleDisposed = true
+          if (this.candleChart) this.candleChart.destroy()
+        },
+      })
+    </script>
+    
+  </body>
+</html>

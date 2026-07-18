@@ -24,6 +24,9 @@
     padding: 6px 14px;
     cursor: pointer;
   }
+  .target-input {
+    width: 80px;
+  }
   .stats {
     font-family: monospace;
     font-size: 13px;
@@ -80,9 +83,11 @@
     )
   }
 
-  function updateStats() {
+  // Accepts the live chart instance as an argument so the React and Vue builds
+  // (which have no global `chart` var) can share this stateless helper.
+  function updateStats(chart) {
     var statsEl = document.getElementById('stats')
-    if (!statsEl || typeof chart === 'undefined') return
+    if (!statsEl || !chart || !chart.w) return
     var drawn = (chart.w.globals.series[0] || []).length
     statsEl.innerHTML =
       'Raw points: <b>' +
@@ -110,11 +115,11 @@
       <input
         type="number"
         id="targetPoints"
+        class="target-input"
         value="500"
         min="50"
         max="5000"
         step="50"
-        style="width: 80px"
       />
     </label>
     <button id="rerender">Re-render</button>
@@ -122,11 +127,9 @@
   </div>
 
   <div class="stats" id="stats"></div>
-
- 
 </div>
 
-{{ charts[0] }}
+<div id="chart"></div>
 </html>
 
 <chart>
@@ -150,7 +153,9 @@ chart: {
         xaxis && xaxis.min && xaxis.max
           ? fmt(xaxis.min) + ' → ' + fmt(xaxis.max)
           : 'full range'
-      requestAnimationFrame(updateStats)
+      requestAnimationFrame(function () {
+        updateStats(chartCtx)
+      })
     },
     beforeResetZoom: function () {
       lastZoomLabel = 'full range'
@@ -192,7 +197,7 @@ tooltip: { x: { format: 'yyyy-MM-dd HH:mm' } },
 // stats once the chart instance has finished its first paint.
 requestAnimationFrame(function poll() {
   if (chart.w && chart.w.globals && chart.w.globals.series) {
-    updateStats()
+    updateStats(chart)
   } else {
     requestAnimationFrame(poll)
   }
@@ -218,7 +223,7 @@ function rebuild() {
   chart = new ApexCharts(document.querySelector('#chart'), options)
   chart.render().then(function () {
     lastRenderMs = Math.round(performance.now() - t2)
-    updateStats()
+    updateStats(chart)
   })
 }
 
@@ -228,3 +233,131 @@ document.getElementById('resetZoom').addEventListener('click', function () {
   if (chart) chart.resetSeries(true, true)
 })
 </vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // This demo destroys and recreates the chart imperatively on every re-render,
+  // so it skips the react-apexcharts wrapper and creates the instance in #chart
+  // directly, exactly like the vanilla build. TOTAL_POINTS, seriesData, fmt,
+  // updateStats and the lastRenderMs / lastZoomLabel state live in the shared
+  // head script.
+  let chart = null
+  let disposed = false
+
+  // The vanilla build gets a mutable `options` global from the template; rebuild
+  // it here from the parsed chart state.
+  const options = Object.assign({ series: state.series }, state.options)
+  options.chart = Object.assign({}, state.options.chart)
+  options.chart.dataReducer = Object.assign({}, state.options.chart.dataReducer)
+
+  function rebuild() {
+    const enabled = document.getElementById('toggleReducer').checked
+    const targetPoints = parseInt(
+      document.getElementById('targetPoints').value,
+      10,
+    )
+
+    options.chart.dataReducer.enabled = enabled
+    options.chart.dataReducer.targetPoints = targetPoints
+    options.subtitle.text = enabled
+      ? 'LTTB downsampling enabled — drawing ~' +
+        targetPoints.toLocaleString() +
+        ' points'
+      : 'Downsampling disabled — drawing every raw point'
+
+    const t2 = performance.now()
+    if (chart) chart.destroy()
+    chart = new ApexCharts(document.querySelector('#chart'), options)
+    chart.render().then(function () {
+      if (disposed) return
+      lastRenderMs = Math.round(performance.now() - t2)
+      updateStats(chart)
+    })
+  }
+
+  document.getElementById('rerender').addEventListener('click', rebuild)
+  document.getElementById('toggleReducer').addEventListener('change', rebuild)
+  document.getElementById('resetZoom').addEventListener('click', function () {
+    if (chart) chart.resetSeries(true, true)
+  })
+
+  // Initial render into #chart, then seed the stats once the first paint settles.
+  chart = new ApexCharts(document.querySelector('#chart'), options)
+  chart.render().then(function () {
+    if (disposed) return
+    updateStats(chart)
+  })
+
+  return () => {
+    disposed = true
+    if (chart) chart.destroy()
+  }
+}, [])
+</react-script>
+
+<vue-data>
+reducerChart: null,
+reducerDisposed: false,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // This demo destroys and recreates the chart imperatively on every re-render,
+  // so it skips the vue-apexcharts wrapper and creates the instance in #chart
+  // directly, exactly like the vanilla build. TOTAL_POINTS, seriesData, fmt,
+  // updateStats and the lastRenderMs / lastZoomLabel state live in the shared
+  // head script.
+  var me = this
+  var chart = null
+
+  // The vanilla build gets a mutable `options` global from the template; rebuild
+  // it here from the parsed chart state.
+  var options = Object.assign({ series: me.series }, me.chartOptions)
+  options.chart = Object.assign({}, me.chartOptions.chart)
+  options.chart.dataReducer = Object.assign({}, me.chartOptions.chart.dataReducer)
+
+  function rebuild() {
+    var enabled = document.getElementById('toggleReducer').checked
+    var targetPoints = parseInt(
+      document.getElementById('targetPoints').value,
+      10,
+    )
+
+    options.chart.dataReducer.enabled = enabled
+    options.chart.dataReducer.targetPoints = targetPoints
+    options.subtitle.text = enabled
+      ? 'LTTB downsampling enabled — drawing ~' +
+        targetPoints.toLocaleString() +
+        ' points'
+      : 'Downsampling disabled — drawing every raw point'
+
+    var t2 = performance.now()
+    if (chart) chart.destroy()
+    chart = new ApexCharts(document.querySelector('#chart'), options)
+    me.reducerChart = chart
+    chart.render().then(function () {
+      if (me.reducerDisposed) return
+      lastRenderMs = Math.round(performance.now() - t2)
+      updateStats(chart)
+    })
+  }
+
+  document.getElementById('rerender').addEventListener('click', rebuild)
+  document.getElementById('toggleReducer').addEventListener('change', rebuild)
+  document.getElementById('resetZoom').addEventListener('click', function () {
+    if (chart) chart.resetSeries(true, true)
+  })
+
+  // Initial render into #chart, then seed the stats once the first paint settles.
+  chart = new ApexCharts(document.querySelector('#chart'), options)
+  me.reducerChart = chart
+  chart.render().then(function () {
+    if (me.reducerDisposed) return
+    updateStats(chart)
+  })
+},
+beforeDestroy: function () {
+  this.reducerDisposed = true
+  if (this.reducerChart) this.reducerChart.destroy()
+},
+</vue-script>
