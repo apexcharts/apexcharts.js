@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.0.0
+ * ApexCharts v6.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -771,9 +771,14 @@ class Measure {
   }
   /** Re-project the measure pins after each render. */
   _afterRender() {
-    if (this._enabled()) {
-      if (this.pins.length) this._renderPins();
-      if (this.persistent && !this.pane) this._arm();
+    if (!this._enabled()) return;
+    if (this.w.interact.measureEnabled && !this.persistent) {
+      this.persistent = true;
+    }
+    if (this.pins.length) this._renderPins();
+    if (this.persistent && !this.drag) {
+      this._disarm();
+      this._arm();
     }
   }
   teardown() {

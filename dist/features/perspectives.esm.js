@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.0.0
+ * ApexCharts v6.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as ApexCharts from "apexcharts/core";

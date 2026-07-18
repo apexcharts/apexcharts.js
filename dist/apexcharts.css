@@ -838,6 +838,7 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-menu-icon,
+.apexcharts-measure-icon,
 .apexcharts-pan-icon,
 .apexcharts-reset-icon,
 .apexcharts-selection-icon,
@@ -865,6 +866,7 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-menu-icon svg,
+.apexcharts-measure-icon svg,
 .apexcharts-pan-icon svg,
 .apexcharts-reset-icon svg,
 .apexcharts-selection-icon svg,
@@ -881,6 +883,7 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-theme-dark .apexcharts-menu-icon,
+.apexcharts-theme-dark .apexcharts-measure-icon,
 .apexcharts-theme-dark .apexcharts-pan-icon,
 .apexcharts-theme-dark .apexcharts-reset-icon,
 .apexcharts-theme-dark .apexcharts-selection-icon,
@@ -891,6 +894,7 @@ rect.legend-mouseover-inactive,
   color: #d4d6dc
 }
 
+.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,
 .apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,
 .apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,
 .apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,
@@ -900,6 +904,7 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-theme-light .apexcharts-menu-icon:hover,
+.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,
 .apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,
 .apexcharts-theme-light .apexcharts-reset-icon:hover,
 .apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,
@@ -911,6 +916,7 @@ rect.legend-mouseover-inactive,
 }
 
 .apexcharts-theme-dark .apexcharts-menu-icon:hover,
+.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,
 .apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,
 .apexcharts-theme-dark .apexcharts-reset-icon:hover,
 .apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,
@@ -1002,6 +1008,7 @@ rect.legend-mouseover-inactive,
 
 /* Focus indicator for toolbar icon buttons */
 .apexcharts-menu-icon:focus-visible,
+.apexcharts-measure-icon:focus-visible,
 .apexcharts-pan-icon:focus-visible,
 .apexcharts-reset-icon:focus-visible,
 .apexcharts-selection-icon:focus-visible,

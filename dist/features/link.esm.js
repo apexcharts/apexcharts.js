@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.0.0
+ * ApexCharts v6.1.0
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
@@ -141,6 +141,13 @@ function binIndexOf(v, edges) {
   }
   return -1;
 }
+function binCenters(edges) {
+  const centers = [];
+  for (let i = 0; i < edges.length - 1; i++) {
+    centers.push(cleanFloat((edges[i] + edges[i + 1]) / 2));
+  }
+  return centers;
+}
 class Crossfilter {
   /**
    * @param {string} id
@@ -254,7 +261,7 @@ class Crossfilter {
     }
     if (dim.type === "range") {
       dim.edges = rangeEdges(this.records, dim.accessor, dim.bins);
-      dim.labels = dim.edges.slice(0, -1);
+      dim.labels = binCenters(dim.edges);
     } else {
       dim.labels = categoryDomain(this.records, dim.accessor, dim.order);
       dim.edges = null;
@@ -407,7 +414,8 @@ class Crossfilter {
       }
       return {
         type: "range",
-        labels: edges.slice(0, -1),
+        labels: binCenters(edges),
+        // plot bars at bin centers, not lower edges
         values: buckets.map((b) => dim.reducer(b)),
         keys: buckets.map((_, i) => [edges[i], edges[i + 1]]),
         edges
@@ -623,8 +631,15 @@ class LinkedViews {
     const mode = this._mode();
     if (mode === "off") return;
     if (!xaxis || xaxis.min == null || xaxis.max == null) return;
-    const min = Math.min(xaxis.min, xaxis.max);
-    const max = Math.max(xaxis.min, xaxis.max);
+    let min = Math.min(xaxis.min, xaxis.max);
+    let max = Math.max(xaxis.min, xaxis.max);
+    const gMinX = this.w.globals.minX;
+    const gMaxX = this.w.globals.maxX;
+    if (isFinite(gMinX) && isFinite(gMaxX) && gMaxX > gMinX) {
+      const tol = (gMaxX - gMinX) * 1e-6;
+      if (min - gMinX <= tol) min = gMinX;
+      if (gMaxX - max <= tol) max = gMaxX;
+    }
     if (mode === "filter") {
       const cf = this._cf();
       if (!cf) return;

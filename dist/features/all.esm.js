@@ -50,7 +50,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.0.0
+ * ApexCharts v6.1.0
  * (c) 2018-2026 ApexCharts
  */
 import * as ApexCharts from "apexcharts/core";
@@ -1903,6 +1903,7 @@ const icoReset = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
 const icoZoomIn = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M12 5v14M5 12h14"/>\n</svg>\n';
 const icoZoomOut = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M5 12h14"/>\n</svg>\n';
 const icoSelect = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M5 3a2 2 0 0 0-2 2"/>\n    <path d="M19 3a2 2 0 0 1 2 2"/>\n    <path d="M21 19a2 2 0 0 1-2 2"/>\n    <path d="M5 21a2 2 0 0 1-2-2"/>\n    <path d="M9 3h1M14 3h1M9 21h1M14 21h1M3 9v1M3 14v1M21 9v1M21 14v1"/>\n</svg>\n';
+const icoMeasure = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0Z"/>\n    <path d="m14.5 12.5 2-2"/>\n    <path d="m11.5 9.5 2-2"/>\n    <path d="m8.5 6.5 2-2"/>\n    <path d="m17.5 15.5 2-2"/>\n</svg>\n';
 const icoMenu = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M4 6h16M4 12h16M4 18h16"/>\n</svg>\n';
 class Toolbar {
   /**
@@ -1922,6 +1923,7 @@ class Toolbar {
     this.elZoomOut = null;
     this.elPan = null;
     this.elSelection = null;
+    this.elMeasure = null;
     this.elZoomReset = null;
     this.elMenuIcon = null;
     this.elMenu = null;
@@ -1929,6 +1931,7 @@ class Toolbar {
     this.t = null;
   }
   createToolbar() {
+    var _a, _b;
     const w = this.w;
     const createDiv = () => {
       return BrowserAPIs.createElementNS("http://www.w3.org/1999/xhtml", "div");
@@ -1951,6 +1954,7 @@ class Toolbar {
     this.elZoomOut = createBtn();
     this.elPan = createBtn();
     this.elSelection = createBtn();
+    this.elMeasure = createBtn();
     this.elZoomReset = createBtn();
     this.elMenuIcon = createBtn();
     this.elMenu = createDiv();
@@ -2001,6 +2005,17 @@ class Toolbar {
         class: "apexcharts-pan-icon"
       });
     }
+    if (this.t.measure && w.config.chart.measure && w.config.chart.measure.enabled) {
+      toolbarControls.push({
+        el: this.elMeasure,
+        icon: typeof this.t.measure === "string" ? this.t.measure : icoMeasure,
+        title: (
+          /** @type {any} */
+          this.localeValues.measure || "Measure"
+        ),
+        class: "apexcharts-measure-icon"
+      });
+    }
     appendZoomControl("reset", this.elZoomReset, icoReset);
     if (this.t.download) {
       toolbarControls.push({
@@ -2045,6 +2060,12 @@ class Toolbar {
     if (this.elPan.parentNode) {
       this.elPan.setAttribute("aria-pressed", String(!!w.interact.panEnabled));
     }
+    if (this.elMeasure.parentNode) {
+      this.elMeasure.setAttribute(
+        "aria-pressed",
+        String(!!w.interact.measureEnabled)
+      );
+    }
     if (this.elMenuIcon.parentNode) {
       this.elMenuIcon.setAttribute("aria-haspopup", "true");
       this.elMenuIcon.setAttribute("aria-expanded", "false");
@@ -2056,6 +2077,9 @@ class Toolbar {
       this.elPan.classList.add(this.selectedClass);
     } else if (w.interact.selectionEnabled) {
       this.elSelection.classList.add(this.selectedClass);
+    } else if (w.interact.measureEnabled && this.elMeasure) {
+      this.elMeasure.classList.add(this.selectedClass);
+      (_b = (_a = this.ctx.measure) == null ? void 0 : _a.startMeasure) == null ? void 0 : _b.call(_a);
     }
     this.addToolbarEventListeners();
   }
@@ -2101,7 +2125,7 @@ class Toolbar {
     }
   }
   addToolbarEventListeners() {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
     (_a = this.elZoomReset) == null ? void 0 : _a.addEventListener("click", this.handleZoomReset.bind(this));
     (_b = this.elSelection) == null ? void 0 : _b.addEventListener(
       "click",
@@ -2114,7 +2138,8 @@ class Toolbar {
     (_d = this.elZoomIn) == null ? void 0 : _d.addEventListener("click", this.handleZoomIn.bind(this));
     (_e = this.elZoomOut) == null ? void 0 : _e.addEventListener("click", this.handleZoomOut.bind(this));
     (_f = this.elPan) == null ? void 0 : _f.addEventListener("click", this.togglePanning.bind(this));
-    (_g = this.elMenuIcon) == null ? void 0 : _g.addEventListener("click", this.toggleMenu.bind(this));
+    (_g = this.elMeasure) == null ? void 0 : _g.addEventListener("click", this.toggleMeasure.bind(this));
+    (_h = this.elMenuIcon) == null ? void 0 : _h.addEventListener("click", this.toggleMenu.bind(this));
     this.elMenuItems.forEach((m) => {
       if (m.classList.contains("exportSVG")) {
         m.addEventListener("click", this.handleDownload.bind(this, "svg"));
@@ -2137,6 +2162,7 @@ class Toolbar {
       this.elZoomIn,
       this.elZoomOut,
       this.elPan,
+      this.elMeasure,
       this.elMenuIcon,
       ...this.elCustomIcons
     ];
@@ -2157,7 +2183,7 @@ class Toolbar {
         }
       });
     });
-    (_h = this.elMenuIcon) == null ? void 0 : _h.addEventListener(
+    (_i = this.elMenuIcon) == null ? void 0 : _i.addEventListener(
       "keydown",
       (e) => {
         var _a2;
@@ -2205,17 +2231,37 @@ class Toolbar {
   toggleZoomSelection(type) {
     const charts = this.ctx.getSyncedCharts();
     charts.forEach((ch) => {
-      ch.ctx.toolbar.toggleOtherControls();
-      const el = type === "selection" ? ch.ctx.toolbar.elSelection : ch.ctx.toolbar.elZoom;
+      const tb = ch.ctx.toolbar;
       const enabledType = type === "selection" ? "selectionEnabled" : "zoomEnabled";
-      ch.w.globals[enabledType] = !ch.w.globals[enabledType];
-      if (!el.classList.contains(ch.ctx.toolbar.selectedClass)) {
-        el.classList.add(ch.ctx.toolbar.selectedClass);
-      } else {
-        el.classList.remove(ch.ctx.toolbar.selectedClass);
+      const wasEnabled = !!ch.w.globals[enabledType];
+      tb.toggleOtherControls();
+      const el = type === "selection" ? tb.elSelection : tb.elZoom;
+      if (!wasEnabled) {
+        ch.w.globals[enabledType] = true;
+        el.classList.add(tb.selectedClass);
       }
-      el.setAttribute("aria-pressed", String(ch.w.globals[enabledType]));
+      el.setAttribute("aria-pressed", String(!!ch.w.globals[enabledType]));
     });
+  }
+  /**
+   * Toggle the measure ruler tool. Mutually exclusive with zoom/pan/selection
+   * (toggleOtherControls deselects those and disarms any active measure), so a
+   * fresh enable arms the ruler via the Measure module's sticky mode.
+   */
+  toggleMeasure() {
+    var _a, _b, _c, _d;
+    const w = this.w;
+    const enabling = !w.interact.measureEnabled;
+    this.toggleOtherControls();
+    if (enabling) {
+      w.interact.measureEnabled = true;
+      (_a = this.elMeasure) == null ? void 0 : _a.classList.add(this.selectedClass);
+      (_c = (_b = this.ctx.measure) == null ? void 0 : _b.startMeasure) == null ? void 0 : _c.call(_b);
+    }
+    (_d = this.elMeasure) == null ? void 0 : _d.setAttribute(
+      "aria-pressed",
+      String(w.interact.measureEnabled)
+    );
   }
   getToolbarIconsReference() {
     const w = this.w;
@@ -2229,6 +2275,9 @@ class Toolbar {
       this.elSelection = w.dom.baseEl.querySelector(
         ".apexcharts-selection-icon"
       );
+    }
+    if (!this.elMeasure) {
+      this.elMeasure = w.dom.baseEl.querySelector(".apexcharts-measure-icon");
     }
   }
   /**
@@ -2249,26 +2298,29 @@ class Toolbar {
   togglePanning() {
     const charts = this.ctx.getSyncedCharts();
     charts.forEach((ch) => {
-      ch.ctx.toolbar.toggleOtherControls();
-      ch.w.interact.panEnabled = !ch.w.interact.panEnabled;
-      if (!ch.ctx.toolbar.elPan.classList.contains(ch.ctx.toolbar.selectedClass)) {
-        ch.ctx.toolbar.elPan.classList.add(ch.ctx.toolbar.selectedClass);
-      } else {
-        ch.ctx.toolbar.elPan.classList.remove(ch.ctx.toolbar.selectedClass);
+      const tb = ch.ctx.toolbar;
+      const wasEnabled = !!ch.w.interact.panEnabled;
+      tb.toggleOtherControls();
+      if (!wasEnabled) {
+        ch.w.interact.panEnabled = true;
+        tb.elPan.classList.add(tb.selectedClass);
       }
-      ch.ctx.toolbar.elPan.setAttribute(
-        "aria-pressed",
-        String(ch.w.interact.panEnabled)
-      );
+      tb.elPan.setAttribute("aria-pressed", String(!!ch.w.interact.panEnabled));
     });
   }
   toggleOtherControls() {
+    var _a, _b, _c;
     const w = this.w;
     w.interact.panEnabled = false;
     w.interact.zoomEnabled = false;
     w.interact.selectionEnabled = false;
+    if (w.interact.measureEnabled) {
+      w.interact.measureEnabled = false;
+      (_b = (_a = this.ctx.measure) == null ? void 0 : _a.stopMeasure) == null ? void 0 : _b.call(_a);
+      (_c = this.elMeasure) == null ? void 0 : _c.setAttribute("aria-pressed", "false");
+    }
     this.getToolbarIconsReference();
-    const toggleEls = [this.elPan, this.elSelection, this.elZoom];
+    const toggleEls = [this.elPan, this.elSelection, this.elZoom, this.elMeasure];
     toggleEls.forEach((el) => {
       if (el) {
         el.classList.remove(this.selectedClass);
@@ -2469,6 +2521,7 @@ class Toolbar {
     this.elZoomOut = null;
     this.elPan = null;
     this.elSelection = null;
+    this.elMeasure = null;
     this.elZoomReset = null;
     this.elMenuIcon = null;
   }
@@ -2595,13 +2648,15 @@ class ZoomPanSelection extends Toolbar {
     }
     const zoomtype = w.interact.zoomEnabled ? w.config.chart.zoom.type : w.config.chart.selection.type;
     const autoSelected = w.config.chart.toolbar.autoSelected;
-    if (e.shiftKey) {
-      this.shiftWasPressed = true;
-      toolbar.enableZoomPanFromToolbar(autoSelected === "pan" ? "zoom" : "pan");
-    } else {
-      if (this.shiftWasPressed) {
-        toolbar.enableZoomPanFromToolbar(autoSelected);
-        this.shiftWasPressed = false;
+    if (autoSelected !== "measure") {
+      if (e.shiftKey) {
+        this.shiftWasPressed = true;
+        toolbar.enableZoomPanFromToolbar(autoSelected === "pan" ? "zoom" : "pan");
+      } else {
+        if (this.shiftWasPressed) {
+          toolbar.enableZoomPanFromToolbar(autoSelected);
+          this.shiftWasPressed = false;
+        }
       }
     }
     if (!e.target) return;
@@ -9569,6 +9624,13 @@ function binIndexOf(v, edges) {
   }
   return -1;
 }
+function binCenters(edges) {
+  const centers = [];
+  for (let i = 0; i < edges.length - 1; i++) {
+    centers.push(cleanFloat((edges[i] + edges[i + 1]) / 2));
+  }
+  return centers;
+}
 class Crossfilter {
   /**
    * @param {string} id
@@ -9682,7 +9744,7 @@ class Crossfilter {
     }
     if (dim.type === "range") {
       dim.edges = rangeEdges(this.records, dim.accessor, dim.bins);
-      dim.labels = dim.edges.slice(0, -1);
+      dim.labels = binCenters(dim.edges);
     } else {
       dim.labels = categoryDomain(this.records, dim.accessor, dim.order);
       dim.edges = null;
@@ -9835,7 +9897,8 @@ class Crossfilter {
       }
       return {
         type: "range",
-        labels: edges.slice(0, -1),
+        labels: binCenters(edges),
+        // plot bars at bin centers, not lower edges
         values: buckets.map((b) => dim.reducer(b)),
         keys: buckets.map((_, i) => [edges[i], edges[i + 1]]),
         edges
@@ -10051,8 +10114,15 @@ class LinkedViews {
     const mode = this._mode();
     if (mode === "off") return;
     if (!xaxis || xaxis.min == null || xaxis.max == null) return;
-    const min = Math.min(xaxis.min, xaxis.max);
-    const max = Math.max(xaxis.min, xaxis.max);
+    let min = Math.min(xaxis.min, xaxis.max);
+    let max = Math.max(xaxis.min, xaxis.max);
+    const gMinX = this.w.globals.minX;
+    const gMaxX = this.w.globals.maxX;
+    if (isFinite(gMinX) && isFinite(gMaxX) && gMaxX > gMinX) {
+      const tol = (gMaxX - gMinX) * 1e-6;
+      if (min - gMinX <= tol) min = gMinX;
+      if (gMaxX - max <= tol) max = gMaxX;
+    }
     if (mode === "filter") {
       const cf = this._cf();
       if (!cf) return;
@@ -12143,9 +12213,14 @@ class Measure {
   }
   /** Re-project the measure pins after each render. */
   _afterRender() {
-    if (this._enabled()) {
-      if (this.pins.length) this._renderPins();
-      if (this.persistent && !this.pane) this._arm();
+    if (!this._enabled()) return;
+    if (this.w.interact.measureEnabled && !this.persistent) {
+      this.persistent = true;
+    }
+    if (this.pins.length) this._renderPins();
+    if (this.persistent && !this.drag) {
+      this._disarm();
+      this._arm();
     }
   }
   teardown() {
