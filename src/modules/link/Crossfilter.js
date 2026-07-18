@@ -210,6 +210,23 @@ function binIndexOf(v, edges) {
   return -1
 }
 
+/**
+ * Bin CENTER x-values from ascending `edges` (length = nBins). A histogram bar
+ * on a numeric axis is centered on its x-value, so plotting the center (not the
+ * lower edge) makes the bar visually span its bin `[edges[i], edges[i + 1]]`.
+ * That keeps the bars aligned with the brush rectangle and with the range-dim
+ * test, which compares the same true bin range against the selected `[min,max]`.
+ * @param {number[]} edges
+ * @returns {number[]}
+ */
+function binCenters(edges) {
+  const centers = []
+  for (let i = 0; i < edges.length - 1; i++) {
+    centers.push(cleanFloat((edges[i] + edges[i + 1]) / 2))
+  }
+  return centers
+}
+
 export default class Crossfilter {
   /**
    * @param {string} id
@@ -338,7 +355,7 @@ export default class Crossfilter {
     }
     if (dim.type === 'range') {
       dim.edges = rangeEdges(this.records, dim.accessor, dim.bins)
-      dim.labels = dim.edges.slice(0, -1) // bin lower edges
+      dim.labels = binCenters(dim.edges) // bin centers (bar x-position)
     } else {
       dim.labels = categoryDomain(this.records, dim.accessor, dim.order)
       dim.edges = null
@@ -509,7 +526,7 @@ export default class Crossfilter {
       }
       return {
         type: 'range',
-        labels: edges.slice(0, -1),
+        labels: binCenters(edges), // plot bars at bin centers, not lower edges
         values: buckets.map((b) => dim.reducer(b)),
         keys: buckets.map((_, i) => [edges[i], edges[i + 1]]),
         edges,
