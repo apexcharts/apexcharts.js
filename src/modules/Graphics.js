@@ -1193,14 +1193,18 @@ class Graphics {
     const j = parseInt(path.node.getAttribute('j') ?? '', 10)
     if (isNaN(i) || isNaN(j)) return
 
-    // Crossfilter click-source (Linked Views filter mode): a click toggles a
-    // bucket on the shared coordinator, which owns the visual state (it dims
-    // the unselected buckets itself). Skip the point-selection bookkeeping and
-    // the sticky active/darken filter so the clicked mark does not stay dark;
-    // the dataPointSelection events below still fire (the crossfilter engine
-    // listens to them).
+    // Crossfilter / Linked Views click-source: when any link mode is active the
+    // coordinator owns the visual state (filter mode dims the unselected buckets
+    // itself; highlight mode dims via the brush range). Skip the point-selection
+    // bookkeeping and the sticky active/darken filter so a click never leaves a
+    // darkened bar competing for attention during filtering. This mirrors
+    // LinkedViews._mode() !== 'off'. The dataPointSelection events below still
+    // fire (the crossfilter engine listens to them in filter mode, and any user
+    // handler still runs).
     const link = w.config.chart.link
-    const crossfilterClick = !!(link && typeof link.dimension === 'function')
+    const crossfilterClick = !!(
+      link && (typeof link.dimension === 'function' || link.enabled)
+    )
 
     if (!crossfilterClick) {
       let selected = 'false'

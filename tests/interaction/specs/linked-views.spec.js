@@ -64,4 +64,39 @@ test.describe('Linked views: brush highlight edges', () => {
     expect(r.first).toBe(true)
     expect(r.last).toBe(true)
   })
+
+  // A stray click on a bar during brushing must not leave the native
+  // states.active darken stuck on it: in a linked view the brush owns the
+  // visual state, so a sticky darkened bar is unwanted attention. The click is
+  // a no-op for highlight mode (it filters via the brush), so no bar should end
+  // up selected or carry an active-filter after it.
+  test('clicking a bar does not apply the sticky active/darken state', async ({
+    page,
+  }) => {
+    await page.evaluate(() => {
+      const el = window.chart.el.querySelector('.apexcharts-bar-area[j="0"]')
+      el.dispatchEvent(
+        new MouseEvent('mousedown', {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        }),
+      )
+    })
+    const state = await page.evaluate(() => {
+      const bars = Array.from(
+        window.chart.el.querySelectorAll('.apexcharts-bar-area'),
+      )
+      return {
+        selected: bars.filter((b) => b.getAttribute('selected') === 'true')
+          .length,
+        filtered: bars.filter((b) => b.getAttribute('filter')).length,
+        selectedDataPoints: window.chart.w.interact.selectedDataPoints.flat()
+          .length,
+      }
+    })
+    expect(state.selected).toBe(0)
+    expect(state.filtered).toBe(0)
+    expect(state.selectedDataPoints).toBe(0)
+  })
 })
