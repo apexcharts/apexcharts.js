@@ -43,11 +43,11 @@ test.describe('Crossfilter: categorical click-to-filter', () => {
     page,
   }) => {
     const init = await page.evaluate(() => ({
-      quarter: window.chart.w.config.series, // 60 rows, 15 per quarter
+      quarter: window.chart.w.config.series, // 60 rows, uneven per quarter
       dayCats: window.chart2.w.config.xaxis.categories,
       daySum: window.chart2.w.config.series[0].data.reduce((a, b) => a + b, 0),
     }))
-    expect(init.quarter).toEqual([15, 15, 15, 15])
+    expect(init.quarter).toEqual([18, 12, 16, 14])
     expect(init.dayCats.length).toBeGreaterThan(0)
     expect(init.daySum).toBe(60)
   })
@@ -63,11 +63,11 @@ test.describe('Crossfilter: categorical click-to-filter', () => {
       return s.filters.byQuarter && s.filters.byQuarter[0] === 'Q1'
     })
     const s = await cfState(page, 'trades')
-    expect(s.filteredCount).toBe(15)
+    expect(s.filteredCount).toBe(18) // Q1 has 18 trades
 
-    // the day bar re-aggregates to the Q1 subset (sum drops from 60 to 15)
+    // the day bar re-aggregates to the Q1 subset (sum drops from 60 to 18)
     await page.waitForFunction(
-      () => window.chart2.w.config.series[0].data.reduce((a, b) => a + b, 0) === 15,
+      () => window.chart2.w.config.series[0].data.reduce((a, b) => a + b, 0) === 18,
     )
 
     // the source donut keeps its full values but dims the 3 unselected slices
@@ -77,7 +77,7 @@ test.describe('Crossfilter: categorical click-to-filter', () => {
         '.apexcharts-pie-area.apexcharts-crossfilter-dimmed',
       ).length,
     }))
-    expect(src.values).toEqual([15, 15, 15, 15])
+    expect(src.values).toEqual([18, 12, 16, 14])
     expect(src.dimmed).toBe(3)
   })
 
@@ -233,7 +233,7 @@ test.describe('Crossfilter: categorical click-to-filter', () => {
   test('clicking the same slice again clears the filter', async ({ page }) => {
     await clickSlice(page, 'chart', 0)
     await page.waitForFunction(
-      () => window.ApexCharts.getCrossfilter('trades').state().filteredCount === 15,
+      () => window.ApexCharts.getCrossfilter('trades').state().filteredCount === 18,
     )
     await clickSlice(page, 'chart', 0)
     await page.waitForFunction(
