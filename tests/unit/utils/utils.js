@@ -1,4 +1,4 @@
-require('../__mocks__/ResizeObserver.js')
+import '../__mocks__/ResizeObserver.js'
 import ApexCharts from '../../../src/entries/full.js'
 
 export function createChart(type, series, xtype = 'category') {
