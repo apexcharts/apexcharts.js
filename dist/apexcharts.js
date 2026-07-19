@@ -14128,10 +14128,7 @@ var __async = (__this, __arguments, generator) => {
             []
           );
         }
-        let xcrosshairs = graphics.drawRect();
-        if (w.config.xaxis.crosshairs.width === 1) {
-          xcrosshairs = graphics.drawLine(0, 0, 0, 0);
-        }
+        let xcrosshairs = w.config.xaxis.crosshairs.width === 1 ? graphics.drawLine(0, 0, 0, 0) : graphics.drawRect();
         let gridHeight = w.layout.gridHeight;
         if (!Utils$1.isNumber(gridHeight) || gridHeight < 0) {
           gridHeight = 0;
@@ -22392,7 +22389,7 @@ var __async = (__this, __arguments, generator) => {
         const tooltipCssClass = isRight ? `apexcharts-yaxistooltip apexcharts-yaxistooltip-${i} apexcharts-yaxistooltip-right` : `apexcharts-yaxistooltip apexcharts-yaxistooltip-${i} apexcharts-yaxistooltip-left`;
         const renderTo = w.dom.elWrap;
         const yaxisTooltip = w.dom.baseEl.querySelector(
-          `.apexcharts-yaxistooltip apexcharts-yaxistooltip-${i}`
+          `.apexcharts-yaxistooltip.apexcharts-yaxistooltip-${i}`
         );
         if (yaxisTooltip === null) {
           ttCtx.yaxisTooltip = BrowserAPIs.createElementNS(

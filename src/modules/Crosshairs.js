@@ -57,11 +57,17 @@ class Crosshairs {
         )
       }
 
-      let xcrosshairs = graphics.drawRect()
-      if (w.config.xaxis.crosshairs.width === 1) {
-        // to prevent drawing 2 lines, convert rect to line
-        xcrosshairs = graphics.drawLine(0, 0, 0, 0)
-      }
+      // width === 1 draws a line (a filled rect would show as two edges);
+      // any other width is a filled band rect. Create ONLY the element we
+      // keep: graphics.drawRect()/drawLine() append to the Paper immediately,
+      // so creating a rect and then swapping to a line orphans a classless
+      // 0x0 rect on the svg root. That was invisible under the full render
+      // (the whole subtree is torn down) but leaked one rect per data-only
+      // fast update, which preserves the DOM.
+      let xcrosshairs =
+        w.config.xaxis.crosshairs.width === 1
+          ? graphics.drawLine(0, 0, 0, 0)
+          : graphics.drawRect()
 
       let gridHeight = w.layout.gridHeight
       if (!Utils.isNumber(gridHeight) || gridHeight < 0) {

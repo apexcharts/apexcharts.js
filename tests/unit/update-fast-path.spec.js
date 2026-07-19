@@ -142,6 +142,48 @@ describe('lazily computed derived series state', () => {
   })
 })
 
+describe('data-only updates do not leak DOM nodes', () => {
+  const nodeCount = () =>
+    document.getElementById('chart').querySelectorAll('*').length
+
+  // The incremental fast path preserves the DOM subtree across updates (that
+  // is the whole point), so any transient element it re-creates per update
+  // must be reused or removed-before-recreate. Two regressions this guards:
+  //   - drawXCrosshairs created a rect then swapped it for a line when
+  //     crosshairs.width === 1 (the default), orphaning a classless 0x0 rect
+  //     on the svg root every update.
+  //   - drawYaxisTooltip used a broken descendant selector that never matched,
+  //     so it appended a fresh yaxistooltip div (+ text) every update.
+  // Both were masked by the full render (subtree torn down) and only leaked
+  // once the fast path started preserving the DOM.
+  it.each([true, false])(
+    'node count is bounded across many updates (tooltip=%s)',
+    async (tooltip) => {
+      // Two fixed datasets with different y-domains: alternating them exercises
+      // the in-place axis-chrome refresh (fastWithAxes), while measuring only
+      // when the chart is back on dataA keeps the legitimate label/tick count
+      // identical at both checkpoints, so any difference is a genuine leak.
+      const dataA = walk(60, 1, 1, 0)
+      const dataB = walk(60, 2, 2, 150)
+      const chart = createChartWithOptions({
+        ...lineOpts(dataA),
+        tooltip: { enabled: tooltip },
+      })
+      await chart.updateSeries([{ name: 'v', data: dataA }])
+      const settled = nodeCount()
+
+      for (let i = 0; i < 10; i++) {
+        await chart.updateSeries([{ name: 'v', data: dataB }])
+        await chart.updateSeries([{ name: 'v', data: dataA }])
+      }
+      // back on dataA (same domain -> same chrome): count must not have grown
+      expect(chart._updateStats.fastWithAxes).toBeGreaterThan(0)
+      expect(nodeCount()).toBe(settled)
+      chart.destroy()
+    },
+  )
+})
+
 describe('fused parse extrema (2D-array fast lane)', () => {
   const mk = (data, chart = {}) =>
     createChartWithOptions({

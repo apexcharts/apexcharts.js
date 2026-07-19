@@ -88,8 +88,14 @@ class AxesTooltip {
 
       const renderTo = w.dom.elWrap
 
+      // Compound selector (both classes on the same element). The former
+      // `.apexcharts-yaxistooltip apexcharts-yaxistooltip-${i}` was a
+      // descendant combinator with a bare (never-matching) second term, so
+      // the query always returned null and a fresh tooltip div was appended
+      // on every call. The full render tore the subtree down so it was hidden;
+      // the data-only fast path preserves it, leaking two divs per update.
       const yaxisTooltip = w.dom.baseEl.querySelector(
-        `.apexcharts-yaxistooltip apexcharts-yaxistooltip-${i}`,
+        `.apexcharts-yaxistooltip.apexcharts-yaxistooltip-${i}`,
       )
 
       if (yaxisTooltip === null) {
