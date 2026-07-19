@@ -2568,7 +2568,6 @@ class ZoomPanSelection extends Toolbar {
     this.xyRatios = xyRatios;
     this.zoomRect = this.graphics.drawRect(0, 0, 0, 0);
     this.selectionRect = this.graphics.drawRect(0, 0, 0, 0);
-    this.gridRect = w.dom.baseEl.querySelector(".apexcharts-grid");
     this.constraints = new Box(0, 0, w.layout.gridWidth, w.layout.gridHeight);
     this.zoomRect.node.classList.add("apexcharts-zoom-rect");
     this.selectionRect.node.classList.add("apexcharts-selection-rect");
@@ -2632,14 +2631,12 @@ class ZoomPanSelection extends Toolbar {
     }
     this.selectionRect = null;
     this.zoomRect = null;
-    this.gridRect = null;
   }
   /**
    * @param {import('../types/internal').XYRatios} xyRatios
    * @param {any} e
    */
   svgMouseEvents(xyRatios, e) {
-    var _a;
     const w = this.w;
     const toolbar = this.ctx.toolbar;
     if (w.interact.momentum && w.interact.momentum.busy) return;
@@ -2670,7 +2667,7 @@ class ZoomPanSelection extends Toolbar {
     this.clientX = e.type === "touchmove" || e.type === "touchstart" ? e.touches[0].clientX : e.type === "touchend" ? e.changedTouches[0].clientX : e.clientX;
     this.clientY = e.type === "touchmove" || e.type === "touchstart" ? e.touches[0].clientY : e.type === "touchend" ? e.changedTouches[0].clientY : e.clientY;
     if (e.type === "mousedown" && e.which === 1 || e.type === "touchstart") {
-      const gridRectDim = (_a = this.gridRect) == null ? void 0 : _a.getBoundingClientRect();
+      const gridRectDim = this._gridRect();
       if (!gridRectDim) return;
       this.startX = this.clientX - gridRectDim.left - w.globals.barPadForNumericAxis;
       this.startY = this.clientY - gridRectDim.top;
@@ -2685,7 +2682,7 @@ class ZoomPanSelection extends Toolbar {
           this.panDragging({
             context: this,
             zoomtype,
-            xyRatios
+            xyRatios: this.xyRatios
           });
         }
       } else {
@@ -2704,9 +2701,8 @@ class ZoomPanSelection extends Toolbar {
   }
   /** @param {{ zoomtype?: any, isResized?: any }} opts */
   handleMouseUp({ zoomtype, isResized }) {
-    var _a;
     const w = this.w;
-    const gridRectDim = (_a = this.gridRect) == null ? void 0 : _a.getBoundingClientRect();
+    const gridRectDim = this._gridRect();
     if (gridRectDim && (this.w.interact.mousedown || isResized)) {
       this.endX = this.clientX - gridRectDim.left - w.globals.barPadForNumericAxis;
       this.endY = this.clientY - gridRectDim.top;
@@ -2748,11 +2744,11 @@ class ZoomPanSelection extends Toolbar {
    * @param {any} e
    */
   executeMouseWheelZoom(e) {
-    var _a, _b, _c;
+    var _a, _b;
     const w = this.w;
     this.minX = w.axisFlags.isRangeBar ? w.globals.minY : w.globals.minX;
     this.maxX = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX;
-    const gridRectDim = (_a = this.gridRect) == null ? void 0 : _a.getBoundingClientRect();
+    const gridRectDim = this._gridRect();
     if (!gridRectDim) return;
     const mouseX = (e.clientX - gridRectDim.left) / gridRectDim.width;
     const currentMinX = this.minX;
@@ -2773,8 +2769,8 @@ class ZoomPanSelection extends Toolbar {
       newMaxX = currentMaxX + zoomRange / 2;
     }
     if (!w.axisFlags.isRangeBar) {
-      const clampMin = (_b = w.globals.dataReducerRawMinX) != null ? _b : w.globals.initialMinX;
-      const clampMax = (_c = w.globals.dataReducerRawMaxX) != null ? _c : w.globals.initialMaxX;
+      const clampMin = (_a = w.globals.dataReducerRawMinX) != null ? _a : w.globals.initialMinX;
+      const clampMax = (_b = w.globals.dataReducerRawMaxX) != null ? _b : w.globals.initialMaxX;
       newMinX = Math.max(newMinX, clampMin);
       newMaxX = Math.min(newMaxX, clampMax);
       const minXDiff = w.globals.minXDiff > 0 && isFinite(w.globals.minXDiff) ? w.globals.minXDiff : 0;
@@ -2911,10 +2907,9 @@ class ZoomPanSelection extends Toolbar {
     }
   }
   selectionDrawing({ context, zoomtype }) {
-    var _a;
     const w = this.w;
     const me = context;
-    const gridRectDim = (_a = this.gridRect) == null ? void 0 : _a.getBoundingClientRect();
+    const gridRectDim = this._gridRect();
     if (!gridRectDim) return;
     const startX = me.startX - 1;
     const startY = me.startY;
@@ -3020,8 +3015,8 @@ class ZoomPanSelection extends Toolbar {
     if ((typeof w.config.chart.events.selection === "function" || linkActive) && w.interact.selectionEnabled) {
       clearTimeout((_a = this.w.globals.selectionResizeTimer) != null ? _a : void 0);
       this.w.globals.selectionResizeTimer = window.setTimeout(() => {
-        var _a2, _b;
-        const gridRectDim = (_a2 = this.gridRect) == null ? void 0 : _a2.getBoundingClientRect();
+        var _a2;
+        const gridRectDim = this._gridRect();
         if (!gridRectDim) return;
         const selectionRect = selRect.node.getBoundingClientRect();
         let minX, maxX, minY, maxY;
@@ -3055,7 +3050,7 @@ class ZoomPanSelection extends Toolbar {
         if (w.config.chart.brush.enabled && w.config.chart.events.brushScrolled !== void 0) {
           w.config.chart.events.brushScrolled(this.ctx, xyAxis);
         }
-        (_b = this.ctx.linkedViews) == null ? void 0 : _b.onSourceSelection(xyAxis.xaxis);
+        (_a2 = this.ctx.linkedViews) == null ? void 0 : _a2.onSourceSelection(xyAxis.xaxis);
       }, timerInterval);
     }
   }
@@ -3067,7 +3062,8 @@ class ZoomPanSelection extends Toolbar {
     const xyRatios = this.xyRatios;
     const toolbar = this.ctx.toolbar;
     const selRect = w.interact.zoomEnabled ? me.zoomRect.node.getBoundingClientRect() : me.selectionRect.node.getBoundingClientRect();
-    const gridRectDim = me.gridRect.getBoundingClientRect();
+    const gridRectDim = me._gridRect();
+    if (!gridRectDim) return;
     const localStartX = selRect.left - gridRectDim.left - w.globals.barPadForNumericAxis;
     const localEndX = selRect.right - gridRectDim.left - w.globals.barPadForNumericAxis;
     const localStartY = selRect.top - gridRectDim.top;
@@ -3325,8 +3321,11 @@ class ZoomPanSelection extends Toolbar {
     const w = this.w;
     return w.axisFlags.isRangeBar ? { min: w.globals.minY, max: w.globals.maxY } : { min: w.globals.minX, max: w.globals.maxX };
   }
-  /** Live grid rect from the current DOM (this.gridRect goes stale/null after
-   * the re-render a gesture frame triggers). */
+  /** Live grid rect from the current DOM. Never cache the grid node on the
+   * instance: a full render replaces this whole instance, but the fast update
+   * path (fastUpdate/_fastAxisChromeRefresh) keeps the instance while swapping
+   * the grid node, and a cached node would go stale (detached nodes report an
+   * all-zero bounding rect, silently corrupting selection geometry). */
   _gridRect() {
     const baseEl = this.w.dom.baseEl;
     const grid = baseEl && baseEl.querySelector(".apexcharts-grid");
@@ -9155,6 +9154,20 @@ class CanvasRenderer {
   /** Fast-path wipe of the series layer. */
   clear() {
     this._compositor.clear();
+  }
+  /**
+   * Whether the existing <canvas> host can be repainted in place (it exists
+   * and is still mounted). Used by the data-only fast update path to skip
+   * recreating the foreignObject + backing store on every tick.
+   * @returns {boolean}
+   */
+  canRepaintInPlace() {
+    const host = this._compositor.getHost();
+    return !!(host && host.node && host.node.isConnected);
+  }
+  /** Repaint the freshly recorded display list into the EXISTING canvas. */
+  repaintInPlace() {
+    this._compositor.paint(this._g.displayList(), this._g);
   }
   // ── emit primitives (delegate to the display-list shim) ──
   /** @param {any} attrs */

@@ -81,6 +81,116 @@ export default class Data {
   }
 
   /**
+   * Typed single pass for the dominant [[x, y], ...] shape: scalar numeric or
+   * null y, no z, no OHLC tuples. One monomorphic loop fills preallocated
+   * x/y arrays and fuses the y-extrema scan that Range.getMinYMaxY would
+   * otherwise repeat over every value (the extrema entry is ref+length
+   * guarded, so any later reshaping of the series array simply falls back to
+   * the scan). Returns false untouched on any non-conforming point so the
+   * general loop below handles mixed/exotic data with unchanged output.
+   * @param {any[]} data
+   * @param {number} i
+   * @returns {boolean}
+   */
+  _fast2DArrayParse(data, i) {
+    const n = data.length
+    if (n === 0) return false
+    const ys = new Array(n)
+    const xs = new Array(n)
+    let maxY = -Number.MAX_VALUE
+    let lowestY = Number.MAX_VALUE
+    let negMinY = Infinity
+    let hasNulls = false
+    let yDec = 0
+    // x stats are only usable when every x is a number: string x values
+    // coerce in the legacy adjacent-diff loop, so mixed data falls back
+    let xNumeric = true
+    let minX = Infinity
+    let maxX = -Infinity
+    let xSorted = true
+    let minXDiff = Infinity
+    let prevX = NaN
+    for (let j = 0; j < n; j++) {
+      const point = data[j]
+      if (!Array.isArray(point) || point.length > 2) return false
+      const x = point[0]
+      const y = point[1]
+      if (xNumeric) {
+        if (typeof x === 'number') {
+          if (x === x) {
+            if (x < minX) minX = x
+            if (x > maxX) maxX = x
+          }
+          // NaN diffs fall through both branches, matching the legacy
+          // detector's behavior on NaN-containing arrays
+          const d = x - prevX
+          if (d > 0) {
+            if (d < minXDiff) minXDiff = d
+          } else if (d < 0) {
+            xSorted = false
+          }
+          prevX = x
+        } else {
+          xNumeric = false
+        }
+      }
+      if (typeof y === 'number') {
+        // same observable semantics as Range's plain-numeric lane:
+        // NaN/Infinity count as null values, decimals counted in plain
+        // notation for 1e-6..1e21, legacy noExponents/isFloat for exotics
+        if (y === y && y !== Infinity && y !== -Infinity) {
+          if (y > maxY) maxY = y
+          if (y < lowestY) lowestY = y
+          if (y < 0 && y < negMinY) negMinY = y
+          if (!Number.isInteger(y)) {
+            const av = y < 0 ? -y : y
+            if (av >= 1e-6 && av < 1e21) {
+              const str = '' + y
+              const dot = str.indexOf('.')
+              const dec = dot === -1 ? 0 : str.length - dot - 1
+              if (dec > yDec) yDec = dec
+            } else {
+              const nv = Utils.noExponents(y)
+              if (Utils.isFloat(nv)) {
+                yDec = Math.max(yDec, nv.toString().split('.')[1].length)
+              }
+            }
+          }
+        } else {
+          hasNulls = true
+        }
+      } else if (y === null) {
+        hasNulls = true
+      } else {
+        // string/array/undefined y: needs parseNumber / OHLC handling
+        return false
+      }
+      ys[j] = y
+      xs[j] = x
+    }
+    this.twoDSeries = ys
+    this.twoDSeriesX = xs
+    this.w.axisFlags.dataFormatXNumeric = true
+    const extrema = (this.w.seriesData._parsedExtrema ??= [])
+    extrema[i] = {
+      ref: ys,
+      len: n,
+      maxY,
+      lowestY,
+      negMinY,
+      hasNulls,
+      yDec,
+      xref: xs,
+      xNumeric,
+      minX,
+      maxX,
+      xSorted,
+      minXDiff,
+    }
+    return true
+  }
+
+  /**
    * @param {any[]} ser
    * @param {number} i
    */
@@ -91,6 +201,14 @@ export default class Data {
     const isBoxPlot =
       cnf.chart.type === 'boxPlot' ||
       /** @type {any} */ (cnf.series[i]).type === 'boxPlot'
+
+    if (
+      !isBoxPlot &&
+      cnf.xaxis.type !== 'datetime' &&
+      this._fast2DArrayParse(data, i)
+    ) {
+      return
+    }
 
     for (let j = 0; j < data.length; j++) {
       const point = data[j]
@@ -587,6 +705,10 @@ export default class Data {
     const gl = this.w.globals
 
     const dt = new DateTime(this.w)
+
+    // per-parse fused-extrema entries filled by _fast2DArrayParse, consumed
+    // by Range.getMinYMaxY (ref+length guarded)
+    this.w.seriesData._parsedExtrema = []
 
     const xlabels =
       cnf.labels.length > 0 ? cnf.labels.slice() : cnf.xaxis.categories.slice()
@@ -1692,9 +1814,14 @@ export default class Data {
     // Return a snapshot of all parsed state grouped by future w.* slice destinations.
     // Phase 1: callers use named writer stubs (no-ops — mutations above already wrote to gl).
     // Phase 2: writers will assign to typed slices instead of gl.*.
-    const seriesDataRef = this.w.seriesData
     return {
       // w.seriesData (future slice)
+      // initialSeries/originalSeries and the stacked totals are deliberately
+      // ABSENT: they already live as lazy accessors on gl / w.seriesData, so
+      // a snapshot field would either force their materialization (a deep
+      // clone plus three O(n) passes per parse that most charts never need)
+      // or, as a delegating getter, recurse into itself when a writer copies
+      // it back onto the object it delegates to.
       seriesData: {
         series: this.w.seriesData.series,
         seriesNames: this.w.seriesData.seriesNames,
@@ -1702,22 +1829,6 @@ export default class Data {
         seriesZ: this.w.seriesData.seriesZ,
         seriesColors: this.w.seriesData.seriesColors,
         seriesGoals: this.w.seriesData.seriesGoals,
-        // lazy delegating getters: initialSeries and the stacked totals are
-        // themselves lazily materialized; reading them eagerly here would
-        // force a deep clone + three O(n) passes per parse just to populate
-        // a snapshot the (currently no-op) phase-1 writers discard
-        get initialSeries() {
-          return gl.initialSeries
-        },
-        get originalSeries() {
-          return gl.originalSeries
-        },
-        get stackedSeriesTotals() {
-          return seriesDataRef.stackedSeriesTotals
-        },
-        get stackedSeriesTotalsByGroups() {
-          return seriesDataRef.stackedSeriesTotalsByGroups
-        },
         noLabelsProvided: this.w.axisFlags.noLabelsProvided,
       },
       // w.rangeData (future slice)

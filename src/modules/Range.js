@@ -144,45 +144,62 @@ class Range {
         )
       if (plainNumeric) {
         const arr = series[i]
-        let yDec = gl.yValueDecimal
-        let hasNulls = false
         const jEnd = Math.min(lastXIndex, arr.length - 1)
-        for (let j = firstXIndex; j <= jEnd; j++) {
-          const val = arr[j]
-          // inline isNumber: number, not NaN/Infinity, not null
-          if (
-            val !== null &&
-            typeof val === 'number' &&
-            val === val &&
-            val !== Infinity &&
-            val !== -Infinity
-          ) {
-            if (val > maxY) maxY = val
-            if (val < lowestY) lowestY = val
-            if (minY > val && val < 0) minY = val
-            if (!Number.isInteger(val)) {
-              const av = val < 0 ? -val : val
-              if (av >= 1e-6 && av < 1e21) {
-                // plain decimal notation: count fraction digits directly
-                const str = '' + val
-                const dot = str.indexOf('.')
-                const dec = dot === -1 ? 0 : str.length - dot - 1
-                if (dec > yDec) yDec = dec
-              } else {
-                // exponent notation: use the exact legacy conversion
-                const nv = Utils.noExponents(val)
-                if (Utils.isFloat(nv)) {
-                  yDec = Math.max(yDec, nv.toString().split('.')[1].length)
+        const pe = this.w.seriesData._parsedExtrema?.[i]
+        if (
+          pe &&
+          pe.ref === arr &&
+          pe.len === arr.length &&
+          firstXIndex === 0 &&
+          jEnd === arr.length - 1
+        ) {
+          // extrema already fused into the parse pass for this exact array
+          // and the scan window is the full series: merge, skip the loop
+          if (pe.maxY > maxY) maxY = pe.maxY
+          if (pe.lowestY < lowestY) lowestY = pe.lowestY
+          if (pe.negMinY < 0 && pe.negMinY < minY) minY = pe.negMinY
+          if (pe.yDec > gl.yValueDecimal) gl.yValueDecimal = pe.yDec
+          if (pe.hasNulls) gl.hasNullValues = true
+        } else {
+          let yDec = gl.yValueDecimal
+          let hasNulls = false
+          for (let j = firstXIndex; j <= jEnd; j++) {
+            const val = arr[j]
+            // inline isNumber: number, not NaN/Infinity, not null
+            if (
+              val !== null &&
+              typeof val === 'number' &&
+              val === val &&
+              val !== Infinity &&
+              val !== -Infinity
+            ) {
+              if (val > maxY) maxY = val
+              if (val < lowestY) lowestY = val
+              if (minY > val && val < 0) minY = val
+              if (!Number.isInteger(val)) {
+                const av = val < 0 ? -val : val
+                if (av >= 1e-6 && av < 1e21) {
+                  // plain decimal notation: count fraction digits directly
+                  const str = '' + val
+                  const dot = str.indexOf('.')
+                  const dec = dot === -1 ? 0 : str.length - dot - 1
+                  if (dec > yDec) yDec = dec
+                } else {
+                  // exponent notation: use the exact legacy conversion
+                  const nv = Utils.noExponents(val)
+                  if (Utils.isFloat(nv)) {
+                    yDec = Math.max(yDec, nv.toString().split('.')[1].length)
+                  }
                 }
               }
+            } else {
+              hasNulls = true
             }
-          } else {
-            hasNulls = true
           }
+          gl.yValueDecimal = yDec
+          if (hasNulls) gl.hasNullValues = true
         }
         highestY = maxY
-        gl.yValueDecimal = yDec
-        if (hasNulls) gl.hasNullValues = true
         // bar/column post-loop adjustments (same as the general loop's tail)
         if (seriesType === 'bar' || seriesType === 'column') {
           if (minY < 0 && maxY < 0) {
@@ -551,6 +568,18 @@ class Range {
       for (let i = 0; i < this.w.seriesData.series.length; i++) {
         const lbls = /** @type {any} */ (this.w.labelData.labels[i])
         if (!lbls) continue
+        const pe = this.w.seriesData._parsedExtrema?.[i]
+        if (
+          pe &&
+          pe.xNumeric &&
+          pe.xref === lbls &&
+          pe.len === lbls.length
+        ) {
+          // x extrema already fused into the parse pass for this exact array
+          if (pe.maxX > maxX) maxX = pe.maxX
+          if (pe.minX < minX) minX = pe.minX
+          continue
+        }
         for (let j = 0; j < lbls.length; j++) {
           const v = lbls[j]
           if (v !== null && typeof v === 'number' && v === v) {
@@ -760,8 +789,9 @@ class Range {
       // get the least x diff if numeric x axis is present
       /**
        * @param {number} sX
+       * @param {number} si
        */
-      this.w.seriesData.seriesX.forEach((sX) => {
+      this.w.seriesData.seriesX.forEach((sX, si) => {
         if (sX.length) {
           if (sX.length === 1) {
             // a small hack to prevent overlapping multiple bars when there is just 1 datapoint in bar series.
@@ -771,6 +801,24 @@ class Range {
                 this.w.seriesData.seriesX[gl.maxValsInArrayIndex].length - 1
               ],
             )
+          }
+
+          // sortedness + min positive diff already fused into the parse pass
+          // for this exact array: merge and skip the scan
+          const pe = this.w.seriesData._parsedExtrema?.[si]
+          if (
+            pe &&
+            pe.xNumeric &&
+            pe.xSorted &&
+            pe.xref === sX &&
+            pe.len === sX.length
+          ) {
+            if (pe.minXDiff < gl.minXDiff) gl.minXDiff = pe.minXDiff
+            if (gl.dataPoints === 1 || gl.minXDiff === Number.MAX_VALUE) {
+              // fixes apexcharts.js #1221
+              gl.minXDiff = 0.5
+            }
+            return
           }
 
           // Fast lane: x values are almost always already sorted (time

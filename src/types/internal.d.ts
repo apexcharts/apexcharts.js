@@ -171,6 +171,27 @@ export interface SeriesData {
   seriesGoals: Array<Array<Array<{ name: string; value: number; strokeColor?: string }>>>
   stackedSeriesTotals: number[]
   stackedSeriesTotalsByGroups: number[][]
+  /** Per-parse fused x/y-extrema recorded by Data._fast2DArrayParse, consumed
+   * by Range (getMinYMaxY, getInitialMinXMaxX, _getMinXDiff) when the
+   * ref+length guard matches (sparse). */
+  _parsedExtrema?: Array<
+    | {
+        ref: Array<number | null>
+        len: number
+        maxY: number
+        lowestY: number
+        negMinY: number
+        hasNulls: boolean
+        yDec: number
+        xref: any[]
+        xNumeric: boolean
+        minX: number
+        maxX: number
+        xSorted: boolean
+        minXDiff: number
+      }
+    | undefined
+  >
 }
 
 /** Grid / axis layout — lives on `w.layout` */

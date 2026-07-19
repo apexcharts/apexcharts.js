@@ -1654,7 +1654,7 @@ class Line {
     let { pathFromLine, pathFromArea } = pathsFrom;
     const r = this.ctx && this.ctx.renderer;
     const canvasMode = !!(r && r.kind && r.kind !== "svg");
-    const buildStrings = !canvasMode || w.globals.dataChanged;
+    const buildStrings = !canvasMode || w.globals.dataChanged && !!w.globals.prevStreamFrame;
     const nxs = canvasMode ? new Float64Array(n) : null;
     const nys = canvasMode ? new Float64Array(n) : null;
     if (nxs && nys) {

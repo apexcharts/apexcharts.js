@@ -2054,40 +2054,56 @@ export default class ApexCharts {
 
   // ─── Slice write-back stubs ─────────────────────────────────────────────────
   /**
+   * Copy own DATA properties of a parse-state slice onto a live w.* slice.
+   * Never Object.assign here: several w.* fields (and, historically, snapshot
+   * fields) are lazy accessors, and [[Get]]-ing an accessor while copying
+   * forces its deferred computation (a deep initialSeries clone plus O(n)
+   * stacked-totals passes on every render/update) and can replace the live
+   * accessor with a materialized value for the life of the instance.
+   * @param {any} target
+   * @param {any} slice
+   */
+  static _writeDataProps(target, slice) {
+    for (const key of Object.keys(slice)) {
+      const d = Object.getOwnPropertyDescriptor(slice, key)
+      if (d && 'value' in d) target[key] = d.value
+    }
+  }
+  /**
    * @param {Partial<import('./types/internal').SeriesData>} slice
    */
   _writeParsedSeriesData(slice) {
-    Object.assign(this.w.seriesData, slice)
+    ApexCharts._writeDataProps(this.w.seriesData, slice)
   }
   /**
    * @param {Partial<import('./types/internal').RangeData>} slice
    */
   _writeParsedRangeData(slice) {
-    Object.assign(this.w.rangeData, slice)
+    ApexCharts._writeDataProps(this.w.rangeData, slice)
   }
   /**
    * @param {Partial<import('./types/internal').CandleData>} slice
    */
   _writeParsedCandleData(slice) {
-    Object.assign(this.w.candleData, slice)
+    ApexCharts._writeDataProps(this.w.candleData, slice)
   }
   /**
    * @param {Partial<import('./types/internal').LabelData>} slice
    */
   _writeParsedLabelData(slice) {
-    Object.assign(this.w.labelData, slice)
+    ApexCharts._writeDataProps(this.w.labelData, slice)
   }
   /**
    * @param {Partial<import('./types/internal').AxisFlags>} slice
    */
   _writeParsedAxisFlags(slice) {
-    Object.assign(this.w.axisFlags, slice)
+    ApexCharts._writeDataProps(this.w.axisFlags, slice)
   }
   /**
    * @param {Partial<import('./types/internal').LayoutCoords>} slice
    */
   _writeLayoutCoords(slice) {
-    Object.assign(this.w.layout, slice)
+    ApexCharts._writeDataProps(this.w.layout, slice)
   }
 
   _parentResizeCallback() {
