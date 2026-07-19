@@ -27,6 +27,13 @@ export default class Scatter {
     this.fill = new Fill(this.w)
     this.markers = new Markers(this.w, this.ctx)
     this.graphics = new Graphics(this.w)
+
+    // Series-level markers group + per-series constants for the per-point hot
+    // path. draw() is called once per data point, so anything that is uniform
+    // across a series must be created/computed on its first point only.
+    /** @type {any} */ this._elPointsWrap = null
+    /** @type {any} */ this._elPointsWrapParent = null
+    /** @type {any} */ this._perSeries = null
   }
 
   /**
@@ -38,8 +45,8 @@ export default class Scatter {
     const w = this.w
 
     const graphics = this.graphics
-    // Strata (#2): in canvas mode the per-point wrap holds only diverted marks,
-    // so it too emits through the renderer (no per-point DOM group).
+    // Strata (#2): in canvas mode points paint to a bitmap, so marker emission
+    // goes through the renderer (no per-point DOM node).
     const emit = seriesEmitter(this.ctx, graphics)
 
     const realIndex = opts.realIndex
@@ -47,14 +54,31 @@ export default class Scatter {
     const zRatio = opts.zRatio
     const elPointsMain = opts.elParent
 
-    const elPointsWrap = emit.group({
-      class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`,
-    })
+    // ONE markers group per SERIES, not per point. draw() runs once per data
+    // point, so the group, its clip-path, its delegated listeners and its
+    // insertion into the parent must happen on the first point of a series
+    // only; every later point just appends its own path. This halves the node
+    // count on large scatters and removes the per-point delegation setups,
+    // clip-path writes and appends. Per-point interactivity is unaffected:
+    // delegation reads rel/j/index off the target path, not off a wrapper.
+    let elPointsWrap = this._elPointsWrap
+    if (!elPointsWrap || this._elPointsWrapParent !== elPointsMain) {
+      elPointsWrap = emit.group({
+        class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`,
+      })
+      elPointsWrap.attr(
+        'clip-path',
+        `url(#gridRectMarkerMask${w.globals.cuid})`,
+      )
+      // Set up event delegation once on the series group instead of
+      // per-point listeners
+      this.markers.setupMarkerDelegation(elPointsWrap)
+      elPointsMain.add(elPointsWrap)
 
-    elPointsWrap.attr('clip-path', `url(#gridRectMarkerMask${w.globals.cuid})`)
-
-    // Set up event delegation once on the group instead of per-point listeners
-    this.markers.setupMarkerDelegation(elPointsWrap)
+      this._elPointsWrap = elPointsWrap
+      this._elPointsWrapParent = elPointsMain
+      this._perSeries = this._buildPerSeriesCache(realIndex, emit)
+    }
 
     if (Array.isArray(pointsPos.x)) {
       for (let q = 0; q < pointsPos.x.length; q++) {
@@ -119,9 +143,42 @@ export default class Scatter {
             w.globals.pointsArray[realIndex][dataPointIndex] = [x, y]
           }
         }
-
-        elPointsMain.add(elPointsWrap)
       }
+    }
+  }
+
+  /**
+   * Per-series constants for drawPoint's hot path. Everything here is uniform
+   * across the points of one series; computing or allocating it per point is
+   * measurable overhead at 20k-50k points.
+   * @param {number} realIndex
+   * @param {any} emit
+   */
+  _buildPerSeriesCache(realIndex, emit) {
+    const w = this.w
+    return {
+      realIndex,
+      emit,
+      isBubble:
+        w.config.chart.type === 'bubble' ||
+        (w.globals.comboCharts &&
+          w.config.series[realIndex] &&
+          /** @type {Record<string,any>} */ (w.config.series[realIndex])
+            .type === 'bubble'),
+      // discrete markers vary per point; they disable both caches below
+      canCacheConfig: !w.config.markers.discrete.length,
+      /** @type {any} lazily built shared marker config (first point) */
+      markerConfig: null,
+      /** @type {boolean|undefined} lazily resolved on the first fillPath call */
+      fillCacheable: undefined,
+      /** @type {any} cached fillPath result (undefined = not cached yet) */
+      fillCircle: undefined,
+      dropShadowEnabled: w.config.chart.dropShadow.enabled,
+      doInitialAnim:
+        this.initialAnim && !w.globals.dataChanged && !w.globals.resized,
+      jitter: w.config.plotOptions.scatter?.jitter,
+      /** @type {any} lazily built pop-animation constants */
+      anim: null,
     }
   }
 
@@ -141,45 +198,86 @@ export default class Scatter {
     const filters = this.filters
     const fill = this.fill
     const markers = this.markers
-    const graphics = this.graphics
+
+    let ps = this._perSeries
+    if (!ps || ps.realIndex !== realIndex) {
+      // drawPoint called outside draw()'s series loop: build a fresh cache
+      ps = this._perSeries = this._buildPerSeriesCache(
+        realIndex,
+        seriesEmitter(this.ctx, this.graphics),
+      )
+    }
     // Strata (#2): scatter/bubble points emit through the active renderer.
-    const emit = seriesEmitter(this.ctx, graphics)
+    const emit = ps.emit
 
-    const markerConfig = markers.getMarkerConfig({
-      cssClass: 'apexcharts-marker',
-      seriesIndex: i,
-      dataPointIndex,
-      radius:
-        w.config.chart.type === 'bubble' ||
-        (w.globals.comboCharts &&
-          w.config.series[realIndex] &&
-          /** @type {Record<string,any>} */ (w.config.series[realIndex]).type === 'bubble')
-          ? radius
-          : null,
-    })
+    let markerConfig
+    if (ps.canCacheConfig) {
+      // Marker config is uniform across the series (no discrete overrides);
+      // build it once and only refresh the per-point bubble radius.
+      if (!ps.markerConfig) {
+        ps.markerConfig = markers.getMarkerConfig({
+          cssClass: 'apexcharts-marker',
+          seriesIndex: i,
+          dataPointIndex,
+          radius: ps.isBubble ? radius : null,
+        })
+      }
+      markerConfig = ps.markerConfig
+      if (ps.isBubble) {
+        markerConfig.pSize = radius
+        markerConfig.pRadius = radius
+      }
+    } else {
+      markerConfig = markers.getMarkerConfig({
+        cssClass: 'apexcharts-marker',
+        seriesIndex: i,
+        dataPointIndex,
+        radius: ps.isBubble ? radius : null,
+      })
+    }
 
-    let pathFillCircle = fill.fillPath({
-      seriesNumber: realIndex,
-      dataPointIndex,
-      color: markerConfig.pointFillColor,
-      patternUnits: 'objectBoundingBox',
-      value: w.seriesData.series[realIndex][j],
-    })
+    const _si = /** @type {Record<string,any>} */ (w.config.series[i])
+    const dataItem = _si.data[dataPointIndex]
+
+    let pathFillCircle
+    if (ps.fillCircle !== undefined) {
+      pathFillCircle = ps.fillCircle
+    } else {
+      pathFillCircle = fill.fillPath({
+        seriesNumber: realIndex,
+        dataPointIndex,
+        color: markerConfig.pointFillColor,
+        patternUnits: 'objectBoundingBox',
+        value: w.seriesData.series[realIndex][j],
+      })
+      if (ps.fillCacheable === undefined) {
+        // Solid fills with a concrete marker color resolve to the same paint
+        // for every point of the series; gradients/patterns/function colors
+        // (and discrete-marker series) stay per point.
+        ps.fillCacheable =
+          ps.canCacheConfig &&
+          fill.getFillType(realIndex) === 'solid' &&
+          typeof markerConfig.pointFillColor === 'string' &&
+          !!markerConfig.pointFillColor
+      }
+      if (ps.fillCacheable && !dataItem?.fillColor) {
+        ps.fillCircle = pathFillCircle
+      }
+    }
 
     const el = emit.drawMarker(x, y, markerConfig)
 
-    const _si = /** @type {Record<string,any>} */ (w.config.series[i])
-    if (_si.data[dataPointIndex]) {
-      if (_si.data[dataPointIndex].fillColor) {
-        pathFillCircle = _si.data[dataPointIndex].fillColor
-      }
+    if (dataItem?.fillColor) {
+      pathFillCircle = dataItem.fillColor
     }
 
     // Distributed jitter: colour each band by its position (x value) instead of
     // by series — lets a single-series strip plot show one colour per band.
-    const jt = w.config.plotOptions.scatter?.jitter
+    const jt = ps.jitter
     if (jt?.enabled && jt.distributed && w.globals.colors.length) {
-      const bandIdx = Math.round(w.seriesData.seriesX[realIndex]?.[dataPointIndex])
+      const bandIdx = Math.round(
+        w.seriesData.seriesX[realIndex]?.[dataPointIndex],
+      )
       if (!isNaN(bandIdx)) {
         pathFillCircle = w.globals.colors[bandIdx % w.globals.colors.length]
       }
@@ -189,29 +287,33 @@ export default class Scatter {
       fill: pathFillCircle,
     })
 
-    if (w.config.chart.dropShadow.enabled) {
+    if (ps.dropShadowEnabled) {
       const dropShadow = w.config.chart.dropShadow
       filters.dropShadow(el, dropShadow, realIndex)
     }
 
-    if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
-      const animCfg = w.config.chart.animations
-      // Pop effect: scale + opacity per marker. Per-point left-to-right
-      // stagger is driven by `animateGradually`.
-      const popSpeed = animCfg.speed
-      const totalPoints = w.globals.dataPoints || 1
-      const gradCfg = animCfg.animateGradually
-      const gradEnabled = gradCfg && gradCfg.enabled !== false
-      const baseDelay = gradEnabled
-        ? Math.min(20, (popSpeed * 0.5) / Math.max(1, totalPoints))
-        : 0
+    if (ps.doInitialAnim) {
+      if (!ps.anim) {
+        const animCfg = w.config.chart.animations
+        // Pop effect: scale + opacity per marker. Per-point left-to-right
+        // stagger is driven by `animateGradually`.
+        const totalPoints = w.globals.dataPoints || 1
+        const gradCfg = animCfg.animateGradually
+        const gradEnabled = gradCfg && gradCfg.enabled !== false
+        ps.anim = {
+          popSpeed: animCfg.speed,
+          baseDelay: gradEnabled
+            ? Math.min(20, (animCfg.speed * 0.5) / Math.max(1, totalPoints))
+            : 0,
+        }
+      }
       const delay = computeStagger({
-        style: baseDelay > 0 ? 'sequential' : 'none',
+        style: ps.anim.baseDelay > 0 ? 'sequential' : 'none',
         index: dataPointIndex,
-        baseDelay,
+        baseDelay: ps.anim.baseDelay,
       })
       anim.animatePop(el, {
-        speed: popSpeed,
+        speed: ps.anim.popSpeed,
         delay,
         onComplete: () => anim.animationCompleted(el),
       })
@@ -228,7 +330,8 @@ export default class Scatter {
 
     filters.setSelectionFilter(el, realIndex, dataPointIndex)
 
-    el.node.classList.add('apexcharts-marker')
+    // NOTE: markerConfig.class already carries 'apexcharts-marker' (set as the
+    // class attribute by drawMarkerShape), so no classList.add is needed here.
 
     return el
   }

@@ -70,6 +70,8 @@ class Line {
     /** @type {any} */ this.elSeries = null
     /** @type {any} */ this.elPointsMain = null
     /** @type {any} */ this.elDataLabelsWrap = null
+    /** @type {any} last marker wrap appended to elPointsMain (identity guard) */
+    this._elLastPointsWrap = null
   }
 
   /**
@@ -355,6 +357,10 @@ class Line {
       class: 'apexcharts-series-markers-wrap',
       'data:realIndex': realIndex,
     })
+    // fresh series element tree -> the per-series marker wrap cache must not
+    // leak a group belonging to a previous series/render
+    this.markers.resetSeriesWrapCache()
+    this._elLastPointsWrap = null
 
     if (w.globals.hasNullValues) {
       // fixes https://github.com/apexcharts/apexcharts.js/issues/3641
@@ -566,6 +572,10 @@ class Line {
       className: `apexcharts-${type}`,
     }
 
+    // Numeric fast-path coords (canvas mode): the renderer paints these via a
+    // moveTo/lineTo loop instead of parsing the d string into a Path2D.
+    const numericXY = paths.numericXY
+
     if (type === 'area') {
       const pathFill = fill.fillPath({
         seriesNumber: realIndex,
@@ -578,6 +588,13 @@ class Line {
             ? projectPathToPrevFrame(paths.areaPaths[p], streamScroll)
             : (reconcile?.area?.from ?? paths.pathFromArea),
           pathTo: paths.areaPaths[p],
+          pathToNumeric: numericXY
+            ? {
+                xs: numericXY.xs,
+                ys: numericXY.ys,
+                closeY: numericXY.areaCloseY,
+              }
+            : undefined,
           pathToInterp: reconcile?.area?.toInterp,
           scrollMorph: !!streamScroll,
           stroke: 'none',
@@ -625,6 +642,9 @@ class Line {
             ? projectPathToPrevFrame(paths.linePaths[p], streamScroll)
             : (reconcile?.line?.from ?? paths.pathFromLine),
           pathTo: paths.linePaths[p],
+          pathToNumeric: numericXY
+            ? { xs: numericXY.xs, ys: numericXY.ys }
+            : undefined,
           pathToInterp: reconcile?.line?.toInterp,
           scrollMorph: !!streamScroll,
           stroke: lineFill,
@@ -746,6 +766,34 @@ class Line {
     // and the tooltip's nearest-point picker all share the same jittered coords
     // (keeps the sticky tooltip anchored to the dot the cursor is actually over).
     const jitterPx = this.pointsChart ? this._scatterJitterPx(realIndex) : null
+
+    // Numeric fast path: a plain straight line/area (no nulls, markers,
+    // labels, stacking) computes its geometry in one tight loop with a
+    // join-built d string that is byte-identical to what the state machine
+    // below produces, skipping the per-point _createPaths /
+    // _handleMarkersAndLabels machinery that dominates large-series renders.
+    if (curve === 'straight' && !this.pointsChart) {
+      const fast = this._fastStraightPath({
+        type,
+        series,
+        i,
+        realIndex,
+        translationsIndex,
+        iterations,
+        x,
+        y,
+        pX,
+        pY,
+        pathsFrom,
+        linePaths,
+        areaPaths,
+        xArrj,
+        yArrj,
+        y2Arrj,
+        stackSeries,
+      })
+      if (fast) return fast
+    }
 
     for (let j = 0; j < iterations; j++) {
       if (series[i].length === 0) break
@@ -929,8 +977,11 @@ class Line {
         seriesIndex: realIndex,
         j: j + 1,
       })
-      if (elPointsWrap !== null) {
+      // plotChartMarkers returns the same per-series wrap group for every
+      // point; append it only when it first appears
+      if (elPointsWrap !== null && elPointsWrap !== this._elLastPointsWrap) {
         this.elPointsMain.add(elPointsWrap)
+        this._elLastPointsWrap = elPointsWrap
       }
     } else {
       // scatter / bubble chart points creation (jitter is already baked into
@@ -979,6 +1030,174 @@ class Line {
     return {
       x: (jt.x || 0) * xUnitPx,
       y: (jt.y || 0) * yUnitPx,
+    }
+  }
+
+  /**
+   * Numeric geometry fast path for plain straight line/area series (the
+   * render-2026 perf work). Eligibility is strict: everything the per-point
+   * slow loop can do beyond plain geometry (null gaps, markers, data labels,
+   * discrete markers, stacking, combos, range areas) bails to the state
+   * machine. When eligible it produces the SAME outputs as the slow loop
+   * (byte-identical d strings via join, the same xArrj/yArrj/y2Arrj
+   * pushes, and the same pointsArray tooltip cache) in one tight loop.
+   * In canvas mode it additionally emits typed-array coordinates so the
+   * renderer can paint via moveTo/lineTo without a Path2D d-string parse.
+   *
+   * @param {{type: any, series: any, i: number, realIndex: number,
+   *   translationsIndex: number, iterations: number, x: number, y: number,
+   *   pX: number, pY: number, pathsFrom: any, linePaths: any[],
+   *   areaPaths: any[], xArrj: any[], yArrj: any[], y2Arrj: any[],
+   *   stackSeries: boolean}} opts
+   * @returns {any} the _iterateOverDataPoints result, or null when ineligible
+   */
+  _fastStraightPath({
+    type,
+    series,
+    i,
+    realIndex,
+    translationsIndex,
+    iterations,
+    x,
+    y,
+    pX,
+    pY,
+    pathsFrom,
+    linePaths,
+    areaPaths,
+    xArrj,
+    yArrj,
+    y2Arrj,
+    stackSeries,
+  }) {
+    const w = this.w
+
+    if (type !== 'line' && type !== 'area') return null
+    if (w.globals.comboCharts || stackSeries) return null
+    if (w.config.dataLabels.enabled) return null
+    if (w.config.markers.discrete.length) return null
+    // markers on -> per-point marker emission, slow loop
+    if (w.globals.markers.size[realIndex] > 0) return null
+
+    const s = series[i]
+    const n = s.length
+    // ragged/short series rely on the slow loop's padding fixes (#374)
+    if (!iterations || n < 2 || n - 1 !== iterations) return null
+
+    // any null/undefined value re-enters the segmenting state machine
+    for (let k = 0; k <= iterations; k++) {
+      const v = s[k]
+      if (v === null || typeof v === 'undefined') return null
+    }
+
+    const isXNumeric = w.axisFlags.isXNumeric
+    const sx = isXNumeric ? w.seriesData.seriesX[realIndex] : null
+    if (isXNumeric && (!sx || sx.length < n)) return null
+
+    const yR = this.yRatio[translationsIndex]
+    const isReversed = this.isReversed
+    const zeroY = this.zeroY
+    const bottomY = this.areaBottomY
+    const xRatio = this.xRatio
+    const minX = w.globals.minX
+    const xDivision = this.xDivision
+    const offX = w.config.markers.offsetX
+    const offY = w.config.markers.offsetY
+
+    // pathFrom baselines grow one ` L x bottom` per point (unless a previous
+    // render's path was adopted, which turns appendPathFrom off)
+    const appendFrom = this.appendPathFrom && !w.globals.hasNullValues
+    let { pathFromLine, pathFromArea } = pathsFrom
+
+    // canvas mode: numeric coords let the renderer skip the d-string parse;
+    // on an initial canvas render nothing consumes the d strings at all
+    // (morph/reconcile inputs only exist once dataChanged), so skip building
+    // them too
+    const r = this.ctx && this.ctx.renderer
+    const canvasMode = !!(r && r.kind && r.kind !== 'svg')
+    const buildStrings = !canvasMode || w.globals.dataChanged
+    const nxs = canvasMode ? new Float64Array(n) : null
+    const nys = canvasMode ? new Float64Array(n) : null
+    if (nxs && nys) {
+      nxs[0] = pX
+      nys[0] = pY
+    }
+
+    // tooltip position cache: replicate the markers-off plotChartMarkers
+    // pushes (two entries for the doubled first point, then one per point)
+    if (typeof w.globals.pointsArray[realIndex] === 'undefined') {
+      w.globals.pointsArray[realIndex] = []
+    }
+    const pts = w.globals.pointsArray[realIndex]
+    const xPT1st = sx
+      ? (sx[0] - minX) / xRatio + offX
+      : this.categoryAxisCorrection + offX
+    pts.push([xPT1st, pathsFrom.prevY + offY])
+
+    /** @type {any[]} */
+    const parts = buildStrings ? new Array(iterations + 1) : []
+    if (buildStrings) parts[0] = 'M ' + pX + ' ' + pY
+    /** @type {any[]|null} */
+    const fromParts = buildStrings && appendFrom ? new Array(iterations) : null
+
+    let xv = x
+    let xj = pX
+    let yj = pY
+    for (let j = 0; j < iterations; j++) {
+      if (sx) {
+        xj = (sx[j + 1] - minX) / xRatio
+      } else {
+        xv = xv + xDivision
+        xj = xv
+      }
+      const v = s[j + 1]
+      yj = zeroY - v / yR + (isReversed ? v / yR : 0) * 2
+
+      xArrj.push(xj)
+      yArrj.push(yj)
+      y2Arrj.push(y)
+      pts.push([xj + offX, yj + offY])
+      if (buildStrings) {
+        parts[j + 1] = ' L ' + xj + ' ' + yj
+        if (fromParts) fromParts[j] = ' L ' + xj + ' ' + bottomY
+      }
+      if (nxs && nys) {
+        nxs[j + 1] = xj
+        nys[j + 1] = yj
+      }
+    }
+
+    let linePath = ''
+    let areaPath = ''
+    if (buildStrings) {
+      linePath = parts.join('')
+      areaPath =
+        linePath + ' L ' + xj + ' ' + bottomY + ' L ' + pX + ' ' + bottomY + 'z'
+    }
+    if (fromParts) {
+      const fromAppend = fromParts.join('')
+      pathFromLine += fromAppend
+      pathFromArea += fromAppend
+    } else if (!buildStrings && appendFrom) {
+      // canvas initial render: baselines aren't consumed, keep them cheap
+      // (renderPaths only checks truthiness before the inert canvas morph)
+      pathFromLine += ' L ' + xj + ' ' + bottomY
+      pathFromArea += ' L ' + xj + ' ' + bottomY
+    }
+
+    linePaths.push(linePath)
+    areaPaths.push(areaPath)
+
+    return {
+      yArrj,
+      xArrj,
+      pathFromArea,
+      areaPaths,
+      pathFromLine,
+      linePaths,
+      linePath,
+      areaPath,
+      numericXY: nxs ? { xs: nxs, ys: nys, areaCloseY: bottomY } : undefined,
     }
   }
 

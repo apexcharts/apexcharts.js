@@ -22,6 +22,23 @@ export default class Markers {
 
     this._filters = new Filters(this.w)
     this._graphics = new Graphics(this.w, this.ctx)
+
+    // plotChartMarkers runs once per data point (Line's j loop), so the
+    // standard per-series wrap group is cached here after its first creation:
+    // ONE group + ONE delegation setup per series instead of per point.
+    /** @type {any} */ this._seriesWrap = null
+    /** @type {number} */ this._seriesWrapIndex = -1
+  }
+
+  /**
+   * Invalidate the cached per-series wrap group. Callers that drive
+   * plotChartMarkers point-by-point (Line) must call this when a series'
+   * element tree is (re)created, so a later render never appends markers to a
+   * detached group from the previous pass.
+   */
+  resetSeriesWrapCache() {
+    this._seriesWrap = null
+    this._seriesWrapIndex = -1
   }
 
   setGlobalMarkerSize() {
@@ -152,18 +169,33 @@ export default class Markers {
               alwaysDrawMarker ||
               hasDiscreteMarkers
             if (shouldCreateMarkerWrap && !elMarkersWrap) {
-              elMarkersWrap = emit.group({
-                class:
-                  alwaysDrawMarker || hasDiscreteMarkers
-                    ? ''
-                    : 'apexcharts-series-markers',
-              })
-              elMarkersWrap.attr(
-                'clip-path',
-                `url(#gridRectMarkerMask${w.globals.cuid})`,
-              )
-              // Set up event delegation once on the group
-              this.setupMarkerDelegation(elMarkersWrap)
+              // The standard series wrap is identical for every point of a
+              // series, so reuse the one created on the series' first point
+              // (callers detect the reuse by identity and skip re-appending).
+              // Special wraps (null-value virtual points, discrete markers)
+              // keep their per-call groups.
+              const standardWrap = !alwaysDrawMarker && !hasDiscreteMarkers
+              if (
+                standardWrap &&
+                this._seriesWrap &&
+                this._seriesWrapIndex === seriesIndex
+              ) {
+                elMarkersWrap = this._seriesWrap
+              } else {
+                elMarkersWrap = emit.group({
+                  class: standardWrap ? 'apexcharts-series-markers' : '',
+                })
+                elMarkersWrap.attr(
+                  'clip-path',
+                  `url(#gridRectMarkerMask${w.globals.cuid})`,
+                )
+                // Set up event delegation once on the group
+                this.setupMarkerDelegation(elMarkersWrap)
+                if (standardWrap) {
+                  this._seriesWrap = elMarkersWrap
+                  this._seriesWrapIndex = seriesIndex
+                }
+              }
             }
             markerElement = emit.drawMarker(p.x[q], p.y[q], opts)
 

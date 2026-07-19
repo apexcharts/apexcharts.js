@@ -670,6 +670,14 @@ export default class CanvasGraphics {
   renderPaths(opts) {
     const cmd = this._cmd('path', opts.realIndex)
     cmd.d = opts.pathTo
+    // Numeric fast-path coords (plain straight line/area): painted with a
+    // direct moveTo/lineTo loop, no d-string Path2D parse. closeY (area)
+    // drops the fill down to the baseline and closes the polygon.
+    if (opts.pathToNumeric) {
+      cmd.nxs = opts.pathToNumeric.xs
+      cmd.nys = opts.pathToNumeric.ys
+      cmd.ncloseY = opts.pathToNumeric.closeY
+    }
     cmd.stroke = opts.stroke
     cmd.strokeWidth = opts.strokeWidth
     cmd.fill = opts.fill
