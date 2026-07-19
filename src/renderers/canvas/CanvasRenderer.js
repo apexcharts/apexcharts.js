@@ -65,6 +65,22 @@ export default class CanvasRenderer {
     this._compositor.clear()
   }
 
+  /**
+   * Whether the existing <canvas> host can be repainted in place (it exists
+   * and is still mounted). Used by the data-only fast update path to skip
+   * recreating the foreignObject + backing store on every tick.
+   * @returns {boolean}
+   */
+  canRepaintInPlace() {
+    const host = this._compositor.getHost()
+    return !!(host && host.node && host.node.isConnected)
+  }
+
+  /** Repaint the freshly recorded display list into the EXISTING canvas. */
+  repaintInPlace() {
+    this._compositor.paint(this._g.displayList(), this._g)
+  }
+
   // ── emit primitives (delegate to the display-list shim) ──
   /** @param {any} attrs */
   group(attrs) {

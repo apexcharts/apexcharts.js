@@ -493,14 +493,63 @@ export default class Globals {
   }
 
   /**
+   * Lazy initial-series snapshot. Capturing `initialSeries` used to deep-clone
+   * the entire series on every parse and every update: the single largest CPU
+   * bucket at 50k+ points (profiled at ~23ms per 50k update). The setter now
+   * stores a cheap per-series shallow copy (series OBJECTS copied, data arrays
+   * shared) and the deep snapshot materializes only when something actually
+   * reads it (resetSeries, toolbar reset-home, tooltip same-length check).
+   *
+   * Why sharing the data arrays is safe: internal "mutations" of a series'
+   * data are property REPLACEMENTS (`series[i].data = []` on legend collapse),
+   * which cannot reach the captured copies because each series object was
+   * copied at capture time. The one in-place mutator (appendData's push loop)
+   * re-captures immediately after mutating, so the pending snapshot never
+   * spans the mutation.
+   *
+   * @param {Record<string, any>} globals
+   */
+  defineLazyInitialSeries(globals) {
+    /** @type {any} */
+    let src = []
+    /** @type {any} */
+    let snap = null
+    Object.defineProperty(globals, 'initialSeries', {
+      configurable: true,
+      enumerable: true,
+      get() {
+        if (snap === null) {
+          snap = Utils.clone(src)
+        }
+        return snap
+      },
+      set(value) {
+        src = Array.isArray(value)
+          ? value.map((s) =>
+              s && typeof s === 'object' && !Array.isArray(s) ? { ...s } : s,
+            )
+          : value
+        snap = null
+        // Read-only peek for hot-path consumers (tooltip's same-length check
+        // runs per update): reading it does NOT materialize the deep snapshot.
+        // Consumers must not mutate it.
+        globals._initialSeriesPeek = src
+      },
+    })
+    globals._initialSeriesPeek = src
+  }
+
+  /**
    * @param {Record<string, any>} config
    */
   init(config) {
     const globals = this.globalVars(config)
     this.initGlobalVars(globals)
 
+    this.defineLazyInitialSeries(globals)
+
     globals.initialConfig = Utils.extend({}, config)
-    globals.initialSeries = Utils.clone(config.series)
+    globals.initialSeries = config.series
 
     globals.lastXAxis = Utils.clone(
       /** @type {NonNullable<typeof globals.initialConfig>} */ (

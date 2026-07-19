@@ -52,7 +52,8 @@ export default class UpdateHelpers {
           w.globals.resized = true
           w.globals.dataChanged = true
 
-          if (animate) {
+          // see _updateSeries: previous paths only feed update morphs
+          if (animate && w.config.chart.animations.enabled) {
             ch.series.getPreviousPaths()
           }
         }
@@ -150,7 +151,8 @@ export default class UpdateHelpers {
 
             // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
             w.globals.initialConfig = Utils.extend({}, w.config)
-            w.globals.initialSeries = Utils.clone(w.config.series)
+            // lazy snapshot: deep clone deferred to first read
+            w.globals.initialSeries = w.config.series
 
             if (options.series) {
               // Replace the collapsed series data
@@ -219,7 +221,10 @@ export default class UpdateHelpers {
 
       PerformanceCache.invalidateSelectors(w)
 
-      if (animate) {
+      // Previous paths (and the stream-frame / axis-chrome snapshots captured
+      // with them) only feed update MORPHS. When animations are globally off
+      // nothing consumes them, and the capture is O(n) per update.
+      if (animate && w.config.chart.animations.enabled) {
         this.ctx.series.getPreviousPaths()
       }
 
@@ -244,10 +249,14 @@ export default class UpdateHelpers {
       this.ctx._writeParsedAxisFlags(parsedState.axisFlags)
 
       if (overwriteInitialSeries) {
+        // initialConfig.series has aliased w.config.series since Globals.init
+        // (Utils.extend copies arrays by reference); keep that alias fresh.
+        // initialSeries was already captured by parseData above through the
+        // lazy-snapshot setter, so no deep clone happens here either.
         if (w.globals.initialConfig) {
-          w.globals.initialConfig.series = Utils.clone(w.config.series)
+          w.globals.initialConfig.series = w.config.series
         }
-        w.globals.initialSeries = Utils.clone(w.config.series)
+        w.globals.initialSeries = w.config.series
       }
 
       // Use the fast path when the series structure is compatible:
@@ -259,6 +268,8 @@ export default class UpdateHelpers {
         })
       }
 
+      // structural change (series count/lengths/type): full render
+      if (this.ctx._updateStats) this.ctx._updateStats.full++
       return this.ctx.update().then(() => {
         resolve(this.ctx)
       })

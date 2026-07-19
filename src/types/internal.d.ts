@@ -253,6 +253,8 @@ export interface ChartGlobals
   // ── Config snapshots ──────────────────────────────────────────────────────
   initialConfig: ResolvedApexOptions | null
   initialSeries: ApexOptions['series']
+  /** Non-materializing view of the lazy initialSeries snapshot (read-only). */
+  _initialSeriesPeek: ApexOptions['series']
   lastXAxis: object[]
   lastYAxis: object[]
   originalSeries: ApexOptions['series'] | null

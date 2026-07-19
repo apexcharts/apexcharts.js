@@ -168,6 +168,46 @@ test.describe('Drag zoom (type=x)', () => {
     expect(maxX).toBeCloseTo(layout.initialMaxX, -1)
   })
 
+  test('drag zoom converts pixels against the current domain after a fast data-only update', async ({ page, loadChart }) => {
+    // Regression: ZoomPanSelection captures xyRatios at init and is only
+    // recreated by a full render. The fast update path keeps the instance
+    // while changing the domain, so a later drag-zoom converted pixels with
+    // the PRE-update ratios (a middle-40% drag over a 1000..2000 domain
+    // landed on a ~8-unit window at the left edge). fastUpdate must hand the
+    // surviving instance the fresh ratios.
+    await loadChart(CHART, FIXTURE)
+
+    // move the x domain from 1..20 to 1000..2000 through the fast path
+    await page.evaluate(async () => {
+      const pts = Array.from({ length: 20 }, (_, i) => ({
+        x: 1000 + (i * 1000) / 19,
+        y: 40 + ((i * 13) % 90),
+      }))
+      await window.chart.updateSeries([{ name: 'Sales', data: pts }])
+    })
+    const stats = await page.evaluate(() => window.chart._updateStats)
+    expect(stats.full).toBe(0)
+    expect(stats.fast + stats.fastWithAxes).toBeGreaterThanOrEqual(1)
+
+    const layout = await getGridLayout(page)
+    const startX = layout.translateX + layout.gridWidth * 0.3
+    const endX   = layout.translateX + layout.gridWidth * 0.7
+    const midY   = layout.translateY + layout.gridHeight / 2
+
+    await dragOnChart(page, { x: startX, y: midY }, { x: endX, y: midY })
+    await page.waitForFunction(
+      () => window.chart.w.interact.zoomed === true,
+      { timeout: 3_000 },
+    )
+
+    // the zoomed window must sit around the middle of the NEW domain
+    const { minX, maxX } = await getXRange(page)
+    expect(minX).toBeGreaterThan(1150)
+    expect(minX).toBeLessThan(1450)
+    expect(maxX).toBeGreaterThan(1550)
+    expect(maxX).toBeLessThan(1850)
+  })
+
   test('short drag (< 10px) does not trigger zoom', async ({ page, loadChart }) => {
     await loadChart(CHART, FIXTURE)
     const layout = await getGridLayout(page)

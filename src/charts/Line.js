@@ -1109,13 +1109,15 @@ class Line {
     const appendFrom = this.appendPathFrom && !w.globals.hasNullValues
     let { pathFromLine, pathFromArea } = pathsFrom
 
-    // canvas mode: numeric coords let the renderer skip the d-string parse;
-    // on an initial canvas render nothing consumes the d strings at all
-    // (morph/reconcile inputs only exist once dataChanged), so skip building
-    // them too
+    // canvas mode: numeric coords let the renderer skip the d-string parse.
+    // The d strings themselves are only consumed by the update-morph pipeline
+    // (streamScroll / reconcile), which requires a captured previous frame;
+    // without one (initial render, or updates with animations disabled) skip
+    // building them entirely.
     const r = this.ctx && this.ctx.renderer
     const canvasMode = !!(r && r.kind && r.kind !== 'svg')
-    const buildStrings = !canvasMode || w.globals.dataChanged
+    const buildStrings =
+      !canvasMode || (w.globals.dataChanged && !!w.globals.prevStreamFrame)
     const nxs = canvasMode ? new Float64Array(n) : null
     const nys = canvasMode ? new Float64Array(n) : null
     if (nxs && nys) {

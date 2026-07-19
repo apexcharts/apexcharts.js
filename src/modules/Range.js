@@ -123,6 +123,79 @@ class Range {
           }
         }
       }
+      // Fast lane for plain numeric series (line/area/scatter/column with
+      // scalar y values): the general loop below pays several function calls
+      // and a string conversion PER VALUE (isNumber/noExponents/isFloat/
+      // toString), measured as the largest post-parse CPU bucket at 50k+
+      // points. This lane replicates its exact observable effects (min/max,
+      // hasNullValues, yValueDecimal, negative minY) with inline checks.
+      const plainNumeric =
+        seriesMin === series &&
+        seriesMax === series &&
+        cnf.chart.type !== 'boxPlot' &&
+        seriesType !== 'candlestick' &&
+        seriesType !== 'boxPlot' &&
+        seriesType !== 'violin' &&
+        seriesType !== 'rangeArea' &&
+        seriesType !== 'rangeBar' &&
+        !(
+          this.w.seriesData.seriesGoals[i] &&
+          this.w.seriesData.seriesGoals[i].length
+        )
+      if (plainNumeric) {
+        const arr = series[i]
+        let yDec = gl.yValueDecimal
+        let hasNulls = false
+        const jEnd = Math.min(lastXIndex, arr.length - 1)
+        for (let j = firstXIndex; j <= jEnd; j++) {
+          const val = arr[j]
+          // inline isNumber: number, not NaN/Infinity, not null
+          if (
+            val !== null &&
+            typeof val === 'number' &&
+            val === val &&
+            val !== Infinity &&
+            val !== -Infinity
+          ) {
+            if (val > maxY) maxY = val
+            if (val < lowestY) lowestY = val
+            if (minY > val && val < 0) minY = val
+            if (!Number.isInteger(val)) {
+              const av = val < 0 ? -val : val
+              if (av >= 1e-6 && av < 1e21) {
+                // plain decimal notation: count fraction digits directly
+                const str = '' + val
+                const dot = str.indexOf('.')
+                const dec = dot === -1 ? 0 : str.length - dot - 1
+                if (dec > yDec) yDec = dec
+              } else {
+                // exponent notation: use the exact legacy conversion
+                const nv = Utils.noExponents(val)
+                if (Utils.isFloat(nv)) {
+                  yDec = Math.max(yDec, nv.toString().split('.')[1].length)
+                }
+              }
+            }
+          } else {
+            hasNulls = true
+          }
+        }
+        highestY = maxY
+        gl.yValueDecimal = yDec
+        if (hasNulls) gl.hasNullValues = true
+        // bar/column post-loop adjustments (same as the general loop's tail)
+        if (seriesType === 'bar' || seriesType === 'column') {
+          if (minY < 0 && maxY < 0) {
+            maxY = 0
+            highestY = Math.max(highestY, 0)
+          }
+          if (minY === Number.MIN_VALUE) {
+            minY = 0
+            lowestY = Math.min(lowestY, 0)
+          }
+        }
+        continue
+      }
       for (
         let j = firstXIndex;
         j <= lastXIndex && j < this.w.seriesData.series[i].length;
@@ -471,41 +544,25 @@ class Range {
       this.w.axisFlags.isXNumeric
 
     const getInitialMinXMaxX = () => {
+      // hot loop at 50k+ points: track locals with inline number checks and
+      // write the globals once (initialMin/MaxX always mirror min/maxX here)
+      let minX = gl.minX
+      let maxX = gl.maxX
       for (let i = 0; i < this.w.seriesData.series.length; i++) {
-        if (this.w.labelData.labels[i]) {
-          for (let j = 0; j < this.w.labelData.labels[i].length; j++) {
-            if (
-              this.w.labelData.labels[i][j] !== null &&
-              Utils.isNumber(this.w.labelData.labels[i][j])
-            ) {
-              gl.maxX = Math.max(
-                gl.maxX,
-                /** @type {number} */ (
-                  /** @type {any} */ (this.w.labelData.labels[i][j])
-                ),
-              )
-              gl.initialMaxX = Math.max(
-                gl.maxX,
-                /** @type {number} */ (
-                  /** @type {any} */ (this.w.labelData.labels[i][j])
-                ),
-              )
-              gl.minX = Math.min(
-                gl.minX,
-                /** @type {number} */ (
-                  /** @type {any} */ (this.w.labelData.labels[i][j])
-                ),
-              )
-              gl.initialMinX = Math.min(
-                gl.minX,
-                /** @type {number} */ (
-                  /** @type {any} */ (this.w.labelData.labels[i][j])
-                ),
-              )
-            }
+        const lbls = /** @type {any} */ (this.w.labelData.labels[i])
+        if (!lbls) continue
+        for (let j = 0; j < lbls.length; j++) {
+          const v = lbls[j]
+          if (v !== null && typeof v === 'number' && v === v) {
+            if (v > maxX) maxX = v
+            if (v < minX) minX = v
           }
         }
       }
+      gl.maxX = maxX
+      gl.initialMaxX = maxX
+      gl.minX = minX
+      gl.initialMinX = minX
     }
     // minX maxX starts here
     if (this.w.axisFlags.isXNumeric) {
@@ -714,6 +771,29 @@ class Range {
                 this.w.seriesData.seriesX[gl.maxValsInArrayIndex].length - 1
               ],
             )
+          }
+
+          // Fast lane: x values are almost always already sorted (time
+          // series, numeric streams). One pass detects sortedness and takes
+          // the min positive diff without the O(n log n) clone + sort.
+          let presorted = true
+          let minDiff = gl.minXDiff
+          for (let j = 1; j < sX.length; j++) {
+            const d = sX[j] - sX[j - 1]
+            if (d > 0) {
+              if (d < minDiff) minDiff = d
+            } else if (d < 0) {
+              presorted = false
+              break
+            }
+          }
+          if (presorted) {
+            gl.minXDiff = minDiff
+            if (gl.dataPoints === 1 || gl.minXDiff === Number.MAX_VALUE) {
+              // fixes apexcharts.js #1221
+              gl.minXDiff = 0.5
+            }
+            return
           }
 
           // fix #983 (clone the array to avoid side effects)

@@ -74,6 +74,7 @@ export default class ApexCharts {
   /** @type {any} */ morphTypeChange
   /** @type {any} */ timeScale
   /** @type {any} */ _keyboardNavigation
+  /** @type {any} */ _zoomPanSelection
   /** @type {any} */ windowResizeHandler
   /** @type {any} */ parentResizeHandler
   /** @type {string[]} */ publicMethods = []
@@ -126,6 +127,12 @@ export default class ApexCharts {
     initCtx.initModules()
 
     this.lastUpdateOptions = null
+
+    // Dev/test hook (render-2026 update-throughput work): counts which path
+    // each data update took. `fast` = series-only repaint, `fastWithAxes` =
+    // series repaint + in-place axis/grid chrome refresh (scale changed),
+    // `full` = fallback to a complete re-render.
+    this._updateStats = { fast: 0, fastWithAxes: 0, full: 0 }
 
     this.create = this.create.bind(this)
 
@@ -675,8 +682,13 @@ export default class ApexCharts {
       }
 
       // If shallow check fails, do deep comparison only for critical paths
-      // check series separately
-      if (options.series && this.lastUpdateOptions.series) {
+      // check series separately (skipped for data-heavy series, where the
+      // stringify costs more than the render it might save)
+      if (
+        options.series &&
+        this.lastUpdateOptions.series &&
+        !ApexCharts._optionsTooBigToCompare(options)
+      ) {
         if (
           JSON.stringify(this.lastUpdateOptions.series) ===
           JSON.stringify(options.series)
@@ -748,7 +760,9 @@ export default class ApexCharts {
   updateSeries(newSeries = [], animate = true, overwriteInitialSeries = true) {
     this.data.resetParsingFlags()
 
-    this.series.resetSeries(false)
+    // clears collapse/path bookkeeping without restoring (and deep-cloning)
+    // the initialSeries snapshot that parseData is about to overwrite anyway
+    this.series.prepareDataUpdate()
     this.updateHelpers.revertDefaultAxisMinMax()
     return this.updateHelpers._updateSeries(
       newSeries,
@@ -770,7 +784,7 @@ export default class ApexCharts {
 
     const newSeries = this.w.config.series.slice()
     newSeries.push(/** @type {any} */ (newSerie))
-    this.series.resetSeries(false)
+    this.series.prepareDataUpdate()
     this.updateHelpers.revertDefaultAxisMinMax()
     return this.updateHelpers._updateSeries(
       newSeries,
@@ -792,7 +806,11 @@ export default class ApexCharts {
 
     me.data.resetParsingFlags()
     me.w.globals.dataChanged = true
-    me.series.getPreviousPaths()
+    // previous paths feed the update morph; with animations off nothing
+    // consumes them, and the capture is O(n) (stream-frame + DOM walk)
+    if (me.w.config.chart.animations.enabled) {
+      me.series.getPreviousPaths()
+    }
 
     const newSeries = me.w.config.series.slice()
 
@@ -814,10 +832,30 @@ export default class ApexCharts {
 
     me.w.config.series = newSeries
     if (overwriteInitialSeries) {
-      me.w.globals.initialSeries = Utils.clone(me.w.config.series)
+      // lazy snapshot: deep clone deferred to first read
+      me.w.globals.initialSeries = me.w.config.series
     }
 
     return this.update()
+  }
+
+  /**
+   * True when an options object carries enough series data that a
+   * JSON.stringify equality check (and the Utils.clone needed to store it for
+   * later comparison) would cost more than the re-render it tries to avoid.
+   * @param {any} options
+   * @returns {boolean}
+   */
+  static _optionsTooBigToCompare(options) {
+    const series = options && options.series
+    if (!Array.isArray(series)) return false
+    let points = 0
+    for (let i = 0; i < series.length; i++) {
+      const d = series[i] && series[i].data
+      points += Array.isArray(d) ? d.length : 1
+      if (points > 1000) return true
+    }
+    return false
   }
 
   /**
@@ -825,15 +863,27 @@ export default class ApexCharts {
    */
   update(options) {
     return new Promise((resolve, reject) => {
+      // The identical-options skip only pays off for small configs: comparing
+      // and cloning megabytes of series data costs more per update than the
+      // render it might save. Data-heavy paths (updateSeries/appendData) call
+      // update() with no options at all and skip straight through.
       if (
+        options &&
         this.lastUpdateOptions &&
+        !ApexCharts._optionsTooBigToCompare(options) &&
         JSON.stringify(this.lastUpdateOptions) === JSON.stringify(options)
       ) {
         // Options are identical, skip the update
         return resolve(this)
       }
 
-      this.lastUpdateOptions = Utils.clone(options)
+      // Series data changed (or is too big to compare cheaply): any previously
+      // stored options no longer describe the chart, so clear rather than
+      // deep-clone a potentially huge object.
+      this.lastUpdateOptions =
+        options && !ApexCharts._optionsTooBigToCompare(options)
+          ? Utils.clone(options)
+          : null
 
       new Destroy(this.ctx).clear({ isUpdating: true })
 
@@ -863,6 +913,180 @@ export default class ApexCharts {
           reject(e)
         })
     })
+  }
+
+  /**
+   * Redraws the scale-dependent chrome (grid lines, x-axis, y-axes) IN PLACE
+   * within the frozen layout after a data-only update changed the axis
+   * domain. The rebuilt groups replace the old nodes positionally, so z-order
+   * (grid back/front) is preserved without re-running mount. Legend,
+   * annotations containers, toolbar, defs/masks, and the plot geometry are
+   * untouched.
+   *
+   * Returns false when the refresh cannot faithfully reproduce the chart and
+   * the caller must fall back to a full render:
+   * - horizontal bar charts (inversed axes draw through a different path)
+   * - charts with annotations or ink notes (their positions are scale-bound
+   *   and are laid out by the full render)
+   * - the new y labels no longer fit the width reserved at layout time
+   *
+   * @param {any} _xyRatios
+   * @returns {boolean} true when the chrome was refreshed in place
+   */
+  _fastAxisChromeRefresh(_xyRatios) {
+    const w = this.w
+    const gl = w.globals
+    /** @type {string} dev hook: why the last in-place refresh bailed */
+    this._fastAxisBailReason = ''
+    try {
+      if (gl.isBarHorizontal) {
+        this._fastAxisBailReason = 'barHorizontal'
+        return false
+      }
+      if (w.config.chart.sparkline.enabled) return true // no axis chrome at all
+
+      const a = w.config.annotations
+      if (
+        a &&
+        ((a.yaxis && a.yaxis.length) ||
+          (a.xaxis && a.xaxis.length) ||
+          (a.points && a.points.length) ||
+          (a.texts && a.texts.length) ||
+          (a.images && a.images.length))
+      ) {
+        this._fastAxisBailReason = 'annotations'
+        return false
+      }
+      if (w.config.chart.ink && w.config.chart.ink.enabled) {
+        this._fastAxisBailReason = 'ink'
+        return false
+      }
+
+      // Frozen-layout guard: measure the new y labels with the same code the
+      // layout pass uses; when they need more width than was reserved, the
+      // plot rect would have to shrink, which only a full render can do.
+      // (Narrower labels are fine: they just leave a little extra padding.)
+      const dim = this.dimensions
+      if (!dim || !dim.dimYAxis) {
+        this._fastAxisBailReason = 'noDimensions'
+        return false
+      }
+      const prevYLabelsCoords = w.layout.yLabelsCoords
+      const prevYTitleCoords = w.layout.yTitleCoords
+      const yaxisLabelCoords = dim.dimYAxis.getyAxisLabelsCoords()
+      const yTitleCoords = dim.dimYAxis.getyAxisTitleCoords()
+      w.layout.yLabelsCoords = []
+      w.layout.yTitleCoords = []
+      w.config.yaxis.map((_yaxe, index) => {
+        w.layout.yLabelsCoords.push({
+          width: yaxisLabelCoords[index].width,
+          index,
+        })
+        w.layout.yTitleCoords.push(
+          /** @type {any} */ ({ width: yTitleCoords[index].width, index }),
+        )
+      })
+      const newYAxisWidth = dim.dimYAxis.getTotalYAxisWidth()
+      // 2px slack: proportional digit-width variance ("115.00" vs "240.00")
+      // must not force a full render; a genuinely longer label (an extra
+      // digit is ~6px+) still does.
+      if (newYAxisWidth > dim.yAxisWidth + 2) {
+        // restore the layout-pass coords; a full render recomputes them
+        w.layout.yLabelsCoords = prevYLabelsCoords
+        w.layout.yTitleCoords = prevYTitleCoords
+        this._fastAxisBailReason = `labelWidth ${newYAxisWidth} > ${dim.yAxisWidth}`
+        return false
+      }
+
+      const innerEl = w.dom.elGraphical.node
+
+      // NOTE: old nodes are detached BEFORE their replacements are drawn:
+      // the axis renderers consult the live DOM while drawing (drawYaxis
+      // blanks labels it believes are duplicates of on-screen ones), so
+      // drawing while the old chrome is still attached produces empty labels.
+
+      // ── grid ──
+      const oldGrid = innerEl.querySelector('.apexcharts-grid')
+      const oldGridBorders = innerEl.querySelector('.apexcharts-grid-borders')
+      if (!oldGrid) {
+        this._fastAxisBailReason = 'missingGridNode'
+        return false
+      }
+      const gridParent = oldGrid.parentNode
+      const gridNext = oldGridBorders
+        ? oldGridBorders.nextSibling
+        : oldGrid.nextSibling
+      oldGrid.remove()
+      if (oldGridBorders) oldGridBorders.remove()
+      // x-axis tick lines are appended by Grid directly to elGraphical (not
+      // inside the grid group), so sweep the old ones before redrawing
+      innerEl
+        .querySelectorAll('.apexcharts-xaxis-tick')
+        .forEach((/** @type {any} */ t) => t.remove())
+      this.grid = new Grid(w, this)
+      const elgrid = this.grid.drawGrid()
+      if (elgrid && elgrid.el) {
+        gridParent.insertBefore(elgrid.el.node, gridNext)
+        if (elgrid.elGridBorders && elgrid.elGridBorders.node) {
+          gridParent.insertBefore(elgrid.elGridBorders.node, gridNext)
+        }
+      }
+
+      // ── x-axis ──
+      const xAxis = new XAxis(this.w, this.ctx, elgrid)
+      const oldXaxis = innerEl.querySelector('.apexcharts-xaxis')
+      if (oldXaxis) {
+        const xParent = oldXaxis.parentNode
+        const xNext = oldXaxis.nextSibling
+        oldXaxis.remove()
+        const elXaxis = xAxis.drawXaxis()
+        xParent.insertBefore(elXaxis.node, xNext)
+      }
+
+      // ── y-axes (live on the Paper root, one group per axis) ──
+      const yAxis = new YAxis(
+        this.w,
+        { theme: this.theme, timeScale: this.timeScale },
+        elgrid,
+      )
+      for (let index = 0; index < w.config.yaxis.length; index++) {
+        if (gl.ignoreYAxisIndexes.indexOf(index) !== -1) continue
+        const oldY = w.dom.baseEl.querySelector(
+          `.apexcharts-yaxis[rel='${index}']`,
+        )
+        if (!oldY) {
+          this._fastAxisBailReason = 'missingYAxisNode'
+          return false // structure changed under us: full render
+        }
+        const yParent = oldY.parentNode
+        if (!yParent) {
+          this._fastAxisBailReason = 'missingYAxisParent'
+          return false
+        }
+        const yNext = oldY.nextSibling
+        oldY.remove()
+        const elYaxis = yAxis.drawYaxis(index)
+        yParent.insertBefore(elYaxis.node, yNext)
+      }
+
+      // same post-draw corrections mount applies
+      if (elgrid !== null) {
+        xAxis.xAxisLabelCorrections()
+        yAxis.setYAxisTextAlignments()
+        w.config.yaxis.map((yaxe, index) => {
+          if (gl.ignoreYAxisIndexes.indexOf(index) === -1) {
+            yAxis.yAxisTitleRotate(index, yaxe.opposite)
+          }
+        })
+      }
+
+      return true
+    } catch (e) {
+      // any surprise falls back to the always-correct full render
+      this._fastAxisBailReason =
+        'error: ' + (e && /** @type {any} */ (e).message)
+      return false
+    }
   }
 
   /**
@@ -932,40 +1156,63 @@ export default class ApexCharts {
         // Compute per-pixel ratios from the existing layout.
         const xyRatios = this.core.xySettings()
 
-        // The fast path repaints only the series layer; the axes and grid are
-        // preserved in place (below). That is safe only while the axis domain is
-        // unchanged. `prevAxisScaleSig` is the scale currently on screen,
-        // captured by _updateSeries before parseData wiped it. If the freshly
-        // recomputed scale differs, the rendered ruler would go stale while the
-        // series rescale to the new domain, so fall back to a full render (what
-        // the non-fast updateSeries path does anyway). Compares the y-axis
-        // nice-scale ticks (the y-label source) and the numeric x-domain;
-        // xAxisScale is excluded (reset to null here, not rebuilt for category
-        // axes before this point, so it would false-positive on every update).
-        // The common fixed-axis case (streaming) keeps the fast path.
+        // Long-lived interaction modules survive the fast path (only a full
+        // render recreates them); hand them the fresh pixel-to-data ratios or
+        // a later zoom/pan/brush would convert against the pre-update domain.
+        if (this._zoomPanSelection) this._zoomPanSelection.xyRatios = xyRatios
+
+        // The fast path repaints only the series layer; axes and grid are
+        // preserved in place (below). When the recomputed axis scale differs
+        // from what is on screen (`prevAxisScaleSig`, captured by
+        // _updateSeries before parseData wiped it), the ruler would go stale,
+        // so the axis/grid chrome is REDRAWN IN PLACE within the frozen
+        // layout (_fastAxisChromeRefresh). Only when that refresh cannot
+        // reproduce the chart (horizontal bars, annotations, labels no longer
+        // fitting the reserved axis width) does the update fall back to a
+        // full render. Compares the y-axis nice-scale ticks (the y-label
+        // source) and the numeric x-domain; xAxisScale is excluded (reset to
+        // null here, not rebuilt for category axes before this point, so it
+        // would false-positive on every update).
         const newAxisScaleSig = JSON.stringify({
           y: (gl.yAxisScale || []).map((s) => (s ? s.result : null)),
           xMin: gl.minX,
           xMax: gl.maxX,
         })
-        if (
+        const scaleChanged =
           gl.axisCharts &&
           prevAxisScaleSig != null &&
           newAxisScaleSig !== prevAxisScaleSig
-        ) {
+        if (scaleChanged && !this._fastAxisChromeRefresh(xyRatios)) {
+          this._updateStats.full++
           return this.update()
             .then(() => resolve(this))
             .catch(reject)
+        }
+        if (scaleChanged) {
+          this._updateStats.fastWithAxes++
+        } else {
+          this._updateStats.fast++
         }
 
         // Weave: geometry refreshed on the fast path.
         this.weave?.dispatch('afterScales', { pass: 'fast', xyRatios })
 
         // Remove only the series and data-label elements from elGraphical.
-        // Grid, axes, crosshairs, and masks are preserved in place.
+        // Grid, axes, crosshairs, and masks are preserved in place. In canvas
+        // mode the <canvas> host wrap is REUSED (repainted in place) whenever
+        // it is still mounted: only its chrome contents are swept.
+        const rr = /** @type {any} */ (this.ctx.renderer)
+        const reuseCanvasHost = !!(
+          rr &&
+          rr.kind === 'canvas' &&
+          rr.canRepaintInPlace &&
+          rr.canRepaintInPlace()
+        )
+        if (reuseCanvasHost) rr._repaintHostInPlace = true
         const innerEl = w.dom.elGraphical.node
         const toRemove = innerEl.querySelectorAll(
-          '.apexcharts-canvas-series-wrap, .apexcharts-series, .apexcharts-datalabels, .apexcharts-datalabels-background',
+          (reuseCanvasHost ? '' : '.apexcharts-canvas-series-wrap, ') +
+            '.apexcharts-plot-series, .apexcharts-series, .apexcharts-datalabels, .apexcharts-datalabels-background',
         )
         /**
          * @param {Element} el
@@ -977,15 +1224,19 @@ export default class ApexCharts {
         // Redraw series paths into the existing graphical container.
         const elGraph = this.core.plotChartType(w.config.series, xyRatios)
 
-        // Insert series elements. When grid is 'front', they go before the grid;
-        // otherwise they simply append (grid is already at the back or absent).
+        // Insert series elements at mount's z-position: before the grid when
+        // the grid is 'front', otherwise before the x-axis group (mount draws
+        // series first, then the axis chrome; a plain append would paint the
+        // series ON TOP of the axis line and ticks).
         const gridEl = innerEl.querySelector('.apexcharts-grid')
+        const xaxisEl = innerEl.querySelector('.apexcharts-xaxis')
         const graphs = Array.isArray(elGraph) ? elGraph : [elGraph]
-        if (gridEl && w.config.grid.position === 'front') {
-          // Insert each series group before the grid group
+        const anchor =
+          gridEl && w.config.grid.position === 'front' ? gridEl : xaxisEl
+        if (anchor) {
           graphs.forEach((g) => {
             const node = g && g.node ? g.node : g
-            if (node) innerEl.insertBefore(node, gridEl)
+            if (node) innerEl.insertBefore(node, anchor)
           })
         } else {
           graphs.forEach((g) => {

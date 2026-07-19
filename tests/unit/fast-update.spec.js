@@ -26,11 +26,11 @@ describe('fastUpdate() — partial updateSeries fast path', () => {
     expect(chart.getState().series).toEqual([[10, 20, 30]])
   })
 
-  it('falls back to a full render when a fast update changes the axis domain', async () => {
-    // Auto y-axis: lowering the data domain must repaint the ruler, which the
-    // fast path cannot do in place (axes are preserved), so it delegates to a
-    // full update() rather than leave a bar drawn full-height against a stale
-    // 0-20 ruler.
+  it('handles an axis-domain change in place (no full render)', async () => {
+    // Auto y-axis: lowering the data domain repaints the ruler IN PLACE
+    // (grid, x-axis, and y-axes are redrawn within the frozen layout) instead
+    // of delegating to a full update(): the render-2026 throughput work.
+    // The axis scale must still follow the data.
     const chart = createChart('bar', [{ data: [18, 20, 17, 19, 16] }])
 
     const fastUpdateSpy = vi.spyOn(chart, 'fastUpdate')
@@ -38,9 +38,11 @@ describe('fastUpdate() — partial updateSeries fast path', () => {
 
     await chart.updateSeries([{ data: [6, 6, 6, 5, 6] }])
 
-    // fast path is entered (eligible) but detects the domain change and delegates
+    // fast path handles the domain change in place: no full render
     expect(fastUpdateSpy).toHaveBeenCalledOnce()
-    expect(updateSpy).toHaveBeenCalledOnce()
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(chart._updateStats.fastWithAxes).toBe(1)
+    expect(chart._updateStats.full).toBe(0)
 
     const state = chart.getState()
     expect(state.series).toEqual([[6, 6, 6, 5, 6]])

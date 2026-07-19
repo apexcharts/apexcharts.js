@@ -442,8 +442,12 @@ export default class Utils {
   isInitialSeriesSameLen() {
     let sameLen = true
 
+    // read the non-materializing peek: this runs per update/hover, and only
+    // needs data lengths (the initialSeries getter would deep-clone)
     const initialSeries =
-      /** @type {any[]} */ (this.w.globals.initialSeries)?.filter(
+      /** @type {any[]} */ (
+        this.w.globals._initialSeriesPeek ?? this.w.globals.initialSeries
+      )?.filter(
         /**
          * @param {Record<string, any>} s
          * @param {number} i

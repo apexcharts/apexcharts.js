@@ -141,6 +141,25 @@ export default class Series {
     }
   }
 
+  /**
+   * Cheap pre-update reset for the data-replacement paths (updateSeries /
+   * appendSeries). Clears the same bookkeeping resetSeries() clears (series
+   * cache, previous paths, collapsed-series state) WITHOUT restoring
+   * config.series from the initialSeries snapshot: the caller is about to
+   * replace the series anyway (parseData assigns config.series = newSeries),
+   * so materializing and cloning the snapshot per update is pure waste (two
+   * O(n) deep clones per streaming tick at 50k points).
+   */
+  prepareDataUpdate() {
+    const w = this.w
+    this.clearSeriesCache()
+    w.globals.previousPaths = []
+    w.globals.collapsedSeries = []
+    w.globals.ancillaryCollapsedSeries = []
+    w.globals.collapsedSeriesIndices = []
+    w.globals.ancillaryCollapsedSeriesIndices = []
+  }
+
   resetSeries(
     shouldUpdateChart = true,
     shouldResetZoom = true,

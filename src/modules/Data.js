@@ -1156,11 +1156,22 @@ export default class Data {
       return series
     }
 
-    // If no global parsing config and no series-level parsing, return as-is
+    // If no global parsing config and no series-level parsing, return as-is.
+    // The config default is `parsing: { x: undefined, y: undefined }`, a
+    // truthy object, so test the FIELDS, not the object: otherwise every
+    // chart without parsing still walks the series and deep-clones
+    // originalSeries on every single update.
+    const hasGlobalParsing = !!(
+      globalParsing &&
+      (globalParsing.x || globalParsing.y || globalParsing.z)
+    )
     /**
      * @param {Record<string, any>} s
      */
-    if (!globalParsing && !series.some((s) => s.parsing)) {
+    const hasSeriesParsing = series.some(
+      (s) => s.parsing && (s.parsing.x || s.parsing.y || s.parsing.z),
+    )
+    if (!hasGlobalParsing && !hasSeriesParsing) {
       return series
     }
 
@@ -1606,7 +1617,9 @@ export default class Data {
         data: stash[i]?.data?.slice() ?? s.data,
       }))
     } else {
-      gl.initialSeries = Utils.clone(ser)
+      // lazy snapshot: the globals setter stores a cheap per-series shallow
+      // copy; the deep clone materializes only if something reads it
+      gl.initialSeries = ser
     }
 
     this.excludeCollapsedSeriesInYAxis()
@@ -1636,13 +1649,25 @@ export default class Data {
 
     this.coreUtils.getSeriesTotals()
     if (gl.axisCharts) {
-      this.w.seriesData.stackedSeriesTotals =
-        this.coreUtils.getStackedSeriesTotals()
-      this.w.seriesData.stackedSeriesTotalsByGroups =
-        this.coreUtils.getStackedSeriesTotalsByGroups()
+      // Lazy: three additional O(n) passes over every series that most axis
+      // charts never read (only stacked charts and percent formatters do).
+      // The property getters compute on first access after each parse.
+      Data._defineLazyResult(this.w.seriesData, 'stackedSeriesTotals', () =>
+        this.coreUtils.getStackedSeriesTotals(),
+      )
+      Data._defineLazyResult(
+        this.w.seriesData,
+        'stackedSeriesTotalsByGroups',
+        () => this.coreUtils.getStackedSeriesTotalsByGroups(),
+      )
+      Data._defineLazyResult(gl, 'seriesPercent', () => {
+        this.coreUtils.getPercentSeries()
+        // getPercentSeries assigns through this property's setter
+        return gl.seriesPercent
+      })
+    } else {
+      this.coreUtils.getPercentSeries()
     }
-
-    this.coreUtils.getPercentSeries()
 
     if (
       !this.w.axisFlags.dataFormatXNumeric &&
@@ -1667,6 +1692,7 @@ export default class Data {
     // Return a snapshot of all parsed state grouped by future w.* slice destinations.
     // Phase 1: callers use named writer stubs (no-ops — mutations above already wrote to gl).
     // Phase 2: writers will assign to typed slices instead of gl.*.
+    const seriesDataRef = this.w.seriesData
     return {
       // w.seriesData (future slice)
       seriesData: {
@@ -1676,11 +1702,22 @@ export default class Data {
         seriesZ: this.w.seriesData.seriesZ,
         seriesColors: this.w.seriesData.seriesColors,
         seriesGoals: this.w.seriesData.seriesGoals,
-        initialSeries: gl.initialSeries,
-        originalSeries: gl.originalSeries,
-        stackedSeriesTotals: this.w.seriesData.stackedSeriesTotals,
-        stackedSeriesTotalsByGroups:
-          this.w.seriesData.stackedSeriesTotalsByGroups,
+        // lazy delegating getters: initialSeries and the stacked totals are
+        // themselves lazily materialized; reading them eagerly here would
+        // force a deep clone + three O(n) passes per parse just to populate
+        // a snapshot the (currently no-op) phase-1 writers discard
+        get initialSeries() {
+          return gl.initialSeries
+        },
+        get originalSeries() {
+          return gl.originalSeries
+        },
+        get stackedSeriesTotals() {
+          return seriesDataRef.stackedSeriesTotals
+        },
+        get stackedSeriesTotalsByGroups() {
+          return seriesDataRef.stackedSeriesTotalsByGroups
+        },
         noLabelsProvided: this.w.axisFlags.noLabelsProvided,
       },
       // w.rangeData (future slice)
@@ -1729,6 +1766,42 @@ export default class Data {
    * @param {number|null|undefined} xmin
    * @param {number|null|undefined} xmax
    * @returns {any[]} Sliced array (new array, never the input reference).
+   */
+  /**
+   * Define `key` on `obj` as a lazily computed property: `compute` runs on
+   * first read after this call and its result is cached; assigning to the
+   * property stores the assigned value directly (so code that writes the
+   * field, like getPercentSeries, keeps working). Re-calling resets the cache
+   * (used once per parse).
+   * @param {any} obj
+   * @param {string} key
+   * @param {() => any} compute
+   */
+  static _defineLazyResult(obj, key, compute) {
+    let has = false
+    /** @type {any} */
+    let value
+    Object.defineProperty(obj, key, {
+      configurable: true,
+      enumerable: true,
+      get() {
+        if (!has) {
+          has = true
+          value = compute()
+        }
+        return value
+      },
+      set(v) {
+        has = true
+        value = v
+      },
+    })
+  }
+
+  /**
+   * @param {any[]} data
+   * @param {any} xmin
+   * @param {any} xmax
    */
   static sliceByXRange(data, xmin, xmax) {
     const len = data.length

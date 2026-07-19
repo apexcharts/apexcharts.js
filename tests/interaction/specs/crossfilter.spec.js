@@ -300,6 +300,88 @@ test.describe('Crossfilter: range brush-to-filter', () => {
     )
     expect(dimmed).toBeGreaterThan(0)
   })
+
+  test('brushing again after a fast in-place update still works', async ({
+    page,
+  }) => {
+    // Regression: ZoomPanSelection cached the grid node at init. The fast
+    // update path keeps the instance but swaps the grid node in place
+    // (_fastAxisChromeRefresh), so a later brush measured its coordinates
+    // against the detached node's all-zero rect and drew a garbage,
+    // invisible selection (and set no filter). Sequence: brush, filter from
+    // another chart (fast in-place update on this histogram), brush again.
+    const brush = (f1, f2) =>
+      page.evaluate(
+        ({ f1, f2 }) => {
+          const svg = window.chart.el.querySelector('.apexcharts-svg')
+          const g = window.chart.el
+            .querySelector('.apexcharts-grid')
+            .getBoundingClientRect()
+          const fire = (t, x) =>
+            svg.dispatchEvent(
+              new MouseEvent(t, {
+                bubbles: true, cancelable: true, view: window,
+                clientX: x, clientY: g.top + g.height / 2, button: 0, buttons: 1, which: 1,
+              }),
+            )
+          fire('mousedown', g.left + g.width * f1)
+          fire('mousemove', g.left + g.width * ((f1 + f2) / 2))
+          fire('mousemove', g.left + g.width * f2)
+          fire('mouseup', g.left + g.width * f2)
+        },
+        { f1, f2 },
+      )
+    const fluctFilter = () =>
+      page.evaluate(
+        () =>
+          window.ApexCharts.getCrossfilter('market').state().filters
+            .fluctuation,
+      )
+
+    await brush(0.5, 0.85)
+    await page.waitForFunction(() => {
+      const f = window.ApexCharts.getCrossfilter('market').state().filters
+        .fluctuation
+      return Array.isArray(f) && f.length === 2 && f[0] < f[1]
+    })
+    const first = await fluctFilter()
+
+    // click a quarter bar: the histogram re-aggregates; assert it went
+    // through the in-place fast path (the path that swaps the grid node),
+    // otherwise this test would silently stop covering the regression
+    await page.evaluate(() => {
+      window.chart1.el
+        .querySelector('.apexcharts-bar-area[j="0"]')
+        .dispatchEvent(
+          new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }),
+        )
+    })
+    await page.waitForFunction(
+      () => window.chart._updateStats.fastWithAxes >= 1,
+    )
+
+    // brush a clearly different (left) range: the filter must follow it
+    await brush(0.1, 0.35)
+    await page.waitForFunction((prev) => {
+      const f = window.ApexCharts.getCrossfilter('market').state().filters
+        .fluctuation
+      return (
+        Array.isArray(f) && f.length === 2 && f[0] < f[1] && f[1] < prev[0]
+      )
+    }, first)
+
+    // and the drawn selection rect is real (the bug left width 0 / off-grid x)
+    const rect = await page.evaluate(() => {
+      const r = window.chart.el.querySelector('.apexcharts-selection-rect')
+      const g = window.chart.el
+        .querySelector('.apexcharts-grid')
+        .getBoundingClientRect()
+      const b = r.getBoundingClientRect()
+      return { width: b.width, insideGrid: b.left >= g.left - 1 && b.right <= g.right + 1 }
+    })
+    expect(rect.width).toBeGreaterThan(10)
+    expect(rect.insideGrid).toBe(true)
+  })
 })
 
 test.describe('Crossfilter: heatmap 2D target', () => {

@@ -14,6 +14,12 @@ class Crosshairs {
   drawXCrosshairs() {
     const w = this.w
 
+    // Idempotent: the fast update path redraws crosshairs without a full
+    // teardown, so drop a previously drawn one instead of accumulating.
+    w.dom.elGraphical.node
+      .querySelectorAll(':scope > .apexcharts-xcrosshairs')
+      .forEach((/** @type {any} */ el) => el.remove())
+
     const graphics = new Graphics(this.w)
     const filters = new Filters(this.w)
 
@@ -97,6 +103,13 @@ class Crosshairs {
 
   drawYCrosshairs() {
     const w = this.w
+
+    // Idempotent (see drawXCrosshairs)
+    w.dom.elGraphical.node
+      .querySelectorAll(
+        ':scope > .apexcharts-ycrosshairs, :scope > .apexcharts-ycrosshairs-hidden',
+      )
+      .forEach((/** @type {any} */ el) => el.remove())
 
     const graphics = new Graphics(this.w)
 

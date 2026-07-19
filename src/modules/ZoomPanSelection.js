@@ -55,12 +55,14 @@ export default class ZoomPanSelection extends Toolbar {
     const w = this.w
     const me = this
 
+    // fastUpdate refreshes this field in place when a data-only update changes
+    // the domain (the instance survives the fast path; only a full render
+    // recreates it). Always read this.xyRatios, never an init-captured copy.
     this.xyRatios = xyRatios
 
     this.zoomRect = this.graphics.drawRect(0, 0, 0, 0)
     this.selectionRect = this.graphics.drawRect(0, 0, 0, 0)
 
-    this.gridRect = w.dom.baseEl.querySelector('.apexcharts-grid')
     this.constraints = new Box(0, 0, w.layout.gridWidth, w.layout.gridHeight)
 
     this.zoomRect.node.classList.add('apexcharts-zoom-rect')
@@ -155,7 +157,6 @@ export default class ZoomPanSelection extends Toolbar {
 
     this.selectionRect = null
     this.zoomRect = null
-    this.gridRect = null
   }
 
   /**
@@ -224,7 +225,7 @@ export default class ZoomPanSelection extends Toolbar {
           : e.clientY
 
     if ((e.type === 'mousedown' && e.which === 1) || e.type === 'touchstart') {
-      const gridRectDim = this.gridRect?.getBoundingClientRect()
+      const gridRectDim = this._gridRect()
       if (!gridRectDim) return
 
       this.startX =
@@ -244,7 +245,7 @@ export default class ZoomPanSelection extends Toolbar {
           this.panDragging({
             context: this,
             zoomtype,
-            xyRatios,
+            xyRatios: this.xyRatios,
           })
         }
       } else {
@@ -275,7 +276,7 @@ export default class ZoomPanSelection extends Toolbar {
   handleMouseUp({ zoomtype, isResized }) {
     const w = this.w
     // we will be calling getBoundingClientRect on each mousedown/mousemove/mouseup
-    const gridRectDim = this.gridRect?.getBoundingClientRect()
+    const gridRectDim = this._gridRect()
 
     if (gridRectDim && (this.w.interact.mousedown || isResized)) {
       // user released the drag, now do all the calculations
@@ -339,7 +340,7 @@ export default class ZoomPanSelection extends Toolbar {
     this.maxX = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX
 
     // Calculate the relative position of the mouse on the chart
-    const gridRectDim = this.gridRect?.getBoundingClientRect()
+    const gridRectDim = this._gridRect()
     if (!gridRectDim) return
 
     const mouseX = (e.clientX - gridRectDim.left) / gridRectDim.width
@@ -586,7 +587,7 @@ export default class ZoomPanSelection extends Toolbar {
     const w = this.w
     const me = context
 
-    const gridRectDim = this.gridRect?.getBoundingClientRect()
+    const gridRectDim = this._gridRect()
     if (!gridRectDim) return
 
     const startX = me.startX - 1
@@ -735,7 +736,7 @@ export default class ZoomPanSelection extends Toolbar {
       // a small debouncer is required when resizing to avoid freezing the chart
       clearTimeout(this.w.globals.selectionResizeTimer ?? undefined)
       this.w.globals.selectionResizeTimer = window.setTimeout(() => {
-        const gridRectDim = this.gridRect?.getBoundingClientRect()
+        const gridRectDim = this._gridRect()
         if (!gridRectDim) return
         const selectionRect = selRect.node.getBoundingClientRect()
 
@@ -814,7 +815,8 @@ export default class ZoomPanSelection extends Toolbar {
     const selRect = w.interact.zoomEnabled
       ? me.zoomRect.node.getBoundingClientRect()
       : me.selectionRect.node.getBoundingClientRect()
-    const gridRectDim = me.gridRect.getBoundingClientRect()
+    const gridRectDim = me._gridRect()
+    if (!gridRectDim) return
 
     // Local coords in the chart's grid
     const localStartX =
@@ -1163,8 +1165,11 @@ export default class ZoomPanSelection extends Toolbar {
       : { min: w.globals.minX, max: w.globals.maxX }
   }
 
-  /** Live grid rect from the current DOM (this.gridRect goes stale/null after
-   * the re-render a gesture frame triggers). */
+  /** Live grid rect from the current DOM. Never cache the grid node on the
+   * instance: a full render replaces this whole instance, but the fast update
+   * path (fastUpdate/_fastAxisChromeRefresh) keeps the instance while swapping
+   * the grid node, and a cached node would go stale (detached nodes report an
+   * all-zero bounding rect, silently corrupting selection geometry). */
   _gridRect() {
     const baseEl = this.w.dom.baseEl
     const grid = baseEl && baseEl.querySelector('.apexcharts-grid')

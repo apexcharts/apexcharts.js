@@ -528,6 +528,25 @@ export default class Core {
       // the two plotChartType consumers already handle. The series marks live
       // only on the canvas: the chrome groups carry no marks (they were
       // skipped by SVGElement.add).
+      // Data-only fast update: repaint the existing canvas instead of
+      // building a new foreignObject + backing store, and slot the fresh
+      // chrome groups into the existing wrap. Falls through to a full
+      // present() whenever the host is gone.
+      const rr = /** @type {any} */ (ctx.renderer)
+      if (rr && rr._repaintHostInPlace) {
+        rr._repaintHostInPlace = false
+        const wrapNode = this.w.dom.elGraphical.node.querySelector(
+          '.apexcharts-canvas-series-wrap',
+        )
+        if (wrapNode && rr.canRepaintInPlace && rr.canRepaintInPlace()) {
+          rr.repaintInPlace()
+          const groups = Array.isArray(elGraph) ? elGraph : [elGraph]
+          groups.forEach((g) => {
+            if (g && g.node) wrapNode.appendChild(g.node)
+          })
+          return []
+        }
+      }
       const host = ctx.renderer.present()
       // A renderer may decline a host (present() → null) when it emits straight
       // into the SVG tree via delegation instead of a canvas layer; then the
