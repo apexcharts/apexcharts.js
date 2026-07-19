@@ -50,7 +50,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.1.0
+ * ApexCharts v6.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as ApexCharts from "apexcharts/core";
@@ -8608,6 +8608,11 @@ class CanvasGraphics {
   renderPaths(opts) {
     const cmd = this._cmd("path", opts.realIndex);
     cmd.d = opts.pathTo;
+    if (opts.pathToNumeric) {
+      cmd.nxs = opts.pathToNumeric.xs;
+      cmd.nys = opts.pathToNumeric.ys;
+      cmd.ncloseY = opts.pathToNumeric.closeY;
+    }
     cmd.stroke = opts.stroke;
     cmd.strokeWidth = opts.strokeWidth;
     cmd.fill = opts.fill;
@@ -8719,6 +8724,12 @@ class CanvasCompositor {
     this._dpr = 1;
     this._dim = null;
     this._alpha = 1;
+    this._unitPaths = /* @__PURE__ */ new Map();
+    this._markerBatches = 0;
+  }
+  /** Marker style-batches applied during the last paint() (dev/test hook). */
+  markerBatchCount() {
+    return this._markerBatches;
   }
   /**
    * Opacity multiplier for a series index under the active dim spec: 1 for the
@@ -8833,10 +8844,38 @@ class CanvasCompositor {
     this._alpha = 1;
   }
   /**
+   * Reusable unit Path2D for a (shape, size): the shape's geometry built at the
+   * origin once, then translated per marker via setTransform. Returns null when
+   * the geometry string cannot be parsed.
+   * @param {any} shim
+   * @param {number} shapeId
+   * @param {number} size
+   * @returns {any}
+   */
+  _unitPath(shim, shapeId, size) {
+    const key = shapeId + "|" + size;
+    let p = this._unitPaths.get(key);
+    if (p === void 0) {
+      try {
+        p = new Path2D(shim.markerPath(0, 0, shapeId, size));
+      } catch (e) {
+        p = null;
+      }
+      this._unitPaths.set(key, p);
+    }
+    return p;
+  }
+  /**
+   * Markers paint as STYLE BATCHES: one fill/stroke state application per run
+   * of consecutive same-style markers (a uniform single-series scatter is
+   * exactly one batch), then per-marker geometry inside the run. Per-marker
+   * geometry stays painter's-ordered (fill+stroke per marker) so overlapping
+   * semi-transparent markers composite exactly as SVG does.
    * @param {any} ctx
    * @param {any} shim
    */
   _paintMarkers(ctx, shim) {
+    this._markerBatches = 0;
     const n = shim.markerCount();
     if (!n) return;
     const mx = shim._mx;
@@ -8855,11 +8894,12 @@ class CanvasCompositor {
         i++;
         continue;
       }
+      const doFill = this._applyFill(ctx, style);
+      const doStroke = this._applyStroke(ctx, style);
+      this._markerBatches++;
+      const baseFillA = style.fillOpacity == null ? 1 : Number(style.fillOpacity);
+      const baseStrokeA = style.strokeOpacity == null ? 1 : Number(style.strokeOpacity);
       if (shapeId === 0) {
-        const doFill = this._applyFill(ctx, style);
-        const doStroke = this._applyStroke(ctx, style);
-        const baseFillA = style.fillOpacity == null ? 1 : Number(style.fillOpacity);
-        const baseStrokeA = style.strokeOpacity == null ? 1 : Number(style.strokeOpacity);
         let j = i;
         while (j < n && mshape[j] === 0 && mstyle[j] === styleId) {
           const r = msize[j] || 0;
@@ -8887,18 +8927,65 @@ class CanvasCompositor {
         ctx.globalAlpha = 1;
         i = j;
       } else {
-        const y = my[i];
-        if (y === y && msize[i] > 0) {
-          this._alpha = dimming ? this._seriesAlpha(shim.markerSeries(i)) : 1;
-          try {
-            const p = new Path2D(shim.markerPath(mx[i], y, shapeId, msize[i]));
-            this._fillStrokePath(ctx, style, p);
-          } catch (e) {
+        const dpr = this._dpr;
+        const m = this._margin;
+        let j = i;
+        while (j < n && mshape[j] === shapeId && mstyle[j] === styleId) {
+          const y = my[j];
+          const size = msize[j];
+          if (y === y && size > 0) {
+            const p = this._unitPath(shim, shapeId, size);
+            if (p) {
+              ctx.setTransform(dpr, 0, 0, dpr, (m + mx[j]) * dpr, (m + y) * dpr);
+              const f = dimming ? this._seriesAlpha(shim.markerSeries(j)) : 1;
+              if (doFill) {
+                ctx.globalAlpha = baseFillA * f;
+                ctx.fill(p);
+              }
+              if (doStroke) {
+                ctx.globalAlpha = baseStrokeA * f;
+                ctx.stroke(p);
+              }
+            }
           }
+          j++;
         }
-        i++;
+        ctx.setTransform(dpr, 0, 0, dpr, m * dpr, m * dpr);
+        ctx.globalAlpha = 1;
+        i = j;
       }
     }
+  }
+  /**
+   * Paint a series path from its numeric fast-path coords: a direct
+   * moveTo/lineTo loop over the typed arrays, no Path2D and no d-string
+   * parse. `ncloseY` (areas) closes the polygon down to the baseline exactly
+   * like the string form's `L xLast bottom L x0 bottom z` tail.
+   * @param {any} ctx
+   * @param {any} cmd
+   */
+  _paintNumericPath(ctx, cmd) {
+    const xs = cmd.nxs;
+    const ys = cmd.nys;
+    const n = xs.length;
+    if (!n) return;
+    ctx.beginPath();
+    ctx.moveTo(xs[0], ys[0]);
+    for (let k = 1; k < n; k++) {
+      ctx.lineTo(xs[k], ys[k]);
+    }
+    if (cmd.ncloseY != null) {
+      ctx.lineTo(xs[n - 1], cmd.ncloseY);
+      ctx.lineTo(xs[0], cmd.ncloseY);
+      ctx.closePath();
+    }
+    if (this._applyFill(ctx, cmd)) {
+      ctx.fill(cmd.fillRule === "evenodd" ? "evenodd" : "nonzero");
+    }
+    if (this._applyStroke(ctx, cmd)) {
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
   }
   /**
    * @param {any} ctx
@@ -8907,6 +8994,10 @@ class CanvasCompositor {
   _paintOne(ctx, cmd) {
     switch (cmd.tag) {
       case "path": {
+        if (cmd.nxs) {
+          this._paintNumericPath(ctx, cmd);
+          break;
+        }
         if (!cmd.d) return;
         if (!cmd.path2d) {
           try {
@@ -9031,6 +9122,7 @@ class CanvasCompositor {
     this._host = null;
     this._canvas = null;
     this._c2d = null;
+    this._unitPaths.clear();
   }
 }
 class CanvasRenderer {

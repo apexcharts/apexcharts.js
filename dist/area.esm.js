@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.1.0
+ * ApexCharts v6.2.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -889,6 +889,7 @@ class Line {
     this.elSeries = null;
     this.elPointsMain = null;
     this.elDataLabelsWrap = null;
+    this._elLastPointsWrap = null;
   }
   /**
    * @param {any[]} series
@@ -1089,6 +1090,8 @@ class Line {
       class: "apexcharts-series-markers-wrap",
       "data:realIndex": realIndex
     });
+    this.markers.resetSeriesWrapCache();
+    this._elLastPointsWrap = null;
     if (w.globals.hasNullValues) {
       const firstPoint = this.markers.plotChartMarkers({
         pointsPos: {
@@ -1245,6 +1248,7 @@ class Line {
       dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
       className: `apexcharts-${type}`
     };
+    const numericXY = paths.numericXY;
     if (type === "area") {
       const pathFill = fill.fillPath({
         seriesNumber: realIndex
@@ -1253,6 +1257,11 @@ class Line {
         const renderedPath = emit.renderPaths(__spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
           pathFrom: streamScroll ? projectPathToPrevFrame(paths.areaPaths[p], streamScroll) : (_c = (_b = reconcile == null ? void 0 : reconcile.area) == null ? void 0 : _b.from) != null ? _c : paths.pathFromArea,
           pathTo: paths.areaPaths[p],
+          pathToNumeric: numericXY ? {
+            xs: numericXY.xs,
+            ys: numericXY.ys,
+            closeY: numericXY.areaCloseY
+          } : void 0,
           pathToInterp: (_d = reconcile == null ? void 0 : reconcile.area) == null ? void 0 : _d.toInterp,
           scrollMorph: !!streamScroll,
           stroke: "none",
@@ -1293,6 +1302,7 @@ class Line {
         const linePathCommonOpts = __spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
           pathFrom: streamScroll ? projectPathToPrevFrame(paths.linePaths[p], streamScroll) : (_f = (_e = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _e.from) != null ? _f : paths.pathFromLine,
           pathTo: paths.linePaths[p],
+          pathToNumeric: numericXY ? { xs: numericXY.xs, ys: numericXY.ys } : void 0,
           pathToInterp: (_g = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _g.toInterp,
           scrollMorph: !!streamScroll,
           stroke: lineFill,
@@ -1377,6 +1387,28 @@ class Line {
     let pathState = 0;
     let segmentStartX;
     const jitterPx = this.pointsChart ? this._scatterJitterPx(realIndex) : null;
+    if (curve === "straight" && !this.pointsChart) {
+      const fast = this._fastStraightPath({
+        type,
+        series,
+        i,
+        realIndex,
+        translationsIndex,
+        iterations,
+        x,
+        y,
+        pX,
+        pY,
+        pathsFrom,
+        linePaths,
+        areaPaths,
+        xArrj,
+        yArrj,
+        y2Arrj,
+        stackSeries
+      });
+      if (fast) return fast;
+    }
     for (let j = 0; j < iterations; j++) {
       if (series[i].length === 0) break;
       const isNull = typeof series[i][j + 1] === "undefined" || series[i][j + 1] === null;
@@ -1511,8 +1543,9 @@ class Line {
         seriesIndex: realIndex,
         j: j + 1
       });
-      if (elPointsWrap !== null) {
+      if (elPointsWrap !== null && elPointsWrap !== this._elLastPointsWrap) {
         this.elPointsMain.add(elPointsWrap);
+        this._elLastPointsWrap = elPointsWrap;
       }
     } else {
       this.scatter.draw(this.elSeries, j, {
@@ -1553,6 +1586,141 @@ class Line {
     return {
       x: (jt.x || 0) * xUnitPx,
       y: (jt.y || 0) * yUnitPx
+    };
+  }
+  /**
+   * Numeric geometry fast path for plain straight line/area series (the
+   * render-2026 perf work). Eligibility is strict: everything the per-point
+   * slow loop can do beyond plain geometry (null gaps, markers, data labels,
+   * discrete markers, stacking, combos, range areas) bails to the state
+   * machine. When eligible it produces the SAME outputs as the slow loop
+   * (byte-identical d strings via join, the same xArrj/yArrj/y2Arrj
+   * pushes, and the same pointsArray tooltip cache) in one tight loop.
+   * In canvas mode it additionally emits typed-array coordinates so the
+   * renderer can paint via moveTo/lineTo without a Path2D d-string parse.
+   *
+   * @param {{type: any, series: any, i: number, realIndex: number,
+   *   translationsIndex: number, iterations: number, x: number, y: number,
+   *   pX: number, pY: number, pathsFrom: any, linePaths: any[],
+   *   areaPaths: any[], xArrj: any[], yArrj: any[], y2Arrj: any[],
+   *   stackSeries: boolean}} opts
+   * @returns {any} the _iterateOverDataPoints result, or null when ineligible
+   */
+  _fastStraightPath({
+    type,
+    series,
+    i,
+    realIndex,
+    translationsIndex,
+    iterations,
+    x,
+    y,
+    pX,
+    pY,
+    pathsFrom,
+    linePaths,
+    areaPaths,
+    xArrj,
+    yArrj,
+    y2Arrj,
+    stackSeries
+  }) {
+    const w = this.w;
+    if (type !== "line" && type !== "area") return null;
+    if (w.globals.comboCharts || stackSeries) return null;
+    if (w.config.dataLabels.enabled) return null;
+    if (w.config.markers.discrete.length) return null;
+    if (w.globals.markers.size[realIndex] > 0) return null;
+    const s = series[i];
+    const n = s.length;
+    if (!iterations || n < 2 || n - 1 !== iterations) return null;
+    for (let k = 0; k <= iterations; k++) {
+      const v = s[k];
+      if (v === null || typeof v === "undefined") return null;
+    }
+    const isXNumeric = w.axisFlags.isXNumeric;
+    const sx = isXNumeric ? w.seriesData.seriesX[realIndex] : null;
+    if (isXNumeric && (!sx || sx.length < n)) return null;
+    const yR = this.yRatio[translationsIndex];
+    const isReversed = this.isReversed;
+    const zeroY = this.zeroY;
+    const bottomY = this.areaBottomY;
+    const xRatio = this.xRatio;
+    const minX = w.globals.minX;
+    const xDivision = this.xDivision;
+    const offX = w.config.markers.offsetX;
+    const offY = w.config.markers.offsetY;
+    const appendFrom = this.appendPathFrom && !w.globals.hasNullValues;
+    let { pathFromLine, pathFromArea } = pathsFrom;
+    const r = this.ctx && this.ctx.renderer;
+    const canvasMode = !!(r && r.kind && r.kind !== "svg");
+    const buildStrings = !canvasMode || w.globals.dataChanged;
+    const nxs = canvasMode ? new Float64Array(n) : null;
+    const nys = canvasMode ? new Float64Array(n) : null;
+    if (nxs && nys) {
+      nxs[0] = pX;
+      nys[0] = pY;
+    }
+    if (typeof w.globals.pointsArray[realIndex] === "undefined") {
+      w.globals.pointsArray[realIndex] = [];
+    }
+    const pts = w.globals.pointsArray[realIndex];
+    const xPT1st = sx ? (sx[0] - minX) / xRatio + offX : this.categoryAxisCorrection + offX;
+    pts.push([xPT1st, pathsFrom.prevY + offY]);
+    const parts = buildStrings ? new Array(iterations + 1) : [];
+    if (buildStrings) parts[0] = "M " + pX + " " + pY;
+    const fromParts = buildStrings && appendFrom ? new Array(iterations) : null;
+    let xv = x;
+    let xj = pX;
+    let yj = pY;
+    for (let j = 0; j < iterations; j++) {
+      if (sx) {
+        xj = (sx[j + 1] - minX) / xRatio;
+      } else {
+        xv = xv + xDivision;
+        xj = xv;
+      }
+      const v = s[j + 1];
+      yj = zeroY - v / yR + (isReversed ? v / yR : 0) * 2;
+      xArrj.push(xj);
+      yArrj.push(yj);
+      y2Arrj.push(y);
+      pts.push([xj + offX, yj + offY]);
+      if (buildStrings) {
+        parts[j + 1] = " L " + xj + " " + yj;
+        if (fromParts) fromParts[j] = " L " + xj + " " + bottomY;
+      }
+      if (nxs && nys) {
+        nxs[j + 1] = xj;
+        nys[j + 1] = yj;
+      }
+    }
+    let linePath = "";
+    let areaPath = "";
+    if (buildStrings) {
+      linePath = parts.join("");
+      areaPath = linePath + " L " + xj + " " + bottomY + " L " + pX + " " + bottomY + "z";
+    }
+    if (fromParts) {
+      const fromAppend = fromParts.join("");
+      pathFromLine += fromAppend;
+      pathFromArea += fromAppend;
+    } else if (!buildStrings && appendFrom) {
+      pathFromLine += " L " + xj + " " + bottomY;
+      pathFromArea += " L " + xj + " " + bottomY;
+    }
+    linePaths.push(linePath);
+    areaPaths.push(areaPath);
+    return {
+      yArrj,
+      xArrj,
+      pathFromArea,
+      areaPaths,
+      pathFromLine,
+      linePaths,
+      linePath,
+      areaPath,
+      numericXY: nxs ? { xs: nxs, ys: nys, areaCloseY: bottomY } : void 0
     };
   }
   /** @param {{type: any, series: any, i: any, j: any, x: any, y: any, xArrj: any, yArrj: any, y2: any, y2Arrj: any, pX: any, pY: any, pathState: any, segmentStartX: any, linePath: any, areaPath: any, linePaths: any, areaPaths: any, curve: any, isRangeStart: any}} opts */

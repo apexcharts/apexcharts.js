@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.1.0
+ * ApexCharts v6.2.0
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -9907,6 +9907,18 @@ class Markers {
     this.ctx = ctx;
     this._filters = new Filters(this.w);
     this._graphics = new Graphics(this.w, this.ctx);
+    this._seriesWrap = null;
+    this._seriesWrapIndex = -1;
+  }
+  /**
+   * Invalidate the cached per-series wrap group. Callers that drive
+   * plotChartMarkers point-by-point (Line) must call this when a series'
+   * element tree is (re)created, so a later render never appends markers to a
+   * detached group from the previous pass.
+   */
+  resetSeriesWrapCache() {
+    this._seriesWrap = null;
+    this._seriesWrapIndex = -1;
   }
   setGlobalMarkerSize() {
     const w = this.w;
@@ -9995,14 +10007,23 @@ class Markers {
           if (!invalidMarker) {
             const shouldCreateMarkerWrap = w.globals.markers.size[seriesIndex] > 0 || alwaysDrawMarker || hasDiscreteMarkers;
             if (shouldCreateMarkerWrap && !elMarkersWrap) {
-              elMarkersWrap = emit.group({
-                class: alwaysDrawMarker || hasDiscreteMarkers ? "" : "apexcharts-series-markers"
-              });
-              elMarkersWrap.attr(
-                "clip-path",
-                `url(#gridRectMarkerMask${w.globals.cuid})`
-              );
-              this.setupMarkerDelegation(elMarkersWrap);
+              const standardWrap = !alwaysDrawMarker && !hasDiscreteMarkers;
+              if (standardWrap && this._seriesWrap && this._seriesWrapIndex === seriesIndex) {
+                elMarkersWrap = this._seriesWrap;
+              } else {
+                elMarkersWrap = emit.group({
+                  class: standardWrap ? "apexcharts-series-markers" : ""
+                });
+                elMarkersWrap.attr(
+                  "clip-path",
+                  `url(#gridRectMarkerMask${w.globals.cuid})`
+                );
+                this.setupMarkerDelegation(elMarkersWrap);
+                if (standardWrap) {
+                  this._seriesWrap = elMarkersWrap;
+                  this._seriesWrapIndex = seriesIndex;
+                }
+              }
             }
             markerElement = emit.drawMarker(p.x[q], p.y[q], opts);
             markerElement.attr("rel", dataPointIndex);
@@ -10162,6 +10183,9 @@ class Scatter {
     this.fill = new Fill(this.w);
     this.markers = new Markers(this.w, this.ctx);
     this.graphics = new Graphics(this.w);
+    this._elPointsWrap = null;
+    this._elPointsWrapParent = null;
+    this._perSeries = null;
   }
   /**
    * @param {Element} elSeries
@@ -10176,11 +10200,21 @@ class Scatter {
     const pointsPos = opts.pointsPos;
     const zRatio = opts.zRatio;
     const elPointsMain = opts.elParent;
-    const elPointsWrap = emit.group({
-      class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`
-    });
-    elPointsWrap.attr("clip-path", `url(#gridRectMarkerMask${w.globals.cuid})`);
-    this.markers.setupMarkerDelegation(elPointsWrap);
+    let elPointsWrap = this._elPointsWrap;
+    if (!elPointsWrap || this._elPointsWrapParent !== elPointsMain) {
+      elPointsWrap = emit.group({
+        class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`
+      });
+      elPointsWrap.attr(
+        "clip-path",
+        `url(#gridRectMarkerMask${w.globals.cuid})`
+      );
+      this.markers.setupMarkerDelegation(elPointsWrap);
+      elPointsMain.add(elPointsWrap);
+      this._elPointsWrap = elPointsWrap;
+      this._elPointsWrapParent = elPointsMain;
+      this._perSeries = this._buildPerSeriesCache(realIndex, emit);
+    }
     if (Array.isArray(pointsPos.x)) {
       for (let q = 0; q < pointsPos.x.length; q++) {
         let dataPointIndex = j + 1;
@@ -10224,9 +10258,38 @@ class Scatter {
             w.globals.pointsArray[realIndex][dataPointIndex] = [x, y];
           }
         }
-        elPointsMain.add(elPointsWrap);
       }
     }
+  }
+  /**
+   * Per-series constants for drawPoint's hot path. Everything here is uniform
+   * across the points of one series; computing or allocating it per point is
+   * measurable overhead at 20k-50k points.
+   * @param {number} realIndex
+   * @param {any} emit
+   */
+  _buildPerSeriesCache(realIndex, emit) {
+    var _a;
+    const w = this.w;
+    return {
+      realIndex,
+      emit,
+      isBubble: w.config.chart.type === "bubble" || w.globals.comboCharts && w.config.series[realIndex] && /** @type {Record<string,any>} */
+      w.config.series[realIndex].type === "bubble",
+      // discrete markers vary per point; they disable both caches below
+      canCacheConfig: !w.config.markers.discrete.length,
+      /** @type {any} lazily built shared marker config (first point) */
+      markerConfig: null,
+      /** @type {boolean|undefined} lazily resolved on the first fillPath call */
+      fillCacheable: void 0,
+      /** @type {any} cached fillPath result (undefined = not cached yet) */
+      fillCircle: void 0,
+      dropShadowEnabled: w.config.chart.dropShadow.enabled,
+      doInitialAnim: this.initialAnim && !w.globals.dataChanged && !w.globals.resized,
+      jitter: (_a = w.config.plotOptions.scatter) == null ? void 0 : _a.jitter,
+      /** @type {any} lazily built pop-animation constants */
+      anim: null
+    };
   }
   /**
    * @param {number} x
@@ -10237,42 +10300,76 @@ class Scatter {
    * @param {number} j
    */
   drawPoint(x, y, radius, realIndex, dataPointIndex, j) {
-    var _a, _b;
+    var _a;
     const w = this.w;
     const i = realIndex;
     const anim = this.anim;
     const filters = this.filters;
     const fill = this.fill;
     const markers = this.markers;
-    const graphics = this.graphics;
-    const emit = seriesEmitter(this.ctx, graphics);
-    const markerConfig = markers.getMarkerConfig({
-      cssClass: "apexcharts-marker",
-      seriesIndex: i,
-      dataPointIndex,
-      radius: w.config.chart.type === "bubble" || w.globals.comboCharts && w.config.series[realIndex] && /** @type {Record<string,any>} */
-      w.config.series[realIndex].type === "bubble" ? radius : null
-    });
-    let pathFillCircle = fill.fillPath({
-      seriesNumber: realIndex,
-      dataPointIndex,
-      color: markerConfig.pointFillColor,
-      patternUnits: "objectBoundingBox",
-      value: w.seriesData.series[realIndex][j]
-    });
-    const el = emit.drawMarker(x, y, markerConfig);
+    let ps = this._perSeries;
+    if (!ps || ps.realIndex !== realIndex) {
+      ps = this._perSeries = this._buildPerSeriesCache(
+        realIndex,
+        seriesEmitter(this.ctx, this.graphics)
+      );
+    }
+    const emit = ps.emit;
+    let markerConfig;
+    if (ps.canCacheConfig) {
+      if (!ps.markerConfig) {
+        ps.markerConfig = markers.getMarkerConfig({
+          cssClass: "apexcharts-marker",
+          seriesIndex: i,
+          dataPointIndex,
+          radius: ps.isBubble ? radius : null
+        });
+      }
+      markerConfig = ps.markerConfig;
+      if (ps.isBubble) {
+        markerConfig.pSize = radius;
+        markerConfig.pRadius = radius;
+      }
+    } else {
+      markerConfig = markers.getMarkerConfig({
+        cssClass: "apexcharts-marker",
+        seriesIndex: i,
+        dataPointIndex,
+        radius: ps.isBubble ? radius : null
+      });
+    }
     const _si = (
       /** @type {Record<string,any>} */
       w.config.series[i]
     );
-    if (_si.data[dataPointIndex]) {
-      if (_si.data[dataPointIndex].fillColor) {
-        pathFillCircle = _si.data[dataPointIndex].fillColor;
+    const dataItem = _si.data[dataPointIndex];
+    let pathFillCircle;
+    if (ps.fillCircle !== void 0) {
+      pathFillCircle = ps.fillCircle;
+    } else {
+      pathFillCircle = fill.fillPath({
+        seriesNumber: realIndex,
+        dataPointIndex,
+        color: markerConfig.pointFillColor,
+        patternUnits: "objectBoundingBox",
+        value: w.seriesData.series[realIndex][j]
+      });
+      if (ps.fillCacheable === void 0) {
+        ps.fillCacheable = ps.canCacheConfig && fill.getFillType(realIndex) === "solid" && typeof markerConfig.pointFillColor === "string" && !!markerConfig.pointFillColor;
+      }
+      if (ps.fillCacheable && !(dataItem == null ? void 0 : dataItem.fillColor)) {
+        ps.fillCircle = pathFillCircle;
       }
     }
-    const jt = (_a = w.config.plotOptions.scatter) == null ? void 0 : _a.jitter;
+    const el = emit.drawMarker(x, y, markerConfig);
+    if (dataItem == null ? void 0 : dataItem.fillColor) {
+      pathFillCircle = dataItem.fillColor;
+    }
+    const jt = ps.jitter;
     if ((jt == null ? void 0 : jt.enabled) && jt.distributed && w.globals.colors.length) {
-      const bandIdx = Math.round((_b = w.seriesData.seriesX[realIndex]) == null ? void 0 : _b[dataPointIndex]);
+      const bandIdx = Math.round(
+        (_a = w.seriesData.seriesX[realIndex]) == null ? void 0 : _a[dataPointIndex]
+      );
       if (!isNaN(bandIdx)) {
         pathFillCircle = w.globals.colors[bandIdx % w.globals.colors.length];
       }
@@ -10280,24 +10377,28 @@ class Scatter {
     el.attr({
       fill: pathFillCircle
     });
-    if (w.config.chart.dropShadow.enabled) {
+    if (ps.dropShadowEnabled) {
       const dropShadow = w.config.chart.dropShadow;
       filters.dropShadow(el, dropShadow, realIndex);
     }
-    if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
-      const animCfg = w.config.chart.animations;
-      const popSpeed = animCfg.speed;
-      const totalPoints = w.globals.dataPoints || 1;
-      const gradCfg = animCfg.animateGradually;
-      const gradEnabled = gradCfg && gradCfg.enabled !== false;
-      const baseDelay = gradEnabled ? Math.min(20, popSpeed * 0.5 / Math.max(1, totalPoints)) : 0;
+    if (ps.doInitialAnim) {
+      if (!ps.anim) {
+        const animCfg = w.config.chart.animations;
+        const totalPoints = w.globals.dataPoints || 1;
+        const gradCfg = animCfg.animateGradually;
+        const gradEnabled = gradCfg && gradCfg.enabled !== false;
+        ps.anim = {
+          popSpeed: animCfg.speed,
+          baseDelay: gradEnabled ? Math.min(20, animCfg.speed * 0.5 / Math.max(1, totalPoints)) : 0
+        };
+      }
       const delay = computeStagger({
-        style: baseDelay > 0 ? "sequential" : "none",
+        style: ps.anim.baseDelay > 0 ? "sequential" : "none",
         index: dataPointIndex,
-        baseDelay
+        baseDelay: ps.anim.baseDelay
       });
       anim.animatePop(el, {
-        speed: popSpeed,
+        speed: ps.anim.popSpeed,
         delay,
         onComplete: () => anim.animationCompleted(el)
       });
@@ -10311,7 +10412,6 @@ class Scatter {
       "default-marker-size": markerConfig.pSize
     });
     filters.setSelectionFilter(el, realIndex, dataPointIndex);
-    el.node.classList.add("apexcharts-marker");
     return el;
   }
   /**
@@ -34689,6 +34789,11 @@ class CanvasGraphics {
   renderPaths(opts) {
     const cmd = this._cmd("path", opts.realIndex);
     cmd.d = opts.pathTo;
+    if (opts.pathToNumeric) {
+      cmd.nxs = opts.pathToNumeric.xs;
+      cmd.nys = opts.pathToNumeric.ys;
+      cmd.ncloseY = opts.pathToNumeric.closeY;
+    }
     cmd.stroke = opts.stroke;
     cmd.strokeWidth = opts.strokeWidth;
     cmd.fill = opts.fill;
@@ -34799,6 +34904,12 @@ class CanvasCompositor {
     this._dpr = 1;
     this._dim = null;
     this._alpha = 1;
+    this._unitPaths = /* @__PURE__ */ new Map();
+    this._markerBatches = 0;
+  }
+  /** Marker style-batches applied during the last paint() (dev/test hook). */
+  markerBatchCount() {
+    return this._markerBatches;
   }
   /**
    * Opacity multiplier for a series index under the active dim spec: 1 for the
@@ -34913,10 +35024,38 @@ class CanvasCompositor {
     this._alpha = 1;
   }
   /**
+   * Reusable unit Path2D for a (shape, size): the shape's geometry built at the
+   * origin once, then translated per marker via setTransform. Returns null when
+   * the geometry string cannot be parsed.
+   * @param {any} shim
+   * @param {number} shapeId
+   * @param {number} size
+   * @returns {any}
+   */
+  _unitPath(shim2, shapeId, size) {
+    const key = shapeId + "|" + size;
+    let p = this._unitPaths.get(key);
+    if (p === void 0) {
+      try {
+        p = new Path2D(shim2.markerPath(0, 0, shapeId, size));
+      } catch (e) {
+        p = null;
+      }
+      this._unitPaths.set(key, p);
+    }
+    return p;
+  }
+  /**
+   * Markers paint as STYLE BATCHES: one fill/stroke state application per run
+   * of consecutive same-style markers (a uniform single-series scatter is
+   * exactly one batch), then per-marker geometry inside the run. Per-marker
+   * geometry stays painter's-ordered (fill+stroke per marker) so overlapping
+   * semi-transparent markers composite exactly as SVG does.
    * @param {any} ctx
    * @param {any} shim
    */
   _paintMarkers(ctx, shim2) {
+    this._markerBatches = 0;
     const n = shim2.markerCount();
     if (!n) return;
     const mx = shim2._mx;
@@ -34935,11 +35074,12 @@ class CanvasCompositor {
         i++;
         continue;
       }
+      const doFill = this._applyFill(ctx, style);
+      const doStroke = this._applyStroke(ctx, style);
+      this._markerBatches++;
+      const baseFillA = style.fillOpacity == null ? 1 : Number(style.fillOpacity);
+      const baseStrokeA = style.strokeOpacity == null ? 1 : Number(style.strokeOpacity);
       if (shapeId === 0) {
-        const doFill = this._applyFill(ctx, style);
-        const doStroke = this._applyStroke(ctx, style);
-        const baseFillA = style.fillOpacity == null ? 1 : Number(style.fillOpacity);
-        const baseStrokeA = style.strokeOpacity == null ? 1 : Number(style.strokeOpacity);
         let j = i;
         while (j < n && mshape[j] === 0 && mstyle[j] === styleId) {
           const r = msize[j] || 0;
@@ -34967,18 +35107,65 @@ class CanvasCompositor {
         ctx.globalAlpha = 1;
         i = j;
       } else {
-        const y = my[i];
-        if (y === y && msize[i] > 0) {
-          this._alpha = dimming ? this._seriesAlpha(shim2.markerSeries(i)) : 1;
-          try {
-            const p = new Path2D(shim2.markerPath(mx[i], y, shapeId, msize[i]));
-            this._fillStrokePath(ctx, style, p);
-          } catch (e) {
+        const dpr = this._dpr;
+        const m = this._margin;
+        let j = i;
+        while (j < n && mshape[j] === shapeId && mstyle[j] === styleId) {
+          const y = my[j];
+          const size = msize[j];
+          if (y === y && size > 0) {
+            const p = this._unitPath(shim2, shapeId, size);
+            if (p) {
+              ctx.setTransform(dpr, 0, 0, dpr, (m + mx[j]) * dpr, (m + y) * dpr);
+              const f = dimming ? this._seriesAlpha(shim2.markerSeries(j)) : 1;
+              if (doFill) {
+                ctx.globalAlpha = baseFillA * f;
+                ctx.fill(p);
+              }
+              if (doStroke) {
+                ctx.globalAlpha = baseStrokeA * f;
+                ctx.stroke(p);
+              }
+            }
           }
+          j++;
         }
-        i++;
+        ctx.setTransform(dpr, 0, 0, dpr, m * dpr, m * dpr);
+        ctx.globalAlpha = 1;
+        i = j;
       }
     }
+  }
+  /**
+   * Paint a series path from its numeric fast-path coords: a direct
+   * moveTo/lineTo loop over the typed arrays, no Path2D and no d-string
+   * parse. `ncloseY` (areas) closes the polygon down to the baseline exactly
+   * like the string form's `L xLast bottom L x0 bottom z` tail.
+   * @param {any} ctx
+   * @param {any} cmd
+   */
+  _paintNumericPath(ctx, cmd) {
+    const xs = cmd.nxs;
+    const ys = cmd.nys;
+    const n = xs.length;
+    if (!n) return;
+    ctx.beginPath();
+    ctx.moveTo(xs[0], ys[0]);
+    for (let k = 1; k < n; k++) {
+      ctx.lineTo(xs[k], ys[k]);
+    }
+    if (cmd.ncloseY != null) {
+      ctx.lineTo(xs[n - 1], cmd.ncloseY);
+      ctx.lineTo(xs[0], cmd.ncloseY);
+      ctx.closePath();
+    }
+    if (this._applyFill(ctx, cmd)) {
+      ctx.fill(cmd.fillRule === "evenodd" ? "evenodd" : "nonzero");
+    }
+    if (this._applyStroke(ctx, cmd)) {
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
   }
   /**
    * @param {any} ctx
@@ -34987,6 +35174,10 @@ class CanvasCompositor {
   _paintOne(ctx, cmd) {
     switch (cmd.tag) {
       case "path": {
+        if (cmd.nxs) {
+          this._paintNumericPath(ctx, cmd);
+          break;
+        }
         if (!cmd.d) return;
         if (!cmd.path2d) {
           try {
@@ -35111,6 +35302,7 @@ class CanvasCompositor {
     this._host = null;
     this._canvas = null;
     this._c2d = null;
+    this._unitPaths.clear();
   }
 }
 class CanvasRenderer {
@@ -42992,6 +43184,7 @@ class Line {
     this.elSeries = null;
     this.elPointsMain = null;
     this.elDataLabelsWrap = null;
+    this._elLastPointsWrap = null;
   }
   /**
    * @param {any[]} series
@@ -43192,6 +43385,8 @@ class Line {
       class: "apexcharts-series-markers-wrap",
       "data:realIndex": realIndex
     });
+    this.markers.resetSeriesWrapCache();
+    this._elLastPointsWrap = null;
     if (w.globals.hasNullValues) {
       const firstPoint = this.markers.plotChartMarkers({
         pointsPos: {
@@ -43348,6 +43543,7 @@ class Line {
       dataChangeSpeed: w.config.chart.animations.dynamicAnimation.speed,
       className: `apexcharts-${type}`
     };
+    const numericXY = paths.numericXY;
     if (type === "area") {
       const pathFill = fill.fillPath({
         seriesNumber: realIndex
@@ -43356,6 +43552,11 @@ class Line {
         const renderedPath = emit.renderPaths(__spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
           pathFrom: streamScroll ? projectPathToPrevFrame(paths.areaPaths[p], streamScroll) : (_c = (_b = reconcile == null ? void 0 : reconcile.area) == null ? void 0 : _b.from) != null ? _c : paths.pathFromArea,
           pathTo: paths.areaPaths[p],
+          pathToNumeric: numericXY ? {
+            xs: numericXY.xs,
+            ys: numericXY.ys,
+            closeY: numericXY.areaCloseY
+          } : void 0,
           pathToInterp: (_d = reconcile == null ? void 0 : reconcile.area) == null ? void 0 : _d.toInterp,
           scrollMorph: !!streamScroll,
           stroke: "none",
@@ -43396,6 +43597,7 @@ class Line {
         const linePathCommonOpts = __spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
           pathFrom: streamScroll ? projectPathToPrevFrame(paths.linePaths[p], streamScroll) : (_f = (_e = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _e.from) != null ? _f : paths.pathFromLine,
           pathTo: paths.linePaths[p],
+          pathToNumeric: numericXY ? { xs: numericXY.xs, ys: numericXY.ys } : void 0,
           pathToInterp: (_g = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _g.toInterp,
           scrollMorph: !!streamScroll,
           stroke: lineFill,
@@ -43480,6 +43682,28 @@ class Line {
     let pathState = 0;
     let segmentStartX;
     const jitterPx = this.pointsChart ? this._scatterJitterPx(realIndex) : null;
+    if (curve === "straight" && !this.pointsChart) {
+      const fast = this._fastStraightPath({
+        type,
+        series,
+        i,
+        realIndex,
+        translationsIndex,
+        iterations,
+        x,
+        y,
+        pX,
+        pY,
+        pathsFrom,
+        linePaths,
+        areaPaths,
+        xArrj,
+        yArrj,
+        y2Arrj,
+        stackSeries
+      });
+      if (fast) return fast;
+    }
     for (let j = 0; j < iterations; j++) {
       if (series[i].length === 0) break;
       const isNull = typeof series[i][j + 1] === "undefined" || series[i][j + 1] === null;
@@ -43614,8 +43838,9 @@ class Line {
         seriesIndex: realIndex,
         j: j + 1
       });
-      if (elPointsWrap !== null) {
+      if (elPointsWrap !== null && elPointsWrap !== this._elLastPointsWrap) {
         this.elPointsMain.add(elPointsWrap);
+        this._elLastPointsWrap = elPointsWrap;
       }
     } else {
       this.scatter.draw(this.elSeries, j, {
@@ -43656,6 +43881,141 @@ class Line {
     return {
       x: (jt.x || 0) * xUnitPx,
       y: (jt.y || 0) * yUnitPx
+    };
+  }
+  /**
+   * Numeric geometry fast path for plain straight line/area series (the
+   * render-2026 perf work). Eligibility is strict: everything the per-point
+   * slow loop can do beyond plain geometry (null gaps, markers, data labels,
+   * discrete markers, stacking, combos, range areas) bails to the state
+   * machine. When eligible it produces the SAME outputs as the slow loop
+   * (byte-identical d strings via join, the same xArrj/yArrj/y2Arrj
+   * pushes, and the same pointsArray tooltip cache) in one tight loop.
+   * In canvas mode it additionally emits typed-array coordinates so the
+   * renderer can paint via moveTo/lineTo without a Path2D d-string parse.
+   *
+   * @param {{type: any, series: any, i: number, realIndex: number,
+   *   translationsIndex: number, iterations: number, x: number, y: number,
+   *   pX: number, pY: number, pathsFrom: any, linePaths: any[],
+   *   areaPaths: any[], xArrj: any[], yArrj: any[], y2Arrj: any[],
+   *   stackSeries: boolean}} opts
+   * @returns {any} the _iterateOverDataPoints result, or null when ineligible
+   */
+  _fastStraightPath({
+    type,
+    series,
+    i,
+    realIndex,
+    translationsIndex,
+    iterations,
+    x,
+    y,
+    pX,
+    pY,
+    pathsFrom,
+    linePaths,
+    areaPaths,
+    xArrj,
+    yArrj,
+    y2Arrj,
+    stackSeries
+  }) {
+    const w = this.w;
+    if (type !== "line" && type !== "area") return null;
+    if (w.globals.comboCharts || stackSeries) return null;
+    if (w.config.dataLabels.enabled) return null;
+    if (w.config.markers.discrete.length) return null;
+    if (w.globals.markers.size[realIndex] > 0) return null;
+    const s = series[i];
+    const n = s.length;
+    if (!iterations || n < 2 || n - 1 !== iterations) return null;
+    for (let k = 0; k <= iterations; k++) {
+      const v = s[k];
+      if (v === null || typeof v === "undefined") return null;
+    }
+    const isXNumeric = w.axisFlags.isXNumeric;
+    const sx = isXNumeric ? w.seriesData.seriesX[realIndex] : null;
+    if (isXNumeric && (!sx || sx.length < n)) return null;
+    const yR = this.yRatio[translationsIndex];
+    const isReversed = this.isReversed;
+    const zeroY = this.zeroY;
+    const bottomY = this.areaBottomY;
+    const xRatio = this.xRatio;
+    const minX = w.globals.minX;
+    const xDivision = this.xDivision;
+    const offX = w.config.markers.offsetX;
+    const offY = w.config.markers.offsetY;
+    const appendFrom = this.appendPathFrom && !w.globals.hasNullValues;
+    let { pathFromLine, pathFromArea } = pathsFrom;
+    const r = this.ctx && this.ctx.renderer;
+    const canvasMode = !!(r && r.kind && r.kind !== "svg");
+    const buildStrings = !canvasMode || w.globals.dataChanged;
+    const nxs = canvasMode ? new Float64Array(n) : null;
+    const nys = canvasMode ? new Float64Array(n) : null;
+    if (nxs && nys) {
+      nxs[0] = pX;
+      nys[0] = pY;
+    }
+    if (typeof w.globals.pointsArray[realIndex] === "undefined") {
+      w.globals.pointsArray[realIndex] = [];
+    }
+    const pts = w.globals.pointsArray[realIndex];
+    const xPT1st = sx ? (sx[0] - minX) / xRatio + offX : this.categoryAxisCorrection + offX;
+    pts.push([xPT1st, pathsFrom.prevY + offY]);
+    const parts = buildStrings ? new Array(iterations + 1) : [];
+    if (buildStrings) parts[0] = "M " + pX + " " + pY;
+    const fromParts = buildStrings && appendFrom ? new Array(iterations) : null;
+    let xv = x;
+    let xj = pX;
+    let yj = pY;
+    for (let j = 0; j < iterations; j++) {
+      if (sx) {
+        xj = (sx[j + 1] - minX) / xRatio;
+      } else {
+        xv = xv + xDivision;
+        xj = xv;
+      }
+      const v = s[j + 1];
+      yj = zeroY - v / yR + (isReversed ? v / yR : 0) * 2;
+      xArrj.push(xj);
+      yArrj.push(yj);
+      y2Arrj.push(y);
+      pts.push([xj + offX, yj + offY]);
+      if (buildStrings) {
+        parts[j + 1] = " L " + xj + " " + yj;
+        if (fromParts) fromParts[j] = " L " + xj + " " + bottomY;
+      }
+      if (nxs && nys) {
+        nxs[j + 1] = xj;
+        nys[j + 1] = yj;
+      }
+    }
+    let linePath = "";
+    let areaPath = "";
+    if (buildStrings) {
+      linePath = parts.join("");
+      areaPath = linePath + " L " + xj + " " + bottomY + " L " + pX + " " + bottomY + "z";
+    }
+    if (fromParts) {
+      const fromAppend = fromParts.join("");
+      pathFromLine += fromAppend;
+      pathFromArea += fromAppend;
+    } else if (!buildStrings && appendFrom) {
+      pathFromLine += " L " + xj + " " + bottomY;
+      pathFromArea += " L " + xj + " " + bottomY;
+    }
+    linePaths.push(linePath);
+    areaPaths.push(areaPath);
+    return {
+      yArrj,
+      xArrj,
+      pathFromArea,
+      areaPaths,
+      pathFromLine,
+      linePaths,
+      linePath,
+      areaPath,
+      numericXY: nxs ? { xs: nxs, ys: nys, areaCloseY: bottomY } : void 0
     };
   }
   /** @param {{type: any, series: any, i: any, j: any, x: any, y: any, xArrj: any, yArrj: any, y2: any, y2Arrj: any, pX: any, pY: any, pathState: any, segmentStartX: any, linePath: any, areaPath: any, linePaths: any, areaPaths: any, curve: any, isRangeStart: any}} opts */

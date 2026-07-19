@@ -19,7 +19,7 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v6.1.0
+ * ApexCharts v6.2.0
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -9875,6 +9875,18 @@ class Markers {
     this.ctx = ctx;
     this._filters = new Filters(this.w);
     this._graphics = new Graphics(this.w, this.ctx);
+    this._seriesWrap = null;
+    this._seriesWrapIndex = -1;
+  }
+  /**
+   * Invalidate the cached per-series wrap group. Callers that drive
+   * plotChartMarkers point-by-point (Line) must call this when a series'
+   * element tree is (re)created, so a later render never appends markers to a
+   * detached group from the previous pass.
+   */
+  resetSeriesWrapCache() {
+    this._seriesWrap = null;
+    this._seriesWrapIndex = -1;
   }
   setGlobalMarkerSize() {
     const w = this.w;
@@ -9963,14 +9975,23 @@ class Markers {
           if (!invalidMarker) {
             const shouldCreateMarkerWrap = w.globals.markers.size[seriesIndex] > 0 || alwaysDrawMarker || hasDiscreteMarkers;
             if (shouldCreateMarkerWrap && !elMarkersWrap) {
-              elMarkersWrap = emit.group({
-                class: alwaysDrawMarker || hasDiscreteMarkers ? "" : "apexcharts-series-markers"
-              });
-              elMarkersWrap.attr(
-                "clip-path",
-                `url(#gridRectMarkerMask${w.globals.cuid})`
-              );
-              this.setupMarkerDelegation(elMarkersWrap);
+              const standardWrap = !alwaysDrawMarker && !hasDiscreteMarkers;
+              if (standardWrap && this._seriesWrap && this._seriesWrapIndex === seriesIndex) {
+                elMarkersWrap = this._seriesWrap;
+              } else {
+                elMarkersWrap = emit.group({
+                  class: standardWrap ? "apexcharts-series-markers" : ""
+                });
+                elMarkersWrap.attr(
+                  "clip-path",
+                  `url(#gridRectMarkerMask${w.globals.cuid})`
+                );
+                this.setupMarkerDelegation(elMarkersWrap);
+                if (standardWrap) {
+                  this._seriesWrap = elMarkersWrap;
+                  this._seriesWrapIndex = seriesIndex;
+                }
+              }
             }
             markerElement = emit.drawMarker(p.x[q], p.y[q], opts);
             markerElement.attr("rel", dataPointIndex);
@@ -10130,6 +10151,9 @@ class Scatter {
     this.fill = new Fill(this.w);
     this.markers = new Markers(this.w, this.ctx);
     this.graphics = new Graphics(this.w);
+    this._elPointsWrap = null;
+    this._elPointsWrapParent = null;
+    this._perSeries = null;
   }
   /**
    * @param {Element} elSeries
@@ -10144,11 +10168,21 @@ class Scatter {
     const pointsPos = opts.pointsPos;
     const zRatio = opts.zRatio;
     const elPointsMain = opts.elParent;
-    const elPointsWrap = emit.group({
-      class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`
-    });
-    elPointsWrap.attr("clip-path", `url(#gridRectMarkerMask${w.globals.cuid})`);
-    this.markers.setupMarkerDelegation(elPointsWrap);
+    let elPointsWrap = this._elPointsWrap;
+    if (!elPointsWrap || this._elPointsWrapParent !== elPointsMain) {
+      elPointsWrap = emit.group({
+        class: `apexcharts-series-markers apexcharts-series-${w.config.chart.type}`
+      });
+      elPointsWrap.attr(
+        "clip-path",
+        `url(#gridRectMarkerMask${w.globals.cuid})`
+      );
+      this.markers.setupMarkerDelegation(elPointsWrap);
+      elPointsMain.add(elPointsWrap);
+      this._elPointsWrap = elPointsWrap;
+      this._elPointsWrapParent = elPointsMain;
+      this._perSeries = this._buildPerSeriesCache(realIndex, emit);
+    }
     if (Array.isArray(pointsPos.x)) {
       for (let q = 0; q < pointsPos.x.length; q++) {
         let dataPointIndex = j + 1;
@@ -10192,9 +10226,38 @@ class Scatter {
             w.globals.pointsArray[realIndex][dataPointIndex] = [x, y];
           }
         }
-        elPointsMain.add(elPointsWrap);
       }
     }
+  }
+  /**
+   * Per-series constants for drawPoint's hot path. Everything here is uniform
+   * across the points of one series; computing or allocating it per point is
+   * measurable overhead at 20k-50k points.
+   * @param {number} realIndex
+   * @param {any} emit
+   */
+  _buildPerSeriesCache(realIndex, emit) {
+    var _a;
+    const w = this.w;
+    return {
+      realIndex,
+      emit,
+      isBubble: w.config.chart.type === "bubble" || w.globals.comboCharts && w.config.series[realIndex] && /** @type {Record<string,any>} */
+      w.config.series[realIndex].type === "bubble",
+      // discrete markers vary per point; they disable both caches below
+      canCacheConfig: !w.config.markers.discrete.length,
+      /** @type {any} lazily built shared marker config (first point) */
+      markerConfig: null,
+      /** @type {boolean|undefined} lazily resolved on the first fillPath call */
+      fillCacheable: void 0,
+      /** @type {any} cached fillPath result (undefined = not cached yet) */
+      fillCircle: void 0,
+      dropShadowEnabled: w.config.chart.dropShadow.enabled,
+      doInitialAnim: this.initialAnim && !w.globals.dataChanged && !w.globals.resized,
+      jitter: (_a = w.config.plotOptions.scatter) == null ? void 0 : _a.jitter,
+      /** @type {any} lazily built pop-animation constants */
+      anim: null
+    };
   }
   /**
    * @param {number} x
@@ -10205,42 +10268,76 @@ class Scatter {
    * @param {number} j
    */
   drawPoint(x, y, radius, realIndex, dataPointIndex, j) {
-    var _a, _b;
+    var _a;
     const w = this.w;
     const i = realIndex;
     const anim = this.anim;
     const filters = this.filters;
     const fill = this.fill;
     const markers = this.markers;
-    const graphics = this.graphics;
-    const emit = seriesEmitter(this.ctx, graphics);
-    const markerConfig = markers.getMarkerConfig({
-      cssClass: "apexcharts-marker",
-      seriesIndex: i,
-      dataPointIndex,
-      radius: w.config.chart.type === "bubble" || w.globals.comboCharts && w.config.series[realIndex] && /** @type {Record<string,any>} */
-      w.config.series[realIndex].type === "bubble" ? radius : null
-    });
-    let pathFillCircle = fill.fillPath({
-      seriesNumber: realIndex,
-      dataPointIndex,
-      color: markerConfig.pointFillColor,
-      patternUnits: "objectBoundingBox",
-      value: w.seriesData.series[realIndex][j]
-    });
-    const el = emit.drawMarker(x, y, markerConfig);
+    let ps = this._perSeries;
+    if (!ps || ps.realIndex !== realIndex) {
+      ps = this._perSeries = this._buildPerSeriesCache(
+        realIndex,
+        seriesEmitter(this.ctx, this.graphics)
+      );
+    }
+    const emit = ps.emit;
+    let markerConfig;
+    if (ps.canCacheConfig) {
+      if (!ps.markerConfig) {
+        ps.markerConfig = markers.getMarkerConfig({
+          cssClass: "apexcharts-marker",
+          seriesIndex: i,
+          dataPointIndex,
+          radius: ps.isBubble ? radius : null
+        });
+      }
+      markerConfig = ps.markerConfig;
+      if (ps.isBubble) {
+        markerConfig.pSize = radius;
+        markerConfig.pRadius = radius;
+      }
+    } else {
+      markerConfig = markers.getMarkerConfig({
+        cssClass: "apexcharts-marker",
+        seriesIndex: i,
+        dataPointIndex,
+        radius: ps.isBubble ? radius : null
+      });
+    }
     const _si = (
       /** @type {Record<string,any>} */
       w.config.series[i]
     );
-    if (_si.data[dataPointIndex]) {
-      if (_si.data[dataPointIndex].fillColor) {
-        pathFillCircle = _si.data[dataPointIndex].fillColor;
+    const dataItem = _si.data[dataPointIndex];
+    let pathFillCircle;
+    if (ps.fillCircle !== void 0) {
+      pathFillCircle = ps.fillCircle;
+    } else {
+      pathFillCircle = fill.fillPath({
+        seriesNumber: realIndex,
+        dataPointIndex,
+        color: markerConfig.pointFillColor,
+        patternUnits: "objectBoundingBox",
+        value: w.seriesData.series[realIndex][j]
+      });
+      if (ps.fillCacheable === void 0) {
+        ps.fillCacheable = ps.canCacheConfig && fill.getFillType(realIndex) === "solid" && typeof markerConfig.pointFillColor === "string" && !!markerConfig.pointFillColor;
+      }
+      if (ps.fillCacheable && !(dataItem == null ? void 0 : dataItem.fillColor)) {
+        ps.fillCircle = pathFillCircle;
       }
     }
-    const jt = (_a = w.config.plotOptions.scatter) == null ? void 0 : _a.jitter;
+    const el = emit.drawMarker(x, y, markerConfig);
+    if (dataItem == null ? void 0 : dataItem.fillColor) {
+      pathFillCircle = dataItem.fillColor;
+    }
+    const jt = ps.jitter;
     if ((jt == null ? void 0 : jt.enabled) && jt.distributed && w.globals.colors.length) {
-      const bandIdx = Math.round((_b = w.seriesData.seriesX[realIndex]) == null ? void 0 : _b[dataPointIndex]);
+      const bandIdx = Math.round(
+        (_a = w.seriesData.seriesX[realIndex]) == null ? void 0 : _a[dataPointIndex]
+      );
       if (!isNaN(bandIdx)) {
         pathFillCircle = w.globals.colors[bandIdx % w.globals.colors.length];
       }
@@ -10248,24 +10345,28 @@ class Scatter {
     el.attr({
       fill: pathFillCircle
     });
-    if (w.config.chart.dropShadow.enabled) {
+    if (ps.dropShadowEnabled) {
       const dropShadow = w.config.chart.dropShadow;
       filters.dropShadow(el, dropShadow, realIndex);
     }
-    if (this.initialAnim && !w.globals.dataChanged && !w.globals.resized) {
-      const animCfg = w.config.chart.animations;
-      const popSpeed = animCfg.speed;
-      const totalPoints = w.globals.dataPoints || 1;
-      const gradCfg = animCfg.animateGradually;
-      const gradEnabled = gradCfg && gradCfg.enabled !== false;
-      const baseDelay = gradEnabled ? Math.min(20, popSpeed * 0.5 / Math.max(1, totalPoints)) : 0;
+    if (ps.doInitialAnim) {
+      if (!ps.anim) {
+        const animCfg = w.config.chart.animations;
+        const totalPoints = w.globals.dataPoints || 1;
+        const gradCfg = animCfg.animateGradually;
+        const gradEnabled = gradCfg && gradCfg.enabled !== false;
+        ps.anim = {
+          popSpeed: animCfg.speed,
+          baseDelay: gradEnabled ? Math.min(20, animCfg.speed * 0.5 / Math.max(1, totalPoints)) : 0
+        };
+      }
       const delay = computeStagger({
-        style: baseDelay > 0 ? "sequential" : "none",
+        style: ps.anim.baseDelay > 0 ? "sequential" : "none",
         index: dataPointIndex,
-        baseDelay
+        baseDelay: ps.anim.baseDelay
       });
       anim.animatePop(el, {
-        speed: popSpeed,
+        speed: ps.anim.popSpeed,
         delay,
         onComplete: () => anim.animationCompleted(el)
       });
@@ -10279,7 +10380,6 @@ class Scatter {
       "default-marker-size": markerConfig.pSize
     });
     filters.setSelectionFilter(el, realIndex, dataPointIndex);
-    el.node.classList.add("apexcharts-marker");
     return el;
   }
   /**
