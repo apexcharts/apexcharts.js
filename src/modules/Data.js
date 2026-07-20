@@ -1726,9 +1726,21 @@ export default class Data {
       }
     }
 
+    // When zoom-aware downsampling is active, parseDataAxisCharts replaces
+    // ser[i] with the windowed/downsampled view. `ser` shares its array
+    // reference with the caller's `options.series` (Utils.extend copies arrays
+    // by reference), so writing the reduced view back into it would corrupt the
+    // user's original full-resolution data: every later re-render created from
+    // that same options object would start already reduced and could never
+    // recover the raw points (nor be un-downsampled by disabling the reducer).
+    // Detach with a shallow clone so the reduction only touches our copy. The
+    // raw stash above was taken before any reduction, so it stays intact.
+    if (gl.dataReducerRawSeries && cnf.chart.dataReducer?.enabled) {
+      ser = ser.map((s) => ({ ...s }))
+    }
+
     cnf.series = ser
-    // When zoom-aware downsampling is active, parseDataAxisCharts mutates
-    // ser[i] to the windowed/downsampled view — which leaks into cnf.series.
+    // parseDataAxisCharts mutates ser[i] to the windowed/downsampled view.
     // Re-cloning from cnf.series each parse would corrupt initialSeries and
     // break resetZoom (it would only restore one zoom step). Instead, snapshot
     // from the raw stash so initialSeries always represents the true input.
