@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Bar Chart Race (labels ride the reorder)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+      .explanation {
+        max-width: 620px;
+        margin: 0 auto 12px;
+        font-size: 13px;
+        color: #777;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      var raceEntities = [
+        'United States',
+        'China',
+        'Germany',
+        'Japan',
+        'France',
+        'United Kingdom',
+        'India',
+        'Brazil',
+        'Canada',
+        'Italy',
+      ]
+
+      // A fixed color per country. With distributed bars the color is applied by bar
+      // POSITION, but this is a race where the bars re-sort every tick, so raceFrame()
+      // re-orders this palette to match the current ranking below. That keeps each
+      // country's color stable as it rides up and down the ranks.
+      var raceColors = {
+        'United States': '#3B82F6',
+        China: '#EF4444',
+        Germany: '#F59E0B',
+        Japan: '#10B981',
+        France: '#8B5CF6',
+        'United Kingdom': '#EC4899',
+        India: '#14B8A6',
+        Brazil: '#F97316',
+        Canada: '#6366F1',
+        Italy: '#84CC16',
+      }
+
+      // A flag emoji per country, prepended to its axis label by
+      // yaxis.labels.formatter. SVG axis labels are plain text, so an emoji is the
+      // simplest way to put an icon in front of a label (real image flags would need
+      // custom DOM work). Emoji flags render on most platforms; a few Windows
+      // browsers show the two-letter country code instead.
+      var raceFlags = {
+        'United States': '🇺🇸',
+        China: '🇨🇳',
+        Germany: '🇩🇪',
+        Japan: '🇯🇵',
+        France: '🇫🇷',
+        'United Kingdom': '🇬🇧',
+        India: '🇮🇳',
+        Brazil: '🇧🇷',
+        Canada: '🇨🇦',
+        Italy: '🇮🇹',
+      }
+
+      // Persistent value per entity, nudged a little each tick so ranks swap
+      // gradually (a smooth race rather than a random shuffle).
+      var raceValues = {}
+      raceEntities.forEach(function (name, i) {
+        raceValues[name] = 300 + (raceEntities.length - i) * 90
+      })
+
+      function raceFrame() {
+        raceEntities.forEach(function (name) {
+          raceValues[name] = Math.max(
+            50,
+            raceValues[name] + (Math.random() - 0.45) * 220,
+          )
+        })
+        var ranked = raceEntities
+          .map(function (name) {
+            return { name: name, value: Math.round(raceValues[name]) }
+          })
+          .sort(function (a, b) {
+            return b.value - a.value
+          })
+        return {
+          categories: ranked.map(function (r) {
+            return r.name
+          }),
+          data: ranked.map(function (r) {
+            return r.value
+          }),
+          // Colors follow the ranking so each country keeps its own color (see above).
+          colors: ranked.map(function (r) {
+            return raceColors[r.name]
+          }),
+        }
+      }
+
+      var raceInitial = raceFrame()
+    </script>
+  </head>
+
+  <body>
+     <div id="chart"></div>
+      
+      <div class="explanation">
+        A "bar chart race": each tick re-sorts the entities by value and updates the
+        chart. The bars slide to their new ranks and the left-hand category labels
+        ride along with them (automatic whenever a reorder update runs with
+        <code>dynamicAnimation</code> enabled). The value labels also ride each bar
+        and count up/down, via the opt-in <code>dataLabels.animate</code> and
+        <code>dataLabels.countUp</code> flags: together these complete the race.
+      </div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            name: 'Value',
+            data: raceInitial.data,
+          },
+        ],
+        chart: {
+          id: 'horizontal-bar-race',
+          type: 'bar',
+          height: 420,
+          animations: {
+            dynamicAnimation: {
+              speed: 800,
+            },
+          },
+          toolbar: {
+            show: false,
+          },
+        },
+        plotOptions: {
+          bar: {
+            borderRadius: 4,
+            borderRadiusApplication: 'end',
+            horizontal: true,
+            // Each bar gets its own color, taken from the `colors` palette by position.
+            distributed: true,
+          },
+        },
+        colors: raceInitial.colors,
+        dataLabels: {
+          enabled: true,
+          // Opt-in race polish: the value labels ride to each bar's new rank and
+          // count up/down from their previous value on every tick.
+          animate: {
+            enabled: true,
+          },
+          countUp: {
+            enabled: true,
+          },
+        },
+        title: {
+          text: 'Bar Chart Race',
+          align: 'left',
+        },
+        xaxis: {
+          categories: raceInitial.categories,
+        },
+        yaxis: {
+          labels: {
+            // Prepend each country's flag emoji to its axis label.
+            formatter: function (val) {
+              return (raceFlags[val] || '') + '  ' + val
+            },
+          },
+        },
+        legend: {
+          show: false,
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      var raceRuns = 0
+      var raceInterval = window.setInterval(function () {
+        raceRuns++
+        var frame = raceFrame()
+        chart.updateOptions({
+          series: [{ data: frame.data }],
+          xaxis: { categories: frame.categories },
+          colors: frame.colors,
+        })
+
+        if (raceRuns === 2 && window.isATest === true) {
+          clearInterval(raceInterval)
+        }
+      }, 1200)
+    </script>
+
+    
+  </body>
+</html>

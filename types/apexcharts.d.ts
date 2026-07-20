@@ -2655,6 +2655,22 @@ type ApexDataLabels = {
     dropShadow?: ApexDropShadow
   }
   dropShadow?: ApexDropShadow
+  /**
+   * Ride data labels to their new position on a data-change update (e.g. a bar
+   * chart race) instead of snapping. Off by default. Bar/column only; speed and
+   * easing follow chart.animations.dynamicAnimation.
+   */
+  animate?: {
+    enabled?: boolean
+  }
+  /**
+   * Count the numeric value up/down from its previous value on update, like
+   * countUp.js. Off by default. The formatter runs each frame so number
+   * formatting is preserved. Bar/column only.
+   */
+  countUp?: {
+    enabled?: boolean
+  }
   formatter?(val: string | number | number[], opts?: ApexFormatterOpts): string | number | (string | number)[]
 }
 

@@ -1,6 +1,7 @@
 // @ts-check
 import Graphics from '../../../modules/Graphics'
 import DataLabels from '../../../modules/DataLabels'
+import { datumKey } from '../../../modules/animations/LengthTransition'
 
 export default class BarDataLabels {
   /**
@@ -621,6 +622,21 @@ export default class BarDataLabels {
         class: 'apexcharts-data-labels',
         transform: rotate,
       })
+
+      // Stamp datum identity + raw value so the opt-in data-label transition
+      // (ride to new position + count-up) can match a label to its previous
+      // frame across a data update. Only scalar (non-range) values count up.
+      const dlCfg = w.config.dataLabels
+      if (dlCfg.animate?.enabled || dlCfg.countUp?.enabled) {
+        elDataLabelsWrap.node.setAttribute(
+          'data:dlKey',
+          `${i}::${datumKey(w, i, j)}`,
+        )
+        elDataLabelsWrap.node.setAttribute('data:dlJ', String(j))
+        if (typeof val === 'number' && isFinite(val)) {
+          elDataLabelsWrap.node.setAttribute('data:dlVal', String(val))
+        }
+      }
 
       let text = ''
       if (typeof val !== 'undefined') {

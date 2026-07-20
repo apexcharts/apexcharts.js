@@ -25,6 +25,7 @@ import { registerTheme, unregisterTheme } from './modules/ThemeRegistry'
 import { registerEasing } from './modules/animations/Easing'
 import { trimStreamingSeries } from './modules/animations/StreamScroll'
 import { applyAxisTransition } from './modules/animations/AxisTransition'
+import { applyDataLabelTransition } from './modules/animations/DataLabelTransition'
 import {
   registerPlugin as registerPluginImpl,
   unregisterPlugin as unregisterPluginImpl,
@@ -899,6 +900,12 @@ export default class ApexCharts {
           // their new positions and fade in the new ones, on the same clock
           // as the series morph (no-op otherwise; consumes prevChromeFrame).
           applyAxisTransition(this.w)
+
+          // Opt-in bar-chart-race polish: ride data labels to their new slot
+          // and count their value up, on the same clock as the morph (no-op
+          // unless dataLabels.animate/countUp is enabled and a frame was
+          // captured this update).
+          applyDataLabelTransition(this.w)
 
           if (typeof this.w.config.chart.events.updated === 'function') {
             this.w.config.chart.events.updated(this, this.w)

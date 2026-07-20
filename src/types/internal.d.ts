@@ -408,6 +408,14 @@ export interface ChartGlobals
     xScale: { min: number; max: number; width: number } | null
     yAnchors: { min: number; max: number; pLo: number; pHi: number } | null
   } | null
+  // Bar/column data-label snapshot (per-datum pixel position + raw value),
+  // captured alongside prevStreamFrame and consumed once by
+  // DataLabelTransition after a data-change re-render mounts. Keyed by
+  // `${realIndex}::${datumKey}`. Powers the opt-in label ride + count-up.
+  prevDataLabels: Map<
+    string,
+    { cx: number; cy: number; val: number }
+  > | null
   // Guards the single rAF that reveals a large-dataset bulk render
   // (see Animations.revealBulk). Re-armed each render so updates fade in too.
   bulkRevealScheduled: boolean

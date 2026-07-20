@@ -10,6 +10,7 @@ import {
   datumKey,
   lengthTransitionEnabled,
   renderBarExitGhosts,
+  seriesJoin,
 } from '../modules/animations/LengthTransition'
 import Series from '../modules/Series'
 import { seriesEmitter } from '../renderers/Renderer'
@@ -78,6 +79,8 @@ class Bar {
     this._prevKeyed = null
     /** @type {Record<number, boolean> | null} */
     this._ltCache = null
+    /** @type {Record<number, boolean> | null} */
+    this._layoutShiftCache = null
 
     /** @type {any[]} */
     this.series = []
@@ -220,8 +223,12 @@ class Bar {
         el: elDataLabelsWrap.node,
         // On a layout-changing update the labels must stay hidden through the
         // reflow morph (the updateOptions flow otherwise reveals them at
-        // frame 0, where they float over sliding bars).
-        holdUntilComplete: this.isLengthTransition(realIndex),
+        // frame 0, where they float over sliding bars). When dataLabels.animate
+        // is on the labels instead RIDE the morph (see DataLabelTransition), so
+        // keep them visible: holding would hide the very motion we want to show.
+        holdUntilComplete:
+          !w.config.dataLabels.animate?.enabled &&
+          this.isLengthTransition(realIndex),
       })
       elDataLabelsWrap.node.classList.add('apexcharts-element-hidden')
 
@@ -515,13 +522,15 @@ class Bar {
     // cancels — otherwise a 40ms intended delay would become 40×150=6000ms.
     const animCfg = w.config.chart.animations
     const gradCfg = animCfg.animateGradually
-    // Layout-changing updates (points entered/exited) run every survivor on
-    // one shared clock: staggered starts read as incoherent churn when bars
-    // are also sliding to new slots. Pure value updates keep the stagger.
+    // Layout-shifting updates (points entered/exited OR a reorder / bar-chart
+    // race) run every survivor on one shared clock: staggered starts read as
+    // incoherent churn when bars are also sliding to new slots, and would leave
+    // the bars out of sync with the axis/data labels, which move together on a
+    // single clock. Pure value updates (no slot change) keep the stagger.
     const staggerEnabled =
       gradCfg &&
       gradCfg.enabled !== false &&
-      !(w.globals.dataChanged && this.isLengthTransition(realIndex))
+      !(w.globals.dataChanged && this.isLayoutShift(realIndex))
     let delay = 0
     if (staggerEnabled) {
       const totalBars = w.globals.dataPoints || 1
@@ -1007,6 +1016,29 @@ class Bar {
       }
     }
     this._ltCache[realIndex] = result
+    return result
+  }
+
+  /**
+   * Whether this update moves survivors to new slots: a length change
+   * (enter/exit, via isLengthTransition) OR a pure reorder (a "bar chart race"
+   * swap, same datum set in a new order). Used to drop the per-bar stagger so
+   * all bars slide on one shared clock, staying locked to the axis/data labels.
+   * Broader than isLengthTransition, which is deliberately enter/exit-only
+   * (exit ghosts / baseline enters must not fire on a plain reorder).
+   * @param {number} realIndex
+   */
+  isLayoutShift(realIndex) {
+    if (this.isLengthTransition(realIndex)) return true
+    if (!this._layoutShiftCache) this._layoutShiftCache = {}
+    if (this._layoutShiftCache[realIndex] !== undefined) {
+      return this._layoutShiftCache[realIndex]
+    }
+    // join.changed is true when the datum set changed OR any survivor moved
+    // index; allowReorder keeps the join alive for a pure reorder.
+    const sj = seriesJoin(this.w, realIndex, true, true)
+    const result = !!(sj && sj.join.changed)
+    this._layoutShiftCache[realIndex] = result
     return result
   }
 

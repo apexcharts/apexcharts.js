@@ -3,6 +3,7 @@ import Graphics from './Graphics'
 import Utils from '../utils/Utils'
 import { captureStreamFrame } from './animations/StreamScroll'
 import { captureAxisChrome } from './animations/AxisTransition'
+import { captureDataLabels } from './animations/DataLabelTransition'
 
 /**
  * ApexCharts Series Class for interaction with the Series of the chart.
@@ -463,6 +464,11 @@ export default class Series {
     // so a variable-length update can slide/fade the ruler along with the
     // reflowing marks. See AxisTransition.
     captureAxisChrome(w)
+
+    // Data-label snapshot (opt-in): position + value of bar/column labels, so
+    // a data-change update can ride labels to their new slot and count their
+    // value up. See DataLabelTransition. No-op unless the feature is on.
+    captureDataLabels(w)
 
     // Non-axis charts (pie/donut/radialBar) overwrite previousPaths with the
     // raw series values at the end anyway — skip the DOM captures entirely.

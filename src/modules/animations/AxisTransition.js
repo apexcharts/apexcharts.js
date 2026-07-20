@@ -353,18 +353,33 @@ function transitionAxis(
   const clamp = (p) =>
     Math.max(spanLo - margin, Math.min(spanHi + margin, p))
 
+  /**
+   * Ride a paired gridline from its old to its new position (gridlines are
+   * never rotated, so a plain attribute tween always applies).
+   * @param {Element | null} line
+   * @param {{i: number}} old
+   */
+  const tweenPairedLine = (line, old) => {
+    if (!line) return
+    const lineTo = parseFloat(line.getAttribute(lineAttrs[0]) || '')
+    const lineFrom = oldLines[old.i]
+    if (isFinite(lineTo) && isFinite(lineFrom)) {
+      tweenPos(w, line, lineAttrs, lineFrom, lineTo, duration, ease)
+    }
+  }
+
   newLabels.forEach((label, i) => {
     const to = parseFloat(label.getAttribute(posAttr) || '')
     const old = oldByText.get(label.textContent || '')
     const line = newLinesAligned ? newLines[i] : null
     if (old) matchedOld.add(old.i)
+    const labelTransform = label.getAttribute('transform')
 
-    if (!old || !isFinite(old.pos) || old.transform || label.getAttribute('transform')) {
-      // New tick (or rotated label, whose transform bakes in the position).
+    // Entering tick (no text match): slide in from its value's projected old
+    // position (numeric/datetime axes only) and fade up.
+    if (!old || !isFinite(old.pos)) {
       if (!old) {
-        if (project && isFinite(to) && !label.getAttribute('transform')) {
-          // Slide in from the projected old position of this tick's value,
-          // fading up on the way.
+        if (project && isFinite(to) && !labelTransform) {
           const from = isFinite(project.toOld(to))
             ? clamp(project.toOld(to))
             : NaN
@@ -380,14 +395,38 @@ function transitionAxis(
     }
     if (!isFinite(to) || Math.abs(old.pos - to) < 0.5) return
 
-    tweenPos(w, label, [posAttr], old.pos, to, duration, ease)
-    if (line) {
-      const lineTo = parseFloat(line.getAttribute(lineAttrs[0]) || '')
-      const lineFrom = oldLines[old.i]
-      if (isFinite(lineTo) && isFinite(lineFrom)) {
-        tweenPos(w, line, lineAttrs, lineFrom, lineTo, duration, ease)
+    if (labelTransform || old.transform) {
+      // Rotated label (e.g. a vertical column chart's x-axis categories): the
+      // position is baked behind a rotate() transform, so driving the x/y
+      // attribute would fight it. Instead ride via a leading translate composed
+      // in front of the existing rotate and tweened to zero — the glyph keeps
+      // its rotation and slides along the axis (same trick the data-label ride
+      // uses). Applied for any transformed match, so rotated ticks also move on
+      // zoom / length-change updates, not just reorders.
+      const delta = old.pos - to
+      if (isFinite(delta)) {
+        const base = labelTransform || ''
+        rafTween(
+          w,
+          duration,
+          ease,
+          (eased) => {
+            const v = delta * (1 - eased)
+            const t = posAttr === 'x' ? `translate(${v} 0)` : `translate(0 ${v})`
+            label.setAttribute('transform', `${t} ${base}`.trim())
+          },
+          () => {
+            if (base) label.setAttribute('transform', base)
+            else label.removeAttribute('transform')
+          },
+        )
       }
+      tweenPairedLine(line, old)
+      return
     }
+
+    tweenPos(w, label, [posAttr], old.pos, to, duration, ease)
+    tweenPairedLine(line, old)
   })
 
   // Exit ghosts: outgoing ticks whose text found no new counterpart slide to
@@ -437,11 +476,14 @@ export function applyAxisTransition(w) {
   if (!chrome || !gl.axisCharts || !Environment.isBrowser()) return
   if (!lengthTransitionEnabled(w)) return
   // Any animated data-change render qualifies, including identity joins
-  // (zoom re-projections, same-length value updates): matched ticks slide,
-  // new ones fade in, and unchanged chrome is a per-label no-op (the sub-
-  // half-pixel skip below).
+  // (zoom re-projections, same-length value updates) and pure reorders (a
+  // "bar chart race" swap): matched ticks slide, new ones fade in, and
+  // unchanged chrome is a per-label no-op (the sub-half-pixel skip below).
+  // allowReorder keeps the gate open on a reorder so labels ride the swap the
+  // same way the keyed bar morph already does; the text-match tween below is
+  // order-agnostic, so no reconciliation assumption is violated.
   const anyMotion = (w.seriesData.series || []).some(
-    (_, i) => seriesJoin(w, i, true) !== null,
+    (_, i) => seriesJoin(w, i, true, true) !== null,
   )
   if (!anyMotion) return
   const root = w.dom.baseEl

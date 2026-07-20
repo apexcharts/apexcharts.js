@@ -181,12 +181,25 @@ function uniquifyKeys(keys) {
  * same-length value update. Marker rides and axis-chrome transitions use
  * that wider gate so the chrome moves with any animated re-projection.
  *
+ * By default survivors that reordered (a "bar chart race" swap) return null,
+ * because the enter/exit machinery (PathReconcile union building, marker rides)
+ * assumes monotonic survivor order. Pass `allowReorder` to keep the join for a
+ * pure reorder too: only the axis-chrome gate uses this, and its text-match
+ * label tween is order-agnostic, so labels can ride a reorder the same way the
+ * keyed bar morph already does. Do NOT pass it for path/marker reconciliation.
+ *
  * @param {import('../../types/internal').ChartStateW} w
  * @param {number} realIndex
  * @param {boolean} [includeIdentity=false]
+ * @param {boolean} [allowReorder=false]
  * @returns {{join: ReturnType<typeof joinKeys>, oldKeys: string[], newKeys: string[]} | null}
  */
-export function seriesJoin(w, realIndex, includeIdentity = false) {
+export function seriesJoin(
+  w,
+  realIndex,
+  includeIdentity = false,
+  allowReorder = false,
+) {
   if (!lengthTransitionEnabled(w)) return null
   const frame = w.globals.prevStreamFrame
   if (!frame) return null
@@ -200,7 +213,7 @@ export function seriesJoin(w, realIndex, includeIdentity = false) {
   )
   const newKeys = uniquifyKeys(newY.map((_, j) => datumKey(w, realIndex, j)))
   const join = joinKeys(oldKeys, newKeys)
-  if (!join.ordered) return null
+  if (!join.ordered && !allowReorder) return null
   if (!join.changed && !includeIdentity) return null
   return { join, oldKeys, newKeys }
 }

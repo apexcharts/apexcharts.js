@@ -1270,6 +1270,20 @@ export default class Options {
           color: '#000',
           opacity: 0.8,
         },
+        // Ride data labels to their new position on a data-change update
+        // (e.g. a bar chart race), instead of snapping. Off by default so
+        // existing charts are unchanged. Speed/easing follow
+        // chart.animations.dynamicAnimation. Bar/column only.
+        animate: {
+          enabled: false,
+        },
+        // Count the numeric value up/down from its previous value on update,
+        // like countUp.js. Off by default. The dataLabels.formatter runs each
+        // frame, so number formatting (decimals, separators, prefixes) is
+        // preserved. Bar/column only.
+        countUp: {
+          enabled: false,
+        },
       },
       fill: {
         type: 'solid',
