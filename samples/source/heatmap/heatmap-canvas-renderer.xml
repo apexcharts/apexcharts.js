@@ -1,0 +1,348 @@
+<title>High-Density Heatmap (Renderer Test)</title>
+
+<style>
+  #chart {
+    max-width: 1000px;
+    margin: 20px auto;
+  }
+  .panel {
+    max-width: 1000px;
+    margin: 16px auto;
+    font-family: sans-serif;
+  }
+  .controls {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .controls label {
+    font-size: 14px;
+  }
+  .controls select {
+    padding: 4px 6px;
+    font-size: 14px;
+  }
+  .controls button {
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+  .stats {
+    font-family: monospace;
+    font-size: 13px;
+    color: #555;
+    line-height: 1.6;
+  }
+  .stats b {
+    color: #111;
+  }
+  .note {
+    background: #fff7f0;
+    border-left: 3px solid #ff9f5b;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #432;
+    margin-top: 10px;
+    border-radius: 2px;
+  }
+  .note code {
+    background: #ffe9d6;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+</style>
+
+<scripts>
+<script>
+  var cellCount = 10000
+
+  // A heatmap is a rows x cols matrix; each cell is one value. The cell count
+  // is what scales cost, so map a target cell count to a rows/cols shape.
+  function shapeFor(cells) {
+    if (cells <= 10000) return { rows: 50, cols: cells / 50 }
+    return { rows: 100, cols: cells / 100 }
+  }
+
+  function generateHeatmap(cells) {
+    var shape = shapeFor(cells)
+    var series = new Array(shape.rows)
+    for (var r = 0; r < shape.rows; r++) {
+      var data = new Array(shape.cols)
+      for (var c = 0; c < shape.cols; c++) {
+        data[c] = { x: c, y: Math.round(Math.random() * 100) }
+      }
+      series[r] = { name: 'r' + r, data: data }
+    }
+    return series
+  }
+
+  var heatmapData = generateHeatmap(cellCount)
+
+  // Stateless helper shared by the vanilla, React and Vue builds.
+  function domNodeCount() {
+    var el = document.querySelector('#chart')
+    return el ? el.getElementsByTagName('*').length : 0
+  }
+</script>
+</scripts>
+
+<html>
+<div class="panel">
+  <div class="controls">
+    <label>
+      Renderer:
+      <select id="rendererMode">
+        <option value="canvas" selected>canvas</option>
+        <option value="svg">svg</option>
+        <option value="auto">auto</option>
+      </select>
+    </label>
+    <label>
+      Cells:
+      <select id="cellCount">
+        <option value="2500">2,500</option>
+        <option value="10000" selected>10,000</option>
+        <option value="50000">50,000</option>
+        <option value="100000">100,000</option>
+      </select>
+    </label>
+    <button id="rerender">Re-render</button>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="note">
+    A heatmap draws one SVG <code>&lt;rect&gt;</code> per cell in every renderer
+    mode: the canvas renderer does not yet handle heatmap cells, so switching the
+    <b>Renderer</b> control does not change how cells are drawn. Use this to
+    measure how render time and DOM node count scale with the cell count. You
+    will see the node count grow to roughly one node per cell, and the render
+    time stay the same whether canvas or svg is selected.
+  </div>
+</div>
+
+<div id="chart"></div>
+</html>
+
+<chart>
+<options>
+chart: {
+  height: 500,
+  type: 'heatmap',
+  renderer: 'canvas',
+  rendererThreshold: 8000,
+  animations: { enabled: false },
+  toolbar: { show: false },
+},
+title: {
+  text: 'Heatmap: 10,000 cells',
+  align: 'left',
+},
+subtitle: {
+  text: 'Each cell is one SVG rect; use the controls to scale the cell count',
+  align: 'left',
+},
+dataLabels: { enabled: false },
+xaxis: {
+  type: 'category',
+  labels: { show: false },
+  axisTicks: { show: false },
+},
+</options>
+
+<series>
+heatmapData
+</series>
+</chart>
+
+<vanilla-js-script>
+// cellCount, heatmapData, generateHeatmap, shapeFor and domNodeCount come from
+// the shared head script; updateStats and lastRenderMs are chart-bound so they
+// live here.
+var lastRenderMs = 0
+
+function updateStats() {
+  var el = document.getElementById('stats')
+  if (!el || typeof chart === 'undefined') return
+  var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
+  el.innerHTML =
+    'Cells: <b>' +
+    cellCount.toLocaleString() +
+    '</b> &nbsp;·&nbsp; Active renderer: <b>' +
+    active.toUpperCase() +
+    '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
+    domNodeCount().toLocaleString() +
+    '</b> &nbsp;·&nbsp; Render: <b>' +
+    (lastRenderMs > 0 ? lastRenderMs + ' ms' : 'change a control to time it') +
+    '</b>'
+}
+
+requestAnimationFrame(function poll() {
+  if (chart && chart.w && chart.w.globals && chart.w.globals.series) {
+    updateStats()
+  } else {
+    requestAnimationFrame(poll)
+  }
+})
+
+function rebuild() {
+  cellCount = parseInt(document.getElementById('cellCount').value, 10)
+  var mode = document.getElementById('rendererMode').value
+
+  heatmapData = generateHeatmap(cellCount)
+  options.chart.renderer = mode
+  options.series = heatmapData
+  options.title.text = 'Heatmap: ' + cellCount.toLocaleString() + ' cells'
+
+  var t = performance.now()
+  chart.destroy()
+  chart = new ApexCharts(document.querySelector('#chart'), options)
+  chart.render().then(function () {
+    lastRenderMs = Math.round(performance.now() - t)
+    updateStats()
+  })
+}
+
+document.getElementById('rerender').addEventListener('click', rebuild)
+document.getElementById('rendererMode').addEventListener('change', rebuild)
+document.getElementById('cellCount').addEventListener('change', rebuild)
+</vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // This demo destroys and recreates the chart on every control change, so it
+  // skips the react-apexcharts wrapper and creates the instance in #chart
+  // directly, like the vanilla build. cellCount, heatmapData, generateHeatmap,
+  // shapeFor and domNodeCount live in the shared head script.
+  let lastRenderMs = 0
+  let chart = null
+  let disposed = false
+
+  const options = Object.assign({ series: state.series }, state.options)
+  options.chart = Object.assign({}, state.options.chart)
+  options.title = Object.assign({}, state.options.title)
+
+  function updateStats() {
+    const el = document.getElementById('stats')
+    if (!el || !chart) return
+    const active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
+    el.innerHTML =
+      'Cells: <b>' +
+      cellCount.toLocaleString() +
+      '</b> &nbsp;·&nbsp; Active renderer: <b>' +
+      active.toUpperCase() +
+      '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
+      domNodeCount().toLocaleString() +
+      '</b> &nbsp;·&nbsp; Render: <b>' +
+      (lastRenderMs > 0 ? lastRenderMs + ' ms' : 'change a control to time it') +
+      '</b>'
+  }
+
+  function rebuild() {
+    cellCount = parseInt(document.getElementById('cellCount').value, 10)
+    const mode = document.getElementById('rendererMode').value
+
+    heatmapData = generateHeatmap(cellCount)
+    options.chart.renderer = mode
+    options.series = heatmapData
+    options.title.text = 'Heatmap: ' + cellCount.toLocaleString() + ' cells'
+
+    const t = performance.now()
+    if (chart) chart.destroy()
+    chart = new ApexCharts(document.querySelector('#chart'), options)
+    chart.render().then(function () {
+      if (disposed) return
+      lastRenderMs = Math.round(performance.now() - t)
+      updateStats()
+    })
+  }
+
+  document.getElementById('rerender').addEventListener('click', rebuild)
+  document.getElementById('rendererMode').addEventListener('change', rebuild)
+  document.getElementById('cellCount').addEventListener('change', rebuild)
+
+  chart = new ApexCharts(document.querySelector('#chart'), options)
+  chart.render().then(function () {
+    if (disposed) return
+    updateStats()
+  })
+
+  return () => {
+    disposed = true
+    if (chart) chart.destroy()
+  }
+}, [])
+</react-script>
+
+<vue-data>
+heatmapChart: null,
+heatmapDisposed: false,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // This demo destroys and recreates the chart on every control change, so it
+  // skips the vue-apexcharts wrapper and creates the instance in #chart
+  // directly, like the vanilla build. cellCount, heatmapData, generateHeatmap,
+  // shapeFor and domNodeCount live in the shared head script.
+  var me = this
+  var lastRenderMs = 0
+  var chart = null
+
+  var options = Object.assign({ series: me.series }, me.chartOptions)
+  options.chart = Object.assign({}, me.chartOptions.chart)
+  options.title = Object.assign({}, me.chartOptions.title)
+
+  function updateStats() {
+    var el = document.getElementById('stats')
+    if (!el || !chart) return
+    var active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
+    el.innerHTML =
+      'Cells: <b>' +
+      cellCount.toLocaleString() +
+      '</b> &nbsp;·&nbsp; Active renderer: <b>' +
+      active.toUpperCase() +
+      '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
+      domNodeCount().toLocaleString() +
+      '</b> &nbsp;·&nbsp; Render: <b>' +
+      (lastRenderMs > 0 ? lastRenderMs + ' ms' : 'change a control to time it') +
+      '</b>'
+  }
+
+  function rebuild() {
+    cellCount = parseInt(document.getElementById('cellCount').value, 10)
+    var mode = document.getElementById('rendererMode').value
+
+    heatmapData = generateHeatmap(cellCount)
+    options.chart.renderer = mode
+    options.series = heatmapData
+    options.title.text = 'Heatmap: ' + cellCount.toLocaleString() + ' cells'
+
+    var t = performance.now()
+    if (chart) chart.destroy()
+    chart = new ApexCharts(document.querySelector('#chart'), options)
+    me.heatmapChart = chart
+    chart.render().then(function () {
+      if (me.heatmapDisposed) return
+      lastRenderMs = Math.round(performance.now() - t)
+      updateStats()
+    })
+  }
+
+  document.getElementById('rerender').addEventListener('click', rebuild)
+  document.getElementById('rendererMode').addEventListener('change', rebuild)
+  document.getElementById('cellCount').addEventListener('change', rebuild)
+
+  chart = new ApexCharts(document.querySelector('#chart'), options)
+  me.heatmapChart = chart
+  chart.render().then(function () {
+    if (me.heatmapDisposed) return
+    updateStats()
+  })
+},
+beforeDestroy: function () {
+  this.heatmapDisposed = true
+  if (this.heatmapChart) this.heatmapChart.destroy()
+},
+</vue-script>
