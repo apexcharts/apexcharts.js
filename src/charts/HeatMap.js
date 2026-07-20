@@ -51,6 +51,22 @@ export default class HeatMap {
     const xDivision = w.layout.gridWidth / w.globals.dataPoints
     const yDivision = w.layout.gridHeight / w.seriesData.series.length
 
+    // Continuous-X heatmap: when the x axis is numeric or datetime, place each
+    // cell at its real x value with a width of the data's smallest gap, instead
+    // of tiling cells by index. The x-axis then renders sparse proportional
+    // ticks (via the standard isXNumeric path) rather than one label per cell.
+    // Categorical heatmaps keep the index-based layout untouched.
+    const isContinuousX =
+      (w.config.xaxis.type === 'numeric' ||
+        w.config.xaxis.type === 'datetime') &&
+      w.axisFlags.isXNumeric &&
+      this.xRatio > 0
+    let binPx = xDivision
+    if (isContinuousX) {
+      const diff = w.globals.minXDiff
+      binPx = Number.isFinite(diff) && diff > 0 ? diff / this.xRatio : xDivision
+    }
+
     let y1 = 0
     let rev = false
 
@@ -91,9 +107,13 @@ export default class HeatMap {
 
       let j = 0
       for (let dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
-        // Recognize gaps and align values based on x axis
-
-        if (w.seriesData.seriesX.length && !w.globals.allSeriesHasEqualX) {
+        // Recognize gaps and align values based on x axis (index layout only;
+        // continuous-X places every cell by its real value, so no gap skipping)
+        if (
+          !isContinuousX &&
+          w.seriesData.seriesX.length &&
+          !w.globals.allSeriesHasEqualX
+        ) {
           if (
             w.globals.minX + w.globals.minXDiff * dIndex <
             w.seriesData.seriesX[i][j]
@@ -105,6 +125,19 @@ export default class HeatMap {
 
         // Stop loop if index is out of array length
         if (j >= heatSeries[i].length) break
+
+        // Cell width and left edge: value-based when continuous, else index.
+        const cellW = isContinuousX ? binPx : xDivision
+        if (isContinuousX) {
+          const xVal = w.seriesData.seriesX[i]
+            ? w.seriesData.seriesX[i][j]
+            : null
+          if (xVal == null || xVal !== xVal) {
+            j++
+            continue
+          }
+          x1 = (xVal - w.globals.minX) / this.xRatio - binPx / 2
+        }
 
         const heatColor = this.helpers.getShadeColor(
           w.config.chart.type,
@@ -129,7 +162,7 @@ export default class HeatMap {
             patternID: Utils.randomId(),
             width: w.config.fill.image.width
               ? w.config.fill.image.width
-              : xDivision,
+              : cellW,
             height: w.config.fill.image.height
               ? w.config.fill.image.height
               : yDivision,
@@ -138,7 +171,7 @@ export default class HeatMap {
 
         const radius = this.rectRadius
 
-        const rect = graphics.drawRect(x1, y1, xDivision, yDivision, radius)
+        const rect = graphics.drawRect(x1, y1, cellW, yDivision, radius)
         rect.attr({
           cx: x1,
           cy: y1,
@@ -164,7 +197,7 @@ export default class HeatMap {
           if (!w.globals.resized) {
             speed = w.config.chart.animations.speed
           }
-          this.animateHeatMap(rect, x1, y1, xDivision, yDivision, speed, i, j)
+          this.animateHeatMap(rect, x1, y1, cellW, yDivision, speed, i, j)
         }
 
         if (w.globals.dataChanged) {
@@ -200,7 +233,7 @@ export default class HeatMap {
 
         const dataLabels = this.helpers.calculateDataLabels({
           text: formattedText,
-          x: x1 + xDivision / 2,
+          x: x1 + cellW / 2,
           y: y1 + yDivision / 2,
           i,
           j,
@@ -211,7 +244,7 @@ export default class HeatMap {
           elSeries.add(dataLabels)
         }
 
-        x1 = x1 + xDivision
+        if (!isContinuousX) x1 = x1 + xDivision
         j++
       }
 
