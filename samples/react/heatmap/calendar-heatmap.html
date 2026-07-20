@@ -10,8 +10,8 @@
 
     <style>
       #chart {
-        max-width: 650px;
-        margin: 35px auto;
+        max-width: 810px;
+        margin: 20px auto;
       }
     </style>
 
@@ -114,7 +114,7 @@
     <div id="app"></div>
 
     <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;heatmap&quot; height={200} width={860} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;heatmap&quot; height={186} /&gt;
 &lt;/div&gt;</div>
 
     <script type="text/babel">
@@ -123,15 +123,15 @@
           series: calendarData,
           options: {
             chart: {
-              height: 200,
-              width: 860,
+              height: 186,
+              width: '100%',
               type: 'heatmap',
               toolbar: { show: false },
               animations: { enabled: false },
             },
             title: {
               text: 'Contribution activity',
-              align: 'left',
+              align: 'center',
               style: { fontSize: '14px', fontWeight: 600 },
             },
             dataLabels: { enabled: false },
@@ -202,10 +202,7 @@
                   opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex]
                 var n = pt.y
                 var when = new Date(pt.date).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
+                  dateStyle: 'medium',
                   timeZone: 'UTC',
                 })
                 var count =
@@ -232,8 +229,7 @@
                 options={state.options}
                 series={state.series}
                 type="heatmap"
-                height={200}
-                width={860}
+                height={186}
               />
             </div>
             <div id="html-dist"></div>

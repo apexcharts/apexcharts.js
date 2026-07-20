@@ -1,5 +1,11 @@
 <title>Calendar Heatmap</title>
 
+<style>
+#chart {
+  max-width: 810px;
+  margin: 20px auto;
+}
+</style>
 <scripts>
 <script>
 // A contribution-style calendar heatmap built on the standard heatmap: 7 rows
@@ -77,15 +83,15 @@ var calMaxX = weekStartOf(calEnd) + 3.5 * DAY
 <chart>
 <options>
 chart: {
-  height: 200,
-  width: 860,
+  height: 186,
+  width: '100%',
   type: 'heatmap',
   toolbar: { show: false },
   animations: { enabled: false },
 },
 title: {
   text: 'Contribution activity',
-  align: 'left',
+  align: 'center',
   style: { fontSize: '14px', fontWeight: 600 },
 },
 dataLabels: { enabled: false },
@@ -155,10 +161,7 @@ tooltip: {
     var pt = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex]
     var n = pt.y
     var when = new Date(pt.date).toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
+      dateStyle: 'medium',
       timeZone: 'UTC',
     })
     var count =

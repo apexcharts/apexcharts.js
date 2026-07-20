@@ -10,8 +10,8 @@
 
     <style>
       #chart {
-        max-width: 650px;
-        margin: 35px auto;
+        max-width: 810px;
+        margin: 20px auto;
       }
     </style>
 
@@ -109,12 +109,12 @@
   <body>
     
     <div id="app"><div id="chart">
-      <apexchart type="heatmap" height="200" width="860" :options="chartOptions" :series="series"></apexchart>
+      <apexchart type="heatmap" height="186" :options="chartOptions" :series="series"></apexchart>
     </div></div>
 
     <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
     <div id="html">&lt;div id=&quot;chart&quot;&gt;
-        &lt;apexchart type=&quot;heatmap&quot; height=&quot;200&quot; width=&quot;860&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;heatmap&quot; height=&quot;186&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;</div>
 
     <script>
@@ -127,15 +127,15 @@
           series: calendarData,
           chartOptions: {
             chart: {
-              height: 200,
-              width: 860,
+              height: 186,
+              width: '100%',
               type: 'heatmap',
               toolbar: { show: false },
               animations: { enabled: false },
             },
             title: {
               text: 'Contribution activity',
-              align: 'left',
+              align: 'center',
               style: { fontSize: '14px', fontWeight: 600 },
             },
             dataLabels: { enabled: false },
@@ -206,10 +206,7 @@
                   opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex]
                 var n = pt.y
                 var when = new Date(pt.date).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
+                  dateStyle: 'medium',
                   timeZone: 'UTC',
                 })
                 var count =

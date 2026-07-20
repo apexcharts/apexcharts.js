@@ -63,7 +63,7 @@ var heatData = [
 <chart>
 <options>
 chart: {
-  height: 320,
+  height: 220,
   type: 'heatmap',
   toolbar: { show: false },
 },
