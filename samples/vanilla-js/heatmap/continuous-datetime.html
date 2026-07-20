@@ -30,12 +30,12 @@
     </script>
 
     <script>
-      // A continuous-axis heatmap: rows stay categorical (one sensor per row) while
-      // the x axis is a real datetime scale. Each cell sits at its true timestamp and
-      // the axis shows sparse proportional date/time ticks instead of one label per
-      // cell. Because cells are placed by value, an irregular gap in the data (here a
-      // simulated outage) shows up as real empty space, which index-based tiling
-      // cannot represent.
+      // A continuous-axis heatmap: rows stay categorical (one host per row) while the
+      // x axis is a real datetime scale. Each cell sits at its true timestamp and the
+      // axis shows sparse proportional date/time ticks instead of one label per cell.
+      // Because cells are placed by value, a metrics outage (when the collector
+      // stopped reporting for every host at once) shows up as real empty space, which
+      // index-based tiling cannot represent.
       var HOUR = 60 * 60 * 1000
       var start = new Date('2024-03-04T00:00:00.000Z').getTime()
       var totalHours = 72
@@ -49,32 +49,41 @@
         }
       }
 
-      // Hours 30..41 are dropped for every sensor to simulate a 12-hour outage.
+      // Hours 30..39 are dropped for every host: a 10-hour window where the metrics
+      // collector was down and no CPU readings were recorded.
       function isOutage(h) {
-        return h >= 30 && h < 42
+        return h >= 30 && h < 40
       }
 
-      function sensorSeries(name, seed, base) {
+      // CPU utilization (%) with a daily rhythm: load builds through the working day,
+      // peaks mid-afternoon (14:00 UTC), and falls off overnight. `base` sets the
+      // baseline load and `swing` the size of the daily peak, so each host has its
+      // own profile (steady database, spiky web tier, mostly-idle cache).
+      function hostSeries(name, seed, base, swing) {
         var rand = makeRand(seed)
         var data = []
         for (var h = 0; h < totalHours; h++) {
           if (isOutage(h)) continue
-          // A daily rhythm plus noise, so the heat has visible structure.
           var hourOfDay = h % 24
-          var daily = Math.sin((hourOfDay / 24) * Math.PI * 2) * 30 + 40
-          var y = Math.max(0, Math.round(base + daily + (rand() - 0.5) * 20))
-          data.push({ x: start + h * HOUR, y: y })
+          var daily = (Math.cos(((hourOfDay - 14) / 24) * Math.PI * 2) + 1) / 2
+          var cpu = base + swing * daily + (rand() - 0.5) * 12
+          data.push({
+            x: start + h * HOUR,
+            y: Math.max(1, Math.min(99, Math.round(cpu))),
+          })
         }
         return { name: name, data: data }
       }
 
       var heatData = [
-        sensorSeries('Sensor A', 7, 10),
-        sensorSeries('Sensor B', 19, 20),
-        sensorSeries('Sensor C', 42, 5),
-        sensorSeries('Sensor D', 88, 25),
-        sensorSeries('Sensor E', 123, 15),
-        sensorSeries('Sensor F', 256, 0),
+        hostSeries('web-01', 7, 22, 52),
+        hostSeries('web-02', 19, 20, 56),
+        hostSeries('api-01', 42, 27, 46),
+        hostSeries('api-02', 88, 25, 49),
+        hostSeries('cache-01', 123, 14, 16),
+        // The database is the hot box: steady high load that saturates (red) at the
+        // afternoon peak.
+        hostSeries('db-01', 256, 66, 18),
       ]
     </script>
   </head>
@@ -93,10 +102,25 @@
         dataLabels: {
           enabled: false,
         },
-        colors: ['#008FFB'],
         title: {
-          text: 'Sensor readings over time (12-hour outage visible as a gap)',
+          text: 'Server CPU utilization across the fleet (a metrics outage shows as a real gap)',
           align: 'left',
+        },
+        plotOptions: {
+          heatmap: {
+            // Flat CPU-health buckets on a green (idle) to red (saturated) scale, so a
+            // cell's color reads as a load level straight off the legend.
+            enableShades: false,
+            colorScale: {
+              ranges: [
+                { from: 0, to: 30, color: '#00A65A', name: '0-30%' },
+                { from: 30, to: 50, color: '#7CB342', name: '30-50%' },
+                { from: 50, to: 70, color: '#FBC02D', name: '50-70%' },
+                { from: 70, to: 85, color: '#FB8C00', name: '70-85%' },
+                { from: 85, to: 100, color: '#E53935', name: '85-100%' },
+              ],
+            },
+          },
         },
         xaxis: {
           type: 'datetime',
@@ -112,6 +136,11 @@
         },
         tooltip: {
           x: { show: true, format: 'MMM dd HH:mm' },
+          y: {
+            formatter: function (val) {
+              return val + '%'
+            },
+          },
         },
       }
 

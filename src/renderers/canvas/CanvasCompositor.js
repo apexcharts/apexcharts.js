@@ -184,9 +184,108 @@ export default class CanvasCompositor {
       }
     }
 
-    // ── columnar markers ──
+    // ── columnar rect cells (heatmap), then columnar markers on top ──
+    this._paintRects(ctx, shim)
     this._paintMarkers(ctx, shim)
     this._alpha = 1
+  }
+
+  /**
+   * Paint the columnar rect cells (heatmap) as STYLE BATCHES: one fill/stroke
+   * state application per run of consecutive same-style cells, then a fast
+   * fillRect (or a roundRect path when the shared corner radius is non-zero)
+   * per cell. Clipped to the plot rect so cells never bleed into the canvas
+   * margin (mirrors the SVG gridRectMask). Per-cell globalAlpha carries the
+   * hover/legend dim multiplier when a dim spec is active.
+   * @param {any} ctx
+   * @param {any} shim
+   */
+  _paintRects(ctx, shim) {
+    const n = shim.rectCount ? shim.rectCount() : 0
+    if (!n) return
+    const rx = shim._crx
+    const ry = shim._cry
+    const rw = shim._crw
+    const rh = shim._crh
+    const rstyle = shim._crstyle
+    const radius = shim._cellRadius || 0
+    const cx = /** @type {any} */ (ctx)
+    const useRound = radius > 0 && typeof cx.roundRect === 'function'
+    const dimming = !!this._dim
+
+    // Clip to the plot rect (grid-local 0,0 → gridWidth,gridHeight).
+    const gw = Math.max(0, this.w.layout.gridWidth || 0)
+    const gh = Math.max(0, this.w.layout.gridHeight || 0)
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(0, 0, gw, gh)
+    ctx.clip()
+
+    let i = 0
+    while (i < n) {
+      const styleId = rstyle[i]
+      const style = shim.rectStyle(i)
+      if (!style) {
+        i++
+        continue
+      }
+      const fill = style.fill
+      const doFill =
+        fill &&
+        fill !== 'none' &&
+        !(typeof fill === 'string' && fill.indexOf('url(') === 0)
+      const stroke = style.stroke
+      const sw = style.strokeWidth == null ? 0 : Number(style.strokeWidth)
+      const doStroke =
+        stroke &&
+        stroke !== 'none' &&
+        sw > 0 &&
+        !(typeof stroke === 'string' && stroke.indexOf('url(') === 0)
+      // One state application for the whole same-style run.
+      if (doFill) ctx.fillStyle = fill
+      if (doStroke) {
+        ctx.strokeStyle = stroke
+        ctx.lineWidth = sw
+        ctx.setLineDash([])
+      }
+      const baseFillA = style.fillOpacity == null ? 1 : Number(style.fillOpacity)
+      const baseStrokeA =
+        style.strokeOpacity == null ? 1 : Number(style.strokeOpacity)
+
+      let j = i
+      while (j < n && rstyle[j] === styleId) {
+        const w = rw[j]
+        const h = rh[j]
+        if (w > 0 && h > 0) {
+          const f = dimming ? this._seriesAlpha(shim.rectSeries(j)) : 1
+          if (useRound) {
+            ctx.beginPath()
+            cx.roundRect(rx[j], ry[j], w, h, radius)
+            if (doFill) {
+              ctx.globalAlpha = baseFillA * f
+              ctx.fill()
+            }
+            if (doStroke) {
+              ctx.globalAlpha = baseStrokeA * f
+              ctx.stroke()
+            }
+          } else {
+            if (doFill) {
+              ctx.globalAlpha = baseFillA * f
+              ctx.fillRect(rx[j], ry[j], w, h)
+            }
+            if (doStroke) {
+              ctx.globalAlpha = baseStrokeA * f
+              ctx.strokeRect(rx[j], ry[j], w, h)
+            }
+          }
+        }
+        j++
+      }
+      i = j
+    }
+    ctx.globalAlpha = 1
+    ctx.restore()
   }
 
   /**

@@ -26,12 +26,13 @@
  * @property {(opts: any) => any} drawPath
  * @property {(...args: any[]) => any} drawLine
  * @property {(...args: any[]) => any} drawRect
+ * @property {(x: number, y: number, w: number, h: number, opts: any) => any} [drawRectCell] Columnar dense rect (heatmap cell); optional.
  * @property {(r: number, attrs: any) => any} drawCircle
  * @property {(x: number, y: number, opts: any) => any} drawMarker
  * @property {(opts: any) => any} renderPaths  High-level series path (animation-aware).
  * @property {(opts: any) => any} drawText     Series-attached text only (axis/label text stays SVG).
  * @property {(feature: string) => boolean} supports
- * @property {(px: number, py: number) => ({seriesIndex:number,dataPointIndex:number}|null)} hitTest
+ * @property {(px: number, py: number) => ({seriesIndex:number,dataPointIndex:number,x?:number,y?:number,width?:number,height?:number}|null)} hitTest
  * @property {(target: any, style: any) => void} restyle
  * @property {() => ({dataURL:string,x:number,y:number,w:number,h:number}|null)} toBitmap
  * @property {() => void} destroy
@@ -77,12 +78,17 @@ export function computeMarkCount(w) {
     : (markerSize || 0) > 0
   const labelsOn = !!(w.config.dataLabels && w.config.dataLabels.enabled)
 
+  // Heatmap paints one rect per data point, so every cell is a mark: the raw
+  // cell count is exactly the canvas-vs-svg lever (the SVG node killer here is
+  // the per-cell <rect>). Count cells so 'auto' promotes dense heatmaps.
+  const isHeatmap = type === 'heatmap'
+
   let total = 0
   let maxLen = 0
   series.forEach((/** @type {any} */ s) => {
     const n = Array.isArray(s.data) ? s.data.length : 0
     if (n > maxLen) maxLen = n
-    if (scatterish || markersOn) total += n
+    if (scatterish || markersOn || isHeatmap) total += n
     if (labelsOn) total += n
   })
   // Marks (#11): custom series are NOT auto-promoted. Their per-datum primitives

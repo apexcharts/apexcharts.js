@@ -994,6 +994,13 @@ export default class Defaults {
     return {
       chart: {
         stacked: false,
+        // A heatmap is a fixed grid: zooming/panning only distorts the cells
+        // and (on a datetime axis) collapses the month labels to repeats, so
+        // it is off by default, mirroring treemap. Users can opt back in with
+        // chart.zoom.enabled: true.
+        zoom: {
+          enabled: false,
+        },
       },
       fill: {
         opacity: 1,
@@ -1007,7 +1014,11 @@ export default class Defaults {
         colors: ['#fff'],
       },
       tooltip: {
-        followCursor: true,
+        // Anchor the tooltip above the hovered cell with a downward arrow
+        // (flipping below near the top edge), the same treatment horizontal
+        // bars get, rather than trailing the cursor. Opt back into the old
+        // behavior with tooltip.followCursor: true.
+        followCursor: false,
         marker: {
           show: false,
         },

@@ -614,6 +614,13 @@ export default class Labels {
     })
 
     if (tooltipEl) {
+      // The arrow connector is a child of the tooltip box (a sibling of the
+      // content). Replacing innerHTML below would wipe it, so detach the node
+      // first and re-append it afterwards — the reference survives the
+      // innerHTML reset, so the arrow keeps pointing at the data point even
+      // when a custom tooltip owns the content.
+      const arrowEl = tooltipEl.querySelector('.apexcharts-tooltip-arrow')
+
       if (
         typeof customTooltip === 'string' ||
         typeof customTooltip === 'number'
@@ -626,6 +633,8 @@ export default class Labels {
         tooltipEl.innerHTML = ''
         tooltipEl.appendChild(customTooltip.cloneNode(true))
       }
+
+      if (arrowEl) tooltipEl.appendChild(arrowEl)
     }
   }
 }

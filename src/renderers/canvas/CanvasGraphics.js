@@ -254,6 +254,37 @@ class CanvasMarkerRef {
 }
 
 /**
+ * Shared no-op handle for a columnar rect cell. Cells are write-only in the
+ * emit path (all geometry + style is passed to drawRectCell up front; identity
+ * lives in the columns), so every cell returns this one stub: zero per-cell
+ * allocation. Chainable so any stray `.attr()/.add()` on a cell can't throw.
+ */
+const SHARED_RECT_REF = {
+  __isCanvasMark: true,
+  node: SHARED_MARKER_NODE,
+  /** @returns {any} */
+  attr() {
+    return SHARED_RECT_REF
+  },
+  add() {
+    return SHARED_RECT_REF
+  },
+  addTo() {
+    return SHARED_RECT_REF
+  },
+  remove() {
+    return SHARED_RECT_REF
+  },
+  /** @returns {any} */
+  css() {
+    return SHARED_RECT_REF
+  },
+  animate() {
+    return NOOP_RUNNER
+  },
+}
+
+/**
  * Object-command handle for lower-count primitives (series paths, rects, lines,
  * text). Style-relevant `attr()` / `node.setAttribute()` writes flow into the
  * bound command so late edits (forecast dashArray, fill-rule) paint. It
@@ -394,6 +425,27 @@ export default class CanvasGraphics {
     this._msi = new Int32Array(16)
     this._mn = 0
     this._mcap = 16
+    // Columnar rect-cell store (heatmap cells; dense same-shape rects). Same
+    // rationale as markers: a retained object per cell trips a V8 scavenge
+    // blow-up at 50k+, so cells are unboxed parallel arrays + the shared style
+    // palette. Corner radius is uniform per chart, so it is a scalar not a column.
+    /** @type {Float64Array} */
+    this._crx = new Float64Array(16)
+    /** @type {Float64Array} */
+    this._cry = new Float64Array(16)
+    /** @type {Float64Array} */
+    this._crw = new Float64Array(16)
+    /** @type {Float64Array} */
+    this._crh = new Float64Array(16)
+    /** @type {Int32Array} */
+    this._crstyle = new Int32Array(16)
+    /** @type {Int32Array} series realIndex per cell (restyle / hit-test) */
+    this._crsi = new Int32Array(16)
+    /** @type {Int32Array} dataPointIndex per cell (hit-test) */
+    this._crdi = new Int32Array(16)
+    this._crn = 0
+    this._crcap = 16
+    this._cellRadius = 0
     /** @type {any[]} */
     this._styles = []
     /** @type {Map<string, number>} */
@@ -421,6 +473,20 @@ export default class CanvasGraphics {
     this._lofBase = -1
     /** @type {number} */
     this._lofId = -1
+    // rect-cell last-style cache (keeps the intern Map/string work off the
+    // per-cell hot loop when a run of cells shares one style)
+    /** @type {any} */
+    this._rlf = NEVER
+    /** @type {any} */
+    this._rls = NEVER
+    /** @type {any} */
+    this._rlsw = NEVER
+    /** @type {any} */
+    this._rlfo = NEVER
+    /** @type {any} */
+    this._rlso = NEVER
+    /** @type {number} */
+    this._rlid = -1
   }
 
   _resetStyleCache() {
@@ -434,6 +500,12 @@ export default class CanvasGraphics {
     this._lofFill = NEVER // last fill-override (scatter per-point fill)
     this._lofBase = -1
     this._lofId = -1
+    this._rlf = NEVER // rect-cell last style
+    this._rls = NEVER
+    this._rlsw = NEVER
+    this._rlfo = NEVER
+    this._rlso = NEVER
+    this._rlid = -1
   }
 
   /** Start a fresh scene (columnar marker store + object-command list). */
@@ -452,6 +524,49 @@ export default class CanvasGraphics {
     }
     cap = Math.ceil(cap * 1.15) + 16
     if (cap > this._mcap) this._allocMarkers(cap)
+    // Rect cells share the same upper bound (one cell per data point).
+    this._crn = 0
+    this._cellRadius = 0
+    if (cap > this._crcap) this._allocRects(cap)
+  }
+
+  /** @param {number} cap */
+  _allocRects(cap) {
+    this._crcap = cap
+    this._crx = new Float64Array(cap)
+    this._cry = new Float64Array(cap)
+    this._crw = new Float64Array(cap)
+    this._crh = new Float64Array(cap)
+    this._crstyle = new Int32Array(cap)
+    this._crsi = new Int32Array(cap)
+    this._crdi = new Int32Array(cap)
+  }
+
+  /** Grow the rect columns (rare: capacity estimate was low). */
+  _growRects() {
+    const cap = this._crcap * 2
+    const nx = new Float64Array(cap)
+    nx.set(this._crx)
+    this._crx = nx
+    const ny = new Float64Array(cap)
+    ny.set(this._cry)
+    this._cry = ny
+    const nw = new Float64Array(cap)
+    nw.set(this._crw)
+    this._crw = nw
+    const nh = new Float64Array(cap)
+    nh.set(this._crh)
+    this._crh = nh
+    const nst = new Int32Array(cap)
+    nst.set(this._crstyle)
+    this._crstyle = nst
+    const nsi = new Int32Array(cap)
+    nsi.set(this._crsi)
+    this._crsi = nsi
+    const ndi = new Int32Array(cap)
+    ndi.set(this._crdi)
+    this._crdi = ndi
+    this._crcap = cap
   }
 
   /** @param {number} cap */
@@ -566,6 +681,75 @@ export default class CanvasGraphics {
   /** @param {number} id @returns {string} */
   shapeName(id) {
     return SHAPE_NAME[id] || 'circle'
+  }
+
+  // ── columnar rect cell (heatmap): parallel unboxed arrays, no per-cell object ──
+  /**
+   * Record a heatmap-style cell (a filled, optionally stroked rect). Geometry
+   * and style are captured up front into the columns; the returned handle is a
+   * shared no-op (the emit site sets nothing back on it in canvas mode).
+   * @param {number} x @param {number} y @param {number} w @param {number} h
+   * @param {any} opts {fill, fillOpacity, stroke, strokeWidth, radius, seriesIndex, dataPointIndex}
+   * @returns {any}
+   */
+  drawRectCell(x, y, w, h, opts = {}) {
+    const styleId = this._rectStyleId(opts)
+    if (this._crn >= this._crcap) this._growRects()
+    const i = this._crn++
+    this._crx[i] = x || 0
+    this._cry[i] = y || 0
+    this._crw[i] = w > 0 ? w : 0
+    this._crh[i] = h > 0 ? h : 0
+    this._crstyle[i] = styleId
+    this._crsi[i] = opts.seriesIndex == null ? -1 : opts.seriesIndex
+    this._crdi[i] = opts.dataPointIndex == null ? -1 : opts.dataPointIndex
+    // Corner radius is uniform across a heatmap; record the latest non-zero one.
+    if (opts.radius) this._cellRadius = opts.radius
+    return SHARED_RECT_REF
+  }
+
+  /**
+   * Resolve (and dedupe) a rect-cell style → shared-palette id. A last-style
+   * cache keeps the Map/string work off the path for runs of same-style cells.
+   * @param {any} opts
+   * @returns {number}
+   */
+  _rectStyleId(opts) {
+    const fill = opts.fill
+    const stroke = opts.stroke
+    const sw = opts.strokeWidth
+    const fo = opts.fillOpacity
+    const so = opts.strokeOpacity
+    if (
+      fill === this._rlf &&
+      stroke === this._rls &&
+      sw === this._rlsw &&
+      fo === this._rlfo &&
+      so === this._rlso
+    ) {
+      return this._rlid
+    }
+    const id = this._internStyle(fill, stroke, sw, 0, fo, so)
+    this._rlf = fill
+    this._rls = stroke
+    this._rlsw = sw
+    this._rlfo = fo
+    this._rlso = so
+    this._rlid = id
+    return id
+  }
+
+  /** @returns {number} number of recorded rect cells */
+  rectCount() {
+    return this._crn
+  }
+  /** @param {number} i @returns {any} the style object for a rect cell */
+  rectStyle(i) {
+    return this._styles[this._crstyle[i]]
+  }
+  /** @param {number} i @returns {number} series (realIndex) of a cell, -1 if none */
+  rectSeries(i) {
+    return this._crsi[i]
   }
 
   /**

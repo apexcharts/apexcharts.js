@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Calendar Heatmap</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // A contribution-style calendar heatmap built on the standard heatmap: 7 rows
+      // (one weekday each) x ~53 columns (one week each). The trick that makes the
+      // columns line up is that every cell in a week shares the SAME x = the date of
+      // that week's Sunday. Because the x axis is datetime, the cells sit on a real
+      // time scale and the axis labels the months for us (continuous-x heatmap).
+      //
+      // The year runs from ~52 weeks ago through today, and a cell is emitted only
+      // for real in-range days: the first and last weeks are partial, so their
+      // off-range corners are simply left blank (the "hanging" edges of a year view)
+      // rather than padded. In-range days with zero activity still get a cell (the
+      // lightest color); only days outside the range are absent. All dates are in
+      // UTC so a day is always exactly 86400000 ms (no daylight-saving drift that
+      // would shift a cell into the wrong weekday).
+      var DAY = 86400000
+
+      var calNow = new Date()
+      var calEnd = Date.UTC(
+        calNow.getUTCFullYear(),
+        calNow.getUTCMonth(),
+        calNow.getUTCDate(),
+      )
+      var calStart = calEnd - 364 * DAY
+
+      // The Sunday that starts the week containing a given day = that week's column x.
+      function weekStartOf(ms) {
+        return ms - new Date(ms).getUTCDay() * DAY
+      }
+
+      function buildCalendar() {
+        var weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        var byDay = weekdays.map(function (n) {
+          return { name: n, data: [] }
+        })
+
+        // Deterministic PRNG so the demo looks the same on every reload.
+        var seed = 20240407
+        function rand() {
+          seed = (seed * 1103515245 + 12345) & 0x7fffffff
+          return seed / 0x7fffffff
+        }
+
+        var totalWeeks = Math.round(
+          (weekStartOf(calEnd) - weekStartOf(calStart)) / (7 * DAY),
+        )
+        for (var t = calStart; t <= calEnd; t += DAY) {
+          var dow = new Date(t).getUTCDay()
+          var wk = Math.round((weekStartOf(t) - weekStartOf(calStart)) / (7 * DAY))
+          // A gentle seasonal wave so some months look busier than others.
+          var season = 0.5 + 0.5 * Math.sin((wk / totalWeeks) * Math.PI * 2 - 1)
+          var count = 0
+          // ~55% of days have activity; weekends are lighter.
+          if (rand() < 0.35 + 0.4 * season) {
+            var bias = dow === 0 || dow === 6 ? 0.5 : 1
+            // rand()*rand() skews toward the low buckets, like real activity.
+            count = Math.round(rand() * rand() * 16 * bias) + 1
+          }
+          // x is the week's Sunday (so the column lines up); the cell's true date is
+          // stashed on the datum for the tooltip (x can't carry it: all 7 weekdays in
+          // a column share the same x).
+          byDay[dow].data.push({ x: weekStartOf(t), y: count, date: t })
+        }
+
+        // Rows read Sun (top) -> Sat (bottom). ApexCharts draws the last series on
+        // top, so reverse the weekday order before returning.
+        return byDay.reverse()
+      }
+
+      var calendarData = buildCalendar()
+      // Pad half a week on each side so the first and last columns are full width.
+      var calMinX = weekStartOf(calStart) - 3.5 * DAY
+      var calMaxX = weekStartOf(calEnd) + 3.5 * DAY
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;heatmap&quot; height={200} width={860} /&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: calendarData,
+          options: {
+            chart: {
+              height: 200,
+              width: 860,
+              type: 'heatmap',
+              toolbar: { show: false },
+              animations: { enabled: false },
+            },
+            title: {
+              text: 'Contribution activity',
+              align: 'left',
+              style: { fontSize: '14px', fontWeight: 600 },
+            },
+            dataLabels: { enabled: false },
+            // A small light gap between cells, like a contributions calendar.
+            stroke: { width: 3, colors: ['#fff'] },
+            legend: { show: false },
+            states: {
+              active: {
+                filter: {
+                  type: 'none',
+                },
+              },
+            },
+            plotOptions: {
+              heatmap: {
+                radius: 2,
+                // Flat bucket colors (no within-range shading), so each level is one color.
+                enableShades: false,
+                colorScale: {
+                  ranges: [
+                    { from: 0, to: 0, name: '0', color: '#ebedf0' },
+                    { from: 1, to: 3, name: '1-3', color: '#9be9a8' },
+                    { from: 4, to: 7, name: '4-7', color: '#40c463' },
+                    { from: 8, to: 11, name: '8-11', color: '#30a14e' },
+                    { from: 12, to: 100, name: '12+', color: '#216e39' },
+                  ],
+                },
+              },
+            },
+            xaxis: {
+              type: 'datetime',
+              min: calMinX,
+              max: calMaxX,
+              position: 'top',
+              labels: {
+                format: 'MMM',
+                datetimeUTC: false,
+                style: { colors: '#767676', fontSize: '12px' },
+              },
+              axisBorder: { show: false },
+              axisTicks: { show: false },
+              tooltip: { enabled: false },
+              crosshairs: {
+                show: false,
+              },
+            },
+            yaxis: {
+              // Show only alternate weekday labels (Mon / Wed / Fri), like the original.
+              labels: {
+                formatter: function (val) {
+                  return ['Mon', 'Wed', 'Fri'].indexOf(val) >= 0 ? val : ''
+                },
+                style: { colors: ['#767676'], fontSize: '12px' },
+              },
+            },
+            grid: {
+              yaxis: {
+                lines: {
+                  show: false,
+                },
+              },
+            },
+            tooltip: {
+              // Custom tooltip so it can show the cell's real date (stashed on the datum)
+              // plus the count, e.g. "5 contributions on Monday, January 8, 2024".
+              custom: function (opts) {
+                var pt =
+                  opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex]
+                var n = pt.y
+                var when = new Date(pt.date).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                  timeZone: 'UTC',
+                })
+                var count =
+                  n === 0
+                    ? 'No contributions'
+                    : n + (n === 1 ? ' contribution' : ' contributions')
+                return (
+                  '<div style="padding:6px 10px;font-size:13px">' +
+                  '<b>' +
+                  count +
+                  '</b> on ' +
+                  when +
+                  '</div>'
+                )
+              },
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div id="chart">
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="heatmap"
+                height={200}
+                width={860}
+              />
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

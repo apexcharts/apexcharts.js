@@ -255,10 +255,11 @@ export default class Tooltip {
     //  - `fixed.enabled`: tooltip is pinned to a chart corner, not a point,
     //    so an arrow would point nowhere.
     //  - shared tooltip on a multi-series chart: there's no single point to
-    //    anchor to, so an arrow would mislead. Exception: horizontal-bar
-    //    charts have a single row of bars per category, so we place the
-    //    tooltip above/below the row union and the arrow still has a
-    //    meaningful target (the row's horizontal center).
+    //    anchor to, so an arrow would mislead. Exceptions: horizontal-bar
+    //    charts (a single row of bars per category — tooltip goes above/below
+    //    the row union) and heatmaps (the hover resolves a single cell —
+    //    tooltip goes above/below that cell). Both keep a meaningful arrow
+    //    target, so they're allowed an arrow despite `shared` being on.
     //  - non-axis charts (pie/donut/radialBar/polarArea): slices radiate
     //    from a centre, so there's no single "anchor edge" for the arrow.
     //  - `fillSeriesColor`: the glass arrow would not match the solid
@@ -266,7 +267,8 @@ export default class Tooltip {
     const isSharedMulti =
       this.tConfig.shared &&
       w.config.series.length > 1 &&
-      !w.globals.isBarHorizontal
+      !w.globals.isBarHorizontal &&
+      w.config.chart.type !== 'heatmap'
     const shouldDrawArrow =
       this.tConfig.arrow &&
       !this.tConfig.followCursor &&
@@ -528,6 +530,15 @@ export default class Tooltip {
       (chartWithmarkers && this.showOnIntersect)
     ) {
       this.addDatapointEventsListeners(seriesHoverParams)
+    } else if (
+      type === 'heatmap' &&
+      w.globals.activeRenderer &&
+      w.globals.activeRenderer.kind === 'canvas'
+    ) {
+      // Canvas heatmap: cells are painted (no per-cell <rect> to hover) and the
+      // series groups are empty, so hover the whole plot and resolve the cell by
+      // coordinate (Intersect.handleHeatTreeTooltip -> renderer.hitTest).
+      this.addPathsEventListeners([hoverArea], seriesHoverParams)
     } else if (
       !w.globals.axisCharts ||
       type === 'heatmap' ||
@@ -888,11 +899,21 @@ export default class Tooltip {
             y,
             type: w.config.chart.type,
           })
+          if (markerXY.noHit) {
+            // canvas heatmap: pointer is off every cell -> hide, don't pin one
+            this.handleMouseOut(opt)
+            return
+          }
           x = markerXY.x
           y = markerXY.y
 
-          tooltipEl.style.left = x + 'px'
-          tooltipEl.style.top = y + 'px'
+          if (!markerXY.positioned) {
+            // Legacy beside-the-cell placement writes style directly. Arrow-mode
+            // heatmaps have already positioned via applyTooltipPosition (which
+            // also sets the arrow and data-placement), so don't overwrite it.
+            tooltipEl.style.left = x + 'px'
+            tooltipEl.style.top = y + 'px'
+          }
         } else {
           if (this.tooltipUtil.hasBars()) {
             this.intersect.handleBarTooltip({

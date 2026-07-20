@@ -6,6 +6,7 @@ import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 import Helpers from './common/treemap/Helpers'
 import Filters from '../modules/Filters'
+import { seriesEmitter } from '../renderers/Renderer'
 
 /**
  * ApexCharts HeatMap Class.
@@ -41,6 +42,17 @@ export default class HeatMap {
     const w = this.w
     const graphics = new Graphics(this.w, this.ctx)
 
+    // Strata (#2): when the canvas renderer is bundled and active, cells paint
+    // to the canvas layer via the columnar rect store (one fillRect per cell,
+    // no DOM node) instead of one SVG <rect> each. When it is not active,
+    // `emit === graphics` and the SVG path below is unchanged. Interaction
+    // (tooltip/hover) on canvas cells is a follow-up; canvas cells are
+    // paint-only for now, so the per-cell class/attrs and event delegation are
+    // skipped in that mode. Image-fill heatmaps route to SVG (the controller
+    // declines canvas for image fills), so useCanvas is false there.
+    const emit = seriesEmitter(this.ctx, graphics)
+    const useCanvas = emit !== graphics && typeof emit.drawRectCell === 'function'
+
     const ret = graphics.group({
       class: 'apexcharts-heatmap',
     })
@@ -66,6 +78,12 @@ export default class HeatMap {
       const diff = w.globals.minXDiff
       binPx = Number.isFinite(diff) && diff > 0 ? diff / this.xRatio : xDivision
     }
+
+    // Cell fill opacity for the canvas path (heatmap uses a single fill opacity;
+    // default is 1, matching the opaque SVG cells).
+    const cellFillOpacity = Array.isArray(w.config.fill.opacity)
+      ? w.config.fill.opacity[0] ?? 1
+      : w.config.fill.opacity ?? 1
 
     let y1 = 0
     let rev = false
@@ -93,8 +111,12 @@ export default class HeatMap {
       })
       Series.addCollapsedClassToSeries(this.w, elSeries, i)
 
-      // Set up event delegation once per series group instead of per-cell listeners
-      graphics.setupEventDelegation(elSeries, '.apexcharts-heatmap-rect')
+      // Set up event delegation once per series group instead of per-cell
+      // listeners. Canvas cells carry no DOM node, so there is nothing to
+      // delegate to (tooltip/hover on canvas cells is a follow-up).
+      if (!useCanvas) {
+        graphics.setupEventDelegation(elSeries, '.apexcharts-heatmap-rect')
+      }
 
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow
@@ -170,56 +192,72 @@ export default class HeatMap {
         }
 
         const radius = this.rectRadius
+        const stroke = w.config.plotOptions.heatmap.useFillColorAsStroke
+          ? color
+          : w.globals.stroke.colors[0]
 
-        const rect = graphics.drawRect(x1, y1, cellW, yDivision, radius)
-        rect.attr({
-          cx: x1,
-          cy: y1,
-        })
-        rect.node.classList.add('apexcharts-heatmap-rect')
-        elSeries.add(rect)
+        if (useCanvas) {
+          // Canvas: record a columnar cell (paint-only). No DOM node, no
+          // per-cell class/attrs, and no enter/color animation (canvas paints
+          // the final frame directly).
+          emit.drawRectCell(x1, y1, cellW, yDivision, {
+            fill: color,
+            fillOpacity: cellFillOpacity,
+            stroke,
+            strokeWidth: this.strokeWidth,
+            radius,
+            seriesIndex: i,
+            dataPointIndex: j,
+          })
+        } else {
+          const rect = graphics.drawRect(x1, y1, cellW, yDivision, radius)
+          rect.attr({
+            cx: x1,
+            cy: y1,
+          })
+          rect.node.classList.add('apexcharts-heatmap-rect')
+          elSeries.add(rect)
 
-        rect.attr({
-          fill: color,
-          i,
-          index: i,
-          j,
-          val: series[i][j],
-          'stroke-width': this.strokeWidth,
-          stroke: w.config.plotOptions.heatmap.useFillColorAsStroke
-            ? color
-            : w.globals.stroke.colors[0],
-          color,
-        })
+          rect.attr({
+            fill: color,
+            i,
+            index: i,
+            j,
+            val: series[i][j],
+            'stroke-width': this.strokeWidth,
+            stroke,
+            color,
+          })
 
-        if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
-          let speed = 1
-          if (!w.globals.resized) {
-            speed = w.config.chart.animations.speed
+          if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
+            let speed = 1
+            if (!w.globals.resized) {
+              speed = w.config.chart.animations.speed
+            }
+            this.animateHeatMap(rect, x1, y1, cellW, yDivision, speed, i, j)
           }
-          this.animateHeatMap(rect, x1, y1, cellW, yDivision, speed, i, j)
-        }
 
-        if (w.globals.dataChanged) {
-          let speed = 1
-          if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
-            speed = this.dynamicAnim.speed
+          if (w.globals.dataChanged) {
+            let speed = 1
+            if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
+              speed = this.dynamicAnim.speed
 
-            let colorFrom =
-              w.globals.previousPaths[i] &&
-              w.globals.previousPaths[i][j] &&
-              w.globals.previousPaths[i][j].color
+              let colorFrom =
+                w.globals.previousPaths[i] &&
+                w.globals.previousPaths[i][j] &&
+                w.globals.previousPaths[i][j].color
 
-            if (!colorFrom) colorFrom = 'rgba(255, 255, 255, 0)'
+              if (!colorFrom) colorFrom = 'rgba(255, 255, 255, 0)'
 
-            this.animateHeatColor(
-              rect,
-              Utils.isColorHex(colorFrom)
-                ? colorFrom
-                : Utils.rgb2hex(colorFrom),
-              Utils.isColorHex(color) ? color : Utils.rgb2hex(color),
-              speed,
-            )
+              this.animateHeatColor(
+                rect,
+                Utils.isColorHex(colorFrom)
+                  ? colorFrom
+                  : Utils.rgb2hex(colorFrom),
+                Utils.isColorHex(color) ? color : Utils.rgb2hex(color),
+                speed,
+              )
+            }
           }
         }
 

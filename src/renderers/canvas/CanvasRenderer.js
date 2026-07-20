@@ -99,6 +99,16 @@ export default class CanvasRenderer {
     return /** @type {any} */ (this._g).drawRect(...args)
   }
   /**
+   * Columnar heatmap-cell rect (dense same-shape rects): recorded into typed
+   * arrays, painted as style batches. Distinct from drawRect (object command)
+   * so 100k cells don't allocate 100k retained commands.
+   * @param {number} x @param {number} y @param {number} w @param {number} h
+   * @param {any} opts
+   */
+  drawRectCell(x, y, w, h, opts) {
+    return this._g.drawRectCell(x, y, w, h, opts)
+  }
+  /**
    * @param {number} r
    * @param {any} attrs
    */
@@ -130,14 +140,44 @@ export default class CanvasRenderer {
   }
 
   // ── interaction ──
-  // Shared tooltip/zoom/click resolve via coordinate lookup (pointsArray), so
-  // there is no per-mark hit surface to query; hitTest stays a no-op unless a
-  // future per-point feature needs it.
+  // Line/area/bar/scatter tooltips resolve via coordinate lookup (pointsArray),
+  // so those need no per-mark query. Heatmap cells, however, are hovered by
+  // point (the SVG path hit-tests the <rect> under the cursor); with cells on
+  // canvas there is no node, so hitTest resolves the columnar rect store.
   /**
-   * @param {number} _px
-   * @param {number} _py
+   * Find the cell under a plot-local point (0,0 = plot origin, the same space
+   * as the recorded cell geometry). Reverse scan so a later-painted cell wins
+   * when cells overlap (continuous-x edges). A linear scan stays well under a
+   * frame even at 100k cells (~100k integer compares). Returns the cell's
+   * series/dataPoint index plus its geometry for tooltip positioning, or null
+   * when the point is off every cell.
+   * @param {number} px
+   * @param {number} py
+   * @returns {({seriesIndex:number,dataPointIndex:number,x:number,y:number,width:number,height:number})|null}
    */
-  hitTest(_px, _py) {
+  hitTest(px, py) {
+    const g = this._g
+    const n = g.rectCount ? g.rectCount() : 0
+    if (!n) return null
+    const rx = g._crx
+    const ry = g._cry
+    const rw = g._crw
+    const rh = g._crh
+    for (let k = n - 1; k >= 0; k--) {
+      const w = rw[k]
+      const h = rh[k]
+      if (w <= 0 || h <= 0) continue
+      if (px >= rx[k] && px < rx[k] + w && py >= ry[k] && py < ry[k] + h) {
+        return {
+          seriesIndex: g._crsi[k],
+          dataPointIndex: g._crdi[k],
+          x: rx[k],
+          y: ry[k],
+          width: w,
+          height: h,
+        }
+      }
+    }
     return null
   }
 

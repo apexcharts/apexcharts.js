@@ -82,25 +82,65 @@
 
     <script>
       var cellCount = 10000
+      var DAY = 86400000
 
       // A heatmap is a rows x cols matrix; each cell is one value. The cell count
-      // is what scales cost, so map a target cell count to a rows/cols shape.
+      // is what scales cost, so map a target cell count to a rows/cols shape. Here
+      // the rows are latitude bands (north to south) and the columns are days, so
+      // the matrix is a daily mean-temperature field: warm near the equator, cold
+      // toward the poles, with a seasonal wave that grows toward the poles and runs
+      // half a year out of phase between the two hemispheres.
       function shapeFor(cells) {
         if (cells <= 10000) return { rows: 50, cols: cells / 50 }
         return { rows: 100, cols: cells / 100 }
       }
 
+      function formatLat(lat) {
+        var r = Math.round(lat)
+        if (r > 0) return r + '°N'
+        if (r < 0) return -r + '°S'
+        return '0°'
+      }
+
       function generateHeatmap(cells) {
         var shape = shapeFor(cells)
+        // Columns are consecutive days ending today, anchored to UTC midnight so
+        // every day is exactly 86400000 ms and the seasonal phase never drifts.
+        var now = new Date()
+        var end = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+        var start = end - (shape.cols - 1) * DAY
+
+        // Deterministic PRNG so the field looks the same on every reload.
+        var seed = 1013904223
+        function rand() {
+          seed = (seed * 1103515245 + 12345) & 0x7fffffff
+          return seed / 0x7fffffff
+        }
+
         var series = new Array(shape.rows)
         for (var r = 0; r < shape.rows; r++) {
+          var lat = 90 - (r / (shape.rows - 1)) * 180
+          var absLat = Math.abs(lat) / 90
+          // Warm at the equator (~27C), cold at the poles (~-30C).
+          var baseTemp = 27 - 57 * Math.pow(absLat, 1.05)
+          // Seasonal swing: tiny at the equator, large toward the poles.
+          var swing = 2 + 22 * absLat
+          var hemi = lat >= 0 ? 1 : -1
           var data = new Array(shape.cols)
           for (var c = 0; c < shape.cols; c++) {
-            data[c] = { x: c, y: Math.round(Math.random() * 100) }
+            var t = start + c * DAY
+            var d = new Date(t)
+            var doy = (t - Date.UTC(d.getUTCFullYear(), 0, 0)) / DAY
+            // Northern hemisphere peaks in mid-July; southern is the opposite.
+            var seasonal = swing * Math.sin((2 * Math.PI * doy) / 365 - 1.87) * hemi
+            var temp = baseTemp + seasonal + (rand() - 0.5) * 3
+            data[c] = { x: t, y: Math.round(temp) }
           }
-          series[r] = { name: 'r' + r, data: data }
+          series[r] = { name: formatLat(lat), data: data }
         }
-        return series
+        // Rows read north (top) -> south (bottom); ApexCharts draws the last series
+        // on top, so reverse before returning.
+        return series.reverse()
       }
 
       var heatmapData = generateHeatmap(cellCount)
@@ -142,12 +182,12 @@
   &lt;div class=&quot;stats&quot; id=&quot;stats&quot;&gt;&lt;/div&gt;
 
   &lt;div class=&quot;note&quot;&gt;
-    A heatmap draws one SVG &lt;code&gt;&amp;lt;rect&amp;gt;&lt;/code&gt; per cell in every renderer
-    mode: the canvas renderer does not yet handle heatmap cells, so switching the
-    &lt;b&gt;Renderer&lt;/b&gt; control does not change how cells are drawn. Use this to
-    measure how render time and DOM node count scale with the cell count. You
-    will see the node count grow to roughly one node per cell, and the render
-    time stay the same whether canvas or svg is selected.
+    With the &lt;b&gt;SVG&lt;/b&gt; renderer a heatmap draws one &lt;code&gt;&amp;lt;rect&amp;gt;&lt;/code&gt;
+    per cell, so the DOM node count grows to roughly one node per cell. Switch
+    the &lt;b&gt;Renderer&lt;/b&gt; to &lt;b&gt;canvas&lt;/b&gt; and the cells paint to a single canvas
+    instead: the node count stays flat and the render time drops sharply at high
+    cell counts. Hover still shows a tooltip in both modes. Use the controls to
+    scale the cell count and compare.
   &lt;/div&gt;
 &lt;/div&gt;
 
@@ -171,14 +211,40 @@
               align: 'left',
             },
             subtitle: {
-              text: 'Each cell is one SVG rect; use the controls to scale the cell count',
+              text: 'Daily mean surface temperature (°C) by latitude, cold (blue) to warm (red)',
               align: 'left',
             },
             dataLabels: { enabled: false },
+            // No cell stroke: at high cell counts each cell is ~1px, and a stroke that
+            // wide would cover the fill entirely (cells look blank). Solid fills only.
+            stroke: { show: false },
+            plotOptions: {
+              heatmap: {
+                // Flat temperature buckets (no within-bucket shading) on a cold-to-warm
+                // scale, so a cell's color reads as a temperature straight off the legend.
+                enableShades: false,
+                colorScale: {
+                  ranges: [
+                    { from: -60, to: -25, color: '#313695', name: 'below -25' },
+                    { from: -25, to: -15, color: '#4575b4', name: '-25 to -15' },
+                    { from: -15, to: -5, color: '#74add1', name: '-15 to -5' },
+                    { from: -5, to: 2, color: '#abd9e9', name: '-5 to 2' },
+                    { from: 2, to: 9, color: '#fee090', name: '2 to 9' },
+                    { from: 9, to: 16, color: '#fdae61', name: '9 to 16' },
+                    { from: 16, to: 23, color: '#f46d43', name: '16 to 23' },
+                    { from: 23, to: 60, color: '#d73027', name: 'above 23' },
+                  ],
+                },
+              },
+            },
             xaxis: {
-              type: 'category',
-              labels: { show: false },
+              type: 'datetime',
+              labels: { datetimeUTC: true, style: { fontSize: '12px' } },
               axisTicks: { show: false },
+              axisBorder: { show: false },
+            },
+            yaxis: {
+              labels: { style: { fontSize: '12px' } },
             },
           },
         })
@@ -280,13 +346,13 @@
               <div class="stats" id="stats"></div>
 
               <div class="note">
-                A heatmap draws one SVG <code>&lt;rect&gt;</code> per cell in every
-                renderer mode: the canvas renderer does not yet handle heatmap cells,
-                so switching the
-                <b>Renderer</b> control does not change how cells are drawn. Use this
-                to measure how render time and DOM node count scale with the cell
-                count. You will see the node count grow to roughly one node per cell,
-                and the render time stay the same whether canvas or svg is selected.
+                With the <b>SVG</b> renderer a heatmap draws one{' '}
+                <code>&lt;rect&gt;</code>
+                per cell, so the DOM node count grows to roughly one node per cell.
+                Switch the <b>Renderer</b> to <b>canvas</b> and the cells paint to a
+                single canvas instead: the node count stays flat and the render time
+                drops sharply at high cell counts. Hover still shows a tooltip in both
+                modes. Use the controls to scale the cell count and compare.
               </div>
             </div>
 

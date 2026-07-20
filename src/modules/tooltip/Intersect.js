@@ -41,44 +41,157 @@ class Intersect {
     const ttCtx = this.ttCtx
     const w = this.w
 
-    if (e.target.classList.contains(`apexcharts-${type}-rect`)) {
-      const i = this.getAttr(e, 'i')
-      const j = this.getAttr(e, 'j')
-      const cx = this.getAttr(e, 'cx')
-      const cy = this.getAttr(e, 'cy')
-      const width = this.getAttr(e, 'width')
-      const height = this.getAttr(e, 'height')
+    // Strata (#2): when the heatmap paints its cells to canvas there is no
+    // per-cell <rect> under the cursor, so resolve the cell by coordinate
+    // (renderer.hitTest) instead of reading it off e.target. Everything after
+    // the cell is resolved is shared with the SVG path.
+    const renderer = w.globals.activeRenderer
+    const canvasCells =
+      type === 'heatmap' &&
+      renderer &&
+      renderer.kind === 'canvas' &&
+      typeof renderer.hitTest === 'function'
 
-      ttCtx.tooltipLabels.drawSeriesTexts({
-        ttItems: opt.ttItems,
-        i,
-        j,
-        shared: false,
-        e,
+    let i, j, cx, cy, width, height
+
+    if (canvasCells) {
+      const seriesBound = opt.elGrid.getBoundingClientRect()
+      const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
+      const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY
+      const hit = renderer.hitTest(
+        clientX - seriesBound.left,
+        clientY - seriesBound.top,
+      )
+      if (!hit) {
+        // off every cell: tell the caller to hide rather than pin a stale cell
+        return { x, y, noHit: true }
+      }
+      i = hit.seriesIndex
+      j = hit.dataPointIndex
+      cx = hit.x
+      cy = hit.y
+      width = hit.width
+      height = hit.height
+    } else if (e.target.classList.contains(`apexcharts-${type}-rect`)) {
+      i = this.getAttr(e, 'i')
+      j = this.getAttr(e, 'j')
+      cx = this.getAttr(e, 'cx')
+      cy = this.getAttr(e, 'cy')
+      width = this.getAttr(e, 'width')
+      height = this.getAttr(e, 'height')
+    } else {
+      return { x, y }
+    }
+
+    ttCtx.tooltipLabels.drawSeriesTexts({
+      ttItems: opt.ttItems,
+      i,
+      j,
+      shared: false,
+      e,
+    })
+
+    w.interact.capturedSeriesIndex = i
+    w.interact.capturedDataPointIndex = j
+
+    ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2)
+
+    // Heatmap (arrow mode, not follow-cursor): place the tooltip centered
+    // ABOVE the hovered cell with a downward arrow, flipping BELOW when there
+    // is no room above — the same treatment horizontal bars get. The cell rect
+    // is resolved in grid-local coords for both the SVG (<rect>) and canvas
+    // (hitTest) paths, then converted to the elWrap coords the tooltip lives
+    // in. Treemap keeps the legacy beside-the-cell placement below.
+    const tooltipEl = ttCtx.getElTooltip()
+    if (
+      type === 'heatmap' &&
+      w.config.tooltip.arrow &&
+      !w.config.tooltip.followCursor &&
+      tooltipEl
+    ) {
+      const elGridRect = opt.elGrid.getBoundingClientRect()
+      const elWrapRect = w.dom.elWrap.getBoundingClientRect()
+      const gridOffsetXInElWrap = elGridRect.left - elWrapRect.left
+
+      // Cell rect in grid-local coords: the canvas hitTest already returns it;
+      // for SVG read the rendered <rect> (robust under any group transform).
+      let clLeft, clTop, clRight, clBottom
+      if (canvasCells) {
+        clLeft = cx
+        clTop = cy
+        clRight = cx + width
+        clBottom = cy + height
+      } else {
+        const r = e.target.getBoundingClientRect()
+        clLeft = r.left - elGridRect.left
+        clTop = r.top - elGridRect.top
+        clRight = r.right - elGridRect.left
+        clBottom = r.bottom - elGridRect.top
+      }
+
+      const ttW = ttCtx.tooltipRect.ttWidth || 0
+      const ttH = ttCtx.tooltipRect.ttHeight || 0
+      const ARROW_TIP_OVERHANG = 7 // matches the CSS arrow height
+
+      const cellCenterXInElWrap = (clLeft + clRight) / 2 + gridOffsetXInElWrap
+      const cellTopInElWrap = clTop + w.layout.translateY
+      const cellBottomInElWrap = clBottom + w.layout.translateY
+
+      const gridTop = w.layout.translateY
+      const gridBottom = w.layout.translateY + w.layout.gridHeight
+      const gridLeft = gridOffsetXInElWrap
+      const gridRight = gridOffsetXInElWrap + w.layout.gridWidth
+
+      /** @type {'top'|'bottom'} */
+      let placement = 'top'
+      let finalY = cellTopInElWrap - ttH - ARROW_TIP_OVERHANG
+      if (finalY < gridTop) {
+        const belowTop = cellBottomInElWrap + ARROW_TIP_OVERHANG
+        if (belowTop + ttH <= gridBottom) {
+          placement = 'bottom'
+          finalY = belowTop
+        } else {
+          // Neither above nor below fits fully; keep above, clamped in-grid.
+          finalY = gridTop
+        }
+      }
+
+      let finalX = cellCenterXInElWrap - ttW / 2
+      if (finalX < gridLeft) finalX = gridLeft
+      if (finalX + ttW > gridRight) finalX = gridRight - ttW
+
+      // Arrow X in tooltip-local coords, clamped away from the rounded corners.
+      const arrowX = Math.max(10, Math.min(ttW - 10, cellCenterXInElWrap - finalX))
+
+      ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, {
+        x: finalX,
+        y: finalY,
+        placement,
+        arrowY: null,
+        arrowX,
       })
 
-      w.interact.capturedSeriesIndex = i
-      w.interact.capturedDataPointIndex = j
+      return { x: finalX, y: finalY, positioned: true }
+    }
 
-      x = cx + ttCtx.tooltipRect.ttWidth / 2 + width
-      y = cy + ttCtx.tooltipRect.ttHeight / 2 - height / 2
+    // Legacy placement (treemap, arrow disabled, or follow-cursor): tooltip
+    // sits beside the cell, vertically centered on it.
+    x = cx + ttCtx.tooltipRect.ttWidth / 2 + width
+    y = cy + ttCtx.tooltipRect.ttHeight / 2 - height / 2
 
-      ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2)
-
-      if (x > w.layout.gridWidth / 2) {
-        x = cx - ttCtx.tooltipRect.ttWidth / 2 + width
-      }
-      if (ttCtx.w.config.tooltip.followCursor) {
-        const seriesBound = w.dom.elWrap.getBoundingClientRect()
-        x =
-          (w.interact.clientX ?? 0) -
-          seriesBound.left -
-          (x > w.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0)
-        y =
-          (w.interact.clientY ?? 0) -
-          seriesBound.top -
-          (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0)
-      }
+    if (x > w.layout.gridWidth / 2) {
+      x = cx - ttCtx.tooltipRect.ttWidth / 2 + width
+    }
+    if (ttCtx.w.config.tooltip.followCursor) {
+      const seriesBound = w.dom.elWrap.getBoundingClientRect()
+      x =
+        (w.interact.clientX ?? 0) -
+        seriesBound.left -
+        (x > w.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0)
+      y =
+        (w.interact.clientY ?? 0) -
+        seriesBound.top -
+        (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0)
     }
 
     return {

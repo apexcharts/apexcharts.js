@@ -63,6 +63,25 @@ export default class YAxis {
       w.globals.yAxisScale[realIndex].result.slice(),
     )
 
+    // Heatmap rows are categorical (one label each). When there are more rows
+    // than can fit without overlapping, thin the labels to the count that fits
+    // so they stay legible instead of smearing into each other; the kept labels
+    // stay evenly spaced. Only the text is thinned (ticks are unaffected), and
+    // small heatmaps whose labels already fit are untouched (labelStep = 1). A
+    // user-supplied labels.formatter already decides which labels to show (e.g.
+    // a calendar heatmap showing only alternate weekdays), so auto-thinning is
+    // skipped then to avoid the two thinning schemes cancelling each other out.
+    let labelStep = 1
+    if (
+      w.config.chart.type === 'heatmap' &&
+      !w.config.yaxis[realIndex].labels.formatter
+    ) {
+      const fs = parseInt(yaxisFontSize, 10) || 11
+      const maxLabels = Math.max(1, Math.floor(w.layout.gridHeight / (fs * 1.4)))
+      const count = tickAmount + 1
+      if (count > maxLabels) labelStep = Math.ceil(count / maxLabels)
+    }
+
     if (w.config.yaxis[realIndex].labels.show) {
       let lY = w.layout.translateY + w.config.yaxis[realIndex].labels.offsetY
       if (w.globals.isBarHorizontal) lY = 0
@@ -71,7 +90,8 @@ export default class YAxis {
 
       let firstLabel = null
       for (let i = tickAmount; i >= 0; i--) {
-        const val = lbFormatter(labels[i], i, w)
+        const thinned = labelStep > 1 && i % labelStep !== 0
+        const val = thinned ? '' : lbFormatter(labels[i], i, w)
         let xPad = w.config.yaxis[realIndex].labels.padding
         if (w.config.yaxis[realIndex].opposite && w.config.yaxis.length !== 0)
           xPad *= -1
