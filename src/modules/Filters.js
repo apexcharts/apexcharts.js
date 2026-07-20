@@ -2,6 +2,12 @@
 import Utils from './../utils/Utils'
 
 /**
+ * Default blend strength for each state filter when `states.*.filter.value`
+ * is not supplied. See `applyFilter` for the blend math.
+ */
+const DEFAULT_INTENSITY = { lighten: 0.15, darken: 0.35 }
+
+/**
  * ApexCharts Filters Class for setting hover/active states on the paths.
  *
  * @module Formatters
@@ -34,8 +40,9 @@ class Filters {
    * @param {any} el
    * @param {number} i
    * @param {string} filterType
+   * @param {number} [intensity] Blend strength (0 to 1). Defaults per type.
    */
-  applyFilter(el, i, filterType) {
+  applyFilter(el, i, filterType, intensity) {
     const w = this.w
     if (el.unfilter) {
       el.unfilter(true)
@@ -47,7 +54,28 @@ class Filters {
     }
 
     const shadowAttr = w.config.chart.dropShadow
-    const brightnessFactor = filterType === 'lighten' ? 2 : 0.3
+
+    // Blend the source colour towards white (lighten) or black (darken) by
+    // `t`, instead of applying a flat multiplicative gain. A gain of 2 clips
+    // every channel above 0.5 straight to pure white, which is why light
+    // series used to wash out entirely on hover; a convex blend can never
+    // leave the [0,1] range so nothing ever blows out or crushes to black.
+    //
+    // The per-channel shift is proportional to the head-room: t*(1-c) for
+    // lighten, t*c for darken. So an already-light colour is nudged only
+    // slightly on lighten (and an already-dark one only slightly on darken):
+    // the effect self-scales to the base colour, per pixel, with no need to
+    // read back the series colour (this keeps gradients/patterns correct too).
+    const fallback =
+      filterType === 'lighten'
+        ? DEFAULT_INTENSITY.lighten
+        : DEFAULT_INTENSITY.darken
+    const t = Math.max(
+      0,
+      Math.min(1, typeof intensity === 'number' ? intensity : fallback),
+    )
+    const diag = 1 - t
+    const offset = filterType === 'lighten' ? t : 0
 
     if (el.filterWith) {
       /**
@@ -57,9 +85,9 @@ class Filters {
         add.colorMatrix({
           type: 'matrix',
           values: `
-            ${brightnessFactor} 0 0 0 0
-            0 ${brightnessFactor} 0 0 0
-            0 0 ${brightnessFactor} 0 0
+            ${diag} 0 0 0 ${offset}
+            0 ${diag} 0 0 ${offset}
+            0 0 ${diag} 0 ${offset}
             0 0 0 1 0
           `,
           in: 'SourceGraphic',
@@ -180,7 +208,7 @@ class Filters {
         el.node.setAttribute('selected', true)
         const activeFilter = w.config.states.active.filter
         if (activeFilter !== 'none') {
-          this.applyFilter(el, realIndex, activeFilter.type)
+          this.applyFilter(el, realIndex, activeFilter.type, activeFilter.value)
         }
       }
     }

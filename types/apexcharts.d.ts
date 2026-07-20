@@ -1601,12 +1601,26 @@ type ApexStates = {
   hover?: {
     filter?: {
       type?: 'none' | 'lighten' | 'darken'
+      /**
+       * Blend strength toward white (lighten) or black (darken), from 0 to 1.
+       * Higher means a stronger effect. The shift is proportional to the base
+       * color's head-room, so already-light colors are lightened only slightly
+       * (and already-dark colors darkened only slightly) and never wash out.
+       * @default 0.15
+       */
+      value?: number
     }
   }
   active?: {
     allowMultipleDataPointsSelection?: boolean
     filter?: {
       type?: 'none' | 'lighten' | 'darken'
+      /**
+       * Blend strength toward white (lighten) or black (darken), from 0 to 1.
+       * Higher means a stronger effect.
+       * @default 0.35
+       */
+      value?: number
     }
   }
 }

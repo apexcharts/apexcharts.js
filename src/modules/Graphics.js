@@ -1140,7 +1140,7 @@ class Graphics {
     if (w.config.states.hover.filter.type !== 'none') {
       if (!w.interact.isTouchDevice) {
         const hoverFilter = w.config.states.hover.filter
-        filters.applyFilter(path, i, hoverFilter.type)
+        filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value)
       }
     }
   }
@@ -1256,13 +1256,13 @@ class Graphics {
       if (selected === 'true') {
         const activeFilter = w.config.states.active.filter
         if (activeFilter !== 'none') {
-          filters.applyFilter(path, i, activeFilter.type)
+          filters.applyFilter(path, i, activeFilter.type, activeFilter.value)
         } else {
           // Reapply the hover filter in case it was removed by `deselect`when there is no active filter and it is not a touch device
           if (w.config.states.hover.filter !== 'none') {
             if (!w.interact.isTouchDevice) {
               const hoverFilter = w.config.states.hover.filter
-              filters.applyFilter(path, i, hoverFilter.type)
+              filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value)
             }
           }
         }
@@ -1274,7 +1274,7 @@ class Graphics {
             !w.interact.isTouchDevice
           ) {
             const hoverFilter = w.config.states.hover.filter
-            filters.applyFilter(path, i, hoverFilter.type)
+            filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value)
           } else {
             filters.getDefaultFilter(path, i)
           }

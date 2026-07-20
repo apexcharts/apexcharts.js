@@ -1451,12 +1451,14 @@ export default class Options {
         hover: {
           filter: {
             type: 'lighten',
+            value: 0.15,
           },
         },
         active: {
           allowMultipleDataPointsSelection: false,
           filter: {
             type: 'darken',
+            value: 0.35,
           },
         },
       },
