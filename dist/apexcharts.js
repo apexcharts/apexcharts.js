@@ -54,7 +54,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.3.0
+ * ApexCharts v6.4.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -2819,7 +2819,14 @@ var __async = (__this, __arguments, generator) => {
     heatmap() {
       return {
         chart: {
-          stacked: false
+          stacked: false,
+          // A heatmap is a fixed grid: zooming/panning only distorts the cells
+          // and (on a datetime axis) collapses the month labels to repeats, so
+          // it is off by default, mirroring treemap. Users can opt back in with
+          // chart.zoom.enabled: true.
+          zoom: {
+            enabled: false
+          }
         },
         fill: {
           opacity: 1
@@ -2833,7 +2840,11 @@ var __async = (__this, __arguments, generator) => {
           colors: ["#fff"]
         },
         tooltip: {
-          followCursor: true,
+          // Anchor the tooltip above the hovered cell with a downward arrow
+          // (flipping below near the top edge), the same treatment horizontal
+          // bars get, rather than trailing the cursor. Opt back into the old
+          // behavior with tooltip.followCursor: true.
+          followCursor: false,
           marker: {
             show: false
           },
@@ -4514,6 +4525,20 @@ var __async = (__this, __arguments, generator) => {
             blur: 1,
             color: "#000",
             opacity: 0.8
+          },
+          // Ride data labels to their new position on a data-change update
+          // (e.g. a bar chart race), instead of snapping. Off by default so
+          // existing charts are unchanged. Speed/easing follow
+          // chart.animations.dynamicAnimation. Bar/column only.
+          animate: {
+            enabled: false
+          },
+          // Count the numeric value up/down from its previous value on update,
+          // like countUp.js. Off by default. The dataLabels.formatter runs each
+          // frame, so number formatting (decimals, separators, prefixes) is
+          // preserved. Bar/column only.
+          countUp: {
+            enabled: false
           }
         },
         fill: {
@@ -4705,13 +4730,15 @@ var __async = (__this, __arguments, generator) => {
         states: {
           hover: {
             filter: {
-              type: "lighten"
+              type: "lighten",
+              value: 0.15
             }
           },
           active: {
             allowMultipleDataPointsSelection: false,
             filter: {
-              type: "darken"
+              type: "darken",
+              value: 0.35
             }
           }
         },
@@ -8191,6 +8218,7 @@ var __async = (__this, __arguments, generator) => {
       });
     }
   }
+  const DEFAULT_INTENSITY = { lighten: 0.15, darken: 0.35 };
   class Filters {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -8216,8 +8244,9 @@ var __async = (__this, __arguments, generator) => {
      * @param {any} el
      * @param {number} i
      * @param {string} filterType
+     * @param {number} [intensity] Blend strength (0 to 1). Defaults per type.
      */
-    applyFilter(el, i, filterType) {
+    applyFilter(el, i, filterType, intensity) {
       var _a, _b, _c;
       const w = this.w;
       if (el.unfilter) {
@@ -8228,15 +8257,21 @@ var __async = (__this, __arguments, generator) => {
         return;
       }
       const shadowAttr = w.config.chart.dropShadow;
-      const brightnessFactor = filterType === "lighten" ? 2 : 0.3;
+      const fallback = filterType === "lighten" ? DEFAULT_INTENSITY.lighten : DEFAULT_INTENSITY.darken;
+      const t = Math.max(
+        0,
+        Math.min(1, typeof intensity === "number" ? intensity : fallback)
+      );
+      const diag = 1 - t;
+      const offset = filterType === "lighten" ? t : 0;
       if (el.filterWith) {
         el.filterWith((add) => {
           add.colorMatrix({
             type: "matrix",
             values: `
-            ${brightnessFactor} 0 0 0 0
-            0 ${brightnessFactor} 0 0 0
-            0 0 ${brightnessFactor} 0 0
+            ${diag} 0 0 0 ${offset}
+            0 ${diag} 0 0 ${offset}
+            0 0 ${diag} 0 ${offset}
             0 0 0 1 0
           `,
             in: "SourceGraphic",
@@ -8335,7 +8370,7 @@ var __async = (__this, __arguments, generator) => {
           el.node.setAttribute("selected", true);
           const activeFilter = w.config.states.active.filter;
           if (activeFilter !== "none") {
-            this.applyFilter(el, realIndex, activeFilter.type);
+            this.applyFilter(el, realIndex, activeFilter.type, activeFilter.value);
           }
         }
       }
@@ -9174,7 +9209,7 @@ var __async = (__this, __arguments, generator) => {
       if (w.config.states.hover.filter.type !== "none") {
         if (!w.interact.isTouchDevice) {
           const hoverFilter = w.config.states.hover.filter;
-          filters.applyFilter(path, i, hoverFilter.type);
+          filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
         }
       }
     }
@@ -9259,12 +9294,12 @@ var __async = (__this, __arguments, generator) => {
         if (selected === "true") {
           const activeFilter = w.config.states.active.filter;
           if (activeFilter !== "none") {
-            filters.applyFilter(path, i, activeFilter.type);
+            filters.applyFilter(path, i, activeFilter.type, activeFilter.value);
           } else {
             if (w.config.states.hover.filter !== "none") {
               if (!w.interact.isTouchDevice) {
                 const hoverFilter = w.config.states.hover.filter;
-                filters.applyFilter(path, i, hoverFilter.type);
+                filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
               }
             }
           }
@@ -9272,7 +9307,7 @@ var __async = (__this, __arguments, generator) => {
           if (w.config.states.active.filter.type !== "none") {
             if (w.config.states.hover.filter.type !== "none" && !w.interact.isTouchDevice) {
               const hoverFilter = w.config.states.hover.filter;
-              filters.applyFilter(path, i, hoverFilter.type);
+              filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
             } else {
               filters.getDefaultFilter(path, i);
             }
@@ -9911,12 +9946,13 @@ var __async = (__this, __arguments, generator) => {
     const markerSize = w.config.markers && w.config.markers.size;
     const markersOn = Array.isArray(markerSize) ? markerSize.some((s) => s > 0) : (markerSize || 0) > 0;
     const labelsOn = !!(w.config.dataLabels && w.config.dataLabels.enabled);
+    const isHeatmap = type === "heatmap";
     let total = 0;
     let maxLen = 0;
     series.forEach((s) => {
       const n = Array.isArray(s.data) ? s.data.length : 0;
       if (n > maxLen) maxLen = n;
-      if (scatterish || markersOn) total += n;
+      if (scatterish || markersOn || isHeatmap) total += n;
       if (labelsOn) total += n;
     });
     const LARGE_D = 5e4;
@@ -13478,6 +13514,13 @@ var __async = (__this, __arguments, generator) => {
         realIndex,
         w.globals.yAxisScale[realIndex].result.slice()
       );
+      let labelStep = 1;
+      if (w.config.chart.type === "heatmap" && !w.config.yaxis[realIndex].labels.formatter) {
+        const fs = parseInt(yaxisFontSize, 10) || 11;
+        const maxLabels = Math.max(1, Math.floor(w.layout.gridHeight / (fs * 1.4)));
+        const count = tickAmount + 1;
+        if (count > maxLabels) labelStep = Math.ceil(count / maxLabels);
+      }
       if (w.config.yaxis[realIndex].labels.show) {
         let lY = w.layout.translateY + w.config.yaxis[realIndex].labels.offsetY;
         if (w.globals.isBarHorizontal) lY = 0;
@@ -13485,7 +13528,8 @@ var __async = (__this, __arguments, generator) => {
         lY += parseInt(yaxisFontSize, 10) / 3;
         let firstLabel = null;
         for (let i = tickAmount; i >= 0; i--) {
-          const val = lbFormatter(labels[i], i, w);
+          const thinned = labelStep > 1 && i % labelStep !== 0;
+          const val = thinned ? "" : lbFormatter(labels[i], i, w);
           let xPad = w.config.yaxis[realIndex].labels.padding;
           if (w.config.yaxis[realIndex].opposite && w.config.yaxis.length !== 0)
             xPad *= -1;
@@ -14720,7 +14764,7 @@ var __async = (__this, __arguments, generator) => {
       return count === 0 ? k : `${k}#${count}`;
     });
   }
-  function seriesJoin(w, realIndex, includeIdentity = false) {
+  function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
     var _a, _b;
     if (!lengthTransitionEnabled(w)) return null;
     const frame = w.globals.prevStreamFrame;
@@ -14734,7 +14778,7 @@ var __async = (__this, __arguments, generator) => {
     );
     const newKeys = uniquifyKeys(newY.map((_, j) => datumKey(w, realIndex, j)));
     const join = joinKeys(oldKeys, newKeys);
-    if (!join.ordered) return null;
+    if (!join.ordered && !allowReorder) return null;
     if (!join.changed && !includeIdentity) return null;
     return { join, oldKeys, newKeys };
   }
@@ -15043,7 +15087,7 @@ var __async = (__this, __arguments, generator) => {
       gl.prevChromeFrame = null;
     }
   }
-  function fadeIn(w, node, duration, ease) {
+  function fadeIn$1(w, node, duration, ease) {
     const style = (
       /** @type {any} */
       node.style
@@ -15140,34 +15184,59 @@ var __async = (__this, __arguments, generator) => {
     const spanHi = Math.max(...spanPs);
     const margin = Math.max(40, (spanHi - spanLo) * 0.25);
     const clamp = (p) => Math.max(spanLo - margin, Math.min(spanHi + margin, p));
+    const tweenPairedLine = (line, old) => {
+      if (!line) return;
+      const lineTo = parseFloat(line.getAttribute(lineAttrs[0]) || "");
+      const lineFrom = oldLines[old.i];
+      if (isFinite(lineTo) && isFinite(lineFrom)) {
+        tweenPos(w, line, lineAttrs, lineFrom, lineTo, duration, ease);
+      }
+    };
     newLabels.forEach((label, i) => {
       const to = parseFloat(label.getAttribute(posAttr) || "");
       const old = oldByText.get(label.textContent || "");
       const line = newLinesAligned ? newLines[i] : null;
       if (old) matchedOld.add(old.i);
-      if (!old || !isFinite(old.pos) || old.transform || label.getAttribute("transform")) {
+      const labelTransform = label.getAttribute("transform");
+      if (!old || !isFinite(old.pos)) {
         if (!old) {
-          if (project && isFinite(to) && !label.getAttribute("transform")) {
+          if (project && isFinite(to) && !labelTransform) {
             const from = isFinite(project.toOld(to)) ? clamp(project.toOld(to)) : NaN;
             if (isFinite(from) && Math.abs(from - to) > 0.5) {
               tweenPos(w, label, [posAttr], from, to, duration, ease);
               if (line) tweenPos(w, line, lineAttrs, from, to, duration, ease);
             }
           }
-          fadeIn(w, label, duration, ease);
-          if (line) fadeIn(w, line, duration, ease);
+          fadeIn$1(w, label, duration, ease);
+          if (line) fadeIn$1(w, line, duration, ease);
         }
         return;
       }
       if (!isFinite(to) || Math.abs(old.pos - to) < 0.5) return;
-      tweenPos(w, label, [posAttr], old.pos, to, duration, ease);
-      if (line) {
-        const lineTo = parseFloat(line.getAttribute(lineAttrs[0]) || "");
-        const lineFrom = oldLines[old.i];
-        if (isFinite(lineTo) && isFinite(lineFrom)) {
-          tweenPos(w, line, lineAttrs, lineFrom, lineTo, duration, ease);
+      if (labelTransform || old.transform) {
+        const delta = old.pos - to;
+        if (isFinite(delta)) {
+          const base = labelTransform || "";
+          rafTween(
+            w,
+            duration,
+            ease,
+            (eased) => {
+              const v = delta * (1 - eased);
+              const t = posAttr === "x" ? `translate(${v} 0)` : `translate(0 ${v})`;
+              label.setAttribute("transform", `${t} ${base}`.trim());
+            },
+            () => {
+              if (base) label.setAttribute("transform", base);
+              else label.removeAttribute("transform");
+            }
+          );
         }
+        tweenPairedLine(line, old);
+        return;
       }
+      tweenPos(w, label, [posAttr], old.pos, to, duration, ease);
+      tweenPairedLine(line, old);
     });
     if (!project || !newLabels.length) return;
     let ghosts = 0;
@@ -15206,7 +15275,7 @@ var __async = (__this, __arguments, generator) => {
     if (!chrome || !gl.axisCharts || !Environment.isBrowser()) return;
     if (!lengthTransitionEnabled(w)) return;
     const anyMotion = (w.seriesData.series || []).some(
-      (_, i) => seriesJoin(w, i, true) !== null
+      (_, i) => seriesJoin(w, i, true, true) !== null
     );
     if (!anyMotion) return;
     const root = w.dom.baseEl;
@@ -15246,6 +15315,158 @@ var __async = (__this, __arguments, generator) => {
         duration,
         ease,
         project: projY
+      });
+    } catch (_) {
+    }
+  }
+  const DL_GROUP_SEL = ".apexcharts-data-labels[data\\:dlKey]";
+  const DL_TEXT_SEL = ".apexcharts-datalabel";
+  function dataLabelMotionEnabled(w) {
+    var _a, _b;
+    const dl = w.config.dataLabels;
+    return !!(((_a = dl == null ? void 0 : dl.animate) == null ? void 0 : _a.enabled) || ((_b = dl == null ? void 0 : dl.countUp) == null ? void 0 : _b.enabled));
+  }
+  function decimalsOf(n) {
+    if (!isFinite(n)) return 0;
+    const s = String(n);
+    const dot = s.indexOf(".");
+    return dot === -1 ? 0 : Math.min(6, s.length - dot - 1);
+  }
+  function writeLabel(textEl, s) {
+    const tspan = textEl.querySelector("tspan");
+    if (tspan) tspan.textContent = s;
+    else textEl.textContent = s;
+  }
+  function captureDataLabels(w) {
+    const gl = w.globals;
+    gl.prevDataLabels = null;
+    if (!gl.axisCharts || !Environment.isBrowser()) return;
+    if (!dataLabelMotionEnabled(w)) return;
+    const root = w.dom.baseEl;
+    if (!Utils$1.elementExists(root)) return;
+    try {
+      const map = /* @__PURE__ */ new Map();
+      root.querySelectorAll(DL_GROUP_SEL).forEach((group) => {
+        const key = group.getAttribute("data:dlKey");
+        if (!key) return;
+        const textEl = group.querySelector(DL_TEXT_SEL);
+        if (!textEl) return;
+        map.set(key, {
+          cx: parseFloat(textEl.getAttribute("cx") || ""),
+          cy: parseFloat(textEl.getAttribute("cy") || ""),
+          val: parseFloat(group.getAttribute("data:dlVal") || "")
+        });
+      });
+      gl.prevDataLabels = map.size ? map : null;
+    } catch (_) {
+      gl.prevDataLabels = null;
+    }
+  }
+  function fadeIn(w, node, duration, ease) {
+    const style = (
+      /** @type {any} */
+      node.style
+    );
+    style.opacity = "0";
+    rafTween(
+      w,
+      duration,
+      ease,
+      (eased) => {
+        style.opacity = String(eased);
+      },
+      () => {
+        style.opacity = "";
+      }
+    );
+  }
+  function applyDataLabelTransition(w) {
+    var _a, _b;
+    const gl = w.globals;
+    const prev = gl.prevDataLabels;
+    gl.prevDataLabels = null;
+    if (!prev || !gl.axisCharts || !Environment.isBrowser()) return;
+    if (!dataLabelMotionEnabled(w)) return;
+    if (!lengthTransitionEnabled(w)) return;
+    const root = w.dom.baseEl;
+    if (!Utils$1.elementExists(root)) return;
+    const dl = w.config.dataLabels;
+    const ride = !!((_a = dl.animate) == null ? void 0 : _a.enabled);
+    const countUp = !!((_b = dl.countUp) == null ? void 0 : _b.enabled);
+    const formatter = dl.formatter;
+    const duration = Math.max(1, w.config.chart.animations.dynamicAnimation.speed || 1);
+    const ease = morphEasing(w);
+    try {
+      root.querySelectorAll(DL_GROUP_SEL).forEach((group) => {
+        const key = group.getAttribute("data:dlKey");
+        if (!key) return;
+        const textEl = group.querySelector(DL_TEXT_SEL);
+        if (!textEl) return;
+        const old = prev.get(key);
+        if (ride) {
+          if (old && isFinite(old.cx) && isFinite(old.cy)) {
+            const newCx = parseFloat(textEl.getAttribute("cx") || "");
+            const newCy = parseFloat(textEl.getAttribute("cy") || "");
+            const dx = old.cx - newCx;
+            const dy = old.cy - newCy;
+            if (isFinite(dx) && isFinite(dy) && Math.abs(dx) + Math.abs(dy) > 0.5) {
+              const base = group.getAttribute("transform") || "";
+              rafTween(
+                w,
+                duration,
+                ease,
+                (eased) => {
+                  const t = 1 - eased;
+                  group.setAttribute(
+                    "transform",
+                    `translate(${dx * t} ${dy * t}) ${base}`.trim()
+                  );
+                },
+                () => {
+                  group.setAttribute("transform", base);
+                }
+              );
+            }
+          } else if (!old) {
+            fadeIn(w, group, duration, ease);
+          }
+        }
+        if (countUp && old && isFinite(old.val)) {
+          const newVal = parseFloat(group.getAttribute("data:dlVal") || "");
+          if (isFinite(newVal) && Math.abs(newVal - old.val) > 1e-9) {
+            const from = old.val;
+            const dec = Math.max(decimalsOf(from), decimalsOf(newVal));
+            const realIndex = parseInt(key, 10);
+            const j = parseInt(group.getAttribute("data:dlJ") || "", 10);
+            const format = (v) => {
+              const rounded = Number(v.toFixed(dec));
+              let out = rounded;
+              if (typeof formatter === "function") {
+                try {
+                  out = formatter(rounded, __spreadProps(__spreadValues({}, w), {
+                    seriesIndex: realIndex,
+                    dataPointIndex: isFinite(j) ? j : 0,
+                    w
+                  }));
+                } catch (_) {
+                  out = rounded;
+                }
+              }
+              return String(out);
+            };
+            rafTween(
+              w,
+              duration,
+              ease,
+              (eased) => {
+                writeLabel(textEl, format(from + (newVal - from) * eased));
+              },
+              () => {
+                writeLabel(textEl, format(newVal));
+              }
+            );
+          }
+        }
       });
     } catch (_) {
     }
@@ -15623,6 +15844,7 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       captureStreamFrame(w);
       captureAxisChrome(w);
+      captureDataLabels(w);
       if (!w.globals.axisCharts) {
         w.globals.previousPaths = w.seriesData.series;
         return;
@@ -19463,7 +19685,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {any[]} ser
      */
     parseData(ser) {
-      var _a, _b, _c, _d, _e, _f;
+      var _a, _b, _c, _d, _e, _f, _g;
       const w = this.w;
       const cnf = w.config;
       const gl = w.globals;
@@ -19489,8 +19711,11 @@ var __async = (__this, __arguments, generator) => {
           gl.dataReducerRawMaxX = rawMaxX;
         }
       }
-      cnf.series = ser;
       if (gl.dataReducerRawSeries && ((_f = cnf.chart.dataReducer) == null ? void 0 : _f.enabled)) {
+        ser = ser.map((s) => __spreadValues({}, s));
+      }
+      cnf.series = ser;
+      if (gl.dataReducerRawSeries && ((_g = cnf.chart.dataReducer) == null ? void 0 : _g.enabled)) {
         const stash = gl.dataReducerRawSeries;
         gl.initialSeries = ser.map((s, i) => {
           var _a2, _b2, _c2;
@@ -21131,12 +21356,14 @@ var __async = (__this, __arguments, generator) => {
         w
       });
       if (tooltipEl) {
+        const arrowEl = tooltipEl.querySelector(".apexcharts-tooltip-arrow");
         if (typeof customTooltip === "string" || typeof customTooltip === "number") {
           tooltipEl.innerHTML = String(customTooltip);
         } else if (customTooltip instanceof Element || typeof customTooltip.nodeName === "string") {
           tooltipEl.innerHTML = "";
           tooltipEl.appendChild(customTooltip.cloneNode(true));
         }
+        if (arrowEl) tooltipEl.appendChild(arrowEl);
       }
     }
   }
@@ -21989,33 +22216,107 @@ var __async = (__this, __arguments, generator) => {
       var _a, _b;
       const ttCtx = this.ttCtx;
       const w = this.w;
-      if (e.target.classList.contains(`apexcharts-${type}-rect`)) {
-        const i = this.getAttr(e, "i");
-        const j = this.getAttr(e, "j");
-        const cx = this.getAttr(e, "cx");
-        const cy = this.getAttr(e, "cy");
-        const width = this.getAttr(e, "width");
-        const height = this.getAttr(e, "height");
-        ttCtx.tooltipLabels.drawSeriesTexts({
-          ttItems: opt.ttItems,
-          i,
-          j,
-          shared: false,
-          e
+      const renderer = w.globals.activeRenderer;
+      const canvasCells = type === "heatmap" && renderer && renderer.kind === "canvas" && typeof renderer.hitTest === "function";
+      let i, j, cx, cy, width, height;
+      if (canvasCells) {
+        const seriesBound = opt.elGrid.getBoundingClientRect();
+        const clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
+        const hit = renderer.hitTest(
+          clientX - seriesBound.left,
+          clientY - seriesBound.top
+        );
+        if (!hit) {
+          return { x, y, noHit: true };
+        }
+        i = hit.seriesIndex;
+        j = hit.dataPointIndex;
+        cx = hit.x;
+        cy = hit.y;
+        width = hit.width;
+        height = hit.height;
+      } else if (e.target.classList.contains(`apexcharts-${type}-rect`)) {
+        i = this.getAttr(e, "i");
+        j = this.getAttr(e, "j");
+        cx = this.getAttr(e, "cx");
+        cy = this.getAttr(e, "cy");
+        width = this.getAttr(e, "width");
+        height = this.getAttr(e, "height");
+      } else {
+        return { x, y };
+      }
+      ttCtx.tooltipLabels.drawSeriesTexts({
+        ttItems: opt.ttItems,
+        i,
+        j,
+        shared: false,
+        e
+      });
+      w.interact.capturedSeriesIndex = i;
+      w.interact.capturedDataPointIndex = j;
+      ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2);
+      const tooltipEl = ttCtx.getElTooltip();
+      if (type === "heatmap" && w.config.tooltip.arrow && !w.config.tooltip.followCursor && tooltipEl) {
+        const elGridRect = opt.elGrid.getBoundingClientRect();
+        const elWrapRect = w.dom.elWrap.getBoundingClientRect();
+        const gridOffsetXInElWrap = elGridRect.left - elWrapRect.left;
+        let clLeft, clTop, clRight, clBottom;
+        if (canvasCells) {
+          clLeft = cx;
+          clTop = cy;
+          clRight = cx + width;
+          clBottom = cy + height;
+        } else {
+          const r = e.target.getBoundingClientRect();
+          clLeft = r.left - elGridRect.left;
+          clTop = r.top - elGridRect.top;
+          clRight = r.right - elGridRect.left;
+          clBottom = r.bottom - elGridRect.top;
+        }
+        const ttW = ttCtx.tooltipRect.ttWidth || 0;
+        const ttH = ttCtx.tooltipRect.ttHeight || 0;
+        const ARROW_TIP_OVERHANG = 7;
+        const cellCenterXInElWrap = (clLeft + clRight) / 2 + gridOffsetXInElWrap;
+        const cellTopInElWrap = clTop + w.layout.translateY;
+        const cellBottomInElWrap = clBottom + w.layout.translateY;
+        const gridTop = w.layout.translateY;
+        const gridBottom = w.layout.translateY + w.layout.gridHeight;
+        const gridLeft = gridOffsetXInElWrap;
+        const gridRight = gridOffsetXInElWrap + w.layout.gridWidth;
+        let placement = "top";
+        let finalY = cellTopInElWrap - ttH - ARROW_TIP_OVERHANG;
+        if (finalY < gridTop) {
+          const belowTop = cellBottomInElWrap + ARROW_TIP_OVERHANG;
+          if (belowTop + ttH <= gridBottom) {
+            placement = "bottom";
+            finalY = belowTop;
+          } else {
+            finalY = gridTop;
+          }
+        }
+        let finalX = cellCenterXInElWrap - ttW / 2;
+        if (finalX < gridLeft) finalX = gridLeft;
+        if (finalX + ttW > gridRight) finalX = gridRight - ttW;
+        const arrowX = Math.max(10, Math.min(ttW - 10, cellCenterXInElWrap - finalX));
+        ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, {
+          x: finalX,
+          y: finalY,
+          placement,
+          arrowY: null,
+          arrowX
         });
-        w.interact.capturedSeriesIndex = i;
-        w.interact.capturedDataPointIndex = j;
-        x = cx + ttCtx.tooltipRect.ttWidth / 2 + width;
-        y = cy + ttCtx.tooltipRect.ttHeight / 2 - height / 2;
-        ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2);
-        if (x > w.layout.gridWidth / 2) {
-          x = cx - ttCtx.tooltipRect.ttWidth / 2 + width;
-        }
-        if (ttCtx.w.config.tooltip.followCursor) {
-          const seriesBound = w.dom.elWrap.getBoundingClientRect();
-          x = ((_a = w.interact.clientX) != null ? _a : 0) - seriesBound.left - (x > w.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0);
-          y = ((_b = w.interact.clientY) != null ? _b : 0) - seriesBound.top - (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0);
-        }
+        return { x: finalX, y: finalY, positioned: true };
+      }
+      x = cx + ttCtx.tooltipRect.ttWidth / 2 + width;
+      y = cy + ttCtx.tooltipRect.ttHeight / 2 - height / 2;
+      if (x > w.layout.gridWidth / 2) {
+        x = cx - ttCtx.tooltipRect.ttWidth / 2 + width;
+      }
+      if (ttCtx.w.config.tooltip.followCursor) {
+        const seriesBound = w.dom.elWrap.getBoundingClientRect();
+        x = ((_a = w.interact.clientX) != null ? _a : 0) - seriesBound.left - (x > w.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0);
+        y = ((_b = w.interact.clientY) != null ? _b : 0) - seriesBound.top - (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0);
       }
       return {
         x,
@@ -22654,7 +22955,7 @@ var __async = (__this, __arguments, generator) => {
           this.tConfig.style.background
         );
       }
-      const isSharedMulti = this.tConfig.shared && w.config.series.length > 1 && !w.globals.isBarHorizontal;
+      const isSharedMulti = this.tConfig.shared && w.config.series.length > 1 && !w.globals.isBarHorizontal && w.config.chart.type !== "heatmap";
       const shouldDrawArrow = this.tConfig.arrow && !this.tConfig.followCursor && !this.tConfig.fixed.enabled && !isSharedMulti && !this.tConfig.fillSeriesColor && w.globals.axisCharts;
       if (shouldDrawArrow) {
         const arrowEl = BrowserAPIs.createElementNS(
@@ -22831,6 +23132,8 @@ var __async = (__this, __arguments, generator) => {
         this.addPathsEventListeners([hoverArea], seriesHoverParams);
       } else if (commonBar && !w.globals.comboCharts || chartWithmarkers && this.showOnIntersect) {
         this.addDatapointEventsListeners(seriesHoverParams);
+      } else if (type === "heatmap" && w.globals.activeRenderer && w.globals.activeRenderer.kind === "canvas") {
+        this.addPathsEventListeners([hoverArea], seriesHoverParams);
       } else if (!w.globals.axisCharts || type === "heatmap" || type === "treemap") {
         const seriesAll = w.dom.baseEl.querySelectorAll(".apexcharts-series");
         this.addPathsEventListeners(seriesAll, seriesHoverParams);
@@ -23080,10 +23383,16 @@ var __async = (__this, __arguments, generator) => {
               y,
               type: w.config.chart.type
             });
+            if (markerXY.noHit) {
+              this.handleMouseOut(opt);
+              return;
+            }
             x = markerXY.x;
             y = markerXY.y;
-            tooltipEl.style.left = x + "px";
-            tooltipEl.style.top = y + "px";
+            if (!markerXY.positioned) {
+              tooltipEl.style.left = x + "px";
+              tooltipEl.style.top = y + "px";
+            }
           } else {
             if (this.tooltipUtil.hasBars()) {
               this.intersect.handleBarTooltip({
@@ -25680,6 +25989,7 @@ var __async = (__this, __arguments, generator) => {
           var _a;
           (_a = this.morphTypeChange) == null ? void 0 : _a.applyChromeFade();
           applyAxisTransition(this.w);
+          applyDataLabelTransition(this.w);
           if (typeof this.w.config.chart.events.updated === "function") {
             this.w.config.chart.events.updated(this, this.w);
           }
@@ -34934,6 +35244,30 @@ var __async = (__this, __arguments, generator) => {
       return NOOP_RUNNER;
     }
   }
+  const SHARED_RECT_REF = {
+    __isCanvasMark: true,
+    node: SHARED_MARKER_NODE,
+    /** @returns {any} */
+    attr() {
+      return SHARED_RECT_REF;
+    },
+    add() {
+      return SHARED_RECT_REF;
+    },
+    addTo() {
+      return SHARED_RECT_REF;
+    },
+    remove() {
+      return SHARED_RECT_REF;
+    },
+    /** @returns {any} */
+    css() {
+      return SHARED_RECT_REF;
+    },
+    animate() {
+      return NOOP_RUNNER;
+    }
+  };
   class CanvasMark {
     /** @param {any} cmd */
     constructor(cmd) {
@@ -35061,6 +35395,16 @@ var __async = (__this, __arguments, generator) => {
       this._msi = new Int32Array(16);
       this._mn = 0;
       this._mcap = 16;
+      this._crx = new Float64Array(16);
+      this._cry = new Float64Array(16);
+      this._crw = new Float64Array(16);
+      this._crh = new Float64Array(16);
+      this._crstyle = new Int32Array(16);
+      this._crsi = new Int32Array(16);
+      this._crdi = new Int32Array(16);
+      this._crn = 0;
+      this._crcap = 16;
+      this._cellRadius = 0;
       this._styles = [];
       this._styleMap = /* @__PURE__ */ new Map();
       this._lf = NEVER;
@@ -35073,6 +35417,12 @@ var __async = (__this, __arguments, generator) => {
       this._lofFill = NEVER;
       this._lofBase = -1;
       this._lofId = -1;
+      this._rlf = NEVER;
+      this._rls = NEVER;
+      this._rlsw = NEVER;
+      this._rlfo = NEVER;
+      this._rlso = NEVER;
+      this._rlid = -1;
     }
     _resetStyleCache() {
       this._lf = NEVER;
@@ -35085,6 +35435,12 @@ var __async = (__this, __arguments, generator) => {
       this._lofFill = NEVER;
       this._lofBase = -1;
       this._lofId = -1;
+      this._rlf = NEVER;
+      this._rls = NEVER;
+      this._rlsw = NEVER;
+      this._rlfo = NEVER;
+      this._rlso = NEVER;
+      this._rlid = -1;
     }
     /** Start a fresh scene (columnar marker store + object-command list). */
     reset() {
@@ -35101,6 +35457,46 @@ var __async = (__this, __arguments, generator) => {
       }
       cap = Math.ceil(cap * 1.15) + 16;
       if (cap > this._mcap) this._allocMarkers(cap);
+      this._crn = 0;
+      this._cellRadius = 0;
+      if (cap > this._crcap) this._allocRects(cap);
+    }
+    /** @param {number} cap */
+    _allocRects(cap) {
+      this._crcap = cap;
+      this._crx = new Float64Array(cap);
+      this._cry = new Float64Array(cap);
+      this._crw = new Float64Array(cap);
+      this._crh = new Float64Array(cap);
+      this._crstyle = new Int32Array(cap);
+      this._crsi = new Int32Array(cap);
+      this._crdi = new Int32Array(cap);
+    }
+    /** Grow the rect columns (rare: capacity estimate was low). */
+    _growRects() {
+      const cap = this._crcap * 2;
+      const nx = new Float64Array(cap);
+      nx.set(this._crx);
+      this._crx = nx;
+      const ny = new Float64Array(cap);
+      ny.set(this._cry);
+      this._cry = ny;
+      const nw = new Float64Array(cap);
+      nw.set(this._crw);
+      this._crw = nw;
+      const nh = new Float64Array(cap);
+      nh.set(this._crh);
+      this._crh = nh;
+      const nst = new Int32Array(cap);
+      nst.set(this._crstyle);
+      this._crstyle = nst;
+      const nsi = new Int32Array(cap);
+      nsi.set(this._crsi);
+      this._crsi = nsi;
+      const ndi = new Int32Array(cap);
+      ndi.set(this._crdi);
+      this._crdi = ndi;
+      this._crcap = cap;
     }
     /** @param {number} cap */
     _allocMarkers(cap) {
@@ -35209,6 +35605,65 @@ var __async = (__this, __arguments, generator) => {
     /** @param {number} id @returns {string} */
     shapeName(id) {
       return SHAPE_NAME[id] || "circle";
+    }
+    // ── columnar rect cell (heatmap): parallel unboxed arrays, no per-cell object ──
+    /**
+     * Record a heatmap-style cell (a filled, optionally stroked rect). Geometry
+     * and style are captured up front into the columns; the returned handle is a
+     * shared no-op (the emit site sets nothing back on it in canvas mode).
+     * @param {number} x @param {number} y @param {number} w @param {number} h
+     * @param {any} opts {fill, fillOpacity, stroke, strokeWidth, radius, seriesIndex, dataPointIndex}
+     * @returns {any}
+     */
+    drawRectCell(x, y, w, h, opts = {}) {
+      const styleId = this._rectStyleId(opts);
+      if (this._crn >= this._crcap) this._growRects();
+      const i = this._crn++;
+      this._crx[i] = x || 0;
+      this._cry[i] = y || 0;
+      this._crw[i] = w > 0 ? w : 0;
+      this._crh[i] = h > 0 ? h : 0;
+      this._crstyle[i] = styleId;
+      this._crsi[i] = opts.seriesIndex == null ? -1 : opts.seriesIndex;
+      this._crdi[i] = opts.dataPointIndex == null ? -1 : opts.dataPointIndex;
+      if (opts.radius) this._cellRadius = opts.radius;
+      return SHARED_RECT_REF;
+    }
+    /**
+     * Resolve (and dedupe) a rect-cell style → shared-palette id. A last-style
+     * cache keeps the Map/string work off the path for runs of same-style cells.
+     * @param {any} opts
+     * @returns {number}
+     */
+    _rectStyleId(opts) {
+      const fill = opts.fill;
+      const stroke = opts.stroke;
+      const sw = opts.strokeWidth;
+      const fo = opts.fillOpacity;
+      const so = opts.strokeOpacity;
+      if (fill === this._rlf && stroke === this._rls && sw === this._rlsw && fo === this._rlfo && so === this._rlso) {
+        return this._rlid;
+      }
+      const id = this._internStyle(fill, stroke, sw, 0, fo, so);
+      this._rlf = fill;
+      this._rls = stroke;
+      this._rlsw = sw;
+      this._rlfo = fo;
+      this._rlso = so;
+      this._rlid = id;
+      return id;
+    }
+    /** @returns {number} number of recorded rect cells */
+    rectCount() {
+      return this._crn;
+    }
+    /** @param {number} i @returns {any} the style object for a rect cell */
+    rectStyle(i) {
+      return this._styles[this._crstyle[i]];
+    }
+    /** @param {number} i @returns {number} series (realIndex) of a cell, -1 if none */
+    rectSeries(i) {
+      return this._crsi[i];
     }
     /**
      * @param {string} tag
@@ -35525,8 +35980,96 @@ var __async = (__this, __arguments, generator) => {
           this._paintOne(ctx, c);
         }
       }
+      this._paintRects(ctx, shim2);
       this._paintMarkers(ctx, shim2);
       this._alpha = 1;
+    }
+    /**
+     * Paint the columnar rect cells (heatmap) as STYLE BATCHES: one fill/stroke
+     * state application per run of consecutive same-style cells, then a fast
+     * fillRect (or a roundRect path when the shared corner radius is non-zero)
+     * per cell. Clipped to the plot rect so cells never bleed into the canvas
+     * margin (mirrors the SVG gridRectMask). Per-cell globalAlpha carries the
+     * hover/legend dim multiplier when a dim spec is active.
+     * @param {any} ctx
+     * @param {any} shim
+     */
+    _paintRects(ctx, shim2) {
+      const n = shim2.rectCount ? shim2.rectCount() : 0;
+      if (!n) return;
+      const rx = shim2._crx;
+      const ry = shim2._cry;
+      const rw = shim2._crw;
+      const rh = shim2._crh;
+      const rstyle = shim2._crstyle;
+      const radius = shim2._cellRadius || 0;
+      const cx = (
+        /** @type {any} */
+        ctx
+      );
+      const useRound = radius > 0 && typeof cx.roundRect === "function";
+      const dimming = !!this._dim;
+      const gw = Math.max(0, this.w.layout.gridWidth || 0);
+      const gh = Math.max(0, this.w.layout.gridHeight || 0);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, gw, gh);
+      ctx.clip();
+      let i = 0;
+      while (i < n) {
+        const styleId = rstyle[i];
+        const style = shim2.rectStyle(i);
+        if (!style) {
+          i++;
+          continue;
+        }
+        const fill = style.fill;
+        const doFill = fill && fill !== "none" && !(typeof fill === "string" && fill.indexOf("url(") === 0);
+        const stroke = style.stroke;
+        const sw = style.strokeWidth == null ? 0 : Number(style.strokeWidth);
+        const doStroke = stroke && stroke !== "none" && sw > 0 && !(typeof stroke === "string" && stroke.indexOf("url(") === 0);
+        if (doFill) ctx.fillStyle = fill;
+        if (doStroke) {
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = sw;
+          ctx.setLineDash([]);
+        }
+        const baseFillA = style.fillOpacity == null ? 1 : Number(style.fillOpacity);
+        const baseStrokeA = style.strokeOpacity == null ? 1 : Number(style.strokeOpacity);
+        let j = i;
+        while (j < n && rstyle[j] === styleId) {
+          const w = rw[j];
+          const h = rh[j];
+          if (w > 0 && h > 0) {
+            const f = dimming ? this._seriesAlpha(shim2.rectSeries(j)) : 1;
+            if (useRound) {
+              ctx.beginPath();
+              cx.roundRect(rx[j], ry[j], w, h, radius);
+              if (doFill) {
+                ctx.globalAlpha = baseFillA * f;
+                ctx.fill();
+              }
+              if (doStroke) {
+                ctx.globalAlpha = baseStrokeA * f;
+                ctx.stroke();
+              }
+            } else {
+              if (doFill) {
+                ctx.globalAlpha = baseFillA * f;
+                ctx.fillRect(rx[j], ry[j], w, h);
+              }
+              if (doStroke) {
+                ctx.globalAlpha = baseStrokeA * f;
+                ctx.strokeRect(rx[j], ry[j], w, h);
+              }
+            }
+          }
+          j++;
+        }
+        i = j;
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
     }
     /**
      * Reusable unit Path2D for a (shape, size): the shape's geometry built at the
@@ -35879,6 +36422,16 @@ var __async = (__this, __arguments, generator) => {
       );
     }
     /**
+     * Columnar heatmap-cell rect (dense same-shape rects): recorded into typed
+     * arrays, painted as style batches. Distinct from drawRect (object command)
+     * so 100k cells don't allocate 100k retained commands.
+     * @param {number} x @param {number} y @param {number} w @param {number} h
+     * @param {any} opts
+     */
+    drawRectCell(x, y, w, h, opts) {
+      return this._g.drawRectCell(x, y, w, h, opts);
+    }
+    /**
      * @param {number} r
      * @param {any} attrs
      */
@@ -35907,14 +36460,44 @@ var __async = (__this, __arguments, generator) => {
       return feature === "solidFill" || feature === "dashArray";
     }
     // ── interaction ──
-    // Shared tooltip/zoom/click resolve via coordinate lookup (pointsArray), so
-    // there is no per-mark hit surface to query; hitTest stays a no-op unless a
-    // future per-point feature needs it.
+    // Line/area/bar/scatter tooltips resolve via coordinate lookup (pointsArray),
+    // so those need no per-mark query. Heatmap cells, however, are hovered by
+    // point (the SVG path hit-tests the <rect> under the cursor); with cells on
+    // canvas there is no node, so hitTest resolves the columnar rect store.
     /**
-     * @param {number} _px
-     * @param {number} _py
+     * Find the cell under a plot-local point (0,0 = plot origin, the same space
+     * as the recorded cell geometry). Reverse scan so a later-painted cell wins
+     * when cells overlap (continuous-x edges). A linear scan stays well under a
+     * frame even at 100k cells (~100k integer compares). Returns the cell's
+     * series/dataPoint index plus its geometry for tooltip positioning, or null
+     * when the point is off every cell.
+     * @param {number} px
+     * @param {number} py
+     * @returns {({seriesIndex:number,dataPointIndex:number,x:number,y:number,width:number,height:number})|null}
      */
-    hitTest(_px, _py) {
+    hitTest(px, py) {
+      const g = this._g;
+      const n = g.rectCount ? g.rectCount() : 0;
+      if (!n) return null;
+      const rx = g._crx;
+      const ry = g._cry;
+      const rw = g._crw;
+      const rh = g._crh;
+      for (let k = n - 1; k >= 0; k--) {
+        const w = rw[k];
+        const h = rh[k];
+        if (w <= 0 || h <= 0) continue;
+        if (px >= rx[k] && px < rx[k] + w && py >= ry[k] && py < ry[k] + h) {
+          return {
+            seriesIndex: g._crsi[k],
+            dataPointIndex: g._crdi[k],
+            x: rx[k],
+            y: ry[k],
+            width: w,
+            height: h
+          };
+        }
+      }
       return null;
     }
     /**
@@ -39775,6 +40358,7 @@ var __async = (__this, __arguments, generator) => {
       barWidth,
       dataLabelsConfig
     }) {
+      var _a, _b;
       const w = this.w;
       let rotate = "rotate(0)";
       if (w.config.plotOptions.bar.dataLabels.orientation === "vertical")
@@ -39789,6 +40373,17 @@ var __async = (__this, __arguments, generator) => {
           class: "apexcharts-data-labels",
           transform: rotate
         });
+        const dlCfg = w.config.dataLabels;
+        if (((_a = dlCfg.animate) == null ? void 0 : _a.enabled) || ((_b = dlCfg.countUp) == null ? void 0 : _b.enabled)) {
+          elDataLabelsWrap.node.setAttribute(
+            "data:dlKey",
+            `${i}::${datumKey(w, i, j)}`
+          );
+          elDataLabelsWrap.node.setAttribute("data:dlJ", String(j));
+          if (typeof val === "number" && isFinite(val)) {
+            elDataLabelsWrap.node.setAttribute("data:dlVal", String(val));
+          }
+        }
         let text = "";
         if (typeof val !== "undefined") {
           text = formatter(val, __spreadProps(__spreadValues({}, w), {
@@ -40746,6 +41341,7 @@ var __async = (__this, __arguments, generator) => {
       this.pathArr = [];
       this._prevKeyed = null;
       this._ltCache = null;
+      this._layoutShiftCache = null;
       this.series = [];
       this.elSeries = null;
       this.visibleI = 0;
@@ -40774,7 +41370,7 @@ var __async = (__this, __arguments, generator) => {
      * @return {Element} element which is supplied to parent chart draw method for appending
      **/
     draw(series, seriesIndex) {
-      var _a, _b;
+      var _a, _b, _c;
       const w = this.w;
       const graphics = new Graphics(this.w);
       const coreUtils = new CoreUtils(this.w);
@@ -40848,8 +41444,10 @@ var __async = (__this, __arguments, generator) => {
           el: elDataLabelsWrap.node,
           // On a layout-changing update the labels must stay hidden through the
           // reflow morph (the updateOptions flow otherwise reveals them at
-          // frame 0, where they float over sliding bars).
-          holdUntilComplete: this.isLengthTransition(realIndex)
+          // frame 0, where they float over sliding bars). When dataLabels.animate
+          // is on the labels instead RIDE the morph (see DataLabelTransition), so
+          // keep them visible: holding would hide the very motion we want to show.
+          holdUntilComplete: !((_a = w.config.dataLabels.animate) == null ? void 0 : _a.enabled) && this.isLengthTransition(realIndex)
         });
         elDataLabelsWrap.node.classList.add("apexcharts-element-hidden");
         const elGoalsMarkers = graphics.group({
@@ -40902,9 +41500,9 @@ var __async = (__this, __arguments, generator) => {
             j,
             realIndex
           );
-          if (this.isFunnel && !this.isPyramid && this.barOptions.isFunnel3d && ((_a = w.config.plotOptions.funnel) == null ? void 0 : _a.shape) !== "trapezoid" && this.pathArr.length && j > 0) {
+          if (this.isFunnel && !this.isPyramid && this.barOptions.isFunnel3d && ((_b = w.config.plotOptions.funnel) == null ? void 0 : _b.shape) !== "trapezoid" && this.pathArr.length && j > 0) {
             const barShadow = this.barHelpers.drawBarShadow({
-              color: typeof pathFill.color === "string" && ((_b = pathFill.color) == null ? void 0 : _b.indexOf("url")) === -1 ? pathFill.color : Utils$1.hexToRgba(w.globals.colors[i]),
+              color: typeof pathFill.color === "string" && ((_c = pathFill.color) == null ? void 0 : _c.indexOf("url")) === -1 ? pathFill.color : Utils$1.hexToRgba(w.globals.colors[i]),
               prevPaths: this.pathArr[this.pathArr.length - 1],
               currPaths: paths,
               realIndex,
@@ -41076,7 +41674,7 @@ var __async = (__this, __arguments, generator) => {
       }
       const animCfg = w.config.chart.animations;
       const gradCfg = animCfg.animateGradually;
-      const staggerEnabled = gradCfg && gradCfg.enabled !== false && !(w.globals.dataChanged && this.isLengthTransition(realIndex));
+      const staggerEnabled = gradCfg && gradCfg.enabled !== false && !(w.globals.dataChanged && this.isLayoutShift(realIndex));
       let delay = 0;
       if (staggerEnabled) {
         const totalBars = w.globals.dataPoints || 1;
@@ -41488,6 +42086,26 @@ var __async = (__this, __arguments, generator) => {
         }
       }
       this._ltCache[realIndex] = result;
+      return result;
+    }
+    /**
+     * Whether this update moves survivors to new slots: a length change
+     * (enter/exit, via isLengthTransition) OR a pure reorder (a "bar chart race"
+     * swap, same datum set in a new order). Used to drop the per-bar stagger so
+     * all bars slide on one shared clock, staying locked to the axis/data labels.
+     * Broader than isLengthTransition, which is deliberately enter/exit-only
+     * (exit ghosts / baseline enters must not fire on a plain reorder).
+     * @param {number} realIndex
+     */
+    isLayoutShift(realIndex) {
+      if (this.isLengthTransition(realIndex)) return true;
+      if (!this._layoutShiftCache) this._layoutShiftCache = {};
+      if (this._layoutShiftCache[realIndex] !== void 0) {
+        return this._layoutShiftCache[realIndex];
+      }
+      const sj = seriesJoin(this.w, realIndex, true, true);
+      const result = !!(sj && sj.join.changed);
+      this._layoutShiftCache[realIndex] = result;
       return result;
     }
     /**
@@ -43351,14 +43969,24 @@ var __async = (__this, __arguments, generator) => {
      * @param {any[]} series
      */
     draw(series) {
+      var _a, _b;
       const w = this.w;
       const graphics = new Graphics(this.w, this.ctx);
+      const emit = seriesEmitter(this.ctx, graphics);
+      const useCanvas = emit !== graphics && typeof emit.drawRectCell === "function";
       const ret = graphics.group({
         class: "apexcharts-heatmap"
       });
       ret.attr("clip-path", `url(#gridRectMask${w.globals.cuid})`);
       const xDivision = w.layout.gridWidth / w.globals.dataPoints;
       const yDivision = w.layout.gridHeight / w.seriesData.series.length;
+      const isContinuousX = (w.config.xaxis.type === "numeric" || w.config.xaxis.type === "datetime") && w.axisFlags.isXNumeric && this.xRatio > 0;
+      let binPx = xDivision;
+      if (isContinuousX) {
+        const diff = w.globals.minXDiff;
+        binPx = Number.isFinite(diff) && diff > 0 ? diff / this.xRatio : xDivision;
+      }
+      const cellFillOpacity = Array.isArray(w.config.fill.opacity) ? (_a = w.config.fill.opacity[0]) != null ? _a : 1 : (_b = w.config.fill.opacity) != null ? _b : 1;
       let y1 = 0;
       let rev = false;
       this.negRange = this.helpers.checkColorRange();
@@ -43375,7 +44003,9 @@ var __async = (__this, __arguments, generator) => {
           "data:realIndex": i
         });
         Series.addCollapsedClassToSeries(this.w, elSeries, i);
-        graphics.setupEventDelegation(elSeries, ".apexcharts-heatmap-rect");
+        if (!useCanvas) {
+          graphics.setupEventDelegation(elSeries, ".apexcharts-heatmap-rect");
+        }
         if (w.config.chart.dropShadow.enabled) {
           const shadow = w.config.chart.dropShadow;
           const filters = new Filters(this.w);
@@ -43385,13 +44015,22 @@ var __async = (__this, __arguments, generator) => {
         const shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity;
         let j = 0;
         for (let dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
-          if (w.seriesData.seriesX.length && !w.globals.allSeriesHasEqualX) {
+          if (!isContinuousX && w.seriesData.seriesX.length && !w.globals.allSeriesHasEqualX) {
             if (w.globals.minX + w.globals.minXDiff * dIndex < w.seriesData.seriesX[i][j]) {
               x1 = x1 + xDivision;
               continue;
             }
           }
           if (j >= heatSeries[i].length) break;
+          const cellW = isContinuousX ? binPx : xDivision;
+          if (isContinuousX) {
+            const xVal = w.seriesData.seriesX[i] ? w.seriesData.seriesX[i][j] : null;
+            if (xVal == null || xVal !== xVal) {
+              j++;
+              continue;
+            }
+            x1 = (xVal - w.globals.minX) / this.xRatio - binPx / 2;
+          }
           const heatColor = this.helpers.getShadeColor(
             w.config.chart.type,
             i,
@@ -43410,47 +44049,60 @@ var __async = (__this, __arguments, generator) => {
                 w.globals.hasNegs ? heatColorProps.percent < 0 ? 1 - (1 + heatColorProps.percent / 100) : shadeIntensity + heatColorProps.percent / 100 : heatColorProps.percent / 100
               ),
               patternID: Utils$1.randomId(),
-              width: w.config.fill.image.width ? w.config.fill.image.width : xDivision,
+              width: w.config.fill.image.width ? w.config.fill.image.width : cellW,
               height: w.config.fill.image.height ? w.config.fill.image.height : yDivision
             });
           }
           const radius = this.rectRadius;
-          const rect = graphics.drawRect(x1, y1, xDivision, yDivision, radius);
-          rect.attr({
-            cx: x1,
-            cy: y1
-          });
-          rect.node.classList.add("apexcharts-heatmap-rect");
-          elSeries.add(rect);
-          rect.attr({
-            fill: color,
-            i,
-            index: i,
-            j,
-            val: series[i][j],
-            "stroke-width": this.strokeWidth,
-            stroke: w.config.plotOptions.heatmap.useFillColorAsStroke ? color : w.globals.stroke.colors[0],
-            color
-          });
-          if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
-            let speed = 1;
-            if (!w.globals.resized) {
-              speed = w.config.chart.animations.speed;
+          const stroke = w.config.plotOptions.heatmap.useFillColorAsStroke ? color : w.globals.stroke.colors[0];
+          if (useCanvas) {
+            emit.drawRectCell(x1, y1, cellW, yDivision, {
+              fill: color,
+              fillOpacity: cellFillOpacity,
+              stroke,
+              strokeWidth: this.strokeWidth,
+              radius,
+              seriesIndex: i,
+              dataPointIndex: j
+            });
+          } else {
+            const rect = graphics.drawRect(x1, y1, cellW, yDivision, radius);
+            rect.attr({
+              cx: x1,
+              cy: y1
+            });
+            rect.node.classList.add("apexcharts-heatmap-rect");
+            elSeries.add(rect);
+            rect.attr({
+              fill: color,
+              i,
+              index: i,
+              j,
+              val: series[i][j],
+              "stroke-width": this.strokeWidth,
+              stroke,
+              color
+            });
+            if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
+              let speed = 1;
+              if (!w.globals.resized) {
+                speed = w.config.chart.animations.speed;
+              }
+              this.animateHeatMap(rect, x1, y1, cellW, yDivision, speed, i, j);
             }
-            this.animateHeatMap(rect, x1, y1, xDivision, yDivision, speed, i, j);
-          }
-          if (w.globals.dataChanged) {
-            let speed = 1;
-            if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
-              speed = this.dynamicAnim.speed;
-              let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color;
-              if (!colorFrom) colorFrom = "rgba(255, 255, 255, 0)";
-              this.animateHeatColor(
-                rect,
-                Utils$1.isColorHex(colorFrom) ? colorFrom : Utils$1.rgb2hex(colorFrom),
-                Utils$1.isColorHex(color) ? color : Utils$1.rgb2hex(color),
-                speed
-              );
+            if (w.globals.dataChanged) {
+              let speed = 1;
+              if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
+                speed = this.dynamicAnim.speed;
+                let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color;
+                if (!colorFrom) colorFrom = "rgba(255, 255, 255, 0)";
+                this.animateHeatColor(
+                  rect,
+                  Utils$1.isColorHex(colorFrom) ? colorFrom : Utils$1.rgb2hex(colorFrom),
+                  Utils$1.isColorHex(color) ? color : Utils$1.rgb2hex(color),
+                  speed
+                );
+              }
             }
           }
           const formatter = w.config.dataLabels.formatter;
@@ -43462,7 +44114,7 @@ var __async = (__this, __arguments, generator) => {
           });
           const dataLabels = this.helpers.calculateDataLabels({
             text: formattedText,
-            x: x1 + xDivision / 2,
+            x: x1 + cellW / 2,
             y: y1 + yDivision / 2,
             i,
             j,
@@ -43472,7 +44124,7 @@ var __async = (__this, __arguments, generator) => {
           if (dataLabels !== null) {
             elSeries.add(dataLabels);
           }
-          x1 = x1 + xDivision;
+          if (!isContinuousX) x1 = x1 + xDivision;
           j++;
         }
         y1 = y1 + yDivision;

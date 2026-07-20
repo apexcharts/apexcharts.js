@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.3.0
+ * ApexCharts v6.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -709,7 +709,7 @@ function uniquifyKeys(keys) {
     return count === 0 ? k : `${k}#${count}`;
   });
 }
-function seriesJoin(w, realIndex, includeIdentity = false) {
+function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
   var _a, _b;
   if (!lengthTransitionEnabled(w)) return null;
   const frame = w.globals.prevStreamFrame;
@@ -723,7 +723,7 @@ function seriesJoin(w, realIndex, includeIdentity = false) {
   );
   const newKeys = uniquifyKeys(newY.map((_, j) => datumKey(w, realIndex, j)));
   const join = joinKeys(oldKeys, newKeys);
-  if (!join.ordered) return null;
+  if (!join.ordered && !allowReorder) return null;
   if (!join.changed && !includeIdentity) return null;
   return { join, oldKeys, newKeys };
 }

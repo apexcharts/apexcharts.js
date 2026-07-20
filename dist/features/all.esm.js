@@ -50,7 +50,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.3.0
+ * ApexCharts v6.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as ApexCharts from "apexcharts/core";
@@ -8247,6 +8247,30 @@ class CanvasMarkerRef {
     return NOOP_RUNNER;
   }
 }
+const SHARED_RECT_REF = {
+  __isCanvasMark: true,
+  node: SHARED_MARKER_NODE,
+  /** @returns {any} */
+  attr() {
+    return SHARED_RECT_REF;
+  },
+  add() {
+    return SHARED_RECT_REF;
+  },
+  addTo() {
+    return SHARED_RECT_REF;
+  },
+  remove() {
+    return SHARED_RECT_REF;
+  },
+  /** @returns {any} */
+  css() {
+    return SHARED_RECT_REF;
+  },
+  animate() {
+    return NOOP_RUNNER;
+  }
+};
 class CanvasMark {
   /** @param {any} cmd */
   constructor(cmd) {
@@ -8374,6 +8398,16 @@ class CanvasGraphics {
     this._msi = new Int32Array(16);
     this._mn = 0;
     this._mcap = 16;
+    this._crx = new Float64Array(16);
+    this._cry = new Float64Array(16);
+    this._crw = new Float64Array(16);
+    this._crh = new Float64Array(16);
+    this._crstyle = new Int32Array(16);
+    this._crsi = new Int32Array(16);
+    this._crdi = new Int32Array(16);
+    this._crn = 0;
+    this._crcap = 16;
+    this._cellRadius = 0;
     this._styles = [];
     this._styleMap = /* @__PURE__ */ new Map();
     this._lf = NEVER;
@@ -8386,6 +8420,12 @@ class CanvasGraphics {
     this._lofFill = NEVER;
     this._lofBase = -1;
     this._lofId = -1;
+    this._rlf = NEVER;
+    this._rls = NEVER;
+    this._rlsw = NEVER;
+    this._rlfo = NEVER;
+    this._rlso = NEVER;
+    this._rlid = -1;
   }
   _resetStyleCache() {
     this._lf = NEVER;
@@ -8398,6 +8438,12 @@ class CanvasGraphics {
     this._lofFill = NEVER;
     this._lofBase = -1;
     this._lofId = -1;
+    this._rlf = NEVER;
+    this._rls = NEVER;
+    this._rlsw = NEVER;
+    this._rlfo = NEVER;
+    this._rlso = NEVER;
+    this._rlid = -1;
   }
   /** Start a fresh scene (columnar marker store + object-command list). */
   reset() {
@@ -8414,6 +8460,46 @@ class CanvasGraphics {
     }
     cap = Math.ceil(cap * 1.15) + 16;
     if (cap > this._mcap) this._allocMarkers(cap);
+    this._crn = 0;
+    this._cellRadius = 0;
+    if (cap > this._crcap) this._allocRects(cap);
+  }
+  /** @param {number} cap */
+  _allocRects(cap) {
+    this._crcap = cap;
+    this._crx = new Float64Array(cap);
+    this._cry = new Float64Array(cap);
+    this._crw = new Float64Array(cap);
+    this._crh = new Float64Array(cap);
+    this._crstyle = new Int32Array(cap);
+    this._crsi = new Int32Array(cap);
+    this._crdi = new Int32Array(cap);
+  }
+  /** Grow the rect columns (rare: capacity estimate was low). */
+  _growRects() {
+    const cap = this._crcap * 2;
+    const nx = new Float64Array(cap);
+    nx.set(this._crx);
+    this._crx = nx;
+    const ny = new Float64Array(cap);
+    ny.set(this._cry);
+    this._cry = ny;
+    const nw = new Float64Array(cap);
+    nw.set(this._crw);
+    this._crw = nw;
+    const nh = new Float64Array(cap);
+    nh.set(this._crh);
+    this._crh = nh;
+    const nst = new Int32Array(cap);
+    nst.set(this._crstyle);
+    this._crstyle = nst;
+    const nsi = new Int32Array(cap);
+    nsi.set(this._crsi);
+    this._crsi = nsi;
+    const ndi = new Int32Array(cap);
+    ndi.set(this._crdi);
+    this._crdi = ndi;
+    this._crcap = cap;
   }
   /** @param {number} cap */
   _allocMarkers(cap) {
@@ -8522,6 +8608,65 @@ class CanvasGraphics {
   /** @param {number} id @returns {string} */
   shapeName(id) {
     return SHAPE_NAME[id] || "circle";
+  }
+  // ── columnar rect cell (heatmap): parallel unboxed arrays, no per-cell object ──
+  /**
+   * Record a heatmap-style cell (a filled, optionally stroked rect). Geometry
+   * and style are captured up front into the columns; the returned handle is a
+   * shared no-op (the emit site sets nothing back on it in canvas mode).
+   * @param {number} x @param {number} y @param {number} w @param {number} h
+   * @param {any} opts {fill, fillOpacity, stroke, strokeWidth, radius, seriesIndex, dataPointIndex}
+   * @returns {any}
+   */
+  drawRectCell(x, y, w, h, opts = {}) {
+    const styleId = this._rectStyleId(opts);
+    if (this._crn >= this._crcap) this._growRects();
+    const i = this._crn++;
+    this._crx[i] = x || 0;
+    this._cry[i] = y || 0;
+    this._crw[i] = w > 0 ? w : 0;
+    this._crh[i] = h > 0 ? h : 0;
+    this._crstyle[i] = styleId;
+    this._crsi[i] = opts.seriesIndex == null ? -1 : opts.seriesIndex;
+    this._crdi[i] = opts.dataPointIndex == null ? -1 : opts.dataPointIndex;
+    if (opts.radius) this._cellRadius = opts.radius;
+    return SHARED_RECT_REF;
+  }
+  /**
+   * Resolve (and dedupe) a rect-cell style → shared-palette id. A last-style
+   * cache keeps the Map/string work off the path for runs of same-style cells.
+   * @param {any} opts
+   * @returns {number}
+   */
+  _rectStyleId(opts) {
+    const fill = opts.fill;
+    const stroke = opts.stroke;
+    const sw = opts.strokeWidth;
+    const fo = opts.fillOpacity;
+    const so = opts.strokeOpacity;
+    if (fill === this._rlf && stroke === this._rls && sw === this._rlsw && fo === this._rlfo && so === this._rlso) {
+      return this._rlid;
+    }
+    const id = this._internStyle(fill, stroke, sw, 0, fo, so);
+    this._rlf = fill;
+    this._rls = stroke;
+    this._rlsw = sw;
+    this._rlfo = fo;
+    this._rlso = so;
+    this._rlid = id;
+    return id;
+  }
+  /** @returns {number} number of recorded rect cells */
+  rectCount() {
+    return this._crn;
+  }
+  /** @param {number} i @returns {any} the style object for a rect cell */
+  rectStyle(i) {
+    return this._styles[this._crstyle[i]];
+  }
+  /** @param {number} i @returns {number} series (realIndex) of a cell, -1 if none */
+  rectSeries(i) {
+    return this._crsi[i];
   }
   /**
    * @param {string} tag
@@ -8839,8 +8984,96 @@ class CanvasCompositor {
         this._paintOne(ctx, c);
       }
     }
+    this._paintRects(ctx, shim);
     this._paintMarkers(ctx, shim);
     this._alpha = 1;
+  }
+  /**
+   * Paint the columnar rect cells (heatmap) as STYLE BATCHES: one fill/stroke
+   * state application per run of consecutive same-style cells, then a fast
+   * fillRect (or a roundRect path when the shared corner radius is non-zero)
+   * per cell. Clipped to the plot rect so cells never bleed into the canvas
+   * margin (mirrors the SVG gridRectMask). Per-cell globalAlpha carries the
+   * hover/legend dim multiplier when a dim spec is active.
+   * @param {any} ctx
+   * @param {any} shim
+   */
+  _paintRects(ctx, shim) {
+    const n = shim.rectCount ? shim.rectCount() : 0;
+    if (!n) return;
+    const rx = shim._crx;
+    const ry = shim._cry;
+    const rw = shim._crw;
+    const rh = shim._crh;
+    const rstyle = shim._crstyle;
+    const radius = shim._cellRadius || 0;
+    const cx = (
+      /** @type {any} */
+      ctx
+    );
+    const useRound = radius > 0 && typeof cx.roundRect === "function";
+    const dimming = !!this._dim;
+    const gw = Math.max(0, this.w.layout.gridWidth || 0);
+    const gh = Math.max(0, this.w.layout.gridHeight || 0);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, gw, gh);
+    ctx.clip();
+    let i = 0;
+    while (i < n) {
+      const styleId = rstyle[i];
+      const style = shim.rectStyle(i);
+      if (!style) {
+        i++;
+        continue;
+      }
+      const fill = style.fill;
+      const doFill = fill && fill !== "none" && !(typeof fill === "string" && fill.indexOf("url(") === 0);
+      const stroke = style.stroke;
+      const sw = style.strokeWidth == null ? 0 : Number(style.strokeWidth);
+      const doStroke = stroke && stroke !== "none" && sw > 0 && !(typeof stroke === "string" && stroke.indexOf("url(") === 0);
+      if (doFill) ctx.fillStyle = fill;
+      if (doStroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = sw;
+        ctx.setLineDash([]);
+      }
+      const baseFillA = style.fillOpacity == null ? 1 : Number(style.fillOpacity);
+      const baseStrokeA = style.strokeOpacity == null ? 1 : Number(style.strokeOpacity);
+      let j = i;
+      while (j < n && rstyle[j] === styleId) {
+        const w = rw[j];
+        const h = rh[j];
+        if (w > 0 && h > 0) {
+          const f = dimming ? this._seriesAlpha(shim.rectSeries(j)) : 1;
+          if (useRound) {
+            ctx.beginPath();
+            cx.roundRect(rx[j], ry[j], w, h, radius);
+            if (doFill) {
+              ctx.globalAlpha = baseFillA * f;
+              ctx.fill();
+            }
+            if (doStroke) {
+              ctx.globalAlpha = baseStrokeA * f;
+              ctx.stroke();
+            }
+          } else {
+            if (doFill) {
+              ctx.globalAlpha = baseFillA * f;
+              ctx.fillRect(rx[j], ry[j], w, h);
+            }
+            if (doStroke) {
+              ctx.globalAlpha = baseStrokeA * f;
+              ctx.strokeRect(rx[j], ry[j], w, h);
+            }
+          }
+        }
+        j++;
+      }
+      i = j;
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
   }
   /**
    * Reusable unit Path2D for a (shape, size): the shape's geometry built at the
@@ -9193,6 +9426,16 @@ class CanvasRenderer {
     );
   }
   /**
+   * Columnar heatmap-cell rect (dense same-shape rects): recorded into typed
+   * arrays, painted as style batches. Distinct from drawRect (object command)
+   * so 100k cells don't allocate 100k retained commands.
+   * @param {number} x @param {number} y @param {number} w @param {number} h
+   * @param {any} opts
+   */
+  drawRectCell(x, y, w, h, opts) {
+    return this._g.drawRectCell(x, y, w, h, opts);
+  }
+  /**
    * @param {number} r
    * @param {any} attrs
    */
@@ -9221,14 +9464,44 @@ class CanvasRenderer {
     return feature === "solidFill" || feature === "dashArray";
   }
   // ── interaction ──
-  // Shared tooltip/zoom/click resolve via coordinate lookup (pointsArray), so
-  // there is no per-mark hit surface to query; hitTest stays a no-op unless a
-  // future per-point feature needs it.
+  // Line/area/bar/scatter tooltips resolve via coordinate lookup (pointsArray),
+  // so those need no per-mark query. Heatmap cells, however, are hovered by
+  // point (the SVG path hit-tests the <rect> under the cursor); with cells on
+  // canvas there is no node, so hitTest resolves the columnar rect store.
   /**
-   * @param {number} _px
-   * @param {number} _py
+   * Find the cell under a plot-local point (0,0 = plot origin, the same space
+   * as the recorded cell geometry). Reverse scan so a later-painted cell wins
+   * when cells overlap (continuous-x edges). A linear scan stays well under a
+   * frame even at 100k cells (~100k integer compares). Returns the cell's
+   * series/dataPoint index plus its geometry for tooltip positioning, or null
+   * when the point is off every cell.
+   * @param {number} px
+   * @param {number} py
+   * @returns {({seriesIndex:number,dataPointIndex:number,x:number,y:number,width:number,height:number})|null}
    */
-  hitTest(_px, _py) {
+  hitTest(px, py) {
+    const g = this._g;
+    const n = g.rectCount ? g.rectCount() : 0;
+    if (!n) return null;
+    const rx = g._crx;
+    const ry = g._cry;
+    const rw = g._crw;
+    const rh = g._crh;
+    for (let k = n - 1; k >= 0; k--) {
+      const w = rw[k];
+      const h = rh[k];
+      if (w <= 0 || h <= 0) continue;
+      if (px >= rx[k] && px < rx[k] + w && py >= ry[k] && py < ry[k] + h) {
+        return {
+          seriesIndex: g._crsi[k],
+          dataPointIndex: g._crdi[k],
+          x: rx[k],
+          y: ry[k],
+          width: w,
+          height: h
+        };
+      }
+    }
     return null;
   }
   /**

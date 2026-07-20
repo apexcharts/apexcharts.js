@@ -19,7 +19,7 @@ var __spreadValues = (a, b) => {
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v6.3.0
+ * ApexCharts v6.4.0
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -2783,7 +2783,14 @@ class Defaults {
   heatmap() {
     return {
       chart: {
-        stacked: false
+        stacked: false,
+        // A heatmap is a fixed grid: zooming/panning only distorts the cells
+        // and (on a datetime axis) collapses the month labels to repeats, so
+        // it is off by default, mirroring treemap. Users can opt back in with
+        // chart.zoom.enabled: true.
+        zoom: {
+          enabled: false
+        }
       },
       fill: {
         opacity: 1
@@ -2797,7 +2804,11 @@ class Defaults {
         colors: ["#fff"]
       },
       tooltip: {
-        followCursor: true,
+        // Anchor the tooltip above the hovered cell with a downward arrow
+        // (flipping below near the top edge), the same treatment horizontal
+        // bars get, rather than trailing the cursor. Opt back into the old
+        // behavior with tooltip.followCursor: true.
+        followCursor: false,
         marker: {
           show: false
         },
@@ -4478,6 +4489,20 @@ class Options {
           blur: 1,
           color: "#000",
           opacity: 0.8
+        },
+        // Ride data labels to their new position on a data-change update
+        // (e.g. a bar chart race), instead of snapping. Off by default so
+        // existing charts are unchanged. Speed/easing follow
+        // chart.animations.dynamicAnimation. Bar/column only.
+        animate: {
+          enabled: false
+        },
+        // Count the numeric value up/down from its previous value on update,
+        // like countUp.js. Off by default. The dataLabels.formatter runs each
+        // frame, so number formatting (decimals, separators, prefixes) is
+        // preserved. Bar/column only.
+        countUp: {
+          enabled: false
         }
       },
       fill: {
@@ -4669,13 +4694,15 @@ class Options {
       states: {
         hover: {
           filter: {
-            type: "lighten"
+            type: "lighten",
+            value: 0.15
           }
         },
         active: {
           allowMultipleDataPointsSelection: false,
           filter: {
-            type: "darken"
+            type: "darken",
+            value: 0.35
           }
         }
       },
@@ -8155,6 +8182,7 @@ class Animations {
     });
   }
 }
+const DEFAULT_INTENSITY = { lighten: 0.15, darken: 0.35 };
 class Filters {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -8180,8 +8208,9 @@ class Filters {
    * @param {any} el
    * @param {number} i
    * @param {string} filterType
+   * @param {number} [intensity] Blend strength (0 to 1). Defaults per type.
    */
-  applyFilter(el, i, filterType) {
+  applyFilter(el, i, filterType, intensity) {
     var _a, _b, _c;
     const w = this.w;
     if (el.unfilter) {
@@ -8192,15 +8221,21 @@ class Filters {
       return;
     }
     const shadowAttr = w.config.chart.dropShadow;
-    const brightnessFactor = filterType === "lighten" ? 2 : 0.3;
+    const fallback = filterType === "lighten" ? DEFAULT_INTENSITY.lighten : DEFAULT_INTENSITY.darken;
+    const t = Math.max(
+      0,
+      Math.min(1, typeof intensity === "number" ? intensity : fallback)
+    );
+    const diag = 1 - t;
+    const offset = filterType === "lighten" ? t : 0;
     if (el.filterWith) {
       el.filterWith((add) => {
         add.colorMatrix({
           type: "matrix",
           values: `
-            ${brightnessFactor} 0 0 0 0
-            0 ${brightnessFactor} 0 0 0
-            0 0 ${brightnessFactor} 0 0
+            ${diag} 0 0 0 ${offset}
+            0 ${diag} 0 0 ${offset}
+            0 0 ${diag} 0 ${offset}
             0 0 0 1 0
           `,
           in: "SourceGraphic",
@@ -8299,7 +8334,7 @@ class Filters {
         el.node.setAttribute("selected", true);
         const activeFilter = w.config.states.active.filter;
         if (activeFilter !== "none") {
-          this.applyFilter(el, realIndex, activeFilter.type);
+          this.applyFilter(el, realIndex, activeFilter.type, activeFilter.value);
         }
       }
     }
@@ -9138,7 +9173,7 @@ class Graphics {
     if (w.config.states.hover.filter.type !== "none") {
       if (!w.interact.isTouchDevice) {
         const hoverFilter = w.config.states.hover.filter;
-        filters.applyFilter(path, i, hoverFilter.type);
+        filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
       }
     }
   }
@@ -9223,12 +9258,12 @@ class Graphics {
       if (selected === "true") {
         const activeFilter = w.config.states.active.filter;
         if (activeFilter !== "none") {
-          filters.applyFilter(path, i, activeFilter.type);
+          filters.applyFilter(path, i, activeFilter.type, activeFilter.value);
         } else {
           if (w.config.states.hover.filter !== "none") {
             if (!w.interact.isTouchDevice) {
               const hoverFilter = w.config.states.hover.filter;
-              filters.applyFilter(path, i, hoverFilter.type);
+              filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
             }
           }
         }
@@ -9236,7 +9271,7 @@ class Graphics {
         if (w.config.states.active.filter.type !== "none") {
           if (w.config.states.hover.filter.type !== "none" && !w.interact.isTouchDevice) {
             const hoverFilter = w.config.states.hover.filter;
-            filters.applyFilter(path, i, hoverFilter.type);
+            filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
           } else {
             filters.getDefaultFilter(path, i);
           }
@@ -9875,12 +9910,13 @@ function computeMarkCount(w) {
   const markerSize = w.config.markers && w.config.markers.size;
   const markersOn = Array.isArray(markerSize) ? markerSize.some((s) => s > 0) : (markerSize || 0) > 0;
   const labelsOn = !!(w.config.dataLabels && w.config.dataLabels.enabled);
+  const isHeatmap = type === "heatmap";
   let total = 0;
   let maxLen = 0;
   series.forEach((s) => {
     const n = Array.isArray(s.data) ? s.data.length : 0;
     if (n > maxLen) maxLen = n;
-    if (scatterish || markersOn) total += n;
+    if (scatterish || markersOn || isHeatmap) total += n;
     if (labelsOn) total += n;
   });
   const LARGE_D = 5e4;
@@ -13442,6 +13478,13 @@ class YAxis {
       realIndex,
       w.globals.yAxisScale[realIndex].result.slice()
     );
+    let labelStep = 1;
+    if (w.config.chart.type === "heatmap" && !w.config.yaxis[realIndex].labels.formatter) {
+      const fs = parseInt(yaxisFontSize, 10) || 11;
+      const maxLabels = Math.max(1, Math.floor(w.layout.gridHeight / (fs * 1.4)));
+      const count = tickAmount + 1;
+      if (count > maxLabels) labelStep = Math.ceil(count / maxLabels);
+    }
     if (w.config.yaxis[realIndex].labels.show) {
       let lY = w.layout.translateY + w.config.yaxis[realIndex].labels.offsetY;
       if (w.globals.isBarHorizontal) lY = 0;
@@ -13449,7 +13492,8 @@ class YAxis {
       lY += parseInt(yaxisFontSize, 10) / 3;
       let firstLabel = null;
       for (let i = tickAmount; i >= 0; i--) {
-        const val = lbFormatter(labels[i], i, w);
+        const thinned = labelStep > 1 && i % labelStep !== 0;
+        const val = thinned ? "" : lbFormatter(labels[i], i, w);
         let xPad = w.config.yaxis[realIndex].labels.padding;
         if (w.config.yaxis[realIndex].opposite && w.config.yaxis.length !== 0)
           xPad *= -1;
@@ -14394,7 +14438,7 @@ function uniquifyKeys(keys) {
     return count === 0 ? k : `${k}#${count}`;
   });
 }
-function seriesJoin(w, realIndex, includeIdentity = false) {
+function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
   var _a, _b;
   if (!lengthTransitionEnabled(w)) return null;
   const frame = w.globals.prevStreamFrame;
@@ -14408,7 +14452,7 @@ function seriesJoin(w, realIndex, includeIdentity = false) {
   );
   const newKeys = uniquifyKeys(newY.map((_, j) => datumKey(w, realIndex, j)));
   const join = joinKeys(oldKeys, newKeys);
-  if (!join.ordered) return null;
+  if (!join.ordered && !allowReorder) return null;
   if (!join.changed && !includeIdentity) return null;
   return { join, oldKeys, newKeys };
 }
@@ -14529,7 +14573,7 @@ function captureAxisChrome(w) {
     gl.prevChromeFrame = null;
   }
 }
-function fadeIn(w, node, duration, ease) {
+function fadeIn$1(w, node, duration, ease) {
   const style = (
     /** @type {any} */
     node.style
@@ -14626,34 +14670,59 @@ function transitionAxis(w, {
   const spanHi = Math.max(...spanPs);
   const margin = Math.max(40, (spanHi - spanLo) * 0.25);
   const clamp = (p) => Math.max(spanLo - margin, Math.min(spanHi + margin, p));
+  const tweenPairedLine = (line, old) => {
+    if (!line) return;
+    const lineTo = parseFloat(line.getAttribute(lineAttrs[0]) || "");
+    const lineFrom = oldLines[old.i];
+    if (isFinite(lineTo) && isFinite(lineFrom)) {
+      tweenPos(w, line, lineAttrs, lineFrom, lineTo, duration, ease);
+    }
+  };
   newLabels.forEach((label, i) => {
     const to = parseFloat(label.getAttribute(posAttr) || "");
     const old = oldByText.get(label.textContent || "");
     const line = newLinesAligned ? newLines[i] : null;
     if (old) matchedOld.add(old.i);
-    if (!old || !isFinite(old.pos) || old.transform || label.getAttribute("transform")) {
+    const labelTransform = label.getAttribute("transform");
+    if (!old || !isFinite(old.pos)) {
       if (!old) {
-        if (project && isFinite(to) && !label.getAttribute("transform")) {
+        if (project && isFinite(to) && !labelTransform) {
           const from = isFinite(project.toOld(to)) ? clamp(project.toOld(to)) : NaN;
           if (isFinite(from) && Math.abs(from - to) > 0.5) {
             tweenPos(w, label, [posAttr], from, to, duration, ease);
             if (line) tweenPos(w, line, lineAttrs, from, to, duration, ease);
           }
         }
-        fadeIn(w, label, duration, ease);
-        if (line) fadeIn(w, line, duration, ease);
+        fadeIn$1(w, label, duration, ease);
+        if (line) fadeIn$1(w, line, duration, ease);
       }
       return;
     }
     if (!isFinite(to) || Math.abs(old.pos - to) < 0.5) return;
-    tweenPos(w, label, [posAttr], old.pos, to, duration, ease);
-    if (line) {
-      const lineTo = parseFloat(line.getAttribute(lineAttrs[0]) || "");
-      const lineFrom = oldLines[old.i];
-      if (isFinite(lineTo) && isFinite(lineFrom)) {
-        tweenPos(w, line, lineAttrs, lineFrom, lineTo, duration, ease);
+    if (labelTransform || old.transform) {
+      const delta = old.pos - to;
+      if (isFinite(delta)) {
+        const base = labelTransform || "";
+        rafTween(
+          w,
+          duration,
+          ease,
+          (eased) => {
+            const v = delta * (1 - eased);
+            const t = posAttr === "x" ? `translate(${v} 0)` : `translate(0 ${v})`;
+            label.setAttribute("transform", `${t} ${base}`.trim());
+          },
+          () => {
+            if (base) label.setAttribute("transform", base);
+            else label.removeAttribute("transform");
+          }
+        );
       }
+      tweenPairedLine(line, old);
+      return;
     }
+    tweenPos(w, label, [posAttr], old.pos, to, duration, ease);
+    tweenPairedLine(line, old);
   });
   if (!project || !newLabels.length) return;
   let ghosts = 0;
@@ -14692,7 +14761,7 @@ function applyAxisTransition(w) {
   if (!chrome || !gl.axisCharts || !Environment.isBrowser()) return;
   if (!lengthTransitionEnabled(w)) return;
   const anyMotion = (w.seriesData.series || []).some(
-    (_, i) => seriesJoin(w, i, true) !== null
+    (_, i) => seriesJoin(w, i, true, true) !== null
   );
   if (!anyMotion) return;
   const root = w.dom.baseEl;
@@ -14732,6 +14801,158 @@ function applyAxisTransition(w) {
       duration,
       ease,
       project: projY
+    });
+  } catch (_) {
+  }
+}
+const DL_GROUP_SEL = ".apexcharts-data-labels[data\\:dlKey]";
+const DL_TEXT_SEL = ".apexcharts-datalabel";
+function dataLabelMotionEnabled(w) {
+  var _a, _b;
+  const dl = w.config.dataLabels;
+  return !!(((_a = dl == null ? void 0 : dl.animate) == null ? void 0 : _a.enabled) || ((_b = dl == null ? void 0 : dl.countUp) == null ? void 0 : _b.enabled));
+}
+function decimalsOf(n) {
+  if (!isFinite(n)) return 0;
+  const s = String(n);
+  const dot = s.indexOf(".");
+  return dot === -1 ? 0 : Math.min(6, s.length - dot - 1);
+}
+function writeLabel(textEl, s) {
+  const tspan = textEl.querySelector("tspan");
+  if (tspan) tspan.textContent = s;
+  else textEl.textContent = s;
+}
+function captureDataLabels(w) {
+  const gl = w.globals;
+  gl.prevDataLabels = null;
+  if (!gl.axisCharts || !Environment.isBrowser()) return;
+  if (!dataLabelMotionEnabled(w)) return;
+  const root = w.dom.baseEl;
+  if (!Utils$1.elementExists(root)) return;
+  try {
+    const map = /* @__PURE__ */ new Map();
+    root.querySelectorAll(DL_GROUP_SEL).forEach((group) => {
+      const key = group.getAttribute("data:dlKey");
+      if (!key) return;
+      const textEl = group.querySelector(DL_TEXT_SEL);
+      if (!textEl) return;
+      map.set(key, {
+        cx: parseFloat(textEl.getAttribute("cx") || ""),
+        cy: parseFloat(textEl.getAttribute("cy") || ""),
+        val: parseFloat(group.getAttribute("data:dlVal") || "")
+      });
+    });
+    gl.prevDataLabels = map.size ? map : null;
+  } catch (_) {
+    gl.prevDataLabels = null;
+  }
+}
+function fadeIn(w, node, duration, ease) {
+  const style = (
+    /** @type {any} */
+    node.style
+  );
+  style.opacity = "0";
+  rafTween(
+    w,
+    duration,
+    ease,
+    (eased) => {
+      style.opacity = String(eased);
+    },
+    () => {
+      style.opacity = "";
+    }
+  );
+}
+function applyDataLabelTransition(w) {
+  var _a, _b;
+  const gl = w.globals;
+  const prev = gl.prevDataLabels;
+  gl.prevDataLabels = null;
+  if (!prev || !gl.axisCharts || !Environment.isBrowser()) return;
+  if (!dataLabelMotionEnabled(w)) return;
+  if (!lengthTransitionEnabled(w)) return;
+  const root = w.dom.baseEl;
+  if (!Utils$1.elementExists(root)) return;
+  const dl = w.config.dataLabels;
+  const ride = !!((_a = dl.animate) == null ? void 0 : _a.enabled);
+  const countUp = !!((_b = dl.countUp) == null ? void 0 : _b.enabled);
+  const formatter = dl.formatter;
+  const duration = Math.max(1, w.config.chart.animations.dynamicAnimation.speed || 1);
+  const ease = morphEasing(w);
+  try {
+    root.querySelectorAll(DL_GROUP_SEL).forEach((group) => {
+      const key = group.getAttribute("data:dlKey");
+      if (!key) return;
+      const textEl = group.querySelector(DL_TEXT_SEL);
+      if (!textEl) return;
+      const old = prev.get(key);
+      if (ride) {
+        if (old && isFinite(old.cx) && isFinite(old.cy)) {
+          const newCx = parseFloat(textEl.getAttribute("cx") || "");
+          const newCy = parseFloat(textEl.getAttribute("cy") || "");
+          const dx = old.cx - newCx;
+          const dy = old.cy - newCy;
+          if (isFinite(dx) && isFinite(dy) && Math.abs(dx) + Math.abs(dy) > 0.5) {
+            const base = group.getAttribute("transform") || "";
+            rafTween(
+              w,
+              duration,
+              ease,
+              (eased) => {
+                const t = 1 - eased;
+                group.setAttribute(
+                  "transform",
+                  `translate(${dx * t} ${dy * t}) ${base}`.trim()
+                );
+              },
+              () => {
+                group.setAttribute("transform", base);
+              }
+            );
+          }
+        } else if (!old) {
+          fadeIn(w, group, duration, ease);
+        }
+      }
+      if (countUp && old && isFinite(old.val)) {
+        const newVal = parseFloat(group.getAttribute("data:dlVal") || "");
+        if (isFinite(newVal) && Math.abs(newVal - old.val) > 1e-9) {
+          const from = old.val;
+          const dec = Math.max(decimalsOf(from), decimalsOf(newVal));
+          const realIndex = parseInt(key, 10);
+          const j = parseInt(group.getAttribute("data:dlJ") || "", 10);
+          const format = (v) => {
+            const rounded = Number(v.toFixed(dec));
+            let out = rounded;
+            if (typeof formatter === "function") {
+              try {
+                out = formatter(rounded, __spreadProps(__spreadValues({}, w), {
+                  seriesIndex: realIndex,
+                  dataPointIndex: isFinite(j) ? j : 0,
+                  w
+                }));
+              } catch (_) {
+                out = rounded;
+              }
+            }
+            return String(out);
+          };
+          rafTween(
+            w,
+            duration,
+            ease,
+            (eased) => {
+              writeLabel(textEl, format(from + (newVal - from) * eased));
+            },
+            () => {
+              writeLabel(textEl, format(newVal));
+            }
+          );
+        }
+      }
     });
   } catch (_) {
   }
@@ -15109,6 +15330,7 @@ class Series {
     const w = this.w;
     captureStreamFrame(w);
     captureAxisChrome(w);
+    captureDataLabels(w);
     if (!w.globals.axisCharts) {
       w.globals.previousPaths = w.seriesData.series;
       return;
@@ -18949,7 +19171,7 @@ class Data {
    * @param {any[]} ser
    */
   parseData(ser) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
     const cnf = w.config;
     const gl = w.globals;
@@ -18975,8 +19197,11 @@ class Data {
         gl.dataReducerRawMaxX = rawMaxX;
       }
     }
-    cnf.series = ser;
     if (gl.dataReducerRawSeries && ((_f = cnf.chart.dataReducer) == null ? void 0 : _f.enabled)) {
+      ser = ser.map((s) => __spreadValues({}, s));
+    }
+    cnf.series = ser;
+    if (gl.dataReducerRawSeries && ((_g = cnf.chart.dataReducer) == null ? void 0 : _g.enabled)) {
       const stash = gl.dataReducerRawSeries;
       gl.initialSeries = ser.map((s, i) => {
         var _a2, _b2, _c2;
@@ -20617,12 +20842,14 @@ class Labels {
       w
     });
     if (tooltipEl) {
+      const arrowEl = tooltipEl.querySelector(".apexcharts-tooltip-arrow");
       if (typeof customTooltip === "string" || typeof customTooltip === "number") {
         tooltipEl.innerHTML = String(customTooltip);
       } else if (customTooltip instanceof Element || typeof customTooltip.nodeName === "string") {
         tooltipEl.innerHTML = "";
         tooltipEl.appendChild(customTooltip.cloneNode(true));
       }
+      if (arrowEl) tooltipEl.appendChild(arrowEl);
     }
   }
 }
@@ -21475,33 +21702,107 @@ class Intersect {
     var _a, _b;
     const ttCtx = this.ttCtx;
     const w = this.w;
-    if (e.target.classList.contains(`apexcharts-${type}-rect`)) {
-      const i = this.getAttr(e, "i");
-      const j = this.getAttr(e, "j");
-      const cx = this.getAttr(e, "cx");
-      const cy = this.getAttr(e, "cy");
-      const width = this.getAttr(e, "width");
-      const height = this.getAttr(e, "height");
-      ttCtx.tooltipLabels.drawSeriesTexts({
-        ttItems: opt.ttItems,
-        i,
-        j,
-        shared: false,
-        e
+    const renderer = w.globals.activeRenderer;
+    const canvasCells = type === "heatmap" && renderer && renderer.kind === "canvas" && typeof renderer.hitTest === "function";
+    let i, j, cx, cy, width, height;
+    if (canvasCells) {
+      const seriesBound = opt.elGrid.getBoundingClientRect();
+      const clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
+      const clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
+      const hit = renderer.hitTest(
+        clientX - seriesBound.left,
+        clientY - seriesBound.top
+      );
+      if (!hit) {
+        return { x, y, noHit: true };
+      }
+      i = hit.seriesIndex;
+      j = hit.dataPointIndex;
+      cx = hit.x;
+      cy = hit.y;
+      width = hit.width;
+      height = hit.height;
+    } else if (e.target.classList.contains(`apexcharts-${type}-rect`)) {
+      i = this.getAttr(e, "i");
+      j = this.getAttr(e, "j");
+      cx = this.getAttr(e, "cx");
+      cy = this.getAttr(e, "cy");
+      width = this.getAttr(e, "width");
+      height = this.getAttr(e, "height");
+    } else {
+      return { x, y };
+    }
+    ttCtx.tooltipLabels.drawSeriesTexts({
+      ttItems: opt.ttItems,
+      i,
+      j,
+      shared: false,
+      e
+    });
+    w.interact.capturedSeriesIndex = i;
+    w.interact.capturedDataPointIndex = j;
+    ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2);
+    const tooltipEl = ttCtx.getElTooltip();
+    if (type === "heatmap" && w.config.tooltip.arrow && !w.config.tooltip.followCursor && tooltipEl) {
+      const elGridRect = opt.elGrid.getBoundingClientRect();
+      const elWrapRect = w.dom.elWrap.getBoundingClientRect();
+      const gridOffsetXInElWrap = elGridRect.left - elWrapRect.left;
+      let clLeft, clTop, clRight, clBottom;
+      if (canvasCells) {
+        clLeft = cx;
+        clTop = cy;
+        clRight = cx + width;
+        clBottom = cy + height;
+      } else {
+        const r = e.target.getBoundingClientRect();
+        clLeft = r.left - elGridRect.left;
+        clTop = r.top - elGridRect.top;
+        clRight = r.right - elGridRect.left;
+        clBottom = r.bottom - elGridRect.top;
+      }
+      const ttW = ttCtx.tooltipRect.ttWidth || 0;
+      const ttH = ttCtx.tooltipRect.ttHeight || 0;
+      const ARROW_TIP_OVERHANG = 7;
+      const cellCenterXInElWrap = (clLeft + clRight) / 2 + gridOffsetXInElWrap;
+      const cellTopInElWrap = clTop + w.layout.translateY;
+      const cellBottomInElWrap = clBottom + w.layout.translateY;
+      const gridTop = w.layout.translateY;
+      const gridBottom = w.layout.translateY + w.layout.gridHeight;
+      const gridLeft = gridOffsetXInElWrap;
+      const gridRight = gridOffsetXInElWrap + w.layout.gridWidth;
+      let placement = "top";
+      let finalY = cellTopInElWrap - ttH - ARROW_TIP_OVERHANG;
+      if (finalY < gridTop) {
+        const belowTop = cellBottomInElWrap + ARROW_TIP_OVERHANG;
+        if (belowTop + ttH <= gridBottom) {
+          placement = "bottom";
+          finalY = belowTop;
+        } else {
+          finalY = gridTop;
+        }
+      }
+      let finalX = cellCenterXInElWrap - ttW / 2;
+      if (finalX < gridLeft) finalX = gridLeft;
+      if (finalX + ttW > gridRight) finalX = gridRight - ttW;
+      const arrowX = Math.max(10, Math.min(ttW - 10, cellCenterXInElWrap - finalX));
+      ttCtx.tooltipPosition.applyTooltipPosition(tooltipEl, {
+        x: finalX,
+        y: finalY,
+        placement,
+        arrowY: null,
+        arrowX
       });
-      w.interact.capturedSeriesIndex = i;
-      w.interact.capturedDataPointIndex = j;
-      x = cx + ttCtx.tooltipRect.ttWidth / 2 + width;
-      y = cy + ttCtx.tooltipRect.ttHeight / 2 - height / 2;
-      ttCtx.tooltipPosition.moveXCrosshairs(cx + width / 2);
-      if (x > w.layout.gridWidth / 2) {
-        x = cx - ttCtx.tooltipRect.ttWidth / 2 + width;
-      }
-      if (ttCtx.w.config.tooltip.followCursor) {
-        const seriesBound = w.dom.elWrap.getBoundingClientRect();
-        x = ((_a = w.interact.clientX) != null ? _a : 0) - seriesBound.left - (x > w.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0);
-        y = ((_b = w.interact.clientY) != null ? _b : 0) - seriesBound.top - (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0);
-      }
+      return { x: finalX, y: finalY, positioned: true };
+    }
+    x = cx + ttCtx.tooltipRect.ttWidth / 2 + width;
+    y = cy + ttCtx.tooltipRect.ttHeight / 2 - height / 2;
+    if (x > w.layout.gridWidth / 2) {
+      x = cx - ttCtx.tooltipRect.ttWidth / 2 + width;
+    }
+    if (ttCtx.w.config.tooltip.followCursor) {
+      const seriesBound = w.dom.elWrap.getBoundingClientRect();
+      x = ((_a = w.interact.clientX) != null ? _a : 0) - seriesBound.left - (x > w.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0);
+      y = ((_b = w.interact.clientY) != null ? _b : 0) - seriesBound.top - (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0);
     }
     return {
       x,
@@ -22140,7 +22441,7 @@ class Tooltip {
         this.tConfig.style.background
       );
     }
-    const isSharedMulti = this.tConfig.shared && w.config.series.length > 1 && !w.globals.isBarHorizontal;
+    const isSharedMulti = this.tConfig.shared && w.config.series.length > 1 && !w.globals.isBarHorizontal && w.config.chart.type !== "heatmap";
     const shouldDrawArrow = this.tConfig.arrow && !this.tConfig.followCursor && !this.tConfig.fixed.enabled && !isSharedMulti && !this.tConfig.fillSeriesColor && w.globals.axisCharts;
     if (shouldDrawArrow) {
       const arrowEl = BrowserAPIs.createElementNS(
@@ -22317,6 +22618,8 @@ class Tooltip {
       this.addPathsEventListeners([hoverArea], seriesHoverParams);
     } else if (commonBar && !w.globals.comboCharts || chartWithmarkers && this.showOnIntersect) {
       this.addDatapointEventsListeners(seriesHoverParams);
+    } else if (type === "heatmap" && w.globals.activeRenderer && w.globals.activeRenderer.kind === "canvas") {
+      this.addPathsEventListeners([hoverArea], seriesHoverParams);
     } else if (!w.globals.axisCharts || type === "heatmap" || type === "treemap") {
       const seriesAll = w.dom.baseEl.querySelectorAll(".apexcharts-series");
       this.addPathsEventListeners(seriesAll, seriesHoverParams);
@@ -22566,10 +22869,16 @@ class Tooltip {
             y,
             type: w.config.chart.type
           });
+          if (markerXY.noHit) {
+            this.handleMouseOut(opt);
+            return;
+          }
           x = markerXY.x;
           y = markerXY.y;
-          tooltipEl.style.left = x + "px";
-          tooltipEl.style.top = y + "px";
+          if (!markerXY.positioned) {
+            tooltipEl.style.left = x + "px";
+            tooltipEl.style.top = y + "px";
+          }
         } else {
           if (this.tooltipUtil.hasBars()) {
             this.intersect.handleBarTooltip({
@@ -25163,6 +25472,7 @@ const _ApexCharts = class _ApexCharts {
         var _a;
         (_a = this.morphTypeChange) == null ? void 0 : _a.applyChromeFade();
         applyAxisTransition(this.w);
+        applyDataLabelTransition(this.w);
         if (typeof this.w.config.chart.events.updated === "function") {
           this.w.config.chart.events.updated(this, this.w);
         }

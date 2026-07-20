@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.3.0
+ * ApexCharts v6.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -26,6 +26,172 @@ import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
 const Graphics = _core.__apex_Graphics;
 const DataLabels = _core.__apex_DataLabels;
+const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
+const Environment = _core.__apex_Environment_Environment;
+function lengthTransitionEnabled(w) {
+  var _a;
+  const anim = w.config.chart.animations;
+  if (!anim || anim.enabled === false) return false;
+  if (!anim.dynamicAnimation || anim.dynamicAnimation.enabled === false) {
+    return false;
+  }
+  const largeThreshold = (_a = anim.largeDatasetThreshold) != null ? _a : 0;
+  if (largeThreshold > 0 && w.globals.dataPoints > largeThreshold) return false;
+  return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
+}
+function datumKey(w, realIndex, j) {
+  var _a, _b, _c, _d;
+  if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
+    const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
+    if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
+  }
+  const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j];
+  if (lbl != null && String(lbl) !== "") {
+    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
+  }
+  return "j:" + j;
+}
+function frameDatumKey(frame, realIndex, j) {
+  var _a, _b;
+  if (frame.isXNumeric) {
+    const sx = (_a = frame.seriesX) == null ? void 0 : _a[realIndex];
+    if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
+  }
+  const lbl = (_b = frame.labels) == null ? void 0 : _b[j];
+  if (lbl != null && String(lbl) !== "") {
+    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
+  }
+  return "j:" + j;
+}
+function joinKeys(oldKeys, newKeys) {
+  const oldIndex = /* @__PURE__ */ new Map();
+  oldKeys.forEach((k, i) => {
+    if (!oldIndex.has(k)) oldIndex.set(k, i);
+  });
+  const toOld = new Array(newKeys.length);
+  const usedOld = /* @__PURE__ */ new Set();
+  let prev = -1;
+  let ordered = true;
+  let identity = oldKeys.length === newKeys.length;
+  newKeys.forEach((k, i) => {
+    const oi = oldIndex.has(k) && !usedOld.has(oldIndex.get(k)) ? oldIndex.get(k) : -1;
+    toOld[i] = oi;
+    if (oi !== -1) {
+      usedOld.add(oi);
+      if (oi < prev) ordered = false;
+      prev = oi;
+    }
+    if (oi !== i) identity = false;
+  });
+  const exits = [];
+  for (let i = 0; i < oldKeys.length; i++) {
+    if (!usedOld.has(i)) exits.push(i);
+  }
+  return { toOld, exits, ordered, changed: !identity };
+}
+function uniquifyKeys(keys) {
+  const seen = /* @__PURE__ */ new Map();
+  return keys.map((k) => {
+    const count = seen.get(k) || 0;
+    seen.set(k, count + 1);
+    return count === 0 ? k : `${k}#${count}`;
+  });
+}
+function seriesJoin(w, realIndex, includeIdentity = false, allowReorder = false) {
+  var _a, _b;
+  if (!lengthTransitionEnabled(w)) return null;
+  const frame = w.globals.prevStreamFrame;
+  if (!frame) return null;
+  const oldY = (_a = frame.seriesY) == null ? void 0 : _a[realIndex];
+  const newY = (_b = w.seriesData.series) == null ? void 0 : _b[realIndex];
+  if (!Array.isArray(oldY) || !Array.isArray(newY)) return null;
+  if (!oldY.length || !newY.length) return null;
+  const oldKeys = uniquifyKeys(
+    oldY.map((_, j) => frameDatumKey(frame, realIndex, j))
+  );
+  const newKeys = uniquifyKeys(newY.map((_, j) => datumKey(w, realIndex, j)));
+  const join = joinKeys(oldKeys, newKeys);
+  if (!join.ordered && !allowReorder) return null;
+  if (!join.changed && !includeIdentity) return null;
+  return { join, oldKeys, newKeys };
+}
+function firstMove(d) {
+  const m = /^M\s*([+-]?[\d.eE]+)[\s,]+([+-]?[\d.eE]+)/.exec(d || "");
+  if (!m) return null;
+  const x = parseFloat(m[1]);
+  const y = parseFloat(m[2]);
+  return isFinite(x) && isFinite(y) ? { x, y } : null;
+}
+function renderBarExitGhosts({
+  w,
+  elSeries,
+  record,
+  newKeys,
+  isHorizontal,
+  speed
+}) {
+  var _a;
+  if (!lengthTransitionEnabled(w)) return;
+  if (!record || !Array.isArray(record.paths) || !(elSeries == null ? void 0 : elSeries.node)) return;
+  const newKeySet = new Set(newKeys);
+  const exits = record.paths.filter(
+    (p) => p && p.d && p.key != null && !newKeySet.has(p.key)
+  );
+  if (!exits.length) return;
+  const graphics = new Graphics(w);
+  const fallbackFill = (_a = w.globals.colors) == null ? void 0 : _a[parseInt(String(record.realIndex), 10)];
+  exits.forEach((p) => {
+    let fill = p.fill || fallbackFill || "#c8c8c8";
+    if (String(fill).indexOf("url(") === 0) fill = fallbackFill || "#c8c8c8";
+    const ghost = graphics.drawPath({
+      d: p.d,
+      stroke: "none",
+      strokeWidth: 0,
+      fill,
+      fillOpacity: 1,
+      classes: "apexcharts-bar-ghost"
+    });
+    const node = ghost.node;
+    node.setAttribute("pointer-events", "none");
+    ghost.attr(
+      "clip-path",
+      `url(#gridRectBarMask${w.globals.cuid})`
+    );
+    elSeries.node.insertBefore(node, elSeries.node.firstChild);
+    const start = firstMove(p.d);
+    let origin = isHorizontal ? "left center" : "center bottom";
+    try {
+      const bb = node.getBBox();
+      if (start && bb) {
+        if (isHorizontal) {
+          origin = Math.abs(start.x - bb.x) <= Math.abs(start.x - (bb.x + bb.width)) ? "left center" : "right center";
+        } else {
+          origin = Math.abs(start.y - (bb.y + bb.height)) <= Math.abs(start.y - bb.y) ? "center bottom" : "center top";
+        }
+      }
+    } catch (_) {
+    }
+    const style = node.style;
+    style.transformBox = "fill-box";
+    style.transformOrigin = origin;
+    const duration = Math.max(1, speed || 1);
+    const startAt = performance.now();
+    const step = (now) => {
+      if (w.globals.isDestroyed || !node.parentNode) return;
+      const t = Math.max(0, Math.min(1, (now - startAt) / duration));
+      const eased = 1 - Math.pow(1 - t, 3);
+      const scale = 1 - eased;
+      style.transform = isHorizontal ? `scaleX(${scale})` : `scaleY(${scale})`;
+      style.opacity = String(1 - eased);
+      if (t < 1) {
+        BrowserAPIs.requestAnimationFrame(step);
+      } else {
+        node.parentNode.removeChild(node);
+      }
+    };
+    BrowserAPIs.requestAnimationFrame(step);
+  });
+}
 class BarDataLabels {
   /**
    * @param {import('../../../charts/Bar').default} barCtx
@@ -476,6 +642,7 @@ class BarDataLabels {
     barWidth,
     dataLabelsConfig
   }) {
+    var _a, _b;
     const w = this.w;
     let rotate = "rotate(0)";
     if (w.config.plotOptions.bar.dataLabels.orientation === "vertical")
@@ -490,6 +657,17 @@ class BarDataLabels {
         class: "apexcharts-data-labels",
         transform: rotate
       });
+      const dlCfg = w.config.dataLabels;
+      if (((_a = dlCfg.animate) == null ? void 0 : _a.enabled) || ((_b = dlCfg.countUp) == null ? void 0 : _b.enabled)) {
+        elDataLabelsWrap.node.setAttribute(
+          "data:dlKey",
+          `${i}::${datumKey(w, i, j)}`
+        );
+        elDataLabelsWrap.node.setAttribute("data:dlJ", String(j));
+        if (typeof val === "number" && isFinite(val)) {
+          elDataLabelsWrap.node.setAttribute("data:dlVal", String(val));
+        }
+      }
       let text = "";
       if (typeof val !== "undefined") {
         text = formatter(val, __spreadProps(__spreadValues({}, w), {
@@ -1414,108 +1592,6 @@ class Helpers {
 const CoreUtils = _core.__apex_CoreUtils;
 const Filters = _core.__apex_Filters;
 const computeStagger = _core.__apex_Animations_computeStagger;
-const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
-const Environment = _core.__apex_Environment_Environment;
-function lengthTransitionEnabled(w) {
-  var _a;
-  const anim = w.config.chart.animations;
-  if (!anim || anim.enabled === false) return false;
-  if (!anim.dynamicAnimation || anim.dynamicAnimation.enabled === false) {
-    return false;
-  }
-  const largeThreshold = (_a = anim.largeDatasetThreshold) != null ? _a : 0;
-  if (largeThreshold > 0 && w.globals.dataPoints > largeThreshold) return false;
-  return !!(Environment.isBrowser() && w.globals.dataChanged && w.globals.shouldAnimate);
-}
-function datumKey(w, realIndex, j) {
-  var _a, _b, _c, _d;
-  if ((_a = w.axisFlags) == null ? void 0 : _a.isXNumeric) {
-    const sx = (_c = (_b = w.seriesData) == null ? void 0 : _b.seriesX) == null ? void 0 : _c[realIndex];
-    if (sx && sx.length && sx[j] != null) return "x:" + sx[j];
-  }
-  const lbl = (_d = w.globals.labels) == null ? void 0 : _d[j];
-  if (lbl != null && String(lbl) !== "") {
-    return "c:" + (Array.isArray(lbl) ? lbl.join(" ") : String(lbl));
-  }
-  return "j:" + j;
-}
-function firstMove(d) {
-  const m = /^M\s*([+-]?[\d.eE]+)[\s,]+([+-]?[\d.eE]+)/.exec(d || "");
-  if (!m) return null;
-  const x = parseFloat(m[1]);
-  const y = parseFloat(m[2]);
-  return isFinite(x) && isFinite(y) ? { x, y } : null;
-}
-function renderBarExitGhosts({
-  w,
-  elSeries,
-  record,
-  newKeys,
-  isHorizontal,
-  speed
-}) {
-  var _a;
-  if (!lengthTransitionEnabled(w)) return;
-  if (!record || !Array.isArray(record.paths) || !(elSeries == null ? void 0 : elSeries.node)) return;
-  const newKeySet = new Set(newKeys);
-  const exits = record.paths.filter(
-    (p) => p && p.d && p.key != null && !newKeySet.has(p.key)
-  );
-  if (!exits.length) return;
-  const graphics = new Graphics(w);
-  const fallbackFill = (_a = w.globals.colors) == null ? void 0 : _a[parseInt(String(record.realIndex), 10)];
-  exits.forEach((p) => {
-    let fill = p.fill || fallbackFill || "#c8c8c8";
-    if (String(fill).indexOf("url(") === 0) fill = fallbackFill || "#c8c8c8";
-    const ghost = graphics.drawPath({
-      d: p.d,
-      stroke: "none",
-      strokeWidth: 0,
-      fill,
-      fillOpacity: 1,
-      classes: "apexcharts-bar-ghost"
-    });
-    const node = ghost.node;
-    node.setAttribute("pointer-events", "none");
-    ghost.attr(
-      "clip-path",
-      `url(#gridRectBarMask${w.globals.cuid})`
-    );
-    elSeries.node.insertBefore(node, elSeries.node.firstChild);
-    const start = firstMove(p.d);
-    let origin = isHorizontal ? "left center" : "center bottom";
-    try {
-      const bb = node.getBBox();
-      if (start && bb) {
-        if (isHorizontal) {
-          origin = Math.abs(start.x - bb.x) <= Math.abs(start.x - (bb.x + bb.width)) ? "left center" : "right center";
-        } else {
-          origin = Math.abs(start.y - (bb.y + bb.height)) <= Math.abs(start.y - bb.y) ? "center bottom" : "center top";
-        }
-      }
-    } catch (_) {
-    }
-    const style = node.style;
-    style.transformBox = "fill-box";
-    style.transformOrigin = origin;
-    const duration = Math.max(1, speed || 1);
-    const startAt = performance.now();
-    const step = (now) => {
-      if (w.globals.isDestroyed || !node.parentNode) return;
-      const t = Math.max(0, Math.min(1, (now - startAt) / duration));
-      const eased = 1 - Math.pow(1 - t, 3);
-      const scale = 1 - eased;
-      style.transform = isHorizontal ? `scaleX(${scale})` : `scaleY(${scale})`;
-      style.opacity = String(1 - eased);
-      if (t < 1) {
-        BrowserAPIs.requestAnimationFrame(step);
-      } else {
-        node.parentNode.removeChild(node);
-      }
-    };
-    BrowserAPIs.requestAnimationFrame(step);
-  });
-}
 function seriesEmitter(ctx, graphics) {
   const r = ctx && ctx.renderer;
   return r && r.kind && r.kind !== "svg" ? r : graphics;
@@ -1559,6 +1635,7 @@ class Bar {
     this.pathArr = [];
     this._prevKeyed = null;
     this._ltCache = null;
+    this._layoutShiftCache = null;
     this.series = [];
     this.elSeries = null;
     this.visibleI = 0;
@@ -1587,7 +1664,7 @@ class Bar {
    * @return {Element} element which is supplied to parent chart draw method for appending
    **/
   draw(series, seriesIndex) {
-    var _a, _b;
+    var _a, _b, _c;
     const w = this.w;
     const graphics = new Graphics(this.w);
     const coreUtils = new CoreUtils(this.w);
@@ -1661,8 +1738,10 @@ class Bar {
         el: elDataLabelsWrap.node,
         // On a layout-changing update the labels must stay hidden through the
         // reflow morph (the updateOptions flow otherwise reveals them at
-        // frame 0, where they float over sliding bars).
-        holdUntilComplete: this.isLengthTransition(realIndex)
+        // frame 0, where they float over sliding bars). When dataLabels.animate
+        // is on the labels instead RIDE the morph (see DataLabelTransition), so
+        // keep them visible: holding would hide the very motion we want to show.
+        holdUntilComplete: !((_a = w.config.dataLabels.animate) == null ? void 0 : _a.enabled) && this.isLengthTransition(realIndex)
       });
       elDataLabelsWrap.node.classList.add("apexcharts-element-hidden");
       const elGoalsMarkers = graphics.group({
@@ -1715,9 +1794,9 @@ class Bar {
           j,
           realIndex
         );
-        if (this.isFunnel && !this.isPyramid && this.barOptions.isFunnel3d && ((_a = w.config.plotOptions.funnel) == null ? void 0 : _a.shape) !== "trapezoid" && this.pathArr.length && j > 0) {
+        if (this.isFunnel && !this.isPyramid && this.barOptions.isFunnel3d && ((_b = w.config.plotOptions.funnel) == null ? void 0 : _b.shape) !== "trapezoid" && this.pathArr.length && j > 0) {
           const barShadow = this.barHelpers.drawBarShadow({
-            color: typeof pathFill.color === "string" && ((_b = pathFill.color) == null ? void 0 : _b.indexOf("url")) === -1 ? pathFill.color : Utils.hexToRgba(w.globals.colors[i]),
+            color: typeof pathFill.color === "string" && ((_c = pathFill.color) == null ? void 0 : _c.indexOf("url")) === -1 ? pathFill.color : Utils.hexToRgba(w.globals.colors[i]),
             prevPaths: this.pathArr[this.pathArr.length - 1],
             currPaths: paths,
             realIndex,
@@ -1889,7 +1968,7 @@ class Bar {
     }
     const animCfg = w.config.chart.animations;
     const gradCfg = animCfg.animateGradually;
-    const staggerEnabled = gradCfg && gradCfg.enabled !== false && !(w.globals.dataChanged && this.isLengthTransition(realIndex));
+    const staggerEnabled = gradCfg && gradCfg.enabled !== false && !(w.globals.dataChanged && this.isLayoutShift(realIndex));
     let delay = 0;
     if (staggerEnabled) {
       const totalBars = w.globals.dataPoints || 1;
@@ -2301,6 +2380,26 @@ class Bar {
       }
     }
     this._ltCache[realIndex] = result;
+    return result;
+  }
+  /**
+   * Whether this update moves survivors to new slots: a length change
+   * (enter/exit, via isLengthTransition) OR a pure reorder (a "bar chart race"
+   * swap, same datum set in a new order). Used to drop the per-bar stagger so
+   * all bars slide on one shared clock, staying locked to the axis/data labels.
+   * Broader than isLengthTransition, which is deliberately enter/exit-only
+   * (exit ghosts / baseline enters must not fire on a plain reorder).
+   * @param {number} realIndex
+   */
+  isLayoutShift(realIndex) {
+    if (this.isLengthTransition(realIndex)) return true;
+    if (!this._layoutShiftCache) this._layoutShiftCache = {};
+    if (this._layoutShiftCache[realIndex] !== void 0) {
+      return this._layoutShiftCache[realIndex];
+    }
+    const sj = seriesJoin(this.w, realIndex, true, true);
+    const result = !!(sj && sj.join.changed);
+    this._layoutShiftCache[realIndex] = result;
     return result;
   }
   /**

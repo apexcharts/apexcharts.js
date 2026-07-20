@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.3.0
+ * ApexCharts v6.4.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -167,6 +167,10 @@ class TreemapHelpers {
   }
 }
 const Filters = _core.__apex_Filters;
+function seriesEmitter(ctx, graphics) {
+  const r = ctx && ctx.renderer;
+  return r && r.kind && r.kind !== "svg" ? r : graphics;
+}
 class HeatMap {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -187,14 +191,24 @@ class HeatMap {
    * @param {any[]} series
    */
   draw(series) {
+    var _a, _b;
     const w = this.w;
     const graphics = new Graphics(this.w, this.ctx);
+    const emit = seriesEmitter(this.ctx, graphics);
+    const useCanvas = emit !== graphics && typeof emit.drawRectCell === "function";
     const ret = graphics.group({
       class: "apexcharts-heatmap"
     });
     ret.attr("clip-path", `url(#gridRectMask${w.globals.cuid})`);
     const xDivision = w.layout.gridWidth / w.globals.dataPoints;
     const yDivision = w.layout.gridHeight / w.seriesData.series.length;
+    const isContinuousX = (w.config.xaxis.type === "numeric" || w.config.xaxis.type === "datetime") && w.axisFlags.isXNumeric && this.xRatio > 0;
+    let binPx = xDivision;
+    if (isContinuousX) {
+      const diff = w.globals.minXDiff;
+      binPx = Number.isFinite(diff) && diff > 0 ? diff / this.xRatio : xDivision;
+    }
+    const cellFillOpacity = Array.isArray(w.config.fill.opacity) ? (_a = w.config.fill.opacity[0]) != null ? _a : 1 : (_b = w.config.fill.opacity) != null ? _b : 1;
     let y1 = 0;
     let rev = false;
     this.negRange = this.helpers.checkColorRange();
@@ -211,7 +225,9 @@ class HeatMap {
         "data:realIndex": i
       });
       Series.addCollapsedClassToSeries(this.w, elSeries, i);
-      graphics.setupEventDelegation(elSeries, ".apexcharts-heatmap-rect");
+      if (!useCanvas) {
+        graphics.setupEventDelegation(elSeries, ".apexcharts-heatmap-rect");
+      }
       if (w.config.chart.dropShadow.enabled) {
         const shadow = w.config.chart.dropShadow;
         const filters = new Filters(this.w);
@@ -221,13 +237,22 @@ class HeatMap {
       const shadeIntensity = w.config.plotOptions.heatmap.shadeIntensity;
       let j = 0;
       for (let dIndex = 0; dIndex < w.globals.dataPoints; dIndex++) {
-        if (w.seriesData.seriesX.length && !w.globals.allSeriesHasEqualX) {
+        if (!isContinuousX && w.seriesData.seriesX.length && !w.globals.allSeriesHasEqualX) {
           if (w.globals.minX + w.globals.minXDiff * dIndex < w.seriesData.seriesX[i][j]) {
             x1 = x1 + xDivision;
             continue;
           }
         }
         if (j >= heatSeries[i].length) break;
+        const cellW = isContinuousX ? binPx : xDivision;
+        if (isContinuousX) {
+          const xVal = w.seriesData.seriesX[i] ? w.seriesData.seriesX[i][j] : null;
+          if (xVal == null || xVal !== xVal) {
+            j++;
+            continue;
+          }
+          x1 = (xVal - w.globals.minX) / this.xRatio - binPx / 2;
+        }
         const heatColor = this.helpers.getShadeColor(
           w.config.chart.type,
           i,
@@ -246,47 +271,60 @@ class HeatMap {
               w.globals.hasNegs ? heatColorProps.percent < 0 ? 1 - (1 + heatColorProps.percent / 100) : shadeIntensity + heatColorProps.percent / 100 : heatColorProps.percent / 100
             ),
             patternID: Utils.randomId(),
-            width: w.config.fill.image.width ? w.config.fill.image.width : xDivision,
+            width: w.config.fill.image.width ? w.config.fill.image.width : cellW,
             height: w.config.fill.image.height ? w.config.fill.image.height : yDivision
           });
         }
         const radius = this.rectRadius;
-        const rect = graphics.drawRect(x1, y1, xDivision, yDivision, radius);
-        rect.attr({
-          cx: x1,
-          cy: y1
-        });
-        rect.node.classList.add("apexcharts-heatmap-rect");
-        elSeries.add(rect);
-        rect.attr({
-          fill: color,
-          i,
-          index: i,
-          j,
-          val: series[i][j],
-          "stroke-width": this.strokeWidth,
-          stroke: w.config.plotOptions.heatmap.useFillColorAsStroke ? color : w.globals.stroke.colors[0],
-          color
-        });
-        if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
-          let speed = 1;
-          if (!w.globals.resized) {
-            speed = w.config.chart.animations.speed;
+        const stroke = w.config.plotOptions.heatmap.useFillColorAsStroke ? color : w.globals.stroke.colors[0];
+        if (useCanvas) {
+          emit.drawRectCell(x1, y1, cellW, yDivision, {
+            fill: color,
+            fillOpacity: cellFillOpacity,
+            stroke,
+            strokeWidth: this.strokeWidth,
+            radius,
+            seriesIndex: i,
+            dataPointIndex: j
+          });
+        } else {
+          const rect = graphics.drawRect(x1, y1, cellW, yDivision, radius);
+          rect.attr({
+            cx: x1,
+            cy: y1
+          });
+          rect.node.classList.add("apexcharts-heatmap-rect");
+          elSeries.add(rect);
+          rect.attr({
+            fill: color,
+            i,
+            index: i,
+            j,
+            val: series[i][j],
+            "stroke-width": this.strokeWidth,
+            stroke,
+            color
+          });
+          if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
+            let speed = 1;
+            if (!w.globals.resized) {
+              speed = w.config.chart.animations.speed;
+            }
+            this.animateHeatMap(rect, x1, y1, cellW, yDivision, speed, i, j);
           }
-          this.animateHeatMap(rect, x1, y1, xDivision, yDivision, speed, i, j);
-        }
-        if (w.globals.dataChanged) {
-          let speed = 1;
-          if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
-            speed = this.dynamicAnim.speed;
-            let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color;
-            if (!colorFrom) colorFrom = "rgba(255, 255, 255, 0)";
-            this.animateHeatColor(
-              rect,
-              Utils.isColorHex(colorFrom) ? colorFrom : Utils.rgb2hex(colorFrom),
-              Utils.isColorHex(color) ? color : Utils.rgb2hex(color),
-              speed
-            );
+          if (w.globals.dataChanged) {
+            let speed = 1;
+            if (this.dynamicAnim.enabled && w.globals.shouldAnimate) {
+              speed = this.dynamicAnim.speed;
+              let colorFrom = w.globals.previousPaths[i] && w.globals.previousPaths[i][j] && w.globals.previousPaths[i][j].color;
+              if (!colorFrom) colorFrom = "rgba(255, 255, 255, 0)";
+              this.animateHeatColor(
+                rect,
+                Utils.isColorHex(colorFrom) ? colorFrom : Utils.rgb2hex(colorFrom),
+                Utils.isColorHex(color) ? color : Utils.rgb2hex(color),
+                speed
+              );
+            }
           }
         }
         const formatter = w.config.dataLabels.formatter;
@@ -298,7 +336,7 @@ class HeatMap {
         });
         const dataLabels = this.helpers.calculateDataLabels({
           text: formattedText,
-          x: x1 + xDivision / 2,
+          x: x1 + cellW / 2,
           y: y1 + yDivision / 2,
           i,
           j,
@@ -308,7 +346,7 @@ class HeatMap {
         if (dataLabels !== null) {
           elSeries.add(dataLabels);
         }
-        x1 = x1 + xDivision;
+        if (!isContinuousX) x1 = x1 + xDivision;
         j++;
       }
       y1 = y1 + yDivision;
