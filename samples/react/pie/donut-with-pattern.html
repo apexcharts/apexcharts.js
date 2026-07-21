@@ -11,7 +11,7 @@
     <style>
       #chart {
         padding: 0;
-        max-width: 380px;
+        max-width: 480px;
         margin: 35px auto;
       }
     </style>
@@ -43,7 +43,7 @@
     <div id="app"></div>
 
     <div id="html">&lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;donut&quot; width={380} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;donut&quot; width={480} /&gt;
 &lt;/div&gt;</div>
 
     <script type="text/babel">
@@ -52,7 +52,7 @@
           series: [38, 52, 31, 44, 22],
           options: {
             chart: {
-              width: 380,
+              width: 480,
               type: 'donut',
               dropShadow: {
                 enabled: true,
@@ -68,6 +68,14 @@
             },
             plotOptions: {
               pie: {
+                dataLabels: {
+                  external: {
+                    show: true,
+                    formatter: function (name, opts) {
+                      return [name, opts.percent.toFixed(1) + '%']
+                    },
+                  },
+                },
                 donut: {
                   labels: {
                     show: true,
@@ -79,12 +87,12 @@
                 },
               },
             },
+            legend: {
+              show: false,
+            },
             labels: ['Comedy', 'Action', 'SciFi', 'Drama', 'Horror'],
             dataLabels: {
-              dropShadow: {
-                blur: 1,
-                opacity: 0.45,
-              },
+              enabled: false,
             },
             fill: {
               type: 'pattern',
@@ -134,7 +142,7 @@
                 options={state.options}
                 series={state.series}
                 type="donut"
-                width={380}
+                width={480}
               />
             </div>
             <div id="html-dist"></div>

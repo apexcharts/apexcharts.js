@@ -3,7 +3,7 @@
 <style>
 #chart {
   padding: 0;
-  max-width: 380px;
+  max-width: 480px;
   margin: 35px auto;
 }
 </style>
@@ -11,7 +11,7 @@
 <chart>
 <options>
 chart: {
-  width: 380,
+  width: 480,
   type: 'donut',
   dropShadow: {
     enabled: true,
@@ -27,6 +27,14 @@ stroke: {
 },
 plotOptions: {
   pie: {
+    dataLabels: {
+      external: {
+        show: true,
+        formatter: function(name, opts) {
+          return [name, opts.percent.toFixed(1) + '%']
+        }
+      }
+    },
     donut: {
       labels: {
         show: true,
@@ -38,12 +46,12 @@ plotOptions: {
     }
   }
 },
+legend: {
+  show: false
+},
 labels: ["Comedy", "Action", "SciFi", "Drama", "Horror"],
 dataLabels: {
-  dropShadow: {
-    blur: 1,
-    opacity: 0.45
-  }
+  enabled: false
 },
 fill: {
 type: 'pattern',
