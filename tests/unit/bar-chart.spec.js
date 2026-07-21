@@ -265,29 +265,35 @@ describe('Bar chart', () => {
   // getBarXForNumericXAxis – isolated unit tests
   // =========================================================================
   describe('getBarXForNumericXAxis', () => {
+    // The bar center maps through the shared AxisMapping, whose x-ratio is
+    // derived from the canonical domain: (maxX - minX) / gridWidth. The mock
+    // therefore encodes the intended ratio via minX/maxX/gridWidth rather than
+    // a cached bar.xRatio (which is just a copy of that same ratio in the real
+    // pipeline). gridWidth is fixed at 100, so xRatio = (maxX - minX) / 100.
     function makeBar(globals) {
       const bar = Object.create(Bar.prototype)
       const gl = {
         seriesX: [[10, 20, 30]],
         minX: 0,
+        maxX: 100, // with gridWidth 100 => xRatio 1
         maxValsInArrayIndex: 0,
         ...globals,
       }
       bar.w = {
         globals: gl,
+        layout: { gridWidth: 100 },
         seriesData: {
           seriesX: gl.seriesX,
         },
       }
-      bar.xRatio = 1
+      bar.xRatio = (gl.maxX - gl.minX) / 100
       bar.seriesLen = 1
       bar.visibleI = 0
       return bar
     }
 
     it('should compute x position from seriesX values', () => {
-      const bar = makeBar()
-      bar.xRatio = 2
+      const bar = makeBar({ maxX: 200 }) // xRatio = 200 / 100 = 2
       bar.seriesLen = 1
 
       const result = bar.getBarXForNumericXAxis({
@@ -306,8 +312,7 @@ describe('Bar chart', () => {
       const bar = makeBar({
         seriesX: [[], [10, 20, 30]],
         maxValsInArrayIndex: 1,
-      })
-      bar.xRatio = 1
+      }) // xRatio = 100 / 100 = 1
       bar.seriesLen = 1
 
       const result = bar.getBarXForNumericXAxis({
@@ -323,8 +328,7 @@ describe('Bar chart', () => {
     })
 
     it('should account for visibleI in barXPosition', () => {
-      const bar = makeBar()
-      bar.xRatio = 1
+      const bar = makeBar() // xRatio = 1
       bar.seriesLen = 2
       bar.visibleI = 1
 
