@@ -1,0 +1,15 @@
+{
+  "title": "Pyramid Chart (chart.type: 'pyramid')",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: '',\n        data: [200, 330, 548, 740, 880, 990, 1100, 1380],\n      },\n    ],\n    options: {\n      chart: {\n        type: 'pyramid',\n        height: 350,\n        dropShadow: {\n          enabled: true,\n        },\n      },\n      plotOptions: {\n        bar: {\n          borderRadius: 0,\n          distributed: true,\n        },\n      },\n      colors: [\n        '#809bce',\n        '#95b8d1',\n        '#b8e0d4',\n        '#d6eadf',\n        '#eac4d5',\n        '#d1625c',\n        '#e89c81',\n        '#ffd6a5',\n      ],\n      dataLabels: {\n        enabled: true,\n        formatter: function (val, opt) {\n          // hide labels on tiers too small to fit them; the tooltip still names these\n          if (val < 400) return ''\n          return opt.w.globals.labels[opt.dataPointIndex]\n        },\n        dropShadow: {\n          enabled: true,\n        },\n      },\n      title: {\n        text: 'Food Pyramid',\n        align: 'middle',\n      },\n      xaxis: {\n        categories: [\n          'Sweets',\n          'Processed Foods',\n          'Healthy Fats',\n          'Meat',\n          'Beans & Legumes',\n          'Dairy',\n          'Fruits & Vegetables',\n          'Grains',\n        ],\n      },\n      legend: {\n        show: false,\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"pyramid\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

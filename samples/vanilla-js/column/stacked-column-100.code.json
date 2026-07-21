@@ -1,0 +1,20 @@
+{
+  "title": "Stacked Column",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Mobile',\n      data: [44, 55, 41, 67, 22, 43, 21, 49],\n    },\n    {\n      name: 'Desktop',\n      data: [13, 23, 20, 8, 13, 27, 33, 12],\n    },\n    {\n      name: 'Tablet',\n      data: [11, 17, 15, 15, 21, 14, 15, 13],\n    },\n  ],\n  chart: {\n    type: 'bar',\n    height: 350,\n    stacked: true,\n    stackType: '100%',\n  },\n  responsive: [\n    {\n      breakpoint: 480,\n      options: {\n        legend: {\n          position: 'bottom',\n          offsetX: -10,\n          offsetY: 0,\n        },\n      },\n    },\n  ],\n  title: {\n    text: 'Traffic Share by Device',\n    align: 'left',\n  },\n  xaxis: {\n    categories: [\n      '2024 Q1',\n      '2024 Q2',\n      '2024 Q3',\n      '2024 Q4',\n      '2025 Q1',\n      '2025 Q2',\n      '2025 Q3',\n      '2025 Q4',\n    ],\n  },\n  fill: {\n    opacity: 1,\n  },\n  legend: {\n    position: 'right',\n    offsetX: 0,\n    offsetY: 50,\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Stacked Column</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

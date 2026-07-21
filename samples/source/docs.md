@@ -66,3 +66,15 @@ Optional Vue specific code. Allows to add component methods and other top-level 
 * If one of &lt;vanilla-js-script>, &lt;react-script> or &lt;vue-script> sections is present in xml, html files will only be generated for formats with custom code. E.g. if only &lt;react-script> section is provided vanilla-js and vue format won't be generated.
 
 * Non-xml files are just copied with the same relative paths.
+
+# Code display manifests
+
+Besides the runnable html pages, the generator writes a `<sample>.code.json`
+manifest next to each generated file (`buildCodeManifest` in
+`code-manifests.js`). The website renders these as source-code tabs on demo
+pages. Manifest code is the idiomatic version of the sample (npm imports for
+react/vue, a clean three-file project for vanilla js) and deliberately
+excludes runtime glue that only the iframe needs: the seeded `Math.random`
+shim, license injection and iframe resize scripts. Sample-local assets are
+referenced via their public `https://apexcharts.com/samples/assets/` urls so
+copied code works outside the site.

@@ -1,0 +1,20 @@
+{
+  "title": "Multi-series Timeline",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Frontend',\n      data: [\n        {\n          x: 'Design',\n          y: [\n            new Date('2024-03-05').getTime(),\n            new Date('2024-03-08').getTime(),\n          ],\n        },\n        {\n          x: 'Code',\n          y: [\n            new Date('2024-03-08').getTime(),\n            new Date('2024-03-11').getTime(),\n          ],\n        },\n        {\n          x: 'Test',\n          y: [\n            new Date('2024-03-11').getTime(),\n            new Date('2024-03-16').getTime(),\n          ],\n        },\n      ],\n    },\n    {\n      name: 'Backend',\n      data: [\n        {\n          x: 'Design',\n          y: [\n            new Date('2024-03-02').getTime(),\n            new Date('2024-03-05').getTime(),\n          ],\n        },\n        {\n          x: 'Code',\n          y: [\n            new Date('2024-03-06').getTime(),\n            new Date('2024-03-09').getTime(),\n          ],\n        },\n        {\n          x: 'Test',\n          y: [\n            new Date('2024-03-10').getTime(),\n            new Date('2024-03-19').getTime(),\n          ],\n        },\n      ],\n    },\n  ],\n  chart: {\n    height: 350,\n    type: 'rangeBar',\n  },\n  title: {\n    text: 'Frontend vs Backend Schedule',\n  },\n  plotOptions: {\n    bar: {\n      borderRadius: 10,\n      horizontal: true,\n    },\n  },\n  dataLabels: {\n    enabled: true,\n    formatter: function (val) {\n      var diff = Math.round((val[1] - val[0]) / (1000 * 60 * 60 * 24))\n      return diff + (diff > 1 ? ' days' : ' day')\n    },\n  },\n  fill: {\n    type: 'gradient',\n    gradient: {\n      shade: 'light',\n      type: 'vertical',\n      shadeIntensity: 0.25,\n      gradientToColors: undefined,\n      inverseColors: true,\n      opacityFrom: 1,\n      opacityTo: 1,\n      stops: [50, 0, 100, 100],\n    },\n  },\n  xaxis: {\n    type: 'datetime',\n  },\n  legend: {\n    position: 'top',\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Multi-series Timeline</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

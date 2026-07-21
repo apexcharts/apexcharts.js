@@ -1,0 +1,15 @@
+{
+  "title": "Basic Gauge",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [72],\n    options: {\n      chart: {\n        height: 350,\n        type: 'gauge',\n      },\n      labels: ['Progress'],\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"gauge\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 380px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

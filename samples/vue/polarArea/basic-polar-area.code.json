@@ -1,0 +1,10 @@
+{
+  "title": "Simple PolarArea",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"polarArea\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [12, 8, 15, 23, 18, 9, 6, 11],\n      chartOptions: {\n        chart: {\n          type: 'polarArea',\n        },\n        labels: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],\n        title: {\n          text: 'Wind Frequency by Direction (%)',\n          align: 'center',\n        },\n        stroke: {\n          colors: ['#fff'],\n        },\n        fill: {\n          opacity: 0.8,\n        },\n        legend: {\n          position: 'bottom',\n        },\n        responsive: [\n          {\n            breakpoint: 480,\n            options: {\n              chart: {\n                width: 200,\n              },\n              legend: {\n                position: 'bottom',\n              },\n            },\n          },\n        ],\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 380px;\n  margin: 35px auto;\n  padding: 0;\n}\n</style>\n"
+    }
+  ]
+}

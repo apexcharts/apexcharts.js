@@ -1,0 +1,15 @@
+{
+  "title": "Horizontal Violin Chart",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\n// Build a Gaussian density profile + raw observations for a group.\n// The sample template seeds Math.random, so this renders identically across reloads.\nfunction gaussianViolin(mean, sd, n) {\n  var density = []\n  for (var v = mean - 3 * sd; v <= mean + 3 * sd; v += sd / 6) {\n    var z = (v - mean) / sd\n    density.push([Math.round(v * 10) / 10, Math.exp(-0.5 * z * z)])\n  }\n  var points = []\n  for (var k = 0; k < n; k++) {\n    // Box–Muller transform on two uniform samples\n    var u1 = Math.random(),\n      u2 = Math.random()\n    var g = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)\n    points.push(mean + g * sd)\n  }\n  return { density: density, points: points }\n}\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Latency',\n        data: [\n          { x: 'Auth', y: gaussianViolin(120, 18, 400) },\n          { x: 'Search', y: gaussianViolin(210, 35, 500) },\n          { x: 'Checkout', y: gaussianViolin(160, 22, 350) },\n          { x: 'Recommend', y: gaussianViolin(260, 45, 300) },\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        type: 'violin',\n        height: 460,\n      },\n      title: {\n        text: 'Response time distribution by service (ms)',\n      },\n      plotOptions: {\n        bar: {\n          horizontal: true,\n          distributed: true,\n        },\n        violin: {\n          normalize: 'group',\n          // dots in a darker shade of each violin's colour, no outline (strokeWidth: 0)\n          points: { show: true, size: 3, jitter: 0.9, strokeWidth: 0 },\n        },\n      },\n      colors: ['#14b8a6', '#6366f1', '#f59e0b', '#ef4444'],\n      stroke: { width: 1, colors: ['#888'] },\n      legend: { show: false },\n      xaxis: {\n        title: { text: 'Response time (ms)' },\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"violin\"\n          height={460}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 760px;\n  margin: 20px auto;\n}\n"
+    }
+  ]
+}

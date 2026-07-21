@@ -1,0 +1,20 @@
+{
+  "title": "Basic Timeline Chart",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      data: [\n        {\n          x: 'Draft',\n          y: [\n            new Date('2024-03-02').getTime(),\n            new Date('2024-03-04').getTime(),\n          ],\n        },\n        {\n          x: 'Edit',\n          y: [\n            new Date('2024-03-04').getTime(),\n            new Date('2024-03-08').getTime(),\n          ],\n        },\n        {\n          x: 'Review',\n          y: [\n            new Date('2024-03-08').getTime(),\n            new Date('2024-03-12').getTime(),\n          ],\n        },\n        {\n          x: 'Publish',\n          y: [\n            new Date('2024-03-12').getTime(),\n            new Date('2024-03-18').getTime(),\n          ],\n        },\n      ],\n    },\n  ],\n  chart: {\n    height: 350,\n    type: 'rangeBar',\n  },\n  title: {\n    text: 'Content Production Pipeline',\n  },\n  plotOptions: {\n    bar: {\n      horizontal: true,\n    },\n  },\n  xaxis: {\n    type: 'datetime',\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Basic Timeline Chart</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

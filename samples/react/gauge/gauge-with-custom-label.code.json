@@ -1,0 +1,15 @@
+{
+  "title": "Gauge with Custom Label",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [58],\n    options: {\n      chart: {\n        height: 350,\n        type: 'gauge',\n      },\n      plotOptions: {\n        radialBar: {\n          hollow: {\n            margin: 15,\n            size: '70%',\n          },\n          dataLabels: {\n            name: {\n              show: true,\n              offsetY: -20,\n              fontSize: '16px',\n              color: '#999',\n            },\n            value: {\n              show: true,\n              fontSize: '40px',\n              fontWeight: 700,\n              offsetY: 6,\n              formatter: function (val) {\n                return val + '%'\n              },\n            },\n          },\n        },\n      },\n      fill: {\n        type: 'gradient',\n        gradient: {\n          shade: 'dark',\n          type: 'horizontal',\n          shadeIntensity: 0.5,\n          gradientToColors: ['#ABE5A1'],\n          inverseColors: true,\n          opacityFrom: 1,\n          opacityTo: 1,\n          stops: [0, 100],\n        },\n      },\n      stroke: {\n        lineCap: 'round',\n      },\n      labels: ['CPU Usage'],\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"gauge\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 380px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

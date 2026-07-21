@@ -1,0 +1,20 @@
+{
+  "title": "Circle Gauge Chart - Multiple",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [68, 82, 54, 91],\n  chart: {\n    height: 350,\n    type: 'radialBar',\n  },\n  plotOptions: {\n    radialBar: {\n      dataLabels: {\n        name: {\n          fontSize: '22px',\n        },\n        value: {\n          fontSize: '16px',\n        },\n        total: {\n          show: true,\n          label: 'Average',\n          formatter: function (w) {\n            // custom formatter: rounded average across all series, with a unit\n            var total = w.globals.seriesTotals.reduce(function (a, b) {\n              return a + b\n            }, 0)\n            return Math.round(total / w.globals.series.length) + '%'\n          },\n        },\n      },\n    },\n  },\n  labels: ['North', 'South', 'East', 'West'],\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Circle Gauge Chart - Multiple</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Basic Column - Grouped",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"bar\"\n        height=\"350\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [\n        {\n          name: 'Net Profit',\n          data: [44, 55, 57, 56, 61, 58, 63, 60, 66],\n        },\n        {\n          name: 'Revenue',\n          data: [76, 85, 101, 98, 87, 105, 91, 114, 94],\n        },\n        {\n          name: 'Free Cash Flow',\n          data: [35, 41, 36, 26, 45, 48, 52, 53, 41],\n        },\n      ],\n      chartOptions: {\n        chart: {\n          type: 'bar',\n          height: 350,\n        },\n        plotOptions: {\n          bar: {\n            horizontal: false,\n            columnWidth: '55%',\n            borderRadius: 5,\n            borderRadiusApplication: 'end',\n          },\n        },\n        dataLabels: {\n          enabled: false,\n        },\n        stroke: {\n          show: true,\n          width: 2,\n          colors: ['transparent'],\n        },\n        xaxis: {\n          categories: [\n            'Feb',\n            'Mar',\n            'Apr',\n            'May',\n            'Jun',\n            'Jul',\n            'Aug',\n            'Sep',\n            'Oct',\n          ],\n        },\n        yaxis: {\n          title: {\n            text: '$ (thousands)',\n          },\n        },\n        fill: {\n          opacity: 1,\n        },\n        tooltip: {\n          y: {\n            formatter: function (val) {\n              return '$ ' + val + ' thousands'\n            },\n          },\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

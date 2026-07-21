@@ -1,0 +1,15 @@
+{
+  "title": "Column with Group Labels",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\n// quarter label from a 'YYYY/MM/DD' date string, no external date library\nfunction quarterOf(val) {\n  return Math.floor(new Date(val).getMonth() / 3) + 1\n}\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Revenue',\n        data: [\n          {\n            x: '2024/01/01',\n            y: 400,\n          },\n          {\n            x: '2024/04/01',\n            y: 430,\n          },\n          {\n            x: '2024/07/01',\n            y: 448,\n          },\n          {\n            x: '2024/10/01',\n            y: 470,\n          },\n          {\n            x: '2025/01/01',\n            y: 540,\n          },\n          {\n            x: '2025/04/01',\n            y: 580,\n          },\n          {\n            x: '2025/07/01',\n            y: 690,\n          },\n          {\n            x: '2025/10/01',\n            y: 690,\n          },\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        type: 'bar',\n        height: 380,\n      },\n      xaxis: {\n        type: 'category',\n        labels: {\n          formatter: function (val) {\n            return 'Q' + quarterOf(val)\n          },\n        },\n        group: {\n          style: {\n            fontSize: '10px',\n            fontWeight: 700,\n          },\n          groups: [\n            { title: '2024', cols: 4 },\n            { title: '2025', cols: 4 },\n          ],\n        },\n      },\n      title: {\n        text: 'Quarterly Revenue',\n      },\n      yaxis: {\n        labels: {\n          formatter: function (val) {\n            return '$' + val + 'k'\n          },\n        },\n      },\n      tooltip: {\n        x: {\n          formatter: function (val) {\n            return 'Q' + quarterOf(val) + ' ' + new Date(val).getFullYear()\n          },\n        },\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"bar\"\n          height={380}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

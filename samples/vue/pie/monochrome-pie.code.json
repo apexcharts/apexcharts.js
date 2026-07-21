@@ -1,0 +1,10 @@
+{
+  "title": "Monochrome Pie with multiline labels",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"pie\"\n        width=\"380\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [820, 932, 901, 1290, 1330, 1520],\n      chartOptions: {\n        chart: {\n          width: 380,\n          type: 'pie',\n        },\n        labels: [\n          'Monday',\n          'Tuesday',\n          'Wednesday',\n          'Thursday',\n          'Friday',\n          'Saturday',\n        ],\n        theme: {\n          monochrome: {\n            enabled: true,\n          },\n        },\n        plotOptions: {\n          pie: {\n            dataLabels: {\n              offset: -5,\n            },\n          },\n        },\n        grid: {\n          padding: {\n            top: 0,\n            bottom: 0,\n            left: 0,\n            right: 0,\n          },\n        },\n        dataLabels: {\n          formatter(val, opts) {\n            const name = opts.w.globals.labels[opts.seriesIndex]\n            return [name, val.toFixed(1) + '%']\n          },\n        },\n        title: {\n          text: 'Orders by Day of Week',\n          align: 'center',\n        },\n        legend: {\n          show: false,\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 380px;\n  padding: 0;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

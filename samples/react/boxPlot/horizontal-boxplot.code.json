@@ -1,0 +1,15 @@
+{
+  "title": "Horizontal BoxPlot with Markers as Outliers",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        data: [\n          {\n            x: 'Engineering',\n            y: [54, 66, 69, 75, 88],\n            goals: [\n              {\n                value: 90,\n                strokeWidth: 10,\n                strokeHeight: 0,\n                strokeLineCap: 'round',\n                strokeColor: '#F283B6',\n              },\n              {\n                value: 93,\n                strokeWidth: 10,\n                strokeHeight: 0,\n                strokeLineCap: 'round',\n                strokeColor: '#F283B6',\n              },\n            ],\n          },\n          {\n            x: 'Sales',\n            y: [43, 65, 69, 76, 81],\n          },\n          {\n            x: 'Marketing',\n            y: [31, 39, 45, 51, 59],\n          },\n          {\n            x: 'Support',\n            y: [39, 46, 55, 65, 71],\n            goals: [\n              {\n                value: 30,\n                strokeWidth: 10,\n                strokeHeight: 0,\n                strokeLineCap: 'round',\n                strokeColor: '#F283B6',\n              },\n              {\n                value: 32,\n                strokeWidth: 10,\n                strokeHeight: 0,\n                strokeLineCap: 'round',\n                strokeColor: '#F283B6',\n              },\n              {\n                value: 76,\n                strokeWidth: 10,\n                strokeHeight: 0,\n                strokeLineCap: 'round',\n                strokeColor: '#F283B6',\n              },\n            ],\n          },\n          {\n            x: 'Design',\n            y: [41, 49, 58, 61, 67],\n          },\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        type: 'boxPlot',\n        height: 350,\n      },\n      title: {\n        text: 'Salary Range by Department ($k)',\n        align: 'left',\n      },\n      plotOptions: {\n        bar: {\n          horizontal: true,\n          barHeight: '40%',\n        },\n        boxPlot: {\n          colors: {\n            upper: '#B6C454',\n            lower: '#EDBFB7',\n          },\n        },\n      },\n      stroke: {\n        colors: ['#333'],\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"boxPlot\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

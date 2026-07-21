@@ -1,0 +1,10 @@
+{
+  "title": "Line with Image Fill",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"line\"\n        height=\"350\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [\n        {\n          name: 'Temperature',\n          data: [-2, 0, 6, 12, 18, 24, 28, 27, 21, 14, 7, 1],\n        },\n      ],\n      chartOptions: {\n        chart: {\n          height: 350,\n          type: 'line',\n        },\n        stroke: {\n          width: 14,\n          curve: 'smooth',\n        },\n        xaxis: {\n          categories: [\n            'Jan',\n            'Feb',\n            'Mar',\n            'Apr',\n            'May',\n            'Jun',\n            'Jul',\n            'Aug',\n            'Sep',\n            'Oct',\n            'Nov',\n            'Dec',\n          ],\n        },\n        title: {\n          text: 'Average Daily Temperature',\n          align: 'left',\n          style: {\n            fontSize: '16px',\n          },\n        },\n        subtitle: {\n          text: 'The line stroke is painted with an image fill',\n          align: 'left',\n        },\n        fill: {\n          type: 'image',\n          image: {\n            src: ['../../assets/images/2979121308_59539a3898_z.jpg'],\n            width: 640,\n            height: 424,\n          },\n        },\n        markers: {\n          size: 0,\n          opacity: 0,\n          colors: ['#fff'],\n          strokeColor: '#2e93fa',\n          strokeWidth: 2,\n          hover: {\n            size: 8,\n          },\n        },\n        yaxis: {\n          title: {\n            text: 'Temperature (°C)',\n          },\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Basic Area",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"area\"\n        height=\"350\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\n// This demo also loads: https://apexcharts.com/samples/assets/stock-prices.js\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [\n        {\n          name: 'Share Price',\n          data: series.monthDataSeries1.prices,\n        },\n      ],\n      chartOptions: {\n        chart: {\n          type: 'area',\n          height: 350,\n          zoom: {\n            enabled: false,\n          },\n        },\n        dataLabels: {\n          enabled: false,\n        },\n        stroke: {\n          curve: 'straight',\n        },\n\n        title: {\n          text: 'Meridian Corp Share Price',\n          align: 'left',\n        },\n        subtitle: {\n          text: 'Daily close, last quarter',\n          align: 'left',\n        },\n        labels: series.monthDataSeries1.dates.map(function (d) {\n          return d.replace('2017', '2025')\n        }),\n        xaxis: {\n          type: 'datetime',\n        },\n        legend: {\n          horizontalAlign: 'left',\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

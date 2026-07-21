@@ -1,0 +1,15 @@
+{
+  "title": "Circle Gauge Chart - Multiple",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [68, 82, 54, 91],\n    options: {\n      chart: {\n        height: 350,\n        type: 'radialBar',\n      },\n      plotOptions: {\n        radialBar: {\n          dataLabels: {\n            name: {\n              fontSize: '22px',\n            },\n            value: {\n              fontSize: '16px',\n            },\n            total: {\n              show: true,\n              label: 'Average',\n              formatter: function (w) {\n                // custom formatter: rounded average across all series, with a unit\n                var total = w.globals.seriesTotals.reduce(function (a, b) {\n                  return a + b\n                }, 0)\n                return Math.round(total / w.globals.series.length) + '%'\n              },\n            },\n          },\n        },\n      },\n      labels: ['North', 'South', 'East', 'West'],\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"radialBar\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "title": "Line &amp; Column",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Website Blog',\n        type: 'column',\n        data: [440, 505, 414, 671, 227, 413, 201, 352, 752, 320, 257, 160],\n      },\n      {\n        name: 'Social Media',\n        type: 'line',\n        data: [23, 42, 35, 27, 43, 22, 17, 31, 22, 22, 12, 16],\n      },\n    ],\n    options: {\n      chart: {\n        height: 350,\n        type: 'line',\n      },\n      stroke: {\n        width: [0, 4],\n      },\n      title: {\n        text: 'Traffic Sources',\n      },\n      dataLabels: {\n        enabled: true,\n        enabledOnSeries: [1],\n      },\n      labels: [\n        '01 Jan 2024',\n        '02 Jan 2024',\n        '03 Jan 2024',\n        '04 Jan 2024',\n        '05 Jan 2024',\n        '06 Jan 2024',\n        '07 Jan 2024',\n        '08 Jan 2024',\n        '09 Jan 2024',\n        '10 Jan 2024',\n        '11 Jan 2024',\n        '12 Jan 2024',\n      ],\n      yaxis: [\n        {\n          title: {\n            text: 'Website Blog',\n          },\n        },\n        {\n          opposite: true,\n          title: {\n            text: 'Social Media',\n          },\n        },\n      ],\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"line\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

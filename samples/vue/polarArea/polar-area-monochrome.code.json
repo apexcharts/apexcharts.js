@@ -1,0 +1,10 @@
+{
+  "title": "Polar Area - Style 2",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"polarArea\"\n        width=\"380\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [42, 47, 52, 58, 65],\n      chartOptions: {\n        chart: {\n          width: 380,\n          type: 'polarArea',\n        },\n        labels: ['Free', 'Basic', 'Pro', 'Team', 'Enterprise'],\n        title: {\n          text: 'Satisfaction Score by Plan Tier',\n          align: 'center',\n        },\n        fill: {\n          opacity: 1,\n        },\n        stroke: {\n          width: 1,\n          colors: undefined,\n        },\n        yaxis: {\n          show: false,\n        },\n        legend: {\n          position: 'bottom',\n        },\n        plotOptions: {\n          polarArea: {\n            rings: {\n              strokeWidth: 0,\n            },\n            spokes: {\n              strokeWidth: 0,\n            },\n          },\n        },\n        theme: {\n          monochrome: {\n            enabled: true,\n            shadeTo: 'light',\n            shadeIntensity: 0.6,\n          },\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  padding: 0;\n  max-width: 380px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

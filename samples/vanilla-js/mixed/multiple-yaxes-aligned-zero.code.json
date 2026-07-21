@@ -1,0 +1,20 @@
+{
+  "title": "Multiple Y Axis Aligned at Zero",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Profit',\n      type: 'column',\n      data: [5, 12, -8, 14, -3, 9, -2, 6],\n    },\n    {\n      name: 'Units Sold',\n      type: 'column',\n      data: [1.2, 2.1, 1.8, 2.7, 2.0, 2.4, 1.9, 2.6],\n    },\n    {\n      name: 'Index',\n      type: 'line',\n      data: [25, 27, 26, 29, 28, 29, 30, 30],\n    },\n  ],\n  chart: {\n    height: 350,\n    type: 'line',\n    stacked: false,\n  },\n  stroke: {\n    width: [0, 0, 4],\n  },\n  title: {\n    text: 'Multiple Y-Axes With Aligned Zero',\n    align: 'left',\n  },\n  xaxis: {\n    categories: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8'],\n  },\n  yaxis: [\n    {\n      seriesName: 'Profit',\n      alignZero: true,\n      axisTicks: { show: true },\n      axisBorder: { show: true, color: '#008FFB' },\n      labels: { style: { colors: '#008FFB' } },\n      title: { text: 'Profit (mixed +/-)', style: { color: '#008FFB' } },\n    },\n    {\n      seriesName: 'Units Sold',\n      alignZero: true,\n      opposite: true,\n      axisTicks: { show: true },\n      axisBorder: { show: true, color: '#00E396' },\n      labels: { style: { colors: '#00E396' } },\n      title: { text: 'Units (positive only)', style: { color: '#00E396' } },\n    },\n    {\n      seriesName: 'Index',\n      alignZero: true,\n      opposite: true,\n      axisTicks: { show: true },\n      axisBorder: { show: true, color: '#FEB019' },\n      labels: { style: { colors: '#FEB019' } },\n      title: { text: 'Index', style: { color: '#FEB019' } },\n    },\n  ],\n  tooltip: { shared: true, intersect: false },\n  legend: { horizontalAlign: 'left' },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Multiple Y Axis Aligned at Zero</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

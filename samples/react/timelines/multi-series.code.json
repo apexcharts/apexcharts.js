@@ -1,0 +1,15 @@
+{
+  "title": "Multi-series Timeline",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Frontend',\n        data: [\n          {\n            x: 'Design',\n            y: [\n              new Date('2024-03-05').getTime(),\n              new Date('2024-03-08').getTime(),\n            ],\n          },\n          {\n            x: 'Code',\n            y: [\n              new Date('2024-03-08').getTime(),\n              new Date('2024-03-11').getTime(),\n            ],\n          },\n          {\n            x: 'Test',\n            y: [\n              new Date('2024-03-11').getTime(),\n              new Date('2024-03-16').getTime(),\n            ],\n          },\n        ],\n      },\n      {\n        name: 'Backend',\n        data: [\n          {\n            x: 'Design',\n            y: [\n              new Date('2024-03-02').getTime(),\n              new Date('2024-03-05').getTime(),\n            ],\n          },\n          {\n            x: 'Code',\n            y: [\n              new Date('2024-03-06').getTime(),\n              new Date('2024-03-09').getTime(),\n            ],\n          },\n          {\n            x: 'Test',\n            y: [\n              new Date('2024-03-10').getTime(),\n              new Date('2024-03-19').getTime(),\n            ],\n          },\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        height: 350,\n        type: 'rangeBar',\n      },\n      title: {\n        text: 'Frontend vs Backend Schedule',\n      },\n      plotOptions: {\n        bar: {\n          borderRadius: 10,\n          horizontal: true,\n        },\n      },\n      dataLabels: {\n        enabled: true,\n        formatter: function (val) {\n          var diff = Math.round((val[1] - val[0]) / (1000 * 60 * 60 * 24))\n          return diff + (diff > 1 ? ' days' : ' day')\n        },\n      },\n      fill: {\n        type: 'gradient',\n        gradient: {\n          shade: 'light',\n          type: 'vertical',\n          shadeIntensity: 0.25,\n          gradientToColors: undefined,\n          inverseColors: true,\n          opacityFrom: 1,\n          opacityTo: 1,\n          stops: [50, 0, 100, 100],\n        },\n      },\n      xaxis: {\n        type: 'datetime',\n      },\n      legend: {\n        position: 'top',\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"rangeBar\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

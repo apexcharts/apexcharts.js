@@ -1,0 +1,15 @@
+{
+  "title": "Semi-Circle Gauge",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [83],\n    options: {\n      chart: {\n        height: 300,\n        type: 'gauge',\n      },\n      plotOptions: {\n        radialBar: {\n          startAngle: -90,\n          endAngle: 90,\n          track: {\n            background: '#e7e7e7',\n            strokeWidth: '97%',\n            margin: 5,\n          },\n          dataLabels: {\n            name: { show: false },\n            value: {\n              offsetY: -2,\n              fontSize: '32px',\n              formatter: function (val) {\n                return val + '%'\n              },\n            },\n          },\n        },\n      },\n      fill: {\n        type: 'gradient',\n        gradient: {\n          shade: 'light',\n          shadeIntensity: 0.4,\n          inverseColors: false,\n          opacityFrom: 1,\n          opacityTo: 1,\n          stops: [0, 50, 53, 91],\n        },\n      },\n      labels: ['Score'],\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"gauge\"\n          height={300}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 380px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

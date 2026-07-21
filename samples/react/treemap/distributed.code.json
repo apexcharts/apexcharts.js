@@ -1,0 +1,15 @@
+{
+  "title": "Distributed Treemap",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        data: [\n          {\n            x: 'node_modules',\n            y: 428,\n          },\n          {\n            x: 'assets',\n            y: 213,\n          },\n          {\n            x: '.git',\n            y: 154,\n          },\n          {\n            x: 'build',\n            y: 96,\n          },\n          {\n            x: 'vendor',\n            y: 88,\n          },\n          {\n            x: 'public',\n            y: 61,\n          },\n          {\n            x: 'src',\n            y: 47,\n          },\n          {\n            x: 'cache',\n            y: 39,\n          },\n          {\n            x: 'docs',\n            y: 24,\n          },\n          {\n            x: 'tests',\n            y: 18,\n          },\n          {\n            x: 'logs',\n            y: 12,\n          },\n          {\n            x: 'config',\n            y: 6,\n          },\n        ],\n      },\n    ],\n    options: {\n      legend: {\n        show: false,\n      },\n      chart: {\n        height: 350,\n        type: 'treemap',\n      },\n      title: {\n        text: 'Disk Usage by Folder (GB)',\n        align: 'center',\n      },\n      colors: [\n        '#3B93A5',\n        '#F7B844',\n        '#ADD8C7',\n        '#EC3C65',\n        '#CDD7B6',\n        '#C1F666',\n        '#D43F97',\n        '#1E5D8C',\n        '#421243',\n        '#7F94B0',\n        '#EF6537',\n        '#C0ADDB',\n      ],\n      plotOptions: {\n        treemap: {\n          distributed: true,\n          enableShades: false,\n        },\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"treemap\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

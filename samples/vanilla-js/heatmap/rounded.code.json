@@ -1,0 +1,20 @@
+{
+  "title": "Simple HeatMap",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "// Seeded PRNG so the heatmap is identical on every load (stable snapshots).\nvar __seed = 0x66f70829\nfunction rand() {\n  __seed |= 0\n  __seed = (__seed + 0x6d2b79f5) | 0\n  var t = Math.imul(__seed ^ (__seed >>> 15), 1 | __seed)\n  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t\n  return ((t ^ (t >>> 14)) >>> 0) / 4294967296\n}\n\nfunction generateData(count, yrange) {\n  var i = 0\n  var series = []\n  while (i < count) {\n    var x = (i + 1).toString()\n    var y = Math.floor(rand() * (yrange.max - yrange.min + 1)) + yrange.min\n\n    series.push({\n      x: x,\n      y: y,\n    })\n    i++\n  }\n  return series\n}\n\nvar options = {\n  series: [\n    {\n      name: 'Auth',\n      data: generateData(20, {\n        min: 0,\n        max: 90,\n      }),\n    },\n    {\n      name: 'API',\n      data: generateData(20, {\n        min: 0,\n        max: 90,\n      }),\n    },\n    {\n      name: 'UI',\n      data: generateData(20, {\n        min: 0,\n        max: 90,\n      }),\n    },\n    {\n      name: 'Database',\n      data: generateData(20, {\n        min: 0,\n        max: 90,\n      }),\n    },\n    {\n      name: 'Cache',\n      data: generateData(20, {\n        min: 0,\n        max: 90,\n      }),\n    },\n    {\n      name: 'Search',\n      data: generateData(20, {\n        min: 0,\n        max: 90,\n      }),\n    },\n    {\n      name: 'Payments',\n      data: generateData(20, {\n        min: 0,\n        max: 90,\n      }),\n    },\n    {\n      name: 'Email',\n      data: generateData(20, {\n        min: 0,\n        max: 90,\n      }),\n    },\n    {\n      name: 'Jobs',\n      data: generateData(20, {\n        min: 0,\n        max: 90,\n      }),\n    },\n  ],\n  chart: {\n    height: 350,\n    type: 'heatmap',\n  },\n  stroke: {\n    width: 0,\n  },\n  plotOptions: {\n    heatmap: {\n      radius: 30,\n      enableShades: false,\n      colorScale: {\n        ranges: [\n          {\n            from: 0,\n            to: 50,\n            color: '#008FFB',\n          },\n          {\n            from: 51,\n            to: 100,\n            color: '#00E396',\n          },\n        ],\n      },\n    },\n  },\n  dataLabels: {\n    enabled: true,\n    style: {\n      colors: ['#fff'],\n    },\n  },\n  xaxis: {\n    type: 'category',\n  },\n  title: {\n    text: 'Test Coverage % by Build (rounded cells)',\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Simple HeatMap</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

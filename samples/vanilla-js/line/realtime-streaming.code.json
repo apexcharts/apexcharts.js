@@ -1,0 +1,20 @@
+{
+  "title": "Streaming Line Chart (chart.streaming)",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var TICKINTERVAL = 1000\nvar XAXISRANGE = 29 * TICKINTERVAL\nvar lastX = new Date().getTime() - XAXISRANGE\nvar lastY = 50\nvar data = []\n\nfunction nextValue() {\n  lastY = Math.max(5, Math.min(95, lastY + (Math.random() - 0.5) * 20))\n  return Math.round(lastY)\n}\n\nwhile (data.length < 30) {\n  data.push({ x: lastX, y: nextValue() })\n  lastX += TICKINTERVAL\n}\n\nvar options = {\n  series: [\n    {\n      name: 'Signal',\n      data: data.slice(),\n    },\n  ],\n  chart: {\n    id: 'realtime-streaming',\n    height: 350,\n    type: 'line',\n    streaming: {\n      enabled: true,\n    },\n    animations: {\n      dynamicAnimation: {\n        speed: 1000,\n      },\n    },\n    toolbar: {\n      show: false,\n    },\n    zoom: {\n      enabled: false,\n    },\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  stroke: {\n    curve: 'smooth',\n  },\n  title: {\n    text: 'Streaming (bounded memory + linear scroll)',\n    align: 'left',\n  },\n  markers: {\n    size: 0,\n  },\n  xaxis: {\n    type: 'datetime',\n    range: XAXISRANGE,\n  },\n  yaxis: {\n    min: 0,\n    max: 100,\n  },\n  legend: {\n    show: false,\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n\nvar intervalRuns = 0\nvar interval = window.setInterval(function () {\n  intervalRuns++\n\n  lastX += TICKINTERVAL\n  chart.appendData([\n    {\n      data: [{ x: lastX, y: nextValue() }],\n    },\n  ])\n\n  if (intervalRuns === 2 && window.isATest === true) {\n    clearInterval(interval)\n  }\n}, TICKINTERVAL)\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Streaming Line Chart (chart.streaming)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <div class=\"explanation\">\n      Real-time streaming with <code>chart.streaming.enabled</code>: each tick\n      appends one point with <code>appendData()</code>. The window slides left\n      at constant velocity (no easing pulse, no in-place warp), and the series\n      array is trimmed automatically to the visible\n      <code>xaxis.range</code> window, so memory stays flat no matter how long\n      the stream runs. The same scroll works when a fixed-length rolling window\n      is passed to <code>updateSeries()</code>.\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n.explanation {\n  max-width: 620px;\n  margin: 0 auto 12px;\n  font-size: 13px;\n  color: #777;\n}\n"
+    }
+  ]
+}

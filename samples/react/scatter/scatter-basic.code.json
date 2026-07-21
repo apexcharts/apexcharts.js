@@ -1,0 +1,15 @@
+{
+  "title": "Scatter Chart",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Compact',\n        data: [\n          [1.0, 52],\n          [1.2, 49],\n          [1.3, 47],\n          [1.4, 50],\n          [1.5, 45],\n          [1.6, 44],\n          [1.6, 48],\n          [1.8, 42],\n          [1.4, 46],\n          [1.2, 51],\n          [1.0, 50],\n          [1.7, 43],\n        ],\n      },\n      {\n        name: 'Sedan',\n        data: [\n          [2.0, 38],\n          [2.2, 35],\n          [2.4, 34],\n          [2.5, 32],\n          [2.6, 33],\n          [2.8, 29],\n          [3.0, 27],\n          [2.3, 36],\n          [2.1, 37],\n          [2.7, 30],\n          [2.9, 28],\n          [2.4, 31],\n        ],\n      },\n      {\n        name: 'SUV',\n        data: [\n          [3.2, 26],\n          [3.5, 24],\n          [3.8, 22],\n          [4.0, 21],\n          [4.2, 20],\n          [4.5, 18],\n          [4.8, 17],\n          [5.0, 15],\n          [3.6, 23],\n          [4.1, 19],\n          [3.4, 25],\n          [4.6, 16],\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        height: 350,\n        type: 'scatter',\n        zoom: {\n          enabled: true,\n          type: 'xy',\n        },\n      },\n      title: {\n        text: 'Fuel Efficiency vs Engine Size',\n      },\n      xaxis: {\n        tickAmount: 10,\n        title: {\n          text: 'Engine Size (L)',\n        },\n        labels: {\n          formatter: function (val) {\n            return parseFloat(val).toFixed(1)\n          },\n        },\n      },\n      yaxis: {\n        tickAmount: 7,\n        title: {\n          text: 'Fuel Economy (mpg)',\n        },\n      },\n      tooltip: {\n        shared: false,\n        intersect: true,\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"scatter\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

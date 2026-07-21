@@ -1,0 +1,20 @@
+{
+  "title": "Basic Radar",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Model X',\n      data: [92, 60, 88, 95, 55, 90],\n    },\n    {\n      name: 'Model Y',\n      data: [70, 95, 66, 78, 85, 72],\n    },\n    {\n      name: 'Model Z',\n      data: [80, 78, 82, 70, 68, 60],\n    },\n  ],\n  chart: {\n    height: 350,\n    type: 'radar',\n  },\n  title: {\n    text: 'Smartphone Comparison',\n  },\n  stroke: {\n    width: 2,\n  },\n  fill: {\n    opacity: 0.1,\n  },\n  markers: {\n    size: 0,\n  },\n  yaxis: {\n    stepSize: 20,\n  },\n  xaxis: {\n    categories: [\n      'Performance',\n      'Battery',\n      'Camera',\n      'Display',\n      'Value',\n      'Design',\n    ],\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Basic Radar</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 450px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

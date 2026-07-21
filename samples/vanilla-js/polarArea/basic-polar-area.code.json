@@ -1,0 +1,20 @@
+{
+  "title": "Simple PolarArea",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [12, 8, 15, 23, 18, 9, 6, 11],\n  chart: {\n    type: 'polarArea',\n  },\n  labels: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],\n  title: {\n    text: 'Wind Frequency by Direction (%)',\n    align: 'center',\n  },\n  stroke: {\n    colors: ['#fff'],\n  },\n  fill: {\n    opacity: 0.8,\n  },\n  legend: {\n    position: 'bottom',\n  },\n  responsive: [\n    {\n      breakpoint: 480,\n      options: {\n        chart: {\n          width: 200,\n        },\n        legend: {\n          position: 'bottom',\n        },\n      },\n    },\n  ],\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Simple PolarArea</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 380px;\n  margin: 35px auto;\n  padding: 0;\n}\n"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Grouped Stacked Column",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Q1 Budget',\n      group: 'budget',\n      color: '#80c7fd',\n      data: [44000, 55000, 41000, 67000, 22000, 43000],\n    },\n    {\n      name: 'Q1 Actual',\n      group: 'actual',\n      color: '#008FFB',\n      data: [48000, 50000, 40000, 65000, 25000, 40000],\n    },\n    {\n      name: 'Q2 Budget',\n      group: 'budget',\n      color: '#80f1cb',\n      data: [13000, 36000, 20000, 8000, 13000, 27000],\n    },\n    {\n      name: 'Q2 Actual',\n      group: 'actual',\n      color: '#00E396',\n      data: [20000, 40000, 25000, 10000, 12000, 28000],\n    },\n  ],\n  chart: {\n    type: 'bar',\n    height: 350,\n    stacked: true,\n  },\n  stroke: {\n    width: 1,\n    colors: ['#fff'],\n  },\n  dataLabels: {\n    formatter: (val) => {\n      return val / 1000 + 'K'\n    },\n  },\n  plotOptions: {\n    bar: {\n      horizontal: false,\n    },\n  },\n  xaxis: {\n    categories: [\n      'Online ads',\n      'Sales Training',\n      'Print ads',\n      'Catalogs',\n      'Meetings',\n      'Public relations',\n    ],\n  },\n  fill: {\n    opacity: 1,\n  },\n  yaxis: {\n    labels: {\n      formatter: (val) => {\n        return val / 1000 + 'K'\n      },\n    },\n  },\n  legend: {\n    position: 'bottom',\n    clusterGroupedSeriesOrientation: 'vertical',\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Grouped Stacked Column</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

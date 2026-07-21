@@ -1,0 +1,20 @@
+{
+  "title": "Simple Pie",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [42, 23, 15, 12, 8],\n  chart: {\n    width: 480,\n    type: 'pie',\n  },\n  labels: ['Organic Search', 'Direct', 'Social', 'Referral', 'Email'],\n  title: {\n    text: 'Website Traffic by Source',\n    align: 'center',\n  },\n  legend: {\n    show: false,\n  },\n  plotOptions: {\n    pie: {\n      dataLabels: {\n        external: {\n          show: true,\n        },\n      },\n    },\n  },\n  responsive: [\n    {\n      breakpoint: 480,\n      options: {\n        chart: {\n          width: 320,\n        },\n      },\n    },\n  ],\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Simple Pie</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 480px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Line &amp; Area",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Sessions',\n      type: 'area',\n      data: [440, 550, 310, 470, 310, 430, 260, 410, 310, 470, 330],\n    },\n    {\n      name: 'Conversions',\n      type: 'line',\n      data: [55, 69, 45, 61, 43, 54, 37, 52, 44, 61, 43],\n    },\n  ],\n  chart: {\n    height: 350,\n    type: 'line',\n  },\n  stroke: {\n    curve: 'smooth',\n  },\n  fill: {\n    type: 'solid',\n    opacity: [0.35, 1],\n  },\n  labels: [\n    'Dec 01',\n    'Dec 02',\n    'Dec 03',\n    'Dec 04',\n    'Dec 05',\n    'Dec 06',\n    'Dec 07',\n    'Dec 08',\n    'Dec 09 ',\n    'Dec 10',\n    'Dec 11',\n  ],\n  markers: {\n    size: 0,\n  },\n  title: {\n    text: 'Sessions vs Conversions',\n  },\n  yaxis: [\n    {\n      title: {\n        text: 'Sessions',\n      },\n    },\n    {\n      opposite: true,\n      title: {\n        text: 'Conversions',\n      },\n    },\n  ],\n  tooltip: {\n    shared: true,\n    intersect: false,\n    y: {\n      formatter: function (y) {\n        if (typeof y !== 'undefined') {\n          return y.toFixed(0)\n        }\n        return y\n      },\n    },\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Line &amp; Area</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

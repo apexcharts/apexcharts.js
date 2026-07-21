@@ -1,0 +1,20 @@
+{
+  "title": "HeatMap with Gradient Legend",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "// Seeded PRNG so the heatmap is identical on every load (stable snapshots).\nvar __seed = 0x33c4e5f6\nfunction rand() {\n  __seed |= 0\n  __seed = (__seed + 0x6d2b79f5) | 0\n  var t = Math.imul(__seed ^ (__seed >>> 15), 1 | __seed)\n  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t\n  return ((t ^ (t >>> 14)) >>> 0) / 4294967296\n}\n\nfunction generateData(count, yrange) {\n  var i = 0\n  var series = []\n  while (i < count) {\n    var x = (i + 1).toString()\n    var y = Math.floor(rand() * (yrange.max - yrange.min + 1)) + yrange.min\n\n    series.push({\n      x: x,\n      y: y,\n    })\n    i++\n  }\n  return series\n}\n\nvar options = {\n  series: [\n    {\n      name: 'Jan',\n      data: generateData(18, { min: 0, max: 90 }),\n    },\n    {\n      name: 'Feb',\n      data: generateData(18, { min: 10, max: 90 }),\n    },\n    {\n      name: 'Mar',\n      data: generateData(18, { min: 20, max: 100 }),\n    },\n    {\n      name: 'Apr',\n      data: generateData(18, { min: 10, max: 100 }),\n    },\n    {\n      name: 'May',\n      data: generateData(18, { min: 0, max: 50 }),\n    },\n    {\n      name: 'Jun',\n      data: generateData(18, { min: 0, max: 90 }),\n    },\n    {\n      name: 'Jul',\n      data: generateData(18, { min: 0, max: 90 }),\n    },\n    {\n      name: 'Aug',\n      data: generateData(18, { min: 0, max: 90 }),\n    },\n    {\n      name: 'Sep',\n      data: generateData(18, { min: 0, max: 90 }),\n    },\n    {\n      name: 'Oct',\n      data: generateData(18, { min: 0, max: 90 }),\n    },\n    {\n      name: 'Nov',\n      data: generateData(18, { min: 0, max: 90 }),\n    },\n    {\n      name: 'Dec',\n      data: generateData(18, { min: 0, max: 90 }),\n    },\n  ],\n  chart: {\n    height: 380,\n    type: 'heatmap',\n  },\n  plotOptions: {\n    heatmap: {\n      shadeIntensity: 0.5,\n      radius: 2,\n      useFillColorAsStroke: false,\n      colorScale: {\n        // Continuous gradient legend replaces the default categorical legend.\n        // The arrow tracks the hovered cell's value along the spectrum and\n        // automatically reorients based on legend.position.\n        gradientLegend: {\n          enabled: true,\n          width: '75%',\n          thickness: 14,\n          showHoverValue: true,\n        },\n      },\n    },\n  },\n  colors: ['#008FFB'],\n  dataLabels: {\n    enabled: false,\n  },\n  stroke: {\n    width: 1,\n  },\n  legend: {\n    position: 'right',\n  },\n  title: {\n    text: 'Monthly Rainfall (mm) — continuous gradient legend',\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>HeatMap with Gradient Legend</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

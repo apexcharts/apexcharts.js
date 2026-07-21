@@ -1,0 +1,20 @@
+{
+  "title": "TimeSeries With Irregular Data",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var base = new Date('01 Jan 2025 GMT').getTime()\nvar ts1 = base\nvar ts2 = base + 86400000\nvar ts3 = base + 518400000\n\nvar dataSet = [[], [], []]\n\nfor (var i = 0; i < 12; i++) {\n  ts1 = ts1 + 86400000\n  var innerArr = [ts1, dataSeries[2][i].value]\n  dataSet[0].push(innerArr)\n}\nfor (var i = 0; i < 18; i++) {\n  ts2 = ts2 + 86400000\n  var innerArr = [ts2, dataSeries[1][i].value]\n  dataSet[1].push(innerArr)\n}\nfor (var i = 0; i < 12; i++) {\n  ts3 = ts3 + 86400000\n  var innerArr = [ts3, dataSeries[0][i].value]\n  dataSet[2].push(innerArr)\n}\n\nvar options = {\n  series: [\n    {\n      name: 'Auth API',\n      data: dataSet[0],\n    },\n    {\n      name: 'Search API',\n      data: dataSet[1],\n    },\n    {\n      name: 'Media API',\n      data: dataSet[2],\n    },\n  ],\n  chart: {\n    type: 'area',\n    stacked: false,\n    height: 350,\n    zoom: {\n      enabled: false,\n    },\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  markers: {\n    size: 0,\n  },\n  fill: {\n    type: 'gradient',\n    gradient: {\n      shadeIntensity: 1,\n      inverseColors: false,\n      opacityFrom: 0.45,\n      opacityTo: 0.05,\n      stops: [20, 100, 100, 100],\n    },\n  },\n  yaxis: {\n    labels: {\n      style: {\n        colors: '#8e8da4',\n      },\n      offsetX: 0,\n      formatter: function (val) {\n        return (val / 1000000).toFixed(1) + 'M'\n      },\n    },\n    title: {\n      text: 'Requests',\n    },\n    axisBorder: {\n      show: false,\n    },\n    axisTicks: {\n      show: false,\n    },\n  },\n  xaxis: {\n    type: 'datetime',\n    tickAmount: 8,\n    min: new Date('01/01/2025').getTime(),\n    max: new Date('01/20/2025').getTime(),\n    labels: {\n      rotate: -15,\n      rotateAlways: true,\n      format: 'dd MMM yyyy',\n    },\n  },\n  title: {\n    text: 'Requests by Service (irregular intervals)',\n    align: 'left',\n    offsetX: 14,\n  },\n  tooltip: {\n    shared: true,\n  },\n  legend: {\n    position: 'top',\n    horizontalAlign: 'right',\n    offsetX: -10,\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>TimeSeries With Irregular Data</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://apexcharts.com/samples/assets/irregular-data-series.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

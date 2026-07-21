@@ -1,0 +1,20 @@
+{
+  "title": "Column - Parsing Data",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "// Objects with named fields; the chart maps them to x/y via the parsing option.\nconst productsList = [\n  {\n    productId: 1,\n    productName: 'Cold Brew',\n    unitPrice: 24.5,\n    unitsInStock: 320,\n  },\n  {\n    productId: 2,\n    productName: 'Espresso Beans',\n    unitPrice: 18.0,\n    unitsInStock: 210,\n  },\n  {\n    productId: 3,\n    productName: 'Matcha Powder',\n    unitPrice: 32.0,\n    unitsInStock: 140,\n  },\n  {\n    productId: 4,\n    productName: 'Chai Blend',\n    unitPrice: 15.5,\n    unitsInStock: 410,\n  },\n  {\n    productId: 5,\n    productName: 'Hazelnut Syrup',\n    unitPrice: 12.0,\n    unitsInStock: 275,\n  },\n]\n\nvar options = {\n  series: [\n    {\n      name: 'Price',\n      data: productsList,\n      parsing: {\n        x: 'productName',\n        y: 'unitPrice',\n      },\n    },\n    {\n      name: 'Stock',\n      data: productsList,\n      parsing: {\n        x: 'productName',\n        y: 'unitsInStock',\n      },\n    },\n  ],\n  chart: {\n    type: 'bar',\n    height: 350,\n  },\n  title: {\n    text: 'Product Price & Stock',\n    align: 'left',\n  },\n  subtitle: {\n    text: 'Object arrays mapped to x/y via the parsing option',\n    align: 'left',\n  },\n  plotOptions: {\n    bar: {\n      horizontal: false,\n      borderRadius: 0,\n    },\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  stroke: {\n    show: true,\n    width: 2,\n  },\n  fill: {\n    opacity: 1,\n  },\n  yaxis: [\n    {\n      seriesName: 'Price',\n      min: 0,\n      title: {\n        text: 'Price',\n      },\n      labels: {\n        formatter: (val) => {\n          return '$' + val.toFixed(2)\n        },\n      },\n    },\n    {\n      opposite: true,\n      seriesName: 'Stock',\n      min: 0,\n      title: {\n        text: 'Stock',\n      },\n      labels: {\n        formatter: (val) => {\n          return val\n        },\n      },\n    },\n  ],\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Column - Parsing Data</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

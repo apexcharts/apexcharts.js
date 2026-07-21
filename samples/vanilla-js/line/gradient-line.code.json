@@ -1,0 +1,20 @@
+{
+  "title": "Gradient Line",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Sales',\n      data: [34, 52, 41, 63, 48, 72, 55, 84, 66, 58, 91, 74, 103, 96, 118],\n    },\n  ],\n  chart: {\n    height: 350,\n    type: 'line',\n  },\n  forecastDataPoints: {\n    count: 5,\n  },\n  stroke: {\n    width: 5,\n    curve: 'smooth',\n  },\n  xaxis: {\n    type: 'datetime',\n    categories: [\n      '1/1/2025',\n      '2/1/2025',\n      '3/1/2025',\n      '4/1/2025',\n      '5/1/2025',\n      '6/1/2025',\n      '7/1/2025',\n      '8/1/2025',\n      '9/1/2025',\n      '10/1/2025',\n      '11/1/2025',\n      '12/1/2025',\n      '1/1/2026',\n      '2/1/2026',\n      '3/1/2026',\n    ],\n    tickAmount: 10,\n    labels: {\n      formatter: function (value, timestamp, opts) {\n        return opts.dateFormatter(new Date(timestamp), 'MMM yy')\n      },\n    },\n  },\n  title: {\n    text: 'Monthly Sales with Forecast',\n    align: 'left',\n    style: {\n      fontSize: '16px',\n      color: '#666',\n    },\n  },\n  yaxis: {\n    labels: {\n      formatter: function (val) {\n        return '$' + val + 'k'\n      },\n    },\n  },\n  fill: {\n    type: 'gradient',\n    gradient: {\n      shade: 'dark',\n      gradientToColors: ['#FDD835'],\n      shadeIntensity: 1,\n      type: 'horizontal',\n      opacityFrom: 1,\n      opacityTo: 1,\n      stops: [0, 100, 100, 100],\n    },\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Gradient Line</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

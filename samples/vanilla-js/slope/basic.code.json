@@ -1,0 +1,20 @@
+{
+  "title": "Slope Chart",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Platform',\n      data: [\n        {\n          x: 'Q1',\n          y: 43,\n        },\n        {\n          x: 'Q2',\n          y: 58,\n        },\n      ],\n    },\n    {\n      name: 'Mobile',\n      data: [\n        {\n          x: 'Q1',\n          y: 33,\n        },\n        {\n          x: 'Q2',\n          y: 38,\n        },\n      ],\n    },\n    {\n      name: 'Web',\n      data: [\n        {\n          x: 'Q1',\n          y: 55,\n        },\n        {\n          x: 'Q2',\n          y: 21,\n        },\n      ],\n    },\n  ],\n  chart: {\n    height: 350,\n    width: 400,\n    type: 'line',\n  },\n  plotOptions: {\n    line: {\n      isSlopeChart: true,\n    },\n  },\n  title: {\n    text: 'Sprint Velocity: Q1 to Q2',\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Slope Chart</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

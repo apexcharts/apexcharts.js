@@ -1,0 +1,10 @@
+{
+  "title": "Basic Gauge",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"gauge\"\n        height=\"350\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [72],\n      chartOptions: {\n        chart: {\n          height: 350,\n          type: 'gauge',\n        },\n        labels: ['Progress'],\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  padding: 0;\n  max-width: 380px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

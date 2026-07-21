@@ -1,0 +1,20 @@
+{
+  "title": "Polar Area - Style 2",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [42, 47, 52, 58, 65],\n  chart: {\n    width: 380,\n    type: 'polarArea',\n  },\n  labels: ['Free', 'Basic', 'Pro', 'Team', 'Enterprise'],\n  title: {\n    text: 'Satisfaction Score by Plan Tier',\n    align: 'center',\n  },\n  fill: {\n    opacity: 1,\n  },\n  stroke: {\n    width: 1,\n    colors: undefined,\n  },\n  yaxis: {\n    show: false,\n  },\n  legend: {\n    position: 'bottom',\n  },\n  plotOptions: {\n    polarArea: {\n      rings: {\n        strokeWidth: 0,\n      },\n      spokes: {\n        strokeWidth: 0,\n      },\n    },\n  },\n  theme: {\n    monochrome: {\n      enabled: true,\n      shadeTo: 'light',\n      shadeIntensity: 0.6,\n    },\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Polar Area - Style 2</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 380px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

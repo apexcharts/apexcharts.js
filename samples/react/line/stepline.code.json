@@ -1,0 +1,15 @@
+{
+  "title": "Stepline Chart",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Setpoint',\n        data: [16, 16, 18, 21, 21, 19, 19, 22, 22, 18, 16],\n      },\n    ],\n    options: {\n      chart: {\n        type: 'line',\n        height: 350,\n      },\n      stroke: {\n        curve: 'stepline',\n      },\n      dataLabels: {\n        enabled: false,\n      },\n      title: {\n        text: 'Thermostat Setpoint',\n        align: 'left',\n      },\n      subtitle: {\n        text: \"curve: 'stepline' holds each value until the next point\",\n        align: 'left',\n      },\n      xaxis: {\n        categories: [\n          '00:00',\n          '02:00',\n          '04:00',\n          '06:00',\n          '08:00',\n          '10:00',\n          '12:00',\n          '14:00',\n          '16:00',\n          '18:00',\n          '20:00',\n        ],\n      },\n      yaxis: {\n        labels: {\n          formatter: function (val) {\n            return val + '°C'\n          },\n        },\n      },\n      markers: {\n        hover: {\n          sizeOffset: 4,\n        },\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"line\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

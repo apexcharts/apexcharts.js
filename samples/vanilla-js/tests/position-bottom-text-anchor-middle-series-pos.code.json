@@ -1,0 +1,20 @@
+{
+  "title": "Position Bottom Text Anchor Middle Series Pos",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      data: [400, 430, 1, 470, 540, 580, 690, 1100, 1200, 1380],\n    },\n  ],\n  chart: {\n    type: 'bar',\n    height: 380,\n  },\n  plotOptions: {\n    bar: {\n      horizontal: true,\n      dataLabels: {\n        position: 'bottom',\n      },\n    },\n  },\n\n  dataLabels: {\n    enabled: true,\n    textAnchor: 'middle',\n    style: {\n      colors: ['#333'],\n    },\n    formatter: function (val, opt) {\n      return opt.w.globals.labels[opt.dataPointIndex] + ':  ' + val\n    },\n  },\n  fill: {\n    opacity: 0.5,\n  },\n  xaxis: {\n    categories: [\n      'South Korea',\n      'Canada',\n      'United Kingdom',\n      'Netherlands',\n      'Italy',\n      'France',\n      'Japan',\n      'United States',\n      'China',\n      'India',\n    ],\n  },\n  yaxis: {\n    labels: {\n      show: false,\n    },\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Position Bottom Text Anchor Middle Series Pos</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

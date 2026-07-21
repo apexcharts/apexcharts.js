@@ -1,0 +1,10 @@
+{
+  "title": "Basic BoxPlot Chart",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"boxPlot\"\n        height=\"350\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [\n        {\n          type: 'boxPlot',\n          data: [\n            {\n              x: 'Jan 2015',\n              y: [54, 66, 69, 75, 88],\n            },\n            {\n              x: 'Jan 2016',\n              y: [43, 65, 69, 76, 81],\n            },\n            {\n              x: 'Jan 2017',\n              y: [31, 39, 45, 51, 59],\n            },\n            {\n              x: 'Jan 2018',\n              y: [39, 46, 55, 65, 71],\n            },\n            {\n              x: 'Jan 2019',\n              y: [29, 31, 35, 39, 44],\n            },\n            {\n              x: 'Jan 2020',\n              y: [41, 49, 58, 61, 67],\n            },\n            {\n              x: 'Jan 2021',\n              y: [54, 59, 66, 71, 88],\n            },\n          ],\n        },\n      ],\n      chartOptions: {\n        chart: {\n          type: 'boxPlot',\n          height: 350,\n        },\n        title: {\n          text: 'Basic BoxPlot Chart',\n          align: 'left',\n        },\n        plotOptions: {\n          boxPlot: {\n            colors: {\n              upper: '#5C4742',\n              lower: '#A5978B',\n            },\n          },\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

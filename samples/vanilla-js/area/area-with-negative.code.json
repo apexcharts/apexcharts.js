@@ -1,0 +1,20 @@
+{
+  "title": "Area with different negative color",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Net Cash Flow',\n      data: [18, -24, 41, -33, 12, 58, -47, 29, -18, 63, 22, -39],\n    },\n  ],\n  chart: {\n    height: 350,\n    type: 'area',\n    zoom: {\n      enabled: false,\n    },\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  title: {\n    text: 'Monthly Net Cash Flow',\n    align: 'left',\n  },\n  subtitle: {\n    text: 'Months in deficit draw in a different color',\n    align: 'left',\n  },\n  yaxis: {\n    labels: {\n      formatter: function (val) {\n        return '$' + val + 'k'\n      },\n    },\n  },\n  xaxis: {\n    categories: [\n      'Jan',\n      'Feb',\n      'Mar',\n      'Apr',\n      'May',\n      'Jun',\n      'Jul',\n      'Aug',\n      'Sep',\n      'Oct',\n      'Nov',\n      'Dec',\n    ],\n  },\n  stroke: {\n    width: 0,\n  },\n  plotOptions: {\n    line: {\n      colors: {\n        threshold: 0,\n        colorAboveThreshold: '#00E396',\n        colorBelowThreshold: '#FF4560',\n      },\n    },\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Area with different negative color</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

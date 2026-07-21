@@ -2,6 +2,7 @@ const fs = require('fs-extra')
 const nunjucks = require('nunjucks')
 const path = require('path')
 const prettier = require('prettier')
+const { buildCodeManifest } = require('./code-manifests')
 
 const samplesDir = path.join(__dirname, '..')
 
@@ -302,6 +303,20 @@ async function generateSampleHtml() {
             path.join(outputDir, fileName.slice(0, -3) + 'html'),
             html
           )
+
+          // Display manifest consumed by the website's source-code tabs.
+          const manifest = await buildCodeManifest(
+            format,
+            info,
+            ctx.html,
+            `${format}/${dirName}/${fileName}`
+          )
+          if (manifest) {
+            await fs.promises.writeFile(
+              path.join(outputDir, fileName.slice(0, -4) + '.code.json'),
+              JSON.stringify(manifest, null, 2)
+            )
+          }
         }
       } else {
         // Copy non-xml files without any processing

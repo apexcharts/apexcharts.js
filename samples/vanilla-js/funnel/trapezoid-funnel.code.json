@@ -1,0 +1,20 @@
+{
+  "title": "Trapezoid Funnel",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Conversion',\n      data: [10000, 6400, 3800, 2200, 1100, 420],\n    },\n  ],\n  chart: {\n    type: 'funnel',\n    height: 400,\n    dropShadow: {\n      enabled: true,\n    },\n  },\n  plotOptions: {\n    funnel: {\n      shape: 'trapezoid',\n      lastShape: 'flat',\n    },\n    bar: {\n      barHeight: '90%',\n      distributed: true,\n    },\n  },\n  colors: ['#3b82f6', '#00a3f4', '#00b7b8', '#00c161', '#93bd00', '#ffa600'],\n  dataLabels: {\n    enabled: true,\n    formatter: function (val, opt) {\n      // narrow segments only fit the value; the tooltip still shows the stage name\n      if (val < 2000) return val\n      return opt.w.globals.labels[opt.dataPointIndex] + ': ' + val\n    },\n    style: {\n      colors: ['#fff'],\n      fontSize: '14px',\n      fontWeight: 600,\n    },\n  },\n  title: {\n    text: 'Sales Funnel: Trapezoid',\n    align: 'middle',\n  },\n  xaxis: {\n    categories: ['Visits', 'Signups', 'Activated', 'Engaged', 'Trial', 'Paid'],\n  },\n  legend: {\n    show: false,\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trapezoid Funnel</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

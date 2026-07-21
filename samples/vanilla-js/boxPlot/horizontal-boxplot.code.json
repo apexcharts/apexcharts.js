@@ -1,0 +1,20 @@
+{
+  "title": "Horizontal BoxPlot with Markers as Outliers",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      data: [\n        {\n          x: 'Engineering',\n          y: [54, 66, 69, 75, 88],\n          goals: [\n            {\n              value: 90,\n              strokeWidth: 10,\n              strokeHeight: 0,\n              strokeLineCap: 'round',\n              strokeColor: '#F283B6',\n            },\n            {\n              value: 93,\n              strokeWidth: 10,\n              strokeHeight: 0,\n              strokeLineCap: 'round',\n              strokeColor: '#F283B6',\n            },\n          ],\n        },\n        {\n          x: 'Sales',\n          y: [43, 65, 69, 76, 81],\n        },\n        {\n          x: 'Marketing',\n          y: [31, 39, 45, 51, 59],\n        },\n        {\n          x: 'Support',\n          y: [39, 46, 55, 65, 71],\n          goals: [\n            {\n              value: 30,\n              strokeWidth: 10,\n              strokeHeight: 0,\n              strokeLineCap: 'round',\n              strokeColor: '#F283B6',\n            },\n            {\n              value: 32,\n              strokeWidth: 10,\n              strokeHeight: 0,\n              strokeLineCap: 'round',\n              strokeColor: '#F283B6',\n            },\n            {\n              value: 76,\n              strokeWidth: 10,\n              strokeHeight: 0,\n              strokeLineCap: 'round',\n              strokeColor: '#F283B6',\n            },\n          ],\n        },\n        {\n          x: 'Design',\n          y: [41, 49, 58, 61, 67],\n        },\n      ],\n    },\n  ],\n  chart: {\n    type: 'boxPlot',\n    height: 350,\n  },\n  title: {\n    text: 'Salary Range by Department ($k)',\n    align: 'left',\n  },\n  plotOptions: {\n    bar: {\n      horizontal: true,\n      barHeight: '40%',\n    },\n    boxPlot: {\n      colors: {\n        upper: '#B6C454',\n        lower: '#EDBFB7',\n      },\n    },\n  },\n  stroke: {\n    colors: ['#333'],\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Horizontal BoxPlot with Markers as Outliers</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

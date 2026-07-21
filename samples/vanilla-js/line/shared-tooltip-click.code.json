@@ -1,0 +1,20 @@
+{
+  "title": "Line: Shared Tooltip Click Reports Correct Series",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    { name: 'Desktops', data: [10, 16, 12, 18, 13, 20, 15, 22, 17] },\n    { name: 'Tablets', data: [38, 45, 40, 47, 42, 49, 44, 51, 46] },\n    { name: 'Phones', data: [66, 73, 68, 75, 70, 77, 72, 79, 74] },\n    { name: 'Watches', data: [94, 101, 96, 103, 98, 105, 100, 107, 102] },\n    { name: 'Projectors', data: [122, 129, 124, 131, 126, 133, 128, 135, 130] },\n  ],\n  chart: {\n    height: 380,\n    width: '100%',\n    type: 'line',\n  },\n  tooltip: {\n    shared: true,\n  },\n  markers: {\n    size: 5,\n  },\n  stroke: {\n    curve: 'straight',\n  },\n  title: {\n    text: 'Shared tooltip: click reports the clicked series',\n    align: 'left',\n  },\n  xaxis: {\n    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Line: Shared Tooltip Click Reports Correct Series</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

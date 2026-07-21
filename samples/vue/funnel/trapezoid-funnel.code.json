@@ -1,0 +1,10 @@
+{
+  "title": "Trapezoid Funnel",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"funnel\"\n        height=\"400\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [\n        {\n          name: 'Conversion',\n          data: [10000, 6400, 3800, 2200, 1100, 420],\n        },\n      ],\n      chartOptions: {\n        chart: {\n          type: 'funnel',\n          height: 400,\n          dropShadow: {\n            enabled: true,\n          },\n        },\n        plotOptions: {\n          funnel: {\n            shape: 'trapezoid',\n            lastShape: 'flat',\n          },\n          bar: {\n            barHeight: '90%',\n            distributed: true,\n          },\n        },\n        colors: [\n          '#3b82f6',\n          '#00a3f4',\n          '#00b7b8',\n          '#00c161',\n          '#93bd00',\n          '#ffa600',\n        ],\n        dataLabels: {\n          enabled: true,\n          formatter: function (val, opt) {\n            // narrow segments only fit the value; the tooltip still shows the stage name\n            if (val < 2000) return val\n            return opt.w.globals.labels[opt.dataPointIndex] + ': ' + val\n          },\n          style: {\n            colors: ['#fff'],\n            fontSize: '14px',\n            fontWeight: 600,\n          },\n        },\n        title: {\n          text: 'Sales Funnel: Trapezoid',\n          align: 'middle',\n        },\n        xaxis: {\n          categories: [\n            'Visits',\n            'Signups',\n            'Activated',\n            'Engaged',\n            'Trial',\n            'Paid',\n          ],\n        },\n        legend: {\n          show: false,\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Stacked Column",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'North',\n      data: [40, 50, -27, 60, 20, 40],\n    },\n    {\n      name: 'South',\n      data: [10, 20, 20, 0, 10, 20],\n    },\n    {\n      name: 'East',\n      data: [10, 10, -10, 10, 20, 10],\n    },\n    {\n      name: 'West',\n      data: [10, 10, 20, 10, 20, 10],\n    },\n  ],\n  chart: {\n    type: 'bar',\n    height: 350,\n    stacked: true,\n    toolbar: {\n      show: true,\n    },\n    zoom: {\n      enabled: true,\n    },\n  },\n  responsive: [\n    {\n      breakpoint: 650,\n      options: {\n        legend: {\n          position: 'bottom',\n          offsetX: -10,\n          offsetY: 0,\n        },\n      },\n    },\n  ],\n  plotOptions: {\n    bar: {\n      horizontal: false,\n      borderRadius: 10,\n      borderRadiusApplication: 'end', // 'around', 'end'\n      borderRadiusWhenStacked: 'last', // 'all', 'last'\n      dataLabels: {\n        total: {\n          enabled: true,\n          style: {\n            fontSize: '13px',\n            fontWeight: 900,\n          },\n        },\n      },\n    },\n  },\n  stroke: {\n    show: true,\n    width: 3,\n  },\n  title: {\n    text: 'Regional Net Sales (outlined columns)',\n    align: 'left',\n  },\n  dataLabels: {\n    style: {\n      colors: ['black'],\n    },\n  },\n  xaxis: {\n    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],\n  },\n  yaxis: {\n    reversed: false,\n  },\n  legend: {\n    position: 'right',\n    offsetY: 40,\n  },\n  fill: {\n    opacity: 0.4,\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Stacked Column</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

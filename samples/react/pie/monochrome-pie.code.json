@@ -1,0 +1,15 @@
+{
+  "title": "Monochrome Pie with multiline labels",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [820, 932, 901, 1290, 1330, 1520],\n    options: {\n      chart: {\n        width: 380,\n        type: 'pie',\n      },\n      labels: [\n        'Monday',\n        'Tuesday',\n        'Wednesday',\n        'Thursday',\n        'Friday',\n        'Saturday',\n      ],\n      theme: {\n        monochrome: {\n          enabled: true,\n        },\n      },\n      plotOptions: {\n        pie: {\n          dataLabels: {\n            offset: -5,\n          },\n        },\n      },\n      grid: {\n        padding: {\n          top: 0,\n          bottom: 0,\n          left: 0,\n          right: 0,\n        },\n      },\n      dataLabels: {\n        formatter(val, opts) {\n          const name = opts.w.globals.labels[opts.seriesIndex]\n          return [name, val.toFixed(1) + '%']\n        },\n      },\n      title: {\n        text: 'Orders by Day of Week',\n        align: 'center',\n      },\n      legend: {\n        show: false,\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"pie\"\n          width={380}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 380px;\n  padding: 0;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "title": "Donut Update",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [44, 55, 13, 33],\n    options: {\n      chart: {\n        width: 380,\n        type: 'donut',\n      },\n      labels: ['Stocks', 'Bonds', 'Real Estate', 'Cash'],\n      title: {\n        text: 'Portfolio Allocation',\n      },\n      dataLabels: {\n        enabled: false,\n      },\n      responsive: [\n        {\n          breakpoint: 480,\n          options: {\n            chart: {\n              width: 200,\n            },\n            legend: {\n              show: false,\n            },\n          },\n        },\n      ],\n      legend: {\n        position: 'right',\n        offsetY: 0,\n        height: 230,\n      },\n    },\n  })\n\n  function appendData() {\n    var arr = state.series.slice()\n    arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)\n\n    setState({\n      ...state,\n      series: arr,\n    })\n  }\n\n  function removeData() {\n    if (state.series.length === 1) return\n\n    var arr = state.series.slice()\n    arr.pop()\n\n    setState({\n      ...state,\n      series: arr,\n    })\n  }\n\n  function randomize() {\n    setState({\n      ...state,\n      series: state.series.map(function () {\n        return Math.floor(Math.random() * (100 - 1 + 1)) + 1\n      }),\n    })\n  }\n\n  function reset() {\n    setState({\n      ...state,\n      series: [44, 55, 13, 33],\n    })\n  }\n\n  return (\n    <div>\n      <div>\n        <div className=\"chart-wrap\">\n          <div id=\"chart\">\n            <ReactApexChart\n              options={state.options}\n              series={state.series}\n              type=\"donut\"\n              width={380}\n            />\n          </div>\n        </div>\n\n        <div className=\"actions\">\n          <button onClick={() => appendData()}>+ ADD</button>\n          &nbsp;\n          <button onClick={() => removeData()}>- REMOVE</button>\n          &nbsp;\n          <button onClick={() => randomize()}>RANDOMIZE</button>\n          &nbsp;\n          <button onClick={() => reset()}>RESET</button>\n        </div>\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 480px;\n  margin: 35px auto;\n  padding: 0;\n}\n.actions {\n  top: -10px;\n  position: relative;\n  z-index: 10;\n  max-width: 400px;\n  margin: 0 auto;\n}\nbutton {\n  color: #fff;\n  background: #20b2aa;\n  padding: 5px 10px;\n  margin: 2px;\n  font-weight: bold;\n  font-size: 13px;\n  border-radius: 5px;\n}\np {\n  margin: 10px 0;\n}\n@media only screen and (max-width: 480px) {\n  .actions {\n    margin-top: 0;\n    left: 0;\n  }\n}\n"
+    }
+  ]
+}

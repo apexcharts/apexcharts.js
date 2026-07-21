@@ -1,0 +1,15 @@
+{
+  "title": "Stacked Bar Chart with Negative Values",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Males',\n        data: [\n          0.4, 0.65, 0.76, 0.88, 1.5, 2.1, 2.9, 3.8, 3.9, 4.2, 4, 4.3, 4.1, 4.2,\n          4.5, 3.9, 3.5, 3,\n        ],\n      },\n      {\n        name: 'Females',\n        data: [\n          -0.8, -1.05, -1.06, -1.18, -1.4, -2.2, -2.85, -3.7, -3.96, -4.22,\n          -4.3, -4.4, -4.1, -4, -4.1, -3.4, -3.1, -2.8,\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        type: 'bar',\n        height: 440,\n        stacked: true,\n      },\n      colors: ['#008FFB', '#FF4560'],\n      plotOptions: {\n        bar: {\n          borderRadius: 5,\n          borderRadiusApplication: 'end', // 'around', 'end'\n          borderRadiusWhenStacked: 'all', // 'all', 'last'\n          horizontal: true,\n          barHeight: '80%',\n        },\n      },\n      dataLabels: {\n        enabled: false,\n      },\n      stroke: {\n        width: 1,\n        colors: ['#fff'],\n      },\n\n      grid: {\n        xaxis: {\n          lines: {\n            show: false,\n          },\n        },\n      },\n      yaxis: {\n        stepSize: 1,\n      },\n      tooltip: {\n        shared: false,\n        x: {\n          formatter: function (val) {\n            return val\n          },\n        },\n        y: {\n          formatter: function (val) {\n            return Math.abs(val) + '%'\n          },\n        },\n      },\n      title: {\n        text: 'Mauritius Population Pyramid 2024',\n      },\n      xaxis: {\n        categories: [\n          '85+',\n          '80-84',\n          '75-79',\n          '70-74',\n          '65-69',\n          '60-64',\n          '55-59',\n          '50-54',\n          '45-49',\n          '40-44',\n          '35-39',\n          '30-34',\n          '25-29',\n          '20-24',\n          '15-19',\n          '10-14',\n          '5-9',\n          '0-4',\n        ],\n        title: {\n          text: 'Percent',\n        },\n        labels: {\n          formatter: function (val) {\n            return Math.abs(Math.round(val)) + '%'\n          },\n        },\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"bar\"\n          height={440}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

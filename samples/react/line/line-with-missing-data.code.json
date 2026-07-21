@@ -1,0 +1,15 @@
+{
+  "title": "Line Chart with missing data",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'us-east-1',\n        data: [\n          142,\n          138,\n          155,\n          149,\n          151,\n          144,\n          139,\n          null,\n          null,\n          null,\n          158,\n          162,\n          147,\n          150,\n          141,\n          146,\n        ],\n      },\n      {\n        name: 'eu-west-1',\n        data: [\n          210,\n          225,\n          null,\n          218,\n          null,\n          208,\n          215,\n          228,\n          null,\n          null,\n          219,\n          null,\n          224,\n          null,\n          null,\n          null,\n        ],\n      },\n      {\n        name: 'ap-south-1',\n        data: [\n          null,\n          null,\n          null,\n          null,\n          296,\n          301,\n          288,\n          295,\n          302,\n          310,\n          318,\n          324,\n          305,\n          null,\n          null,\n          null,\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        height: 350,\n        type: 'line',\n        zoom: {\n          enabled: false,\n        },\n        animations: {\n          enabled: false,\n        },\n      },\n      stroke: {\n        width: [5, 5, 4],\n        curve: 'smooth',\n      },\n      labels: [\n        '2025-06-04T00:00:00',\n        '2025-06-04T01:00:00',\n        '2025-06-04T02:00:00',\n        '2025-06-04T03:00:00',\n        '2025-06-04T04:00:00',\n        '2025-06-04T05:00:00',\n        '2025-06-04T06:00:00',\n        '2025-06-04T07:00:00',\n        '2025-06-04T08:00:00',\n        '2025-06-04T09:00:00',\n        '2025-06-04T10:00:00',\n        '2025-06-04T11:00:00',\n        '2025-06-04T12:00:00',\n        '2025-06-04T13:00:00',\n        '2025-06-04T14:00:00',\n        '2025-06-04T15:00:00',\n      ],\n      title: {\n        text: 'API Response Time by Region',\n      },\n      subtitle: {\n        text: 'Monitoring dropouts (null values) render as gaps',\n      },\n      xaxis: {\n        type: 'datetime',\n        labels: {\n          format: 'HH:mm',\n        },\n      },\n      yaxis: {\n        labels: {\n          formatter: function (val) {\n            return val + ' ms'\n          },\n        },\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"line\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

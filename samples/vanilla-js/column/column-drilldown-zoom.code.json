@@ -1,0 +1,20 @@
+{
+  "title": "Column Drilldown with Trigger-Point Zoom",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Revenue',\n      data: [\n        { x: '2021', y: 480, drilldown: '2021' },\n        { x: '2022', y: 530, drilldown: '2022' },\n        { x: '2023', y: 610, drilldown: '2023' },\n        { x: '2024', y: 705, drilldown: '2024' },\n      ],\n    },\n  ],\n  chart: {\n    type: 'bar',\n    height: 420,\n    toolbar: {\n      show: false,\n    },\n  },\n  plotOptions: {\n    bar: {\n      distributed: true,\n      columnWidth: '55%',\n      borderRadius: 6,\n      borderRadiusApplication: 'end',\n    },\n  },\n  legend: {\n    show: false,\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  colors: ['#1565C0', '#2E7D32', '#EF6C00', '#6A1B9A'],\n  title: {\n    text: 'Revenue by Year',\n    align: 'left',\n  },\n  subtitle: {\n    text: 'Click a year: its quarterly breakdown unfolds outward from the column you click. Use the breadcrumb to go back.',\n    align: 'left',\n  },\n  yaxis: {\n    title: {\n      text: 'Revenue ($k)',\n    },\n  },\n  drilldown: {\n    enabled: true,\n    // Anchor the drill transition at the clicked column: the child's bars unfold\n    // outward from that column rather than the chart simply re-rendering.\n    animation: {\n      enabled: true,\n      zoomFromPoint: true,\n      speed: 260,\n    },\n    breadcrumb: {\n      show: true,\n      position: 'top-right',\n      rootLabel: 'All Years',\n      separator: ' / ',\n    },\n    series: [\n      {\n        id: '2021',\n        name: '2021 by Quarter',\n        data: [\n          { x: 'Q1', y: 105 },\n          { x: 'Q2', y: 118 },\n          { x: 'Q3', y: 125 },\n          { x: 'Q4', y: 132 },\n        ],\n      },\n      {\n        id: '2022',\n        name: '2022 by Quarter',\n        data: [\n          { x: 'Q1', y: 121 },\n          { x: 'Q2', y: 130 },\n          { x: 'Q3', y: 138 },\n          { x: 'Q4', y: 141 },\n        ],\n      },\n      {\n        id: '2023',\n        name: '2023 by Quarter',\n        data: [\n          { x: 'Q1', y: 140 },\n          { x: 'Q2', y: 152 },\n          { x: 'Q3', y: 158 },\n          { x: 'Q4', y: 160 },\n        ],\n      },\n      {\n        id: '2024',\n        name: '2024 by Quarter',\n        data: [\n          { x: 'Q1', y: 165 },\n          { x: 'Q2', y: 174 },\n          { x: 'Q3', y: 182 },\n          { x: 'Q4', y: 184 },\n        ],\n      },\n    ],\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Column Drilldown with Trigger-Point Zoom</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

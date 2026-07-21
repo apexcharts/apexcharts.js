@@ -1,0 +1,20 @@
+{
+  "title": "Gradient Donut",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [128, 96, 74, 52, 38],\n  chart: {\n    width: 380,\n    type: 'donut',\n  },\n  plotOptions: {\n    pie: {\n      startAngle: -90,\n      endAngle: 270,\n    },\n  },\n  labels: ['Compute', 'Storage', 'Database', 'Networking', 'Analytics'],\n  dataLabels: {\n    enabled: false,\n  },\n  fill: {\n    type: 'gradient',\n  },\n  legend: {\n    formatter: function (val, opts) {\n      return val + ' - $' + opts.w.globals.series[opts.seriesIndex] + 'k'\n    },\n  },\n  title: {\n    text: 'Cloud Spend by Service',\n  },\n  responsive: [\n    {\n      breakpoint: 480,\n      options: {\n        chart: {\n          width: 200,\n        },\n        legend: {\n          position: 'bottom',\n        },\n      },\n    },\n  ],\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Gradient Donut</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 380px;\n  margin: 35px auto;\n  padding: 0;\n}\n\n.apexcharts-legend-text tspan:nth-child(1) {\n  font-weight: lighter;\n  fill: #999;\n}\n\n.apexcharts-legend-text tspan:nth-child(3) {\n  font-weight: bold;\n}\n"
+    }
+  ]
+}

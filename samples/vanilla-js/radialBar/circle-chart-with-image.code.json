@@ -1,0 +1,20 @@
+{
+  "title": "Circle Gauge Chart",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [72],\n  chart: {\n    height: 350,\n    type: 'radialBar',\n  },\n  plotOptions: {\n    radialBar: {\n      hollow: {\n        margin: 15,\n        size: '70%',\n        image: '../../assets/images/clock.png',\n        imageWidth: 64,\n        imageHeight: 64,\n        imageClipped: false,\n      },\n      dataLabels: {\n        name: {\n          show: false,\n          color: '#fff',\n        },\n        value: {\n          show: true,\n          color: '#333',\n          offsetY: 70,\n          fontSize: '22px',\n        },\n      },\n    },\n  },\n  colors: ['#20E647'],\n  fill: {\n    type: 'solid',\n  },\n  stroke: {\n    lineCap: 'round',\n  },\n  labels: ['Time on Task'],\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Circle Gauge Chart</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

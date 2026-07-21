@@ -1,0 +1,20 @@
+{
+  "title": "CandleStick Chart with Bar",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      data: seriesData,\n    },\n  ],\n  chart: {\n    type: 'candlestick',\n    height: 290,\n    id: 'candles',\n    toolbar: {\n      autoSelected: 'pan',\n      show: false,\n    },\n    zoom: {\n      enabled: false,\n    },\n  },\n  plotOptions: {\n    candlestick: {\n      colors: {\n        upward: '#26A69A',\n        downward: '#EF5350',\n      },\n    },\n  },\n  xaxis: {\n    type: 'datetime',\n  },\n}\n\nvar chart = new ApexCharts(\n  document.querySelector('#chart-candlestick'),\n  options,\n)\nchart.render()\n\nvar optionsBar = {\n  series: [\n    {\n      name: 'Monthly Change',\n      data: seriesDataLinear,\n    },\n  ],\n  chart: {\n    height: 160,\n    type: 'bar',\n    brush: {\n      enabled: true,\n      target: 'candles',\n    },\n    selection: {\n      enabled: true,\n      xaxis: {\n        min: new Date('20 Jan 2017').getTime(),\n        max: new Date('10 Dec 2017').getTime(),\n      },\n      fill: {\n        color: '#ccc',\n        opacity: 0.4,\n      },\n      stroke: {\n        color: '#0D47A1',\n      },\n    },\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  plotOptions: {\n    bar: {\n      columnWidth: '80%',\n      colors: {\n        ranges: [\n          {\n            from: -1000,\n            to: 0,\n            color: '#F15B46',\n          },\n          {\n            from: 1,\n            to: 10000,\n            color: '#FEB019',\n          },\n        ],\n      },\n    },\n  },\n  stroke: {\n    width: 0,\n  },\n  xaxis: {\n    type: 'datetime',\n    axisBorder: {\n      offsetX: 13,\n    },\n  },\n  yaxis: {\n    labels: {\n      show: false,\n    },\n  },\n}\n\nvar chartBar = new ApexCharts(document.querySelector('#chart-bar'), optionsBar)\nchartBar.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>CandleStick Chart with Bar</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://apexcharts.com/samples/assets/ohlc.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"chart-box\">\n      <div id=\"chart-candlestick\"></div>\n      <div id=\"chart-bar\"></div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": ".chart-box {\n  max-width: 650px;\n  margin: 35px auto;\n}\n#chart-candlestick,\n#chart-bar {\n  max-width: 640px;\n}\n\n#chart-bar {\n  margin-top: -30px;\n}\n"
+    }
+  ]
+}

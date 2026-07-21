@@ -1,0 +1,20 @@
+{
+  "title": "Gauge with Tick Marks",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [64],\n  chart: {\n    height: 360,\n    type: 'gauge',\n  },\n  plotOptions: {\n    radialBar: {\n      startAngle: -135,\n      endAngle: 135,\n      ticks: {\n        show: true,\n        major: {\n          count: 11,\n          length: 12,\n          width: 2,\n          color: '#475569',\n          placement: 'outside',\n        },\n        minor: {\n          count: 3,\n          length: 6,\n          width: 1,\n          color: '#94A3B8',\n          placement: 'outside',\n        },\n        labels: {\n          show: true,\n          offset: 8,\n          fontSize: '11px',\n          color: '#475569',\n          formatter: function (v) {\n            return Math.round(v)\n          },\n        },\n      },\n      hollow: {\n        margin: 30,\n        size: '50%',\n      },\n      track: {\n        strokeWidth: '60%',\n        background: '#E2E8F0',\n      },\n      dataLabels: {\n        name: { show: false },\n        value: {\n          offsetY: 8,\n          fontSize: '28px',\n          fontWeight: 600,\n          formatter: function (val) {\n            return val + '%'\n          },\n        },\n      },\n    },\n  },\n  labels: ['Progress'],\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Gauge with Tick Marks</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 420px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

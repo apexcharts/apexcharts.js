@@ -1,0 +1,20 @@
+{
+  "title": "Donut Update",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [44, 55, 13, 33],\n  chart: {\n    width: 380,\n    type: 'donut',\n  },\n  labels: ['Stocks', 'Bonds', 'Real Estate', 'Cash'],\n  title: {\n    text: 'Portfolio Allocation',\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  responsive: [\n    {\n      breakpoint: 480,\n      options: {\n        chart: {\n          width: 200,\n        },\n        legend: {\n          show: false,\n        },\n      },\n    },\n  ],\n  legend: {\n    position: 'right',\n    offsetY: 0,\n    height: 230,\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n\nfunction appendData() {\n  var arr = chart.w.globals.series.slice()\n  arr.push(Math.floor(Math.random() * (100 - 1 + 1)) + 1)\n  return arr\n}\n\nfunction removeData() {\n  var arr = chart.w.globals.series.slice()\n  arr.pop()\n  return arr\n}\n\nfunction randomize() {\n  return chart.w.globals.series.map(function () {\n    return Math.floor(Math.random() * (100 - 1 + 1)) + 1\n  })\n}\n\nfunction reset() {\n  return options.series\n}\n\ndocument.querySelector('#randomize').addEventListener('click', function () {\n  chart.updateSeries(randomize())\n})\n\ndocument.querySelector('#add').addEventListener('click', function () {\n  chart.updateSeries(appendData())\n})\n\ndocument.querySelector('#remove').addEventListener('click', function () {\n  chart.updateSeries(removeData())\n})\n\ndocument.querySelector('#reset').addEventListener('click', function () {\n  chart.updateSeries(reset())\n})\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Donut Update</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div>\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"actions\">\n        <button id=\"add\">+ ADD</button>\n\n        <button id=\"remove\">- REMOVE</button>\n\n        <button id=\"randomize\">RANDOMIZE</button>\n\n        <button id=\"reset\">RESET</button>\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 480px;\n  margin: 35px auto;\n  padding: 0;\n}\n.actions {\n  top: -10px;\n  position: relative;\n  z-index: 10;\n  max-width: 400px;\n  margin: 0 auto;\n}\nbutton {\n  color: #fff;\n  background: #20b2aa;\n  padding: 5px 10px;\n  margin: 2px;\n  font-weight: bold;\n  font-size: 13px;\n  border-radius: 5px;\n}\np {\n  margin: 10px 0;\n}\n@media only screen and (max-width: 480px) {\n  .actions {\n    margin-top: 0;\n    left: 0;\n  }\n}\n"
+    }
+  ]
+}

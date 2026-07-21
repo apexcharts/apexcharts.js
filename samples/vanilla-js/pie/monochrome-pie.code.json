@@ -1,0 +1,20 @@
+{
+  "title": "Monochrome Pie with multiline labels",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [820, 932, 901, 1290, 1330, 1520],\n  chart: {\n    width: 380,\n    type: 'pie',\n  },\n  labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],\n  theme: {\n    monochrome: {\n      enabled: true,\n    },\n  },\n  plotOptions: {\n    pie: {\n      dataLabels: {\n        offset: -5,\n      },\n    },\n  },\n  grid: {\n    padding: {\n      top: 0,\n      bottom: 0,\n      left: 0,\n      right: 0,\n    },\n  },\n  dataLabels: {\n    formatter(val, opts) {\n      const name = opts.w.globals.labels[opts.seriesIndex]\n      return [name, val.toFixed(1) + '%']\n    },\n  },\n  title: {\n    text: 'Orders by Day of Week',\n    align: 'center',\n  },\n  legend: {\n    show: false,\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Monochrome Pie with multiline labels</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 380px;\n  padding: 0;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

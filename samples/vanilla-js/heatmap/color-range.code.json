@@ -1,0 +1,20 @@
+{
+  "title": "Range HeatMap",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "// Seeded PRNG so the heatmap is identical on every load (stable snapshots).\nvar __seed = 0x22b3d4e5\nfunction rand() {\n  __seed |= 0\n  __seed = (__seed + 0x6d2b79f5) | 0\n  var t = Math.imul(__seed ^ (__seed >>> 15), 1 | __seed)\n  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t\n  return ((t ^ (t >>> 14)) >>> 0) / 4294967296\n}\n\nfunction generateData(count, yrange) {\n  var i = 0\n  var series = []\n  while (i < count) {\n    var x = (i + 1).toString()\n    var y = Math.floor(rand() * (yrange.max - yrange.min + 1)) + yrange.min\n\n    series.push({\n      x: x,\n      y: y,\n    })\n    i++\n  }\n  return series\n}\n\nvar options = {\n  series: [\n    {\n      name: 'Jan',\n      data: generateData(20, {\n        min: -30,\n        max: 55,\n      }),\n    },\n    {\n      name: 'Feb',\n      data: generateData(20, {\n        min: -30,\n        max: 55,\n      }),\n    },\n    {\n      name: 'Mar',\n      data: generateData(20, {\n        min: -30,\n        max: 55,\n      }),\n    },\n    {\n      name: 'Apr',\n      data: generateData(20, {\n        min: -30,\n        max: 55,\n      }),\n    },\n    {\n      name: 'May',\n      data: generateData(20, {\n        min: -30,\n        max: 55,\n      }),\n    },\n    {\n      name: 'Jun',\n      data: generateData(20, {\n        min: -30,\n        max: 55,\n      }),\n    },\n    {\n      name: 'Jul',\n      data: generateData(20, {\n        min: -30,\n        max: 55,\n      }),\n    },\n    {\n      name: 'Aug',\n      data: generateData(20, {\n        min: -30,\n        max: 55,\n      }),\n    },\n    {\n      name: 'Sep',\n      data: generateData(20, {\n        min: -30,\n        max: 55,\n      }),\n    },\n  ],\n  chart: {\n    height: 350,\n    type: 'heatmap',\n  },\n  plotOptions: {\n    heatmap: {\n      shadeIntensity: 0.5,\n      radius: 0,\n      useFillColorAsStroke: true,\n      colorScale: {\n        ranges: [\n          {\n            from: -30,\n            to: 5,\n            name: 'Freezing',\n            color: '#2E5CB8',\n          },\n          {\n            from: 6,\n            to: 20,\n            name: 'Cold',\n            color: '#4FC3F7',\n          },\n          {\n            from: 21,\n            to: 45,\n            name: 'Mild',\n            color: '#FFB200',\n          },\n          {\n            from: 46,\n            to: 55,\n            name: 'Hot',\n            color: '#E53935',\n          },\n        ],\n        // Render the discrete ranges as a smooth gradient strip instead of the\n        // categorical legend. Hovering a band highlights the cells in that range\n        // and dims the rest; hovering a cell slides the arrow to its value.\n        gradientLegend: {\n          enabled: true,\n          width: '80%',\n          thickness: 10,\n          showHoverValue: true,\n        },\n      },\n    },\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  stroke: {\n    width: 1,\n  },\n  title: {\n    text: 'Daily Temperature by Month (°C)',\n  },\n  legend: {\n    position: 'top',\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Range HeatMap</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

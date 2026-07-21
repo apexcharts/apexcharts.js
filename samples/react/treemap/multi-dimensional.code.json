@@ -1,0 +1,15 @@
+{
+  "title": "Multi-dimensional Treemap",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Desktops',\n        data: [\n          {\n            x: 'Apple',\n            y: 50,\n          },\n          {\n            x: 'Acer',\n            y: 30,\n          },\n          {\n            x: 'Asus',\n            y: 21,\n          },\n        ],\n      },\n      {\n        name: 'Laptops',\n        data: [\n          {\n            x: 'Dell',\n            y: 21,\n          },\n          {\n            x: 'HP',\n            y: 16,\n          },\n          {\n            x: 'Lenovo',\n            y: 20,\n          },\n        ],\n      },\n      {\n        name: 'Tablets',\n        data: [\n          {\n            x: 'Samsung',\n            y: 4,\n          },\n          {\n            x: 'Huawei',\n            y: 7,\n          },\n          {\n            x: 'Microsoft',\n            y: 11,\n          },\n          {\n            x: 'Amazon',\n            y: 31,\n          },\n          {\n            x: 'Lenovo',\n            y: 13,\n          },\n        ],\n      },\n      {\n        name: 'Mobile',\n        data: [\n          {\n            x: 'Apple',\n            y: 10,\n          },\n          {\n            x: 'Samsung',\n            y: 20,\n          },\n          {\n            x: 'Huawei',\n            y: 51,\n          },\n          {\n            x: 'Xiaomi',\n            y: 30,\n          },\n        ],\n      },\n    ],\n    options: {\n      legend: {\n        show: true,\n        offsetY: 10,\n        height: 30,\n      },\n      chart: {\n        height: 350,\n        type: 'treemap',\n      },\n      title: {\n        text: 'Multi-dimensional Treemap',\n        align: 'center',\n      },\n      plotOptions: {\n        treemap: {},\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"treemap\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Live Needle Gauge",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [86],\n  chart: {\n    height: 360,\n    type: 'gauge',\n    animations: {\n      enabled: true,\n      dynamicAnimation: { enabled: true, speed: 800 },\n    },\n  },\n  colors: ['#00A86F'],\n  plotOptions: {\n    radialBar: {\n      shape: 'needle',\n      startAngle: -90,\n      endAngle: 90,\n      min: 0,\n      max: 100,\n      ticks: {\n        show: true,\n        major: {\n          count: 11,\n          length: 0,\n          width: 0,\n          color: 'transparent',\n          placement: 'outside',\n        },\n        minor: {\n          count: 0,\n          length: 0,\n          width: 0,\n          color: 'transparent',\n        },\n        labels: {\n          show: true,\n          offset: 25,\n          fontSize: '12px',\n          fontWeight: 500,\n          color: '#0F172A',\n          formatter: function (v) {\n            return v + '%'\n          },\n        },\n      },\n      needle: {\n        color: '#1E293B',\n        length: '85%',\n        baseWidth: 10,\n        tipWidth: 1,\n        showValueArc: true,\n      },\n      track: {\n        show: true,\n        background: '#ddd',\n        strokeWidth: '100%',\n        margin: 0,\n      },\n      hollow: {\n        margin: 0,\n        size: '70%',\n        background: 'transparent',\n      },\n      dataLabels: {\n        name: { show: false },\n        value: {\n          offsetY: 20,\n          fontSize: '16px',\n          fontWeight: 700,\n          color: '#0F172A',\n          formatter: function (val) {\n            return val + '%'\n          },\n        },\n      },\n    },\n  },\n  stroke: {\n    lineCap: 'butt',\n  },\n  labels: ['CPU Load'],\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n\nwindow.setInterval(function () {\n  var next = Math.floor(Math.random() * 101)\n  chart.updateSeries([next])\n}, 2000)\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Live Needle Gauge</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 560px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

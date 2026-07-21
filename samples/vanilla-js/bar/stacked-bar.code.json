@@ -1,0 +1,20 @@
+{
+  "title": "Stacked Bar Chart",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Fantasy',\n      data: [44, 55, 41, 37, 22, 43, 21],\n    },\n    {\n      name: 'Mystery',\n      data: [53, 32, 33, 52, 13, 43, 32],\n    },\n    {\n      name: 'Romance',\n      data: [12, 17, 11, 9, 15, 11, 20],\n    },\n    {\n      name: 'Sci-Fi',\n      data: [9, 7, 5, 8, 6, 9, 4],\n    },\n    {\n      name: 'Thriller',\n      data: [25, 12, 19, 32, 25, 24, 10],\n    },\n  ],\n  chart: {\n    type: 'bar',\n    height: 350,\n    stacked: true,\n  },\n  plotOptions: {\n    bar: {\n      horizontal: true,\n      dataLabels: {\n        total: {\n          enabled: true,\n          offsetX: 0,\n          style: {\n            fontSize: '13px',\n            fontWeight: 900,\n          },\n        },\n      },\n    },\n  },\n  stroke: {\n    width: 1,\n    colors: ['#fff'],\n  },\n  title: {\n    text: 'Book Sales by Genre',\n  },\n  xaxis: {\n    categories: [2019, 2020, 2021, 2022, 2023, 2024, 2025],\n    labels: {\n      formatter: function (val) {\n        return val + 'K'\n      },\n    },\n  },\n  yaxis: {\n    title: {\n      text: undefined,\n    },\n  },\n  tooltip: {\n    y: {\n      formatter: function (val) {\n        return val + 'K'\n      },\n    },\n  },\n  fill: {\n    opacity: 1,\n  },\n  legend: {\n    position: 'top',\n    horizontalAlign: 'left',\n    offsetX: 40,\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Stacked Bar Chart</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

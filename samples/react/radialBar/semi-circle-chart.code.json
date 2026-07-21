@@ -1,0 +1,15 @@
+{
+  "title": "Semi Circle Chart",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [76],\n    options: {\n      chart: {\n        type: 'radialBar',\n        offsetY: -20,\n        sparkline: {\n          enabled: true,\n        },\n      },\n      plotOptions: {\n        radialBar: {\n          startAngle: -90,\n          endAngle: 90,\n          track: {\n            background: '#e7e7e7',\n            strokeWidth: '97%',\n            margin: 5,\n            dropShadow: {\n              enabled: true,\n              top: 2,\n              left: 0,\n              color: '#444',\n              opacity: 1,\n              blur: 2,\n            },\n          },\n          dataLabels: {\n            name: {\n              show: false,\n            },\n            value: {\n              offsetY: -2,\n              fontSize: '22px',\n              formatter: function (val) {\n                return val + '%'\n              },\n            },\n          },\n        },\n      },\n      grid: {\n        padding: {\n          top: -10,\n        },\n      },\n      fill: {\n        type: 'gradient',\n        gradient: {\n          shade: 'light',\n          shadeIntensity: 0.4,\n          inverseColors: false,\n          opacityFrom: 1,\n          opacityTo: 1,\n          stops: [0, 50, 53, 91],\n        },\n      },\n      labels: ['Goals Met'],\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"radialBar\"\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 450px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

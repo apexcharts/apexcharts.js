@@ -1,0 +1,20 @@
+{
+  "title": "Gauge with Custom Label",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [58],\n  chart: {\n    height: 350,\n    type: 'gauge',\n  },\n  plotOptions: {\n    radialBar: {\n      hollow: {\n        margin: 15,\n        size: '70%',\n      },\n      dataLabels: {\n        name: {\n          show: true,\n          offsetY: -20,\n          fontSize: '16px',\n          color: '#999',\n        },\n        value: {\n          show: true,\n          fontSize: '40px',\n          fontWeight: 700,\n          offsetY: 6,\n          formatter: function (val) {\n            return val + '%'\n          },\n        },\n      },\n    },\n  },\n  fill: {\n    type: 'gradient',\n    gradient: {\n      shade: 'dark',\n      type: 'horizontal',\n      shadeIntensity: 0.5,\n      gradientToColors: ['#ABE5A1'],\n      inverseColors: true,\n      opacityFrom: 1,\n      opacityTo: 1,\n      stops: [0, 100],\n    },\n  },\n  stroke: {\n    lineCap: 'round',\n  },\n  labels: ['CPU Usage'],\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Gauge with Custom Label</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 380px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

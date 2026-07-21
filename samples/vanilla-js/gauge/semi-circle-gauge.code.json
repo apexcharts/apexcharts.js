@@ -1,0 +1,20 @@
+{
+  "title": "Semi-Circle Gauge",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [83],\n  chart: {\n    height: 300,\n    type: 'gauge',\n  },\n  plotOptions: {\n    radialBar: {\n      startAngle: -90,\n      endAngle: 90,\n      track: {\n        background: '#e7e7e7',\n        strokeWidth: '97%',\n        margin: 5,\n      },\n      dataLabels: {\n        name: { show: false },\n        value: {\n          offsetY: -2,\n          fontSize: '32px',\n          formatter: function (val) {\n            return val + '%'\n          },\n        },\n      },\n    },\n  },\n  fill: {\n    type: 'gradient',\n    gradient: {\n      shade: 'light',\n      shadeIntensity: 0.4,\n      inverseColors: false,\n      opacityFrom: 1,\n      opacityTo: 1,\n      stops: [0, 50, 53, 91],\n    },\n  },\n  labels: ['Score'],\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Semi-Circle Gauge</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 380px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

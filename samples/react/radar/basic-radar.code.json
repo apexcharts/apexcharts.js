@@ -1,0 +1,15 @@
+{
+  "title": "Basic Radar",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Revenue ($k)',\n        data: [80, 50, 30, 40, 100, 20],\n      },\n    ],\n    options: {\n      chart: {\n        height: 350,\n        type: 'radar',\n      },\n      title: {\n        text: 'Monthly Sales Performance',\n      },\n      yaxis: {\n        stepSize: 20,\n      },\n      xaxis: {\n        categories: ['January', 'February', 'March', 'April', 'May', 'June'],\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"radar\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 450px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

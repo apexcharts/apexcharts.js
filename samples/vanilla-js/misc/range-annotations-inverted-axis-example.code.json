@@ -1,0 +1,20 @@
+{
+  "title": "Inverted axis chart with Range Annotations",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      data: [400, 430, 448, 470, 540, 580, 690, 1100, 1200, 1380],\n    },\n  ],\n  annotations: {\n    yaxis: [\n      {\n        y: 'United Kingdom',\n        y2: 'South Korea',\n        borderColor: '#FEB019',\n        label: {\n          borderColor: '#333',\n          style: {\n            fontSize: '10px',\n            color: '#333',\n            background: '#FEB019',\n          },\n          text: 'Y-axis range',\n        },\n      },\n    ],\n    xaxis: [\n      {\n        x: 400,\n        x2: 800,\n        borderColor: '#00E396',\n        label: {\n          borderColor: '#00E396',\n          style: {\n            fontSize: '10px',\n            color: '#fff',\n            background: '#00E396',\n          },\n          offsetY: -10,\n          text: 'X-axis range',\n        },\n      },\n    ],\n  },\n  chart: {\n    height: 350,\n    type: 'bar',\n  },\n  plotOptions: {\n    bar: {\n      horizontal: true,\n    },\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  yaxis: {\n    min: 0,\n  },\n  xaxis: {\n    categories: [\n      'South Korea',\n      'Canada',\n      'United Kingdom',\n      'Netherlands',\n      'Italy',\n      'France',\n      'Japan',\n      'United States',\n      'China',\n      'Germany',\n    ],\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Inverted axis chart with Range Annotations</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://apexcharts.com/samples/assets/stock-prices.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

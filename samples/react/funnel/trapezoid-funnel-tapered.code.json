@@ -1,0 +1,15 @@
+{
+  "title": "Trapezoid Funnel — Tapered",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Subscribers',\n        data: [1200, 480, 160, 32],\n      },\n    ],\n    options: {\n      chart: {\n        type: 'funnel',\n        height: 420,\n      },\n      plotOptions: {\n        funnel: {\n          shape: 'trapezoid',\n          lastShape: 'taper',\n        },\n        bar: {\n          barHeight: '90%',\n          distributed: true,\n        },\n      },\n      colors: ['#10B981', '#34D399', '#6EE7B7', '#A7F3D0'],\n      dataLabels: {\n        enabled: true,\n        formatter: function (val, opt) {\n          return opt.w.globals.labels[opt.dataPointIndex] + ': ' + val\n        },\n        style: {\n          colors: ['#064E3B'],\n          fontSize: '13px',\n          fontWeight: 600,\n        },\n      },\n      title: {\n        text: 'Newsletter Funnel — Tapered',\n        align: 'middle',\n      },\n      xaxis: {\n        categories: ['Delivered', 'Opened', 'Clicked', 'Converted'],\n      },\n      legend: {\n        show: false,\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"funnel\"\n          height={420}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

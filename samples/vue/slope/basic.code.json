@@ -1,0 +1,10 @@
+{
+  "title": "Slope Chart",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"line\"\n        height=\"350\"\n        width=\"400\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [\n        {\n          name: 'Platform',\n          data: [\n            {\n              x: 'Q1',\n              y: 43,\n            },\n            {\n              x: 'Q2',\n              y: 58,\n            },\n          ],\n        },\n        {\n          name: 'Mobile',\n          data: [\n            {\n              x: 'Q1',\n              y: 33,\n            },\n            {\n              x: 'Q2',\n              y: 38,\n            },\n          ],\n        },\n        {\n          name: 'Web',\n          data: [\n            {\n              x: 'Q1',\n              y: 55,\n            },\n            {\n              x: 'Q2',\n              y: 21,\n            },\n          ],\n        },\n      ],\n      chartOptions: {\n        chart: {\n          height: 350,\n          width: 400,\n          type: 'line',\n        },\n        plotOptions: {\n          line: {\n            isSlopeChart: true,\n          },\n        },\n        title: {\n          text: 'Sprint Velocity: Q1 to Q2',\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

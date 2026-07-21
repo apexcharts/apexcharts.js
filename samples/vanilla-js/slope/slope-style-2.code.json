@@ -1,0 +1,20 @@
+{
+  "title": "Slope Chart",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'North',\n      data: [\n        {\n          x: 'Q1',\n          y: 503,\n        },\n        {\n          x: 'Q2',\n          y: 580,\n        },\n        {\n          x: 'Q3',\n          y: 135,\n        },\n      ],\n    },\n    {\n      name: 'South',\n      data: [\n        {\n          x: 'Q1',\n          y: 733,\n        },\n        {\n          x: 'Q2',\n          y: 385,\n        },\n        {\n          x: 'Q3',\n          y: 715,\n        },\n      ],\n    },\n    {\n      name: 'East',\n      data: [\n        {\n          x: 'Q1',\n          y: 255,\n        },\n        {\n          x: 'Q2',\n          y: 211,\n        },\n        {\n          x: 'Q3',\n          y: 441,\n        },\n      ],\n    },\n    {\n      name: 'West',\n      data: [\n        {\n          x: 'Q1',\n          y: 428,\n        },\n        {\n          x: 'Q2',\n          y: 749,\n        },\n        {\n          x: 'Q3',\n          y: 559,\n        },\n      ],\n    },\n  ],\n  chart: {\n    height: 350,\n    width: 600,\n    type: 'line',\n  },\n  plotOptions: {\n    line: {\n      isSlopeChart: true,\n    },\n  },\n  title: {\n    text: 'Regional Sales Rank by Quarter',\n  },\n  tooltip: {\n    followCursor: true,\n    intersect: false,\n    shared: true,\n  },\n  dataLabels: {\n    background: {\n      enabled: true,\n    },\n    formatter(val, opts) {\n      const seriesName = opts.w.config.series[opts.seriesIndex].name\n      return val !== null ? seriesName : ''\n    },\n  },\n  yaxis: {\n    show: true,\n    labels: {\n      show: true,\n    },\n  },\n  xaxis: {\n    position: 'bottom',\n  },\n  legend: {\n    show: true,\n    position: 'top',\n    horizontalAlign: 'left',\n  },\n  stroke: {\n    width: [2, 3, 4, 2],\n    dashArray: [0, 0, 5, 2],\n    curve: 'smooth',\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Slope Chart</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

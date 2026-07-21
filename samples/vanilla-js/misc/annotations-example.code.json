@@ -1,0 +1,20 @@
+{
+  "title": "Line Chart with Annotations",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      type: 'bar',\n      data: series.monthDataSeries2.prices,\n    },\n    {\n      type: 'line',\n      data: series.monthDataSeries1.prices,\n    },\n  ],\n  chart: {\n    type: 'line',\n    id: 'chart',\n    sparkline: {\n      //  enabled: true\n    },\n  },\n  annotations: {\n    yaxis: [\n      {\n        y: 8200,\n        borderColor: '#FEB019',\n        label: {\n          borderColor: '#333',\n          style: {\n            fontSize: '15px',\n            color: '#333',\n            background: '#FEB019',\n          },\n          text: 'Y-axis annotation',\n        },\n      },\n    ],\n    xaxis: [\n      {\n        x: new Date('23 Nov 2017').getTime(),\n        borderColor: '#00E396',\n        label: {\n          borderColor: '#00E396',\n          style: {\n            fontSize: '15px',\n            color: '#fff',\n            background: '#00E396',\n          },\n          offsetY: -10,\n          text: 'Vertical',\n        },\n      },\n    ],\n    points: [\n      {\n        x: new Date('01 Dec 2017').getTime(),\n        y: 9025,\n        label: {\n          borderColor: '#FF4560',\n          offsetY: 0,\n          style: {\n            fontSize: '15px',\n            color: '#fff',\n            background: '#FF4560',\n          },\n          text: 'All time high',\n        },\n      },\n    ],\n  },\n  plotOptions: {\n    bar: {\n      columnWidth: '50%',\n    },\n  },\n  markers: {\n    size: 0,\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  stroke: {\n    curve: 'straight',\n  },\n  legend: {\n    show: false,\n  },\n  labels: series.monthDataSeries1.dates,\n  yaxis: {\n    min: 8000,\n  },\n  xaxis: {\n    type: 'datetime',\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n\nfunction addAnnos() {\n  // adding annotation through chart instance by calling direct method\n  chart.addYaxisAnnotation({\n    id: 'yaxis-anno',\n    y: 9000,\n    borderColor: '#FEB019',\n    label: {\n      borderColor: '#333',\n      style: {\n        fontSize: '15px',\n        color: '#333',\n        background: '#FEB019',\n      },\n      text: 'Y-axis - runtime',\n    },\n  })\n\n  chart.addXaxisAnnotation({\n    id: 'xaxis-anno',\n    x: new Date('25 Nov 2017').getTime(),\n    borderColor: '#00E396',\n    label: {\n      orientation: 'vertical',\n      borderColor: '#00E396',\n      style: {\n        fontSize: '15px',\n        color: '#fff',\n        background: '#00E396',\n      },\n      offsetY: -10,\n      text: 'xaxis - runtime',\n    },\n  })\n}\n\naddAnnos()\n\nchart.addPointAnnotation({\n  id: 'point-anno',\n  x: new Date('17 Nov 2017').getTime(),\n  y: 9425,\n  label: {\n    borderColor: '#FF4560',\n    offsetY: 0,\n    style: {\n      fontSize: '15px',\n      color: '#fff',\n      background: '#FF4560',\n    },\n    text: 'Point - runtime',\n  },\n})\n\n// removing annotation with method name\nchart.removeAnnotation('point-anno')\n\n// removing annotations with .exec() method\nApexCharts.exec('chart', 'removeAnnotation', 'xaxis-anno')\nApexCharts.exec('chart', 'removeAnnotation', 'yaxis-anno')\n\n// add annos again\n// addAnnos()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Line Chart with Annotations</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://apexcharts.com/samples/assets/stock-prices.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

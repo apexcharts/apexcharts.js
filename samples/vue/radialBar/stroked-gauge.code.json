@@ -1,0 +1,10 @@
+{
+  "title": "Stroked Gauge",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"radialBar\"\n        height=\"350\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [78],\n      chartOptions: {\n        chart: {\n          height: 350,\n          type: 'radialBar',\n          offsetY: -10,\n        },\n        plotOptions: {\n          radialBar: {\n            startAngle: -135,\n            endAngle: 135,\n            dataLabels: {\n              name: {\n                fontSize: '16px',\n                color: undefined,\n                offsetY: 120,\n              },\n              value: {\n                offsetY: 76,\n                fontSize: '22px',\n                color: undefined,\n                formatter: function (val) {\n                  return val + '%'\n                },\n              },\n            },\n          },\n        },\n        fill: {\n          type: 'gradient',\n          gradient: {\n            shade: 'dark',\n            shadeIntensity: 0.15,\n            inverseColors: false,\n            opacityFrom: 1,\n            opacityTo: 1,\n            stops: [0, 50, 65, 91],\n          },\n        },\n        stroke: {\n          dashArray: 4,\n        },\n        colors: ['#20E647'],\n        labels: ['Battery Health'],\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  padding: 0;\n  max-width: 650px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

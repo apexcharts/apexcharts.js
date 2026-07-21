@@ -1,0 +1,15 @@
+{
+  "title": "Column with Custom Data Colors",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Yearly Profit',\n        data: [\n          {\n            x: '2018',\n            y: 1292,\n          },\n          {\n            x: '2019',\n            y: 4432,\n          },\n          {\n            x: '2020',\n            y: 5423,\n          },\n          {\n            x: '2021',\n            y: 6653,\n          },\n          {\n            x: '2022',\n            y: 8133,\n            fillColor: '#EB8C87',\n            strokeColor: '#C23829',\n          },\n          {\n            x: '2023',\n            y: 7132,\n          },\n          {\n            x: '2024',\n            y: 7332,\n          },\n          {\n            x: '2025',\n            y: 6553,\n          },\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        height: 350,\n        type: 'bar',\n      },\n      title: {\n        text: 'Yearly Profit',\n        align: 'left',\n      },\n      subtitle: {\n        text: 'Record year highlighted in red',\n        align: 'left',\n      },\n      plotOptions: {\n        bar: {\n          horizontal: false,\n          columnWidth: '60%',\n        },\n      },\n      stroke: {\n        width: 0,\n      },\n      dataLabels: {\n        enabled: false,\n      },\n      yaxis: {\n        labels: {\n          formatter: function (val) {\n            return val / 1000 + 'K $'\n          },\n        },\n      },\n      fill: {\n        opacity: 1,\n      },\n      xaxis: {\n        type: 'datetime',\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"bar\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

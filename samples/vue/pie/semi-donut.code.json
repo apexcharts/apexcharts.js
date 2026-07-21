@@ -1,0 +1,10 @@
+{
+  "title": "Semi Donut",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"donut\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [58, 27, 9, 4, 2],\n      chartOptions: {\n        chart: {\n          type: 'donut',\n        },\n        labels: ['Mobile', 'Desktop', 'Tablet', 'Smart TV', 'Wearable'],\n        title: {\n          text: 'Sessions by Device',\n          align: 'center',\n        },\n        plotOptions: {\n          pie: {\n            startAngle: -90,\n            endAngle: 90,\n            offsetY: 10,\n            dataLabels: {\n              external: {\n                show: true,\n                formatter: function (name, opts) {\n                  return [name, Math.round(opts.percent) + '%']\n                },\n              },\n            },\n          },\n        },\n        dataLabels: {\n          enabled: false,\n        },\n        legend: {\n          show: false,\n        },\n        grid: {\n          padding: {\n            bottom: -80,\n          },\n        },\n        responsive: [\n          {\n            breakpoint: 480,\n            options: {\n              chart: {\n                width: 300,\n              },\n            },\n          },\n        ],\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 480px;\n  margin: 35px auto;\n  padding: 0;\n}\n</style>\n"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Distributed Bar",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"bar\"\n        height=\"350\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nvar colors = [\n  '#008FFB',\n  '#00E396',\n  '#FEB019',\n  '#FF4560',\n  '#775DD0',\n  '#546E7A',\n  '#26a69a',\n  '#3F51B5',\n]\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [\n        {\n          name: 'Deals closed',\n          data: [21, 22, 10, 28, 16, 21, 13, 30],\n        },\n      ],\n      chartOptions: {\n        chart: {\n          height: 350,\n          type: 'bar',\n          events: {\n            click: function (chart, w, e) {\n              // console.log(chart, w, e)\n            },\n          },\n        },\n        colors: colors,\n        title: {\n          text: 'Deals Closed by Sales Rep',\n          align: 'left',\n        },\n        plotOptions: {\n          bar: {\n            columnWidth: '45%',\n            distributed: true,\n          },\n        },\n        dataLabels: {\n          enabled: false,\n        },\n        legend: {\n          show: false,\n        },\n        yaxis: {\n          title: {\n            text: 'Deals closed',\n          },\n        },\n        xaxis: {\n          categories: [\n            ['John', 'Doe'],\n            ['Joe', 'Smith'],\n            ['Jake', 'Williams'],\n            'Amber',\n            ['Peter', 'Brown'],\n            ['Mary', 'Evans'],\n            ['David', 'Wilson'],\n            ['Lily', 'Roberts'],\n          ],\n          labels: {\n            style: {\n              colors: colors,\n              fontSize: '12px',\n            },\n          },\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n#chart .apexcharts-xaxis-label {\n  font-weight: bold;\n}\n</style>\n"
+    }
+  ]
+}

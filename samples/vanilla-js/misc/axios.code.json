@@ -1,0 +1,20 @@
+{
+  "title": "Axios Example",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [],\n  chart: {\n    height: 350,\n    type: 'bar',\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  title: {\n    text: 'Ajax Example',\n  },\n  noData: {\n    text: 'Loading...',\n  },\n  xaxis: {\n    type: 'category',\n    tickPlacement: 'on',\n    labels: {\n      rotate: -45,\n      rotateAlways: true,\n    },\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n\naxios({\n  method: 'GET',\n  url: 'http://my-json-server.typicode.com/apexcharts/apexcharts.js/yearly',\n}).then(function (response) {\n  chart.updateSeries([\n    {\n      name: 'Sales',\n      data: response.data,\n    },\n  ])\n})\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Axios Example</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.min.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

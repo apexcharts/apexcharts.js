@@ -1,0 +1,10 @@
+{
+  "title": "Simple Pie",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"pie\"\n        width=\"480\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [42, 23, 15, 12, 8],\n      chartOptions: {\n        chart: {\n          width: 480,\n          type: 'pie',\n        },\n        labels: ['Organic Search', 'Direct', 'Social', 'Referral', 'Email'],\n        title: {\n          text: 'Website Traffic by Source',\n          align: 'center',\n        },\n        legend: {\n          show: false,\n        },\n        plotOptions: {\n          pie: {\n            dataLabels: {\n              external: {\n                show: true,\n              },\n            },\n          },\n        },\n        responsive: [\n          {\n            breakpoint: 480,\n            options: {\n              chart: {\n                width: 320,\n              },\n            },\n          },\n        ],\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  padding: 0;\n  max-width: 480px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "title": "Reversed Bar Chart",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Units Sold',\n        data: [400, 430, 448, 470, 540, 580, 690],\n      },\n    ],\n    options: {\n      chart: {\n        type: 'bar',\n        height: 350,\n      },\n      title: {\n        text: 'Monthly Sales (reversed axis)',\n        align: 'left',\n      },\n      annotations: {\n        xaxis: [\n          {\n            x: 500,\n            borderColor: '#00E396',\n            label: {\n              borderColor: '#00E396',\n              style: {\n                color: '#fff',\n                background: '#00E396',\n              },\n              text: 'Target: 500',\n            },\n          },\n        ],\n        yaxis: [\n          {\n            y: 'July',\n            y2: 'September',\n            label: {\n              text: 'Q3 Months',\n            },\n          },\n        ],\n      },\n      plotOptions: {\n        bar: {\n          horizontal: true,\n        },\n      },\n      dataLabels: {\n        enabled: true,\n      },\n      xaxis: {\n        categories: [\n          'June',\n          'July',\n          'August',\n          'September',\n          'October',\n          'November',\n          'December',\n        ],\n      },\n      grid: {\n        xaxis: {\n          lines: {\n            show: true,\n          },\n        },\n      },\n      yaxis: {\n        reversed: true,\n        axisTicks: {\n          show: true,\n        },\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"bar\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "title": "Position Top Text Anchor Start Series Pos",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        data: [400, 430, 1, 470, 540, 580, 690, 1100, 1200, 1380],\n      },\n    ],\n    options: {\n      chart: {\n        type: 'bar',\n        height: 380,\n      },\n      plotOptions: {\n        bar: {\n          horizontal: true,\n          dataLabels: {\n            position: 'top',\n          },\n        },\n      },\n\n      dataLabels: {\n        enabled: true,\n        textAnchor: 'start',\n        style: {\n          colors: ['#333'],\n        },\n        formatter: function (val, opt) {\n          return opt.w.globals.labels[opt.dataPointIndex] + ':  ' + val\n        },\n      },\n      fill: {\n        opacity: 0.5,\n      },\n      xaxis: {\n        categories: [\n          'South Korea',\n          'Canada',\n          'United Kingdom',\n          'Netherlands',\n          'Italy',\n          'France',\n          'Japan',\n          'United States',\n          'China',\n          'India',\n        ],\n      },\n      yaxis: {\n        labels: {\n          show: false,\n        },\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"bar\"\n          height={380}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

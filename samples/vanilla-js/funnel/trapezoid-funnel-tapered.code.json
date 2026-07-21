@@ -1,0 +1,20 @@
+{
+  "title": "Trapezoid Funnel — Tapered",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Subscribers',\n      data: [1200, 480, 160, 32],\n    },\n  ],\n  chart: {\n    type: 'funnel',\n    height: 420,\n  },\n  plotOptions: {\n    funnel: {\n      shape: 'trapezoid',\n      lastShape: 'taper',\n    },\n    bar: {\n      barHeight: '90%',\n      distributed: true,\n    },\n  },\n  colors: ['#10B981', '#34D399', '#6EE7B7', '#A7F3D0'],\n  dataLabels: {\n    enabled: true,\n    formatter: function (val, opt) {\n      return opt.w.globals.labels[opt.dataPointIndex] + ': ' + val\n    },\n    style: {\n      colors: ['#064E3B'],\n      fontSize: '13px',\n      fontWeight: 600,\n    },\n  },\n  title: {\n    text: 'Newsletter Funnel — Tapered',\n    align: 'middle',\n  },\n  xaxis: {\n    categories: ['Delivered', 'Opened', 'Clicked', 'Converted'],\n  },\n  legend: {\n    show: false,\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trapezoid Funnel — Tapered</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

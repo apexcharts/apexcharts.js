@@ -1,0 +1,20 @@
+{
+  "title": "Multiple Y Axis Chart",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Revenue',\n      type: 'column',\n      data: [140, 200, 250, 150, 250, 280, 380, 460],\n    },\n    {\n      name: 'Headcount',\n      type: 'column',\n      data: [110, 300, 310, 400, 410, 490, 650, 850],\n    },\n    {\n      name: 'Share Price',\n      type: 'line',\n      data: [20, 29, 37, 36, 44, 45, 50, 58],\n    },\n  ],\n  chart: {\n    height: 350,\n    type: 'line',\n    stacked: false,\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  stroke: {\n    width: [1, 1, 4],\n  },\n  title: {\n    text: 'Company Performance (2017 - 2024)',\n    align: 'left',\n    offsetX: 110,\n  },\n  xaxis: {\n    categories: [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],\n  },\n  yaxis: [\n    {\n      seriesName: 'Revenue',\n      axisTicks: {\n        show: true,\n      },\n      axisBorder: {\n        show: true,\n        color: '#008FFB',\n      },\n      labels: {\n        style: {\n          colors: '#008FFB',\n        },\n      },\n      title: {\n        text: 'Revenue ($M)',\n        style: {\n          color: '#008FFB',\n        },\n      },\n      tooltip: {\n        enabled: true,\n      },\n    },\n    {\n      seriesName: 'Headcount',\n      opposite: true,\n      axisTicks: {\n        show: true,\n      },\n      axisBorder: {\n        show: true,\n        color: '#00E396',\n      },\n      labels: {\n        style: {\n          colors: '#00E396',\n        },\n      },\n      title: {\n        text: 'Headcount',\n        style: {\n          color: '#00E396',\n        },\n      },\n    },\n    {\n      seriesName: 'Share Price',\n      opposite: true,\n      axisTicks: {\n        show: true,\n      },\n      axisBorder: {\n        show: true,\n        color: '#FEB019',\n      },\n      labels: {\n        style: {\n          colors: '#FEB019',\n        },\n      },\n      title: {\n        text: 'Share Price ($)',\n        style: {\n          color: '#FEB019',\n        },\n      },\n    },\n  ],\n  tooltip: {\n    fixed: {\n      enabled: true,\n      position: 'topLeft', // topRight, topLeft, bottomRight, bottomLeft\n      offsetY: 30,\n      offsetX: 60,\n    },\n  },\n  legend: {\n    horizontalAlign: 'left',\n    offsetX: 40,\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Multiple Y Axis Chart</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n.apexcharts-tooltip-title {\n  display: none;\n}\n#chart .apexcharts-tooltip {\n  display: flex;\n  border: 0;\n  box-shadow: none;\n}\n"
+    }
+  ]
+}

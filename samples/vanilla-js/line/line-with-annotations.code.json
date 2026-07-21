@@ -1,0 +1,20 @@
+{
+  "title": "Line Chart with Annotations",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Price',\n      data: series.monthDataSeries1.prices,\n    },\n  ],\n  chart: {\n    height: 350,\n    type: 'line',\n    id: 'areachart-2',\n  },\n  annotations: {\n    yaxis: [\n      {\n        y: 8200,\n        borderColor: '#00E396',\n        label: {\n          borderColor: '#00E396',\n          style: {\n            color: '#fff',\n            background: '#00E396',\n          },\n          text: 'Support',\n        },\n      },\n      {\n        y: 8600,\n        y2: 9000,\n        borderColor: '#000',\n        fillColor: '#FEB019',\n        opacity: 0.2,\n        label: {\n          borderColor: '#333',\n          style: {\n            fontSize: '10px',\n            color: '#333',\n            background: '#FEB019',\n          },\n          text: 'Consolidation zone',\n        },\n      },\n    ],\n    xaxis: [\n      {\n        x: new Date('23 Nov 2025').getTime(),\n        strokeDashArray: 0,\n        borderColor: '#775DD0',\n        label: {\n          borderColor: '#775DD0',\n          style: {\n            color: '#fff',\n            background: '#775DD0',\n          },\n          text: 'Earnings',\n        },\n      },\n      {\n        x: new Date('26 Nov 2025').getTime(),\n        x2: new Date('28 Nov 2025').getTime(),\n        fillColor: '#B3F7CA',\n        opacity: 0.4,\n        label: {\n          borderColor: '#B3F7CA',\n          style: {\n            fontSize: '10px',\n            color: '#fff',\n            background: '#00E396',\n          },\n          offsetY: -10,\n          text: 'Holiday week',\n        },\n      },\n    ],\n    points: [\n      {\n        x: new Date('01 Dec 2025').getTime(),\n        y: 8607.55,\n        marker: {\n          size: 8,\n          fillColor: '#fff',\n          strokeColor: 'red',\n          radius: 2,\n          cssClass: 'apexcharts-custom-class',\n        },\n        label: {\n          borderColor: '#FF4560',\n          offsetY: 0,\n          style: {\n            color: '#fff',\n            background: '#FF4560',\n          },\n\n          text: 'Analyst upgrade',\n        },\n      },\n      {\n        x: new Date('08 Dec 2025').getTime(),\n        y: 9340.85,\n        marker: {\n          size: 0,\n        },\n        image: {\n          path: '../../assets/images/ico-instagram.png',\n        },\n      },\n    ],\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  stroke: {\n    curve: 'straight',\n  },\n  grid: {\n    padding: {\n      right: 30,\n      left: 20,\n    },\n  },\n  title: {\n    text: 'Line with Annotations',\n    align: 'left',\n  },\n  labels: series.monthDataSeries1.dates.map(function (d) {\n    return d.replace('2017', '2025')\n  }),\n  xaxis: {\n    type: 'datetime',\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Line Chart with Annotations</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://apexcharts.com/samples/assets/stock-prices.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

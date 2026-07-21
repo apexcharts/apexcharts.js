@@ -1,0 +1,15 @@
+{
+  "title": "Slope Chart",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'North',\n        data: [\n          {\n            x: 'Q1',\n            y: 503,\n          },\n          {\n            x: 'Q2',\n            y: 580,\n          },\n          {\n            x: 'Q3',\n            y: 135,\n          },\n        ],\n      },\n      {\n        name: 'South',\n        data: [\n          {\n            x: 'Q1',\n            y: 733,\n          },\n          {\n            x: 'Q2',\n            y: 385,\n          },\n          {\n            x: 'Q3',\n            y: 715,\n          },\n        ],\n      },\n      {\n        name: 'East',\n        data: [\n          {\n            x: 'Q1',\n            y: 255,\n          },\n          {\n            x: 'Q2',\n            y: 211,\n          },\n          {\n            x: 'Q3',\n            y: 441,\n          },\n        ],\n      },\n      {\n        name: 'West',\n        data: [\n          {\n            x: 'Q1',\n            y: 428,\n          },\n          {\n            x: 'Q2',\n            y: 749,\n          },\n          {\n            x: 'Q3',\n            y: 559,\n          },\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        height: 350,\n        width: 600,\n        type: 'line',\n      },\n      plotOptions: {\n        line: {\n          isSlopeChart: true,\n        },\n      },\n      title: {\n        text: 'Regional Sales Rank by Quarter',\n      },\n      tooltip: {\n        followCursor: true,\n        intersect: false,\n        shared: true,\n      },\n      dataLabels: {\n        background: {\n          enabled: true,\n        },\n        formatter(val, opts) {\n          const seriesName = opts.w.config.series[opts.seriesIndex].name\n          return val !== null ? seriesName : ''\n        },\n      },\n      yaxis: {\n        show: true,\n        labels: {\n          show: true,\n        },\n      },\n      xaxis: {\n        position: 'bottom',\n      },\n      legend: {\n        show: true,\n        position: 'top',\n        horizontalAlign: 'left',\n      },\n      stroke: {\n        width: [2, 3, 4, 2],\n        dashArray: [0, 0, 5, 2],\n        curve: 'smooth',\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"line\"\n          height={350}\n          width={600}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

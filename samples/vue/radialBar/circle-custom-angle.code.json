@@ -1,0 +1,10 @@
+{
+  "title": "Circle Custom Angle",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"radialBar\"\n        height=\"390\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [76, 67, 61, 90],\n      chartOptions: {\n        chart: {\n          height: 390,\n          type: 'radialBar',\n        },\n        plotOptions: {\n          radialBar: {\n            offsetY: 0,\n            startAngle: 0,\n            endAngle: 270,\n            hollow: {\n              margin: 5,\n              size: '30%',\n              background: 'transparent',\n              image: undefined,\n            },\n            dataLabels: {\n              name: {\n                show: false,\n              },\n              value: {\n                show: false,\n              },\n            },\n            barLabels: {\n              enabled: true,\n              useSeriesColors: true,\n              offsetX: -8,\n              fontSize: '16px',\n              formatter: function (seriesName, opts) {\n                return (\n                  seriesName +\n                  ':  ' +\n                  opts.w.globals.series[opts.seriesIndex] +\n                  '%'\n                )\n              },\n            },\n          },\n        },\n        colors: ['#1ab7ea', '#0084ff', '#39539E', '#0077B5'],\n        labels: ['Email', 'Push', 'In-App', 'SMS'],\n        responsive: [\n          {\n            breakpoint: 480,\n            options: {\n              legend: {\n                show: false,\n              },\n            },\n          },\n        ],\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  padding: 0;\n  max-width: 650px;\n  margin: 35px auto;\n}\n\n.apexcharts-legend text {\n  font-weight: 900;\n}\n</style>\n"
+    }
+  ]
+}

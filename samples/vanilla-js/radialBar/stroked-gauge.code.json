@@ -1,0 +1,20 @@
+{
+  "title": "Stroked Gauge",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [78],\n  chart: {\n    height: 350,\n    type: 'radialBar',\n    offsetY: -10,\n  },\n  plotOptions: {\n    radialBar: {\n      startAngle: -135,\n      endAngle: 135,\n      dataLabels: {\n        name: {\n          fontSize: '16px',\n          color: undefined,\n          offsetY: 120,\n        },\n        value: {\n          offsetY: 76,\n          fontSize: '22px',\n          color: undefined,\n          formatter: function (val) {\n            return val + '%'\n          },\n        },\n      },\n    },\n  },\n  fill: {\n    type: 'gradient',\n    gradient: {\n      shade: 'dark',\n      shadeIntensity: 0.15,\n      inverseColors: false,\n      opacityFrom: 1,\n      opacityTo: 1,\n      stops: [0, 50, 65, 91],\n    },\n  },\n  stroke: {\n    dashArray: 4,\n  },\n  colors: ['#20E647'],\n  labels: ['Battery Health'],\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Stroked Gauge</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

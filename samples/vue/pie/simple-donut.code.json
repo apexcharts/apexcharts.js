@@ -1,0 +1,10 @@
+{
+  "title": "Simple Donut",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"donut\"\n        width=\"480\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [54, 41, 38, 16, 12],\n      chartOptions: {\n        chart: {\n          width: 480,\n          type: 'donut',\n        },\n        labels: [\n          'North America',\n          'Europe',\n          'Asia Pacific',\n          'Latin America',\n          'Middle East',\n        ],\n        title: {\n          text: 'Revenue by Region ($M)',\n          align: 'center',\n        },\n        legend: {\n          show: false,\n        },\n        plotOptions: {\n          pie: {\n            dataLabels: {\n              external: {\n                show: true,\n              },\n            },\n          },\n        },\n        responsive: [\n          {\n            breakpoint: 480,\n            options: {\n              chart: {\n                width: 320,\n              },\n            },\n          },\n        ],\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 480px;\n  margin: 35px auto;\n  padding: 0;\n}\n</style>\n"
+    }
+  ]
+}

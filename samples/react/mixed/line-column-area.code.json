@@ -1,0 +1,15 @@
+{
+  "title": "Line, Column &amp; Area",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'New Users',\n        type: 'column',\n        data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30],\n      },\n      {\n        name: 'Sessions',\n        type: 'area',\n        data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43],\n      },\n      {\n        name: 'Pageviews',\n        type: 'line',\n        data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39],\n      },\n    ],\n    options: {\n      chart: {\n        height: 350,\n        type: 'line',\n        stacked: false,\n      },\n      stroke: {\n        width: [0, 2, 5],\n        curve: 'smooth',\n      },\n      plotOptions: {\n        bar: {\n          columnWidth: '50%',\n        },\n      },\n\n      fill: {\n        opacity: [0.85, 0.25, 1],\n        gradient: {\n          inverseColors: false,\n          shade: 'light',\n          type: 'vertical',\n          opacityFrom: 0.85,\n          opacityTo: 0.55,\n          stops: [0, 100, 100, 100],\n        },\n      },\n      labels: [\n        '01/01/2024',\n        '02/01/2024',\n        '03/01/2024',\n        '04/01/2024',\n        '05/01/2024',\n        '06/01/2024',\n        '07/01/2024',\n        '08/01/2024',\n        '09/01/2024',\n        '10/01/2024',\n        '11/01/2024',\n      ],\n      title: {\n        text: 'Campaign Performance',\n      },\n      markers: {\n        size: 0,\n      },\n      xaxis: {\n        type: 'datetime',\n      },\n      yaxis: {\n        title: {\n          text: 'Count (k)',\n        },\n      },\n      tooltip: {\n        shared: true,\n        intersect: false,\n        y: {\n          formatter: function (y) {\n            if (typeof y !== 'undefined') {\n              return y.toFixed(0) + 'k'\n            }\n            return y\n          },\n        },\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"line\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

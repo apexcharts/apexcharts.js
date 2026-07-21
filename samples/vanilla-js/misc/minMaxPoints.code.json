@@ -1,0 +1,20 @@
+{
+  "title": "Min Max Points example",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      data: [344, 345, 333, 323, 322, 342, 383, 353, 323, 376],\n    },\n  ],\n  chart: {\n    height: 350,\n    type: 'area',\n    zoom: {\n      enabled: false,\n    },\n    events: {\n      mounted: function (ctx, config) {\n        var lowest = ctx.getLowestValueInSeries(0)\n        var highest = ctx.getHighestValueInSeries(0)\n\n        ctx.addPointAnnotation({\n          x: new Date(\n            ctx.w.globals.seriesX[0][ctx.w.globals.series[0].indexOf(lowest)],\n          ).getTime(),\n          y: lowest,\n          label: {\n            text: 'Lowest: ' + lowest,\n            offsetY: 2,\n          },\n          image: {\n            path: '../../assets/images/ico-instagram.png',\n            width: undefined,\n            height: undefined,\n            offsetX: 0,\n            offsetY: -18,\n          },\n        })\n\n        ctx.addPointAnnotation({\n          x: new Date(\n            ctx.w.globals.seriesX[0][ctx.w.globals.series[0].indexOf(highest)],\n          ).getTime(),\n          y: highest,\n          label: {\n            text: 'Highest: ' + highest,\n            offsetY: 2,\n          },\n        })\n      },\n    },\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  stroke: {\n    curve: 'straight',\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Min Max Points example</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://apexcharts.com/samples/assets/stock-prices.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

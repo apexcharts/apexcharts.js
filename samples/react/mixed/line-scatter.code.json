@@ -1,0 +1,15 @@
+{
+  "title": "Line &amp; scatter",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Measured',\n        type: 'scatter',\n\n        //2.14, 2.15, 3.61, 4.93, 2.4, 2.7, 4.2, 5.4, 6.1, 8.3\n        data: [\n          {\n            x: 1,\n            y: 2.14,\n          },\n          {\n            x: 1.2,\n            y: 2.19,\n          },\n          {\n            x: 1.8,\n            y: 2.43,\n          },\n          {\n            x: 2.3,\n            y: 3.8,\n          },\n          {\n            x: 2.6,\n            y: 4.14,\n          },\n          {\n            x: 2.9,\n            y: 5.4,\n          },\n          {\n            x: 3.2,\n            y: 5.8,\n          },\n          {\n            x: 3.8,\n            y: 6.04,\n          },\n          {\n            x: 4.55,\n            y: 6.77,\n          },\n          {\n            x: 4.9,\n            y: 8.1,\n          },\n          {\n            x: 5.1,\n            y: 9.4,\n          },\n          {\n            x: 7.1,\n            y: 7.14,\n          },\n          {\n            x: 9.18,\n            y: 8.4,\n          },\n        ],\n      },\n      {\n        name: 'Model Fit',\n        type: 'line',\n        data: [\n          {\n            x: 1,\n            y: 2,\n          },\n          {\n            x: 2,\n            y: 3,\n          },\n          {\n            x: 3,\n            y: 4,\n          },\n          {\n            x: 4,\n            y: 5,\n          },\n          {\n            x: 5,\n            y: 6,\n          },\n          {\n            x: 6,\n            y: 7,\n          },\n          {\n            x: 7,\n            y: 8,\n          },\n          {\n            x: 8,\n            y: 9,\n          },\n          {\n            x: 9,\n            y: 10,\n          },\n          {\n            x: 10,\n            y: 11,\n          },\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        height: 350,\n        type: 'line',\n      },\n      title: {\n        text: 'Measured vs Fitted',\n      },\n      fill: {\n        type: 'solid',\n      },\n      markers: {\n        size: [6, 0],\n      },\n      tooltip: {\n        shared: false,\n        intersect: true,\n      },\n      legend: {\n        show: false,\n      },\n      xaxis: {\n        type: 'numeric',\n        min: 0,\n        max: 12,\n        tickAmount: 12,\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"line\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

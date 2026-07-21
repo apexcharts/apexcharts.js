@@ -1,0 +1,20 @@
+{
+  "title": "Gauge with Threshold Bands",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [78],\n  chart: {\n    height: 350,\n    type: 'gauge',\n  },\n  plotOptions: {\n    radialBar: {\n      startAngle: -135,\n      endAngle: 135,\n      bands: [\n        { from: 0, to: 30, color: '#FF4560' },\n        { from: 30, to: 70, color: '#FEB019' },\n        { from: 70, to: 100, color: '#00E396' },\n      ],\n      bandsStyle: {\n        strokeWidth: '60%',\n        gap: 2,\n      },\n      hollow: {\n        margin: 0,\n        size: '60%',\n      },\n      dataLabels: {\n        name: { show: false },\n        value: {\n          offsetY: 8,\n          fontSize: '32px',\n          fontWeight: 700,\n          formatter: function (val) {\n            return val + '%'\n          },\n        },\n      },\n    },\n  },\n  fill: { opacity: 0.8 },\n  labels: ['System Health'],\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Gauge with Threshold Bands</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  padding: 0;\n  max-width: 420px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

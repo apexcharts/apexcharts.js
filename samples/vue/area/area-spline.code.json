@@ -1,0 +1,10 @@
+{
+  "title": "Area Spline",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"area\"\n        height=\"350\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [\n        {\n          name: 'Solar',\n          data: [42, 48, 51, 39, 55, 60, 58, 44, 50, 63, 66, 59, 52, 57],\n        },\n        {\n          name: 'Wind',\n          data: [28, 35, 22, 41, 33, 26, 38, 45, 31, 24, 36, 42, 29, 34],\n        },\n      ],\n      chartOptions: {\n        chart: {\n          height: 350,\n          type: 'area',\n        },\n        dataLabels: {\n          enabled: false,\n        },\n        stroke: {\n          curve: 'smooth',\n        },\n        title: {\n          text: 'Renewable Energy Generation',\n          align: 'left',\n        },\n        xaxis: {\n          type: 'datetime',\n          categories: [\n            '2025-06-01',\n            '2025-06-02',\n            '2025-06-03',\n            '2025-06-04',\n            '2025-06-05',\n            '2025-06-06',\n            '2025-06-07',\n            '2025-06-08',\n            '2025-06-09',\n            '2025-06-10',\n            '2025-06-11',\n            '2025-06-12',\n            '2025-06-13',\n            '2025-06-14',\n          ],\n        },\n        yaxis: {\n          labels: {\n            formatter: function (val) {\n              return val + ' GWh'\n            },\n          },\n        },\n        tooltip: {\n          x: {\n            format: 'dd MMM yyyy',\n          },\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

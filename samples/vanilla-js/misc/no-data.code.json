@@ -1,0 +1,20 @@
+{
+  "title": "Custom Legend",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Network In',\n      data: [],\n    },\n  ],\n  chart: {\n    type: 'area',\n    height: 350,\n    animations: {\n      enabled: false,\n    },\n    zoom: {\n      enabled: false,\n    },\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  stroke: {\n    curve: 'smooth',\n  },\n  markers: {\n    size: 5,\n    hover: {\n      size: 9,\n    },\n  },\n  title: {\n    text: 'Network Monitoring',\n  },\n  tooltip: {\n    intersect: true,\n    shared: false,\n  },\n  theme: {\n    palette: 'palette1',\n  },\n  xaxis: {\n    type: 'datetime',\n  },\n  yaxis: {\n    showForNullSeries: false,\n    tickAmount: 3,\n    min: 0,\n    title: {\n      text: 'Received MB',\n    },\n  },\n  noData: {\n    text: 'No Data',\n    style: {\n      color: '#FCC',\n      fontSize: '24px',\n    },\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Custom Legend</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <link\n      rel=\"stylesheet\"\n      href=\"https://cdn.jsdelivr.net/npm/pretty-checkbox@3.0/dist/pretty-checkbox.min.css\"\n    />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

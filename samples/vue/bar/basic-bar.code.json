@@ -1,0 +1,10 @@
+{
+  "title": "Basic Bar Chart",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"bar\"\n        height=\"350\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [\n        {\n          name: 'Visitors',\n          data: [400, 430, 448, 470, 540, 580, 690, 1100, 1200, 1380],\n        },\n      ],\n      chartOptions: {\n        chart: {\n          type: 'bar',\n          height: 350,\n        },\n        plotOptions: {\n          bar: {\n            borderRadius: 4,\n            borderRadiusApplication: 'end',\n            horizontal: true,\n          },\n        },\n        dataLabels: {\n          enabled: false,\n        },\n        title: {\n          text: 'Monthly Visitors by Country',\n          align: 'left',\n        },\n        xaxis: {\n          categories: [\n            'South Korea',\n            'Canada',\n            'United Kingdom',\n            'Netherlands',\n            'Italy',\n            'France',\n            'Japan',\n            'United States',\n            'China',\n            'Germany',\n          ],\n          labels: {\n            formatter: function (val) {\n              return val + 'k'\n            },\n          },\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "title": "Simple PolarArea",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [12, 8, 15, 23, 18, 9, 6, 11],\n    options: {\n      chart: {\n        type: 'polarArea',\n      },\n      labels: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],\n      title: {\n        text: 'Wind Frequency by Direction (%)',\n        align: 'center',\n      },\n      stroke: {\n        colors: ['#fff'],\n      },\n      fill: {\n        opacity: 0.8,\n      },\n      legend: {\n        position: 'bottom',\n      },\n      responsive: [\n        {\n          breakpoint: 480,\n          options: {\n            chart: {\n              width: 200,\n            },\n            legend: {\n              position: 'bottom',\n            },\n          },\n        },\n      ],\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"polarArea\"\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 380px;\n  margin: 35px auto;\n  padding: 0;\n}\n"
+    }
+  ]
+}

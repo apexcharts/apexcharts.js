@@ -1,0 +1,20 @@
+{
+  "title": "Horizontal Violin — Bimodal Distributions",
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "// ── Reproducible synthetic data (seeded PRNG, no network) ──────────────\nfunction mulberry32(a) {\n  return function () {\n    a |= 0\n    a = (a + 0x6d2b79f5) | 0\n    var t = Math.imul(a ^ (a >>> 15), 1 | a)\n    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296\n  }\n}\nvar rng = mulberry32(24681012)\n\nfunction gauss(mean, sd) {\n  var u = 0,\n    v = 0\n  while (u === 0) u = rng()\n  while (v === 0) v = rng()\n  return mean + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)\n}\n\n// Draw n samples from a mixture of two well-separated normal components — the\n// two clusters give each distribution its characteristic twin-hump shape.\nfunction bimodal(n, a, b) {\n  var out = []\n  for (var i = 0; i < n; i++) {\n    var c = rng() < a.w ? a : b\n    out.push(Math.max(0, Math.round(gauss(c.mean, c.sd) * 10) / 10))\n  }\n  return out\n}\n\n// Session duration (minutes) per channel — a quick-bounce cluster and an\n// engaged-visit cluster, mixed in different proportions.\nvar CHANNELS = [\n  {\n    name: 'Direct',\n    data: bimodal(320, { w: 0.4, mean: 2, sd: 1 }, { mean: 22, sd: 5 }),\n  },\n  {\n    name: 'Search',\n    data: bimodal(320, { w: 0.55, mean: 2, sd: 1 }, { mean: 18, sd: 5 }),\n  },\n  {\n    name: 'Social',\n    data: bimodal(320, { w: 0.7, mean: 2, sd: 1 }, { mean: 14, sd: 4 }),\n  },\n  {\n    name: 'Email',\n    data: bimodal(320, { w: 0.3, mean: 3, sd: 1.5 }, { mean: 26, sd: 6 }),\n  },\n]\n\n// Gaussian KDE with a loose bandwidth + coarse step, so the two humps stay\n// distinct (a tighter bandwidth would smear them into one) and the outline\n// keeps its angular, twin-peaked character.\nfunction kde(values, bw, step) {\n  var min = Math.min.apply(null, values) - bw\n  var max = Math.max.apply(null, values) + bw\n  var N = values.length\n  var profile = []\n  for (var x = min; x <= max; x += step) {\n    var sum = 0\n    for (var k = 0; k < N; k++) {\n      var d = (x - values[k]) / bw\n      sum += Math.exp(-0.5 * d * d)\n    }\n    profile.push([Math.round(x * 100) / 100, sum / (N * bw)])\n  }\n  return profile\n}\n\nvar options = {\n  series: [\n    {\n      name: 'Sessions',\n      data: CHANNELS.map(function (c) {\n        return {\n          x: c.name,\n          y: { density: kde(c.data, 2.5, 1.5), points: c.data },\n        }\n      }),\n    },\n  ],\n  chart: {\n    type: 'violin',\n    height: 480,\n  },\n  title: {\n    text: 'Session duration by channel',\n  },\n  plotOptions: {\n    bar: {\n      horizontal: true,\n      distributed: true,\n    },\n    violin: {\n      normalize: 'group',\n      points: { show: false }, // density curves only\n    },\n  },\n  colors: ['#0ea5e9', '#8b5cf6', '#f97316', '#10b981'],\n  stroke: { width: 1, colors: ['#888'] },\n  legend: { show: false },\n  xaxis: {\n    title: { text: 'Session duration (minutes)' },\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Horizontal Violin — Bimodal Distributions</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 820px;\n  margin: 20px auto;\n}\n"
+    }
+  ]
+}

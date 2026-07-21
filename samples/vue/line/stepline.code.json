@@ -1,0 +1,10 @@
+{
+  "title": "Stepline Chart",
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"line\"\n        height=\"350\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [\n        {\n          name: 'Setpoint',\n          data: [16, 16, 18, 21, 21, 19, 19, 22, 22, 18, 16],\n        },\n      ],\n      chartOptions: {\n        chart: {\n          type: 'line',\n          height: 350,\n        },\n        stroke: {\n          curve: 'stepline',\n        },\n        dataLabels: {\n          enabled: false,\n        },\n        title: {\n          text: 'Thermostat Setpoint',\n          align: 'left',\n        },\n        subtitle: {\n          text: \"curve: 'stepline' holds each value until the next point\",\n          align: 'left',\n        },\n        xaxis: {\n          categories: [\n            '00:00',\n            '02:00',\n            '04:00',\n            '06:00',\n            '08:00',\n            '10:00',\n            '12:00',\n            '14:00',\n            '16:00',\n            '18:00',\n            '20:00',\n          ],\n        },\n        yaxis: {\n          labels: {\n            formatter: function (val) {\n              return val + '°C'\n            },\n          },\n        },\n        markers: {\n          hover: {\n            sizeOffset: 4,\n          },\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "title": "Basic Line Chart",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Sign-ups',\n        data: [210, 380, 340, 520, 480, 610, 700, 880, 820, 1040, 1180, 1520],\n      },\n    ],\n    options: {\n      chart: {\n        height: 350,\n        type: 'line',\n        zoom: {\n          enabled: false,\n        },\n      },\n      dataLabels: {\n        enabled: false,\n      },\n      stroke: {\n        curve: 'straight',\n      },\n      title: {\n        text: 'New Sign-ups by Month',\n        align: 'left',\n      },\n      xaxis: {\n        categories: [\n          'Jan',\n          'Feb',\n          'Mar',\n          'Apr',\n          'May',\n          'Jun',\n          'Jul',\n          'Aug',\n          'Sep',\n          'Oct',\n          'Nov',\n          'Dec',\n        ],\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"line\"\n          height={350}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

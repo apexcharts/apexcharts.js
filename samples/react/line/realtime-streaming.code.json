@@ -1,0 +1,15 @@
+{
+  "title": "Streaming Line Chart (chart.streaming)",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport ApexCharts from 'apexcharts'\nimport './styles.css'\n\nvar TICKINTERVAL = 1000\nvar XAXISRANGE = 29 * TICKINTERVAL\nvar lastX = new Date().getTime() - XAXISRANGE\nvar lastY = 50\nvar data = []\n\nfunction nextValue() {\n  lastY = Math.max(5, Math.min(95, lastY + (Math.random() - 0.5) * 20))\n  return Math.round(lastY)\n}\n\nwhile (data.length < 30) {\n  data.push({ x: lastX, y: nextValue() })\n  lastX += TICKINTERVAL\n}\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Signal',\n        data: data.slice(),\n      },\n    ],\n    options: {\n      chart: {\n        id: 'realtime-streaming',\n        height: 350,\n        type: 'line',\n        streaming: {\n          enabled: true,\n        },\n        animations: {\n          dynamicAnimation: {\n            speed: 1000,\n          },\n        },\n        toolbar: {\n          show: false,\n        },\n        zoom: {\n          enabled: false,\n        },\n      },\n      dataLabels: {\n        enabled: false,\n      },\n      stroke: {\n        curve: 'smooth',\n      },\n      title: {\n        text: 'Streaming (bounded memory + linear scroll)',\n        align: 'left',\n      },\n      markers: {\n        size: 0,\n      },\n      xaxis: {\n        type: 'datetime',\n        range: XAXISRANGE,\n      },\n      yaxis: {\n        min: 0,\n        max: 100,\n      },\n      legend: {\n        show: false,\n      },\n    },\n  })\n\n  React.useEffect(() => {\n    const interval = window.setInterval(() => {\n      lastX += TICKINTERVAL\n      ApexCharts.exec('realtime-streaming', 'appendData', [\n        {\n          data: [{ x: lastX, y: nextValue() }],\n        },\n      ])\n    }, TICKINTERVAL)\n    return () => window.clearInterval(interval)\n  }, [])\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"line\"\n          height={350}\n        />\n      </div>\n\n      <div className=\"explanation\">\n        Real-time streaming with <code>chart.streaming.enabled</code>: each tick\n        appends one point with <code>appendData()</code>. The window slides left\n        at constant velocity (no easing pulse, no in-place warp), and the series\n        array is trimmed automatically to the visible <code>xaxis.range</code>{' '}\n        window, so memory stays flat no matter how long the stream runs. The\n        same scroll works when a fixed-length rolling window is passed to{' '}\n        <code>updateSeries()</code>.\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n.explanation {\n  max-width: 620px;\n  margin: 0 auto 12px;\n  font-size: 13px;\n  color: #777;\n}\n"
+    }
+  ]
+}

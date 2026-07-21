@@ -1,0 +1,15 @@
+{
+  "title": "Basic Violin Chart",
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\n// Build a Gaussian density profile + raw observations for a group.\n// The sample template seeds Math.random, so this renders identically across reloads.\nfunction gaussianViolin(mean, sd, n) {\n  var density = []\n  for (var v = mean - 3 * sd; v <= mean + 3 * sd; v += sd / 6) {\n    var z = (v - mean) / sd\n    density.push([v, Math.exp(-0.5 * z * z)])\n  }\n  var points = []\n  for (var k = 0; k < n; k++) {\n    // Box–Muller transform on two uniform samples\n    var u1 = Math.random(),\n      u2 = Math.random()\n    var g = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)\n    points.push(mean + g * sd)\n  }\n  return { density: density, points: points }\n}\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Measurement',\n        data: [\n          { x: 'Group A', y: gaussianViolin(50, 8, 400) },\n          { x: 'Group B', y: gaussianViolin(62, 5, 600) },\n          { x: 'Group C', y: gaussianViolin(45, 12, 250) },\n          { x: 'Group D', y: gaussianViolin(55, 6, 500) },\n          { x: 'Group E', y: gaussianViolin(48, 10, 350) },\n          { x: 'Group F', y: gaussianViolin(58, 7, 450) },\n          { x: 'Group G', y: gaussianViolin(52, 9, 300) },\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        type: 'violin',\n        height: 420,\n      },\n      title: {\n        text: 'Distribution by group',\n      },\n      plotOptions: {\n        violin: {\n          bandwidthScale: 1,\n          points: {\n            show: false, // density curve only — no jitter overlay\n          },\n        },\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"violin\"\n          height={420}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 820px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}
