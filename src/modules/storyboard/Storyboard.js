@@ -1,6 +1,7 @@
 // @ts-check
 import { Environment } from '../../utils/Environment.js'
 import { prefersReducedMotion } from '../Animations'
+import { enforceLicense } from '../license/LicenseEnforcer'
 
 /**
  * Storyboard: scroll-driven chart choreography (scrollytelling).
@@ -87,6 +88,9 @@ export default class Storyboard {
     this._activeIndex = -1
     this._animate = true
     this._warnedNoPerspectives = false
+    // Premium "in use" signal: true once bind() has bound beats (API-driven,
+    // there is no chart.storyboard config flag). Read by the license enforcer.
+    this._used = false
   }
 
   /**
@@ -133,6 +137,10 @@ export default class Storyboard {
       { root, rootMargin: `-${top}% 0px -${bottom}%`, threshold: 0 },
     )
     this._beats.forEach((b) => this._observer?.observe(b.el))
+
+    // Storyboard is now in use (beats bound): re-evaluate the trial watermark.
+    this._used = true
+    enforceLicense(this.w, this.ctx)
 
     return this._beats.length
   }
@@ -340,6 +348,9 @@ export default class Storyboard {
     }
     this._beats = []
     this._activeIndex = -1
+    // No longer in use: drop the trial watermark if nothing else needs it.
+    this._used = false
+    enforceLicense(this.w, this.ctx)
   }
 
   /** Full-destroy cleanup (called from Destroy). */

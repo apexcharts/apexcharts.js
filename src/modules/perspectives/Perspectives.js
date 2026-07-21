@@ -2,6 +2,7 @@
 import Utils from '../../utils/Utils'
 import { Environment } from '../../utils/Environment.js'
 import { captureViewState, applyViewState } from '../state/ViewState'
+import { enforceLicense } from '../license/LicenseEnforcer'
 
 /**
  * Perspectives (#10): serializable, shareable view state.
@@ -113,6 +114,10 @@ export default class Perspectives {
     /** @type {{ id: string, name: string, token: any }[]} in-memory registry */
     this._saved = []
     this._counter = 0
+    // Premium "in use" signal: true once apply()/save() runs (API-driven).
+    // Read by the license enforcer. The static decode/fromURL path sets a
+    // separate process-global signal in the enforcer.
+    this._used = false
   }
 
   /**
@@ -210,6 +215,12 @@ export default class Perspectives {
         : tokenOrString
     if (!token || !token.view) return
 
+    // Applying a view is premium perspectives usage: mark before the re-render
+    // so the render's license check sees it, and enforce directly in case the
+    // apply is a no-op re-render (identical view memoized away).
+    this._used = true
+    enforceLicense(this.w, this.ctx)
+
     const animate = opts.animate !== undefined ? opts.animate : true
     const combined = Utils.extend(
       token.options ? Utils.clone(token.options) : {},
@@ -233,6 +244,9 @@ export default class Perspectives {
   save(name) {
     const id = `perspective-${++this._counter}`
     this._saved.push({ id, name: name || id, token: this.capture() })
+    // Saving a view is premium perspectives usage (no re-render on its own).
+    this._used = true
+    enforceLicense(this.w, this.ctx)
     return id
   }
 

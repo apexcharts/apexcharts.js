@@ -334,6 +334,17 @@ declare class ApexCharts {
   static registerFeatures(featureMap: Record<string, new (...args: any[]) => any>): void
 
   /**
+   * Sets the license key that unlocks the gated premium features (storyboard,
+   * link / crossfilter, ink, measure, contextMenu, perspectives, history).
+   * Without a valid key those features keep working but show an "APEXCHARTS"
+   * trial watermark; a valid key removes it. Keys are shared across the
+   * ApexCharts family (apexgantt, apextree, apexsankey, apex-grid-enterprise,
+   * apexstock). Call before render(); the watermark is re-evaluated on every
+   * render/update.
+   */
+  static setLicense(key: string): typeof ApexCharts
+
+  /**
    * Registers a Weave plugin definition. Available in every bundle; the plugin
    * activates only when the Weave host is bundled and listed in a chart's
    * `plugins` config. Re-registering a name replaces the definition.
@@ -1364,6 +1375,14 @@ type ApexChart = {
   id?: string
   injectStyleSheet?: boolean
   group?: string
+  /**
+   * Per-chart license key for the gated premium features (storyboard, link /
+   * crossfilter, ink, measure, contextMenu, perspectives, history). Overrides
+   * ApexCharts.setLicense() and window.Apex.license for this chart. Without a
+   * valid key those features still work but show an "APEXCHARTS" trial
+   * watermark. Shared across the ApexCharts family.
+   */
+  license?: string
   locales?: ApexLocale[]
   defaultLocale?: string
   perspectives?: {

@@ -35,6 +35,12 @@ import { addResizeListener, removeResizeListener } from './utils/Resize'
 import apexCSS from './assets/apexcharts.css'
 import { Environment } from './utils/Environment.js'
 import { BrowserAPIs } from './ssr/BrowserAPIs.js'
+import { LicenseManager } from './modules/license/LicenseManager'
+import {
+  enforceLicense,
+  teardownWatermark,
+  reevaluateLicenseAcrossCharts,
+} from './modules/license/LicenseEnforcer'
 
 /**
  *
@@ -609,6 +615,11 @@ export default class ApexCharts {
       if (!w.globals.axisCharts && !w.globals.noData) {
         me.core.resizeNonAxisCharts()
       }
+
+      // License: show/remove the trial watermark for gated premium features.
+      // Runs last, after the DOM cache (w.dom.elWrap) is populated.
+      enforceLicense(w, me)
+
       resolve(me)
     })
   }
@@ -649,6 +660,9 @@ export default class ApexCharts {
     if (this._keyboardNavigation) {
       this._keyboardNavigation.destroy()
     }
+    // License: disconnect the watermark MutationObserver(s) so a torn-down
+    // chart leaves nothing observing the DOM.
+    teardownWatermark(this)
     new Destroy(this.ctx).clear({ isUpdating: false })
   }
 
@@ -1271,6 +1285,10 @@ export default class ApexCharts {
         }
         this.events.fireEvent('updated', [this, w])
 
+        // License: re-evaluate on the fast path too, so a late setLicense +
+        // updateSeries() clears the watermark without a full render.
+        enforceLicense(w, this)
+
         gl.isDirty = true
         resolve(this)
       } catch (e) {
@@ -1415,6 +1433,30 @@ export default class ApexCharts {
    */
   static registerFeatures(featureMap) {
     InitCtxVariables.registerFeatures(featureMap)
+  }
+
+  /**
+   * Set the license key that unlocks the premium features (storyboard, link /
+   * crossfilter, ink, measure, contextMenu, perspectives, history). Without a
+   * valid key those features still work but the chart shows an "APEXCHARTS"
+   * trial watermark; a valid key removes it. Keys are shared across the whole
+   * ApexCharts family (apexgantt, apextree, apexsankey, apex-grid-enterprise,
+   * apexstock), so one customer key works everywhere.
+   *
+   * Call before render(). The watermark is re-evaluated on every render/update,
+   * so a late setLicense(validKey) followed by chart.update() clears it.
+   *
+   * Precedence per chart: `chart.license` (most specific) -> this key ->
+   * `window.Apex.license` -> unlicensed (trial).
+   *
+   * @param {string} key  the `APEX-<base64(JSON)>` license key
+   * @returns {typeof ApexCharts}
+   */
+  static setLicense(key) {
+    LicenseManager.setLicense(key)
+    // A late (post-render) valid key should clear watermarks already on screen.
+    reevaluateLicenseAcrossCharts()
+    return ApexCharts
   }
 
   /**
@@ -1568,7 +1610,11 @@ export default class ApexCharts {
       )
       return null
     }
-    return factory(opts)
+    const coordinator = factory(opts)
+    // Using the crossfilter engine is premium "link" usage; re-evaluate live
+    // charts so any that consume this coordinator pick up the trial watermark.
+    reevaluateLicenseAcrossCharts()
+    return coordinator
   }
 
   /**

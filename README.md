@@ -158,20 +158,57 @@ import 'apexcharts/features/toolbar'      // zoom/pan toolbar
 // import 'apexcharts/features/keyboard'     // keyboard navigation
 // import 'apexcharts/features/drilldown'    // hierarchical drill-down
 // import 'apexcharts/features/morph'        // animated chart-type morphs
-// import 'apexcharts/features/history'      // undo/redo
-// import 'apexcharts/features/perspectives' // shareable view state
-// import 'apexcharts/features/storyboard'   // scrollytelling (includes perspectives)
+// import 'apexcharts/features/history'      // undo/redo (premium)
+// import 'apexcharts/features/perspectives' // shareable view state (premium)
+// import 'apexcharts/features/storyboard'   // scrollytelling, incl. perspectives (premium)
 // import 'apexcharts/features/facet'        // design tokens + OS themes
 // import 'apexcharts/features/weave'        // plugin platform
 // import 'apexcharts/features/marks'        // custom series types
-// import 'apexcharts/features/link'         // crossfilter / linked views
-// import 'apexcharts/features/ink'          // on-chart annotation editing
-// import 'apexcharts/features/measure'      // measure/delta ruler
-// import 'apexcharts/features/context-menu' // right-click context menu
+// import 'apexcharts/features/link'         // crossfilter / linked views (premium)
+// import 'apexcharts/features/ink'          // on-chart annotation editing (premium)
+// import 'apexcharts/features/measure'      // measure/delta ruler (premium)
+// import 'apexcharts/features/context-menu' // right-click context menu (premium)
 // import 'apexcharts/features/renderer-canvas' // canvas series renderer
 ```
 
 See the [tree-shaking guide](https://apexcharts.com/docs/tree-shaking/) for the complete list of entry points.
+
+## Premium features & licensing
+
+Most of ApexCharts is free and open source. A small set of advanced features are **premium** and require a license key:
+
+| Feature | Enabled by |
+|---|---|
+| Storyboard (scrollytelling) | `chart.storyboard.bind(...)` |
+| Linked views / crossfilter | `chart.link.enabled` / `chart.link.dimension` / `ApexCharts.crossfilter()` |
+| Ink layer (on-chart annotation editing) | `chart.ink.enabled` |
+| Measure / delta ruler | `chart.measure.enabled` |
+| Context menu (right-click) | `chart.contextMenu.enabled` |
+| Perspectives (shareable view state) | `chart.perspectives.apply()` / `.save()` / `ApexCharts.perspectives.decode()` |
+| History (undo/redo) | `chart.history.enabled` |
+
+Without a valid key these features still work (**trial mode**), but the chart shows an "APEXCHARTS" watermark. A valid key removes it. Everything else, including every chart type and all other features, is free and never watermarked.
+
+```js
+import ApexCharts from 'apexcharts'
+
+// Set once, before rendering. Applies to every chart on the page.
+ApexCharts.setLicense('APEX-xxxxxxxx')
+```
+
+Alternatives to `setLicense`:
+
+```js
+// Global variable (used when setLicense was not called):
+window.Apex = { license: 'APEX-xxxxxxxx' }
+
+// Per-chart override (most specific wins):
+new ApexCharts(el, { chart: { license: 'APEX-xxxxxxxx' /* ... */ } })
+```
+
+Precedence per chart: `chart.license` -> `ApexCharts.setLicense()` -> `window.Apex.license` -> unlicensed (trial). The watermark is re-evaluated on every render, so a late `setLicense(validKey)` followed by `chart.update()` clears it.
+
+Keys are **shared across the whole ApexCharts family** (apexgantt, apextree, apexsankey, apex-grid-enterprise, apexstock), so one customer key works everywhere. Get a license at [apexcharts.com/pricing](https://apexcharts.com/pricing).
 
 ## Browser support
 

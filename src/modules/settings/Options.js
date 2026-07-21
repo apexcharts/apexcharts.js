@@ -412,6 +412,12 @@ export default class Options {
         id: undefined,
         group: undefined,
         nonce: undefined,
+        // Per-chart license key override for the gated premium features
+        // (storyboard, link/crossfilter, ink, measure, contextMenu,
+        // perspectives, history). Most specific wins: chart.license ->
+        // ApexCharts.setLicense() -> window.Apex.license -> unlicensed (trial
+        // watermark). Shared across the ApexCharts family. See setLicense().
+        license: undefined,
         offsetX: 0,
         offsetY: 0,
         injectStyleSheet: true,
