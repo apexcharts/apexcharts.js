@@ -86,15 +86,27 @@
       // OHLC random walk: each candle opens at the previous close so the series
       // reads as a continuous price, dense enough that individual candles blur into
       // a band (which is exactly where the canvas renderer earns its keep).
+      //
+      // The PRNG reseeds on every call (same LCG and seed as the template's global
+      // Math.random override, so the initial render is unchanged). The template
+      // override alone is not enough here: its seed is a running stream, so the
+      // second generateCandles call, e.g. after toggling a control, would continue
+      // the stream and produce a different walk, which read as "the data changed"
+      // when comparing downsampling on/off.
       function generateCandles(count) {
+        var seed = 42
+        function rnd() {
+          seed = (seed * 16807) % 2147483647
+          return (seed - 1) / 2147483646
+        }
         var data = new Array(count)
         var t = new Date('2015-01-01T00:00:00Z').getTime()
         var step = 60 * 60 * 1000 // 1 hour
         var o = 100
         for (var i = 0; i < count; i++) {
-          var h = o + Math.random() * 6
-          var l = o - Math.random() * 6
-          var c = l + Math.random() * (h - l)
+          var h = o + rnd() * 6
+          var l = o - rnd() * 6
+          var c = l + rnd() * (h - l)
           data[i] = {
             x: t + i * step,
             y: [+o.toFixed(2), +h.toFixed(2), +l.toFixed(2), +c.toFixed(2)],
@@ -140,6 +152,10 @@
         &lt;option value=&quot;100000&quot;&gt;100,000&lt;/option&gt;
       &lt;/select&gt;
     &lt;/label&gt;
+    &lt;label&gt;
+      &lt;input type=&quot;checkbox&quot; id=&quot;lttbToggle&quot; checked /&gt;
+      Enable LTTB downsampling
+    &lt;/label&gt;
     &lt;button id=&quot;rerender&quot;&gt;Re-render&lt;/button&gt;
     &lt;button id=&quot;resetZoom&quot;&gt;Reset zoom&lt;/button&gt;
   &lt;/div&gt;
@@ -155,6 +171,15 @@
     canvas at 50,000 candles (they have no per-point markers or data labels for
     the threshold to count), so this demo selects &lt;b&gt;canvas&lt;/b&gt; explicitly. Switch
     to &lt;b&gt;svg&lt;/b&gt; at 50,000+ candles to feel the difference.
+    &lt;br /&gt;&lt;br /&gt;
+    &lt;b&gt;Enable LTTB downsampling&lt;/b&gt; turns on &lt;code&gt;chart.dataReducer&lt;/code&gt; with a
+    threshold of 11,000 points, so the 2,000 and 10,000 counts always render raw
+    while 50,000 and 100,000 aggregate to a tenth of their size (5,000 and 10,000
+    on-screen candles). Each bucket keeps its opening open, highest high, lowest
+    low and final close, and every zoom re-samples just the visible window, so
+    full per-candle detail returns as you zoom in. Uncheck it to compare raw
+    rendering at every size: the stats line shows how many candles are actually
+    drawn.
   &lt;/div&gt;
 &lt;/div&gt;
 
@@ -170,6 +195,12 @@
               type: 'candlestick',
               renderer: 'canvas',
               rendererThreshold: 8000,
+              // Above 11,000 points the raw series is aggregated to a tenth of its size
+              // (each bucket keeps its open, max high, min low and last close), and every
+              // zoom re-samples the visible window, so detail returns as you zoom in. The
+              // 2,000 and 10,000 counts stay under the threshold and render raw.
+              // rebuild() recomputes targetPoints as candleCount / 10 on every change.
+              dataReducer: { enabled: true, threshold: 11000, targetPoints: 1000 },
               animations: { enabled: true },
               zoom: { enabled: true, type: 'x', autoScaleYaxis: true },
               toolbar: { autoSelected: 'zoom' },
@@ -217,9 +248,15 @@
             const el = document.getElementById('stats')
             if (!el || !chart) return
             const active = chart.getActiveRenderer ? chart.getActiveRenderer() : 'svg'
+            const drawn =
+              chart.w && chart.w.seriesData && chart.w.seriesData.series[0]
+                ? chart.w.seriesData.series[0].length
+                : 0
             el.innerHTML =
               'Candles: <b>' +
               candleCount.toLocaleString() +
+              '</b> &nbsp;·&nbsp; Drawn: <b>' +
+              drawn.toLocaleString() +
               '</b> &nbsp;·&nbsp; Active renderer: <b>' +
               active.toUpperCase() +
               '</b> &nbsp;·&nbsp; DOM nodes in chart: <b>' +
@@ -234,9 +271,16 @@
           function rebuild() {
             candleCount = parseInt(document.getElementById('candleCount').value, 10)
             const mode = document.getElementById('rendererMode').value
+            const lttbOn = document.getElementById('lttbToggle').checked
 
             candleData = generateCandles(candleCount)
             options.chart.renderer = mode
+            options.chart.dataReducer = {
+              enabled: lttbOn,
+              threshold: 11000,
+              // keep a tenth of the raw candles: 50k draws 5,000, 100k draws 10,000
+              targetPoints: Math.round(candleCount / 10),
+            }
             options.series = [{ name: 'Price', data: candleData }]
             options.title.text =
               'Candlestick: ' +
@@ -258,6 +302,7 @@
           document.getElementById('rerender').addEventListener('click', rebuild)
           document.getElementById('rendererMode').addEventListener('change', rebuild)
           document.getElementById('candleCount').addEventListener('change', rebuild)
+          document.getElementById('lttbToggle').addEventListener('change', rebuild)
           document.getElementById('resetZoom').addEventListener('click', function () {
             if (chart) chart.resetSeries(true, true)
           })
@@ -300,6 +345,10 @@
                     <option value="100000">100,000</option>
                   </select>
                 </label>
+                <label>
+                  <input type="checkbox" id="lttbToggle" checked />
+                  Enable LTTB downsampling
+                </label>
                 <button id="rerender">Re-render</button>
                 <button id="resetZoom">Reset zoom</button>
               </div>
@@ -318,6 +367,17 @@
                 candles (they have no per-point markers or data labels for the
                 threshold to count), so this demo selects <b>canvas</b> explicitly.
                 Switch to <b>svg</b> at 50,000+ candles to feel the difference.
+                <br />
+                <br />
+                <b>Enable LTTB downsampling</b> turns on{' '}
+                <code>chart.dataReducer</code> with a threshold of 11,000 points, so
+                the 2,000 and 10,000 counts always render raw while 50,000 and 100,000
+                aggregate to a tenth of their size (5,000 and 10,000 on-screen
+                candles). Each bucket keeps its opening open, highest high, lowest low
+                and final close, and every zoom re-samples just the visible window, so
+                full per-candle detail returns as you zoom in. Uncheck it to compare
+                raw rendering at every size: the stats line shows how many candles are
+                actually drawn.
               </div>
             </div>
 
