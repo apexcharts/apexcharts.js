@@ -52,9 +52,16 @@
         return Math.round(lo + x * (hi - lo))
       }
 
-      // Per-level colour scales: the root spans 0-100, the weekly detail spans 0-40,
-      // so each level stays readable. The child override restores on drill-up.
-      var rootHeatPlot = {
+      function clamp(v, lo, hi) {
+        return Math.max(lo, Math.min(hi, v))
+      }
+
+      // One shared 0-100 colour scale for every level. Sales intensity is a score, so
+      // the Low/Medium/High/Peak thresholds mean the same thing whether you are
+      // looking at a region+quarter or at one of its weeks. That is what lets the
+      // drilldown stay honest: a "Peak" quarter drills into weeks that are mostly
+      // Peak/High too, not a fresh unrelated set of numbers.
+      var heatPlot = {
         heatmap: {
           radius: 2,
           shadeIntensity: 0.5,
@@ -68,29 +75,20 @@
           },
         },
       }
-      var childHeatPlot = {
-        heatmap: {
-          radius: 2,
-          shadeIntensity: 0.5,
-          colorScale: {
-            ranges: [
-              { from: 0, to: 12, color: '#C8E6C9', name: 'Low' },
-              { from: 13, to: 24, color: '#66BB6A', name: 'Medium' },
-              { from: 25, to: 40, color: '#FB8C00', name: 'High' },
-            ],
-          },
-        },
-      }
+
+      // The region+quarter score is the headline for its 12 weekly cells (3 months x
+      // 4 weeks), so compute it once and reuse it as the anchor for the detail.
+      var rootValues = regions.map(function (region, ri) {
+        return quarters.map(function (q, qi) {
+          return pseudo(ri * 31 + qi * 7 + 3, 20, 95)
+        })
+      })
 
       var heatRootSeries = regions.map(function (region, ri) {
         return {
           name: region,
           data: quarters.map(function (q, qi) {
-            return {
-              x: q,
-              y: pseudo(ri * 31 + qi * 7 + 3, 20, 95),
-              drilldown: 'r' + ri + '-q' + qi,
-            }
+            return { x: q, y: rootValues[ri][qi], drilldown: 'r' + ri + '-q' + qi }
           }),
         }
       })
@@ -98,18 +96,35 @@
       var heatChildren = []
       regions.forEach(function (region, ri) {
         quarters.forEach(function (q, qi) {
+          var base = rootValues[ri][qi]
+          var months = monthsByQuarter[qi]
+
+          // Draw a raw +/-15 wobble for each of the 12 weekly cells, then re-center
+          // the wobbles so they sum to zero. The weekly cells therefore average back
+          // to the region+quarter score: the drilldown preserves the headline instead
+          // of inventing a new total, while individual weeks still vary realistically.
+          var raw = []
+          months.forEach(function (m, mi) {
+            weeks.forEach(function (wk, wi) {
+              raw.push(pseudo(ri * 101 + qi * 53 + mi * 17 + wi * 3 + 11, -15, 15))
+            })
+          })
+          var mean =
+            raw.reduce(function (a, b) {
+              return a + b
+            }, 0) / raw.length
+          var k = 0
+
           heatChildren.push({
             id: 'r' + ri + '-q' + qi,
             name: region + ' / ' + q,
-            plotOptions: childHeatPlot,
-            series: monthsByQuarter[qi].map(function (m, mi) {
+            series: months.map(function (m, mi) {
               return {
                 name: m,
                 data: weeks.map(function (wk, wi) {
-                  return {
-                    x: wk,
-                    y: pseudo(ri * 101 + qi * 53 + mi * 17 + wi * 3 + 11, 5, 40),
-                  }
+                  var y = clamp(Math.round(base + raw[k] - mean), 0, 100)
+                  k++
+                  return { x: wk, y: y }
                 }),
               }
             }),
@@ -149,7 +164,7 @@
             dataLabels: {
               enabled: true,
             },
-            plotOptions: rootHeatPlot,
+            plotOptions: heatPlot,
             title: {
               text: 'Sales Intensity by Region and Quarter',
               align: 'left',
