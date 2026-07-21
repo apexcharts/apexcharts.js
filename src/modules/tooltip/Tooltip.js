@@ -695,10 +695,13 @@ export default class Tooltip {
       return !!(link && typeof link.dimension === 'function')
     }
 
-    // if user has more than one charts in group, we need to sync
+    // if user has more than one charts in group, we need to sync.
+    // Use getSyncedCharts() (self + siblings), not getGroupedCharts()
+    // (siblings only): the hovered chart must draw its OWN tooltip too,
+    // otherwise the one chart under the cursor is the only one left blank.
     if (w.config.chart.group && !isCfMember(this.ctx)) {
       chartGroups = this.ctx
-        .getGroupedCharts()
+        .getSyncedCharts()
         .filter((/** @type {any} */ ch) => !isCfMember(ch))
     }
 
