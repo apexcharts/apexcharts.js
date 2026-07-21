@@ -4,6 +4,12 @@ import Utils from './../utils/Utils'
 import Toolbar from './Toolbar'
 import { Box } from '../svg/index'
 
+// Wheel-zoom feel: scrolling this many deltaY pixels doubles (or halves) the
+// visible x-window. 240px is about two discrete wheel notches per 2x zoom
+// (~1.4x per notch): steep enough to traverse a large dataset in a few flicks,
+// gentle enough that a trackpad's stream of small deltas feels continuous.
+const WHEEL_ZOOM_PIXELS_PER_2X = 240
+
 /**
  * ApexCharts Zoom Class for handling zooming and panning on axes based charts.
  *
@@ -44,10 +50,6 @@ export default class ZoomPanSelection extends Toolbar {
     this.endY = 0
     this.dragY = 0
     this.moveDirection = 'none'
-
-    this.debounceTimer = null
-    this.debounceDelay = 100
-    this.wheelDelay = 400
   }
 
   /** @param {{xyRatios: any}} opts */
@@ -306,105 +308,140 @@ export default class ZoomPanSelection extends Toolbar {
     this.w.interact.mousedown = false
   }
 
-  /**
-   * @param {Event} e
-   */
-  mouseWheelEvent(e) {
-    const w = this.w
-    e.preventDefault()
+  // ---------------------------------------------------------------------------
+  // Wheel zoom: continuous, cursor-anchored zoom on mouse wheel / trackpad.
+  //
+  // Each wheel event multiplies a pending zoom factor scaled to its deltaY (so
+  // a trackpad's stream of tiny deltas and a discrete wheel's ±100 notches both
+  // feel proportional), and the accumulated factor is applied at most once per
+  // animation frame through the same immediate, animation-free fast path the
+  // touch pinch uses (_applyXRange). Deliberately instant, trading-chart style:
+  // no per-step morph and no easing between steps (an animated variant was
+  // tried and rejected). The original implementation instead ran a fixed
+  // 0.5x/1.5x animated update at most once per 400ms and dropped every wheel
+  // event in between, which read as lag on continuous scrolling.
+  //
+  // Like Momentum (see the comment above momentumTouch), applying a frame
+  // triggers _updateOptions, which destroys and recreates this instance
+  // mid-gesture, so all wheel-gesture state lives on w.interact.wheel rather
+  // than on the instance.
+  // ---------------------------------------------------------------------------
 
-    const now = Date.now()
-
-    // Execute immediately if it's the first action or enough time has passed
-    if (now - w.interact.lastWheelExecution > this.wheelDelay) {
-      this.executeMouseWheelZoom(e)
-      w.interact.lastWheelExecution = now
-    }
-
-    if (this.debounceTimer) clearTimeout(this.debounceTimer)
-
-    this.debounceTimer = setTimeout(() => {
-      if (now - w.interact.lastWheelExecution > this.wheelDelay) {
-        this.executeMouseWheelZoom(e)
-        w.interact.lastWheelExecution = now
+  /** Lazily-created, re-render-surviving wheel-gesture state. */
+  _wheel() {
+    const it = this.w.interact
+    if (!it.wheel) {
+      it.wheel = {
+        factor: 1,
+        clientX: 0,
+        /** @type {number|null} */ rafId: null,
+        /** @type {any} */ endTimer: null,
       }
-    }, this.debounceDelay)
+    }
+    return it.wheel
   }
 
   /**
    * @param {any} e
    */
-  executeMouseWheelZoom(e) {
-    const w = this.w
-    this.minX = w.axisFlags.isRangeBar ? w.globals.minY : w.globals.minX
-    this.maxX = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX
+  mouseWheelEvent(e) {
+    e.preventDefault()
 
-    // Calculate the relative position of the mouse on the chart
-    const gridRectDim = this._gridRect()
-    if (!gridRectDim) return
+    const st = this._wheel()
 
-    const mouseX = (e.clientX - gridRectDim.left) / gridRectDim.width
+    // normalize the delta to pixels (deltaMode 1 = lines, 2 = pages)
+    let dy = e.deltaY
+    if (e.deltaMode === 1) dy *= 33
+    else if (e.deltaMode === 2) dy *= 330
 
-    const currentMinX = this.minX
-    const currentMaxX = this.maxX
-    const totalX = currentMaxX - currentMinX
+    // scroll up (dy < 0) shrinks the window => zoom in
+    st.factor *= Math.pow(2, dy / WHEEL_ZOOM_PIXELS_PER_2X)
+    st.clientX = e.clientX
 
-    // Determine zoom factor
-    const zoomFactorIn = 0.5
-    const zoomFactorOut = 1.5
-    let zoomRange
-
-    let newMinX, newMaxX
-    if (e.deltaY < 0) {
-      // Zoom In
-      zoomRange = zoomFactorIn * totalX
-      const midPoint = currentMinX + mouseX * totalX
-      newMinX = midPoint - zoomRange / 2
-      newMaxX = midPoint + zoomRange / 2
-    } else {
-      // Zoom Out
-      zoomRange = zoomFactorOut * totalX
-      newMinX = currentMinX - zoomRange / 2
-      newMaxX = currentMaxX + zoomRange / 2
+    if (st.rafId == null) {
+      st.rafId = requestAnimationFrame(() => this._applyWheelZoom())
     }
 
-    // Constrain within original chart bounds. When zoom-aware downsampling is
-    // active, initialMinX/initialMaxX track the downsampled window — fall back
-    // to the raw data bounds captured at stash time so wheel-zoom-out can
-    // expand past the current window.
-    if (!w.axisFlags.isRangeBar) {
-      const clampMin = w.globals.dataReducerRawMinX ?? w.globals.initialMinX
-      const clampMax = w.globals.dataReducerRawMaxX ?? w.globals.initialMaxX
-      newMinX = Math.max(newMinX, clampMin)
-      newMaxX = Math.min(newMaxX, clampMax)
+    // the zoomed callback fires once per gesture (like pinch), not per event
+    if (st.endTimer) clearTimeout(st.endTimer)
+    st.endTimer = setTimeout(() => this._endWheelZoom(), 150)
+  }
 
-      // Floor the zoom-in window at ~2 data points' worth of x-span (minXDiff is
-      // the smallest gap between consecutive x values), not a fixed 1% of the
-      // full data span. The old 1% floor stopped wheel-zoom far short of the
-      // toolbar's zoom-in button (which has no floor): on a 2000-point series 1%
-      // ≈ 20 points, after which the window stopped shrinking and just panned
-      // toward the cursor each scroll (looked like "zoom does nothing but shift
-      // the timeline a few pixels"). Tying the floor to point spacing lets the
-      // wheel zoom in as deep as the toolbar while still preventing a degenerate
-      // (zero-width / NaN-producing) range.
+  /**
+   * Apply the zoom factor accumulated since the last animation frame, keeping
+   * the data value under the cursor pinned (both zooming in and out).
+   */
+  _applyWheelZoom() {
+    const w = this.w
+    const st = this._wheel()
+    st.rafId = null
+    const scale = st.factor
+    st.factor = 1
+    if (scale === 1 || w.globals.isDestroyed) return
+
+    const gridRectDim = this._gridRect()
+    if (!gridRectDim || !gridRectDim.width) return
+
+    const { min, max } = this._currentXWindow()
+    const range = max - min
+    const mouseX = Math.min(
+      Math.max((st.clientX - gridRectDim.left) / gridRectDim.width, 0),
+      1,
+    )
+
+    let newRange = range * scale
+
+    // Floor the zoom-in window at ~2 data points' worth of x-span (minXDiff is
+    // the smallest gap between consecutive x values), not a fixed 1% of the
+    // full data span: a span-relative floor stopped wheel-zoom far short of the
+    // toolbar's zoom-in button on large series. Cap zoom-out at the full domain
+    // so scrolling out past the data doesn't keep re-rendering.
+    const bounds = this._clampBounds()
+    if (bounds) {
       const minXDiff =
         w.globals.minXDiff > 0 && isFinite(w.globals.minXDiff)
           ? w.globals.minXDiff
           : 0
-      const minRange = Math.max(minXDiff * 2, (clampMax - clampMin) * 1e-6)
-      if (newMaxX - newMinX < minRange) {
-        const midPoint = (newMinX + newMaxX) / 2
-        newMinX = midPoint - minRange / 2
-        newMaxX = midPoint + minRange / 2
-      }
+      const minRange = Math.max(minXDiff * 2, (bounds.max - bounds.min) * 1e-6)
+      if (newRange < minRange) newRange = minRange
+      if (newRange > bounds.max - bounds.min) newRange = bounds.max - bounds.min
     }
 
-    const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX)
+    const anchor = min + mouseX * range
+    let newMinX = anchor - mouseX * newRange
+    let newMaxX = newMinX + newRange
 
-    // Apply zoom if valid
-    if (!isNaN(newMinXMaxX.minX) && !isNaN(newMinXMaxX.maxX)) {
-      this.zoomUpdateOptions(newMinXMaxX.minX, newMinXMaxX.maxX)
+    // already at the zoom floor or the full domain: nothing to re-render
+    const eps = range * 1e-9
+    if (Math.abs(newMinX - min) < eps && Math.abs(newMaxX - max) < eps) return
+
+    if (isNaN(newMinX) || isNaN(newMaxX)) return
+
+    const beforeZoomRange = this.getBeforeZoomRange(
+      { min: newMinX, max: newMaxX },
+      /** @type {any} */ (undefined),
+    )
+    if (beforeZoomRange && beforeZoomRange.xaxis) {
+      newMinX = beforeZoomRange.xaxis.min
+      newMaxX = beforeZoomRange.xaxis.max
     }
+
+    this._applyXRange(newMinX, newMaxX, true)
+  }
+
+  /** Fire the zoomed callback once the wheel gesture settles (mirrors _endPinch). */
+  _endWheelZoom() {
+    const w = this.w
+    const st = this._wheel()
+    st.endTimer = null
+    if (w.globals.isDestroyed || !w.interact.zoomed) return
+
+    const { min, max } = this._currentXWindow()
+    const yaxis = w.globals.initialConfig
+      ? Utils.clone(w.globals.initialConfig.yaxis)
+      : []
+    const toolbar = this.ctx.toolbar
+    if (toolbar) toolbar.zoomCallback({ min, max }, yaxis)
   }
 
   makeSelectionRectDraggable() {

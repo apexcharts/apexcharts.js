@@ -59,7 +59,6 @@ export default class Base {
         clientX: null,
         clientY: null,
         lastClientPosition: {},
-        lastWheelExecution: 0,
         // Tooltip capture state
         capturedSeriesIndex: -1,
         capturedDataPointIndex: -1,
@@ -227,7 +226,6 @@ export default class Base {
       'clientX',
       'clientY',
       'lastClientPosition',
-      'lastWheelExecution',
       'capturedSeriesIndex',
       'capturedDataPointIndex',
       'disableZoomIn',

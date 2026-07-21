@@ -114,7 +114,6 @@ export default class Globals {
     // ── Caches (ephemeral — cleared so stale DOM refs/measurements don't persist) ──
     gl.resizeTimer = null
     gl.selectionResizeTimer = null
-    gl.lastWheelExecution = 0
     gl.delayedElements = []
     gl.pointsArray = []
     gl.barCanvasCoords = null // Strata (#2): per-render bar/candle center cache (canvas tooltip position)
@@ -406,8 +405,8 @@ export default class Globals {
       // ── User interaction state (must survive re-renders) ──────────────────────
       // Note: zoomEnabled, panEnabled, selectionEnabled, zoomed, selection,
       //       visibleXRange, selectedDataPoints, mousedown, clientX, clientY,
-      //       lastClientPosition, lastWheelExecution, capturedSeriesIndex,
-      //       capturedDataPointIndex, disableZoomIn, disableZoomOut, isTouchDevice
+      //       lastClientPosition, capturedSeriesIndex, capturedDataPointIndex,
+      //       disableZoomIn, disableZoomOut, isTouchDevice
       //       live on w.interact — see Base.js. Backward-compat shims installed there.
 
       // Series collapse state (user-driven, must persist across re-renders)

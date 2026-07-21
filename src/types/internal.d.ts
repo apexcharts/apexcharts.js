@@ -79,7 +79,6 @@ export interface InteractState {
   clientX: number | null
   clientY: number | null
   lastClientPosition: { x?: number; y?: number }
-  lastWheelExecution: number
   // Tooltip capture
   capturedSeriesIndex: number
   capturedDataPointIndex: number
@@ -97,6 +96,15 @@ export interface InteractState {
     panState: any
     samples: { x: number; t: number }[]
     inertiaRAF: number | null
+  }
+  // Wheel zoom: rAF-coalesced gesture state (pending zoom factor, cursor x,
+  // frame handle, end-of-gesture timer). Lives here for the same reason as
+  // momentum: applying a frame re-creates the ZoomPanSelection instance.
+  wheel?: {
+    factor: number
+    clientX: number
+    rafId: number | null
+    endTimer: any
   }
 }
 
