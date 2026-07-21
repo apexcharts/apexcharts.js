@@ -1174,6 +1174,14 @@ export default class ApexCharts {
           }
         }
 
+        // Heatmaps label the y-axis with series NAMES, not the numeric scale
+        // (create() does this via the same call). coreCalculations() above
+        // rebuilt yAxisScale numerically; without this fix-up the axis-scale
+        // signature below always differs (names vs numbers) and the chrome
+        // refresh repaints the y-axis with numeric ticks after the first
+        // data-only update.
+        this.formatters.heatmapLabelFormatters()
+
         // Compute per-pixel ratios from the existing layout.
         const xyRatios = this.core.xySettings()
 
