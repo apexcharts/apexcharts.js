@@ -376,7 +376,35 @@ export default class LinkedViews {
 
   _afterRender() {
     if (this._mode() !== 'filter') return
+    // A wrapper that owns the `series` prop (react-apexcharts pushes it via
+    // updateSeries right after mount, vue-apexcharts on any prop sync) can
+    // clobber the injected aggregation with the empty placeholder series.
+    // Filter-mode series are derived from the crossfilter, never user data,
+    // so re-assert the aggregation instead of painting an empty chart.
+    const series = this.w.config.series
+    if (!series || series.length === 0) {
+      this._reassertSeries()
+      return
+    }
     this._applySelfDim()
+  }
+
+  /** Restore the aggregated series after an external updateSeries emptied it.
+   *  Deferred a microtask so the triggering update fully unwinds first. */
+  _reassertSeries() {
+    if (this._pending) return
+    this._pending = true
+    Promise.resolve().then(() => {
+      this._pending = false
+      if (this.w.globals.isDestroyed) return
+      const cf = this._cf()
+      if (!cf) return
+      const agg = cf.aggregateFor(this._chartId())
+      const series = this._seriesFromAgg(agg)
+      if (!series.length) return // empty record set: nothing to restore
+      this._lastValues = this._sigOf(agg)
+      this.ctx.updateSeries(series, true)
+    })
   }
 
   /**

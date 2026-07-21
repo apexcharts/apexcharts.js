@@ -704,11 +704,11 @@ export default class Animations {
       .after(() => {
         // a flag to indicate that the original mount function can return true now as animation finished here
         if (Utils.isNumber(j)) {
-          if (
-            j ===
-              w.seriesData.series[w.globals.maxValsInArrayIndex].length - 2 &&
-            w.globals.shouldAnimate
-          ) {
+          // The series may have been replaced (or emptied) by an updateSeries
+          // that landed while this animation was in flight, so the captured
+          // index can point past the current array. Never dereference blindly.
+          const maxSeries = w.seriesData.series[w.globals.maxValsInArrayIndex]
+          if (maxSeries && j === maxSeries.length - 2 && w.globals.shouldAnimate) {
             this.animationCompleted(el)
           }
         } else if (fill !== 'none' && w.globals.shouldAnimate) {

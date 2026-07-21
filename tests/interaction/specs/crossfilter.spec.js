@@ -52,6 +52,31 @@ test.describe('Crossfilter: categorical click-to-filter', () => {
     expect(init.daySum).toBe(60)
   })
 
+  test('a wrapper pushing the empty placeholder series does not blank the chart', async ({
+    page,
+  }) => {
+    // Regression: react-apexcharts syncs its `series` prop (the [] placeholder
+    // from the markup) via updateSeries right after mount, clobbering the
+    // aggregation the engine injected before first paint. Filter-mode series
+    // are derived from the crossfilter, so the engine must re-assert them, and
+    // the mid-flight morph to an empty series must not throw in the animation
+    // completion callback (the base fixture fails this test on any page error).
+    await page.evaluate(() => {
+      window.chart.updateSeries([], true)
+      window.chart2.updateSeries([], true)
+    })
+    await page.waitForFunction(() => {
+      const day = window.chart2.w.config.series
+      return (
+        window.chart.w.config.series.length === 4 &&
+        day.length === 1 &&
+        day[0].data.reduce((a, b) => a + b, 0) === 60
+      )
+    })
+    const quarter = await page.evaluate(() => window.chart.w.config.series)
+    expect(quarter).toEqual([18, 12, 16, 14])
+  })
+
   test('clicking a quarter slice filters the group and self-dims', async ({
     page,
   }) => {
