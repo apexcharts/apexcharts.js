@@ -1,4 +1,4 @@
-<title>Stacked Column with negatives - Border radius test</title>
+<title>Rounded Stacked Columns with Negatives</title>
 
 <chart>
 <options>
@@ -11,14 +11,15 @@ chart: {
   },
 },
 stroke: {
-  width: 4,
+  width: 1,
+  colors: ['#fff'],
 },
 plotOptions: {
   bar: {
     horizontal: false,
     borderRadius: 10,
     borderRadiusApplication: 'end',
-    borderRadiusWhenStacked: 'last', 
+    borderRadiusWhenStacked: 'last',
     dataLabels: {
       total: {
         enabled: true,
@@ -30,58 +31,46 @@ plotOptions: {
     },
   },
 },
+title: {
+  text: 'Quarterly Profit & Loss by Segment',
+  align: 'left',
+},
 xaxis: {
-  stepSize: 11,
-  categories: [
-    '01/01/2011',
-    '01/02/2011',
-    '01/03/2011',
-    '01/04/2011',
-    '01/05/2011',
-    '01/06/2011',
-  ],
+  categories: ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024', 'Q1 2025', 'Q2 2025'],
 },
 yaxis: {
-  stepSize: 11,
+  labels: {
+    formatter: function (val) {
+      return '$' + val + 'M'
+    }
+  }
 },
 legend: {
   position: 'right',
   offsetY: 40,
 },
 fill: {
-  opacity: 0.4,
-},
-grid: {
-  xaxis: {
-    lines: {
-      show: true,
-    },
-  },
-  yaxis: {
-    lines: {
-      show: true,
-    },
-  },
+  opacity: 1,
 }
 </options>
 
 <series>
 [
   {
-    name: 'PRODUCT A',
-    data: [0, 0, 41, 67, 22, 0],
+    name: 'Cloud',
+    data: [30, 42, 38, 55, 48, 60],
   },
   {
-    name: 'PRODUCT B',
-    data: [20, 0, -20, 0, 13, 0],
+    name: 'Hardware',
+    data: [20, -8, 15, 12, -5, 18],
   },
   {
-    name: 'PRODUCT C',
-    data: [20, 17, -15, 0, 21, 14],
+    name: 'Services',
+    data: [15, 22, -10, 18, 25, 20],
   },
   {
-    name: 'PRODUCT D',
-    data: [30, 7, 25, 13, 10, 8],
+    name: 'Licensing',
+    data: [25, 18, 22, 14, 30, 24],
   },
 ]
 </series>

@@ -7,7 +7,7 @@ chart: {
   height: 350
 },
 title: {
-  text: 'Horizontal BoxPlot with Markers as Outliers',
+  text: 'Salary Range by Department ($k)',
   align: 'left'
 },
 plotOptions: {
@@ -32,7 +32,7 @@ stroke: {
   {
     data: [
       {
-        x: 'Category A',
+        x: 'Engineering',
         y: [54, 66, 69, 75, 88],
         goals: [
           {
@@ -52,15 +52,15 @@ stroke: {
         ],
       },
       {
-        x: 'Category B',
+        x: 'Sales',
         y: [43, 65, 69, 76, 81],
       },
       {
-        x: 'Category C',
+        x: 'Marketing',
         y: [31, 39, 45, 51, 59],
       },
       {
-        x: 'Category D',
+        x: 'Support',
         y: [39, 46, 55, 65, 71],
         goals: [
           {
@@ -87,7 +87,7 @@ stroke: {
         ],
       },
       {
-        x: 'Category E',
+        x: 'Design',
         y: [41, 49, 58, 61, 67],
       },
       

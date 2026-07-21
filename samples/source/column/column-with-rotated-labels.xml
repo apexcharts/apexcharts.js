@@ -1,10 +1,10 @@
-<title>Column with Rotates Labels</title>
+<title>Column with Rotated Labels</title>
 
 <chart>
 <options>
 annotations: {
   points: [{
-    x: 'Bananas',
+    x: 'Pomegranates',
     seriesIndex: 0,
     label: {
       borderColor: '#775DD0',
@@ -13,13 +13,17 @@ annotations: {
         color: '#fff',
         background: '#775DD0',
       },
-      text: 'Bananas are good',
+      text: 'Best seller',
     }
   }]
 },
 chart: {
   height: 350,
   type: 'bar',
+},
+title: {
+  text: 'Fruit Sales by Type',
+  align: 'left'
 },
 plotOptions: {
   bar: {
@@ -33,11 +37,6 @@ dataLabels: {
 stroke: {
   width: 0
 },
-grid: {
-  row: {
-    colors: ['#fff', '#f2f2f2']
-  }
-},
 xaxis: {
   labels: {
     rotate: -45
@@ -49,27 +48,14 @@ xaxis: {
 },
 yaxis: {
   title: {
-    text: 'Servings',
-  },
-},
-fill: {
-  type: 'gradient',
-  gradient: {
-    shade: 'light',
-    type: "horizontal",
-    shadeIntensity: 0.25,
-    gradientToColors: undefined,
-    inverseColors: true,
-    opacityFrom: 0.85,
-    opacityTo: 0.85,
-    stops: [50, 0, 100]
+    text: 'Units sold (k)',
   },
 }
 </options>
 
 <series>
 [{
-  name: 'Servings',
+  name: 'Units sold',
   data: [44, 55, 41, 67, 22, 43, 21, 33, 45, 31, 87, 65, 35]
 }]
 </series>

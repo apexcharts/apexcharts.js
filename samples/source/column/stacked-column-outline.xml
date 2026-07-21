@@ -42,7 +42,11 @@ plotOptions: {
 },
 stroke: {
   show: true,
-  width: 4
+  width: 3
+},
+title: {
+  text: 'Regional Net Sales (outlined columns)',
+  align: 'left'
 },
 dataLabels:{
   style: {
@@ -50,36 +54,32 @@ dataLabels:{
   }
 },
 xaxis: {
-  type: 'datetime',
-  categories: ['01/01/2011 GMT', '01/02/2011 GMT', '01/03/2011 GMT', '01/04/2011 GMT',
-    '01/05/2011 GMT', '01/06/2011 GMT'
-  ],
+  categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
 },
 yaxis: {
-  reversed: false,
-  stepSize: 10
+  reversed: false
 },
 legend: {
   position: 'right',
   offsetY: 40
 },
 fill: {
-  opacity: 0.25
+  opacity: 0.4
 }
 </options>
 
 <series>
 [{
-  name: 'PRODUCT A',
+  name: 'North',
   data: [40, 50, -27, 60, 20, 40]
 }, {
-  name: 'PRODUCT B',
+  name: 'South',
   data: [10, 20, 20, 0, 10, 20]
 }, {
-  name: 'PRODUCT C',
+  name: 'East',
   data: [10, 10, -10, 10, 20, 10]
 }, {
-  name: 'PRODUCT D',
+  name: 'West',
   data: [10, 10, 20, 10, 20, 10]
 }]
 </series>

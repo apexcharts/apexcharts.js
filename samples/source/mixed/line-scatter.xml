@@ -6,6 +6,9 @@ chart: {
   height: 350,
   type: 'line',
 },
+title: {
+  text: 'Measured vs Fitted'
+},
 fill: {
   type:'solid',
 },
@@ -29,7 +32,7 @@ xaxis: {
 
 <series>
 [{
-  name: 'Points',
+  name: 'Measured',
   type: 'scatter',
 
   //2.14, 2.15, 3.61, 4.93, 2.4, 2.7, 4.2, 5.4, 6.1, 8.3
@@ -74,7 +77,7 @@ xaxis: {
     y: 8.4
   }]
 }, {
-  name: 'Line',
+  name: 'Model Fit',
   type: 'line',
   data: [{
     x: 1,

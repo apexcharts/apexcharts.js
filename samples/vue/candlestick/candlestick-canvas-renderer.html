@@ -96,7 +96,8 @@
             x: t + i * step,
             y: [+o.toFixed(2), +h.toFixed(2), +l.toFixed(2), +c.toFixed(2)],
           }
-          o = c
+          // reflect off a floor so the walk never drifts into negative prices
+          o = c < 20 ? 40 - c : c
         }
         return data
       }

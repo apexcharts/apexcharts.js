@@ -49,13 +49,23 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          series: [44, 55, 41, 17, 15],
+          series: [54, 41, 38, 16, 12],
           options: {
             chart: {
               width: 480,
               type: 'donut',
             },
-            labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
+            labels: [
+              'North America',
+              'Europe',
+              'Asia Pacific',
+              'Latin America',
+              'Middle East',
+            ],
+            title: {
+              text: 'Revenue by Region ($M)',
+              align: 'center',
+            },
             legend: {
               show: false,
             },

@@ -67,16 +67,6 @@
           transform: translateX(-50%);
         }
       }
-
-      select#model {
-        display: none;
-        position: absolute;
-        top: -40px;
-        left: 0;
-        z-index: 2;
-        cursor: pointer;
-        transform: scale(0.8);
-      }
     </style>
 
     
@@ -352,13 +342,6 @@
     <div id="app"></div>
 
     <div id="html">&lt;div id=&quot;wrap&quot;&gt;
-  &lt;select id=&quot;model&quot; class=&quot;flat-select&quot;
-      onChange={() =&gt; changeData()}
-      &gt;
-    &lt;option value=&quot;iphone5&quot;&gt;iPhone 5&lt;/option&gt;
-    &lt;option value=&quot;iphone6&quot;&gt;iPhone 6&lt;/option&gt;
-    &lt;option value=&quot;iphone7&quot;&gt;iPhone 7&lt;/option&gt;
-  &lt;/select&gt;
   &lt;div id=&quot;chart-year&quot;&gt;
   &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={400} /&gt;
 &lt;/div&gt;
@@ -536,22 +519,9 @@
           },
         })
 
-        function changeData() {
-          Apex.exec('barYear', 'updateSeries', [
-            {
-              data: makeData(),
-            },
-          ])
-        }
-
         return (
           <div>
             <div id="wrap">
-              <select id="model" class="flat-select" onChange={() => changeData()}>
-                <option value="iphone5">iPhone 5</option>
-                <option value="iphone6">iPhone 6</option>
-                <option value="iphone7">iPhone 7</option>
-              </select>
               <div id="chart-year">
                 <ReactApexChart
                   options={state.options}

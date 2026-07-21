@@ -16,15 +16,25 @@ plotOptions: {
 dataLabels: {
   enabled: false
 },
+title: {
+  text: 'Monthly Visitors by Country',
+  align: 'left'
+},
 xaxis: {
   categories: ['South Korea', 'Canada', 'United Kingdom', 'Netherlands', 'Italy', 'France', 'Japan',
     'United States', 'China', 'Germany'
   ],
+  labels: {
+    formatter: function (val) {
+      return val + 'k'
+    }
+  }
 }
 </options>
 
 <series>
 [{
+  name: 'Visitors',
   data: [400, 430, 448, 470, 540, 580, 690, 1100, 1200, 1380]
 }]
 </series>

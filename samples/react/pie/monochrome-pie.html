@@ -49,7 +49,7 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          series: [25, 15, 44, 55, 41, 17],
+          series: [820, 932, 901, 1290, 1330, 1520],
           options: {
             chart: {
               width: 380,
@@ -88,6 +88,10 @@
                 const name = opts.w.globals.labels[opts.seriesIndex]
                 return [name, val.toFixed(1) + '%']
               },
+            },
+            title: {
+              text: 'Orders by Day of Week',
+              align: 'center',
             },
             legend: {
               show: false,

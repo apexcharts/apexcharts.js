@@ -52,32 +52,32 @@
             {
               data: [
                 {
-                  x: '2008',
-                  y: [2800, 4500],
+                  x: 'Junior',
+                  y: [42, 58],
                 },
                 {
-                  x: '2009',
-                  y: [3200, 4100],
+                  x: 'Mid',
+                  y: [58, 78],
                 },
                 {
-                  x: '2010',
-                  y: [2950, 7800],
+                  x: 'Senior',
+                  y: [78, 102],
                 },
                 {
-                  x: '2011',
-                  y: [3000, 4600],
+                  x: 'Lead',
+                  y: [95, 128],
                 },
                 {
-                  x: '2012',
-                  y: [3500, 4100],
+                  x: 'Manager',
+                  y: [110, 145],
                 },
                 {
-                  x: '2013',
-                  y: [4500, 6500],
+                  x: 'Director',
+                  y: [140, 185],
                 },
                 {
-                  x: '2014',
-                  y: [4100, 5600],
+                  x: 'VP',
+                  y: [175, 230],
                 },
               ],
             },
@@ -97,12 +97,16 @@
                 dumbbellColors: [['#008FFB', '#00E396']],
               },
             },
+            title: {
+              text: 'Median Salary: 2020 vs 2025 by Role',
+              align: 'left',
+            },
             legend: {
               show: true,
               showForSingleSeries: true,
               position: 'top',
               horizontalAlign: 'left',
-              customLegendItems: ['Product A', 'Product B'],
+              customLegendItems: ['2020', '2025'],
             },
             fill: {
               type: 'gradient',
@@ -127,6 +131,13 @@
             },
             xaxis: {
               tickPlacement: 'on',
+            },
+            yaxis: {
+              labels: {
+                formatter: function (val) {
+                  return '$' + val + 'k'
+                },
+              },
             },
           },
         })

@@ -1,5 +1,8 @@
 <title>Monochrome Pie with multiline labels</title>
 
+<!-- Orders by day of week; monochrome theme shades each slice a step darker. -->
+
+
 <style>
 #chart {
   max-width: 380px;
@@ -48,12 +51,16 @@ dataLabels: {
     return [name, val.toFixed(1) + '%']
   },
 },
+title: {
+  text: 'Orders by Day of Week',
+  align: 'center',
+},
 legend: {
   show: false,
 },
 </options>
 
 <series>
-[25, 15, 44, 55, 41, 17]
+[820, 932, 901, 1290, 1330, 1520]
 </series>
 </chart>

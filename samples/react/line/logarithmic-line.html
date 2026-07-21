@@ -180,7 +180,12 @@
               align: 'left',
             },
             xaxis: {
-              type: 'datetime',
+              type: 'numeric',
+              labels: {
+                formatter: function (val) {
+                  return Math.round(val)
+                },
+              },
             },
             yaxis: [
               {

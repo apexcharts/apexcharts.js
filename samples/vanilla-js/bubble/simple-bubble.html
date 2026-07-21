@@ -30,29 +30,25 @@
     </script>
 
     <script>
-      /*
-        // this function will generate output in this format
-        // every array in data is of the format [x, y, z] where x (timestamp) and y are the two axes coordinates,
-        // z is the third coordinate, which you can interpret as the size of the bubble formed too.
-        // data = [
-           [timestamp, 23, 10],
-           [timestamp, 33, 11],
-           [timestamp, 12, 8]
-            ...
-        ]
-        */
-      function generateData(baseval, count, yrange) {
-        var i = 0
-        var series = []
-        while (i < count) {
-          var x = Math.floor(Math.random() * (750 - 1 + 1)) + 1
-          var y =
-            Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
-          var z = Math.floor(Math.random() * (75 - 15 + 1)) + 15
+      // Seeded PRNG so the bubbles are identical on every load (stable snapshots).
+      var __seed = 0x7ab19c3d
+      function rand() {
+        __seed |= 0
+        __seed = (__seed + 0x6d2b79f5) | 0
+        var t = Math.imul(__seed ^ (__seed >>> 15), 1 | __seed)
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+      }
 
+      // Each point is [revenue $M, growth %, headcount]. The third value is the
+      // bubble size, so a bigger bubble = a bigger workforce.
+      function generateData(count, xrange, yrange, zrange) {
+        var series = []
+        for (var i = 0; i < count; i++) {
+          var x = Math.floor(rand() * (xrange.max - xrange.min + 1)) + xrange.min
+          var y = Math.floor(rand() * (yrange.max - yrange.min + 1)) + yrange.min
+          var z = Math.floor(rand() * (zrange.max - zrange.min + 1)) + zrange.min
           series.push([x, y, z])
-          baseval += 86400000
-          i++
         }
         return series
       }
@@ -66,32 +62,40 @@
       var options = {
         series: [
           {
-            name: 'Bubble1',
-            data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
-              min: 10,
-              max: 60,
-            }),
+            name: 'SaaS',
+            data: generateData(
+              12,
+              { min: 20, max: 200 },
+              { min: 25, max: 65 },
+              { min: 20, max: 60 },
+            ),
           },
           {
-            name: 'Bubble2',
-            data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
-              min: 10,
-              max: 60,
-            }),
+            name: 'Retail',
+            data: generateData(
+              12,
+              { min: 150, max: 480 },
+              { min: 5, max: 30 },
+              { min: 40, max: 75 },
+            ),
           },
           {
-            name: 'Bubble3',
-            data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
-              min: 10,
-              max: 60,
-            }),
+            name: 'Fintech',
+            data: generateData(
+              12,
+              { min: 60, max: 320 },
+              { min: 15, max: 50 },
+              { min: 15, max: 55 },
+            ),
           },
           {
-            name: 'Bubble4',
-            data: generateData(new Date('11 Feb 2017 GMT').getTime(), 20, {
-              min: 10,
-              max: 60,
-            }),
+            name: 'Hardware',
+            data: generateData(
+              12,
+              { min: 100, max: 400 },
+              { min: 2, max: 20 },
+              { min: 30, max: 70 },
+            ),
           },
         ],
         chart: {
@@ -105,14 +109,25 @@
           opacity: 0.8,
         },
         title: {
-          text: 'Simple Bubble Chart',
+          text: 'Companies: Revenue vs Growth',
+        },
+        subtitle: {
+          text: 'Bubble size = headcount',
         },
         xaxis: {
-          tickAmount: 12,
-          type: 'category',
+          tickAmount: 10,
+          type: 'numeric',
+          min: 0,
+          max: 500,
+          title: {
+            text: 'Revenue ($M)',
+          },
         },
         yaxis: {
           max: 70,
+          title: {
+            text: 'YoY Growth (%)',
+          },
         },
       }
 

@@ -34,17 +34,7 @@
       }
     </script>
 
-    <script src="../../assets/irregular-data-series.js"></script>
-  <script>
-    var ts2 = 1484418600000
-    var data = []
-    var spikes = [5, -5, 3, -3, 8, -8]
-    for (var i = 0; i < 30; i++) {
-      ts2 = ts2 + 86400000
-      var innerArr = [ts2, dataSeries[1][i].value]
-      data.push(innerArr)
-    }
-  </script>
+    
   </head>
 
   <body>
@@ -60,7 +50,8 @@
         const [state, setState] = React.useState({
           series: [
             {
-              data: [34, 44, 54, 21, 12, 43, 33, 23, 66, 66, 58],
+              name: 'Tariff per kWh',
+              data: [12, 12, 15, 22, 22, 18, 15, 24, 24, 15, 12],
             },
           ],
           options: {
@@ -75,8 +66,34 @@
               enabled: false,
             },
             title: {
-              text: 'Linestep Chart',
+              text: 'Electricity Tariff by Time of Day',
               align: 'left',
+            },
+            subtitle: {
+              text: "curve: 'linestep' steps to each new value at the point itself",
+              align: 'left',
+            },
+            xaxis: {
+              categories: [
+                '00:00',
+                '02:00',
+                '04:00',
+                '06:00',
+                '08:00',
+                '10:00',
+                '12:00',
+                '14:00',
+                '16:00',
+                '18:00',
+                '20:00',
+              ],
+            },
+            yaxis: {
+              labels: {
+                formatter: function (val) {
+                  return val + '¢'
+                },
+              },
             },
             markers: {
               hover: {

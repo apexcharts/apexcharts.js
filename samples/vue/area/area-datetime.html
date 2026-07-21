@@ -55,7 +55,11 @@
       }
     </script>
 
-    
+    <script>
+      // The dataset below is a fixed price series; shift every timestamp forward by
+      // 13 years (in ms) so the demo reads as recent without re-typing the data.
+      var SHIFT = 13 * 365.25 * 24 * 60 * 60 * 1000
+    </script>
   </head>
 
   <body>
@@ -148,6 +152,7 @@
         data: {
           series: [
             {
+              name: 'Share Price',
               data: [
                 [1327359600000, 30.95],
                 [1327446000000, 31.34],
@@ -424,7 +429,9 @@
                 [1361746800000, 38.11],
                 [1361833200000, 38.59],
                 [1361919600000, 39.6],
-              ],
+              ].map(function (p) {
+                return [p[0] + SHIFT, p[1]]
+              }),
             },
           ],
           chartOptions: {
@@ -453,7 +460,7 @@
               ],
               xaxis: [
                 {
-                  x: new Date('14 Nov 2012').getTime(),
+                  x: new Date('14 Nov 2025').getTime(),
                   borderColor: '#999',
                   yAxisIndex: 0,
                   label: {
@@ -476,8 +483,19 @@
             },
             xaxis: {
               type: 'datetime',
-              min: new Date('01 Mar 2012').getTime(),
+              min: new Date('01 Mar 2025').getTime(),
               tickAmount: 6,
+            },
+            title: {
+              text: 'Meridian Corp Share Price',
+              align: 'left',
+            },
+            yaxis: {
+              labels: {
+                formatter: function (val) {
+                  return '$' + val.toFixed(2)
+                },
+              },
             },
             tooltip: {
               x: {
@@ -504,32 +522,32 @@
             switch (timeline) {
               case 'one_month':
                 this.$refs.chart.zoomX(
-                  new Date('28 Jan 2013').getTime(),
-                  new Date('27 Feb 2013').getTime(),
+                  new Date('28 Jan 2026').getTime(),
+                  new Date('27 Feb 2026').getTime(),
                 )
                 break
               case 'six_months':
                 this.$refs.chart.zoomX(
-                  new Date('27 Sep 2012').getTime(),
-                  new Date('27 Feb 2013').getTime(),
+                  new Date('27 Sep 2025').getTime(),
+                  new Date('27 Feb 2026').getTime(),
                 )
                 break
               case 'one_year':
                 this.$refs.chart.zoomX(
-                  new Date('27 Feb 2012').getTime(),
-                  new Date('27 Feb 2013').getTime(),
+                  new Date('27 Feb 2025').getTime(),
+                  new Date('27 Feb 2026').getTime(),
                 )
                 break
               case 'ytd':
                 this.$refs.chart.zoomX(
-                  new Date('01 Jan 2013').getTime(),
-                  new Date('27 Feb 2013').getTime(),
+                  new Date('01 Jan 2026').getTime(),
+                  new Date('27 Feb 2026').getTime(),
                 )
                 break
               case 'all':
                 this.$refs.chart.zoomX(
-                  new Date('23 Jan 2012').getTime(),
-                  new Date('27 Feb 2013').getTime(),
+                  new Date('23 Jan 2025').getTime(),
+                  new Date('27 Feb 2026').getTime(),
                 )
                 break
               default:

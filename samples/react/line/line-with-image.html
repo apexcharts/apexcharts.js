@@ -49,13 +49,9 @@
       const ApexChart = () => {
         const [state, setState] = React.useState({
           series: [
-            // {
-            //     name: 'Dataset 1',
-            //     data: [20, 31, 14, 40, 12, 55, 13, 13, 9, 19, 20, 41, 36, 62, 60]
-            // },
             {
-              name: 'Dataset 2',
-              data: [10, 5, 20, 13, 15, 12, 13, 24, 24, 34, 7, 15, 10, 9, 26],
+              name: 'Temperature',
+              data: [-2, 0, 6, 12, 18, 24, 28, 27, 21, 14, 7, 1],
             },
           ],
           options: {
@@ -64,47 +60,42 @@
               type: 'line',
             },
             stroke: {
-              width: 5,
+              width: 14,
               curve: 'smooth',
             },
-            colors: ['#2e93fa'],
             xaxis: {
               categories: [
-                '1990',
-                '1992',
-                '1993',
-                '1994',
-                '1995',
-                '1996',
-                '1997',
-                '1998',
-                '1999',
-                '2000',
-                '2001',
-                '2002',
-                '2003',
-                '2004',
-                '2005',
+                'Jan',
+                'Feb',
+                'Mar',
+                'Apr',
+                'May',
+                'Jun',
+                'Jul',
+                'Aug',
+                'Sep',
+                'Oct',
+                'Nov',
+                'Dec',
               ],
-              labels: {
-                formatter: function (val) {
-                  return val
-                },
-              },
             },
             title: {
-              text: 'Line Chart - Image fill',
+              text: 'Average Daily Temperature',
               align: 'left',
               style: {
                 fontSize: '16px',
               },
             },
+            subtitle: {
+              text: 'The line stroke is painted with an image fill',
+              align: 'left',
+            },
             fill: {
               type: 'image',
               image: {
-                src: ['../../assets/images/abstract.jpg'],
-                width: 800,
-                height: 800,
+                src: ['../../assets/images/2979121308_59539a3898_z.jpg'],
+                width: 640,
+                height: 424,
               },
             },
             markers: {
@@ -119,15 +110,8 @@
             },
             yaxis: {
               title: {
-                text: '$ (million)',
+                text: 'Temperature (°C)',
               },
-            },
-            legend: {
-              position: 'top',
-              horizontalAlign: 'right',
-              floating: true,
-              offsetY: -25,
-              offsetX: -5,
             },
           },
         })

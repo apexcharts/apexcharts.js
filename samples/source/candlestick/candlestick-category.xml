@@ -2,7 +2,15 @@
 
 <scripts>
 <script src="../../assets/ohlc.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.8.17/dayjs.min.js"></script>
+<script>
+// Built-in date formatting (no external date library needed).
+function formatCandleLabel(val) {
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  var d = new Date(val)
+  var pad = function (n) { return (n < 10 ? '0' : '') + n }
+  return months[d.getMonth()] + ' ' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes())
+}
+</script>
 </scripts>
 
 <chart>
@@ -29,7 +37,7 @@ annotations: {
         },
         orientation: 'horizontal',
         offsetY: 7,
-        text: 'Annotation Test'
+        text: 'News Release'
       }
     }
   ]
@@ -41,7 +49,7 @@ xaxis: {
   type: 'category',
   labels: {
     formatter: function(val) {
-      return dayjs(val).format('MMM DD HH:mm')
+      return formatCandleLabel(val)
     }
   }
 },

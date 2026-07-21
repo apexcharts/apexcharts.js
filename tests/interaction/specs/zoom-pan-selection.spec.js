@@ -177,13 +177,15 @@ test.describe('Drag zoom (type=x)', () => {
     // surviving instance the fresh ratios.
     await loadChart(CHART, FIXTURE)
 
-    // move the x domain from 1..20 to 1000..2000 through the fast path
+    // move the x domain from 1..60 to 1000..2000 through the fast path.
+    // Keep the SAME point count as the fixture (60) so the update stays on the
+    // fast data-only lane instead of tripping the length guard into a full render.
     await page.evaluate(async () => {
-      const pts = Array.from({ length: 20 }, (_, i) => ({
-        x: 1000 + (i * 1000) / 19,
+      const pts = Array.from({ length: 60 }, (_, i) => ({
+        x: 1000 + (i * 1000) / 59,
         y: 40 + ((i * 13) % 90),
       }))
-      await window.chart.updateSeries([{ name: 'Sales', data: pts }])
+      await window.chart.updateSeries([{ name: 'Throughput', data: pts }])
     })
     const stats = await page.evaluate(() => window.chart._updateStats)
     expect(stats.full).toBe(0)

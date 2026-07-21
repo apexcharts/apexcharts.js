@@ -38,19 +38,17 @@ plotOptions: {
     }
   }
 },
+colors: ['#20E647'],
 fill: {
-  type: 'image',
-  image: {
-    src: ['../../assets/images/4274635880_809a4b9d0d_z.jpg'],
-  }
+  type: 'solid'
 },
 stroke: {
   lineCap: 'round'
 },
-labels: ['Volatility'],
+labels: ['Time on Task'],
 </options>
 
 <series>
-[67]
+[72]
 </series>
 </chart>

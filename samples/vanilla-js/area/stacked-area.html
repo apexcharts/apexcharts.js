@@ -30,17 +30,29 @@
     </script>
 
     <script>
-      var generateDayWiseTimeSeries = function (baseval, count, yrange) {
-        var i = 0
-        var series = []
-        while (i < count) {
-          var x = baseval
-          var y =
-            Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
+      // Deterministic daily traffic per channel; stacking shows total site visits
+      // split into its sources. Each channel is a mean-reverting walk around its
+      // own base so the composition shifts organically day to day.
+      function mulberry32(seed) {
+        return function () {
+          seed |= 0
+          seed = (seed + 0x6d2b79f5) | 0
+          var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+        }
+      }
 
-          series.push([x, y])
-          baseval += 86400000
-          i++
+      function channel(seed, base, spread) {
+        var rand = mulberry32(seed)
+        var series = []
+        var ts = new Date('01 Jun 2025 GMT').getTime()
+        var val = base
+        for (var i = 0; i < 20; i++) {
+          val += (rand() - 0.5) * spread
+          val += (base - val) * 0.15
+          series.push([ts, Math.max(2, Math.round(val))])
+          ts += 86400000
         }
         return series
       }
@@ -54,37 +66,16 @@
       var options = {
         series: [
           {
-            name: 'South',
-            data: generateDayWiseTimeSeries(
-              new Date('11 Feb 2017 GMT').getTime(),
-              20,
-              {
-                min: 10,
-                max: 60,
-              },
-            ),
+            name: 'Organic Search',
+            data: channel(11, 42, 14),
           },
           {
-            name: 'North',
-            data: generateDayWiseTimeSeries(
-              new Date('11 Feb 2017 GMT').getTime(),
-              20,
-              {
-                min: 10,
-                max: 20,
-              },
-            ),
+            name: 'Direct',
+            data: channel(23, 26, 9),
           },
           {
-            name: 'Central',
-            data: generateDayWiseTimeSeries(
-              new Date('11 Feb 2017 GMT').getTime(),
-              20,
-              {
-                min: 10,
-                max: 15,
-              },
-            ),
+            name: 'Social',
+            data: channel(35, 15, 8),
           },
         ],
         chart: {
@@ -97,12 +88,16 @@
             },
           },
         },
-        colors: ['#008FFB', '#00E396', '#CED4DC'],
+        colors: ['#008FFB', '#00E396', '#FEB019'],
         dataLabels: {
           enabled: false,
         },
         stroke: {
           curve: 'monotoneCubic',
+        },
+        title: {
+          text: 'Website Visits by Channel',
+          align: 'left',
         },
         fill: {
           type: 'gradient',
@@ -114,6 +109,13 @@
         legend: {
           position: 'top',
           horizontalAlign: 'left',
+        },
+        yaxis: {
+          labels: {
+            formatter: function (val) {
+              return val + 'k'
+            },
+          },
         },
         xaxis: {
           type: 'datetime',

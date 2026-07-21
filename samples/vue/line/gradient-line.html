@@ -55,7 +55,7 @@
           series: [
             {
               name: 'Sales',
-              data: [4, 3, 10, 9, 29, 19, 22, 9, 12, 7, 19, 5, 13, 9, 17, 2, 7, 5],
+              data: [34, 52, 41, 63, 48, 72, 55, 84, 66, 58, 91, 74, 103, 96, 118],
             },
           ],
           chartOptions: {
@@ -64,7 +64,7 @@
               type: 'line',
             },
             forecastDataPoints: {
-              count: 7,
+              count: 5,
             },
             stroke: {
               width: 5,
@@ -73,38 +73,42 @@
             xaxis: {
               type: 'datetime',
               categories: [
-                '1/11/2000',
-                '2/11/2000',
-                '3/11/2000',
-                '4/11/2000',
-                '5/11/2000',
-                '6/11/2000',
-                '7/11/2000',
-                '8/11/2000',
-                '9/11/2000',
-                '10/11/2000',
-                '11/11/2000',
-                '12/11/2000',
-                '1/11/2001',
-                '2/11/2001',
-                '3/11/2001',
-                '4/11/2001',
-                '5/11/2001',
-                '6/11/2001',
+                '1/1/2025',
+                '2/1/2025',
+                '3/1/2025',
+                '4/1/2025',
+                '5/1/2025',
+                '6/1/2025',
+                '7/1/2025',
+                '8/1/2025',
+                '9/1/2025',
+                '10/1/2025',
+                '11/1/2025',
+                '12/1/2025',
+                '1/1/2026',
+                '2/1/2026',
+                '3/1/2026',
               ],
               tickAmount: 10,
               labels: {
                 formatter: function (value, timestamp, opts) {
-                  return opts.dateFormatter(new Date(timestamp), 'dd MMM')
+                  return opts.dateFormatter(new Date(timestamp), 'MMM yy')
                 },
               },
             },
             title: {
-              text: 'Forecast',
+              text: 'Monthly Sales with Forecast',
               align: 'left',
               style: {
                 fontSize: '16px',
                 color: '#666',
+              },
+            },
+            yaxis: {
+              labels: {
+                formatter: function (val) {
+                  return '$' + val + 'k'
+                },
               },
             },
             fill: {

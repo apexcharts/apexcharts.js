@@ -13,8 +13,19 @@ dataLabels: {
   enabled: false,
 },
 title: {
-  text: 'Negative color for values less than 0',
+  text: 'Monthly Temperature Anomaly',
   align: 'left',
+},
+subtitle: {
+  text: 'Months below the baseline draw in a different color',
+  align: 'left',
+},
+yaxis: {
+  labels: {
+    formatter: function (val) {
+      return val.toFixed(1) + '°C'
+    }
+  }
 },
 xaxis: {
   categories: [
@@ -40,8 +51,8 @@ plotOptions: {
   line: {
     colors: {
       threshold: 0,
-      colorAboveThreshold: '#0088ee',
-      colorBelowThreshold: '#ff0000',
+      colorAboveThreshold: '#008FFB',
+      colorBelowThreshold: '#FF4560',
     },
   },
 }
@@ -50,7 +61,8 @@ plotOptions: {
 <series>
 [
   {
-    data: [-33, -13, -45, 95, 12, 15, -34, -61, 66, 82, 1, -36]
+    name: 'Temperature Anomaly',
+    data: [-1.4, 2.6, -0.8, 3.4, -2.1, 1.9, 4.2, -1.6, 2.8, -3.2, 1.2, 3.9]
   }
 ]
 </series>

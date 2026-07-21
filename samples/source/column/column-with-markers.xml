@@ -1,10 +1,14 @@
-<title>Bar with Markers</title>
+<title>Column Chart with Markers</title>
 
 <chart>
 <options>
 chart: {
   height: 350,
   type: 'bar'
+},
+title: {
+  text: 'Monthly Revenue vs Target',
+  align: 'left'
 },
 plotOptions: {
   bar: {
@@ -31,7 +35,7 @@ legend: {
     name: 'Actual',
     data: [
       {
-        x: '2011',
+        x: 'Jan',
         y: 1292,
         goals: [
           {
@@ -43,7 +47,7 @@ legend: {
         ]
       },
       {
-        x: '2012',
+        x: 'Feb',
         y: 4432,
         goals: [
           {
@@ -55,7 +59,7 @@ legend: {
         ]
       },
       {
-        x: '2013',
+        x: 'Mar',
         y: 5423,
         goals: [
           {
@@ -67,7 +71,7 @@ legend: {
         ]
       },
       {
-        x: '2014',
+        x: 'Apr',
         y: 6653,
         goals: [
           {
@@ -79,7 +83,7 @@ legend: {
         ]
       },
       {
-        x: '2015',
+        x: 'May',
         y: 8133,
         goals: [
           {
@@ -93,7 +97,7 @@ legend: {
         ]
       },
       {
-        x: '2016',
+        x: 'Jun',
         y: 7132,
         goals: [
           {
@@ -105,7 +109,7 @@ legend: {
         ]
       },
       {
-        x: '2017',
+        x: 'Jul',
         y: 7332,
         goals: [
           {
@@ -117,7 +121,7 @@ legend: {
         ]
       },
       {
-        x: '2018',
+        x: 'Aug',
         y: 6553,
         goals: [
           {

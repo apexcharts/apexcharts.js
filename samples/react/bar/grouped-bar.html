@@ -50,10 +50,12 @@
         const [state, setState] = React.useState({
           series: [
             {
-              data: [44, 55, 41, 64, 22, 43, 21],
+              name: 'Spend',
+              data: [18, 42, 55, 33, 21, 14, 9],
             },
             {
-              data: [53, 32, 33, 52, 13, 44, 32],
+              name: 'Revenue',
+              data: [64, 96, 138, 71, 52, 88, 130],
             },
           ],
           options: {
@@ -70,24 +72,41 @@
               },
             },
             dataLabels: {
-              enabled: true,
-              offsetX: -6,
-              style: {
-                fontSize: '12px',
-                colors: ['#fff'],
-              },
+              enabled: false,
             },
             stroke: {
               show: true,
               width: 1,
               colors: ['#fff'],
             },
+            grid: {
+              padding: {
+                right: 30,
+              },
+            },
             tooltip: {
               shared: true,
               intersect: false,
             },
+            title: {
+              text: 'Marketing Spend vs Revenue by Channel',
+              align: 'left',
+            },
             xaxis: {
-              categories: [2001, 2002, 2003, 2004, 2005, 2006, 2007],
+              categories: [
+                'Email',
+                'Social',
+                'Search',
+                'Display',
+                'Affiliate',
+                'Referral',
+                'Direct',
+              ],
+              labels: {
+                formatter: function (val) {
+                  return '$' + Math.round(val) + 'k'
+                },
+              },
             },
           },
         })

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Column with Rotates Labels</title>
+    <title>Column with Rotated Labels</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -54,7 +54,7 @@
         data: {
           series: [
             {
-              name: 'Servings',
+              name: 'Units sold',
               data: [44, 55, 41, 67, 22, 43, 21, 33, 45, 31, 87, 65, 35],
             },
           ],
@@ -62,7 +62,7 @@
             annotations: {
               points: [
                 {
-                  x: 'Bananas',
+                  x: 'Pomegranates',
                   seriesIndex: 0,
                   label: {
                     borderColor: '#775DD0',
@@ -71,7 +71,7 @@
                       color: '#fff',
                       background: '#775DD0',
                     },
-                    text: 'Bananas are good',
+                    text: 'Best seller',
                   },
                 },
               ],
@@ -79,6 +79,10 @@
             chart: {
               height: 350,
               type: 'bar',
+            },
+            title: {
+              text: 'Fruit Sales by Type',
+              align: 'left',
             },
             plotOptions: {
               bar: {
@@ -91,11 +95,6 @@
             },
             stroke: {
               width: 0,
-            },
-            grid: {
-              row: {
-                colors: ['#fff', '#f2f2f2'],
-              },
             },
             xaxis: {
               labels: {
@@ -120,20 +119,7 @@
             },
             yaxis: {
               title: {
-                text: 'Servings',
-              },
-            },
-            fill: {
-              type: 'gradient',
-              gradient: {
-                shade: 'light',
-                type: 'horizontal',
-                shadeIntensity: 0.25,
-                gradientToColors: undefined,
-                inverseColors: true,
-                opacityFrom: 0.85,
-                opacityTo: 0.85,
-                stops: [50, 0, 100],
+                text: 'Units sold (k)',
               },
             },
           },

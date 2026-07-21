@@ -50,6 +50,7 @@
         const [state, setState] = React.useState({
           series: [
             {
+              name: 'Price',
               data: series.monthDataSeries1.prices,
             },
           ],
@@ -86,13 +87,13 @@
                       color: '#333',
                       background: '#FEB019',
                     },
-                    text: 'Y-axis range',
+                    text: 'Consolidation zone',
                   },
                 },
               ],
               xaxis: [
                 {
-                  x: new Date('23 Nov 2017').getTime(),
+                  x: new Date('23 Nov 2025').getTime(),
                   strokeDashArray: 0,
                   borderColor: '#775DD0',
                   label: {
@@ -101,12 +102,12 @@
                       color: '#fff',
                       background: '#775DD0',
                     },
-                    text: 'Anno Test',
+                    text: 'Earnings',
                   },
                 },
                 {
-                  x: new Date('26 Nov 2017').getTime(),
-                  x2: new Date('28 Nov 2017').getTime(),
+                  x: new Date('26 Nov 2025').getTime(),
+                  x2: new Date('28 Nov 2025').getTime(),
                   fillColor: '#B3F7CA',
                   opacity: 0.4,
                   label: {
@@ -117,13 +118,13 @@
                       background: '#00E396',
                     },
                     offsetY: -10,
-                    text: 'X-axis range',
+                    text: 'Holiday week',
                   },
                 },
               ],
               points: [
                 {
-                  x: new Date('01 Dec 2017').getTime(),
+                  x: new Date('01 Dec 2025').getTime(),
                   y: 8607.55,
                   marker: {
                     size: 8,
@@ -140,11 +141,11 @@
                       background: '#FF4560',
                     },
 
-                    text: 'Point Annotation',
+                    text: 'Analyst upgrade',
                   },
                 },
                 {
-                  x: new Date('08 Dec 2017').getTime(),
+                  x: new Date('08 Dec 2025').getTime(),
                   y: 9340.85,
                   marker: {
                     size: 0,
@@ -171,7 +172,9 @@
               text: 'Line with Annotations',
               align: 'left',
             },
-            labels: series.monthDataSeries1.dates,
+            labels: series.monthDataSeries1.dates.map(function (d) {
+              return d.replace('2017', '2025')
+            }),
             xaxis: {
               type: 'datetime',
             },

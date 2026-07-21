@@ -54,6 +54,7 @@
         data: {
           series: [
             {
+              name: 'Units Sold',
               data: [400, 430, 448, 470, 540, 580, 690],
             },
           ],
@@ -61,6 +62,10 @@
             chart: {
               type: 'bar',
               height: 350,
+            },
+            title: {
+              text: 'Monthly Sales (reversed axis)',
+              align: 'left',
             },
             annotations: {
               xaxis: [
@@ -73,7 +78,7 @@
                       color: '#fff',
                       background: '#00E396',
                     },
-                    text: 'X annotation',
+                    text: 'Target: 500',
                   },
                 },
               ],
@@ -82,7 +87,7 @@
                   y: 'July',
                   y2: 'September',
                   label: {
-                    text: 'Y annotation',
+                    text: 'Q3 Months',
                   },
                 },
               ],

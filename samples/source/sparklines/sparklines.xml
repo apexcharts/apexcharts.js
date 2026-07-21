@@ -75,26 +75,11 @@ window.Apex = {
   }
 };
 
-var randomizeArray = function (arg) {
-  var array = arg.slice();
-  var currentIndex = array.length,
-    temporaryValue, randomIndex;
-
-  while (0 !== currentIndex) {
-
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex -= 1;
-
-    temporaryValue = array[currentIndex];
-    array[currentIndex] = array[randomIndex];
-    array[randomIndex] = temporaryValue;
-  }
-
-  return array;
-}
-
-// data for the sparklines that appear below header area
-var sparklineData = [47, 45, 54, 38, 56, 24, 65, 31, 37, 39, 62, 51, 35, 41, 35, 27, 93, 53, 61, 27, 54, 43, 19, 46];
+// Fixed, deterministic series so the header sparklines are stable and tell a
+// coherent story: Profit is the gap between Sales and Expenses, point by point.
+var salesSpark    = [31, 40, 33, 52, 46, 58, 49, 61, 55, 70, 64, 78, 72, 85, 79, 92, 88, 101, 96, 108, 104, 118, 112, 126];
+var expensesSpark = [28, 34, 30, 41, 37, 33, 45, 40, 52, 47, 43, 55, 50, 46, 58, 53, 49, 61, 56, 52, 64, 59, 55, 67];
+var profitSpark   = salesSpark.map(function (v, i) { return v - expensesSpark[i]; });
 </script>
 </scripts>
 
@@ -187,7 +172,7 @@ fill: {
 yaxis: {
   min: 0
 },
-colors: ['#DCE6EC'],
+colors: ['#00E396'],
 title: {
   text: '$424,652',
   offsetX: 0,
@@ -206,7 +191,7 @@ subtitle: {
 
 <series>
 [{
-  data: randomizeArray(sparklineData)
+  data: salesSpark
 }]
 </series>
 </chart>
@@ -232,7 +217,7 @@ fill: {
 yaxis: {
   min: 0
 },
-colors: ['#DCE6EC'],
+colors: ['#FF4560'],
 title: {
   text: '$235,312',
   offsetX: 0,
@@ -251,7 +236,7 @@ subtitle: {
 
 <series>
 [{
-  data: randomizeArray(sparklineData)
+  data: expensesSpark
 }]
 </series>
 </chart>
@@ -281,8 +266,9 @@ xaxis: {
 yaxis: {
   min: 0
 },
+colors: ['#008FFB'],
 title: {
-  text: '$135,965',
+  text: '$189,340',
   offsetX: 0,
   style: {
     fontSize: '24px',
@@ -299,7 +285,7 @@ subtitle: {
 
 <series>
 [{
-  data: randomizeArray(sparklineData)
+  data: profitSpark
 }]
 </series>
 </chart>

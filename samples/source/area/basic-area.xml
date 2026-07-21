@@ -21,19 +21,18 @@ stroke: {
 },
 
 title: {
-  text: 'Fundamental Analysis of Stocks',
+  text: 'Meridian Corp Share Price',
   align: 'left'
 },
 subtitle: {
-  text: 'Price Movements',
+  text: 'Daily close, last quarter',
   align: 'left'
 },
-labels: series.monthDataSeries1.dates,
+labels: series.monthDataSeries1.dates.map(function (d) {
+  return d.replace('2017', '2025')
+}),
 xaxis: {
   type: 'datetime',
-},
-yaxis: {
-  opposite: true
 },
 legend: {
   horizontalAlign: 'left'
@@ -42,7 +41,7 @@ legend: {
 
 <series>
 [{
-  name: "STOCK ABC",
+  name: "Share Price",
   data: series.monthDataSeries1.prices
 }]
 </series>

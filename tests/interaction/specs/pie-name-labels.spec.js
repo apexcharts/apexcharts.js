@@ -30,8 +30,8 @@ test.describe('Pie outer name labels', () => {
       els.map((e) => e.textContent),
     )
     expect(names).toHaveLength(SLICE_COUNT)
-    expect(names).toContain('Team A')
-    expect(names).toContain('Team E')
+    expect(names).toContain('Organic Search')
+    expect(names).toContain('Email')
 
     const connectors = await page.$$('.apexcharts-pie-label-connector')
     expect(connectors).toHaveLength(SLICE_COUNT)

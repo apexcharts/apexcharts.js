@@ -1,10 +1,13 @@
-<title>Line &amp; scatter</title>
+<title>Duplicate Labels</title>
 
 <chart>
 <options>
 chart: {
   height: 350,
   type: 'line',
+},
+title: {
+  text: 'Duplicate Y-Axis Labels'
 },
 fill: {
   type:'solid',

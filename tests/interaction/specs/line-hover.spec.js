@@ -17,15 +17,15 @@ import {
   captureEvent,
 } from '../helpers/chart.js'
 
-// basic-line.html: single series "Desktops"
-// data: [10, 41, 35, 51, 49, 62, 69, 91, 148]
-// xaxis categories: Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep
+// basic-line.html: single series "Sign-ups"
+// data: [210, 380, 340, 520, 480, 610, 700, 880, 820, 1040, 1180, 1520]
+// xaxis categories: Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
 
 test.describe('Line chart hover', () => {
   test('tooltip shows correct value on hover', async ({ page, loadChart }) => {
     await loadChart('line', 'basic-line')
 
-    // Hover the first data point (Jan, 10)
+    // Hover the first data point (Jan, 210)
     await hoverDataPoint(page, 0, 0)
     await waitForTooltip(page)
 
@@ -33,13 +33,13 @@ test.describe('Line chart hover', () => {
     expect(title).toBe('Jan')
 
     const values = await getTooltipYValues(page)
-    expect(values[0]).toBe('10')
+    expect(values[0]).toBe('210')
   })
 
   test('tooltip shows correct value for mid-series point', async ({ page, loadChart }) => {
     await loadChart('line', 'basic-line')
 
-    // Hover series 0, point 4 (May, 49)
+    // Hover series 0, point 4 (May, 480)
     await hoverDataPoint(page, 0, 4)
     await waitForTooltip(page)
 
@@ -47,7 +47,7 @@ test.describe('Line chart hover', () => {
     expect(title).toBe('May')
 
     const values = await getTooltipYValues(page)
-    expect(values[0]).toBe('49')
+    expect(values[0]).toBe('480')
   })
 
   test('no JS errors thrown when hovering data points', async ({ page, loadChart }) => {
@@ -55,7 +55,7 @@ test.describe('Line chart hover', () => {
 
     // Hover every data point — any crash in pathMouseEnter/Leave/Down or
     // the tooltip pipeline will be caught by the consoleErrors fixture check.
-    for (let j = 0; j < 9; j++) {
+    for (let j = 0; j < 12; j++) {
       await hoverDataPoint(page, 0, j)
     }
     // consoleErrors assertion runs automatically in the fixture afterEach.

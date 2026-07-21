@@ -49,7 +49,7 @@ tooltip: {
   }
 },
 title: {
-  text: 'Mauritius population pyramid 2011'
+  text: 'Mauritius Population Pyramid 2024'
 },
 xaxis: {
   categories: ['85+', '80-84', '75-79', '70-74', '65-69', '60-64', '55-59', '50-54',

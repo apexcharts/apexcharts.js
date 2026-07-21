@@ -13,11 +13,19 @@
 chart: {
   type: 'polarArea',
 },
+labels: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],
+title: {
+  text: 'Wind Frequency by Direction (%)',
+  align: 'center'
+},
 stroke: {
   colors: ['#fff']
 },
 fill: {
   opacity: 0.8
+},
+legend: {
+  position: 'bottom'
 },
 responsive: [{
   breakpoint: 480,
@@ -33,6 +41,6 @@ responsive: [{
 </options>
 
 <series>
-[14, 23, 21, 17, 15, 10, 12, 17, 21]
+[12, 8, 15, 23, 18, 9, 6, 11]
 </series>
 </chart>

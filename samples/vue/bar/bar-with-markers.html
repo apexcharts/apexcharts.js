@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Column Chart with Markers</title>
+    <title>Bar with Markers</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -57,7 +57,7 @@
               name: 'Actual',
               data: [
                 {
-                  x: '2011',
+                  x: 'North',
                   y: 12,
                   goals: [
                     {
@@ -70,7 +70,7 @@
                   ],
                 },
                 {
-                  x: '2012',
+                  x: 'South',
                   y: 44,
                   goals: [
                     {
@@ -83,7 +83,7 @@
                   ],
                 },
                 {
-                  x: '2013',
+                  x: 'East',
                   y: 54,
                   goals: [
                     {
@@ -97,7 +97,7 @@
                   ],
                 },
                 {
-                  x: '2014',
+                  x: 'West',
                   y: 66,
                   goals: [
                     {
@@ -111,7 +111,7 @@
                   ],
                 },
                 {
-                  x: '2015',
+                  x: 'Central',
                   y: 81,
                   goals: [
                     {
@@ -125,7 +125,7 @@
                   ],
                 },
                 {
-                  x: '2016',
+                  x: 'Online',
                   y: 67,
                   goals: [
                     {
@@ -144,6 +144,10 @@
             chart: {
               height: 350,
               type: 'bar',
+            },
+            title: {
+              text: 'Sales vs Target by Region',
+              align: 'left',
             },
             plotOptions: {
               bar: {

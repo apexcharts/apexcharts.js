@@ -1,4 +1,4 @@
-<title>Simple Pie</title>
+<title>Donut Update</title>
 
 <style>
 #chart {
@@ -76,6 +76,10 @@ p {
 chart: {
   width: 380,
   type: 'donut',
+},
+labels: ['Stocks', 'Bonds', 'Real Estate', 'Cash'],
+title: {
+  text: 'Portfolio Allocation'
 },
 dataLabels: {
   enabled: false

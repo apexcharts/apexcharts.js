@@ -1,19 +1,5 @@
 <title>Stepline Chart</title>
 
-<scripts>
-<script src="../../assets/irregular-data-series.js"></script>
-<script>
-  var ts2 = 1484418600000;
-  var data = [];
-  var spikes = [5, -5, 3, -3, 8, -8]
-  for (var i = 0; i < 30; i++) {
-    ts2 = ts2 + 86400000;
-    var innerArr = [ts2, dataSeries[1][i].value];
-    data.push(innerArr)
-  }
-</script>
-</scripts>
-
 <chart>
 <options>
 chart: {
@@ -27,8 +13,22 @@ dataLabels: {
   enabled: false
 },
 title: {
-  text: 'Stepline Chart',
+  text: 'Thermostat Setpoint',
   align: 'left'
+},
+subtitle: {
+  text: "curve: 'stepline' holds each value until the next point",
+  align: 'left'
+},
+xaxis: {
+  categories: ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00']
+},
+yaxis: {
+  labels: {
+    formatter: function (val) {
+      return val + '°C'
+    }
+  }
 },
 markers: {
   hover: {
@@ -39,7 +39,8 @@ markers: {
 
 <series>
 [{
-  data: [34, 44, 54, 21, 12, 43, 33, 23, 66, 66, 58]
+  name: 'Setpoint',
+  data: [16, 16, 18, 21, 21, 19, 19, 22, 22, 18, 16]
 }]
 </series>
 </chart>

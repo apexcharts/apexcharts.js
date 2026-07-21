@@ -1,4 +1,4 @@
-<title>Circle Concept 2</title>
+<title>Gradient Circle Chart</title>
 
 <style>
 #card {
@@ -113,10 +113,10 @@ fill: {
 stroke: {
   lineCap: 'round'
 },
-labels: ['Percent'],
+labels: ['On-time Delivery'],
 </options>
 
 <series>
-[75]
+[76]
 </series>
 </chart>

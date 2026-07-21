@@ -20,7 +20,7 @@
     '#775DD0',
     '#546E7A',
     '#26a69a',
-    '#D10CE8'
+    '#3F51B5'
   ]
 </script>
 </scripts>
@@ -37,6 +37,10 @@ chart: {
   }
 },
 colors: colors,
+title: {
+  text: 'Deals Closed by Sales Rep',
+  align: 'left'
+},
 plotOptions: {
   bar: {
     columnWidth: '45%',
@@ -48,6 +52,11 @@ dataLabels: {
 },
 legend: {
   show: false
+},
+yaxis: {
+  title: {
+    text: 'Deals closed'
+  }
 },
 xaxis: {
   categories: [
@@ -71,6 +80,7 @@ xaxis: {
 
 <series>
 [{
+  name: 'Deals closed',
   data: [21, 22, 10, 28, 16, 21, 13, 30]
 }]
 </series>

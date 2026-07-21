@@ -16,24 +16,38 @@ stroke: {
   width: [5,5,4],
   curve: 'smooth'
 },
-labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+labels: ['2025-06-04T00:00:00', '2025-06-04T01:00:00', '2025-06-04T02:00:00', '2025-06-04T03:00:00', '2025-06-04T04:00:00', '2025-06-04T05:00:00', '2025-06-04T06:00:00', '2025-06-04T07:00:00', '2025-06-04T08:00:00', '2025-06-04T09:00:00', '2025-06-04T10:00:00', '2025-06-04T11:00:00', '2025-06-04T12:00:00', '2025-06-04T13:00:00', '2025-06-04T14:00:00', '2025-06-04T15:00:00'],
 title: {
-  text: 'Missing data (null values)'
+  text: 'API Response Time by Region'
+},
+subtitle: {
+  text: 'Monitoring dropouts (null values) render as gaps'
 },
 xaxis: {
+  type: 'datetime',
+  labels: {
+    format: 'HH:mm'
+  }
+},
+yaxis: {
+  labels: {
+    formatter: function (val) {
+      return val + ' ms'
+    }
+  }
 },
 </options>
 
 <series>
 [{
-  name: 'Peter',
-  data: [5, 5, 10, 8, 7, 5, 4, null, null, null, 10, 10, 7, 8, 6, 9]
+  name: 'us-east-1',
+  data: [142, 138, 155, 149, 151, 144, 139, null, null, null, 158, 162, 147, 150, 141, 146]
 }, {
-  name: 'Johnny',
-  data: [10, 15, null, 12, null, 10, 12, 15, null, null, 12, null, 14, null, null, null]
+  name: 'eu-west-1',
+  data: [210, 225, null, 218, null, 208, 215, 228, null, null, 219, null, 224, null, null, null]
 }, {
-  name: 'David',
-  data: [null, null, null, null, 3, 4, 1, 3, 4,  6,  7,  9, 5, null, null, null]
+  name: 'ap-south-1',
+  data: [null, null, null, null, 296, 301, 288, 295, 302, 310, 318, 324, 305, null, null, null]
 }]
 </series>
 </chart>

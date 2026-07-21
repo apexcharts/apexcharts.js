@@ -18,9 +18,13 @@ responsive: [{
     }
   }
 }],
+title: {
+  text: 'Traffic Share by Device',
+  align: 'left'
+},
 xaxis: {
-  categories: ['2011 Q1', '2011 Q2', '2011 Q3', '2011 Q4', '2012 Q1', '2012 Q2',
-    '2012 Q3', '2012 Q4'
+  categories: ['2024 Q1', '2024 Q2', '2024 Q3', '2024 Q4', '2025 Q1', '2025 Q2',
+    '2025 Q3', '2025 Q4'
   ],
 },
 fill: {
@@ -35,13 +39,13 @@ legend: {
 
 <series>
 [{
-  name: 'PRODUCT A',
+  name: 'Mobile',
   data: [44, 55, 41, 67, 22, 43, 21, 49]
 }, {
-  name: 'PRODUCT B',
+  name: 'Desktop',
   data: [13, 23, 20, 8, 13, 27, 33, 12]
 }, {
-  name: 'PRODUCT C',
+  name: 'Tablet',
   data: [11, 17, 15, 15, 21, 14, 15, 13]
 }]
 </series>

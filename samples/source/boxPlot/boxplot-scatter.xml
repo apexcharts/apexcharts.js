@@ -8,7 +8,7 @@ chart: {
 },
 colors: ['#008FFB', '#FEB019'],
 title: {
-  text: 'BoxPlot chart with outliers',
+  text: 'Request Latency by Region (ms)',
   align: 'left',
 },
 xaxis: {
@@ -23,7 +23,7 @@ xaxis: {
     type: 'boxPlot',
     data: [
       {
-        x: 'Alice',
+        x: 'us-east',
         y: [54, 66, 69, 75, 88],
         goals: [
           {
@@ -36,7 +36,7 @@ xaxis: {
         ],
       },
       {
-        x: 'Bob',
+        x: 'us-west',
         y: [43, 65, 69, 76, 81],
         goals: [
           {
@@ -56,7 +56,7 @@ xaxis: {
         ],
       },
       {
-        x: 'Charlie',
+        x: 'eu-central',
         y: [31, 39, 45, 51, 59],
         goals: [
           {
@@ -76,7 +76,7 @@ xaxis: {
         ],
       },
       {
-        x: 'David',
+        x: 'ap-south',
         y: [39, 46, 55, 65, 71],
         goals: [
           {
@@ -96,7 +96,7 @@ xaxis: {
         ],
       },
       {
-        x: 'Ahmed',
+        x: 'sa-east',
         y: [29, 31, 35, 39, 44],
         goals: [
           {

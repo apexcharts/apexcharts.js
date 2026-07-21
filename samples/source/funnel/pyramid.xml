@@ -20,6 +20,8 @@ colors: ["#809bce","#95b8d1","#b8e0d4","#d6eadf","#eac4d5","#d1625c","#e89c81","
 dataLabels: {
   enabled: true,
   formatter: function (val, opt) {
+    // hide labels on tiers too small to fit them; the tooltip still names these
+    if (val < 400) return ''
     return opt.w.globals.labels[opt.dataPointIndex]
   },
   dropShadow: {

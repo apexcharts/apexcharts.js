@@ -24,7 +24,7 @@ plotOptions: {
     track: {
       background: "#e7e7e7",
       strokeWidth: '97%',
-      margin: 5, // margin is in pixels
+      margin: 5,
       dropShadow: {
         enabled: true,
         top: 2,
@@ -40,7 +40,10 @@ plotOptions: {
       },
       value: {
         offsetY: -2,
-        fontSize: '22px'
+        fontSize: '22px',
+        formatter: function (val) {
+          return val + '%'
+        }
       }
     }
   }
@@ -61,7 +64,7 @@ fill: {
     stops: [0, 50, 53, 91]
   },
 },
-labels: ['Average Results'],
+labels: ['Goals Met'],
 </options>
 
 <series>

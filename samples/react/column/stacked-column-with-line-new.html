@@ -50,7 +50,7 @@
         const [state, setState] = React.useState({
           series: [
             {
-              name: 'Line',
+              name: 'Total Return',
               type: 'line',
               data: [
                 37, 38.3, 33.01, 30, 29.7, 30, 35.2, 44, 45, 41, 22, 22.5, 29.1, 25.5,
@@ -58,7 +58,7 @@
               ],
             },
             {
-              name: 'Bar1',
+              name: 'Equities',
               type: 'bar',
               data: [
                 -1.57, -1.83, -0.29, 2, 0.23, 3, 0, -0.77, 0, 0, 0, -0.16, -0.5,
@@ -66,7 +66,7 @@
               ],
             },
             {
-              name: 'Bar2',
+              name: 'Bonds',
               type: 'bar',
               data: [
                 -2.99, -0.43, 0.39, 2.8, 0.23, 1.2, -0.06, -2.96, -2.74, -2.58, -1.79,
@@ -75,7 +75,7 @@
               ],
             },
             {
-              name: 'Bar3',
+              name: 'Commodities',
               type: 'bar',
               data: [
                 0.09, 4, 4.83, 6.86, 3.86, 5, 1.7, -1.21, 0, 0.02, 0.07, -0.15, -0.09,
@@ -83,7 +83,7 @@
               ],
             },
             {
-              name: 'bar4',
+              name: 'Cash',
               type: 'bar',
               data: [
                 5.95, 5.86, 0.92, -1.2, -2.73, -0.32, 0.12, -0.55, 0.78, 0, -1.73,
@@ -102,13 +102,20 @@
             ],
             chart: {
               height: 350,
-              width: '90%',
               type: 'line',
               stacked: true,
               zoom: {
                 enabled: true,
                 type: 'x',
               },
+            },
+            title: {
+              text: 'Portfolio Return & Contributions',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'Multi-axis config: bars grouped on one axis via a seriesName array',
+              align: 'left',
             },
             tooltip: {
               followCursor: true,
@@ -151,14 +158,18 @@
             // visually so they have been listed first.
             yaxis: [
               {
-                seriesName: ['Bar1', 'Bar2', 'Bar3', 'bar4'],
+                seriesName: ['Equities', 'Bonds', 'Commodities', 'Cash'],
+                title: { text: 'Contribution (%)' },
               },
               {
-                seriesName: 'Line',
+                seriesName: 'Total Return',
                 opposite: true,
+                title: { text: 'Total Return (%)' },
               },
             ],
             legend: {
+              position: 'right',
+              offsetY: 40,
               showForSingleSeries: true,
             },
             fill: {

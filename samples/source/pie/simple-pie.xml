@@ -14,7 +14,11 @@ chart: {
   width: 480,
   type: 'pie',
 },
-labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
+labels: ['Organic Search', 'Direct', 'Social', 'Referral', 'Email'],
+title: {
+  text: 'Website Traffic by Source',
+  align: 'center'
+},
 legend: {
   show: false
 },
@@ -38,6 +42,6 @@ responsive: [{
 </options>
 
 <series>
-[44, 55, 13, 43, 22]
+[42, 23, 15, 12, 8]
 </series>
 </chart>

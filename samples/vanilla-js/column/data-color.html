@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Basic Column - Grouped</title>
+    <title>Column with Custom Data Colors</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -42,37 +42,37 @@
             name: 'Yearly Profit',
             data: [
               {
-                x: '2011',
+                x: '2018',
                 y: 1292,
               },
               {
-                x: '2012',
+                x: '2019',
                 y: 4432,
               },
               {
-                x: '2013',
+                x: '2020',
                 y: 5423,
               },
               {
-                x: '2014',
+                x: '2021',
                 y: 6653,
               },
               {
-                x: '2015',
+                x: '2022',
                 y: 8133,
                 fillColor: '#EB8C87',
                 strokeColor: '#C23829',
               },
               {
-                x: '2016',
+                x: '2023',
                 y: 7132,
               },
               {
-                x: '2017',
+                x: '2024',
                 y: 7332,
               },
               {
-                x: '2018',
+                x: '2025',
                 y: 6553,
               },
             ],
@@ -81,6 +81,14 @@
         chart: {
           height: 350,
           type: 'bar',
+        },
+        title: {
+          text: 'Yearly Profit',
+          align: 'left',
+        },
+        subtitle: {
+          text: 'Record year highlighted in red',
+          align: 'left',
         },
         plotOptions: {
           bar: {

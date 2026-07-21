@@ -34,9 +34,6 @@ stroke: {
   width: 1,
   colors: ['#000'],
 },
-labels: Array.apply(null, {length: 32}).map(function(el, index){
-  return index + 1;
-}),
 yaxis: {
   axisBorder: {
     show: false
@@ -44,38 +41,39 @@ yaxis: {
   axisTicks: {
     show: false
   },
-  labels: {
-    show: false
-  },
   title: {
-    text: 'Weight',
+    text: 'Units sold',
   },
+},
+xaxis: {
+  categories: ['Vanilla', 'Chocolate', 'Strawberry', 'Mint', 'Mango', 'Coffee', 'Pistachio', 'Caramel', 'Cookies', 'Coconut', 'Lemon', 'Berry']
 },
 grid: {
   position: 'back'
 },
 title: {
-  text: 'Paths filled by clipped image',
-  align: 'right',
-  offsetY: 30
+  text: 'Ice Cream Sales by Flavour',
+  align: 'left'
+},
+subtitle: {
+  text: 'Bars filled by a single clipped image',
+  align: 'left'
 },
 fill: {
   type: 'image',
-  opacity: 0.87,
+  opacity: 0.9,
   image: {
-    src: 'https://cdn.pixabay.com/photo/2023/10/08/17/04/swirls-8302543_1280.jpg',
-    width: 600,
-    height: 600,
+    src: '../../assets/images/stripes.jpg',
+    width: 640,
+    height: 427,
   },
 },
 </options>
 
 <series>
 [{
-  name: 'coins',
-  data: [2, 4, 3, 4, 3, 5, 5, 6.5, 6, 5, 4, 5, 8, 7, 7, 8, 8, 10, 9, 9, 12, 12,
-    11, 12, 13, 14, 16, 14, 15, 17, 19, 21
-  ]
+  name: 'Units sold',
+  data: [820, 940, 610, 480, 560, 720, 390, 680, 900, 430, 350, 640]
 }]
 </series>
 </chart>

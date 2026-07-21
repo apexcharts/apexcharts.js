@@ -38,7 +38,7 @@
 
     <script>
       var options = {
-        series: [67],
+        series: [72],
         chart: {
           height: 350,
           type: 'radialBar',
@@ -67,16 +67,14 @@
             },
           },
         },
+        colors: ['#20E647'],
         fill: {
-          type: 'image',
-          image: {
-            src: ['../../assets/images/4274635880_809a4b9d0d_z.jpg'],
-          },
+          type: 'solid',
         },
         stroke: {
           lineCap: 'round',
         },
-        labels: ['Volatility'],
+        labels: ['Time on Task'],
       }
 
       var chart = new ApexCharts(document.querySelector('#chart'), options)

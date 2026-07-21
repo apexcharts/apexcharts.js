@@ -33,12 +33,12 @@
 
     <!-- fake data taken from https://www.metricsgraphicsjs.org/data/fake_users2.json -->
   <script src="../../assets/irregular-data-series.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
   
   <script>
-    var ts1 = 1388534400000
-    var ts2 = 1388620800000
-    var ts3 = 1389052800000
+    var base = new Date('01 Jan 2025 GMT').getTime()
+    var ts1 = base
+    var ts2 = base + 86400000
+    var ts3 = base + 518400000
 
     var dataSet = [[], [], []]
 
@@ -80,15 +80,15 @@
         data: {
           series: [
             {
-              name: 'PRODUCT A',
+              name: 'Auth API',
               data: dataSet[0],
             },
             {
-              name: 'PRODUCT B',
+              name: 'Search API',
               data: dataSet[1],
             },
             {
-              name: 'PRODUCT C',
+              name: 'Media API',
               data: dataSet[2],
             },
           ],
@@ -124,8 +124,11 @@
                 },
                 offsetX: 0,
                 formatter: function (val) {
-                  return (val / 1000000).toFixed(2)
+                  return (val / 1000000).toFixed(1) + 'M'
                 },
+              },
+              title: {
+                text: 'Requests',
               },
               axisBorder: {
                 show: false,
@@ -137,18 +140,16 @@
             xaxis: {
               type: 'datetime',
               tickAmount: 8,
-              min: new Date('01/01/2014').getTime(),
-              max: new Date('01/20/2014').getTime(),
+              min: new Date('01/01/2025').getTime(),
+              max: new Date('01/20/2025').getTime(),
               labels: {
                 rotate: -15,
                 rotateAlways: true,
-                formatter: function (val, timestamp) {
-                  return moment(new Date(timestamp)).format('DD MMM YYYY')
-                },
+                format: 'dd MMM yyyy',
               },
             },
             title: {
-              text: 'Irregular Data in Time Series',
+              text: 'Requests by Service (irregular intervals)',
               align: 'left',
               offsetX: 14,
             },

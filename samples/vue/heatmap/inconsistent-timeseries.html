@@ -32,6 +32,16 @@
     </script>
 
     <script>
+      // Seeded PRNG so the heatmap is identical on every load (stable snapshots).
+      let __seed = 0x55e60718
+      function rand() {
+        __seed |= 0
+        __seed = (__seed + 0x6d2b79f5) | 0
+        let t = Math.imul(__seed ^ (__seed >>> 15), 1 | __seed)
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+      }
+
       const end = new Date('2024-11-29T10:00:00.000Z').getTime()
       const start = end - 12 * 60 * 60 * 1000
 
@@ -40,7 +50,7 @@
         for (let i = start; i < end; i += 30 * 60 * 1000) {
           series.push({
             x: new Date(i).getTime(),
-            y: Math.floor(Math.random() * 100).toFixed(0),
+            y: Math.floor(rand() * 100).toFixed(0),
           })
         }
         return series
@@ -53,15 +63,15 @@
       const data3 = timeSeries()
       let data = [
         {
-          name: 'Series 1',
+          name: 'Sensor A',
           data: data1,
         },
         {
-          name: 'Series 2',
+          name: 'Sensor B',
           data: data2,
         },
         {
-          name: 'Series 3',
+          name: 'Sensor C',
           data: data3,
         },
       ]

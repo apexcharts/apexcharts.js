@@ -54,42 +54,44 @@
         data: {
           series: [
             {
+              name: '2024',
               data: [
                 {
-                  x: 'Team A',
-                  y: [1, 5],
+                  x: 'Jan',
+                  y: [-2, 6],
                 },
                 {
-                  x: 'Team B',
-                  y: [4, 6],
+                  x: 'Apr',
+                  y: [8, 18],
                 },
                 {
-                  x: 'Team C',
-                  y: [5, 8],
+                  x: 'Jul',
+                  y: [18, 29],
                 },
                 {
-                  x: 'Team D',
-                  y: [3, 11],
+                  x: 'Oct',
+                  y: [7, 16],
                 },
               ],
             },
             {
+              name: '2025',
               data: [
                 {
-                  x: 'Team A',
-                  y: [2, 6],
+                  x: 'Jan',
+                  y: [0, 7],
                 },
                 {
-                  x: 'Team B',
-                  y: [1, 3],
+                  x: 'Apr',
+                  y: [9, 20],
                 },
                 {
-                  x: 'Team C',
-                  y: [7, 8],
+                  x: 'Jul',
+                  y: [19, 31],
                 },
                 {
-                  x: 'Team D',
-                  y: [5, 9],
+                  x: 'Oct',
+                  y: [8, 17],
                 },
               ],
             },
@@ -99,6 +101,10 @@
               type: 'rangeBar',
               height: 350,
             },
+            title: {
+              text: 'Monthly Temperature Range',
+              align: 'left',
+            },
             plotOptions: {
               bar: {
                 horizontal: false,
@@ -106,6 +112,17 @@
             },
             dataLabels: {
               enabled: true,
+            },
+            stroke: {
+              width: 2,
+              colors: ['#fff'],
+            },
+            yaxis: {
+              labels: {
+                formatter: function (val) {
+                  return val + '°C'
+                },
+              },
             },
           },
         },

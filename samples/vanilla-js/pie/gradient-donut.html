@@ -47,7 +47,7 @@
 
     <script>
       var options = {
-        series: [44, 55, 41, 17, 15],
+        series: [128, 96, 74, 52, 38],
         chart: {
           width: 380,
           type: 'donut',
@@ -58,6 +58,7 @@
             endAngle: 270,
           },
         },
+        labels: ['Compute', 'Storage', 'Database', 'Networking', 'Analytics'],
         dataLabels: {
           enabled: false,
         },
@@ -66,11 +67,11 @@
         },
         legend: {
           formatter: function (val, opts) {
-            return val + ' - ' + opts.w.globals.series[opts.seriesIndex]
+            return val + ' - $' + opts.w.globals.series[opts.seriesIndex] + 'k'
           },
         },
         title: {
-          text: 'Gradient Donut with custom Start-angle',
+          text: 'Cloud Spend by Service',
         },
         responsive: [
           {

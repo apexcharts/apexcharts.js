@@ -54,7 +54,8 @@
         data: {
           series: [
             {
-              data: [0, -41, 35, -51, 0, 62, -69, 32, -32, 54, 16, -50],
+              name: 'Net Cash Flow',
+              data: [18, -24, 41, -33, 12, 58, -47, 29, -18, 63, 22, -39],
             },
           ],
           chartOptions: {
@@ -69,8 +70,19 @@
               enabled: false,
             },
             title: {
-              text: 'Negative color for values less than 0',
+              text: 'Monthly Net Cash Flow',
               align: 'left',
+            },
+            subtitle: {
+              text: 'Months in deficit draw in a different color',
+              align: 'left',
+            },
+            yaxis: {
+              labels: {
+                formatter: function (val) {
+                  return '$' + val + 'k'
+                },
+              },
             },
             xaxis: {
               categories: [
@@ -95,8 +107,8 @@
               line: {
                 colors: {
                   threshold: 0,
-                  colorAboveThreshold: '#0088ee',
-                  colorBelowThreshold: '#ff0000',
+                  colorAboveThreshold: '#00E396',
+                  colorBelowThreshold: '#FF4560',
                 },
               },
             },

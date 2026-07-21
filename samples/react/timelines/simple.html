@@ -52,31 +52,31 @@
             {
               data: [
                 {
-                  x: 'Code',
+                  x: 'Draft',
                   y: [
-                    new Date('2019-03-02').getTime(),
-                    new Date('2019-03-04').getTime(),
+                    new Date('2024-03-02').getTime(),
+                    new Date('2024-03-04').getTime(),
                   ],
                 },
                 {
-                  x: 'Test',
+                  x: 'Edit',
                   y: [
-                    new Date('2019-03-04').getTime(),
-                    new Date('2019-03-08').getTime(),
+                    new Date('2024-03-04').getTime(),
+                    new Date('2024-03-08').getTime(),
                   ],
                 },
                 {
-                  x: 'Validation',
+                  x: 'Review',
                   y: [
-                    new Date('2019-03-08').getTime(),
-                    new Date('2019-03-12').getTime(),
+                    new Date('2024-03-08').getTime(),
+                    new Date('2024-03-12').getTime(),
                   ],
                 },
                 {
-                  x: 'Deployment',
+                  x: 'Publish',
                   y: [
-                    new Date('2019-03-12').getTime(),
-                    new Date('2019-03-18').getTime(),
+                    new Date('2024-03-12').getTime(),
+                    new Date('2024-03-18').getTime(),
                   ],
                 },
               ],
@@ -86,6 +86,9 @@
             chart: {
               height: 350,
               type: 'rangeBar',
+            },
+            title: {
+              text: 'Content Production Pipeline',
             },
             plotOptions: {
               bar: {

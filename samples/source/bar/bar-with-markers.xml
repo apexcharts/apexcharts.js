@@ -1,10 +1,14 @@
-<title>Column Chart with Markers</title>
+<title>Bar with Markers</title>
 
 <chart>
 <options>
 chart: {
   height: 350,
   type: 'bar'
+},
+title: {
+  text: 'Sales vs Target by Region',
+  align: 'left'
 },
 plotOptions: {
   bar: {
@@ -40,7 +44,7 @@ legend: {
     name: 'Actual',
     data: [
       {
-        x: '2011',
+        x: 'North',
         y: 12,
         goals: [
           {
@@ -53,7 +57,7 @@ legend: {
         ]
       },
       {
-        x: '2012',
+        x: 'South',
         y: 44,
         goals: [
           {
@@ -66,7 +70,7 @@ legend: {
         ]
       },
       {
-        x: '2013',
+        x: 'East',
         y: 54,
         goals: [
           {
@@ -80,7 +84,7 @@ legend: {
         ]
       },
       {
-        x: '2014',
+        x: 'West',
         y: 66,
         goals: [
           {
@@ -94,7 +98,7 @@ legend: {
         ]
       },
       {
-        x: '2015',
+        x: 'Central',
         y: 81,
         goals: [
           {
@@ -108,7 +112,7 @@ legend: {
         ]
       },
       {
-        x: '2016',
+        x: 'Online',
         y: 67,
         goals: [
           {

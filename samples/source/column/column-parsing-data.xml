@@ -2,54 +2,14 @@
 
 <scripts>
 <script>
-const PRODUCT_NAMES = [
-  'Apple', 'Orange', 'Berry', 'Grape', 'Peach', 'Cherry',
-  'Chocolate', 'Vanilla', 'Honey', 'Caramel', 'Coconut', 'Almond', 'Hazelnut',
-  'Coffee', 'Tea', 'Spice', 'Herb', 'Mint'
+// Objects with named fields; the chart maps them to x/y via the parsing option.
+const productsList = [
+  { productId: 1, productName: 'Cold Brew', unitPrice: 24.5, unitsInStock: 320 },
+  { productId: 2, productName: 'Espresso Beans', unitPrice: 18.0, unitsInStock: 210 },
+  { productId: 3, productName: 'Matcha Powder', unitPrice: 32.0, unitsInStock: 140 },
+  { productId: 4, productName: 'Chai Blend', unitPrice: 15.5, unitsInStock: 410 },
+  { productId: 5, productName: 'Hazelnut Syrup', unitPrice: 12.0, unitsInStock: 275 }
 ];
-
-const PRODUCT_TYPES = [
-  'Juice', 'Syrup', 'Sauce', 'Powder', 'Extract', 'Oil', 'Cream', 'Cake',
-  'Cookie', 'Candy', 'Drink', 'Smoothie', 'Soup', 'Spread', 'Jam',
-  'Butter', 'Bars', 'Mix'
-];
-
-function randomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function randomDecimal(min, max, decimals = 2) {
-  const random = Math.random() * (max - min) + min;
-  return Math.round(random * Math.pow(10, decimals)) / Math.pow(10, decimals);
-}
-
-function generateProductName() {
-  const baseName = PRODUCT_NAMES[Math.floor(Math.random() * PRODUCT_NAMES.length)];
-  const productType = PRODUCT_TYPES[Math.floor(Math.random() * PRODUCT_TYPES.length)];
-  return `${baseName} ${productType}`;
-}
-
-function generateSingleProduct(productId) {
-  return {
-    productId: productId,
-    productName: generateProductName(),
-    unitPrice: randomDecimal(10, 99),
-    unitsInStock: randomInt(0, 500),
-    unitsOnOrder: randomInt(0, 500)
-  };
-}
-
-function generateRandomProducts(n) {
-  const products = [];
-  
-  for (let i = 1; i <= n; i++) {
-    products.push(generateSingleProduct(i));
-  }
-  
-  return products;
-}
-
-const productsList = generateRandomProducts(5);
 </script>
 </scripts>
 
@@ -59,6 +19,14 @@ const productsList = generateRandomProducts(5);
 chart: {
   type: 'bar',
   height: 350
+},
+title: {
+  text: 'Product Price & Stock',
+  align: 'left'
+},
+subtitle: {
+  text: 'Object arrays mapped to x/y via the parsing option',
+  align: 'left'
 },
 plotOptions: {
   bar: {
@@ -90,6 +58,7 @@ yaxis: [{
 }, {
   opposite: true,
   seriesName: 'Stock',
+  min: 0,
   title: {
     text: "Stock"
   },

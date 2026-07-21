@@ -49,7 +49,7 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          series: [44, 55, 67, 83],
+          series: [68, 82, 54, 91],
           options: {
             chart: {
               height: 350,
@@ -66,16 +66,19 @@
                   },
                   total: {
                     show: true,
-                    label: 'Total',
+                    label: 'Average',
                     formatter: function (w) {
-                      // By default this function returns the average of all series. The below is just an example to show the use of custom formatter function
-                      return 249
+                      // custom formatter: rounded average across all series, with a unit
+                      var total = w.globals.seriesTotals.reduce(function (a, b) {
+                        return a + b
+                      }, 0)
+                      return Math.round(total / w.globals.series.length) + '%'
                     },
                   },
                 },
               },
             },
-            labels: ['Apples', 'Oranges', 'Bananas', 'Berries'],
+            labels: ['North', 'South', 'East', 'West'],
           },
         })
 

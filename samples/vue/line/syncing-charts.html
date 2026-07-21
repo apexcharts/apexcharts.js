@@ -18,10 +18,6 @@
         max-width: 650px;
         margin: 35px auto;
       }
-
-      .columns {
-        columns: 2;
-      }
     </style>
 
     
@@ -44,7 +40,12 @@
       // The global window.Apex variable below can be used to set common options for all charts on the page
       Apex = {
         chart: {
-          height: 160,
+          height: 130,
+        },
+        title: {
+          style: {
+            fontSize: '14px',
+          },
         },
         dataLabels: {
           enabled: false,
@@ -91,26 +92,27 @@
         },
       }
 
-      /*
-          // this function will generate output in this format
-          // data = [
-              [timestamp, 23],
-              [timestamp, 33],
-              [timestamp, 12]
-              ...
-          ]
-        */
-      function generateDayWiseTimeSeries(baseval, count, yrange) {
-        var i = 0
-        var series = []
-        while (i < count) {
-          var x = baseval
-          var y =
-            Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min
+      // Deterministic daily random walks so every chart shares the same date range
+      // and the synced crosshair always has data under it.
+      function mulberry32(seed) {
+        return function () {
+          seed |= 0
+          seed = (seed + 0x6d2b79f5) | 0
+          var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+        }
+      }
 
-          series.push([x, y])
-          baseval += 86400000
-          i++
+      function dailySeries(seed, count, base, spread) {
+        var rand = mulberry32(seed)
+        var series = []
+        var ts = new Date('01 Jun 2025').getTime()
+        var val = base
+        for (var i = 0; i < count; i++) {
+          val += (rand() - 0.5) * spread
+          series.push([ts, Math.round(val)])
+          ts += 86400000
         }
         return series
       }
@@ -121,45 +123,27 @@
     
     <div id="app"><div id="wrapper">
       <div id="chart-line">
-      <apexchart type="line" height="160" :options="chartOptions" :series="series"></apexchart>
+      <apexchart type="line" height="130" :options="chartOptions" :series="series"></apexchart>
     </div>
       <div id="chart-line2">
-      <apexchart type="line" height="160" :options="chartOptionsLine2" :series="seriesLine2"></apexchart>
+      <apexchart type="line" height="130" :options="chartOptionsLine2" :series="seriesLine2"></apexchart>
     </div>
       <div id="chart-area">
-      <apexchart type="area" height="160" :options="chartOptionsArea" :series="seriesArea"></apexchart>
+      <apexchart type="area" height="130" :options="chartOptionsArea" :series="seriesArea"></apexchart>
     </div>
-      <div class="columns">
-        <div id="chart-small">
-      <apexchart type="area" height="160" width="300" :options="chartOptionsSmall" :series="seriesSmall"></apexchart>
-    </div>
-        <div id="chart-small2">
-      <apexchart type="area" height="160" width="300" :options="chartOptionsSmall2" :series="seriesSmall2"></apexchart>
-    </div>
-      </div>
-      
     </div></div>
 
     <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
     <div id="html">&lt;div id=&quot;wrapper&quot;&gt;
         &lt;div id=&quot;chart-line&quot;&gt;
-        &lt;apexchart type=&quot;line&quot; height=&quot;160&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;line&quot; height=&quot;130&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
         &lt;div id=&quot;chart-line2&quot;&gt;
-        &lt;apexchart type=&quot;line&quot; height=&quot;160&quot; :options=&quot;chartOptionsLine2&quot; :series=&quot;seriesLine2&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;line&quot; height=&quot;130&quot; :options=&quot;chartOptionsLine2&quot; :series=&quot;seriesLine2&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
         &lt;div id=&quot;chart-area&quot;&gt;
-        &lt;apexchart type=&quot;area&quot; height=&quot;160&quot; :options=&quot;chartOptionsArea&quot; :series=&quot;seriesArea&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;area&quot; height=&quot;130&quot; :options=&quot;chartOptionsArea&quot; :series=&quot;seriesArea&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
-        &lt;div class=&quot;columns&quot;&gt;
-          &lt;div id=&quot;chart-small&quot;&gt;
-        &lt;apexchart type=&quot;area&quot; height=&quot;160&quot; width=&quot;300&quot; :options=&quot;chartOptionsSmall&quot; :series=&quot;seriesSmall&quot;&gt;&lt;/apexchart&gt;
-      &lt;/div&gt;
-          &lt;div id=&quot;chart-small2&quot;&gt;
-        &lt;apexchart type=&quot;area&quot; height=&quot;160&quot; width=&quot;300&quot; :options=&quot;chartOptionsSmall2&quot; :series=&quot;seriesSmall2&quot;&gt;&lt;/apexchart&gt;
-      &lt;/div&gt;
-        &lt;/div&gt;
-        
       &lt;/div&gt;</div>
 
     <script>
@@ -171,94 +155,59 @@
         data: {
           series: [
             {
-              data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
-                min: 10,
-                max: 60,
-              }),
+              name: 'Page Views',
+              data: dailySeries(11, 20, 42, 18),
             },
           ],
           chartOptions: {
             chart: {
-              id: 'fb',
-              group: 'social',
+              id: 'pageviews',
+              group: 'website',
               type: 'line',
-              height: 160,
+              height: 130,
+            },
+            title: {
+              text: 'Page Views (k)',
             },
             colors: ['#008FFB'],
           },
 
           seriesLine2: [
             {
-              data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
-                min: 10,
-                max: 30,
-              }),
+              name: 'Sessions',
+              data: dailySeries(23, 20, 20, 8),
             },
           ],
           chartOptionsLine2: {
             chart: {
-              id: 'tw',
-              group: 'social',
+              id: 'sessions',
+              group: 'website',
               type: 'line',
-              height: 160,
+              height: 130,
+            },
+            title: {
+              text: 'Sessions (k)',
             },
             colors: ['#546E7A'],
           },
 
           seriesArea: [
             {
-              data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
-                min: 10,
-                max: 60,
-              }),
+              name: 'Sign-ups',
+              data: dailySeries(35, 20, 38, 16),
             },
           ],
           chartOptionsArea: {
             chart: {
-              id: 'yt',
-              group: 'social',
+              id: 'signups',
+              group: 'website',
               type: 'area',
-              height: 160,
+              height: 130,
+            },
+            title: {
+              text: 'Sign-ups',
             },
             colors: ['#00E396'],
-          },
-
-          seriesSmall: [
-            {
-              data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
-                min: 10,
-                max: 60,
-              }),
-            },
-          ],
-          chartOptionsSmall: {
-            chart: {
-              id: 'ig',
-              group: 'social',
-              type: 'area',
-              height: 160,
-              width: 300,
-            },
-            colors: ['#008FFB'],
-          },
-
-          seriesSmall2: [
-            {
-              data: generateDayWiseTimeSeries(new Date('11 Feb 2017').getTime(), 20, {
-                min: 10,
-                max: 60,
-              }),
-            },
-          ],
-          chartOptionsSmall2: {
-            chart: {
-              id: 'li',
-              group: 'social',
-              type: 'area',
-              height: 160,
-              width: 300,
-            },
-            colors: ['#546E7A'],
           },
         },
       })

@@ -17,9 +17,9 @@ chart: {
     enabled: true,
     color: '#111',
     top: -1,
-    left: 3,
+    left: 2,
     blur: 3,
-    opacity: 0.5
+    opacity: 0.2
   }
 },
 stroke: {
@@ -41,8 +41,8 @@ plotOptions: {
 labels: ["Comedy", "Action", "SciFi", "Drama", "Horror"],
 dataLabels: {
   dropShadow: {
-    blur: 3,
-    opacity: 1
+    blur: 1,
+    opacity: 0.45
   }
 },
 fill: {
@@ -78,6 +78,6 @@ responsive: [{
 </options>
 
 <series>
-[44, 55, 41, 17, 15]
+[38, 52, 31, 44, 22]
 </series>
 </chart>

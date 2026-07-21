@@ -21,10 +21,10 @@ plotOptions: {
     }
   },
 },
-labels: ['Cricket'],
+labels: ['Completion'],
 </options>
 
 <series>
-[70]
+[68]
 </series>
 </chart>

@@ -11,46 +11,49 @@ plotOptions: {
   line: {
     isSlopeChart: true,
   },
+},
+title: {
+  text: 'Sprint Velocity: Q1 to Q2'
 }
 </options>
 
 <series>
 [
   {
-    name: 'Blue',
+    name: 'Platform',
     data: [
       {
-        x: 'Jan',
+        x: 'Q1',
         y: 43,
       },
       {
-        x: 'Feb',
+        x: 'Q2',
         y: 58,
       },
     ],
   },
   {
-    name: 'Green',
+    name: 'Mobile',
     data: [
       {
-        x: 'Jan',
+        x: 'Q1',
         y: 33,
       },
       {
-        x: 'Feb',
+        x: 'Q2',
         y: 38,
       },
     ],
   },
   {
-    name: 'Red',
+    name: 'Web',
     data: [
       {
-        x: 'Jan',
+        x: 'Q1',
         y: 55,
       },
       {
-        x: 'Feb',
+        x: 'Q2',
         y: 21,
       },
     ],

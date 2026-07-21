@@ -1,40 +1,21 @@
-<title>Multi-YAxis-with-seriesName-arrays</title>
+<title>Multiple Y-Axes with seriesName Arrays</title>
 
 <scripts>
 <script>
-var generateDayWiseTimeSeries = function (baseval, count, yrange) {
-  var i = 0;
-  var series = [];
-  while (i < count) {
-    var x = baseval;
-    var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+// Ten days of readings; each y-axis is shared by two series via a
+// seriesName array (temperatures on the left, humidity on the right).
+var start = new Date('01 Jun 2025 GMT').getTime()
 
-    series.push([x, y]);
-    baseval += 86400000;
-    i++;
-  }
-  return series;
-};
+function daily(values) {
+  return values.map(function (v, i) {
+    return [start + i * 86400000, v]
+  })
+}
 
-var data1 = generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
-     min: 5,
-     max: 20
-   });
-   
-var data2 = generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
-     min: 10,
-     max: 20
-   });
-   
-var data3 = generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
-     min: 5,
-     max: 25
-   });
-   
-var data4 = generateDayWiseTimeSeries(new Date('11 Feb 2017 GMT').getTime(), 10, {
-     min: 10,
-     max: 35
-   });
+var indoorTemp = daily([22, 22.5, 23, 22.8, 23.4, 23.9, 23.1, 22.6, 23.3, 23.7])
+var outdoorTemp = daily([14, 16, 18.5, 17, 19.5, 22, 20, 16.5, 18, 21])
+var indoorHumidity = daily([42, 44, 41, 45, 43, 40, 46, 47, 44, 42])
+var outdoorHumidity = daily([58, 63, 55, 68, 60, 52, 66, 71, 62, 57])
 </script>
 </scripts>
 
@@ -45,7 +26,7 @@ chart: {
   height: 350,
   stacked: false
 },
-colors: ['#00EE00', '#008800', '#FF0000', '#AA00FF'],
+colors: ['#008FFB', '#7BC3FF', '#00E396', '#7FE7C4'],
 dataLabels: {
   enabled: false
 },
@@ -54,67 +35,72 @@ stroke: {
   width: [4, 4, 2, 2],
   dashArray: [0, 0, 2, 2]
 },
+fill: {
+  type: 'gradient',
+  gradient: {
+    opacityFrom: 0.35,
+    opacityTo: 0.05
+  }
+},
 legend: {
   position: 'top',
   horizontalAlign: 'left'
 },
 yaxis: [
   {
-    seriesName: ['Broccoli', 'Spinach'],
+    seriesName: ['Indoor', 'Outdoor'],
     axisTicks: {
       show: true,
-      color: '#008800'
+      color: '#008FFB'
     },
     axisBorder: {
       show: true,
-      color: '#008800'
+      color: '#008FFB'
     },
     labels: {
       style: {
-        colors: '#008800',
+        colors: '#008FFB',
       },
       formatter: (val) => {
         if (typeof val !== "undefined") {
-          let ref = val.toFixed(0);
-          return val == ref ? val : ''
+          return val.toFixed(0) + '°C'
         }
         return val
       }
     },
     title: {
-      text: "Vegetables",
+      text: "Temperature",
       style: {
-        color: '#008800'
+        color: '#008FFB'
       }
     },
   },
   {
-    seriesName: ['Plums','Apples'],
+    seriesName: ['Indoor Humidity', 'Outdoor Humidity'],
     opposite: true,
     axisTicks: {
       show: true,
-      color: '#FF0000'
+      color: '#00E396'
     },
     axisBorder: {
       show: true,
-      color: '#FF0000'
+      color: '#00E396'
     },
     labels: {
       style: {
-        colors: '#FF0000',
+        colors: '#00E396',
       },
       formatter: (val) => {
         if (typeof val !== "undefined") {
-          let ref = val.toFixed(0);
-          return val == ref ? val : ''
+          return val.toFixed(0) + '%'
         }
         return val
       }
     },
     title: {
-      text: "Fruit",
+      text: "Relative Humidity",
       style: {
-        color: '#FF0000'
+        color: '#00E396'
       }
     },
   }
@@ -126,20 +112,20 @@ xaxis: {
 
 <series>
 [{
-   name: 'Broccoli',
-   data: data1
+   name: 'Indoor',
+   data: indoorTemp
  },
  {
-   name: 'Spinach',
-   data: data2
+   name: 'Outdoor',
+   data: outdoorTemp
  },
  {
-   name: 'Apples',
-   data: data3
+   name: 'Indoor Humidity',
+   data: indoorHumidity
  },
  {
-   name: 'Plums',
-   data: data4
+   name: 'Outdoor Humidity',
+   data: outdoorHumidity
  }]
 </series>
 

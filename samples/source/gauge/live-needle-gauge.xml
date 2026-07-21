@@ -87,7 +87,7 @@ plotOptions: {
 stroke: {
   lineCap: 'butt',
 },
-labels: ['Progress'],
+labels: ['CPU Load'],
 </options>
 
 <series>

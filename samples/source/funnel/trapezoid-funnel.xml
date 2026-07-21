@@ -30,6 +30,8 @@ colors: [
 dataLabels: {
   enabled: true,
   formatter: function (val, opt) {
+    // narrow segments only fit the value; the tooltip still shows the stage name
+    if (val < 2000) return val
     return opt.w.globals.labels[opt.dataPointIndex] + ': ' + val
   },
   style: {
@@ -39,7 +41,7 @@ dataLabels: {
   },
 },
 title: {
-  text: 'Sales Funnel — Trapezoid',
+  text: 'Sales Funnel: Trapezoid',
   align: 'middle',
 },
 xaxis: {

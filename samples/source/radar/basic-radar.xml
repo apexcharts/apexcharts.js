@@ -14,7 +14,7 @@ chart: {
   type: 'radar',
 },
 title: {
-  text: 'Basic Radar Chart'
+  text: 'Monthly Sales Performance'
 },
 yaxis: {
   stepSize: 20
@@ -26,7 +26,7 @@ xaxis: {
 
 <series>
 [{
-  name: 'Series 1',
+  name: 'Revenue ($k)',
   data: [80, 50, 30, 40, 100, 20],
 }]
 </series>

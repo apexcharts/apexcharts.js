@@ -14,15 +14,24 @@ chart: {
   width: 480,
   type: 'pie',
 },
-labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+labels: ['Cityscape', 'Waterfront', 'Street Art', 'Patterns'],
+title: {
+  text: 'Photo Library by Scene',
+  align: 'center'
+},
 colors: ['#93C3EE', '#E5C6A0', '#669DB5', '#94A74A'],
 fill: {
   type: 'image',
-  opacity: 0.85,
+  opacity: 0.9,
   image: {
-     src: ['../../assets/images/stripes.jpg', '../../assets/images/1101098.png', '../../assets/images/4679113782_ca13e2e6c0_z.jpg', '../../assets/images/2979121308_59539a3898_z.jpg'],
-    width: 25,
-    imagedHeight: 25
+    src: [
+      '../../assets/images/4274635880_809a4b9d0d_z.jpg',
+      '../../assets/images/2979121308_59539a3898_z.jpg',
+      '../../assets/images/4679113782_ca13e2e6c0_z.jpg',
+      '../../assets/images/stripes.jpg'
+    ],
+    width: 500,
+    height: 500
   },
 },
 stroke: {
@@ -62,6 +71,6 @@ responsive: [{
 </options>
 
 <series>
-[44, 33, 54, 45]
+[128, 92, 156, 64]
 </series>
 </chart>

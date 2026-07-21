@@ -58,17 +58,17 @@
         const [state, setState] = React.useState({
           series: [
             {
-              name: 'Income',
-              type: 'column',
-              data: [1.4, 2, 2.5, 1.5, 2.5, 2.8, 3.8, 4.6],
-            },
-            {
-              name: 'Cashflow',
-              type: 'column',
-              data: [1.1, 3, 3.1, 4, 4.1, 4.9, 6.5, 8.5],
-            },
-            {
               name: 'Revenue',
+              type: 'column',
+              data: [140, 200, 250, 150, 250, 280, 380, 460],
+            },
+            {
+              name: 'Headcount',
+              type: 'column',
+              data: [110, 300, 310, 400, 410, 490, 650, 850],
+            },
+            {
+              name: 'Share Price',
               type: 'line',
               data: [20, 29, 37, 36, 44, 45, 50, 58],
             },
@@ -86,16 +86,16 @@
               width: [1, 1, 4],
             },
             title: {
-              text: 'XYZ - Stock Analysis (2009 - 2016)',
+              text: 'Company Performance (2017 - 2024)',
               align: 'left',
               offsetX: 110,
             },
             xaxis: {
-              categories: [2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016],
+              categories: [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
             },
             yaxis: [
               {
-                seriesName: 'Income',
+                seriesName: 'Revenue',
                 axisTicks: {
                   show: true,
                 },
@@ -109,7 +109,7 @@
                   },
                 },
                 title: {
-                  text: 'Income (thousand crores)',
+                  text: 'Revenue ($M)',
                   style: {
                     color: '#008FFB',
                   },
@@ -119,7 +119,7 @@
                 },
               },
               {
-                seriesName: 'Cashflow',
+                seriesName: 'Headcount',
                 opposite: true,
                 axisTicks: {
                   show: true,
@@ -134,14 +134,14 @@
                   },
                 },
                 title: {
-                  text: 'Operating Cashflow (thousand crores)',
+                  text: 'Headcount',
                   style: {
                     color: '#00E396',
                   },
                 },
               },
               {
-                seriesName: 'Revenue',
+                seriesName: 'Share Price',
                 opposite: true,
                 axisTicks: {
                   show: true,
@@ -156,7 +156,7 @@
                   },
                 },
                 title: {
-                  text: 'Revenue (thousand crores)',
+                  text: 'Share Price ($)',
                   style: {
                     color: '#FEB019',
                   },

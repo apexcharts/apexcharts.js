@@ -42,6 +42,14 @@
         float: left;
         display: block;
         border-radius: 3px;
+        width: 38px;
+        height: 38px;
+        background: linear-gradient(135deg, #008ffb, #00e396);
+        color: #fff;
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 38px;
+        text-align: center;
       }
 
       .github-style .userdetails {
@@ -67,6 +75,14 @@
     </script>
 
     <script src="../../assets/github-data.js"></script>
+  <script>
+    // The commit history asset ends in 2018; shift every point forward 8 years
+    // so the demo lands in 2020-2026 without editing the asset.
+    var SHIFT = 8 * 365.25 * 24 * 60 * 60 * 1000
+    var commitSeries = githubdata.series.map(function (p) {
+      return { x: p.x + SHIFT, y: p.y }
+    })
+  </script>
   </head>
 
   <body>
@@ -77,7 +93,7 @@
     </div>
     
       <h5 class="github-style">
-        <img class="userimg" src="https://picsum.photos/200/200/?image=1031" data-hovercard-user-id="634573" alt="" width="38" height="38" />
+        <div class="userimg">C</div>
         <div class="userdetails">
           <a class="username">coder</a>
           <span class="cmeta">
@@ -98,7 +114,7 @@
       &lt;/div&gt;
       
         &lt;h5 class=&quot;github-style&quot;&gt;
-          &lt;img class=&quot;userimg&quot; src=&quot;https://picsum.photos/200/200/?image=1031&quot; data-hovercard-user-id=&quot;634573&quot; alt=&quot;&quot; width=&quot;38&quot; height=&quot;38&quot; /&gt;
+          &lt;div class=&quot;userimg&quot;&gt;C&lt;/div&gt;
           &lt;div class=&quot;userdetails&quot;&gt;
             &lt;a class=&quot;username&quot;&gt;coder&lt;/a&gt;
             &lt;span class=&quot;cmeta&quot;&gt;
@@ -122,7 +138,7 @@
           series: [
             {
               name: 'commits',
-              data: githubdata.series,
+              data: commitSeries,
             },
           ],
           chartOptions: {
@@ -180,7 +196,7 @@
           seriesYears: [
             {
               name: 'commits',
-              data: githubdata.series,
+              data: commitSeries,
             },
           ],
           chartOptionsYears: {
@@ -198,8 +214,8 @@
               selection: {
                 enabled: true,
                 xaxis: {
-                  min: new Date('15 Feb 2016').getTime(),
-                  max: new Date('14 Feb 2017').getTime(),
+                  min: new Date('15 Feb 2024').getTime(),
+                  max: new Date('14 Feb 2025').getTime(),
                 },
               },
             },

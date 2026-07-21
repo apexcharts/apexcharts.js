@@ -39,6 +39,7 @@
       var options = {
         series: [
           {
+            name: 'Visitors',
             data: [400, 430, 448, 470, 540, 580, 690, 1100, 1200, 1380],
           },
         ],
@@ -56,6 +57,10 @@
         dataLabels: {
           enabled: false,
         },
+        title: {
+          text: 'Monthly Visitors by Country',
+          align: 'left',
+        },
         xaxis: {
           categories: [
             'South Korea',
@@ -69,6 +74,11 @@
             'China',
             'Germany',
           ],
+          labels: {
+            formatter: function (val) {
+              return val + 'k'
+            },
+          },
         },
       }
 

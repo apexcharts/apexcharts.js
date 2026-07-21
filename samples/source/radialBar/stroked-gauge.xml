@@ -50,14 +50,11 @@ fill: {
 stroke: {
   dashArray: 4
 },
-labels: ['Median Ratio'],
+colors: ['#20E647'],
+labels: ['Battery Health'],
 </options>
 
 <series>
-[67]
+[78]
 </series>
 </chart>
-
-// window.setInterval(function () {
-//     chart.updateSeries([Math.floor(Math.random() * (100 - 1 + 1)) + 1])
-// }, 2000)

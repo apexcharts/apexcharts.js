@@ -85,6 +85,8 @@
             dataLabels: {
               enabled: true,
               formatter: function (val, opt) {
+                // hide labels on tiers too small to fit them; the tooltip still names these
+                if (val < 400) return ''
                 return opt.w.globals.labels[opt.dataPointIndex]
               },
               dropShadow: {

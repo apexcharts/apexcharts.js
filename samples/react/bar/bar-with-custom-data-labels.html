@@ -50,7 +50,7 @@
         const [state, setState] = React.useState({
           series: [
             {
-              data: [400, 430, 448, 470, 540, 580, 690, 1100, 1200, 1380],
+              data: [160, 210, 240, 310, 380, 450, 560, 690, 820, 1040],
             },
           ],
           options: {
@@ -68,31 +68,28 @@
                 },
               },
             },
-            colors: [
-              '#33b2df',
-              '#546E7A',
-              '#d4526e',
-              '#13d8aa',
-              '#A5978B',
-              '#2b908f',
-              '#f9a3a4',
-              '#90ee7e',
-              '#f48024',
-              '#69d2e7',
-            ],
+            theme: {
+              monochrome: {
+                enabled: true,
+                color: '#3974FF',
+                shadeTo: 'dark',
+                shadeIntensity: 0.5,
+              },
+            },
             dataLabels: {
               enabled: true,
               textAnchor: 'start',
               style: {
                 colors: ['#fff'],
+                fontWeight: 600,
               },
               formatter: function (val, opt) {
                 return opt.w.globals.labels[opt.dataPointIndex] + ':  ' + val
               },
-              offsetX: 0,
-              dropShadow: {
-                enabled: true,
-              },
+              offsetX: 8,
+            },
+            legend: {
+              show: false,
             },
             stroke: {
               width: 1,
@@ -100,16 +97,16 @@
             },
             xaxis: {
               categories: [
-                'South Korea',
-                'Canada',
-                'United Kingdom',
-                'Netherlands',
-                'Italy',
-                'France',
-                'Japan',
-                'United States',
-                'China',
-                'India',
+                'Billing',
+                'Onboarding',
+                'Account',
+                'Feature Request',
+                'Integrations',
+                'Performance',
+                'Mobile App',
+                'Security',
+                'Login',
+                'Bug Report',
               ],
             },
             yaxis: {
@@ -118,12 +115,12 @@
               },
             },
             title: {
-              text: 'Custom DataLabels',
+              text: 'Support Tickets by Category',
               align: 'center',
               floating: true,
             },
             subtitle: {
-              text: 'Category Names as DataLabels inside bars',
+              text: 'Category names shown as labels inside the bars',
               align: 'center',
             },
             tooltip: {

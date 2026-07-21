@@ -67,16 +67,6 @@
           transform: translateX(-50%);
         }
       }
-
-      select#model {
-        display: none;
-        position: absolute;
-        top: -40px;
-        left: 0;
-        z-index: 2;
-        cursor: pointer;
-        transform: scale(0.8);
-      }
     </style>
 
     
@@ -347,35 +337,21 @@
   <body>
     
     <div id="app"><div id="wrap">
-      <select id="model" class="flat-select"
-          
-          @change="changeData">
-        <option value="iphone5">iPhone 5</option>
-        <option value="iphone6">iPhone 6</option>
-        <option value="iphone7">iPhone 7</option>
-      </select>
       <div id="chart-year">
-      <apexchart type="bar" height="400" ref="chart" :options="chartOptions" :series="series"></apexchart>
+      <apexchart type="bar" height="400" :options="chartOptions" :series="series"></apexchart>
     </div>
       <div id="chart-quarter">
-      <apexchart type="bar" height="400" ref="chartQuarter" :options="chartOptionsQuarter" :series="seriesQuarter"></apexchart>
+      <apexchart type="bar" height="400" :options="chartOptionsQuarter" :series="seriesQuarter"></apexchart>
     </div>
     </div></div>
 
     <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
     <div id="html">&lt;div id=&quot;wrap&quot;&gt;
-        &lt;select id=&quot;model&quot; class=&quot;flat-select&quot;
-            
-            @change=&quot;changeData&quot;&gt;
-          &lt;option value=&quot;iphone5&quot;&gt;iPhone 5&lt;/option&gt;
-          &lt;option value=&quot;iphone6&quot;&gt;iPhone 6&lt;/option&gt;
-          &lt;option value=&quot;iphone7&quot;&gt;iPhone 7&lt;/option&gt;
-        &lt;/select&gt;
         &lt;div id=&quot;chart-year&quot;&gt;
-        &lt;apexchart type=&quot;bar&quot; height=&quot;400&quot; ref=&quot;chart&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;400&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
         &lt;div id=&quot;chart-quarter&quot;&gt;
-        &lt;apexchart type=&quot;bar&quot; height=&quot;400&quot; ref=&quot;chartQuarter&quot; :options=&quot;chartOptionsQuarter&quot; :series=&quot;seriesQuarter&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;400&quot; :options=&quot;chartOptionsQuarter&quot; :series=&quot;seriesQuarter&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
       &lt;/div&gt;</div>
 
@@ -549,15 +525,6 @@
                 },
               },
             },
-          },
-        },
-        methods: {
-          changeData: function () {
-            this.$refs.chart.updateSeries([
-              {
-                data: makeData(),
-              },
-            ])
           },
         },
       })

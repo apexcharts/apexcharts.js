@@ -12,13 +12,20 @@ colors: [
 ],
 chart: {
   height: 350,
-  width: '90%',
   type: 'line',
   stacked: true,
   zoom: {
     enabled: true,
     type: 'x'
   }
+},
+title: {
+  text: 'Portfolio Return & Contributions',
+  align: 'left'
+},
+subtitle: {
+  text: 'Multi-axis config: bars grouped on one axis via a seriesName array',
+  align: 'left'
 },
 tooltip: {
   followCursor: true,
@@ -84,14 +91,18 @@ xaxis: {
 // visually so they have been listed first.
 yaxis: [
   {
-    seriesName: ['Bar1','Bar2','Bar3','bar4']
+    seriesName: ['Equities','Bonds','Commodities','Cash'],
+    title: { text: 'Contribution (%)' }
   },
   {
-    seriesName: 'Line',
-    opposite: true
+    seriesName: 'Total Return',
+    opposite: true,
+    title: { text: 'Total Return (%)' }
   }
 ],
 legend: {
+  position: 'right',
+  offsetY: 40,
   showForSingleSeries: true
 },
 fill: {
@@ -102,7 +113,7 @@ fill: {
 <series>
 [
   {
-    "name": "Line",
+    "name": "Total Return",
     "type": "line",
     "data": [
       37,
@@ -133,7 +144,7 @@ fill: {
     ]
   },
   {
-    "name": "Bar1",
+    "name": "Equities",
     "type": "bar",
     "data": [
       -1.57,
@@ -163,7 +174,7 @@ fill: {
     ]
   },
   {
-    "name": "Bar2",
+    "name": "Bonds",
     "type": "bar",
     "data": [
       -2.99,
@@ -193,7 +204,7 @@ fill: {
     ]
   },
   {
-    "name": "Bar3",
+    "name": "Commodities",
     "type": "bar",
     "data": [
       0.09,
@@ -223,7 +234,7 @@ fill: {
     ]
   },
   {
-    "name": "bar4",
+    "name": "Cash",
     "type": "bar",
     "data": [
       5.95,

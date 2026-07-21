@@ -39,11 +39,11 @@
       var options = {
         series: [
           {
-            name: 'High - 2013',
+            name: 'High - 2025',
             data: [28, 29, 33, 36, 32, 32, 33],
           },
           {
-            name: 'Low - 2013',
+            name: 'Low - 2025',
             data: [12, 11, 14, 18, 17, 13, 13],
           },
         ],
@@ -56,7 +56,7 @@
             top: 18,
             left: 7,
             blur: 10,
-            opacity: 0.5,
+            opacity: 0.2,
           },
           zoom: {
             enabled: false,
@@ -78,10 +78,6 @@
         },
         grid: {
           borderColor: '#e7e7e7',
-          row: {
-            colors: ['#f3f3f3', 'transparent'], // takes an array which will be repeated on columns
-            opacity: 0.5,
-          },
         },
         markers: {
           size: 1,
@@ -94,7 +90,7 @@
         },
         yaxis: {
           title: {
-            text: 'Temperature',
+            text: 'Temperature (°C)',
           },
           min: 5,
           max: 40,

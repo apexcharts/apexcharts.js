@@ -1,4 +1,4 @@
-<title>Line, Column &amp; Area</title>
+<title>Line &amp; Area</title>
 
 <chart>
 <options>
@@ -17,16 +17,19 @@ labels: ['Dec 01', 'Dec 02','Dec 03','Dec 04','Dec 05','Dec 06','Dec 07','Dec 08
 markers: {
   size: 0
 },
+title: {
+  text: 'Sessions vs Conversions'
+},
 yaxis: [
   {
     title: {
-      text: 'Series A',
+      text: 'Sessions',
     },
   },
   {
     opposite: true,
     title: {
-      text: 'Series B',
+      text: 'Conversions',
     },
   },
 ],
@@ -36,7 +39,7 @@ tooltip: {
   y: {
     formatter: function (y) {
       if(typeof y !== "undefined") {
-        return  y.toFixed(0) + " points";
+        return  y.toFixed(0);
       }
       return y;
     }
@@ -46,11 +49,11 @@ tooltip: {
 
 <series>
 [{
-  name: 'TEAM A',
+  name: 'Sessions',
   type: 'area',
-  data: [44, 55, 31, 47, 31, 43, 26, 41, 31, 47, 33]
+  data: [440, 550, 310, 470, 310, 430, 260, 410, 310, 470, 330]
 }, {
-  name: 'TEAM B',
+  name: 'Conversions',
   type: 'line',
   data: [55, 69, 45, 61, 43, 54, 37, 52, 44, 61, 43]
 }]

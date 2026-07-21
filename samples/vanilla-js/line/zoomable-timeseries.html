@@ -31,9 +31,8 @@
 
     <script src="../../assets/irregular-data-series.js"></script>
   <script>
-    var ts2 = 1484418600000
+    var ts2 = new Date('14 Jan 2025').getTime()
     var dates = []
-    var spikes = [5, -5, 3, -3, 8, -8]
     for (var i = 0; i < 120; i++) {
       ts2 = ts2 + 86400000
       var innerArr = [ts2, dataSeries[1][i].value]
@@ -49,7 +48,7 @@
       var options = {
         series: [
           {
-            name: 'XYZ MOTORS',
+            name: 'Meridian Motors',
             data: dates,
           },
         ],
@@ -89,7 +88,7 @@
         yaxis: {
           labels: {
             formatter: function (val) {
-              return (val / 1000000).toFixed(0)
+              return '$' + (val / 1000000).toFixed(0)
             },
           },
           title: {
@@ -103,7 +102,7 @@
           shared: false,
           y: {
             formatter: function (val) {
-              return (val / 1000000).toFixed(0)
+              return '$' + (val / 1000000).toFixed(0)
             },
           },
         },

@@ -9,12 +9,13 @@
     <link href="../../assets/styles.css" rel="stylesheet" />
 
     <style>
-      #chart {
+      /* The chart lives inside a CSS-zoomed container; annotations must stay aligned.
+             The custom div id makes the e2e harness capture the full page, since element
+             screenshots mis-clip inside CSS zoom. */
+      #zoomedchart {
+        zoom: 80%;
         max-width: 650px;
         margin: 35px auto;
-      }
-      #chart-zoom-wrapper {
-        zoom: 80%;
       }
     </style>
 
@@ -39,17 +40,13 @@
 
   <body>
     
-    <div id="app"><div id="chart-zoom-wrapper">
-      <div id="chart">
+    <div id="app"><div id="chart-zoomedchart">
       <apexchart type="line" height="350" :options="chartOptions" :series="series"></apexchart>
-    </div>
     </div></div>
 
     <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
-    <div id="html">&lt;div id=&quot;chart-zoom-wrapper&quot;&gt;
-        &lt;div id=&quot;chart&quot;&gt;
+    <div id="html">&lt;div id=&quot;chart-zoomedchart&quot;&gt;
         &lt;apexchart type=&quot;line&quot; height=&quot;350&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
-      &lt;/div&gt;
       &lt;/div&gt;</div>
 
     <script>
@@ -61,6 +58,7 @@
         data: {
           series: [
             {
+              name: 'Price',
               data: series.monthDataSeries1.prices,
             },
           ],
@@ -97,13 +95,13 @@
                       color: '#333',
                       background: '#FEB019',
                     },
-                    text: 'Y-axis range',
+                    text: 'Consolidation zone',
                   },
                 },
               ],
               xaxis: [
                 {
-                  x: new Date('23 Nov 2017').getTime(),
+                  x: new Date('23 Nov 2025').getTime(),
                   strokeDashArray: 0,
                   borderColor: '#775DD0',
                   label: {
@@ -112,12 +110,12 @@
                       color: '#fff',
                       background: '#775DD0',
                     },
-                    text: 'Anno Test',
+                    text: 'Earnings',
                   },
                 },
                 {
-                  x: new Date('26 Nov 2017').getTime(),
-                  x2: new Date('28 Nov 2017').getTime(),
+                  x: new Date('26 Nov 2025').getTime(),
+                  x2: new Date('28 Nov 2025').getTime(),
                   fillColor: '#B3F7CA',
                   opacity: 0.4,
                   label: {
@@ -128,13 +126,13 @@
                       background: '#00E396',
                     },
                     offsetY: -10,
-                    text: 'X-axis range',
+                    text: 'Holiday week',
                   },
                 },
               ],
               points: [
                 {
-                  x: new Date('01 Dec 2017').getTime(),
+                  x: new Date('01 Dec 2025').getTime(),
                   y: 8607.55,
                   marker: {
                     size: 8,
@@ -151,11 +149,11 @@
                       background: '#FF4560',
                     },
 
-                    text: 'Point Annotation',
+                    text: 'Analyst upgrade',
                   },
                 },
                 {
-                  x: new Date('08 Dec 2017').getTime(),
+                  x: new Date('08 Dec 2025').getTime(),
                   y: 9340.85,
                   marker: {
                     size: 0,
@@ -179,10 +177,16 @@
               },
             },
             title: {
-              text: 'Line with Annotations',
+              text: 'Annotations at 80% CSS Zoom',
               align: 'left',
             },
-            labels: series.monthDataSeries1.dates,
+            subtitle: {
+              text: 'Annotations stay aligned inside a zoom: 80% container',
+              align: 'left',
+            },
+            labels: series.monthDataSeries1.dates.map(function (d) {
+              return d.replace('2017', '2025')
+            }),
             xaxis: {
               type: 'datetime',
             },

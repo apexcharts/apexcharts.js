@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Bar with Markers</title>
+    <title>Column Chart with Markers</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -42,7 +42,7 @@
             name: 'Actual',
             data: [
               {
-                x: '2011',
+                x: 'Jan',
                 y: 1292,
                 goals: [
                   {
@@ -54,7 +54,7 @@
                 ],
               },
               {
-                x: '2012',
+                x: 'Feb',
                 y: 4432,
                 goals: [
                   {
@@ -66,7 +66,7 @@
                 ],
               },
               {
-                x: '2013',
+                x: 'Mar',
                 y: 5423,
                 goals: [
                   {
@@ -78,7 +78,7 @@
                 ],
               },
               {
-                x: '2014',
+                x: 'Apr',
                 y: 6653,
                 goals: [
                   {
@@ -90,7 +90,7 @@
                 ],
               },
               {
-                x: '2015',
+                x: 'May',
                 y: 8133,
                 goals: [
                   {
@@ -104,7 +104,7 @@
                 ],
               },
               {
-                x: '2016',
+                x: 'Jun',
                 y: 7132,
                 goals: [
                   {
@@ -116,7 +116,7 @@
                 ],
               },
               {
-                x: '2017',
+                x: 'Jul',
                 y: 7332,
                 goals: [
                   {
@@ -128,7 +128,7 @@
                 ],
               },
               {
-                x: '2018',
+                x: 'Aug',
                 y: 6553,
                 goals: [
                   {
@@ -146,6 +146,10 @@
         chart: {
           height: 350,
           type: 'bar',
+        },
+        title: {
+          text: 'Monthly Revenue vs Target',
+          align: 'left',
         },
         plotOptions: {
           bar: {
