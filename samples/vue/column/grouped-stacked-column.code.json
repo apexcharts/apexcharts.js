@@ -1,5 +1,6 @@
 {
   "title": "Grouped Stacked Column",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

@@ -1,5 +1,6 @@
 {
   "title": "High-Density Scatter with the Canvas Renderer",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

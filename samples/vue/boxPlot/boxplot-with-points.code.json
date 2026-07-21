@@ -1,5 +1,6 @@
 {
   "title": "BoxPlot with Individual Points",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

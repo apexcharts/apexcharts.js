@@ -1,5 +1,6 @@
 {
   "title": "BoxPlot And Scatter Chart",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

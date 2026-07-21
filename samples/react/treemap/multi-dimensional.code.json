@@ -1,5 +1,6 @@
 {
   "title": "Multi-dimensional Treemap",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

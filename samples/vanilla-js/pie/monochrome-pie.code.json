@@ -1,5 +1,6 @@
 {
   "title": "Monochrome Pie with multiline labels",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

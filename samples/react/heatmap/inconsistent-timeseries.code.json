@@ -1,5 +1,6 @@
 {
   "title": "Inconsistent Timeseries",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

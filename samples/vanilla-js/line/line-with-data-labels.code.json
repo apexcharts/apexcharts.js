@@ -1,5 +1,6 @@
 {
   "title": "Line with Data Labels",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

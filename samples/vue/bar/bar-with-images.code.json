@@ -1,5 +1,6 @@
 {
   "title": "Bar Chart with Images",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

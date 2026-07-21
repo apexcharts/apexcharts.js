@@ -1,5 +1,6 @@
 {
   "title": "HeatMap with image fill",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

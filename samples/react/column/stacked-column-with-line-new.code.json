@@ -1,5 +1,6 @@
 {
   "title": "Stacked Column with line - new config style",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

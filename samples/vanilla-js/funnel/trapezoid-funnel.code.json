@@ -1,5 +1,6 @@
 {
   "title": "Trapezoid Funnel",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

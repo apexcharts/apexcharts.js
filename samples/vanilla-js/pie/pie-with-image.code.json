@@ -1,5 +1,6 @@
 {
   "title": "Pie with Image",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

@@ -1,5 +1,6 @@
 {
   "title": "High-Density Heatmap (Renderer Test)",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

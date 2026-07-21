@@ -1,5 +1,6 @@
 {
   "title": "Advanced Overlapping Timeline",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

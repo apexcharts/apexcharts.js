@@ -1,5 +1,6 @@
 {
   "title": "High-Density Column Chart with the Canvas Renderer",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

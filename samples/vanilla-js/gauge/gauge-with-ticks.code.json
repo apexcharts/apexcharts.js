@@ -1,5 +1,6 @@
 {
   "title": "Gauge with Tick Marks",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

@@ -1,5 +1,6 @@
 {
   "title": "Basic Bar",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

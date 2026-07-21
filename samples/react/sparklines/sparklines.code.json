@@ -1,5 +1,6 @@
 {
   "title": "Sparklines",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

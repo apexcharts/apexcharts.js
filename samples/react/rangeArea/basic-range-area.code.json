@@ -1,5 +1,6 @@
 {
   "title": "Basic Range Area Chart",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

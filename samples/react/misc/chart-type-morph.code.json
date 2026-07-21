@@ -1,5 +1,6 @@
 {
   "title": "Chart Type Morph",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

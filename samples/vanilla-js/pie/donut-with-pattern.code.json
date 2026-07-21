@@ -1,5 +1,6 @@
 {
   "title": "Donut Chart with pattern",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

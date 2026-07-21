@@ -1,5 +1,6 @@
 {
   "title": "CandleStick Chart - Large Dataset (Data Reducer)",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

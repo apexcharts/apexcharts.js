@@ -1,5 +1,6 @@
 {
   "title": "Column - Parsing Data",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

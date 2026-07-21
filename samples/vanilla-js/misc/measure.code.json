@@ -1,5 +1,6 @@
 {
   "title": "Measure Ruler (chart.measure)",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

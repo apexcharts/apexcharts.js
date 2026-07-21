@@ -1,5 +1,8 @@
 {
   "title": "Area - Github style",
+  "externals": [
+    "https://apexcharts.com/samples/assets/github-data.js"
+  ],
   "files": [
     {
       "name": "App.jsx",

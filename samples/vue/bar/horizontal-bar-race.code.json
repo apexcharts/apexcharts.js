@@ -1,5 +1,6 @@
 {
   "title": "Bar Chart Race (labels ride the reorder)",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

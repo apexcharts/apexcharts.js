@@ -1,5 +1,6 @@
 {
   "title": "Column Drilldown with Trigger-Point Zoom",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

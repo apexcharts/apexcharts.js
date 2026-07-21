@@ -1,5 +1,6 @@
 {
   "title": "Cadence: Pluggable Easing (chart.animations.easing)",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

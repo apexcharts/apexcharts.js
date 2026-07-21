@@ -1,5 +1,8 @@
 {
   "title": "Axios Example",
+  "externals": [
+    "https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.min.js"
+  ],
   "files": [
     {
       "name": "chart.js",

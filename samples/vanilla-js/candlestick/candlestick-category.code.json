@@ -1,5 +1,8 @@
 {
   "title": "CandleStick Chart with Category X-axis",
+  "externals": [
+    "https://apexcharts.com/samples/assets/ohlc.js"
+  ],
   "files": [
     {
       "name": "chart.js",

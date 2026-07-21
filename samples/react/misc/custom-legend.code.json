@@ -1,5 +1,8 @@
 {
   "title": "Custom Legend",
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/pretty-checkbox@3.0/dist/pretty-checkbox.min.css"
+  ],
   "files": [
     {
       "name": "App.jsx",

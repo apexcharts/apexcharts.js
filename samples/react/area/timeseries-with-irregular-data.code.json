@@ -1,5 +1,8 @@
 {
   "title": "TimeSeries With Irregular Data",
+  "externals": [
+    "https://apexcharts.com/samples/assets/irregular-data-series.js"
+  ],
   "files": [
     {
       "name": "App.jsx",

@@ -1,5 +1,6 @@
 {
   "title": "Ink Layer: Drag Annotations Directly (chart.ink)",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

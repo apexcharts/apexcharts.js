@@ -1,5 +1,6 @@
 {
   "title": "Dynamic Data: Smooth Add / Remove / Insert Transitions",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

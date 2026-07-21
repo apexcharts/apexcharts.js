@@ -1,5 +1,6 @@
 {
   "title": "Semi Circle Chart",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

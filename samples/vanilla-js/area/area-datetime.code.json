@@ -1,5 +1,6 @@
 {
   "title": "Area Chart - Datetime X-Axis",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

@@ -1,5 +1,6 @@
 {
   "title": "Line &amp; Column",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

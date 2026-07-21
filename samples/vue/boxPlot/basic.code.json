@@ -1,5 +1,6 @@
 {
   "title": "Basic BoxPlot Chart",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

@@ -1,5 +1,6 @@
 {
   "title": "Scatter Chart with Jitter",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

@@ -1,5 +1,6 @@
 {
   "title": "Position Bottom Text Anchor Start Series Mixed",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

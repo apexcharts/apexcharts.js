@@ -1,5 +1,6 @@
 {
   "title": "Circle Custom Angle",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

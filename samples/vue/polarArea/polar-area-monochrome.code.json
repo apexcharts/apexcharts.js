@@ -1,5 +1,6 @@
 {
   "title": "Polar Area - Style 2",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

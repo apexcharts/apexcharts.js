@@ -1,5 +1,6 @@
 {
   "title": "Live Needle Gauge",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

@@ -83,6 +83,12 @@ function parseScriptsSection(raw) {
   return { externals, inlineCode: inline.join('\n\n') }
 }
 
+function externalUrls(externals) {
+  return externals
+    .map((tag) => (tag.match(/\b(?:src|href)\s*=\s*"([^"]+)"/) || [])[1] || '')
+    .filter(Boolean)
+}
+
 /**
  * Inside displayed js/jsx/vue code, external deps become plain-url comments.
  * Never embed the raw tag here: a literal closing script tag inside an SFC
@@ -90,11 +96,8 @@ function parseScriptsSection(raw) {
  */
 function externalsAsComments(externals) {
   if (!externals.length) return ''
-  return externals
-    .map((tag) => {
-      const url = (tag.match(/\b(?:src|href)\s*=\s*"([^"]+)"/) || [])[1] || ''
-      return `// This demo also loads: ${url}`
-    })
+  return externalUrls(externals)
+    .map((url) => `// This demo also loads: ${url}`)
     .join('\n')
 }
 
@@ -283,6 +286,9 @@ async function buildCodeManifest(format, info, renderedHtml, label) {
 
   return {
     title: info.title,
+    // Public urls of extra scripts/stylesheets the demo depends on, so
+    // runnable-project exports (CodeSandbox etc.) can include them.
+    externals: externalUrls(parseScriptsSection(info.scripts).externals),
     files,
   }
 }

@@ -1,5 +1,6 @@
 {
   "title": "Momentum: Pinch Zoom, Two-Finger Pan and Kinetic Inertia",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

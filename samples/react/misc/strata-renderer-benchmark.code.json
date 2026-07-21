@@ -1,5 +1,6 @@
 {
   "title": "Strata: Canvas Rendering at Scale (hybrid renderer benchmark)",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

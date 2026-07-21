@@ -1,5 +1,6 @@
 {
   "title": "Candlestick - Parsing Data",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

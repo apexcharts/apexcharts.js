@@ -1,5 +1,6 @@
 {
   "title": "Dumbbell Chart - Horizontal",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

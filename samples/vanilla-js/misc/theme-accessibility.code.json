@@ -1,5 +1,6 @@
 {
   "title": "Accessibility Color Blind Modes",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

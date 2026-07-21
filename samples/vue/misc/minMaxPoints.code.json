@@ -1,5 +1,8 @@
 {
   "title": "Min Max Points example",
+  "externals": [
+    "https://apexcharts.com/samples/assets/stock-prices.js"
+  ],
   "files": [
     {
       "name": "App.vue",

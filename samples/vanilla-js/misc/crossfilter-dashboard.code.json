@@ -1,5 +1,6 @@
 {
   "title": "Crossfilter Dashboard: Coordinated Charts + Data Table (chart.link)",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

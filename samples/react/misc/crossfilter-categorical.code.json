@@ -1,5 +1,6 @@
 {
   "title": "Crossfilter: Click to Filter Across Charts (chart.link)",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

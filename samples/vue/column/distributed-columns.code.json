@@ -1,5 +1,6 @@
 {
   "title": "Distributed Bar",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

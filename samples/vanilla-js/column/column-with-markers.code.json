@@ -1,5 +1,6 @@
 {
   "title": "Column Chart with Markers",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

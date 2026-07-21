@@ -1,5 +1,6 @@
 {
   "title": "Dashed Line Chart",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

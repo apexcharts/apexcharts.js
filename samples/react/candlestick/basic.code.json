@@ -1,5 +1,8 @@
 {
   "title": "CandleStick Chart",
+  "externals": [
+    "https://apexcharts.com/samples/assets/ohlc.js"
+  ],
   "files": [
     {
       "name": "App.jsx",

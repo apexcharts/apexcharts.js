@@ -1,5 +1,8 @@
 {
   "title": "Line Chart with Annotations (Zoom Level)",
+  "externals": [
+    "https://apexcharts.com/samples/assets/stock-prices.js"
+  ],
   "files": [
     {
       "name": "App.jsx",

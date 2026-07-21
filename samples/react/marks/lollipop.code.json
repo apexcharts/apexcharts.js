@@ -1,5 +1,6 @@
 {
   "title": "Lollipop Chart via a Custom Series Type (Marks)",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

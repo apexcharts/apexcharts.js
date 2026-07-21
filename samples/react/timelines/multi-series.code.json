@@ -1,5 +1,6 @@
 {
   "title": "Multi-series Timeline",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

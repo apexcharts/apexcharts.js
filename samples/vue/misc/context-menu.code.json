@@ -1,5 +1,6 @@
 {
   "title": "Context Menu: Right-Click Actions (chart.contextMenu)",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

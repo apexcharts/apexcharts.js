@@ -1,5 +1,6 @@
 {
   "title": "HeatMap with Gradient Legend",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

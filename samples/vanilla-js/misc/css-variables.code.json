@@ -1,5 +1,6 @@
 {
   "title": "CSS Variables as Fill Colors",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

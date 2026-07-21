@@ -1,5 +1,6 @@
 {
   "title": "Calendar Heatmap",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

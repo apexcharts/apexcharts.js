@@ -1,5 +1,6 @@
 {
   "title": "Controlling Colors in Timeline Chart",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

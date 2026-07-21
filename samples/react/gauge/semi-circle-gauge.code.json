@@ -1,5 +1,6 @@
 {
   "title": "Semi-Circle Gauge",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

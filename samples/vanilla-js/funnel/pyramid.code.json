@@ -1,5 +1,6 @@
 {
   "title": "Pyramid Chart (chart.type: 'pyramid')",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

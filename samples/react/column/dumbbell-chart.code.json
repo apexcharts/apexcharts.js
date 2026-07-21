@@ -1,5 +1,6 @@
 {
   "title": "Dumbbell Chart",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

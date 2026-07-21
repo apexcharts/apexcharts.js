@@ -1,5 +1,6 @@
 {
   "title": "Multiple series types stacked",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

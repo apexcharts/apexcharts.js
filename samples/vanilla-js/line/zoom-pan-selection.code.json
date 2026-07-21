@@ -1,5 +1,6 @@
 {
   "title": "Zoom Pan Selection",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

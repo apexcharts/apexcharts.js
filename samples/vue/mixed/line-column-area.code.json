@@ -1,5 +1,6 @@
 {
   "title": "Line, Column &amp; Area",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

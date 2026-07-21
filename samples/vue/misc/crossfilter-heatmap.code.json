@@ -1,5 +1,6 @@
 {
   "title": "Crossfilter Heatmap: 2D Cross-Tab that Re-Aggregates (chart.link)",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

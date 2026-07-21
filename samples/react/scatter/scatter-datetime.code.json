@@ -1,5 +1,6 @@
 {
   "title": "Scatter chart with different marker shapes",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

@@ -1,5 +1,6 @@
 {
   "title": "Basic Timeline Chart",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

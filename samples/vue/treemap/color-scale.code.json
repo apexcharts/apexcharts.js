@@ -1,5 +1,6 @@
 {
   "title": "Color-scale Treemap",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

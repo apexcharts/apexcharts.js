@@ -1,5 +1,6 @@
 {
   "title": "Column Chart with Drilldown",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

@@ -1,5 +1,6 @@
 {
   "title": "Line &amp; scatter",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

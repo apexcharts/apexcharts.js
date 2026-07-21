@@ -1,5 +1,6 @@
 {
   "title": "Rewind: History and Undo / Redo",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

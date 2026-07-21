@@ -1,5 +1,6 @@
 {
   "title": "Continuous Datetime HeatMap",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

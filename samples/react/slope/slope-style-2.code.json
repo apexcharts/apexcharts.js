@@ -1,5 +1,6 @@
 {
   "title": "Slope Chart",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

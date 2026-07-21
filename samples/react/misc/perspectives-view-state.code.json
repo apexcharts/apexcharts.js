@@ -1,5 +1,6 @@
 {
   "title": "Perspectives: Serializable and Shareable View State",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

@@ -1,5 +1,6 @@
 {
   "title": "HeatMap with Drilldown",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

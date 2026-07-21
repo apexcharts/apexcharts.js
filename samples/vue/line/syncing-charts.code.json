@@ -1,5 +1,6 @@
 {
   "title": "Syncing charts",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

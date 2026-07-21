@@ -1,5 +1,6 @@
 {
   "title": "Stacked Bar Chart",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

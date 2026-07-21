@@ -1,5 +1,6 @@
 {
   "title": "Column with rotate negative Data Labels",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

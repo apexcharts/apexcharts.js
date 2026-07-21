@@ -1,5 +1,6 @@
 {
   "title": "Line: Shared Tooltip Click Reports Correct Series",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

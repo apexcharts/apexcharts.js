@@ -1,5 +1,6 @@
 {
   "title": "Basic Radar",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

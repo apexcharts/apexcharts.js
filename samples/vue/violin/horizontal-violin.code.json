@@ -1,5 +1,6 @@
 {
   "title": "Horizontal Violin Chart",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

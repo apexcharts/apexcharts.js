@@ -1,5 +1,6 @@
 {
   "title": "Measure Ruler: Themed (config + CSS)",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

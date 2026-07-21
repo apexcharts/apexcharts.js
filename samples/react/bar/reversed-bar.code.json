@@ -1,5 +1,6 @@
 {
   "title": "Reversed Bar Chart",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

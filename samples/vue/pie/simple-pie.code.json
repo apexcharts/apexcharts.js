@@ -1,5 +1,6 @@
 {
   "title": "Simple Pie",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

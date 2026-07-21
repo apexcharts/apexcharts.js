@@ -1,5 +1,6 @@
 {
   "title": "Bar Chart with Pattern Fill",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

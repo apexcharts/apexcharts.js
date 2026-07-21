@@ -1,5 +1,6 @@
 {
   "title": "Duplicate Labels",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

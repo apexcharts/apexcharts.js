@@ -1,5 +1,6 @@
 {
   "title": "Gauge with Custom Label",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

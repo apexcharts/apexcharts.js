@@ -1,5 +1,6 @@
 {
   "title": "Line with Image Fill",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

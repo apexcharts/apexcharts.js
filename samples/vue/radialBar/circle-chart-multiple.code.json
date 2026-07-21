@@ -1,5 +1,6 @@
 {
   "title": "Circle Gauge Chart - Multiple",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

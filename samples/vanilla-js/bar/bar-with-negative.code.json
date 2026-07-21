@@ -1,5 +1,6 @@
 {
   "title": "Stacked Bar Chart with Negative Values",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

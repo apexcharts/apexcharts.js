@@ -1,5 +1,6 @@
 {
   "title": "Violin Chart — Colour-graded Jitter",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

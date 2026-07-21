@@ -1,5 +1,8 @@
 {
   "title": "Scatter - Image Chart",
+  "externals": [
+    "https://apexcharts.com/samples/assets/styles.css"
+  ],
   "files": [
     {
       "name": "chart.js",

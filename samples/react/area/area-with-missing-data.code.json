@@ -1,5 +1,6 @@
 {
   "title": "Area with missing data",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

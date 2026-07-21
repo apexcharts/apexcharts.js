@@ -1,5 +1,6 @@
 {
   "title": "Treemap with Drilldown",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

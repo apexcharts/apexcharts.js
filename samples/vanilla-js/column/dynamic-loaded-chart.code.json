@@ -1,5 +1,6 @@
 {
   "title": "Dynamic Loaded Column Chart",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

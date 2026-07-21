@@ -1,5 +1,6 @@
 {
   "title": "Rounded Stacked Columns with Negatives",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

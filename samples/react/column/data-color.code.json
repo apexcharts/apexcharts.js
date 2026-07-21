@@ -1,5 +1,6 @@
 {
   "title": "Column with Custom Data Colors",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

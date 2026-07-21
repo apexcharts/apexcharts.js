@@ -1,5 +1,6 @@
 {
   "title": "Stroked Gauge",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

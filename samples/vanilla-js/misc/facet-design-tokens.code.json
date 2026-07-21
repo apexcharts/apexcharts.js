@@ -1,5 +1,6 @@
 {
   "title": "Design Tokens and OS-Aware Theming (Facet)",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

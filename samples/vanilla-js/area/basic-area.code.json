@@ -1,5 +1,8 @@
 {
   "title": "Basic Area",
+  "externals": [
+    "https://apexcharts.com/samples/assets/stock-prices.js"
+  ],
   "files": [
     {
       "name": "chart.js",

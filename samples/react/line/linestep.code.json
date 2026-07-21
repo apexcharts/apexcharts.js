@@ -1,5 +1,6 @@
 {
   "title": "Linestep Chart",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

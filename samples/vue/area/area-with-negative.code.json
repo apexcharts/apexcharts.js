@@ -1,5 +1,6 @@
 {
   "title": "Area with different negative color",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

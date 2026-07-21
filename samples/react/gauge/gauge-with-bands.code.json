@@ -1,5 +1,6 @@
 {
   "title": "Gauge with Threshold Bands",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

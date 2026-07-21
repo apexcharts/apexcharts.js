@@ -1,5 +1,6 @@
 {
   "title": "Linked Views: Crossfilter by Brushing (chart.link)",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

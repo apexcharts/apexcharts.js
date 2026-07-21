@@ -1,5 +1,6 @@
 {
   "title": "CandleStick with Line Chart",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

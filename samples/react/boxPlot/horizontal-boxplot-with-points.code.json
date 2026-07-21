@@ -1,5 +1,6 @@
 {
   "title": "Horizontal BoxPlot with Individual Points",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

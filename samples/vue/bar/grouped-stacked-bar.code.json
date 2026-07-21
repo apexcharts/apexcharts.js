@@ -1,5 +1,6 @@
 {
   "title": "Grouped Stacked Bar",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

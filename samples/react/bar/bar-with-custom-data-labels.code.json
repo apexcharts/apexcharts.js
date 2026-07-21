@@ -1,5 +1,6 @@
 {
   "title": "Bar with Custom DataLabels",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

@@ -1,5 +1,6 @@
 {
   "title": "Line Chart with missing data",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

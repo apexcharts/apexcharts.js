@@ -1,5 +1,6 @@
 {
   "title": "Bullet Chart via a Custom Series Type (Marks + yExtent)",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

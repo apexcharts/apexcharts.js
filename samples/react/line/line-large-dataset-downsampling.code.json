@@ -1,5 +1,6 @@
 {
   "title": "Large Dataset with Zoom-Aware LTTB Downsampling",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

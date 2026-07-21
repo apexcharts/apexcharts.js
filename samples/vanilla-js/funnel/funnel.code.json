@@ -1,5 +1,6 @@
 {
   "title": "Funnel Chart",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

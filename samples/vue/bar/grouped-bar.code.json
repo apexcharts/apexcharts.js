@@ -1,5 +1,6 @@
 {
   "title": "Grouped Bar Chart",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

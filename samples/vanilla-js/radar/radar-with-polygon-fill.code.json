@@ -1,5 +1,6 @@
 {
   "title": "Radar with Polygon Fill",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

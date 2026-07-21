@@ -1,5 +1,6 @@
 {
   "title": "Column with Rotated Labels",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

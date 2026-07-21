@@ -1,5 +1,6 @@
 {
   "title": "Distributed Treemap",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

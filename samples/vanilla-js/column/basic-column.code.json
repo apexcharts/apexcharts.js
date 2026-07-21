@@ -1,5 +1,6 @@
 {
   "title": "Basic Column - Grouped",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

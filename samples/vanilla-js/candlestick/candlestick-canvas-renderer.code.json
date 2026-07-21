@@ -1,5 +1,6 @@
 {
   "title": "High-Density Candlestick with the Canvas Renderer",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

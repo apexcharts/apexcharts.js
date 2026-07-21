@@ -1,5 +1,6 @@
 {
   "title": "Circle Gauge Chart",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

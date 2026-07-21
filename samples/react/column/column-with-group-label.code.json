@@ -1,5 +1,6 @@
 {
   "title": "Column with Group Labels",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

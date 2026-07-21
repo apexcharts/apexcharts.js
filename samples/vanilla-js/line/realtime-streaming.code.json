@@ -1,5 +1,6 @@
 {
   "title": "Streaming Line Chart (chart.streaming)",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

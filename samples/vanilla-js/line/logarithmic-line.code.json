@@ -1,5 +1,6 @@
 {
   "title": "Chart with Logarithmic Scale",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

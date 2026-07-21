@@ -1,5 +1,6 @@
 {
   "title": "Range Area - Line (Combo)",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

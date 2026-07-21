@@ -1,5 +1,6 @@
 {
   "title": "Dumbbell Chart via a Custom Series Type (Marks)",
+  "externals": [],
   "files": [
     {
       "name": "App.vue",

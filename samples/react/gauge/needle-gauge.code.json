@@ -1,5 +1,6 @@
 {
   "title": "Needle Gauge",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

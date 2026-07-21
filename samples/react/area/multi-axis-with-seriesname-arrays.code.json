@@ -1,5 +1,6 @@
 {
   "title": "Multiple Y-Axes with seriesName Arrays",
+  "externals": [],
   "files": [
     {
       "name": "App.jsx",

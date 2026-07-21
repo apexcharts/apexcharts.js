@@ -1,5 +1,6 @@
 {
   "title": "Multiple Y Axis Aligned at Zero",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

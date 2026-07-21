@@ -1,5 +1,6 @@
 {
   "title": "Weave Plugin Platform (custom plugin drawing into its own layer)",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

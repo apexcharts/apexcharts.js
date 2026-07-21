@@ -1,5 +1,6 @@
 {
   "title": "Range Area - Line - monotone cubic (Combo)",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",

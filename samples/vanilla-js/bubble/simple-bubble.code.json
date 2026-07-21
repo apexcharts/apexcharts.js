@@ -1,5 +1,6 @@
 {
   "title": "Simple Bubble",
+  "externals": [],
   "files": [
     {
       "name": "chart.js",
