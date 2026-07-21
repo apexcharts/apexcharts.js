@@ -2,6 +2,7 @@
 import Graphics from './Graphics'
 import Utils from './../utils/Utils'
 import Toolbar from './Toolbar'
+import AxisMapping from './AxisMapping'
 import { Box } from '../svg/index'
 
 // Wheel-zoom feel: scrolling this many deltaY pixels doubles (or halves) the
@@ -230,8 +231,7 @@ export default class ZoomPanSelection extends Toolbar {
       const gridRectDim = this._gridRect()
       if (!gridRectDim) return
 
-      this.startX =
-        this.clientX - gridRectDim.left - w.globals.barPadForNumericAxis
+      this.startX = this._screenXToPlotPx(this.clientX)
       this.startY = this.clientY - gridRectDim.top
 
       this.dragged = false
@@ -282,8 +282,7 @@ export default class ZoomPanSelection extends Toolbar {
 
     if (gridRectDim && (this.w.interact.mousedown || isResized)) {
       // user released the drag, now do all the calculations
-      this.endX =
-        this.clientX - gridRectDim.left - w.globals.barPadForNumericAxis
+      this.endX = this._screenXToPlotPx(this.clientX)
       this.endY = this.clientY - gridRectDim.top
       this.dragX = Math.abs(this.endX - this.startX)
       this.dragY = Math.abs(this.endY - this.startY)
@@ -486,11 +485,30 @@ export default class ZoomPanSelection extends Toolbar {
         })
         .resize()
         .on('resize', () => {
-          const zoomtype = w.interact.zoomEnabled
-            ? w.config.chart.zoom.type
-            : w.config.chart.selection.type
-
-          this.handleMouseUp({ zoomtype, isResized: true })
+          if (w.interact.selectionEnabled) {
+            // A handle resize re-reports the selection through the SAME shared
+            // mapping (and debounce) as the rect-body drag. The old path
+            // (handleMouseUp -> selectionDrawn) is gated by `dragged`, which is
+            // false during a pure resize, so the reported range / crossfilter
+            // went stale while the rect visibly grew (e.g. you could never
+            // resize the brush out to cover the last column). Persist the new
+            // rect too so a re-render keeps it.
+            w.interact.selection = {
+              x: parseFloat(this.selectionRect.node.getAttribute('x')),
+              y: parseFloat(this.selectionRect.node.getAttribute('y')),
+              width: parseFloat(this.selectionRect.node.getAttribute('width')),
+              height: parseFloat(this.selectionRect.node.getAttribute('height')),
+            }
+            clearTimeout(this.w.globals.selectionResizeTimer ?? undefined)
+            this.w.globals.selectionResizeTimer = window.setTimeout(() => {
+              this._emitSelectionFromRect()
+            }, 30)
+          } else {
+            const zoomtype = w.interact.zoomEnabled
+              ? w.config.chart.zoom.type
+              : w.config.chart.selection.type
+            this.handleMouseUp({ zoomtype, isResized: true })
+          }
         })
     }
   }
@@ -514,14 +532,11 @@ export default class ZoomPanSelection extends Toolbar {
           w.config.chart.selection.xaxis.min !== undefined &&
           w.config.chart.selection.xaxis.max !== undefined
         ) {
-          let x =
-            (w.config.chart.selection.xaxis.min - w.globals.minX) /
-            xyRatios.xRatio
+          // Same mapping as bar placement (AxisMapping): x/width in plot-origin
+          // px so the preselected rect is pixel-exact against the bars.
+          let x = AxisMapping.dataXToPx(w, w.config.chart.selection.xaxis.min)
           let width =
-            w.layout.gridWidth -
-            (w.globals.maxX - w.config.chart.selection.xaxis.max) /
-              xyRatios.xRatio -
-            x
+            AxisMapping.dataXToPx(w, w.config.chart.selection.xaxis.max) - x
           if (w.axisFlags.isRangeBar) {
             // rangebars put datetime data in y axis
             x =
@@ -632,7 +647,7 @@ export default class ZoomPanSelection extends Toolbar {
     let inversedX = false
     let inversedY = false
 
-    const left = me.clientX - gridRectDim.left - w.globals.barPadForNumericAxis
+    const left = this._screenXToPlotPx(me.clientX)
     const top = me.clientY - gridRectDim.top
 
     let selectionWidth = left - startX
@@ -731,8 +746,6 @@ export default class ZoomPanSelection extends Toolbar {
 
     handler.move(x, y)
 
-    const xyRatios = this.xyRatios
-
     const selRect = this.selectionRect
 
     let timerInterval = 0
@@ -773,72 +786,85 @@ export default class ZoomPanSelection extends Toolbar {
       // a small debouncer is required when resizing to avoid freezing the chart
       clearTimeout(this.w.globals.selectionResizeTimer ?? undefined)
       this.w.globals.selectionResizeTimer = window.setTimeout(() => {
-        const gridRectDim = this._gridRect()
-        if (!gridRectDim) return
-        const selectionRect = selRect.node.getBoundingClientRect()
-
-        let minX, maxX, minY, maxY
-
-        // Convert the rect's pixel edges to data-x. Subtract barPadForNumericAxis
-        // so this matches selectionDrawn (the initial-draw path): numeric/datetime
-        // bar charts inset the plot by ~half a bar, so without this the drag path
-        // reports an x-range shifted by half a bar (the first bar could never be
-        // reached, and the crossfilter/selection boundaries were off).
-        const relLeft =
-          selectionRect.left - gridRectDim.left - w.globals.barPadForNumericAxis
-        const relRight =
-          selectionRect.right - gridRectDim.left - w.globals.barPadForNumericAxis
-
-        if (!w.axisFlags.isRangeBar) {
-          // normal XY charts
-          if (!w.globals.xAxisScale) return
-          minX = w.globals.xAxisScale.niceMin + relLeft * xyRatios.xRatio
-          maxX = w.globals.xAxisScale.niceMin + relRight * xyRatios.xRatio
-
-          minY =
-            w.globals.yAxisScale[0].niceMin +
-            (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0]
-          maxY =
-            w.globals.yAxisScale[0].niceMax -
-            (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0]
-        } else {
-          // rangeBars use y for datetime
-          minX =
-            w.globals.yAxisScale[0].niceMin + relLeft * xyRatios.invertedYRatio
-          maxX =
-            w.globals.yAxisScale[0].niceMin + relRight * xyRatios.invertedYRatio
-
-          minY = 0
-          maxY = 1
-        }
-
-        const xyAxis = {
-          xaxis: {
-            min: minX,
-            max: maxX,
-          },
-          yaxis: {
-            min: minY,
-            max: maxY,
-          },
-        }
-        if (typeof w.config.chart.events.selection === 'function') {
-          w.config.chart.events.selection(this.ctx, xyAxis)
-        }
-
-        if (
-          w.config.chart.brush.enabled &&
-          w.config.chart.events.brushScrolled !== undefined
-        ) {
-          w.config.chart.events.brushScrolled(this.ctx, xyAxis)
-        }
-
-        // Linked Views (#4): re-crossfilter live as the persistent selection
-        // rect is dragged or resized (the initial draw + handle-resize go
-        // through selectionDrawn; the drag path lands here).
-        this.ctx.linkedViews?.onSourceSelection(xyAxis.xaxis)
+        this._emitSelectionFromRect()
       }, timerInterval)
     }
+  }
+
+  /**
+   * Recompute the reported x/y range from the CURRENT persistent selection rect
+   * (via the shared AxisMapping) and notify listeners: chart.events.selection,
+   * brushScrolled, and the crossfilter coordinator. Shared by the rect-body drag
+   * (selectionDragging) and the handle resize (makeSelectionRectDraggable) so
+   * every gesture re-reports through ONE mapping and the reported range always
+   * matches the rect the user sees. No dragged/threshold gate: reaching here
+   * already means the user moved or resized the persistent rect.
+   */
+  _emitSelectionFromRect() {
+    const w = this.w
+    if (!w.interact.selectionEnabled) return
+    const link = w.config.chart.link
+    const linkActive = !!(
+      link && (link.enabled || typeof link.dimension === 'function')
+    )
+    if (typeof w.config.chart.events.selection !== 'function' && !linkActive) {
+      return
+    }
+
+    const gridRectDim = this._gridRect()
+    if (!gridRectDim) return
+    const selectionRect = this.selectionRect.node.getBoundingClientRect()
+    const xyRatios = this.xyRatios
+
+    let minX, maxX, minY, maxY
+
+    // Convert the rect's pixel edges to data via the shared AxisMapping used by
+    // bar placement and selectionDrawn: pixels are measured from the plot origin
+    // (translateX), the data origin is minX (NOT niceMin), and barPad never
+    // enters the mapping.
+    const relLeft = this._screenXToPlotPx(selectionRect.left)
+    const relRight = this._screenXToPlotPx(selectionRect.right)
+
+    if (!w.axisFlags.isRangeBar) {
+      if (!w.globals.xAxisScale) return
+      minX = AxisMapping.pxToDataX(w, relLeft)
+      maxX = AxisMapping.pxToDataX(w, relRight)
+
+      minY =
+        w.globals.yAxisScale[0].niceMin +
+        (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0]
+      maxY =
+        w.globals.yAxisScale[0].niceMax -
+        (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0]
+    } else {
+      // rangeBars use y for datetime
+      minX =
+        w.globals.yAxisScale[0].niceMin + relLeft * xyRatios.invertedYRatio
+      maxX =
+        w.globals.yAxisScale[0].niceMin + relRight * xyRatios.invertedYRatio
+
+      minY = 0
+      maxY = 1
+    }
+
+    const xyAxis = {
+      xaxis: { min: minX, max: maxX },
+      yaxis: { min: minY, max: maxY },
+    }
+    if (typeof w.config.chart.events.selection === 'function') {
+      w.config.chart.events.selection(this.ctx, xyAxis)
+    }
+
+    if (
+      w.config.chart.brush.enabled &&
+      w.config.chart.events.brushScrolled !== undefined
+    ) {
+      w.config.chart.events.brushScrolled(this.ctx, xyAxis)
+    }
+
+    // Linked Views (#4): re-crossfilter live as the persistent selection rect is
+    // dragged or resized.
+    this.ctx.linkedViews?.onSourceSelection(xyAxis.xaxis)
   }
 
   /** @param {{context: any, zoomtype: any}} opts */
@@ -855,11 +881,10 @@ export default class ZoomPanSelection extends Toolbar {
     const gridRectDim = me._gridRect()
     if (!gridRectDim) return
 
-    // Local coords in the chart's grid
-    const localStartX =
-      selRect.left - gridRectDim.left - w.globals.barPadForNumericAxis
-    const localEndX =
-      selRect.right - gridRectDim.left - w.globals.barPadForNumericAxis
+    // Local coords: x in the plot-origin space (shared with bar placement via
+    // AxisMapping), y still relative to the grid box top (no vertical padding).
+    const localStartX = this._screenXToPlotPx(selRect.left)
+    const localEndX = this._screenXToPlotPx(selRect.right)
     const localStartY = selRect.top - gridRectDim.top
     const localEndY = selRect.bottom - gridRectDim.top
 
@@ -867,9 +892,8 @@ export default class ZoomPanSelection extends Toolbar {
     let xLowestValue, xHighestValue
 
     if (!w.axisFlags.isRangeBar) {
-      const niceMin = w.globals.xAxisScale?.niceMin ?? 0
-      xLowestValue = niceMin + localStartX * xyRatios.xRatio
-      xHighestValue = niceMin + localEndX * xyRatios.xRatio
+      xLowestValue = AxisMapping.pxToDataX(w, localStartX)
+      xHighestValue = AxisMapping.pxToDataX(w, localEndX)
     } else {
       xLowestValue =
         w.globals.yAxisScale[0].niceMin + localStartX * xyRatios.invertedYRatio
@@ -1211,6 +1235,26 @@ export default class ZoomPanSelection extends Toolbar {
     const baseEl = this.w.dom.baseEl
     const grid = baseEl && baseEl.querySelector('.apexcharts-grid')
     return grid ? grid.getBoundingClientRect() : null
+  }
+
+  /**
+   * Convert an absolute (client) x pixel to the plot-origin coordinate space
+   * that bar placement and the selection rect transform both use:
+   * `screenX - svgLeft - translateX`. This is the ONLY correct reference for the
+   * numeric/datetime x mapping (see AxisMapping): do NOT measure from the
+   * `.apexcharts-grid` box and subtract barPadForNumericAxis, because on a
+   * numeric bar chart that box extends barPad to the LEFT of the plot origin, so
+   * the two corrections are a fragile pair that only cancels while the grid box
+   * happens to extend exactly barPad. Anchoring on translateX (the same origin
+   * the bars use) is stable regardless of grid padding.
+   * @param {number} screenX
+   * @returns {number}
+   */
+  _screenXToPlotPx(screenX) {
+    const baseEl = this.w.dom.baseEl
+    const svg = baseEl && baseEl.querySelector('.apexcharts-svg')
+    const svgLeft = svg ? svg.getBoundingClientRect().left : 0
+    return screenX - svgLeft - this.w.layout.translateX
   }
 
   /**

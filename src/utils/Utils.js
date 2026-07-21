@@ -37,6 +37,14 @@ class Utils {
    * @param {any} source
    */
   static extend(target, source) {
+    if (!this.isObject(target) && this.isObject(source)) {
+      // The default (target) is missing/undefined (or otherwise not mergeable)
+      // but the user supplied an object. Object.assign({}, undefined) short-
+      // circuits and returns {}, which would silently DROP the user's object
+      // (e.g. a default of `chart.link.bins: undefined` swallowing
+      // `bins: { width: N }`). Clone the source so the user config survives.
+      return this.clone(source)
+    }
     const output = Object.assign({}, target)
     if (this.isObject(target) && this.isObject(source)) {
       Object.keys(source).forEach((key) => {

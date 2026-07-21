@@ -303,9 +303,29 @@ export default class LinkedViews {
     } else if (agg.type === 'category') {
       if (!w.config.xaxis) w.config.xaxis = {}
       w.config.xaxis.categories = agg.labels.map(String)
+    } else if (agg.type === 'range') {
+      // Range dims plot bars at bin CENTERS on a numeric/datetime x-axis, so the
+      // series' own x-extent is [firstCenter, lastCenter] and the outer half-bin
+      // on each side would be off-axis: the first/last bins could never be
+      // brushed in full and their records could never be included/excluded
+      // correctly. Pin the axis domain to the TRUE histogram extent (the outer
+      // bin edges) so the full plot width maps to the full data range. An
+      // explicit user xaxis.min/max always wins.
+      this._pinRangeDomain(agg.edges)
     }
-    // range dims plot [x,value] tuples on the user's numeric/datetime x-axis;
-    // no categories to inject (the bin edges are the x values).
+  }
+
+  /**
+   * Pin the numeric/datetime x-axis to the outer bin edges of a range-binned
+   * dimension (unless the user set xaxis.min/max explicitly). See _injectSeries.
+   * @param {number[]|null|undefined} edges
+   */
+  _pinRangeDomain(edges) {
+    if (!Array.isArray(edges) || edges.length < 2) return
+    const w = this.w
+    if (!w.config.xaxis) w.config.xaxis = /** @type {any} */ ({})
+    if (w.config.xaxis.min == null) w.config.xaxis.min = edges[0]
+    if (w.config.xaxis.max == null) w.config.xaxis.max = edges[edges.length - 1]
   }
 
   /** @param {import('./Crossfilter').default} cf */

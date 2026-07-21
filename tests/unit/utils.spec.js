@@ -320,6 +320,33 @@ describe('Utils', () => {
         expect(target).toEqual({ a: 1 })
         expect(result).not.toBe(target)
       })
+
+      // Regression: a default of `undefined` must NOT swallow a user-supplied
+      // object. Object.assign({}, undefined) short-circuits to {}, which used to
+      // drop the whole object (e.g. chart.link.bins: undefined ate { width: N }).
+      it('keeps a user object when the matching default is undefined', () => {
+        const result = Utils.extend(undefined, { width: 7 })
+        expect(result).toEqual({ width: 7 })
+      })
+
+      it('keeps a nested user object under a key whose default is undefined', () => {
+        const target = { link: { bins: undefined } }
+        const source = { link: { bins: { width: 604800000 } } }
+        const result = Utils.extend(target, source)
+        expect(result.link.bins).toEqual({ width: 604800000 })
+      })
+
+      it('deep-clones the source so later mutation does not leak in', () => {
+        const source = { thresholds: [0, 1, 2] }
+        const result = Utils.extend(undefined, source)
+        source.thresholds.push(3)
+        expect(result.thresholds).toEqual([0, 1, 2])
+      })
+
+      it('leaves a primitive source untouched when target is not an object', () => {
+        expect(Utils.extend(undefined, 5)).toEqual({})
+        expect(Utils.extend(undefined, undefined)).toEqual({})
+      })
     })
 
     describe('extendArray', () => {

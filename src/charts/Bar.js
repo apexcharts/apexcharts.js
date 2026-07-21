@@ -13,6 +13,7 @@ import {
   seriesJoin,
 } from '../modules/animations/LengthTransition'
 import Series from '../modules/Series'
+import AxisMapping from '../modules/AxisMapping'
 import { seriesEmitter } from '../renderers/Renderer'
 
 /**
@@ -919,8 +920,12 @@ class Bar {
       sxI = w.globals.maxValsInArrayIndex
     }
     if (Utils.isNumber(w.seriesData.seriesX[sxI][j])) {
+      // Source of truth for the numeric x mapping: the group's center lands at
+      // (x - minX) / xRatio px from the plot origin (see AxisMapping). The brush
+      // / selection read-back uses the same helper so drawn bars and reported
+      // ranges cannot drift apart.
       x =
-        (w.seriesData.seriesX[sxI][j] - w.globals.minX) / this.xRatio -
+        AxisMapping.dataXToPx(w, w.seriesData.seriesX[sxI][j]) -
         (barWidth * this.seriesLen) / 2
     }
 
