@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.4.0
+ * ApexCharts v6.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1132,7 +1132,38 @@ class Toolbar {
     this.elMenuIcon = null;
   }
 }
+class AxisMapping {
+  /**
+   * Pixels per data-unit on the x-axis. Derived from `minX..maxX` so it is the
+   * exact inverse used by both {@link dataXToPx} and {@link pxToDataX}.
+   * @param {import('../types/internal').ChartStateW} w
+   * @returns {number}
+   */
+  static xRatio(w) {
+    const gw = w.layout.gridWidth || 1;
+    return (w.globals.maxX - w.globals.minX) / gw;
+  }
+  /**
+   * Data-x -> pixels from the plot origin (usable as an SVG `x` attribute).
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {number} dataX
+   * @returns {number}
+   */
+  static dataXToPx(w, dataX) {
+    return (dataX - w.globals.minX) / AxisMapping.xRatio(w);
+  }
+  /**
+   * Pixels from the plot origin -> data-x. Feed it `screenX - svgLeft - translateX`.
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {number} px
+   * @returns {number}
+   */
+  static pxToDataX(w, px) {
+    return w.globals.minX + px * AxisMapping.xRatio(w);
+  }
+}
 const Box = _core.__apex_index_Box;
+const WHEEL_ZOOM_PIXELS_PER_2X = 240;
 class ZoomPanSelection extends Toolbar {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -1163,9 +1194,6 @@ class ZoomPanSelection extends Toolbar {
     this.endY = 0;
     this.dragY = 0;
     this.moveDirection = "none";
-    this.debounceTimer = null;
-    this.debounceDelay = 100;
-    this.wheelDelay = 400;
   }
   /** @param {{xyRatios: any}} opts */
   init({ xyRatios }) {
@@ -1275,7 +1303,7 @@ class ZoomPanSelection extends Toolbar {
     if (e.type === "mousedown" && e.which === 1 || e.type === "touchstart") {
       const gridRectDim = this._gridRect();
       if (!gridRectDim) return;
-      this.startX = this.clientX - gridRectDim.left - w.globals.barPadForNumericAxis;
+      this.startX = this._screenXToPlotPx(this.clientX);
       this.startY = this.clientY - gridRectDim.top;
       this.dragged = false;
       this.w.interact.mousedown = true;
@@ -1310,7 +1338,7 @@ class ZoomPanSelection extends Toolbar {
     const w = this.w;
     const gridRectDim = this._gridRect();
     if (gridRectDim && (this.w.interact.mousedown || isResized)) {
-      this.endX = this.clientX - gridRectDim.left - w.globals.barPadForNumericAxis;
+      this.endX = this._screenXToPlotPx(this.clientX);
       this.endY = this.clientY - gridRectDim.top;
       this.dragX = Math.abs(this.endX - this.startX);
       this.dragY = Math.abs(this.endY - this.startY);
@@ -1327,70 +1355,110 @@ class ZoomPanSelection extends Toolbar {
     this.dragged = false;
     this.w.interact.mousedown = false;
   }
-  /**
-   * @param {Event} e
-   */
-  mouseWheelEvent(e) {
-    const w = this.w;
-    e.preventDefault();
-    const now = Date.now();
-    if (now - w.interact.lastWheelExecution > this.wheelDelay) {
-      this.executeMouseWheelZoom(e);
-      w.interact.lastWheelExecution = now;
+  // ---------------------------------------------------------------------------
+  // Wheel zoom: continuous, cursor-anchored zoom on mouse wheel / trackpad.
+  //
+  // Each wheel event multiplies a pending zoom factor scaled to its deltaY (so
+  // a trackpad's stream of tiny deltas and a discrete wheel's ±100 notches both
+  // feel proportional), and the accumulated factor is applied at most once per
+  // animation frame through the same immediate, animation-free fast path the
+  // touch pinch uses (_applyXRange). Deliberately instant, trading-chart style:
+  // no per-step morph and no easing between steps (an animated variant was
+  // tried and rejected). The original implementation instead ran a fixed
+  // 0.5x/1.5x animated update at most once per 400ms and dropped every wheel
+  // event in between, which read as lag on continuous scrolling.
+  //
+  // Like Momentum (see the comment above momentumTouch), applying a frame
+  // triggers _updateOptions, which destroys and recreates this instance
+  // mid-gesture, so all wheel-gesture state lives on w.interact.wheel rather
+  // than on the instance.
+  // ---------------------------------------------------------------------------
+  /** Lazily-created, re-render-surviving wheel-gesture state. */
+  _wheel() {
+    const it = this.w.interact;
+    if (!it.wheel) {
+      it.wheel = {
+        factor: 1,
+        clientX: 0,
+        /** @type {number|null} */
+        rafId: null,
+        /** @type {any} */
+        endTimer: null
+      };
     }
-    if (this.debounceTimer) clearTimeout(this.debounceTimer);
-    this.debounceTimer = setTimeout(() => {
-      if (now - w.interact.lastWheelExecution > this.wheelDelay) {
-        this.executeMouseWheelZoom(e);
-        w.interact.lastWheelExecution = now;
-      }
-    }, this.debounceDelay);
+    return it.wheel;
   }
   /**
    * @param {any} e
    */
-  executeMouseWheelZoom(e) {
-    var _a, _b;
+  mouseWheelEvent(e) {
+    e.preventDefault();
+    const st = this._wheel();
+    let dy = e.deltaY;
+    if (e.deltaMode === 1) dy *= 33;
+    else if (e.deltaMode === 2) dy *= 330;
+    st.factor *= Math.pow(2, dy / WHEEL_ZOOM_PIXELS_PER_2X);
+    st.clientX = e.clientX;
+    if (st.rafId == null) {
+      st.rafId = requestAnimationFrame(() => this._applyWheelZoom());
+    }
+    if (st.endTimer) clearTimeout(st.endTimer);
+    st.endTimer = setTimeout(() => this._endWheelZoom(), 150);
+  }
+  /**
+   * Apply the zoom factor accumulated since the last animation frame, keeping
+   * the data value under the cursor pinned (both zooming in and out).
+   */
+  _applyWheelZoom() {
     const w = this.w;
-    this.minX = w.axisFlags.isRangeBar ? w.globals.minY : w.globals.minX;
-    this.maxX = w.axisFlags.isRangeBar ? w.globals.maxY : w.globals.maxX;
+    const st = this._wheel();
+    st.rafId = null;
+    const scale = st.factor;
+    st.factor = 1;
+    if (scale === 1 || w.globals.isDestroyed) return;
     const gridRectDim = this._gridRect();
-    if (!gridRectDim) return;
-    const mouseX = (e.clientX - gridRectDim.left) / gridRectDim.width;
-    const currentMinX = this.minX;
-    const currentMaxX = this.maxX;
-    const totalX = currentMaxX - currentMinX;
-    const zoomFactorIn = 0.5;
-    const zoomFactorOut = 1.5;
-    let zoomRange;
-    let newMinX, newMaxX;
-    if (e.deltaY < 0) {
-      zoomRange = zoomFactorIn * totalX;
-      const midPoint = currentMinX + mouseX * totalX;
-      newMinX = midPoint - zoomRange / 2;
-      newMaxX = midPoint + zoomRange / 2;
-    } else {
-      zoomRange = zoomFactorOut * totalX;
-      newMinX = currentMinX - zoomRange / 2;
-      newMaxX = currentMaxX + zoomRange / 2;
-    }
-    if (!w.axisFlags.isRangeBar) {
-      const clampMin = (_a = w.globals.dataReducerRawMinX) != null ? _a : w.globals.initialMinX;
-      const clampMax = (_b = w.globals.dataReducerRawMaxX) != null ? _b : w.globals.initialMaxX;
-      newMinX = Math.max(newMinX, clampMin);
-      newMaxX = Math.min(newMaxX, clampMax);
+    if (!gridRectDim || !gridRectDim.width) return;
+    const { min, max } = this._currentXWindow();
+    const range = max - min;
+    const mouseX = Math.min(
+      Math.max((st.clientX - gridRectDim.left) / gridRectDim.width, 0),
+      1
+    );
+    let newRange = range * scale;
+    const bounds = this._clampBounds();
+    if (bounds) {
       const minXDiff = w.globals.minXDiff > 0 && isFinite(w.globals.minXDiff) ? w.globals.minXDiff : 0;
-      const minRange = Math.max(minXDiff * 2, (clampMax - clampMin) * 1e-6);
-      if (newMaxX - newMinX < minRange) {
-        const midPoint = (newMinX + newMaxX) / 2;
-        newMinX = midPoint - minRange / 2;
-        newMaxX = midPoint + minRange / 2;
-      }
+      const minRange = Math.max(minXDiff * 2, (bounds.max - bounds.min) * 1e-6);
+      if (newRange < minRange) newRange = minRange;
+      if (newRange > bounds.max - bounds.min) newRange = bounds.max - bounds.min;
     }
-    const newMinXMaxX = this._getNewMinXMaxX(newMinX, newMaxX);
-    if (!isNaN(newMinXMaxX.minX) && !isNaN(newMinXMaxX.maxX)) {
-      this.zoomUpdateOptions(newMinXMaxX.minX, newMinXMaxX.maxX);
+    const anchor = min + mouseX * range;
+    let newMinX = anchor - mouseX * newRange;
+    let newMaxX = newMinX + newRange;
+    const eps = range * 1e-9;
+    if (Math.abs(newMinX - min) < eps && Math.abs(newMaxX - max) < eps) return;
+    if (isNaN(newMinX) || isNaN(newMaxX)) return;
+    const beforeZoomRange = this.getBeforeZoomRange(
+      { min: newMinX, max: newMaxX },
+      /** @type {any} */
+      void 0
+    );
+    if (beforeZoomRange && beforeZoomRange.xaxis) {
+      newMinX = beforeZoomRange.xaxis.min;
+      newMaxX = beforeZoomRange.xaxis.max;
     }
+    this._applyXRange(newMinX, newMaxX, true);
+  }
+  /** Fire the zoomed callback once the wheel gesture settles (mirrors _endPinch). */
+  _endWheelZoom() {
+    const w = this.w;
+    const st = this._wheel();
+    st.endTimer = null;
+    if (w.globals.isDestroyed || !w.interact.zoomed) return;
+    const { min, max } = this._currentXWindow();
+    const yaxis = w.globals.initialConfig ? Utils.clone(w.globals.initialConfig.yaxis) : [];
+    const toolbar = this.ctx.toolbar;
+    if (toolbar) toolbar.zoomCallback({ min, max }, yaxis);
   }
   makeSelectionRectDraggable() {
     const w = this.w;
@@ -1412,8 +1480,22 @@ class ZoomPanSelection extends Toolbar {
           return group.center(p[0], p[1]);
         }
       }).resize().on("resize", () => {
-        const zoomtype = w.interact.zoomEnabled ? w.config.chart.zoom.type : w.config.chart.selection.type;
-        this.handleMouseUp({ zoomtype, isResized: true });
+        var _a;
+        if (w.interact.selectionEnabled) {
+          w.interact.selection = {
+            x: parseFloat(this.selectionRect.node.getAttribute("x")),
+            y: parseFloat(this.selectionRect.node.getAttribute("y")),
+            width: parseFloat(this.selectionRect.node.getAttribute("width")),
+            height: parseFloat(this.selectionRect.node.getAttribute("height"))
+          };
+          clearTimeout((_a = this.w.globals.selectionResizeTimer) != null ? _a : void 0);
+          this.w.globals.selectionResizeTimer = window.setTimeout(() => {
+            this._emitSelectionFromRect();
+          }, 30);
+        } else {
+          const zoomtype = w.interact.zoomEnabled ? w.config.chart.zoom.type : w.config.chart.selection.type;
+          this.handleMouseUp({ zoomtype, isResized: true });
+        }
       });
     }
   }
@@ -1428,8 +1510,8 @@ class ZoomPanSelection extends Toolbar {
         }));
       } else {
         if (w.config.chart.selection.xaxis.min !== void 0 && w.config.chart.selection.xaxis.max !== void 0) {
-          let x = (w.config.chart.selection.xaxis.min - w.globals.minX) / xyRatios.xRatio;
-          let width = w.layout.gridWidth - (w.globals.maxX - w.config.chart.selection.xaxis.max) / xyRatios.xRatio - x;
+          let x = AxisMapping.dataXToPx(w, w.config.chart.selection.xaxis.min);
+          let width = AxisMapping.dataXToPx(w, w.config.chart.selection.xaxis.max) - x;
           if (w.axisFlags.isRangeBar) {
             x = (w.config.chart.selection.xaxis.min - w.globals.yAxisScale[0].niceMin) / xyRatios.invertedYRatio;
             width = (w.config.chart.selection.xaxis.max - w.config.chart.selection.xaxis.min) / xyRatios.invertedYRatio;
@@ -1521,7 +1603,7 @@ class ZoomPanSelection extends Toolbar {
     const startY = me.startY;
     let inversedX = false;
     let inversedY = false;
-    const left = me.clientX - gridRectDim.left - w.globals.barPadForNumericAxis;
+    const left = this._screenXToPlotPx(me.clientX);
     const top = me.clientY - gridRectDim.top;
     let selectionWidth = left - startX;
     let selectionHeight = top - startY;
@@ -1600,7 +1682,6 @@ class ZoomPanSelection extends Toolbar {
       y = constraints.y2 - box.h;
     }
     handler.move(x, y);
-    const xyRatios = this.xyRatios;
     const selRect = this.selectionRect;
     let timerInterval = 0;
     if (type === "resizing") {
@@ -1621,48 +1702,62 @@ class ZoomPanSelection extends Toolbar {
     if ((typeof w.config.chart.events.selection === "function" || linkActive) && w.interact.selectionEnabled) {
       clearTimeout((_a = this.w.globals.selectionResizeTimer) != null ? _a : void 0);
       this.w.globals.selectionResizeTimer = window.setTimeout(() => {
-        var _a2;
-        const gridRectDim = this._gridRect();
-        if (!gridRectDim) return;
-        const selectionRect = selRect.node.getBoundingClientRect();
-        let minX, maxX, minY, maxY;
-        const relLeft = selectionRect.left - gridRectDim.left - w.globals.barPadForNumericAxis;
-        const relRight = selectionRect.right - gridRectDim.left - w.globals.barPadForNumericAxis;
-        if (!w.axisFlags.isRangeBar) {
-          if (!w.globals.xAxisScale) return;
-          minX = w.globals.xAxisScale.niceMin + relLeft * xyRatios.xRatio;
-          maxX = w.globals.xAxisScale.niceMin + relRight * xyRatios.xRatio;
-          minY = w.globals.yAxisScale[0].niceMin + (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0];
-          maxY = w.globals.yAxisScale[0].niceMax - (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0];
-        } else {
-          minX = w.globals.yAxisScale[0].niceMin + relLeft * xyRatios.invertedYRatio;
-          maxX = w.globals.yAxisScale[0].niceMin + relRight * xyRatios.invertedYRatio;
-          minY = 0;
-          maxY = 1;
-        }
-        const xyAxis = {
-          xaxis: {
-            min: minX,
-            max: maxX
-          },
-          yaxis: {
-            min: minY,
-            max: maxY
-          }
-        };
-        if (typeof w.config.chart.events.selection === "function") {
-          w.config.chart.events.selection(this.ctx, xyAxis);
-        }
-        if (w.config.chart.brush.enabled && w.config.chart.events.brushScrolled !== void 0) {
-          w.config.chart.events.brushScrolled(this.ctx, xyAxis);
-        }
-        (_a2 = this.ctx.linkedViews) == null ? void 0 : _a2.onSourceSelection(xyAxis.xaxis);
+        this._emitSelectionFromRect();
       }, timerInterval);
     }
   }
+  /**
+   * Recompute the reported x/y range from the CURRENT persistent selection rect
+   * (via the shared AxisMapping) and notify listeners: chart.events.selection,
+   * brushScrolled, and the crossfilter coordinator. Shared by the rect-body drag
+   * (selectionDragging) and the handle resize (makeSelectionRectDraggable) so
+   * every gesture re-reports through ONE mapping and the reported range always
+   * matches the rect the user sees. No dragged/threshold gate: reaching here
+   * already means the user moved or resized the persistent rect.
+   */
+  _emitSelectionFromRect() {
+    var _a;
+    const w = this.w;
+    if (!w.interact.selectionEnabled) return;
+    const link = w.config.chart.link;
+    const linkActive = !!(link && (link.enabled || typeof link.dimension === "function"));
+    if (typeof w.config.chart.events.selection !== "function" && !linkActive) {
+      return;
+    }
+    const gridRectDim = this._gridRect();
+    if (!gridRectDim) return;
+    const selectionRect = this.selectionRect.node.getBoundingClientRect();
+    const xyRatios = this.xyRatios;
+    let minX, maxX, minY, maxY;
+    const relLeft = this._screenXToPlotPx(selectionRect.left);
+    const relRight = this._screenXToPlotPx(selectionRect.right);
+    if (!w.axisFlags.isRangeBar) {
+      if (!w.globals.xAxisScale) return;
+      minX = AxisMapping.pxToDataX(w, relLeft);
+      maxX = AxisMapping.pxToDataX(w, relRight);
+      minY = w.globals.yAxisScale[0].niceMin + (gridRectDim.bottom - selectionRect.bottom) * xyRatios.yRatio[0];
+      maxY = w.globals.yAxisScale[0].niceMax - (selectionRect.top - gridRectDim.top) * xyRatios.yRatio[0];
+    } else {
+      minX = w.globals.yAxisScale[0].niceMin + relLeft * xyRatios.invertedYRatio;
+      maxX = w.globals.yAxisScale[0].niceMin + relRight * xyRatios.invertedYRatio;
+      minY = 0;
+      maxY = 1;
+    }
+    const xyAxis = {
+      xaxis: { min: minX, max: maxX },
+      yaxis: { min: minY, max: maxY }
+    };
+    if (typeof w.config.chart.events.selection === "function") {
+      w.config.chart.events.selection(this.ctx, xyAxis);
+    }
+    if (w.config.chart.brush.enabled && w.config.chart.events.brushScrolled !== void 0) {
+      w.config.chart.events.brushScrolled(this.ctx, xyAxis);
+    }
+    (_a = this.ctx.linkedViews) == null ? void 0 : _a.onSourceSelection(xyAxis.xaxis);
+  }
   /** @param {{context: any, zoomtype: any}} opts */
   selectionDrawn({ context, zoomtype }) {
-    var _a, _b, _c;
+    var _a;
     const w = this.w;
     const me = context;
     const xyRatios = this.xyRatios;
@@ -1670,15 +1765,14 @@ class ZoomPanSelection extends Toolbar {
     const selRect = w.interact.zoomEnabled ? me.zoomRect.node.getBoundingClientRect() : me.selectionRect.node.getBoundingClientRect();
     const gridRectDim = me._gridRect();
     if (!gridRectDim) return;
-    const localStartX = selRect.left - gridRectDim.left - w.globals.barPadForNumericAxis;
-    const localEndX = selRect.right - gridRectDim.left - w.globals.barPadForNumericAxis;
+    const localStartX = this._screenXToPlotPx(selRect.left);
+    const localEndX = this._screenXToPlotPx(selRect.right);
     const localStartY = selRect.top - gridRectDim.top;
     const localEndY = selRect.bottom - gridRectDim.top;
     let xLowestValue, xHighestValue;
     if (!w.axisFlags.isRangeBar) {
-      const niceMin = (_b = (_a = w.globals.xAxisScale) == null ? void 0 : _a.niceMin) != null ? _b : 0;
-      xLowestValue = niceMin + localStartX * xyRatios.xRatio;
-      xHighestValue = niceMin + localEndX * xyRatios.xRatio;
+      xLowestValue = AxisMapping.pxToDataX(w, localStartX);
+      xHighestValue = AxisMapping.pxToDataX(w, localEndX);
     } else {
       xLowestValue = w.globals.yAxisScale[0].niceMin + localStartX * xyRatios.invertedYRatio;
       xHighestValue = w.globals.yAxisScale[0].niceMin + localEndX * xyRatios.invertedYRatio;
@@ -1767,7 +1861,7 @@ class ZoomPanSelection extends Toolbar {
             yaxis
           });
         }
-        (_c = me.ctx.linkedViews) == null ? void 0 : _c.onSourceSelection(xaxis);
+        (_a = me.ctx.linkedViews) == null ? void 0 : _a.onSourceSelection(xaxis);
       }
     }
   }
@@ -1936,6 +2030,25 @@ class ZoomPanSelection extends Toolbar {
     const baseEl = this.w.dom.baseEl;
     const grid = baseEl && baseEl.querySelector(".apexcharts-grid");
     return grid ? grid.getBoundingClientRect() : null;
+  }
+  /**
+   * Convert an absolute (client) x pixel to the plot-origin coordinate space
+   * that bar placement and the selection rect transform both use:
+   * `screenX - svgLeft - translateX`. This is the ONLY correct reference for the
+   * numeric/datetime x mapping (see AxisMapping): do NOT measure from the
+   * `.apexcharts-grid` box and subtract barPadForNumericAxis, because on a
+   * numeric bar chart that box extends barPad to the LEFT of the plot origin, so
+   * the two corrections are a fragile pair that only cancels while the grid box
+   * happens to extend exactly barPad. Anchoring on translateX (the same origin
+   * the bars use) is stable regardless of grid padding.
+   * @param {number} screenX
+   * @returns {number}
+   */
+  _screenXToPlotPx(screenX) {
+    const baseEl = this.w.dom.baseEl;
+    const svg = baseEl && baseEl.querySelector(".apexcharts-svg");
+    const svgLeft = svg ? svg.getBoundingClientRect().left : 0;
+    return screenX - svgLeft - this.w.layout.translateX;
   }
   /**
    * Raw data bounds to clamp against. When zoom-aware downsampling is active,

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.4.0
+ * ApexCharts v6.5.0
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
@@ -811,7 +811,22 @@ class LinkedViews {
     } else if (agg.type === "category") {
       if (!w.config.xaxis) w.config.xaxis = {};
       w.config.xaxis.categories = agg.labels.map(String);
+    } else if (agg.type === "range") {
+      this._pinRangeDomain(agg.edges);
     }
+  }
+  /**
+   * Pin the numeric/datetime x-axis to the outer bin edges of a range-binned
+   * dimension (unless the user set xaxis.min/max explicitly). See _injectSeries.
+   * @param {number[]|null|undefined} edges
+   */
+  _pinRangeDomain(edges) {
+    if (!Array.isArray(edges) || edges.length < 2) return;
+    const w = this.w;
+    if (!w.config.xaxis) w.config.xaxis = /** @type {any} */
+    {};
+    if (w.config.xaxis.min == null) w.config.xaxis.min = edges[0];
+    if (w.config.xaxis.max == null) w.config.xaxis.max = edges[edges.length - 1];
   }
   /** @param {import('./Crossfilter').default} cf */
   _wire(cf) {
@@ -870,7 +885,29 @@ class LinkedViews {
   }
   _afterRender() {
     if (this._mode() !== "filter") return;
+    const series = this.w.config.series;
+    if (!series || series.length === 0) {
+      this._reassertSeries();
+      return;
+    }
     this._applySelfDim();
+  }
+  /** Restore the aggregated series after an external updateSeries emptied it.
+   *  Deferred a microtask so the triggering update fully unwinds first. */
+  _reassertSeries() {
+    if (this._pending) return;
+    this._pending = true;
+    Promise.resolve().then(() => {
+      this._pending = false;
+      if (this.w.globals.isDestroyed) return;
+      const cf = this._cf();
+      if (!cf) return;
+      const agg = cf.aggregateFor(this._chartId());
+      const series = this._seriesFromAgg(agg);
+      if (!series.length) return;
+      this._lastValues = this._sigOf(agg);
+      this.ctx.updateSeries(series, true);
+    });
   }
   /**
    * Dim this chart's own buckets that are not in its own filter (no filter ->

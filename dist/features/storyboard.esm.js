@@ -17,8 +17,9 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v6.4.0
+ * ApexCharts v6.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -26,6 +27,403 @@ import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
 const Environment = _core.__apex_Environment_Environment;
 const prefersReducedMotion = _core.__apex_Animations_prefersReducedMotion;
+function base64Decode(encoded) {
+  if (typeof atob === "function") return atob(encoded);
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(encoded, "base64").toString("binary");
+  }
+  throw new Error("no base64 decoder available");
+}
+function base64Encode(str) {
+  if (typeof btoa === "function") return btoa(str);
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(str, "binary").toString("base64");
+  }
+  throw new Error("no base64 encoder available");
+}
+function currentHostname() {
+  return typeof window !== "undefined" && window.location ? window.location.hostname : "";
+}
+class LicenseManager {
+  /**
+   * Decode license data from an encoded string (base64 + JSON).
+   * @param {string} encodedData
+   * @returns {LicenseData | null}
+   */
+  static decodeLicenseData(encodedData) {
+    try {
+      const decodedString = base64Decode(encodedData);
+      const data = JSON.parse(decodedString);
+      if (!data.issueDate || !data.expiryDate || !data.plan) {
+        return null;
+      }
+      return {
+        domains: Array.isArray(data.domains) ? data.domains : void 0,
+        expiryDate: data.expiryDate,
+        issueDate: data.issueDate,
+        plan: data.plan,
+        valid: true
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+  /**
+   * Generate a license key (issuer-side helper; also used by tests). Mirrors
+   * the family exactly so keys stay cross-compatible.
+   * @param {string} issueDate
+   * @param {string} expiryDate
+   * @param {string} [plan]
+   * @param {string[]} [domains]
+   * @returns {string}
+   */
+  static generateLicenseKey(issueDate, expiryDate, plan = "standard", domains) {
+    const licenseData = { expiryDate, issueDate, plan };
+    if (domains && domains.length > 0) {
+      licenseData.domains = domains;
+    }
+    return `APEX-${base64Encode(JSON.stringify(licenseData))}`;
+  }
+  /**
+   * Validate an arbitrary key WITHOUT mutating the singleton. Used to resolve
+   * per-chart (`chart.license`) and global (`window.Apex.license`) keys, which
+   * bypass setLicense. This is a superset of the family (which keeps
+   * validateLicense private); the format and rules are identical.
+   * @param {string} key
+   * @returns {LicenseValidationResult}
+   */
+  static validateKey(key) {
+    try {
+      if (typeof key !== "string" || !key.startsWith("APEX-")) {
+        return {
+          expired: false,
+          message: 'Invalid license key format. License key must start with "APEX-".',
+          valid: false
+        };
+      }
+      const separatorIndex = key.indexOf("-");
+      const encodedData = separatorIndex !== -1 ? key.slice(separatorIndex + 1) : "";
+      if (!encodedData) {
+        return {
+          expired: false,
+          message: "Invalid license key format. Expected format: APEX-{encoded-data}.",
+          valid: false
+        };
+      }
+      const licenseData = this.decodeLicenseData(encodedData);
+      if (!licenseData) {
+        return {
+          expired: false,
+          message: "Invalid license key. Unable to decode license data.",
+          valid: false
+        };
+      }
+      const now = /* @__PURE__ */ new Date();
+      const expiryDate = new Date(licenseData.expiryDate);
+      if (expiryDate < now) {
+        return {
+          data: licenseData,
+          expired: true,
+          message: `License expired on ${licenseData.expiryDate}. Please renew your license.`,
+          valid: false
+        };
+      }
+      if (licenseData.domains && licenseData.domains.length > 0) {
+        const hostname = currentHostname();
+        const allowed = licenseData.domains.some(
+          (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+        );
+        if (!allowed) {
+          return {
+            data: licenseData,
+            expired: false,
+            message: `License is not valid for this domain (${hostname}). Allowed domains: ${licenseData.domains.join(", ")}.`,
+            valid: false
+          };
+        }
+      }
+      return { data: licenseData, expired: false, valid: true };
+    } catch (e) {
+      return {
+        expired: false,
+        message: "Invalid license key format or corrupted data.",
+        valid: false
+      };
+    }
+  }
+  /**
+   * Set the global (singleton) license key. console.errors when invalid, to
+   * match the rest of the family.
+   * @param {string} key
+   */
+  static setLicense(key) {
+    this.licenseKey = key;
+    this.validationResult = this.validateKey(key);
+    if (!this.validationResult.valid) {
+      console.error(`[Apex] ${this.validationResult.message}`);
+    }
+  }
+  /**
+   * The key set via setLicense (or null). Lets the enforcer resolve the
+   * chart.license -> setLicense -> Apex.license precedence.
+   * @returns {null | string}
+   */
+  static getKey() {
+    return this.licenseKey;
+  }
+  /**
+   * Validation result for the singleton key (cached).
+   * @returns {LicenseValidationResult}
+   */
+  static getLicenseStatus() {
+    if (!this.licenseKey) {
+      return { expired: false, valid: false };
+    }
+    if (!this.validationResult) {
+      this.validationResult = this.validateKey(this.licenseKey);
+    }
+    return this.validationResult;
+  }
+  /** @returns {boolean} whether the singleton key is valid */
+  static isLicenseValid() {
+    if (!this.licenseKey) return false;
+    if (!this.validationResult) {
+      this.validationResult = this.validateKey(this.licenseKey);
+    }
+    return this.validationResult.valid;
+  }
+  /**
+   * Whether a specific key is valid (pure; no singleton mutation).
+   * @param {string | undefined | null} key
+   * @returns {boolean}
+   */
+  static isKeyValid(key) {
+    if (!key) return false;
+    return this.validateKey(key).valid;
+  }
+}
+/** @type {null | string} */
+__publicField(LicenseManager, "licenseKey", null);
+/** @type {LicenseValidationResult | null} */
+__publicField(LicenseManager, "validationResult", null);
+const WATERMARK_ATTR = "data-apexcharts-watermark";
+const WATERMARK_TEXT = "APEXCHARTS";
+const CRITICAL_STYLES = {
+  position: "absolute",
+  top: "0",
+  right: "0",
+  bottom: "0",
+  left: "0",
+  pointerEvents: "none",
+  userSelect: "none",
+  webkitUserSelect: "none",
+  msUserSelect: "none",
+  zIndex: "10000",
+  display: "block",
+  visibility: "visible",
+  opacity: "1"
+};
+function createWatermarkPattern() {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="300" height="200">
+      <text
+        x="50%"
+        y="50%"
+        dominant-baseline="middle"
+        text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif"
+        font-size="18"
+        font-weight="600"
+        fill="rgba(134, 134, 134, 0.1)"
+        transform="rotate(-35, 100, 60)"
+      >${WATERMARK_TEXT}</text>
+    </svg>
+  `;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg.trim())}")`;
+}
+class Watermark {
+  /**
+   * Apply the overlay's critical styles + background to a node. Split out so a
+   * MutationObserver can restore styles after tampering.
+   * @param {HTMLElement} el
+   */
+  static applyStyles(el) {
+    Object.assign(el.style, CRITICAL_STYLES, {
+      backgroundImage: createWatermarkPattern(),
+      backgroundRepeat: "repeat"
+    });
+  }
+  /**
+   * Add the watermark to a container, reusing the existing node if present (so
+   * a style-tamper observer bound to it stays valid across re-renders). No-op
+   * when there is no document (SSR) or no container.
+   * @param {HTMLElement | null | undefined} container
+   * @returns {HTMLElement | null} the watermark node
+   */
+  static add(container) {
+    if (!container || typeof document === "undefined") return null;
+    let watermark = this.node(container);
+    if (!watermark) {
+      watermark = document.createElement("div");
+      watermark.setAttribute(WATERMARK_ATTR, "");
+      container.appendChild(watermark);
+    }
+    this.applyStyles(watermark);
+    if (typeof getComputedStyle === "function" && getComputedStyle(container).position === "static") {
+      container.style.position = "relative";
+    }
+    return watermark;
+  }
+  /**
+   * @param {HTMLElement | null | undefined} container
+   * @returns {HTMLElement | null} the watermark node, if present
+   */
+  static node(container) {
+    if (!container) return null;
+    return (
+      /** @type {HTMLElement | null} */
+      container.querySelector(`[${WATERMARK_ATTR}]`)
+    );
+  }
+  /**
+   * @param {HTMLElement | null | undefined} container
+   * @returns {boolean}
+   */
+  static exists(container) {
+    return !!this.node(container);
+  }
+  /**
+   * Remove the watermark from a container.
+   * @param {HTMLElement | null | undefined} container
+   */
+  static remove(container) {
+    const existing = this.node(container);
+    if (existing) existing.remove();
+  }
+}
+__publicField(Watermark, "ATTR", WATERMARK_ATTR);
+const PRICING_URL = "https://apexcharts.com/pricing";
+let _perspectivesTokenDecoded = false;
+function markPerspectivesTokenDecoded() {
+  _perspectivesTokenDecoded = true;
+  reevaluateLicenseAcrossCharts();
+}
+function premiumFeaturesInUse(w, ctx) {
+  const chart = w && w.config && w.config.chart || {};
+  const used = [];
+  if (ctx.storyboard && ctx.storyboard._used) used.push("storyboard");
+  const link = chart.link;
+  if (ctx.linkedViews && link && (link.enabled === true || typeof link.dimension === "function")) {
+    used.push("link");
+  }
+  if (ctx.ink && chart.ink && chart.ink.enabled === true) used.push("ink");
+  if (ctx.measure && chart.measure && chart.measure.enabled === true) {
+    used.push("measure");
+  }
+  if (ctx.contextMenu && chart.contextMenu && chart.contextMenu.enabled === true) {
+    used.push("context-menu");
+  }
+  if (ctx.perspectives && (ctx.perspectives._used || _perspectivesTokenDecoded)) {
+    used.push("perspectives");
+  }
+  if (ctx.history && chart.history && chart.history.enabled === true) {
+    used.push("history");
+  }
+  return used;
+}
+function resolveKey(w) {
+  const perChart = w && w.config && w.config.chart && w.config.chart.license;
+  if (perChart) return perChart;
+  const singleton = LicenseManager.getKey();
+  if (singleton) return singleton;
+  const apex = Environment.getApex();
+  if (apex && apex.license) return apex.license;
+  return null;
+}
+function reinstateWatermark(ctx, elWrap) {
+  const node = Watermark.add(elWrap);
+  if (!node || typeof MutationObserver === "undefined") return;
+  if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
+  if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
+  const nodeObs = new MutationObserver(() => {
+    const n = Watermark.node(elWrap);
+    if (!n) return;
+    nodeObs.disconnect();
+    Watermark.applyStyles(n);
+    nodeObs.takeRecords();
+    nodeObs.observe(n, { attributes: true, attributeFilter: ["style"] });
+  });
+  nodeObs.observe(node, { attributes: true, attributeFilter: ["style"] });
+  ctx._wmNodeObserver = nodeObs;
+  ctx._wmObservedNode = node;
+}
+function addWatermark(ctx, elWrap) {
+  reinstateWatermark(ctx, elWrap);
+  if (typeof MutationObserver === "undefined" || ctx._wmWrapObserver) return;
+  const wrapObs = new MutationObserver(() => {
+    if (!Watermark.node(elWrap)) reinstateWatermark(ctx, elWrap);
+  });
+  wrapObs.observe(elWrap, { childList: true });
+  ctx._wmWrapObserver = wrapObs;
+}
+function teardownWatermark(ctx, elWrap) {
+  if (ctx._wmWrapObserver) {
+    ctx._wmWrapObserver.disconnect();
+    ctx._wmWrapObserver = null;
+  }
+  if (ctx._wmNodeObserver) {
+    ctx._wmNodeObserver.disconnect();
+    ctx._wmNodeObserver = null;
+  }
+  ctx._wmObservedNode = null;
+  const wrap = elWrap || ctx.w && ctx.w.dom && ctx.w.dom.elWrap;
+  if (wrap) Watermark.remove(wrap);
+}
+function notifyTrial(ctx, key, features) {
+  if (ctx._premiumLicenseNotified) return;
+  ctx._premiumLicenseNotified = true;
+  if (!key) {
+    console.warn(
+      `[ApexCharts] Premium feature${features.length > 1 ? "s" : ""} in use (${features.join(", ")}) without a license. Running in trial mode with a watermark. Get a license: ${PRICING_URL}`
+    );
+    return;
+  }
+  if (key !== LicenseManager.getKey()) {
+    console.error(`[Apex] ${LicenseManager.validateKey(key).message}`);
+  }
+}
+function enforceLicense(w, ctx) {
+  try {
+    if (!Environment.isBrowser()) return;
+    const elWrap = w && w.dom && w.dom.elWrap;
+    if (!elWrap) return;
+    const features = premiumFeaturesInUse(w, ctx);
+    if (features.length === 0) {
+      teardownWatermark(ctx, elWrap);
+      return;
+    }
+    const key = resolveKey(w);
+    if (LicenseManager.isKeyValid(key)) {
+      teardownWatermark(ctx, elWrap);
+      return;
+    }
+    addWatermark(ctx, elWrap);
+    notifyTrial(ctx, key, features);
+  } catch (e) {
+  }
+}
+function reevaluateLicenseAcrossCharts() {
+  if (!Environment.isBrowser()) return;
+  const apex = Environment.getApex();
+  const instances = apex && apex._chartInstances;
+  if (!Array.isArray(instances)) return;
+  instances.forEach((entry) => {
+    const chart = entry && entry.chart;
+    if (chart && chart.w && !chart.w.globals.isDestroyed) {
+      enforceLicense(chart.w, chart);
+    }
+  });
+}
 class Storyboard {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -39,6 +437,7 @@ class Storyboard {
     this._activeIndex = -1;
     this._animate = true;
     this._warnedNoPerspectives = false;
+    this._used = false;
   }
   /**
    * Bind beats to scroll position. Rebinding replaces the previous binding.
@@ -74,6 +473,8 @@ class Storyboard {
       var _a2;
       return (_a2 = this._observer) == null ? void 0 : _a2.observe(b.el);
     });
+    this._used = true;
+    enforceLicense(this.w, this.ctx);
     return this._beats.length;
   }
   /**
@@ -231,6 +632,8 @@ class Storyboard {
     }
     this._beats = [];
     this._activeIndex = -1;
+    this._used = false;
+    enforceLicense(this.w, this.ctx);
   }
   /** Full-destroy cleanup (called from Destroy). */
   teardown() {
@@ -470,6 +873,7 @@ class Perspectives {
     this.ctx = ctx;
     this._saved = [];
     this._counter = 0;
+    this._used = false;
   }
   /**
    * Capture the current chart view as a Perspective token.
@@ -553,6 +957,8 @@ class Perspectives {
   apply(tokenOrString, opts = {}) {
     const token = typeof tokenOrString === "string" ? Perspectives.decode(tokenOrString) : tokenOrString;
     if (!token || !token.view) return;
+    this._used = true;
+    enforceLicense(this.w, this.ctx);
     const animate = opts.animate !== void 0 ? opts.animate : true;
     const combined = Utils.extend(
       token.options ? Utils.clone(token.options) : {},
@@ -572,6 +978,8 @@ class Perspectives {
   save(name) {
     const id = `perspective-${++this._counter}`;
     this._saved.push({ id, name: name || id, token: this.capture() });
+    this._used = true;
+    enforceLicense(this.w, this.ctx);
     return id;
   }
   /**
@@ -640,9 +1048,15 @@ class Perspectives {
 _core__default.registerFeatures({ perspectives: Perspectives });
 _core__default.perspectives = {
   /** @param {string} str */
-  decode: (str) => Perspectives.decode(str),
+  decode: (str) => {
+    markPerspectivesTokenDecoded();
+    return Perspectives.decode(str);
+  },
   /** @param {string} [href] */
-  fromURL: (href) => Perspectives.fromURL(href)
+  fromURL: (href) => {
+    markPerspectivesTokenDecoded();
+    return Perspectives.fromURL(href);
+  }
 };
 _core__default.registerFeatures({ storyboard: Storyboard });
 export {

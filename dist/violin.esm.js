@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.4.0
+ * ApexCharts v6.5.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -602,7 +602,7 @@ class BarDataLabels {
     if (!w.config.chart.stacked) {
       if (dataLabelsConfig.textAnchor === "start") {
         if (dataLabelsX - textRects.width < 0) {
-          dataLabelsX = valIsNegative ? textRects.width + strokeWidth : strokeWidth;
+          dataLabelsX = valIsNegative ? textRects.width + strokeWidth - offX : strokeWidth + offX;
         } else if (dataLabelsX + textRects.width > w.layout.gridWidth) {
           dataLabelsX = valIsNegative ? w.layout.gridWidth - strokeWidth : w.layout.gridWidth - textRects.width - strokeWidth;
         }
@@ -1592,6 +1592,36 @@ class Helpers {
 }
 const Filters = _core.__apex_Filters;
 const computeStagger = _core.__apex_Animations_computeStagger;
+class AxisMapping {
+  /**
+   * Pixels per data-unit on the x-axis. Derived from `minX..maxX` so it is the
+   * exact inverse used by both {@link dataXToPx} and {@link pxToDataX}.
+   * @param {import('../types/internal').ChartStateW} w
+   * @returns {number}
+   */
+  static xRatio(w) {
+    const gw = w.layout.gridWidth || 1;
+    return (w.globals.maxX - w.globals.minX) / gw;
+  }
+  /**
+   * Data-x -> pixels from the plot origin (usable as an SVG `x` attribute).
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {number} dataX
+   * @returns {number}
+   */
+  static dataXToPx(w, dataX) {
+    return (dataX - w.globals.minX) / AxisMapping.xRatio(w);
+  }
+  /**
+   * Pixels from the plot origin -> data-x. Feed it `screenX - svgLeft - translateX`.
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {number} px
+   * @returns {number}
+   */
+  static pxToDataX(w, px) {
+    return w.globals.minX + px * AxisMapping.xRatio(w);
+  }
+}
 function seriesEmitter(ctx, graphics) {
   const r = ctx && ctx.renderer;
   return r && r.kind && r.kind !== "svg" ? r : graphics;
@@ -2294,7 +2324,7 @@ class Bar {
       sxI = w.globals.maxValsInArrayIndex;
     }
     if (Utils.isNumber(w.seriesData.seriesX[sxI][j])) {
-      x = (w.seriesData.seriesX[sxI][j] - w.globals.minX) / this.xRatio - barWidth * this.seriesLen / 2;
+      x = AxisMapping.dataXToPx(w, w.seriesData.seriesX[sxI][j]) - barWidth * this.seriesLen / 2;
     }
     return {
       barXPosition: x + barWidth * this.visibleI,
