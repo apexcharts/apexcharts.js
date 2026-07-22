@@ -15,6 +15,18 @@ const rootDir = path.join(path.resolve(__dirname), '..', '..')
 const e2eDir = `${rootDir}/tests/e2e`
 const e2eSamplesDir = `${rootDir}/samples/e2e`
 
+// Domainless enterprise license so premium features (history, ink, measure,
+// context-menu, link, storyboard, perspectives) render without the trial
+// watermark in e2e snapshots. The family's shared internal key (the one used in
+// the website repo) is domain-locked to apexcharts.com / 127.0.0.1, but e2e
+// loads samples over file:// where window.location.hostname is empty, so that
+// lock never matches and the watermark would still paint. This is the same
+// enterprise plan with the domain lock dropped, which validates on any host.
+// Injected via window.Apex.license (the lowest-precedence slot) before any page
+// script, so a sample can still override it with chart.license if it needs to.
+const E2E_LICENSE_KEY =
+  'APEX-eyJleHBpcnlEYXRlIjoiMjA5OS0wMS0wMSIsImlzc3VlRGF0ZSI6IjIwMjQtMDEtMDEiLCJwbGFuIjoiZW50ZXJwcmlzZSJ9'
+
 let browser
 
 class TestError extends Error {
@@ -48,6 +60,14 @@ async function processSample(page, sample, command) {
 
   const consoleErrors = []
   page.on('pageerror', (error) => consoleErrors.push(error.message))
+
+  // Apply the license before any page script runs so premium-feature samples
+  // never paint the trial watermark into a snapshot. Runs for both the 'update'
+  // (reference) and 'test' (comparison) paths, so the two stay consistent.
+  await page.evaluateOnNewDocument((key) => {
+    window.Apex = window.Apex || {}
+    if (window.Apex.license == null) window.Apex.license = key
+  }, E2E_LICENSE_KEY)
 
   await page.evaluateOnNewDocument(() => {
     window.isATest = true

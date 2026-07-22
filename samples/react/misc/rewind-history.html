@@ -88,9 +88,17 @@
     </script>
 
     <script>
+      // A wandering line (numeric x, ~45 points) so there is room to zoom, pan,
+      // annotate and measure. Randomize regenerates it into a fresh checkpoint.
       function randomSeries() {
         var d = []
-        for (var i = 0; i < 7; i++) d.push(Math.round(10 + Math.random() * 90))
+        var v = 45 + Math.random() * 25
+        for (var i = 0; i < 45; i++) {
+          v += (Math.random() - 0.5) * 22
+          if (v < 8) v = 8
+          if (v > 100) v = 100
+          d.push([i + 1, Math.round(v)])
+        }
         return d
       }
     </script>
@@ -111,47 +119,65 @@
 &lt;/div&gt;
 
 &lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={380} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;line&quot; height={400} /&gt;
 &lt;/div&gt;
 
 &lt;div class=&quot;panel&quot;&gt;
   &lt;div class=&quot;note&quot;&gt;
     History is enabled with &lt;code&gt;chart: &amp;#123; history: &amp;#123; enabled: true &amp;#125; &amp;#125;&lt;/code&gt;.
-    Every data update, zoom, and point selection commits a checkpoint. Press
-    Randomize a few times, then step back with Undo / Redo (or press
-    &lt;code&gt;Cmd/Ctrl + Z&lt;/code&gt; and &lt;code&gt;Shift + Cmd/Ctrl + Z&lt;/code&gt;). Toggling a
-    series in the legend and zooming also create checkpoints. The buttons enable
-    from the &lt;code&gt;historyChange&lt;/code&gt; event via &lt;code&gt;chart.history.state()&lt;/code&gt;.
+    Every data update, zoom, pan, annotation and measurement commits a
+    checkpoint. &lt;b&gt;Right-click&lt;/b&gt; the plot to add a note, drop a dashed marker
+    line, or start a measurement (context menu); &lt;b&gt;drag-select&lt;/b&gt; or use the
+    toolbar to zoom and pan; hold &lt;code&gt;m&lt;/code&gt; and drag to measure; press
+    Randomize to replace the data. Then step back with Undo / Redo (or press
+    &lt;code&gt;Cmd/Ctrl + Z&lt;/code&gt; and &lt;code&gt;Shift + Cmd/Ctrl + Z&lt;/code&gt;). The buttons
+    enable from the &lt;code&gt;historyChange&lt;/code&gt; event via
+    &lt;code&gt;chart.history.state()&lt;/code&gt;.
   &lt;/div&gt;
 &lt;/div&gt;</div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          series: [{ name: 'Value', data: [34, 55, 41, 67, 22, 48, 60] }],
+          series: [{ name: 'Value', data: randomSeries() }],
           options: {
             chart: {
-              height: 380,
-              type: 'bar',
+              height: 400,
+              type: 'line',
               id: 'rewind-demo',
+              fontFamily: 'Helvetica, Arial, sans-serif',
               animations: { enabled: true },
-              toolbar: { show: false },
+              // Toolbar on so zoom / pan / reset (and the measure tool) are one click away.
+              toolbar: { show: true, autoSelected: 'zoom' },
+              zoom: { enabled: true, type: 'x' },
               history: {
                 enabled: true,
                 maxDepth: 50,
                 coalesceMs: 250,
                 keyboard: true,
               },
-              zoom: { enabled: true },
+              // Right-click actions: drop a note, a dashed marker line, or seed the ruler.
+              contextMenu: {
+                enabled: true,
+                line: { text: 'Marker', strokeDashArray: 5, color: '#7c5cf6' },
+                items: ['annotate', 'xline', 'yline', 'measure'],
+              },
+              // Measure ruler + editable / draggable annotations. Both commit checkpoints,
+              // so Undo / Redo steps through them alongside data and zoom changes.
+              measure: { enabled: true },
+              ink: { enabled: true, snap: true },
             },
             colors: ['#7c5cf6'],
-            plotOptions: { bar: { columnWidth: '55%', borderRadius: 4 } },
+            stroke: { width: 2.5, curve: 'smooth' },
+            markers: { size: 0, hover: { size: 5 } },
             dataLabels: { enabled: false },
             title: {
-              text: 'Undo / redo over data, zoom, and selection',
+              text: 'Undo / redo over data, zoom, annotations, and measurements',
               align: 'left',
             },
-            xaxis: { categories: ['A', 'B', 'C', 'D', 'E', 'F', 'G'] },
+            xaxis: { type: 'numeric', title: { text: 'Session' }, tickAmount: 10 },
+            yaxis: { decimalsInFloat: 0 },
+            grid: { borderColor: '#eceff5' },
           },
         })
 
@@ -233,8 +259,8 @@
               <ReactApexChart
                 options={state.options}
                 series={state.series}
-                type="bar"
-                height={380}
+                type="line"
+                height={400}
               />
             </div>
 
@@ -242,11 +268,14 @@
               <div class="note">
                 History is enabled with{' '}
                 <code>chart: &#123; history: &#123; enabled: true &#125; &#125;</code>
-                . Every data update, zoom, and point selection commits a checkpoint.
-                Press Randomize a few times, then step back with Undo / Redo (or press
-                <code>Cmd/Ctrl + Z</code> and <code>Shift + Cmd/Ctrl + Z</code>).
-                Toggling a series in the legend and zooming also create checkpoints.
-                The buttons enable from the <code>historyChange</code> event via{' '}
+                . Every data update, zoom, pan, annotation and measurement commits a
+                checkpoint. <b>Right-click</b> the plot to add a note, drop a dashed
+                marker line, or start a measurement (context menu); <b>drag-select</b>{' '}
+                or use the toolbar to zoom and pan; hold <code>m</code> and drag to
+                measure; press Randomize to replace the data. Then step back with Undo
+                / Redo (or press
+                <code>Cmd/Ctrl + Z</code> and <code>Shift + Cmd/Ctrl + Z</code>). The
+                buttons enable from the <code>historyChange</code> event via
                 <code>chart.history.state()</code>.
               </div>
             </div>
