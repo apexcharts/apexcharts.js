@@ -201,6 +201,11 @@ export function captureViewState(w, ctx) {
  */
 export function applyCollapsedSet(ctx, targetCollapsed, targetAncillary) {
   const w = ctx.w
+  // A hand-authored view (e.g. a storyboard beat, a bare ViewState) that does
+  // NOT mention the collapsed set leaves it untouched, so a user's legend toggle
+  // persists as they scrub between beats. A captured token always carries arrays
+  // (possibly empty), so an explicit empty set still un-hides everything.
+  if (targetCollapsed == null && targetAncillary == null) return
   const names = w.globals.seriesNames || []
   const target = new Set([
     ...(targetCollapsed || []),

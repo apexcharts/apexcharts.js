@@ -204,10 +204,88 @@ export default class Series {
     const w = this.w
     for (let i = 0; i < series.length; i++) {
       if (w.globals.collapsedSeriesIndices.indexOf(i) > -1) {
-        series[i].data = []
+        // Axis charts carry {name, data}; non-axis charts (pie / donut / unit)
+        // carry a bare numeric value. Empty each in its own shape: setting
+        // `.data` on a number throws ("Cannot create property 'data' on number"),
+        // which used to abort an in-flight update (e.g. a storyboard beat) once a
+        // series had been collapsed via a legend toggle.
+        if (series[i] && typeof series[i] === 'object') {
+          series[i].data = []
+        } else {
+          series[i] = 0
+        }
       }
     }
     return series
+  }
+
+  /**
+   * Series display names for the CURRENT `w.config` (post-merge), derived the
+   * same way the parser does: an object series' own `name`, else the matching
+   * `labels` entry (non-axis / pie / unit), else a generated `series-N`.
+   * @returns {string[]}
+   */
+  _deriveSeriesNames() {
+    const w = this.w
+    const series = w.config.series || []
+    const labels = w.config.labels || []
+    return series.map((/** @type {any} */ s, /** @type {number} */ i) => {
+      if (s && typeof s === 'object' && s.name != null) return String(s.name)
+      return labels[i] != null ? String(labels[i]) : `series-${i + 1}`
+    })
+  }
+
+  /**
+   * Re-apply legend-hidden (collapsed) series to a freshly-updated
+   * `w.config.series`, matching BY CATEGORY NAME rather than index. This keeps a
+   * hide alive across a data update that reorders or regroups categories - most
+   * visibly a storyboard beat that supplies new series each scroll:
+   *   - a category still present stays hidden (at its possibly-new index);
+   *   - a category the update dropped/regrouped away is un-hidden (it no longer
+   *     exists, so it must reappear as part of the new grouping).
+   * Records without a stored name (older collapses) fall back to their index.
+   */
+  reconcileCollapsedByName() {
+    const w = this.w
+    const gl = w.globals
+    const newNames = this._deriveSeriesNames()
+
+    /**
+     * @param {any[]} records
+     * @returns {{ records: any[], indices: number[] }}
+     */
+    const reconcile = (records) => {
+      /** @type {any[]} */ const nextRecords = []
+      /** @type {number[]} */ const nextIndices = []
+      records.forEach((rec) => {
+        const j =
+          rec && rec.name != null ? newNames.indexOf(rec.name) : rec.index
+        // Category gone (regrouped away) -> drop the collapse so it reappears.
+        if (j == null || j < 0 || j >= w.config.series.length) return
+        const s = /** @type {any} */ (w.config.series[j])
+        rec.index = j
+        // Refresh the stored data to the NEW value so a later rise restores the
+        // current data, not the stale snapshot from when it was first hidden.
+        rec.data = gl.axisCharts ? (s && s.data ? s.data.slice() : []) : s
+        nextRecords.push(rec)
+        nextIndices.push(j)
+      })
+      return { records: nextRecords, indices: nextIndices }
+    }
+
+    const main = reconcile(gl.collapsedSeries)
+    gl.collapsedSeries = main.records
+    gl.collapsedSeriesIndices = main.indices
+
+    const anc = reconcile(gl.ancillaryCollapsedSeries)
+    gl.ancillaryCollapsedSeries = anc.records
+    gl.ancillaryCollapsedSeriesIndices = anc.indices
+
+    gl.allSeriesCollapsed =
+      gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length ===
+      w.config.series.length
+
+    this.emptyCollapsedSeries(w.config.series)
   }
 
   /**

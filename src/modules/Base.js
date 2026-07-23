@@ -142,6 +142,7 @@ export default class Base {
         seriesGoals: [],
         stackedSeriesTotals: [],
         stackedSeriesTotalsByGroups: [],
+        unitData: [], // per-unit data for the `unit` chart (see SeriesData)
       },
       // Grid / axis layout computed by Dimensions.plotCoords() each render.
       // gridWidth/gridHeight/translateX/translateY are also used as starting

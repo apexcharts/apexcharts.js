@@ -1,0 +1,21 @@
+{
+  "title": "Bar Explode to Unit Chart",
+  "externals": [],
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "// Shared by the vanilla-js, React and Vue builds. One dataset, drawn two ways:\n// a column chart (magnitude per bar) and a unit chart (one dot per seat). The\n// morph feature (bundled) makes the bar burst into its dots on the switch.\nvar LABELS = ['Republican', 'Democrat', 'Independent']\nvar COLORS = ['#EB4D4B', '#2E86DE', '#95A5A6']\nvar VALUES = [276, 266, 3]\n\nfunction setActive(view) {\n  document\n    .querySelectorAll('.actions button[data-view]')\n    .forEach(function (btn) {\n      btn.classList.toggle('active', btn.getAttribute('data-view') === view)\n    })\n}\n\nvar options = {\n  series: [{ name: 'Seats', data: [276, 266, 3] }],\n  chart: {\n    id: 'explodeChart',\n    type: 'bar',\n    height: 420,\n    toolbar: {\n      show: false,\n    },\n    animations: {\n      enabled: true,\n      speed: 900,\n      chartTypeMorph: {\n        enabled: true,\n        speed: 900,\n      },\n    },\n  },\n  labels: ['Republican', 'Democrat', 'Independent'],\n  colors: ['#EB4D4B', '#2E86DE', '#95A5A6'],\n  legend: { show: false },\n  dataLabels: { enabled: false },\n  plotOptions: {\n    bar: {\n      distributed: true,\n      borderRadius: 4,\n      columnWidth: '55%',\n    },\n    unit: {\n      layout: 'grouped',\n      clusterLabels: { show: true },\n    },\n  },\n  grid: { show: false },\n  yaxis: { show: false },\n  xaxis: {\n    categories: ['Republican', 'Democrat', 'Independent'],\n    axisBorder: { show: false },\n    axisTicks: { show: false },\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n\n// LABELS, COLORS, VALUES and setActive live in the shared head script.\nvar current = 'bar'\nsetActive(current)\n\ndocument.querySelectorAll('.actions button[data-view]').forEach(function (btn) {\n  btn.addEventListener('click', function () {\n    var view = btn.getAttribute('data-view')\n    if (view === current) return\n    current = view\n    setActive(current)\n    if (view === 'unit') {\n      chart.updateOptions({\n        chart: { type: 'unit' },\n        series: VALUES,\n        labels: LABELS,\n      })\n    } else {\n      chart.updateOptions({\n        chart: { type: 'bar' },\n        series: [{ name: 'Seats', data: VALUES }],\n        labels: LABELS,\n      })\n    }\n  })\n})\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Bar Explode to Unit Chart</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Bar, exploded into units</h1>\n      <p>\n        The same seat counts as a column chart and as a unit (dot cluster)\n        chart. With the bundled <code>morph</code> module, switching to units\n        bursts each column into its individual seats; switching back re-collects\n        them.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"actions\">\n        <button data-view=\"bar\">Columns</button>\n        <button data-view=\"unit\">Explode to units</button>\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "body {\n  font-family:\n    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n  background: #fafbfc;\n  color: #2c3e50;\n  margin: 0;\n  padding: 32px 16px;\n}\n.wrap {\n  max-width: 760px;\n  margin: 0 auto;\n}\nh1 {\n  font-size: 22px;\n  margin: 0 0 8px;\n}\np {\n  color: #5b6b78;\n  line-height: 1.5;\n  margin: 0 0 24px;\n}\n.chart-wrap {\n  background: #fff;\n  border-radius: 8px;\n  padding: 16px;\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);\n}\n.actions {\n  margin: 24px auto 0;\n  display: flex;\n  gap: 8px;\n  justify-content: center;\n}\n.actions button {\n  color: #fff;\n  background: #008ffb;\n  border: none;\n  padding: 8px 16px;\n  font-weight: 600;\n  font-size: 13px;\n  border-radius: 6px;\n  cursor: pointer;\n}\n.actions button.active {\n  background: #00543d;\n}\n"
+    }
+  ]
+}

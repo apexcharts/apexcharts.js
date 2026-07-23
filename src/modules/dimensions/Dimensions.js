@@ -297,6 +297,28 @@ export default class Dimensions {
       xPad = 20
     }
 
+    // Unit (dot-cluster) charts fill the whole plot area - a row of clusters or
+    // one packed blob - rather than the square a pie/radialBar needs. Reserve
+    // legend space on the correct edge and take the rest.
+    if (cnf.chart.type === 'unit') {
+      const legendVisible = cnf.legend.show && !cnf.legend.floating
+      const pos = cnf.legend.position
+      let top = 0
+      let side = 0
+      if (legendVisible) {
+        if (pos === 'bottom' || pos === 'top') {
+          top = this.lgRect.height
+        } else {
+          side = this.lgRect.width + xPad
+        }
+      }
+      w.layout.gridWidth = gl.svgWidth - side
+      w.layout.gridHeight = gl.svgHeight - top
+      w.layout.translateX = pos === 'left' ? side : 0
+      w.layout.translateY = pos === 'top' ? top : 0
+      return
+    }
+
     const type =
       cnf.chart.type === 'pie' ||
       cnf.chart.type === 'polarArea' ||

@@ -21,6 +21,7 @@ import Radar from '../charts/Radar'
 import Radial from '../charts/Radial'
 import RangeBar from '../charts/RangeBar'
 import Treemap from '../charts/Treemap'
+import Unit from '../charts/Unit'
 
 ApexCharts.use({
   line: Line,
@@ -42,6 +43,7 @@ ApexCharts.use({
   radar: Radar,
   heatmap: HeatMap,
   treemap: Treemap,
+  unit: Unit,
 })
 
 export default ApexCharts

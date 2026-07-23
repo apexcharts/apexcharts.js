@@ -983,11 +983,25 @@ export default class Tooltip {
         tooltipEl.removeAttribute('aria-hidden')
       }
 
-      this.tooltipLabels.drawSeriesTexts({
-        ttItems: opt.ttItems,
-        i: parseInt(rel, 10) - 1,
-        shared: false,
-      })
+      // Unit chart: the listener sits on the cluster GROUP, but e.target is the
+      // individual dot the cursor is over. Resolve it so each dot tooltips its
+      // own identity (category + index within the category) instead of every
+      // dot repeating the cluster aggregate.
+      if (w.config.chart.type === 'unit') {
+        const unitDot =
+          e.target && typeof e.target.closest === 'function'
+            ? e.target.closest('.apexcharts-unit-area')
+            : null
+        // Over a label / gap (no dot): leave the last tooltip untouched.
+        if (!unitDot) return
+        this.renderUnitTooltip(unitDot)
+      } else {
+        this.tooltipLabels.drawSeriesTexts({
+          ttItems: opt.ttItems,
+          i: parseInt(rel, 10) - 1,
+          shared: false,
+        })
+      }
 
       let x, y
 
@@ -1055,6 +1069,114 @@ export default class Tooltip {
         })
       }
     }
+  }
+
+  /**
+   * Fill the tooltip for one hovered unit-chart dot. Each dot carries `i` (its
+   * category / series index) and `j` (its index within that category). The
+   * default body reads "#<j+1> of <count>"; `plotOptions.unit.tooltip.formatter`
+   * overrides just the body text (it is handed i/j so it can look up per-unit
+   * data), and the global `tooltip.custom` still overrides the whole markup.
+   * @param {Element} dotEl the hovered `.apexcharts-unit-area` node
+   */
+  renderUnitTooltip(dotEl) {
+    const w = this.w
+    const tooltipEl = this.getElTooltip()
+    if (!tooltipEl) return
+
+    const i = parseInt(dotEl.getAttribute('i') || '0', 10)
+    const j = parseInt(dotEl.getAttribute('j') || '0', 10)
+
+    // A user-supplied global custom tooltip owns the whole markup; hand it the
+    // resolved per-unit i/j (dataPointIndex) so it can render per-unit content.
+    if (typeof w.config.tooltip.custom === 'function') {
+      this.tooltipLabels.handleCustomTooltip({ i, j, y1: null, y2: null, w })
+      return
+    }
+
+    const seriesName = w.seriesData.seriesNames[i] || `series-${i + 1}`
+    // Raw category value (e.g. 1000 people) vs. the number of DOTS actually
+    // drawn for it (e.g. 10 when unitValue is 100, or fewer after a maxUnits
+    // clip). "#j of count" indexes dots, so count must be the dot count; read it
+    // from the hovered dot's own cluster group so it always matches the render.
+    const value = Math.round(Number(w.seriesData.series[i]) || 0)
+    const group = dotEl.parentNode
+    const count =
+      group && group.querySelectorAll
+        ? group.querySelectorAll('.apexcharts-unit-area').length
+        : value
+    const unitOpts = w.config.plotOptions.unit || {}
+    const unitValue = unitOpts.unitValue > 0 ? unitOpts.unitValue : 1
+
+    // Per-unit datum (object-form input): this dot's own data object/primitive.
+    const catData = w.seriesData.unitData && w.seriesData.unitData[i]
+    const datum = catData ? catData[j] : undefined
+    const datumObj = datum && typeof datum === 'object' ? datum : null
+    // A per-unit fillColor tints the tooltip marker to match the dot.
+    const color =
+      (datumObj && datumObj.fillColor) ||
+      (w.globals.colors && w.globals.colors[i]) ||
+      '#008FFB'
+
+    let body
+    const fmt = unitOpts.tooltip && unitOpts.tooltip.formatter
+    if (typeof fmt === 'function') {
+      body = fmt({
+        seriesName,
+        seriesIndex: i,
+        dataPointIndex: j,
+        count,
+        value,
+        unitValue,
+        datum,
+        color,
+        w,
+      })
+    } else if (datum !== undefined && datum !== null) {
+      // Per-unit datum: show its own name/label and value when present, else the
+      // primitive value itself.
+      const label = datumObj
+        ? (datumObj.name ?? datumObj.label ?? datumObj.x ?? null)
+        : null
+      const dVal = datumObj ? (datumObj.value ?? datumObj.y ?? null) : datum
+      body =
+        label != null && dVal != null
+          ? `${label}: ${dVal}`
+          : label != null
+            ? String(label)
+            : dVal != null
+              ? String(dVal)
+              : `#${(j + 1).toLocaleString()} of ${count.toLocaleString()}`
+    } else {
+      // Flat-count input: the dot has no data of its own, so give its position.
+      body = `#${(j + 1).toLocaleString()} of ${count.toLocaleString()}`
+      // When one dot stands for many units, spell that out.
+      if (unitValue !== 1) {
+        body += ` &middot; ${unitValue.toLocaleString()} per dot`
+      }
+    }
+
+    const fontFamily = w.config.chart.fontFamily || 'inherit'
+    const fontSize =
+      (w.config.tooltip.style && w.config.tooltip.style.fontSize) || '12px'
+
+    // The arrow is a sibling of the content; detach so innerHTML keeps it.
+    const arrowEl = tooltipEl.querySelector('.apexcharts-tooltip-arrow')
+    tooltipEl.innerHTML =
+      `<div class="apexcharts-tooltip-title" style="font-family: ${fontFamily}; font-size: ${fontSize};">${seriesName}</div>` +
+      `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display: flex;">` +
+      `<span class="apexcharts-tooltip-marker" style="background-color: ${color};"></span>` +
+      `<div class="apexcharts-tooltip-text" style="font-family: ${fontFamily}; font-size: ${fontSize};">` +
+      `<div class="apexcharts-tooltip-y-group">` +
+      `<span class="apexcharts-tooltip-text-y-value">${body}</span>` +
+      `</div></div></div>`
+    if (arrowEl) tooltipEl.appendChild(arrowEl)
+
+    // Content changed the box size; refresh the cached rect so the positioning
+    // that follows centres on the true width/height.
+    const rect = tooltipEl.getBoundingClientRect()
+    this.tooltipRect.ttWidth = rect.width
+    this.tooltipRect.ttHeight = rect.height
   }
 
   /**

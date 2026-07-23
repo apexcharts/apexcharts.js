@@ -179,6 +179,11 @@ export interface SeriesData {
   seriesGoals: Array<Array<Array<{ name: string; value: number; strokeColor?: string }>>>
   stackedSeriesTotals: number[]
   stackedSeriesTotalsByGroups: number[][]
+  /** Per-unit data for the `unit` chart: `unitData[categoryIndex][unitIndex]`
+   * is one unit's datum (a primitive, or an object that may carry `name`/
+   * `label`, `value`/`y`, `fillColor`, and arbitrary metadata). Empty for
+   * flat-count input. Feeds per-dot colour and per-unit tooltips. */
+  unitData?: any[][]
   /** Per-parse fused x/y-extrema recorded by Data._fast2DArrayParse, consumed
    * by Range (getMinYMaxY, getInitialMinXMaxX, _getMinXDiff) when the
    * ref+length guard matches (sparse). */
@@ -299,9 +304,9 @@ export interface ChartGlobals
 
   // ── Collapse state ────────────────────────────────────────────────────────
   allSeriesCollapsed: boolean
-  collapsedSeries: Array<{ index: number; data: number[]; type: string }>
+  collapsedSeries: Array<{ index: number; data: any; type: string; name?: string }>
   collapsedSeriesIndices: number[]
-  ancillaryCollapsedSeries: Array<{ index: number; data: number[]; type: string }>
+  ancillaryCollapsedSeries: Array<{ index: number; data: any; type: string; name?: string }>
   ancillaryCollapsedSeriesIndices: number[]
   risingSeries: number[]
   ignoreYAxisIndexes: number[]

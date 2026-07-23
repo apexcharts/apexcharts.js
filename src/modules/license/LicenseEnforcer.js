@@ -2,12 +2,13 @@
 /**
  * LicenseEnforcer - decides, per chart, whether a trial watermark is shown.
  *
- * Gates ONLY these 7 premium features, and ONLY when they are actually IN USE
- * (not merely bundled): storyboard, link (crossfilter/linked views), ink,
- * measure, context-menu, perspectives, history. Everything else (all chart
- * types, and the free modules weave / renderer-canvas / marks / facet /
- * drilldown / morph / annotations / legend / toolbar / keyboard / exports, and
- * the always-on core) is never gated.
+ * Gates these premium features, and ONLY when they are actually IN USE (not
+ * merely bundled): storyboard, link (crossfilter/linked views), ink, measure,
+ * context-menu, perspectives, history, PLUS the premium `unit` (dot-cluster /
+ * pictogram) chart type. Everything else (all OTHER chart types, and the free
+ * modules weave / renderer-canvas / marks / facet / drilldown / morph /
+ * annotations / legend / toolbar / keyboard / exports, and the always-on core)
+ * is never gated.
  *
  * Enforcement is trial-mode: a premium feature without a valid license keeps
  * working, but the chart shows an "APEXCHARTS" watermark. A valid key removes
@@ -57,6 +58,11 @@ export function premiumFeaturesInUse(w, ctx) {
   const chart = (w && w.config && w.config.chart) || {}
   /** @type {string[]} */
   const used = []
+
+  // unit (dot-cluster / pictogram): premium CHART TYPE. Unlike the feature
+  // flags below, "in use" is simply "this chart is a unit chart" - the type is
+  // the product. It renders fully in trial mode, just watermarked.
+  if (chart.type === 'unit') used.push('unit')
 
   // storyboard: API-only. bind() sets ctx.storyboard._used; unbind() clears it.
   if (ctx.storyboard && ctx.storyboard._used) used.push('storyboard')

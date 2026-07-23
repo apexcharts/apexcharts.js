@@ -154,35 +154,21 @@ export default class UpdateHelpers {
             // lazy snapshot: deep clone deferred to first read
             w.globals.initialSeries = w.config.series
 
-            if (options.series) {
-              // Replace the collapsed series data
-              for (
-                let i = 0;
-                i < w.globals.collapsedSeriesIndices.length;
-                i++
-              ) {
-                const series =
-                  w.config.series[w.globals.collapsedSeriesIndices[i]]
-                w.globals.collapsedSeries[i].data = w.globals.axisCharts
-                  ? /** @type {any} */ (series).data.slice()
-                  : series
-              }
-              for (
-                let i = 0;
-                i < w.globals.ancillaryCollapsedSeriesIndices.length;
-                i++
-              ) {
-                const series =
-                  w.config.series[w.globals.ancillaryCollapsedSeriesIndices[i]]
-                w.globals.ancillaryCollapsedSeries[i].data = w.globals
-                  .axisCharts
-                  ? /** @type {any} */ (series).data.slice()
-                  : series
-              }
+          }
 
-              // Ensure that auto-generated axes are scaled to the visible data
-              ch.series.emptyCollapsedSeries(w.config.series)
-            }
+          // Keep legend-hidden (collapsed) series hidden across ANY series
+          // update, INCLUDING a storyboard beat that supplies fresh series with
+          // overwriteInitialConfig:false (which previously skipped this, so a
+          // deactivated series reappeared on the next beat). Reconciled BY
+          // CATEGORY NAME: a beat that keeps the same categories persists the
+          // hide (at its possibly-new index), while one that regroups into
+          // different categories correctly drops it.
+          if (
+            options.series &&
+            (w.globals.collapsedSeriesIndices.length > 0 ||
+              w.globals.ancillaryCollapsedSeriesIndices.length > 0)
+          ) {
+            ch.series.reconcileCollapsedByName()
           }
         }
 

@@ -6,6 +6,73 @@ function getSeries(chart) {
   return chart.series
 }
 
+describe('Series — emptyCollapsedSeries()', () => {
+  it('empties an axis series (object) by clearing its data array', () => {
+    const s = new Series({ globals: { collapsedSeriesIndices: [0] } })
+    expect(
+      s.emptyCollapsedSeries([
+        { name: 'A', data: [1, 2] },
+        { name: 'B', data: [3] },
+      ]),
+    ).toEqual([{ name: 'A', data: [] }, { name: 'B', data: [3] }])
+  })
+
+  it('empties a non-axis series (bare number) to 0 without throwing (regression)', () => {
+    // Regression: pie/donut/unit series entries are numbers; the old code did
+    // `series[i].data = []` which threw "Cannot create property 'data' on number",
+    // freezing an in-flight update (e.g. a storyboard beat) once a legend toggle
+    // had collapsed a series.
+    const s = new Series({ globals: { collapsedSeriesIndices: [1] } })
+    expect(() => s.emptyCollapsedSeries([276, 266, 3])).not.toThrow()
+    expect(s.emptyCollapsedSeries([276, 266, 3])).toEqual([276, 0, 3])
+  })
+})
+
+describe('Series — reconcileCollapsedByName()', () => {
+  const mk = (globals, config) =>
+    new Series({
+      globals: {
+        axisCharts: false,
+        ancillaryCollapsedSeries: [],
+        ancillaryCollapsedSeriesIndices: [],
+        ...globals,
+      },
+      config: { chart: { type: 'unit' }, ...config },
+    })
+
+  it('re-collapses a category that moved to a new index (persist across reorder)', () => {
+    const s = mk(
+      {
+        collapsedSeries: [{ index: 0, data: 276, name: 'Republican' }],
+        collapsedSeriesIndices: [0],
+      },
+      {
+        series: [266, 276, 3],
+        labels: ['Democrat', 'Republican', 'Independent'],
+      },
+    )
+    s.reconcileCollapsedByName()
+    // "Republican" is now at index 1; the collapse follows it and its value is
+    // zeroed so it stays hidden after the update.
+    expect(s.w.globals.collapsedSeriesIndices).toEqual([1])
+    expect(s.w.config.series).toEqual([266, 0, 3])
+  })
+
+  it('drops a collapse whose category no longer exists (regroup)', () => {
+    const s = mk(
+      {
+        collapsedSeries: [{ index: 0, data: 276, name: 'Republican' }],
+        collapsedSeriesIndices: [0],
+      },
+      { series: [140, 120, 90], labels: ['Freshman', '1 term', '2 terms'] },
+    )
+    s.reconcileCollapsedByName()
+    // No "Republican" category anymore -> the hide is dropped, nothing zeroed.
+    expect(s.w.globals.collapsedSeriesIndices).toEqual([])
+    expect(s.w.config.series).toEqual([140, 120, 90])
+  })
+})
+
 describe('Series — static addCollapsedClassToSeries()', () => {
   it('adds collapsed class when series index is in collapsedSeries', () => {
     const chart = createChart('line', [{ data: [1, 2, 3] }])

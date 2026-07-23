@@ -1,0 +1,186 @@
+<title>Unit Chart Team Roster (per-unit data)</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fafbfc;
+  color: #2c3e50;
+  margin: 0;
+  padding: 32px 16px;
+}
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+p {
+  color: #5b6b78;
+  line-height: 1.55;
+  margin: 0 0 20px;
+}
+.chart-wrap {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+.legend-note {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  margin-top: 14px;
+  font-size: 13px;
+  color: #5b6b78;
+}
+.legend-note .swatch {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+</style>
+
+<scripts>
+<script>
+// Per-unit data: every dot is ONE person, carrying its own name, role and
+// (optionally) colour. The chart groups people by team; team leads get their
+// own fillColor so a single dot stands out from its cluster. Hover any dot to
+// read that individual's details, not the team aggregate. Shared by the
+// vanilla-js, React and Vue builds.
+var LEAD = '#FFAB00' // a lead's dot is tinted amber, overriding the team colour
+
+var ROSTER = [
+  {
+    name: 'Engineering',
+    data: [
+      { name: 'Ana Ruiz', role: 'Engineering Lead', fillColor: LEAD },
+      { name: 'Ben Cho', role: 'Staff Engineer' },
+      { name: 'Priya Nair', role: 'Senior Engineer' },
+      { name: 'Marco Silva', role: 'Senior Engineer' },
+      { name: 'Yuki Tanaka', role: 'Engineer' },
+      { name: 'Sam Okoye', role: 'Engineer' },
+      { name: 'Lena Fischer', role: 'Engineer' },
+      { name: 'Diego Torres', role: 'Engineer' },
+      { name: 'Hana Kim', role: 'Junior Engineer' },
+      { name: 'Omar Haddad', role: 'Junior Engineer' },
+    ],
+  },
+  {
+    name: 'Design',
+    data: [
+      { name: 'Noa Levi', role: 'Design Lead', fillColor: LEAD },
+      { name: 'Tom Beck', role: 'Senior Designer' },
+      { name: 'Ivy Chen', role: 'Product Designer' },
+      { name: 'Kofi Mensah', role: 'Product Designer' },
+      { name: 'Sara Nowak', role: 'Designer' },
+      { name: 'Leo Rossi', role: 'Designer' },
+    ],
+  },
+  {
+    name: 'Sales',
+    data: [
+      { name: 'Mara Vidal', role: 'Sales Lead', fillColor: LEAD },
+      { name: 'Jon Park', role: 'Account Executive' },
+      { name: 'Ella Brandt', role: 'Account Executive' },
+      { name: 'Raj Mehta', role: 'Account Executive' },
+      { name: 'Fay Duval', role: 'SDR' },
+      { name: 'Cole Ward', role: 'SDR' },
+      { name: 'Nia Abara', role: 'SDR' },
+      { name: 'Theo Blanc', role: 'SDR' },
+    ],
+  },
+]
+
+// Return the tooltip body for one hovered person: name on top, role beneath.
+function rosterTooltip(o) {
+  if (!o.datum) return o.seriesName
+  return (
+    '<div style="font-weight:700">' +
+    o.datum.name +
+    '</div>' +
+    '<div style="opacity:0.7">' +
+    o.datum.role +
+    '</div>'
+  )
+}
+</script>
+</scripts>
+
+<html>
+<div class="wrap">
+  <h1>Team roster</h1>
+  <p>
+    One dot per person, grouped by team. Each dot carries its own data (name and
+    role), so hovering a dot shows that individual, not the team total. Team
+    leads carry their own colour, tinting a single dot within the cluster.
+  </p>
+
+  <div class="chart-wrap">
+    {{ charts[0] }}
+    <div class="legend-note">
+      <span><span class="swatch" style="background:#635BFF"></span>Engineering</span>
+      <span><span class="swatch" style="background:#00B8D9"></span>Design</span>
+      <span><span class="swatch" style="background:#36B37E"></span>Sales</span>
+      <span><span class="swatch" style="background:#FFAB00"></span>Team lead</span>
+    </div>
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  type: 'unit',
+  height: 440,
+  animations: {
+    enabled: true,
+    speed: 700,
+  },
+},
+colors: ['#635BFF', '#00B8D9', '#36B37E'],
+legend: {
+  show: false,
+},
+plotOptions: {
+  unit: {
+    layout: 'grouped',
+    spacing: 1.2,
+    clusterLabels: {
+      show: true,
+      // Team name + headcount, e.g. "Engineering (10)".
+      formatter: function (name, opts) {
+        return name + ' (' + opts.value + ')'
+      },
+    },
+    tooltip: {
+      // rosterTooltip lives in the shared head script.
+      formatter: rosterTooltip,
+    },
+  },
+},
+</options>
+
+<series>
+ROSTER
+</series>
+</chart>
+
+<vanilla-js-script>
+// Nothing extra to wire: the chart renders from the options above. ROSTER and
+// rosterTooltip live in the shared head script.
+</vanilla-js-script>
+
+<react-script>
+// Nothing extra to wire: the chart renders from the options above. ROSTER and
+// rosterTooltip live in the shared head script.
+</react-script>
+
+<vue-script>
+// Nothing extra to wire: the chart renders from the options above. ROSTER and
+// rosterTooltip live in the shared head script.
+</vue-script>

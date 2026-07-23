@@ -1,0 +1,21 @@
+{
+  "title": "Unit Chart Population Explorer",
+  "externals": [],
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "// Shared by the vanilla-js, React and Vue builds. A synthetic population model:\n// as the minimum age rises, the crowd shrinks and the female share dips. Each\n// dot is one person; colour is gender; the female minority nests in the centre\n// of the packed blob. Dragging the slider re-buckets the data and the dots\n// redistribute in place, they do not rebuild from scratch.\nfunction countsForAge(minAge) {\n  var frac = (90 - minAge) / 45 // 1 at age 45, 0 at age 90\n  var total = Math.round(180 + 760 * frac)\n  var femaleShare = 0.2 + 0.16 * frac\n  var female = Math.round(total * femaleShare)\n  return { female: female, male: total - female, total: total }\n}\n\nfunction readoutText(minAge) {\n  var c = countsForAge(minAge)\n  var pct = ((c.female / c.total) * 100).toFixed(1)\n  return (\n    c.total.toLocaleString() +\n    ' people aged ' +\n    minAge +\n    '+ — ' +\n    c.female.toLocaleString() +\n    ' female (' +\n    pct +\n    '%)'\n  )\n}\n\nvar options = {\n  series: [338, 602],\n  chart: {\n    id: 'popChart',\n    type: 'unit',\n    height: 460,\n    animations: {\n      enabled: true,\n      speed: 700,\n    },\n  },\n  labels: ['Female', 'Male'],\n  colors: ['#EE5A8F', '#1AA5A0'],\n  legend: {\n    position: 'bottom',\n  },\n  plotOptions: {\n    unit: {\n      layout: 'packed',\n      sortByGroup: true,\n      spacing: 1.1,\n    },\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n\n// countsForAge and readoutText live in the shared head script.\nvar ageInput = document.querySelector('#age')\nvar readout = document.querySelector('#readout')\n\nageInput.addEventListener('input', function () {\n  var minAge = parseInt(ageInput.value, 10)\n  readout.textContent = readoutText(minAge)\n  var c = countsForAge(minAge)\n  chart.updateSeries([c.female, c.male])\n})\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Unit Chart Population Explorer</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Population explorer</h1>\n      <p>\n        One dot per person, coloured by gender, with the female minority packed\n        into the centre. Drag the age filter: the crowd grows and shrinks and\n        the dots glide to their new places instead of redrawing.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"controls\">\n        Minimum age: <span class=\"readout\" id=\"readout\">45+</span>\n        <input type=\"range\" id=\"age\" min=\"45\" max=\"90\" step=\"1\" value=\"45\" />\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "body {\n  font-family:\n    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n  background: #fafbfc;\n  color: #2c3e50;\n  margin: 0;\n  padding: 32px 16px;\n}\n.wrap {\n  max-width: 720px;\n  margin: 0 auto;\n}\nh1 {\n  font-size: 22px;\n  margin: 0 0 8px;\n}\np {\n  color: #5b6b78;\n  line-height: 1.5;\n  margin: 0 0 20px;\n}\n.chart-wrap {\n  background: #fff;\n  border-radius: 8px;\n  padding: 16px;\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);\n}\n.controls {\n  margin: 20px auto 0;\n  max-width: 460px;\n  text-align: center;\n  color: #5b6b78;\n  font-size: 14px;\n}\n.controls input[type='range'] {\n  width: 100%;\n  margin-top: 8px;\n}\n.readout {\n  font-weight: 600;\n  color: #2c3e50;\n}\n"
+    }
+  ]
+}

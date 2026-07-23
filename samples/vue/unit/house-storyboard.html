@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Unit Chart Storyboard: Circles to Bars (chart.storyboard)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      .sb-wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 8px;
+        font-family: Helvetica, Arial, sans-serif;
+        color: #1f2937;
+      }
+      .sb-hero {
+        padding: 18px 4px 14px;
+      }
+      .sb-hero h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+        letter-spacing: -0.4px;
+      }
+      .sb-hero p {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #4b5563;
+        margin: 0;
+      }
+
+      /* One self-contained card holding a two-column scrollytelling layout: the
+               story scrolls in the left column while the chart stays put on the right.
+               The card has a FIXED pixel height (never vh), so the whole sample stays
+               bounded and the demo page's auto-resizing iframe cannot feed a
+               viewport-relative layout back into a runaway height. The story column is
+               its own scroll container (#sb-scroller), so the storyboard observes that
+               panel's scroll rather than the page/iframe viewport. */
+      .sb-card {
+        background: #fff;
+        border: 1px solid #e4e7f2;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(30, 41, 59, 0.06);
+        height: 540px;
+        box-sizing: border-box;
+      }
+      .sb-layout {
+        display: grid;
+        grid-template-columns: minmax(200px, 240px) 1fr;
+        gap: 24px;
+        height: 100%;
+      }
+
+      /* LEFT: the story panel. Scrolling it drives the beats; each step reaches
+               the panel's middle trigger line as you go. */
+      .sb-scroller {
+        height: 100%;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 4px;
+      }
+      .sb-steps {
+        margin: 0;
+        /* Top/bottom room so the first and last steps can reach the panel's middle
+                 trigger line. */
+        padding: 110px 6px 200px;
+      }
+      .sb-step {
+        min-height: 240px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        opacity: 0.32;
+        transition: opacity 0.3s ease;
+      }
+      .sb-step.is-active {
+        opacity: 1;
+      }
+      .sb-step .card {
+        border-left: 3px solid #c7d2fe;
+        background: #fbfcff;
+        border-radius: 0 8px 8px 0;
+        padding: 14px 16px;
+        box-shadow: 0 1px 3px rgba(30, 41, 59, 0.06);
+      }
+      .sb-step.is-active .card {
+        border-left-color: #6366f1;
+      }
+      .sb-step h3 {
+        margin: 0 0 6px;
+        font-size: 15px;
+        color: #101828;
+      }
+      .sb-step p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #4b5563;
+      }
+
+      /* RIGHT: the chart pins in place while the story scrolls. Vertically
+               centered in its column, with the controls right under it, docs-style. */
+      .sb-graphic {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+      }
+      /* The shared demo stylesheet gives the first chart container (#chart) its
+               own white panel; the card provides it here instead. */
+      #chart {
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        width: 100%;
+      }
+      .sb-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      .sb-head b {
+        font-size: 14px;
+        color: #111827;
+      }
+      .sb-chip {
+        font-family: monospace;
+        font-size: 12px;
+        color: #4338ca;
+        background: #eef2ff;
+        border-radius: 999px;
+        padding: 3px 10px;
+        margin-left: 10px;
+        white-space: nowrap;
+      }
+      .sb-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sb-btn {
+        padding: 4px 12px;
+        border-radius: 8px;
+        border: 1px solid #d0d5dd;
+        background: #fff;
+        color: #344054;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .sb-btn:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      .sb-dot {
+        width: 11px;
+        height: 11px;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid #a5b4fc;
+        background: #fff;
+        cursor: pointer;
+      }
+      .sb-dot.is-active {
+        background: #6366f1;
+        border-color: #6366f1;
+      }
+      .sb-hint {
+        font-size: 13px;
+        color: #667085;
+        margin: 12px 4px 0;
+        line-height: 1.6;
+      }
+      .sb-note {
+        background: #eef2ff;
+        border-left: 3px solid #6366f1;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.65;
+        margin: 20px 4px 30px;
+      }
+      .sb-note code {
+        background: #dfe3ff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+
+      /* Narrow containers: stack to one column with the chart on top and the story
+               panel below it, back to a fixed-height internal scroller. This sample runs
+               inside the demo page's iframe, so the query matches the IFRAME width (not
+               the browser viewport): two columns get the room they need to breathe, and
+               anything narrower stacks. */
+      @media (max-width: 560px) {
+        .sb-card {
+          height: auto;
+        }
+        .sb-layout {
+          grid-template-columns: 1fr;
+          gap: 14px;
+        }
+        .sb-graphic {
+          order: -1;
+        }
+        .sb-scroller {
+          height: 240px;
+          border-top: 1px solid #eef0f6;
+          padding-top: 4px;
+        }
+        .sb-steps {
+          padding: 60px 6px 90px;
+        }
+        .sb-step {
+          min-height: 180px;
+        }
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // One population of 545 legislators, shown three ways on a single unit chart:
+      // as three party clusters, as one packed chamber, then regrouped into six
+      // seniority bars. The design rule that makes it a story rather than three
+      // separate charts: every beat sets plotOptions.unit.transition:'flow', so the
+      // SAME dots are keyed by global order and GLIDE (and recolour) from one
+      // arrangement into the next instead of being rebuilt. These definitions are
+      // shared by the vanilla-js, React and Vue builds.
+      var PARTY_LABELS = ['Republican', 'Democrat', 'Independent']
+      var PARTY_COLORS = ['#E0475A', '#2E77D0', '#9AA5B1']
+      var PARTY_SEATS = [276, 266, 3] // 545 members
+
+      var SENIORITY_LABELS = [
+        'Freshman',
+        '1 term',
+        '2 terms',
+        '3 terms',
+        '4 terms',
+        '5+ terms',
+      ]
+      var SENIORITY_COLORS = [
+        '#635BFF',
+        '#00B8D9',
+        '#36B37E',
+        '#FFAB00',
+        '#FF5630',
+        '#8777D9',
+      ]
+      var SENIORITY_COUNT = [140, 120, 95, 75, 60, 55] // also 545
+
+      // A bare ViewState shared by every beat: the unit chart has no axes to window,
+      // so each beat only needs to describe its own data + layout in `options`.
+      var LIGHT = { theme: { mode: 'light' } }
+
+      var BEATS = [
+        {
+          selector: '#sb-step-1',
+          view: LIGHT,
+          options: {
+            series: PARTY_SEATS,
+            labels: PARTY_LABELS,
+            colors: PARTY_COLORS,
+            plotOptions: { unit: { layout: 'grouped', transition: 'flow' } },
+          },
+          announce: 'The House by party: three clusters of members',
+        },
+        {
+          selector: '#sb-step-2',
+          view: LIGHT,
+          options: {
+            series: PARTY_SEATS,
+            labels: PARTY_LABELS,
+            colors: PARTY_COLORS,
+            plotOptions: { unit: { layout: 'packed', transition: 'flow' } },
+          },
+          announce: 'One chamber: the same members packed together, minority centred',
+        },
+        {
+          selector: '#sb-step-3',
+          view: LIGHT,
+          options: {
+            series: SENIORITY_COUNT,
+            labels: SENIORITY_LABELS,
+            colors: SENIORITY_COLORS,
+            plotOptions: { unit: { layout: 'columns', transition: 'flow' } },
+          },
+          announce: 'Regrouped by seniority: the members flow into six bars',
+        },
+      ]
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="sb-wrap">
+      <div class="sb-hero">
+        <h1>545 members, one chart</h1>
+        <p>
+          A scroll-driven story on a single unit chart. The same dots start as three
+          party clusters, gather into one chamber, then flow apart into six seniority
+          bars. Scroll back up to rewind. Not one dot is destroyed or created; they
+          only rearrange.
+        </p>
+      </div>
+    
+      <div class="sb-card">
+        <div class="sb-layout">
+          <div class="sb-scroller" id="sb-scroller">
+            <div class="sb-steps">
+              <section class="sb-step" id="sb-step-1">
+                <div class="card">
+                  <h3>Three parties</h3>
+                  <p>
+                    The 545 members split into three clusters: 276 Republicans, 266
+                    Democrats and 3 Independents. One dot is one seat.
+                  </p>
+                </div>
+              </section>
+              <section class="sb-step" id="sb-step-2">
+                <div class="card">
+                  <h3>One chamber</h3>
+                  <p>
+                    The three clusters gather into a single packed crowd. The tiny
+                    Independent group nests in the centre, the parties wrap around it.
+                  </p>
+                </div>
+              </section>
+              <section class="sb-step" id="sb-step-3">
+                <div class="card">
+                  <h3>By seniority</h3>
+                  <p>
+                    The same members flow apart into six bars by terms served, each
+                    dot travelling from its old spot and recolouring on the way. The
+                    freshman bar towers over the veterans.
+                  </p>
+                </div>
+              </section>
+            </div>
+          </div>
+    
+          <div class="sb-graphic">
+            <div id="chart">
+      <apexchart type="unit" height="420" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    
+            <div class="sb-head">
+              <div>
+                <b>House membership</b>
+                <span class="sb-chip" id="sb-chip">Beat 1 of 3</span>
+              </div>
+              <div class="sb-nav">
+                <button class="sb-btn" id="sb-prev" type="button" disabled>Prev</button>
+                <button class="sb-dot is-active" aria-label="Go to beat 1"></button>
+                <button class="sb-dot" aria-label="Go to beat 2"></button>
+                <button class="sb-dot" aria-label="Go to beat 3"></button>
+                <button class="sb-btn" id="sb-next" type="button">Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    
+      <p class="sb-hint">
+        Scroll the story, or use the beat dots and Prev/Next. Each beat is a saved
+        view; scrolling back up reverses it.
+      </p>
+    
+      <div class="sb-note">
+        <code>chart.storyboard.bind(&#123; beats, scroller &#125;)</code> pairs prose
+        elements with views; here <code>scroller</code> points the observer at the
+        story column, so a beat applies as its step crosses the middle of that panel
+        (IntersectionObserver, no scroll listeners) and re-applies in reverse on the
+        way up. Every beat's <code>options</code> payload sets
+        <code>plotOptions.unit.transition: 'flow'</code>, which keys the dots by
+        global order: the SAME dot migrates (and recolours) from a party cluster to
+        the packed blob to a seniority bar rather than fading out and back in.
+        Transitions are cut instead of animated under prefers-reduced-motion. The
+        unit chart is a premium type; without a license it renders with a trial
+        watermark. Needs the <code>storyboard</code> feature (bundles
+        <code>perspectives</code>).
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;sb-wrap&quot;&gt;
+        &lt;div class=&quot;sb-hero&quot;&gt;
+          &lt;h1&gt;545 members, one chart&lt;/h1&gt;
+          &lt;p&gt;
+            A scroll-driven story on a single unit chart. The same dots start as three
+            party clusters, gather into one chamber, then flow apart into six seniority
+            bars. Scroll back up to rewind. Not one dot is destroyed or created; they
+            only rearrange.
+          &lt;/p&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;sb-card&quot;&gt;
+          &lt;div class=&quot;sb-layout&quot;&gt;
+            &lt;div class=&quot;sb-scroller&quot; id=&quot;sb-scroller&quot;&gt;
+              &lt;div class=&quot;sb-steps&quot;&gt;
+                &lt;section class=&quot;sb-step&quot; id=&quot;sb-step-1&quot;&gt;
+                  &lt;div class=&quot;card&quot;&gt;
+                    &lt;h3&gt;Three parties&lt;/h3&gt;
+                    &lt;p&gt;
+                      The 545 members split into three clusters: 276 Republicans, 266
+                      Democrats and 3 Independents. One dot is one seat.
+                    &lt;/p&gt;
+                  &lt;/div&gt;
+                &lt;/section&gt;
+                &lt;section class=&quot;sb-step&quot; id=&quot;sb-step-2&quot;&gt;
+                  &lt;div class=&quot;card&quot;&gt;
+                    &lt;h3&gt;One chamber&lt;/h3&gt;
+                    &lt;p&gt;
+                      The three clusters gather into a single packed crowd. The tiny
+                      Independent group nests in the centre, the parties wrap around it.
+                    &lt;/p&gt;
+                  &lt;/div&gt;
+                &lt;/section&gt;
+                &lt;section class=&quot;sb-step&quot; id=&quot;sb-step-3&quot;&gt;
+                  &lt;div class=&quot;card&quot;&gt;
+                    &lt;h3&gt;By seniority&lt;/h3&gt;
+                    &lt;p&gt;
+                      The same members flow apart into six bars by terms served, each
+                      dot travelling from its old spot and recolouring on the way. The
+                      freshman bar towers over the veterans.
+                    &lt;/p&gt;
+                  &lt;/div&gt;
+                &lt;/section&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+      
+            &lt;div class=&quot;sb-graphic&quot;&gt;
+              &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;unit&quot; height=&quot;420&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+      
+              &lt;div class=&quot;sb-head&quot;&gt;
+                &lt;div&gt;
+                  &lt;b&gt;House membership&lt;/b&gt;
+                  &lt;span class=&quot;sb-chip&quot; id=&quot;sb-chip&quot;&gt;Beat 1 of 3&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;sb-nav&quot;&gt;
+                  &lt;button class=&quot;sb-btn&quot; id=&quot;sb-prev&quot; type=&quot;button&quot; disabled&gt;Prev&lt;/button&gt;
+                  &lt;button class=&quot;sb-dot is-active&quot; aria-label=&quot;Go to beat 1&quot;&gt;&lt;/button&gt;
+                  &lt;button class=&quot;sb-dot&quot; aria-label=&quot;Go to beat 2&quot;&gt;&lt;/button&gt;
+                  &lt;button class=&quot;sb-dot&quot; aria-label=&quot;Go to beat 3&quot;&gt;&lt;/button&gt;
+                  &lt;button class=&quot;sb-btn&quot; id=&quot;sb-next&quot; type=&quot;button&quot;&gt;Next&lt;/button&gt;
+                &lt;/div&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      
+        &lt;p class=&quot;sb-hint&quot;&gt;
+          Scroll the story, or use the beat dots and Prev/Next. Each beat is a saved
+          view; scrolling back up reverses it.
+        &lt;/p&gt;
+      
+        &lt;div class=&quot;sb-note&quot;&gt;
+          &lt;code&gt;chart.storyboard.bind(&amp;#123; beats, scroller &amp;#125;)&lt;/code&gt; pairs prose
+          elements with views; here &lt;code&gt;scroller&lt;/code&gt; points the observer at the
+          story column, so a beat applies as its step crosses the middle of that panel
+          (IntersectionObserver, no scroll listeners) and re-applies in reverse on the
+          way up. Every beat&#39;s &lt;code&gt;options&lt;/code&gt; payload sets
+          &lt;code&gt;plotOptions.unit.transition: &#39;flow&#39;&lt;/code&gt;, which keys the dots by
+          global order: the SAME dot migrates (and recolours) from a party cluster to
+          the packed blob to a seniority bar rather than fading out and back in.
+          Transitions are cut instead of animated under prefers-reduced-motion. The
+          unit chart is a premium type; without a license it renders with a trial
+          watermark. Needs the &lt;code&gt;storyboard&lt;/code&gt; feature (bundles
+          &lt;code&gt;perspectives&lt;/code&gt;).
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [276, 266, 3],
+          chartOptions: {
+            chart: {
+              id: 'houseStory',
+              type: 'unit',
+              height: 420,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: {
+                enabled: true,
+                speed: 850,
+              },
+              toolbar: { show: false },
+            },
+            labels: ['Republican', 'Democrat', 'Independent'],
+            colors: ['#E0475A', '#2E77D0', '#9AA5B1'],
+            legend: {
+              position: 'bottom',
+            },
+            plotOptions: {
+              unit: {
+                layout: 'grouped',
+                transition: 'flow',
+                // A fixed dot size keeps every dot the SAME size in all three layouts, so
+                // dots only move and recolour across the story (they never resize). The
+                // size is set by the tightest layout: 545 dots must fit the widest party
+                // cluster, so the dots are small on purpose.
+                size: 2.3,
+                spacing: 1.15,
+              },
+            },
+          },
+
+          houseStory: null,
+        },
+        mounted: function () {
+          // The vue-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id. Poll until it exists, then wire the same story the vanilla
+          // build does. (The labels, colors, counts and BEATS live in the shared head
+          // script.) The storyboard drives the chart instance directly, so no reactive
+          // data changes and the <apexchart> is never re-rendered under it.
+          var me = this
+          var timer = window.setInterval(function () {
+            var chart = ApexCharts.getChartByID('houseStory')
+            if (!chart) return
+            window.clearInterval(timer)
+            me.houseStory = chart
+
+            var steps = document.querySelectorAll('.sb-step')
+            var dots = document.querySelectorAll('.sb-dot')
+            var chip = document.getElementById('sb-chip')
+            var prevBtn = document.getElementById('sb-prev')
+            var nextBtn = document.getElementById('sb-next')
+            var scroller = document.getElementById('sb-scroller')
+            var current = 0
+
+            // Center a beat's step inside the story column WITHOUT scrolling the page:
+            // adjust only the panel's own scrollTop. The IntersectionObserver then
+            // activates that beat, so the controls and the scroll stay in sync.
+            function scrollToBeat(i) {
+              var step = document.getElementById('sb-step-' + (i + 1))
+              if (!step || !scroller) return
+              var sRect = step.getBoundingClientRect()
+              var cRect = scroller.getBoundingClientRect()
+              scroller.scrollTop +=
+                sRect.top -
+                cRect.top -
+                (scroller.clientHeight - step.clientHeight) / 2
+            }
+            function goToBeat(i) {
+              i = Math.max(0, Math.min(BEATS.length - 1, i))
+              chart.storyboard.goTo(i)
+              scrollToBeat(i)
+            }
+
+            chart.addEventListener('beatChange', function (c, info) {
+              current = info.index
+              steps.forEach(function (el, i) {
+                el.classList.toggle('is-active', i === info.index)
+              })
+              dots.forEach(function (dot, i) {
+                dot.classList.toggle('is-active', i === info.index)
+              })
+              chip.textContent = 'Beat ' + (info.index + 1) + ' of ' + BEATS.length
+              prevBtn.disabled = info.index === 0
+              nextBtn.disabled = info.index === BEATS.length - 1
+            })
+
+            dots.forEach(function (dot, i) {
+              dot.addEventListener('click', function () {
+                goToBeat(i)
+              })
+            })
+            prevBtn.addEventListener('click', function () {
+              goToBeat(current - 1)
+            })
+            nextBtn.addEventListener('click', function () {
+              goToBeat(current + 1)
+            })
+
+            // scroller binds the observer to the story column, so the story is driven
+            // by that panel's own scroll (not the page/iframe viewport).
+            chart.storyboard.bind({ beats: BEATS, scroller: '#sb-scroller' })
+          }, 50)
+        },
+        beforeDestroy: function () {
+          if (this.houseStory && this.houseStory.storyboard) {
+            this.houseStory.storyboard.unbind()
+          }
+        },
+      })
+    </script>
+    
+  </body>
+</html>

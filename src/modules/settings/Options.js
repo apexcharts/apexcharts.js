@@ -904,6 +904,90 @@ export default class Options {
             },
           },
         },
+        unit: {
+          // 'grouped' (each category is its own cluster, laid out in a row) |
+          // 'packed' (one blob; categories coloured + sorted, minority centred) |
+          // 'columns' (each category is a vertical bar built from stacked dots).
+          layout: 'grouped',
+          // Update transition, controlling which previous dot each new dot
+          // tweens from. 'group' (default): keyed per category, so dots stay in
+          // their group and category-level enters/exits fade. 'flow': keyed by
+          // global order, so the anonymous crowd migrates across a regroup (the
+          // circles-to-bars effect). 'identity': keyed by each datum's id/name,
+          // so a SPECIFIC unit migrates across any regroup/relayout keeping its
+          // colour and size (needs the object form with unique ids/names).
+          transition: 'group',
+          // 'circle' | 'square' | 'image' (isotype pictogram).
+          shape: 'circle',
+          // Icon used when shape:'image'. Each unit renders this icon at the
+          // given size. Set `tint:true` to recolour a monochrome icon to the
+          // category colour (or a per-unit fillColor) so the pictogram matches
+          // the legend; leave it off for multi-colour icons that should keep
+          // their own colours.
+          image: {
+            src: undefined,
+            width: 20,
+            height: 20,
+            tint: false,
+          },
+          // dot radius in px, or 'auto' to size dots so the largest cluster
+          // fits its allotted box.
+          size: 'auto',
+          // The 'columns' layout can size its dots independently of `size`
+          // (which the circle layouts / storyboard beats often pin to a
+          // constant so dots do not resize while migrating). 'inherit' uses
+          // `size`; 'auto' sizes the dots to fill the plot height; a number
+          // pins a columns-only size. Circle / square only (image icons keep
+          // their intrinsic size).
+          columns: {
+            size: 'inherit',
+          },
+          // Opt-in bubble sizing: scale each dot's radius by its per-unit value
+          // (needs the object-form data). Circle shape only; the lattice is
+          // spaced for the largest bubble so dots never overlap.
+          sizeByValue: {
+            enabled: false,
+            // radius (px) for the largest value, or 'auto' to fit the largest
+            // bubble to the plot like uniform auto-sizing.
+            maxRadius: 'auto',
+            // radius (px) for the smallest value; defaults to ~35% of maxRadius.
+            minRadius: undefined,
+            // 'area' (bubble AREA proportional to value) | 'linear'.
+            scale: 'area',
+          },
+          // packing gap factor between spiral shells (1 = dots touch).
+          spacing: 1.05,
+          // corner radius for shape:'square'.
+          borderRadius: 0,
+          // 1 dot represents this many units of value (waffle scaling).
+          unitValue: 1,
+          // safety cap on total dots; counts scale down proportionally above it.
+          maxUnits: 5000,
+          // packed layout: order categories smallest-first so the minority
+          // group nests in the centre of the blob.
+          sortByGroup: true,
+          clusterLabels: {
+            show: true,
+            curved: true,
+            fontSize: '13px',
+            fontFamily: undefined,
+            fontWeight: 600,
+            // defaults to the cluster's own colour when undefined.
+            color: undefined,
+            offsetY: 0,
+            // (name, { seriesIndex, value, percent, w }) => string
+            formatter: undefined,
+          },
+          tooltip: {
+            // Per-unit tooltip body. Each dot carries its category (seriesIndex)
+            // and its index within that category (dataPointIndex), so the
+            // formatter can look up per-unit data and return a string/HTML.
+            // ({ seriesName, seriesIndex, dataPointIndex, count, unitValue,
+            //    color, w }) => string
+            // Default: "#<dataPointIndex+1> of <count>".
+            formatter: undefined,
+          },
+        },
         radialBar: {
           inverseOrder: false,
           startAngle: 0,

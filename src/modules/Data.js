@@ -937,6 +937,10 @@ export default class Data {
   parseDataNonAxisCharts(ser) {
     const cnf = this.w.config
 
+    // Reset any per-unit data from a previous parse; only the unit chart's
+    // object form (below) repopulates it.
+    this.w.seriesData.unitData = []
+
     // Check if we have both old format (numeric series + labels) and new format
     const hasOldFormat =
       Array.isArray(ser) &&
@@ -949,6 +953,13 @@ export default class Data {
           (s && typeof s === 'object' && s.data) ||
           (s && typeof s === 'object' && s.parsing),
       )
+
+    // Unit chart with the per-unit object form: each category is an array of
+    // unit data (one datum per dot), not a single aggregate. Handle it before
+    // the pie extraction below (which would treat every unit as its own slice).
+    if (cnf.chart.type === 'unit' && hasNewFormat && !hasOldFormat) {
+      return this.parseUnitSeries(ser)
+    }
 
     if (hasOldFormat && hasNewFormat) {
       console.warn(
@@ -1005,6 +1016,40 @@ export default class Data {
         this.w.seriesData.seriesNames.push('series-' + (i + 1))
       }
     }
+
+    return this.w
+  }
+
+  /**
+   * Parse the unit chart's per-unit object form:
+   *   series: [{ name, data: [datum, datum, ...] }, ...]
+   * Each category's dot count is `data.length` (one dot per datum), and the
+   * per-unit data is kept on `w.seriesData.unitData` so the renderer can colour
+   * dots individually and the tooltip can show each unit's own info.
+   * @param {any[]} ser
+   * @returns {any} w
+   */
+  parseUnitSeries(ser) {
+    const cnf = this.w.config
+    /** @type {number[]} */
+    const series = []
+    /** @type {string[]} */
+    const seriesNames = []
+    /** @type {any[][]} */
+    const unitData = []
+
+    ser.forEach((s, i) => {
+      const data = s && Array.isArray(s.data) ? s.data : []
+      series.push(data.length)
+      const name =
+        s && s.name !== undefined && s.name !== null ? s.name : undefined
+      seriesNames.push(name ?? cnf.labels[i] ?? `series-${i + 1}`)
+      unitData.push(data.slice())
+    })
+
+    this.w.seriesData.series = /** @type {any} */ (series)
+    this.w.seriesData.seriesNames = seriesNames
+    this.w.seriesData.unitData = unitData
 
     return this.w
   }
@@ -1841,6 +1886,7 @@ export default class Data {
         seriesZ: this.w.seriesData.seriesZ,
         seriesColors: this.w.seriesData.seriesColors,
         seriesGoals: this.w.seriesData.seriesGoals,
+        unitData: this.w.seriesData.unitData,
         noLabelsProvided: this.w.axisFlags.noLabelsProvided,
       },
       // w.rangeData (future slice)

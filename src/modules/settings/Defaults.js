@@ -1091,6 +1091,44 @@ export default class Defaults {
     }
   }
 
+  unit() {
+    return {
+      chart: {
+        toolbar: {
+          show: false,
+        },
+      },
+      dataLabels: {
+        enabled: false,
+      },
+      stroke: {
+        show: false,
+        width: 0,
+      },
+      fill: {
+        opacity: 1,
+      },
+      tooltip: {
+        followCursor: true,
+        x: {
+          show: false,
+        },
+      },
+      legend: {
+        show: true,
+        position: 'bottom',
+      },
+      grid: {
+        padding: {
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+        },
+      },
+    }
+  }
+
   pie() {
     return {
       chart: {

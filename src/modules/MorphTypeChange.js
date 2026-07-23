@@ -34,11 +34,17 @@ import { parsePath } from '../svg/PathMorphing'
 // target without any renderer-side changes.
 const BAR_FAMILY = new Set(['bar', 'funnel', 'pyramid'])
 const RADIAL_FAMILY = new Set(['pie', 'donut', 'polarArea', 'radialBar', 'gauge'])
+// unit (dot-cluster / pictogram) is a morph TARGET only for now: a bar/radial
+// shape bursts into its unit dots. The unit renderer reads per-cluster centres
+// (getInitialCenterFor) rather than a path `d`, so its dots explode from the
+// outgoing bar/wedge instead of gathering from the plot centre.
+const UNIT_FAMILY = new Set(['unit'])
 
 /** @param {string} type */
 function familyOf(type) {
   if (BAR_FAMILY.has(type)) return 'bar'
   if (RADIAL_FAMILY.has(type)) return 'radial'
+  if (UNIT_FAMILY.has(type)) return 'unit'
   return null
 }
 
@@ -80,11 +86,11 @@ export default class MorphTypeChange {
     const ff = familyOf(fromType)
     const tf = familyOf(toType)
 
-    if (tf === 'radial') {
-      // pie/donut/polarArea/radialBar accepts either a flat number[] or the
-      // object form [{ data: [...] }] that the pie/donut data parser also
-      // accepts (e.g. a drilldown level carrying per-slice {x,y} points). The
-      // radial mapping is positional, so the exact value shape is irrelevant.
+    if (tf === 'radial' || tf === 'unit') {
+      // pie/donut/polarArea/radialBar and unit all accept either a flat
+      // number[] or the object form [{ data: [...] }] that the pie/donut data
+      // parser also accepts. The mapping is positional, so the exact value
+      // shape is irrelevant.
       if (newSeries.every((v) => typeof v === 'number')) return true
       return (
         newSeries.length === 1 &&
@@ -418,8 +424,10 @@ export default class MorphTypeChange {
       .slice()
       .sort((a, b) => a.realIndex - b.realIndex || a.j - b.j)
 
-    if (tf === 'radial') {
-      // pie / donut / polarArea / radialBar iterate i = 0..N-1 with j=0.
+    if (tf === 'radial' || tf === 'unit') {
+      // pie / donut / polarArea / radialBar iterate i = 0..N-1 with j=0. unit
+      // clusters iterate the same way (one cluster per category), reading the
+      // captured shape's centre rather than its `d`.
       flat.forEach((c, i) => {
         map.set(`${i}:0`, { d: c.d, fill: c.fill })
       })
@@ -517,6 +525,86 @@ export default class MorphTypeChange {
         return c.join(' ')
       })
       .join(' ')
+  }
+
+  /**
+   * The centre point (in the NEW chart's screen space) of the captured shape
+   * for cluster `i`. Kept for callers that only need a point; the unit renderer
+   * uses getInitialBBoxFor so its dots fill the shape rather than stack on a
+   * single point.
+   * @param {number} i
+   * @returns {{ x: number, y: number } | null}
+   */
+  getInitialCenterFor(i) {
+    const box = this.getInitialBBoxFor(i)
+    if (!box) return null
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+  }
+
+  /**
+   * The bounding box (in the NEW chart's screen space) of the captured shape
+   * for cluster `i`. The unit (dot-cluster) renderer distributes the cluster's
+   * dots ACROSS this box as their start positions, so a tall bar visibly breaks
+   * apart into a tall column of dots that then swarm into the cluster.
+   * @param {number} i
+   * @returns {{ x: number, y: number, width: number, height: number } | null}
+   */
+  getInitialBBoxFor(i) {
+    if (!this._snapshot) return null
+    const entry = this._snapshot.mapping.get(`${i}:0`)
+    if (!entry) return null
+    const box = this._pathBBox(entry.d)
+    if (!box) return null
+    // Same OLD -> NEW translate shift getInitialPathFor applies (see there).
+    const dx =
+      this._snapshot.oldLayout.translateX - (this.w.layout.translateX || 0)
+    const dy =
+      this._snapshot.oldLayout.translateY - (this.w.layout.translateY || 0)
+    return {
+      x: box.minX + dx,
+      y: box.minY + dy,
+      width: box.maxX - box.minX,
+      height: box.maxY - box.minY,
+    }
+  }
+
+  /**
+   * Bounding box of an absolute-command SVG path `d`. Good enough as the burst
+   * footprint (we only need where the shape sat, not exact geometry).
+   * @param {string} d
+   * @returns {{ minX:number, minY:number, maxX:number, maxY:number } | null}
+   */
+  _pathBBox(d) {
+    const commands = parsePath(d)
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    let seen = false
+    commands.forEach(/** @param {any[]} c */ (c) => {
+      const cmd = c[0]
+      if (cmd === 'Z') return
+      // Walk the numeric args in (x, y) pairs; for A the final pair is (x, y),
+      // the leading radii/flags are not coordinates, so read from the end.
+      /** @type {Array<[number, number]>} */
+      let pairs = []
+      if (cmd === 'H') pairs = [[c[1], (minY + maxY) / 2 || c[1]]]
+      else if (cmd === 'V') pairs = [[(minX + maxX) / 2 || c[1], c[1]]]
+      else if (cmd === 'A') pairs = [[c[6], c[7]]]
+      else {
+        for (let k = 1; k + 1 < c.length; k += 2) pairs.push([c[k], c[k + 1]])
+      }
+      pairs.forEach(([x, y]) => {
+        if (!isFinite(x) || !isFinite(y)) return
+        seen = true
+        if (x < minX) minX = x
+        if (x > maxX) maxX = x
+        if (y < minY) minY = y
+        if (y > maxY) maxY = y
+      })
+    })
+    if (!seen) return null
+    return { minX, minY, maxX, maxY }
   }
 
   /**

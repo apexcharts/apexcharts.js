@@ -494,6 +494,11 @@ export default class Core {
           elGraph = treemap.draw(this.w.seriesData.series)
           break
         }
+        case 'unit': {
+          const unit = new (getChartClass('unit'))(ctx.w, ctx)
+          elGraph = unit.draw(this.w.seriesData.series)
+          break
+        }
         case 'pie':
         case 'donut':
         case 'polarArea':

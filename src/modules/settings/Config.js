@@ -52,6 +52,7 @@ export default class Config {
         'scatter',
         'heatmap',
         'treemap',
+        'unit',
         'pie',
         'polarArea',
         'donut',
@@ -197,7 +198,8 @@ export default class Config {
       chartType === 'donut' ||
       chartType === 'radar' ||
       chartType === 'radialBar' ||
-      chartType === 'heatmap'
+      chartType === 'heatmap' ||
+      chartType === 'unit'
 
     const notNumericXAxis =
       opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric'

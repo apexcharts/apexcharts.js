@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Bar Explode to Unit Chart</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 24px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .actions {
+        margin: 24px auto 0;
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+      }
+      .actions button {
+        color: #fff;
+        background: #008ffb;
+        border: none;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.active {
+        background: #00543d;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Shared by the vanilla-js, React and Vue builds. One dataset, drawn two ways:
+      // a column chart (magnitude per bar) and a unit chart (one dot per seat). The
+      // morph feature (bundled) makes the bar burst into its dots on the switch.
+      var LABELS = ['Republican', 'Democrat', 'Independent']
+      var COLORS = ['#EB4D4B', '#2E86DE', '#95A5A6']
+      var VALUES = [276, 266, 3]
+
+      function setActive(view) {
+        document
+          .querySelectorAll('.actions button[data-view]')
+          .forEach(function (btn) {
+            btn.classList.toggle('active', btn.getAttribute('data-view') === view)
+          })
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="wrap">
+      <h1>Bar, exploded into units</h1>
+      <p>
+        The same seat counts as a column chart and as a unit (dot cluster) chart.
+        With the bundled <code>morph</code> module, switching to units bursts each
+        column into its individual seats; switching back re-collects them.
+      </p>
+    
+      <div class="chart-wrap">
+        <div id="chart">
+      <apexchart type="bar" height="420" :options="chartOptions" :series="series"></apexchart>
+    </div>
+      </div>
+    
+      <div class="actions">
+        <button data-view="bar">Columns</button>
+        <button data-view="unit">Explode to units</button>
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+        &lt;h1&gt;Bar, exploded into units&lt;/h1&gt;
+        &lt;p&gt;
+          The same seat counts as a column chart and as a unit (dot cluster) chart.
+          With the bundled &lt;code&gt;morph&lt;/code&gt; module, switching to units bursts each
+          column into its individual seats; switching back re-collects them.
+        &lt;/p&gt;
+      
+        &lt;div class=&quot;chart-wrap&quot;&gt;
+          &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;420&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;actions&quot;&gt;
+          &lt;button data-view=&quot;bar&quot;&gt;Columns&lt;/button&gt;
+          &lt;button data-view=&quot;unit&quot;&gt;Explode to units&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [{ name: 'Seats', data: [276, 266, 3] }],
+          chartOptions: {
+            chart: {
+              id: 'explodeChart',
+              type: 'bar',
+              height: 420,
+              toolbar: {
+                show: false,
+              },
+              animations: {
+                enabled: true,
+                speed: 900,
+                chartTypeMorph: {
+                  enabled: true,
+                  speed: 900,
+                },
+              },
+            },
+            labels: ['Republican', 'Democrat', 'Independent'],
+            colors: ['#EB4D4B', '#2E86DE', '#95A5A6'],
+            legend: { show: false },
+            dataLabels: { enabled: false },
+            plotOptions: {
+              bar: {
+                distributed: true,
+                borderRadius: 4,
+                columnWidth: '55%',
+              },
+              unit: {
+                layout: 'grouped',
+                clusterLabels: { show: true },
+              },
+            },
+            grid: { show: false },
+            yaxis: { show: false },
+            xaxis: {
+              categories: ['Republican', 'Democrat', 'Independent'],
+              axisBorder: { show: false },
+              axisTicks: { show: false },
+            },
+          },
+
+          explodeTimer: null,
+        },
+        mounted: function () {
+          // Reach the live instance by its chart.id, then wire the controls. (LABELS,
+          // COLORS, VALUES and setActive live in the shared head script.)
+          var me = this
+          var current = 'bar'
+
+          me.explodeTimer = window.setInterval(function () {
+            var chart = ApexCharts.getChartByID('explodeChart')
+            if (!chart) return
+            window.clearInterval(me.explodeTimer)
+
+            setActive(current)
+
+            document
+              .querySelectorAll('.actions button[data-view]')
+              .forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                  var view = btn.getAttribute('data-view')
+                  if (view === current) return
+                  current = view
+                  setActive(current)
+                  if (view === 'unit') {
+                    chart.updateOptions({
+                      chart: { type: 'unit' },
+                      series: VALUES,
+                      labels: LABELS,
+                    })
+                  } else {
+                    chart.updateOptions({
+                      chart: { type: 'bar' },
+                      series: [{ name: 'Seats', data: VALUES }],
+                      labels: LABELS,
+                    })
+                  }
+                })
+              })
+          }, 50)
+        },
+        beforeDestroy: function () {
+          window.clearInterval(this.explodeTimer)
+        },
+      })
+    </script>
+    
+  </body>
+</html>

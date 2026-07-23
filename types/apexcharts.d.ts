@@ -1082,6 +1082,7 @@ type ApexChart = {
   | 'rangeBar'
   | 'rangeArea'
   | 'treemap'
+  | 'unit'
   | 'funnel'
   | 'pyramid'
   | 'gauge'
@@ -2239,6 +2240,123 @@ type ApexPlotOptions = {
           bottom?: number,
         },
       },
+    }
+  }
+  unit?: {
+    /**
+     * 'grouped' (default): each category is its own cluster, laid out in a row.
+     * 'packed': one blob; categories are coloured and (with sortByGroup) ordered
+     * smallest-first so the minority group nests in the centre.
+     * 'columns': each category is a vertical bar built from stacked dots (a unit
+     * / waffle column) whose height encodes the count.
+     */
+    layout?: 'grouped' | 'packed' | 'columns'
+    /**
+     * How dots are matched between renders on an update (which previous dot a
+     * new dot tweens from).
+     * 'group' (default): keyed per category, so a dot stays in its group and
+     * category-level enters/exits fade in and out.
+     * 'flow': keyed by global draw order, so the anonymous crowd migrates (and
+     * recolours) across a regroup - the circles-to-bars transition.
+     * 'identity': keyed by each datum's `id`/`name`, so a SPECIFIC unit migrates
+     * across any regroup or relayout keeping its colour and size. Requires the
+     * per-unit object form with unique ids/names.
+     */
+    transition?: 'group' | 'flow' | 'identity'
+    /** Mark shape for each unit. `'image'` renders an icon (isotype pictogram). */
+    shape?: 'circle' | 'square' | 'image'
+    /** Icon used when `shape: 'image'`. */
+    image?: {
+      /** Icon URL or data URI. */
+      src?: string
+      width?: number
+      height?: number
+      /**
+       * Recolour a monochrome icon to the category colour (or a per-unit
+       * `fillColor`) so the pictogram matches the legend. Leave off (default)
+       * for multi-colour icons that should keep their own colours.
+       */
+      tint?: boolean
+    }
+    /** Dot radius in px, or 'auto' to size dots so the largest cluster fits. */
+    size?: number | 'auto'
+    /**
+     * The 'columns' layout can size its dots independently of `size` (which the
+     * circle layouts / storyboard beats often pin to a constant so dots do not
+     * resize while migrating).
+     */
+    columns?: {
+      /**
+       * 'inherit' (default) uses `size`; 'auto' sizes dots to fill the plot
+       * height; a number pins a columns-only size. Circle / square only (image
+       * icons keep their intrinsic size).
+       */
+      size?: 'inherit' | 'auto' | number
+    }
+    /**
+     * Opt-in bubble sizing: scale each dot's radius by its per-unit value
+     * (requires the object-form data, `series: [{ data: [{ value }] }]`).
+     * Circle shape only; the lattice is spaced for the largest bubble so dots
+     * never overlap. Ignored when there are no per-unit values.
+     */
+    sizeByValue?: {
+      enabled?: boolean
+      /** Radius (px) for the largest value, or 'auto' to fit it to the plot. */
+      maxRadius?: number | 'auto'
+      /** Radius (px) for the smallest value; defaults to ~35% of maxRadius. */
+      minRadius?: number
+      /** 'area' (bubble area proportional to value) or 'linear'. */
+      scale?: 'area' | 'linear'
+    }
+    /** Packing gap factor between spiral shells (1 = dots touch). */
+    spacing?: number
+    /** Corner radius for shape:'square'. */
+    borderRadius?: number
+    /** 1 dot represents this many units of value (waffle scaling). */
+    unitValue?: number
+    /** Safety cap on total dots; counts scale down proportionally above it. */
+    maxUnits?: number
+    /** Packed layout: order categories smallest-first (minority centred). */
+    sortByGroup?: boolean
+    clusterLabels?: {
+      show?: boolean
+      curved?: boolean
+      fontSize?: string
+      fontFamily?: string
+      fontWeight?: number | string
+      /** Defaults to the cluster's own colour when undefined. */
+      color?: string
+      offsetY?: number
+      formatter?(
+        name: string,
+        opts: { seriesIndex: number; value: number; percent: number; w: any }
+      ): string
+    }
+    /** Per-unit (per-dot) tooltip. */
+    tooltip?: {
+      /**
+       * Return the tooltip body for a single hovered dot. The dot's category is
+       * `seriesIndex` and its index within that category is `dataPointIndex`, so
+       * the formatter can index into per-unit data. Return a string or HTML.
+       * Defaults to `"#<dataPointIndex+1> of <count>"`.
+       */
+      formatter?(opts: {
+        seriesName: string
+        seriesIndex: number
+        dataPointIndex: number
+        /** Number of dots drawn for this category (after unitValue + maxUnits). */
+        count: number
+        /** Raw category value (before unitValue scaling). */
+        value: number
+        unitValue: number
+        /**
+         * This dot's own datum when the per-unit object form was supplied
+         * (`series: [{ name, data: [...] }]`); otherwise undefined.
+         */
+        datum: any
+        color: string
+        w: any
+      }): string
     }
   }
   pie?: {

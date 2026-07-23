@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Unit Chart Storyboard: One Dataset, Four Layouts (chart.storyboard)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      .sb-wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 8px;
+        font-family: Helvetica, Arial, sans-serif;
+        color: #1f2937;
+      }
+      .sb-hero {
+        padding: 18px 4px 14px;
+      }
+      .sb-hero h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+        letter-spacing: -0.4px;
+      }
+      .sb-hero p {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #4b5563;
+        margin: 0;
+      }
+
+      /* One self-contained card: the story scrolls on the left, the chart is pinned
+               on the right. Fixed pixel height (never vh) so the sample stays bounded and
+               the demo iframe can't feed a viewport-relative height back into itself. The
+               story column is its own scroll container (#sb-scroller). */
+      .sb-card {
+        background: #fff;
+        border: 1px solid #e4e7f2;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(30, 41, 59, 0.06);
+        height: 540px;
+        box-sizing: border-box;
+      }
+      .sb-layout {
+        display: grid;
+        grid-template-columns: minmax(200px, 240px) 1fr;
+        gap: 24px;
+        height: 100%;
+      }
+
+      .sb-scroller {
+        height: 100%;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 4px;
+      }
+      .sb-steps {
+        margin: 0;
+        padding: 110px 6px 200px;
+      }
+      .sb-step {
+        min-height: 240px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        opacity: 0.32;
+        transition: opacity 0.3s ease;
+      }
+      .sb-step.is-active {
+        opacity: 1;
+      }
+      .sb-step .card {
+        border-left: 3px solid #c7d2fe;
+        background: #fbfcff;
+        border-radius: 0 8px 8px 0;
+        padding: 14px 16px;
+        box-shadow: 0 1px 3px rgba(30, 41, 59, 0.06);
+      }
+      .sb-step.is-active .card {
+        border-left-color: #6366f1;
+      }
+      .sb-step h3 {
+        margin: 0 0 6px;
+        font-size: 15px;
+        color: #101828;
+      }
+      .sb-step p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #4b5563;
+      }
+
+      .sb-graphic {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+      }
+      #chart {
+        padding: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        width: 100%;
+      }
+      .sb-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      .sb-head b {
+        font-size: 14px;
+        color: #111827;
+      }
+      .sb-chip {
+        font-family: monospace;
+        font-size: 12px;
+        color: #4338ca;
+        background: #eef2ff;
+        border-radius: 999px;
+        padding: 3px 10px;
+        margin-left: 10px;
+        white-space: nowrap;
+      }
+      .sb-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sb-btn {
+        padding: 4px 12px;
+        border-radius: 8px;
+        border: 1px solid #d0d5dd;
+        background: #fff;
+        color: #344054;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .sb-btn:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      .sb-dot {
+        width: 11px;
+        height: 11px;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid #a5b4fc;
+        background: #fff;
+        cursor: pointer;
+      }
+      .sb-dot.is-active {
+        background: #6366f1;
+        border-color: #6366f1;
+      }
+      .sb-hint {
+        font-size: 13px;
+        color: #667085;
+        margin: 12px 4px 0;
+        line-height: 1.6;
+      }
+      .sb-note {
+        background: #eef2ff;
+        border-left: 3px solid #6366f1;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #234;
+        border-radius: 2px;
+        line-height: 1.65;
+        margin: 20px 4px 30px;
+      }
+      .sb-note code {
+        background: #dfe3ff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+
+      @media (max-width: 560px) {
+        .sb-card {
+          height: auto;
+        }
+        .sb-layout {
+          grid-template-columns: 1fr;
+          gap: 14px;
+        }
+        .sb-graphic {
+          order: -1;
+        }
+        .sb-scroller {
+          height: 240px;
+          border-top: 1px solid #eef0f6;
+          padding-top: 4px;
+        }
+        .sb-steps {
+          padding: 60px 6px 90px;
+        }
+        .sb-step {
+          min-height: 180px;
+        }
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // One synthetic cohort of 48 startups, each a persistent object with a name,
+      // sector, funding stage and the capital it has raised. The story shows the SAME
+      // 48 objects in four layouts; with plotOptions.unit.transition:'identity' every
+      // dot is keyed by its company name, so a given startup keeps its colour and
+      // size and GLIDES to its new place on each beat instead of being rebuilt. Data
+      // is generated deterministically (seeded), so the demo is stable across
+      // reloads. Company names are fictional. Shared by the vanilla-js/React/Vue builds.
+      function makeRng(seed) {
+        var s = seed >>> 0
+        return function () {
+          s = (Math.imul(s, 1664525) + 1013904223) >>> 0
+          return s / 4294967296
+        }
+      }
+      function pick(rand, items, weights) {
+        var total = 0
+        for (var i = 0; i < weights.length; i++) total += weights[i]
+        var r = rand() * total
+        for (var k = 0; k < items.length; k++) {
+          r -= weights[k]
+          if (r <= 0) return items[k]
+        }
+        return items[items.length - 1]
+      }
+
+      var NAMES = [
+        'Nimbus',
+        'Cobalt',
+        'Lumen',
+        'Pathwise',
+        'Flowdesk',
+        'Draftly',
+        'Vault',
+        'Ledgr',
+        'Payline',
+        'Northbank',
+        'Kitepay',
+        'Vitalis',
+        'Pulse',
+        'CareLoop',
+        'Mendly',
+        'Orbit',
+        'Quill',
+        'Sable',
+        'Tandem',
+        'Verve',
+        'Wisp',
+        'Zephyr',
+        'Arbor',
+        'Bloomly',
+        'Cinder',
+        'Dune',
+        'Ember',
+        'Forge',
+        'Glint',
+        'Harbor',
+        'Iris',
+        'Juno',
+        'Kelp',
+        'Lark',
+        'Mica',
+        'Nova',
+        'Onyx',
+        'Plume',
+        'Quartz',
+        'Rune',
+        'Slate',
+        'Talon',
+        'Umbra',
+        'Vesper',
+        'Willow',
+        'Yarn',
+        'Zenith',
+        'Ashen',
+      ]
+
+      var SECTORS = ['AI', 'SaaS', 'Fintech', 'Health', 'Commerce']
+      var SECTOR_COLORS = ['#635BFF', '#00B8D9', '#36B37E', '#FFAB00', '#FF5630']
+      var SECTOR_W = [12, 11, 10, 8, 7]
+
+      var STAGES = ['Seed', 'Series A', 'Series B', 'Series C+']
+      var STAGE_COLORS = ['#A5B4FC', '#60A5FA', '#34D399', '#FB7185']
+      var STAGE_W = [0.42, 0.3, 0.18, 0.1]
+      // funding range ($M) per stage: late-stage rounds dwarf early ones
+      var STAGE_FUND = {
+        Seed: [1, 6],
+        'Series A': [8, 28],
+        'Series B': [40, 95],
+        'Series C+': [150, 620],
+      }
+
+      var rand = makeRng(20260724)
+      var STARTUPS = NAMES.map(function (nm) {
+        var sector = pick(rand, SECTORS, SECTOR_W)
+        var stage = pick(rand, STAGES, STAGE_W)
+        var f = STAGE_FUND[stage]
+        return {
+          name: nm,
+          sector: sector,
+          stage: stage,
+          value: Math.round(f[0] + rand() * (f[1] - f[0])),
+        }
+      })
+
+      // Group the SAME startup objects by a field, in a fixed category order (so the
+      // colour arrays line up). Each datum is a startup: name = identity + tooltip,
+      // value = funding = bubble size.
+      function groupBy(field, order) {
+        return order.map(function (g) {
+          return {
+            name: g,
+            data: STARTUPS.filter(function (s) {
+              return s[field] === g
+            }),
+          }
+        })
+      }
+      var bySector = groupBy('sector', SECTORS)
+      var byStage = groupBy('stage', STAGES)
+
+      // Tooltip body for one hovered startup.
+      function startupTooltip(o) {
+        if (!o.datum) return o.seriesName
+        return (
+          '<div style="font-weight:700">' +
+          o.datum.name +
+          '</div><div style="opacity:0.75">' +
+          o.datum.sector +
+          ' &middot; ' +
+          o.datum.stage +
+          '</div><div style="opacity:0.75">$' +
+          o.datum.value +
+          'M raised</div>'
+        )
+      }
+
+      // Category label: name + headcount, e.g. "AI (12)".
+      function countLabel(name, opts) {
+        return name + ' (' + opts.value + ')'
+      }
+
+      var LIGHT = { theme: { mode: 'light' } }
+
+      // Each beat is the SAME 48 startups, re-grouped and re-laid-out. transition
+      // 'identity' keeps every company's dot across the change.
+      var BEATS = [
+        {
+          selector: '#sb-step-1',
+          view: LIGHT,
+          options: {
+            series: bySector,
+            colors: SECTOR_COLORS,
+            plotOptions: {
+              unit: {
+                layout: 'packed',
+                transition: 'identity',
+                sortByGroup: true,
+                sizeByValue: { enabled: false },
+                clusterLabels: { show: false },
+              },
+            },
+          },
+          announce: '48 startups, one market',
+        },
+        {
+          selector: '#sb-step-2',
+          view: LIGHT,
+          options: {
+            series: bySector,
+            colors: SECTOR_COLORS,
+            plotOptions: {
+              unit: {
+                layout: 'grouped',
+                transition: 'identity',
+                sizeByValue: { enabled: false },
+                clusterLabels: { show: true, formatter: countLabel },
+              },
+            },
+          },
+          announce: 'Sorted into sectors',
+        },
+        {
+          selector: '#sb-step-3',
+          view: LIGHT,
+          options: {
+            series: byStage,
+            colors: STAGE_COLORS,
+            plotOptions: {
+              unit: {
+                layout: 'columns',
+                transition: 'identity',
+                sizeByValue: { enabled: false },
+                clusterLabels: { show: true, formatter: countLabel },
+              },
+            },
+          },
+          announce: 'Regrouped by funding stage: the funnel',
+        },
+        {
+          selector: '#sb-step-4',
+          view: LIGHT,
+          options: {
+            series: bySector,
+            colors: SECTOR_COLORS,
+            plotOptions: {
+              unit: {
+                layout: 'packed',
+                transition: 'identity',
+                sortByGroup: true,
+                clusterLabels: { show: false },
+                sizeByValue: {
+                  enabled: true,
+                  maxRadius: 10,
+                  minRadius: 2.5,
+                  scale: 'area',
+                },
+              },
+            },
+          },
+          announce: 'Back together, now sized by capital raised',
+        },
+      ]
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;sb-wrap&quot;&gt;
+  &lt;div class=&quot;sb-hero&quot;&gt;
+    &lt;h1&gt;48 startups, four ways to look at them&lt;/h1&gt;
+    &lt;p&gt;
+      One cohort of companies, drawn as a unit chart. Scroll the story and the
+      same dots re-cluster, re-bin and resize; each company keeps its identity
+      and glides to its new place. Scroll back up to rewind.
+    &lt;/p&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;sb-card&quot;&gt;
+    &lt;div class=&quot;sb-layout&quot;&gt;
+      &lt;div class=&quot;sb-scroller&quot; id=&quot;sb-scroller&quot;&gt;
+        &lt;div class=&quot;sb-steps&quot;&gt;
+          &lt;section class=&quot;sb-step&quot; id=&quot;sb-step-1&quot;&gt;
+            &lt;div class=&quot;card&quot;&gt;
+              &lt;h3&gt;The market&lt;/h3&gt;
+              &lt;p&gt;
+                48 startups, one dot each, packed into a single cloud and
+                coloured by sector. This is the whole cohort at a glance.
+              &lt;/p&gt;
+            &lt;/div&gt;
+          &lt;/section&gt;
+          &lt;section class=&quot;sb-step&quot; id=&quot;sb-step-2&quot;&gt;
+            &lt;div class=&quot;card&quot;&gt;
+              &lt;h3&gt;By sector&lt;/h3&gt;
+              &lt;p&gt;
+                The same dots fan out into their sectors. The clusters make it
+                obvious which corners of the market are crowded and which are
+                thin.
+              &lt;/p&gt;
+            &lt;/div&gt;
+          &lt;/section&gt;
+          &lt;section class=&quot;sb-step&quot; id=&quot;sb-step-3&quot;&gt;
+            &lt;div class=&quot;card&quot;&gt;
+              &lt;h3&gt;By stage&lt;/h3&gt;
+              &lt;p&gt;
+                Now regroup by funding stage. Every company travels from its
+                sector to its stage bar, and the classic funnel appears: many
+                seed, few that reach the late rounds.
+              &lt;/p&gt;
+            &lt;/div&gt;
+          &lt;/section&gt;
+          &lt;section class=&quot;sb-step&quot; id=&quot;sb-step-4&quot;&gt;
+            &lt;div class=&quot;card&quot;&gt;
+              &lt;h3&gt;By capital&lt;/h3&gt;
+              &lt;p&gt;
+                Back into one cloud, but now each dot&#39;s area is the money it
+                raised. Headcount and capital tell different stories: a handful
+                of late-stage bubbles dwarf the crowd of small rounds.
+              &lt;/p&gt;
+            &lt;/div&gt;
+          &lt;/section&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;sb-graphic&quot;&gt;
+        &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;unit&quot; height={440} /&gt;
+&lt;/div&gt;
+
+        &lt;div class=&quot;sb-head&quot;&gt;
+          &lt;div&gt;
+            &lt;b&gt;Startup cohort&lt;/b&gt;
+            &lt;span class=&quot;sb-chip&quot; id=&quot;sb-chip&quot;&gt;Beat 1 of 4&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;sb-nav&quot;&gt;
+            &lt;button class=&quot;sb-btn&quot; id=&quot;sb-prev&quot; type=&quot;button&quot; disabled&gt;Prev&lt;/button&gt;
+            &lt;button class=&quot;sb-dot is-active&quot; aria-label=&quot;Go to beat 1&quot;&gt;&lt;/button&gt;
+            &lt;button class=&quot;sb-dot&quot; aria-label=&quot;Go to beat 2&quot;&gt;&lt;/button&gt;
+            &lt;button class=&quot;sb-dot&quot; aria-label=&quot;Go to beat 3&quot;&gt;&lt;/button&gt;
+            &lt;button class=&quot;sb-dot&quot; aria-label=&quot;Go to beat 4&quot;&gt;&lt;/button&gt;
+            &lt;button class=&quot;sb-btn&quot; id=&quot;sb-next&quot; type=&quot;button&quot;&gt;Next&lt;/button&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;p class=&quot;sb-hint&quot;&gt;
+    Scroll the story, or use the beat dots and Prev/Next. Each beat is a saved
+    view; scrolling back up reverses it.
+  &lt;/p&gt;
+
+  &lt;div class=&quot;sb-note&quot;&gt;
+    &lt;code&gt;chart.storyboard.bind(&amp;#123; beats, scroller &amp;#125;)&lt;/code&gt; pairs prose
+    with views. Every beat carries the SAME 48 objects with
+    &lt;code&gt;plotOptions.unit.transition: &#39;identity&#39;&lt;/code&gt;, which keys each dot by
+    its company name: a specific startup keeps its colour and size and glides
+    across every regroup, re-bin and resize rather than fading out and back in.
+    The unit chart is a premium type; without a license it renders with a trial
+    watermark. Needs the &lt;code&gt;storyboard&lt;/code&gt; feature (bundles
+    &lt;code&gt;perspectives&lt;/code&gt;).
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: bySector,
+          options: {
+            chart: {
+              id: 'startupStory',
+              type: 'unit',
+              height: 440,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              animations: {
+                enabled: true,
+                speed: 800,
+              },
+              toolbar: { show: false },
+            },
+            colors: SECTOR_COLORS,
+            legend: {
+              position: 'bottom',
+            },
+            plotOptions: {
+              unit: {
+                layout: 'packed',
+                transition: 'identity',
+                size: 7,
+                spacing: 1.15,
+                sortByGroup: true,
+                clusterLabels: {
+                  show: false,
+                },
+                tooltip: {
+                  // startupTooltip lives in the shared head script.
+                  formatter: startupTooltip,
+                },
+              },
+            },
+          },
+        })
+
+        React.useEffect(() => {
+          // Reach the live instance by its chart.id, then wire the same story the
+          // vanilla build does. (Data + BEATS live in the shared head script.)
+          let chart
+          const timer = window.setInterval(() => {
+            chart = ApexCharts.getChartByID('startupStory')
+            if (!chart) return
+            window.clearInterval(timer)
+
+            const steps = document.querySelectorAll('.sb-step')
+            const dots = document.querySelectorAll('.sb-dot')
+            const chip = document.getElementById('sb-chip')
+            const prevBtn = document.getElementById('sb-prev')
+            const nextBtn = document.getElementById('sb-next')
+            const scroller = document.getElementById('sb-scroller')
+            let current = 0
+
+            const scrollToBeat = (i) => {
+              const step = document.getElementById('sb-step-' + (i + 1))
+              if (!step || !scroller) return
+              const sRect = step.getBoundingClientRect()
+              const cRect = scroller.getBoundingClientRect()
+              scroller.scrollTop +=
+                sRect.top -
+                cRect.top -
+                (scroller.clientHeight - step.clientHeight) / 2
+            }
+            const goToBeat = (i) => {
+              i = Math.max(0, Math.min(BEATS.length - 1, i))
+              chart.storyboard.goTo(i)
+              scrollToBeat(i)
+            }
+
+            chart.addEventListener('beatChange', (c, info) => {
+              current = info.index
+              steps.forEach((el, i) =>
+                el.classList.toggle('is-active', i === info.index),
+              )
+              dots.forEach((dot, i) =>
+                dot.classList.toggle('is-active', i === info.index),
+              )
+              chip.textContent = 'Beat ' + (info.index + 1) + ' of ' + BEATS.length
+              prevBtn.disabled = info.index === 0
+              nextBtn.disabled = info.index === BEATS.length - 1
+            })
+
+            dots.forEach((dot, i) => {
+              dot.addEventListener('click', () => goToBeat(i))
+            })
+            prevBtn.addEventListener('click', () => goToBeat(current - 1))
+            nextBtn.addEventListener('click', () => goToBeat(current + 1))
+
+            chart.storyboard.bind({ beats: BEATS, scroller: '#sb-scroller' })
+          }, 50)
+
+          return () => {
+            window.clearInterval(timer)
+            if (chart && chart.storyboard) chart.storyboard.unbind()
+          }
+        }, [])
+
+        return (
+          <div>
+            <div class="sb-wrap">
+              <div class="sb-hero">
+                <h1>48 startups, four ways to look at them</h1>
+                <p>
+                  One cohort of companies, drawn as a unit chart. Scroll the story and
+                  the same dots re-cluster, re-bin and resize; each company keeps its
+                  identity and glides to its new place. Scroll back up to rewind.
+                </p>
+              </div>
+
+              <div class="sb-card">
+                <div class="sb-layout">
+                  <div class="sb-scroller" id="sb-scroller">
+                    <div class="sb-steps">
+                      <section class="sb-step" id="sb-step-1">
+                        <div class="card">
+                          <h3>The market</h3>
+                          <p>
+                            48 startups, one dot each, packed into a single cloud and
+                            coloured by sector. This is the whole cohort at a glance.
+                          </p>
+                        </div>
+                      </section>
+                      <section class="sb-step" id="sb-step-2">
+                        <div class="card">
+                          <h3>By sector</h3>
+                          <p>
+                            The same dots fan out into their sectors. The clusters
+                            make it obvious which corners of the market are crowded
+                            and which are thin.
+                          </p>
+                        </div>
+                      </section>
+                      <section class="sb-step" id="sb-step-3">
+                        <div class="card">
+                          <h3>By stage</h3>
+                          <p>
+                            Now regroup by funding stage. Every company travels from
+                            its sector to its stage bar, and the classic funnel
+                            appears: many seed, few that reach the late rounds.
+                          </p>
+                        </div>
+                      </section>
+                      <section class="sb-step" id="sb-step-4">
+                        <div class="card">
+                          <h3>By capital</h3>
+                          <p>
+                            Back into one cloud, but now each dot's area is the money
+                            it raised. Headcount and capital tell different stories: a
+                            handful of late-stage bubbles dwarf the crowd of small
+                            rounds.
+                          </p>
+                        </div>
+                      </section>
+                    </div>
+                  </div>
+
+                  <div class="sb-graphic">
+                    <div id="chart">
+                      <ReactApexChart
+                        options={state.options}
+                        series={state.series}
+                        type="unit"
+                        height={440}
+                      />
+                    </div>
+
+                    <div class="sb-head">
+                      <div>
+                        <b>Startup cohort</b>
+                        <span class="sb-chip" id="sb-chip">
+                          Beat 1 of 4
+                        </span>
+                      </div>
+                      <div class="sb-nav">
+                        <button class="sb-btn" id="sb-prev" type="button" disabled>
+                          Prev
+                        </button>
+                        <button
+                          class="sb-dot is-active"
+                          aria-label="Go to beat 1"
+                        ></button>
+                        <button class="sb-dot" aria-label="Go to beat 2"></button>
+                        <button class="sb-dot" aria-label="Go to beat 3"></button>
+                        <button class="sb-dot" aria-label="Go to beat 4"></button>
+                        <button class="sb-btn" id="sb-next" type="button">
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p class="sb-hint">
+                Scroll the story, or use the beat dots and Prev/Next. Each beat is a
+                saved view; scrolling back up reverses it.
+              </p>
+
+              <div class="sb-note">
+                <code>chart.storyboard.bind(&#123; beats, scroller &#125;)</code>{' '}
+                pairs prose with views. Every beat carries the SAME 48 objects with
+                <code>plotOptions.unit.transition: 'identity'</code>, which keys each
+                dot by its company name: a specific startup keeps its colour and size
+                and glides across every regroup, re-bin and resize rather than fading
+                out and back in. The unit chart is a premium type; without a license
+                it renders with a trial watermark. Needs the <code>storyboard</code>{' '}
+                feature (bundles
+                <code>perspectives</code>).
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

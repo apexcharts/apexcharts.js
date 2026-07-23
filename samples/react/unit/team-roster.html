@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Unit Chart Team Roster (per-unit data)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.55;
+        margin: 0 0 20px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .legend-note {
+        display: flex;
+        gap: 18px;
+        justify-content: center;
+        margin-top: 14px;
+        font-size: 13px;
+        color: #5b6b78;
+      }
+      .legend-note .swatch {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        margin-right: 6px;
+        vertical-align: middle;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Per-unit data: every dot is ONE person, carrying its own name, role and
+      // (optionally) colour. The chart groups people by team; team leads get their
+      // own fillColor so a single dot stands out from its cluster. Hover any dot to
+      // read that individual's details, not the team aggregate. Shared by the
+      // vanilla-js, React and Vue builds.
+      var LEAD = '#FFAB00' // a lead's dot is tinted amber, overriding the team colour
+
+      var ROSTER = [
+        {
+          name: 'Engineering',
+          data: [
+            { name: 'Ana Ruiz', role: 'Engineering Lead', fillColor: LEAD },
+            { name: 'Ben Cho', role: 'Staff Engineer' },
+            { name: 'Priya Nair', role: 'Senior Engineer' },
+            { name: 'Marco Silva', role: 'Senior Engineer' },
+            { name: 'Yuki Tanaka', role: 'Engineer' },
+            { name: 'Sam Okoye', role: 'Engineer' },
+            { name: 'Lena Fischer', role: 'Engineer' },
+            { name: 'Diego Torres', role: 'Engineer' },
+            { name: 'Hana Kim', role: 'Junior Engineer' },
+            { name: 'Omar Haddad', role: 'Junior Engineer' },
+          ],
+        },
+        {
+          name: 'Design',
+          data: [
+            { name: 'Noa Levi', role: 'Design Lead', fillColor: LEAD },
+            { name: 'Tom Beck', role: 'Senior Designer' },
+            { name: 'Ivy Chen', role: 'Product Designer' },
+            { name: 'Kofi Mensah', role: 'Product Designer' },
+            { name: 'Sara Nowak', role: 'Designer' },
+            { name: 'Leo Rossi', role: 'Designer' },
+          ],
+        },
+        {
+          name: 'Sales',
+          data: [
+            { name: 'Mara Vidal', role: 'Sales Lead', fillColor: LEAD },
+            { name: 'Jon Park', role: 'Account Executive' },
+            { name: 'Ella Brandt', role: 'Account Executive' },
+            { name: 'Raj Mehta', role: 'Account Executive' },
+            { name: 'Fay Duval', role: 'SDR' },
+            { name: 'Cole Ward', role: 'SDR' },
+            { name: 'Nia Abara', role: 'SDR' },
+            { name: 'Theo Blanc', role: 'SDR' },
+          ],
+        },
+      ]
+
+      // Return the tooltip body for one hovered person: name on top, role beneath.
+      function rosterTooltip(o) {
+        if (!o.datum) return o.seriesName
+        return (
+          '<div style="font-weight:700">' +
+          o.datum.name +
+          '</div>' +
+          '<div style="opacity:0.7">' +
+          o.datum.role +
+          '</div>'
+        )
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+  &lt;h1&gt;Team roster&lt;/h1&gt;
+  &lt;p&gt;
+    One dot per person, grouped by team. Each dot carries its own data (name and
+    role), so hovering a dot shows that individual, not the team total. Team
+    leads carry their own colour, tinting a single dot within the cluster.
+  &lt;/p&gt;
+
+  &lt;div class=&quot;chart-wrap&quot;&gt;
+    &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;unit&quot; height={440} /&gt;
+&lt;/div&gt;
+    &lt;div class=&quot;legend-note&quot;&gt;
+      &lt;span&gt;&lt;span class=&quot;swatch&quot; style=&quot;background:#635BFF&quot;&gt;&lt;/span&gt;Engineering&lt;/span&gt;
+      &lt;span&gt;&lt;span class=&quot;swatch&quot; style=&quot;background:#00B8D9&quot;&gt;&lt;/span&gt;Design&lt;/span&gt;
+      &lt;span&gt;&lt;span class=&quot;swatch&quot; style=&quot;background:#36B37E&quot;&gt;&lt;/span&gt;Sales&lt;/span&gt;
+      &lt;span&gt;&lt;span class=&quot;swatch&quot; style=&quot;background:#FFAB00&quot;&gt;&lt;/span&gt;Team lead&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: ROSTER,
+          options: {
+            chart: {
+              type: 'unit',
+              height: 440,
+              animations: {
+                enabled: true,
+                speed: 700,
+              },
+            },
+            colors: ['#635BFF', '#00B8D9', '#36B37E'],
+            legend: {
+              show: false,
+            },
+            plotOptions: {
+              unit: {
+                layout: 'grouped',
+                spacing: 1.2,
+                clusterLabels: {
+                  show: true,
+                  // Team name + headcount, e.g. "Engineering (10)".
+                  formatter: function (name, opts) {
+                    return name + ' (' + opts.value + ')'
+                  },
+                },
+                tooltip: {
+                  // rosterTooltip lives in the shared head script.
+                  formatter: rosterTooltip,
+                },
+              },
+            },
+          },
+        })
+
+        // Nothing extra to wire: the chart renders from the options above. ROSTER and
+        // rosterTooltip live in the shared head script.
+
+        return (
+          <div>
+            <div class="wrap">
+              <h1>Team roster</h1>
+              <p>
+                One dot per person, grouped by team. Each dot carries its own data
+                (name and role), so hovering a dot shows that individual, not the team
+                total. Team leads carry their own colour, tinting a single dot within
+                the cluster.
+              </p>
+
+              <div class="chart-wrap">
+                <div id="chart">
+                  <ReactApexChart
+                    options={state.options}
+                    series={state.series}
+                    type="unit"
+                    height={440}
+                  />
+                </div>
+                <div class="legend-note">
+                  <span>
+                    <span class="swatch" style="background:#635BFF"></span>Engineering
+                  </span>
+                  <span>
+                    <span class="swatch" style="background:#00B8D9"></span>Design
+                  </span>
+                  <span>
+                    <span class="swatch" style="background:#36B37E"></span>Sales
+                  </span>
+                  <span>
+                    <span class="swatch" style="background:#FFAB00"></span>Team lead
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

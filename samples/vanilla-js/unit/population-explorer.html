@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Unit Chart Population Explorer</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 20px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .controls {
+        margin: 20px auto 0;
+        max-width: 460px;
+        text-align: center;
+        color: #5b6b78;
+        font-size: 14px;
+      }
+      .controls input[type='range'] {
+        width: 100%;
+        margin-top: 8px;
+      }
+      .readout {
+        font-weight: 600;
+        color: #2c3e50;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Shared by the vanilla-js, React and Vue builds. A synthetic population model:
+      // as the minimum age rises, the crowd shrinks and the female share dips. Each
+      // dot is one person; colour is gender; the female minority nests in the centre
+      // of the packed blob. Dragging the slider re-buckets the data and the dots
+      // redistribute in place, they do not rebuild from scratch.
+      function countsForAge(minAge) {
+        var frac = (90 - minAge) / 45 // 1 at age 45, 0 at age 90
+        var total = Math.round(180 + 760 * frac)
+        var femaleShare = 0.2 + 0.16 * frac
+        var female = Math.round(total * femaleShare)
+        return { female: female, male: total - female, total: total }
+      }
+
+      function readoutText(minAge) {
+        var c = countsForAge(minAge)
+        var pct = ((c.female / c.total) * 100).toFixed(1)
+        return (
+          c.total.toLocaleString() +
+          ' people aged ' +
+          minAge +
+          '+ — ' +
+          c.female.toLocaleString() +
+          ' female (' +
+          pct +
+          '%)'
+        )
+      }
+    </script>
+  </head>
+
+  <body>
+     <div class="wrap">
+        <h1>Population explorer</h1>
+        <p>
+          One dot per person, coloured by gender, with the female minority packed into
+          the centre. Drag the age filter: the crowd grows and shrinks and the dots
+          glide to their new places instead of redrawing.
+        </p>
+      
+        <div class="chart-wrap">
+          <div id="chart"></div>
+        </div>
+      
+        <div class="controls">
+          Minimum age: <span class="readout" id="readout">45+</span>
+          <input type="range" id="age" min="45" max="90" step="1" value="45" />
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: [338, 602],
+        chart: {
+          id: 'popChart',
+          type: 'unit',
+          height: 460,
+          animations: {
+            enabled: true,
+            speed: 700,
+          },
+        },
+        labels: ['Female', 'Male'],
+        colors: ['#EE5A8F', '#1AA5A0'],
+        legend: {
+          position: 'bottom',
+        },
+        plotOptions: {
+          unit: {
+            layout: 'packed',
+            sortByGroup: true,
+            spacing: 1.1,
+          },
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      // countsForAge and readoutText live in the shared head script.
+      var ageInput = document.querySelector('#age')
+      var readout = document.querySelector('#readout')
+
+      ageInput.addEventListener('input', function () {
+        var minAge = parseInt(ageInput.value, 10)
+        readout.textContent = readoutText(minAge)
+        var c = countsForAge(minAge)
+        chart.updateSeries([c.female, c.male])
+      })
+    </script>
+
+    
+  </body>
+</html>

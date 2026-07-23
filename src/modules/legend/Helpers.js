@@ -136,18 +136,42 @@ export default class Helpers {
         }
       }
     } else {
-      // for non-axis charts i.e pie / donuts
-      const seriesEl = w.dom.Paper.findOne(
-        ` .apexcharts-series[rel='${seriesCnt + 1}'] path`,
-      )
-
+      // for non-axis charts i.e pie / donuts / unit
       const type = w.config.chart.type
-      if (type === 'pie' || type === 'polarArea' || type === 'donut') {
-        const dataLabels = w.config.plotOptions.pie.donut.labels
 
-        const graphics = new Graphics(this.w)
-        graphics.pathMouseDown(seriesEl, null)
-        this.lgCtx.printDataLabelsInner(seriesEl.node, dataLabels)
+      if (type === 'unit') {
+        // Unit chart: toggle the whole category like a pie slice. Collapsing it
+        // to zero dots makes those dots animate OUT (the keyed-transition exit
+        // ghosts fade + collapse toward the centre); rising restores them. Then
+        // re-render with the dynamic (update) animation. The legend item dims
+        // automatically via collapsedSeries on the legend re-render below.
+        w.globals.resized = true // use the update animation, not the initial draw
+        w.globals.risingSeries = []
+        if (isHidden) {
+          this.riseCollapsedSeries(
+            w.globals.collapsedSeries,
+            w.globals.collapsedSeriesIndices,
+            seriesCnt,
+          )
+        } else {
+          const series = this.getSeriesAfterCollapsing({ realIndex: seriesCnt })
+          this.lgCtx.updateSeries(
+            series,
+            w.config.chart.animations.dynamicAnimation.enabled,
+          )
+        }
+      } else {
+        const seriesEl = w.dom.Paper.findOne(
+          ` .apexcharts-series[rel='${seriesCnt + 1}'] path`,
+        )
+
+        if (type === 'pie' || type === 'polarArea' || type === 'donut') {
+          const dataLabels = w.config.plotOptions.pie.donut.labels
+
+          const graphics = new Graphics(this.w)
+          graphics.pathMouseDown(seriesEl, null)
+          this.lgCtx.printDataLabelsInner(seriesEl.node, dataLabels)
+        }
       }
 
       // Update ARIA attributes for accessibility (non-axis charts)
@@ -194,6 +218,10 @@ export default class Helpers {
         index: realIndex,
         data: series[realIndex].data.slice(),
         type: series[realIndex].type || w.config.chart.type,
+        // The category name pins the hide across a data update that reorders or
+        // regroups categories (e.g. a storyboard beat): the collapse is
+        // reconciled by name, not index. See Series.reconcileCollapsedByName.
+        name: (gl.seriesNames || [])[realIndex],
       }
       if (yaxis && yaxis.show && yaxis.showAlways) {
         if (gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
@@ -214,6 +242,8 @@ export default class Helpers {
         index: realIndex,
         data: series[realIndex],
         type: /** @type {any} */ (w.config.series[realIndex]).type ?? 'line',
+        // Pin the hide by category name so it survives a regroup (see above).
+        name: (gl.seriesNames || [])[realIndex],
       })
       gl.collapsedSeriesIndices.push(realIndex)
     }
