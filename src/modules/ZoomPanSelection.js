@@ -1284,6 +1284,11 @@ export default class ZoomPanSelection extends Toolbar {
     const w = this.w
     if (!w.globals.initialConfig) return false
 
+    // Detect a widening (zoom-out) window up-front, before clamping/rounding can
+    // shrink the requested range at a boundary.
+    const cur = this._currentXWindow()
+    const zoomingOut = isZoom && newMaxX - newMinX > cur.max - cur.min
+
     const bounds = this._clampBounds()
     if (bounds) {
       const range = newMaxX - newMinX
@@ -1300,9 +1305,21 @@ export default class ZoomPanSelection extends Toolbar {
     }
 
     if (w.config.xaxis.convertedCatToNumeric) {
+      // While zooming OUT, ceil the high edge (instead of flooring it) so a
+      // fractional zoom-out always widens by at least one whole category.
+      // Flooring BOTH edges let a wheel/pinch zoom-out at the lower data
+      // boundary collapse to the same integer window every frame: the low edge
+      // is pinned at the first category and the floored high edge dropped the
+      // sub-integer growth, so the visible span never grew and "zoom-out
+      // stopped working" once only the first few points were left (the upper
+      // boundary was unaffected because there the low edge floors downward,
+      // which happens to widen the span). Zoom-IN and pan still floor both edges
+      // so zoom-in keeps tightening to the 3-point floor (ceiling the high edge
+      // there would cancel the floored low edge and stall the shrink).
       newMinX = Math.floor(newMinX)
-      newMaxX = Math.floor(newMaxX)
+      newMaxX = zoomingOut ? Math.ceil(newMaxX) : Math.floor(newMaxX)
       if (newMinX < 1) newMinX = 1
+      if (bounds && newMaxX > bounds.max) newMaxX = Math.floor(bounds.max)
       if (newMaxX - newMinX < 2) return false
     }
 
