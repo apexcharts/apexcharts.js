@@ -71,6 +71,13 @@ export default class Unit {
           : 'grouped'
     // Keying decides which previous dot a new dot tweens from on an update:
     //  - 'group' (default): key "i:j" - a dot stays within its category slot.
+    //    EXCEPTION: in a 'packed' blob there are no stable per-category slots
+    //    (the outer group's spiral indices are offset by the - changing - inner
+    //    group's count, so keying "i:j" would re-spin the whole outer ring by a
+    //    golden-angle multiple every time the inner count moves, and the straight
+    //    -line tween would chord across the disc). There we key by the physical
+    //    spiral slot instead, so a shell keeps its place: the colour boundary
+    //    breathes in/out and only the rim adds/removes dots.
     //  - 'flow': key by GLOBAL draw order - the anonymous crowd migrates across
     //    a regroup (category count/identity changing) instead of fading in/out.
     //  - 'identity': key by each datum's id/name - a SPECIFIC unit migrates
@@ -91,7 +98,7 @@ export default class Unit {
     counts = this._applyMaxUnits(counts, opts.maxUnits)
 
     const total = counts.reduce((a, b) => a + b, 0)
-    /** @type {{ i: number, cx: number, cy: number, outerR: number, dots: {x:number,y:number}[] }[]} */
+    /** @type {{ i: number, cx: number, cy: number, outerR: number, dots: {x:number,y:number,slot?:number}[] }[]} */
     const clusters =
       layout === 'packed'
         ? this._layoutPacked(counts, opts)
@@ -183,6 +190,11 @@ export default class Unit {
           key = id != null ? `id:${id}` : `g:${gIndex}`
         } else if (flow) {
           key = String(gIndex)
+        } else if (d.slot != null) {
+          // Packed blob: key by physical spiral slot so a shell keeps its place
+          // (a dot near the colour boundary just recolours instead of the whole
+          // outer ring re-spinning across the disc when the inner count shifts).
+          key = `slot:${d.slot}`
         } else {
           key = `${cluster.i}:${j}`
         }
@@ -409,7 +421,7 @@ export default class Unit {
       cx,
       cy,
       outerR: step * Math.sqrt(total) + this._lastDotR,
-      /** @type {{x:number,y:number}[]} */ dots: [],
+      /** @type {{x:number,y:number,slot?:number}[]} */ dots: [],
     }))
 
     let gi = 0
@@ -417,9 +429,14 @@ export default class Unit {
       for (let j = 0; j < counts[catI]; j++) {
         const r = step * Math.sqrt(gi + 0.5)
         const theta = gi * GOLDEN_ANGLE
+        // Tag each dot with its physical spiral slot. In a packed blob there are
+        // no stable per-category slots (the outer group's indices are offset by
+        // the inner group's count), so the keyed transition must key by this
+        // physical slot, not by "category:slot". See the keying note in draw().
         clusters[catI].dots.push({
           x: cx + r * Math.cos(theta),
           y: cy + r * Math.sin(theta),
+          slot: gi,
         })
         gi++
       }

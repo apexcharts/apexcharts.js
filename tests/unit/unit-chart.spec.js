@@ -405,6 +405,56 @@ describe('Unit chart — flow transition (regroup)', () => {
     chart.destroy()
   })
 
+  it("packed layout keys dots by physical spiral slot, not category (i:j)", () => {
+    // A packed blob has no stable per-category slot (the outer group's spiral
+    // indices are offset by the inner group's count), so keying "i:j" there
+    // would re-spin the whole outer ring whenever the inner count moves. It
+    // keys by physical slot instead.
+    const chart = unitChart({
+      series: [10, 20],
+      labels: ['Inner', 'Outer'],
+      plotOptions: { unit: { layout: 'packed', clusterLabels: { show: false } } },
+    })
+    expect(chart._unitPrevDots.size).toBe(30)
+    expect(chart._unitPrevDots.has('slot:0')).toBe(true)
+    expect(chart._unitPrevDots.has('slot:29')).toBe(true)
+    expect(chart._unitPrevDots.has('1:5')).toBe(false)
+    chart.destroy()
+  })
+
+  it('packed slots stay put when the inner group count changes (no re-spin)', () => {
+    // Regression guard: shrinking the inner (minority) group must not fling the
+    // outer group across the disc. Each key's stored position is the point the
+    // next update tweens FROM/TO, so a key that keeps its position barely moves
+    // on screen. With the old category keying an outer dot ("1:j") chorded clear
+    // across the disc (~a full diameter); with slot keying it only shifts by the
+    // small change in the fitted spiral step.
+    const chart = unitChart({
+      series: [80, 160],
+      labels: ['Inner', 'Outer'],
+      plotOptions: {
+        unit: { layout: 'packed', sortByGroup: true, clusterLabels: { show: false } },
+      },
+    })
+    const pts = [...chart._unitPrevDots.values()]
+    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length
+    const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length
+    const R = Math.max(...pts.map((p) => Math.hypot(p.x - cx, p.y - cy)))
+    const before = new Map([...chart._unitPrevDots].map(([k, v]) => [k, { x: v.x, y: v.y }]))
+
+    // Inner 80 -> 40: with category keying this re-spins the whole outer ring.
+    chart.updateSeries([40, 160])
+
+    let maxShift = 0
+    chart._unitPrevDots.forEach((v, k) => {
+      const b = before.get(k)
+      if (b) maxShift = Math.max(maxShift, Math.hypot(v.x - b.x, v.y - b.y))
+    })
+    // A shared physical slot barely moves; a cross-disc chord would be ~1.5x R.
+    expect(maxShift).toBeLessThan(R * 0.35)
+    chart.destroy()
+  })
+
   it("'flow' keys dots by global draw order (0..total-1)", () => {
     const chart = unitChart({
       series: [10, 20],
