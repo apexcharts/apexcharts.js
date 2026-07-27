@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Unit Chart - Beeswarm (Living Longer, Everywhere)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 780px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      .lead {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 20px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .actions {
+        margin: 20px auto 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+      }
+      .actions button {
+        color: #fff;
+        background: #94a3b8;
+        border: none;
+        padding: 8px 18px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.active {
+        background: #0f766e;
+      }
+      .caption {
+        text-align: center;
+        color: #5b6b78;
+        font-size: 13px;
+        line-height: 1.6;
+        max-width: 600px;
+        margin: 0 auto;
+        min-height: 34px;
+      }
+      .note {
+        background: #f0fdfa;
+        border-left: 3px solid #0f766e;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #333;
+        border-radius: 2px;
+        line-height: 1.6;
+        margin: 26px auto 0;
+      }
+      .note code {
+        background: #ccfbf1;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // A beeswarm: one dot per country, placed on a real life-expectancy axis and
+      // laned by region. Unlike a random jitter strip plot, the dots are PACKED with
+      // no overlap, so each lane forms a density silhouette: you read the spread and
+      // the clusters directly, not just an average. This is the unit chart's
+      // `layout: 'scatter'` with `spread: 'swarm'`.
+      //
+      // Figures are approximate life expectancy at birth (years), public-health style
+      // (Gapminder / WHO). Two years toggle via the buttons; every country dot glides
+      // to its new value, so the whole world visibly surges rightward from 1960 to
+      // 2020 and the regions converge. Shared by the vanilla-js / React / Vue builds.
+      var REGIONS = [
+        { name: 'Europe', color: '#0EA5E9' },
+        { name: 'Americas', color: '#22C55E' },
+        { name: 'Asia', color: '#F59E0B' },
+        { name: 'Africa', color: '#E11D48' },
+      ]
+
+      // [country, 1960, 2020]
+      var DATA = {
+        Europe: [
+          ['Norway', 73.6, 83.3],
+          ['Sweden', 73.0, 82.4],
+          ['Switzerland', 71.3, 83.1],
+          ['Netherlands', 73.4, 81.4],
+          ['United Kingdom', 71.1, 80.9],
+          ['France', 70.2, 82.3],
+          ['Germany', 69.3, 81.1],
+          ['Italy', 69.1, 82.7],
+          ['Spain', 69.1, 82.3],
+          ['Greece', 68.2, 81.1],
+          ['Portugal', 62.8, 81.1],
+          ['Poland', 67.7, 76.6],
+          ['Russia', 66.1, 71.3],
+          ['Ukraine', 68.3, 71.6],
+        ],
+        Americas: [
+          ['Canada', 71.1, 81.7],
+          ['United States', 69.8, 78.5],
+          ['Cuba', 64.2, 78.8],
+          ['Costa Rica', 60.0, 80.3],
+          ['Chile', 57.4, 80.2],
+          ['Argentina', 65.2, 76.5],
+          ['Mexico', 57.1, 75.0],
+          ['Colombia', 56.7, 77.3],
+          ['Peru', 49.5, 76.5],
+          ['Brazil', 54.2, 74.0],
+          ['Guatemala', 46.2, 74.3],
+          ['Bolivia', 42.1, 71.5],
+        ],
+        Asia: [
+          ['Japan', 67.7, 84.6],
+          ['Israel', 71.5, 82.9],
+          ['South Korea', 55.4, 83.5],
+          ['China', 43.7, 78.1],
+          ['Thailand', 55.0, 78.7],
+          ['Iran', 45.0, 77.3],
+          ['Turkey', 46.0, 77.7],
+          ['Vietnam', 59.0, 75.4],
+          ['Saudi Arabia', 45.7, 75.1],
+          ['Bangladesh', 45.9, 72.6],
+          ['Indonesia', 48.3, 71.7],
+          ['India', 45.2, 70.9],
+          ['Philippines', 59.0, 71.2],
+          ['Pakistan', 45.3, 67.3],
+        ],
+        Africa: [
+          ['Algeria', 46.1, 76.9],
+          ['Morocco', 48.5, 76.7],
+          ['Egypt', 48.0, 71.8],
+          ['Senegal', 38.2, 67.9],
+          ['Kenya', 46.3, 66.7],
+          ['Ethiopia', 38.4, 66.6],
+          ['Tanzania', 43.8, 65.5],
+          ['South Africa', 52.8, 64.9],
+          ['Ghana', 45.8, 64.1],
+          ['Uganda', 44.0, 63.4],
+          ['Zimbabwe', 54.0, 61.5],
+          ['DR Congo', 41.0, 60.7],
+          ['Nigeria', 37.0, 55.0],
+          ['Rwanda', 42.0, 69.0],
+        ],
+      }
+
+      function seriesFor(yearIdx) {
+        return REGIONS.map(function (r) {
+          return {
+            name: r.name,
+            data: DATA[r.name].map(function (row) {
+              return { name: row[0], value: row[yearIdx] }
+            }),
+          }
+        })
+      }
+
+      var YEARS = {
+        1960: {
+          label: '1960',
+          caption:
+            'In 1960 the world was starkly split: much of Africa and Asia lived to barely 45, while Europe already reached past 70.',
+          series: seriesFor(1),
+        },
+        2020: {
+          label: '2020',
+          caption:
+            'Sixty years on the swarms have surged right and converged: most of the world now lives past 70, though Africa still trails and spreads the widest.',
+          series: seriesFor(2),
+        },
+      }
+    </script>
+  </head>
+
+  <body>
+     <div class="wrap">
+        <h1>Living longer, everywhere</h1>
+        <p class="lead">
+          One dot per country, placed on a life-expectancy axis and laned by region.
+        </p>
+      
+        <div class="chart-wrap">
+          <div id="chart"></div>
+        </div>
+      
+        <div class="actions" id="year-nav">
+          <button data-year="1960" class="active">1960</button>
+          <button data-year="2020">2020</button>
+        </div>
+      
+        <p class="caption" id="caption"></p>
+      
+        <div class="note">
+          <code>plotOptions.unit.layout: 'scatter'</code> places each unit on a numeric
+          X value axis by its own value, laned by category on Y, and draws the axis +
+          lanes itself. <code>scatter.spread: 'swarm'</code> packs equal / close values
+          off the centre line with no overlap, so the lane becomes a density silhouette
+          (not the blur of a random jitter). Switching the year is a plain
+          <code>chart.updateSeries()</code>, so every country dot tweens to its new
+          place. The unit chart is a premium type; without a license it renders with a
+          trial watermark. Figures are approximate (public-health style).
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: YEARS['1960'].series,
+        chart: {
+          id: 'lifeSwarm',
+          type: 'unit',
+          height: 540,
+          animations: {
+            enabled: true,
+            speed: 800,
+          },
+        },
+        colors: REGIONS.map(function (r) {
+          return r.color
+        }),
+        legend: {
+          position: 'bottom',
+        },
+        plotOptions: {
+          unit: {
+            layout: 'scatter',
+            size: 4.2,
+            scatter: {
+              spread: 'swarm',
+              // Pin the axis so both years share it (the swarms glide right, rather
+              // than the axis rescaling under them). 35..85 -> ticks every 10.
+              xMin: 35,
+              xMax: 85,
+              xTitle: 'Life expectancy at birth (years)',
+              tickAmount: 6,
+            },
+          },
+        },
+        tooltip: {
+          enabled: true,
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      // Button-driven year switch: each year is a chart.updateSeries payload; every
+      // country dot glides to its new life expectancy. (REGIONS, DATA, YEARS live in
+      // the shared head script.)
+      var buttons = document.querySelectorAll('#year-nav button')
+      var caption = document.getElementById('caption')
+
+      function showYear(key) {
+        buttons.forEach(function (b) {
+          b.classList.toggle('active', b.getAttribute('data-year') === key)
+        })
+        caption.textContent = YEARS[key].caption
+        chart.updateSeries(YEARS[key].series)
+      }
+
+      buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          showYear(btn.getAttribute('data-year'))
+        })
+      })
+
+      caption.textContent = YEARS['1960'].caption
+    </script>
+
+    
+  </body>
+</html>

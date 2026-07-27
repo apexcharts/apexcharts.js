@@ -2,20 +2,24 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
 import ApexCharts from '../../src/entries/full.js'
 import { LicenseManager } from '../../src/modules/license/LicenseManager.js'
+import { installTestSigningKey, signedKey, forgedKey } from './utils/license-keys.js'
 import {
   premiumFeaturesInUse,
   premiumFeatureInUse,
   enforceLicense,
+  _enforcedCount,
   _resetPremiumSignals,
 } from '../../src/modules/license/LicenseEnforcer.js'
 import { Environment } from '../../src/utils/Environment.js'
 
 const WM = '[data-apexcharts-watermark]'
-const VALID_KEY = LicenseManager.generateLicenseKey('2020-01-01', '2099-01-01')
+installTestSigningKey()
+const VALID_KEY = signedKey('2020-01-01', '2099-01-01')
 
 function resetLicense() {
   LicenseManager.licenseKey = null
   LicenseManager.validationResult = null
+  LicenseManager._resetSignatureState()
   _resetPremiumSignals()
   if (typeof window !== 'undefined' && window.Apex) delete window.Apex.license
 }
@@ -185,6 +189,64 @@ describe('License gating', () => {
       expect(hasWatermark(chart)).toBe(true)
       expect(errorSpy).toHaveBeenCalled()
       chart.destroy()
+    })
+  })
+
+  // ── async verdict reaches charts without a chart.id ───────────────────────
+  //
+  // A forged key passes the structural check, so the watermark decision made
+  // during render says "licensed". The real verdict lands a microtask later and
+  // has to correct it. That correction used to walk `Apex._chartInstances`,
+  // which a chart joins only when the user declares `chart.id`, so a forged key
+  // escaped the watermark entirely on every anonymous chart: the common case.
+  describe('forged key correction after async verification', () => {
+    const FORGED = forgedKey('2020-01-01', '2099-01-01')
+
+    // Let the importKey/verify microtasks and the onChange listener run.
+    const settle = async () => {
+      for (let i = 0; i < 10; i++) await Promise.resolve()
+      await new Promise((r) => setTimeout(r, 0))
+    }
+
+    it('watermarks a chart with NO chart.id once verification fails', async () => {
+      ApexCharts.setLicense(FORGED)
+      const chart = premiumLineChart({ ink: { enabled: true } })
+      expect(hasWatermark(chart)).toBe(false) // provisional: structurally valid
+      await settle()
+      expect(hasWatermark(chart)).toBe(true)
+      chart.destroy()
+    })
+
+    it('watermarks a chart WITH a chart.id too', async () => {
+      ApexCharts.setLicense(FORGED)
+      const chart = premiumLineChart({ id: 'named', ink: { enabled: true } })
+      await settle()
+      expect(hasWatermark(chart)).toBe(true)
+      chart.destroy()
+    })
+
+    it('leaves a genuinely signed key unwatermarked', async () => {
+      ApexCharts.setLicense(VALID_KEY)
+      const chart = premiumLineChart({ ink: { enabled: true } })
+      await settle()
+      expect(hasWatermark(chart)).toBe(false)
+      chart.destroy()
+    })
+
+    it('stops tracking a chart on destroy, and on dropping premium usage', async () => {
+      ApexCharts.setLicense(VALID_KEY)
+      const before = _enforcedCount()
+
+      const chart = premiumLineChart({ ink: { enabled: true } })
+      expect(_enforcedCount()).toBe(before + 1)
+
+      chart.destroy()
+      expect(_enforcedCount()).toBe(before)
+
+      // A free chart is never tracked: nothing to correct, so nothing to hold.
+      const free = premiumLineChart()
+      expect(_enforcedCount()).toBe(before)
+      free.destroy()
     })
   })
 

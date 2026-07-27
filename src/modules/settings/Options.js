@@ -907,7 +907,9 @@ export default class Options {
         unit: {
           // 'grouped' (each category is its own cluster, laid out in a row) |
           // 'packed' (one blob; categories coloured + sorted, minority centred) |
-          // 'columns' (each category is a vertical bar built from stacked dots).
+          // 'columns' (each category is a vertical bar built from stacked dots) |
+          // 'grid' (one lattice of cells filled in category order - a waffle /
+          // part-to-whole square "pie"; `chart.type:'waffle'` presets this).
           layout: 'grouped',
           // Update transition, controlling which previous dot each new dot
           // tweens from. 'group' (default): keyed per category, so dots stay in
@@ -942,6 +944,66 @@ export default class Options {
           columns: {
             size: 'inherit',
           },
+          // The 'grid' (waffle) layout: one lattice of cells filled in category
+          // order. `columns` = cells per row. `total` (optional) fixes the cell
+          // budget - e.g. 100 for a percentage waffle - and largest-remainder
+          // allocates the cells to categories; leave it undefined for one cell
+          // per unit (respects unitValue / maxUnits). `fillFrom` picks the first
+          // row: 'bottom' (default) or 'top'.
+          //
+          // `split:true` switches to SMALL MULTIPLES: one mini-waffle per
+          // category, arranged in a near-square trellis (or `tileColumns` per
+          // row). Each tile then has `total` cells (default 100) and fills a
+          // fraction equal to the category's value over `max` (default = the
+          // largest count, so the leader fills its tile; set `max:100` with
+          // percentage data for true "of 100" tiles). The unfilled cells show as
+          // a faint `trackColor` backdrop, and each tile gets its own label.
+          grid: {
+            columns: 10,
+            total: undefined,
+            fillFrom: 'bottom',
+            // small-multiple (one waffle per category) mode + its knobs:
+            split: false,
+            // tiles per row; undefined = auto (near-square).
+            tileColumns: undefined,
+            // value -> filled-cell denominator; undefined = the largest count.
+            max: undefined,
+            // colour of the empty "track" cells; undefined = a neutral grey.
+            trackColor: undefined,
+          },
+          // The 'scatter' layout places each unit on real value axes (needs the
+          // object-form data). Two modes via `y`:
+          //  - `y:'lanes'` (default): a BEESWARM. X is the per-unit value axis,
+          //    Y is a category lane. `spread:'swarm'` packs dots off the centre
+          //    line so equal values do not overlap; 'jitter' scatters randomly.
+          //  - `y:'value'`: a 2D value-value scatter. X = each datum's `x`, Y =
+          //    each datum's `y`, on two numeric axes; category = colour.
+          // `sizeRange:[min,max]` turns dots into BUBBLES scaled (by area) from
+          // each datum's `sizeField` (default 'z') - a bubble scatter / bubble
+          // beeswarm. `tickAmount`/`xMin`/`xMax`/`xTitle`/`xFormatter` control the
+          // X axis; the `y*` twins the Y axis (2D only); `laneLabelWidth` the
+          // lane-label gutter (lanes mode); `gridlines` the grid.
+          scatter: {
+            y: 'lanes',
+            spread: 'swarm',
+            tickAmount: 5,
+            xMin: undefined,
+            xMax: undefined,
+            xTitle: undefined,
+            // (value) => string
+            xFormatter: undefined,
+            yTickAmount: 5,
+            yMin: undefined,
+            yMax: undefined,
+            yTitle: undefined,
+            // (value) => string
+            yFormatter: undefined,
+            // bubble sizing: datum key for the size value + [minR, maxR] in px.
+            sizeField: 'z',
+            sizeRange: undefined,
+            laneLabelWidth: undefined,
+            gridlines: true,
+          },
           // Opt-in bubble sizing: scale each dot's radius by its per-unit value
           // (needs the object-form data). Circle shape only; the lattice is
           // spaced for the largest bubble so dots never overlap.
@@ -968,6 +1030,10 @@ export default class Options {
           sortByGroup: true,
           clusterLabels: {
             show: true,
+            // Label placement relative to the cluster/bar: 'top' (default) or
+            // 'bottom'. A 'bottom' label is always straight; the curved arc
+            // (below) rides the top crown only.
+            position: 'top',
             curved: true,
             fontSize: '13px',
             fontFamily: undefined,

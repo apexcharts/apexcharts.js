@@ -39,6 +39,7 @@ import { LicenseManager } from './modules/license/LicenseManager'
 import {
   enforceLicense,
   teardownWatermark,
+  untrackChart,
   reevaluateLicenseAcrossCharts,
 } from './modules/license/LicenseEnforcer'
 
@@ -661,8 +662,10 @@ export default class ApexCharts {
       this._keyboardNavigation.destroy()
     }
     // License: disconnect the watermark MutationObserver(s) so a torn-down
-    // chart leaves nothing observing the DOM.
+    // chart leaves nothing observing the DOM, and stop reconciling it so the
+    // enforcer does not hold on to its context.
     teardownWatermark(this)
+    untrackChart(this)
     new Destroy(this.ctx).clear({ isUpdating: false })
   }
 

@@ -115,9 +115,7 @@ function rosterTooltip(o) {
 <div class="wrap">
   <h1>Team roster</h1>
   <p>
-    One dot per person, grouped by team. Each dot carries its own data (name and
-    role), so hovering a dot shows that individual, not the team total. Team
-    leads carry their own colour, tinting a single dot within the cluster.
+    One dot per person, grouped by team, each carrying its own data.
   </p>
 
   <div class="chart-wrap">

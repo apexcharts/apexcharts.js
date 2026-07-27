@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Bar Explode to Unit Chart</title>
+    <title>Unit Chart - Workforce Clusters</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -37,8 +37,9 @@
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
       }
       .actions {
-        margin: 24px auto 0;
+        margin: 24px auto 16px;
         display: flex;
+        flex-wrap: wrap;
         gap: 8px;
         justify-content: center;
       }
@@ -77,18 +78,39 @@
     </script>
 
     <script>
-      // Shared by the vanilla-js, React and Vue builds. One dataset, drawn two ways:
-      // a column chart (magnitude per bar) and a unit chart (one dot per seat). The
-      // morph feature (bundled) makes the bar burst into its dots on the switch.
-      var LABELS = ['Republican', 'Democrat', 'Independent']
-      var COLORS = ['#EB4D4B', '#2E86DE', '#95A5A6']
-      var VALUES = [276, 266, 3]
+      // Shared by the vanilla-js, React and Vue builds. Two views of one 480-person
+      // company to show off both layouts: the headcount by department (grouped
+      // clusters) and the whole company split leadership-vs-staff (packed blob with
+      // the small leadership core nested in the centre). The live control state lives
+      // in each format's own wiring below.
+      var DATASETS = {
+        departments: {
+          values: [200, 120, 90, 70],
+          labels: ['Engineering', 'Sales', 'Operations', 'Design'],
+          colors: ['#635BFF', '#00B8D9', '#36B37E', '#FFAB00'],
+          layout: 'grouped',
+        },
+        seniority: {
+          values: [60, 420],
+          labels: ['Leadership', 'Staff'],
+          colors: ['#FFAB00', '#7B8794'],
+          layout: 'packed',
+        },
+      }
 
-      function setActive(view) {
+      function randomWorkforce() {
+        var eng = Math.floor(Math.random() * 110) + 150
+        var sales = Math.floor(Math.random() * 70) + 90
+        var ops = Math.floor(Math.random() * 60) + 60
+        var design = Math.floor(Math.random() * 50) + 45
+        return [eng, sales, ops, design]
+      }
+
+      function setActive(id) {
         document
-          .querySelectorAll('.actions button[data-view]')
+          .querySelectorAll('.actions button[data-dataset]')
           .forEach(function (btn) {
-            btn.classList.toggle('active', btn.getAttribute('data-view') === view)
+            btn.classList.toggle('active', btn.getAttribute('data-dataset') === id)
           })
       }
     </script>
@@ -99,104 +121,95 @@
     <div id="app"></div>
 
     <div id="html">&lt;div class=&quot;wrap&quot;&gt;
-  &lt;h1&gt;Bar, exploded into units&lt;/h1&gt;
+  &lt;h1&gt;Workforce as a dot cluster&lt;/h1&gt;
   &lt;p&gt;
-    The same seat counts as a column chart and as a unit (dot cluster) chart.
-    With the bundled &lt;code&gt;morph&lt;/code&gt; module, switching to units bursts each
-    column into its individual seats; switching back re-collects them.
+    Every employee is one dot, packed into an organic disc.
   &lt;/p&gt;
 
   &lt;div class=&quot;chart-wrap&quot;&gt;
     &lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={420} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;unit&quot; height={420} /&gt;
 &lt;/div&gt;
   &lt;/div&gt;
 
   &lt;div class=&quot;actions&quot;&gt;
-    &lt;button data-view=&quot;bar&quot;&gt;Columns&lt;/button&gt;
-    &lt;button data-view=&quot;unit&quot;&gt;Explode to units&lt;/button&gt;
+    &lt;button data-dataset=&quot;departments&quot;&gt;By department (grouped)&lt;/button&gt;
+    &lt;button data-dataset=&quot;seniority&quot;&gt;Leadership vs staff (packed)&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;actions&quot;&gt;
+    &lt;button id=&quot;shuffle&quot;&gt;Simulate hiring round&lt;/button&gt;
   &lt;/div&gt;
 &lt;/div&gt;</div>
 
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          series: [{ name: 'Seats', data: [276, 266, 3] }],
+          series: [200, 120, 90, 70],
           options: {
             chart: {
-              id: 'explodeChart',
-              type: 'bar',
+              id: 'unitChart',
+              type: 'unit',
               height: 420,
-              toolbar: {
-                show: false,
-              },
               animations: {
                 enabled: true,
                 speed: 900,
-                chartTypeMorph: {
-                  enabled: true,
-                  speed: 900,
+              },
+            },
+            labels: ['Engineering', 'Sales', 'Operations', 'Design'],
+            colors: ['#635BFF', '#00B8D9', '#36B37E', '#FFAB00'],
+            plotOptions: {
+              unit: {
+                layout: 'grouped',
+                shape: 'circle',
+                size: 'auto',
+                clusterLabels: {
+                  show: true,
                 },
               },
             },
-            labels: ['Republican', 'Democrat', 'Independent'],
-            colors: ['#EB4D4B', '#2E86DE', '#95A5A6'],
-            legend: { show: false },
-            dataLabels: { enabled: false },
-            plotOptions: {
-              bar: {
-                distributed: true,
-                borderRadius: 4,
-                columnWidth: '55%',
-              },
-              unit: {
-                layout: 'grouped',
-                clusterLabels: { show: true },
-              },
-            },
-            grid: { show: false },
-            yaxis: { show: false },
-            xaxis: {
-              categories: ['Republican', 'Democrat', 'Independent'],
-              axisBorder: { show: false },
-              axisTicks: { show: false },
+            legend: {
+              position: 'bottom',
             },
           },
         })
 
         React.useEffect(() => {
-          // Reach the live instance by its chart.id, then wire the controls. (LABELS,
-          // COLORS, VALUES and setActive live in the shared head script.)
+          // The react-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id, then wire the controls. (DATASETS/randomWorkforce/setActive
+          // live in the shared head script.) updateOptions drives the instance directly,
+          // so no React state changes under it.
           let chart
-          let current = 'bar'
+          let current = 'departments'
 
           const timer = window.setInterval(() => {
-            chart = ApexCharts.getChartByID('explodeChart')
+            chart = ApexCharts.getChartByID('unitChart')
             if (!chart) return
             window.clearInterval(timer)
 
             setActive(current)
 
-            document.querySelectorAll('.actions button[data-view]').forEach((btn) => {
-              btn.addEventListener('click', () => {
-                const view = btn.getAttribute('data-view')
-                if (view === current) return
-                current = view
-                setActive(current)
-                if (view === 'unit') {
+            document
+              .querySelectorAll('.actions button[data-dataset]')
+              .forEach((btn) => {
+                btn.addEventListener('click', () => {
+                  const id = btn.getAttribute('data-dataset')
+                  if (id === current) return
+                  current = id
+                  setActive(current)
+                  const ds = DATASETS[id]
                   chart.updateOptions({
-                    chart: { type: 'unit' },
-                    series: VALUES,
-                    labels: LABELS,
+                    colors: ds.colors,
+                    labels: ds.labels,
+                    plotOptions: { unit: { layout: ds.layout } },
+                    series: ds.values,
                   })
-                } else {
-                  chart.updateOptions({
-                    chart: { type: 'bar' },
-                    series: [{ name: 'Seats', data: VALUES }],
-                    labels: LABELS,
-                  })
-                }
+                })
               })
+
+            document.querySelector('#shuffle').addEventListener('click', () => {
+              if (current !== 'departments') return
+              chart.updateSeries(randomWorkforce())
             })
           }, 50)
 
@@ -206,28 +219,27 @@
         return (
           <div>
             <div class="wrap">
-              <h1>Bar, exploded into units</h1>
-              <p>
-                The same seat counts as a column chart and as a unit (dot cluster)
-                chart. With the bundled <code>morph</code> module, switching to units
-                bursts each column into its individual seats; switching back
-                re-collects them.
-              </p>
+              <h1>Workforce as a dot cluster</h1>
+              <p>Every employee is one dot, packed into an organic disc.</p>
 
               <div class="chart-wrap">
                 <div id="chart">
                   <ReactApexChart
                     options={state.options}
                     series={state.series}
-                    type="bar"
+                    type="unit"
                     height={420}
                   />
                 </div>
               </div>
 
               <div class="actions">
-                <button data-view="bar">Columns</button>
-                <button data-view="unit">Explode to units</button>
+                <button data-dataset="departments">By department (grouped)</button>
+                <button data-dataset="seniority">Leadership vs staff (packed)</button>
+              </div>
+
+              <div class="actions">
+                <button id="shuffle">Simulate hiring round</button>
               </div>
             </div>
             <div id="html-dist"></div>

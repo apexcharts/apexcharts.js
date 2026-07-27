@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Unit Chart - Dot Cluster</title>
+    <title>Unit Chart - Workforce Clusters</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -73,30 +73,32 @@
     </script>
 
     <script>
-      // Shared by the vanilla-js, React and Vue builds. Two datasets to show off both
-      // layouts: the House seat split (grouped clusters) and a single population with
-      // a highlighted minority (packed blob). The live control state lives in each
-      // format's own wiring below.
+      // Shared by the vanilla-js, React and Vue builds. Two views of one 480-person
+      // company to show off both layouts: the headcount by department (grouped
+      // clusters) and the whole company split leadership-vs-staff (packed blob with
+      // the small leadership core nested in the centre). The live control state lives
+      // in each format's own wiring below.
       var DATASETS = {
-        house: {
-          values: [276, 266, 3],
-          labels: ['Republican', 'Democrat', 'Independent'],
-          colors: ['#EB4D4B', '#2E86DE', '#95A5A6'],
+        departments: {
+          values: [200, 120, 90, 70],
+          labels: ['Engineering', 'Sales', 'Operations', 'Design'],
+          colors: ['#635BFF', '#00B8D9', '#36B37E', '#FFAB00'],
           layout: 'grouped',
         },
-        gender: {
-          values: [65, 835],
-          labels: ['Female', 'Male'],
-          colors: ['#EE5A8F', '#1AA5A0'],
+        seniority: {
+          values: [60, 420],
+          labels: ['Leadership', 'Staff'],
+          colors: ['#FFAB00', '#7B8794'],
           layout: 'packed',
         },
       }
 
-      function randomHouse() {
-        var r = Math.floor(Math.random() * 120) + 200
-        var d = Math.floor(Math.random() * 120) + 200
-        var i = Math.floor(Math.random() * 12)
-        return [r, d, i]
+      function randomWorkforce() {
+        var eng = Math.floor(Math.random() * 110) + 150
+        var sales = Math.floor(Math.random() * 70) + 90
+        var ops = Math.floor(Math.random() * 60) + 60
+        var design = Math.floor(Math.random() * 50) + 45
+        return [eng, sales, ops, design]
       }
 
       function setActive(id) {
@@ -111,12 +113,9 @@
 
   <body>
      <div class="wrap">
-        <h1>Unit chart (dot cluster)</h1>
+        <h1>Workforce as a dot cluster</h1>
         <p>
-          Every member is one dot. Dots pack into an organic disc with a phyllotaxis
-          (sunflower) spiral and glide into place on each update. Switch datasets to
-          see the grouped clusters re-form as a single packed blob with the minority
-          nested in the centre.
+          Every employee is one dot, packed into an organic disc.
         </p>
       
         <div class="chart-wrap">
@@ -124,18 +123,18 @@
         </div>
       
         <div class="actions">
-          <button data-dataset="house">House seats (grouped)</button>
-          <button data-dataset="gender">Population (packed)</button>
+          <button data-dataset="departments">By department (grouped)</button>
+          <button data-dataset="seniority">Leadership vs staff (packed)</button>
         </div>
       
         <div class="actions">
-          <button id="shuffle">Shuffle seats</button>
+          <button id="shuffle">Simulate hiring round</button>
         </div>
       </div>
 
     <script>
       var options = {
-        series: [276, 266, 3],
+        series: [200, 120, 90, 70],
         chart: {
           id: 'unitChart',
           type: 'unit',
@@ -145,8 +144,8 @@
             speed: 900,
           },
         },
-        labels: ['Republican', 'Democrat', 'Independent'],
-        colors: ['#EB4D4B', '#2E86DE', '#95A5A6'],
+        labels: ['Engineering', 'Sales', 'Operations', 'Design'],
+        colors: ['#635BFF', '#00B8D9', '#36B37E', '#FFAB00'],
         plotOptions: {
           unit: {
             layout: 'grouped',
@@ -165,9 +164,9 @@
       var chart = new ApexCharts(document.querySelector('#chart'), options)
       chart.render()
 
-      // DATASETS, randomHouse and setActive live in the shared head script; the
-      // live current-dataset state stays per-format.
-      var current = 'house'
+      // DATASETS, randomWorkforce and setActive live in the shared head script; the
+      // live current-view state stays per-format.
+      var current = 'departments'
       setActive(current)
 
       document
@@ -189,8 +188,8 @@
         })
 
       document.querySelector('#shuffle').addEventListener('click', function () {
-        if (current !== 'house') return
-        chart.updateSeries(randomHouse())
+        if (current !== 'departments') return
+        chart.updateSeries(randomWorkforce())
       })
     </script>
 

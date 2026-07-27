@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.5.0
+ * ApexCharts v6.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -2076,6 +2076,8 @@ class ZoomPanSelection extends Toolbar {
   _applyXRange(newMinX, newMaxX, isZoom) {
     const w = this.w;
     if (!w.globals.initialConfig) return false;
+    const cur = this._currentXWindow();
+    const zoomingOut = isZoom && newMaxX - newMinX > cur.max - cur.min;
     const bounds = this._clampBounds();
     if (bounds) {
       const range = newMaxX - newMinX;
@@ -2091,8 +2093,9 @@ class ZoomPanSelection extends Toolbar {
     }
     if (w.config.xaxis.convertedCatToNumeric) {
       newMinX = Math.floor(newMinX);
-      newMaxX = Math.floor(newMaxX);
+      newMaxX = zoomingOut ? Math.ceil(newMaxX) : Math.floor(newMaxX);
       if (newMinX < 1) newMinX = 1;
+      if (bounds && newMaxX > bounds.max) newMaxX = Math.floor(bounds.max);
       if (newMaxX - newMinX < 2) return false;
     }
     if (!(newMaxX > newMinX)) return false;

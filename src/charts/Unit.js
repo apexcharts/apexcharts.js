@@ -47,6 +47,12 @@ export default class Unit {
     this.w = w
     /** @type {number} shared dot radius, set by the layout pass */
     this._lastDotR = 1
+    /** @type {{cells:{x:number,y:number}[]}|null} small-multiple grid track cells */
+    this._gridTrack = null
+    /** @type {number} denominator mapping a value -> filled cells (grid split) */
+    this._gridDenom = 1
+    /** @type {any} scatter (beeswarm) axis geometry, set by _layoutScatter */
+    this._scatterAxis = null
   }
 
   /**
@@ -68,9 +74,19 @@ export default class Unit {
         ? 'packed'
         : opts.layout === 'columns'
           ? 'columns'
-          : 'grouped'
+          : opts.layout === 'grid'
+            ? 'grid'
+            : opts.layout === 'scatter'
+              ? 'scatter'
+              : 'grouped'
     // Keying decides which previous dot a new dot tweens from on an update:
     //  - 'group' (default): key "i:j" - a dot stays within its category slot.
+    //    EXCEPTION: a 'packed' blob and a 'grid' waffle have no stable
+    //    per-category slots (a category's slots are offset by the - changing -
+    //    preceding categories' counts, so keying "i:j" would re-spin/re-shuffle
+    //    every dot when a count moves). There we key by the physical slot
+    //    instead, so a cell keeps its place: the colour boundary breathes in/out
+    //    and only the rim adds/removes dots.
     //  - 'flow': key by GLOBAL draw order - the anonymous crowd migrates across
     //    a regroup (category count/identity changing) instead of fading in/out.
     //  - 'identity': key by each datum's id/name - a SPECIFIC unit migrates
@@ -91,13 +107,24 @@ export default class Unit {
     counts = this._applyMaxUnits(counts, opts.maxUnits)
 
     const total = counts.reduce((a, b) => a + b, 0)
-    /** @type {{ i: number, cx: number, cy: number, outerR: number, dots: {x:number,y:number}[] }[]} */
+    /** @type {{ i: number, cx: number, cy: number, outerR: number, dots: {x:number,y:number,slot?:number,r?:number}[] }[]} */
     const clusters =
       layout === 'packed'
         ? this._layoutPacked(counts, opts)
         : layout === 'columns'
           ? this._layoutColumns(counts, opts)
-          : this._layoutGrouped(counts, opts)
+          : layout === 'grid'
+            ? this._layoutGrid(counts, opts)
+            : layout === 'scatter'
+              ? this._layoutScatter(opts)
+              : this._layoutGrouped(counts, opts)
+
+    // Small-multiple waffles paint a faint track backdrop (the "of N" cells)
+    // behind every tile's filled dots, and carry a per-tile label.
+    const gridSplit = layout === 'grid' && !!(opts.grid && opts.grid.split)
+    if (gridSplit) this._drawGridTrack(ret, graphics, opts)
+    // Scatter (beeswarm) paints its value X axis + category lanes behind the dots.
+    if (layout === 'scatter') this._drawScatterAxes(ret, graphics)
 
     const dotR = this._lastDotR
     const animate = this._shouldAnimate()
@@ -161,10 +188,14 @@ export default class Unit {
             ? datum.fillColor
             : color
         // Bubble sizing scales this dot's radius by its value; otherwise every
-        // dot shares the reference radius.
-        const rj = sizeStats
-          ? this._radiusForValue(this._unitValueOf(datum), sizeStats)
-          : dotR
+        // dot shares the reference radius. The scatter layout may precompute a
+        // per-dot radius (bubble scatter / beeswarm) and stash it on the dot.
+        const rj =
+          d.r != null
+            ? d.r
+            : sizeStats
+              ? this._radiusForValue(this._unitValueOf(datum), sizeStats)
+              : dotR
         const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j)
         elSeries.add(el)
         // Identity keying: a specific unit (by id/name) persists across any
@@ -183,6 +214,11 @@ export default class Unit {
           key = id != null ? `id:${id}` : `g:${gIndex}`
         } else if (flow) {
           key = String(gIndex)
+        } else if (d.slot != null) {
+          // Packed blob: key by physical spiral slot so a shell keeps its place
+          // (a dot near the colour boundary just recolours instead of the whole
+          // outer ring re-spinning across the disc when the inner count shifts).
+          key = `slot:${d.slot}`
         } else {
           key = `${cluster.i}:${j}`
         }
@@ -194,8 +230,11 @@ export default class Unit {
           // cluster centre (fresh mount). The first two keep dots opaque; a
           // fresh mount fades them in.
           const anchor = from || burst
-          const cx0 = anchor ? anchor.x : cluster.cx
-          const cy0 = anchor ? anchor.y : cluster.cy
+          // A fresh mount fades in: a small-multiple cell fades IN PLACE (a
+          // waffle fills cell-by-cell, it does not fly from a centre); other
+          // layouts gather out from the cluster centre.
+          const cx0 = anchor ? anchor.x : gridSplit ? d.x : cluster.cx
+          const cy0 = anchor ? anchor.y : gridSplit ? d.y : cluster.cy
           el.node.style.opacity = anchor ? '1' : '0'
           this._placeDot(el.node, opts, cx0, cy0)
           animDots.push({
@@ -221,17 +260,21 @@ export default class Unit {
         }
       })
 
-      // Per-cluster label: a curved arc over a 'grouped' blob, or a straight
-      // label above a 'columns' bar (packed interleaves categories, so a
-      // per-category label would be meaningless there). Skip a hidden/empty
-      // category (0 dots) so a legend-toggled series leaves no ghost label.
+      // Per-cluster label: a curved arc over a 'grouped' blob, a straight label
+      // by a 'columns' bar, or a straight per-tile label on a small-multiple
+      // waffle (a single 'grid' has no per-category labels - the legend carries
+      // them; packed interleaves categories, so a per-category label would be
+      // meaningless). Skip a hidden/empty category (0 dots) so a legend-toggled
+      // series leaves no ghost label. For a tile the percentage is value/denom
+      // (its own fill), not value/grand-total.
       if (
-        (layout === 'grouped' || layout === 'columns') &&
+        (layout === 'grouped' || layout === 'columns' || gridSplit) &&
         opts.clusterLabels &&
         opts.clusterLabels.show &&
         counts[cluster.i] > 0
       ) {
-        this._drawClusterLabel(elSeries, cluster, counts[cluster.i], total, opts, color)
+        const labelTotal = gridSplit ? this._gridDenom : total
+        this._drawClusterLabel(elSeries, cluster, counts[cluster.i], labelTotal, opts, color)
       }
 
       ret.add(elSeries)
@@ -409,7 +452,7 @@ export default class Unit {
       cx,
       cy,
       outerR: step * Math.sqrt(total) + this._lastDotR,
-      /** @type {{x:number,y:number}[]} */ dots: [],
+      /** @type {{x:number,y:number,slot?:number}[]} */ dots: [],
     }))
 
     let gi = 0
@@ -417,9 +460,14 @@ export default class Unit {
       for (let j = 0; j < counts[catI]; j++) {
         const r = step * Math.sqrt(gi + 0.5)
         const theta = gi * GOLDEN_ANGLE
+        // Tag each dot with its physical spiral slot. In a packed blob there are
+        // no stable per-category slots (the outer group's indices are offset by
+        // the inner group's count), so the keyed transition must key by this
+        // physical slot, not by "category:slot". See the keying note in draw().
         clusters[catI].dots.push({
           x: cx + r * Math.cos(theta),
           y: cy + r * Math.sin(theta),
+          slot: gi,
         })
         gi++
       }
@@ -442,7 +490,12 @@ export default class Unit {
     const w = this.w
     const gw = w.layout.gridWidth
     const gh = w.layout.gridHeight
-    const labelSpace = opts.clusterLabels && opts.clusterLabels.show ? 30 : 6
+    // Reserve room for the cluster label on whichever side it sits (top by
+    // default, bottom when clusterLabels.position === 'bottom'); the opposite
+    // side keeps a small default margin.
+    const labelsOn = !!(opts.clusterLabels && opts.clusterLabels.show)
+    const labelsBelow = labelsOn && opts.clusterLabels.position === 'bottom'
+    const topPad = labelsOn && !labelsBelow ? 30 : 6
 
     // Only VISIBLE (non-empty) categories claim a column slot, so a legend-hidden
     // bar leaves NO gap: the remaining bars re-flow to fill the row.
@@ -453,10 +506,10 @@ export default class Unit {
 
     const cellW = gw / Kv
     const barW = cellW * 0.62 // gap between neighbouring bars
-    // Reserve a little space above the legend / plot edge so the baseline never
-    // sits flush against it.
-    const bottomPad = Math.max(8, gh * 0.04)
-    const availH = Math.max(4, gh - labelSpace - bottomPad)
+    // Keep the baseline off the legend / plot edge, plus a label band below the
+    // bars when the labels sit there.
+    const bottomPad = Math.max(8, gh * 0.04) + (labelsBelow ? 30 : 0)
+    const availH = Math.max(4, gh - topPad - bottomPad)
     const maxCount = Math.max(1, ...counts)
     const spacing = opts.spacing > 0 ? opts.spacing : 1
 
@@ -509,14 +562,14 @@ export default class Unit {
     }
 
     const r = this._lastDotR
-    // Vertically CENTRE the tallest bar within the band [labelSpace, gh-bottomPad]
+    // Vertically CENTRE the tallest bar within the band [topPad, gh-bottomPad]
     // so a fixed dot size (bars shorter than the plot) does not dump all the
     // slack above the row and crowd the legend. Every bar shares this baseline
     // (bottom-aligned to it) so their heights stay directly comparable. For
     // 'auto' sizing the tallest bar already fills the band, so this is a no-op.
     const maxRows = Math.ceil(maxCount / cols)
     const tallestBarH = Math.min(availH, maxRows * pitch)
-    const bottom = labelSpace + (availH + tallestBarH) / 2
+    const bottom = topPad + (availH + tallestBarH) / 2
 
     return counts.map((n, i) => {
       const cx = slotOf[i] >= 0 ? cellW * (slotOf[i] + 0.5) : gw / 2
@@ -539,12 +592,915 @@ export default class Unit {
         cx,
         cy: bottom - barH / 2,
         outerR: barH / 2,
-        // Flag read by _drawClusterLabel: a bar takes a straight label above
-        // its top edge, never a curved arc.
+        // Flag read by _drawClusterLabel: a bar takes a straight label (above
+        // or below per clusterLabels.position), never a curved arc.
         flat: true,
         dots,
       }
     })
+  }
+
+  /**
+   * Lay out ALL categories into ONE regular lattice - a waffle / grid. Dots take
+   * sequential slots in DECLARED category order and fill row-major, `columns`
+   * wide, so each category owns a contiguous band of cells: a part-to-whole
+   * square "pie". `grid.total` (optional) re-allocates the cells to a fixed
+   * budget (e.g. 100) by largest remainder, so the grid reads as exact
+   * percentages regardless of the raw totals; without it there is one cell per
+   * unit (respecting unitValue / maxUnits). `grid.fillFrom` picks the first row.
+   * The category bands follow the legend order (no smallest-first sort), and
+   * each physical slot is keyed so a proportion change recolours boundary cells
+   * in place rather than reshuffling the whole grid.
+   * @param {number[]} counts
+   * @param {any} opts
+   */
+  _layoutGrid(counts, opts) {
+    // Small-multiple / trellis mode: one mini-waffle per category instead of a
+    // single shared lattice. Handled separately (own track backdrop + per-tile
+    // labels + physical per-tile keying).
+    if (opts.grid && opts.grid.split) return this._layoutGridSplit(counts, opts)
+    // Single grid: no track backdrop.
+    this._gridTrack = null
+    const w = this.w
+    const gw = w.layout.gridWidth
+    const gh = w.layout.gridHeight
+    const gcfg = opts.grid || {}
+    const cols = Math.max(1, Math.round(gcfg.columns > 0 ? gcfg.columns : 10))
+    const fillFrom = gcfg.fillFrom === 'top' ? 'top' : 'bottom'
+
+    // Fixed-budget (percentage) mode vs one-cell-per-unit.
+    const cells =
+      gcfg.total > 0
+        ? this._largestRemainder(counts, Math.round(gcfg.total))
+        : counts.slice()
+    const totalCells = cells.reduce((a, b) => a + b, 0)
+    const rows = Math.max(1, Math.ceil(Math.max(1, totalCells) / cols))
+
+    // No per-category cluster labels on a single grid (the legend carries the
+    // categories), so only a small top margin is reserved.
+    const labelSpace = 6
+    const spacing = opts.spacing > 0 ? opts.spacing : 1
+    const availW = Math.max(4, gw)
+    const availH = Math.max(4, gh - labelSpace)
+
+    // A fixed dot size (image / explicit size / bubble max) sets the pitch;
+    // otherwise fit the cols x rows lattice into the plot.
+    const fixed = this._fixedRadius(opts)
+    let pitch = 0
+    if (fixed) {
+      pitch = 2 * fixed * spacing
+      this._lastDotR = fixed
+    } else {
+      pitch = Math.min(availW / cols, availH / rows)
+      this._lastDotR = Math.max(1, pitch / (2 * spacing))
+    }
+    const blockW = cols * pitch
+    const blockH = rows * pitch
+    // Centre the lattice block in the plot.
+    const originX = (gw - blockW) / 2 + pitch / 2
+    const topY = labelSpace + (availH - blockH) / 2
+    // Bottom-fill: row 0 sits at the BOTTOM of the block; top-fill: at the top.
+    const rowY = (/** @type {number} */ rowIdx) =>
+      fillFrom === 'bottom'
+        ? topY + blockH - pitch / 2 - rowIdx * pitch
+        : topY + pitch / 2 + rowIdx * pitch
+
+    const clusters = counts.map((_, i) => ({
+      i,
+      cx: gw / 2,
+      cy: labelSpace + availH / 2,
+      outerR: Math.max(blockW, blockH) / 2,
+      /** @type {{x:number,y:number,slot?:number}[]} */ dots: [],
+    }))
+
+    let k = 0
+    for (let ci = 0; ci < cells.length; ci++) {
+      for (let j = 0; j < cells[ci]; j++) {
+        const col = k % cols
+        const rowIdx = Math.floor(k / cols)
+        clusters[ci].dots.push({
+          x: originX + col * pitch,
+          y: rowY(rowIdx),
+          slot: k,
+        })
+        k++
+      }
+    }
+    return clusters
+  }
+
+  /**
+   * Small-multiple ("trellis") waffles: ONE mini-waffle per category, laid out
+   * in a near-square grid of tiles. Each tile has `grid.total` cells (default
+   * 100 -> a 10x10 tile) and fills a fraction of them equal to the category's
+   * value over a denominator (`grid.max`, else the largest count so the leader
+   * fills its tile and every other tile stays proportionally full - no empty
+   * tiles for arbitrary data). The unfilled cells are drawn as a faint TRACK
+   * backdrop (see _drawGridTrack) so each tile reads as a part-to-whole "of N".
+   * Only VISIBLE (non-zero) categories claim a tile, so a legend hide drops the
+   * tile and the rest re-flow. Each filled cell is keyed by a physical
+   * `tile*cells + localCell` slot, so a value change grows/shrinks a tile's fill
+   * in place instead of reshuffling.
+   * @param {number[]} counts @param {any} opts
+   */
+  _layoutGridSplit(counts, opts) {
+    const w = this.w
+    const gw = w.layout.gridWidth
+    const gh = w.layout.gridHeight
+    const gcfg = opts.grid || {}
+    const cols = Math.max(1, Math.round(gcfg.columns > 0 ? gcfg.columns : 10))
+    const fillFrom = gcfg.fillFrom === 'top' ? 'top' : 'bottom'
+    const cellsPerTile = Math.max(1, Math.round(gcfg.total > 0 ? gcfg.total : 100))
+    const rowsPerTile = Math.max(1, Math.ceil(cellsPerTile / cols))
+
+    // Visible (non-empty) categories each get a tile; a hidden/empty category
+    // drops out and the remaining tiles re-flow (as grouped/columns do).
+    const visible = counts.map((_, i) => i).filter((i) => counts[i] > 0)
+    const K = Math.max(1, visible.length)
+
+    // Value -> filled-cell denominator. Default = the largest count (leader
+    // fills its tile, the rest proportional); `grid.max` pins an explicit whole
+    // (e.g. 100 so a value of 35 fills 35 of 100 cells - a percentage waffle).
+    const denom = gcfg.max > 0 ? gcfg.max : Math.max(1, ...counts)
+
+    // Arrange the tiles in a near-square grid unless grid.tileColumns pins it.
+    const tileCols = Math.max(
+      1,
+      Math.round(gcfg.tileColumns > 0 ? gcfg.tileColumns : Math.ceil(Math.sqrt(K))),
+    )
+    const tileRows = Math.max(1, Math.ceil(K / tileCols))
+
+    // Reserve a per-tile label band on the side the label sits (top by default).
+    const labelsOn = !(opts.clusterLabels && opts.clusterLabels.show === false)
+    const labelsBelow =
+      labelsOn && opts.clusterLabels && opts.clusterLabels.position === 'bottom'
+    const topBand = labelsOn && !labelsBelow ? 22 : 4
+    const botBand = labelsOn && labelsBelow ? 22 : 4
+
+    const tileW = gw / tileCols
+    const tileH = gh / tileRows
+    const availTileW = Math.max(4, tileW * 0.86) // gutter between neighbouring tiles
+    const availTileH = Math.max(4, tileH - topBand - botBand)
+    const spacing = opts.spacing > 0 ? opts.spacing : 1
+
+    // Dot pitch: a fixed size sets it; otherwise fit cols x rowsPerTile per tile.
+    const fixed = this._fixedRadius(opts)
+    let pitch = 0
+    if (fixed) {
+      pitch = 2 * fixed * spacing
+      this._lastDotR = fixed
+    } else {
+      pitch = Math.min(availTileW / cols, availTileH / rowsPerTile)
+      this._lastDotR = Math.max(1, pitch / (2 * spacing))
+    }
+    const blockW = cols * pitch
+    const blockH = rowsPerTile * pitch
+
+    const rowY = (/** @type {number} */ topY, /** @type {number} */ rowIdx) =>
+      fillFrom === 'bottom'
+        ? topY + blockH - pitch / 2 - rowIdx * pitch
+        : topY + pitch / 2 + rowIdx * pitch
+
+    /** @type {{x:number,y:number}[]} */
+    const track = []
+    /** @type {{ i:number, cx:number, cy:number, outerR:number, flat:boolean, split:boolean, dots:{x:number,y:number,slot?:number}[] }[]} */
+    const clusters = []
+
+    visible.forEach((ci, t) => {
+      const tc = t % tileCols
+      const tr = Math.floor(t / tileCols)
+      const tileX = tc * tileW
+      const tileYtop = tr * tileH
+      const originX = tileX + (tileW - blockW) / 2 + pitch / 2
+      const topY = tileYtop + topBand + (availTileH - blockH) / 2
+
+      const cellXY = (/** @type {number} */ k) => ({
+        x: originX + (k % cols) * pitch,
+        y: rowY(topY, Math.floor(k / cols)),
+      })
+
+      // Full lattice -> track backdrop.
+      for (let k = 0; k < cellsPerTile; k++) track.push(cellXY(k))
+
+      // Filled cells -> series dots (keyed by physical per-tile slot).
+      const filled = Math.max(
+        0,
+        Math.min(cellsPerTile, Math.round((counts[ci] / denom) * cellsPerTile)),
+      )
+      /** @type {{x:number,y:number,slot?:number}[]} */
+      const dots = []
+      for (let k = 0; k < filled; k++) {
+        const p = cellXY(k)
+        dots.push({ x: p.x, y: p.y, slot: t * cellsPerTile + k })
+      }
+
+      clusters.push({
+        i: ci,
+        cx: tileX + tileW / 2,
+        cy: topY + blockH / 2,
+        outerR: blockH / 2,
+        // Straight per-tile label (never a curved arc), placed by position.
+        flat: true,
+        split: true,
+        dots,
+      })
+    })
+
+    // Denominator drives the per-tile label percentage (value / denom).
+    this._gridDenom = denom
+    this._gridTrack = { cells: track }
+    return clusters
+  }
+
+  /**
+   * Draw the faint "track" backdrop for the small-multiple grid: every cell of
+   * every tile's full lattice, so the filled (coloured) cells drawn on top read
+   * as a fraction of the whole. Static (redrawn each render, never animated);
+   * painted BEHIND the series groups. `grid.trackColor` overrides the default
+   * theme-neutral grey.
+   * @param {any} ret @param {Graphics} graphics @param {any} opts
+   */
+  _drawGridTrack(ret, graphics, opts) {
+    const track = this._gridTrack
+    if (!track || !track.cells || !track.cells.length) return
+    const r = this._lastDotR
+    const gcfg = opts.grid || {}
+    const trackColor = gcfg.trackColor || 'rgba(128,128,128,0.14)'
+    const g = graphics.group({ class: 'apexcharts-unit-track' })
+    track.cells.forEach((c) => {
+      let el
+      if (opts.shape === 'square') {
+        const side = r * 2
+        el = graphics.drawRect(0, 0, side, side, opts.borderRadius || 0, trackColor, 1, 0, 'none')
+        el.node.setAttribute('fill', trackColor)
+        el.node.setAttribute('x', String(c.x - r))
+        el.node.setAttribute('y', String(c.y - r))
+      } else {
+        el = graphics.drawCircle(r, { fill: trackColor, 'stroke-width': 0, stroke: 'none' })
+        el.node.setAttribute('fill', trackColor)
+        el.node.setAttribute('cx', String(c.x))
+        el.node.setAttribute('cy', String(c.y))
+      }
+      el.node.classList.add('apexcharts-unit-track-cell')
+      g.add(el)
+    })
+    ret.add(g)
+  }
+
+  /**
+   * Scatter / beeswarm layout: position every unit on a real numeric X value
+   * axis by its own value (`_unitValueOf`), laned by category on Y. Within a
+   * lane an anti-overlap "swarm" pack (or a random jitter) spreads the dots off
+   * the centre line so equal / close values do not stack on top of each other.
+   * This is the unit chart's answer to "put these on axes": one dot per datum,
+   * placed by data, with a drawn value axis + category lanes (see
+   * _drawScatterAxes). Needs the per-unit object form (each datum a numeric
+   * `value`/`y`); flat counts have no per-unit value, so their lanes stay empty.
+   * @param {any} opts
+   */
+  _layoutScatter(opts) {
+    const w = this.w
+    const scfg = opts.scatter || {}
+    // 2D value-value scatter: each datum's own x AND y on two numeric axes.
+    if (scfg.y === 'value') return this._layoutScatter2D(opts)
+    const gw = w.layout.gridWidth
+    const gh = w.layout.gridHeight
+    const unitData = w.seriesData.unitData || []
+    const names = w.seriesData.seriesNames || []
+    const valueOf = (/** @type {any} */ d) => this._unitValueOf(d)
+    // Optional bubble sizing (by a separate `sizeField`): a bubble beeswarm.
+    const sizeStats = this._scatterSizeStats(scfg, unitData)
+
+    // Per-category numeric values; a category is VISIBLE only if it has at least
+    // one usable value (so a legend-hidden / empty lane drops and the rest
+    // re-flow, as the other layouts do).
+    const catVals = unitData.map((cat) =>
+      Array.isArray(cat) ? cat.map(valueOf) : [],
+    )
+    const isNum = (/** @type {any} */ v) => v != null && isFinite(v)
+    const visible = catVals
+      .map((_, i) => i)
+      .filter((i) => catVals[i].some(isNum))
+    const Kv = Math.max(1, visible.length)
+
+    // Global x range across all units, nice-numbered (unless overridden).
+    let vmin = Infinity
+    let vmax = -Infinity
+    catVals.forEach((vs) =>
+      vs.forEach((v) => {
+        if (v != null && isFinite(v)) {
+          if (v < vmin) vmin = v
+          if (v > vmax) vmax = v
+        }
+      }),
+    )
+    if (vmin === Infinity) {
+      vmin = 0
+      vmax = 1
+    }
+    const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5))
+    const nice = this._niceScale(
+      scfg.xMin != null ? scfg.xMin : vmin,
+      scfg.xMax != null ? scfg.xMax : vmax,
+      tickAmount,
+    )
+    const xMin = scfg.xMin != null ? scfg.xMin : nice.min
+    const xMax = scfg.xMax != null ? scfg.xMax : nice.max
+    const xSpan = xMax - xMin || 1
+
+    // Plot box: left gutter for lane labels, bottom gutter for the axis.
+    const laneW =
+      scfg.laneLabelWidth != null ? Math.max(0, scfg.laneLabelWidth) : Kv > 1 ? 92 : 8
+    const bottomGutter = 30 + (scfg.xTitle ? 20 : 0)
+    const plotL = laneW
+    const plotR = gw - 8
+    const plotT = 10
+    const plotB = gh - bottomGutter
+    const plotW = Math.max(4, plotR - plotL)
+    const plotH = Math.max(4, plotB - plotT)
+
+    const plotX = (/** @type {number} */ v) =>
+      plotL + ((v - xMin) / xSpan) * plotW
+    const laneH = plotH / Kv
+    const laneCy = (/** @type {number} */ slot) => plotT + laneH * (slot + 0.5)
+
+    // Dot radius: fixed if set, else a SMALL auto radius (a swarm reads best
+    // with small dots) bounded by lane height + peak lane density, capped ~6px.
+    let r = 0
+    const fixed = this._fixedRadius(opts)
+    if (fixed) {
+      r = fixed
+    } else {
+      const maxLane = Math.max(
+        1,
+        ...visible.map((i) => catVals[i].filter(isNum).length),
+      )
+      r = Math.max(
+        2,
+        Math.min(6, laneH * 0.12, plotW / (2.5 * Math.sqrt(maxLane))),
+      )
+    }
+    this._lastDotR = r
+    const spacing = opts.spacing > 0 ? opts.spacing : 1
+    const step = Math.max(0.5, r * spacing) // vertical pack step (~half a dot)
+    const jitter = scfg.spread === 'jitter'
+
+    /** @type {{ i:number, cx:number, cy:number, outerR:number, dots:{x:number,y:number,r?:number}[] }[]} */
+    const clusters = []
+    /** @type {{ i:number, cy:number, name:string }[]} */
+    const lanes = []
+
+    // Bubble beeswarm: the largest possible dot radius bounds the pack's
+    // x-window break (a pair collides within r_i + r_j <= 2*maxR).
+    const maxR = sizeStats ? sizeStats.rMax : r
+
+    visible.forEach((ci, slot) => {
+      const cy = laneCy(slot)
+      lanes.push({ i: ci, cy, name: names[ci] || `series-${ci + 1}` })
+      const cat = unitData[ci] || []
+      // Points keep their original datum index j so draw() can still resolve
+      // unitData[i][j] for per-unit colour + tooltip. A non-numeric datum is
+      // pinned to the axis start (defensive; scatter expects numeric values).
+      // With bubble sizing each point carries its own radius `r` (used by the
+      // pack + read back by draw()); otherwise the shared radius applies.
+      const pts = cat.map((d, j) => {
+        const v = valueOf(d)
+        /** @type {{j:number,px:number,y:number,r?:number}} */
+        const p = { j, px: plotX(isNum(v) ? v : xMin), y: cy }
+        if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r)
+        return p
+      })
+      if (jitter) {
+        // Deterministic pseudo-jitter by index (no Math.random - keeps SSR +
+        // re-render stable): spread within the lane band.
+        const halfLane = Math.max(maxR, laneH / 2 - maxR)
+        pts.forEach((p, k) => {
+          const t = ((k * 9301 + 49297) % 233280) / 233280 // LCG in [0,1)
+          p.y = cy + (t * 2 - 1) * halfLane
+        })
+      } else {
+        this._beeswarm(pts, cy, r, step, maxR)
+      }
+      // draw() indexes cluster.dots[j] against unitData[i][j], so keep j order.
+      clusters.push({
+        i: ci,
+        cx: (plotL + plotR) / 2,
+        cy,
+        outerR: laneH / 2,
+        dots: pts.map((p) => ({ x: p.px, y: p.y, r: p.r })),
+      })
+    })
+
+    // Tick values for the axis chrome.
+    /** @type {number[]} */
+    const ticks = []
+    const spacingT = nice.spacing || xSpan / Math.max(1, tickAmount - 1)
+    if (scfg.xMin != null || scfg.xMax != null) {
+      for (let k = 0; k < tickAmount; k++) {
+        ticks.push(xMin + (xSpan * k) / (tickAmount - 1))
+      }
+    } else {
+      for (let v = xMin; v <= xMax + spacingT * 0.5; v += spacingT) {
+        ticks.push(Math.abs(v) < spacingT * 1e-9 ? 0 : v)
+      }
+    }
+
+    this._scatterAxis = {
+      mode: '1d',
+      plotL,
+      plotR,
+      plotT,
+      plotB,
+      xMin,
+      xMax,
+      plotX,
+      ticks,
+      lanes,
+      xTitle: scfg.xTitle,
+      formatter: typeof scfg.xFormatter === 'function' ? scfg.xFormatter : null,
+      gridlines: scfg.gridlines !== false,
+    }
+    return clusters
+  }
+
+  /**
+   * 2D value-value scatter: each datum is a point at (`x`, `y`) on two numeric
+   * axes (a scatter / bubble plot in the unit family - premium, keyed
+   * transitions, per-unit colour/tooltip). Category = colour (one series group
+   * per category). With `scatter.sizeRange` set, each dot is a BUBBLE scaled (by
+   * area) from its `sizeField` (default 'z'). Needs the object form with numeric
+   * `x` + `y`.
+   * @param {any} opts
+   */
+  _layoutScatter2D(opts) {
+    const w = this.w
+    const gw = w.layout.gridWidth
+    const gh = w.layout.gridHeight
+    const scfg = opts.scatter || {}
+    const unitData = w.seriesData.unitData || []
+    const isNum = (/** @type {any} */ v) => typeof v === 'number' && isFinite(v)
+    const xOf = (/** @type {any} */ d) =>
+      d && typeof d === 'object' ? d.x : null
+    const yOf = (/** @type {any} */ d) =>
+      d && typeof d === 'object' ? (d.y != null ? d.y : d.value) : null
+
+    // A category is visible if it has at least one point with numeric x AND y.
+    const visible = unitData
+      .map((_, i) => i)
+      .filter((i) =>
+        (unitData[i] || []).some((d) => isNum(xOf(d)) && isNum(yOf(d))),
+      )
+
+    // Global x + y ranges (nice-numbered unless pinned).
+    let xmn = Infinity
+    let xmx = -Infinity
+    let ymn = Infinity
+    let ymx = -Infinity
+    unitData.forEach((cat) =>
+      (cat || []).forEach((d) => {
+        const x = xOf(d)
+        const y = yOf(d)
+        if (isNum(x) && isNum(y)) {
+          if (x < xmn) xmn = x
+          if (x > xmx) xmx = x
+          if (y < ymn) ymn = y
+          if (y > ymx) ymx = y
+        }
+      }),
+    )
+    if (xmn === Infinity) {
+      xmn = 0
+      xmx = 1
+      ymn = 0
+      ymx = 1
+    }
+    const xTicksN = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5))
+    const yTicksN = Math.max(2, Math.round(scfg.yTickAmount > 0 ? scfg.yTickAmount : 5))
+    const nx = this._niceScale(
+      scfg.xMin != null ? scfg.xMin : xmn,
+      scfg.xMax != null ? scfg.xMax : xmx,
+      xTicksN,
+    )
+    const ny = this._niceScale(
+      scfg.yMin != null ? scfg.yMin : ymn,
+      scfg.yMax != null ? scfg.yMax : ymx,
+      yTicksN,
+    )
+    const xMin = scfg.xMin != null ? scfg.xMin : nx.min
+    const xMax = scfg.xMax != null ? scfg.xMax : nx.max
+    const yMin = scfg.yMin != null ? scfg.yMin : ny.min
+    const yMax = scfg.yMax != null ? scfg.yMax : ny.max
+    const xSpan = xMax - xMin || 1
+    const ySpan = yMax - yMin || 1
+
+    // Plot box: left gutter for the Y axis (ticks + rotated title), bottom for X.
+    const leftGutter = 46 + (scfg.yTitle ? 18 : 0)
+    const bottomGutter = 30 + (scfg.xTitle ? 20 : 0)
+    const plotL = leftGutter
+    const plotR = gw - 12
+    const plotT = 10
+    const plotB = gh - bottomGutter
+    const plotW = Math.max(4, plotR - plotL)
+    const plotH = Math.max(4, plotB - plotT)
+
+    const plotX = (/** @type {number} */ v) => plotL + ((v - xMin) / xSpan) * plotW
+    // Y grows upward: larger value -> smaller pixel.
+    const plotY = (/** @type {number} */ v) => plotB - ((v - yMin) / ySpan) * plotH
+
+    const sizeStats = this._scatterSizeStats(scfg, unitData)
+    const baseR = this._fixedRadius(opts) || 5
+    this._lastDotR = baseR
+
+    /** @type {{ i:number, cx:number, cy:number, outerR:number, dots:{x:number,y:number,r?:number}[] }[]} */
+    const clusters = []
+    visible.forEach((ci) => {
+      const cat = unitData[ci] || []
+      const dots = cat.map((d) => {
+        const x = xOf(d)
+        const y = yOf(d)
+        return {
+          x: plotX(isNum(x) ? x : xMin),
+          y: plotY(isNum(y) ? y : yMin),
+          r: sizeStats ? this._scatterRadius(d, sizeStats, baseR) : undefined,
+        }
+      })
+      clusters.push({
+        i: ci,
+        cx: (plotL + plotR) / 2,
+        cy: (plotT + plotB) / 2,
+        outerR: plotH / 2,
+        dots,
+      })
+    })
+
+    const mkTicks = (
+      /** @type {number} */ lo,
+      /** @type {number} */ hi,
+      /** @type {number} */ span,
+      /** @type {number} */ spacing,
+      /** @type {boolean} */ pinned,
+      /** @type {number} */ n,
+    ) => {
+      /** @type {number[]} */
+      const out = []
+      if (pinned) {
+        for (let k = 0; k < n; k++) out.push(lo + (span * k) / (n - 1))
+      } else {
+        const sp = spacing || span / Math.max(1, n - 1)
+        for (let v = lo; v <= hi + sp * 0.5; v += sp) {
+          out.push(Math.abs(v) < sp * 1e-9 ? 0 : v)
+        }
+      }
+      return out
+    }
+
+    this._scatterAxis = {
+      mode: '2d',
+      plotL,
+      plotR,
+      plotT,
+      plotB,
+      plotX,
+      plotY,
+      xTicks: mkTicks(
+        xMin,
+        xMax,
+        xSpan,
+        nx.spacing,
+        scfg.xMin != null || scfg.xMax != null,
+        xTicksN,
+      ),
+      yTicks: mkTicks(
+        yMin,
+        yMax,
+        ySpan,
+        ny.spacing,
+        scfg.yMin != null || scfg.yMax != null,
+        yTicksN,
+      ),
+      xTitle: scfg.xTitle,
+      yTitle: scfg.yTitle,
+      xFormatter: typeof scfg.xFormatter === 'function' ? scfg.xFormatter : null,
+      yFormatter: typeof scfg.yFormatter === 'function' ? scfg.yFormatter : null,
+      gridlines: scfg.gridlines !== false,
+    }
+    return clusters
+  }
+
+  /**
+   * Bubble size stats for the scatter layout, or null when `scatter.sizeRange`
+   * is not a `[minR, maxR]` pair. Reads the global range of each datum's
+   * `sizeField` (default 'z') so a value maps to a radius (area scale) in
+   * _scatterRadius.
+   * @param {any} scfg @param {any[][]} unitData
+   * @returns {{zmin:number,zmax:number,rMin:number,rMax:number,field:string}|null}
+   */
+  _scatterSizeStats(scfg, unitData) {
+    const range = scfg && scfg.sizeRange
+    if (!Array.isArray(range) || range.length < 2) return null
+    const rMin = Math.max(0.5, +range[0])
+    const rMax = Math.max(rMin, +range[1])
+    const field = scfg.sizeField || 'z'
+    let zmin = Infinity
+    let zmax = -Infinity
+    unitData.forEach((cat) =>
+      (cat || []).forEach((d) => {
+        const z = d && typeof d === 'object' ? d[field] : null
+        if (typeof z === 'number' && isFinite(z)) {
+          if (z < zmin) zmin = z
+          if (z > zmax) zmax = z
+        }
+      }),
+    )
+    if (zmin === Infinity) return null
+    return { zmin, zmax, rMin, rMax, field }
+  }
+
+  /**
+   * Radius for one datum under the bubble size stats: area proportional to the
+   * `sizeField` value (so radius grows with sqrt), between rMin and rMax. A
+   * missing value collapses to rMin.
+   * @param {any} d
+   * @param {{zmin:number,zmax:number,rMin:number,rMax:number,field:string}} st
+   * @param {number} fallback @returns {number}
+   */
+  _scatterRadius(d, st, fallback) {
+    if (!st) return fallback
+    const z = d && typeof d === 'object' ? d[st.field] : null
+    if (typeof z !== 'number' || !isFinite(z)) return st.rMin
+    const t = st.zmax > st.zmin ? (z - st.zmin) / (st.zmax - st.zmin) : 1
+    const tc = Math.max(0, Math.min(1, t))
+    const aMin = st.rMin * st.rMin
+    const aMax = st.rMax * st.rMax
+    return Math.sqrt(aMin + tc * (aMax - aMin))
+  }
+
+  /**
+   * One-dimensional anti-overlap "beeswarm" pack: given points with a fixed x
+   * (`px`) and a lane centre `cy`, assign each a y so no two dots overlap (centre
+   * distance >= r_i + r_j). Greedy in ascending-x order, trying offsets 0, +step,
+   * -step, +2step ... and taking the SMALLEST that clears every already-placed
+   * neighbour still within reach in x. No-overlap always wins: a very dense lane
+   * grows a taller swarm rather than stacking dots (offsets are not hard-clamped
+   * to the lane). Each point may carry its own radius `r` (bubble beeswarm),
+   * else `rFallback` applies; `maxR` bounds the x-window break. Mutates each
+   * point's `.y`. Deterministic (no physics, no randomness).
+   * @param {{px:number,y:number,r?:number}[]} pts @param {number} cy
+   * @param {number} rFallback @param {number} step @param {number} [maxR]
+   */
+  _beeswarm(pts, cy, rFallback, step, maxR) {
+    const order = pts.slice().sort((a, b) => a.px - b.px)
+    /** @type {{px:number,y:number,r:number}[]} */
+    const placed = []
+    const rCap = maxR != null ? maxR : rFallback
+    order.forEach((p) => {
+      const pr = p.r != null ? p.r : rFallback
+      let chosen = 0
+      for (let k = 0; k < 2000; k++) {
+        const off = k === 0 ? 0 : Math.ceil(k / 2) * step * (k % 2 ? 1 : -1)
+        const y = cy + off
+        let ok = true
+        for (let m = placed.length - 1; m >= 0; m--) {
+          const q = placed[m]
+          const dx = p.px - q.px
+          if (dx > pr + rCap) break // x-ascending; nothing else can be in reach
+          const need = pr + q.r
+          const dy = y - q.y
+          if (dx * dx + dy * dy < need * need) {
+            ok = false
+            break
+          }
+        }
+        if (ok) {
+          chosen = off
+          break
+        }
+      }
+      p.y = cy + chosen
+      placed.push({ px: p.px, y: p.y, r: pr })
+    })
+  }
+
+  /**
+   * A "nice" numeric scale [min, max] + tick spacing covering [dataMin, dataMax]
+   * with about `ticks` ticks, using rounded 1/2/5 x 10^n steps. Homegrown (no
+   * dependency) - lean-core.
+   * @param {number} dataMin @param {number} dataMax @param {number} ticks
+   * @returns {{min:number,max:number,spacing:number}}
+   */
+  _niceScale(dataMin, dataMax, ticks) {
+    const lo = dataMin
+    let hi = dataMax
+    if (!(hi > lo)) hi = lo + 1
+    const range = this._niceNum(hi - lo, false)
+    const spacing = this._niceNum(range / Math.max(1, ticks - 1), true)
+    return {
+      min: Math.floor(lo / spacing) * spacing,
+      max: Math.ceil(hi / spacing) * spacing,
+      spacing,
+    }
+  }
+
+  /**
+   * Round a range to a "nice" 1/2/5 x 10^n number (Heckbert's loose/round label
+   * algorithm).
+   * @param {number} range @param {boolean} round @returns {number}
+   */
+  _niceNum(range, round) {
+    const rng = range > 0 ? range : 1
+    const exp = Math.floor(Math.log(rng) / Math.LN10)
+    const frac = rng / Math.pow(10, exp)
+    let nf
+    if (round) {
+      nf = frac < 1.5 ? 1 : frac < 3 ? 2 : frac < 7 ? 5 : 10
+    } else {
+      nf = frac <= 1 ? 1 : frac <= 2 ? 2 : frac <= 5 ? 5 : 10
+    }
+    return nf * Math.pow(10, exp)
+  }
+
+  /**
+   * Draw the scatter chrome behind the dots, from the geometry the layout
+   * stashed on `this._scatterAxis`. 1D (beeswarm): vertical X gridlines +
+   * baseline + tick labels (+ x title) + a per-lane category label in the
+   * category colour. 2D: both X + Y gridlines, both axes' tick labels, and
+   * rotated/placed axis titles (no lane labels - category is colour). Browser-
+   * only (SSR renders the dots without the chrome, as with cluster labels).
+   * @param {any} ret @param {Graphics} graphics
+   */
+  _drawScatterAxes(ret, graphics) {
+    const w = this.w
+    if (!Environment.isBrowser()) return
+    const ax = this._scatterAxis
+    if (!ax) return
+    const NS = 'http://www.w3.org/2000/svg'
+    const g = graphics.group({ class: 'apexcharts-unit-axis' })
+
+    const gridColor =
+      (w.config.grid && w.config.grid.borderColor) || 'rgba(128,128,128,0.18)'
+    const axisColor = 'rgba(128,128,128,0.5)'
+    const labelColor =
+      (w.config.xaxis &&
+        w.config.xaxis.labels &&
+        w.config.xaxis.labels.style &&
+        w.config.xaxis.labels.style.colors) ||
+      'rgba(120,130,140,0.9)'
+
+    const line = (/** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ x2, /** @type {number} */ y2, /** @type {string} */ stroke) => {
+      const l = BrowserAPIs.createElementNS(NS, 'line')
+      l.setAttribute('x1', String(x1))
+      l.setAttribute('y1', String(y1))
+      l.setAttribute('x2', String(x2))
+      l.setAttribute('y2', String(y2))
+      l.setAttribute('stroke', stroke)
+      l.setAttribute('shape-rendering', 'crispEdges')
+      g.node.appendChild(l)
+    }
+    const text = (
+      /** @type {string} */ str,
+      /** @type {number} */ x,
+      /** @type {number} */ y,
+      /** @type {string} */ anchor,
+      /** @type {string} */ fill,
+      /** @type {number} */ size,
+      /** @type {number} */ weight,
+      /** @type {string} */ cls,
+    ) => {
+      const t = BrowserAPIs.createElementNS(NS, 'text')
+      t.setAttribute('class', cls)
+      t.setAttribute('x', String(x))
+      t.setAttribute('y', String(y))
+      t.setAttribute('text-anchor', anchor)
+      t.setAttribute('dominant-baseline', 'middle')
+      t.setAttribute('font-size', `${size}px`)
+      t.setAttribute('font-family', w.config.chart.fontFamily || 'inherit')
+      t.setAttribute('font-weight', String(weight))
+      t.setAttribute('fill', fill)
+      t.textContent = str
+      g.node.appendChild(t)
+    }
+
+    if (ax.mode === '2d') {
+      // Y gridlines + tick labels (value grows upward).
+      ax.yTicks.forEach((/** @type {number} */ v) => {
+        const y = ax.plotY(v)
+        if (ax.gridlines) line(ax.plotL, y, ax.plotR, y, gridColor)
+        const label = ax.yFormatter ? String(ax.yFormatter(v)) : this._formatTick(v)
+        text(label, ax.plotL - 8, y, 'end', labelColor, 11, 400, 'apexcharts-unit-tick')
+      })
+      // X gridlines + tick labels.
+      ax.xTicks.forEach((/** @type {number} */ v) => {
+        const x = ax.plotX(v)
+        if (ax.gridlines) line(x, ax.plotT, x, ax.plotB, gridColor)
+        const label = ax.xFormatter ? String(ax.xFormatter(v)) : this._formatTick(v)
+        text(label, x, ax.plotB + 14, 'middle', labelColor, 11, 400, 'apexcharts-unit-tick')
+      })
+      // Axis baselines (X along the bottom, Y up the left).
+      line(ax.plotL, ax.plotB, ax.plotR, ax.plotB, axisColor)
+      line(ax.plotL, ax.plotT, ax.plotL, ax.plotB, axisColor)
+      // X title under the ticks; Y title rotated up the left edge.
+      if (ax.xTitle) {
+        text(
+          String(ax.xTitle),
+          (ax.plotL + ax.plotR) / 2,
+          ax.plotB + 32,
+          'middle',
+          labelColor,
+          12,
+          600,
+          'apexcharts-unit-axis-title',
+        )
+      }
+      if (ax.yTitle) {
+        const yt = BrowserAPIs.createElementNS(NS, 'text')
+        yt.setAttribute('class', 'apexcharts-unit-axis-title')
+        const tx = 14
+        const ty = (ax.plotT + ax.plotB) / 2
+        yt.setAttribute('x', String(tx))
+        yt.setAttribute('y', String(ty))
+        yt.setAttribute('text-anchor', 'middle')
+        yt.setAttribute('font-size', '12px')
+        yt.setAttribute('font-family', w.config.chart.fontFamily || 'inherit')
+        yt.setAttribute('font-weight', '600')
+        yt.setAttribute('fill', labelColor)
+        yt.setAttribute('transform', `rotate(-90 ${tx} ${ty})`)
+        yt.textContent = String(ax.yTitle)
+        g.node.appendChild(yt)
+      }
+      ret.add(g)
+      return
+    }
+
+    // 1D beeswarm: vertical gridlines + tick labels.
+    ax.ticks.forEach((/** @type {number} */ v) => {
+      const x = ax.plotX(v)
+      if (ax.gridlines) line(x, ax.plotT, x, ax.plotB, gridColor)
+      const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v)
+      text(label, x, ax.plotB + 14, 'middle', labelColor, 11, 400, 'apexcharts-unit-tick')
+    })
+    // X axis baseline.
+    line(ax.plotL, ax.plotB, ax.plotR, ax.plotB, axisColor)
+    // X axis title.
+    if (ax.xTitle) {
+      text(
+        String(ax.xTitle),
+        (ax.plotL + ax.plotR) / 2,
+        ax.plotB + 32,
+        'middle',
+        labelColor,
+        12,
+        600,
+        'apexcharts-unit-axis-title',
+      )
+    }
+    // Lane (category) labels in the left gutter, in the category colour.
+    if (ax.plotL > 12) {
+      ax.lanes.forEach((/** @type {{i:number,cy:number,name:string}} */ lane) => {
+        const color =
+          w.globals.colors[lane.i] || w.globals.colors[0] || '#008FFB'
+        text(lane.name, ax.plotL - 8, lane.cy, 'end', color, 12, 600, 'apexcharts-unit-lane-label')
+      })
+    }
+
+    ret.add(g)
+  }
+
+  /**
+   * Compact tick-value formatting: integers as-is, otherwise trimmed to a short
+   * decimal; large magnitudes get a k/M suffix.
+   * @param {number} v @returns {string}
+   */
+  _formatTick(v) {
+    if (!isFinite(v)) return ''
+    const a = Math.abs(v)
+    if (a >= 1e6) return `${+(v / 1e6).toFixed(1)}M`
+    if (a >= 1e4) return `${+(v / 1e3).toFixed(1)}k`
+    if (Number.isInteger(v)) return String(v)
+    return String(+v.toFixed(2))
+  }
+
+  /**
+   * Distribute `total` whole cells across `counts` in proportion to each value,
+   * using the largest-remainder method so the parts sum to exactly `total`
+   * (used by the grid/waffle percentage mode).
+   * @param {number[]} counts @param {number} total @returns {number[]}
+   */
+  _largestRemainder(counts, total) {
+    const sum = counts.reduce((a, b) => a + b, 0)
+    if (sum <= 0 || total <= 0) return counts.map(() => 0)
+    const exact = counts.map((c) => (c / sum) * total)
+    const floors = exact.map((v) => Math.floor(v))
+    const used = floors.reduce((a, b) => a + b, 0)
+    const remaining = Math.max(0, total - used)
+    // Hand the leftover cells to the categories with the largest fractional part.
+    const byFrac = exact
+      .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+      .sort((a, b) => b.frac - a.frac)
+    const out = floors.slice()
+    for (let n = 0; n < remaining && n < byFrac.length; n++) {
+      out[byFrac[n].i]++
+    }
+    return out
   }
 
   /**
@@ -735,6 +1691,13 @@ export default class Unit {
     const strokeColor = Array.isArray(w.globals.stroke.colors)
       ? w.globals.stroke.colors[i] || 'none'
       : 'none'
+    // Fill translucency via the standard `fill.opacity` (unit defaults to 1, so
+    // dots stay solid unless a chart opts in - e.g. bubble scatters set < 1 so
+    // overlapping bubbles read through each other). Applied as the SVG
+    // `fill-opacity` attribute, independent of the element `style.opacity` the
+    // gather / exit animations tween, so the two compose cleanly.
+    const fillOpacity =
+      typeof w.config.fill.opacity === 'number' ? w.config.fill.opacity : 1
 
     let el
     if (opts.shape === 'image' && opts.image && opts.image.src) {
@@ -755,6 +1718,7 @@ export default class Unit {
       const side = dotR * 2
       el = graphics.drawRect(0, 0, side, side, opts.borderRadius || 0, color, 1, strokeW, strokeColor)
       el.node.setAttribute('fill', color)
+      if (fillOpacity < 1) el.node.setAttribute('fill-opacity', String(fillOpacity))
     } else {
       el = graphics.drawCircle(dotR, {
         fill: color,
@@ -762,6 +1726,7 @@ export default class Unit {
         stroke: strokeColor,
       })
       el.node.setAttribute('fill', color)
+      if (fillOpacity < 1) el.node.setAttribute('fill-opacity', String(fillOpacity))
     }
     el.node.classList.add('apexcharts-unit-area')
     el.node.setAttribute('i', String(i))
@@ -997,7 +1962,12 @@ export default class Unit {
   }
 
   /**
-   * Fade + collapse the exit ghosts toward the plot centre, then remove them.
+   * Animate the exit ghosts out, then remove them. Layouts whose positions carry
+   * data (a waffle / grid lattice, or a scatter / beeswarm on real axes) fade
+   * their ghosts OUT IN PLACE - drifting them toward the plot centre would drag
+   * cells across tiles or bubbles across the plane, which reads as wrong. The
+   * blob / bar layouts keep the gentle inward collapse so a removal reads as
+   * motion rather than a pop.
    * @param {any} group @param {{x:number,y:number,fill:string}[]} exits @param {any} opts
    */
   _runExits(group, exits, opts) {
@@ -1006,6 +1976,11 @@ export default class Unit {
     const dotR = this._lastDotR
     const cx = w.layout.gridWidth / 2
     const cy = w.layout.gridHeight / 2
+    // Layouts whose positions carry data - a grid/waffle lattice or a scatter /
+    // beeswarm on real axes - fade their ghosts IN PLACE (no drift): a removed
+    // cell / point simply fades on its own spot. Only the blob / bar layouts
+    // keep the gentle inward collapse.
+    const drift = opts.layout === 'grid' || opts.layout === 'scatter' ? 0 : 0.35
 
     /** @type {{ node: SVGElement, x0:number, y0:number }[]} */
     const ghosts = []
@@ -1038,11 +2013,14 @@ export default class Unit {
       const e = easeOutCubic(t)
       for (let k = 0; k < ghosts.length; k++) {
         const g = ghosts[k]
-        // Drift a little toward the centre while fading.
-        const x = g.x0 + (cx - g.x0) * e * 0.35
-        const y = g.y0 + (cy - g.y0) * e * 0.35
-        g.node.setAttribute(cxAttr, String(x - offX))
-        g.node.setAttribute(cyAttr, String(y - offY))
+        // Drift a little toward the centre while fading (no drift for a grid:
+        // the ghost stays on its own cell and simply fades away).
+        if (drift) {
+          const x = g.x0 + (cx - g.x0) * e * drift
+          const y = g.y0 + (cy - g.y0) * e * drift
+          g.node.setAttribute(cxAttr, String(x - offX))
+          g.node.setAttribute(cyAttr, String(y - offY))
+        }
         g.node.style.opacity = String(1 - e)
       }
       if (t < 1) {
@@ -1055,8 +2033,12 @@ export default class Unit {
   }
 
   /**
-   * A curved label arced over the top of a cluster, via an invisible arc path +
-   * <textPath>. Text is centred over the top (text-anchor middle, 50% offset).
+   * A cluster label placed above (default) or below the cluster/bar. A TOP label
+   * over a wide grouped/packed blob rides a curved arc (invisible arc path +
+   * <textPath>, centred at 50% offset); a bottom label, a 'columns' bar, or a
+   * cluster too small for the arc gets a straight centred label instead.
+   * `clusterLabels.position` = 'top' | 'bottom'; `offsetY` pushes it further from
+   * the blob in either direction.
    * @param {any} elSeries @param {{ i:number, cx:number, cy:number, outerR:number, flat?:boolean }} cluster
    * @param {number} value @param {number} total @param {any} opts @param {string} color
    */
@@ -1092,17 +2074,22 @@ export default class Unit {
     textEl.setAttribute('font-weight', String(cfg.fontWeight || 600))
     textEl.setAttribute('fill', cfg.color || color)
 
-    // Arc radius sits just outside the blob.
+    const bottom = cfg.position === 'bottom'
+
+    // Arc radius sits just outside the blob (top placement only).
     const R = cluster.outerR + fontSize * 0.6 + 3 + (cfg.offsetY || 0)
     // Rough text width (no measuring API in SSR). Only curve the label when it
     // fits the upper-semicircle arc length (pi * R); otherwise a small cluster
-    // would wrap its label around a few dots. Fall back to a straight label
-    // centred above the blob.
+    // would wrap its label around a few dots. Fall back to a straight label.
     const estWidth = str.length * fontSize * 0.55
-    // A 'columns' bar (cluster.flat) always takes a straight label above its
-    // top edge; a tall thin bar has no sensible arc to ride.
+    // Curve only a TOP label over a grouped/packed blob wide enough to carry it.
+    // A bottom label, a 'columns' bar (cluster.flat), or a tiny cluster takes a
+    // straight label instead.
     const curved =
-      !cluster.flat && cfg.curved !== false && estWidth <= Math.PI * R * 0.95
+      !bottom &&
+      !cluster.flat &&
+      cfg.curved !== false &&
+      estWidth <= Math.PI * R * 0.95
 
     if (curved) {
       const yMid = cluster.cy
@@ -1128,9 +2115,13 @@ export default class Unit {
       textEl.appendChild(tp)
       elSeries.node.appendChild(pathEl)
     } else {
-      // Straight label centred above the blob.
+      // Straight label centred above (default) or below the blob/bar. offsetY
+      // pushes it further away from the blob in either direction.
       textEl.setAttribute('x', String(cluster.cx))
-      textEl.setAttribute('y', String(cluster.cy - cluster.outerR - 6 - (cfg.offsetY || 0)))
+      const y = bottom
+        ? cluster.cy + cluster.outerR + fontSize + 6 + (cfg.offsetY || 0)
+        : cluster.cy - cluster.outerR - 6 - (cfg.offsetY || 0)
+      textEl.setAttribute('y', String(y))
       textEl.textContent = str
     }
 

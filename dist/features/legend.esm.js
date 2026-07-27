@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.5.0
+ * ApexCharts v6.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -148,15 +148,33 @@ class Helpers {
         }
       }
     } else {
-      const seriesEl = w.dom.Paper.findOne(
-        ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
-      );
       const type = w.config.chart.type;
-      if (type === "pie" || type === "polarArea" || type === "donut") {
-        const dataLabels = w.config.plotOptions.pie.donut.labels;
-        const graphics = new Graphics(this.w);
-        graphics.pathMouseDown(seriesEl, null);
-        this.lgCtx.printDataLabelsInner(seriesEl.node, dataLabels);
+      if (type === "unit") {
+        w.globals.resized = true;
+        w.globals.risingSeries = [];
+        if (isHidden) {
+          this.riseCollapsedSeries(
+            w.globals.collapsedSeries,
+            w.globals.collapsedSeriesIndices,
+            seriesCnt
+          );
+        } else {
+          const series = this.getSeriesAfterCollapsing({ realIndex: seriesCnt });
+          this.lgCtx.updateSeries(
+            series,
+            w.config.chart.animations.dynamicAnimation.enabled
+          );
+        }
+      } else {
+        const seriesEl = w.dom.Paper.findOne(
+          ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
+        );
+        if (type === "pie" || type === "polarArea" || type === "donut") {
+          const dataLabels = w.config.plotOptions.pie.donut.labels;
+          const graphics = new Graphics(this.w);
+          graphics.pathMouseDown(seriesEl, null);
+          this.lgCtx.printDataLabelsInner(seriesEl.node, dataLabels);
+        }
       }
       if (w.config.chart.accessibility.enabled) {
         const legendItem = w.dom.baseEl.querySelector(
@@ -192,7 +210,11 @@ class Helpers {
       const collapseData = {
         index: realIndex,
         data: series[realIndex].data.slice(),
-        type: series[realIndex].type || w.config.chart.type
+        type: series[realIndex].type || w.config.chart.type,
+        // The category name pins the hide across a data update that reorders or
+        // regroups categories (e.g. a storyboard beat): the collapse is
+        // reconciled by name, not index. See Series.reconcileCollapsedByName.
+        name: (gl.seriesNames || [])[realIndex]
       };
       if (yaxis && yaxis.show && yaxis.showAlways) {
         if (gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
@@ -214,7 +236,9 @@ class Helpers {
         type: (
           /** @type {any} */
           (_a = w.config.series[realIndex].type) != null ? _a : "line"
-        )
+        ),
+        // Pin the hide by category name so it survives a regroup (see above).
+        name: (gl.seriesNames || [])[realIndex]
       });
       gl.collapsedSeriesIndices.push(realIndex);
     }

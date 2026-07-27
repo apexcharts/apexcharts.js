@@ -13,17 +13,20 @@ import { createChartWithOptions } from './utils/utils.js'
 import ApexCharts from '../../src/entries/full.js'
 import Unit from '../../src/charts/Unit.js'
 import { LicenseManager } from '../../src/modules/license/LicenseManager.js'
+import { installTestSigningKey, signedKey } from './utils/license-keys.js'
 import {
   premiumFeaturesInUse,
   _resetPremiumSignals,
 } from '../../src/modules/license/LicenseEnforcer.js'
 
 const WM = '[data-apexcharts-watermark]'
-const VALID_KEY = LicenseManager.generateLicenseKey('2020-01-01', '2099-01-01')
+installTestSigningKey()
+const VALID_KEY = signedKey('2020-01-01', '2099-01-01')
 
 function resetLicense() {
   LicenseManager.licenseKey = null
   LicenseManager.validationResult = null
+  LicenseManager._resetSignatureState()
   _resetPremiumSignals()
   if (typeof window !== 'undefined' && window.Apex) delete window.Apex.license
 }
@@ -102,6 +105,76 @@ describe('Unit chart — rendering', () => {
     // Independent (3): label can't fit the tiny arc -> straight (no textPath).
     expect(labels[2].querySelector('textPath')).toBeNull()
     expect(labels[2].textContent).toContain('Independent')
+    chart.destroy()
+  })
+
+  it('clusterLabels.position places the label above (top) or below (bottom)', () => {
+    const mk = (position) =>
+      unitChart({
+        series: [40, 30],
+        labels: ['A', 'B'],
+        // curved:false so both placements are straight labels with a y attr.
+        plotOptions: {
+          unit: { clusterLabels: { show: true, curved: false, position } },
+        },
+      })
+    const firstClusterDotYs = (chart) => {
+      const g = chart.w.dom.baseEl.querySelector(
+        '.apexcharts-unit .apexcharts-series',
+      )
+      return [...g.querySelectorAll('circle.apexcharts-unit-area')].map((d) =>
+        parseFloat(d.getAttribute('cy')),
+      )
+    }
+    const labelY = (chart) =>
+      parseFloat(
+        chart.w.dom.baseEl
+          .querySelector('.apexcharts-unit-label')
+          .getAttribute('y'),
+      )
+
+    const top = mk('top')
+    const bottom = mk('bottom')
+    // A 'top' label clears the top of its cluster; a 'bottom' label clears the
+    // bottom (y grows downward in SVG).
+    expect(labelY(top)).toBeLessThan(Math.min(...firstClusterDotYs(top)))
+    expect(labelY(bottom)).toBeGreaterThan(Math.max(...firstClusterDotYs(bottom)))
+    // A bottom label is never curved (no arc riding the crown).
+    expect(
+      bottom.w.dom.baseEl
+        .querySelector('.apexcharts-unit-label')
+        .querySelector('textPath'),
+    ).toBeNull()
+    top.destroy()
+    bottom.destroy()
+  })
+
+  it('columns clusterLabels.position:bottom reserves room below the bars (on-canvas)', () => {
+    const chart = unitChart({
+      series: [120, 60, 30],
+      labels: ['A', 'B', 'C'],
+      plotOptions: {
+        unit: {
+          layout: 'columns',
+          clusterLabels: { show: true, position: 'bottom' },
+        },
+      },
+    })
+    const g = chart.w.dom.baseEl.querySelector(
+      '.apexcharts-unit .apexcharts-series',
+    )
+    const dotYs = [...g.querySelectorAll('.apexcharts-unit-area')].map((d) =>
+      parseFloat(d.getAttribute('cy')),
+    )
+    const labelY = parseFloat(
+      chart.w.dom.baseEl
+        .querySelector('.apexcharts-unit-label')
+        .getAttribute('y'),
+    )
+    // Label sits below the tallest bar's lowest dot and the layout reserved
+    // enough room that it stays within the plot height (not clipped).
+    expect(labelY).toBeGreaterThan(Math.max(...dotYs))
+    expect(labelY).toBeLessThanOrEqual(chart.w.globals.gridHeight)
     chart.destroy()
   })
 
@@ -390,6 +463,488 @@ describe('Unit chart — columns layout (dot bars)', () => {
   })
 })
 
+describe('Unit chart — grid (waffle) layout', () => {
+  beforeEach(() => resetLicense())
+  afterEach(() => resetLicense())
+
+  it('lays all units into one grid, filled in category order', () => {
+    const chart = unitChart({
+      series: [30, 20, 10],
+      labels: ['A', 'B', 'C'],
+      plotOptions: { unit: { layout: 'grid', grid: { columns: 10 } } },
+    })
+    // 60 units -> 60 cells in a single grid.
+    expect(dotCount(chart)).toBe(60)
+    // Keyed by physical slot (like packed), not category "i:j".
+    expect(chart._unitPrevDots.has('slot:0')).toBe(true)
+    expect(chart._unitPrevDots.has('slot:59')).toBe(true)
+    expect(chart._unitPrevDots.has('1:5')).toBe(false)
+    // A single grid carries no per-category cluster labels (legend does).
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-label').length,
+    ).toBe(0)
+    chart.destroy()
+  })
+
+  it('grid rows are `columns` wide (row-major placement)', () => {
+    const chart = unitChart({
+      series: [25],
+      labels: ['A'],
+      plotOptions: { unit: { layout: 'grid', grid: { columns: 5 } } },
+    })
+    const xs = [
+      ...chart.w.dom.baseEl.querySelectorAll('circle.apexcharts-unit-area'),
+    ].map((d) => parseFloat(d.getAttribute('cx')))
+    // exactly `columns` distinct x positions (a 5-wide lattice)
+    const distinctX = new Set(xs.map((x) => Math.round(x)))
+    expect(distinctX.size).toBe(5)
+    chart.destroy()
+  })
+
+  it('grid.total makes a fixed-cell percentage waffle (sums to exactly total)', () => {
+    const chart = unitChart({
+      series: [7, 11, 5], // sum 23 -> largest-remainder scaled to 100
+      labels: ['A', 'B', 'C'],
+      plotOptions: { unit: { layout: 'grid', grid: { columns: 10, total: 100 } } },
+    })
+    expect(dotCount(chart)).toBe(100)
+    chart.destroy()
+  })
+
+  it("chart.type:'waffle' aliases to unit + grid + square", () => {
+    document.body.innerHTML = '<div id="chart"></div>'
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: { type: 'waffle', width: 400, height: 400 },
+      series: [50, 30, 20],
+      labels: ['A', 'B', 'C'],
+    })
+    chart.render()
+    // Normalized to the unit renderer, original alias preserved.
+    expect(chart.w.config.chart.type).toBe('unit')
+    expect(chart.w.config.chart.requestedType).toBe('waffle')
+    // Grid + square presets applied (only because the user did not set them).
+    expect(chart.w.config.plotOptions.unit.layout).toBe('grid')
+    expect(chart.w.config.plotOptions.unit.shape).toBe('square')
+    // One square cell per unit.
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('rect.apexcharts-unit-area').length,
+    ).toBe(100)
+    chart.destroy()
+  })
+
+  it('waffle alias does not clobber an explicit layout/shape', () => {
+    document.body.innerHTML = '<div id="chart"></div>'
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: { type: 'waffle', width: 400, height: 400 },
+      series: [40, 20],
+      labels: ['A', 'B'],
+      plotOptions: { unit: { shape: 'circle' } },
+    })
+    chart.render()
+    expect(chart.w.config.plotOptions.unit.layout).toBe('grid') // still preset
+    expect(chart.w.config.plotOptions.unit.shape).toBe('circle') // user wins
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('circle.apexcharts-unit-area').length,
+    ).toBe(60)
+    chart.destroy()
+  })
+})
+
+describe('Unit chart - grid small multiples (split waffles)', () => {
+  beforeEach(() => resetLicense())
+  afterEach(() => resetLicense())
+
+  // filled (coloured) cells of the t-th visible tile, in draw order
+  const tileGroup = (chart, t) =>
+    chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit .apexcharts-series')[t]
+  const filledIn = (g) => g.querySelectorAll('.apexcharts-unit-area').length
+  const trackCells = (chart) =>
+    chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-track-cell').length
+
+  it('renders one tile per visible category with its own label + track backdrop', () => {
+    const chart = unitChart({
+      series: [40, 20, 10],
+      labels: ['A', 'B', 'C'],
+      plotOptions: {
+        unit: { layout: 'grid', shape: 'square', grid: { split: true, columns: 10, total: 100 } },
+      },
+    })
+    // 3 tiles = 3 series groups + 3 per-tile labels.
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit .apexcharts-series').length,
+    ).toBe(3)
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-label').length,
+    ).toBe(3)
+    // Track = every tile's full 100-cell lattice, drawn behind the fills.
+    expect(trackCells(chart)).toBe(300)
+    chart.destroy()
+  })
+
+  it('default denominator is the largest count (leader fills its tile)', () => {
+    const chart = unitChart({
+      series: [40, 20, 10],
+      labels: ['A', 'B', 'C'],
+      plotOptions: {
+        unit: { layout: 'grid', shape: 'square', grid: { split: true, columns: 10, total: 100 } },
+      },
+    })
+    // max=40 -> A fills all 100, B = round(20/40*100)=50, C = 25.
+    expect(filledIn(tileGroup(chart, 0))).toBe(100)
+    expect(filledIn(tileGroup(chart, 1))).toBe(50)
+    expect(filledIn(tileGroup(chart, 2))).toBe(25)
+    expect(dotCount(chart)).toBe(175)
+    chart.destroy()
+  })
+
+  it('grid.max makes true "of N" percentage tiles (value fills value cells)', () => {
+    const chart = unitChart({
+      series: [35, 23, 15],
+      labels: ['A', 'B', 'C'],
+      plotOptions: {
+        unit: {
+          layout: 'grid',
+          shape: 'square',
+          grid: { split: true, columns: 10, total: 100, max: 100 },
+        },
+      },
+    })
+    expect(filledIn(tileGroup(chart, 0))).toBe(35)
+    expect(filledIn(tileGroup(chart, 1))).toBe(23)
+    expect(filledIn(tileGroup(chart, 2))).toBe(15)
+    chart.destroy()
+  })
+
+  it('keys each tile by a physical per-tile slot (tile*cells + localCell)', () => {
+    const chart = unitChart({
+      series: [40, 20],
+      labels: ['A', 'B'],
+      plotOptions: {
+        unit: { layout: 'grid', shape: 'square', grid: { split: true, columns: 10, total: 100 } },
+      },
+    })
+    // Tile 0 (leader) owns slots 0..99; tile 1 (50 filled) owns 100..149.
+    expect(chart._unitPrevDots.has('slot:0')).toBe(true)
+    expect(chart._unitPrevDots.has('slot:100')).toBe(true)
+    expect(chart._unitPrevDots.has('slot:149')).toBe(true)
+    expect(chart._unitPrevDots.has('slot:150')).toBe(false)
+    // Never per-category "i:j" keying in a grid.
+    expect(chart._unitPrevDots.has('0:0')).toBe(false)
+    chart.destroy()
+  })
+
+  it('drops the tile of a hidden/zero category and re-flows the rest', () => {
+    const chart = unitChart({
+      series: [30, 0, 10],
+      labels: ['A', 'B', 'C'],
+      plotOptions: {
+        unit: { layout: 'grid', shape: 'square', grid: { split: true, columns: 10, total: 100 } },
+      },
+    })
+    // Only 2 visible tiles (B has no value) -> 2 groups + 2*100 track cells.
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit .apexcharts-series').length,
+    ).toBe(2)
+    expect(trackCells(chart)).toBe(200)
+    chart.destroy()
+  })
+
+  it('fades exit ghosts in place on a shrink (on their own cells, no drift to centre)', () => {
+    // Exits only render when animating; build with animations on (the shared
+    // util force-disables them), like the base exit-ghost test.
+    document.body.innerHTML = '<div id="chart"></div>'
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: { type: 'unit', width: 520, height: 300, animations: { enabled: true, speed: 400 } },
+      series: [80, 60],
+      labels: ['A', 'B'],
+      plotOptions: {
+        unit: {
+          layout: 'grid',
+          shape: 'square',
+          grid: { split: true, columns: 10, total: 100, max: 100 },
+        },
+      },
+    })
+    chart.render()
+    // Shrink both tiles: (80-50) + (60-40) = 50 cells removed -> 50 ghosts,
+    // created at their old slots before the rAF fade removes them.
+    chart.updateSeries([50, 40])
+    const ghosts = [
+      ...chart.w.dom.baseEl.querySelectorAll('rect.apexcharts-unit-exit'),
+    ]
+    expect(ghosts.length).toBe(50)
+    // Every ghost sits exactly on a grid cell (a track-cell position), proving
+    // it fades in place rather than drifting toward the plot centre.
+    const trackXY = new Set(
+      [...chart.w.dom.baseEl.querySelectorAll('rect.apexcharts-unit-track-cell')].map(
+        (c) =>
+          `${Math.round(parseFloat(c.getAttribute('x')))},${Math.round(
+            parseFloat(c.getAttribute('y')),
+          )}`,
+      ),
+    )
+    const allOnGrid = ghosts.every((g) =>
+      trackXY.has(
+        `${Math.round(parseFloat(g.getAttribute('x')))},${Math.round(
+          parseFloat(g.getAttribute('y')),
+        )}`,
+      ),
+    )
+    expect(allOnGrid).toBe(true)
+    chart.destroy()
+  })
+
+  it('arranges tiles in a trellis (neighbouring tiles are offset in x)', () => {
+    const chart = unitChart({
+      series: [50, 40, 30, 20],
+      labels: ['A', 'B', 'C', 'D'],
+      plotOptions: {
+        unit: { layout: 'grid', shape: 'square', grid: { split: true, columns: 10, total: 100 } },
+      },
+    })
+    const meanX = (g) => {
+      const xs = [...g.querySelectorAll('rect.apexcharts-unit-area')].map((d) =>
+        parseFloat(d.getAttribute('x')),
+      )
+      return xs.reduce((a, b) => a + b, 0) / xs.length
+    }
+    // 4 tiles -> a 2x2 trellis, so tile 1 sits to the RIGHT of tile 0.
+    expect(meanX(tileGroup(chart, 1))).toBeGreaterThan(meanX(tileGroup(chart, 0)))
+    chart.destroy()
+  })
+})
+
+describe('Unit chart - scatter (beeswarm) layout', () => {
+  beforeEach(() => resetLicense())
+  afterEach(() => resetLicense())
+
+  const laneGroup = (chart, t) =>
+    chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit .apexcharts-series')[t]
+  const cxs = (g) =>
+    [...g.querySelectorAll('circle.apexcharts-unit-area')].map((d) =>
+      parseFloat(d.getAttribute('cx')),
+    )
+  const centers = (g) =>
+    [...g.querySelectorAll('circle.apexcharts-unit-area')].map((d) => ({
+      x: parseFloat(d.getAttribute('cx')),
+      y: parseFloat(d.getAttribute('cy')),
+    }))
+
+  it('renders one lane per category, one dot per datum, with axis chrome', () => {
+    const chart = unitChart({
+      series: [
+        { name: 'A', data: [10, 40, 70, 100] },
+        { name: 'B', data: [20, 50, 80] },
+      ],
+      plotOptions: { unit: { layout: 'scatter' } },
+    })
+    expect(dotCount(chart)).toBe(7)
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit .apexcharts-series').length,
+    ).toBe(2)
+    // A drawn value axis: gridlines/ticks + one lane label per category.
+    expect(chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-axis').length).toBe(1)
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-lane-label').length,
+    ).toBe(2)
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-tick').length,
+    ).toBeGreaterThan(1)
+    // Scatter uses per-category (i:j) keying, never physical slots.
+    expect(chart._unitPrevDots.has('0:0')).toBe(true)
+    expect([...chart._unitPrevDots.keys()].some((k) => k.startsWith('slot:'))).toBe(
+      false,
+    )
+    chart.destroy()
+  })
+
+  it('positions dots on the X value axis (larger value -> larger x)', () => {
+    const chart = unitChart({
+      series: [{ name: 'A', data: [0, 25, 50, 75, 100] }],
+      plotOptions: {
+        unit: { layout: 'scatter', scatter: { xMin: 0, xMax: 100 } },
+      },
+    })
+    // The lane's dots are drawn in datum (ascending value) order, so cx must be
+    // monotonically increasing across the sorted values.
+    const xs = cxs(laneGroup(chart, 0))
+    for (let i = 1; i < xs.length; i++) {
+      expect(xs[i]).toBeGreaterThan(xs[i - 1])
+    }
+    // Min value hugs the left of the plot; max value the right.
+    expect(xs[xs.length - 1] - xs[0]).toBeGreaterThan(
+      chart.w.layout.gridWidth * 0.5,
+    )
+    chart.destroy()
+  })
+
+  it('swarm packing keeps equal-value dots from overlapping', () => {
+    // 12 identical values would stack on one x without a beeswarm spread.
+    const data = new Array(12).fill(50)
+    const chart = unitChart({
+      series: [{ name: 'A', data }],
+      plotOptions: {
+        unit: { layout: 'scatter', size: 4, scatter: { xMin: 0, xMax: 100 } },
+      },
+    })
+    const g0 = laneGroup(chart, 0)
+    const pts = centers(g0)
+    const r = parseFloat(
+      g0.querySelector('circle.apexcharts-unit-area').getAttribute('r'),
+    )
+    let minGap = Infinity
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const d = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y)
+        if (d < minGap) minGap = d
+      }
+    }
+    // No pair closer than ~2r (allow a hair of float slack).
+    expect(minGap).toBeGreaterThanOrEqual(2 * r - 0.01)
+    // ...and they are spread vertically off the centre line (not a single row).
+    const ys = pts.map((p) => Math.round(p.y))
+    expect(new Set(ys).size).toBeGreaterThan(1)
+    chart.destroy()
+  })
+
+  it('drops an empty category lane and re-flows the rest', () => {
+    const chart = unitChart({
+      series: [
+        { name: 'A', data: [10, 20, 30] },
+        { name: 'B', data: [] }, // no units -> no lane
+        { name: 'C', data: [40, 50] },
+      ],
+      plotOptions: { unit: { layout: 'scatter' } },
+    })
+    // Only 2 lanes (A, C); B contributes nothing.
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-lane-label').length,
+    ).toBe(2)
+    expect(dotCount(chart)).toBe(5)
+    chart.destroy()
+  })
+
+  it('nice-numbers the X axis to cover the data', () => {
+    const chart = unitChart({
+      series: [{ name: 'A', data: [3, 47, 84] }],
+      plotOptions: { unit: { layout: 'scatter' } },
+    })
+    const ax = chart.w.config.plotOptions.unit // sanity: config intact
+    expect(ax.layout).toBe('scatter')
+    // The instance stashes the resolved axis; max tick must cover the data max.
+    const unit = chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-tick')
+    const tickVals = [...unit].map((t) => parseFloat(t.textContent))
+    expect(Math.max(...tickVals)).toBeGreaterThanOrEqual(84)
+    expect(Math.min(...tickVals)).toBeLessThanOrEqual(3)
+    chart.destroy()
+  })
+
+  it('2D mode places points by (x, y) on two axes (y grows upward)', () => {
+    const chart = unitChart({
+      series: [{ name: 'S', data: [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 0, y: 100 }] }],
+      plotOptions: {
+        unit: {
+          layout: 'scatter',
+          size: 4,
+          scatter: { y: 'value', xMin: 0, xMax: 100, yMin: 0, yMax: 100 },
+        },
+      },
+    })
+    const dots = [
+      ...chart.w.dom.baseEl.querySelectorAll('circle.apexcharts-unit-area'),
+    ].map((c) => ({ x: +c.getAttribute('cx'), y: +c.getAttribute('cy') }))
+    expect(dots.length).toBe(3)
+    // dot1 (x=100) is right of dot0 (x=0); same y so same cy.
+    expect(dots[1].x).toBeGreaterThan(dots[0].x)
+    expect(Math.abs(dots[1].y - dots[0].y)).toBeLessThan(1)
+    // dot2 (y=100) sits ABOVE dot0 (smaller cy); same x so same cx.
+    expect(dots[2].y).toBeLessThan(dots[0].y)
+    expect(Math.abs(dots[2].x - dots[0].x)).toBeLessThan(1)
+    // Two axes of ticks (x + y) and NO lane labels in 2D.
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-tick').length,
+    ).toBeGreaterThanOrEqual(8)
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-lane-label').length,
+    ).toBe(0)
+    chart.destroy()
+  })
+
+  it('sizeRange makes bubbles scaled (by area) from the sizeField', () => {
+    const chart = unitChart({
+      series: [{ name: 'S', data: [{ x: 10, y: 10, z: 1 }, { x: 20, y: 20, z: 100 }] }],
+      plotOptions: {
+        unit: { layout: 'scatter', scatter: { y: 'value', sizeRange: [4, 20] } },
+      },
+    })
+    const rs = [
+      ...chart.w.dom.baseEl.querySelectorAll('circle.apexcharts-unit-area'),
+    ]
+      .map((c) => +c.getAttribute('r'))
+      .sort((a, b) => a - b)
+    // smallest z -> rMin, largest z -> rMax.
+    expect(rs[0]).toBeCloseTo(4, 1)
+    expect(rs[1]).toBeCloseTo(20, 1)
+    chart.destroy()
+  })
+
+  it('bubble beeswarm packs varying-radius dots with no overlap', () => {
+    // 12 dots at the SAME x with a spread of sizes: must stack without overlap
+    // using each pair's own r_i + r_j.
+    const data = []
+    for (let i = 0; i < 12; i++) data.push({ value: 50, z: 1 + i * 9 })
+    const chart = unitChart({
+      series: [{ name: 'S', data }],
+      plotOptions: {
+        unit: { layout: 'scatter', scatter: { sizeRange: [3, 10], xMin: 0, xMax: 100 } },
+      },
+    })
+    const pts = [
+      ...chart.w.dom.baseEl.querySelectorAll('circle.apexcharts-unit-area'),
+    ].map((c) => ({
+      x: +c.getAttribute('cx'),
+      y: +c.getAttribute('cy'),
+      r: +c.getAttribute('r'),
+    }))
+    let worst = Infinity // min (gap - (ri+rj)) across pairs
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const d = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y)
+        worst = Math.min(worst, d - (pts[i].r + pts[j].r))
+      }
+    }
+    expect(worst).toBeGreaterThanOrEqual(-0.5)
+    chart.destroy()
+  })
+
+  it('applies fill.opacity so overlapping bubbles read through each other', () => {
+    document.body.innerHTML = '<div id="chart"></div>'
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: { type: 'unit', width: 500, height: 360 },
+      series: [{ name: 'S', data: [{ x: 10, y: 10 }, { x: 20, y: 20 }] }],
+      fill: { opacity: 0.6 },
+      plotOptions: { unit: { layout: 'scatter', scatter: { y: 'value' } } },
+    })
+    chart.render()
+    const c = chart.w.dom.baseEl.querySelector('circle.apexcharts-unit-area')
+    expect(c.getAttribute('fill-opacity')).toBe('0.6')
+    chart.destroy()
+
+    // Default unit dots stay solid (Defaults.unit fill.opacity = 1 -> no attr).
+    const solid = unitChart({
+      series: [10, 10],
+      labels: ['A', 'B'],
+      plotOptions: { unit: { clusterLabels: { show: false } } },
+    })
+    expect(
+      solid.w.dom.baseEl
+        .querySelector('circle.apexcharts-unit-area')
+        .getAttribute('fill-opacity'),
+    ).toBe(null)
+    solid.destroy()
+  })
+})
+
 describe('Unit chart — flow transition (regroup)', () => {
   beforeEach(() => resetLicense())
   afterEach(() => resetLicense())
@@ -402,6 +957,56 @@ describe('Unit chart — flow transition (regroup)', () => {
     })
     expect(chart._unitPrevDots.has('1:5')).toBe(true)
     expect(chart._unitPrevDots.has('15')).toBe(false)
+    chart.destroy()
+  })
+
+  it("packed layout keys dots by physical spiral slot, not category (i:j)", () => {
+    // A packed blob has no stable per-category slot (the outer group's spiral
+    // indices are offset by the inner group's count), so keying "i:j" there
+    // would re-spin the whole outer ring whenever the inner count moves. It
+    // keys by physical slot instead.
+    const chart = unitChart({
+      series: [10, 20],
+      labels: ['Inner', 'Outer'],
+      plotOptions: { unit: { layout: 'packed', clusterLabels: { show: false } } },
+    })
+    expect(chart._unitPrevDots.size).toBe(30)
+    expect(chart._unitPrevDots.has('slot:0')).toBe(true)
+    expect(chart._unitPrevDots.has('slot:29')).toBe(true)
+    expect(chart._unitPrevDots.has('1:5')).toBe(false)
+    chart.destroy()
+  })
+
+  it('packed slots stay put when the inner group count changes (no re-spin)', () => {
+    // Regression guard: shrinking the inner (minority) group must not fling the
+    // outer group across the disc. Each key's stored position is the point the
+    // next update tweens FROM/TO, so a key that keeps its position barely moves
+    // on screen. With the old category keying an outer dot ("1:j") chorded clear
+    // across the disc (~a full diameter); with slot keying it only shifts by the
+    // small change in the fitted spiral step.
+    const chart = unitChart({
+      series: [80, 160],
+      labels: ['Inner', 'Outer'],
+      plotOptions: {
+        unit: { layout: 'packed', sortByGroup: true, clusterLabels: { show: false } },
+      },
+    })
+    const pts = [...chart._unitPrevDots.values()]
+    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length
+    const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length
+    const R = Math.max(...pts.map((p) => Math.hypot(p.x - cx, p.y - cy)))
+    const before = new Map([...chart._unitPrevDots].map(([k, v]) => [k, { x: v.x, y: v.y }]))
+
+    // Inner 80 -> 40: with category keying this re-spins the whole outer ring.
+    chart.updateSeries([40, 160])
+
+    let maxShift = 0
+    chart._unitPrevDots.forEach((v, k) => {
+      const b = before.get(k)
+      if (b) maxShift = Math.max(maxShift, Math.hypot(v.x - b.x, v.y - b.y))
+    })
+    // A shared physical slot barely moves; a cross-disc chord would be ~1.5x R.
+    expect(maxShift).toBeLessThan(R * 0.35)
     chart.destroy()
   })
 

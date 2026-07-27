@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.5.0
+ * ApexCharts v6.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -11,9 +11,11 @@ const prefersReducedMotion = _core.__apex_Animations_prefersReducedMotion;
 const parsePath = _core.__apex_PathMorphing_parsePath;
 const BAR_FAMILY = /* @__PURE__ */ new Set(["bar", "funnel", "pyramid"]);
 const RADIAL_FAMILY = /* @__PURE__ */ new Set(["pie", "donut", "polarArea", "radialBar", "gauge"]);
+const UNIT_FAMILY = /* @__PURE__ */ new Set(["unit"]);
 function familyOf(type) {
   if (BAR_FAMILY.has(type)) return "bar";
   if (RADIAL_FAMILY.has(type)) return "radial";
+  if (UNIT_FAMILY.has(type)) return "unit";
   return null;
 }
 class MorphTypeChange {
@@ -48,7 +50,7 @@ class MorphTypeChange {
     if (!Array.isArray(newSeries) || newSeries.length === 0) return false;
     const ff = familyOf(fromType);
     const tf = familyOf(toType);
-    if (tf === "radial") {
+    if (tf === "radial" || tf === "unit") {
       if (newSeries.every((v) => typeof v === "number")) return true;
       return newSeries.length === 1 && newSeries[0] && typeof newSeries[0] === "object" && Array.isArray(newSeries[0].data);
     }
@@ -305,7 +307,7 @@ class MorphTypeChange {
     const map = /* @__PURE__ */ new Map();
     const tf = familyOf(toType);
     const flat = captured.slice().sort((a, b) => a.realIndex - b.realIndex || a.j - b.j);
-    if (tf === "radial") {
+    if (tf === "radial" || tf === "unit") {
       flat.forEach((c, i) => {
         map.set(`${i}:0`, { d: c.d, fill: c.fill });
       });
@@ -384,6 +386,80 @@ class MorphTypeChange {
         return c.join(" ");
       }
     ).join(" ");
+  }
+  /**
+   * The centre point (in the NEW chart's screen space) of the captured shape
+   * for cluster `i`. Kept for callers that only need a point; the unit renderer
+   * uses getInitialBBoxFor so its dots fill the shape rather than stack on a
+   * single point.
+   * @param {number} i
+   * @returns {{ x: number, y: number } | null}
+   */
+  getInitialCenterFor(i) {
+    const box = this.getInitialBBoxFor(i);
+    if (!box) return null;
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  }
+  /**
+   * The bounding box (in the NEW chart's screen space) of the captured shape
+   * for cluster `i`. The unit (dot-cluster) renderer distributes the cluster's
+   * dots ACROSS this box as their start positions, so a tall bar visibly breaks
+   * apart into a tall column of dots that then swarm into the cluster.
+   * @param {number} i
+   * @returns {{ x: number, y: number, width: number, height: number } | null}
+   */
+  getInitialBBoxFor(i) {
+    if (!this._snapshot) return null;
+    const entry = this._snapshot.mapping.get(`${i}:0`);
+    if (!entry) return null;
+    const box = this._pathBBox(entry.d);
+    if (!box) return null;
+    const dx = this._snapshot.oldLayout.translateX - (this.w.layout.translateX || 0);
+    const dy = this._snapshot.oldLayout.translateY - (this.w.layout.translateY || 0);
+    return {
+      x: box.minX + dx,
+      y: box.minY + dy,
+      width: box.maxX - box.minX,
+      height: box.maxY - box.minY
+    };
+  }
+  /**
+   * Bounding box of an absolute-command SVG path `d`. Good enough as the burst
+   * footprint (we only need where the shape sat, not exact geometry).
+   * @param {string} d
+   * @returns {{ minX:number, minY:number, maxX:number, maxY:number } | null}
+   */
+  _pathBBox(d) {
+    const commands = parsePath(d);
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let seen = false;
+    commands.forEach(
+      /** @param {any[]} c */
+      (c) => {
+        const cmd = c[0];
+        if (cmd === "Z") return;
+        let pairs = [];
+        if (cmd === "H") pairs = [[c[1], (minY + maxY) / 2 || c[1]]];
+        else if (cmd === "V") pairs = [[(minX + maxX) / 2 || c[1], c[1]]];
+        else if (cmd === "A") pairs = [[c[6], c[7]]];
+        else {
+          for (let k = 1; k + 1 < c.length; k += 2) pairs.push([c[k], c[k + 1]]);
+        }
+        pairs.forEach(([x, y]) => {
+          if (!isFinite(x) || !isFinite(y)) return;
+          seen = true;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        });
+      }
+    );
+    if (!seen) return null;
+    return { minX, minY, maxX, maxY };
   }
   /**
    * @param {number} realIndex

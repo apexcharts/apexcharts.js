@@ -150,11 +150,30 @@ export default class Config {
   normalizeAliasedChartType(opts) {
     if (!opts || !opts.chart) return opts
     const requested = opts.chart.type
-    if (requested !== 'funnel' && requested !== 'pyramid' && requested !== 'gauge') {
+    if (
+      requested !== 'funnel' &&
+      requested !== 'pyramid' &&
+      requested !== 'gauge' &&
+      requested !== 'waffle'
+    ) {
       return opts
     }
     opts.chart.requestedType = requested
-    if (requested === 'funnel' || requested === 'pyramid') {
+    if (requested === 'waffle') {
+      // `waffle` is an alias for the unit chart's single-grid layout: a
+      // part-to-whole lattice of square cells. It renders through the `unit`
+      // pathway, so every `chart.type === 'unit'` check keeps working. Presets
+      // are only applied when the user has not set them, so they stay tweakable.
+      opts.plotOptions = opts.plotOptions || {}
+      opts.plotOptions.unit = opts.plotOptions.unit || {}
+      if (opts.plotOptions.unit.layout == null) {
+        opts.plotOptions.unit.layout = 'grid'
+      }
+      if (opts.plotOptions.unit.shape == null) {
+        opts.plotOptions.unit.shape = 'square'
+      }
+      opts.chart.type = 'unit'
+    } else if (requested === 'funnel' || requested === 'pyramid') {
       opts.plotOptions = opts.plotOptions || {}
       opts.plotOptions.bar = opts.plotOptions.bar || {}
       opts.plotOptions.bar.isFunnel = true

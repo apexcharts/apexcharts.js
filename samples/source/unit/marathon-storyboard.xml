@@ -218,34 +218,34 @@
 
 <scripts>
 <script>
-// One population of 545 legislators, shown three ways on a single unit chart:
-// as three party clusters, as one packed chamber, then regrouped into six
-// seniority bars. The design rule that makes it a story rather than three
+// One field of 600 marathon finishers, shown three ways on a single unit chart:
+// as five regional clusters, as one packed field, then regrouped into six
+// finish-time bars. The design rule that makes it a story rather than three
 // separate charts: every beat sets plotOptions.unit.transition:'flow', so the
 // SAME dots are keyed by global order and GLIDE (and recolour) from one
 // arrangement into the next instead of being rebuilt. These definitions are
 // shared by the vanilla-js, React and Vue builds.
-var PARTY_LABELS = ['Republican', 'Democrat', 'Independent']
-var PARTY_COLORS = ['#E0475A', '#2E77D0', '#9AA5B1']
-var PARTY_SEATS = [276, 266, 3] // 545 members
+var REGION_LABELS = ['Africa', 'Europe', 'Americas', 'Asia', 'Oceania']
+var REGION_COLORS = ['#F2994A', '#2D9CDB', '#27AE60', '#EB5757', '#9B51E0']
+var REGION_COUNT = [100, 170, 150, 140, 40] // 600 finishers
 
-var SENIORITY_LABELS = [
-  'Freshman',
-  '1 term',
-  '2 terms',
-  '3 terms',
-  '4 terms',
-  '5+ terms',
+var FINISH_LABELS = [
+  'Sub-3:00',
+  '3:00-3:30',
+  '3:30-4:00',
+  '4:00-4:30',
+  '4:30-5:00',
+  '5:00+',
 ]
-var SENIORITY_COLORS = [
-  '#635BFF',
-  '#00B8D9',
-  '#36B37E',
-  '#FFAB00',
-  '#FF5630',
-  '#8777D9',
+var FINISH_COLORS = [
+  '#1E8E5A',
+  '#35B37E',
+  '#86C82B',
+  '#F2C037',
+  '#F2994A',
+  '#EB5757',
 ]
-var SENIORITY_COUNT = [140, 120, 95, 75, 60, 55] // also 545
+var FINISH_COUNT = [45, 120, 165, 140, 85, 45] // also 600
 
 // A bare ViewState shared by every beat: the unit chart has no axes to window,
 // so each beat only needs to describe its own data + layout in `options`.
@@ -256,34 +256,34 @@ var BEATS = [
     selector: '#sb-step-1',
     view: LIGHT,
     options: {
-      series: PARTY_SEATS,
-      labels: PARTY_LABELS,
-      colors: PARTY_COLORS,
+      series: REGION_COUNT,
+      labels: REGION_LABELS,
+      colors: REGION_COLORS,
       plotOptions: { unit: { layout: 'grouped', transition: 'flow' } },
     },
-    announce: 'The House by party: three clusters of members',
+    announce: 'The field by region: five clusters of finishers',
   },
   {
     selector: '#sb-step-2',
     view: LIGHT,
     options: {
-      series: PARTY_SEATS,
-      labels: PARTY_LABELS,
-      colors: PARTY_COLORS,
+      series: REGION_COUNT,
+      labels: REGION_LABELS,
+      colors: REGION_COLORS,
       plotOptions: { unit: { layout: 'packed', transition: 'flow' } },
     },
-    announce: 'One chamber: the same members packed together, minority centred',
+    announce: 'One field: the same finishers packed together, smallest region centred',
   },
   {
     selector: '#sb-step-3',
     view: LIGHT,
     options: {
-      series: SENIORITY_COUNT,
-      labels: SENIORITY_LABELS,
-      colors: SENIORITY_COLORS,
+      series: FINISH_COUNT,
+      labels: FINISH_LABELS,
+      colors: FINISH_COLORS,
       plotOptions: { unit: { layout: 'columns', transition: 'flow' } },
     },
-    announce: 'Regrouped by seniority: the members flow into six bars',
+    announce: 'Regrouped by finish time: the finishers flow into six bars',
   },
 ]
 </script>
@@ -292,12 +292,12 @@ var BEATS = [
 <html>
 <div class="sb-wrap">
   <div class="sb-hero">
-    <h1>545 members, one chart</h1>
+    <h1>600 finishers, one chart</h1>
     <p>
-      A scroll-driven story on a single unit chart. The same dots start as three
-      party clusters, gather into one chamber, then flow apart into six seniority
-      bars. Scroll back up to rewind. Not one dot is destroyed or created; they
-      only rearrange.
+      A scroll-driven story on a single unit chart. The same dots start as five
+      regional clusters, gather into one field, then flow apart into six
+      finish-time bars. Scroll back up to rewind. Not one dot is destroyed or
+      created; they only rearrange.
     </p>
   </div>
 
@@ -307,29 +307,31 @@ var BEATS = [
         <div class="sb-steps">
           <section class="sb-step" id="sb-step-1">
             <div class="card">
-              <h3>Three parties</h3>
+              <h3>Five regions</h3>
               <p>
-                The 545 members split into three clusters: 276 Republicans, 266
-                Democrats and 3 Independents. One dot is one seat.
+                The 600 finishers split into five clusters by home region:
+                Africa, Europe, the Americas, Asia and Oceania. One dot is one
+                runner.
               </p>
             </div>
           </section>
           <section class="sb-step" id="sb-step-2">
             <div class="card">
-              <h3>One chamber</h3>
+              <h3>One field</h3>
               <p>
-                The three clusters gather into a single packed crowd. The tiny
-                Independent group nests in the centre, the parties wrap around it.
+                The five clusters gather into a single packed field. The small
+                Oceania group nests in the centre, the larger regions wrap around
+                it.
               </p>
             </div>
           </section>
           <section class="sb-step" id="sb-step-3">
             <div class="card">
-              <h3>By seniority</h3>
+              <h3>By finish time</h3>
               <p>
-                The same members flow apart into six bars by terms served, each
-                dot travelling from its old spot and recolouring on the way. The
-                freshman bar towers over the veterans.
+                The same finishers flow apart into six bars by finishing time,
+                each dot travelling from its old spot and recolouring on the way.
+                The four-hour pack towers over the fast and the slow.
               </p>
             </div>
           </section>
@@ -341,7 +343,7 @@ var BEATS = [
 
         <div class="sb-head">
           <div>
-            <b>House membership</b>
+            <b>Marathon field</b>
             <span class="sb-chip" id="sb-chip">Beat 1 of 3</span>
           </div>
           <div class="sb-nav">
@@ -368,8 +370,8 @@ var BEATS = [
     (IntersectionObserver, no scroll listeners) and re-applies in reverse on the
     way up. Every beat's <code>options</code> payload sets
     <code>plotOptions.unit.transition: 'flow'</code>, which keys the dots by
-    global order: the SAME dot migrates (and recolours) from a party cluster to
-    the packed blob to a seniority bar rather than fading out and back in.
+    global order: the SAME dot migrates (and recolours) from a regional cluster to
+    the packed field to a finish-time bar rather than fading out and back in.
     Transitions are cut instead of animated under prefers-reduced-motion. The
     unit chart is a premium type; without a license it renders with a trial
     watermark. Needs the <code>storyboard</code> feature (bundles
@@ -381,7 +383,7 @@ var BEATS = [
 <chart>
 <options>
 chart: {
-  id: 'houseStory',
+  id: 'marathonStory',
   type: 'unit',
   height: 420,
   fontFamily: 'Helvetica, Arial, sans-serif',
@@ -391,8 +393,8 @@ chart: {
   },
   toolbar: { show: false },
 },
-labels: ['Republican', 'Democrat', 'Independent'],
-colors: ['#E0475A', '#2E77D0', '#9AA5B1'],
+labels: ['Africa', 'Europe', 'Americas', 'Asia', 'Oceania'],
+colors: ['#F2994A', '#2D9CDB', '#27AE60', '#EB5757', '#9B51E0'],
 legend: {
   position: 'bottom',
 },
@@ -402,8 +404,8 @@ plotOptions: {
     transition: 'flow',
     // A fixed dot size keeps every dot the SAME size in all three layouts, so
     // dots only move and recolour across the story (they never resize). The
-    // size is set by the tightest layout: 545 dots must fit the widest party
-    // cluster, so the dots are small on purpose.
+    // size is set by the tightest layout: 600 dots must fit the packed field
+    // and the widest region cluster, so the dots are small on purpose.
     size: 2.3,
     spacing: 1.15,
   },
@@ -411,13 +413,13 @@ plotOptions: {
 </options>
 
 <series>
-[276, 266, 3]
+[100, 170, 150, 140, 40]
 </series>
 </chart>
 
 <vanilla-js-script>
 // beatChange fires on every activation (scroll or goTo): drive the page UI.
-// (The labels, colors, seat counts and BEATS live in the shared head script.)
+// (The labels, colors, counts and BEATS live in the shared head script.)
 var steps = document.querySelectorAll('.sb-step')
 var dots = document.querySelectorAll('.sb-dot')
 var chip = document.getElementById('sb-chip')
@@ -485,7 +487,7 @@ React.useEffect(() => {
   // state changes and the <ReactApexChart> is never re-rendered under it.
   let chart
   const timer = window.setInterval(() => {
-    chart = ApexCharts.getChartByID('houseStory')
+    chart = ApexCharts.getChartByID('marathonStory')
     if (!chart) return
     window.clearInterval(timer)
 
@@ -542,7 +544,7 @@ React.useEffect(() => {
 </react-script>
 
 <vue-data>
-houseStory: null,
+marathonStory: null,
 </vue-data>
 
 <vue-script>
@@ -554,10 +556,10 @@ mounted: function () {
   // data changes and the <apexchart> is never re-rendered under it.
   var me = this
   var timer = window.setInterval(function () {
-    var chart = ApexCharts.getChartByID('houseStory')
+    var chart = ApexCharts.getChartByID('marathonStory')
     if (!chart) return
     window.clearInterval(timer)
-    me.houseStory = chart
+    me.marathonStory = chart
 
     var steps = document.querySelectorAll('.sb-step')
     var dots = document.querySelectorAll('.sb-dot')
@@ -609,14 +611,14 @@ mounted: function () {
       goToBeat(current + 1)
     })
 
-    // scroller binds the observer to the story column, so the story is driven
-    // by that panel's own scroll (not the page/iframe viewport).
+    // scroller binds the observer to the story column, so the story is driven by
+    // that panel's own scroll (not the page/iframe viewport).
     chart.storyboard.bind({ beats: BEATS, scroller: '#sb-scroller' })
   }, 50)
 },
 beforeDestroy: function () {
-  if (this.houseStory && this.houseStory.storyboard) {
-    this.houseStory.storyboard.unbind()
+  if (this.marathonStory && this.marathonStory.storyboard) {
+    this.marathonStory.storyboard.unbind()
   }
 },
 </vue-script>
