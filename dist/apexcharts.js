@@ -54,7 +54,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.5.0
+ * ApexCharts v6.6.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -2918,6 +2918,43 @@ var __async = (__this, __arguments, generator) => {
         }
       };
     }
+    unit() {
+      return {
+        chart: {
+          toolbar: {
+            show: false
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          show: false,
+          width: 0
+        },
+        fill: {
+          opacity: 1
+        },
+        tooltip: {
+          followCursor: true,
+          x: {
+            show: false
+          }
+        },
+        legend: {
+          show: true,
+          position: "bottom"
+        },
+        grid: {
+          padding: {
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0
+          }
+        }
+      };
+    }
     pie() {
       return {
         chart: {
@@ -4158,6 +4195,156 @@ var __async = (__this, __arguments, generator) => {
               }
             }
           },
+          unit: {
+            // 'grouped' (each category is its own cluster, laid out in a row) |
+            // 'packed' (one blob; categories coloured + sorted, minority centred) |
+            // 'columns' (each category is a vertical bar built from stacked dots) |
+            // 'grid' (one lattice of cells filled in category order - a waffle /
+            // part-to-whole square "pie"; `chart.type:'waffle'` presets this).
+            layout: "grouped",
+            // Update transition, controlling which previous dot each new dot
+            // tweens from. 'group' (default): keyed per category, so dots stay in
+            // their group and category-level enters/exits fade. 'flow': keyed by
+            // global order, so the anonymous crowd migrates across a regroup (the
+            // circles-to-bars effect). 'identity': keyed by each datum's id/name,
+            // so a SPECIFIC unit migrates across any regroup/relayout keeping its
+            // colour and size (needs the object form with unique ids/names).
+            transition: "group",
+            // 'circle' | 'square' | 'image' (isotype pictogram).
+            shape: "circle",
+            // Icon used when shape:'image'. Each unit renders this icon at the
+            // given size. Set `tint:true` to recolour a monochrome icon to the
+            // category colour (or a per-unit fillColor) so the pictogram matches
+            // the legend; leave it off for multi-colour icons that should keep
+            // their own colours.
+            image: {
+              src: void 0,
+              width: 20,
+              height: 20,
+              tint: false
+            },
+            // dot radius in px, or 'auto' to size dots so the largest cluster
+            // fits its allotted box.
+            size: "auto",
+            // The 'columns' layout can size its dots independently of `size`
+            // (which the circle layouts / storyboard beats often pin to a
+            // constant so dots do not resize while migrating). 'inherit' uses
+            // `size`; 'auto' sizes the dots to fill the plot height; a number
+            // pins a columns-only size. Circle / square only (image icons keep
+            // their intrinsic size).
+            columns: {
+              size: "inherit"
+            },
+            // The 'grid' (waffle) layout: one lattice of cells filled in category
+            // order. `columns` = cells per row. `total` (optional) fixes the cell
+            // budget - e.g. 100 for a percentage waffle - and largest-remainder
+            // allocates the cells to categories; leave it undefined for one cell
+            // per unit (respects unitValue / maxUnits). `fillFrom` picks the first
+            // row: 'bottom' (default) or 'top'.
+            //
+            // `split:true` switches to SMALL MULTIPLES: one mini-waffle per
+            // category, arranged in a near-square trellis (or `tileColumns` per
+            // row). Each tile then has `total` cells (default 100) and fills a
+            // fraction equal to the category's value over `max` (default = the
+            // largest count, so the leader fills its tile; set `max:100` with
+            // percentage data for true "of 100" tiles). The unfilled cells show as
+            // a faint `trackColor` backdrop, and each tile gets its own label.
+            grid: {
+              columns: 10,
+              total: void 0,
+              fillFrom: "bottom",
+              // small-multiple (one waffle per category) mode + its knobs:
+              split: false,
+              // tiles per row; undefined = auto (near-square).
+              tileColumns: void 0,
+              // value -> filled-cell denominator; undefined = the largest count.
+              max: void 0,
+              // colour of the empty "track" cells; undefined = a neutral grey.
+              trackColor: void 0
+            },
+            // The 'scatter' layout places each unit on real value axes (needs the
+            // object-form data). Two modes via `y`:
+            //  - `y:'lanes'` (default): a BEESWARM. X is the per-unit value axis,
+            //    Y is a category lane. `spread:'swarm'` packs dots off the centre
+            //    line so equal values do not overlap; 'jitter' scatters randomly.
+            //  - `y:'value'`: a 2D value-value scatter. X = each datum's `x`, Y =
+            //    each datum's `y`, on two numeric axes; category = colour.
+            // `sizeRange:[min,max]` turns dots into BUBBLES scaled (by area) from
+            // each datum's `sizeField` (default 'z') - a bubble scatter / bubble
+            // beeswarm. `tickAmount`/`xMin`/`xMax`/`xTitle`/`xFormatter` control the
+            // X axis; the `y*` twins the Y axis (2D only); `laneLabelWidth` the
+            // lane-label gutter (lanes mode); `gridlines` the grid.
+            scatter: {
+              y: "lanes",
+              spread: "swarm",
+              tickAmount: 5,
+              xMin: void 0,
+              xMax: void 0,
+              xTitle: void 0,
+              // (value) => string
+              xFormatter: void 0,
+              yTickAmount: 5,
+              yMin: void 0,
+              yMax: void 0,
+              yTitle: void 0,
+              // (value) => string
+              yFormatter: void 0,
+              // bubble sizing: datum key for the size value + [minR, maxR] in px.
+              sizeField: "z",
+              sizeRange: void 0,
+              laneLabelWidth: void 0,
+              gridlines: true
+            },
+            // Opt-in bubble sizing: scale each dot's radius by its per-unit value
+            // (needs the object-form data). Circle shape only; the lattice is
+            // spaced for the largest bubble so dots never overlap.
+            sizeByValue: {
+              enabled: false,
+              // radius (px) for the largest value, or 'auto' to fit the largest
+              // bubble to the plot like uniform auto-sizing.
+              maxRadius: "auto",
+              // radius (px) for the smallest value; defaults to ~35% of maxRadius.
+              minRadius: void 0,
+              // 'area' (bubble AREA proportional to value) | 'linear'.
+              scale: "area"
+            },
+            // packing gap factor between spiral shells (1 = dots touch).
+            spacing: 1.05,
+            // corner radius for shape:'square'.
+            borderRadius: 0,
+            // 1 dot represents this many units of value (waffle scaling).
+            unitValue: 1,
+            // safety cap on total dots; counts scale down proportionally above it.
+            maxUnits: 5e3,
+            // packed layout: order categories smallest-first so the minority
+            // group nests in the centre of the blob.
+            sortByGroup: true,
+            clusterLabels: {
+              show: true,
+              // Label placement relative to the cluster/bar: 'top' (default) or
+              // 'bottom'. A 'bottom' label is always straight; the curved arc
+              // (below) rides the top crown only.
+              position: "top",
+              curved: true,
+              fontSize: "13px",
+              fontFamily: void 0,
+              fontWeight: 600,
+              // defaults to the cluster's own colour when undefined.
+              color: void 0,
+              offsetY: 0,
+              // (name, { seriesIndex, value, percent, w }) => string
+              formatter: void 0
+            },
+            tooltip: {
+              // Per-unit tooltip body. Each dot carries its category (seriesIndex)
+              // and its index within that category (dataPointIndex), so the
+              // formatter can look up per-unit data and return a string/HTML.
+              // ({ seriesName, seriesIndex, dataPointIndex, count, unitValue,
+              //    color, w }) => string
+              // Default: "#<dataPointIndex+1> of <count>".
+              formatter: void 0
+            }
+          },
           radialBar: {
             inverseOrder: false,
             startAngle: 0,
@@ -5069,6 +5256,7 @@ var __async = (__this, __arguments, generator) => {
           "scatter",
           "heatmap",
           "treemap",
+          "unit",
           "pie",
           "polarArea",
           "donut",
@@ -5139,11 +5327,21 @@ var __async = (__this, __arguments, generator) => {
     normalizeAliasedChartType(opts) {
       if (!opts || !opts.chart) return opts;
       const requested = opts.chart.type;
-      if (requested !== "funnel" && requested !== "pyramid" && requested !== "gauge") {
+      if (requested !== "funnel" && requested !== "pyramid" && requested !== "gauge" && requested !== "waffle") {
         return opts;
       }
       opts.chart.requestedType = requested;
-      if (requested === "funnel" || requested === "pyramid") {
+      if (requested === "waffle") {
+        opts.plotOptions = opts.plotOptions || {};
+        opts.plotOptions.unit = opts.plotOptions.unit || {};
+        if (opts.plotOptions.unit.layout == null) {
+          opts.plotOptions.unit.layout = "grid";
+        }
+        if (opts.plotOptions.unit.shape == null) {
+          opts.plotOptions.unit.shape = "square";
+        }
+        opts.chart.type = "unit";
+      } else if (requested === "funnel" || requested === "pyramid") {
         opts.plotOptions = opts.plotOptions || {};
         opts.plotOptions.bar = opts.plotOptions.bar || {};
         opts.plotOptions.bar.isFunnel = true;
@@ -5168,7 +5366,7 @@ var __async = (__this, __arguments, generator) => {
       var _a, _b, _c, _d, _e;
       const defaults = new Defaults(opts);
       const isBarHorizontal = (chartType === "bar" || chartType === "boxPlot" || chartType === "violin") && ((_b = (_a = opts.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.horizontal);
-      const unsupportedZoom = chartType === "pie" || chartType === "polarArea" || chartType === "donut" || chartType === "radar" || chartType === "radialBar" || chartType === "heatmap";
+      const unsupportedZoom = chartType === "pie" || chartType === "polarArea" || chartType === "donut" || chartType === "radar" || chartType === "radialBar" || chartType === "heatmap" || chartType === "unit";
       const notNumericXAxis = opts.xaxis.type !== "datetime" && opts.xaxis.type !== "numeric";
       const isScatterJitter = (chartType === "scatter" || chartType === "bubble") && ((_e = (_d = (_c = opts.plotOptions) == null ? void 0 : _c.scatter) == null ? void 0 : _d.jitter) == null ? void 0 : _e.enabled);
       const tickPlacement = opts.xaxis.tickPlacement ? opts.xaxis.tickPlacement : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement;
@@ -5978,7 +6176,9 @@ var __async = (__this, __arguments, generator) => {
           seriesColors: [],
           seriesGoals: [],
           stackedSeriesTotals: [],
-          stackedSeriesTotalsByGroups: []
+          stackedSeriesTotalsByGroups: [],
+          unitData: []
+          // per-unit data for the `unit` chart (see SeriesData)
         },
         // Grid / axis layout computed by Dimensions.plotCoords() each render.
         // gridWidth/gridHeight/translateX/translateY are also used as starting
@@ -7759,7 +7959,7 @@ var __async = (__this, __arguments, generator) => {
     return easeInOutSine;
   }
   const SVGNS = "http://www.w3.org/2000/svg";
-  function easeOutCubic(t) {
+  function easeOutCubic$1(t) {
     return 1 - Math.pow(1 - t, 3);
   }
   function easeOutBack(t) {
@@ -8086,7 +8286,7 @@ var __async = (__this, __arguments, generator) => {
         const step = (now) => {
           if (w.globals.isDestroyed) return;
           const t = Math.max(0, Math.min(1, (now - startAt) / speed));
-          const eased = easeOutCubic(t);
+          const eased = easeOutCubic$1(t);
           if (isRadial) {
             revealEl.setAttribute("r", String(eased * targetRadius));
           } else {
@@ -8109,7 +8309,7 @@ var __async = (__this, __arguments, generator) => {
         const step = (now) => {
           if (w.globals.isDestroyed) return;
           const t = Math.max(0, Math.min(1, (now - startAt) / speed));
-          node.setAttribute("stroke-dashoffset", String(len * (1 - easeOutCubic(t))));
+          node.setAttribute("stroke-dashoffset", String(len * (1 - easeOutCubic$1(t))));
           if (t < 1) {
             BrowserAPIs.requestAnimationFrame(step);
           } else {
@@ -15638,10 +15838,69 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       for (let i = 0; i < series.length; i++) {
         if (w.globals.collapsedSeriesIndices.indexOf(i) > -1) {
-          series[i].data = [];
+          if (series[i] && typeof series[i] === "object") {
+            series[i].data = [];
+          } else {
+            series[i] = 0;
+          }
         }
       }
       return series;
+    }
+    /**
+     * Series display names for the CURRENT `w.config` (post-merge), derived the
+     * same way the parser does: an object series' own `name`, else the matching
+     * `labels` entry (non-axis / pie / unit), else a generated `series-N`.
+     * @returns {string[]}
+     */
+    _deriveSeriesNames() {
+      const w = this.w;
+      const series = w.config.series || [];
+      const labels = w.config.labels || [];
+      return series.map((s, i) => {
+        if (s && typeof s === "object" && s.name != null) return String(s.name);
+        return labels[i] != null ? String(labels[i]) : `series-${i + 1}`;
+      });
+    }
+    /**
+     * Re-apply legend-hidden (collapsed) series to a freshly-updated
+     * `w.config.series`, matching BY CATEGORY NAME rather than index. This keeps a
+     * hide alive across a data update that reorders or regroups categories - most
+     * visibly a storyboard beat that supplies new series each scroll:
+     *   - a category still present stays hidden (at its possibly-new index);
+     *   - a category the update dropped/regrouped away is un-hidden (it no longer
+     *     exists, so it must reappear as part of the new grouping).
+     * Records without a stored name (older collapses) fall back to their index.
+     */
+    reconcileCollapsedByName() {
+      const w = this.w;
+      const gl = w.globals;
+      const newNames = this._deriveSeriesNames();
+      const reconcile = (records) => {
+        const nextRecords = [];
+        const nextIndices = [];
+        records.forEach((rec) => {
+          const j = rec && rec.name != null ? newNames.indexOf(rec.name) : rec.index;
+          if (j == null || j < 0 || j >= w.config.series.length) return;
+          const s = (
+            /** @type {any} */
+            w.config.series[j]
+          );
+          rec.index = j;
+          rec.data = gl.axisCharts ? s && s.data ? s.data.slice() : [] : s;
+          nextRecords.push(rec);
+          nextIndices.push(j);
+        });
+        return { records: nextRecords, indices: nextIndices };
+      };
+      const main = reconcile(gl.collapsedSeries);
+      gl.collapsedSeries = main.records;
+      gl.collapsedSeriesIndices = main.indices;
+      const anc = reconcile(gl.ancillaryCollapsedSeries);
+      gl.ancillaryCollapsedSeries = anc.records;
+      gl.ancillaryCollapsedSeriesIndices = anc.indices;
+      gl.allSeriesCollapsed = gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length === w.config.series.length;
+      this.emptyCollapsedSeries(w.config.series);
     }
     /**
      * @param {string} seriesName
@@ -17299,6 +17558,24 @@ var __async = (__this, __arguments, generator) => {
       if (w.config.legend.show && !w.config.legend.floating) {
         xPad = 20;
       }
+      if (cnf.chart.type === "unit") {
+        const legendVisible = cnf.legend.show && !cnf.legend.floating;
+        const pos = cnf.legend.position;
+        let top = 0;
+        let side = 0;
+        if (legendVisible) {
+          if (pos === "bottom" || pos === "top") {
+            top = this.lgRect.height;
+          } else {
+            side = this.lgRect.width + xPad;
+          }
+        }
+        w.layout.gridWidth = gl.svgWidth - side;
+        w.layout.gridHeight = gl.svgHeight - top;
+        w.layout.translateX = pos === "left" ? side : 0;
+        w.layout.translateY = pos === "top" ? top : 0;
+        return;
+      }
       const type = cnf.chart.type === "pie" || cnf.chart.type === "polarArea" || cnf.chart.type === "donut" ? "pie" : "radialBar";
       const offY = cnf.plotOptions[type].offsetY;
       const offX = cnf.plotOptions[type].offsetX;
@@ -18079,6 +18356,11 @@ var __async = (__this, __arguments, generator) => {
           case "treemap": {
             const treemap = new (getChartClass("treemap"))(ctx.w, ctx);
             elGraph = treemap.draw(this.w.seriesData.series);
+            break;
+          }
+          case "unit": {
+            const unit = new (getChartClass("unit"))(ctx.w, ctx);
+            elGraph = unit.draw(this.w.seriesData.series);
             break;
           }
           case "pie":
@@ -19176,10 +19458,14 @@ var __async = (__this, __arguments, generator) => {
      */
     parseDataNonAxisCharts(ser) {
       const cnf = this.w.config;
+      this.w.seriesData.unitData = [];
       const hasOldFormat = Array.isArray(ser) && ser.every((s) => typeof s === "number") && cnf.labels.length > 0;
       const hasNewFormat = Array.isArray(ser) && ser.some(
         (s) => s && typeof s === "object" && s.data || s && typeof s === "object" && s.parsing
       );
+      if (cnf.chart.type === "unit" && hasNewFormat && !hasOldFormat) {
+        return this.parseUnitSeries(ser);
+      }
       if (hasOldFormat && hasNewFormat) {
         console.warn(
           "ApexCharts: Both old format (numeric series + labels) and new format (series objects with data/parsing) detected. Using old format for backward compatibility."
@@ -19224,6 +19510,34 @@ var __async = (__this, __arguments, generator) => {
           this.w.seriesData.seriesNames.push("series-" + (i + 1));
         }
       }
+      return this.w;
+    }
+    /**
+     * Parse the unit chart's per-unit object form:
+     *   series: [{ name, data: [datum, datum, ...] }, ...]
+     * Each category's dot count is `data.length` (one dot per datum), and the
+     * per-unit data is kept on `w.seriesData.unitData` so the renderer can colour
+     * dots individually and the tooltip can show each unit's own info.
+     * @param {any[]} ser
+     * @returns {any} w
+     */
+    parseUnitSeries(ser) {
+      const cnf = this.w.config;
+      const series = [];
+      const seriesNames = [];
+      const unitData = [];
+      ser.forEach((s, i) => {
+        var _a;
+        const data = s && Array.isArray(s.data) ? s.data : [];
+        series.push(data.length);
+        const name2 = s && s.name !== void 0 && s.name !== null ? s.name : void 0;
+        seriesNames.push((_a = name2 != null ? name2 : cnf.labels[i]) != null ? _a : `series-${i + 1}`);
+        unitData.push(data.slice());
+      });
+      this.w.seriesData.series = /** @type {any} */
+      series;
+      this.w.seriesData.seriesNames = seriesNames;
+      this.w.seriesData.unitData = unitData;
       return this.w;
     }
     /**
@@ -19793,6 +20107,7 @@ var __async = (__this, __arguments, generator) => {
           seriesZ: this.w.seriesData.seriesZ,
           seriesColors: this.w.seriesData.seriesColors,
           seriesGoals: this.w.seriesData.seriesGoals,
+          unitData: this.w.seriesData.unitData,
           noLabelsProvided: this.w.axisFlags.noLabelsProvided
         },
         // w.rangeData (future slice)
@@ -20145,23 +20460,9 @@ var __async = (__this, __arguments, generator) => {
               w.globals.lastYAxis = options2.yaxis ? Utils$1.clone(options2.yaxis) : [];
               w.globals.initialConfig = Utils$1.extend({}, w.config);
               w.globals.initialSeries = w.config.series;
-              if (options2.series) {
-                for (let i = 0; i < w.globals.collapsedSeriesIndices.length; i++) {
-                  const series = w.config.series[w.globals.collapsedSeriesIndices[i]];
-                  w.globals.collapsedSeries[i].data = w.globals.axisCharts ? (
-                    /** @type {any} */
-                    series.data.slice()
-                  ) : series;
-                }
-                for (let i = 0; i < w.globals.ancillaryCollapsedSeriesIndices.length; i++) {
-                  const series = w.config.series[w.globals.ancillaryCollapsedSeriesIndices[i]];
-                  w.globals.ancillaryCollapsedSeries[i].data = w.globals.axisCharts ? (
-                    /** @type {any} */
-                    series.data.slice()
-                  ) : series;
-                }
-                ch.series.emptyCollapsedSeries(w.config.series);
-              }
+            }
+            if (options2.series && (w.globals.collapsedSeriesIndices.length > 0 || w.globals.ancillaryCollapsedSeriesIndices.length > 0)) {
+              ch.series.reconcileCollapsedByName();
             }
           }
           return ch.update(options2).then(() => {
@@ -23451,11 +23752,17 @@ var __async = (__this, __arguments, generator) => {
         if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
           tooltipEl.removeAttribute("aria-hidden");
         }
-        this.tooltipLabels.drawSeriesTexts({
-          ttItems: opt.ttItems,
-          i: parseInt(rel, 10) - 1,
-          shared: false
-        });
+        if (w.config.chart.type === "unit") {
+          const unitDot = e.target && typeof e.target.closest === "function" ? e.target.closest(".apexcharts-unit-area") : null;
+          if (!unitDot) return;
+          this.renderUnitTooltip(unitDot);
+        } else {
+          this.tooltipLabels.drawSeriesTexts({
+            ttItems: opt.ttItems,
+            i: parseInt(rel, 10) - 1,
+            shared: false
+          });
+        }
         let x, y;
         const arcPath = opt.paths.querySelector("path[data\\:cx]") || opt.paths;
         if (w.config.tooltip.intersect && arcPath.hasAttribute("data:cx") && arcPath.hasAttribute("data:cy")) {
@@ -23496,6 +23803,68 @@ var __async = (__this, __arguments, generator) => {
           });
         }
       }
+    }
+    /**
+     * Fill the tooltip for one hovered unit-chart dot. Each dot carries `i` (its
+     * category / series index) and `j` (its index within that category). The
+     * default body reads "#<j+1> of <count>"; `plotOptions.unit.tooltip.formatter`
+     * overrides just the body text (it is handed i/j so it can look up per-unit
+     * data), and the global `tooltip.custom` still overrides the whole markup.
+     * @param {Element} dotEl the hovered `.apexcharts-unit-area` node
+     */
+    renderUnitTooltip(dotEl) {
+      var _a, _b, _c, _d, _e;
+      const w = this.w;
+      const tooltipEl = this.getElTooltip();
+      if (!tooltipEl) return;
+      const i = parseInt(dotEl.getAttribute("i") || "0", 10);
+      const j = parseInt(dotEl.getAttribute("j") || "0", 10);
+      if (typeof w.config.tooltip.custom === "function") {
+        this.tooltipLabels.handleCustomTooltip({ i, j, y1: null, y2: null, w });
+        return;
+      }
+      const seriesName = w.seriesData.seriesNames[i] || `series-${i + 1}`;
+      const value = Math.round(Number(w.seriesData.series[i]) || 0);
+      const group = dotEl.parentNode;
+      const count = group && group.querySelectorAll ? group.querySelectorAll(".apexcharts-unit-area").length : value;
+      const unitOpts = w.config.plotOptions.unit || {};
+      const unitValue = unitOpts.unitValue > 0 ? unitOpts.unitValue : 1;
+      const catData = w.seriesData.unitData && w.seriesData.unitData[i];
+      const datum = catData ? catData[j] : void 0;
+      const datumObj = datum && typeof datum === "object" ? datum : null;
+      const color = datumObj && datumObj.fillColor || w.globals.colors && w.globals.colors[i] || "#008FFB";
+      let body;
+      const fmt = unitOpts.tooltip && unitOpts.tooltip.formatter;
+      if (typeof fmt === "function") {
+        body = fmt({
+          seriesName,
+          seriesIndex: i,
+          dataPointIndex: j,
+          count,
+          value,
+          unitValue,
+          datum,
+          color,
+          w
+        });
+      } else if (datum !== void 0 && datum !== null) {
+        const label = datumObj ? (_c = (_b = (_a = datumObj.name) != null ? _a : datumObj.label) != null ? _b : datumObj.x) != null ? _c : null : null;
+        const dVal = datumObj ? (_e = (_d = datumObj.value) != null ? _d : datumObj.y) != null ? _e : null : datum;
+        body = label != null && dVal != null ? `${label}: ${dVal}` : label != null ? String(label) : dVal != null ? String(dVal) : `#${(j + 1).toLocaleString()} of ${count.toLocaleString()}`;
+      } else {
+        body = `#${(j + 1).toLocaleString()} of ${count.toLocaleString()}`;
+        if (unitValue !== 1) {
+          body += ` &middot; ${unitValue.toLocaleString()} per dot`;
+        }
+      }
+      const fontFamily = w.config.chart.fontFamily || "inherit";
+      const fontSize = w.config.tooltip.style && w.config.tooltip.style.fontSize || "12px";
+      const arrowEl = tooltipEl.querySelector(".apexcharts-tooltip-arrow");
+      tooltipEl.innerHTML = `<div class="apexcharts-tooltip-title" style="font-family: ${fontFamily}; font-size: ${fontSize};">${seriesName}</div><div class="apexcharts-tooltip-series-group apexcharts-active" style="display: flex;"><span class="apexcharts-tooltip-marker" style="background-color: ${color};"></span><div class="apexcharts-tooltip-text" style="font-family: ${fontFamily}; font-size: ${fontSize};"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-value">${body}</span></div></div></div>`;
+      if (arrowEl) tooltipEl.appendChild(arrowEl);
+      const rect = tooltipEl.getBoundingClientRect();
+      this.tooltipRect.ttWidth = rect.width;
+      this.tooltipRect.ttHeight = rect.height;
     }
     /**
      * @param {Event} e
@@ -25344,6 +25713,15 @@ var __async = (__this, __arguments, generator) => {
     }
   }
   const apexCSS = '@keyframes opaque {\n  0% {\n    opacity: 0\n  }\n\n  to {\n    opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n\n  0%,\n  to {\n    opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  direction: ltr !important;\n  user-select: none;\n  /* Focus indicator colour. Themes override below. */\n  --apexcharts-focus-color: #008FFB;\n}\n\n/* Dark theme & high-contrast: brighter focus colour for sufficient contrast. */\n.apexcharts-canvas .apexcharts-theme-dark,\n.apexcharts-theme-dark.apexcharts-canvas {\n  --apexcharts-focus-color: #FFD500;\n}\n.apexcharts-canvas.apexcharts-high-contrast,\n.apexcharts-high-contrast.apexcharts-canvas {\n  --apexcharts-focus-color: #FFFF00;\n}\n\n/* Visually-hidden aria-live status region (WCAG 4.1.3 Status Messages). */\n.apexcharts-sr-status {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}\n\n/* Respect OS-level reduced-motion preference (WCAG 2.3.3). */\n@media (prefers-reduced-motion: reduce) {\n  .apexcharts-canvas *,\n  .apexcharts-canvas *::before,\n  .apexcharts-canvas *::after {\n    animation-duration: 0.01ms !important;\n    animation-iteration-count: 1 !important;\n    transition-duration: 0.01ms !important;\n  }\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0, 0, 0, .5);\n  box-shadow: 0 0 1px rgba(255, 255, 255, .5);\n  -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\nrect.legend-mouseover-inactive,\n.legend-mouseover-inactive rect,\n.legend-mouseover-inactive path,\n.legend-mouseover-inactive circle,\n.legend-mouseover-inactive line,\n.legend-mouseover-inactive text.apexcharts-yaxis-title-text,\n.legend-mouseover-inactive text.apexcharts-yaxis-label {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n/* Linked Views (#4): per-mark crossfilter dim. Applied to individual data\n   marks (not whole series) whose x is outside the brushed range. Opacity is\n   overridable per chart via the --apx-cf-dim custom property. */\n.apexcharts-crossfilter-dimmed {\n  transition: opacity .25s ease;\n  opacity: var(--apx-cf-dim, .2)\n}\n\n/* Linked Views (#4): default styling for the built-in crossfilter data table\n   (cf.dataTable). Deliberately light so host styles can override. */\n.apexcharts-cf-table {\n  border-collapse: collapse;\n  width: 100%;\n  font-size: 13px;\n}\n.apexcharts-cf-table caption {\n  caption-side: bottom;\n  text-align: right;\n  padding: 6px 2px;\n  font-size: 12px;\n  opacity: .7\n}\n.apexcharts-cf-table th,\n.apexcharts-cf-table td {\n  padding: 6px 10px;\n  text-align: left;\n  border-bottom: 1px solid rgba(0, 0, 0, .08)\n}\n.apexcharts-cf-table th {\n  font-weight: 600;\n  border-bottom-width: 2px\n}\n.apexcharts-cf-table tbody tr:hover {\n  background: rgba(99, 102, 241, .06)\n}\n\n/* Measure ruler (#18): measure / delta ruler.\n   Theme via these classes or the --apx-measure-* custom properties below\n   (config `chart.measure.colors` overrides both). The ruler group also carries\n   a direction class: apexcharts-measure-up | -down | -flat.\n   Element classes:\n     .apexcharts-measure-band     shaded span band\n     .apexcharts-measure-vline    vertical guide lines\n     .apexcharts-measure-line     free-mode diagonal line\n     .apexcharts-measure-label-bg readout box     .apexcharts-measure-label text\n   Colors are applied as SVG presentation attributes, so any rule you write on\n   these classes overrides them. */\n.apexcharts-canvas {\n  --apx-measure-up: #16a34a;\n  --apx-measure-down: #dc2626;\n  --apx-measure-neutral: #64748b;\n  --apx-measure-guide: #94a3b8;\n}\n.apexcharts-measure-capture {\n  cursor: crosshair;\n}\n\n/* Radial Actions (#chrome): right-click context menu. Theme via these classes\n   or the --apx-menu-* custom properties. */\n.apexcharts-canvas {\n  --apx-menu-bg: #ffffff;\n  --apx-menu-fg: #1e293b;\n  --apx-menu-border: #e2e8f0;\n  --apx-menu-hover: #f1f5f9;\n  --apx-menu-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-context-menu {\n  min-width: 168px;\n  padding: 4px;\n  border-radius: 8px;\n  background: var(--apx-menu-bg);\n  border: 1px solid var(--apx-menu-border);\n  box-shadow: 0 6px 22px var(--apx-menu-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 13px;\n  z-index: 20;\n  user-select: none;\n}\n.apexcharts-context-menu-item {\n  display: block;\n  width: 100%;\n  box-sizing: border-box;\n  text-align: left;\n  padding: 7px 12px;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: var(--apx-menu-fg);\n  font: inherit;\n  cursor: pointer;\n}\n.apexcharts-context-menu-item:hover,\n.apexcharts-context-menu-item--active {\n  background: var(--apx-menu-hover);\n}\n.apexcharts-context-menu-item:focus {\n  outline: none;\n}\n\n/* Ink Layer (#7): the floating note editor card, opened by clicking an\n   ink-managed annotation. Theme via these classes or the --apx-ink-* vars. */\n.apexcharts-canvas {\n  --apx-ink-card-bg: #ffffff;\n  --apx-ink-card-fg: #1e293b;\n  --apx-ink-card-border: #e2e8f0;\n  --apx-ink-card-hover: #f1f5f9;\n  --apx-ink-card-accent: #6366f1;\n  --apx-ink-card-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-ink-card {\n  position: absolute;\n  z-index: 25;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  padding: 8px;\n  border-radius: 8px;\n  background: var(--apx-ink-card-bg);\n  border: 1px solid var(--apx-ink-card-border);\n  box-shadow: 0 6px 22px var(--apx-ink-card-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 12px;\n  color: var(--apx-ink-card-fg);\n  user-select: none;\n}\n.apexcharts-ink-card-row {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor {\n  flex: 1 1 auto;\n  width: 150px;\n  min-width: 0;\n  box-sizing: border-box;\n  padding: 4px 6px;\n  font: inherit;\n  color: inherit;\n  background: transparent;\n  border: 1px solid var(--apx-ink-card-border);\n  border-radius: 5px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor:focus {\n  outline: none;\n  border-color: var(--apx-ink-card-accent);\n}\n.apexcharts-ink-btn {\n  flex: 0 0 auto;\n  width: 24px;\n  height: 24px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  padding: 0;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: inherit;\n  font: inherit;\n  font-size: 12px;\n  line-height: 1;\n  cursor: pointer;\n}\n.apexcharts-ink-btn:hover,\n.apexcharts-ink-btn--active {\n  background: var(--apx-ink-card-hover);\n}\n.apexcharts-ink-btn:focus-visible,\n.apexcharts-ink-swatch:focus-visible {\n  outline: 2px solid var(--apx-ink-card-accent);\n  outline-offset: 1px;\n}\n.apexcharts-ink-btn--bold {\n  font-weight: 700;\n}\n.apexcharts-ink-btn--delete:hover {\n  color: #dc2626;\n}\n.apexcharts-ink-swatch {\n  flex: 0 0 auto;\n  width: 16px;\n  height: 16px;\n  padding: 0;\n  border: 1px solid rgba(100, 116, 139, 0.45);\n  border-radius: 50%;\n  cursor: pointer;\n}\n.apexcharts-ink-swatch--active {\n  box-shadow:\n    0 0 0 2px var(--apx-ink-card-bg),\n    0 0 0 4px var(--apx-ink-card-accent);\n}\n.apexcharts-ink-sep {\n  flex: 0 0 auto;\n  width: 1px;\n  height: 16px;\n  margin: 0 2px;\n  background: var(--apx-ink-card-border);\n}\n.apexcharts-ink-cardlabel {\n  flex: 0 0 auto;\n  font-size: 10px;\n  letter-spacing: 0.4px;\n  text-transform: uppercase;\n  opacity: 0.65;\n  margin-right: 2px;\n}\n.apexcharts-ink-marker-size {\n  flex: 0 0 auto;\n  min-width: 16px;\n  text-align: center;\n  font-variant-numeric: tabular-nums;\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-legend-series[role="button"]:focus {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-legend-series[role="button"]:focus:not(:focus-visible) {\n  outline: none;\n}\n\n.apexcharts-legend-series[role="button"]:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n.apexcharts-canvas svg:focus:not(:focus-visible) {\n  outline: none;\n}\n\n/* Keyboard navigation focus indicator on SVG data elements.\n   SVG elements don\'t support CSS outline, so we use stroke. */\n.apexcharts-bar-area.apexcharts-keyboard-focused,\n.apexcharts-candlestick-area.apexcharts-keyboard-focused,\n.apexcharts-boxPlot-area.apexcharts-keyboard-focused,\n.apexcharts-rangebar-area.apexcharts-keyboard-focused,\n.apexcharts-pie-area.apexcharts-keyboard-focused,\n.apexcharts-heatmap-rect.apexcharts-keyboard-focused,\n.apexcharts-treemap-rect.apexcharts-keyboard-focused {\n  stroke: var(--apexcharts-focus-color, #008FFB);\n  stroke-width: 2;\n  stroke-opacity: 1;\n}\n\n.apexcharts-tooltip {\n  --apx-tt-bg: #ffffff;\n  --apx-tt-border: rgba(15, 23, 42, 0.06);\n  /* Layered shadow: tight inner contact + soft outer drop. The two Y\n   * offsets are exposed as variables so they flip in sync with the\n   * arrow when the tooltip is below the data point — see the\n   * `[data-placement="bottom"]` rule further down. */\n  --apx-tt-shadow-y-mid: 8px;\n  --apx-tt-shadow-y-far: 16px;\n  --apx-tt-shadow: 0 0 0 1px rgba(15, 23, 42, 0.04), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(15, 23, 42, 0.12), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(15, 23, 42, 0.18);\n  --apx-tt-arrow-bg: var(--apx-tt-bg);\n  /* Two stacked drop-shadows: the first is a tight contact halo for\n   * edge definition against light chart backgrounds; the second is a\n   * softer directional drop that lifts the arrow off the surface.\n   * `--apx-tt-arrow-drop-y` is the Y offset of the directional drop;\n   * a per-placement rule below flips it to negative when the tooltip\n   * is below the data point (arrow on top) so the shadow always\n   * casts outward instead of into the tooltip body. */\n  --apx-tt-arrow-drop-y: 2px;\n  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(15, 23, 42, 0.2)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(15, 23, 42, 0.2));\n  --apx-tt-color: #0f172a;\n  --apx-tt-color-muted: rgba(15, 23, 42, 0.55);\n  border-radius: 8px;\n  background: var(--apx-tt-bg);\n  border: 1px solid var(--apx-tt-border);\n  box-shadow: var(--apx-tt-shadow);\n  color: var(--apx-tt-color);\n  cursor: default;\n  font-size: 13px;\n  left: 0;\n  top: 0;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  display: flex;\n  flex-direction: column;\n  padding: 2px 0;\n  white-space: nowrap;\n  z-index: 12;\n  transition: opacity .12s ease\n}\n\n/* While the tooltip is visible, smoothly animate position changes\n * between data points. Kept short (160 ms) and ease-out so it stays\n * responsive — too long would feel laggy when sweeping across many\n * points fast. The position transition is only attached after the\n * first paint (Position.applyTooltipPosition flips `data-positioned`\n * once the tooltip has been placed) so the *first* show doesn\'t slide\n * the tooltip in from the previously-stale (0,0) coordinates. */\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: opacity .12s ease\n}\n.apexcharts-tooltip.apexcharts-active[data-positioned="true"] {\n  transition: opacity .12s ease, left .16s ease-out, top .16s ease-out\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  /* defaults already set above; class kept for backward-compat selectors */\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  --apx-tt-bg: #1c1c1f;\n  --apx-tt-border: rgba(255, 255, 255, 0.08);\n  --apx-tt-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(0, 0, 0, 0.45), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(0, 0, 0, 0.55);\n  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.55)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(0, 0, 0, 0.45));\n  --apx-tt-color: #f3f4f6;\n  --apx-tt-color-muted: rgba(243, 244, 246, 0.55);\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n.apexcharts-tooltip-title {\n  padding: 8px 12px 4px;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.01em;\n  color: var(--apx-tt-color-muted);\n  background: transparent;\n  border-bottom: none;\n  margin-bottom: 0\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: transparent;\n  border-bottom: none\n}\n\n/* `fillSeriesColor`: each series-group already paints itself with the\n * series colour. Drop the glass body entirely (transparent bg, no\n * border, no backdrop-filter, no padding) and clip the coloured\n * series-group(s) to the tooltip\'s rounded corners so they fill the\n * shell edge-to-edge. Text inside the coloured group is forced to\n * white for contrast. */\n.apexcharts-tooltip.apexcharts-tooltip-fill-series {\n  background: transparent;\n  -webkit-backdrop-filter: none;\n  backdrop-filter: none;\n  border: none;\n  padding: 0;\n  overflow: hidden;\n  color: #fff\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, 0.22);\n  color: #fff;\n  opacity: 1;\n  padding: 6px 12px\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group {\n  color: #fff\n}\n\n/* Arrow connector — sits *entirely outside* the tooltip body. Shares\n * the body\'s solid fill so it reads as a single shape. `filter:\n * drop-shadow` traces the clipped triangle outline (a regular\n * `box-shadow` would be erased by the `clip-path`). */\n.apexcharts-tooltip-arrow {\n  position: absolute;\n  width: 7px;\n  height: 14px;\n  background: var(--apx-tt-arrow-bg);\n  /* The variable already contains the full `drop-shadow(...) ...` filter\n   * chain (stacked shadows) so it\'s applied raw. */\n  -webkit-filter: var(--apx-tt-arrow-shadow);\n  filter: var(--apx-tt-arrow-shadow);\n  pointer-events: none;\n  top: calc(var(--apx-tt-arrow-y, 50%) - 7px)\n}\n\n.apexcharts-tooltip[data-placement="right"] .apexcharts-tooltip-arrow {\n  left: -7px;\n  clip-path: polygon(0 50%, 100% 0, 100% 100%)\n}\n\n.apexcharts-tooltip[data-placement="left"] .apexcharts-tooltip-arrow {\n  right: -7px;\n  clip-path: polygon(100% 50%, 0 0, 0 100%)\n}\n\n/* Vertical arrow variants: tooltip is above/below the data point and the\n * arrow points down/up. The base rule above uses `--apx-tt-arrow-y` for\n * left/right placement; for top/bottom we re-orient the rectangle and\n * use `--apx-tt-arrow-x` (set by applyTooltipPosition). */\n.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow,\n.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {\n  width: 14px;\n  height: 7px;\n  top: auto;\n  left: calc(var(--apx-tt-arrow-x, 50%) - 7px)\n}\n\n.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow {\n  bottom: -7px;\n  clip-path: polygon(50% 100%, 0 0, 100% 0)\n}\n\n.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {\n  top: -7px;\n  clip-path: polygon(50% 0, 0 100%, 100% 100%)\n}\n\n/* When the tooltip is flipped below the data point (arrow on top\n * pointing up), the default downward-biased shadows leave the top\n * edge of both the body *and* the arrow undefined. Flipping every\n * Y offset to negative casts the entire elevation upward so the\n * shadow falls between the tooltip and the bar above. */\n.apexcharts-tooltip[data-placement="bottom"] {\n  --apx-tt-shadow-y-mid: -8px;\n  --apx-tt-shadow-y-far: -16px;\n  --apx-tt-arrow-drop-y: -2px\n}\n\n.apexcharts-tooltip-text-goals-value,\n.apexcharts-tooltip-text-y-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,\n.apexcharts-tooltip-text-goals-value:empty,\n.apexcharts-tooltip-text-y-label:empty,\n.apexcharts-tooltip-text-y-value:empty,\n.apexcharts-tooltip-text-z-value:empty,\n.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),\n.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  width: 12px;\n  height: 12px;\n  margin-right: 6px;\n  vertical-align: middle;\n  color: inherit;\n}\n\n.apexcharts-tooltip-marker svg {\n  width: 100%;\n  height: 100%;\n  display: block;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 4px 12px;\n  display: none;\n  gap: 8px;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active:last-child,\n.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 8px\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n.apexcharts-custom-tooltip,\n.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n/* X/Y axis tooltips — small popovers that label the crosshair on the\n * axes. Restyled to match the modern data-tooltip palette: solid white\n * body with a subtle border + soft drop-shadow, smaller font, rounded\n * corners. The arrows still use the CSS border-triangle technique\n * (cheap, crisp at small sizes); their colours flow from CSS variables\n * so light/dark themes only need one override per axis. */\n.apexcharts-xaxistooltip,\n.apexcharts-yaxistooltip {\n  --apx-axt-bg: #ffffff;\n  --apx-axt-border: rgba(15, 23, 42, 0.08);\n  --apx-axt-color: #0f172a;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.18), 0 1px 3px -1px rgba(15, 23, 42, 0.12);\n  opacity: 0;\n  pointer-events: none;\n  color: var(--apx-axt-color);\n  font-size: 12px;\n  font-weight: 500;\n  text-align: center;\n  border-radius: 6px;\n  position: absolute;\n  z-index: 10;\n  background: var(--apx-axt-bg);\n  border: 1px solid var(--apx-axt-border);\n  box-shadow: var(--apx-axt-shadow)\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark,\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  --apx-axt-bg: #1c1c1f;\n  --apx-axt-border: rgba(255, 255, 255, 0.1);\n  --apx-axt-color: #f3f4f6;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.55), 0 1px 3px -1px rgba(0, 0, 0, 0.45)\n}\n\n.apexcharts-xaxistooltip {\n  padding: 4px 8px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip:after,\n.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n/* :before paints the 1px border outline of the triangle (slightly larger\n * than :after); :after sits inside and paints the fill — leaves a 1px\n * ring of :before visible at the edges. */\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-left: -5px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip-bottom:after,\n.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,\n.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 3px 8px\n}\n\n.apexcharts-yaxistooltip:after,\n.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-top: -5px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip-left:after,\n.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,\n.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,\n.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,\n.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_shape {\n  stroke-width: 1;\n  stroke-dasharray: 10 10;\n  stroke: black;\n  stroke-opacity: 0.1;\n  pointer-events: none;\n  fill: none;\n}\n\n.svg_select_handle {\n  stroke-width: 3;\n  stroke: black;\n  fill: none;\n}\n\n.svg_select_handle_r {\n  cursor: e-resize;\n}\n\n.svg_select_handle_l {\n  cursor: w-resize;\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,\n.apexcharts-measure-icon,\n.apexcharts-pan-icon,\n.apexcharts-reset-icon,\n.apexcharts-selection-icon,\n.apexcharts-toolbar-custom-icon,\n.apexcharts-zoom-icon,\n.apexcharts-zoomin-icon,\n.apexcharts-zoomout-icon {\n  cursor: pointer;\n  /* WCAG 2.5.8 Target Size (Minimum): 24×24 CSS px hit target. */\n  width: 26px;\n  height: 24px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center;\n  /* Reset native <button> chrome — these are styled via SVG icons. */\n  padding: 0;\n  margin: 0;\n  background: transparent;\n  border: 0;\n  border-radius: 5px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  transition: background-color .12s ease, color .12s ease;\n}\n\n.apexcharts-menu-icon svg,\n.apexcharts-measure-icon svg,\n.apexcharts-pan-icon svg,\n.apexcharts-reset-icon svg,\n.apexcharts-selection-icon svg,\n.apexcharts-zoom-icon svg,\n.apexcharts-zoomin-icon svg,\n.apexcharts-zoomout-icon svg {\n  width: 18px;\n  height: 18px;\n  fill: none;\n  stroke: currentColor;\n  stroke-width: 2;\n  stroke-linecap: round;\n  stroke-linejoin: round\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon,\n.apexcharts-theme-dark .apexcharts-measure-icon,\n.apexcharts-theme-dark .apexcharts-pan-icon,\n.apexcharts-theme-dark .apexcharts-reset-icon,\n.apexcharts-theme-dark .apexcharts-selection-icon,\n.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,\n.apexcharts-theme-dark .apexcharts-zoom-icon,\n.apexcharts-theme-dark .apexcharts-zoomin-icon,\n.apexcharts-theme-dark .apexcharts-zoomout-icon {\n  color: #d4d6dc\n}\n\n.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected {\n  background: rgba(0, 143, 251, 0.12);\n  color: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover,\n.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-reset-icon:hover,\n.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-light .apexcharts-zoomout-icon:hover {\n  background: rgba(15, 23, 42, 0.06);\n  color: #1f2937\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon:hover,\n.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-reset-icon:hover,\n.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-dark .apexcharts-zoomout-icon:hover {\n  background: rgba(255, 255, 255, 0.08);\n  color: #fff\n}\n\n.apexcharts-menu-icon,\n.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 1px;\n  padding: 3px;\n  border-radius: 8px;\n  background: rgba(255, 255, 255, 0.85);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n}\n\n.apexcharts-theme-dark .apexcharts-toolbar {\n  background: rgba(28, 28, 31, 0.82);\n}\n\n.apexcharts-menu {\n  background: rgba(255, 255, 255, 0.95);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n  position: absolute;\n  top: calc(100% + 4px);\n  border: 1px solid rgba(15, 23, 42, 0.08);\n  border-radius: 8px;\n  padding: 4px;\n  right: 0;\n  opacity: 0;\n  min-width: 120px;\n  transition: opacity .15s ease, transform .15s ease;\n  transform: translateY(-2px);\n  pointer-events: none;\n  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.12), 0 2px 4px -1px rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  transform: translateY(0);\n  pointer-events: all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 9px;\n  font-size: 12px;\n  border-radius: 5px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(28, 28, 31, 0.92);\n  border-color: rgba(255, 255, 255, 0.08);\n  color: #f3f4f6;\n  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-item:hover {\n  background: rgba(255, 255, 255, 0.08)\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1\n  }\n}\n\n/* Toolbar keyboard accessibility: show toolbar when any button inside it is focused */\n.apexcharts-toolbar:focus-within {\n  opacity: 1\n}\n\n/* Focus indicator for toolbar icon buttons */\n.apexcharts-menu-icon:focus-visible,\n.apexcharts-measure-icon:focus-visible,\n.apexcharts-pan-icon:focus-visible,\n.apexcharts-reset-icon:focus-visible,\n.apexcharts-selection-icon:focus-visible,\n.apexcharts-toolbar-custom-icon:focus-visible,\n.apexcharts-zoom-icon:focus-visible,\n.apexcharts-zoomin-icon:focus-visible,\n.apexcharts-zoomout-icon:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 1px;\n  border-radius: 5px\n}\n\n/* Focus indicator for hamburger menu items */\n.apexcharts-menu-item:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: -2px;\n  background: #eee\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,\n.apexcharts-datalabel.apexcharts-element-hidden,\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-hidden-element-shown {\n  opacity: 1;\n  transition: 0.25s ease all;\n}\n\n.apexcharts-datalabel,\n.apexcharts-datalabel-label,\n.apexcharts-datalabel-value,\n.apexcharts-datalabels,\n.apexcharts-pie-label,\n.apexcharts-pie-name-label,\n.apexcharts-pie-name-label-group,\n.apexcharts-pie-label-connector {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-connector {\n  fill: none\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n.apexcharts-radialbar-label {\n  cursor: pointer;\n}\n\n.apexcharts-annotation-rect,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-gridline,\n.apexcharts-line,\n.apexcharts-point-annotation-label,\n.apexcharts-radar-series path:not(.apexcharts-marker),\n.apexcharts-radar-series polygon,\n.apexcharts-toolbar svg,\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-xaxis-annotation-label,\n.apexcharts-yaxis-annotation-label,\n.apexcharts-zoom-rect,\n.no-pointer-events {\n  pointer-events: none\n}\n\n.apexcharts-tooltip-active .apexcharts-marker {\n  transition: .15s ease all\n}\n\n.apexcharts-radar-series .apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,\n.resize-triggers,\n.resize-triggers>div {\n  content: " ";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n\n.apexcharts-bar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-bar-shadows {\n  pointer-events: none\n}\n\n.apexcharts-rangebar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-drilldown-target {\n  cursor: pointer\n}\n\n.apexcharts-breadcrumb {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 2px;\n  font-size: 12px;\n  font-family: inherit;\n  padding: 2px 4px\n}\n\n.apexcharts-breadcrumb-item {\n  background: transparent;\n  border: none;\n  padding: 2px 6px;\n  border-radius: 3px;\n  font: inherit;\n  color: inherit;\n  cursor: pointer;\n  line-height: 1.2\n}\n\n.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(0, 0, 0, 0.08)\n}\n\n.apexcharts-breadcrumb-arrow {\n  margin-right: 4px;\n  font-weight: 600;\n  user-select: none\n}\n\n.apexcharts-breadcrumb-current {\n  cursor: default;\n  font-weight: 600;\n  opacity: 0.85\n}\n\n.apexcharts-breadcrumb-separator {\n  opacity: 0.5;\n  user-select: none\n}\n\n.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(255, 255, 255, 0.12)\n}\n\n.apexcharts-disable-transitions * {\n  transition: none !important;\n}';
+  const PUBLIC_KEYS_SPKI_BASE64 = [
+    "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="
+  ];
+  const LEGACY_KEYS_ACCEPTED_UNTIL = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z");
+  const KEY_PREFIX = "APEX-";
+  const signatureVerdicts = /* @__PURE__ */ new Map();
+  const verifying = /* @__PURE__ */ new Set();
+  const listeners = /* @__PURE__ */ new Set();
+  let warnedUnverifiable = false;
   function base64Decode(encoded) {
     if (typeof atob === "function") return atob(encoded);
     if (typeof Buffer !== "undefined") {
@@ -25351,15 +25729,84 @@ var __async = (__this, __arguments, generator) => {
     }
     throw new Error("no base64 decoder available");
   }
-  function base64Encode(str) {
-    if (typeof btoa === "function") return btoa(str);
-    if (typeof Buffer !== "undefined") {
-      return Buffer.from(str, "binary").toString("base64");
-    }
-    throw new Error("no base64 encoder available");
+  function base64ToBytes(base64) {
+    const normalised = base64.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalised.padEnd(Math.ceil(normalised.length / 4) * 4, "=");
+    const binary = base64Decode(padded);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+  function canonicalPayload(data) {
+    const domains = data.domains && data.domains.length > 0 ? data.domains.join(",") : "";
+    return `v1|${data.issueDate}|${data.expiryDate}|${data.plan}|${domains}`;
   }
   function currentHostname() {
     return typeof window !== "undefined" && window.location ? window.location.hostname : "";
+  }
+  function signatureOf(encodedData) {
+    try {
+      const raw = JSON.parse(base64Decode(encodedData));
+      return typeof raw.sig === "string" && raw.sig ? raw.sig : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function notify(result) {
+    listeners.forEach((listener) => {
+      try {
+        listener(result);
+      } catch (e) {
+      }
+    });
+  }
+  function verifySignature(key, data, signature) {
+    return __async(this, null, function* () {
+      if (verifying.has(key) || signatureVerdicts.has(key)) return;
+      verifying.add(key);
+      const subtle = globalThis.crypto ? globalThis.crypto.subtle : void 0;
+      const accepted = LicenseManager.publicKeysSpki;
+      if (!subtle || accepted.length === 0) {
+        verifying.delete(key);
+        if (!warnedUnverifiable) {
+          warnedUnverifiable = true;
+          console.warn(
+            subtle ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified."
+          );
+        }
+        return;
+      }
+      const signed = new TextEncoder().encode(canonicalPayload(data));
+      let verified = false;
+      for (const spki of accepted) {
+        try {
+          const publicKey = yield subtle.importKey(
+            "spki",
+            base64ToBytes(spki),
+            { name: "ECDSA", namedCurve: "P-256" },
+            false,
+            ["verify"]
+          );
+          verified = yield subtle.verify(
+            { hash: "SHA-256", name: "ECDSA" },
+            publicKey,
+            base64ToBytes(signature),
+            signed
+          );
+        } catch (e) {
+          verified = false;
+        }
+        if (verified) break;
+      }
+      verifying.delete(key);
+      signatureVerdicts.set(key, verified);
+      if (!verified) {
+        console.error(
+          "[Apex] Invalid license key. The license signature does not verify."
+        );
+      }
+      notify(LicenseManager.validateKey(key));
+    });
   }
   class LicenseManager {
     /**
@@ -25369,8 +25816,7 @@ var __async = (__this, __arguments, generator) => {
      */
     static decodeLicenseData(encodedData) {
       try {
-        const decodedString = base64Decode(encodedData);
-        const data = JSON.parse(decodedString);
+        const data = JSON.parse(base64Decode(encodedData));
         if (!data.issueDate || !data.expiryDate || !data.plan) {
           return null;
         }
@@ -25386,87 +25832,52 @@ var __async = (__this, __arguments, generator) => {
       }
     }
     /**
-     * Generate a license key (issuer-side helper; also used by tests). Mirrors
-     * the family exactly so keys stay cross-compatible.
-     * @param {string} issueDate
-     * @param {string} expiryDate
-     * @param {string} [plan]
-     * @param {string[]} [domains]
-     * @returns {string}
+     * The key set via setLicense (or null). Lets the enforcer resolve the
+     * chart.license -> setLicense -> Apex.license precedence.
+     * @returns {null | string}
      */
-    static generateLicenseKey(issueDate, expiryDate, plan = "standard", domains) {
-      const licenseData = { expiryDate, issueDate, plan };
-      if (domains && domains.length > 0) {
-        licenseData.domains = domains;
-      }
-      return `APEX-${base64Encode(JSON.stringify(licenseData))}`;
+    static getKey() {
+      return this.licenseKey;
     }
     /**
-     * Validate an arbitrary key WITHOUT mutating the singleton. Used to resolve
-     * per-chart (`chart.license`) and global (`window.Apex.license`) keys, which
-     * bypass setLicense. This is a superset of the family (which keeps
-     * validateLicense private); the format and rules are identical.
-     * @param {string} key
+     * Validation result for the singleton key.
      * @returns {LicenseValidationResult}
      */
-    static validateKey(key) {
-      try {
-        if (typeof key !== "string" || !key.startsWith("APEX-")) {
-          return {
-            expired: false,
-            message: 'Invalid license key format. License key must start with "APEX-".',
-            valid: false
-          };
-        }
-        const separatorIndex = key.indexOf("-");
-        const encodedData = separatorIndex !== -1 ? key.slice(separatorIndex + 1) : "";
-        if (!encodedData) {
-          return {
-            expired: false,
-            message: "Invalid license key format. Expected format: APEX-{encoded-data}.",
-            valid: false
-          };
-        }
-        const licenseData = this.decodeLicenseData(encodedData);
-        if (!licenseData) {
-          return {
-            expired: false,
-            message: "Invalid license key. Unable to decode license data.",
-            valid: false
-          };
-        }
-        const now = /* @__PURE__ */ new Date();
-        const expiryDate = new Date(licenseData.expiryDate);
-        if (expiryDate < now) {
-          return {
-            data: licenseData,
-            expired: true,
-            message: `License expired on ${licenseData.expiryDate}. Please renew your license.`,
-            valid: false
-          };
-        }
-        if (licenseData.domains && licenseData.domains.length > 0) {
-          const hostname = currentHostname();
-          const allowed = licenseData.domains.some(
-            (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
-          );
-          if (!allowed) {
-            return {
-              data: licenseData,
-              expired: false,
-              message: `License is not valid for this domain (${hostname}). Allowed domains: ${licenseData.domains.join(", ")}.`,
-              valid: false
-            };
-          }
-        }
-        return { data: licenseData, expired: false, valid: true };
-      } catch (e) {
-        return {
-          expired: false,
-          message: "Invalid license key format or corrupted data.",
-          valid: false
-        };
+    static getLicenseStatus() {
+      if (!this.licenseKey) {
+        return { expired: false, valid: false };
       }
+      this.validationResult = this.validateKey(this.licenseKey);
+      return this.validationResult;
+    }
+    /**
+     * Whether a specific key is valid (pure; no singleton mutation).
+     * @param {string | undefined | null} key
+     * @returns {boolean}
+     */
+    static isKeyValid(key) {
+      if (!key) return false;
+      return this.validateKey(key).valid;
+    }
+    /** @returns {boolean} whether the singleton key is valid */
+    static isLicenseValid() {
+      if (!this.licenseKey) return false;
+      return this.getLicenseStatus().valid;
+    }
+    /**
+     * Subscribe to signature verdicts arriving. Returns an unsubscribe function.
+     *
+     * Without this a forged key would go unnoticed by any chart that asked once and
+     * painted. `LicenseEnforcer` uses it to re-evaluate every live chart.
+     *
+     * @param {(result: LicenseValidationResult) => void} listener
+     * @returns {() => void}
+     */
+    static onChange(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     }
     /**
      * Set the global (singleton) license key. console.errors when invalid, to
@@ -25481,46 +25892,132 @@ var __async = (__this, __arguments, generator) => {
       }
     }
     /**
-     * The key set via setLicense (or null). Lets the enforcer resolve the
-     * chart.license -> setLicense -> Apex.license precedence.
-     * @returns {null | string}
-     */
-    static getKey() {
-      return this.licenseKey;
-    }
-    /**
-     * Validation result for the singleton key (cached).
+     * Validate an arbitrary key WITHOUT mutating the singleton. Used to resolve
+     * per-chart (`chart.license`) and global (`window.Apex.license`) keys, which
+     * bypass setLicense. This is a superset of the family (which keeps
+     * validateLicense private); the format and rules are identical.
+     *
+     * Synchronous by contract, because it runs during render. Signature checking is
+     * started here and settles later; see `onChange`.
+     *
+     * @param {string} key
      * @returns {LicenseValidationResult}
      */
-    static getLicenseStatus() {
-      if (!this.licenseKey) {
-        return { expired: false, valid: false };
+    static validateKey(key) {
+      try {
+        if (typeof key !== "string" || !key.startsWith(KEY_PREFIX)) {
+          return {
+            expired: false,
+            message: 'Invalid license key format. License key must start with "APEX-".',
+            signatureVerified: false,
+            valid: false
+          };
+        }
+        const encodedData = key.slice(KEY_PREFIX.length);
+        if (!encodedData) {
+          return {
+            expired: false,
+            message: "Invalid license key format. Expected format: APEX-{encoded-data}.",
+            signatureVerified: false,
+            valid: false
+          };
+        }
+        const licenseData = this.decodeLicenseData(encodedData);
+        if (!licenseData) {
+          return {
+            expired: false,
+            message: "Invalid license key. Unable to decode license data.",
+            signatureVerified: false,
+            valid: false
+          };
+        }
+        const signature = signatureOf(encodedData);
+        if (!signature && /* @__PURE__ */ new Date() >= LEGACY_KEYS_ACCEPTED_UNTIL) {
+          return {
+            data: licenseData,
+            expired: false,
+            message: "This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.",
+            signatureVerified: false,
+            valid: false
+          };
+        }
+        const now = /* @__PURE__ */ new Date();
+        const expiryDate = new Date(licenseData.expiryDate);
+        if (expiryDate < now) {
+          return {
+            data: licenseData,
+            expired: true,
+            message: `License expired on ${licenseData.expiryDate}. Please renew your license.`,
+            signatureVerified: false,
+            valid: false
+          };
+        }
+        if (licenseData.domains && licenseData.domains.length > 0) {
+          const hostname = currentHostname();
+          const allowed = licenseData.domains.some(
+            (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+          );
+          if (!allowed) {
+            return {
+              data: licenseData,
+              expired: false,
+              message: `License is not valid for this domain (${hostname}). Allowed domains: ${licenseData.domains.join(", ")}.`,
+              signatureVerified: false,
+              valid: false
+            };
+          }
+        }
+        if (signature) {
+          const verdict = signatureVerdicts.get(key);
+          if (verdict === false) {
+            return {
+              data: licenseData,
+              expired: false,
+              message: "Invalid license key. The license signature does not verify.",
+              signatureVerified: true,
+              valid: false
+            };
+          }
+          if (verdict === void 0) {
+            void verifySignature(key, licenseData, signature);
+          }
+          return {
+            data: licenseData,
+            expired: false,
+            signatureVerified: verdict === true,
+            valid: true
+          };
+        }
+        return {
+          data: licenseData,
+          expired: false,
+          signatureVerified: false,
+          valid: true
+        };
+      } catch (e) {
+        return {
+          expired: false,
+          message: "Invalid license key format or corrupted data.",
+          signatureVerified: false,
+          valid: false
+        };
       }
-      if (!this.validationResult) {
-        this.validationResult = this.validateKey(this.licenseKey);
-      }
-      return this.validationResult;
     }
-    /** @returns {boolean} whether the singleton key is valid */
-    static isLicenseValid() {
-      if (!this.licenseKey) return false;
-      if (!this.validationResult) {
-        this.validationResult = this.validateKey(this.licenseKey);
-      }
-      return this.validationResult.valid;
-    }
-    /**
-     * Whether a specific key is valid (pure; no singleton mutation).
-     * @param {string | undefined | null} key
-     * @returns {boolean}
-     */
-    static isKeyValid(key) {
-      if (!key) return false;
-      return this.validateKey(key).valid;
+    /** Test-only: forget signature verdicts and the one-time warnings. */
+    static _resetSignatureState() {
+      signatureVerdicts.clear();
+      verifying.clear();
+      warnedUnverifiable = false;
     }
   }
   /** @type {null | string} */
   __publicField(LicenseManager, "licenseKey", null);
+  /**
+   * Accepted signing keys. Replaced by tests with an ephemeral keypair, since
+   * they cannot sign for the production key. Not public API.
+   * @type {string[]}
+   */
+  __publicField(LicenseManager, "publicKeysSpki", PUBLIC_KEYS_SPKI_BASE64);
   /** @type {LicenseValidationResult | null} */
   __publicField(LicenseManager, "validationResult", null);
   const WATERMARK_ATTR = "data-apexcharts-watermark";
@@ -25628,6 +26125,7 @@ var __async = (__this, __arguments, generator) => {
   function premiumFeaturesInUse(w, ctx) {
     const chart = w && w.config && w.config.chart || {};
     const used = [];
+    if (chart.type === "unit") used.push("unit");
     if (ctx.storyboard && ctx.storyboard._used) used.push("storyboard");
     const link = chart.link;
     if (ctx.linkedViews && link && (link.enabled === true || typeof link.dimension === "function")) {
@@ -25741,6 +26239,7 @@ var __async = (__this, __arguments, generator) => {
       }
     });
   }
+  LicenseManager.onChange(reevaluateLicenseAcrossCharts);
   const _ApexCharts = class _ApexCharts {
     /**
      * Creates a new ApexCharts instance.
@@ -28101,15 +28600,33 @@ var __async = (__this, __arguments, generator) => {
           }
         }
       } else {
-        const seriesEl = w.dom.Paper.findOne(
-          ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
-        );
         const type = w.config.chart.type;
-        if (type === "pie" || type === "polarArea" || type === "donut") {
-          const dataLabels = w.config.plotOptions.pie.donut.labels;
-          const graphics = new Graphics(this.w);
-          graphics.pathMouseDown(seriesEl, null);
-          this.lgCtx.printDataLabelsInner(seriesEl.node, dataLabels);
+        if (type === "unit") {
+          w.globals.resized = true;
+          w.globals.risingSeries = [];
+          if (isHidden) {
+            this.riseCollapsedSeries(
+              w.globals.collapsedSeries,
+              w.globals.collapsedSeriesIndices,
+              seriesCnt
+            );
+          } else {
+            const series = this.getSeriesAfterCollapsing({ realIndex: seriesCnt });
+            this.lgCtx.updateSeries(
+              series,
+              w.config.chart.animations.dynamicAnimation.enabled
+            );
+          }
+        } else {
+          const seriesEl = w.dom.Paper.findOne(
+            ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
+          );
+          if (type === "pie" || type === "polarArea" || type === "donut") {
+            const dataLabels = w.config.plotOptions.pie.donut.labels;
+            const graphics = new Graphics(this.w);
+            graphics.pathMouseDown(seriesEl, null);
+            this.lgCtx.printDataLabelsInner(seriesEl.node, dataLabels);
+          }
         }
         if (w.config.chart.accessibility.enabled) {
           const legendItem = w.dom.baseEl.querySelector(
@@ -28145,7 +28662,11 @@ var __async = (__this, __arguments, generator) => {
         const collapseData = {
           index: realIndex,
           data: series[realIndex].data.slice(),
-          type: series[realIndex].type || w.config.chart.type
+          type: series[realIndex].type || w.config.chart.type,
+          // The category name pins the hide across a data update that reorders or
+          // regroups categories (e.g. a storyboard beat): the collapse is
+          // reconciled by name, not index. See Series.reconcileCollapsedByName.
+          name: (gl.seriesNames || [])[realIndex]
         };
         if (yaxis && yaxis.show && yaxis.showAlways) {
           if (gl.ancillaryCollapsedSeriesIndices.indexOf(realIndex) < 0) {
@@ -28167,7 +28688,9 @@ var __async = (__this, __arguments, generator) => {
           type: (
             /** @type {any} */
             (_a = w.config.series[realIndex].type) != null ? _a : "line"
-          )
+          ),
+          // Pin the hide by category name so it survives a regroup (see above).
+          name: (gl.seriesNames || [])[realIndex]
         });
         gl.collapsedSeriesIndices.push(realIndex);
       }
@@ -30915,6 +31438,8 @@ var __async = (__this, __arguments, generator) => {
     _applyXRange(newMinX, newMaxX, isZoom) {
       const w = this.w;
       if (!w.globals.initialConfig) return false;
+      const cur = this._currentXWindow();
+      const zoomingOut = isZoom && newMaxX - newMinX > cur.max - cur.min;
       const bounds = this._clampBounds();
       if (bounds) {
         const range = newMaxX - newMinX;
@@ -30930,8 +31455,9 @@ var __async = (__this, __arguments, generator) => {
       }
       if (w.config.xaxis.convertedCatToNumeric) {
         newMinX = Math.floor(newMinX);
-        newMaxX = Math.floor(newMaxX);
+        newMaxX = zoomingOut ? Math.ceil(newMaxX) : Math.floor(newMaxX);
         if (newMinX < 1) newMinX = 1;
+        if (bounds && newMaxX > bounds.max) newMaxX = Math.floor(bounds.max);
         if (newMaxX - newMinX < 2) return false;
       }
       if (!(newMaxX > newMinX)) return false;
@@ -33039,9 +33565,11 @@ var __async = (__this, __arguments, generator) => {
   ApexCharts.registerFeatures({ keyboardNavigation: KeyboardNavigation });
   const BAR_FAMILY = /* @__PURE__ */ new Set(["bar", "funnel", "pyramid"]);
   const RADIAL_FAMILY = /* @__PURE__ */ new Set(["pie", "donut", "polarArea", "radialBar", "gauge"]);
+  const UNIT_FAMILY = /* @__PURE__ */ new Set(["unit"]);
   function familyOf(type) {
     if (BAR_FAMILY.has(type)) return "bar";
     if (RADIAL_FAMILY.has(type)) return "radial";
+    if (UNIT_FAMILY.has(type)) return "unit";
     return null;
   }
   class MorphTypeChange {
@@ -33076,7 +33604,7 @@ var __async = (__this, __arguments, generator) => {
       if (!Array.isArray(newSeries) || newSeries.length === 0) return false;
       const ff = familyOf(fromType);
       const tf = familyOf(toType);
-      if (tf === "radial") {
+      if (tf === "radial" || tf === "unit") {
         if (newSeries.every((v) => typeof v === "number")) return true;
         return newSeries.length === 1 && newSeries[0] && typeof newSeries[0] === "object" && Array.isArray(newSeries[0].data);
       }
@@ -33333,7 +33861,7 @@ var __async = (__this, __arguments, generator) => {
       const map = /* @__PURE__ */ new Map();
       const tf = familyOf(toType);
       const flat = captured.slice().sort((a, b) => a.realIndex - b.realIndex || a.j - b.j);
-      if (tf === "radial") {
+      if (tf === "radial" || tf === "unit") {
         flat.forEach((c, i) => {
           map.set(`${i}:0`, { d: c.d, fill: c.fill });
         });
@@ -33412,6 +33940,80 @@ var __async = (__this, __arguments, generator) => {
           return c.join(" ");
         }
       ).join(" ");
+    }
+    /**
+     * The centre point (in the NEW chart's screen space) of the captured shape
+     * for cluster `i`. Kept for callers that only need a point; the unit renderer
+     * uses getInitialBBoxFor so its dots fill the shape rather than stack on a
+     * single point.
+     * @param {number} i
+     * @returns {{ x: number, y: number } | null}
+     */
+    getInitialCenterFor(i) {
+      const box = this.getInitialBBoxFor(i);
+      if (!box) return null;
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    }
+    /**
+     * The bounding box (in the NEW chart's screen space) of the captured shape
+     * for cluster `i`. The unit (dot-cluster) renderer distributes the cluster's
+     * dots ACROSS this box as their start positions, so a tall bar visibly breaks
+     * apart into a tall column of dots that then swarm into the cluster.
+     * @param {number} i
+     * @returns {{ x: number, y: number, width: number, height: number } | null}
+     */
+    getInitialBBoxFor(i) {
+      if (!this._snapshot) return null;
+      const entry = this._snapshot.mapping.get(`${i}:0`);
+      if (!entry) return null;
+      const box = this._pathBBox(entry.d);
+      if (!box) return null;
+      const dx = this._snapshot.oldLayout.translateX - (this.w.layout.translateX || 0);
+      const dy = this._snapshot.oldLayout.translateY - (this.w.layout.translateY || 0);
+      return {
+        x: box.minX + dx,
+        y: box.minY + dy,
+        width: box.maxX - box.minX,
+        height: box.maxY - box.minY
+      };
+    }
+    /**
+     * Bounding box of an absolute-command SVG path `d`. Good enough as the burst
+     * footprint (we only need where the shape sat, not exact geometry).
+     * @param {string} d
+     * @returns {{ minX:number, minY:number, maxX:number, maxY:number } | null}
+     */
+    _pathBBox(d) {
+      const commands = parsePath(d);
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      let seen = false;
+      commands.forEach(
+        /** @param {any[]} c */
+        (c) => {
+          const cmd = c[0];
+          if (cmd === "Z") return;
+          let pairs = [];
+          if (cmd === "H") pairs = [[c[1], (minY + maxY) / 2 || c[1]]];
+          else if (cmd === "V") pairs = [[(minX + maxX) / 2 || c[1], c[1]]];
+          else if (cmd === "A") pairs = [[c[6], c[7]]];
+          else {
+            for (let k = 1; k + 1 < c.length; k += 2) pairs.push([c[k], c[k + 1]]);
+          }
+          pairs.forEach(([x, y]) => {
+            if (!isFinite(x) || !isFinite(y)) return;
+            seen = true;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          });
+        }
+      );
+      if (!seen) return null;
+      return { minX, minY, maxX, maxY };
     }
     /**
      * @param {number} realIndex
@@ -34130,6 +34732,7 @@ var __async = (__this, __arguments, generator) => {
   }
   function applyCollapsedSet(ctx, targetCollapsed, targetAncillary) {
     const w = ctx.w;
+    if (targetCollapsed == null && targetAncillary == null) return;
     const names = w.globals.seriesNames || [];
     const target = /* @__PURE__ */ new Set([
       ...targetCollapsed || [],
@@ -49365,6 +49968,1619 @@ var __async = (__this, __arguments, generator) => {
       );
     }
   }
+  const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+  class Unit {
+    /**
+     * @param {import('../types/internal').ChartStateW} w
+     * @param {import('../types/internal').ChartContext} ctx
+     */
+    constructor(w, ctx) {
+      this.ctx = ctx;
+      this.w = w;
+      this._lastDotR = 1;
+      this._gridTrack = null;
+      this._gridDenom = 1;
+      this._scatterAxis = null;
+    }
+    /**
+     * @param {any[]} series - flat count array (non-axis / pie-shaped data)
+     * @returns {any} the chart's root group element
+     */
+    draw(series) {
+      const w = this.w;
+      const graphics = new Graphics(w, this.ctx);
+      const ret = graphics.group({ class: "apexcharts-unit" });
+      if (w.globals.noData || !Array.isArray(series) || series.length === 0) {
+        return ret;
+      }
+      const opts = w.config.plotOptions.unit;
+      const layout = opts.layout === "packed" ? "packed" : opts.layout === "columns" ? "columns" : opts.layout === "grid" ? "grid" : opts.layout === "scatter" ? "scatter" : "grouped";
+      const transition = opts.transition;
+      const flow = transition === "flow";
+      const identity = transition === "identity";
+      const unitValue = opts.unitValue > 0 ? opts.unitValue : 1;
+      let counts = series.map((v) => {
+        const n = Math.abs(Utils$1.parseNumber(v)) / unitValue;
+        return n > 0 ? Math.max(1, Math.round(n)) : 0;
+      });
+      counts = this._applyMaxUnits(counts, opts.maxUnits);
+      const total = counts.reduce((a, b) => a + b, 0);
+      const clusters = layout === "packed" ? this._layoutPacked(counts, opts) : layout === "columns" ? this._layoutColumns(counts, opts) : layout === "grid" ? this._layoutGrid(counts, opts) : layout === "scatter" ? this._layoutScatter(opts) : this._layoutGrouped(counts, opts);
+      const gridSplit = layout === "grid" && !!(opts.grid && opts.grid.split);
+      if (gridSplit) this._drawGridTrack(ret, graphics, opts);
+      if (layout === "scatter") this._drawScatterAxes(ret, graphics, opts);
+      const dotR = this._lastDotR;
+      const animate = this._shouldAnimate();
+      const morph = this.ctx && this.ctx.morphTypeChange;
+      const morphActive = animate && !!morph && typeof morph.isActive === "function" && morph.isActive() && typeof morph.getInitialCenterFor === "function";
+      const prev = animate && !morphActive && this.ctx ? this.ctx._unitPrevDots : null;
+      const nextPrev = /* @__PURE__ */ new Map();
+      const animDots = [];
+      const unitData = w.seriesData.unitData || [];
+      const sizeStats = this._bubbleStats(unitData, opts, dotR);
+      let gIndex = 0;
+      clusters.forEach((cluster) => {
+        const color = w.globals.colors[cluster.i] || w.globals.colors[0] || "#008FFB";
+        const elSeries = graphics.group({
+          class: "apexcharts-series",
+          seriesName: Utils$1.escapeString(
+            w.seriesData.seriesNames[cluster.i] || `series-${cluster.i + 1}`
+          ),
+          rel: cluster.i + 1,
+          "data:realIndex": cluster.i
+        });
+        const burst = morphActive ? morph.getInitialCenterFor(cluster.i) : null;
+        const catData = unitData[cluster.i];
+        cluster.dots.forEach((d, j) => {
+          const datum = catData ? catData[j] : void 0;
+          const dotFill = datum && typeof datum === "object" && datum.fillColor ? datum.fillColor : color;
+          const rj = d.r != null ? d.r : sizeStats ? this._radiusForValue(this._unitValueOf(datum), sizeStats) : dotR;
+          const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j);
+          elSeries.add(el);
+          let key;
+          if (identity) {
+            const id = datum && typeof datum === "object" ? datum.id != null ? datum.id : datum.name : void 0;
+            key = id != null ? `id:${id}` : `g:${gIndex}`;
+          } else if (flow) {
+            key = String(gIndex);
+          } else if (d.slot != null) {
+            key = `slot:${d.slot}`;
+          } else {
+            key = `${cluster.i}:${j}`;
+          }
+          gIndex++;
+          nextPrev.set(key, { x: d.x, y: d.y, fill: dotFill, r: rj });
+          if (animate) {
+            const from = prev && prev.get(key);
+            const anchor = from || burst;
+            const cx0 = anchor ? anchor.x : gridSplit ? d.x : cluster.cx;
+            const cy0 = anchor ? anchor.y : gridSplit ? d.y : cluster.cy;
+            el.node.style.opacity = anchor ? "1" : "0";
+            this._placeDot(el.node, opts, cx0, cy0);
+            animDots.push({
+              node: el.node,
+              x: d.x,
+              y: d.y,
+              cx0,
+              cy0,
+              // Radius tween: an identity-kept dot grows/shrinks from its previous
+              // size to its new one (e.g. bubble sizing turning on) instead of
+              // snapping. Enters/uniform updates keep r0 === r1 (no-op).
+              r0: from && from.r != null ? from.r : rj,
+              r1: rj,
+              // Colour tween: a dot that flows into a differently coloured group
+              // recolours as it travels rather than snapping at the first frame.
+              fill0: from ? from.fill : dotFill,
+              fill1: dotFill,
+              delay: 0,
+              // assigned below (staggered by global order)
+              isEnter: !anchor
+            });
+          } else {
+            this._placeDot(el.node, opts, d.x, d.y);
+          }
+        });
+        if ((layout === "grouped" || layout === "columns" || gridSplit) && opts.clusterLabels && opts.clusterLabels.show && counts[cluster.i] > 0) {
+          const labelTotal = gridSplit ? this._gridDenom : total;
+          this._drawClusterLabel(elSeries, cluster, counts[cluster.i], labelTotal, opts, color);
+        }
+        ret.add(elSeries);
+      });
+      if (prev) {
+        const exits = this._collectExits(prev, nextPrev, opts);
+        if (exits.length) {
+          const exitGroup = graphics.group({ class: "apexcharts-unit-exits" });
+          ret.add(exitGroup);
+          this._runExits(exitGroup, exits, opts);
+        }
+      }
+      if (this.ctx) this.ctx._unitPrevDots = nextPrev;
+      if (animate && animDots.length) {
+        this._runGather(animDots);
+      }
+      return ret;
+    }
+    /**
+     * Cap total dots to `maxUnits`, scaling every category down proportionally
+     * (a non-zero category keeps at least one dot). Warns once when it clips.
+     * @param {number[]} counts
+     * @param {number} maxUnits
+     * @returns {number[]}
+     */
+    _applyMaxUnits(counts, maxUnits) {
+      const total = counts.reduce((a, b) => a + b, 0);
+      if (!maxUnits || maxUnits <= 0 || total <= maxUnits) return counts;
+      const scale = maxUnits / total;
+      console.warn(
+        `[ApexCharts] unit chart: ${total} dots exceeds maxUnits (${maxUnits}); counts were scaled down proportionally. Raise plotOptions.unit.maxUnits or use plotOptions.unit.unitValue to represent more units per dot.`
+      );
+      return counts.map((c) => c > 0 ? Math.max(1, Math.round(c * scale)) : 0);
+    }
+    /**
+     * Lay out each category as its own cluster in a horizontal row. All clusters
+     * share one dot radius (so dot size is comparable across clusters); the blob
+     * radius encodes the count.
+     * @param {number[]} counts
+     * @param {any} opts
+     */
+    _layoutGrouped(counts, opts) {
+      const w = this.w;
+      const gw = w.layout.gridWidth;
+      const gh = w.layout.gridHeight;
+      const labelSpace = opts.clusterLabels && opts.clusterLabels.show ? 30 : 6;
+      const visible = counts.map((_, i) => i).filter((i) => counts[i] > 0);
+      const Kv = Math.max(1, visible.length);
+      const slotOf = new Array(counts.length).fill(-1);
+      visible.forEach((i, s) => slotOf[i] = s);
+      const cellW = gw / Kv;
+      const availH = gh - labelSpace;
+      const maxCount = Math.max(1, ...counts);
+      const pad = Math.min(cellW, availH) * 0.08;
+      const availR = Math.max(4, Math.min(cellW, availH) / 2 - pad);
+      const step = this._resolveStep(opts, availR, maxCount);
+      this._lastDotR = this._dotRadiusFromStep(step, opts);
+      const dotR = this._lastDotR;
+      const cy = labelSpace + availH / 2;
+      const outerRs = counts.map((n) => step * Math.sqrt(Math.max(1, n)) + dotR);
+      const cellCentre = (i) => slotOf[i] >= 0 ? cellW * (slotOf[i] + 0.5) : gw / 2;
+      let centers = counts.map((_, i) => cellCentre(i));
+      const visOuter = visible.map((i) => outerRs[i]);
+      let overlap = false;
+      for (let s = 1; s < Kv; s++) {
+        if (centers[visible[s]] - centers[visible[s - 1]] < visOuter[s] + visOuter[s - 1]) {
+          overlap = true;
+          break;
+        }
+      }
+      if (overlap) {
+        const gap = Math.max(2 * dotR, 8);
+        const totalW = visOuter.reduce((a, r) => a + 2 * r, 0) + gap * (Kv - 1);
+        let visCenters;
+        if (totalW <= gw) {
+          let x = (gw - totalW) / 2;
+          visCenters = visOuter.map((r) => {
+            const c = x + r;
+            x += 2 * r + gap;
+            return c;
+          });
+        } else if (Kv === 1) {
+          visCenters = [gw / 2];
+        } else {
+          const lo = visOuter[0];
+          const hi = gw - visOuter[Kv - 1];
+          visCenters = visOuter.map((_, s) => lo + (hi - lo) * s / (Kv - 1));
+        }
+        centers = counts.map(
+          (_, i) => slotOf[i] >= 0 ? visCenters[slotOf[i]] : gw / 2
+        );
+      }
+      return counts.map((n, i) => ({
+        i,
+        cx: centers[i],
+        cy,
+        outerR: outerRs[i],
+        dots: this._spiral(centers[i], cy, n, step, 0)
+      }));
+    }
+    /**
+     * Lay out all categories into ONE packed blob. Dots are assigned spiral
+     * indices in category order (smallest-first when sortByGroup), so the
+     * minority group nests in the centre.
+     * @param {number[]} counts
+     * @param {any} opts
+     */
+    _layoutPacked(counts, opts) {
+      const w = this.w;
+      const gw = w.layout.gridWidth;
+      const gh = w.layout.gridHeight;
+      const labelSpace = 6;
+      const total = Math.max(1, counts.reduce((a, b) => a + b, 0));
+      const availR = Math.max(
+        4,
+        Math.min(gw, gh - labelSpace) / 2 - Math.min(gw, gh) * 0.06
+      );
+      const step = this._resolveStep(opts, availR, total);
+      this._lastDotR = this._dotRadiusFromStep(step, opts);
+      const cx = gw / 2;
+      const cy = labelSpace + (gh - labelSpace) / 2;
+      const order = counts.map((_, i) => i);
+      if (opts.sortByGroup !== false) {
+        order.sort((a, b) => counts[a] - counts[b]);
+      }
+      const clusters = counts.map((_, i) => ({
+        i,
+        cx,
+        cy,
+        outerR: step * Math.sqrt(total) + this._lastDotR,
+        /** @type {{x:number,y:number,slot?:number}[]} */
+        dots: []
+      }));
+      let gi = 0;
+      order.forEach((catI) => {
+        for (let j = 0; j < counts[catI]; j++) {
+          const r = step * Math.sqrt(gi + 0.5);
+          const theta = gi * GOLDEN_ANGLE;
+          clusters[catI].dots.push({
+            x: cx + r * Math.cos(theta),
+            y: cy + r * Math.sin(theta),
+            slot: gi
+          });
+          gi++;
+        }
+      });
+      return clusters;
+    }
+    /**
+     * Lay out each category as a vertical BAR built from stacked dots (a unit /
+     * waffle column). Every bar shares one dot size and one width (the same
+     * number of dot columns); the bar's HEIGHT encodes its count. Dots fill each
+     * bar bottom-up, row by row. This is the "dot bar" state the circle layouts
+     * morph into: with `transition:'flow'` the dots glide straight from their
+     * circle slots into these bar slots (see the storyboard sample).
+     * @param {number[]} counts
+     * @param {any} opts
+     */
+    _layoutColumns(counts, opts) {
+      const w = this.w;
+      const gw = w.layout.gridWidth;
+      const gh = w.layout.gridHeight;
+      const labelsOn = !!(opts.clusterLabels && opts.clusterLabels.show);
+      const labelsBelow = labelsOn && opts.clusterLabels.position === "bottom";
+      const topPad = labelsOn && !labelsBelow ? 30 : 6;
+      const visible = counts.map((_, i) => i).filter((i) => counts[i] > 0);
+      const Kv = Math.max(1, visible.length);
+      const slotOf = new Array(counts.length).fill(-1);
+      visible.forEach((i, s) => slotOf[i] = s);
+      const cellW = gw / Kv;
+      const barW = cellW * 0.62;
+      const bottomPad = Math.max(8, gh * 0.04) + (labelsBelow ? 30 : 0);
+      const availH = Math.max(4, gh - topPad - bottomPad);
+      const maxCount = Math.max(1, ...counts);
+      const spacing = opts.spacing > 0 ? opts.spacing : 1;
+      const colSize = opts.columns ? opts.columns.size : void 0;
+      let fixed;
+      if (opts.shape !== "image" && colSize === "auto") {
+        fixed = null;
+      } else if (opts.shape !== "image" && typeof colSize === "number" && colSize > 0) {
+        fixed = colSize;
+      } else {
+        fixed = this._fixedRadius(opts);
+      }
+      let cols = 1;
+      let pitch = 0;
+      if (fixed) {
+        pitch = 2 * fixed * spacing;
+        this._lastDotR = fixed;
+        const rowsCap = Math.max(1, Math.floor(availH / pitch));
+        const maxColsByWidth = Math.max(1, Math.floor(barW / pitch));
+        cols = Math.max(1, Math.min(maxColsByWidth, Math.ceil(maxCount / rowsCap)));
+      } else {
+        let best = 0;
+        const maxCols = Math.max(1, Math.min(40, Math.round(barW / 4)));
+        for (let c = 1; c <= maxCols; c++) {
+          const rows = Math.ceil(maxCount / c);
+          const d = Math.min(barW / c, availH / rows);
+          if (d > best) {
+            best = d;
+            cols = c;
+          }
+        }
+        pitch = best;
+        this._lastDotR = Math.max(1, pitch / (2 * spacing));
+      }
+      const r = this._lastDotR;
+      const maxRows = Math.ceil(maxCount / cols);
+      const tallestBarH = Math.min(availH, maxRows * pitch);
+      const bottom = topPad + (availH + tallestBarH) / 2;
+      return counts.map((n, i) => {
+        const cx = slotOf[i] >= 0 ? cellW * (slotOf[i] + 0.5) : gw / 2;
+        const rows = Math.ceil(Math.max(1, n) / cols);
+        const barH = rows * pitch;
+        const left = cx - cols * pitch / 2 + pitch / 2;
+        const dots = [];
+        for (let j = 0; j < n; j++) {
+          const rowIdx = Math.floor(j / cols);
+          const colIdx = j % cols;
+          dots.push({
+            x: left + colIdx * pitch,
+            y: bottom - r - rowIdx * pitch
+          });
+        }
+        return {
+          i,
+          cx,
+          cy: bottom - barH / 2,
+          outerR: barH / 2,
+          // Flag read by _drawClusterLabel: a bar takes a straight label (above
+          // or below per clusterLabels.position), never a curved arc.
+          flat: true,
+          dots
+        };
+      });
+    }
+    /**
+     * Lay out ALL categories into ONE regular lattice - a waffle / grid. Dots take
+     * sequential slots in DECLARED category order and fill row-major, `columns`
+     * wide, so each category owns a contiguous band of cells: a part-to-whole
+     * square "pie". `grid.total` (optional) re-allocates the cells to a fixed
+     * budget (e.g. 100) by largest remainder, so the grid reads as exact
+     * percentages regardless of the raw totals; without it there is one cell per
+     * unit (respecting unitValue / maxUnits). `grid.fillFrom` picks the first row.
+     * The category bands follow the legend order (no smallest-first sort), and
+     * each physical slot is keyed so a proportion change recolours boundary cells
+     * in place rather than reshuffling the whole grid.
+     * @param {number[]} counts
+     * @param {any} opts
+     */
+    _layoutGrid(counts, opts) {
+      if (opts.grid && opts.grid.split) return this._layoutGridSplit(counts, opts);
+      this._gridTrack = null;
+      const w = this.w;
+      const gw = w.layout.gridWidth;
+      const gh = w.layout.gridHeight;
+      const gcfg = opts.grid || {};
+      const cols = Math.max(1, Math.round(gcfg.columns > 0 ? gcfg.columns : 10));
+      const fillFrom = gcfg.fillFrom === "top" ? "top" : "bottom";
+      const cells = gcfg.total > 0 ? this._largestRemainder(counts, Math.round(gcfg.total)) : counts.slice();
+      const totalCells = cells.reduce((a, b) => a + b, 0);
+      const rows = Math.max(1, Math.ceil(Math.max(1, totalCells) / cols));
+      const labelSpace = 6;
+      const spacing = opts.spacing > 0 ? opts.spacing : 1;
+      const availW = Math.max(4, gw);
+      const availH = Math.max(4, gh - labelSpace);
+      const fixed = this._fixedRadius(opts);
+      let pitch = 0;
+      if (fixed) {
+        pitch = 2 * fixed * spacing;
+        this._lastDotR = fixed;
+      } else {
+        pitch = Math.min(availW / cols, availH / rows);
+        this._lastDotR = Math.max(1, pitch / (2 * spacing));
+      }
+      const blockW = cols * pitch;
+      const blockH = rows * pitch;
+      const originX = (gw - blockW) / 2 + pitch / 2;
+      const topY = labelSpace + (availH - blockH) / 2;
+      const rowY = (rowIdx) => fillFrom === "bottom" ? topY + blockH - pitch / 2 - rowIdx * pitch : topY + pitch / 2 + rowIdx * pitch;
+      const clusters = counts.map((_, i) => ({
+        i,
+        cx: gw / 2,
+        cy: labelSpace + availH / 2,
+        outerR: Math.max(blockW, blockH) / 2,
+        /** @type {{x:number,y:number,slot?:number}[]} */
+        dots: []
+      }));
+      let k = 0;
+      for (let ci = 0; ci < cells.length; ci++) {
+        for (let j = 0; j < cells[ci]; j++) {
+          const col = k % cols;
+          const rowIdx = Math.floor(k / cols);
+          clusters[ci].dots.push({
+            x: originX + col * pitch,
+            y: rowY(rowIdx),
+            slot: k
+          });
+          k++;
+        }
+      }
+      return clusters;
+    }
+    /**
+     * Small-multiple ("trellis") waffles: ONE mini-waffle per category, laid out
+     * in a near-square grid of tiles. Each tile has `grid.total` cells (default
+     * 100 -> a 10x10 tile) and fills a fraction of them equal to the category's
+     * value over a denominator (`grid.max`, else the largest count so the leader
+     * fills its tile and every other tile stays proportionally full - no empty
+     * tiles for arbitrary data). The unfilled cells are drawn as a faint TRACK
+     * backdrop (see _drawGridTrack) so each tile reads as a part-to-whole "of N".
+     * Only VISIBLE (non-zero) categories claim a tile, so a legend hide drops the
+     * tile and the rest re-flow. Each filled cell is keyed by a physical
+     * `tile*cells + localCell` slot, so a value change grows/shrinks a tile's fill
+     * in place instead of reshuffling.
+     * @param {number[]} counts @param {any} opts
+     */
+    _layoutGridSplit(counts, opts) {
+      const w = this.w;
+      const gw = w.layout.gridWidth;
+      const gh = w.layout.gridHeight;
+      const gcfg = opts.grid || {};
+      const cols = Math.max(1, Math.round(gcfg.columns > 0 ? gcfg.columns : 10));
+      const fillFrom = gcfg.fillFrom === "top" ? "top" : "bottom";
+      const cellsPerTile = Math.max(1, Math.round(gcfg.total > 0 ? gcfg.total : 100));
+      const rowsPerTile = Math.max(1, Math.ceil(cellsPerTile / cols));
+      const visible = counts.map((_, i) => i).filter((i) => counts[i] > 0);
+      const K = Math.max(1, visible.length);
+      const denom = gcfg.max > 0 ? gcfg.max : Math.max(1, ...counts);
+      const tileCols = Math.max(
+        1,
+        Math.round(gcfg.tileColumns > 0 ? gcfg.tileColumns : Math.ceil(Math.sqrt(K)))
+      );
+      const tileRows = Math.max(1, Math.ceil(K / tileCols));
+      const labelsOn = !(opts.clusterLabels && opts.clusterLabels.show === false);
+      const labelsBelow = labelsOn && opts.clusterLabels && opts.clusterLabels.position === "bottom";
+      const topBand = labelsOn && !labelsBelow ? 22 : 4;
+      const botBand = labelsOn && labelsBelow ? 22 : 4;
+      const tileW = gw / tileCols;
+      const tileH = gh / tileRows;
+      const availTileW = Math.max(4, tileW * 0.86);
+      const availTileH = Math.max(4, tileH - topBand - botBand);
+      const spacing = opts.spacing > 0 ? opts.spacing : 1;
+      const fixed = this._fixedRadius(opts);
+      let pitch = 0;
+      if (fixed) {
+        pitch = 2 * fixed * spacing;
+        this._lastDotR = fixed;
+      } else {
+        pitch = Math.min(availTileW / cols, availTileH / rowsPerTile);
+        this._lastDotR = Math.max(1, pitch / (2 * spacing));
+      }
+      const blockW = cols * pitch;
+      const blockH = rowsPerTile * pitch;
+      const rowY = (topY, rowIdx) => fillFrom === "bottom" ? topY + blockH - pitch / 2 - rowIdx * pitch : topY + pitch / 2 + rowIdx * pitch;
+      const track = [];
+      const clusters = [];
+      visible.forEach((ci, t) => {
+        const tc = t % tileCols;
+        const tr = Math.floor(t / tileCols);
+        const tileX = tc * tileW;
+        const tileYtop = tr * tileH;
+        const originX = tileX + (tileW - blockW) / 2 + pitch / 2;
+        const topY = tileYtop + topBand + (availTileH - blockH) / 2;
+        const cellXY = (k) => ({
+          x: originX + k % cols * pitch,
+          y: rowY(topY, Math.floor(k / cols))
+        });
+        for (let k = 0; k < cellsPerTile; k++) track.push(cellXY(k));
+        const filled = Math.max(
+          0,
+          Math.min(cellsPerTile, Math.round(counts[ci] / denom * cellsPerTile))
+        );
+        const dots = [];
+        for (let k = 0; k < filled; k++) {
+          const p = cellXY(k);
+          dots.push({ x: p.x, y: p.y, slot: t * cellsPerTile + k });
+        }
+        clusters.push({
+          i: ci,
+          cx: tileX + tileW / 2,
+          cy: topY + blockH / 2,
+          outerR: blockH / 2,
+          // Straight per-tile label (never a curved arc), placed by position.
+          flat: true,
+          split: true,
+          dots
+        });
+      });
+      this._gridDenom = denom;
+      this._gridTrack = { cells: track };
+      return clusters;
+    }
+    /**
+     * Draw the faint "track" backdrop for the small-multiple grid: every cell of
+     * every tile's full lattice, so the filled (coloured) cells drawn on top read
+     * as a fraction of the whole. Static (redrawn each render, never animated);
+     * painted BEHIND the series groups. `grid.trackColor` overrides the default
+     * theme-neutral grey.
+     * @param {any} ret @param {Graphics} graphics @param {any} opts
+     */
+    _drawGridTrack(ret, graphics, opts) {
+      const track = this._gridTrack;
+      if (!track || !track.cells || !track.cells.length) return;
+      const r = this._lastDotR;
+      const gcfg = opts.grid || {};
+      const trackColor = gcfg.trackColor || "rgba(128,128,128,0.14)";
+      const g = graphics.group({ class: "apexcharts-unit-track" });
+      track.cells.forEach((c) => {
+        let el;
+        if (opts.shape === "square") {
+          const side = r * 2;
+          el = graphics.drawRect(0, 0, side, side, opts.borderRadius || 0, trackColor, 1, 0, "none");
+          el.node.setAttribute("fill", trackColor);
+          el.node.setAttribute("x", String(c.x - r));
+          el.node.setAttribute("y", String(c.y - r));
+        } else {
+          el = graphics.drawCircle(r, { fill: trackColor, "stroke-width": 0, stroke: "none" });
+          el.node.setAttribute("fill", trackColor);
+          el.node.setAttribute("cx", String(c.x));
+          el.node.setAttribute("cy", String(c.y));
+        }
+        el.node.classList.add("apexcharts-unit-track-cell");
+        g.add(el);
+      });
+      ret.add(g);
+    }
+    /**
+     * Scatter / beeswarm layout: position every unit on a real numeric X value
+     * axis by its own value (`_unitValueOf`), laned by category on Y. Within a
+     * lane an anti-overlap "swarm" pack (or a random jitter) spreads the dots off
+     * the centre line so equal / close values do not stack on top of each other.
+     * This is the unit chart's answer to "put these on axes": one dot per datum,
+     * placed by data, with a drawn value axis + category lanes (see
+     * _drawScatterAxes). Needs the per-unit object form (each datum a numeric
+     * `value`/`y`); flat counts have no per-unit value, so their lanes stay empty.
+     * @param {any} opts
+     */
+    _layoutScatter(opts) {
+      const w = this.w;
+      const scfg = opts.scatter || {};
+      if (scfg.y === "value") return this._layoutScatter2D(opts);
+      const gw = w.layout.gridWidth;
+      const gh = w.layout.gridHeight;
+      const unitData = w.seriesData.unitData || [];
+      const names = w.seriesData.seriesNames || [];
+      const valueOf = (d) => this._unitValueOf(d);
+      const sizeStats = this._scatterSizeStats(scfg, unitData);
+      const catVals = unitData.map(
+        (cat) => Array.isArray(cat) ? cat.map(valueOf) : []
+      );
+      const isNum2 = (v) => v != null && isFinite(v);
+      const visible = catVals.map((_, i) => i).filter((i) => catVals[i].some(isNum2));
+      const Kv = Math.max(1, visible.length);
+      let vmin = Infinity;
+      let vmax = -Infinity;
+      catVals.forEach(
+        (vs) => vs.forEach((v) => {
+          if (v != null && isFinite(v)) {
+            if (v < vmin) vmin = v;
+            if (v > vmax) vmax = v;
+          }
+        })
+      );
+      if (vmin === Infinity) {
+        vmin = 0;
+        vmax = 1;
+      }
+      const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5));
+      const nice = this._niceScale(
+        scfg.xMin != null ? scfg.xMin : vmin,
+        scfg.xMax != null ? scfg.xMax : vmax,
+        tickAmount
+      );
+      const xMin = scfg.xMin != null ? scfg.xMin : nice.min;
+      const xMax = scfg.xMax != null ? scfg.xMax : nice.max;
+      const xSpan = xMax - xMin || 1;
+      const laneW = scfg.laneLabelWidth != null ? Math.max(0, scfg.laneLabelWidth) : Kv > 1 ? 92 : 8;
+      const bottomGutter = 30 + (scfg.xTitle ? 20 : 0);
+      const plotL = laneW;
+      const plotR = gw - 8;
+      const plotT = 10;
+      const plotB = gh - bottomGutter;
+      const plotW = Math.max(4, plotR - plotL);
+      const plotH = Math.max(4, plotB - plotT);
+      const plotX = (v) => plotL + (v - xMin) / xSpan * plotW;
+      const laneH = plotH / Kv;
+      const laneCy = (slot) => plotT + laneH * (slot + 0.5);
+      let r = 0;
+      const fixed = this._fixedRadius(opts);
+      if (fixed) {
+        r = fixed;
+      } else {
+        const maxLane = Math.max(
+          1,
+          ...visible.map((i) => catVals[i].filter(isNum2).length)
+        );
+        r = Math.max(
+          2,
+          Math.min(6, laneH * 0.12, plotW / (2.5 * Math.sqrt(maxLane)))
+        );
+      }
+      this._lastDotR = r;
+      const spacing = opts.spacing > 0 ? opts.spacing : 1;
+      const step = Math.max(0.5, r * spacing);
+      const jitter = scfg.spread === "jitter";
+      const clusters = [];
+      const lanes = [];
+      const maxR = sizeStats ? sizeStats.rMax : r;
+      visible.forEach((ci, slot) => {
+        const cy = laneCy(slot);
+        lanes.push({ i: ci, cy, name: names[ci] || `series-${ci + 1}` });
+        const cat = unitData[ci] || [];
+        const pts = cat.map((d, j) => {
+          const v = valueOf(d);
+          const p = { j, px: plotX(isNum2(v) ? v : xMin), y: cy };
+          if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r);
+          return p;
+        });
+        if (jitter) {
+          const halfLane = Math.max(maxR, laneH / 2 - maxR);
+          pts.forEach((p, k) => {
+            const t = (k * 9301 + 49297) % 233280 / 233280;
+            p.y = cy + (t * 2 - 1) * halfLane;
+          });
+        } else {
+          this._beeswarm(pts, cy, r, step, maxR);
+        }
+        clusters.push({
+          i: ci,
+          cx: (plotL + plotR) / 2,
+          cy,
+          outerR: laneH / 2,
+          dots: pts.map((p) => ({ x: p.px, y: p.y, r: p.r }))
+        });
+      });
+      const ticks = [];
+      const spacingT = nice.spacing || xSpan / Math.max(1, tickAmount - 1);
+      if (scfg.xMin != null || scfg.xMax != null) {
+        for (let k = 0; k < tickAmount; k++) {
+          ticks.push(xMin + xSpan * k / (tickAmount - 1));
+        }
+      } else {
+        for (let v = xMin; v <= xMax + spacingT * 0.5; v += spacingT) {
+          ticks.push(Math.abs(v) < spacingT * 1e-9 ? 0 : v);
+        }
+      }
+      this._scatterAxis = {
+        mode: "1d",
+        plotL,
+        plotR,
+        plotT,
+        plotB,
+        xMin,
+        xMax,
+        plotX,
+        ticks,
+        lanes,
+        xTitle: scfg.xTitle,
+        formatter: typeof scfg.xFormatter === "function" ? scfg.xFormatter : null,
+        gridlines: scfg.gridlines !== false
+      };
+      return clusters;
+    }
+    /**
+     * 2D value-value scatter: each datum is a point at (`x`, `y`) on two numeric
+     * axes (a scatter / bubble plot in the unit family - premium, keyed
+     * transitions, per-unit colour/tooltip). Category = colour (one series group
+     * per category). With `scatter.sizeRange` set, each dot is a BUBBLE scaled (by
+     * area) from its `sizeField` (default 'z'). Needs the object form with numeric
+     * `x` + `y`.
+     * @param {any} opts
+     */
+    _layoutScatter2D(opts) {
+      const w = this.w;
+      const gw = w.layout.gridWidth;
+      const gh = w.layout.gridHeight;
+      const scfg = opts.scatter || {};
+      const unitData = w.seriesData.unitData || [];
+      const isNum2 = (v) => typeof v === "number" && isFinite(v);
+      const xOf = (d) => d && typeof d === "object" ? d.x : null;
+      const yOf = (d) => d && typeof d === "object" ? d.y != null ? d.y : d.value : null;
+      const visible = unitData.map((_, i) => i).filter(
+        (i) => (unitData[i] || []).some((d) => isNum2(xOf(d)) && isNum2(yOf(d)))
+      );
+      let xmn = Infinity;
+      let xmx = -Infinity;
+      let ymn = Infinity;
+      let ymx = -Infinity;
+      unitData.forEach(
+        (cat) => (cat || []).forEach((d) => {
+          const x = xOf(d);
+          const y = yOf(d);
+          if (isNum2(x) && isNum2(y)) {
+            if (x < xmn) xmn = x;
+            if (x > xmx) xmx = x;
+            if (y < ymn) ymn = y;
+            if (y > ymx) ymx = y;
+          }
+        })
+      );
+      if (xmn === Infinity) {
+        xmn = 0;
+        xmx = 1;
+        ymn = 0;
+        ymx = 1;
+      }
+      const xTicksN = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5));
+      const yTicksN = Math.max(2, Math.round(scfg.yTickAmount > 0 ? scfg.yTickAmount : 5));
+      const nx = this._niceScale(
+        scfg.xMin != null ? scfg.xMin : xmn,
+        scfg.xMax != null ? scfg.xMax : xmx,
+        xTicksN
+      );
+      const ny = this._niceScale(
+        scfg.yMin != null ? scfg.yMin : ymn,
+        scfg.yMax != null ? scfg.yMax : ymx,
+        yTicksN
+      );
+      const xMin = scfg.xMin != null ? scfg.xMin : nx.min;
+      const xMax = scfg.xMax != null ? scfg.xMax : nx.max;
+      const yMin = scfg.yMin != null ? scfg.yMin : ny.min;
+      const yMax = scfg.yMax != null ? scfg.yMax : ny.max;
+      const xSpan = xMax - xMin || 1;
+      const ySpan = yMax - yMin || 1;
+      const leftGutter = 46 + (scfg.yTitle ? 18 : 0);
+      const bottomGutter = 30 + (scfg.xTitle ? 20 : 0);
+      const plotL = leftGutter;
+      const plotR = gw - 12;
+      const plotT = 10;
+      const plotB = gh - bottomGutter;
+      const plotW = Math.max(4, plotR - plotL);
+      const plotH = Math.max(4, plotB - plotT);
+      const plotX = (v) => plotL + (v - xMin) / xSpan * plotW;
+      const plotY = (v) => plotB - (v - yMin) / ySpan * plotH;
+      const sizeStats = this._scatterSizeStats(scfg, unitData);
+      const baseR = this._fixedRadius(opts) || 5;
+      this._lastDotR = baseR;
+      const clusters = [];
+      visible.forEach((ci) => {
+        const cat = unitData[ci] || [];
+        const dots = cat.map((d) => {
+          const x = xOf(d);
+          const y = yOf(d);
+          return {
+            x: plotX(isNum2(x) ? x : xMin),
+            y: plotY(isNum2(y) ? y : yMin),
+            r: sizeStats ? this._scatterRadius(d, sizeStats, baseR) : void 0
+          };
+        });
+        clusters.push({
+          i: ci,
+          cx: (plotL + plotR) / 2,
+          cy: (plotT + plotB) / 2,
+          outerR: plotH / 2,
+          dots
+        });
+      });
+      const mkTicks = (lo, hi, span, spacing, pinned, n) => {
+        const out = [];
+        if (pinned) {
+          for (let k = 0; k < n; k++) out.push(lo + span * k / (n - 1));
+        } else {
+          const sp = spacing || span / Math.max(1, n - 1);
+          for (let v = lo; v <= hi + sp * 0.5; v += sp) {
+            out.push(Math.abs(v) < sp * 1e-9 ? 0 : v);
+          }
+        }
+        return out;
+      };
+      this._scatterAxis = {
+        mode: "2d",
+        plotL,
+        plotR,
+        plotT,
+        plotB,
+        plotX,
+        plotY,
+        xTicks: mkTicks(
+          xMin,
+          xMax,
+          xSpan,
+          nx.spacing,
+          scfg.xMin != null || scfg.xMax != null,
+          xTicksN
+        ),
+        yTicks: mkTicks(
+          yMin,
+          yMax,
+          ySpan,
+          ny.spacing,
+          scfg.yMin != null || scfg.yMax != null,
+          yTicksN
+        ),
+        xTitle: scfg.xTitle,
+        yTitle: scfg.yTitle,
+        xFormatter: typeof scfg.xFormatter === "function" ? scfg.xFormatter : null,
+        yFormatter: typeof scfg.yFormatter === "function" ? scfg.yFormatter : null,
+        gridlines: scfg.gridlines !== false
+      };
+      return clusters;
+    }
+    /**
+     * Bubble size stats for the scatter layout, or null when `scatter.sizeRange`
+     * is not a `[minR, maxR]` pair. Reads the global range of each datum's
+     * `sizeField` (default 'z') so a value maps to a radius (area scale) in
+     * _scatterRadius.
+     * @param {any} scfg @param {any[][]} unitData
+     * @returns {{zmin:number,zmax:number,rMin:number,rMax:number,field:string}|null}
+     */
+    _scatterSizeStats(scfg, unitData) {
+      const range = scfg && scfg.sizeRange;
+      if (!Array.isArray(range) || range.length < 2) return null;
+      const rMin = Math.max(0.5, +range[0]);
+      const rMax = Math.max(rMin, +range[1]);
+      const field = scfg.sizeField || "z";
+      let zmin = Infinity;
+      let zmax = -Infinity;
+      unitData.forEach(
+        (cat) => (cat || []).forEach((d) => {
+          const z = d && typeof d === "object" ? d[field] : null;
+          if (typeof z === "number" && isFinite(z)) {
+            if (z < zmin) zmin = z;
+            if (z > zmax) zmax = z;
+          }
+        })
+      );
+      if (zmin === Infinity) return null;
+      return { zmin, zmax, rMin, rMax, field };
+    }
+    /**
+     * Radius for one datum under the bubble size stats: area proportional to the
+     * `sizeField` value (so radius grows with sqrt), between rMin and rMax. A
+     * missing value collapses to rMin.
+     * @param {any} d
+     * @param {{zmin:number,zmax:number,rMin:number,rMax:number,field:string}} st
+     * @param {number} fallback @returns {number}
+     */
+    _scatterRadius(d, st, fallback) {
+      if (!st) return fallback;
+      const z = d && typeof d === "object" ? d[st.field] : null;
+      if (typeof z !== "number" || !isFinite(z)) return st.rMin;
+      const t = st.zmax > st.zmin ? (z - st.zmin) / (st.zmax - st.zmin) : 1;
+      const tc = Math.max(0, Math.min(1, t));
+      const aMin = st.rMin * st.rMin;
+      const aMax = st.rMax * st.rMax;
+      return Math.sqrt(aMin + tc * (aMax - aMin));
+    }
+    /**
+     * One-dimensional anti-overlap "beeswarm" pack: given points with a fixed x
+     * (`px`) and a lane centre `cy`, assign each a y so no two dots overlap (centre
+     * distance >= r_i + r_j). Greedy in ascending-x order, trying offsets 0, +step,
+     * -step, +2step ... and taking the SMALLEST that clears every already-placed
+     * neighbour still within reach in x. No-overlap always wins: a very dense lane
+     * grows a taller swarm rather than stacking dots (offsets are not hard-clamped
+     * to the lane). Each point may carry its own radius `r` (bubble beeswarm),
+     * else `rFallback` applies; `maxR` bounds the x-window break. Mutates each
+     * point's `.y`. Deterministic (no physics, no randomness).
+     * @param {{px:number,y:number,r?:number}[]} pts @param {number} cy
+     * @param {number} rFallback @param {number} step @param {number} [maxR]
+     */
+    _beeswarm(pts, cy, rFallback, step, maxR) {
+      const order = pts.slice().sort((a, b) => a.px - b.px);
+      const placed = [];
+      const rCap = maxR != null ? maxR : rFallback;
+      order.forEach((p) => {
+        const pr = p.r != null ? p.r : rFallback;
+        let chosen = 0;
+        for (let k = 0; k < 2e3; k++) {
+          const off = k === 0 ? 0 : Math.ceil(k / 2) * step * (k % 2 ? 1 : -1);
+          const y = cy + off;
+          let ok = true;
+          for (let m = placed.length - 1; m >= 0; m--) {
+            const q = placed[m];
+            const dx = p.px - q.px;
+            if (dx > pr + rCap) break;
+            const need = pr + q.r;
+            const dy = y - q.y;
+            if (dx * dx + dy * dy < need * need) {
+              ok = false;
+              break;
+            }
+          }
+          if (ok) {
+            chosen = off;
+            break;
+          }
+        }
+        p.y = cy + chosen;
+        placed.push({ px: p.px, y: p.y, r: pr });
+      });
+    }
+    /**
+     * A "nice" numeric scale [min, max] + tick spacing covering [dataMin, dataMax]
+     * with about `ticks` ticks, using rounded 1/2/5 x 10^n steps. Homegrown (no
+     * dependency) - lean-core.
+     * @param {number} dataMin @param {number} dataMax @param {number} ticks
+     * @returns {{min:number,max:number,spacing:number}}
+     */
+    _niceScale(dataMin, dataMax, ticks) {
+      let lo = dataMin;
+      let hi = dataMax;
+      if (!(hi > lo)) hi = lo + 1;
+      const range = this._niceNum(hi - lo, false);
+      const spacing = this._niceNum(range / Math.max(1, ticks - 1), true);
+      return {
+        min: Math.floor(lo / spacing) * spacing,
+        max: Math.ceil(hi / spacing) * spacing,
+        spacing
+      };
+    }
+    /**
+     * Round a range to a "nice" 1/2/5 x 10^n number (Heckbert's loose/round label
+     * algorithm).
+     * @param {number} range @param {boolean} round @returns {number}
+     */
+    _niceNum(range, round) {
+      const rng = range > 0 ? range : 1;
+      const exp = Math.floor(Math.log(rng) / Math.LN10);
+      const frac = rng / Math.pow(10, exp);
+      let nf;
+      if (round) {
+        nf = frac < 1.5 ? 1 : frac < 3 ? 2 : frac < 7 ? 5 : 10;
+      } else {
+        nf = frac <= 1 ? 1 : frac <= 2 ? 2 : frac <= 5 ? 5 : 10;
+      }
+      return nf * Math.pow(10, exp);
+    }
+    /**
+     * Draw the scatter chrome behind the dots, from the geometry the layout
+     * stashed on `this._scatterAxis`. 1D (beeswarm): vertical X gridlines +
+     * baseline + tick labels (+ x title) + a per-lane category label in the
+     * category colour. 2D: both X + Y gridlines, both axes' tick labels, and
+     * rotated/placed axis titles (no lane labels - category is colour). Browser-
+     * only (SSR renders the dots without the chrome, as with cluster labels).
+     * @param {any} ret @param {Graphics} graphics @param {any} opts
+     */
+    _drawScatterAxes(ret, graphics, opts) {
+      const w = this.w;
+      if (!Environment.isBrowser()) return;
+      const ax = this._scatterAxis;
+      if (!ax) return;
+      const NS = "http://www.w3.org/2000/svg";
+      const g = graphics.group({ class: "apexcharts-unit-axis" });
+      const gridColor = w.config.grid && w.config.grid.borderColor || "rgba(128,128,128,0.18)";
+      const axisColor = "rgba(128,128,128,0.5)";
+      const labelColor = w.config.xaxis && w.config.xaxis.labels && w.config.xaxis.labels.style && w.config.xaxis.labels.style.colors || "rgba(120,130,140,0.9)";
+      const line = (x1, y1, x2, y2, stroke) => {
+        const l = BrowserAPIs.createElementNS(NS, "line");
+        l.setAttribute("x1", String(x1));
+        l.setAttribute("y1", String(y1));
+        l.setAttribute("x2", String(x2));
+        l.setAttribute("y2", String(y2));
+        l.setAttribute("stroke", stroke);
+        l.setAttribute("shape-rendering", "crispEdges");
+        g.node.appendChild(l);
+      };
+      const text = (str, x, y, anchor, fill, size, weight, cls) => {
+        const t = BrowserAPIs.createElementNS(NS, "text");
+        t.setAttribute("class", cls);
+        t.setAttribute("x", String(x));
+        t.setAttribute("y", String(y));
+        t.setAttribute("text-anchor", anchor);
+        t.setAttribute("dominant-baseline", "middle");
+        t.setAttribute("font-size", `${size}px`);
+        t.setAttribute("font-family", w.config.chart.fontFamily || "inherit");
+        t.setAttribute("font-weight", String(weight));
+        t.setAttribute("fill", fill);
+        t.textContent = str;
+        g.node.appendChild(t);
+      };
+      if (ax.mode === "2d") {
+        ax.yTicks.forEach((v) => {
+          const y = ax.plotY(v);
+          if (ax.gridlines) line(ax.plotL, y, ax.plotR, y, gridColor);
+          const label = ax.yFormatter ? String(ax.yFormatter(v)) : this._formatTick(v);
+          text(label, ax.plotL - 8, y, "end", labelColor, 11, 400, "apexcharts-unit-tick");
+        });
+        ax.xTicks.forEach((v) => {
+          const x = ax.plotX(v);
+          if (ax.gridlines) line(x, ax.plotT, x, ax.plotB, gridColor);
+          const label = ax.xFormatter ? String(ax.xFormatter(v)) : this._formatTick(v);
+          text(label, x, ax.plotB + 14, "middle", labelColor, 11, 400, "apexcharts-unit-tick");
+        });
+        line(ax.plotL, ax.plotB, ax.plotR, ax.plotB, axisColor);
+        line(ax.plotL, ax.plotT, ax.plotL, ax.plotB, axisColor);
+        if (ax.xTitle) {
+          text(
+            String(ax.xTitle),
+            (ax.plotL + ax.plotR) / 2,
+            ax.plotB + 32,
+            "middle",
+            labelColor,
+            12,
+            600,
+            "apexcharts-unit-axis-title"
+          );
+        }
+        if (ax.yTitle) {
+          const yt = BrowserAPIs.createElementNS(NS, "text");
+          yt.setAttribute("class", "apexcharts-unit-axis-title");
+          const tx = 14;
+          const ty = (ax.plotT + ax.plotB) / 2;
+          yt.setAttribute("x", String(tx));
+          yt.setAttribute("y", String(ty));
+          yt.setAttribute("text-anchor", "middle");
+          yt.setAttribute("font-size", "12px");
+          yt.setAttribute("font-family", w.config.chart.fontFamily || "inherit");
+          yt.setAttribute("font-weight", "600");
+          yt.setAttribute("fill", labelColor);
+          yt.setAttribute("transform", `rotate(-90 ${tx} ${ty})`);
+          yt.textContent = String(ax.yTitle);
+          g.node.appendChild(yt);
+        }
+        ret.add(g);
+        return;
+      }
+      ax.ticks.forEach((v) => {
+        const x = ax.plotX(v);
+        if (ax.gridlines) line(x, ax.plotT, x, ax.plotB, gridColor);
+        const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v);
+        text(label, x, ax.plotB + 14, "middle", labelColor, 11, 400, "apexcharts-unit-tick");
+      });
+      line(ax.plotL, ax.plotB, ax.plotR, ax.plotB, axisColor);
+      if (ax.xTitle) {
+        text(
+          String(ax.xTitle),
+          (ax.plotL + ax.plotR) / 2,
+          ax.plotB + 32,
+          "middle",
+          labelColor,
+          12,
+          600,
+          "apexcharts-unit-axis-title"
+        );
+      }
+      if (ax.plotL > 12) {
+        ax.lanes.forEach((lane) => {
+          const color = w.globals.colors[lane.i] || w.globals.colors[0] || "#008FFB";
+          text(lane.name, ax.plotL - 8, lane.cy, "end", color, 12, 600, "apexcharts-unit-lane-label");
+        });
+      }
+      ret.add(g);
+    }
+    /**
+     * Compact tick-value formatting: integers as-is, otherwise trimmed to a short
+     * decimal; large magnitudes get a k/M suffix.
+     * @param {number} v @returns {string}
+     */
+    _formatTick(v) {
+      if (!isFinite(v)) return "";
+      const a = Math.abs(v);
+      if (a >= 1e6) return `${+(v / 1e6).toFixed(1)}M`;
+      if (a >= 1e4) return `${+(v / 1e3).toFixed(1)}k`;
+      if (Number.isInteger(v)) return String(v);
+      return String(+v.toFixed(2));
+    }
+    /**
+     * Distribute `total` whole cells across `counts` in proportion to each value,
+     * using the largest-remainder method so the parts sum to exactly `total`
+     * (used by the grid/waffle percentage mode).
+     * @param {number[]} counts @param {number} total @returns {number[]}
+     */
+    _largestRemainder(counts, total) {
+      const sum = counts.reduce((a, b) => a + b, 0);
+      if (sum <= 0 || total <= 0) return counts.map(() => 0);
+      const exact = counts.map((c) => c / sum * total);
+      const floors = exact.map((v) => Math.floor(v));
+      const used = floors.reduce((a, b) => a + b, 0);
+      const remaining = Math.max(0, total - used);
+      const byFrac = exact.map((v, i) => ({ i, frac: v - Math.floor(v) })).sort((a, b) => b.frac - a.frac);
+      const out = floors.slice();
+      for (let n = 0; n < remaining && n < byFrac.length; n++) {
+        out[byFrac[n].i]++;
+      }
+      return out;
+    }
+    /**
+     * Phyllotaxis (sunflower) placement for `n` points around (cx, cy).
+     * @param {number} cx @param {number} cy @param {number} n
+     * @param {number} step @param {number} startIndex
+     * @returns {{x:number,y:number}[]}
+     */
+    _spiral(cx, cy, n, step, startIndex) {
+      const pts = [];
+      for (let k = 0; k < n; k++) {
+        const idx = startIndex + k;
+        const r = step * Math.sqrt(idx + 0.5);
+        const theta = idx * GOLDEN_ANGLE;
+        pts.push({ x: cx + r * Math.cos(theta), y: cy + r * Math.sin(theta) });
+      }
+      return pts;
+    }
+    /**
+     * A fixed dot radius, if the shape/size implies one: an explicit numeric
+     * `size`, or an `image` shape (sized by its own width/height). Returns null
+     * when dots should auto-size to fit the plot.
+     * @param {any} opts @returns {number | null}
+     */
+    _fixedRadius(opts) {
+      if (opts.shape === "image" && opts.image) {
+        return Math.max(opts.image.width || 20, opts.image.height || 20) / 2;
+      }
+      if (this._bubbleActive(opts) && typeof opts.sizeByValue.maxRadius === "number") {
+        return opts.sizeByValue.maxRadius > 0 ? opts.sizeByValue.maxRadius : null;
+      }
+      if (typeof opts.size === "number" && opts.size > 0) return opts.size;
+      return null;
+    }
+    /**
+     * Whether opt-in bubble sizing applies: enabled, and the shape is a circle
+     * (squares/images keep a uniform size).
+     * @param {any} opts @returns {boolean}
+     */
+    _bubbleActive(opts) {
+      const sbv = opts.sizeByValue;
+      return !!(sbv && sbv.enabled && opts.shape !== "image" && opts.shape !== "square");
+    }
+    /**
+     * This datum's numeric value for sizing / tooltip: the number itself, or an
+     * object's `value` / `y`. Null when there is no usable number.
+     * @param {any} d @returns {number | null}
+     */
+    _unitValueOf(d) {
+      if (typeof d === "number") return d;
+      if (d && typeof d === "object") {
+        const v = d.value != null ? d.value : d.y;
+        return typeof v === "number" ? v : null;
+      }
+      return null;
+    }
+    /**
+     * Radius for one bubble given the value stats. Default 'area' scaling makes
+     * a bubble's AREA proportional to its value (radius grows with sqrt); 'linear'
+     * scales the radius directly. Missing values collapse to the min radius.
+     * @param {number|null} v
+     * @param {{min:number,max:number,minR:number,maxR:number,scale:string}} stats
+     * @returns {number}
+     */
+    _radiusForValue(v, stats) {
+      if (v == null || !isFinite(v)) return stats.minR;
+      const t = stats.max > stats.min ? (v - stats.min) / (stats.max - stats.min) : 1;
+      const tc = Math.max(0, Math.min(1, t));
+      if (stats.scale === "linear") {
+        return stats.minR + tc * (stats.maxR - stats.minR);
+      }
+      const aMin = stats.minR * stats.minR;
+      const aMax = stats.maxR * stats.maxR;
+      return Math.sqrt(aMin + tc * (aMax - aMin));
+    }
+    /**
+     * Value stats + radius bounds for bubble sizing, or null when it does not
+     * apply (disabled, non-circle shape, or no per-unit values). `maxR` is the
+     * reference radius the layout already spaced the lattice for; `minR` defaults
+     * to ~35% of it.
+     * @param {any[][]} unitData @param {any} opts @param {number} refR
+     * @returns {{min:number,max:number,minR:number,maxR:number,scale:string}|null}
+     */
+    _bubbleStats(unitData, opts, refR) {
+      if (!this._bubbleActive(opts)) return null;
+      let vmin = Infinity;
+      let vmax = -Infinity;
+      unitData.forEach((cat) => {
+        if (!cat) return;
+        cat.forEach((d) => {
+          const v = this._unitValueOf(d);
+          if (v != null && isFinite(v)) {
+            if (v < vmin) vmin = v;
+            if (v > vmax) vmax = v;
+          }
+        });
+      });
+      if (vmin === Infinity || vmax < vmin) return null;
+      const sbv = opts.sizeByValue;
+      const maxR = refR;
+      const minR = Math.max(
+        1,
+        Math.min(
+          maxR,
+          typeof sbv.minRadius === "number" ? sbv.minRadius : maxR * 0.35
+        )
+      );
+      return {
+        min: vmin,
+        max: vmax,
+        minR,
+        maxR,
+        scale: sbv.scale === "linear" ? "linear" : "area"
+      };
+    }
+    /**
+     * Radial step between successive spiral shells. A fixed radius derives the
+     * step directly; 'auto' derives it so a cluster of `count` dots fits `availR`.
+     * @param {any} opts @param {number} availR @param {number} count
+     * @returns {number}
+     */
+    _resolveStep(opts, availR, count) {
+      const spacing = opts.spacing > 0 ? opts.spacing : 1;
+      const fixed = this._fixedRadius(opts);
+      if (fixed) return 2 * fixed * spacing;
+      return availR / (Math.sqrt(Math.max(1, count)) + 0.5);
+    }
+    /**
+     * @param {number} step @param {any} opts
+     * @returns {number}
+     */
+    _dotRadiusFromStep(step, opts) {
+      const spacing = opts.spacing > 0 ? opts.spacing : 1;
+      const fixed = this._fixedRadius(opts);
+      if (fixed) return fixed;
+      return Math.max(1, step / (2 * spacing));
+    }
+    /**
+     * Corner-anchored shapes (square, image) position by their top-left x/y;
+     * circles position by their centre cx/cy.
+     * @param {any} opts @returns {boolean}
+     */
+    _isCorner(opts) {
+      return opts.shape === "square" || opts.shape === "image";
+    }
+    /**
+     * Half-width/height used to convert a centre point to a corner shape's x/y.
+     * @param {any} opts @returns {{hx:number, hy:number}}
+     */
+    _halfExtent(opts) {
+      if (opts.shape === "image" && opts.image) {
+        return { hx: (opts.image.width || 20) / 2, hy: (opts.image.height || 20) / 2 };
+      }
+      const r = this._lastDotR;
+      return { hx: r, hy: r };
+    }
+    /**
+     * Draw one dot (circle, square, or image icon) with the category fill +
+     * stroke, tagged so the shared non-axis tooltip and hover reuse work.
+     * @param {Graphics} graphics @param {any} opts @param {number} dotR
+     * @param {string} color @param {number} i @param {number} j
+     * @returns {any}
+     */
+    _drawDot(graphics, opts, dotR, color, i, j) {
+      const w = this.w;
+      const strokeW = w.config.stroke.show ? w.config.stroke.width : 0;
+      const strokeColor = Array.isArray(w.globals.stroke.colors) ? w.globals.stroke.colors[i] || "none" : "none";
+      const fillOpacity = typeof w.config.fill.opacity === "number" ? w.config.fill.opacity : 1;
+      let el;
+      if (opts.shape === "image" && opts.image && opts.image.src) {
+        const iw = opts.image.width || 20;
+        const ih = opts.image.height || 20;
+        el = w.dom.Paper.image(opts.image.src);
+        el.node.setAttribute("width", String(iw));
+        el.node.setAttribute("height", String(ih));
+        el.node.setAttribute("preserveAspectRatio", "xMidYMid meet");
+        if (opts.image.tint) {
+          el.node.setAttribute("filter", `url(#${this._tintFilter(color)})`);
+        }
+      } else if (opts.shape === "square") {
+        const side = dotR * 2;
+        el = graphics.drawRect(0, 0, side, side, opts.borderRadius || 0, color, 1, strokeW, strokeColor);
+        el.node.setAttribute("fill", color);
+        if (fillOpacity < 1) el.node.setAttribute("fill-opacity", String(fillOpacity));
+      } else {
+        el = graphics.drawCircle(dotR, {
+          fill: color,
+          "stroke-width": strokeW,
+          stroke: strokeColor
+        });
+        el.node.setAttribute("fill", color);
+        if (fillOpacity < 1) el.node.setAttribute("fill-opacity", String(fillOpacity));
+      }
+      el.node.classList.add("apexcharts-unit-area");
+      el.node.setAttribute("i", String(i));
+      el.node.setAttribute("j", String(j));
+      return el;
+    }
+    /**
+     * Ensure (once per colour) an SVG recolour filter exists in the chart's defs
+     * and return its id. The filter floods `color` and clips it to the source
+     * graphic's alpha (feComposite operator="in"), so an `<image>` referencing a
+     * monochrome icon is repainted in `color` while keeping its silhouette. Reused
+     * across every dot of the same colour.
+     * @param {string} color @returns {string}
+     */
+    _tintFilter(color) {
+      const w = this.w;
+      const NS = "http://www.w3.org/2000/svg";
+      const safe = String(color).replace(/[^a-zA-Z0-9]/g, "");
+      const id = `apexcharts-unit-tint-${w.globals.chartID}-${safe}`;
+      const svg = w.dom.Paper.node;
+      if (svg.querySelector(`#${id}`)) return id;
+      let defs = svg.querySelector("defs");
+      if (!defs) {
+        defs = BrowserAPIs.createElementNS(NS, "defs");
+        svg.insertBefore(defs, svg.firstChild);
+      }
+      const filter = BrowserAPIs.createElementNS(NS, "filter");
+      filter.setAttribute("id", id);
+      filter.setAttribute("x", "0%");
+      filter.setAttribute("y", "0%");
+      filter.setAttribute("width", "100%");
+      filter.setAttribute("height", "100%");
+      const flood = BrowserAPIs.createElementNS(NS, "feFlood");
+      flood.setAttribute("flood-color", color);
+      flood.setAttribute("result", "flood");
+      const comp = BrowserAPIs.createElementNS(NS, "feComposite");
+      comp.setAttribute("in", "flood");
+      comp.setAttribute("in2", "SourceAlpha");
+      comp.setAttribute("operator", "in");
+      filter.appendChild(flood);
+      filter.appendChild(comp);
+      defs.appendChild(filter);
+      return id;
+    }
+    /**
+     * Position a non-animated dot at (x, y). Circles use cx/cy at the centre;
+     * corner shapes (square, image) use x/y at the top-left.
+     * @param {SVGElement} node @param {any} opts @param {number} x @param {number} y
+     */
+    _placeDot(node, opts, x, y) {
+      if (this._isCorner(opts)) {
+        const { hx, hy } = this._halfExtent(opts);
+        node.setAttribute("x", String(x - hx));
+        node.setAttribute("y", String(y - hy));
+      } else {
+        node.setAttribute("cx", String(x));
+        node.setAttribute("cy", String(y));
+      }
+    }
+    /**
+     * Parse a `#rgb` / `#rrggbb` / `rgb()` / `rgba()` colour to `[r, g, b]`, or
+     * null if it cannot be parsed (the colour tween is then skipped).
+     * @param {string} str @returns {number[] | null}
+     */
+    _rgb(str) {
+      if (typeof str !== "string") return null;
+      let s = str.trim();
+      if (s[0] === "#") {
+        if (s.length === 4) s = "#" + s[1] + s[1] + s[2] + s[2] + s[3] + s[3];
+        const n = parseInt(s.slice(1, 7), 16);
+        if (isNaN(n)) return null;
+        return [n >> 16 & 255, n >> 8 & 255, n & 255];
+      }
+      const m = s.match(/rgba?\(([^)]+)\)/);
+      if (m) {
+        const p = m[1].split(",").map((x) => parseFloat(x));
+        if (p.length >= 3 && p.every((v) => !isNaN(v))) return [p[0], p[1], p[2]];
+      }
+      return null;
+    }
+    /**
+     * Whether to run the gather / transition animation. Runs on the initial mount
+     * and on data-driven updates (keyed old->new tween or cross-type burst).
+     * Skipped: in SSR, when animations are off, when the caller passed
+     * `animate:false` (shouldAnimate === false), on a PURE window resize (resized
+     * with no data change - re-gathering on every resize would be jarring), and
+     * when the user prefers reduced motion.
+     *
+     * Note: `w.globals.resized` is set true on every update (not just window
+     * resize), so it must be paired with `!dataChanged` to isolate a real resize.
+     * @returns {boolean}
+     */
+    _shouldAnimate() {
+      const w = this.w;
+      const anim = w.config.chart.animations;
+      if (!Environment.isBrowser()) return false;
+      if (!anim || anim.enabled === false) return false;
+      if (w.globals.shouldAnimate === false) return false;
+      if (w.globals.resized && !w.globals.dataChanged) return false;
+      if (anim.respectReducedMotion && prefersReducedMotion()) return false;
+      return true;
+    }
+    /**
+     * One rAF loop that tweens every dot from its start (cx0/cy0 - either the
+     * cluster centre on first mount / for entering dots, or its previous slot on
+     * an update) to its target slot, staggered by index. Entering dots fade in;
+     * moving dots stay opaque. Dots whose group colour changed (a 'flow' regroup)
+     * cross-fade their fill from the old colour to the new one over the same ease;
+     * dots whose radius changed (bubble sizing) grow/shrink over it too (circles).
+     * @param {{ node: SVGElement, x: number, y: number, cx0: number, cy0: number, r0?: number, r1?: number, delay: number, isEnter: boolean, fill0?: string, fill1?: string, _c0?: number[]|null, _c1?: number[]|null }[]} dots
+     */
+    _runGather(dots) {
+      const w = this.w;
+      const opts = w.config.plotOptions.unit;
+      const speed = Math.max(1, w.config.chart.animations.speed || 800);
+      const corner = this._isCorner(opts);
+      const { hx, hy } = this._halfExtent(opts);
+      const maxDelay = Math.min(speed * 0.6, 450);
+      const n = dots.length;
+      for (let k = 0; k < n; k++) {
+        dots[k].delay = n > 1 ? k / (n - 1) * maxDelay : 0;
+      }
+      const cxAttr = corner ? "x" : "cx";
+      const cyAttr = corner ? "y" : "cy";
+      const offX = corner ? hx : 0;
+      const offY = corner ? hy : 0;
+      if (corner) {
+        for (let k = 0; k < n; k++) {
+          dots[k].node.setAttribute(cxAttr, String(dots[k].cx0 - offX));
+          dots[k].node.setAttribute(cyAttr, String(dots[k].cy0 - offY));
+        }
+      }
+      if (!corner) {
+        for (let k = 0; k < n; k++) {
+          const d = dots[k];
+          if (d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
+            d.node.setAttribute("r", String(d.r0));
+          }
+        }
+      }
+      for (let k = 0; k < n; k++) {
+        const d = dots[k];
+        if (d.fill0 && d.fill1 && d.fill0 !== d.fill1) {
+          d._c0 = this._rgb(d.fill0);
+          d._c1 = this._rgb(d.fill1);
+        }
+      }
+      const start = performance.now();
+      const stepFn = (now) => {
+        let done = true;
+        for (let k = 0; k < n; k++) {
+          const d = dots[k];
+          const t = Math.max(0, Math.min(1, (now - start - d.delay) / speed));
+          const e = easeOutCubic(t);
+          const cx = d.cx0 + (d.x - d.cx0) * e;
+          const cy = d.cy0 + (d.y - d.cy0) * e;
+          d.node.setAttribute(cxAttr, String(cx - offX));
+          d.node.setAttribute(cyAttr, String(cy - offY));
+          if (d.isEnter) d.node.style.opacity = String(Math.min(1, t * 2.5));
+          if (d._c0 && d._c1) {
+            const cr = Math.round(d._c0[0] + (d._c1[0] - d._c0[0]) * e);
+            const cg = Math.round(d._c0[1] + (d._c1[1] - d._c0[1]) * e);
+            const cb = Math.round(d._c0[2] + (d._c1[2] - d._c0[2]) * e);
+            d.node.setAttribute("fill", `rgb(${cr},${cg},${cb})`);
+          }
+          if (!corner && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
+            d.node.setAttribute("r", String(d.r0 + (d.r1 - d.r0) * e));
+          }
+          if (t < 1) done = false;
+        }
+        if (done) {
+          for (let k = 0; k < n; k++) {
+            const d = dots[k];
+            d.node.style.opacity = "";
+            if (d._c1 && d.fill1) d.node.setAttribute("fill", d.fill1);
+            if (!corner && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
+              d.node.setAttribute("r", String(d.r1));
+            }
+          }
+        } else {
+          BrowserAPIs.requestAnimationFrame(stepFn);
+        }
+      };
+      BrowserAPIs.requestAnimationFrame(stepFn);
+    }
+    /**
+     * Keys present in the previous render but not the current one, resolved back
+     * to their old slot {x, y, fill}. These are the dots that must animate out.
+     * @param {Map<string, {x:number,y:number,fill:string}>} prev
+     * @param {Map<string, {x:number,y:number,fill:string}>} nextPrev
+     * @param {any} opts
+     * @returns {{x:number,y:number,fill:string}[]}
+     */
+    _collectExits(prev, nextPrev, opts) {
+      const cap = Math.max(0, opts.maxUnits || 5e3);
+      const exits = [];
+      for (const [key, slot] of prev) {
+        if (!nextPrev.has(key)) {
+          exits.push(slot);
+          if (exits.length >= cap) break;
+        }
+      }
+      return exits;
+    }
+    /**
+     * Animate the exit ghosts out, then remove them. Layouts whose positions carry
+     * data (a waffle / grid lattice, or a scatter / beeswarm on real axes) fade
+     * their ghosts OUT IN PLACE - drifting them toward the plot centre would drag
+     * cells across tiles or bubbles across the plane, which reads as wrong. The
+     * blob / bar layouts keep the gentle inward collapse so a removal reads as
+     * motion rather than a pop.
+     * @param {any} group @param {{x:number,y:number,fill:string}[]} exits @param {any} opts
+     */
+    _runExits(group, exits, opts) {
+      const w = this.w;
+      const graphics = new Graphics(w, this.ctx);
+      const dotR = this._lastDotR;
+      const cx = w.layout.gridWidth / 2;
+      const cy = w.layout.gridHeight / 2;
+      const drift = opts.layout === "grid" || opts.layout === "scatter" ? 0 : 0.35;
+      const ghosts = [];
+      exits.forEach((slot) => {
+        const el = this._drawDot(graphics, opts, dotR, slot.fill, 0, 0);
+        el.node.classList.add("apexcharts-unit-exit");
+        this._placeDot(el.node, opts, slot.x, slot.y);
+        group.add(el);
+        ghosts.push({ node: el.node, x0: slot.x, y0: slot.y });
+      });
+      if (!this._shouldAnimate()) {
+        ghosts.forEach((g) => g.node.remove());
+        return;
+      }
+      const speed = Math.max(1, w.config.chart.animations.speed || 800);
+      const corner = this._isCorner(opts);
+      const { hx, hy } = this._halfExtent(opts);
+      const offX = corner ? hx : 0;
+      const offY = corner ? hy : 0;
+      const cxAttr = corner ? "x" : "cx";
+      const cyAttr = corner ? "y" : "cy";
+      const start = performance.now();
+      const stepFn = (now) => {
+        const t = Math.max(0, Math.min(1, (now - start) / speed));
+        const e = easeOutCubic(t);
+        for (let k = 0; k < ghosts.length; k++) {
+          const g = ghosts[k];
+          if (drift) {
+            const x = g.x0 + (cx - g.x0) * e * drift;
+            const y = g.y0 + (cy - g.y0) * e * drift;
+            g.node.setAttribute(cxAttr, String(x - offX));
+            g.node.setAttribute(cyAttr, String(y - offY));
+          }
+          g.node.style.opacity = String(1 - e);
+        }
+        if (t < 1) {
+          BrowserAPIs.requestAnimationFrame(stepFn);
+        } else {
+          group.node && group.node.remove();
+        }
+      };
+      BrowserAPIs.requestAnimationFrame(stepFn);
+    }
+    /**
+     * A cluster label placed above (default) or below the cluster/bar. A TOP label
+     * over a wide grouped/packed blob rides a curved arc (invisible arc path +
+     * <textPath>, centred at 50% offset); a bottom label, a 'columns' bar, or a
+     * cluster too small for the arc gets a straight centred label instead.
+     * `clusterLabels.position` = 'top' | 'bottom'; `offsetY` pushes it further from
+     * the blob in either direction.
+     * @param {any} elSeries @param {{ i:number, cx:number, cy:number, outerR:number, flat?:boolean }} cluster
+     * @param {number} value @param {number} total @param {any} opts @param {string} color
+     */
+    _drawClusterLabel(elSeries, cluster, value, total, opts, color) {
+      const w = this.w;
+      if (!Environment.isBrowser()) return;
+      const NS = "http://www.w3.org/2000/svg";
+      const name2 = w.seriesData.seriesNames[cluster.i] || `series-${cluster.i + 1}`;
+      const percent = total > 0 ? value / total * 100 : 0;
+      const cfg = opts.clusterLabels;
+      const fontSize = parseFloat(cfg.fontSize) || 13;
+      let text;
+      if (typeof cfg.formatter === "function") {
+        text = cfg.formatter(name2, {
+          seriesIndex: cluster.i,
+          value,
+          percent,
+          w
+        });
+      } else {
+        text = `${name2} (${percent.toFixed(1)}%)`;
+      }
+      const str = typeof text === "string" ? text : String(text);
+      const textEl = BrowserAPIs.createElementNS(NS, "text");
+      textEl.setAttribute("class", "apexcharts-unit-label");
+      textEl.setAttribute("text-anchor", "middle");
+      textEl.setAttribute("font-size", `${fontSize}px`);
+      textEl.setAttribute("font-family", cfg.fontFamily || w.config.chart.fontFamily || "inherit");
+      textEl.setAttribute("font-weight", String(cfg.fontWeight || 600));
+      textEl.setAttribute("fill", cfg.color || color);
+      const bottom = cfg.position === "bottom";
+      const R = cluster.outerR + fontSize * 0.6 + 3 + (cfg.offsetY || 0);
+      const estWidth = str.length * fontSize * 0.55;
+      const curved = !bottom && !cluster.flat && cfg.curved !== false && estWidth <= Math.PI * R * 0.95;
+      if (curved) {
+        const yMid = cluster.cy;
+        const x1 = cluster.cx - R;
+        const x2 = cluster.cx + R;
+        const d = `M ${x1} ${yMid} A ${R} ${R} 0 0 1 ${x2} ${yMid}`;
+        const arcId = `apexcharts-unit-label-${w.globals.chartID}-${cluster.i}`;
+        const pathEl = BrowserAPIs.createElementNS(NS, "path");
+        pathEl.setAttribute("id", arcId);
+        pathEl.setAttribute("d", d);
+        pathEl.setAttribute("fill", "none");
+        pathEl.setAttribute("stroke", "none");
+        const tp = BrowserAPIs.createElementNS(NS, "textPath");
+        tp.setAttribute("href", `#${arcId}`);
+        tp.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", `#${arcId}`);
+        tp.setAttribute("startOffset", "50%");
+        tp.textContent = str;
+        textEl.appendChild(tp);
+        elSeries.node.appendChild(pathEl);
+      } else {
+        textEl.setAttribute("x", String(cluster.cx));
+        const y = bottom ? cluster.cy + cluster.outerR + fontSize + 6 + (cfg.offsetY || 0) : cluster.cy - cluster.outerR - 6 - (cfg.offsetY || 0);
+        textEl.setAttribute("y", String(y));
+        textEl.textContent = str;
+      }
+      elSeries.node.appendChild(textEl);
+    }
+  }
   ApexCharts.use({
     line: Line,
     area: Line,
@@ -49384,7 +51600,8 @@ var __async = (__this, __arguments, generator) => {
     radialBar: Radial,
     radar: Radar,
     heatmap: HeatMap,
-    treemap: TreemapChart
+    treemap: TreemapChart,
+    unit: Unit
   });
   return ApexCharts;
 }));

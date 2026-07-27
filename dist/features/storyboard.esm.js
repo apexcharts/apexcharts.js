@@ -18,8 +18,28 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+var __async = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
 /*!
- * ApexCharts v6.5.0
+ * ApexCharts v6.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -27,6 +47,15 @@ import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
 const Environment = _core.__apex_Environment_Environment;
 const prefersReducedMotion = _core.__apex_Animations_prefersReducedMotion;
+const PUBLIC_KEYS_SPKI_BASE64 = [
+  "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="
+];
+const LEGACY_KEYS_ACCEPTED_UNTIL = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z");
+const KEY_PREFIX = "APEX-";
+const signatureVerdicts = /* @__PURE__ */ new Map();
+const verifying = /* @__PURE__ */ new Set();
+const listeners = /* @__PURE__ */ new Set();
+let warnedUnverifiable = false;
 function base64Decode(encoded) {
   if (typeof atob === "function") return atob(encoded);
   if (typeof Buffer !== "undefined") {
@@ -34,15 +63,84 @@ function base64Decode(encoded) {
   }
   throw new Error("no base64 decoder available");
 }
-function base64Encode(str) {
-  if (typeof btoa === "function") return btoa(str);
-  if (typeof Buffer !== "undefined") {
-    return Buffer.from(str, "binary").toString("base64");
-  }
-  throw new Error("no base64 encoder available");
+function base64ToBytes(base64) {
+  const normalised = base64.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalised.padEnd(Math.ceil(normalised.length / 4) * 4, "=");
+  const binary = base64Decode(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+function canonicalPayload(data) {
+  const domains = data.domains && data.domains.length > 0 ? data.domains.join(",") : "";
+  return `v1|${data.issueDate}|${data.expiryDate}|${data.plan}|${domains}`;
 }
 function currentHostname() {
   return typeof window !== "undefined" && window.location ? window.location.hostname : "";
+}
+function signatureOf(encodedData) {
+  try {
+    const raw = JSON.parse(base64Decode(encodedData));
+    return typeof raw.sig === "string" && raw.sig ? raw.sig : null;
+  } catch (e) {
+    return null;
+  }
+}
+function notify(result) {
+  listeners.forEach((listener) => {
+    try {
+      listener(result);
+    } catch (e) {
+    }
+  });
+}
+function verifySignature(key, data, signature) {
+  return __async(this, null, function* () {
+    if (verifying.has(key) || signatureVerdicts.has(key)) return;
+    verifying.add(key);
+    const subtle = globalThis.crypto ? globalThis.crypto.subtle : void 0;
+    const accepted = LicenseManager.publicKeysSpki;
+    if (!subtle || accepted.length === 0) {
+      verifying.delete(key);
+      if (!warnedUnverifiable) {
+        warnedUnverifiable = true;
+        console.warn(
+          subtle ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified."
+        );
+      }
+      return;
+    }
+    const signed = new TextEncoder().encode(canonicalPayload(data));
+    let verified = false;
+    for (const spki of accepted) {
+      try {
+        const publicKey = yield subtle.importKey(
+          "spki",
+          base64ToBytes(spki),
+          { name: "ECDSA", namedCurve: "P-256" },
+          false,
+          ["verify"]
+        );
+        verified = yield subtle.verify(
+          { hash: "SHA-256", name: "ECDSA" },
+          publicKey,
+          base64ToBytes(signature),
+          signed
+        );
+      } catch (e) {
+        verified = false;
+      }
+      if (verified) break;
+    }
+    verifying.delete(key);
+    signatureVerdicts.set(key, verified);
+    if (!verified) {
+      console.error(
+        "[Apex] Invalid license key. The license signature does not verify."
+      );
+    }
+    notify(LicenseManager.validateKey(key));
+  });
 }
 class LicenseManager {
   /**
@@ -52,8 +150,7 @@ class LicenseManager {
    */
   static decodeLicenseData(encodedData) {
     try {
-      const decodedString = base64Decode(encodedData);
-      const data = JSON.parse(decodedString);
+      const data = JSON.parse(base64Decode(encodedData));
       if (!data.issueDate || !data.expiryDate || !data.plan) {
         return null;
       }
@@ -69,87 +166,52 @@ class LicenseManager {
     }
   }
   /**
-   * Generate a license key (issuer-side helper; also used by tests). Mirrors
-   * the family exactly so keys stay cross-compatible.
-   * @param {string} issueDate
-   * @param {string} expiryDate
-   * @param {string} [plan]
-   * @param {string[]} [domains]
-   * @returns {string}
+   * The key set via setLicense (or null). Lets the enforcer resolve the
+   * chart.license -> setLicense -> Apex.license precedence.
+   * @returns {null | string}
    */
-  static generateLicenseKey(issueDate, expiryDate, plan = "standard", domains) {
-    const licenseData = { expiryDate, issueDate, plan };
-    if (domains && domains.length > 0) {
-      licenseData.domains = domains;
-    }
-    return `APEX-${base64Encode(JSON.stringify(licenseData))}`;
+  static getKey() {
+    return this.licenseKey;
   }
   /**
-   * Validate an arbitrary key WITHOUT mutating the singleton. Used to resolve
-   * per-chart (`chart.license`) and global (`window.Apex.license`) keys, which
-   * bypass setLicense. This is a superset of the family (which keeps
-   * validateLicense private); the format and rules are identical.
-   * @param {string} key
+   * Validation result for the singleton key.
    * @returns {LicenseValidationResult}
    */
-  static validateKey(key) {
-    try {
-      if (typeof key !== "string" || !key.startsWith("APEX-")) {
-        return {
-          expired: false,
-          message: 'Invalid license key format. License key must start with "APEX-".',
-          valid: false
-        };
-      }
-      const separatorIndex = key.indexOf("-");
-      const encodedData = separatorIndex !== -1 ? key.slice(separatorIndex + 1) : "";
-      if (!encodedData) {
-        return {
-          expired: false,
-          message: "Invalid license key format. Expected format: APEX-{encoded-data}.",
-          valid: false
-        };
-      }
-      const licenseData = this.decodeLicenseData(encodedData);
-      if (!licenseData) {
-        return {
-          expired: false,
-          message: "Invalid license key. Unable to decode license data.",
-          valid: false
-        };
-      }
-      const now = /* @__PURE__ */ new Date();
-      const expiryDate = new Date(licenseData.expiryDate);
-      if (expiryDate < now) {
-        return {
-          data: licenseData,
-          expired: true,
-          message: `License expired on ${licenseData.expiryDate}. Please renew your license.`,
-          valid: false
-        };
-      }
-      if (licenseData.domains && licenseData.domains.length > 0) {
-        const hostname = currentHostname();
-        const allowed = licenseData.domains.some(
-          (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
-        );
-        if (!allowed) {
-          return {
-            data: licenseData,
-            expired: false,
-            message: `License is not valid for this domain (${hostname}). Allowed domains: ${licenseData.domains.join(", ")}.`,
-            valid: false
-          };
-        }
-      }
-      return { data: licenseData, expired: false, valid: true };
-    } catch (e) {
-      return {
-        expired: false,
-        message: "Invalid license key format or corrupted data.",
-        valid: false
-      };
+  static getLicenseStatus() {
+    if (!this.licenseKey) {
+      return { expired: false, valid: false };
     }
+    this.validationResult = this.validateKey(this.licenseKey);
+    return this.validationResult;
+  }
+  /**
+   * Whether a specific key is valid (pure; no singleton mutation).
+   * @param {string | undefined | null} key
+   * @returns {boolean}
+   */
+  static isKeyValid(key) {
+    if (!key) return false;
+    return this.validateKey(key).valid;
+  }
+  /** @returns {boolean} whether the singleton key is valid */
+  static isLicenseValid() {
+    if (!this.licenseKey) return false;
+    return this.getLicenseStatus().valid;
+  }
+  /**
+   * Subscribe to signature verdicts arriving. Returns an unsubscribe function.
+   *
+   * Without this a forged key would go unnoticed by any chart that asked once and
+   * painted. `LicenseEnforcer` uses it to re-evaluate every live chart.
+   *
+   * @param {(result: LicenseValidationResult) => void} listener
+   * @returns {() => void}
+   */
+  static onChange(listener) {
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   }
   /**
    * Set the global (singleton) license key. console.errors when invalid, to
@@ -164,46 +226,132 @@ class LicenseManager {
     }
   }
   /**
-   * The key set via setLicense (or null). Lets the enforcer resolve the
-   * chart.license -> setLicense -> Apex.license precedence.
-   * @returns {null | string}
-   */
-  static getKey() {
-    return this.licenseKey;
-  }
-  /**
-   * Validation result for the singleton key (cached).
+   * Validate an arbitrary key WITHOUT mutating the singleton. Used to resolve
+   * per-chart (`chart.license`) and global (`window.Apex.license`) keys, which
+   * bypass setLicense. This is a superset of the family (which keeps
+   * validateLicense private); the format and rules are identical.
+   *
+   * Synchronous by contract, because it runs during render. Signature checking is
+   * started here and settles later; see `onChange`.
+   *
+   * @param {string} key
    * @returns {LicenseValidationResult}
    */
-  static getLicenseStatus() {
-    if (!this.licenseKey) {
-      return { expired: false, valid: false };
+  static validateKey(key) {
+    try {
+      if (typeof key !== "string" || !key.startsWith(KEY_PREFIX)) {
+        return {
+          expired: false,
+          message: 'Invalid license key format. License key must start with "APEX-".',
+          signatureVerified: false,
+          valid: false
+        };
+      }
+      const encodedData = key.slice(KEY_PREFIX.length);
+      if (!encodedData) {
+        return {
+          expired: false,
+          message: "Invalid license key format. Expected format: APEX-{encoded-data}.",
+          signatureVerified: false,
+          valid: false
+        };
+      }
+      const licenseData = this.decodeLicenseData(encodedData);
+      if (!licenseData) {
+        return {
+          expired: false,
+          message: "Invalid license key. Unable to decode license data.",
+          signatureVerified: false,
+          valid: false
+        };
+      }
+      const signature = signatureOf(encodedData);
+      if (!signature && /* @__PURE__ */ new Date() >= LEGACY_KEYS_ACCEPTED_UNTIL) {
+        return {
+          data: licenseData,
+          expired: false,
+          message: "This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.",
+          signatureVerified: false,
+          valid: false
+        };
+      }
+      const now = /* @__PURE__ */ new Date();
+      const expiryDate = new Date(licenseData.expiryDate);
+      if (expiryDate < now) {
+        return {
+          data: licenseData,
+          expired: true,
+          message: `License expired on ${licenseData.expiryDate}. Please renew your license.`,
+          signatureVerified: false,
+          valid: false
+        };
+      }
+      if (licenseData.domains && licenseData.domains.length > 0) {
+        const hostname = currentHostname();
+        const allowed = licenseData.domains.some(
+          (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+        );
+        if (!allowed) {
+          return {
+            data: licenseData,
+            expired: false,
+            message: `License is not valid for this domain (${hostname}). Allowed domains: ${licenseData.domains.join(", ")}.`,
+            signatureVerified: false,
+            valid: false
+          };
+        }
+      }
+      if (signature) {
+        const verdict = signatureVerdicts.get(key);
+        if (verdict === false) {
+          return {
+            data: licenseData,
+            expired: false,
+            message: "Invalid license key. The license signature does not verify.",
+            signatureVerified: true,
+            valid: false
+          };
+        }
+        if (verdict === void 0) {
+          void verifySignature(key, licenseData, signature);
+        }
+        return {
+          data: licenseData,
+          expired: false,
+          signatureVerified: verdict === true,
+          valid: true
+        };
+      }
+      return {
+        data: licenseData,
+        expired: false,
+        signatureVerified: false,
+        valid: true
+      };
+    } catch (e) {
+      return {
+        expired: false,
+        message: "Invalid license key format or corrupted data.",
+        signatureVerified: false,
+        valid: false
+      };
     }
-    if (!this.validationResult) {
-      this.validationResult = this.validateKey(this.licenseKey);
-    }
-    return this.validationResult;
   }
-  /** @returns {boolean} whether the singleton key is valid */
-  static isLicenseValid() {
-    if (!this.licenseKey) return false;
-    if (!this.validationResult) {
-      this.validationResult = this.validateKey(this.licenseKey);
-    }
-    return this.validationResult.valid;
-  }
-  /**
-   * Whether a specific key is valid (pure; no singleton mutation).
-   * @param {string | undefined | null} key
-   * @returns {boolean}
-   */
-  static isKeyValid(key) {
-    if (!key) return false;
-    return this.validateKey(key).valid;
+  /** Test-only: forget signature verdicts and the one-time warnings. */
+  static _resetSignatureState() {
+    signatureVerdicts.clear();
+    verifying.clear();
+    warnedUnverifiable = false;
   }
 }
 /** @type {null | string} */
 __publicField(LicenseManager, "licenseKey", null);
+/**
+ * Accepted signing keys. Replaced by tests with an ephemeral keypair, since
+ * they cannot sign for the production key. Not public API.
+ * @type {string[]}
+ */
+__publicField(LicenseManager, "publicKeysSpki", PUBLIC_KEYS_SPKI_BASE64);
 /** @type {LicenseValidationResult | null} */
 __publicField(LicenseManager, "validationResult", null);
 const WATERMARK_ATTR = "data-apexcharts-watermark";
@@ -311,6 +459,7 @@ function markPerspectivesTokenDecoded() {
 function premiumFeaturesInUse(w, ctx) {
   const chart = w && w.config && w.config.chart || {};
   const used = [];
+  if (chart.type === "unit") used.push("unit");
   if (ctx.storyboard && ctx.storyboard._used) used.push("storyboard");
   const link = chart.link;
   if (ctx.linkedViews && link && (link.enabled === true || typeof link.dimension === "function")) {
@@ -424,6 +573,7 @@ function reevaluateLicenseAcrossCharts() {
     }
   });
 }
+LicenseManager.onChange(reevaluateLicenseAcrossCharts);
 class Storyboard {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -737,6 +887,7 @@ function captureViewState(w, ctx) {
 }
 function applyCollapsedSet(ctx, targetCollapsed, targetAncillary) {
   const w = ctx.w;
+  if (targetCollapsed == null && targetAncillary == null) return;
   const names = w.globals.seriesNames || [];
   const target = /* @__PURE__ */ new Set([
     ...targetCollapsed || [],

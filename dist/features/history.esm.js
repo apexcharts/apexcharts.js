@@ -14,7 +14,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v6.5.0
+ * ApexCharts v6.6.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -99,6 +99,7 @@ function captureViewState(w, ctx) {
 }
 function applyCollapsedSet(ctx, targetCollapsed, targetAncillary) {
   const w = ctx.w;
+  if (targetCollapsed == null && targetAncillary == null) return;
   const names = w.globals.seriesNames || [];
   const target = /* @__PURE__ */ new Set([
     ...targetCollapsed || [],

@@ -18,8 +18,28 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+var __async = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
 /*!
- * ApexCharts v6.5.0
+ * ApexCharts v6.6.0
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -2882,6 +2902,43 @@ class Defaults {
       }
     };
   }
+  unit() {
+    return {
+      chart: {
+        toolbar: {
+          show: false
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        show: false,
+        width: 0
+      },
+      fill: {
+        opacity: 1
+      },
+      tooltip: {
+        followCursor: true,
+        x: {
+          show: false
+        }
+      },
+      legend: {
+        show: true,
+        position: "bottom"
+      },
+      grid: {
+        padding: {
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0
+        }
+      }
+    };
+  }
   pie() {
     return {
       chart: {
@@ -4122,6 +4179,156 @@ class Options {
             }
           }
         },
+        unit: {
+          // 'grouped' (each category is its own cluster, laid out in a row) |
+          // 'packed' (one blob; categories coloured + sorted, minority centred) |
+          // 'columns' (each category is a vertical bar built from stacked dots) |
+          // 'grid' (one lattice of cells filled in category order - a waffle /
+          // part-to-whole square "pie"; `chart.type:'waffle'` presets this).
+          layout: "grouped",
+          // Update transition, controlling which previous dot each new dot
+          // tweens from. 'group' (default): keyed per category, so dots stay in
+          // their group and category-level enters/exits fade. 'flow': keyed by
+          // global order, so the anonymous crowd migrates across a regroup (the
+          // circles-to-bars effect). 'identity': keyed by each datum's id/name,
+          // so a SPECIFIC unit migrates across any regroup/relayout keeping its
+          // colour and size (needs the object form with unique ids/names).
+          transition: "group",
+          // 'circle' | 'square' | 'image' (isotype pictogram).
+          shape: "circle",
+          // Icon used when shape:'image'. Each unit renders this icon at the
+          // given size. Set `tint:true` to recolour a monochrome icon to the
+          // category colour (or a per-unit fillColor) so the pictogram matches
+          // the legend; leave it off for multi-colour icons that should keep
+          // their own colours.
+          image: {
+            src: void 0,
+            width: 20,
+            height: 20,
+            tint: false
+          },
+          // dot radius in px, or 'auto' to size dots so the largest cluster
+          // fits its allotted box.
+          size: "auto",
+          // The 'columns' layout can size its dots independently of `size`
+          // (which the circle layouts / storyboard beats often pin to a
+          // constant so dots do not resize while migrating). 'inherit' uses
+          // `size`; 'auto' sizes the dots to fill the plot height; a number
+          // pins a columns-only size. Circle / square only (image icons keep
+          // their intrinsic size).
+          columns: {
+            size: "inherit"
+          },
+          // The 'grid' (waffle) layout: one lattice of cells filled in category
+          // order. `columns` = cells per row. `total` (optional) fixes the cell
+          // budget - e.g. 100 for a percentage waffle - and largest-remainder
+          // allocates the cells to categories; leave it undefined for one cell
+          // per unit (respects unitValue / maxUnits). `fillFrom` picks the first
+          // row: 'bottom' (default) or 'top'.
+          //
+          // `split:true` switches to SMALL MULTIPLES: one mini-waffle per
+          // category, arranged in a near-square trellis (or `tileColumns` per
+          // row). Each tile then has `total` cells (default 100) and fills a
+          // fraction equal to the category's value over `max` (default = the
+          // largest count, so the leader fills its tile; set `max:100` with
+          // percentage data for true "of 100" tiles). The unfilled cells show as
+          // a faint `trackColor` backdrop, and each tile gets its own label.
+          grid: {
+            columns: 10,
+            total: void 0,
+            fillFrom: "bottom",
+            // small-multiple (one waffle per category) mode + its knobs:
+            split: false,
+            // tiles per row; undefined = auto (near-square).
+            tileColumns: void 0,
+            // value -> filled-cell denominator; undefined = the largest count.
+            max: void 0,
+            // colour of the empty "track" cells; undefined = a neutral grey.
+            trackColor: void 0
+          },
+          // The 'scatter' layout places each unit on real value axes (needs the
+          // object-form data). Two modes via `y`:
+          //  - `y:'lanes'` (default): a BEESWARM. X is the per-unit value axis,
+          //    Y is a category lane. `spread:'swarm'` packs dots off the centre
+          //    line so equal values do not overlap; 'jitter' scatters randomly.
+          //  - `y:'value'`: a 2D value-value scatter. X = each datum's `x`, Y =
+          //    each datum's `y`, on two numeric axes; category = colour.
+          // `sizeRange:[min,max]` turns dots into BUBBLES scaled (by area) from
+          // each datum's `sizeField` (default 'z') - a bubble scatter / bubble
+          // beeswarm. `tickAmount`/`xMin`/`xMax`/`xTitle`/`xFormatter` control the
+          // X axis; the `y*` twins the Y axis (2D only); `laneLabelWidth` the
+          // lane-label gutter (lanes mode); `gridlines` the grid.
+          scatter: {
+            y: "lanes",
+            spread: "swarm",
+            tickAmount: 5,
+            xMin: void 0,
+            xMax: void 0,
+            xTitle: void 0,
+            // (value) => string
+            xFormatter: void 0,
+            yTickAmount: 5,
+            yMin: void 0,
+            yMax: void 0,
+            yTitle: void 0,
+            // (value) => string
+            yFormatter: void 0,
+            // bubble sizing: datum key for the size value + [minR, maxR] in px.
+            sizeField: "z",
+            sizeRange: void 0,
+            laneLabelWidth: void 0,
+            gridlines: true
+          },
+          // Opt-in bubble sizing: scale each dot's radius by its per-unit value
+          // (needs the object-form data). Circle shape only; the lattice is
+          // spaced for the largest bubble so dots never overlap.
+          sizeByValue: {
+            enabled: false,
+            // radius (px) for the largest value, or 'auto' to fit the largest
+            // bubble to the plot like uniform auto-sizing.
+            maxRadius: "auto",
+            // radius (px) for the smallest value; defaults to ~35% of maxRadius.
+            minRadius: void 0,
+            // 'area' (bubble AREA proportional to value) | 'linear'.
+            scale: "area"
+          },
+          // packing gap factor between spiral shells (1 = dots touch).
+          spacing: 1.05,
+          // corner radius for shape:'square'.
+          borderRadius: 0,
+          // 1 dot represents this many units of value (waffle scaling).
+          unitValue: 1,
+          // safety cap on total dots; counts scale down proportionally above it.
+          maxUnits: 5e3,
+          // packed layout: order categories smallest-first so the minority
+          // group nests in the centre of the blob.
+          sortByGroup: true,
+          clusterLabels: {
+            show: true,
+            // Label placement relative to the cluster/bar: 'top' (default) or
+            // 'bottom'. A 'bottom' label is always straight; the curved arc
+            // (below) rides the top crown only.
+            position: "top",
+            curved: true,
+            fontSize: "13px",
+            fontFamily: void 0,
+            fontWeight: 600,
+            // defaults to the cluster's own colour when undefined.
+            color: void 0,
+            offsetY: 0,
+            // (name, { seriesIndex, value, percent, w }) => string
+            formatter: void 0
+          },
+          tooltip: {
+            // Per-unit tooltip body. Each dot carries its category (seriesIndex)
+            // and its index within that category (dataPointIndex), so the
+            // formatter can look up per-unit data and return a string/HTML.
+            // ({ seriesName, seriesIndex, dataPointIndex, count, unitValue,
+            //    color, w }) => string
+            // Default: "#<dataPointIndex+1> of <count>".
+            formatter: void 0
+          }
+        },
         radialBar: {
           inverseOrder: false,
           startAngle: 0,
@@ -5033,6 +5240,7 @@ class Config {
         "scatter",
         "heatmap",
         "treemap",
+        "unit",
         "pie",
         "polarArea",
         "donut",
@@ -5103,11 +5311,21 @@ class Config {
   normalizeAliasedChartType(opts) {
     if (!opts || !opts.chart) return opts;
     const requested = opts.chart.type;
-    if (requested !== "funnel" && requested !== "pyramid" && requested !== "gauge") {
+    if (requested !== "funnel" && requested !== "pyramid" && requested !== "gauge" && requested !== "waffle") {
       return opts;
     }
     opts.chart.requestedType = requested;
-    if (requested === "funnel" || requested === "pyramid") {
+    if (requested === "waffle") {
+      opts.plotOptions = opts.plotOptions || {};
+      opts.plotOptions.unit = opts.plotOptions.unit || {};
+      if (opts.plotOptions.unit.layout == null) {
+        opts.plotOptions.unit.layout = "grid";
+      }
+      if (opts.plotOptions.unit.shape == null) {
+        opts.plotOptions.unit.shape = "square";
+      }
+      opts.chart.type = "unit";
+    } else if (requested === "funnel" || requested === "pyramid") {
       opts.plotOptions = opts.plotOptions || {};
       opts.plotOptions.bar = opts.plotOptions.bar || {};
       opts.plotOptions.bar.isFunnel = true;
@@ -5132,7 +5350,7 @@ class Config {
     var _a, _b, _c, _d, _e;
     const defaults = new Defaults(opts);
     const isBarHorizontal = (chartType === "bar" || chartType === "boxPlot" || chartType === "violin") && ((_b = (_a = opts.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.horizontal);
-    const unsupportedZoom = chartType === "pie" || chartType === "polarArea" || chartType === "donut" || chartType === "radar" || chartType === "radialBar" || chartType === "heatmap";
+    const unsupportedZoom = chartType === "pie" || chartType === "polarArea" || chartType === "donut" || chartType === "radar" || chartType === "radialBar" || chartType === "heatmap" || chartType === "unit";
     const notNumericXAxis = opts.xaxis.type !== "datetime" && opts.xaxis.type !== "numeric";
     const isScatterJitter = (chartType === "scatter" || chartType === "bubble") && ((_e = (_d = (_c = opts.plotOptions) == null ? void 0 : _c.scatter) == null ? void 0 : _d.jitter) == null ? void 0 : _e.enabled);
     const tickPlacement = opts.xaxis.tickPlacement ? opts.xaxis.tickPlacement : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement;
@@ -5942,7 +6160,9 @@ class Base {
         seriesColors: [],
         seriesGoals: [],
         stackedSeriesTotals: [],
-        stackedSeriesTotalsByGroups: []
+        stackedSeriesTotalsByGroups: [],
+        unitData: []
+        // per-unit data for the `unit` chart (see SeriesData)
       },
       // Grid / axis layout computed by Dimensions.plotCoords() each render.
       // gridWidth/gridHeight/translateX/translateY are also used as starting
@@ -15124,10 +15344,69 @@ class Series {
     const w = this.w;
     for (let i = 0; i < series.length; i++) {
       if (w.globals.collapsedSeriesIndices.indexOf(i) > -1) {
-        series[i].data = [];
+        if (series[i] && typeof series[i] === "object") {
+          series[i].data = [];
+        } else {
+          series[i] = 0;
+        }
       }
     }
     return series;
+  }
+  /**
+   * Series display names for the CURRENT `w.config` (post-merge), derived the
+   * same way the parser does: an object series' own `name`, else the matching
+   * `labels` entry (non-axis / pie / unit), else a generated `series-N`.
+   * @returns {string[]}
+   */
+  _deriveSeriesNames() {
+    const w = this.w;
+    const series = w.config.series || [];
+    const labels = w.config.labels || [];
+    return series.map((s, i) => {
+      if (s && typeof s === "object" && s.name != null) return String(s.name);
+      return labels[i] != null ? String(labels[i]) : `series-${i + 1}`;
+    });
+  }
+  /**
+   * Re-apply legend-hidden (collapsed) series to a freshly-updated
+   * `w.config.series`, matching BY CATEGORY NAME rather than index. This keeps a
+   * hide alive across a data update that reorders or regroups categories - most
+   * visibly a storyboard beat that supplies new series each scroll:
+   *   - a category still present stays hidden (at its possibly-new index);
+   *   - a category the update dropped/regrouped away is un-hidden (it no longer
+   *     exists, so it must reappear as part of the new grouping).
+   * Records without a stored name (older collapses) fall back to their index.
+   */
+  reconcileCollapsedByName() {
+    const w = this.w;
+    const gl = w.globals;
+    const newNames = this._deriveSeriesNames();
+    const reconcile = (records) => {
+      const nextRecords = [];
+      const nextIndices = [];
+      records.forEach((rec) => {
+        const j = rec && rec.name != null ? newNames.indexOf(rec.name) : rec.index;
+        if (j == null || j < 0 || j >= w.config.series.length) return;
+        const s = (
+          /** @type {any} */
+          w.config.series[j]
+        );
+        rec.index = j;
+        rec.data = gl.axisCharts ? s && s.data ? s.data.slice() : [] : s;
+        nextRecords.push(rec);
+        nextIndices.push(j);
+      });
+      return { records: nextRecords, indices: nextIndices };
+    };
+    const main = reconcile(gl.collapsedSeries);
+    gl.collapsedSeries = main.records;
+    gl.collapsedSeriesIndices = main.indices;
+    const anc = reconcile(gl.ancillaryCollapsedSeries);
+    gl.ancillaryCollapsedSeries = anc.records;
+    gl.ancillaryCollapsedSeriesIndices = anc.indices;
+    gl.allSeriesCollapsed = gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length === w.config.series.length;
+    this.emptyCollapsedSeries(w.config.series);
   }
   /**
    * @param {string} seriesName
@@ -16785,6 +17064,24 @@ class Dimensions {
     if (w.config.legend.show && !w.config.legend.floating) {
       xPad = 20;
     }
+    if (cnf.chart.type === "unit") {
+      const legendVisible = cnf.legend.show && !cnf.legend.floating;
+      const pos = cnf.legend.position;
+      let top = 0;
+      let side = 0;
+      if (legendVisible) {
+        if (pos === "bottom" || pos === "top") {
+          top = this.lgRect.height;
+        } else {
+          side = this.lgRect.width + xPad;
+        }
+      }
+      w.layout.gridWidth = gl.svgWidth - side;
+      w.layout.gridHeight = gl.svgHeight - top;
+      w.layout.translateX = pos === "left" ? side : 0;
+      w.layout.translateY = pos === "top" ? top : 0;
+      return;
+    }
     const type = cnf.chart.type === "pie" || cnf.chart.type === "polarArea" || cnf.chart.type === "donut" ? "pie" : "radialBar";
     const offY = cnf.plotOptions[type].offsetY;
     const offX = cnf.plotOptions[type].offsetX;
@@ -17565,6 +17862,11 @@ class Core {
         case "treemap": {
           const treemap = new (getChartClass("treemap"))(ctx.w, ctx);
           elGraph = treemap.draw(this.w.seriesData.series);
+          break;
+        }
+        case "unit": {
+          const unit = new (getChartClass("unit"))(ctx.w, ctx);
+          elGraph = unit.draw(this.w.seriesData.series);
           break;
         }
         case "pie":
@@ -18662,10 +18964,14 @@ class Data {
    */
   parseDataNonAxisCharts(ser) {
     const cnf = this.w.config;
+    this.w.seriesData.unitData = [];
     const hasOldFormat = Array.isArray(ser) && ser.every((s) => typeof s === "number") && cnf.labels.length > 0;
     const hasNewFormat = Array.isArray(ser) && ser.some(
       (s) => s && typeof s === "object" && s.data || s && typeof s === "object" && s.parsing
     );
+    if (cnf.chart.type === "unit" && hasNewFormat && !hasOldFormat) {
+      return this.parseUnitSeries(ser);
+    }
     if (hasOldFormat && hasNewFormat) {
       console.warn(
         "ApexCharts: Both old format (numeric series + labels) and new format (series objects with data/parsing) detected. Using old format for backward compatibility."
@@ -18710,6 +19016,34 @@ class Data {
         this.w.seriesData.seriesNames.push("series-" + (i + 1));
       }
     }
+    return this.w;
+  }
+  /**
+   * Parse the unit chart's per-unit object form:
+   *   series: [{ name, data: [datum, datum, ...] }, ...]
+   * Each category's dot count is `data.length` (one dot per datum), and the
+   * per-unit data is kept on `w.seriesData.unitData` so the renderer can colour
+   * dots individually and the tooltip can show each unit's own info.
+   * @param {any[]} ser
+   * @returns {any} w
+   */
+  parseUnitSeries(ser) {
+    const cnf = this.w.config;
+    const series = [];
+    const seriesNames = [];
+    const unitData = [];
+    ser.forEach((s, i) => {
+      var _a;
+      const data = s && Array.isArray(s.data) ? s.data : [];
+      series.push(data.length);
+      const name2 = s && s.name !== void 0 && s.name !== null ? s.name : void 0;
+      seriesNames.push((_a = name2 != null ? name2 : cnf.labels[i]) != null ? _a : `series-${i + 1}`);
+      unitData.push(data.slice());
+    });
+    this.w.seriesData.series = /** @type {any} */
+    series;
+    this.w.seriesData.seriesNames = seriesNames;
+    this.w.seriesData.unitData = unitData;
     return this.w;
   }
   /**
@@ -19279,6 +19613,7 @@ class Data {
         seriesZ: this.w.seriesData.seriesZ,
         seriesColors: this.w.seriesData.seriesColors,
         seriesGoals: this.w.seriesData.seriesGoals,
+        unitData: this.w.seriesData.unitData,
         noLabelsProvided: this.w.axisFlags.noLabelsProvided
       },
       // w.rangeData (future slice)
@@ -19631,23 +19966,9 @@ class UpdateHelpers {
             w.globals.lastYAxis = options2.yaxis ? Utils$1.clone(options2.yaxis) : [];
             w.globals.initialConfig = Utils$1.extend({}, w.config);
             w.globals.initialSeries = w.config.series;
-            if (options2.series) {
-              for (let i = 0; i < w.globals.collapsedSeriesIndices.length; i++) {
-                const series = w.config.series[w.globals.collapsedSeriesIndices[i]];
-                w.globals.collapsedSeries[i].data = w.globals.axisCharts ? (
-                  /** @type {any} */
-                  series.data.slice()
-                ) : series;
-              }
-              for (let i = 0; i < w.globals.ancillaryCollapsedSeriesIndices.length; i++) {
-                const series = w.config.series[w.globals.ancillaryCollapsedSeriesIndices[i]];
-                w.globals.ancillaryCollapsedSeries[i].data = w.globals.axisCharts ? (
-                  /** @type {any} */
-                  series.data.slice()
-                ) : series;
-              }
-              ch.series.emptyCollapsedSeries(w.config.series);
-            }
+          }
+          if (options2.series && (w.globals.collapsedSeriesIndices.length > 0 || w.globals.ancillaryCollapsedSeriesIndices.length > 0)) {
+            ch.series.reconcileCollapsedByName();
           }
         }
         return ch.update(options2).then(() => {
@@ -22937,11 +23258,17 @@ class Tooltip {
       if (w.config.chart.accessibility.enabled && w.config.chart.accessibility.announcements.enabled) {
         tooltipEl.removeAttribute("aria-hidden");
       }
-      this.tooltipLabels.drawSeriesTexts({
-        ttItems: opt.ttItems,
-        i: parseInt(rel, 10) - 1,
-        shared: false
-      });
+      if (w.config.chart.type === "unit") {
+        const unitDot = e.target && typeof e.target.closest === "function" ? e.target.closest(".apexcharts-unit-area") : null;
+        if (!unitDot) return;
+        this.renderUnitTooltip(unitDot);
+      } else {
+        this.tooltipLabels.drawSeriesTexts({
+          ttItems: opt.ttItems,
+          i: parseInt(rel, 10) - 1,
+          shared: false
+        });
+      }
       let x, y;
       const arcPath = opt.paths.querySelector("path[data\\:cx]") || opt.paths;
       if (w.config.tooltip.intersect && arcPath.hasAttribute("data:cx") && arcPath.hasAttribute("data:cy")) {
@@ -22982,6 +23309,68 @@ class Tooltip {
         });
       }
     }
+  }
+  /**
+   * Fill the tooltip for one hovered unit-chart dot. Each dot carries `i` (its
+   * category / series index) and `j` (its index within that category). The
+   * default body reads "#<j+1> of <count>"; `plotOptions.unit.tooltip.formatter`
+   * overrides just the body text (it is handed i/j so it can look up per-unit
+   * data), and the global `tooltip.custom` still overrides the whole markup.
+   * @param {Element} dotEl the hovered `.apexcharts-unit-area` node
+   */
+  renderUnitTooltip(dotEl) {
+    var _a, _b, _c, _d, _e;
+    const w = this.w;
+    const tooltipEl = this.getElTooltip();
+    if (!tooltipEl) return;
+    const i = parseInt(dotEl.getAttribute("i") || "0", 10);
+    const j = parseInt(dotEl.getAttribute("j") || "0", 10);
+    if (typeof w.config.tooltip.custom === "function") {
+      this.tooltipLabels.handleCustomTooltip({ i, j, y1: null, y2: null, w });
+      return;
+    }
+    const seriesName = w.seriesData.seriesNames[i] || `series-${i + 1}`;
+    const value = Math.round(Number(w.seriesData.series[i]) || 0);
+    const group = dotEl.parentNode;
+    const count = group && group.querySelectorAll ? group.querySelectorAll(".apexcharts-unit-area").length : value;
+    const unitOpts = w.config.plotOptions.unit || {};
+    const unitValue = unitOpts.unitValue > 0 ? unitOpts.unitValue : 1;
+    const catData = w.seriesData.unitData && w.seriesData.unitData[i];
+    const datum = catData ? catData[j] : void 0;
+    const datumObj = datum && typeof datum === "object" ? datum : null;
+    const color = datumObj && datumObj.fillColor || w.globals.colors && w.globals.colors[i] || "#008FFB";
+    let body;
+    const fmt = unitOpts.tooltip && unitOpts.tooltip.formatter;
+    if (typeof fmt === "function") {
+      body = fmt({
+        seriesName,
+        seriesIndex: i,
+        dataPointIndex: j,
+        count,
+        value,
+        unitValue,
+        datum,
+        color,
+        w
+      });
+    } else if (datum !== void 0 && datum !== null) {
+      const label = datumObj ? (_c = (_b = (_a = datumObj.name) != null ? _a : datumObj.label) != null ? _b : datumObj.x) != null ? _c : null : null;
+      const dVal = datumObj ? (_e = (_d = datumObj.value) != null ? _d : datumObj.y) != null ? _e : null : datum;
+      body = label != null && dVal != null ? `${label}: ${dVal}` : label != null ? String(label) : dVal != null ? String(dVal) : `#${(j + 1).toLocaleString()} of ${count.toLocaleString()}`;
+    } else {
+      body = `#${(j + 1).toLocaleString()} of ${count.toLocaleString()}`;
+      if (unitValue !== 1) {
+        body += ` &middot; ${unitValue.toLocaleString()} per dot`;
+      }
+    }
+    const fontFamily = w.config.chart.fontFamily || "inherit";
+    const fontSize = w.config.tooltip.style && w.config.tooltip.style.fontSize || "12px";
+    const arrowEl = tooltipEl.querySelector(".apexcharts-tooltip-arrow");
+    tooltipEl.innerHTML = `<div class="apexcharts-tooltip-title" style="font-family: ${fontFamily}; font-size: ${fontSize};">${seriesName}</div><div class="apexcharts-tooltip-series-group apexcharts-active" style="display: flex;"><span class="apexcharts-tooltip-marker" style="background-color: ${color};"></span><div class="apexcharts-tooltip-text" style="font-family: ${fontFamily}; font-size: ${fontSize};"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-value">${body}</span></div></div></div>`;
+    if (arrowEl) tooltipEl.appendChild(arrowEl);
+    const rect = tooltipEl.getBoundingClientRect();
+    this.tooltipRect.ttWidth = rect.width;
+    this.tooltipRect.ttHeight = rect.height;
   }
   /**
    * @param {Event} e
@@ -24827,6 +25216,15 @@ function removeResizeListener(el, fn) {
   }
 }
 const apexCSS = '@keyframes opaque {\n  0% {\n    opacity: 0\n  }\n\n  to {\n    opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n\n  0%,\n  to {\n    opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  direction: ltr !important;\n  user-select: none;\n  /* Focus indicator colour. Themes override below. */\n  --apexcharts-focus-color: #008FFB;\n}\n\n/* Dark theme & high-contrast: brighter focus colour for sufficient contrast. */\n.apexcharts-canvas .apexcharts-theme-dark,\n.apexcharts-theme-dark.apexcharts-canvas {\n  --apexcharts-focus-color: #FFD500;\n}\n.apexcharts-canvas.apexcharts-high-contrast,\n.apexcharts-high-contrast.apexcharts-canvas {\n  --apexcharts-focus-color: #FFFF00;\n}\n\n/* Visually-hidden aria-live status region (WCAG 4.1.3 Status Messages). */\n.apexcharts-sr-status {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}\n\n/* Respect OS-level reduced-motion preference (WCAG 2.3.3). */\n@media (prefers-reduced-motion: reduce) {\n  .apexcharts-canvas *,\n  .apexcharts-canvas *::before,\n  .apexcharts-canvas *::after {\n    animation-duration: 0.01ms !important;\n    animation-iteration-count: 1 !important;\n    transition-duration: 0.01ms !important;\n  }\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0, 0, 0, .5);\n  box-shadow: 0 0 1px rgba(255, 255, 255, .5);\n  -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\nrect.legend-mouseover-inactive,\n.legend-mouseover-inactive rect,\n.legend-mouseover-inactive path,\n.legend-mouseover-inactive circle,\n.legend-mouseover-inactive line,\n.legend-mouseover-inactive text.apexcharts-yaxis-title-text,\n.legend-mouseover-inactive text.apexcharts-yaxis-label {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n/* Linked Views (#4): per-mark crossfilter dim. Applied to individual data\n   marks (not whole series) whose x is outside the brushed range. Opacity is\n   overridable per chart via the --apx-cf-dim custom property. */\n.apexcharts-crossfilter-dimmed {\n  transition: opacity .25s ease;\n  opacity: var(--apx-cf-dim, .2)\n}\n\n/* Linked Views (#4): default styling for the built-in crossfilter data table\n   (cf.dataTable). Deliberately light so host styles can override. */\n.apexcharts-cf-table {\n  border-collapse: collapse;\n  width: 100%;\n  font-size: 13px;\n}\n.apexcharts-cf-table caption {\n  caption-side: bottom;\n  text-align: right;\n  padding: 6px 2px;\n  font-size: 12px;\n  opacity: .7\n}\n.apexcharts-cf-table th,\n.apexcharts-cf-table td {\n  padding: 6px 10px;\n  text-align: left;\n  border-bottom: 1px solid rgba(0, 0, 0, .08)\n}\n.apexcharts-cf-table th {\n  font-weight: 600;\n  border-bottom-width: 2px\n}\n.apexcharts-cf-table tbody tr:hover {\n  background: rgba(99, 102, 241, .06)\n}\n\n/* Measure ruler (#18): measure / delta ruler.\n   Theme via these classes or the --apx-measure-* custom properties below\n   (config `chart.measure.colors` overrides both). The ruler group also carries\n   a direction class: apexcharts-measure-up | -down | -flat.\n   Element classes:\n     .apexcharts-measure-band     shaded span band\n     .apexcharts-measure-vline    vertical guide lines\n     .apexcharts-measure-line     free-mode diagonal line\n     .apexcharts-measure-label-bg readout box     .apexcharts-measure-label text\n   Colors are applied as SVG presentation attributes, so any rule you write on\n   these classes overrides them. */\n.apexcharts-canvas {\n  --apx-measure-up: #16a34a;\n  --apx-measure-down: #dc2626;\n  --apx-measure-neutral: #64748b;\n  --apx-measure-guide: #94a3b8;\n}\n.apexcharts-measure-capture {\n  cursor: crosshair;\n}\n\n/* Radial Actions (#chrome): right-click context menu. Theme via these classes\n   or the --apx-menu-* custom properties. */\n.apexcharts-canvas {\n  --apx-menu-bg: #ffffff;\n  --apx-menu-fg: #1e293b;\n  --apx-menu-border: #e2e8f0;\n  --apx-menu-hover: #f1f5f9;\n  --apx-menu-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-context-menu {\n  min-width: 168px;\n  padding: 4px;\n  border-radius: 8px;\n  background: var(--apx-menu-bg);\n  border: 1px solid var(--apx-menu-border);\n  box-shadow: 0 6px 22px var(--apx-menu-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 13px;\n  z-index: 20;\n  user-select: none;\n}\n.apexcharts-context-menu-item {\n  display: block;\n  width: 100%;\n  box-sizing: border-box;\n  text-align: left;\n  padding: 7px 12px;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: var(--apx-menu-fg);\n  font: inherit;\n  cursor: pointer;\n}\n.apexcharts-context-menu-item:hover,\n.apexcharts-context-menu-item--active {\n  background: var(--apx-menu-hover);\n}\n.apexcharts-context-menu-item:focus {\n  outline: none;\n}\n\n/* Ink Layer (#7): the floating note editor card, opened by clicking an\n   ink-managed annotation. Theme via these classes or the --apx-ink-* vars. */\n.apexcharts-canvas {\n  --apx-ink-card-bg: #ffffff;\n  --apx-ink-card-fg: #1e293b;\n  --apx-ink-card-border: #e2e8f0;\n  --apx-ink-card-hover: #f1f5f9;\n  --apx-ink-card-accent: #6366f1;\n  --apx-ink-card-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-ink-card {\n  position: absolute;\n  z-index: 25;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  padding: 8px;\n  border-radius: 8px;\n  background: var(--apx-ink-card-bg);\n  border: 1px solid var(--apx-ink-card-border);\n  box-shadow: 0 6px 22px var(--apx-ink-card-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 12px;\n  color: var(--apx-ink-card-fg);\n  user-select: none;\n}\n.apexcharts-ink-card-row {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor {\n  flex: 1 1 auto;\n  width: 150px;\n  min-width: 0;\n  box-sizing: border-box;\n  padding: 4px 6px;\n  font: inherit;\n  color: inherit;\n  background: transparent;\n  border: 1px solid var(--apx-ink-card-border);\n  border-radius: 5px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor:focus {\n  outline: none;\n  border-color: var(--apx-ink-card-accent);\n}\n.apexcharts-ink-btn {\n  flex: 0 0 auto;\n  width: 24px;\n  height: 24px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  padding: 0;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: inherit;\n  font: inherit;\n  font-size: 12px;\n  line-height: 1;\n  cursor: pointer;\n}\n.apexcharts-ink-btn:hover,\n.apexcharts-ink-btn--active {\n  background: var(--apx-ink-card-hover);\n}\n.apexcharts-ink-btn:focus-visible,\n.apexcharts-ink-swatch:focus-visible {\n  outline: 2px solid var(--apx-ink-card-accent);\n  outline-offset: 1px;\n}\n.apexcharts-ink-btn--bold {\n  font-weight: 700;\n}\n.apexcharts-ink-btn--delete:hover {\n  color: #dc2626;\n}\n.apexcharts-ink-swatch {\n  flex: 0 0 auto;\n  width: 16px;\n  height: 16px;\n  padding: 0;\n  border: 1px solid rgba(100, 116, 139, 0.45);\n  border-radius: 50%;\n  cursor: pointer;\n}\n.apexcharts-ink-swatch--active {\n  box-shadow:\n    0 0 0 2px var(--apx-ink-card-bg),\n    0 0 0 4px var(--apx-ink-card-accent);\n}\n.apexcharts-ink-sep {\n  flex: 0 0 auto;\n  width: 1px;\n  height: 16px;\n  margin: 0 2px;\n  background: var(--apx-ink-card-border);\n}\n.apexcharts-ink-cardlabel {\n  flex: 0 0 auto;\n  font-size: 10px;\n  letter-spacing: 0.4px;\n  text-transform: uppercase;\n  opacity: 0.65;\n  margin-right: 2px;\n}\n.apexcharts-ink-marker-size {\n  flex: 0 0 auto;\n  min-width: 16px;\n  text-align: center;\n  font-variant-numeric: tabular-nums;\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-legend-series[role="button"]:focus {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-legend-series[role="button"]:focus:not(:focus-visible) {\n  outline: none;\n}\n\n.apexcharts-legend-series[role="button"]:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n.apexcharts-canvas svg:focus:not(:focus-visible) {\n  outline: none;\n}\n\n/* Keyboard navigation focus indicator on SVG data elements.\n   SVG elements don\'t support CSS outline, so we use stroke. */\n.apexcharts-bar-area.apexcharts-keyboard-focused,\n.apexcharts-candlestick-area.apexcharts-keyboard-focused,\n.apexcharts-boxPlot-area.apexcharts-keyboard-focused,\n.apexcharts-rangebar-area.apexcharts-keyboard-focused,\n.apexcharts-pie-area.apexcharts-keyboard-focused,\n.apexcharts-heatmap-rect.apexcharts-keyboard-focused,\n.apexcharts-treemap-rect.apexcharts-keyboard-focused {\n  stroke: var(--apexcharts-focus-color, #008FFB);\n  stroke-width: 2;\n  stroke-opacity: 1;\n}\n\n.apexcharts-tooltip {\n  --apx-tt-bg: #ffffff;\n  --apx-tt-border: rgba(15, 23, 42, 0.06);\n  /* Layered shadow: tight inner contact + soft outer drop. The two Y\n   * offsets are exposed as variables so they flip in sync with the\n   * arrow when the tooltip is below the data point — see the\n   * `[data-placement="bottom"]` rule further down. */\n  --apx-tt-shadow-y-mid: 8px;\n  --apx-tt-shadow-y-far: 16px;\n  --apx-tt-shadow: 0 0 0 1px rgba(15, 23, 42, 0.04), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(15, 23, 42, 0.12), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(15, 23, 42, 0.18);\n  --apx-tt-arrow-bg: var(--apx-tt-bg);\n  /* Two stacked drop-shadows: the first is a tight contact halo for\n   * edge definition against light chart backgrounds; the second is a\n   * softer directional drop that lifts the arrow off the surface.\n   * `--apx-tt-arrow-drop-y` is the Y offset of the directional drop;\n   * a per-placement rule below flips it to negative when the tooltip\n   * is below the data point (arrow on top) so the shadow always\n   * casts outward instead of into the tooltip body. */\n  --apx-tt-arrow-drop-y: 2px;\n  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(15, 23, 42, 0.2)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(15, 23, 42, 0.2));\n  --apx-tt-color: #0f172a;\n  --apx-tt-color-muted: rgba(15, 23, 42, 0.55);\n  border-radius: 8px;\n  background: var(--apx-tt-bg);\n  border: 1px solid var(--apx-tt-border);\n  box-shadow: var(--apx-tt-shadow);\n  color: var(--apx-tt-color);\n  cursor: default;\n  font-size: 13px;\n  left: 0;\n  top: 0;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  display: flex;\n  flex-direction: column;\n  padding: 2px 0;\n  white-space: nowrap;\n  z-index: 12;\n  transition: opacity .12s ease\n}\n\n/* While the tooltip is visible, smoothly animate position changes\n * between data points. Kept short (160 ms) and ease-out so it stays\n * responsive — too long would feel laggy when sweeping across many\n * points fast. The position transition is only attached after the\n * first paint (Position.applyTooltipPosition flips `data-positioned`\n * once the tooltip has been placed) so the *first* show doesn\'t slide\n * the tooltip in from the previously-stale (0,0) coordinates. */\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: opacity .12s ease\n}\n.apexcharts-tooltip.apexcharts-active[data-positioned="true"] {\n  transition: opacity .12s ease, left .16s ease-out, top .16s ease-out\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  /* defaults already set above; class kept for backward-compat selectors */\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  --apx-tt-bg: #1c1c1f;\n  --apx-tt-border: rgba(255, 255, 255, 0.08);\n  --apx-tt-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(0, 0, 0, 0.45), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(0, 0, 0, 0.55);\n  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.55)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(0, 0, 0, 0.45));\n  --apx-tt-color: #f3f4f6;\n  --apx-tt-color-muted: rgba(243, 244, 246, 0.55);\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n.apexcharts-tooltip-title {\n  padding: 8px 12px 4px;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.01em;\n  color: var(--apx-tt-color-muted);\n  background: transparent;\n  border-bottom: none;\n  margin-bottom: 0\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: transparent;\n  border-bottom: none\n}\n\n/* `fillSeriesColor`: each series-group already paints itself with the\n * series colour. Drop the glass body entirely (transparent bg, no\n * border, no backdrop-filter, no padding) and clip the coloured\n * series-group(s) to the tooltip\'s rounded corners so they fill the\n * shell edge-to-edge. Text inside the coloured group is forced to\n * white for contrast. */\n.apexcharts-tooltip.apexcharts-tooltip-fill-series {\n  background: transparent;\n  -webkit-backdrop-filter: none;\n  backdrop-filter: none;\n  border: none;\n  padding: 0;\n  overflow: hidden;\n  color: #fff\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, 0.22);\n  color: #fff;\n  opacity: 1;\n  padding: 6px 12px\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group {\n  color: #fff\n}\n\n/* Arrow connector — sits *entirely outside* the tooltip body. Shares\n * the body\'s solid fill so it reads as a single shape. `filter:\n * drop-shadow` traces the clipped triangle outline (a regular\n * `box-shadow` would be erased by the `clip-path`). */\n.apexcharts-tooltip-arrow {\n  position: absolute;\n  width: 7px;\n  height: 14px;\n  background: var(--apx-tt-arrow-bg);\n  /* The variable already contains the full `drop-shadow(...) ...` filter\n   * chain (stacked shadows) so it\'s applied raw. */\n  -webkit-filter: var(--apx-tt-arrow-shadow);\n  filter: var(--apx-tt-arrow-shadow);\n  pointer-events: none;\n  top: calc(var(--apx-tt-arrow-y, 50%) - 7px)\n}\n\n.apexcharts-tooltip[data-placement="right"] .apexcharts-tooltip-arrow {\n  left: -7px;\n  clip-path: polygon(0 50%, 100% 0, 100% 100%)\n}\n\n.apexcharts-tooltip[data-placement="left"] .apexcharts-tooltip-arrow {\n  right: -7px;\n  clip-path: polygon(100% 50%, 0 0, 0 100%)\n}\n\n/* Vertical arrow variants: tooltip is above/below the data point and the\n * arrow points down/up. The base rule above uses `--apx-tt-arrow-y` for\n * left/right placement; for top/bottom we re-orient the rectangle and\n * use `--apx-tt-arrow-x` (set by applyTooltipPosition). */\n.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow,\n.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {\n  width: 14px;\n  height: 7px;\n  top: auto;\n  left: calc(var(--apx-tt-arrow-x, 50%) - 7px)\n}\n\n.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow {\n  bottom: -7px;\n  clip-path: polygon(50% 100%, 0 0, 100% 0)\n}\n\n.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {\n  top: -7px;\n  clip-path: polygon(50% 0, 0 100%, 100% 100%)\n}\n\n/* When the tooltip is flipped below the data point (arrow on top\n * pointing up), the default downward-biased shadows leave the top\n * edge of both the body *and* the arrow undefined. Flipping every\n * Y offset to negative casts the entire elevation upward so the\n * shadow falls between the tooltip and the bar above. */\n.apexcharts-tooltip[data-placement="bottom"] {\n  --apx-tt-shadow-y-mid: -8px;\n  --apx-tt-shadow-y-far: -16px;\n  --apx-tt-arrow-drop-y: -2px\n}\n\n.apexcharts-tooltip-text-goals-value,\n.apexcharts-tooltip-text-y-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,\n.apexcharts-tooltip-text-goals-value:empty,\n.apexcharts-tooltip-text-y-label:empty,\n.apexcharts-tooltip-text-y-value:empty,\n.apexcharts-tooltip-text-z-value:empty,\n.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),\n.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  width: 12px;\n  height: 12px;\n  margin-right: 6px;\n  vertical-align: middle;\n  color: inherit;\n}\n\n.apexcharts-tooltip-marker svg {\n  width: 100%;\n  height: 100%;\n  display: block;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 4px 12px;\n  display: none;\n  gap: 8px;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active:last-child,\n.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 8px\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n.apexcharts-custom-tooltip,\n.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n/* X/Y axis tooltips — small popovers that label the crosshair on the\n * axes. Restyled to match the modern data-tooltip palette: solid white\n * body with a subtle border + soft drop-shadow, smaller font, rounded\n * corners. The arrows still use the CSS border-triangle technique\n * (cheap, crisp at small sizes); their colours flow from CSS variables\n * so light/dark themes only need one override per axis. */\n.apexcharts-xaxistooltip,\n.apexcharts-yaxistooltip {\n  --apx-axt-bg: #ffffff;\n  --apx-axt-border: rgba(15, 23, 42, 0.08);\n  --apx-axt-color: #0f172a;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.18), 0 1px 3px -1px rgba(15, 23, 42, 0.12);\n  opacity: 0;\n  pointer-events: none;\n  color: var(--apx-axt-color);\n  font-size: 12px;\n  font-weight: 500;\n  text-align: center;\n  border-radius: 6px;\n  position: absolute;\n  z-index: 10;\n  background: var(--apx-axt-bg);\n  border: 1px solid var(--apx-axt-border);\n  box-shadow: var(--apx-axt-shadow)\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark,\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  --apx-axt-bg: #1c1c1f;\n  --apx-axt-border: rgba(255, 255, 255, 0.1);\n  --apx-axt-color: #f3f4f6;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.55), 0 1px 3px -1px rgba(0, 0, 0, 0.45)\n}\n\n.apexcharts-xaxistooltip {\n  padding: 4px 8px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip:after,\n.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n/* :before paints the 1px border outline of the triangle (slightly larger\n * than :after); :after sits inside and paints the fill — leaves a 1px\n * ring of :before visible at the edges. */\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-left: -5px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip-bottom:after,\n.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,\n.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 3px 8px\n}\n\n.apexcharts-yaxistooltip:after,\n.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-top: -5px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip-left:after,\n.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,\n.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,\n.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,\n.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_shape {\n  stroke-width: 1;\n  stroke-dasharray: 10 10;\n  stroke: black;\n  stroke-opacity: 0.1;\n  pointer-events: none;\n  fill: none;\n}\n\n.svg_select_handle {\n  stroke-width: 3;\n  stroke: black;\n  fill: none;\n}\n\n.svg_select_handle_r {\n  cursor: e-resize;\n}\n\n.svg_select_handle_l {\n  cursor: w-resize;\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,\n.apexcharts-measure-icon,\n.apexcharts-pan-icon,\n.apexcharts-reset-icon,\n.apexcharts-selection-icon,\n.apexcharts-toolbar-custom-icon,\n.apexcharts-zoom-icon,\n.apexcharts-zoomin-icon,\n.apexcharts-zoomout-icon {\n  cursor: pointer;\n  /* WCAG 2.5.8 Target Size (Minimum): 24×24 CSS px hit target. */\n  width: 26px;\n  height: 24px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center;\n  /* Reset native <button> chrome — these are styled via SVG icons. */\n  padding: 0;\n  margin: 0;\n  background: transparent;\n  border: 0;\n  border-radius: 5px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  transition: background-color .12s ease, color .12s ease;\n}\n\n.apexcharts-menu-icon svg,\n.apexcharts-measure-icon svg,\n.apexcharts-pan-icon svg,\n.apexcharts-reset-icon svg,\n.apexcharts-selection-icon svg,\n.apexcharts-zoom-icon svg,\n.apexcharts-zoomin-icon svg,\n.apexcharts-zoomout-icon svg {\n  width: 18px;\n  height: 18px;\n  fill: none;\n  stroke: currentColor;\n  stroke-width: 2;\n  stroke-linecap: round;\n  stroke-linejoin: round\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon,\n.apexcharts-theme-dark .apexcharts-measure-icon,\n.apexcharts-theme-dark .apexcharts-pan-icon,\n.apexcharts-theme-dark .apexcharts-reset-icon,\n.apexcharts-theme-dark .apexcharts-selection-icon,\n.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,\n.apexcharts-theme-dark .apexcharts-zoom-icon,\n.apexcharts-theme-dark .apexcharts-zoomin-icon,\n.apexcharts-theme-dark .apexcharts-zoomout-icon {\n  color: #d4d6dc\n}\n\n.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected {\n  background: rgba(0, 143, 251, 0.12);\n  color: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover,\n.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-reset-icon:hover,\n.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-light .apexcharts-zoomout-icon:hover {\n  background: rgba(15, 23, 42, 0.06);\n  color: #1f2937\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon:hover,\n.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-reset-icon:hover,\n.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-dark .apexcharts-zoomout-icon:hover {\n  background: rgba(255, 255, 255, 0.08);\n  color: #fff\n}\n\n.apexcharts-menu-icon,\n.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 1px;\n  padding: 3px;\n  border-radius: 8px;\n  background: rgba(255, 255, 255, 0.85);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n}\n\n.apexcharts-theme-dark .apexcharts-toolbar {\n  background: rgba(28, 28, 31, 0.82);\n}\n\n.apexcharts-menu {\n  background: rgba(255, 255, 255, 0.95);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n  position: absolute;\n  top: calc(100% + 4px);\n  border: 1px solid rgba(15, 23, 42, 0.08);\n  border-radius: 8px;\n  padding: 4px;\n  right: 0;\n  opacity: 0;\n  min-width: 120px;\n  transition: opacity .15s ease, transform .15s ease;\n  transform: translateY(-2px);\n  pointer-events: none;\n  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.12), 0 2px 4px -1px rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  transform: translateY(0);\n  pointer-events: all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 9px;\n  font-size: 12px;\n  border-radius: 5px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(28, 28, 31, 0.92);\n  border-color: rgba(255, 255, 255, 0.08);\n  color: #f3f4f6;\n  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-item:hover {\n  background: rgba(255, 255, 255, 0.08)\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1\n  }\n}\n\n/* Toolbar keyboard accessibility: show toolbar when any button inside it is focused */\n.apexcharts-toolbar:focus-within {\n  opacity: 1\n}\n\n/* Focus indicator for toolbar icon buttons */\n.apexcharts-menu-icon:focus-visible,\n.apexcharts-measure-icon:focus-visible,\n.apexcharts-pan-icon:focus-visible,\n.apexcharts-reset-icon:focus-visible,\n.apexcharts-selection-icon:focus-visible,\n.apexcharts-toolbar-custom-icon:focus-visible,\n.apexcharts-zoom-icon:focus-visible,\n.apexcharts-zoomin-icon:focus-visible,\n.apexcharts-zoomout-icon:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 1px;\n  border-radius: 5px\n}\n\n/* Focus indicator for hamburger menu items */\n.apexcharts-menu-item:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: -2px;\n  background: #eee\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,\n.apexcharts-datalabel.apexcharts-element-hidden,\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-hidden-element-shown {\n  opacity: 1;\n  transition: 0.25s ease all;\n}\n\n.apexcharts-datalabel,\n.apexcharts-datalabel-label,\n.apexcharts-datalabel-value,\n.apexcharts-datalabels,\n.apexcharts-pie-label,\n.apexcharts-pie-name-label,\n.apexcharts-pie-name-label-group,\n.apexcharts-pie-label-connector {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-connector {\n  fill: none\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n.apexcharts-radialbar-label {\n  cursor: pointer;\n}\n\n.apexcharts-annotation-rect,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-gridline,\n.apexcharts-line,\n.apexcharts-point-annotation-label,\n.apexcharts-radar-series path:not(.apexcharts-marker),\n.apexcharts-radar-series polygon,\n.apexcharts-toolbar svg,\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-xaxis-annotation-label,\n.apexcharts-yaxis-annotation-label,\n.apexcharts-zoom-rect,\n.no-pointer-events {\n  pointer-events: none\n}\n\n.apexcharts-tooltip-active .apexcharts-marker {\n  transition: .15s ease all\n}\n\n.apexcharts-radar-series .apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,\n.resize-triggers,\n.resize-triggers>div {\n  content: " ";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n\n.apexcharts-bar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-bar-shadows {\n  pointer-events: none\n}\n\n.apexcharts-rangebar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-drilldown-target {\n  cursor: pointer\n}\n\n.apexcharts-breadcrumb {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 2px;\n  font-size: 12px;\n  font-family: inherit;\n  padding: 2px 4px\n}\n\n.apexcharts-breadcrumb-item {\n  background: transparent;\n  border: none;\n  padding: 2px 6px;\n  border-radius: 3px;\n  font: inherit;\n  color: inherit;\n  cursor: pointer;\n  line-height: 1.2\n}\n\n.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(0, 0, 0, 0.08)\n}\n\n.apexcharts-breadcrumb-arrow {\n  margin-right: 4px;\n  font-weight: 600;\n  user-select: none\n}\n\n.apexcharts-breadcrumb-current {\n  cursor: default;\n  font-weight: 600;\n  opacity: 0.85\n}\n\n.apexcharts-breadcrumb-separator {\n  opacity: 0.5;\n  user-select: none\n}\n\n.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(255, 255, 255, 0.12)\n}\n\n.apexcharts-disable-transitions * {\n  transition: none !important;\n}';
+const PUBLIC_KEYS_SPKI_BASE64 = [
+  "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="
+];
+const LEGACY_KEYS_ACCEPTED_UNTIL = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z");
+const KEY_PREFIX = "APEX-";
+const signatureVerdicts = /* @__PURE__ */ new Map();
+const verifying = /* @__PURE__ */ new Set();
+const listeners = /* @__PURE__ */ new Set();
+let warnedUnverifiable = false;
 function base64Decode(encoded) {
   if (typeof atob === "function") return atob(encoded);
   if (typeof Buffer !== "undefined") {
@@ -24834,15 +25232,84 @@ function base64Decode(encoded) {
   }
   throw new Error("no base64 decoder available");
 }
-function base64Encode(str) {
-  if (typeof btoa === "function") return btoa(str);
-  if (typeof Buffer !== "undefined") {
-    return Buffer.from(str, "binary").toString("base64");
-  }
-  throw new Error("no base64 encoder available");
+function base64ToBytes(base64) {
+  const normalised = base64.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalised.padEnd(Math.ceil(normalised.length / 4) * 4, "=");
+  const binary = base64Decode(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+function canonicalPayload(data) {
+  const domains = data.domains && data.domains.length > 0 ? data.domains.join(",") : "";
+  return `v1|${data.issueDate}|${data.expiryDate}|${data.plan}|${domains}`;
 }
 function currentHostname() {
   return typeof window !== "undefined" && window.location ? window.location.hostname : "";
+}
+function signatureOf(encodedData) {
+  try {
+    const raw = JSON.parse(base64Decode(encodedData));
+    return typeof raw.sig === "string" && raw.sig ? raw.sig : null;
+  } catch (e) {
+    return null;
+  }
+}
+function notify(result) {
+  listeners.forEach((listener) => {
+    try {
+      listener(result);
+    } catch (e) {
+    }
+  });
+}
+function verifySignature(key, data, signature) {
+  return __async(this, null, function* () {
+    if (verifying.has(key) || signatureVerdicts.has(key)) return;
+    verifying.add(key);
+    const subtle = globalThis.crypto ? globalThis.crypto.subtle : void 0;
+    const accepted = LicenseManager.publicKeysSpki;
+    if (!subtle || accepted.length === 0) {
+      verifying.delete(key);
+      if (!warnedUnverifiable) {
+        warnedUnverifiable = true;
+        console.warn(
+          subtle ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified."
+        );
+      }
+      return;
+    }
+    const signed = new TextEncoder().encode(canonicalPayload(data));
+    let verified = false;
+    for (const spki of accepted) {
+      try {
+        const publicKey = yield subtle.importKey(
+          "spki",
+          base64ToBytes(spki),
+          { name: "ECDSA", namedCurve: "P-256" },
+          false,
+          ["verify"]
+        );
+        verified = yield subtle.verify(
+          { hash: "SHA-256", name: "ECDSA" },
+          publicKey,
+          base64ToBytes(signature),
+          signed
+        );
+      } catch (e) {
+        verified = false;
+      }
+      if (verified) break;
+    }
+    verifying.delete(key);
+    signatureVerdicts.set(key, verified);
+    if (!verified) {
+      console.error(
+        "[Apex] Invalid license key. The license signature does not verify."
+      );
+    }
+    notify(LicenseManager.validateKey(key));
+  });
 }
 class LicenseManager {
   /**
@@ -24852,8 +25319,7 @@ class LicenseManager {
    */
   static decodeLicenseData(encodedData) {
     try {
-      const decodedString = base64Decode(encodedData);
-      const data = JSON.parse(decodedString);
+      const data = JSON.parse(base64Decode(encodedData));
       if (!data.issueDate || !data.expiryDate || !data.plan) {
         return null;
       }
@@ -24869,87 +25335,52 @@ class LicenseManager {
     }
   }
   /**
-   * Generate a license key (issuer-side helper; also used by tests). Mirrors
-   * the family exactly so keys stay cross-compatible.
-   * @param {string} issueDate
-   * @param {string} expiryDate
-   * @param {string} [plan]
-   * @param {string[]} [domains]
-   * @returns {string}
+   * The key set via setLicense (or null). Lets the enforcer resolve the
+   * chart.license -> setLicense -> Apex.license precedence.
+   * @returns {null | string}
    */
-  static generateLicenseKey(issueDate, expiryDate, plan = "standard", domains) {
-    const licenseData = { expiryDate, issueDate, plan };
-    if (domains && domains.length > 0) {
-      licenseData.domains = domains;
-    }
-    return `APEX-${base64Encode(JSON.stringify(licenseData))}`;
+  static getKey() {
+    return this.licenseKey;
   }
   /**
-   * Validate an arbitrary key WITHOUT mutating the singleton. Used to resolve
-   * per-chart (`chart.license`) and global (`window.Apex.license`) keys, which
-   * bypass setLicense. This is a superset of the family (which keeps
-   * validateLicense private); the format and rules are identical.
-   * @param {string} key
+   * Validation result for the singleton key.
    * @returns {LicenseValidationResult}
    */
-  static validateKey(key) {
-    try {
-      if (typeof key !== "string" || !key.startsWith("APEX-")) {
-        return {
-          expired: false,
-          message: 'Invalid license key format. License key must start with "APEX-".',
-          valid: false
-        };
-      }
-      const separatorIndex = key.indexOf("-");
-      const encodedData = separatorIndex !== -1 ? key.slice(separatorIndex + 1) : "";
-      if (!encodedData) {
-        return {
-          expired: false,
-          message: "Invalid license key format. Expected format: APEX-{encoded-data}.",
-          valid: false
-        };
-      }
-      const licenseData = this.decodeLicenseData(encodedData);
-      if (!licenseData) {
-        return {
-          expired: false,
-          message: "Invalid license key. Unable to decode license data.",
-          valid: false
-        };
-      }
-      const now = /* @__PURE__ */ new Date();
-      const expiryDate = new Date(licenseData.expiryDate);
-      if (expiryDate < now) {
-        return {
-          data: licenseData,
-          expired: true,
-          message: `License expired on ${licenseData.expiryDate}. Please renew your license.`,
-          valid: false
-        };
-      }
-      if (licenseData.domains && licenseData.domains.length > 0) {
-        const hostname = currentHostname();
-        const allowed = licenseData.domains.some(
-          (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
-        );
-        if (!allowed) {
-          return {
-            data: licenseData,
-            expired: false,
-            message: `License is not valid for this domain (${hostname}). Allowed domains: ${licenseData.domains.join(", ")}.`,
-            valid: false
-          };
-        }
-      }
-      return { data: licenseData, expired: false, valid: true };
-    } catch (e) {
-      return {
-        expired: false,
-        message: "Invalid license key format or corrupted data.",
-        valid: false
-      };
+  static getLicenseStatus() {
+    if (!this.licenseKey) {
+      return { expired: false, valid: false };
     }
+    this.validationResult = this.validateKey(this.licenseKey);
+    return this.validationResult;
+  }
+  /**
+   * Whether a specific key is valid (pure; no singleton mutation).
+   * @param {string | undefined | null} key
+   * @returns {boolean}
+   */
+  static isKeyValid(key) {
+    if (!key) return false;
+    return this.validateKey(key).valid;
+  }
+  /** @returns {boolean} whether the singleton key is valid */
+  static isLicenseValid() {
+    if (!this.licenseKey) return false;
+    return this.getLicenseStatus().valid;
+  }
+  /**
+   * Subscribe to signature verdicts arriving. Returns an unsubscribe function.
+   *
+   * Without this a forged key would go unnoticed by any chart that asked once and
+   * painted. `LicenseEnforcer` uses it to re-evaluate every live chart.
+   *
+   * @param {(result: LicenseValidationResult) => void} listener
+   * @returns {() => void}
+   */
+  static onChange(listener) {
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   }
   /**
    * Set the global (singleton) license key. console.errors when invalid, to
@@ -24964,46 +25395,132 @@ class LicenseManager {
     }
   }
   /**
-   * The key set via setLicense (or null). Lets the enforcer resolve the
-   * chart.license -> setLicense -> Apex.license precedence.
-   * @returns {null | string}
-   */
-  static getKey() {
-    return this.licenseKey;
-  }
-  /**
-   * Validation result for the singleton key (cached).
+   * Validate an arbitrary key WITHOUT mutating the singleton. Used to resolve
+   * per-chart (`chart.license`) and global (`window.Apex.license`) keys, which
+   * bypass setLicense. This is a superset of the family (which keeps
+   * validateLicense private); the format and rules are identical.
+   *
+   * Synchronous by contract, because it runs during render. Signature checking is
+   * started here and settles later; see `onChange`.
+   *
+   * @param {string} key
    * @returns {LicenseValidationResult}
    */
-  static getLicenseStatus() {
-    if (!this.licenseKey) {
-      return { expired: false, valid: false };
+  static validateKey(key) {
+    try {
+      if (typeof key !== "string" || !key.startsWith(KEY_PREFIX)) {
+        return {
+          expired: false,
+          message: 'Invalid license key format. License key must start with "APEX-".',
+          signatureVerified: false,
+          valid: false
+        };
+      }
+      const encodedData = key.slice(KEY_PREFIX.length);
+      if (!encodedData) {
+        return {
+          expired: false,
+          message: "Invalid license key format. Expected format: APEX-{encoded-data}.",
+          signatureVerified: false,
+          valid: false
+        };
+      }
+      const licenseData = this.decodeLicenseData(encodedData);
+      if (!licenseData) {
+        return {
+          expired: false,
+          message: "Invalid license key. Unable to decode license data.",
+          signatureVerified: false,
+          valid: false
+        };
+      }
+      const signature = signatureOf(encodedData);
+      if (!signature && /* @__PURE__ */ new Date() >= LEGACY_KEYS_ACCEPTED_UNTIL) {
+        return {
+          data: licenseData,
+          expired: false,
+          message: "This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.",
+          signatureVerified: false,
+          valid: false
+        };
+      }
+      const now = /* @__PURE__ */ new Date();
+      const expiryDate = new Date(licenseData.expiryDate);
+      if (expiryDate < now) {
+        return {
+          data: licenseData,
+          expired: true,
+          message: `License expired on ${licenseData.expiryDate}. Please renew your license.`,
+          signatureVerified: false,
+          valid: false
+        };
+      }
+      if (licenseData.domains && licenseData.domains.length > 0) {
+        const hostname = currentHostname();
+        const allowed = licenseData.domains.some(
+          (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+        );
+        if (!allowed) {
+          return {
+            data: licenseData,
+            expired: false,
+            message: `License is not valid for this domain (${hostname}). Allowed domains: ${licenseData.domains.join(", ")}.`,
+            signatureVerified: false,
+            valid: false
+          };
+        }
+      }
+      if (signature) {
+        const verdict = signatureVerdicts.get(key);
+        if (verdict === false) {
+          return {
+            data: licenseData,
+            expired: false,
+            message: "Invalid license key. The license signature does not verify.",
+            signatureVerified: true,
+            valid: false
+          };
+        }
+        if (verdict === void 0) {
+          void verifySignature(key, licenseData, signature);
+        }
+        return {
+          data: licenseData,
+          expired: false,
+          signatureVerified: verdict === true,
+          valid: true
+        };
+      }
+      return {
+        data: licenseData,
+        expired: false,
+        signatureVerified: false,
+        valid: true
+      };
+    } catch (e) {
+      return {
+        expired: false,
+        message: "Invalid license key format or corrupted data.",
+        signatureVerified: false,
+        valid: false
+      };
     }
-    if (!this.validationResult) {
-      this.validationResult = this.validateKey(this.licenseKey);
-    }
-    return this.validationResult;
   }
-  /** @returns {boolean} whether the singleton key is valid */
-  static isLicenseValid() {
-    if (!this.licenseKey) return false;
-    if (!this.validationResult) {
-      this.validationResult = this.validateKey(this.licenseKey);
-    }
-    return this.validationResult.valid;
-  }
-  /**
-   * Whether a specific key is valid (pure; no singleton mutation).
-   * @param {string | undefined | null} key
-   * @returns {boolean}
-   */
-  static isKeyValid(key) {
-    if (!key) return false;
-    return this.validateKey(key).valid;
+  /** Test-only: forget signature verdicts and the one-time warnings. */
+  static _resetSignatureState() {
+    signatureVerdicts.clear();
+    verifying.clear();
+    warnedUnverifiable = false;
   }
 }
 /** @type {null | string} */
 __publicField(LicenseManager, "licenseKey", null);
+/**
+ * Accepted signing keys. Replaced by tests with an ephemeral keypair, since
+ * they cannot sign for the production key. Not public API.
+ * @type {string[]}
+ */
+__publicField(LicenseManager, "publicKeysSpki", PUBLIC_KEYS_SPKI_BASE64);
 /** @type {LicenseValidationResult | null} */
 __publicField(LicenseManager, "validationResult", null);
 const WATERMARK_ATTR = "data-apexcharts-watermark";
@@ -25107,6 +25624,7 @@ let _perspectivesTokenDecoded = false;
 function premiumFeaturesInUse(w, ctx) {
   const chart = w && w.config && w.config.chart || {};
   const used = [];
+  if (chart.type === "unit") used.push("unit");
   if (ctx.storyboard && ctx.storyboard._used) used.push("storyboard");
   const link = chart.link;
   if (ctx.linkedViews && link && (link.enabled === true || typeof link.dimension === "function")) {
@@ -25220,6 +25738,7 @@ function reevaluateLicenseAcrossCharts() {
     }
   });
 }
+LicenseManager.onChange(reevaluateLicenseAcrossCharts);
 const _ApexCharts = class _ApexCharts {
   /**
    * Creates a new ApexCharts instance.
