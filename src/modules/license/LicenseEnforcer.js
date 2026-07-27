@@ -30,6 +30,36 @@ const PRICING_URL = 'https://apexcharts.com/pricing'
 let _perspectivesTokenDecoded = false
 
 /**
+ * Every chart currently using a premium feature, so an async signature verdict
+ * can correct the watermark decision made synchronously during render.
+ *
+ * This exists because `Apex._chartInstances` is not the right list: a chart only
+ * joins it when the user declares `chart.id`, which is optional and uncommon.
+ * Reconciling through that list alone meant a forged key escaped the watermark
+ * entirely on every anonymous chart, since the provisional verdict said "valid"
+ * and nothing ever asked again. Membership is tracked here instead, keyed on
+ * premium usage rather than on the user having named the chart.
+ *
+ * Entries are removed on destroy() and pruned during reconciliation.
+ */
+const enforced = new Set()
+
+/**
+ * Stop reconciling a chart. Called from destroy(), which cannot use
+ * `teardownWatermark` for this: that also runs on the valid-licence path, where
+ * dropping the chart would reintroduce the very gap described above.
+ * @param {any} ctx
+ */
+export function untrackChart(ctx) {
+  enforced.delete(ctx)
+}
+
+/** Test-only: how many charts are being reconciled. */
+export function _enforcedCount() {
+  return enforced.size
+}
+
+/**
  * Record that a perspective token was decoded via the STATIC API
  * (ApexCharts.perspectives.decode / fromURL). Unlike the instance apply()/save()
  * signals, this has no chart to attach to, so it is a global signal that marks
@@ -222,6 +252,17 @@ export function enforceLicense(w, ctx) {
     // SSR / no-DOM: never touch the DOM, never throw. The client hydrate will
     // re-evaluate and add the watermark if needed.
     if (!Environment.isBrowser()) return
+
+    // A destroyed chart is never enforced. destroy() runs teardown hooks that
+    // call back in here (storyboard.teardown() is one), and the chart's config
+    // still reads as premium at that point, so without this the chart would be
+    // re-tracked immediately after being untracked and the enforcer would hold
+    // its context for the life of the page.
+    if (w && w.globals && w.globals.isDestroyed) {
+      enforced.delete(ctx)
+      return
+    }
+
     const elWrap = w && w.dom && w.dom.elWrap
     // Ordering guard: the DOM cache must be populated before we watermark.
     if (!elWrap) return
@@ -230,9 +271,15 @@ export function enforceLicense(w, ctx) {
 
     // Free-only usage: never watermark, never warn.
     if (features.length === 0) {
+      enforced.delete(ctx)
       teardownWatermark(ctx, elWrap)
       return
     }
+
+    // Tracked on premium usage, not on the verdict: a key that looks valid now
+    // may fail verification a microtask later, and that is exactly the chart
+    // that needs correcting.
+    enforced.add(ctx)
 
     const key = resolveKey(w)
     if (LicenseManager.isKeyValid(key)) {
@@ -251,20 +298,42 @@ export function enforceLicense(w, ctx) {
 /**
  * Re-run enforcement on every live chart. Used by process-global entry points
  * (ApexCharts.crossfilter, static perspectives decode/fromURL) that change
- * premium "in use" status without themselves triggering a chart render. Only
- * charts registered with a chart.id are reachable; others self-enforce on their
- * next render.
+ * premium "in use" status without themselves triggering a chart render, and by
+ * the async signature verdict.
+ *
+ * Reaches every chart using a premium feature, whether or not it declares a
+ * `chart.id`. `Apex._chartInstances` is still walked, because a chart there may
+ * have turned premium through a path that never ran enforcement, but it is no
+ * longer the only route.
  */
 export function reevaluateLicenseAcrossCharts() {
   if (!Environment.isBrowser()) return
+
+  const visited = new Set()
+
   const apex = Environment.getApex()
   const instances = apex && apex._chartInstances
-  if (!Array.isArray(instances)) return
-  instances.forEach((entry) => {
-    const chart = entry && entry.chart
-    if (chart && chart.w && !chart.w.globals.isDestroyed) {
-      enforceLicense(chart.w, chart)
+  if (Array.isArray(instances)) {
+    instances.forEach((entry) => {
+      const chart = entry && entry.chart
+      if (chart && chart.w && !chart.w.globals.isDestroyed) {
+        visited.add(chart)
+        enforceLicense(chart.w, chart)
+      }
+    })
+  }
+
+  // Copied first: enforceLicense mutates `enforced`, and a detached or destroyed
+  // chart is dropped here so the set cannot pin its subtree in memory.
+  Array.from(enforced).forEach((ctx) => {
+    const w = ctx && ctx.w
+    const elWrap = w && w.dom && w.dom.elWrap
+    if (!w || w.globals.isDestroyed || !elWrap || elWrap.isConnected === false) {
+      enforced.delete(ctx)
+      return
     }
+    if (visited.has(ctx)) return
+    enforceLicense(w, ctx)
   })
 }
 
