@@ -108,6 +108,76 @@ describe('Unit chart — rendering', () => {
     chart.destroy()
   })
 
+  it('clusterLabels.position places the label above (top) or below (bottom)', () => {
+    const mk = (position) =>
+      unitChart({
+        series: [40, 30],
+        labels: ['A', 'B'],
+        // curved:false so both placements are straight labels with a y attr.
+        plotOptions: {
+          unit: { clusterLabels: { show: true, curved: false, position } },
+        },
+      })
+    const firstClusterDotYs = (chart) => {
+      const g = chart.w.dom.baseEl.querySelector(
+        '.apexcharts-unit .apexcharts-series',
+      )
+      return [...g.querySelectorAll('circle.apexcharts-unit-area')].map((d) =>
+        parseFloat(d.getAttribute('cy')),
+      )
+    }
+    const labelY = (chart) =>
+      parseFloat(
+        chart.w.dom.baseEl
+          .querySelector('.apexcharts-unit-label')
+          .getAttribute('y'),
+      )
+
+    const top = mk('top')
+    const bottom = mk('bottom')
+    // A 'top' label clears the top of its cluster; a 'bottom' label clears the
+    // bottom (y grows downward in SVG).
+    expect(labelY(top)).toBeLessThan(Math.min(...firstClusterDotYs(top)))
+    expect(labelY(bottom)).toBeGreaterThan(Math.max(...firstClusterDotYs(bottom)))
+    // A bottom label is never curved (no arc riding the crown).
+    expect(
+      bottom.w.dom.baseEl
+        .querySelector('.apexcharts-unit-label')
+        .querySelector('textPath'),
+    ).toBeNull()
+    top.destroy()
+    bottom.destroy()
+  })
+
+  it('columns clusterLabels.position:bottom reserves room below the bars (on-canvas)', () => {
+    const chart = unitChart({
+      series: [120, 60, 30],
+      labels: ['A', 'B', 'C'],
+      plotOptions: {
+        unit: {
+          layout: 'columns',
+          clusterLabels: { show: true, position: 'bottom' },
+        },
+      },
+    })
+    const g = chart.w.dom.baseEl.querySelector(
+      '.apexcharts-unit .apexcharts-series',
+    )
+    const dotYs = [...g.querySelectorAll('.apexcharts-unit-area')].map((d) =>
+      parseFloat(d.getAttribute('cy')),
+    )
+    const labelY = parseFloat(
+      chart.w.dom.baseEl
+        .querySelector('.apexcharts-unit-label')
+        .getAttribute('y'),
+    )
+    // Label sits below the tallest bar's lowest dot and the layout reserved
+    // enough room that it stays within the plot height (not clipped).
+    expect(labelY).toBeGreaterThan(Math.max(...dotYs))
+    expect(labelY).toBeLessThanOrEqual(chart.w.globals.gridHeight)
+    chart.destroy()
+  })
+
   it('unitValue scales counts down (1 dot = N units)', () => {
     const chart = unitChart({
       series: [1000, 2000],

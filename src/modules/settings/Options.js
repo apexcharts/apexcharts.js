@@ -968,6 +968,10 @@ export default class Options {
           sortByGroup: true,
           clusterLabels: {
             show: true,
+            // Label placement relative to the cluster/bar: 'top' (default) or
+            // 'bottom'. A 'bottom' label is always straight; the curved arc
+            // (below) rides the top crown only.
+            position: 'top',
             curved: true,
             fontSize: '13px',
             fontFamily: undefined,

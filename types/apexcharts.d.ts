@@ -2320,6 +2320,8 @@ type ApexPlotOptions = {
     sortByGroup?: boolean
     clusterLabels?: {
       show?: boolean
+      /** Label placement relative to the cluster/bar. Defaults to 'top'. A 'bottom' label is always straight (the curved arc rides the top crown only). */
+      position?: 'top' | 'bottom'
       curved?: boolean
       fontSize?: string
       fontFamily?: string

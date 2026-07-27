@@ -459,7 +459,12 @@ export default class Unit {
     const w = this.w
     const gw = w.layout.gridWidth
     const gh = w.layout.gridHeight
-    const labelSpace = opts.clusterLabels && opts.clusterLabels.show ? 30 : 6
+    // Reserve room for the cluster label on whichever side it sits (top by
+    // default, bottom when clusterLabels.position === 'bottom'); the opposite
+    // side keeps a small default margin.
+    const labelsOn = !!(opts.clusterLabels && opts.clusterLabels.show)
+    const labelsBelow = labelsOn && opts.clusterLabels.position === 'bottom'
+    const topPad = labelsOn && !labelsBelow ? 30 : 6
 
     // Only VISIBLE (non-empty) categories claim a column slot, so a legend-hidden
     // bar leaves NO gap: the remaining bars re-flow to fill the row.
@@ -470,10 +475,10 @@ export default class Unit {
 
     const cellW = gw / Kv
     const barW = cellW * 0.62 // gap between neighbouring bars
-    // Reserve a little space above the legend / plot edge so the baseline never
-    // sits flush against it.
-    const bottomPad = Math.max(8, gh * 0.04)
-    const availH = Math.max(4, gh - labelSpace - bottomPad)
+    // Keep the baseline off the legend / plot edge, plus a label band below the
+    // bars when the labels sit there.
+    const bottomPad = Math.max(8, gh * 0.04) + (labelsBelow ? 30 : 0)
+    const availH = Math.max(4, gh - topPad - bottomPad)
     const maxCount = Math.max(1, ...counts)
     const spacing = opts.spacing > 0 ? opts.spacing : 1
 
@@ -526,14 +531,14 @@ export default class Unit {
     }
 
     const r = this._lastDotR
-    // Vertically CENTRE the tallest bar within the band [labelSpace, gh-bottomPad]
+    // Vertically CENTRE the tallest bar within the band [topPad, gh-bottomPad]
     // so a fixed dot size (bars shorter than the plot) does not dump all the
     // slack above the row and crowd the legend. Every bar shares this baseline
     // (bottom-aligned to it) so their heights stay directly comparable. For
     // 'auto' sizing the tallest bar already fills the band, so this is a no-op.
     const maxRows = Math.ceil(maxCount / cols)
     const tallestBarH = Math.min(availH, maxRows * pitch)
-    const bottom = labelSpace + (availH + tallestBarH) / 2
+    const bottom = topPad + (availH + tallestBarH) / 2
 
     return counts.map((n, i) => {
       const cx = slotOf[i] >= 0 ? cellW * (slotOf[i] + 0.5) : gw / 2
@@ -556,8 +561,8 @@ export default class Unit {
         cx,
         cy: bottom - barH / 2,
         outerR: barH / 2,
-        // Flag read by _drawClusterLabel: a bar takes a straight label above
-        // its top edge, never a curved arc.
+        // Flag read by _drawClusterLabel: a bar takes a straight label (above
+        // or below per clusterLabels.position), never a curved arc.
         flat: true,
         dots,
       }
@@ -1072,8 +1077,12 @@ export default class Unit {
   }
 
   /**
-   * A curved label arced over the top of a cluster, via an invisible arc path +
-   * <textPath>. Text is centred over the top (text-anchor middle, 50% offset).
+   * A cluster label placed above (default) or below the cluster/bar. A TOP label
+   * over a wide grouped/packed blob rides a curved arc (invisible arc path +
+   * <textPath>, centred at 50% offset); a bottom label, a 'columns' bar, or a
+   * cluster too small for the arc gets a straight centred label instead.
+   * `clusterLabels.position` = 'top' | 'bottom'; `offsetY` pushes it further from
+   * the blob in either direction.
    * @param {any} elSeries @param {{ i:number, cx:number, cy:number, outerR:number, flat?:boolean }} cluster
    * @param {number} value @param {number} total @param {any} opts @param {string} color
    */
@@ -1109,17 +1118,22 @@ export default class Unit {
     textEl.setAttribute('font-weight', String(cfg.fontWeight || 600))
     textEl.setAttribute('fill', cfg.color || color)
 
-    // Arc radius sits just outside the blob.
+    const bottom = cfg.position === 'bottom'
+
+    // Arc radius sits just outside the blob (top placement only).
     const R = cluster.outerR + fontSize * 0.6 + 3 + (cfg.offsetY || 0)
     // Rough text width (no measuring API in SSR). Only curve the label when it
     // fits the upper-semicircle arc length (pi * R); otherwise a small cluster
-    // would wrap its label around a few dots. Fall back to a straight label
-    // centred above the blob.
+    // would wrap its label around a few dots. Fall back to a straight label.
     const estWidth = str.length * fontSize * 0.55
-    // A 'columns' bar (cluster.flat) always takes a straight label above its
-    // top edge; a tall thin bar has no sensible arc to ride.
+    // Curve only a TOP label over a grouped/packed blob wide enough to carry it.
+    // A bottom label, a 'columns' bar (cluster.flat), or a tiny cluster takes a
+    // straight label instead.
     const curved =
-      !cluster.flat && cfg.curved !== false && estWidth <= Math.PI * R * 0.95
+      !bottom &&
+      !cluster.flat &&
+      cfg.curved !== false &&
+      estWidth <= Math.PI * R * 0.95
 
     if (curved) {
       const yMid = cluster.cy
@@ -1145,9 +1159,13 @@ export default class Unit {
       textEl.appendChild(tp)
       elSeries.node.appendChild(pathEl)
     } else {
-      // Straight label centred above the blob.
+      // Straight label centred above (default) or below the blob/bar. offsetY
+      // pushes it further away from the blob in either direction.
       textEl.setAttribute('x', String(cluster.cx))
-      textEl.setAttribute('y', String(cluster.cy - cluster.outerR - 6 - (cfg.offsetY || 0)))
+      const y = bottom
+        ? cluster.cy + cluster.outerR + fontSize + 6 + (cfg.offsetY || 0)
+        : cluster.cy - cluster.outerR - 6 - (cfg.offsetY || 0)
+      textEl.setAttribute('y', String(y))
       textEl.textContent = str
     }
 
