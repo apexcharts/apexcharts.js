@@ -91,10 +91,7 @@ function setActive(id) {
 <div class="wrap">
   <h1>Workforce as a dot cluster</h1>
   <p>
-    Every employee is one dot. Dots pack into an organic disc with a phyllotaxis
-    (sunflower) spiral and glide into place on each update. Switch views to see
-    the department clusters re-form as a single packed company, with the small
-    leadership core nested in the centre.
+    Every employee is one dot, packed into an organic disc.
   </p>
 
   <div class="chart-wrap">

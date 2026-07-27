@@ -66,7 +66,7 @@ function readoutText(minAge) {
     c.total.toLocaleString() +
     ' people aged ' +
     minAge +
-    '+ — ' +
+    '+, ' +
     c.female.toLocaleString() +
     ' female (' +
     pct +
@@ -80,9 +80,7 @@ function readoutText(minAge) {
 <div class="wrap">
   <h1>Population explorer</h1>
   <p>
-    One dot per person, coloured by gender, with the female minority packed into
-    the centre. Drag the age filter: the crowd grows and shrinks and the dots
-    glide to their new places instead of redrawing.
+    One dot per person, coloured by gender, the minority packed into the centre.
   </p>
 
   <div class="chart-wrap">

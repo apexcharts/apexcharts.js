@@ -24,7 +24,7 @@
 
 ## Why ApexCharts
 
-- **17+ chart types** out of the box: line, area, bar, column, pie, donut, radar, heatmap, treemap, candlestick, boxplot, violin, funnel, pyramid, gauge and more
+- **18+ chart types** out of the box: line, area, bar, column, pie, donut, radar, heatmap, treemap, candlestick, boxplot, violin, funnel, pyramid, gauge, unit (dot / pictogram / waffle / beeswarm) and more
 - **SSR support** for Next.js, Nuxt, SvelteKit, Astro, and other meta-frameworks: render real SVG on the server, hydrate on the client
 - **Tree-shakable**: import only the chart types and features you need; typical bundles are 30-60% smaller than the full build
 - **TypeScript-first**: full type definitions ship with the package, no `@types/*` install needed
@@ -89,6 +89,7 @@ Browse [100+ ready-to-use samples](https://apexcharts.com/javascript-chart-demos
 - [Pie](https://apexcharts.com/javascript-chart-demos/pie-charts/) · [Donut](https://apexcharts.com/javascript-chart-demos/pie-charts/) · [Polar Area](https://apexcharts.com/javascript-chart-demos/polar-area-charts/) · [Radial Bar / Gauge](https://apexcharts.com/javascript-chart-demos/radialbar-charts/)
 - [Radar](https://apexcharts.com/javascript-chart-demos/radar-charts/) · [Heatmap](https://apexcharts.com/javascript-chart-demos/heatmap-charts/) · [Treemap](https://apexcharts.com/javascript-chart-demos/treemap-charts/)
 - [Funnel](https://apexcharts.com/javascript-chart-demos/funnel-charts/)
+- [Unit / Pictogram / Beeswarm](samples/vanilla-js/unit/) · [Waffle](samples/vanilla-js/waffle/) (premium)
 
 Combine any of the above as [mixed/combo charts](https://apexcharts.com/javascript-chart-demos/mixed-charts/), [stacked variants](https://apexcharts.com/javascript-chart-demos/column-charts/stacked/), [sparklines](https://apexcharts.com/javascript-chart-demos/sparklines/), or [synchronized multi-chart layouts](https://apexcharts.com/javascript-chart-demos/line-charts/syncing-charts/).
 
@@ -149,6 +150,7 @@ import 'apexcharts/line'
 import 'apexcharts/bar'
 // import 'apexcharts/area'
 // import 'apexcharts/scatter'
+// import 'apexcharts/unit'         // dot / pictogram / waffle / beeswarm (premium; 'waffle' aliases this)
 
 // Optional features
 import 'apexcharts/features/legend'
@@ -179,6 +181,7 @@ Most of ApexCharts is free and open source. A small set of advanced features are
 
 | Feature | Enabled by |
 |---|---|
+| Unit chart type (dot / pictogram / waffle / beeswarm) | `chart.type: 'unit'` / `chart.type: 'waffle'` |
 | Storyboard (scrollytelling) | `chart.storyboard.bind(...)` |
 | Linked views / crossfilter | `chart.link.enabled` / `chart.link.dimension` / `ApexCharts.crossfilter()` |
 | Ink layer (on-chart annotation editing) | `chart.ink.enabled` |
@@ -187,7 +190,7 @@ Most of ApexCharts is free and open source. A small set of advanced features are
 | Perspectives (shareable view state) | `chart.perspectives.apply()` / `.save()` / `ApexCharts.perspectives.decode()` |
 | History (undo/redo) | `chart.history.enabled` |
 
-Without a valid key these features still work (**trial mode**), but the chart shows an "APEXCHARTS" watermark. A valid key removes it. Everything else, including every chart type and all other features, is free and never watermarked.
+Without a valid key these features still work (**trial mode**), but the chart shows an "APEXCHARTS" watermark. A valid key removes it. Every other chart type and feature is free and never watermarked; the `unit` chart type (listed above, aliased by `waffle`) is the one premium chart type.
 
 ```js
 import ApexCharts from 'apexcharts'
