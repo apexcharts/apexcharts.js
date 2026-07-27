@@ -78,7 +78,7 @@ const PUBLIC_KEYS_SPKI_BASE64 = [
 ]
 
 /**
- * Until this date, keys with no `sig` are honoured, with a warning.
+ * Until this date, keys with no `sig` are honoured, silently.
  *
  * Every key issued before signing existed is unsigned, so rejecting them would
  * break paying customers the moment they upgrade. Renewals re-issue keys, so the
@@ -102,7 +102,6 @@ const verifying = new Set()
 /** @type {Set<(result: LicenseValidationResult) => void>} */
 const listeners = new Set()
 
-let warnedLegacy = false
 let warnedUnverifiable = false
 
 /**
@@ -415,26 +414,25 @@ export class LicenseManager {
 
       const signature = signatureOf(encodedData)
 
-      if (!signature) {
-        if (new Date() >= LEGACY_KEYS_ACCEPTED_UNTIL) {
-          // Naming the format turns a mystifying rejection into a support answer.
-          return {
-            data: licenseData,
-            expired: false,
-            message:
-              'This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.',
-            signatureVerified: false,
-            valid: false,
-          }
-        }
-
-        if (!warnedLegacy) {
-          warnedLegacy = true
-          console.warn(
-            `[Apex] This license key is unsigned and will stop working after ${
-              LEGACY_KEYS_ACCEPTED_UNTIL.toISOString().split('T')[0]
-            }. Please request a replacement key.`,
-          )
+      // An unsigned key is accepted in silence until the cutoff, then rejected.
+      //
+      // Deliberately no deprecation warning in between. Renewals re-issue keys,
+      // so every subscriber gets a signed one long before the cutoff without
+      // doing anything, and a console warning would appear for every existing
+      // customer the moment they upgrade, a year before it is actionable. That
+      // reads as an incident on our side and invites tickets whose honest answer
+      // is "ignore this". See projects/libs/commons/LICENSING.md; it makes the
+      // dry run over stored keys load bearing rather than optional, since nothing
+      // else will surface a licence that outlives renewal churn.
+      if (!signature && new Date() >= LEGACY_KEYS_ACCEPTED_UNTIL) {
+        // Naming the format turns a mystifying rejection into a support answer.
+        return {
+          data: licenseData,
+          expired: false,
+          message:
+            'This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.',
+          signatureVerified: false,
+          valid: false,
         }
       }
 
@@ -518,7 +516,6 @@ export class LicenseManager {
   static _resetSignatureState() {
     signatureVerdicts.clear()
     verifying.clear()
-    warnedLegacy = false
     warnedUnverifiable = false
   }
 }
