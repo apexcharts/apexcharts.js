@@ -50011,7 +50011,7 @@ var __async = (__this, __arguments, generator) => {
       const clusters = layout === "packed" ? this._layoutPacked(counts, opts) : layout === "columns" ? this._layoutColumns(counts, opts) : layout === "grid" ? this._layoutGrid(counts, opts) : layout === "scatter" ? this._layoutScatter(opts) : this._layoutGrouped(counts, opts);
       const gridSplit = layout === "grid" && !!(opts.grid && opts.grid.split);
       if (gridSplit) this._drawGridTrack(ret, graphics, opts);
-      if (layout === "scatter") this._drawScatterAxes(ret, graphics, opts);
+      if (layout === "scatter") this._drawScatterAxes(ret, graphics);
       const dotR = this._lastDotR;
       const animate = this._shouldAnimate();
       const morph = this.ctx && this.ctx.morphTypeChange;
@@ -50885,7 +50885,7 @@ var __async = (__this, __arguments, generator) => {
      * @returns {{min:number,max:number,spacing:number}}
      */
     _niceScale(dataMin, dataMax, ticks) {
-      let lo = dataMin;
+      const lo = dataMin;
       let hi = dataMax;
       if (!(hi > lo)) hi = lo + 1;
       const range = this._niceNum(hi - lo, false);
@@ -50920,9 +50920,9 @@ var __async = (__this, __arguments, generator) => {
      * category colour. 2D: both X + Y gridlines, both axes' tick labels, and
      * rotated/placed axis titles (no lane labels - category is colour). Browser-
      * only (SSR renders the dots without the chrome, as with cluster labels).
-     * @param {any} ret @param {Graphics} graphics @param {any} opts
+     * @param {any} ret @param {Graphics} graphics
      */
-    _drawScatterAxes(ret, graphics, opts) {
+    _drawScatterAxes(ret, graphics) {
       const w = this.w;
       if (!Environment.isBrowser()) return;
       const ax = this._scatterAxis;
