@@ -2,6 +2,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
 import ApexCharts from '../../src/entries/full.js'
 import { LicenseManager } from '../../src/modules/license/LicenseManager.js'
+import { installTestSigningKey, signedKey } from './utils/license-keys.js'
 import {
   premiumFeaturesInUse,
   premiumFeatureInUse,
@@ -11,11 +12,13 @@ import {
 import { Environment } from '../../src/utils/Environment.js'
 
 const WM = '[data-apexcharts-watermark]'
-const VALID_KEY = LicenseManager.generateLicenseKey('2020-01-01', '2099-01-01')
+installTestSigningKey()
+const VALID_KEY = signedKey('2020-01-01', '2099-01-01')
 
 function resetLicense() {
   LicenseManager.licenseKey = null
   LicenseManager.validationResult = null
+  LicenseManager._resetSignatureState()
   _resetPremiumSignals()
   if (typeof window !== 'undefined' && window.Apex) delete window.Apex.license
 }

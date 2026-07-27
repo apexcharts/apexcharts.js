@@ -267,3 +267,11 @@ export function reevaluateLicenseAcrossCharts() {
     }
   })
 }
+
+// Signature verification is asynchronous (crypto.subtle has no sync API) while
+// enforcement is decided synchronously during render, so a key is accepted
+// provisionally and the verdict lands a microtask later. Without this, a forged
+// key would escape the watermark entirely in the ordinary
+// setLicense-then-render sequence, because nothing would ask again once the
+// chart had painted.
+LicenseManager.onChange(reevaluateLicenseAcrossCharts)
