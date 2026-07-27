@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.6.0
+ * ApexCharts v6.6.1
  * (c) 2018-2026 ApexCharts
  */
 import * as ApexCharts from "apexcharts/core";
@@ -7290,6 +7290,7 @@ class Watermark {
 __publicField(Watermark, "ATTR", WATERMARK_ATTR);
 const PRICING_URL = "https://apexcharts.com/pricing";
 let _perspectivesTokenDecoded = false;
+const enforced = /* @__PURE__ */ new Set();
 function markPerspectivesTokenDecoded() {
   _perspectivesTokenDecoded = true;
   reevaluateLicenseAcrossCharts();
@@ -7382,13 +7383,19 @@ function notifyTrial(ctx, key, features) {
 function enforceLicense(w, ctx) {
   try {
     if (!Environment.isBrowser()) return;
+    if (w && w.globals && w.globals.isDestroyed) {
+      enforced.delete(ctx);
+      return;
+    }
     const elWrap = w && w.dom && w.dom.elWrap;
     if (!elWrap) return;
     const features = premiumFeaturesInUse(w, ctx);
     if (features.length === 0) {
+      enforced.delete(ctx);
       teardownWatermark(ctx, elWrap);
       return;
     }
+    enforced.add(ctx);
     const key = resolveKey(w);
     if (LicenseManager.isKeyValid(key)) {
       teardownWatermark(ctx, elWrap);
@@ -7401,14 +7408,27 @@ function enforceLicense(w, ctx) {
 }
 function reevaluateLicenseAcrossCharts() {
   if (!Environment.isBrowser()) return;
+  const visited = /* @__PURE__ */ new Set();
   const apex = Environment.getApex();
   const instances = apex && apex._chartInstances;
-  if (!Array.isArray(instances)) return;
-  instances.forEach((entry) => {
-    const chart = entry && entry.chart;
-    if (chart && chart.w && !chart.w.globals.isDestroyed) {
-      enforceLicense(chart.w, chart);
+  if (Array.isArray(instances)) {
+    instances.forEach((entry) => {
+      const chart = entry && entry.chart;
+      if (chart && chart.w && !chart.w.globals.isDestroyed) {
+        visited.add(chart);
+        enforceLicense(chart.w, chart);
+      }
+    });
+  }
+  Array.from(enforced).forEach((ctx) => {
+    const w = ctx && ctx.w;
+    const elWrap = w && w.dom && w.dom.elWrap;
+    if (!w || w.globals.isDestroyed || !elWrap || elWrap.isConnected === false) {
+      enforced.delete(ctx);
+      return;
     }
+    if (visited.has(ctx)) return;
+    enforceLicense(w, ctx);
   });
 }
 LicenseManager.onChange(reevaluateLicenseAcrossCharts);

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.6.0
+ * ApexCharts v6.6.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
