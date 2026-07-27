@@ -16,8 +16,17 @@ jobs:
 
       - name: Check commit message for release trigger
         id: check
+        env:
+          # Passed as an environment variable, never interpolated into the
+          # script. `${{ }}` is substituted textually before bash parses, so a
+          # commit message containing a double quote breaks the script, and one
+          # containing $(...) or backticks would RUN in this job, which holds the
+          # npm publishing token. Merge commit messages include the PR title,
+          # which any outside contributor controls. This is not theoretical: run
+          # 30286173185 died with `syntax error near unexpected token '('` on the
+          # merge of PR #5245, whose title contained quotes and parentheses.
+          MSG: ${{ github.event.head_commit.message }}
         run: |
-          MSG="${{ github.event.head_commit.message }}"
           if echo "$MSG" | grep -qE '^release: [0-9]+\.[0-9]+\.[0-9]+'; then
             VERSION=$(echo "$MSG" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+[^ ]*' | head -1)
             echo "triggered=true" >> $GITHUB_OUTPUT
