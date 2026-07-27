@@ -68,5 +68,11 @@ jobs:
       - run: yarn build
         if: steps.check.outputs.triggered == 'true'
 
+      # After the build, because it drives the built bundle: a forged key that is
+      # not watermarked means signatures are verified and ignored, and `yarn unit`
+      # passes either way. 6.6.0 shipped exactly that.
+      - run: yarn check:license-enforcement
+        if: steps.check.outputs.triggered == 'true'
+
       - run: npm publish --provenance --tag ${{ steps.check.outputs.tag }}
         if: steps.check.outputs.triggered == 'true'

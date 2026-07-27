@@ -68,6 +68,12 @@ jobs:
       - name: Build apexcharts
         if: '!cancelled()'
         run: yarn build
+      # Drives the built bundle: a forged key that is not watermarked means
+      # signatures are verified and then ignored, and the unit suite passes
+      # either way. 6.6.0 shipped exactly that.
+      - name: Verify the built bundle enforces the licence verdict
+        if: '!cancelled()'
+        run: yarn check:license-enforcement
       - name: Copy Head Repository Build To Artifacts Folder
         if: '!cancelled()'
         run: cp -r dist ${{ runner.temp }}/artifacts/head-repository/build

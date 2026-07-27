@@ -233,6 +233,7 @@
     "test": "npm run e2e && npm run unit -- --coverage",
     "test:ci": "npm run e2e:ci && npm run unit",
     "unit": "vitest run tests/unit/",
+    "check:license-enforcement": "node tests/license/check-license-enforcement.mjs",
     "e2e": "node tests/e2e/samples.js test",
     "e2e:update": "node tests/e2e/samples.js update",
     "e2e:ci": "node tests/e2e/samples.js test:ci",
