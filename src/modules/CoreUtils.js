@@ -623,6 +623,12 @@ class CoreUtils {
        */
       const scaleBaseLineYScale = (y, i) => {
         const yAxis = w.config.yaxis[w.globals.seriesYAxisReverseMap[i]]
+        // During realtime/transition states (e.g. series cleared then refilled)
+        // there can be more scaled axes than mapped series, so reverseMap[i] may
+        // point past config.yaxis and leave yAxis undefined. Guard as the other
+        // reverseMap consumers (getLogSeries etc.) already do, so we don't read
+        // logarithmic off undefined. The axis has no series, so its baseline is 0.
+        if (!yAxis) return 0
         const sign = y < 0 ? -1 : 1
         y = Math.abs(y)
         if (yAxis.logarithmic) {
