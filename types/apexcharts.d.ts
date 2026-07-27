@@ -2252,8 +2252,10 @@ type ApexPlotOptions = {
      * / waffle column) whose height encodes the count.
      * 'grid': one lattice of cells filled in category order - a waffle /
      * part-to-whole square "pie" (`chart.type: 'waffle'` presets this layout).
+     * 'scatter': beeswarm - each unit placed on a real numeric X value axis by
+     * its per-unit value, laned by category on Y (draws its own axis + lanes).
      */
-    layout?: 'grouped' | 'packed' | 'columns' | 'grid'
+    layout?: 'grouped' | 'packed' | 'columns' | 'grid' | 'scatter'
     /**
      * How dots are matched between renders on an update (which previous dot a
      * new dot tweens from).
@@ -2310,6 +2312,60 @@ type ApexPlotOptions = {
       total?: number
       /** First row of the fill: 'bottom' (default) or 'top'. */
       fillFrom?: 'bottom' | 'top'
+      /**
+       * Small multiples: render ONE mini-waffle per category in a trellis
+       * instead of a single shared lattice. Each tile has `total` cells
+       * (default 100) and fills value/`max` of them; the rest show as a faint
+       * `trackColor` backdrop, and each tile carries its own label.
+       */
+      split?: boolean
+      /** Small-multiple tiles per row; undefined = auto (near-square). */
+      tileColumns?: number
+      /**
+       * Small-multiple value -> filled-cell denominator; undefined = the largest
+       * count (leader fills its tile). Set to 100 for true "of 100" percentage tiles.
+       */
+      max?: number
+      /** Small-multiple empty ("track") cell colour; undefined = neutral grey. */
+      trackColor?: string
+    }
+    /**
+     * The 'scatter' layout places units on real value axes (needs the object-form
+     * data). `y:'lanes'` (default) is a beeswarm (X value axis, Y category lane);
+     * `y:'value'` is a 2D value-value scatter (each datum's `x`/`y` on two numeric
+     * axes, category = colour). `sizeRange` turns dots into bubbles.
+     */
+    scatter?: {
+      /** 'lanes' (beeswarm, default) or 'value' (2D value-value scatter). */
+      y?: 'lanes' | 'value'
+      /** 'swarm' (anti-overlap pack, default) or 'jitter' (random lane spread). */
+      spread?: 'swarm' | 'jitter'
+      /** Approximate number of X-axis ticks. Defaults to 5. */
+      tickAmount?: number
+      /** Fixed X-axis min / max; undefined = derived (nice-numbered) from data. */
+      xMin?: number
+      xMax?: number
+      /** X-axis title drawn under the tick labels. */
+      xTitle?: string
+      /** X tick-label formatter, `(value) => string`. */
+      xFormatter?: (value: number) => string
+      /** Approximate number of Y-axis ticks (2D mode). Defaults to 5. */
+      yTickAmount?: number
+      /** Fixed Y-axis min / max (2D mode); undefined = nice-numbered from data. */
+      yMin?: number
+      yMax?: number
+      /** Y-axis title (2D mode), drawn rotated at the left. */
+      yTitle?: string
+      /** Y tick-label formatter, `(value) => string`. */
+      yFormatter?: (value: number) => string
+      /** Datum key holding the bubble size value. Defaults to 'z'. */
+      sizeField?: string
+      /** `[minRadius, maxRadius]` in px: turns dots into area-scaled bubbles. */
+      sizeRange?: [number, number]
+      /** Left-gutter width reserved for lane (category) labels (lanes mode). */
+      laneLabelWidth?: number
+      /** Draw the faint gridlines. Defaults to true. */
+      gridlines?: boolean
     }
     /**
      * Opt-in bubble sizing: scale each dot's radius by its per-unit value

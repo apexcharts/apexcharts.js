@@ -950,10 +950,59 @@ export default class Options {
           // allocates the cells to categories; leave it undefined for one cell
           // per unit (respects unitValue / maxUnits). `fillFrom` picks the first
           // row: 'bottom' (default) or 'top'.
+          //
+          // `split:true` switches to SMALL MULTIPLES: one mini-waffle per
+          // category, arranged in a near-square trellis (or `tileColumns` per
+          // row). Each tile then has `total` cells (default 100) and fills a
+          // fraction equal to the category's value over `max` (default = the
+          // largest count, so the leader fills its tile; set `max:100` with
+          // percentage data for true "of 100" tiles). The unfilled cells show as
+          // a faint `trackColor` backdrop, and each tile gets its own label.
           grid: {
             columns: 10,
             total: undefined,
             fillFrom: 'bottom',
+            // small-multiple (one waffle per category) mode + its knobs:
+            split: false,
+            // tiles per row; undefined = auto (near-square).
+            tileColumns: undefined,
+            // value -> filled-cell denominator; undefined = the largest count.
+            max: undefined,
+            // colour of the empty "track" cells; undefined = a neutral grey.
+            trackColor: undefined,
+          },
+          // The 'scatter' layout places each unit on real value axes (needs the
+          // object-form data). Two modes via `y`:
+          //  - `y:'lanes'` (default): a BEESWARM. X is the per-unit value axis,
+          //    Y is a category lane. `spread:'swarm'` packs dots off the centre
+          //    line so equal values do not overlap; 'jitter' scatters randomly.
+          //  - `y:'value'`: a 2D value-value scatter. X = each datum's `x`, Y =
+          //    each datum's `y`, on two numeric axes; category = colour.
+          // `sizeRange:[min,max]` turns dots into BUBBLES scaled (by area) from
+          // each datum's `sizeField` (default 'z') - a bubble scatter / bubble
+          // beeswarm. `tickAmount`/`xMin`/`xMax`/`xTitle`/`xFormatter` control the
+          // X axis; the `y*` twins the Y axis (2D only); `laneLabelWidth` the
+          // lane-label gutter (lanes mode); `gridlines` the grid.
+          scatter: {
+            y: 'lanes',
+            spread: 'swarm',
+            tickAmount: 5,
+            xMin: undefined,
+            xMax: undefined,
+            xTitle: undefined,
+            // (value) => string
+            xFormatter: undefined,
+            yTickAmount: 5,
+            yMin: undefined,
+            yMax: undefined,
+            yTitle: undefined,
+            // (value) => string
+            yFormatter: undefined,
+            // bubble sizing: datum key for the size value + [minR, maxR] in px.
+            sizeField: 'z',
+            sizeRange: undefined,
+            laneLabelWidth: undefined,
+            gridlines: true,
           },
           // Opt-in bubble sizing: scale each dot's radius by its per-unit value
           // (needs the object-form data). Circle shape only; the lattice is

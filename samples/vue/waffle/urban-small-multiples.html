@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Waffle Chart - Small Multiples (The Century of the City)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 680px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      .lead {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 20px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .actions {
+        margin: 20px auto 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+      }
+      .actions button {
+        color: #fff;
+        background: #94a3b8;
+        border: none;
+        padding: 8px 18px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.active {
+        background: #4f46e5;
+      }
+      .caption {
+        text-align: center;
+        color: #5b6b78;
+        font-size: 13px;
+        line-height: 1.6;
+        max-width: 560px;
+        margin: 0 auto;
+        min-height: 34px;
+      }
+      .note {
+        background: #eef2ff;
+        border-left: 3px solid #4f46e5;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #333;
+        border-radius: 2px;
+        line-height: 1.6;
+        margin: 26px auto 0;
+      }
+      .note code {
+        background: #e0e7ff;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Small-multiple waffles: ONE mini-waffle per country, each a 10x10 grid where
+      // every square is 1% of that country's population living in a city. Reading
+      // down the trellis you compare the fill height across countries at a glance;
+      // toggling the year fills each tile cell-by-cell IN PLACE, so you watch the
+      // whole world urbanise between 1980 and 2020.
+      //
+      // This is the unit chart's `grid` layout in `split` mode: `grid.split: true`
+      // draws one tile per category, `grid.total: 100` gives each tile 100 cells and
+      // `grid.max: 100` maps the value straight to filled cells (a value of 92 fills
+      // 92 of 100), so each tile reads as a true percentage. The empty cells show as
+      // a faint `trackColor` backdrop. Figures are World-Bank-style illustrative
+      // urban-population shares. Shared by the vanilla-js/React/Vue builds.
+      var COUNTRIES = [
+        'Japan',
+        'United States',
+        'Germany',
+        'Brazil',
+        'South Korea',
+        'China',
+        'Nigeria',
+        'India',
+        'Kenya',
+      ]
+
+      // One accent for every filled cell: the metric is the same everywhere, so the
+      // eye compares fill height, not colour. The per-tile label carries the country.
+      var ACCENT = '#4F46E5'
+      var COLORS = COUNTRIES.map(function () {
+        return ACCENT
+      })
+
+      var YEARS = {
+        2020: {
+          label: '2020',
+          caption:
+            'By 2020 most of the world lives in a city. The tiles that were nearly empty in 1980, China and Nigeria among them, have filled in fast.',
+          // urban population, % of total (illustrative, ~2020)
+          values: [92, 83, 77, 87, 81, 61, 52, 35, 28],
+        },
+        1980: {
+          label: '1980',
+          caption:
+            'In 1980 cities were still the exception across much of Asia and Africa: barely a fifth of China lived in one. Each square is one percent of the population.',
+          // urban population, % of total (illustrative, ~1980)
+          values: [76, 74, 73, 66, 57, 19, 22, 23, 16],
+        },
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="wrap">
+      <h1>The century of the city</h1>
+      <p class="lead">
+        One mini-waffle per country: each of the 100 squares is 1% of the population
+        living in a city. Switch the year and watch every country urbanise, the
+        filled squares climbing tile by tile.
+      </p>
+    
+      <div class="chart-wrap">
+        <div id="chart">
+      <apexchart type="waffle" height="560" :options="chartOptions" :series="series"></apexchart>
+    </div>
+      </div>
+    
+      <div class="actions" id="year-nav">
+        <button data-year="1980">1980</button>
+        <button data-year="2020" class="active">2020</button>
+      </div>
+    
+      <p class="caption" id="caption"></p>
+    
+      <div class="note">
+        Small multiples are the unit chart's <code>grid</code> layout in split mode:
+        <code>plotOptions.unit.grid.split: true</code> draws one waffle per category,
+        <code>grid.total: 100</code> gives each tile 100 cells and
+        <code>grid.max: 100</code> fills value-of-100 of them, so every tile reads as
+        a percentage against its faint <code>trackColor</code> backdrop. Switching
+        the year is a plain <code>chart.updateSeries()</code>; each tile keeps its
+        cells in place and only the fill boundary moves. The unit / waffle chart is a
+        premium type; without a license it renders with a trial watermark.
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+        &lt;h1&gt;The century of the city&lt;/h1&gt;
+        &lt;p class=&quot;lead&quot;&gt;
+          One mini-waffle per country: each of the 100 squares is 1% of the population
+          living in a city. Switch the year and watch every country urbanise, the
+          filled squares climbing tile by tile.
+        &lt;/p&gt;
+      
+        &lt;div class=&quot;chart-wrap&quot;&gt;
+          &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;waffle&quot; height=&quot;560&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;actions&quot; id=&quot;year-nav&quot;&gt;
+          &lt;button data-year=&quot;1980&quot;&gt;1980&lt;/button&gt;
+          &lt;button data-year=&quot;2020&quot; class=&quot;active&quot;&gt;2020&lt;/button&gt;
+        &lt;/div&gt;
+      
+        &lt;p class=&quot;caption&quot; id=&quot;caption&quot;&gt;&lt;/p&gt;
+      
+        &lt;div class=&quot;note&quot;&gt;
+          Small multiples are the unit chart&#39;s &lt;code&gt;grid&lt;/code&gt; layout in split mode:
+          &lt;code&gt;plotOptions.unit.grid.split: true&lt;/code&gt; draws one waffle per category,
+          &lt;code&gt;grid.total: 100&lt;/code&gt; gives each tile 100 cells and
+          &lt;code&gt;grid.max: 100&lt;/code&gt; fills value-of-100 of them, so every tile reads as
+          a percentage against its faint &lt;code&gt;trackColor&lt;/code&gt; backdrop. Switching
+          the year is a plain &lt;code&gt;chart.updateSeries()&lt;/code&gt;; each tile keeps its
+          cells in place and only the fill boundary moves. The unit / waffle chart is a
+          premium type; without a license it renders with a trial watermark.
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: YEARS['2020'].values,
+          chartOptions: {
+            chart: {
+              id: 'urbanWaffle',
+              type: 'waffle',
+              height: 560,
+              animations: {
+                enabled: true,
+                speed: 650,
+              },
+            },
+            labels: COUNTRIES,
+            colors: COLORS,
+            legend: {
+              show: false,
+            },
+            plotOptions: {
+              unit: {
+                grid: {
+                  split: true,
+                  columns: 10,
+                  total: 100,
+                  max: 100,
+                  trackColor: '#E8EDF2',
+                },
+                spacing: 1.2,
+                clusterLabels: {
+                  show: true,
+                  position: 'bottom',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#334155',
+                  formatter: function (name, o) {
+                    return name + ' · ' + Math.round(o.value) + '%'
+                  },
+                },
+              },
+            },
+          },
+
+          waffleTimer: null,
+        },
+        mounted: function () {
+          // Reach the live instance by its chart.id, then wire the buttons. (Data lives
+          // in the shared head script.) updateSeries drives the instance directly, so no
+          // reactive data changes under it.
+          var me = this
+          me.waffleTimer = window.setInterval(function () {
+            var chart = ApexCharts.getChartByID('urbanWaffle')
+            if (!chart) return
+            window.clearInterval(me.waffleTimer)
+
+            var buttons = document.querySelectorAll('#year-nav button')
+            var caption = document.getElementById('caption')
+
+            function showYear(key) {
+              buttons.forEach(function (b) {
+                b.classList.toggle('active', b.getAttribute('data-year') === key)
+              })
+              caption.textContent = YEARS[key].caption
+              chart.updateSeries(YEARS[key].values)
+            }
+
+            buttons.forEach(function (btn) {
+              btn.addEventListener('click', function () {
+                showYear(btn.getAttribute('data-year'))
+              })
+            })
+
+            caption.textContent = YEARS['2020'].caption
+          }, 50)
+        },
+        beforeDestroy: function () {
+          window.clearInterval(this.waffleTimer)
+        },
+      })
+    </script>
+    
+  </body>
+</html>
