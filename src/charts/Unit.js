@@ -68,16 +68,17 @@ export default class Unit {
         ? 'packed'
         : opts.layout === 'columns'
           ? 'columns'
-          : 'grouped'
+          : opts.layout === 'grid'
+            ? 'grid'
+            : 'grouped'
     // Keying decides which previous dot a new dot tweens from on an update:
     //  - 'group' (default): key "i:j" - a dot stays within its category slot.
-    //    EXCEPTION: in a 'packed' blob there are no stable per-category slots
-    //    (the outer group's spiral indices are offset by the - changing - inner
-    //    group's count, so keying "i:j" would re-spin the whole outer ring by a
-    //    golden-angle multiple every time the inner count moves, and the straight
-    //    -line tween would chord across the disc). There we key by the physical
-    //    spiral slot instead, so a shell keeps its place: the colour boundary
-    //    breathes in/out and only the rim adds/removes dots.
+    //    EXCEPTION: a 'packed' blob and a 'grid' waffle have no stable
+    //    per-category slots (a category's slots are offset by the - changing -
+    //    preceding categories' counts, so keying "i:j" would re-spin/re-shuffle
+    //    every dot when a count moves). There we key by the physical slot
+    //    instead, so a cell keeps its place: the colour boundary breathes in/out
+    //    and only the rim adds/removes dots.
     //  - 'flow': key by GLOBAL draw order - the anonymous crowd migrates across
     //    a regroup (category count/identity changing) instead of fading in/out.
     //  - 'identity': key by each datum's id/name - a SPECIFIC unit migrates
@@ -104,7 +105,9 @@ export default class Unit {
         ? this._layoutPacked(counts, opts)
         : layout === 'columns'
           ? this._layoutColumns(counts, opts)
-          : this._layoutGrouped(counts, opts)
+          : layout === 'grid'
+            ? this._layoutGrid(counts, opts)
+            : this._layoutGrouped(counts, opts)
 
     const dotR = this._lastDotR
     const animate = this._shouldAnimate()
@@ -567,6 +570,113 @@ export default class Unit {
         dots,
       }
     })
+  }
+
+  /**
+   * Lay out ALL categories into ONE regular lattice - a waffle / grid. Dots take
+   * sequential slots in DECLARED category order and fill row-major, `columns`
+   * wide, so each category owns a contiguous band of cells: a part-to-whole
+   * square "pie". `grid.total` (optional) re-allocates the cells to a fixed
+   * budget (e.g. 100) by largest remainder, so the grid reads as exact
+   * percentages regardless of the raw totals; without it there is one cell per
+   * unit (respecting unitValue / maxUnits). `grid.fillFrom` picks the first row.
+   * The category bands follow the legend order (no smallest-first sort), and
+   * each physical slot is keyed so a proportion change recolours boundary cells
+   * in place rather than reshuffling the whole grid.
+   * @param {number[]} counts
+   * @param {any} opts
+   */
+  _layoutGrid(counts, opts) {
+    const w = this.w
+    const gw = w.layout.gridWidth
+    const gh = w.layout.gridHeight
+    const gcfg = opts.grid || {}
+    const cols = Math.max(1, Math.round(gcfg.columns > 0 ? gcfg.columns : 10))
+    const fillFrom = gcfg.fillFrom === 'top' ? 'top' : 'bottom'
+
+    // Fixed-budget (percentage) mode vs one-cell-per-unit.
+    const cells =
+      gcfg.total > 0
+        ? this._largestRemainder(counts, Math.round(gcfg.total))
+        : counts.slice()
+    const totalCells = cells.reduce((a, b) => a + b, 0)
+    const rows = Math.max(1, Math.ceil(Math.max(1, totalCells) / cols))
+
+    // No per-category cluster labels on a single grid (the legend carries the
+    // categories), so only a small top margin is reserved.
+    const labelSpace = 6
+    const spacing = opts.spacing > 0 ? opts.spacing : 1
+    const availW = Math.max(4, gw)
+    const availH = Math.max(4, gh - labelSpace)
+
+    // A fixed dot size (image / explicit size / bubble max) sets the pitch;
+    // otherwise fit the cols x rows lattice into the plot.
+    const fixed = this._fixedRadius(opts)
+    let pitch = 0
+    if (fixed) {
+      pitch = 2 * fixed * spacing
+      this._lastDotR = fixed
+    } else {
+      pitch = Math.min(availW / cols, availH / rows)
+      this._lastDotR = Math.max(1, pitch / (2 * spacing))
+    }
+    const blockW = cols * pitch
+    const blockH = rows * pitch
+    // Centre the lattice block in the plot.
+    const originX = (gw - blockW) / 2 + pitch / 2
+    const topY = labelSpace + (availH - blockH) / 2
+    // Bottom-fill: row 0 sits at the BOTTOM of the block; top-fill: at the top.
+    const rowY = (/** @type {number} */ rowIdx) =>
+      fillFrom === 'bottom'
+        ? topY + blockH - pitch / 2 - rowIdx * pitch
+        : topY + pitch / 2 + rowIdx * pitch
+
+    const clusters = counts.map((_, i) => ({
+      i,
+      cx: gw / 2,
+      cy: labelSpace + availH / 2,
+      outerR: Math.max(blockW, blockH) / 2,
+      /** @type {{x:number,y:number,slot?:number}[]} */ dots: [],
+    }))
+
+    let k = 0
+    for (let ci = 0; ci < cells.length; ci++) {
+      for (let j = 0; j < cells[ci]; j++) {
+        const col = k % cols
+        const rowIdx = Math.floor(k / cols)
+        clusters[ci].dots.push({
+          x: originX + col * pitch,
+          y: rowY(rowIdx),
+          slot: k,
+        })
+        k++
+      }
+    }
+    return clusters
+  }
+
+  /**
+   * Distribute `total` whole cells across `counts` in proportion to each value,
+   * using the largest-remainder method so the parts sum to exactly `total`
+   * (used by the grid/waffle percentage mode).
+   * @param {number[]} counts @param {number} total @returns {number[]}
+   */
+  _largestRemainder(counts, total) {
+    const sum = counts.reduce((a, b) => a + b, 0)
+    if (sum <= 0 || total <= 0) return counts.map(() => 0)
+    const exact = counts.map((c) => (c / sum) * total)
+    const floors = exact.map((v) => Math.floor(v))
+    const used = floors.reduce((a, b) => a + b, 0)
+    const remaining = Math.max(0, total - used)
+    // Hand the leftover cells to the categories with the largest fractional part.
+    const byFrac = exact
+      .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+      .sort((a, b) => b.frac - a.frac)
+    const out = floors.slice()
+    for (let n = 0; n < remaining && n < byFrac.length; n++) {
+      out[byFrac[n].i]++
+    }
+    return out
   }
 
   /**

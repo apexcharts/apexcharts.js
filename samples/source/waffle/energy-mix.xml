@@ -1,0 +1,277 @@
+<title>Waffle Chart - How the World Is Powered</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fafbfc;
+  color: #2c3e50;
+  margin: 0;
+  padding: 32px 16px;
+}
+.wrap {
+  max-width: 640px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+.lead {
+  color: #5b6b78;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+.chart-wrap {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+.actions {
+  margin: 20px auto 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.actions button {
+  color: #fff;
+  background: #6b7280;
+  border: none;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.actions button.active {
+  background: #0d9488;
+}
+.caption {
+  text-align: center;
+  color: #5b6b78;
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 34px;
+}
+.note {
+  background: #ecfdf5;
+  border-left: 3px solid #0d9488;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #333;
+  border-radius: 2px;
+  line-height: 1.6;
+  margin: 26px auto 0;
+}
+.note code {
+  background: #d1fae5;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+</style>
+
+<scripts>
+<script>
+// A part-to-whole waffle: a 10x10 grid where every square is 1% of the world's
+// electricity, coloured by source. Two illustrative scenarios (a rough "today"
+// mix and a cleaner projected mix) toggle via the buttons; because the grid
+// keeps each cell in place and only recolours where the category boundary
+// moves, you watch the fossil band shrink and the renewables band grow.
+// `chart.type: 'waffle'` is an alias for the unit chart's grid layout with
+// square cells; `grid.total: 100` largest-remainder-rounds the values to exactly
+// 100 cells so the grid always reads as percentages. Shares are illustrative.
+// Shared by the vanilla-js/React/Vue builds.
+var SOURCES = ['Coal', 'Gas', 'Hydro', 'Nuclear', 'Wind', 'Solar', 'Other']
+var SOURCE_COLORS = [
+  '#374151', // Coal
+  '#94A3B8', // Gas
+  '#2563EB', // Hydro
+  '#7C3AED', // Nuclear
+  '#0D9488', // Wind
+  '#F59E0B', // Solar
+  '#CBD5E1', // Other
+]
+
+var SCENARIOS = {
+  today: {
+    label: 'Today',
+    caption:
+      'A rough picture of the mix today: fossil fuels (coal + gas) still fill well over half the grid.',
+    values: [35, 23, 15, 9, 8, 6, 4],
+  },
+  future: {
+    label: '2035 (projected)',
+    caption:
+      'A cleaner projected mix: coal squares recolour to wind and solar as the renewables band grows.',
+    values: [18, 20, 16, 10, 18, 14, 4],
+  },
+}
+</script>
+</scripts>
+
+<html>
+<div class="wrap">
+  <h1>How the world is powered</h1>
+  <p class="lead">
+    Each square is 1% of the electricity generated, coloured by source. Toggle
+    the scenario and watch the squares recolour in place as the mix shifts, the
+    fossil band shrinking while wind and solar grow.
+  </p>
+
+  <div class="chart-wrap">
+    {{ charts[0] }}
+  </div>
+
+  <div class="actions" id="scenario-nav">
+    <button data-scenario="today" class="active">Today</button>
+    <button data-scenario="future">2035 (projected)</button>
+  </div>
+
+  <p class="caption" id="caption"></p>
+
+  <div class="note">
+    <code>chart.type: 'waffle'</code> is an alias for the unit chart's
+    <code>grid</code> layout with square cells;
+    <code>plotOptions.unit.grid.total: 100</code> rounds the values (largest
+    remainder) to exactly 100 cells, so the grid always reads as percentages.
+    Switching scenario is a plain <code>chart.updateSeries()</code>; the grid
+    keeps every cell in its slot, so only the cells at each category boundary
+    recolour. The unit / waffle chart is a premium type; without a license it
+    renders with a trial watermark.
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'energyWaffle',
+  type: 'waffle',
+  height: 420,
+  animations: {
+    enabled: true,
+    speed: 700,
+  },
+},
+labels: SOURCES,
+colors: SOURCE_COLORS,
+legend: {
+  position: 'bottom',
+},
+plotOptions: {
+  unit: {
+    grid: {
+      columns: 10,
+      total: 100,
+    },
+    spacing: 1.25,
+  },
+},
+</options>
+
+<series>
+SCENARIOS.today.values
+</series>
+</chart>
+
+<vanilla-js-script>
+// Button-driven scenario switch: each scenario is a chart.updateSeries payload;
+// the grid keeps every cell in place and recolours only at the moving category
+// boundary. (SOURCES, SOURCE_COLORS and SCENARIOS live in the shared head script.)
+var buttons = document.querySelectorAll('#scenario-nav button')
+var caption = document.getElementById('caption')
+
+function showScenario(key) {
+  buttons.forEach(function (b) {
+    b.classList.toggle('active', b.getAttribute('data-scenario') === key)
+  })
+  caption.textContent = SCENARIOS[key].caption
+  chart.updateSeries(SCENARIOS[key].values)
+}
+
+buttons.forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    showScenario(btn.getAttribute('data-scenario'))
+  })
+})
+
+caption.textContent = SCENARIOS.today.caption
+</vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // Reach the live instance by its chart.id, then wire the buttons. (Data lives
+  // in the shared head script.) updateSeries drives the instance directly, so no
+  // React state changes under it.
+  let chart
+  const timer = window.setInterval(() => {
+    chart = ApexCharts.getChartByID('energyWaffle')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    const buttons = document.querySelectorAll('#scenario-nav button')
+    const caption = document.getElementById('caption')
+
+    const showScenario = (key) => {
+      buttons.forEach((b) =>
+        b.classList.toggle('active', b.getAttribute('data-scenario') === key),
+      )
+      caption.textContent = SCENARIOS[key].caption
+      chart.updateSeries(SCENARIOS[key].values)
+    }
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        showScenario(btn.getAttribute('data-scenario'))
+      })
+    })
+
+    caption.textContent = SCENARIOS.today.caption
+  }, 50)
+
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+waffleTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // Reach the live instance by its chart.id, then wire the buttons. (Data lives
+  // in the shared head script.) updateSeries drives the instance directly, so no
+  // reactive data changes under it.
+  var me = this
+  me.waffleTimer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('energyWaffle')
+    if (!chart) return
+    window.clearInterval(me.waffleTimer)
+
+    var buttons = document.querySelectorAll('#scenario-nav button')
+    var caption = document.getElementById('caption')
+
+    function showScenario(key) {
+      buttons.forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-scenario') === key)
+      })
+      caption.textContent = SCENARIOS[key].caption
+      chart.updateSeries(SCENARIOS[key].values)
+    }
+
+    buttons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        showScenario(btn.getAttribute('data-scenario'))
+      })
+    })
+
+    caption.textContent = SCENARIOS.today.caption
+  }, 50)
+},
+beforeDestroy: function () {
+  window.clearInterval(this.waffleTimer)
+},
+</vue-script>

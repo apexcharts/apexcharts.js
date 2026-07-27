@@ -907,7 +907,9 @@ export default class Options {
         unit: {
           // 'grouped' (each category is its own cluster, laid out in a row) |
           // 'packed' (one blob; categories coloured + sorted, minority centred) |
-          // 'columns' (each category is a vertical bar built from stacked dots).
+          // 'columns' (each category is a vertical bar built from stacked dots) |
+          // 'grid' (one lattice of cells filled in category order - a waffle /
+          // part-to-whole square "pie"; `chart.type:'waffle'` presets this).
           layout: 'grouped',
           // Update transition, controlling which previous dot each new dot
           // tweens from. 'group' (default): keyed per category, so dots stay in
@@ -941,6 +943,17 @@ export default class Options {
           // their intrinsic size).
           columns: {
             size: 'inherit',
+          },
+          // The 'grid' (waffle) layout: one lattice of cells filled in category
+          // order. `columns` = cells per row. `total` (optional) fixes the cell
+          // budget - e.g. 100 for a percentage waffle - and largest-remainder
+          // allocates the cells to categories; leave it undefined for one cell
+          // per unit (respects unitValue / maxUnits). `fillFrom` picks the first
+          // row: 'bottom' (default) or 'top'.
+          grid: {
+            columns: 10,
+            total: undefined,
+            fillFrom: 'bottom',
           },
           // Opt-in bubble sizing: scale each dot's radius by its per-unit value
           // (needs the object-form data). Circle shape only; the lattice is

@@ -1083,16 +1083,17 @@ type ApexChart = {
   | 'rangeArea'
   | 'treemap'
   | 'unit'
+  | 'waffle'
   | 'funnel'
   | 'pyramid'
   | 'gauge'
   /**
    * Internal — populated when `type` is a first-class alias (`'funnel'`,
-   * `'pyramid'`, `'gauge'`). The original requested type is preserved here
-   * while `type` is normalized to the underlying renderer (`'bar'` or
-   * `'radialBar'`). Read-only for consumers.
+   * `'pyramid'`, `'gauge'`, `'waffle'`). The original requested type is
+   * preserved here while `type` is normalized to the underlying renderer
+   * (`'bar'`, `'radialBar'` or `'unit'`). Read-only for consumers.
    */
-  requestedType?: 'funnel' | 'pyramid' | 'gauge'
+  requestedType?: 'funnel' | 'pyramid' | 'gauge' | 'waffle'
   foreColor?: string
   fontFamily?: string
   background?: string
@@ -2249,8 +2250,10 @@ type ApexPlotOptions = {
      * smallest-first so the minority group nests in the centre.
      * 'columns': each category is a vertical bar built from stacked dots (a unit
      * / waffle column) whose height encodes the count.
+     * 'grid': one lattice of cells filled in category order - a waffle /
+     * part-to-whole square "pie" (`chart.type: 'waffle'` presets this layout).
      */
-    layout?: 'grouped' | 'packed' | 'columns'
+    layout?: 'grouped' | 'packed' | 'columns' | 'grid'
     /**
      * How dots are matched between renders on an update (which previous dot a
      * new dot tweens from).
@@ -2292,6 +2295,21 @@ type ApexPlotOptions = {
        * icons keep their intrinsic size).
        */
       size?: 'inherit' | 'auto' | number
+    }
+    /**
+     * The 'grid' (waffle) layout: one lattice of cells filled in category order.
+     */
+    grid?: {
+      /** Cells per row. Defaults to 10. */
+      columns?: number
+      /**
+       * Fixed cell budget (e.g. 100 for a percentage waffle); largest-remainder
+       * allocates the cells to categories. Leave undefined for one cell per unit
+       * (respects unitValue / maxUnits).
+       */
+      total?: number
+      /** First row of the fill: 'bottom' (default) or 'top'. */
+      fillFrom?: 'bottom' | 'top'
     }
     /**
      * Opt-in bubble sizing: scale each dot's radius by its per-unit value

@@ -463,6 +463,93 @@ describe('Unit chart — columns layout (dot bars)', () => {
   })
 })
 
+describe('Unit chart — grid (waffle) layout', () => {
+  beforeEach(() => resetLicense())
+  afterEach(() => resetLicense())
+
+  it('lays all units into one grid, filled in category order', () => {
+    const chart = unitChart({
+      series: [30, 20, 10],
+      labels: ['A', 'B', 'C'],
+      plotOptions: { unit: { layout: 'grid', grid: { columns: 10 } } },
+    })
+    // 60 units -> 60 cells in a single grid.
+    expect(dotCount(chart)).toBe(60)
+    // Keyed by physical slot (like packed), not category "i:j".
+    expect(chart._unitPrevDots.has('slot:0')).toBe(true)
+    expect(chart._unitPrevDots.has('slot:59')).toBe(true)
+    expect(chart._unitPrevDots.has('1:5')).toBe(false)
+    // A single grid carries no per-category cluster labels (legend does).
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-label').length,
+    ).toBe(0)
+    chart.destroy()
+  })
+
+  it('grid rows are `columns` wide (row-major placement)', () => {
+    const chart = unitChart({
+      series: [25],
+      labels: ['A'],
+      plotOptions: { unit: { layout: 'grid', grid: { columns: 5 } } },
+    })
+    const xs = [
+      ...chart.w.dom.baseEl.querySelectorAll('circle.apexcharts-unit-area'),
+    ].map((d) => parseFloat(d.getAttribute('cx')))
+    // exactly `columns` distinct x positions (a 5-wide lattice)
+    const distinctX = new Set(xs.map((x) => Math.round(x)))
+    expect(distinctX.size).toBe(5)
+    chart.destroy()
+  })
+
+  it('grid.total makes a fixed-cell percentage waffle (sums to exactly total)', () => {
+    const chart = unitChart({
+      series: [7, 11, 5], // sum 23 -> largest-remainder scaled to 100
+      labels: ['A', 'B', 'C'],
+      plotOptions: { unit: { layout: 'grid', grid: { columns: 10, total: 100 } } },
+    })
+    expect(dotCount(chart)).toBe(100)
+    chart.destroy()
+  })
+
+  it("chart.type:'waffle' aliases to unit + grid + square", () => {
+    document.body.innerHTML = '<div id="chart"></div>'
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: { type: 'waffle', width: 400, height: 400 },
+      series: [50, 30, 20],
+      labels: ['A', 'B', 'C'],
+    })
+    chart.render()
+    // Normalized to the unit renderer, original alias preserved.
+    expect(chart.w.config.chart.type).toBe('unit')
+    expect(chart.w.config.chart.requestedType).toBe('waffle')
+    // Grid + square presets applied (only because the user did not set them).
+    expect(chart.w.config.plotOptions.unit.layout).toBe('grid')
+    expect(chart.w.config.plotOptions.unit.shape).toBe('square')
+    // One square cell per unit.
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('rect.apexcharts-unit-area').length,
+    ).toBe(100)
+    chart.destroy()
+  })
+
+  it('waffle alias does not clobber an explicit layout/shape', () => {
+    document.body.innerHTML = '<div id="chart"></div>'
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: { type: 'waffle', width: 400, height: 400 },
+      series: [40, 20],
+      labels: ['A', 'B'],
+      plotOptions: { unit: { shape: 'circle' } },
+    })
+    chart.render()
+    expect(chart.w.config.plotOptions.unit.layout).toBe('grid') // still preset
+    expect(chart.w.config.plotOptions.unit.shape).toBe('circle') // user wins
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('circle.apexcharts-unit-area').length,
+    ).toBe(60)
+    chart.destroy()
+  })
+})
+
 describe('Unit chart — flow transition (regroup)', () => {
   beforeEach(() => resetLicense())
   afterEach(() => resetLicense())
