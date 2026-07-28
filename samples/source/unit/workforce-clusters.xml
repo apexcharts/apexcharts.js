@@ -60,7 +60,7 @@ var DATASETS = {
   departments: {
     values: [200, 120, 90, 70],
     labels: ['Engineering', 'Sales', 'Operations', 'Design'],
-    colors: ['#635BFF', '#00B8D9', '#36B37E', '#FFAB00'],
+    colors: ['#008FFB', '#00B8D9', '#36B37E', '#FFAB00'],
     layout: 'grouped',
   },
   seniority: {
@@ -121,7 +121,7 @@ chart: {
   },
 },
 labels: ['Engineering', 'Sales', 'Operations', 'Design'],
-colors: ['#635BFF', '#00B8D9', '#36B37E', '#FFAB00'],
+colors: ['#008FFB', '#00B8D9', '#36B37E', '#FFAB00'],
 plotOptions: {
   unit: {
     layout: 'grouped',

@@ -79,7 +79,7 @@
     box-shadow: 0 1px 3px rgba(30, 41, 59, 0.06);
   }
   .sb-step.is-active .card {
-    border-left-color: #6366f1;
+    border-left-color: #0EA5E9;
   }
   .sb-step h3 {
     margin: 0 0 6px;
@@ -156,13 +156,13 @@
     height: 11px;
     padding: 0;
     border-radius: 50%;
-    border: 1px solid #a5b4fc;
+    border: 1px solid #7DD3FC;
     background: #fff;
     cursor: pointer;
   }
   .sb-dot.is-active {
-    background: #6366f1;
-    border-color: #6366f1;
+    background: #0EA5E9;
+    border-color: #0EA5E9;
   }
   .sb-hint {
     font-size: 13px;
@@ -172,7 +172,7 @@
   }
   .sb-note {
     background: #eef2ff;
-    border-left: 3px solid #6366f1;
+    border-left: 3px solid #0EA5E9;
     padding: 12px 16px;
     font-size: 13px;
     color: #234;
@@ -227,22 +227,22 @@
 var REV = [12, 14, 9, 15, 18, 22, 26, 31, 37, 44, 52, 61]
 var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-var INDIGO = '#818cf8'
+var ACCENT = '#0EA5E9'
 var FADE = '#e3e8f4' // out-of-spotlight months step back to this
 var RED = '#f87171'
-var QCOLORS = ['#818cf8', '#7dd3fc', '#4ade80', '#fbbf24'] // one per quarter
+var QCOLORS = ['#0EA5E9', '#7dd3fc', '#4ade80', '#fbbf24'] // one per quarter
 
 function colors12(fn) {
   var a = []
   for (var i = 0; i < 12; i++) a.push(fn(i))
   return a
 }
-var C_ALL = colors12(function () { return INDIGO })
+var C_ALL = colors12(function () { return ACCENT })
 var C_OUTAGE = colors12(function (i) {
   if (i === 2) return RED // March
-  return i >= 1 && i <= 3 ? INDIGO : FADE
+  return i >= 1 && i <= 3 ? ACCENT : FADE
 })
-var C_V2 = colors12(function (i) { return i >= 4 ? INDIGO : FADE }) // May on
+var C_V2 = colors12(function (i) { return i >= 4 ? ACCENT : FADE }) // May on
 var C_QUARTERS = colors12(function (i) { return QCOLORS[Math.floor(i / 3)] })
 
 // The shared column payload; a beat only swaps the colors array. labels []
@@ -481,7 +481,7 @@ chart: {
   toolbar: { show: false },
   zoom: { enabled: false },
 },
-colors: ['#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8', '#818cf8'],
+colors: ['#0EA5E9', '#0EA5E9', '#0EA5E9', '#0EA5E9', '#0EA5E9', '#0EA5E9', '#0EA5E9', '#0EA5E9', '#0EA5E9', '#0EA5E9', '#0EA5E9', '#0EA5E9'],
 plotOptions: { bar: { columnWidth: '58%', borderRadius: 3, distributed: true } },
 stroke: { width: 0 },
 dataLabels: { enabled: false },

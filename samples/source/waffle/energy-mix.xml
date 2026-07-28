@@ -89,7 +89,7 @@ var SOURCE_COLORS = [
   '#374151', // Coal
   '#94A3B8', // Gas
   '#2563EB', // Hydro
-  '#7C3AED', // Nuclear
+  '#E11D48', // Nuclear
   '#0D9488', // Wind
   '#F59E0B', // Solar
   '#CBD5E1', // Other

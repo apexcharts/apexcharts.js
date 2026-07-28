@@ -29,11 +29,11 @@ var raceColors = {
   'China': '#EF4444',
   'Germany': '#F59E0B',
   'Japan': '#10B981',
-  'France': '#8B5CF6',
+  'France': '#06B6D4',
   'United Kingdom': '#EC4899',
   'India': '#14B8A6',
   'Brazil': '#F97316',
-  'Canada': '#6366F1',
+  'Canada': '#64748B',
   'Italy': '#84CC16'
 }
 

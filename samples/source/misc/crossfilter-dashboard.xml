@@ -17,7 +17,7 @@
   .cfd-bar button {
     padding: 6px 13px;
     cursor: pointer;
-    border: 1px solid #6366f1;
+    border: 1px solid #2563EB;
     color: #4338ca;
     background: #fff;
     border-radius: 6px;
@@ -54,7 +54,7 @@
   }
   .cfd-note {
     background: #eef2ff;
-    border-left: 3px solid #6366f1;
+    border-left: 3px solid #2563EB;
     padding: 11px 15px;
     font-size: 13px;
     color: #234;
@@ -142,7 +142,7 @@ title: { text: 'Quarter', align: 'left' },
 legend: { position: 'bottom', fontSize: '12px' },
 plotOptions: { pie: { expandOnClick: false } },
 dataLabels: { enabled: true, formatter: function (v, o) { return o.w.config.series[o.seriesIndex] } },
-colors: ['#6366f1', '#0ea5e9', '#22c55e', '#f59e0b'],
+colors: ['#2563EB', '#0ea5e9', '#22c55e', '#f59e0b'],
 </options>
 
 <series>
@@ -186,7 +186,7 @@ title: { text: 'Day of week', align: 'left' },
 plotOptions: { bar: { columnWidth: '55%', borderRadius: 3, distributed: true } },
 legend: { show: false },
 dataLabels: { enabled: false },
-colors: ['#6366f1', '#0ea5e9', '#22c55e', '#f59e0b', '#a855f7'],
+colors: ['#2563EB', '#0ea5e9', '#22c55e', '#f59e0b', '#F43F5E'],
 </options>
 
 <series>
@@ -211,7 +211,7 @@ title: { text: 'Fluctuation % (brush a range)', align: 'left' },
 plotOptions: { bar: { columnWidth: '92%' } },
 dataLabels: { enabled: false },
 xaxis: { type: 'numeric', tickAmount: 8, labels: { formatter: function (v) { return Number(v).toFixed(1) } } },
-colors: ['#6366f1'],
+colors: ['#2563EB'],
 </options>
 
 <series>

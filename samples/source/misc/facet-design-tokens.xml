@@ -5,7 +5,7 @@
      ApexCharts instance on the page reads them, so the chart is part of your
      design system, not a separate color config. */
   :root {
-    --apx-accent: #4f46e5;
+    --apx-accent: #0891B2;
     --apx-fore: #1f2937;
     --apx-grid: #e5e7eb;
     --apx-surface: #ffffff;
@@ -15,7 +15,7 @@
   /* The dark palette: the same tokens, different values. Toggling the theme
      needs no per-series color config in JS. */
   :root.apx-dark {
-    --apx-accent: #818cf8;
+    --apx-accent: #22D3EE;
     --apx-fore: #e5e7eb;
     --apx-grid: #374151;
     --apx-surface: #0b0f19;
@@ -77,7 +77,7 @@
   // operating system's light/dark setting with zero JS.
   // Shared by the vanilla-js, React and Vue builds: the accent tokens the
   // Shuffle button cycles through at runtime.
-  var ACCENTS = ['#e11d48', '#0e9d9a', '#d97706', '#7c3aed', '#4f46e5']
+  var ACCENTS = ['#e11d48', '#0e9d9a', '#d97706', '#2563EB', '#0891B2']
 </script>
 </scripts>
 

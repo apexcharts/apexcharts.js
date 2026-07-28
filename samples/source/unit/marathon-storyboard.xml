@@ -79,7 +79,7 @@
     box-shadow: 0 1px 3px rgba(30, 41, 59, 0.06);
   }
   .sb-step.is-active .card {
-    border-left-color: #6366f1;
+    border-left-color: #0EA5E9;
   }
   .sb-step h3 {
     margin: 0 0 6px;
@@ -156,13 +156,13 @@
     height: 11px;
     padding: 0;
     border-radius: 50%;
-    border: 1px solid #a5b4fc;
+    border: 1px solid #7DD3FC;
     background: #fff;
     cursor: pointer;
   }
   .sb-dot.is-active {
-    background: #6366f1;
-    border-color: #6366f1;
+    background: #0EA5E9;
+    border-color: #0EA5E9;
   }
   .sb-hint {
     font-size: 13px;
@@ -172,7 +172,7 @@
   }
   .sb-note {
     background: #eef2ff;
-    border-left: 3px solid #6366f1;
+    border-left: 3px solid #0EA5E9;
     padding: 12px 16px;
     font-size: 13px;
     color: #234;

@@ -20,7 +20,7 @@
   }
   .ink-note {
     background: #eef2ff;
-    border-left: 3px solid #6366f1;
+    border-left: 3px solid #0EA5E9;
     padding: 11px 15px;
     font-size: 13px;
     color: #234;
@@ -93,7 +93,7 @@ chart: {
   zoom: { enabled: false },
 },
 stroke: { width: 2, curve: 'smooth' },
-colors: ['#6366f1'],
+colors: ['#0EA5E9'],
 title: { text: 'Signal (drag the callouts)', align: 'left' },
 xaxis: { type: 'numeric', title: { text: 'Sample' } },
 yaxis: { title: { text: 'Value' } },
@@ -101,8 +101,8 @@ annotations: {
   points: [
     {
       x: 6, y: 74, id: 'peak',
-      marker: { size: 7, fillColor: '#fff', strokeColor: '#6366f1', strokeWidth: 3 },
-      label: { text: 'Peak', borderColor: '#6366f1', style: { color: '#fff', background: '#6366f1' } },
+      marker: { size: 7, fillColor: '#fff', strokeColor: '#0EA5E9', strokeWidth: 3 },
+      label: { text: 'Peak', borderColor: '#0EA5E9', style: { color: '#fff', background: '#0EA5E9' } },
     },
     {
       x: 20, y: 52, id: 'dip',
@@ -112,8 +112,8 @@ annotations: {
   ],
   xaxis: [
     {
-      x: 10, x2: 16, id: 'window', fillColor: '#a5b4fc', opacity: 0.28,
-      label: { text: 'Window', style: { color: '#fff', background: '#6366f1' } },
+      x: 10, x2: 16, id: 'window', fillColor: '#7DD3FC', opacity: 0.28,
+      label: { text: 'Window', style: { color: '#fff', background: '#0EA5E9' } },
     },
   ],
   yaxis: [

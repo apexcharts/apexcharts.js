@@ -30,8 +30,8 @@
     cursor: not-allowed;
   }
   .controls .primary {
-    border-color: #7c5cf6;
-    color: #7c5cf6;
+    border-color: #0EA5E9;
+    color: #0EA5E9;
     font-weight: 600;
   }
   .readout {
@@ -43,7 +43,7 @@
   .readout b { color: #111; }
   .note {
     background: #f6f4fe;
-    border-left: 3px solid #7c5cf6;
+    border-left: 3px solid #0EA5E9;
     padding: 10px 14px;
     font-size: 13px;
     color: #234;
@@ -119,7 +119,7 @@ chart: {
   // Right-click actions: drop a note, a dashed marker line, or seed the ruler.
   contextMenu: {
     enabled: true,
-    line: { text: 'Marker', strokeDashArray: 5, color: '#7c5cf6' },
+    line: { text: 'Marker', strokeDashArray: 5, color: '#0EA5E9' },
     items: ['annotate', 'xline', 'yline', 'measure'],
   },
   // Measure ruler + editable / draggable annotations. Both commit checkpoints,
@@ -127,7 +127,7 @@ chart: {
   measure: { enabled: true },
   ink: { enabled: true, snap: true },
 },
-colors: ['#7c5cf6'],
+colors: ['#0EA5E9'],
 stroke: { width: 2.5, curve: 'smooth' },
 markers: { size: 0, hover: { size: 5 } },
 dataLabels: { enabled: false },
