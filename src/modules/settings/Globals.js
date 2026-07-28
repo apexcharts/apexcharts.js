@@ -449,6 +449,10 @@ export default class Globals {
       // ── SVG viewport (set by Dimensions, but persistent as layout anchor) ─────
       svgWidth: 0,
       svgHeight: 0,
+      // Fingerprint of the container inputs that fed the last rendered size, so
+      // the window-resize handler can skip a redraw (and the animation teardown
+      // it causes) when a resize does not change the chart's drawing box.
+      lastResizeSignature: null,
       // Note: gridWidth, gridHeight, translateX, translateY, translateXAxisX,
       // translateXAxisY, xAxisLabelsHeight, xAxisGroupLabelsHeight, xAxisLabelsWidth,
       // rotateXLabels, xAxisHeight, yLabelsCoords, yTitleCoords live on w.layout —

@@ -658,6 +658,41 @@ export default class Core {
 
     this.w.dom.elWrap.style.width = `${gl.svgWidth}px`
     this.w.dom.elWrap.style.height = `${gl.svgHeight}px`
+
+    // Record the container inputs this render was sized from, so a later resize
+    // can tell whether it actually changes the drawing box (see getResizeSignature).
+    gl.lastResizeSignature = this.getResizeSignature()
+  }
+
+  /**
+   * A stable fingerprint of the container measurements that actually feed the
+   * chart's rendered dimensions, given the width/height config. Only inputs that
+   * a resize can change are included: the element width when the width is a
+   * percentage, and the parent height when the height is a percentage. A fully
+   * pixel-sized chart therefore has a constant signature, so a resize never
+   * forces a redraw; a percentage-sized chart's signature tracks the container.
+   * The window-resize handler compares this against the last render to skip
+   * redraws (and the entrance-animation teardown they cause) that aren't needed.
+   * @returns {{ w: number, h: number }}
+   */
+  getResizeSignature() {
+    const { config: cnf } = this.w
+    const rawWidth = (cnf.chart.width || '100%').toString().trim()
+    const rawHeight = (cnf.chart.height || 'auto').toString().trim()
+
+    let w = 0
+    let h = 0
+
+    if (rawWidth.endsWith('%')) {
+      let elDim = Utils.getDimensions(this.el)
+      if (!elDim[0]) elDim = Utils.getDimensions(this.el.parentNode)
+      w = elDim[0] || 0
+    }
+    if (rawHeight.endsWith('%')) {
+      h = Utils.getDimensions(this.el.parentNode)[1] || 0
+    }
+
+    return { w: Math.round(w), h: Math.round(h) }
   }
 
   shiftGraphPosition() {

@@ -2184,8 +2184,27 @@ export default class ApexCharts {
    */
   _windowResize() {
     this.w.globals.resizeTimer = window.setTimeout(() => {
-      this.w.globals.resized = true
-      this.w.globals.dataChanged = false
+      const gl = this.w.globals
+
+      // Only redraw if the resize actually changes the chart's drawing box.
+      // A resize that leaves the box unchanged (a height-only change to an
+      // ancestor, or an auto-sizing iframe growing to fit a fixed-size chart)
+      // must not tear the chart down and rebuild it: the rebuild renders
+      // instantly and cancels any running entrance animation. The signature
+      // captures only the container inputs that feed the size, so a pixel-sized
+      // chart never redraws on resize while a percentage-sized one still does.
+      if (this.core && gl.lastResizeSignature) {
+        const sig = this.core.getResizeSignature()
+        if (
+          sig.w === gl.lastResizeSignature.w &&
+          sig.h === gl.lastResizeSignature.h
+        ) {
+          return
+        }
+      }
+
+      gl.resized = true
+      gl.dataChanged = false
 
       // we need to redraw the whole chart on window resize (with a small delay).
       this.ctx.update()

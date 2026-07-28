@@ -365,6 +365,8 @@ export interface ChartGlobals
   // ── Layout extras (ephemeral) ─────────────────────────────────────────────
   svgWidth: number
   svgHeight: number
+  /** Container inputs the last render was sized from; see Core.getResizeSignature. */
+  lastResizeSignature: { w: number; h: number } | null
   yAxisLabelsWidth: number
   yAxisWidths: number[]
   translateYAxisX: number[]
