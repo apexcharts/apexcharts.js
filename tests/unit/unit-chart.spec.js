@@ -21,7 +21,9 @@ import {
 
 const WM = '[data-apexcharts-watermark]'
 installTestSigningKey()
-const VALID_KEY = signedKey('2020-01-01', '2099-01-01')
+// Premium plan: the unit type is a Premium-and-above entitlement, so the key
+// that removes the watermark must be on the premium (or enterprise) plan.
+const VALID_KEY = signedKey('2020-01-01', '2099-01-01', 'premium')
 
 function resetLicense() {
   LicenseManager.licenseKey = null

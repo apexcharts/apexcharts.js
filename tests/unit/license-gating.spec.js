@@ -14,7 +14,10 @@ import { Environment } from '../../src/utils/Environment.js'
 
 const WM = '[data-apexcharts-watermark]'
 installTestSigningKey()
-const VALID_KEY = signedKey('2020-01-01', '2099-01-01')
+// Premium plan: entitled to the premium feature set (see LicenseEnforcer
+// PREMIUM_PLANS). Structurally valid but lower-tier keys are exercised in the
+// "plan entitlement" block below.
+const VALID_KEY = signedKey('2020-01-01', '2099-01-01', 'premium')
 
 function resetLicense() {
   LicenseManager.licenseKey = null
@@ -85,6 +88,16 @@ describe('License gating', () => {
       expect(premiumFeatureInUse(chart.w, chart)).toBe(false)
       chart.storyboard._used = true // bind() sets this after binding beats
       expect(premiumFeaturesInUse(chart.w, chart)).toContain('storyboard')
+      chart.destroy()
+    })
+
+    it('flags "unit" for a unit chart type (the type is the premium product)', () => {
+      const chart = createChartWithOptions({
+        chart: { type: 'unit', width: 480, height: 320 },
+        series: [10, 20],
+        labels: ['A', 'B'],
+      })
+      expect(premiumFeaturesInUse(chart.w, chart)).toContain('unit')
       chart.destroy()
     })
 
@@ -200,7 +213,9 @@ describe('License gating', () => {
   // which a chart joins only when the user declares `chart.id`, so a forged key
   // escaped the watermark entirely on every anonymous chart: the common case.
   describe('forged key correction after async verification', () => {
-    const FORGED = forgedKey('2020-01-01', '2099-01-01')
+    // Premium plan so it is provisionally entitled: the watermark then appears
+    // only when the signature verdict lands, which is what this block asserts.
+    const FORGED = forgedKey('2020-01-01', '2099-01-01', 'premium')
 
     // Let the importKey/verify microtasks and the onChange listener run.
     const settle = async () => {
@@ -247,6 +262,83 @@ describe('License gating', () => {
       const free = premiumLineChart()
       expect(_enforcedCount()).toBe(before)
       free.destroy()
+    })
+  })
+
+  // ── plan entitlement: premium features need a Premium-or-above license ─────
+  //
+  // A structurally valid key is no longer enough. The issuing service sells
+  // pro / premium / enterprise; only premium and the higher enterprise tier
+  // unlock the premium feature set (the unit chart type + the seven features).
+  describe('plan entitlement', () => {
+    const premiumKey = signedKey('2020-01-01', '2099-01-01', 'premium')
+    const enterpriseKey = signedKey('2020-01-01', '2099-01-01', 'enterprise')
+    const proKey = signedKey('2020-01-01', '2099-01-01', 'pro')
+    const standardKey = signedKey('2020-01-01', '2099-01-01', 'standard')
+
+    it('premium plan -> no watermark', () => {
+      ApexCharts.setLicense(premiumKey)
+      const chart = premiumLineChart({ ink: { enabled: true } })
+      expect(hasWatermark(chart)).toBe(false)
+      chart.destroy()
+    })
+
+    it('enterprise plan (higher tier) -> no watermark', () => {
+      ApexCharts.setLicense(enterpriseKey)
+      const chart = premiumLineChart({ ink: { enabled: true } })
+      expect(hasWatermark(chart)).toBe(false)
+      chart.destroy()
+    })
+
+    it('pro plan -> watermark + a warning to upgrade (key valid, tier too low)', () => {
+      ApexCharts.setLicense(proKey)
+      const chart = premiumLineChart({ ink: { enabled: true } })
+      expect(hasWatermark(chart)).toBe(true)
+      expect(
+        warnSpy.mock.calls.some((c) => /Premium or Enterprise/i.test(String(c[0]))),
+      ).toBe(true)
+      // Not reported as an invalid-key error: the licence is genuine.
+      expect(
+        errorSpy.mock.calls.some((c) => /invalid|does not verify/i.test(String(c[0]))),
+      ).toBe(false)
+      chart.destroy()
+    })
+
+    it('standard (free-tier) plan -> watermark', () => {
+      ApexCharts.setLicense(standardKey)
+      const chart = premiumLineChart({ ink: { enabled: true } })
+      expect(hasWatermark(chart)).toBe(true)
+      chart.destroy()
+    })
+
+    it('the unit chart type is plan-gated: pro -> watermark, premium -> none', () => {
+      ApexCharts.setLicense(proKey)
+      const proUnit = createChartWithOptions({
+        chart: { type: 'unit', width: 480, height: 320 },
+        series: [10, 20, 30],
+        labels: ['A', 'B', 'C'],
+      })
+      expect(hasWatermark(proUnit)).toBe(true)
+      proUnit.destroy()
+
+      ApexCharts.setLicense(premiumKey)
+      const premiumUnit = createChartWithOptions({
+        chart: { type: 'unit', width: 480, height: 320 },
+        series: [10, 20, 30],
+        labels: ['A', 'B', 'C'],
+      })
+      expect(hasWatermark(premiumUnit)).toBe(false)
+      premiumUnit.destroy()
+    })
+
+    it('a late upgrade from pro to premium clears the watermark', async () => {
+      ApexCharts.setLicense(proKey)
+      const chart = premiumLineChart({ ink: { enabled: true } })
+      expect(hasWatermark(chart)).toBe(true)
+      ApexCharts.setLicense(premiumKey)
+      await chart.updateSeries([{ name: 'A', data: [1, 2, 3, 4, 5] }])
+      expect(hasWatermark(chart)).toBe(false)
+      chart.destroy()
     })
   })
 

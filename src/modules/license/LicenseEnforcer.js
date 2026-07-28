@@ -10,11 +10,13 @@
  * annotations / legend / toolbar / keyboard / exports, and the always-on core)
  * is never gated.
  *
- * Enforcement is trial-mode: a premium feature without a valid license keeps
- * working, but the chart shows an "APEXCHARTS" watermark. A valid key removes
- * it. Client-side enforcement is inherently bypassable - this is deterrence and
- * honest-customer compliance, not DRM. It must NEVER degrade or block a feature
- * and must NEVER throw.
+ * Enforcement is trial-mode: a premium feature without a valid, entitled license
+ * keeps working, but the chart shows an "APEXCHARTS" watermark. These features
+ * are a Premium-and-above entitlement: a valid key on the `premium` or (higher)
+ * `enterprise` plan removes the watermark, while a valid key on the lower `pro`
+ * plan (or the free tier) keeps it. Client-side enforcement is inherently
+ * bypassable - this is deterrence and honest-customer compliance, not DRM. It
+ * must NEVER degrade or block a feature and must NEVER throw.
  *
  * @module modules/license/LicenseEnforcer
  */
@@ -155,6 +157,34 @@ function resolveKey(w) {
 }
 
 /**
+ * License plans that entitle the premium feature set, lower-cased. The issuing
+ * service (editor-api) sells exactly three licensed plans - `pro`, `premium`,
+ * `enterprise` (routes/payment/_shared.js VALID_PLAN_TYPES) - and the premium
+ * features are a Premium-and-above entitlement: `premium` and the higher
+ * `enterprise` tier unlock them, while `pro` (and the free tier, or any unknown
+ * plan) does not.
+ * @type {Set<string>}
+ */
+const PREMIUM_PLANS = new Set(['premium', 'enterprise'])
+
+/**
+ * Whether a key both validates (format, signature, expiry, domain) AND carries a
+ * plan entitled to the premium features. Structural validity alone is not enough:
+ * a valid `pro` key stays in trial mode. The `valid` flag still carries the
+ * async-corrected signature verdict; the plan is read from the same synchronous
+ * decode, so the plan gate needs no extra round-trip.
+ * @param {string | null} key
+ * @returns {boolean}
+ */
+function licensedForPremium(key) {
+  if (!key) return false
+  const result = LicenseManager.validateKey(key)
+  if (!result.valid) return false
+  const plan = result.data && result.data.plan
+  return typeof plan === 'string' && PREMIUM_PLANS.has(plan.toLowerCase())
+}
+
+/**
  * (Re)create the watermark node and (re)bind a style-tamper observer to it.
  * @param {any} ctx @param {HTMLElement} elWrap
  */
@@ -215,29 +245,50 @@ export function teardownWatermark(ctx, elWrap) {
 
 /**
  * One concise console message per chart, matching the family:
- *  - a key IS set but invalid/expired/wrong-domain -> console.error the reason
- *    (skipped for the setLicense singleton, which already errored at set time,
- *     to avoid duplicate noise)
  *  - NO key at all -> console.warn naming the feature(s) + pricing link
+ *  - a valid key on too low a plan (e.g. Pro) -> console.warn to upgrade: the key
+ *    is genuine, the tier is insufficient, so this is not an "invalid key" error
+ *  - a key IS set but invalid/expired/wrong-domain/forged -> console.error the
+ *    reason (skipped for the setLicense singleton, which already errored at set
+ *    time, to avoid duplicate noise)
  * @param {any} ctx @param {string | null} key @param {string[]} features
  */
 function notifyTrial(ctx, key, features) {
   if (ctx._premiumLicenseNotified) return
   ctx._premiumLicenseNotified = true
 
+  const many = features.length > 1
+
   if (!key) {
     console.warn(
-      `[ApexCharts] Premium feature${features.length > 1 ? 's' : ''} in use ` +
+      `[ApexCharts] Premium feature${many ? 's' : ''} in use ` +
         `(${features.join(', ')}) without a license. Running in trial mode ` +
         `with a watermark. Get a license: ${PRICING_URL}`,
     )
     return
   }
 
-  // A key was provided but is not valid. The setLicense singleton already
-  // console.error'd at set time; only report per-chart / global keys here.
+  const result = LicenseManager.validateKey(key)
+
+  // Structurally valid, but the plan does not include the premium features. The
+  // key is real (setLicense did not error at set time, since it is valid), so the
+  // enforcer is the only place this can be surfaced. A warning, not an error: the
+  // licence is genuine, only the tier is too low.
+  if (result.valid) {
+    const plan = (result.data && result.data.plan) || 'current'
+    console.warn(
+      `[ApexCharts] Premium feature${many ? 's' : ''} in use ` +
+        `(${features.join(', ')}) require a Premium or Enterprise license; the ` +
+        `${plan} plan does not include ${many ? 'them' : 'it'}. Running in trial ` +
+        `mode with a watermark. Upgrade: ${PRICING_URL}`,
+    )
+    return
+  }
+
+  // A key was provided but is not structurally valid. The setLicense singleton
+  // already console.error'd at set time; only report per-chart / global keys here.
   if (key !== LicenseManager.getKey()) {
-    console.error(`[Apex] ${LicenseManager.validateKey(key).message}`)
+    console.error(`[Apex] ${result.message}`)
   }
 }
 
@@ -282,12 +333,14 @@ export function enforceLicense(w, ctx) {
     enforced.add(ctx)
 
     const key = resolveKey(w)
-    if (LicenseManager.isKeyValid(key)) {
+    if (licensedForPremium(key)) {
       teardownWatermark(ctx, elWrap)
       return
     }
 
-    // Premium in use + no valid license -> trial mode (feature still works).
+    // Premium in use + no valid, entitled license -> trial mode (feature still
+    // works). Covers no key, an invalid/expired/forged key, AND a valid key on a
+    // plan below Premium (e.g. Pro).
     addWatermark(ctx, elWrap)
     notifyTrial(ctx, key, features)
   } catch {
