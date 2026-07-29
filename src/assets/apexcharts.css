@@ -418,6 +418,18 @@ rect.legend-mouseover-inactive,
   font-family: inherit
 }
 
+/* Point-annotation hover tooltip (apexcharts/apexcharts.js#2424). Reuses the
+ * glass body/border/shadow from `.apexcharts-tooltip` but holds free-form
+ * content, so it needs its own padding, wrapping and a sane max width. */
+.apexcharts-tooltip.apexcharts-annotation-tooltip {
+  padding: 6px 10px;
+  max-width: 240px;
+  white-space: normal;
+  line-height: 1.4;
+  pointer-events: none;
+  z-index: 13
+}
+
 .apexcharts-tooltip-title {
   padding: 8px 12px 4px;
   font-size: 12px;

@@ -144,6 +144,21 @@ export default class Options {
         offsetX: 0,
         offsetY: 0,
       },
+      tooltip: {
+        // Show a hover tooltip over the annotation marker, like a regular
+        // data point. Lets you surface richer detail than fits in the label.
+        enabled: false,
+        // Static tooltip content (HTML allowed; array joined with <br/>).
+        // Falls back to label.text when omitted.
+        text: undefined,
+        // formatter({ annotation, seriesIndex, id, w }) => string (HTML).
+        // Takes precedence over `text` when provided.
+        formatter: undefined,
+        // 'light' | 'dark'. Falls back to the global tooltip.theme.
+        theme: undefined,
+        offsetX: 0,
+        offsetY: 0,
+      },
     }
 
     this.yAxisAnnotation = {
@@ -1280,6 +1295,11 @@ export default class Options {
           startAngle: 0,
           endAngle: 360,
           expandOnClick: true,
+          // Rounds the corners of each slice (in px). Applies to pie, donut and
+          // polarArea (all rendered by the Pie module). 0 = sharp corners
+          // (default, unchanged behavior). The value is clamped per slice so
+          // opposing corner fillets never cross on thin/narrow slices.
+          borderRadius: 0,
           dataLabels: {
             // These are the percentage values which are displayed on slice
             offset: 0, // offset by which labels will move outside

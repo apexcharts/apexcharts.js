@@ -329,6 +329,183 @@ describe('PointsAnnotations', () => {
   })
 
   // =========================================================================
+  // Hover tooltip (apexcharts/apexcharts.js#2424)
+  // =========================================================================
+  describe('hover tooltip', () => {
+    const getMarker = () =>
+      chart.w.globals.dom.baseEl.querySelector(
+        '.apexcharts-point-annotation-marker'
+      )
+    const getTooltip = () =>
+      chart.w.globals.dom.baseEl.querySelector('.apexcharts-annotation-tooltip')
+
+    it('should not create a tooltip element until the marker is hovered', () => {
+      chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        annotations: {
+          points: [
+            {
+              x: 2,
+              y: 30,
+              marker: { size: 6 },
+              label: { text: 'Hover me' },
+              tooltip: { enabled: true },
+            },
+          ],
+        },
+      })
+
+      expect(getTooltip()).toBeNull()
+
+      getMarker().dispatchEvent(new Event('mouseenter'))
+
+      const tooltip = getTooltip()
+      expect(tooltip).not.toBeNull()
+      expect(tooltip.classList.contains('apexcharts-active')).toBe(true)
+      expect(tooltip.innerHTML).toContain('Hover me')
+    })
+
+    it('should hide (deactivate) the tooltip on mouseleave', () => {
+      chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        annotations: {
+          points: [
+            {
+              x: 2,
+              y: 30,
+              marker: { size: 6 },
+              tooltip: { enabled: true, text: 'Detail' },
+            },
+          ],
+        },
+      })
+
+      const marker = getMarker()
+      marker.dispatchEvent(new Event('mouseenter'))
+      expect(getTooltip().classList.contains('apexcharts-active')).toBe(true)
+
+      marker.dispatchEvent(new Event('mouseleave'))
+      expect(getTooltip().classList.contains('apexcharts-active')).toBe(false)
+    })
+
+    it('should prefer tooltip.text over the label text', () => {
+      chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        annotations: {
+          points: [
+            {
+              x: 2,
+              y: 30,
+              marker: { size: 6 },
+              label: { text: 'Short label' },
+              tooltip: { enabled: true, text: 'Rich <b>detail</b>' },
+            },
+          ],
+        },
+      })
+
+      getMarker().dispatchEvent(new Event('mouseenter'))
+      const tooltip = getTooltip()
+      expect(tooltip.innerHTML).toContain('Rich <b>detail</b>')
+      expect(tooltip.innerHTML).not.toContain('Short label')
+    })
+
+    it('should join an array of tooltip text with line breaks', () => {
+      chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        annotations: {
+          points: [
+            {
+              x: 2,
+              y: 30,
+              marker: { size: 6 },
+              tooltip: { enabled: true, text: ['Line 1', 'Line 2'] },
+            },
+          ],
+        },
+      })
+
+      getMarker().dispatchEvent(new Event('mouseenter'))
+      // The DOM normalises the self-closing <br/> to <br> in innerHTML.
+      expect(getTooltip().innerHTML).toContain('Line 1<br>Line 2')
+    })
+
+    it('should use a formatter when provided, passing annotation context', () => {
+      const formatter = vi.fn(({ id }) => `<span>custom ${id}</span>`)
+
+      chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        annotations: {
+          points: [
+            {
+              x: 2,
+              y: 30,
+              id: 'pt-1',
+              marker: { size: 6 },
+              label: { text: 'ignored' },
+              tooltip: { enabled: true, text: 'also ignored', formatter },
+            },
+          ],
+        },
+      })
+
+      getMarker().dispatchEvent(new Event('mouseenter'))
+
+      expect(formatter).toHaveBeenCalledTimes(1)
+      expect(formatter.mock.calls[0][0].id).toBe('pt-1')
+      expect(getTooltip().innerHTML).toContain('custom pt-1')
+    })
+
+    it('should apply the tooltip theme (falling back to global)', () => {
+      chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        tooltip: { theme: 'dark' },
+        annotations: {
+          points: [
+            {
+              x: 2,
+              y: 30,
+              marker: { size: 6 },
+              tooltip: { enabled: true, text: 'Detail' },
+            },
+          ],
+        },
+      })
+
+      getMarker().dispatchEvent(new Event('mouseenter'))
+      expect(getTooltip().classList.contains('apexcharts-theme-dark')).toBe(
+        true
+      )
+    })
+
+    it('should not attach tooltip handlers when disabled', () => {
+      chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        annotations: {
+          points: [
+            {
+              x: 2,
+              y: 30,
+              marker: { size: 6 },
+              label: { text: 'No tooltip' },
+            },
+          ],
+        },
+      })
+
+      getMarker().dispatchEvent(new Event('mouseenter'))
+      expect(getTooltip()).toBeNull()
+    })
+  })
+
+  // =========================================================================
   // Early returns / negative tests
   // =========================================================================
   describe('early returns', () => {

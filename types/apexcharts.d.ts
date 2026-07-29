@@ -1855,6 +1855,33 @@ type PointAnnotations = {
     offsetY?: number
   }
   /**
+   * Show a hover tooltip over the annotation marker, like a regular data
+   * point. Useful for surfacing more detail than fits in the label.
+   */
+  tooltip?: {
+    enabled?: boolean
+    /**
+     * Static tooltip content (HTML allowed; an array is joined with line
+     * breaks). Falls back to `label.text` when omitted.
+     */
+    text?: string | string[]
+    /**
+     * Returns the tooltip markup (HTML). Takes precedence over `text`.
+     */
+    formatter?: (opts: {
+      annotation: PointAnnotations
+      seriesIndex?: number
+      id?: number | string
+      w: any
+    }) => string
+    /**
+     * Tooltip theme. Falls back to the global `tooltip.theme`.
+     */
+    theme?: 'light' | 'dark'
+    offsetX?: number
+    offsetY?: number
+  }
+  /**
    * Render arbitrary SVG markup at the annotation's position. Deprecated in
    * favor of `image`/`marker`, but still supported.
    */
@@ -2461,6 +2488,12 @@ type ApexPlotOptions = {
     offsetX?: number
     offsetY?: number
     expandOnClick?: boolean
+    /**
+     * Rounds the corners of each slice (in px). Applies to pie, donut and
+     * polarArea. Defaults to 0 (sharp corners). The value is clamped per
+     * slice so corner fillets never cross on thin or narrow slices.
+     */
+    borderRadius?: number
     dataLabels?: {
       offset?: number
       minAngleToShowLabel?: number
