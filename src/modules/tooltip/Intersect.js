@@ -342,8 +342,12 @@ class Intersect {
     }
 
     // if tooltip is still null, querySelector
+    // (:not() so we don't grab the point-annotation hover tooltip, which
+    // shares the .apexcharts-tooltip class for styling)
     if (ttCtx.tooltip === null) {
-      ttCtx.tooltip = w.dom.baseEl.querySelector('.apexcharts-tooltip')
+      ttCtx.tooltip = w.dom.baseEl.querySelector(
+        '.apexcharts-tooltip:not(.apexcharts-annotation-tooltip)',
+      )
     }
 
     if (!w.config.tooltip.shared) {

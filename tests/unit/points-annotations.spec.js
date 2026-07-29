@@ -484,6 +484,46 @@ describe('PointsAnnotations', () => {
       )
     })
 
+    it('should not hijack getElTooltip once the annotation tooltip precedes the series tooltip in DOM', () => {
+      chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        annotations: {
+          points: [
+            {
+              x: 2,
+              y: 30,
+              marker: { size: 6 },
+              tooltip: { enabled: true, text: 'Detail' },
+            },
+          ],
+        },
+      })
+
+      // Lazily create the annotation tooltip.
+      getMarker().dispatchEvent(new Event('mouseenter'))
+      const annoTT = getTooltip()
+      expect(annoTT).not.toBeNull()
+
+      const seriesTT = chart.w.globals.dom.baseEl.querySelector(
+        '.apexcharts-tooltip:not(.apexcharts-annotation-tooltip)'
+      )
+      expect(seriesTT).not.toBeNull()
+
+      // Simulate the fastUpdate DOM order: drawTooltip re-appends the series
+      // tooltip, leaving the annotation tooltip FIRST among the elements
+      // carrying the shared .apexcharts-tooltip class.
+      seriesTT.parentNode.insertBefore(annoTT, seriesTT)
+
+      // getElTooltip must still resolve the series tooltip, not the
+      // annotation tooltip.
+      const resolved = chart.w.globals.tooltip.getElTooltip()
+      expect(resolved).toBe(seriesTT)
+      expect(resolved.classList.contains('apexcharts-annotation-tooltip')).toBe(
+        false
+      )
+    })
+
     it('should not attach tooltip handlers when disabled', () => {
       chart = createChartWithOptions({
         chart: { type: 'line' },

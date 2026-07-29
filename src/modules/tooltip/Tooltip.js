@@ -177,8 +177,15 @@ export default class Tooltip {
     if (!ctx) ctx = this
     if (!ctx.w.dom.baseEl) return null
 
+    // :not() is required: the point-annotation hover tooltip shares the
+    // .apexcharts-tooltip class for styling and, once created, can precede
+    // the series tooltip in DOM order (drawTooltip re-appends the series
+    // tooltip on fastUpdate). Without the guard this would return the
+    // annotation tooltip and hijack the series-tooltip machinery.
     return /** @type {HTMLElement | null} */ (
-      ctx.w.dom.baseEl.querySelector('.apexcharts-tooltip')
+      ctx.w.dom.baseEl.querySelector(
+        '.apexcharts-tooltip:not(.apexcharts-annotation-tooltip)',
+      )
     )
   }
 
@@ -822,6 +829,20 @@ export default class Tooltip {
     if (
       clientY < seriesBound.top ||
       clientY > seriesBound.top + seriesBound.height
+    ) {
+      this.handleMouseOut(opt)
+      return
+    }
+
+    // Point-annotation hover tooltip (apexcharts/apexcharts.js#2424): while
+    // one is showing (pointer over an annotation marker), keep the series
+    // tooltip hidden, as both boxes would anchor to the same spot and read
+    // as a glitch. The annotation's mouseleave deactivates it, so the very
+    // next mousemove restores the series tooltip.
+    if (
+      w.dom.elWrap.querySelector(
+        '.apexcharts-annotation-tooltip.apexcharts-active',
+      )
     ) {
       this.handleMouseOut(opt)
       return
