@@ -97,7 +97,9 @@ export default class Unit {
             ? 'grid'
             : opts.layout === 'scatter'
               ? 'scatter'
-              : 'grouped'
+              : opts.layout === 'arc'
+                ? 'arc'
+                : 'grouped'
     // Keying decides which previous dot a new dot tweens from on an update:
     //  - 'group' (default): key "i:j" - a dot stays within its category slot.
     //    EXCEPTION: a 'packed' blob and a 'grid' waffle have no stable
@@ -136,7 +138,9 @@ export default class Unit {
             ? this._layoutGrid(counts, opts)
             : layout === 'scatter'
               ? this._layoutScatter(opts)
-              : this._layoutGrouped(counts, opts)
+              : layout === 'arc'
+                ? this._layoutArc(counts, opts)
+                : this._layoutGrouped(counts, opts)
 
     // Small-multiple waffles paint a faint track backdrop (the "of N" cells)
     // behind every tile's filled dots, and carry a per-tile label.
@@ -504,6 +508,191 @@ export default class Unit {
     })
 
     return clusters
+  }
+
+  /**
+   * Lay out all marks as a PARLIAMENT / hemicycle: seats in concentric arced
+   * rows across an annulus, filled in category (party) order so each category
+   * forms a contiguous angular wedge (the classic seating chart). `arc` controls
+   * the sweep (`startAngle`/`endAngle`, radialBar convention: 0 = top, clockwise;
+   * default a top semicircle), the donut hole (`innerRadiusRatio`) and the row
+   * count (`rows`, or 'auto'). Like `packed` this is ONE shared shape coloured by
+   * category, so seats key by physical slot: a seat-count change recolours the
+   * party boundary in place and only the rim adds / removes seats.
+   * @param {number[]} counts
+   * @param {any} opts
+   */
+  _layoutArc(counts, opts) {
+    const w = this.w
+    const gw = w.layout.gridWidth
+    const gh = w.layout.gridHeight
+    const total = Math.max(1, counts.reduce((a, b) => a + b, 0))
+
+    const acfg = opts.arc || {}
+    const startDeg = typeof acfg.startAngle === 'number' ? acfg.startAngle : -90
+    const endDeg = typeof acfg.endAngle === 'number' ? acfg.endAngle : 90
+    const a0 = (startDeg * Math.PI) / 180
+    const a1 = (endDeg * Math.PI) / 180
+    const span = a1 - a0 || Math.PI
+    const innerRatio = Math.max(
+      0,
+      Math.min(0.95, typeof acfg.innerRadiusRatio === 'number' ? acfg.innerRadiusRatio : 0.4),
+    )
+
+    // radialBar angle convention -> screen coords (y down): 0deg = top, clockwise.
+    const ux = (/** @type {number} */ a) => Math.sin(a)
+    const uy = (/** @type {number} */ a) => -Math.cos(a)
+
+    // Fit the outer arc's bounding box (at radius 1) into the plot, then centre it.
+    const b = this._arcBounds(a0, a1)
+    const pad = Math.min(gw, gh) * 0.04
+    const boxW = Math.max(1e-6, b.maxX - b.minX)
+    const boxH = Math.max(1e-6, b.maxY - b.minY)
+    const r1 = Math.max(4, Math.min((gw - 2 * pad) / boxW, (gh - 2 * pad) / boxH))
+    const r0 = r1 * innerRatio
+    const cx = gw / 2 - ((b.minX + b.maxX) / 2) * r1
+    const cy = gh / 2 - ((b.minY + b.maxY) / 2) * r1
+
+    const alloc = this._arcAllocate(total, r0, r1, span, opts)
+    this._lastDotR = alloc.dotR
+
+    // Every seat position, then sorted by angle so category-ordered assignment
+    // paints contiguous wedges (the first category sits at the start angle).
+    /** @type {{a:number,x:number,y:number}[]} */
+    const seats = []
+    for (let r = 0; r < alloc.R; r++) {
+      const rho = alloc.radii[r]
+      const n = alloc.seatsPerRow[r]
+      for (let k = 0; k < n; k++) {
+        // (k+0.5)/n leaves even end margins and staggers successive rows.
+        const a = n === 1 ? (a0 + a1) / 2 : a0 + (span * (k + 0.5)) / n
+        seats.push({ a, x: cx + rho * ux(a), y: cy + rho * uy(a) })
+      }
+    }
+    seats.sort((s1, s2) => s1.a - s2.a)
+
+    const clusters = counts.map((_, i) => ({
+      i,
+      cx,
+      cy,
+      outerR: r1,
+      /** @type {{x:number,y:number,slot?:number}[]} */ dots: [],
+    }))
+
+    // Assign each category a contiguous run of seats equal to its count, so a
+    // party reads as an angular wedge; zero-count categories claim no seats.
+    // Slot = physical seat index (angle order) for the keyed transition.
+    let ci = 0
+    let used = 0
+    seats.forEach((s, slot) => {
+      while (ci < counts.length && used >= counts[ci]) {
+        ci++
+        used = 0
+      }
+      if (ci >= counts.length) return
+      clusters[ci].dots.push({ x: s.x, y: s.y, slot })
+      used++
+    })
+
+    return clusters
+  }
+
+  /**
+   * Bounding box of the outer arc (radius 1) over [a0, a1], including the centre
+   * and every cardinal angle (multiple of 90deg) inside the range, so a
+   * semicircle / full circle / arbitrary sweep is all bounded correctly.
+   * @param {number} a0 @param {number} a1
+   * @returns {{minX:number,maxX:number,minY:number,maxY:number}}
+   */
+  _arcBounds(a0, a1) {
+    const ux = (/** @type {number} */ a) => Math.sin(a)
+    const uy = (/** @type {number} */ a) => -Math.cos(a)
+    const lo = Math.min(a0, a1)
+    const hi = Math.max(a0, a1)
+    const xs = [0, ux(a0), ux(a1)]
+    const ys = [0, uy(a0), uy(a1)]
+    const q = Math.PI / 2
+    for (let k = Math.ceil(lo / q); k * q <= hi; k++) {
+      xs.push(ux(k * q))
+      ys.push(uy(k * q))
+    }
+    return {
+      minX: Math.min(...xs),
+      maxX: Math.max(...xs),
+      minY: Math.min(...ys),
+      maxY: Math.max(...ys),
+    }
+  }
+
+  /**
+   * Allocate `total` seats across concentric rows of the annulus [r0, r1] sweeping
+   * `span` radians: seats per row are proportional to the row radius (a longer arc
+   * holds more), summed EXACTLY to total by largest remainder. Row count is
+   * `arc.rows` if given, else derived from a fixed dot size, else auto-searched to
+   * maximise the dot radius (the largest dots that still pack without overlap,
+   * mirroring `size:'auto'` elsewhere).
+   * @param {number} total @param {number} r0 @param {number} r1 @param {number} span @param {any} opts
+   * @returns {{R:number, radii:number[], seatsPerRow:number[], dotR:number}}
+   */
+  _arcAllocate(total, r0, r1, span, opts) {
+    const spacing = opts.spacing > 0 ? opts.spacing : 1.05
+    const absSpan = Math.abs(span) || Math.PI
+    const fixed = this._fixedRadius(opts)
+
+    /** @param {number} R */
+    const evalR = (R) => {
+      R = Math.max(1, Math.round(R))
+      const radii = []
+      for (let r = 0; r < R; r++) {
+        radii.push(R === 1 ? (r0 + r1) / 2 : r0 + (r1 - r0) * (r / (R - 1)))
+      }
+      const weightSum = radii.reduce((a, x) => a + x, 0) || 1
+      const raw = radii.map((rho) => (total * rho) / weightSum)
+      const seatsPerRow = raw.map((x) => Math.floor(x))
+      let left = total - seatsPerRow.reduce((a, x) => a + x, 0)
+      raw
+        .map((x, idx) => ({ idx, frac: x - Math.floor(x) }))
+        .sort((p, qq) => qq.frac - p.frac)
+        .forEach((o) => {
+          if (left > 0) {
+            seatsPerRow[o.idx]++
+            left--
+          }
+        })
+      while (left > 0) {
+        seatsPerRow[R - 1]++
+        left--
+      }
+      const radialPitch = R === 1 ? r1 - r0 || r1 : (r1 - r0) / (R - 1)
+      let minArcPitch = Infinity
+      for (let r = 0; r < R; r++) {
+        const n = seatsPerRow[r]
+        if (n <= 0) continue
+        const arcPitch = (radii[r] * absSpan) / n
+        if (arcPitch < minArcPitch) minArcPitch = arcPitch
+      }
+      const pitch = Math.min(radialPitch, minArcPitch)
+      return { R, radii, seatsPerRow, dotR: Math.max(1, pitch / (2 * spacing)) }
+    }
+
+    const arcRows = opts.arc && opts.arc.rows
+    /** @type {{R:number, radii:number[], seatsPerRow:number[], dotR:number}} */
+    let res
+    if (typeof arcRows === 'number' && arcRows >= 1) {
+      res = evalR(arcRows)
+    } else if (fixed) {
+      const pitch = 2 * fixed * spacing
+      res = evalR((r1 - r0) / pitch + 1)
+    } else {
+      const maxR = Math.max(1, Math.min(40, Math.ceil(Math.sqrt(total)) + 6))
+      res = evalR(1)
+      for (let R = 2; R <= maxR; R++) {
+        const cand = evalR(R)
+        if (cand.dotR > res.dotR) res = cand
+      }
+    }
+    if (fixed) res.dotR = fixed
+    return res
   }
 
   /**
@@ -2025,7 +2214,12 @@ export default class Unit {
     // beeswarm on real axes - fade their ghosts IN PLACE (no drift): a removed
     // cell / point simply fades on its own spot. Only the blob / bar layouts
     // keep the gentle inward collapse.
-    const drift = opts.layout === 'grid' || opts.layout === 'scatter' ? 0 : 0.35
+    const drift =
+      opts.layout === 'grid' ||
+      opts.layout === 'scatter' ||
+      opts.layout === 'arc'
+        ? 0
+        : 0.35
 
     /** @type {{ node: SVGElement, x0:number, y0:number }[]} */
     const ghosts = []

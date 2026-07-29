@@ -2281,8 +2281,10 @@ type ApexPlotOptions = {
      * part-to-whole square "pie" (`chart.type: 'waffle'` presets this layout).
      * 'scatter': beeswarm - each unit placed on a real numeric X value axis by
      * its per-unit value, laned by category on Y (draws its own axis + lanes).
+     * 'arc': parliament / hemicycle - seats in concentric arced rows, filled in
+     * category order so each category is a contiguous wedge (see `arc`).
      */
-    layout?: 'grouped' | 'packed' | 'columns' | 'grid' | 'scatter'
+    layout?: 'grouped' | 'packed' | 'columns' | 'grid' | 'scatter' | 'arc'
     /**
      * How dots are matched between renders on an update (which previous dot a
      * new dot tweens from).
@@ -2429,6 +2431,21 @@ type ApexPlotOptions = {
        * up into its slot.
        */
       enter?: 'burst' | 'fade' | 'rise'
+    }
+    /**
+     * Options for `layout: 'arc'` (parliament / hemicycle). Angles use the
+     * radialBar convention: 0 = top, clockwise. The default sweep is a top
+     * semicircle; a full circle is `startAngle: 0, endAngle: 360`.
+     */
+    arc?: {
+      /** Sweep start angle in degrees (0 = top, clockwise). Default -90. */
+      startAngle?: number
+      /** Sweep end angle in degrees. Default 90 (a top semicircle). */
+      endAngle?: number
+      /** Donut hole: inner radius as a fraction of the outer radius. Default 0.4. */
+      innerRadiusRatio?: number
+      /** Number of concentric seat rows, or 'auto' to size dots as large as fit. */
+      rows?: number | 'auto'
     }
     /** Corner radius for shape:'square'. */
     borderRadius?: number

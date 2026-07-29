@@ -1052,6 +1052,21 @@ export default class Options {
             overshoot: 1.70158,
             enter: 'burst',
           },
+          // The 'arc' layout arranges marks as a PARLIAMENT / hemicycle: seats in
+          // concentric arced rows across an annulus, filled in category order so
+          // each category is a contiguous wedge (the classic seating chart). Angles
+          // use the radialBar convention (0 = top, clockwise); the default sweep is
+          // a top semicircle (a full circle = startAngle 0, endAngle 360).
+          // `innerRadiusRatio` is the donut hole (inner radius / outer); `rows`
+          // fixes the number of seat rows, or 'auto' to size the dots as large as
+          // fit. Like 'packed' the legend carries the category names (no per-wedge
+          // labels).
+          arc: {
+            startAngle: -90,
+            endAngle: 90,
+            innerRadiusRatio: 0.4,
+            rows: 'auto',
+          },
           // 1 dot represents this many units of value (waffle scaling).
           unitValue: 1,
           // safety cap on total dots; counts scale down proportionally above it.

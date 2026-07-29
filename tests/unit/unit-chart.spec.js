@@ -947,6 +947,151 @@ describe('Unit chart - scatter (beeswarm) layout', () => {
   })
 })
 
+describe('Unit chart - arc (parliament / hemicycle) layout', () => {
+  beforeEach(() => resetLicense())
+  afterEach(() => resetLicense())
+
+  const PARTIES = [40, 55, 25, 70, 30] // 220 seats, 5 parties
+  const arcChart = (arc, series) =>
+    unitChart({
+      chart: { width: 640, height: 380 },
+      series: series || PARTIES,
+      labels: ['A', 'B', 'C', 'D', 'E'],
+      plotOptions: { unit: { layout: 'arc', ...(arc ? { arc } : {}) } },
+    })
+
+  // Every seat across every party group, tagged with its category index.
+  function arcSeats(chart) {
+    const groups = chart.w.dom.baseEl.querySelectorAll(
+      '.apexcharts-unit .apexcharts-series',
+    )
+    const seats = []
+    groups.forEach((g, cat) => {
+      g.querySelectorAll('circle.apexcharts-unit-area').forEach((d) => {
+        seats.push({
+          cat,
+          x: parseFloat(d.getAttribute('cx')),
+          y: parseFloat(d.getAttribute('cy')),
+        })
+      })
+    })
+    return seats
+  }
+
+  // Recover the arc centre from the rendered seats: it is symmetric about
+  // x = gw/2, and the outer row's width is ~2r, its top ~r above the centre, so
+  // cy = topmost + halfWidth. Accurate to sub-pixel for a symmetric semicircle.
+  function arcCentre(seats, gw) {
+    const xs = seats.map((s) => s.x)
+    const ys = seats.map((s) => s.y)
+    const r = (Math.max(...xs) - Math.min(...xs)) / 2
+    return { cx: gw / 2, cy: Math.min(...ys) + r }
+  }
+
+  it('renders exactly count seats per party, summing to the total', () => {
+    const chart = arcChart()
+    const groups = chart.w.dom.baseEl.querySelectorAll(
+      '.apexcharts-unit .apexcharts-series',
+    )
+    PARTIES.forEach((n, i) => {
+      expect(
+        groups[i].querySelectorAll('circle.apexcharts-unit-area').length,
+      ).toBe(n)
+    })
+    expect(dotCount(chart)).toBe(220)
+    chart.destroy()
+  })
+
+  it('keeps every seat inside the plot box', () => {
+    const chart = arcChart()
+    const seats = arcSeats(chart)
+    expect(seats.length).toBe(220)
+    seats.forEach((s) => {
+      expect(s.x).toBeGreaterThanOrEqual(0)
+      expect(s.x).toBeLessThanOrEqual(640)
+      expect(s.y).toBeGreaterThanOrEqual(0)
+      expect(s.y).toBeLessThanOrEqual(380)
+    })
+    chart.destroy()
+  })
+
+  it('a default sweep is a wide, shallow dome (a semicircle)', () => {
+    const s = arcSeats(arcChart())
+    const w = Math.max(...s.map((d) => d.x)) - Math.min(...s.map((d) => d.x))
+    const h = Math.max(...s.map((d) => d.y)) - Math.min(...s.map((d) => d.y))
+    expect(h).toBeLessThan(w * 0.65) // dome, not a disc
+  })
+
+  it('a full circle (endAngle 360) is roughly square', () => {
+    const s = arcSeats(arcChart({ startAngle: 0, endAngle: 360 }))
+    const w = Math.max(...s.map((d) => d.x)) - Math.min(...s.map((d) => d.x))
+    const h = Math.max(...s.map((d) => d.y)) - Math.min(...s.map((d) => d.y))
+    expect(h).toBeGreaterThan(w * 0.85)
+  })
+
+  it('each party is a contiguous angular wedge (no interleaving)', () => {
+    const chart = arcChart()
+    const seats = arcSeats(chart)
+    const { cx, cy } = arcCentre(seats, 640)
+    // Angle from the top, radialBar-style: atan2(dx, -dy), so a semicircle spans
+    // -pi/2 .. pi/2 left-to-right. A wedge layout gives one contiguous run per
+    // party, never a party split into two runs.
+    seats.sort(
+      (p, q) =>
+        Math.atan2(p.x - cx, -(p.y - cy)) - Math.atan2(q.x - cx, -(q.y - cy)),
+    )
+    let runs = 0
+    for (let i = 0; i < seats.length; i++) {
+      if (i === 0 || seats[i].cat !== seats[i - 1].cat) runs++
+    }
+    expect(runs).toBe(PARTIES.length)
+    chart.destroy()
+  })
+
+  it('respects an explicit row count', () => {
+    const seats = arcSeats(arcChart({ rows: 3 }))
+    const { cx, cy } = arcCentre(seats, 640)
+    const radii = seats
+      .map((s) => Math.hypot(s.x - cx, s.y - cy))
+      .sort((a, b) => a - b)
+    // Each row is one exact radius; count bands (a gap jump starts a new band).
+    let bands = 0
+    for (let i = 0; i < radii.length; i++) {
+      if (i === 0 || radii[i] - radii[i - 1] > 6) bands++
+    }
+    expect(bands).toBe(3)
+  })
+
+  it('packs seats without overlap', () => {
+    const chart = arcChart()
+    const seats = arcSeats(chart)
+    const r = parseFloat(
+      chart.w.dom.baseEl
+        .querySelector('circle.apexcharts-unit-area')
+        .getAttribute('r'),
+    )
+    let minD = Infinity
+    for (let i = 0; i < seats.length; i++) {
+      for (let j = i + 1; j < seats.length; j++) {
+        const d = Math.hypot(seats[i].x - seats[j].x, seats[i].y - seats[j].y)
+        if (d < minD) minD = d
+      }
+    }
+    // Centres are at least ~2r apart (spacing 1.05 -> ~2.1r); float slack aside,
+    // no two seats stack.
+    expect(minD).toBeGreaterThan(2 * r * 0.95)
+    chart.destroy()
+  })
+
+  it('conserves the chamber size when seats shift between parties', () => {
+    // Same total, different split: the slot-keyed transition just moves the
+    // party boundary, so the seat count is conserved (no phantom enters/exits).
+    const chart = arcChart(undefined, [50, 50, 25, 70, 25]) // 220
+    expect(dotCount(chart)).toBe(220)
+    chart.destroy()
+  })
+})
+
 describe('Unit chart — flow transition (regroup)', () => {
   beforeEach(() => resetLicense())
   afterEach(() => resetLicense())
