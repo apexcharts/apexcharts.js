@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Annotations with Tooltips</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../assets/stock-prices.js"></script>
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            name: 'Price',
+            data: series.monthDataSeries1.prices,
+          },
+        ],
+        chart: {
+          height: 350,
+          type: 'line',
+          id: 'annotation-tooltips',
+        },
+        annotations: {
+          points: [
+            {
+              x: new Date('17 Nov 2025').getTime(),
+              y: 8340.7,
+              marker: {
+                size: 7,
+                fillColor: '#00E396',
+                strokeColor: '#fff',
+                strokeWidth: 2,
+              },
+              label: {
+                borderColor: '#00E396',
+                style: {
+                  color: '#fff',
+                  background: '#00E396',
+                },
+                text: 'Breakout',
+              },
+              // Static HTML content. Keep the on-chart label short and move the
+              // detail into the tooltip, which appears on hover.
+              tooltip: {
+                enabled: true,
+                text:
+                  '<strong style="color:#00E396;">Breakout above resistance</strong>' +
+                  '<div style="margin-top:4px;">Close: <b>8,340.70</b> (+2.1%)</div>' +
+                  '<div>Volume: 2.4M &middot; 1.7&times; average</div>' +
+                  '<div>RSI: 68 &middot; nearing overbought</div>',
+              },
+            },
+            {
+              x: new Date('28 Nov 2025').getTime(),
+              y: 8626.2,
+              marker: {
+                size: 7,
+                fillColor: '#775DD0',
+                strokeColor: '#fff',
+                strokeWidth: 2,
+              },
+              label: {
+                borderColor: '#775DD0',
+                style: {
+                  color: '#fff',
+                  background: '#775DD0',
+                },
+                text: 'Earnings',
+              },
+              // A per-annotation dark theme, independent of the global tooltip theme.
+              tooltip: {
+                enabled: true,
+                theme: 'dark',
+                text:
+                  '<strong>Q3 earnings beat</strong>' +
+                  '<div style="margin-top:4px;">EPS: <b>$1.42</b> vs $1.28 est.</div>' +
+                  '<div>Revenue: <b>$4.7B</b> (+18% YoY)</div>' +
+                  '<div>Full-year guidance raised</div>',
+              },
+            },
+            {
+              x: new Date('08 Dec 2025').getTime(),
+              y: 9340.85,
+              marker: {
+                size: 7,
+                fillColor: '#FF4560',
+                strokeColor: '#fff',
+                strokeWidth: 2,
+              },
+              label: {
+                borderColor: '#FF4560',
+                // Nudge left so the label clears the right edge at the final point.
+                offsetX: -34,
+                style: {
+                  color: '#fff',
+                  background: '#FF4560',
+                },
+                text: 'All-time high',
+              },
+              // A formatter receives the annotation so the content can be built from
+              // its data (here, the y-value). Takes precedence over `text`.
+              tooltip: {
+                enabled: true,
+                formatter: function ({ annotation }) {
+                  return (
+                    '<strong style="color:#FF4560;">New all-time high</strong>' +
+                    '<div style="margin-top:4px;">Price: <b>' +
+                    annotation.y.toLocaleString() +
+                    '</b></div>' +
+                    '<div>+15.2% since the Nov 13 low</div>' +
+                    '<div>Consensus rating: <b>Overweight</b></div>'
+                  )
+                },
+              },
+            },
+          ],
+        },
+        dataLabels: {
+          enabled: false,
+        },
+        // Turn off the series tooltip so the annotation tooltips are the sole focus.
+        tooltip: {
+          enabled: false,
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 3,
+        },
+        grid: {
+          padding: {
+            right: 40,
+            left: 20,
+          },
+        },
+        title: {
+          text: 'Annotations with Tooltips',
+          align: 'left',
+        },
+        subtitle: {
+          text: 'Hover the markers to reveal the full details',
+          align: 'left',
+        },
+        labels: series.monthDataSeries1.dates.map(function (d) {
+          return d.replace('2017', '2025')
+        }),
+        xaxis: {
+          type: 'datetime',
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+
+    
+  </body>
+</html>
