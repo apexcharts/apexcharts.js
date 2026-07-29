@@ -1021,6 +1021,22 @@ export default class Options {
           spacing: 1.05,
           // corner radius for shape:'square'.
           borderRadius: 0,
+          // The gather tween that moves marks between layouts on an update, and
+          // where entering marks come from. `easing`: 'outCubic' (default:
+          // decelerate to a stop) | 'inOutCubic' (accelerate gently out of rest,
+          // weighted travel) | 'outBack' (overshoot each mark past its slot and
+          // spring back - a per-mark settle), with `overshoot` tuning the spring
+          // strength. `enter`: where a fresh / appearing mark animates FROM -
+          // 'burst' (default: fly out from the cluster centre) | 'fade'
+          // (materialise in place) | 'rise' (fade in while drifting gently up
+          // into the slot). Colour, radius and opacity always stay on the
+          // out-cubic (a back ease overshoots past 1, which would push RGB
+          // channels / radii out of range).
+          gather: {
+            easing: 'outCubic',
+            overshoot: 1.70158,
+            enter: 'burst',
+          },
           // 1 dot represents this many units of value (waffle scaling).
           unitValue: 1,
           // safety cap on total dots; counts scale down proportionally above it.

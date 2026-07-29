@@ -2384,6 +2384,25 @@ type ApexPlotOptions = {
     }
     /** Packing gap factor between spiral shells (1 = dots touch). */
     spacing?: number
+    /**
+     * The gather tween that moves marks between layouts on an update.
+     * `easing: 'inOutCubic'` accelerates gently out of rest (weighted travel);
+     * `easing: 'outBack'` overshoots each mark past its slot and springs back
+     * (a per-mark settle). Default is decelerate-and-stop.
+     */
+    gather?: {
+      /** 'outCubic' (default: decelerate and stop), 'inOutCubic' (weighted start), or 'outBack' (overshoot + settle). */
+      easing?: 'outCubic' | 'inOutCubic' | 'outBack'
+      /** Spring strength for 'outBack'. Defaults to 1.70158 (~10% overshoot). */
+      overshoot?: number
+      /**
+       * Where an ENTERING mark animates from (fresh mount, or a category
+       * appearing): 'burst' (default) flies out from the cluster centre,
+       * 'fade' materialises in place, 'rise' fades in while drifting gently
+       * up into its slot.
+       */
+      enter?: 'burst' | 'fade' | 'rise'
+    }
     /** Corner radius for shape:'square'. */
     borderRadius?: number
     /** 1 dot represents this many units of value (waffle scaling). */

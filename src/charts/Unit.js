@@ -37,6 +37,25 @@ function easeOutCubic(t) {
   return 1 - Math.pow(1 - t, 3)
 }
 
+/**
+ * Back-out ease factory: overshoots the target then springs back, so a dot
+ * visibly "settles" into its slot instead of just decelerating to a stop.
+ * `s` is the overshoot strength (1.70158 = the classic back ease ~10%).
+ * @param {number} s @returns {(t: number) => number}
+ */
+function easeOutBack(s) {
+  return (t) => 1 + (s + 1) * Math.pow(t - 1, 3) + s * Math.pow(t - 1, 2)
+}
+
+/**
+ * In-out ease: dots accelerate gently out of rest and decelerate into their
+ * slot, so a regroup reads as weighted motion rather than an instant launch.
+ * @param {number} t
+ */
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+}
+
 export default class Unit {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -230,11 +249,22 @@ export default class Unit {
           // cluster centre (fresh mount). The first two keep dots opaque; a
           // fresh mount fades them in.
           const anchor = from || burst
-          // A fresh mount fades in: a small-multiple cell fades IN PLACE (a
-          // waffle fills cell-by-cell, it does not fly from a centre); other
-          // layouts gather out from the cluster centre.
-          const cx0 = anchor ? anchor.x : gridSplit ? d.x : cluster.cx
-          const cy0 = anchor ? anchor.y : gridSplit ? d.y : cluster.cy
+          // A fresh mount fades in. Where an entering dot comes FROM is
+          // `gather.enter`: 'burst' (default) flies out from the cluster
+          // centre; 'fade' materialises in place; 'rise' fades in while
+          // drifting gently up into its slot. A small-multiple cell always
+          // fades IN PLACE (a waffle fills cell-by-cell, it does not fly
+          // from a centre).
+          const enter = (opts.gather && opts.gather.enter) || 'burst'
+          const inPlace = gridSplit || enter === 'fade' || enter === 'rise'
+          const cx0 = anchor ? anchor.x : inPlace ? d.x : cluster.cx
+          const cy0 = anchor
+            ? anchor.y
+            : enter === 'rise' && !gridSplit
+              ? d.y + 14
+              : inPlace
+                ? d.y
+                : cluster.cy
           el.node.style.opacity = anchor ? '1' : '0'
           this._placeDot(el.node, opts, cx0, cy0)
           animDots.push({
@@ -1894,6 +1924,20 @@ export default class Unit {
       }
     }
 
+    // Position easing. Default decelerates to a stop; `gather.easing:
+    // 'inOutCubic'` accelerates out of rest first (weighted travel), and
+    // 'outBack' overshoots each dot past its slot and springs back (a per-dot
+    // settle), with `gather.overshoot` tuning the spring strength. Colour,
+    // radius and opacity always stay on the out-cubic: a back ease exceeds 1
+    // mid-flight, which would push RGB channels out of range and wobble radii.
+    const gcfg = opts.gather || {}
+    const easePos =
+      gcfg.easing === 'outBack'
+        ? easeOutBack(typeof gcfg.overshoot === 'number' ? gcfg.overshoot : 1.70158)
+        : gcfg.easing === 'inOutCubic'
+          ? easeInOutCubic
+          : easeOutCubic
+
     const start = performance.now()
     /** @param {number} now */
     const stepFn = (now) => {
@@ -1901,7 +1945,8 @@ export default class Unit {
       for (let k = 0; k < n; k++) {
         const d = dots[k]
         const t = Math.max(0, Math.min(1, (now - start - d.delay) / speed))
-        const e = easeOutCubic(t)
+        const e = easePos(t)
+        const ec = easeOutCubic(t)
         const cx = d.cx0 + (d.x - d.cx0) * e
         const cy = d.cy0 + (d.y - d.cy0) * e
         d.node.setAttribute(cxAttr, String(cx - offX))
@@ -1910,14 +1955,14 @@ export default class Unit {
         if (d.isEnter) d.node.style.opacity = String(Math.min(1, t * 2.5))
         // Cross-fade the fill for dots that changed group colour.
         if (d._c0 && d._c1) {
-          const cr = Math.round(d._c0[0] + (d._c1[0] - d._c0[0]) * e)
-          const cg = Math.round(d._c0[1] + (d._c1[1] - d._c0[1]) * e)
-          const cb = Math.round(d._c0[2] + (d._c1[2] - d._c0[2]) * e)
+          const cr = Math.round(d._c0[0] + (d._c1[0] - d._c0[0]) * ec)
+          const cg = Math.round(d._c0[1] + (d._c1[1] - d._c0[1]) * ec)
+          const cb = Math.round(d._c0[2] + (d._c1[2] - d._c0[2]) * ec)
           d.node.setAttribute('fill', `rgb(${cr},${cg},${cb})`)
         }
         // Grow/shrink circles whose radius changed (bubble sizing).
         if (!corner && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
-          d.node.setAttribute('r', String(d.r0 + (d.r1 - d.r0) * e))
+          d.node.setAttribute('r', String(d.r0 + (d.r1 - d.r0) * ec))
         }
         if (t < 1) done = false
       }
