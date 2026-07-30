@@ -647,9 +647,13 @@ export default class Data {
     let getVals
 
     if (format === 'array') {
+      // Guard data[0]: an empty series (e.g. one blank series in a multi-series
+      // candlestick/boxPlot) still enters this branch; the loop below no-ops on
+      // empty data, so we only need to avoid dereferencing data[0].length.
+      const first = data[0]
       const isFlat =
-        (isBoxPlot && data[0].length === 6) ||
-        (!isBoxPlot && data[0].length === 5)
+        (isBoxPlot && first && first.length === 6) ||
+        (!isBoxPlot && first && first.length === 5)
       if (isFlat) {
         /**
          * @param {any[]} d

@@ -119,12 +119,25 @@ export default class TreemapHelpers {
 
     let color = w.globals.colors[seriesNumber]
     let foreColor = null
-    let min = Math.min(...w.seriesData.series[i])
-    let max = Math.max(...w.seriesData.series[i])
+    let min
+    let max
 
     if (!chartOpts.distributed && chartType === 'heatmap') {
+      // Non-distributed heatmap uses the global y-extent; the per-row min/max
+      // below would only be computed and immediately discarded.
       min = w.globals.minY
       max = w.globals.maxY
+    } else {
+      // Per-row extent (distributed heatmap / treemap). Use a loop, not
+      // Math.min(...row): a wide continuous-X heatmap row can exceed the call
+      // argument limit and throw "RangeError: Maximum call stack size exceeded".
+      const row = w.seriesData.series[i]
+      min = row.length ? row[0] : 0
+      max = min
+      for (let k = 1; k < row.length; k++) {
+        if (row[k] < min) min = row[k]
+        if (row[k] > max) max = row[k]
+      }
     }
 
     if (typeof chartOpts.colorScale.min !== 'undefined') {

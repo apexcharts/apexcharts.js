@@ -987,6 +987,15 @@ export default class Core {
         const targetChart = /** @type {any} */ (ctx.constructor).getChartByID(
           target,
         )
+        // getChartByID returns undefined for a missing/mistyped id, or one whose
+        // chart has not rendered yet. Warn and skip instead of throwing an opaque
+        // TypeError mid-render.
+        if (!targetChart) {
+          console.warn(
+            `ApexCharts: brush target "${target}" was not found. Ensure the target chart is rendered (and its chart.id matches) before the brush chart.`,
+          )
+          return
+        }
         targetChart.w.globals.brushSource = this.ctx
 
         if (typeof targetChart.w.config.chart.events.zoomed !== 'function') {
@@ -1011,6 +1020,7 @@ export default class Core {
           const targetChart = /** @type {any} */ (ctx.constructor).getChartByID(
             target,
           )
+          if (!targetChart) return
           targetChart.ctx.updateHelpers._updateOptions(
             {
               xaxis: {
