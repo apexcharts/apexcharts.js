@@ -179,18 +179,18 @@ export default class Core {
   }
 
   /**
+   * Classify each series by its resolved chart type into per-type render
+   * buckets (`{ series, i }`, plus `seriesRangeEnd` for rangeArea). Side
+   * effects mirror the original inline code: sets `w.globals.columnSeries`,
+   * folds `w.globals.comboCharts`, and warns on unsupported combinations (a
+   * non-combo type mixed in, or horizontal bars in a combo). Extracted from
+   * plotChartType to shrink it (audit C2).
    * @param {any[]} ser
-   * @param {import('../types/internal').XYRatios} xyRatios
+   * @returns {{ seriesTypes: Record<string, any>, customBuckets: Record<string, {series: any[], i: number[]}> }}
    */
-  plotChartType(ser, xyRatios) {
-    const { w, ctx } = this
+  _classifySeriesByType(ser) {
+    const { w } = this
     const { config: cnf, globals: gl } = w
-
-    // Strata (#2): start a fresh series display list for the canvas renderer.
-    // Series marks emitted during draw() below are recorded, not added to the
-    // DOM; they are painted at the end of this method (see the wrap below).
-    const canvasMode = ctx.renderer && ctx.renderer.kind === 'canvas'
-    if (canvasMode) ctx.renderer.beginSeries()
 
     const seriesTypes = {
       line: { series: [], i: [] },
@@ -281,6 +281,25 @@ export default class Core {
       }
     }
     gl.comboCharts ||= comboCount > 0
+
+    return { seriesTypes, customBuckets }
+  }
+
+  /**
+   * @param {any[]} ser
+   * @param {import('../types/internal').XYRatios} xyRatios
+   */
+  plotChartType(ser, xyRatios) {
+    const { w, ctx } = this
+    const { config: cnf, globals: gl } = w
+
+    // Strata (#2): start a fresh series display list for the canvas renderer.
+    // Series marks emitted during draw() below are recorded, not added to the
+    // DOM; they are painted at the end of this method (see the wrap below).
+    const canvasMode = ctx.renderer && ctx.renderer.kind === 'canvas'
+    if (canvasMode) ctx.renderer.beginSeries()
+
+    const { seriesTypes, customBuckets } = this._classifySeriesByType(ser)
 
     // Lazily resolve chart classes — only look up types that are actually used.
     // Eagerly calling getChartClass() for every type would break tree-shaking:
