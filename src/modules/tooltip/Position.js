@@ -241,7 +241,10 @@ export default class Position {
 
     const cxNum = parseFloat(String(cx))
     const cyNum = parseFloat(String(cy))
-    if (isNaN(cxNum)) return null
+    // Guard cy too, not just cx: a null/non-numeric cy (e.g. a marker with no
+    // cy attribute) otherwise flows through to style.top = 'NaNpx' and a NaN
+    // arrow offset, leaving the box stuck at its previous position.
+    if (isNaN(cxNum) || isNaN(cyNum)) return null
 
     let x = cxNum + pointSize + 5
     // Coord-system note: `style.top` positions the tooltip in elWrap-coords,

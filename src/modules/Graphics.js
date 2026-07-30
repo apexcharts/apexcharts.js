@@ -818,9 +818,16 @@ class Graphics {
       g = w.dom.Paper.gradient(
         radial ? 'radial' : 'linear',
         (/** @type {any} */ add) => {
+          // colorStops is either flat ([{offset,color},...] shared by all
+          // series) or nested ([[...],[...]] per series). When nested but with
+          // fewer entries than series, colorStops[i] is undefined; fall back to
+          // the first series' stops, NOT the outer nested array (whose elements
+          // are arrays, yielding offset="NaN" stop-color="undefined").
           const gradientStops = Array.isArray(colorStops[i])
             ? colorStops[i]
-            : colorStops
+            : Array.isArray(colorStops[0])
+              ? colorStops[0] || []
+              : colorStops
           /**
            * @param {{offset: number, color: string, opacity: number}} s
            */

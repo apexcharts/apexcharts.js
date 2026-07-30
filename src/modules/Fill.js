@@ -157,16 +157,23 @@ class Fill {
 
     offset = Math.max(0, Math.min(offset, 100))
 
+    // fill.opacity may be a per-series array (as elsewhere in fillPath); index
+    // it, or the stop opacity becomes the whole array -> stop-opacity="0.9,0.8",
+    // an invalid value the browser ignores (renders at full opacity).
+    const fillOpacity = Array.isArray(w.config.fill.opacity)
+      ? w.config.fill.opacity[this.seriesIndex]
+      : w.config.fill.opacity
+
     return [
       {
         offset: offset,
         color: multiColorConfig.colorAboveThreshold,
-        opacity: w.config.fill.opacity,
+        opacity: fillOpacity,
       },
       {
         offset: 0,
         color: multiColorConfig.colorBelowThreshold,
-        opacity: w.config.fill.opacity,
+        opacity: fillOpacity,
       },
     ]
   }

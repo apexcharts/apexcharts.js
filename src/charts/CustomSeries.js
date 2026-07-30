@@ -172,8 +172,11 @@ export function makeCustomSeriesClass(name, def) {
       const bandW = n > 0 ? gridWidth / n : gridWidth
       const tickOn = cnf.xaxis.tickPlacement === 'on'
 
+      // Guard a zero/absent xRatio (single-point / degenerate numeric domain):
+      // (v - minX) / 0 is NaN, which would poison the mark pixels and the
+      // shared tooltip/crosshair index. Center the point, matching `band` below.
       /** @param {number} v */
-      const x = (v) => (v - gl.minX) / xRatio
+      const x = (v) => (xRatio ? (v - gl.minX) / xRatio : gridWidth / 2)
       /** @param {number} v */
       const y = (v) => (maxY - v) / yr
       // Resolve a datum's x pixel: numeric axes map by value; categorical band

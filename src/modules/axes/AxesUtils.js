@@ -171,7 +171,10 @@ export default class AxesUtils {
         /** @type {any} */ (label).x <
         prev.textRect.width /
           (w.layout.rotateXLabels
-            ? Math.abs(w.config.xaxis.labels.rotate) / 12
+            ? // Floor the rotation at 1deg: rotateAlways:true forces
+              // rotateXLabels even with rotate:0, and a 0 divisor here makes the
+              // spread Infinity, blanking every label after the first.
+              Math.max(Math.abs(w.config.xaxis.labels.rotate), 1) / 12
             : 1.01) +
           prev.x
       ) {

@@ -251,7 +251,13 @@ class Pie {
 
       if (this.chartType === 'polarArea') {
         sectorAngleArr[i] = this.fullAngle / series.length
-        this.sliceSizes.push((w.globals.radialSize * series[i]) / this.maxY)
+        // Floor the divisor: with grid.position:'front' the maxY reset runs
+        // after this loop, so an all-zero series would divide by 0 here and push
+        // NaN slice sizes into getPiePath (corrupt arcs). series[i] is 0 in that
+        // case anyway, so a denom of 1 yields a 0-size slice.
+        this.sliceSizes.push(
+          (w.globals.radialSize * series[i]) / (this.maxY || 1),
+        )
       } else {
         this.sliceSizes.push(w.globals.radialSize)
       }
