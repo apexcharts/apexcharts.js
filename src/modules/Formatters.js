@@ -129,8 +129,10 @@ class Formatters {
           }
 
           if (w.globals.isBarHorizontal) {
-            const range =
-              w.globals.maxY - /** @type {any} */ (w.globals.minYArr)
+            // Use the scalar minY, not the minYArr array: subtracting an array
+            // only works by coercion for a single y-axis (a 2+ y-axis horizontal
+            // boxPlot/violin coerces to NaN, silently skipping this branch).
+            const range = w.globals.maxY - w.globals.minY
             if (range < 4) {
               return val.toFixed(1)
             }

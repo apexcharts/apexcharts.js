@@ -236,7 +236,10 @@ class Exports {
       const ctx = canvas.getContext('2d')
       if (!ctx) return
       ctx.fillStyle = canvasBg
-      ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale)
+      // canvas.width/height already include scale; do NOT multiply again, or a
+      // scale < 1 export (dataURI({ width: < svgWidth })) fills only scale^2 of
+      // the canvas, leaving the background missing on the right/bottom margins.
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
 
       this.getSvgString(scale).then((svgData) => {
         const svgUrl = 'data:image/svg+xml,' + encodeURIComponent(svgData)
@@ -318,6 +321,23 @@ class Exports {
       return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : []
     })
 
+    // CSV formula-injection guard: a spreadsheet evaluates a cell that begins
+    // with = + - @ (or tab / CR) as a formula, so a category/value from
+    // user-generated content (e.g. "=HYPERLINK(...)") would execute on open.
+    // Prefix such non-numeric string cells with a single quote so they are read
+    // as text. Numbers are untouched (a negative number is not a formula).
+    /**
+     * @param {any} val
+     */
+    const csvSafe = (val) => {
+      // Leave null/undefined (empty cells) and numbers untouched; only guard
+      // non-numeric string cells so we don't stringify an empty cell to
+      // "undefined" or prefix a negative number.
+      if (val == null || Utils.isNumber(val)) return val
+      const s = String(val)
+      return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
+    }
+
     /**
      * @param {any} cat
      */
@@ -332,7 +352,7 @@ class Exports {
       if (w.config.xaxis.type === 'datetime' && String(cat).length >= 10) {
         return new Date(cat).toDateString()
       }
-      return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join('')
+      return Utils.isNumber(cat) ? cat : csvSafe(cat.split(columnDelimiter).join(''))
     }
 
     /**
@@ -342,7 +362,7 @@ class Exports {
       return typeof w.config.chart.toolbar.export.csv.valueFormatter ===
         'function'
         ? w.config.chart.toolbar.export.csv.valueFormatter(value)
-        : value
+        : csvSafe(value)
     }
 
     const seriesMaxDataLength = Math.max(
@@ -433,9 +453,11 @@ class Exports {
       }
 
       if (s.data) {
-        // Use the data we have, or generate a properly sized empty array with empty data if some data is missing.
-        s.data = (s.data.length && s.data) || getEmptyDataForCsvColumn()
-        for (let i = 0; i < s.data.length; i++) {
+        // Use the data we have, or a properly sized empty array. Use a LOCAL,
+        // not `s.data = ...`: reassigning mutates the live series config, so an
+        // empty series kept the placeholder '' points after export.
+        const rowData = s.data.length ? s.data : getEmptyDataForCsvColumn()
+        for (let i = 0; i < rowData.length; i++) {
           // Reset the columns array so that we can start building columns for this row.
           columns = []
 

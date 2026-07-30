@@ -138,11 +138,27 @@ function isBezierArray(v) {
  * @returns {(t:number)=>number}
  */
 export function resolveEasing(value) {
-  if (typeof value === 'function') return value
+  if (typeof value === 'function') return guardEasing(value)
   if (isBezierArray(value))
     return cubicBezier(value[0], value[1], value[2], value[3])
   if (typeof value === 'string' && REGISTRY.has(value)) {
-    return /** @type {(t:number)=>number} */ (REGISTRY.get(value))
+    return guardEasing(
+      /** @type {(t:number)=>number} */ (REGISTRY.get(value)),
+    )
   }
   return easeInOutSine
+}
+
+/**
+ * Wrap a possibly user-supplied easing so a non-finite result (e.g. a custom fn
+ * that returns NaN/undefined) falls back to the linear position instead of
+ * poisoning every attribute/path tween with NaN (which throws no error).
+ * @param {(t:number)=>number} fn
+ * @returns {(t:number)=>number}
+ */
+function guardEasing(fn) {
+  return (t) => {
+    const y = fn(t)
+    return typeof y === 'number' && isFinite(y) ? y : t
+  }
 }

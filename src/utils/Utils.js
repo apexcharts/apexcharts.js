@@ -664,7 +664,9 @@ class Utils {
   static setELstyles(el, styles) {
     for (const key in styles) {
       if (Object.prototype.hasOwnProperty.call(styles, key)) {
-        el.style.key = styles[key]
+        // el.style[key], not el.style.key: the latter set a literal `key`
+        // property and applied no CSS at all.
+        el.style[key] = styles[key]
       }
     }
   }
