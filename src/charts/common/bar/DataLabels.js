@@ -96,13 +96,17 @@ export default class BarDataLabels {
       height: 0,
     }
     if (w.config.dataLabels.enabled) {
-      const yLabel = w.seriesData.series[i][j]
+      // Use realIndex (the full-config series index), not the local loop index
+      // `i` which is the compacted bar-subset index in a combo chart. Otherwise
+      // the label is measured/formatted from a different series than the value
+      // actually drawn (drawCalculatedDataLabels below uses realIndex).
+      const yLabel = w.seriesData.series[realIndex][j]
 
       textRects = graphics.getTextRects(
         w.config.dataLabels.formatter
           ? w.config.dataLabels.formatter(yLabel, {
               ...w,
-              seriesIndex: i,
+              seriesIndex: realIndex,
               dataPointIndex: j,
               w,
             })

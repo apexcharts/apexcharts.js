@@ -403,7 +403,7 @@ class RangeBar extends Bar {
         'y',
         /** @type {any} */ (null),
         zeroH,
-        i,
+        realIndex,
         j,
         translationsIndex,
       ),
