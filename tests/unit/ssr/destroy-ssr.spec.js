@@ -105,12 +105,17 @@ describe('Destroy.clearDomElements() SSR safety', () => {
     global.document = undefined
 
     const ctx = makeCtx()
+    // Capture the Paper mock before clear: clearDomElements now nulls
+    // w.dom.Paper (release the detached SVG root), so read the mock directly.
+    const paper = ctx.w.dom.Paper
     const destroy = new Destroy(ctx)
     destroy.clearDomElements({ isUpdating: false })
 
     // These are browser-only operations — should not be called in SSR
-    expect(ctx.w.dom.Paper.remove).not.toHaveBeenCalled()
-    expect(ctx.w.dom.Paper.each).not.toHaveBeenCalled()
+    expect(paper.remove).not.toHaveBeenCalled()
+    expect(paper.each).not.toHaveBeenCalled()
+    // The SVG root handle is released regardless of environment.
+    expect(ctx.w.dom.Paper).toBeNull()
   })
 
   it('should call Paper.remove() and killSVG() in browser environment', () => {
@@ -125,9 +130,12 @@ describe('Destroy.clearDomElements() SSR safety', () => {
     ctx.w.dom.baseEl = document.createElement('div')
 
     const destroy = new Destroy(ctx)
+    const paper = ctx.w.dom.Paper
     destroy.clearDomElements({ isUpdating: false })
 
-    expect(ctx.w.dom.Paper.remove).toHaveBeenCalledOnce()
-    expect(ctx.w.dom.Paper.each).toHaveBeenCalledOnce()
+    expect(paper.remove).toHaveBeenCalledOnce()
+    expect(paper.each).toHaveBeenCalledOnce()
+    // The SVG root handle is released after teardown.
+    expect(ctx.w.dom.Paper).toBeNull()
   })
 })
