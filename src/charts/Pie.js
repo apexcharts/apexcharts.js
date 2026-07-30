@@ -7,6 +7,10 @@ import Filters from '../modules/Filters'
 import Scales from '../modules/Scales'
 import Helpers from './common/circle/Helpers'
 import { Environment } from '../utils/Environment'
+import {
+  roundedDonutSegmentPath,
+  roundedPieSegmentPath,
+} from './common/arc/ArcPath'
 /**
  * ApexCharts Pie Class for drawing Pie / Donut Charts.
  * @module Pie
@@ -1183,7 +1187,6 @@ class Pie {
     if (!(spanDeg > 0)) return null
 
     const D2R = Math.PI / 180
-    const R2D = 180 / Math.PI
     const cx = me.centerX
     const cy = me.centerY
     const isDonut = me.chartType === 'donut'
@@ -1204,66 +1207,15 @@ class Pie {
     }
     if (!(r > 0.5)) return null
 
-    /**
-     * @param {number} radius
-     * @param {number} deg
-     */
-    const ptAt = (radius, deg) => ({
-      x: cx + radius * Math.cos((deg - 90) * D2R),
-      y: cy + radius * Math.sin((deg - 90) * D2R),
-    })
-    /** @param {{x: number, y: number}} p */
-    const xy = (p) => `${p.x} ${p.y}`
-
     const a0 = startDeg
     const a1 = startDeg + spanDeg
 
-    // angular inset (deg) that corresponds to an arc-length of r at each radius
-    const degOut = (r / rOut) * R2D
-
-    const oStart = ptAt(rOut, a0 + degOut) // outer arc start (inset from a0)
-    const oEnd = ptAt(rOut, a1 - degOut) // outer arc end (inset from a1)
-    const largeOut = spanDeg - 2 * degOut > 180 ? 1 : 0
-
-    const ocEnd = ptAt(rOut, a1) // sharp outer corner at a1
-    const rEndOut = ptAt(rOut - r, a1) // radial-inset point on the a1 edge
-    const ocStart = ptAt(rOut, a0) // sharp outer corner at a0
-    const rStartOut = ptAt(rOut - r, a0) // radial-inset point on the a0 edge
-
     if (isDonut) {
-      const degIn = (r / rIn) * R2D
-      const iEnd = ptAt(rIn, a1 - degIn) // inner arc end (inset from a1)
-      const iStart = ptAt(rIn, a0 + degIn) // inner arc start (inset from a0)
-      const largeIn = spanDeg - 2 * degIn > 180 ? 1 : 0
-      const icEnd = ptAt(rIn, a1) // sharp inner corner at a1
-      const rEndIn = ptAt(rIn + r, a1)
-      const icStart = ptAt(rIn, a0) // sharp inner corner at a0
-      const rStartIn = ptAt(rIn + r, a0)
-
-      return [
-        'M', xy(oStart),
-        'A', rOut, rOut, 0, largeOut, 1, xy(oEnd),
-        'Q', xy(ocEnd), xy(rEndOut),
-        'L', xy(rEndIn),
-        'Q', xy(icEnd), xy(iEnd),
-        'A', rIn, rIn, 0, largeIn, 0, xy(iStart),
-        'Q', xy(icStart), xy(rStartIn),
-        'L', xy(rStartOut),
-        'Q', xy(ocStart), xy(oStart),
-        'Z',
-      ].join(' ')
+      return roundedDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, r, spanDeg })
     }
 
     // pie / polarArea: round the two outer corners, keep the center apex sharp
-    return [
-      'M', xy(oStart),
-      'A', rOut, rOut, 0, largeOut, 1, xy(oEnd),
-      'Q', xy(ocEnd), xy(rEndOut),
-      'L', `${cx} ${cy}`,
-      'L', xy(rStartOut),
-      'Q', xy(ocStart), xy(oStart),
-      'Z',
-    ].join(' ')
+    return roundedPieSegmentPath({ cx, cy, rOut, a0, a1, r, spanDeg })
   }
 
   /**

@@ -13,15 +13,20 @@
  * (`series` + `drilldown.series`) read as plain data by the adapter below (NO
  * dependency on the drilldown runtime feature).
  *
- * Self-contained by design (its own arc-path builder + colour tint + tooltip +
- * breadcrumb) so a `apexcharts/sunburst` bundle does not drag in the Pie or
- * Drilldown modules. See plans/19-sunburst.md.
+ * Self-contained by design (colour tint + tooltip + breadcrumb, and the shared
+ * standalone arc-path builder in common/arc which has no Pie dependency) so a
+ * `apexcharts/sunburst` bundle does not drag in the Pie or Drilldown modules.
+ * See plans/19-sunburst.md.
  *
  * @module SunburstChart
  */
 import Graphics from '../modules/Graphics'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 import { Environment } from '../utils/Environment.js'
+import {
+  roundedDonutSegmentPath,
+  sharpDonutSegmentPath,
+} from './common/arc/ArcPath'
 
 const D2R = Math.PI / 180
 const R2D = 180 / Math.PI
@@ -810,57 +815,17 @@ export default class SunburstChart {
     if (spanDeg <= 0) return ''
 
     const spanRad = spanDeg * D2R
-    const ptAt = (/** @type {number} */ rr, /** @type {number} */ deg) =>
-      this._ptAt(rr, deg)
-    const xy = (/** @type {{x:number,y:number}} */ p) => `${p.x} ${p.y}`
+    const cx = this.centerX
+    const cy = this.centerY
 
     let r = borderRadius
     r = Math.min(r, (spanRad * iR) / 2, (spanRad * oR) / 2, (oR - iR) / 2)
 
     if (!(r > 0.5)) {
-      const largeArc = spanDeg > 180 ? 1 : 0
-      const A = ptAt(oR, a0)
-      const B = ptAt(oR, a1)
-      const C = ptAt(iR, a1)
-      const Din = ptAt(iR, a0)
-      return [
-        'M', xy(A),
-        'A', oR, oR, 0, largeArc, 1, xy(B),
-        'L', xy(C),
-        'A', iR, iR, 0, largeArc, 0, xy(Din),
-        'Z',
-      ].join(' ')
+      return sharpDonutSegmentPath({ cx, cy, rIn: iR, rOut: oR, a0, a1, spanDeg })
     }
 
-    const degOut = (r / oR) * R2D
-    const degIn = (r / iR) * R2D
-    const oStart = ptAt(oR, a0 + degOut)
-    const oEnd = ptAt(oR, a1 - degOut)
-    const largeOut = spanDeg - 2 * degOut > 180 ? 1 : 0
-    const ocEnd = ptAt(oR, a1)
-    const rEndOut = ptAt(oR - r, a1)
-    const ocStart = ptAt(oR, a0)
-    const rStartOut = ptAt(oR - r, a0)
-    const iEnd = ptAt(iR, a1 - degIn)
-    const iStart = ptAt(iR, a0 + degIn)
-    const largeIn = spanDeg - 2 * degIn > 180 ? 1 : 0
-    const icEnd = ptAt(iR, a1)
-    const rEndIn = ptAt(iR + r, a1)
-    const icStart = ptAt(iR, a0)
-    const rStartIn = ptAt(iR + r, a0)
-
-    return [
-      'M', xy(oStart),
-      'A', oR, oR, 0, largeOut, 1, xy(oEnd),
-      'Q', xy(ocEnd), xy(rEndOut),
-      'L', xy(rEndIn),
-      'Q', xy(icEnd), xy(iEnd),
-      'A', iR, iR, 0, largeIn, 0, xy(iStart),
-      'Q', xy(icStart), xy(rStartIn),
-      'L', xy(rStartOut),
-      'Q', xy(ocStart), xy(oStart),
-      'Z',
-    ].join(' ')
+    return roundedDonutSegmentPath({ cx, cy, rIn: iR, rOut: oR, a0, a1, r, spanDeg })
   }
 
   // ------------------------------------------------------------- tooltip
