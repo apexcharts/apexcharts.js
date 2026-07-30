@@ -849,7 +849,10 @@ export default class Core {
         this.w.dom.elWrap.style.height = `${elWrapHeight}px`
         Graphics.setAttrs(this.w.dom.Paper.node, { height: svgHeight })
         if (Environment.isBrowser()) {
-          this.w.dom.Paper.node.parentNode.parentNode.style.minHeight = `${elWrapHeight}px`
+          const grandparent = this.w.dom.Paper.node.parentNode?.parentNode
+          if (grandparent) {
+            grandparent.style.minHeight = `${elWrapHeight}px`
+          }
         }
       }
       return
@@ -868,7 +871,10 @@ export default class Core {
     this.w.dom.elWrap.style.height = `${newHeight}px`
     Graphics.setAttrs(this.w.dom.Paper.node, { height: newHeight })
     if (Environment.isBrowser()) {
-      this.w.dom.Paper.node.parentNode.parentNode.style.minHeight = `${newHeight}px`
+      const grandparent = this.w.dom.Paper.node.parentNode?.parentNode
+      if (grandparent) {
+        grandparent.style.minHeight = `${newHeight}px`
+      }
     }
   }
 
