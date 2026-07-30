@@ -217,17 +217,24 @@ describe('License gating', () => {
     // only when the signature verdict lands, which is what this block asserts.
     const FORGED = forgedKey('2020-01-01', '2099-01-01', 'premium')
 
-    // Let the importKey/verify microtasks and the onChange listener run.
-    const settle = async () => {
-      for (let i = 0; i < 10; i++) await Promise.resolve()
-      await new Promise((r) => setTimeout(r, 0))
-    }
+    // Signature verification runs on crypto.subtle, which (as Web Crypto) resolves
+    // on the libuv threadpool in real wall-clock time, not after a fixed number of
+    // microtasks. The watermark is only corrected once that verdict lands and the
+    // onChange listener re-evaluates. Poll for the verdict rather than draining a
+    // fixed tick count, which raced the verify under full-suite load and made this
+    // block flaky. `signatureVerified` flips true only once verify() has completed
+    // (for both a passing and a failing verdict), so it is the "verification has
+    // settled" signal; the onChange reconciliation runs synchronously right after.
+    const awaitVerdict = (key) =>
+      vi.waitFor(() =>
+        expect(LicenseManager.validateKey(key).signatureVerified).toBe(true),
+      )
 
     it('watermarks a chart with NO chart.id once verification fails', async () => {
       ApexCharts.setLicense(FORGED)
       const chart = premiumLineChart({ ink: { enabled: true } })
       expect(hasWatermark(chart)).toBe(false) // provisional: structurally valid
-      await settle()
+      await awaitVerdict(FORGED)
       expect(hasWatermark(chart)).toBe(true)
       chart.destroy()
     })
@@ -235,7 +242,7 @@ describe('License gating', () => {
     it('watermarks a chart WITH a chart.id too', async () => {
       ApexCharts.setLicense(FORGED)
       const chart = premiumLineChart({ id: 'named', ink: { enabled: true } })
-      await settle()
+      await awaitVerdict(FORGED)
       expect(hasWatermark(chart)).toBe(true)
       chart.destroy()
     })
@@ -243,7 +250,7 @@ describe('License gating', () => {
     it('leaves a genuinely signed key unwatermarked', async () => {
       ApexCharts.setLicense(VALID_KEY)
       const chart = premiumLineChart({ ink: { enabled: true } })
-      await settle()
+      await awaitVerdict(VALID_KEY)
       expect(hasWatermark(chart)).toBe(false)
       chart.destroy()
     })
