@@ -600,9 +600,13 @@ export default class Labels {
     const tooltipEl = this.ttCtx.getElTooltip()
     let fn = w.config.tooltip.custom
 
-    if (Array.isArray(fn) && fn[i]) {
+    // Array form is one custom fn per series. Unwrap to this series' entry; if
+    // the array is shorter than the series count, fn[i] is undefined and the
+    // guard below bails rather than calling the array as a function.
+    if (Array.isArray(fn)) {
       fn = fn[i]
     }
+    if (typeof fn !== 'function') return
 
     const customTooltip = fn({
       series: w.seriesData.series,
@@ -627,12 +631,16 @@ export default class Labels {
       ) {
         tooltipEl.innerHTML = String(customTooltip)
       } else if (
-        customTooltip instanceof Element ||
-        typeof customTooltip.nodeName === 'string'
+        customTooltip != null &&
+        (customTooltip instanceof Element ||
+          typeof customTooltip.nodeName === 'string')
       ) {
         tooltipEl.innerHTML = ''
         tooltipEl.appendChild(customTooltip.cloneNode(true))
       }
+      // A null/undefined return (e.g. a custom fn that renders only for some
+      // points) leaves the existing content untouched instead of throwing on
+      // customTooltip.nodeName.
 
       if (arrowEl) tooltipEl.appendChild(arrowEl)
     }

@@ -69,6 +69,10 @@ export interface InteractState {
   panEnabled: boolean
   selectionEnabled: boolean
   measureEnabled: boolean
+  // Shift latches a temporary zoom<->pan tool flip. Persisted here (not on the
+  // ZoomPanSelection instance) so the Shift-release that restores the tool
+  // survives the destroy+recreate every _updateOptions (a pan frame) performs.
+  shiftWasPressed?: boolean
   // Zoom / pan state
   zoomed: boolean
   selection: { x: number; y: number; width: number; height: number } | null | undefined

@@ -39,8 +39,11 @@ export default class ZoomPanSelection extends Toolbar {
       'touchmove',
       'mouseup',
       'touchend',
-      'wheel',
     ]
+    // NOTE: 'wheel' is intentionally NOT here. svgMouseEvents has no wheel branch,
+    // so binding it to wheel only ran the shift zoom<->pan flip + selection-rect
+    // work on every notch. The dedicated mouseWheelEvent (bound in init) is the
+    // only wheel handler needed.
 
     this.clientX = 0
     this.clientY = 0
@@ -189,13 +192,17 @@ export default class ZoomPanSelection extends Toolbar {
     // release. 'measure' is not a zoom/pan tool (it captures the plot via its
     // own pane), so it opts out of this shift dance entirely.
     if (autoSelected !== 'measure') {
+      // Latch on the persistent w.interact slice, NOT the instance: every
+      // _updateOptions (which a pan frame triggers) destroys and recreates this
+      // instance, so an instance-scoped flag would be undefined on the frame that
+      // handles Shift release, leaving the chart stuck in the flipped tool.
       if (e.shiftKey) {
-        this.shiftWasPressed = true
+        w.interact.shiftWasPressed = true
         toolbar.enableZoomPanFromToolbar(autoSelected === 'pan' ? 'zoom' : 'pan')
       } else {
-        if (this.shiftWasPressed) {
+        if (w.interact.shiftWasPressed) {
           toolbar.enableZoomPanFromToolbar(autoSelected)
-          this.shiftWasPressed = false
+          w.interact.shiftWasPressed = false
         }
       }
     }
