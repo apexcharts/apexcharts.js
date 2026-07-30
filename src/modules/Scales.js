@@ -46,7 +46,7 @@ export default class Scales {
       maxTicks = 10
     }
     gotMin = axisCnf.min !== undefined && axisCnf.min !== null
-    gotMax = axisCnf.max !== undefined && axisCnf.min !== null
+    gotMax = axisCnf.max !== undefined && axisCnf.max !== null
     let gotStepSize =
       axisCnf.stepSize !== undefined && axisCnf.stepSize !== null
     let gotTickAmount =

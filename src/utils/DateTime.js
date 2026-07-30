@@ -34,7 +34,10 @@ class DateTime {
    * @param {any} dateStr
    */
   getTimeStamp(dateStr) {
-    if (!Date.parse(dateStr)) {
+    // Guard on NaN, not truthiness: a date that parses to epoch 0
+    // (1970-01-01T00:00:00Z) is falsy but valid, and returning the raw string
+    // for it produces NaN downstream in numeric axis math.
+    if (isNaN(Date.parse(dateStr))) {
       return dateStr
     }
     const utc = this.w.config.xaxis.labels.datetimeUTC

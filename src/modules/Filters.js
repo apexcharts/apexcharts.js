@@ -207,7 +207,10 @@ class Filters {
       ) {
         el.node.setAttribute('selected', true)
         const activeFilter = w.config.states.active.filter
-        if (activeFilter !== 'none') {
+        // activeFilter is an object ({ type, value }); compare its type, not the
+        // object itself, or the guard is always true and states.active.filter.type
+        // 'none' is silently ignored.
+        if (activeFilter.type !== 'none') {
           this.applyFilter(el, realIndex, activeFilter.type, activeFilter.value)
         }
       }
