@@ -344,10 +344,31 @@ export default class Annotations {
   }
 
   /**
+   * Remove the shared point-annotation hover tooltip node.
+   *
+   * `hidePointTooltip` is wired only to the marker's `mouseleave`; if the marker
+   * is torn down while hovered (clearAnnotations / removeAnnotation / a redraw),
+   * that never fires and the tooltip is left `.apexcharts-active`. A stale active
+   * annotation tooltip then permanently suppresses the series tooltip (see the
+   * guard in Tooltip.drawTooltip added by b1369f5ab). Removing the node clears
+   * both the ghost box and the stale state; it is recreated on the next hover.
+   * @param {any} w
+   */
+  _removeAnnotationTooltip(w) {
+    const el =
+      w.dom.elWrap &&
+      w.dom.elWrap.querySelector('.apexcharts-annotation-tooltip')
+    if (el && el.parentNode) {
+      el.parentNode.removeChild(el)
+    }
+  }
+
+  /**
    * @param {import('../../types/internal').ChartContext} ctx
    */
   clearAnnotations(ctx) {
     const w = ctx.w
+    this._removeAnnotationTooltip(w)
     const annos = w.dom.baseEl.querySelectorAll(
       '.apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations',
     )
@@ -379,6 +400,7 @@ export default class Annotations {
    */
   removeAnnotation(ctx, id) {
     const w = ctx.w
+    this._removeAnnotationTooltip(w)
     const annos = w.dom.baseEl.querySelectorAll(`.${id}`)
 
     if (annos) {
