@@ -162,15 +162,15 @@
     One mini-waffle per country: each square is 1% of its population living in a city.
   &lt;/p&gt;
 
+  &lt;div class=&quot;actions&quot; id=&quot;year-nav&quot;&gt;
+    &lt;button data-year=&quot;1980&quot;&gt;1980&lt;/button&gt;
+    &lt;button data-year=&quot;2020&quot; class=&quot;active&quot;&gt;2020&lt;/button&gt;
+  &lt;/div&gt;
+
   &lt;div class=&quot;chart-wrap&quot;&gt;
     &lt;div id=&quot;chart&quot;&gt;
   &lt;ReactApexChart options={state.options} series={state.series} type=&quot;waffle&quot; height={560} /&gt;
 &lt;/div&gt;
-  &lt;/div&gt;
-
-  &lt;div class=&quot;actions&quot; id=&quot;year-nav&quot;&gt;
-    &lt;button data-year=&quot;1980&quot;&gt;1980&lt;/button&gt;
-    &lt;button data-year=&quot;2020&quot; class=&quot;active&quot;&gt;2020&lt;/button&gt;
   &lt;/div&gt;
 
   &lt;p class=&quot;caption&quot; id=&quot;caption&quot;&gt;&lt;/p&gt;
@@ -273,6 +273,13 @@
                 living in a city.
               </p>
 
+              <div class="actions" id="year-nav">
+                <button data-year="1980">1980</button>
+                <button data-year="2020" class="active">
+                  2020
+                </button>
+              </div>
+
               <div class="chart-wrap">
                 <div id="chart">
                   <ReactApexChart
@@ -282,13 +289,6 @@
                     height={560}
                   />
                 </div>
-              </div>
-
-              <div class="actions" id="year-nav">
-                <button data-year="1980">1980</button>
-                <button data-year="2020" class="active">
-                  2020
-                </button>
               </div>
 
               <p class="caption" id="caption"></p>

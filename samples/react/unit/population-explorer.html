@@ -37,7 +37,7 @@
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
       }
       .controls {
-        margin: 20px auto 0;
+        margin: 8px auto 20px;
         max-width: 460px;
         text-align: center;
         color: #5b6b78;
@@ -113,15 +113,15 @@
     One dot per person, coloured by gender, the minority packed into the centre.
   &lt;/p&gt;
 
+  &lt;div class=&quot;controls&quot;&gt;
+    Minimum age: &lt;span class=&quot;readout&quot; id=&quot;readout&quot;&gt;45+&lt;/span&gt;
+    &lt;input type=&quot;range&quot; id=&quot;age&quot; min=&quot;45&quot; max=&quot;90&quot; step=&quot;1&quot; value=&quot;45&quot; /&gt;
+  &lt;/div&gt;
+
   &lt;div class=&quot;chart-wrap&quot;&gt;
     &lt;div id=&quot;chart&quot;&gt;
   &lt;ReactApexChart options={state.options} series={state.series} type=&quot;unit&quot; height={460} /&gt;
 &lt;/div&gt;
-  &lt;/div&gt;
-
-  &lt;div class=&quot;controls&quot;&gt;
-    Minimum age: &lt;span class=&quot;readout&quot; id=&quot;readout&quot;&gt;45+&lt;/span&gt;
-    &lt;input type=&quot;range&quot; id=&quot;age&quot; min=&quot;45&quot; max=&quot;90&quot; step=&quot;1&quot; value=&quot;45&quot; /&gt;
   &lt;/div&gt;
 &lt;/div&gt;</div>
 
@@ -185,6 +185,14 @@
                 centre.
               </p>
 
+              <div class="controls">
+                Minimum age:{' '}
+                <span class="readout" id="readout">
+                  45+
+                </span>
+                <input type="range" id="age" min="45" max="90" step="1" value="45" />
+              </div>
+
               <div class="chart-wrap">
                 <div id="chart">
                   <ReactApexChart
@@ -194,14 +202,6 @@
                     height={460}
                   />
                 </div>
-              </div>
-
-              <div class="controls">
-                Minimum age:{' '}
-                <span class="readout" id="readout">
-                  45+
-                </span>
-                <input type="range" id="age" min="45" max="90" step="1" value="45" />
               </div>
             </div>
             <div id="html-dist"></div>

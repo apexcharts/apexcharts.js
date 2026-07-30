@@ -355,17 +355,17 @@
         One cohort of startups as a unit chart, one dot per company.
       </p>
     
-      <div class="chart-wrap">
-        <div id="chart">
-      <apexchart type="unit" height="440" :options="chartOptions" :series="series"></apexchart>
-    </div>
-      </div>
-    
       <div class="actions" id="view-nav">
         <button data-view="0" class="active">The market</button>
         <button data-view="1">By sector</button>
         <button data-view="2">By stage</button>
         <button data-view="3">By capital</button>
+      </div>
+    
+      <div class="chart-wrap">
+        <div id="chart">
+      <apexchart type="unit" height="440" :options="chartOptions" :series="series"></apexchart>
+    </div>
       </div>
     
       <p class="caption" id="caption"></p>
@@ -389,17 +389,17 @@
           One cohort of startups as a unit chart, one dot per company.
         &lt;/p&gt;
       
-        &lt;div class=&quot;chart-wrap&quot;&gt;
-          &lt;div id=&quot;chart&quot;&gt;
-        &lt;apexchart type=&quot;unit&quot; height=&quot;440&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
-      &lt;/div&gt;
-        &lt;/div&gt;
-      
         &lt;div class=&quot;actions&quot; id=&quot;view-nav&quot;&gt;
           &lt;button data-view=&quot;0&quot; class=&quot;active&quot;&gt;The market&lt;/button&gt;
           &lt;button data-view=&quot;1&quot;&gt;By sector&lt;/button&gt;
           &lt;button data-view=&quot;2&quot;&gt;By stage&lt;/button&gt;
           &lt;button data-view=&quot;3&quot;&gt;By capital&lt;/button&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;chart-wrap&quot;&gt;
+          &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;unit&quot; height=&quot;440&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
         &lt;/div&gt;
       
         &lt;p class=&quot;caption&quot; id=&quot;caption&quot;&gt;&lt;/p&gt;

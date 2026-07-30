@@ -132,13 +132,13 @@ var YEARS = {
     One mini-waffle per country: each square is 1% of its population living in a city.
   </p>
 
-  <div class="chart-wrap">
-    {{ charts[0] }}
-  </div>
-
   <div class="actions" id="year-nav">
     <button data-year="1980">1980</button>
     <button data-year="2020" class="active">2020</button>
+  </div>
+
+  <div class="chart-wrap">
+    {{ charts[0] }}
   </div>
 
   <p class="caption" id="caption"></p>

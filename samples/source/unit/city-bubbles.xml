@@ -162,13 +162,13 @@ var VIEWS = {
     Each bubble is a city: average income across the bottom, cost of living up the side, sized by population.
   </p>
 
-  <div class="chart-wrap">
-    {{ charts[0] }}
-  </div>
-
   <div class="actions" id="size-nav">
     <button data-size="population" class="active">Size by population</button>
     <button data-size="gdp">Size by GDP</button>
+  </div>
+
+  <div class="chart-wrap">
+    {{ charts[0] }}
   </div>
 
   <p class="caption" id="caption"></p>

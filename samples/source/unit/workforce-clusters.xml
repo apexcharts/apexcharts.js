@@ -94,10 +94,6 @@ function setActive(id) {
     Every employee is one dot, packed into an organic disc.
   </p>
 
-  <div class="chart-wrap">
-    {{ charts[0] }}
-  </div>
-
   <div class="actions">
     <button data-dataset="departments">By department (grouped)</button>
     <button data-dataset="seniority">Leadership vs staff (packed)</button>
@@ -105,6 +101,10 @@ function setActive(id) {
 
   <div class="actions">
     <button id="shuffle">Simulate hiring round</button>
+  </div>
+
+  <div class="chart-wrap">
+    {{ charts[0] }}
   </div>
 </div>
 </html>

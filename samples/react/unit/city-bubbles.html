@@ -192,15 +192,15 @@
     Each bubble is a city: average income across the bottom, cost of living up the side, sized by population.
   &lt;/p&gt;
 
+  &lt;div class=&quot;actions&quot; id=&quot;size-nav&quot;&gt;
+    &lt;button data-size=&quot;population&quot; class=&quot;active&quot;&gt;Size by population&lt;/button&gt;
+    &lt;button data-size=&quot;gdp&quot;&gt;Size by GDP&lt;/button&gt;
+  &lt;/div&gt;
+
   &lt;div class=&quot;chart-wrap&quot;&gt;
     &lt;div id=&quot;chart&quot;&gt;
   &lt;ReactApexChart options={state.options} series={state.series} type=&quot;unit&quot; height={520} /&gt;
 &lt;/div&gt;
-  &lt;/div&gt;
-
-  &lt;div class=&quot;actions&quot; id=&quot;size-nav&quot;&gt;
-    &lt;button data-size=&quot;population&quot; class=&quot;active&quot;&gt;Size by population&lt;/button&gt;
-    &lt;button data-size=&quot;gdp&quot;&gt;Size by GDP&lt;/button&gt;
   &lt;/div&gt;
 
   &lt;p class=&quot;caption&quot; id=&quot;caption&quot;&gt;&lt;/p&gt;
@@ -316,6 +316,13 @@
                 living up the side, sized by population.
               </p>
 
+              <div class="actions" id="size-nav">
+                <button data-size="population" class="active">
+                  Size by population
+                </button>
+                <button data-size="gdp">Size by GDP</button>
+              </div>
+
               <div class="chart-wrap">
                 <div id="chart">
                   <ReactApexChart
@@ -325,13 +332,6 @@
                     height={520}
                   />
                 </div>
-              </div>
-
-              <div class="actions" id="size-nav">
-                <button data-size="population" class="active">
-                  Size by population
-                </button>
-                <button data-size="gdp">Size by GDP</button>
               </div>
 
               <p class="caption" id="caption"></p>

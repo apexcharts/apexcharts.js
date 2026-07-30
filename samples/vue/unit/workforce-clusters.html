@@ -121,12 +121,6 @@
         Every employee is one dot, packed into an organic disc.
       </p>
     
-      <div class="chart-wrap">
-        <div id="chart">
-      <apexchart type="unit" height="420" :options="chartOptions" :series="series"></apexchart>
-    </div>
-      </div>
-    
       <div class="actions">
         <button data-dataset="departments">By department (grouped)</button>
         <button data-dataset="seniority">Leadership vs staff (packed)</button>
@@ -134,6 +128,12 @@
     
       <div class="actions">
         <button id="shuffle">Simulate hiring round</button>
+      </div>
+    
+      <div class="chart-wrap">
+        <div id="chart">
+      <apexchart type="unit" height="420" :options="chartOptions" :series="series"></apexchart>
+    </div>
       </div>
     </div></div>
 
@@ -144,12 +144,6 @@
           Every employee is one dot, packed into an organic disc.
         &lt;/p&gt;
       
-        &lt;div class=&quot;chart-wrap&quot;&gt;
-          &lt;div id=&quot;chart&quot;&gt;
-        &lt;apexchart type=&quot;unit&quot; height=&quot;420&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
-      &lt;/div&gt;
-        &lt;/div&gt;
-      
         &lt;div class=&quot;actions&quot;&gt;
           &lt;button data-dataset=&quot;departments&quot;&gt;By department (grouped)&lt;/button&gt;
           &lt;button data-dataset=&quot;seniority&quot;&gt;Leadership vs staff (packed)&lt;/button&gt;
@@ -157,6 +151,12 @@
       
         &lt;div class=&quot;actions&quot;&gt;
           &lt;button id=&quot;shuffle&quot;&gt;Simulate hiring round&lt;/button&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;chart-wrap&quot;&gt;
+          &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;unit&quot; height=&quot;420&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
         &lt;/div&gt;
       &lt;/div&gt;</div>
 

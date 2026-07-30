@@ -38,7 +38,7 @@
         font-size: 14px;
       }
       .controls {
-        margin: 18px auto 0;
+        margin: 8px auto 18px;
         text-align: center;
       }
       .controls button {
@@ -133,17 +133,17 @@
      <div class="wrap">
         <h1>A parliament, one election apart</h1>
       
+        <div class="controls">
+          <button id="btn2019" class="active" type="button">2019</button>
+          <button id="btn2023" type="button">2023</button>
+        </div>
+      
         <div class="chart-wrap">
           <div id="chart"></div>
           <p class="lead">
             One dot is one seat. Toggle the year and the same 315 seats recolour in
             place as the chamber recomposes.
           </p>
-        </div>
-      
-        <div class="controls">
-          <button id="btn2019" class="active" type="button">2019</button>
-          <button id="btn2023" type="button">2023</button>
         </div>
         <div class="readout" id="readout"></div>
       </div>

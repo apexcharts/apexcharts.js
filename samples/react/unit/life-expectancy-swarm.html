@@ -223,15 +223,15 @@
     One dot per country, placed on a life-expectancy axis and laned by region.
   &lt;/p&gt;
 
+  &lt;div class=&quot;actions&quot; id=&quot;year-nav&quot;&gt;
+    &lt;button data-year=&quot;1960&quot; class=&quot;active&quot;&gt;1960&lt;/button&gt;
+    &lt;button data-year=&quot;2020&quot;&gt;2020&lt;/button&gt;
+  &lt;/div&gt;
+
   &lt;div class=&quot;chart-wrap&quot;&gt;
     &lt;div id=&quot;chart&quot;&gt;
   &lt;ReactApexChart options={state.options} series={state.series} type=&quot;unit&quot; height={540} /&gt;
 &lt;/div&gt;
-  &lt;/div&gt;
-
-  &lt;div class=&quot;actions&quot; id=&quot;year-nav&quot;&gt;
-    &lt;button data-year=&quot;1960&quot; class=&quot;active&quot;&gt;1960&lt;/button&gt;
-    &lt;button data-year=&quot;2020&quot;&gt;2020&lt;/button&gt;
   &lt;/div&gt;
 
   &lt;p class=&quot;caption&quot; id=&quot;caption&quot;&gt;&lt;/p&gt;
@@ -331,6 +331,13 @@
                 region.
               </p>
 
+              <div class="actions" id="year-nav">
+                <button data-year="1960" class="active">
+                  1960
+                </button>
+                <button data-year="2020">2020</button>
+              </div>
+
               <div class="chart-wrap">
                 <div id="chart">
                   <ReactApexChart
@@ -340,13 +347,6 @@
                     height={540}
                   />
                 </div>
-              </div>
-
-              <div class="actions" id="year-nav">
-                <button data-year="1960" class="active">
-                  1960
-                </button>
-                <button data-year="2020">2020</button>
               </div>
 
               <p class="caption" id="caption"></p>

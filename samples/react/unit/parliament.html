@@ -38,7 +38,7 @@
         font-size: 14px;
       }
       .controls {
-        margin: 18px auto 0;
+        margin: 8px auto 18px;
         text-align: center;
       }
       .controls button {
@@ -141,6 +141,11 @@
     <div id="html">&lt;div class=&quot;wrap&quot;&gt;
   &lt;h1&gt;A parliament, one election apart&lt;/h1&gt;
 
+  &lt;div class=&quot;controls&quot;&gt;
+    &lt;button id=&quot;btn2019&quot; class=&quot;active&quot; type=&quot;button&quot;&gt;2019&lt;/button&gt;
+    &lt;button id=&quot;btn2023&quot; type=&quot;button&quot;&gt;2023&lt;/button&gt;
+  &lt;/div&gt;
+
   &lt;div class=&quot;chart-wrap&quot;&gt;
     &lt;div id=&quot;chart&quot;&gt;
   &lt;ReactApexChart options={state.options} series={state.series} type=&quot;unit&quot; height={440} /&gt;
@@ -149,11 +154,6 @@
       One dot is one seat. Toggle the year and the same 315 seats recolour in
       place as the chamber recomposes.
     &lt;/p&gt;
-  &lt;/div&gt;
-
-  &lt;div class=&quot;controls&quot;&gt;
-    &lt;button id=&quot;btn2019&quot; class=&quot;active&quot; type=&quot;button&quot;&gt;2019&lt;/button&gt;
-    &lt;button id=&quot;btn2023&quot; type=&quot;button&quot;&gt;2023&lt;/button&gt;
   &lt;/div&gt;
   &lt;div class=&quot;readout&quot; id=&quot;readout&quot;&gt;&lt;/div&gt;
 &lt;/div&gt;</div>
@@ -241,6 +241,15 @@
             <div class="wrap">
               <h1>A parliament, one election apart</h1>
 
+              <div class="controls">
+                <button id="btn2019" class="active" type="button">
+                  2019
+                </button>
+                <button id="btn2023" type="button">
+                  2023
+                </button>
+              </div>
+
               <div class="chart-wrap">
                 <div id="chart">
                   <ReactApexChart
@@ -254,15 +263,6 @@
                   One dot is one seat. Toggle the year and the same 315 seats recolour
                   in place as the chamber recomposes.
                 </p>
-              </div>
-
-              <div class="controls">
-                <button id="btn2019" class="active" type="button">
-                  2019
-                </button>
-                <button id="btn2023" type="button">
-                  2023
-                </button>
               </div>
               <div class="readout" id="readout"></div>
             </div>

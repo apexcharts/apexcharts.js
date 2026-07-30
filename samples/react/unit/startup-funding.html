@@ -360,17 +360,17 @@
     One cohort of startups as a unit chart, one dot per company.
   &lt;/p&gt;
 
-  &lt;div class=&quot;chart-wrap&quot;&gt;
-    &lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;unit&quot; height={440} /&gt;
-&lt;/div&gt;
-  &lt;/div&gt;
-
   &lt;div class=&quot;actions&quot; id=&quot;view-nav&quot;&gt;
     &lt;button data-view=&quot;0&quot; class=&quot;active&quot;&gt;The market&lt;/button&gt;
     &lt;button data-view=&quot;1&quot;&gt;By sector&lt;/button&gt;
     &lt;button data-view=&quot;2&quot;&gt;By stage&lt;/button&gt;
     &lt;button data-view=&quot;3&quot;&gt;By capital&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;chart-wrap&quot;&gt;
+    &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;unit&quot; height={440} /&gt;
+&lt;/div&gt;
   &lt;/div&gt;
 
   &lt;p class=&quot;caption&quot; id=&quot;caption&quot;&gt;&lt;/p&gt;
@@ -465,6 +465,15 @@
                 One cohort of startups as a unit chart, one dot per company.
               </p>
 
+              <div class="actions" id="view-nav">
+                <button data-view="0" class="active">
+                  The market
+                </button>
+                <button data-view="1">By sector</button>
+                <button data-view="2">By stage</button>
+                <button data-view="3">By capital</button>
+              </div>
+
               <div class="chart-wrap">
                 <div id="chart">
                   <ReactApexChart
@@ -474,15 +483,6 @@
                     height={440}
                   />
                 </div>
-              </div>
-
-              <div class="actions" id="view-nav">
-                <button data-view="0" class="active">
-                  The market
-                </button>
-                <button data-view="1">By sector</button>
-                <button data-view="2">By stage</button>
-                <button data-view="3">By capital</button>
               </div>
 
               <p class="caption" id="caption"></p>

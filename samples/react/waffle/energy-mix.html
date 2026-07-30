@@ -149,15 +149,15 @@
     Each square is 1% of the electricity generated, coloured by source.
   &lt;/p&gt;
 
+  &lt;div class=&quot;actions&quot; id=&quot;scenario-nav&quot;&gt;
+    &lt;button data-scenario=&quot;today&quot; class=&quot;active&quot;&gt;Today&lt;/button&gt;
+    &lt;button data-scenario=&quot;future&quot;&gt;2035 (projected)&lt;/button&gt;
+  &lt;/div&gt;
+
   &lt;div class=&quot;chart-wrap&quot;&gt;
     &lt;div id=&quot;chart&quot;&gt;
   &lt;ReactApexChart options={state.options} series={state.series} type=&quot;waffle&quot; height={420} /&gt;
 &lt;/div&gt;
-  &lt;/div&gt;
-
-  &lt;div class=&quot;actions&quot; id=&quot;scenario-nav&quot;&gt;
-    &lt;button data-scenario=&quot;today&quot; class=&quot;active&quot;&gt;Today&lt;/button&gt;
-    &lt;button data-scenario=&quot;future&quot;&gt;2035 (projected)&lt;/button&gt;
   &lt;/div&gt;
 
   &lt;p class=&quot;caption&quot; id=&quot;caption&quot;&gt;&lt;/p&gt;
@@ -246,6 +246,13 @@
                 Each square is 1% of the electricity generated, coloured by source.
               </p>
 
+              <div class="actions" id="scenario-nav">
+                <button data-scenario="today" class="active">
+                  Today
+                </button>
+                <button data-scenario="future">2035 (projected)</button>
+              </div>
+
               <div class="chart-wrap">
                 <div id="chart">
                   <ReactApexChart
@@ -255,13 +262,6 @@
                     height={420}
                   />
                 </div>
-              </div>
-
-              <div class="actions" id="scenario-nav">
-                <button data-scenario="today" class="active">
-                  Today
-                </button>
-                <button data-scenario="future">2035 (projected)</button>
               </div>
 
               <p class="caption" id="caption"></p>
