@@ -53,6 +53,7 @@ export default class Config {
         'heatmap',
         'treemap',
         'unit',
+        'sunburst',
         'pie',
         'polarArea',
         'donut',
@@ -218,7 +219,8 @@ export default class Config {
       chartType === 'radar' ||
       chartType === 'radialBar' ||
       chartType === 'heatmap' ||
-      chartType === 'unit'
+      chartType === 'unit' ||
+      chartType === 'sunburst'
 
     const notNumericXAxis =
       opts.xaxis.type !== 'datetime' && opts.xaxis.type !== 'numeric'

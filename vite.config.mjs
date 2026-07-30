@@ -37,6 +37,7 @@ export const SUB_ENTRIES = {
   radar: resolve(__dirname, 'src/entries/radar.js'),
   heatmap: resolve(__dirname, 'src/entries/heatmap.js'),
   treemap: resolve(__dirname, 'src/entries/treemap.js'),
+  sunburst: resolve(__dirname, 'src/entries/sunburst.js'),
   // Alias entries — one per public chart type name
   area: resolve(__dirname, 'src/entries/area.js'),
   scatter: resolve(__dirname, 'src/entries/scatter.js'),

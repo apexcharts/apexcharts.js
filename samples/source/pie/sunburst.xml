@@ -1,0 +1,61 @@
+<title>Sunburst</title>
+
+<style>
+#chart {
+  max-width: 520px;
+  margin: 35px auto;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  type: 'sunburst',
+  height: 480,
+},
+colors: ['#0EA5E9', '#14B8A6', '#F59E0B'],
+legend: {
+  position: 'bottom'
+},
+title: {
+  text: 'Website traffic by device and OS',
+  align: 'left'
+},
+plotOptions: {
+  sunburst: {
+    innerSize: '25%',
+    borderRadius: 5,
+    spacing: 1,
+  }
+},
+stroke: {
+  width: 1,
+  colors: ['#fff']
+}
+</options>
+
+<series>
+[{
+  data: [
+    { x: 'Mobile', y: 55, children: [
+      { x: 'iOS', y: 30, children: [
+        { x: 'iOS 17', y: 18 },
+        { x: 'iOS 16', y: 9 },
+        { x: 'iOS 15', y: 3 }
+      ]},
+      { x: 'Android', y: 23 },
+      { x: 'Other', y: 2 }
+    ]},
+    { x: 'Desktop', y: 33, children: [
+      { x: 'Windows', y: 20 },
+      { x: 'macOS', y: 10 },
+      { x: 'Linux', y: 3 }
+    ]},
+    { x: 'Tablet', y: 12, children: [
+      { x: 'iPadOS', y: 8 },
+      { x: 'Android', y: 4 }
+    ]}
+  ]
+}]
+</series>
+</chart>

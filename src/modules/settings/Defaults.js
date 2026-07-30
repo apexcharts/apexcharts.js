@@ -1129,6 +1129,44 @@ export default class Defaults {
     }
   }
 
+  sunburst() {
+    return {
+      chart: {
+        toolbar: {
+          show: false,
+        },
+      },
+      dataLabels: {
+        style: {
+          colors: ['#fff'],
+        },
+        dropShadow: {
+          enabled: true,
+        },
+      },
+      stroke: {
+        colors: ['#fff'],
+      },
+      fill: {
+        opacity: 1,
+      },
+      // Unlike pie, sunburst keeps the STANDARD themed tooltip (light/dark).
+      // Slice-coloured tooltips (fillSeriesColor) wash out here because child
+      // arcs are tinted toward white per depth; users can still opt in.
+      legend: {
+        position: 'right',
+      },
+      grid: {
+        padding: {
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+        },
+      },
+    }
+  }
+
   pie() {
     return {
       chart: {

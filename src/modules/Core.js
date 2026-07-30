@@ -245,6 +245,8 @@ export default class Core {
           'polarArea',
           'radialBar',
           'radar',
+          'unit',
+          'sunburst',
         ].includes(seriesType)
       ) {
         nonComboType = seriesType
@@ -497,6 +499,11 @@ export default class Core {
         case 'unit': {
           const unit = new (getChartClass('unit'))(ctx.w, ctx)
           elGraph = unit.draw(this.w.seriesData.series)
+          break
+        }
+        case 'sunburst': {
+          const sunburst = new (getChartClass('sunburst'))(ctx.w, ctx)
+          elGraph = sunburst.draw(this.w.seriesData.series)
           break
         }
         case 'pie':

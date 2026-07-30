@@ -1,0 +1,21 @@
+{
+  "title": "Sunburst",
+  "externals": [],
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      data: [\n        {\n          x: 'Mobile',\n          y: 55,\n          children: [\n            {\n              x: 'iOS',\n              y: 30,\n              children: [\n                { x: 'iOS 17', y: 18 },\n                { x: 'iOS 16', y: 9 },\n                { x: 'iOS 15', y: 3 },\n              ],\n            },\n            { x: 'Android', y: 23 },\n            { x: 'Other', y: 2 },\n          ],\n        },\n        {\n          x: 'Desktop',\n          y: 33,\n          children: [\n            { x: 'Windows', y: 20 },\n            { x: 'macOS', y: 10 },\n            { x: 'Linux', y: 3 },\n          ],\n        },\n        {\n          x: 'Tablet',\n          y: 12,\n          children: [\n            { x: 'iPadOS', y: 8 },\n            { x: 'Android', y: 4 },\n          ],\n        },\n      ],\n    },\n  ],\n  chart: {\n    type: 'sunburst',\n    height: 480,\n  },\n  colors: ['#0EA5E9', '#14B8A6', '#F59E0B'],\n  legend: {\n    position: 'bottom',\n  },\n  title: {\n    text: 'Website traffic by device and OS',\n    align: 'left',\n  },\n  plotOptions: {\n    sunburst: {\n      innerSize: '25%',\n      borderRadius: 5,\n      spacing: 1,\n    },\n  },\n  stroke: {\n    width: 1,\n    colors: ['#fff'],\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Sunburst</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 520px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

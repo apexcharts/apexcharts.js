@@ -319,12 +319,16 @@ export default class Dimensions {
       return
     }
 
+    // Sunburst uses the same centred-square layout as pie, but reads its own
+    // offsets from plotOptions.sunburst.
     const type =
-      cnf.chart.type === 'pie' ||
-      cnf.chart.type === 'polarArea' ||
-      cnf.chart.type === 'donut'
-        ? 'pie'
-        : 'radialBar'
+      cnf.chart.type === 'sunburst'
+        ? 'sunburst'
+        : cnf.chart.type === 'pie' ||
+            cnf.chart.type === 'polarArea' ||
+            cnf.chart.type === 'donut'
+          ? 'pie'
+          : 'radialBar'
 
     const offY = cnf.plotOptions[type].offsetY
     const offX = cnf.plotOptions[type].offsetX

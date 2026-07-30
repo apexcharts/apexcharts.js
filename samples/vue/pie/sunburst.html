@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Sunburst</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 520px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app"><div id="chart">
+      <apexchart type="sunburst" height="480" :options="chartOptions" :series="series"></apexchart>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;sunburst&quot; height=&quot;480&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [
+            {
+              data: [
+                {
+                  x: 'Mobile',
+                  y: 55,
+                  children: [
+                    {
+                      x: 'iOS',
+                      y: 30,
+                      children: [
+                        { x: 'iOS 17', y: 18 },
+                        { x: 'iOS 16', y: 9 },
+                        { x: 'iOS 15', y: 3 },
+                      ],
+                    },
+                    { x: 'Android', y: 23 },
+                    { x: 'Other', y: 2 },
+                  ],
+                },
+                {
+                  x: 'Desktop',
+                  y: 33,
+                  children: [
+                    { x: 'Windows', y: 20 },
+                    { x: 'macOS', y: 10 },
+                    { x: 'Linux', y: 3 },
+                  ],
+                },
+                {
+                  x: 'Tablet',
+                  y: 12,
+                  children: [
+                    { x: 'iPadOS', y: 8 },
+                    { x: 'Android', y: 4 },
+                  ],
+                },
+              ],
+            },
+          ],
+          chartOptions: {
+            chart: {
+              type: 'sunburst',
+              height: 480,
+            },
+            colors: ['#0EA5E9', '#14B8A6', '#F59E0B'],
+            legend: {
+              position: 'bottom',
+            },
+            title: {
+              text: 'Website traffic by device and OS',
+              align: 'left',
+            },
+            plotOptions: {
+              sunburst: {
+                innerSize: '25%',
+                borderRadius: 5,
+                spacing: 1,
+              },
+            },
+            stroke: {
+              width: 1,
+              colors: ['#fff'],
+            },
+          },
+        },
+      })
+    </script>
+    
+  </body>
+</html>

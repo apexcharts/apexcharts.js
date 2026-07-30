@@ -125,6 +125,11 @@
       "import": "./dist/treemap.esm.js",
       "require": "./dist/treemap.common.js"
     },
+    "./sunburst": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/sunburst.esm.js",
+      "require": "./dist/sunburst.common.js"
+    },
     "./core": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/core.esm.js",
