@@ -97,6 +97,40 @@ export default class Breadcrumb {
     })
 
     elWrap.appendChild(nav)
+    this._avoidChromeOverlap(nav)
+  }
+
+  /**
+   * The breadcrumb is an absolute overlay, so at its default top-left it can
+   * sit on top of a left-aligned title (or subtitle). After mounting, push it
+   * below any chart chrome it intersects. (Sunburst's self-contained
+   * breadcrumb applies the same rule.)
+   * @param {HTMLElement} nav
+   */
+  _avoidChromeOverlap(nav) {
+    const w = this.w
+    const chrome = /** @type {Element[]} */ (
+      ['.apexcharts-title-text', '.apexcharts-subtitle-text']
+        .map((s) => w.dom.baseEl.querySelector(s))
+        .filter((el) => el !== null)
+    )
+    if (!chrome.length) return
+    const wrapTop = w.dom.elWrap.getBoundingClientRect().top
+    // Up to two passes: moving below the title can land on the subtitle.
+    for (let pass = 0; pass < chrome.length + 1; pass++) {
+      const nr = nav.getBoundingClientRect()
+      const hit = chrome.find((el) => {
+        const r = el.getBoundingClientRect()
+        return (
+          nr.left < r.right &&
+          nr.right > r.left &&
+          nr.top < r.bottom &&
+          nr.bottom > r.top
+        )
+      })
+      if (!hit) break
+      nav.style.top = `${hit.getBoundingClientRect().bottom - wrapTop + 4}px`
+    }
   }
 
   /**
