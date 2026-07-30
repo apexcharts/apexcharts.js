@@ -2130,6 +2130,10 @@ export default class Unit {
     const start = performance.now()
     /** @param {number} now */
     const stepFn = (now) => {
+      // Bail if the chart was destroyed mid-gather (route change / re-render):
+      // the dots are detached and setAttribute on them is wasted work. Matches
+      // Animations.animatePop.
+      if (this.w.globals.isDestroyed) return
       let done = true
       for (let k = 0; k < n; k++) {
         const d = dots[k]
@@ -2248,6 +2252,8 @@ export default class Unit {
 
     /** @param {number} now */
     const stepFn = (now) => {
+      // Bail if the chart was destroyed mid-exit (the ghost group is detached).
+      if (this.w.globals.isDestroyed) return
       const t = Math.max(0, Math.min(1, (now - start) / speed))
       const e = easeOutCubic(t)
       for (let k = 0; k < ghosts.length; k++) {

@@ -927,6 +927,9 @@ class Radial extends Pie {
       const startAt = performance.now()
       /** @param {number} now */
       const step = (now) => {
+        // Stop animating a detached needle after the chart is destroyed
+        // mid-tween (route change / re-render). Matches Animations.animatePop.
+        if (this.w.globals.isDestroyed) return
         const t = Math.max(0, Math.min(1, (now - startAt) / speed))
         const angle = fromAngle + (targetAngle - fromAngle) * ease(t)
         node.setAttribute('transform', `rotate(${angle})`)

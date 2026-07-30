@@ -167,6 +167,10 @@ export default class Destroy {
       domEls.Paper.remove()
     }
 
+    // Null the SVG root too (not just the handles below): consumers routinely
+    // retain the destroyed ctx, so leaving w.dom.Paper pointing at the detached,
+    // emptied node keeps it alive. Re-created by setupElements on any re-render.
+    domEls.Paper = null
     domEls.elWrap = null
     domEls.elGraphical = null
     domEls.elLegendWrap = null

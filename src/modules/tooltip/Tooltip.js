@@ -687,6 +687,10 @@ export default class Tooltip {
    */
   /** @param {Record<string, any>} opt @param {any} e */
   seriesHover(opt, e) {
+    // seriesHover can be scheduled via a ~20ms setTimeout (seriesHoverTimeout);
+    // if the chart is destroyed inside that window the timer still fires. Bail so
+    // it does not run against a torn-down chart (nulled baseEl / tooltip).
+    if (this.w.globals.isDestroyed) return
     this.lastHoverTime = Date.now()
     let chartGroups = []
     const w = this.w
