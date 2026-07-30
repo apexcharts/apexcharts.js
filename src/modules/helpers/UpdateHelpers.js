@@ -31,7 +31,7 @@ export default class UpdateHelpers {
     updateSyncedCharts = true,
     overwriteInitialConfig = false,
   ) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       let charts = [this.ctx]
       if (updateSyncedCharts) {
         charts = this.ctx.getSyncedCharts()
@@ -172,11 +172,16 @@ export default class UpdateHelpers {
           }
         }
 
-        return ch.update(options).then(() => {
-          if (chartIndex === charts.length - 1) {
-            resolve(ch)
-          }
-        })
+        // Reject the public promise if a render fails, rather than leaving it
+        // pending forever (and surfacing only as an UnhandledPromiseRejection).
+        return ch
+          .update(options)
+          .then(() => {
+            if (chartIndex === charts.length - 1) {
+              resolve(ch)
+            }
+          })
+          .catch(reject)
       })
     })
   }
@@ -188,7 +193,7 @@ export default class UpdateHelpers {
    * @param {boolean} animate
    */
   _updateSeries(newSeries, animate, overwriteInitialSeries = false) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const w = this.w
 
       w.globals.shouldAnimate = animate
@@ -249,16 +254,22 @@ export default class UpdateHelpers {
       // same series count, same data lengths, same chart type, axis chart,
       // no series collapse in progress.
       if (this._canUseFastPath(newSeries, prevSeriesCount, prevDataLengths, w)) {
-        return this.ctx.fastUpdate(animate, prevAxisScaleSig).then(() => {
-          resolve(this.ctx)
-        })
+        return this.ctx
+          .fastUpdate(animate, prevAxisScaleSig)
+          .then(() => {
+            resolve(this.ctx)
+          })
+          .catch(reject)
       }
 
       // structural change (series count/lengths/type): full render
       if (this.ctx._updateStats) this.ctx._updateStats.full++
-      return this.ctx.update().then(() => {
-        resolve(this.ctx)
-      })
+      return this.ctx
+        .update()
+        .then(() => {
+          resolve(this.ctx)
+        })
+        .catch(reject)
     })
   }
 
