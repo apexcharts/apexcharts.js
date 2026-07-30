@@ -1,5 +1,6 @@
 // @ts-check
 import Utils from '../../utils/Utils'
+import { ARROW_TIP_OVERHANG } from './constants'
 
 /**
  * ApexCharts Tooltip.Intersect Class.
@@ -131,7 +132,6 @@ class Intersect {
 
       const ttW = ttCtx.tooltipRect.ttWidth || 0
       const ttH = ttCtx.tooltipRect.ttHeight || 0
-      const ARROW_TIP_OVERHANG = 7 // matches the CSS arrow height
 
       const cellCenterXInElWrap = (clLeft + clRight) / 2 + gridOffsetXInElWrap
       const cellTopInElWrap = clTop + w.layout.translateY
@@ -370,7 +370,6 @@ class Intersect {
         const ttH = ttCtx.tooltipRect.ttHeight || 0
         const arrowEnabled = !!w.config.tooltip.arrow
         const { barAnchorXInGrid, barAnchorYInGrid, barRectInGrid } = barXY
-        const ARROW_TIP_OVERHANG = 7 // matches the CSS arrow width
 
         // Convert from grid-local (elGrid-relative) coords into elWrap-local
         // coords using the LIVE rect offset between elWrap and elGrid, not

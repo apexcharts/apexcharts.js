@@ -11,6 +11,16 @@ import { Box } from '../svg/index'
 // gentle enough that a trackpad's stream of small deltas feels continuous.
 const WHEEL_ZOOM_PIXELS_PER_2X = 240
 
+// Kinetic-pan (inertia) tuning. A one-finger pan release glides on, decaying
+// each frame, until it slows below a floor or reaches the data edge.
+const INERTIA_MIN_RELEASE_VELOCITY = 0.05 // px/ms; below this a release doesn't glide
+const INERTIA_DEFAULT_FRICTION = 0.92 // per-60fps-frame velocity multiplier (chart.pan.friction overrides)
+const INERTIA_STOP_VELOCITY = 0.02 // px/ms floor at which the glide ends
+const FRAME_MS_60FPS = 16.6667 // one frame at 60fps; normalizes friction to the real refresh rate
+
+// A pan nudge shifts the x-window by this fraction of the grid width.
+const PAN_NUDGE_DIVISOR = 15
+
 /**
  * ApexCharts Zoom Class for handling zooming and panning on axes based charts.
  *
@@ -1126,11 +1136,11 @@ export default class ZoomPanSelection extends Toolbar {
     }
 
     if (this.moveDirection === 'left') {
-      xLowestValue = minX + (w.layout.gridWidth / 15) * xRatio
-      xHighestValue = maxX + (w.layout.gridWidth / 15) * xRatio
+      xLowestValue = minX + (w.layout.gridWidth / PAN_NUDGE_DIVISOR) * xRatio
+      xHighestValue = maxX + (w.layout.gridWidth / PAN_NUDGE_DIVISOR) * xRatio
     } else if (this.moveDirection === 'right') {
-      xLowestValue = minX - (w.layout.gridWidth / 15) * xRatio
-      xHighestValue = maxX - (w.layout.gridWidth / 15) * xRatio
+      xLowestValue = minX - (w.layout.gridWidth / PAN_NUDGE_DIVISOR) * xRatio
+      xHighestValue = maxX - (w.layout.gridWidth / PAN_NUDGE_DIVISOR) * xRatio
     }
 
     if (!w.axisFlags.isRangeBar) {
@@ -1573,7 +1583,7 @@ export default class ZoomPanSelection extends Toolbar {
       s &&
       s.axis === 'x' &&
       this._panInertiaEnabled() &&
-      Math.abs(vel) > 0.05
+      Math.abs(vel) > INERTIA_MIN_RELEASE_VELOCITY
     ) {
       this._startInertia(vel)
     } else {
@@ -1596,7 +1606,7 @@ export default class ZoomPanSelection extends Toolbar {
     const friction =
       typeof cfgFriction === 'number'
         ? Math.min(Math.max(cfgFriction, 0.5), 0.999)
-        : 0.92
+        : INERTIA_DEFAULT_FRICTION
 
     let vel = vel0
     /** @type {number|null} */ let lastT = null
@@ -1619,8 +1629,8 @@ export default class ZoomPanSelection extends Toolbar {
 
       // decay normalized to a 60fps frame so the glide feels the same regardless
       // of the actual refresh rate
-      vel *= Math.pow(friction, dt / 16.6667)
-      if (Math.abs(vel) < 0.02) {
+      vel *= Math.pow(friction, dt / FRAME_MS_60FPS)
+      if (Math.abs(vel) < INERTIA_STOP_VELOCITY) {
         m.inertiaRAF = null
         m.busy = false
         this._fireScrolled()

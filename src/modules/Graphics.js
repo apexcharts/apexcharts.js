@@ -982,16 +982,28 @@ class Graphics {
    * @param {number} size
    */
   getMarkerPath(x, y, type, size) {
+    // Per-shape size adjustments, tuned empirically so every marker shape reads
+    // as roughly equal visual weight at the same nominal `size`. Kept as the
+    // original divide/multiply operations (not pre-divided) so the emitted path
+    // strings stay byte-identical to before this was named.
+    const CROSS_SHRINK = 1.4
+    const PLUS_SHRINK = 1.12
+    const STAR_GROW = 1.15
+    const SPARKLE_SHRINK = 1.1 // applied on top of STAR_GROW for the 4-point sparkle
+    const SQUARE_SHRINK = 1.125 // also used by 'rect'
+    const DIAMOND_GROW = 1.05
+    const LINE_SHRINK = 1.1
+    const CIRCLE_DIAMETER = 2 // radius -> diameter for the SVG arc command
     let d = ''
     switch (type) {
       case 'cross':
-        size = size / 1.4
+        size = size / CROSS_SHRINK
         d = `M ${x - size} ${y - size} L ${x + size} ${y + size}  M ${
           x - size
         } ${y + size} L ${x + size} ${y - size}`
         break
       case 'plus':
-        size = size / 1.12
+        size = size / PLUS_SHRINK
         d = `M ${x - size} ${y} L ${x + size} ${y}  M ${x} ${y - size} L ${x} ${
           y + size
         }`
@@ -999,9 +1011,9 @@ class Graphics {
       case 'star':
       case 'sparkle': {
         let points = 5
-        size = size * 1.15
+        size = size * STAR_GROW
         if (type === 'sparkle') {
-          size = size / 1.1
+          size = size / SPARKLE_SHRINK
           points = 4
         }
         const step = Math.PI / points
@@ -1025,7 +1037,7 @@ class Graphics {
         break
       case 'square':
       case 'rect':
-        size = size / 1.125
+        size = size / SQUARE_SHRINK
         d = `M ${x - size} ${y - size} 
            L ${x + size} ${y - size} 
            L ${x + size} ${y + size} 
@@ -1033,7 +1045,7 @@ class Graphics {
            Z`
         break
       case 'diamond':
-        size = size * 1.05
+        size = size * DIAMOND_GROW
         d = `M ${x} ${y - size} 
              L ${x + size} ${y} 
              L ${x} ${y + size} 
@@ -1041,13 +1053,13 @@ class Graphics {
             Z`
         break
       case 'line':
-        size = size / 1.1
+        size = size / LINE_SHRINK
         d = `M ${x - size} ${y} 
            L ${x + size} ${y}`
         break
       case 'circle':
       default:
-        size = size * 2
+        size = size * CIRCLE_DIAMETER
         d = `M ${x}, ${y} 
            m -${size / 2}, 0 
            a ${size / 2},${size / 2} 0 1,0 ${size},0 

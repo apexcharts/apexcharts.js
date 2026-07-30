@@ -1,6 +1,7 @@
 // @ts-check
 import Graphics from '../Graphics'
 import Series from '../Series'
+import { ARROW_TIP_OVERHANG } from './constants'
 
 /**
  * ApexCharts Tooltip.Position Class to move the tooltip based on x and y position.
@@ -812,7 +813,6 @@ export default class Position {
 
     const ttW = ttCtx.tooltipRect.ttWidth || 0
     const ttH = ttCtx.tooltipRect.ttHeight || 0
-    const ARROW_TIP_OVERHANG = 7
 
     // Convert union rect (viewport-coords) into elWrap-coords. The tooltip
     // is positioned via style.left/top inside elWrap; elGrid is offset from
