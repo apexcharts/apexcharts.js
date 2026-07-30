@@ -903,4 +903,89 @@ test.describe('drilldown — pie/donut', () => {
 
     expect(errors, errors.join('\n')).toHaveLength(0)
   })
+
+  // Regression: with the default breadcrumb position (top-left) and a
+  // left-aligned title, the breadcrumb overlay used to render ON TOP of the
+  // title text. It must be pushed below any chart chrome it intersects.
+  test('breadcrumb does not overlap a left-aligned title', async ({ page }) => {
+    const opts = JSON.parse(JSON.stringify(DONUT_OPTIONS_DD))
+    opts.title = { text: 'Website traffic by device and OS', align: 'left' }
+    opts.chart.animations = { enabled: false }
+
+    await page.setContent('<div id="chart"></div>')
+    await page.addScriptTag({ path: umdPath })
+    await page.evaluate((o) => {
+      window.chart = new window.ApexCharts(document.querySelector('#chart'), o)
+      return window.chart.render()
+    }, opts)
+
+    await page.locator('.apexcharts-pie-area[j="0"]').first().dispatchEvent('mousedown')
+    await page.waitForFunction(() => window.chart.drilldown.depth === 1, { timeout: 5000 })
+    await page.waitForSelector('.apexcharts-breadcrumb')
+
+    const overlaps = await page.evaluate(() => {
+      const bc = document.querySelector('.apexcharts-breadcrumb').getBoundingClientRect()
+      const ti = document.querySelector('.apexcharts-title-text').getBoundingClientRect()
+      return bc.left < ti.right && bc.right > ti.left && bc.top < ti.bottom && bc.bottom > ti.top
+    })
+    expect(overlaps).toBe(false)
+  })
+
+  // Regression: hide a slice via its legend, drill into another slice, then
+  // return. Navigation clears the collapse bookkeeping, so the drill snapshot
+  // must capture the PRE-collapse data — otherwise the hidden slice comes back
+  // stranded: legend active but zero-valued, and no collapse state left to
+  // restore it (so a click couldn't bring it back).
+  test('hiding a slice, drilling in, then back restores the hidden slice (not stranded)', async ({
+    page,
+  }) => {
+    const errors = []
+    page.on('pageerror', (err) => errors.push(err.stack || err.message))
+
+    await page.setContent('<div id="chart"></div>')
+    await page.addScriptTag({ path: umdPath })
+    await page.evaluate((opts) => {
+      window.chart = new window.ApexCharts(document.querySelector('#chart'), opts)
+      return window.chart.render()
+    }, DONUT_OPTIONS_DD)
+    await page.waitForFunction(
+      () => window.chart && window.chart.w.globals.animationEnded === true,
+    )
+
+    const tabletY = () =>
+      page.evaluate(() => window.chart.w.config.series[0].data[2].y)
+    const collapsed = () =>
+      page.evaluate(() => window.chart.w.globals.collapsedSeriesIndices.slice())
+
+    // Hide Tablet (3rd legend item): slice removed, its value zeroed in config.
+    await page.locator('.apexcharts-legend-series').nth(2).click()
+    await page.waitForFunction(
+      () => window.chart.w.globals.collapsedSeriesIndices.length === 1,
+    )
+    expect(await tabletY()).toBe(0)
+
+    // Drill into Mobile, then back to the root donut.
+    await page.locator('.apexcharts-pie-area[j="0"]').first().dispatchEvent('mousedown')
+    await page.waitForFunction(() => window.chart.drilldown.depth === 1, { timeout: 5000 })
+    await page.waitForFunction(() => window.chart.w.globals.animationEnded === true)
+    await page.locator('button.apexcharts-breadcrumb-item').first().click()
+    await page.waitForFunction(() => window.chart.drilldown.depth === 0, { timeout: 5000 })
+    await page.waitForFunction(() => window.chart.w.globals.animationEnded === true)
+
+    // Tablet is back: full value restored, legend active (not stranded at 0).
+    expect(await tabletY()).toBe(12)
+    expect(await collapsed()).toEqual([])
+    await expect(
+      page.locator('.apexcharts-legend-series').nth(2),
+    ).not.toHaveClass(/apexcharts-inactive-legend/)
+
+    // The toggle still works afterwards: clicking Tablet hides it again.
+    await page.locator('.apexcharts-legend-series').nth(2).click()
+    await page.waitForFunction(
+      () => window.chart.w.globals.collapsedSeriesIndices.length === 1,
+    )
+    expect(await collapsed()).toEqual([2])
+
+    expect(errors, errors.join('\n')).toHaveLength(0)
+  })
 })

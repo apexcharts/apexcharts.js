@@ -214,7 +214,11 @@ export default class Drilldown {
     const c = this.w.config
     const fields = this._overrideFields()
     /** @type {Record<string, any>} */
-    const snap = { series: Utils.clone(c.series) }
+    // Capture the FULL data, not the post-collapse view: navigation clears the
+    // legend-collapse bookkeeping (see _apply), so a snapshot that kept a
+    // hidden slice/series at 0/[] would strand it on return — active in the
+    // legend but zero-valued, with no collapse state left to restore it.
+    const snap = { series: this._uncollapseSeries(Utils.clone(c.series)) }
     if (Array.isArray(c.labels) && c.labels.length) {
       snap.labels = Utils.clone(c.labels)
     }
@@ -226,6 +230,51 @@ export default class Drilldown {
     if (fields.has('fill')) snap.fill = Utils.clone(c.fill)
     if (fields.has('legend')) snap.legend = Utils.clone(c.legend)
     return snap
+  }
+
+  /**
+   * Restore any legend-collapsed slices/series to their original values in a
+   * cloned series array, so a drill snapshot captures the pre-collapse data.
+   * Mirrors legend Helpers' collapse addressing: object-form pie/donut packs
+   * every slice as a data point inside `series[0].data`; numeric pie stores a
+   * slice per top-level element; axis series carry a `data` array. No-op when
+   * nothing is collapsed.
+   * @param {any[]} series
+   * @returns {any[]}
+   */
+  _uncollapseSeries(series) {
+    const w = this.w
+    const gl = w.globals
+    const entries = [
+      ...(gl.collapsedSeries || []),
+      ...(gl.ancillaryCollapsedSeries || []),
+    ]
+    if (!entries.length) return series
+
+    const type = w.config.chart.type
+    const objectFormPie =
+      (type === 'pie' || type === 'donut' || type === 'polarArea') &&
+      series.length === 1 &&
+      series[0] &&
+      typeof series[0] === 'object' &&
+      Array.isArray(series[0].data)
+    const container = objectFormPie ? series[0].data : series
+
+    for (const entry of entries) {
+      const i = entry.index
+      if (gl.axisCharts) {
+        if (series[i]) {
+          series[i].data = Array.isArray(entry.data)
+            ? entry.data.slice()
+            : entry.data
+        }
+      } else if (container[i] && typeof container[i] === 'object') {
+        container[i].y = entry.data
+      } else if (container[i] !== undefined) {
+        container[i] = entry.data
+      }
+    }
+    return series
   }
 
   /**

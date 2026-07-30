@@ -25,9 +25,7 @@ class Legend {
     this.w = w
     this.ctx = ctx // needed: fires events, passes chart instance to user callbacks
 
-    // Injected callbacks used by LegendHelpers (avoids lgCtx.ctx.pie / lgCtx.ctx.updateHelpers)
-    this.printDataLabelsInner = (/** @type {any[]} */ ...a) =>
-      ctx.pie?.printDataLabelsInner(/** @type {any[]} */ ...a)
+    // Injected callback used by LegendHelpers (avoids lgCtx.ctx.updateHelpers)
     this.updateSeries = (/** @type {any[]} */ ...a) =>
       ctx.updateHelpers._updateSeries(/** @type {any[]} */ ...a)
 
