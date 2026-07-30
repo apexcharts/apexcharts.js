@@ -1617,6 +1617,37 @@ describe('Unit chart — legend toggle (hide/show a series)', () => {
     chart.destroy()
   })
 
+  it('collapses an OBJECT-FORM category too (regression: was a silent no-op)', () => {
+    // Object form ({ name, data }) is the form required for per-unit colours,
+    // tooltips, scatter and bubble sizing. Its dot count comes from data.length,
+    // so collapsing must empty the data array — writing `.y = 0` (as the shared
+    // non-axis path did) was ignored and the dots stayed rendered.
+    const chart = unitChart({
+      chart: { animations: { enabled: false } },
+      series: [
+        { name: 'A', data: [10, 20, 30] }, // 3 dots
+        { name: 'B', data: [40, 50, 60, 70] }, // 4 dots
+        { name: 'C', data: [80, 90] }, // 2 dots
+      ],
+      plotOptions: { unit: { layout: 'grouped', clusterLabels: { show: false } } },
+    })
+    expect(catDots(chart, 1)).toBe(4)
+    expect(legendInactive(chart, 2)).toBe(false)
+
+    chart.legend.legendHelpers.toggleDataSeries(1, false)
+    expect(chart.w.globals.collapsedSeriesIndices).toContain(1)
+    expect(catDots(chart, 1)).toBe(0) // its dots are actually removed now
+    expect(catDots(chart, 0)).toBe(3) // the others stay
+    expect(legendInactive(chart, 2)).toBe(true)
+
+    // Clicking again restores the original data verbatim.
+    chart.legend.legendHelpers.toggleDataSeries(1, true)
+    expect(chart.w.globals.collapsedSeriesIndices).not.toContain(1)
+    expect(catDots(chart, 1)).toBe(4)
+    expect(legendInactive(chart, 2)).toBe(false)
+    chart.destroy()
+  })
+
   it('a storyboard-style beat after a legend hide does not crash + keeps the hide', () => {
     const chart = unitChart({
       chart: { animations: { enabled: false } },

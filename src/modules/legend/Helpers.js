@@ -227,6 +227,16 @@ export default class Helpers {
    * @returns {number}
    */
   _readSliceValue(sliceEntry) {
+    // Unit (pictogram) object form: a category is `{ name, data }` and its
+    // weight is the number of data points (parseUnitSeries reads data.length),
+    // not a `.y`. Snapshot the data array so rise can restore it verbatim.
+    if (
+      this.w.config.chart.type === 'unit' &&
+      sliceEntry &&
+      Array.isArray(sliceEntry.data)
+    ) {
+      return sliceEntry.data
+    }
     return sliceEntry && typeof sliceEntry === 'object'
       ? sliceEntry.y
       : sliceEntry
@@ -240,8 +250,21 @@ export default class Helpers {
    * @param {number} value
    */
   _writeSliceValue(container, i, value) {
-    if (container[i] && typeof container[i] === 'object') {
-      container[i].y = value
+    const entry = container[i]
+    // Unit object form (see _readSliceValue): collapse empties the data array
+    // (writing `.y = 0` is ignored because the dot count comes from data.length),
+    // and rise restores the snapshot array. `value` is 0 to collapse or the
+    // saved data array to restore.
+    if (
+      this.w.config.chart.type === 'unit' &&
+      entry &&
+      Array.isArray(entry.data)
+    ) {
+      entry.data = Array.isArray(value) ? value : []
+      return
+    }
+    if (entry && typeof entry === 'object') {
+      entry.y = value
     } else {
       container[i] = value
     }
@@ -281,17 +304,23 @@ export default class Helpers {
         }
       }
     } else {
-      const container = this._nonAxisSliceContainer(series)
-      gl.collapsedSeries.push({
-        index: realIndex,
-        // Store the original slice VALUE so it can be restored on rise. In
-        // object form this is a data point's `y`, not the whole series entry.
-        data: this._readSliceValue(container[realIndex]),
-        type: /** @type {any} */ (w.config.series[realIndex])?.type ?? 'line',
-        // Pin the hide by category name so it survives a regroup (see above).
-        name: (gl.seriesNames || [])[realIndex],
-      })
-      gl.collapsedSeriesIndices.push(realIndex)
+      // Guard against a double-collapse (e.g. a repeat legend click inside the
+      // dynamic-animation window, before the re-render flips `data:collapsed`):
+      // pushing the same index twice tips `allSeriesCollapsed` true below and
+      // blanks the whole chart. Mirrors the axis branch above.
+      if (gl.collapsedSeriesIndices.indexOf(realIndex) < 0) {
+        const container = this._nonAxisSliceContainer(series)
+        gl.collapsedSeries.push({
+          index: realIndex,
+          // Store the original slice VALUE so it can be restored on rise. In
+          // object form this is a data point's `y`, not the whole series entry.
+          data: this._readSliceValue(container[realIndex]),
+          type: /** @type {any} */ (w.config.series[realIndex])?.type ?? 'line',
+          // Pin the hide by category name so it survives a regroup (see above).
+          name: (gl.seriesNames || [])[realIndex],
+        })
+        gl.collapsedSeriesIndices.push(realIndex)
+      }
     }
 
     // For non-axis object-form pie/donut the slice count is the number of data
