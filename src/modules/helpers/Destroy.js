@@ -51,6 +51,12 @@ export default class Destroy {
       // core eagerly-created modules stay alive so initModules() is skipped.
       this.ctx._zoomPanSelection = null
       this.ctx._toolbar = null
+      // Destroy before nulling: KeyboardNavigation registers a legendClick
+      // listener on the build-once w.globals.events (never reset), so nulling it
+      // alone leaks the listener + the dead instance on every updateOptions().
+      // zoomPanSelection/toolbar were destroyed above; the full-destroy path
+      // destroys keyboardNavigation via apexcharts.js before calling clear().
+      this.ctx._keyboardNavigation?.destroy()
       this.ctx._keyboardNavigation = null
     } else {
       // Full destroy — null everything so GC can collect the instances.

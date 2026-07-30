@@ -111,6 +111,12 @@ export default class KeyboardNavigation {
     const w = this.w
     const svgEl = w.dom.Paper && w.dom.Paper.node
 
+    // Remove the ctx-level listener first, before the svgEl guard: on an update
+    // the Paper node is torn down before this runs, so an early return here would
+    // skip it and leak the listener on the persistent w.globals.events. The
+    // svgEl listeners below die with the removed node, so guarding them is fine.
+    this.ctx.events.removeEventListener('legendClick', this._onLegendClick)
+
     if (!svgEl) return
 
     svgEl.removeEventListener('focus', this._onFocus)
@@ -131,8 +137,6 @@ export default class KeyboardNavigation {
       this._onPointerDown,
       /** @type {any} */ ({ capture: true }),
     )
-
-    this.ctx.events.removeEventListener('legendClick', this._onLegendClick)
   }
 
   // Records the timestamp of the most recent pointer-down inside the SVG.
