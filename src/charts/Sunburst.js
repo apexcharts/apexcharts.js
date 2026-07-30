@@ -165,9 +165,10 @@ export default class SunburstChart {
    * @param {number} i
    * @param {string[]|null} paletteFromParent  per-level colours from a drilldown entry
    * @param {string} parentKey  hierarchical identity of the parent
+   * @param {Set<any>|null} [seenIds]  drilldown ids already expanded on this path
    * @returns {any}
    */
-  _toNode(d, i, paletteFromParent, parentKey) {
+  _toNode(d, i, paletteFromParent, parentKey, seenIds = null) {
     const isObj = d && typeof d === 'object'
     const name = isObj ? (d.x ?? d.name ?? '') : ''
     const value = isObj ? Number(d.y ?? d.value) : Number(d)
@@ -187,16 +188,24 @@ export default class SunburstChart {
     if (isObj && Array.isArray(d.children) && d.children.length) {
       node.children = d.children.map(
         (/** @type {any} */ c, /** @type {number} */ j) =>
-          this._toNode(c, j, null, node._key),
+          this._toNode(c, j, null, node._key, seenIds),
       )
     } else if (isObj && d.drilldown != null) {
-      const dd = this._drilldownById(d.drilldown)
-      if (dd && Array.isArray(dd.data) && dd.data.length) {
-        const palette = Array.isArray(dd.colors) ? dd.colors : null
-        node.children = dd.data.map(
-          (/** @type {any} */ c, /** @type {number} */ j) =>
-            this._toNode(c, j, palette, node._key),
-        )
+      // Drilldown ids resolve indirectly, so a self- or mutually-referential id
+      // (a malformed config) would recurse forever and overflow the stack. Track
+      // the ids expanded on this path and stop when one repeats.
+      const visited = seenIds || new Set()
+      if (!visited.has(d.drilldown)) {
+        const dd = this._drilldownById(d.drilldown)
+        if (dd && Array.isArray(dd.data) && dd.data.length) {
+          const nextSeen = new Set(visited)
+          nextSeen.add(d.drilldown)
+          const palette = Array.isArray(dd.colors) ? dd.colors : null
+          node.children = dd.data.map(
+            (/** @type {any} */ c, /** @type {number} */ j) =>
+              this._toNode(c, j, palette, node._key, nextSeen),
+          )
+        }
       }
     }
     return node

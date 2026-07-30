@@ -4,6 +4,7 @@ import { SVGNS } from './math'
 import { SVGGradient } from './SVGGradient'
 import { SVGPattern } from './SVGPattern'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
+import { Environment } from '../utils/Environment.js'
 
 export default class SVGContainer extends SVGElement {
   /**
@@ -103,7 +104,10 @@ export default class SVGContainer extends SVGElement {
     const el = new SVGElement(node)
     this.node.appendChild(node)
 
-    if (typeof callback === 'function') {
+    // The href is set synchronously above, so SSR still emits a valid <image>.
+    // Only the natural-size probe needs the browser Image constructor; guard it
+    // so renderToString (e.g. radialBar hollow.image) doesn't hit a ReferenceError.
+    if (typeof callback === 'function' && Environment.isBrowser()) {
       const img = new Image()
       img.onload = function () {
         el.size(img.width, img.height)

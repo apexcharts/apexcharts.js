@@ -203,7 +203,14 @@ export default class Helpers {
           w.globals.barHeight * anno.seriesIndex
       }
     } else {
-      const seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0]
+      // Guard an out-of-range yAxisIndex (e.g. addPointAnnotation({ yAxisIndex: 2 })
+      // on a single-y-axis chart): seriesYAxisMap[idx] would be undefined and [0]
+      // would throw, aborting the whole render. Clip the annotation instead.
+      const yAxisMap = w.globals.seriesYAxisMap[anno.yAxisIndex]
+      if (!yAxisMap || yAxisMap[0] == null || !w.config.yaxis[anno.yAxisIndex]) {
+        return { yP: 0, clipped: true }
+      }
+      const seriesIndex = yAxisMap[0]
       const yPos = w.config.yaxis[anno.yAxisIndex].logarithmic
         ? new CoreUtils(this.w).getLogVal(
             w.config.yaxis[anno.yAxisIndex].logBase,
