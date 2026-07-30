@@ -340,7 +340,15 @@ export default class Crossfilter {
 
   /** @param {string} chartId */
   removeDimension(chartId) {
+    const dim = this.dims.get(chartId)
+    const hadFilter = dim ? this._hasFilter(dim) : false
     this.dims.delete(chartId)
+    // If the removed dimension held an active filter, siblings were showing a
+    // filtered aggregation; broadcast so they re-aggregate now that it is gone
+    // (unlike filter/clear/reset, removal was previously silent — a destroyed
+    // filter chart left its filter stuck on the targets). state() already
+    // reflects the deletion.
+    if (hadFilter) this._emit('change', this.state())
     return this
   }
 

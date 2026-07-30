@@ -370,7 +370,7 @@ export interface ChartGlobals
   svgWidth: number
   svgHeight: number
   /** Container inputs the last render was sized from; see Core.getResizeSignature. */
-  lastResizeSignature: { w: number; h: number } | null
+  lastResizeSignature: { w: number; h: number; iw?: number } | null
   yAxisLabelsWidth: number
   yAxisWidths: number[]
   translateYAxisX: number[]

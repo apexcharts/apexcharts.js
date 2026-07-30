@@ -2197,7 +2197,8 @@ export default class ApexCharts {
         const sig = this.core.getResizeSignature()
         if (
           sig.w === gl.lastResizeSignature.w &&
-          sig.h === gl.lastResizeSignature.h
+          sig.h === gl.lastResizeSignature.h &&
+          sig.iw === gl.lastResizeSignature.iw
         ) {
           return
         }

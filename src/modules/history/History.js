@@ -391,6 +391,15 @@ export default class History {
 
     Promise.resolve(p)
       .then(() => {
+        // The chart may have been destroyed between undo()/redo() and this
+        // microtask (e.g. an undo that also navigates away). Bail before
+        // touching it: applyViewInteraction calls hideSeries/showSeries against
+        // a nulled baseEl, and _emitChange would fire on a torn-down chart.
+        // Mirrors the LinkedViews guard.
+        if (this.w.globals.isDestroyed) {
+          this.applying = false
+          return
+        }
         // Non-config bits (zoom flag, collapsed set, dynamic annotations,
         // selection, locale). Any trailing async 'updated' from collapse
         // re-renders keeps `applying` true (settle-timer) and would dedup

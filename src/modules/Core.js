@@ -699,7 +699,19 @@ export default class Core {
       h = Utils.getDimensions(this.el.parentNode)[1] || 0
     }
 
-    return { w: Math.round(w), h: Math.round(h) }
+    /** @type {{ w: number; h: number; iw?: number }} */
+    const sig = { w: Math.round(w), h: Math.round(h) }
+
+    // Responsive breakpoints are keyed on window.innerWidth and are only
+    // re-applied by a full render. Fold innerWidth into the signature when the
+    // chart has breakpoints, so crossing one still forces a redraw even when the
+    // drawing box is unchanged (a fixed-pixel chart, or a %-width chart inside a
+    // fixed-width container). Without this the resize-skip below swallowed it.
+    if (cnf.responsive && cnf.responsive.length && Environment.isBrowser()) {
+      sig.iw = window.innerWidth
+    }
+
+    return sig
   }
 
   shiftGraphPosition() {
