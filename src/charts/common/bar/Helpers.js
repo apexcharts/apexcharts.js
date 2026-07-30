@@ -64,11 +64,6 @@ export default class Helpers {
       // A small adjustment when combo charts are used
       this.barCtx.seriesLen = 1
     }
-    this.barCtx.zeroSerieses = []
-
-    if (!w.globals.comboCharts) {
-      this.checkZeroSeries({ series })
-    }
   }
 
   /**
@@ -864,24 +859,6 @@ export default class Helpers {
     return {
       pathTo,
       pathFrom,
-    }
-  }
-
-  /** @param {{series: any}} opts */
-  checkZeroSeries({ series }) {
-    const w = this.w
-    for (let zs = 0; zs < series.length; zs++) {
-      let total = 0
-      for (
-        let zsj = 0;
-        zsj < series[w.globals.maxValsInArrayIndex].length;
-        zsj++
-      ) {
-        total += series[zs][zsj]
-      }
-      if (total === 0) {
-        this.barCtx.zeroSerieses.push(zs)
-      }
     }
   }
 

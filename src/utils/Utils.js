@@ -251,34 +251,6 @@ class Utils {
   }
 
   /**
-   * detects if an element is inside a Shadow DOM
-   * @param {any} el
-   */
-  static isInShadowDOM(el) {
-    if (!el || !el.getRootNode) {
-      return false
-    }
-
-    const rootNode = el.getRootNode()
-
-    // check if root node is a ShadowRoot
-    return rootNode && rootNode !== document && Utils.is('ShadowRoot', rootNode)
-  }
-
-  /**
-   * gets the shadow root host element
-   * @param {any} el
-   */
-  static getShadowRootHost(el) {
-    if (!Utils.isInShadowDOM(el)) {
-      return null
-    }
-
-    const rootNode = el.getRootNode()
-    return rootNode.host || null
-  }
-
-  /**
    * @param {any} el
    */
   static getDimensions(el) {

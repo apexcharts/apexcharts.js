@@ -13,22 +13,6 @@ class SVGFilter extends SVGElement {
     this._id = 'SvgjsFilter' + ++filterCounter
     this.attr('id', this._id)
   }
-
-  /**
-   * @param {import('../types/internal').ChartStateW} w
-   * @param {number} h
-   * @param {number} x
-   * @param {number} y
-   */
-  /**
-   * @param {number} w
-   * @param {number} h
-   * @param {number} [x]
-   * @param {number} [y]
-   */
-  size(w, h, x, y) {
-    return this.attr({ width: w, height: h, x, y })
-  }
 }
 
 class FilterBuilder {

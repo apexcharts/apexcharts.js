@@ -323,26 +323,11 @@ export default class SVGElement {
   }
 
   // ---- Filter methods (set up by SVGFilter module) ----
+  // `filterWith`, `unfilter` and `filterer` are installed on the prototype by
+  // installFilterMethods() (svg/index.js). This stub only exists so a call
+  // before the filter module is installed fails with a clear message.
 
   filterWith() {
     throw new Error('Filter module not loaded')
-  }
-
-  /**
-   * @param {boolean} all
-   */
-  unfilter(all) {
-    if (this._filter) {
-      this.node.removeAttribute('filter')
-      if (all && this._filter.node && this._filter.node.parentNode) {
-        this._filter.node.parentNode.removeChild(this._filter.node)
-      }
-      this._filter = null
-    }
-    return this
-  }
-
-  filterer() {
-    return this._filter
   }
 }

@@ -469,7 +469,7 @@ export default class ApexCharts {
         return reject(
           new Error('Not enough data to display or target element not found'),
         )
-      } else if (graphData === null || w.globals.allSeriesCollapsed) {
+      } else if (w.globals.allSeriesCollapsed) {
         me.series.handleNoData()
       }
 
