@@ -1,0 +1,11 @@
+{
+  "title": "Rounded Donut",
+  "externals": [],
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"donut\"\n        width=\"420\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [44, 25, 18, 13],\n      chartOptions: {\n        chart: {\n          type: 'donut',\n          width: 420,\n        },\n        labels: [\n          'Marguerite Tillman',\n          'Gabriel Barton',\n          'Kathleen Abernathy',\n          'Devon Reyes',\n        ],\n        colors: ['#0EA5E9', '#14B8A6', '#F59E0B', '#F43F5E'],\n        plotOptions: {\n          pie: {\n            // Round the corners of every slice (px)\n            borderRadius: 12,\n            // Leave a gap between adjacent slices (px)\n            spacing: 5,\n            donut: {\n              size: '68%',\n              labels: {\n                show: true,\n                total: {\n                  show: true,\n                  label: 'Total Orders',\n                },\n              },\n            },\n          },\n        },\n        stroke: {\n          width: 0,\n        },\n        dataLabels: {\n          enabled: false,\n        },\n        legend: {\n          position: 'bottom',\n        },\n        title: {\n          text: 'Orders by sales team',\n          align: 'left',\n        },\n        responsive: [\n          {\n            breakpoint: 480,\n            options: {\n              chart: {\n                width: 320,\n              },\n            },\n          },\n        ],\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 420px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

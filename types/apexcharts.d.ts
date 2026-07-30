@@ -1084,6 +1084,7 @@ type ApexChart = {
   | 'treemap'
   | 'unit'
   | 'waffle'
+  | 'sunburst'
   | 'funnel'
   | 'pyramid'
   | 'gauge'
@@ -2511,6 +2512,12 @@ type ApexPlotOptions = {
      * slice so corner fillets never cross on thin or narrow slices.
      */
     borderRadius?: number
+    /**
+     * Gap between adjacent slices (in px). Applies to pie, donut and
+     * polarArea. Defaults to 0 (slices touch). Each slice is inset
+     * symmetrically, so its mid-angle (data label and hit region) is kept.
+     */
+    spacing?: number
     dataLabels?: {
       offset?: number
       minAngleToShowLabel?: number
@@ -2597,6 +2604,43 @@ type ApexPlotOptions = {
       strokeWidth?: number;
       connectorColors?: string | string[];
     };
+  }
+  /**
+   * Sunburst / nested pie-donut (hierarchical radial). Rings go from the centre
+   * hole outward, one per hierarchy level; each child arc is nested inside its
+   * parent's angular wedge. Accepts a native `children` hierarchy or an existing
+   * `drilldown` config (adapter).
+   */
+  sunburst?: {
+    offsetX?: number
+    offsetY?: number
+    startAngle?: number
+    endAngle?: number
+    /** Centre hole radius as a % of the max radius (e.g. '15%'). */
+    innerSize?: string
+    /** Corner rounding of each arc (px), same semantics as pie borderRadius. */
+    borderRadius?: number
+    /** Gap between adjacent arcs (px), same semantics as pie spacing. */
+    spacing?: number
+    /** Draw a shallow branch's leaf to the rim ('extend') or stop it ('stop'). */
+    leaf?: 'extend' | 'stop'
+    /** Angular partition of a parent's wedge among its children. */
+    partition?: 'normalize' | 'strict'
+    /** Per-depth lightening of the parent colour (0 = same, 1 = white). */
+    tint?: number
+    /** Click a wedge to zoom into its branch (breadcrumb to go back). Default true. */
+    zoomOnClick?: boolean
+    dataLabels?: {
+      show?: boolean
+      /** Hide the label on any arc narrower than this (degrees). */
+      minAngleToShow?: number
+      style?: {
+        fontSize?: string
+        fontFamily?: string
+        fontWeight?: string | number
+        colors?: string[]
+      }
+    }
   }
   radar?: {
     size?: number

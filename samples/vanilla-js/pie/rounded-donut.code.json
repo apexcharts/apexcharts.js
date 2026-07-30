@@ -1,0 +1,21 @@
+{
+  "title": "Rounded Donut",
+  "externals": [],
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [44, 25, 18, 13],\n  chart: {\n    type: 'donut',\n    width: 420,\n  },\n  labels: [\n    'Marguerite Tillman',\n    'Gabriel Barton',\n    'Kathleen Abernathy',\n    'Devon Reyes',\n  ],\n  colors: ['#0EA5E9', '#14B8A6', '#F59E0B', '#F43F5E'],\n  plotOptions: {\n    pie: {\n      // Round the corners of every slice (px)\n      borderRadius: 12,\n      // Leave a gap between adjacent slices (px)\n      spacing: 5,\n      donut: {\n        size: '68%',\n        labels: {\n          show: true,\n          total: {\n            show: true,\n            label: 'Total Orders',\n          },\n        },\n      },\n    },\n  },\n  stroke: {\n    width: 0,\n  },\n  dataLabels: {\n    enabled: false,\n  },\n  legend: {\n    position: 'bottom',\n  },\n  title: {\n    text: 'Orders by sales team',\n    align: 'left',\n  },\n  responsive: [\n    {\n      breakpoint: 480,\n      options: {\n        chart: {\n          width: 320,\n        },\n      },\n    },\n  ],\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Rounded Donut</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 420px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

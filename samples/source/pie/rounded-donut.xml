@@ -1,0 +1,62 @@
+<title>Rounded Donut</title>
+
+<style>
+#chart {
+  max-width: 420px;
+  margin: 35px auto;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  type: 'donut',
+  width: 420,
+},
+labels: ['Marguerite Tillman', 'Gabriel Barton', 'Kathleen Abernathy', 'Devon Reyes'],
+colors: ['#0EA5E9', '#14B8A6', '#F59E0B', '#F43F5E'],
+plotOptions: {
+  pie: {
+    // Round the corners of every slice (px)
+    borderRadius: 12,
+    // Leave a gap between adjacent slices (px)
+    spacing: 5,
+    donut: {
+      size: '68%',
+      labels: {
+        show: true,
+        total: {
+          show: true,
+          label: 'Total Orders'
+        }
+      }
+    }
+  }
+},
+stroke: {
+  width: 0
+},
+dataLabels: {
+  enabled: false
+},
+legend: {
+  position: 'bottom'
+},
+title: {
+  text: 'Orders by sales team',
+  align: 'left'
+},
+responsive: [{
+  breakpoint: 480,
+  options: {
+    chart: {
+      width: 320
+    }
+  }
+}]
+</options>
+
+<series>
+[44, 25, 18, 13]
+</series>
+</chart>

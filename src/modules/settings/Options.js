@@ -1315,6 +1315,10 @@ export default class Options {
           // (default, unchanged behavior). The value is clamped per slice so
           // opposing corner fillets never cross on thin/narrow slices.
           borderRadius: 0,
+          // Gap between adjacent slices (in px). Applies to pie, donut and
+          // polarArea. 0 = slices touch (default). Each slice is inset
+          // symmetrically, so its mid-angle (data label + hit region) is kept.
+          spacing: 0,
           dataLabels: {
             // These are the percentage values which are displayed on slice
             offset: 0, // offset by which labels will move outside
@@ -1414,6 +1418,48 @@ export default class Options {
           spokes: {
             strokeWidth: 1,
             connectorColors: '#e8e8e8',
+          },
+        },
+        sunburst: {
+          // Sunburst / nested pie-donut (hierarchical radial). Rings go from the
+          // centre hole outward, one per hierarchy level; each child arc is
+          // nested inside its parent's angular wedge.
+          offsetX: 0,
+          offsetY: 0,
+          startAngle: 0,
+          endAngle: 360,
+          // Centre hole radius, as a % of the max radius (like donut size).
+          innerSize: '15%',
+          // Corner rounding + inter-arc gap (px), same semantics as the pie
+          // family (see plotOptions.pie.borderRadius / .spacing).
+          borderRadius: 0,
+          spacing: 1,
+          // How a branch that bottoms out before the deepest level is drawn:
+          // 'extend' stretches the leaf arc out to the rim (default, matches
+          // d3); 'stop' leaves the outer rings empty behind it.
+          leaf: 'extend',
+          // Angular partition of a parent's wedge among its children:
+          // 'normalize' splits by each child's share of its siblings (safe for
+          // any data); 'strict' expects children to sum to the parent's value.
+          partition: 'normalize',
+          // Each depth level is tinted this much lighter than its parent colour
+          // (0 = keep parent colour, 1 = white). A per-node `color` overrides.
+          tint: 0.14,
+          // Click a wedge to zoom into that branch (its subtree fills the
+          // chart; a breadcrumb walks back). Click the focused inner ring to
+          // zoom out. Set false to disable.
+          zoomOnClick: true,
+          dataLabels: {
+            show: true,
+            // Hide the label on any arc narrower than this (degrees), so tiny
+            // wedges do not overflow with text.
+            minAngleToShow: 8,
+            style: {
+              fontSize: '12px',
+              fontFamily: undefined,
+              fontWeight: 400,
+              colors: undefined,
+            },
           },
         },
         radar: {

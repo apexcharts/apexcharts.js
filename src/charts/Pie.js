@@ -1039,10 +1039,10 @@ class Pie {
   /** @param {{me: any, startAngle: any, angle: any, size: any}} opts */
   getPiePath({ me, startAngle, angle, size }) {
     let path
+    const w = this.w
     const graphics = new Graphics(this.w)
 
-    const startDeg = startAngle
-    const startRadians = (Math.PI * (startDeg - 90)) / 180
+    let startDeg = startAngle
 
     let endDeg = angle + startAngle
     // prevent overlap
@@ -1056,7 +1056,51 @@ class Pie {
         (this.w.config.plotOptions.pie.startAngle % this.fullAngle) -
         0.01
     }
+
+    // Clamped angular span (magnitude, in degrees) before wrapping endDeg into
+    // [0, fullAngle]. Both builders below derive their geometry from this.
+    let spanDeg = endDeg - startDeg
+
+    const isSliceType =
+      me.chartType === 'pie' ||
+      me.chartType === 'donut' ||
+      me.chartType === 'polarArea'
+
+    // Inter-slice spacing (plotOptions.pie.spacing, in px) for pie / donut /
+    // polarArea. Inset both edges symmetrically so the slice mid-angle (and
+    // therefore its data label and hit region) is preserved. The px gap is
+    // measured at the mid-ring radius for donut, or the outer radius otherwise.
+    const spacing = w.config.plotOptions.pie.spacing
+    if (isSliceType && spacing > 0 && spanDeg > 0) {
+      const rRef = me.chartType === 'donut' ? (size + me.donutSize) / 2 : size
+      const gapDeg = rRef > 0 ? (spacing / rRef) * (180 / Math.PI) : 0
+      // never collapse the slice: keep at least a ~1deg sliver
+      const inset = Math.min(gapDeg / 2, Math.max(0, spanDeg / 2 - 0.5))
+      startDeg += inset
+      spanDeg -= 2 * inset
+    }
+
+    // Recompute endDeg from the (possibly inset) start/span, then wrap into
+    // [0, fullAngle] for the point math below.
+    endDeg = startDeg + spanDeg
     if (Math.ceil(endDeg) > this.fullAngle) endDeg -= this.fullAngle
+
+    const startRadians = (Math.PI * (startDeg - 90)) / 180
+
+    // Rounded slice corners (plotOptions.pie.borderRadius). Returns null when
+    // the slice is too small to round, in which case we fall through to the
+    // regular sharp-corner path below.
+    const borderRadius = w.config.plotOptions.pie.borderRadius
+    if (borderRadius > 0 && isSliceType) {
+      const roundedPath = this.getRoundedSlicePath({
+        me,
+        startDeg,
+        spanDeg,
+        size,
+        borderRadius,
+      })
+      if (roundedPath) return roundedPath
+    }
 
     const endRadians = (Math.PI * (endDeg - 90)) / 180
 
@@ -1078,7 +1122,7 @@ class Pie {
       startDeg,
     )
 
-    const largeArc = angle > 180 ? 1 : 0
+    const largeArc = spanDeg > 180 ? 1 : 0
 
     const pathBeginning = ['M', x1, y1, 'A', size, size, 0, largeArc, 1, x2, y2]
 
@@ -1110,6 +1154,110 @@ class Pie {
     }
 
     return graphics.roundPathCorners(path, this.strokeWidth * 2)
+  }
+
+  /**
+   * Build a slice path with rounded corners (plotOptions.pie.borderRadius).
+   *
+   * The generic roundPathCorners() only rounds line->line joins, but a slice
+   * corner is an arc<->line join, so we construct the fillets explicitly here:
+   * every corner is inset by the (clamped) radius along both the arc and the
+   * radial edge, and a quadratic Bezier with its control point at the original
+   * sharp corner bridges the two inset points. Donut slices round all four
+   * corners; pie / polarArea slices round the two outer corners and keep the
+   * center apex sharp.
+   *
+   * Returns null when the slice is too small to round meaningfully, so the
+   * caller can fall back to a sharp-corner path.
+   *
+   * @param {{me: any, startDeg: number, spanDeg: number, size: number, borderRadius: number}} opts
+   * @returns {string | null}
+   */
+  getRoundedSlicePath({ me, startDeg, spanDeg, size, borderRadius }) {
+    if (!(spanDeg > 0)) return null
+
+    const D2R = Math.PI / 180
+    const R2D = 180 / Math.PI
+    const cx = me.centerX
+    const cy = me.centerY
+    const isDonut = me.chartType === 'donut'
+    const rOut = size
+    const rIn = isDonut ? me.donutSize : 0
+
+    const spanRad = spanDeg * D2R
+
+    // Clamp the radius so opposing corner fillets never cross: bounded by the
+    // room available along each arc and across the radial thickness.
+    let r = borderRadius
+    r = Math.min(r, (spanRad * rOut) / 2) // outer arc room
+    if (isDonut) {
+      r = Math.min(r, (spanRad * rIn) / 2) // inner arc room (tighter)
+      r = Math.min(r, (rOut - rIn) / 2) // radial thickness
+    } else {
+      r = Math.min(r, rOut / 2)
+    }
+    if (!(r > 0.5)) return null
+
+    /**
+     * @param {number} radius
+     * @param {number} deg
+     */
+    const ptAt = (radius, deg) => ({
+      x: cx + radius * Math.cos((deg - 90) * D2R),
+      y: cy + radius * Math.sin((deg - 90) * D2R),
+    })
+    /** @param {{x: number, y: number}} p */
+    const xy = (p) => `${p.x} ${p.y}`
+
+    const a0 = startDeg
+    const a1 = startDeg + spanDeg
+
+    // angular inset (deg) that corresponds to an arc-length of r at each radius
+    const degOut = (r / rOut) * R2D
+
+    const oStart = ptAt(rOut, a0 + degOut) // outer arc start (inset from a0)
+    const oEnd = ptAt(rOut, a1 - degOut) // outer arc end (inset from a1)
+    const largeOut = spanDeg - 2 * degOut > 180 ? 1 : 0
+
+    const ocEnd = ptAt(rOut, a1) // sharp outer corner at a1
+    const rEndOut = ptAt(rOut - r, a1) // radial-inset point on the a1 edge
+    const ocStart = ptAt(rOut, a0) // sharp outer corner at a0
+    const rStartOut = ptAt(rOut - r, a0) // radial-inset point on the a0 edge
+
+    if (isDonut) {
+      const degIn = (r / rIn) * R2D
+      const iEnd = ptAt(rIn, a1 - degIn) // inner arc end (inset from a1)
+      const iStart = ptAt(rIn, a0 + degIn) // inner arc start (inset from a0)
+      const largeIn = spanDeg - 2 * degIn > 180 ? 1 : 0
+      const icEnd = ptAt(rIn, a1) // sharp inner corner at a1
+      const rEndIn = ptAt(rIn + r, a1)
+      const icStart = ptAt(rIn, a0) // sharp inner corner at a0
+      const rStartIn = ptAt(rIn + r, a0)
+
+      return [
+        'M', xy(oStart),
+        'A', rOut, rOut, 0, largeOut, 1, xy(oEnd),
+        'Q', xy(ocEnd), xy(rEndOut),
+        'L', xy(rEndIn),
+        'Q', xy(icEnd), xy(iEnd),
+        'A', rIn, rIn, 0, largeIn, 0, xy(iStart),
+        'Q', xy(icStart), xy(rStartIn),
+        'L', xy(rStartOut),
+        'Q', xy(ocStart), xy(oStart),
+        'Z',
+      ].join(' ')
+    }
+
+    // pie / polarArea: round the two outer corners, keep the center apex sharp
+    return [
+      'M', xy(oStart),
+      'A', rOut, rOut, 0, largeOut, 1, xy(oEnd),
+      'Q', xy(ocEnd), xy(rEndOut),
+      'L', `${cx} ${cy}`,
+      'L', xy(rStartOut),
+      'Q', xy(ocStart), xy(oStart),
+      'Z',
+    ].join(' ')
   }
 
   /**
