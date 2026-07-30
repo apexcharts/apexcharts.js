@@ -1390,8 +1390,20 @@ export default class Data {
         !effectiveParsing.y ||
         (Array.isArray(effectiveParsing.y) && effectiveParsing.y.length === 0)
       ) {
+        const missing = []
+        if (!effectiveParsing.x) missing.push('x')
+        if (
+          !effectiveParsing.y ||
+          (Array.isArray(effectiveParsing.y) && effectiveParsing.y.length === 0)
+        ) {
+          missing.push('y')
+        }
+        const seriesName = serie.name ?? `series[${index}]`
         console.warn(
-          `ApexCharts: Series ${index} has parsing config but missing x or y field specification`,
+          `ApexCharts [${this.w.globals.chartID}]: "${seriesName}" has a parseData config but is missing the '${missing.join(
+            "', '",
+          )}' field specification.`,
+          { parsing: serie.parsing ?? globalParsing },
         )
         return serie
       }
