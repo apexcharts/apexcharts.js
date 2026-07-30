@@ -275,6 +275,11 @@ export default class Animations {
     const startAt = performance.now() + delay
     /** @param {number} now */
     const step = (now) => {
+      // Chart may have been destroyed before this frame ran (React StrictMode
+      // mount/unmount, route change). Bail without rescheduling and without
+      // onComplete, which would fire animationEnd on a torn-down chart. Mirrors
+      // the guard in animateDraw (see react-apexcharts#602).
+      if (w.globals.isDestroyed) return
       const t = Math.max(0, Math.min(1, (now - startAt) / speed))
       style.transform = `scale(${easeOutBack(t)})`
       // Fade in over the first half so the back-out overshoot is visible
