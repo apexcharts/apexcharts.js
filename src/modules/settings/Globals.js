@@ -37,6 +37,12 @@ export default class Globals {
     gl.maxValsInArrayIndex = 0 // index of the series with the most data points
     gl.yValueDecimal = 0 // decimal precision of y values (0 = integers only)
     gl.allSeriesHasEqualX = true // false when series have differing x value sets
+    // Recomputed every render (Range flips hasNullValues, Scales flips
+    // invalidLogScale). Reset here, not only once in globalVars, or a chart that
+    // once had nulls / an invalid log scale keeps behaving as if it still does
+    // after updateSeries swaps in clean / valid data.
+    gl.hasNullValues = false
+    gl.invalidLogScale = false
 
     // ── Labels & categories (ephemeral — derived from parsed series/config) ──
     gl.labels = []
@@ -426,8 +432,8 @@ export default class Globals {
 
       // ── Data format flags (derived from config/series, stable between renders) ─
       // Note: dataFormatXNumeric lives on w.axisFlags — see Base.js. Shim installed there.
-      invalidLogScale: false, // true when log scale requested but data is invalid
-      hasNullValues: false, // true when any series contains null values
+      // hasNullValues / invalidLogScale are recomputed every render and reset in
+      // initGlobalVars (they are NOT stable between renders).
 
       // Persistent data tracking
       columnSeries: null, // tracks which series are rendered as bars/columns
