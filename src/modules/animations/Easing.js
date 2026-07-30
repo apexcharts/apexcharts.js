@@ -48,20 +48,14 @@ export function cubicBezier(x1, y1, x2, y2) {
   const sampleX = (t) => ((ax * t + bx) * t + cx) * t
   /** @param {number} t */
   const sampleY = (t) => ((ay * t + by) * t + cy) * t
-  /** @param {number} t */
-  const slopeX = (t) => (3 * ax * t + 2 * bx) * t + cx
   /** @param {number} x */
   const solveT = (x) => {
-    let t = x
-    for (let i = 0; i < 5; i++) {
-      const d = slopeX(t)
-      if (d === 0) break
-      t -= (sampleX(t) - x) / d
-    }
-    // bisection fallback to stay in-domain
+    // Bisection solve for the parametric t where sampleX(t) === x. (A
+    // Newton-Raphson pre-step used to run here, but its result was always
+    // discarded before this bisection, so it was pure overhead and removed.)
     let lo = 0
     let hi = 1
-    t = x
+    let t = x
     if (t < lo) return lo
     if (t > hi) return hi
     while (lo < hi) {
