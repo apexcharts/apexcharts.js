@@ -298,6 +298,21 @@ export default class Drilldown {
   }
 
   /**
+   * Copy the optional view fields shared by a drilldown child level and a
+   * restore snapshot (`xaxis`, `yaxis`, `colors`, `plotOptions`, `fill`,
+   * `legend`) from `src` onto `view`, only when present.
+   * @param {Record<string, any>} view @param {Record<string, any>} src
+   */
+  _copyOptionalViewFields(view, src) {
+    if (src.xaxis) view.xaxis = src.xaxis
+    if (src.yaxis) view.yaxis = src.yaxis
+    if (src.colors) view.colors = src.colors
+    if (src.plotOptions) view.plotOptions = src.plotOptions
+    if (src.fill) view.fill = src.fill
+    if (src.legend) view.legend = src.legend
+  }
+
+  /**
    * Build an updateOptions/updateSeries payload for drilling INTO a child level.
    * Works for axis charts and pie/donut alike: both accept series objects with a
    * `data` array of `{ x, y }` points (pie derives slice labels from `x`).
@@ -318,12 +333,7 @@ export default class Drilldown {
     if (child.chart && child.chart.type) chart.type = child.chart.type
     if (child.chart && child.chart.stacked != null) chart.stacked = child.chart.stacked
     if (Object.keys(chart).length) view.chart = chart
-    if (child.xaxis) view.xaxis = child.xaxis
-    if (child.yaxis) view.yaxis = child.yaxis
-    if (child.colors) view.colors = child.colors
-    if (child.plotOptions) view.plotOptions = child.plotOptions
-    if (child.fill) view.fill = child.fill
-    if (child.legend) view.legend = child.legend
+    this._copyOptionalViewFields(view, child)
     return view
   }
 
@@ -336,12 +346,7 @@ export default class Drilldown {
     /** @type {Record<string, any>} */
     const view = { series: snap.series, chart: snap.chart }
     if (snap.labels && snap.labels.length) view.labels = snap.labels
-    if (snap.xaxis) view.xaxis = snap.xaxis
-    if (snap.yaxis) view.yaxis = snap.yaxis
-    if (snap.colors) view.colors = snap.colors
-    if (snap.plotOptions) view.plotOptions = snap.plotOptions
-    if (snap.fill) view.fill = snap.fill
-    if (snap.legend) view.legend = snap.legend
+    this._copyOptionalViewFields(view, snap)
     return view
   }
 

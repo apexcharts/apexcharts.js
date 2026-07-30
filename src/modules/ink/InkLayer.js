@@ -471,17 +471,26 @@ export default class InkLayer {
     this._attach() // bind the freshly drawn elements (idempotent for the rest)
   }
 
+  /**
+   * Dispatch an ink annotation lifecycle event both to the user callback
+   * (`chart.events[name]`) and the internal event bus, in that order.
+   * @param {string} name @param {any} args
+   */
+  _fireAnnotationEvent(name, args) {
+    const events = this.w.config.chart.events
+    if (typeof events[name] === 'function') {
+      events[name](this.ctx, args)
+    }
+    this.ctx.events?.fireEvent(name, [this.ctx, args])
+  }
+
   /** @param {string} type @param {any} anno @param {number} index */
   _fireDragged(type, anno, index) {
     /** @type {any} */
     const args = { type, id: anno.id, index, x: anno.x, y: anno.y }
     if (anno.x2 != null) args.x2 = anno.x2
     if (anno.y2 != null) args.y2 = anno.y2
-    const events = this.w.config.chart.events
-    if (typeof events.annotationDragged === 'function') {
-      events.annotationDragged(this.ctx, args)
-    }
-    this.ctx.events?.fireEvent('annotationDragged', [this.ctx, args])
+    this._fireAnnotationEvent('annotationDragged', args)
   }
 
   // ─── P3: click-to-create ─────────────────────────────────────────────────
@@ -642,11 +651,7 @@ export default class InkLayer {
     const args = { type, id: anno.id, index }
     if (typeof anno.x !== 'undefined') args.x = anno.x
     if (typeof anno.y !== 'undefined') args.y = anno.y
-    const events = this.w.config.chart.events
-    if (typeof events.annotationCreated === 'function') {
-      events.annotationCreated(this.ctx, args)
-    }
-    this.ctx.events?.fireEvent('annotationCreated', [this.ctx, args])
+    this._fireAnnotationEvent('annotationCreated', args)
   }
 
   // ─── P3: tool palette ────────────────────────────────────────────────────
@@ -1174,31 +1179,19 @@ export default class InkLayer {
   /** @param {string} type @param {any} anno @param {number} index */
   _fireEdited(type, anno, index) {
     const args = { type, id: anno.id, index, text: anno.label ? anno.label.text : '' }
-    const events = this.w.config.chart.events
-    if (typeof events.annotationEdited === 'function') {
-      events.annotationEdited(this.ctx, args)
-    }
-    this.ctx.events?.fireEvent('annotationEdited', [this.ctx, args])
+    this._fireAnnotationEvent('annotationEdited', args)
   }
 
   /** @param {string} type @param {any} anno @param {number} index */
   _fireStyled(type, anno, index) {
     const args = { type, id: anno.id, index, label: anno.label, marker: anno.marker }
-    const events = this.w.config.chart.events
-    if (typeof events.annotationStyled === 'function') {
-      events.annotationStyled(this.ctx, args)
-    }
-    this.ctx.events?.fireEvent('annotationStyled', [this.ctx, args])
+    this._fireAnnotationEvent('annotationStyled', args)
   }
 
   /** @param {string} type @param {any} anno @param {number} index */
   _fireDeleted(type, anno, index) {
     const args = { type, id: anno.id, index }
-    const events = this.w.config.chart.events
-    if (typeof events.annotationDeleted === 'function') {
-      events.annotationDeleted(this.ctx, args)
-    }
-    this.ctx.events?.fireEvent('annotationDeleted', [this.ctx, args])
+    this._fireAnnotationEvent('annotationDeleted', args)
   }
 
   // ─── lifecycle ────────────────────────────────────────────────────────────
