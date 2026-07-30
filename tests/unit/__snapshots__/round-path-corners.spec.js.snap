@@ -1,0 +1,5 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Graphics.roundPathCorners > produces stable output for a rounded square (golden) 1`] = `"M 12 0 L 88 0 C 94 0 100 6 100 12 L 100 88 C 100 94 94 100 88 100 L 12 100 C 6 100 0 94 0 88 L 0 12 C 0 6 6 0 12 0 Z "`;
+
+exports[`Graphics.roundPathCorners > produces stable output for an open 3-point corner (golden) 1`] = `"M 0 0 L 42 0 C 46 0 50 4 50 8 L 50 50 "`;
