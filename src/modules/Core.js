@@ -579,6 +579,20 @@ export default class Core {
     return elGraph
   }
 
+  /**
+   * Extract the CSS unit suffix from a chart width/height config value
+   * (`'100%'` -> `'%'`, `'300px'` -> `'px'`, `300`/`'300'` -> `''`). Kept as the
+   * original digit-split idiom so results are identical for every input the
+   * call sites already handle ('%', 'px', '', 'auto').
+   * @param {string|number} value
+   * @returns {string|undefined}
+   */
+  _extractDimensionUnit(value) {
+    return String(value)
+      .split(/[0-9]+/g)
+      .pop()
+  }
+
   setSVGDimensions() {
     const { globals: gl, config: cnf } = this.w
 
@@ -597,10 +611,7 @@ export default class Core {
     gl.svgHeight = NaN
 
     let elDim = Utils.getDimensions(this.el)
-    const widthUnit = rawWidth
-      .toString()
-      .split(/[0-9]+/g)
-      .pop()
+    const widthUnit = this._extractDimensionUnit(rawWidth)
 
     if (widthUnit === '%') {
       if (Utils.isNumber(elDim[0])) {
@@ -613,10 +624,7 @@ export default class Core {
       gl.svgWidth = parseInt(rawWidth, 10)
     }
 
-    const heightUnit = String(rawHeight)
-      .toString()
-      .split(/[0-9]+/g)
-      .pop()
+    const heightUnit = this._extractDimensionUnit(rawHeight)
     if (rawHeight !== 'auto' && rawHeight !== '') {
       if (heightUnit === '%') {
         const elParentDim = Utils.getDimensions(this.el.parentNode)
