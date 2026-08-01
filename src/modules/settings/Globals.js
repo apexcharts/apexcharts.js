@@ -44,6 +44,12 @@ export default class Globals {
     gl.hasNullValues = false
     gl.invalidLogScale = false
 
+    // Per-point range ids for timeline rangeBar overlap offsets, keyed
+    // [seriesIndex][pointIndex]. Populated by Data.handleRangeDataFormat and
+    // read by RangeBar; reset each render so stale ids don't survive an update
+    // that drops range data. See audit D1.
+    gl.seriesRangeName = {}
+
     // ── Labels & categories (ephemeral — derived from parsed series/config) ──
     gl.labels = []
     gl.hasXaxisGroups = false

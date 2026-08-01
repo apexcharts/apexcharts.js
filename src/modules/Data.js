@@ -602,9 +602,15 @@ export default class Data {
           rangeName: id,
         }
 
-        // CAUTION: mutating config object by adding a new property
-        // TODO: As this is specifically for timeline rangebar charts, update the docs mentioning the series only supports xy format
-        ser[i].data[j].rangeName = id
+        // Stash the per-point range id off to the side (keyed by series/point
+        // index) rather than mutating the user's config data point. RangeBar
+        // reads it back via w.globals.seriesRangeName[i][j] to compute the
+        // overlap offset. Avoids leaking a `rangeName` onto user objects (which
+        // breaks framework reactivity / immutable diffing). See audit D1.
+        const gl = this.w.globals
+        if (!gl.seriesRangeName) gl.seriesRangeName = {}
+        if (!gl.seriesRangeName[i]) gl.seriesRangeName[i] = {}
+        gl.seriesRangeName[i][j] = id
 
         const keyObj = uniqueKeysMap.get(x)
         if (keyObj) {

@@ -255,8 +255,9 @@ class RangeBar extends Bar {
   }) {
     const w = this.w
     let overlaps = []
-    const rangeName = /** @type {Record<string,any>} */ (w.config.series[i]).data?.[j]
-      ?.rangeName
+    // Per-point range id, stored off to the side by Data.handleRangeDataFormat
+    // (not mutated onto the user's config data point). See audit D1.
+    const rangeName = w.globals.seriesRangeName?.[i]?.[j]
 
     const x = /** @type {Record<string,any>} */ (w.config.series[i]).data?.[j]?.x
     const labelX = Array.isArray(x) ? x.join(' ') : x

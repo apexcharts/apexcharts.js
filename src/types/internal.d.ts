@@ -352,6 +352,10 @@ export interface ChartGlobals
   skipLastTimelinelabel: boolean
   invalidLogScale: boolean
   hasNullValues: boolean
+  /** Per-point range ids for timeline rangeBar overlap offsets, keyed
+   * [seriesIndex][pointIndex]. Set by Data.handleRangeDataFormat, read by
+   * RangeBar; reset each render (audit D1). */
+  seriesRangeName: Record<number, Record<number, string>>
 
   // ── Series helpers (ephemeral) ────────────────────────────────────────────
   seriesPercent: number[][]
