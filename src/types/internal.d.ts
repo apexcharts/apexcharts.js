@@ -259,6 +259,11 @@ export interface ChartGlobals
   chartID: string | null
   cuid: string | null
   chartClass: string
+  /** rAF handles cancelled across re-renders so a stale animation loop doesn't
+   * keep running on detached nodes (audit follow-up). */
+  radialNeedleRAF: number | null
+  unitGatherRAF: number | null
+  unitExitRAF: number | null
 
   // ── Event registry ────────────────────────────────────────────────────────
   events: {

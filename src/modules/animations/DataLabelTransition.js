@@ -47,9 +47,20 @@ function dataLabelMotionEnabled(w) {
  * @param {number} n
  * @returns {number}
  */
-function decimalsOf(n) {
+export function decimalsOf(n) {
   if (!isFinite(n)) return 0
-  const s = String(n)
+  const s = String(Math.abs(n))
+  // Exponential notation (e.g. "1e-7", "1.5e-7") carries no '.', so the plain
+  // indexOf below would report 0 decimals and a count-up on a tiny value would
+  // render "0". Derive the decimal count from the mantissa + exponent instead.
+  const e = s.indexOf('e')
+  if (e !== -1) {
+    const mantissa = s.slice(0, e)
+    const exp = parseInt(s.slice(e + 1), 10)
+    const dot = mantissa.indexOf('.')
+    const mantissaDec = dot === -1 ? 0 : mantissa.length - dot - 1
+    return Math.min(6, Math.max(0, mantissaDec - exp))
+  }
   const dot = s.indexOf('.')
   return dot === -1 ? 0 : Math.min(6, s.length - dot - 1)
 }
@@ -196,18 +207,22 @@ export function applyDataLabelTransition(w) {
           const dec = Math.max(decimalsOf(from), decimalsOf(newVal))
           const realIndex = parseInt(key, 10)
           const j = parseInt(group.getAttribute('data:dlJ') || '', 10)
+          // The formatter opts don't change between tween frames (only the
+          // value does), so build them once per label instead of spreading all
+          // of `w` on every frame. Same shape the bar data-label formatter gets.
+          const fmtOpts = {
+            ...w,
+            seriesIndex: realIndex,
+            dataPointIndex: isFinite(j) ? j : 0,
+            w,
+          }
           /** @param {number} v */
           const format = (v) => {
             const rounded = Number(v.toFixed(dec))
             let out = rounded
             if (typeof formatter === 'function') {
               try {
-                out = formatter(rounded, {
-                  ...w,
-                  seriesIndex: realIndex,
-                  dataPointIndex: isFinite(j) ? j : 0,
-                  w,
-                })
+                out = formatter(rounded, fmtOpts)
               } catch (_) {
                 out = rounded
               }

@@ -2127,13 +2127,23 @@ export default class Unit {
           ? easeInOutCubic
           : easeOutCubic
 
+    // Cancel a gather loop still running from a previous render before starting
+    // a new one, so we don't keep animating the old (detached) dots on a rapid
+    // update.
+    if (this.w.globals.unitGatherRAF != null) {
+      BrowserAPIs.cancelAnimationFrame(this.w.globals.unitGatherRAF)
+      this.w.globals.unitGatherRAF = null
+    }
     const start = performance.now()
     /** @param {number} now */
     const stepFn = (now) => {
       // Bail if the chart was destroyed mid-gather (route change / re-render):
       // the dots are detached and setAttribute on them is wasted work. Matches
       // Animations.animatePop.
-      if (this.w.globals.isDestroyed) return
+      if (this.w.globals.isDestroyed) {
+        this.w.globals.unitGatherRAF = null
+        return
+      }
       let done = true
       for (let k = 0; k < n; k++) {
         const d = dots[k]
@@ -2169,11 +2179,12 @@ export default class Unit {
             d.node.setAttribute('r', String(d.r1))
           }
         }
+        this.w.globals.unitGatherRAF = null
       } else {
-        BrowserAPIs.requestAnimationFrame(stepFn)
+        this.w.globals.unitGatherRAF = BrowserAPIs.requestAnimationFrame(stepFn)
       }
     }
-    BrowserAPIs.requestAnimationFrame(stepFn)
+    this.w.globals.unitGatherRAF = BrowserAPIs.requestAnimationFrame(stepFn)
   }
 
   /**
@@ -2248,12 +2259,21 @@ export default class Unit {
     const offY = corner ? hy : 0
     const cxAttr = corner ? 'x' : 'cx'
     const cyAttr = corner ? 'y' : 'cy'
+    // Cancel an exit loop still running from a previous render before starting a
+    // new one, so stale ghosts don't keep fading on a rapid update.
+    if (this.w.globals.unitExitRAF != null) {
+      BrowserAPIs.cancelAnimationFrame(this.w.globals.unitExitRAF)
+      this.w.globals.unitExitRAF = null
+    }
     const start = performance.now()
 
     /** @param {number} now */
     const stepFn = (now) => {
       // Bail if the chart was destroyed mid-exit (the ghost group is detached).
-      if (this.w.globals.isDestroyed) return
+      if (this.w.globals.isDestroyed) {
+        this.w.globals.unitExitRAF = null
+        return
+      }
       const t = Math.max(0, Math.min(1, (now - start) / speed))
       const e = easeOutCubic(t)
       for (let k = 0; k < ghosts.length; k++) {
@@ -2269,12 +2289,13 @@ export default class Unit {
         g.node.style.opacity = String(1 - e)
       }
       if (t < 1) {
-        BrowserAPIs.requestAnimationFrame(stepFn)
+        this.w.globals.unitExitRAF = BrowserAPIs.requestAnimationFrame(stepFn)
       } else {
+        this.w.globals.unitExitRAF = null
         group.node && group.node.remove()
       }
     }
-    BrowserAPIs.requestAnimationFrame(stepFn)
+    this.w.globals.unitExitRAF = BrowserAPIs.requestAnimationFrame(stepFn)
   }
 
   /**

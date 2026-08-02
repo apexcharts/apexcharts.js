@@ -924,18 +924,32 @@ class Radial extends Pie {
       const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3)
       const ease = isInitialMount ? easeOutBack : easeOutCubic
 
+      // A previous render's needle tween may still be scheduled; cancel it so
+      // we don't animate the old (now detached) needle alongside this one on a
+      // rapid update.
+      if (w.globals.radialNeedleRAF != null) {
+        BrowserAPIs.cancelAnimationFrame(w.globals.radialNeedleRAF)
+        w.globals.radialNeedleRAF = null
+      }
       const startAt = performance.now()
       /** @param {number} now */
       const step = (now) => {
         // Stop animating a detached needle after the chart is destroyed
         // mid-tween (route change / re-render). Matches Animations.animatePop.
-        if (this.w.globals.isDestroyed) return
+        if (this.w.globals.isDestroyed) {
+          w.globals.radialNeedleRAF = null
+          return
+        }
         const t = Math.max(0, Math.min(1, (now - startAt) / speed))
         const angle = fromAngle + (targetAngle - fromAngle) * ease(t)
         node.setAttribute('transform', `rotate(${angle})`)
-        if (t < 1) BrowserAPIs.requestAnimationFrame(step)
+        if (t < 1) {
+          w.globals.radialNeedleRAF = BrowserAPIs.requestAnimationFrame(step)
+        } else {
+          w.globals.radialNeedleRAF = null
+        }
       }
-      BrowserAPIs.requestAnimationFrame(step)
+      w.globals.radialNeedleRAF = BrowserAPIs.requestAnimationFrame(step)
     } else {
       g.attr({
         'transform-origin': `${cx} ${cy}`,

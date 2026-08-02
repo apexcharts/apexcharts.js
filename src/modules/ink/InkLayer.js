@@ -187,6 +187,16 @@ export default class InkLayer {
   _onRerender() {
     this._closeEditor(false)
     this._attach()
+    // Re-arm create mode onto the freshly rendered Paper node. The create-click
+    // listener was bound to the previous (now detached) svg, so without this a
+    // plot click would be inert while the palette still shows "Click chart…".
+    if (this._creating) {
+      const svg = this.w.dom.Paper && this.w.dom.Paper.node
+      if (svg) {
+        svg.style.cursor = 'crosshair'
+        svg.addEventListener('click', this._onCreateClick, true)
+      }
+    }
   }
 
   /**

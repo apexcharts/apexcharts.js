@@ -115,6 +115,7 @@ function installDraggable(ElementClass) {
           document.removeEventListener('mouseup', onUp)
           document.removeEventListener('touchend', onUp)
         }
+        el._activeDrag = null
       }
 
       if (Environment.isBrowser()) {
@@ -122,6 +123,10 @@ function installDraggable(ElementClass) {
         document.addEventListener('touchmove', onMove)
         document.addEventListener('mouseup', onUp)
         document.addEventListener('touchend', onUp)
+        // Remember the in-flight document listeners so draggable(false) mid-drag
+        // can detach them too; otherwise these closures (over a possibly
+        // detached node) leak until the pointer happens to be released.
+        el._activeDrag = { onMove, onUp }
       }
     }
 
@@ -131,6 +136,16 @@ function installDraggable(ElementClass) {
     el._dragCleanup = () => {
       el.node.removeEventListener('mousedown', onPointerDown)
       el.node.removeEventListener('touchstart', onPointerDown)
+      // If draggable(false) is called during an active drag (e.g. the element
+      // is being torn down mid-gesture), the document move/up listeners are
+      // still attached; detach them so their closures don't leak.
+      if (el._activeDrag && Environment.isBrowser()) {
+        document.removeEventListener('mousemove', el._activeDrag.onMove)
+        document.removeEventListener('touchmove', el._activeDrag.onMove)
+        document.removeEventListener('mouseup', el._activeDrag.onUp)
+        document.removeEventListener('touchend', el._activeDrag.onUp)
+        el._activeDrag = null
+      }
     }
 
     return el

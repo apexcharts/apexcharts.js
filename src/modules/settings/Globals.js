@@ -390,6 +390,15 @@ export default class Globals {
       // ── Theme colors (set by Theme module after config merge) ─────────────────
       colors: [],
       fill: { colors: [] },
+
+      // ── Animation-frame handles cancellable across re-renders ─────────────────
+      // The chart-type instances that own these loops (Radial needle, Unit
+      // gather/exit) are recreated every render, so the handle lives here: a new
+      // render cancels the previous render's loop before starting its own,
+      // instead of leaving it to animate detached nodes. NOT reset per render.
+      radialNeedleRAF: null,
+      unitGatherRAF: null,
+      unitExitRAF: null,
       stroke: { colors: [] },
       dataLabels: { style: { colors: [] } },
       radarPolygons: { fill: { colors: [] } },
