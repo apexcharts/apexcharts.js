@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -128,6 +128,13 @@ class InkLayer {
   _onRerender() {
     this._closeEditor(false);
     this._attach();
+    if (this._creating) {
+      const svg = this.w.dom.Paper && this.w.dom.Paper.node;
+      if (svg) {
+        svg.style.cursor = "crosshair";
+        svg.addEventListener("click", this._onCreateClick, true);
+      }
+    }
   }
   /**
    * After each (re)render, bind drag + edit handlers to every draggable
@@ -375,17 +382,25 @@ class InkLayer {
     }
     this._attach();
   }
+  /**
+   * Dispatch an ink annotation lifecycle event both to the user callback
+   * (`chart.events[name]`) and the internal event bus, in that order.
+   * @param {string} name @param {any} args
+   */
+  _fireAnnotationEvent(name, args) {
+    var _a;
+    const events = this.w.config.chart.events;
+    if (typeof events[name] === "function") {
+      events[name](this.ctx, args);
+    }
+    (_a = this.ctx.events) == null ? void 0 : _a.fireEvent(name, [this.ctx, args]);
+  }
   /** @param {string} type @param {any} anno @param {number} index */
   _fireDragged(type, anno, index) {
-    var _a;
     const args = { type, id: anno.id, index, x: anno.x, y: anno.y };
     if (anno.x2 != null) args.x2 = anno.x2;
     if (anno.y2 != null) args.y2 = anno.y2;
-    const events = this.w.config.chart.events;
-    if (typeof events.annotationDragged === "function") {
-      events.annotationDragged(this.ctx, args);
-    }
-    (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationDragged", [this.ctx, args]);
+    this._fireAnnotationEvent("annotationDragged", args);
   }
   // ─── P3: click-to-create ─────────────────────────────────────────────────
   /**
@@ -517,15 +532,10 @@ class InkLayer {
   }
   /** @param {string} type @param {any} anno @param {number} index */
   _fireCreated(type, anno, index) {
-    var _a;
     const args = { type, id: anno.id, index };
     if (typeof anno.x !== "undefined") args.x = anno.x;
     if (typeof anno.y !== "undefined") args.y = anno.y;
-    const events = this.w.config.chart.events;
-    if (typeof events.annotationCreated === "function") {
-      events.annotationCreated(this.ctx, args);
-    }
-    (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationCreated", [this.ctx, args]);
+    this._fireAnnotationEvent("annotationCreated", args);
   }
   // ─── P3: tool palette ────────────────────────────────────────────────────
   /** Render a minimal "add note" toggle into the chart wrap (once per render). */
@@ -994,33 +1004,18 @@ class InkLayer {
   }
   /** @param {string} type @param {any} anno @param {number} index */
   _fireEdited(type, anno, index) {
-    var _a;
     const args = { type, id: anno.id, index, text: anno.label ? anno.label.text : "" };
-    const events = this.w.config.chart.events;
-    if (typeof events.annotationEdited === "function") {
-      events.annotationEdited(this.ctx, args);
-    }
-    (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationEdited", [this.ctx, args]);
+    this._fireAnnotationEvent("annotationEdited", args);
   }
   /** @param {string} type @param {any} anno @param {number} index */
   _fireStyled(type, anno, index) {
-    var _a;
     const args = { type, id: anno.id, index, label: anno.label, marker: anno.marker };
-    const events = this.w.config.chart.events;
-    if (typeof events.annotationStyled === "function") {
-      events.annotationStyled(this.ctx, args);
-    }
-    (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationStyled", [this.ctx, args]);
+    this._fireAnnotationEvent("annotationStyled", args);
   }
   /** @param {string} type @param {any} anno @param {number} index */
   _fireDeleted(type, anno, index) {
-    var _a;
     const args = { type, id: anno.id, index };
-    const events = this.w.config.chart.events;
-    if (typeof events.annotationDeleted === "function") {
-      events.annotationDeleted(this.ctx, args);
-    }
-    (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationDeleted", [this.ctx, args]);
+    this._fireAnnotationEvent("annotationDeleted", args);
   }
   // ─── lifecycle ────────────────────────────────────────────────────────────
   _teardownDocListeners() {

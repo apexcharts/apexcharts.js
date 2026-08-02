@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -122,7 +122,7 @@ function makeCustomSeriesClass(name, def) {
       const n = nPts || gl.dataPoints || 1;
       const bandW = n > 0 ? gridWidth / n : gridWidth;
       const tickOn = cnf.xaxis.tickPlacement === "on";
-      const x = (v) => (v - gl.minX) / xRatio;
+      const x = (v) => xRatio ? (v - gl.minX) / xRatio : gridWidth / 2;
       const y = (v) => (maxY - v) / yr;
       const xAt = (index, v) => {
         if (!catMode) return x(v);

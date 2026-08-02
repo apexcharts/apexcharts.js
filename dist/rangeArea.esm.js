@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -432,17 +432,10 @@ function cubicBezier(x1, y1, x2, y2) {
   const ay = 1 - cy - by;
   const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
   const sampleY = (t) => ((ay * t + by) * t + cy) * t;
-  const slopeX = (t) => (3 * ax * t + 2 * bx) * t + cx;
   const solveT = (x) => {
-    let t = x;
-    for (let i = 0; i < 5; i++) {
-      const d = slopeX(t);
-      if (d === 0) break;
-      t -= (sampleX(t) - x) / d;
-    }
     let lo = 0;
     let hi = 1;
-    t = x;
+    let t = x;
     if (t < lo) return lo;
     if (t > hi) return hi;
     while (lo < hi) {
@@ -488,16 +481,22 @@ function isBezierArray(v) {
   return Array.isArray(v) && v.length === 4 && v.every((n) => typeof n === "number");
 }
 function resolveEasing(value) {
-  if (typeof value === "function") return value;
+  if (typeof value === "function") return guardEasing(value);
   if (isBezierArray(value))
     return cubicBezier(value[0], value[1], value[2], value[3]);
   if (typeof value === "string" && REGISTRY.has(value)) {
-    return (
+    return guardEasing(
       /** @type {(t:number)=>number} */
       REGISTRY.get(value)
     );
   }
   return easeInOutSine;
+}
+function guardEasing(fn) {
+  return (t) => {
+    const y = fn(t);
+    return typeof y === "number" && isFinite(y) ? y : t;
+  };
 }
 const parsePath = _core.__apex_PathMorphing_parsePath;
 const arrayToPath = _core.__apex_PathMorphing_arrayToPath;

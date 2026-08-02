@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
@@ -247,7 +247,10 @@ class Crossfilter {
   }
   /** @param {string} chartId */
   removeDimension(chartId) {
+    const dim = this.dims.get(chartId);
+    const hadFilter = dim ? this._hasFilter(dim) : false;
     this.dims.delete(chartId);
+    if (hadFilter) this._emit("change", this.state());
     return this;
   }
   /** @param {any} dim */

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -77,6 +77,7 @@ class KeyboardNavigation {
   destroy() {
     const w = this.w;
     const svgEl = w.dom.Paper && w.dom.Paper.node;
+    this.ctx.events.removeEventListener("legendClick", this._onLegendClick);
     if (!svgEl) return;
     svgEl.removeEventListener("focus", this._onFocus);
     svgEl.removeEventListener("blur", this._onBlur);
@@ -99,7 +100,6 @@ class KeyboardNavigation {
       /** @type {any} */
       { capture: true }
     );
-    this.ctx.events.removeEventListener("legendClick", this._onLegendClick);
   }
   // Records the timestamp of the most recent pointer-down inside the SVG.
   // `_onFocus` reads this to distinguish keyboard-driven focus (no recent

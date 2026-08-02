@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -267,10 +267,10 @@ class BarDataLabels {
       height: 0
     };
     if (w.config.dataLabels.enabled) {
-      const yLabel = w.seriesData.series[i][j];
+      const yLabel = w.seriesData.series[realIndex][j];
       textRects = graphics.getTextRects(
         w.config.dataLabels.formatter ? w.config.dataLabels.formatter(yLabel, __spreadProps(__spreadValues({}, w), {
-          seriesIndex: i,
+          seriesIndex: realIndex,
           dataPointIndex: j,
           w
         })) : w.formatters.yLabelFormatters[0](yLabel),
@@ -814,10 +814,6 @@ class Helpers {
     }
     if (this.barCtx.seriesLen === 0) {
       this.barCtx.seriesLen = 1;
-    }
-    this.barCtx.zeroSerieses = [];
-    if (!w.globals.comboCharts) {
-      this.checkZeroSeries({ series });
     }
   }
   /**
@@ -1385,19 +1381,6 @@ class Helpers {
       pathTo,
       pathFrom
     };
-  }
-  /** @param {{series: any}} opts */
-  checkZeroSeries({ series }) {
-    const w = this.w;
-    for (let zs = 0; zs < series.length; zs++) {
-      let total = 0;
-      for (let zsj = 0; zsj < series[w.globals.maxValsInArrayIndex].length; zsj++) {
-        total += series[zs][zsj];
-      }
-      if (total === 0) {
-        this.barCtx.zeroSerieses.push(zs);
-      }
-    }
   }
   /**
    * @param {number} value
@@ -2218,7 +2201,7 @@ class Bar {
         zeroW,
         /** @type {any} */
         null,
-        i,
+        indexes.realIndex,
         j,
         0
       ),
@@ -2308,7 +2291,7 @@ class Bar {
         /** @type {any} */
         null,
         zeroH,
-        i,
+        realIndex,
         j,
         translationsIndex
       ),
@@ -2956,7 +2939,7 @@ class BoxCandleStick extends Bar {
         /** @type {any} */
         null,
         zeroH,
-        i,
+        realIndex,
         j,
         indexes.translationsIndex
       ),
@@ -3033,7 +3016,7 @@ class BoxCandleStick extends Bar {
         zeroW,
         /** @type {any} */
         null,
-        i,
+        realIndex,
         j,
         0
       ),

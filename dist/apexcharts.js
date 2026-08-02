@@ -54,7 +54,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -859,28 +859,6 @@ var __async = (__this, __arguments, generator) => {
       return true;
     }
     /**
-     * detects if an element is inside a Shadow DOM
-     * @param {any} el
-     */
-    static isInShadowDOM(el) {
-      if (!el || !el.getRootNode) {
-        return false;
-      }
-      const rootNode = el.getRootNode();
-      return rootNode && rootNode !== document && Utils2.is("ShadowRoot", rootNode);
-    }
-    /**
-     * gets the shadow root host element
-     * @param {any} el
-     */
-    static getShadowRootHost(el) {
-      if (!Utils2.isInShadowDOM(el)) {
-        return null;
-      }
-      const rootNode = el.getRootNode();
-      return rootNode.host || null;
-    }
-    /**
      * @param {any} el
      */
     static getDimensions(el) {
@@ -1178,7 +1156,7 @@ var __async = (__this, __arguments, generator) => {
     static setELstyles(el, styles) {
       for (const key in styles) {
         if (Object.prototype.hasOwnProperty.call(styles, key)) {
-          el.style.key = styles[key];
+          el.style[key] = styles[key];
         }
       }
     }
@@ -1286,7 +1264,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {any} dateStr
      */
     getTimeStamp(dateStr) {
-      if (!Date.parse(dateStr)) {
+      if (isNaN(Date.parse(dateStr))) {
         return dateStr;
       }
       const utc = this.w.config.xaxis.labels.datetimeUTC;
@@ -1886,8 +1864,7 @@ var __async = (__this, __arguments, generator) => {
               }
             }
             if (w.globals.isBarHorizontal) {
-              const range = w.globals.maxY - /** @type {any} */
-              w.globals.minYArr;
+              const range = w.globals.maxY - w.globals.minY;
               if (range < 4) {
                 return val.toFixed(1);
               }
@@ -2955,6 +2932,43 @@ var __async = (__this, __arguments, generator) => {
         }
       };
     }
+    sunburst() {
+      return {
+        chart: {
+          toolbar: {
+            show: false
+          }
+        },
+        dataLabels: {
+          style: {
+            colors: ["#fff"]
+          },
+          dropShadow: {
+            enabled: true
+          }
+        },
+        stroke: {
+          colors: ["#fff"]
+        },
+        fill: {
+          opacity: 1
+        },
+        // Unlike pie, sunburst keeps the STANDARD themed tooltip (light/dark).
+        // Slice-coloured tooltips (fillSeriesColor) wash out here because child
+        // arcs are tinted toward white per depth; users can still opt in.
+        legend: {
+          position: "right"
+        },
+        grid: {
+          padding: {
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0
+          }
+        }
+      };
+    }
     pie() {
       return {
         chart: {
@@ -3400,6 +3414,21 @@ var __async = (__this, __arguments, generator) => {
           path: void 0,
           width: 20,
           height: 20,
+          offsetX: 0,
+          offsetY: 0
+        },
+        tooltip: {
+          // Show a hover tooltip over the annotation marker, like a regular
+          // data point. Lets you surface richer detail than fits in the label.
+          enabled: false,
+          // Static tooltip content (HTML allowed; array joined with <br/>).
+          // Falls back to label.text when omitted.
+          text: void 0,
+          // formatter({ annotation, seriesIndex, id, w }) => string (HTML).
+          // Takes precedence over `text` when provided.
+          formatter: void 0,
+          // 'light' | 'dark'. Falls back to the global tooltip.theme.
+          theme: void 0,
           offsetX: 0,
           offsetY: 0
         }
@@ -4312,6 +4341,37 @@ var __async = (__this, __arguments, generator) => {
             spacing: 1.05,
             // corner radius for shape:'square'.
             borderRadius: 0,
+            // The gather tween that moves marks between layouts on an update, and
+            // where entering marks come from. `easing`: 'outCubic' (default:
+            // decelerate to a stop) | 'inOutCubic' (accelerate gently out of rest,
+            // weighted travel) | 'outBack' (overshoot each mark past its slot and
+            // spring back - a per-mark settle), with `overshoot` tuning the spring
+            // strength. `enter`: where a fresh / appearing mark animates FROM -
+            // 'burst' (default: fly out from the cluster centre) | 'fade'
+            // (materialise in place) | 'rise' (fade in while drifting gently up
+            // into the slot). Colour, radius and opacity always stay on the
+            // out-cubic (a back ease overshoots past 1, which would push RGB
+            // channels / radii out of range).
+            gather: {
+              easing: "outCubic",
+              overshoot: 1.70158,
+              enter: "burst"
+            },
+            // The 'arc' layout arranges marks as a PARLIAMENT / hemicycle: seats in
+            // concentric arced rows across an annulus, filled in category order so
+            // each category is a contiguous wedge (the classic seating chart). Angles
+            // use the radialBar convention (0 = top, clockwise); the default sweep is
+            // a top semicircle (a full circle = startAngle 0, endAngle 360).
+            // `innerRadiusRatio` is the donut hole (inner radius / outer); `rows`
+            // fixes the number of seat rows, or 'auto' to size the dots as large as
+            // fit. Like 'packed' the legend carries the category names (no per-wedge
+            // labels).
+            arc: {
+              startAngle: -90,
+              endAngle: 90,
+              innerRadiusRatio: 0.4,
+              rows: "auto"
+            },
             // 1 dot represents this many units of value (waffle scaling).
             unitValue: 1,
             // safety cap on total dots; counts scale down proportionally above it.
@@ -4555,6 +4615,15 @@ var __async = (__this, __arguments, generator) => {
             startAngle: 0,
             endAngle: 360,
             expandOnClick: true,
+            // Rounds the corners of each slice (in px). Applies to pie, donut and
+            // polarArea (all rendered by the Pie module). 0 = sharp corners
+            // (default, unchanged behavior). The value is clamped per slice so
+            // opposing corner fillets never cross on thin/narrow slices.
+            borderRadius: 0,
+            // Gap between adjacent slices (in px). Applies to pie, donut and
+            // polarArea. 0 = slices touch (default). Each slice is inset
+            // symmetrically, so its mid-angle (data label + hit region) is kept.
+            spacing: 0,
             dataLabels: {
               // These are the percentage values which are displayed on slice
               offset: 0,
@@ -4659,6 +4728,48 @@ var __async = (__this, __arguments, generator) => {
             spokes: {
               strokeWidth: 1,
               connectorColors: "#e8e8e8"
+            }
+          },
+          sunburst: {
+            // Sunburst / nested pie-donut (hierarchical radial). Rings go from the
+            // centre hole outward, one per hierarchy level; each child arc is
+            // nested inside its parent's angular wedge.
+            offsetX: 0,
+            offsetY: 0,
+            startAngle: 0,
+            endAngle: 360,
+            // Centre hole radius, as a % of the max radius (like donut size).
+            innerSize: "15%",
+            // Corner rounding + inter-arc gap (px), same semantics as the pie
+            // family (see plotOptions.pie.borderRadius / .spacing).
+            borderRadius: 0,
+            spacing: 1,
+            // How a branch that bottoms out before the deepest level is drawn:
+            // 'extend' stretches the leaf arc out to the rim (default, matches
+            // d3); 'stop' leaves the outer rings empty behind it.
+            leaf: "extend",
+            // Angular partition of a parent's wedge among its children:
+            // 'normalize' splits by each child's share of its siblings (safe for
+            // any data); 'strict' expects children to sum to the parent's value.
+            partition: "normalize",
+            // Each depth level is tinted this much lighter than its parent colour
+            // (0 = keep parent colour, 1 = white). A per-node `color` overrides.
+            tint: 0.14,
+            // Click a wedge to zoom into that branch (its subtree fills the
+            // chart; a breadcrumb walks back). Click the focused inner ring to
+            // zoom out. Set false to disable.
+            zoomOnClick: true,
+            dataLabels: {
+              show: true,
+              // Hide the label on any arc narrower than this (degrees), so tiny
+              // wedges do not overflow with text.
+              minAngleToShow: 8,
+              style: {
+                fontSize: "12px",
+                fontFamily: void 0,
+                fontWeight: 400,
+                colors: void 0
+              }
             }
           },
           radar: {
@@ -5257,6 +5368,7 @@ var __async = (__this, __arguments, generator) => {
           "heatmap",
           "treemap",
           "unit",
+          "sunburst",
           "pie",
           "polarArea",
           "donut",
@@ -5366,7 +5478,7 @@ var __async = (__this, __arguments, generator) => {
       var _a, _b, _c, _d, _e;
       const defaults = new Defaults(opts);
       const isBarHorizontal = (chartType === "bar" || chartType === "boxPlot" || chartType === "violin") && ((_b = (_a = opts.plotOptions) == null ? void 0 : _a.bar) == null ? void 0 : _b.horizontal);
-      const unsupportedZoom = chartType === "pie" || chartType === "polarArea" || chartType === "donut" || chartType === "radar" || chartType === "radialBar" || chartType === "heatmap" || chartType === "unit";
+      const unsupportedZoom = chartType === "pie" || chartType === "polarArea" || chartType === "donut" || chartType === "radar" || chartType === "radialBar" || chartType === "heatmap" || chartType === "unit" || chartType === "sunburst";
       const notNumericXAxis = opts.xaxis.type !== "datetime" && opts.xaxis.type !== "numeric";
       const isScatterJitter = (chartType === "scatter" || chartType === "bubble") && ((_e = (_d = (_c = opts.plotOptions) == null ? void 0 : _c.scatter) == null ? void 0 : _d.jitter) == null ? void 0 : _e.enabled);
       const tickPlacement = opts.xaxis.tickPlacement ? opts.xaxis.tickPlacement : chartDefaults.xaxis && chartDefaults.xaxis.tickPlacement;
@@ -5599,6 +5711,9 @@ var __async = (__this, __arguments, generator) => {
       gl.maxValsInArrayIndex = 0;
       gl.yValueDecimal = 0;
       gl.allSeriesHasEqualX = true;
+      gl.hasNullValues = false;
+      gl.invalidLogScale = false;
+      gl.seriesRangeName = {};
       gl.labels = [];
       gl.hasXaxisGroups = false;
       gl.groups = [];
@@ -5884,6 +5999,14 @@ var __async = (__this, __arguments, generator) => {
         // ── Theme colors (set by Theme module after config merge) ─────────────────
         colors: [],
         fill: { colors: [] },
+        // ── Animation-frame handles cancellable across re-renders ─────────────────
+        // The chart-type instances that own these loops (Radial needle, Unit
+        // gather/exit) are recreated every render, so the handle lives here: a new
+        // render cancels the previous render's loop before starting its own,
+        // instead of leaving it to animate detached nodes. NOT reset per render.
+        radialNeedleRAF: null,
+        unitGatherRAF: null,
+        unitExitRAF: null,
         stroke: { colors: [] },
         dataLabels: { style: { colors: [] } },
         radarPolygons: { fill: { colors: [] } },
@@ -5934,10 +6057,8 @@ var __async = (__this, __arguments, generator) => {
         // true after a container resize
         // ── Data format flags (derived from config/series, stable between renders) ─
         // Note: dataFormatXNumeric lives on w.axisFlags — see Base.js. Shim installed there.
-        invalidLogScale: false,
-        // true when log scale requested but data is invalid
-        hasNullValues: false,
-        // true when any series contains null values
+        // hasNullValues / invalidLogScale are recomputed every render and reset in
+        // initGlobalVars (they are NOT stable between renders).
         // Persistent data tracking
         columnSeries: null,
         // tracks which series are rendered as bars/columns
@@ -5960,6 +6081,10 @@ var __async = (__this, __arguments, generator) => {
         // ── SVG viewport (set by Dimensions, but persistent as layout anchor) ─────
         svgWidth: 0,
         svgHeight: 0,
+        // Fingerprint of the container inputs that fed the last rendered size, so
+        // the window-resize handler can skip a redraw (and the animation teardown
+        // it causes) when a resize does not change the chart's drawing box.
+        lastResizeSignature: null,
         // Note: gridWidth, gridHeight, translateX, translateY, translateXAxisX,
         // translateXAxisY, xAxisLabelsHeight, xAxisGroupLabelsHeight, xAxisLabelsWidth,
         // rotateXLabels, xAxisHeight, yLabelsCoords, yTitleCoords live on w.layout —
@@ -7015,7 +7140,7 @@ var __async = (__this, __arguments, generator) => {
       return graph;
     }
   }
-  const SVGNS$1 = "http://www.w3.org/2000/svg";
+  const SVGNS$2 = "http://www.w3.org/2000/svg";
   class Point {
     /**
      * @param {number|{x:number,y:number}} x
@@ -7887,17 +8012,10 @@ var __async = (__this, __arguments, generator) => {
     const ay = 1 - cy - by;
     const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
     const sampleY = (t) => ((ay * t + by) * t + cy) * t;
-    const slopeX = (t) => (3 * ax * t + 2 * bx) * t + cx;
     const solveT = (x) => {
-      let t = x;
-      for (let i = 0; i < 5; i++) {
-        const d = slopeX(t);
-        if (d === 0) break;
-        t -= (sampleX(t) - x) / d;
-      }
       let lo = 0;
       let hi = 1;
-      t = x;
+      let t = x;
       if (t < lo) return lo;
       if (t > hi) return hi;
       while (lo < hi) {
@@ -7948,22 +8066,28 @@ var __async = (__this, __arguments, generator) => {
     return Array.isArray(v) && v.length === 4 && v.every((n) => typeof n === "number");
   }
   function resolveEasing(value) {
-    if (typeof value === "function") return value;
+    if (typeof value === "function") return guardEasing(value);
     if (isBezierArray(value))
       return cubicBezier(value[0], value[1], value[2], value[3]);
     if (typeof value === "string" && REGISTRY.has(value)) {
-      return (
+      return guardEasing(
         /** @type {(t:number)=>number} */
         REGISTRY.get(value)
       );
     }
     return easeInOutSine;
   }
-  const SVGNS = "http://www.w3.org/2000/svg";
+  function guardEasing(fn) {
+    return (t) => {
+      const y = fn(t);
+      return typeof y === "number" && isFinite(y) ? y : t;
+    };
+  }
+  const SVGNS$1 = "http://www.w3.org/2000/svg";
   function easeOutCubic$1(t) {
     return 1 - Math.pow(1 - t, 3);
   }
-  function easeOutBack(t) {
+  function easeOutBack$1(t) {
     const c1 = 1.70158;
     const c3 = c1 + 1;
     return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
@@ -8100,8 +8224,9 @@ var __async = (__this, __arguments, generator) => {
       style.opacity = "0";
       const startAt = performance.now() + delay;
       const step = (now) => {
+        if (w.globals.isDestroyed) return;
         const t = Math.max(0, Math.min(1, (now - startAt) / speed));
-        style.transform = `scale(${easeOutBack(t)})`;
+        style.transform = `scale(${easeOutBack$1(t)})`;
         style.opacity = String(Math.min(1, t * 2));
         if (t < 1) {
           BrowserAPIs.requestAnimationFrame(step);
@@ -8253,7 +8378,7 @@ var __async = (__this, __arguments, generator) => {
         const radialCy = maskShape && maskShape.cy || 0;
         const targetRadius = (maskShape && maskShape.r || w.layout.gridWidth / 2) + pad;
         const maskId = `apexDrawMask${w.globals.cuid}-${realIndex}-${j != null ? j : 0}-${isFill ? "f" : "s"}`;
-        const mask = BrowserAPIs.createElementNS(SVGNS, "mask");
+        const mask = BrowserAPIs.createElementNS(SVGNS$1, "mask");
         mask.setAttribute("id", maskId);
         mask.setAttribute("maskUnits", "userSpaceOnUse");
         let revealEl;
@@ -8263,7 +8388,7 @@ var __async = (__this, __arguments, generator) => {
           mask.setAttribute("y", String(radialCy - region));
           mask.setAttribute("width", String(region * 2));
           mask.setAttribute("height", String(region * 2));
-          revealEl = BrowserAPIs.createElementNS(SVGNS, "circle");
+          revealEl = BrowserAPIs.createElementNS(SVGNS$1, "circle");
           revealEl.setAttribute("cx", String(radialCx));
           revealEl.setAttribute("cy", String(radialCy));
           revealEl.setAttribute("r", "0");
@@ -8273,7 +8398,7 @@ var __async = (__this, __arguments, generator) => {
           mask.setAttribute("y", String(-pad));
           mask.setAttribute("width", String(targetWidth));
           mask.setAttribute("height", String(w.layout.gridHeight + pad * 2));
-          revealEl = BrowserAPIs.createElementNS(SVGNS, "rect");
+          revealEl = BrowserAPIs.createElementNS(SVGNS$1, "rect");
           revealEl.setAttribute("x", String(-pad));
           revealEl.setAttribute("y", String(-pad));
           revealEl.setAttribute("width", "0");
@@ -8577,7 +8702,7 @@ var __async = (__this, __arguments, generator) => {
         if (w.interact.selectedDataPoints[realIndex].indexOf(dataPointIndex) > -1) {
           el.node.setAttribute("selected", true);
           const activeFilter = w.config.states.active.filter;
-          if (activeFilter !== "none") {
+          if (activeFilter.type !== "none") {
             this.applyFilter(el, realIndex, activeFilter.type, activeFilter.value);
           }
         }
@@ -9143,7 +9268,7 @@ var __async = (__this, __arguments, generator) => {
         g = w.dom.Paper.gradient(
           radial ? "radial" : "linear",
           (add) => {
-            const gradientStops = Array.isArray(colorStops[i]) ? colorStops[i] : colorStops;
+            const gradientStops = Array.isArray(colorStops[i]) ? colorStops[i] : Array.isArray(colorStops[0]) ? colorStops[0] || [] : colorStops;
             gradientStops.forEach((s) => {
               add.stop(s.offset / 100, s.color, s.opacity);
             });
@@ -9275,22 +9400,30 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} size
      */
     getMarkerPath(x, y, type, size) {
+      const CROSS_SHRINK = 1.4;
+      const PLUS_SHRINK = 1.12;
+      const STAR_GROW = 1.15;
+      const SPARKLE_SHRINK = 1.1;
+      const SQUARE_SHRINK = 1.125;
+      const DIAMOND_GROW = 1.05;
+      const LINE_SHRINK = 1.1;
+      const CIRCLE_DIAMETER = 2;
       let d = "";
       switch (type) {
         case "cross":
-          size = size / 1.4;
+          size = size / CROSS_SHRINK;
           d = `M ${x - size} ${y - size} L ${x + size} ${y + size}  M ${x - size} ${y + size} L ${x + size} ${y - size}`;
           break;
         case "plus":
-          size = size / 1.12;
+          size = size / PLUS_SHRINK;
           d = `M ${x - size} ${y} L ${x + size} ${y}  M ${x} ${y - size} L ${x} ${y + size}`;
           break;
         case "star":
         case "sparkle": {
           let points = 5;
-          size = size * 1.15;
+          size = size * STAR_GROW;
           if (type === "sparkle") {
-            size = size / 1.1;
+            size = size / SPARKLE_SHRINK;
             points = 4;
           }
           const step = Math.PI / points;
@@ -9312,7 +9445,7 @@ var __async = (__this, __arguments, generator) => {
           break;
         case "square":
         case "rect":
-          size = size / 1.125;
+          size = size / SQUARE_SHRINK;
           d = `M ${x - size} ${y - size} 
            L ${x + size} ${y - size} 
            L ${x + size} ${y + size} 
@@ -9320,7 +9453,7 @@ var __async = (__this, __arguments, generator) => {
            Z`;
           break;
         case "diamond":
-          size = size * 1.05;
+          size = size * DIAMOND_GROW;
           d = `M ${x} ${y - size} 
              L ${x + size} ${y} 
              L ${x} ${y + size} 
@@ -9328,13 +9461,13 @@ var __async = (__this, __arguments, generator) => {
             Z`;
           break;
         case "line":
-          size = size / 1.1;
+          size = size / LINE_SHRINK;
           d = `M ${x - size} ${y} 
            L ${x + size} ${y}`;
           break;
         case "circle":
         default:
-          size = size * 2;
+          size = size * CIRCLE_DIAMETER;
           d = `M ${x}, ${y} 
            m -${size / 2}, 0 
            a ${size / 2},${size / 2} 0 1,0 ${size},0 
@@ -9454,6 +9587,89 @@ var __async = (__this, __arguments, generator) => {
       }
     }
     /**
+     * Clear every selected data point (single-select mode): reset the selection
+     * array and restore the default filter on all series path/circle/rect nodes.
+     * NOTE: preserves the original behavior of passing the clicked series index
+     * `i` to getDefaultFilter for every element (not each element's own index).
+     * @param {any} filters @param {number} i
+     */
+    _clearAllDataPointSelections(filters, i) {
+      const w = this.w;
+      w.interact.selectedDataPoints = [];
+      const elPaths = w.dom.Paper.find(
+        ".apexcharts-series path:not(.apexcharts-decoration-element)"
+      );
+      const elCircles = w.dom.Paper.find(
+        ".apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)"
+      );
+      const deSelect = (els) => {
+        Array.prototype.forEach.call(els, (el) => {
+          el.node.setAttribute("selected", "false");
+          filters.getDefaultFilter(el, i);
+        });
+      };
+      deSelect(elPaths);
+      deSelect(elCircles);
+    }
+    /**
+     * Toggle the selected state of a single data point. Mutates
+     * `w.interact.selectedDataPoints` and the path's `selected` attribute,
+     * honoring single- vs multi-select mode. Returns the new selected flag.
+     * @param {any} path @param {any} filters @param {number} i @param {number} j
+     * @returns {'true' | 'false'}
+     */
+    _togglePointSelection(path, filters, i, j) {
+      const w = this.w;
+      if (path.node.getAttribute("selected") === "true") {
+        path.node.setAttribute("selected", "false");
+        const index = w.interact.selectedDataPoints[i].indexOf(j);
+        if (index > -1) {
+          w.interact.selectedDataPoints[i].splice(index, 1);
+        }
+        return "false";
+      }
+      if (!w.config.states.active.allowMultipleDataPointsSelection && w.interact.selectedDataPoints.length > 0) {
+        this._clearAllDataPointSelections(filters, i);
+      }
+      path.node.setAttribute("selected", "true");
+      if (typeof w.interact.selectedDataPoints[i] === "undefined") {
+        w.interact.selectedDataPoints[i] = [];
+      }
+      w.interact.selectedDataPoints[i].push(j);
+      return "true";
+    }
+    /**
+     * Apply the active / hover / default state filter after a selection toggle,
+     * matching the original inline branching.
+     * @param {any} path @param {any} filters @param {number} i
+     * @param {'true' | 'false'} selected
+     */
+    _applyPointSelectionFilter(path, filters, i, selected) {
+      const w = this.w;
+      if (selected === "true") {
+        const activeFilter = w.config.states.active.filter;
+        if (activeFilter !== "none") {
+          filters.applyFilter(path, i, activeFilter.type, activeFilter.value);
+        } else {
+          if (w.config.states.hover.filter !== "none") {
+            if (!w.interact.isTouchDevice) {
+              const hoverFilter = w.config.states.hover.filter;
+              filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
+            }
+          }
+        }
+      } else {
+        if (w.config.states.active.filter.type !== "none") {
+          if (w.config.states.hover.filter.type !== "none" && !w.interact.isTouchDevice) {
+            const hoverFilter = w.config.states.hover.filter;
+            filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
+          } else {
+            filters.getDefaultFilter(path, i);
+          }
+        }
+      }
+    }
+    /**
      * @param {any} path
      * @param {Event | null} e
      */
@@ -9467,60 +9683,8 @@ var __async = (__this, __arguments, generator) => {
       const link = w.config.chart.link;
       const crossfilterClick = !!(link && (typeof link.dimension === "function" || link.enabled));
       if (!crossfilterClick) {
-        let selected = "false";
-        if (path.node.getAttribute("selected") === "true") {
-          path.node.setAttribute("selected", "false");
-          const index = w.interact.selectedDataPoints[i].indexOf(j);
-          if (index > -1) {
-            w.interact.selectedDataPoints[i].splice(index, 1);
-          }
-        } else {
-          if (!w.config.states.active.allowMultipleDataPointsSelection && w.interact.selectedDataPoints.length > 0) {
-            w.interact.selectedDataPoints = [];
-            const elPaths = w.dom.Paper.find(
-              ".apexcharts-series path:not(.apexcharts-decoration-element)"
-            );
-            const elCircles = w.dom.Paper.find(
-              ".apexcharts-series circle:not(.apexcharts-decoration-element), .apexcharts-series rect:not(.apexcharts-decoration-element)"
-            );
-            const deSelect = (els) => {
-              Array.prototype.forEach.call(els, (el) => {
-                el.node.setAttribute("selected", "false");
-                filters.getDefaultFilter(el, i);
-              });
-            };
-            deSelect(elPaths);
-            deSelect(elCircles);
-          }
-          path.node.setAttribute("selected", "true");
-          selected = "true";
-          if (typeof w.interact.selectedDataPoints[i] === "undefined") {
-            w.interact.selectedDataPoints[i] = [];
-          }
-          w.interact.selectedDataPoints[i].push(j);
-        }
-        if (selected === "true") {
-          const activeFilter = w.config.states.active.filter;
-          if (activeFilter !== "none") {
-            filters.applyFilter(path, i, activeFilter.type, activeFilter.value);
-          } else {
-            if (w.config.states.hover.filter !== "none") {
-              if (!w.interact.isTouchDevice) {
-                const hoverFilter = w.config.states.hover.filter;
-                filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
-              }
-            }
-          }
-        } else {
-          if (w.config.states.active.filter.type !== "none") {
-            if (w.config.states.hover.filter.type !== "none" && !w.interact.isTouchDevice) {
-              const hoverFilter = w.config.states.hover.filter;
-              filters.applyFilter(path, i, hoverFilter.type, hoverFilter.value);
-            } else {
-              filters.getDefaultFilter(path, i);
-            }
-          }
-        }
+        const selected = this._togglePointSelection(path, filters, i, j);
+        this._applyPointSelectionFilter(path, filters, i, selected);
       }
       if (typeof w.config.chart.events.dataPointSelection === "function") {
         w.config.chart.events.dataPointSelection(e, this.ctx, {
@@ -9774,14 +9938,14 @@ var __async = (__this, __arguments, generator) => {
         imgWidth = params.width;
         imgHeight = params.height;
       }
-      const elPattern = BrowserAPIs.createElementNS(SVGNS$1, "pattern");
+      const elPattern = BrowserAPIs.createElementNS(SVGNS$2, "pattern");
       Graphics.setAttrs(elPattern, {
         id: params.patternID,
         patternUnits: params.patternUnits ? params.patternUnits : "userSpaceOnUse",
         width: imgWidth + "px",
         height: imgHeight + "px"
       });
-      const elImage = BrowserAPIs.createElementNS(SVGNS$1, "image");
+      const elImage = BrowserAPIs.createElementNS(SVGNS$2, "image");
       elPattern.appendChild(elImage);
       const SVGLib = Environment.isBrowser() ? (
         /** @type {any} */
@@ -9846,16 +10010,17 @@ var __async = (__this, __arguments, generator) => {
       const negativePercentage = (multiColorConfig.threshold - minNegative) / totalRange * 100;
       let offset = 100 - negativePercentage;
       offset = Math.max(0, Math.min(offset, 100));
+      const fillOpacity = Array.isArray(w.config.fill.opacity) ? w.config.fill.opacity[this.seriesIndex] : w.config.fill.opacity;
       return [
         {
           offset,
           color: multiColorConfig.colorAboveThreshold,
-          opacity: w.config.fill.opacity
+          opacity: fillOpacity
         },
         {
           offset: 0,
           color: multiColorConfig.colorBelowThreshold,
-          opacity: w.config.fill.opacity
+          opacity: fillOpacity
         }
       ];
     }
@@ -11288,7 +11453,12 @@ var __async = (__this, __arguments, generator) => {
         }
         if (
           /** @type {any} */
-          label.x < prev.textRect.width / (w.layout.rotateXLabels ? Math.abs(w.config.xaxis.labels.rotate) / 12 : 1.01) + prev.x
+          label.x < prev.textRect.width / (w.layout.rotateXLabels ? (
+            // Floor the rotation at 1deg: rotateAlways:true forces
+            // rotateXLabels even with rotate:0, and a 0 divisor here makes the
+            // spread Infinity, blanking every label after the first.
+            Math.max(Math.abs(w.config.xaxis.labels.rotate), 1) / 12
+          ) : 1.01) + prev.x
         ) {
           label.text = "";
         }
@@ -11639,7 +11809,7 @@ var __async = (__this, __arguments, generator) => {
             }
           });
           if (isLeafGroup) {
-            const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS$1, "title");
+            const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS$2, "title");
             elTooltipTitle.textContent = Array.isArray(label.text) ? label.text.join(" ") : label.text;
             elText.node.appendChild(elTooltipTitle);
             if (label.text !== "") {
@@ -11735,7 +11905,7 @@ var __async = (__this, __arguments, generator) => {
               w.config.chart.events.xAxisLabelClick(e, this.ctx, opts);
             }
           });
-          const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS$1, "title");
+          const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS$2, "title");
           elTooltipTitle.textContent = Array.isArray(label) ? label.join(" ") : label;
           elLabel.node.appendChild(elTooltipTitle);
           if (w.config.yaxis[realIndex].labels.rotate !== 0) {
@@ -11990,7 +12160,7 @@ var __async = (__this, __arguments, generator) => {
       const graphics = new Graphics(this.w);
       const strokeSize = Array.isArray(w.config.stroke.width) ? Math.max(...w.config.stroke.width) : w.config.stroke.width;
       const createClipPath = (id) => {
-        const clipPath = BrowserAPIs.createElementNS(SVGNS$1, "clipPath");
+        const clipPath = BrowserAPIs.createElementNS(SVGNS$2, "clipPath");
         clipPath.setAttribute("id", id);
         return clipPath;
       };
@@ -12385,7 +12555,7 @@ var __async = (__this, __arguments, generator) => {
         maxTicks = 10;
       }
       gotMin = axisCnf.min !== void 0 && axisCnf.min !== null;
-      gotMax = axisCnf.max !== void 0 && axisCnf.min !== null;
+      gotMax = axisCnf.max !== void 0 && axisCnf.max !== null;
       let gotStepSize = axisCnf.stepSize !== void 0 && axisCnf.stepSize !== null;
       let gotTickAmount = axisCnf.tickAmount !== void 0 && axisCnf.tickAmount !== null;
       let ticks = gotTickAmount ? axisCnf.tickAmount : NICE_SCALE_DEFAULT_TICKS[Math.min(
@@ -13803,7 +13973,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {any} val
      */
     addTooltip(label, val) {
-      const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS$1, "title");
+      const elTooltipTitle = BrowserAPIs.createElementNS(SVGNS$2, "title");
       elTooltipTitle.textContent = Array.isArray(val) ? val.join(" ") : val;
       label.node.appendChild(elTooltipTitle);
     }
@@ -15536,7 +15706,15 @@ var __async = (__this, __arguments, generator) => {
   }
   function decimalsOf(n) {
     if (!isFinite(n)) return 0;
-    const s = String(n);
+    const s = String(Math.abs(n));
+    const e = s.indexOf("e");
+    if (e !== -1) {
+      const mantissa = s.slice(0, e);
+      const exp = parseInt(s.slice(e + 1), 10);
+      const dot2 = mantissa.indexOf(".");
+      const mantissaDec = dot2 === -1 ? 0 : mantissa.length - dot2 - 1;
+      return Math.min(6, Math.max(0, mantissaDec - exp));
+    }
     const dot = s.indexOf(".");
     return dot === -1 ? 0 : Math.min(6, s.length - dot - 1);
   }
@@ -15646,16 +15824,17 @@ var __async = (__this, __arguments, generator) => {
             const dec = Math.max(decimalsOf(from), decimalsOf(newVal));
             const realIndex = parseInt(key, 10);
             const j = parseInt(group.getAttribute("data:dlJ") || "", 10);
+            const fmtOpts = __spreadProps(__spreadValues({}, w), {
+              seriesIndex: realIndex,
+              dataPointIndex: isFinite(j) ? j : 0,
+              w
+            });
             const format = (v) => {
               const rounded = Number(v.toFixed(dec));
               let out = rounded;
               if (typeof formatter === "function") {
                 try {
-                  out = formatter(rounded, __spreadProps(__spreadValues({}, w), {
-                    seriesIndex: realIndex,
-                    dataPointIndex: isFinite(j) ? j : 0,
-                    w
-                  }));
+                  out = formatter(rounded, fmtOpts);
                 } catch (_) {
                   out = rounded;
                 }
@@ -17577,7 +17756,7 @@ var __async = (__this, __arguments, generator) => {
         w.layout.translateY = pos === "top" ? top : 0;
         return;
       }
-      const type = cnf.chart.type === "pie" || cnf.chart.type === "polarArea" || cnf.chart.type === "donut" ? "pie" : "radialBar";
+      const type = cnf.chart.type === "sunburst" ? "sunburst" : cnf.chart.type === "pie" || cnf.chart.type === "polarArea" || cnf.chart.type === "donut" ? "pie" : "radialBar";
       const offY = cnf.plotOptions[type].offsetY;
       const offX = cnf.plotOptions[type].offsetX;
       if (!cnf.legend.show || cnf.legend.floating) {
@@ -18050,7 +18229,7 @@ var __async = (__this, __arguments, generator) => {
       this.w.dom.Paper.node.style.background = cnf.theme.mode === "dark" && !cnf.chart.background ? "#343A3F" : cnf.theme.mode === "light" && !cnf.chart.background ? "#fff" : cnf.chart.background;
       this.setSVGDimensions();
       this.w.dom.elLegendForeign = BrowserAPIs.createElementNS(
-        SVGNS$1,
+        SVGNS$2,
         "foreignObject"
       );
       Graphics.setAttrs(this.w.dom.elLegendForeign, {
@@ -18082,7 +18261,7 @@ var __async = (__this, __arguments, generator) => {
           "aria-label": ariaLabel
         });
         if (cnf.chart.accessibility.description) {
-          const descEl = BrowserAPIs.createElementNS(SVGNS$1, "desc");
+          const descEl = BrowserAPIs.createElementNS(SVGNS$2, "desc");
           descEl.textContent = cnf.chart.accessibility.description;
           this.w.dom.Paper.node.insertBefore(
             descEl,
@@ -18098,14 +18277,18 @@ var __async = (__this, __arguments, generator) => {
       this.w.dom.elGraphical.add(this.w.dom.elDefs);
     }
     /**
+     * Classify each series by its resolved chart type into per-type render
+     * buckets (`{ series, i }`, plus `seriesRangeEnd` for rangeArea). Side
+     * effects mirror the original inline code: sets `w.globals.columnSeries`,
+     * folds `w.globals.comboCharts`, and warns on unsupported combinations (a
+     * non-combo type mixed in, or horizontal bars in a combo). Extracted from
+     * plotChartType to shrink it (audit C2).
      * @param {any[]} ser
-     * @param {import('../types/internal').XYRatios} xyRatios
+     * @returns {{ seriesTypes: Record<string, any>, customBuckets: Record<string, {series: any[], i: number[]}> }}
      */
-    plotChartType(ser, xyRatios) {
-      const { w, ctx } = this;
+    _classifySeriesByType(ser) {
+      const { w } = this;
       const { config: cnf, globals: gl } = w;
-      const canvasMode = ctx.renderer && ctx.renderer.kind === "canvas";
-      if (canvasMode) ctx.renderer.beginSeries();
       const seriesTypes = {
         line: { series: [], i: [] },
         area: { series: [], i: [] },
@@ -18147,7 +18330,9 @@ var __async = (__this, __arguments, generator) => {
           "donut",
           "polarArea",
           "radialBar",
-          "radar"
+          "radar",
+          "unit",
+          "sunburst"
         ].includes(seriesType)) {
           nonComboType = seriesType;
         } else if (isCustom(seriesType)) {
@@ -18179,6 +18364,72 @@ var __async = (__this, __arguments, generator) => {
         }
       }
       gl.comboCharts || (gl.comboCharts = comboCount > 0);
+      return { seriesTypes, customBuckets };
+    }
+    /**
+     * @param {any[]} ser
+     * @param {import('../types/internal').XYRatios} xyRatios
+     */
+    plotChartType(ser, xyRatios) {
+      const { w, ctx } = this;
+      const canvasMode = ctx.renderer && ctx.renderer.kind === "canvas";
+      if (canvasMode) ctx.renderer.beginSeries();
+      const { seriesTypes, customBuckets } = this._classifySeriesByType(ser);
+      const renderers = this._instantiateSeriesRenderers(seriesTypes, xyRatios);
+      const elGraph = this._assembleSeriesGraphics(
+        seriesTypes,
+        customBuckets,
+        renderers,
+        xyRatios
+      );
+      if (canvasMode) {
+        const rr = (
+          /** @type {any} */
+          ctx.renderer
+        );
+        if (rr && rr._repaintHostInPlace) {
+          rr._repaintHostInPlace = false;
+          const wrapNode = this.w.dom.elGraphical.node.querySelector(
+            ".apexcharts-canvas-series-wrap"
+          );
+          if (wrapNode && rr.canRepaintInPlace && rr.canRepaintInPlace()) {
+            rr.repaintInPlace();
+            const groups = Array.isArray(elGraph) ? elGraph : [elGraph];
+            groups.forEach((g) => {
+              if (g && g.node) wrapNode.appendChild(g.node);
+            });
+            return [];
+          }
+        }
+        const host = ctx.renderer.present();
+        if (host) {
+          const wrap = new Graphics(w).group({
+            class: "apexcharts-canvas-series-wrap"
+          });
+          wrap.add(host);
+          const groups = Array.isArray(elGraph) ? elGraph : [elGraph];
+          groups.forEach((g) => {
+            if (g) wrap.add(g);
+          });
+          return wrap;
+        }
+      }
+      return elGraph;
+    }
+    /**
+     * Lazily instantiate the shared series renderers the orchestration below
+     * needs. getChartClass() is only called for types actually present, so a page
+     * that registers just 'line' never triggers a lookup for 'candlestick' etc.
+     * (tree-shaking). Returns the line/candlestick/violin renderers and sets
+     * ctx.pie / ctx.rangeBar as a side effect (both may be null). Extracted from
+     * plotChartType (audit C2).
+     * @param {Record<string, any>} seriesTypes
+     * @param {import('../types/internal').XYRatios} xyRatios
+     * @returns {{ line: any, boxCandlestick: any, violin: any }}
+     */
+    _instantiateSeriesRenderers(seriesTypes, xyRatios) {
+      const { w, ctx } = this;
+      const { config: cnf, globals: gl } = w;
       const needsLine = seriesTypes.line.series.length > 0 || seriesTypes.area.series.length > 0 || seriesTypes.scatter.series.length > 0 || seriesTypes.bubble.series.length > 0 || seriesTypes.rangeArea.series.length > 0 || !gl.comboCharts && ["line", "area", "scatter", "bubble", "rangeArea"].includes(
         cnf.chart.type
       );
@@ -18191,6 +18442,24 @@ var __async = (__this, __arguments, generator) => {
       ctx.pie = needsPie ? new (getChartClass("pie"))(ctx.w, ctx) : null;
       const needsRangeBar = seriesTypes.rangeBar.series.length > 0 || !gl.comboCharts && cnf.chart.type === "rangeBar";
       ctx.rangeBar = needsRangeBar ? new (getChartClass("rangeBar"))(ctx.w, ctx, xyRatios) : null;
+      return { line, boxCandlestick, violin };
+    }
+    /**
+     * Build the ordered list of series graphic groups (elGraph) from the
+     * classified buckets. Combo charts layer per-type draws in z-order; a
+     * single-type chart dispatches on cnf.chart.type. Sets ctx.bar for the
+     * non-stacked bar paths (side effect, preserved). Extracted from
+     * plotChartType (audit C2).
+     * @param {Record<string, any>} seriesTypes
+     * @param {Record<string, {series: any[], i: number[]}>} customBuckets
+     * @param {{ line: any, boxCandlestick: any, violin: any }} renderers
+     * @param {import('../types/internal').XYRatios} xyRatios
+     * @returns {any}
+     */
+    _assembleSeriesGraphics(seriesTypes, customBuckets, renderers, xyRatios) {
+      const { w, ctx } = this;
+      const { config: cnf, globals: gl } = w;
+      const { line, boxCandlestick, violin } = renderers;
       let elGraph = [];
       if (gl.comboCharts) {
         const coreUtils = new CoreUtils(this.w);
@@ -18364,6 +18633,11 @@ var __async = (__this, __arguments, generator) => {
             elGraph = unit.draw(this.w.seriesData.series);
             break;
           }
+          case "sunburst": {
+            const sunburst = new (getChartClass("sunburst"))(ctx.w, ctx);
+            elGraph = sunburst.draw(this.w.seriesData.series);
+            break;
+          }
           case "pie":
           case "donut":
           case "polarArea":
@@ -18388,39 +18662,18 @@ var __async = (__this, __arguments, generator) => {
             }
         }
       }
-      if (canvasMode) {
-        const rr = (
-          /** @type {any} */
-          ctx.renderer
-        );
-        if (rr && rr._repaintHostInPlace) {
-          rr._repaintHostInPlace = false;
-          const wrapNode = this.w.dom.elGraphical.node.querySelector(
-            ".apexcharts-canvas-series-wrap"
-          );
-          if (wrapNode && rr.canRepaintInPlace && rr.canRepaintInPlace()) {
-            rr.repaintInPlace();
-            const groups = Array.isArray(elGraph) ? elGraph : [elGraph];
-            groups.forEach((g) => {
-              if (g && g.node) wrapNode.appendChild(g.node);
-            });
-            return [];
-          }
-        }
-        const host = ctx.renderer.present();
-        if (host) {
-          const wrap = new Graphics(w).group({
-            class: "apexcharts-canvas-series-wrap"
-          });
-          wrap.add(host);
-          const groups = Array.isArray(elGraph) ? elGraph : [elGraph];
-          groups.forEach((g) => {
-            if (g) wrap.add(g);
-          });
-          return wrap;
-        }
-      }
       return elGraph;
+    }
+    /**
+     * Extract the CSS unit suffix from a chart width/height config value
+     * (`'100%'` -> `'%'`, `'300px'` -> `'px'`, `300`/`'300'` -> `''`). Kept as the
+     * original digit-split idiom so results are identical for every input the
+     * call sites already handle ('%', 'px', '', 'auto').
+     * @param {string|number} value
+     * @returns {string|undefined}
+     */
+    _extractDimensionUnit(value) {
+      return String(value).split(/[0-9]+/g).pop();
     }
     setSVGDimensions() {
       var _a;
@@ -18432,7 +18685,7 @@ var __async = (__this, __arguments, generator) => {
       gl.svgWidth = NaN;
       gl.svgHeight = NaN;
       let elDim = Utils$1.getDimensions(this.el);
-      const widthUnit = rawWidth.toString().split(/[0-9]+/g).pop();
+      const widthUnit = this._extractDimensionUnit(rawWidth);
       if (widthUnit === "%") {
         if (Utils$1.isNumber(elDim[0])) {
           if (elDim[0].width === 0) {
@@ -18443,7 +18696,7 @@ var __async = (__this, __arguments, generator) => {
       } else if (widthUnit === "px" || widthUnit === "") {
         gl.svgWidth = parseInt(rawWidth, 10);
       }
-      const heightUnit = String(rawHeight).toString().split(/[0-9]+/g).pop();
+      const heightUnit = this._extractDimensionUnit(rawHeight);
       if (rawHeight !== "auto" && rawHeight !== "") {
         if (heightUnit === "%") {
           const elParentDim = Utils$1.getDimensions(this.el.parentNode);
@@ -18472,6 +18725,38 @@ var __async = (__this, __arguments, generator) => {
       }
       this.w.dom.elWrap.style.width = `${gl.svgWidth}px`;
       this.w.dom.elWrap.style.height = `${gl.svgHeight}px`;
+      gl.lastResizeSignature = this.getResizeSignature();
+    }
+    /**
+     * A stable fingerprint of the container measurements that actually feed the
+     * chart's rendered dimensions, given the width/height config. Only inputs that
+     * a resize can change are included: the element width when the width is a
+     * percentage, and the parent height when the height is a percentage. A fully
+     * pixel-sized chart therefore has a constant signature, so a resize never
+     * forces a redraw; a percentage-sized chart's signature tracks the container.
+     * The window-resize handler compares this against the last render to skip
+     * redraws (and the entrance-animation teardown they cause) that aren't needed.
+     * @returns {{ w: number, h: number }}
+     */
+    getResizeSignature() {
+      const { config: cnf } = this.w;
+      const rawWidth = (cnf.chart.width || "100%").toString().trim();
+      const rawHeight = (cnf.chart.height || "auto").toString().trim();
+      let w = 0;
+      let h = 0;
+      if (rawWidth.endsWith("%")) {
+        let elDim = Utils$1.getDimensions(this.el);
+        if (!elDim[0]) elDim = Utils$1.getDimensions(this.el.parentNode);
+        w = elDim[0] || 0;
+      }
+      if (rawHeight.endsWith("%")) {
+        h = Utils$1.getDimensions(this.el.parentNode)[1] || 0;
+      }
+      const sig = { w: Math.round(w), h: Math.round(h) };
+      if (cnf.responsive && cnf.responsive.length && Environment.isBrowser()) {
+        sig.iw = window.innerWidth;
+      }
+      return sig;
     }
     shiftGraphPosition() {
       const { globals: gl } = this.w;
@@ -18481,7 +18766,7 @@ var __async = (__this, __arguments, generator) => {
       });
     }
     resizeNonAxisCharts() {
-      var _a, _b, _c, _d, _e, _f;
+      var _a, _b, _c, _d, _e, _f, _g, _h;
       const { w } = this;
       const heightStr = w.config.chart.height ? String(w.config.chart.height) : "";
       const userSetFixedHeight = heightStr !== "" && heightStr !== "auto";
@@ -18565,7 +18850,10 @@ var __async = (__this, __arguments, generator) => {
           this.w.dom.elWrap.style.height = `${elWrapHeight}px`;
           Graphics.setAttrs(this.w.dom.Paper.node, { height: svgHeight });
           if (Environment.isBrowser()) {
-            this.w.dom.Paper.node.parentNode.parentNode.style.minHeight = `${elWrapHeight}px`;
+            const grandparent = (_g = this.w.dom.Paper.node.parentNode) == null ? void 0 : _g.parentNode;
+            if (grandparent) {
+              grandparent.style.minHeight = `${elWrapHeight}px`;
+            }
           }
         }
         return;
@@ -18580,7 +18868,10 @@ var __async = (__this, __arguments, generator) => {
       this.w.dom.elWrap.style.height = `${newHeight}px`;
       Graphics.setAttrs(this.w.dom.Paper.node, { height: newHeight });
       if (Environment.isBrowser()) {
-        this.w.dom.Paper.node.parentNode.parentNode.style.minHeight = `${newHeight}px`;
+        const grandparent = (_h = this.w.dom.Paper.node.parentNode) == null ? void 0 : _h.parentNode;
+        if (grandparent) {
+          grandparent.style.minHeight = `${newHeight}px`;
+        }
       }
     }
     coreCalculations() {
@@ -18672,6 +18963,12 @@ var __async = (__this, __arguments, generator) => {
               target
             )
           );
+          if (!targetChart) {
+            console.warn(
+              `ApexCharts: brush target "${target}" was not found. Ensure the target chart is rendered (and its chart.id matches) before the brush chart.`
+            );
+            return;
+          }
           targetChart.w.globals.brushSource = this.ctx;
           if (typeof targetChart.w.config.chart.events.zoomed !== "function") {
             targetChart.w.config.chart.events.zoomed = () => this.updateSourceChart(targetChart);
@@ -18694,6 +18991,7 @@ var __async = (__this, __arguments, generator) => {
                 target
               )
             );
+            if (!targetChart) return;
             targetChart.ctx.updateHelpers._updateOptions(
               {
                 xaxis: {
@@ -19237,7 +19535,10 @@ var __async = (__this, __arguments, generator) => {
             y2: isDataPoint2D ? ser[i].data[j].y[1] : ser[i].data[j].y,
             rangeName: id
           };
-          ser[i].data[j].rangeName = id;
+          const gl = this.w.globals;
+          if (!gl.seriesRangeName) gl.seriesRangeName = {};
+          if (!gl.seriesRangeName[i]) gl.seriesRangeName[i] = {};
+          gl.seriesRangeName[i][j] = id;
           const keyObj = uniqueKeysMap.get(x);
           if (keyObj) {
             keyObj.y.push(y);
@@ -19270,7 +19571,8 @@ var __async = (__this, __arguments, generator) => {
       const data = ser[i].data;
       let getVals;
       if (format === "array") {
-        const isFlat = isBoxPlot && data[0].length === 6 || !isBoxPlot && data[0].length === 5;
+        const first = data[0];
+        const isFlat = isBoxPlot && first && first.length === 6 || !isBoxPlot && first && first.length === 5;
         if (isFlat) {
           getVals = (d) => d.slice(1);
         } else {
@@ -19365,7 +19667,7 @@ var __async = (__this, __arguments, generator) => {
           console.error(
             "It is a possibility that you may have not included 'data' property in series."
           );
-          return;
+          ser[i] = __spreadProps(__spreadValues({}, ser[i]), { data: [] });
         }
         const dr = cnf.chart.dataReducer;
         const rawStash = (_b = (_a = gl.dataReducerRawSeries) == null ? void 0 : _a[i]) == null ? void 0 : _b.data;
@@ -19744,7 +20046,7 @@ var __async = (__this, __arguments, generator) => {
         return series;
       }
       const processedSeries = series.map((serie, index) => {
-        var _a, _b, _c;
+        var _a, _b, _c, _d, _e;
         if (!serie.data || !Array.isArray(serie.data) || serie.data.length === 0) {
           return serie;
         }
@@ -19761,8 +20063,17 @@ var __async = (__this, __arguments, generator) => {
           return serie;
         }
         if (!effectiveParsing.x || !effectiveParsing.y || Array.isArray(effectiveParsing.y) && effectiveParsing.y.length === 0) {
+          const missing = [];
+          if (!effectiveParsing.x) missing.push("x");
+          if (!effectiveParsing.y || Array.isArray(effectiveParsing.y) && effectiveParsing.y.length === 0) {
+            missing.push("y");
+          }
+          const seriesName = (_d = serie.name) != null ? _d : `series[${index}]`;
           console.warn(
-            `ApexCharts: Series ${index} has parsing config but missing x or y field specification`
+            `ApexCharts [${this.w.globals.chartID}]: "${seriesName}" has a parseData config but is missing the '${missing.join(
+              "', '"
+            )}' field specification.`,
+            { parsing: (_e = serie.parsing) != null ? _e : globalParsing }
           );
           return serie;
         }
@@ -20398,7 +20709,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {boolean} overwriteInitialConfig - should update the initial config or not
      */
     _updateOptions(options2, redraw = false, animate = true, updateSyncedCharts = true, overwriteInitialConfig = false) {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         let charts = [this.ctx];
         if (updateSyncedCharts) {
           charts = this.ctx.getSyncedCharts();
@@ -20470,7 +20781,7 @@ var __async = (__this, __arguments, generator) => {
             if (chartIndex === charts.length - 1) {
               resolve(ch);
             }
-          });
+          }).catch(reject);
         });
       });
     }
@@ -20481,7 +20792,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {boolean} animate
      */
     _updateSeries(newSeries, animate, overwriteInitialSeries = false) {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         const w = this.w;
         w.globals.shouldAnimate = animate;
         w.globals.dataChanged = true;
@@ -20518,12 +20829,12 @@ var __async = (__this, __arguments, generator) => {
         if (this._canUseFastPath(newSeries, prevSeriesCount, prevDataLengths, w)) {
           return this.ctx.fastUpdate(animate, prevAxisScaleSig).then(() => {
             resolve(this.ctx);
-          });
+          }).catch(reject);
         }
         if (this.ctx._updateStats) this.ctx._updateStats.full++;
         return this.ctx.update().then(() => {
           resolve(this.ctx);
-        });
+        }).catch(reject);
       });
     }
     /**
@@ -21653,9 +21964,10 @@ var __async = (__this, __arguments, generator) => {
     handleCustomTooltip({ i, j, y1, y2, w }) {
       const tooltipEl = this.ttCtx.getElTooltip();
       let fn = w.config.tooltip.custom;
-      if (Array.isArray(fn) && fn[i]) {
+      if (Array.isArray(fn)) {
         fn = fn[i];
       }
+      if (typeof fn !== "function") return;
       const customTooltip = fn({
         series: w.seriesData.series,
         seriesIndex: i,
@@ -21668,7 +21980,7 @@ var __async = (__this, __arguments, generator) => {
         const arrowEl = tooltipEl.querySelector(".apexcharts-tooltip-arrow");
         if (typeof customTooltip === "string" || typeof customTooltip === "number") {
           tooltipEl.innerHTML = String(customTooltip);
-        } else if (customTooltip instanceof Element || typeof customTooltip.nodeName === "string") {
+        } else if (customTooltip != null && (customTooltip instanceof Element || typeof customTooltip.nodeName === "string")) {
           tooltipEl.innerHTML = "";
           tooltipEl.appendChild(customTooltip.cloneNode(true));
         }
@@ -21676,6 +21988,7 @@ var __async = (__this, __arguments, generator) => {
       }
     }
   }
+  const ARROW_TIP_OVERHANG = 7;
   class Position {
     /**
      * @param {import('./Tooltip').default} tooltipContext
@@ -21858,7 +22171,7 @@ var __async = (__this, __arguments, generator) => {
       const ttW = tooltipRect.ttWidth || 0;
       const cxNum = parseFloat(String(cx));
       const cyNum = parseFloat(String(cy));
-      if (isNaN(cxNum)) return null;
+      if (isNaN(cxNum) || isNaN(cyNum)) return null;
       let x = cxNum + pointSize + 5;
       const pointY = cyNum + w.layout.translateY;
       let y = arrowEnabled ? pointY - ttH / 2 + pointSize / 2 : cyNum + pointSize / 2;
@@ -22271,7 +22584,6 @@ var __async = (__this, __arguments, generator) => {
       if (!isFinite(unionLeft)) return false;
       const ttW = ttCtx.tooltipRect.ttWidth || 0;
       const ttH = ttCtx.tooltipRect.ttHeight || 0;
-      const ARROW_TIP_OVERHANG = 7;
       const rowCenterX = (unionLeft + unionRight) / 2 - gridRect.left + w.layout.translateX;
       const rowTopElWrap = unionTop - gridRect.top + w.layout.translateY;
       const rowBottomElWrap = unionBottom - gridRect.top + w.layout.translateY;
@@ -22376,7 +22688,7 @@ var __async = (__this, __arguments, generator) => {
           });
           const point = graphics.drawMarker(0, 0, elPointOptions);
           point.node.setAttribute("default-marker-size", 0);
-          const elPointsG = BrowserAPIs.createElementNS(SVGNS$1, "g");
+          const elPointsG = BrowserAPIs.createElementNS(SVGNS$2, "g");
           elPointsG.classList.add("apexcharts-series-markers");
           elPointsG.appendChild(point.node);
           pointsMain.appendChild(elPointsG);
@@ -22585,7 +22897,6 @@ var __async = (__this, __arguments, generator) => {
         }
         const ttW = ttCtx.tooltipRect.ttWidth || 0;
         const ttH = ttCtx.tooltipRect.ttHeight || 0;
-        const ARROW_TIP_OVERHANG = 7;
         const cellCenterXInElWrap = (clLeft + clRight) / 2 + gridOffsetXInElWrap;
         const cellTopInElWrap = clTop + w.layout.translateY;
         const cellBottomInElWrap = clBottom + w.layout.translateY;
@@ -22740,7 +23051,9 @@ var __async = (__this, __arguments, generator) => {
         if (!elGrid) return;
       }
       if (ttCtx.tooltip === null) {
-        ttCtx.tooltip = w.dom.baseEl.querySelector(".apexcharts-tooltip");
+        ttCtx.tooltip = w.dom.baseEl.querySelector(
+          ".apexcharts-tooltip:not(.apexcharts-annotation-tooltip)"
+        );
       }
       if (!w.config.tooltip.shared) {
         if (w.globals.comboBarCount > 0) {
@@ -22756,7 +23069,6 @@ var __async = (__this, __arguments, generator) => {
           const ttH = ttCtx.tooltipRect.ttHeight || 0;
           const arrowEnabled = !!w.config.tooltip.arrow;
           const { barAnchorXInGrid, barAnchorYInGrid, barRectInGrid } = barXY;
-          const ARROW_TIP_OVERHANG = 7;
           const elGridRect = (_a = ttCtx.getElGrid()) == null ? void 0 : _a.getBoundingClientRect();
           const elWrapRect = w.dom.elWrap.getBoundingClientRect();
           const gridOffsetXInElWrap = elGridRect ? elGridRect.left - elWrapRect.left : w.layout.translateX;
@@ -23218,7 +23530,9 @@ var __async = (__this, __arguments, generator) => {
       if (!ctx.w.dom.baseEl) return null;
       return (
         /** @type {HTMLElement | null} */
-        ctx.w.dom.baseEl.querySelector(".apexcharts-tooltip")
+        ctx.w.dom.baseEl.querySelector(
+          ".apexcharts-tooltip:not(.apexcharts-annotation-tooltip)"
+        )
       );
     }
     getElXCrosshairs() {
@@ -23550,6 +23864,7 @@ var __async = (__this, __arguments, generator) => {
      */
     /** @param {Record<string, any>} opt @param {any} e */
     seriesHover(opt, e) {
+      if (this.w.globals.isDestroyed) return;
       this.lastHoverTime = Date.now();
       let chartGroups = [];
       const w = this.w;
@@ -23644,6 +23959,12 @@ var __async = (__this, __arguments, generator) => {
       w.interact.capturedSeriesIndex = -1;
       w.interact.capturedDataPointIndex = -1;
       if (clientY < seriesBound.top || clientY > seriesBound.top + seriesBound.height) {
+        this.handleMouseOut(opt);
+        return;
+      }
+      if (w.dom.elWrap.querySelector(
+        ".apexcharts-annotation-tooltip.apexcharts-active"
+      )) {
         this.handleMouseOut(opt);
         return;
       }
@@ -24625,24 +24946,11 @@ var __async = (__this, __arguments, generator) => {
       throw new Error("Animation module not loaded");
     }
     // ---- Filter methods (set up by SVGFilter module) ----
+    // `filterWith`, `unfilter` and `filterer` are installed on the prototype by
+    // installFilterMethods() (svg/index.js). This stub only exists so a call
+    // before the filter module is installed fails with a clear message.
     filterWith() {
       throw new Error("Filter module not loaded");
-    }
-    /**
-     * @param {boolean} all
-     */
-    unfilter(all) {
-      if (this._filter) {
-        this.node.removeAttribute("filter");
-        if (all && this._filter.node && this._filter.node.parentNode) {
-          this._filter.node.parentNode.removeChild(this._filter.node);
-        }
-        this._filter = null;
-      }
-      return this;
-    }
-    filterer() {
-      return this._filter;
     }
   }
   let gradientCounter = 0;
@@ -24654,7 +24962,7 @@ var __async = (__this, __arguments, generator) => {
      */
     constructor(container, type, builder) {
       const tag = type === "radial" ? "radialGradient" : "linearGradient";
-      const node = BrowserAPIs.createElementNS(SVGNS$1, tag);
+      const node = BrowserAPIs.createElementNS(SVGNS$2, tag);
       super(node);
       this._id = "SvgjsGradient" + ++gradientCounter;
       this.attr("id", this._id);
@@ -24663,7 +24971,7 @@ var __async = (__this, __arguments, generator) => {
       }
       let defs = container.node.querySelector("defs");
       if (!defs) {
-        defs = BrowserAPIs.createElementNS(SVGNS$1, "defs");
+        defs = BrowserAPIs.createElementNS(SVGNS$2, "defs");
         container.node.appendChild(defs);
       }
       defs.appendChild(this.node);
@@ -24674,7 +24982,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} opacity
      */
     stop(offset, color, opacity) {
-      const s = BrowserAPIs.createElementNS(SVGNS$1, "stop");
+      const s = BrowserAPIs.createElementNS(SVGNS$2, "stop");
       s.setAttribute("offset", offset);
       s.setAttribute("stop-color", color);
       if (opacity !== void 0) s.setAttribute("stop-opacity", String(opacity));
@@ -24734,7 +25042,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {Function} builder
      */
     constructor(container, w, h, builder) {
-      const node = BrowserAPIs.createElementNS(SVGNS$1, "pattern");
+      const node = BrowserAPIs.createElementNS(SVGNS$2, "pattern");
       super(node);
       this._id = "SvgjsPattern" + ++patternCounter;
       this.attr({
@@ -24749,7 +25057,7 @@ var __async = (__this, __arguments, generator) => {
       }
       let defs = container.node.querySelector("defs");
       if (!defs) {
-        defs = BrowserAPIs.createElementNS(SVGNS$1, "defs");
+        defs = BrowserAPIs.createElementNS(SVGNS$2, "defs");
         container.node.appendChild(defs);
       }
       defs.appendChild(this.node);
@@ -24828,7 +25136,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} textContent
      */
     plain(textContent) {
-      const node = BrowserAPIs.createElementNS(SVGNS$1, "text");
+      const node = BrowserAPIs.createElementNS(SVGNS$2, "text");
       node.textContent = textContent;
       const el = new SVGElement(node);
       this.node.appendChild(node);
@@ -24838,7 +25146,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {object} builder
      */
     text(builder) {
-      const node = BrowserAPIs.createElementNS(SVGNS$1, "text");
+      const node = BrowserAPIs.createElementNS(SVGNS$2, "text");
       const el = new SVGElement(node);
       this.node.appendChild(node);
       if (typeof builder === "function") {
@@ -24851,11 +25159,11 @@ var __async = (__this, __arguments, generator) => {
      * @param {Function} callback
      */
     image(url, callback) {
-      const node = BrowserAPIs.createElementNS(SVGNS$1, "image");
+      const node = BrowserAPIs.createElementNS(SVGNS$2, "image");
       node.setAttributeNS("http://www.w3.org/1999/xlink", "href", url);
       const el = new SVGElement(node);
       this.node.appendChild(node);
-      if (typeof callback === "function") {
+      if (typeof callback === "function" && Environment.isBrowser()) {
         const img = new Image();
         img.onload = function() {
           el.size(img.width, img.height);
@@ -24884,7 +25192,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} tag
      */
     _make(tag) {
-      const node = BrowserAPIs.createElementNS(SVGNS$1, tag);
+      const node = BrowserAPIs.createElementNS(SVGNS$2, tag);
       this.node.appendChild(node);
       return new SVGElement(node);
     }
@@ -24892,7 +25200,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} tag
      */
     _makeContainer(tag) {
-      const node = BrowserAPIs.createElementNS(SVGNS$1, tag);
+      const node = BrowserAPIs.createElementNS(SVGNS$2, tag);
       this.node.appendChild(node);
       return new SVGContainer(node);
     }
@@ -24908,7 +25216,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {string} text
      */
     tspan(text) {
-      const tspan = BrowserAPIs.createElementNS(SVGNS$1, "tspan");
+      const tspan = BrowserAPIs.createElementNS(SVGNS$2, "tspan");
       tspan.textContent = text;
       this.textNode.appendChild(tspan);
       return new TspanWrapper(tspan, this.textNode);
@@ -24932,25 +25240,10 @@ var __async = (__this, __arguments, generator) => {
   let filterCounter = 0;
   class SVGFilter extends SVGElement {
     constructor() {
-      const node = BrowserAPIs.createElementNS(SVGNS$1, "filter");
+      const node = BrowserAPIs.createElementNS(SVGNS$2, "filter");
       super(node);
       this._id = "SvgjsFilter" + ++filterCounter;
       this.attr("id", this._id);
-    }
-    /**
-     * @param {import('../types/internal').ChartStateW} w
-     * @param {number} h
-     * @param {number} x
-     * @param {number} y
-     */
-    /**
-     * @param {number} w
-     * @param {number} h
-     * @param {number} [x]
-     * @param {number} [y]
-     */
-    size(w, h, x, y) {
-      return this.attr({ width: w, height: h, x, y });
     }
   }
   class FilterBuilder {
@@ -24994,9 +25287,9 @@ var __async = (__this, __arguments, generator) => {
      * @param {string[]} sources
      */
     merge(sources) {
-      const m = BrowserAPIs.createElementNS(SVGNS$1, "feMerge");
+      const m = BrowserAPIs.createElementNS(SVGNS$2, "feMerge");
       sources.forEach((src) => {
-        const mn = BrowserAPIs.createElementNS(SVGNS$1, "feMergeNode");
+        const mn = BrowserAPIs.createElementNS(SVGNS$2, "feMergeNode");
         mn.setAttribute("in", src);
         m.appendChild(mn);
       });
@@ -25008,7 +25301,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {Record<string, any>} attrs
      */
     _primitive(tag, attrs) {
-      const el = BrowserAPIs.createElementNS(SVGNS$1, tag);
+      const el = BrowserAPIs.createElementNS(SVGNS$2, tag);
       for (const key in attrs) {
         el.setAttribute(key, attrs[key]);
       }
@@ -25027,7 +25320,7 @@ var __async = (__this, __arguments, generator) => {
       if (svgRoot) {
         let defs = svgRoot.querySelector("defs");
         if (!defs) {
-          defs = BrowserAPIs.createElementNS(SVGNS$1, "defs");
+          defs = BrowserAPIs.createElementNS(SVGNS$2, "defs");
           svgRoot.insertBefore(defs, svgRoot.firstChild);
         }
         defs.appendChild(filter.node);
@@ -25128,12 +25421,14 @@ var __async = (__this, __arguments, generator) => {
             document.removeEventListener("mouseup", onUp);
             document.removeEventListener("touchend", onUp);
           }
+          el._activeDrag = null;
         };
         if (Environment.isBrowser()) {
           document.addEventListener("mousemove", onMove);
           document.addEventListener("touchmove", onMove);
           document.addEventListener("mouseup", onUp);
           document.addEventListener("touchend", onUp);
+          el._activeDrag = { onMove, onUp };
         }
       };
       el.node.addEventListener("mousedown", onPointerDown);
@@ -25141,6 +25436,13 @@ var __async = (__this, __arguments, generator) => {
       el._dragCleanup = () => {
         el.node.removeEventListener("mousedown", onPointerDown);
         el.node.removeEventListener("touchstart", onPointerDown);
+        if (el._activeDrag && Environment.isBrowser()) {
+          document.removeEventListener("mousemove", el._activeDrag.onMove);
+          document.removeEventListener("touchmove", el._activeDrag.onMove);
+          document.removeEventListener("mouseup", el._activeDrag.onUp);
+          document.removeEventListener("touchend", el._activeDrag.onUp);
+          el._activeDrag = null;
+        }
       };
       return el;
     };
@@ -25156,7 +25458,7 @@ var __async = (__this, __arguments, generator) => {
       }
       const el = this;
       const { createHandle, updateHandle } = opts;
-      const handleGroup = document.createElementNS(SVGNS$1, "g");
+      const handleGroup = document.createElementNS(SVGNS$2, "g");
       handleGroup.setAttribute("class", "svg_select_points");
       const parent = el.node.parentNode;
       if (parent) {
@@ -25165,7 +25467,7 @@ var __async = (__this, __arguments, generator) => {
       const handles = {};
       const handleNames = ["t", "b", "l", "r", "lt", "rt", "lb", "rb"];
       handleNames.forEach((name2, index) => {
-        const subGroup = new SVGContainer(document.createElementNS(SVGNS$1, "g"));
+        const subGroup = new SVGContainer(document.createElementNS(SVGNS$2, "g"));
         handleGroup.appendChild(subGroup.node);
         const handle = createHandle(subGroup, [0, 0], index, [], name2);
         handles[name2] = { group: subGroup, handle };
@@ -25304,9 +25606,9 @@ var __async = (__this, __arguments, generator) => {
   installDraggable(SVGElement);
   installSelectable(SVGElement);
   function SVG() {
-    const svgEl = BrowserAPIs.createElementNS(SVGNS$1, "svg");
+    const svgEl = BrowserAPIs.createElementNS(SVGNS$2, "svg");
     const svg = new SVGContainer(svgEl);
-    svg.attr({ xmlns: SVGNS$1 });
+    svg.attr({ xmlns: SVGNS$2 });
     return svg;
   }
   SVG.xlink = "http://www.w3.org/1999/xlink";
@@ -25535,7 +25837,7 @@ var __async = (__this, __arguments, generator) => {
      * @param {{ isUpdating: boolean }} opts
      */
     clear({ isUpdating }) {
-      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
       (_a = this.ctx.weave) == null ? void 0 : _a.teardown(isUpdating);
       if (!isUpdating) {
         this.w.globals.isDestroyed = true;
@@ -25554,26 +25856,27 @@ var __async = (__this, __arguments, generator) => {
       if (isUpdating) {
         this.ctx._zoomPanSelection = null;
         this.ctx._toolbar = null;
+        (_b = this.ctx._keyboardNavigation) == null ? void 0 : _b.destroy();
         this.ctx._keyboardNavigation = null;
       } else {
-        (_b = this.ctx.perspectives) == null ? void 0 : _b.teardown();
+        (_c = this.ctx.perspectives) == null ? void 0 : _c.teardown();
         this.ctx.perspectives = null;
-        (_c = this.ctx.storyboard) == null ? void 0 : _c.teardown();
+        (_d = this.ctx.storyboard) == null ? void 0 : _d.teardown();
         this.ctx.storyboard = null;
-        (_d = this.ctx.history) == null ? void 0 : _d.teardown();
+        (_e = this.ctx.history) == null ? void 0 : _e.teardown();
         this.ctx.history = null;
-        (_e = this.ctx.linkedViews) == null ? void 0 : _e.teardown();
+        (_f = this.ctx.linkedViews) == null ? void 0 : _f.teardown();
         this.ctx.linkedViews = null;
-        (_f = this.ctx.ink) == null ? void 0 : _f.teardown();
+        (_g = this.ctx.ink) == null ? void 0 : _g.teardown();
         this.ctx.ink = null;
-        (_g = this.ctx.measure) == null ? void 0 : _g.teardown();
+        (_h = this.ctx.measure) == null ? void 0 : _h.teardown();
         this.ctx.measure = null;
-        (_h = this.ctx.contextMenu) == null ? void 0 : _h.teardown();
+        (_i = this.ctx.contextMenu) == null ? void 0 : _i.teardown();
         this.ctx.contextMenu = null;
-        (_i = this.ctx.osThemeWatcher) == null ? void 0 : _i.teardown();
+        (_j = this.ctx.osThemeWatcher) == null ? void 0 : _j.teardown();
         this.ctx.osThemeWatcher = null;
         this.ctx.weave = null;
-        (_k = (_j = this.ctx.rendererController) == null ? void 0 : _j.teardown) == null ? void 0 : _k.call(_j);
+        (_l = (_k = this.ctx.rendererController) == null ? void 0 : _k.teardown) == null ? void 0 : _l.call(_k);
         this.ctx.rendererController = null;
         this.ctx.renderer = null;
         this.ctx.drilldown = null;
@@ -25644,6 +25947,7 @@ var __async = (__this, __arguments, generator) => {
         this.killSVG(domEls.Paper);
         domEls.Paper.remove();
       }
+      domEls.Paper = null;
       domEls.elWrap = null;
       domEls.elGraphical = null;
       domEls.elLegendWrap = null;
@@ -25713,7 +26017,7 @@ var __async = (__this, __arguments, generator) => {
       ros.delete(fn);
     }
   }
-  const apexCSS = '@keyframes opaque {\n  0% {\n    opacity: 0\n  }\n\n  to {\n    opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n\n  0%,\n  to {\n    opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  direction: ltr !important;\n  user-select: none;\n  /* Focus indicator colour. Themes override below. */\n  --apexcharts-focus-color: #008FFB;\n}\n\n/* Dark theme & high-contrast: brighter focus colour for sufficient contrast. */\n.apexcharts-canvas .apexcharts-theme-dark,\n.apexcharts-theme-dark.apexcharts-canvas {\n  --apexcharts-focus-color: #FFD500;\n}\n.apexcharts-canvas.apexcharts-high-contrast,\n.apexcharts-high-contrast.apexcharts-canvas {\n  --apexcharts-focus-color: #FFFF00;\n}\n\n/* Visually-hidden aria-live status region (WCAG 4.1.3 Status Messages). */\n.apexcharts-sr-status {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}\n\n/* Respect OS-level reduced-motion preference (WCAG 2.3.3). */\n@media (prefers-reduced-motion: reduce) {\n  .apexcharts-canvas *,\n  .apexcharts-canvas *::before,\n  .apexcharts-canvas *::after {\n    animation-duration: 0.01ms !important;\n    animation-iteration-count: 1 !important;\n    transition-duration: 0.01ms !important;\n  }\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0, 0, 0, .5);\n  box-shadow: 0 0 1px rgba(255, 255, 255, .5);\n  -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\nrect.legend-mouseover-inactive,\n.legend-mouseover-inactive rect,\n.legend-mouseover-inactive path,\n.legend-mouseover-inactive circle,\n.legend-mouseover-inactive line,\n.legend-mouseover-inactive text.apexcharts-yaxis-title-text,\n.legend-mouseover-inactive text.apexcharts-yaxis-label {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n/* Linked Views (#4): per-mark crossfilter dim. Applied to individual data\n   marks (not whole series) whose x is outside the brushed range. Opacity is\n   overridable per chart via the --apx-cf-dim custom property. */\n.apexcharts-crossfilter-dimmed {\n  transition: opacity .25s ease;\n  opacity: var(--apx-cf-dim, .2)\n}\n\n/* Linked Views (#4): default styling for the built-in crossfilter data table\n   (cf.dataTable). Deliberately light so host styles can override. */\n.apexcharts-cf-table {\n  border-collapse: collapse;\n  width: 100%;\n  font-size: 13px;\n}\n.apexcharts-cf-table caption {\n  caption-side: bottom;\n  text-align: right;\n  padding: 6px 2px;\n  font-size: 12px;\n  opacity: .7\n}\n.apexcharts-cf-table th,\n.apexcharts-cf-table td {\n  padding: 6px 10px;\n  text-align: left;\n  border-bottom: 1px solid rgba(0, 0, 0, .08)\n}\n.apexcharts-cf-table th {\n  font-weight: 600;\n  border-bottom-width: 2px\n}\n.apexcharts-cf-table tbody tr:hover {\n  background: rgba(99, 102, 241, .06)\n}\n\n/* Measure ruler (#18): measure / delta ruler.\n   Theme via these classes or the --apx-measure-* custom properties below\n   (config `chart.measure.colors` overrides both). The ruler group also carries\n   a direction class: apexcharts-measure-up | -down | -flat.\n   Element classes:\n     .apexcharts-measure-band     shaded span band\n     .apexcharts-measure-vline    vertical guide lines\n     .apexcharts-measure-line     free-mode diagonal line\n     .apexcharts-measure-label-bg readout box     .apexcharts-measure-label text\n   Colors are applied as SVG presentation attributes, so any rule you write on\n   these classes overrides them. */\n.apexcharts-canvas {\n  --apx-measure-up: #16a34a;\n  --apx-measure-down: #dc2626;\n  --apx-measure-neutral: #64748b;\n  --apx-measure-guide: #94a3b8;\n}\n.apexcharts-measure-capture {\n  cursor: crosshair;\n}\n\n/* Radial Actions (#chrome): right-click context menu. Theme via these classes\n   or the --apx-menu-* custom properties. */\n.apexcharts-canvas {\n  --apx-menu-bg: #ffffff;\n  --apx-menu-fg: #1e293b;\n  --apx-menu-border: #e2e8f0;\n  --apx-menu-hover: #f1f5f9;\n  --apx-menu-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-context-menu {\n  min-width: 168px;\n  padding: 4px;\n  border-radius: 8px;\n  background: var(--apx-menu-bg);\n  border: 1px solid var(--apx-menu-border);\n  box-shadow: 0 6px 22px var(--apx-menu-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 13px;\n  z-index: 20;\n  user-select: none;\n}\n.apexcharts-context-menu-item {\n  display: block;\n  width: 100%;\n  box-sizing: border-box;\n  text-align: left;\n  padding: 7px 12px;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: var(--apx-menu-fg);\n  font: inherit;\n  cursor: pointer;\n}\n.apexcharts-context-menu-item:hover,\n.apexcharts-context-menu-item--active {\n  background: var(--apx-menu-hover);\n}\n.apexcharts-context-menu-item:focus {\n  outline: none;\n}\n\n/* Ink Layer (#7): the floating note editor card, opened by clicking an\n   ink-managed annotation. Theme via these classes or the --apx-ink-* vars. */\n.apexcharts-canvas {\n  --apx-ink-card-bg: #ffffff;\n  --apx-ink-card-fg: #1e293b;\n  --apx-ink-card-border: #e2e8f0;\n  --apx-ink-card-hover: #f1f5f9;\n  --apx-ink-card-accent: #6366f1;\n  --apx-ink-card-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-ink-card {\n  position: absolute;\n  z-index: 25;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  padding: 8px;\n  border-radius: 8px;\n  background: var(--apx-ink-card-bg);\n  border: 1px solid var(--apx-ink-card-border);\n  box-shadow: 0 6px 22px var(--apx-ink-card-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 12px;\n  color: var(--apx-ink-card-fg);\n  user-select: none;\n}\n.apexcharts-ink-card-row {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor {\n  flex: 1 1 auto;\n  width: 150px;\n  min-width: 0;\n  box-sizing: border-box;\n  padding: 4px 6px;\n  font: inherit;\n  color: inherit;\n  background: transparent;\n  border: 1px solid var(--apx-ink-card-border);\n  border-radius: 5px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor:focus {\n  outline: none;\n  border-color: var(--apx-ink-card-accent);\n}\n.apexcharts-ink-btn {\n  flex: 0 0 auto;\n  width: 24px;\n  height: 24px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  padding: 0;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: inherit;\n  font: inherit;\n  font-size: 12px;\n  line-height: 1;\n  cursor: pointer;\n}\n.apexcharts-ink-btn:hover,\n.apexcharts-ink-btn--active {\n  background: var(--apx-ink-card-hover);\n}\n.apexcharts-ink-btn:focus-visible,\n.apexcharts-ink-swatch:focus-visible {\n  outline: 2px solid var(--apx-ink-card-accent);\n  outline-offset: 1px;\n}\n.apexcharts-ink-btn--bold {\n  font-weight: 700;\n}\n.apexcharts-ink-btn--delete:hover {\n  color: #dc2626;\n}\n.apexcharts-ink-swatch {\n  flex: 0 0 auto;\n  width: 16px;\n  height: 16px;\n  padding: 0;\n  border: 1px solid rgba(100, 116, 139, 0.45);\n  border-radius: 50%;\n  cursor: pointer;\n}\n.apexcharts-ink-swatch--active {\n  box-shadow:\n    0 0 0 2px var(--apx-ink-card-bg),\n    0 0 0 4px var(--apx-ink-card-accent);\n}\n.apexcharts-ink-sep {\n  flex: 0 0 auto;\n  width: 1px;\n  height: 16px;\n  margin: 0 2px;\n  background: var(--apx-ink-card-border);\n}\n.apexcharts-ink-cardlabel {\n  flex: 0 0 auto;\n  font-size: 10px;\n  letter-spacing: 0.4px;\n  text-transform: uppercase;\n  opacity: 0.65;\n  margin-right: 2px;\n}\n.apexcharts-ink-marker-size {\n  flex: 0 0 auto;\n  min-width: 16px;\n  text-align: center;\n  font-variant-numeric: tabular-nums;\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-legend-series[role="button"]:focus {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-legend-series[role="button"]:focus:not(:focus-visible) {\n  outline: none;\n}\n\n.apexcharts-legend-series[role="button"]:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n.apexcharts-canvas svg:focus:not(:focus-visible) {\n  outline: none;\n}\n\n/* Keyboard navigation focus indicator on SVG data elements.\n   SVG elements don\'t support CSS outline, so we use stroke. */\n.apexcharts-bar-area.apexcharts-keyboard-focused,\n.apexcharts-candlestick-area.apexcharts-keyboard-focused,\n.apexcharts-boxPlot-area.apexcharts-keyboard-focused,\n.apexcharts-rangebar-area.apexcharts-keyboard-focused,\n.apexcharts-pie-area.apexcharts-keyboard-focused,\n.apexcharts-heatmap-rect.apexcharts-keyboard-focused,\n.apexcharts-treemap-rect.apexcharts-keyboard-focused {\n  stroke: var(--apexcharts-focus-color, #008FFB);\n  stroke-width: 2;\n  stroke-opacity: 1;\n}\n\n.apexcharts-tooltip {\n  --apx-tt-bg: #ffffff;\n  --apx-tt-border: rgba(15, 23, 42, 0.06);\n  /* Layered shadow: tight inner contact + soft outer drop. The two Y\n   * offsets are exposed as variables so they flip in sync with the\n   * arrow when the tooltip is below the data point — see the\n   * `[data-placement="bottom"]` rule further down. */\n  --apx-tt-shadow-y-mid: 8px;\n  --apx-tt-shadow-y-far: 16px;\n  --apx-tt-shadow: 0 0 0 1px rgba(15, 23, 42, 0.04), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(15, 23, 42, 0.12), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(15, 23, 42, 0.18);\n  --apx-tt-arrow-bg: var(--apx-tt-bg);\n  /* Two stacked drop-shadows: the first is a tight contact halo for\n   * edge definition against light chart backgrounds; the second is a\n   * softer directional drop that lifts the arrow off the surface.\n   * `--apx-tt-arrow-drop-y` is the Y offset of the directional drop;\n   * a per-placement rule below flips it to negative when the tooltip\n   * is below the data point (arrow on top) so the shadow always\n   * casts outward instead of into the tooltip body. */\n  --apx-tt-arrow-drop-y: 2px;\n  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(15, 23, 42, 0.2)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(15, 23, 42, 0.2));\n  --apx-tt-color: #0f172a;\n  --apx-tt-color-muted: rgba(15, 23, 42, 0.55);\n  border-radius: 8px;\n  background: var(--apx-tt-bg);\n  border: 1px solid var(--apx-tt-border);\n  box-shadow: var(--apx-tt-shadow);\n  color: var(--apx-tt-color);\n  cursor: default;\n  font-size: 13px;\n  left: 0;\n  top: 0;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  display: flex;\n  flex-direction: column;\n  padding: 2px 0;\n  white-space: nowrap;\n  z-index: 12;\n  transition: opacity .12s ease\n}\n\n/* While the tooltip is visible, smoothly animate position changes\n * between data points. Kept short (160 ms) and ease-out so it stays\n * responsive — too long would feel laggy when sweeping across many\n * points fast. The position transition is only attached after the\n * first paint (Position.applyTooltipPosition flips `data-positioned`\n * once the tooltip has been placed) so the *first* show doesn\'t slide\n * the tooltip in from the previously-stale (0,0) coordinates. */\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: opacity .12s ease\n}\n.apexcharts-tooltip.apexcharts-active[data-positioned="true"] {\n  transition: opacity .12s ease, left .16s ease-out, top .16s ease-out\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  /* defaults already set above; class kept for backward-compat selectors */\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  --apx-tt-bg: #1c1c1f;\n  --apx-tt-border: rgba(255, 255, 255, 0.08);\n  --apx-tt-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(0, 0, 0, 0.45), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(0, 0, 0, 0.55);\n  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.55)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(0, 0, 0, 0.45));\n  --apx-tt-color: #f3f4f6;\n  --apx-tt-color-muted: rgba(243, 244, 246, 0.55);\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n.apexcharts-tooltip-title {\n  padding: 8px 12px 4px;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.01em;\n  color: var(--apx-tt-color-muted);\n  background: transparent;\n  border-bottom: none;\n  margin-bottom: 0\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: transparent;\n  border-bottom: none\n}\n\n/* `fillSeriesColor`: each series-group already paints itself with the\n * series colour. Drop the glass body entirely (transparent bg, no\n * border, no backdrop-filter, no padding) and clip the coloured\n * series-group(s) to the tooltip\'s rounded corners so they fill the\n * shell edge-to-edge. Text inside the coloured group is forced to\n * white for contrast. */\n.apexcharts-tooltip.apexcharts-tooltip-fill-series {\n  background: transparent;\n  -webkit-backdrop-filter: none;\n  backdrop-filter: none;\n  border: none;\n  padding: 0;\n  overflow: hidden;\n  color: #fff\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, 0.22);\n  color: #fff;\n  opacity: 1;\n  padding: 6px 12px\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group {\n  color: #fff\n}\n\n/* Arrow connector — sits *entirely outside* the tooltip body. Shares\n * the body\'s solid fill so it reads as a single shape. `filter:\n * drop-shadow` traces the clipped triangle outline (a regular\n * `box-shadow` would be erased by the `clip-path`). */\n.apexcharts-tooltip-arrow {\n  position: absolute;\n  width: 7px;\n  height: 14px;\n  background: var(--apx-tt-arrow-bg);\n  /* The variable already contains the full `drop-shadow(...) ...` filter\n   * chain (stacked shadows) so it\'s applied raw. */\n  -webkit-filter: var(--apx-tt-arrow-shadow);\n  filter: var(--apx-tt-arrow-shadow);\n  pointer-events: none;\n  top: calc(var(--apx-tt-arrow-y, 50%) - 7px)\n}\n\n.apexcharts-tooltip[data-placement="right"] .apexcharts-tooltip-arrow {\n  left: -7px;\n  clip-path: polygon(0 50%, 100% 0, 100% 100%)\n}\n\n.apexcharts-tooltip[data-placement="left"] .apexcharts-tooltip-arrow {\n  right: -7px;\n  clip-path: polygon(100% 50%, 0 0, 0 100%)\n}\n\n/* Vertical arrow variants: tooltip is above/below the data point and the\n * arrow points down/up. The base rule above uses `--apx-tt-arrow-y` for\n * left/right placement; for top/bottom we re-orient the rectangle and\n * use `--apx-tt-arrow-x` (set by applyTooltipPosition). */\n.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow,\n.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {\n  width: 14px;\n  height: 7px;\n  top: auto;\n  left: calc(var(--apx-tt-arrow-x, 50%) - 7px)\n}\n\n.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow {\n  bottom: -7px;\n  clip-path: polygon(50% 100%, 0 0, 100% 0)\n}\n\n.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {\n  top: -7px;\n  clip-path: polygon(50% 0, 0 100%, 100% 100%)\n}\n\n/* When the tooltip is flipped below the data point (arrow on top\n * pointing up), the default downward-biased shadows leave the top\n * edge of both the body *and* the arrow undefined. Flipping every\n * Y offset to negative casts the entire elevation upward so the\n * shadow falls between the tooltip and the bar above. */\n.apexcharts-tooltip[data-placement="bottom"] {\n  --apx-tt-shadow-y-mid: -8px;\n  --apx-tt-shadow-y-far: -16px;\n  --apx-tt-arrow-drop-y: -2px\n}\n\n.apexcharts-tooltip-text-goals-value,\n.apexcharts-tooltip-text-y-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,\n.apexcharts-tooltip-text-goals-value:empty,\n.apexcharts-tooltip-text-y-label:empty,\n.apexcharts-tooltip-text-y-value:empty,\n.apexcharts-tooltip-text-z-value:empty,\n.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),\n.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  width: 12px;\n  height: 12px;\n  margin-right: 6px;\n  vertical-align: middle;\n  color: inherit;\n}\n\n.apexcharts-tooltip-marker svg {\n  width: 100%;\n  height: 100%;\n  display: block;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 4px 12px;\n  display: none;\n  gap: 8px;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active:last-child,\n.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 8px\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n.apexcharts-custom-tooltip,\n.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n/* X/Y axis tooltips — small popovers that label the crosshair on the\n * axes. Restyled to match the modern data-tooltip palette: solid white\n * body with a subtle border + soft drop-shadow, smaller font, rounded\n * corners. The arrows still use the CSS border-triangle technique\n * (cheap, crisp at small sizes); their colours flow from CSS variables\n * so light/dark themes only need one override per axis. */\n.apexcharts-xaxistooltip,\n.apexcharts-yaxistooltip {\n  --apx-axt-bg: #ffffff;\n  --apx-axt-border: rgba(15, 23, 42, 0.08);\n  --apx-axt-color: #0f172a;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.18), 0 1px 3px -1px rgba(15, 23, 42, 0.12);\n  opacity: 0;\n  pointer-events: none;\n  color: var(--apx-axt-color);\n  font-size: 12px;\n  font-weight: 500;\n  text-align: center;\n  border-radius: 6px;\n  position: absolute;\n  z-index: 10;\n  background: var(--apx-axt-bg);\n  border: 1px solid var(--apx-axt-border);\n  box-shadow: var(--apx-axt-shadow)\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark,\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  --apx-axt-bg: #1c1c1f;\n  --apx-axt-border: rgba(255, 255, 255, 0.1);\n  --apx-axt-color: #f3f4f6;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.55), 0 1px 3px -1px rgba(0, 0, 0, 0.45)\n}\n\n.apexcharts-xaxistooltip {\n  padding: 4px 8px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip:after,\n.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n/* :before paints the 1px border outline of the triangle (slightly larger\n * than :after); :after sits inside and paints the fill — leaves a 1px\n * ring of :before visible at the edges. */\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-left: -5px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip-bottom:after,\n.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,\n.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 3px 8px\n}\n\n.apexcharts-yaxistooltip:after,\n.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-top: -5px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip-left:after,\n.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,\n.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,\n.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,\n.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_shape {\n  stroke-width: 1;\n  stroke-dasharray: 10 10;\n  stroke: black;\n  stroke-opacity: 0.1;\n  pointer-events: none;\n  fill: none;\n}\n\n.svg_select_handle {\n  stroke-width: 3;\n  stroke: black;\n  fill: none;\n}\n\n.svg_select_handle_r {\n  cursor: e-resize;\n}\n\n.svg_select_handle_l {\n  cursor: w-resize;\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,\n.apexcharts-measure-icon,\n.apexcharts-pan-icon,\n.apexcharts-reset-icon,\n.apexcharts-selection-icon,\n.apexcharts-toolbar-custom-icon,\n.apexcharts-zoom-icon,\n.apexcharts-zoomin-icon,\n.apexcharts-zoomout-icon {\n  cursor: pointer;\n  /* WCAG 2.5.8 Target Size (Minimum): 24×24 CSS px hit target. */\n  width: 26px;\n  height: 24px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center;\n  /* Reset native <button> chrome — these are styled via SVG icons. */\n  padding: 0;\n  margin: 0;\n  background: transparent;\n  border: 0;\n  border-radius: 5px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  transition: background-color .12s ease, color .12s ease;\n}\n\n.apexcharts-menu-icon svg,\n.apexcharts-measure-icon svg,\n.apexcharts-pan-icon svg,\n.apexcharts-reset-icon svg,\n.apexcharts-selection-icon svg,\n.apexcharts-zoom-icon svg,\n.apexcharts-zoomin-icon svg,\n.apexcharts-zoomout-icon svg {\n  width: 18px;\n  height: 18px;\n  fill: none;\n  stroke: currentColor;\n  stroke-width: 2;\n  stroke-linecap: round;\n  stroke-linejoin: round\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon,\n.apexcharts-theme-dark .apexcharts-measure-icon,\n.apexcharts-theme-dark .apexcharts-pan-icon,\n.apexcharts-theme-dark .apexcharts-reset-icon,\n.apexcharts-theme-dark .apexcharts-selection-icon,\n.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,\n.apexcharts-theme-dark .apexcharts-zoom-icon,\n.apexcharts-theme-dark .apexcharts-zoomin-icon,\n.apexcharts-theme-dark .apexcharts-zoomout-icon {\n  color: #d4d6dc\n}\n\n.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected {\n  background: rgba(0, 143, 251, 0.12);\n  color: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover,\n.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-reset-icon:hover,\n.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-light .apexcharts-zoomout-icon:hover {\n  background: rgba(15, 23, 42, 0.06);\n  color: #1f2937\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon:hover,\n.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-reset-icon:hover,\n.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-dark .apexcharts-zoomout-icon:hover {\n  background: rgba(255, 255, 255, 0.08);\n  color: #fff\n}\n\n.apexcharts-menu-icon,\n.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 1px;\n  padding: 3px;\n  border-radius: 8px;\n  background: rgba(255, 255, 255, 0.85);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n}\n\n.apexcharts-theme-dark .apexcharts-toolbar {\n  background: rgba(28, 28, 31, 0.82);\n}\n\n.apexcharts-menu {\n  background: rgba(255, 255, 255, 0.95);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n  position: absolute;\n  top: calc(100% + 4px);\n  border: 1px solid rgba(15, 23, 42, 0.08);\n  border-radius: 8px;\n  padding: 4px;\n  right: 0;\n  opacity: 0;\n  min-width: 120px;\n  transition: opacity .15s ease, transform .15s ease;\n  transform: translateY(-2px);\n  pointer-events: none;\n  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.12), 0 2px 4px -1px rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  transform: translateY(0);\n  pointer-events: all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 9px;\n  font-size: 12px;\n  border-radius: 5px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(28, 28, 31, 0.92);\n  border-color: rgba(255, 255, 255, 0.08);\n  color: #f3f4f6;\n  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-item:hover {\n  background: rgba(255, 255, 255, 0.08)\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1\n  }\n}\n\n/* Toolbar keyboard accessibility: show toolbar when any button inside it is focused */\n.apexcharts-toolbar:focus-within {\n  opacity: 1\n}\n\n/* Focus indicator for toolbar icon buttons */\n.apexcharts-menu-icon:focus-visible,\n.apexcharts-measure-icon:focus-visible,\n.apexcharts-pan-icon:focus-visible,\n.apexcharts-reset-icon:focus-visible,\n.apexcharts-selection-icon:focus-visible,\n.apexcharts-toolbar-custom-icon:focus-visible,\n.apexcharts-zoom-icon:focus-visible,\n.apexcharts-zoomin-icon:focus-visible,\n.apexcharts-zoomout-icon:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 1px;\n  border-radius: 5px\n}\n\n/* Focus indicator for hamburger menu items */\n.apexcharts-menu-item:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: -2px;\n  background: #eee\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,\n.apexcharts-datalabel.apexcharts-element-hidden,\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-hidden-element-shown {\n  opacity: 1;\n  transition: 0.25s ease all;\n}\n\n.apexcharts-datalabel,\n.apexcharts-datalabel-label,\n.apexcharts-datalabel-value,\n.apexcharts-datalabels,\n.apexcharts-pie-label,\n.apexcharts-pie-name-label,\n.apexcharts-pie-name-label-group,\n.apexcharts-pie-label-connector {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-connector {\n  fill: none\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n.apexcharts-radialbar-label {\n  cursor: pointer;\n}\n\n.apexcharts-annotation-rect,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-gridline,\n.apexcharts-line,\n.apexcharts-point-annotation-label,\n.apexcharts-radar-series path:not(.apexcharts-marker),\n.apexcharts-radar-series polygon,\n.apexcharts-toolbar svg,\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-xaxis-annotation-label,\n.apexcharts-yaxis-annotation-label,\n.apexcharts-zoom-rect,\n.no-pointer-events {\n  pointer-events: none\n}\n\n.apexcharts-tooltip-active .apexcharts-marker {\n  transition: .15s ease all\n}\n\n.apexcharts-radar-series .apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,\n.resize-triggers,\n.resize-triggers>div {\n  content: " ";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n\n.apexcharts-bar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-bar-shadows {\n  pointer-events: none\n}\n\n.apexcharts-rangebar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-drilldown-target {\n  cursor: pointer\n}\n\n.apexcharts-breadcrumb {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 2px;\n  font-size: 12px;\n  font-family: inherit;\n  padding: 2px 4px\n}\n\n.apexcharts-breadcrumb-item {\n  background: transparent;\n  border: none;\n  padding: 2px 6px;\n  border-radius: 3px;\n  font: inherit;\n  color: inherit;\n  cursor: pointer;\n  line-height: 1.2\n}\n\n.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(0, 0, 0, 0.08)\n}\n\n.apexcharts-breadcrumb-arrow {\n  margin-right: 4px;\n  font-weight: 600;\n  user-select: none\n}\n\n.apexcharts-breadcrumb-current {\n  cursor: default;\n  font-weight: 600;\n  opacity: 0.85\n}\n\n.apexcharts-breadcrumb-separator {\n  opacity: 0.5;\n  user-select: none\n}\n\n.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(255, 255, 255, 0.12)\n}\n\n.apexcharts-disable-transitions * {\n  transition: none !important;\n}';
+  const apexCSS = '@keyframes opaque {\n  0% {\n    opacity: 0\n  }\n\n  to {\n    opacity: 1\n  }\n}\n\n@keyframes resizeanim {\n\n  0%,\n  to {\n    opacity: 0\n  }\n}\n\n.apexcharts-canvas {\n  position: relative;\n  direction: ltr !important;\n  user-select: none;\n  /* Focus indicator colour. Themes override below. */\n  --apexcharts-focus-color: #008FFB;\n}\n\n/* Dark theme & high-contrast: brighter focus colour for sufficient contrast. */\n.apexcharts-canvas .apexcharts-theme-dark,\n.apexcharts-theme-dark.apexcharts-canvas {\n  --apexcharts-focus-color: #FFD500;\n}\n.apexcharts-canvas.apexcharts-high-contrast,\n.apexcharts-high-contrast.apexcharts-canvas {\n  --apexcharts-focus-color: #FFFF00;\n}\n\n/* Visually-hidden aria-live status region (WCAG 4.1.3 Status Messages). */\n.apexcharts-sr-status {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}\n\n/* Respect OS-level reduced-motion preference (WCAG 2.3.3). */\n@media (prefers-reduced-motion: reduce) {\n  .apexcharts-canvas *,\n  .apexcharts-canvas *::before,\n  .apexcharts-canvas *::after {\n    animation-duration: 0.01ms !important;\n    animation-iteration-count: 1 !important;\n    transition-duration: 0.01ms !important;\n  }\n}\n\n.apexcharts-canvas ::-webkit-scrollbar {\n  -webkit-appearance: none;\n  width: 6px\n}\n\n.apexcharts-canvas ::-webkit-scrollbar-thumb {\n  border-radius: 4px;\n  background-color: rgba(0, 0, 0, .5);\n  box-shadow: 0 0 1px rgba(255, 255, 255, .5);\n  -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5)\n}\n\n.apexcharts-inner {\n  position: relative\n}\n\n.apexcharts-text tspan {\n  font-family: inherit\n}\n\nrect.legend-mouseover-inactive,\n.legend-mouseover-inactive rect,\n.legend-mouseover-inactive path,\n.legend-mouseover-inactive circle,\n.legend-mouseover-inactive line,\n.legend-mouseover-inactive text.apexcharts-yaxis-title-text,\n.legend-mouseover-inactive text.apexcharts-yaxis-label {\n  transition: .15s ease all;\n  opacity: .2\n}\n\n/* Linked Views (#4): per-mark crossfilter dim. Applied to individual data\n   marks (not whole series) whose x is outside the brushed range. Opacity is\n   overridable per chart via the --apx-cf-dim custom property. */\n.apexcharts-crossfilter-dimmed {\n  transition: opacity .25s ease;\n  opacity: var(--apx-cf-dim, .2)\n}\n\n/* Linked Views (#4): default styling for the built-in crossfilter data table\n   (cf.dataTable). Deliberately light so host styles can override. */\n.apexcharts-cf-table {\n  border-collapse: collapse;\n  width: 100%;\n  font-size: 13px;\n}\n.apexcharts-cf-table caption {\n  caption-side: bottom;\n  text-align: right;\n  padding: 6px 2px;\n  font-size: 12px;\n  opacity: .7\n}\n.apexcharts-cf-table th,\n.apexcharts-cf-table td {\n  padding: 6px 10px;\n  text-align: left;\n  border-bottom: 1px solid rgba(0, 0, 0, .08)\n}\n.apexcharts-cf-table th {\n  font-weight: 600;\n  border-bottom-width: 2px\n}\n.apexcharts-cf-table tbody tr:hover {\n  background: rgba(99, 102, 241, .06)\n}\n\n/* Measure ruler (#18): measure / delta ruler.\n   Theme via these classes or the --apx-measure-* custom properties below\n   (config `chart.measure.colors` overrides both). The ruler group also carries\n   a direction class: apexcharts-measure-up | -down | -flat.\n   Element classes:\n     .apexcharts-measure-band     shaded span band\n     .apexcharts-measure-vline    vertical guide lines\n     .apexcharts-measure-line     free-mode diagonal line\n     .apexcharts-measure-label-bg readout box     .apexcharts-measure-label text\n   Colors are applied as SVG presentation attributes, so any rule you write on\n   these classes overrides them. */\n.apexcharts-canvas {\n  --apx-measure-up: #16a34a;\n  --apx-measure-down: #dc2626;\n  --apx-measure-neutral: #64748b;\n  --apx-measure-guide: #94a3b8;\n}\n.apexcharts-measure-capture {\n  cursor: crosshair;\n}\n\n/* Radial Actions (#chrome): right-click context menu. Theme via these classes\n   or the --apx-menu-* custom properties. */\n.apexcharts-canvas {\n  --apx-menu-bg: #ffffff;\n  --apx-menu-fg: #1e293b;\n  --apx-menu-border: #e2e8f0;\n  --apx-menu-hover: #f1f5f9;\n  --apx-menu-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-context-menu {\n  min-width: 168px;\n  padding: 4px;\n  border-radius: 8px;\n  background: var(--apx-menu-bg);\n  border: 1px solid var(--apx-menu-border);\n  box-shadow: 0 6px 22px var(--apx-menu-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 13px;\n  z-index: 20;\n  user-select: none;\n}\n.apexcharts-context-menu-item {\n  display: block;\n  width: 100%;\n  box-sizing: border-box;\n  text-align: left;\n  padding: 7px 12px;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: var(--apx-menu-fg);\n  font: inherit;\n  cursor: pointer;\n}\n.apexcharts-context-menu-item:hover,\n.apexcharts-context-menu-item--active {\n  background: var(--apx-menu-hover);\n}\n.apexcharts-context-menu-item:focus {\n  outline: none;\n}\n\n/* Ink Layer (#7): the floating note editor card, opened by clicking an\n   ink-managed annotation. Theme via these classes or the --apx-ink-* vars. */\n.apexcharts-canvas {\n  --apx-ink-card-bg: #ffffff;\n  --apx-ink-card-fg: #1e293b;\n  --apx-ink-card-border: #e2e8f0;\n  --apx-ink-card-hover: #f1f5f9;\n  --apx-ink-card-accent: #6366f1;\n  --apx-ink-card-shadow: rgba(15, 23, 42, 0.18);\n}\n.apexcharts-ink-card {\n  position: absolute;\n  z-index: 25;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  padding: 8px;\n  border-radius: 8px;\n  background: var(--apx-ink-card-bg);\n  border: 1px solid var(--apx-ink-card-border);\n  box-shadow: 0 6px 22px var(--apx-ink-card-shadow);\n  font-family: Helvetica, Arial, sans-serif;\n  font-size: 12px;\n  color: var(--apx-ink-card-fg);\n  user-select: none;\n}\n.apexcharts-ink-card-row {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor {\n  flex: 1 1 auto;\n  width: 150px;\n  min-width: 0;\n  box-sizing: border-box;\n  padding: 4px 6px;\n  font: inherit;\n  color: inherit;\n  background: transparent;\n  border: 1px solid var(--apx-ink-card-border);\n  border-radius: 5px;\n}\n.apexcharts-ink-card input.apexcharts-ink-editor:focus {\n  outline: none;\n  border-color: var(--apx-ink-card-accent);\n}\n.apexcharts-ink-btn {\n  flex: 0 0 auto;\n  width: 24px;\n  height: 24px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  padding: 0;\n  border: 0;\n  border-radius: 5px;\n  background: transparent;\n  color: inherit;\n  font: inherit;\n  font-size: 12px;\n  line-height: 1;\n  cursor: pointer;\n}\n.apexcharts-ink-btn:hover,\n.apexcharts-ink-btn--active {\n  background: var(--apx-ink-card-hover);\n}\n.apexcharts-ink-btn:focus-visible,\n.apexcharts-ink-swatch:focus-visible {\n  outline: 2px solid var(--apx-ink-card-accent);\n  outline-offset: 1px;\n}\n.apexcharts-ink-btn--bold {\n  font-weight: 700;\n}\n.apexcharts-ink-btn--delete:hover {\n  color: #dc2626;\n}\n.apexcharts-ink-swatch {\n  flex: 0 0 auto;\n  width: 16px;\n  height: 16px;\n  padding: 0;\n  border: 1px solid rgba(100, 116, 139, 0.45);\n  border-radius: 50%;\n  cursor: pointer;\n}\n.apexcharts-ink-swatch--active {\n  box-shadow:\n    0 0 0 2px var(--apx-ink-card-bg),\n    0 0 0 4px var(--apx-ink-card-accent);\n}\n.apexcharts-ink-sep {\n  flex: 0 0 auto;\n  width: 1px;\n  height: 16px;\n  margin: 0 2px;\n  background: var(--apx-ink-card-border);\n}\n.apexcharts-ink-cardlabel {\n  flex: 0 0 auto;\n  font-size: 10px;\n  letter-spacing: 0.4px;\n  text-transform: uppercase;\n  opacity: 0.65;\n  margin-right: 2px;\n}\n.apexcharts-ink-marker-size {\n  flex: 0 0 auto;\n  min-width: 16px;\n  text-align: center;\n  font-variant-numeric: tabular-nums;\n}\n\n.apexcharts-legend-text {\n  padding-left: 15px;\n  margin-left: -15px;\n}\n\n.apexcharts-legend-series[role="button"]:focus {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-legend-series[role="button"]:focus:not(:focus-visible) {\n  outline: none;\n}\n\n.apexcharts-legend-series[role="button"]:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 2px;\n}\n\n.apexcharts-series-collapsed {\n  opacity: 0\n}\n\n.apexcharts-canvas svg:focus:not(:focus-visible) {\n  outline: none;\n}\n\n/* Keyboard navigation focus indicator on SVG data elements.\n   SVG elements don\'t support CSS outline, so we use stroke. */\n.apexcharts-bar-area.apexcharts-keyboard-focused,\n.apexcharts-candlestick-area.apexcharts-keyboard-focused,\n.apexcharts-boxPlot-area.apexcharts-keyboard-focused,\n.apexcharts-rangebar-area.apexcharts-keyboard-focused,\n.apexcharts-pie-area.apexcharts-keyboard-focused,\n.apexcharts-heatmap-rect.apexcharts-keyboard-focused,\n.apexcharts-treemap-rect.apexcharts-keyboard-focused {\n  stroke: var(--apexcharts-focus-color, #008FFB);\n  stroke-width: 2;\n  stroke-opacity: 1;\n}\n\n.apexcharts-tooltip {\n  --apx-tt-bg: #ffffff;\n  --apx-tt-border: rgba(15, 23, 42, 0.06);\n  /* Layered shadow: tight inner contact + soft outer drop. The two Y\n   * offsets are exposed as variables so they flip in sync with the\n   * arrow when the tooltip is below the data point — see the\n   * `[data-placement="bottom"]` rule further down. */\n  --apx-tt-shadow-y-mid: 8px;\n  --apx-tt-shadow-y-far: 16px;\n  --apx-tt-shadow: 0 0 0 1px rgba(15, 23, 42, 0.04), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(15, 23, 42, 0.12), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(15, 23, 42, 0.18);\n  --apx-tt-arrow-bg: var(--apx-tt-bg);\n  /* Two stacked drop-shadows: the first is a tight contact halo for\n   * edge definition against light chart backgrounds; the second is a\n   * softer directional drop that lifts the arrow off the surface.\n   * `--apx-tt-arrow-drop-y` is the Y offset of the directional drop;\n   * a per-placement rule below flips it to negative when the tooltip\n   * is below the data point (arrow on top) so the shadow always\n   * casts outward instead of into the tooltip body. */\n  --apx-tt-arrow-drop-y: 2px;\n  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(15, 23, 42, 0.2)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(15, 23, 42, 0.2));\n  --apx-tt-color: #0f172a;\n  --apx-tt-color-muted: rgba(15, 23, 42, 0.55);\n  border-radius: 8px;\n  background: var(--apx-tt-bg);\n  border: 1px solid var(--apx-tt-border);\n  box-shadow: var(--apx-tt-shadow);\n  color: var(--apx-tt-color);\n  cursor: default;\n  font-size: 13px;\n  left: 0;\n  top: 0;\n  opacity: 0;\n  pointer-events: none;\n  position: absolute;\n  display: flex;\n  flex-direction: column;\n  padding: 2px 0;\n  white-space: nowrap;\n  z-index: 12;\n  transition: opacity .12s ease\n}\n\n/* While the tooltip is visible, smoothly animate position changes\n * between data points. Kept short (160 ms) and ease-out so it stays\n * responsive — too long would feel laggy when sweeping across many\n * points fast. The position transition is only attached after the\n * first paint (Position.applyTooltipPosition flips `data-positioned`\n * once the tooltip has been placed) so the *first* show doesn\'t slide\n * the tooltip in from the previously-stale (0,0) coordinates. */\n.apexcharts-tooltip.apexcharts-active {\n  opacity: 1;\n  transition: opacity .12s ease\n}\n.apexcharts-tooltip.apexcharts-active[data-positioned="true"] {\n  transition: opacity .12s ease, left .16s ease-out, top .16s ease-out\n}\n\n.apexcharts-tooltip.apexcharts-theme-light {\n  /* defaults already set above; class kept for backward-compat selectors */\n}\n\n.apexcharts-tooltip.apexcharts-theme-dark {\n  --apx-tt-bg: #1c1c1f;\n  --apx-tt-border: rgba(255, 255, 255, 0.08);\n  --apx-tt-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(0, 0, 0, 0.45), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(0, 0, 0, 0.55);\n  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.55)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(0, 0, 0, 0.45));\n  --apx-tt-color: #f3f4f6;\n  --apx-tt-color-muted: rgba(243, 244, 246, 0.55);\n}\n\n.apexcharts-tooltip * {\n  font-family: inherit\n}\n\n/* Point-annotation hover tooltip (apexcharts/apexcharts.js#2424). Reuses the\n * glass body/border/shadow from `.apexcharts-tooltip` but holds free-form\n * content, so it needs its own padding, wrapping and a sane max width. */\n.apexcharts-tooltip.apexcharts-annotation-tooltip {\n  padding: 6px 10px;\n  max-width: 240px;\n  white-space: normal;\n  line-height: 1.4;\n  pointer-events: none;\n  z-index: 13\n}\n\n.apexcharts-tooltip-title {\n  padding: 8px 12px 4px;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.01em;\n  color: var(--apx-tt-color-muted);\n  background: transparent;\n  border-bottom: none;\n  margin-bottom: 0\n}\n\n.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,\n.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {\n  background: transparent;\n  border-bottom: none\n}\n\n/* `fillSeriesColor`: each series-group already paints itself with the\n * series colour. Drop the glass body entirely (transparent bg, no\n * border, no backdrop-filter, no padding) and clip the coloured\n * series-group(s) to the tooltip\'s rounded corners so they fill the\n * shell edge-to-edge. Text inside the coloured group is forced to\n * white for contrast. */\n.apexcharts-tooltip.apexcharts-tooltip-fill-series {\n  background: transparent;\n  -webkit-backdrop-filter: none;\n  backdrop-filter: none;\n  border: none;\n  padding: 0;\n  overflow: hidden;\n  color: #fff\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-title {\n  background: rgba(0, 0, 0, 0.22);\n  color: #fff;\n  opacity: 1;\n  padding: 6px 12px\n}\n\n.apexcharts-tooltip.apexcharts-tooltip-fill-series .apexcharts-tooltip-series-group {\n  color: #fff\n}\n\n/* Arrow connector — sits *entirely outside* the tooltip body. Shares\n * the body\'s solid fill so it reads as a single shape. `filter:\n * drop-shadow` traces the clipped triangle outline (a regular\n * `box-shadow` would be erased by the `clip-path`). */\n.apexcharts-tooltip-arrow {\n  position: absolute;\n  width: 7px;\n  height: 14px;\n  background: var(--apx-tt-arrow-bg);\n  /* The variable already contains the full `drop-shadow(...) ...` filter\n   * chain (stacked shadows) so it\'s applied raw. */\n  -webkit-filter: var(--apx-tt-arrow-shadow);\n  filter: var(--apx-tt-arrow-shadow);\n  pointer-events: none;\n  top: calc(var(--apx-tt-arrow-y, 50%) - 7px)\n}\n\n.apexcharts-tooltip[data-placement="right"] .apexcharts-tooltip-arrow {\n  left: -7px;\n  clip-path: polygon(0 50%, 100% 0, 100% 100%)\n}\n\n.apexcharts-tooltip[data-placement="left"] .apexcharts-tooltip-arrow {\n  right: -7px;\n  clip-path: polygon(100% 50%, 0 0, 0 100%)\n}\n\n/* Vertical arrow variants: tooltip is above/below the data point and the\n * arrow points down/up. The base rule above uses `--apx-tt-arrow-y` for\n * left/right placement; for top/bottom we re-orient the rectangle and\n * use `--apx-tt-arrow-x` (set by applyTooltipPosition). */\n.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow,\n.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {\n  width: 14px;\n  height: 7px;\n  top: auto;\n  left: calc(var(--apx-tt-arrow-x, 50%) - 7px)\n}\n\n.apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow {\n  bottom: -7px;\n  clip-path: polygon(50% 100%, 0 0, 100% 0)\n}\n\n.apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {\n  top: -7px;\n  clip-path: polygon(50% 0, 0 100%, 100% 100%)\n}\n\n/* When the tooltip is flipped below the data point (arrow on top\n * pointing up), the default downward-biased shadows leave the top\n * edge of both the body *and* the arrow undefined. Flipping every\n * Y offset to negative casts the entire elevation upward so the\n * shadow falls between the tooltip and the bar above. */\n.apexcharts-tooltip[data-placement="bottom"] {\n  --apx-tt-shadow-y-mid: -8px;\n  --apx-tt-shadow-y-far: -16px;\n  --apx-tt-arrow-drop-y: -2px\n}\n\n.apexcharts-tooltip-text-goals-value,\n.apexcharts-tooltip-text-y-value,\n.apexcharts-tooltip-text-z-value {\n  display: inline-block;\n  margin-left: 5px;\n  font-weight: 600\n}\n\n.apexcharts-tooltip-text-goals-label:empty,\n.apexcharts-tooltip-text-goals-value:empty,\n.apexcharts-tooltip-text-y-label:empty,\n.apexcharts-tooltip-text-y-value:empty,\n.apexcharts-tooltip-text-z-value:empty,\n.apexcharts-tooltip-title:empty {\n  display: none\n}\n\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  padding: 6px 0 5px\n}\n\n.apexcharts-tooltip-goals-group,\n.apexcharts-tooltip-text-goals-label,\n.apexcharts-tooltip-text-goals-value {\n  display: flex\n}\n\n.apexcharts-tooltip-text-goals-label:not(:empty),\n.apexcharts-tooltip-text-goals-value:not(:empty) {\n  margin-top: -6px\n}\n\n.apexcharts-tooltip-marker {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  width: 12px;\n  height: 12px;\n  margin-right: 6px;\n  vertical-align: middle;\n  color: inherit;\n}\n\n.apexcharts-tooltip-marker svg {\n  width: 100%;\n  height: 100%;\n  display: block;\n}\n\n.apexcharts-tooltip-series-group {\n  padding: 4px 12px;\n  display: none;\n  gap: 8px;\n  text-align: left;\n  justify-content: left;\n  align-items: center\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-marker {\n  opacity: 1\n}\n\n.apexcharts-tooltip-series-group.apexcharts-active:last-child,\n.apexcharts-tooltip-series-group:last-child {\n  padding-bottom: 8px\n}\n\n.apexcharts-tooltip-y-group {\n  padding: 6px 0 5px\n}\n\n.apexcharts-custom-tooltip,\n.apexcharts-tooltip-box {\n  padding: 4px 8px\n}\n\n.apexcharts-tooltip-boxPlot {\n  display: flex;\n  flex-direction: column-reverse\n}\n\n.apexcharts-tooltip-box>div {\n  margin: 4px 0\n}\n\n.apexcharts-tooltip-box span.value {\n  font-weight: 700\n}\n\n.apexcharts-tooltip-rangebar {\n  padding: 5px 8px\n}\n\n.apexcharts-tooltip-rangebar .category {\n  font-weight: 600;\n  color: #777\n}\n\n.apexcharts-tooltip-rangebar .series-name {\n  font-weight: 700;\n  display: block;\n  margin-bottom: 5px\n}\n\n/* X/Y axis tooltips — small popovers that label the crosshair on the\n * axes. Restyled to match the modern data-tooltip palette: solid white\n * body with a subtle border + soft drop-shadow, smaller font, rounded\n * corners. The arrows still use the CSS border-triangle technique\n * (cheap, crisp at small sizes); their colours flow from CSS variables\n * so light/dark themes only need one override per axis. */\n.apexcharts-xaxistooltip,\n.apexcharts-yaxistooltip {\n  --apx-axt-bg: #ffffff;\n  --apx-axt-border: rgba(15, 23, 42, 0.08);\n  --apx-axt-color: #0f172a;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.18), 0 1px 3px -1px rgba(15, 23, 42, 0.12);\n  opacity: 0;\n  pointer-events: none;\n  color: var(--apx-axt-color);\n  font-size: 12px;\n  font-weight: 500;\n  text-align: center;\n  border-radius: 6px;\n  position: absolute;\n  z-index: 10;\n  background: var(--apx-axt-bg);\n  border: 1px solid var(--apx-axt-border);\n  box-shadow: var(--apx-axt-shadow)\n}\n\n.apexcharts-xaxistooltip.apexcharts-theme-dark,\n.apexcharts-yaxistooltip.apexcharts-theme-dark {\n  --apx-axt-bg: #1c1c1f;\n  --apx-axt-border: rgba(255, 255, 255, 0.1);\n  --apx-axt-color: #f3f4f6;\n  --apx-axt-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.55), 0 1px 3px -1px rgba(0, 0, 0, 0.45)\n}\n\n.apexcharts-xaxistooltip {\n  padding: 4px 8px;\n  transition: .15s ease all\n}\n\n.apexcharts-xaxistooltip:after,\n.apexcharts-xaxistooltip:before {\n  left: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n/* :before paints the 1px border outline of the triangle (slightly larger\n * than :after); :after sits inside and paints the fill — leaves a 1px\n * ring of :before visible at the edges. */\n.apexcharts-xaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-left: -5px\n}\n\n.apexcharts-xaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-left: -6px\n}\n\n.apexcharts-xaxistooltip-bottom:after,\n.apexcharts-xaxistooltip-bottom:before {\n  bottom: 100%\n}\n\n.apexcharts-xaxistooltip-top:after,\n.apexcharts-xaxistooltip-top:before {\n  top: 100%\n}\n\n.apexcharts-xaxistooltip-bottom:after {\n  border-bottom-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-bottom:before {\n  border-bottom-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip-top:after {\n  border-top-color: var(--apx-axt-bg)\n}\n\n.apexcharts-xaxistooltip-top:before {\n  border-top-color: var(--apx-axt-border)\n}\n\n.apexcharts-xaxistooltip.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-yaxistooltip {\n  padding: 3px 8px\n}\n\n.apexcharts-yaxistooltip:after,\n.apexcharts-yaxistooltip:before {\n  top: 50%;\n  border: solid transparent;\n  content: " ";\n  height: 0;\n  width: 0;\n  position: absolute;\n  pointer-events: none\n}\n\n.apexcharts-yaxistooltip:after {\n  border-color: transparent;\n  border-width: 5px;\n  margin-top: -5px\n}\n\n.apexcharts-yaxistooltip:before {\n  border-color: transparent;\n  border-width: 6px;\n  margin-top: -6px\n}\n\n.apexcharts-yaxistooltip-left:after,\n.apexcharts-yaxistooltip-left:before {\n  left: 100%\n}\n\n.apexcharts-yaxistooltip-right:after,\n.apexcharts-yaxistooltip-right:before {\n  right: 100%\n}\n\n.apexcharts-yaxistooltip-left:after {\n  border-left-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-left:before {\n  border-left-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip-right:after {\n  border-right-color: var(--apx-axt-bg)\n}\n\n.apexcharts-yaxistooltip-right:before {\n  border-right-color: var(--apx-axt-border)\n}\n\n.apexcharts-yaxistooltip.apexcharts-active {\n  opacity: 1\n}\n\n.apexcharts-yaxistooltip-hidden {\n  display: none\n}\n\n.apexcharts-xcrosshairs,\n.apexcharts-ycrosshairs {\n  pointer-events: none;\n  opacity: 0;\n  transition: .15s ease all\n}\n\n.apexcharts-xcrosshairs.apexcharts-active,\n.apexcharts-ycrosshairs.apexcharts-active {\n  opacity: 1;\n  transition: .15s ease all\n}\n\n.apexcharts-ycrosshairs-hidden {\n  opacity: 0\n}\n\n.apexcharts-selection-rect {\n  cursor: move\n}\n\n.svg_select_shape {\n  stroke-width: 1;\n  stroke-dasharray: 10 10;\n  stroke: black;\n  stroke-opacity: 0.1;\n  pointer-events: none;\n  fill: none;\n}\n\n.svg_select_handle {\n  stroke-width: 3;\n  stroke: black;\n  fill: none;\n}\n\n.svg_select_handle_r {\n  cursor: e-resize;\n}\n\n.svg_select_handle_l {\n  cursor: w-resize;\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-zoom {\n  cursor: crosshair\n}\n\n.apexcharts-svg.apexcharts-zoomable.hovering-pan {\n  cursor: move\n}\n\n.apexcharts-menu-icon,\n.apexcharts-measure-icon,\n.apexcharts-pan-icon,\n.apexcharts-reset-icon,\n.apexcharts-selection-icon,\n.apexcharts-toolbar-custom-icon,\n.apexcharts-zoom-icon,\n.apexcharts-zoomin-icon,\n.apexcharts-zoomout-icon {\n  cursor: pointer;\n  /* WCAG 2.5.8 Target Size (Minimum): 24×24 CSS px hit target. */\n  width: 26px;\n  height: 24px;\n  line-height: 24px;\n  color: #6e8192;\n  text-align: center;\n  /* Reset native <button> chrome — these are styled via SVG icons. */\n  padding: 0;\n  margin: 0;\n  background: transparent;\n  border: 0;\n  border-radius: 5px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  transition: background-color .12s ease, color .12s ease;\n}\n\n.apexcharts-menu-icon svg,\n.apexcharts-measure-icon svg,\n.apexcharts-pan-icon svg,\n.apexcharts-reset-icon svg,\n.apexcharts-selection-icon svg,\n.apexcharts-zoom-icon svg,\n.apexcharts-zoomin-icon svg,\n.apexcharts-zoomout-icon svg {\n  width: 18px;\n  height: 18px;\n  fill: none;\n  stroke: currentColor;\n  stroke-width: 2;\n  stroke-linecap: round;\n  stroke-linejoin: round\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon,\n.apexcharts-theme-dark .apexcharts-measure-icon,\n.apexcharts-theme-dark .apexcharts-pan-icon,\n.apexcharts-theme-dark .apexcharts-reset-icon,\n.apexcharts-theme-dark .apexcharts-selection-icon,\n.apexcharts-theme-dark .apexcharts-toolbar-custom-icon,\n.apexcharts-theme-dark .apexcharts-zoom-icon,\n.apexcharts-theme-dark .apexcharts-zoomin-icon,\n.apexcharts-theme-dark .apexcharts-zoomout-icon {\n  color: #d4d6dc\n}\n\n.apexcharts-canvas .apexcharts-measure-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-pan-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-reset-zoom-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-selection-icon.apexcharts-selected,\n.apexcharts-canvas .apexcharts-zoom-icon.apexcharts-selected {\n  background: rgba(0, 143, 251, 0.12);\n  color: #008ffb\n}\n\n.apexcharts-theme-light .apexcharts-menu-icon:hover,\n.apexcharts-theme-light .apexcharts-measure-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-reset-icon:hover,\n.apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-light .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-light .apexcharts-zoomout-icon:hover {\n  background: rgba(15, 23, 42, 0.06);\n  color: #1f2937\n}\n\n.apexcharts-theme-dark .apexcharts-menu-icon:hover,\n.apexcharts-theme-dark .apexcharts-measure-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-pan-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-reset-icon:hover,\n.apexcharts-theme-dark .apexcharts-selection-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoom-icon:not(.apexcharts-selected):hover,\n.apexcharts-theme-dark .apexcharts-zoomin-icon:hover,\n.apexcharts-theme-dark .apexcharts-zoomout-icon:hover {\n  background: rgba(255, 255, 255, 0.08);\n  color: #fff\n}\n\n.apexcharts-menu-icon,\n.apexcharts-selection-icon {\n  position: relative\n}\n\n.apexcharts-toolbar {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 1px;\n  padding: 3px;\n  border-radius: 8px;\n  background: rgba(255, 255, 255, 0.85);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n}\n\n.apexcharts-theme-dark .apexcharts-toolbar {\n  background: rgba(28, 28, 31, 0.82);\n}\n\n.apexcharts-menu {\n  background: rgba(255, 255, 255, 0.95);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n  position: absolute;\n  top: calc(100% + 4px);\n  border: 1px solid rgba(15, 23, 42, 0.08);\n  border-radius: 8px;\n  padding: 4px;\n  right: 0;\n  opacity: 0;\n  min-width: 120px;\n  transition: opacity .15s ease, transform .15s ease;\n  transform: translateY(-2px);\n  pointer-events: none;\n  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.12), 0 2px 4px -1px rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-menu.apexcharts-menu-open {\n  opacity: 1;\n  transform: translateY(0);\n  pointer-events: all\n}\n\n.apexcharts-menu-item {\n  padding: 6px 9px;\n  font-size: 12px;\n  border-radius: 5px;\n  cursor: pointer\n}\n\n.apexcharts-theme-light .apexcharts-menu-item:hover {\n  background: rgba(15, 23, 42, 0.06)\n}\n\n.apexcharts-theme-dark .apexcharts-menu {\n  background: rgba(28, 28, 31, 0.92);\n  border-color: rgba(255, 255, 255, 0.08);\n  color: #f3f4f6;\n  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4)\n}\n\n.apexcharts-theme-dark .apexcharts-menu-item:hover {\n  background: rgba(255, 255, 255, 0.08)\n}\n\n@media screen and (min-width:768px) {\n  .apexcharts-canvas:hover .apexcharts-toolbar {\n    opacity: 1\n  }\n}\n\n/* Toolbar keyboard accessibility: show toolbar when any button inside it is focused */\n.apexcharts-toolbar:focus-within {\n  opacity: 1\n}\n\n/* Focus indicator for toolbar icon buttons */\n.apexcharts-menu-icon:focus-visible,\n.apexcharts-measure-icon:focus-visible,\n.apexcharts-pan-icon:focus-visible,\n.apexcharts-reset-icon:focus-visible,\n.apexcharts-selection-icon:focus-visible,\n.apexcharts-toolbar-custom-icon:focus-visible,\n.apexcharts-zoom-icon:focus-visible,\n.apexcharts-zoomin-icon:focus-visible,\n.apexcharts-zoomout-icon:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: 1px;\n  border-radius: 5px\n}\n\n/* Focus indicator for hamburger menu items */\n.apexcharts-menu-item:focus-visible {\n  outline: 2px solid var(--apexcharts-focus-color, #008FFB);\n  outline-offset: -2px;\n  background: #eee\n}\n\n.apexcharts-canvas .apexcharts-element-hidden,\n.apexcharts-datalabel.apexcharts-element-hidden,\n.apexcharts-hide .apexcharts-series-points {\n  opacity: 0;\n}\n\n.apexcharts-hidden-element-shown {\n  opacity: 1;\n  transition: 0.25s ease all;\n}\n\n.apexcharts-datalabel,\n.apexcharts-datalabel-label,\n.apexcharts-datalabel-value,\n.apexcharts-datalabels,\n.apexcharts-pie-label,\n.apexcharts-pie-name-label,\n.apexcharts-pie-name-label-group,\n.apexcharts-pie-label-connector {\n  cursor: default;\n  pointer-events: none\n}\n\n.apexcharts-pie-label-connector {\n  fill: none\n}\n\n.apexcharts-pie-label-delay {\n  opacity: 0;\n  animation-name: opaque;\n  animation-duration: .3s;\n  animation-fill-mode: forwards;\n  animation-timing-function: ease\n}\n\n.apexcharts-radialbar-label {\n  cursor: pointer;\n}\n\n.apexcharts-annotation-rect,\n.apexcharts-area-series .apexcharts-area,\n.apexcharts-gridline,\n.apexcharts-line,\n.apexcharts-point-annotation-label,\n.apexcharts-radar-series path:not(.apexcharts-marker),\n.apexcharts-radar-series polygon,\n.apexcharts-toolbar svg,\n.apexcharts-tooltip .apexcharts-marker,\n.apexcharts-xaxis-annotation-label,\n.apexcharts-yaxis-annotation-label,\n.apexcharts-zoom-rect,\n.no-pointer-events {\n  pointer-events: none\n}\n\n.apexcharts-tooltip-active .apexcharts-marker {\n  transition: .15s ease all\n}\n\n.apexcharts-radar-series .apexcharts-yaxis {\n  pointer-events: none;\n}\n\n.resize-triggers {\n  animation: 1ms resizeanim;\n  visibility: hidden;\n  opacity: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden\n}\n\n.contract-trigger:before,\n.resize-triggers,\n.resize-triggers>div {\n  content: " ";\n  display: block;\n  position: absolute;\n  top: 0;\n  left: 0\n}\n\n.resize-triggers>div {\n  height: 100%;\n  width: 100%;\n  background: #eee;\n  overflow: auto\n}\n\n.contract-trigger:before {\n  overflow: hidden;\n  width: 200%;\n  height: 200%\n}\n\n.apexcharts-bar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-bar-shadows {\n  pointer-events: none\n}\n\n.apexcharts-rangebar-goals-markers {\n  pointer-events: none\n}\n\n.apexcharts-drilldown-target {\n  cursor: pointer\n}\n\n.apexcharts-breadcrumb {\n  position: absolute;\n  z-index: 11;\n  display: inline-flex;\n  align-items: center;\n  gap: 2px;\n  font-size: 12px;\n  font-family: inherit;\n  padding: 2px 4px\n}\n\n.apexcharts-breadcrumb-item {\n  background: transparent;\n  border: none;\n  padding: 2px 6px;\n  border-radius: 3px;\n  font: inherit;\n  color: inherit;\n  cursor: pointer;\n  line-height: 1.2\n}\n\n.apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(0, 0, 0, 0.08)\n}\n\n.apexcharts-breadcrumb-arrow {\n  margin-right: 4px;\n  font-weight: 600;\n  user-select: none\n}\n\n.apexcharts-breadcrumb-current {\n  cursor: default;\n  font-weight: 600;\n  opacity: 0.85\n}\n\n.apexcharts-breadcrumb-separator {\n  opacity: 0.5;\n  user-select: none\n}\n\n.apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {\n  background: rgba(255, 255, 255, 0.12)\n}\n\n.apexcharts-disable-transitions * {\n  transition: none !important;\n}';
   const PUBLIC_KEYS_SPKI_BASE64 = [
     "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="
   ];
@@ -26160,6 +26464,14 @@ var __async = (__this, __arguments, generator) => {
     if (apex && apex.license) return apex.license;
     return null;
   }
+  const PREMIUM_PLANS = /* @__PURE__ */ new Set(["premium", "enterprise"]);
+  function licensedForPremium(key) {
+    if (!key) return false;
+    const result = LicenseManager.validateKey(key);
+    if (!result.valid) return false;
+    const plan = result.data && result.data.plan;
+    return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
+  }
   function reinstateWatermark(ctx, elWrap) {
     const node = Watermark.add(elWrap);
     if (!node || typeof MutationObserver === "undefined") return;
@@ -26202,14 +26514,23 @@ var __async = (__this, __arguments, generator) => {
   function notifyTrial(ctx, key, features) {
     if (ctx._premiumLicenseNotified) return;
     ctx._premiumLicenseNotified = true;
+    const many = features.length > 1;
     if (!key) {
       console.warn(
-        `[ApexCharts] Premium feature${features.length > 1 ? "s" : ""} in use (${features.join(", ")}) without a license. Running in trial mode with a watermark. Get a license: ${PRICING_URL}`
+        `[ApexCharts] Premium feature${many ? "s" : ""} in use (${features.join(", ")}) without a license. Running in trial mode with a watermark. Get a license: ${PRICING_URL}`
+      );
+      return;
+    }
+    const result = LicenseManager.validateKey(key);
+    if (result.valid) {
+      const plan = result.data && result.data.plan || "current";
+      console.warn(
+        `[ApexCharts] Premium feature${many ? "s" : ""} in use (${features.join(", ")}) require a Premium or Enterprise license; the ${plan} plan does not include ${many ? "them" : "it"}. Running in trial mode with a watermark. Upgrade: ${PRICING_URL}`
       );
       return;
     }
     if (key !== LicenseManager.getKey()) {
-      console.error(`[Apex] ${LicenseManager.validateKey(key).message}`);
+      console.error(`[Apex] ${result.message}`);
     }
   }
   function enforceLicense(w, ctx) {
@@ -26229,7 +26550,7 @@ var __async = (__this, __arguments, generator) => {
       }
       enforced.add(ctx);
       const key = resolveKey(w);
-      if (LicenseManager.isKeyValid(key)) {
+      if (licensedForPremium(key)) {
         teardownWatermark(ctx, elWrap);
         return;
       }
@@ -26603,7 +26924,7 @@ var __async = (__this, __arguments, generator) => {
           return reject(
             new Error("Not enough data to display or target element not found")
           );
-        } else if (graphData === null || w.globals.allSeriesCollapsed) {
+        } else if (w.globals.allSeriesCollapsed) {
           me.series.handleNoData();
         }
         me.grid = new Grid(me.w, me);
@@ -28011,8 +28332,15 @@ var __async = (__this, __arguments, generator) => {
      */
     _windowResize() {
       this.w.globals.resizeTimer = window.setTimeout(() => {
-        this.w.globals.resized = true;
-        this.w.globals.dataChanged = false;
+        const gl = this.w.globals;
+        if (this.core && gl.lastResizeSignature) {
+          const sig = this.core.getResizeSignature();
+          if (sig.w === gl.lastResizeSignature.w && sig.h === gl.lastResizeSignature.h && sig.iw === gl.lastResizeSignature.iw) {
+            return;
+          }
+        }
+        gl.resized = true;
+        gl.dataChanged = false;
         this.ctx.update();
       }, 150);
     }
@@ -28091,7 +28419,7 @@ var __async = (__this, __arguments, generator) => {
           continue;
         }
         const fo = clonedFOs[i];
-        const img = document.createElementNS(SVGNS$1, "image");
+        const img = document.createElementNS(SVGNS$2, "image");
         img.setAttribute("x", fo.getAttribute("x") || "0");
         img.setAttribute("y", fo.getAttribute("y") || "0");
         img.setAttribute("width", fo.getAttribute("width") || "0");
@@ -28221,7 +28549,7 @@ var __async = (__this, __arguments, generator) => {
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         ctx.fillStyle = canvasBg;
-        ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         this.getSvgString(scale).then((svgData) => {
           const svgUrl = "data:image/svg+xml," + encodeURIComponent(svgData);
           const img = new Image();
@@ -28282,6 +28610,11 @@ var __async = (__this, __arguments, generator) => {
       const gSeries = w.seriesData.series.map((s, i) => {
         return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : [];
       });
+      const csvSafe = (val) => {
+        if (val == null || Utils$1.isNumber(val)) return val;
+        const s = String(val);
+        return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+      };
       const getFormattedCategory = (cat) => {
         if (typeof w.config.chart.toolbar.export.csv.categoryFormatter === "function") {
           return w.config.chart.toolbar.export.csv.categoryFormatter(cat);
@@ -28289,10 +28622,10 @@ var __async = (__this, __arguments, generator) => {
         if (w.config.xaxis.type === "datetime" && String(cat).length >= 10) {
           return new Date(cat).toDateString();
         }
-        return Utils$1.isNumber(cat) ? cat : cat.split(columnDelimiter).join("");
+        return Utils$1.isNumber(cat) ? cat : csvSafe(cat.split(columnDelimiter).join(""));
       };
       const getFormattedValue = (value) => {
-        return typeof w.config.chart.toolbar.export.csv.valueFormatter === "function" ? w.config.chart.toolbar.export.csv.valueFormatter(value) : value;
+        return typeof w.config.chart.toolbar.export.csv.valueFormatter === "function" ? w.config.chart.toolbar.export.csv.valueFormatter(value) : csvSafe(value);
       };
       const seriesMaxDataLength = Math.max(
         ...series.map((s) => {
@@ -28351,8 +28684,8 @@ var __async = (__this, __arguments, generator) => {
           rows.push(columns.join(columnDelimiter));
         }
         if (s.data) {
-          s.data = s.data.length && s.data || getEmptyDataForCsvColumn();
-          for (let i = 0; i < s.data.length; i++) {
+          const rowData = s.data.length ? s.data : getEmptyDataForCsvColumn();
+          for (let i = 0; i < rowData.length; i++) {
             columns = [];
             let cat = getCat(i);
             if (cat === "nullvalue") continue;
@@ -28625,33 +28958,20 @@ var __async = (__this, __arguments, generator) => {
           }
         }
       } else {
-        const type = w.config.chart.type;
-        if (type === "unit") {
-          w.globals.resized = true;
-          w.globals.risingSeries = [];
-          if (isHidden) {
-            this.riseCollapsedSeries(
-              w.globals.collapsedSeries,
-              w.globals.collapsedSeriesIndices,
-              seriesCnt
-            );
-          } else {
-            const series = this.getSeriesAfterCollapsing({ realIndex: seriesCnt });
-            this.lgCtx.updateSeries(
-              series,
-              w.config.chart.animations.dynamicAnimation.enabled
-            );
-          }
-        } else {
-          const seriesEl = w.dom.Paper.findOne(
-            ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
+        w.globals.resized = true;
+        w.globals.risingSeries = [];
+        if (isHidden) {
+          this.riseCollapsedSeries(
+            w.globals.collapsedSeries,
+            w.globals.collapsedSeriesIndices,
+            seriesCnt
           );
-          if (type === "pie" || type === "polarArea" || type === "donut") {
-            const dataLabels = w.config.plotOptions.pie.donut.labels;
-            const graphics = new Graphics(this.w);
-            graphics.pathMouseDown(seriesEl, null);
-            this.lgCtx.printDataLabelsInner(seriesEl.node, dataLabels);
-          }
+        } else {
+          const series = this.getSeriesAfterCollapsing({ realIndex: seriesCnt });
+          this.lgCtx.updateSeries(
+            series,
+            w.config.chart.animations.dynamicAnimation.enabled
+          );
         }
         if (w.config.chart.accessibility.enabled) {
           const legendItem = w.dom.baseEl.querySelector(
@@ -28676,9 +28996,58 @@ var __async = (__this, __arguments, generator) => {
         }
       }
     }
+    /**
+     * Non-axis "slice" container. A pie/donut/polarArea slice is normally a
+     * top-level series element (numeric form: `series = [n, n, n]`), but object
+     * form (`series = [{ data: [{ x, y, drilldown }, ...] }]`, which pie/donut
+     * drilldown requires) packs every slice as a data point inside a single
+     * series. Return the array that actually holds the slice values so a
+     * slice/legend index addresses the right thing. Scoped to the pie family so
+     * unit charts (which share this non-axis path) are untouched.
+     * @param {any[]} series
+     * @returns {any[]}
+     */
+    _nonAxisSliceContainer(series) {
+      const type = this.w.config.chart.type;
+      if ((type === "pie" || type === "donut" || type === "polarArea" || type === "sunburst") && series.length === 1 && series[0] && typeof series[0] === "object" && Array.isArray(series[0].data)) {
+        return series[0].data;
+      }
+      return series;
+    }
+    /**
+     * Read a non-axis slice value (handles `{ x, y }` data points and plain
+     * numbers).
+     * @param {any} sliceEntry
+     * @returns {number}
+     */
+    _readSliceValue(sliceEntry) {
+      if (this.w.config.chart.type === "unit" && sliceEntry && Array.isArray(sliceEntry.data)) {
+        return sliceEntry.data;
+      }
+      return sliceEntry && typeof sliceEntry === "object" ? sliceEntry.y : sliceEntry;
+    }
+    /**
+     * Write a non-axis slice value in place, preserving `{ x, drilldown, ... }`
+     * on object data points.
+     * @param {any[]} container
+     * @param {number} i
+     * @param {number} value
+     */
+    _writeSliceValue(container, i, value) {
+      const entry = container[i];
+      if (this.w.config.chart.type === "unit" && entry && Array.isArray(entry.data)) {
+        entry.data = Array.isArray(value) ? value : [];
+        return;
+      }
+      if (entry && typeof entry === "object") {
+        entry.y = value;
+      } else {
+        container[i] = value;
+      }
+    }
     /** @param {{realIndex: any}} opts */
     getSeriesAfterCollapsing({ realIndex }) {
-      var _a;
+      var _a, _b;
       const w = this.w;
       const gl = w.globals;
       const series = Utils$1.clone(w.config.series);
@@ -28707,19 +29076,25 @@ var __async = (__this, __arguments, generator) => {
           }
         }
       } else {
-        gl.collapsedSeries.push({
-          index: realIndex,
-          data: series[realIndex],
-          type: (
-            /** @type {any} */
-            (_a = w.config.series[realIndex].type) != null ? _a : "line"
-          ),
-          // Pin the hide by category name so it survives a regroup (see above).
-          name: (gl.seriesNames || [])[realIndex]
-        });
-        gl.collapsedSeriesIndices.push(realIndex);
+        if (gl.collapsedSeriesIndices.indexOf(realIndex) < 0) {
+          const container = this._nonAxisSliceContainer(series);
+          gl.collapsedSeries.push({
+            index: realIndex,
+            // Store the original slice VALUE so it can be restored on rise. In
+            // object form this is a data point's `y`, not the whole series entry.
+            data: this._readSliceValue(container[realIndex]),
+            type: (
+              /** @type {any} */
+              (_b = (_a = w.config.series[realIndex]) == null ? void 0 : _a.type) != null ? _b : "line"
+            ),
+            // Pin the hide by category name so it survives a regroup (see above).
+            name: (gl.seriesNames || [])[realIndex]
+          });
+          gl.collapsedSeriesIndices.push(realIndex);
+        }
       }
-      gl.allSeriesCollapsed = gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length === w.config.series.length;
+      const seriesCount = gl.axisCharts ? w.config.series.length : this._nonAxisSliceContainer(series).length;
+      gl.allSeriesCollapsed = gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length === seriesCount;
       return this._getSeriesBasedOnCollapsedState(series);
     }
     /** @param {{seriesEl: any, realIndex: any}} opts */
@@ -28756,11 +29131,10 @@ var __async = (__this, __arguments, generator) => {
           if (collapsedSeries[c].index === realIndex) {
             if (w.globals.axisCharts) {
               series[realIndex].data = collapsedSeries[c].data.slice();
-            } else {
-              series[realIndex] = collapsedSeries[c].data;
-            }
-            if (typeof series[realIndex] !== "number") {
               series[realIndex].hidden = false;
+            } else {
+              const container = this._nonAxisSliceContainer(series);
+              this._writeSliceValue(container, realIndex, collapsedSeries[c].data);
             }
             collapsedSeries.splice(c, 1);
             seriesIndices.splice(c, 1);
@@ -28789,14 +29163,16 @@ var __async = (__this, __arguments, generator) => {
           }
         });
       } else {
-        series.forEach((s, sI) => {
+        const container = this._nonAxisSliceContainer(series);
+        container.forEach((s, sI) => {
           if (!(w.globals.collapsedSeriesIndices.indexOf(sI) < 0)) {
-            series[sI] = 0;
+            this._writeSliceValue(container, sI, 0);
             collapsed++;
           }
         });
       }
-      w.globals.allSeriesCollapsed = collapsed === series.length;
+      const seriesCount = w.globals.axisCharts ? series.length : this._nonAxisSliceContainer(series).length;
+      w.globals.allSeriesCollapsed = collapsed === seriesCount;
       return series;
     }
   };
@@ -29464,10 +29840,6 @@ var __async = (__this, __arguments, generator) => {
     constructor(w, ctx) {
       this.w = w;
       this.ctx = ctx;
-      this.printDataLabelsInner = (...a) => {
-        var _a;
-        return (_a = ctx.pie) == null ? void 0 : _a.printDataLabelsInner(...a);
-      };
       this.updateSeries = (...a) => ctx.updateHelpers._updateSeries(...a);
       this.onLegendClick = this.onLegendClick.bind(this);
       this.onLegendHovered = this.onLegendHovered.bind(this);
@@ -30551,6 +30923,11 @@ var __async = (__this, __arguments, generator) => {
     }
   }
   const WHEEL_ZOOM_PIXELS_PER_2X = 240;
+  const INERTIA_MIN_RELEASE_VELOCITY = 0.05;
+  const INERTIA_DEFAULT_FRICTION = 0.92;
+  const INERTIA_STOP_VELOCITY = 0.02;
+  const FRAME_MS_60FPS = 16.6667;
+  const PAN_NUDGE_DIVISOR = 15;
   class ZoomPanSelection extends Toolbar {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -30569,8 +30946,7 @@ var __async = (__this, __arguments, generator) => {
         "touchstart",
         "touchmove",
         "mouseup",
-        "touchend",
-        "wheel"
+        "touchend"
       ];
       this.clientX = 0;
       this.clientY = 0;
@@ -30668,12 +31044,12 @@ var __async = (__this, __arguments, generator) => {
       const autoSelected = w.config.chart.toolbar.autoSelected;
       if (autoSelected !== "measure") {
         if (e.shiftKey) {
-          this.shiftWasPressed = true;
+          w.interact.shiftWasPressed = true;
           toolbar.enableZoomPanFromToolbar(autoSelected === "pan" ? "zoom" : "pan");
         } else {
-          if (this.shiftWasPressed) {
+          if (w.interact.shiftWasPressed) {
             toolbar.enableZoomPanFromToolbar(autoSelected);
-            this.shiftWasPressed = false;
+            w.interact.shiftWasPressed = false;
           }
         }
       }
@@ -31317,11 +31693,11 @@ var __async = (__this, __arguments, generator) => {
         maxX = w.globals.maxY;
       }
       if (this.moveDirection === "left") {
-        xLowestValue = minX + w.layout.gridWidth / 15 * xRatio;
-        xHighestValue = maxX + w.layout.gridWidth / 15 * xRatio;
+        xLowestValue = minX + w.layout.gridWidth / PAN_NUDGE_DIVISOR * xRatio;
+        xHighestValue = maxX + w.layout.gridWidth / PAN_NUDGE_DIVISOR * xRatio;
       } else if (this.moveDirection === "right") {
-        xLowestValue = minX - w.layout.gridWidth / 15 * xRatio;
-        xHighestValue = maxX - w.layout.gridWidth / 15 * xRatio;
+        xLowestValue = minX - w.layout.gridWidth / PAN_NUDGE_DIVISOR * xRatio;
+        xHighestValue = maxX - w.layout.gridWidth / PAN_NUDGE_DIVISOR * xRatio;
       }
       if (!w.axisFlags.isRangeBar) {
         const clampMin = (_a = w.globals.dataReducerRawMinX) != null ? _a : w.globals.initialMinX;
@@ -31667,7 +32043,7 @@ var __async = (__this, __arguments, generator) => {
         if (dt > 0) vel = (b.x - a.x) / dt;
       }
       m.samples = [];
-      if (s && s.axis === "x" && this._panInertiaEnabled() && Math.abs(vel) > 0.05) {
+      if (s && s.axis === "x" && this._panInertiaEnabled() && Math.abs(vel) > INERTIA_MIN_RELEASE_VELOCITY) {
         this._startInertia(vel);
       } else {
         m.busy = false;
@@ -31685,7 +32061,7 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       const m = this._m();
       const cfgFriction = w.config.chart.pan && w.config.chart.pan.friction;
-      const friction = typeof cfgFriction === "number" ? Math.min(Math.max(cfgFriction, 0.5), 0.999) : 0.92;
+      const friction = typeof cfgFriction === "number" ? Math.min(Math.max(cfgFriction, 0.5), 0.999) : INERTIA_DEFAULT_FRICTION;
       let vel = vel0;
       let lastT = null;
       m.busy = true;
@@ -31702,8 +32078,8 @@ var __async = (__this, __arguments, generator) => {
         }
         const dt = ts - lastT;
         lastT = ts;
-        vel *= Math.pow(friction, dt / 16.6667);
-        if (Math.abs(vel) < 0.02) {
+        vel *= Math.pow(friction, dt / FRAME_MS_60FPS);
+        if (Math.abs(vel) < INERTIA_STOP_VELOCITY) {
           m.inertiaRAF = null;
           m.busy = false;
           this._fireScrolled();
@@ -31889,7 +32265,11 @@ var __async = (__this, __arguments, generator) => {
           yP -= w.globals.barHeight / 2 * (w.seriesData.series.length - 1) - w.globals.barHeight * anno.seriesIndex;
         }
       } else {
-        const seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0];
+        const yAxisMap = w.globals.seriesYAxisMap[anno.yAxisIndex];
+        if (!yAxisMap || yAxisMap[0] == null || !w.config.yaxis[anno.yAxisIndex]) {
+          return { yP: 0, clipped: true };
+        }
+        const seriesIndex = yAxisMap[0];
         const yPos = w.config.yaxis[anno.yAxisIndex].logarithmic ? new CoreUtils(this.w).getLogVal(
           w.config.yaxis[anno.yAxisIndex].logBase,
           y,
@@ -32281,6 +32661,7 @@ var __async = (__this, __arguments, generator) => {
           optsPoints
         );
         parent.appendChild(point.node);
+        const tooltipTargets = [point.node];
         applyProgressiveReveal(point, x, w);
         const text = anno.label.text ? anno.label.text : "";
         const elText = this.annoCtx.graphics.drawText({
@@ -32308,6 +32689,7 @@ var __async = (__this, __arguments, generator) => {
           });
           g.node.innerHTML = anno.customSVG.SVG;
           parent.appendChild(g.node);
+          tooltipTargets.push(g.node);
         }
         if (anno.image.path) {
           const imgWidth = anno.image.width ? anno.image.width : 20;
@@ -32319,6 +32701,17 @@ var __async = (__this, __arguments, generator) => {
             height: imgHeight,
             path: anno.image.path,
             appendTo: ".apexcharts-point-annotations"
+          });
+          tooltipTargets.push(point.node);
+        }
+        if (anno.tooltip && anno.tooltip.enabled) {
+          tooltipTargets.forEach((node) => {
+            node.addEventListener("mouseenter", () => {
+              this.showPointTooltip(anno, node);
+            });
+            node.addEventListener("mouseleave", () => {
+              this.hidePointTooltip();
+            });
           });
         }
         if (anno.mouseEnter) {
@@ -32336,6 +32729,88 @@ var __async = (__this, __arguments, generator) => {
         if (anno.click) {
           point.node.addEventListener("click", anno.click.bind(this, anno));
         }
+      }
+    }
+    /**
+     * Lazily create (once per chart) and return the shared HTML element used to
+     * render point-annotation tooltips. Reuses the `.apexcharts-tooltip` glass
+     * styling; the `.apexcharts-annotation-tooltip` modifier adds padding and
+     * text wrapping for free-form content.
+     * @returns {HTMLElement}
+     */
+    getPointTooltipEl() {
+      const w = this.w;
+      let el = (
+        /** @type {HTMLElement | null} */
+        w.dom.elWrap.querySelector(".apexcharts-annotation-tooltip")
+      );
+      if (!el) {
+        el = /** @type {HTMLElement} */
+        BrowserAPIs.createElementNS("http://www.w3.org/1999/xhtml", "div");
+        el.classList.add("apexcharts-tooltip", "apexcharts-annotation-tooltip");
+        w.dom.elWrap.appendChild(el);
+      }
+      return el;
+    }
+    /**
+     * Resolve the tooltip markup for a point annotation. Precedence:
+     * `tooltip.formatter` (fn) -> `tooltip.text` -> `label.text`. Arrays are
+     * joined with line breaks.
+     * @param {Record<string, any>} anno
+     * @returns {string}
+     */
+    getPointTooltipContent(anno) {
+      const w = this.w;
+      const tt = anno.tooltip || {};
+      if (typeof tt.formatter === "function") {
+        return tt.formatter({
+          annotation: anno,
+          seriesIndex: anno.seriesIndex,
+          id: anno.id,
+          w
+        });
+      }
+      let content = tt.text != null ? tt.text : anno.label && anno.label.text;
+      if (Array.isArray(content)) {
+        content = content.join("<br/>");
+      }
+      return content == null ? "" : String(content);
+    }
+    /**
+     * @param {Record<string, any>} anno
+     * @param {Element} targetNode the hovered marker / image / custom-SVG node
+     */
+    showPointTooltip(anno, targetNode) {
+      const w = this.w;
+      const content = this.getPointTooltipContent(anno);
+      if (!content) return;
+      const el = this.getPointTooltipEl();
+      el.innerHTML = content;
+      const theme = anno.tooltip.theme || w.config.tooltip.theme || "light";
+      el.classList.remove("apexcharts-theme-light", "apexcharts-theme-dark");
+      el.classList.add(`apexcharts-theme-${theme}`);
+      el.classList.add("apexcharts-active");
+      const wrapRect = w.dom.elWrap.getBoundingClientRect();
+      const markRect = targetNode.getBoundingClientRect();
+      const ttRect = el.getBoundingClientRect();
+      const offsetX = anno.tooltip.offsetX || 0;
+      const offsetY = anno.tooltip.offsetY || 0;
+      let left = markRect.left - wrapRect.left + markRect.width / 2 - ttRect.width / 2;
+      let top = markRect.top - wrapRect.top - ttRect.height - 10;
+      left = Math.max(0, Math.min(left, wrapRect.width - ttRect.width));
+      if (top < 0) {
+        top = markRect.top - wrapRect.top + markRect.height + 10;
+      }
+      el.style.left = left + offsetX + "px";
+      el.style.top = top + offsetY + "px";
+    }
+    hidePointTooltip() {
+      const el = (
+        /** @type {HTMLElement | null} */
+        this.w.dom.elWrap.querySelector(".apexcharts-annotation-tooltip")
+      );
+      if (el) {
+        el.classList.remove("apexcharts-active");
       }
     }
     drawPointAnnotations() {
@@ -32613,10 +33088,28 @@ var __async = (__this, __arguments, generator) => {
       return context;
     }
     /**
+     * Remove the shared point-annotation hover tooltip node.
+     *
+     * `hidePointTooltip` is wired only to the marker's `mouseleave`; if the marker
+     * is torn down while hovered (clearAnnotations / removeAnnotation / a redraw),
+     * that never fires and the tooltip is left `.apexcharts-active`. A stale active
+     * annotation tooltip then permanently suppresses the series tooltip (see the
+     * guard in Tooltip.drawTooltip added by b1369f5ab). Removing the node clears
+     * both the ghost box and the stale state; it is recreated on the next hover.
+     * @param {any} w
+     */
+    _removeAnnotationTooltip(w) {
+      const el = w.dom.elWrap && w.dom.elWrap.querySelector(".apexcharts-annotation-tooltip");
+      if (el && el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
+    }
+    /**
      * @param {import('../../types/internal').ChartContext} ctx
      */
     clearAnnotations(ctx) {
       const w = ctx.w;
+      this._removeAnnotationTooltip(w);
       const annos = w.dom.baseEl.querySelectorAll(
         ".apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations"
       );
@@ -32637,6 +33130,7 @@ var __async = (__this, __arguments, generator) => {
      */
     removeAnnotation(ctx, id) {
       const w = ctx.w;
+      this._removeAnnotationTooltip(w);
       const annos = w.dom.baseEl.querySelectorAll(`.${id}`);
       if (annos) {
         w.globals.memory.methodsToExec.map((m, i) => {
@@ -32708,6 +33202,7 @@ var __async = (__this, __arguments, generator) => {
     destroy() {
       const w = this.w;
       const svgEl = w.dom.Paper && w.dom.Paper.node;
+      this.ctx.events.removeEventListener("legendClick", this._onLegendClick);
       if (!svgEl) return;
       svgEl.removeEventListener("focus", this._onFocus);
       svgEl.removeEventListener("blur", this._onBlur);
@@ -32730,7 +33225,6 @@ var __async = (__this, __arguments, generator) => {
         /** @type {any} */
         { capture: true }
       );
-      this.ctx.events.removeEventListener("legendClick", this._onLegendClick);
     }
     // Records the timestamp of the most recent pointer-down inside the SVG.
     // `_onFocus` reads this to distinguish keyboard-driven focus (no recent
@@ -34098,7 +34592,7 @@ var __async = (__this, __arguments, generator) => {
     }
   }
   ApexCharts.registerFeatures({ morphTypeChange: MorphTypeChange });
-  const XHTML = "http://www.w3.org/1999/xhtml";
+  const XHTML$1 = "http://www.w3.org/1999/xhtml";
   class Breadcrumb {
     /**
      * @param {import('../../types/internal').ChartStateW} w
@@ -34125,14 +34619,14 @@ var __async = (__this, __arguments, generator) => {
       const cfg = w.config.drilldown && w.config.drilldown.breadcrumb;
       if (!cfg || cfg.show === false) return;
       if (this.drilldown.depth === 0) return;
-      const nav = BrowserAPIs.createElementNS(XHTML, "nav");
+      const nav = BrowserAPIs.createElementNS(XHTML$1, "nav");
       nav.setAttribute("class", "apexcharts-breadcrumb");
       nav.setAttribute("aria-label", "Drilldown breadcrumb");
       this._position(nav, cfg);
       const separator = cfg.separator != null ? cfg.separator : " / ";
       path.forEach((id, i) => {
         if (i > 0) {
-          const sep = BrowserAPIs.createElementNS(XHTML, "span");
+          const sep = BrowserAPIs.createElementNS(XHTML$1, "span");
           sep.setAttribute("class", "apexcharts-breadcrumb-separator");
           sep.setAttribute("aria-hidden", "true");
           sep.textContent = separator;
@@ -34141,7 +34635,7 @@ var __async = (__this, __arguments, generator) => {
         const label = this._label(id, i);
         const isCurrent = i === path.length - 1;
         if (isCurrent) {
-          const cur = BrowserAPIs.createElementNS(XHTML, "span");
+          const cur = BrowserAPIs.createElementNS(XHTML$1, "span");
           cur.setAttribute(
             "class",
             "apexcharts-breadcrumb-item apexcharts-breadcrumb-current"
@@ -34152,18 +34646,18 @@ var __async = (__this, __arguments, generator) => {
         } else {
           const btn = (
             /** @type {HTMLButtonElement} */
-            BrowserAPIs.createElementNS(XHTML, "button")
+            BrowserAPIs.createElementNS(XHTML$1, "button")
           );
           btn.setAttribute("type", "button");
           btn.setAttribute("class", "apexcharts-breadcrumb-item");
           if (i === 0) {
-            const arrow = BrowserAPIs.createElementNS(XHTML, "span");
+            const arrow = BrowserAPIs.createElementNS(XHTML$1, "span");
             arrow.setAttribute("class", "apexcharts-breadcrumb-arrow");
             arrow.setAttribute("aria-hidden", "true");
             arrow.textContent = "←";
             btn.appendChild(arrow);
           }
-          const text = BrowserAPIs.createElementNS(XHTML, "span");
+          const text = BrowserAPIs.createElementNS(XHTML$1, "span");
           text.setAttribute("class", "apexcharts-breadcrumb-label");
           text.textContent = label;
           btn.appendChild(text);
@@ -34172,6 +34666,32 @@ var __async = (__this, __arguments, generator) => {
         }
       });
       elWrap.appendChild(nav);
+      this._avoidChromeOverlap(nav);
+    }
+    /**
+     * The breadcrumb is an absolute overlay, so at its default top-left it can
+     * sit on top of a left-aligned title (or subtitle). After mounting, push it
+     * below any chart chrome it intersects. (Sunburst's self-contained
+     * breadcrumb applies the same rule.)
+     * @param {HTMLElement} nav
+     */
+    _avoidChromeOverlap(nav) {
+      const w = this.w;
+      const chrome = (
+        /** @type {Element[]} */
+        [".apexcharts-title-text", ".apexcharts-subtitle-text"].map((s) => w.dom.baseEl.querySelector(s)).filter((el) => el !== null)
+      );
+      if (!chrome.length) return;
+      const wrapTop = w.dom.elWrap.getBoundingClientRect().top;
+      for (let pass = 0; pass < chrome.length + 1; pass++) {
+        const nr = nav.getBoundingClientRect();
+        const hit = chrome.find((el) => {
+          const r = el.getBoundingClientRect();
+          return nr.left < r.right && nr.right > r.left && nr.top < r.bottom && nr.bottom > r.top;
+        });
+        if (!hit) break;
+        nav.style.top = `${hit.getBoundingClientRect().bottom - wrapTop + 4}px`;
+      }
     }
     /**
      * @param {string|number} id
@@ -34364,7 +34884,7 @@ var __async = (__this, __arguments, generator) => {
     _snapshot() {
       const c = this.w.config;
       const fields = this._overrideFields();
-      const snap = { series: Utils$1.clone(c.series) };
+      const snap = { series: this._uncollapseSeries(Utils$1.clone(c.series)) };
       if (Array.isArray(c.labels) && c.labels.length) {
         snap.labels = Utils$1.clone(c.labels);
       }
@@ -34376,6 +34896,41 @@ var __async = (__this, __arguments, generator) => {
       if (fields.has("fill")) snap.fill = Utils$1.clone(c.fill);
       if (fields.has("legend")) snap.legend = Utils$1.clone(c.legend);
       return snap;
+    }
+    /**
+     * Restore any legend-collapsed slices/series to their original values in a
+     * cloned series array, so a drill snapshot captures the pre-collapse data.
+     * Mirrors legend Helpers' collapse addressing: object-form pie/donut packs
+     * every slice as a data point inside `series[0].data`; numeric pie stores a
+     * slice per top-level element; axis series carry a `data` array. No-op when
+     * nothing is collapsed.
+     * @param {any[]} series
+     * @returns {any[]}
+     */
+    _uncollapseSeries(series) {
+      const w = this.w;
+      const gl = w.globals;
+      const entries = [
+        ...gl.collapsedSeries || [],
+        ...gl.ancillaryCollapsedSeries || []
+      ];
+      if (!entries.length) return series;
+      const type = w.config.chart.type;
+      const objectFormPie = (type === "pie" || type === "donut" || type === "polarArea") && series.length === 1 && series[0] && typeof series[0] === "object" && Array.isArray(series[0].data);
+      const container = objectFormPie ? series[0].data : series;
+      for (const entry of entries) {
+        const i = entry.index;
+        if (gl.axisCharts) {
+          if (series[i]) {
+            series[i].data = Array.isArray(entry.data) ? entry.data.slice() : entry.data;
+          }
+        } else if (container[i] && typeof container[i] === "object") {
+          container[i].y = entry.data;
+        } else if (container[i] !== void 0) {
+          container[i] = entry.data;
+        }
+      }
+      return series;
     }
     /**
      * Union of overridable fields across all declared drilldown levels. Ensures a
@@ -34397,6 +34952,20 @@ var __async = (__this, __arguments, generator) => {
       return fields;
     }
     /**
+     * Copy the optional view fields shared by a drilldown child level and a
+     * restore snapshot (`xaxis`, `yaxis`, `colors`, `plotOptions`, `fill`,
+     * `legend`) from `src` onto `view`, only when present.
+     * @param {Record<string, any>} view @param {Record<string, any>} src
+     */
+    _copyOptionalViewFields(view, src) {
+      if (src.xaxis) view.xaxis = src.xaxis;
+      if (src.yaxis) view.yaxis = src.yaxis;
+      if (src.colors) view.colors = src.colors;
+      if (src.plotOptions) view.plotOptions = src.plotOptions;
+      if (src.fill) view.fill = src.fill;
+      if (src.legend) view.legend = src.legend;
+    }
+    /**
      * Build an updateOptions/updateSeries payload for drilling INTO a child level.
      * Works for axis charts and pie/donut alike: both accept series objects with a
      * `data` array of `{ x, y }` points (pie derives slice labels from `x`).
@@ -34414,12 +34983,7 @@ var __async = (__this, __arguments, generator) => {
       if (child.chart && child.chart.type) chart.type = child.chart.type;
       if (child.chart && child.chart.stacked != null) chart.stacked = child.chart.stacked;
       if (Object.keys(chart).length) view.chart = chart;
-      if (child.xaxis) view.xaxis = child.xaxis;
-      if (child.yaxis) view.yaxis = child.yaxis;
-      if (child.colors) view.colors = child.colors;
-      if (child.plotOptions) view.plotOptions = child.plotOptions;
-      if (child.fill) view.fill = child.fill;
-      if (child.legend) view.legend = child.legend;
+      this._copyOptionalViewFields(view, child);
       return view;
     }
     /**
@@ -34430,12 +34994,7 @@ var __async = (__this, __arguments, generator) => {
     _viewFromSnapshot(snap) {
       const view = { series: snap.series, chart: snap.chart };
       if (snap.labels && snap.labels.length) view.labels = snap.labels;
-      if (snap.xaxis) view.xaxis = snap.xaxis;
-      if (snap.yaxis) view.yaxis = snap.yaxis;
-      if (snap.colors) view.colors = snap.colors;
-      if (snap.plotOptions) view.plotOptions = snap.plotOptions;
-      if (snap.fill) view.fill = snap.fill;
-      if (snap.legend) view.legend = snap.legend;
+      this._copyOptionalViewFields(view, snap);
       return view;
     }
     /**
@@ -35584,6 +36143,10 @@ var __async = (__this, __arguments, generator) => {
         throw e;
       }
       Promise.resolve(p).then(() => {
+        if (this.w.globals.isDestroyed) {
+          this.applying = false;
+          return;
+        }
         applyViewInteraction(this.ctx, cp.view);
         this._refreshSettle();
         this._emitChange();
@@ -37092,7 +37655,7 @@ var __async = (__this, __arguments, generator) => {
       this._margin = margin;
       const w = gw + margin * 2;
       const h = gh + margin * 2;
-      const fo = BrowserAPIs.createElementNS(SVGNS$1, "foreignObject");
+      const fo = BrowserAPIs.createElementNS(SVGNS$2, "foreignObject");
       fo.setAttribute("x", String(-margin));
       fo.setAttribute("y", String(-margin));
       fo.setAttribute("width", String(w));
@@ -37839,7 +38402,7 @@ var __async = (__this, __arguments, generator) => {
         const n = nPts || gl.dataPoints || 1;
         const bandW = n > 0 ? gridWidth / n : gridWidth;
         const tickOn = cnf.xaxis.tickPlacement === "on";
-        const x = (v) => (v - gl.minX) / xRatio;
+        const x = (v) => xRatio ? (v - gl.minX) / xRatio : gridWidth / 2;
         const y = (v) => (maxY - v) / yr;
         const xAt = (index, v) => {
           if (!catMode) return x(v);
@@ -38289,7 +38852,10 @@ var __async = (__this, __arguments, generator) => {
     }
     /** @param {string} chartId */
     removeDimension(chartId) {
+      const dim = this.dims.get(chartId);
+      const hadFilter = dim ? this._hasFilter(dim) : false;
       this.dims.delete(chartId);
+      if (hadFilter) this._emit("change", this.state());
       return this;
     }
     /** @param {any} dim */
@@ -39147,6 +39713,13 @@ var __async = (__this, __arguments, generator) => {
     _onRerender() {
       this._closeEditor(false);
       this._attach();
+      if (this._creating) {
+        const svg = this.w.dom.Paper && this.w.dom.Paper.node;
+        if (svg) {
+          svg.style.cursor = "crosshair";
+          svg.addEventListener("click", this._onCreateClick, true);
+        }
+      }
     }
     /**
      * After each (re)render, bind drag + edit handlers to every draggable
@@ -39394,17 +39967,25 @@ var __async = (__this, __arguments, generator) => {
       }
       this._attach();
     }
+    /**
+     * Dispatch an ink annotation lifecycle event both to the user callback
+     * (`chart.events[name]`) and the internal event bus, in that order.
+     * @param {string} name @param {any} args
+     */
+    _fireAnnotationEvent(name2, args) {
+      var _a;
+      const events = this.w.config.chart.events;
+      if (typeof events[name2] === "function") {
+        events[name2](this.ctx, args);
+      }
+      (_a = this.ctx.events) == null ? void 0 : _a.fireEvent(name2, [this.ctx, args]);
+    }
     /** @param {string} type @param {any} anno @param {number} index */
     _fireDragged(type, anno, index) {
-      var _a;
       const args = { type, id: anno.id, index, x: anno.x, y: anno.y };
       if (anno.x2 != null) args.x2 = anno.x2;
       if (anno.y2 != null) args.y2 = anno.y2;
-      const events = this.w.config.chart.events;
-      if (typeof events.annotationDragged === "function") {
-        events.annotationDragged(this.ctx, args);
-      }
-      (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationDragged", [this.ctx, args]);
+      this._fireAnnotationEvent("annotationDragged", args);
     }
     // ─── P3: click-to-create ─────────────────────────────────────────────────
     /**
@@ -39536,15 +40117,10 @@ var __async = (__this, __arguments, generator) => {
     }
     /** @param {string} type @param {any} anno @param {number} index */
     _fireCreated(type, anno, index) {
-      var _a;
       const args = { type, id: anno.id, index };
       if (typeof anno.x !== "undefined") args.x = anno.x;
       if (typeof anno.y !== "undefined") args.y = anno.y;
-      const events = this.w.config.chart.events;
-      if (typeof events.annotationCreated === "function") {
-        events.annotationCreated(this.ctx, args);
-      }
-      (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationCreated", [this.ctx, args]);
+      this._fireAnnotationEvent("annotationCreated", args);
     }
     // ─── P3: tool palette ────────────────────────────────────────────────────
     /** Render a minimal "add note" toggle into the chart wrap (once per render). */
@@ -40013,33 +40589,18 @@ var __async = (__this, __arguments, generator) => {
     }
     /** @param {string} type @param {any} anno @param {number} index */
     _fireEdited(type, anno, index) {
-      var _a;
       const args = { type, id: anno.id, index, text: anno.label ? anno.label.text : "" };
-      const events = this.w.config.chart.events;
-      if (typeof events.annotationEdited === "function") {
-        events.annotationEdited(this.ctx, args);
-      }
-      (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationEdited", [this.ctx, args]);
+      this._fireAnnotationEvent("annotationEdited", args);
     }
     /** @param {string} type @param {any} anno @param {number} index */
     _fireStyled(type, anno, index) {
-      var _a;
       const args = { type, id: anno.id, index, label: anno.label, marker: anno.marker };
-      const events = this.w.config.chart.events;
-      if (typeof events.annotationStyled === "function") {
-        events.annotationStyled(this.ctx, args);
-      }
-      (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationStyled", [this.ctx, args]);
+      this._fireAnnotationEvent("annotationStyled", args);
     }
     /** @param {string} type @param {any} anno @param {number} index */
     _fireDeleted(type, anno, index) {
-      var _a;
       const args = { type, id: anno.id, index };
-      const events = this.w.config.chart.events;
-      if (typeof events.annotationDeleted === "function") {
-        events.annotationDeleted(this.ctx, args);
-      }
-      (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationDeleted", [this.ctx, args]);
+      this._fireAnnotationEvent("annotationDeleted", args);
     }
     // ─── lifecycle ────────────────────────────────────────────────────────────
     _teardownDocListeners() {
@@ -41208,10 +41769,10 @@ var __async = (__this, __arguments, generator) => {
         height: 0
       };
       if (w.config.dataLabels.enabled) {
-        const yLabel = w.seriesData.series[i][j];
+        const yLabel = w.seriesData.series[realIndex][j];
         textRects = graphics.getTextRects(
           w.config.dataLabels.formatter ? w.config.dataLabels.formatter(yLabel, __spreadProps(__spreadValues({}, w), {
-            seriesIndex: i,
+            seriesIndex: realIndex,
             dataPointIndex: j,
             w
           })) : w.formatters.yLabelFormatters[0](yLabel),
@@ -41752,10 +42313,6 @@ var __async = (__this, __arguments, generator) => {
       }
       if (this.barCtx.seriesLen === 0) {
         this.barCtx.seriesLen = 1;
-      }
-      this.barCtx.zeroSerieses = [];
-      if (!w.globals.comboCharts) {
-        this.checkZeroSeries({ series });
       }
     }
     /**
@@ -42323,19 +42880,6 @@ var __async = (__this, __arguments, generator) => {
         pathTo,
         pathFrom
       };
-    }
-    /** @param {{series: any}} opts */
-    checkZeroSeries({ series }) {
-      const w = this.w;
-      for (let zs = 0; zs < series.length; zs++) {
-        let total = 0;
-        for (let zsj = 0; zsj < series[w.globals.maxValsInArrayIndex].length; zsj++) {
-          total += series[zs][zsj];
-        }
-        if (total === 0) {
-          this.barCtx.zeroSerieses.push(zs);
-        }
-      }
     }
     /**
      * @param {number} value
@@ -43120,7 +43664,7 @@ var __async = (__this, __arguments, generator) => {
           zeroW,
           /** @type {any} */
           null,
-          i,
+          indexes.realIndex,
           j,
           0
         ),
@@ -43210,7 +43754,7 @@ var __async = (__this, __arguments, generator) => {
           /** @type {any} */
           null,
           zeroH,
-          i,
+          realIndex,
           j,
           translationsIndex
         ),
@@ -43725,7 +44269,7 @@ var __async = (__this, __arguments, generator) => {
           zeroW,
           /** @type {any} */
           null,
-          i,
+          realIndex,
           j,
           translationsIndex
         ),
@@ -43851,7 +44395,7 @@ var __async = (__this, __arguments, generator) => {
           /** @type {any} */
           null,
           zeroH,
-          i,
+          realIndex,
           j,
           0
         ),
@@ -44323,7 +44867,7 @@ var __async = (__this, __arguments, generator) => {
           /** @type {any} */
           null,
           zeroH,
-          i,
+          realIndex,
           j,
           indexes.translationsIndex
         ),
@@ -44400,7 +44944,7 @@ var __async = (__this, __arguments, generator) => {
           zeroW,
           /** @type {any} */
           null,
-          i,
+          realIndex,
           j,
           0
         ),
@@ -45114,11 +45658,19 @@ var __async = (__this, __arguments, generator) => {
       }
       let color = w.globals.colors[seriesNumber];
       let foreColor = null;
-      let min = Math.min(...w.seriesData.series[i]);
-      let max = Math.max(...w.seriesData.series[i]);
+      let min;
+      let max;
       if (!chartOpts.distributed && chartType === "heatmap") {
         min = w.globals.minY;
         max = w.globals.maxY;
+      } else {
+        const row = w.seriesData.series[i];
+        min = row.length ? row[0] : 0;
+        max = min;
+        for (let k = 1; k < row.length; k++) {
+          if (row[k] < min) min = row[k];
+          if (row[k] > max) max = row[k];
+        }
       }
       if (typeof chartOpts.colorScale.min !== "undefined") {
         min = chartOpts.colorScale.min < w.globals.minY ? chartOpts.colorScale.min : w.globals.minY;
@@ -46841,6 +47393,131 @@ var __async = (__this, __arguments, generator) => {
       return group;
     }
   }
+  const D2R$1 = Math.PI / 180;
+  const R2D$1 = 180 / Math.PI;
+  function arcPoint(cx, cy, radius, deg) {
+    return {
+      x: cx + radius * Math.cos((deg - 90) * D2R$1),
+      y: cy + radius * Math.sin((deg - 90) * D2R$1)
+    };
+  }
+  const xy = (p) => `${p.x} ${p.y}`;
+  function roundedDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, r, spanDeg }) {
+    const ptAt = (radius, deg) => arcPoint(cx, cy, radius, deg);
+    const degOut = r / rOut * R2D$1;
+    const degIn = r / rIn * R2D$1;
+    const oStart = ptAt(rOut, a0 + degOut);
+    const oEnd = ptAt(rOut, a1 - degOut);
+    const largeOut = spanDeg - 2 * degOut > 180 ? 1 : 0;
+    const ocEnd = ptAt(rOut, a1);
+    const rEndOut = ptAt(rOut - r, a1);
+    const ocStart = ptAt(rOut, a0);
+    const rStartOut = ptAt(rOut - r, a0);
+    const iEnd = ptAt(rIn, a1 - degIn);
+    const iStart = ptAt(rIn, a0 + degIn);
+    const largeIn = spanDeg - 2 * degIn > 180 ? 1 : 0;
+    const icEnd = ptAt(rIn, a1);
+    const rEndIn = ptAt(rIn + r, a1);
+    const icStart = ptAt(rIn, a0);
+    const rStartIn = ptAt(rIn + r, a0);
+    return [
+      "M",
+      xy(oStart),
+      "A",
+      rOut,
+      rOut,
+      0,
+      largeOut,
+      1,
+      xy(oEnd),
+      "Q",
+      xy(ocEnd),
+      xy(rEndOut),
+      "L",
+      xy(rEndIn),
+      "Q",
+      xy(icEnd),
+      xy(iEnd),
+      "A",
+      rIn,
+      rIn,
+      0,
+      largeIn,
+      0,
+      xy(iStart),
+      "Q",
+      xy(icStart),
+      xy(rStartIn),
+      "L",
+      xy(rStartOut),
+      "Q",
+      xy(ocStart),
+      xy(oStart),
+      "Z"
+    ].join(" ");
+  }
+  function roundedPieSegmentPath({ cx, cy, rOut, a0, a1, r, spanDeg }) {
+    const ptAt = (radius, deg) => arcPoint(cx, cy, radius, deg);
+    const degOut = r / rOut * R2D$1;
+    const oStart = ptAt(rOut, a0 + degOut);
+    const oEnd = ptAt(rOut, a1 - degOut);
+    const largeOut = spanDeg - 2 * degOut > 180 ? 1 : 0;
+    const ocEnd = ptAt(rOut, a1);
+    const rEndOut = ptAt(rOut - r, a1);
+    const ocStart = ptAt(rOut, a0);
+    const rStartOut = ptAt(rOut - r, a0);
+    return [
+      "M",
+      xy(oStart),
+      "A",
+      rOut,
+      rOut,
+      0,
+      largeOut,
+      1,
+      xy(oEnd),
+      "Q",
+      xy(ocEnd),
+      xy(rEndOut),
+      "L",
+      `${cx} ${cy}`,
+      "L",
+      xy(rStartOut),
+      "Q",
+      xy(ocStart),
+      xy(oStart),
+      "Z"
+    ].join(" ");
+  }
+  function sharpDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, spanDeg }) {
+    const ptAt = (radius, deg) => arcPoint(cx, cy, radius, deg);
+    const largeArc = spanDeg > 180 ? 1 : 0;
+    const A = ptAt(rOut, a0);
+    const B = ptAt(rOut, a1);
+    const C = ptAt(rIn, a1);
+    const Din = ptAt(rIn, a0);
+    return [
+      "M",
+      xy(A),
+      "A",
+      rOut,
+      rOut,
+      0,
+      largeArc,
+      1,
+      xy(B),
+      "L",
+      xy(C),
+      "A",
+      rIn,
+      rIn,
+      0,
+      largeArc,
+      0,
+      xy(Din),
+      "Z"
+    ].join(" ");
+  }
   class Pie {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -47002,7 +47679,9 @@ var __async = (__this, __arguments, generator) => {
         sectorAngleArr.push(angle);
         if (this.chartType === "polarArea") {
           sectorAngleArr[i] = this.fullAngle / series.length;
-          this.sliceSizes.push(w.globals.radialSize * series[i] / this.maxY);
+          this.sliceSizes.push(
+            w.globals.radialSize * series[i] / (this.maxY || 1)
+          );
         } else {
           this.sliceSizes.push(w.globals.radialSize);
         }
@@ -47566,14 +48245,37 @@ var __async = (__this, __arguments, generator) => {
     /** @param {{me: any, startAngle: any, angle: any, size: any}} opts */
     getPiePath({ me, startAngle, angle, size }) {
       let path;
+      const w = this.w;
       const graphics = new Graphics(this.w);
-      const startDeg = startAngle;
-      const startRadians = Math.PI * (startDeg - 90) / 180;
+      let startDeg = startAngle;
       let endDeg = angle + startAngle;
       if (Math.ceil(endDeg) >= this.fullAngle + this.w.config.plotOptions.pie.startAngle % this.fullAngle) {
         endDeg = this.fullAngle + this.w.config.plotOptions.pie.startAngle % this.fullAngle - 0.01;
       }
+      let spanDeg = endDeg - startDeg;
+      const isSliceType = me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea";
+      const spacing = w.config.plotOptions.pie.spacing;
+      if (isSliceType && spacing > 0 && spanDeg > 0) {
+        const rRef = me.chartType === "donut" ? (size + me.donutSize) / 2 : size;
+        const gapDeg = rRef > 0 ? spacing / rRef * (180 / Math.PI) : 0;
+        const inset = Math.min(gapDeg / 2, Math.max(0, spanDeg / 2 - 0.5));
+        startDeg += inset;
+        spanDeg -= 2 * inset;
+      }
+      endDeg = startDeg + spanDeg;
       if (Math.ceil(endDeg) > this.fullAngle) endDeg -= this.fullAngle;
+      const startRadians = Math.PI * (startDeg - 90) / 180;
+      const borderRadius = w.config.plotOptions.pie.borderRadius;
+      if (borderRadius > 0 && isSliceType) {
+        const roundedPath = this.getRoundedSlicePath({
+          me,
+          startDeg,
+          spanDeg,
+          size,
+          borderRadius
+        });
+        if (roundedPath) return roundedPath;
+      }
       const endRadians = Math.PI * (endDeg - 90) / 180;
       const x1 = me.centerX + size * Math.cos(startRadians);
       const y1 = me.centerY + size * Math.sin(startRadians);
@@ -47591,7 +48293,7 @@ var __async = (__this, __arguments, generator) => {
         me.donutSize,
         startDeg
       );
-      const largeArc = angle > 180 ? 1 : 0;
+      const largeArc = spanDeg > 180 ? 1 : 0;
       const pathBeginning = ["M", x1, y1, "A", size, size, 0, largeArc, 1, x2, y2];
       if (me.chartType === "donut") {
         path = [
@@ -47620,6 +48322,48 @@ var __async = (__this, __arguments, generator) => {
         path = [...pathBeginning].join(" ");
       }
       return graphics.roundPathCorners(path, this.strokeWidth * 2);
+    }
+    /**
+     * Build a slice path with rounded corners (plotOptions.pie.borderRadius).
+     *
+     * The generic roundPathCorners() only rounds line->line joins, but a slice
+     * corner is an arc<->line join, so we construct the fillets explicitly here:
+     * every corner is inset by the (clamped) radius along both the arc and the
+     * radial edge, and a quadratic Bezier with its control point at the original
+     * sharp corner bridges the two inset points. Donut slices round all four
+     * corners; pie / polarArea slices round the two outer corners and keep the
+     * center apex sharp.
+     *
+     * Returns null when the slice is too small to round meaningfully, so the
+     * caller can fall back to a sharp-corner path.
+     *
+     * @param {{me: any, startDeg: number, spanDeg: number, size: number, borderRadius: number}} opts
+     * @returns {string | null}
+     */
+    getRoundedSlicePath({ me, startDeg, spanDeg, size, borderRadius }) {
+      if (!(spanDeg > 0)) return null;
+      const D2R2 = Math.PI / 180;
+      const cx = me.centerX;
+      const cy = me.centerY;
+      const isDonut = me.chartType === "donut";
+      const rOut = size;
+      const rIn = isDonut ? me.donutSize : 0;
+      const spanRad = spanDeg * D2R2;
+      let r = borderRadius;
+      r = Math.min(r, spanRad * rOut / 2);
+      if (isDonut) {
+        r = Math.min(r, spanRad * rIn / 2);
+        r = Math.min(r, (rOut - rIn) / 2);
+      } else {
+        r = Math.min(r, rOut / 2);
+      }
+      if (!(r > 0.5)) return null;
+      const a0 = startDeg;
+      const a1 = startDeg + spanDeg;
+      if (isDonut) {
+        return roundedDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, r, spanDeg });
+      }
+      return roundedPieSegmentPath({ cx, cy, rOut, a0, a1, r, spanDeg });
     }
     /**
      * @param {any} parent
@@ -48949,14 +49693,26 @@ var __async = (__this, __arguments, generator) => {
         const easeOutBack2 = (t) => 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
         const easeOutCubic2 = (t) => 1 - Math.pow(1 - t, 3);
         const ease = isInitialMount ? easeOutBack2 : easeOutCubic2;
+        if (w.globals.radialNeedleRAF != null) {
+          BrowserAPIs.cancelAnimationFrame(w.globals.radialNeedleRAF);
+          w.globals.radialNeedleRAF = null;
+        }
         const startAt = performance.now();
         const step = (now) => {
+          if (this.w.globals.isDestroyed) {
+            w.globals.radialNeedleRAF = null;
+            return;
+          }
           const t = Math.max(0, Math.min(1, (now - startAt) / speed));
           const angle = fromAngle + (targetAngle - fromAngle) * ease(t);
           node.setAttribute("transform", `rotate(${angle})`);
-          if (t < 1) BrowserAPIs.requestAnimationFrame(step);
+          if (t < 1) {
+            w.globals.radialNeedleRAF = BrowserAPIs.requestAnimationFrame(step);
+          } else {
+            w.globals.radialNeedleRAF = null;
+          }
         };
-        BrowserAPIs.requestAnimationFrame(step);
+        w.globals.radialNeedleRAF = BrowserAPIs.requestAnimationFrame(step);
       } else {
         g.attr({
           "transform-origin": `${cx} ${cy}`,
@@ -49274,10 +50030,7 @@ var __async = (__this, __arguments, generator) => {
       var _a, _b, _c, _d;
       const w = this.w;
       let overlaps = [];
-      const rangeName = (
-        /** @type {Record<string,any>} */
-        (_b = (_a = w.config.series[i].data) == null ? void 0 : _a[j]) == null ? void 0 : _b.rangeName
-      );
+      const rangeName = (_b = (_a = w.globals.seriesRangeName) == null ? void 0 : _a[i]) == null ? void 0 : _b[j];
       const x = (
         /** @type {Record<string,any>} */
         (_d = (_c = w.config.series[i].data) == null ? void 0 : _c[j]) == null ? void 0 : _d.x
@@ -49392,7 +50145,7 @@ var __async = (__this, __arguments, generator) => {
           /** @type {any} */
           null,
           zeroH,
-          i,
+          realIndex,
           j,
           translationsIndex
         ),
@@ -49997,6 +50750,12 @@ var __async = (__this, __arguments, generator) => {
   function easeOutCubic(t) {
     return 1 - Math.pow(1 - t, 3);
   }
+  function easeOutBack(s) {
+    return (t) => 1 + (s + 1) * Math.pow(t - 1, 3) + s * Math.pow(t - 1, 2);
+  }
+  function easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
   class Unit {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -50022,7 +50781,7 @@ var __async = (__this, __arguments, generator) => {
         return ret;
       }
       const opts = w.config.plotOptions.unit;
-      const layout = opts.layout === "packed" ? "packed" : opts.layout === "columns" ? "columns" : opts.layout === "grid" ? "grid" : opts.layout === "scatter" ? "scatter" : "grouped";
+      const layout = opts.layout === "packed" ? "packed" : opts.layout === "columns" ? "columns" : opts.layout === "grid" ? "grid" : opts.layout === "scatter" ? "scatter" : opts.layout === "arc" ? "arc" : "grouped";
       const transition = opts.transition;
       const flow = transition === "flow";
       const identity = transition === "identity";
@@ -50033,7 +50792,7 @@ var __async = (__this, __arguments, generator) => {
       });
       counts = this._applyMaxUnits(counts, opts.maxUnits);
       const total = counts.reduce((a, b) => a + b, 0);
-      const clusters = layout === "packed" ? this._layoutPacked(counts, opts) : layout === "columns" ? this._layoutColumns(counts, opts) : layout === "grid" ? this._layoutGrid(counts, opts) : layout === "scatter" ? this._layoutScatter(opts) : this._layoutGrouped(counts, opts);
+      const clusters = layout === "packed" ? this._layoutPacked(counts, opts) : layout === "columns" ? this._layoutColumns(counts, opts) : layout === "grid" ? this._layoutGrid(counts, opts) : layout === "scatter" ? this._layoutScatter(opts) : layout === "arc" ? this._layoutArc(counts, opts) : this._layoutGrouped(counts, opts);
       const gridSplit = layout === "grid" && !!(opts.grid && opts.grid.split);
       if (gridSplit) this._drawGridTrack(ret, graphics, opts);
       if (layout === "scatter") this._drawScatterAxes(ret, graphics);
@@ -50081,8 +50840,10 @@ var __async = (__this, __arguments, generator) => {
           if (animate) {
             const from = prev && prev.get(key);
             const anchor = from || burst;
-            const cx0 = anchor ? anchor.x : gridSplit ? d.x : cluster.cx;
-            const cy0 = anchor ? anchor.y : gridSplit ? d.y : cluster.cy;
+            const enter = opts.gather && opts.gather.enter || "burst";
+            const inPlace = gridSplit || enter === "fade" || enter === "rise";
+            const cx0 = anchor ? anchor.x : inPlace ? d.x : cluster.cx;
+            const cy0 = anchor ? anchor.y : enter === "rise" && !gridSplit ? d.y + 14 : inPlace ? d.y : cluster.cy;
             el.node.style.opacity = anchor ? "1" : "0";
             this._placeDot(el.node, opts, cx0, cy0);
             animDots.push({
@@ -50257,6 +51018,165 @@ var __async = (__this, __arguments, generator) => {
         }
       });
       return clusters;
+    }
+    /**
+     * Lay out all marks as a PARLIAMENT / hemicycle: seats in concentric arced
+     * rows across an annulus, filled in category (party) order so each category
+     * forms a contiguous angular wedge (the classic seating chart). `arc` controls
+     * the sweep (`startAngle`/`endAngle`, radialBar convention: 0 = top, clockwise;
+     * default a top semicircle), the donut hole (`innerRadiusRatio`) and the row
+     * count (`rows`, or 'auto'). Like `packed` this is ONE shared shape coloured by
+     * category, so seats key by physical slot: a seat-count change recolours the
+     * party boundary in place and only the rim adds / removes seats.
+     * @param {number[]} counts
+     * @param {any} opts
+     */
+    _layoutArc(counts, opts) {
+      const w = this.w;
+      const gw = w.layout.gridWidth;
+      const gh = w.layout.gridHeight;
+      const total = Math.max(1, counts.reduce((a, b2) => a + b2, 0));
+      const acfg = opts.arc || {};
+      const startDeg = typeof acfg.startAngle === "number" ? acfg.startAngle : -90;
+      const endDeg = typeof acfg.endAngle === "number" ? acfg.endAngle : 90;
+      const a0 = startDeg * Math.PI / 180;
+      const a1 = endDeg * Math.PI / 180;
+      const span = a1 - a0 || Math.PI;
+      const innerRatio = Math.max(
+        0,
+        Math.min(0.95, typeof acfg.innerRadiusRatio === "number" ? acfg.innerRadiusRatio : 0.4)
+      );
+      const ux = (a) => Math.sin(a);
+      const uy = (a) => -Math.cos(a);
+      const b = this._arcBounds(a0, a1);
+      const pad = Math.min(gw, gh) * 0.04;
+      const boxW = Math.max(1e-6, b.maxX - b.minX);
+      const boxH = Math.max(1e-6, b.maxY - b.minY);
+      const r1 = Math.max(4, Math.min((gw - 2 * pad) / boxW, (gh - 2 * pad) / boxH));
+      const r0 = r1 * innerRatio;
+      const cx = gw / 2 - (b.minX + b.maxX) / 2 * r1;
+      const cy = gh / 2 - (b.minY + b.maxY) / 2 * r1;
+      const alloc = this._arcAllocate(total, r0, r1, span, opts);
+      this._lastDotR = alloc.dotR;
+      const seats = [];
+      for (let r = 0; r < alloc.R; r++) {
+        const rho = alloc.radii[r];
+        const n = alloc.seatsPerRow[r];
+        for (let k = 0; k < n; k++) {
+          const a = n === 1 ? (a0 + a1) / 2 : a0 + span * (k + 0.5) / n;
+          seats.push({ a, x: cx + rho * ux(a), y: cy + rho * uy(a) });
+        }
+      }
+      seats.sort((s1, s2) => s1.a - s2.a);
+      const clusters = counts.map((_, i) => ({
+        i,
+        cx,
+        cy,
+        outerR: r1,
+        /** @type {{x:number,y:number,slot?:number}[]} */
+        dots: []
+      }));
+      let ci = 0;
+      let used = 0;
+      seats.forEach((s, slot) => {
+        while (ci < counts.length && used >= counts[ci]) {
+          ci++;
+          used = 0;
+        }
+        if (ci >= counts.length) return;
+        clusters[ci].dots.push({ x: s.x, y: s.y, slot });
+        used++;
+      });
+      return clusters;
+    }
+    /**
+     * Bounding box of the outer arc (radius 1) over [a0, a1], including the centre
+     * and every cardinal angle (multiple of 90deg) inside the range, so a
+     * semicircle / full circle / arbitrary sweep is all bounded correctly.
+     * @param {number} a0 @param {number} a1
+     * @returns {{minX:number,maxX:number,minY:number,maxY:number}}
+     */
+    _arcBounds(a0, a1) {
+      const ux = (a) => Math.sin(a);
+      const uy = (a) => -Math.cos(a);
+      const lo = Math.min(a0, a1);
+      const hi = Math.max(a0, a1);
+      const xs = [0, ux(a0), ux(a1)];
+      const ys = [0, uy(a0), uy(a1)];
+      const q = Math.PI / 2;
+      for (let k = Math.ceil(lo / q); k * q <= hi; k++) {
+        xs.push(ux(k * q));
+        ys.push(uy(k * q));
+      }
+      return {
+        minX: Math.min(...xs),
+        maxX: Math.max(...xs),
+        minY: Math.min(...ys),
+        maxY: Math.max(...ys)
+      };
+    }
+    /**
+     * Allocate `total` seats across concentric rows of the annulus [r0, r1] sweeping
+     * `span` radians: seats per row are proportional to the row radius (a longer arc
+     * holds more), summed EXACTLY to total by largest remainder. Row count is
+     * `arc.rows` if given, else derived from a fixed dot size, else auto-searched to
+     * maximise the dot radius (the largest dots that still pack without overlap,
+     * mirroring `size:'auto'` elsewhere).
+     * @param {number} total @param {number} r0 @param {number} r1 @param {number} span @param {any} opts
+     * @returns {{R:number, radii:number[], seatsPerRow:number[], dotR:number}}
+     */
+    _arcAllocate(total, r0, r1, span, opts) {
+      const spacing = opts.spacing > 0 ? opts.spacing : 1.05;
+      const absSpan = Math.abs(span) || Math.PI;
+      const fixed = this._fixedRadius(opts);
+      const evalR = (R) => {
+        R = Math.max(1, Math.round(R));
+        const radii = [];
+        for (let r = 0; r < R; r++) {
+          radii.push(R === 1 ? (r0 + r1) / 2 : r0 + (r1 - r0) * (r / (R - 1)));
+        }
+        const weightSum = radii.reduce((a, x) => a + x, 0) || 1;
+        const raw = radii.map((rho) => total * rho / weightSum);
+        const seatsPerRow = raw.map((x) => Math.floor(x));
+        let left = total - seatsPerRow.reduce((a, x) => a + x, 0);
+        raw.map((x, idx) => ({ idx, frac: x - Math.floor(x) })).sort((p, qq) => qq.frac - p.frac).forEach((o) => {
+          if (left > 0) {
+            seatsPerRow[o.idx]++;
+            left--;
+          }
+        });
+        while (left > 0) {
+          seatsPerRow[R - 1]++;
+          left--;
+        }
+        const radialPitch = R === 1 ? r1 - r0 || r1 : (r1 - r0) / (R - 1);
+        let minArcPitch = Infinity;
+        for (let r = 0; r < R; r++) {
+          const n = seatsPerRow[r];
+          if (n <= 0) continue;
+          const arcPitch = radii[r] * absSpan / n;
+          if (arcPitch < minArcPitch) minArcPitch = arcPitch;
+        }
+        const pitch = Math.min(radialPitch, minArcPitch);
+        return { R, radii, seatsPerRow, dotR: Math.max(1, pitch / (2 * spacing)) };
+      };
+      const arcRows = opts.arc && opts.arc.rows;
+      let res;
+      if (typeof arcRows === "number" && arcRows >= 1) {
+        res = evalR(arcRows);
+      } else if (fixed) {
+        const pitch = 2 * fixed * spacing;
+        res = evalR((r1 - r0) / pitch + 1);
+      } else {
+        const maxR = Math.max(1, Math.min(40, Math.ceil(Math.sqrt(total)) + 6));
+        res = evalR(1);
+        for (let R = 2; R <= maxR; R++) {
+          const cand = evalR(R);
+          if (cand.dotR > res.dotR) res = cand;
+        }
+      }
+      if (fixed) res.dotR = fixed;
+      return res;
     }
     /**
      * Lay out each category as a vertical BAR built from stacked dots (a unit /
@@ -51424,26 +52344,37 @@ var __async = (__this, __arguments, generator) => {
           d._c1 = this._rgb(d.fill1);
         }
       }
+      const gcfg = opts.gather || {};
+      const easePos = gcfg.easing === "outBack" ? easeOutBack(typeof gcfg.overshoot === "number" ? gcfg.overshoot : 1.70158) : gcfg.easing === "inOutCubic" ? easeInOutCubic : easeOutCubic;
+      if (this.w.globals.unitGatherRAF != null) {
+        BrowserAPIs.cancelAnimationFrame(this.w.globals.unitGatherRAF);
+        this.w.globals.unitGatherRAF = null;
+      }
       const start = performance.now();
       const stepFn = (now) => {
+        if (this.w.globals.isDestroyed) {
+          this.w.globals.unitGatherRAF = null;
+          return;
+        }
         let done = true;
         for (let k = 0; k < n; k++) {
           const d = dots[k];
           const t = Math.max(0, Math.min(1, (now - start - d.delay) / speed));
-          const e = easeOutCubic(t);
+          const e = easePos(t);
+          const ec = easeOutCubic(t);
           const cx = d.cx0 + (d.x - d.cx0) * e;
           const cy = d.cy0 + (d.y - d.cy0) * e;
           d.node.setAttribute(cxAttr, String(cx - offX));
           d.node.setAttribute(cyAttr, String(cy - offY));
           if (d.isEnter) d.node.style.opacity = String(Math.min(1, t * 2.5));
           if (d._c0 && d._c1) {
-            const cr = Math.round(d._c0[0] + (d._c1[0] - d._c0[0]) * e);
-            const cg = Math.round(d._c0[1] + (d._c1[1] - d._c0[1]) * e);
-            const cb = Math.round(d._c0[2] + (d._c1[2] - d._c0[2]) * e);
+            const cr = Math.round(d._c0[0] + (d._c1[0] - d._c0[0]) * ec);
+            const cg = Math.round(d._c0[1] + (d._c1[1] - d._c0[1]) * ec);
+            const cb = Math.round(d._c0[2] + (d._c1[2] - d._c0[2]) * ec);
             d.node.setAttribute("fill", `rgb(${cr},${cg},${cb})`);
           }
           if (!corner && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
-            d.node.setAttribute("r", String(d.r0 + (d.r1 - d.r0) * e));
+            d.node.setAttribute("r", String(d.r0 + (d.r1 - d.r0) * ec));
           }
           if (t < 1) done = false;
         }
@@ -51456,11 +52387,12 @@ var __async = (__this, __arguments, generator) => {
               d.node.setAttribute("r", String(d.r1));
             }
           }
+          this.w.globals.unitGatherRAF = null;
         } else {
-          BrowserAPIs.requestAnimationFrame(stepFn);
+          this.w.globals.unitGatherRAF = BrowserAPIs.requestAnimationFrame(stepFn);
         }
       };
-      BrowserAPIs.requestAnimationFrame(stepFn);
+      this.w.globals.unitGatherRAF = BrowserAPIs.requestAnimationFrame(stepFn);
     }
     /**
      * Keys present in the previous render but not the current one, resolved back
@@ -51496,7 +52428,7 @@ var __async = (__this, __arguments, generator) => {
       const dotR = this._lastDotR;
       const cx = w.layout.gridWidth / 2;
       const cy = w.layout.gridHeight / 2;
-      const drift = opts.layout === "grid" || opts.layout === "scatter" ? 0 : 0.35;
+      const drift = opts.layout === "grid" || opts.layout === "scatter" || opts.layout === "arc" ? 0 : 0.35;
       const ghosts = [];
       exits.forEach((slot) => {
         const el = this._drawDot(graphics, opts, dotR, slot.fill, 0, 0);
@@ -51516,8 +52448,16 @@ var __async = (__this, __arguments, generator) => {
       const offY = corner ? hy : 0;
       const cxAttr = corner ? "x" : "cx";
       const cyAttr = corner ? "y" : "cy";
+      if (this.w.globals.unitExitRAF != null) {
+        BrowserAPIs.cancelAnimationFrame(this.w.globals.unitExitRAF);
+        this.w.globals.unitExitRAF = null;
+      }
       const start = performance.now();
       const stepFn = (now) => {
+        if (this.w.globals.isDestroyed) {
+          this.w.globals.unitExitRAF = null;
+          return;
+        }
         const t = Math.max(0, Math.min(1, (now - start) / speed));
         const e = easeOutCubic(t);
         for (let k = 0; k < ghosts.length; k++) {
@@ -51531,12 +52471,13 @@ var __async = (__this, __arguments, generator) => {
           g.node.style.opacity = String(1 - e);
         }
         if (t < 1) {
-          BrowserAPIs.requestAnimationFrame(stepFn);
+          this.w.globals.unitExitRAF = BrowserAPIs.requestAnimationFrame(stepFn);
         } else {
+          this.w.globals.unitExitRAF = null;
           group.node && group.node.remove();
         }
       };
-      BrowserAPIs.requestAnimationFrame(stepFn);
+      this.w.globals.unitExitRAF = BrowserAPIs.requestAnimationFrame(stepFn);
     }
     /**
      * A cluster label placed above (default) or below the cluster/bar. A TOP label
@@ -51606,6 +52547,776 @@ var __async = (__this, __arguments, generator) => {
       elSeries.node.appendChild(textEl);
     }
   }
+  const D2R = Math.PI / 180;
+  const R2D = 180 / Math.PI;
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const XHTML = "http://www.w3.org/1999/xhtml";
+  const lerp = (a, b, t) => a + (b - a) * t;
+  class SunburstChart {
+    /**
+     * @param {import('../types/internal').ChartStateW} w
+     * @param {import('../types/internal').ChartContext} ctx
+     */
+    constructor(w, ctx) {
+      this.ctx = ctx;
+      this.w = w;
+      const cnf = w.config;
+      this.cfg = cnf.plotOptions.sunburst;
+      this.strokeWidth = cnf.stroke.show ? cnf.stroke.width : 0;
+      this.strokeColor = Array.isArray(cnf.stroke.colors) ? cnf.stroke.colors[0] : cnf.stroke.colors || "#fff";
+      this.startAngle = this.cfg.startAngle;
+      this.endAngle = this.cfg.endAngle;
+      this.maxDepth = 0;
+      this.centerX = 0;
+      this.centerY = 0;
+      this.maxRadius = 0;
+      this.total = 1;
+      this._focusMaxDepth = 0;
+      this._focus = null;
+      this._roots = [];
+      this._nodesAll = [];
+      this._innerR = () => 0;
+      this._outerR = () => 0;
+      this._tooltipEl = null;
+      this._lblSeq = 0;
+      this._graphics = null;
+      this._ringsG = null;
+      this._labelsG = null;
+    }
+    /**
+     * @param {any[]} series  flattened top-level values (geometry comes from the
+     *   config hierarchy; kept for the standard draw(series) signature + noData)
+     * @returns {any} SVG group
+     */
+    draw(series) {
+      const w = this.w;
+      const graphics = new Graphics(this.w);
+      this._graphics = graphics;
+      const g = graphics.group({ class: "apexcharts-sunburst" });
+      if (w.globals.noData || !series || !series.length) return g;
+      const gw = w.layout.gridWidth;
+      const gh = w.layout.gridHeight;
+      this.centerX = gw / 2 + (this.cfg.offsetX || 0);
+      this.centerY = gh / 2 + (this.cfg.offsetY || 0);
+      this.maxRadius = Math.min(gw, gh) / 2.05 - this.strokeWidth - (!w.config.chart.sparkline.enabled ? w.config.chart.dropShadow.blur : 0);
+      if (this.maxRadius < 5) return g;
+      this._roots = this._buildHierarchy();
+      if (!this._roots.length) return g;
+      this._roots.forEach((r) => this._fillValues(r));
+      this._validateStrict();
+      this._nodesAll = [];
+      const colors = w.globals.colors || [];
+      this._roots.forEach((r, i) => {
+        this._colorPass(r, r.color || colors[i % colors.length] || "#008FFB");
+      });
+      this.total = this._roots.reduce((s, r) => s + Math.max(0, r.value), 0) || 1;
+      this._ringsG = graphics.group({ class: "apexcharts-sunburst-rings" });
+      this._labelsG = graphics.group({ class: "apexcharts-sunburst-labels" });
+      g.add(this._ringsG);
+      g.add(this._labelsG);
+      this._focus = null;
+      this._relayout(this._focus);
+      const anims = w.config.chart.animations;
+      let mode = "none";
+      if (anims.enabled) {
+        if (w.globals.dataChanged) {
+          if (anims.dynamicAnimation.enabled) mode = "update";
+        } else if (!w.globals.resized) {
+          mode = "intro";
+        }
+      }
+      this._applyLayout(mode);
+      this._renderBreadcrumb();
+      return g;
+    }
+    // ------------------------------------------------------------------ data
+    /**
+     * Resolve the config into root nodes `{ name, value, color?, children? }`.
+     * Each datum may carry `children` (native) or `drilldown: '<id>'` (adapter).
+     * @returns {any[]}
+     */
+    _buildHierarchy() {
+      const cfgSeries = (
+        /** @type {any} */
+        this.w.config.series
+      );
+      const first = cfgSeries && cfgSeries[0];
+      const data = first && Array.isArray(first.data) ? first.data : cfgSeries;
+      if (!Array.isArray(data)) return [];
+      return data.map(
+        (d, i) => this._toNode(d, i, null, "")
+      );
+    }
+    /**
+     * @param {any} d
+     * @param {number} i
+     * @param {string[]|null} paletteFromParent  per-level colours from a drilldown entry
+     * @param {string} parentKey  hierarchical identity of the parent
+     * @param {Set<any>|null} [seenIds]  drilldown ids already expanded on this path
+     * @returns {any}
+     */
+    _toNode(d, i, paletteFromParent, parentKey, seenIds = null) {
+      var _a, _b, _c;
+      const isObj = d && typeof d === "object";
+      const name2 = isObj ? (_b = (_a = d.x) != null ? _a : d.name) != null ? _b : "" : "";
+      const value = isObj ? Number((_c = d.y) != null ? _c : d.value) : Number(d);
+      const node = {
+        name: String(name2),
+        value: isNaN(value) ? null : value,
+        color: isObj && d.color ? d.color : void 0,
+        // Identity across data updates: the path of names (indexed so same-named
+        // siblings stay distinct). Update animations morph matched keys in place.
+        _key: `${parentKey}/${i}:${name2}`
+      };
+      if (paletteFromParent && !node.color) {
+        node.color = paletteFromParent[i % paletteFromParent.length];
+      }
+      if (isObj && Array.isArray(d.children) && d.children.length) {
+        node.children = d.children.map(
+          (c, j) => this._toNode(c, j, null, node._key, seenIds)
+        );
+      } else if (isObj && d.drilldown != null) {
+        const visited = seenIds || /* @__PURE__ */ new Set();
+        if (!visited.has(d.drilldown)) {
+          const dd = this._drilldownById(d.drilldown);
+          if (dd && Array.isArray(dd.data) && dd.data.length) {
+            const nextSeen = new Set(visited);
+            nextSeen.add(d.drilldown);
+            const palette = Array.isArray(dd.colors) ? dd.colors : null;
+            node.children = dd.data.map(
+              (c, j) => this._toNode(c, j, palette, node._key, nextSeen)
+            );
+          }
+        }
+      }
+      return node;
+    }
+    /**
+     * @param {string|number} id
+     * @returns {any}
+     */
+    _drilldownById(id) {
+      const dd = this.w.config.drilldown;
+      const list = dd && Array.isArray(dd.series) ? dd.series : [];
+      return list.find((s) => s && s.id === id);
+    }
+    /**
+     * Fill a parent's value from its children when missing.
+     * @param {any} node
+     */
+    _fillValues(node) {
+      if (node.children && node.children.length) {
+        node.children.forEach((c) => this._fillValues(c));
+        if (node.value == null || isNaN(node.value)) {
+          node.value = node.children.reduce(
+            (s, c) => s + Math.max(0, c.value || 0),
+            0
+          );
+        }
+      }
+      if (node.value == null || isNaN(node.value)) node.value = 0;
+    }
+    /**
+     * With `partition: 'strict'`, warn (once) when a parent's value does not
+     * match the sum of its children. The angles are still normalized to fill the
+     * wedge (strict rendering is a P3 refinement); this just surfaces the data
+     * mismatch.
+     */
+    _validateStrict() {
+      if (this.cfg.partition !== "strict") return;
+      let warned = false;
+      const walk = (node) => {
+        if (node.children && node.children.length) {
+          const sum = node.children.reduce(
+            (s, c) => s + Math.max(0, c.value || 0),
+            0
+          );
+          if (!warned && node.value != null && Math.abs(sum - node.value) > 0.5) {
+            console.warn(
+              `ApexCharts sunburst: partition 'strict' but "${node.name}" (${node.value}) != sum of its children (${sum}). Angles are normalized to fill the wedge.`
+            );
+            warned = true;
+          }
+          node.children.forEach(walk);
+        }
+      };
+      this._roots.forEach(walk);
+    }
+    /**
+     * Assign a colour to every node (explicit `color` wins, else the parent's
+     * colour tinted lighter). Done once so zoom preserves colours.
+     * @param {any} node
+     * @param {string} color
+     */
+    _colorPass(node, color) {
+      node._color = node.color || color;
+      this._nodesAll.push(node);
+      if (node.children) {
+        node.children.forEach(
+          (c) => this._colorPass(c, c.color || this._lighten(node._color, this.cfg.tint))
+        );
+      }
+    }
+    // ---------------------------------------------------------------- layout
+    /**
+     * Recompute visibility + angles + radii for a focus node (null = whole tree).
+     * @param {any} focus
+     */
+    _relayout(focus) {
+      this._nodesAll.forEach((n) => {
+        n._show = false;
+      });
+      this._focusMaxDepth = 0;
+      if (!focus) {
+        const total = this._roots.reduce((s, r) => s + Math.max(0, r.value), 0) || 1;
+        let a = this.startAngle;
+        this._roots.forEach((r) => {
+          const span = (this.endAngle - this.startAngle) * Math.max(0, r.value) / total;
+          this._placeVis(r, 0, a, a + span, null);
+          a += span;
+        });
+      } else {
+        this._placeVis(focus, 0, this.startAngle, this.endAngle, focus._parent);
+      }
+      const hole = this._parseSize(this.cfg.innerSize, this.maxRadius);
+      const ringCount = this._focusMaxDepth + 1;
+      const band = (this.maxRadius - hole) / ringCount;
+      const radialGap = ringCount > 1 ? 1 : 0;
+      this._innerR = (vd) => hole + vd * band + (vd > 0 ? radialGap / 2 : 0);
+      this._outerR = (vd) => hole + (vd + 1) * band - radialGap / 2;
+      this._nodesAll.forEach((n) => {
+        if (!n._show) return;
+        n._iR = this._innerR(n._vDepth);
+        n._oR = n._leaf && this.cfg.leaf === "extend" && n._vDepth < this._focusMaxDepth ? this.maxRadius : this._outerR(n._vDepth);
+      });
+    }
+    /**
+     * @param {any} node
+     * @param {number} vDepth
+     * @param {number} a0
+     * @param {number} a1
+     * @param {any} parent
+     */
+    _placeVis(node, vDepth, a0, a1, parent) {
+      node._show = true;
+      node._vDepth = vDepth;
+      node._a0 = a0;
+      node._a1 = a1;
+      node._parent = parent;
+      node._leaf = !(node.children && node.children.length);
+      if (vDepth > this._focusMaxDepth) this._focusMaxDepth = vDepth;
+      if (!node._leaf) {
+        const total = node.children.reduce(
+          (s, c) => s + Math.max(0, c.value),
+          0
+        ) || 1;
+        let a = a0;
+        node.children.forEach((c) => {
+          const span = (a1 - a0) * Math.max(0, c.value) / total;
+          this._placeVis(c, vDepth + 1, a, a + span, node);
+          a += span;
+        });
+      }
+    }
+    // --------------------------------------------------------------- render
+    /**
+     * Create / update / remove arc elements to match the current layout, with an
+     * animation appropriate to the transition:
+     *   intro  — pie/donut-style angular clock sweep from startAngle to endAngle
+     *            (all rings reveal together as the sweep line passes them)
+     *   update — morph every arc from its previous on-screen geometry (matched
+     *            by node key across the re-render); new arcs unfurl in place
+     *   zoom   — tween angles + radii between focus layouts (same instance)
+     * @param {'intro'|'zoom'|'update'|'none'} mode
+     */
+    _applyLayout(mode) {
+      const w = this.w;
+      const anims = w.config.chart.animations;
+      const dur = !anims.enabled ? 0 : mode === "none" ? 0 : mode === "update" ? anims.dynamicAnimation.speed || 350 : anims.speed || 500;
+      const prev = mode === "update" ? (
+        /** @type {any} */
+        this.ctx._sunburstPrevGeoms
+      ) : null;
+      this._nodesAll.forEach((node) => {
+        if (node._show) {
+          const target = {
+            a0: node._a0,
+            a1: node._a1,
+            iR: node._iR,
+            oR: node._oR
+          };
+          if (!node._el) node._el = this._createArcEl(node);
+          if (mode === "intro" && dur > 0) {
+            this._sweepArc(node, target, dur);
+          } else {
+            let from;
+            let isNew = false;
+            if (node._cur) {
+              from = node._cur;
+            } else if (prev && prev.get(node._key)) {
+              from = prev.get(node._key);
+            } else {
+              const mid = (target.a0 + target.a1) / 2;
+              from = { a0: mid, a1: mid, iR: target.iR, oR: target.iR };
+              isNew = true;
+            }
+            this._animateArc(node, from, target, dur, false, isNew);
+          }
+          node._cur = target;
+        } else if (node._el && node._cur) {
+          const mid = (node._cur.a0 + node._cur.a1) / 2;
+          const target = { a0: mid, a1: mid, iR: node._cur.iR, oR: node._cur.iR };
+          this._animateArc(node, node._cur, target, dur, true, false);
+          node._cur = null;
+        }
+      });
+      const geoms = /* @__PURE__ */ new Map();
+      this._nodesAll.forEach((n) => {
+        if (n._show) {
+          geoms.set(n._key, { a0: n._a0, a1: n._a1, iR: n._iR, oR: n._oR });
+        }
+      });
+      this.ctx._sunburstPrevGeoms = geoms;
+      this._renderLabels(dur);
+    }
+    /**
+     * Pie/donut-style intro: a clock sweep from startAngle to endAngle. Each
+     * arc's end angle is clamped to the sweep line, so arcs appear in angular
+     * order and grow until complete — the whole hierarchy unwipes together.
+     * @param {any} node
+     * @param {{a0:number,a1:number,iR:number,oR:number}} target
+     * @param {number} dur
+     */
+    _sweepArc(node, target, dur) {
+      const el = node._el;
+      const br = this.cfg.borderRadius;
+      const s0 = this.startAngle;
+      const s1 = this.endAngle;
+      el.node.style.display = "";
+      el.attr({ d: "", opacity: 1 });
+      el.animate(dur).during((pos) => {
+        const sweep = s0 + (s1 - s0) * pos;
+        if (sweep <= target.a0 + 0.01) {
+          el.attr({ d: "" });
+          return;
+        }
+        el.attr({
+          d: this._arcPath(
+            target.iR,
+            target.oR,
+            target.a0,
+            Math.min(target.a1, sweep),
+            br
+          )
+        });
+      });
+    }
+    /**
+     * @param {any} node
+     * @returns {any} svg.js path element
+     */
+    _createArcEl(node) {
+      const path = this._graphics.drawPath({
+        d: "",
+        fill: node._color,
+        stroke: this.strokeColor,
+        strokeWidth: this.strokeWidth,
+        fillOpacity: 1,
+        classes: "apexcharts-sunburst-arc"
+      });
+      const el = path.node;
+      el.setAttribute("data:name", node.name);
+      el.setAttribute("data:value", String(node.value));
+      this._attachTooltip(el, node);
+      if (Environment.isBrowser()) {
+        el.addEventListener("click", () => this._zoomTo(node));
+        el.style.cursor = "pointer";
+      }
+      this._ringsG.add(path);
+      return path;
+    }
+    /**
+     * @param {any} node
+     * @param {{a0:number,a1:number,iR:number,oR:number}} from
+     * @param {{a0:number,a1:number,iR:number,oR:number}} to
+     * @param {number} dur
+     * @param {boolean} hide    shrink + fade out, then hide
+     * @param {boolean} fadeIn  fade 0 -> 1 (new arcs only; morphs stay opaque)
+     */
+    _animateArc(node, from, to, dur, hide, fadeIn2) {
+      const el = node._el;
+      const br = this.cfg.borderRadius;
+      el.attr({ fill: node._color });
+      if (dur === 0) {
+        el.attr({ d: this._arcPath(to.iR, to.oR, to.a0, to.a1, br), opacity: hide ? 0 : 1 });
+        el.node.style.display = hide ? "none" : "";
+        return;
+      }
+      el.node.style.display = "";
+      const startOp = hide ? Number(el.attr("opacity")) || 1 : fadeIn2 ? 0 : 1;
+      const endOp = hide ? 0 : 1;
+      el.attr({ opacity: startOp });
+      el.animate(dur).during((pos) => {
+        const a0 = lerp(from.a0, to.a0, pos);
+        const a1 = lerp(from.a1, to.a1, pos);
+        const iR = lerp(from.iR, to.iR, pos);
+        const oR = lerp(from.oR, to.oR, pos);
+        el.attr({
+          d: this._arcPath(iR, oR, a0, a1, br),
+          opacity: lerp(startOp, endOp, pos)
+        });
+      }).after(() => {
+        if (hide) el.node.style.display = "none";
+      });
+    }
+    // ---------------------------------------------------------------- labels
+    /**
+     * Labels are overlays on animated paths, so they reveal gradually AFTER the
+     * arcs settle (repo convention: overlays never pop in over a moving path).
+     * @param {number} dur  arc animation duration (0 = instant labels)
+     */
+    _renderLabels(dur) {
+      const labelsG = this._labelsG;
+      while (labelsG.node.firstChild) labelsG.node.removeChild(labelsG.node.firstChild);
+      if (!this.cfg.dataLabels.show) return;
+      this._nodesAll.forEach((node) => {
+        if (!node._show) return;
+        if (node._a1 - node._a0 < this.cfg.dataLabels.minAngleToShow) return;
+        this._renderCurvedLabel(node);
+      });
+      if (dur > 0) {
+        labelsG.attr({ opacity: 0 });
+        labelsG.animate(250, dur).attr({ opacity: 1 });
+      } else {
+        labelsG.attr({ opacity: 1 });
+      }
+    }
+    /**
+     * Curved label along the arc's mid-radius (flipped on the bottom half so it
+     * stays upright). Raw SVG <textPath> — svg.js has no first-class textPath.
+     * @param {any} node
+     */
+    _renderCurvedLabel(node) {
+      if (!Environment.isBrowser()) return;
+      const style = this.cfg.dataLabels.style;
+      const w = this.w;
+      const r = (node._iR + node._oR) / 2;
+      const mid = (node._a0 + node._a1) / 2;
+      const flip = mid > 90 && mid < 270;
+      const padDeg = Math.min(r > 0 ? 4 / r * R2D : 0, (node._a1 - node._a0) / 2);
+      const from = flip ? node._a1 - padDeg : node._a0 + padDeg;
+      const to = flip ? node._a0 + padDeg : node._a1 - padDeg;
+      const p1 = this._ptAt(r, from);
+      const p2 = this._ptAt(r, to);
+      const largeArc = Math.abs(to - from) > 180 ? 1 : 0;
+      const sweep = flip ? 0 : 1;
+      const id = `apx-sb-lbl-${w.globals.cuid}-${this._lblSeq++}`;
+      const guide = BrowserAPIs.createElementNS(SVGNS, "path");
+      guide.setAttribute("id", id);
+      guide.setAttribute(
+        "d",
+        `M ${p1.x} ${p1.y} A ${r} ${r} 0 ${largeArc} ${sweep} ${p2.x} ${p2.y}`
+      );
+      guide.setAttribute("fill", "none");
+      guide.setAttribute("stroke", "none");
+      const colors = style.colors;
+      const fill = (Array.isArray(colors) ? colors[0] : colors) || "#fff";
+      const text = BrowserAPIs.createElementNS(SVGNS, "text");
+      text.setAttribute("font-size", style.fontSize || "12px");
+      if (style.fontFamily) text.setAttribute("font-family", style.fontFamily);
+      text.setAttribute("font-weight", String(style.fontWeight || 400));
+      text.setAttribute("fill", fill);
+      text.setAttribute("dominant-baseline", "central");
+      text.style.pointerEvents = "none";
+      const tp = BrowserAPIs.createElementNS(SVGNS, "textPath");
+      tp.setAttribute("href", "#" + id);
+      tp.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", "#" + id);
+      tp.setAttribute("startOffset", "50%");
+      tp.setAttribute("text-anchor", "middle");
+      tp.textContent = this._truncate(node.name, r, node._a1 - node._a0, style.fontSize);
+      text.appendChild(tp);
+      this._labelsG.node.appendChild(guide);
+      this._labelsG.node.appendChild(text);
+    }
+    /**
+     * Trim a label to the arc length available at its radius.
+     * @param {string} name
+     * @param {number} r
+     * @param {number} spanDeg
+     * @param {string} fontSize
+     * @returns {string}
+     */
+    _truncate(name2, r, spanDeg, fontSize) {
+      const arcLen = r * spanDeg * D2R - 8;
+      const charW = (parseFloat(fontSize) || 12) * 0.58;
+      const maxChars = Math.floor(arcLen / charW);
+      if (maxChars >= name2.length) return name2;
+      if (maxChars <= 1) return "";
+      return name2.slice(0, Math.max(1, maxChars - 1)) + "…";
+    }
+    // ----------------------------------------------------------------- zoom
+    /**
+     * Focus a node (zoom in), or zoom out one level when the current focus (the
+     * innermost ring) is clicked.
+     * @param {any} node
+     */
+    _zoomTo(node) {
+      if (this.cfg.zoomOnClick === false) return;
+      const nextFocus = node === this._focus ? node._parent || null : node;
+      if (nextFocus === this._focus) return;
+      this._focus = nextFocus && !(nextFocus.children && nextFocus.children.length) ? nextFocus._parent || null : nextFocus;
+      this._relayout(this._focus);
+      this._applyLayout("zoom");
+      this._renderBreadcrumb();
+    }
+    /** Root -> focus chain of nodes. */
+    _focusChain() {
+      const chain = [];
+      let n = this._focus;
+      while (n) {
+        chain.unshift(n);
+        n = n._parent;
+      }
+      return chain;
+    }
+    /**
+     * Minimal self-contained breadcrumb (reuses the shared `.apexcharts-breadcrumb`
+     * CSS classes, but does NOT depend on the drilldown feature).
+     */
+    _renderBreadcrumb() {
+      if (!Environment.isBrowser()) return;
+      const w = this.w;
+      const elWrap = w.dom.elWrap;
+      if (!elWrap) return;
+      const existing = elWrap.querySelector(".apexcharts-breadcrumb");
+      if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+      if (!this._focus) return;
+      const nav = BrowserAPIs.createElementNS(XHTML, "nav");
+      nav.setAttribute("class", "apexcharts-breadcrumb");
+      nav.setAttribute("aria-label", "Sunburst breadcrumb");
+      nav.style.position = "absolute";
+      nav.style.top = "0px";
+      nav.style.left = "0px";
+      const crumbs = [{ name: "All", node: null }].concat(
+        this._focusChain().map((n) => ({ name: n.name, node: n }))
+      );
+      crumbs.forEach((crumb, i) => {
+        if (i > 0) {
+          const sep = BrowserAPIs.createElementNS(XHTML, "span");
+          sep.setAttribute("class", "apexcharts-breadcrumb-separator");
+          sep.textContent = " / ";
+          nav.appendChild(sep);
+        }
+        const isCurrent = i === crumbs.length - 1;
+        if (isCurrent) {
+          const cur = BrowserAPIs.createElementNS(XHTML, "span");
+          cur.setAttribute(
+            "class",
+            "apexcharts-breadcrumb-item apexcharts-breadcrumb-current"
+          );
+          cur.textContent = crumb.name;
+          nav.appendChild(cur);
+        } else {
+          const btn = BrowserAPIs.createElementNS(XHTML, "button");
+          btn.setAttribute("type", "button");
+          btn.setAttribute("class", "apexcharts-breadcrumb-item");
+          if (i === 0) {
+            const arrow = BrowserAPIs.createElementNS(XHTML, "span");
+            arrow.setAttribute("class", "apexcharts-breadcrumb-arrow");
+            arrow.textContent = "←";
+            btn.appendChild(arrow);
+          }
+          const text = BrowserAPIs.createElementNS(XHTML, "span");
+          text.setAttribute("class", "apexcharts-breadcrumb-label");
+          text.textContent = crumb.name;
+          btn.appendChild(text);
+          btn.addEventListener("click", () => {
+            this._focus = crumb.node;
+            this._relayout(this._focus);
+            this._applyLayout("zoom");
+            this._renderBreadcrumb();
+          });
+          nav.appendChild(btn);
+        }
+      });
+      elWrap.appendChild(nav);
+      this._avoidChromeOverlap(nav);
+    }
+    /**
+     * The breadcrumb is an absolute overlay at top-left, so it can sit on top of
+     * a left-aligned title (or subtitle). After mounting, push it below any chart
+     * chrome it intersects. (Duplicated from drilldown's Breadcrumb on purpose —
+     * sunburst must not import the drilldown feature.)
+     * @param {any} nav
+     */
+    _avoidChromeOverlap(nav) {
+      const w = this.w;
+      const chrome = (
+        /** @type {Element[]} */
+        [".apexcharts-title-text", ".apexcharts-subtitle-text"].map((s) => w.dom.baseEl.querySelector(s)).filter((el) => el !== null)
+      );
+      if (!chrome.length) return;
+      const wrapTop = w.dom.elWrap.getBoundingClientRect().top;
+      for (let pass = 0; pass < chrome.length + 1; pass++) {
+        const nr = nav.getBoundingClientRect();
+        const hit = chrome.find((el) => {
+          const r = el.getBoundingClientRect();
+          return nr.left < r.right && nr.right > r.left && nr.top < r.bottom && nr.bottom > r.top;
+        });
+        if (!hit) break;
+        nav.style.top = `${hit.getBoundingClientRect().bottom - wrapTop + 4}px`;
+      }
+    }
+    // ------------------------------------------------------------ geometry
+    /**
+     * @param {number} r
+     * @param {number} deg  0 = top, clockwise
+     * @returns {{x: number, y: number}}
+     */
+    _ptAt(r, deg) {
+      return {
+        x: this.centerX + r * Math.cos((deg - 90) * D2R),
+        y: this.centerY + r * Math.sin((deg - 90) * D2R)
+      };
+    }
+    /**
+     * Rounded donut-segment path (inner radius always > 0). Applies `spacing`
+     * (angular gap) and `borderRadius` (corner rounding), both clamped so a thin
+     * arc never inverts.
+     * @param {number} iR
+     * @param {number} oR
+     * @param {number} a0
+     * @param {number} a1
+     * @param {number} borderRadius
+     * @returns {string}
+     */
+    _arcPath(iR, oR, a0, a1, borderRadius) {
+      if (oR <= iR + 0.01) return "";
+      let spanDeg = a1 - a0;
+      const spacing = this.cfg.spacing;
+      if (spacing > 0 && spanDeg > 0 && oR > 0) {
+        const gapDeg = spacing / oR * R2D;
+        const inset = Math.min(gapDeg / 2, Math.max(0, spanDeg / 2 - 0.25));
+        a0 += inset;
+        a1 -= inset;
+        spanDeg = a1 - a0;
+      }
+      if (spanDeg <= 0) return "";
+      const spanRad = spanDeg * D2R;
+      const cx = this.centerX;
+      const cy = this.centerY;
+      let r = borderRadius;
+      r = Math.min(r, spanRad * iR / 2, spanRad * oR / 2, (oR - iR) / 2);
+      if (!(r > 0.5)) {
+        return sharpDonutSegmentPath({ cx, cy, rIn: iR, rOut: oR, a0, a1, spanDeg });
+      }
+      return roundedDonutSegmentPath({ cx, cy, rIn: iR, rOut: oR, a0, a1, r, spanDeg });
+    }
+    // ------------------------------------------------------------- tooltip
+    /** @returns {any} */
+    _tip() {
+      if (!this._tooltipEl) {
+        this._tooltipEl = this.w.dom.baseEl.querySelector(".apexcharts-tooltip");
+      }
+      return this._tooltipEl;
+    }
+    /**
+     * @param {any} el
+     * @param {any} node
+     */
+    _attachTooltip(el, node) {
+      if (!this.w.config.tooltip.enabled || !Environment.isBrowser()) return;
+      el.addEventListener(
+        "mouseenter",
+        (e) => this._showTooltip(e, node)
+      );
+      el.addEventListener(
+        "mousemove",
+        (e) => this._positionTooltip(e)
+      );
+      el.addEventListener("mouseleave", () => this._hideTooltip());
+    }
+    /**
+     * @param {MouseEvent} e
+     * @param {any} node
+     */
+    _showTooltip(e, node) {
+      const t = this._tip();
+      if (!t) return;
+      const w = this.w;
+      const pctTotal = (node.value / this.total * 100).toFixed(1);
+      const parentVal = node._parent ? node._parent.value : this.total;
+      const pctParent = parentVal > 0 ? (node.value / parentVal * 100).toFixed(1) : pctTotal;
+      const groupBg = w.config.tooltip.fillSeriesColor ? `background-color:${node._color};` : "";
+      t.innerHTML = `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex;${groupBg}"><span class="apexcharts-tooltip-marker" style="background-color:${node._color}"></span><div class="apexcharts-tooltip-text"><div class="apexcharts-tooltip-y-group"><span class="apexcharts-tooltip-text-y-label">${node.name}: </span><span class="apexcharts-tooltip-text-y-value">${node.value} (${pctParent}% of parent, ${pctTotal}% of total)</span></div></div></div>`;
+      t.classList.add("apexcharts-active");
+      t.style.opacity = "1";
+      this._positionTooltip(e);
+    }
+    /**
+     * Position beside the cursor, flipping to the opposite side when the box
+     * would overflow the chart wrap, and clamping inside it either way.
+     * @param {MouseEvent} e
+     */
+    _positionTooltip(e) {
+      const t = this._tip();
+      if (!t) return;
+      const rect = this.w.dom.elWrap.getBoundingClientRect();
+      const tw = t.offsetWidth;
+      const th = t.offsetHeight;
+      const pad = 12;
+      let x = e.clientX - rect.left + pad;
+      if (x + tw > rect.width) x = e.clientX - rect.left - tw - pad;
+      x = Math.max(0, Math.min(x, rect.width - tw));
+      let y = e.clientY - rect.top + pad;
+      if (y + th > rect.height) y = e.clientY - rect.top - th - pad;
+      y = Math.max(0, Math.min(y, rect.height - th));
+      t.style.left = x + "px";
+      t.style.top = y + "px";
+    }
+    _hideTooltip() {
+      const t = this._tip();
+      if (!t) return;
+      t.classList.remove("apexcharts-active");
+      t.style.opacity = "0";
+    }
+    // --------------------------------------------------------------- utils
+    /**
+     * @param {string|number} size
+     * @param {number} max
+     * @returns {number}
+     */
+    _parseSize(size, max) {
+      if (typeof size === "number") return size;
+      const s = String(size).trim();
+      if (s.endsWith("%")) return parseFloat(s) / 100 * max;
+      const n = parseFloat(s);
+      return isNaN(n) ? 0.15 * max : n;
+    }
+    /**
+     * Blend a hex colour toward white by `amount` (0..1). Non-hex returned as-is.
+     * @param {string} color
+     * @param {number} amount
+     * @returns {string}
+     */
+    _lighten(color, amount) {
+      if (typeof color !== "string" || color[0] !== "#") return color;
+      let hex = color.slice(1);
+      if (hex.length === 3) {
+        hex = hex.split("").map((c) => c + c).join("");
+      }
+      if (hex.length !== 6) return color;
+      const num = parseInt(hex, 16);
+      if (isNaN(num)) return color;
+      let rC = num >> 16 & 255;
+      let gC = num >> 8 & 255;
+      let bC = num & 255;
+      rC = Math.round(rC + (255 - rC) * amount);
+      gC = Math.round(gC + (255 - gC) * amount);
+      bC = Math.round(bC + (255 - bC) * amount);
+      return "#" + ((1 << 24) + (rC << 16) + (gC << 8) + bC).toString(16).slice(1);
+    }
+  }
   ApexCharts.use({
     line: Line,
     area: Line,
@@ -51626,7 +53337,8 @@ var __async = (__this, __arguments, generator) => {
     radar: Radar,
     heatmap: HeatMap,
     treemap: TreemapChart,
-    unit: Unit
+    unit: Unit,
+    sunburst: SunburstChart
   });
   return ApexCharts;
 }));

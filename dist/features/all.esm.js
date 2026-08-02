@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as ApexCharts from "apexcharts/core";
@@ -247,7 +247,7 @@ class Exports {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.fillStyle = canvasBg;
-      ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       this.getSvgString(scale).then((svgData) => {
         const svgUrl = "data:image/svg+xml," + encodeURIComponent(svgData);
         const img = new Image();
@@ -308,6 +308,11 @@ class Exports {
     const gSeries = w.seriesData.series.map((s, i) => {
       return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : [];
     });
+    const csvSafe = (val) => {
+      if (val == null || Utils.isNumber(val)) return val;
+      const s = String(val);
+      return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+    };
     const getFormattedCategory = (cat) => {
       if (typeof w.config.chart.toolbar.export.csv.categoryFormatter === "function") {
         return w.config.chart.toolbar.export.csv.categoryFormatter(cat);
@@ -315,10 +320,10 @@ class Exports {
       if (w.config.xaxis.type === "datetime" && String(cat).length >= 10) {
         return new Date(cat).toDateString();
       }
-      return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join("");
+      return Utils.isNumber(cat) ? cat : csvSafe(cat.split(columnDelimiter).join(""));
     };
     const getFormattedValue = (value) => {
-      return typeof w.config.chart.toolbar.export.csv.valueFormatter === "function" ? w.config.chart.toolbar.export.csv.valueFormatter(value) : value;
+      return typeof w.config.chart.toolbar.export.csv.valueFormatter === "function" ? w.config.chart.toolbar.export.csv.valueFormatter(value) : csvSafe(value);
     };
     const seriesMaxDataLength = Math.max(
       ...series.map((s) => {
@@ -377,8 +382,8 @@ class Exports {
         rows.push(columns.join(columnDelimiter));
       }
       if (s.data) {
-        s.data = s.data.length && s.data || getEmptyDataForCsvColumn();
-        for (let i = 0; i < s.data.length; i++) {
+        const rowData = s.data.length ? s.data : getEmptyDataForCsvColumn();
+        for (let i = 0; i < rowData.length; i++) {
           columns = [];
           let cat = getCat(i);
           if (cat === "nullvalue") continue;
@@ -654,33 +659,20 @@ let Helpers$1 = class Helpers {
         }
       }
     } else {
-      const type = w.config.chart.type;
-      if (type === "unit") {
-        w.globals.resized = true;
-        w.globals.risingSeries = [];
-        if (isHidden) {
-          this.riseCollapsedSeries(
-            w.globals.collapsedSeries,
-            w.globals.collapsedSeriesIndices,
-            seriesCnt
-          );
-        } else {
-          const series = this.getSeriesAfterCollapsing({ realIndex: seriesCnt });
-          this.lgCtx.updateSeries(
-            series,
-            w.config.chart.animations.dynamicAnimation.enabled
-          );
-        }
-      } else {
-        const seriesEl = w.dom.Paper.findOne(
-          ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
+      w.globals.resized = true;
+      w.globals.risingSeries = [];
+      if (isHidden) {
+        this.riseCollapsedSeries(
+          w.globals.collapsedSeries,
+          w.globals.collapsedSeriesIndices,
+          seriesCnt
         );
-        if (type === "pie" || type === "polarArea" || type === "donut") {
-          const dataLabels = w.config.plotOptions.pie.donut.labels;
-          const graphics = new Graphics(this.w);
-          graphics.pathMouseDown(seriesEl, null);
-          this.lgCtx.printDataLabelsInner(seriesEl.node, dataLabels);
-        }
+      } else {
+        const series = this.getSeriesAfterCollapsing({ realIndex: seriesCnt });
+        this.lgCtx.updateSeries(
+          series,
+          w.config.chart.animations.dynamicAnimation.enabled
+        );
       }
       if (w.config.chart.accessibility.enabled) {
         const legendItem = w.dom.baseEl.querySelector(
@@ -705,9 +697,58 @@ let Helpers$1 = class Helpers {
       }
     }
   }
+  /**
+   * Non-axis "slice" container. A pie/donut/polarArea slice is normally a
+   * top-level series element (numeric form: `series = [n, n, n]`), but object
+   * form (`series = [{ data: [{ x, y, drilldown }, ...] }]`, which pie/donut
+   * drilldown requires) packs every slice as a data point inside a single
+   * series. Return the array that actually holds the slice values so a
+   * slice/legend index addresses the right thing. Scoped to the pie family so
+   * unit charts (which share this non-axis path) are untouched.
+   * @param {any[]} series
+   * @returns {any[]}
+   */
+  _nonAxisSliceContainer(series) {
+    const type = this.w.config.chart.type;
+    if ((type === "pie" || type === "donut" || type === "polarArea" || type === "sunburst") && series.length === 1 && series[0] && typeof series[0] === "object" && Array.isArray(series[0].data)) {
+      return series[0].data;
+    }
+    return series;
+  }
+  /**
+   * Read a non-axis slice value (handles `{ x, y }` data points and plain
+   * numbers).
+   * @param {any} sliceEntry
+   * @returns {number}
+   */
+  _readSliceValue(sliceEntry) {
+    if (this.w.config.chart.type === "unit" && sliceEntry && Array.isArray(sliceEntry.data)) {
+      return sliceEntry.data;
+    }
+    return sliceEntry && typeof sliceEntry === "object" ? sliceEntry.y : sliceEntry;
+  }
+  /**
+   * Write a non-axis slice value in place, preserving `{ x, drilldown, ... }`
+   * on object data points.
+   * @param {any[]} container
+   * @param {number} i
+   * @param {number} value
+   */
+  _writeSliceValue(container, i, value) {
+    const entry = container[i];
+    if (this.w.config.chart.type === "unit" && entry && Array.isArray(entry.data)) {
+      entry.data = Array.isArray(value) ? value : [];
+      return;
+    }
+    if (entry && typeof entry === "object") {
+      entry.y = value;
+    } else {
+      container[i] = value;
+    }
+  }
   /** @param {{realIndex: any}} opts */
   getSeriesAfterCollapsing({ realIndex }) {
-    var _a;
+    var _a, _b;
     const w = this.w;
     const gl = w.globals;
     const series = Utils.clone(w.config.series);
@@ -736,19 +777,25 @@ let Helpers$1 = class Helpers {
         }
       }
     } else {
-      gl.collapsedSeries.push({
-        index: realIndex,
-        data: series[realIndex],
-        type: (
-          /** @type {any} */
-          (_a = w.config.series[realIndex].type) != null ? _a : "line"
-        ),
-        // Pin the hide by category name so it survives a regroup (see above).
-        name: (gl.seriesNames || [])[realIndex]
-      });
-      gl.collapsedSeriesIndices.push(realIndex);
+      if (gl.collapsedSeriesIndices.indexOf(realIndex) < 0) {
+        const container = this._nonAxisSliceContainer(series);
+        gl.collapsedSeries.push({
+          index: realIndex,
+          // Store the original slice VALUE so it can be restored on rise. In
+          // object form this is a data point's `y`, not the whole series entry.
+          data: this._readSliceValue(container[realIndex]),
+          type: (
+            /** @type {any} */
+            (_b = (_a = w.config.series[realIndex]) == null ? void 0 : _a.type) != null ? _b : "line"
+          ),
+          // Pin the hide by category name so it survives a regroup (see above).
+          name: (gl.seriesNames || [])[realIndex]
+        });
+        gl.collapsedSeriesIndices.push(realIndex);
+      }
     }
-    gl.allSeriesCollapsed = gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length === w.config.series.length;
+    const seriesCount = gl.axisCharts ? w.config.series.length : this._nonAxisSliceContainer(series).length;
+    gl.allSeriesCollapsed = gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length === seriesCount;
     return this._getSeriesBasedOnCollapsedState(series);
   }
   /** @param {{seriesEl: any, realIndex: any}} opts */
@@ -785,11 +832,10 @@ let Helpers$1 = class Helpers {
         if (collapsedSeries[c].index === realIndex) {
           if (w.globals.axisCharts) {
             series[realIndex].data = collapsedSeries[c].data.slice();
-          } else {
-            series[realIndex] = collapsedSeries[c].data;
-          }
-          if (typeof series[realIndex] !== "number") {
             series[realIndex].hidden = false;
+          } else {
+            const container = this._nonAxisSliceContainer(series);
+            this._writeSliceValue(container, realIndex, collapsedSeries[c].data);
           }
           collapsedSeries.splice(c, 1);
           seriesIndices.splice(c, 1);
@@ -818,14 +864,16 @@ let Helpers$1 = class Helpers {
         }
       });
     } else {
-      series.forEach((s, sI) => {
+      const container = this._nonAxisSliceContainer(series);
+      container.forEach((s, sI) => {
         if (!(w.globals.collapsedSeriesIndices.indexOf(sI) < 0)) {
-          series[sI] = 0;
+          this._writeSliceValue(container, sI, 0);
           collapsed++;
         }
       });
     }
-    w.globals.allSeriesCollapsed = collapsed === series.length;
+    const seriesCount = w.globals.axisCharts ? series.length : this._nonAxisSliceContainer(series).length;
+    w.globals.allSeriesCollapsed = collapsed === seriesCount;
     return series;
   }
 };
@@ -1495,10 +1543,6 @@ class Legend {
   constructor(w, ctx) {
     this.w = w;
     this.ctx = ctx;
-    this.printDataLabelsInner = (...a) => {
-      var _a;
-      return (_a = ctx.pie) == null ? void 0 : _a.printDataLabelsInner(...a);
-    };
     this.updateSeries = (...a) => ctx.updateHelpers._updateSeries(...a);
     this.onLegendClick = this.onLegendClick.bind(this);
     this.onLegendHovered = this.onLegendHovered.bind(this);
@@ -2583,6 +2627,11 @@ class AxisMapping {
 }
 const Box = ApexCharts.__apex_index_Box;
 const WHEEL_ZOOM_PIXELS_PER_2X = 240;
+const INERTIA_MIN_RELEASE_VELOCITY = 0.05;
+const INERTIA_DEFAULT_FRICTION = 0.92;
+const INERTIA_STOP_VELOCITY = 0.02;
+const FRAME_MS_60FPS = 16.6667;
+const PAN_NUDGE_DIVISOR = 15;
 class ZoomPanSelection extends Toolbar {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -2601,8 +2650,7 @@ class ZoomPanSelection extends Toolbar {
       "touchstart",
       "touchmove",
       "mouseup",
-      "touchend",
-      "wheel"
+      "touchend"
     ];
     this.clientX = 0;
     this.clientY = 0;
@@ -2700,12 +2748,12 @@ class ZoomPanSelection extends Toolbar {
     const autoSelected = w.config.chart.toolbar.autoSelected;
     if (autoSelected !== "measure") {
       if (e.shiftKey) {
-        this.shiftWasPressed = true;
+        w.interact.shiftWasPressed = true;
         toolbar.enableZoomPanFromToolbar(autoSelected === "pan" ? "zoom" : "pan");
       } else {
-        if (this.shiftWasPressed) {
+        if (w.interact.shiftWasPressed) {
           toolbar.enableZoomPanFromToolbar(autoSelected);
-          this.shiftWasPressed = false;
+          w.interact.shiftWasPressed = false;
         }
       }
     }
@@ -3349,11 +3397,11 @@ class ZoomPanSelection extends Toolbar {
       maxX = w.globals.maxY;
     }
     if (this.moveDirection === "left") {
-      xLowestValue = minX + w.layout.gridWidth / 15 * xRatio;
-      xHighestValue = maxX + w.layout.gridWidth / 15 * xRatio;
+      xLowestValue = minX + w.layout.gridWidth / PAN_NUDGE_DIVISOR * xRatio;
+      xHighestValue = maxX + w.layout.gridWidth / PAN_NUDGE_DIVISOR * xRatio;
     } else if (this.moveDirection === "right") {
-      xLowestValue = minX - w.layout.gridWidth / 15 * xRatio;
-      xHighestValue = maxX - w.layout.gridWidth / 15 * xRatio;
+      xLowestValue = minX - w.layout.gridWidth / PAN_NUDGE_DIVISOR * xRatio;
+      xHighestValue = maxX - w.layout.gridWidth / PAN_NUDGE_DIVISOR * xRatio;
     }
     if (!w.axisFlags.isRangeBar) {
       const clampMin = (_a = w.globals.dataReducerRawMinX) != null ? _a : w.globals.initialMinX;
@@ -3699,7 +3747,7 @@ class ZoomPanSelection extends Toolbar {
       if (dt > 0) vel = (b.x - a.x) / dt;
     }
     m.samples = [];
-    if (s && s.axis === "x" && this._panInertiaEnabled() && Math.abs(vel) > 0.05) {
+    if (s && s.axis === "x" && this._panInertiaEnabled() && Math.abs(vel) > INERTIA_MIN_RELEASE_VELOCITY) {
       this._startInertia(vel);
     } else {
       m.busy = false;
@@ -3717,7 +3765,7 @@ class ZoomPanSelection extends Toolbar {
     const w = this.w;
     const m = this._m();
     const cfgFriction = w.config.chart.pan && w.config.chart.pan.friction;
-    const friction = typeof cfgFriction === "number" ? Math.min(Math.max(cfgFriction, 0.5), 0.999) : 0.92;
+    const friction = typeof cfgFriction === "number" ? Math.min(Math.max(cfgFriction, 0.5), 0.999) : INERTIA_DEFAULT_FRICTION;
     let vel = vel0;
     let lastT = null;
     m.busy = true;
@@ -3734,8 +3782,8 @@ class ZoomPanSelection extends Toolbar {
       }
       const dt = ts - lastT;
       lastT = ts;
-      vel *= Math.pow(friction, dt / 16.6667);
-      if (Math.abs(vel) < 0.02) {
+      vel *= Math.pow(friction, dt / FRAME_MS_60FPS);
+      if (Math.abs(vel) < INERTIA_STOP_VELOCITY) {
         m.inertiaRAF = null;
         m.busy = false;
         this._fireScrolled();
@@ -3923,7 +3971,11 @@ class Helpers2 {
         yP -= w.globals.barHeight / 2 * (w.seriesData.series.length - 1) - w.globals.barHeight * anno.seriesIndex;
       }
     } else {
-      const seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0];
+      const yAxisMap = w.globals.seriesYAxisMap[anno.yAxisIndex];
+      if (!yAxisMap || yAxisMap[0] == null || !w.config.yaxis[anno.yAxisIndex]) {
+        return { yP: 0, clipped: true };
+      }
+      const seriesIndex = yAxisMap[0];
       const yPos = w.config.yaxis[anno.yAxisIndex].logarithmic ? new CoreUtils(this.w).getLogVal(
         w.config.yaxis[anno.yAxisIndex].logBase,
         y,
@@ -4315,6 +4367,7 @@ class PointAnnotations {
         optsPoints
       );
       parent.appendChild(point.node);
+      const tooltipTargets = [point.node];
       applyProgressiveReveal(point, x, w);
       const text = anno.label.text ? anno.label.text : "";
       const elText = this.annoCtx.graphics.drawText({
@@ -4342,6 +4395,7 @@ class PointAnnotations {
         });
         g.node.innerHTML = anno.customSVG.SVG;
         parent.appendChild(g.node);
+        tooltipTargets.push(g.node);
       }
       if (anno.image.path) {
         const imgWidth = anno.image.width ? anno.image.width : 20;
@@ -4353,6 +4407,17 @@ class PointAnnotations {
           height: imgHeight,
           path: anno.image.path,
           appendTo: ".apexcharts-point-annotations"
+        });
+        tooltipTargets.push(point.node);
+      }
+      if (anno.tooltip && anno.tooltip.enabled) {
+        tooltipTargets.forEach((node) => {
+          node.addEventListener("mouseenter", () => {
+            this.showPointTooltip(anno, node);
+          });
+          node.addEventListener("mouseleave", () => {
+            this.hidePointTooltip();
+          });
         });
       }
       if (anno.mouseEnter) {
@@ -4370,6 +4435,88 @@ class PointAnnotations {
       if (anno.click) {
         point.node.addEventListener("click", anno.click.bind(this, anno));
       }
+    }
+  }
+  /**
+   * Lazily create (once per chart) and return the shared HTML element used to
+   * render point-annotation tooltips. Reuses the `.apexcharts-tooltip` glass
+   * styling; the `.apexcharts-annotation-tooltip` modifier adds padding and
+   * text wrapping for free-form content.
+   * @returns {HTMLElement}
+   */
+  getPointTooltipEl() {
+    const w = this.w;
+    let el = (
+      /** @type {HTMLElement | null} */
+      w.dom.elWrap.querySelector(".apexcharts-annotation-tooltip")
+    );
+    if (!el) {
+      el = /** @type {HTMLElement} */
+      BrowserAPIs.createElementNS("http://www.w3.org/1999/xhtml", "div");
+      el.classList.add("apexcharts-tooltip", "apexcharts-annotation-tooltip");
+      w.dom.elWrap.appendChild(el);
+    }
+    return el;
+  }
+  /**
+   * Resolve the tooltip markup for a point annotation. Precedence:
+   * `tooltip.formatter` (fn) -> `tooltip.text` -> `label.text`. Arrays are
+   * joined with line breaks.
+   * @param {Record<string, any>} anno
+   * @returns {string}
+   */
+  getPointTooltipContent(anno) {
+    const w = this.w;
+    const tt = anno.tooltip || {};
+    if (typeof tt.formatter === "function") {
+      return tt.formatter({
+        annotation: anno,
+        seriesIndex: anno.seriesIndex,
+        id: anno.id,
+        w
+      });
+    }
+    let content = tt.text != null ? tt.text : anno.label && anno.label.text;
+    if (Array.isArray(content)) {
+      content = content.join("<br/>");
+    }
+    return content == null ? "" : String(content);
+  }
+  /**
+   * @param {Record<string, any>} anno
+   * @param {Element} targetNode the hovered marker / image / custom-SVG node
+   */
+  showPointTooltip(anno, targetNode) {
+    const w = this.w;
+    const content = this.getPointTooltipContent(anno);
+    if (!content) return;
+    const el = this.getPointTooltipEl();
+    el.innerHTML = content;
+    const theme = anno.tooltip.theme || w.config.tooltip.theme || "light";
+    el.classList.remove("apexcharts-theme-light", "apexcharts-theme-dark");
+    el.classList.add(`apexcharts-theme-${theme}`);
+    el.classList.add("apexcharts-active");
+    const wrapRect = w.dom.elWrap.getBoundingClientRect();
+    const markRect = targetNode.getBoundingClientRect();
+    const ttRect = el.getBoundingClientRect();
+    const offsetX = anno.tooltip.offsetX || 0;
+    const offsetY = anno.tooltip.offsetY || 0;
+    let left = markRect.left - wrapRect.left + markRect.width / 2 - ttRect.width / 2;
+    let top = markRect.top - wrapRect.top - ttRect.height - 10;
+    left = Math.max(0, Math.min(left, wrapRect.width - ttRect.width));
+    if (top < 0) {
+      top = markRect.top - wrapRect.top + markRect.height + 10;
+    }
+    el.style.left = left + offsetX + "px";
+    el.style.top = top + offsetY + "px";
+  }
+  hidePointTooltip() {
+    const el = (
+      /** @type {HTMLElement | null} */
+      this.w.dom.elWrap.querySelector(".apexcharts-annotation-tooltip")
+    );
+    if (el) {
+      el.classList.remove("apexcharts-active");
     }
   }
   drawPointAnnotations() {
@@ -4648,10 +4795,28 @@ class Annotations {
     return context;
   }
   /**
+   * Remove the shared point-annotation hover tooltip node.
+   *
+   * `hidePointTooltip` is wired only to the marker's `mouseleave`; if the marker
+   * is torn down while hovered (clearAnnotations / removeAnnotation / a redraw),
+   * that never fires and the tooltip is left `.apexcharts-active`. A stale active
+   * annotation tooltip then permanently suppresses the series tooltip (see the
+   * guard in Tooltip.drawTooltip added by b1369f5ab). Removing the node clears
+   * both the ghost box and the stale state; it is recreated on the next hover.
+   * @param {any} w
+   */
+  _removeAnnotationTooltip(w) {
+    const el = w.dom.elWrap && w.dom.elWrap.querySelector(".apexcharts-annotation-tooltip");
+    if (el && el.parentNode) {
+      el.parentNode.removeChild(el);
+    }
+  }
+  /**
    * @param {import('../../types/internal').ChartContext} ctx
    */
   clearAnnotations(ctx) {
     const w = ctx.w;
+    this._removeAnnotationTooltip(w);
     const annos = w.dom.baseEl.querySelectorAll(
       ".apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations"
     );
@@ -4672,6 +4837,7 @@ class Annotations {
    */
   removeAnnotation(ctx, id) {
     const w = ctx.w;
+    this._removeAnnotationTooltip(w);
     const annos = w.dom.baseEl.querySelectorAll(`.${id}`);
     if (annos) {
       w.globals.memory.methodsToExec.map((m, i) => {
@@ -4743,6 +4909,7 @@ class KeyboardNavigation {
   destroy() {
     const w = this.w;
     const svgEl = w.dom.Paper && w.dom.Paper.node;
+    this.ctx.events.removeEventListener("legendClick", this._onLegendClick);
     if (!svgEl) return;
     svgEl.removeEventListener("focus", this._onFocus);
     svgEl.removeEventListener("blur", this._onBlur);
@@ -4765,7 +4932,6 @@ class KeyboardNavigation {
       /** @type {any} */
       { capture: true }
     );
-    this.ctx.events.removeEventListener("legendClick", this._onLegendClick);
   }
   // Records the timestamp of the most recent pointer-down inside the SVG.
   // `_onFocus` reads this to distinguish keyboard-driven focus (no recent
@@ -6208,6 +6374,32 @@ class Breadcrumb {
       }
     });
     elWrap.appendChild(nav);
+    this._avoidChromeOverlap(nav);
+  }
+  /**
+   * The breadcrumb is an absolute overlay, so at its default top-left it can
+   * sit on top of a left-aligned title (or subtitle). After mounting, push it
+   * below any chart chrome it intersects. (Sunburst's self-contained
+   * breadcrumb applies the same rule.)
+   * @param {HTMLElement} nav
+   */
+  _avoidChromeOverlap(nav) {
+    const w = this.w;
+    const chrome = (
+      /** @type {Element[]} */
+      [".apexcharts-title-text", ".apexcharts-subtitle-text"].map((s) => w.dom.baseEl.querySelector(s)).filter((el) => el !== null)
+    );
+    if (!chrome.length) return;
+    const wrapTop = w.dom.elWrap.getBoundingClientRect().top;
+    for (let pass = 0; pass < chrome.length + 1; pass++) {
+      const nr = nav.getBoundingClientRect();
+      const hit = chrome.find((el) => {
+        const r = el.getBoundingClientRect();
+        return nr.left < r.right && nr.right > r.left && nr.top < r.bottom && nr.bottom > r.top;
+      });
+      if (!hit) break;
+      nav.style.top = `${hit.getBoundingClientRect().bottom - wrapTop + 4}px`;
+    }
   }
   /**
    * @param {string|number} id
@@ -6400,7 +6592,7 @@ class Drilldown {
   _snapshot() {
     const c = this.w.config;
     const fields = this._overrideFields();
-    const snap = { series: Utils.clone(c.series) };
+    const snap = { series: this._uncollapseSeries(Utils.clone(c.series)) };
     if (Array.isArray(c.labels) && c.labels.length) {
       snap.labels = Utils.clone(c.labels);
     }
@@ -6412,6 +6604,41 @@ class Drilldown {
     if (fields.has("fill")) snap.fill = Utils.clone(c.fill);
     if (fields.has("legend")) snap.legend = Utils.clone(c.legend);
     return snap;
+  }
+  /**
+   * Restore any legend-collapsed slices/series to their original values in a
+   * cloned series array, so a drill snapshot captures the pre-collapse data.
+   * Mirrors legend Helpers' collapse addressing: object-form pie/donut packs
+   * every slice as a data point inside `series[0].data`; numeric pie stores a
+   * slice per top-level element; axis series carry a `data` array. No-op when
+   * nothing is collapsed.
+   * @param {any[]} series
+   * @returns {any[]}
+   */
+  _uncollapseSeries(series) {
+    const w = this.w;
+    const gl = w.globals;
+    const entries = [
+      ...gl.collapsedSeries || [],
+      ...gl.ancillaryCollapsedSeries || []
+    ];
+    if (!entries.length) return series;
+    const type = w.config.chart.type;
+    const objectFormPie = (type === "pie" || type === "donut" || type === "polarArea") && series.length === 1 && series[0] && typeof series[0] === "object" && Array.isArray(series[0].data);
+    const container = objectFormPie ? series[0].data : series;
+    for (const entry of entries) {
+      const i = entry.index;
+      if (gl.axisCharts) {
+        if (series[i]) {
+          series[i].data = Array.isArray(entry.data) ? entry.data.slice() : entry.data;
+        }
+      } else if (container[i] && typeof container[i] === "object") {
+        container[i].y = entry.data;
+      } else if (container[i] !== void 0) {
+        container[i] = entry.data;
+      }
+    }
+    return series;
   }
   /**
    * Union of overridable fields across all declared drilldown levels. Ensures a
@@ -6433,6 +6660,20 @@ class Drilldown {
     return fields;
   }
   /**
+   * Copy the optional view fields shared by a drilldown child level and a
+   * restore snapshot (`xaxis`, `yaxis`, `colors`, `plotOptions`, `fill`,
+   * `legend`) from `src` onto `view`, only when present.
+   * @param {Record<string, any>} view @param {Record<string, any>} src
+   */
+  _copyOptionalViewFields(view, src) {
+    if (src.xaxis) view.xaxis = src.xaxis;
+    if (src.yaxis) view.yaxis = src.yaxis;
+    if (src.colors) view.colors = src.colors;
+    if (src.plotOptions) view.plotOptions = src.plotOptions;
+    if (src.fill) view.fill = src.fill;
+    if (src.legend) view.legend = src.legend;
+  }
+  /**
    * Build an updateOptions/updateSeries payload for drilling INTO a child level.
    * Works for axis charts and pie/donut alike: both accept series objects with a
    * `data` array of `{ x, y }` points (pie derives slice labels from `x`).
@@ -6450,12 +6691,7 @@ class Drilldown {
     if (child.chart && child.chart.type) chart.type = child.chart.type;
     if (child.chart && child.chart.stacked != null) chart.stacked = child.chart.stacked;
     if (Object.keys(chart).length) view.chart = chart;
-    if (child.xaxis) view.xaxis = child.xaxis;
-    if (child.yaxis) view.yaxis = child.yaxis;
-    if (child.colors) view.colors = child.colors;
-    if (child.plotOptions) view.plotOptions = child.plotOptions;
-    if (child.fill) view.fill = child.fill;
-    if (child.legend) view.legend = child.legend;
+    this._copyOptionalViewFields(view, child);
     return view;
   }
   /**
@@ -6466,12 +6702,7 @@ class Drilldown {
   _viewFromSnapshot(snap) {
     const view = { series: snap.series, chart: snap.chart };
     if (snap.labels && snap.labels.length) view.labels = snap.labels;
-    if (snap.xaxis) view.xaxis = snap.xaxis;
-    if (snap.yaxis) view.yaxis = snap.yaxis;
-    if (snap.colors) view.colors = snap.colors;
-    if (snap.plotOptions) view.plotOptions = snap.plotOptions;
-    if (snap.fill) view.fill = snap.fill;
-    if (snap.legend) view.legend = snap.legend;
+    this._copyOptionalViewFields(view, snap);
     return view;
   }
   /**
@@ -7328,6 +7559,14 @@ function resolveKey(w) {
   if (apex && apex.license) return apex.license;
   return null;
 }
+const PREMIUM_PLANS = /* @__PURE__ */ new Set(["premium", "enterprise"]);
+function licensedForPremium(key) {
+  if (!key) return false;
+  const result = LicenseManager.validateKey(key);
+  if (!result.valid) return false;
+  const plan = result.data && result.data.plan;
+  return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
+}
 function reinstateWatermark(ctx, elWrap) {
   const node = Watermark.add(elWrap);
   if (!node || typeof MutationObserver === "undefined") return;
@@ -7370,14 +7609,23 @@ function teardownWatermark(ctx, elWrap) {
 function notifyTrial(ctx, key, features) {
   if (ctx._premiumLicenseNotified) return;
   ctx._premiumLicenseNotified = true;
+  const many = features.length > 1;
   if (!key) {
     console.warn(
-      `[ApexCharts] Premium feature${features.length > 1 ? "s" : ""} in use (${features.join(", ")}) without a license. Running in trial mode with a watermark. Get a license: ${PRICING_URL}`
+      `[ApexCharts] Premium feature${many ? "s" : ""} in use (${features.join(", ")}) without a license. Running in trial mode with a watermark. Get a license: ${PRICING_URL}`
+    );
+    return;
+  }
+  const result = LicenseManager.validateKey(key);
+  if (result.valid) {
+    const plan = result.data && result.data.plan || "current";
+    console.warn(
+      `[ApexCharts] Premium feature${many ? "s" : ""} in use (${features.join(", ")}) require a Premium or Enterprise license; the ${plan} plan does not include ${many ? "them" : "it"}. Running in trial mode with a watermark. Upgrade: ${PRICING_URL}`
     );
     return;
   }
   if (key !== LicenseManager.getKey()) {
-    console.error(`[Apex] ${LicenseManager.validateKey(key).message}`);
+    console.error(`[Apex] ${result.message}`);
   }
 }
 function enforceLicense(w, ctx) {
@@ -7397,7 +7645,7 @@ function enforceLicense(w, ctx) {
     }
     enforced.add(ctx);
     const key = resolveKey(w);
-    if (LicenseManager.isKeyValid(key)) {
+    if (licensedForPremium(key)) {
       teardownWatermark(ctx, elWrap);
       return;
     }
@@ -8167,6 +8415,10 @@ class History {
       throw e;
     }
     Promise.resolve(p).then(() => {
+      if (this.w.globals.isDestroyed) {
+        this.applying = false;
+        return;
+      }
       applyViewInteraction(this.ctx, cp.view);
       this._refreshSettle();
       this._emitChange();
@@ -10439,7 +10691,7 @@ function makeCustomSeriesClass(name, def) {
       const n = nPts || gl.dataPoints || 1;
       const bandW = n > 0 ? gridWidth / n : gridWidth;
       const tickOn = cnf.xaxis.tickPlacement === "on";
-      const x = (v) => (v - gl.minX) / xRatio;
+      const x = (v) => xRatio ? (v - gl.minX) / xRatio : gridWidth / 2;
       const y = (v) => (maxY - v) / yr;
       const xAt = (index, v) => {
         if (!catMode) return x(v);
@@ -10889,7 +11141,10 @@ class Crossfilter {
   }
   /** @param {string} chartId */
   removeDimension(chartId) {
+    const dim = this.dims.get(chartId);
+    const hadFilter = dim ? this._hasFilter(dim) : false;
     this.dims.delete(chartId);
+    if (hadFilter) this._emit("change", this.state());
     return this;
   }
   /** @param {any} dim */
@@ -11747,6 +12002,13 @@ class InkLayer {
   _onRerender() {
     this._closeEditor(false);
     this._attach();
+    if (this._creating) {
+      const svg = this.w.dom.Paper && this.w.dom.Paper.node;
+      if (svg) {
+        svg.style.cursor = "crosshair";
+        svg.addEventListener("click", this._onCreateClick, true);
+      }
+    }
   }
   /**
    * After each (re)render, bind drag + edit handlers to every draggable
@@ -11994,17 +12256,25 @@ class InkLayer {
     }
     this._attach();
   }
+  /**
+   * Dispatch an ink annotation lifecycle event both to the user callback
+   * (`chart.events[name]`) and the internal event bus, in that order.
+   * @param {string} name @param {any} args
+   */
+  _fireAnnotationEvent(name, args) {
+    var _a;
+    const events = this.w.config.chart.events;
+    if (typeof events[name] === "function") {
+      events[name](this.ctx, args);
+    }
+    (_a = this.ctx.events) == null ? void 0 : _a.fireEvent(name, [this.ctx, args]);
+  }
   /** @param {string} type @param {any} anno @param {number} index */
   _fireDragged(type, anno, index) {
-    var _a;
     const args = { type, id: anno.id, index, x: anno.x, y: anno.y };
     if (anno.x2 != null) args.x2 = anno.x2;
     if (anno.y2 != null) args.y2 = anno.y2;
-    const events = this.w.config.chart.events;
-    if (typeof events.annotationDragged === "function") {
-      events.annotationDragged(this.ctx, args);
-    }
-    (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationDragged", [this.ctx, args]);
+    this._fireAnnotationEvent("annotationDragged", args);
   }
   // ─── P3: click-to-create ─────────────────────────────────────────────────
   /**
@@ -12136,15 +12406,10 @@ class InkLayer {
   }
   /** @param {string} type @param {any} anno @param {number} index */
   _fireCreated(type, anno, index) {
-    var _a;
     const args = { type, id: anno.id, index };
     if (typeof anno.x !== "undefined") args.x = anno.x;
     if (typeof anno.y !== "undefined") args.y = anno.y;
-    const events = this.w.config.chart.events;
-    if (typeof events.annotationCreated === "function") {
-      events.annotationCreated(this.ctx, args);
-    }
-    (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationCreated", [this.ctx, args]);
+    this._fireAnnotationEvent("annotationCreated", args);
   }
   // ─── P3: tool palette ────────────────────────────────────────────────────
   /** Render a minimal "add note" toggle into the chart wrap (once per render). */
@@ -12613,33 +12878,18 @@ class InkLayer {
   }
   /** @param {string} type @param {any} anno @param {number} index */
   _fireEdited(type, anno, index) {
-    var _a;
     const args = { type, id: anno.id, index, text: anno.label ? anno.label.text : "" };
-    const events = this.w.config.chart.events;
-    if (typeof events.annotationEdited === "function") {
-      events.annotationEdited(this.ctx, args);
-    }
-    (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationEdited", [this.ctx, args]);
+    this._fireAnnotationEvent("annotationEdited", args);
   }
   /** @param {string} type @param {any} anno @param {number} index */
   _fireStyled(type, anno, index) {
-    var _a;
     const args = { type, id: anno.id, index, label: anno.label, marker: anno.marker };
-    const events = this.w.config.chart.events;
-    if (typeof events.annotationStyled === "function") {
-      events.annotationStyled(this.ctx, args);
-    }
-    (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationStyled", [this.ctx, args]);
+    this._fireAnnotationEvent("annotationStyled", args);
   }
   /** @param {string} type @param {any} anno @param {number} index */
   _fireDeleted(type, anno, index) {
-    var _a;
     const args = { type, id: anno.id, index };
-    const events = this.w.config.chart.events;
-    if (typeof events.annotationDeleted === "function") {
-      events.annotationDeleted(this.ctx, args);
-    }
-    (_a = this.ctx.events) == null ? void 0 : _a.fireEvent("annotationDeleted", [this.ctx, args]);
+    this._fireAnnotationEvent("annotationDeleted", args);
   }
   // ─── lifecycle ────────────────────────────────────────────────────────────
   _teardownDocListeners() {

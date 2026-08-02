@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -163,7 +163,11 @@ class Helpers {
         yP -= w.globals.barHeight / 2 * (w.seriesData.series.length - 1) - w.globals.barHeight * anno.seriesIndex;
       }
     } else {
-      const seriesIndex = w.globals.seriesYAxisMap[anno.yAxisIndex][0];
+      const yAxisMap = w.globals.seriesYAxisMap[anno.yAxisIndex];
+      if (!yAxisMap || yAxisMap[0] == null || !w.config.yaxis[anno.yAxisIndex]) {
+        return { yP: 0, clipped: true };
+      }
+      const seriesIndex = yAxisMap[0];
       const yPos = w.config.yaxis[anno.yAxisIndex].logarithmic ? new CoreUtils(this.w).getLogVal(
         w.config.yaxis[anno.yAxisIndex].logBase,
         y,
@@ -514,6 +518,7 @@ class YAnnotations {
     return elg;
   }
 }
+const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 class PointAnnotations {
   /**
    * @param {import('./Annotations').default} annoCtx
@@ -556,6 +561,7 @@ class PointAnnotations {
         optsPoints
       );
       parent.appendChild(point.node);
+      const tooltipTargets = [point.node];
       applyProgressiveReveal(point, x, w);
       const text = anno.label.text ? anno.label.text : "";
       const elText = this.annoCtx.graphics.drawText({
@@ -583,6 +589,7 @@ class PointAnnotations {
         });
         g.node.innerHTML = anno.customSVG.SVG;
         parent.appendChild(g.node);
+        tooltipTargets.push(g.node);
       }
       if (anno.image.path) {
         const imgWidth = anno.image.width ? anno.image.width : 20;
@@ -594,6 +601,17 @@ class PointAnnotations {
           height: imgHeight,
           path: anno.image.path,
           appendTo: ".apexcharts-point-annotations"
+        });
+        tooltipTargets.push(point.node);
+      }
+      if (anno.tooltip && anno.tooltip.enabled) {
+        tooltipTargets.forEach((node) => {
+          node.addEventListener("mouseenter", () => {
+            this.showPointTooltip(anno, node);
+          });
+          node.addEventListener("mouseleave", () => {
+            this.hidePointTooltip();
+          });
         });
       }
       if (anno.mouseEnter) {
@@ -611,6 +629,88 @@ class PointAnnotations {
       if (anno.click) {
         point.node.addEventListener("click", anno.click.bind(this, anno));
       }
+    }
+  }
+  /**
+   * Lazily create (once per chart) and return the shared HTML element used to
+   * render point-annotation tooltips. Reuses the `.apexcharts-tooltip` glass
+   * styling; the `.apexcharts-annotation-tooltip` modifier adds padding and
+   * text wrapping for free-form content.
+   * @returns {HTMLElement}
+   */
+  getPointTooltipEl() {
+    const w = this.w;
+    let el = (
+      /** @type {HTMLElement | null} */
+      w.dom.elWrap.querySelector(".apexcharts-annotation-tooltip")
+    );
+    if (!el) {
+      el = /** @type {HTMLElement} */
+      BrowserAPIs.createElementNS("http://www.w3.org/1999/xhtml", "div");
+      el.classList.add("apexcharts-tooltip", "apexcharts-annotation-tooltip");
+      w.dom.elWrap.appendChild(el);
+    }
+    return el;
+  }
+  /**
+   * Resolve the tooltip markup for a point annotation. Precedence:
+   * `tooltip.formatter` (fn) -> `tooltip.text` -> `label.text`. Arrays are
+   * joined with line breaks.
+   * @param {Record<string, any>} anno
+   * @returns {string}
+   */
+  getPointTooltipContent(anno) {
+    const w = this.w;
+    const tt = anno.tooltip || {};
+    if (typeof tt.formatter === "function") {
+      return tt.formatter({
+        annotation: anno,
+        seriesIndex: anno.seriesIndex,
+        id: anno.id,
+        w
+      });
+    }
+    let content = tt.text != null ? tt.text : anno.label && anno.label.text;
+    if (Array.isArray(content)) {
+      content = content.join("<br/>");
+    }
+    return content == null ? "" : String(content);
+  }
+  /**
+   * @param {Record<string, any>} anno
+   * @param {Element} targetNode the hovered marker / image / custom-SVG node
+   */
+  showPointTooltip(anno, targetNode) {
+    const w = this.w;
+    const content = this.getPointTooltipContent(anno);
+    if (!content) return;
+    const el = this.getPointTooltipEl();
+    el.innerHTML = content;
+    const theme = anno.tooltip.theme || w.config.tooltip.theme || "light";
+    el.classList.remove("apexcharts-theme-light", "apexcharts-theme-dark");
+    el.classList.add(`apexcharts-theme-${theme}`);
+    el.classList.add("apexcharts-active");
+    const wrapRect = w.dom.elWrap.getBoundingClientRect();
+    const markRect = targetNode.getBoundingClientRect();
+    const ttRect = el.getBoundingClientRect();
+    const offsetX = anno.tooltip.offsetX || 0;
+    const offsetY = anno.tooltip.offsetY || 0;
+    let left = markRect.left - wrapRect.left + markRect.width / 2 - ttRect.width / 2;
+    let top = markRect.top - wrapRect.top - ttRect.height - 10;
+    left = Math.max(0, Math.min(left, wrapRect.width - ttRect.width));
+    if (top < 0) {
+      top = markRect.top - wrapRect.top + markRect.height + 10;
+    }
+    el.style.left = left + offsetX + "px";
+    el.style.top = top + offsetY + "px";
+  }
+  hidePointTooltip() {
+    const el = (
+      /** @type {HTMLElement | null} */
+      this.w.dom.elWrap.querySelector(".apexcharts-annotation-tooltip")
+    );
+    if (el) {
+      el.classList.remove("apexcharts-active");
     }
   }
   drawPointAnnotations() {
@@ -889,10 +989,28 @@ class Annotations {
     return context;
   }
   /**
+   * Remove the shared point-annotation hover tooltip node.
+   *
+   * `hidePointTooltip` is wired only to the marker's `mouseleave`; if the marker
+   * is torn down while hovered (clearAnnotations / removeAnnotation / a redraw),
+   * that never fires and the tooltip is left `.apexcharts-active`. A stale active
+   * annotation tooltip then permanently suppresses the series tooltip (see the
+   * guard in Tooltip.drawTooltip added by b1369f5ab). Removing the node clears
+   * both the ghost box and the stale state; it is recreated on the next hover.
+   * @param {any} w
+   */
+  _removeAnnotationTooltip(w) {
+    const el = w.dom.elWrap && w.dom.elWrap.querySelector(".apexcharts-annotation-tooltip");
+    if (el && el.parentNode) {
+      el.parentNode.removeChild(el);
+    }
+  }
+  /**
    * @param {import('../../types/internal').ChartContext} ctx
    */
   clearAnnotations(ctx) {
     const w = ctx.w;
+    this._removeAnnotationTooltip(w);
     const annos = w.dom.baseEl.querySelectorAll(
       ".apexcharts-yaxis-annotations, .apexcharts-xaxis-annotations, .apexcharts-point-annotations"
     );
@@ -913,6 +1031,7 @@ class Annotations {
    */
   removeAnnotation(ctx, id) {
     const w = ctx.w;
+    this._removeAnnotationTooltip(w);
     const annos = w.dom.baseEl.querySelectorAll(`.${id}`);
     if (annos) {
       w.globals.memory.methodsToExec.map((m, i) => {

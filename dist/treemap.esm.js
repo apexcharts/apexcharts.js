@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -231,11 +231,19 @@ class TreemapHelpers {
     }
     let color = w.globals.colors[seriesNumber];
     let foreColor = null;
-    let min = Math.min(...w.seriesData.series[i]);
-    let max = Math.max(...w.seriesData.series[i]);
+    let min;
+    let max;
     if (!chartOpts.distributed && chartType === "heatmap") {
       min = w.globals.minY;
       max = w.globals.maxY;
+    } else {
+      const row = w.seriesData.series[i];
+      min = row.length ? row[0] : 0;
+      max = min;
+      for (let k = 1; k < row.length; k++) {
+        if (row[k] < min) min = row[k];
+        if (row[k] > max) max = row[k];
+      }
     }
     if (typeof chartOpts.colorScale.min !== "undefined") {
       min = chartOpts.colorScale.min < w.globals.minY ? chartOpts.colorScale.min : w.globals.minY;

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -196,7 +196,7 @@ class Exports {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.fillStyle = canvasBg;
-      ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       this.getSvgString(scale).then((svgData) => {
         const svgUrl = "data:image/svg+xml," + encodeURIComponent(svgData);
         const img = new Image();
@@ -257,6 +257,11 @@ class Exports {
     const gSeries = w.seriesData.series.map((s, i) => {
       return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : [];
     });
+    const csvSafe = (val) => {
+      if (val == null || Utils.isNumber(val)) return val;
+      const s = String(val);
+      return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+    };
     const getFormattedCategory = (cat) => {
       if (typeof w.config.chart.toolbar.export.csv.categoryFormatter === "function") {
         return w.config.chart.toolbar.export.csv.categoryFormatter(cat);
@@ -264,10 +269,10 @@ class Exports {
       if (w.config.xaxis.type === "datetime" && String(cat).length >= 10) {
         return new Date(cat).toDateString();
       }
-      return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join("");
+      return Utils.isNumber(cat) ? cat : csvSafe(cat.split(columnDelimiter).join(""));
     };
     const getFormattedValue = (value) => {
-      return typeof w.config.chart.toolbar.export.csv.valueFormatter === "function" ? w.config.chart.toolbar.export.csv.valueFormatter(value) : value;
+      return typeof w.config.chart.toolbar.export.csv.valueFormatter === "function" ? w.config.chart.toolbar.export.csv.valueFormatter(value) : csvSafe(value);
     };
     const seriesMaxDataLength = Math.max(
       ...series.map((s) => {
@@ -326,8 +331,8 @@ class Exports {
         rows.push(columns.join(columnDelimiter));
       }
       if (s.data) {
-        s.data = s.data.length && s.data || getEmptyDataForCsvColumn();
-        for (let i = 0; i < s.data.length; i++) {
+        const rowData = s.data.length ? s.data : getEmptyDataForCsvColumn();
+        for (let i = 0; i < rowData.length; i++) {
           columns = [];
           let cat = getCat(i);
           if (cat === "nullvalue") continue;

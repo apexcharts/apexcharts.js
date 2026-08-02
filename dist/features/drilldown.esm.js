@@ -19,7 +19,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -102,6 +102,32 @@ class Breadcrumb {
       }
     });
     elWrap.appendChild(nav);
+    this._avoidChromeOverlap(nav);
+  }
+  /**
+   * The breadcrumb is an absolute overlay, so at its default top-left it can
+   * sit on top of a left-aligned title (or subtitle). After mounting, push it
+   * below any chart chrome it intersects. (Sunburst's self-contained
+   * breadcrumb applies the same rule.)
+   * @param {HTMLElement} nav
+   */
+  _avoidChromeOverlap(nav) {
+    const w = this.w;
+    const chrome = (
+      /** @type {Element[]} */
+      [".apexcharts-title-text", ".apexcharts-subtitle-text"].map((s) => w.dom.baseEl.querySelector(s)).filter((el) => el !== null)
+    );
+    if (!chrome.length) return;
+    const wrapTop = w.dom.elWrap.getBoundingClientRect().top;
+    for (let pass = 0; pass < chrome.length + 1; pass++) {
+      const nr = nav.getBoundingClientRect();
+      const hit = chrome.find((el) => {
+        const r = el.getBoundingClientRect();
+        return nr.left < r.right && nr.right > r.left && nr.top < r.bottom && nr.bottom > r.top;
+      });
+      if (!hit) break;
+      nav.style.top = `${hit.getBoundingClientRect().bottom - wrapTop + 4}px`;
+    }
   }
   /**
    * @param {string|number} id
@@ -294,7 +320,7 @@ class Drilldown {
   _snapshot() {
     const c = this.w.config;
     const fields = this._overrideFields();
-    const snap = { series: Utils.clone(c.series) };
+    const snap = { series: this._uncollapseSeries(Utils.clone(c.series)) };
     if (Array.isArray(c.labels) && c.labels.length) {
       snap.labels = Utils.clone(c.labels);
     }
@@ -306,6 +332,41 @@ class Drilldown {
     if (fields.has("fill")) snap.fill = Utils.clone(c.fill);
     if (fields.has("legend")) snap.legend = Utils.clone(c.legend);
     return snap;
+  }
+  /**
+   * Restore any legend-collapsed slices/series to their original values in a
+   * cloned series array, so a drill snapshot captures the pre-collapse data.
+   * Mirrors legend Helpers' collapse addressing: object-form pie/donut packs
+   * every slice as a data point inside `series[0].data`; numeric pie stores a
+   * slice per top-level element; axis series carry a `data` array. No-op when
+   * nothing is collapsed.
+   * @param {any[]} series
+   * @returns {any[]}
+   */
+  _uncollapseSeries(series) {
+    const w = this.w;
+    const gl = w.globals;
+    const entries = [
+      ...gl.collapsedSeries || [],
+      ...gl.ancillaryCollapsedSeries || []
+    ];
+    if (!entries.length) return series;
+    const type = w.config.chart.type;
+    const objectFormPie = (type === "pie" || type === "donut" || type === "polarArea") && series.length === 1 && series[0] && typeof series[0] === "object" && Array.isArray(series[0].data);
+    const container = objectFormPie ? series[0].data : series;
+    for (const entry of entries) {
+      const i = entry.index;
+      if (gl.axisCharts) {
+        if (series[i]) {
+          series[i].data = Array.isArray(entry.data) ? entry.data.slice() : entry.data;
+        }
+      } else if (container[i] && typeof container[i] === "object") {
+        container[i].y = entry.data;
+      } else if (container[i] !== void 0) {
+        container[i] = entry.data;
+      }
+    }
+    return series;
   }
   /**
    * Union of overridable fields across all declared drilldown levels. Ensures a
@@ -327,6 +388,20 @@ class Drilldown {
     return fields;
   }
   /**
+   * Copy the optional view fields shared by a drilldown child level and a
+   * restore snapshot (`xaxis`, `yaxis`, `colors`, `plotOptions`, `fill`,
+   * `legend`) from `src` onto `view`, only when present.
+   * @param {Record<string, any>} view @param {Record<string, any>} src
+   */
+  _copyOptionalViewFields(view, src) {
+    if (src.xaxis) view.xaxis = src.xaxis;
+    if (src.yaxis) view.yaxis = src.yaxis;
+    if (src.colors) view.colors = src.colors;
+    if (src.plotOptions) view.plotOptions = src.plotOptions;
+    if (src.fill) view.fill = src.fill;
+    if (src.legend) view.legend = src.legend;
+  }
+  /**
    * Build an updateOptions/updateSeries payload for drilling INTO a child level.
    * Works for axis charts and pie/donut alike: both accept series objects with a
    * `data` array of `{ x, y }` points (pie derives slice labels from `x`).
@@ -344,12 +419,7 @@ class Drilldown {
     if (child.chart && child.chart.type) chart.type = child.chart.type;
     if (child.chart && child.chart.stacked != null) chart.stacked = child.chart.stacked;
     if (Object.keys(chart).length) view.chart = chart;
-    if (child.xaxis) view.xaxis = child.xaxis;
-    if (child.yaxis) view.yaxis = child.yaxis;
-    if (child.colors) view.colors = child.colors;
-    if (child.plotOptions) view.plotOptions = child.plotOptions;
-    if (child.fill) view.fill = child.fill;
-    if (child.legend) view.legend = child.legend;
+    this._copyOptionalViewFields(view, child);
     return view;
   }
   /**
@@ -360,12 +430,7 @@ class Drilldown {
   _viewFromSnapshot(snap) {
     const view = { series: snap.series, chart: snap.chart };
     if (snap.labels && snap.labels.length) view.labels = snap.labels;
-    if (snap.xaxis) view.xaxis = snap.xaxis;
-    if (snap.yaxis) view.yaxis = snap.yaxis;
-    if (snap.colors) view.colors = snap.colors;
-    if (snap.plotOptions) view.plotOptions = snap.plotOptions;
-    if (snap.fill) view.fill = snap.fill;
-    if (snap.legend) view.legend = snap.legend;
+    this._copyOptionalViewFields(view, snap);
     return view;
   }
   /**

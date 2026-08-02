@@ -22,7 +22,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as ApexCharts from "apexcharts/core";
@@ -642,6 +642,14 @@ function resolveKey(w) {
   if (apex && apex.license) return apex.license;
   return null;
 }
+const PREMIUM_PLANS = /* @__PURE__ */ new Set(["premium", "enterprise"]);
+function licensedForPremium(key) {
+  if (!key) return false;
+  const result = LicenseManager.validateKey(key);
+  if (!result.valid) return false;
+  const plan = result.data && result.data.plan;
+  return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
+}
 function reinstateWatermark(ctx, elWrap) {
   const node = Watermark.add(elWrap);
   if (!node || typeof MutationObserver === "undefined") return;
@@ -684,14 +692,23 @@ function teardownWatermark(ctx, elWrap) {
 function notifyTrial(ctx, key, features) {
   if (ctx._premiumLicenseNotified) return;
   ctx._premiumLicenseNotified = true;
+  const many = features.length > 1;
   if (!key) {
     console.warn(
-      `[ApexCharts] Premium feature${features.length > 1 ? "s" : ""} in use (${features.join(", ")}) without a license. Running in trial mode with a watermark. Get a license: ${PRICING_URL}`
+      `[ApexCharts] Premium feature${many ? "s" : ""} in use (${features.join(", ")}) without a license. Running in trial mode with a watermark. Get a license: ${PRICING_URL}`
+    );
+    return;
+  }
+  const result = LicenseManager.validateKey(key);
+  if (result.valid) {
+    const plan = result.data && result.data.plan || "current";
+    console.warn(
+      `[ApexCharts] Premium feature${many ? "s" : ""} in use (${features.join(", ")}) require a Premium or Enterprise license; the ${plan} plan does not include ${many ? "them" : "it"}. Running in trial mode with a watermark. Upgrade: ${PRICING_URL}`
     );
     return;
   }
   if (key !== LicenseManager.getKey()) {
-    console.error(`[Apex] ${LicenseManager.validateKey(key).message}`);
+    console.error(`[Apex] ${result.message}`);
   }
 }
 function enforceLicense(w, ctx) {
@@ -711,7 +728,7 @@ function enforceLicense(w, ctx) {
     }
     enforced.add(ctx);
     const key = resolveKey(w);
-    if (LicenseManager.isKeyValid(key)) {
+    if (licensedForPremium(key)) {
       teardownWatermark(ctx, elWrap);
       return;
     }

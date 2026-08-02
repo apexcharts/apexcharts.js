@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -216,7 +216,7 @@ class Exports {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.fillStyle = canvasBg;
-      ctx.fillRect(0, 0, canvas.width * scale, canvas.height * scale);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       this.getSvgString(scale).then((svgData) => {
         const svgUrl = "data:image/svg+xml," + encodeURIComponent(svgData);
         const img = new Image();
@@ -277,6 +277,11 @@ class Exports {
     const gSeries = w.seriesData.series.map((s, i) => {
       return w.globals.collapsedSeriesIndices.indexOf(i) === -1 ? s : [];
     });
+    const csvSafe = (val) => {
+      if (val == null || Utils.isNumber(val)) return val;
+      const s = String(val);
+      return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+    };
     const getFormattedCategory = (cat) => {
       if (typeof w.config.chart.toolbar.export.csv.categoryFormatter === "function") {
         return w.config.chart.toolbar.export.csv.categoryFormatter(cat);
@@ -284,10 +289,10 @@ class Exports {
       if (w.config.xaxis.type === "datetime" && String(cat).length >= 10) {
         return new Date(cat).toDateString();
       }
-      return Utils.isNumber(cat) ? cat : cat.split(columnDelimiter).join("");
+      return Utils.isNumber(cat) ? cat : csvSafe(cat.split(columnDelimiter).join(""));
     };
     const getFormattedValue = (value) => {
-      return typeof w.config.chart.toolbar.export.csv.valueFormatter === "function" ? w.config.chart.toolbar.export.csv.valueFormatter(value) : value;
+      return typeof w.config.chart.toolbar.export.csv.valueFormatter === "function" ? w.config.chart.toolbar.export.csv.valueFormatter(value) : csvSafe(value);
     };
     const seriesMaxDataLength = Math.max(
       ...series.map((s) => {
@@ -346,8 +351,8 @@ class Exports {
         rows.push(columns.join(columnDelimiter));
       }
       if (s.data) {
-        s.data = s.data.length && s.data || getEmptyDataForCsvColumn();
-        for (let i = 0; i < s.data.length; i++) {
+        const rowData = s.data.length ? s.data : getEmptyDataForCsvColumn();
+        for (let i = 0; i < rowData.length; i++) {
           columns = [];
           let cat = getCat(i);
           if (cat === "nullvalue") continue;
@@ -1164,6 +1169,11 @@ class AxisMapping {
 }
 const Box = _core.__apex_index_Box;
 const WHEEL_ZOOM_PIXELS_PER_2X = 240;
+const INERTIA_MIN_RELEASE_VELOCITY = 0.05;
+const INERTIA_DEFAULT_FRICTION = 0.92;
+const INERTIA_STOP_VELOCITY = 0.02;
+const FRAME_MS_60FPS = 16.6667;
+const PAN_NUDGE_DIVISOR = 15;
 class ZoomPanSelection extends Toolbar {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -1182,8 +1192,7 @@ class ZoomPanSelection extends Toolbar {
       "touchstart",
       "touchmove",
       "mouseup",
-      "touchend",
-      "wheel"
+      "touchend"
     ];
     this.clientX = 0;
     this.clientY = 0;
@@ -1281,12 +1290,12 @@ class ZoomPanSelection extends Toolbar {
     const autoSelected = w.config.chart.toolbar.autoSelected;
     if (autoSelected !== "measure") {
       if (e.shiftKey) {
-        this.shiftWasPressed = true;
+        w.interact.shiftWasPressed = true;
         toolbar.enableZoomPanFromToolbar(autoSelected === "pan" ? "zoom" : "pan");
       } else {
-        if (this.shiftWasPressed) {
+        if (w.interact.shiftWasPressed) {
           toolbar.enableZoomPanFromToolbar(autoSelected);
-          this.shiftWasPressed = false;
+          w.interact.shiftWasPressed = false;
         }
       }
     }
@@ -1930,11 +1939,11 @@ class ZoomPanSelection extends Toolbar {
       maxX = w.globals.maxY;
     }
     if (this.moveDirection === "left") {
-      xLowestValue = minX + w.layout.gridWidth / 15 * xRatio;
-      xHighestValue = maxX + w.layout.gridWidth / 15 * xRatio;
+      xLowestValue = minX + w.layout.gridWidth / PAN_NUDGE_DIVISOR * xRatio;
+      xHighestValue = maxX + w.layout.gridWidth / PAN_NUDGE_DIVISOR * xRatio;
     } else if (this.moveDirection === "right") {
-      xLowestValue = minX - w.layout.gridWidth / 15 * xRatio;
-      xHighestValue = maxX - w.layout.gridWidth / 15 * xRatio;
+      xLowestValue = minX - w.layout.gridWidth / PAN_NUDGE_DIVISOR * xRatio;
+      xHighestValue = maxX - w.layout.gridWidth / PAN_NUDGE_DIVISOR * xRatio;
     }
     if (!w.axisFlags.isRangeBar) {
       const clampMin = (_a = w.globals.dataReducerRawMinX) != null ? _a : w.globals.initialMinX;
@@ -2280,7 +2289,7 @@ class ZoomPanSelection extends Toolbar {
       if (dt > 0) vel = (b.x - a.x) / dt;
     }
     m.samples = [];
-    if (s && s.axis === "x" && this._panInertiaEnabled() && Math.abs(vel) > 0.05) {
+    if (s && s.axis === "x" && this._panInertiaEnabled() && Math.abs(vel) > INERTIA_MIN_RELEASE_VELOCITY) {
       this._startInertia(vel);
     } else {
       m.busy = false;
@@ -2298,7 +2307,7 @@ class ZoomPanSelection extends Toolbar {
     const w = this.w;
     const m = this._m();
     const cfgFriction = w.config.chart.pan && w.config.chart.pan.friction;
-    const friction = typeof cfgFriction === "number" ? Math.min(Math.max(cfgFriction, 0.5), 0.999) : 0.92;
+    const friction = typeof cfgFriction === "number" ? Math.min(Math.max(cfgFriction, 0.5), 0.999) : INERTIA_DEFAULT_FRICTION;
     let vel = vel0;
     let lastT = null;
     m.busy = true;
@@ -2315,8 +2324,8 @@ class ZoomPanSelection extends Toolbar {
       }
       const dt = ts - lastT;
       lastT = ts;
-      vel *= Math.pow(friction, dt / 16.6667);
-      if (Math.abs(vel) < 0.02) {
+      vel *= Math.pow(friction, dt / FRAME_MS_60FPS);
+      if (Math.abs(vel) < INERTIA_STOP_VELOCITY) {
         m.inertiaRAF = null;
         m.busy = false;
         this._fireScrolled();

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -148,33 +148,20 @@ class Helpers {
         }
       }
     } else {
-      const type = w.config.chart.type;
-      if (type === "unit") {
-        w.globals.resized = true;
-        w.globals.risingSeries = [];
-        if (isHidden) {
-          this.riseCollapsedSeries(
-            w.globals.collapsedSeries,
-            w.globals.collapsedSeriesIndices,
-            seriesCnt
-          );
-        } else {
-          const series = this.getSeriesAfterCollapsing({ realIndex: seriesCnt });
-          this.lgCtx.updateSeries(
-            series,
-            w.config.chart.animations.dynamicAnimation.enabled
-          );
-        }
-      } else {
-        const seriesEl = w.dom.Paper.findOne(
-          ` .apexcharts-series[rel='${seriesCnt + 1}'] path`
+      w.globals.resized = true;
+      w.globals.risingSeries = [];
+      if (isHidden) {
+        this.riseCollapsedSeries(
+          w.globals.collapsedSeries,
+          w.globals.collapsedSeriesIndices,
+          seriesCnt
         );
-        if (type === "pie" || type === "polarArea" || type === "donut") {
-          const dataLabels = w.config.plotOptions.pie.donut.labels;
-          const graphics = new Graphics(this.w);
-          graphics.pathMouseDown(seriesEl, null);
-          this.lgCtx.printDataLabelsInner(seriesEl.node, dataLabels);
-        }
+      } else {
+        const series = this.getSeriesAfterCollapsing({ realIndex: seriesCnt });
+        this.lgCtx.updateSeries(
+          series,
+          w.config.chart.animations.dynamicAnimation.enabled
+        );
       }
       if (w.config.chart.accessibility.enabled) {
         const legendItem = w.dom.baseEl.querySelector(
@@ -199,9 +186,58 @@ class Helpers {
       }
     }
   }
+  /**
+   * Non-axis "slice" container. A pie/donut/polarArea slice is normally a
+   * top-level series element (numeric form: `series = [n, n, n]`), but object
+   * form (`series = [{ data: [{ x, y, drilldown }, ...] }]`, which pie/donut
+   * drilldown requires) packs every slice as a data point inside a single
+   * series. Return the array that actually holds the slice values so a
+   * slice/legend index addresses the right thing. Scoped to the pie family so
+   * unit charts (which share this non-axis path) are untouched.
+   * @param {any[]} series
+   * @returns {any[]}
+   */
+  _nonAxisSliceContainer(series) {
+    const type = this.w.config.chart.type;
+    if ((type === "pie" || type === "donut" || type === "polarArea" || type === "sunburst") && series.length === 1 && series[0] && typeof series[0] === "object" && Array.isArray(series[0].data)) {
+      return series[0].data;
+    }
+    return series;
+  }
+  /**
+   * Read a non-axis slice value (handles `{ x, y }` data points and plain
+   * numbers).
+   * @param {any} sliceEntry
+   * @returns {number}
+   */
+  _readSliceValue(sliceEntry) {
+    if (this.w.config.chart.type === "unit" && sliceEntry && Array.isArray(sliceEntry.data)) {
+      return sliceEntry.data;
+    }
+    return sliceEntry && typeof sliceEntry === "object" ? sliceEntry.y : sliceEntry;
+  }
+  /**
+   * Write a non-axis slice value in place, preserving `{ x, drilldown, ... }`
+   * on object data points.
+   * @param {any[]} container
+   * @param {number} i
+   * @param {number} value
+   */
+  _writeSliceValue(container, i, value) {
+    const entry = container[i];
+    if (this.w.config.chart.type === "unit" && entry && Array.isArray(entry.data)) {
+      entry.data = Array.isArray(value) ? value : [];
+      return;
+    }
+    if (entry && typeof entry === "object") {
+      entry.y = value;
+    } else {
+      container[i] = value;
+    }
+  }
   /** @param {{realIndex: any}} opts */
   getSeriesAfterCollapsing({ realIndex }) {
-    var _a;
+    var _a, _b;
     const w = this.w;
     const gl = w.globals;
     const series = Utils.clone(w.config.series);
@@ -230,19 +266,25 @@ class Helpers {
         }
       }
     } else {
-      gl.collapsedSeries.push({
-        index: realIndex,
-        data: series[realIndex],
-        type: (
-          /** @type {any} */
-          (_a = w.config.series[realIndex].type) != null ? _a : "line"
-        ),
-        // Pin the hide by category name so it survives a regroup (see above).
-        name: (gl.seriesNames || [])[realIndex]
-      });
-      gl.collapsedSeriesIndices.push(realIndex);
+      if (gl.collapsedSeriesIndices.indexOf(realIndex) < 0) {
+        const container = this._nonAxisSliceContainer(series);
+        gl.collapsedSeries.push({
+          index: realIndex,
+          // Store the original slice VALUE so it can be restored on rise. In
+          // object form this is a data point's `y`, not the whole series entry.
+          data: this._readSliceValue(container[realIndex]),
+          type: (
+            /** @type {any} */
+            (_b = (_a = w.config.series[realIndex]) == null ? void 0 : _a.type) != null ? _b : "line"
+          ),
+          // Pin the hide by category name so it survives a regroup (see above).
+          name: (gl.seriesNames || [])[realIndex]
+        });
+        gl.collapsedSeriesIndices.push(realIndex);
+      }
     }
-    gl.allSeriesCollapsed = gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length === w.config.series.length;
+    const seriesCount = gl.axisCharts ? w.config.series.length : this._nonAxisSliceContainer(series).length;
+    gl.allSeriesCollapsed = gl.collapsedSeries.length + gl.ancillaryCollapsedSeries.length === seriesCount;
     return this._getSeriesBasedOnCollapsedState(series);
   }
   /** @param {{seriesEl: any, realIndex: any}} opts */
@@ -279,11 +321,10 @@ class Helpers {
         if (collapsedSeries[c].index === realIndex) {
           if (w.globals.axisCharts) {
             series[realIndex].data = collapsedSeries[c].data.slice();
-          } else {
-            series[realIndex] = collapsedSeries[c].data;
-          }
-          if (typeof series[realIndex] !== "number") {
             series[realIndex].hidden = false;
+          } else {
+            const container = this._nonAxisSliceContainer(series);
+            this._writeSliceValue(container, realIndex, collapsedSeries[c].data);
           }
           collapsedSeries.splice(c, 1);
           seriesIndices.splice(c, 1);
@@ -312,14 +353,16 @@ class Helpers {
         }
       });
     } else {
-      series.forEach((s, sI) => {
+      const container = this._nonAxisSliceContainer(series);
+      container.forEach((s, sI) => {
         if (!(w.globals.collapsedSeriesIndices.indexOf(sI) < 0)) {
-          series[sI] = 0;
+          this._writeSliceValue(container, sI, 0);
           collapsed++;
         }
       });
     }
-    w.globals.allSeriesCollapsed = collapsed === series.length;
+    const seriesCount = w.globals.axisCharts ? series.length : this._nonAxisSliceContainer(series).length;
+    w.globals.allSeriesCollapsed = collapsed === seriesCount;
     return series;
   }
 }
@@ -989,10 +1032,6 @@ class Legend {
   constructor(w, ctx) {
     this.w = w;
     this.ctx = ctx;
-    this.printDataLabelsInner = (...a) => {
-      var _a;
-      return (_a = ctx.pie) == null ? void 0 : _a.printDataLabelsInner(...a);
-    };
     this.updateSeries = (...a) => ctx.updateHelpers._updateSeries(...a);
     this.onLegendClick = this.onLegendClick.bind(this);
     this.onLegendHovered = this.onLegendHovered.bind(this);

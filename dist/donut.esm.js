@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -136,6 +136,102 @@ class CircularChartsHelpers {
   }
 }
 const Environment = _core.__apex_Environment_Environment;
+const D2R = Math.PI / 180;
+const R2D = 180 / Math.PI;
+function arcPoint(cx, cy, radius, deg) {
+  return {
+    x: cx + radius * Math.cos((deg - 90) * D2R),
+    y: cy + radius * Math.sin((deg - 90) * D2R)
+  };
+}
+const xy = (p) => `${p.x} ${p.y}`;
+function roundedDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, r, spanDeg }) {
+  const ptAt = (radius, deg) => arcPoint(cx, cy, radius, deg);
+  const degOut = r / rOut * R2D;
+  const degIn = r / rIn * R2D;
+  const oStart = ptAt(rOut, a0 + degOut);
+  const oEnd = ptAt(rOut, a1 - degOut);
+  const largeOut = spanDeg - 2 * degOut > 180 ? 1 : 0;
+  const ocEnd = ptAt(rOut, a1);
+  const rEndOut = ptAt(rOut - r, a1);
+  const ocStart = ptAt(rOut, a0);
+  const rStartOut = ptAt(rOut - r, a0);
+  const iEnd = ptAt(rIn, a1 - degIn);
+  const iStart = ptAt(rIn, a0 + degIn);
+  const largeIn = spanDeg - 2 * degIn > 180 ? 1 : 0;
+  const icEnd = ptAt(rIn, a1);
+  const rEndIn = ptAt(rIn + r, a1);
+  const icStart = ptAt(rIn, a0);
+  const rStartIn = ptAt(rIn + r, a0);
+  return [
+    "M",
+    xy(oStart),
+    "A",
+    rOut,
+    rOut,
+    0,
+    largeOut,
+    1,
+    xy(oEnd),
+    "Q",
+    xy(ocEnd),
+    xy(rEndOut),
+    "L",
+    xy(rEndIn),
+    "Q",
+    xy(icEnd),
+    xy(iEnd),
+    "A",
+    rIn,
+    rIn,
+    0,
+    largeIn,
+    0,
+    xy(iStart),
+    "Q",
+    xy(icStart),
+    xy(rStartIn),
+    "L",
+    xy(rStartOut),
+    "Q",
+    xy(ocStart),
+    xy(oStart),
+    "Z"
+  ].join(" ");
+}
+function roundedPieSegmentPath({ cx, cy, rOut, a0, a1, r, spanDeg }) {
+  const ptAt = (radius, deg) => arcPoint(cx, cy, radius, deg);
+  const degOut = r / rOut * R2D;
+  const oStart = ptAt(rOut, a0 + degOut);
+  const oEnd = ptAt(rOut, a1 - degOut);
+  const largeOut = spanDeg - 2 * degOut > 180 ? 1 : 0;
+  const ocEnd = ptAt(rOut, a1);
+  const rEndOut = ptAt(rOut - r, a1);
+  const ocStart = ptAt(rOut, a0);
+  const rStartOut = ptAt(rOut - r, a0);
+  return [
+    "M",
+    xy(oStart),
+    "A",
+    rOut,
+    rOut,
+    0,
+    largeOut,
+    1,
+    xy(oEnd),
+    "Q",
+    xy(ocEnd),
+    xy(rEndOut),
+    "L",
+    `${cx} ${cy}`,
+    "L",
+    xy(rStartOut),
+    "Q",
+    xy(ocStart),
+    xy(oStart),
+    "Z"
+  ].join(" ");
+}
 class Pie {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -297,7 +393,9 @@ class Pie {
       sectorAngleArr.push(angle);
       if (this.chartType === "polarArea") {
         sectorAngleArr[i] = this.fullAngle / series.length;
-        this.sliceSizes.push(w.globals.radialSize * series[i] / this.maxY);
+        this.sliceSizes.push(
+          w.globals.radialSize * series[i] / (this.maxY || 1)
+        );
       } else {
         this.sliceSizes.push(w.globals.radialSize);
       }
@@ -861,14 +959,37 @@ class Pie {
   /** @param {{me: any, startAngle: any, angle: any, size: any}} opts */
   getPiePath({ me, startAngle, angle, size }) {
     let path;
+    const w = this.w;
     const graphics = new Graphics(this.w);
-    const startDeg = startAngle;
-    const startRadians = Math.PI * (startDeg - 90) / 180;
+    let startDeg = startAngle;
     let endDeg = angle + startAngle;
     if (Math.ceil(endDeg) >= this.fullAngle + this.w.config.plotOptions.pie.startAngle % this.fullAngle) {
       endDeg = this.fullAngle + this.w.config.plotOptions.pie.startAngle % this.fullAngle - 0.01;
     }
+    let spanDeg = endDeg - startDeg;
+    const isSliceType = me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea";
+    const spacing = w.config.plotOptions.pie.spacing;
+    if (isSliceType && spacing > 0 && spanDeg > 0) {
+      const rRef = me.chartType === "donut" ? (size + me.donutSize) / 2 : size;
+      const gapDeg = rRef > 0 ? spacing / rRef * (180 / Math.PI) : 0;
+      const inset = Math.min(gapDeg / 2, Math.max(0, spanDeg / 2 - 0.5));
+      startDeg += inset;
+      spanDeg -= 2 * inset;
+    }
+    endDeg = startDeg + spanDeg;
     if (Math.ceil(endDeg) > this.fullAngle) endDeg -= this.fullAngle;
+    const startRadians = Math.PI * (startDeg - 90) / 180;
+    const borderRadius = w.config.plotOptions.pie.borderRadius;
+    if (borderRadius > 0 && isSliceType) {
+      const roundedPath = this.getRoundedSlicePath({
+        me,
+        startDeg,
+        spanDeg,
+        size,
+        borderRadius
+      });
+      if (roundedPath) return roundedPath;
+    }
     const endRadians = Math.PI * (endDeg - 90) / 180;
     const x1 = me.centerX + size * Math.cos(startRadians);
     const y1 = me.centerY + size * Math.sin(startRadians);
@@ -886,7 +1007,7 @@ class Pie {
       me.donutSize,
       startDeg
     );
-    const largeArc = angle > 180 ? 1 : 0;
+    const largeArc = spanDeg > 180 ? 1 : 0;
     const pathBeginning = ["M", x1, y1, "A", size, size, 0, largeArc, 1, x2, y2];
     if (me.chartType === "donut") {
       path = [
@@ -915,6 +1036,48 @@ class Pie {
       path = [...pathBeginning].join(" ");
     }
     return graphics.roundPathCorners(path, this.strokeWidth * 2);
+  }
+  /**
+   * Build a slice path with rounded corners (plotOptions.pie.borderRadius).
+   *
+   * The generic roundPathCorners() only rounds line->line joins, but a slice
+   * corner is an arc<->line join, so we construct the fillets explicitly here:
+   * every corner is inset by the (clamped) radius along both the arc and the
+   * radial edge, and a quadratic Bezier with its control point at the original
+   * sharp corner bridges the two inset points. Donut slices round all four
+   * corners; pie / polarArea slices round the two outer corners and keep the
+   * center apex sharp.
+   *
+   * Returns null when the slice is too small to round meaningfully, so the
+   * caller can fall back to a sharp-corner path.
+   *
+   * @param {{me: any, startDeg: number, spanDeg: number, size: number, borderRadius: number}} opts
+   * @returns {string | null}
+   */
+  getRoundedSlicePath({ me, startDeg, spanDeg, size, borderRadius }) {
+    if (!(spanDeg > 0)) return null;
+    const D2R2 = Math.PI / 180;
+    const cx = me.centerX;
+    const cy = me.centerY;
+    const isDonut = me.chartType === "donut";
+    const rOut = size;
+    const rIn = isDonut ? me.donutSize : 0;
+    const spanRad = spanDeg * D2R2;
+    let r = borderRadius;
+    r = Math.min(r, spanRad * rOut / 2);
+    if (isDonut) {
+      r = Math.min(r, spanRad * rIn / 2);
+      r = Math.min(r, (rOut - rIn) / 2);
+    } else {
+      r = Math.min(r, rOut / 2);
+    }
+    if (!(r > 0.5)) return null;
+    const a0 = startDeg;
+    const a1 = startDeg + spanDeg;
+    if (isDonut) {
+      return roundedDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, r, spanDeg });
+    }
+    return roundedPieSegmentPath({ cx, cy, rOut, a0, a1, r, spanDeg });
   }
   /**
    * @param {any} parent

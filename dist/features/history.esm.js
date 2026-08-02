@@ -14,7 +14,7 @@ var __objRest = (source, exclude) => {
   return target;
 };
 /*!
- * ApexCharts v6.6.1
+ * ApexCharts v6.7.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -415,6 +415,10 @@ class History {
       throw e;
     }
     Promise.resolve(p).then(() => {
+      if (this.w.globals.isDestroyed) {
+        this.applying = false;
+        return;
+      }
       applyViewInteraction(this.ctx, cp.view);
       this._refreshSettle();
       this._emitChange();
