@@ -67,6 +67,10 @@ export default class SunburstChart {
     this._focusMaxDepth = 0
     /** @type {any} focused node (null = root/whole tree) */
     this._focus = null
+    // Bumped on every layout pass. A rapid re-click (zoom before the previous
+    // zoom settles) starts a new pass; older animation frames check this and
+    // stop writing, so two rAF loops never fight over the same arc's geometry.
+    this._zoomGen = 0
     /** @type {any[]} */
     this._roots = []
     /** @type {any[]} flat list of every node */
@@ -391,6 +395,10 @@ export default class SunburstChart {
           ? anims.dynamicAnimation.speed || 350
           : anims.speed || 500
 
+    // Supersede any in-flight zoom: stale frames from the previous pass check
+    // this and stop, so a fast re-click can't leave two animations fighting.
+    const gen = ++this._zoomGen
+
     // Geometry of the PREVIOUS render (stashed on the persistent chart ctx —
     // this module is re-instantiated on every data update).
     const prev =
@@ -407,12 +415,14 @@ export default class SunburstChart {
         if (!node._el) node._el = this._createArcEl(node)
 
         if (mode === 'intro' && dur > 0) {
-          this._sweepArc(node, target, dur)
+          this._sweepArc(node, target, dur, gen)
         } else {
           let from
           let isNew = false
           if (node._cur) {
-            from = node._cur // same-instance transition (zoom)
+            // `_cur` is the arc's LIVE geometry (updated each frame), so an
+            // interrupted zoom continues smoothly from where it actually is.
+            from = node._cur
           } else if (prev && prev.get(node._key)) {
             from = prev.get(node._key) // survived a data update: morph in place
           } else {
@@ -422,14 +432,12 @@ export default class SunburstChart {
           }
           // Only genuinely new arcs fade in; arcs morphing from a previous
           // geometry stay fully opaque while their shape tweens.
-          this._animateArc(node, from, target, dur, false, isNew)
+          this._animateArc(node, from, target, dur, false, isNew, gen)
         }
-        node._cur = target
       } else if (node._el && node._cur) {
         const mid = (node._cur.a0 + node._cur.a1) / 2
         const target = { a0: mid, a1: mid, iR: node._cur.iR, oR: node._cur.iR }
-        this._animateArc(node, node._cur, target, dur, true, false)
-        node._cur = null
+        this._animateArc(node, node._cur, target, dur, true, false, gen)
       }
     })
 
@@ -452,30 +460,31 @@ export default class SunburstChart {
    * @param {any} node
    * @param {{a0:number,a1:number,iR:number,oR:number}} target
    * @param {number} dur
+   * @param {number} gen  layout generation; frames stop once superseded
    */
-  _sweepArc(node, target, dur) {
+  _sweepArc(node, target, dur, gen) {
     const el = node._el
     const br = this.cfg.borderRadius
     const s0 = this.startAngle
     const s1 = this.endAngle
     el.node.style.display = ''
     el.attr({ d: '', opacity: 1 })
-    el.animate(dur).during((/** @type {number} */ pos) => {
-      const sweep = s0 + (s1 - s0) * pos
-      if (sweep <= target.a0 + 0.01) {
-        el.attr({ d: '' })
-        return
-      }
-      el.attr({
-        d: this._arcPath(
-          target.iR,
-          target.oR,
-          target.a0,
-          Math.min(target.a1, sweep),
-          br,
-        ),
+    el.animate(dur)
+      .during((/** @type {number} */ pos) => {
+        if (this._zoomGen !== gen) return
+        const sweep = s0 + (s1 - s0) * pos
+        if (sweep <= target.a0 + 0.01) {
+          el.attr({ d: '' })
+          return
+        }
+        const a1 = Math.min(target.a1, sweep)
+        el.attr({ d: this._arcPath(target.iR, target.oR, target.a0, a1, br) })
+        node._cur = { a0: target.a0, a1, iR: target.iR, oR: target.oR }
       })
-    })
+      .after(() => {
+        if (this._zoomGen !== gen) return
+        node._cur = target
+      })
   }
 
   /**
@@ -510,8 +519,9 @@ export default class SunburstChart {
    * @param {number} dur
    * @param {boolean} hide    shrink + fade out, then hide
    * @param {boolean} fadeIn  fade 0 -> 1 (new arcs only; morphs stay opaque)
+   * @param {number} gen  layout generation; frames stop once superseded
    */
-  _animateArc(node, from, to, dur, hide, fadeIn) {
+  _animateArc(node, from, to, dur, hide, fadeIn, gen) {
     const el = node._el
     const br = this.cfg.borderRadius
     el.attr({ fill: node._color })
@@ -519,6 +529,7 @@ export default class SunburstChart {
     if (dur === 0) {
       el.attr({ d: this._arcPath(to.iR, to.oR, to.a0, to.a1, br), opacity: hide ? 0 : 1 })
       el.node.style.display = hide ? 'none' : ''
+      node._cur = hide ? null : to
       return
     }
 
@@ -529,6 +540,7 @@ export default class SunburstChart {
 
     el.animate(dur)
       .during((/** @type {number} */ pos) => {
+        if (this._zoomGen !== gen) return
         const a0 = lerp(from.a0, to.a0, pos)
         const a1 = lerp(from.a1, to.a1, pos)
         const iR = lerp(from.iR, to.iR, pos)
@@ -537,9 +549,18 @@ export default class SunburstChart {
           d: this._arcPath(iR, oR, a0, a1, br),
           opacity: lerp(startOp, endOp, pos),
         })
+        // Live geometry, so an interrupting zoom picks up exactly here. Even a
+        // collapsing arc keeps it, so re-showing mid-collapse reverses smoothly.
+        node._cur = { a0, a1, iR, oR }
       })
       .after(() => {
-        if (hide) el.node.style.display = 'none'
+        if (this._zoomGen !== gen) return
+        if (hide) {
+          el.node.style.display = 'none'
+          node._cur = null
+        } else {
+          node._cur = to
+        }
       })
   }
 

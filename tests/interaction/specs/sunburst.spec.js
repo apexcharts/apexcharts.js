@@ -180,6 +180,38 @@ test.describe('sunburst', () => {
     expect(errors, errors.join('\n')).toHaveLength(0)
   })
 
+  test('rapid re-click mid-zoom settles cleanly (no torn/fighting animations)', async ({ page }) => {
+    const errors = []
+    page.on('pageerror', (err) => errors.push(err.stack || err.message))
+
+    // Animations ON so a second click lands while the first zoom is tweening —
+    // the exact race that used to leave two rAF loops fighting over each arc.
+    const opts = JSON.parse(JSON.stringify(NATIVE))
+    opts.chart.animations = { enabled: true, speed: 500 }
+
+    await page.setContent('<div id="chart"></div>')
+    await page.addScriptTag({ path: umdPath })
+    await page.evaluate((o) => {
+      window.chart = new window.ApexCharts(document.querySelector('#chart'), o)
+      return window.chart.render()
+    }, opts)
+    await page.waitForSelector('.apexcharts-sunburst-arc')
+    await page.waitForTimeout(700) // let the intro settle
+
+    // Click Mobile, then click it again ~120ms later — well before the 500ms
+    // zoom finishes. Second click on the focused branch zooms back out, so once
+    // everything settles we must be back at the clean full tree.
+    await clickArcByName(page, 'Mobile')
+    await page.waitForTimeout(120)
+    await clickArcByName(page, 'Mobile')
+
+    await page.waitForTimeout(900) // let both transitions fully settle
+    expect(await anyNaN(page)).toBe(false)
+    expect(await arcCount(page)).toBe(14)
+    expect(await breadcrumbText(page)).toBeNull()
+    expect(errors, errors.join('\n')).toHaveLength(0)
+  })
+
   test('intro animates as a pie-style clock sweep (arcs appear in angular order)', async ({ page }) => {
     const opts = JSON.parse(JSON.stringify(NATIVE))
     opts.chart.animations = { enabled: true, speed: 900 }
