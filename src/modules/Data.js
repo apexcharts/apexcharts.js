@@ -795,7 +795,12 @@ export default class Data {
         console.error(
           "It is a possibility that you may have not included 'data' property in series.",
         )
-        return
+        // Treat a series missing `data` as an empty series and keep parsing, so
+        // the parsed arrays (series / labels / seriesZ / seriesColors) stay
+        // index-aligned with the remaining series (and seriesNames) instead of
+        // aborting the whole parse. Replace (not mutate) ser[i], matching the
+        // downsample path below, so the caller's series object is left intact.
+        ser[i] = { ...ser[i], data: [] }
       }
 
       // Zoom-aware LTTB downsampling — runs before any parsing so all
