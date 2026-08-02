@@ -291,7 +291,6 @@ export default class Core {
    */
   plotChartType(ser, xyRatios) {
     const { w, ctx } = this
-    const { config: cnf, globals: gl } = w
 
     // Strata (#2): start a fresh series display list for the canvas renderer.
     // Series marks emitted during draw() below are recorded, not added to the
@@ -301,10 +300,77 @@ export default class Core {
 
     const { seriesTypes, customBuckets } = this._classifySeriesByType(ser)
 
-    // Lazily resolve chart classes — only look up types that are actually used.
-    // Eagerly calling getChartClass() for every type would break tree-shaking:
-    // a page that only registers 'line' would throw when 'candlestick' etc.
-    // are looked up even though they are never rendered.
+    const renderers = this._instantiateSeriesRenderers(seriesTypes, xyRatios)
+
+    const elGraph = this._assembleSeriesGraphics(
+      seriesTypes,
+      customBuckets,
+      renderers,
+      xyRatios,
+    )
+
+    if (canvasMode) {
+      // Paint the recorded series display list into a <foreignObject><canvas>
+      // and wrap it with the real SVG chrome groups (data labels etc.) the
+      // draw() built. Canvas sits at the back of the wrap (behind the chrome);
+      // the whole wrap composites into elGraphical exactly like the SVG elGraph
+      // the two plotChartType consumers already handle. The series marks live
+      // only on the canvas: the chrome groups carry no marks (they were
+      // skipped by SVGElement.add).
+      // Data-only fast update: repaint the existing canvas instead of
+      // building a new foreignObject + backing store, and slot the fresh
+      // chrome groups into the existing wrap. Falls through to a full
+      // present() whenever the host is gone.
+      const rr = /** @type {any} */ (ctx.renderer)
+      if (rr && rr._repaintHostInPlace) {
+        rr._repaintHostInPlace = false
+        const wrapNode = this.w.dom.elGraphical.node.querySelector(
+          '.apexcharts-canvas-series-wrap',
+        )
+        if (wrapNode && rr.canRepaintInPlace && rr.canRepaintInPlace()) {
+          rr.repaintInPlace()
+          const groups = Array.isArray(elGraph) ? elGraph : [elGraph]
+          groups.forEach((g) => {
+            if (g && g.node) wrapNode.appendChild(g.node)
+          })
+          return []
+        }
+      }
+      const host = ctx.renderer.present()
+      // A renderer may decline a host (present() → null) when it emits straight
+      // into the SVG tree via delegation instead of a canvas layer; then the
+      // marks are already in elGraph and there's nothing extra to composite.
+      if (host) {
+        const wrap = new Graphics(w).group({
+          class: 'apexcharts-canvas-series-wrap',
+        })
+        wrap.add(host)
+        const groups = Array.isArray(elGraph) ? elGraph : [elGraph]
+        groups.forEach((g) => {
+          if (g) wrap.add(g)
+        })
+        return wrap
+      }
+    }
+
+    return elGraph
+  }
+
+  /**
+   * Lazily instantiate the shared series renderers the orchestration below
+   * needs. getChartClass() is only called for types actually present, so a page
+   * that registers just 'line' never triggers a lookup for 'candlestick' etc.
+   * (tree-shaking). Returns the line/candlestick/violin renderers and sets
+   * ctx.pie / ctx.rangeBar as a side effect (both may be null). Extracted from
+   * plotChartType (audit C2).
+   * @param {Record<string, any>} seriesTypes
+   * @param {import('../types/internal').XYRatios} xyRatios
+   * @returns {{ line: any, boxCandlestick: any, violin: any }}
+   */
+  _instantiateSeriesRenderers(seriesTypes, xyRatios) {
+    const { w, ctx } = this
+    const { config: cnf, globals: gl } = w
+
     const needsLine =
       seriesTypes.line.series.length > 0 ||
       seriesTypes.area.series.length > 0 ||
@@ -344,6 +410,26 @@ export default class Core {
     ctx.rangeBar = needsRangeBar
       ? new (getChartClass('rangeBar'))(ctx.w, ctx, xyRatios)
       : null
+
+    return { line, boxCandlestick, violin }
+  }
+
+  /**
+   * Build the ordered list of series graphic groups (elGraph) from the
+   * classified buckets. Combo charts layer per-type draws in z-order; a
+   * single-type chart dispatches on cnf.chart.type. Sets ctx.bar for the
+   * non-stacked bar paths (side effect, preserved). Extracted from
+   * plotChartType (audit C2).
+   * @param {Record<string, any>} seriesTypes
+   * @param {Record<string, {series: any[], i: number[]}>} customBuckets
+   * @param {{ line: any, boxCandlestick: any, violin: any }} renderers
+   * @param {import('../types/internal').XYRatios} xyRatios
+   * @returns {any}
+   */
+  _assembleSeriesGraphics(seriesTypes, customBuckets, renderers, xyRatios) {
+    const { w, ctx } = this
+    const { config: cnf, globals: gl } = w
+    const { line, boxCandlestick, violin } = renderers
 
     let elGraph = []
 
@@ -548,50 +634,6 @@ export default class Core {
           } else {
             elGraph = line.draw(this.w.seriesData.series)
           }
-      }
-    }
-
-    if (canvasMode) {
-      // Paint the recorded series display list into a <foreignObject><canvas>
-      // and wrap it with the real SVG chrome groups (data labels etc.) the
-      // draw() built. Canvas sits at the back of the wrap (behind the chrome);
-      // the whole wrap composites into elGraphical exactly like the SVG elGraph
-      // the two plotChartType consumers already handle. The series marks live
-      // only on the canvas: the chrome groups carry no marks (they were
-      // skipped by SVGElement.add).
-      // Data-only fast update: repaint the existing canvas instead of
-      // building a new foreignObject + backing store, and slot the fresh
-      // chrome groups into the existing wrap. Falls through to a full
-      // present() whenever the host is gone.
-      const rr = /** @type {any} */ (ctx.renderer)
-      if (rr && rr._repaintHostInPlace) {
-        rr._repaintHostInPlace = false
-        const wrapNode = this.w.dom.elGraphical.node.querySelector(
-          '.apexcharts-canvas-series-wrap',
-        )
-        if (wrapNode && rr.canRepaintInPlace && rr.canRepaintInPlace()) {
-          rr.repaintInPlace()
-          const groups = Array.isArray(elGraph) ? elGraph : [elGraph]
-          groups.forEach((g) => {
-            if (g && g.node) wrapNode.appendChild(g.node)
-          })
-          return []
-        }
-      }
-      const host = ctx.renderer.present()
-      // A renderer may decline a host (present() → null) when it emits straight
-      // into the SVG tree via delegation instead of a canvas layer; then the
-      // marks are already in elGraph and there's nothing extra to composite.
-      if (host) {
-        const wrap = new Graphics(w).group({
-          class: 'apexcharts-canvas-series-wrap',
-        })
-        wrap.add(host)
-        const groups = Array.isArray(elGraph) ? elGraph : [elGraph]
-        groups.forEach((g) => {
-          if (g) wrap.add(g)
-        })
-        return wrap
       }
     }
 
