@@ -235,8 +235,11 @@
     "typecheck:types": "tsc --noEmit -p tsconfig.types-test.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "check:node": "node scripts/check-node.js",
+    "pretest": "node scripts/check-node.js",
     "test": "npm run e2e && npm run unit -- --coverage",
     "test:ci": "npm run e2e:ci && npm run unit",
+    "preunit": "node scripts/check-node.js",
     "unit": "vitest run tests/unit/",
     "check:license-enforcement": "node tests/license/check-license-enforcement.mjs",
     "e2e": "node tests/e2e/samples.js test",
@@ -250,6 +253,9 @@
   },
   "simple-git-hooks": {
     "pre-push": "npm run lint >&2"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",
