@@ -344,6 +344,53 @@ test.describe('sunburst', () => {
     expect(groupBg).toBeTruthy()
   })
 
+  test('semicircle sunburst hugs the arc and keeps a bottom legend inside the wrap', async ({
+    page,
+  }) => {
+    // A semicircle (startAngle/endAngle spanning 180°) only fills the top half,
+    // so the layout must fit-to-content instead of reserving the full-circle
+    // square — otherwise dead space opens between the arc and the bottom legend
+    // (and, if over-hugged, the legend falls outside the shrunken wrap).
+    const semi = JSON.parse(JSON.stringify(NATIVE))
+    semi.chart.animations = { enabled: false }
+    semi.legend = { position: 'bottom' }
+    semi.plotOptions = { sunburst: { startAngle: -90, endAngle: 90 } }
+
+    const full = JSON.parse(JSON.stringify(semi))
+    full.plotOptions = { sunburst: { startAngle: 0, endAngle: 360 } }
+
+    const geom = async (opts) => {
+      await page.setContent('<div id="chart" style="width:520px"></div>')
+      await page.addScriptTag({ path: umdPath })
+      await page.evaluate((o) => {
+        window.chart = new window.ApexCharts(document.querySelector('#chart'), o)
+        return window.chart.render()
+      }, opts)
+      await page.waitForSelector('.apexcharts-sunburst-arc')
+      await page.waitForTimeout(80)
+      return page.evaluate(() => {
+        const wrap = document.querySelector('.apexcharts-canvas').getBoundingClientRect()
+        const legend = document.querySelector('.apexcharts-legend').getBoundingClientRect()
+        const arc = document.querySelector('.apexcharts-sunburst').getBoundingClientRect()
+        return {
+          wrapH: Math.round(wrap.height),
+          legendInside: legend.bottom <= wrap.bottom + 1,
+          gap: Math.round(legend.top - arc.bottom),
+        }
+      })
+    }
+
+    const s = await geom(semi)
+    const f = await geom(full)
+
+    // The bottom legend must stay within the (now shorter) wrap.
+    expect(s.legendInside).toBe(true)
+    // The semicircle reserves clearly less vertical space than the full circle.
+    expect(s.wrapH).toBeLessThan(f.wrapH - 40)
+    // No large dead band between the arc's flat side and the legend.
+    expect(s.gap).toBeLessThan(60)
+  })
+
   test('zoom breadcrumb does not overlap a left-aligned title', async ({ page }) => {
     const opts = JSON.parse(JSON.stringify(NATIVE))
     opts.title = { text: 'Website traffic by device and OS', align: 'left' }

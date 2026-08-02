@@ -823,7 +823,7 @@ export default class Core {
     }
 
     const el = w.dom.baseEl.querySelector(
-      '.apexcharts-radialbar, .apexcharts-pie',
+      '.apexcharts-radialbar, .apexcharts-pie, .apexcharts-sunburst',
     )
     // When outer (name) labels are shown, the pie was shrunk and re-centered to
     // `radius + marginY` from the top; reserve a matching band top AND bottom so
@@ -834,9 +834,23 @@ export default class Core {
         ? w.globals.radialSize * 2 + externalLabelMarginY * 2
         : w.globals.radialSize * 2.05
 
+    // Angular span of the drawn arc, read from the ACTIVE chart type's OWN
+    // start/end angles. A pie/donut/sunburst semicircle is just as "partial" as
+    // a gauge, so it must fit-to-content the same way. Reading radialBar's
+    // angles for every type (they default to a full 360°) left semi pies and
+    // semicircle sunbursts stranded on the full-circle square, with dead space
+    // between the arc's flat side and the legend below it.
+    const angleType =
+      w.config.chart.type === 'sunburst'
+        ? 'sunburst'
+        : w.config.chart.type === 'pie' ||
+            w.config.chart.type === 'donut' ||
+            w.config.chart.type === 'polarArea'
+          ? 'pie'
+          : 'radialBar'
     const radialAngleSpan = Math.abs(
-      w.config.plotOptions.radialBar.endAngle -
-        w.config.plotOptions.radialBar.startAngle,
+      w.config.plotOptions[angleType].endAngle -
+        w.config.plotOptions[angleType].startAngle,
     )
     if (el && !w.config.chart.sparkline.enabled && radialAngleSpan < 360) {
       const svgRect = Utils.getBoundingClientRect(this.w.dom.Paper.node)
@@ -934,6 +948,18 @@ export default class Core {
           if (grandparent) {
             grandparent.style.minHeight = `${elWrapHeight}px`
           }
+        }
+        // A bottom legend was placed at the bottom of the ORIGINAL (full-circle)
+        // svgHeight; now that the SVG has been hugged to the arc, re-anchor it to
+        // the new height so it sits just below the arc instead of hanging off the
+        // shrunken wrap. (Top legends anchor to the title, not the height.)
+        w.globals.svgHeight = svgHeight
+        if (
+          w.config.legend.position === 'bottom' &&
+          w.config.legend.show &&
+          !w.config.legend.floating
+        ) {
+          this.ctx.legend?.setLegendWrapXY(20, 0)
         }
       }
       return
