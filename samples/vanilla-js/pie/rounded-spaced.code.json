@@ -1,0 +1,21 @@
+{
+  "title": "Rounded &amp; Spaced Donut",
+  "externals": [],
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [44, 55, 41, 17, 15],\n  chart: {\n    type: 'donut',\n    height: 380,\n  },\n  labels: ['Comedy', 'Action', 'SciFi', 'Drama', 'Horror'],\n  colors: ['#6366F1', '#0EA5E9', '#22C55E', '#F59E0B', '#EF4444'],\n  plotOptions: {\n    pie: {\n      borderRadius: 8,\n      spacing: 3,\n      donut: {\n        size: '62%',\n      },\n    },\n  },\n  stroke: {\n    width: 0,\n  },\n  legend: {\n    position: 'bottom',\n  },\n  title: {\n    text: 'Rounded, spaced donut slices',\n    align: 'left',\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Rounded &amp; Spaced Donut</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 380px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

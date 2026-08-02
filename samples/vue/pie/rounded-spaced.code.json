@@ -1,0 +1,11 @@
+{
+  "title": "Rounded &amp; Spaced Donut",
+  "externals": [],
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"donut\"\n        height=\"380\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [44, 55, 41, 17, 15],\n      chartOptions: {\n        chart: {\n          type: 'donut',\n          height: 380,\n        },\n        labels: ['Comedy', 'Action', 'SciFi', 'Drama', 'Horror'],\n        colors: ['#6366F1', '#0EA5E9', '#22C55E', '#F59E0B', '#EF4444'],\n        plotOptions: {\n          pie: {\n            borderRadius: 8,\n            spacing: 3,\n            donut: {\n              size: '62%',\n            },\n          },\n        },\n        stroke: {\n          width: 0,\n        },\n        legend: {\n          position: 'bottom',\n        },\n        title: {\n          text: 'Rounded, spaced donut slices',\n          align: 'left',\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 380px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

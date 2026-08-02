@@ -1,0 +1,21 @@
+{
+  "title": "Semi-Circle Sunburst",
+  "externals": [],
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      data: [\n        {\n          x: 'Engineering',\n          y: 46,\n          children: [\n            { x: 'Platform', y: 24 },\n            { x: 'Product', y: 14 },\n            { x: 'QA', y: 8 },\n          ],\n        },\n        {\n          x: 'Sales',\n          y: 28,\n          children: [\n            { x: 'Field', y: 18 },\n            { x: 'Inside', y: 10 },\n          ],\n        },\n        {\n          x: 'Marketing',\n          y: 16,\n          children: [\n            { x: 'Brand', y: 9 },\n            { x: 'Growth', y: 7 },\n          ],\n        },\n        {\n          x: 'Operations',\n          y: 10,\n          children: [\n            { x: 'People', y: 6 },\n            { x: 'Finance', y: 4 },\n          ],\n        },\n      ],\n    },\n  ],\n  chart: {\n    type: 'sunburst',\n    height: 360,\n  },\n  colors: ['#6366F1', '#0EA5E9', '#22C55E', '#F97316'],\n  legend: {\n    position: 'bottom',\n  },\n  title: {\n    text: 'Annual budget allocation',\n    align: 'left',\n  },\n  plotOptions: {\n    sunburst: {\n      startAngle: -90,\n      endAngle: 90,\n      innerSize: '30%',\n      borderRadius: 4,\n      spacing: 2,\n    },\n  },\n  stroke: {\n    width: 1,\n    colors: ['#fff'],\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Semi-Circle Sunburst</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 560px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

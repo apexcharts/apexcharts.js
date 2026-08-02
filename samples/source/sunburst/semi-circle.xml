@@ -1,0 +1,62 @@
+<title>Semi-Circle Sunburst</title>
+
+<style>
+#chart {
+  max-width: 560px;
+  margin: 35px auto;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  type: 'sunburst',
+  height: 360,
+},
+colors: ['#6366F1', '#0EA5E9', '#22C55E', '#F97316'],
+legend: {
+  position: 'bottom',
+},
+title: {
+  text: 'Annual budget allocation',
+  align: 'left',
+},
+plotOptions: {
+  sunburst: {
+    startAngle: -90,
+    endAngle: 90,
+    innerSize: '30%',
+    borderRadius: 4,
+    spacing: 2,
+  },
+},
+stroke: {
+  width: 1,
+  colors: ['#fff'],
+},
+</options>
+
+<series>
+[{
+  data: [
+    { x: 'Engineering', y: 46, children: [
+      { x: 'Platform', y: 24 },
+      { x: 'Product', y: 14 },
+      { x: 'QA', y: 8 },
+    ]},
+    { x: 'Sales', y: 28, children: [
+      { x: 'Field', y: 18 },
+      { x: 'Inside', y: 10 },
+    ]},
+    { x: 'Marketing', y: 16, children: [
+      { x: 'Brand', y: 9 },
+      { x: 'Growth', y: 7 },
+    ]},
+    { x: 'Operations', y: 10, children: [
+      { x: 'People', y: 6 },
+      { x: 'Finance', y: 4 },
+    ]},
+  ],
+}]
+</series>
+</chart>

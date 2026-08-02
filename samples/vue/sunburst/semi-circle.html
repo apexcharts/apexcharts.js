@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Semi-Circle Sunburst</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 560px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app"><div id="chart">
+      <apexchart type="sunburst" height="360" :options="chartOptions" :series="series"></apexchart>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;sunburst&quot; height=&quot;360&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [
+            {
+              data: [
+                {
+                  x: 'Engineering',
+                  y: 46,
+                  children: [
+                    { x: 'Platform', y: 24 },
+                    { x: 'Product', y: 14 },
+                    { x: 'QA', y: 8 },
+                  ],
+                },
+                {
+                  x: 'Sales',
+                  y: 28,
+                  children: [
+                    { x: 'Field', y: 18 },
+                    { x: 'Inside', y: 10 },
+                  ],
+                },
+                {
+                  x: 'Marketing',
+                  y: 16,
+                  children: [
+                    { x: 'Brand', y: 9 },
+                    { x: 'Growth', y: 7 },
+                  ],
+                },
+                {
+                  x: 'Operations',
+                  y: 10,
+                  children: [
+                    { x: 'People', y: 6 },
+                    { x: 'Finance', y: 4 },
+                  ],
+                },
+              ],
+            },
+          ],
+          chartOptions: {
+            chart: {
+              type: 'sunburst',
+              height: 360,
+            },
+            colors: ['#6366F1', '#0EA5E9', '#22C55E', '#F97316'],
+            legend: {
+              position: 'bottom',
+            },
+            title: {
+              text: 'Annual budget allocation',
+              align: 'left',
+            },
+            plotOptions: {
+              sunburst: {
+                startAngle: -90,
+                endAngle: 90,
+                innerSize: '30%',
+                borderRadius: 4,
+                spacing: 2,
+              },
+            },
+            stroke: {
+              width: 1,
+              colors: ['#fff'],
+            },
+          },
+        },
+      })
+    </script>
+    
+  </body>
+</html>

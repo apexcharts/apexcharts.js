@@ -1,0 +1,21 @@
+{
+  "title": "Sunburst from Drilldown Config",
+  "externals": [],
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "// A sunburst reads the SAME `series` + `drilldown.series` config a drilldown\n// donut uses, so an existing drilldown chart becomes a sunburst by flipping\n// `chart.type`. Each level is tinted with shades of its parent slice's hue.\nvar deviceColors = ['#1565C0', '#2E7D32', '#EF6C00'] // Mobile / Desktop / Tablet\nvar mobileOsColors = ['#0D47A1', '#1976D2', '#64B5F6'] // Mobile by OS\nvar iosColors = ['#1565C0', '#42A5F5', '#90CAF9'] // iOS versions\nvar desktopOsColors = ['#1B5E20', '#388E3C', '#66BB6A'] // Desktop by OS\nvar tabletOsColors = ['#E65100', '#FB8C00'] // Tablet by OS\n\nvar options = {\n  series: [\n    {\n      name: 'Devices',\n      data: [\n        { x: 'Mobile', y: 55, drilldown: 'mobile' },\n        { x: 'Desktop', y: 33, drilldown: 'desktop' },\n        { x: 'Tablet', y: 12, drilldown: 'tablet' },\n      ],\n    },\n  ],\n  chart: {\n    type: 'sunburst',\n    height: 480,\n  },\n  colors: deviceColors,\n  legend: {\n    position: 'bottom',\n  },\n  title: {\n    text: 'Website traffic by device',\n    align: 'left',\n  },\n  subtitle: {\n    text: 'The same series + drilldown.series config as a drilldown donut, rendered as one sunburst.',\n    align: 'left',\n  },\n  plotOptions: {\n    sunburst: {\n      innerSize: '20%',\n    },\n  },\n  stroke: {\n    width: 1,\n    colors: ['#fff'],\n  },\n  drilldown: {\n    series: [\n      {\n        id: 'mobile',\n        name: 'Mobile by OS',\n        colors: mobileOsColors,\n        data: [\n          { x: 'iOS', y: 30, drilldown: 'mobile-ios' },\n          { x: 'Android', y: 23 },\n          { x: 'Other', y: 2 },\n        ],\n      },\n      {\n        id: 'mobile-ios',\n        name: 'iOS Versions',\n        colors: iosColors,\n        data: [\n          { x: 'iOS 17', y: 18 },\n          { x: 'iOS 16', y: 9 },\n          { x: 'iOS 15', y: 3 },\n        ],\n      },\n      {\n        id: 'desktop',\n        name: 'Desktop by OS',\n        colors: desktopOsColors,\n        data: [\n          { x: 'Windows', y: 20 },\n          { x: 'macOS', y: 10 },\n          { x: 'Linux', y: 3 },\n        ],\n      },\n      {\n        id: 'tablet',\n        name: 'Tablet by OS',\n        colors: tabletOsColors,\n        data: [\n          { x: 'iPadOS', y: 8 },\n          { x: 'Android', y: 4 },\n        ],\n      },\n    ],\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Sunburst from Drilldown Config</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 520px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}
