@@ -1,6 +1,5 @@
 import { createChartWithOptions } from './utils/utils.js'
 import Graphics from '../../src/modules/Graphics.js'
-import Markers from '../../src/modules/Markers.js'
 
 // Behavior-lock harness for Graphics.pathMouseDown (the data-point click
 // selection state machine). pathMouseDown is otherwise only exercised by the
@@ -88,13 +87,13 @@ describe('Graphics.pathMouseDown selection state machine', () => {
     chart.destroy()
   })
 
-  it('handles a marker mousedown through its direct DOM listener', () => {
+  it('handles a marker mousedown through its delegated DOM listener', () => {
     const { chart, onSelect } = makeScatterChart()
     const marker = document.querySelector('.apexcharts-marker[index="0"][j="0"]')
-    const markers = new Markers(chart.w, chart.ctx)
-    markers.addEvents(marker.instance)
 
-    marker.dispatchEvent(new MouseEvent('mousedown'))
+    // Markers use event delegation (setupMarkerDelegation) wired during render,
+    // so the mousedown must bubble up to the points-wrap listener.
+    marker.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
 
     expect(onSelect).toHaveBeenCalledOnce()
     const [, ctx, options] = onSelect.mock.calls[0]

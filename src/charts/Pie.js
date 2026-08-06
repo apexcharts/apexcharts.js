@@ -790,12 +790,12 @@ class Pie {
     // append filters on mouseenter and mouseleave
     elPath.node.addEventListener(
       'mouseenter',
-      graphics.pathMouseEnter.bind(this, elPath),
+      graphics.pathMouseEnter.bind(graphics, elPath),
     )
 
     elPath.node.addEventListener(
       'mouseleave',
-      graphics.pathMouseLeave.bind(this, elPath),
+      graphics.pathMouseLeave.bind(graphics, elPath),
     )
     elPath.node.addEventListener(
       'mouseleave',

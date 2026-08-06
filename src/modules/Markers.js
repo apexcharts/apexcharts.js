@@ -347,35 +347,6 @@ export default class Markers {
   }
 
   /**
-   * @param {any} marker
-   */
-  addEvents(marker) {
-    const w = this.w
-
-    marker.node.addEventListener(
-      'mouseenter',
-      this._graphics.pathMouseEnter.bind(this._graphics, marker),
-    )
-    marker.node.addEventListener(
-      'mouseleave',
-      this._graphics.pathMouseLeave.bind(this._graphics, marker),
-    )
-
-    marker.node.addEventListener(
-      'mousedown',
-      this._graphics.pathMouseDown.bind(this._graphics, marker),
-    )
-
-    marker.node.addEventListener('click', w.config.markers.onClick)
-    marker.node.addEventListener('dblclick', w.config.markers.onDblClick)
-
-    marker.node.addEventListener(
-      'touchstart',
-      this._graphics.pathMouseDown.bind(this._graphics, marker),
-      { passive: true },
-    )
-  }
-  /**
    * @returns {any}
    * @param {number} seriesIndex
    */
