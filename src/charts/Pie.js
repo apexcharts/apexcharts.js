@@ -786,7 +786,7 @@ class Pie {
    * @param {Record<string, any>} dataLabels
    */
   addListeners(elPath, dataLabels) {
-    const graphics = new Graphics(this.w)
+    const graphics = new Graphics(this.w, this.ctx)
     // append filters on mouseenter and mouseleave
     elPath.node.addEventListener(
       'mouseenter',
@@ -803,7 +803,7 @@ class Pie {
     )
     elPath.node.addEventListener(
       'mousedown',
-      graphics.pathMouseDown.bind(this, elPath),
+      graphics.pathMouseDown.bind(graphics, elPath),
     )
 
     if (!this.donutDataLabels.total.showAlways) {
