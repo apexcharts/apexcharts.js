@@ -1,5 +1,6 @@
 import { createChartWithOptions } from './utils/utils.js'
 import Graphics from '../../src/modules/Graphics.js'
+import Markers from '../../src/modules/Markers.js'
 
 // Behavior-lock harness for Graphics.pathMouseDown (the data-point click
 // selection state machine). pathMouseDown is otherwise only exercised by the
@@ -27,6 +28,36 @@ function makeBarChart(extra = {}) {
   return { chart, onSelect }
 }
 
+function makeDonutChart() {
+  const onSelect = vi.fn()
+  const chart = createChartWithOptions({
+    chart: {
+      type: 'donut',
+      id: 'pmd-donut-' + Math.random().toString(36).slice(2),
+      events: { dataPointSelection: onSelect },
+    },
+    labels: ['A', 'B'],
+    series: [3, 5],
+  })
+  return { chart, onSelect }
+}
+
+function makeScatterChart() {
+  const onSelect = vi.fn()
+  const chart = createChartWithOptions({
+    chart: {
+      type: 'scatter',
+      id: 'pmd-scatter-' + Math.random().toString(36).slice(2),
+      events: { dataPointSelection: onSelect },
+    },
+    dataLabels: { enabled: false },
+    markers: { size: 4 },
+    series: [{ name: 'A', data: [[1, 3], [2, 5]] }],
+    xaxis: { type: 'numeric' },
+  })
+  return { chart, onSelect }
+}
+
 /** Find the rendered bar path wrapper with the given series/data-point index. */
 function bar(chart, index, j) {
   const paths = chart.w.dom.Paper.find(
@@ -44,6 +75,34 @@ const g = (chart) => new Graphics(chart.w, chart.ctx)
 const evt = { type: 'mousedown' }
 
 describe('Graphics.pathMouseDown selection state machine', () => {
+  it('handles a donut slice mousedown through its DOM listener', () => {
+    const { chart, onSelect } = makeDonutChart()
+    const slice = document.querySelector('.apexcharts-pie-area[j="0"]')
+
+    slice.dispatchEvent(new MouseEvent('mousedown'))
+
+    expect(onSelect).toHaveBeenCalledOnce()
+    const [, ctx, options] = onSelect.mock.calls[0]
+    expect(ctx).toBe(chart)
+    expect(options.dataPointIndex).toBe(0)
+    chart.destroy()
+  })
+
+  it('handles a marker mousedown through its direct DOM listener', () => {
+    const { chart, onSelect } = makeScatterChart()
+    const marker = document.querySelector('.apexcharts-marker[index="0"][j="0"]')
+    const markers = new Markers(chart.w, chart.ctx)
+    markers.addEvents(marker.instance)
+
+    marker.dispatchEvent(new MouseEvent('mousedown'))
+
+    expect(onSelect).toHaveBeenCalledOnce()
+    const [, ctx, options] = onSelect.mock.calls[0]
+    expect(ctx).toBe(chart)
+    expect(options.dataPointIndex).toBe(0)
+    chart.destroy()
+  })
+
   it('selects a point on first click and fires dataPointSelection', () => {
     const { chart, onSelect } = makeBarChart()
     const b0 = bar(chart, 0, 0)

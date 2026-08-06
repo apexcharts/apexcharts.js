@@ -18,7 +18,7 @@ export default class Markers {
    */
   constructor(w, ctx) {
     this.w = w
-    this.ctx = ctx // kept for .bind(this.ctx, ...) in pathMouse* event handlers
+    this.ctx = ctx // forwarded to public event callbacks by Graphics and seriesEmitter
 
     this._filters = new Filters(this.w)
     this._graphics = new Graphics(this.w, this.ctx)
@@ -354,16 +354,16 @@ export default class Markers {
 
     marker.node.addEventListener(
       'mouseenter',
-      this._graphics.pathMouseEnter.bind(this.ctx, marker),
+      this._graphics.pathMouseEnter.bind(this._graphics, marker),
     )
     marker.node.addEventListener(
       'mouseleave',
-      this._graphics.pathMouseLeave.bind(this.ctx, marker),
+      this._graphics.pathMouseLeave.bind(this._graphics, marker),
     )
 
     marker.node.addEventListener(
       'mousedown',
-      this._graphics.pathMouseDown.bind(this.ctx, marker),
+      this._graphics.pathMouseDown.bind(this._graphics, marker),
     )
 
     marker.node.addEventListener('click', w.config.markers.onClick)
@@ -371,7 +371,7 @@ export default class Markers {
 
     marker.node.addEventListener(
       'touchstart',
-      this._graphics.pathMouseDown.bind(this.ctx, marker),
+      this._graphics.pathMouseDown.bind(this._graphics, marker),
       { passive: true },
     )
   }
