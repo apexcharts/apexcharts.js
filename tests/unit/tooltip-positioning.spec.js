@@ -9,6 +9,7 @@
  */
 import { describe, it, expect, vi } from 'vitest'
 import TooltipPosition from '../../src/modules/tooltip/Position.js'
+import Intersect from '../../src/modules/tooltip/Intersect.js'
 import { renderMarkerSVG } from '../../src/modules/tooltip/Marker.js'
 import { createChartWithOptions } from './utils/utils.js'
 
@@ -703,5 +704,147 @@ describe('Tooltip element DOM contract', () => {
     expect(marker).not.toBeNull()
     // The new Marker.renderMarkerSVG output is inserted as innerHTML.
     expect(marker.innerHTML).toContain('<svg')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Intersect.handleHeatTreeTooltip — treemap grid-bound clamping
+// ---------------------------------------------------------------------------
+
+describe('Intersect.handleHeatTreeTooltip treemap clamping', () => {
+  function makeEvent(cx, cy, width, height) {
+    return {
+      type: 'mousemove',
+      target: {
+        classList: { contains: (cls) => cls === 'apexcharts-treemap-rect' },
+        getAttribute: (attr) => {
+          const map = { i: '0', j: '0', cx: String(cx), cy: String(cy), width: String(width), height: String(height) }
+          return map[attr] ?? null
+        },
+      },
+    }
+  }
+
+  function makeContext() {
+    const w = {
+      config: {
+        tooltip: { arrow: false, followCursor: false },
+        chart: { type: 'treemap' },
+      },
+      globals: {
+        activeRenderer: null,
+        isBarHorizontal: false,
+      },
+      layout: {
+        gridWidth: 320,
+        gridHeight: 400,
+        translateX: 0,
+        translateY: 0,
+      },
+      interact: {},
+      dom: {
+        elWrap: {
+          getBoundingClientRect: () => ({ left: 0, top: 0, right: 320, bottom: 400, width: 320, height: 400 }),
+        },
+        baseEl: document.createElement('div'),
+      },
+      seriesData: { series: [[100]] },
+    }
+
+    const elGrid = document.createElement('div')
+    elGrid.getBoundingClientRect = () => ({ left: 0, top: 0, right: 320, bottom: 400, width: 320, height: 400 })
+
+    const tooltipRect = { ttWidth: 120, ttHeight: 60 }
+
+    const ttCtx = {
+      w,
+      tooltipRect,
+      tooltipLabels: { drawSeriesTexts: () => {} },
+      tooltipPosition: { moveXCrosshairs: () => {} },
+      getElTooltip: () => {
+        const el = document.createElement('div')
+        el.getBoundingClientRect = () => ({ width: 120, height: 60 })
+        return el
+      },
+      getElGrid: () => elGrid,
+    }
+
+    return { w, ttCtx, elGrid }
+  }
+
+  it('clamps x to gridWidth when tooltip would overflow the right edge', () => {
+    const { w, ttCtx } = makeContext()
+    const intersect = new Intersect(ttCtx)
+
+    // Cell at the far right of the grid: cx=280, width=40
+    // Legacy math: x = cx + ttW/2 + width = 280 + 60 + 40 = 380
+    // gridWidth = 320, so 380 > 320 → should clamp to 320 - 120 = 200
+    const result = intersect.handleHeatTreeTooltip({
+      e: makeEvent(280, 100, 40, 30),
+      opt: { elGrid: { getBoundingClientRect: () => ({ left: 0, top: 0, right: 320, bottom: 400, width: 320, height: 400 }) }, ttItems: [] },
+      x: 0,
+      y: 0,
+      type: 'treemap',
+    })
+
+    expect(result.x).toBeLessThanOrEqual(w.layout.gridWidth - 120)
+    expect(result.x).toBeGreaterThanOrEqual(0)
+  })
+
+  it('clamps x to 0 when tooltip would overflow the left edge in followCursor mode', () => {
+    const { ttCtx } = makeContext()
+    ttCtx.w.config.tooltip.followCursor = true
+    ttCtx.w.interact.clientX = 10
+    const intersect = new Intersect(ttCtx)
+
+    // followCursor: x = clientX - elWrap.left - ttW = 10 - 0 - 120 = -110
+    // Clamp to 0 so the tooltip doesn't hang off the left of the screen.
+    const result = intersect.handleHeatTreeTooltip({
+      e: makeEvent(280, 100, 40, 30),
+      opt: { elGrid: { getBoundingClientRect: () => ({ left: 0, top: 0, right: 320, bottom: 400, width: 320, height: 400 }) }, ttItems: [] },
+      x: 0,
+      y: 0,
+      type: 'treemap',
+    })
+
+    expect(result.x).toBe(0)
+  })
+
+  it('clamps y to 0 when tooltip would overflow the top edge in followCursor mode', () => {
+    const { ttCtx } = makeContext()
+    ttCtx.w.config.tooltip.followCursor = true
+    ttCtx.w.interact.clientY = 10
+    ttCtx.w.interact.clientX = 100
+    const intersect = new Intersect(ttCtx)
+
+    // followCursor: y = clientY - elWrap.top - ttH = 10 - 0 - 60 = -50
+    // Clamp to 0 so the tooltip doesn't hang off the top of the screen.
+    const result = intersect.handleHeatTreeTooltip({
+      e: makeEvent(280, 100, 40, 30),
+      opt: { elGrid: { getBoundingClientRect: () => ({ left: 0, top: 0, right: 320, bottom: 400, width: 320, height: 400 }) }, ttItems: [] },
+      x: 0,
+      y: 0,
+      type: 'treemap',
+    })
+
+    expect(result.y).toBe(0)
+  })
+
+  it('clamps y to gridHeight - ttH when tooltip would overflow the bottom edge', () => {
+    const { w, ttCtx } = makeContext()
+    const intersect = new Intersect(ttCtx)
+
+    // Cell near bottom: cy=390, height=10
+    // y = 390 + 30 - 5 = 415
+    // gridHeight = 400, 415 > 400 → should clamp to 400 - 60 = 340
+    const result = intersect.handleHeatTreeTooltip({
+      e: makeEvent(50, 390, 40, 10),
+      opt: { elGrid: { getBoundingClientRect: () => ({ left: 0, top: 0, right: 320, bottom: 400, width: 320, height: 400 }) }, ttItems: [] },
+      x: 0,
+      y: 0,
+      type: 'treemap',
+    })
+
+    expect(result.y).toBe(w.layout.gridHeight - 60)
   })
 })
