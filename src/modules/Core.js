@@ -810,7 +810,7 @@ export default class Core {
     const isPercentHeight = heightStr.includes('%')
 
     let legendHeight = 0
-    let offY = w.config.chart.sparkline.enabled ? 1 : 15
+    let offY = w.config.chart.sparkline.enabled ? 0 : 15
     offY += w.config.grid.padding.bottom
 
     if (
