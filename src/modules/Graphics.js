@@ -840,7 +840,15 @@ class Graphics {
 
     if (!radial) {
       if (style === 'vertical') {
-        g.from(0, 0).to(0, 1)
+        if (w.globals.hasNullValues && w.config.chart.type === 'area') {
+          // When the area path is split by nulls, use userSpaceOnUse so the
+          // gradient offset applies consistently across every segment instead
+          // of being relative to each segment's own bounding box.
+          g.attr({ gradientUnits: 'userSpaceOnUse' })
+          g.from(0, 0).to(0, w.layout.gridHeight)
+        } else {
+          g.from(0, 0).to(0, 1)
+        }
       } else if (style === 'diagonal') {
         g.from(0, 0).to(1, 1)
       } else if (style === 'horizontal') {

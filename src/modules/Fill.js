@@ -123,6 +123,8 @@ class Fill {
     let minNegative = null
 
     for (const value of data) {
+      // skip null/undefined values to avoid treating null as 0 (null >= 0 is true in JS)
+      if (value === null || value === undefined) continue
       if (value >= multiColorConfig.threshold) {
         if (maxPositive === null || value > maxPositive) {
           maxPositive = value
