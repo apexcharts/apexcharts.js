@@ -252,6 +252,7 @@ export default class ZoomPanSelection extends Toolbar {
       this.startY = this.clientY - gridRectDim.top
 
       this.dragged = false
+      this.w.interact.wasDragged = false
       this.w.interact.mousedown = true
     }
 
@@ -320,6 +321,7 @@ export default class ZoomPanSelection extends Toolbar {
       this.hideSelectionRect(this.selectionRect)
     }
 
+    this.w.interact.wasDragged = this.dragged
     this.dragged = false
     this.w.interact.mousedown = false
   }
