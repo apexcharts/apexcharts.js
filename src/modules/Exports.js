@@ -1,5 +1,4 @@
 // @ts-check
-import apexchartsLegendCSS from '../assets/apexcharts-legend.css'
 import AxesUtils from '../modules/axes/AxesUtils'
 import Data from '../modules/Data'
 import Series from '../modules/Series'
@@ -103,25 +102,72 @@ class Exports {
       clonedNode.style.height = height + 'px'
       // Strata: replace any series-canvas with an <image> before serialization.
       this.inlineCanvasLayers(clonedNode)
-      const serializedNode = new XMLSerializer().serializeToString(clonedNode)
 
-      // Check if legend is shown and should be included in export
-      const shouldIncludeLegendStyles =
-        w.config.legend.show &&
-        w.dom.elLegendWrap &&
-        w.dom.elLegendWrap.children.length > 0
+      // CSP-safe export: instead of injecting a <style> block (which violates
+      // strict Content-Security-Policy without 'unsafe-inline'), hide the
+      // transient UI overlays directly on the cloned node and apply the legend
+      // styles as inline styles. See apexcharts#5146.
+      const hiddenSelectors = [
+        '.apexcharts-tooltip',
+        '.apexcharts-toolbar',
+        '.apexcharts-xaxistooltip',
+        '.apexcharts-yaxistooltip',
+        '.apexcharts-xcrosshairs',
+        '.apexcharts-ycrosshairs',
+        '.apexcharts-zoom-rect',
+        '.apexcharts-selection-rect',
+      ]
+      hiddenSelectors.forEach((sel) => {
+        const el = clonedNode.querySelector(sel)
+        if (el) el.style.display = 'none'
+      })
 
-      // Base styles for export
-      let exportStyles = `
-        .apexcharts-tooltip, .apexcharts-toolbar, .apexcharts-xaxistooltip, .apexcharts-yaxistooltip, .apexcharts-xcrosshairs, .apexcharts-ycrosshairs, .apexcharts-zoom-rect, .apexcharts-selection-rect {
-          display: none;
-        }
-      `
-
-      // Add legend styles if legend is shown
-      if (shouldIncludeLegendStyles) {
-        exportStyles += apexchartsLegendCSS
+      // Inline the legend layout styles so the legend keeps its layout in the
+      // exported SVG without relying on a <style> tag.
+      const legendEl = clonedNode.querySelector('.apexcharts-legend')
+      if (legendEl) {
+        legendEl.style.display = 'flex'
+        legendEl.style.overflow = 'auto'
+        legendEl.style.padding = '0 10px'
       }
+      const legendSeriesEls = clonedNode.querySelectorAll(
+        '.apexcharts-legend-series',
+      )
+      legendSeriesEls.forEach((el) => {
+        el.style.display = 'flex'
+        el.style.alignItems = 'center'
+        el.style.lineHeight = 'normal'
+        el.style.cursor = 'pointer'
+      })
+      const legendTextEls = clonedNode.querySelectorAll('.apexcharts-legend-text')
+      legendTextEls.forEach((el) => {
+        el.style.position = 'relative'
+        el.style.fontSize = '14px'
+      })
+      const legendMarkerEls = clonedNode.querySelectorAll(
+        '.apexcharts-legend-marker',
+      )
+      legendMarkerEls.forEach((el) => {
+        el.style.display = 'flex'
+        el.style.alignItems = 'center'
+        el.style.justifyContent = 'center'
+        el.style.cursor = 'pointer'
+        el.style.marginRight = '1px'
+      })
+      const inactiveLegendEls = clonedNode.querySelectorAll(
+        '.apexcharts-inactive-legend',
+      )
+      inactiveLegendEls.forEach((el) => {
+        el.style.opacity = '0.45'
+      })
+      const hiddenSeriesEls = clonedNode.querySelectorAll(
+        '.apexcharts-hidden-zero-series, .apexcharts-hidden-null-series',
+      )
+      hiddenSeriesEls.forEach((el) => {
+        el.style.display = 'none'
+      })
+
+      const serializedNode = new XMLSerializer().serializeToString(clonedNode)
 
       let svgString = `
         <svg xmlns="http://www.w3.org/2000/svg"
@@ -133,9 +179,6 @@ class Exports {
           width="${w.globals.svgWidth}px" height="${w.globals.svgHeight}px">
           <foreignObject width="100%" height="100%">
             <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px; height:${height}px;">
-            <style type="text/css">
-              ${exportStyles}
-            </style>
               ${serializedNode}
             </div>
           </foreignObject>
