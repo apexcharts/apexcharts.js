@@ -1001,6 +1001,11 @@ export default class Options {
           scatter: {
             y: 'lanes',
             spread: 'swarm',
+            // Beeswarm orientation (1D lanes mode only): 'horizontal' lays the
+            // value on the X axis with category lanes stacked on Y (default);
+            // 'vertical' lays the value on the Y axis with category lanes as
+            // columns across X. Ignored for the 2D value-value scatter (y:'value').
+            orientation: 'horizontal',
             tickAmount: 5,
             xMin: undefined,
             xMax: undefined,

@@ -1082,6 +1082,8 @@ export default class Unit {
     const scfg = opts.scatter || {}
     // 2D value-value scatter: each datum's own x AND y on two numeric axes.
     if (scfg.y === 'value') return this._layoutScatter2D(opts)
+    // Vertical beeswarm: value on the Y axis, category lanes as X columns.
+    if (scfg.orientation === 'vertical') return this._layoutScatterVertical(opts)
     const gw = w.layout.gridWidth
     const gh = w.layout.gridHeight
     const unitData = w.seriesData.unitData || []
@@ -1096,7 +1098,8 @@ export default class Unit {
     const catVals = unitData.map((cat) =>
       Array.isArray(cat) ? cat.map(valueOf) : [],
     )
-    const isNum = (/** @type {any} */ v) => v != null && isFinite(v)
+    /** @param {any} v @returns {v is number} */
+    const isNum = (v) => v != null && isFinite(v)
     const visible = catVals
       .map((_, i) => i)
       .filter((i) => catVals[i].some(isNum))
@@ -1118,13 +1121,9 @@ export default class Unit {
       vmax = 1
     }
     const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5))
-    const nice = this._niceScale(
-      scfg.xMin != null ? scfg.xMin : vmin,
-      scfg.xMax != null ? scfg.xMax : vmax,
-      tickAmount,
-    )
-    const xMin = scfg.xMin != null ? scfg.xMin : nice.min
-    const xMax = scfg.xMax != null ? scfg.xMax : nice.max
+    const domain = this._scatterValueDomain(scfg, vmin, vmax, tickAmount)
+    const xMin = domain.min
+    const xMax = domain.max
     const xSpan = xMax - xMin || 1
 
     // Plot box: left gutter for lane labels, bottom gutter for the axis.
@@ -1210,19 +1209,8 @@ export default class Unit {
       })
     })
 
-    // Tick values for the axis chrome.
-    /** @type {number[]} */
-    const ticks = []
-    const spacingT = nice.spacing || xSpan / Math.max(1, tickAmount - 1)
-    if (scfg.xMin != null || scfg.xMax != null) {
-      for (let k = 0; k < tickAmount; k++) {
-        ticks.push(xMin + (xSpan * k) / (tickAmount - 1))
-      }
-    } else {
-      for (let v = xMin; v <= xMax + spacingT * 0.5; v += spacingT) {
-        ticks.push(Math.abs(v) < spacingT * 1e-9 ? 0 : v)
-      }
-    }
+    // Tick values for the axis chrome (domain-aligned; see _scatterValueDomain).
+    const ticks = domain.ticks
 
     this._scatterAxis = {
       mode: '1d',
@@ -1236,6 +1224,150 @@ export default class Unit {
       ticks,
       lanes,
       xTitle: scfg.xTitle,
+      formatter: typeof scfg.xFormatter === 'function' ? scfg.xFormatter : null,
+      gridlines: scfg.gridlines !== false,
+    }
+    return clusters
+  }
+
+  /**
+   * Vertical beeswarm: the transpose of _layoutScatter. The value runs UP the Y
+   * axis and each category is a column (lane) across X; the swarm pack spreads
+   * dots horizontally off each column's centre line. The value-axis config keys
+   * (`xMin`/`xMax`/`xTitle`/`xFormatter`/`tickAmount`) still describe the value
+   * axis (now Y), so flipping `orientation` keeps the same value settings.
+   * @param {any} opts
+   */
+  _layoutScatterVertical(opts) {
+    const w = this.w
+    const scfg = opts.scatter || {}
+    const gw = w.layout.gridWidth
+    const gh = w.layout.gridHeight
+    const unitData = w.seriesData.unitData || []
+    const names = w.seriesData.seriesNames || []
+    const valueOf = (/** @type {any} */ d) => this._unitValueOf(d)
+    const sizeStats = this._scatterSizeStats(scfg, unitData)
+
+    const catVals = unitData.map((cat) =>
+      Array.isArray(cat) ? cat.map(valueOf) : [],
+    )
+    /** @param {any} v @returns {v is number} */
+    const isNum = (v) => v != null && isFinite(v)
+    const visible = catVals
+      .map((_, i) => i)
+      .filter((i) => catVals[i].some(isNum))
+    const Kv = Math.max(1, visible.length)
+
+    // Global value range across all units, nice-numbered (unless overridden).
+    let vmin = Infinity
+    let vmax = -Infinity
+    catVals.forEach((vs) =>
+      vs.forEach((v) => {
+        if (v != null && isFinite(v)) {
+          if (v < vmin) vmin = v
+          if (v > vmax) vmax = v
+        }
+      }),
+    )
+    if (vmin === Infinity) {
+      vmin = 0
+      vmax = 1
+    }
+    const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5))
+    const domain = this._scatterValueDomain(scfg, vmin, vmax, tickAmount)
+    const vMin = domain.min
+    const vMax = domain.max
+    const vSpan = vMax - vMin || 1
+
+    // Plot box: left gutter for the value (Y) axis, bottom gutter for the lane
+    // labels along X.
+    const leftGutter = 46 + (scfg.xTitle ? 18 : 0)
+    const bottomGutter = Kv > 1 ? 26 : 10
+    const plotL = leftGutter
+    const plotR = gw - 10
+    const plotT = 10
+    const plotB = gh - bottomGutter
+    const plotW = Math.max(4, plotR - plotL)
+    const plotH = Math.max(4, plotB - plotT)
+
+    // Value grows UPWARD (larger value = smaller y).
+    const plotY = (/** @type {number} */ v) =>
+      plotB - ((v - vMin) / vSpan) * plotH
+    const laneW = plotW / Kv
+    const laneCx = (/** @type {number} */ slot) => plotL + laneW * (slot + 0.5)
+
+    // Dot radius: fixed if set, else a small auto radius bounded by lane WIDTH
+    // and peak lane density (a swarm reads best with small dots).
+    let r = 0
+    const fixed = this._fixedRadius(opts)
+    if (fixed) {
+      r = fixed
+    } else {
+      const maxLane = Math.max(
+        1,
+        ...visible.map((i) => catVals[i].filter(isNum).length),
+      )
+      r = Math.max(
+        2,
+        Math.min(6, laneW * 0.12, plotH / (2.5 * Math.sqrt(maxLane))),
+      )
+    }
+    this._lastDotR = r
+    const spacing = opts.spacing > 0 ? opts.spacing : 1
+    const step = Math.max(0.5, r * spacing)
+    const jitter = scfg.spread === 'jitter'
+
+    /** @type {{ i:number, cx:number, cy:number, outerR:number, dots:{x:number,y:number,r?:number}[] }[]} */
+    const clusters = []
+    /** @type {{ i:number, cx:number, name:string }[]} */
+    const lanes = []
+    const maxR = sizeStats ? sizeStats.rMax : r
+
+    visible.forEach((ci, slot) => {
+      const cx = laneCx(slot)
+      lanes.push({ i: ci, cx, name: names[ci] || `series-${ci + 1}` })
+      const cat = unitData[ci] || []
+      const pts = cat.map((d, j) => {
+        const v = valueOf(d)
+        /** @type {{j:number,py:number,x:number,r?:number}} */
+        const p = { j, py: plotY(isNum(v) ? v : vMin), x: cx }
+        if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r)
+        return p
+      })
+      if (jitter) {
+        const halfLane = Math.max(maxR, laneW / 2 - maxR)
+        pts.forEach((p, k) => {
+          const t = ((k * 9301 + 49297) % 233280) / 233280 // LCG in [0,1)
+          p.x = cx + (t * 2 - 1) * halfLane
+        })
+      } else {
+        this._beeswarm(pts, cx, r, step, maxR, true)
+      }
+      clusters.push({
+        i: ci,
+        cx,
+        cy: (plotT + plotB) / 2,
+        outerR: laneW / 2,
+        dots: pts.map((p) => ({ x: p.x, y: p.py, r: p.r })),
+      })
+    })
+
+    // Value-axis (Y) tick values (domain-aligned; see _scatterValueDomain).
+    const ticks = domain.ticks
+
+    this._scatterAxis = {
+      mode: '1d',
+      orientation: 'vertical',
+      plotL,
+      plotR,
+      plotT,
+      plotB,
+      vMin,
+      vMax,
+      plotY,
+      ticks,
+      lanes,
+      valueTitle: scfg.xTitle,
       formatter: typeof scfg.xFormatter === 'function' ? scfg.xFormatter : null,
       gridlines: scfg.gridlines !== false,
     }
@@ -1462,14 +1594,21 @@ export default class Unit {
    * neighbour still within reach in x. No-overlap always wins: a very dense lane
    * grows a taller swarm rather than stacking dots (offsets are not hard-clamped
    * to the lane). Each point may carry its own radius `r` (bubble beeswarm),
-   * else `rFallback` applies; `maxR` bounds the x-window break. Mutates each
-   * point's `.y`. Deterministic (no physics, no randomness).
-   * @param {{px:number,y:number,r?:number}[]} pts @param {number} cy
+   * else `rFallback` applies; `maxR` bounds the value-window break. Deterministic
+   * (no physics, no randomness).
+   *
+   * Orientation-agnostic: the "fixed" axis is the value axis and the "spread"
+   * axis is the lane thickness. Horizontal (default): fixed = `px`, spread = `y`
+   * (mutates `.y`). Vertical: fixed = `py`, spread = `x` (mutates `.x`).
+   * @param {any[]} pts @param {number} center lane centre on the spread axis
    * @param {number} rFallback @param {number} step @param {number} [maxR]
+   * @param {boolean} [vertical]
    */
-  _beeswarm(pts, cy, rFallback, step, maxR) {
-    const order = pts.slice().sort((a, b) => a.px - b.px)
-    /** @type {{px:number,y:number,r:number}[]} */
+  _beeswarm(pts, center, rFallback, step, maxR, vertical = false) {
+    const fk = vertical ? 'py' : 'px' // fixed (value) coordinate
+    const sk = vertical ? 'x' : 'y' // spread (lane) coordinate to assign
+    const order = pts.slice().sort((a, b) => a[fk] - b[fk])
+    /** @type {{f:number,s:number,r:number}[]} */
     const placed = []
     const rCap = maxR != null ? maxR : rFallback
     order.forEach((p) => {
@@ -1477,15 +1616,15 @@ export default class Unit {
       let chosen = 0
       for (let k = 0; k < 2000; k++) {
         const off = k === 0 ? 0 : Math.ceil(k / 2) * step * (k % 2 ? 1 : -1)
-        const y = cy + off
+        const s = center + off
         let ok = true
         for (let m = placed.length - 1; m >= 0; m--) {
           const q = placed[m]
-          const dx = p.px - q.px
-          if (dx > pr + rCap) break // x-ascending; nothing else can be in reach
+          const df = p[fk] - q.f
+          if (df > pr + rCap) break // value-ascending; nothing else in reach
           const need = pr + q.r
-          const dy = y - q.y
-          if (dx * dx + dy * dy < need * need) {
+          const ds = s - q.s
+          if (df * df + ds * ds < need * need) {
             ok = false
             break
           }
@@ -1495,9 +1634,47 @@ export default class Unit {
           break
         }
       }
-      p.y = cy + chosen
-      placed.push({ px: p.px, y: p.y, r: pr })
+      p[sk] = center + chosen
+      placed.push({ f: p[fk], s: p[sk], r: pr })
     })
+  }
+
+  /**
+   * Value-axis domain + ticks for a 1D beeswarm. The domain ALWAYS contains
+   * every datum: a swarm that clips a dot outside the plot box is a bug, so an
+   * explicit `xMin`/`xMax` only FRAMES the axis and is extended by whole
+   * tick-steps whenever the data would otherwise overflow. Orientation-agnostic:
+   * the same value axis is X for a horizontal swarm and Y for a vertical one.
+   * @param {any} scfg scatter config
+   * @param {number} vmin data minimum @param {number} vmax data maximum
+   * @param {number} tickAmount desired tick count
+   * @returns {{ min:number, max:number, ticks:number[] }}
+   */
+  _scatterValueDomain(scfg, vmin, vmax, tickAmount) {
+    /** @param {number} min @param {number} max @param {number} spacing */
+    const buildTicks = (min, max, spacing) => {
+      /** @type {number[]} */
+      const ticks = []
+      for (let v = min; v <= max + spacing * 0.5; v += spacing) {
+        ticks.push(Math.abs(v) < spacing * 1e-9 ? 0 : v)
+      }
+      return ticks
+    }
+    if (scfg.xMin != null || scfg.xMax != null) {
+      let min = scfg.xMin != null ? scfg.xMin : vmin
+      let max = scfg.xMax != null ? scfg.xMax : vmax
+      if (!(max > min)) max = min + 1
+      const spacing = (max - min) / Math.max(1, tickAmount - 1)
+      // Extend the framed bounds by whole steps so no dot falls outside the
+      // plot (keeps the user's tick origin + spacing, just adds ticks).
+      if (vmin < min) min -= Math.ceil((min - vmin) / spacing) * spacing
+      if (vmax > max) max += Math.ceil((vmax - max) / spacing) * spacing
+      return { min, max, ticks: buildTicks(min, max, spacing) }
+    }
+    const nice = this._niceScale(vmin, vmax, tickAmount)
+    const spacing =
+      nice.spacing || (nice.max - nice.min) / Math.max(1, tickAmount - 1)
+    return { min: nice.min, max: nice.max, ticks: buildTicks(nice.min, nice.max, spacing) }
   }
 
   /**
@@ -1650,12 +1827,53 @@ export default class Unit {
       return
     }
 
-    // 1D beeswarm: vertical gridlines + tick labels.
-    ax.ticks.forEach((/** @type {number} */ v) => {
+    // 1D vertical beeswarm: value on Y (horizontal gridlines + left labels),
+    // category lanes as columns labelled along the bottom.
+    if (ax.orientation === 'vertical') {
+      ax.ticks.forEach((/** @type {number} */ v) => {
+        const y = ax.plotY(v)
+        if (ax.gridlines) line(ax.plotL, y, ax.plotR, y, gridColor)
+        const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v)
+        text(label, ax.plotL - 8, y, 'end', labelColor, 11, 400, 'apexcharts-unit-tick')
+      })
+      // Y axis baseline up the left.
+      line(ax.plotL, ax.plotT, ax.plotL, ax.plotB, axisColor)
+      // Value (Y) axis title, rotated up the left edge.
+      if (ax.valueTitle) {
+        const yt = BrowserAPIs.createElementNS(NS, 'text')
+        yt.setAttribute('class', 'apexcharts-unit-axis-title')
+        const tx = 14
+        const ty = (ax.plotT + ax.plotB) / 2
+        yt.setAttribute('x', String(tx))
+        yt.setAttribute('y', String(ty))
+        yt.setAttribute('text-anchor', 'middle')
+        yt.setAttribute('font-size', '12px')
+        yt.setAttribute('font-family', w.config.chart.fontFamily || 'inherit')
+        yt.setAttribute('font-weight', '600')
+        yt.setAttribute('fill', labelColor)
+        yt.setAttribute('transform', `rotate(-90 ${tx} ${ty})`)
+        yt.textContent = String(ax.valueTitle)
+        g.node.appendChild(yt)
+      }
+      // Lane (category) labels along the bottom, in the category colour.
+      ax.lanes.forEach((/** @type {{i:number,cx:number,name:string}} */ lane) => {
+        const color =
+          w.globals.colors[lane.i] || w.globals.colors[0] || '#008FFB'
+        text(lane.name, lane.cx, ax.plotB + 16, 'middle', color, 12, 600, 'apexcharts-unit-lane-label')
+      })
+      ret.add(g)
+      return
+    }
+
+    // 1D beeswarm: vertical gridlines + tick labels. The first / last labels are
+    // edge-anchored (start / end) so a wide value at the plot edge stays inside.
+    ax.ticks.forEach((/** @type {number} */ v, /** @type {number} */ idx) => {
       const x = ax.plotX(v)
       if (ax.gridlines) line(x, ax.plotT, x, ax.plotB, gridColor)
       const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v)
-      text(label, x, ax.plotB + 14, 'middle', labelColor, 11, 400, 'apexcharts-unit-tick')
+      const anchor =
+        idx === 0 ? 'start' : idx === ax.ticks.length - 1 ? 'end' : 'middle'
+      text(label, x, ax.plotB + 14, anchor, labelColor, 11, 400, 'apexcharts-unit-tick')
     })
     // X axis baseline.
     line(ax.plotL, ax.plotB, ax.plotR, ax.plotB, axisColor)

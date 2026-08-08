@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Beeswarm (Horizontal) - Salary by Department</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #222b36;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        letter-spacing: -0.01em;
+        margin: 0 0 6px;
+      }
+      .lead {
+        color: #5b6b78;
+        line-height: 1.55;
+        margin: 0 0 18px;
+        font-size: 14px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #eef1f4;
+        border-radius: 12px;
+        padding: 16px 14px 8px;
+        box-shadow:
+          0 1px 3px rgba(20, 30, 45, 0.05),
+          0 8px 24px rgba(20, 30, 45, 0.04);
+      }
+      .note {
+        background: #f4f7fb;
+        border-left: 3px solid #2a78d6;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #37424e;
+        border-radius: 2px;
+        line-height: 1.65;
+        margin: 22px 0 0;
+      }
+      .note code {
+        background: #e4ecf7;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 12px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // A HORIZONTAL beeswarm: value on the X axis, one lane per department on Y.
+      // Every dot is a person's base pay. Each department gets its own hue (ordered so
+      // adjacent lanes separate well for colour-vision deficiency) and the eye reads
+      // each lane's spread, centre and outliers from the swarm shape.
+      // Figures are an illustrative sample (USD, base salary).
+      // Shared by the vanilla-js / React / Vue builds.
+      var DEPTS = [
+        { name: 'Engineering', mean: 152, sd: 30, n: 34 },
+        { name: 'Data Science', mean: 158, sd: 26, n: 22 },
+        { name: 'Product', mean: 141, sd: 22, n: 18 },
+        { name: 'Design', mean: 118, sd: 20, n: 20 },
+        { name: 'Sales', mean: 112, sd: 34, n: 30 },
+        { name: 'Support', mean: 74, sd: 12, n: 26 },
+      ]
+
+      // Deterministic normal-ish sample (Irwin-Hall via an LCG): stable across
+      // re-renders and SSR, no Math.random. Rounded to the nearest $1k, floored so no
+      // dot dips below a plausible wage.
+      function swarm(mean, sd, n, seed) {
+        var out = []
+        var s = seed >>> 0
+        function u() {
+          s = (s * 1664525 + 1013904223) >>> 0
+          return s / 4294967296
+        }
+        for (var i = 0; i < n; i++) {
+          var g = 0
+          for (var k = 0; k < 6; k++) g += u()
+          var z = (g - 3) / Math.sqrt(0.5)
+          out.push(Math.max(48, Math.round(mean + z * sd)))
+        }
+        return out
+      }
+
+      var paySeries = DEPTS.map(function (d, i) {
+        return {
+          name: d.name,
+          data: swarm(d.mean, d.sd, d.n, 41 + i * 977).map(function (v, j) {
+            return { name: d.name + ' #' + (j + 1), value: v }
+          }),
+        }
+      })
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="wrap">
+      <h1>What people earn, by team</h1>
+      <p class="lead">
+        One dot per employee, laned by department, placed on a single pay axis. The
+        swarm packs equal pay side by side, so a wide bulge is a common salary and a
+        lone dot far right is an outlier, the shape of each team's pay is visible at
+        a glance.
+      </p>
+    
+      <div class="card">
+        <div id="chart">
+      <apexchart type="unit" height="470" :options="chartOptions" :series="series"></apexchart>
+    </div>
+      </div>
+    
+      <div class="note">
+        A horizontal beeswarm is the default <code>plotOptions.unit.scatter</code>
+        with <code>orientation: 'horizontal'</code>: value on X, one category lane
+        per row on Y. Each team carries its own hue, ordered so neighbouring lanes
+        stay easy to tell apart for colour-vision deficiency, and the lane label
+        repeats that colour so identity never rests on hue alone. The unit chart is a
+        premium type, without a license it renders with a trial watermark.
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+        &lt;h1&gt;What people earn, by team&lt;/h1&gt;
+        &lt;p class=&quot;lead&quot;&gt;
+          One dot per employee, laned by department, placed on a single pay axis. The
+          swarm packs equal pay side by side, so a wide bulge is a common salary and a
+          lone dot far right is an outlier, the shape of each team&#39;s pay is visible at
+          a glance.
+        &lt;/p&gt;
+      
+        &lt;div class=&quot;card&quot;&gt;
+          &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;unit&quot; height=&quot;470&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;note&quot;&gt;
+          A horizontal beeswarm is the default &lt;code&gt;plotOptions.unit.scatter&lt;/code&gt;
+          with &lt;code&gt;orientation: &#39;horizontal&#39;&lt;/code&gt;: value on X, one category lane
+          per row on Y. Each team carries its own hue, ordered so neighbouring lanes
+          stay easy to tell apart for colour-vision deficiency, and the lane label
+          repeats that colour so identity never rests on hue alone. The unit chart is a
+          premium type, without a license it renders with a trial watermark.
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: paySeries,
+          chartOptions: {
+            chart: {
+              id: 'salarySwarm',
+              type: 'unit',
+              height: 470,
+              fontFamily: 'inherit',
+              animations: {
+                enabled: true,
+                speed: 700,
+              },
+            },
+            // One hue per team, ordered so adjacent lanes stay far apart for colour-vision
+            // deficiency (validated: worst adjacent pair ΔE 9.2 CVD / 27.6 normal). The lane
+            // label repeats the colour, so identity never rests on hue alone.
+            colors: [
+              '#008300',
+              '#2a78d6',
+              '#eb6834',
+              '#1baf7a',
+              '#4a3aa7',
+              '#e87ba4',
+            ],
+            legend: {
+              position: 'bottom',
+              markers: { radius: 12 },
+            },
+            plotOptions: {
+              unit: {
+                layout: 'scatter',
+                size: 4,
+                scatter: {
+                  orientation: 'horizontal',
+                  spread: 'swarm',
+                  xMin: 40,
+                  xMax: 240,
+                  tickAmount: 5,
+                  laneLabelWidth: 104,
+                  xTitle: 'Base salary',
+                  xFormatter: function (v) {
+                    return '$' + v + 'k'
+                  },
+                },
+              },
+            },
+            tooltip: {
+              enabled: true,
+            },
+          },
+        },
+      })
+    </script>
+    
+  </body>
+</html>

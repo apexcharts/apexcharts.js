@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Beeswarm (Vertical) - Body Mass by Species</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #222b36;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        letter-spacing: -0.01em;
+        margin: 0 0 6px;
+      }
+      .lead {
+        color: #5b6b78;
+        line-height: 1.55;
+        margin: 0 0 18px;
+        font-size: 14px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #eef1f4;
+        border-radius: 12px;
+        padding: 14px 10px 6px;
+        box-shadow:
+          0 1px 3px rgba(20, 30, 45, 0.05),
+          0 8px 24px rgba(20, 30, 45, 0.04);
+      }
+      .note {
+        background: #f4f7fb;
+        border-left: 3px solid #2a78d6;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #37424e;
+        border-radius: 2px;
+        line-height: 1.65;
+        margin: 22px 0 0;
+      }
+      .note code {
+        background: #e4ecf7;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 12px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // A VERTICAL beeswarm: value runs up the Y axis, each species is a column, and
+      // dots are anti-overlap "swarm" packed so the column's WIDTH reads as density.
+      // One dot per penguin. Figures are an illustrative sample around the real
+      // Palmer Archipelago body-mass distributions (Gentoo run visibly heavier).
+      // Shared by the vanilla-js / React / Vue builds.
+      var SPECIES = [
+        { name: 'Adelie', mean: 3700, sd: 460, n: 44 },
+        { name: 'Chinstrap', mean: 3733, sd: 385, n: 34 },
+        { name: 'Gentoo', mean: 5076, sd: 505, n: 40 },
+      ]
+
+      // Deterministic normal-ish sample (Irwin-Hall of 6 uniforms via an LCG): stable
+      // across re-renders and SSR, no Math.random. Rounded to the nearest 25 g.
+      function swarm(mean, sd, n, seed) {
+        var out = []
+        var s = seed >>> 0
+        function u() {
+          s = (s * 1664525 + 1013904223) >>> 0
+          return s / 4294967296
+        }
+        for (var i = 0; i < n; i++) {
+          var g = 0
+          for (var k = 0; k < 6; k++) g += u()
+          var z = (g - 3) / Math.sqrt(0.5)
+          out.push(Math.round((mean + z * sd) / 25) * 25)
+        }
+        return out
+      }
+
+      var swarmSeries = SPECIES.map(function (sp, i) {
+        return {
+          name: sp.name,
+          data: swarm(sp.mean, sp.sd, sp.n, 97 + i * 613).map(function (v, j) {
+            return { name: sp.name + ' ' + (j + 1), value: v }
+          }),
+        }
+      })
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="wrap">
+      <h1>How much does a penguin weigh?</h1>
+      <p class="lead">
+        One dot per penguin, stacked into a column per species. The swarm packs
+        dots side by side with no overlap, so each column's width is its density,
+        you read the spread and the clusters, not just an average.
+      </p>
+    
+      <div class="card">
+        <div id="chart">
+      <apexchart type="unit" height="460" :options="chartOptions" :series="series"></apexchart>
+    </div>
+      </div>
+    
+      <div class="note">
+        A vertical beeswarm is <code>plotOptions.unit.scatter</code> with
+        <code>orientation: 'vertical'</code>: the value sits on the Y axis and each
+        category becomes a column across X. <code>spread: 'swarm'</code> packs equal
+        and near-equal values off the centre line so nothing overlaps, turning each
+        column into a density silhouette. The unit chart is a premium type, without a
+        license it renders with a trial watermark.
+      </div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+        &lt;h1&gt;How much does a penguin weigh?&lt;/h1&gt;
+        &lt;p class=&quot;lead&quot;&gt;
+          One dot per penguin, stacked into a column per species. The swarm packs
+          dots side by side with no overlap, so each column&#39;s width is its density,
+          you read the spread and the clusters, not just an average.
+        &lt;/p&gt;
+      
+        &lt;div class=&quot;card&quot;&gt;
+          &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;unit&quot; height=&quot;460&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;note&quot;&gt;
+          A vertical beeswarm is &lt;code&gt;plotOptions.unit.scatter&lt;/code&gt; with
+          &lt;code&gt;orientation: &#39;vertical&#39;&lt;/code&gt;: the value sits on the Y axis and each
+          category becomes a column across X. &lt;code&gt;spread: &#39;swarm&#39;&lt;/code&gt; packs equal
+          and near-equal values off the centre line so nothing overlaps, turning each
+          column into a density silhouette. The unit chart is a premium type, without a
+          license it renders with a trial watermark.
+        &lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: swarmSeries,
+          chartOptions: {
+            chart: {
+              id: 'bodyMassSwarm',
+              type: 'unit',
+              height: 460,
+              fontFamily: 'inherit',
+              animations: {
+                enabled: true,
+                speed: 700,
+              },
+            },
+            colors: ['#eb6834', '#4a3aa7', '#1baf7a'],
+            legend: {
+              position: 'bottom',
+              markers: { radius: 12 },
+            },
+            plotOptions: {
+              unit: {
+                layout: 'scatter',
+                size: 4.4,
+                scatter: {
+                  orientation: 'vertical',
+                  spread: 'swarm',
+                  xMin: 2000,
+                  xMax: 6000,
+                  tickAmount: 5,
+                  xTitle: 'Body mass',
+                  xFormatter: function (v) {
+                    return (v / 1000).toFixed(1) + ' kg'
+                  },
+                },
+              },
+            },
+            tooltip: {
+              enabled: true,
+            },
+          },
+        },
+      })
+    </script>
+    
+  </body>
+</html>

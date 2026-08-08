@@ -2370,7 +2370,15 @@ type ApexPlotOptions = {
       y?: 'lanes' | 'value'
       /** 'swarm' (anti-overlap pack, default) or 'jitter' (random lane spread). */
       spread?: 'swarm' | 'jitter'
-      /** Approximate number of X-axis ticks. Defaults to 5. */
+      /**
+       * Beeswarm orientation (1D `y:'lanes'` mode only). 'horizontal' (default):
+       * value on X, category lanes stacked on Y. 'vertical': value on Y,
+       * category lanes as columns across X. The value-axis config keys
+       * (`xMin`/`xMax`/`xTitle`/`xFormatter`/`tickAmount`) describe the value
+       * axis in both orientations.
+       */
+      orientation?: 'horizontal' | 'vertical'
+      /** Approximate number of value-axis ticks. Defaults to 5. */
       tickAmount?: number
       /** Fixed X-axis min / max; undefined = derived (nice-numbered) from data. */
       xMin?: number

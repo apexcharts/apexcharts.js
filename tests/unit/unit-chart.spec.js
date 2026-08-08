@@ -780,6 +780,125 @@ describe('Unit chart - scatter (beeswarm) layout', () => {
     chart.destroy()
   })
 
+  it('vertical orientation puts value on Y (upward) and lanes across X', () => {
+    const chart = unitChart({
+      series: [
+        { name: 'A', data: [0, 25, 50, 75, 100] },
+        { name: 'B', data: [10, 40, 90] },
+      ],
+      plotOptions: {
+        unit: {
+          layout: 'scatter',
+          scatter: { orientation: 'vertical', xMin: 0, xMax: 100 },
+        },
+      },
+    })
+    // Value grows UPWARD: ascending values -> monotonically DECREASING cy.
+    const ys = centers(laneGroup(chart, 0)).map((p) => p.y)
+    for (let i = 1; i < ys.length; i++) {
+      expect(ys[i]).toBeLessThan(ys[i - 1])
+    }
+    // Lanes are columns across X: lane B sits to the right of lane A.
+    const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length
+    const aCx = mean(centers(laneGroup(chart, 0)).map((p) => p.x))
+    const bCx = mean(centers(laneGroup(chart, 1)).map((p) => p.x))
+    expect(bCx).toBeGreaterThan(aCx)
+    // Axis chrome + one lane label per category still drawn.
+    expect(
+      chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-lane-label').length,
+    ).toBe(2)
+    chart.destroy()
+  })
+
+  it('vertical swarm packing keeps equal-value dots from overlapping', () => {
+    const data = new Array(12).fill(50)
+    const chart = unitChart({
+      series: [{ name: 'A', data }],
+      plotOptions: {
+        unit: {
+          layout: 'scatter',
+          size: 4,
+          scatter: { orientation: 'vertical', xMin: 0, xMax: 100 },
+        },
+      },
+    })
+    const g0 = laneGroup(chart, 0)
+    const pts = centers(g0)
+    const r = parseFloat(
+      g0.querySelector('circle.apexcharts-unit-area').getAttribute('r'),
+    )
+    let minGap = Infinity
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        minGap = Math.min(
+          minGap,
+          Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y),
+        )
+      }
+    }
+    expect(minGap).toBeGreaterThanOrEqual(2 * r - 0.01)
+    // Spread horizontally off the centre line (not a single column).
+    expect(new Set(pts.map((p) => Math.round(p.x))).size).toBeGreaterThan(1)
+    chart.destroy()
+  })
+
+  // The value domain must ALWAYS contain every datum: a user xMin/xMax only
+  // frames the axis and is extended by whole tick-steps when data would fall
+  // outside, so no dot is ever drawn beyond the axis (where it cannot be
+  // hovered). Verified on BOTH the X value axis (horizontal) and the Y value
+  // axis (vertical).
+  const tickCoords = (chart, attr) =>
+    [...chart.w.dom.baseEl.querySelectorAll('text.apexcharts-unit-tick')].map((t) =>
+      parseFloat(t.getAttribute(attr)),
+    )
+
+  it('horizontal domain contains data outside a user xMin/xMax (no dot past the axis)', () => {
+    const chart = unitChart({
+      // -30 and 130 fall OUTSIDE the framed [0, 100].
+      series: [{ name: 'A', data: [-30, 20, 60, 130] }],
+      plotOptions: {
+        unit: {
+          layout: 'scatter',
+          size: 4,
+          scatter: { xMin: 0, xMax: 100, tickAmount: 5 },
+        },
+      },
+    })
+    const xs = tickCoords(chart, 'x')
+    const left = Math.min(...xs)
+    const right = Math.max(...xs)
+    // Every dot centre stays between the extreme ticks (value axis is X here;
+    // swarm packing only shifts the perpendicular axis, so cx = value exactly).
+    centers(laneGroup(chart, 0)).forEach((p) => {
+      expect(p.x).toBeGreaterThanOrEqual(left - 0.5)
+      expect(p.x).toBeLessThanOrEqual(right + 0.5)
+    })
+    chart.destroy()
+  })
+
+  it('vertical domain contains data outside a user xMin/xMax (no dot below the axis)', () => {
+    const chart = unitChart({
+      series: [{ name: 'A', data: [-30, 20, 60, 130] }],
+      plotOptions: {
+        unit: {
+          layout: 'scatter',
+          size: 4,
+          scatter: { orientation: 'vertical', xMin: 0, xMax: 100, tickAmount: 5 },
+        },
+      },
+    })
+    const ys = tickCoords(chart, 'y')
+    const top = Math.min(...ys)
+    const bottom = Math.max(...ys)
+    // Value axis is Y: every dot centre stays between the top and bottom ticks,
+    // so none spills below the lane baseline (the reported bug).
+    centers(laneGroup(chart, 0)).forEach((p) => {
+      expect(p.y).toBeGreaterThanOrEqual(top - 0.5)
+      expect(p.y).toBeLessThanOrEqual(bottom + 0.5)
+    })
+    chart.destroy()
+  })
+
   it('swarm packing keeps equal-value dots from overlapping', () => {
     // 12 identical values would stack on one x without a beeswarm spread.
     const data = new Array(12).fill(50)

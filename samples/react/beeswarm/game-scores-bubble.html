@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Beeswarm (Bubble) - Game Scores by Genre</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #222b36;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        letter-spacing: -0.01em;
+        margin: 0 0 6px;
+      }
+      .lead {
+        color: #5b6b78;
+        line-height: 1.55;
+        margin: 0 0 18px;
+        font-size: 14px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #eef1f4;
+        border-radius: 12px;
+        padding: 16px 14px 8px;
+        box-shadow:
+          0 1px 3px rgba(20, 30, 45, 0.05),
+          0 8px 24px rgba(20, 30, 45, 0.04);
+      }
+      .note {
+        background: #f4f7fb;
+        border-left: 3px solid #2a78d6;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #37424e;
+        border-radius: 2px;
+        line-height: 1.65;
+        margin: 22px 0 0;
+      }
+      .note code {
+        background: #e4ecf7;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 12px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // A BUBBLE beeswarm: one bubble per game, laned by genre on a critic-score axis,
+      // with each bubble sized (by area) to its sales. So position reads quality and
+      // area reads reach, the biggest sellers pop out without leaving the swarm.
+      // Each datum carries value (score, X), z (copies sold, drives the radius) and a
+      // title (name, shown on hover). Figures are illustrative.
+      // Shared by the vanilla-js / React / Vue builds.
+      function g(name, score, sales) {
+        return { name: name, value: score, z: sales }
+      }
+
+      var gameSeries = [
+        {
+          name: 'Action-Adventure',
+          data: [
+            g('Red Dead Redemption 2', 97, 55),
+            g('God of War', 94, 23),
+            g('Horizon Zero Dawn', 89, 24),
+            g('Marvel’s Spider-Man', 87, 20),
+            g('Uncharted 4', 93, 16),
+            g('Ghost of Tsushima', 83, 13),
+            g('The Last of Us Part II', 93, 10),
+            g('Assassin’s Creed Odyssey', 83, 12),
+          ],
+        },
+        {
+          name: 'RPG',
+          data: [
+            g('Skyrim', 94, 60),
+            g('The Witcher 3', 93, 50),
+            g('Cyberpunk 2077', 86, 30),
+            g('Elden Ring', 96, 25),
+            g('Baldur’s Gate 3', 96, 15),
+            g('Dark Souls III', 89, 10),
+            g('Persona 5', 93, 9),
+            g('Final Fantasy VII Remake', 87, 7),
+          ],
+        },
+        {
+          name: 'Racing',
+          data: [
+            g('Mario Kart 8 Deluxe', 92, 62),
+            g('Forza Horizon 5', 92, 45),
+            g('Forza Horizon 4', 92, 24),
+            g('Gran Turismo 7', 87, 12),
+            g('Burnout Paradise', 88, 8),
+            g('F1 23', 82, 5),
+            g('Need for Speed Heat', 72, 4),
+            g('Dirt Rally 2.0', 84, 3),
+          ],
+        },
+      ]
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+  &lt;h1&gt;Critic scores vs sales, by genre&lt;/h1&gt;
+  &lt;p class=&quot;lead&quot;&gt;
+    One bubble per game, laned by genre on a critic-score axis. Position is the
+    score, bubble area is copies sold, so the crowd-pleasers that also review
+    well sit large and far to the right. Hover any bubble for the title.
+  &lt;/p&gt;
+
+  &lt;div class=&quot;card&quot;&gt;
+    &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;unit&quot; height={460} /&gt;
+&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;note&quot;&gt;
+    Adding &lt;code&gt;scatter.sizeRange: [min, max]&lt;/code&gt; turns the beeswarm dots into
+    area-scaled bubbles, read from each datum&#39;s &lt;code&gt;sizeField&lt;/code&gt; (here
+    &lt;code&gt;z&lt;/code&gt;). The swarm still packs with no overlap, sized for the largest
+    bubble, so a third measure rides on the distribution for free. The unit chart
+    is a premium type, without a license it renders with a trial watermark.
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: gameSeries,
+          options: {
+            chart: {
+              id: 'gameBubbleSwarm',
+              type: 'unit',
+              height: 460,
+              fontFamily: 'inherit',
+              animations: {
+                enabled: true,
+                speed: 700,
+              },
+            },
+            colors: ['#2a78d6', '#eb6834', '#1baf7a'],
+            legend: {
+              position: 'bottom',
+              markers: { radius: 12 },
+            },
+            plotOptions: {
+              unit: {
+                layout: 'scatter',
+                scatter: {
+                  orientation: 'horizontal',
+                  spread: 'swarm',
+                  sizeField: 'z',
+                  sizeRange: [5, 26],
+                  xMin: 70,
+                  xMax: 100,
+                  tickAmount: 6,
+                  laneLabelWidth: 128,
+                  xTitle: 'Metacritic score',
+                },
+              },
+            },
+            tooltip: {
+              enabled: true,
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div class="wrap">
+              <h1>Critic scores vs sales, by genre</h1>
+              <p class="lead">
+                One bubble per game, laned by genre on a critic-score axis. Position
+                is the score, bubble area is copies sold, so the crowd-pleasers that
+                also review well sit large and far to the right. Hover any bubble for
+                the title.
+              </p>
+
+              <div class="card">
+                <div id="chart">
+                  <ReactApexChart
+                    options={state.options}
+                    series={state.series}
+                    type="unit"
+                    height={460}
+                  />
+                </div>
+              </div>
+
+              <div class="note">
+                Adding <code>scatter.sizeRange: [min, max]</code> turns the beeswarm
+                dots into area-scaled bubbles, read from each datum's{' '}
+                <code>sizeField</code> (here
+                <code>z</code>). The swarm still packs with no overlap, sized for the
+                largest bubble, so a third measure rides on the distribution for free.
+                The unit chart is a premium type, without a license it renders with a
+                trial watermark.
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>
