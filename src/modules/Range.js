@@ -102,11 +102,21 @@ class Range {
       let lastXIndex = series[i].length - 1
       if (autoScaleYaxis) {
         // Scale the Y axis to the min..max within the possibly zoomed X axis domain.
+        // Subpixel rounding in brush selection may produce a pixel→timestamp
+        // conversion that is slightly off exact data point timestamps, causing
+        // boundary points to be excluded from the Y range. (#5251)
+        let onePixelInDomain = 0
+        if (
+          gl.maxX !== gl.minX &&
+          this.w.layout.gridWidth > 0
+        ) {
+          onePixelInDomain = (gl.maxX - gl.minX) / this.w.layout.gridWidth
+        }
         if (cnf.xaxis.min) {
           for (
             ;
             firstXIndex < lastXIndex &&
-            this.w.seriesData.seriesX[i][firstXIndex] < cnf.xaxis.min;
+            this.w.seriesData.seriesX[i][firstXIndex] < cnf.xaxis.min - onePixelInDomain;
             firstXIndex++
           ) {
             // Intentionally empty - just incrementing firstXIndex
@@ -116,7 +126,7 @@ class Range {
           for (
             ;
             lastXIndex > firstXIndex &&
-            this.w.seriesData.seriesX[i][lastXIndex] > cnf.xaxis.max;
+            this.w.seriesData.seriesX[i][lastXIndex] > cnf.xaxis.max + onePixelInDomain;
             lastXIndex--
           ) {
             // Intentionally empty - just decrementing lastXIndex
