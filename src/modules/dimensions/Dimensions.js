@@ -34,7 +34,11 @@ export default class Dimensions {
     this.dimXAxis = new DimXAxis(this)
     this.dimGrid = new Grid(this)
     this.lgWidthForSideLegends = 0
-    this.gridPad = this.w.config.grid.padding
+    // A COPY, never the config object itself: the chart type folds its own
+    // insets into this (sparkline markers/stroke) and layout code reads them
+    // back, which must not leak into the user's config and accumulate across
+    // renders. Consumers outside Dimensions read w.layout.gridPad.
+    this.gridPad = { ...this.w.config.grid.padding }
     this.xPadRight = 0
     this.xPadLeft = 0
     this.datalabelsCoords = { width: 0, height: 0 }
@@ -54,12 +58,10 @@ export default class Dimensions {
     this.lgRect = this.dimHelpers.getLegendsRect()
     this.datalabelsCoords = { width: 0, height: 0 }
 
-    const maxStrokeWidth = Array.isArray(w.config.stroke.width)
-      ? Math.max(...w.config.stroke.width)
-      : w.config.stroke.width
-
     if (this.isSparkline) {
-      if (w.config.markers.discrete.length > 0 || w.config.markers.size > 0) {
+      // largestSize covers both markers.size (incl. the array form) and
+      // markers.discrete, so it is the one gate for "markers can overhang".
+      if (this.w.globals.markers.largestSize > 0) {
         Object.entries(this.gridPad).forEach(([k, v]) => {
           this.gridPad[k] = Math.max(
             v,
@@ -68,8 +70,9 @@ export default class Dimensions {
         })
       }
 
-      this.gridPad.top = Math.max(maxStrokeWidth / 2, this.gridPad.top)
-      this.gridPad.bottom = Math.max(maxStrokeWidth / 2, this.gridPad.bottom)
+      const strokeInset = this.dimHelpers.getSparklineStrokeInset()
+      this.gridPad.top = Math.max(strokeInset.top, this.gridPad.top)
+      this.gridPad.bottom = Math.max(strokeInset.bottom, this.gridPad.bottom)
     }
 
     if (gl.axisCharts) {
@@ -125,6 +128,7 @@ export default class Dimensions {
         xAxisLabelsWidth: w.layout.xAxisLabelsWidth,
         yLabelsCoords: w.layout.yLabelsCoords,
         yTitleCoords: w.layout.yTitleCoords,
+        gridPad: { ...this.gridPad },
       },
     }
   }

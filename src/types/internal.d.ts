@@ -226,6 +226,13 @@ export interface LayoutCoords {
   xAxisLabelsWidth: number
   yLabelsCoords: Array<{ width: number; index: number }>
   yTitleCoords: Array<{ width: number; height: number }>
+  /**
+   * Grid padding actually applied this render: `grid.padding` after Dimensions
+   * has folded in whatever the chart type needs on top of it (sparkline marker
+   * and stroke insets). Read this, never `config.grid.padding`, when you need
+   * the padding the layout was built from.
+   */
+  gridPad: { top: number; right: number; bottom: number; left: number }
 }
 
 /** Return type of CoreUtils.getCalculatedRatios() */

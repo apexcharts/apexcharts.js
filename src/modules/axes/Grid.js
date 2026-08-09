@@ -111,14 +111,8 @@ class Grid {
     let barWidthLeft = 0
     let barWidthRight = 0
     if (hasBar && w.axisFlags.isXNumeric && !w.globals.isBarHorizontal) {
-      barWidthLeft = Math.max(
-        w.config.grid.padding.left,
-        gl.barPadForNumericAxis,
-      )
-      barWidthRight = Math.max(
-        w.config.grid.padding.right,
-        gl.barPadForNumericAxis,
-      )
+      barWidthLeft = Math.max(w.layout.gridPad.left, gl.barPadForNumericAxis)
+      barWidthRight = Math.max(w.layout.gridPad.right, gl.barPadForNumericAxis)
     }
 
     w.dom.elGridRect = graphics.drawRect(
