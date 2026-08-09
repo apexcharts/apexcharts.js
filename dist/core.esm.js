@@ -39,7 +39,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.7.0
+ * ApexCharts v6.7.1
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -4290,6 +4290,11 @@ class Options {
           scatter: {
             y: "lanes",
             spread: "swarm",
+            // Beeswarm orientation (1D lanes mode only): 'horizontal' lays the
+            // value on the X axis with category lanes stacked on Y (default);
+            // 'vertical' lays the value on the Y axis with category lanes as
+            // columns across X. Ignored for the 2D value-value scatter (y:'value').
+            orientation: "horizontal",
             tickAmount: 5,
             xMin: void 0,
             xMax: void 0,
@@ -10562,31 +10567,6 @@ class Markers {
           this._graphics.pathMouseDown(targetNode.instance, e);
         }
       },
-      { passive: true }
-    );
-  }
-  /**
-   * @param {any} marker
-   */
-  addEvents(marker) {
-    const w = this.w;
-    marker.node.addEventListener(
-      "mouseenter",
-      this._graphics.pathMouseEnter.bind(this.ctx, marker)
-    );
-    marker.node.addEventListener(
-      "mouseleave",
-      this._graphics.pathMouseLeave.bind(this.ctx, marker)
-    );
-    marker.node.addEventListener(
-      "mousedown",
-      this._graphics.pathMouseDown.bind(this.ctx, marker)
-    );
-    marker.node.addEventListener("click", w.config.markers.onClick);
-    marker.node.addEventListener("dblclick", w.config.markers.onDblClick);
-    marker.node.addEventListener(
-      "touchstart",
-      this._graphics.pathMouseDown.bind(this.ctx, marker),
       { passive: true }
     );
   }
@@ -18272,7 +18252,7 @@ class Core {
     });
   }
   resizeNonAxisCharts() {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
     const { w } = this;
     const heightStr = w.config.chart.height ? String(w.config.chart.height) : "";
     const userSetFixedHeight = heightStr !== "" && heightStr !== "auto";
@@ -18284,12 +18264,13 @@ class Core {
       legendHeight = ((_b = (_a = this.ctx.legend) == null ? void 0 : _a.legendHelpers.getLegendDimensions().clwh) != null ? _b : 0) + 7;
     }
     const el = w.dom.baseEl.querySelector(
-      ".apexcharts-radialbar, .apexcharts-pie"
+      ".apexcharts-radialbar, .apexcharts-pie, .apexcharts-sunburst"
     );
     const externalLabelMarginY = w.globals.pieExternalLabelMarginY || 0;
     let chartInnerDimensions = externalLabelMarginY > 0 ? w.globals.radialSize * 2 + externalLabelMarginY * 2 : w.globals.radialSize * 2.05;
+    const angleType = w.config.chart.type === "sunburst" ? "sunburst" : w.config.chart.type === "pie" || w.config.chart.type === "donut" || w.config.chart.type === "polarArea" ? "pie" : "radialBar";
     const radialAngleSpan = Math.abs(
-      w.config.plotOptions.radialBar.endAngle - w.config.plotOptions.radialBar.startAngle
+      w.config.plotOptions[angleType].endAngle - w.config.plotOptions[angleType].startAngle
     );
     if (el && !w.config.chart.sparkline.enabled && radialAngleSpan < 360) {
       const svgRect = Utils$1.getBoundingClientRect(this.w.dom.Paper.node);
@@ -18361,6 +18342,10 @@ class Core {
             grandparent.style.minHeight = `${elWrapHeight}px`;
           }
         }
+        w.globals.svgHeight = svgHeight;
+        if (w.config.legend.position === "bottom" && w.config.legend.show && !w.config.legend.floating) {
+          (_h = this.ctx.legend) == null ? void 0 : _h.setLegendWrapXY(20, 0);
+        }
       }
       return;
     }
@@ -18374,7 +18359,7 @@ class Core {
     this.w.dom.elWrap.style.height = `${newHeight}px`;
     Graphics.setAttrs(this.w.dom.Paper.node, { height: newHeight });
     if (Environment.isBrowser()) {
-      const grandparent = (_h = this.w.dom.Paper.node.parentNode) == null ? void 0 : _h.parentNode;
+      const grandparent = (_i = this.w.dom.Paper.node.parentNode) == null ? void 0 : _i.parentNode;
       if (grandparent) {
         grandparent.style.minHeight = `${newHeight}px`;
       }
