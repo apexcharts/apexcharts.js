@@ -123,6 +123,12 @@ class Exports {
         exportStyles += apexchartsLegendCSS
       }
 
+      // A strict CSP (`style-src` without 'unsafe-inline') blocks this
+      // injected <style> tag unless it carries a nonce the page allow-lists.
+      // Let consumers pass that nonce through chart.toolbar.export.cspNonce.
+      const cspNonce = w.config.chart.toolbar.export.cspNonce
+      const nonceAttr = cspNonce ? ` nonce="${cspNonce}"` : ''
+
       let svgString = `
         <svg xmlns="http://www.w3.org/2000/svg"
           version="1.1"
@@ -133,7 +139,7 @@ class Exports {
           width="${w.globals.svgWidth}px" height="${w.globals.svgHeight}px">
           <foreignObject width="100%" height="100%">
             <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px; height:${height}px;">
-            <style type="text/css">
+            <style type="text/css"${nonceAttr}>
               ${exportStyles}
             </style>
               ${serializedNode}

@@ -1470,6 +1470,12 @@ type ApexChart = {
       }
       width?: number
       scale?: number
+      /**
+       * A CSP `style-src` nonce to apply to the `<style>` tag injected into
+       * SVG/PNG exports, so exports aren't blocked under a strict Content
+       * Security Policy that disallows 'unsafe-inline' styles.
+       */
+      cspNonce?: string
     }
     autoSelected?: 'zoom' | 'selection' | 'pan' | 'measure'
   }

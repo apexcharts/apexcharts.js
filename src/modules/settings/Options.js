@@ -627,6 +627,10 @@ export default class Options {
             },
             scale: undefined,
             width: undefined,
+            // A CSP `style-src` nonce to apply to the `<style>` tag injected
+            // into SVG/PNG exports, so exports work under a strict Content
+            // Security Policy that disallows 'unsafe-inline' styles.
+            cspNonce: undefined,
           },
           autoSelected: 'zoom', // accepts -> zoom, pan, selection, measure
         },
