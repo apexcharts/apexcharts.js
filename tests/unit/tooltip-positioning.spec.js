@@ -243,6 +243,66 @@ describe('Position.computeTooltipPosition (arrow mode)', () => {
   })
 })
 
+describe('Position.computeTooltipPosition (followCursor + CSS zoom)', () => {
+  it('divides followCursor position by CSS zoom factor', () => {
+    const { ttCtx, w, elGrid } = makeCtx({
+      w: {
+        config: {
+          tooltip: { followCursor: true, arrow: false, shared: false, intersect: true },
+          xaxis: { offsetY: 0, tooltip: { offsetY: 0 } },
+          yaxis: [{ opposite: false, tooltip: { offsetX: 0 } }],
+          chart: { accessibility: { enabled: false } },
+        },
+      },
+    })
+    w.dom.elWrap.currentCSSZoom = 0.5
+    // With CSS zoom 0.5, getBoundingClientRect returns viewport-scaled
+    // values: elWrap at (0,0), translateX=50/translateY=20 local px →
+    // seriesBound.left=25, top=10 in viewport px.
+    elGrid.getBoundingClientRect = () => ({
+      left: 25,
+      top: 10,
+      right: 275,
+      bottom: 160,
+      width: 250,
+      height: 150,
+    })
+    // clientX=250, clientY=120 (viewport px)
+    // x = (250 - 25)/0.5 = 450, then > gridWidth/2(250) → x - ttW(100) = 350,
+    // then + translateX(50) = 400
+    // y = (120 + 20 - 10)/0.5 = 260, then > gridHeight/2(150) → y - ttH(50) = 210
+    ttCtx.e = { clientX: 250, clientY: 120 }
+    const pos = new TooltipPosition(ttCtx)
+
+    const r = pos.computeTooltipPosition(50, 100, 5)
+    expect(r.x).toBe(400)
+    expect(r.y).toBe(210)
+  })
+
+  it('uses default zoom=1 when currentCSSZoom is undefined', () => {
+    const { ttCtx, w } = makeCtx({
+      w: {
+        config: {
+          tooltip: { followCursor: true, arrow: false, shared: false, intersect: true },
+          xaxis: { offsetY: 0, tooltip: { offsetY: 0 } },
+          yaxis: [{ opposite: false, tooltip: { offsetX: 0 } }],
+          chart: { accessibility: { enabled: false } },
+        },
+      },
+    })
+    delete w.dom.elWrap.currentCSSZoom
+    // zoom=1 → seriesBound.left=50, top=20 (makeCtx default)
+    // x = (250 - 50)/1 + translateX(50) = 250
+    // y = (120 + 20 - 20)/1 = 120
+    ttCtx.e = { clientX: 250, clientY: 120 }
+    const pos = new TooltipPosition(ttCtx)
+
+    const r = pos.computeTooltipPosition(50, 100, 5)
+    expect(r.x).toBe(250)
+    expect(r.y).toBe(120)
+  })
+})
+
 // ---------------------------------------------------------------------------
 // Position._datapointCenterXFromBars — rect-derived center for numeric x
 // ---------------------------------------------------------------------------
