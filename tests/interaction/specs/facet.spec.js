@@ -24,7 +24,7 @@ test.describe('Facet: CSS design tokens', () => {
   })
 
   test('the palette and chrome resolve from the --apx-* tokens', async ({ page }) => {
-    expect(await seriesColor(page)).toBe('#4f46e5') // :root --apx-accent
+    expect(await seriesColor(page)).toBe('#0891b2') // :root --apx-accent
     const chrome = await page.evaluate(() => ({
       fore: window.chart.w.config.chart.foreColor.toLowerCase(),
       grid: window.chart.w.config.grid.borderColor.toLowerCase(),
@@ -40,9 +40,9 @@ test.describe('Facet: CSS design tokens', () => {
   }) => {
     await page.click('#toggle')
     await page.waitForFunction(
-      () => window.chart.w.globals.colors[0].toLowerCase() === '#818cf8',
+      () => window.chart.w.globals.colors[0].toLowerCase() === '#22d3ee',
     )
-    expect(await seriesColor(page)).toBe('#818cf8') // .apx-dark --apx-accent
+    expect(await seriesColor(page)).toBe('#22d3ee') // .apx-dark --apx-accent
   })
 
   test('refreshTokens() picks up a runtime CSS variable change (memo-proof)', async ({

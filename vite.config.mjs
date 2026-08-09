@@ -165,7 +165,7 @@ export default defineConfig(({ mode }) => {
       [resolve(__dirname, 'src/modules/Data.js')]:
         { default: '__apex_Data' },
       [resolve(__dirname, 'src/modules/DataLabels.js')]:
-        { default: '__apex_DataLabels' },
+        { default: '__apex_DataLabels', named: { resolveDataLabelOffset: '__apex_DataLabels_resolveDataLabelOffset' } },
       [resolve(__dirname, 'src/modules/Events.js')]:
         { default: '__apex_Events' },
       [resolve(__dirname, 'src/modules/Fill.js')]:

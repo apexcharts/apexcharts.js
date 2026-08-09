@@ -54,7 +54,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.7.0
+ * ApexCharts v6.7.1
  * (c) 2018-2026 ApexCharts
  */
 
@@ -4306,6 +4306,11 @@ var __async = (__this, __arguments, generator) => {
             scatter: {
               y: "lanes",
               spread: "swarm",
+              // Beeswarm orientation (1D lanes mode only): 'horizontal' lays the
+              // value on the X axis with category lanes stacked on Y (default);
+              // 'vertical' lays the value on the Y axis with category lanes as
+              // columns across X. Ignored for the 2D value-value scatter (y:'value').
+              orientation: "horizontal",
               tickAmount: 5,
               xMin: void 0,
               xMax: void 0,
@@ -10578,31 +10583,6 @@ var __async = (__this, __arguments, generator) => {
             this._graphics.pathMouseDown(targetNode.instance, e);
           }
         },
-        { passive: true }
-      );
-    }
-    /**
-     * @param {any} marker
-     */
-    addEvents(marker) {
-      const w = this.w;
-      marker.node.addEventListener(
-        "mouseenter",
-        this._graphics.pathMouseEnter.bind(this.ctx, marker)
-      );
-      marker.node.addEventListener(
-        "mouseleave",
-        this._graphics.pathMouseLeave.bind(this.ctx, marker)
-      );
-      marker.node.addEventListener(
-        "mousedown",
-        this._graphics.pathMouseDown.bind(this.ctx, marker)
-      );
-      marker.node.addEventListener("click", w.config.markers.onClick);
-      marker.node.addEventListener("dblclick", w.config.markers.onDblClick);
-      marker.node.addEventListener(
-        "touchstart",
-        this._graphics.pathMouseDown.bind(this.ctx, marker),
         { passive: true }
       );
     }
@@ -18766,7 +18746,7 @@ var __async = (__this, __arguments, generator) => {
       });
     }
     resizeNonAxisCharts() {
-      var _a, _b, _c, _d, _e, _f, _g, _h;
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i;
       const { w } = this;
       const heightStr = w.config.chart.height ? String(w.config.chart.height) : "";
       const userSetFixedHeight = heightStr !== "" && heightStr !== "auto";
@@ -18778,12 +18758,13 @@ var __async = (__this, __arguments, generator) => {
         legendHeight = ((_b = (_a = this.ctx.legend) == null ? void 0 : _a.legendHelpers.getLegendDimensions().clwh) != null ? _b : 0) + 7;
       }
       const el = w.dom.baseEl.querySelector(
-        ".apexcharts-radialbar, .apexcharts-pie"
+        ".apexcharts-radialbar, .apexcharts-pie, .apexcharts-sunburst"
       );
       const externalLabelMarginY = w.globals.pieExternalLabelMarginY || 0;
       let chartInnerDimensions = externalLabelMarginY > 0 ? w.globals.radialSize * 2 + externalLabelMarginY * 2 : w.globals.radialSize * 2.05;
+      const angleType = w.config.chart.type === "sunburst" ? "sunburst" : w.config.chart.type === "pie" || w.config.chart.type === "donut" || w.config.chart.type === "polarArea" ? "pie" : "radialBar";
       const radialAngleSpan = Math.abs(
-        w.config.plotOptions.radialBar.endAngle - w.config.plotOptions.radialBar.startAngle
+        w.config.plotOptions[angleType].endAngle - w.config.plotOptions[angleType].startAngle
       );
       if (el && !w.config.chart.sparkline.enabled && radialAngleSpan < 360) {
         const svgRect = Utils$1.getBoundingClientRect(this.w.dom.Paper.node);
@@ -18855,6 +18836,10 @@ var __async = (__this, __arguments, generator) => {
               grandparent.style.minHeight = `${elWrapHeight}px`;
             }
           }
+          w.globals.svgHeight = svgHeight;
+          if (w.config.legend.position === "bottom" && w.config.legend.show && !w.config.legend.floating) {
+            (_h = this.ctx.legend) == null ? void 0 : _h.setLegendWrapXY(20, 0);
+          }
         }
         return;
       }
@@ -18868,7 +18853,7 @@ var __async = (__this, __arguments, generator) => {
       this.w.dom.elWrap.style.height = `${newHeight}px`;
       Graphics.setAttrs(this.w.dom.Paper.node, { height: newHeight });
       if (Environment.isBrowser()) {
-        const grandparent = (_h = this.w.dom.Paper.node.parentNode) == null ? void 0 : _h.parentNode;
+        const grandparent = (_i = this.w.dom.Paper.node.parentNode) == null ? void 0 : _i.parentNode;
         if (grandparent) {
           grandparent.style.minHeight = `${newHeight}px`;
         }
@@ -48046,14 +48031,14 @@ var __async = (__this, __arguments, generator) => {
      * @param {Record<string, any>} dataLabels
      */
     addListeners(elPath, dataLabels) {
-      const graphics = new Graphics(this.w);
+      const graphics = new Graphics(this.w, this.ctx);
       elPath.node.addEventListener(
         "mouseenter",
-        graphics.pathMouseEnter.bind(this, elPath)
+        graphics.pathMouseEnter.bind(graphics, elPath)
       );
       elPath.node.addEventListener(
         "mouseleave",
-        graphics.pathMouseLeave.bind(this, elPath)
+        graphics.pathMouseLeave.bind(graphics, elPath)
       );
       elPath.node.addEventListener(
         "mouseleave",
@@ -48061,7 +48046,7 @@ var __async = (__this, __arguments, generator) => {
       );
       elPath.node.addEventListener(
         "mousedown",
-        graphics.pathMouseDown.bind(this, elPath)
+        graphics.pathMouseDown.bind(graphics, elPath)
       );
       if (!this.donutDataLabels.total.showAlways) {
         elPath.node.addEventListener(
@@ -51472,6 +51457,7 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       const scfg = opts.scatter || {};
       if (scfg.y === "value") return this._layoutScatter2D(opts);
+      if (scfg.orientation === "vertical") return this._layoutScatterVertical(opts);
       const gw = w.layout.gridWidth;
       const gh = w.layout.gridHeight;
       const unitData = w.seriesData.unitData || [];
@@ -51499,13 +51485,9 @@ var __async = (__this, __arguments, generator) => {
         vmax = 1;
       }
       const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5));
-      const nice = this._niceScale(
-        scfg.xMin != null ? scfg.xMin : vmin,
-        scfg.xMax != null ? scfg.xMax : vmax,
-        tickAmount
-      );
-      const xMin = scfg.xMin != null ? scfg.xMin : nice.min;
-      const xMax = scfg.xMax != null ? scfg.xMax : nice.max;
+      const domain = this._scatterValueDomain(scfg, vmin, vmax, tickAmount);
+      const xMin = domain.min;
+      const xMax = domain.max;
       const xSpan = xMax - xMin || 1;
       const laneW = scfg.laneLabelWidth != null ? Math.max(0, scfg.laneLabelWidth) : Kv > 1 ? 92 : 8;
       const bottomGutter = 30 + (scfg.xTitle ? 20 : 0);
@@ -51566,17 +51548,7 @@ var __async = (__this, __arguments, generator) => {
           dots: pts.map((p) => ({ x: p.px, y: p.y, r: p.r }))
         });
       });
-      const ticks = [];
-      const spacingT = nice.spacing || xSpan / Math.max(1, tickAmount - 1);
-      if (scfg.xMin != null || scfg.xMax != null) {
-        for (let k = 0; k < tickAmount; k++) {
-          ticks.push(xMin + xSpan * k / (tickAmount - 1));
-        }
-      } else {
-        for (let v = xMin; v <= xMax + spacingT * 0.5; v += spacingT) {
-          ticks.push(Math.abs(v) < spacingT * 1e-9 ? 0 : v);
-        }
-      }
+      const ticks = domain.ticks;
       this._scatterAxis = {
         mode: "1d",
         plotL,
@@ -51589,6 +51561,126 @@ var __async = (__this, __arguments, generator) => {
         ticks,
         lanes,
         xTitle: scfg.xTitle,
+        formatter: typeof scfg.xFormatter === "function" ? scfg.xFormatter : null,
+        gridlines: scfg.gridlines !== false
+      };
+      return clusters;
+    }
+    /**
+     * Vertical beeswarm: the transpose of _layoutScatter. The value runs UP the Y
+     * axis and each category is a column (lane) across X; the swarm pack spreads
+     * dots horizontally off each column's centre line. The value-axis config keys
+     * (`xMin`/`xMax`/`xTitle`/`xFormatter`/`tickAmount`) still describe the value
+     * axis (now Y), so flipping `orientation` keeps the same value settings.
+     * @param {any} opts
+     */
+    _layoutScatterVertical(opts) {
+      const w = this.w;
+      const scfg = opts.scatter || {};
+      const gw = w.layout.gridWidth;
+      const gh = w.layout.gridHeight;
+      const unitData = w.seriesData.unitData || [];
+      const names = w.seriesData.seriesNames || [];
+      const valueOf = (d) => this._unitValueOf(d);
+      const sizeStats = this._scatterSizeStats(scfg, unitData);
+      const catVals = unitData.map(
+        (cat) => Array.isArray(cat) ? cat.map(valueOf) : []
+      );
+      const isNum2 = (v) => v != null && isFinite(v);
+      const visible = catVals.map((_, i) => i).filter((i) => catVals[i].some(isNum2));
+      const Kv = Math.max(1, visible.length);
+      let vmin = Infinity;
+      let vmax = -Infinity;
+      catVals.forEach(
+        (vs) => vs.forEach((v) => {
+          if (v != null && isFinite(v)) {
+            if (v < vmin) vmin = v;
+            if (v > vmax) vmax = v;
+          }
+        })
+      );
+      if (vmin === Infinity) {
+        vmin = 0;
+        vmax = 1;
+      }
+      const tickAmount = Math.max(2, Math.round(scfg.tickAmount > 0 ? scfg.tickAmount : 5));
+      const domain = this._scatterValueDomain(scfg, vmin, vmax, tickAmount);
+      const vMin = domain.min;
+      const vMax = domain.max;
+      const vSpan = vMax - vMin || 1;
+      const leftGutter = 46 + (scfg.xTitle ? 18 : 0);
+      const bottomGutter = Kv > 1 ? 26 : 10;
+      const plotL = leftGutter;
+      const plotR = gw - 10;
+      const plotT = 10;
+      const plotB = gh - bottomGutter;
+      const plotW = Math.max(4, plotR - plotL);
+      const plotH = Math.max(4, plotB - plotT);
+      const plotY = (v) => plotB - (v - vMin) / vSpan * plotH;
+      const laneW = plotW / Kv;
+      const laneCx = (slot) => plotL + laneW * (slot + 0.5);
+      let r = 0;
+      const fixed = this._fixedRadius(opts);
+      if (fixed) {
+        r = fixed;
+      } else {
+        const maxLane = Math.max(
+          1,
+          ...visible.map((i) => catVals[i].filter(isNum2).length)
+        );
+        r = Math.max(
+          2,
+          Math.min(6, laneW * 0.12, plotH / (2.5 * Math.sqrt(maxLane)))
+        );
+      }
+      this._lastDotR = r;
+      const spacing = opts.spacing > 0 ? opts.spacing : 1;
+      const step = Math.max(0.5, r * spacing);
+      const jitter = scfg.spread === "jitter";
+      const clusters = [];
+      const lanes = [];
+      const maxR = sizeStats ? sizeStats.rMax : r;
+      visible.forEach((ci, slot) => {
+        const cx = laneCx(slot);
+        lanes.push({ i: ci, cx, name: names[ci] || `series-${ci + 1}` });
+        const cat = unitData[ci] || [];
+        const pts = cat.map((d, j) => {
+          const v = valueOf(d);
+          const p = { j, py: plotY(isNum2(v) ? v : vMin), x: cx };
+          if (sizeStats) p.r = this._scatterRadius(d, sizeStats, r);
+          return p;
+        });
+        if (jitter) {
+          const halfLane = Math.max(maxR, laneW / 2 - maxR);
+          pts.forEach((p, k) => {
+            const t = (k * 9301 + 49297) % 233280 / 233280;
+            p.x = cx + (t * 2 - 1) * halfLane;
+          });
+        } else {
+          this._beeswarm(pts, cx, r, step, maxR, true);
+        }
+        clusters.push({
+          i: ci,
+          cx,
+          cy: (plotT + plotB) / 2,
+          outerR: laneW / 2,
+          dots: pts.map((p) => ({ x: p.x, y: p.py, r: p.r }))
+        });
+      });
+      const ticks = domain.ticks;
+      this._scatterAxis = {
+        mode: "1d",
+        orientation: "vertical",
+        plotL,
+        plotR,
+        plotT,
+        plotB,
+        vMin,
+        vMax,
+        plotY,
+        ticks,
+        lanes,
+        valueTitle: scfg.xTitle,
         formatter: typeof scfg.xFormatter === "function" ? scfg.xFormatter : null,
         gridlines: scfg.gridlines !== false
       };
@@ -51786,13 +51878,20 @@ var __async = (__this, __arguments, generator) => {
      * neighbour still within reach in x. No-overlap always wins: a very dense lane
      * grows a taller swarm rather than stacking dots (offsets are not hard-clamped
      * to the lane). Each point may carry its own radius `r` (bubble beeswarm),
-     * else `rFallback` applies; `maxR` bounds the x-window break. Mutates each
-     * point's `.y`. Deterministic (no physics, no randomness).
-     * @param {{px:number,y:number,r?:number}[]} pts @param {number} cy
+     * else `rFallback` applies; `maxR` bounds the value-window break. Deterministic
+     * (no physics, no randomness).
+     *
+     * Orientation-agnostic: the "fixed" axis is the value axis and the "spread"
+     * axis is the lane thickness. Horizontal (default): fixed = `px`, spread = `y`
+     * (mutates `.y`). Vertical: fixed = `py`, spread = `x` (mutates `.x`).
+     * @param {any[]} pts @param {number} center lane centre on the spread axis
      * @param {number} rFallback @param {number} step @param {number} [maxR]
+     * @param {boolean} [vertical]
      */
-    _beeswarm(pts, cy, rFallback, step, maxR) {
-      const order = pts.slice().sort((a, b) => a.px - b.px);
+    _beeswarm(pts, center, rFallback, step, maxR, vertical = false) {
+      const fk = vertical ? "py" : "px";
+      const sk = vertical ? "x" : "y";
+      const order = pts.slice().sort((a, b) => a[fk] - b[fk]);
       const placed = [];
       const rCap = maxR != null ? maxR : rFallback;
       order.forEach((p) => {
@@ -51800,15 +51899,15 @@ var __async = (__this, __arguments, generator) => {
         let chosen = 0;
         for (let k = 0; k < 2e3; k++) {
           const off = k === 0 ? 0 : Math.ceil(k / 2) * step * (k % 2 ? 1 : -1);
-          const y = cy + off;
+          const s = center + off;
           let ok = true;
           for (let m = placed.length - 1; m >= 0; m--) {
             const q = placed[m];
-            const dx = p.px - q.px;
-            if (dx > pr + rCap) break;
+            const df = p[fk] - q.f;
+            if (df > pr + rCap) break;
             const need = pr + q.r;
-            const dy = y - q.y;
-            if (dx * dx + dy * dy < need * need) {
+            const ds = s - q.s;
+            if (df * df + ds * ds < need * need) {
               ok = false;
               break;
             }
@@ -51818,9 +51917,41 @@ var __async = (__this, __arguments, generator) => {
             break;
           }
         }
-        p.y = cy + chosen;
-        placed.push({ px: p.px, y: p.y, r: pr });
+        p[sk] = center + chosen;
+        placed.push({ f: p[fk], s: p[sk], r: pr });
       });
+    }
+    /**
+     * Value-axis domain + ticks for a 1D beeswarm. The domain ALWAYS contains
+     * every datum: a swarm that clips a dot outside the plot box is a bug, so an
+     * explicit `xMin`/`xMax` only FRAMES the axis and is extended by whole
+     * tick-steps whenever the data would otherwise overflow. Orientation-agnostic:
+     * the same value axis is X for a horizontal swarm and Y for a vertical one.
+     * @param {any} scfg scatter config
+     * @param {number} vmin data minimum @param {number} vmax data maximum
+     * @param {number} tickAmount desired tick count
+     * @returns {{ min:number, max:number, ticks:number[] }}
+     */
+    _scatterValueDomain(scfg, vmin, vmax, tickAmount) {
+      const buildTicks = (min, max, spacing2) => {
+        const ticks = [];
+        for (let v = min; v <= max + spacing2 * 0.5; v += spacing2) {
+          ticks.push(Math.abs(v) < spacing2 * 1e-9 ? 0 : v);
+        }
+        return ticks;
+      };
+      if (scfg.xMin != null || scfg.xMax != null) {
+        let min = scfg.xMin != null ? scfg.xMin : vmin;
+        let max = scfg.xMax != null ? scfg.xMax : vmax;
+        if (!(max > min)) max = min + 1;
+        const spacing2 = (max - min) / Math.max(1, tickAmount - 1);
+        if (vmin < min) min -= Math.ceil((min - vmin) / spacing2) * spacing2;
+        if (vmax > max) max += Math.ceil((vmax - max) / spacing2) * spacing2;
+        return { min, max, ticks: buildTicks(min, max, spacing2) };
+      }
+      const nice = this._niceScale(vmin, vmax, tickAmount);
+      const spacing = nice.spacing || (nice.max - nice.min) / Math.max(1, tickAmount - 1);
+      return { min: nice.min, max: nice.max, ticks: buildTicks(nice.min, nice.max, spacing) };
     }
     /**
      * A "nice" numeric scale [min, max] + tick spacing covering [dataMin, dataMax]
@@ -51947,11 +52078,43 @@ var __async = (__this, __arguments, generator) => {
         ret.add(g);
         return;
       }
-      ax.ticks.forEach((v) => {
+      if (ax.orientation === "vertical") {
+        ax.ticks.forEach((v) => {
+          const y = ax.plotY(v);
+          if (ax.gridlines) line(ax.plotL, y, ax.plotR, y, gridColor);
+          const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v);
+          text(label, ax.plotL - 8, y, "end", labelColor, 11, 400, "apexcharts-unit-tick");
+        });
+        line(ax.plotL, ax.plotT, ax.plotL, ax.plotB, axisColor);
+        if (ax.valueTitle) {
+          const yt = BrowserAPIs.createElementNS(NS, "text");
+          yt.setAttribute("class", "apexcharts-unit-axis-title");
+          const tx = 14;
+          const ty = (ax.plotT + ax.plotB) / 2;
+          yt.setAttribute("x", String(tx));
+          yt.setAttribute("y", String(ty));
+          yt.setAttribute("text-anchor", "middle");
+          yt.setAttribute("font-size", "12px");
+          yt.setAttribute("font-family", w.config.chart.fontFamily || "inherit");
+          yt.setAttribute("font-weight", "600");
+          yt.setAttribute("fill", labelColor);
+          yt.setAttribute("transform", `rotate(-90 ${tx} ${ty})`);
+          yt.textContent = String(ax.valueTitle);
+          g.node.appendChild(yt);
+        }
+        ax.lanes.forEach((lane) => {
+          const color = w.globals.colors[lane.i] || w.globals.colors[0] || "#008FFB";
+          text(lane.name, lane.cx, ax.plotB + 16, "middle", color, 12, 600, "apexcharts-unit-lane-label");
+        });
+        ret.add(g);
+        return;
+      }
+      ax.ticks.forEach((v, idx) => {
         const x = ax.plotX(v);
         if (ax.gridlines) line(x, ax.plotT, x, ax.plotB, gridColor);
         const label = ax.formatter ? String(ax.formatter(v)) : this._formatTick(v);
-        text(label, x, ax.plotB + 14, "middle", labelColor, 11, 400, "apexcharts-unit-tick");
+        const anchor = idx === 0 ? "start" : idx === ax.ticks.length - 1 ? "end" : "middle";
+        text(label, x, ax.plotB + 14, anchor, labelColor, 11, 400, "apexcharts-unit-tick");
       });
       line(ax.plotL, ax.plotB, ax.plotR, ax.plotB, axisColor);
       if (ax.xTitle) {
@@ -52573,6 +52736,7 @@ var __async = (__this, __arguments, generator) => {
       this.total = 1;
       this._focusMaxDepth = 0;
       this._focus = null;
+      this._zoomGen = 0;
       this._roots = [];
       this._nodesAll = [];
       this._innerR = () => 0;
@@ -52833,6 +52997,7 @@ var __async = (__this, __arguments, generator) => {
       const w = this.w;
       const anims = w.config.chart.animations;
       const dur = !anims.enabled ? 0 : mode === "none" ? 0 : mode === "update" ? anims.dynamicAnimation.speed || 350 : anims.speed || 500;
+      const gen = ++this._zoomGen;
       const prev = mode === "update" ? (
         /** @type {any} */
         this.ctx._sunburstPrevGeoms
@@ -52847,7 +53012,7 @@ var __async = (__this, __arguments, generator) => {
           };
           if (!node._el) node._el = this._createArcEl(node);
           if (mode === "intro" && dur > 0) {
-            this._sweepArc(node, target, dur);
+            this._sweepArc(node, target, dur, gen);
           } else {
             let from;
             let isNew = false;
@@ -52860,14 +53025,12 @@ var __async = (__this, __arguments, generator) => {
               from = { a0: mid, a1: mid, iR: target.iR, oR: target.iR };
               isNew = true;
             }
-            this._animateArc(node, from, target, dur, false, isNew);
+            this._animateArc(node, from, target, dur, false, isNew, gen);
           }
-          node._cur = target;
         } else if (node._el && node._cur) {
           const mid = (node._cur.a0 + node._cur.a1) / 2;
           const target = { a0: mid, a1: mid, iR: node._cur.iR, oR: node._cur.iR };
-          this._animateArc(node, node._cur, target, dur, true, false);
-          node._cur = null;
+          this._animateArc(node, node._cur, target, dur, true, false, gen);
         }
       });
       const geoms = /* @__PURE__ */ new Map();
@@ -52886,8 +53049,9 @@ var __async = (__this, __arguments, generator) => {
      * @param {any} node
      * @param {{a0:number,a1:number,iR:number,oR:number}} target
      * @param {number} dur
+     * @param {number} gen  layout generation; frames stop once superseded
      */
-    _sweepArc(node, target, dur) {
+    _sweepArc(node, target, dur, gen) {
       const el = node._el;
       const br = this.cfg.borderRadius;
       const s0 = this.startAngle;
@@ -52895,20 +53059,18 @@ var __async = (__this, __arguments, generator) => {
       el.node.style.display = "";
       el.attr({ d: "", opacity: 1 });
       el.animate(dur).during((pos) => {
+        if (this._zoomGen !== gen) return;
         const sweep = s0 + (s1 - s0) * pos;
         if (sweep <= target.a0 + 0.01) {
           el.attr({ d: "" });
           return;
         }
-        el.attr({
-          d: this._arcPath(
-            target.iR,
-            target.oR,
-            target.a0,
-            Math.min(target.a1, sweep),
-            br
-          )
-        });
+        const a1 = Math.min(target.a1, sweep);
+        el.attr({ d: this._arcPath(target.iR, target.oR, target.a0, a1, br) });
+        node._cur = { a0: target.a0, a1, iR: target.iR, oR: target.oR };
+      }).after(() => {
+        if (this._zoomGen !== gen) return;
+        node._cur = target;
       });
     }
     /**
@@ -52942,14 +53104,16 @@ var __async = (__this, __arguments, generator) => {
      * @param {number} dur
      * @param {boolean} hide    shrink + fade out, then hide
      * @param {boolean} fadeIn  fade 0 -> 1 (new arcs only; morphs stay opaque)
+     * @param {number} gen  layout generation; frames stop once superseded
      */
-    _animateArc(node, from, to, dur, hide, fadeIn2) {
+    _animateArc(node, from, to, dur, hide, fadeIn2, gen) {
       const el = node._el;
       const br = this.cfg.borderRadius;
       el.attr({ fill: node._color });
       if (dur === 0) {
         el.attr({ d: this._arcPath(to.iR, to.oR, to.a0, to.a1, br), opacity: hide ? 0 : 1 });
         el.node.style.display = hide ? "none" : "";
+        node._cur = hide ? null : to;
         return;
       }
       el.node.style.display = "";
@@ -52957,6 +53121,7 @@ var __async = (__this, __arguments, generator) => {
       const endOp = hide ? 0 : 1;
       el.attr({ opacity: startOp });
       el.animate(dur).during((pos) => {
+        if (this._zoomGen !== gen) return;
         const a0 = lerp(from.a0, to.a0, pos);
         const a1 = lerp(from.a1, to.a1, pos);
         const iR = lerp(from.iR, to.iR, pos);
@@ -52965,8 +53130,15 @@ var __async = (__this, __arguments, generator) => {
           d: this._arcPath(iR, oR, a0, a1, br),
           opacity: lerp(startOp, endOp, pos)
         });
+        node._cur = { a0, a1, iR, oR };
       }).after(() => {
-        if (hide) el.node.style.display = "none";
+        if (this._zoomGen !== gen) return;
+        if (hide) {
+          el.node.style.display = "none";
+          node._cur = null;
+        } else {
+          node._cur = to;
+        }
       });
     }
     // ---------------------------------------------------------------- labels

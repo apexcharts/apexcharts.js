@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.7.0
+ * ApexCharts v6.7.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -126,6 +126,7 @@ class SunburstChart {
     this.total = 1;
     this._focusMaxDepth = 0;
     this._focus = null;
+    this._zoomGen = 0;
     this._roots = [];
     this._nodesAll = [];
     this._innerR = () => 0;
@@ -386,6 +387,7 @@ class SunburstChart {
     const w = this.w;
     const anims = w.config.chart.animations;
     const dur = !anims.enabled ? 0 : mode === "none" ? 0 : mode === "update" ? anims.dynamicAnimation.speed || 350 : anims.speed || 500;
+    const gen = ++this._zoomGen;
     const prev = mode === "update" ? (
       /** @type {any} */
       this.ctx._sunburstPrevGeoms
@@ -400,7 +402,7 @@ class SunburstChart {
         };
         if (!node._el) node._el = this._createArcEl(node);
         if (mode === "intro" && dur > 0) {
-          this._sweepArc(node, target, dur);
+          this._sweepArc(node, target, dur, gen);
         } else {
           let from;
           let isNew = false;
@@ -413,14 +415,12 @@ class SunburstChart {
             from = { a0: mid, a1: mid, iR: target.iR, oR: target.iR };
             isNew = true;
           }
-          this._animateArc(node, from, target, dur, false, isNew);
+          this._animateArc(node, from, target, dur, false, isNew, gen);
         }
-        node._cur = target;
       } else if (node._el && node._cur) {
         const mid = (node._cur.a0 + node._cur.a1) / 2;
         const target = { a0: mid, a1: mid, iR: node._cur.iR, oR: node._cur.iR };
-        this._animateArc(node, node._cur, target, dur, true, false);
-        node._cur = null;
+        this._animateArc(node, node._cur, target, dur, true, false, gen);
       }
     });
     const geoms = /* @__PURE__ */ new Map();
@@ -439,8 +439,9 @@ class SunburstChart {
    * @param {any} node
    * @param {{a0:number,a1:number,iR:number,oR:number}} target
    * @param {number} dur
+   * @param {number} gen  layout generation; frames stop once superseded
    */
-  _sweepArc(node, target, dur) {
+  _sweepArc(node, target, dur, gen) {
     const el = node._el;
     const br = this.cfg.borderRadius;
     const s0 = this.startAngle;
@@ -448,20 +449,18 @@ class SunburstChart {
     el.node.style.display = "";
     el.attr({ d: "", opacity: 1 });
     el.animate(dur).during((pos) => {
+      if (this._zoomGen !== gen) return;
       const sweep = s0 + (s1 - s0) * pos;
       if (sweep <= target.a0 + 0.01) {
         el.attr({ d: "" });
         return;
       }
-      el.attr({
-        d: this._arcPath(
-          target.iR,
-          target.oR,
-          target.a0,
-          Math.min(target.a1, sweep),
-          br
-        )
-      });
+      const a1 = Math.min(target.a1, sweep);
+      el.attr({ d: this._arcPath(target.iR, target.oR, target.a0, a1, br) });
+      node._cur = { a0: target.a0, a1, iR: target.iR, oR: target.oR };
+    }).after(() => {
+      if (this._zoomGen !== gen) return;
+      node._cur = target;
     });
   }
   /**
@@ -495,14 +494,16 @@ class SunburstChart {
    * @param {number} dur
    * @param {boolean} hide    shrink + fade out, then hide
    * @param {boolean} fadeIn  fade 0 -> 1 (new arcs only; morphs stay opaque)
+   * @param {number} gen  layout generation; frames stop once superseded
    */
-  _animateArc(node, from, to, dur, hide, fadeIn) {
+  _animateArc(node, from, to, dur, hide, fadeIn, gen) {
     const el = node._el;
     const br = this.cfg.borderRadius;
     el.attr({ fill: node._color });
     if (dur === 0) {
       el.attr({ d: this._arcPath(to.iR, to.oR, to.a0, to.a1, br), opacity: hide ? 0 : 1 });
       el.node.style.display = hide ? "none" : "";
+      node._cur = hide ? null : to;
       return;
     }
     el.node.style.display = "";
@@ -510,6 +511,7 @@ class SunburstChart {
     const endOp = hide ? 0 : 1;
     el.attr({ opacity: startOp });
     el.animate(dur).during((pos) => {
+      if (this._zoomGen !== gen) return;
       const a0 = lerp(from.a0, to.a0, pos);
       const a1 = lerp(from.a1, to.a1, pos);
       const iR = lerp(from.iR, to.iR, pos);
@@ -518,8 +520,15 @@ class SunburstChart {
         d: this._arcPath(iR, oR, a0, a1, br),
         opacity: lerp(startOp, endOp, pos)
       });
+      node._cur = { a0, a1, iR, oR };
     }).after(() => {
-      if (hide) el.node.style.display = "none";
+      if (this._zoomGen !== gen) return;
+      if (hide) {
+        el.node.style.display = "none";
+        node._cur = null;
+      } else {
+        node._cur = to;
+      }
     });
   }
   // ---------------------------------------------------------------- labels

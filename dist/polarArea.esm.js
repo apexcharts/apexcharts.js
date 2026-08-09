@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.7.0
+ * ApexCharts v6.7.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -760,14 +760,14 @@ class Pie {
    * @param {Record<string, any>} dataLabels
    */
   addListeners(elPath, dataLabels) {
-    const graphics = new Graphics(this.w);
+    const graphics = new Graphics(this.w, this.ctx);
     elPath.node.addEventListener(
       "mouseenter",
-      graphics.pathMouseEnter.bind(this, elPath)
+      graphics.pathMouseEnter.bind(graphics, elPath)
     );
     elPath.node.addEventListener(
       "mouseleave",
-      graphics.pathMouseLeave.bind(this, elPath)
+      graphics.pathMouseLeave.bind(graphics, elPath)
     );
     elPath.node.addEventListener(
       "mouseleave",
@@ -775,7 +775,7 @@ class Pie {
     );
     elPath.node.addEventListener(
       "mousedown",
-      graphics.pathMouseDown.bind(this, elPath)
+      graphics.pathMouseDown.bind(graphics, elPath)
     );
     if (!this.donutDataLabels.total.showAlways) {
       elPath.node.addEventListener(

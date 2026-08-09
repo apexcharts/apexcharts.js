@@ -19,6 +19,10 @@
 
 import { test, expect } from '../fixtures/base.js'
 
+// The fixture's chart.contextMenu.line.color: every menu-dropped line is
+// stroked with it.
+const LINE_COLOR = '#0EA5E9'
+
 async function gridPoint(page, fx, fy) {
   return page.evaluate(
     ({ fx, fy }) => {
@@ -150,7 +154,7 @@ test.describe('Context menu (Radial Actions)', () => {
     expect(r.draggable).toBe(true)
     expect(r.x2).toBeNull()
     expect(r.dash).toBe('5')
-    expect(r.stroke).toBe('#7c3aed')
+    expect(r.stroke).toBe(LINE_COLOR)
     expect(r.rect).toBe(false)
     expect(r.labelText).toBe('Event')
     expect(r.cardOpen).toBe(true)
@@ -175,8 +179,8 @@ test.describe('Context menu (Radial Actions)', () => {
       }
     })
     expect(afterChip.chipBg).toBe('#ffffff')
-    expect(afterChip.cfgStroke).toBe('#7c3aed') // stroke untouched
-    expect(afterChip.drawnStroke).toBe('#7c3aed')
+    expect(afterChip.cfgStroke).toBe(LINE_COLOR) // stroke untouched
+    expect(afterChip.drawnStroke).toBe(LINE_COLOR)
 
     // The separate Line row recolors the stroke itself.
     await page.evaluate(() => {
@@ -224,7 +228,7 @@ test.describe('Context menu (Radial Actions)', () => {
     expect(r.y2).toBeNull()
     expect(r.draggable).toBe(true)
     expect(r.dash).toBe('5')
-    expect(r.stroke).toBe('#7c3aed')
+    expect(r.stroke).toBe(LINE_COLOR)
     expect(r.cards).toBe(1)
     expect(r.lineSwatches).toBe(6) // the card carries the separate Line row
   })

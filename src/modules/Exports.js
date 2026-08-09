@@ -756,10 +756,10 @@ class Exports {
       Array.from(categories)
         .sort()
         .forEach((cat) => {
-          rows.push([
-            getFormattedCategory(cat),
-            /** @type {Record<string,any>} */ (data)[cat].join(columnDelimiter),
-          ])
+          // Join here: pushing the array would leave rows.join() to stringify
+          // it, which always uses a comma between category and values.
+          const values = /** @type {Record<string,any>} */ (data)[cat]
+          rows.push([getFormattedCategory(cat), ...values].join(columnDelimiter))
         })
     }
 

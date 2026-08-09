@@ -10,6 +10,46 @@ import { applyProgressiveReveal } from './Animations'
  * @module DataLabels
  **/
 
+/**
+ * Resolves a dataLabels offset which may either be a plain number or a
+ * function evaluated per data point. This mirrors `dataLabels.style.colors`,
+ * which already accepts a function with the same signature, so varying a
+ * dataLabel property per point works the same way across the whole config.
+ *
+ * A function lets a label be nudged by both series and data point, which an
+ * index-keyed value cannot do: `dataLabels` is chart-wide config, so every
+ * series shares it. See https://github.com/apexcharts/apexcharts.js/issues/5107
+ *
+ * Note the offset may be resolved more than once for the same label (some
+ * chart types add it while positioning and again while drawing), so the
+ * function must be pure.
+ *
+ * @param {number | ((opts: any) => number)} value
+ * @param {import('../types/internal').ChartStateW} w
+ * @param {number} seriesIndex
+ * @param {number} dataPointIndex
+ * @returns {number}
+ */
+export const resolveDataLabelOffset = (
+  value,
+  w,
+  seriesIndex,
+  dataPointIndex,
+) => {
+  if (typeof value !== 'function') return value
+
+  const resolved = value({
+    series: w.seriesData.series,
+    seriesIndex,
+    dataPointIndex,
+    w,
+  })
+
+  // guard against a formatter returning undefined/NaN, which would otherwise
+  // propagate into the x/y attribute and drop the label entirely
+  return Number.isFinite(resolved) ? resolved : 0
+}
+
 class DataLabels {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -133,14 +173,20 @@ class DataLabels {
     })
 
     for (let q = 0; q < pos.x.length; q++) {
-      x = pos.x[q] + dataLabelsConfig.offsetX
-      y = pos.y[q] + dataLabelsConfig.offsetY + strokeWidth
+      // a small hack as we have 2 points for the first val to connect it.
+      // resolved before the offsets below, which are keyed by data point
+      if (j === 1 && q === 0) dataPointIndex = 0
+      if (j === 1 && q === 1) dataPointIndex = 1
+
+      x =
+        pos.x[q] +
+        resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i, dataPointIndex)
+      y =
+        pos.y[q] +
+        resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i, dataPointIndex) +
+        strokeWidth
 
       if (!isNaN(x)) {
-        // a small hack as we have 2 points for the first val to connect it
-        if (j === 1 && q === 0) dataPointIndex = 0
-        if (j === 1 && q === 1) dataPointIndex = 1
-
         let val = w.seriesData.series[i][dataPointIndex]
 
         if (type === 'rangeArea') {
@@ -233,6 +279,10 @@ class DataLabels {
       alwaysDrawDataLabel,
       offsetCorrection,
       className,
+      // some callers (radar) reuse `j` for something other than the data point
+      // index, so per-point offsets take these explicit indices when supplied
+      seriesIndex = i,
+      dataPointIndex = j,
     } = opts
 
     let dataLabelText = null
@@ -309,20 +359,36 @@ class DataLabels {
       dataLabelColor = color
     }
 
-    let offX = dataLabelsConfig.offsetX
-    let offY = dataLabelsConfig.offsetY
+    // for certain chart types, we handle offsets while calculating datalabels pos
+    // why? because bars/column may have negative values and based on that
+    // offsets becomes reversed. skip resolving here so a per-point offset
+    // function isn't invoked for a value that is about to be discarded.
+    const offsetsHandledElsewhere =
+      w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar'
 
-    if (w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') {
-      // for certain chart types, we handle offsets while calculating datalabels pos
-      // why? because bars/column may have negative values and based on that
-      // offsets becomes reversed
-      offX = 0
-      offY = 0
-    }
+    const resolvedOffX = offsetsHandledElsewhere
+      ? 0
+      : resolveDataLabelOffset(
+          dataLabelsConfig.offsetX,
+          w,
+          seriesIndex,
+          dataPointIndex,
+        )
+    const resolvedOffY = offsetsHandledElsewhere
+      ? 0
+      : resolveDataLabelOffset(
+          dataLabelsConfig.offsetY,
+          w,
+          seriesIndex,
+          dataPointIndex,
+        )
+
+    let offX = resolvedOffX
+    const offY = resolvedOffY
 
     if (w.globals.isSlopeChart) {
       if (j !== 0) {
-        offX = dataLabelsConfig.offsetX * -2 + 5
+        offX = resolvedOffX * -2 + 5
       }
       if (
         j !== 0 &&
