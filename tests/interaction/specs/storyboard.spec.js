@@ -18,7 +18,8 @@
 
 import { test, expect } from '../fixtures/base.js'
 
-const INDIGO = '#818cf8'
+// Mirrors the fixture's own ACCENT / FADE / RED constants.
+const ACCENT = '#0EA5E9'
 const FADE = '#e3e8f4'
 const RED = '#f87171'
 
@@ -62,7 +63,7 @@ test.describe('Storyboard: scroll-driven choreography', () => {
     expect(s.chip).toBe('Beat 1 of 5')
     expect(s.activeStep).toBe('sb-step-1')
     expect(s.bars).toBe(12)
-    expect(s.colors).toEqual(new Array(12).fill(INDIGO))
+    expect(s.colors).toEqual(new Array(12).fill(ACCENT))
     expect(s.xAnnos).toEqual([])
   })
 
@@ -83,7 +84,7 @@ test.describe('Storyboard: scroll-driven choreography', () => {
     expect(s.index).toBe(1)
     expect(s.xAnnos).toEqual(['Mar'])
     expect(s.colors[2]).toBe(RED)
-    expect(s.colors[1]).toBe(INDIGO)
+    expect(s.colors[1]).toBe(ACCENT)
     expect(s.colors[0]).toBe(FADE)
     expect(s.colors[7]).toBe(FADE)
     expect(s.bars).toBe(12)
@@ -95,8 +96,8 @@ test.describe('Storyboard: scroll-driven choreography', () => {
     )
     s = await beatState(page)
     expect(s.index).toBe(2)
-    expect(s.colors[4]).toBe(INDIGO)
-    expect(s.colors[11]).toBe(INDIGO)
+    expect(s.colors[4]).toBe(ACCENT)
+    expect(s.colors[11]).toBe(ACCENT)
     expect(s.colors[0]).toBe(FADE)
     expect(s.bars).toBe(12)
 
@@ -107,7 +108,7 @@ test.describe('Storyboard: scroll-driven choreography', () => {
     )
     s = await beatState(page)
     expect(s.index).toBe(3)
-    expect(s.colors[0]).toBe('#818cf8')
+    expect(s.colors[0]).toBe('#0EA5E9')
     expect(s.colors[3]).toBe('#7dd3fc')
     expect(s.colors[6]).toBe('#4ade80')
     expect(s.colors[9]).toBe('#fbbf24')
@@ -186,14 +187,14 @@ test.describe('Storyboard: scroll-driven choreography', () => {
     expect(s.bars).toBe(12)
     expect(s.labels).toEqual([])
 
-    // And all the way home: the opening all-indigo year.
+    // And all the way home: the opening single-accent year.
     await scrollToStep(page, 1)
     await page.waitForFunction(
       () => window.chart.storyboard.current()?.index === 0,
     )
     const home = await beatState(page)
     expect(home.bars).toBe(12)
-    expect(home.colors).toEqual(new Array(12).fill(INDIGO))
+    expect(home.colors).toEqual(new Array(12).fill(ACCENT))
     expect(home.xAnnos).toEqual([])
     expect(home.mode).toBe('light')
   })
