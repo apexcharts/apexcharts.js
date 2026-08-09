@@ -1,6 +1,6 @@
 // @ts-check
 import Graphics from '../../../modules/Graphics'
-import DataLabels from '../../../modules/DataLabels'
+import DataLabels, { resolveDataLabelOffset } from '../../../modules/DataLabels'
 import { datumKey } from '../../../modules/animations/LengthTransition'
 
 export default class BarDataLabels {
@@ -88,15 +88,20 @@ export default class BarDataLabels {
       dataLabelsX = barXPosition
     }
 
-    let offX = dataLabelsConfig.offsetX
-    let offY = dataLabelsConfig.offsetY
-
-    // Allow per-data-point offset values so labels of a series with few
-    // records (e.g. 2) can be nudged individually to avoid overlapping.
-    // Accepts `offsetX: [a, b, ...]` / `offsetY: [a, b, ...]` indexed by the
-    // data point `j` (falls back to the scalar value when not an array).
-    if (Array.isArray(offX)) offX = offX[j] ?? 0
-    if (Array.isArray(offY)) offY = offY[j] ?? 0
+    // offsets may be a function evaluated per data point, so labels of a
+    // series with few records can be nudged individually to avoid overlapping
+    const offX = resolveDataLabelOffset(
+      dataLabelsConfig.offsetX,
+      w,
+      realIndex,
+      j,
+    )
+    const offY = resolveDataLabelOffset(
+      dataLabelsConfig.offsetY,
+      w,
+      realIndex,
+      j,
+    )
 
     let textRects = {
       width: 0,

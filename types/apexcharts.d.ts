@@ -2969,8 +2969,18 @@ type ApexDataLabels = {
   enabledOnSeries?: undefined | number[]
   textAnchor?: 'start' | 'middle' | 'end'
   distributed?: boolean
-  offsetX?: number
-  offsetY?: number
+  /**
+   * Horizontal offset of the label. Pass a function to vary the offset per
+   * data point, e.g. to separate labels that would otherwise overlap.
+   * The function must be pure, as it may be called more than once per label.
+   */
+  offsetX?: number | ((opts: ApexFormatterOpts) => number)
+  /**
+   * Vertical offset of the label. Pass a function to vary the offset per
+   * data point, e.g. to separate labels that would otherwise overlap.
+   * The function must be pure, as it may be called more than once per label.
+   */
+  offsetY?: number | ((opts: ApexFormatterOpts) => number)
   style?: {
     fontSize?: string
     fontFamily?: string
