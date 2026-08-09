@@ -88,8 +88,15 @@ export default class BarDataLabels {
       dataLabelsX = barXPosition
     }
 
-    const offX = dataLabelsConfig.offsetX
-    const offY = dataLabelsConfig.offsetY
+    let offX = dataLabelsConfig.offsetX
+    let offY = dataLabelsConfig.offsetY
+
+    // Allow per-data-point offset values so labels of a series with few
+    // records (e.g. 2) can be nudged individually to avoid overlapping.
+    // Accepts `offsetX: [a, b, ...]` / `offsetY: [a, b, ...]` indexed by the
+    // data point `j` (falls back to the scalar value when not an array).
+    if (Array.isArray(offX)) offX = offX[j] ?? 0
+    if (Array.isArray(offY)) offY = offY[j] ?? 0
 
     let textRects = {
       width: 0,

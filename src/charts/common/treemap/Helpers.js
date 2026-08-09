@@ -202,9 +202,13 @@ export default class TreemapHelpers {
       const offX = dataLabelsConfig.offsetX
       const offY = dataLabelsConfig.offsetY
 
-      const dataLabelsX = x + offX
+      // Resolve per-data-point array offsets (fall back to scalar otherwise).
+      const effOffX = Array.isArray(offX) ? offX[j] ?? 0 : offX
+      const effOffY = Array.isArray(offY) ? offY[j] ?? 0 : offY
+
+      const dataLabelsX = x + effOffX
       const dataLabelsY =
-        y + parseFloat(dataLabelsConfig.style.fontSize) / 3 + offY
+        y + parseFloat(dataLabelsConfig.style.fontSize) / 3 + effOffY
 
       dataLabels.plotDataLabelsText({
         x: dataLabelsX,

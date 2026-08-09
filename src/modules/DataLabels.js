@@ -141,6 +141,18 @@ class DataLabels {
         if (j === 1 && q === 0) dataPointIndex = 0
         if (j === 1 && q === 1) dataPointIndex = 1
 
+        // Allow per-data-point offset values (array form) so labels of a
+        // series with few records can be nudged individually to avoid
+        // overlapping. Resolve after dataPointIndex is finalised above.
+        const perPointOffX = Array.isArray(dataLabelsConfig.offsetX)
+          ? dataLabelsConfig.offsetX[dataPointIndex] ?? 0
+          : dataLabelsConfig.offsetX
+        const perPointOffY = Array.isArray(dataLabelsConfig.offsetY)
+          ? dataLabelsConfig.offsetY[dataPointIndex] ?? 0
+          : dataLabelsConfig.offsetY
+        x = pos.x[q] + perPointOffX
+        y = pos.y[q] + perPointOffY + strokeWidth
+
         let val = w.seriesData.series[i][dataPointIndex]
 
         if (type === 'rangeArea') {
@@ -311,6 +323,11 @@ class DataLabels {
 
     let offX = dataLabelsConfig.offsetX
     let offY = dataLabelsConfig.offsetY
+
+    // Allow per-data-point offset values (array form) so labels of a series
+    // with few records can be nudged individually to avoid overlapping.
+    if (Array.isArray(offX)) offX = offX[j] ?? 0
+    if (Array.isArray(offY)) offY = offY[j] ?? 0
 
     if (w.config.chart.type === 'bar' || w.config.chart.type === 'rangeBar') {
       // for certain chart types, we handle offsets while calculating datalabels pos
