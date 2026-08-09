@@ -1,7 +1,8 @@
 // @ts-check
 import Utils from '../../../utils/Utils'
 import Graphics from '../../../modules/Graphics'
-import DataLabels, { resolveDataLabelOffset } from '../../../modules/DataLabels'
+import DataLabels from '../../../modules/DataLabels'
+import { resolveDataLabelOffset } from '../../../modules/helpers/DataLabelOffset'
 
 export default class TreemapHelpers {
   /**

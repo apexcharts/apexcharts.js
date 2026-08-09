@@ -3,52 +3,13 @@ import Scatter from './../charts/Scatter'
 import Graphics from './Graphics'
 import Filters from './Filters'
 import { applyProgressiveReveal } from './Animations'
+import { resolveDataLabelOffset } from './helpers/DataLabelOffset'
 
 /**
  * ApexCharts DataLabels Class for drawing dataLabels on Axes based Charts.
  *
  * @module DataLabels
  **/
-
-/**
- * Resolves a dataLabels offset which may either be a plain number or a
- * function evaluated per data point. This mirrors `dataLabels.style.colors`,
- * which already accepts a function with the same signature, so varying a
- * dataLabel property per point works the same way across the whole config.
- *
- * A function lets a label be nudged by both series and data point, which an
- * index-keyed value cannot do: `dataLabels` is chart-wide config, so every
- * series shares it. See https://github.com/apexcharts/apexcharts.js/issues/5107
- *
- * Note the offset may be resolved more than once for the same label (some
- * chart types add it while positioning and again while drawing), so the
- * function must be pure.
- *
- * @param {number | ((opts: any) => number)} value
- * @param {import('../types/internal').ChartStateW} w
- * @param {number} seriesIndex
- * @param {number} dataPointIndex
- * @returns {number}
- */
-export const resolveDataLabelOffset = (
-  value,
-  w,
-  seriesIndex,
-  dataPointIndex,
-) => {
-  if (typeof value !== 'function') return value
-
-  const resolved = value({
-    series: w.seriesData.series,
-    seriesIndex,
-    dataPointIndex,
-    w,
-  })
-
-  // guard against a formatter returning undefined/NaN, which would otherwise
-  // propagate into the x/y attribute and drop the label entirely
-  return Number.isFinite(resolved) ? resolved : 0
-}
 
 class DataLabels {
   /**

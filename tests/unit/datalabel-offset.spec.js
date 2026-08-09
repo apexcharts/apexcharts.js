@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { resolveDataLabelOffset } from '../../src/modules/DataLabels.js'
+import { resolveDataLabelOffset } from '../../src/modules/helpers/DataLabelOffset.js'
 import { createChartWithOptions } from './utils/utils.js'
 
 // dataLabels.offsetX/offsetY accept a function evaluated per data point, so
