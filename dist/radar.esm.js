@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.7.1
+ * ApexCharts v6.8.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -348,6 +348,10 @@ class Radar {
             textAnchor: "middle",
             i,
             j: i,
+            // `j` above is the series index (kept for the color lookup), so
+            // pass the real data point index for per-point offsets
+            seriesIndex: i,
+            dataPointIndex: j,
             parent: elDataPointsMain,
             offsetCorrection: false,
             dataLabelsConfig: __spreadValues({}, dataLabelsConfig)

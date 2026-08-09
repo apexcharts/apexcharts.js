@@ -54,7 +54,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.7.1
+ * ApexCharts v6.8.0
  * (c) 2018-2026 ApexCharts
  */
 
@@ -6327,7 +6327,8 @@ var __async = (__this, __arguments, generator) => {
           xAxisGroupLabelsHeight: 0,
           xAxisLabelsWidth: 0,
           yLabelsCoords: [],
-          yTitleCoords: []
+          yTitleCoords: [],
+          gridPad: { top: 0, right: 0, bottom: 0, left: 0 }
         }
       };
       Object.defineProperty(globals, "dom", {
@@ -6408,7 +6409,8 @@ var __async = (__this, __arguments, generator) => {
         "xAxisGroupLabelsHeight",
         "xAxisLabelsWidth",
         "yLabelsCoords",
-        "yTitleCoords"
+        "yTitleCoords",
+        "gridPad"
       ]) {
         Object.defineProperty(globals, key, {
           get() {
@@ -9236,8 +9238,15 @@ var __async = (__this, __arguments, generator) => {
      * @param {number | null} [size]
      * @param {number[] | null} stops
      * @param {any[]} colorStops
+     * @param {number} [i]
+     * @param {boolean} [verticalUserSpace] anchor a vertical gradient to the plot
+     *   area rather than to each path's own bounding box. Needed when one series
+     *   is drawn as several path elements (nulls split it into segments): with
+     *   the default objectBoundingBox each segment resolves the same offset
+     *   against a different bbox, so the color transition lands on a different
+     *   value in every segment.
      */
-    drawGradient(style, gfrom, gto, opacityFrom, opacityTo, size = null, stops = null, colorStops = [], i = 0) {
+    drawGradient(style, gfrom, gto, opacityFrom, opacityTo, size = null, stops = null, colorStops = [], i = 0, verticalUserSpace = false) {
       const w = this.w;
       let g;
       if (gfrom.length < 9 && gfrom.indexOf("#") === 0) {
@@ -9282,7 +9291,12 @@ var __async = (__this, __arguments, generator) => {
       }
       if (!radial) {
         if (style === "vertical") {
-          g.from(0, 0).to(0, 1);
+          if (verticalUserSpace) {
+            g.attr({ gradientUnits: "userSpaceOnUse" });
+            g.from(0, 0).to(0, w.layout.gridHeight);
+          } else {
+            g.from(0, 0).to(0, 1);
+          }
         } else if (style === "diagonal") {
           g.from(0, 0).to(1, 1);
         } else if (style === "horizontal") {
@@ -9984,50 +9998,57 @@ var __async = (__this, __arguments, generator) => {
       return this.seriesIndex;
     }
     /**
-     * @param {number[]} data
+     * The y-axis window a series is plotted against. This is the space the
+     * threshold gradient is measured in, since that gradient spans the plot area.
+     *
+     * @param {number} realIndex
+     */
+    getSeriesAxisRange(realIndex) {
+      var _a, _b, _c;
+      const w = this.w;
+      const yaxisIndex = (_b = (_a = w.globals.seriesYAxisReverseMap) == null ? void 0 : _a[realIndex]) != null ? _b : 0;
+      return {
+        minY: Utils$1.isNumber(w.globals.minYArr[realIndex]) ? w.globals.minYArr[realIndex] : w.globals.minY,
+        maxY: Utils$1.isNumber(w.globals.maxYArr[realIndex]) ? w.globals.maxYArr[realIndex] : w.globals.maxY,
+        reversed: !!((_c = w.config.yaxis[yaxisIndex]) == null ? void 0 : _c.reversed)
+      };
+    }
+    /**
+     * Builds the two stops that split a series into an above- and a
+     * below-threshold color.
+     *
+     * The stops are painted into a vertical gradient anchored to the plot area
+     * (see Graphics.drawGradient's verticalUserSpace branch), so the boundary is
+     * positioned over the *axis* range. Deriving it from the data range instead
+     * puts the transition on the wrong value whenever the axis extends past the
+     * data, which is the common case: an explicit yaxis.min/max, a nice scale, or
+     * an axis shared with another series.
+     *
+     * @param {{ minY: number, maxY: number, reversed?: boolean }} axisRange
      * @param {Record<string, any>} multiColorConfig
      */
-    computeColorStops(data, multiColorConfig) {
+    computeColorStops(axisRange, multiColorConfig) {
       const w = this.w;
-      let maxPositive = null;
-      let minNegative = null;
-      for (const value of data) {
-        if (value >= multiColorConfig.threshold) {
-          if (maxPositive === null || value > maxPositive) {
-            maxPositive = value;
-          }
-        } else {
-          if (minNegative === null || value < minNegative) {
-            minNegative = value;
-          }
-        }
+      const { threshold, colorAboveThreshold, colorBelowThreshold } = multiColorConfig;
+      const { minY, maxY } = axisRange;
+      const span = maxY - minY;
+      let offset = span === 0 ? threshold > maxY ? 0 : 100 : (maxY - threshold) / span * 100;
+      if (axisRange.reversed) {
+        offset = 100 - offset;
       }
-      if (maxPositive === null) {
-        maxPositive = multiColorConfig.threshold;
-      }
-      if (minNegative === null) {
-        minNegative = multiColorConfig.threshold;
-      }
-      let totalRange = maxPositive - multiColorConfig.threshold + (multiColorConfig.threshold - minNegative);
-      if (totalRange === 0) {
-        totalRange = 1;
-      }
-      const negativePercentage = (multiColorConfig.threshold - minNegative) / totalRange * 100;
-      let offset = 100 - negativePercentage;
       offset = Math.max(0, Math.min(offset, 100));
       const fillOpacity = Array.isArray(w.config.fill.opacity) ? w.config.fill.opacity[this.seriesIndex] : w.config.fill.opacity;
-      return [
-        {
-          offset,
-          color: multiColorConfig.colorAboveThreshold,
-          opacity: fillOpacity
-        },
-        {
-          offset: 0,
-          color: multiColorConfig.colorBelowThreshold,
-          opacity: fillOpacity
-        }
-      ];
+      const above = {
+        offset,
+        color: colorAboveThreshold,
+        opacity: fillOpacity
+      };
+      const below = {
+        offset,
+        color: colorBelowThreshold,
+        opacity: fillOpacity
+      };
+      return axisRange.reversed ? [below, above] : [above, below];
     }
     /**
      * @param {Record<string, any>} opts
@@ -10102,7 +10123,7 @@ var __async = (__this, __arguments, generator) => {
         let type = cnf.fill.gradient.type;
         if (drawMultiColorLine) {
           colorStops[this.seriesIndex] = this.computeColorStops(
-            w.seriesData.series[this.seriesIndex],
+            this.getSeriesAxisRange(this.seriesIndex),
             cnf.plotOptions.line.colors
           );
           type = "vertical";
@@ -10113,7 +10134,11 @@ var __async = (__this, __arguments, generator) => {
           fillColor: resolvedFillColor,
           fillOpacity,
           colorStops,
-          i: this.seriesIndex
+          i: this.seriesIndex,
+          // Threshold stops are positioned over the axis range, so the gradient
+          // has to be anchored to the plot area to match. This also keeps every
+          // segment of a null-split series on one shared coordinate space.
+          verticalUserSpace: drawMultiColorLine
         });
       }
       if (fillType === "image") {
@@ -10242,7 +10267,8 @@ var __async = (__this, __arguments, generator) => {
       fillOpacity,
       fillConfig,
       colorStops,
-      i
+      i,
+      verticalUserSpace = false
     }) {
       let fillCnf = this.w.config.fill;
       if (fillConfig) {
@@ -10308,7 +10334,8 @@ var __async = (__this, __arguments, generator) => {
         opts.size,
         fillCnf.gradient.stops,
         colorStops,
-        i
+        i,
+        verticalUserSpace
       );
     }
   }
@@ -10858,6 +10885,16 @@ var __async = (__this, __arguments, generator) => {
       };
     }
   }
+  const resolveDataLabelOffset = (value, w, seriesIndex, dataPointIndex) => {
+    if (typeof value !== "function") return value;
+    const resolved = value({
+      series: w.seriesData.series,
+      seriesIndex,
+      dataPointIndex,
+      w
+    });
+    return Number.isFinite(resolved) ? resolved : 0;
+  };
   class DataLabels {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -10945,11 +10982,11 @@ var __async = (__this, __arguments, generator) => {
         class: "apexcharts-data-labels"
       });
       for (let q = 0; q < pos.x.length; q++) {
-        x = pos.x[q] + dataLabelsConfig.offsetX;
-        y = pos.y[q] + dataLabelsConfig.offsetY + strokeWidth;
+        if (j === 1 && q === 0) dataPointIndex = 0;
+        if (j === 1 && q === 1) dataPointIndex = 1;
+        x = pos.x[q] + resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i, dataPointIndex);
+        y = pos.y[q] + resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i, dataPointIndex) + strokeWidth;
         if (!isNaN(x)) {
-          if (j === 1 && q === 0) dataPointIndex = 0;
-          if (j === 1 && q === 1) dataPointIndex = 1;
           let val = w.seriesData.series[i][dataPointIndex];
           if (type === "rangeArea") {
             if (isRangeStart) {
@@ -11027,7 +11064,11 @@ var __async = (__this, __arguments, generator) => {
         color,
         alwaysDrawDataLabel,
         offsetCorrection,
-        className
+        className,
+        // some callers (radar) reuse `j` for something other than the data point
+        // index, so per-point offsets take these explicit indices when supplied
+        seriesIndex = i,
+        dataPointIndex = j
       } = opts;
       let dataLabelText = null;
       if (Array.isArray(w.config.dataLabels.enabledOnSeries)) {
@@ -11084,15 +11125,24 @@ var __async = (__this, __arguments, generator) => {
       if (color) {
         dataLabelColor = color;
       }
-      let offX = dataLabelsConfig.offsetX;
-      let offY = dataLabelsConfig.offsetY;
-      if (w.config.chart.type === "bar" || w.config.chart.type === "rangeBar") {
-        offX = 0;
-        offY = 0;
-      }
+      const offsetsHandledElsewhere = w.config.chart.type === "bar" || w.config.chart.type === "rangeBar";
+      const resolvedOffX = offsetsHandledElsewhere ? 0 : resolveDataLabelOffset(
+        dataLabelsConfig.offsetX,
+        w,
+        seriesIndex,
+        dataPointIndex
+      );
+      const resolvedOffY = offsetsHandledElsewhere ? 0 : resolveDataLabelOffset(
+        dataLabelsConfig.offsetY,
+        w,
+        seriesIndex,
+        dataPointIndex
+      );
+      let offX = resolvedOffX;
+      const offY = resolvedOffY;
       if (w.globals.isSlopeChart) {
         if (j !== 0) {
-          offX = dataLabelsConfig.offsetX * -2 + 5;
+          offX = resolvedOffX * -2 + 5;
         }
         if (j !== 0 && j !== /** @type {Record<string,any>} */
         w.config.series[i].data.length - 1) {
@@ -12155,14 +12205,8 @@ var __async = (__this, __arguments, generator) => {
       let barWidthLeft = 0;
       let barWidthRight = 0;
       if (hasBar && w.axisFlags.isXNumeric && !w.globals.isBarHorizontal) {
-        barWidthLeft = Math.max(
-          w.config.grid.padding.left,
-          gl.barPadForNumericAxis
-        );
-        barWidthRight = Math.max(
-          w.config.grid.padding.right,
-          gl.barPadForNumericAxis
-        );
+        barWidthLeft = Math.max(w.layout.gridPad.left, gl.barPadForNumericAxis);
+        barWidthRight = Math.max(w.layout.gridPad.right, gl.barPadForNumericAxis);
       }
       w.dom.elGridRect = graphics.drawRect(
         -strokeSize / 2 - 2,
@@ -13158,6 +13202,29 @@ var __async = (__this, __arguments, generator) => {
       this.setZRange();
     }
     /**
+     * One rendered x-pixel expressed in data units, used to widen the
+     * autoScaleYaxis window so a boundary point that is still drawn inside the
+     * plot survives a sub-pixel rounding error in `xaxis.min`/`xaxis.max`.
+     *
+     * The window is taken from the configured bounds (that is what maps onto the
+     * grid) and falls back to the series' own x-extent for whichever bound is
+     * unset. Returns 0 when there is nothing to scale against: `gridWidth` is
+     * still 0 before the first `plotCoords()` run, and a first render has no
+     * pixel round-trip to compensate for anyway.
+     *
+     * @param {number[] | undefined} seriesX
+     * @returns {number}
+     */
+    _xPixelTolerance(seriesX) {
+      const gridWidth = this.w.layout.gridWidth;
+      if (!gridWidth || !seriesX || !seriesX.length) return 0;
+      const cnfX = this.w.config.xaxis;
+      const lo = typeof cnfX.min === "number" ? cnfX.min : seriesX[0];
+      const hi = typeof cnfX.max === "number" ? cnfX.max : seriesX[seriesX.length - 1];
+      if (!(hi > lo)) return 0;
+      return (hi - lo) / gridWidth;
+    }
+    /**
      * @param {number} startingSeriesIndex
      * @param {number | null} [endingSeriesIndex]
      */
@@ -13217,12 +13284,15 @@ var __async = (__this, __arguments, generator) => {
         let firstXIndex = 0;
         let lastXIndex = series[i].length - 1;
         if (autoScaleYaxis) {
+          const xTolerance = this._xPixelTolerance(this.w.seriesData.seriesX[i]);
           if (cnf.xaxis.min) {
-            for (; firstXIndex < lastXIndex && this.w.seriesData.seriesX[i][firstXIndex] < cnf.xaxis.min; firstXIndex++) {
+            const lowerBound = cnf.xaxis.min - xTolerance;
+            for (; firstXIndex < lastXIndex && this.w.seriesData.seriesX[i][firstXIndex] < lowerBound; firstXIndex++) {
             }
           }
           if (cnf.xaxis.max) {
-            for (; lastXIndex > firstXIndex && this.w.seriesData.seriesX[i][lastXIndex] > cnf.xaxis.max; lastXIndex--) {
+            const upperBound = cnf.xaxis.max + xTolerance;
+            for (; lastXIndex > firstXIndex && this.w.seriesData.seriesX[i][lastXIndex] > upperBound; lastXIndex--) {
             }
           }
         }
@@ -17009,6 +17079,76 @@ var __async = (__this, __arguments, generator) => {
       }
       return valArr;
     }
+    /**
+     * Vertical space a sparkline has to keep free inside its SVG so the series
+     * stroke isn't clipped at the top / bottom edge.
+     *
+     * A stroke is centred on its path, so half of it hangs outside the plot
+     * wherever the path runs along an edge. Reserving that half unconditionally
+     * lifts the whole plot away from the SVG edges even when nothing is drawn
+     * there, which shows up as a strip of empty space under an area fill or a
+     * bar base (#5137). So reserve only what the ink can't absorb itself: where
+     * the stroke traces the data points, the distance between the extreme datum
+     * and the axis extreme already swallows part or all of the overhang. Fills
+     * need nothing: area fills are drawn unstroked (see Line.js renderPaths).
+     *
+     * @returns {{ top: number, bottom: number }}
+     **/
+    getSparklineStrokeInset() {
+      const w = this.w;
+      const maxStrokeWidth = Array.isArray(w.config.stroke.width) ? Math.max(...w.config.stroke.width) : w.config.stroke.width;
+      const half = maxStrokeWidth / 2;
+      if (!w.config.stroke.show || !(half > 0)) {
+        return { top: 0, bottom: 0 };
+      }
+      const yRange = w.globals.maxY - w.globals.minY;
+      const extremes = this._getSeriesYExtremes();
+      if (!this._strokeTracesDataPoints() || !(yRange > 0) || !extremes) {
+        return { top: half, bottom: half };
+      }
+      const plotHeight = Math.max(w.globals.svgHeight - maxStrokeWidth, 0);
+      const roomAbove = plotHeight * (w.globals.maxY - extremes.max) / yRange;
+      const roomBelow = plotHeight * (extremes.min - w.globals.minY) / yRange;
+      return {
+        top: Math.min(Math.max(half - roomAbove, 0), half),
+        bottom: Math.min(Math.max(half - roomBelow, 0), half)
+      };
+    }
+    /**
+     * Whether every drawn series is one whose stroke follows the data points, so
+     * the extreme datum marks the outermost ink. False for anything that strokes
+     * to the baseline or fills the plot (bar, heatmap, ...) and for stacked
+     * charts, where the ink is the cumulative total rather than the raw values.
+     * @returns {boolean}
+     **/
+    _strokeTracesDataPoints() {
+      const w = this.w;
+      if (!w.globals.axisCharts || w.config.chart.stacked) return false;
+      const tracesPoints = ["line", "area", "scatter"];
+      return (
+        /** @type {any[]} */
+        w.config.series.every(
+          (s) => tracesPoints.includes(s.type || w.config.chart.type)
+        )
+      );
+    }
+    /**
+     * Min / max across every plotted y value, or null when nothing is plottable.
+     * @returns {{ min: number, max: number } | null}
+     **/
+    _getSeriesYExtremes() {
+      let min = Infinity;
+      let max = -Infinity;
+      this.w.seriesData.series.forEach((data) => {
+        if (!Array.isArray(data)) return;
+        data.forEach((val) => {
+          if (!Number.isFinite(val)) return;
+          if (val < min) min = val;
+          if (val > max) max = val;
+        });
+      });
+      return min === Infinity ? null : { min, max };
+    }
   };
   class DimXAxis {
     /**
@@ -17546,7 +17686,7 @@ var __async = (__this, __arguments, generator) => {
       this.dimXAxis = new DimXAxis(this);
       this.dimGrid = new DimGrid(this);
       this.lgWidthForSideLegends = 0;
-      this.gridPad = this.w.config.grid.padding;
+      this.gridPad = __spreadValues({}, this.w.config.grid.padding);
       this.xPadRight = 0;
       this.xPadLeft = 0;
       this.datalabelsCoords = { width: 0, height: 0 };
@@ -17561,9 +17701,8 @@ var __async = (__this, __arguments, generator) => {
       const gl = w.globals;
       this.lgRect = this.dimHelpers.getLegendsRect();
       this.datalabelsCoords = { width: 0, height: 0 };
-      const maxStrokeWidth = Array.isArray(w.config.stroke.width) ? Math.max(...w.config.stroke.width) : w.config.stroke.width;
       if (this.isSparkline) {
-        if (w.config.markers.discrete.length > 0 || w.config.markers.size > 0) {
+        if (this.w.globals.markers.largestSize > 0) {
           Object.entries(this.gridPad).forEach(([k, v]) => {
             this.gridPad[k] = Math.max(
               v,
@@ -17571,8 +17710,9 @@ var __async = (__this, __arguments, generator) => {
             );
           });
         }
-        this.gridPad.top = Math.max(maxStrokeWidth / 2, this.gridPad.top);
-        this.gridPad.bottom = Math.max(maxStrokeWidth / 2, this.gridPad.bottom);
+        const strokeInset = this.dimHelpers.getSparklineStrokeInset();
+        this.gridPad.top = Math.max(strokeInset.top, this.gridPad.top);
+        this.gridPad.bottom = Math.max(strokeInset.bottom, this.gridPad.bottom);
       }
       if (gl.axisCharts) {
         this.setDimensionsForAxisCharts();
@@ -17603,7 +17743,8 @@ var __async = (__this, __arguments, generator) => {
           xAxisGroupLabelsHeight: w.layout.xAxisGroupLabelsHeight,
           xAxisLabelsWidth: w.layout.xAxisLabelsWidth,
           yLabelsCoords: w.layout.yLabelsCoords,
-          yTitleCoords: w.layout.yTitleCoords
+          yTitleCoords: w.layout.yTitleCoords,
+          gridPad: __spreadValues({}, this.gridPad)
         }
       };
     }
@@ -18753,7 +18894,7 @@ var __async = (__this, __arguments, generator) => {
       const isPercentHeight = heightStr.includes("%");
       let legendHeight = 0;
       let offY = w.config.chart.sparkline.enabled ? 1 : 15;
-      offY += w.config.grid.padding.bottom;
+      offY += w.layout.gridPad.bottom;
       if (["top", "bottom"].includes(w.config.legend.position) && w.config.legend.show && !w.config.legend.floating) {
         legendHeight = ((_b = (_a = this.ctx.legend) == null ? void 0 : _a.legendHelpers.getLegendDimensions().clwh) != null ? _b : 0) + 7;
       }
@@ -28349,7 +28490,6 @@ var __async = (__this, __arguments, generator) => {
    */
   __publicField(_ApexCharts, "perspectives", null);
   let ApexCharts = _ApexCharts;
-  const apexchartsLegendCSS = ".apexcharts-flip-y {\n  transform: scaleY(-1) translateY(-100%);\n  transform-origin: top;\n  transform-box: fill-box;\n}\n.apexcharts-flip-x {\n  transform: scaleX(-1);\n  transform-origin: center;\n  transform-box: fill-box;\n}\n.apexcharts-legend {\n  display: flex;\n  overflow: auto;\n  padding: 0 10px;\n}\n.apexcharts-legend.apexcharts-legend-group-horizontal {\n  flex-direction: column;\n}\n.apexcharts-legend-group {\n  display: flex;\n}\n.apexcharts-legend-group-vertical {\n  flex-direction: column-reverse;\n}\n.apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\n  flex-wrap: wrap\n}\n.apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n  flex-direction: column;\n  bottom: 0;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n  justify-content: flex-start;\n  align-items: flex-start;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\n  justify-content: center;\n  align-items: center;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\n  justify-content: flex-end;\n  align-items: flex-end;\n}\n.apexcharts-legend-series {\n  cursor: pointer;\n  line-height: normal;\n  display: flex;\n  align-items: center;\n}\n.apexcharts-legend-text {\n  position: relative;\n  font-size: 14px;\n}\n.apexcharts-legend-text *, .apexcharts-legend-marker * {\n  pointer-events: none;\n}\n.apexcharts-legend-marker {\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  cursor: pointer;\n  margin-right: 1px;\n}\n\n.apexcharts-legend-series.apexcharts-no-click {\n  cursor: auto;\n}\n.apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n  display: none !important;\n}\n.apexcharts-inactive-legend {\n  opacity: 0.45;\n} ";
   class Exports {
     /**
      * @param {import('../types/internal').ChartStateW} w
@@ -28415,6 +28555,170 @@ var __async = (__this, __arguments, generator) => {
       }
     }
     /**
+     * `querySelectorAll` as a typed array. Both HTML and SVG elements carry
+     * `style` / `classList`, but `NodeListOf<Element>` does not.
+     * @param {ParentNode} root
+     * @param {string} selector
+     * @returns {Array<HTMLElement | SVGElement>}
+     */
+    queryStyleable(root, selector) {
+      return (
+        /** @type {Array<HTMLElement | SVGElement>} */
+        Array.prototype.slice.call(root.querySelectorAll(selector))
+      );
+    }
+    /**
+     * Applies `styles` only where the element has no inline value for that
+     * property yet.
+     *
+     * The rules being re-applied here came from a stylesheet, so anything a
+     * module set inline has to keep winning exactly like it does in the live
+     * DOM: `legend.fontSize` (Legend.js) and the heatmap gradient legend's
+     * deliberate `display`/`overflow`/`padding` overrides on the legend wrap
+     * (HeatmapGradientLegend.js) would otherwise be clobbered in the export.
+     * @param {HTMLElement | SVGElement} el
+     * @param {Record<string, string>} styles
+     */
+    setStyleDefaults(el, styles) {
+      Object.keys(styles).forEach((prop) => {
+        if (el.style.getPropertyValue(prop) === "") {
+          el.style.setProperty(prop, styles[prop]);
+        }
+      });
+    }
+    /**
+     * Re-applies, as inline styles on the clone, the rules that used to reach
+     * the exported SVG through an injected `<style>` block. A strict
+     * Content-Security-Policy without `'unsafe-inline'` blocks that block and
+     * breaks the export, so the export must not depend on one. See #5146.
+     *
+     * Mirrors `src/assets/apexcharts-legend.css`. Interaction-only rules
+     * (`cursor`, `pointer-events`) are carried over for parity even though they
+     * do nothing in a static image; the layout rules are what matter.
+     * @param {HTMLElement} clonedNode the cloned elWrap about to be serialized
+     */
+    applyExportStyles(clonedNode) {
+      const w = this.w;
+      this.queryStyleable(clonedNode, "style").forEach((el) => el.remove());
+      this.queryStyleable(
+        clonedNode,
+        [
+          ".apexcharts-tooltip",
+          ".apexcharts-toolbar",
+          ".apexcharts-xaxistooltip",
+          ".apexcharts-yaxistooltip",
+          ".apexcharts-xcrosshairs",
+          ".apexcharts-ycrosshairs",
+          ".apexcharts-zoom-rect",
+          ".apexcharts-selection-rect"
+        ].join(", ")
+      ).forEach((el) => {
+        el.style.setProperty("display", "none", "important");
+      });
+      this.queryStyleable(clonedNode, ".apexcharts-flip-y").forEach((el) => {
+        this.setStyleDefaults(el, {
+          transform: "scaleY(-1) translateY(-100%)",
+          "transform-origin": "top",
+          "transform-box": "fill-box"
+        });
+      });
+      this.queryStyleable(clonedNode, ".apexcharts-flip-x").forEach((el) => {
+        this.setStyleDefaults(el, {
+          transform: "scaleX(-1)",
+          "transform-origin": "center",
+          "transform-box": "fill-box"
+        });
+      });
+      if (!w.config.legend.show || !w.dom.elLegendWrap || !w.dom.elLegendWrap.children.length) {
+        return;
+      }
+      this.queryStyleable(clonedNode, ".apexcharts-legend").forEach((el) => {
+        this.setStyleDefaults(el, {
+          display: "flex",
+          overflow: "auto",
+          padding: "0 10px"
+        });
+        const cl = el.classList;
+        const isSide = cl.contains("apx-legend-position-left") || cl.contains("apx-legend-position-right");
+        const isTopOrBottom = cl.contains("apx-legend-position-top") || cl.contains("apx-legend-position-bottom");
+        if (cl.contains("apexcharts-legend-group-horizontal")) {
+          this.setStyleDefaults(el, { "flex-direction": "column" });
+        }
+        if (isSide) {
+          this.setStyleDefaults(el, { "flex-direction": "column", bottom: "0" });
+        }
+        if (isTopOrBottom) {
+          this.setStyleDefaults(el, { "flex-wrap": "wrap" });
+        }
+        if (isSide || isTopOrBottom && cl.contains("apexcharts-align-left")) {
+          this.setStyleDefaults(el, {
+            "justify-content": "flex-start",
+            "align-items": "flex-start"
+          });
+        } else if (isTopOrBottom && cl.contains("apexcharts-align-center")) {
+          this.setStyleDefaults(el, {
+            "justify-content": "center",
+            "align-items": "center"
+          });
+        } else if (isTopOrBottom && cl.contains("apexcharts-align-right")) {
+          this.setStyleDefaults(el, {
+            "justify-content": "flex-end",
+            "align-items": "flex-end"
+          });
+        }
+      });
+      this.queryStyleable(clonedNode, ".apexcharts-legend-group").forEach(
+        (el) => {
+          this.setStyleDefaults(el, { display: "flex" });
+        }
+      );
+      this.queryStyleable(
+        clonedNode,
+        ".apexcharts-legend-group-vertical"
+      ).forEach((el) => {
+        this.setStyleDefaults(el, { "flex-direction": "column-reverse" });
+      });
+      this.queryStyleable(clonedNode, ".apexcharts-legend-series").forEach(
+        (el) => {
+          this.setStyleDefaults(el, {
+            cursor: el.classList.contains("apexcharts-no-click") ? "auto" : "pointer",
+            "line-height": "normal",
+            display: "flex",
+            "align-items": "center"
+          });
+        }
+      );
+      this.queryStyleable(clonedNode, ".apexcharts-legend-text").forEach((el) => {
+        this.setStyleDefaults(el, {
+          position: "relative",
+          "font-size": "14px"
+        });
+      });
+      this.queryStyleable(clonedNode, ".apexcharts-legend-marker").forEach(
+        (el) => {
+          this.setStyleDefaults(el, {
+            position: "relative",
+            display: "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            cursor: "pointer",
+            "margin-right": "1px"
+          });
+        }
+      );
+      this.queryStyleable(clonedNode, ".apexcharts-inactive-legend").forEach(
+        (el) => {
+          this.setStyleDefaults(el, { opacity: "0.45" });
+        }
+      );
+      this.queryStyleable(
+        clonedNode,
+        ".apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series"
+      ).forEach((el) => {
+        el.style.setProperty("display", "none", "important");
+      });
+    }
+    /**
      * @param {number} [_scale]
      */
     getSvgString(_scale) {
@@ -28433,16 +28737,8 @@ var __async = (__this, __arguments, generator) => {
         clonedNode.style.width = width + "px";
         clonedNode.style.height = height + "px";
         this.inlineCanvasLayers(clonedNode);
+        this.applyExportStyles(clonedNode);
         const serializedNode = new XMLSerializer().serializeToString(clonedNode);
-        const shouldIncludeLegendStyles = w.config.legend.show && w.dom.elLegendWrap && w.dom.elLegendWrap.children.length > 0;
-        let exportStyles = `
-        .apexcharts-tooltip, .apexcharts-toolbar, .apexcharts-xaxistooltip, .apexcharts-yaxistooltip, .apexcharts-xcrosshairs, .apexcharts-ycrosshairs, .apexcharts-zoom-rect, .apexcharts-selection-rect {
-          display: none;
-        }
-      `;
-        if (shouldIncludeLegendStyles) {
-          exportStyles += apexchartsLegendCSS;
-        }
         let svgString = `
         <svg xmlns="http://www.w3.org/2000/svg"
           version="1.1"
@@ -28453,9 +28749,6 @@ var __async = (__this, __arguments, generator) => {
           width="${w.globals.svgWidth}px" height="${w.globals.svgHeight}px">
           <foreignObject width="100%" height="100%">
             <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px; height:${height}px;">
-            <style type="text/css">
-              ${exportStyles}
-            </style>
               ${serializedNode}
             </div>
           </foreignObject>
@@ -28749,11 +29042,11 @@ var __async = (__this, __arguments, generator) => {
           rows.push(columns.join(columnDelimiter));
         }
         Array.from(categories).sort().forEach((cat) => {
-          rows.push([
-            getFormattedCategory(cat),
+          const values = (
             /** @type {Record<string,any>} */
-            data[cat].join(columnDelimiter)
-          ]);
+            data[cat]
+          );
+          rows.push([getFormattedCategory(cat), ...values].join(columnDelimiter));
         });
       };
       columns.push(w.config.chart.toolbar.export.csv.headerCategory);
@@ -28826,6 +29119,7 @@ var __async = (__this, __arguments, generator) => {
     }
   }
   ApexCharts.registerFeatures({ exports: Exports });
+  const apexchartsLegendCSS = ".apexcharts-flip-y {\n  transform: scaleY(-1) translateY(-100%);\n  transform-origin: top;\n  transform-box: fill-box;\n}\n.apexcharts-flip-x {\n  transform: scaleX(-1);\n  transform-origin: center;\n  transform-box: fill-box;\n}\n.apexcharts-legend {\n  display: flex;\n  overflow: auto;\n  padding: 0 10px;\n}\n.apexcharts-legend.apexcharts-legend-group-horizontal {\n  flex-direction: column;\n}\n.apexcharts-legend-group {\n  display: flex;\n}\n.apexcharts-legend-group-vertical {\n  flex-direction: column-reverse;\n}\n.apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\n  flex-wrap: wrap\n}\n.apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n  flex-direction: column;\n  bottom: 0;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n  justify-content: flex-start;\n  align-items: flex-start;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\n  justify-content: center;\n  align-items: center;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\n  justify-content: flex-end;\n  align-items: flex-end;\n}\n.apexcharts-legend-series {\n  cursor: pointer;\n  line-height: normal;\n  display: flex;\n  align-items: center;\n}\n.apexcharts-legend-text {\n  position: relative;\n  font-size: 14px;\n}\n.apexcharts-legend-text *, .apexcharts-legend-marker * {\n  pointer-events: none;\n}\n.apexcharts-legend-marker {\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  cursor: pointer;\n  margin-right: 1px;\n}\n\n.apexcharts-legend-series.apexcharts-no-click {\n  cursor: auto;\n}\n.apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n  display: none !important;\n}\n.apexcharts-inactive-legend {\n  opacity: 0.45;\n} ";
   let Helpers$3 = class Helpers {
     /**
      * @param {import('./Legend').default} lgCtx
@@ -41747,8 +42041,18 @@ var __async = (__this, __arguments, generator) => {
         bcx = barXPosition;
         dataLabelsX = barXPosition;
       }
-      const offX = dataLabelsConfig.offsetX;
-      const offY = dataLabelsConfig.offsetY;
+      const offX = resolveDataLabelOffset(
+        dataLabelsConfig.offsetX,
+        w,
+        realIndex,
+        j
+      );
+      const offY = resolveDataLabelOffset(
+        dataLabelsConfig.offsetY,
+        w,
+        realIndex,
+        j
+      );
       let textRects = {
         width: 0,
         height: 0
@@ -45693,8 +45997,8 @@ var __async = (__this, __arguments, generator) => {
         elDataLabelsWrap = graphics.group({
           class: "apexcharts-data-labels"
         });
-        const offX = dataLabelsConfig.offsetX;
-        const offY = dataLabelsConfig.offsetY;
+        const offX = resolveDataLabelOffset(dataLabelsConfig.offsetX, w, i, j);
+        const offY = resolveDataLabelOffset(dataLabelsConfig.offsetY, w, i, j);
         const dataLabelsX = x + offX;
         const dataLabelsY = y + parseFloat(dataLabelsConfig.style.fontSize) / 3 + offY;
         dataLabels.plotDataLabelsText({
@@ -48785,6 +49089,10 @@ var __async = (__this, __arguments, generator) => {
               textAnchor: "middle",
               i,
               j: i,
+              // `j` above is the series index (kept for the color lookup), so
+              // pass the real data point index for per-point offsets
+              seriesIndex: i,
+              dataPointIndex: j,
               parent: elDataPointsMain,
               offsetCorrection: false,
               dataLabelsConfig: __spreadValues({}, dataLabelsConfig)

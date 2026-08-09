@@ -18,14 +18,13 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.7.1
+ * ApexCharts v6.8.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
 import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
 const Graphics = _core.__apex_Graphics;
-const apexchartsLegendCSS = ".apexcharts-flip-y {\n  transform: scaleY(-1) translateY(-100%);\n  transform-origin: top;\n  transform-box: fill-box;\n}\n.apexcharts-flip-x {\n  transform: scaleX(-1);\n  transform-origin: center;\n  transform-box: fill-box;\n}\n.apexcharts-legend {\n  display: flex;\n  overflow: auto;\n  padding: 0 10px;\n}\n.apexcharts-legend.apexcharts-legend-group-horizontal {\n  flex-direction: column;\n}\n.apexcharts-legend-group {\n  display: flex;\n}\n.apexcharts-legend-group-vertical {\n  flex-direction: column-reverse;\n}\n.apexcharts-legend.apx-legend-position-bottom, .apexcharts-legend.apx-legend-position-top {\n  flex-wrap: wrap\n}\n.apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n  flex-direction: column;\n  bottom: 0;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-left, .apexcharts-legend.apx-legend-position-top.apexcharts-align-left, .apexcharts-legend.apx-legend-position-right, .apexcharts-legend.apx-legend-position-left {\n  justify-content: flex-start;\n  align-items: flex-start;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-center, .apexcharts-legend.apx-legend-position-top.apexcharts-align-center {\n  justify-content: center;\n  align-items: center;\n}\n.apexcharts-legend.apx-legend-position-bottom.apexcharts-align-right, .apexcharts-legend.apx-legend-position-top.apexcharts-align-right {\n  justify-content: flex-end;\n  align-items: flex-end;\n}\n.apexcharts-legend-series {\n  cursor: pointer;\n  line-height: normal;\n  display: flex;\n  align-items: center;\n}\n.apexcharts-legend-text {\n  position: relative;\n  font-size: 14px;\n}\n.apexcharts-legend-text *, .apexcharts-legend-marker * {\n  pointer-events: none;\n}\n.apexcharts-legend-marker {\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  cursor: pointer;\n  margin-right: 1px;\n}\n\n.apexcharts-legend-series.apexcharts-no-click {\n  cursor: auto;\n}\n.apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series {\n  display: none !important;\n}\n.apexcharts-inactive-legend {\n  opacity: 0.45;\n} ";
 const AxesUtils = _core.__apex_axes_AxesUtils;
 const Data = _core.__apex_Data;
 const Series = _core.__apex_Series;
@@ -97,6 +96,170 @@ class Exports {
     }
   }
   /**
+   * `querySelectorAll` as a typed array. Both HTML and SVG elements carry
+   * `style` / `classList`, but `NodeListOf<Element>` does not.
+   * @param {ParentNode} root
+   * @param {string} selector
+   * @returns {Array<HTMLElement | SVGElement>}
+   */
+  queryStyleable(root, selector) {
+    return (
+      /** @type {Array<HTMLElement | SVGElement>} */
+      Array.prototype.slice.call(root.querySelectorAll(selector))
+    );
+  }
+  /**
+   * Applies `styles` only where the element has no inline value for that
+   * property yet.
+   *
+   * The rules being re-applied here came from a stylesheet, so anything a
+   * module set inline has to keep winning exactly like it does in the live
+   * DOM: `legend.fontSize` (Legend.js) and the heatmap gradient legend's
+   * deliberate `display`/`overflow`/`padding` overrides on the legend wrap
+   * (HeatmapGradientLegend.js) would otherwise be clobbered in the export.
+   * @param {HTMLElement | SVGElement} el
+   * @param {Record<string, string>} styles
+   */
+  setStyleDefaults(el, styles) {
+    Object.keys(styles).forEach((prop) => {
+      if (el.style.getPropertyValue(prop) === "") {
+        el.style.setProperty(prop, styles[prop]);
+      }
+    });
+  }
+  /**
+   * Re-applies, as inline styles on the clone, the rules that used to reach
+   * the exported SVG through an injected `<style>` block. A strict
+   * Content-Security-Policy without `'unsafe-inline'` blocks that block and
+   * breaks the export, so the export must not depend on one. See #5146.
+   *
+   * Mirrors `src/assets/apexcharts-legend.css`. Interaction-only rules
+   * (`cursor`, `pointer-events`) are carried over for parity even though they
+   * do nothing in a static image; the layout rules are what matter.
+   * @param {HTMLElement} clonedNode the cloned elWrap about to be serialized
+   */
+  applyExportStyles(clonedNode) {
+    const w = this.w;
+    this.queryStyleable(clonedNode, "style").forEach((el) => el.remove());
+    this.queryStyleable(
+      clonedNode,
+      [
+        ".apexcharts-tooltip",
+        ".apexcharts-toolbar",
+        ".apexcharts-xaxistooltip",
+        ".apexcharts-yaxistooltip",
+        ".apexcharts-xcrosshairs",
+        ".apexcharts-ycrosshairs",
+        ".apexcharts-zoom-rect",
+        ".apexcharts-selection-rect"
+      ].join(", ")
+    ).forEach((el) => {
+      el.style.setProperty("display", "none", "important");
+    });
+    this.queryStyleable(clonedNode, ".apexcharts-flip-y").forEach((el) => {
+      this.setStyleDefaults(el, {
+        transform: "scaleY(-1) translateY(-100%)",
+        "transform-origin": "top",
+        "transform-box": "fill-box"
+      });
+    });
+    this.queryStyleable(clonedNode, ".apexcharts-flip-x").forEach((el) => {
+      this.setStyleDefaults(el, {
+        transform: "scaleX(-1)",
+        "transform-origin": "center",
+        "transform-box": "fill-box"
+      });
+    });
+    if (!w.config.legend.show || !w.dom.elLegendWrap || !w.dom.elLegendWrap.children.length) {
+      return;
+    }
+    this.queryStyleable(clonedNode, ".apexcharts-legend").forEach((el) => {
+      this.setStyleDefaults(el, {
+        display: "flex",
+        overflow: "auto",
+        padding: "0 10px"
+      });
+      const cl = el.classList;
+      const isSide = cl.contains("apx-legend-position-left") || cl.contains("apx-legend-position-right");
+      const isTopOrBottom = cl.contains("apx-legend-position-top") || cl.contains("apx-legend-position-bottom");
+      if (cl.contains("apexcharts-legend-group-horizontal")) {
+        this.setStyleDefaults(el, { "flex-direction": "column" });
+      }
+      if (isSide) {
+        this.setStyleDefaults(el, { "flex-direction": "column", bottom: "0" });
+      }
+      if (isTopOrBottom) {
+        this.setStyleDefaults(el, { "flex-wrap": "wrap" });
+      }
+      if (isSide || isTopOrBottom && cl.contains("apexcharts-align-left")) {
+        this.setStyleDefaults(el, {
+          "justify-content": "flex-start",
+          "align-items": "flex-start"
+        });
+      } else if (isTopOrBottom && cl.contains("apexcharts-align-center")) {
+        this.setStyleDefaults(el, {
+          "justify-content": "center",
+          "align-items": "center"
+        });
+      } else if (isTopOrBottom && cl.contains("apexcharts-align-right")) {
+        this.setStyleDefaults(el, {
+          "justify-content": "flex-end",
+          "align-items": "flex-end"
+        });
+      }
+    });
+    this.queryStyleable(clonedNode, ".apexcharts-legend-group").forEach(
+      (el) => {
+        this.setStyleDefaults(el, { display: "flex" });
+      }
+    );
+    this.queryStyleable(
+      clonedNode,
+      ".apexcharts-legend-group-vertical"
+    ).forEach((el) => {
+      this.setStyleDefaults(el, { "flex-direction": "column-reverse" });
+    });
+    this.queryStyleable(clonedNode, ".apexcharts-legend-series").forEach(
+      (el) => {
+        this.setStyleDefaults(el, {
+          cursor: el.classList.contains("apexcharts-no-click") ? "auto" : "pointer",
+          "line-height": "normal",
+          display: "flex",
+          "align-items": "center"
+        });
+      }
+    );
+    this.queryStyleable(clonedNode, ".apexcharts-legend-text").forEach((el) => {
+      this.setStyleDefaults(el, {
+        position: "relative",
+        "font-size": "14px"
+      });
+    });
+    this.queryStyleable(clonedNode, ".apexcharts-legend-marker").forEach(
+      (el) => {
+        this.setStyleDefaults(el, {
+          position: "relative",
+          display: "flex",
+          "align-items": "center",
+          "justify-content": "center",
+          cursor: "pointer",
+          "margin-right": "1px"
+        });
+      }
+    );
+    this.queryStyleable(clonedNode, ".apexcharts-inactive-legend").forEach(
+      (el) => {
+        this.setStyleDefaults(el, { opacity: "0.45" });
+      }
+    );
+    this.queryStyleable(
+      clonedNode,
+      ".apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series"
+    ).forEach((el) => {
+      el.style.setProperty("display", "none", "important");
+    });
+  }
+  /**
    * @param {number} [_scale]
    */
   getSvgString(_scale) {
@@ -115,16 +278,8 @@ class Exports {
       clonedNode.style.width = width + "px";
       clonedNode.style.height = height + "px";
       this.inlineCanvasLayers(clonedNode);
+      this.applyExportStyles(clonedNode);
       const serializedNode = new XMLSerializer().serializeToString(clonedNode);
-      const shouldIncludeLegendStyles = w.config.legend.show && w.dom.elLegendWrap && w.dom.elLegendWrap.children.length > 0;
-      let exportStyles = `
-        .apexcharts-tooltip, .apexcharts-toolbar, .apexcharts-xaxistooltip, .apexcharts-yaxistooltip, .apexcharts-xcrosshairs, .apexcharts-ycrosshairs, .apexcharts-zoom-rect, .apexcharts-selection-rect {
-          display: none;
-        }
-      `;
-      if (shouldIncludeLegendStyles) {
-        exportStyles += apexchartsLegendCSS;
-      }
       let svgString = `
         <svg xmlns="http://www.w3.org/2000/svg"
           version="1.1"
@@ -135,9 +290,6 @@ class Exports {
           width="${w.globals.svgWidth}px" height="${w.globals.svgHeight}px">
           <foreignObject width="100%" height="100%">
             <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px; height:${height}px;">
-            <style type="text/css">
-              ${exportStyles}
-            </style>
               ${serializedNode}
             </div>
           </foreignObject>
@@ -431,11 +583,11 @@ class Exports {
         rows.push(columns.join(columnDelimiter));
       }
       Array.from(categories).sort().forEach((cat) => {
-        rows.push([
-          getFormattedCategory(cat),
+        const values = (
           /** @type {Record<string,any>} */
-          data[cat].join(columnDelimiter)
-        ]);
+          data[cat]
+        );
+        rows.push([getFormattedCategory(cat), ...values].join(columnDelimiter));
       });
     };
     columns.push(w.config.chart.toolbar.export.csv.headerCategory);

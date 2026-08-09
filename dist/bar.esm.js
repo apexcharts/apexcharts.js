@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.7.1
+ * ApexCharts v6.8.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -26,6 +26,16 @@ import _core__default from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
 const Graphics = _core.__apex_Graphics;
 const DataLabels = _core.__apex_DataLabels;
+const resolveDataLabelOffset = (value, w, seriesIndex, dataPointIndex) => {
+  if (typeof value !== "function") return value;
+  const resolved = value({
+    series: w.seriesData.series,
+    seriesIndex,
+    dataPointIndex,
+    w
+  });
+  return Number.isFinite(resolved) ? resolved : 0;
+};
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const Environment = _core.__apex_Environment_Environment;
 function lengthTransitionEnabled(w) {
@@ -259,8 +269,18 @@ class BarDataLabels {
       bcx = barXPosition;
       dataLabelsX = barXPosition;
     }
-    const offX = dataLabelsConfig.offsetX;
-    const offY = dataLabelsConfig.offsetY;
+    const offX = resolveDataLabelOffset(
+      dataLabelsConfig.offsetX,
+      w,
+      realIndex,
+      j
+    );
+    const offY = resolveDataLabelOffset(
+      dataLabelsConfig.offsetY,
+      w,
+      realIndex,
+      j
+    );
     let textRects = {
       width: 0,
       height: 0
