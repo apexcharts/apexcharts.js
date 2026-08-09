@@ -221,6 +221,53 @@ describe('Export Csv', () => {
       expect.stringContaining('.csv')
     )
   })
+  it('export csv from simple line chart with two distinct x y series and a custom column delimiter should call triggerDownload with csv encoded file data', () => {
+    const series = [
+      {
+        name: 'series 1',
+        data: [
+          {
+            x: 0,
+            y: 0,
+          },
+          {
+            x: 1,
+            y: 1,
+          },
+        ],
+      },
+      {
+        name: 'series 2',
+        data: [
+          {
+            x: 1,
+            y: 1,
+          },
+          {
+            x: 2,
+            y: 2,
+          },
+        ],
+      },
+    ]
+    const csvData =
+      'category;series 1;series 2\n' + '0;0;\n' + '1;1;1\n' + '2;;2'
+
+    const chart = createChart('line', series)
+    const exports = new Exports(chart.ctx.w, chart.ctx)
+    vi.spyOn(Exports.prototype, 'triggerDownload')
+    exports.exportToCSV({
+      series: chart.w.config.series,
+      fileName: 'fileName',
+      columnDelimiter: ';',
+    })
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledTimes(1)
+    expect(Exports.prototype.triggerDownload).toHaveBeenCalledWith(
+      expect.stringContaining(encodeURIComponent(csvData)),
+      'fileName',
+      expect.stringContaining('.csv')
+    )
+  })
   it('export csv from simple line chart with first series collapsed should call triggerDownload with csv encoded file data', () => {
     const series = [
       { name: 'series 1', data: [0, 1] },
