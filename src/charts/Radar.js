@@ -295,6 +295,10 @@ class Radar {
             textAnchor: 'middle',
             i,
             j: i,
+            // `j` above is the series index (kept for the color lookup), so
+            // pass the real data point index for per-point offsets
+            seriesIndex: i,
+            dataPointIndex: j,
             parent: elDataPointsMain,
             offsetCorrection: false,
             dataLabelsConfig: {
