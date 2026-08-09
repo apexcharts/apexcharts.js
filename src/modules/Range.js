@@ -25,6 +25,34 @@ class Range {
   }
 
   /**
+   * One rendered x-pixel expressed in data units, used to widen the
+   * autoScaleYaxis window so a boundary point that is still drawn inside the
+   * plot survives a sub-pixel rounding error in `xaxis.min`/`xaxis.max`.
+   *
+   * The window is taken from the configured bounds (that is what maps onto the
+   * grid) and falls back to the series' own x-extent for whichever bound is
+   * unset. Returns 0 when there is nothing to scale against: `gridWidth` is
+   * still 0 before the first `plotCoords()` run, and a first render has no
+   * pixel round-trip to compensate for anyway.
+   *
+   * @param {number[] | undefined} seriesX
+   * @returns {number}
+   */
+  _xPixelTolerance(seriesX) {
+    const gridWidth = this.w.layout.gridWidth
+    if (!gridWidth || !seriesX || !seriesX.length) return 0
+
+    const cnfX = this.w.config.xaxis
+    const lo = typeof cnfX.min === 'number' ? cnfX.min : seriesX[0]
+    const hi =
+      typeof cnfX.max === 'number' ? cnfX.max : seriesX[seriesX.length - 1]
+    // an unsorted or single-valued x set gives no usable scale
+    if (!(hi > lo)) return 0
+
+    return (hi - lo) / gridWidth
+  }
+
+  /**
    * @param {number} startingSeriesIndex
    * @param {number | null} [endingSeriesIndex]
    */
@@ -101,22 +129,30 @@ class Range {
       let firstXIndex = 0
       let lastXIndex = series[i].length - 1
       if (autoScaleYaxis) {
-        // Scale the Y axis to the min..max within the possibly zoomed X axis domain.
+        // Scale the Y axis to the min..max within the possibly zoomed X axis
+        // domain, widened by one rendered pixel. A brush/zoom boundary is
+        // reconstructed from the selection rect's DOM bounds, so xaxis.min/max
+        // can land a sub-pixel fraction inside a boundary data point. Trimming
+        // on a strict compare then drops a point whose marker and line segment
+        // are still painted inside the plot, and the Y scale clips it (#5251).
+        const xTolerance = this._xPixelTolerance(this.w.seriesData.seriesX[i])
         if (cnf.xaxis.min) {
+          const lowerBound = cnf.xaxis.min - xTolerance
           for (
             ;
             firstXIndex < lastXIndex &&
-            this.w.seriesData.seriesX[i][firstXIndex] < cnf.xaxis.min;
+            this.w.seriesData.seriesX[i][firstXIndex] < lowerBound;
             firstXIndex++
           ) {
             // Intentionally empty - just incrementing firstXIndex
           }
         }
         if (cnf.xaxis.max) {
+          const upperBound = cnf.xaxis.max + xTolerance
           for (
             ;
             lastXIndex > firstXIndex &&
-            this.w.seriesData.seriesX[i][lastXIndex] > cnf.xaxis.max;
+            this.w.seriesData.seriesX[i][lastXIndex] > upperBound;
             lastXIndex--
           ) {
             // Intentionally empty - just decrementing lastXIndex
