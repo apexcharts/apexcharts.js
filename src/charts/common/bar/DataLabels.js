@@ -1,6 +1,7 @@
 // @ts-check
 import Graphics from '../../../modules/Graphics'
-import DataLabels, { resolveDataLabelOffset } from '../../../modules/DataLabels'
+import DataLabels from '../../../modules/DataLabels'
+import { resolveDataLabelOffset } from '../../../modules/helpers/DataLabelOffset'
 import { datumKey } from '../../../modules/animations/LengthTransition'
 
 export default class BarDataLabels {
