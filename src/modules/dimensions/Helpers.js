@@ -174,4 +174,89 @@ export default class Helpers {
 
     return valArr
   }
+
+  /**
+   * Vertical space a sparkline has to keep free inside its SVG so the series
+   * stroke isn't clipped at the top / bottom edge.
+   *
+   * A stroke is centred on its path, so half of it hangs outside the plot
+   * wherever the path runs along an edge. Reserving that half unconditionally
+   * lifts the whole plot away from the SVG edges even when nothing is drawn
+   * there, which shows up as a strip of empty space under an area fill or a
+   * bar base (#5137). So reserve only what the ink can't absorb itself: where
+   * the stroke traces the data points, the distance between the extreme datum
+   * and the axis extreme already swallows part or all of the overhang. Fills
+   * need nothing: area fills are drawn unstroked (see Line.js renderPaths).
+   *
+   * @returns {{ top: number, bottom: number }}
+   **/
+  getSparklineStrokeInset() {
+    const w = this.w
+    const maxStrokeWidth = Array.isArray(w.config.stroke.width)
+      ? Math.max(...w.config.stroke.width)
+      : w.config.stroke.width
+    const half = maxStrokeWidth / 2
+
+    if (!w.config.stroke.show || !(half > 0)) {
+      return { top: 0, bottom: 0 }
+    }
+
+    const yRange = w.globals.maxY - w.globals.minY
+    const extremes = this._getSeriesYExtremes()
+    if (!this._strokeTracesDataPoints() || !(yRange > 0) || !extremes) {
+      // Can't reason about where the stroke runs (bars sit on the baseline,
+      // heatmap cells fill the plot, stacks aren't the raw values), so reserve
+      // the full overhang, which is what every sparkline used to get.
+      return { top: half, bottom: half }
+    }
+
+    // Room is measured against the smallest plot the insets could leave, so it
+    // is never optimistic: erring towards over-reserving keeps the stroke whole.
+    const plotHeight = Math.max(w.globals.svgHeight - maxStrokeWidth, 0)
+    const roomAbove = (plotHeight * (w.globals.maxY - extremes.max)) / yRange
+    const roomBelow = (plotHeight * (extremes.min - w.globals.minY)) / yRange
+
+    return {
+      top: Math.min(Math.max(half - roomAbove, 0), half),
+      bottom: Math.min(Math.max(half - roomBelow, 0), half),
+    }
+  }
+
+  /**
+   * Whether every drawn series is one whose stroke follows the data points, so
+   * the extreme datum marks the outermost ink. False for anything that strokes
+   * to the baseline or fills the plot (bar, heatmap, ...) and for stacked
+   * charts, where the ink is the cumulative total rather than the raw values.
+   * @returns {boolean}
+   **/
+  _strokeTracesDataPoints() {
+    const w = this.w
+    if (!w.globals.axisCharts || w.config.chart.stacked) return false
+
+    const tracesPoints = ['line', 'area', 'scatter']
+    return /** @type {any[]} */ (w.config.series).every(
+      (/** @type {any} */ s) =>
+        tracesPoints.includes(s.type || w.config.chart.type),
+    )
+  }
+
+  /**
+   * Min / max across every plotted y value, or null when nothing is plottable.
+   * @returns {{ min: number, max: number } | null}
+   **/
+  _getSeriesYExtremes() {
+    let min = Infinity
+    let max = -Infinity
+
+    this.w.seriesData.series.forEach((/** @type {any[]} */ data) => {
+      if (!Array.isArray(data)) return
+      data.forEach((/** @type {any} */ val) => {
+        if (!Number.isFinite(val)) return
+        if (val < min) min = val
+        if (val > max) max = val
+      })
+    })
+
+    return min === Infinity ? null : { min, max }
+  }
 }

@@ -811,7 +811,10 @@ export default class Core {
 
     let legendHeight = 0
     let offY = w.config.chart.sparkline.enabled ? 1 : 15
-    offY += w.config.grid.padding.bottom
+    // Mirrors the plot's top inset (w.layout.translateY, added below) on the
+    // bottom, so the padding the layout was actually built from is reserved at
+    // both ends. Must be the resolved pad, not config.grid.padding.
+    offY += w.layout.gridPad.bottom
 
     if (
       ['top', 'bottom'].includes(w.config.legend.position) &&

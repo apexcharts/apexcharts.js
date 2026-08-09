@@ -1233,6 +1233,158 @@ describe('Dimensions integration (rendered charts)', () => {
     )
   })
 
+  // -------------------------------------------------------------------------
+  // Sparkline stroke inset: issues #5137 (no dead space) and #4216 (no clip)
+  // -------------------------------------------------------------------------
+
+  it('sparkline reserves no vertical inset when no datum reaches an axis extreme', () => {
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'area',
+        width: 300,
+        height: 100,
+        sparkline: { enabled: true },
+      },
+      stroke: { width: 4 },
+      series: [{ data: [25, 66, 41, 89, 63, 9, 54] }],
+    })
+
+    const gl = chart.w.globals
+    // The area fill runs to the baseline, so any bottom inset shows up as a
+    // strip of empty space under it (#5137). Nothing is drawn at the axis
+    // extremes here, so the plot must fill the SVG.
+    expect(chart.w.layout.gridPad.bottom).toBe(0)
+    expect(chart.w.layout.gridPad.top).toBe(0)
+    expect(gl.translateY).toBe(0)
+    expect(gl.gridHeight).toBe(gl.svgHeight)
+  })
+
+  it('sparkline still reserves half the stroke where a datum sits on an axis extreme', () => {
+    const strokeWidth = 8
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'line',
+        width: 300,
+        height: 100,
+        sparkline: { enabled: true },
+      },
+      stroke: { width: strokeWidth },
+      yaxis: { min: 0, max: 100 },
+      series: [{ data: [0, 50, 100, 50, 0] }],
+    })
+
+    const gl = chart.w.globals
+    // Data touches both ends of the axis, so half the stroke would hang
+    // outside the SVG and be clipped without an inset.
+    expect(gl.translateY).toBe(strokeWidth / 2)
+    expect(chart.w.layout.gridPad.bottom).toBe(strokeWidth / 2)
+    expect(gl.gridHeight).toBe(gl.svgHeight - strokeWidth)
+  })
+
+  it('sparkline riding the x-axis reserves the stroke at the bottom only', () => {
+    const strokeWidth = 6
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'line',
+        width: 300,
+        height: 100,
+        sparkline: { enabled: true },
+      },
+      stroke: { width: strokeWidth },
+      series: [{ data: [0, 0, 0, 0, 12, 0, 0, 3, 0, 0, 0] }],
+    })
+
+    const gl = chart.w.globals
+    // A mostly-zero series hugs the axis min for most of its length, so the
+    // bottom overhang has no room to fall into and must be reserved in full.
+    // The peak is nowhere near the top, so that end stays free.
+    expect(chart.w.layout.gridPad.bottom).toBe(strokeWidth / 2)
+    expect(chart.w.layout.gridPad.top).toBe(0)
+    expect(gl.translateY).toBe(0)
+    expect(gl.gridHeight).toBe(gl.svgHeight - strokeWidth / 2)
+  })
+
+  it('sparkline inset follows the thickest stroke when stroke.width is an array', () => {
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'line',
+        width: 300,
+        height: 100,
+        sparkline: { enabled: true },
+      },
+      stroke: { width: [2, 10] },
+      yaxis: { min: 0, max: 100 },
+      series: [{ data: [10, 50, 90] }, { data: [0, 50, 100] }],
+    })
+
+    // Guards the array-width support from #4216. The thick series is the one
+    // drawn at the extremes.
+    expect(chart.w.layout.gridPad.top).toBe(5)
+    expect(chart.w.layout.gridPad.bottom).toBe(5)
+  })
+
+  it('sparkline reserves nothing when the stroke is hidden', () => {
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'area',
+        width: 300,
+        height: 100,
+        sparkline: { enabled: true },
+      },
+      stroke: { show: false, width: 6 },
+      yaxis: { min: 0, max: 100 },
+      series: [{ data: [0, 50, 100] }],
+    })
+
+    // Area fills are drawn unstroked, so with the line hidden there is no
+    // overhang to protect even at the extremes.
+    expect(chart.w.layout.gridPad.top).toBe(0)
+    expect(chart.w.layout.gridPad.bottom).toBe(0)
+  })
+
+  it('sparkline pads for markers sized with an array', () => {
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'line',
+        width: 300,
+        height: 100,
+        sparkline: { enabled: true },
+      },
+      markers: { size: [0, 8] },
+      series: [{ data: [10, 50, 90] }, { data: [20, 60, 40] }],
+    })
+
+    // markers.size accepts an array; the padding gate must not stringify it
+    // (`[0,8] > 0` is false), or edge markers get clipped.
+    expect(chart.w.layout.gridPad.bottom).toBeGreaterThan(0)
+    expect(chart.w.layout.gridPad.left).toBeGreaterThan(0)
+  })
+
+  it('does not write layout insets back into config.grid.padding', () => {
+    const chart = createChartWithOptions({
+      chart: {
+        type: 'line',
+        width: 300,
+        height: 100,
+        sparkline: { enabled: true },
+      },
+      stroke: { width: 8 },
+      yaxis: { min: 0, max: 100 },
+      series: [{ data: [0, 50, 100] }],
+    })
+
+    // The resolved inset belongs to the layout, not to the user's config:
+    // leaking it there let it accumulate across renders and be read back by
+    // Core.resizeNonAxisCharts as if the user had asked for it.
+    expect(chart.w.config.grid.padding).toEqual({
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    })
+    expect(chart.w.layout.gridPad.top).toBe(4)
+  })
+
   it('grid dimensions remain positive when Y axis has a title', () => {
     const chart = createChartWithOptions({
       chart: { type: 'line', width: 600, height: 400 },

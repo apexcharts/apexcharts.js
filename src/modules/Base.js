@@ -162,6 +162,7 @@ export default class Base {
         xAxisLabelsWidth: 0,
         yLabelsCoords: [],
         yTitleCoords: [],
+        gridPad: { top: 0, right: 0, bottom: 0, left: 0 },
       },
     }
 
@@ -262,6 +263,7 @@ export default class Base {
       'xAxisLabelsWidth',
       'yLabelsCoords',
       'yTitleCoords',
+      'gridPad',
     ]) {
       Object.defineProperty(globals, key, {
         get() {
