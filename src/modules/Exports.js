@@ -1,5 +1,4 @@
 // @ts-check
-import apexchartsLegendCSS from '../assets/apexcharts-legend.css'
 import AxesUtils from '../modules/axes/AxesUtils'
 import Data from '../modules/Data'
 import Series from '../modules/Series'
@@ -79,6 +78,211 @@ class Exports {
   }
 
   /**
+   * `querySelectorAll` as a typed array. Both HTML and SVG elements carry
+   * `style` / `classList`, but `NodeListOf<Element>` does not.
+   * @param {ParentNode} root
+   * @param {string} selector
+   * @returns {Array<HTMLElement | SVGElement>}
+   */
+  queryStyleable(root, selector) {
+    return /** @type {Array<HTMLElement | SVGElement>} */ (
+      Array.prototype.slice.call(root.querySelectorAll(selector))
+    )
+  }
+
+  /**
+   * Applies `styles` only where the element has no inline value for that
+   * property yet.
+   *
+   * The rules being re-applied here came from a stylesheet, so anything a
+   * module set inline has to keep winning exactly like it does in the live
+   * DOM: `legend.fontSize` (Legend.js) and the heatmap gradient legend's
+   * deliberate `display`/`overflow`/`padding` overrides on the legend wrap
+   * (HeatmapGradientLegend.js) would otherwise be clobbered in the export.
+   * @param {HTMLElement | SVGElement} el
+   * @param {Record<string, string>} styles
+   */
+  setStyleDefaults(el, styles) {
+    Object.keys(styles).forEach((prop) => {
+      if (el.style.getPropertyValue(prop) === '') {
+        el.style.setProperty(prop, styles[prop])
+      }
+    })
+  }
+
+  /**
+   * Re-applies, as inline styles on the clone, the rules that used to reach
+   * the exported SVG through an injected `<style>` block. A strict
+   * Content-Security-Policy without `'unsafe-inline'` blocks that block and
+   * breaks the export, so the export must not depend on one. See #5146.
+   *
+   * Mirrors `src/assets/apexcharts-legend.css`. Interaction-only rules
+   * (`cursor`, `pointer-events`) are carried over for parity even though they
+   * do nothing in a static image; the layout rules are what matter.
+   * @param {HTMLElement} clonedNode the cloned elWrap about to be serialized
+   */
+  applyExportStyles(clonedNode) {
+    const w = this.w
+
+    // Legend.appendToForeignObject() appends the legend stylesheet inside
+    // `elLegendForeign`, a descendant of `elWrap`, so it rides along in the
+    // clone. Drop it, or the export still ships the very <style> tag whose
+    // removal is the point of doing any of this.
+    this.queryStyleable(clonedNode, 'style').forEach((el) => el.remove())
+
+    // Transient overlays. querySelectorAll, not querySelector: a chart can
+    // hold more than one of these (one yaxis tooltip per y-axis, a second
+    // tooltip element for point annotations) and the stylesheet hid every
+    // match, not just the first.
+    this.queryStyleable(
+      clonedNode,
+      [
+        '.apexcharts-tooltip',
+        '.apexcharts-toolbar',
+        '.apexcharts-xaxistooltip',
+        '.apexcharts-yaxistooltip',
+        '.apexcharts-xcrosshairs',
+        '.apexcharts-ycrosshairs',
+        '.apexcharts-zoom-rect',
+        '.apexcharts-selection-rect',
+      ].join(', '),
+    ).forEach((el) => {
+      // Hard override: these carry inline positioning and must never show up.
+      el.style.setProperty('display', 'none', 'important')
+    })
+
+    // Stacked bars with a borderRadius are mirrored through these classes.
+    this.queryStyleable(clonedNode, '.apexcharts-flip-y').forEach((el) => {
+      this.setStyleDefaults(el, {
+        transform: 'scaleY(-1) translateY(-100%)',
+        'transform-origin': 'top',
+        'transform-box': 'fill-box',
+      })
+    })
+    this.queryStyleable(clonedNode, '.apexcharts-flip-x').forEach((el) => {
+      this.setStyleDefaults(el, {
+        transform: 'scaleX(-1)',
+        'transform-origin': 'center',
+        'transform-box': 'fill-box',
+      })
+    })
+
+    if (
+      !w.config.legend.show ||
+      !w.dom.elLegendWrap ||
+      !w.dom.elLegendWrap.children.length
+    ) {
+      return
+    }
+
+    this.queryStyleable(clonedNode, '.apexcharts-legend').forEach((el) => {
+      this.setStyleDefaults(el, {
+        display: 'flex',
+        overflow: 'auto',
+        padding: '0 10px',
+      })
+
+      const cl = el.classList
+      const isSide =
+        cl.contains('apx-legend-position-left') ||
+        cl.contains('apx-legend-position-right')
+      const isTopOrBottom =
+        cl.contains('apx-legend-position-top') ||
+        cl.contains('apx-legend-position-bottom')
+
+      if (cl.contains('apexcharts-legend-group-horizontal')) {
+        this.setStyleDefaults(el, { 'flex-direction': 'column' })
+      }
+      if (isSide) {
+        this.setStyleDefaults(el, { 'flex-direction': 'column', bottom: '0' })
+      }
+      if (isTopOrBottom) {
+        this.setStyleDefaults(el, { 'flex-wrap': 'wrap' })
+      }
+
+      // Alignment: side legends always align to the start; top/bottom follow
+      // the `apexcharts-align-*` class.
+      if (isSide || (isTopOrBottom && cl.contains('apexcharts-align-left'))) {
+        this.setStyleDefaults(el, {
+          'justify-content': 'flex-start',
+          'align-items': 'flex-start',
+        })
+      } else if (isTopOrBottom && cl.contains('apexcharts-align-center')) {
+        this.setStyleDefaults(el, {
+          'justify-content': 'center',
+          'align-items': 'center',
+        })
+      } else if (isTopOrBottom && cl.contains('apexcharts-align-right')) {
+        this.setStyleDefaults(el, {
+          'justify-content': 'flex-end',
+          'align-items': 'flex-end',
+        })
+      }
+    })
+
+    this.queryStyleable(clonedNode, '.apexcharts-legend-group').forEach(
+      (el) => {
+        this.setStyleDefaults(el, { display: 'flex' })
+      },
+    )
+    this.queryStyleable(
+      clonedNode,
+      '.apexcharts-legend-group-vertical',
+    ).forEach((el) => {
+      this.setStyleDefaults(el, { 'flex-direction': 'column-reverse' })
+    })
+
+    this.queryStyleable(clonedNode, '.apexcharts-legend-series').forEach(
+      (el) => {
+        this.setStyleDefaults(el, {
+          cursor: el.classList.contains('apexcharts-no-click')
+            ? 'auto'
+            : 'pointer',
+          'line-height': 'normal',
+          display: 'flex',
+          'align-items': 'center',
+        })
+      },
+    )
+
+    this.queryStyleable(clonedNode, '.apexcharts-legend-text').forEach((el) => {
+      // font-size is a default only: Legend.js sets `legend.fontSize` inline,
+      // and the legend box was measured at that size.
+      this.setStyleDefaults(el, {
+        position: 'relative',
+        'font-size': '14px',
+      })
+    })
+
+    this.queryStyleable(clonedNode, '.apexcharts-legend-marker').forEach(
+      (el) => {
+        this.setStyleDefaults(el, {
+          position: 'relative',
+          display: 'flex',
+          'align-items': 'center',
+          'justify-content': 'center',
+          cursor: 'pointer',
+          'margin-right': '1px',
+        })
+      },
+    )
+
+    this.queryStyleable(clonedNode, '.apexcharts-inactive-legend').forEach(
+      (el) => {
+        this.setStyleDefaults(el, { opacity: '0.45' })
+      },
+    )
+
+    // `display: none !important` in the stylesheet, so force it here too.
+    this.queryStyleable(
+      clonedNode,
+      '.apexcharts-legend .apexcharts-hidden-zero-series, .apexcharts-legend .apexcharts-hidden-null-series',
+    ).forEach((el) => {
+      el.style.setProperty('display', 'none', 'important')
+    })
+  }
+
+  /**
    * @param {number} [_scale]
    */
   getSvgString(_scale) {
@@ -103,25 +307,10 @@ class Exports {
       clonedNode.style.height = height + 'px'
       // Strata: replace any series-canvas with an <image> before serialization.
       this.inlineCanvasLayers(clonedNode)
+
+      this.applyExportStyles(clonedNode)
+
       const serializedNode = new XMLSerializer().serializeToString(clonedNode)
-
-      // Check if legend is shown and should be included in export
-      const shouldIncludeLegendStyles =
-        w.config.legend.show &&
-        w.dom.elLegendWrap &&
-        w.dom.elLegendWrap.children.length > 0
-
-      // Base styles for export
-      let exportStyles = `
-        .apexcharts-tooltip, .apexcharts-toolbar, .apexcharts-xaxistooltip, .apexcharts-yaxistooltip, .apexcharts-xcrosshairs, .apexcharts-ycrosshairs, .apexcharts-zoom-rect, .apexcharts-selection-rect {
-          display: none;
-        }
-      `
-
-      // Add legend styles if legend is shown
-      if (shouldIncludeLegendStyles) {
-        exportStyles += apexchartsLegendCSS
-      }
 
       let svgString = `
         <svg xmlns="http://www.w3.org/2000/svg"
@@ -133,9 +322,6 @@ class Exports {
           width="${w.globals.svgWidth}px" height="${w.globals.svgHeight}px">
           <foreignObject width="100%" height="100%">
             <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px; height:${height}px;">
-            <style type="text/css">
-              ${exportStyles}
-            </style>
               ${serializedNode}
             </div>
           </foreignObject>
