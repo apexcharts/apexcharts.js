@@ -114,46 +114,56 @@ class Fill {
   }
 
   /**
-   * @param {number[]} data
+   * The y-axis window a series is plotted against. This is the space the
+   * threshold gradient is measured in, since that gradient spans the plot area.
+   *
+   * @param {number} realIndex
+   */
+  getSeriesAxisRange(realIndex) {
+    const w = this.w
+    const yaxisIndex = w.globals.seriesYAxisReverseMap?.[realIndex] ?? 0
+
+    return {
+      minY: Utils.isNumber(w.globals.minYArr[realIndex])
+        ? w.globals.minYArr[realIndex]
+        : w.globals.minY,
+      maxY: Utils.isNumber(w.globals.maxYArr[realIndex])
+        ? w.globals.maxYArr[realIndex]
+        : w.globals.maxY,
+      reversed: !!w.config.yaxis[yaxisIndex]?.reversed,
+    }
+  }
+
+  /**
+   * Builds the two stops that split a series into an above- and a
+   * below-threshold color.
+   *
+   * The stops are painted into a vertical gradient anchored to the plot area
+   * (see Graphics.drawGradient's verticalUserSpace branch), so the boundary is
+   * positioned over the *axis* range. Deriving it from the data range instead
+   * puts the transition on the wrong value whenever the axis extends past the
+   * data, which is the common case: an explicit yaxis.min/max, a nice scale, or
+   * an axis shared with another series.
+   *
+   * @param {{ minY: number, maxY: number, reversed?: boolean }} axisRange
    * @param {Record<string, any>} multiColorConfig
    */
-  computeColorStops(data, multiColorConfig) {
+  computeColorStops(axisRange, multiColorConfig) {
     const w = this.w
-    let maxPositive = null
-    let minNegative = null
+    const { threshold, colorAboveThreshold, colorBelowThreshold } =
+      multiColorConfig
+    const { minY, maxY } = axisRange
 
-    for (const value of data) {
-      if (value >= multiColorConfig.threshold) {
-        if (maxPositive === null || value > maxPositive) {
-          maxPositive = value
-        }
-      } else {
-        if (minNegative === null || value < minNegative) {
-          minNegative = value
-        }
-      }
+    const span = maxY - minY
+
+    // A flat axis has no interior to split: the series sits wholly on one side
+    // of the threshold.
+    let offset = span === 0 ? (threshold > maxY ? 0 : 100) : ((maxY - threshold) / span) * 100
+
+    // A reversed axis puts the low values at the top, mirroring the boundary.
+    if (axisRange.reversed) {
+      offset = 100 - offset
     }
-
-    if (maxPositive === null) {
-      maxPositive = multiColorConfig.threshold
-    }
-    if (minNegative === null) {
-      minNegative = multiColorConfig.threshold
-    }
-
-    let totalRange =
-      maxPositive -
-      multiColorConfig.threshold +
-      (multiColorConfig.threshold - minNegative)
-
-    if (totalRange === 0) {
-      totalRange = 1
-    }
-
-    const negativePercentage =
-      ((multiColorConfig.threshold - minNegative) / totalRange) * 100
-
-    let offset = 100 - negativePercentage
 
     offset = Math.max(0, Math.min(offset, 100))
 
@@ -164,18 +174,22 @@ class Fill {
       ? w.config.fill.opacity[this.seriesIndex]
       : w.config.fill.opacity
 
-    return [
-      {
-        offset: offset,
-        color: multiColorConfig.colorAboveThreshold,
-        opacity: fillOpacity,
-      },
-      {
-        offset: 0,
-        color: multiColorConfig.colorBelowThreshold,
-        opacity: fillOpacity,
-      },
-    ]
+    const above = {
+      offset,
+      color: colorAboveThreshold,
+      opacity: fillOpacity,
+    }
+    const below = {
+      offset,
+      color: colorBelowThreshold,
+      opacity: fillOpacity,
+    }
+
+    // Both stops share an offset, giving a hard transition there: the band
+    // before it takes the first color, the band after it the second. Emitting
+    // them in ascending order keeps this off the SVG rule that silently clamps
+    // an out-of-order offset up to its predecessor.
+    return axisRange.reversed ? [below, above] : [above, below]
   }
 
   /**
@@ -278,7 +292,7 @@ class Fill {
       let type = cnf.fill.gradient.type
       if (drawMultiColorLine) {
         colorStops[this.seriesIndex] = this.computeColorStops(
-          w.seriesData.series[this.seriesIndex],
+          this.getSeriesAxisRange(this.seriesIndex),
           cnf.plotOptions.line.colors,
         )
         type = 'vertical'
@@ -291,6 +305,10 @@ class Fill {
         fillOpacity,
         colorStops,
         i: this.seriesIndex,
+        // Threshold stops are positioned over the axis range, so the gradient
+        // has to be anchored to the plot area to match. This also keeps every
+        // segment of a null-split series on one shared coordinate space.
+        verticalUserSpace: drawMultiColorLine,
       })
     }
 
@@ -450,6 +468,7 @@ class Fill {
       fillConfig,
       colorStops,
       i,
+      verticalUserSpace = false,
     },
   ) {
     let fillCnf = this.w.config.fill
@@ -541,6 +560,7 @@ class Fill {
       fillCnf.gradient.stops,
       colorStops,
       i,
+      verticalUserSpace,
     )
   }
 }

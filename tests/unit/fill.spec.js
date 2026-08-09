@@ -85,107 +85,74 @@ describe('Fill — getFillType()', () => {
 })
 
 describe('Fill — computeColorStops()', () => {
-  it('returns exactly 2 stops with correct structure', () => {
+  const thresholdColors = {
+    threshold: 0,
+    colorAboveThreshold: '#00ff00',
+    colorBelowThreshold: '#ff0000',
+  }
+
+  function stopsFor(axisRange, colors = thresholdColors) {
     const chart = createChart('line', [{ data: [1, 2, 3] }])
-    const fill = getFill(chart)
-    const stops = fill.computeColorStops([-10, 10], {
-      threshold: 0,
-      colorAboveThreshold: '#00ff00',
-      colorBelowThreshold: '#ff0000',
-    })
+    return getFill(chart).computeColorStops(axisRange, colors)
+  }
+
+  it('returns exactly 2 stops sharing one offset, above-threshold color first', () => {
+    const stops = stopsFor({ minY: -10, maxY: 10 })
     expect(stops).toHaveLength(2)
-    // first stop = above-threshold color
     expect(stops[0].color).toBe('#00ff00')
-    // second stop = below-threshold color
     expect(stops[1].color).toBe('#ff0000')
-    // second stop is always anchored at 0
-    expect(stops[1].offset).toBe(0)
+    // both stops sit on the boundary, giving a hard transition there without
+    // depending on the SVG rule that clamps an out-of-order offset upwards
+    expect(stops[1].offset).toBe(stops[0].offset)
   })
 
-  it('computes offset=50 for symmetric data around threshold=0', () => {
-    // data: [-10, 10] → maxPositive=10, minNegative=-10
-    // totalRange = 10 + 10 = 20
-    // negativePercentage = 10/20 * 100 = 50
-    // offset = 100 - 50 = 50
-    const chart = createChart('line', [{ data: [1, 2, 3] }])
-    const fill = getFill(chart)
-    const stops = fill.computeColorStops([-10, 10], {
-      threshold: 0,
-      colorAboveThreshold: '#00ff00',
-      colorBelowThreshold: '#ff0000',
-    })
+  it('computes offset=50 for an axis symmetric around threshold=0', () => {
+    // (maxY - threshold) / (maxY - minY) = 10 / 20 = 50%
+    expect(stopsFor({ minY: -10, maxY: 10 })[0].offset).toBe(50)
+  })
+
+  it('positions the boundary over the axis range, not the data range', () => {
+    // Regression guard for #5209: the gradient spans the plot area, so an axis
+    // that extends well past the data must push the boundary accordingly. A
+    // data-range mapping would return 50 here regardless of the axis.
+    expect(stopsFor({ minY: -500, maxY: 500 })[0].offset).toBe(50)
+    expect(stopsFor({ minY: -100, maxY: 300 })[0].offset).toBe(75)
+  })
+
+  it('clamps to 100 when the threshold sits at or below the axis minimum', () => {
+    expect(stopsFor({ minY: 0, maxY: 3 })[0].offset).toBe(100)
+    expect(stopsFor({ minY: 5, maxY: 30 })[0].offset).toBe(100)
+  })
+
+  it('clamps to 0 when the threshold sits at or above the axis maximum', () => {
+    expect(stopsFor({ minY: -3, maxY: 0 })[0].offset).toBe(0)
+    expect(stopsFor({ minY: -30, maxY: -5 })[0].offset).toBe(0)
+  })
+
+  it('handles a flat axis (minY === maxY) without dividing by zero', () => {
+    // whole plot on the above-threshold side
+    expect(stopsFor({ minY: 5, maxY: 5 })[0].offset).toBe(100)
+    // ...and on the below-threshold side
+    expect(stopsFor({ minY: -5, maxY: -5 })[0].offset).toBe(0)
+  })
+
+  it('computes the offset for an asymmetric axis', () => {
+    // 10 / 110 ≈ 9.09%
+    expect(stopsFor({ minY: -100, maxY: 10 })[0].offset).toBeCloseTo(9.09, 1)
+  })
+
+  it('uses a non-zero threshold correctly', () => {
+    // (7 - 5) / (7 - 3) = 50%
+    const stops = stopsFor({ minY: 3, maxY: 7 }, { ...thresholdColors, threshold: 5 })
     expect(stops[0].offset).toBe(50)
   })
 
-  it('clamps offset to 100 when all data is above threshold', () => {
-    // no negatives → minNegative = threshold = 0
-    // negativePercentage = 0 → offset = 100
-    const chart = createChart('line', [{ data: [1, 2, 3] }])
-    const fill = getFill(chart)
-    const stops = fill.computeColorStops([1, 2, 3], {
-      threshold: 0,
-      colorAboveThreshold: '#00ff00',
-      colorBelowThreshold: '#ff0000',
-    })
-    expect(stops[0].offset).toBe(100)
-  })
-
-  it('clamps offset to 0 when all data is below threshold', () => {
-    // no positives → maxPositive = threshold = 0
-    // negativePercentage = 100 → offset = 0
-    const chart = createChart('line', [{ data: [1, 2, 3] }])
-    const fill = getFill(chart)
-    const stops = fill.computeColorStops([-3, -2, -1], {
-      threshold: 0,
-      colorAboveThreshold: '#00ff00',
-      colorBelowThreshold: '#ff0000',
-    })
-    expect(stops[0].offset).toBe(0)
-  })
-
-  it('handles totalRange=0 (all values equal threshold) without dividing by zero', () => {
-    const chart = createChart('line', [{ data: [1, 2, 3] }])
-    const fill = getFill(chart)
-    // threshold=5, only value=5 → both maxPositive=5, minNegative=5
-    // totalRange = (5-5) + (5-5) = 0 → guarded to 1
-    expect(() =>
-      fill.computeColorStops([5], {
-        threshold: 5,
-        colorAboveThreshold: '#00ff00',
-        colorBelowThreshold: '#ff0000',
-      })
-    ).not.toThrow()
-  })
-
-  it('computes correct offset for asymmetric data (more negative range)', () => {
-    // data: [-100, 10] with threshold=0
-    // maxPositive=10, minNegative=-100
-    // totalRange = 10 + 100 = 110
-    // negativePercentage = 100/110 * 100 ≈ 90.91
-    // offset = 100 - 90.91 ≈ 9.09
-    const chart = createChart('line', [{ data: [1, 2, 3] }])
-    const fill = getFill(chart)
-    const stops = fill.computeColorStops([-100, 10], {
-      threshold: 0,
-      colorAboveThreshold: '#00ff00',
-      colorBelowThreshold: '#ff0000',
-    })
-    expect(stops[0].offset).toBeCloseTo(9.09, 1)
-  })
-
-  it('uses non-zero threshold correctly', () => {
-    // data: [3, 7] threshold=5 → maxPositive=7, minNegative=3
-    // totalRange = (7-5) + (5-3) = 2 + 2 = 4
-    // negativePercentage = (5-3)/4 * 100 = 50
-    // offset = 50
-    const chart = createChart('line', [{ data: [1, 2, 3] }])
-    const fill = getFill(chart)
-    const stops = fill.computeColorStops([3, 7], {
-      threshold: 5,
-      colorAboveThreshold: '#blue',
-      colorBelowThreshold: '#red',
-    })
-    expect(stops[0].offset).toBe(50)
+  it('mirrors the boundary and the color order on a reversed axis', () => {
+    // reversed puts low values at the top, so the below-threshold band leads
+    const stops = stopsFor({ minY: -100, maxY: 300, reversed: true })
+    expect(stops[0].color).toBe('#ff0000')
+    expect(stops[1].color).toBe('#00ff00')
+    expect(stops[0].offset).toBe(25)
   })
 })
 

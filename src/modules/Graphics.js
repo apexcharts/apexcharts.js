@@ -753,6 +753,13 @@ class Graphics {
    * @param {number | null} [size]
    * @param {number[] | null} stops
    * @param {any[]} colorStops
+   * @param {number} [i]
+   * @param {boolean} [verticalUserSpace] anchor a vertical gradient to the plot
+   *   area rather than to each path's own bounding box. Needed when one series
+   *   is drawn as several path elements (nulls split it into segments): with
+   *   the default objectBoundingBox each segment resolves the same offset
+   *   against a different bbox, so the color transition lands on a different
+   *   value in every segment.
    */
   drawGradient(
     style,
@@ -764,6 +771,7 @@ class Graphics {
     stops = null,
     colorStops = [],
     i = 0,
+    verticalUserSpace = false,
   ) {
     const w = this.w
     let g
@@ -840,7 +848,15 @@ class Graphics {
 
     if (!radial) {
       if (style === 'vertical') {
-        g.from(0, 0).to(0, 1)
+        if (verticalUserSpace) {
+          // Span the plot area, whose top edge is the y-axis max and bottom
+          // edge the y-axis min. Callers must express their offsets over that
+          // same axis range.
+          g.attr({ gradientUnits: 'userSpaceOnUse' })
+          g.from(0, 0).to(0, w.layout.gridHeight)
+        } else {
+          g.from(0, 0).to(0, 1)
+        }
       } else if (style === 'diagonal') {
         g.from(0, 0).to(1, 1)
       } else if (style === 'horizontal') {
