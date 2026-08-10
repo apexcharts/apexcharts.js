@@ -46,8 +46,15 @@ export default class Utils {
     const hoverX = AxisMapping.screenXToPlotPx(w, clientX)
     const hoverY = clientY - seriesBound.top
 
+    // Edge bars hang `barPadForNumericAxis / 2` outside the plot box, and the
+    // zoom/pan cursor should still show there. Same allowance as the tooltip
+    // bound in `Tooltip.handleStickyTooltip`.
+    const edgePad = w.globals.barPadForNumericAxis || 0
     const notInRect =
-      hoverX < 0 || hoverY < 0 || hoverX > hoverWidth || hoverY > hoverHeight
+      hoverX < -edgePad ||
+      hoverY < 0 ||
+      hoverX > hoverWidth + edgePad ||
+      hoverY > hoverHeight
 
     if (notInRect) {
       hoverArea.classList.remove('hovering-zoom')

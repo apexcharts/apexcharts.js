@@ -64,6 +64,22 @@ function makeCtx(overrides = {}) {
     height: 600,
   })
 
+  // `AxisMapping.screenXToPlotPx` anchors on the svg element, so give every
+  // ctx a measurable one. Without it the helper silently takes its `!svg`
+  // fallback and the tests below stop covering the derivation they describe.
+  const elSvg = document.createElement('div')
+  elSvg.classList.add('apexcharts-svg')
+  elSvg.getBoundingClientRect = () => ({
+    left: 0,
+    top: 0,
+    right: 800,
+    bottom: 600,
+    width: 800,
+    height: 600,
+  })
+  w.dom.baseEl.appendChild(elSvg)
+  w.globals.svgWidth = 800
+
   const elGrid = document.createElement('div')
   elGrid.getBoundingClientRect = () => ({
     left: 50, // elWrap.left + translateX
@@ -373,17 +389,6 @@ describe('Position._datapointCenterXFromBars', () => {
       width: 520.5,
       height: 300,
     })
-    const svg = document.createElement('div')
-    svg.classList.add('apexcharts-svg')
-    svg.getBoundingClientRect = () => ({
-      left: 0,
-      top: 0,
-      width: 800,
-      height: 600,
-    })
-    w.dom.baseEl.appendChild(svg)
-    w.globals.svgWidth = 800
-
     const bar = document.createElement('div')
     bar.getBoundingClientRect = () => ({
       left: 180,

@@ -1229,7 +1229,12 @@ export default class Tooltip {
     )
       capturedSeries = null
 
-    if (capj.hoverX < 0 || capj.hoverX > w.layout.gridWidth) {
+    // Bars at the first/last data point straddle the plot edge: their centers
+    // sit at 0 and `gridWidth`, so half of `barPadForNumericAxis` hangs outside
+    // the plot on each side. Hovering that half still has to resolve a tooltip,
+    // so widen the bound by the pad rather than clipping at the plot box.
+    const edgePad = w.globals.barPadForNumericAxis || 0
+    if (capj.hoverX < -edgePad || capj.hoverX > w.layout.gridWidth + edgePad) {
       this.handleMouseOut(opt)
       return
     }
