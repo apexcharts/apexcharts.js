@@ -263,6 +263,8 @@ class Grid {
         x1 = /** @type {any} */ (this.xaxisLabels[i]).position
         x2 = /** @type {any} */ (this.xaxisLabels[i]).position
 
+        if (x1 < 0 || x1 - 2 > w.layout.gridWidth) continue
+
         this._drawGridLines({
           i,
           x1,
