@@ -134,6 +134,13 @@ function makeTooltipContext(overrides = {}) {
       baseEl: document.createElement('div'),
       ...(overrides.dom || {}),
     },
+    interact: {
+      zoomEnabled: globals.zoomEnabled,
+      panEnabled: globals.panEnabled,
+      capturedSeriesIndex: globals.capturedSeriesIndex,
+      capturedDataPointIndex: globals.capturedDataPointIndex,
+      ...(overrides.interact || {}),
+    },
     formatters: {
       xLabelFormatter: undefined,
       yLabelFormatters: [],
@@ -216,6 +223,71 @@ function makeTooltipContext(overrides = {}) {
 // ---------------------------------------------------------------------------
 
 describe('Tooltip.Utils', () => {
+  describe('getNearestValues', () => {
+    // A datetime axis floors its first timescale tick to the calendar boundary
+    // before minX, so the gridline drawn there puts the `.apexcharts-grid`
+    // element's left edge 20.5px before the plot origin on an 800px chart.
+    // Neither the origin nor the divisor may be read off that element.
+    function makeHoverCtx(overrides = {}) {
+      const { ttCtx, w } = makeTooltipContext({
+        globals: { dataPoints: 5, svgWidth: 800, barPadForNumericAxis: 0 },
+        layout: { gridWidth: 500, translateX: 50 },
+        ...overrides,
+      })
+
+      const svg = document.createElement('div')
+      svg.classList.add('apexcharts-svg')
+      svg.getBoundingClientRect = () => ({
+        left: 0,
+        top: 0,
+        width: 800,
+        height: 600,
+      })
+      w.dom.baseEl.appendChild(svg)
+
+      const elGrid = document.createElement('div')
+      elGrid.getBoundingClientRect = () => ({
+        left: 29.5,
+        top: 20,
+        width: 520.5,
+        height: 300,
+      })
+
+      return { ttCtx, w, elGrid, hoverArea: document.createElement('div') }
+    }
+
+    it('measures the hover position from the plot origin, not the grid element', () => {
+      const { ttCtx, elGrid, hoverArea } = makeHoverCtx()
+      const utils = new TooltipUtils(ttCtx)
+
+      const res = utils.getNearestValues({
+        hoverArea,
+        elGrid,
+        clientX: 237,
+        clientY: 170,
+      })
+
+      // 237 - (svg.left 0 + translateX 50) = 187, over a 500px divisor of 125
+      // → j 1. The grid element gives 207.5 over 130.125 → j 2.
+      expect(res.hoverX).toBe(187)
+      expect(res.j).toBe(1)
+    })
+
+    it('treats a point left of the plot origin as outside the grid', () => {
+      const { ttCtx, elGrid, hoverArea } = makeHoverCtx({
+        interact: { zoomEnabled: true },
+      })
+      const utils = new TooltipUtils(ttCtx)
+      hoverArea.classList.add('hovering-zoom')
+
+      utils.getNearestValues({ hoverArea, elGrid, clientX: 40, clientY: 170 })
+
+      // 10px left of the origin, which the grid element's 20.5px overhang
+      // would otherwise report as still inside the plot.
+      expect(hoverArea.classList.contains('hovering-zoom')).toBe(false)
+    })
+  })
+
   describe('closestInArray', () => {
     // closestInArray starts currIndex=null and only updates when newdiff < diff
     // So the first element is never selected (it sets the baseline diff but not currIndex)

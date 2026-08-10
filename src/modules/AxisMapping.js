@@ -27,7 +27,8 @@
  * space the series `<g transform="translate(translateX, translateY)">` and the
  * selection rect's transform live in), so a value produced by
  * {@link AxisMapping.dataXToPx} can be used directly as an SVG `x` attribute and
- * a value fed to {@link AxisMapping.pxToDataX} is `screenX - svgLeft - translateX`.
+ * a value fed to {@link AxisMapping.pxToDataX} is what
+ * {@link AxisMapping.screenXToPlotPx} returns.
  *
  * @module modules/AxisMapping
  */
@@ -61,5 +62,24 @@ export default class AxisMapping {
    */
   static pxToDataX(w, px) {
     return w.globals.minX + px * AxisMapping.xRatio(w)
+  }
+
+  /**
+   * Client (screen) x -> pixels from the plot origin. The origin is the svg
+   * element's left edge plus `translateX`, never the `.apexcharts-grid` box
+   * (fact 2 above), so the result does not depend on what the grid happens to
+   * render. `svgWidth` is the unscaled width the svg was drawn at, so the ratio
+   * against the measured one is the CSS zoom of any container the chart sits in.
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {number} screenX
+   * @returns {number}
+   */
+  static screenXToPlotPx(w, screenX) {
+    const baseEl = w.dom.baseEl
+    const svg = baseEl && baseEl.querySelector('.apexcharts-svg')
+    if (!svg) return screenX - w.layout.translateX
+    const svgRect = svg.getBoundingClientRect()
+    const zoom = w.globals.svgWidth ? svgRect.width / w.globals.svgWidth : 1
+    return (screenX - svgRect.left) / (zoom || 1) - w.layout.translateX
   }
 }

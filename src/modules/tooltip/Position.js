@@ -1,4 +1,5 @@
 // @ts-check
+import AxisMapping from '../AxisMapping'
 import Graphics from '../Graphics'
 import Series from '../Series'
 import { ARROW_TIP_OVERHANG } from './constants'
@@ -661,7 +662,7 @@ export default class Position {
       // for odd-count series. Use the bar's rendered DOM rect instead so
       // the data-point center is correct regardless of stack/group layout.
       if (jBar && !isBoxOrCandle) {
-        const center = this._datapointCenterXFromBars(j, seriesBound)
+        const center = this._datapointCenterXFromBars(j)
         if (center != null) {
           bcx = center
         } else {
@@ -730,10 +731,9 @@ export default class Position {
    * attribute math in `moveStickyTooltipOverBars`. Returns null when no
    * usable bars are found.
    * @param {number} j
-   * @param {DOMRect} gridRect
    * @returns {number | null}
    */
-  _datapointCenterXFromBars(j, gridRect) {
+  _datapointCenterXFromBars(j) {
     const w = this.w
     const bars = w.dom.baseEl.querySelectorAll(
       `.apexcharts-bar-series path[j='${j}'],` +
@@ -752,18 +752,10 @@ export default class Position {
       if (r.right > unionRight) unionRight = r.right
     }
     if (!isFinite(unionLeft)) return null
-    // Convert to data-area-local x. `gridRect` is the `.apexcharts-grid`
-    // element rect, whose `.left` extends `barPadForNumericAxis` pixels LEFT
-    // of the data area on numeric/datetime axes (the apexcharts-gridlines-
-    // horizontal group is widened by that pad on each side so corner bars
-    // don't clip). The hover-test path subtracts the same offset in
-    // tooltip/Utils.getNearestValues; do it here too so the crosshair lands
-    // on the bar center instead of one xDivision to the right.
-    return (
-      (unionLeft + unionRight) / 2 -
-      gridRect.left -
-      (w.globals.barPadForNumericAxis || 0)
-    )
+    // Convert to data-area-local x from the plot origin, the space `cx` and the
+    // crosshair are already in. Measuring from the `.apexcharts-grid` element
+    // rect instead only works while the grid draws nothing outside its own box.
+    return AxisMapping.screenXToPlotPx(w, (unionLeft + unionRight) / 2)
   }
 
   /**
