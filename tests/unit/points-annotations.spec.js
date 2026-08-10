@@ -1,6 +1,7 @@
 import Annotations from '../../src/modules/annotations/Annotations.js'
 import PointsAnnotations from '../../src/modules/annotations/PointsAnnotations.js'
 import { createChartWithOptions } from './utils/utils.js'
+import ApexCharts from '../../src/entries/full.js'
 
 describe('PointsAnnotations', () => {
   let chart
@@ -630,6 +631,102 @@ describe('PointsAnnotations', () => {
       expect(
         group.querySelectorAll('.apexcharts-point-annotation-marker').length
       ).toBe(0)
+    })
+  })
+
+  // =========================================================================
+  // Boundary clamping (apexcharts/apexcharts.js#5106)
+  // =========================================================================
+  describe('boundary clamping', () => {
+    it('should clamp label x near the right edge to prevent cutting off', () => {
+      document.body.innerHTML = '<div id="chart" style="width:600px;height:400px" />'
+      chart = new ApexCharts(document.querySelector('#chart'), {
+        chart: { type: 'line', width: '600', height: '400', animations: { enabled: false } },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        annotations: {
+          points: [
+            {
+              x: 5, // last data point (right edge)
+              y: 50,
+              marker: { size: 6 },
+              label: {
+                text: 'A very long label that would overflow the chart boundary',
+                style: { fontSize: '14px', fontFamily: 'Arial' },
+              },
+            },
+          ],
+        },
+      })
+      chart.render()
+
+      const label = chart.w.globals.dom.baseEl.querySelector(
+        '.apexcharts-point-annotation-label'
+      )
+      expect(label).not.toBeNull()
+      const labelX = parseFloat(label.getAttribute('x'))
+      const gridWidth = chart.w.layout.gridWidth
+      // label should be clamped to gridWidth - some margin
+      expect(labelX).toBeLessThan(gridWidth)
+    })
+
+    it('should clamp label x near the left edge to prevent cutting off', () => {
+      document.body.innerHTML = '<div id="chart" style="width:600px;height:400px" />'
+      chart = new ApexCharts(document.querySelector('#chart'), {
+        chart: { type: 'line', width: '600', height: '400', animations: { enabled: false } },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        annotations: {
+          points: [
+            {
+              x: 0, // first data point (left edge)
+              y: 10,
+              marker: { size: 6 },
+              label: {
+                text: 'A very long label that would overflow on the left',
+                style: { fontSize: '14px', fontFamily: 'Arial' },
+              },
+            },
+          ],
+        },
+      })
+      chart.render()
+
+      const label = chart.w.globals.dom.baseEl.querySelector(
+        '.apexcharts-point-annotation-label'
+      )
+      expect(label).not.toBeNull()
+      const labelX = parseFloat(label.getAttribute('x'))
+      // Label should not be clipped — its x should be >= 0
+      expect(labelX).toBeGreaterThanOrEqual(0)
+    })
+
+    it('should not affect labels that already fit within the grid', () => {
+      document.body.innerHTML = '<div id="chart" style="width:600px;height:400px" />'
+      chart = new ApexCharts(document.querySelector('#chart'), {
+        chart: { type: 'line', width: '600', height: '400', animations: { enabled: false } },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        annotations: {
+          points: [
+            {
+              x: 2, // middle data point
+              y: 30,
+              marker: { size: 6 },
+              label: {
+                text: 'Short',
+                style: { fontSize: '14px', fontFamily: 'Arial' },
+              },
+            },
+          ],
+        },
+      })
+      chart.render()
+
+      const label = chart.w.globals.dom.baseEl.querySelector(
+        '.apexcharts-point-annotation-label'
+      )
+      expect(label).not.toBeNull()
+      const labelX = parseFloat(label.getAttribute('x'))
+      // Should be > 0 and within grid
+      expect(labelX).toBeGreaterThan(0)
     })
   })
 })
