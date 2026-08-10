@@ -1,5 +1,6 @@
 // @ts-check
 import Utilities from '../../utils/Utils'
+import AxisMapping from '../AxisMapping'
 import Graphics from '../Graphics'
 
 /**
@@ -27,7 +28,7 @@ export default class Utils {
     const w = this.w
 
     const seriesBound = elGrid.getBoundingClientRect()
-    const hoverWidth = seriesBound.width
+    const hoverWidth = w.layout.gridWidth
     const hoverHeight = seriesBound.height
 
     let xDivisor = hoverWidth / (w.globals.dataPoints - 1)
@@ -42,11 +43,18 @@ export default class Utils {
       xDivisor = hoverWidth / w.globals.dataPoints
     }
 
-    const hoverX = clientX - seriesBound.left - w.globals.barPadForNumericAxis
+    const hoverX = AxisMapping.screenXToPlotPx(w, clientX)
     const hoverY = clientY - seriesBound.top
 
+    // Edge bars hang `barPadForNumericAxis / 2` outside the plot box, and the
+    // zoom/pan cursor should still show there. Same allowance as the tooltip
+    // bound in `Tooltip.handleStickyTooltip`.
+    const edgePad = w.globals.barPadForNumericAxis || 0
     const notInRect =
-      hoverX < 0 || hoverY < 0 || hoverX > hoverWidth || hoverY > hoverHeight
+      hoverX < -edgePad ||
+      hoverY < 0 ||
+      hoverX > hoverWidth + edgePad ||
+      hoverY > hoverHeight
 
     if (notInRect) {
       hoverArea.classList.remove('hovering-zoom')
@@ -101,19 +109,9 @@ export default class Utils {
 
     // if X axis type is not category and tooltip is not shared, then we need to find the cursor position and get the nearest value
     if (w.axisFlags.isXNumeric) {
-      // Change origin of cursor position so that we can compute the relative nearest point to the cursor on our chart
-      // we only need to scale because all points are relative to the bounds.left and bounds.top => origin is virtually (0, 0)
-      const chartGridEl = this.ttCtx.getElGrid()
-      if (!chartGridEl) return { hoverX, hoverY }
-      const chartGridElBoundingRect = chartGridEl.getBoundingClientRect()
-      const transformedHoverX =
-        hoverX * (chartGridElBoundingRect.width / hoverWidth)
-      const transformedHoverY =
-        hoverY * (chartGridElBoundingRect.height / hoverHeight)
-
       closest = this.closestInMultiArray(
-        transformedHoverX,
-        transformedHoverY,
+        hoverX,
+        hoverY,
         seriesXValArr,
         seriesYValArr,
       )
@@ -124,7 +122,7 @@ export default class Utils {
         // initial push, it should be a little smaller than the 1st val
         seriesXValArr = w.globals.seriesXvalues[capturedSeries]
 
-        closest = this.closestInArray(transformedHoverX, seriesXValArr)
+        closest = this.closestInArray(hoverX, seriesXValArr)
 
         j = closest.j ?? 0
       }

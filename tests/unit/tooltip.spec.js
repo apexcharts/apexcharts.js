@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import TooltipUtils from '../../src/modules/tooltip/Utils.js'
 import TooltipLabels from '../../src/modules/tooltip/Labels.js'
 import TooltipPosition from '../../src/modules/tooltip/Position.js'
+import Tooltip from '../../src/modules/tooltip/Tooltip.js'
 import { createChartWithOptions } from './utils/utils.js'
 
 // ---------------------------------------------------------------------------
@@ -134,6 +135,13 @@ function makeTooltipContext(overrides = {}) {
       baseEl: document.createElement('div'),
       ...(overrides.dom || {}),
     },
+    interact: {
+      zoomEnabled: globals.zoomEnabled,
+      panEnabled: globals.panEnabled,
+      capturedSeriesIndex: globals.capturedSeriesIndex,
+      capturedDataPointIndex: globals.capturedDataPointIndex,
+      ...(overrides.interact || {}),
+    },
     formatters: {
       xLabelFormatter: undefined,
       yLabelFormatters: [],
@@ -216,6 +224,89 @@ function makeTooltipContext(overrides = {}) {
 // ---------------------------------------------------------------------------
 
 describe('Tooltip.Utils', () => {
+  describe('getNearestValues', () => {
+    // A datetime axis floors its first timescale tick to the calendar boundary
+    // before minX, so the gridline drawn there puts the `.apexcharts-grid`
+    // element's left edge 20.5px before the plot origin on an 800px chart.
+    // Neither the origin nor the divisor may be read off that element.
+    function makeHoverCtx(overrides = {}) {
+      const { ttCtx, w } = makeTooltipContext({
+        globals: { dataPoints: 5, svgWidth: 800, barPadForNumericAxis: 0 },
+        layout: { gridWidth: 500, translateX: 50 },
+        ...overrides,
+      })
+
+      const svg = document.createElement('div')
+      svg.classList.add('apexcharts-svg')
+      svg.getBoundingClientRect = () => ({
+        left: 0,
+        top: 0,
+        width: 800,
+        height: 600,
+      })
+      w.dom.baseEl.appendChild(svg)
+
+      const elGrid = document.createElement('div')
+      elGrid.getBoundingClientRect = () => ({
+        left: 29.5,
+        top: 20,
+        width: 520.5,
+        height: 300,
+      })
+
+      return { ttCtx, w, elGrid, hoverArea: document.createElement('div') }
+    }
+
+    it('measures the hover position from the plot origin, not the grid element', () => {
+      const { ttCtx, elGrid, hoverArea } = makeHoverCtx()
+      const utils = new TooltipUtils(ttCtx)
+
+      const res = utils.getNearestValues({
+        hoverArea,
+        elGrid,
+        clientX: 237,
+        clientY: 170,
+      })
+
+      // 237 - (svg.left 0 + translateX 50) = 187, over a 500px divisor of 125
+      // → j 1. The grid element gives 207.5 over 130.125 → j 2.
+      expect(res.hoverX).toBe(187)
+      expect(res.j).toBe(1)
+    })
+
+    it('treats a point left of the plot origin as outside the grid', () => {
+      const { ttCtx, elGrid, hoverArea } = makeHoverCtx({
+        interact: { zoomEnabled: true },
+      })
+      const utils = new TooltipUtils(ttCtx)
+      hoverArea.classList.add('hovering-zoom')
+
+      utils.getNearestValues({ hoverArea, elGrid, clientX: 40, clientY: 170 })
+
+      // 10px left of the origin, which the grid element's 20.5px overhang
+      // would otherwise report as still inside the plot.
+      expect(hoverArea.classList.contains('hovering-zoom')).toBe(false)
+    })
+
+    it('keeps the zoom cursor over the half of an edge bar outside the plot', () => {
+      const { ttCtx, elGrid, hoverArea } = makeHoverCtx({
+        globals: { dataPoints: 5, svgWidth: 800, barPadForNumericAxis: 60 },
+        interact: { zoomEnabled: true },
+      })
+      const utils = new TooltipUtils(ttCtx)
+
+      // Plot origin 50, gridWidth 500, so the last bar's center is at 550 and
+      // it reaches 580. Hovering 570 is 20px past the plot box but still on
+      // the bar, so it must stay "inside".
+      utils.getNearestValues({ hoverArea, elGrid, clientX: 570, clientY: 170 })
+      expect(hoverArea.classList.contains('hovering-zoom')).toBe(true)
+
+      // Beyond the pad it is genuinely outside.
+      utils.getNearestValues({ hoverArea, elGrid, clientX: 615, clientY: 170 })
+      expect(hoverArea.classList.contains('hovering-zoom')).toBe(false)
+    })
+  })
+
   describe('closestInArray', () => {
     // closestInArray starts currIndex=null and only updates when newdiff < diff
     // So the first element is never selected (it sets the baseline diff but not currIndex)
@@ -560,6 +651,55 @@ describe('Tooltip.Utils', () => {
       expect(utils.getHoverMarkerSize(1)).toBe(8) // 6 + 2
       expect(utils.getHoverMarkerSize(2)).toBe(12) // 10 + 2
     })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Tooltip.handleStickyTooltip — the in/out bound around the plot box
+// ---------------------------------------------------------------------------
+
+describe('Tooltip.handleStickyTooltip', () => {
+  /**
+   * Drives the method against a stubbed `this` so the bound is the only thing
+   * under test. `hoverX` is already plot-origin-relative when it arrives here.
+   */
+  function runBound(hoverX, barPadForNumericAxis) {
+    const handleMouseOut = vi.fn()
+    const create = vi.fn()
+    const self = {
+      w: {
+        globals: { barPadForNumericAxis, collapsedSeriesIndices: [] },
+        layout: { gridWidth: 500 },
+        seriesData: { series: [[1, 2, 3]] },
+      },
+      tooltipUtil: {
+        getNearestValues: () => ({ j: 2, capturedSeries: null, hoverX }),
+        isXoverlap: () => true,
+      },
+      handleMouseOut,
+      create,
+    }
+
+    Tooltip.prototype.handleStickyTooltip.call(self, {}, 0, 0, { ttItems: [] })
+    return { handleMouseOut, create }
+  }
+
+  it('dismisses the tooltip outside the plot box when there is no bar pad', () => {
+    expect(runBound(-1, 0).handleMouseOut).toHaveBeenCalled()
+    expect(runBound(501, 0).handleMouseOut).toHaveBeenCalled()
+    expect(runBound(250, 0).create).toHaveBeenCalled()
+  })
+
+  it('keeps the tooltip over the halves of the edge bars that overhang the plot', () => {
+    // Bars at the first and last data point are centred on 0 and `gridWidth`,
+    // so they reach `barPadForNumericAxis / 2` outside the plot on each side.
+    // Clipping at the plot box killed the tooltip over half of both bars.
+    expect(runBound(-40, 120).create).toHaveBeenCalled()
+    expect(runBound(540, 120).create).toHaveBeenCalled()
+
+    // Past the pad it is off the bar and the tooltip goes away again.
+    expect(runBound(-121, 120).handleMouseOut).toHaveBeenCalled()
+    expect(runBound(621, 120).handleMouseOut).toHaveBeenCalled()
   })
 })
 

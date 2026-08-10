@@ -1268,10 +1268,7 @@ export default class ZoomPanSelection extends Toolbar {
    * @returns {number}
    */
   _screenXToPlotPx(screenX) {
-    const baseEl = this.w.dom.baseEl
-    const svg = baseEl && baseEl.querySelector('.apexcharts-svg')
-    const svgLeft = svg ? svg.getBoundingClientRect().left : 0
-    return screenX - svgLeft - this.w.layout.translateX
+    return AxisMapping.screenXToPlotPx(this.w, screenX)
   }
 
   /**

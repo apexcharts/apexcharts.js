@@ -64,6 +64,22 @@ function makeCtx(overrides = {}) {
     height: 600,
   })
 
+  // `AxisMapping.screenXToPlotPx` anchors on the svg element, so give every
+  // ctx a measurable one. Without it the helper silently takes its `!svg`
+  // fallback and the tests below stop covering the derivation they describe.
+  const elSvg = document.createElement('div')
+  elSvg.classList.add('apexcharts-svg')
+  elSvg.getBoundingClientRect = () => ({
+    left: 0,
+    top: 0,
+    right: 800,
+    bottom: 600,
+    width: 800,
+    height: 600,
+  })
+  w.dom.baseEl.appendChild(elSvg)
+  w.globals.svgWidth = 800
+
   const elGrid = document.createElement('div')
   elGrid.getBoundingClientRect = () => ({
     left: 50, // elWrap.left + translateX
@@ -251,7 +267,7 @@ describe('Position._datapointCenterXFromBars', () => {
   it('returns null when no bars at index j', () => {
     const { ttCtx } = makeCtx()
     const pos = new TooltipPosition(ttCtx)
-    const r = pos._datapointCenterXFromBars(0, { left: 0 })
+    const r = pos._datapointCenterXFromBars(0)
     expect(r).toBeNull()
   })
 
@@ -271,10 +287,10 @@ describe('Position._datapointCenterXFromBars', () => {
     w.dom.baseEl.querySelectorAll = vi.fn(() => [bar])
 
     const pos = new TooltipPosition(ttCtx)
-    // gridRect.left = 50 (elGrid screen-left)
-    const r = pos._datapointCenterXFromBars(2, { left: 50 })
+    // plot origin = svgLeft (0) + translateX (50)
+    const r = pos._datapointCenterXFromBars(2)
 
-    // union: left=100, right=140 → center=120 → grid-local = 120 - 50 = 70
+    // union: left=100, right=140 → center=120 → plot-local = 120 - 50 = 70
     expect(r).toBe(70)
   })
 
@@ -301,9 +317,9 @@ describe('Position._datapointCenterXFromBars', () => {
     w.dom.baseEl.querySelectorAll = vi.fn(() => [a, b])
 
     const pos = new TooltipPosition(ttCtx)
-    const r = pos._datapointCenterXFromBars(0, { left: 50 })
+    const r = pos._datapointCenterXFromBars(0)
 
-    // union: left=100, right=165 → center=132.5 → grid-local = 132.5 - 50 = 82.5
+    // union: left=100, right=165 → center=132.5 → plot-local = 132.5 - 50 = 82.5
     expect(r).toBe(82.5)
   })
 
@@ -337,9 +353,9 @@ describe('Position._datapointCenterXFromBars', () => {
     w.dom.baseEl.querySelectorAll = vi.fn(() => [collapsedBar, visibleBar])
 
     const pos = new TooltipPosition(ttCtx)
-    const r = pos._datapointCenterXFromBars(0, { left: 50 })
+    const r = pos._datapointCenterXFromBars(0)
 
-    // Should ignore the collapsed bar entirely → center 120 → grid-local 70
+    // Should ignore the collapsed bar entirely → center 120 → plot-local 70
     expect(r).toBe(70)
   })
 
@@ -357,7 +373,38 @@ describe('Position._datapointCenterXFromBars', () => {
     w.dom.baseEl.querySelectorAll = vi.fn(() => [zeroBar])
 
     const pos = new TooltipPosition(ttCtx)
-    expect(pos._datapointCenterXFromBars(0, { left: 0 })).toBeNull()
+    expect(pos._datapointCenterXFromBars(0)).toBeNull()
+  })
+
+  it('measures from the plot origin when the grid renders outside its own box', () => {
+    const { ttCtx, w, elGrid } = makeCtx()
+    // A gridline drawn left of the plot origin (a floored datetime tick, or
+    // the barPad widening on a numeric bar chart) pushes the grid element's
+    // left edge 20.5px ahead of the origin the bars are laid out from.
+    elGrid.getBoundingClientRect = () => ({
+      left: 29.5,
+      top: 20,
+      right: 550,
+      bottom: 320,
+      width: 520.5,
+      height: 300,
+    })
+    const bar = document.createElement('div')
+    bar.getBoundingClientRect = () => ({
+      left: 180,
+      right: 220,
+      top: 0,
+      bottom: 100,
+      width: 40,
+      height: 100,
+    })
+    w.dom.baseEl.querySelectorAll = vi.fn(() => [bar])
+
+    const pos = new TooltipPosition(ttCtx)
+
+    // center 200 → 200 - (svg.left 0 + translateX 50) = 150. Measuring from
+    // the grid element instead gives 170.5, an overhang right of the bar.
+    expect(pos._datapointCenterXFromBars(0)).toBe(150)
   })
 })
 
