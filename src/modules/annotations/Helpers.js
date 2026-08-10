@@ -79,10 +79,22 @@ export default class Helpers {
       ;[ptop, pbottom, pleft, pright] = [pleft, pright, ptop, pbottom]
     }
 
-    const x1 = (coords.left - elGridRect.left) / zoom - pleft
-    const y1 = (coords.top - elGridRect.top) / zoom - ptop
+    // The rect is drawn in the annotation group's LOCAL coordinates, so these
+    // client-space deltas have to be measured from the grid's local (0, 0) --
+    // not from the left/top edge of whatever the grid group happens to render.
+    // Those are the same point only while the grid draws nothing outside its
+    // own box, and it draws outside on both axis types this file serves: a
+    // datetime axis whose first timescale tick is floored to the calendar
+    // boundary before minX (DateTime.js ceilToBoundary), and a numeric bar
+    // chart, whose gridlines run out to -barPadForNumericAxis so edge bars are
+    // not clipped. bbox.x/y are in local units, hence the zoom multiply.
+    const gridLeft = elGridRect.left - gridBBox.x * zoom
+    const gridTop = elGridRect.top - gridBBox.y * zoom
+
+    const x1 = (coords.left - gridLeft) / zoom - pleft
+    const y1 = (coords.top - gridTop) / zoom - ptop
     const elRect = this.annoCtx.graphics.drawRect(
-      x1 - w.globals.barPadForNumericAxis,
+      x1,
       y1,
       coords.width / zoom + pleft + pright,
       coords.height / zoom + ptop + pbottom,

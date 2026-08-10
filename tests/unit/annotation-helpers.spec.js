@@ -160,6 +160,68 @@ describe('Annotation Helpers', () => {
       const result = helpers.addBackgroundToAnno(annoEl, anno)
       expect(result).toBeDefined()
     })
+
+    it('measures from the grid origin, not the grid element edge', () => {
+      // The rect is drawn in the annotation group's local coordinates, so the
+      // offset to it has to be measured from the grid's local (0, 0). That is
+      // NOT the grid element's rendered left edge whenever the grid draws
+      // outside its own box -- a datetime axis whose first timescale tick is
+      // floored to before minX, or a numeric bar chart whose gridlines run out
+      // to -barPadForNumericAxis.
+      //
+      // getBBox is stubbed to x: 0 in tests/unit/setup.js, which is precisely
+      // the value at which measuring from either point gives the same answer,
+      // so it has to be overridden here or this test cannot fail.
+      chart = createChartWithOptions({
+        chart: { type: 'line' },
+        series: [{ data: [10, 20, 30, 40, 50] }],
+        annotations: {
+          yaxis: [{ y: 30, label: { text: 'Label', position: 'left' } }],
+        },
+      })
+      const annoCtx2 = new Annotations(chart.w)
+      const helpers2 = new Helpers(annoCtx2)
+
+      const baseEl = chart.w.dom.baseEl
+      const gridEl = baseEl.querySelector('.apexcharts-grid')
+      const annoEl = baseEl.querySelector('.apexcharts-yaxis-annotation-label')
+
+      // The grid renders 20px left and 5px above its own origin, so that origin
+      // sits at client (100, 15) while the element's edge is at (80, 10).
+      vi.spyOn(gridEl, 'getBBox').mockReturnValue({
+        x: -20,
+        y: -5,
+        width: 720,
+        height: 400,
+      })
+      vi.spyOn(gridEl, 'getBoundingClientRect').mockReturnValue({
+        left: 80,
+        top: 10,
+        width: 720, // width / bbox width => a zoom of 1
+        height: 400,
+      })
+      vi.spyOn(annoEl, 'getBoundingClientRect').mockReturnValue({
+        left: 150,
+        top: 30,
+        width: 40,
+        height: 12,
+      })
+
+      const anno = {
+        label: {
+          text: 'Label',
+          style: { padding: { left: 4, right: 4, top: 2, bottom: 2 } },
+        },
+      }
+
+      const elRect = helpers2.addBackgroundToAnno(annoEl, anno)
+
+      // (150 - 100) - 4 = 46, and (30 - 15) - 2 = 13. Measuring from the
+      // element edge instead gives 66 and 18: the background drawn a full
+      // overhang right of, and below, the text it belongs behind.
+      expect(Number(elRect.node.getAttribute('x'))).toBeCloseTo(46, 5)
+      expect(Number(elRect.node.getAttribute('y'))).toBeCloseTo(13, 5)
+    })
   })
 
   describe('getY1Y2', () => {
