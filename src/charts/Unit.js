@@ -1,6 +1,7 @@
 // @ts-check
 import { makeSpring, resolveSpring, retarget, stepSpring } from 'apex-commons'
 import Graphics from '../modules/Graphics'
+import { getUnitLayout } from '../modules/UnitLayoutRegistry'
 import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
@@ -161,7 +162,9 @@ export default class Unit {
               ? 'scatter'
               : opts.layout === 'arc'
                 ? 'arc'
-                : 'grouped'
+                : opts.layout === 'custom'
+                  ? 'custom'
+                  : 'grouped'
     // Keying decides which previous dot a new dot tweens from on an update:
     //  - 'group' (default): key "i:j" - a dot stays within its category slot.
     //    EXCEPTION: a 'packed' blob and a 'grid' waffle have no stable
@@ -202,7 +205,9 @@ export default class Unit {
               ? this._layoutScatter(opts)
               : layout === 'arc'
                 ? this._layoutArc(counts, opts)
-                : this._layoutGrouped(counts, opts)
+                : layout === 'custom'
+                  ? this._layoutCustom(counts, opts)
+                  : this._layoutGrouped(counts, opts)
 
     // Small-multiple waffles paint a faint track backdrop (the "of N" cells)
     // behind every tile's filled dots, and carry a per-tile label.
@@ -428,6 +433,187 @@ export default class Unit {
         `or use plotOptions.unit.unitValue to represent more units per dot.`,
     )
     return counts.map((c) => (c > 0 ? Math.max(1, Math.round(c * scale)) : 0))
+  }
+
+  /**
+   * `layout: 'custom'`. Positions come from a caller-supplied provider rather
+   * than from a generator in this file.
+   *
+   * The provider is the whole extension point: `(objects, rect) => [{id, x, y,
+   * r?}]`. Everything downstream is unchanged, which is the point - the engine
+   * already tweens position, radius and colour, and already keeps a mark's
+   * identity across a relayout, so an arbitrary new arrangement needs no new
+   * transition code. A silhouette, a hex grid, a timeline, or a projection
+   * handed over by ApexMaps are all just this function.
+   *
+   * Marks the provider omits are dropped, so they animate out through the
+   * existing exit path. Ids matching no mark are ignored.
+   *
+   * @param {number[]} counts
+   * @param {any} opts
+   */
+  _layoutCustom(counts, opts) {
+    const w = this.w
+    const gw = w.layout.gridWidth
+    const gh = w.layout.gridHeight
+    const total = counts.reduce((a, b) => a + b, 0)
+
+    const provider = this._resolveLayoutProvider(opts)
+    if (!provider) {
+      console.warn(
+        `[ApexCharts] unit chart: layout 'custom' needs plotOptions.unit.positions ` +
+          `(a function, or the name of a layout registered with ` +
+          `ApexCharts.registerUnitLayout). Falling back to 'grouped'.`,
+      )
+      return this._layoutGrouped(counts, opts)
+    }
+
+    // Auto dot size: treat the plot rect as a blob of the same area, so `total`
+    // marks fill it at the configured spacing. A fixed size (image, explicit
+    // size, bubble maxRadius) short-circuits inside _resolveStep exactly as it
+    // does for every other layout.
+    const availR = Math.sqrt((gw * gh) / Math.PI)
+    const step = this._resolveStep(opts, availR, total)
+    this._lastDotR = this._dotRadiusFromStep(step, opts)
+    const dotR = this._lastDotR
+
+    const objects = this._layoutObjects(counts, dotR)
+    const rect = { x: 0, y: 0, width: gw, height: gh }
+
+    let placed
+    try {
+      placed = provider(objects, rect)
+    } catch (e) {
+      console.warn(
+        '[ApexCharts] unit chart: the layout provider threw; falling back to ' +
+          "'grouped'.",
+        e,
+      )
+      return this._layoutGrouped(counts, opts)
+    }
+    if (!Array.isArray(placed)) {
+      console.warn(
+        '[ApexCharts] unit chart: the layout provider must return an array of ' +
+          "{id, x, y}; falling back to 'grouped'.",
+      )
+      return this._layoutGrouped(counts, opts)
+    }
+
+    /** @type {Map<string, {x:number,y:number,r?:number}>} */
+    const byId = new Map()
+    placed.forEach((p) => {
+      // Silently skipping a non-finite position would leave the mark at a stale
+      // spot with no clue why, so treat it as "omitted" and let it exit.
+      if (!p || !isFinite(p.x) || !isFinite(p.y)) return
+      byId.set(String(p.id), {
+        x: p.x,
+        y: p.y,
+        r: typeof p.r === 'number' && p.r > 0 ? p.r : undefined,
+      })
+    })
+
+    /** @type {{ i: number, cx: number, cy: number, outerR: number, dots: {x:number,y:number,r?:number}[] }[]} */
+    const clusters = counts.map((_, i) => ({
+      i,
+      cx: gw / 2,
+      cy: gh / 2,
+      outerR: dotR,
+      dots: [],
+    }))
+
+    objects.forEach((o) => {
+      const hit = byId.get(o.id)
+      if (!hit) return
+      clusters[o.seriesIndex].dots.push({ x: hit.x, y: hit.y, r: hit.r })
+    })
+
+    // A cluster's centre and radius still drive the burst origin for entering
+    // marks and a cross-type morph, so derive them from where the marks
+    // actually landed rather than leaving them at the plot centre.
+    clusters.forEach((c) => {
+      if (!c.dots.length) return
+      let sx = 0
+      let sy = 0
+      c.dots.forEach((d) => {
+        sx += d.x
+        sy += d.y
+      })
+      c.cx = sx / c.dots.length
+      c.cy = sy / c.dots.length
+      let far = 0
+      c.dots.forEach((d) => {
+        far = Math.max(far, Math.hypot(d.x - c.cx, d.y - c.cy))
+      })
+      c.outerR = far + dotR
+    })
+
+    return clusters
+  }
+
+  /**
+   * One entry per mark, in global draw order, for a layout provider.
+   *
+   * `id` is the datum's own id/name where the per-unit object form supplies
+   * one, so a provider can address a specific unit ("Texas", "employee 41")
+   * rather than a positional slot. It falls back to `"<category>:<index>"`.
+   *
+   * @param {number[]} counts
+   * @param {number} dotR the radius the engine would use, so a provider that
+   *   packs by size does not have to rediscover it
+   * @returns {{id:string,index:number,seriesIndex:number,dataPointIndex:number,label:string,value:number|undefined,datum:any,r:number}[]}
+   */
+  _layoutObjects(counts, dotR) {
+    const w = this.w
+    const unitData = w.seriesData.unitData || []
+    const names = w.seriesData.seriesNames || []
+    /** @type {{id:string,index:number,seriesIndex:number,dataPointIndex:number,label:string,value:number|undefined,datum:any,r:number}[]} */
+    const objects = []
+    let index = 0
+    counts.forEach((n, i) => {
+      const catData = unitData[i]
+      for (let j = 0; j < n; j++) {
+        const datum = catData ? catData[j] : undefined
+        const id =
+          datum && typeof datum === 'object' && (datum.id != null || datum.name != null)
+            ? String(datum.id != null ? datum.id : datum.name)
+            : `${i}:${j}`
+        objects.push({
+          id,
+          index,
+          seriesIndex: i,
+          dataPointIndex: j,
+          label: names[i],
+          // Normalised at the boundary: internally "no value" is null, but the
+          // public object shape uses an absent property.
+          value: this._unitValueOf(datum) ?? undefined,
+          datum,
+          r: dotR,
+        })
+        index++
+      }
+    })
+    return objects
+  }
+
+  /**
+   * Resolve `plotOptions.unit.positions` to a provider function: either the
+   * function itself, or the name of one registered through
+   * `ApexCharts.registerUnitLayout`.
+   * @param {any} opts
+   * @returns {Function|null}
+   */
+  _resolveLayoutProvider(opts) {
+    const positions = opts.positions
+    if (typeof positions === 'function') return positions
+    if (typeof positions === 'string' && positions) {
+      const found = getUnitLayout(positions)
+      if (found) return found
+      console.warn(
+        `[ApexCharts] unit chart: no layout named "${positions}" is registered. ` +
+          `Register one with ApexCharts.registerUnitLayout("${positions}", fn).`,
+      )
+    }
+    return null
   }
 
   /**
@@ -2625,14 +2811,15 @@ export default class Unit {
     const dotR = this._lastDotR
     const cx = w.layout.gridWidth / 2
     const cy = w.layout.gridHeight / 2
-    // Layouts whose positions carry data - a grid/waffle lattice or a scatter /
-    // beeswarm on real axes - fade their ghosts IN PLACE (no drift): a removed
-    // cell / point simply fades on its own spot. Only the blob / bar layouts
-    // keep the gentle inward collapse.
+    // Layouts whose positions carry data - a grid/waffle lattice, a scatter /
+    // beeswarm on real axes, or anything a caller positioned itself - fade
+    // their ghosts IN PLACE (no drift): a removed cell / point simply fades on
+    // its own spot. Only the blob / bar layouts keep the gentle inward collapse.
     const drift =
       opts.layout === 'grid' ||
       opts.layout === 'scatter' ||
-      opts.layout === 'arc'
+      opts.layout === 'arc' ||
+      opts.layout === 'custom'
         ? 0
         : 0.35
 

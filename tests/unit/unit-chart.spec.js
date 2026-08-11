@@ -2290,3 +2290,218 @@ describe('Unit chart — gather motion', () => {
     }
   })
 })
+
+describe('Unit chart — custom layout (position provider)', () => {
+  let warnSpy
+  beforeEach(() => {
+    resetLicense()
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+  afterEach(() => {
+    warnSpy.mockRestore()
+    ApexCharts.unregisterUnitLayout('ring')
+    resetLicense()
+  })
+
+  const positionsOf = (chart) =>
+    [...chart.w.dom.baseEl.querySelectorAll('circle.apexcharts-unit-area')].map((c) => ({
+      x: parseFloat(c.getAttribute('cx')),
+      y: parseFloat(c.getAttribute('cy')),
+    }))
+
+  /** Places every mark on a circle, purely from the objects it is handed. */
+  const ring = (objects, rect) => {
+    const cx = rect.x + rect.width / 2
+    const cy = rect.y + rect.height / 2
+    const rad = Math.min(rect.width, rect.height) / 2 - 10
+    return objects.map((o, i) => {
+      const t = (i / objects.length) * Math.PI * 2
+      return { id: o.id, x: cx + rad * Math.cos(t), y: cy + rad * Math.sin(t) }
+    })
+  }
+
+  function customChart(positions, extra = {}) {
+    return unitChart({
+      series: [6, 6],
+      labels: ['A', 'B'],
+      plotOptions: {
+        unit: {
+          layout: 'custom',
+          positions,
+          clusterLabels: { show: false },
+          ...extra,
+        },
+      },
+    })
+  }
+
+  it('places every mark where the provider says', () => {
+    const seen = []
+    const chart = customChart((objects, rect) => {
+      seen.push({ count: objects.length, rect })
+      return ring(objects, rect)
+    })
+
+    expect(seen).toHaveLength(1)
+    expect(seen[0].count).toBe(12)
+    // The rect is the plot area, in the same space as the returned coordinates.
+    expect(seen[0].rect.width).toBeGreaterThan(0)
+    expect(seen[0].rect.height).toBeGreaterThan(0)
+
+    const pts = positionsOf(chart)
+    expect(pts).toHaveLength(12)
+    // Every mark sits on the ring the provider described.
+    const cx = seen[0].rect.width / 2
+    const cy = seen[0].rect.height / 2
+    const rad = Math.min(seen[0].rect.width, seen[0].rect.height) / 2 - 10
+    pts.forEach((p) => {
+      expect(Math.hypot(p.x - cx, p.y - cy)).toBeCloseTo(rad, 6)
+    })
+    chart.destroy()
+  })
+
+  it('hands the provider each mark\'s identity and datum', () => {
+    let objects = []
+    const chart = unitChart({
+      series: [{ data: [{ id: 'tx', name: 'Texas', y: 3 }, { id: 'ca', name: 'California', y: 2 }] }],
+      plotOptions: {
+        unit: { layout: 'custom', positions: (o, r) => { objects = o; return ring(o, r) },
+          clusterLabels: { show: false } },
+      },
+    })
+    // Ids come from the data, so a provider can address a specific unit rather
+    // than a positional slot.
+    expect(objects.map((o) => o.id)).toContain('tx')
+    expect(objects.map((o) => o.id)).toContain('ca')
+    const tx = objects.find((o) => o.id === 'tx')
+    expect(tx.datum.name).toBe('Texas')
+    expect(tx.seriesIndex).toBe(0)
+    expect(typeof tx.index).toBe('number')
+    expect(tx.r).toBeGreaterThan(0)
+    chart.destroy()
+  })
+
+  it('falls back to positional ids without per-unit data', () => {
+    let objects = []
+    const chart = customChart((o, r) => { objects = o; return ring(o, r) })
+    expect(objects[0].id).toBe('0:0')
+    expect(objects.some((o) => o.id === '1:0')).toBe(true)
+    chart.destroy()
+  })
+
+  it('resolves a layout registered by name', () => {
+    ApexCharts.registerUnitLayout('ring', ring)
+    const chart = customChart('ring')
+    expect(positionsOf(chart)).toHaveLength(12)
+    chart.destroy()
+  })
+
+  it('drops marks the provider omits, so they animate out', () => {
+    // Half the marks get no position at all.
+    const chart = customChart((objects, rect) =>
+      ring(objects, rect).filter((_, i) => i % 2 === 0),
+    )
+    expect(positionsOf(chart)).toHaveLength(6)
+    chart.destroy()
+  })
+
+  it('ignores ids that match no mark', () => {
+    const chart = customChart((objects, rect) => [
+      ...ring(objects, rect),
+      { id: 'nobody', x: 1, y: 1 },
+    ])
+    expect(positionsOf(chart)).toHaveLength(12)
+    chart.destroy()
+  })
+
+  it('drops a non-finite position rather than leaving the mark stale', () => {
+    const chart = customChart((objects, rect) =>
+      ring(objects, rect).map((p, i) => (i === 0 ? { ...p, x: NaN } : p)),
+    )
+    expect(positionsOf(chart)).toHaveLength(11)
+    chart.destroy()
+  })
+
+  it('honours a per-mark radius from the provider', () => {
+    const chart = customChart((objects, rect) =>
+      ring(objects, rect).map((p, i) => ({ ...p, r: i === 0 ? 12 : 4 })),
+    )
+    const radii = [...chart.w.dom.baseEl.querySelectorAll('circle.apexcharts-unit-area')].map(
+      (c) => parseFloat(c.getAttribute('r')),
+    )
+    expect(radii).toContain(12)
+    expect(radii).toContain(4)
+    chart.destroy()
+  })
+
+  it('keeps identity across a custom -> packed relayout', () => {
+    const data = [{ id: 'a', y: 1 }, { id: 'b', y: 1 }, { id: 'c', y: 1 }]
+    const chart = unitChart({
+      series: [{ data }],
+      plotOptions: {
+        unit: { layout: 'custom', positions: ring, transition: 'identity',
+          clusterLabels: { show: false } },
+      },
+    })
+    expect([...chart._unitPrevDots.keys()].sort()).toEqual(['id:a', 'id:b', 'id:c'])
+
+    // The SAME keys must survive the switch to a built-in layout, which is what
+    // lets a mark migrate between arrangements instead of being rebuilt.
+    chart.updateOptions({ plotOptions: { unit: { layout: 'packed' } } })
+    expect([...chart._unitPrevDots.keys()].sort()).toEqual(['id:a', 'id:b', 'id:c'])
+    chart.destroy()
+  })
+
+  it('warns and falls back to grouped when no provider is given', () => {
+    const chart = unitChart({
+      series: [6, 6],
+      labels: ['A', 'B'],
+      plotOptions: { unit: { layout: 'custom', clusterLabels: { show: false } } },
+    })
+    expect(positionsOf(chart)).toHaveLength(12)
+    expect(warnSpy.mock.calls.flat().join(' ')).toMatch(/positions/)
+    chart.destroy()
+  })
+
+  it('warns and falls back when a named layout is not registered', () => {
+    const chart = customChart('missing-layout')
+    expect(positionsOf(chart)).toHaveLength(12)
+    expect(warnSpy.mock.calls.flat().join(' ')).toMatch(/registerUnitLayout/)
+    chart.destroy()
+  })
+
+  it('survives a provider that throws', () => {
+    const chart = customChart(() => {
+      throw new Error('provider exploded')
+    })
+    // Still a chart, laid out by the grouped fallback.
+    expect(positionsOf(chart)).toHaveLength(12)
+    expect(warnSpy.mock.calls.flat().join(' ')).toMatch(/threw/)
+    chart.destroy()
+  })
+
+  it('survives a provider that returns the wrong shape', () => {
+    const chart = customChart(() => 'not an array')
+    expect(positionsOf(chart)).toHaveLength(12)
+    chart.destroy()
+  })
+
+  it('still resolves every built-in layout to a full set of finite positions', () => {
+    // Guards the dispatch chain the 'custom' branch was threaded into. The
+    // real per-layout geometry cover is the rest of this file.
+    for (const layout of ['grouped', 'packed', 'columns', 'grid', 'arc']) {
+      const chart = unitChart({
+        series: [10, 20, 5],
+        labels: ['A', 'B', 'C'],
+        plotOptions: { unit: { layout, clusterLabels: { show: false } } },
+      })
+      const pts = positionsOf(chart)
+      expect(pts.length).toBeGreaterThan(0)
+      pts.forEach((p) => {
+        expect(isFinite(p.x)).toBe(true)
+        expect(isFinite(p.y)).toBe(true)
+      })
+      chart.destroy()
+    }
+  })
+})

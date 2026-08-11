@@ -924,8 +924,28 @@ export default class Options {
           // 'packed' (one blob; categories coloured + sorted, minority centred) |
           // 'columns' (each category is a vertical bar built from stacked dots) |
           // 'grid' (one lattice of cells filled in category order - a waffle /
-          // part-to-whole square "pie"; `chart.type:'waffle'` presets this).
+          // part-to-whole square "pie"; `chart.type:'waffle'` presets this) |
+          // 'custom' (positions come from `positions` below).
           layout: 'grouped',
+          // `layout: 'custom'` only. The layout provider: either a function
+          // `(objects, rect) => [{id, x, y, r?}]` returning plot pixels, or the
+          // name of one registered with `ApexCharts.registerUnitLayout`.
+          //
+          // This is the whole extension point. A layout is objects in,
+          // positions out; it knows nothing about animation, because the engine
+          // already tweens position, radius and colour and already keeps each
+          // mark's identity across a relayout. So an arrangement this file
+          // cannot know about - a country silhouette, a hex grid, a timeline, a
+          // projection handed over by ApexMaps - is a plugin, not a core edit.
+          //
+          // `objects` carries one entry per mark: {id, index, seriesIndex,
+          // dataPointIndex, label, value, datum, r}. `id` is the datum's own
+          // id/name when the per-unit object form supplies one, so a provider
+          // can address a specific unit rather than a positional slot.
+          //
+          // A mark whose id the provider omits animates out; ids matching no
+          // mark are ignored.
+          positions: undefined,
           // Update transition, controlling which previous dot each new dot
           // tweens from. 'group' (default): keyed per category, so dots stay in
           // their group and category-level enters/exits fade. 'flow': keyed by

@@ -410,6 +410,26 @@ declare class ApexCharts {
   static registerEasing(name: string, fn: (t: number) => number): typeof ApexCharts
 
   /**
+   * Registers a named unit-chart layout, referenceable via
+   * `plotOptions.unit.positions: '<name>'` with `plotOptions.unit.layout:
+   * 'custom'`.
+   *
+   * A layout is objects in, positions out, and knows nothing about animation:
+   * the engine already tweens position, radius and colour, and already keeps
+   * each mark's identity across a relayout. That is what lets an arrangement
+   * the built-in layouts cannot express - a country silhouette, a hex grid, a
+   * timeline, a projection supplied by ApexMaps - be a plugin rather than a
+   * core change.
+   */
+  static registerUnitLayout(name: string, fn: ApexUnitLayout): typeof ApexCharts
+
+  /**
+   * Removes a layout registered via `registerUnitLayout`. Charts referencing it
+   * by name fall back to the grouped layout on their next render.
+   */
+  static unregisterUnitLayout(name: string): typeof ApexCharts
+
+  /**
    * Linked Views (#4) Phase 2: get-or-create a crossfilter coordinator by id.
    * Register one shared record set; each participating chart declares a
    * dimension + reduction under `chart.link`, and selecting in one chart
@@ -2284,8 +2304,30 @@ type ApexPlotOptions = {
      * its per-unit value, laned by category on Y (draws its own axis + lanes).
      * 'arc': parliament / hemicycle - seats in concentric arced rows, filled in
      * category order so each category is a contiguous wedge (see `arc`).
+     * 'custom': positions come from `positions`.
      */
-    layout?: 'grouped' | 'packed' | 'columns' | 'grid' | 'scatter' | 'arc'
+    layout?:
+      | 'grouped'
+      | 'packed'
+      | 'columns'
+      | 'grid'
+      | 'scatter'
+      | 'arc'
+      | 'custom'
+    /**
+     * `layout: 'custom'` only. The layout provider: either a function returning
+     * plot-pixel positions, or the name of one registered with
+     * `ApexCharts.registerUnitLayout`.
+     *
+     * A layout is objects in, positions out. It knows nothing about animation,
+     * because the engine already tweens position, radius and colour and already
+     * keeps each mark's identity across a relayout, so an arrangement the
+     * built-in layouts cannot express needs no new transition code.
+     *
+     * A mark whose id the provider omits animates out; ids matching no mark are
+     * ignored.
+     */
+    positions?: string | ApexUnitLayout
     /**
      * How dots are matched between renders on an update (which previous dot a
      * new dot tweens from).
@@ -3392,6 +3434,53 @@ interface ApexThemeDef {
 }
 
 /** A `reduce` spec: 'count' (default), a field aggregation, or a custom fn. */
+/** One mark handed to a unit-chart layout provider. */
+interface ApexUnitObject {
+  /**
+   * Stable identity. The datum's own `id`/`name` when the per-unit object form
+   * supplies one, so a provider can address a specific unit ("Texas",
+   * "employee 41") rather than a positional slot; otherwise
+   * `"<seriesIndex>:<dataPointIndex>"`.
+   */
+  id: string
+  /** Global draw order across every category. */
+  index: number
+  /** Category this mark belongs to. */
+  seriesIndex: number
+  /** Index within its category. */
+  dataPointIndex: number
+  /** Category label. */
+  label: string
+  /** The datum's value, when the per-unit object form supplies one. */
+  value?: number
+  /** The raw per-unit datum, when supplied. */
+  datum?: any
+  /** The radius the engine would use, so a size-aware provider need not redo it. */
+  r: number
+}
+
+/** A position returned by a unit-chart layout provider, in plot pixels. */
+interface ApexUnitPosition {
+  /** Must match an `ApexUnitObject.id`; unknown ids are ignored. */
+  id: string
+  x: number
+  y: number
+  /** Overrides the engine's radius for this mark. */
+  r?: number
+}
+
+/**
+ * A unit-chart layout: objects in, positions out.
+ *
+ * `rect` is the plot area, in the same pixel space as the returned
+ * coordinates. Omitting a mark's id removes it, and it animates out through the
+ * normal exit path.
+ */
+type ApexUnitLayout = (
+  objects: ApexUnitObject[],
+  rect: { x: number; y: number; width: number; height: number },
+) => ApexUnitPosition[]
+
 type ApexCrossfilterReduce =
   | 'count'
   | { sum?: string; avg?: string; min?: string; max?: string }

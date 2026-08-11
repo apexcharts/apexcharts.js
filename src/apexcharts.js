@@ -22,6 +22,10 @@ import {
   unregister,
 } from './modules/ChartFactory'
 import { registerTheme, unregisterTheme } from './modules/ThemeRegistry'
+import {
+  registerUnitLayout,
+  unregisterUnitLayout,
+} from './modules/UnitLayoutRegistry'
 import { registerEasing } from './modules/animations/Easing'
 import { trimStreamingSeries } from './modules/animations/StreamScroll'
 import { applyAxisTransition } from './modules/animations/AxisTransition'
@@ -1597,6 +1601,41 @@ export default class ApexCharts {
    */
   static registerEasing(name, fn) {
     registerEasing(name, fn)
+    return ApexCharts
+  }
+
+  /**
+   * Register a named unit-chart layout, referenceable via
+   * `plotOptions.unit.positions: '<name>'` with `plotOptions.unit.layout:
+   * 'custom'`.
+   *
+   * A layout is objects in, positions out: `(objects, rect) => [{id, x, y,
+   * r?}]`, in plot pixels. It knows nothing about animation, because the engine
+   * already tweens position, radius and colour and already keeps each mark's
+   * identity across a relayout. That is what lets an arrangement the engine
+   * cannot know about - a country silhouette, a hex grid, a timeline, a
+   * projection supplied by ApexMaps - be a plugin rather than a core change.
+   *
+   * Marks whose id the layout omits animate out; ids matching no mark are
+   * ignored.
+   *
+   * @param {string} name  the layout name, e.g. 'silhouette'
+   * @param {(objects: any[], rect: {x:number,y:number,width:number,height:number}) => any[]} fn
+   * @returns {typeof ApexCharts}
+   */
+  static registerUnitLayout(name, fn) {
+    registerUnitLayout(name, fn)
+    return ApexCharts
+  }
+
+  /**
+   * Remove a layout registered via registerUnitLayout. Charts referencing it by
+   * name fall back to the grouped layout on their next render.
+   * @param {string} name
+   * @returns {typeof ApexCharts}
+   */
+  static unregisterUnitLayout(name) {
+    unregisterUnitLayout(name)
     return ApexCharts
   }
 
