@@ -2110,9 +2110,25 @@ type ApexPlotOptions = {
       lower?: string | string[]
     }
     /**
+     * Where the whiskers reach when the summary is DERIVED from raw
+     * observations: a datum supplying `points` instead of a five-number `y`,
+     * which requires `import 'apexcharts/features/stats'`. A precomputed
+     * summary is drawn exactly as given and ignores this.
+     *
+     * `'minmax'` (default) reaches the extremes, so nothing is hidden.
+     * `'tukey'` stops at the last observation within 1.5 * IQR of each
+     * quartile; points beyond the fence then fall outside the whisker, so pair
+     * it with `points.show` or they become invisible.
+     */
+    whiskers?: 'minmax' | 'tukey'
+    /**
      * Individual observations ("jitter") overlaid on each box. Inert unless a
      * data point supplies a `points: number[]` array; `show` is false by
      * default so existing boxPlot charts are unchanged.
+     *
+     * `points` is also the sample the five-number summary is derived from when
+     * a datum has no `y` (see `whiskers`), so the observations live in one
+     * place whether the library summarises them or you do.
      */
     points?: {
       show?: boolean
@@ -2152,6 +2168,22 @@ type ApexPlotOptions = {
      * maxWeight to half the category slot.
      */
     bandwidthScale?: number
+    /**
+     * Kernel density estimation, used only when the density is DERIVED from raw
+     * observations: a datum supplying `points`, or a flat number array as `y`,
+     * which requires `import 'apexcharts/features/stats'`. A precomputed
+     * density profile is drawn exactly as given.
+     */
+    kde?: {
+      /**
+       * Kernel width in value units. Unset uses Silverman's rule of thumb.
+       * This is the statistical parameter; `bandwidthScale` above only scales
+       * the drawn width.
+       */
+      bandwidth?: number
+      /** Density samples per violin (default 64). */
+      resolution?: number
+    }
     /**
      * 'individual' (default): each violin is scaled to its own peak density, so
      * all violins reach the full slot width. 'group': all violins share the

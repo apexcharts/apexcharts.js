@@ -10,7 +10,7 @@
  * recovers those rows on demand from the same (values, edges) pair the render
  * used, so nothing has to be retained per bar.
  *
- * @module charts/common/Binning
+ * @module charts/common/Stats
  */
 
 /**
@@ -280,6 +280,119 @@ export function rowsForBin(values, edges, k) {
     if (binIndexOf(values[i], edges) === k) out.push(values[i])
   }
   return out
+}
+
+/**
+ * Five-number summary of a sample, in the order boxPlot draws it.
+ *
+ * Quartiles use linear interpolation between ranks (R type 7 / numpy default),
+ * so a sample of 4 and a sample of 4000 are summarised the same way.
+ *
+ * Whiskers:
+ *  - `minmax`  : the extremes. Nothing is hidden, which matters because the
+ *    chart has no separate outlier mark unless observations are also drawn.
+ *  - `tukey`   : the furthest observations inside q1 - 1.5*IQR and
+ *    q3 + 1.5*IQR, the convention most statistics packages use. Anything
+ *    beyond the fence is outside the whisker, so pair it with
+ *    `plotOptions.boxPlot.points.show` or those points become invisible.
+ *
+ * @param {number[]} values - finite observations (any order)
+ * @param {Object} [opts]
+ * @param {string} [opts.whiskers] - 'minmax' (default) | 'tukey'
+ * @returns {{ summary: number[], outliers: number[], iqr: number } | null}
+ */
+export function fiveNumberSummary(values, opts = {}) {
+  if (!Array.isArray(values) || values.length === 0) return null
+  const sorted = values.slice().sort((a, b) => a - b)
+
+  const q1 = quantileSorted(sorted, 0.25)
+  const median = quantileSorted(sorted, 0.5)
+  const q3 = quantileSorted(sorted, 0.75)
+  const iqr = q3 - q1
+
+  let lo = sorted[0]
+  let hi = sorted[sorted.length - 1]
+  /** @type {number[]} */
+  let outliers = []
+
+  if (opts.whiskers === 'tukey' && iqr > 0) {
+    const loFence = q1 - 1.5 * iqr
+    const hiFence = q3 + 1.5 * iqr
+    let i = 0
+    while (i < sorted.length && sorted[i] < loFence) i++
+    let j = sorted.length - 1
+    while (j >= 0 && sorted[j] > hiFence) j--
+    if (i <= j) {
+      lo = sorted[i]
+      hi = sorted[j]
+      outliers = sorted.slice(0, i).concat(sorted.slice(j + 1))
+    }
+  }
+
+  return { summary: [lo, q1, median, q3, hi], outliers, iqr }
+}
+
+/**
+ * Kernel density estimate of a sample, as the `[value, weight]` pairs a violin
+ * draws.
+ *
+ * Gaussian kernel; bandwidth from Silverman's rule of thumb, which uses the
+ * smaller of the standard deviation and a scaled IQR so one distant outlier
+ * cannot smear the whole curve flat. The estimate is evaluated on an evenly
+ * spaced grid padded by two bandwidths, so the curve reaches zero instead of
+ * being cut off mid-slope.
+ *
+ * @param {number[]} values - finite observations (any order)
+ * @param {Object} [opts]
+ * @param {number} [opts.bandwidth] - explicit bandwidth, overrides the rule
+ * @param {number} [opts.resolution] - grid points (default 64)
+ * @returns {{ density: Array<[number, number]>, bandwidth: number } | null}
+ */
+export function kernelDensity(values, opts = {}) {
+  if (!Array.isArray(values) || values.length === 0) return null
+  const sorted = values.slice().sort((a, b) => a - b)
+  const n = sorted.length
+
+  let h = opts.bandwidth
+  if (!(typeof h === 'number' && h > 0)) {
+    const sd = stdDev(sorted)
+    const iqr = quantileSorted(sorted, 0.75) - quantileSorted(sorted, 0.25)
+    const spread = iqr > 0 ? Math.min(sd, iqr / 1.349) : sd
+    h = 0.9 * spread * Math.pow(n, -1 / 5)
+  }
+  if (!isFinite(h) || h <= 0) {
+    // Every observation identical: no spread to estimate. A hairline spike at
+    // the value is the honest picture.
+    const v = sorted[0]
+    const eps = Math.abs(v) > 0 ? Math.abs(v) * 1e-3 : 1e-3
+    return {
+      density: [
+        [v - eps, 0],
+        [v, 1],
+        [v + eps, 0],
+      ],
+      bandwidth: eps,
+    }
+  }
+
+  const steps = Math.max(8, Math.floor(opts.resolution || 64))
+  const lo = sorted[0] - 2 * h
+  const hi = sorted[n - 1] + 2 * h
+  const step = (hi - lo) / (steps - 1)
+  const norm = 1 / (n * h * Math.sqrt(2 * Math.PI))
+
+  /** @type {Array<[number, number]>} */
+  const density = []
+  for (let g = 0; g < steps; g++) {
+    const x = lo + g * step
+    let sum = 0
+    for (let i = 0; i < n; i++) {
+      const z = (x - sorted[i]) / h
+      sum += Math.exp(-0.5 * z * z)
+    }
+    density.push([x, sum * norm])
+  }
+  return { density, bandwidth: h }
 }
 
 /**

@@ -12,7 +12,7 @@ import {
   quantileSorted,
   rowsForBin,
   widthForRule,
-} from '../../src/charts/common/Binning'
+} from '../../src/charts/common/Stats'
 
 // `chart.type: 'histogram'` takes raw observations and bins them into one
 // column per bin, rendering through the bar pathway.

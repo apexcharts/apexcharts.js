@@ -775,6 +775,16 @@ export default class Options {
             upper: '#00E396',
             lower: '#008FFB',
           },
+          // Where the whiskers reach when the summary is DERIVED from raw
+          // observations (a datum supplying `points` instead of a 5-number y,
+          // which needs `apexcharts/features/stats`). Ignored for precomputed
+          // summaries, which are drawn exactly as given.
+          //   'minmax' → the extremes, so nothing is hidden
+          //   'tukey'  → the last observation inside 1.5 * IQR of each
+          //              quartile. Points beyond the fence fall outside the
+          //              whisker, so pair it with `points.show` or they become
+          //              invisible.
+          whiskers: 'minmax',
           // Optional individual observations ("jitter") overlaid on each box.
           // Inert unless a data point supplies a `points: number[]` array; off
           // by default so existing boxPlot charts are unchanged.
@@ -798,6 +808,21 @@ export default class Options {
           // Multiply the density-derived half-width. 1 = density's own maxWeight
           // maps to half the category slot.
           bandwidthScale: 1,
+          // Kernel density estimation, used only when the density is DERIVED
+          // from raw observations (a datum supplying `points`, or a flat number
+          // array as `y`, which needs `apexcharts/features/stats`). A
+          // precomputed density profile is drawn exactly as given.
+          //   bandwidth  → kernel width in value units. Unset uses Silverman's
+          //                rule of thumb, which takes the smaller of the
+          //                standard deviation and a scaled IQR so one distant
+          //                outlier cannot smear the curve flat. Note this is a
+          //                statistical parameter, unlike `bandwidthScale`
+          //                above, which only scales the drawn width.
+          //   resolution → density samples per violin (default 64).
+          kde: {
+            bandwidth: undefined,
+            resolution: 64,
+          },
           // 'individual' → every violin uses the full slot width (scaled to its
           // own peak). 'group' → all violins share one scale (the densest in the
           // series), so widths stay proportional to density across categories.

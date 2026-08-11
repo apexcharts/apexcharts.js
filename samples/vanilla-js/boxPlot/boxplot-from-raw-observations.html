@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>BoxPlot - From Raw Observations</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 780px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 24px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .actions {
+        margin: 20px auto 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        align-items: center;
+      }
+      .actions button {
+        color: #5b6b78;
+        background: #fff;
+        border: 1px solid #dfe6ec;
+        padding: 7px 14px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.on {
+        color: #fff;
+        background: #008ffb;
+        border-color: #008ffb;
+      }
+      .note {
+        text-align: center;
+        font-size: 13px;
+        color: #5b6b78;
+        margin-top: 12px;
+        min-height: 20px;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Shared by the vanilla-js, React and Vue builds.
+      //
+      // Each device gets its RAW measurements: one number per page load. No
+      // quartiles, no median, nothing precomputed. `points` is the sample, and the
+      // library derives the five-number summary from it.
+      var DEVICES = [
+        { name: 'Desktop', center: 1.4, spread: 0.3, slowTail: 1.4 },
+        { name: 'Laptop', center: 1.9, spread: 0.38, slowTail: 1.8 },
+        { name: 'Tablet', center: 2.8, spread: 0.55, slowTail: 2.4 },
+        { name: 'Phone (5G)', center: 3.2, spread: 0.62, slowTail: 3.0 },
+        { name: 'Phone (3G)', center: 6.1, spread: 1.3, slowTail: 4.5 },
+      ]
+
+      function makeSample(cfg, index) {
+        var seed = 8191 * (index + 3)
+        function rand() {
+          seed = (seed * 16807) % 2147483647
+          return (seed - 1) / 2147483646
+        }
+        var out = []
+        for (var i = 0; i < 140; i++) {
+          // Box-Muller, then a few genuinely slow loads: the tail is the point of
+          // the chart, and it is what the two whisker rules disagree about.
+          var u1 = Math.max(rand(), 1e-9)
+          var z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * rand())
+          var v = cfg.center + z * cfg.spread
+          if (i % 34 === 0) v = cfg.center + cfg.slowTail * (0.6 + rand())
+          out.push(Math.round(Math.max(0.2, v) * 100) / 100)
+        }
+        return out
+      }
+
+      var RAW = DEVICES.map(function (cfg, i) {
+        return { x: cfg.name, points: makeSample(cfg, i) }
+      })
+
+      function wireWhiskerControls(chart) {
+        var buttons = [].slice.call(document.querySelectorAll('[data-whiskers]'))
+        var note = document.querySelector('#note')
+
+        function apply(mode) {
+          buttons.forEach(function (b) {
+            b.className = b.getAttribute('data-whiskers') === mode ? 'on' : ''
+          })
+          chart.updateOptions({
+            plotOptions: { boxPlot: { whiskers: mode } },
+          })
+          if (note) {
+            note.textContent =
+              mode === 'tukey'
+                ? 'Whiskers stop at 1.5 x IQR. The dots past the whisker are the outliers.'
+                : 'Whiskers reach the slowest and fastest load. Nothing is hidden.'
+          }
+        }
+
+        buttons.forEach(function (b) {
+          b.addEventListener('click', function () {
+            apply(b.getAttribute('data-whiskers'))
+          })
+        })
+        apply('minmax')
+      }
+    </script>
+  </head>
+
+  <body>
+     <div class="wrap">
+        <h1>Hand it the measurements, not the quartiles</h1>
+        <p>
+          Every box below is built from 140 raw page-load timings. The series carries
+          those measurements and nothing else: the median, the quartiles and the
+          whiskers are computed for you. Switch the whisker rule to see the choice it
+          involves, because a distribution with a slow tail looks like a different
+          story depending on where the whisker stops.
+        </p>
+      
+        <div class="actions">
+          <button data-whiskers="minmax" class="on">Whiskers: min to max</button>
+          <button data-whiskers="tukey">Whiskers: 1.5 x IQR</button>
+        </div>
+      
+        <div class="chart-wrap">
+          <div id="chart"></div>
+        </div>
+      
+        <div class="note" id="note"></div>
+      </div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            name: 'Load time',
+            type: 'boxPlot',
+            data: RAW,
+          },
+        ],
+        chart: {
+          id: 'loadTimes',
+          type: 'boxPlot',
+          // Fixed width so the layout cannot shift with the page.
+          width: 700,
+          height: 440,
+          toolbar: {
+            show: false,
+          },
+        },
+        plotOptions: {
+          boxPlot: {
+            colors: {
+              upper: '#5A87FF',
+              lower: '#B7BEFF',
+            },
+            // Every observation, drawn over its own box. With the 1.5 x IQR rule the
+            // dots beyond the whisker are exactly the outliers that rule excludes.
+            points: {
+              show: true,
+              size: 2.5,
+              jitter: 0.45,
+              opacity: 0.55,
+            },
+          },
+        },
+        legend: {
+          show: false,
+        },
+        yaxis: {
+          title: {
+            text: 'Page load (seconds)',
+          },
+          min: 0,
+        },
+        xaxis: {
+          title: {
+            text: 'Device',
+          },
+        },
+        tooltip: {
+          shared: false,
+          intersect: true,
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      // DEVICES, RAW and wireWhiskerControls live in the shared head script.
+      wireWhiskerControls(chart)
+    </script>
+
+    
+  </body>
+</html>

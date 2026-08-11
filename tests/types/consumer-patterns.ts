@@ -273,6 +273,18 @@ const _histFixed: ApexCharts.ApexOptions = {
 }
 void _histRule; void _histFixed
 
+// features/stats: boxPlot and violin from raw observations
+const _boxRaw: ApexCharts.ApexOptions = {
+  chart: { type: 'boxPlot' },
+  series: [{ name: 'Load', data: [{ x: 'Phone', points: [1.2, 1.9, 3.4] }] }],
+  plotOptions: { boxPlot: { whiskers: 'tukey', points: { show: true } } },
+}
+const _violinRaw: ApexCharts.ApexOptions = {
+  chart: { type: 'violin' },
+  plotOptions: { violin: { kde: { bandwidth: 0.5, resolution: 128 } } },
+}
+void _boxRaw; void _violinRaw
+
 // SSR statics from the apexcharts/ssr entry
 async function _ssrUse() {
   const html = await ApexChartsClass.renderToHTML({ chart: { type: 'bar' } }, { width: 500 })
