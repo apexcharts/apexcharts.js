@@ -320,6 +320,12 @@ export interface ChartGlobals
   _initialSeriesPeek: ApexOptions['series']
   lastXAxis: object[]
   lastYAxis: object[]
+  /**
+   * The `--apx-surface` token value Theme wrote into `chart.background`, so a
+   * later token read can distinguish its own value from an explicit user
+   * background and update it. See Theme.applyTokenChrome.
+   */
+  tokenSurface: string | undefined
   originalSeries: ApexOptions['series'] | null
 
   // ── Zoom-aware downsampling (chart.dataReducer) ───────────────────────────

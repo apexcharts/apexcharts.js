@@ -452,10 +452,21 @@ export default class Defaults {
   }
 
   histogram() {
-    // Histogram defaults: a distribution of raw observations, binned in
-    // Data.binHistogramData and drawn through the bar pathway.
+    // Histogram defaults: a distribution of raw observations, binned by
+    // features/stats and drawn through the bar pathway.
     return {
       ...this.bar(),
+      chart: {
+        stacked: false,
+        animations: {
+          // The bars of a histogram are one shape, not N independent
+          // categories, so revealing them one by one reads as a sequence that
+          // is not in the data. The distribution rises as a whole instead.
+          animateGradually: {
+            enabled: false,
+          },
+        },
+      },
       plotOptions: {
         bar: {
           // Bins are adjacent by definition, so the columns touch: a gap

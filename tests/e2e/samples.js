@@ -27,6 +27,11 @@ const e2eSamplesDir = `${rootDir}/samples/e2e`
 const E2E_LICENSE_KEY =
   'APEX-eyJleHBpcnlEYXRlIjoiMjA5OS0wMS0wMSIsImlzc3VlRGF0ZSI6IjIwMjQtMDEtMDEiLCJwbGFuIjoiZW50ZXJwcmlzZSJ9'
 
+// The fixed "now" every sample page sees (see the PinnedDate shim below).
+// Any date works as long as references are captured with the same one; this is
+// the day the current heatmap references were generated, so those keep passing.
+const E2E_EPOCH = Date.UTC(2026, 7, 2, 12, 0, 0)
+
 let browser
 
 class TestError extends Error {
@@ -68,6 +73,27 @@ async function processSample(page, sample, command) {
     window.Apex = window.Apex || {}
     if (window.Apex.license == null) window.Apex.license = key
   }, E2E_LICENSE_KEY)
+
+  // Pin the calendar, not the clock. Samples that build their data from
+  // `new Date()` (the contribution calendar, the canvas heatmap) move by one
+  // cell every day, so their snapshots go red with nothing but the passage of
+  // time: the suite was already failing on two heatmaps whose references were
+  // captured nine days earlier. Time still ADVANCES, from a fixed origin, so
+  // animation loops that measure elapsed time still finish.
+  await page.evaluateOnNewDocument((epoch) => {
+    const RealDate = Date
+    const shift = epoch - RealDate.now()
+    class PinnedDate extends RealDate {
+      constructor(...args) {
+        if (args.length === 0) super(RealDate.now() + shift)
+        else super(...args)
+      }
+      static now() {
+        return RealDate.now() + shift
+      }
+    }
+    window.Date = PinnedDate
+  }, E2E_EPOCH)
 
   await page.evaluateOnNewDocument(() => {
     window.isATest = true
