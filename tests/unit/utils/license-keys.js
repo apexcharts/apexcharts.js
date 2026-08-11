@@ -1,5 +1,5 @@
 import { generateKeyPairSync, sign, webcrypto } from 'node:crypto'
-import { LicenseManager } from '../../../src/modules/license/LicenseManager.js'
+import { LicenseManager } from 'apex-commons'
 
 /**
  * Minting licence keys for tests.

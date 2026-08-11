@@ -35,7 +35,7 @@ import { addResizeListener, removeResizeListener } from './utils/Resize'
 import apexCSS from './assets/apexcharts.css'
 import { Environment } from './utils/Environment.js'
 import { BrowserAPIs } from './ssr/BrowserAPIs.js'
-import { LicenseManager } from './modules/license/LicenseManager'
+import { LicenseManager } from 'apex-commons'
 import {
   enforceLicense,
   teardownWatermark,

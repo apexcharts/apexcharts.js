@@ -1,7 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
 import ApexCharts from '../../src/entries/full.js'
-import { LicenseManager } from '../../src/modules/license/LicenseManager.js'
+import { LicenseManager } from 'apex-commons'
 import { installTestSigningKey, signedKey, forgedKey } from './utils/license-keys.js'
 import {
   premiumFeaturesInUse,

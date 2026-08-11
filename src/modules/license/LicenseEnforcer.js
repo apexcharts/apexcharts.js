@@ -21,8 +21,7 @@
  * @module modules/license/LicenseEnforcer
  */
 
-import { LicenseManager } from './LicenseManager'
-import { Watermark } from './Watermark'
+import { LicenseManager, Watermark } from 'apex-commons'
 import { Environment } from '../../utils/Environment.js'
 
 const PRICING_URL = 'https://apexcharts.com/pricing'
@@ -189,7 +188,12 @@ function licensedForPremium(key) {
  * @param {any} ctx @param {HTMLElement} elWrap
  */
 function reinstateWatermark(ctx, elWrap) {
-  const node = Watermark.add(elWrap) // reuse-or-create + apply critical styles
+  // reuse-or-create + apply critical styles. `manage: false` opts out of
+  // apex-commons' own licence reconciliation: that suits a wholly-premium
+  // product, but this enforcer watermarks only when a premium FEATURE is in use
+  // and resolves a per-chart `chart.license` key, so letting the package decide
+  // would paint free charts and erase watermarks we deliberately applied.
+  const node = Watermark.add(elWrap, { manage: false })
   if (!node || typeof MutationObserver === 'undefined') return
   if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return
 
@@ -240,7 +244,7 @@ export function teardownWatermark(ctx, elWrap) {
   }
   ctx._wmObservedNode = null
   const wrap = elWrap || (ctx.w && ctx.w.dom && ctx.w.dom.elWrap)
-  if (wrap) Watermark.remove(wrap)
+  if (wrap) Watermark.remove(wrap, { manage: false })
 }
 
 /**

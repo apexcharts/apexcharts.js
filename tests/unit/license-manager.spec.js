@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { LicenseManager } from '../../src/modules/license/LicenseManager.js'
+import { LicenseManager } from 'apex-commons'
 import {
   forgedKey,
   installTestSigningKey,
@@ -116,8 +116,13 @@ describe('signature verification', () => {
     const unsubscribe = LicenseManager.onChange((result) => seen.push(result.valid))
 
     LicenseManager.setLicense(forgedKey(TODAY_ISSUE, FUTURE))
+    // Wait for the verdict specifically, not just for "any notification".
+    // setLicense now publishes the provisional result too, so subscribers hear
+    // about a licence the moment it is set rather than only when a verdict
+    // corrects it. That is what makes setLicense un-watermark charts that have
+    // already painted; waiting on seen.length would race that first event.
     await vi.waitFor(() => {
-      expect(seen.length).toBeGreaterThan(0)
+      expect(seen).toContain(false)
     })
     unsubscribe()
 
