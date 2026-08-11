@@ -1041,18 +1041,39 @@ export default class Options {
           spacing: 1.05,
           // corner radius for shape:'square'.
           borderRadius: 0,
-          // The gather tween that moves marks between layouts on an update, and
-          // where entering marks come from. `easing`: 'outCubic' (default:
-          // decelerate to a stop) | 'inOutCubic' (accelerate gently out of rest,
-          // weighted travel) | 'outBack' (overshoot each mark past its slot and
-          // spring back - a per-mark settle), with `overshoot` tuning the spring
-          // strength. `enter`: where a fresh / appearing mark animates FROM -
-          // 'burst' (default: fly out from the cluster centre) | 'fade'
-          // (materialise in place) | 'rise' (fade in while drifting gently up
-          // into the slot). Colour, radius and opacity always stay on the
-          // out-cubic (a back ease overshoots past 1, which would push RGB
-          // channels / radii out of range).
+          // How marks move between layouts on an update, and where entering
+          // marks come from.
+          //
+          // `motion`: 'spring' settles each mark on a damped spring, so a
+          // gather interrupted by the next update carries the marks' velocity
+          // into it instead of restarting them from a standstill - which is
+          // what a dragged slider or a scrubbed storyboard does on almost every
+          // frame. 'tween' runs the fixed-duration ease below instead. 'auto'
+          // (the default) is spring, unless `easing` was set to something other
+          // than the default, so an explicit curve keeps working without having
+          // to set `motion` as well.
+          //
+          // `spring`: 'crisp' (default) | 'gentle' (softer, for large reflows)
+          // | 'snappy' (faster, a hint of settle). Scaled by
+          // `chart.animations.speed`, which stretches the spring in time
+          // without making it bouncier.
+          //
+          // `easing` (tween only): 'outCubic' (default: decelerate to a stop) |
+          // 'inOutCubic' (accelerate gently out of rest, weighted travel) |
+          // 'outBack' (overshoot each mark past its slot and spring back - a
+          // per-mark settle), with `overshoot` tuning the spring strength.
+          //
+          // `enter`: where a fresh / appearing mark animates FROM - 'burst'
+          // (default: fly out from the cluster centre) | 'fade' (materialise in
+          // place) | 'rise' (fade in while drifting gently up into the slot).
+          //
+          // Colour, radius and opacity always stay on the out-cubic, under
+          // either motion (a back ease overshoots past 1, which would push RGB
+          // channels / radii out of range; and the spring's rest thresholds are
+          // absolute, so they are far too coarse for a 0..1 quantity).
           gather: {
+            motion: 'auto',
+            spring: 'crisp',
             easing: 'outCubic',
             overshoot: 1.70158,
             enter: 'burst',

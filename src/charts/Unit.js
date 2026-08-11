@@ -1,4 +1,5 @@
 // @ts-check
+import { makeSpring, resolveSpring, retarget, stepSpring } from 'apex-commons'
 import Graphics from '../modules/Graphics'
 import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment'
@@ -55,6 +56,67 @@ function easeOutBack(s) {
 function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
 }
+
+/**
+ * `chart.animations.speed` (ms) that the shared spring presets are tuned
+ * against - which is also the ApexCharts default, so an untouched config gets
+ * the preset verbatim.
+ */
+const SPRING_REFERENCE_SPEED = 800
+
+/**
+ * Longest simulated step (s) fed to the springs in one frame. A backgrounded
+ * tab hands back a multi-second delta; the solver sub-steps internally so that
+ * is stable, but it would burn hundreds of sub-steps per dot to replay time the
+ * user never saw. Clamping lands them near their targets in one frame instead.
+ */
+const MAX_FRAME_STEP = 0.25
+
+/**
+ * Resolve a spring preset to a `[stiffness, damping]` pair rescaled for the
+ * chart's animation speed.
+ *
+ * Stiffness scales with the square of the speed ratio and damping linearly,
+ * which is the substitution that stretches a spring in TIME while leaving its
+ * damping ratio (`c / 2*sqrt(k)`) untouched. A slower `speed` is therefore the
+ * same motion played slower, not a bouncier one - which is what makes `speed`
+ * keep meaning what it means for every other tween in the chart.
+ *
+ * @param {string|undefined} preset 'crisp' (default) | 'gentle' | 'snappy'
+ * @param {number} speed chart.animations.speed, in ms
+ * @returns {[number, number]}
+ */
+function springParams(preset, speed) {
+  const [stiffness, damping] = resolveSpring(
+    /** @type {import('apex-commons').SpringPreset|undefined} */ (preset),
+  )
+  const scale = SPRING_REFERENCE_SPEED / Math.max(1, speed)
+  return [stiffness * scale * scale, damping * scale]
+}
+
+/**
+ * One dot in flight during a gather.
+ *
+ * @typedef {object} UnitAnimDot
+ * @property {SVGElement} node
+ * @property {number} x target x (dot centre)
+ * @property {number} y target y (dot centre)
+ * @property {number} cx0 start x
+ * @property {number} cy0 start y
+ * @property {number} delay stagger delay (ms) before this dot starts moving
+ * @property {boolean} isEnter true when the dot has no previous slot
+ * @property {string} [key] identity key, used to carry live spring state
+ *   across a gather that was interrupted by a re-render
+ * @property {number} [r0]
+ * @property {number} [r1]
+ * @property {string} [fill0]
+ * @property {string} [fill1]
+ * @property {number[]|null} [_c0]
+ * @property {number[]|null} [_c1]
+ * @property {import('apex-commons').Spring} [sx]
+ * @property {import('apex-commons').Spring} [sy]
+ * @property {boolean} [released] whether the springs have been retargeted yet
+ */
 
 export default class Unit {
   /**
@@ -171,7 +233,7 @@ export default class Unit {
     const prev = animate && !morphActive && this.ctx ? this.ctx._unitPrevDots : null
     /** @type {Map<string, {x:number,y:number,fill:string,r?:number}>} */
     const nextPrev = new Map()
-    /** @type {{ node: SVGElement, x: number, y: number, cx0: number, cy0: number, r0?: number, r1?: number, delay: number, isEnter: boolean, fill0?: string, fill1?: string, _c0?: number[]|null, _c1?: number[]|null }[]} */
+    /** @type {UnitAnimDot[]} */
     const animDots = []
 
     // Per-unit data (one datum per dot) when the caller passed the object form
@@ -277,6 +339,9 @@ export default class Unit {
             y: d.y,
             cx0,
             cy0,
+            // Carries live spring state (position AND velocity) forward when
+            // this render interrupted one still in flight.
+            key,
             // Radius tween: an identity-kept dot grows/shrinks from its previous
             // size to its new one (e.g. bubble sizing turning on) instead of
             // snapping. Enters/uniform updates keep r0 === r1 (no-op).
@@ -330,6 +395,14 @@ export default class Unit {
     // Stored even when not animating (e.g. resize) so the following update
     // starts from the correct on-screen positions.
     if (this.ctx) this.ctx._unitPrevDots = nextPrev
+
+    // A render that placed its dots outright (resize, animations off, reduced
+    // motion) makes any live spring state stale: the springs describe where a
+    // dot WAS travelling on a layout that no longer exists, so carrying them
+    // into the next animated render would launch it from a phantom position.
+    // Likewise a cross-type morph, where the dots come from the outgoing
+    // chart's shape rather than from a previous unit render.
+    if (this.ctx && (!animate || morphActive)) this.ctx._unitSprings = null
 
     if (animate && animDots.length) {
       this._runGather(animDots)
@@ -2274,13 +2347,85 @@ export default class Unit {
   }
 
   /**
+   * Give every dot an x/y spring, reusing the live springs of a gather this
+   * render just cancelled.
+   *
+   * The reuse is the whole point of the spring path. A carried spring holds a
+   * dot's real on-screen position AND its velocity, so an interrupted gather
+   * resumes from there. Without it the dot restarts from `cx0`, which on an
+   * update is the slot it was still travelling towards - so every interruption
+   * teleports it forward and then re-animates from a standstill. A dragged
+   * slider or a scrubbed storyboard interrupts on almost every frame, which is
+   * where that reads worst.
+   *
+   * Springs left over from a completed gather are at rest on their targets, so
+   * carrying them is identical to making fresh ones. Only an interrupted flight
+   * carries anything.
+   *
+   * @param {UnitAnimDot[]} dots
+   * @param {any} gcfg plotOptions.unit.gather
+   * @param {number} speed chart.animations.speed, in ms
+   * @param {any} opts plotOptions.unit
+   */
+  _seedSprings(dots, gcfg, speed, opts) {
+    const [stiffness, damping] = springParams(gcfg.spring, speed)
+    const live = this.ctx ? this.ctx._unitSprings : null
+    /** @type {Map<string, {x: import('apex-commons').Spring, y: import('apex-commons').Spring}>} */
+    const springs = new Map()
+
+    for (let k = 0; k < dots.length; k++) {
+      const d = dots[k]
+      // An entering dot has no previous slot, so a spring left under its key
+      // belongs to a different dot's flight, not to this one.
+      const carried = live && !d.isEnter && d.key != null ? live.get(d.key) : null
+      const sx = carried ? carried.x : makeSpring(d.cx0, stiffness, damping)
+      const sy = carried ? carried.y : makeSpring(d.cy0, stiffness, damping)
+
+      if (carried) {
+        // `speed` may have changed since these were made. Rescaling in place
+        // keeps the velocity and adopts the new timing.
+        sx.stiffness = stiffness
+        sy.stiffness = stiffness
+        sx.damping = damping
+        sy.damping = damping
+        // The draw pass placed this node at its previous SLOT. Put it back
+        // where the dot actually is, before the first frame paints.
+        d.cx0 = sx.value
+        d.cy0 = sy.value
+        this._placeDot(d.node, opts, d.cx0, d.cy0)
+        // A dot that is still moving does not get re-staggered. The stagger
+        // exists to make a LAUNCH read as a wave, and a moving dot is not
+        // launching; holding it to its old target through the delay window
+        // would send it visibly onward to a slot that no longer exists. Under
+        // continuous scrubbing every dot is moving, so the cloud simply tracks
+        // the slider. A spring left at rest by a finished gather still has its
+        // velocity at zero, so a discrete update keeps the full stagger.
+        if (sx.velocity !== 0 || sy.velocity !== 0) d.delay = 0
+      }
+
+      d.sx = sx
+      d.sy = sy
+      if (d.key != null) springs.set(d.key, { x: sx, y: sy })
+    }
+
+    if (this.ctx) this.ctx._unitSprings = springs
+  }
+
+  /**
    * One rAF loop that tweens every dot from its start (cx0/cy0 - either the
    * cluster centre on first mount / for entering dots, or its previous slot on
    * an update) to its target slot, staggered by index. Entering dots fade in;
    * moving dots stay opaque. Dots whose group colour changed (a 'flow' regroup)
    * cross-fade their fill from the old colour to the new one over the same ease;
    * dots whose radius changed (bubble sizing) grow/shrink over it too (circles).
-   * @param {{ node: SVGElement, x: number, y: number, cx0: number, cy0: number, r0?: number, r1?: number, delay: number, isEnter: boolean, fill0?: string, fill1?: string, _c0?: number[]|null, _c1?: number[]|null }[]} dots
+   *
+   * Position travels on a spring by default (`gather.motion`), so a gather
+   * interrupted by the next render resumes from where the dots actually are,
+   * carrying their velocity, rather than restarting from a standstill. Colour,
+   * radius and opacity stay on a fixed-duration ease either way: those are 0..1
+   * quantities, and the shared solver's rest thresholds are absolute (0.05 in
+   * caller units), which is negligible for pixels but 5% of a unit interval.
+   * @param {UnitAnimDot[]} dots
    */
   _runGather(dots) {
     const w = this.w
@@ -2301,6 +2446,21 @@ export default class Unit {
     const cyAttr = corner ? 'y' : 'cy'
     const offX = corner ? hx : 0
     const offY = corner ? hy : 0
+
+    const gcfg = opts.gather || {}
+    // Springs unless the caller asked for a tween, which a non-default
+    // `gather.easing` counts as: 'outBack' and 'inOutCubic' are curve choices a
+    // spring cannot express, so honouring them keeps an explicit look working
+    // without the caller having to set `motion` as well.
+    const motion = gcfg.motion || 'auto'
+    const useSpring =
+      motion === 'spring' ||
+      (motion === 'auto' && (!gcfg.easing || gcfg.easing === 'outCubic'))
+
+    if (useSpring) this._seedSprings(dots, gcfg, speed, opts)
+    // Springs left from an earlier render are stale once the tween path owns
+    // the positions, so switching motion at runtime cannot resurrect them.
+    else if (this.ctx) this.ctx._unitSprings = null
 
     // Seed initial corner for corner shapes (x/y are top-left).
     if (corner) {
@@ -2331,13 +2491,13 @@ export default class Unit {
       }
     }
 
-    // Position easing. Default decelerates to a stop; `gather.easing:
-    // 'inOutCubic'` accelerates out of rest first (weighted travel), and
-    // 'outBack' overshoots each dot past its slot and springs back (a per-dot
-    // settle), with `gather.overshoot` tuning the spring strength. Colour,
-    // radius and opacity always stay on the out-cubic: a back ease exceeds 1
-    // mid-flight, which would push RGB channels out of range and wobble radii.
-    const gcfg = opts.gather || {}
+    // Position easing for the tween path. Default decelerates to a stop;
+    // `gather.easing: 'inOutCubic'` accelerates out of rest first (weighted
+    // travel), and 'outBack' overshoots each dot past its slot and springs back
+    // (a per-dot settle), with `gather.overshoot` tuning the spring strength.
+    // Colour, radius and opacity always stay on the out-cubic: a back ease
+    // exceeds 1 mid-flight, which would push RGB channels out of range and
+    // wobble radii.
     const easePos =
       gcfg.easing === 'outBack'
         ? easeOutBack(typeof gcfg.overshoot === 'number' ? gcfg.overshoot : 1.70158)
@@ -2353,6 +2513,7 @@ export default class Unit {
       this.w.globals.unitGatherRAF = null
     }
     const start = performance.now()
+    let last = start
     /** @param {number} now */
     const stepFn = (now) => {
       // Bail if the chart was destroyed mid-gather (route change / re-render):
@@ -2362,14 +2523,35 @@ export default class Unit {
         this.w.globals.unitGatherRAF = null
         return
       }
+      const dt = Math.min(MAX_FRAME_STEP, Math.max(0, (now - last) / 1000))
+      last = now
       let done = true
       for (let k = 0; k < n; k++) {
         const d = dots[k]
-        const t = Math.max(0, Math.min(1, (now - start - d.delay) / speed))
-        const e = easePos(t)
+        const elapsed = now - start - d.delay
+        const t = Math.max(0, Math.min(1, elapsed / speed))
         const ec = easeOutCubic(t)
-        const cx = d.cx0 + (d.x - d.cx0) * e
-        const cy = d.cy0 + (d.y - d.cy0) * e
+        let cx, cy
+        if (d.sx && d.sy) {
+          // Hold at the start value until the dot's stagger delay elapses,
+          // then aim it at its slot. A dot carried over mid-flight had its
+          // delay zeroed in _seedSprings, so it turns toward the new slot on
+          // this first frame, carrying the velocity it already had.
+          if (elapsed >= 0 && !d.released) {
+            retarget(d.sx, d.x)
+            retarget(d.sy, d.y)
+            d.released = true
+          }
+          const restX = stepSpring(d.sx, dt)
+          const restY = stepSpring(d.sy, dt)
+          if (!d.released || !restX || !restY) done = false
+          cx = d.sx.value
+          cy = d.sy.value
+        } else {
+          const e = easePos(t)
+          cx = d.cx0 + (d.x - d.cx0) * e
+          cy = d.cy0 + (d.y - d.cy0) * e
+        }
         d.node.setAttribute(cxAttr, String(cx - offX))
         d.node.setAttribute(cyAttr, String(cy - offY))
         // Entering dots fade in over the first stretch; moving dots stay solid.

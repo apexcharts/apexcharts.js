@@ -2011,3 +2011,282 @@ describe('Unit chart — premium gating', () => {
     chart.destroy()
   })
 })
+
+describe('Unit chart — gather motion', () => {
+  let warnSpy
+  beforeEach(() => {
+    resetLicense()
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+  afterEach(() => {
+    warnSpy.mockRestore()
+    resetLicense()
+  })
+
+  /**
+   * A unit chart with animations ON (the shared util force-disables them), so
+   * the gather actually runs.
+   */
+  function animatedUnitChart(unitOpts = {}, series = [40, 40]) {
+    document.body.innerHTML = '<div id="chart"></div>'
+    const chart = new ApexCharts(document.querySelector('#chart'), {
+      chart: {
+        type: 'unit',
+        width: 500,
+        height: 360,
+        animations: { enabled: true, speed: 400 },
+      },
+      series,
+      labels: ['A', 'B'],
+      plotOptions: { unit: { clusterLabels: { show: false }, ...unitOpts } },
+    })
+    chart.render()
+    return chart
+  }
+
+  /**
+   * Hand control of the frame clock to the test: rAF callbacks queue instead of
+   * being scheduled, and `performance.now` reads the clock we advance. Without
+   * this the gather never runs a frame under jsdom, so every spring would stay
+   * at rest and the interruption case could not be observed at all.
+   */
+  function installFrameClock() {
+    let now = 1000
+    let pending = []
+    let nextId = 1
+    const raf = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((cb) => {
+        pending.push({ id: nextId, cb })
+        return nextId++
+      })
+    const caf = vi
+      .spyOn(window, 'cancelAnimationFrame')
+      .mockImplementation((id) => {
+        pending = pending.filter((p) => p.id !== id)
+      })
+    const perf = vi.spyOn(performance, 'now').mockImplementation(() => now)
+    return {
+      frame(ms = 16) {
+        now += ms
+        const due = pending
+        pending = []
+        due.forEach((p) => p.cb(now))
+      },
+      restore() {
+        raf.mockRestore()
+        caf.mockRestore()
+        perf.mockRestore()
+      },
+    }
+  }
+
+  it('springs the gather by default and keys the springs like the slots', () => {
+    const chart = animatedUnitChart()
+    const clock = installFrameClock()
+    try {
+      chart.updateSeries([10, 70])
+      expect(chart._unitSprings instanceof Map).toBe(true)
+      // One spring pair per dot, keyed exactly like the slot map.
+      expect(chart._unitSprings.size).toBe(chart._unitPrevDots.size)
+      for (const key of chart._unitPrevDots.keys()) {
+        expect(chart._unitSprings.has(key)).toBe(true)
+      }
+    } finally {
+      clock.restore()
+      chart.destroy()
+    }
+  })
+
+  it('carries position AND velocity through an interrupted gather', () => {
+    const chart = animatedUnitChart()
+    const clock = installFrameClock()
+    try {
+      chart.updateSeries([10, 70])
+      // Let the dots pick up real speed before interrupting.
+      clock.frame(16)
+      clock.frame(16)
+      clock.frame(16)
+
+      // A dot that is genuinely in flight (both moving and off its target).
+      const key = [...chart._unitSprings.keys()].find((k) => {
+        const s = chart._unitSprings.get(k)
+        return Math.abs(s.x.velocity) > 1 || Math.abs(s.y.velocity) > 1
+      })
+      expect(key).toBeDefined()
+      const before = chart._unitSprings.get(key)
+      const live = { x: before.x.value, y: before.y.value }
+      const vel = { x: before.x.velocity, y: before.y.velocity }
+
+      // The slot this dot was travelling TOWARDS — what the old tween would
+      // have restarted it from.
+      const oldTarget = { x: before.x.target, y: before.y.target }
+      expect(Math.hypot(live.x - oldTarget.x, live.y - oldTarget.y)).toBeGreaterThan(1)
+
+      // Interrupt mid-flight.
+      chart.updateSeries([70, 10])
+
+      const after = chart._unitSprings.get(key)
+      expect(after.x.value).toBeCloseTo(live.x, 6)
+      expect(after.y.value).toBeCloseTo(live.y, 6)
+      expect(after.x.velocity).toBeCloseTo(vel.x, 6)
+      expect(after.y.velocity).toBeCloseTo(vel.y, 6)
+    } finally {
+      clock.restore()
+      chart.destroy()
+    }
+  })
+
+  it('places an interrupted mark at its live position, not its old slot', () => {
+    const chart = animatedUnitChart()
+    const clock = installFrameClock()
+    try {
+      chart.updateSeries([10, 70])
+      clock.frame(16)
+      clock.frame(16)
+      clock.frame(16)
+
+      const key = [...chart._unitSprings.keys()].find((k) => {
+        const s = chart._unitSprings.get(k)
+        return Math.abs(s.x.velocity) > 1 || Math.abs(s.y.velocity) > 1
+      })
+      const live = { ...chart._unitSprings.get(key) }
+      const liveX = live.x.value
+      const liveY = live.y.value
+
+      chart.updateSeries([70, 10])
+
+      // The dot the new render drew for this key starts on screen where the
+      // old one actually was. Under the tween this was `_unitPrevDots`, i.e.
+      // the slot it had not reached yet — a visible jump on every interruption.
+      const dots = [...chart.w.dom.baseEl.querySelectorAll('circle.apexcharts-unit-area')]
+      const seeded = dots.some(
+        (c) =>
+          Math.abs(parseFloat(c.getAttribute('cx')) - liveX) < 1e-6 &&
+          Math.abs(parseFloat(c.getAttribute('cy')) - liveY) < 1e-6,
+      )
+      expect(seeded).toBe(true)
+    } finally {
+      clock.restore()
+      chart.destroy()
+    }
+  })
+
+  it('settles every mark exactly on its slot', () => {
+    const chart = animatedUnitChart()
+    const clock = installFrameClock()
+    try {
+      chart.updateSeries([10, 70])
+      // Well past the stagger + settle window for speed 400.
+      for (let i = 0; i < 200; i++) clock.frame(16)
+
+      for (const [key, slot] of chart._unitPrevDots) {
+        const s = chart._unitSprings.get(key)
+        expect(s.x.value).toBe(slot.x)
+        expect(s.y.value).toBe(slot.y)
+        expect(s.x.velocity).toBe(0)
+      }
+      // The loop released itself rather than spinning forever.
+      expect(chart.w.globals.unitGatherRAF).toBe(null)
+    } finally {
+      clock.restore()
+      chart.destroy()
+    }
+  })
+
+  it('gather.motion "tween" opts out of springs', () => {
+    const chart = animatedUnitChart({ gather: { motion: 'tween' } })
+    const clock = installFrameClock()
+    try {
+      chart.updateSeries([10, 70])
+      expect(chart._unitSprings).toBe(null)
+      // Still animates: the tween path drives the same rAF loop.
+      expect(chart.w.globals.unitGatherRAF).not.toBe(null)
+    } finally {
+      clock.restore()
+      chart.destroy()
+    }
+  })
+
+  it('an explicit gather.easing keeps its curve (implies tween)', () => {
+    const chart = animatedUnitChart({ gather: { easing: 'outBack' } })
+    const clock = installFrameClock()
+    try {
+      chart.updateSeries([10, 70])
+      expect(chart._unitSprings).toBe(null)
+    } finally {
+      clock.restore()
+      chart.destroy()
+    }
+  })
+
+  it('gather.motion "spring" wins over an explicit easing', () => {
+    const chart = animatedUnitChart({ gather: { easing: 'outBack', motion: 'spring' } })
+    const clock = installFrameClock()
+    try {
+      chart.updateSeries([10, 70])
+      expect(chart._unitSprings instanceof Map).toBe(true)
+    } finally {
+      clock.restore()
+      chart.destroy()
+    }
+  })
+
+  it('a slower chart.animations.speed makes a softer spring, not a bouncier one', () => {
+    // Damping ratio c / (2 * sqrt(k)) is what decides overshoot; `speed` must
+    // rescale the spring in time and leave that alone.
+    const ratio = (s) => s.damping / (2 * Math.sqrt(s.stiffness))
+
+    document.body.innerHTML = '<div id="chart"></div>'
+    const fast = new ApexCharts(document.querySelector('#chart'), {
+      chart: { type: 'unit', width: 500, height: 360, animations: { enabled: true, speed: 400 } },
+      series: [40, 40],
+      labels: ['A', 'B'],
+      plotOptions: { unit: { clusterLabels: { show: false } } },
+    })
+    fast.render()
+    const clock = installFrameClock()
+    try {
+      fast.updateSeries([10, 70])
+      const a = fast._unitSprings.values().next().value.x
+      fast.destroy()
+
+      document.body.innerHTML = '<div id="chart"></div>'
+      const slow = new ApexCharts(document.querySelector('#chart'), {
+        chart: { type: 'unit', width: 500, height: 360, animations: { enabled: true, speed: 1600 } },
+        series: [40, 40],
+        labels: ['A', 'B'],
+        plotOptions: { unit: { clusterLabels: { show: false } } },
+      })
+      slow.render()
+      slow.updateSeries([10, 70])
+      const b = slow._unitSprings.values().next().value.x
+
+      expect(b.stiffness).toBeLessThan(a.stiffness)
+      expect(b.damping).toBeLessThan(a.damping)
+      expect(ratio(b)).toBeCloseTo(ratio(a), 10)
+      slow.destroy()
+    } finally {
+      clock.restore()
+    }
+  })
+
+  it('drops stale springs when a render places its marks outright', () => {
+    const chart = animatedUnitChart()
+    const clock = installFrameClock()
+    try {
+      chart.updateSeries([10, 70])
+      clock.frame(16)
+      expect(chart._unitSprings.size).toBeGreaterThan(0)
+
+      // A non-animated render (updateSeries(..., false), a resize, animations
+      // off) repositions every mark directly, so the springs no longer describe
+      // anything on screen and must not be carried into the next gather.
+      chart.updateSeries([30, 30], false)
+      expect(chart._unitSprings).toBe(null)
+    } finally {
+      clock.restore()
+      chart.destroy()
+    }
+  })
+})

@@ -2423,15 +2423,27 @@ type ApexPlotOptions = {
     /** Packing gap factor between spiral shells (1 = dots touch). */
     spacing?: number
     /**
-     * The gather tween that moves marks between layouts on an update.
-     * `easing: 'inOutCubic'` accelerates gently out of rest (weighted travel);
-     * `easing: 'outBack'` overshoots each mark past its slot and springs back
-     * (a per-mark settle). Default is decelerate-and-stop.
+     * How marks move between layouts on an update, and where entering marks
+     * come from.
      */
     gather?: {
-      /** 'outCubic' (default: decelerate and stop), 'inOutCubic' (weighted start), or 'outBack' (overshoot + settle). */
+      /**
+       * 'spring' settles each mark on a damped spring, so a gather interrupted
+       * by the next update carries the marks' velocity into it instead of
+       * restarting them from a standstill. 'tween' runs the fixed-duration
+       * `easing` below. 'auto' (the default) is spring, unless `easing` was set
+       * to something other than the default.
+       */
+      motion?: 'auto' | 'spring' | 'tween'
+      /**
+       * Spring character (`motion: 'spring'` only): 'crisp' (default),
+       * 'gentle' (softer, for large reflows) or 'snappy' (faster, a hint of
+       * settle). Scaled by `chart.animations.speed`.
+       */
+      spring?: 'crisp' | 'gentle' | 'snappy'
+      /** Tween curve: 'outCubic' (default: decelerate and stop), 'inOutCubic' (weighted start), or 'outBack' (overshoot + settle). Setting this implies `motion: 'tween'`. */
       easing?: 'outCubic' | 'inOutCubic' | 'outBack'
-      /** Spring strength for 'outBack'. Defaults to 1.70158 (~10% overshoot). */
+      /** Overshoot strength for `easing: 'outBack'`. Defaults to 1.70158 (~10% overshoot). */
       overshoot?: number
       /**
        * Where an ENTERING mark animates from (fresh mount, or a category
