@@ -451,6 +451,65 @@ export default class Defaults {
     }
   }
 
+  histogram() {
+    // Histogram defaults: a distribution of raw observations, binned in
+    // Data.binHistogramData and drawn through the bar pathway.
+    return {
+      ...this.bar(),
+      plotOptions: {
+        bar: {
+          // Bins are adjacent by definition, so the columns touch: a gap
+          // between them would read as a gap in the data. Rounded corners are
+          // dropped for the same reason (they shave area off each bar, and a
+          // histogram's whole claim is that area is proportional to count).
+          columnWidth: '100%',
+          borderRadius: 0,
+          dataLabels: {
+            position: 'top',
+          },
+        },
+      },
+      dataLabels: {
+        enabled: false,
+      },
+      // A hairline separator keeps the bin boundaries readable once the columns
+      // touch, the same treatment heatmap cells get.
+      stroke: {
+        show: true,
+        width: 1,
+        colors: ['#fff'],
+      },
+      xaxis: {
+        type: 'numeric',
+        // The axis carries bin midpoints; the range is what people read, and
+        // the tooltip already states it.
+        tooltip: {
+          enabled: false,
+        },
+      },
+      tooltip: {
+        x: {
+          formatter: (
+            /** @type {number} */ val,
+            /** @type {any} */ opts,
+          ) => {
+            const edges = opts?.w?.histogramData?.edges
+            const k = opts?.dataPointIndex
+            if (!Array.isArray(edges) || typeof k !== 'number' || k < 0) {
+              return String(val)
+            }
+            const lo = edges[k]
+            const hi = edges[k + 1]
+            if (lo === undefined || hi === undefined) return String(val)
+            const fmt = (/** @type {number} */ v) =>
+              Number.isInteger(v) ? String(v) : v.toFixed(2)
+            return `${fmt(lo)} to ${fmt(hi)}`
+          },
+        },
+      },
+    }
+  }
+
   candlestick() {
     return {
       stroke: {

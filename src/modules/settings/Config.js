@@ -66,6 +66,8 @@ export default class Config {
         chartDefaults = /** @type {any} */ (defaults)[requestedType]()
       } else if (requestedType === 'gauge') {
         chartDefaults = defaults.gauge()
+      } else if (requestedType === 'histogram') {
+        chartDefaults = defaults.histogram()
       } else if (chartTypes.indexOf(opts.chart.type) !== -1) {
         chartDefaults = /** @type {any} */ (defaults)[opts.chart.type]()
       } else {
@@ -155,7 +157,8 @@ export default class Config {
       requested !== 'funnel' &&
       requested !== 'pyramid' &&
       requested !== 'gauge' &&
-      requested !== 'waffle'
+      requested !== 'waffle' &&
+      requested !== 'histogram'
     ) {
       return opts
     }
@@ -194,6 +197,17 @@ export default class Config {
       }
     } else if (requested === 'gauge') {
       opts.chart.type = 'radialBar'
+    } else if (requested === 'histogram') {
+      // `histogram` renders through the bar pathway: the raw observations are
+      // binned in Data.binHistogramData into one column per bin. The x-axis
+      // carries bin midpoints, so it must be numeric rather than categorical
+      // (a category axis would space unequal bins evenly and lie about the
+      // distribution). Set only when the user has not chosen otherwise.
+      opts.xaxis = opts.xaxis || {}
+      if (opts.xaxis.type == null) {
+        opts.xaxis.type = 'numeric'
+      }
+      opts.chart.type = 'bar'
     }
     return opts
   }

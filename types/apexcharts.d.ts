@@ -1131,6 +1131,7 @@ type ApexChart = {
   | 'candlestick'
   | 'boxPlot'
   | 'violin'
+  | 'histogram'
   | 'radar'
   | 'polarArea'
   | 'rangeBar'
@@ -1144,11 +1145,11 @@ type ApexChart = {
   | 'gauge'
   /**
    * Internal — populated when `type` is a first-class alias (`'funnel'`,
-   * `'pyramid'`, `'gauge'`, `'waffle'`). The original requested type is
-   * preserved here while `type` is normalized to the underlying renderer
-   * (`'bar'`, `'radialBar'` or `'unit'`). Read-only for consumers.
+   * `'pyramid'`, `'gauge'`, `'waffle'`, `'histogram'`). The original requested
+   * type is preserved here while `type` is normalized to the underlying
+   * renderer (`'bar'`, `'radialBar'` or `'unit'`). Read-only for consumers.
    */
-  requestedType?: 'funnel' | 'pyramid' | 'gauge' | 'waffle'
+  requestedType?: 'funnel' | 'pyramid' | 'gauge' | 'waffle' | 'histogram'
   foreColor?: string
   fontFamily?: string
   background?: string
@@ -2196,6 +2197,35 @@ type ApexPlotOptions = {
         steps?: number
       }
     }
+  }
+  /**
+   * `chart.type: 'histogram'`. The series carry raw observations (a flat
+   * number array, or `{ y }` objects) and are binned into one column per bin;
+   * all series share one set of edges so overlaid distributions stay
+   * comparable.
+   */
+  histogram?: {
+    /**
+     * How the bin width is chosen: a rule name, or a fixed bin count.
+     * `'auto'` takes the narrower of Freedman-Diaconis and Sturges, falling
+     * back to Sturges when the IQR is 0.
+     */
+    bins?: 'auto' | 'fd' | 'sturges' | 'scott' | 'rice' | 'sqrt' | number
+    /**
+     * Explicit bin width in value units. Wins over `bins`, for when the
+     * boundaries carry meaning (decades, 5-minute buckets) rather than being
+     * a statistical choice.
+     */
+    binWidth?: number
+    /** `[min, max]` to bin over instead of the data's own extent. */
+    range?: number[]
+    /**
+     * y units: observations per bin, percent of the series total, or
+     * `count / (n * binWidth)` so the total area is 1.
+     */
+    normalize?: 'count' | 'relative' | 'density'
+    /** Running total across bins, i.e. a cumulative distribution. */
+    cumulative?: boolean
   }
   heatmap?: {
     radius?: number

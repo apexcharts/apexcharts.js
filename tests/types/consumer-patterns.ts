@@ -259,6 +259,20 @@ const _pointSvg: ApexCharts.ApexAnnotations = {
 }
 void _pointSvg
 
+// histogram: raw observations in, bins chosen by rule or count
+const _histRule: ApexCharts.ApexOptions = {
+  chart: { type: 'histogram' },
+  series: [{ name: 'Latency', data: [12, 18, 25, 33, 41] }],
+  plotOptions: { histogram: { bins: 'fd', normalize: 'density' } },
+}
+const _histFixed: ApexCharts.ApexOptions = {
+  chart: { type: 'histogram' },
+  plotOptions: {
+    histogram: { bins: 20, binWidth: 5, range: [0, 100], cumulative: true },
+  },
+}
+void _histRule; void _histFixed
+
 // SSR statics from the apexcharts/ssr entry
 async function _ssrUse() {
   const html = await ApexChartsClass.renderToHTML({ chart: { type: 'bar' } }, { width: 500 })

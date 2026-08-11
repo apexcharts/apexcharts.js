@@ -110,6 +110,18 @@ export default class Base {
         seriesViolinMin: [],
         seriesViolinMax: [],
       },
+      // Histogram binning — written by Data.binHistogramData() each render;
+      // empty for all other chart types.
+      //   edges[k]     = bin boundaries (length = binCount + 1)
+      //   counts[i][k] = raw observation count per series, before normalize
+      //   rule         = the rule that chose the width ('fd', 'sturges', ...)
+      histogramData: {
+        edges: [],
+        binWidth: 0,
+        counts: [],
+        rule: '',
+        capped: false,
+      },
       // Label / category data — written by Data.parseData() and TimeScale each render.
       labelData: {
         labels: [],

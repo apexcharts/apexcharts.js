@@ -227,8 +227,10 @@ export default class UpdateHelpers {
       )
 
       // User is pushing new data — drop any stashed raw data so the next
-      // parseData re-stashes from this new series (zoom-aware downsampling).
+      // parseData re-stashes from this new series (zoom-aware downsampling,
+      // and the histogram's raw observations).
       w.globals.dataReducerRawSeries = null
+      w.globals.histogramRawSeries = null
 
       this.ctx.data.resetParsingFlags()
       // Phase 1: return value captured; writer stubs are no-ops.

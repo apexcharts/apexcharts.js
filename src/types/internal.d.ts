@@ -151,6 +151,19 @@ export interface ViolinData {
   seriesViolinMax: number[][]
 }
 
+/** Histogram binning — lives on `w.histogramData` */
+export interface HistogramData {
+  /** Bin boundaries, length = binCount + 1. Empty for non-histogram charts. */
+  edges: number[]
+  binWidth: number
+  /** counts[seriesIndex][binIndex] — raw counts, before normalize/cumulative */
+  counts: number[][]
+  /** The rule that chose the width: 'fd' | 'sturges' | 'count' | ... */
+  rule: string
+  /** True when the bin count hit the safety cap */
+  capped: boolean
+}
+
 /** Label / category data — lives on `w.labelData` */
 export interface LabelData {
   labels: string[]
@@ -317,6 +330,13 @@ export interface ChartGlobals
   dataReducerRawSeries: Array<{ data: any }> | null
   dataReducerRawMinX: number | undefined
   dataReducerRawMaxX: number | undefined
+
+  // ── Histogram (chart.type: 'histogram') ───────────────────────────────────
+  // The raw observations, stashed on first parse. parseData writes the binned
+  // rows back to config.series, so this is the only surviving copy of the
+  // sample and every re-render bins from it. Cleared by _updateSeries and
+  // appendData when the user pushes new data.
+  histogramRawSeries: Array<{ data: any }> | null
 
   // ── Collapse state ────────────────────────────────────────────────────────
   allSeriesCollapsed: boolean
@@ -579,6 +599,7 @@ export interface ChartStateW {
   candleData: CandleData
   rangeData: RangeData
   violinData: ViolinData
+  histogramData: HistogramData
   labelData: LabelData
   axisFlags: AxisFlags
   seriesData: SeriesData

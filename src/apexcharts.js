@@ -834,6 +834,23 @@ export default class ApexCharts {
       me.series.getPreviousPaths()
     }
 
+    // Histogram: config.series holds the binned rows, and the only copy of the
+    // sample is the raw stash, so new observations are appended there and the
+    // bars are recomputed from the enlarged sample. Appending to the binned
+    // rows instead would add bars whose x is an observation value.
+    const histRaw = me.w.globals.histogramRawSeries
+    if (histRaw) {
+      for (let i = 0; i < histRaw.length; i++) {
+        const src = /** @type {any} */ (newData[i])
+        if (src && Array.isArray(src.data) && Array.isArray(histRaw[i].data)) {
+          for (let j = 0; j < src.data.length; j++) {
+            histRaw[i].data.push(src.data[j])
+          }
+        }
+      }
+      return this.update()
+    }
+
     const newSeries = me.w.config.series.slice()
 
     for (let i = 0; i < newSeries.length; i++) {

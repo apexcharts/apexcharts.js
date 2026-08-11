@@ -822,6 +822,27 @@ export default class Options {
             //   { colors: ['#0d0887', … '#f0f921'], min, max, steps }
           },
         },
+        histogram: {
+          // How the bin width is chosen from the raw observations. A rule name
+          // ('auto' | 'fd' | 'sturges' | 'scott' | 'rice' | 'sqrt') or a fixed
+          // bin count. 'auto' takes the narrower of Freedman-Diaconis and
+          // Sturges, falling back to Sturges when the IQR is 0 (which happens
+          // as soon as most values are identical).
+          bins: 'auto',
+          // Explicit bin width in value units. Wins over `bins` when set: use
+          // it when the bin boundaries carry meaning (decades, 5-minute
+          // buckets) rather than being a statistical choice.
+          binWidth: undefined,
+          // [min, max] to bin over, instead of the data's own extent. Lets
+          // several histograms share one scale.
+          range: undefined,
+          // y units: 'count' (observations per bin), 'relative' (percent of
+          // the series total), or 'density' (count / (n * binWidth), so the
+          // total area is 1 and bins of different widths stay comparable).
+          normalize: 'count',
+          // Running total across bins, i.e. a cumulative distribution.
+          cumulative: false,
+        },
         heatmap: {
           radius: 2,
           enableShades: true,

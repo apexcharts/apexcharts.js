@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Histogram - Latency Distribution</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 780px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 24px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .actions {
+        margin: 20px auto 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        align-items: center;
+      }
+      .actions button {
+        color: #5b6b78;
+        background: #fff;
+        border: 1px solid #dfe6ec;
+        padding: 7px 14px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.on {
+        color: #fff;
+        background: #008ffb;
+        border-color: #008ffb;
+      }
+      .actions label {
+        font-size: 13px;
+        color: #5b6b78;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .stats {
+        text-align: center;
+        font-size: 13px;
+        color: #5b6b78;
+        margin-top: 12px;
+      }
+      .stats b {
+        color: #2c3e50;
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Shared by the vanilla-js, React and Vue builds.
+      //
+      // The series carries RAW OBSERVATIONS, one number per request, and the chart
+      // bins them itself. That is the whole point of the type: you hand it a sample,
+      // not a pre-aggregated table.
+      //
+      // 1800 response times with the shape real latency has: a tight body around
+      // 120ms and a long right tail of slow requests. Generated from a seeded
+      // generator so the page is deterministic.
+      var LATENCY = (function () {
+        var seed = 20260811
+        function rand() {
+          seed = (seed * 16807) % 2147483647
+          return (seed - 1) / 2147483646
+        }
+        var out = []
+        for (var i = 0; i < 1800; i++) {
+          // Box-Muller into a log-normal: the standard shape for service latency.
+          var u1 = Math.max(rand(), 1e-9)
+          var u2 = rand()
+          var z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
+          out.push(Math.round(Math.exp(4.8 + z * 0.42) * 10) / 10)
+        }
+        return out
+      })()
+
+      function percentile(values, p) {
+        var sorted = values.slice().sort(function (a, b) {
+          return a - b
+        })
+        var pos = (sorted.length - 1) * p
+        var lo = Math.floor(pos)
+        var hi = Math.ceil(pos)
+        if (lo === hi) return sorted[lo]
+        return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo)
+      }
+
+      function renderStats() {
+        var el = document.querySelector('#stats')
+        if (!el) return
+        el.innerHTML =
+          '<b>' +
+          LATENCY.length +
+          '</b> requests &middot; ' +
+          'median <b>' +
+          percentile(LATENCY, 0.5).toFixed(0) +
+          ' ms</b> &middot; ' +
+          'p95 <b>' +
+          percentile(LATENCY, 0.95).toFixed(0) +
+          ' ms</b> &middot; ' +
+          'slowest <b>' +
+          Math.max.apply(null, LATENCY).toFixed(0) +
+          ' ms</b>'
+      }
+
+      // Wires the bin-rule buttons and the cumulative toggle to a live chart. Shared
+      // by all three framework builds.
+      function wireHistogramControls(chart) {
+        var buttons = [].slice.call(document.querySelectorAll('[data-bins]'))
+        var cumulative = false
+        var bins = 'auto'
+
+        function apply(next) {
+          buttons.forEach(function (b) {
+            b.className = b.getAttribute('data-bins') === String(next) ? 'on' : ''
+          })
+          bins = next === 'auto' ? 'auto' : parseInt(next, 10)
+          chart.updateOptions({
+            plotOptions: { histogram: { bins: bins, cumulative: cumulative } },
+            yaxis: {
+              title: { text: cumulative ? 'Requests (cumulative)' : 'Requests' },
+            },
+          })
+        }
+
+        buttons.forEach(function (b) {
+          b.addEventListener('click', function () {
+            apply(b.getAttribute('data-bins'))
+          })
+        })
+
+        var cb = document.querySelector('#cumulative')
+        if (cb) {
+          cb.addEventListener('change', function (e) {
+            cumulative = e.target.checked
+            apply(bins === 'auto' ? 'auto' : String(bins))
+          })
+        }
+
+        renderStats()
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="wrap">
+      <h1>Where does the time actually go?</h1>
+      <p>
+        Every one of these 1800 requests is a single number in the series. The chart
+        does the binning, so the shape of the distribution is the data rather than
+        something you had to compute first. Change the bin rule to see how much the
+        story depends on it: too few bins hide the slow tail, too many turn it into
+        noise. "Auto" picks a width from the sample itself.
+      </p>
+    
+      <div class="actions">
+        <button data-bins="auto" class="on">Auto</button>
+        <button data-bins="12">12 bins</button>
+        <button data-bins="30">30 bins</button>
+        <button data-bins="80">80 bins</button>
+        <label>
+          <input type="checkbox" id="cumulative" />
+          Cumulative
+        </label>
+      </div>
+    
+      <div class="chart-wrap">
+        <div id="chart">
+      <apexchart type="histogram" height="400" :options="chartOptions" :series="series"></apexchart>
+    </div>
+      </div>
+    
+      <div class="stats" id="stats"></div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+        &lt;h1&gt;Where does the time actually go?&lt;/h1&gt;
+        &lt;p&gt;
+          Every one of these 1800 requests is a single number in the series. The chart
+          does the binning, so the shape of the distribution is the data rather than
+          something you had to compute first. Change the bin rule to see how much the
+          story depends on it: too few bins hide the slow tail, too many turn it into
+          noise. &quot;Auto&quot; picks a width from the sample itself.
+        &lt;/p&gt;
+      
+        &lt;div class=&quot;actions&quot;&gt;
+          &lt;button data-bins=&quot;auto&quot; class=&quot;on&quot;&gt;Auto&lt;/button&gt;
+          &lt;button data-bins=&quot;12&quot;&gt;12 bins&lt;/button&gt;
+          &lt;button data-bins=&quot;30&quot;&gt;30 bins&lt;/button&gt;
+          &lt;button data-bins=&quot;80&quot;&gt;80 bins&lt;/button&gt;
+          &lt;label&gt;
+            &lt;input type=&quot;checkbox&quot; id=&quot;cumulative&quot; /&gt;
+            Cumulative
+          &lt;/label&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;chart-wrap&quot;&gt;
+          &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;histogram&quot; height=&quot;400&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;stats&quot; id=&quot;stats&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [
+            {
+              name: 'Requests',
+              data: LATENCY,
+            },
+          ],
+          chartOptions: {
+            chart: {
+              id: 'latency',
+              type: 'histogram',
+              height: 400,
+              toolbar: {
+                show: false,
+              },
+            },
+            plotOptions: {
+              histogram: {
+                // 'auto' takes the narrower of Freedman-Diaconis and Sturges. Swap in a
+                // number for a fixed bin count, or binWidth for fixed boundaries.
+                bins: 'auto',
+              },
+            },
+            colors: ['#008FFB'],
+            fill: {
+              type: 'gradient',
+              gradient: {
+                shadeIntensity: 0.25,
+                opacityFrom: 0.95,
+                opacityTo: 0.75,
+                stops: [0, 100],
+              },
+            },
+            legend: {
+              show: false,
+            },
+            xaxis: {
+              title: {
+                text: 'Response time (ms)',
+              },
+              labels: {
+                formatter: function (val) {
+                  return Math.round(val)
+                },
+              },
+            },
+            yaxis: {
+              title: {
+                text: 'Requests',
+              },
+            },
+          },
+
+          histTimer: null,
+        },
+        mounted: function () {
+          // The vue-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id before wiring the controls.
+          var me = this
+          me.histTimer = window.setInterval(function () {
+            var chart = ApexCharts.getChartByID('latency')
+            if (!chart) return
+            window.clearInterval(me.histTimer)
+            wireHistogramControls(chart)
+          }, 50)
+        },
+        beforeDestroy: function () {
+          window.clearInterval(this.histTimer)
+        },
+      })
+    </script>
+    
+  </body>
+</html>
