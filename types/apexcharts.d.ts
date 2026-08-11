@@ -2203,6 +2203,11 @@ type ApexPlotOptions = {
    * number array, or `{ y }` objects) and are binned into one column per bin;
    * all series share one set of edges so overlaid distributions stay
    * comparable.
+   *
+   * Requires the optional stats feature. Import from `apexcharts/histogram`,
+   * or add `import 'apexcharts/features/stats'` alongside `apexcharts/bar`.
+   * The default `apexcharts` bundle already includes it. Without it the chart
+   * warns and draws nothing, rather than rendering one bar per observation.
    */
   histogram?: {
     /**

@@ -227,6 +227,10 @@
         chart: {
           id: 'latency',
           type: 'histogram',
+          // Fixed width, not responsive: 35 thin bars make every bar edge a hairline,
+          // so a page-width nudge of a pixel or two (a scrollbar appearing as the
+          // stats line renders) visibly moves the whole distribution.
+          width: 700,
           height: 400,
           toolbar: {
             show: false,

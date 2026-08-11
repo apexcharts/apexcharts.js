@@ -85,6 +85,11 @@
       "import": "./dist/boxPlot.esm.js",
       "require": "./dist/boxPlot.common.js"
     },
+  "./histogram": {
+    "types": "./types/apexcharts.d.ts",
+    "import": "./dist/histogram.esm.js",
+    "require": "./dist/histogram.common.js"
+  },
     "./violin": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/violin.esm.js",
@@ -207,6 +212,10 @@
       "import": "./dist/features/context-menu.esm.js",
       "require": "./dist/features/context-menu.common.js"
     },
+  "./features/stats": {
+    "import": "./dist/features/stats.esm.js",
+    "require": "./dist/features/stats.common.js"
+  },
     "./features/all": {
       "import": "./dist/features/all.esm.js",
       "require": "./dist/features/all.common.js"

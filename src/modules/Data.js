@@ -5,11 +5,13 @@ import Series from './Series'
 import Utils from '../utils/Utils'
 import Defaults from './settings/Defaults'
 import { isCustom, getChartClass } from './ChartFactory'
-import {
-  binCounts,
-  computeBinning,
-  normalizeCounts,
-} from '../charts/common/Binning'
+import { getSeriesTransform } from './SeriesTransformRegistry'
+
+/**
+ * Chart types whose series carries raw observations and therefore cannot draw
+ * anything until `apexcharts/features/stats` supplies the statistic.
+ */
+const RAW_SAMPLE_TYPES = ['histogram']
 
 export default class Data {
   /**
@@ -28,6 +30,8 @@ export default class Data {
     this.twoDSeriesX = []
     /** @type {any} */
     this.seriesGoals = []
+    /** Warn once per chart when a raw-sample type has no registered transform. */
+    this._warnedMissingTransform = false
     this.coreUtils = new CoreUtils(this.w)
     /** @type {number} */ this.activeSeriesIndex = 0
   }
@@ -1553,119 +1557,34 @@ export default class Data {
   }
 
   /**
-   * Collect the finite observations out of one histogram series' data. Raw
-   * values are the point of a histogram, so the accepted forms are the ways
-   * people actually hold a sample: a flat number array, `{ y }` / `{ x }`
-   * objects, or one-element arrays.
-   *
-   * @param {any} data
-   * @returns {number[]}
-   */
-  _histogramValues(data) {
-    /** @type {number[]} */
-    const out = []
-    if (!Array.isArray(data)) return out
-    for (let i = 0; i < data.length; i++) {
-      const d = data[i]
-      /** @type {any} */
-      let raw = d
-      if (Array.isArray(d)) raw = d.length === 1 ? d[0] : d[1]
-      else if (d && typeof d === 'object') raw = d.y !== undefined ? d.y : d.x
-      const v = Utils.parseNumber(raw)
-      if (v !== null && isFinite(v)) out.push(v)
-    }
-    return out
-  }
-
-  /**
-   * Histogram support. `chart.type: 'histogram'` renders through the bar
-   * pathway, so the raw observations the user supplied are binned here, before
-   * any parsing, into one `{ x: binMidpoint, y: count }` row per bar.
-   *
-   * All series share one set of edges, derived from their combined extent, so
-   * overlaid distributions stay comparable; binning each series to its own
-   * range would put different bars at the same x.
-   *
-   * parseData writes what this returns back to `cnf.series`, so binning the
-   * incoming series directly would re-bin the counts on the next render (a
-   * resize, a legend toggle) and quietly destroy the distribution. The raw
-   * observations are stashed once per data push and binning always reads the
-   * stash, the same contract the zoom-aware downsampler uses for its raw data.
+   * Optional pre-parse series transform. A chart type whose series carries RAW
+   * observations rather than the values it draws (a histogram's sample, and in
+   * time a boxPlot's or a violin's) registers a transform through
+   * `apexcharts/features/stats`. Core keeps only this lookup, so a bundle that
+   * never asks for a raw-sample type never pays for the statistics.
    *
    * @param {any[]} ser
    * @returns {any[]}
    */
-  binHistogramData(ser) {
-    const w = this.w
-    const cnf = w.config
-    const gl = w.globals
-    if (cnf.chart.requestedType !== 'histogram' || !Array.isArray(ser)) {
-      return ser
+  applySeriesTransform(ser) {
+    const cnf = this.w.config
+    const name = cnf.chart.requestedType || cnf.chart.type
+    const transform = getSeriesTransform(name)
+    if (transform) return transform(ser, this.w)
+    if (!Array.isArray(ser) || RAW_SAMPLE_TYPES.indexOf(name) === -1) return ser
+    // Without the feature there is no statistic to compute, and drawing the
+    // raw sample as one mark per observation would be a silent, unusable mess
+    // (a 1800-point sample would render 1800 bars). Warn once per chart:
+    // parseData runs on every render, and a resize should not spam the console.
+    if (!this._warnedMissingTransform) {
+      this._warnedMissingTransform = true
+      console.warn(
+        `ApexCharts: chart.type '${name}' needs the stats feature. Add ` +
+          `\`import 'apexcharts/features/stats'\`, or import from ` +
+          `'apexcharts/${name}'.`,
+      )
     }
-
-    if (!gl.histogramRawSeries) {
-      gl.histogramRawSeries = ser.map((/** @type {any} */ s) => ({
-        ...s,
-        data: Array.isArray(s?.data) ? s.data.slice() : s?.data,
-      }))
-    }
-    const raw = gl.histogramRawSeries
-
-    const hcfg = cnf.plotOptions?.histogram || {}
-    const perSeries = raw.map((/** @type {any} */ s) =>
-      this._histogramValues(s?.data),
-    )
-
-    /** @type {number[]} */
-    let all = []
-    if (perSeries.length === 1) {
-      all = perSeries[0]
-    } else {
-      for (const vals of perSeries) all = all.concat(vals)
-    }
-
-    const binning = computeBinning(all, {
-      bins: hcfg.bins,
-      binWidth: hcfg.binWidth,
-      range: hcfg.range,
-    })
-
-    if (!binning) {
-      w.histogramData = {
-        edges: [],
-        binWidth: 0,
-        counts: [],
-        rule: '',
-        capped: false,
-      }
-      return raw
-    }
-
-    const { edges, binWidth } = binning
-    /** @type {number[][]} */
-    const counts = perSeries.map((vals) => binCounts(vals, edges))
-
-    w.histogramData = {
-      edges,
-      binWidth,
-      counts,
-      rule: binning.rule,
-      capped: binning.capped,
-    }
-
-    return raw.map((/** @type {any} */ s, /** @type {number} */ i) => {
-      const ys = normalizeCounts(counts[i], {
-        normalize: hcfg.normalize,
-        cumulative: hcfg.cumulative,
-        binWidth,
-      })
-      /** @type {any[]} */
-      const data = []
-      for (let k = 0; k < ys.length; k++) {
-        data.push({ x: (edges[k] + edges[k + 1]) / 2, y: ys[k] })
-      }
-      return { ...s, data }
-    })
+    return ser.map((/** @type {any} */ s) => ({ ...s, data: [] }))
   }
 
   /**
@@ -1881,9 +1800,10 @@ export default class Data {
 
     ser = this.parseRawDataIfNeeded(ser)
 
-    // Histogram: bin the raw observations into one row per bar before anything
-    // else reads the data. A no-op for every other chart type.
-    ser = this.binHistogramData(ser)
+    // Raw-sample types (histogram today): turn the observations into the rows
+    // the renderer draws, before anything else reads the data. A no-op for
+    // every other chart type.
+    ser = this.applySeriesTransform(ser)
 
     // Scatter "jitter": expand compact { x, y:[...] } strip-plot data into one
     // point per observation and frame the x-axis as evenly-spaced bands. A no-op

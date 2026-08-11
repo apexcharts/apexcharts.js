@@ -1,4 +1,9 @@
 import { createChartWithOptions } from './utils/utils.js'
+import { histogramTransform } from '../../src/features/stats'
+import {
+  registerSeriesTransform,
+  unregisterSeriesTransform,
+} from '../../src/modules/SeriesTransformRegistry'
 import {
   binCounts,
   binIndexOf,
@@ -360,6 +365,33 @@ describe('histogram chart type', () => {
     const first = a.w.histogramData.edges.slice()
     const b = histChart({ series: [{ name: 'S', data: values }] })
     expect(b.w.histogramData.edges).toEqual(first)
+  })
+
+  test('without the stats feature it warns and draws nothing', () => {
+    // The binning lives in `apexcharts/features/stats`, not core. Dropping the
+    // registration is exactly the state of a bundle that imported
+    // `apexcharts/bar` and forgot the feature.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    unregisterSeriesTransform('histogram')
+    try {
+      const chart = histChart({ series: [{ name: 'S', data: sample(50) }] })
+      expect(document.querySelectorAll('.apexcharts-bar-area').length).toBe(0)
+      expect(chart.w.config.series[0].data).toEqual([])
+      expect(warn.mock.calls.flat().join(' ')).toContain(
+        "apexcharts/features/stats",
+      )
+    } finally {
+      registerSeriesTransform('histogram', histogramTransform)
+      warn.mockRestore()
+    }
+  })
+
+  test('re-registering the feature restores binning', () => {
+    const chart = histChart({
+      series: [{ name: 'S', data: [1, 2, 3, 4] }],
+      plotOptions: { histogram: { bins: 2 } },
+    })
+    expect(chart.w.histogramData.counts[0].reduce((a, c) => a + c, 0)).toBe(4)
   })
 
   test('non-histogram charts leave the slice empty', () => {

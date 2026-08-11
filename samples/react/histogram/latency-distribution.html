@@ -219,7 +219,7 @@
 
   &lt;div class=&quot;chart-wrap&quot;&gt;
     &lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;histogram&quot; height={400} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;histogram&quot; height={400} width={700} /&gt;
 &lt;/div&gt;
   &lt;/div&gt;
 
@@ -239,6 +239,10 @@
             chart: {
               id: 'latency',
               type: 'histogram',
+              // Fixed width, not responsive: 35 thin bars make every bar edge a hairline,
+              // so a page-width nudge of a pixel or two (a scrollbar appearing as the
+              // stats line renders) visibly moves the whole distribution.
+              width: 700,
               height: 400,
               toolbar: {
                 show: false,
@@ -328,6 +332,7 @@
                     series={state.series}
                     type="histogram"
                     height={400}
+                    width={700}
                   />
                 </div>
               </div>

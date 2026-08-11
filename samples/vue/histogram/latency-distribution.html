@@ -214,7 +214,7 @@
     
       <div class="chart-wrap">
         <div id="chart">
-      <apexchart type="histogram" height="400" :options="chartOptions" :series="series"></apexchart>
+      <apexchart type="histogram" height="400" width="700" :options="chartOptions" :series="series"></apexchart>
     </div>
       </div>
     
@@ -245,7 +245,7 @@
       
         &lt;div class=&quot;chart-wrap&quot;&gt;
           &lt;div id=&quot;chart&quot;&gt;
-        &lt;apexchart type=&quot;histogram&quot; height=&quot;400&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;histogram&quot; height=&quot;400&quot; width=&quot;700&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
         &lt;/div&gt;
       
@@ -269,6 +269,10 @@
             chart: {
               id: 'latency',
               type: 'histogram',
+              // Fixed width, not responsive: 35 thin bars make every bar edge a hairline,
+              // so a page-width nudge of a pixel or two (a scrollbar appearing as the
+              // stats line renders) visibly moves the whole distribution.
+              width: 700,
               height: 400,
               toolbar: {
                 show: false,
