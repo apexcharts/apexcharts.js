@@ -27,6 +27,7 @@ import {
   roundedDonutSegmentPath,
   sharpDonutSegmentPath,
 } from './common/arc/ArcPath'
+import Animations from '../modules/Animations'
 
 const D2R = Math.PI / 180
 const R2D = 180 / Math.PI
@@ -82,6 +83,9 @@ export default class SunburstChart {
     /** @type {any} */
     this._tooltipEl = null
     this._lblSeq = 0
+    // How many leaves have taken a captured mark this layout pass (cross-type
+    // morph: leaf k unrolls from the outgoing chart's k-th mark).
+    this._morphLeafIndex = 0
     /** @type {any} */
     this._graphics = null
     /** @type {any} */
@@ -399,6 +403,22 @@ export default class SunburstChart {
     // this and stop, so a fast re-click can't leave two animations fighting.
     const gen = ++this._zoomGen
 
+    // Cross-type morph source (the optional `morph` feature). Leaves are handed
+    // out in draw order, which is the order the outgoing chart's marks were
+    // captured in, so tile k becomes leaf k.
+    //
+    // Not gated on `mode`: a type change arrives with new data, so it resolves
+    // to 'update', and a snapshot only exists during one anyway. It brings its
+    // own speed, the same one every other morphing renderer uses.
+    const morph = /** @type {any} */ (this.ctx)?.morphTypeChange
+    const morphActive =
+      !!morph &&
+      typeof morph.isActive === 'function' &&
+      morph.isActive() &&
+      typeof morph.getInitialPathAt === 'function'
+    const morphDur = morphActive ? morph.getSpeed() : 0
+    this._morphLeafIndex = 0
+
     // Geometry of the PREVIOUS render (stashed on the persistent chart ctx —
     // this module is re-instantiated on every data update).
     const prev =
@@ -414,8 +434,16 @@ export default class SunburstChart {
         }
         if (!node._el) node._el = this._createArcEl(node)
 
-        if (mode === 'intro' && dur > 0) {
-          this._sweepArc(node, target, dur, gen)
+        // Cross-type morph (treemap -> sunburst): a leaf starts as the tile
+        // that stood for the same row and unrolls into its arc. Interior rings
+        // have no counterpart in a flat partition, so they sweep in as the
+        // leaves arrive.
+        const morphFrom = morphActive ? this._morphSourceFor(node) : null
+
+        if (morphFrom && morphDur > 0) {
+          this._morphArcFrom(node, morphFrom, target, morphDur, gen)
+        } else if ((mode === 'intro' || morphActive) && dur > 0) {
+          this._sweepArc(node, target, morphActive ? morphDur : dur, gen)
         } else {
           let from
           let isNew = false
@@ -451,6 +479,71 @@ export default class SunburstChart {
     ;/** @type {any} */ (this.ctx)._sunburstPrevGeoms = geoms
 
     this._renderLabels(dur)
+  }
+
+  /**
+   * The captured mark this leaf should unroll from, or null when the node is
+   * not a leaf or the outgoing chart ran out of marks.
+   *
+   * Leaves consume the captured paths in draw order, which is the order the
+   * outgoing renderer laid its own marks out in, so tile k pairs with leaf k.
+   *
+   * @param {any} node
+   * @returns {string | null}
+   */
+  _morphSourceFor(node) {
+    if (node.children && node.children.length) return null
+    const ctx = /** @type {any} */ (this.ctx)
+    const morph = ctx && ctx.morphTypeChange
+    if (!morph) return null
+    return morph.getInitialPathAt(this._morphLeafIndex++)
+  }
+
+  /**
+   * Unroll an arc from an arbitrary captured shape.
+   *
+   * `_animateArc` interpolates arc PARAMETERS (angles and radii), which cannot
+   * express a rectangle, so this one tweens the path data itself through
+   * Animations.morphSVG - the same call every other morphing renderer makes,
+   * which already selects the polygon-resample algorithm while a cross-type
+   * morph is active.
+   *
+   * @param {any} node
+   * @param {string} fromD
+   * @param {{a0:number,a1:number,iR:number,oR:number}} target
+   * @param {number} dur
+   * @param {number} gen
+   */
+  _morphArcFrom(node, fromD, target, dur, gen) {
+    const el = node._el
+    const toD = this._arcPath(
+      target.iR,
+      target.oR,
+      target.a0,
+      target.a1,
+      this.cfg.borderRadius,
+    )
+    el.node.style.display = ''
+    el.attr({ d: fromD, opacity: 1 })
+    // `_cur` is what an interrupting zoom tweens FROM. During a cross-type
+    // morph the arc has no meaningful intermediate geometry (it is a rectangle
+    // part-way to an arc), so the target is the honest answer: a zoom landing
+    // mid-morph continues from the arc this one is becoming.
+    node._cur = target
+    if (this._zoomGen !== gen) return
+    new Animations(this.w, /** @type {any} */ (this.ctx)).morphSVG(
+      el,
+      0,
+      // Not a (series, point) index: an arc has no j, and passing a number here
+      // would make morphSVG treat it as the last point of a series and fire the
+      // chart's animation-completed hook.
+      /** @type {any} */ (null),
+      node._color,
+      fromD,
+      toD,
+      dur,
+      0,
+    )
   }
 
   /**
@@ -503,6 +596,13 @@ export default class SunburstChart {
     const el = path.node
     el.setAttribute('data:name', node.name)
     el.setAttribute('data:value', String(node.value))
+    // Leaves are the level that corresponds to a flat partition (a treemap's
+    // tiles), so the cross-type morph can pair the two up without handing a
+    // tile its own ancestors.
+    el.setAttribute(
+      'data:leaf',
+      String(!(node.children && node.children.length)),
+    )
     this._attachTooltip(el, node)
     if (Environment.isBrowser()) {
       el.addEventListener('click', () => this._zoomTo(node))

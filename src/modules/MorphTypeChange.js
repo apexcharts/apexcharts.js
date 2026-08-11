@@ -42,12 +42,20 @@ const RADIAL_FAMILY = new Set(['pie', 'donut', 'polarArea', 'radialBar', 'gauge'
 // renderer reads per-object slots rather than a path `d`, so its dots come out
 // of the outgoing bar/wedge instead of gathering from the plot centre.
 const UNIT_FAMILY = new Set(['unit'])
+// Space-filling part-to-whole charts. A treemap tile and a sunburst arc are
+// both exactly one mark per row, so this pair is an ordinary shape-to-shape
+// morph: no explode/collapse, just rectangles unrolling into a radial partition
+// and back. They map to each other by draw order (see the `partition` branch of
+// _buildMapping) because neither renderer iterates the (realIndex, j) grid the
+// bar family does.
+const PARTITION_FAMILY = new Set(['treemap', 'sunburst'])
 
 /** @param {string} type */
 function familyOf(type) {
   if (BAR_FAMILY.has(type)) return 'bar'
   if (RADIAL_FAMILY.has(type)) return 'radial'
   if (UNIT_FAMILY.has(type)) return 'unit'
+  if (PARTITION_FAMILY.has(type)) return 'partition'
   return null
 }
 
@@ -73,8 +81,14 @@ export default class MorphTypeChange {
     const ff = familyOf(fromType)
     const tf = familyOf(toType)
     if (!ff || !tf) return false
-    // bar ↔ radial covers the cross-family cases; radial → radial covers
-    // pie ↔ donut ↔ polarArea ↔ radialBar.
+    // The partition family pairs only with itself for now. treemap ↔ bar or
+    // ↔ pie would work mechanically (every mark in all four is 1:1 with a row,
+    // and the mapping is positional), but neither renderer has been driven
+    // through those pairs, and claiming a morph that has not been watched is
+    // worse than not offering it.
+    if ((ff === 'partition') !== (tf === 'partition')) return false
+    // bar ↔ radial covers the remaining cross-family cases; radial → radial
+    // covers pie ↔ donut ↔ polarArea ↔ radialBar.
     return true
   }
 
@@ -99,6 +113,14 @@ export default class MorphTypeChange {
         (/** @type {any} */ s) =>
           s && typeof s === 'object' && Array.isArray(s.data),
       )
+    }
+
+    if (tf === 'partition') {
+      // A treemap takes [{ data: [...] }, ...]; a sunburst takes either that
+      // (with a `children` tree or a drilldown config alongside) or the flat
+      // form. The mapping is by draw order, so any non-empty series is workable
+      // and the renderer decides how many marks it draws.
+      return true
     }
 
     if (tf === 'radial') {
@@ -214,6 +236,47 @@ export default class MorphTypeChange {
           })
         })
       })
+    } else if (fam === 'partition') {
+      if (fromType === 'treemap') {
+        // Tiles are <rect>s, and the morph engine interpolates path data, so
+        // each one is emitted as the equivalent closed rectangle path.
+        const tiles = baseEl.querySelectorAll('.apexcharts-treemap-rect')
+        tiles.forEach((/** @type {Element} */ t) => {
+          const x = parseFloat(t.getAttribute('x') ?? '')
+          const y = parseFloat(t.getAttribute('y') ?? '')
+          const width = parseFloat(t.getAttribute('width') ?? '')
+          const height = parseFloat(t.getAttribute('height') ?? '')
+          if (![x, y, width, height].every((v) => isFinite(v))) return
+          captured.push({
+            realIndex: parseInt(t.getAttribute('i') ?? '0', 10) || 0,
+            j: parseInt(t.getAttribute('j') ?? '0', 10) || 0,
+            d: `M ${x} ${y} L ${x + width} ${y} L ${x + width} ${y + height} L ${x} ${y + height} Z`,
+            fill: t.getAttribute('fill'),
+          })
+        })
+      } else {
+        // Sunburst arcs are already paths. Only LEAVES are captured: they are
+        // the level a flat partition can correspond to, and taking every ring
+        // would hand a treemap's tiles their own ancestors.
+        const arcs = baseEl.querySelectorAll('.apexcharts-sunburst-arc')
+        /** @type {Element[]} */
+        const leaves = []
+        arcs.forEach((/** @type {Element} */ a) => {
+          if (a.getAttribute('data:leaf') === 'true') leaves.push(a)
+        })
+        const source = leaves.length ? leaves : Array.from(arcs)
+        source.forEach((/** @type {Element} */ a, /** @type {number} */ i) => {
+          const d = a.getAttribute('d')
+          // A zoomed-out or collapsed arc carries an empty `d`.
+          if (!d || !d.trim()) return
+          captured.push({
+            realIndex: i,
+            j: 0,
+            d,
+            fill: a.getAttribute('fill'),
+          })
+        })
+      }
     } else if (fam === 'unit') {
       // A unit chart is N objects per cluster, not one mark per cluster, so
       // there is no path to hand the incoming bar or wedge. Capture where each
@@ -500,10 +563,12 @@ export default class MorphTypeChange {
       .slice()
       .sort((a, b) => a.realIndex - b.realIndex || a.j - b.j)
 
-    if (tf === 'radial' || tf === 'unit') {
+    if (tf === 'radial' || tf === 'unit' || tf === 'partition') {
       // pie / donut / polarArea / radialBar iterate i = 0..N-1 with j=0. unit
       // clusters iterate the same way (one cluster per category), reading the
-      // captured shape's centre rather than its `d`.
+      // captured shape's centre rather than its `d`. treemap tiles and sunburst
+      // leaves have no (realIndex, j) grid at all and pair up by draw order,
+      // which this same index keying gives them (see getInitialPathAt).
       flat.forEach((c, i) => {
         map.set(`${i}:0`, { d: c.d, fill: c.fill })
       })
@@ -615,6 +680,22 @@ export default class MorphTypeChange {
     const box = this.getInitialBBoxFor(i)
     if (!box) return null
     return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+  }
+
+  /**
+   * The `k`-th captured path in draw order, already shifted into the NEW
+   * chart's coordinate space.
+   *
+   * For marks that pair up by position rather than by a (series, point) grid:
+   * a treemap's tiles and a sunburst's leaves are each one mark per row, laid
+   * out in the same reading order, so the k-th of one becomes the k-th of the
+   * other.
+   *
+   * @param {number} k
+   * @returns {string | null}
+   */
+  getInitialPathAt(k) {
+    return this.getInitialPathFor(k, 0)
   }
 
   /**

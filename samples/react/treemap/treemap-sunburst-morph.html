@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Treemap and Sunburst - Two Views of One Partition</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 780px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 24px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .actions {
+        margin: 20px auto 12px;
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+      }
+      .actions button {
+        color: #5b6b78;
+        background: #fff;
+        border: 1px solid #dfe6ec;
+        padding: 8px 18px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.on {
+        color: #fff;
+        background: #008ffb;
+        border-color: #008ffb;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Shared by the vanilla-js, React and Vue builds.
+      //
+      // One dataset, two partitions of it. The sunburst reads the hierarchy; the
+      // treemap reads the leaves, which are the level the two views have in common.
+      var TREE = [
+        {
+          data: [
+            {
+              x: 'Engineering',
+              y: 88,
+              children: [
+                { x: 'Platform', y: 34 },
+                { x: 'Product', y: 30 },
+                { x: 'Data', y: 24 },
+              ],
+            },
+            {
+              x: 'Design',
+              y: 34,
+              children: [
+                { x: 'Research', y: 12 },
+                { x: 'Brand', y: 10 },
+                { x: 'Systems', y: 12 },
+              ],
+            },
+            {
+              x: 'Go to market',
+              y: 52,
+              children: [
+                { x: 'Sales', y: 26 },
+                { x: 'Marketing', y: 15 },
+                { x: 'Support', y: 11 },
+              ],
+            },
+          ],
+        },
+      ]
+
+      // The leaves, flattened: a treemap has no hierarchy, so it draws the level the
+      // two charts share. That is also the level the morph pairs up, tile for arc.
+      var LEAVES = [
+        {
+          data: TREE[0].data.reduce(function (acc, parent) {
+            return acc.concat(
+              parent.children.map(function (c) {
+                return { x: c.x, y: c.y }
+              }),
+            )
+          }, []),
+        },
+      ]
+
+      function wirePartitionToggle(chart) {
+        var buttons = [].slice.call(document.querySelectorAll('[data-view]'))
+
+        function apply(view) {
+          buttons.forEach(function (b) {
+            b.className = b.getAttribute('data-view') === view ? 'on' : ''
+          })
+          chart.updateOptions({
+            chart: { type: view === 'sunburst' ? 'sunburst' : 'treemap' },
+            series: view === 'sunburst' ? TREE : LEAVES,
+          })
+        }
+
+        buttons.forEach(function (b) {
+          b.addEventListener('click', function () {
+            apply(b.getAttribute('data-view'))
+          })
+        })
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+  &lt;h1&gt;Two views of one partition&lt;/h1&gt;
+  &lt;p&gt;
+    A treemap tile and a sunburst arc are both exactly one mark per row, so
+    switching between them is a shape change rather than a redraw: each
+    rectangle unrolls into the arc that holds the same team, and back. The
+    sunburst adds the level a treemap cannot show, the parent rings, which sweep
+    in behind the leaves.
+  &lt;/p&gt;
+
+  &lt;div class=&quot;actions&quot;&gt;
+    &lt;button data-view=&quot;treemap&quot; class=&quot;on&quot;&gt;Treemap&lt;/button&gt;
+    &lt;button data-view=&quot;sunburst&quot;&gt;Sunburst&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;chart-wrap&quot;&gt;
+    &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;treemap&quot; height={460} width={700} /&gt;
+&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: LEAVES,
+          options: {
+            chart: {
+              id: 'partition',
+              type: 'treemap',
+              width: 700,
+              height: 460,
+              toolbar: {
+                show: false,
+              },
+              animations: {
+                enabled: true,
+                chartTypeMorph: {
+                  enabled: true,
+                  speed: 900,
+                },
+              },
+            },
+            colors: ['#008FFB', '#00E396', '#FEB019'],
+            legend: {
+              show: false,
+            },
+            dataLabels: {
+              enabled: true,
+              style: {
+                fontSize: '12px',
+              },
+            },
+            plotOptions: {
+              treemap: {
+                distributed: false,
+                enableShades: true,
+              },
+              sunburst: {
+                innerSize: '22%',
+                borderRadius: 2,
+                spacing: 1,
+              },
+            },
+          },
+        })
+
+        React.useEffect(() => {
+          // The react-apexcharts wrapper owns the render, so reach the live instance
+          // by its chart.id before wiring the toggle.
+          const timer = window.setInterval(() => {
+            const chart = ApexCharts.getChartByID('partition')
+            if (!chart) return
+            window.clearInterval(timer)
+            wirePartitionToggle(chart)
+          }, 50)
+
+          return () => window.clearInterval(timer)
+        }, [])
+
+        return (
+          <div>
+            <div class="wrap">
+              <h1>Two views of one partition</h1>
+              <p>
+                A treemap tile and a sunburst arc are both exactly one mark per row,
+                so switching between them is a shape change rather than a redraw: each
+                rectangle unrolls into the arc that holds the same team, and back. The
+                sunburst adds the level a treemap cannot show, the parent rings, which
+                sweep in behind the leaves.
+              </p>
+
+              <div class="actions">
+                <button data-view="treemap" class="on">
+                  Treemap
+                </button>
+                <button data-view="sunburst">Sunburst</button>
+              </div>
+
+              <div class="chart-wrap">
+                <div id="chart">
+                  <ReactApexChart
+                    options={state.options}
+                    series={state.series}
+                    type="treemap"
+                    height={460}
+                    width={700}
+                  />
+                </div>
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

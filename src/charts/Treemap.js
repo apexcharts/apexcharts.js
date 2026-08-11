@@ -77,6 +77,17 @@ export default class TreemapChart {
       w.layout.gridHeight,
     )
 
+    // Cross-type morph (sunburst -> treemap) via the optional `morph` feature.
+    // Tiles consume the captured marks in draw order, the same order the
+    // outgoing renderer laid its own out in, so arc k becomes tile k.
+    const morphSrc = this.ctx?.morphTypeChange
+    const morphActive =
+      !!morphSrc &&
+      typeof morphSrc.isActive === 'function' &&
+      morphSrc.isActive() &&
+      typeof morphSrc.getInitialPathAt === 'function'
+    let morphIndex = 0
+
     nodes.forEach((node, i) => {
       const elSeries = graphics.group({
         class: `apexcharts-series apexcharts-treemap-series`,
@@ -165,19 +176,38 @@ export default class TreemapChart {
           dataPointIndex: j,
         })
 
-        const elRect = graphics.drawRect(
-          x1,
-          y1,
-          x2 - x1,
-          y2 - y1,
-          w.config.plotOptions.treemap.borderRadius,
-          '#fff',
-          1,
-          this.strokeWidth,
-          w.config.plotOptions.treemap.useFillColorAsStroke
-            ? color
-            : w.globals.stroke.colors[i],
-        )
+        // Cross-type morph (sunburst -> treemap): a tile unrolls from the arc
+        // that stood for the same row. An arc cannot be expressed as a <rect>,
+        // so a morphing tile is drawn as a <path> instead and tweened through
+        // the shared polygon interpolator. It keeps the same class, so event
+        // delegation, tooltips and styling are unaffected.
+        const morphFrom = morphActive
+          ? this.ctx.morphTypeChange.getInitialPathAt(morphIndex++)
+          : null
+
+        const elRect = morphFrom
+          ? graphics.drawPath({
+              d: this._tilePath(x1, y1, x2, y2),
+              fill: '#fff',
+              stroke: w.config.plotOptions.treemap.useFillColorAsStroke
+                ? color
+                : w.globals.stroke.colors[i],
+              strokeWidth: this.strokeWidth,
+              fillOpacity: 1,
+            })
+          : graphics.drawRect(
+              x1,
+              y1,
+              x2 - x1,
+              y2 - y1,
+              w.config.plotOptions.treemap.borderRadius,
+              '#fff',
+              1,
+              this.strokeWidth,
+              w.config.plotOptions.treemap.useFillColorAsStroke
+                ? color
+                : w.globals.stroke.colors[i],
+            )
 
         elRect.attr({
           cx: x1,
@@ -205,7 +235,21 @@ export default class TreemapChart {
           height: y2 - y1,
         }
 
-        if (w.config.chart.animations.enabled && !w.globals.dataChanged) {
+        if (morphFrom) {
+          // The tile is a path here, so the usual rect-attribute grow does not
+          // apply: tween the path data from the captured arc instead.
+          this._morphTile(
+            elRect,
+            morphFrom,
+            this._tilePath(x1, y1, x2, y2),
+            this.ctx.morphTypeChange.getSpeed(),
+            i,
+            j,
+          )
+        } else if (
+          w.config.chart.animations.enabled &&
+          !w.globals.dataChanged
+        ) {
           let speed = 1
           if (!w.globals.resized) {
             speed = w.config.chart.animations.speed
@@ -489,6 +533,39 @@ export default class TreemapChart {
     } else {
       return truncatedText
     }
+  }
+
+  /**
+   * A tile as closed path data, for the cross-type morph (a <rect> cannot hold
+   * an arc, so a morphing tile is drawn as a <path>).
+   * @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2
+   * @returns {string}
+   */
+  _tilePath(x1, y1, x2, y2) {
+    return `M ${x1} ${y1} L ${x2} ${y1} L ${x2} ${y2} L ${x1} ${y2} Z`
+  }
+
+  /**
+   * Tween a tile's path data from a captured shape (a sunburst arc) into its
+   * rectangle.
+   *
+   * Routed through Animations.morphSVG, the same call every other morphing
+   * renderer makes: it already selects the polygon-resample algorithm while a
+   * cross-type morph is active, which is what tweens between shapes as
+   * different as an arc and a rectangle. Reaching for the interpolator directly
+   * would also add a name to a module the split bundles share, which breaks
+   * them.
+   *
+   * @param {any} el
+   * @param {string} fromD
+   * @param {string} toD
+   * @param {number} speed
+   * @param {number} i
+   * @param {number} j
+   */
+  _morphTile(el, fromD, toD, speed, i, j) {
+    const animations = new Animations(this.w, this.ctx)
+    animations.morphSVG(el, i, j, 'none', fromD, toD, speed, 0)
   }
 
   /**
