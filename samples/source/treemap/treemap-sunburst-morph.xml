@@ -56,34 +56,41 @@ p {
 //
 // One dataset, two partitions of it. The sunburst reads the hierarchy; the
 // treemap reads the leaves, which are the level the two views have in common.
+//
+// Colour carries the identity across the switch: a team keeps its colour, so
+// the tile you were looking at is the arc you end up looking at. Each branch
+// owns a hue and its teams are progressively lighter shades of it.
 var TREE = [
   {
     data: [
       {
         x: 'Engineering',
         y: 88,
+        color: '#008FFB',
         children: [
-          { x: 'Platform', y: 34 },
-          { x: 'Product', y: 30 },
-          { x: 'Data', y: 24 }
+          { x: 'Platform', y: 34, color: '#008FFB' },
+          { x: 'Product', y: 30, color: '#29A1FC' },
+          { x: 'Data', y: 24, color: '#52B3FC' }
         ]
       },
       {
         x: 'Design',
         y: 34,
+        color: '#00E396',
         children: [
-          { x: 'Research', y: 12 },
-          { x: 'Brand', y: 10 },
-          { x: 'Systems', y: 12 }
+          { x: 'Research', y: 12, color: '#00E396' },
+          { x: 'Brand', y: 10, color: '#29E7A7' },
+          { x: 'Systems', y: 12, color: '#52ECB8' }
         ]
       },
       {
         x: 'Go to market',
         y: 52,
+        color: '#FEB019',
         children: [
-          { x: 'Sales', y: 26 },
-          { x: 'Marketing', y: 15 },
-          { x: 'Support', y: 11 }
+          { x: 'Sales', y: 26, color: '#FEB019' },
+          { x: 'Marketing', y: 15, color: '#FEBD3E' },
+          { x: 'Support', y: 11, color: '#FEC963' }
         ]
       }
     ]
@@ -103,6 +110,17 @@ var LEAVES = [
     }, [])
   }
 ]
+
+// A sunburst colours per node, so its colours travel with the data above. A
+// treemap colours from the palette instead, one entry per tile once
+// `distributed` is on, so hand it the same colours in the same order.
+var LEAF_COLORS = TREE[0].data.reduce(function (acc, parent) {
+  return acc.concat(
+    parent.children.map(function (c) {
+      return c.color
+    })
+  )
+}, [])
 
 function wirePartitionToggle(chart) {
   var buttons = [].slice.call(document.querySelectorAll('[data-view]'))
@@ -132,7 +150,8 @@ function wirePartitionToggle(chart) {
   <p>
     A treemap tile and a sunburst arc are both exactly one mark per row, so
     switching between them is a shape change rather than a redraw: each
-    rectangle unrolls into the arc that holds the same team, and back. The
+    rectangle unrolls into the arc that holds the same team, and back. Every
+    team keeps its colour, so you can pick one and follow it across. The
     sunburst adds the level a treemap cannot show, the parent rings, which sweep
     in behind the leaves.
   </p>
@@ -166,7 +185,7 @@ chart: {
     },
   },
 },
-colors: ['#008FFB', '#00E396', '#FEB019'],
+colors: LEAF_COLORS,
 legend: {
   show: false,
 },
@@ -178,8 +197,11 @@ dataLabels: {
 },
 plotOptions: {
   treemap: {
-    distributed: false,
-    enableShades: true,
+    // One palette entry per tile, taken straight from the data above, so a
+    // tile and the arc it becomes are the same colour. Shading is off because
+    // it would recolour tiles by value and break that pairing.
+    distributed: true,
+    enableShades: false,
   },
   sunburst: {
     innerSize: '22%',
