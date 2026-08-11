@@ -1677,8 +1677,23 @@ export default class Options {
           speed: 260,
         },
         // Optional async resolver, called when a drillable point has no inline
-        // match in `series`: ({ point, seriesIndex, dataPointIndex }) => childSeries
+        // match in `series`. Receives ({ id, point, seriesIndex, dataPointIndex })
+        // and returns a level (or a promise of one). A throw, a rejection, or a
+        // resolved value without a `data` array leaves the chart exactly where
+        // it was and fires `drillDownError` - a failed fetch is ordinary, not
+        // a reason to strand the view.
         // onDrillDown: undefined,
+        // Overlay shown while an async level resolves. `text` is optional: with
+        // none, the spinner shows alone (and carries 'Loading' as its
+        // accessible name), which keeps the default free of any language.
+        loading: {
+          show: true,
+          // text: 'Loading…',
+        },
+        // Cache levels resolved by `onDrillDown`, keyed by id, so drilling back
+        // down a branch does not re-fetch it. Call `chart.drillDown` module's
+        // clearCache() when the data behind an already-drilled chart changes.
+        cache: true,
       },
       legend: {
         show: true,

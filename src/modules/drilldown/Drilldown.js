@@ -2,6 +2,7 @@
 import Utils from '../../utils/Utils'
 import { Environment } from '../../utils/Environment.js'
 import Breadcrumb from './Breadcrumb'
+import DrilldownLoading from './DrilldownLoading'
 
 /**
  * Opt-in drilldown navigation.
@@ -41,7 +42,21 @@ export default class Drilldown {
     this.rootSnapshot = null
     this._wired = false
 
+    /**
+     * Async levels already resolved, keyed by the requested id, so drilling back
+     * down a branch does not re-fetch it. Cleared via `clearCache()`.
+     * @type {Map<string|number, any>}
+     */
+    this._asyncCache = new Map()
+    /**
+     * The in-flight `onDrillDown` promise, if any. Guards against a second
+     * click starting a second fetch (and a double drill) mid-resolve.
+     * @type {Promise<any>|null}
+     */
+    this._pending = null
+
     this.breadcrumb = new Breadcrumb(w, ctx, this)
+    this.loading = new DrilldownLoading(w)
 
     this._onPointSelect = this._onPointSelect.bind(this)
     this._afterRender = this._afterRender.bind(this)
@@ -152,7 +167,7 @@ export default class Drilldown {
   /**
    * @param {any} child
    * @param {any} [triggerPoint]
-   * @param {object} [meta]
+   * @param {{ seriesIndex?: number, dataPointIndex?: number }} [meta]
    * @returns {Promise<any>}
    */
   _drillInto(child, triggerPoint, meta) {
@@ -173,35 +188,140 @@ export default class Drilldown {
   }
 
   /**
-   * Minimal async resolver (loading overlay lands in Phase 3).
+   * Resolve a level through `onDrillDown` and drill into it.
+   *
+   * Failure never changes state: on a throw, a rejection, or a resolver that
+   * hands back something undrillable, the chart stays exactly where it was and
+   * `drillDownError` fires. That is what makes this usable against a real
+   * backend, where a fetch failing is ordinary rather than exceptional.
+   *
    * @param {string|number|null} id
    * @param {any} point
-   * @param {object} [meta]
+   * @param {{ seriesIndex?: number, dataPointIndex?: number }} [meta]
    * @returns {Promise<any>}
    */
   _drillDownAsync(id, point, meta) {
-    const fn = this.w.config.drilldown.onDrillDown
+    const cfg = this.w.config.drilldown
+    const fn = cfg.onDrillDown
+
+    // Already resolved once: skip the round trip entirely. Drilling back down
+    // the same branch is the common navigation pattern, so without this every
+    // breadcrumb bounce re-fetches.
+    const cached = this._cacheGet(id)
+    if (cached) return this._drillInto(cached, point, meta)
+
+    // A second click while a fetch is in flight must not start a second fetch
+    // or drill twice. Returning the pending promise keeps the caller's
+    // await-able contract intact.
+    if (this._pending) return this._pending
+
     let result
+    this.loading.show()
     try {
       result = fn({
+        // `id` was missing here, so a resolver could not tell WHICH level was
+        // asked for without re-deriving it from the point. It is the first
+        // thing a real implementation needs (`fetch('/levels/' + id)`).
+        id,
         point,
         seriesIndex: meta && meta.seriesIndex,
         dataPointIndex: meta && meta.dataPointIndex,
       })
     } catch (error) {
+      this.loading.hide()
       this._fire('drillDownError', { id, error })
       return Promise.resolve(this.ctx)
     }
-    return Promise.resolve(result).then(
+
+    const settle = () => {
+      this._pending = null
+      this.loading.hide()
+    }
+
+    const p = Promise.resolve(result).then(
       (child) => {
-        if (!child || !child.data) return this.ctx
-        return this._drillInto(child, point, meta)
+        settle()
+        if (this._isDead()) return this.ctx
+        if (!child || !child.data) {
+          // Previously a silent no-op, which looks identical to "nothing
+          // happened" and is the hardest kind of integration bug to chase.
+          this._fire('drillDownError', {
+            id,
+            error: new Error(
+              `drilldown: onDrillDown resolved without a drillable level for id "${id}" ` +
+                `(expected an object with a \`data\` array).`,
+            ),
+          })
+          return this.ctx
+        }
+        // A resolver naturally returns just the level, so default its id to the
+        // one that was asked for; the breadcrumb and restore stack key off it.
+        const level = child.id != null ? child : { ...child, id }
+        this._cacheSet(id, level)
+        return this._drillInto(level, point, meta)
       },
       (error) => {
+        settle()
+        if (this._isDead()) return this.ctx
         this._fire('drillDownError', { id, error })
         return this.ctx
       },
     )
+
+    this._pending = p
+    return p
+  }
+
+  /**
+   * Whether the chart was torn down while a resolver was in flight.
+   *
+   * Clicking to drill and then navigating away is ordinary, not exceptional: a
+   * component unmounts, `destroy()` runs, and the fetch settles afterwards.
+   * Without this the resolved level would be applied to a destroyed chart,
+   * which throws out of `updateOptions` and surfaces in the host app as an
+   * unhandled rejection from a click the user has already forgotten about.
+   *
+   * @returns {boolean}
+   */
+  _isDead() {
+    const w = this.w
+    return !w || !w.globals || w.globals.isDestroyed === true
+  }
+
+  /** @returns {boolean} whether resolved async levels are cached. */
+  _cacheEnabled() {
+    const cfg = this.w.config.drilldown
+    return !!(cfg && cfg.cache !== false)
+  }
+
+  /**
+   * @param {string|number|null} id
+   * @returns {any|null}
+   */
+  _cacheGet(id) {
+    if (!this._cacheEnabled() || id == null) return null
+    return this._asyncCache.get(id) || null
+  }
+
+  /**
+   * @param {string|number|null} id
+   * @param {any} level
+   */
+  _cacheSet(id, level) {
+    if (!this._cacheEnabled() || id == null) return
+    this._asyncCache.set(id, level)
+  }
+
+  /**
+   * Drop cached async levels, so the next drill re-runs `onDrillDown`. Call it
+   * when the underlying data changes behind a chart that has already drilled.
+   * @param {string|number} [id] a single level, or every level when omitted
+   * @returns {any} the chart, for chaining
+   */
+  clearCache(id) {
+    if (id == null) this._asyncCache.clear()
+    else this._asyncCache.delete(id)
+    return this.ctx
   }
 
   /**

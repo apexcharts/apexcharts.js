@@ -1198,6 +1198,67 @@ rect.legend-mouseover-inactive,
   background: rgba(255, 255, 255, 0.12)
 }
 
+.apexcharts-drilldown-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.62);
+  /* The chart underneath stays interactive-looking but must not take clicks
+     while a level is resolving, or a second drill can start mid-fetch. */
+  cursor: progress
+}
+
+.apexcharts-drilldown-loading-spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(0, 0, 0, 0.16);
+  border-top-color: rgba(0, 0, 0, 0.55);
+  animation: apexcharts-drilldown-spin 0.7s linear infinite
+}
+
+.apexcharts-drilldown-loading-text {
+  opacity: 0.8
+}
+
+.apexcharts-theme-dark .apexcharts-drilldown-loading {
+  background: rgba(30, 30, 30, 0.62)
+}
+
+.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner {
+  border-color: rgba(255, 255, 255, 0.22);
+  border-top-color: rgba(255, 255, 255, 0.7)
+}
+
+@keyframes apexcharts-drilldown-spin {
+  to {
+    transform: rotate(360deg)
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apexcharts-drilldown-loading-spinner {
+    animation: apexcharts-drilldown-pulse 1.4s ease-in-out infinite
+  }
+
+  @keyframes apexcharts-drilldown-pulse {
+    0%, 100% {
+      opacity: 0.35
+    }
+
+    50% {
+      opacity: 1
+    }
+  }
+}
+
 .apexcharts-disable-transitions * {
   transition: none !important;
 }

@@ -2155,6 +2155,22 @@ export default class ApexCharts {
     return this.ctx.drilldown.drillToRoot()
   }
 
+  /**
+   * Drops levels cached from `drilldown.onDrillDown`, so the next drill re-runs
+   * the resolver. Call it when the data behind an already-drilled chart changes.
+   * Requires the Drilldown feature: `import 'apexcharts/features/drilldown'`.
+   *
+   * @param {string|number} [id] - A single level id, or every level when omitted.
+   * @returns {ApexCharts}
+   */
+  clearDrilldownCache(id) {
+    if (!this.ctx.drilldown)
+      throw new Error(
+        'apexcharts: Drilldown feature is not registered. Import apexcharts/features/drilldown.',
+      )
+    return this.ctx.drilldown.clearCache(id)
+  }
+
   // ─── Slice write-back stubs ─────────────────────────────────────────────────
   /**
    * Copy own DATA properties of a parse-state slice onto a live w.* slice.

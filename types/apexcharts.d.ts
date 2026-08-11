@@ -275,6 +275,14 @@ declare class ApexCharts {
    */
   drillToRoot(): Promise<ApexCharts>
 
+  /**
+   * Drops levels cached from `drilldown.onDrillDown`, so the next drill re-runs
+   * the resolver. Call it when the data behind an already-drilled chart
+   * changes. Omit `id` to clear every level.
+   * Requires the Drilldown feature.
+   */
+  clearDrilldownCache(id?: string | number): ApexCharts
+
   /** Returns the inner SVG group element containing all chart graphics. */
   getChartArea(): Element | null
 
@@ -921,6 +929,8 @@ declare namespace ApexCharts {
 
   /** Context passed to the async `onDrillDown` resolver. */
   export interface ApexDrilldownContext {
+    /** The requested level id, i.e. the clicked point's `drilldown` value. */
+    id: string | number | null
     point: any
     seriesIndex?: number
     dataPointIndex?: number
@@ -954,10 +964,34 @@ declare namespace ApexCharts {
       /** Base transition duration in ms when `zoomFromPoint` is true. Default 260. */
       speed?: number
     }
-    /** Async resolver called when a drillable point has no inline `series` match. */
+    /**
+     * Async resolver called when a drillable point has no inline `series` match.
+     *
+     * Failure never changes state: a throw, a rejection, or a resolved value
+     * without a `data` array leaves the chart where it was and fires
+     * `drillDownError`. A second click while one is in flight is ignored rather
+     * than starting a second request.
+     */
     onDrillDown?(
       ctx: ApexDrilldownContext
     ): ApexDrilldownSeries | Promise<ApexDrilldownSeries>
+    /**
+     * Overlay shown while an async level resolves. `text` is optional; with
+     * none, the spinner shows alone and carries "Loading" as its accessible
+     * name, so the default ships no user-visible English.
+     */
+    loading?:
+      | false
+      | {
+          show?: boolean
+          text?: string
+        }
+    /**
+     * Cache levels resolved by `onDrillDown`, keyed by id, so drilling back down
+     * a branch does not re-fetch. Default true. Clear it with the drilldown
+     * module's `clearCache()` when the underlying data changes.
+     */
+    cache?: boolean
   }
 
   export interface ApexOptions {

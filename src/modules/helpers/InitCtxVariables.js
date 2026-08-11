@@ -108,6 +108,7 @@ export default class InitCtxVariables {
       'drillDown',
       'drillUp',
       'drillToRoot',
+      'clearDrilldownCache',
       'paper',
       'getActiveRenderer',
       'destroy',

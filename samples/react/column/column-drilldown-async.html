@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Column Drilldown - Async Levels</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 24px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        position: relative;
+      }
+      .actions {
+        margin: 20px auto 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        align-items: center;
+      }
+      .actions button {
+        color: #fff;
+        background: #008ffb;
+        border: none;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions label {
+        font-size: 13px;
+        color: #5b6b78;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .status {
+        min-height: 20px;
+        text-align: center;
+        font-size: 13px;
+        color: #5b6b78;
+        margin-top: 12px;
+      }
+      .status.error {
+        color: #d7263d;
+        font-weight: 600;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Shared by the vanilla-js, React and Vue builds.
+      //
+      // Levels are FETCHED, not inlined, which is how a real dashboard works: the
+      // root is small, and each child is a request. A fake backend stands in for the
+      // API so the demo is self-contained and deterministic.
+      var BACKEND = {
+        '2023-q': [
+          { x: 'Q1', y: 21 },
+          { x: 'Q2', y: 28 },
+          { x: 'Q3', y: 24 },
+          { x: 'Q4', y: 27 },
+        ],
+        '2024-q': [
+          { x: 'Q1', y: 33 },
+          { x: 'Q2', y: 41 },
+          { x: 'Q3', y: 36 },
+          { x: 'Q4', y: 40 },
+        ],
+        '2025-q': [
+          { x: 'Q1', y: 44 },
+          { x: 'Q2', y: 52 },
+          { x: 'Q3', y: 48 },
+          { x: 'Q4', y: 56 },
+        ],
+      }
+
+      // Flipped by the checkbox, so the failure path is demonstrable rather than
+      // described. A failed fetch must leave the chart exactly where it was.
+      var failNext = false
+
+      function fakeFetch(id) {
+        return new Promise(function (resolve, reject) {
+          window.setTimeout(function () {
+            if (failNext) {
+              reject(new Error('Request failed (simulated)'))
+              return
+            }
+            var rows = BACKEND[id]
+            if (!rows) {
+              reject(new Error('No level "' + id + '"'))
+              return
+            }
+            resolve({ id: id, name: id.replace('-q', ' by quarter'), data: rows })
+          }, 700)
+        })
+      }
+
+      function setStatus(text, isError) {
+        var el = document.querySelector('#status')
+        if (!el) return
+        el.textContent = text || ''
+        el.className = isError ? 'status error' : 'status'
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+  &lt;h1&gt;Drilldown against a real backend&lt;/h1&gt;
+  &lt;p&gt;
+    The root shows three years. Each year&#39;s quarters are fetched on click, with
+    a spinner while the request is in flight. Levels are cached, so drilling
+    back down a branch you have already visited is instant. Tick &quot;make the next
+    request fail&quot; to see that a failed fetch leaves the chart exactly where it
+    was and reports the error, rather than stranding the view.
+  &lt;/p&gt;
+
+  &lt;div class=&quot;actions&quot;&gt;
+    &lt;button id=&quot;up&quot;&gt;Back&lt;/button&gt;
+    &lt;button id=&quot;clear-cache&quot;&gt;Clear cache&lt;/button&gt;
+    &lt;label&gt;
+      &lt;input type=&quot;checkbox&quot; id=&quot;fail&quot; /&gt;
+      Make the next request fail
+    &lt;/label&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;chart-wrap&quot;&gt;
+    &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={400} /&gt;
+&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;status&quot; id=&quot;status&quot;&gt;&lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [
+            {
+              name: 'Revenue',
+              data: [
+                { x: '2023', y: 100, drilldown: '2023-q' },
+                { x: '2024', y: 150, drilldown: '2024-q' },
+                { x: '2025', y: 200, drilldown: '2025-q' },
+              ],
+            },
+          ],
+          options: {
+            chart: {
+              id: 'asyncDrill',
+              type: 'bar',
+              height: 400,
+              toolbar: {
+                show: false,
+              },
+            },
+            plotOptions: {
+              bar: {
+                distributed: true,
+                columnWidth: '50%',
+                borderRadius: 6,
+                borderRadiusApplication: 'end',
+              },
+            },
+            legend: {
+              show: false,
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            drilldown: {
+              enabled: true,
+              // Deliberately empty: every level below the root comes from onDrillDown.
+              series: [],
+              breadcrumb: {
+                show: true,
+                rootLabel: 'All years',
+              },
+              loading: {
+                show: true,
+              },
+              cache: true,
+            },
+          },
+        })
+
+        React.useEffect(() => {
+          // The react-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id, then wire the resolver and controls. (BACKEND/fakeFetch/
+          // setStatus live in the shared head script.)
+          let chart
+
+          const timer = window.setInterval(() => {
+            chart = ApexCharts.getChartByID('asyncDrill')
+            if (!chart) return
+            window.clearInterval(timer)
+
+            chart.updateOptions({
+              drilldown: {
+                onDrillDown: (ctx) => {
+                  setStatus('Fetching ' + ctx.id + '...')
+                  return fakeFetch(ctx.id)
+                },
+              },
+            })
+
+            chart.addEventListener('drillDownEnd', () => setStatus(''))
+            chart.addEventListener('drillDownError', (info) =>
+              setStatus(String(info.error && info.error.message), true),
+            )
+
+            document
+              .querySelector('#up')
+              .addEventListener('click', () => chart.drillUp())
+            document.querySelector('#clear-cache').addEventListener('click', () => {
+              chart.clearDrilldownCache()
+              setStatus('Cache cleared - the next drill will refetch.')
+            })
+            document.querySelector('#fail').addEventListener('change', (e) => {
+              failNext = e.target.checked
+            })
+          }, 50)
+
+          return () => window.clearInterval(timer)
+        }, [])
+
+        return (
+          <div>
+            <div class="wrap">
+              <h1>Drilldown against a real backend</h1>
+              <p>
+                The root shows three years. Each year's quarters are fetched on click,
+                with a spinner while the request is in flight. Levels are cached, so
+                drilling back down a branch you have already visited is instant. Tick
+                "make the next request fail" to see that a failed fetch leaves the
+                chart exactly where it was and reports the error, rather than
+                stranding the view.
+              </p>
+
+              <div class="actions">
+                <button id="up">Back</button>
+                <button id="clear-cache">Clear cache</button>
+                <label>
+                  <input type="checkbox" id="fail" />
+                  Make the next request fail
+                </label>
+              </div>
+
+              <div class="chart-wrap">
+                <div id="chart">
+                  <ReactApexChart
+                    options={state.options}
+                    series={state.series}
+                    type="bar"
+                    height={400}
+                  />
+                </div>
+              </div>
+
+              <div class="status" id="status"></div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>
