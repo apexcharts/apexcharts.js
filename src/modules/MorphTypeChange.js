@@ -34,10 +34,13 @@ import { parsePath } from '../svg/PathMorphing'
 // target without any renderer-side changes.
 const BAR_FAMILY = new Set(['bar', 'funnel', 'pyramid'])
 const RADIAL_FAMILY = new Set(['pie', 'donut', 'polarArea', 'radialBar', 'gauge'])
-// unit (dot-cluster / pictogram) is a morph TARGET only for now: a bar/radial
-// shape bursts into its unit dots. The unit renderer reads per-cluster centres
-// (getInitialCenterFor) rather than a path `d`, so its dots explode from the
-// outgoing bar/wedge instead of gathering from the plot centre.
+// unit (dot-cluster / pictogram) morphs BOTH ways: a bar/radial shape comes
+// apart into the objects it stood for (each leaving from the part of the shape
+// that represented it, see getInitialSlotFor), and a dot cloud collapses back
+// into the mark that aggregates it (the incoming mark grows out of the cloud's
+// own footprint, see the `unit` branch of _captureFromDOM). As a target the
+// renderer reads per-object slots rather than a path `d`, so its dots come out
+// of the outgoing bar/wedge instead of gathering from the plot centre.
 const UNIT_FAMILY = new Set(['unit'])
 
 /** @param {string} type */
@@ -86,9 +89,21 @@ export default class MorphTypeChange {
     const ff = familyOf(fromType)
     const tf = familyOf(toType)
 
-    if (tf === 'radial' || tf === 'unit') {
-      // pie/donut/polarArea/radialBar and unit all accept either a flat
-      // number[] or the object form [{ data: [...] }] that the pie/donut data
+    if (tf === 'unit') {
+      // A unit chart is one SERIES per cluster, each carrying that cluster's
+      // objects: [{ name, data: [datum, ...] }, ...]. Requiring a single series
+      // (as the radial branch below does) rejected every multi-cluster unit
+      // chart, which is the ordinary shape and the whole point of the pair.
+      if (newSeries.every((v) => typeof v === 'number')) return true
+      return newSeries.every(
+        (/** @type {any} */ s) =>
+          s && typeof s === 'object' && Array.isArray(s.data),
+      )
+    }
+
+    if (tf === 'radial') {
+      // pie/donut/polarArea/radialBar accept either a flat number[] or the
+      // single-series object form [{ data: [...] }] that the pie/donut data
       // parser also accepts. The mapping is positional, so the exact value
       // shape is irrelevant.
       if (newSeries.every((v) => typeof v === 'number')) return true
@@ -199,6 +214,67 @@ export default class MorphTypeChange {
           })
         })
       })
+    } else if (fam === 'unit') {
+      // A unit chart is N objects per cluster, not one mark per cluster, so
+      // there is no path to hand the incoming bar or wedge. Capture where each
+      // cluster's dots actually sat and synthesise the rect they filled: the
+      // incoming mark then grows out of its own dot cloud, which is the mirror
+      // of the burst that brought the dots out of it.
+      const dots = baseEl.querySelectorAll('.apexcharts-unit-area')
+      /** @type {Map<number, {minX:number,minY:number,maxX:number,maxY:number,fill:string|null}>} */
+      const boxes = new Map()
+      dots.forEach((/** @type {Element} */ dot) => {
+        const i = parseInt(dot.getAttribute('i') ?? '', 10)
+        if (isNaN(i)) return
+        // Circles carry cx/cy; square / image dots carry their top-left x/y.
+        const cxAttr = dot.getAttribute('cx')
+        let x
+        let y
+        if (cxAttr != null) {
+          x = parseFloat(cxAttr)
+          y = parseFloat(dot.getAttribute('cy') ?? '')
+        } else {
+          const wAttr = parseFloat(dot.getAttribute('width') ?? '0') || 0
+          const hAttr = parseFloat(dot.getAttribute('height') ?? '0') || 0
+          x = parseFloat(dot.getAttribute('x') ?? '') + wAttr / 2
+          y = parseFloat(dot.getAttribute('y') ?? '') + hAttr / 2
+        }
+        if (!isFinite(x) || !isFinite(y)) return
+        const box = boxes.get(i)
+        if (!box) {
+          boxes.set(i, {
+            minX: x,
+            minY: y,
+            maxX: x,
+            maxY: y,
+            fill: dot.getAttribute('fill'),
+          })
+          return
+        }
+        if (x < box.minX) box.minX = x
+        if (x > box.maxX) box.maxX = x
+        if (y < box.minY) box.minY = y
+        if (y > box.maxY) box.maxY = y
+      })
+
+      Array.from(boxes.keys())
+        .sort((a, b) => a - b)
+        .forEach((i) => {
+          const b = /** @type {any} */ (boxes.get(i))
+          // A single-dot cluster has a zero-area box; give it the width of one
+          // dot so the incoming mark has something to grow from.
+          const pad = 2
+          const x1 = b.minX - pad
+          const y1 = b.minY - pad
+          const x2 = b.maxX + pad
+          const y2 = b.maxY + pad
+          captured.push({
+            realIndex: i,
+            j: 0,
+            d: `M ${x1} ${y1} L ${x2} ${y1} L ${x2} ${y2} L ${x1} ${y2} Z`,
+            fill: b.fill,
+          })
+        })
     } else if (fam === 'radial') {
       // `gauge` is an alias for radialBar (see Config.normalizeAliasedChartType),
       // so it captures from the same selector / arc-shape.
@@ -542,10 +618,47 @@ export default class MorphTypeChange {
   }
 
   /**
+   * Where the `j`-th of `n` objects in cluster `i` starts, INSIDE the shape it
+   * came out of.
+   *
+   * An aggregate mark stands for a quantity, and its extent is that quantity: a
+   * bar of height h representing n units gives its k-th unit the height
+   * fraction (k + 0.5)/n. So a bar does not spray its dots from a single point,
+   * it comes apart along its own length, bottom-up, and each dot leaves from
+   * the part of the bar that was standing for it. The reverse direction reads
+   * the same geometry, so explode and collapse are inverses.
+   *
+   * The distribution follows the captured shape's LONGER axis, which is what
+   * makes one function serve both marks: a bar's box is tall and thin, so the
+   * dots leave in a column; a wedge's box is squat, so they leave in a row
+   * across it.
+   *
+   * @param {number} i - cluster index
+   * @param {number} j - the object's rank within its cluster
+   * @param {number} n - objects in the cluster
+   * @returns {{ x: number, y: number } | null}
+   */
+  getInitialSlotFor(i, j, n) {
+    const box = this.getInitialBBoxFor(i)
+    if (!box) return null
+
+    const cx = box.x + box.width / 2
+    const cy = box.y + box.height / 2
+    if (!(n > 1) || !(j >= 0)) return { x: cx, y: cy }
+
+    const t = (Math.min(j, n - 1) + 0.5) / n
+    if (box.height >= box.width) {
+      // Tall: bottom-up, so the first unit leaves from the bar's base.
+      return { x: cx, y: box.y + box.height * (1 - t) }
+    }
+    return { x: box.x + box.width * t, y: cy }
+  }
+
+  /**
    * The bounding box (in the NEW chart's screen space) of the captured shape
-   * for cluster `i`. The unit (dot-cluster) renderer distributes the cluster's
-   * dots ACROSS this box as their start positions, so a tall bar visibly breaks
-   * apart into a tall column of dots that then swarm into the cluster.
+   * for cluster `i`. `getInitialSlotFor` distributes a cluster's objects across
+   * this box as their start positions, so a tall bar visibly breaks apart into
+   * a tall column of dots that then swarm into the cluster.
    * @param {number} i
    * @returns {{ x: number, y: number, width: number, height: number } | null}
    */

@@ -220,8 +220,11 @@ export default class Unit {
     const animate = this._shouldAnimate()
 
     // Cross-type morph (bar/wedge -> unit): when the optional `morph` feature
-    // captured an outgoing bar/radial chart, each cluster's dots burst outward
-    // from the shape they replace instead of gathering from the plot centre.
+    // captured an outgoing bar/radial chart, each cluster's dots come out of the
+    // shape they replace instead of gathering from the plot centre. Each dot
+    // leaves from the PART of that shape which stood for it (getInitialSlotFor),
+    // so a bar comes apart along its own length rather than spraying from one
+    // point.
     const morph = this.ctx && this.ctx.morphTypeChange
     const morphActive =
       animate &&
@@ -229,6 +232,8 @@ export default class Unit {
       typeof morph.isActive === 'function' &&
       morph.isActive() &&
       typeof morph.getInitialCenterFor === 'function'
+    const perRowBurst =
+      morphActive && typeof morph.getInitialSlotFor === 'function'
 
     // Positions from the PREVIOUS render, keyed "i:j". On an update this lets a
     // dot glide from its old slot to its new one (the keyed transition) instead
@@ -264,10 +269,12 @@ export default class Unit {
         'data:realIndex': cluster.i,
       })
 
-      // Burst origin for this cluster when morphing from a bar/wedge (the
-      // captured shape's centre). All of the cluster's dots start stacked here
-      // and fan out to their slots.
-      const burst = morphActive ? morph.getInitialCenterFor(cluster.i) : null
+      // Burst origin for this cluster when morphing from a bar/wedge. Falls
+      // back to the captured shape's centre (every dot stacked at one point)
+      // only if the morph feature predates per-row slots.
+      const burst =
+        morphActive && !perRowBurst ? morph.getInitialCenterFor(cluster.i) : null
+      const burstCount = cluster.dots.length
       const catData = unitData[cluster.i]
 
       cluster.dots.forEach((d, j) => {
@@ -316,10 +323,14 @@ export default class Unit {
         nextPrev.set(key, { x: d.x, y: d.y, fill: dotFill, r: rj })
         if (animate) {
           const from = prev && prev.get(key)
-          // Priority: previous slot (keyed update) -> burst origin (morph) ->
-          // cluster centre (fresh mount). The first two keep dots opaque; a
-          // fresh mount fades them in.
-          const anchor = from || burst
+          // Priority: previous slot (keyed update) -> the part of the outgoing
+          // mark that stood for THIS row (morph) -> cluster centre (fresh
+          // mount). The first two keep dots opaque; a fresh mount fades them in.
+          const anchor =
+            from ||
+            (perRowBurst
+              ? morph.getInitialSlotFor(cluster.i, j, burstCount)
+              : burst)
           // A fresh mount fades in. Where an entering dot comes FROM is
           // `gather.enter`: 'burst' (default) flies out from the cluster
           // centre; 'fade' materialises in place; 'rise' fades in while

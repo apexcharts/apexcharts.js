@@ -84,7 +84,24 @@
       // each format's own wiring below (one live chart per generated page).
       var LABELS = ['Direct', 'Organic', 'Referral', 'Social', 'Email']
 
+      // One dot per SESSIONS_PER_DOT sessions, so a value of 44 reads as a countable
+      // cluster rather than 44 dots nobody can count.
+      var SESSIONS_PER_DOT = 5
+
       function buildSeriesFor(type, values) {
+        if (type === 'unit') {
+          // A unit chart is one series per cluster, each holding that cluster's
+          // objects. Morphing here takes the bar apart into the things it counted:
+          // every dot leaves from the part of the bar that was standing for it.
+          return values.map(function (v, i) {
+            var n = Math.max(1, Math.round(v / SESSIONS_PER_DOT))
+            var data = []
+            for (var k = 0; k < n; k++) {
+              data.push({ id: LABELS[i] + '-' + k, name: LABELS[i] })
+            }
+            return { name: LABELS[i], data: data }
+          })
+        }
         if (type === 'funnel') {
           var sorted = values.slice().sort(function (a, b) {
             return b - a
@@ -120,6 +137,12 @@
           (bar ↔ pie / donut / polarArea / radialBar) tween between paths
           instead of flickering through a destroy + recreate.
         </p>
+        <p>
+          "Unit (dots)" is a different kind of change: one mark becomes many. A bar
+          stands for a quantity, so it comes apart along its own length and each dot
+          leaves from the part of the bar that was counting it. Going back, the cloud
+          collapses into the mark that aggregates it.
+        </p>
       
         <div class="chart-wrap">
           <div id="chart"></div>
@@ -134,6 +157,7 @@
           <button data-type="radialBar">Radial bar</button>
           <button data-type="funnel">Funnel</button>
           <button data-type="pyramid">Pyramid</button>
+          <button data-type="unit">Unit (dots)</button>
         </div>
       
         <div class="actions">
@@ -188,6 +212,13 @@
           },
           funnel: {
             shape: 'trapezoid',
+          },
+          unit: {
+            // One column of dots per category, so the cluster stands where its bar did.
+            layout: 'columns',
+            // Keep a dot's identity across every regroup, so the same object leaves and
+            // returns to the same place on a round trip.
+            transition: 'identity',
           },
         },
         yaxis: {
