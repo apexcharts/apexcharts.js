@@ -72,6 +72,59 @@ describe('Facet: named themes', () => {
   })
 })
 
+describe('Facet: the surface token and chart.background', () => {
+  it('a token surface fills an unset background', async () => {
+    ApexCharts.registerTheme('brand', { tokens: { surface: '#101820' } })
+    const chart = themedChart({ name: 'brand' })
+    await chart.render()
+    expect(chart.w.config.chart.background).toBe('#101820')
+    expect(chart.w.globals.tokenSurface).toBe('#101820')
+    chart.destroy()
+  })
+
+  it('a changed token replaces the background it previously set', async () => {
+    // The host app swaps its design system (or the OS flips light/dark) and
+    // calls refreshTokens(). The background must follow. It used to freeze:
+    // the first token was written into config, and config then looked like a
+    // user value that tokens must not touch.
+    ApexCharts.registerTheme('brand', { tokens: { surface: '#101820' } })
+    const chart = themedChart({ name: 'brand' })
+    await chart.render()
+    expect(chart.w.config.chart.background).toBe('#101820')
+
+    ApexCharts.registerTheme('brand', { tokens: { surface: '#fdfdfd' } })
+    await chart.refreshTokens()
+    expect(chart.w.config.chart.background).toBe('#fdfdfd')
+    chart.destroy()
+  })
+
+  it('never overwrites a background the user set', async () => {
+    ApexCharts.registerTheme('brand', { tokens: { surface: '#101820' } })
+    const chart = themedChart({ name: 'brand' }, { background: '#ff0000' })
+    await chart.render()
+    expect(chart.w.config.chart.background).toBe('#ff0000')
+    expect(chart.w.globals.tokenSurface).toBeUndefined()
+
+    ApexCharts.registerTheme('brand', { tokens: { surface: '#fdfdfd' } })
+    await chart.refreshTokens()
+    expect(chart.w.config.chart.background).toBe('#ff0000')
+    chart.destroy()
+  })
+
+  it('releases the background when the token goes away', async () => {
+    ApexCharts.registerTheme('brand', { tokens: { surface: '#101820' } })
+    const chart = themedChart({ name: 'brand' })
+    await chart.render()
+    expect(chart.w.config.chart.background).toBe('#101820')
+
+    ApexCharts.registerTheme('brand', { tokens: { fore: '#222222' } })
+    await chart.refreshTokens()
+    expect(chart.w.config.chart.background).toBe('')
+    expect(chart.w.globals.tokenSurface).toBeUndefined()
+    chart.destroy()
+  })
+})
+
 describe('Facet: OS theme watcher (theme.follow: "os")', () => {
   function mockMatchMedia(state) {
     const listeners = []

@@ -420,6 +420,11 @@ export default class Globals {
       // ── Config snapshots (backups for zoom-reset / updateOptions) ────────────
       initialConfig: null, // deep clone of the original user config
       initialSeries: [],
+      // The `--apx-surface` value Theme wrote into chart.background, so a later
+      // token read can tell its own value from an explicit user background and
+      // update it (see Theme.applyTokenChrome). Persistent: a re-render must
+      // not forget it.
+      tokenSurface: undefined,
       lastXAxis: [],
       lastYAxis: [],
 

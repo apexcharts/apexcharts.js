@@ -246,13 +246,38 @@ export default class Theme {
       }
     }
 
-    if (tokens.surface && !w.config.chart.background) {
-      w.config.chart.background = tokens.surface
-      // The SVG paper background is set in Core.setupElements, which runs before
-      // Theme.init, so re-apply the resolved surface to the paper node here.
+    // `chart.background` is the odd one out above: fore and grid have non-empty
+    // built-in defaults to compare against, so an explicit value is
+    // recognisable. background defaults to '', so once a token was written into
+    // config it becomes indistinguishable from a user value, and every later
+    // read (an OS light/dark flip, a host app swapping its design system and
+    // calling refreshTokens()) would decline to update it. Remembering what we
+    // wrote keeps our own value replaceable while an explicit background still
+    // wins outright.
+    const appliedSurface = w.globals.tokenSurface
+    const currentBg = w.config.chart.background
+    const isOurs = !currentBg || currentBg === appliedSurface
+
+    if (tokens.surface) {
+      if (isOurs) {
+        w.config.chart.background = tokens.surface
+        w.globals.tokenSurface = tokens.surface
+        // The SVG paper background is set in Core.setupElements, which runs
+        // before Theme.init, so re-apply the resolved surface to the paper node.
+        const paperNode = w.dom.Paper && w.dom.Paper.node
+        if (paperNode && paperNode.style) {
+          paperNode.style.background = tokens.surface
+        }
+      }
+    } else if (appliedSurface && currentBg === appliedSurface) {
+      // The token went away (the host swapped to a theme that does not define
+      // --apx-surface). Give the background back rather than freezing the
+      // colour of a design system that is no longer applied.
+      w.config.chart.background = ''
+      w.globals.tokenSurface = undefined
       const paperNode = w.dom.Paper && w.dom.Paper.node
       if (paperNode && paperNode.style) {
-        paperNode.style.background = tokens.surface
+        paperNode.style.background = ''
       }
     }
   }
