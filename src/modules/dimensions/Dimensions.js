@@ -224,7 +224,7 @@ export default class Dimensions {
     if (w.globals.isBarHorizontal) {
       w.layout.rotateXLabels = false
       w.layout.translateXAxisY =
-        -1 * (parseInt(w.config.xaxis.labels.style.fontSize, 10) / 1.5)
+        -1 * ((parseInt(w.config.xaxis.labels.style.fontSize, 10) || 12) / 1.5)
     }
 
     w.layout.translateXAxisY =
