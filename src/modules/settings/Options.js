@@ -935,12 +935,141 @@ export default class Options {
           borderRadius: 4,
           dataLabels: {
             format: 'scale', // scale | truncate
+            // Skip a tile's label when it would render below this size.
+            //
+            // With `format: 'scale'` the font size follows the tile's area, so
+            // on a dense treemap most tiles ask for text a few pixels tall,
+            // which nobody can read. Drawing it is not free: each label has to
+            // be built and measured against the DOM, and on a 10k-tile chart
+            // that was the entire render cost (~7.5s, versus ~0.1s once the
+            // unreadable ones are skipped).
+            //
+            // The default sits below the smallest label any bundled sample
+            // draws, so it only ever removes text that was already illegible.
+            // Set 0 to draw a label on every tile regardless of size.
+            minFontSize: 4,
           },
           colorScale: {
             inverse: false,
             ranges: [],
             min: undefined,
             max: undefined,
+            // Colour a tile by a SECOND metric, independent of the value that
+            // sizes it (area = how big, colour = how it did). Reads
+            // `datum.colorValue` unless this names another key or supplies an
+            // accessor `(datum, {seriesIndex, dataPointIndex, w}) => number`.
+            colorValue: undefined,
+            // Continuous interpolation between colour stops. Active as soon as
+            // any datum carries a colour metric; `enabled: false` opts out and
+            // `true` forces it on. `ranges` is unaffected and still applies
+            // wherever it is set.
+            gradient: {
+              enabled: undefined,
+              // Domain. Defaults to the extent of the colour metric.
+              min: undefined,
+              max: undefined,
+              // The value the middle colour is pinned to. Defaults to 0 when
+              // the domain straddles zero (a diverging metric), else none.
+              midpoint: undefined,
+              // With a midpoint, balance the domain around it so equal moves
+              // in either direction read as equally saturated.
+              symmetric: true,
+              // Low -> mid -> high. Two colours make a sequential ramp.
+              colors: undefined,
+              // Explicit `[{ value, color }]` stops; overrides colors/midpoint.
+              stops: undefined,
+            },
+            // Continuous colour legend: a gradient strip with end labels and a
+            // hover indicator, in place of the categorical legend. Same options
+            // as the heatmap's.
+            gradientLegend: {
+              enabled: false,
+              width: '70%',
+              height: '70%',
+              thickness: 12,
+              align: 'center',
+              stops: 16,
+              showLabels: true,
+              showHoverValue: true,
+              labelStyle: {
+                fontSize: '11px',
+                fontFamily: undefined,
+                colors: undefined,
+              },
+              arrow: {
+                size: 8,
+                color: undefined,
+              },
+              formatter: undefined,
+            },
+          },
+          // Arbitrary-depth treemap: a datum may carry `children`.
+          nested: {
+            // Parent containers appear on their own as soon as the data is
+            // nested; `false` forces the flat two-level layout.
+            enabled: undefined,
+            // Read `drilldown: '<id>'` ids as extra levels instead of as a
+            // click target for the drilldown feature. Off by default, because
+            // on a treemap that id has always meant "descend on click".
+            drilldownAsLevels: false,
+          },
+          // How a parent is drawn once the data is nested. Per-level overrides
+          // go in `levels` below.
+          parents: {
+            // 'auto' (default): on when the data carries `children`.
+            show: 'auto',
+            // Inset between a parent's edge and the children inside it.
+            padding: 4,
+            fill: undefined,
+            fillOpacity: 1,
+            borderColor: undefined,
+            borderWidth: 1,
+            borderRadius: undefined,
+            hover: {
+              show: true,
+              color: undefined,
+              width: 2,
+            },
+            header: {
+              show: true,
+              height: 22,
+              // Skip the strip on tiles too narrow to show a name.
+              minWidth: 40,
+              align: 'left',
+              offsetX: 0,
+              offsetY: 0,
+              showValue: false,
+              // (name, { value, depth, seriesIndex, node, w }) => string
+              formatter: undefined,
+              style: {
+                fontSize: '12px',
+                fontFamily: undefined,
+                fontWeight: 600,
+                color: undefined,
+                background: undefined,
+                cssClass: '',
+              },
+            },
+            tooltip: {
+              // ({ name, value, depth, leafCount, percentOfParent,
+              //    percentOfTotal, node, w }) => html
+              formatter: undefined,
+            },
+          },
+          // Per-depth overrides of `parents`, indexed from the outermost group
+          // actually drawn (0 = the series, or the first authored level when a
+          // single series is unwrapped).
+          levels: [],
+          // Click a group to fill the canvas with it; a breadcrumb goes back.
+          // Ignored when the drilldown feature is active on the same chart:
+          // both navigate the hierarchy, and drilldown owns the click there.
+          zoom: {
+            enabled: false,
+            // Overrides `drilldown.breadcrumb` for this chart only. Same shape
+            // (show / position / separator / rootLabel / offsetX / offsetY /
+            // formatter), so a zoomed treemap and a drilled-in chart present
+            // the same affordance without importing the drilldown feature.
+            breadcrumb: undefined,
           },
           seriesTitle: {
             show: true,

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Nested Treemap - Market Map</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0f1115;
+        color: #e8ebef;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        letter-spacing: -0.01em;
+        margin: 0 0 6px;
+      }
+      .lead {
+        color: #9aa7b4;
+        line-height: 1.55;
+        margin: 0 0 18px;
+        font-size: 14px;
+      }
+      .card {
+        background: #161a20;
+        border: 1px solid #232a33;
+        border-radius: 12px;
+        padding: 10px 10px 4px;
+      }
+      .note {
+        background: #161a20;
+        border-left: 3px solid #3b82f6;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #b6c2ce;
+        border-radius: 2px;
+        line-height: 1.65;
+        margin: 22px 0 0;
+      }
+      .note code {
+        background: #1e2530;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 12px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // A market map: every company is a tile, sized by market value and coloured by
+      // how its day went. Three levels, sector > industry > company, so the sectors
+      // read as blocks before you look at any single name.
+      //
+      // The figures are synthetic. A seeded generator (no Math.random, so the chart
+      // is stable across re-renders and SSR) draws caps from a heavy-tailed
+      // distribution and daily moves from a per-sector drift, which is what gives a
+      // real market map its handful of giants and long tail of small names.
+      // Shared by the vanilla-js / React / Vue builds.
+      var TAXONOMY = [
+        {
+          sector: 'Information Technology',
+          weight: 30,
+          drift: 0.9,
+          industries: [
+            { name: 'Semiconductors', n: 14, weight: 12 },
+            { name: 'Software', n: 16, weight: 11 },
+            { name: 'Hardware & Devices', n: 9, weight: 7 },
+          ],
+        },
+        {
+          sector: 'Financials',
+          weight: 15,
+          drift: -0.3,
+          industries: [
+            { name: 'Banks', n: 15, weight: 6 },
+            { name: 'Insurance', n: 11, weight: 4 },
+            { name: 'Capital Markets', n: 10, weight: 5 },
+          ],
+        },
+        {
+          sector: 'Health Care',
+          weight: 14,
+          drift: 0.2,
+          industries: [
+            { name: 'Pharmaceuticals', n: 12, weight: 6 },
+            { name: 'Biotechnology', n: 14, weight: 4 },
+            { name: 'Medical Devices', n: 10, weight: 4 },
+          ],
+        },
+        {
+          sector: 'Consumer Discretionary',
+          weight: 11,
+          drift: -0.6,
+          industries: [
+            { name: 'Retail', n: 13, weight: 5 },
+            { name: 'Automobiles', n: 8, weight: 4 },
+            { name: 'Hotels & Leisure', n: 9, weight: 2 },
+          ],
+        },
+        {
+          sector: 'Communication Services',
+          weight: 9,
+          drift: 1.4,
+          industries: [
+            { name: 'Interactive Media', n: 9, weight: 5 },
+            { name: 'Telecom', n: 8, weight: 2 },
+            { name: 'Entertainment', n: 9, weight: 2 },
+          ],
+        },
+        {
+          sector: 'Industrials',
+          weight: 8,
+          drift: 0.1,
+          industries: [
+            { name: 'Aerospace & Defence', n: 8, weight: 3 },
+            { name: 'Machinery', n: 10, weight: 3 },
+            { name: 'Transport', n: 9, weight: 2 },
+          ],
+        },
+        {
+          sector: 'Consumer Staples',
+          weight: 6,
+          drift: 0.4,
+          industries: [
+            { name: 'Food & Beverage', n: 11, weight: 3 },
+            { name: 'Household Products', n: 8, weight: 3 },
+          ],
+        },
+        {
+          sector: 'Energy',
+          weight: 5,
+          drift: -1.7,
+          industries: [
+            { name: 'Oil & Gas', n: 12, weight: 4 },
+            { name: 'Renewables', n: 8, weight: 1 },
+          ],
+        },
+        {
+          sector: 'Utilities',
+          weight: 4,
+          drift: -0.2,
+          industries: [
+            { name: 'Electric Utilities', n: 9, weight: 3 },
+            { name: 'Water & Gas', n: 6, weight: 1 },
+          ],
+        },
+        {
+          sector: 'Real Estate',
+          weight: 4,
+          drift: -0.9,
+          industries: [
+            { name: 'REITs', n: 11, weight: 3 },
+            { name: 'Property Services', n: 6, weight: 1 },
+          ],
+        },
+        {
+          sector: 'Materials',
+          weight: 4,
+          drift: 0.6,
+          industries: [
+            { name: 'Chemicals', n: 9, weight: 2 },
+            { name: 'Metals & Mining', n: 9, weight: 2 },
+          ],
+        },
+      ]
+
+      // Deterministic uniform stream (LCG), so every render draws the same market.
+      function rng(seed) {
+        var s = seed >>> 0
+        return function () {
+          s = (s * 1664525 + 1013904223) >>> 0
+          return s / 4294967296
+        }
+      }
+
+      // Sum of 6 uniforms, centred: a cheap normal-ish draw.
+      function gauss(u) {
+        var g = 0
+        for (var k = 0; k < 6; k++) g += u()
+        return (g - 3) / Math.sqrt(0.5)
+      }
+
+      var LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+      function ticker(u) {
+        var out = ''
+        var len = 3 + (u() > 0.65 ? 1 : 0)
+        for (var i = 0; i < len; i++) {
+          out += LETTERS.charAt(Math.floor(u() * 26))
+        }
+        return out
+      }
+
+      var seen = {}
+      var u = rng(20260812)
+
+      var marketSeries = [
+        {
+          name: 'Market',
+          data: TAXONOMY.map(function (sec) {
+            return {
+              x: sec.sector,
+              children: sec.industries.map(function (ind) {
+                var companies = []
+                for (var i = 0; i < ind.n; i++) {
+                  // Heavy tail: a few names carry most of the industry's value.
+                  var scale = Math.exp(gauss(u) * 0.85)
+                  var cap = Math.max(4, Math.round((ind.weight * 90 * scale) / ind.n))
+                  // The day's move: the sector drifts, the name adds its own noise.
+                  var change = Math.round((sec.drift + gauss(u) * 1.6) * 100) / 100
+                  var t = ticker(u)
+                  while (seen[t]) t = ticker(u)
+                  seen[t] = true
+                  companies.push({ x: t, y: cap, colorValue: change })
+                }
+                return { x: ind.name, children: companies }
+              }),
+            }
+          }),
+        },
+      ]
+
+      function fmtCap(v) {
+        return v >= 1000 ? '$' + (v / 1000).toFixed(2) + 'T' : '$' + v + 'B'
+      }
+      function fmtPct(v) {
+        return (v > 0 ? '+' : '') + v.toFixed(2) + '%'
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+  &lt;h1&gt;A market in one picture&lt;/h1&gt;
+  &lt;p class=&quot;lead&quot;&gt;
+    Every tile is a company, sized by market value and coloured by the day&#39;s
+    move. Sectors are drawn as real containers with a header strip, industries
+    nest inside them, and the companies fill what is left. Click any sector or
+    industry to zoom into it. Figures are synthetic.
+  &lt;/p&gt;
+
+  &lt;div class=&quot;card&quot;&gt;
+    &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;treemap&quot; height={620} /&gt;
+&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;note&quot;&gt;
+    Three levels come from one &lt;code&gt;children&lt;/code&gt; hierarchy on the series
+    data. &lt;code&gt;plotOptions.treemap.levels&lt;/code&gt; styles each depth separately,
+    so the sector strip is taller and heavier than the industry strip. Colour is
+    a second metric per datum (&lt;code&gt;colorValue&lt;/code&gt;) run through
+    &lt;code&gt;colorScale.gradient&lt;/code&gt;, which pins its midpoint at zero so a flat
+    day is neutral and equal moves either way read equally strongly. The strip
+    under the chart is &lt;code&gt;colorScale.gradientLegend&lt;/code&gt;, and it is drawn
+    from that same scale.
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: marketSeries,
+          options: {
+            chart: {
+              id: 'marketMap',
+              type: 'treemap',
+              height: 620,
+              fontFamily: 'inherit',
+              background: 'transparent',
+              animations: {
+                enabled: true,
+                speed: 500,
+              },
+              toolbar: {
+                show: false,
+              },
+            },
+            theme: {
+              mode: 'dark',
+            },
+            title: {
+              // Kept to one line: the breadcrumb that appears once you zoom in sits in the
+              // band between the title and the plot, and a subtitle would squeeze it out.
+              text: "Market map by sector - area is market value, colour is the day's move",
+              align: 'left',
+              style: {
+                fontSize: '14px',
+                fontWeight: 600,
+              },
+            },
+            legend: {
+              show: true,
+              position: 'bottom',
+            },
+            stroke: {
+              width: 1,
+              colors: ['#0f1115'],
+            },
+            dataLabels: {
+              enabled: true,
+              style: {
+                fontSize: '11px',
+                fontWeight: 600,
+              },
+            },
+            tooltip: {
+              enabled: true,
+              custom: function ({ seriesIndex, dataPointIndex, w }) {
+                var d = w.config.series[seriesIndex].data[dataPointIndex]
+                var up = d.colorValue >= 0
+                return (
+                  '<div class="apexcharts-tooltip-title" style="font-weight:600">' +
+                  d.x +
+                  '</div>' +
+                  '<div style="padding:6px 10px 8px">' +
+                  fmtCap(d.y) +
+                  ' &nbsp;<span style="color:' +
+                  (up ? '#3ddc84' : '#ff6b5e') +
+                  '">' +
+                  fmtPct(d.colorValue) +
+                  '</span></div>'
+                )
+              },
+            },
+            plotOptions: {
+              treemap: {
+                borderRadius: 2,
+                dataLabels: {
+                  format: 'truncate',
+                },
+                colorScale: {
+                  // Colour by the day's move, not by market value.
+                  colorValue: 'colorValue',
+                  gradient: {
+                    colors: ['#c0392b', '#5b6570', '#1e9e57'],
+                    midpoint: 0,
+                  },
+                  gradientLegend: {
+                    enabled: true,
+                    width: '46%',
+                    thickness: 10,
+                    formatter: function (v) {
+                      return (v > 0 ? '+' : '') + v.toFixed(1) + '%'
+                    },
+                  },
+                },
+                // Click a sector or an industry to fill the canvas with it.
+                zoom: {
+                  enabled: true,
+                },
+                parents: {
+                  padding: 3,
+                  tooltip: {
+                    formatter: function (o) {
+                      return (
+                        '<div class="apexcharts-tooltip-title" style="font-weight:600">' +
+                        o.name +
+                        '</div>' +
+                        '<div style="padding:6px 10px 8px">' +
+                        fmtCap(o.value) +
+                        ' &nbsp;&middot;&nbsp; ' +
+                        o.leafCount +
+                        ' companies &nbsp;&middot;&nbsp; ' +
+                        o.percentOfTotal.toFixed(1) +
+                        '% of market</div>'
+                      )
+                    },
+                  },
+                },
+                levels: [
+                  {
+                    // Sector.
+                    padding: 5,
+                    header: {
+                      height: 26,
+                      minWidth: 64,
+                      style: {
+                        fontSize: '13px',
+                        fontWeight: 700,
+                      },
+                      formatter: function (name, o) {
+                        return name + '   ' + fmtCap(o.value)
+                      },
+                    },
+                  },
+                  {
+                    // Industry.
+                    padding: 2,
+                    header: {
+                      height: 15,
+                      minWidth: 46,
+                      style: {
+                        fontSize: '10px',
+                        fontWeight: 500,
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div class="wrap">
+              <h1>A market in one picture</h1>
+              <p class="lead">
+                Every tile is a company, sized by market value and coloured by the
+                day's move. Sectors are drawn as real containers with a header strip,
+                industries nest inside them, and the companies fill what is left.
+                Click any sector or industry to zoom into it. Figures are synthetic.
+              </p>
+
+              <div class="card">
+                <div id="chart">
+                  <ReactApexChart
+                    options={state.options}
+                    series={state.series}
+                    type="treemap"
+                    height={620}
+                  />
+                </div>
+              </div>
+
+              <div class="note">
+                Three levels come from one <code>children</code> hierarchy on the
+                series data. <code>plotOptions.treemap.levels</code> styles each depth
+                separately, so the sector strip is taller and heavier than the
+                industry strip. Colour is a second metric per datum (
+                <code>colorValue</code>) run through
+                <code>colorScale.gradient</code>, which pins its midpoint at zero so a
+                flat day is neutral and equal moves either way read equally strongly.
+                The strip under the chart is <code>colorScale.gradientLegend</code>,
+                and it is drawn from that same scale.
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

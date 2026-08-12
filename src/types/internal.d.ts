@@ -344,6 +344,21 @@ export interface ChartGlobals
   // appendData when the user pushes new data.
   histogramRawSeries: Array<{ data: any }> | null
 
+  // ── Nested treemap (a datum carrying `children`) ──────────────────────────
+  // The nested input, stashed on first parse. parseData writes the flattened
+  // leaves back to config.series, so this is the only surviving copy of the
+  // hierarchy and every re-render resolves from it. Cleared by _updateSeries
+  // when the user pushes new data.
+  treemapRawSeries: Array<{ data: any }> | null
+  // The resolved tree the renderer lays out (null for a flat treemap, which
+  // builds its own two-level tree at draw time), and its deepest level.
+  treemapRoots: any[] | null
+  treemapMaxDepth: number
+  // `_key` of the branch a click-to-zoom is focused on (null = whole tree).
+  // Keys rebuild identically from the same data, so the focus survives the
+  // re-render a zoom triggers.
+  treemapFocusKey: string | null
+
   // ── Collapse state ────────────────────────────────────────────────────────
   allSeriesCollapsed: boolean
   collapsedSeries: Array<{ index: number; data: any; type: string; name?: string }>

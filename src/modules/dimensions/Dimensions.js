@@ -5,6 +5,10 @@ import DimXAxis from './XAxis'
 import DimYAxis from './YAxis'
 import Grid from './Grid'
 import { LINE_HEIGHT_RATIO } from '../../utils/Constants'
+import {
+  BREADCRUMB_HEIGHT,
+  breadcrumbConfig,
+} from '../../charts/common/Breadcrumb'
 
 /**
  * ApexCharts Dimensions Class for calculating rects of all elements that are drawn and will be drawn.
@@ -35,9 +39,10 @@ export default class Dimensions {
     this.dimGrid = new Grid(this)
     this.lgWidthForSideLegends = 0
     // A COPY, never the config object itself: the chart type folds its own
-    // insets into this (sparkline markers/stroke) and layout code reads them
-    // back, which must not leak into the user's config and accumulate across
-    // renders. Consumers outside Dimensions read w.layout.gridPad.
+    // insets into this (sparkline markers/stroke, the treemap breadcrumb band)
+    // and layout code reads them back, which must not leak into the user's
+    // config. Consumers outside Dimensions read w.layout.gridPad.
+    // Re-derived per run by plotCoords(), see there.
     this.gridPad = { ...this.w.config.grid.padding }
     this.xPadRight = 0
     this.xPadLeft = 0
@@ -54,6 +59,13 @@ export default class Dimensions {
   plotCoords() {
     const w = this.w
     const gl = w.globals
+
+    // `update()` reuses this instance (Destroy.clear keeps the core modules
+    // alive), so the pad has to start from the user's config every run. The
+    // sparkline insets below only ever raise it to a floor and so survived
+    // being stale, but the breadcrumb band ADDS, and compounded: each render
+    // pushed the plot another 22px down and took 22px off its height.
+    this.gridPad = { ...w.config.grid.padding }
 
     this.lgRect = this.dimHelpers.getLegendsRect()
     this.datalabelsCoords = { width: 0, height: 0 }
@@ -84,6 +96,7 @@ export default class Dimensions {
     }
 
     this.dimGrid.gridPadFortitleSubtitle()
+    this.gridPadForBreadcrumb()
 
     // after calculating everything, apply padding set by user
     w.layout.gridHeight =
@@ -131,6 +144,28 @@ export default class Dimensions {
         gridPad: { ...this.gridPad },
       },
     }
+  }
+
+  /**
+   * Reserve a strip above the plot for a navigation breadcrumb.
+   *
+   * A treemap fills its plot edge to edge, so unlike a sunburst - whose rings
+   * leave the corners empty - an absolutely-positioned breadcrumb has nowhere
+   * to float without covering a tile. Giving it real space is the only way it
+   * never overlaps.
+   *
+   * Reserved whenever click-to-zoom is enabled, not only while zoomed in: the
+   * strip appears and disappears as the reader navigates, and sizing the plot
+   * around its presence would reflow every tile on each zoom.
+   */
+  gridPadForBreadcrumb() {
+    const w = this.w
+    if (w.config.chart.type !== 'treemap') return
+    const zoom = w.config.plotOptions?.treemap?.zoom
+    if (!zoom || !zoom.enabled) return
+    const cfg = breadcrumbConfig(w, zoom.breadcrumb)
+    if (cfg.show === false) return
+    this.gridPad.top += BREADCRUMB_HEIGHT + 4
   }
 
   setDimensionsForAxisCharts() {

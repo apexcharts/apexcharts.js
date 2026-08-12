@@ -6,6 +6,10 @@ import Utils from '../utils/Utils'
 import Defaults from './settings/Defaults'
 import { isCustom, getChartClass } from './ChartFactory'
 import { getSeriesTransform } from './SeriesTransformRegistry'
+import {
+  isNestedTreemap,
+  resolveTreemapTree,
+} from '../charts/common/treemap/Nested'
 
 /**
  * Chart types whose series carries raw observations and therefore cannot draw
@@ -1588,6 +1592,52 @@ export default class Data {
   }
 
   /**
+   * Nested treemap: resolve a `children` hierarchy into the tree the renderer
+   * lays out, and return the leaves as a flat series.
+   *
+   * Everything downstream of here addresses a treemap by `(seriesIndex,
+   * dataPointIndex)` into a flat matrix, so the leaves are flattened in
+   * depth-first order and `dataPointIndex` keeps meaning "the nth leaf of this
+   * series". The tree itself goes on globals for the renderer.
+   *
+   * `cnf.series` is replaced with the flattened leaves further down parseData,
+   * which is the only copy that survives — so the nested input is stashed on
+   * the first parse and every later parse resolves from the stash, never from
+   * the already-flattened view. That is the same contract the histogram's raw
+   * observations and the downsampler's raw series use, and `_updateSeries`
+   * clears all three when the user pushes new data.
+   *
+   * @param {any[]} ser
+   * @returns {any[]}
+   */
+  flattenTreemapHierarchy(ser) {
+    const w = this.w
+    const gl = w.globals
+    if (w.config.chart.type !== 'treemap' || !Array.isArray(ser)) return ser
+
+    if (!gl.treemapRawSeries) {
+      if (!isNestedTreemap(w, ser)) {
+        // Flat treemap: the renderer builds the two-level tree itself. Clear
+        // any tree left over from a previous (nested) data set.
+        gl.treemapRoots = null
+        return ser
+      }
+      gl.treemapRawSeries = ser.map((/** @type {any} */ s) => ({
+        ...s,
+        data: Array.isArray(s?.data) ? s.data.slice() : s?.data,
+      }))
+    }
+
+    const { roots, leafSeries, maxDepth } = resolveTreemapTree(
+      w,
+      gl.treemapRawSeries,
+    )
+    gl.treemapRoots = roots
+    gl.treemapMaxDepth = maxDepth
+    return leafSeries
+  }
+
+  /**
    * Scatter strip-plot support. When `plotOptions.scatter.jitter.enabled` and a
    * series carries compact `{ x: 'Category', y: [v1, v2, ...] }` data, expand
    * each observation into its own `{ x: bandIndex, y }` point (so every dot is a
@@ -1811,6 +1861,11 @@ export default class Data {
     // applied at render time instead — see Scatter.drawPoint).
     ser = this.expandScatterJitterData(ser)
 
+    // Nested treemap: resolve `children` into the tree the renderer lays out and
+    // hand the rest of the pipeline the leaves as a flat series. A no-op for
+    // every other chart type and for a treemap without `children`.
+    ser = this.flattenTreemapHierarchy(ser)
+
     // Stash raw series once per chart lifetime so zoom/pan can re-downsample
     // against full-resolution data. Cleared by _updateSeries when user pushes
     // new data. We hold references — parseDataAxisCharts replaces ser[i] but
@@ -1872,6 +1927,10 @@ export default class Data {
       // snapshotting it would make resetSeries() restore counts as if they
       // were observations, and every reset would bin one level deeper.
       gl.initialSeries = gl.histogramRawSeries
+    } else if (gl.treemapRawSeries) {
+      // Same reason again: `ser` is the flattened leaves, so snapshotting it
+      // would make resetSeries() restore a treemap that has lost its levels.
+      gl.initialSeries = gl.treemapRawSeries
     } else {
       // lazy snapshot: the globals setter stores a cheap per-series shallow
       // copy; the deep clone materializes only if something reads it

@@ -28,6 +28,8 @@ import {
   sharpDonutSegmentPath,
 } from './common/arc/ArcPath'
 import Animations from '../modules/Animations'
+import { buildHierarchy, fillValues, morphKey } from './common/Hierarchy'
+import { avoidChromeOverlap } from './common/Breadcrumb'
 
 const D2R = Math.PI / 180
 const R2D = 180 / Math.PI
@@ -161,77 +163,11 @@ export default class SunburstChart {
   /**
    * Resolve the config into root nodes `{ name, value, color?, children? }`.
    * Each datum may carry `children` (native) or `drilldown: '<id>'` (adapter).
+   * Shared with the treemap - see charts/common/Hierarchy.
    * @returns {any[]}
    */
   _buildHierarchy() {
-    const cfgSeries = /** @type {any} */ (this.w.config.series)
-    const first = cfgSeries && cfgSeries[0]
-    const data = first && Array.isArray(first.data) ? first.data : cfgSeries
-    if (!Array.isArray(data)) return []
-    return data.map((/** @type {any} */ d, /** @type {number} */ i) =>
-      this._toNode(d, i, null, ''),
-    )
-  }
-
-  /**
-   * @param {any} d
-   * @param {number} i
-   * @param {string[]|null} paletteFromParent  per-level colours from a drilldown entry
-   * @param {string} parentKey  hierarchical identity of the parent
-   * @param {Set<any>|null} [seenIds]  drilldown ids already expanded on this path
-   * @returns {any}
-   */
-  _toNode(d, i, paletteFromParent, parentKey, seenIds = null) {
-    const isObj = d && typeof d === 'object'
-    const name = isObj ? (d.x ?? d.name ?? '') : ''
-    const value = isObj ? Number(d.y ?? d.value) : Number(d)
-    /** @type {any} */
-    const node = {
-      name: String(name),
-      value: isNaN(value) ? null : value,
-      color: isObj && d.color ? d.color : undefined,
-      // Identity across data updates: the path of names (indexed so same-named
-      // siblings stay distinct). Update animations morph matched keys in place.
-      _key: `${parentKey}/${i}:${name}`,
-    }
-    if (paletteFromParent && !node.color) {
-      node.color = paletteFromParent[i % paletteFromParent.length]
-    }
-
-    if (isObj && Array.isArray(d.children) && d.children.length) {
-      node.children = d.children.map(
-        (/** @type {any} */ c, /** @type {number} */ j) =>
-          this._toNode(c, j, null, node._key, seenIds),
-      )
-    } else if (isObj && d.drilldown != null) {
-      // Drilldown ids resolve indirectly, so a self- or mutually-referential id
-      // (a malformed config) would recurse forever and overflow the stack. Track
-      // the ids expanded on this path and stop when one repeats.
-      const visited = seenIds || new Set()
-      if (!visited.has(d.drilldown)) {
-        const dd = this._drilldownById(d.drilldown)
-        if (dd && Array.isArray(dd.data) && dd.data.length) {
-          const nextSeen = new Set(visited)
-          nextSeen.add(d.drilldown)
-          const palette = Array.isArray(dd.colors) ? dd.colors : null
-          node.children = dd.data.map(
-            (/** @type {any} */ c, /** @type {number} */ j) =>
-              this._toNode(c, j, palette, node._key, nextSeen),
-          )
-        }
-      }
-    }
-    return node
-  }
-
-  /**
-   * @param {string|number} id
-   * @returns {any}
-   */
-  _drilldownById(id) {
-    const dd = this.w.config.drilldown
-    const list = dd && Array.isArray(dd.series) ? dd.series : []
-    return list.find((/** @type {any} */ s) => s && s.id === id)
+    return buildHierarchy(this.w)
   }
 
   /**
@@ -239,17 +175,7 @@ export default class SunburstChart {
    * @param {any} node
    */
   _fillValues(node) {
-    if (node.children && node.children.length) {
-      node.children.forEach((/** @type {any} */ c) => this._fillValues(c))
-      if (node.value == null || isNaN(node.value)) {
-        node.value = node.children.reduce(
-          (/** @type {number} */ s, /** @type {any} */ c) =>
-            s + Math.max(0, c.value || 0),
-          0,
-        )
-      }
-    }
-    if (node.value == null || isNaN(node.value)) node.value = 0
+    fillValues(node)
   }
 
   /**
@@ -483,19 +409,33 @@ export default class SunburstChart {
 
   /**
    * The captured mark this leaf should unroll from, or null when the node is
-   * not a leaf or the outgoing chart ran out of marks.
+   * the outgoing chart had nothing to give it.
    *
-   * Leaves consume the captured paths in draw order, which is the order the
-   * outgoing renderer laid its own marks out in, so tile k pairs with leaf k.
+   * When both charts carry branch keys the pairing is by identity, so EVERY
+   * ring finds the tile that stood for the same branch and the inner rings
+   * unroll instead of appearing from nothing.
+   *
+   * Without keys (a flat treemap, or an older config) only leaves pair, and
+   * they consume the captured paths in draw order - the order the outgoing
+   * renderer laid its own marks out in, so tile k pairs with leaf k.
    *
    * @param {any} node
    * @returns {string | null}
    */
   _morphSourceFor(node) {
-    if (node.children && node.children.length) return null
     const ctx = /** @type {any} */ (this.ctx)
     const morph = ctx && ctx.morphTypeChange
     if (!morph) return null
+
+    if (
+      typeof morph.hasKeyedMarks === 'function' &&
+      morph.hasKeyedMarks() &&
+      typeof morph.getInitialPathForKey === 'function'
+    ) {
+      return morph.getInitialPathForKey(morphKey(node._key))
+    }
+
+    if (node.children && node.children.length) return null
     return morph.getInitialPathAt(this._morphLeafIndex++)
   }
 
@@ -596,6 +536,9 @@ export default class SunburstChart {
     const el = path.node
     el.setAttribute('data:name', node.name)
     el.setAttribute('data:value', String(node.value))
+    // The branch's identity, normalized so a treemap computes the same string
+    // for the same branch. A cross-type morph pairs on it, at every level.
+    el.setAttribute('data:key', morphKey(node._key))
     // Leaves are the level that corresponds to a flat partition (a treemap's
     // tiles), so the cross-type morph can pair the two up without handing a
     // tile its own ancestors.
@@ -870,30 +813,12 @@ export default class SunburstChart {
    * sunburst must not import the drilldown feature.)
    * @param {any} nav
    */
+  /**
+   * Shared with the treemap - see charts/common/Breadcrumb.
+   * @param {any} nav
+   */
   _avoidChromeOverlap(nav) {
-    const w = this.w
-    const chrome = /** @type {Element[]} */ (
-      ['.apexcharts-title-text', '.apexcharts-subtitle-text']
-        .map((s) => w.dom.baseEl.querySelector(s))
-        .filter((el) => el !== null)
-    )
-    if (!chrome.length) return
-    const wrapTop = w.dom.elWrap.getBoundingClientRect().top
-    // Up to two passes: moving below the title can land on the subtitle.
-    for (let pass = 0; pass < chrome.length + 1; pass++) {
-      const nr = nav.getBoundingClientRect()
-      const hit = chrome.find((el) => {
-        const r = el.getBoundingClientRect()
-        return (
-          nr.left < r.right &&
-          nr.right > r.left &&
-          nr.top < r.bottom &&
-          nr.bottom > r.top
-        )
-      })
-      if (!hit) break
-      nav.style.top = `${hit.getBoundingClientRect().bottom - wrapTop + 4}px`
-    }
+    avoidChromeOverlap(this.w, nav)
   }
 
   // ------------------------------------------------------------ geometry

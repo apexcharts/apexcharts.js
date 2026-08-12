@@ -1725,6 +1725,32 @@ type ApexTitleSubtitle = {
  * Chart Series options.
  * See https://apexcharts.com/docs/options/series/
  */
+/**
+ * One node of a `children` hierarchy, as read by the partition charts
+ * (`treemap`, `sunburst`). A branch may omit its own value and take the sum of
+ * its children; a leaf supplies one.
+ */
+type ApexHierarchyNode = {
+  /** The node's label. `name` is accepted as an alias. */
+  x?: string | number
+  name?: string
+  /** The node's value. `value` is accepted as an alias. */
+  y?: number | null
+  value?: number | null
+  color?: string
+  fillColor?: string
+  /** A second metric driving colour rather than size (`treemap`). */
+  colorValue?: number
+  meta?: unknown
+  children?: ApexHierarchyNode[]
+  /**
+   * The `id` of a `drilldown.series` entry, read as another level by the
+   * sunburst (and by the treemap with
+   * `plotOptions.treemap.nested.drilldownAsLevels`).
+   */
+  drilldown?: string | number
+}
+
 type ApexAxisChartSeries = {
  name?: string
  type?: string
@@ -1759,6 +1785,18 @@ type ApexAxisChartSeries = {
    strokeColor?: string;
    meta?: unknown;
    /**
+    * A second metric that drives this point's COLOUR, independent of `y`
+    * which drives its size (`treemap`). See
+    * `plotOptions.treemap.colorScale.colorValue` to read a different key.
+    */
+   colorValue?: number;
+   /**
+    * Nested hierarchy: this point is a branch containing these children,
+    * to any depth (`treemap`, `sunburst`). A branch normally omits `y` and
+    * takes the sum of its children instead.
+    */
+   children?: ApexHierarchyNode[];
+   /**
     * Drilldown target: the `id` of a `drilldown.series` entry. Clicking this
     * point drills into that level. Requires the Drilldown feature.
     */
@@ -1778,6 +1816,10 @@ type ApexAxisChartSeries = {
  | [number, number | null][]
  | [number, (number | null)[]][]
  | number[][]
+ // A `children` hierarchy for the partition charts, where a branch carries no
+ // value of its own. Listed before the catch-all so authors get completion on
+ // the node shape instead of falling through to `Record<string, any>`.
+ | ApexHierarchyNode[]
  | Record<string, any>[];
 }[]
 
@@ -2011,6 +2053,134 @@ type ApexLocale = {
  * PlotOptions for specifying chart-type-specific configuration.
  * See https://apexcharts.com/docs/options/plotoptions/bar/
  */
+/**
+ * Continuous colour legend: a gradient strip with end labels and a hover
+ * indicator arrow, in place of the categorical legend. Available on the chart
+ * types that encode a value as colour through a `colorScale` (heatmap,
+ * treemap). The strip is drawn from whichever scale the chart itself uses, so
+ * the legend always matches the marks.
+ */
+type ApexGradientLegend = {
+  enabled?: boolean
+  /**
+   * Strip length for horizontal placements (top/bottom). Accepts a number
+   * (pixels) or percentage string (e.g. `'70%'`, resolved against the chart's
+   * SVG width). Default `'70%'`.
+   */
+  width?: number | string
+  /**
+   * Strip length for vertical placements (left/right). Accepts a number
+   * (pixels) or percentage string (e.g. `'70%'`, resolved against the chart's
+   * SVG height). Default `'70%'`.
+   */
+  height?: number | string
+  /** Strip thickness (short axis) in pixels. Default 12. */
+  thickness?: number
+  /**
+   * Strip alignment within the legend area.
+   * - top/bottom: 'start' = left, 'center', 'end' = right
+   * - left/right: 'start' = top,  'center', 'end' = bottom
+   * Default `'center'`.
+   */
+  align?: 'start' | 'center' | 'end'
+  /**
+   * Number of color stops sampled from the shade function when no explicit
+   * `ranges` (or continuous scale) supply their own. Default 16.
+   */
+  stops?: number
+  /** Show min/max labels at the ends of the strip. Default true. */
+  showLabels?: boolean
+  /** Show a value tooltip next to the arrow on mark hover. Default true. */
+  showHoverValue?: boolean
+  labelStyle?: {
+    fontSize?: string
+    fontFamily?: string
+    colors?: string
+  }
+  arrow?: {
+    size?: number
+    color?: string
+  }
+  /** Formatter for min/max labels and the hover value tooltip. */
+  formatter?(value: number): string
+}
+
+/**
+ * Navigation breadcrumb chrome, shared by every chart that lets the reader move
+ * into a hierarchy: the drilldown feature, and the treemap's click-to-zoom.
+ * `drilldown.breadcrumb` is the shared block; a chart may override it locally
+ * (see `plotOptions.treemap.zoom.breadcrumb`).
+ */
+type ApexBreadcrumb = {
+  show?: boolean
+  position?: 'top-left' | 'top-right'
+  separator?: string
+  /** Label of the leftmost crumb, the "everything" level. Default 'All'. */
+  rootLabel?: string
+  offsetX?: number
+  offsetY?: number
+  formatter?(
+    label: string,
+    opts: { index: number; depth: number; data?: any },
+  ): string
+}
+
+/**
+ * Styling for one level of a nested treemap. `plotOptions.treemap.parents` is
+ * the base for every level; `plotOptions.treemap.levels[depth]` overrides it
+ * for one depth.
+ */
+type ApexTreemapLevel = {
+  /** Inset between a parent's edge and the children inside it. Default 4. */
+  padding?: number
+  /** Container fill. Defaults to a neutral tint that deepens with each level. */
+  fill?: string
+  fillOpacity?: number
+  borderColor?: string
+  borderWidth?: number
+  /** Falls back to `plotOptions.treemap.borderRadius`. */
+  borderRadius?: number
+  hover?: {
+    /** Outline the container on hover. Default true. */
+    show?: boolean
+    color?: string
+    width?: number
+  }
+  header?: {
+    show?: boolean
+    /** Height of the strip reserved at the top of the container. Default 22. */
+    height?: number
+    /**
+     * Skip the strip on tiles narrower than this, where no name could be read
+     * anyway. Default 40.
+     */
+    minWidth?: number
+    align?: 'left' | 'center' | 'right'
+    offsetX?: number
+    offsetY?: number
+    /** Append the branch's aggregate to its name. Default false. */
+    showValue?: boolean
+    formatter?(
+      name: string,
+      opts: {
+        value: number
+        depth: number
+        seriesIndex: number
+        node: any
+        w: any
+      },
+    ): string
+    style?: {
+      fontSize?: string
+      fontFamily?: string
+      fontWeight?: number | string
+      color?: string
+      background?: string
+      cssClass?: string
+    }
+  }
+}
+
 type ApexPlotOptions = {
   line?: {
     isSlopeChart?: boolean
@@ -2283,56 +2453,13 @@ type ApexPlotOptions = {
       min?: number
       max?: number
       /**
-       * When enabled, replaces the default categorical heatmap legend with a
+       * When enabled, replaces the default categorical legend with a
        * continuous color gradient strip and a hover indicator arrow that
-       * tracks the currently hovered cell's value along the spectrum.
+       * tracks the currently hovered mark's value along the spectrum.
        * Follows `legend.position` (top / right / bottom / left); the arrow
        * orientation flips to point at the strip from the chart-facing side.
        */
-      gradientLegend?: {
-        enabled?: boolean
-        /**
-         * Strip length for horizontal placements (top/bottom). Accepts a
-         * number (pixels) or percentage string (e.g. `'70%'`, resolved against
-         * the chart's SVG width). Default `'70%'`.
-         */
-        width?: number | string
-        /**
-         * Strip length for vertical placements (left/right). Accepts a number
-         * (pixels) or percentage string (e.g. `'70%'`, resolved against the
-         * chart's SVG height). Default `'70%'`.
-         */
-        height?: number | string
-        /** Strip thickness (short axis) in pixels. Default 12. */
-        thickness?: number
-        /**
-         * Strip alignment within the legend area.
-         * - top/bottom: 'start' = left, 'center', 'end' = right
-         * - left/right: 'start' = top,  'center', 'end' = bottom
-         * Default `'center'`.
-         */
-        align?: 'start' | 'center' | 'end'
-        /**
-         * Number of color stops sampled from the shade function when no
-         * explicit `ranges` are provided. Default 16.
-         */
-        stops?: number
-        /** Show min/max labels at the ends of the strip. Default true. */
-        showLabels?: boolean
-        /** Show a value tooltip next to the arrow on cell hover. Default true. */
-        showHoverValue?: boolean
-        labelStyle?: {
-          fontSize?: string
-          fontFamily?: string
-          colors?: string
-        }
-        arrow?: {
-          size?: number
-          color?: string
-        }
-        /** Formatter for min/max labels and the hover value tooltip. */
-        formatter?(value: number): string
-      }
+      gradientLegend?: ApexGradientLegend
     }
   }
   funnel?: {
@@ -2355,7 +2482,19 @@ type ApexPlotOptions = {
     distributed?: boolean
     reverseNegativeShade?: boolean
     useFillColorAsStroke?: boolean
-    dataLabels?: { format?: 'scale' | 'truncate' }
+    dataLabels?: {
+      format?: 'scale' | 'truncate'
+      /**
+       * Skip a tile's label when it would render below this size in px.
+       *
+       * With `format: 'scale'` the font size follows the tile's area, so a
+       * dense treemap asks for a lot of text only a few pixels tall. Each such
+       * label still has to be built and measured against the DOM, which on a
+       * large chart dominates the render. Default 4, below the smallest label
+       * any bundled sample draws. Set 0 to label every tile regardless.
+       */
+      minFontSize?: number
+    }
     borderRadius?: number
     colorScale?: {
       inverse?: boolean
@@ -2368,7 +2507,111 @@ type ApexPlotOptions = {
       }[];
       min?: number
       max?: number
+      /**
+       * Colour a tile by a SECOND metric, independent of the value that sizes
+       * it: area is how big something is, colour is how it did. Reads
+       * `datum.colorValue` by default; pass a key name to read a different
+       * property, or an accessor to compute one.
+       */
+      colorValue?:
+        | string
+        | ((
+            datum: any,
+            opts: { seriesIndex: number; dataPointIndex: number; w: any },
+          ) => number)
+      /**
+       * Continuous interpolation between colour stops, for the metric above.
+       * Active as soon as any datum carries a colour metric; `enabled: false`
+       * opts out and `true` forces it on. `ranges` is unaffected and still
+       * applies wherever it is set.
+       */
+      gradient?: {
+        enabled?: boolean
+        /** Domain low. Defaults to the extent of the colour metric. */
+        min?: number
+        /** Domain high. Defaults to the extent of the colour metric. */
+        max?: number
+        /**
+         * The value the middle colour is pinned to. Defaults to 0 when the
+         * domain straddles zero (a diverging metric), otherwise none. Pass
+         * `null` to force a plain sequential ramp.
+         */
+        midpoint?: number | null
+        /**
+         * With a midpoint, balance the domain around it so equal moves in
+         * either direction read as equally saturated. Default true.
+         */
+        symmetric?: boolean
+        /** Low -> mid -> high. Two colours make a sequential ramp. */
+        colors?: string[]
+        /** Explicit stops; overrides `colors` and `midpoint`. */
+        stops?: { value: number; color: string }[]
+      }
+      /**
+       * Continuous colour legend for the metric above: a gradient strip with
+       * end labels and a hover indicator, in place of the categorical legend.
+       */
+      gradientLegend?: ApexGradientLegend
     };
+    /**
+     * Arbitrary-depth treemap. A datum may carry `children` to any depth;
+     * every branch is drawn as a real container with a header strip and its
+     * children inset below it.
+     */
+    nested?: {
+      /**
+       * Parent containers appear on their own as soon as the data is nested.
+       * `false` forces the flat two-level layout.
+       */
+      enabled?: boolean
+      /**
+       * Read `drilldown: '<id>'` ids as extra levels instead of as a click
+       * target for the drilldown feature. Default false, because on a treemap
+       * that id has always meant "descend on click".
+       */
+      drilldownAsLevels?: boolean
+    }
+    /**
+     * How a branch is drawn once the data is nested. Per-level overrides go in
+     * `levels`.
+     */
+    parents?: ApexTreemapLevel & {
+      /** `'auto'` (default): on when the data carries `children`. */
+      show?: boolean | 'auto'
+      tooltip?: {
+        formatter?(opts: {
+          name: string
+          value: number
+          depth: number
+          leafCount: number
+          percentOfParent: number
+          percentOfTotal: number
+          node: any
+          w: any
+        }): string
+      }
+    }
+    /**
+     * Per-depth overrides of `parents`, indexed from the outermost group
+     * actually drawn (0 = the series, or the first authored level when a
+     * single series is unwrapped).
+     */
+    levels?: ApexTreemapLevel[]
+    /**
+     * Click a group to fill the canvas with it; a breadcrumb goes back.
+     *
+     * Ignored when the drilldown feature is active on the same chart: both
+     * navigate the hierarchy, and drilldown owns the click there.
+     */
+    zoom?: {
+      enabled?: boolean
+      /**
+       * Overrides `drilldown.breadcrumb` for this chart only, so a zoomed
+       * treemap and a drilled-in chart present the same affordance without
+       * importing the drilldown feature.
+       */
+      breadcrumb?: ApexBreadcrumb
+    }
     seriesTitle?: {
       show?: boolean,
       offsetY?: number,

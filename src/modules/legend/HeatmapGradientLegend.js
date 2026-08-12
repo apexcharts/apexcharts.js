@@ -3,20 +3,29 @@ import Utils from '../../utils/Utils'
 import Series from '../Series'
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { Environment } from '../../utils/Environment.js'
+import { buildContinuousScale, colorValueOf } from '../../charts/common/treemap/ColorScale'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
 /**
  * Renders a continuous color gradient strip + hover indicator arrow inside the
- * legend wrap, replacing the default categorical legend for heatmaps when
- * `plotOptions.heatmap.colorScale.gradientLegend.enabled` is true.
+ * legend wrap, replacing the default categorical legend when
+ * `plotOptions.<type>.colorScale.gradientLegend.enabled` is true.
+ *
+ * Serves every chart type that encodes a value as colour through a
+ * `colorScale` — the heatmap, and the treemap when a datum carries a second,
+ * continuous colour metric. The strip is drawn from whichever scale the chart
+ * itself uses, so the legend cannot disagree with the marks:
+ *   - `colorScale.ranges`      → one stop per range, plus per-band hit regions
+ *   - a treemap colour metric  → the continuous scale the tiles were filled from
+ *   - otherwise                → sampled from the same shade function the marks use
  *
  * The strip orientation follows `chart.legend.position`:
  *   - top/bottom    → horizontal strip, min on the left
  *   - left/right    → vertical strip, min at the bottom (thermometer-style)
  *
- * The arrow is positioned along the strip when the user hovers a heatmap cell,
- * driven by the existing `dataPointMouseEnter` / `dataPointMouseLeave` events.
+ * The arrow is positioned along the strip when the user hovers a mark, driven
+ * by the existing `dataPointMouseEnter` / `dataPointMouseLeave` events.
  */
 export default class HeatmapGradientLegend {
   /**
@@ -50,7 +59,7 @@ export default class HeatmapGradientLegend {
 
   /** Default value formatter for min/max labels and the hover tooltip. */
   _getFormatter() {
-    const cfg = this.w.config.plotOptions.heatmap.colorScale.gradientLegend
+    const cfg = this._cfg()
     if (typeof cfg.formatter === 'function') return cfg.formatter
     return (/** @type {number} */ v) => {
       if (!Number.isFinite(v)) return String(v)
@@ -62,12 +71,48 @@ export default class HeatmapGradientLegend {
   }
 
   /**
+   * The colorScale of whichever chart type is being drawn. Every chart type
+   * that encodes a value as colour carries the same `colorScale` shape, so one
+   * strip serves them all rather than a near-copy per type.
+   * @param {any} w
+   */
+  static colorScaleOf(w) {
+    const type = w?.config?.chart?.type
+    if (!type) return null
+    return w?.config?.plotOptions?.[type]?.colorScale || null
+  }
+
+  /**
+   * @param {any} w
+   */
+  static configFor(w) {
+    const cs = HeatmapGradientLegend.colorScaleOf(w)
+    return (cs && cs.gradientLegend) || null
+  }
+
+  /** This instance's gradient-legend config. */
+  _cfg() {
+    return HeatmapGradientLegend.configFor(this.w) || {}
+  }
+
+  /**
    * True when the user has opted into the gradient legend variant.
    * @param {any} w
    */
   static isEnabled(w) {
-    const cfg = w?.config?.plotOptions?.heatmap?.colorScale?.gradientLegend
+    if (!HeatmapGradientLegend.supports(w)) return false
+    const cfg = HeatmapGradientLegend.configFor(w)
     return !!(cfg && cfg.enabled)
+  }
+
+  /**
+   * Chart types this legend can serve: those that encode a value as colour
+   * through a `colorScale`. Everything else gets the categorical legend.
+   * @param {any} w
+   */
+  static supports(w) {
+    const type = w?.config?.chart?.type
+    return type === 'heatmap' || type === 'treemap'
   }
 
   /**
@@ -79,7 +124,7 @@ export default class HeatmapGradientLegend {
     const elLegendWrap = /** @type {HTMLElement} */ (w.dom.elLegendWrap)
     if (!elLegendWrap) return
 
-    const cfg = w.config.plotOptions.heatmap.colorScale.gradientLegend
+    const cfg = this._cfg()
     const position = w.config.legend.position
     const isVertical = position === 'left' || position === 'right'
 
@@ -129,7 +174,13 @@ export default class HeatmapGradientLegend {
 
     // Build SVG.
     const svg = BrowserAPIs.createElementNS(SVG_NS, 'svg')
-    svg.setAttribute('class', 'apexcharts-heatmap-gradient-legend')
+    // The heatmap class is the original hook and stays for anyone styling
+    // against it; the generic one is what a non-heatmap chart should be
+    // targeted with.
+    svg.setAttribute(
+      'class',
+      'apexcharts-heatmap-gradient-legend apexcharts-gradient-legend',
+    )
     svg.setAttribute('width', String(svgWidth))
     svg.setAttribute('height', String(svgHeight))
     svg.setAttribute('overflow', 'visible')
@@ -349,7 +400,7 @@ export default class HeatmapGradientLegend {
    */
   _applyWrapAlignment(elLegendWrap, position, isVertical, svgWidth, svgHeight) {
     const w = this.w
-    const cfg = w.config.plotOptions.heatmap.colorScale.gradientLegend
+    const cfg = this._cfg()
     const align = cfg.align || 'center'
 
     // Inset from the chart's outer edge so labels never bleed off-canvas.
@@ -435,8 +486,7 @@ export default class HeatmapGradientLegend {
 
     const { isVertical, position, svgWidth, svgHeight, stripX, stripY, stripThickness } =
       this._geom
-    const align =
-      w.config.plotOptions.heatmap.colorScale.gradientLegend.align || 'center'
+    const align = this._cfg().align || 'center'
     const ox = w.config.legend.offsetX || 0
     const oy = w.config.legend.offsetY || 0
 
@@ -619,10 +669,17 @@ export default class HeatmapGradientLegend {
     const i = opts.seriesIndex
     const j = opts.dataPointIndex
     if (typeof i !== 'number' || typeof j !== 'number') return
-    if (w.config.chart.type !== 'heatmap') return
+    if (!HeatmapGradientLegend.supports(w)) return
 
-    const row = w.seriesData?.series?.[i]
-    const val = row?.[j]
+    // With a continuous treemap scale the strip is the colour metric, not the
+    // value that sized the tile — pointing the arrow at the area value would
+    // put it somewhere the tile's own colour never came from.
+    let val
+    if (this._continuous) {
+      val = colorValueOf(w, i, j)
+    } else {
+      val = w.seriesData?.series?.[i]?.[j]
+    }
     if (val == null || Number.isNaN(val)) return
 
     this._positionArrow(val)
@@ -757,8 +814,23 @@ export default class HeatmapGradientLegend {
    */
   _computeStops() {
     const w = this.w
-    const cs = w.config.plotOptions.heatmap.colorScale
-    const cfg = cs.gradientLegend
+    const cs = HeatmapGradientLegend.colorScaleOf(w) || {}
+    const cfg = this._cfg()
+
+    // A treemap colouring by a second, continuous metric already owns a scale
+    // (charts/common/treemap/ColorScale). Draw that one rather than deriving a
+    // second, so the strip cannot disagree with the tiles.
+    const continuous = buildContinuousScale(w)
+    if (continuous) {
+      this._continuous = true
+      return {
+        min: continuous.min,
+        max: continuous.max,
+        stops: continuous.legendStops,
+        bands: [],
+      }
+    }
+    this._continuous = false
 
     // Legend.init() runs *before* coreCalculations populates globals.minY/maxY,
     // so we can't rely on those here. Derive the value range directly from
@@ -836,8 +908,8 @@ export default class HeatmapGradientLegend {
       // is the documented behavior).
       const baseColor = w.globals.colors[0] || '#008FFB'
       const utils = new Utils()
-      const shadeIntensity =
-        w.config.plotOptions.heatmap.shadeIntensity ?? 0.5
+      const plot = w.config.plotOptions[w.config.chart.type] || {}
+      const shadeIntensity = plot.shadeIntensity ?? 0.5
       const hasNegs = /** @type {any} */ (w.globals).hasNegs
       const n = Math.max(2, cfg.stops || 16)
       for (let s = 0; s < n; s++) {
@@ -850,7 +922,7 @@ export default class HeatmapGradientLegend {
         const percent_v = total === 0 ? 0 : (100 * v) / total
         let colorShadePercent
         if (hasNegs) {
-          if (w.config.plotOptions.heatmap.reverseNegativeShade) {
+          if (plot.reverseNegativeShade) {
             colorShadePercent =
               percent_v < 0
                 ? (percent_v / 100) * (shadeIntensity * 1.25)
@@ -868,7 +940,7 @@ export default class HeatmapGradientLegend {
         if (colorShadePercent > 1) colorShadePercent = 1
         if (colorShadePercent < -1) colorShadePercent = -1
 
-        const shaded = w.config.plotOptions.heatmap.enableShades
+        const shaded = plot.enableShades
           ? utils.shadeColor(
               w.config.theme.mode === 'dark'
                 ? colorShadePercent * -1

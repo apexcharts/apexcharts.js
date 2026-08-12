@@ -231,6 +231,7 @@ export default class UpdateHelpers {
       // and the histogram's raw observations).
       w.globals.dataReducerRawSeries = null
       w.globals.histogramRawSeries = null
+      w.globals.treemapRawSeries = null
 
       this.ctx.data.resetParsingFlags()
       // Phase 1: return value captured; writer stubs are no-ops.

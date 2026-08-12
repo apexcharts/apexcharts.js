@@ -1157,6 +1157,14 @@ export default class Defaults {
         tooltip: {
           enabled: false,
         },
+        // A treemap has no x axis to read: the tiles are the whole plot, and
+        // the ticks mark data-point positions that mean nothing here. One tick
+        // per row is invisible at a dozen rows and a solid comb under the plot
+        // at several hundred, so they are off by default. Set
+        // `xaxis.axisTicks.show: true` to bring them back.
+        axisTicks: {
+          show: false,
+        },
       },
     }
   }

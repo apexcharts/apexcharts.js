@@ -64,6 +64,10 @@ class Legend {
       // gradient strip), not series-driven, so they must render even for a
       // single-row heatmap.
       cnf.chart.type === 'heatmap' ||
+      // Same for a treemap once it has a gradient strip: a nested treemap is
+      // usually one series, and the strip describes the colour metric rather
+      // than the series.
+      HeatmapGradientLegend.isEnabled(w) ||
       this.w.seriesData.series.length > 1
 
     this.legendHelpers.appendToForeignObject()
@@ -80,10 +84,7 @@ class Legend {
         this.heatmapGradientLegend = null
       }
 
-      if (
-        cnf.chart.type === 'heatmap' &&
-        HeatmapGradientLegend.isEnabled(w)
-      ) {
+      if (HeatmapGradientLegend.isEnabled(w)) {
         this.heatmapGradientLegend = new HeatmapGradientLegend(w, this.ctx)
         this.heatmapGradientLegend.draw()
         // Gradient legend handles its own wrap positioning + alignment via
