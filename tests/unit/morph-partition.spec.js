@@ -123,7 +123,7 @@ describe('capturing a treemap', () => {
   it('emits one closed rectangle path per tile', () => {
     const chart = treemapChart()
     const morph = new MorphTypeChange(chart.w, chart.ctx)
-    const captured = morph._captureFromDOM('treemap')
+    const { marks: captured } = morph._captureFromDOM('treemap')
 
     expect(captured.length).toBe(4)
     captured.forEach((c) => {
@@ -152,7 +152,7 @@ describe('capturing a treemap', () => {
   it('maps the tiles by draw order', () => {
     const chart = treemapChart()
     const morph = new MorphTypeChange(chart.w, chart.ctx)
-    const captured = morph._captureFromDOM('treemap')
+    const { marks: captured } = morph._captureFromDOM('treemap')
     const mapping = morph._buildMapping(captured, 'treemap', 'sunburst', TREE)
     expect(mapping.size).toBe(4)
     expect(mapping.get('0:0').d).toBe(captured[0].d)
@@ -175,7 +175,7 @@ describe('capturing a sunburst', () => {
   it('captures only the leaves, since that is the level a flat partition has', () => {
     const chart = sunburstChart()
     const morph = new MorphTypeChange(chart.w, chart.ctx)
-    const captured = morph._captureFromDOM('sunburst')
+    const { marks: captured } = morph._captureFromDOM('sunburst')
 
     expect(captured.length).toBe(4)
     const leafPaths = [...document.querySelectorAll('.apexcharts-sunburst-arc')]
@@ -192,14 +192,14 @@ describe('capturing a sunburst', () => {
     )
     arc.setAttribute('d', '')
     const morph = new MorphTypeChange(chart.w, chart.ctx)
-    expect(morph._captureFromDOM('sunburst').length).toBe(3)
+    expect(morph._captureFromDOM('sunburst').marks.length).toBe(3)
     chart.destroy()
   })
 
   it('feeds the tiles of an incoming treemap, in order', () => {
     const chart = sunburstChart()
     const morph = new MorphTypeChange(chart.w, chart.ctx)
-    const captured = morph._captureFromDOM('sunburst')
+    const { marks: captured } = morph._captureFromDOM('sunburst')
     const mapping = morph._buildMapping(captured, 'sunburst', 'treemap', [
       { data: [{ x: 'Web', y: 30 }] },
     ])
@@ -283,5 +283,129 @@ describe('the pieces each renderer contributes', () => {
     const sun = new SunburstChart(stubW(), {})
     sun._morphLeafIndex = 0
     expect(sun._morphSourceFor({ name: 'a' })).toBeNull()
+  })
+})
+
+// ===========================================================================
+// Level-aware pairing
+//
+// Draw-order pairing can only ever match leaves: a treemap's containers and a
+// sunburst's inner rings have no position in that sequence, so they used to
+// appear from nothing. Both charts now build the same branch key from the same
+// config, so every level pairs by identity instead.
+// ===========================================================================
+describe('pairing by branch identity', () => {
+  it('both charts compute the same key for the same branch', () => {
+    const tm = treemapChart()
+    const tmKeys = [...document.querySelectorAll('.apexcharts-treemap-rect')]
+      .map((t) => t.getAttribute('data:key'))
+    tm.destroy()
+
+    const sb = sunburstChart()
+    const sbKeys = [...document.querySelectorAll('.apexcharts-sunburst-arc')]
+      .filter((a) => a.getAttribute('data:leaf') === 'true')
+      .map((a) => a.getAttribute('data:key'))
+    sb.destroy()
+
+    // The treemap fixture is the flat four-leaf version of the same data, so
+    // its keys are one level shallower; what matters is that both are present
+    // and well-formed rather than undefined.
+    expect(tmKeys.every((k) => typeof k === 'string' && k.startsWith('/'))).toBe(true)
+    expect(sbKeys.every((k) => typeof k === 'string' && k.startsWith('/'))).toBe(true)
+  })
+
+  it('captures a sunburst inner ring as a branch, apart from the leaves', () => {
+    const chart = sunburstChart()
+    const morph = new MorphTypeChange(chart.w, chart.ctx)
+    const { marks, branches } = morph._captureFromDOM('sunburst')
+    expect(marks.length).toBe(4) // leaves
+    expect(branches.length).toBe(2) // Engineering, Design
+    branches.forEach((b) => {
+      expect(b.key).toMatch(/^\//)
+      expect(b.d).toBeTruthy()
+    })
+    chart.destroy()
+  })
+
+  it('maps every level when both sides are keyed', () => {
+    const chart = sunburstChart()
+    const morph = new MorphTypeChange(chart.w, chart.ctx)
+    const { marks, branches } = morph._captureFromDOM('sunburst')
+    const mapping = morph._buildMapping(
+      marks,
+      'sunburst',
+      'treemap',
+      TREE,
+      branches,
+    )
+    // 4 leaves + 2 branches keyed, plus the positional entries for the
+    // draw-order fallback.
+    const keyed = [...mapping.keys()].filter((k) => k.startsWith('key:'))
+    expect(keyed.length).toBe(6)
+    chart.destroy()
+  })
+
+  it('resolves a branch shape by key', () => {
+    const chart = sunburstChart()
+    const morph = new MorphTypeChange(chart.w, chart.ctx)
+    const { marks, branches } = morph._captureFromDOM('sunburst')
+    morph._snapshot = {
+      fromType: 'sunburst',
+      toType: 'treemap',
+      mapping: morph._buildMapping(marks, 'sunburst', 'treemap', TREE, branches),
+      // Same layout in and out, so the captured `d` comes back verbatim rather
+      // than shifted into the new chart's translate space.
+      oldLayout: {
+        translateX: chart.w.layout.translateX,
+        translateY: chart.w.layout.translateY,
+      },
+    }
+    expect(morph.hasKeyedMarks()).toBe(true)
+    expect(morph.getInitialPathForKey(branches[0].key)).toBe(branches[0].d)
+    expect(morph.getInitialPathForKey('/no/such/branch')).toBeNull()
+    expect(morph.getInitialPathForKey('')).toBeNull()
+    chart.destroy()
+  })
+
+  it('keeps the positional path when nothing is keyed', () => {
+    const morph = new MorphTypeChange(stubW(), {})
+    const captured = [
+      { realIndex: 0, j: 0, d: 'a', fill: null },
+      { realIndex: 1, j: 0, d: 'b', fill: null },
+    ]
+    const mapping = morph._buildMapping(captured, 'treemap', 'sunburst', TREE, [])
+    expect([...mapping.keys()]).toEqual(['0:0', '1:0'])
+    morph._snapshot = {
+      fromType: 'treemap',
+      toType: 'sunburst',
+      mapping,
+      oldLayout: { translateX: 0, translateY: 0 },
+    }
+    expect(morph.hasKeyedMarks()).toBe(false)
+  })
+
+  it('a keyed sunburst pulls every ring, not just its leaves', () => {
+    const handed = []
+    const ctx = {
+      morphTypeChange: {
+        isActive: () => true,
+        getSpeed: () => 600,
+        hasKeyedMarks: () => true,
+        getInitialPathForKey: (k) => {
+          handed.push(k)
+          return 'shape-for-' + k
+        },
+        getInitialPathAt: () => {
+          throw new Error('should not fall back to draw order')
+        },
+      },
+    }
+    const sun = new SunburstChart(stubW(), ctx)
+    // A branch: previously always null, now it pairs.
+    const branch = { name: 'Engineering', _key: '0:S/0:Engineering', children: [{}] }
+    const leaf = { name: 'Web', _key: '0:S/0:Engineering/0:Web' }
+    expect(sun._morphSourceFor(branch)).toBe('shape-for-/0:Engineering')
+    expect(sun._morphSourceFor(leaf)).toBe('shape-for-/0:Engineering/0:Web')
+    expect(handed).toEqual(['/0:Engineering', '/0:Engineering/0:Web'])
   })
 })

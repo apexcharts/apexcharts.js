@@ -135,7 +135,7 @@ describe('a dot cloud collapses back into the mark that aggregates it', () => {
   it('captures one rect per cluster, covering that cluster only', () => {
     const chart = unitChart([6, 6])
     const morph = new MorphTypeChange(chart.w, chart.ctx)
-    const captured = morph._captureFromDOM('unit')
+    const { marks: captured } = morph._captureFromDOM('unit')
 
     expect(captured.length).toBe(2)
     expect(captured.map((c) => c.realIndex)).toEqual([0, 1])
@@ -171,7 +171,7 @@ describe('a dot cloud collapses back into the mark that aggregates it', () => {
   it('a one-dot cluster still yields a drawable rect', () => {
     const chart = unitChart([1])
     const morph = new MorphTypeChange(chart.w, chart.ctx)
-    const [c] = morph._captureFromDOM('unit')
+    const [c] = morph._captureFromDOM('unit').marks
     const n = c.d.match(/-?\d+(\.\d+)?/g).map(Number)
     const xs = n.filter((_, i) => i % 2 === 0)
     const ys = n.filter((_, i) => i % 2 === 1)
@@ -183,7 +183,7 @@ describe('a dot cloud collapses back into the mark that aggregates it', () => {
   it('maps the clusters onto an incoming bar\'s data points, in order', () => {
     const chart = unitChart([4, 7, 2])
     const morph = new MorphTypeChange(chart.w, chart.ctx)
-    const captured = morph._captureFromDOM('unit')
+    const { marks: captured } = morph._captureFromDOM('unit')
     const mapping = morph._buildMapping(captured, 'unit', 'bar', [
       { data: [4, 7, 2] },
     ])
@@ -197,7 +197,7 @@ describe('a dot cloud collapses back into the mark that aggregates it', () => {
   it('maps them onto pie wedges too', () => {
     const chart = unitChart([4, 7])
     const morph = new MorphTypeChange(chart.w, chart.ctx)
-    const captured = morph._captureFromDOM('unit')
+    const { marks: captured } = morph._captureFromDOM('unit')
     const mapping = morph._buildMapping(captured, 'unit', 'pie', [4, 7])
     expect(mapping.size).toBe(2)
     expect(mapping.get('0:0').d).toBe(captured[0].d)
@@ -282,7 +282,7 @@ describe('nothing else changes', () => {
     })
     chart.render()
     const morph = new MorphTypeChange(chart.w, chart.ctx)
-    const captured = morph._captureFromDOM('bar')
+    const { marks: captured } = morph._captureFromDOM('bar')
     expect(captured.length).toBe(3)
     captured.forEach((c) => expect(typeof c.d).toBe('string'))
     chart.destroy()
@@ -291,7 +291,7 @@ describe('nothing else changes', () => {
   it('capturing a unit chart that has no dots yields nothing', () => {
     const chart = unitChart([0])
     const morph = new MorphTypeChange(chart.w, chart.ctx)
-    expect(morph._captureFromDOM('unit')).toEqual([])
+    expect(morph._captureFromDOM('unit').marks).toEqual([])
     chart.destroy()
   })
 })

@@ -168,10 +168,16 @@ export default class MorphTypeChange {
     if (!this.canMorphTypes(fromType, toType)) return false
     if (!this.isCompatibleSeriesShape(fromType, toType, newSeries)) return false
 
-    const captured = this._captureFromDOM(fromType)
-    if (!captured.length) return false
+    const { marks, branches } = this._captureFromDOM(fromType)
+    if (!marks.length) return false
 
-    const mapping = this._buildMapping(captured, fromType, toType, newSeries)
+    const mapping = this._buildMapping(
+      marks,
+      fromType,
+      toType,
+      newSeries,
+      branches,
+    )
     if (mapping.size === 0) return false
 
     // Capture the OLD chart's elGraphical translate so getInitialPathFor can
@@ -204,15 +210,19 @@ export default class MorphTypeChange {
    * elements have `pathTo` set; pie/radial elements use their final `d`.
    *
    * @param {string} fromType
-   * @returns {Array<{ realIndex: number, j: number, d: string, fill: string|null }>}
+   * @returns {{ marks: Array<{ realIndex: number, j: number, d: string, fill: string|null, key?: string|null }>, branches: Array<{ key: string, d: string, fill: string|null }> }}
    */
   _captureFromDOM(fromType) {
     /** @type {any} */
     const baseEl = this.w.globals.dom?.baseEl
-    if (!baseEl) return []
+    if (!baseEl) return { marks: [], branches: [] }
 
-    /** @type {Array<{ realIndex: number, j: number, d: string, fill: string|null }>} */
+    /** @type {Array<{ realIndex: number, j: number, d: string, fill: string|null, key?: string|null }>} */
     const captured = []
+    // Non-leaf marks (treemap containers / sunburst inner rings). Only usable
+    // when both charts carry branch keys, so they travel separately.
+    /** @type {Array<{ key: string, d: string, fill: string|null }>} */
+    const branches = []
     const fam = familyOf(fromType)
 
     if (fam === 'bar') {
@@ -240,19 +250,43 @@ export default class MorphTypeChange {
       if (fromType === 'treemap') {
         // Tiles are <rect>s, and the morph engine interpolates path data, so
         // each one is emitted as the equivalent closed rectangle path.
+        //
+        // Containers are captured too, so a nested treemap can hand a sunburst
+        // its inner rings rather than leaving them to appear from nothing. They
+        // only pair up when both sides carry a branch key (see _buildMapping);
+        // a positional fallback would misalign every leaf, so containers are
+        // kept in a separate list and dropped unless keys are usable.
+        /** @type {(el: Element) => string|null} */
+        const rectPath = (el) => {
+          const x = parseFloat(el.getAttribute('x') ?? '')
+          const y = parseFloat(el.getAttribute('y') ?? '')
+          const width = parseFloat(el.getAttribute('width') ?? '')
+          const height = parseFloat(el.getAttribute('height') ?? '')
+          if (![x, y, width, height].every((v) => isFinite(v))) return null
+          return `M ${x} ${y} L ${x + width} ${y} L ${x + width} ${y + height} L ${x} ${y + height} Z`
+        }
+
         const tiles = baseEl.querySelectorAll('.apexcharts-treemap-rect')
         tiles.forEach((/** @type {Element} */ t) => {
-          const x = parseFloat(t.getAttribute('x') ?? '')
-          const y = parseFloat(t.getAttribute('y') ?? '')
-          const width = parseFloat(t.getAttribute('width') ?? '')
-          const height = parseFloat(t.getAttribute('height') ?? '')
-          if (![x, y, width, height].every((v) => isFinite(v))) return
+          const d = rectPath(t)
+          if (!d) return
           captured.push({
             realIndex: parseInt(t.getAttribute('i') ?? '0', 10) || 0,
             j: parseInt(t.getAttribute('j') ?? '0', 10) || 0,
-            d: `M ${x} ${y} L ${x + width} ${y} L ${x + width} ${y + height} L ${x} ${y + height} Z`,
+            d,
             fill: t.getAttribute('fill'),
+            key: t.getAttribute('data:key') || null,
           })
+        })
+
+        const containers = baseEl.querySelectorAll(
+          '.apexcharts-treemap-parent-rect',
+        )
+        containers.forEach((/** @type {Element} */ c) => {
+          const d = rectPath(c)
+          const key = c.getAttribute('data:key')
+          if (!d || !key) return
+          branches.push({ key, d, fill: c.getAttribute('fill') })
         })
       } else {
         // Sunburst arcs are already paths. Only LEAVES are captured: they are
@@ -274,7 +308,18 @@ export default class MorphTypeChange {
             j: 0,
             d,
             fill: a.getAttribute('fill'),
+            key: a.getAttribute('data:key') || null,
           })
+        })
+
+        // The inner rings, for the level-aware pairing. Leaves are already in
+        // `captured`, so this is every arc that is not one.
+        arcs.forEach((/** @type {Element} */ a) => {
+          if (a.getAttribute('data:leaf') === 'true') return
+          const d = a.getAttribute('d')
+          const key = a.getAttribute('data:key')
+          if (!d || !d.trim() || !key) return
+          branches.push({ key, d, fill: a.getAttribute('fill') })
         })
       }
     } else if (fam === 'unit') {
@@ -400,7 +445,7 @@ export default class MorphTypeChange {
       }
     }
 
-    return captured
+    return { marks: captured, branches }
   }
 
   /**
@@ -545,13 +590,15 @@ export default class MorphTypeChange {
    *   - radial-family (N items) ↔ bar (any matching shape) → linear[k] ↔ flat target
    *   - radial-family ↔ radial-family                    → linear[k] ↔ k
    *
-   * @param {Array<{ realIndex: number, j: number, d: string, fill: string|null }>} captured
+   * @param {Array<{ realIndex: number, j: number, d: string, fill: string|null, key?: string|null }>} captured
    * @param {string} _fromType
    * @param {string} toType
    * @param {any} newSeries - the series array being passed to the new chart;
    *   used only to derive the bar target's (realIndex, j) iteration positions.
+   * @param {Array<{ key: string, d: string, fill: string|null }>} [branches]
+   *   non-leaf marks, for the key-based partition pairing.
    */
-  _buildMapping(captured, _fromType, toType, newSeries) {
+  _buildMapping(captured, _fromType, toType, newSeries, branches) {
     /** @type {Map<string, { d: string, fill: string|null }>} */
     const map = new Map()
     const tf = familyOf(toType)
@@ -562,6 +609,23 @@ export default class MorphTypeChange {
     const flat = captured
       .slice()
       .sort((a, b) => a.realIndex - b.realIndex || a.j - b.j)
+
+    // Partition -> partition, with a branch key on both sides: pair by the
+    // branch each mark stands for rather than by draw order, so a sector keeps
+    // its identity and every level tweens instead of only the leaves. Keyed
+    // entries live in their own namespace so a positional lookup can still fall
+    // through when a chart has no keys (a flat treemap, an older config).
+    if (tf === 'partition' && branches && branches.length) {
+      const keyedMarks = flat.filter((c) => c.key)
+      if (keyedMarks.length === flat.length) {
+        keyedMarks.forEach((c) => {
+          map.set(`key:${c.key}`, { d: c.d, fill: c.fill })
+        })
+        branches.forEach((br) => {
+          map.set(`key:${br.key}`, { d: br.d, fill: br.fill })
+        })
+      }
+    }
 
     if (tf === 'radial' || tf === 'unit' || tf === 'partition') {
       // pie / donut / polarArea / radialBar iterate i = 0..N-1 with j=0. unit
@@ -604,8 +668,8 @@ export default class MorphTypeChange {
   }
 
   /**
-   * @param {number} realIndex
-   * @param {number} j
+   * @param {number|string} realIndex
+   * @param {number|string} j
    * @returns {string | null}
    */
   getInitialPathFor(realIndex, j) {
@@ -696,6 +760,31 @@ export default class MorphTypeChange {
    */
   getInitialPathAt(k) {
     return this.getInitialPathFor(k, 0)
+  }
+
+  /**
+   * The captured shape for a branch identity (charts/common/Hierarchy.morphKey),
+   * or null when the outgoing chart had no mark for that branch.
+   *
+   * This is what lets a partition morph pair at every level: a sector, an
+   * industry and a company each find the arc or tile that stood for the same
+   * branch, instead of leaves pairing by draw order while the containers pop.
+   *
+   * @param {string} key
+   * @returns {string | null}
+   */
+  getInitialPathForKey(key) {
+    if (!this._snapshot || !key) return null
+    return this.getInitialPathFor('key', key)
+  }
+
+  /** True when the active snapshot can pair by branch key. */
+  hasKeyedMarks() {
+    if (!this._snapshot) return false
+    for (const k of this._snapshot.mapping.keys()) {
+      if (typeof k === 'string' && k.startsWith('key:')) return true
+    }
+    return false
   }
 
   /**
