@@ -1,5 +1,7 @@
 // @ts-check
 import AxesUtils from '../axes/AxesUtils'
+import Graphics from '../Graphics'
+import Utils from '../../utils/Utils'
 
 export default class DimGrid {
   /**
@@ -92,6 +94,65 @@ export default class DimGrid {
     }
 
     return barWidth
+  }
+
+  /**
+   * Reserve room to the right of the plot for stacked *total* dataLabels on a
+   * 100% horizontal bar chart.
+   *
+   * The total label is placed just past the end of the stack. Under
+   * `stackType: '100%'` every stack ends at the axis maximum, i.e. exactly at
+   * the right edge of the plot, so the label was drawn outside the grid and
+   * clipped by the SVG viewport. See #3579.
+   *
+   * Scoped to the 100% case on purpose: with ordinary stacking the axis
+   * maximum is a rounded "nice" number that normally sits beyond the longest
+   * stack, so there is already room and padding every such chart would move
+   * layouts that render correctly today.
+   *
+   * Raises `xPadRight`, which narrows `gridWidth` without translating the plot
+   * origin, so the y-axis and its labels stay put and only the bars get
+   * shorter.
+   */
+  gridPadForStackedTotalDataLabels() {
+    const { w } = this
+    const totalConfig = w.config.plotOptions.bar.dataLabels.total
+
+    if (
+      !w.globals.isBarHorizontal ||
+      !w.config.chart.stacked ||
+      w.config.chart.stackType !== '100%' ||
+      !totalConfig.enabled
+    ) {
+      return
+    }
+
+    const totals = w.seriesData.stackedSeriesTotals || []
+    if (!totals.length) return
+
+    const formatter = totalConfig.formatter || w.config.dataLabels.formatter
+    // getLargestStringFromArr compares `.length`, so these must be strings.
+    const labels = totals.map(
+      (/** @type {any} */ val, /** @type {number} */ j) =>
+        String(
+          formatter
+            ? formatter(val, { ...w, seriesIndex: 0, dataPointIndex: j, w })
+            : val,
+        ),
+    )
+
+    const graphics = new Graphics(w)
+    const rect = graphics.getTextRects(
+      Utils.getLargestStringFromArr(labels),
+      parseFloat(totalConfig.style.fontSize).toString(),
+      totalConfig.style.fontFamily,
+    )
+
+    // The label starts at the stack end plus offsetX, so the space it needs is
+    // its own width plus that offset, and a couple of px so the glyphs are not
+    // flush against the viewport edge.
+    const needed = rect.width + Math.abs(totalConfig.offsetX || 0) + 2
+    this.dCtx.xPadRight = Math.max(this.dCtx.xPadRight, needed)
   }
 
   gridPadFortitleSubtitle() {

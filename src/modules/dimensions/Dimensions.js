@@ -97,6 +97,8 @@ export default class Dimensions {
 
     this.dimGrid.gridPadFortitleSubtitle()
     this.gridPadForBreadcrumb()
+    // Must run before gridWidth has xPadRight subtracted from it below.
+    this.dimGrid.gridPadForStackedTotalDataLabels()
 
     // after calculating everything, apply padding set by user
     w.layout.gridHeight =
