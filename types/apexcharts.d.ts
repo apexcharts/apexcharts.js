@@ -1544,6 +1544,18 @@ type ApexChart = {
       }
       width?: number
       scale?: number
+      /**
+       * Inline the `@font-face` rules for the fonts the chart actually uses
+       * into the exported SVG/PNG as base64 data URIs.
+       *
+       * An exported SVG is a standalone document and cannot reach the page's
+       * `@font-face` rules, so without this a custom font is replaced by a
+       * generic fallback in the export. Cross-origin font files that deny CORS
+       * are skipped and fall back as before.
+       *
+       * @default true
+       */
+      embedFonts?: boolean
     }
     autoSelected?: 'zoom' | 'selection' | 'pan' | 'measure'
   }

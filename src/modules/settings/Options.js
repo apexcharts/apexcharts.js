@@ -627,6 +627,11 @@ export default class Options {
             },
             scale: undefined,
             width: undefined,
+            // An exported SVG is a standalone document: it cannot reach the
+            // page's @font-face rules, so a custom font falls back to a
+            // generic one in the PNG/SVG. When true, matching @font-face
+            // rules are inlined as base64 data URIs. See #3617.
+            embedFonts: true,
           },
           autoSelected: 'zoom', // accepts -> zoom, pan, selection, measure
         },

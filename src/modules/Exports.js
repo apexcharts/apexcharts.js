@@ -4,6 +4,7 @@ import Data from '../modules/Data'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment.js'
+import { BrowserAPIs } from '../ssr/BrowserAPIs'
 import { SVGNS } from '../svg/math'
 
 class Exports {
@@ -283,6 +284,261 @@ class Exports {
   }
 
   /**
+   * The colour a raster export paints under the chart.
+   *
+   * A PNG needs an opaque base, so `dataURI` fills the canvas before drawing
+   * the SVG onto it. That fill used to be `#fff` whenever `chart.background`
+   * was unset *or* `'transparent'`, which is wrong for a dark theme:
+   * `theme.mode: 'dark'` moves `chart.foreColor` to a near-white `#f6f7f8` but
+   * leaves the background alone, so `background: 'transparent'` produced
+   * near-white labels, axes and legend on white — a PNG that looked like it had
+   * lost all its text. See #2920.
+   *
+   * The unset-background case was already covered: `Core.setupElements` paints
+   * the SVG paper `#343A3F` for a dark theme, and the clone carries that inline
+   * style into the export. `'transparent'` is the gap, because it makes that
+   * paper style transparent too and nothing is left to cover the white fill.
+   *
+   * An explicit non-transparent `chart.background` still wins, including one
+   * written by the Facet `--apx-surface` token (Theme assigns it into the same
+   * field).
+   * @returns {string}
+   */
+  resolveExportBackground() {
+    const w = this.w
+    const bg = w.config.chart.background
+    if (bg && bg !== 'transparent') return bg
+    // Same dark surface Core.setupElements gives the paper, so a transparent
+    // dark chart rasterizes to the surface it would have had by default.
+    return w.config.theme.mode === 'dark' ? '#343A3F' : '#fff'
+  }
+
+  /**
+   * Font families the rendered chart actually paints with.
+   *
+   * Read off the live DOM rather than the config: computed styles resolve
+   * `chart.fontFamily`, every per-element `style.fontFamily` override, and any
+   * family the chart inherits from the page, none of which are reliably
+   * enumerable from config alone. The clone is not in the document, so its
+   * computed styles would come back empty.
+   * @returns {Set<string>}
+   */
+  collectFontFamilies() {
+    /** @type {Set<string>} */
+    const families = new Set()
+    const w = this.w
+    if (!Environment.isBrowser() || !w.dom.elWrap) return families
+
+    const els = this.queryStyleable(
+      w.dom.elWrap,
+      'text, tspan, .apexcharts-legend-text, .apexcharts-title-text, .apexcharts-subtitle-text',
+    )
+    // The wrap itself carries chart.fontFamily, which the text inherits.
+    /** @type {Array<Element>} */
+    const all = [w.dom.elWrap, ...els]
+
+    all.forEach((el) => {
+      const cs = /** @type {any} */ (
+        BrowserAPIs.getComputedStyle(/** @type {any} */ (el))
+      )
+      const ff = cs && cs.fontFamily
+      if (!ff) return
+      ff.split(',').forEach((/** @type {string} */ name) => {
+        const clean = name.trim().replace(/^['"]|['"]$/g, '')
+        if (clean) families.add(clean.toLowerCase())
+      })
+    })
+
+    return families
+  }
+
+  /**
+   * Every `@font-face` rule reachable from the document, as `{ family, css }`.
+   *
+   * Same-origin sheets are read through `cssRules`. A cross-origin sheet throws
+   * on that access, so it is re-fetched by href and its `@font-face` blocks are
+   * pulled out of the text: that is the path that matters in practice, since
+   * hosted webfonts (the subject of #3617) are exactly the cross-origin case.
+   * @returns {Promise<Array<{family: string, css: string}>>}
+   */
+  collectFontFaceRules() {
+    if (!Environment.isBrowser()) return Promise.resolve([])
+
+    /** @type {Array<{family: string, css: string}>} */
+    const found = []
+    /** @type {Array<Promise<void>>} */
+    const remote = []
+
+    /** @param {string} cssText */
+    const pushFromText = (cssText) => {
+      const blocks = cssText.match(/@font-face\s*\{[^}]*\}/gi) || []
+      blocks.forEach((css) => {
+        const m = css.match(/font-family\s*:\s*([^;}]+)/i)
+        if (!m) return
+        const family = m[1].trim().replace(/^['"]|['"]$/g, '')
+        found.push({ family: family.toLowerCase(), css })
+      })
+    }
+
+    const sheets = Array.from(document.styleSheets || [])
+    sheets.forEach((sheet) => {
+      /** @type {any} */
+      let rules = null
+      try {
+        rules = sheet.cssRules
+      } catch (e) {
+        // Cross-origin sheet: unreadable here, re-fetch it below.
+        rules = null
+      }
+
+      if (rules) {
+        Array.from(rules).forEach((/** @type {any} */ rule) => {
+          // CSSFontFaceRule === 5, compared numerically so it also works in
+          // engines that don't expose the CSSRule constant.
+          if (rule.type === 5 && rule.cssText) pushFromText(rule.cssText)
+        })
+        return
+      }
+
+      if (sheet.href) {
+        remote.push(
+          fetch(sheet.href)
+            .then((r) => (r.ok ? r.text() : ''))
+            .then(pushFromText)
+            .catch(() => {}),
+        )
+      }
+    })
+
+    return Promise.all(remote).then(() => found)
+  }
+
+  /**
+   * Inline the `@font-face` rules for the families the chart uses, with the
+   * font files themselves as base64 data URIs, into the exported SVG.
+   *
+   * Needed because the export is a standalone document: rasterizing it through
+   * `<img src="data:image/svg+xml,...">` gives it no access to the page's
+   * stylesheets *or* its loaded fonts, and an SVG-as-image may not fetch
+   * external resources at all. Without this the text silently reflows into a
+   * generic fallback face. See #3617.
+   *
+   * `@font-face` only exists as a stylesheet construct, so unlike the rules in
+   * `applyExportStyles` this cannot be expressed as inline styles and has to
+   * ship as a `<style>` element. A page whose CSP forbids inline styles will
+   * drop it and fall back to today's behaviour, which is why the whole thing is
+   * best-effort: any failure leaves the export exactly as it was.
+   * @param {any} svgNode the parsed outer <svg> about to be serialized
+   * @returns {Promise<void>}
+   */
+  embedFonts(svgNode) {
+    const w = this.w
+    if (
+      !Environment.isBrowser() ||
+      !w.config.chart.toolbar.export.embedFonts ||
+      typeof fetch !== 'function'
+    ) {
+      return Promise.resolve()
+    }
+
+    const used = this.collectFontFamilies()
+    if (!used.size) return Promise.resolve()
+
+    return this.collectFontFaceRules()
+      .then((faces) => {
+        const wanted = faces.filter((f) => used.has(f.family))
+        if (!wanted.length) return Promise.resolve([])
+
+        return Promise.all(
+          wanted.map((face) =>
+            this.inlineFontFaceUrls(face.css).catch(() => null),
+          ),
+        )
+      })
+      .then((cssBlocks) => {
+        const css = (cssBlocks || []).filter(Boolean).join('\n')
+        if (!css) return
+        const style = document.createElementNS(SVGNS, 'style')
+        style.textContent = css
+        // First child: @font-face must be parsed before the text that uses it.
+        svgNode.insertBefore(style, svgNode.firstChild)
+      })
+      .catch(() => {
+        // Font embedding is an enhancement; never fail the export over it.
+      })
+  }
+
+  /**
+   * Replace every remote `url(...)` in one `@font-face` block with a base64
+   * data URI. Resolves to null if no url could be fetched, so the caller can
+   * drop a block that would only reference unreachable files.
+   * @param {string} css
+   * @returns {Promise<string | null>}
+   */
+  inlineFontFaceUrls(css) {
+    const urls = []
+    const re = /url\(\s*(['"]?)([^'")]+)\1\s*\)/gi
+    let m
+    while ((m = re.exec(css)) !== null) {
+      if (!m[2].startsWith('data:')) urls.push(m[2])
+    }
+    if (!urls.length) return Promise.resolve(css.includes('data:') ? css : null)
+
+    return Promise.all(
+      urls.map((url) =>
+        this.fetchAsDataUri(url)
+          .then((dataUri) => ({ url, dataUri }))
+          .catch(() => ({ url, dataUri: null })),
+      ),
+    ).then((results) => {
+      let out = css
+      let replaced = 0
+      results.forEach(({ url, dataUri }) => {
+        if (!dataUri) return
+        out = out.split(url).join(dataUri)
+        replaced++
+      })
+      return replaced ? out : null
+    })
+  }
+
+  /**
+   * Fetch a binary asset as a base64 data URI.
+   *
+   * Uses `fetch` rather than the `<img>`+canvas route in `getBase64FromUrl`:
+   * that route only works for raster images and taints the canvas for any
+   * response without CORS headers, whereas this works for fonts too and fails
+   * cleanly when CORS denies it.
+   * @param {string} url
+   * @returns {Promise<string>}
+   */
+  fetchAsDataUri(url) {
+    if (typeof fetch !== 'function' || typeof btoa !== 'function') {
+      // Rejects rather than resolves so callers fall through to their
+      // non-fetch fallback instead of writing an unusable href.
+      return Promise.reject(new Error('fetch unavailable'))
+    }
+    return fetch(url).then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`)
+      const type = res.headers.get('content-type') || 'application/octet-stream'
+      return res.arrayBuffer().then((buf) => {
+        const bytes = new Uint8Array(buf)
+        let binary = ''
+        // Chunked: a spread/apply over a whole font file blows the argument
+        // limit on larger faces.
+        const CHUNK = 0x8000
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+          binary += String.fromCharCode.apply(
+            null,
+            /** @type {any} */ (bytes.subarray(i, i + CHUNK)),
+          )
+        }
+        return `data:${type};base64,${btoa(binary)}`
+      })
+    })
+  }
+
+  /**
    * @param {number} [_scale]
    */
   getSvgString(_scale) {
@@ -335,7 +591,10 @@ class Exports {
         this.scaleSvgNode(svgNode, scale)
       }
 
-      this.convertImagesToBase64(svgNode).then(() => {
+      Promise.all([
+        this.convertImagesToBase64(svgNode),
+        this.embedFonts(svgNode),
+      ]).then(() => {
         svgString = new XMLSerializer().serializeToString(svgNode)
         resolve(svgString.replace(/&nbsp;/g, '&#160;'))
       })
@@ -343,22 +602,49 @@ class Exports {
   }
 
   /**
+   * Turn every remote `<image>` in the export into an inline data URI.
+   *
+   * This is not an optimisation: an SVG rasterized through `<img src="data:...">`
+   * is not allowed to fetch external resources, so any href left pointing at a
+   * URL vanishes from the PNG entirely. Image annotations and `hollow.image`
+   * were disappearing from downloads for exactly this reason. See #3170.
+   *
+   * Two things were missing before. `SVGContainer.image()` writes `xlink:href`,
+   * but Strata's inlined canvas layers and hand-authored `customSVG` markup use
+   * the plain `href` form, and only the namespaced attribute was being read.
+   * And conversion went through `<img>`+canvas, which taints (and therefore
+   * throws) for any response without CORS headers, so a cross-origin icon,
+   * the common case, silently failed. `fetch` is tried first and only falls
+   * back to the canvas route, which still helps for a same-origin image on a
+   * page whose CSP blocks `connect-src`.
    * @param {any} svgNode
    */
   convertImagesToBase64(svgNode) {
+    const XLINK = 'http://www.w3.org/1999/xlink'
     const images = svgNode.getElementsByTagName('image')
-    const promises = Array.from(images).map((img) => {
-      const href = img.getAttributeNS('http://www.w3.org/1999/xlink', 'href')
-      if (href && !href.startsWith('data:')) {
-        return this.getBase64FromUrl(href)
-          .then((base64) => {
-            img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', base64)
-          })
-          .catch((error) => {
-            console.error('Error converting image to base64:', error)
-          })
+    const promises = Array.from(images).map((/** @type {any} */ img) => {
+      const nsHref = img.getAttributeNS(XLINK, 'href')
+      const plainHref = img.getAttribute('href')
+      const href = nsHref || plainHref
+      if (!href || href.startsWith('data:')) return Promise.resolve()
+
+      /** @param {string} base64 */
+      const write = (base64) => {
+        // Write back whichever forms were present, so the element keeps
+        // working in both the modern and the xlink-only reading.
+        if (nsHref) img.setAttributeNS(XLINK, 'href', base64)
+        if (plainHref || !nsHref) img.setAttribute('href', base64)
       }
-      return Promise.resolve()
+
+      return this.fetchAsDataUri(href)
+        .then(write)
+        .catch(() =>
+          this.getBase64FromUrl(href)
+            .then(write)
+            .catch((error) => {
+              console.error('Error converting image to base64:', error)
+            }),
+        )
     })
     return Promise.all(promises)
   }
@@ -413,11 +699,7 @@ class Exports {
       canvas.width = w.globals.svgWidth * scale
       canvas.height = parseInt(w.dom.elWrap.style.height, 10) * scale // because of resizeNonAxisCharts
 
-      const canvasBg =
-        w.config.chart.background === 'transparent' ||
-        !w.config.chart.background
-          ? '#fff'
-          : w.config.chart.background
+      const canvasBg = this.resolveExportBackground()
 
       const ctx = canvas.getContext('2d')
       if (!ctx) return
