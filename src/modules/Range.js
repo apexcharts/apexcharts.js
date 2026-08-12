@@ -662,6 +662,19 @@ class Range {
           ticks = gl.dataPoints - 1
         }
 
+        // For bar charts with numeric x-axis data, generate ticks that align
+        // with data points (integer steps) rather than svgWidth-based steps
+        // that can produce non-integer positions (e.g. 11 bars → step 1.111).
+        // (See #5086)
+        if (
+          this.w.axisFlags.isXNumeric &&
+          !gl.isBarHorizontal &&
+          this.w.config.chart.type === 'bar' &&
+          gl.dataPoints < 30
+        ) {
+          ticks = gl.dataPoints - 1
+        }
+
         // this check is for when ticks exceeds total datapoints and that would result in duplicate labels
         if (ticks > gl.dataPoints && gl.dataPoints !== 0) {
           ticks = gl.dataPoints - 1

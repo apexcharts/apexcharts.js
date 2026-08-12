@@ -1195,3 +1195,55 @@ describe('x-axis axisTicks configuration', () => {
     expect(w.config.xaxis.axisTicks.color).toBe('#333')
   })
 })
+
+describe('x-axis ticks for numeric bar charts with >10 bars (#5086)', () => {
+  it('should generate integer-aligned ticks for 11 bars', () => {
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: '800px' },
+      series: [{
+        data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(x => ({ x, y: x }))
+      }],
+      dataLabels: { enabled: false },
+    })
+
+    const result = chart.w.globals.xAxisScale.result
+    // All 11 integer ticks should be present (step=1, not non-integer steps)
+    expect(result.length).toBe(11)
+    expect(result).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+    chart.destroy()
+  })
+
+  it('should generate integer-aligned ticks for 25 bars', () => {
+    const data = Array.from({ length: 25 }, (_, i) => ({ x: i + 1, y: Math.random() * 100 }))
+    const chart = createChartWithOptions({
+      chart: { type: 'bar', width: '1000px' },
+      series: [{ data }],
+      dataLabels: { enabled: false },
+    })
+
+    const result = chart.w.globals.xAxisScale.result
+    // 25 bars should show all 25 ticks (step=1)
+    expect(result.length).toBe(25)
+    expect(result[0]).toBe(1)
+    expect(result[result.length - 1]).toBe(25)
+    chart.destroy()
+  })
+
+  it('should not affect non-bar chart types', () => {
+    // Line charts with numeric x data already get integer ticks from
+    // the existing `xaxis.type === 'numeric'` path. Verify the fix
+    // doesn't change this behavior.
+    const chart = createChartWithOptions({
+      chart: { type: 'line', width: '800px' },
+      series: [{
+        data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(x => ({ x, y: x }))
+      }],
+      dataLabels: { enabled: false },
+    })
+
+    const result = chart.w.globals.xAxisScale.result
+    // Line charts with numeric type already get dataPoints-1 ticks
+    expect(result.length).toBe(11)
+    chart.destroy()
+  })
+})
