@@ -1,0 +1,104 @@
+<title>Line with Drilldown</title>
+
+<style>
+#chart {
+  max-width: 700px;
+  margin: 35px auto;
+}
+</style>
+
+<chart>
+<options>
+chart: {
+  height: 380,
+  type: 'line',
+  toolbar: {
+    show: false,
+  },
+},
+drilldown: {
+  enabled: true,
+  breadcrumb: {
+    show: true,
+    rootLabel: 'All years',
+  },
+  series: [
+    {
+      id: 'y2023',
+      name: '2023 by quarter',
+      data: [
+        { x: 'Q1', y: 214, drilldown: 'y2023-q1' },
+        { x: 'Q2', y: 238 },
+        { x: 'Q3', y: 259 },
+        { x: 'Q4', y: 301 },
+      ],
+    },
+    {
+      id: 'y2023-q1',
+      name: 'Q1 2023 by month',
+      data: [
+        { x: 'Jan', y: 66 },
+        { x: 'Feb', y: 70 },
+        { x: 'Mar', y: 78 },
+      ],
+    },
+    {
+      id: 'y2024',
+      name: '2024 by quarter',
+      data: [
+        { x: 'Q1', y: 322 },
+        { x: 'Q2', y: 356 },
+        { x: 'Q3', y: 341 },
+        { x: 'Q4', y: 402 },
+      ],
+    },
+    {
+      id: 'y2025',
+      name: '2025 by quarter',
+      data: [
+        { x: 'Q1', y: 428 },
+        { x: 'Q2', y: 455 },
+        { x: 'Q3', y: 471 },
+        { x: 'Q4', y: 512 },
+      ],
+    },
+  ],
+},
+colors: ['#008FFB'],
+stroke: {
+  width: 3,
+  curve: 'smooth',
+},
+title: {
+  text: 'Support tickets resolved',
+  align: 'left',
+},
+subtitle: {
+  text: 'Dotted points open a level: 2023, 2024 and 2025 break down by quarter.',
+  align: 'left',
+},
+grid: {
+  borderColor: '#e7e7e7',
+},
+yaxis: {
+  title: {
+    text: 'Tickets (thousands)',
+  },
+},
+</options>
+
+<series>
+[
+  {
+    name: 'Resolved',
+    data: [
+      { x: '2021', y: 486 },
+      { x: '2022', y: 702 },
+      { x: '2023', y: 1012, drilldown: 'y2023' },
+      { x: '2024', y: 1421, drilldown: 'y2024' },
+      { x: '2025', y: 1866, drilldown: 'y2025' },
+    ],
+  },
+]
+</series>
+</chart>

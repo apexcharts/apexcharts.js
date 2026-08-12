@@ -1869,6 +1869,20 @@ export default class Options {
         // down a branch does not re-fetch it. Call `chart.drillDown` module's
         // clearCache() when the data behind an already-drilled chart changes.
         cache: true,
+        // The dot that marks a drillable point on a line/area chart drawn
+        // without markers. A bar, slice, tile or cell is already a visible,
+        // clickable mark; a line point is not, so without this the chart would
+        // give no sign that anything can be opened. Only drillable points get
+        // one, which is what makes them read as openable. Set `show: false` to
+        // supply your own affordance (turning `markers.size` on, for instance).
+        // Omitted colours inherit the series marker defaults.
+        marker: {
+          show: true,
+          size: 6,
+          // shape: undefined,      // 'circle' | 'square' | 'rect'
+          // fillColor: undefined,  // defaults to the series colour
+          strokeColor: '#fff',
+        },
       },
       legend: {
         show: true,

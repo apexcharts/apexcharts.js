@@ -965,6 +965,25 @@ declare namespace ApexCharts {
       speed?: number
     }
     /**
+     * The dot marking a drillable point on a line/area chart drawn without
+     * markers. A bar, slice, tile or cell is already a visible, clickable mark;
+     * a line point is not, so without this nothing would show that a point can
+     * be opened. Only drillable points get one. Set `show: false` to supply your
+     * own affordance. Omitted colours inherit the series marker defaults.
+     */
+    marker?: {
+      /** Default true. */
+      show?: boolean
+      /** Radius in px. Default 6. */
+      size?: number
+      /** Defaults to the series marker shape. */
+      shape?: 'circle' | 'square' | 'rect'
+      /** Defaults to the series colour. */
+      fillColor?: string
+      /** Default '#fff'. */
+      strokeColor?: string
+    }
+    /**
      * Async resolver called when a drillable point has no inline `series` match.
      *
      * Failure never changes state: a throw, a rejection, or a resolved value

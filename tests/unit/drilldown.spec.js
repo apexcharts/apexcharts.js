@@ -738,3 +738,170 @@ describe('Drilldown — co-existence with host-app updates', () => {
     await expect(drilling).resolves.toBeDefined()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Line/area: making a drillable point both visible and clickable.
+//
+// A bar, slice, tile or cell is already a visible mark that takes a click. A
+// line point is neither: with `markers.size: 0` there is no element at all, and
+// when markers ARE shown core gives them `no-pointer-events` so the shared
+// tooltip can track the whole plot, which swallows the click. So the feature
+// supplies a dot for each drillable point and re-enables pointer events on it.
+// ---------------------------------------------------------------------------
+
+function lineOptions(overrides = {}) {
+  return {
+    chart: { type: 'line', animations: { enabled: false }, ...overrides.chart },
+    markers: overrides.markers || {},
+    series: overrides.series || [
+      {
+        name: 'Resolved',
+        data: [
+          { x: '2023', y: 100, drilldown: '2023-q' },
+          { x: '2024', y: 150, drilldown: '2024-q' },
+          { x: '2025', y: 200 }, // not drillable
+        ],
+      },
+    ],
+    drilldown: {
+      enabled: true,
+      series: [
+        { id: '2023-q', name: '2023', data: [{ x: 'Q1', y: 20 }, { x: 'Q2', y: 30 }] },
+        { id: '2024-q', name: '2024', data: [{ x: 'Q1', y: 35 }, { x: 'Q2', y: 40 }] },
+      ],
+      ...overrides.drilldown,
+    },
+  }
+}
+
+const lineChart = (o = {}) => createChartWithOptions(lineOptions(o))
+
+describe('Drilldown — the drill dot on line/area', () => {
+  it('gives every drillable point a dot, and only those points', () => {
+    const chart = lineChart()
+    const discrete = chart.w.config.markers.discrete
+    expect(discrete.map((d) => d.dataPointIndex)).toEqual([0, 1])
+    expect(discrete.every((d) => d.seriesIndex === 0)).toBe(true)
+    expect(discrete.every((d) => d.size === 6)).toBe(true)
+  })
+
+  it('declares only the fields it sets, so the rest inherit the series marker', () => {
+    const chart = lineChart()
+    const entry = chart.w.config.markers.discrete[0]
+    // fillColor omitted on purpose: the dot takes the series colour.
+    expect('fillColor' in entry).toBe(false)
+    expect(entry.strokeColor).toBe('#fff')
+  })
+
+  it('respects drilldown.marker overrides', () => {
+    const chart = lineChart({
+      drilldown: { marker: { size: 9, fillColor: '#ff0000', shape: 'square' } },
+    })
+    const entry = chart.w.config.markers.discrete[0]
+    expect(entry.size).toBe(9)
+    expect(entry.fillColor).toBe('#ff0000')
+    expect(entry.shape).toBe('square')
+  })
+
+  it('adds nothing when the dots are turned off', () => {
+    const chart = lineChart({ drilldown: { marker: { show: false } } })
+    expect(chart.w.config.markers.discrete).toEqual([])
+  })
+
+  it('adds nothing when the series already shows markers', () => {
+    const chart = lineChart({ markers: { size: 5 } })
+    expect(chart.w.config.markers.discrete).toEqual([])
+  })
+
+  it('leaves a bar chart alone: its marks are already clickable', () => {
+    const chart = makeChart()
+    expect(chart.w.config.markers.discrete).toEqual([])
+  })
+
+  it('keeps the author\'s own discrete markers and replaces only its own', () => {
+    const authored = { seriesIndex: 0, dataPointIndex: 2, size: 12, fillColor: '#000' }
+    const chart = lineChart({ markers: { size: 0, discrete: [authored] } })
+    const discrete = chart.w.config.markers.discrete
+
+    expect(discrete[0]).toMatchObject(authored)
+    expect(discrete.length).toBe(3) // the author's + our two
+
+    // Resyncing must not duplicate ours, and must not drop theirs.
+    chart.drilldown._afterRender()
+    chart.drilldown._afterRender()
+    const after = chart.w.config.markers.discrete
+    expect(after.length).toBe(3)
+    expect(after[0]).toMatchObject(authored)
+  })
+
+  it('carries the dots to the level being drilled into, not the one being left', async () => {
+    const chart = lineChart()
+    // 2023-q has no drillable quarters, so the child level gets no dots.
+    await chart.drillDown('2023-q')
+    expect(chart.w.config.markers.discrete).toEqual([])
+
+    await chart.drillUp()
+    expect(chart.w.config.markers.discrete.map((d) => d.dataPointIndex)).toEqual([0, 1])
+  })
+})
+
+describe('Drilldown — click-through marks', () => {
+  const marker = (cls) => {
+    const el = document.createElement('div')
+    el.setAttribute('class', cls)
+    return el
+  }
+
+  it('treats a line marker with no-pointer-events as click-through', () => {
+    const chart = lineChart()
+    expect(
+      chart.drilldown._isClickThroughMark(marker('apexcharts-marker no-pointer-events')),
+    ).toBe(true)
+  })
+
+  it('leaves a marker that already takes pointer events alone', () => {
+    const chart = lineChart()
+    expect(chart.drilldown._isClickThroughMark(marker('apexcharts-marker'))).toBe(false)
+  })
+
+  it('never touches the tooltip\'s own marker, which must stay click-through', () => {
+    const chart = lineChart()
+    const tooltip = document.createElement('div')
+    tooltip.setAttribute('class', 'apexcharts-tooltip')
+    const el = marker('apexcharts-marker no-pointer-events')
+    tooltip.appendChild(el)
+    expect(chart.drilldown._isClickThroughMark(el)).toBe(false)
+  })
+
+  it('only marks a mark that can actually take the click with the pointer cursor', () => {
+    const chart = lineChart()
+    const baseEl = chart.w.dom.baseEl
+    // Stand in for the rendered marks: point 0 is drillable, point 2 is not.
+    const drillable = marker('apexcharts-marker no-pointer-events')
+    drillable.setAttribute('index', '0')
+    drillable.setAttribute('j', '0')
+    const plain = marker('apexcharts-marker no-pointer-events')
+    plain.setAttribute('index', '0')
+    plain.setAttribute('j', '2')
+    baseEl.appendChild(drillable)
+    baseEl.appendChild(plain)
+
+    chart.drilldown._markDrillableTargets()
+
+    expect(drillable.classList.contains('no-pointer-events')).toBe(false)
+    expect(drillable.classList.contains('apexcharts-drilldown-target')).toBe(true)
+    // Not drillable: stays click-through and never gets the pointer cursor.
+    expect(plain.classList.contains('no-pointer-events')).toBe(true)
+    expect(plain.classList.contains('apexcharts-drilldown-target')).toBe(false)
+  })
+
+  it('warns instead of no-opping when a drillable point has nothing to click', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const chart = lineChart({ drilldown: { marker: { show: false } } })
+    chart.drilldown._markDrillableTargets()
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('no clickable mark'),
+    )
+    warn.mockRestore()
+  })
+})

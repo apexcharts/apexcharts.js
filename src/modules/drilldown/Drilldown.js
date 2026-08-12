@@ -22,6 +22,12 @@ import DrilldownLoading from './DrilldownLoading'
 
 const MAX_DEPTH = 32
 
+/**
+ * Marks a `markers.discrete` entry as one we supplied for a drillable point, so
+ * a resync replaces only our own and never an author's.
+ */
+const DRILL_MARKER = '__apexDrilldownMarker'
+
 export default class Drilldown {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -54,12 +60,25 @@ export default class Drilldown {
      * @type {Promise<any>|null}
      */
     this._pending = null
+    /**
+     * Whether the level on screen was given drill dots. A level that has none
+     * must still send an empty `discrete` array so the previous level's dots
+     * are cleared rather than left behind.
+     * @type {boolean}
+     */
+    /** One warning per chart when a drillable point has nothing to click. */
+    this._warnedUnreachable = false
 
     this.breadcrumb = new Breadcrumb(w, ctx, this)
     this.loading = new DrilldownLoading(w)
 
     this._onPointSelect = this._onPointSelect.bind(this)
     this._afterRender = this._afterRender.bind(this)
+    this._onPlotDown = this._onPlotDown.bind(this)
+    this._onPlotClick = this._onPlotClick.bind(this)
+    /** Pointer-down position, to tell a click apart from a zoom drag. */
+    this._downAt = null
+    this._plotClickWired = null
 
     // Self-wire. The instance and w.globals.events both outlive updates, so the
     // listeners registered here persist for the chart's lifetime.
@@ -79,6 +98,12 @@ export default class Drilldown {
     // 'mounted' covers initial render; 'updated' covers fastUpdate + full update.
     this.ctx.addEventListener('mounted', this._afterRender)
     this.ctx.addEventListener('updated', this._afterRender)
+
+    // Supply the drill dots for the FIRST render. Every later render gets them
+    // from _apply (drills) or _afterRender (host-app updates).
+    if (w.config.markers) {
+      w.config.markers.discrete = this._drillMarkers(w.config.series)
+    }
   }
 
   // ─── Observable state ──────────────────────────────────────────────────────
@@ -505,6 +530,18 @@ export default class Drilldown {
     w.globals.allSeriesCollapsed = false
     w.globals.risingSeries = []
 
+    // Drill dots belong to the level being applied, not the one we are leaving:
+    // the destination has different points, and different ones are drillable.
+    // They ride along in the update payload because the level's series only
+    // reach w.config inside updateOptions, which is too late to read them.
+    // Always sent, even when empty: a level with nothing further to open has to
+    // actively clear the dots, or the ones from the level we just left stay on
+    // screen pointing at points that no longer open anything.
+    view.markers = {
+      ...(view.markers || {}),
+      discrete: this._drillMarkers(view.series),
+    }
+
     const animate =
       (!w.config.drilldown.animation || w.config.drilldown.animation.enabled !== false) &&
       w.config.chart.animations.enabled !== false
@@ -761,14 +798,32 @@ export default class Drilldown {
   }
 
   _afterRender() {
-    if (!this.w.config.drilldown || !this.w.config.drilldown.enabled) return
+    const w = this.w
+    if (!w.config.drilldown || !w.config.drilldown.enabled) return
     this._markDrillableTargets()
+    this._wirePlotClick()
     this.breadcrumb.render(this.path)
+    // Keep the dots in step with a host-app update that changed which points
+    // are drillable. There is no pre-update hook to run this in, so a plain
+    // `chart.updateSeries()` introducing newly-drillable points shows them from
+    // the next render. Drills are exact, since _apply computes them per level.
+    if (w.config.markers) {
+      w.config.markers.discrete = this._drillMarkers(w.config.series)
+    }
   }
 
   /**
-   * Add the drilldown-target cursor class to every point that carries a
-   * `drilldown` field. Best-effort and cosmetic — a missed selector is harmless.
+   * Mark every point that carries a `drilldown` field as an openable target.
+   *
+   * Two things have to be true for a point to be drillable, and on line/area
+   * neither holds by default. It needs a mark to click (with `markers.size: 0`
+   * there is no element at all), and that mark has to accept the click: core
+   * gives line/area markers `no-pointer-events` so the shared tooltip can track
+   * the whole plot, which silently swallows it. `_drillMarkers()` supplies the
+   * missing dots; this re-enables pointer events on them.
+   *
+   * The cursor class only goes on marks that can actually take the click, so we
+   * never promise an interaction that cannot happen.
    */
   _markDrillableTargets() {
     if (!Environment.isBrowser()) return
@@ -777,6 +832,7 @@ export default class Drilldown {
     const series = w.config.series
     if (!baseEl || !Array.isArray(series)) return
 
+    let unreachable = 0
     series.forEach((s, i) => {
       const data = s && Array.isArray(s.data) ? s.data : null
       if (!data) return
@@ -784,10 +840,199 @@ export default class Drilldown {
         if (!point || typeof point !== 'object' || point.drilldown == null) return
         // bar/column/line: [index="i"][j="j"]; pie/donut: series index is 0.
         const nodes = baseEl.querySelectorAll(`[index="${i}"][j="${j}"]`)
-        nodes.forEach((node) =>
-          node.classList.add('apexcharts-drilldown-target'),
-        )
+        if (!nodes.length) unreachable++
+        nodes.forEach((node) => {
+          if (this._isClickThroughMark(node)) {
+            node.classList.remove('no-pointer-events')
+          }
+          node.classList.add('apexcharts-drilldown-target')
+        })
       })
     })
+
+    // A drillable point with nothing to click is a dead interaction, and it
+    // looks identical to a broken one. Say so rather than no-opping: the only
+    // way to reach this is to have turned the drill dots off without providing
+    // markers of your own.
+    if (unreachable && !this._warnedUnreachable) {
+      this._warnedUnreachable = true
+      console.warn(
+        `ApexCharts: ${unreachable} drillable point(s) have no clickable mark, ` +
+          `so clicking them cannot do anything. Leave \`drilldown.marker\` on, ` +
+          `or give the series markers of its own (\`markers.size > 0\`).`,
+      )
+    }
+  }
+
+  /**
+   * Make the whole band a drillable point owns clickable, not just its dot.
+   *
+   * A dot is ~6px across, so hitting it takes pixel-precise aim, it is far under
+   * the ~44px a finger needs, and the tooltip's arrow points AT the point by
+   * design, which puts a triangle over the very thing you are aiming at. Rather
+   * than move the tooltip, widen the target: a click anywhere in the plot drills
+   * whichever point the tooltip is currently reading. The hit area then matches
+   * the feedback already on screen, so "the tooltip says 2024, I click, I get
+   * 2024" holds, and the dot goes back to being an affordance rather than a
+   * target you have to chase.
+   *
+   * Only for the point-based types, since a bar, slice or tile is already a
+   * comfortably large mark and drilling one by clicking the background near it
+   * would be surprising.
+   */
+  _wirePlotClick() {
+    if (!Environment.isBrowser()) return
+    const baseEl = this.w.dom.baseEl
+    if (!baseEl || this._plotClickWired === baseEl) return
+    if (this._plotClickWired) {
+      this._plotClickWired.removeEventListener('mousedown', this._onPlotDown)
+      this._plotClickWired.removeEventListener('click', this._onPlotClick)
+    }
+    baseEl.addEventListener('mousedown', this._onPlotDown)
+    baseEl.addEventListener('click', this._onPlotClick)
+    this._plotClickWired = baseEl
+  }
+
+  /** @param {any} e */
+  _onPlotDown(e) {
+    this._downAt = { x: e.clientX, y: e.clientY }
+  }
+
+  /**
+   * @param {any} e
+   * @returns {any}
+   */
+  _onPlotClick(e) {
+    const w = this.w
+    if (!w.config.drilldown || !w.config.drilldown.enabled) return undefined
+
+    // A zoom/pan gesture ends in a click too. Only a click that did not travel
+    // counts as one, or every zoom selection would drill on release.
+    const down = this._downAt
+    this._downAt = null
+    if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 4) {
+      return undefined
+    }
+
+    const target = /** @type {Element} */ (e.target)
+    if (!target || typeof target.closest !== 'function') return undefined
+    // The mark handles its own click through dataPointSelection; running here
+    // as well would drill twice.
+    if (target.closest('.apexcharts-drilldown-target')) return undefined
+    // Chrome around the plot is not the plot.
+    if (
+      target.closest(
+        '.apexcharts-legend, .apexcharts-toolbar, .apexcharts-breadcrumb, .apexcharts-menu, .apexcharts-tooltip',
+      )
+    ) {
+      return undefined
+    }
+
+    const i = w.interact.capturedSeriesIndex
+    const j = w.interact.capturedDataPointIndex
+    if (i == null || j == null || i < 0 || j < 0) return undefined
+    // Any point-based series, not just one drawn without markers: a 5px marker
+    // the author supplied is no easier to hit than a 6px dot we supplied.
+    if (!this._isPointBasedSeries(w.config.series[i])) return undefined
+
+    const point = this._pointAt(i, j)
+    if (!point || typeof point !== 'object' || point.drilldown == null) {
+      return undefined
+    }
+    return this.drillDown(point.drilldown, point, {
+      seriesIndex: i,
+      dataPointIndex: j,
+    })
+  }
+
+  /**
+   * A series mark that is deliberately click-through. Restricted to markers
+   * inside the plot: the tooltip draws its own `no-pointer-events` marker, and
+   * that one must stay click-through or it would sit under the cursor and eat
+   * the hover it exists to follow.
+   * @param {Element} node
+   * @returns {boolean}
+   */
+  _isClickThroughMark(node) {
+    if (!node.classList || !node.classList.contains('no-pointer-events')) {
+      return false
+    }
+    if (!node.classList.contains('apexcharts-marker')) return false
+    return !(
+      typeof node.closest === 'function' && node.closest('.apexcharts-tooltip')
+    )
+  }
+
+  /**
+   * Discrete-marker entries that give each drillable point a visible dot.
+   *
+   * Only series drawn WITHOUT markers get them, so an author who already shows
+   * markers keeps their styling untouched, and only drillable points get one, so
+   * the dots read as "these are the ones you can open" rather than turning every
+   * point into a dot. Core renders discrete markers even when `markers.size` is
+   * 0, which is what makes the affordance possible without a core change.
+   *
+   * Entries are tagged so a resync replaces ours and leaves the author's alone.
+   * @param {any[]} series - the series being rendered (a drill applies its
+   *   level's series, which are not yet on `w.config` when this runs)
+   * @returns {any[]}
+   */
+  _drillMarkers(series) {
+    const w = this.w
+    const cfg = w.config.drilldown
+    const authored = Array.isArray(w.config.markers && w.config.markers.discrete)
+      ? w.config.markers.discrete.filter(
+          (/** @type {any} */ d) => !d || !d[DRILL_MARKER],
+        )
+      : []
+    const mk = (cfg && cfg.marker) || {}
+    if (mk.show === false || !Array.isArray(series)) return authored
+
+    /** @type {any[]} */
+    const own = []
+    series.forEach((/** @type {any} */ s, /** @type {number} */ i) => {
+      if (!this._seriesNeedsDrillMarker(i, s)) return
+      const data = s && Array.isArray(s.data) ? s.data : null
+      if (!data) return
+      data.forEach((/** @type {any} */ point, /** @type {number} */ j) => {
+        if (!point || typeof point !== 'object' || point.drilldown == null) return
+        /** @type {any} */
+        const entry = { seriesIndex: i, dataPointIndex: j, [DRILL_MARKER]: true }
+        // Declared fields only: an omitted one inherits the series default
+        // rather than blanking it (see Markers.getMarkerConfig).
+        if (mk.size !== undefined) entry.size = mk.size
+        if (mk.shape !== undefined) entry.shape = mk.shape
+        if (mk.fillColor !== undefined) entry.fillColor = mk.fillColor
+        if (mk.strokeColor !== undefined) entry.strokeColor = mk.strokeColor
+        own.push(entry)
+      })
+    })
+    return authored.concat(own)
+  }
+
+  /**
+   * Whether a series needs drill dots supplied for it: a point-based type whose
+   * marks are the markers, drawn with markers off. Bar, pie, treemap and heatmap
+   * marks are already real clickable elements, and a series that already shows
+   * markers already has its affordance.
+   * @param {number} i @param {any} s
+   * @returns {boolean}
+   */
+  _seriesNeedsDrillMarker(i, s) {
+    if (!this._isPointBasedSeries(s)) return false
+    const size = this.w.config.markers && this.w.config.markers.size
+    const effective = Array.isArray(size) ? size[i] : size
+    return !(Number(effective) > 0)
+  }
+
+  /**
+   * A series whose marks are markers (a point), rather than a shape big enough
+   * to aim at on its own.
+   * @param {any} s
+   * @returns {boolean}
+   */
+  _isPointBasedSeries(s) {
+    const type = (s && s.type) || this.w.config.chart.type
+    return type === 'line' || type === 'area'
   }
 }

@@ -989,3 +989,221 @@ test.describe('drilldown — pie/donut', () => {
     expect(errors, errors.join('\n')).toHaveLength(0)
   })
 })
+
+/**
+ * Line/area drilldown.
+ *
+ * The point of these is the REAL hit test, so they click without `force`. A
+ * line point is not a mark you can click by default: with markers off there is
+ * no element, and when markers are shown core marks them `no-pointer-events` so
+ * the shared tooltip can track the whole plot. A forced click would pass in
+ * both of those broken states, which is exactly what hid this for so long.
+ */
+const LINE_OPTIONS = {
+  chart: { type: 'line', height: 360, animations: { enabled: false } },
+  colors: ['#008FFB'],
+  series: [
+    {
+      name: 'Resolved',
+      data: [
+        { x: '2023', y: 100, drilldown: 'l-2023' },
+        { x: '2024', y: 150 },
+        { x: '2025', y: 200, drilldown: 'l-2025' },
+      ],
+    },
+  ],
+  drilldown: {
+    enabled: true,
+    series: [
+      {
+        id: 'l-2023',
+        name: '2023 by Quarter',
+        data: [
+          { x: 'Q1', y: 20 },
+          { x: 'Q2', y: 30 },
+          { x: 'Q3', y: 25 },
+          { x: 'Q4', y: 25 },
+        ],
+      },
+      {
+        id: 'l-2025',
+        name: '2025 by Quarter',
+        data: [
+          { x: 'Q1', y: 45 },
+          { x: 'Q2', y: 55 },
+        ],
+      },
+    ],
+  },
+}
+
+async function mountLineChart(page, optionOverrides = {}) {
+  const errors = []
+  page.on('pageerror', (err) => errors.push(err.message))
+  await page.setContent('<div id="chart"></div>')
+  await page.addScriptTag({ path: umdPath })
+  await page.evaluate(
+    ({ base, overrides }) => {
+      window.chart = new window.ApexCharts(document.querySelector('#chart'), {
+        ...base,
+        ...overrides,
+      })
+      return window.chart.render()
+    },
+    { base: LINE_OPTIONS, overrides: optionOverrides },
+  )
+  await page.waitForFunction(
+    () => window.chart && window.chart.w.globals.animationEnded === true,
+    { timeout: 10_000 },
+  )
+  return errors
+}
+
+const visibleDots = (page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll('.apexcharts-series .apexcharts-marker')]
+      .filter((m) => Number(m.getAttribute('default-marker-size')) > 0)
+      .map((m) => m.getAttribute('j')),
+  )
+
+test.describe('drilldown — line', () => {
+  test('marks the drillable points, and only those', async ({ page }) => {
+    const errors = await mountLineChart(page)
+    // 2023 and 2025 carry ids; 2024 does not.
+    expect(await visibleDots(page)).toEqual(['0', '2'])
+    expect(errors, errors.join('\n')).toHaveLength(0)
+  })
+
+  test('a real click on the dot drills in, and drilling up restores', async ({ page }) => {
+    const errors = await mountLineChart(page)
+
+    // No `force`: this fails unless the mark genuinely receives the click.
+    await page.locator('.apexcharts-marker[index="0"][j="0"]').first().click()
+    await page.waitForSelector('.apexcharts-breadcrumb', { timeout: 5_000 })
+
+    expect(await getDepth(page)).toBe(1)
+    expect(await getSeries(page)).toEqual([20, 30, 25, 25])
+    // A level with nothing further to open shows no dots at all.
+    expect(await visibleDots(page)).toEqual([])
+
+    await page.evaluate(() => window.chart.drillUp())
+    await page.waitForFunction(() => window.chart.drilldown.depth === 0)
+    expect(await getSeries(page)).toEqual([100, 150, 200])
+    expect(await visibleDots(page)).toEqual(['0', '2'])
+    expect(errors, errors.join('\n')).toHaveLength(0)
+  })
+
+  test('a point with no children stays inert', async ({ page }) => {
+    await mountLineChart(page)
+    const nonDrillable = page.locator('.apexcharts-marker[index="0"][j="1"]')
+    // It is there (markers exist for every point once any dot is drawn) but
+    // stays click-through and carries no pointer cursor.
+    await expect(nonDrillable).toHaveClass(/no-pointer-events/)
+    await expect(nonDrillable).not.toHaveClass(/apexcharts-drilldown-target/)
+    expect(await getDepth(page)).toBe(0)
+  })
+
+  test('the shared tooltip still tracks the whole plot', async ({ page }) => {
+    await mountLineChart(page)
+    const box = await page.locator('.apexcharts-inner').boundingBox()
+    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5)
+    await expect(page.locator('.apexcharts-tooltip')).toHaveClass(/apexcharts-active/)
+    // and over a drillable dot, which now receives pointer events
+    const dot = await page.locator('.apexcharts-marker[index="0"][j="0"]').boundingBox()
+    await page.mouse.move(dot.x + dot.width / 2, dot.y + dot.height / 2)
+    await expect(page.locator('.apexcharts-tooltip')).toHaveClass(/apexcharts-active/)
+  })
+
+  test('an author who shows markers keeps their styling, and can still drill', async ({ page }) => {
+    const errors = await mountLineChart(page, { markers: { size: 5 } })
+    // No dots injected: every point already has a mark of the author's size.
+    const sizes = await page.evaluate(() =>
+      [...document.querySelectorAll('.apexcharts-series .apexcharts-marker')]
+        .map((m) => Number(m.getAttribute('default-marker-size')))
+        .filter((n) => n > 0),
+    )
+    expect(new Set(sizes)).toEqual(new Set([5]))
+
+    await page.locator('.apexcharts-marker[index="0"][j="2"]').first().click()
+    await page.waitForFunction(() => window.chart.drilldown.depth === 1)
+    expect(await getSeries(page)).toEqual([45, 55])
+    expect(errors, errors.join('\n')).toHaveLength(0)
+  })
+})
+
+test.describe('drilldown — line: the band is the target, not just the dot', () => {
+  const dotBox = (page, j) =>
+    page.locator(`.apexcharts-marker[index="0"][j="${j}"]`).boundingBox()
+
+  /**
+   * A point in the plot that shares the point's x but is nowhere near its dot.
+   * The y comes from the plot box rather than an offset off the dot: a point at
+   * the top or bottom of its range leaves the plot entirely under a fixed
+   * offset, which reads as "the band click is broken" when it is the probe that
+   * missed.
+   */
+  async function bandPoint(page, j) {
+    const dot = await dotBox(page, j)
+    const plot = await page.locator('.apexcharts-inner').boundingBox()
+    const mid = plot.y + plot.height / 2
+    const dotY = dot.y + dot.height / 2
+    // Stay clear of the dot itself; drop to a quarter of the plot if the dot
+    // happens to sit near the middle.
+    const y = Math.abs(mid - dotY) > 40 ? mid : plot.y + plot.height * 0.2
+    return { x: dot.x + dot.width / 2, y }
+  }
+
+  test('clicking near a drillable point drills it, so the dot is an affordance rather than a bullseye', async ({
+    page,
+  }) => {
+    const errors = await mountLineChart(page)
+    const { x, y } = await bandPoint(page, 0)
+
+    await page.mouse.move(x, y)
+    await page.mouse.click(x, y)
+    await page.waitForFunction(() => window.chart.drilldown.depth === 1)
+    expect(await getSeries(page)).toEqual([20, 30, 25, 25])
+    expect(errors, errors.join('\n')).toHaveLength(0)
+  })
+
+  test('clicking the dot itself still drills exactly once', async ({ page }) => {
+    await mountLineChart(page)
+    await page.locator('.apexcharts-marker[index="0"][j="0"]').first().click()
+    await page.waitForFunction(() => window.chart.drilldown.depth === 1)
+    // The mark's own dataPointSelection and the plot click must not both fire.
+    expect(await getDepth(page)).toBe(1)
+  })
+
+  test('clicking in a band with nothing to open does nothing', async ({ page }) => {
+    await mountLineChart(page)
+    const { x, y } = await bandPoint(page, 1) // 2024, no children
+    await page.mouse.move(x, y)
+    await page.mouse.click(x, y)
+    await page.waitForTimeout(300)
+    expect(await getDepth(page)).toBe(0)
+  })
+
+  test('a zoom drag that ends over a drillable point does not drill', async ({ page }) => {
+    await mountLineChart(page)
+    const from = await bandPoint(page, 1)
+    const to = await bandPoint(page, 0)
+    await page.mouse.move(from.x, from.y)
+    await page.mouse.down()
+    await page.mouse.move(to.x, to.y, { steps: 15 })
+    await page.mouse.up()
+    await page.waitForTimeout(400)
+    expect(await getDepth(page)).toBe(0)
+  })
+
+  test('leaves bar charts alone: a click off the bars does not drill', async ({ page }) => {
+    await mountChart(page) // the bar chart at the top of this file
+    const plot = await page.locator('.apexcharts-inner').boundingBox()
+    const bar = await page.locator('[index="0"][j="0"]').first().boundingBox()
+    // In the first bar's column but above its top: inside the plot, on no mark.
+    const y = Math.max(plot.y + 10, bar.y - 30)
+    await page.mouse.move(bar.x + bar.width / 2, y)
+    await page.mouse.click(bar.x + bar.width / 2, y)
+    await page.waitForTimeout(300)
+    expect(await getDepth(page)).toBe(0)
+  })
+})

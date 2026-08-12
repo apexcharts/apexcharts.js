@@ -255,10 +255,18 @@ export default class Markers {
           marker.seriesIndex === seriesIndex &&
           marker.dataPointIndex === dataPointIndex
         ) {
-          pStyle.pointStrokeColor = marker.strokeColor
-          pStyle.pointFillColor = marker.fillColor
-          pSize = marker.size
-          pStyle.pointShape = marker.shape
+          // Only the fields an entry actually declares override the series
+          // defaults. Assigning unconditionally blanked the rest, so a
+          // `{ seriesIndex, dataPointIndex, size }` entry (resize this one
+          // point, keep its colours) rendered with no fill at all.
+          if (marker.strokeColor !== undefined) {
+            pStyle.pointStrokeColor = marker.strokeColor
+          }
+          if (marker.fillColor !== undefined) {
+            pStyle.pointFillColor = marker.fillColor
+          }
+          if (marker.size !== undefined) pSize = marker.size
+          if (marker.shape !== undefined) pStyle.pointShape = marker.shape
         }
       })
     }
