@@ -817,27 +817,46 @@ class Line {
           i > 0 &&
           w.globals.collapsedSeries.length < w.config.series.length - 1
         ) {
-          // a collapsed series in a stacked chart may provide wrong result
-          // for the next series, hence find the prevIndex of prev series
-          // which is not collapsed - fixes apexcharts.js#1372
+          // Walk back to the nearest series that is not collapsed, so a hidden
+          // series cannot be used as this one's stacking baseline - originally
+          // for apexcharts.js#1372.
+          //
+          // This walk is currently belt-and-braces: a collapsed series still
+          // renders a full-length yArrj that sits exactly on the running
+          // baseline (it contributes 0), so every candidate index resolves to
+          // the same y and the walk cannot change the drawn geometry. It is
+          // kept correct rather than removed because it is the only thing
+          // standing between "a collapsed series stops contributing" and "a
+          // collapsed series corrupts the stack" if that representation ever
+          // goes back to emptying the array.
+          //
+          // Three defects were fixed here while it was behaviour-neutral:
+          //   - `pii` was decremented inside the loop *and* by the for-update,
+          //     stepping over two positions per collapsed series.
+          //   - `pii > 0` never tested index 0, and `return 0` handed back
+          //     index 0 even when index 0 was itself collapsed.
+          //   - `seriesIndex?.[pii] || pii` fell back to `pii` when the mapped
+          //     real index was 0, testing the wrong series in a combo chart.
           /**
            * @param {number} pi
+           * @returns {number} nearest drawn index at or below `pi`, else -1
            */
           const prevIndex = (pi) => {
-            for (let pii = pi; pii > 0; pii--) {
+            for (let pii = pi; pii >= 0; pii--) {
+              const ri = seriesIndex?.[pii] ?? pii
               if (
-                w.globals.collapsedSeriesIndices.indexOf(
-                  seriesIndex?.[pii] || pii,
-                ) > -1
+                w.globals.collapsedSeriesIndices.indexOf(ri) === -1 &&
+                w.globals.ancillaryCollapsedSeriesIndices.indexOf(ri) === -1
               ) {
-                pii--
-              } else {
                 return pii
               }
             }
-            return 0
+            return -1
           }
-          lineYPosition = this.prevSeriesY[prevIndex(i - 1)][j + 1]
+          const pIdx = prevIndex(i - 1)
+          // Every earlier series hidden: this one stacks from the baseline.
+          lineYPosition =
+            pIdx < 0 ? this.zeroY : this.prevSeriesY[pIdx][j + 1]
         } else {
           // the first series will not have prevY values
           lineYPosition = this.zeroY
