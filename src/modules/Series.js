@@ -510,6 +510,45 @@ export default class Series {
     return activeIndex
   }
 
+  /**
+   * The highest active series index inside each series group, as an array
+   * parallel to `w.labelData.seriesGroups`. Entries are -1 for a group whose
+   * every series is collapsed or empty.
+   *
+   * Same activity test as `getActiveConfigSeriesIndex` (has data and is not
+   * legend-collapsed), applied per group so grouped stacked bars can ask which
+   * series caps each individual stack rather than the chart as a whole.
+   * @param {string[]} chartTypes
+   * @returns {number[]}
+   */
+  getActiveConfigSeriesIndexByGroup(chartTypes = []) {
+    const w = this.w
+    const groups = w.labelData.seriesGroups || []
+
+    return groups.map((/** @type {string[]} */ group) => {
+      let last = -1
+      w.config.series.forEach((/** @type {any} */ s, /** @type {number} */ i) => {
+        if (group.indexOf(w.seriesData.seriesNames[i]) === -1) return
+
+        if (
+          w.globals.comboCharts &&
+          chartTypes.length &&
+          chartTypes.indexOf(s.type) === -1
+        ) {
+          return
+        }
+
+        const hasData =
+          s.data &&
+          s.data.length > 0 &&
+          w.globals.collapsedSeriesIndices.indexOf(i) === -1
+
+        if (hasData) last = i
+      })
+      return last
+    })
+  }
+
   getBarSeriesIndices() {
     const w = this.w
     if (w.globals.comboCharts) {

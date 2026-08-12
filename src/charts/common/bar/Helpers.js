@@ -1117,6 +1117,24 @@ export default class Helpers {
   }
 
   /**
+   * Index of the series group `seriesIndex` belongs to within
+   * `w.labelData.seriesGroups`, or -1 when the chart has no groups.
+   *
+   * Unlike `getGroupIndex` this is a pure lookup: it never appends to
+   * `columnGroupIndices`, so it is safe to call from positioning/label code
+   * that must not perturb the draw order bookkeeping.
+   * @param {number} seriesIndex
+   * @returns {number}
+   */
+  getSeriesGroupIndex(seriesIndex) {
+    const w = this.w
+    return w.labelData.seriesGroups.findIndex(
+      (/** @type {string[]} */ group) =>
+        group.indexOf(w.seriesData.seriesNames[seriesIndex]) > -1,
+    )
+  }
+
+  /**
    * @param {number} seriesIndex
    */
   getGroupIndex(seriesIndex) {

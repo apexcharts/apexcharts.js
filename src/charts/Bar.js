@@ -98,6 +98,14 @@ class Bar {
       'column',
     ])
 
+    // The topmost active bar series *within each series group*, keyed by the
+    // group's index in `w.labelData.seriesGroups`. A stacked total label is
+    // drawn once by whichever series sits on top of the stack; with grouped
+    // stacks there is one such series per group, not one per chart, or only the
+    // last group would get a total. See #4173.
+    this.lastActiveBarSerieIndexByGroup =
+      ser.getActiveConfigSeriesIndexByGroup(['bar', 'column'])
+
     this.columnGroupIndices = []
     const barSeriesIndices = ser.getBarSeriesIndices()
     const coreUtils = new CoreUtils(this.w)

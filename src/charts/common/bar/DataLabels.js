@@ -193,11 +193,58 @@ export default class BarDataLabels {
     }
   }
 
+  /**
+   * True when this chart stacks in more than one group, so totals have to be
+   * resolved per group rather than across the whole data point. A single-group
+   * chart keeps every old code path exactly as it was. See #4173.
+   */
+  hasMultipleSeriesGroups() {
+    return this.w.labelData.seriesGroups.length > 1
+  }
+
+  /**
+   * The series group `realIndex` belongs to, and that group's own stacking
+   * state, or null when totals are chart-wide (the single-group case).
+   * @param {number} realIndex
+   * @returns {{groupIndex: number, group: string[]} | null}
+   */
+  getTotalGroupContext(realIndex) {
+    if (!this.hasMultipleSeriesGroups()) return null
+    const groupIndex = this.barCtx.barHelpers.getSeriesGroupIndex(realIndex)
+    if (groupIndex < 0) return null
+    return { groupIndex, group: this.w.labelData.seriesGroups[groupIndex] }
+  }
+
+  /**
+   * Whether `realIndex` is the series that should draw the stacked total.
+   *
+   * That is the series capping the stack. With grouped stacks each group has
+   * its own cap, so gating on the chart-wide `lastActiveBarSerieIndex` drew a
+   * single total for the last group only. See #4173.
+   * @param {number} realIndex
+   */
+  drawsStackedTotal(realIndex) {
+    const byGroup = this.barCtx.lastActiveBarSerieIndexByGroup
+    const ctx = this.getTotalGroupContext(realIndex)
+    if (ctx && byGroup && byGroup.length > ctx.groupIndex) {
+      return byGroup[ctx.groupIndex] === realIndex
+    }
+    return this.barCtx.lastActiveBarSerieIndex === realIndex
+  }
+
   /** @param {{realIndex: any, j: any}} opts */
   getStackedTotalDataLabel({ realIndex, j }) {
     const w = this.w
 
-    let val = this.barCtx.stackedSeriesTotals[j]
+    // With grouped stacks the total is the sum of this group's series only;
+    // `stackedSeriesTotals` sums every series at this data point, which mixed
+    // unrelated groups into one number. See #4173.
+    const ctx = this.getTotalGroupContext(realIndex)
+    const byGroups = w.seriesData.stackedSeriesTotalsByGroups
+    let val =
+      ctx && byGroups && byGroups[ctx.groupIndex]
+        ? byGroups[ctx.groupIndex][j]
+        : this.barCtx.stackedSeriesTotals[j]
     if (this.totalFormatter) {
       val = this.totalFormatter(val, {
         ...w,
@@ -333,10 +380,17 @@ export default class BarDataLabels {
     }
 
     let lowestPrevY = newY
+    // Only this series' own group: scanning every group took the extremum
+    // across the whole cluster, so a group's total floated above the tallest
+    // *other* group's stack instead of its own. See #4173.
+    const totalGroupCtx = this.getTotalGroupContext(realIndex)
+    const prevYGroups = totalGroupCtx
+      ? [totalGroupCtx.group]
+      : w.labelData.seriesGroups
     /**
      * @param {string[]} sg
      */
-    w.labelData.seriesGroups.forEach((/** @type {any} */ sg) => {
+    prevYGroups.forEach((/** @type {any} */ sg) => {
       /**
        * @param {any[]} arr
        */
@@ -351,10 +405,7 @@ export default class BarDataLabels {
       )
     })
 
-    if (
-      this.barCtx.lastActiveBarSerieIndex === realIndex &&
-      barTotalDataLabelsConfig.enabled
-    ) {
+    if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
       const ADDITIONAL_OFFY = 18
 
       const graphics = new Graphics(this.barCtx.w)
@@ -382,13 +433,20 @@ export default class BarDataLabels {
       // width divided into equal parts
       const xDivision = dataPointsDividedWidth
 
+      // Centre the total over the bar it totals. `totalDataLabelsBcx` is
+      // already this series' bar position, so this is the same centring
+      // `dataLabelsX` uses, with the total's own offsetX.
+      //
+      // For a single group this is algebraically identical to the previous
+      // barGroups.length-based expression (which collapses to
+      // `bcx + barWidth / 2 - xDivision` when the length is 1), so ungrouped
+      // charts are unaffected; with several groups it now tracks each group's
+      // bar instead of the centre of the whole cluster. See #4173.
       totalDataLabelsX =
         totalDataLabelsBcx +
         (w.axisFlags.isXNumeric
-          ? (-barWidth * w.globals.barGroups.length) / 2
-          : (w.globals.barGroups.length * barWidth) / 2 -
-            (w.globals.barGroups.length - 1) * barWidth -
-            xDivision) +
+          ? -barWidth / 2
+          : barWidth / 2 - xDivision) +
         barTotalDataLabelsConfig.offsetX
     }
 
@@ -519,10 +577,15 @@ export default class BarDataLabels {
     }
 
     let lowestPrevX = newX
+    // This series' own group only — see the matching note in the column path.
+    const totalGroupCtx = this.getTotalGroupContext(realIndex)
+    const prevXGroups = totalGroupCtx
+      ? [totalGroupCtx.group]
+      : w.labelData.seriesGroups
     /**
      * @param {string[]} sg
      */
-    w.labelData.seriesGroups.forEach((/** @type {any} */ sg) => {
+    prevXGroups.forEach((/** @type {any} */ sg) => {
       /**
        * @param {any[]} arr
        */
@@ -537,10 +600,7 @@ export default class BarDataLabels {
       )
     })
 
-    if (
-      this.barCtx.lastActiveBarSerieIndex === realIndex &&
-      barTotalDataLabelsConfig.enabled
-    ) {
+    if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
       const graphics = new Graphics(this.barCtx.w)
       const totalLabeltextRects = graphics.getTextRects(
         this.getStackedTotalDataLabel({ realIndex, j }),
@@ -565,7 +625,11 @@ export default class BarDataLabels {
         barTotalDataLabelsConfig.offsetY +
         strokeWidth
 
-      if (w.globals.barGroups.length > 1) {
+      // Recentre across the cluster only when one label stands for every
+      // group. With a label per group each already sits on its own bar's
+      // `dataLabelsY`, so shifting by the cluster height would drag it off the
+      // bar it belongs to. See #4173.
+      if (w.globals.barGroups.length > 1 && !totalGroupCtx) {
         totalDataLabelsY =
           totalDataLabelsY - (w.globals.barGroups.length / 2) * (barHeight / 2)
       }
@@ -767,7 +831,7 @@ export default class BarDataLabels {
       barTotalDataLabelsConfig.enabled &&
       typeof x !== 'undefined' &&
       typeof y !== 'undefined' &&
-      this.barCtx.lastActiveBarSerieIndex === realIndex
+      this.drawsStackedTotal(realIndex)
     ) {
       totalDataLabelText = graphics.drawText({
         x: x,
