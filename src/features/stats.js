@@ -37,12 +37,14 @@
 import ApexCharts from '../apexcharts'
 import Utils from '../utils/Utils'
 import { registerSeriesTransform } from '../modules/SeriesTransformRegistry'
+import { registerRowSource } from '../modules/RowSourceRegistry'
 import {
   binCounts,
   computeBinning,
   fiveNumberSummary,
   kernelDensity,
   normalizeCounts,
+  rowsByBin,
 } from '../charts/common/Stats'
 
 /**
@@ -306,9 +308,228 @@ function violinTransform(ser, w) {
   })
 }
 
+/* -------------------------------------------------------------------------- *
+ * Row sources: the rows behind each mark.
+ *
+ * These three types are the only ones in the library that can answer, because
+ * they are the only ones handed the raw observations to begin with. An ordinary
+ * bar aggregates rows nobody ever gave us. See RowSourceRegistry for the
+ * ordering contract, which the morph mapping depends on.
+ * -------------------------------------------------------------------------- */
+
+/**
+ * Default ceiling on the dots one explode may produce. The unit engine draws
+ * one element per dot, so this is the same reason (and the same number)
+ * `Jitter.js` caps its packed points at.
+ */
+const DEFAULT_MAX_ROWS = 3000
+
+/**
+ * Thin every cluster by ONE shared stride so the relative sizes survive.
+ *
+ * A per-cluster budget would pull every cluster towards the same count, which
+ * flattens exactly the shape the explode exists to show: the tall bins are tall
+ * because they hold more rows. One global stride keeps the proportions and only
+ * lowers the resolution.
+ *
+ * @param {any[][]} clusters - rows per cluster
+ * @param {number} maxRows
+ * @returns {{ clusters: any[][], stride: number, total: number, kept: number }}
+ */
+function thinClusters(clusters, maxRows) {
+  let total = 0
+  let widest = 0
+  for (const c of clusters) {
+    total += c.length
+    if (c.length > widest) widest = c.length
+  }
+  if (total <= maxRows) return { clusters, stride: 1, total, kept: total }
+
+  /** @param {number} s */
+  const keptAt = (s) => {
+    let n = 0
+    for (const c of clusters) n += Math.ceil(c.length / s)
+    return n
+  }
+
+  // `ceil(total / maxRows)` is the floor, not the answer: rounding UP inside
+  // every cluster (so a cluster never vanishes entirely) means the total can
+  // overshoot by as much as one row per cluster. Walk the stride up until it
+  // genuinely fits, so maxRows is a ceiling rather than an aspiration.
+  let stride = Math.max(2, Math.ceil(total / maxRows))
+  while (stride < widest && keptAt(stride) > maxRows) stride++
+
+  let kept = 0
+  const out = clusters.map((rows) => {
+    /** @type {any[]} */
+    const keepList = []
+    for (let i = 0; i < rows.length; i += stride) keepList.push(rows[i])
+    kept += keepList.length
+    return keepList
+  })
+  // Once every non-empty cluster is down to a single row there is nothing left
+  // to thin: dropping clusters would break the ordering contract, so the cap
+  // loses and the warning reports what actually happened.
+  return { clusters: out, stride, total, kept }
+}
+
+/**
+ * Turn per-cluster row arrays into the unit-chart series shape, applying the
+ * cap and warning when it bites. Silence would read as data loss.
+ *
+ * Each datum carries the observation as `y` (so bubble sizing and colour scales
+ * can read it), a stable `id` (so `transition: 'identity'` can follow one
+ * observation across any relayout), and the colour of the mark it came out of:
+ * rows inherit their mark's colour, which is what makes an explode look like
+ * one thing coming apart rather than a new chart appearing.
+ *
+ * @param {any} w
+ * @param {Array<{ name: string, realIndex: number, rows: any[] }>} clusters
+ * @param {any} [opts]
+ * @returns {any[]}
+ */
+function toUnitSeries(w, clusters, opts) {
+  const maxRows = opts && opts.maxRows != null ? opts.maxRows : DEFAULT_MAX_ROWS
+  const thinned = thinClusters(
+    clusters.map((c) => c.rows),
+    maxRows,
+  )
+  if (thinned.stride > 1) {
+    console.warn(
+      `ApexCharts: rowSeries() thinned ${thinned.total} rows to ${thinned.kept} ` +
+        `(every ${thinned.stride}${thinned.stride === 2 ? 'nd' : thinned.stride === 3 ? 'rd' : 'th'} row) ` +
+        `to stay under maxRows=${maxRows}. Raise maxRows to draw more.`,
+    )
+  }
+
+  const colors = (w.globals && w.globals.colors) || []
+  return clusters.map((c, i) => {
+    const fillColor = colors[c.realIndex] || colors[0]
+    return {
+      name: c.name,
+      data: thinned.clusters[i].map((v, q) => ({
+        id: `${c.realIndex}:${i}:${q}`,
+        x: c.name,
+        y: v,
+        ...(fillColor ? { fillColor } : {}),
+      })),
+    }
+  })
+}
+
+/**
+ * Histogram row source: the observations behind every bar.
+ *
+ * One cluster per (series, bin), in draw order, which is series-major because
+ * that is how the bar renderer emits its groups. Bins with no observations keep
+ * their empty cluster so cluster `k` stays aligned with bar `k`.
+ *
+ * A collapsed series draws no bars at all (its transform emits `data: []`), so
+ * it contributes no clusters either. Emitting them anyway would push every
+ * later cluster onto the wrong bar.
+ *
+ * @param {any} w
+ * @param {any} [opts]
+ * @returns {any[]|null}
+ */
+function histogramRows(w, opts) {
+  const gl = w.globals
+  const hd = w.histogramData
+  const raw = gl && gl.histogramRawSeries
+  if (!hd || !Array.isArray(hd.edges) || hd.edges.length < 2) return null
+  if (!Array.isArray(raw) || !raw.length) return null
+
+  const collapsed = (gl && gl.collapsedSeriesIndices) || []
+  const edges = hd.edges
+  /** @type {Array<{ name: string, realIndex: number, rows: any[] }>} */
+  const clusters = []
+
+  raw.forEach((/** @type {any} */ s, /** @type {number} */ i) => {
+    if (collapsed.indexOf(i) !== -1) return
+    const buckets = rowsByBin(histogramValues(s && s.data), edges)
+    const seriesName = (w.seriesData && w.seriesData.seriesNames?.[i]) || s?.name
+    buckets.forEach((rows, k) => {
+      const range = `${formatEdge(edges[k])}-${formatEdge(edges[k + 1])}`
+      clusters.push({
+        // Only qualify by series when there is more than one to tell apart.
+        name: raw.length > 1 && seriesName ? `${seriesName} ${range}` : range,
+        realIndex: i,
+        rows,
+      })
+    })
+  })
+
+  return clusters.length ? toUnitSeries(w, clusters, opts) : null
+}
+
+/**
+ * Bin edges are derived, so they arrive with float noise (a "24.000000000000004"
+ * boundary). Cluster names are read by people.
+ * @param {number} v
+ * @returns {string}
+ */
+function formatEdge(v) {
+  if (!isFinite(v)) return String(v)
+  const r = Math.round(v)
+  return Math.abs(v - r) < 1e-6 ? String(r) : String(Number(v.toFixed(2)))
+}
+
+/**
+ * Build a row source for boxPlot / violin, whose observations are already on
+ * the chart state, one dense array per (series, category), in draw order. The
+ * two types differ only in which state slice holds them.
+ *
+ * @param {(w: any) => any[][] | null} pick - (w) => points[realIndex][j]
+ * @returns {(w: any, opts?: any) => any[]|null}
+ */
+function pointsRowSource(pick) {
+  return (w, opts) => {
+    const perSeries = pick(w)
+    if (!Array.isArray(perSeries) || !perSeries.length) return null
+
+    const collapsed = (w.globals && w.globals.collapsedSeriesIndices) || []
+    // `globals.labels` holds the axis POSITIONS once string categories have
+    // been mapped to numbers (a boxPlot of 'Alpha'/'Beta' has labels [1, 2]).
+    // The names people gave live on categoryLabels.
+    const labels =
+      (w.globals && (w.globals.categoryLabels?.length
+        ? w.globals.categoryLabels
+        : w.globals.labels)) || []
+    /** @type {Array<{ name: string, realIndex: number, rows: any[] }>} */
+    const clusters = []
+
+    perSeries.forEach((/** @type {any} */ byCat, /** @type {number} */ i) => {
+      if (collapsed.indexOf(i) !== -1) return
+      if (!Array.isArray(byCat)) return
+      const seriesName = w.seriesData && w.seriesData.seriesNames?.[i]
+      byCat.forEach((/** @type {any} */ pts, /** @type {number} */ j) => {
+        const label = labels[j] != null ? String(labels[j]) : `#${j + 1}`
+        clusters.push({
+          name:
+            perSeries.length > 1 && seriesName
+              ? `${seriesName} ${label}`
+              : label,
+          realIndex: i,
+          rows: Array.isArray(pts) ? pts.slice() : [],
+        })
+      })
+    })
+
+    return clusters.length ? toUnitSeries(w, clusters, opts) : null
+  }
+}
+
+const boxPlotRows = pointsRowSource((w) => w.candleData?.seriesBoxPoints)
+const violinRows = pointsRowSource((w) => w.violinData?.seriesViolinPoints)
+
 registerSeriesTransform('histogram', histogramTransform)
 registerSeriesTransform('boxPlot', boxPlotTransform)
 registerSeriesTransform('violin', violinTransform)
 
+registerRowSource('histogram', histogramRows)
+registerRowSource('boxPlot', boxPlotRows)
+registerRowSource('violin', violinRows)
+
 export default ApexCharts
 export { histogramTransform, boxPlotTransform, violinTransform }
+export { histogramRows, boxPlotRows, violinRows }

@@ -26,6 +26,11 @@ import {
   registerUnitLayout,
   unregisterUnitLayout,
 } from './modules/UnitLayoutRegistry'
+import {
+  registerRowSource,
+  unregisterRowSource,
+  rowSourceFor,
+} from './modules/RowSourceRegistry'
 import { registerEasing } from './modules/animations/Easing'
 import { trimStreamingSeries } from './modules/animations/StreamScroll'
 import { applyAxisTransition } from './modules/animations/AxisTransition'
@@ -1654,6 +1659,65 @@ export default class ApexCharts {
   static unregisterUnitLayout(name) {
     unregisterUnitLayout(name)
     return ApexCharts
+  }
+
+  /**
+   * Register a row source: given a chart's state, what rows is each of its
+   * marks standing for?
+   *
+   * Most marks cannot answer. An ordinary bar aggregates rows the library never
+   * saw. The types that can are the ones whose series carries raw observations
+   * (histogram, boxPlot, violin), and their sources ship with the statistics in
+   * `apexcharts/features/stats`; core keeps only the lookup.
+   *
+   * The function returns a unit-chart series (one cluster per mark, one datum
+   * per row) in the marks' own draw order, or null. See RowSourceRegistry for
+   * why that order is a contract rather than a convention.
+   *
+   * @param {string} name  chart type name, matched against `chart.requestedType` then `chart.type`
+   * @param {(w: any, opts?: any) => any[] | null} fn
+   * @returns {typeof ApexCharts}
+   */
+  static registerRowSource(name, fn) {
+    registerRowSource(name, fn)
+    return ApexCharts
+  }
+
+  /**
+   * Remove a row source registered via registerRowSource.
+   * @param {string} name
+   * @returns {typeof ApexCharts}
+   */
+  static unregisterRowSource(name) {
+    unregisterRowSource(name)
+    return ApexCharts
+  }
+
+  /**
+   * The rows behind this chart's marks, as a unit-chart series.
+   *
+   * A histogram bar stands for the observations it counted, a box for the
+   * sample it summarises. This hands them back as one cluster per mark, so a
+   * mark can come apart into its own rows:
+   *
+   *     chart.updateOptions({ chart: { type: 'unit' }, series: chart.rowSeries() })
+   *
+   * With the morph feature loaded, each dot then leaves from the part of the
+   * mark that was standing for it, and collapsing back is the inverse.
+   *
+   * Returns null when the chart's type cannot name its rows, or when
+   * `apexcharts/features/stats` (which carries the sources for the types that
+   * can) is not loaded.
+   *
+   * @param {{ maxRows?: number }} [opts] `maxRows` caps the dots produced
+   *   (default 3000, matching the jitter overlay); past it every cluster is
+   *   thinned by one shared stride so their relative sizes survive.
+   * @returns {any[]|null}
+   */
+  rowSeries(opts) {
+    const source = rowSourceFor(this.w)
+    if (!source) return null
+    return source(this.w, opts) || null
   }
 
   /**

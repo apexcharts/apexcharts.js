@@ -283,6 +283,32 @@ export function rowsForBin(values, edges, k) {
 }
 
 /**
+ * Every bar's rows at once, as one bucket per bin in bin order.
+ *
+ * The same answer `rowsForBin` gives, in a single pass. Asking that function
+ * for each bin in turn re-walks the whole sample every time, which is O(n·bins)
+ * and turns a 50k-observation, 100-bin explode into five million comparisons on
+ * the click. Bins with no observations keep their (empty) slot: the caller maps
+ * bucket k onto bar k positionally, so a compacted array would silently shift
+ * every bar after the first gap.
+ *
+ * @param {number[]} values
+ * @param {number[]} edges
+ * @returns {number[][]} length = edges.length - 1
+ */
+export function rowsByBin(values, edges) {
+  const n = Math.max(0, edges.length - 1)
+  /** @type {number[][]} */
+  const buckets = new Array(n)
+  for (let k = 0; k < n; k++) buckets[k] = []
+  for (let i = 0; i < values.length; i++) {
+    const k = binIndexOf(values[i], edges)
+    if (k >= 0) buckets[k].push(values[i])
+  }
+  return buckets
+}
+
+/**
  * Five-number summary of a sample, in the order boxPlot draws it.
  *
  * Quartiles use linear interpolation between ranks (R type 7 / numpy default),

@@ -188,6 +188,29 @@ declare class ApexCharts {
    */
   toggleDataPointSelection(seriesIndex: number, dataPointIndex?: number): number[][] | null
 
+  /**
+   * The rows behind this chart's marks, as a unit-chart series.
+   *
+   * A histogram bar stands for the observations it counted, a box for the
+   * sample it summarises. This returns them as one cluster per mark, so a mark
+   * can come apart into its own rows:
+   *
+   * ```js
+   * chart.updateOptions({ chart: { type: 'unit' }, series: chart.rowSeries() })
+   * ```
+   *
+   * With the `morph` feature loaded, each dot then leaves from the part of the
+   * mark that was standing for it, and collapsing back is the inverse.
+   *
+   * Returns null when the chart's type cannot name its rows, or when
+   * `apexcharts/features/stats` is not loaded.
+   *
+   * @param opts `maxRows` caps the dots produced (default 3000, matching the
+   *   jitter overlay); past it every cluster is thinned by one shared stride so
+   *   their relative sizes survive.
+   */
+  rowSeries(opts?: { maxRows?: number }): ApexUnitRowSeries[] | null
+
   /** Destroys the chart instance, removing all DOM elements and event listeners. */
   destroy(): void
 
@@ -436,6 +459,26 @@ declare class ApexCharts {
    * by name fall back to the grouped layout on their next render.
    */
   static unregisterUnitLayout(name: string): typeof ApexCharts
+
+  /**
+   * Registers a row source: given a chart's state, what rows is each of its
+   * marks standing for?
+   *
+   * Most marks cannot answer, because an ordinary bar aggregates rows the
+   * library never saw. The types that can are the ones whose series carries raw
+   * observations (histogram, boxPlot, violin); their sources ship with
+   * `apexcharts/features/stats`.
+   *
+   * The function returns a unit-chart series - one cluster per mark, one datum
+   * per row - in the marks' own draw order (ascending series index, then
+   * ascending category), including marks with no rows. That order is a
+   * contract: the morph engine maps clusters onto the outgoing marks
+   * positionally, so a compacted array sends dots out of the wrong mark.
+   */
+  static registerRowSource(name: string, fn: ApexRowSource): typeof ApexCharts
+
+  /** Removes a row source registered via `registerRowSource`. */
+  static unregisterRowSource(name: string): typeof ApexCharts
 
   /**
    * Linked Views (#4) Phase 2: get-or-create a crossfilter coordinator by id.
@@ -3907,6 +3950,33 @@ type ApexUnitLayout = (
   objects: ApexUnitObject[],
   rect: { x: number; y: number; width: number; height: number },
 ) => ApexUnitPosition[]
+
+/** One datum of a `rowSeries()` cluster: a single row a mark stood for. */
+interface ApexUnitRowDatum {
+  /** Stable across relayouts, so `transition: 'identity'` can follow one row. */
+  id: string
+  /** The cluster's label, repeated per row. */
+  x: string
+  /** The observation itself, so bubble sizing and colour scales can read it. */
+  y: number
+  /** The colour of the mark this row came out of. */
+  fillColor?: string
+}
+
+/** One cluster of `rowSeries()`: the rows behind exactly one mark. */
+interface ApexUnitRowSeries {
+  name: string
+  data: ApexUnitRowDatum[]
+}
+
+/**
+ * A row source: given a chart's state, the rows each of its marks stands for.
+ *
+ * Returns one cluster per mark in draw order (ascending series index, then
+ * ascending category), including marks with no rows, or null when the chart
+ * cannot answer.
+ */
+type ApexRowSource = (w: any, opts?: { maxRows?: number }) => ApexUnitRowSeries[] | null
 
 type ApexCrossfilterReduce =
   | 'count'
