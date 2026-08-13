@@ -226,12 +226,24 @@ export default class UpdateHelpers {
         (/** @type {any} */ s) => s?.data?.length ?? 0,
       )
 
-      // User is pushing new data — drop any stashed raw data so the next
-      // parseData re-stashes from this new series (zoom-aware downsampling,
-      // and the histogram's raw observations).
-      w.globals.dataReducerRawSeries = null
-      w.globals.histogramRawSeries = null
-      w.globals.treemapRawSeries = null
+      // Drop any stashed raw data ONLY when the caller is redefining the input,
+      // so the next parseData re-stashes from it (zoom-aware downsampling, the
+      // histogram's raw observations, the treemap's levels).
+      //
+      // `overwriteInitialSeries` is exactly that distinction: the public
+      // updateSeries/appendSeries default it to true, while the library's own
+      // re-renders pass false and hand back the DERIVED series they were given
+      // (a legend collapse re-submits config.series, the zoom reset re-submits
+      // initialSeries). Clearing on those fed the derived rows back in as
+      // input: one legend click on a histogram re-binned its own bin counts,
+      // turning 900 observations into 62, and every click after that binned a
+      // level deeper. `Data.parseData` already draws this same line for these
+      // three when it decides what initialSeries means.
+      if (overwriteInitialSeries) {
+        w.globals.dataReducerRawSeries = null
+        w.globals.histogramRawSeries = null
+        w.globals.treemapRawSeries = null
+      }
 
       this.ctx.data.resetParsingFlags()
       // Phase 1: return value captured; writer stubs are no-ops.

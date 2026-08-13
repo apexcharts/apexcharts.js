@@ -144,7 +144,15 @@ function histogramTransform(ser, w) {
     capped: binning.capped,
   }
 
+  // A hidden series draws nothing, but it still counts towards the edges: the
+  // bins are the frame the distributions are compared in, and re-deriving them
+  // on a legend click would slide every remaining bar sideways. Emitted here
+  // rather than left to the caller, because this transform rebuilds the rows
+  // from the stash and would otherwise undo the collapse that put them there.
+  const collapsed = gl.collapsedSeriesIndices || []
+
   return raw.map((/** @type {any} */ s, /** @type {number} */ i) => {
+    if (collapsed.indexOf(i) !== -1) return { ...s, data: [] }
     const ys = normalizeCounts(counts[i], {
       normalize: hcfg.normalize,
       cumulative: hcfg.cumulative,
