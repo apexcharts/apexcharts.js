@@ -2021,12 +2021,20 @@ export default class Unit {
     const gridColor =
       (w.config.grid && w.config.grid.borderColor) || 'rgba(128,128,128,0.18)'
     const axisColor = 'rgba(128,128,128,0.5)'
-    const labelColor =
-      (w.config.xaxis &&
-        w.config.xaxis.labels &&
-        w.config.xaxis.labels.style &&
-        w.config.xaxis.labels.style.colors) ||
-      'rgba(120,130,140,0.9)'
+    // xaxis.labels.style.colors is the one axis-text colour knob a scatter
+    // layout responds to (string, or ApexCharts' per-label array form, whose
+    // first entry wins here). When set it also recolours the lane labels, so
+    // a page can match this chrome to another chart type's axes; unset, lanes
+    // keep their category colour.
+    const cfgColors =
+      w.config.xaxis &&
+      w.config.xaxis.labels &&
+      w.config.xaxis.labels.style &&
+      w.config.xaxis.labels.style.colors
+    const configuredLabelColor = Array.isArray(cfgColors)
+      ? cfgColors[0]
+      : cfgColors
+    const labelColor = configuredLabelColor || 'rgba(120,130,140,0.9)'
 
     const line = (/** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ x2, /** @type {number} */ y2, /** @type {string} */ stroke) => {
       const l = BrowserAPIs.createElementNS(NS, 'line')
@@ -2141,10 +2149,14 @@ export default class Unit {
         yt.textContent = String(ax.valueTitle)
         g.node.appendChild(yt)
       }
-      // Lane (category) labels along the bottom, in the category colour.
+      // Lane (category) labels along the bottom: explicit axis label colour
+      // when configured, else the category colour.
       ax.lanes.forEach((/** @type {{i:number,cx:number,name:string}} */ lane) => {
         const color =
-          w.globals.colors[lane.i] || w.globals.colors[0] || '#008FFB'
+          configuredLabelColor ||
+          w.globals.colors[lane.i] ||
+          w.globals.colors[0] ||
+          '#008FFB'
         text(lane.name, lane.cx, ax.plotB + 16, 'middle', color, 12, 600, 'apexcharts-unit-lane-label')
       })
       ret.add(g)
@@ -2176,11 +2188,15 @@ export default class Unit {
         'apexcharts-unit-axis-title',
       )
     }
-    // Lane (category) labels in the left gutter, in the category colour.
+    // Lane (category) labels in the left gutter: explicit axis label colour
+    // when configured, else the category colour.
     if (ax.plotL > 12) {
       ax.lanes.forEach((/** @type {{i:number,cy:number,name:string}} */ lane) => {
         const color =
-          w.globals.colors[lane.i] || w.globals.colors[0] || '#008FFB'
+          configuredLabelColor ||
+          w.globals.colors[lane.i] ||
+          w.globals.colors[0] ||
+          '#008FFB'
         text(lane.name, ax.plotL - 8, lane.cy, 'end', color, 12, 600, 'apexcharts-unit-lane-label')
       })
     }
