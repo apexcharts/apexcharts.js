@@ -704,6 +704,46 @@ describe('Tooltip.handleStickyTooltip', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Tooltip.axisChartsTooltips — hovering after the grid is gone
+// ---------------------------------------------------------------------------
+
+describe('Tooltip.axisChartsTooltips', () => {
+  function runHover(elGrid, clientY) {
+    const handleMouseOut = vi.fn()
+    const self = {
+      w: { interact: {} },
+      handleMouseOut,
+    }
+    const opt = { elGrid, ttItems: [] }
+    const call = () =>
+      Tooltip.prototype.axisChartsTooltips.call(self, {
+        e: { type: 'mousemove', clientX: 50, clientY },
+        opt,
+      })
+    return { call, handleMouseOut }
+  }
+
+  it('ignores a pointer event that arrives with no grid to measure against', () => {
+    // A cross-type morph (bar -> donut) tears down the axis chrome while the
+    // listeners bound to the old plot are still live, so this method could be
+    // reached with `elGrid` null and threw on the getBoundingClientRect.
+    const { call, handleMouseOut } = runHover(null, 120)
+    expect(call).not.toThrow()
+    expect(handleMouseOut).not.toHaveBeenCalled()
+  })
+
+  it('still dismisses the tooltip above the grid when there is a grid', () => {
+    // The guard must not swallow the ordinary out-of-bound path.
+    const elGrid = {
+      getBoundingClientRect: () => ({ top: 100, height: 200, left: 0, width: 500 }),
+    }
+    const { call, handleMouseOut } = runHover(elGrid, 10)
+    call()
+    expect(handleMouseOut).toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
 // TOOLTIP LABELS (pure methods only)
 // ---------------------------------------------------------------------------
 

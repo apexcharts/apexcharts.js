@@ -819,6 +819,13 @@ export default class Tooltip {
     const w = this.w
     let x, y
 
+    // Every hit-test below is measured against the grid, so without one there
+    // is nothing to hover. `drawSeriesTooltip` already treats a missing grid as
+    // normal (it skips caching `seriesBound`), and a pointer event can still
+    // arrive with the grid gone: a cross-type morph tears down the axis chrome
+    // while the listeners bound to the old plot are still live.
+    if (!opt.elGrid) return
+
     const seriesBound = opt.elGrid.getBoundingClientRect()
 
     const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX
