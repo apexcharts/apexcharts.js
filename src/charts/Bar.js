@@ -571,6 +571,19 @@ class Bar {
         ? this.ctx.morphTypeChange.getSpeed()
         : w.config.chart.animations.dynamicAnimation.speed
 
+      // Piece-in morph, objects -> mark: this mark holds hidden while the
+      // flying pieces tile it and is revealed the instant its mosaic
+      // completes, so it must sit at its final geometry from the first
+      // frame. Its own enter tween (staggered per bar, a full
+      // animations.speed long) can outlast the piece flight, and a revealed
+      // bar still mid-tween replays its animation as a visible bounce.
+      const pieceClaimed =
+        morphActive && this.ctx.morphTypeChange.claimsTargetMark(realIndex, j)
+      if (pieceClaimed) {
+        pathFrom = pathTo
+        delay = 0
+      }
+
       const renderedPath = /** @type {any} */ (
         emit.renderPaths({
           i,
@@ -602,7 +615,7 @@ class Bar {
       // close. The engine reveals it (and sweeps the attribute on cleanup, so
       // it can never stay hidden past the transition). No-op without the
       // morph feature.
-      if (this.ctx.morphTypeChange?.claimsTargetMark?.(realIndex, j)) {
+      if (pieceClaimed) {
         renderedPath.node.setAttribute('opacity', '0')
         renderedPath.node.setAttribute('data-piece-hidden', '1')
       }

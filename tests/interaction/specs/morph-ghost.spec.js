@@ -194,6 +194,71 @@ test.describe('Cross-type morph exit layer', () => {
     expect(r.settledHidden).toBe(0)
   })
 
+  test('unit -> column: incoming bars are born final and never re-animate', async ({
+    page,
+    loadChart,
+  }) => {
+    await loadChart('misc', 'chart-type-morph')
+    await page.click(UNIT_BTN)
+    await page.waitForSelector('.apexcharts-unit-area')
+    await page.waitForTimeout(1500)
+
+    const r = await page.evaluate(async ([piecesSel, columnBtn]) => {
+      document.querySelector(columnBtn).click()
+      await new Promise((res) => requestAnimationFrame(res))
+
+      // Sample every claimed bar's geometry from its first frame until well
+      // past the enter tween's would-be end (stagger + full speed). The bar
+      // is hidden while the mosaic assembles, but it still has geometry, and
+      // that geometry must never move: the mark's own enter tween used to
+      // keep running underneath and replayed as a bounce after the reveal.
+      const barsOf = () => [
+        ...document.querySelectorAll('.apexcharts-bar-series path[pathTo]'),
+      ]
+      const rectsOf = () =>
+        barsOf().map((p) => {
+          const b = p.getBoundingClientRect()
+          return [b.x, b.y, b.width, b.height]
+        })
+
+      const samples = [rectsOf()]
+      for (let k = 0; k < 60; k++) {
+        await new Promise((res) => requestAnimationFrame(res))
+        await new Promise((res) => requestAnimationFrame(res))
+        samples.push(rectsOf())
+      }
+      // Past every clock in play: morph flight, animations.speed, stagger.
+      await new Promise((res) => setTimeout(res, 1200))
+      const finals = rectsOf()
+
+      let maxDrift = 0
+      for (const sample of samples) {
+        if (sample.length !== finals.length) continue
+        sample.forEach((rect, b) => {
+          rect.forEach((v, q) => {
+            maxDrift = Math.max(maxDrift, Math.abs(v - finals[b][q]))
+          })
+        })
+      }
+
+      return {
+        bars: finals.length,
+        sampled: samples.length,
+        maxDrift,
+        settledPieces: document.querySelectorAll(piecesSel).length,
+        settledHidden: document.querySelectorAll('[data-piece-hidden]').length,
+      }
+    }, [PIECES, COLUMN_BTN])
+
+    expect(r.bars).toBeGreaterThan(0)
+    expect(r.sampled).toBeGreaterThan(30)
+    // Born at final geometry, revealed in place, and not one pixel of motion
+    // before or after the reveal: all movement belongs to the pieces.
+    expect(r.maxDrift).toBeLessThan(1)
+    expect(r.settledPieces).toBe(0)
+    expect(r.settledHidden).toBe(0)
+  })
+
   test('bar -> pie never grows an exit overlay: the wedge starts as the bar', async ({
     page,
     loadChart,
