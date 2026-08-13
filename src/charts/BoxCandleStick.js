@@ -447,7 +447,14 @@ class BoxCandleStick extends Bar {
     }
 
     let pathFrom = null
-    if (w.globals.previousPaths.length > 0) {
+    // Cross-type morph (unit → boxPlot): grow out of the captured dot cloud
+    // rather than up from the baseline, so collapsing is the inverse of the
+    // explode. No-op when the morph feature isn't registered or no snapshot is
+    // active. Same precedence as bar/Helpers.js.
+    const morphFrom = this.ctx?.morphTypeChange?.getInitialPathFor(realIndex, j)
+    if (morphFrom) {
+      pathFrom = morphFrom
+    } else if (w.globals.previousPaths.length > 0) {
       // Update: keyed survivor → morph; shape-changed → snap; entering
       // datum → null (falls through to the baseline collapse below).
       pathFrom = this.getPreviousPath(realIndex, j, pathTo[0])
@@ -575,7 +582,11 @@ class BoxCandleStick extends Bar {
     ]
 
     let pathFrom = null
-    if (w.globals.previousPaths.length > 0) {
+    // Cross-type morph (unit → boxPlot), horizontal. See the vertical branch.
+    const morphFrom = this.ctx?.morphTypeChange?.getInitialPathFor(realIndex, j)
+    if (morphFrom) {
+      pathFrom = morphFrom
+    } else if (w.globals.previousPaths.length > 0) {
       // Update: keyed survivor → morph; shape-changed → snap; entering
       // datum → null (falls through to the baseline collapse below).
       pathFrom = this.getPreviousPath(realIndex, j, pathTo[0])

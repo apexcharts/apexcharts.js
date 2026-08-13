@@ -268,7 +268,13 @@ class Violin extends Bar {
     })
 
     let pathFrom = null
-    if (w.globals.previousPaths.length > 0) {
+    // Cross-type morph (unit -> violin): grow out of the captured dot cloud
+    // rather than out of a collapsed centreline, so collapsing is the inverse
+    // of the explode. Same precedence as bar/Helpers.js.
+    const morphFrom = this.ctx?.morphTypeChange?.getInitialPathFor(realIndex, j)
+    if (morphFrom) {
+      pathFrom = morphFrom
+    } else if (w.globals.previousPaths.length > 0) {
       // Keyed survivor → morph; shape-changed → snap; entering → null
       // (falls through to the collapsed-centerline enter below).
       pathFrom = this.getPreviousPath(realIndex, j, pathTo)
@@ -336,7 +342,13 @@ class Violin extends Bar {
     })
 
     let pathFrom = null
-    if (w.globals.previousPaths.length > 0) {
+    // Cross-type morph (unit -> violin): grow out of the captured dot cloud
+    // rather than out of a collapsed centreline, so collapsing is the inverse
+    // of the explode. Same precedence as bar/Helpers.js.
+    const morphFrom = this.ctx?.morphTypeChange?.getInitialPathFor(realIndex, j)
+    if (morphFrom) {
+      pathFrom = morphFrom
+    } else if (w.globals.previousPaths.length > 0) {
       // Keyed survivor → morph; shape-changed → snap; entering → null
       // (falls through to the collapsed-centerline enter below).
       pathFrom = this.getPreviousPath(realIndex, j, pathTo)

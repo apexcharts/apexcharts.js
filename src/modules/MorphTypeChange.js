@@ -61,6 +61,14 @@ const UNIT_FAMILY = new Set(['unit', 'waffle'])
 // _buildMapping) because neither renderer iterates the (realIndex, j) grid the
 // bar family does.
 const PARTITION_FAMILY = new Set(['treemap', 'sunburst'])
+// Distribution summaries: one mark per category, each standing for a whole
+// sample (a five-number box, a density silhouette). They are drawn through
+// Bar's renderSeries but under their own classes, so unlike `histogram` they
+// cannot join BAR_FAMILY and inherit its capture; they get their own branch in
+// _captureFromDOM. What makes them worth pairing is the same thing that makes
+// a histogram worth pairing: the sample behind each mark still exists, so the
+// mark can genuinely come apart into it (see RowSourceRegistry).
+const SUMMARY_FAMILY = new Set(['boxPlot', 'violin'])
 
 // How much of the morph the outgoing marks get to fade over. Short of the full
 // duration on purpose (see _mountGhost).
@@ -72,6 +80,7 @@ function familyOf(type) {
   if (RADIAL_FAMILY.has(type)) return 'radial'
   if (UNIT_FAMILY.has(type)) return 'unit'
   if (PARTITION_FAMILY.has(type)) return 'partition'
+  if (SUMMARY_FAMILY.has(type)) return 'summary'
   return null
 }
 
@@ -107,6 +116,14 @@ export default class MorphTypeChange {
     // through those pairs, and claiming a morph that has not been watched is
     // worse than not offering it.
     if ((ff === 'partition') !== (tf === 'partition')) return false
+    // A summary mark stands for a whole sample, so the pair that means
+    // something is the one that takes it apart into that sample and puts it
+    // back. boxPlot ↔ bar, boxPlot ↔ pie and even boxPlot ↔ violin are all
+    // mechanically plausible and none of them has been driven, so they stay
+    // closed for the same reason the partition family's cross-pairs do.
+    if (ff === 'summary' || tf === 'summary') {
+      return ff === 'unit' || tf === 'unit'
+    }
     // bar ↔ radial covers the remaining cross-family cases; radial → radial
     // covers pie ↔ donut ↔ polarArea ↔ radialBar.
     return true
@@ -156,8 +173,10 @@ export default class MorphTypeChange {
         Array.isArray(newSeries[0].data)
       )
     }
-    if (tf === 'bar') {
-      // bar expects [{ name?, data: number[] }, ...]
+    if (tf === 'bar' || tf === 'summary') {
+      // bar expects [{ name?, data: number[] }, ...]; boxPlot and violin take
+      // the same envelope with richer datums, and the mapping is positional
+      // either way, so the datum shape is the renderer's business.
       return newSeries.every(
         (s) => s && typeof s === 'object' && Array.isArray(s.data),
       )
@@ -420,6 +439,41 @@ export default class MorphTypeChange {
           })
         })
       })
+    } else if (fam === 'summary') {
+      // A summary mark is not reliably one path. Measured: a boxPlot draws TWO
+      // per category (the box and the whisker line) and a violin draws one, and
+      // neither stamps the `i` attribute the bar branch reads, so the series
+      // index comes off the enclosing group instead.
+      //
+      // The paths belonging to one mark are concatenated into a single
+      // multi-subpath `d`, which makes _pathBBox return the union of their
+      // extents for free. Taking only the first would give an explode covering
+      // the box but not its whiskers. Concatenation is safe precisely BECAUSE
+      // this family pairs only with unit (see canMorphTypes): the unit renderer
+      // reads slots off the bounding box and never interpolates the `d`, so the
+      // combined path is never asked to be a shape.
+      /** @type {Map<string, {realIndex: number, j: number, d: string, fill: string|null}>} */
+      const byMark = new Map()
+      baseEl
+        .querySelectorAll(`.apexcharts-${fromType}-area`)
+        .forEach((/** @type {any} */ p) => {
+          const j = parseInt(p.getAttribute('j') ?? '', 10)
+          if (isNaN(j)) return
+          const d = p.getAttribute('pathTo') || p.getAttribute('d')
+          if (!d || !d.trim()) return
+          const group =
+            typeof p.closest === 'function' ? p.closest('.apexcharts-series') : null
+          const realIndex =
+            parseInt(group?.getAttribute('data:realIndex') ?? '0', 10) || 0
+          const key = `${realIndex}:${j}`
+          const prev = byMark.get(key)
+          if (prev) prev.d += ` ${d}`
+          else byMark.set(key, { realIndex, j, d, fill: p.getAttribute('fill') })
+        })
+
+      Array.from(byMark.values())
+        .sort((a, b) => a.realIndex - b.realIndex || a.j - b.j)
+        .forEach((m) => captured.push(m))
     } else if (fam === 'partition') {
       if (fromType === 'treemap') {
         // Tiles are <rect>s, and the morph engine interpolates path data, so
@@ -813,9 +867,11 @@ export default class MorphTypeChange {
       return map
     }
 
-    if (tf === 'bar') {
+    if (tf === 'bar' || tf === 'summary') {
       // Derive the target's iteration positions from newSeries: each
       // `{ data: number[] }` entry produces (realIndex=seriesIdx, j=k) tuples.
+      // boxPlot and violin iterate the same grid through Bar's renderSeries,
+      // so one branch serves both.
       /** @type {Array<{ realIndex: number, j: number }>} */
       const positions = []
       const series = Array.isArray(newSeries) ? newSeries : []

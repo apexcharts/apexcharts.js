@@ -585,7 +585,10 @@ class Bar {
           animationDelay: delay,
           initialSpeed: w.config.chart.animations.speed,
           dataChangeSpeed,
-          className: `apexcharts-${type}-area ${classes}`,
+          // `classes` is optional: boxPlot, violin and candlestick call
+          // renderSeries without it, and interpolating it unguarded stamped a
+          // literal "undefined" into every one of their marks' class lists.
+          className: `apexcharts-${type}-area${classes ? ` ${classes}` : ''}`,
           chartType: type,
           bindEventsOnPaths: false,
         })
