@@ -924,8 +924,66 @@ describe('Tooltip.Position', () => {
 
       pos.moveTooltip(300, 50, 5)
 
-      // x = 300 + 5 + 5 = 310 > 250 → x = 310 - 100 - 5 - 10 = 195
-      expect(parseFloat(tooltipEl.style.left)).toBe(195)
+      // Clearance is markerSize + gap = 5 + 5 = 10 (no arrow in this stub), and
+      // it is measured off the point on both sides: x = 300 - 100 - 10 = 190.
+      expect(parseFloat(tooltipEl.style.left)).toBe(190)
+    })
+
+    it('clears the marker by the same margin whichever side it lands on', () => {
+      // The left placement used to be derived by subtracting from the already
+      // offset x, which cancelled the marker size out of the arithmetic: the box
+      // cleared the point's CENTRE by a flat 5px however big the marker was, so
+      // a large marker (or a discrete drilldown dot) ended up underneath it.
+      const gap = (markerSize) => {
+        const right = makePosition()
+        right.w.globals.gridWidth = 500
+        right.w.globals.translateX = 0
+        right.w.config.tooltip.followCursor = false
+        right.pos.moveTooltip(50, 50, markerSize)
+        // Right placement: distance from the point to the box's left edge.
+        const rightGap = parseFloat(right.tooltipEl.style.left) - 50 - markerSize
+
+        const left = makePosition()
+        left.w.globals.gridWidth = 500
+        left.w.globals.translateX = 0
+        left.w.globals.isBarHorizontal = false
+        left.w.config.tooltip.followCursor = false
+        left.pos.moveTooltip(300, 50, markerSize)
+        // Left placement: distance from the box's right edge to the point.
+        const leftGap =
+          300 - markerSize - (parseFloat(left.tooltipEl.style.left) + 100)
+
+        return { rightGap, leftGap }
+      }
+
+      for (const markerSize of [1, 5, 14]) {
+        const { rightGap, leftGap } = gap(markerSize)
+        expect(rightGap).toBe(leftGap)
+        expect(rightGap).toBeGreaterThan(0)
+      }
+    })
+
+    it('leaves room for the arrow, so the tip clears the marker too', () => {
+      // The arrow overhangs the box by 7px toward the point. Counting only the
+      // box put the tip inside the marker, which is the mark a drilldown click
+      // has to hit.
+      const plain = makePosition()
+      plain.w.globals.gridWidth = 500
+      plain.w.globals.translateX = 0
+      plain.w.config.tooltip.followCursor = false
+      plain.pos.moveTooltip(50, 50, 5)
+
+      const arrowed = makePosition()
+      arrowed.w.globals.gridWidth = 500
+      arrowed.w.globals.translateX = 0
+      arrowed.w.config.tooltip.followCursor = false
+      arrowed.w.config.tooltip.arrow = true
+      arrowed.pos.moveTooltip(50, 50, 5)
+
+      expect(
+        parseFloat(arrowed.tooltipEl.style.left) -
+          parseFloat(plain.tooltipEl.style.left),
+      ).toBe(7)
     })
 
     it('clamps x to -20 minimum', () => {

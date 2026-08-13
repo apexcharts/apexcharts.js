@@ -137,8 +137,14 @@ export default class Marker {
   enlargeCurrentPoint(rel, point, x = null, y = null) {
     const w = this.w
 
+    // Keep the size actually applied to the marker: the tooltip has to clear the
+    // enlarged dot, and `markers.hover.size` is undefined unless the author sets
+    // it, which left the clearance at the nominal 1px and put the tooltip on top
+    // of the point. Bubble keeps the old fallback: its radius is per-point and
+    // not derivable from `markers.size`.
+    let appliedSize = w.config.markers.hover.size
     if (w.config.chart.type !== 'bubble') {
-      this.newPointSize(rel, point)
+      appliedSize = this.newPointSize(rel, point)
     }
 
     let cx = point.getAttribute('cx')
@@ -161,7 +167,7 @@ export default class Marker {
         cx = this.ttCtx.e.clientX - seriesBound.left
       }
 
-      this.tooltipPosition.moveTooltip(cx, cy, w.config.markers.hover.size)
+      this.tooltipPosition.moveTooltip(cx, cy, appliedSize)
     }
   }
 
@@ -213,8 +219,12 @@ export default class Marker {
   }
 
   /**
+   * Resizes the hovered marker to its hover size and returns the size applied,
+   * so the caller can position the tooltip clear of the enlarged dot. Undefined
+   * when nothing was resized (a zero-size marker has nothing to clear).
    * @param {any} rel
    * @param {any} point
+   * @returns {number | undefined}
    */
   newPointSize(rel, point) {
     const w = this.w
@@ -236,7 +246,10 @@ export default class Marker {
 
       const path = this.ttCtx.tooltipUtil.getPathFromPoint(point, newSize)
       point.setAttribute('d', path)
+      return newSize
     }
+
+    return undefined
   }
 
   /**

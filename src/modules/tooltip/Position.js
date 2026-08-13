@@ -2,7 +2,7 @@
 import AxisMapping from '../AxisMapping'
 import Graphics from '../Graphics'
 import Series from '../Series'
-import { ARROW_TIP_OVERHANG } from './constants'
+import { ARROW_TIP_OVERHANG, POINT_TIP_GAP } from './constants'
 
 /**
  * ApexCharts Tooltip.Position Class to move the tooltip based on x and y position.
@@ -248,7 +248,14 @@ export default class Position {
     // arrow offset, leaving the box stuck at its previous position.
     if (isNaN(cxNum) || isNaN(cyNum)) return null
 
-    let x = cxNum + pointSize + 5
+    // What the tooltip has to clear is the MARKER, not the point's centre, and
+    // when the arrow is on it is the arrow tip that leads: the arrow overhangs
+    // the box by ARROW_TIP_OVERHANG toward the point. Counting neither term left
+    // the tip *inside* the mark, which is the mark a drilldown click has to hit.
+    const clearance =
+      pointSize + (arrowEnabled ? ARROW_TIP_OVERHANG : 0) + POINT_TIP_GAP
+
+    let x = cxNum + clearance
     // Coord-system note: `style.top` positions the tooltip in elWrap-coords,
     // but `cy` is the data point's y in elGraphical-local SVG coords (the
     // grid group is translated by translateY inside the SVG). For arrow
@@ -264,13 +271,25 @@ export default class Position {
     /** @type {'left'|'right'} */
     let placement = 'right'
 
+    // Measured off the point in both directions. Subtracting from the already
+    // offset `x` (the old form) cancelled `pointSize` out of the left placement
+    // algebraically, so that side cleared the point's centre by a flat 5px no
+    // matter how big the marker was.
     if (x > w.layout.gridWidth / 2) {
-      x = x - ttW - pointSize - 10
+      x = cxNum - ttW - clearance
       placement = 'left'
     }
 
     if (x > w.layout.gridWidth - ttW - 10) {
-      x = w.layout.gridWidth - ttW
+      // Nudging the box back inside the grid must never move it TOWARD the
+      // point: on the last data point that slid the tooltip straight back onto
+      // the marker, which is the one place the old code overlapped worst. Only
+      // the left placement can be held off, since pulling a right-placed box
+      // left is the only way it fits at all.
+      x =
+        placement === 'left'
+          ? Math.min(w.layout.gridWidth - ttW, x)
+          : w.layout.gridWidth - ttW
     }
 
     if (x < -20) {
