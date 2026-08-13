@@ -20,6 +20,63 @@ class Filters {
     this.w = w
   }
 
+  /**
+   * The three chart types drawn by the Pie module.
+   * @param {any} w
+   */
+  static isSliceChart(w) {
+    const type = w.config.chart.type
+    return type === 'pie' || type === 'donut' || type === 'polarArea'
+  }
+
+  /**
+   * True when a pie / donut slice carries the hover state itself, as the
+   * outline band traced outside its rim. The band IS the hover feedback, so
+   * the states.hover lighten filter must not also recolour the slice: the
+   * point of the band is that a hovered slice keeps its own colour.
+   * `states.hover.filter.type: 'none'` still turns every hover visual off, so
+   * this only claims the state when a hover visual was wanted at all.
+   * @param {any} w
+   */
+  static hoverOutlineOwnsHoverState(w) {
+    return (
+      Filters.isSliceChart(w) &&
+      w.config.states.hover.filter.type !== 'none' &&
+      w.config.plotOptions.pie.hoverOutline?.show === true
+    )
+  }
+
+  /**
+   * True when a pie / donut slice carries the selected state itself, by
+   * sliding out of the pie (see Pie.offsetSlice). Moving out of the pie is a
+   * strong enough signal on its own, so the states.active darken filter would
+   * only muddy the slice colour on top of it. polarArea is excluded: it never
+   * slides (its radius is the value), so it keeps the filter as its only
+   * click feedback.
+   * @param {any} w
+   */
+  static sliceOffsetOwnsActiveState(w) {
+    return (
+      Filters.isSliceChart(w) &&
+      w.config.chart.type !== 'polarArea' &&
+      w.config.plotOptions.pie.expandOnClick === true &&
+      w.config.plotOptions.pie.expandOffset > 0 &&
+      !Filters.drilldownBlocksSliceOffset(w)
+    )
+  }
+
+  /**
+   * A drilldown pie / donut does not slide its slices out at all: a click there
+   * is navigation, so the slice would pull out and then be thrown away by the
+   * drill it just triggered, which reads as a glitch rather than as motion.
+   * The states.active filter comes back as the click feedback (it is instant,
+   * so the re-render lands on top of it rather than fighting it).
+   * @param {any} w
+   */
+  static drilldownBlocksSliceOffset(w) {
+    return Filters.isSliceChart(w) && w.config.drilldown?.enabled === true
+  }
+
   // create a re-usable filter which can be appended other filter effects and applied to multiple elements
   /**
    * @param {any} el
@@ -206,6 +263,9 @@ class Filters {
         w.interact.selectedDataPoints[realIndex].indexOf(dataPointIndex) > -1
       ) {
         el.node.setAttribute('selected', true)
+        // A pre-selected pie / donut slice is rendered slid out of the pie
+        // instead (Pie.pieClicked runs for it), so skip the darken here too.
+        if (Filters.sliceOffsetOwnsActiveState(w)) return
         const activeFilter = w.config.states.active.filter
         // activeFilter is an object ({ type, value }); compare its type, not the
         // object itself, or the guard is always true and states.active.filter.type

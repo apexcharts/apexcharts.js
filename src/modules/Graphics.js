@@ -1172,6 +1172,10 @@ class Graphics {
       }
     }
 
+    // A pie / donut slice shows hover as an outline band traced outside its rim
+    // (Pie.showHoverOutline), and keeps its own colour while hovered.
+    if (Filters.hoverOutlineOwnsHoverState(w)) return
+
     if (w.config.states.hover.filter.type !== 'none') {
       if (!w.interact.isTouchDevice) {
         const hoverFilter = w.config.states.hover.filter
@@ -1210,6 +1214,10 @@ class Graphics {
         return
       }
     }
+
+    // Nothing was filtered on enter for a slice with a hover outline, so there
+    // is nothing to restore here either (the band fades out on its own).
+    if (Filters.hoverOutlineOwnsHoverState(w)) return
 
     if (w.config.states.hover.filter.type !== 'none') {
       filters.getDefaultFilter(path, i)
@@ -1286,6 +1294,13 @@ class Graphics {
    */
   _applyPointSelectionFilter(path, filters, i, selected) {
     const w = this.w
+
+    // A clicked pie / donut slice shows selection by sliding out of the pie
+    // (Pie.offsetSlice), so it must not be darkened on top of that. Returning
+    // early also leaves any hover visual alone, which is what we want while
+    // the pointer is still over the slice being toggled.
+    if (Filters.sliceOffsetOwnsActiveState(w)) return
+
     if (selected === 'true') {
       const activeFilter = w.config.states.active.filter
       if (activeFilter !== 'none') {

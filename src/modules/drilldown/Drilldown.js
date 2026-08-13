@@ -68,6 +68,8 @@ export default class Drilldown {
      */
     /** One warning per chart when a drillable point has nothing to click. */
     this._warnedUnreachable = false
+    /** One warning per chart when a pie/donut asked for the slice pull-out. */
+    this._warnedNoSliceOffset = false
 
     this.breadcrumb = new Breadcrumb(w, ctx, this)
     this.loading = new DrilldownLoading(w)
@@ -509,9 +511,7 @@ export default class Drilldown {
     // A drill is navigation, not a data-point selection. Clear any selection
     // carried in from the click that triggered it: the child's data points are
     // different, and a stale selected index makes pie/donut levels render a
-    // "pulled-out" slice AND makes pieClicked() reset every already-drawn
-    // slice's path mid-render, which snaps earlier slices out of the cross-type
-    // morph. (See Pie.pieClicked's "reset all elems" pass.)
+    // "pulled-out" slice for whatever now sits at that position.
     w.interact.selectedDataPoints = []
 
     // Legend-collapse state is per-level and indexed by series position, so it
@@ -862,6 +862,22 @@ export default class Drilldown {
           `or give the series markers of its own (\`markers.size > 0\`).`,
       )
     }
+  }
+
+  /**
+   * Called by Pie when it declines to wire the slice pull-out because this
+   * chart drills. Warned once per chart (a drill re-renders, and the same
+   * notice on every navigation is just noise), and from here rather than from
+   * Pie because this module is the reason it is unavailable.
+   */
+  warnSliceOffsetDisabled() {
+    if (this._warnedNoSliceOffset) return
+    this._warnedNoSliceOffset = true
+    console.warn(
+      'ApexCharts: `plotOptions.pie.expandOnClick` is not available in a ' +
+        'drilldown pie/donut, so it was ignored. A slice click navigates, and a ' +
+        'slice that slid out would be discarded by the drill it just triggered.',
+    )
   }
 
   /**

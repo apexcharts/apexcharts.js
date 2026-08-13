@@ -13,6 +13,11 @@ import CoreUtils from '../modules/CoreUtils'
  * @module Radar
  **/
 
+// Radius of the invisible hover target kept for a marker the user has hidden
+// (`markers.size: 0`). Matches the radar default marker size, see the note at
+// its use site in drawSeriesMarkers.
+const RADAR_HIT_AREA_SIZE = 5
+
 class Radar {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -255,6 +260,37 @@ class Radar {
           seriesIndex: i,
           dataPointIndex: j,
         })
+
+        // A radar is hit-tested purely through these marker elements: unlike
+        // line/area it has no plot-area hover with nearest-point resolution, so
+        // there is nothing else to hover. With `markers.size: 0` the marker path
+        // is degenerate, occupies a 0x0 box, and the chart therefore has no
+        // tooltip at all in any mode. Keep an invisible hit area at a usable
+        // radius so hover still resolves. See #1575.
+        //
+        // Painted `transparent` rather than hidden: `visibility`/`display` or a
+        // `none` fill would stop it receiving pointer events, whereas a
+        // transparent fill still hit-tests and paints nothing.
+        //
+        // `default-marker-size` is written from `opts.pSize` below, so it ends
+        // up as the hit radius rather than 0. That is deliberate: Marker.js
+        // treats `default-marker-size === '0'` as "hidden", skipping the
+        // hover-grow in `newPointSize` and resetting the path to `M0,0` in
+        // `resetPointsSize`, which would erase the hit area after the first
+        // hover. A real radius keeps it through the hover cycle, and since every
+        // paint stays transparent the marker is still invisible throughout.
+        // The radius matches the radar default marker size, so the hit area has
+        // exactly the footprint a visible marker would have. That matters:
+        // neighbouring series can sit ~11px apart at the same category, so a
+        // larger area (8 was tried) overlaps the next series' point and steals
+        // its hover, captioning the wrong series. Matching the default keeps
+        // hit-resolution identical to a radar drawn with ordinary markers.
+        if (!opts.pSize) {
+          opts.pSize = RADAR_HIT_AREA_SIZE
+          opts.pointFillColor = 'transparent'
+          opts.pointStrokeColor = 'transparent'
+          opts.pointStrokeWidth = 0
+        }
 
         const point = this.graphics.drawMarker(
           dataPointsPos[j].x,

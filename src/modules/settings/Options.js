@@ -641,11 +641,18 @@ export default class Options {
           enabled: true,
           type: 'x',
           autoScaleYaxis: false,
-          allowMouseWheelZoom: true,
+          // Wheel and pinch zoom can both be triggered without meaning to (a
+          // page scroll or a two-finger swipe over the chart), so 'auto' offers
+          // them only when the viewer has a way back: the toolbar's reset
+          // button. With the toolbar hidden they stay off, since a zoom nobody
+          // asked for and nobody can undo is a trap. Set either to true to
+          // force the gesture on regardless (for a page that supplies its own
+          // reset control), or false to turn it off outright.
+          allowMouseWheelZoom: 'auto',
           // Momentum: two-finger pinch-zoom on touch devices. Zooms the x-axis
           // around the pinch centroid (matching the x-only wheel/toolbar zoom),
           // frame-by-frame rather than the 400ms wheel throttle.
-          pinch: true,
+          pinch: 'auto',
           zoomedArea: {
             fill: {
               color: '#90CAF9',
@@ -1536,6 +1543,36 @@ export default class Options {
           startAngle: 0,
           endAngle: 360,
           expandOnClick: true,
+          // How far a clicked slice slides out of the pie (px), measured along
+          // its own mid-angle. The slice is translated, not redrawn at a bigger
+          // radius, so its shape and the quantity it encodes are unchanged and
+          // a gap opens between it and the rest of the pie. The inner
+          // percentage label (and the outer name label, when enabled) ride
+          // along with it. Ignored for polarArea, where the radius is the
+          // value, and in a drilldown pie/donut, where a click navigates (the
+          // slice would slide out only to be discarded by the drill, and
+          // states.active takes the click feedback back over). Set 0 to keep
+          // the slice in place.
+          expandOffset: 10,
+          // Hover outline: a translucent band traced just outside the rim of
+          // the hovered slice, so the slice keeps its own colour instead of
+          // being lightened. Takes the place of the states.hover filter for
+          // pie / donut / polarArea, and is skipped entirely when
+          // states.hover.filter.type is 'none' (that stays the way to turn all
+          // hover feedback off). Applies to pie, donut and polarArea.
+          hoverOutline: {
+            show: true,
+            size: 8, // band thickness (px)
+            // Extra clearance between the slice rim and the band (px), ON TOP
+            // of the slice stroke: the band always starts at the outer edge of
+            // the stroke, never under it. Default 0, because a stroke is
+            // normally present (stroke.width defaults to 2) and already reads
+            // as the separation. Any gap beyond that and the band stops
+            // belonging to its slice and starts reading as a ring of its own.
+            gap: 0,
+            opacity: 0.3, // band opacity, over the slice colour
+            color: undefined, // defaults to the hovered slice's colour
+          },
           // Rounds the corners of each slice (in px). Applies to pie, donut and
           // polarArea (all rendered by the Pie module). 0 = sharp corners
           // (default, unchanged behavior). The value is clamped per slice so

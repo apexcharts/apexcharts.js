@@ -7,7 +7,9 @@
 /**
  * Pixels the tooltip's CSS arrow tip overhangs its box. Used as the gap between
  * the tooltip and its anchor rect (data cell / bar) in both the vertical and
- * horizontal placements. Must match the arrow size in apexcharts.css.
+ * horizontal placements. Must match the arrow size in apexcharts.css, where the
+ * arrow is a 10px square rotated 45° about a centre parked on the body's border
+ * line: it reaches 10/√2 ≈ 7.07px past that line.
  */
 export const ARROW_TIP_OVERHANG = 7
 

@@ -126,10 +126,7 @@ export default class ZoomPanSelection extends Toolbar {
       )
     })
 
-    if (
-      w.config.chart.zoom.enabled &&
-      w.config.chart.zoom.allowMouseWheelZoom
-    ) {
+    if (this._wheelZoomEnabled()) {
       this.hoverArea.addEventListener('wheel', me.mouseWheelEvent.bind(me), {
         capture: false,
         passive: false,
@@ -342,6 +339,30 @@ export default class ZoomPanSelection extends Toolbar {
   // mid-gesture, so all wheel-gesture state lives on w.interact.wheel rather
   // than on the instance.
   // ---------------------------------------------------------------------------
+
+  /**
+   * A wheel or pinch zoom is an incidental gesture: the viewer can land in a
+   * zoomed window without meaning to (a page scroll over the chart, a two-finger
+   * swipe), so it is only offered when there is a way back out of it. The only
+   * built-in way back is the toolbar's reset button, hence 'auto' (the default
+   * for both allowMouseWheelZoom and pinch) resolves against that button being
+   * present. A page that builds its own reset control sets the option to true
+   * and gets the gesture with no toolbar. Drag-to-zoom is deliberate, so it is
+   * not gated this way.
+   *
+   * @param {boolean|'auto'} setting
+   */
+  _incidentalZoomEnabled(setting) {
+    const c = this.w.config.chart
+    if (!c.zoom || !c.zoom.enabled) return false
+    if (setting !== 'auto') return !!setting
+    return !!(c.toolbar?.show && c.toolbar?.tools?.reset)
+  }
+
+  _wheelZoomEnabled() {
+    const { zoom } = this.w.config.chart
+    return this._incidentalZoomEnabled(zoom && zoom.allowMouseWheelZoom)
+  }
 
   /** Lazily-created, re-render-surviving wheel-gesture state. */
   _wheel() {
@@ -1211,8 +1232,7 @@ export default class ZoomPanSelection extends Toolbar {
   }
 
   _pinchEnabled() {
-    const c = this.w.config.chart
-    return !!(c.zoom && c.zoom.enabled && c.zoom.pinch)
+    return this._incidentalZoomEnabled(this.w.config.chart.zoom.pinch)
   }
 
   _panInertiaEnabled() {

@@ -10,11 +10,23 @@ import { Environment } from '../utils/Environment'
 import {
   roundedDonutSegmentPath,
   roundedPieSegmentPath,
+  sharpDonutSegmentPath,
 } from './common/arc/ArcPath'
 /**
  * ApexCharts Pie Class for drawing Pie / Donut Charts.
  * @module Pie
  **/
+
+/**
+ * Slide of a clicked slice out of the pie, and fade of the hover outline band.
+ * Both are CSS transitions rather than JS tweens: the slide only ever changes
+ * a `transform` and the fade only an `opacity`, so the compositor can run them
+ * without touching the path geometry. Applied inline (not from the stylesheet)
+ * so a build served without apexcharts.css still animates, and still hides the
+ * band by default.
+ */
+const SLICE_OFFSET_TRANSITION = 'transform 320ms cubic-bezier(0.25, 0.8, 0.3, 1)'
+const HOVER_OUTLINE_TRANSITION = 'opacity 180ms ease-out'
 
 class Pie {
   /**
@@ -109,6 +121,24 @@ class Pie {
     this.sliceLabels = []
     /** @type {any} */
     this.sliceSizes = []
+
+    // Everything that has to travel with a slice when it slides out of the pie
+    // on click, keyed by slice index: its inner percentage label and its outer
+    // name label (each drawn into its own group outside the slice's own group,
+    // so they paint above every slice). See offsetSlice.
+    /** @type {Record<number, SVGElement>} */
+    this.sliceLabelGroups = {}
+    /** @type {Record<number, SVGElement>} */
+    this.externalLabelGroups = {}
+
+    // The single band re-plotted around whichever slice is hovered, plus the
+    // group holding it (created in drawArcs, kept empty until first hover).
+    /** @type {any} */
+    this.elHoverOutline = null
+    /** @type {any} */
+    this.elHoverOutlinePath = null
+    /** @type {number} slice the band is currently traced around, -1 for none */
+    this.hoverOutlineIndex = -1
 
     /** @type {any} */
     this.prevSectorAngleArr = [] // for dynamic animations
@@ -379,6 +409,22 @@ class Pie {
       class: 'apexcharts-slices',
     })
 
+    // First child of the slices group, so the hover band always paints *under*
+    // the slices: its inner edge can then tuck below a rim without showing a
+    // seam. Inert to the pointer, or a band lying over a slid-out slice would
+    // steal that slice's hover and flicker the effect it belongs to.
+    this.elHoverOutline = graphics.group({
+      class: 'apexcharts-pie-hover-outline',
+    })
+    this.elHoverOutline.node.style.pointerEvents = 'none'
+    this.elHoverOutline.node.style.opacity = '0'
+    // The group owns the fade and nothing else. Any offset rides on the band
+    // path inside it, so the two never have to be untangled from one another.
+    if (w.config.chart.animations.enabled) {
+      this.elHoverOutline.node.style.transition = HOVER_OUTLINE_TRANSITION
+    }
+    g.add(this.elHoverOutline)
+
     let startAngle = this.initialAngle
     let prevStartAngle = this.initialAngle
     let endAngle = this.initialAngle
@@ -455,7 +501,7 @@ class Pie {
         filters.dropShadow(elPath, shadow, i)
       }
 
-      this.addListeners(elPath, this.donutDataLabels)
+      this.addListeners(elPath, this.donutDataLabels, i)
 
       let labelPosition = {
         x: 0,
@@ -570,11 +616,13 @@ class Pie {
       }
       // animation code ends
 
-      if (
-        w.config.plotOptions.pie.expandOnClick &&
-        this.chartType !== 'polarArea'
-      ) {
+      // One condition for "does a click move this slice", so the mouseup wiring
+      // can never disagree with getExpandOffset about it (drilldown, polarArea
+      // and expandOffset: 0 all land here).
+      if (this.getExpandOffset() > 0) {
         elPath.node.addEventListener('mouseup', this.pieClicked.bind(this, i))
+      } else if (i === 0 && Filters.drilldownBlocksSliceOffset(w)) {
+        this.ctx.drilldown?.warnSliceOffsetDisabled()
       }
 
       if (
@@ -583,7 +631,9 @@ class Pie {
       ) {
         // Defer the "pulled out" offset for pre-selected slices until after
         // the sweep finishes. Otherwise the slice translates while it's still
-        // growing, which makes both motions hard to read.
+        // growing, which makes both motions hard to read. Parked instantly
+        // rather than slid, since nobody clicked: a slice that is *already*
+        // selected should just be where it belongs by the time it is seen.
         if (
           this.initialAnim &&
           !w.globals.resized &&
@@ -592,9 +642,9 @@ class Pie {
         ) {
           const _this = this
           const _i = i
-          setTimeout(() => _this.pieClicked(_i), this.animDur)
+          setTimeout(() => _this.pieClicked(_i, { animate: false }), this.animDur)
         } else {
-          this.pieClicked(i)
+          this.pieClicked(i, { animate: false })
         }
       }
 
@@ -648,6 +698,7 @@ class Pie {
           }
 
           this.sliceLabels.push(elPieLabelWrap)
+          this.sliceLabelGroups[i] = elPieLabelWrap.node
         }
       }
 
@@ -674,6 +725,7 @@ class Pie {
             : elbow.x - (this.externalCfg.connector.length || 0)
 
           this.externalLabels.push({
+            i,
             lines,
             anchor,
             elbow,
@@ -727,6 +779,10 @@ class Pie {
           group.node.classList.add('apexcharts-element-hidden')
           w.globals.delayedElements.push({ el: group.node })
         }
+
+        // Ride along when the slice slides out: the connector is anchored on
+        // the rim, so moving both by the same vector keeps it attached.
+        this.externalLabelGroups[lbl.i] = group.node
 
         g.add(group)
       })
@@ -784,8 +840,9 @@ class Pie {
   /**
    * @param {any} elPath
    * @param {Record<string, any>} dataLabels
+   * @param {number} [i] slice index, for the hover outline band
    */
-  addListeners(elPath, dataLabels) {
+  addListeners(elPath, dataLabels, i) {
     const graphics = new Graphics(this.w, this.ctx)
     // append filters on mouseenter and mouseleave
     elPath.node.addEventListener(
@@ -801,6 +858,17 @@ class Pie {
       'mouseleave',
       this.revertDataLabelsInner.bind(this),
     )
+
+    if (typeof i === 'number') {
+      elPath.node.addEventListener(
+        'mouseenter',
+        this.showHoverOutline.bind(this, i),
+      )
+      elPath.node.addEventListener(
+        'mouseleave',
+        this.hideHoverOutline.bind(this),
+      )
+    }
     elPath.node.addEventListener(
       'mousedown',
       graphics.pathMouseDown.bind(graphics, elPath),
@@ -973,59 +1041,271 @@ class Pie {
   }
 
   /**
+   * Toggle slice `i` in or out of the pie. Only one slice sits outside at a
+   * time. Bound to `mouseup` on each slice, and also reached from the
+   * `toggleDataPointSelection` API and from the pre-selected-slice pass in
+   * drawArcs (which passes `animate: false` so the slice is already parked by
+   * the time the first frame is painted).
    * @param {number} i
+   * @param {{animate?: boolean}} [opts] a MouseEvent when called as a listener,
+   *   which carries no `animate`, so real clicks animate
    */
-  pieClicked(i) {
+  pieClicked(i, opts) {
     const w = this.w
     const me = this
-    const size =
-      me.sliceSizes[i] + (w.config.plotOptions.pie.expandOnClick ? 4 : 0)
+    const animate = !(opts && opts.animate === false)
     const elPath = w.dom.Paper.findOne(
       `.apexcharts-${me.chartType.toLowerCase()}-slice-${i}`,
     )
+    if (!elPath) return
 
     if (elPath.attr('data:pieClicked') === 'true') {
       elPath.attr({
         'data:pieClicked': 'false',
       })
       this.revertDataLabelsInner()
-
-      const origPath = elPath.attr('data:pathOrig')
-      elPath.attr({
-        d: origPath,
-      })
+      this.offsetSlice(i, 0, animate)
       return
-    } else {
-      // reset all elems
-      const allEls = w.dom.baseEl.getElementsByClassName('apexcharts-pie-area')
-      /**
-       * @param {any} pieSlice
-       */
-      Array.prototype.forEach.call(allEls, (pieSlice) => {
-        pieSlice.setAttribute('data:pieClicked', 'false')
-        const origPath = pieSlice.getAttribute('data:pathOrig')
-        if (origPath) {
-          pieSlice.setAttribute('d', origPath)
-        }
-      })
-      w.interact.capturedDataPointIndex = i
-
-      elPath.attr('data:pieClicked', 'true')
     }
 
-    const startAngle = parseInt(elPath.attr('data:startAngle'), 10)
-    const angle = parseInt(elPath.attr('data:angle'), 10)
+    // Pull in whichever slice is currently out. Only slices actually marked out
+    // are touched: an unconditional pass would write a transform onto every
+    // slice, and (as it did when this restored `data:pathOrig` instead) fight
+    // with a cross-type morph still animating the paths.
+    const allEls = w.dom.baseEl.getElementsByClassName('apexcharts-pie-area')
+    /**
+     * @param {any} pieSlice
+     */
+    Array.prototype.forEach.call(allEls, (pieSlice) => {
+      const wasOut = pieSlice.getAttribute('data:pieClicked') === 'true'
+      pieSlice.setAttribute('data:pieClicked', 'false')
+      if (wasOut) {
+        this.offsetSlice(parseInt(pieSlice.getAttribute('j'), 10), 0, animate)
+      }
+    })
+    w.interact.capturedDataPointIndex = i
 
-    const path = me.getPiePath({
-      me,
-      startAngle,
+    elPath.attr('data:pieClicked', 'true')
+    this.offsetSlice(i, this.getExpandOffset(), animate)
+  }
+
+  /**
+   * How far a clicked slice slides out, in px. 0 when the pull-out is off, when
+   * drilldown owns the click, and always for polarArea: there the radius
+   * encodes the value, so moving a slice outward would read as a bigger number.
+   * @returns {number}
+   */
+  getExpandOffset() {
+    const pie = this.w.config.plotOptions.pie
+    if (!pie.expandOnClick || this.chartType === 'polarArea') return 0
+    if (Filters.drilldownBlocksSliceOffset(this.w)) return 0
+    const offset = Number(pie.expandOffset)
+    return Number.isFinite(offset) && offset > 0 ? offset : 0
+  }
+
+  /**
+   * Every node that has to travel with slice `i`: the slice path itself plus
+   * its labels, which live in sibling groups so they paint above all slices.
+   * @param {number} i
+   * @returns {SVGElement[]}
+   */
+  getSliceMovers(i) {
+    const elPath = this.w.dom.Paper.findOne(
+      `.apexcharts-${this.chartType.toLowerCase()}-slice-${i}`,
+    )
+    return [
+      elPath ? elPath.node : null,
+      this.sliceLabelGroups[i],
+      this.externalLabelGroups[i],
+      // The hover band, when it is this slice's: clicking a slice you are
+      // hovering has to take its outline along, or the band is left behind
+      // sitting in the gap the slice just opened.
+      this.hoverOutlineIndex === i && this.elHoverOutlinePath
+        ? this.elHoverOutlinePath.node
+        : null,
+    ].filter(Boolean)
+  }
+
+  /**
+   * Slide slice `i` `dist` px out of the pie along its own mid-angle, or back
+   * to its resting place when `dist` is 0.
+   *
+   * The slice is *translated*, never re-drawn: the arc keeps the exact radius
+   * and span it had, so the pulled-out slice still encodes the same quantity
+   * (growing the radius, as this used to, quietly inflates it) and a clean gap
+   * opens between it and the rest of the pie.
+   * @param {number} i
+   * @param {number} dist
+   * @param {boolean} [animate] false to park it instantly, with no transition
+   */
+  offsetSlice(i, dist, animate = true) {
+    const w = this.w
+    const elPath = w.dom.Paper.findOne(
+      `.apexcharts-${this.chartType.toLowerCase()}-slice-${i}`,
+    )
+    if (!elPath) return
+
+    const { dx, dy } = this.getSliceOffsetVector(i, dist)
+    // translate(0 0) rather than dropping the attribute: an attribute removal
+    // is a computed-value jump to `none` in some engines, which skips the
+    // transition on the way back in.
+    const transform = `translate(${dx} ${dy})`
+    const transition =
+      animate && w.config.chart.animations.enabled ? SLICE_OFFSET_TRANSITION : ''
+
+    this.getSliceMovers(i).forEach((node) => {
+      // The `transform` presentation attribute maps onto the CSS transform
+      // property, so a CSS transition on it animates the slide wherever SVG
+      // CSS transforms are supported, and degrades to an instant move (the old
+      // behaviour) where they are not.
+      node.style.transition = transition
+      node.setAttribute('transform', transform)
+    })
+  }
+
+  /**
+   * The px vector `dist` along slice `i`'s mid-angle. Zero for a slice that
+   * fills the pie: there is no "outside" for it to move to, and sliding it
+   * would just shift the whole chart sideways.
+   * @param {number} i
+   * @param {number} dist
+   * @returns {{dx: number, dy: number}}
+   */
+  getSliceOffsetVector(i, dist) {
+    const elPath = this.w.dom.Paper.findOne(
+      `.apexcharts-${this.chartType.toLowerCase()}-slice-${i}`,
+    )
+    const angle = elPath ? parseFloat(elPath.attr('data:angle')) : NaN
+    if (!dist || !Number.isFinite(angle) || angle >= this.fullAngle) {
+      return { dx: 0, dy: 0 }
+    }
+    const startAngle = parseFloat(elPath.attr('data:startAngle'))
+    const midRad = (Math.PI * (startAngle + angle / 2 - 90)) / 180
+    return { dx: dist * Math.cos(midRad), dy: dist * Math.sin(midRad) }
+  }
+
+  /**
+   * Fade in the hover outline: a translucent band traced just outside the rim
+   * of slice `i`, in the slice's own colour. It replaces lightening the slice
+   * (see Filters.hoverOutlineOwnsHoverState) so a hovered slice keeps the
+   * colour the legend and the data labels claim it has.
+   * @param {number} i
+   */
+  showHoverOutline(i) {
+    const w = this.w
+    if (!Filters.hoverOutlineOwnsHoverState(w)) return
+    if (!this.elHoverOutline) return
+
+    const path = this.getHoverOutlinePath(i)
+    if (!path) return
+
+    const cfg = w.config.plotOptions.pie.hoverOutline
+    const fill = cfg.color || w.globals.colors[i]
+    // One band node, re-plotted per slice: sweeping across a pie then costs no
+    // DOM churn, and the fade below stays a plain opacity transition.
+    if (!this.elHoverOutlinePath) {
+      const graphics = new Graphics(w)
+      this.elHoverOutlinePath = graphics.drawPath({
+        d: path,
+        fill,
+        strokeWidth: 0,
+        classes: 'apexcharts-pie-hover-outline-band',
+      })
+      this.elHoverOutline.add(this.elHoverOutlinePath)
+    }
+    this.elHoverOutlinePath.attr({
+      d: path,
+      fill,
+      'fill-opacity': cfg.opacity,
+    })
+
+    // The band belongs to the slice, so it has to sit at whatever offset that
+    // slice is currently parked at (see offsetSlice). The offset rides on the
+    // band path and the fade on the group above it, which keeps the two
+    // independent: the band jumps to a newly hovered slice (no transition here)
+    // but slides when the slice it is already on is clicked out.
+    const { dx, dy } = this.getSliceOffsetVector(
+      i,
+      this.isSliceOut(i) ? this.getExpandOffset() : 0,
+    )
+    this.elHoverOutlinePath.node.style.transition = ''
+    this.elHoverOutlinePath.node.setAttribute('transform', `translate(${dx} ${dy})`)
+    this.hoverOutlineIndex = i
+
+    this.elHoverOutline.node.style.opacity = '1'
+  }
+
+  /** Fade the hover outline back out, leaving the band node in place. */
+  hideHoverOutline() {
+    if (this.elHoverOutline) {
+      this.elHoverOutline.node.style.opacity = '0'
+    }
+  }
+
+  /** @param {number} i @returns {boolean} */
+  isSliceOut(i) {
+    const elPath = this.w.dom.Paper.findOne(
+      `.apexcharts-${this.chartType.toLowerCase()}-slice-${i}`,
+    )
+    return !!elPath && elPath.attr('data:pieClicked') === 'true'
+  }
+
+  /**
+   * Band geometry for the hover outline of slice `i`: an annulus from the
+   * slice rim (plus the stroke and the configured clearance) outward, over the
+   * same angular extent the slice is actually drawn over, so it lines up with
+   * both slice edges even with `spacing` insetting them. Rounded into a pill
+   * when the band is thick enough for the fillets to fit.
+   * @param {number} i
+   * @returns {string | null}
+   */
+  getHoverOutlinePath(i) {
+    const w = this.w
+    const cfg = w.config.plotOptions.pie.hoverOutline
+    const elPath = w.dom.Paper.findOne(
+      `.apexcharts-${this.chartType.toLowerCase()}-slice-${i}`,
+    )
+    if (!elPath) return null
+
+    const angle = parseFloat(elPath.attr('data:angle'))
+    if (!Number.isFinite(angle) || angle <= 0) return null
+
+    const size = this.sliceSizes[i]
+    const thickness = Number(cfg.size)
+    if (!Number.isFinite(size) || !Number.isFinite(thickness) || thickness <= 0) {
+      return null
+    }
+
+    const { startDeg, spanDeg } = this.getSliceExtent({
+      me: this,
+      startAngle: parseFloat(elPath.attr('data:startAngle')),
       angle,
       size,
     })
+    if (!(spanDeg > 0)) return null
 
-    if (angle === 360) return
+    // Half the stroke, not all of it: the slice stroke is centred on the rim,
+    // so only half of it sits outside. Adding the full width pushed the band a
+    // stroke-width further out than the configured gap asked for.
+    const rIn = size + (this.strokeWidth || 0) / 2 + (Number(cfg.gap) || 0)
+    const rOut = rIn + thickness
+    const geo = {
+      cx: this.centerX,
+      cy: this.centerY,
+      rIn,
+      rOut,
+      a0: startDeg,
+      a1: startDeg + spanDeg,
+      spanDeg,
+    }
 
-    elPath.plot(path)
+    // Pill ends read as deliberate; square ends on a thin band read as a
+    // clipping artifact. Bounded by the inner arc length so the two fillets
+    // never cross on a narrow slice.
+    const r = Math.min(thickness / 2, ((spanDeg * Math.PI) / 180 / 2) * rIn)
+    return r > 0.5
+      ? roundedDonutSegmentPath({ ...geo, r })
+      : sharpDonutSegmentPath(geo)
   }
 
   /**
@@ -1046,11 +1326,17 @@ class Pie {
     return path
   }
 
-  /** @param {{me: any, startAngle: any, angle: any, size: any}} opts */
-  getPiePath({ me, startAngle, angle, size }) {
-    let path
+  /**
+   * The angular extent a slice is actually drawn over: the raw start / span
+   * clamped so a full circle never overlaps itself, then inset by
+   * `plotOptions.pie.spacing`. Shared by getPiePath and the hover outline, so
+   * the band lines up with the slice edges instead of with the un-inset angles
+   * cached on the path node.
+   * @param {{me: any, startAngle: number, angle: number, size: number}} opts
+   * @returns {{startDeg: number, spanDeg: number, endDeg: number}}
+   */
+  getSliceExtent({ me, startAngle, angle, size }) {
     const w = this.w
-    const graphics = new Graphics(this.w)
 
     let startDeg = startAngle
 
@@ -1094,6 +1380,27 @@ class Pie {
     // [0, fullAngle] for the point math below.
     endDeg = startDeg + spanDeg
     if (Math.ceil(endDeg) > this.fullAngle) endDeg -= this.fullAngle
+
+    return { startDeg, spanDeg, endDeg }
+  }
+
+  /** @param {{me: any, startAngle: any, angle: any, size: any}} opts */
+  getPiePath({ me, startAngle, angle, size }) {
+    let path
+    const w = this.w
+    const graphics = new Graphics(this.w)
+
+    const { startDeg, spanDeg, endDeg } = this.getSliceExtent({
+      me,
+      startAngle,
+      angle,
+      size,
+    })
+
+    const isSliceType =
+      me.chartType === 'pie' ||
+      me.chartType === 'donut' ||
+      me.chartType === 'polarArea'
 
     const startRadians = (Math.PI * (startDeg - 90)) / 180
 

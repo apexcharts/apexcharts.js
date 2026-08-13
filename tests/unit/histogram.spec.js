@@ -292,6 +292,16 @@ describe('histogram chart type', () => {
     )
   })
 
+  test('zoom is off by default: the bins do not re-derive from the window', () => {
+    const chart = histChart()
+    expect(chart.w.config.chart.zoom.enabled).toBe(false)
+  })
+
+  test('zoom can be opted back in per chart', () => {
+    const chart = histChart({ chart: { zoom: { enabled: true } } })
+    expect(chart.w.config.chart.zoom.enabled).toBe(true)
+  })
+
   test('object data ({ y }) is accepted as raw observations', () => {
     const chart = histChart({
       series: [{ name: 'S', data: [{ y: 1 }, { y: 2 }, { y: 3 }, { y: 4 }] }],

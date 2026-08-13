@@ -479,6 +479,19 @@ export default class Tooltip {
       type === 'bubble' ||
       type === 'radar'
 
+    // Radar is the only chart that is hit-tested through its markers while not
+    // being an xyChart (`Core` puts it in axisCharts but not xyChartsArrTypes),
+    // so it matches neither the shared `hoverArea` branch below, which is
+    // xyCharts/comboCharts only, nor the `!axisCharts` branch. That left a hole:
+    // whenever `showOnIntersect` was false, radar was wired to nothing at all
+    // and no tooltip could ever appear.
+    //
+    // `tooltip.shared: true` lands exactly in that hole, because Config rejects
+    // shared together with intersect, so asking for a shared tooltip forces
+    // intersect off and takes the hover listeners away with it. Radar therefore
+    // needs the per-marker listeners in both modes. See #1575.
+    const isPolarMarkerChart = chartWithmarkers && !w.globals.xyCharts
+
     const hoverArea = w.dom.Paper.node
 
     const elGrid = this.getElGrid()
@@ -534,7 +547,8 @@ export default class Tooltip {
       this.addPathsEventListeners([hoverArea], seriesHoverParams)
     } else if (
       (commonBar && !w.globals.comboCharts) ||
-      (chartWithmarkers && this.showOnIntersect)
+      (chartWithmarkers && this.showOnIntersect) ||
+      isPolarMarkerChart
     ) {
       this.addDatapointEventsListeners(seriesHoverParams)
     } else if (

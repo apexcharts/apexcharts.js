@@ -458,6 +458,14 @@ export default class Defaults {
       ...this.bar(),
       chart: {
         stacked: false,
+        // The bins are the summary: they are chosen once from the whole sample
+        // and do NOT re-derive from the visible window, so zooming only
+        // magnifies bars while hiding the rest of the distribution the shape is
+        // read against. Off by default, mirroring heatmap and violin; users can
+        // opt back in with chart.zoom.enabled: true.
+        zoom: {
+          enabled: false,
+        },
         animations: {
           // The bars of a histogram are one shape, not N independent
           // categories, so revealing them one by one reads as a sequence that

@@ -1563,13 +1563,22 @@ type ApexChart = {
     enabled?: boolean
     type?: 'x' | 'y' | 'xy'
     autoScaleYaxis?: boolean
-    allowMouseWheelZoom?: boolean
+    /**
+     * Cursor-anchored zoom on mouse wheel / trackpad. `'auto'` enables it only
+     * when the toolbar's reset button is present, so an unintended scroll-zoom
+     * is always undoable; `true` forces it on even with the toolbar hidden.
+     * Requires `enabled: true`.
+     * @default 'auto'
+     */
+    allowMouseWheelZoom?: boolean | 'auto'
     /**
      * Momentum: enable two-finger pinch-zoom on touch devices. Zooms the x-axis
-     * around the pinch centroid, frame-by-frame. Requires `enabled: true`.
-     * @default true
+     * around the pinch centroid, frame-by-frame. `'auto'` enables it only when
+     * the toolbar's reset button is present; `true` forces it on even with the
+     * toolbar hidden. Requires `enabled: true`.
+     * @default 'auto'
      */
-    pinch?: boolean
+    pinch?: boolean | 'auto'
     zoomedArea?: {
       fill?: {
         color?: string
@@ -2943,6 +2952,38 @@ type ApexPlotOptions = {
     offsetX?: number
     offsetY?: number
     expandOnClick?: boolean
+    /**
+     * How far a clicked slice slides out of the pie (px), measured along its
+     * own mid-angle. The slice is translated, not redrawn at a bigger radius,
+     * so its shape is unchanged and a gap opens between it and the rest of the
+     * pie. Defaults to 10. Ignored for polarArea, and in a drilldown pie/donut
+     * where a slice click navigates instead. Set 0 to keep the slice in place
+     * on click.
+     */
+    expandOffset?: number
+    /**
+     * Hover outline: a translucent band traced just outside the rim of the
+     * hovered slice, so the slice keeps its own colour instead of being
+     * lightened. Takes the place of the `states.hover` filter for pie, donut
+     * and polarArea, and is skipped when `states.hover.filter.type` is
+     * `'none'`.
+     */
+    hoverOutline?: {
+      show?: boolean
+      /** Band thickness in px. Defaults to 8. */
+      size?: number
+      /**
+       * Extra clearance between the slice rim and the band, in px, on top of
+       * the slice stroke (the band always starts at the outer edge of the
+       * stroke, never under it). Defaults to 0, since a stroke is normally
+       * present and already reads as the separation.
+       */
+      gap?: number
+      /** Band opacity over the slice colour. Defaults to 0.3. */
+      opacity?: number
+      /** Band colour. Defaults to the hovered slice's colour. */
+      color?: string
+    }
     /**
      * Rounds the corners of each slice (in px). Applies to pie, donut and
      * polarArea. Defaults to 0 (sharp corners). The value is clamped per
