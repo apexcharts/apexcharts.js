@@ -243,6 +243,10 @@
 
         buttons.forEach(function (b) {
           b.addEventListener('click', function () {
+            // The active view's button is a no-op: re-requesting the readings while
+            // already exploded would ask rowSeries() of a unit chart, which has no
+            // rows to hand back.
+            if (b.className === 'on') return
             var explode = b.getAttribute('data-explode') === 'true'
             setActive(explode)
 
@@ -262,8 +266,12 @@
                       y: 'lanes',
                       spread: 'swarm',
                       xTitle: 'Reading',
-                      xMin: 15,
-                      xMax: 85,
+                      // One decade of margin each side, and ticks every 10 like the
+                      // box view's axis, so the room reads unchanged across the
+                      // morph.
+                      xMin: 10,
+                      xMax: 90,
+                      tickAmount: 9,
                       // Wide enough for the longest lane name; the gutter clips
                       // rather than wraps, so this has to clear "Bunched in the
                       // middle" outright.
@@ -341,6 +349,9 @@
         },
         colors: ['#12b3a8'],
         plotOptions: {
+          bar: {
+            horizontal: true,
+          },
           boxPlot: {
             colors: {
               upper: '#c8ece9',
@@ -354,11 +365,19 @@
         legend: {
           show: false,
         },
-        yaxis: {
-          // In the box view the reading runs UP the chart; the exploded beeswarm lays
-          // it along X instead and names its own axis there (scatter.xTitle).
+        xaxis: {
+          // The boxes are horizontal, so the reading runs along X in BOTH views: the
+          // box view titles this axis, the exploded beeswarm names its own value axis
+          // the same (scatter.xTitle). One explicit label colour keeps the beeswarm's
+          // axis chrome (ticks, title, lane names) on the same near-black as the box
+          // view's axes, instead of lane names taking the series colour.
           title: {
             text: 'Reading',
+          },
+          labels: {
+            style: {
+              colors: '#373d3f',
+            },
           },
         },
       }

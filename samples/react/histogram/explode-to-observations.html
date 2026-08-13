@@ -170,6 +170,10 @@
 
         buttons.forEach(function (b) {
           b.addEventListener('click', function () {
+            // The active view's button is a no-op: re-requesting the readings while
+            // already exploded would ask rowSeries() of a unit chart, which has no
+            // rows to hand back.
+            if (b.className === 'on') return
             var explode = b.getAttribute('data-explode') === 'true'
             setActive(explode)
 
