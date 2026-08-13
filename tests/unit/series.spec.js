@@ -26,6 +26,59 @@ describe('Series — emptyCollapsedSeries()', () => {
     expect(() => s.emptyCollapsedSeries([276, 266, 3])).not.toThrow()
     expect(s.emptyCollapsedSeries([276, 266, 3])).toEqual([276, 0, 3])
   })
+
+  it('passes a non-array through untouched instead of crashing (regression)', () => {
+    // Regression: a chart poisoned by a null series update reached this with
+    // null and crashed reading `.length`, stranding every later update.
+    const s = new Series({ globals: { collapsedSeriesIndices: [0] } })
+    expect(() => s.emptyCollapsedSeries(null)).not.toThrow()
+    expect(s.emptyCollapsedSeries(null)).toBe(null)
+  })
+})
+
+describe('a non-array series cannot poison the chart (regression)', () => {
+  // The reported sequence: a demo fed `series: chart.rowSeries()` while the
+  // chart was ALREADY a unit chart. rowSeries() returns null there (documented:
+  // no row source), null slipped past `if (options.series)` into the config and
+  // the initialSeries snapshot, and every following series update crashed in
+  // resetSeries reading `null.length`, leaving an empty chart.
+  it('updateOptions ignores series: null, warns, and later updates still work', async () => {
+    const chart = createChart('bar', [{ name: 'A', data: [1, 2, 3] }])
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await chart.updateOptions({ chart: { type: 'bar' }, series: null })
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('ignored `series`'),
+    )
+    expect(Array.isArray(chart.w.config.series)).toBe(true)
+
+    // The poison sequence's second step: this used to throw in resetSeries.
+    await expect(
+      chart.updateOptions({ series: [{ name: 'A', data: [4, 5, 6] }] }),
+    ).resolves.toBeTruthy()
+    expect(chart.w.config.series[0].data).toEqual([4, 5, 6])
+    warn.mockRestore()
+  })
+
+  it('updateSeries refuses a non-array and keeps the current series', async () => {
+    const chart = createChart('bar', [{ name: 'A', data: [1, 2, 3] }])
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await expect(chart.updateSeries(null)).resolves.toBeTruthy()
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('updateSeries()'),
+    )
+    expect(chart.w.config.series[0].data).toEqual([1, 2, 3])
+    warn.mockRestore()
+  })
+
+  it('resetSeries falls back to config.series when the snapshot is unusable', () => {
+    const chart = createChart('bar', [{ name: 'A', data: [7, 8] }])
+    chart.w.globals.initialSeries = null
+    expect(() => chart.series.resetSeries(false, true, false)).not.toThrow()
+    expect(Array.isArray(chart.w.config.series)).toBe(true)
+    expect(chart.w.config.series[0].data).toEqual([7, 8])
+  })
 })
 
 describe('Series — reconcileCollapsedByName()', () => {

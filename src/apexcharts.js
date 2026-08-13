@@ -697,6 +697,19 @@ export default class ApexCharts {
   ) {
     const w = this.w
 
+    // A non-array `series` (most commonly a null, e.g. rowSeries() when the
+    // current type has no row source) must not reach the merge: it would
+    // replace config.series and the initialSeries snapshot, and every later
+    // series update would then crash in resetSeries against the null. Drop
+    // the key and keep the rest of the update alive.
+    if (options && 'series' in options && !Array.isArray(options.series)) {
+      console.warn(
+        'ApexCharts: updateOptions() ignored `series` because it is not an array.',
+      )
+      options = { ...options }
+      delete options.series
+    }
+
     // when called externally, clear some global variables
     // fixes apexcharts.js#1488
     w.interact.selection = undefined
@@ -785,6 +798,14 @@ export default class ApexCharts {
    * @returns {Promise<ApexCharts>} Resolves with the chart instance after re-render.
    */
   updateSeries(newSeries = [], animate = true, overwriteInitialSeries = true) {
+    // Same contract as updateOptions: a null/non-array series would poison
+    // config.series and the initialSeries snapshot. Refuse it, keep the chart.
+    if (!Array.isArray(newSeries)) {
+      console.warn(
+        'ApexCharts: updateSeries() ignored the call because the series is not an array.',
+      )
+      return Promise.resolve(this)
+    }
     this.data.resetParsingFlags()
 
     // clears collapse/path bookkeeping without restoring (and deep-cloning)

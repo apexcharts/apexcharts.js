@@ -171,6 +171,12 @@ export default class Series {
     this.clearSeriesCache()
 
     let series = Utils.clone(w.globals.initialSeries)
+    // A chart constructed (or once updated) with an invalid series leaves no
+    // usable snapshot; resetting to the live config beats crashing here and
+    // stranding the chart mid-update.
+    if (!Array.isArray(series)) {
+      series = Utils.clone(w.config.series) || []
+    }
 
     w.globals.previousPaths = []
 
@@ -202,6 +208,7 @@ export default class Series {
    */
   emptyCollapsedSeries(series) {
     const w = this.w
+    if (!Array.isArray(series)) return series
     for (let i = 0; i < series.length; i++) {
       if (w.globals.collapsedSeriesIndices.indexOf(i) > -1) {
         // Axis charts carry {name, data}; non-axis charts (pie / donut / unit)
