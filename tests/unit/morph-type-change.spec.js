@@ -106,6 +106,27 @@ describe('MorphTypeChange.canMorphTypes', () => {
     expect(morph.canMorphTypes('gauge', 'radialBar')).toBe(true)
   })
 
+  it('accepts histogram as a bar-family alias', () => {
+    // The capture reads `chart.requestedType` (so a funnel does not report
+    // itself as a bar), which means an alias that is missing from a family set
+    // matches nothing at all. histogram normalizes to `bar` and draws ordinary
+    // bar paths, so every bar pair applies to it.
+    expect(morph.canMorphTypes('histogram', 'unit')).toBe(true)
+    expect(morph.canMorphTypes('unit', 'histogram')).toBe(true)
+    expect(morph.canMorphTypes('histogram', 'pie')).toBe(true)
+    expect(morph.canMorphTypes('histogram', 'bar')).toBe(true)
+  })
+
+  it('accepts waffle as a unit-family alias', () => {
+    // waffle IS a unit chart (Config maps it to `unit` with a grid layout), so
+    // before it was named here it could not morph even with `unit` itself.
+    expect(morph.canMorphTypes('waffle', 'bar')).toBe(true)
+    expect(morph.canMorphTypes('bar', 'waffle')).toBe(true)
+    expect(morph.canMorphTypes('waffle', 'pie')).toBe(true)
+    expect(morph.canMorphTypes('waffle', 'unit')).toBe(true)
+    expect(morph.canMorphTypes('histogram', 'waffle')).toBe(true)
+  })
+
   it('rejects same-type', () => {
     expect(morph.canMorphTypes('bar', 'bar')).toBe(false)
     expect(morph.canMorphTypes('pie', 'pie')).toBe(false)

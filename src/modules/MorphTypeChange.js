@@ -32,7 +32,14 @@ import { parsePath } from '../svg/PathMorphing'
 // true`). gauge is aliased to radialBar. Treating them as members of the
 // bar / radial families lets the morph engine accept them as source or
 // target without any renderer-side changes.
-const BAR_FAMILY = new Set(['bar', 'funnel', 'pyramid'])
+//
+// histogram is the same kind of alias: Config maps it to `bar` and keeps the
+// requested name on `chart.requestedType`, which is what the capture reads
+// (see UpdateHelpers). Every mark it draws is an ordinary bar path, so it
+// needs no capture branch of its own — only membership. A histogram bar
+// stands for the observations it counted, which makes it the one bar the unit
+// pair is literally true of.
+const BAR_FAMILY = new Set(['bar', 'funnel', 'pyramid', 'histogram'])
 const RADIAL_FAMILY = new Set(['pie', 'donut', 'polarArea', 'radialBar', 'gauge'])
 // unit (dot-cluster / pictogram) morphs BOTH ways: a bar/radial shape comes
 // apart into the objects it stood for (each leaving from the part of the shape
@@ -41,7 +48,12 @@ const RADIAL_FAMILY = new Set(['pie', 'donut', 'polarArea', 'radialBar', 'gauge'
 // own footprint, see the `unit` branch of _captureFromDOM). As a target the
 // renderer reads per-object slots rather than a path `d`, so its dots come out
 // of the outgoing bar/wedge instead of gathering from the plot centre.
-const UNIT_FAMILY = new Set(['unit'])
+//
+// waffle is an alias for the unit chart's square-grid layout (Config maps it to
+// `unit`), so it draws the same `.apexcharts-unit-area` dots the capture reads
+// and belongs to the same family. Without the alias here a waffle could morph
+// with nothing at all, including with the `unit` chart it already is.
+const UNIT_FAMILY = new Set(['unit', 'waffle'])
 // Space-filling part-to-whole charts. A treemap tile and a sunburst arc are
 // both exactly one mark per row, so this pair is an ordinary shape-to-shape
 // morph: no explode/collapse, just rectangles unrolling into a radial partition
