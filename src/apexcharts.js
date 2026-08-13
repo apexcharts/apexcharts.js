@@ -1670,6 +1670,12 @@ export default class ApexCharts {
    * @returns {any} the coordinator handle, or null if the feature is absent
    */
   static crossfilter(opts) {
+    // Validated here rather than downstream so the message names the call the
+    // user actually made; the shared engine cannot know it was reached through
+    // ApexCharts.
+    if (!opts || typeof opts.id !== 'string') {
+      throw new Error('ApexCharts.crossfilter requires an { id } string.')
+    }
     const factory = /** @type {any} */ (ApexCharts)._crossfilterFactory
     if (!factory) {
       console.warn(

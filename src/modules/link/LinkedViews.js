@@ -447,7 +447,14 @@ export default class LinkedViews {
     }
     const isCategory = filter instanceof Set
     const isRange = Array.isArray(filter)
-    const keys = cf.aggregateFor(chartId).keys
+    const agg = cf.aggregateFor(chartId)
+    // A matrix (heatmap) aggregation has no flat `keys` list: its buckets are
+    // addressed by [x, y], not by a single `j`. Nothing dims by `j` for it today
+    // because FILTER_MARK_SELECTOR matches only bar and pie marks, so the loop
+    // below never runs. Guard it anyway: the moment heatmap cells join that
+    // selector, `keys` would be undefined and every cell would throw.
+    if (agg.type === 'matrix') return
+    const keys = agg.keys
     baseEl.querySelectorAll(FILTER_MARK_SELECTOR).forEach((node) => {
       const jAttr = node.getAttribute('j')
       if (jAttr === null) return
