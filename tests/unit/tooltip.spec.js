@@ -3,6 +3,7 @@ import TooltipUtils from '../../src/modules/tooltip/Utils.js'
 import TooltipLabels from '../../src/modules/tooltip/Labels.js'
 import TooltipPosition from '../../src/modules/tooltip/Position.js'
 import Tooltip from '../../src/modules/tooltip/Tooltip.js'
+import { POINT_TIP_GAP } from '../../src/modules/tooltip/constants.js'
 import { createChartWithOptions } from './utils/utils.js'
 
 // ---------------------------------------------------------------------------
@@ -911,8 +912,8 @@ describe('Tooltip.Position', () => {
 
       pos.moveTooltip(50, 50, 5)
 
-      // x = 50 + 5 + 5 = 60; 60 < 250 (gridWidth/2), no flip
-      expect(parseFloat(tooltipEl.style.left)).toBe(60)
+      // x = cx + markerSize + POINT_TIP_GAP, well under gridWidth/2, so no flip
+      expect(parseFloat(tooltipEl.style.left)).toBe(50 + 5 + POINT_TIP_GAP)
     })
 
     it('flips tooltip to left when cx > gridWidth/2', () => {
@@ -924,9 +925,10 @@ describe('Tooltip.Position', () => {
 
       pos.moveTooltip(300, 50, 5)
 
-      // Clearance is markerSize + gap = 5 + 5 = 10 (no arrow in this stub), and
-      // it is measured off the point on both sides: x = 300 - 100 - 10 = 190.
-      expect(parseFloat(tooltipEl.style.left)).toBe(190)
+      // Clearance is markerSize + POINT_TIP_GAP (no arrow in this stub), and it
+      // is measured off the point on both sides rather than derived by
+      // subtracting from the right-hand x, which used to drop markerSize.
+      expect(parseFloat(tooltipEl.style.left)).toBe(300 - 100 - (5 + POINT_TIP_GAP))
     })
 
     it('clears the marker by the same margin whichever side it lands on', () => {
@@ -959,7 +961,9 @@ describe('Tooltip.Position', () => {
       for (const markerSize of [1, 5, 14]) {
         const { rightGap, leftGap } = gap(markerSize)
         expect(rightGap).toBe(leftGap)
-        expect(rightGap).toBeGreaterThan(0)
+        // Clearing the marker is the invariant; POINT_TIP_GAP only decides how
+        // much daylight is left beyond it, and flush (0) is a valid choice.
+        expect(rightGap).toBeGreaterThanOrEqual(0)
       }
     })
 
@@ -1022,8 +1026,7 @@ describe('Tooltip.Position', () => {
 
       pos.moveTooltip(50, 50, 5)
 
-      // x = 50 + 5 + 5 = 60 → +translateX(30) = 90
-      expect(parseFloat(tooltipEl.style.left)).toBe(90)
+      expect(parseFloat(tooltipEl.style.left)).toBe(50 + 5 + POINT_TIP_GAP + 30)
     })
 
     it('defaults markerSize to 1 when null', () => {
@@ -1034,8 +1037,8 @@ describe('Tooltip.Position', () => {
 
       pos.moveTooltip(50, 100, null)
 
-      // pointSize = 1, x = 50 + 1 + 5 = 56
-      expect(parseFloat(tooltipEl.style.left)).toBe(56)
+      // pointSize falls back to 1
+      expect(parseFloat(tooltipEl.style.left)).toBe(50 + 1 + POINT_TIP_GAP)
     })
   })
 

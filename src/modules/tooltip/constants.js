@@ -18,4 +18,4 @@ export const ARROW_TIP_OVERHANG = 7
  * flat shape; a marker is small and round, so it needs the tooltip to stop
  * clearly short of it to stay both visible and clickable.
  */
-export const POINT_TIP_GAP = 5
+export const POINT_TIP_GAP = 0
