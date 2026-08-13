@@ -5,6 +5,7 @@ import { prefersReducedMotion } from './Animations'
 import { parsePath } from '../svg/PathMorphing'
 import {
   gridDivideRect,
+  gridDivideShape,
   makeColorLerp,
   runPieceTween,
   sortByHilbert,
@@ -542,6 +543,12 @@ export default class MorphTypeChange {
     if (!g) return null
     g.setAttribute('class', 'apexcharts-morph-pieces')
     g.setAttribute('pointer-events', 'none')
+    // The marks the pieces stand in for are grid-clipped, so the pieces must
+    // be too: a violin's ink stops at the plot edge, and the mosaic tiling it
+    // may not stick out below the axis. The bar mask is the expanded one the
+    // bar family itself clips to.
+    const cuid = this.w.globals?.cuid
+    if (cuid) g.setAttribute('clip-path', `url(#gridRectBarMask${cuid})`)
     host.appendChild(g)
     this._pieceLayer = g
     return g
@@ -574,6 +581,130 @@ export default class MorphTypeChange {
     this._pieceLayer = null
     if (layer && layer.parentNode) layer.parentNode.removeChild(layer)
     this._revealPieceHidden()
+  }
+
+  /**
+   * A per-band ink prober over a mark's path, for gridDivideShape: given a
+   * major-axis band it measures where the mark actually has ink across the
+   * minor axis, so a violin's cells follow its density outline and a
+   * boxPlot's whisker rows collapse to slivers instead of every row spanning
+   * the bounding box (which stamped a rectangle over the mark at frame one).
+   *
+   * The probe path is mounted (hidden) inside the piece layer so its user
+   * space is exactly the space the cells are laid out in. The stroke test
+   * catches zero-area subpaths (a boxPlot's whisker line has no fill to
+   * hit), and its width is what a whisker's slivers will measure.
+   *
+   * Returns null when the environment cannot hit-test path geometry (jsdom);
+   * the caller then keeps the plain grid.
+   *
+   * @param {string} d - path data, in piece-layer coordinates
+   * @param {{x:number,y:number,width:number,height:number}} bbox
+   * @param {any} layer - the mounted piece layer
+   * @returns {{ extentAt: (bandLo: number, bandHi: number, horizontal: boolean) => [number, number] | null, dispose: () => void } | null}
+   */
+  _makeExtentProber(d, bbox, layer) {
+    const doc = layer.ownerDocument
+    const probe = doc.createElementNS('http://www.w3.org/2000/svg', 'path')
+    probe.setAttribute('d', d)
+    probe.setAttribute('fill', '#000')
+    probe.setAttribute('stroke', '#000')
+    probe.setAttribute('stroke-width', '3')
+    probe.setAttribute('visibility', 'hidden')
+    layer.appendChild(probe)
+
+    const svg = probe.ownerSVGElement
+    if (
+      typeof (/** @type {any} */ (probe).isPointInFill) !== 'function' ||
+      !svg ||
+      typeof svg.createSVGPoint !== 'function'
+    ) {
+      layer.removeChild(probe)
+      return null
+    }
+    const pt = svg.createSVGPoint()
+    /** @param {number} x @param {number} y */
+    const hit = (x, y) => {
+      pt.x = x
+      pt.y = y
+      const p = /** @type {any} */ (probe)
+      return (
+        p.isPointInFill(pt) ||
+        (typeof p.isPointInStroke === 'function' && p.isPointInStroke(pt))
+      )
+    }
+
+    // Coarse segments across the minor axis. 16 keeps the exact centre as a
+    // sample point, which is where a centred whisker line lives.
+    const SCAN = 16
+
+    /**
+     * @param {number} bandLo
+     * @param {number} bandHi
+     * @param {boolean} horizontal
+     * @returns {[number, number] | null}
+     */
+    const extentAt = (bandLo, bandHi, horizontal) => {
+      const lo = horizontal ? bbox.y : bbox.x
+      const hi = lo + (horizontal ? bbox.height : bbox.width)
+      if (!(hi > lo)) return null
+      /** @param {number} v @param {number} major */
+      const at = (v, major) => (horizontal ? hit(major, v) : hit(v, major))
+
+      // Three probe lines across the band, unioned: the silhouette can widen
+      // inside a band, and sampling only its centre line would undercut the
+      // widest row.
+      const majors = [
+        bandLo + (bandHi - bandLo) * 0.1,
+        (bandLo + bandHi) / 2,
+        bandHi - (bandHi - bandLo) * 0.1,
+      ]
+
+      /**
+       * Bisect the ink edge between a known hit and a known miss.
+       * @param {number} inside @param {number} outside @param {number} major
+       */
+      const edge = (inside, outside, major) => {
+        let a = outside
+        let b = inside
+        for (let it = 0; it < 6; it++) {
+          const m = (a + b) / 2
+          if (at(m, major)) b = m
+          else a = m
+        }
+        return (a + b) / 2
+      }
+
+      let min = Infinity
+      let max = -Infinity
+      for (const major of majors) {
+        let first = -1
+        let last = -1
+        for (let s = 0; s <= SCAN; s++) {
+          const v = lo + ((hi - lo) * s) / SCAN
+          if (at(v, major)) {
+            if (first < 0) first = s
+            last = s
+          }
+        }
+        if (first < 0) continue
+        const step = (hi - lo) / SCAN
+        const left =
+          first === 0 ? lo : edge(lo + first * step, lo + (first - 1) * step, major)
+        const right =
+          last === SCAN ? hi : edge(lo + last * step, lo + (last + 1) * step, major)
+        if (left < min) min = left
+        if (right > max) max = right
+      }
+      return min <= max ? [min, max] : null
+    }
+
+    return {
+      extentAt,
+      dispose: () => {
+        if (probe.parentNode) probe.parentNode.removeChild(probe)
+      },
+    }
   }
 
   /**
@@ -633,6 +764,12 @@ export default class MorphTypeChange {
     const pieces = []
     const doc = layer.ownerDocument
 
+    // A bar IS its bounding box, so the plain grid tiles it exactly. A
+    // summary mark (violin, boxPlot) is a silhouette inside its box, and
+    // cutting the box would stamp a rectangle over the curve at frame one:
+    // its cells follow the measured ink instead.
+    const shapedSource = familyOf(snap.fromType) === 'summary'
+
     Array.from(byCluster.keys())
       .sort((a, b) => a - b)
       .forEach((i) => {
@@ -656,10 +793,20 @@ export default class MorphTypeChange {
             ? entry.fill
             : this.w.globals.colors?.[i] || dots[0].fill
 
-        const cells = sortByHilbert(
-          gridDivideRect(box, dots.length),
-          (c) => [c.x + c.width / 2, c.y + c.height / 2],
-        )
+        let prober = null
+        if (shapedSource) {
+          const shifted = this.getInitialPathFor(i, 0)
+          if (shifted) prober = this._makeExtentProber(shifted, box, layer)
+        }
+        const divided = prober
+          ? gridDivideShape(box, dots.length, prober.extentAt)
+          : gridDivideRect(box, dots.length)
+        if (prober) prober.dispose()
+
+        const cells = sortByHilbert(divided, (c) => [
+          c.x + c.width / 2,
+          c.y + c.height / 2,
+        ])
         const ordered = sortByHilbert(dots, (d) => [d.x, d.y])
 
         for (let k = 0; k < ordered.length; k++) {
@@ -739,6 +886,10 @@ export default class MorphTypeChange {
     /** @type {import('./MorphPieces').Piece[]} */
     const pieces = []
 
+    // Same silhouette rule as the separate direction: a mosaic assembling a
+    // violin should build the violin's outline, not its bounding rectangle.
+    const shapedTarget = familyOf(snap.toType) === 'summary'
+
     for (let k = 0; k < clusterIdx.length; k++) {
       const dots = /** @type {any[]} */ (snap.sourceDots.get(clusterIdx[k]))
       const key = snap.keyOrder[k]
@@ -760,10 +911,28 @@ export default class MorphTypeChange {
           ? target.fill
           : this.w.globals.colors?.[target.realIndex] || dots[0].fill
 
-      const cells = sortByHilbert(
-        gridDivideRect(target.bbox, dots.length),
-        (c) => [c.x + c.width / 2, c.y + c.height / 2],
-      )
+      let prober = null
+      if (shapedTarget) {
+        // The mark's final geometry, straight off its (hidden) elements. A
+        // boxPlot is more than one path per mark, so probe them as one.
+        const d = target.els
+          .map(
+            (/** @type {any} */ p) =>
+              p.getAttribute('pathTo') || p.getAttribute('d'),
+          )
+          .filter(Boolean)
+          .join(' ')
+        if (d) prober = this._makeExtentProber(d, target.bbox, layer)
+      }
+      const divided = prober
+        ? gridDivideShape(target.bbox, dots.length, prober.extentAt)
+        : gridDivideRect(target.bbox, dots.length)
+      if (prober) prober.dispose()
+
+      const cells = sortByHilbert(divided, (c) => [
+        c.x + c.width / 2,
+        c.y + c.height / 2,
+      ])
       const ordered = sortByHilbert(dots, (d) => [d.x, d.y])
 
       // Landed-piece bookkeeping: the mark reveals when ALL of its pieces are

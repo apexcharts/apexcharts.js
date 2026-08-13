@@ -78,6 +78,80 @@ export function gridDivideRect(bbox, count) {
 }
 
 /**
+ * Divide a mark into exactly `count` cells that follow the mark's OWN
+ * silhouette instead of its bounding box.
+ *
+ * Same row layout as gridDivideRect (rows along the longer axis, remainder
+ * one extra cell per row from the first row on), but each row's cells span
+ * the shape's measured ink across that row's band rather than the full box.
+ * For the marks this serves (a violin's density outline, a boxPlot's box and
+ * whisker) every band crosses the ink in a single interval, so the cells tile
+ * the silhouette: the first frame of a dissolve looks like the mark coming
+ * apart, not like a rectangle stamped over it.
+ *
+ * `extentAt(bandLo, bandHi, horizontal)` returns the ink's [lo, hi] across
+ * the minor axis within that major-axis band, or null when the band has no
+ * measurable ink; a null band falls back to the full box, which is the
+ * plain-grid behaviour.
+ *
+ * @param {{x:number, y:number, width:number, height:number}} bbox
+ * @param {number} count
+ * @param {(bandLo: number, bandHi: number, horizontal: boolean) => [number, number] | null} extentAt
+ * @returns {Array<{x:number, y:number, width:number, height:number}>}
+ */
+export function gridDivideShape(bbox, count, extentAt) {
+  if (!(count > 0)) return []
+
+  const horizontal = bbox.width >= bbox.height
+  const rowExtent = horizontal ? bbox.width : bbox.height
+  const colExtent = horizontal ? bbox.height : bbox.width
+  const minorLo = horizontal ? bbox.y : bbox.x
+
+  // The silhouette is only as smooth as its bands are thin. The square-ish
+  // grid that serves a bar makes a low count chunky here (14 cells over a
+  // violin = ten thick slabs, which reads as a blocky column), so take more,
+  // thinner rows whenever the count allows: full-extent slabs trace a curve,
+  // near-square chunks do not.
+  const ratio = colExtent > 0 ? rowExtent / colExtent : count
+  let rows = Math.max(
+    Math.ceil(Math.sqrt(ratio * count)),
+    Math.ceil(rowExtent / 16),
+  )
+  if (!(rows >= 1)) rows = 1
+  if (rows > count) rows = count
+  const baseCols = Math.floor(count / rows)
+  let remainder = count - baseCols * rows
+
+  /** @type {Array<{x:number, y:number, width:number, height:number}>} */
+  const cells = []
+  const rowSize = rowExtent / rows
+  let rowStart = horizontal ? bbox.x : bbox.y
+  for (let r = 0; r < rows; r++) {
+    const cols = baseCols + (remainder > 0 ? 1 : 0)
+    if (remainder > 0) remainder--
+    const span = extentAt(rowStart, rowStart + rowSize, horizontal)
+    let lo = span ? Math.max(minorLo, Math.min(span[0], span[1])) : minorLo
+    let hi = span
+      ? Math.min(minorLo + colExtent, Math.max(span[0], span[1]))
+      : minorLo + colExtent
+    if (!(hi >= lo)) {
+      lo = minorLo
+      hi = minorLo + colExtent
+    }
+    const colSize = cols > 0 ? (hi - lo) / cols : 0
+    for (let c = 0; c < cols; c++) {
+      cells.push(
+        horizontal
+          ? { x: rowStart, y: lo + c * colSize, width: rowSize, height: colSize }
+          : { x: lo + c * colSize, y: rowStart, width: colSize, height: rowSize },
+      )
+    }
+    rowStart += rowSize
+  }
+  return cells
+}
+
+/**
  * Distance along a Hilbert curve for a point in the given extent.
  *
  * Sorting both the cells and their targets on this before zipping them keeps

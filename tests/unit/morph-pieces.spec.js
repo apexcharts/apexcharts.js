@@ -8,6 +8,7 @@
 
 import {
   gridDivideRect,
+  gridDivideShape,
   hilbertIndex,
   makeColorLerp,
   parseColor,
@@ -60,6 +61,91 @@ describe('gridDivideRect', () => {
     // desync, so the count still has to come out exact.
     const cells = gridDivideRect({ x: 5, y: 5, width: 0, height: 0 }, 4)
     expect(cells.length).toBe(4)
+  })
+})
+
+describe('gridDivideShape', () => {
+  // A tall diamond: widest at the middle, a point at each end. Every band
+  // crosses it in one interval, like a violin.
+  const BOX = { x: 100, y: 0, width: 60, height: 240 }
+  const HALF_AT = (y) => 30 * (1 - Math.abs(y - 120) / 120)
+  const diamond = (bandLo, bandHi) => {
+    const mid = (bandLo + bandHi) / 2
+    const half = Math.max(0.5, HALF_AT(mid))
+    return /** @type {[number, number]} */ ([130 - half, 130 + half])
+  }
+
+  it('returns exactly count cells, remainder included', () => {
+    for (const n of [1, 2, 3, 14, 40, 97]) {
+      expect(gridDivideShape(BOX, n, diamond).length).toBe(n)
+    }
+    expect(gridDivideShape(BOX, 0, diamond)).toEqual([])
+  })
+
+  it('follows the silhouette: rows are as wide as the shape, not the box', () => {
+    const cells = gridDivideShape(BOX, 60, diamond)
+    // Group cells into rows and take each row's span.
+    const rows = new Map()
+    cells.forEach((c) => {
+      const r = rows.get(c.y) || { x0: Infinity, x1: -Infinity }
+      r.x0 = Math.min(r.x0, c.x)
+      r.x1 = Math.max(r.x1, c.x + c.width)
+      rows.set(c.y, r)
+    })
+    const spans = [...rows.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([y, r]) => ({ y, w: r.x1 - r.x0 }))
+
+    // The middle row is near the diamond's full width; the end rows are
+    // slivers. A bounding-box grid would make every one of these 60.
+    const first = spans[0]
+    const mid = spans[Math.floor(spans.length / 2)]
+    expect(mid.w).toBeGreaterThan(40)
+    expect(first.w).toBeLessThan(15)
+    // And every row stays inside the shape's measured interval.
+    for (const s of spans) {
+      expect(s.w).toBeLessThanOrEqual(60 + 1e-9)
+    }
+  })
+
+  it('keeps bands thin when the count allows, so few cells still trace a curve', () => {
+    // 14 cells over a tall box: the square-ish grid would cut ~10 thick
+    // slabs of 1-2 cells; the shaped divider must spend all 14 on bands.
+    const cells = gridDivideShape(BOX, 14, diamond)
+    const distinctRows = new Set(cells.map((c) => c.y)).size
+    expect(distinctRows).toBe(14)
+  })
+
+  it('falls back to the full box for bands with no measurable ink', () => {
+    const cells = gridDivideShape(BOX, 8, () => null)
+    for (const c of cells) {
+      expect(c.x).toBeCloseTo(BOX.x, 6)
+      expect(c.width).toBeCloseTo(BOX.width, 6)
+    }
+  })
+
+  it('clamps a runaway extent to the box and survives degenerate boxes', () => {
+    const wild = gridDivideShape(BOX, 6, () => [0, 1000])
+    for (const c of wild) {
+      expect(c.x).toBeGreaterThanOrEqual(BOX.x - 1e-9)
+      expect(c.x + c.width).toBeLessThanOrEqual(BOX.x + BOX.width + 1e-9)
+    }
+    expect(gridDivideShape({ x: 5, y: 5, width: 0, height: 0 }, 4, diamond).length).toBe(4)
+  })
+
+  it('probes the minor axis of a squat shape (rows run along the width)', () => {
+    const squat = { x: 0, y: 100, width: 240, height: 60 }
+    const seen = []
+    gridDivideShape(squat, 30, (lo, hi, horizontal) => {
+      seen.push(horizontal)
+      const mid = (lo + hi) / 2
+      const half = Math.max(0.5, 30 * (1 - Math.abs(mid - 120) / 120))
+      return [130 - half, 130 + half]
+    })
+    // Rows run along the longer axis (x), so the prober is asked for
+    // vertical extents.
+    expect(seen.length).toBeGreaterThan(0)
+    expect(seen.every((h) => h === true)).toBe(true)
   })
 })
 

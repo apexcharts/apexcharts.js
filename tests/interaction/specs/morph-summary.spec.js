@@ -342,6 +342,141 @@ test.describe('collapse: unit -> boxPlot', () => {
   })
 })
 
+test.describe('the pieces follow the silhouette, not the bounding box', () => {
+  // Three TALL violins with strong bellies (a single category makes one fat
+  // violin, wider than tall, and the divider then runs its bands the other
+  // way): tip bands and belly bands of one mark must measure very
+  // differently, which is exactly what a bounding-box grid cannot do. This is
+  // the regression the feature was reported on: the dissolve used to stamp a
+  // rectangle over the curve at frame one, and the reverse used to assemble
+  // one.
+  const THREE_VIOLINS = `[{ name: 'Readings', data: (() => {
+    let seed = 29
+    const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646 }
+    return ['A', 'B', 'C'].map((x) => ({
+      x,
+      points: Array.from({ length: 60 }, () => {
+        const u1 = Math.max(rand(), 1e-9), u2 = rand()
+        return Math.round(60 + 14 * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2))
+      }),
+    }))
+  })() }]`
+
+  /** Band one mark's pieces by y and return each band's x-span, top down. */
+  const BAND_SPANS = `(rects) => {
+    const bands = new Map()
+    rects.forEach((el) => {
+      const y = parseFloat(el.getAttribute('y'))
+      const x = parseFloat(el.getAttribute('x'))
+      const w = parseFloat(el.getAttribute('width'))
+      const key = Math.round(y / 8)
+      const b = bands.get(key) || { x0: 1e9, x1: -1e9 }
+      b.x0 = Math.min(b.x0, x)
+      b.x1 = Math.max(b.x1, x + w)
+      bands.set(key, b)
+    })
+    return [...bands.entries()].sort((a, b) => a[0] - b[0]).map(([, b]) => b.x1 - b.x0)
+  }`
+
+  test('violin -> unit: the outgoing cells taper with the curve', async ({
+    page,
+    loadChart,
+  }) => {
+    await loadChart('violin', 'violin-with-jitter')
+
+    const r = await page.evaluate(
+      async ([mk, series, bandSpans]) => {
+        const make = eval(mk)
+        const spansOf = eval(bandSpans)
+        const chart = await make('violin', eval(series))
+
+        chart.updateOptions({
+          chart: { type: 'unit' },
+          series: chart.rowSeries(),
+          plotOptions: { unit: { layout: 'packed', unitValue: 1 } },
+        })
+        await new Promise((res) => requestAnimationFrame(res))
+
+        // The middle violin's pieces only: one mark, one silhouette.
+        const spans = spansOf([
+          ...document.querySelectorAll('.apexcharts-morph-pieces rect[data-i="1"]'),
+        ])
+        await new Promise((res) => setTimeout(res, 1600))
+        return { spans }
+      },
+      [MAKE, THREE_VIOLINS, BAND_SPANS],
+    )
+
+    const spans = r.spans
+    expect(spans.length).toBeGreaterThan(8)
+    const belly = Math.max(...spans)
+    const tip = Math.min(spans[0], spans[spans.length - 1])
+    // The end bands are slivers against the belly. A bounding-box grid makes
+    // every band identical, which is the failure this pins out.
+    expect(tip).toBeLessThan(belly * 0.45)
+  })
+
+  test('unit -> violin: the assembling mosaic is violin-shaped and grid-clipped', async ({
+    page,
+    loadChart,
+  }) => {
+    await loadChart('violin', 'violin-with-jitter')
+
+    const r = await page.evaluate(
+      async ([mk, series, bandSpans]) => {
+        const make = eval(mk)
+        const spansOf = eval(bandSpans)
+        const data = eval(series)
+        const chart = await make('violin', data)
+
+        chart.updateOptions({
+          chart: { type: 'unit' },
+          series: chart.rowSeries(),
+          plotOptions: { unit: { layout: 'packed', unitValue: 1 } },
+        })
+        await new Promise((res) => setTimeout(res, 1600))
+
+        chart.updateOptions({ chart: { type: 'violin' }, series: data })
+        await new Promise((res) => requestAnimationFrame(res))
+
+        const clip =
+          document
+            .querySelector('.apexcharts-morph-pieces')
+            ?.getAttribute('clip-path') ?? ''
+
+        // Watch the flight and keep the latest frame where most of the middle
+        // mark's tiles have squared onto their cells (rx ~ 0): those sit at
+        // exact cell geometry, so their bands ARE the mosaic's silhouette.
+        let spans = []
+        for (let k = 0; k < 240; k++) {
+          await new Promise((res) => requestAnimationFrame(res))
+          const all = document.querySelectorAll('.apexcharts-morph-pieces rect')
+          if (!all.length && k > 5) break
+          const landed = [
+            ...document.querySelectorAll(
+              '.apexcharts-morph-pieces rect[data-key="0:1"]',
+            ),
+          ].filter((el) => parseFloat(el.getAttribute('rx')) < 0.5)
+          if (landed.length >= 45) spans = spansOf(landed)
+        }
+        await new Promise((res) => setTimeout(res, 800))
+        return { clip, spans }
+      },
+      [MAKE, THREE_VIOLINS, BAND_SPANS],
+    )
+
+    // The overlay is clipped like the marks it stands in for, so the mosaic
+    // cannot stick out past the plot the way the raw bounding box does.
+    expect(r.clip).toContain('gridRectBarMask')
+
+    const spans = r.spans
+    expect(spans.length).toBeGreaterThan(8)
+    const belly = Math.max(...spans)
+    const tip = Math.min(spans[0], spans[spans.length - 1])
+    expect(tip).toBeLessThan(belly * 0.45)
+  })
+})
+
 test('summary pairs stay closed against untested targets', async ({ page, loadChart }) => {
   await loadChart('boxPlot', 'boxplot-from-raw-observations')
   const r = await page.evaluate(() => {
