@@ -3,6 +3,7 @@ import DimGrid from '../../src/modules/dimensions/Grid.js'
 import DimYAxis from '../../src/modules/dimensions/YAxis.js'
 import Helpers from '../../src/modules/dimensions/Helpers.js'
 import Dimensions from '../../src/modules/dimensions/Dimensions.js'
+import { BREADCRUMB_HEIGHT } from '../../src/charts/common/Breadcrumb.js'
 import { createChartWithOptions } from './utils/utils.js'
 
 // ---------------------------------------------------------------------------
@@ -1111,6 +1112,101 @@ describe('Dimensions.setDimensionsForNonAxisCharts', () => {
     expect(() => dim.setDimensionsForNonAxisCharts()).toThrow(
       'Legend position not supported',
     )
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Dimensions.gridPadForBreadcrumb — the band above the plot
+// ---------------------------------------------------------------------------
+
+describe('Dimensions.gridPadForBreadcrumb', () => {
+  /**
+   * @param {object} opts
+   * @param {string} [opts.type] chart type
+   * @param {boolean} [opts.axisCharts]
+   * @param {boolean} [opts.featureLoaded] whether `ctx.drilldown` exists
+   * @param {any} [opts.drilldown] the drilldown config block
+   * @param {any} [opts.treemapZoom] plotOptions.treemap.zoom
+   * @param {any} [opts.padding] the author's grid.padding
+   */
+  function reserve(opts = {}) {
+    const { w } = makeDimCtx()
+    w.config.chart.type = opts.type || 'line'
+    w.globals.axisCharts = opts.axisCharts !== false
+    w.config.drilldown = opts.drilldown
+    w.config.plotOptions.treemap = { zoom: opts.treemapZoom }
+
+    const dim = Object.create(Dimensions.prototype)
+    dim.w = w
+    dim.ctx = { drilldown: opts.featureLoaded === false ? null : {} }
+    dim.gridPad = { top: 0, right: 0, bottom: 0, left: 0, ...(opts.padding || {}) }
+
+    const before = dim.gridPad.top
+    dim.gridPadForBreadcrumb()
+    return dim.gridPad.top - before
+  }
+
+  const DRILL_ON = { enabled: true, breadcrumb: { show: true } }
+
+  it('reserves nothing when drilldown is off', () => {
+    expect(reserve({ drilldown: { enabled: false } })).toBe(0)
+    expect(reserve({ drilldown: undefined })).toBe(0)
+  })
+
+  it('reserves nothing when the drilldown feature was never imported', () => {
+    // The config block exists in the defaults whether or not the feature is
+    // registered, so `drilldown.enabled` alone would reserve dead space.
+    expect(reserve({ drilldown: DRILL_ON, featureLoaded: false })).toBe(0)
+  })
+
+  it('reserves nothing when the breadcrumb is hidden', () => {
+    expect(
+      reserve({ drilldown: { enabled: true, breadcrumb: { show: false } } }),
+    ).toBe(0)
+  })
+
+  it('reserves nothing for a pie or donut, which has corners to float in', () => {
+    expect(
+      reserve({ type: 'donut', axisCharts: false, drilldown: DRILL_ON }),
+    ).toBe(0)
+  })
+
+  it('reserves the strip plus the y-label overhang on an axis chart', () => {
+    // The topmost y-axis tick label is centred on the plot's top edge, so it
+    // hangs above the grid: clearing the grid alone still landed the strip on
+    // the first label.
+    const band = reserve({ drilldown: DRILL_ON })
+    expect(band).toBeGreaterThan(BREADCRUMB_HEIGHT + 4)
+  })
+
+  it('adds to the author padding instead of replacing it', () => {
+    const band = reserve({ drilldown: DRILL_ON })
+    expect(reserve({ drilldown: DRILL_ON, padding: { top: 25 } })).toBe(band)
+  })
+
+  it('reserves the plain strip for a treemap driven by its own zoom', () => {
+    // A treemap draws no y-axis labels, so it needs none of that allowance.
+    expect(
+      reserve({
+        type: 'treemap',
+        treemapZoom: { enabled: true },
+      }),
+    ).toBe(BREADCRUMB_HEIGHT + 4)
+  })
+
+  it('reserves for a treemap navigated by drilldown rather than its own zoom', () => {
+    // Both render the same strip into the same place, so both need the band.
+    expect(
+      reserve({
+        type: 'treemap',
+        treemapZoom: { enabled: false },
+        drilldown: DRILL_ON,
+      }),
+    ).toBe(BREADCRUMB_HEIGHT + 4)
+  })
+
+  it('reserves nothing for a treemap with neither zoom nor drilldown', () => {
+    expect(reserve({ type: 'treemap', treemapZoom: { enabled: false } })).toBe(0)
   })
 })
 

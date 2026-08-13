@@ -1,14 +1,20 @@
 // @ts-check
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
 import { Environment } from '../../utils/Environment.js'
+import { placeInReservedBand } from '../../charts/common/Breadcrumb.js'
 
 const XHTML = 'http://www.w3.org/1999/xhtml'
 
 /**
- * Drilldown breadcrumb: an absolutely-positioned <nav> overlay rendered inside
- * w.dom.elWrap (the same wrapper the toolbar uses), so it does not steal plot
- * space. Re-rendered after every chart (re)render because elWrap's contents are
- * rebuilt each time.
+ * Drilldown breadcrumb: an absolutely-positioned <nav> rendered inside
+ * w.dom.elWrap (the same wrapper the toolbar uses), re-rendered after every
+ * chart (re)render because elWrap's contents are rebuilt each time.
+ *
+ * On an axis chart `Dimensions.gridPadForBreadcrumb` reserves a band above the
+ * plot and the strip sits in it. Being an overlay is not enough on its own:
+ * with nothing reserved it was pushed below the title and came to rest on the
+ * top gridline and the first y-axis label. A pie or donut still floats, since
+ * its corners are empty.
  *
  * @module Breadcrumb
  */
@@ -97,6 +103,12 @@ export default class Breadcrumb {
     })
 
     elWrap.appendChild(nav)
+    if (this.w.globals.axisCharts) {
+      placeInReservedBand(this.w, this.ctx, nav, cfg)
+    }
+    // Still runs after the band placement: on a pie there is no band, and even
+    // on an axis chart a responsive override can turn drilldown on after layout
+    // and leave the strip with nowhere reserved.
     this._avoidChromeOverlap(nav)
   }
 

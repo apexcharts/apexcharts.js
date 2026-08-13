@@ -162,12 +162,43 @@ export default class Dimensions {
    */
   gridPadForBreadcrumb() {
     const w = this.w
-    if (w.config.chart.type !== 'treemap') return
-    const zoom = w.config.plotOptions?.treemap?.zoom
-    if (!zoom || !zoom.enabled) return
-    const cfg = breadcrumbConfig(w, zoom.breadcrumb)
-    if (cfg.show === false) return
-    this.gridPad.top += BREADCRUMB_HEIGHT + 4
+    const isTreemap = w.config.chart.type === 'treemap'
+
+    if (isTreemap) {
+      const zoom = w.config.plotOptions?.treemap?.zoom
+      if (zoom && zoom.enabled) {
+        if (breadcrumbConfig(w, zoom.breadcrumb).show === false) return
+        this.gridPad.top += BREADCRUMB_HEIGHT + 4
+        return
+      }
+      // Falls through on purpose: a treemap can be navigated by the drilldown
+      // feature instead of its own zoom, and that renders the same strip into
+      // the same place, so it needs the same band.
+    }
+
+    // As an overlay with nothing reserved, the drilldown strip was pushed below
+    // the title and came to rest on the top gridline and the first y-axis label.
+    // A pie or donut keeps floating instead: its corners are empty, which is
+    // what the overlay was designed around.
+    //
+    // `ctx.drilldown` is the feature gate. The config block exists even when the
+    // feature was never imported, and then no breadcrumb is ever rendered.
+    if (!w.globals.axisCharts) return
+    if (!this.ctx.drilldown) return
+    if (!w.config.drilldown || !w.config.drilldown.enabled) return
+    if (breadcrumbConfig(w).show === false) return
+
+    // Half a label taller than the treemap's band, because the topmost y-axis
+    // tick label is centred on the plot's top edge and so hangs above the grid:
+    // the strip has to clear the label, not the grid. The placer measures the
+    // real overhang, so this only has to leave room for it. A treemap draws no
+    // y-axis labels and needs none of it.
+    const labelFs =
+      parseFloat(String(w.config.yaxis?.[0]?.labels?.style?.fontSize)) || 11
+    const yLabelOverhang = isTreemap
+      ? 0
+      : Math.ceil((labelFs * LINE_HEIGHT_RATIO) / 2)
+    this.gridPad.top += BREADCRUMB_HEIGHT + 4 + yLabelOverhang
   }
 
   setDimensionsForAxisCharts() {

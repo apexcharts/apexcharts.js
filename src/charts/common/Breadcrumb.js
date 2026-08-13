@@ -85,6 +85,82 @@ export function avoidChromeOverlap(w, nav) {
 }
 
 /**
+ * The lowest the breadcrumb's bottom edge may sit, in elWrap coords.
+ *
+ * The plot's top edge is the obvious answer and the wrong one: the topmost
+ * y-axis tick label is CENTRED on that edge, so half of it hangs above the grid.
+ * Clearing the grid alone still left the strip resting on the first label (the
+ * reported "320" under "All years"). Measured rather than derived from the font
+ * size, so a rotated label or a host stylesheet is accounted for too.
+ *
+ * Only labels that overlap the strip horizontally count: a right-hand y-axis
+ * must not push a top-left breadcrumb around.
+ *
+ * @param {any} w
+ * @param {any} nav
+ * @returns {number}
+ */
+function breadcrumbCeiling(w, nav) {
+  const gridTop = w.layout.translateY || 0
+  const elWrap = w.dom.elWrap
+  if (!elWrap) return gridTop
+
+  const labels = w.dom.baseEl.querySelectorAll('.apexcharts-yaxis-label')
+  if (!labels.length) return gridTop
+
+  const wrapTop = elWrap.getBoundingClientRect().top
+  const navRect = nav.getBoundingClientRect()
+  let ceiling = gridTop
+
+  for (let i = 0; i < labels.length; i++) {
+    const r = labels[i].getBoundingClientRect()
+    if (!r.height) continue
+    if (r.left >= navRect.right || r.right <= navRect.left) continue
+    ceiling = Math.min(ceiling, r.top - wrapTop)
+  }
+
+  return ceiling
+}
+
+/**
+ * Sit `nav` in the band the layout reserved for it (see
+ * `Dimensions.gridPadForBreadcrumb`), just above the plot.
+ *
+ * The fallback should not normally fire: the reserve is unconditional once the
+ * chart declares it needs a breadcrumb. It stays for what the reserve cannot
+ * cover, a responsive override that turns navigation on after layout or a host
+ * stylesheet that grows the font, where a readable chip over the plot beats a
+ * strip clipped by it.
+ *
+ * @param {any} w
+ * @param {any} ctx the chart context (for the title/subtitle measurements)
+ * @param {any} nav the breadcrumb element, already in the DOM
+ * @param {any} [cfg] resolved breadcrumb config, for `offsetY`
+ */
+export function placeInReservedBand(w, ctx, nav, cfg) {
+  const dimHelpers = ctx?.dimensions?.dimHelpers
+  const titleArea = dimHelpers
+    ? dimHelpers.getTitleSubtitleCoords('title').height +
+      dimHelpers.getTitleSubtitleCoords('subtitle').height
+    : 0
+
+  const navH = nav.getBoundingClientRect().height || BREADCRUMB_HEIGHT
+  const offsetY = (cfg && cfg.offsetY) || 0
+  const ceiling = breadcrumbCeiling(w, nav)
+
+  if (ceiling - titleArea >= navH + 1) {
+    nav.style.top = `${ceiling - navH - 1 + offsetY}px`
+    return true
+  }
+
+  nav.style.top = `${titleArea + offsetY}px`
+  const dark = w.config.theme.mode === 'dark'
+  nav.style.background = dark ? 'rgba(20,24,30,0.82)' : 'rgba(255,255,255,0.86)'
+  nav.style.borderRadius = '4px'
+  return false
+}
+
+/**
  * Remove any breadcrumb currently in the wrap.
  * @param {any} w
  */
