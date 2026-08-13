@@ -1,11 +1,12 @@
 /**
- * The two explode demos, driven the way a reader would drive them.
+ * The explode demos, driven the way a reader would drive them.
  *
  * The e2e snapshots cover how each sample first renders; nothing else covers
- * the button, which is the entire point of both pages. These also pin the two
+ * the button, which is the entire point of these pages. These also pin the
  * claims the demos make in prose, so the writing cannot quietly stop being
- * true: that the histogram gives back every one of its observations, and that
- * the three box plots really do share one five-number summary.
+ * true: that the histogram gives back every one of its observations, that the
+ * three box plots really do share one five-number summary, and that the
+ * violin page's wall of capped readings and its 14-reading lane are real.
  */
 
 import { test } from '../fixtures/base.js'
@@ -62,6 +63,91 @@ test.describe('histogram explode demo', () => {
     expect(exploded.ghosts).toBe(0)
     // Round trip: the same 22 bars, no dots stranded behind them.
     expect(back.bars).toBe(22)
+    expect(back.dots).toBe(0)
+    expect(back.ghosts).toBe(0)
+    expect(consoleErrors).toEqual([])
+  })
+})
+
+test.describe('violin to jitter demo', () => {
+  test('curves become every reading, the cap wall is real, and back', async ({
+    page,
+    loadChart,
+    consoleErrors,
+  }) => {
+    await loadChart('violin', 'violin-to-jitter-morph')
+
+    const before = await page.evaluate(() => ({
+      violins: document.querySelectorAll('.apexcharts-violin-area').length,
+      dots: document.querySelectorAll('.apexcharts-unit-area').length,
+      // The page's own claims, read from its data.
+      counts: window.PLANS.map((p) => p.values.length),
+      pinned: window.PLANS[0].values.filter((v) => v === 30).length,
+    }))
+
+    await page.click('[data-explode="true"]')
+    await page.waitForTimeout(1800)
+
+    const exploded = await page.evaluate(() => {
+      const byLane = {}
+      const fillsByLane = {}
+      const capByLane = {}
+      document.querySelectorAll('.apexcharts-unit-area').forEach((d) => {
+        const i = +d.getAttribute('i')
+        byLane[i] = (byLane[i] || 0) + 1
+        ;(fillsByLane[i] = fillsByLane[i] || new Set()).add(d.getAttribute('fill'))
+        // Dots of equal value share an exact y: the modal y of the Free lane
+        // IS the wall of capped readings.
+        const cy = d.getAttribute('cy')
+        const y = (cy != null ? +cy : +d.getAttribute('y')).toFixed(1)
+        const m = (capByLane[i] = capByLane[i] || {})
+        m[y] = (m[y] || 0) + 1
+      })
+      return {
+        dots: document.querySelectorAll('.apexcharts-unit-area').length,
+        violins: document.querySelectorAll('.apexcharts-violin-area').length,
+        byLane,
+        laneColours: Object.keys(fillsByLane).map((i) => fillsByLane[i].size),
+        distinctColours: new Set(
+          Object.values(fillsByLane).flatMap((s) => [...s]),
+        ).size,
+        freeModal: Math.max(...Object.values(capByLane[0] || { 0: 0 })),
+        summaryText: document.querySelector('#summary')?.textContent ?? '',
+        ghosts: document.querySelectorAll('.apexcharts-morph-ghost').length,
+      }
+    })
+
+    await page.click('[data-explode="false"]')
+    await page.waitForTimeout(1800)
+    const back = await page.evaluate(() => ({
+      violins: document.querySelectorAll('.apexcharts-violin-area').length,
+      dots: document.querySelectorAll('.apexcharts-unit-area').length,
+      ghosts: document.querySelectorAll('.apexcharts-morph-ghost').length,
+    }))
+
+    expect(before.violins).toBe(3)
+    expect(before.dots).toBe(0)
+
+    // One dot per reading, in the lane its violin was estimated from.
+    expect(exploded.dots).toBe(before.counts.reduce((a, b) => a + b, 0))
+    expect(exploded.byLane).toEqual({
+      0: before.counts[0],
+      1: before.counts[1],
+      2: before.counts[2],
+    })
+    expect(exploded.violins).toBe(0)
+    expect(exploded.ghosts).toBe(0)
+
+    // The two claims the prose stakes out: Free's wall of readings pinned at
+    // the 30-minute cap, and the readings keeping their plan's colour.
+    expect(before.pinned).toBeGreaterThan(40)
+    expect(exploded.freeModal).toBe(before.pinned)
+    expect(exploded.summaryText).toContain(String(before.pinned))
+    expect(exploded.laneColours).toEqual([1, 1, 1])
+    expect(exploded.distinctColours).toBe(3)
+
+    // Round trip: the curves are back and nothing is stranded.
+    expect(back.violins).toBe(3)
     expect(back.dots).toBe(0)
     expect(back.ghosts).toBe(0)
     expect(consoleErrors).toEqual([])

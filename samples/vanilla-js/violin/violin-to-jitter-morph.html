@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Violin - Violin to Jitter</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 820px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.55;
+        margin: 0 0 24px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .actions {
+        margin: 20px auto 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        align-items: center;
+      }
+      .actions button {
+        color: #5b6b78;
+        background: #fff;
+        border: 1px solid #dfe6ec;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.on {
+        color: #fff;
+        background: #5a67d8;
+        border-color: #5a67d8;
+      }
+      .summary {
+        margin-top: 14px;
+        font-size: 13px;
+        color: #5b6b78;
+        text-align: center;
+      }
+      .summary table {
+        margin: 8px auto 0;
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+      }
+      .summary th,
+      .summary td {
+        padding: 4px 12px;
+        border-bottom: 1px solid #eef2f7;
+        text-align: right;
+      }
+      .summary th:first-child,
+      .summary td:first-child {
+        text-align: left;
+        color: #2c3e50;
+        font-weight: 600;
+      }
+      .summary th {
+        color: #93a2ad;
+        font-weight: 600;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .note {
+        margin-top: 22px;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #5b6b78;
+        background: #fff;
+        border-left: 3px solid #5a67d8;
+        border-radius: 0 6px 6px 0;
+        padding: 12px 16px;
+      }
+      code {
+        background: #eef2f7;
+        border-radius: 3px;
+        padding: 1px 5px;
+        font-size: 12px;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Shared by the vanilla-js, React and Vue builds.
+      //
+      // Daily practice minutes for three plans, generated from a seeded RNG so the
+      // page renders identically on every load. Each lane hides something a violin
+      // cannot show: Free has a hard 30-minute cap (a wall of readings the estimate
+      // smooths into a bulge), Pro is the healthy case the violin was made for, and
+      // Trial has so few readings that its confident-looking curve stands on
+      // almost nothing.
+      var seed = 11
+      function rand() {
+        seed = (seed * 16807) % 2147483647
+        return (seed - 1) / 2147483646
+      }
+      function gauss() {
+        var u1 = Math.max(rand(), 1e-9)
+        var u2 = rand()
+        return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
+      }
+      function logNormal(n, median, sigma, lo, hi) {
+        var out = []
+        for (var i = 0; i < n; i++) {
+          var v = Math.exp(Math.log(median) + sigma * gauss())
+          out.push(Math.round(Math.min(hi, Math.max(lo, v))))
+        }
+        return out
+      }
+
+      var PLANS = [
+        // The cap: anything the distribution puts past 30 lands ON 30 exactly.
+        { name: 'Free', color: '#12b3a8', values: logNormal(150, 24, 0.5, 3, 30) },
+        { name: 'Pro', color: '#5a67d8', values: logNormal(170, 34, 0.45, 6, 105) },
+        { name: 'Trial', color: '#e8890c', values: logNormal(14, 26, 0.55, 4, 95) },
+      ]
+
+      var COLORS = PLANS.map(function (p) {
+        return p.color
+      })
+
+      var VIOLIN_SERIES = [
+        {
+          name: 'Minutes',
+          data: PLANS.map(function (p) {
+            // Raw observations only: the library runs the density estimate.
+            return { x: p.name, points: p.values }
+          }),
+        },
+      ]
+
+      function setActive(exploded) {
+        var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
+        buttons.forEach(function (b) {
+          b.className =
+            (b.getAttribute('data-explode') === 'true') === exploded ? 'on' : ''
+        })
+      }
+
+      function median(values) {
+        var s = values.slice().sort(function (a, b) {
+          return a - b
+        })
+        var m = (s.length - 1) / 2
+        return (s[Math.floor(m)] + s[Math.ceil(m)]) / 2
+      }
+
+      function renderSummary() {
+        var el = document.querySelector('#summary')
+        if (!el) return
+        var rows = PLANS.map(function (p) {
+          var pinned = p.values.filter(function (v) {
+            return v === 30
+          }).length
+          return (
+            '<tr><td>' +
+            p.name +
+            '</td>' +
+            '<td>' +
+            p.values.length +
+            '</td>' +
+            '<td>' +
+            median(p.values) +
+            ' min</td>' +
+            '<td>' +
+            (p.name === 'Free' ? pinned : '-') +
+            '</td></tr>'
+          )
+        })
+        el.innerHTML =
+          '<table><thead><tr><th>Plan</th><th>Readings</th><th>Median</th>' +
+          '<th>Pinned at the 30 min cap</th></tr></thead><tbody>' +
+          rows.join('') +
+          '</tbody></table>'
+      }
+
+      // Wires the two buttons to a live chart. Shared by all three builds.
+      function wireExplode(chart) {
+        var buttons = [].slice.call(document.querySelectorAll('[data-explode]'))
+
+        buttons.forEach(function (b) {
+          b.addEventListener('click', function () {
+            var explode = b.getAttribute('data-explode') === 'true'
+            setActive(explode)
+
+            if (explode) {
+              // The violins were estimated from the observations, so the chart can
+              // hand each violin's own readings back: every dot leaves from the
+              // curve it was smoothed into.
+              var rows = chart.rowSeries()
+              // rowSeries() colours by series, and this violin is ONE series split
+              // across three lanes (distributed). Re-key the colour by lane so each
+              // violin's ink keeps its own colour on the way out.
+              rows.forEach(function (cluster, k) {
+                cluster.data.forEach(function (d) {
+                  d.fillColor = COLORS[k]
+                })
+              })
+              chart.updateOptions({
+                chart: { type: 'unit' },
+                series: rows,
+                plotOptions: {
+                  unit: {
+                    layout: 'scatter',
+                    unitValue: 1,
+                    size: 3.5,
+                    scatter: {
+                      // Value stays on Y, one lane per plan across X, matching the
+                      // violins. The value-axis keys keep their x* names in either
+                      // orientation.
+                      orientation: 'vertical',
+                      spread: 'jitter',
+                      xTitle: 'Minutes per day',
+                      // The same 0..120 window the violin state pins its yaxis to;
+                      // 7 ticks puts a line every 20 minutes, matching its grid.
+                      xMin: 0,
+                      xMax: 120,
+                      tickAmount: 7,
+                    },
+                  },
+                },
+                legend: { show: false },
+              })
+            } else {
+              chart.updateOptions({
+                chart: { type: 'violin' },
+                series: VIOLIN_SERIES,
+                legend: { show: false },
+              })
+            }
+          })
+        })
+
+        setActive(false)
+        renderSummary()
+      }
+    </script>
+  </head>
+
+  <body>
+     <div class="wrap">
+        <h1>A violin is an estimate</h1>
+        <p>
+          Each curve below is a density estimate: a smoothed guess at where the
+          readings sit, computed from the readings themselves. Smoothing is the
+          point, and also the catch. A curve cannot show how many readings it stands
+          on, and it rounds hard edges off. Press the button and each violin
+          dissolves into its actual readings, jittered across the lane, then gathers
+          back into the curve.
+        </p>
+      
+        <div class="actions">
+          <button data-explode="false" class="on">Violin</button>
+          <button data-explode="true">Every reading</button>
+        </div>
+      
+        <div class="chart-wrap">
+          <div id="chart"></div>
+        </div>
+      
+        <div class="summary" id="summary"></div>
+      
+        <div class="note">
+          Free is capped at 30 minutes a day, and the wall of readings pinned at
+          exactly 30 comes out of the estimate as a gentle bulge that even glides a
+          little past the cap, where no reading exists at all. Trial's curve looks as
+          confident as the others; it stands on 14 readings. The violins are derived,
+          not supplied: each datum carries raw <code>points</code> and the library
+          runs the density estimate. That is also what makes the dissolve possible,
+          because <code>chart.rowSeries()</code> hands back the observations behind
+          every mark; the jitter view is the unit type's scatter layout with
+          <code>spread: 'jitter'</code>. To see dots and curve at once without
+          morphing, a violin can overlay its own via
+          <code>plotOptions.violin.points</code>.
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: VIOLIN_SERIES,
+        chart: {
+          id: 'violinJitter',
+          type: 'violin',
+          height: 430,
+          toolbar: {
+            show: false,
+          },
+          animations: {
+            chartTypeMorph: {
+              speed: 900,
+            },
+          },
+        },
+        colors: COLORS,
+        plotOptions: {
+          bar: { distributed: true }, // one colour per plan
+          violin: {
+            normalize: 'group',
+            // The toggle is the reveal here; the built-in overlay would spoil it.
+            points: { show: false },
+          },
+        },
+        stroke: {
+          width: 1,
+          colors: ['#8a97a3'],
+        },
+        legend: {
+          show: false,
+        },
+        yaxis: {
+          // Same domain and ticks as the jitter view, so the two states share one
+          // grid and the morph never re-scales the room. Minutes cannot be negative,
+          // which the auto-domain's padding would otherwise imply.
+          min: 0,
+          max: 120,
+          tickAmount: 6,
+          labels: {
+            formatter: function (v) {
+              return Math.round(v) + ' min'
+            },
+          },
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+
+      // PLANS, VIOLIN_SERIES and wireExplode live in the shared head script.
+      wireExplode(chart)
+    </script>
+
+    
+  </body>
+</html>
