@@ -4,6 +4,24 @@ import Series from '../../../modules/Series'
 import Fill from '../../../modules/Fill'
 import Utils from '../../../utils/Utils'
 
+/**
+ * Whether this chart is a histogram drawing its distributions on top of one
+ * another rather than side by side.
+ *
+ * A histogram renders through the bar pathway, so `chart.type` is 'bar' by the
+ * time it gets here and only `requestedType` still says histogram. With one
+ * series there is nothing to overlay and the ordinary grouped geometry is the
+ * same thing, so the check is cheap and self-limiting.
+ *
+ * @param {any} w
+ * @returns {boolean}
+ */
+export function isHistogramOverlay(w) {
+  if (w?.config?.chart?.requestedType !== 'histogram') return false
+  if (w.config.plotOptions?.histogram?.overlap === false) return false
+  return (w.seriesData?.series?.length ?? 0) > 1
+}
+
 export default class Helpers {
   /**
    * @param {Record<string, any>} barCtx
@@ -80,7 +98,10 @@ export default class Helpers {
     }
 
     let seriesLen = this.barCtx.seriesLen
-    if (w.config.plotOptions.bar.rangeBarGroupRows) {
+    // Both of these put every series in ONE slot rather than dividing the slot
+    // between them: rangeBar rows that share a track, and overlaid histogram
+    // distributions that share a bin.
+    if (w.config.plotOptions.bar.rangeBarGroupRows || isHistogramOverlay(w)) {
       seriesLen = 1
     }
 

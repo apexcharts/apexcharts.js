@@ -1,6 +1,6 @@
 // @ts-check
 import BarDataLabels from './common/bar/DataLabels'
-import BarHelpers from './common/bar/Helpers'
+import BarHelpers, { isHistogramOverlay } from './common/bar/Helpers'
 import CoreUtils from '../modules/CoreUtils'
 import Utils from '../utils/Utils'
 import Filters from '../modules/Filters'
@@ -937,8 +937,12 @@ class Bar {
         (barWidth * this.seriesLen) / 2
     }
 
+    // Overlaid histogram series all sit on the bin, rather than stepping across
+    // it one series-width at a time. `seriesLen` is already forced to 1 above,
+    // so `barWidth` is the whole bin and stepping would march each series clear
+    // of the last.
     return {
-      barXPosition: x + barWidth * this.visibleI,
+      barXPosition: x + (isHistogramOverlay(w) ? 0 : barWidth * this.visibleI),
       x,
     }
   }

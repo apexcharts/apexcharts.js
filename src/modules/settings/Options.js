@@ -879,6 +879,16 @@ export default class Options {
           normalize: 'count',
           // Running total across bins, i.e. a cumulative distribution.
           cumulative: false,
+          // With more than one series, draw every distribution across the FULL
+          // bin so they overlay, instead of dividing the bin between them. All
+          // series already share one set of edges, and comparing two shapes is
+          // the reason to put them on one axis; splitting the bin makes the
+          // columns stop touching, which reads as a clustered bar chart rather
+          // than a distribution. Set false for side-by-side bars.
+          //
+          // An overlay is unreadable opaque, so it also softens the fill and
+          // drops the bin separator stroke. Both remain overridable.
+          overlap: true,
         },
         heatmap: {
           radius: 2,

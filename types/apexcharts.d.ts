@@ -2473,6 +2473,17 @@ type ApexPlotOptions = {
     normalize?: 'count' | 'relative' | 'density'
     /** Running total across bins, i.e. a cumulative distribution. */
     cumulative?: boolean
+    /**
+     * With more than one series, draw every distribution across the full bin
+     * so they overlay, instead of dividing the bin between them. Defaults to
+     * `true`: all series already share one set of edges, and comparing two
+     * shapes is the reason to put them on one axis. Set `false` for
+     * side-by-side bars.
+     *
+     * An overlay also softens the fill and drops the bin separator stroke, so
+     * the overlapping region reads. Both remain overridable.
+     */
+    overlap?: boolean
   }
   heatmap?: {
     radius?: number

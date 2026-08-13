@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Histogram - Comparing Two Distributions</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 780px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 24px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .actions {
+        margin: 20px auto 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        align-items: center;
+      }
+      .actions button {
+        color: #5b6b78;
+        background: #fff;
+        border: 1px solid #dfe6ec;
+        padding: 7px 14px;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .actions button.on {
+        color: #fff;
+        background: #008ffb;
+        border-color: #008ffb;
+      }
+      .stats {
+        text-align: center;
+        font-size: 13px;
+        color: #5b6b78;
+        margin-top: 12px;
+      }
+      .stats b {
+        color: #2c3e50;
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Shared by the vanilla-js, React and Vue builds.
+      //
+      // Both series carry RAW OBSERVATIONS, one number per trip. The chart bins them,
+      // and every series is binned against the SAME edges, derived from their combined
+      // extent. That is what makes two distributions comparable: bin each to its own
+      // range and identical bars would sit at different values.
+      //
+      // 900 door-to-door commute times per mode, from a seeded generator so the page
+      // is deterministic.
+      var COMMUTES = (function () {
+        var seed = 20260813
+        function rand() {
+          seed = (seed * 16807) % 2147483647
+          return (seed - 1) / 2147483646
+        }
+        // Box-Muller into a log-normal: journey times are right-skewed, since a trip
+        // can go badly wrong but cannot finish in less than no time.
+        function trips(n, mu, sigma) {
+          var out = []
+          for (var i = 0; i < n; i++) {
+            var u1 = Math.max(rand(), 1e-9)
+            var u2 = rand()
+            var z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
+            out.push(Math.round(Math.exp(mu + z * sigma)))
+          }
+          return out
+        }
+        return {
+          // Driving is quicker on a typical day and far less predictable: a lower
+          // centre, a much heavier tail.
+          car: trips(900, 3.25, 0.5),
+          transit: trips(900, 3.45, 0.2),
+        }
+      })()
+
+      function median(values) {
+        var sorted = values.slice().sort(function (a, b) {
+          return a - b
+        })
+        var mid = Math.floor(sorted.length / 2)
+        return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+      }
+
+      // The bad-day figure: the trip you should actually plan around.
+      function worstTwentieth(values) {
+        var sorted = values.slice().sort(function (a, b) {
+          return a - b
+        })
+        return sorted[Math.floor((sorted.length - 1) * 0.95)]
+      }
+
+      function renderStats() {
+        var el = document.querySelector('#stats')
+        if (!el) return
+        el.innerHTML =
+          'Car: typical <b>' +
+          median(COMMUTES.car) +
+          ' min</b>, ' +
+          'bad day <b>' +
+          worstTwentieth(COMMUTES.car) +
+          ' min</b> &middot; ' +
+          'Transit: typical <b>' +
+          median(COMMUTES.transit) +
+          ' min</b>, ' +
+          'bad day <b>' +
+          worstTwentieth(COMMUTES.transit) +
+          ' min</b>'
+      }
+
+      // Wires the arrangement toggle to a live chart. Shared by all three builds.
+      function wireComparisonControls(chart) {
+        var buttons = [].slice.call(document.querySelectorAll('[data-overlap]'))
+
+        buttons.forEach(function (b) {
+          b.addEventListener('click', function () {
+            var overlap = b.getAttribute('data-overlap') === 'true'
+            buttons.forEach(function (other) {
+              other.className = other === b ? 'on' : ''
+            })
+            chart.updateOptions({
+              plotOptions: { histogram: { overlap: overlap } },
+              // The defaults that come with an overlay are ordinary defaults, so a
+              // runtime switch has to carry them itself.
+              fill: { opacity: overlap ? 0.65 : 0.85 },
+              stroke: overlap
+                ? { show: false }
+                : { show: true, width: 1, colors: ['#fff'] },
+            })
+          })
+        })
+
+        renderStats()
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="wrap">
+      <h1>Which commute would you rather have?</h1>
+      <p>
+        Two samples, 900 trips each, drawn on one set of bins. Driving has the lower
+        typical time, so on the averages it wins and the question looks settled. The
+        shapes say otherwise: the car's distribution is wide with a tail that runs
+        off to the right, while the train's is narrow and stops. You are choosing
+        between a faster average and a bad day you can plan around. Overlaying the
+        two is what makes that legible; side by side, you end up comparing bar
+        heights instead of shapes.
+      </p>
+    
+      <div class="actions">
+        <button data-overlap="true" class="on">Overlaid</button>
+        <button data-overlap="false">Side by side</button>
+      </div>
+    
+      <div class="chart-wrap">
+        <div id="chart">
+      <apexchart type="histogram" height="400" width="700" :options="chartOptions" :series="series"></apexchart>
+    </div>
+      </div>
+    
+      <div class="stats" id="stats"></div>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+        &lt;h1&gt;Which commute would you rather have?&lt;/h1&gt;
+        &lt;p&gt;
+          Two samples, 900 trips each, drawn on one set of bins. Driving has the lower
+          typical time, so on the averages it wins and the question looks settled. The
+          shapes say otherwise: the car&#39;s distribution is wide with a tail that runs
+          off to the right, while the train&#39;s is narrow and stops. You are choosing
+          between a faster average and a bad day you can plan around. Overlaying the
+          two is what makes that legible; side by side, you end up comparing bar
+          heights instead of shapes.
+        &lt;/p&gt;
+      
+        &lt;div class=&quot;actions&quot;&gt;
+          &lt;button data-overlap=&quot;true&quot; class=&quot;on&quot;&gt;Overlaid&lt;/button&gt;
+          &lt;button data-overlap=&quot;false&quot;&gt;Side by side&lt;/button&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;chart-wrap&quot;&gt;
+          &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;histogram&quot; height=&quot;400&quot; width=&quot;700&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;stats&quot; id=&quot;stats&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [
+            {
+              name: 'Car',
+              data: COMMUTES.car,
+            },
+            {
+              name: 'Transit',
+              data: COMMUTES.transit,
+            },
+          ],
+          chartOptions: {
+            chart: {
+              id: 'commutes',
+              type: 'histogram',
+              // Fixed width, not responsive: thin bars make every bar edge a hairline, so a
+              // page-width nudge of a pixel or two visibly moves the whole distribution.
+              width: 700,
+              height: 400,
+              toolbar: {
+                show: false,
+              },
+            },
+            plotOptions: {
+              histogram: {
+                bins: 'auto',
+                // The default with more than one series. Every distribution is drawn across
+                // the full bin so they lie on top of one another; set false for side-by-side
+                // bars. All series share one set of bin edges either way.
+                overlap: true,
+              },
+            },
+            colors: ['#f2a43a', '#5d6d9e'],
+            xaxis: {
+              title: {
+                text: 'Door-to-door time (minutes)',
+              },
+              labels: {
+                formatter: function (val) {
+                  return Math.round(val)
+                },
+              },
+            },
+            yaxis: {
+              title: {
+                text: 'Trips',
+              },
+            },
+            legend: {
+              position: 'top',
+              horizontalAlign: 'right',
+            },
+          },
+
+          histTimer: null,
+        },
+        mounted: function () {
+          // The vue-apexcharts wrapper owns the render, so reach the live instance by
+          // its chart.id before wiring the controls.
+          var me = this
+          me.histTimer = window.setInterval(function () {
+            var chart = ApexCharts.getChartByID('commutes')
+            if (!chart) return
+            window.clearInterval(me.histTimer)
+            wireComparisonControls(chart)
+          }, 50)
+        },
+        beforeDestroy: function () {
+          window.clearInterval(this.histTimer)
+        },
+      })
+    </script>
+    
+  </body>
+</html>

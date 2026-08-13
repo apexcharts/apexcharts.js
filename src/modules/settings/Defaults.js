@@ -454,6 +454,18 @@ export default class Defaults {
   histogram() {
     // Histogram defaults: a distribution of raw observations, binned by
     // features/stats and drawn through the bar pathway.
+    //
+    // Two or more distributions overlay by default (see plotOptions.histogram
+    // .overlap), and an overlay only reads if the fill lets the one behind
+    // through. The bin separator goes with it: a hairline exists to keep
+    // touching bins apart, and over translucent overlapping bars it just
+    // outlines every overlap. Both are plain defaults, so either can be set
+    // back.
+    const overlaid =
+      Array.isArray(this.opts?.series) &&
+      this.opts.series.length > 1 &&
+      this.opts?.plotOptions?.histogram?.overlap !== false
+
     return {
       ...this.bar(),
       chart: {
@@ -491,13 +503,16 @@ export default class Defaults {
       dataLabels: {
         enabled: false,
       },
+      fill: overlaid ? { opacity: 0.65 } : {},
       // A hairline separator keeps the bin boundaries readable once the columns
       // touch, the same treatment heatmap cells get.
-      stroke: {
-        show: true,
-        width: 1,
-        colors: ['#fff'],
-      },
+      stroke: overlaid
+        ? { show: false }
+        : {
+            show: true,
+            width: 1,
+            colors: ['#fff'],
+          },
       xaxis: {
         type: 'numeric',
         // The axis carries bin midpoints; the range is what people read, and
@@ -507,6 +522,11 @@ export default class Defaults {
         },
       },
       tooltip: {
+        // Overlaid bars share a bin, so hovering one has to report both
+        // distributions: the comparison is the whole point of stacking them on
+        // one axis.
+        shared: overlaid,
+        intersect: false,
         x: {
           formatter: (
             /** @type {number} */ val,

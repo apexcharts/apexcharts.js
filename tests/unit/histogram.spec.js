@@ -413,3 +413,136 @@ describe('histogram chart type', () => {
     expect(chart.w.config.chart.requestedType).toBeUndefined()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Comparing distributions: several series on one set of bins
+// ---------------------------------------------------------------------------
+
+describe('histogram — multiple series', () => {
+  const twoSamples = () => [
+    { name: 'A', data: sample(300) },
+    { name: 'B', data: sample(300).map((v) => v + 40) },
+  ]
+
+  test('every series is binned against the same edges', () => {
+    // The whole basis of the comparison: bin each series to its own range and
+    // identical bars would sit at different values.
+    const chart = histChart({ series: twoSamples() })
+    const { edges, counts } = chart.w.histogramData
+    expect(counts.length).toBe(2)
+    expect(counts[0].length).toBe(edges.length - 1)
+    expect(counts[1].length).toBe(edges.length - 1)
+    expect(chart.w.seriesData.series[0].length).toBe(
+      chart.w.seriesData.series[1].length,
+    )
+  })
+
+  // The bars' start x, per series group. An attribute selector cannot be used
+  // for the group here: `data:realIndex` carries a colon and jsdom will not
+  // match it, so walk the groups in order instead.
+  const startXPerSeries = () =>
+    [...document.querySelectorAll('.apexcharts-series')].map((g) =>
+      [...g.querySelectorAll('.apexcharts-bar-area')].map((el) =>
+        Number((el.getAttribute('d') || '').match(/M\s+(-?[\d.]+)/)?.[1]),
+      ),
+    )
+
+  test('overlaid series each get the whole bin, not a share of it', () => {
+    const overlaid = histChart({
+      series: twoSamples(),
+      plotOptions: { histogram: { bins: 10 } },
+    })
+    const grouped = histChart({
+      series: twoSamples(),
+      plotOptions: { histogram: { bins: 10, overlap: false } },
+    })
+    // Two series dividing the slot is exactly what the overlay avoids.
+    expect(overlaid.w.globals.barWidth).toBeCloseTo(
+      grouped.w.globals.barWidth * 2,
+      6,
+    )
+  })
+
+  test('overlaid series sit on the same x; grouped ones step across it', () => {
+    // Only bins where BOTH series have observations can be compared: an empty
+    // bin draws a degenerate path parked at x=0, which looks like a mismatch in
+    // the overlay case and like agreement in the grouped one.
+    const contested = (chart) => {
+      const [a, b] = startXPerSeries()
+      const [ca, cb] = chart.w.histogramData.counts
+      const bins = ca.map((_, k) => k).filter((k) => ca[k] > 0 && cb[k] > 0)
+      expect(bins.length).toBeGreaterThan(0)
+      return [bins.map((k) => a[k]), bins.map((k) => b[k])]
+    }
+
+    const [a, b] = contested(
+      histChart({
+        series: twoSamples(),
+        plotOptions: { histogram: { bins: 10 } },
+      }),
+    )
+    expect(a).toEqual(b)
+
+    document.body.innerHTML = ''
+    const [c, d] = contested(
+      histChart({
+        series: twoSamples(),
+        plotOptions: { histogram: { bins: 10, overlap: false } },
+      }),
+    )
+    expect(c).not.toEqual(d)
+  })
+
+  test('a single series is unaffected by the overlap default', () => {
+    const overlapOn = histChart({ plotOptions: { histogram: { bins: 10 } } })
+    const widthOn = overlapOn.w.globals.barWidth
+    const overlapOff = histChart({
+      plotOptions: { histogram: { bins: 10, overlap: false } },
+    })
+    expect(overlapOff.w.globals.barWidth).toBe(widthOn)
+  })
+
+  test('toggling a series off and on preserves the sample and the bins', async () => {
+    // The legend hands `config.series` back to updateSeries, and for a
+    // histogram those are the BINNED rows, not the observations. Treating that
+    // round trip as new input re-binned the bin counts: one click turned 900
+    // observations into however many bins there were, and every click after
+    // that binned a level deeper.
+    const chart = histChart({
+      series: twoSamples(),
+      plotOptions: { histogram: { bins: 10 } },
+    })
+    const totals = () =>
+      chart.w.histogramData.counts.map((c) => c.reduce((a, v) => a + v, 0))
+    const edges = () => chart.w.histogramData.edges.slice()
+
+    const beforeTotals = totals()
+    const beforeEdges = edges()
+    expect(beforeTotals).toEqual([300, 300])
+
+    await chart.hideSeries('B')
+    expect(totals()).toEqual(beforeTotals)
+    // The bins are the frame both distributions are read in, so hiding one must
+    // not slide the other's bars sideways.
+    expect(edges()).toEqual(beforeEdges)
+    expect(chart.w.config.series[1].data).toEqual([])
+
+    await chart.showSeries('B')
+    expect(totals()).toEqual(beforeTotals)
+    expect(edges()).toEqual(beforeEdges)
+    expect(chart.w.config.series[1].data.length).toBe(beforeEdges.length - 1)
+  })
+
+  test('overlaying softens the fill and drops the bin separator', () => {
+    // An overlay is unreadable opaque, and the hairline that keeps touching
+    // bins apart just outlines every overlap.
+    const many = histChart({ series: twoSamples() })
+    expect(many.w.config.fill.opacity).toBe(0.65)
+    expect(many.w.config.stroke.show).toBe(false)
+    expect(many.w.config.tooltip.shared).toBe(true)
+
+    const one = histChart()
+    expect(one.w.config.stroke.show).toBe(true)
+    expect(one.w.config.tooltip.shared).toBe(false)
+  })
+})
