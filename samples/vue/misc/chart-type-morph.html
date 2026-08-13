@@ -86,9 +86,11 @@
       // each format's own wiring below (one live chart per generated page).
       var LABELS = ['Direct', 'Organic', 'Referral', 'Social', 'Email']
 
-      // One dot per SESSIONS_PER_DOT sessions, so a value of 44 reads as a countable
-      // cluster rather than 44 dots nobody can count.
-      var SESSIONS_PER_DOT = 5
+      // One dot per SESSIONS_PER_DOT sessions. Two per dot keeps a cluster readable
+      // while giving the cross-type morph enough grain to work with: a bar coming
+      // apart into ~25 fine pieces reads as dissolving, into 8 large ones as
+      // breaking.
+      var SESSIONS_PER_DOT = 2
 
       function buildSeriesFor(type, values) {
         if (type === 'unit') {
@@ -272,6 +274,11 @@
               unit: {
                 // One column of dots per category, so the cluster stands where its bar did.
                 layout: 'columns',
+                // Pin the dot size below what the layout would auto-fit: finer dots make
+                // the cross-type morph read as one mark dissolving into many, and a
+                // cluster's height stays proportional to its count, like the bar it
+                // replaces.
+                size: 7,
                 // Keep a dot's identity across every regroup, so the same object leaves and
                 // returns to the same place on a round trip.
                 transition: 'identity',
