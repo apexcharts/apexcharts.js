@@ -127,6 +127,22 @@ describe('MorphTypeChange.canMorphTypes', () => {
     expect(morph.canMorphTypes('histogram', 'waffle')).toBe(true)
   })
 
+  it('marks only the unit pairs as needing an exit for the outgoing marks', () => {
+    // bar -> pie seeds each wedge with the outgoing bar's own `d`, so the bar
+    // never has to leave; copying it would double the image at t=0.
+    expect(morph._needsGhost('bar', 'pie')).toBe(false)
+    expect(morph._needsGhost('pie', 'bar')).toBe(false)
+    expect(morph._needsGhost('treemap', 'sunburst')).toBe(false)
+    // The unit pairs are N-to-1 in one direction and 1-to-N in the other, so
+    // one side always has marks with nowhere to go.
+    expect(morph._needsGhost('bar', 'unit')).toBe(true)
+    expect(morph._needsGhost('unit', 'bar')).toBe(true)
+    expect(morph._needsGhost('pie', 'unit')).toBe(true)
+    expect(morph._needsGhost('histogram', 'unit')).toBe(true)
+    expect(morph._needsGhost('unit', 'histogram')).toBe(true)
+    expect(morph._needsGhost('waffle', 'bar')).toBe(true)
+  })
+
   it('rejects same-type', () => {
     expect(morph.canMorphTypes('bar', 'bar')).toBe(false)
     expect(morph.canMorphTypes('pie', 'pie')).toBe(false)

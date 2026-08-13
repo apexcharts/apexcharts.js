@@ -62,6 +62,10 @@ const UNIT_FAMILY = new Set(['unit', 'waffle'])
 // bar family does.
 const PARTITION_FAMILY = new Set(['treemap', 'sunburst'])
 
+// How much of the morph the outgoing marks get to fade over. Short of the full
+// duration on purpose (see _mountGhost).
+const GHOST_FADE_FRACTION = 0.55
+
 /** @param {string} type */
 function familyOf(type) {
   if (BAR_FAMILY.has(type)) return 'bar'
@@ -81,6 +85,10 @@ export default class MorphTypeChange {
     this.ctx = ctx
     /** @type {null | { fromType: string, toType: string, mapping: Map<string, {d: string, fill: string|null}>, oldLayout: { translateX: number, translateY: number } }} */
     this._snapshot = null
+    // A detached copy of the outgoing marks, kept alive across the teardown so
+    // marks with no successor can still exit. Null whenever none is in flight.
+    /** @type {any} */
+    this._ghost = null
   }
 
   /**
@@ -170,6 +178,9 @@ export default class MorphTypeChange {
    */
   captureBeforeDestroy({ fromType, toType, newSeries }) {
     this._snapshot = null
+    // A second type change while the previous ghost is still fading: drop it
+    // now rather than leave two dead charts stacked over the live one.
+    this._removeGhost()
 
     if (!Environment.isBrowser()) return false
     const animCfg = this.w.config.chart.animations
@@ -208,12 +219,163 @@ export default class MorphTypeChange {
       },
     }
 
+    // Marks with no successor need an exit, and the outgoing chart is torn
+    // down before the incoming one draws its first frame, so the only way to
+    // give them one is to take a copy now while it is still mounted.
+    if (this._needsGhost(fromType, toType)) this._captureGhost()
+
     // Clear w.globals.previousPaths so the destination chart's renderer
     // doesn't try to read entries from the outgoing chart (which would be
     // shaped wrong and produce NaN).
     this.w.globals.previousPaths = []
 
     return true
+  }
+
+  /**
+   * Whether the outgoing marks need an exit animation of their own.
+   *
+   * Most pairs do not. bar → pie hands every wedge the exact `d` of the bar it
+   * replaces, and treemap → sunburst does the same for its tiles: the outgoing
+   * mark IS the incoming mark's first frame, so it never needs to leave, and
+   * drawing a copy of it would only double the image at t=0.
+   *
+   * The unit pairs are the exception, in both directions, because the
+   * correspondence is not 1:1. Going in, one bar becomes N dots, so the bar has
+   * no successor to become. Coming out, N dots become one bar: the bar does
+   * grow from the cloud's footprint, but no individual dot has anywhere to go.
+   * Either way something on screen simply stops existing, which is exactly the
+   * hard cut that made these pairs read as "the old chart vanished and the new
+   * one animated" rather than as a morph.
+   *
+   * @param {string} fromType
+   * @param {string} toType
+   * @returns {boolean}
+   */
+  _needsGhost(fromType, toType) {
+    return familyOf(fromType) === 'unit' || familyOf(toType) === 'unit'
+  }
+
+  /**
+   * Take a detached copy of the outgoing chart's marks, to be mounted over the
+   * incoming chart once it exists (see `_mountGhost`).
+   *
+   * The whole `<svg>` is cloned and the chrome then removed from the copy,
+   * rather than lifting the series groups out on their own: every mark's
+   * position depends on the transforms of the groups above it, and cloning
+   * from the root is what keeps those intact without re-deriving any geometry.
+   *
+   * The chrome is dropped because `applyChromeFade` already fades the incoming
+   * axes, grid and legend in from zero. Keeping the outgoing set as well would
+   * put two sets of axis labels on screen at half opacity each.
+   */
+  _captureGhost() {
+    /** @type {any} */
+    const paper = this.w.dom?.Paper
+    const node = paper && paper.node
+    if (!node || typeof node.cloneNode !== 'function') return
+
+    /** @type {any} */
+    const clone = node.cloneNode(true)
+    // Everything that is not a series mark. The tooltip and toolbar live
+    // outside the svg, so they are not in the clone to begin with.
+    const drop = [
+      '.apexcharts-xaxis',
+      '.apexcharts-yaxis',
+      '.apexcharts-grid',
+      '.apexcharts-gridlines-horizontal',
+      '.apexcharts-gridlines-vertical',
+      '.apexcharts-legend',
+      '.apexcharts-title-text',
+      '.apexcharts-subtitle-text',
+      '.apexcharts-annotations',
+      '.apexcharts-zoom-rect',
+      '.apexcharts-selection-rect',
+      '.apexcharts-xcrosshairs',
+      '.apexcharts-ycrosshairs',
+    ]
+    if (typeof clone.querySelectorAll === 'function') {
+      drop.forEach((sel) => {
+        clone.querySelectorAll(sel).forEach((/** @type {any} */ el) => {
+          if (el.parentNode) el.parentNode.removeChild(el)
+        })
+      })
+    }
+
+    // An id collision would let the live chart resolve a gradient or clip-path
+    // against the dead one's defs, so the copy keeps no ids at all.
+    if (typeof clone.querySelectorAll === 'function') {
+      clone.querySelectorAll('[id]').forEach((/** @type {any} */ el) => {
+        el.removeAttribute('id')
+      })
+    }
+    clone.removeAttribute?.('id')
+
+    this._ghost = clone
+  }
+
+  /**
+   * Mount the captured copy over the newly-rendered chart and fade it out.
+   *
+   * It goes ON TOP of the live svg, which is what makes both directions read
+   * as one motion rather than as a swap. Going into a unit chart the bars
+   * dissolve and the dots are uncovered already in flight, having left from
+   * inside the bar that held them. Coming out of one, the dots are still there
+   * to fade while the bar grows underneath them; behind the incoming mark they
+   * would be hidden on the first frame, because that mark starts out exactly
+   * the size of the cloud it is replacing.
+   *
+   * The fade runs over a fraction of the morph so the outgoing marks are gone
+   * before the incoming ones settle. Holding them for the full duration leaves
+   * two charts overlapping right at the moment the eye is reading the final
+   * shape, which looks like a rendering fault rather than a transition.
+   */
+  _mountGhost() {
+    const ghost = this._ghost
+    if (!ghost || !Environment.isBrowser()) return
+    /** @type {any} */
+    const wrap = this.w.dom?.elWrap
+    if (!wrap || typeof wrap.appendChild !== 'function') {
+      this._ghost = null
+      return
+    }
+
+    // .apexcharts-canvas is position:relative, so this lands exactly over the
+    // live svg. It must never take a pointer event: the chart underneath owns
+    // every hover and click for the whole transition, and it must contribute
+    // nothing but its marks, so the cloned background goes too.
+    const style = ghost.style
+    if (style) {
+      style.position = 'absolute'
+      style.left = '0'
+      style.top = '0'
+      style.background = 'transparent'
+      style.pointerEvents = 'none'
+      style.opacity = '1'
+    }
+    ghost.setAttribute?.('aria-hidden', 'true')
+    ghost.setAttribute?.('class', 'apexcharts-morph-ghost')
+
+    wrap.appendChild(ghost)
+
+    const speed = this.getSpeed()
+    const fade = Math.max(120, Math.round(speed * GHOST_FADE_FRACTION))
+    BrowserAPIs.requestAnimationFrame(() => {
+      if (!style) return
+      // ease-in, so the outgoing marks hold briefly at full strength before
+      // going. An ease-out drops most of the opacity in the first few frames,
+      // which reads as a flicker rather than as coming apart.
+      style.transition = `opacity ${fade}ms ease-in`
+      style.opacity = '0'
+    })
+    setTimeout(() => this._removeGhost(), fade + 60)
+  }
+
+  /** Detach the ghost if one is mounted. Safe to call at any time. */
+  _removeGhost() {
+    const ghost = this._ghost
+    this._ghost = null
+    if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost)
   }
 
   /**
@@ -934,6 +1096,12 @@ export default class MorphTypeChange {
     /** @type {any} */
     const baseEl = this.w.globals.dom?.baseEl
     if (!baseEl) return
+
+    // The incoming chart exists now, so the outgoing marks captured before the
+    // teardown finally have something to leave over. No-ops for every pair
+    // that inherits its shapes (see _needsGhost).
+    this._mountGhost()
+
     const speed = this.getSpeed()
     const chromeSelectors = [
       '.apexcharts-xaxis',
@@ -967,5 +1135,6 @@ export default class MorphTypeChange {
 
   cleanup() {
     this._snapshot = null
+    this._removeGhost()
   }
 }
