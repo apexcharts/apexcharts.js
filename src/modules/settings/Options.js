@@ -1122,6 +1122,9 @@ export default class Options {
           // 'columns' (each category is a vertical bar built from stacked dots) |
           // 'grid' (one lattice of cells filled in category order - a waffle /
           // part-to-whole square "pie"; `chart.type:'waffle'` presets this) |
+          // 'scatter' (units on real value axes: a beeswarm, or a 2D
+          // value-value scatter - see the `scatter` block below) |
+          // 'arc' (a semicircular fan) |
           // 'custom' (positions come from `positions` below).
           layout: 'grouped',
           // `layout: 'custom'` only. The layout provider: either a function
