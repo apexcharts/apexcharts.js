@@ -3,6 +3,12 @@ import { Environment } from '../utils/Environment.js'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 import { prefersReducedMotion } from './Animations'
 import { parsePath } from '../svg/PathMorphing'
+import {
+  gridDivideRect,
+  makeColorLerp,
+  runPieceTween,
+  sortByHilbert,
+} from './MorphPieces'
 
 /**
  * Cross-chart-type morphing.
@@ -71,8 +77,21 @@ const PARTITION_FAMILY = new Set(['treemap', 'sunburst'])
 const SUMMARY_FAMILY = new Set(['boxPlot', 'violin'])
 
 // How much of the morph the outgoing marks get to fade over. Short of the full
-// duration on purpose (see _mountGhost).
+// duration on purpose (see _mountGhost). Since the piece layer landed the
+// ghost is the FALLBACK exit, used when pieces are infeasible (too many
+// objects, a source family without piece support, a bailed mount).
 const GHOST_FADE_FRACTION = 0.55
+
+// Above this many objects the piece layer stands down and the ghost fade runs
+// instead. Every piece is a live SVG node driven per frame; a unit chart's own
+// gather animation moves this many dots comfortably, and past it the overlay
+// would cost more than the effect is worth.
+const PIECE_BUDGET = 1500
+
+// The per-piece stagger never eats more than this many ms (or 35% of the
+// morph, whichever is smaller): pieces sweep rather than march, but the last
+// one still lands within the configured speed.
+const PIECE_STAGGER_MAX = 300
 
 /** @param {string} type */
 function familyOf(type) {
@@ -92,12 +111,18 @@ export default class MorphTypeChange {
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx
-    /** @type {null | { fromType: string, toType: string, mapping: Map<string, {d: string, fill: string|null}>, oldLayout: { translateX: number, translateY: number } }} */
+    /** @type {null | { fromType: string, toType: string, mapping: Map<string, {d: string, fill: string|null}>, oldLayout: { translateX: number, translateY: number }, pieceOut?: boolean, pieceIn?: boolean, sourceDots?: Map<number, Array<{x:number,y:number,r:number,fill:string|null}>>, keyOrder?: string[] }} */
     this._snapshot = null
     // A detached copy of the outgoing marks, kept alive across the teardown so
     // marks with no successor can still exit. Null whenever none is in flight.
     /** @type {any} */
     this._ghost = null
+    // The live piece overlay: its <g> element and the cancel handle of the
+    // rAF loop driving it. Null whenever no pieces are in flight.
+    /** @type {any} */
+    this._pieceLayer = null
+    /** @type {null | (() => void)} */
+    this._pieceCancel = null
   }
 
   /**
@@ -197,9 +222,10 @@ export default class MorphTypeChange {
    */
   captureBeforeDestroy({ fromType, toType, newSeries }) {
     this._snapshot = null
-    // A second type change while the previous ghost is still fading: drop it
+    // A second type change while the previous exit is still in flight: drop it
     // now rather than leave two dead charts stacked over the live one.
     this._removeGhost()
+    this._cancelPieces()
 
     if (!Environment.isBrowser()) return false
     const animCfg = this.w.config.chart.animations
@@ -210,7 +236,7 @@ export default class MorphTypeChange {
     if (!this.canMorphTypes(fromType, toType)) return false
     if (!this.isCompatibleSeriesShape(fromType, toType, newSeries)) return false
 
-    const { marks, branches } = this._captureFromDOM(fromType)
+    const { marks, branches, unitDots } = this._captureFromDOM(fromType)
     if (!marks.length) return false
 
     const mapping = this._buildMapping(
@@ -238,10 +264,58 @@ export default class MorphTypeChange {
       },
     }
 
+    // Piece eligibility, decided now so the incoming renderer can coordinate
+    // (a unit chart holds its dots for the pieces to land on; a bar renders
+    // hidden until its mosaic assembles). Both directions conserve the ink:
+    // instead of a photocopy of the old chart fading over the new one, the
+    // outgoing marks are cut into one cell per object (or the outgoing dots
+    // fly to one cell each) and the pieces travel. The ghost below survives as
+    // the fallback for what pieces cannot serve.
+    const ff = familyOf(fromType)
+    const tf = familyOf(toType)
+    const pieceFamilies = ff === 'bar' || ff === 'summary'
+    if (tf === 'unit' && pieceFamilies) {
+      // mark -> objects. The object count comes from the incoming series (one
+      // datum per dot in the object form); the numeric form scales values by
+      // unitValue and cannot be counted here, so it keeps the burst + ghost.
+      const total = this._countUnitSeries(newSeries)
+      this._snapshot.pieceOut = total > 0 && total <= PIECE_BUDGET
+    } else if (ff === 'unit' && (tf === 'bar' || tf === 'summary')) {
+      // objects -> mark. The dots were just captured, so the count is exact.
+      let total = 0
+      unitDots.forEach((list) => {
+        total += list.length
+      })
+      if (total > 0 && total <= PIECE_BUDGET) {
+        this._snapshot.pieceIn = true
+        this._snapshot.sourceDots = unitDots
+        // Flat mark order of the incoming chart, the same derivation
+        // _buildMapping uses, so cluster k pairs with keyOrder[k].
+        /** @type {string[]} */
+        const keyOrder = []
+        ;(Array.isArray(newSeries) ? newSeries : []).forEach(
+          (/** @type {any} */ s, /** @type {number} */ seriesIdx) => {
+            const data = s && Array.isArray(s.data) ? s.data : []
+            for (let j = 0; j < data.length; j++) {
+              keyOrder.push(`${seriesIdx}:${j}`)
+            }
+          },
+        )
+        this._snapshot.keyOrder = keyOrder
+      }
+    }
+
     // Marks with no successor need an exit, and the outgoing chart is torn
     // down before the incoming one draws its first frame, so the only way to
-    // give them one is to take a copy now while it is still mounted.
-    if (this._needsGhost(fromType, toType)) this._captureGhost()
+    // give them one is to take a copy now while it is still mounted. When the
+    // piece layer will run, the copy is never mounted, so skip taking it.
+    if (
+      this._needsGhost(fromType, toType) &&
+      !this._snapshot.pieceOut &&
+      !this._snapshot.pieceIn
+    ) {
+      this._captureGhost()
+    }
 
     // Clear w.globals.previousPaths so the destination chart's renderer
     // doesn't try to read entries from the outgoing chart (which would be
@@ -397,18 +471,462 @@ export default class MorphTypeChange {
     if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost)
   }
 
+  /* ------------------------------------------------------------------ *
+   * The piece layer (see MorphPieces for the geometry).
+   * ------------------------------------------------------------------ */
+
+  /**
+   * Object count of an incoming unit series: one datum per dot in the object
+   * form. The numeric form ([3, 5]) scales values by `plotOptions.unit
+   * .unitValue`, which is not resolvable pre-merge, so it counts as zero and
+   * keeps the burst-and-ghost behaviour.
+   *
+   * @param {any} newSeries
+   * @returns {number}
+   */
+  _countUnitSeries(newSeries) {
+    if (!Array.isArray(newSeries)) return 0
+    let total = 0
+    for (const s of newSeries) {
+      if (!s || typeof s !== 'object' || !Array.isArray(s.data)) return 0
+      total += s.data.length
+    }
+    return total
+  }
+
+  /**
+   * Whether the incoming unit chart should hold its dots for the piece layer:
+   * render them at their final slots, hidden, and let the pieces do the
+   * flying. The reveal happens per dot as its piece lands.
+   *
+   * Consulted by the unit renderer during its draw, which runs after
+   * `captureBeforeDestroy` and before `applyChromeFade`, so the decision was
+   * already made from the same series the renderer is now drawing.
+   *
+   * @returns {boolean}
+   */
+  usesPieceTakeover() {
+    return !!(this._snapshot && this._snapshot.pieceOut)
+  }
+
+  /**
+   * Whether the piece layer claims the incoming mark at (realIndex, j): a
+   * source cluster's dots will fly to it and tile it, so it must render
+   * hidden and reveal only when its mosaic is complete. Consulted by the bar
+   * renderer (boxPlot and violin render through it).
+   *
+   * @param {number|string} realIndex
+   * @param {number|string} j
+   * @returns {boolean}
+   */
+  claimsTargetMark(realIndex, j) {
+    return !!(
+      this._snapshot &&
+      this._snapshot.pieceIn &&
+      this._snapshot.mapping.has(`${realIndex}:${j}`)
+    )
+  }
+
+  /**
+   * Create the overlay group the pieces are driven in. It lives INSIDE the
+   * new chart's elGraphical so every coordinate matches the marks' own local
+   * space, and it never takes a pointer event.
+   * @returns {any} the <g> node, or null
+   */
+  _makePieceLayer() {
+    /** @type {any} */
+    const graph = this.w.dom?.elGraphical
+    const host = graph && graph.node
+    if (!host || typeof host.appendChild !== 'function') return null
+    const g = BrowserAPIs.createElementNS('http://www.w3.org/2000/svg', 'g')
+    if (!g) return null
+    g.setAttribute('class', 'apexcharts-morph-pieces')
+    g.setAttribute('pointer-events', 'none')
+    host.appendChild(g)
+    this._pieceLayer = g
+    return g
+  }
+
+  /**
+   * Reveal everything a piece takeover hid, whether or not the pieces ran.
+   * The attribute is plain (no namespace colon) so it stays selectable
+   * everywhere.
+   */
+  _revealPieceHidden() {
+    /** @type {any} */
+    const baseEl = this.w.globals.dom?.baseEl
+    if (!baseEl || typeof baseEl.querySelectorAll !== 'function') return
+    baseEl.querySelectorAll('[data-piece-hidden]').forEach(
+      (/** @type {any} */ el) => {
+        el.removeAttribute('opacity')
+        el.removeAttribute('data-piece-hidden')
+      },
+    )
+  }
+
+  /** Stop the piece run, drop the overlay, and reveal anything still hidden. */
+  _cancelPieces() {
+    if (this._pieceCancel) {
+      this._pieceCancel()
+      this._pieceCancel = null
+    }
+    const layer = this._pieceLayer
+    this._pieceLayer = null
+    if (layer && layer.parentNode) layer.parentNode.removeChild(layer)
+    this._revealPieceHidden()
+  }
+
+  /**
+   * mark -> objects. Cut each captured mark into one cell per dot and fly
+   * every cell to its dot, corners rounding off and fill blending on the way.
+   * The real dots (rendered hidden by the unit chart, see usesPieceTakeover)
+   * are revealed one by one as their piece lands, so the handoff is
+   * geometrically exact and nothing ever fades.
+   */
+  _separatePieces() {
+    const snap = this._snapshot
+    /** @type {any} */
+    const baseEl = this.w.globals.dom?.baseEl
+    if (!snap || !baseEl) return this._revealPieceHidden()
+
+    // The live dots, grouped by cluster. They exist and are hidden: the unit
+    // renderer drew them at their final slots before this ran.
+    /** @type {Map<number, Array<{el:any,x:number,y:number,r:number,fill:string|null}>>} */
+    const byCluster = new Map()
+    let total = 0
+    baseEl
+      .querySelectorAll('.apexcharts-unit-area')
+      .forEach((/** @type {any} */ dot) => {
+        const i = parseInt(dot.getAttribute('i') ?? '', 10)
+        if (isNaN(i)) return
+        const cxAttr = dot.getAttribute('cx')
+        let x
+        let y
+        let r = 3
+        if (cxAttr != null) {
+          x = parseFloat(cxAttr)
+          y = parseFloat(dot.getAttribute('cy') ?? '')
+          r = parseFloat(dot.getAttribute('r') ?? '3') || 3
+        } else {
+          const wAttr = parseFloat(dot.getAttribute('width') ?? '0') || 0
+          const hAttr = parseFloat(dot.getAttribute('height') ?? '0') || 0
+          x = parseFloat(dot.getAttribute('x') ?? '') + wAttr / 2
+          y = parseFloat(dot.getAttribute('y') ?? '') + hAttr / 2
+          r = Math.max(wAttr, hAttr) / 2 || 3
+        }
+        if (!isFinite(x) || !isFinite(y)) return
+        let list = byCluster.get(i)
+        if (!list) {
+          list = []
+          byCluster.set(i, list)
+        }
+        list.push({ el: dot, x, y, r, fill: dot.getAttribute('fill') })
+        total++
+      })
+
+    if (total === 0 || total > PIECE_BUDGET) return this._revealPieceHidden()
+
+    const layer = this._makePieceLayer()
+    if (!layer) return this._revealPieceHidden()
+
+    /** @type {import('./MorphPieces').Piece[]} */
+    const pieces = []
+    const doc = layer.ownerDocument
+
+    Array.from(byCluster.keys())
+      .sort((a, b) => a - b)
+      .forEach((i) => {
+        const dots = /** @type {any[]} */ (byCluster.get(i))
+        const box = this.getInitialBBoxFor(i)
+        const entry = snap.mapping.get(`${i}:0`)
+        if (!box || !entry) {
+          // No outgoing mark stood for this cluster (an entering series): the
+          // dots have nothing to come out of, so just show them.
+          dots.forEach((d) => {
+            d.el.removeAttribute('opacity')
+            d.el.removeAttribute('data-piece-hidden')
+          })
+          return
+        }
+
+        // A gradient fill arrives as url(#...); the series colour is the
+        // honest solid stand-in.
+        const markFill =
+          entry.fill && entry.fill.indexOf('url(') !== 0
+            ? entry.fill
+            : this.w.globals.colors?.[i] || dots[0].fill
+
+        const cells = sortByHilbert(
+          gridDivideRect(box, dots.length),
+          (c) => [c.x + c.width / 2, c.y + c.height / 2],
+        )
+        const ordered = sortByHilbert(dots, (d) => [d.x, d.y])
+
+        for (let k = 0; k < ordered.length; k++) {
+          const cell = cells[k]
+          const dot = ordered[k]
+          const el = doc.createElementNS('http://www.w3.org/2000/svg', 'rect')
+          // Which cluster this piece serves; diagnostics and tests key on it.
+          el.setAttribute('data-i', String(i))
+          el.setAttribute('x', String(cell.x))
+          el.setAttribute('y', String(cell.y))
+          el.setAttribute('width', String(cell.width))
+          el.setAttribute('height', String(cell.height))
+          el.setAttribute('rx', '0')
+          el.setAttribute('fill', String(markFill))
+          layer.appendChild(el)
+          pieces.push({
+            el,
+            from: { x: cell.x, y: cell.y, width: cell.width, height: cell.height, rx: 0 },
+            to: {
+              x: dot.x - dot.r,
+              y: dot.y - dot.r,
+              width: dot.r * 2,
+              height: dot.r * 2,
+              rx: dot.r,
+            },
+            fill: makeColorLerp(markFill, dot.fill),
+            fillEnd: dot.fill,
+            delay: 0,
+            meta: { dotEl: dot.el },
+          })
+        }
+      })
+
+    if (!pieces.length) return this._cancelPieces()
+
+    this._runPieces(pieces, (piece) => {
+      // The dot appears exactly where its piece just was, then the piece goes:
+      // a swap, not a fade.
+      const dotEl = piece.meta.dotEl
+      dotEl.removeAttribute('opacity')
+      dotEl.removeAttribute('data-piece-hidden')
+      if (piece.el.parentNode) piece.el.parentNode.removeChild(piece.el)
+    })
+  }
+
+  /**
+   * objects -> mark. Each captured outgoing dot flies to one cell of the
+   * incoming mark, squaring off and blending towards the mark's fill; the
+   * mark itself (rendered hidden, see claimsTargetMark) is revealed the
+   * moment its last piece lands and the mosaic is complete, which is also the
+   * moment the seams disappear.
+   */
+  _combinePieces() {
+    const snap = this._snapshot
+    /** @type {any} */
+    const baseEl = this.w.globals.dom?.baseEl
+    if (!snap || !snap.sourceDots || !snap.keyOrder || !baseEl) {
+      return this._revealPieceHidden()
+    }
+
+    // The incoming marks, keyed `${realIndex}:${j}` with every path element
+    // that makes the mark up (a boxPlot draws two per category).
+    const targets = this._collectTargetMarks(snap.toType)
+    if (!targets.size) return this._revealPieceHidden()
+
+    // Old-chart dot coordinates shift into the new chart's local space the
+    // same way every captured path does (see getInitialPathFor).
+    const dx = snap.oldLayout.translateX - (this.w.layout.translateX || 0)
+    const dy = snap.oldLayout.translateY - (this.w.layout.translateY || 0)
+
+    const clusterIdx = Array.from(snap.sourceDots.keys()).sort((a, b) => a - b)
+
+    const layer = this._makePieceLayer()
+    if (!layer) return this._revealPieceHidden()
+    const doc = layer.ownerDocument
+
+    /** @type {import('./MorphPieces').Piece[]} */
+    const pieces = []
+
+    for (let k = 0; k < clusterIdx.length; k++) {
+      const dots = /** @type {any[]} */ (snap.sourceDots.get(clusterIdx[k]))
+      const key = snap.keyOrder[k]
+      const target = key ? targets.get(key) : null
+      if (!target || !dots || !dots.length) {
+        // A mark with no incoming dots (or dots with no mark) has no pieces;
+        // whatever was hidden for it must still show.
+        if (target) {
+          target.els.forEach((/** @type {any} */ el) => {
+            el.removeAttribute('opacity')
+            el.removeAttribute('data-piece-hidden')
+          })
+        }
+        continue
+      }
+
+      const markFill =
+        target.fill && target.fill.indexOf('url(') !== 0
+          ? target.fill
+          : this.w.globals.colors?.[target.realIndex] || dots[0].fill
+
+      const cells = sortByHilbert(
+        gridDivideRect(target.bbox, dots.length),
+        (c) => [c.x + c.width / 2, c.y + c.height / 2],
+      )
+      const ordered = sortByHilbert(dots, (d) => [d.x, d.y])
+
+      // Landed-piece bookkeeping: the mark reveals when ALL of its pieces are
+      // down, and its tiles leave together, so the mosaic holds until the
+      // moment it becomes the solid mark.
+      const markState = { remaining: ordered.length, els: target.els, tiles: /** @type {any[]} */ ([]) }
+
+      for (let m = 0; m < ordered.length; m++) {
+        const dot = ordered[m]
+        const cell = cells[m]
+        const el = doc.createElementNS('http://www.w3.org/2000/svg', 'rect')
+        const fx = dot.x + dx - dot.r
+        const fy = dot.y + dy - dot.r
+        // Which incoming mark this piece tiles; diagnostics and tests key on it.
+        el.setAttribute('data-key', key)
+        el.setAttribute('x', String(fx))
+        el.setAttribute('y', String(fy))
+        el.setAttribute('width', String(dot.r * 2))
+        el.setAttribute('height', String(dot.r * 2))
+        el.setAttribute('rx', String(dot.r))
+        el.setAttribute('fill', String(dot.fill || markFill))
+        layer.appendChild(el)
+        markState.tiles.push(el)
+        pieces.push({
+          el,
+          from: { x: fx, y: fy, width: dot.r * 2, height: dot.r * 2, rx: dot.r },
+          to: { x: cell.x, y: cell.y, width: cell.width, height: cell.height, rx: 0 },
+          fill: makeColorLerp(dot.fill, markFill),
+          fillEnd: String(markFill),
+          delay: 0,
+          meta: { markState },
+        })
+      }
+    }
+
+    if (!pieces.length) return this._cancelPieces()
+
+    this._runPieces(pieces, (piece) => {
+      const state = piece.meta.markState
+      state.remaining--
+      if (state.remaining === 0) {
+        state.els.forEach((/** @type {any} */ el) => {
+          el.removeAttribute('opacity')
+          el.removeAttribute('data-piece-hidden')
+        })
+        state.tiles.forEach((/** @type {any} */ t) => {
+          if (t.parentNode) t.parentNode.removeChild(t)
+        })
+      }
+    })
+  }
+
+  /**
+   * Stagger and start a piece run. Delays sweep the (already spatially
+   * sorted) list front to back, and the last piece still lands within the
+   * configured morph speed.
+   *
+   * @param {import('./MorphPieces').Piece[]} pieces
+   * @param {(piece: import('./MorphPieces').Piece) => void} onPieceDone
+   */
+  _runPieces(pieces, onPieceDone) {
+    const speed = this.getSpeed()
+    const stagger = Math.min(PIECE_STAGGER_MAX, speed * 0.35)
+    const flight = Math.max(180, speed - stagger)
+    for (let k = 0; k < pieces.length; k++) {
+      pieces[k].delay = pieces.length > 1 ? (k / (pieces.length - 1)) * stagger : 0
+    }
+    this._pieceCancel = runPieceTween({
+      pieces,
+      duration: flight,
+      onPieceDone,
+      onAllDone: () => {
+        this._pieceCancel = null
+        this._cancelPieces()
+      },
+    })
+  }
+
+  /**
+   * The incoming chart's marks, read live: every `path[pathTo]` grouped into
+   * one mark per (realIndex, j), with the union bbox of its final geometry.
+   * Bar marks are one path each; summary marks (boxPlot, violin) may be
+   * several, walked exactly like the capture branch walks the outgoing ones.
+   *
+   * @param {string} toType
+   * @returns {Map<string, { realIndex: number, j: number, bbox: {x:number,y:number,width:number,height:number}, fill: string|null, els: any[] }>}
+   */
+  _collectTargetMarks(toType) {
+    /** @type {any} */
+    const baseEl = this.w.globals.dom?.baseEl
+    /** @type {Map<string, any>} */
+    const out = new Map()
+    if (!baseEl) return out
+
+    const fam = familyOf(toType)
+    const wrapClass =
+      fam === 'summary'
+        ? `.apexcharts-${toType}-series`
+        : '.apexcharts-bar-series'
+
+    baseEl
+      .querySelectorAll(`${wrapClass} .apexcharts-series`)
+      .forEach((/** @type {any} */ group) => {
+        const realIndex =
+          parseInt(group.getAttribute('data:realIndex') ?? '0', 10) || 0
+        let order = 0
+        group
+          .querySelectorAll('path[pathTo]')
+          .forEach((/** @type {any} */ p) => {
+            const d = p.getAttribute('pathTo') || p.getAttribute('d')
+            if (!d || !d.trim()) return
+            // Summary paths carry their category on `j`; bar paths are read in
+            // draw order, which is the same order the mapping was keyed in.
+            const jAttr = parseInt(p.getAttribute('j') ?? '', 10)
+            const j = isNaN(jAttr) ? order++ : jAttr
+            const box = this._pathBBox(d)
+            if (!box) return
+            const key = `${realIndex}:${j}`
+            const prev = out.get(key)
+            if (prev) {
+              prev.els.push(p)
+              prev.bbox = {
+                x: Math.min(prev.bbox.x, box.minX),
+                y: Math.min(prev.bbox.y, box.minY),
+                width:
+                  Math.max(prev.bbox.x + prev.bbox.width, box.maxX) -
+                  Math.min(prev.bbox.x, box.minX),
+                height:
+                  Math.max(prev.bbox.y + prev.bbox.height, box.maxY) -
+                  Math.min(prev.bbox.y, box.minY),
+              }
+            } else {
+              out.set(key, {
+                realIndex,
+                j,
+                bbox: {
+                  x: box.minX,
+                  y: box.minY,
+                  width: box.maxX - box.minX,
+                  height: box.maxY - box.minY,
+                },
+                fill: p.getAttribute('fill'),
+                els: [p],
+              })
+            }
+          })
+      })
+
+    return out
+  }
+
   /**
    * Walk the outgoing chart's DOM and collect path `d` strings keyed by
    * (realIndex, j). The selectors are scoped to the chart family — bar
    * elements have `pathTo` set; pie/radial elements use their final `d`.
    *
    * @param {string} fromType
-   * @returns {{ marks: Array<{ realIndex: number, j: number, d: string, fill: string|null, key?: string|null }>, branches: Array<{ key: string, d: string, fill: string|null }> }}
+   * @returns {{ marks: Array<{ realIndex: number, j: number, d: string, fill: string|null, key?: string|null }>, branches: Array<{ key: string, d: string, fill: string|null }>, unitDots: Map<number, Array<{x:number,y:number,r:number,fill:string|null}>> }}
    */
   _captureFromDOM(fromType) {
     /** @type {any} */
     const baseEl = this.w.globals.dom?.baseEl
-    if (!baseEl) return { marks: [], branches: [] }
+    if (!baseEl) return { marks: [], branches: [], unitDots: new Map() }
 
     /** @type {Array<{ realIndex: number, j: number, d: string, fill: string|null, key?: string|null }>} */
     const captured = []
@@ -416,6 +934,10 @@ export default class MorphTypeChange {
     // when both charts carry branch keys, so they travel separately.
     /** @type {Array<{ key: string, d: string, fill: string|null }>} */
     const branches = []
+    // Per-dot records when the outgoing chart is a unit chart, keyed by
+    // cluster index. Only the unit branch fills this.
+    /** @type {Map<number, Array<{x:number,y:number,r:number,fill:string|null}>>} */
+    const unitDots = new Map()
     const fam = familyOf(fromType)
 
     if (fam === 'bar') {
@@ -566,16 +1088,28 @@ export default class MorphTypeChange {
         const cxAttr = dot.getAttribute('cx')
         let x
         let y
+        let r = 3
         if (cxAttr != null) {
           x = parseFloat(cxAttr)
           y = parseFloat(dot.getAttribute('cy') ?? '')
+          r = parseFloat(dot.getAttribute('r') ?? '3') || 3
         } else {
           const wAttr = parseFloat(dot.getAttribute('width') ?? '0') || 0
           const hAttr = parseFloat(dot.getAttribute('height') ?? '0') || 0
           x = parseFloat(dot.getAttribute('x') ?? '') + wAttr / 2
           y = parseFloat(dot.getAttribute('y') ?? '') + hAttr / 2
+          r = Math.max(wAttr, hAttr) / 2 || 3
         }
         if (!isFinite(x) || !isFinite(y)) return
+        // The per-dot record, for the piece layer: when the target can be
+        // tiled, each of these dots flies to its own cell of the incoming mark
+        // instead of vanishing with the teardown.
+        let list = unitDots.get(i)
+        if (!list) {
+          list = []
+          unitDots.set(i, list)
+        }
+        list.push({ x, y, r, fill: dot.getAttribute('fill') })
         const box = boxes.get(i)
         if (!box) {
           boxes.set(i, {
@@ -673,7 +1207,7 @@ export default class MorphTypeChange {
       }
     }
 
-    return { marks: captured, branches }
+    return { marks: captured, branches, unitDots }
   }
 
   /**
@@ -1153,10 +1687,13 @@ export default class MorphTypeChange {
     const baseEl = this.w.globals.dom?.baseEl
     if (!baseEl) return
 
-    // The incoming chart exists now, so the outgoing marks captured before the
-    // teardown finally have something to leave over. No-ops for every pair
-    // that inherits its shapes (see _needsGhost).
-    this._mountGhost()
+    // The incoming chart exists now, so the outgoing marks captured before
+    // the teardown finally have something to leave over. Pieces when the pair
+    // can conserve its ink; the ghost fade otherwise; nothing at all for
+    // pairs that inherit their shapes (see _needsGhost).
+    if (this._snapshot.pieceOut) this._separatePieces()
+    else if (this._snapshot.pieceIn) this._combinePieces()
+    else this._mountGhost()
 
     const speed = this.getSpeed()
     const chromeSelectors = [
@@ -1192,5 +1729,9 @@ export default class MorphTypeChange {
   cleanup() {
     this._snapshot = null
     this._removeGhost()
+    // Belt and braces for the piece layer: normally it has already finished
+    // and detached itself, but a throttled tab can leave it mid-flight, and
+    // nothing hidden may survive the transition.
+    this._cancelPieces()
   }
 }

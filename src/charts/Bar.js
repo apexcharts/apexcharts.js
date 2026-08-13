@@ -596,6 +596,17 @@ class Bar {
 
       renderedPath.attr('clip-path', `url(#gridRectBarMask${w.globals.cuid})`)
 
+      // Cross-type morph, objects -> mark: the piece layer flies the outgoing
+      // dots here and tiles this mark with them, so the mark holds hidden
+      // until its mosaic is complete and is revealed the moment the seams
+      // close. The engine reveals it (and sweeps the attribute on cleanup, so
+      // it can never stay hidden past the transition). No-op without the
+      // morph feature.
+      if (this.ctx.morphTypeChange?.claimsTargetMark?.(realIndex, j)) {
+        renderedPath.node.setAttribute('opacity', '0')
+        renderedPath.node.setAttribute('data-piece-hidden', '1')
+      }
+
       const forecast = w.config.forecastDataPoints
       if (forecast.count > 0) {
         if (j >= w.globals.dataPoints - forecast.count) {

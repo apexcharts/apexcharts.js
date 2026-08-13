@@ -234,6 +234,15 @@ export default class Unit {
       typeof morph.getInitialCenterFor === 'function'
     const perRowBurst =
       morphActive && typeof morph.getInitialSlotFor === 'function'
+    // Piece takeover: the morph engine will cut the outgoing marks into one
+    // cell per dot and fly the cells here itself, so the dots render at their
+    // final slots, hidden, and are revealed one by one as their piece lands.
+    // The engine sweeps the hidden attribute on cleanup, so a dot can never
+    // stay invisible past the transition.
+    const pieceTakeover =
+      morphActive &&
+      typeof morph.usesPieceTakeover === 'function' &&
+      morph.usesPieceTakeover()
 
     // Positions from the PREVIOUS render, keyed "i:j". On an update this lets a
     // dot glide from its old slot to its new one (the keyed transition) instead
@@ -321,7 +330,14 @@ export default class Unit {
         }
         gIndex++
         nextPrev.set(key, { x: d.x, y: d.y, fill: dotFill, r: rj })
-        if (animate) {
+        if (pieceTakeover) {
+          // The piece layer does the flying; this dot waits at its final slot
+          // for its piece to land, and gets no tween of its own so the swap
+          // is geometrically exact.
+          this._placeDot(el.node, opts, d.x, d.y)
+          el.node.setAttribute('opacity', '0')
+          el.node.setAttribute('data-piece-hidden', '1')
+        } else if (animate) {
           const from = prev && prev.get(key)
           // Priority: previous slot (keyed update) -> the part of the outgoing
           // mark that stood for THIS row (morph) -> cluster centre (fresh

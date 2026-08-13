@@ -1,194 +1,356 @@
 /**
  * Cross-type morph: the exit of the OUTGOING marks.
  *
- * The morph engine tears the old chart down before the new one draws its first
- * frame, so a mark with no successor in the destination simply stopped
- * existing. That is fine for bar -> pie, where every wedge starts life as the
- * literal path of the bar it replaces, and wrong for the unit pairs, where one
- * bar becomes N dots (and back). Those pairs now keep a detached copy of the
- * outgoing marks and fade it over the incoming animation.
+ * The morph engine tears the old chart down before the new one draws its
+ * first frame. For pairs whose marks correspond 1:1 (bar -> pie) the outgoing
+ * mark IS the incoming mark's first frame and needs no exit. For the unit
+ * pairs the correspondence is one-to-many, and the exit is the PIECE LAYER:
+ * the outgoing mark is cut into one cell per object and every cell flies to
+ * its object, corners rounding off and fill blending, so the ink is conserved
+ * and nothing ever fades. The old whole-chart ghost fade survives only as the
+ * fallback (an unsupported source family such as radial, or an object count
+ * past the piece budget).
  *
- * These tests pin the parts that are invisible to a unit test: that the copy
- * lands pixel-for-pixel over where the originals were, that it is always
- * cleaned up, that it never appears for a pair which inherits its shapes, and
- * that it stays off under reduced motion.
+ * These tests pin the parts that are invisible to a unit test: that the
+ * pieces start exactly where the outgoing marks were, that the hidden
+ * incoming elements are always revealed, that no overlay survives the
+ * transition, that the 1:1 pairs never grow an overlay, and that reduced
+ * motion skips all of it.
  */
 
 import { test } from '../fixtures/base.js'
 import { expect } from '@playwright/test'
 
+const PIECES = '.apexcharts-morph-pieces rect'
 const GHOST = '.apexcharts-morph-ghost'
 const UNIT_BTN = '.actions button[data-type="unit"]'
 const COLUMN_BTN = '.actions button[data-type="bar"][data-horizontal="false"]'
 
-test.describe('Cross-type morph ghost', () => {
-  test('column -> unit: the ghost copies the outgoing bars exactly', async ({
+test.describe('Cross-type morph exit layer', () => {
+  test('column -> unit: the pieces tile the outgoing bars exactly', async ({
+    page,
+    loadChart,
+  }) => {
+    await loadChart('misc', 'chart-type-morph')
+    // Geometry is measured against the LIVE bars, so the entry animation must
+    // be fully settled first; animationEnded fires before the last staggered
+    // bar has reached its final height.
+    await page.waitForTimeout(800)
+
+    const r = await page.evaluate(async ([piecesSel, unitBtn]) => {
+      // The bars' page-space geometry before anything changes.
+      const bars = [...document.querySelectorAll('.apexcharts-bar-series path[pathTo]')].map(
+        (p) => {
+          const b = p.getBoundingClientRect()
+          return { x: b.x, y: b.y, w: b.width, h: b.height }
+        },
+      )
+
+      document.querySelector(unitBtn).click()
+      await new Promise((res) => requestAnimationFrame(res))
+
+      // Union of each cluster's pieces, in the same page space.
+      const unions = {}
+      document.querySelectorAll(piecesSel).forEach((el) => {
+        const i = el.getAttribute('data-i')
+        const b = el.getBoundingClientRect()
+        const u = (unions[i] = unions[i] || { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9, n: 0 })
+        u.x0 = Math.min(u.x0, b.x)
+        u.y0 = Math.min(u.y0, b.y)
+        u.x1 = Math.max(u.x1, b.x + b.width)
+        u.y1 = Math.max(u.y1, b.y + b.height)
+        u.n++
+      })
+
+      const drift = bars.map((bar, i) => {
+        const u = unions[i]
+        if (!u) return null
+        return Math.max(
+          Math.abs(u.x0 - bar.x),
+          Math.abs(u.y0 - bar.y),
+          Math.abs(u.x1 - (bar.x + bar.w)),
+          Math.abs(u.y1 - (bar.y + bar.h)),
+        )
+      })
+
+      return {
+        bars: bars.length,
+        clusters: Object.keys(unions).length,
+        pieces: Object.values(unions).reduce((n, u) => n + u.n, 0),
+        maxDrift: Math.max(...drift.filter((d) => d != null)),
+        hiddenDots: document.querySelectorAll('.apexcharts-unit-area[data-piece-hidden]').length,
+        dots: document.querySelectorAll('.apexcharts-unit-area').length,
+        ghosts: document.querySelectorAll('.apexcharts-morph-ghost').length,
+      }
+    }, [PIECES, UNIT_BTN])
+
+    expect(r.bars).toBeGreaterThan(0)
+    expect(r.clusters).toBe(r.bars)
+    // One piece per object, and every dot waits hidden for its piece.
+    expect(r.pieces).toBe(r.dots)
+    expect(r.hiddenDots).toBe(r.dots)
+    // The cells tile the mark by construction, so the union of a cluster's
+    // pieces must reproduce its bar's rect to the sub-pixel.
+    expect(r.maxDrift).toBeLessThan(1)
+    // Ink is conserved: no fading photocopy anywhere.
+    expect(r.ghosts).toBe(0)
+  })
+
+  test('column -> unit: dots are revealed as pieces land, none fade', async ({
     page,
     loadChart,
   }) => {
     await loadChart('misc', 'chart-type-morph')
 
-    const r = await page.evaluate(async ([ghostSel, unitBtn]) => {
-      const boxes = (sel) =>
-        Array.from(document.querySelectorAll(sel)).map((p) => {
-          const b = p.getBoundingClientRect()
-          return [+b.x.toFixed(1), +b.y.toFixed(1), +b.width.toFixed(1), +b.height.toFixed(1)]
-        })
-
-      const before = boxes('.apexcharts-bar-series path[pathTo]')
+    const r = await page.evaluate(async ([piecesSel, unitBtn]) => {
       document.querySelector(unitBtn).click()
-      await new Promise((res) => requestAnimationFrame(res))
-
-      const ghost = boxes(`${ghostSel} .apexcharts-bar-series path[pathTo]`)
-      const drift = before
-        .map((b, i) => (ghost[i] ? Math.max(...b.map((v, k) => Math.abs(v - ghost[i][k]))) : null))
-        .filter((d) => d != null)
-
-      return {
-        nBefore: before.length,
-        nGhost: ghost.length,
-        maxDrift: drift.length ? Math.max(...drift) : null,
-        // The incoming dots are already mounted underneath on the same frame.
-        liveDots: document.querySelectorAll(
-          `.apexcharts-svg:not(${ghostSel}) .apexcharts-unit-area`,
-        ).length,
-      }
-    }, [GHOST, UNIT_BTN])
-
-    expect(r.nBefore).toBeGreaterThan(0)
-    expect(r.nGhost).toBe(r.nBefore)
-    // Same nodes, same box: the copy is not re-derived geometry, so any drift
-    // at all means the overlay is mispositioned.
-    expect(r.maxDrift).toBeLessThan(0.5)
-    expect(r.liveDots).toBeGreaterThan(0)
-  })
-
-  test('column -> unit: the ghost fades and is removed', async ({ page, loadChart }) => {
-    await loadChart('misc', 'chart-type-morph')
-
-    const r = await page.evaluate(async ([ghostSel, unitBtn]) => {
-      const op = () => {
-        const g = document.querySelector(ghostSel)
-        return g ? +getComputedStyle(g).opacity : null
-      }
-      document.querySelector(unitBtn).click()
-      const ramp = []
-      for (let k = 0; k < 70; k++) {
+      const timeline = []
+      for (let k = 0; k < 90; k++) {
         await new Promise((res) => requestAnimationFrame(res))
-        const v = op()
-        if (v != null) ramp.push(v)
+        const pieces = document.querySelectorAll(piecesSel).length
+        const visible = [...document.querySelectorAll('.apexcharts-unit-area')].filter(
+          (d) => d.getAttribute('opacity') !== '0',
+        ).length
+        timeline.push({ pieces, visible })
+        if (pieces === 0 && k > 5) break
       }
-      await new Promise((res) => setTimeout(res, 1200))
+      await new Promise((res) => setTimeout(res, 1000))
       return {
-        frames: ramp.length,
-        firstOpacity: ramp[0] ?? null,
-        lastOpacity: ramp[ramp.length - 1] ?? null,
-        monotonic: ramp.every((v, i) => i === 0 || v <= ramp[i - 1] + 1e-6),
-        ghostsAfter: document.querySelectorAll(ghostSel).length,
-        canvases: document.querySelectorAll('.apexcharts-canvas').length,
+        timeline,
+        settledPieces: document.querySelectorAll(piecesSel).length,
+        settledHidden: document.querySelectorAll('[data-piece-hidden]').length,
+        settledVisible: [...document.querySelectorAll('.apexcharts-unit-area')].filter(
+          (d) => d.getAttribute('opacity') !== '0',
+        ).length,
+        dots: document.querySelectorAll('.apexcharts-unit-area').length,
       }
-    }, [GHOST, UNIT_BTN])
+    }, [PIECES, UNIT_BTN])
 
-    expect(r.frames).toBeGreaterThan(10)
-    expect(r.firstOpacity).toBeGreaterThan(0.9)
-    expect(r.lastOpacity).toBeLessThan(0.2)
-    expect(r.monotonic).toBe(true)
-    expect(r.ghostsAfter).toBe(0)
-    expect(r.canvases).toBe(1)
+    // The reveal is a swap: visible-dot count only ever grows, and every dot
+    // that appears does so because its piece just landed on it (pieces shrink
+    // by exactly what visibility gains).
+    const t = r.timeline
+    for (let k = 1; k < t.length; k++) {
+      expect(t[k].visible).toBeGreaterThanOrEqual(t[k - 1].visible)
+      expect(t[k].pieces + t[k].visible).toBe(t[0].pieces)
+    }
+    expect(r.settledPieces).toBe(0)
+    expect(r.settledHidden).toBe(0)
+    expect(r.settledVisible).toBe(r.dots)
   })
 
-  test('unit -> column: the dots get the exit instead', async ({ page, loadChart }) => {
+  test('unit -> column: dots fly in and tile each mark, which reveals whole', async ({
+    page,
+    loadChart,
+  }) => {
     await loadChart('misc', 'chart-type-morph')
     await page.click(UNIT_BTN)
     await page.waitForSelector('.apexcharts-unit-area')
     await page.waitForTimeout(1500)
 
-    const r = await page.evaluate(async ([ghostSel, columnBtn]) => {
+    const r = await page.evaluate(async ([piecesSel, columnBtn]) => {
       const dotsBefore = document.querySelectorAll('.apexcharts-unit-area').length
       document.querySelector(columnBtn).click()
       await new Promise((res) => requestAnimationFrame(res))
-      const ghostDots = document.querySelectorAll(`${ghostSel} .apexcharts-unit-area`).length
-      await new Promise((res) => setTimeout(res, 1600))
+
+      const first = {
+        pieces: document.querySelectorAll(piecesSel).length,
+        hiddenMarks: document.querySelectorAll('path[data-piece-hidden]').length,
+        bars: document.querySelectorAll('.apexcharts-bar-series path[pathTo]').length,
+        ghosts: document.querySelectorAll('.apexcharts-morph-ghost').length,
+      }
+
+      // A mark reveals only when its whole mosaic has landed, so the visible
+      // count must step up mark by mark, never dot by dot.
+      const seen = new Set()
+      for (let k = 0; k < 90; k++) {
+        await new Promise((res) => requestAnimationFrame(res))
+        const visible = [...document.querySelectorAll('.apexcharts-bar-series path[pathTo]')].filter(
+          (p) => p.getAttribute('opacity') !== '0',
+        ).length
+        seen.add(visible)
+        if (document.querySelectorAll(piecesSel).length === 0 && k > 5) break
+      }
+      await new Promise((res) => setTimeout(res, 1000))
       return {
         dotsBefore,
-        ghostDots,
-        ghostsAfter: document.querySelectorAll(ghostSel).length,
-        liveBars: document.querySelectorAll('.apexcharts-bar-series path[pathTo]').length,
+        first,
+        revealSteps: [...seen].sort((a, b) => a - b),
+        settledPieces: document.querySelectorAll(piecesSel).length,
+        settledHidden: document.querySelectorAll('[data-piece-hidden]').length,
       }
-    }, [GHOST, COLUMN_BTN])
+    }, [PIECES, COLUMN_BTN])
 
-    expect(r.dotsBefore).toBeGreaterThan(0)
-    // Every dot is carried into the copy: without it they vanish on frame 1,
-    // hidden by an incoming bar that starts out the size of the whole cloud.
-    expect(r.ghostDots).toBe(r.dotsBefore)
-    expect(r.ghostsAfter).toBe(0)
-    expect(r.liveBars).toBeGreaterThan(0)
+    // Every outgoing dot became a piece; every incoming mark held for its
+    // mosaic.
+    expect(r.first.pieces).toBe(r.dotsBefore)
+    expect(r.first.hiddenMarks).toBe(r.first.bars)
+    expect(r.first.ghosts).toBe(0)
+    // The staggered assembly reveals marks progressively (at least a few
+    // distinct visible-counts before all are shown).
+    expect(r.revealSteps.length).toBeGreaterThan(2)
+    expect(r.revealSteps[r.revealSteps.length - 1]).toBe(r.first.bars)
+    expect(r.settledPieces).toBe(0)
+    expect(r.settledHidden).toBe(0)
   })
 
-  test('bar -> pie never ghosts: the wedge already starts as the bar', async ({
+  test('bar -> pie never grows an exit overlay: the wedge starts as the bar', async ({
     page,
     loadChart,
   }) => {
     await loadChart('misc', 'chart-type-morph')
 
-    const anyGhost = await page.evaluate(async (ghostSel) => {
-      let seen = false
+    const r = await page.evaluate(async ([piecesSel, ghostSel]) => {
+      let pieces = 0
+      let ghosts = 0
       document.querySelector('.actions button[data-type="pie"]').click()
       for (let k = 0; k < 70; k++) {
         await new Promise((res) => requestAnimationFrame(res))
-        if (document.querySelectorAll(ghostSel).length) seen = true
+        pieces = Math.max(pieces, document.querySelectorAll(piecesSel).length)
+        ghosts = Math.max(ghosts, document.querySelectorAll(ghostSel).length)
       }
-      return seen
-    }, GHOST)
+      return { pieces, ghosts }
+    }, [PIECES, GHOST])
 
-    // A copy here would double the image at t=0, since the incoming wedge is
-    // seeded with the outgoing bar's own `d`.
-    expect(anyGhost).toBe(false)
+    expect(r.pieces).toBe(0)
+    expect(r.ghosts).toBe(0)
   })
 
-  test('re-morphing mid-transition never stacks ghosts', async ({ page, loadChart }) => {
+  test('unit -> pie keeps the ghost fallback: wedges cannot be tiled yet', async ({
+    page,
+    loadChart,
+  }) => {
+    await loadChart('misc', 'chart-type-morph')
+    await page.click(UNIT_BTN)
+    await page.waitForTimeout(1500)
+
+    const r = await page.evaluate(async ([piecesSel, ghostSel]) => {
+      let pieces = 0
+      let ghosts = 0
+      document.querySelector('.actions button[data-type="pie"]').click()
+      for (let k = 0; k < 70; k++) {
+        await new Promise((res) => requestAnimationFrame(res))
+        pieces = Math.max(pieces, document.querySelectorAll(piecesSel).length)
+        ghosts = Math.max(ghosts, document.querySelectorAll(ghostSel).length)
+      }
+      await new Promise((res) => setTimeout(res, 1000))
+      return { pieces, ghosts, after: document.querySelectorAll(ghostSel).length }
+    }, [PIECES, GHOST])
+
+    expect(r.pieces).toBe(0)
+    expect(r.ghosts).toBe(1)
+    expect(r.after).toBe(0)
+  })
+
+  test('past the piece budget the ghost fallback runs and nothing hides', async ({
+    page,
+    loadChart,
+  }) => {
     await loadChart('misc', 'chart-type-morph')
 
-    const r = await page.evaluate(async ([ghostSel, unitBtn, columnBtn]) => {
-      let peak = 0
+    const r = await page.evaluate(async () => {
+      document.body.innerHTML = '<div id="probe" style="width:760px"></div>'
+      let seed = 3
+      const rand = () => {
+        seed = (seed * 16807) % 2147483647
+        return (seed - 1) / 2147483646
+      }
+      const obs = Array.from({ length: 1700 }, () => Math.round(20 + rand() * 60))
+      const chart = new window.ApexCharts(document.querySelector('#probe'), {
+        chart: { id: 'probe', type: 'histogram', height: 400 },
+        series: [{ name: 'Big', data: obs }],
+        plotOptions: { histogram: { bins: 20 } },
+      })
+      await chart.render()
+      chart.updateOptions({
+        chart: { type: 'unit' },
+        series: chart.rowSeries({ maxRows: 5000 }),
+        plotOptions: { unit: { layout: 'packed', unitValue: 1 } },
+      })
+      await new Promise((res) => requestAnimationFrame(res))
+      const first = {
+        pieces: document.querySelectorAll('.apexcharts-morph-pieces rect').length,
+        ghosts: document.querySelectorAll('.apexcharts-morph-ghost').length,
+        hidden: document.querySelectorAll('[data-piece-hidden]').length,
+        visibleDots: [...document.querySelectorAll('.apexcharts-unit-area')].filter(
+          (d) => d.getAttribute('opacity') !== '0',
+        ).length,
+      }
+      await new Promise((res) => setTimeout(res, 1400))
+      return { first, dots: document.querySelectorAll('.apexcharts-unit-area').length }
+    })
+
+    // 1700 objects exceed the budget: pieces stand down, the fade covers the
+    // exit, and the dots never hide (they burst as before).
+    expect(r.dots).toBe(1700)
+    expect(r.first.pieces).toBe(0)
+    expect(r.first.ghosts).toBe(1)
+    expect(r.first.hidden).toBe(0)
+    expect(r.first.visibleDots).toBeGreaterThan(0)
+  })
+
+  test('re-morphing mid-flight never stacks overlays or strands hidden marks', async ({
+    page,
+    loadChart,
+  }) => {
+    await loadChart('misc', 'chart-type-morph')
+
+    const r = await page.evaluate(async ([unitBtn, columnBtn]) => {
+      let peakLayers = 0
       document.querySelector(unitBtn).click()
       await new Promise((res) => setTimeout(res, 90))
       document.querySelector(columnBtn).click()
       await new Promise((res) => setTimeout(res, 90))
       document.querySelector(unitBtn).click()
-      for (let k = 0; k < 60; k++) {
+      for (let k = 0; k < 70; k++) {
         await new Promise((res) => requestAnimationFrame(res))
-        peak = Math.max(peak, document.querySelectorAll(ghostSel).length)
+        peakLayers = Math.max(
+          peakLayers,
+          document.querySelectorAll('.apexcharts-morph-pieces').length +
+            document.querySelectorAll('.apexcharts-morph-ghost').length,
+        )
       }
       await new Promise((res) => setTimeout(res, 1400))
       return {
-        peak,
-        after: document.querySelectorAll(ghostSel).length,
+        peakLayers,
+        layersAfter:
+          document.querySelectorAll('.apexcharts-morph-pieces').length +
+          document.querySelectorAll('.apexcharts-morph-ghost').length,
+        hiddenAfter: document.querySelectorAll('[data-piece-hidden]').length,
         canvases: document.querySelectorAll('.apexcharts-canvas').length,
       }
-    }, [GHOST, UNIT_BTN, COLUMN_BTN])
+    }, [UNIT_BTN, COLUMN_BTN])
 
-    expect(r.peak).toBeLessThanOrEqual(1)
-    expect(r.after).toBe(0)
+    expect(r.peakLayers).toBeLessThanOrEqual(1)
+    expect(r.layersAfter).toBe(0)
+    expect(r.hiddenAfter).toBe(0)
     expect(r.canvases).toBe(1)
   })
 
-  test('reduced motion skips the ghost', async ({ page, loadChart }) => {
+  test('reduced motion skips pieces, ghost and hiding alike', async ({ page, loadChart }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await loadChart('misc', 'chart-type-morph')
 
-    const r = await page.evaluate(async ([ghostSel, unitBtn]) => {
-      let peak = 0
+    const r = await page.evaluate(async ([piecesSel, ghostSel, unitBtn]) => {
+      let pieces = 0
+      let ghosts = 0
       document.querySelector(unitBtn).click()
       for (let k = 0; k < 40; k++) {
         await new Promise((res) => requestAnimationFrame(res))
-        peak = Math.max(peak, document.querySelectorAll(ghostSel).length)
+        pieces = Math.max(pieces, document.querySelectorAll(piecesSel).length)
+        ghosts = Math.max(ghosts, document.querySelectorAll(ghostSel).length)
       }
-      return { peak, dots: document.querySelectorAll('.apexcharts-unit-area').length }
-    }, [GHOST, UNIT_BTN])
+      return {
+        pieces,
+        ghosts,
+        hidden: document.querySelectorAll('[data-piece-hidden]').length,
+        dots: document.querySelectorAll('.apexcharts-unit-area').length,
+      }
+    }, [PIECES, GHOST, UNIT_BTN])
 
-    expect(r.peak).toBe(0)
-    // The chart still changes type; only the transition is dropped.
+    expect(r.pieces).toBe(0)
+    expect(r.ghosts).toBe(0)
+    expect(r.hidden).toBe(0)
     expect(r.dots).toBeGreaterThan(0)
   })
 })

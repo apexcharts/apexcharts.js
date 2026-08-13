@@ -169,7 +169,7 @@ test.describe('rowSeries() vs the morph capture', () => {
 })
 
 test.describe('the explode itself', () => {
-  test('histogram -> unit via rowSeries(): dots leave from their own bin', async ({
+  test('histogram -> unit via rowSeries(): the pieces leave from their own bin', async ({
     page,
     loadChart,
   }) => {
@@ -184,12 +184,13 @@ test.describe('the explode itself', () => {
           histogram: { bins: 12 },
         })
 
-        // Bar centres, in the outgoing chart's own space, before the change.
-        const barCentres = Array.from(
+        // Bar extents in PAGE space, before the change, so the comparison
+        // cannot be faked by the two chart types' differing plot origins.
+        const barRects = Array.from(
           document.querySelectorAll('#probe .apexcharts-bar-series path[pathTo]'),
         ).map((p) => {
-          const b = p.getBBox()
-          return b.width > 0 ? b.x + b.width / 2 : null
+          const b = p.getBoundingClientRect()
+          return b.width > 0 ? { x0: b.x, x1: b.x + b.width } : null
         })
 
         const rows = chart.rowSeries()
@@ -198,90 +199,76 @@ test.describe('the explode itself', () => {
           series: rows,
           plotOptions: { unit: { layout: 'packed', unitValue: 1 } },
         })
-        // Group dot x's by the `i` attribute the renderer stamps, which is the
-        // cluster index.
-        const byCluster = () => {
-          const out = {}
-          document
-            .querySelectorAll('.apexcharts-svg:not(.apexcharts-morph-ghost) .apexcharts-unit-area')
-            .forEach((d) => {
-              const i = +d.getAttribute('i')
-              const cx = d.getAttribute('cx')
-              const x =
-                cx != null ? +cx : +d.getAttribute('x') + (+d.getAttribute('width') || 0) / 2
-              ;(out[i] = out[i] || []).push(x)
-            })
-          return out
-        }
-        const widest = (g) =>
-          Math.max(...Object.values(g).map((xs) => Math.max(...xs) - Math.min(...xs)))
-        const meansOf = (g) =>
-          Object.keys(g)
-            .map(Number)
-            .sort((a, b) => a - b)
-            .map((k) => g[k].reduce((s, x) => s + x, 0) / g[k].length)
-
         await new Promise((res) => requestAnimationFrame(res))
-        const start = byCluster()
-        const startSpread = widest(start)
-        const startMeans = meansOf(start)
-        const ghostPresent = document.querySelectorAll('.apexcharts-morph-ghost').length
-        const liveDots = document.querySelectorAll(
-          '.apexcharts-svg:not(.apexcharts-morph-ghost) .apexcharts-unit-area',
+
+        // The pieces at their start: one per observation, grouped per bin,
+        // each group tiling the bar it is coming out of.
+        const groups = {}
+        document.querySelectorAll('.apexcharts-morph-pieces rect').forEach((el) => {
+          const i = +el.getAttribute('data-i')
+          const b = el.getBoundingClientRect()
+          const g = (groups[i] = groups[i] || { x0: 1e9, x1: -1e9, n: 0 })
+          g.x0 = Math.min(g.x0, b.x)
+          g.x1 = Math.max(g.x1, b.x + b.width)
+          g.n++
+        })
+        const keys = Object.keys(groups).map(Number).sort((a, b) => a - b)
+        const pieceCount = keys.reduce((n, k) => n + groups[k].n, 0)
+        const hiddenDots = document.querySelectorAll(
+          '.apexcharts-unit-area[data-piece-hidden]',
         ).length
 
-        await new Promise((res) => setTimeout(res, 1400))
-        const settledSpread = widest(byCluster())
+        // Each cluster's pieces UNION to exactly its bar's horizontal extent:
+        // the mark was cut, not approximated. (The centroid of the cells is
+        // not a valid statistic here; an unequal remainder row shifts it while
+        // the tiling stays exact.) Absolute comparison is valid because both
+        // sides were measured in page space.
+        const extentErrors = keys
+          .map((k) => {
+            const bar = barRects[k]
+            if (!bar) return null
+            return Math.max(
+              Math.abs(groups[k].x0 - bar.x0),
+              Math.abs(groups[k].x1 - bar.x1),
+            )
+          })
+          .filter((e) => e != null)
+        const unionCentres = keys.map((k) => (groups[k].x0 + groups[k].x1) / 2)
 
-        // Translate-invariant alignment: the gaps between where clusters START
-        // must match the gaps between the bars they came out of. Comparing
-        // absolute x would only measure the two charts' differing plot origins.
-        const filled = []
-        barCentres.forEach((c, k) => {
-          if (c != null && start[k] && start[k].length) filled.push(k)
-        })
-        const gapErrors = []
-        for (let n = 1; n < filled.length; n++) {
-          const barGap = barCentres[filled[n]] - barCentres[filled[n - 1]]
-          const dotGap =
-            startMeans[filled.indexOf(filled[n])] === undefined
-              ? NaN
-              : start[filled[n]].reduce((s, x) => s + x, 0) / start[filled[n]].length -
-                start[filled[n - 1]].reduce((s, x) => s + x, 0) / start[filled[n - 1]].length
-          gapErrors.push(Math.abs(barGap - dotGap))
-        }
-
+        await new Promise((res) => setTimeout(res, 1600))
         return {
-          liveDots,
           sampleSize: sample.length,
           clusters: rows.length,
-          startSpread,
-          settledSpread,
-          maxGapError: gapErrors.length ? Math.max(...gapErrors) : null,
-          comparedGaps: gapErrors.length,
-          ascending: startMeans.every((x, i) => i === 0 || x > startMeans[i - 1]),
-          ghostPresent,
+          pieceCount,
+          hiddenDots,
+          compared: extentErrors.length,
+          maxExtentError: extentErrors.length ? Math.max(...extentErrors) : null,
+          ascending: unionCentres.every((x, n) => n === 0 || x > unionCentres[n - 1]),
+          ghostPresent: document.querySelectorAll('.apexcharts-morph-ghost').length,
+          settledVisible: [...document.querySelectorAll('.apexcharts-unit-area')].filter(
+            (d) => d.getAttribute('opacity') !== '0',
+          ).length,
+          settledPieces: document.querySelectorAll('.apexcharts-morph-pieces rect').length,
         }
       },
       [MAKE_OBS, MAKE_CHART],
     )
 
-    // No observation lost or invented on the way through the explode.
-    expect(r.liveDots).toBe(r.sampleSize)
+    // Ink is conserved: one piece per observation cut out of the bars, no
+    // fading photocopy, and the real dots wait hidden for their pieces.
+    expect(r.pieceCount).toBe(r.sampleSize)
+    expect(r.hiddenDots).toBe(r.sampleSize)
+    expect(r.ghostPresent).toBe(0)
 
-    // Each cluster starts collapsed onto its bar's centre line and fans out
-    // from there. Sampled one frame in, so it is already slightly open: the
-    // property is that it is still far tighter than where it ends up.
-    expect(r.startSpread).toBeLessThan(r.settledSpread * 0.5)
-
-    // The alignment itself: cluster-to-cluster spacing at the burst matches
-    // bar-to-bar spacing, so cluster i really did leave from bar i.
-    expect(r.comparedGaps).toBeGreaterThan(3)
-    expect(r.maxGapError).toBeLessThan(2)
-
+    // Cluster i's pieces tile exactly bar i's extent, and the clusters march
+    // left to right with their bins.
+    expect(r.compared).toBeGreaterThan(5)
+    expect(r.maxExtentError).toBeLessThan(2)
     expect(r.ascending).toBe(true)
-    // The outgoing bars are still on screen, exiting.
-    expect(r.ghostPresent).toBe(1)
+
+    // And after the flight every observation is visible, nothing left over.
+    expect(r.settledVisible).toBe(r.sampleSize)
+    expect(r.settledPieces).toBe(0)
   })
 
   test('collapsing back: units -> histogram conserves the sample', async ({

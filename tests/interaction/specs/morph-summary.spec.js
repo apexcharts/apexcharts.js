@@ -122,7 +122,10 @@ test.describe('boxPlot -> unit', () => {
     expect(r.capturedCentres).toEqual(r.domCentres)
   })
 
-  test('every observation leaves from its own box', async ({ page, loadChart }) => {
+  test('every observation leaves from its own box, as a piece of it', async ({
+    page,
+    loadChart,
+  }) => {
     await loadChart('boxPlot', 'boxplot-from-raw-observations')
 
     const r = await page.evaluate(
@@ -131,25 +134,20 @@ test.describe('boxPlot -> unit', () => {
         const data = eval(samples)
         const chart = await make('boxPlot', [{ name: 'Devices', data }])
 
-        const boxCentres = Array.from(
-          document.querySelectorAll('#probe .apexcharts-series'),
-        ).length
-          ? (() => {
-              const byJ = {}
-              document
-                .querySelectorAll('#probe .apexcharts-boxPlot-area')
-                .forEach((p) => {
-                  const j = +p.getAttribute('j')
-                  const b = p.getBBox()
-                  const e = (byJ[j] = byJ[j] || { min: 1e9, max: -1e9 })
-                  e.min = Math.min(e.min, b.x)
-                  e.max = Math.max(e.max, b.x + b.width)
-                })
-              return Object.keys(byJ)
-                .sort((a, b) => +a - +b)
-                .map((j) => (byJ[j].min + byJ[j].max) / 2)
-            })()
-          : []
+        // Each box's full page-space extent (box + whisker paths).
+        const byJ = {}
+        document.querySelectorAll('#probe .apexcharts-boxPlot-area').forEach((p) => {
+          const j = +p.getAttribute('j')
+          const b = p.getBoundingClientRect()
+          const e = (byJ[j] = byJ[j] || { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 })
+          e.x0 = Math.min(e.x0, b.x)
+          e.y0 = Math.min(e.y0, b.y)
+          e.x1 = Math.max(e.x1, b.x + b.width)
+          e.y1 = Math.max(e.y1, b.y + b.height)
+        })
+        const boxes = Object.keys(byJ)
+          .sort((a, b) => +a - +b)
+          .map((j) => byJ[j])
 
         const rows = chart.rowSeries()
         chart.updateOptions({
@@ -157,72 +155,64 @@ test.describe('boxPlot -> unit', () => {
           series: rows,
           plotOptions: { unit: { layout: 'scatter', unitValue: 1 } },
         })
-
-        const grab = () => {
-          const out = {}
-          document
-            .querySelectorAll('.apexcharts-svg:not(.apexcharts-morph-ghost) .apexcharts-unit-area')
-            .forEach((d) => {
-              const i = +d.getAttribute('i')
-              const cx = d.getAttribute('cx')
-              const x =
-                cx != null ? +cx : +d.getAttribute('x') + (+d.getAttribute('width') || 0) / 2
-              ;(out[i] = out[i] || []).push(x)
-            })
-          return out
-        }
-
         await new Promise((res) => requestAnimationFrame(res))
-        const start = grab()
-        const ghost = document.querySelectorAll('.apexcharts-morph-ghost').length
-        const liveDots = document.querySelectorAll(
-          '.apexcharts-svg:not(.apexcharts-morph-ghost) .apexcharts-unit-area',
-        ).length
 
-        const mean = (xs) => xs.reduce((s, x) => s + x, 0) / xs.length
-        const keys = Object.keys(start).map(Number).sort((a, b) => a - b)
-        const startMeans = keys.map((k) => mean(start[k]))
+        // Union of each cluster's pieces, in the same page space. The cells
+        // tile the box+whisker extent, so the unions must reproduce it.
+        const unions = {}
+        document.querySelectorAll('.apexcharts-morph-pieces rect').forEach((el) => {
+          const i = el.getAttribute('data-i')
+          const b = el.getBoundingClientRect()
+          const u = (unions[i] = unions[i] || { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9, n: 0 })
+          u.x0 = Math.min(u.x0, b.x)
+          u.y0 = Math.min(u.y0, b.y)
+          u.x1 = Math.max(u.x1, b.x + b.width)
+          u.y1 = Math.max(u.y1, b.y + b.height)
+          u.n++
+        })
 
-        // Translate-invariant: box-to-box spacing vs cluster-to-cluster spacing.
-        const gapErrors = []
-        for (let n = 1; n < keys.length; n++) {
-          gapErrors.push(
-            Math.abs(
-              boxCentres[keys[n]] -
-                boxCentres[keys[n - 1]] -
-                (startMeans[n] - startMeans[n - 1]),
-            ),
+        const drift = boxes.map((box, i) => {
+          const u = unions[i]
+          if (!u) return null
+          return Math.max(
+            Math.abs(u.x0 - box.x0),
+            Math.abs(u.y0 - box.y0),
+            Math.abs(u.x1 - box.x1),
+            Math.abs(u.y1 - box.y1),
           )
-        }
+        })
 
+        await new Promise((res) => setTimeout(res, 1600))
         return {
           clusters: rows.length,
-          liveDots,
+          pieceClusters: Object.keys(unions).length,
+          piecesPerCluster: Object.keys(unions)
+            .sort((a, b) => +a - +b)
+            .map((i) => unions[i].n),
+          maxDrift: Math.max(...drift.filter((d) => d != null)),
+          ghost: document.querySelectorAll('.apexcharts-morph-ghost').length,
+          settledDots: [...document.querySelectorAll('.apexcharts-unit-area')].filter(
+            (d) => d.getAttribute('opacity') !== '0',
+          ).length,
+          settledPieces: document.querySelectorAll('.apexcharts-morph-pieces rect').length,
           expectedDots: data.reduce((n, d) => n + d.points.length, 0),
-          ghost,
-          maxGapError: gapErrors.length ? Math.max(...gapErrors) : null,
-          comparedGaps: gapErrors.length,
-          // Every dot of a cluster leaves from ONE vertical line, spread along
-          // the box's height rather than sprayed from a single point.
-          maxStartSpreadX: Math.max(
-            ...keys.map((k) => Math.max(...start[k]) - Math.min(...start[k])),
-          ),
         }
       },
       [MAKE, SAMPLES],
     )
 
     expect(r.clusters).toBe(5)
-    expect(r.liveDots).toBe(r.expectedDots)
-    // The boxes are still on screen, exiting, because nothing inherits them.
-    expect(r.ghost).toBe(1)
-    // Cluster i really did leave from box i: box-to-box spacing and
-    // cluster-to-cluster spacing agree. Compared as gaps rather than absolute
-    // positions, because the two chart types have different plot origins.
-    expect(r.comparedGaps).toBe(4)
-    expect(r.maxGapError).toBeLessThan(2)
-    // All 40 dots of a cluster start on the same vertical line.
-    expect(r.maxStartSpreadX).toBeLessThan(0.5)
+    // One piece per observation, per box: the box is CUT into its sample.
+    expect(r.pieceClusters).toBe(5)
+    expect(r.piecesPerCluster).toEqual([40, 40, 40, 40, 40])
+    // The pieces start as an exact tiling of the box+whisker extent (compared
+    // in page space, so plot-origin differences cannot fake a pass).
+    expect(r.maxDrift).toBeLessThan(1)
+    // Ink is conserved: no fading photocopy.
+    expect(r.ghost).toBe(0)
+    // And every observation is on screen once the pieces have landed.
+    expect(r.settledDots).toBe(r.expectedDots)
+    expect(r.settledPieces).toBe(0)
   })
 })
 
@@ -241,6 +231,9 @@ test.describe('violin -> unit', () => {
 
         const captured = chart.morphTypeChange._captureFromDOM('violin')
         const rows = chart.rowSeries()
+        // Counted BEFORE the type change: afterwards the violins are gone,
+        // and nothing clones them any more (pieces replaced the photocopy).
+        const paths = document.querySelectorAll('#probe .apexcharts-violin-area').length
 
         chart.updateOptions({
           chart: { type: 'unit' },
@@ -250,12 +243,13 @@ test.describe('violin -> unit', () => {
         await new Promise((res) => requestAnimationFrame(res))
 
         return {
-          paths: document.querySelectorAll('#probe .apexcharts-violin-area').length,
+          paths,
           marks: captured.marks.length,
           clusters: rows.length,
           liveDots: document.querySelectorAll(
-            '.apexcharts-svg:not(.apexcharts-morph-ghost) .apexcharts-unit-area',
+            '.apexcharts-svg .apexcharts-unit-area',
           ).length,
+          pieces: document.querySelectorAll('.apexcharts-morph-pieces rect').length,
           expectedDots: data.reduce((n, d) => n + d.y.length, 0),
           ghost: document.querySelectorAll('.apexcharts-morph-ghost').length,
         }
@@ -268,7 +262,10 @@ test.describe('violin -> unit', () => {
     expect(r.marks).toBe(5)
     expect(r.clusters).toBe(5)
     expect(r.liveDots).toBe(r.expectedDots)
-    expect(r.ghost).toBe(1)
+    // The silhouettes come apart as pieces (one per observation), not as a
+    // fading photocopy.
+    expect(r.pieces).toBe(r.expectedDots)
+    expect(r.ghost).toBe(0)
   })
 })
 
