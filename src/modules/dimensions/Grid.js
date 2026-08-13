@@ -183,6 +183,13 @@ export default class DimGrid {
     const subtitleCoords =
       this.dCtx.dimHelpers.getTitleSubtitleCoords('subtitle')
 
+    // The breathing room this leaves between the bottom of the title block and
+    // the top of the plot. `gridPadForBreadcrumb` runs next and sits the strip
+    // in it, so it only has to reserve whatever the strip does not already fit
+    // into. Without this it reserved a full band on top of room that was
+    // already there, and the strip floated in the middle of the gap.
+    this.dCtx.titleBlockPad = gridShrinkOffset
+
     w.layout.gridHeight -=
       titleCoords.height + subtitleCoords.height + gridShrinkOffset
     w.layout.translateY +=

@@ -7,6 +7,7 @@ import Grid from './Grid'
 import { LINE_HEIGHT_RATIO } from '../../utils/Constants'
 import {
   BREADCRUMB_HEIGHT,
+  BREADCRUMB_HEIGHT_FULL,
   breadcrumbConfig,
 } from '../../charts/common/Breadcrumb'
 
@@ -45,6 +46,9 @@ export default class Dimensions {
     // Re-derived per run by plotCoords(), see there.
     this.gridPad = { ...this.w.config.grid.padding }
     this.xPadRight = 0
+    // Room `gridPadFortitleSubtitle` leaves between the title block and the
+    // plot; the breadcrumb band is sized against it. Re-derived every run.
+    this.titleBlockPad = 0
     this.xPadLeft = 0
     this.datalabelsCoords = { width: 0, height: 0 }
     /** @type {number} */
@@ -188,17 +192,29 @@ export default class Dimensions {
     if (!w.config.drilldown || !w.config.drilldown.enabled) return
     if (breadcrumbConfig(w).show === false) return
 
-    // Half a label taller than the treemap's band, because the topmost y-axis
-    // tick label is centred on the plot's top edge and so hangs above the grid:
-    // the strip has to clear the label, not the grid. The placer measures the
-    // real overhang, so this only has to leave room for it. A treemap draws no
-    // y-axis labels and needs none of it.
+    // What the strip needs is its own height plus the overhang of the topmost
+    // y-axis tick label, which is CENTRED on the plot's top edge and so hangs
+    // above the grid: clearing the grid alone still leaves the strip resting on
+    // that label. A treemap draws no y-axis labels and needs none of it. The
+    // placer measures the real overhang; this only has to leave room for it.
     const labelFs =
       parseFloat(String(w.config.yaxis?.[0]?.labels?.style?.fontSize)) || 11
     const yLabelOverhang = isTreemap
       ? 0
       : Math.ceil((labelFs * LINE_HEIGHT_RATIO) / 2)
-    this.gridPad.top += BREADCRUMB_HEIGHT + 4 + yLabelOverhang
+    const needed = BREADCRUMB_HEIGHT_FULL + 1 + yLabelOverhang
+
+    // Only the shortfall. `gridPadFortitleSubtitle` has already left breathing
+    // room between the title block and the plot, and the strip lives in it, so
+    // reserving a whole band on top of that pushed the plot down twice as far as
+    // it had to and left the strip floating in the middle of the gap.
+    //
+    // That room is real above a cartesian plot, which sits below its axis
+    // chrome, and mostly absent above a treemap, which fills its box edge to
+    // edge: measured 22.5px against 12.5px on the same title block. So a treemap
+    // lends nothing and reserves the strip in full.
+    const alreadyFree = isTreemap ? 0 : this.titleBlockPad || 0
+    this.gridPad.top += Math.max(0, needed - alreadyFree)
   }
 
   setDimensionsForAxisCharts() {

@@ -3,7 +3,10 @@ import DimGrid from '../../src/modules/dimensions/Grid.js'
 import DimYAxis from '../../src/modules/dimensions/YAxis.js'
 import Helpers from '../../src/modules/dimensions/Helpers.js'
 import Dimensions from '../../src/modules/dimensions/Dimensions.js'
-import { BREADCRUMB_HEIGHT } from '../../src/charts/common/Breadcrumb.js'
+import {
+  BREADCRUMB_HEIGHT,
+  BREADCRUMB_HEIGHT_FULL,
+} from '../../src/charts/common/Breadcrumb.js'
 import { createChartWithOptions } from './utils/utils.js'
 
 // ---------------------------------------------------------------------------
@@ -1128,6 +1131,7 @@ describe('Dimensions.gridPadForBreadcrumb', () => {
    * @param {any} [opts.drilldown] the drilldown config block
    * @param {any} [opts.treemapZoom] plotOptions.treemap.zoom
    * @param {any} [opts.padding] the author's grid.padding
+   * @param {number} [opts.titleBlockPad] room the title block already leaves
    */
   function reserve(opts = {}) {
     const { w } = makeDimCtx()
@@ -1139,6 +1143,7 @@ describe('Dimensions.gridPadForBreadcrumb', () => {
     const dim = Object.create(Dimensions.prototype)
     dim.w = w
     dim.ctx = { drilldown: opts.featureLoaded === false ? null : {} }
+    dim.titleBlockPad = opts.titleBlockPad ?? 0
     dim.gridPad = { top: 0, right: 0, bottom: 0, left: 0, ...(opts.padding || {}) }
 
     const before = dim.gridPad.top
@@ -1175,8 +1180,30 @@ describe('Dimensions.gridPadForBreadcrumb', () => {
     // The topmost y-axis tick label is centred on the plot's top edge, so it
     // hangs above the grid: clearing the grid alone still landed the strip on
     // the first label.
-    const band = reserve({ drilldown: DRILL_ON })
-    expect(band).toBeGreaterThan(BREADCRUMB_HEIGHT + 4)
+    const withLabels = reserve({ drilldown: DRILL_ON })
+    const treemap = reserve({
+      type: 'treemap',
+      treemapZoom: { enabled: false },
+      drilldown: DRILL_ON,
+    })
+    expect(withLabels).toBeGreaterThan(0)
+    // Same strip, but a treemap draws no y-axis labels to clear. It also lends
+    // no room, so the two differ by the overhang plus the lent room.
+    expect(withLabels).toBeLessThan(treemap + BREADCRUMB_HEIGHT_FULL)
+  })
+
+  it('reserves only the shortfall, not a band on top of existing room', () => {
+    // `gridPadFortitleSubtitle` already separates the title block from the plot
+    // and the strip lives in that gap; reserving the full strip regardless
+    // pushed the plot down twice as far as needed and left the strip floating.
+    const lent = 20
+    const withRoom = reserve({ drilldown: DRILL_ON, titleBlockPad: lent })
+    const withNone = reserve({ drilldown: DRILL_ON, titleBlockPad: 0 })
+    expect(withRoom).toBe(withNone - lent)
+  })
+
+  it('never reserves a negative band when the existing room is ample', () => {
+    expect(reserve({ drilldown: DRILL_ON, titleBlockPad: 500 })).toBe(0)
   })
 
   it('adds to the author padding instead of replacing it', () => {
@@ -1184,8 +1211,7 @@ describe('Dimensions.gridPadForBreadcrumb', () => {
     expect(reserve({ drilldown: DRILL_ON, padding: { top: 25 } })).toBe(band)
   })
 
-  it('reserves the plain strip for a treemap driven by its own zoom', () => {
-    // A treemap draws no y-axis labels, so it needs none of that allowance.
+  it('reserves the plain compact strip for a treemap driven by its own zoom', () => {
     expect(
       reserve({
         type: 'treemap',
@@ -1195,14 +1221,17 @@ describe('Dimensions.gridPadForBreadcrumb', () => {
   })
 
   it('reserves for a treemap navigated by drilldown rather than its own zoom', () => {
-    // Both render the same strip into the same place, so both need the band.
-    expect(
-      reserve({
-        type: 'treemap',
-        treemapZoom: { enabled: false },
-        drilldown: DRILL_ON,
-      }),
-    ).toBe(BREADCRUMB_HEIGHT + 4)
+    // Both render the same strip into the same place, so both need the band. A
+    // treemap fills its box edge to edge, so unlike a cartesian plot it has no
+    // room to lend and reserves the strip in full even when the title block
+    // leaves a gap.
+    const band = reserve({
+      type: 'treemap',
+      treemapZoom: { enabled: false },
+      drilldown: DRILL_ON,
+      titleBlockPad: 20,
+    })
+    expect(band).toBe(BREADCRUMB_HEIGHT_FULL + 1)
   })
 
   it('reserves nothing for a treemap with neither zoom nor drilldown', () => {

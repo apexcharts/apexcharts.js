@@ -25,8 +25,18 @@ import { Environment } from '../../utils/Environment.js'
 
 const XHTML = 'http://www.w3.org/1999/xhtml'
 
-/** Height reserved for the strip when a chart asks the layout for room. */
+/** Height reserved for the compact strip when a chart asks the layout for room. */
 export const BREADCRUMB_HEIGHT = 18
+
+/**
+ * Height of the full-size strip. From the CSS: 12px text at line-height 1.2,
+ * plus 2px item padding and 2px nav padding on each side, rounded up. The
+ * compact variant above drops to 11px text and no nav padding.
+ *
+ * Only an estimate for sizing the band; `placeInReservedBand` measures the real
+ * height once the strip is in the DOM.
+ */
+export const BREADCRUMB_HEIGHT_FULL = 23
 
 /**
  * Resolve the breadcrumb config: a chart-local override on top of the shared
