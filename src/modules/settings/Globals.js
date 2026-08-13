@@ -463,6 +463,11 @@ export default class Globals {
       // ── Animation control ─────────────────────────────────────────────────────
       shouldAnimate: true,
       previousPaths: [], // paths from previous render — source for enter animation
+      // polarArea's last-drawn sector angles. Its angles are count-based, not
+      // value-based, so a data-change animation cannot reconstruct them from
+      // previousPaths (the previous VALUES) the way pie does; Pie.draw stashes
+      // the real ones here each render.
+      prevPolarAngles: null,
       // Streaming scroll: previous frame's parsed rows + pixel positions,
       // captured by Series.getPreviousPaths(). Consulted (like previousPaths)
       // only while a data-change morph renders. See StreamScroll.

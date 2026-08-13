@@ -450,6 +450,10 @@ export interface ChartGlobals
   isDestroyed: boolean
   shouldAnimate: boolean
   previousPaths: any[]
+  // polarArea's last-drawn sector angles: count-based, so a data-change
+  // animation cannot reconstruct them from previousPaths (previous VALUES)
+  // the way pie does. Stashed by Pie.draw each polarArea render.
+  prevPolarAngles: number[] | null
   // Streaming scroll (StreamScroll) + variable-length transitions
   // (LengthTransition/PathReconcile): previous frame's parsed rows, pixel
   // positions, and datum-key sources, captured by Series.getPreviousPaths()

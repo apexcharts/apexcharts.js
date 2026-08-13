@@ -121,6 +121,10 @@ class Pie {
     this.sliceLabels = []
     /** @type {any} */
     this.sliceSizes = []
+    // polarArea only: previous render's slice radii, so a data change can
+    // animate the value channel (the radius) from where it was.
+    /** @type {number[]} */
+    this.prevSliceSizes = []
 
     // Everything that has to travel with a slice when it slides out of the pie
     // on click, keyed by slice index: its inner percentage label and its outer
@@ -278,13 +282,29 @@ class Pie {
       this.drawPolarElements(elPie)
     }
 
+    // polarArea divides the circle by COUNT, so a legend-collapsed series must
+    // give its slot back: pie gets this for free (a collapsed value is 0, so
+    // its value-proportional angle is 0), but an equal share per series.length
+    // would leave a dead gap where the hidden slice was and render the rest of
+    // the circle broken. Slots belong to the visible slices only.
+    const collapsedIdx = w.globals.collapsedSeriesIndices || []
+    let polarVisible = 1
+    if (this.chartType === 'polarArea') {
+      let visible = 0
+      for (let k = 0; k < series.length; k++) {
+        if (collapsedIdx.indexOf(k) === -1) visible++
+      }
+      polarVisible = Math.max(1, visible)
+    }
+
     for (let i = 0; i < series.length; i++) {
       // CALCULATE THE ANGLES
       const angle = (this.fullAngle * Utils.negToZero(series[i])) / total
       sectorAngleArr.push(angle)
 
       if (this.chartType === 'polarArea') {
-        sectorAngleArr[i] = this.fullAngle / series.length
+        sectorAngleArr[i] =
+          collapsedIdx.indexOf(i) > -1 ? 0 : this.fullAngle / polarVisible
         // Floor the divisor: with grid.position:'front' the maxY reset runs
         // after this loop, so an all-zero series would divide by 0 here and push
         // NaN slice sizes into getPiePath (corrupt arcs). series[i] is 0 in that
@@ -304,21 +324,61 @@ class Pie {
     const morphActive = this.ctx.morphTypeChange?.isActive() === true
 
     if (w.globals.dataChanged && !morphActive) {
-      let prevTotal = 0
-      for (let k = 0; k < w.globals.previousPaths.length; k++) {
-        // CALCULATE THE PREV TOTAL
-        prevTotal += Utils.negToZero(w.globals.previousPaths[k])
-      }
+      if (this.chartType === 'polarArea') {
+        // polarArea angles are count-based, so the pie reconstruction below
+        // (value-proportional) would fabricate previous angles that never
+        // existed and every slice would sweep in from a wrong position. The
+        // draw stashes its real angles; use them, or fall back to an equal
+        // re-division when the stash cannot line up (e.g. the previous render
+        // was a different chart type).
+        const prevValues = w.globals.previousPaths
+        const stash = w.globals.prevPolarAngles
+        if (Array.isArray(stash) && stash.length === prevValues.length) {
+          this.prevSectorAngleArr = stash.slice()
+        } else {
+          for (let i = 0; i < prevValues.length; i++) {
+            this.prevSectorAngleArr.push(
+              this.fullAngle / Math.max(1, prevValues.length),
+            )
+          }
+        }
 
-      let previousAngle
+        // The radius is the value channel, so it must animate from where it
+        // was, like a pie slice's angle does. Reconstruct the previous sizes
+        // from the previous values on the same scale rule the draw uses.
+        let prevMaxY = 0
+        for (let k = 0; k < prevValues.length; k++) {
+          prevMaxY = Math.max(prevMaxY, Utils.negToZero(prevValues[k]))
+        }
+        if (w.config.yaxis[0].max) {
+          prevMaxY = w.config.yaxis[0].max
+        }
+        this.prevSliceSizes = prevValues.map(
+          (/** @type {number} */ v) =>
+            (w.globals.radialSize * Utils.negToZero(v)) / (prevMaxY || 1),
+        )
+      } else {
+        let prevTotal = 0
+        for (let k = 0; k < w.globals.previousPaths.length; k++) {
+          // CALCULATE THE PREV TOTAL
+          prevTotal += Utils.negToZero(w.globals.previousPaths[k])
+        }
 
-      for (let i = 0; i < w.globals.previousPaths.length; i++) {
-        // CALCULATE THE PREVIOUS ANGLES
-        previousAngle =
-          (this.fullAngle * Utils.negToZero(w.globals.previousPaths[i])) /
-          prevTotal
-        this.prevSectorAngleArr.push(previousAngle)
+        let previousAngle
+
+        for (let i = 0; i < w.globals.previousPaths.length; i++) {
+          // CALCULATE THE PREVIOUS ANGLES
+          previousAngle =
+            (this.fullAngle * Utils.negToZero(w.globals.previousPaths[i])) /
+            prevTotal
+          this.prevSectorAngleArr.push(previousAngle)
+        }
       }
+    }
+
+    if (this.chartType === 'polarArea') {
+      // The stash the NEXT data-change animation will start from.
+      w.globals.prevPolarAngles = sectorAngleArr.slice()
     }
 
     // on small chart size after few count of resizes browser window donutSize can be negative
@@ -469,7 +529,16 @@ class Pie {
       const morphFrom = morphActive
         ? this.ctx.morphTypeChange.getInitialPathFor(i, 0)
         : null
-      const path = morphFrom || this.getChangedPath(prevStartAngle, prevEndAngle)
+      // polarArea's pre-animation frame must sit at the PREVIOUS radius too,
+      // not just the previous angles: its radius is the value channel.
+      const prevSize =
+        this.chartType === 'polarArea' &&
+        w.globals.dataChanged &&
+        !morphActive
+          ? this.prevSliceSizes[i] || 0
+          : undefined
+      const path =
+        morphFrom || this.getChangedPath(prevStartAngle, prevEndAngle, prevSize)
 
       const elPath = graphics.drawPath({
         d: path,
@@ -593,6 +662,7 @@ class Pie {
       } else if (this.dynamicAnim && w.globals.dataChanged) {
         this.animatePaths(elPath, {
           size: this.sliceSizes[i],
+          prevSize,
           endAngle,
           startAngle,
           prevStartAngle,
@@ -957,6 +1027,10 @@ class Pie {
         ? this.fullAngle + fromStartAngle - toStartAngle
         : fromStartAngle - toStartAngle
 
+    // polarArea animates its value channel, the radius; pie/donut never pass
+    // prevSize (their radius is fixed) so this stays their exact old path.
+    const hasPrevSize = typeof opts.prevSize === 'number'
+
     if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
       // to avoid flicker when updating, set prev path first and then animate from there
       if (opts.prevEndAngle) {
@@ -967,7 +1041,7 @@ class Pie {
             opts.prevEndAngle < opts.prevStartAngle
               ? this.fullAngle + opts.prevEndAngle - opts.prevStartAngle
               : opts.prevEndAngle - opts.prevStartAngle,
-          size,
+          size: hasPrevSize ? opts.prevSize : size,
         })
         el.attr({ d: path })
       }
@@ -1011,7 +1085,9 @@ class Pie {
             me,
             startAngle,
             angle: currAngle,
-            size,
+            size: hasPrevSize
+              ? opts.prevSize + (size - opts.prevSize) * pos
+              : size,
           })
 
           el.node.setAttribute('data:pathOrig', path)
@@ -1312,7 +1388,14 @@ class Pie {
    * @param {number} prevStartAngle
    * @param {number} prevEndAngle
    */
-  getChangedPath(prevStartAngle, prevEndAngle) {
+  /**
+   * @param {number} prevStartAngle
+   * @param {number} prevEndAngle
+   * @param {number} [prevSize] - polarArea passes its previous slice radius,
+   *   so the pre-animation frame sits at the previous VALUE too, not just the
+   *   previous angles.
+   */
+  getChangedPath(prevStartAngle, prevEndAngle, prevSize) {
     let path = ''
     if (this.dynamicAnim && this.w.globals.dataChanged) {
       path = this.getPiePath({
@@ -1320,7 +1403,7 @@ class Pie {
         startAngle: prevStartAngle,
         angle: prevEndAngle - prevStartAngle,
         // @ts-ignore — size is set dynamically during draw()
-        size: this.size,
+        size: typeof prevSize === 'number' ? prevSize : this.size,
       })
     }
     return path
