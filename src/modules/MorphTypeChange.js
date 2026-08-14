@@ -136,25 +136,22 @@ export default class MorphTypeChange {
     const ff = familyOf(fromType)
     const tf = familyOf(toType)
     if (!ff || !tf) return false
-    // The partition family pairs only with itself for now. treemap ↔ bar or
-    // ↔ pie would work mechanically (every mark in all four is 1:1 with a row,
-    // and the mapping is positional), but neither renderer has been driven
-    // through those pairs, and claiming a morph that has not been watched is
-    // worse than not offering it.
-    if ((ff === 'partition') !== (tf === 'partition')) return false
-    // A summary mark stands for a whole sample, so the first pair that means
-    // something is the one that takes it apart into that sample and puts it
-    // back. The second is the other summary of the SAME sample: a box and a
-    // violin are two readings of one set of observations, and neither can be
-    // derived from the other, which is exactly what makes watching one become
-    // the other worth the animation. boxPlot ↔ bar and boxPlot ↔ pie remain
-    // closed: mechanically plausible, never driven, and claiming a morph nobody
-    // has watched is worse than not offering it.
-    if (ff === 'summary' || tf === 'summary') {
-      return ff === 'unit' || tf === 'unit' || (ff === 'summary' && tf === 'summary')
+    // Every family but one draws exactly one mark per row, so any two of them
+    // pair up as an ordinary shape morph: the mapping is positional and each
+    // mark simply becomes the next shape of itself. bar ↔ radial, treemap ↔
+    // pie, a box plot ↔ a column, and every within-family pair besides.
+    //
+    // The unit family is the exception, in both directions: its marks are the
+    // OBJECTS a mark stood for, so the pair is an explode or a collapse rather
+    // than a shape change, and it needs the piece layer to conserve the ink.
+    // That layer can cut a bar, a summary silhouette and a wedge; it has no
+    // capture for a treemap tile or a sunburst arc, so unit ↔ partition would
+    // fall back to the whole-chart fade. A morph that only crossfades is worse
+    // than not offering the pair, so it stays closed until the divider learns
+    // those two shapes.
+    if ((ff === 'partition') !== (tf === 'partition')) {
+      return ff !== 'unit' && tf !== 'unit'
     }
-    // bar ↔ radial covers the remaining cross-family cases; radial → radial
-    // covers pie ↔ donut ↔ polarArea ↔ radialBar.
     return true
   }
 

@@ -853,10 +853,12 @@ function wireSpeed(charts) {
       <code>rowSeries()</code>.
     </p>
     <p>
-      Pairs that are not offered are left out on purpose. A treemap will not
-      become a pie, and a box plot will not become a bar: both are mechanically
-      possible and neither has been driven, and claiming a morph nobody has
-      watched is worse than not offering it.
+      The cards are grouped by the kind of change, not by what is allowed: any
+      two of these types morph, in either direction, as long as both draw one
+      mark per row. A box plot will become a treemap if you ask it to. The one
+      pair left out is a treemap or sunburst against the dot cluster, because a
+      tile cannot yet be cut into the objects it stands for, and a morph that
+      only crossfades is worse than not offering the pair.
     </p>
     <p>
       <code>gauge</code>, <code>funnel</code>, <code>pyramid</code>,

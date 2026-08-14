@@ -1291,10 +1291,14 @@ export default class Defaults {
       },
       dataLabels: {
         /**
-         * @param {number} val
+         * The share of the whole, as a percentage. Guarded because a config
+         * survives a chart-type change: a pie that becomes a treemap hands
+         * this same default a category NAME, and a default of ours must not
+         * throw on a value it was never designed for.
+         * @param {any} val
          */
         formatter(val) {
-          return val.toFixed(1) + '%'
+          return typeof val === 'number' ? val.toFixed(1) + '%' : val
         },
         style: {
           colors: ['#fff'],
@@ -1343,10 +1347,14 @@ export default class Defaults {
       },
       dataLabels: {
         /**
-         * @param {number} val
+         * The share of the whole, as a percentage. Guarded because a config
+         * survives a chart-type change: a pie that becomes a treemap hands
+         * this same default a category NAME, and a default of ours must not
+         * throw on a value it was never designed for.
+         * @param {any} val
          */
         formatter(val) {
-          return val.toFixed(1) + '%'
+          return typeof val === 'number' ? val.toFixed(1) + '%' : val
         },
         style: {
           colors: ['#fff'],
@@ -1398,10 +1406,14 @@ export default class Defaults {
       },
       dataLabels: {
         /**
-         * @param {number} val
+         * The share of the whole, as a percentage. Guarded because a config
+         * survives a chart-type change: a pie that becomes a treemap hands
+         * this same default a category NAME, and a default of ours must not
+         * throw on a value it was never designed for.
+         * @param {any} val
          */
         formatter(val) {
-          return val.toFixed(1) + '%'
+          return typeof val === 'number' ? val.toFixed(1) + '%' : val
         },
         enabled: false,
       },

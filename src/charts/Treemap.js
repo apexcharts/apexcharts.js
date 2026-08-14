@@ -384,7 +384,10 @@ export default class TreemapChart {
         // on tiles that could never show a label anyway. Decide that from the
         // geometry first, which is free.
         let dataLabels = null
-        if (this._labelCanShow(fontSize, x2 - x1, y2 - y1)) {
+        if (
+          w.config.dataLabels.enabled &&
+          this._labelCanShow(fontSize, x2 - x1, y2 - y1)
+        ) {
           let formattedText = w.config.dataLabels.formatter(this.labels[i][j], {
             value: w.seriesData.series[i][j],
             seriesIndex: i,

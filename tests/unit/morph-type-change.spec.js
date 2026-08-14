@@ -152,7 +152,17 @@ describe('MorphTypeChange.canMorphTypes', () => {
     expect(morph.canMorphTypes('line', 'pie')).toBe(false)
     expect(morph.canMorphTypes('bar', 'line')).toBe(false)
     expect(morph.canMorphTypes('heatmap', 'pie')).toBe(false)
-    expect(morph.canMorphTypes('treemap', 'bar')).toBe(false)
+  })
+
+  it('rejects only the pair the piece divider cannot serve', () => {
+    // Every family whose marks are 1:1 with a row pairs with every other one.
+    expect(morph.canMorphTypes('treemap', 'bar')).toBe(true)
+    expect(morph.canMorphTypes('violin', 'pie')).toBe(true)
+    // Except the dot cluster against a partition: that pair is an explode, and
+    // the divider has no capture for a tile or an arc, so it would fall back to
+    // the whole-chart fade.
+    expect(morph.canMorphTypes('treemap', 'unit')).toBe(false)
+    expect(morph.canMorphTypes('unit', 'sunburst')).toBe(false)
   })
 })
 

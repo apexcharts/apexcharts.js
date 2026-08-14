@@ -593,7 +593,10 @@ test.describe('boxPlot <-> violin', () => {
   })
 })
 
-test('summary pairs stay closed against untested targets', async ({ page, loadChart }) => {
+test('a summary pairs with every 1:1 family, and with its own sample', async ({
+  page,
+  loadChart,
+}) => {
   await loadChart('boxPlot', 'boxplot-from-raw-observations')
   const r = await page.evaluate(() => {
     const chart = Object.values(window.Apex._chartInstances)[0].chart
@@ -603,18 +606,26 @@ test('summary pairs stay closed against untested targets', async ({ page, loadCh
       fromUnit: m.canMorphTypes('unit', 'violin'),
       toBar: m.canMorphTypes('boxPlot', 'bar'),
       toPie: m.canMorphTypes('boxPlot', 'pie'),
+      toTreemap: m.canMorphTypes('boxPlot', 'treemap'),
       toViolin: m.canMorphTypes('boxPlot', 'violin'),
       fromViolin: m.canMorphTypes('violin', 'boxPlot'),
+      sameType: m.canMorphTypes('boxPlot', 'boxPlot'),
+      toLine: m.canMorphTypes('boxPlot', 'line'),
     }
   })
   console.log('SUMMARY PAIRS ' + JSON.stringify(r))
+  // The sample it summarises, in both directions.
   expect(r.toUnit).toBe(true)
   expect(r.fromUnit).toBe(true)
-  // The two summaries of one sample, driven and pinned above.
+  // The other summary of that same sample.
   expect(r.toViolin).toBe(true)
   expect(r.fromViolin).toBe(true)
-  // Mechanically plausible, never driven: claiming a morph nobody has watched
-  // is worse than not offering it.
-  expect(r.toBar).toBe(false)
-  expect(r.toPie).toBe(false)
+  // And every other family whose marks are 1:1 with a row. All driven in
+  // tests/interaction/specs/morph-matrix.spec.js.
+  expect(r.toBar).toBe(true)
+  expect(r.toPie).toBe(true)
+  expect(r.toTreemap).toBe(true)
+  // A type does not morph into itself, and a line has no marks to pair.
+  expect(r.sameType).toBe(false)
+  expect(r.toLine).toBe(false)
 })

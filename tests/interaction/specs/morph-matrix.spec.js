@@ -37,8 +37,20 @@ import { expect } from '@playwright/test'
 // argument rather than as a string to eval.
 // ---------------------------------------------------------------------------
 
-const LABELS = ['Direct', 'Search', 'Referral', 'Social', 'Email']
-const VALUES = [55, 44, 41, 33, 27]
+// Nine of each, sliced to whatever mark count a row needs. Descending, so a
+// funnel and a pyramid stay truthful and nothing has to re-sort.
+const LABELS = [
+  'Direct',
+  'Search',
+  'Referral',
+  'Social',
+  'Email',
+  'Affiliate',
+  'Display',
+  'Video',
+  'Offline',
+]
+const VALUES = [55, 48, 44, 41, 37, 33, 29, 27, 22]
 
 /** Deterministic observations, so a histogram bins the same way every run. */
 const OBSERVATIONS = (() => {
@@ -70,70 +82,51 @@ const unitSeries = (n, per) =>
     data: Array.from({ length: per }, (_, k) => ({ id: `${i}-${k}` })),
   }))
 
-const LEAVES = [
-  {
-    data: [
-      { x: 'Tops', y: 34 },
-      { x: 'Denim', y: 30 },
-      { x: 'Outerwear', y: 24 },
-      { x: 'Kitchen', y: 12 },
-      { x: 'Bedding', y: 10 },
-      { x: 'Decor', y: 12 },
-      { x: 'Camping', y: 26 },
-      { x: 'Cycling', y: 15 },
-      { x: 'Running', y: 11 },
-    ],
-  },
+/** Nine leaves in three branches, sliced to `n` for a row that needs fewer. */
+const PARTITION_LEAVES = [
+  { x: 'Tops', y: 34 },
+  { x: 'Denim', y: 30 },
+  { x: 'Outerwear', y: 24 },
+  { x: 'Kitchen', y: 12 },
+  { x: 'Bedding', y: 10 },
+  { x: 'Decor', y: 12 },
+  { x: 'Camping', y: 26 },
+  { x: 'Cycling', y: 15 },
+  { x: 'Running', y: 11 },
 ]
+const BRANCHES = ['Apparel', 'Home', 'Outdoor']
 
-const TREE = [
-  {
-    data: [
-      {
-        x: 'Apparel',
-        y: 88,
-        children: [
-          { x: 'Tops', y: 34 },
-          { x: 'Denim', y: 30 },
-          { x: 'Outerwear', y: 24 },
-        ],
-      },
-      {
-        x: 'Home',
-        y: 34,
-        children: [
-          { x: 'Kitchen', y: 12 },
-          { x: 'Bedding', y: 10 },
-          { x: 'Decor', y: 12 },
-        ],
-      },
-      {
-        x: 'Outdoor',
-        y: 52,
-        children: [
-          { x: 'Camping', y: 26 },
-          { x: 'Cycling', y: 15 },
-          { x: 'Running', y: 11 },
-        ],
-      },
-    ],
-  },
-]
+/** A treemap's flat leaves and the sunburst's tree over the same `n` rows. */
+function partitionData(n) {
+  const leaves = PARTITION_LEAVES.slice(0, n)
+  const tree = []
+  for (let b = 0; b * 3 < leaves.length; b++) {
+    const children = leaves.slice(b * 3, b * 3 + 3)
+    tree.push({
+      x: BRANCHES[b],
+      y: children.reduce((sum, c) => sum + c.y, 0),
+      children,
+    })
+  }
+  return { leaves: [{ data: leaves }], tree: [{ data: tree }] }
+}
 
 /**
  * One entry per chart type: what to feed it, where its marks are, and how many
- * marks that comes to. `clusters` picks the unit variant that matches the
- * counterpart's mark count, since a unit chart is one series per cluster.
+ * marks that comes to. Both sides of a row are built at the SAME mark count, so
+ * the pairing is total and no mark is left without a successor. A unit chart is
+ * one series per cluster, so its count is `marks` clusters of four objects.
  * @param {string} type
- * @param {number} clusters
+ * @param {number} marks
  */
-function fixture(type, clusters) {
+function fixture(type, marks) {
+  const clusters = marks
   const RADIAL = ['pie', 'donut', 'polarArea', 'radialBar', 'gauge']
   if (RADIAL.includes(type)) {
     const ringed = type === 'radialBar' || type === 'gauge'
     return {
-      series: VALUES.slice(),
-      labels: LABELS,
+      series: VALUES.slice(0, marks),
+      labels: LABELS.slice(0, marks),
       // A ring is a STROKED arc, so its client rect carries half the stroke on
       // every side while a filled path's does not. Frame one can therefore only
       // be compared to within that stroke, whichever way the pair runs.
@@ -143,25 +136,25 @@ function fixture(type, clusters) {
       // here. Nothing about the morph depends on it.
       plotOptions: ringed ? { radialBar: { track: { show: false } } } : undefined,
       sel: ringed ? '.apexcharts-radialbar-area' : '.apexcharts-pie-area',
-      marks: 5,
+      marks,
     }
   }
   if (type === 'histogram') {
     return {
-      // Five bins, so the histogram has the same mark count as everything else
+      // One bin per mark, so the histogram counts the same as everything else
       // and a positional pairing is legible. Its x is numeric, so no labels.
       series: [{ name: 'Orders', data: OBSERVATIONS }],
-      plotOptions: { histogram: { bins: 5 } },
+      plotOptions: { histogram: { bins: marks } },
       sel: '.apexcharts-bar-area',
-      marks: 5,
+      marks,
     }
   }
   if (type === 'bar' || type === 'funnel' || type === 'pyramid') {
     return {
-      series: [{ name: 'Orders', data: VALUES.slice() }],
-      labels: LABELS,
+      series: [{ name: 'Orders', data: VALUES.slice(0, marks) }],
+      labels: LABELS.slice(0, marks),
       sel: '.apexcharts-bar-area',
-      marks: 5,
+      marks,
     }
   }
   if (type === 'unit' || type === 'waffle') {
@@ -180,28 +173,31 @@ function fixture(type, clusters) {
     }
   }
   if (type === 'boxPlot' || type === 'violin') {
+    if (marks !== SAMPLES.length) {
+      throw new Error(`${type} has ${SAMPLES.length} samples, not ${marks}`)
+    }
     return {
       series: [{ name: 'Days', data: SAMPLES }],
       sel: `.apexcharts-${type}-area`,
       // A boxPlot draws two paths per category, so its marks are unioned by j.
       unionByJ: true,
-      marks: 3,
+      marks,
     }
   }
   if (type === 'treemap') {
     return {
-      series: LEAVES,
+      series: partitionData(marks).leaves,
       sel: '.apexcharts-treemap-rect',
-      marks: 9,
+      marks,
     }
   }
   if (type === 'sunburst') {
     return {
-      series: TREE,
+      series: partitionData(marks).tree,
       // Leaves are the level a flat partition corresponds to; the parent rings
       // have no counterpart and sweep in behind.
       sel: '.apexcharts-sunburst-arc[data\\:leaf="true"]',
-      marks: 9,
+      marks,
     }
   }
   throw new Error(`no fixture for ${type}`)
@@ -240,11 +236,24 @@ const MATRIX = [
   { from: 'violin', to: 'unit', kind: 'pieces', clusters: 3 },
   { from: 'unit', to: 'violin', kind: 'pieces', clusters: 3 },
   // the two summaries of one sample
-  { from: 'boxPlot', to: 'violin', kind: 'shape' },
-  { from: 'violin', to: 'boxPlot', kind: 'shape' },
+  { from: 'boxPlot', to: 'violin', kind: 'shape', marks: 3 },
+  { from: 'violin', to: 'boxPlot', kind: 'shape', marks: 3 },
   // one partition, two projections
-  { from: 'treemap', to: 'sunburst', kind: 'shape' },
-  { from: 'sunburst', to: 'treemap', kind: 'shape' },
+  { from: 'treemap', to: 'sunburst', kind: 'shape', marks: 9 },
+  { from: 'sunburst', to: 'treemap', kind: 'shape', marks: 9 },
+  // a partition against the bar and radial families
+  { from: 'treemap', to: 'bar', kind: 'shape', marks: 9 },
+  { from: 'funnel', to: 'sunburst', kind: 'shape', marks: 9 },
+  { from: 'sunburst', to: 'pie', kind: 'shape', marks: 9 },
+  { from: 'polarArea', to: 'treemap', kind: 'shape', marks: 9 },
+  // a summary against the bar and radial families
+  { from: 'boxPlot', to: 'bar', kind: 'shape', marks: 3 },
+  { from: 'pyramid', to: 'violin', kind: 'shape', marks: 3 },
+  { from: 'violin', to: 'donut', kind: 'shape', marks: 3 },
+  { from: 'pie', to: 'boxPlot', kind: 'shape', marks: 3 },
+  // a summary against a partition
+  { from: 'boxPlot', to: 'treemap', kind: 'shape', marks: 3 },
+  { from: 'sunburst', to: 'violin', kind: 'shape', marks: 3 },
   // The one pair that conserves nothing. Both states are the SAME renderer, so
   // there is no mark to hand over and the fallback fade covers the swap. The
   // gallery demo sidesteps it by changing the layout instead of the type.
@@ -357,11 +366,29 @@ const DRIVE = async (cfg) => {
   await new Promise((res) => setTimeout(res, 1600))
   const settledMarks = boxesOf(cfg.toSel, cfg.toUnionByJ)
 
+  // How far the marks moved, mark by mark. The overall hull is too blunt for
+  // pairs that occupy the same room: a sunburst's outer ring and a pie fill
+  // the same circle, so every wedge can travel while the hull sits still.
+  let markTravel = 0
+  if (firstMarks.length === settledMarks.length) {
+    firstMarks.forEach((m, i) => {
+      const s = settledMarks[i]
+      markTravel = Math.max(
+        markTravel,
+        Math.abs(m.x0 - s.x0),
+        Math.abs(m.y0 - s.y0),
+        Math.abs(m.x1 - s.x1),
+        Math.abs(m.y1 - s.y1),
+      )
+    })
+  }
+
   return {
     before,
     beforeHull: hull(before),
     firstHull: hull(cfg.kind === 'pieces' ? firstPieces : firstMarks),
     firstMarks,
+    markTravel,
     first,
     steps: signatures.size,
     settled: {
@@ -400,9 +427,11 @@ const area = (h) => (h ? Math.max(0, h.x1 - h.x0) * Math.max(0, h.y1 - h.y0) : 0
 
 test.describe('Every offered pair actually moves', () => {
   for (const row of MATRIX) {
-    const clusters = row.clusters || 5
-    const from = fixture(row.from, clusters)
-    const to = fixture(row.to, clusters)
+    // Unit rows say `clusters` because a cluster is what pairs with a mark;
+    // everything else says `marks` outright. Both mean the same count.
+    const marks = row.marks || row.clusters || 5
+    const from = fixture(row.from, marks)
+    const to = fixture(row.to, marks)
 
     test(`${row.from} -> ${row.to} (${row.kind})`, async ({ page, loadChart }) => {
       // Any sample serves as a host for the full bundle; the probe replaces it.
@@ -461,7 +490,13 @@ test.describe('Every offered pair actually moves', () => {
 
       // 3. It ends somewhere else, and leaves nothing behind.
       expect(r.settled.marks, 'incoming marks').toBe(to.marks)
-      expect(hullGap(r.settled.hull, r.firstHull), 'travelled').toBeGreaterThan(1)
+      // Shape pairs are measured mark by mark; a piece mosaic has no marks of
+      // its own on screen yet, so it is measured against where they end up.
+      if (row.kind === 'shape') {
+        expect(r.markTravel, 'the marks travelled').toBeGreaterThan(1)
+      } else {
+        expect(hullGap(r.settled.hull, r.firstHull), 'travelled').toBeGreaterThan(1)
+      }
       expect(r.settled.pieces, 'pieces cleared').toBe(0)
       expect(r.settled.ghosts, 'ghosts cleared').toBe(0)
       expect(r.settled.hidden, 'nothing left hidden').toBe(0)

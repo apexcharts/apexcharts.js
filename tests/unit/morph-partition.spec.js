@@ -101,13 +101,27 @@ describe('the pair is recognised, and only with itself', () => {
     expect(morph.canMorphTypes('treemap', 'line')).toBe(false)
   })
 
-  it('does not silently claim the unverified cross pairs', () => {
-    // Mechanically these would work (every mark is 1:1 with a row and the
-    // mapping is positional), but no renderer has been driven through them.
-    expect(morph.canMorphTypes('treemap', 'bar')).toBe(false)
-    expect(morph.canMorphTypes('treemap', 'pie')).toBe(false)
-    expect(morph.canMorphTypes('sunburst', 'bar')).toBe(false)
+  it('pairs with the other 1:1 families too, both ways', () => {
+    // Every mark in all of these is one row, so the mapping is positional and
+    // each mark becomes the next shape of itself. Driven in the browser by
+    // tests/interaction/specs/morph-matrix.spec.js.
+    expect(morph.canMorphTypes('treemap', 'bar')).toBe(true)
+    expect(morph.canMorphTypes('bar', 'treemap')).toBe(true)
+    expect(morph.canMorphTypes('treemap', 'pie')).toBe(true)
+    expect(morph.canMorphTypes('sunburst', 'funnel')).toBe(true)
+    expect(morph.canMorphTypes('polarArea', 'sunburst')).toBe(true)
+    expect(morph.canMorphTypes('boxPlot', 'treemap')).toBe(true)
+    expect(morph.canMorphTypes('sunburst', 'violin')).toBe(true)
+  })
+
+  it('keeps the unit pair closed, since a tile cannot be cut into pieces', () => {
+    // The unit pairs are an explode, not a shape change, and the piece divider
+    // has no capture for a tile or an arc. Falling back to the whole-chart fade
+    // would be worse than not offering it.
     expect(morph.canMorphTypes('unit', 'treemap')).toBe(false)
+    expect(morph.canMorphTypes('treemap', 'unit')).toBe(false)
+    expect(morph.canMorphTypes('waffle', 'sunburst')).toBe(false)
+    expect(morph.canMorphTypes('sunburst', 'waffle')).toBe(false)
   })
 
   it('accepts either series shape for a partition target', () => {
