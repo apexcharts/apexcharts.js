@@ -284,6 +284,57 @@ describe('the pieces each renderer contributes', () => {
     sun._morphLeafIndex = 0
     expect(sun._morphSourceFor({ name: 'a' })).toBeNull()
   })
+
+  it('a treemap leaf whose key finds nothing still takes one by draw order', () => {
+    // The asymmetry that made sunburst -> treemap grow from nothing while
+    // treemap -> sunburst morphed: a nested sunburst keys its arcs by the whole
+    // branch ('/0:Apparel/0:Tops') and a FLAT treemap keys its tiles at depth
+    // one ('/0:Tops'), so hasKeyedMarks() is true and every lookup still misses.
+    const handed = []
+    const ctx = {
+      morphTypeChange: {
+        isActive: () => true,
+        getSpeed: () => 600,
+        hasKeyedMarks: () => true,
+        getInitialPathForKey: () => null,
+        getInitialPathAt: (k) => {
+          handed.push(k)
+          return k < 2 ? `arc-${k}` : null
+        },
+      },
+    }
+    const tm = new TreemapChart(stubW(), ctx)
+    tm._morphLeafIndex = 0
+
+    expect(tm._morphSourceForLeaf({ _key: '0/0:Tops' })).toBe('arc-0')
+    expect(tm._morphSourceForLeaf({ _key: '0/0:Denim' })).toBe('arc-1')
+    // Ran out of captured arcs: that tile grows the ordinary way.
+    expect(tm._morphSourceForLeaf({ _key: '0/0:Outerwear' })).toBeNull()
+    expect(handed).toEqual([0, 1, 2])
+  })
+
+  it('a key that does resolve wins, and does not consume a positional slot', () => {
+    const handed = []
+    const ctx = {
+      morphTypeChange: {
+        isActive: () => true,
+        getSpeed: () => 600,
+        hasKeyedMarks: () => true,
+        getInitialPathForKey: (key) => (key === '/0:Apparel' ? 'ring' : null),
+        getInitialPathAt: (k) => {
+          handed.push(k)
+          return `arc-${k}`
+        },
+      },
+    }
+    const tm = new TreemapChart(stubW(), ctx)
+    tm._morphLeafIndex = 0
+
+    expect(tm._morphSourceForLeaf({ _key: '0/0:Apparel' })).toBe('ring')
+    expect(handed).toEqual([])
+    // The next leaf still starts the draw-order sequence at zero.
+    expect(tm._morphSourceForLeaf({ _key: '0/0:Nothing' })).toBe('arc-0')
+  })
 })
 
 // ===========================================================================

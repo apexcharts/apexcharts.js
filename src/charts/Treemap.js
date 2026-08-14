@@ -58,6 +58,8 @@ export default class TreemapChart {
     /** @type {any} */ this._tooltipEl = null
     /** Whether the parent tooltip currently owns the shared tooltip element. */
     this._tipOwned = false
+    /** How many leaves have taken a captured shape by draw order this render. */
+    /** @type {number} */ this._morphLeafIndex = 0
   }
 
   /**
@@ -151,7 +153,7 @@ export default class TreemapChart {
       typeof morphSrc.isActive === 'function' &&
       morphSrc.isActive() &&
       typeof morphSrc.getInitialPathAt === 'function'
-    let morphIndex = 0
+    this._morphLeafIndex = 0
 
     // Leaves grouped by series, in the depth-first order the parse flattened
     // them, so `j` still indexes w.seriesData.series[i].
@@ -266,16 +268,7 @@ export default class TreemapChart {
         // so a morphing tile is drawn as a <path> instead and tweened through
         // the shared polygon interpolator. It keeps the same class, so event
         // delegation, tooltips and styling are unaffected.
-        // Prefer pairing by branch identity, so a tile unrolls from the arc
-        // that stood for the SAME company rather than the k-th one. Falls back
-        // to draw order when the outgoing chart carried no keys.
-        const morphFrom = !morphActive
-          ? null
-          : this._morphKeyed()
-            ? this.ctx.morphTypeChange.getInitialPathForKey(
-                morphKey(leaf._key),
-              )
-            : this.ctx.morphTypeChange.getInitialPathAt(morphIndex++)
+        const morphFrom = morphActive ? this._morphSourceForLeaf(leaf) : null
 
         const elRect = morphFrom
           ? graphics.drawPath({
@@ -1583,6 +1576,36 @@ export default class TreemapChart {
       m.hasKeyedMarks() &&
       typeof m.getInitialPathForKey === 'function'
     )
+  }
+
+  /**
+   * The captured shape a LEAF tile unrolls from, or null when the outgoing
+   * chart had nothing to give it.
+   *
+   * Branch identity first, so a tile unrolls from the arc that stood for the
+   * same row rather than the k-th one. That key can find nothing even when
+   * both sides carry keys, and a FLAT treemap taking from a nested sunburst is
+   * exactly that case: its tiles are keyed at depth one ('/0:Tops') while the
+   * arcs are keyed at the depth they actually sit ('/0:Apparel/0:Tops'), so no
+   * key ever matches. Draw order is the fallback, the same one the mirror
+   * direction has always had (Sunburst._morphSourceFor), and without it
+   * treemap -> sunburst read as a morph while the return trip grew from
+   * nothing.
+   *
+   * Leaves only. A container taking a leaf's path by position would unroll
+   * from a different branch entirely, so `_morphParent` stays key-or-nothing.
+   *
+   * @param {any} leaf
+   * @returns {string | null}
+   */
+  _morphSourceForLeaf(leaf) {
+    const morph = this.ctx?.morphTypeChange
+    if (!morph || typeof morph.getInitialPathAt !== 'function') return null
+    if (this._morphKeyed()) {
+      const keyed = morph.getInitialPathForKey(morphKey(leaf._key))
+      if (keyed) return keyed
+    }
+    return morph.getInitialPathAt(this._morphLeafIndex++)
   }
 
   /**
