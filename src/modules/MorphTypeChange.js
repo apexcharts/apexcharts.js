@@ -142,13 +142,16 @@ export default class MorphTypeChange {
     // through those pairs, and claiming a morph that has not been watched is
     // worse than not offering it.
     if ((ff === 'partition') !== (tf === 'partition')) return false
-    // A summary mark stands for a whole sample, so the pair that means
+    // A summary mark stands for a whole sample, so the first pair that means
     // something is the one that takes it apart into that sample and puts it
-    // back. boxPlot ↔ bar, boxPlot ↔ pie and even boxPlot ↔ violin are all
-    // mechanically plausible and none of them has been driven, so they stay
-    // closed for the same reason the partition family's cross-pairs do.
+    // back. The second is the other summary of the SAME sample: a box and a
+    // violin are two readings of one set of observations, and neither can be
+    // derived from the other, which is exactly what makes watching one become
+    // the other worth the animation. boxPlot ↔ bar and boxPlot ↔ pie remain
+    // closed: mechanically plausible, never driven, and claiming a morph nobody
+    // has watched is worse than not offering it.
     if (ff === 'summary' || tf === 'summary') {
-      return ff === 'unit' || tf === 'unit'
+      return ff === 'unit' || tf === 'unit' || (ff === 'summary' && tf === 'summary')
     }
     // bar ↔ radial covers the remaining cross-family cases; radial → radial
     // covers pie ↔ donut ↔ polarArea ↔ radialBar.
@@ -1235,10 +1238,16 @@ export default class MorphTypeChange {
       // The paths belonging to one mark are concatenated into a single
       // multi-subpath `d`, which makes _pathBBox return the union of their
       // extents for free. Taking only the first would give an explode covering
-      // the box but not its whiskers. Concatenation is safe precisely BECAUSE
-      // this family pairs only with unit (see canMorphTypes): the unit renderer
-      // reads slots off the bounding box and never interpolates the `d`, so the
-      // combined path is never asked to be a shape.
+      // the box but not its whiskers.
+      //
+      // The unit pair never asks the combined path to be a shape: it reads
+      // slots off the bounding box. The summary pair does interpolate it, and
+      // the concatenation is still what we want there, because a whole box
+      // INCLUDING its whiskers is what has to become the density curve. The
+      // resample walks both subpaths, so the whiskers are absorbed into the
+      // silhouette rather than vanishing at the first frame; the seam between
+      // them shows briefly as a thin sliver, which is a fair price for
+      // conserving the ink.
       /** @type {Map<string, {realIndex: number, j: number, d: string, fill: string|null}>} */
       const byMark = new Map()
       baseEl

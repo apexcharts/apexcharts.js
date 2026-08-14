@@ -516,9 +516,17 @@ class Graphics {
     }
 
     let d
+    // A cross-type morph is not a data change. It arrives through the update
+    // path, so `resized` and `dataChanged` are both set, which used to leave it
+    // gated on `dynamicAnimation.enabled`, and boxPlot and violin ship with
+    // that off by default (an index-based morph on a data change reads as
+    // churn). The result was that a type change INTO either of them could not
+    // animate at all, however well the engine had paired the marks up.
+    const crossTypeMorph = this.ctx?.morphTypeChange?.isActive() === true
     const shouldAnimate = !!(
       (initialAnim && !w.globals.resized) ||
-      (dynamicAnim && w.globals.dataChanged && w.globals.shouldAnimate)
+      (dynamicAnim && w.globals.dataChanged && w.globals.shouldAnimate) ||
+      (crossTypeMorph && initialAnim && w.globals.shouldAnimate)
     )
 
     // Draw-mode (initial mount only): line/area/rangeArea/radar render at
@@ -566,7 +574,10 @@ class Graphics {
       isCandleOrBox &&
       shouldAnimate &&
       !useDrawMode &&
-      w.globals.dataChanged
+      w.globals.dataChanged &&
+      // ...but a cross-type morph is a deliberate one-off with marks already
+      // paired, so it keeps its tween instead of fading.
+      !crossTypeMorph
     )
 
     // Either path renders at the final position and reveals via one CSS opacity
@@ -685,12 +696,16 @@ class Graphics {
       }
     }
 
-    if (
-      w.globals.dataChanged &&
-      dynamicAnim &&
+    // The update-side tween. A cross-type morph rides the same call (its speed
+    // is already substituted in dataChangeSpeed by the caller) but must not be
+    // gated on `dynamicAnimation.enabled`, which boxPlot and violin turn off:
+    // that is a statement about data changes, not about a type change whose
+    // marks the engine has explicitly paired.
+    const animateOnUpdate =
       shouldAnimate &&
-      !revealViaFade
-    ) {
+      !revealViaFade &&
+      ((w.globals.dataChanged && dynamicAnim) || crossTypeMorph)
+    if (animateOnUpdate) {
       anim.animatePathsGradually({
         ...defaultAnimateOpts,
         speed: dataChangeSpeed,

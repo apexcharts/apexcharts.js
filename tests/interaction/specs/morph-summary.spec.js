@@ -477,6 +477,122 @@ test.describe('the pieces follow the silhouette, not the bounding box', () => {
   })
 })
 
+// ===========================================================================
+// The other summary of the same sample.
+//
+// A box and a violin are two readings of one set of observations, so this is an
+// ordinary 1:1 shape morph: no pieces, no ghost, the outgoing mark IS the
+// incoming mark's first frame. What made it worth its own tests is that it
+// could not animate at all until recently: both types ship with
+// `dynamicAnimation.enabled: false` (an index-based morph on a data CHANGE
+// reads as churn) and the cross-type morph was gated on the same flag, so the
+// new chart drew straight at its final geometry.
+// ===========================================================================
+test.describe('boxPlot <-> violin', () => {
+  /** Per-category union of a selector's marks, in page space. */
+  const UNION = `(sel) => {
+    const byJ = {}
+    document.querySelectorAll(sel).forEach((p) => {
+      const j = p.getAttribute('j')
+      const b = p.getBoundingClientRect()
+      const e = (byJ[j] = byJ[j] || { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 })
+      e.x0 = Math.min(e.x0, b.x)
+      e.y0 = Math.min(e.y0, b.y)
+      e.x1 = Math.max(e.x1, b.x + b.width)
+      e.y1 = Math.max(e.y1, b.y + b.height)
+    })
+    return Object.keys(byJ).sort((a, b) => +a - +b).map((j) => byJ[j])
+  }`
+
+  /**
+   * @param {any} page
+   * @param {string} from
+   * @param {string} to
+   */
+  const drive = (page, from, to) =>
+    page.evaluate(
+      async ([mk, samples, unionFn, fromType, toType]) => {
+        const make = eval(mk)
+        const union = eval(unionFn)
+        const series = [{ name: 'Devices', data: eval(samples) }]
+        const chart = await make(fromType, series)
+
+        const before = union(`#probe .apexcharts-${fromType}-area`)
+        chart.updateOptions({ chart: { type: toType }, series })
+        await new Promise((res) => requestAnimationFrame(res))
+
+        const sel = `#probe .apexcharts-${toType}-area`
+        const first = union(sel)
+        // Distinct heights over the flight: a frozen mark reports one.
+        const heights = new Set()
+        for (let k = 0; k < 45; k++) {
+          await new Promise((res) => requestAnimationFrame(res))
+          const el = document.querySelector(sel)
+          if (el) heights.add(Math.round(el.getBoundingClientRect().height))
+        }
+        await new Promise((res) => setTimeout(res, 1400))
+        return {
+          before,
+          first,
+          settled: union(sel),
+          steps: heights.size,
+          pieces: document.querySelectorAll('#probe .apexcharts-morph-pieces rect')
+            .length,
+          ghosts: document.querySelectorAll('#probe .apexcharts-morph-ghost').length,
+        }
+      },
+      [MAKE, SAMPLES, UNION, from, to],
+    )
+
+  /** How far apart two unions are, worst edge. */
+  const gap = (a, b) =>
+    Math.max(
+      ...a.map((m, i) =>
+        Math.max(
+          Math.abs(m.x0 - b[i].x0),
+          Math.abs(m.y0 - b[i].y0),
+          Math.abs(m.x1 - b[i].x1),
+          Math.abs(m.y1 - b[i].y1),
+        ),
+      ),
+    )
+
+  test('the box unfolds into the density, whiskers and all', async ({
+    page,
+    loadChart,
+  }) => {
+    await loadChart('boxPlot', 'boxplot-from-raw-observations')
+    const r = await drive(page, 'boxPlot', 'violin')
+
+    expect(r.before.length).toBe(5)
+    expect(r.first.length).toBe(r.before.length)
+    // Frame one IS the box, whiskers included: the capture unions both of a
+    // box's paths, so the silhouette the violin grows from covers the whole
+    // extent rather than the body alone.
+    expect(gap(r.first, r.before)).toBeLessThan(1.5)
+    // It travels rather than jumping.
+    expect(r.steps).toBeGreaterThan(3)
+    // And it arrives somewhere else: a density is not a rectangle.
+    expect(gap(r.settled, r.first)).toBeGreaterThan(2)
+    // 1:1 marks, so no exit layer of any kind.
+    expect(r.pieces).toBe(0)
+    expect(r.ghosts).toBe(0)
+  })
+
+  test('the density folds back into the box', async ({ page, loadChart }) => {
+    await loadChart('violin', 'basic-violin')
+    const r = await drive(page, 'violin', 'boxPlot')
+
+    expect(r.before.length).toBe(5)
+    expect(r.first.length).toBe(r.before.length)
+    expect(gap(r.first, r.before)).toBeLessThan(1.5)
+    expect(r.steps).toBeGreaterThan(3)
+    expect(gap(r.settled, r.first)).toBeGreaterThan(2)
+    expect(r.pieces).toBe(0)
+    expect(r.ghosts).toBe(0)
+  })
+})
+
 test('summary pairs stay closed against untested targets', async ({ page, loadChart }) => {
   await loadChart('boxPlot', 'boxplot-from-raw-observations')
   const r = await page.evaluate(() => {
@@ -488,14 +604,17 @@ test('summary pairs stay closed against untested targets', async ({ page, loadCh
       toBar: m.canMorphTypes('boxPlot', 'bar'),
       toPie: m.canMorphTypes('boxPlot', 'pie'),
       toViolin: m.canMorphTypes('boxPlot', 'violin'),
+      fromViolin: m.canMorphTypes('violin', 'boxPlot'),
     }
   })
   console.log('SUMMARY PAIRS ' + JSON.stringify(r))
   expect(r.toUnit).toBe(true)
   expect(r.fromUnit).toBe(true)
+  // The two summaries of one sample, driven and pinned above.
+  expect(r.toViolin).toBe(true)
+  expect(r.fromViolin).toBe(true)
   // Mechanically plausible, never driven: claiming a morph nobody has watched
   // is worse than not offering it.
   expect(r.toBar).toBe(false)
   expect(r.toPie).toBe(false)
-  expect(r.toViolin).toBe(false)
 })

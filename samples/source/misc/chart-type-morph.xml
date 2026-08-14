@@ -464,13 +464,8 @@ var READINGS_LAYOUT = {
   },
 }
 
-function isSummaryView(view) {
-  return view === 'boxPlot' || view === 'violin'
-}
-
 function wireSample(chart) {
   var view = 'boxPlot'
-  var hopping = false
   var readings = TIERS.reduce(function (n, t) {
     return n + t.values.length
   }, 0)
@@ -478,10 +473,11 @@ function wireSample(chart) {
   var COPY = {
     boxPlot:
       'Five numbers per tier. Three very different samples can share them, ' +
-      'which is what the next two views are for.',
+      'which is what the other two views are for.',
     violin:
       'The same three samples as densities: now the two camps inside ' +
-      '<b>Standard</b> are visible, and so is the tail on <b>Economy</b>.',
+      '<b>Standard</b> are visible, and so is the tail on <b>Economy</b>. The ' +
+      'box did not disappear, it unfolded, whiskers and all.',
     readings:
       '<b>' + readings + '</b> parcels, one dot each, handed back by ' +
       '<code>rowSeries()</code>. Every dot left from the mark that summarised it.',
@@ -512,32 +508,14 @@ function wireSample(chart) {
     })
   }
 
-  function goTo(next) {
-    if (next === view || hopping) return
-    if (isSummaryView(view) && isSummaryView(next)) {
-      // A box and a violin are two summaries of the same sample, and the
-      // engine only ever pairs a summary with the sample itself: neither one
-      // can become the other directly, because a five-number box has no idea
-      // what shape the density had. So take the honest route and go through
-      // the readings, which is the only thing both of them are about.
-      hopping = true
-      apply('readings')
-      window.setTimeout(function () {
-        hopping = false
-        apply(next)
-      }, MORPH_SPEED + 260)
-      return
-    }
-    apply(next)
-  }
-
   markActive('#card-sample', 'data-summary', view)
   setReadout('#sample-readout', COPY[view])
   ;[].slice
     .call(document.querySelectorAll('#card-sample [data-summary]'))
     .forEach(function (btn) {
       btn.addEventListener('click', function () {
-        goTo(btn.getAttribute('data-summary'))
+        var next = btn.getAttribute('data-summary')
+        if (next !== view) apply(next)
       })
     })
 }
@@ -826,12 +804,12 @@ function wireSpeed(charts) {
     <p class="kind">A summary and its sample &middot; boxPlot and violin</p>
     <h2>Every summary is a claim about some readings</h2>
     <p>
-      A box plot shows five numbers and a violin shows a density, and both of
-      them were computed from the same parcels. So the pair that means something
-      is the one that takes the summary apart into the sample and puts it back.
-      A box and a violin never meet directly, because neither can be derived
-      from the other: press one while the other is showing and the chart takes
-      the only honest route, out through the readings.
+      A box plot shows five numbers and a violin shows a density, and both were
+      computed from the same parcels. Neither can be derived from the other,
+      which is exactly why watching one become the other is worth doing: the box
+      unfolds into the curve, whiskers and all, and the shape you end up with is
+      the claim the box was hiding. Or take either one apart into the parcels
+      themselves, which is what both of them are summaries of.
     </p>
     <div class="actions">
       <button data-summary="boxPlot">Box plot</button>
