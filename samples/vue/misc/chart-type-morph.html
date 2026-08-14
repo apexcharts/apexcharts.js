@@ -163,7 +163,8 @@
       //
       // Between them the cards cover every type the engine can morph:
       //   bar family      bar, funnel, pyramid, histogram
-      //   radial family   pie, donut, polarArea, radialBar, gauge
+      //   radial family   pie, donut, polarArea, radialBar (and gauge, which is the
+      //                   same renderer with a different sweep)
       //   unit family     unit, waffle
       //   summary family  boxPlot, violin
       //   partition       treemap, sunburst
@@ -209,8 +210,8 @@
 
       // Kept in descending order on purpose. A funnel and a pyramid are only
       // truthful when the stages fall, so no view has to re-sort, which means a
-      // channel keeps its rank, its colour and its place through all nine shapes:
-      // pick one and you can follow it across every button.
+      // channel keeps its rank, its colour and its place through every shape: pick
+      // one and you can follow it across every button.
       var ORDERS = [55, 44, 41, 33, 27]
 
       // One dot per this many orders. Two keeps a cluster readable while giving the
@@ -218,10 +219,9 @@
       // reads as dissolving, into 8 large ones as breaking.
       var ORDERS_PER_DOT = 2
 
-      // A radialBar is a full ring per channel; a gauge is the same arcs opened out
-      // into a fan. Both have to be passed explicitly on every switch: the previous
-      // render's angles are already merged into the live config, so the alias
-      // defaults have nothing left to fill in.
+      // A radialBar is a full ring per channel. Passed explicitly on every switch:
+      // the previous render's angles are already merged into the live config, so
+      // leaving them out would inherit whatever the last radial view used.
       var FULL_RING = {
         startAngle: 0,
         endAngle: 360,
@@ -229,17 +229,8 @@
         hollow: { size: '8%' },
         track: { show: false },
       }
-      var GAUGE_FAN = {
-        startAngle: -135,
-        endAngle: 135,
-        inverseOrder: true,
-        hollow: { size: '30%' },
-        // The track is what makes a gauge read as a gauge: the arc is a fraction of
-        // a scale you can see, rather than a ring of unknown size.
-        track: { show: true, background: '#eef2f7', strokeWidth: '100%' },
-      }
 
-      var RADIAL_SHAPES = ['pie', 'donut', 'polarArea', 'radialBar', 'gauge']
+      var RADIAL_SHAPES = ['pie', 'donut', 'polarArea', 'radialBar']
 
       function isRadialShape(shape) {
         return RADIAL_SHAPES.indexOf(shape) > -1
@@ -266,8 +257,6 @@
           opts.plotOptions = { bar: { horizontal: true } }
         } else if (shape === 'radialBar') {
           opts.plotOptions = { radialBar: FULL_RING }
-        } else if (shape === 'gauge') {
-          opts.plotOptions = { radialBar: GAUGE_FAN }
         }
         return opts
       }
@@ -795,12 +784,12 @@
     
       <div class="card" id="card-shapes">
         <p class="kind">Shape to shape &middot; bar family and radial family</p>
-        <h2>Nine shapes, five numbers, one mark each</h2>
+        <h2>Eight shapes, five numbers, one mark each</h2>
         <p>
           Every one of these draws exactly one mark per channel, so each mark simply
           becomes the next shape of itself: no overlay, no fade, no exit. The
           channels are in descending order, so nothing has to re-sort, which means a
-          colour is the same channel in all nine. Pick one and follow it.
+          colour is the same channel in all eight. Pick one and follow it.
         </p>
         <div class="actions">
           <button data-shape="column">Column</button>
@@ -812,7 +801,6 @@
           <button data-shape="donut">Donut</button>
           <button data-shape="polarArea">Polar area</button>
           <button data-shape="radialBar">Radial bar</button>
-          <button data-shape="gauge">Gauge</button>
           <button class="ghost" id="shuffle-orders">Shuffle the week</button>
         </div>
         <div id="chart">
@@ -921,6 +909,13 @@
           possible and neither has been driven, and claiming a morph nobody has
           watched is worse than not offering it.
         </p>
+        <p>
+          <code>gauge</code>, <code>funnel</code>, <code>pyramid</code>,
+          <code>waffle</code> and <code>histogram</code> are names for a renderer
+          already here rather than renderers of their own, so they morph exactly as
+          the type underneath them does. A gauge is the radial bar above with a
+          different sweep.
+        </p>
       </div>
     </div></div>
 
@@ -948,12 +943,12 @@
       
         &lt;div class=&quot;card&quot; id=&quot;card-shapes&quot;&gt;
           &lt;p class=&quot;kind&quot;&gt;Shape to shape &amp;middot; bar family and radial family&lt;/p&gt;
-          &lt;h2&gt;Nine shapes, five numbers, one mark each&lt;/h2&gt;
+          &lt;h2&gt;Eight shapes, five numbers, one mark each&lt;/h2&gt;
           &lt;p&gt;
             Every one of these draws exactly one mark per channel, so each mark simply
             becomes the next shape of itself: no overlay, no fade, no exit. The
             channels are in descending order, so nothing has to re-sort, which means a
-            colour is the same channel in all nine. Pick one and follow it.
+            colour is the same channel in all eight. Pick one and follow it.
           &lt;/p&gt;
           &lt;div class=&quot;actions&quot;&gt;
             &lt;button data-shape=&quot;column&quot;&gt;Column&lt;/button&gt;
@@ -965,7 +960,6 @@
             &lt;button data-shape=&quot;donut&quot;&gt;Donut&lt;/button&gt;
             &lt;button data-shape=&quot;polarArea&quot;&gt;Polar area&lt;/button&gt;
             &lt;button data-shape=&quot;radialBar&quot;&gt;Radial bar&lt;/button&gt;
-            &lt;button data-shape=&quot;gauge&quot;&gt;Gauge&lt;/button&gt;
             &lt;button class=&quot;ghost&quot; id=&quot;shuffle-orders&quot;&gt;Shuffle the week&lt;/button&gt;
           &lt;/div&gt;
           &lt;div id=&quot;chart&quot;&gt;
@@ -1073,6 +1067,13 @@
             become a pie, and a box plot will not become a bar: both are mechanically
             possible and neither has been driven, and claiming a morph nobody has
             watched is worse than not offering it.
+          &lt;/p&gt;
+          &lt;p&gt;
+            &lt;code&gt;gauge&lt;/code&gt;, &lt;code&gt;funnel&lt;/code&gt;, &lt;code&gt;pyramid&lt;/code&gt;,
+            &lt;code&gt;waffle&lt;/code&gt; and &lt;code&gt;histogram&lt;/code&gt; are names for a renderer
+            already here rather than renderers of their own, so they morph exactly as
+            the type underneath them does. A gauge is the radial bar above with a
+            different sweep.
           &lt;/p&gt;
         &lt;/div&gt;
       &lt;/div&gt;</div>
