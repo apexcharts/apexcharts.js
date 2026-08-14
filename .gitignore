@@ -22,4 +22,4 @@ dist-ssr
 .claude/settings.local.json
 
 # Playwright per-failure artifacts (traces, error contexts): transient output.
-tests/interaction/test-results/*/
+tests/interaction/test-results/

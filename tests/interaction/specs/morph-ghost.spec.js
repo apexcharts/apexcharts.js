@@ -18,15 +18,38 @@
  * incoming elements are always revealed, that no overlay survives the
  * transition, that the 1:1 pairs never grow an overlay, and that reduced
  * motion skips all of it.
+ *
+ * They drive the morph gallery (misc/chart-type-morph), which holds five live
+ * charts. Everything below is therefore scoped to ONE of them: CARD is the
+ * "one mark becomes many" card, whose buttons cover column, pie, donut and the
+ * dot cluster. An unscoped `.apexcharts-bar-area` on that page would also
+ * count the shapes card's bars and the histogram card's twenty.
  */
 
 import { test } from '../fixtures/base.js'
 import { expect } from '@playwright/test'
 
-const PIECES = '.apexcharts-morph-pieces rect'
-const GHOST = '.apexcharts-morph-ghost'
-const UNIT_BTN = '.actions button[data-type="unit"]'
-const COLUMN_BTN = '.actions button[data-type="bar"][data-horizontal="false"]'
+// The card under test: its chart container, and the buttons that drive it.
+const CARD = '#chart2'
+const PIECES = `${CARD} .apexcharts-morph-pieces rect`
+const GHOST = `${CARD} .apexcharts-morph-ghost`
+const UNIT_BTN = '#card-counted [data-count="dots"]'
+const COLUMN_BTN = '#card-counted [data-count="column"]'
+const PIE_BTN = '#card-counted [data-count="pie"]'
+
+/**
+ * loadChart only waits for the first chart on the page. The card under test is
+ * the second, so wait for its own entry animation before measuring geometry:
+ * pieces are compared against live marks, and a mark still growing would move
+ * under the comparison.
+ */
+async function settle(page) {
+  await page.waitForFunction(
+    () => window.chart1 && window.chart1.w.globals.animationEnded === true,
+    { timeout: 10_000 },
+  )
+  await page.waitForTimeout(800)
+}
 
 test.describe('Cross-type morph exit layer', () => {
   test('column -> unit: the pieces tile the outgoing bars exactly', async ({
@@ -34,14 +57,13 @@ test.describe('Cross-type morph exit layer', () => {
     loadChart,
   }) => {
     await loadChart('misc', 'chart-type-morph')
-    // Geometry is measured against the LIVE bars, so the entry animation must
-    // be fully settled first; animationEnded fires before the last staggered
-    // bar has reached its final height.
-    await page.waitForTimeout(800)
+    await settle(page)
 
-    const r = await page.evaluate(async ([piecesSel, unitBtn]) => {
+    const r = await page.evaluate(async ([card, piecesSel, unitBtn]) => {
+      const scope = document.querySelector(card)
+
       // The bars' page-space geometry before anything changes.
-      const bars = [...document.querySelectorAll('.apexcharts-bar-series path[pathTo]')].map(
+      const bars = [...scope.querySelectorAll('.apexcharts-bar-series path[pathTo]')].map(
         (p) => {
           const b = p.getBoundingClientRect()
           return { x: b.x, y: b.y, w: b.width, h: b.height }
@@ -80,11 +102,11 @@ test.describe('Cross-type morph exit layer', () => {
         clusters: Object.keys(unions).length,
         pieces: Object.values(unions).reduce((n, u) => n + u.n, 0),
         maxDrift: Math.max(...drift.filter((d) => d != null)),
-        hiddenDots: document.querySelectorAll('.apexcharts-unit-area[data-piece-hidden]').length,
-        dots: document.querySelectorAll('.apexcharts-unit-area').length,
-        ghosts: document.querySelectorAll('.apexcharts-morph-ghost').length,
+        hiddenDots: scope.querySelectorAll('.apexcharts-unit-area[data-piece-hidden]').length,
+        dots: scope.querySelectorAll('.apexcharts-unit-area').length,
+        ghosts: scope.querySelectorAll('.apexcharts-morph-ghost').length,
       }
-    }, [PIECES, UNIT_BTN])
+    }, [CARD, PIECES, UNIT_BTN])
 
     expect(r.bars).toBeGreaterThan(0)
     expect(r.clusters).toBe(r.bars)
@@ -103,14 +125,16 @@ test.describe('Cross-type morph exit layer', () => {
     loadChart,
   }) => {
     await loadChart('misc', 'chart-type-morph')
+    await settle(page)
 
-    const r = await page.evaluate(async ([piecesSel, unitBtn]) => {
+    const r = await page.evaluate(async ([card, piecesSel, unitBtn]) => {
+      const scope = document.querySelector(card)
       document.querySelector(unitBtn).click()
       const timeline = []
       for (let k = 0; k < 90; k++) {
         await new Promise((res) => requestAnimationFrame(res))
         const pieces = document.querySelectorAll(piecesSel).length
-        const visible = [...document.querySelectorAll('.apexcharts-unit-area')].filter(
+        const visible = [...scope.querySelectorAll('.apexcharts-unit-area')].filter(
           (d) => d.getAttribute('opacity') !== '0',
         ).length
         timeline.push({ pieces, visible })
@@ -120,13 +144,13 @@ test.describe('Cross-type morph exit layer', () => {
       return {
         timeline,
         settledPieces: document.querySelectorAll(piecesSel).length,
-        settledHidden: document.querySelectorAll('[data-piece-hidden]').length,
-        settledVisible: [...document.querySelectorAll('.apexcharts-unit-area')].filter(
+        settledHidden: scope.querySelectorAll('[data-piece-hidden]').length,
+        settledVisible: [...scope.querySelectorAll('.apexcharts-unit-area')].filter(
           (d) => d.getAttribute('opacity') !== '0',
         ).length,
-        dots: document.querySelectorAll('.apexcharts-unit-area').length,
+        dots: scope.querySelectorAll('.apexcharts-unit-area').length,
       }
-    }, [PIECES, UNIT_BTN])
+    }, [CARD, PIECES, UNIT_BTN])
 
     // The reveal is a swap: visible-dot count only ever grows, and every dot
     // that appears does so because its piece just landed on it (pieces shrink
@@ -146,20 +170,22 @@ test.describe('Cross-type morph exit layer', () => {
     loadChart,
   }) => {
     await loadChart('misc', 'chart-type-morph')
+    await settle(page)
     await page.click(UNIT_BTN)
-    await page.waitForSelector('.apexcharts-unit-area')
+    await page.waitForSelector(`${CARD} .apexcharts-unit-area`)
     await page.waitForTimeout(1500)
 
-    const r = await page.evaluate(async ([piecesSel, columnBtn]) => {
-      const dotsBefore = document.querySelectorAll('.apexcharts-unit-area').length
+    const r = await page.evaluate(async ([card, piecesSel, columnBtn]) => {
+      const scope = document.querySelector(card)
+      const dotsBefore = scope.querySelectorAll('.apexcharts-unit-area').length
       document.querySelector(columnBtn).click()
       await new Promise((res) => requestAnimationFrame(res))
 
       const first = {
         pieces: document.querySelectorAll(piecesSel).length,
-        hiddenMarks: document.querySelectorAll('path[data-piece-hidden]').length,
-        bars: document.querySelectorAll('.apexcharts-bar-series path[pathTo]').length,
-        ghosts: document.querySelectorAll('.apexcharts-morph-ghost').length,
+        hiddenMarks: scope.querySelectorAll('path[data-piece-hidden]').length,
+        bars: scope.querySelectorAll('.apexcharts-bar-series path[pathTo]').length,
+        ghosts: scope.querySelectorAll('.apexcharts-morph-ghost').length,
       }
 
       // A mark reveals only when its whole mosaic has landed, so the visible
@@ -167,9 +193,9 @@ test.describe('Cross-type morph exit layer', () => {
       const seen = new Set()
       for (let k = 0; k < 90; k++) {
         await new Promise((res) => requestAnimationFrame(res))
-        const visible = [...document.querySelectorAll('.apexcharts-bar-series path[pathTo]')].filter(
-          (p) => p.getAttribute('opacity') !== '0',
-        ).length
+        const visible = [
+          ...scope.querySelectorAll('.apexcharts-bar-series path[pathTo]'),
+        ].filter((p) => p.getAttribute('opacity') !== '0').length
         seen.add(visible)
         if (document.querySelectorAll(piecesSel).length === 0 && k > 5) break
       }
@@ -179,9 +205,9 @@ test.describe('Cross-type morph exit layer', () => {
         first,
         revealSteps: [...seen].sort((a, b) => a - b),
         settledPieces: document.querySelectorAll(piecesSel).length,
-        settledHidden: document.querySelectorAll('[data-piece-hidden]').length,
+        settledHidden: scope.querySelectorAll('[data-piece-hidden]').length,
       }
-    }, [PIECES, COLUMN_BTN])
+    }, [CARD, PIECES, COLUMN_BTN])
 
     // Every outgoing dot became a piece; every incoming mark held for its
     // mosaic.
@@ -201,11 +227,13 @@ test.describe('Cross-type morph exit layer', () => {
     loadChart,
   }) => {
     await loadChart('misc', 'chart-type-morph')
+    await settle(page)
     await page.click(UNIT_BTN)
-    await page.waitForSelector('.apexcharts-unit-area')
+    await page.waitForSelector(`${CARD} .apexcharts-unit-area`)
     await page.waitForTimeout(1500)
 
-    const r = await page.evaluate(async ([piecesSel, columnBtn]) => {
+    const r = await page.evaluate(async ([card, piecesSel, columnBtn]) => {
+      const scope = document.querySelector(card)
       document.querySelector(columnBtn).click()
       await new Promise((res) => requestAnimationFrame(res))
 
@@ -215,7 +243,7 @@ test.describe('Cross-type morph exit layer', () => {
       // that geometry must never move: the mark's own enter tween used to
       // keep running underneath and replayed as a bounce after the reveal.
       const barsOf = () => [
-        ...document.querySelectorAll('.apexcharts-bar-series path[pathTo]'),
+        ...scope.querySelectorAll('.apexcharts-bar-series path[pathTo]'),
       ]
       const rectsOf = () =>
         barsOf().map((p) => {
@@ -248,9 +276,9 @@ test.describe('Cross-type morph exit layer', () => {
         sampled: samples.length,
         maxDrift,
         settledPieces: document.querySelectorAll(piecesSel).length,
-        settledHidden: document.querySelectorAll('[data-piece-hidden]').length,
+        settledHidden: scope.querySelectorAll('[data-piece-hidden]').length,
       }
-    }, [PIECES, COLUMN_BTN])
+    }, [CARD, PIECES, COLUMN_BTN])
 
     expect(r.bars).toBeGreaterThan(0)
     expect(r.sampled).toBeGreaterThan(30)
@@ -266,18 +294,19 @@ test.describe('Cross-type morph exit layer', () => {
     loadChart,
   }) => {
     await loadChart('misc', 'chart-type-morph')
+    await settle(page)
 
-    const r = await page.evaluate(async ([piecesSel, ghostSel]) => {
+    const r = await page.evaluate(async ([piecesSel, ghostSel, pieBtn]) => {
       let pieces = 0
       let ghosts = 0
-      document.querySelector('.actions button[data-type="pie"]').click()
+      document.querySelector(pieBtn).click()
       for (let k = 0; k < 70; k++) {
         await new Promise((res) => requestAnimationFrame(res))
         pieces = Math.max(pieces, document.querySelectorAll(piecesSel).length)
         ghosts = Math.max(ghosts, document.querySelectorAll(ghostSel).length)
       }
       return { pieces, ghosts }
-    }, [PIECES, GHOST])
+    }, [PIECES, GHOST, PIE_BTN])
 
     expect(r.pieces).toBe(0)
     expect(r.ghosts).toBe(0)
@@ -288,16 +317,18 @@ test.describe('Cross-type morph exit layer', () => {
     loadChart,
   }) => {
     await loadChart('misc', 'chart-type-morph')
+    await settle(page)
     await page.click(UNIT_BTN)
     await page.waitForTimeout(1500)
 
-    const r = await page.evaluate(async ([piecesSel, ghostSel]) => {
-      const dotsBefore = document.querySelectorAll('.apexcharts-unit-area').length
+    const r = await page.evaluate(async ([card, piecesSel, ghostSel, pieBtn]) => {
+      const scope = document.querySelector(card)
+      const dotsBefore = scope.querySelectorAll('.apexcharts-unit-area').length
       let pieces = 0
       let ghosts = 0
-      document.querySelector('.actions button[data-type="pie"]').click()
+      document.querySelector(pieBtn).click()
       await new Promise((res) => requestAnimationFrame(res))
-      const hiddenWedges = document.querySelectorAll(
+      const hiddenWedges = scope.querySelectorAll(
         '.apexcharts-pie-area[data-piece-hidden]',
       ).length
       for (let k = 0; k < 70; k++) {
@@ -311,11 +342,11 @@ test.describe('Cross-type morph exit layer', () => {
         pieces,
         ghosts,
         hiddenWedges,
-        wedges: document.querySelectorAll('.apexcharts-pie-area').length,
+        wedges: scope.querySelectorAll('.apexcharts-pie-area').length,
         after: document.querySelectorAll(ghostSel).length,
-        stranded: document.querySelectorAll('[data-piece-hidden]').length,
+        stranded: scope.querySelectorAll('[data-piece-hidden]').length,
       }
-    }, [PIECES, GHOST])
+    }, [CARD, PIECES, GHOST, PIE_BTN])
 
     // Every outgoing dot becomes a piece, every incoming wedge waits hidden
     // for its mosaic, and the fade never runs.
@@ -335,24 +366,26 @@ test.describe('Cross-type morph exit layer', () => {
     // over a donut it fills the hole. The divider probes the mark instead, so
     // this asserts the property directly rather than the mechanism.
     await loadChart('misc', 'chart-type-morph')
+    await settle(page)
 
     for (const kind of ['pie', 'donut']) {
-      const r = await page.evaluate(async (type) => {
-        document.querySelector(`.actions button[data-type="${type}"]`).click()
+      const r = await page.evaluate(async ([type, card]) => {
+        const scope = document.querySelector(card)
+        document.querySelector(`#card-counted [data-count="${type}"]`).click()
         await new Promise((res) => setTimeout(res, 1700))
 
         // The wedges as plain numbers: their path data and the matrix from
         // their user space to the page. The morph destroys the elements, so
         // nothing may hold a reference to them.
-        const snap = [...document.querySelectorAll('.apexcharts-pie-area')].map((p) => {
+        const snap = [...scope.querySelectorAll('.apexcharts-pie-area')].map((p) => {
           const m = p.getScreenCTM()
           return { d: p.getAttribute('d'), m: [m.a, m.b, m.c, m.d, m.e, m.f] }
         })
 
-        document.querySelector('.actions button[data-type="unit"]').click()
+        document.querySelector('#card-counted [data-count="dots"]').click()
         await new Promise((res) => requestAnimationFrame(res))
         const pieces = [
-          ...document.querySelectorAll('.apexcharts-morph-pieces rect'),
+          ...scope.querySelectorAll('.apexcharts-morph-pieces rect'),
         ].map((el) => {
           const b = el.getBoundingClientRect()
           return {
@@ -393,10 +426,10 @@ test.describe('Cross-type morph exit layer', () => {
         holder.remove()
 
         await new Promise((res) => setTimeout(res, 1700))
-        document.querySelector('.actions button[data-type="bar"][data-horizontal="false"]').click()
+        document.querySelector('#card-counted [data-count="column"]').click()
         await new Promise((res) => setTimeout(res, 1500))
         return { pieces: pieces.length, inside }
-      }, kind)
+      }, [kind, CARD])
 
       expect(r.pieces).toBeGreaterThan(40)
       // Cells follow the ink. The few that miss sit on the stepped edge of a
@@ -414,14 +447,22 @@ test.describe('Cross-type morph exit layer', () => {
     await loadChart('misc', 'chart-type-morph')
 
     const r = await page.evaluate(async () => {
-      document.body.innerHTML = '<div id="probe" style="width:760px"></div>'
+      // Its own container, appended to the gallery rather than replacing it:
+      // tearing five live charts out from under themselves is not what this
+      // test is about.
+      const host = document.createElement('div')
+      host.id = 'budget-probe'
+      host.style.width = '760px'
+      document.body.appendChild(host)
+      const scope = () => document.querySelector('#budget-probe')
+
       let seed = 3
       const rand = () => {
         seed = (seed * 16807) % 2147483647
         return (seed - 1) / 2147483646
       }
       const obs = Array.from({ length: 1700 }, () => Math.round(20 + rand() * 60))
-      const chart = new window.ApexCharts(document.querySelector('#probe'), {
+      const chart = new window.ApexCharts(host, {
         chart: { id: 'probe', type: 'histogram', height: 400 },
         series: [{ name: 'Big', data: obs }],
         plotOptions: { histogram: { bins: 20 } },
@@ -434,15 +475,15 @@ test.describe('Cross-type morph exit layer', () => {
       })
       await new Promise((res) => requestAnimationFrame(res))
       const first = {
-        pieces: document.querySelectorAll('.apexcharts-morph-pieces rect').length,
-        ghosts: document.querySelectorAll('.apexcharts-morph-ghost').length,
-        hidden: document.querySelectorAll('[data-piece-hidden]').length,
-        visibleDots: [...document.querySelectorAll('.apexcharts-unit-area')].filter(
+        pieces: scope().querySelectorAll('.apexcharts-morph-pieces rect').length,
+        ghosts: scope().querySelectorAll('.apexcharts-morph-ghost').length,
+        hidden: scope().querySelectorAll('[data-piece-hidden]').length,
+        visibleDots: [...scope().querySelectorAll('.apexcharts-unit-area')].filter(
           (d) => d.getAttribute('opacity') !== '0',
         ).length,
       }
       await new Promise((res) => setTimeout(res, 1400))
-      return { first, dots: document.querySelectorAll('.apexcharts-unit-area').length }
+      return { first, dots: scope().querySelectorAll('.apexcharts-unit-area').length }
     })
 
     // 1700 objects exceed the budget: pieces stand down, the fade covers the
@@ -459,8 +500,10 @@ test.describe('Cross-type morph exit layer', () => {
     loadChart,
   }) => {
     await loadChart('misc', 'chart-type-morph')
+    await settle(page)
 
-    const r = await page.evaluate(async ([unitBtn, columnBtn]) => {
+    const r = await page.evaluate(async ([card, unitBtn, columnBtn]) => {
+      const scope = document.querySelector(card)
       let peakLayers = 0
       document.querySelector(unitBtn).click()
       await new Promise((res) => setTimeout(res, 90))
@@ -471,20 +514,20 @@ test.describe('Cross-type morph exit layer', () => {
         await new Promise((res) => requestAnimationFrame(res))
         peakLayers = Math.max(
           peakLayers,
-          document.querySelectorAll('.apexcharts-morph-pieces').length +
-            document.querySelectorAll('.apexcharts-morph-ghost').length,
+          scope.querySelectorAll('.apexcharts-morph-pieces').length +
+            scope.querySelectorAll('.apexcharts-morph-ghost').length,
         )
       }
       await new Promise((res) => setTimeout(res, 1400))
       return {
         peakLayers,
         layersAfter:
-          document.querySelectorAll('.apexcharts-morph-pieces').length +
-          document.querySelectorAll('.apexcharts-morph-ghost').length,
-        hiddenAfter: document.querySelectorAll('[data-piece-hidden]').length,
-        canvases: document.querySelectorAll('.apexcharts-canvas').length,
+          scope.querySelectorAll('.apexcharts-morph-pieces').length +
+          scope.querySelectorAll('.apexcharts-morph-ghost').length,
+        hiddenAfter: scope.querySelectorAll('[data-piece-hidden]').length,
+        canvases: scope.querySelectorAll('.apexcharts-canvas').length,
       }
-    }, [UNIT_BTN, COLUMN_BTN])
+    }, [CARD, UNIT_BTN, COLUMN_BTN])
 
     expect(r.peakLayers).toBeLessThanOrEqual(1)
     expect(r.layersAfter).toBe(0)
@@ -495,8 +538,10 @@ test.describe('Cross-type morph exit layer', () => {
   test('reduced motion skips pieces, ghost and hiding alike', async ({ page, loadChart }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await loadChart('misc', 'chart-type-morph')
+    await settle(page)
 
-    const r = await page.evaluate(async ([piecesSel, ghostSel, unitBtn]) => {
+    const r = await page.evaluate(async ([card, piecesSel, ghostSel, unitBtn]) => {
+      const scope = document.querySelector(card)
       let pieces = 0
       let ghosts = 0
       document.querySelector(unitBtn).click()
@@ -508,10 +553,10 @@ test.describe('Cross-type morph exit layer', () => {
       return {
         pieces,
         ghosts,
-        hidden: document.querySelectorAll('[data-piece-hidden]').length,
-        dots: document.querySelectorAll('.apexcharts-unit-area').length,
+        hidden: scope.querySelectorAll('[data-piece-hidden]').length,
+        dots: scope.querySelectorAll('.apexcharts-unit-area').length,
       }
-    }, [PIECES, GHOST, UNIT_BTN])
+    }, [CARD, PIECES, GHOST, UNIT_BTN])
 
     expect(r.pieces).toBe(0)
     expect(r.ghosts).toBe(0)

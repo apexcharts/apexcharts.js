@@ -12,55 +12,130 @@
       body {
         font-family:
           -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #fafbfc;
+        background: #f6f8fa;
         color: #2c3e50;
         margin: 0;
-        padding: 32px 16px;
+        padding: 34px 16px 60px;
       }
       .wrap {
-        max-width: 760px;
+        max-width: 860px;
         margin: 0 auto;
       }
       h1 {
-        font-size: 22px;
+        font-size: 24px;
+        margin: 0 0 10px;
+      }
+      .lede {
+        color: #5b6b78;
+        line-height: 1.6;
+        font-size: 14.5px;
+        margin: 0 0 10px;
+      }
+      .speed-row {
+        margin: 18px 0 26px;
+        color: #5b6b78;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .speed-row input {
+        flex: 1 1 220px;
+        max-width: 340px;
+      }
+      .speed-row b {
+        color: #2c3e50;
+        font-variant-numeric: tabular-nums;
+      }
+      .card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 18px 18px 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        margin-bottom: 24px;
+      }
+      .card .kind {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #97a4b1;
+        margin: 0 0 6px;
+      }
+      .card h2 {
+        font-size: 17px;
         margin: 0 0 8px;
       }
-      p {
+      .card p {
         color: #5b6b78;
-        line-height: 1.5;
-        margin: 0 0 24px;
-      }
-      .chart-wrap {
-        background: #fff;
-        border-radius: 8px;
-        padding: 16px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        line-height: 1.6;
+        font-size: 13.5px;
+        margin: 0 0 14px;
       }
       .actions {
-        margin: 24px auto 16px;
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        justify-content: center;
+        margin: 0 0 14px;
       }
       .actions button {
-        color: #fff;
-        background: #008ffb;
-        border: none;
-        padding: 8px 16px;
+        color: #5b6b78;
+        background: #fff;
+        border: 1px solid #dfe6ec;
+        padding: 7px 14px;
         font-weight: 600;
         font-size: 13px;
         border-radius: 6px;
         cursor: pointer;
       }
-      .actions button.active {
-        background: #00543d;
+      .actions button:hover {
+        border-color: #b9c6d2;
       }
-      .speed-row {
-        margin: 16px auto;
-        text-align: center;
+      .actions button.on {
+        color: #fff;
+        background: #008ffb;
+        border-color: #008ffb;
+      }
+      .actions .sep {
+        width: 1px;
+        align-self: stretch;
+        background: #e8edf2;
+        margin: 0 4px;
+      }
+      .actions button.ghost {
+        font-weight: 500;
+        border-style: dashed;
+      }
+      .readout {
+        font-size: 12.5px;
         color: #5b6b78;
+        min-height: 18px;
+        margin-top: 10px;
+      }
+      .readout b {
+        color: #2c3e50;
+        font-variant-numeric: tabular-nums;
+      }
+      .note {
         font-size: 13px;
+        line-height: 1.65;
+        color: #5b6b78;
+        background: #fff;
+        border-left: 3px solid #008ffb;
+        border-radius: 0 6px 6px 0;
+        padding: 14px 16px;
+      }
+      .note p {
+        margin: 0 0 10px;
+      }
+      .note p:last-child {
+        margin: 0;
+      }
+      code {
+        background: #eef2f7;
+        border-radius: 3px;
+        padding: 1px 5px;
+        font-size: 12px;
       }
     </style>
 
@@ -81,53 +156,638 @@
     </script>
 
     <script>
-      // Shared by the vanilla-js, React and Vue builds: the labels, the per-type
-      // series shape and the active-button sync. The mutable current* state lives in
-      // each format's own wiring below (one live chart per generated page).
-      var LABELS = ['Direct', 'Organic', 'Referral', 'Social', 'Email']
+      // Shared by the vanilla-js, React and Vue builds: the data behind all five
+      // cards and the wiring for each. Every card holds one live chart and every
+      // button only ever calls updateOptions, so what you are watching is the morph
+      // engine rather than a rebuild.
+      //
+      // Between them the cards cover every type the engine can morph:
+      //   bar family      bar, funnel, pyramid, histogram
+      //   radial family   pie, donut, polarArea, radialBar, gauge
+      //   unit family     unit, waffle
+      //   summary family  boxPlot, violin
+      //   partition       treemap, sunburst
+      // The morph speed slider at the top drives all five at once.
 
-      // One dot per SESSIONS_PER_DOT sessions. Two per dot keeps a cluster readable
-      // while giving the cross-type morph enough grain to work with: a bar coming
-      // apart into ~25 fine pieces reads as dissolving, into 8 large ones as
-      // breaking.
-      var SESSIONS_PER_DOT = 2
+      var MORPH_SPEED = 700
 
-      function buildSeriesFor(type, values) {
-        if (type === 'unit') {
-          // A unit chart is one series per cluster, each holding that cluster's
-          // objects. Morphing here takes the bar apart into the things it counted:
-          // every dot leaves from the part of the bar that was standing for it.
-          return values.map(function (v, i) {
-            var n = Math.max(1, Math.round(v / SESSIONS_PER_DOT))
-            var data = []
-            for (var k = 0; k < n; k++) {
-              data.push({ id: LABELS[i] + '-' + k, name: LABELS[i] })
-            }
-            return { name: LABELS[i], data: data }
-          })
+      // Deterministic noise, so the page looks the same on every load.
+      function seededRandom(seed) {
+        var s = seed
+        return function () {
+          s = (s * 16807) % 2147483647
+          return (s - 1) / 2147483646
         }
-        if (type === 'funnel') {
-          var sorted = values.slice().sort(function (a, b) {
-            return b - a
-          })
-          return [{ name: 'Sessions', data: sorted }]
-        }
-        if (type === 'bar' || type === 'pyramid') {
-          return [{ name: 'Sessions', data: values.slice() }]
-        }
-        return values.slice()
       }
 
-      function setActive(type, horizontal) {
-        document
-          .querySelectorAll('.actions button[data-type]')
+      // One standard normal draw, Box-Muller.
+      function gauss(rand) {
+        return (
+          Math.sqrt(-2 * Math.log(Math.max(rand(), 1e-9))) *
+          Math.cos(2 * Math.PI * rand())
+        )
+      }
+
+      function markActive(scope, attr, value) {
+        var buttons = [].slice.call(
+          document.querySelectorAll(scope + ' [' + attr + ']'),
+        )
+        buttons.forEach(function (b) {
+          b.className = b.getAttribute(attr) === value ? 'on' : ''
+        })
+      }
+
+      function setReadout(id, html) {
+        var el = document.querySelector(id)
+        if (el) el.innerHTML = html
+      }
+
+      // ---------------------------------------------------------------------------
+      // Cards 1 and 2: one week of orders, by channel.
+      // ---------------------------------------------------------------------------
+      var CHANNELS = ['Direct', 'Search', 'Referral', 'Social', 'Email']
+
+      // Kept in descending order on purpose. A funnel and a pyramid are only
+      // truthful when the stages fall, so no view has to re-sort, which means a
+      // channel keeps its rank, its colour and its place through all nine shapes:
+      // pick one and you can follow it across every button.
+      var ORDERS = [55, 44, 41, 33, 27]
+
+      // One dot per this many orders. Two keeps a cluster readable while giving the
+      // morph enough grain to work with: a bar coming apart into ~25 fine pieces
+      // reads as dissolving, into 8 large ones as breaking.
+      var ORDERS_PER_DOT = 2
+
+      // A radialBar is a full ring per channel; a gauge is the same arcs opened out
+      // into a fan. Both have to be passed explicitly on every switch: the previous
+      // render's angles are already merged into the live config, so the alias
+      // defaults have nothing left to fill in.
+      var FULL_RING = {
+        startAngle: 0,
+        endAngle: 360,
+        inverseOrder: true,
+        hollow: { size: '8%' },
+        track: { show: false },
+      }
+      var GAUGE_FAN = {
+        startAngle: -135,
+        endAngle: 135,
+        inverseOrder: true,
+        hollow: { size: '30%' },
+        // The track is what makes a gauge read as a gauge: the arc is a fraction of
+        // a scale you can see, rather than a ring of unknown size.
+        track: { show: true, background: '#eef2f7', strokeWidth: '100%' },
+      }
+
+      var RADIAL_SHAPES = ['pie', 'donut', 'polarArea', 'radialBar', 'gauge']
+
+      function isRadialShape(shape) {
+        return RADIAL_SHAPES.indexOf(shape) > -1
+      }
+
+      function shapeSeries(shape, values) {
+        // The radial family reads a flat list of numbers, the bar family the usual
+        // series envelope. Nothing else differs: the mapping is positional, so mark
+        // number three is mark number three in every one of these shapes.
+        return isRadialShape(shape)
+          ? values.slice()
+          : [{ name: 'Orders', data: values.slice() }]
+      }
+
+      function shapeOptions(shape, values) {
+        var opts = {
+          chart: { type: shape === 'column' ? 'bar' : shape },
+          labels: CHANNELS,
+          series: shapeSeries(shape, values),
+        }
+        if (shape === 'column') {
+          opts.plotOptions = { bar: { horizontal: false } }
+        } else if (shape === 'bar') {
+          opts.plotOptions = { bar: { horizontal: true } }
+        } else if (shape === 'radialBar') {
+          opts.plotOptions = { radialBar: FULL_RING }
+        } else if (shape === 'gauge') {
+          opts.plotOptions = { radialBar: GAUGE_FAN }
+        }
+        return opts
+      }
+
+      // Card 1: nine shapes over the same five numbers. It opens on the polar area
+      // rather than the column so the page does not begin with two identical bar
+      // charts; every button is one updateOptions away from any other.
+      function wireShapes(chart) {
+        var shape = 'polarArea'
+        var values = ORDERS.slice()
+
+        markActive('#card-shapes', 'data-shape', shape)
+        ;[].slice
+          .call(document.querySelectorAll('#card-shapes [data-shape]'))
           .forEach(function (btn) {
-            var btnType = btn.getAttribute('data-type')
-            var btnH = btn.getAttribute('data-horizontal')
-            var active =
-              btnType === type && (type !== 'bar' || String(horizontal) === btnH)
-            btn.classList.toggle('active', active)
+            btn.addEventListener('click', function () {
+              var next = btn.getAttribute('data-shape')
+              if (next === shape) return
+              shape = next
+              markActive('#card-shapes', 'data-shape', shape)
+              chart.updateOptions(shapeOptions(shape, values))
+            })
           })
+
+        var shuffle = document.querySelector('#shuffle-orders')
+        if (shuffle) {
+          shuffle.addEventListener('click', function () {
+            // Still descending, so the funnel and the pyramid stay honest. This one
+            // is not a type change at all: same marks, new numbers, which is the
+            // ordinary update animation rather than the morph.
+            values = []
+            for (var i = 0; i < CHANNELS.length; i++) {
+              values.push(20 + Math.floor(Math.random() * 50))
+            }
+            values.sort(function (a, b) {
+              return b - a
+            })
+            chart.updateSeries(shapeSeries(shape, values))
+          })
+        }
+      }
+
+      // Card 2: the same week as objects. One dot per two orders.
+      function unitSeries(values) {
+        return values.map(function (v, i) {
+          var n = Math.max(1, Math.round(v / ORDERS_PER_DOT))
+          var data = []
+          for (var k = 0; k < n; k++) {
+            data.push({ id: CHANNELS[i] + '-' + k, name: CHANNELS[i] })
+          }
+          return { name: CHANNELS[i], data: data }
+        })
+      }
+
+      var DOT_LAYOUT = {
+        // One column of dots per channel, so a cluster stands where its bar did.
+        layout: 'columns',
+        shape: 'circle',
+        size: 6,
+        // Keep a dot's identity across every regroup, so the same object leaves and
+        // returns to the same place on a round trip.
+        transition: 'identity',
+        // Off because they would be the only text on this card, and they arrive at
+        // their final places while the pieces are still in the air.
+        clusterLabels: { show: false },
+      }
+      var WAFFLE_LAYOUT = {
+        layout: 'grid',
+        shape: 'square',
+        size: 9,
+        transition: 'identity',
+        clusterLabels: { show: false },
+      }
+
+      function isUnitView(view) {
+        return view === 'dots' || view === 'waffle'
+      }
+
+      function wireCounted(chart) {
+        var view = 'column'
+        var values = ORDERS.slice()
+        var total = values.reduce(function (a, b) {
+          return a + b
+        }, 0)
+        var dots = unitSeries(values).reduce(function (n, c) {
+          return n + c.data.length
+        }, 0)
+
+        var COPY = {
+          column: 'Five marks, each standing for the orders it counted.',
+          pie: 'The same five marks, now sharing one circle.',
+          donut:
+            'A ring, which is the interesting one: the cells follow the ink, so the ' +
+            'hole in the middle stays a hole.',
+          dots:
+            '<b>' +
+            dots +
+            '</b> dots, one per ' +
+            ORDERS_PER_DOT +
+            ' of the ' +
+            '<b>' +
+            total +
+            '</b> orders. Every dot left from the part of the mark ' +
+            'that was counting it.',
+          waffle:
+            'The same <b>' +
+            dots +
+            '</b> objects in one lattice: a waffle is the ' +
+            'unit chart laid out on a grid, so this hop is a re-layout, not a type ' +
+            'change.',
+        }
+
+        function apply(next) {
+          var wasUnit = isUnitView(view)
+          view = next
+          markActive('#card-counted', 'data-count', view)
+          setReadout('#counted-readout', COPY[view])
+
+          if (wasUnit && isUnitView(view)) {
+            // Both states are the unit renderer, so there is no type to change:
+            // updating the layout alone lets the objects keep their identity and
+            // walk to their new slots instead of fading through a rebuild.
+            chart.updateOptions({
+              plotOptions: { unit: view === 'waffle' ? WAFFLE_LAYOUT : DOT_LAYOUT },
+            })
+            return
+          }
+
+          if (isUnitView(view)) {
+            chart.updateOptions({
+              chart: { type: view === 'waffle' ? 'waffle' : 'unit' },
+              series: unitSeries(values),
+              plotOptions: { unit: view === 'waffle' ? WAFFLE_LAYOUT : DOT_LAYOUT },
+              labels: CHANNELS,
+            })
+            return
+          }
+
+          var radial = view === 'pie' || view === 'donut'
+          chart.updateOptions({
+            chart: { type: radial ? view : 'bar' },
+            series: radial
+              ? values.slice()
+              : [{ name: 'Orders', data: values.slice() }],
+            plotOptions: { bar: { horizontal: false } },
+            labels: CHANNELS,
+          })
+        }
+
+        markActive('#card-counted', 'data-count', view)
+        setReadout('#counted-readout', COPY[view])
+        ;[].slice
+          .call(document.querySelectorAll('#card-counted [data-count]'))
+          .forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var next = btn.getAttribute('data-count')
+              if (next !== view) apply(next)
+            })
+          })
+      }
+
+      // ---------------------------------------------------------------------------
+      // Card 3: how long a parcel took, by shipping tier. Three samples, three
+      // summaries of them, and the readings themselves.
+      // ---------------------------------------------------------------------------
+      var TIERS = (function () {
+        var rand = seededRandom(20260814)
+        function draw(n, make) {
+          var out = []
+          while (out.length < n) {
+            var v = make()
+            if (v > 0.2 && v < 11) out.push(Math.round(v * 10) / 10)
+          }
+          return out
+        }
+        return [
+          {
+            // Tight and early: an express parcel is boring, which is the point.
+            name: 'Express',
+            values: draw(52, function () {
+              return 1.5 + gauss(rand) * 0.3
+            }),
+          },
+          {
+            // Two camps: most parcels catch the daily van, the rest wait for the
+            // next one. A box plot cannot show that gap; a violin can.
+            name: 'Standard',
+            values: draw(52, function () {
+              return (rand() < 0.55 ? 2.6 : 4.4) + gauss(rand) * 0.45
+            }),
+          },
+          {
+            // Skewed: usually fine, occasionally a week.
+            name: 'Economy',
+            values: draw(52, function () {
+              return 4.2 - Math.log(Math.max(rand(), 1e-9)) * 1.5
+            }),
+          },
+        ]
+      })()
+
+      var SUMMARY_SERIES = [
+        {
+          name: 'Days',
+          // Raw observations only, in both the box and the violin: the library runs
+          // the five-number summary and the density estimate, which is exactly why
+          // it can hand the readings back afterwards.
+          data: TIERS.map(function (t) {
+            return { x: t.name, points: t.values }
+          }),
+        },
+      ]
+
+      var READINGS_LAYOUT = {
+        layout: 'scatter',
+        unitValue: 1,
+        size: 3.5,
+        scatter: {
+          // Value on Y with one lane per tier across X, matching the summaries. The
+          // value-axis keys keep their x* names in either orientation.
+          orientation: 'vertical',
+          spread: 'jitter',
+          xTitle: 'Days in transit',
+          // 0 to 11 in whole days. The summary views say tickAmount 11 for the same
+          // grid: there it counts intervals, here it counts the labels themselves.
+          xMin: 0,
+          xMax: 11,
+          tickAmount: 12,
+        },
+      }
+
+      function isSummaryView(view) {
+        return view === 'boxPlot' || view === 'violin'
+      }
+
+      function wireSample(chart) {
+        var view = 'boxPlot'
+        var hopping = false
+        var readings = TIERS.reduce(function (n, t) {
+          return n + t.values.length
+        }, 0)
+
+        var COPY = {
+          boxPlot:
+            'Five numbers per tier. Three very different samples can share them, ' +
+            'which is what the next two views are for.',
+          violin:
+            'The same three samples as densities: now the two camps inside ' +
+            '<b>Standard</b> are visible, and so is the tail on <b>Economy</b>.',
+          readings:
+            '<b>' +
+            readings +
+            '</b> parcels, one dot each, handed back by ' +
+            '<code>rowSeries()</code>. Every dot left from the mark that summarised it.',
+        }
+
+        function apply(next) {
+          view = next
+          markActive('#card-sample', 'data-summary', view)
+          setReadout('#sample-readout', COPY[view])
+
+          if (view === 'readings') {
+            // Nothing about the samples is passed back in. The summaries were built
+            // from the observations, so the chart can still name the readings behind
+            // every mark.
+            chart.updateOptions({
+              chart: { type: 'unit' },
+              series: chart.rowSeries(),
+              plotOptions: { unit: READINGS_LAYOUT },
+              legend: { show: false },
+            })
+            return
+          }
+
+          chart.updateOptions({
+            chart: { type: view },
+            series: SUMMARY_SERIES,
+            legend: { show: false },
+          })
+        }
+
+        function goTo(next) {
+          if (next === view || hopping) return
+          if (isSummaryView(view) && isSummaryView(next)) {
+            // A box and a violin are two summaries of the same sample, and the
+            // engine only ever pairs a summary with the sample itself: neither one
+            // can become the other directly, because a five-number box has no idea
+            // what shape the density had. So take the honest route and go through
+            // the readings, which is the only thing both of them are about.
+            hopping = true
+            apply('readings')
+            window.setTimeout(function () {
+              hopping = false
+              apply(next)
+            }, MORPH_SPEED + 260)
+            return
+          }
+          apply(next)
+        }
+
+        markActive('#card-sample', 'data-summary', view)
+        setReadout('#sample-readout', COPY[view])
+        ;[].slice
+          .call(document.querySelectorAll('#card-sample [data-summary]'))
+          .forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              goTo(btn.getAttribute('data-summary'))
+            })
+          })
+      }
+
+      // ---------------------------------------------------------------------------
+      // Card 4: the pick-and-pack times behind the histogram.
+      // ---------------------------------------------------------------------------
+      var DISPATCH = (function () {
+        var rand = seededRandom(770423)
+        var out = []
+        for (var i = 0; i < 420; i++) {
+          // Log-normal: a dispatch can run very late but never finish instantly.
+          out.push(Math.round(Math.exp(2.95 + gauss(rand) * 0.4)))
+        }
+        return out
+      })()
+      var DISPATCH_SERIES = [{ name: 'Orders', data: DISPATCH }]
+
+      // Quick (blue) through typical (teal) to slow (amber, then red), so the blob
+      // still reads as a distribution once the bars are gone.
+      var RAMP = ['#4e8cff', '#59c2b0', '#e8c14a', '#ef7d3a', '#d94040']
+
+      function rampColor(t) {
+        var scaled = Math.max(0, Math.min(1, t)) * (RAMP.length - 1)
+        var i = Math.min(RAMP.length - 2, Math.floor(scaled))
+        var f = scaled - i
+        var a = RAMP[i]
+        var b = RAMP[i + 1]
+        function mix(o) {
+          var av = parseInt(a.substr(o, 2), 16)
+          var bv = parseInt(b.substr(o, 2), 16)
+          var v = Math.round(av + (bv - av) * f)
+          return (v < 16 ? '0' : '') + v.toString(16)
+        }
+        return '#' + mix(1) + mix(3) + mix(5)
+      }
+
+      function wireBins(chart) {
+        var view = 'histogram'
+
+        function apply(next) {
+          view = next
+          markActive('#card-bins', 'data-bins', view)
+
+          if (view === 'rows') {
+            var rows = chart.rowSeries()
+            var total = rows.reduce(function (n, c) {
+              return n + c.data.length
+            }, 0)
+            // What comes back is ordinary series data, so it can be decorated.
+            rows.forEach(function (cluster, k) {
+              var color = rampColor(rows.length > 1 ? k / (rows.length - 1) : 0)
+              cluster.data.forEach(function (d) {
+                d.fillColor = color
+              })
+            })
+            chart.updateOptions({
+              chart: { type: 'unit' },
+              series: rows,
+              plotOptions: {
+                unit: {
+                  // Not 'columns'. That would stack each bin's dots back into a
+                  // column the same height and place as the bar they left, so the
+                  // objects would travel a few pixels and it would look like a
+                  // redraw. 'packed' gathers them into one blob, which is a journey.
+                  layout: 'packed',
+                  unitValue: 1,
+                  size: 3,
+                },
+              },
+              legend: { show: false },
+            })
+            setReadout(
+              '#bins-readout',
+              'One dot per order: <b>' +
+                total +
+                '</b> of them, gathered out of <b>' +
+                rows.length +
+                '</b> bars.',
+            )
+            return
+          }
+
+          chart.updateOptions({
+            chart: { type: 'histogram' },
+            series: DISPATCH_SERIES,
+            legend: { show: false },
+          })
+          setReadout(
+            '#bins-readout',
+            'Every bar counts the orders dispatched inside its range.',
+          )
+        }
+
+        markActive('#card-bins', 'data-bins', view)
+        setReadout(
+          '#bins-readout',
+          'Every bar counts the orders dispatched inside its range.',
+        )
+        ;[].slice
+          .call(document.querySelectorAll('#card-bins [data-bins]'))
+          .forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var next = btn.getAttribute('data-bins')
+              if (next !== view) apply(next)
+            })
+          })
+      }
+
+      // ---------------------------------------------------------------------------
+      // Card 5: revenue by category. One partition, two projections of it.
+      // ---------------------------------------------------------------------------
+      var CATALOGUE = [
+        {
+          data: [
+            {
+              x: 'Apparel',
+              y: 88,
+              color: '#008FFB',
+              children: [
+                { x: 'Tops', y: 34, color: '#008FFB' },
+                { x: 'Denim', y: 30, color: '#29A1FC' },
+                { x: 'Outerwear', y: 24, color: '#52B3FC' },
+              ],
+            },
+            {
+              x: 'Home',
+              y: 34,
+              color: '#00E396',
+              children: [
+                { x: 'Kitchen', y: 12, color: '#00E396' },
+                { x: 'Bedding', y: 10, color: '#29E7A7' },
+                { x: 'Decor', y: 12, color: '#52ECB8' },
+              ],
+            },
+            {
+              x: 'Outdoor',
+              y: 52,
+              color: '#FEB019',
+              children: [
+                { x: 'Camping', y: 26, color: '#FEB019' },
+                { x: 'Cycling', y: 15, color: '#FEBD3E' },
+                { x: 'Running', y: 11, color: '#FEC963' },
+              ],
+            },
+          ],
+        },
+      ]
+
+      // The leaves, flattened: a treemap has no hierarchy, so it draws the level the
+      // two charts share. That is also the level the morph pairs up, tile for arc.
+      var LEAVES = [
+        {
+          data: CATALOGUE[0].data.reduce(function (acc, parent) {
+            return acc.concat(
+              parent.children.map(function (c) {
+                return { x: c.x, y: c.y }
+              }),
+            )
+          }, []),
+        },
+      ]
+
+      // A sunburst colours per node, so its colours travel with the data above. A
+      // treemap colours from the palette instead, one entry per tile once
+      // `distributed` is on, so hand it the same colours in the same order.
+      var LEAF_COLORS = CATALOGUE[0].data.reduce(function (acc, parent) {
+        return acc.concat(
+          parent.children.map(function (c) {
+            return c.color
+          }),
+        )
+      }, [])
+
+      function wirePartition(chart) {
+        var view = 'treemap'
+
+        markActive('#card-partition', 'data-part', view)
+        ;[].slice
+          .call(document.querySelectorAll('#card-partition [data-part]'))
+          .forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var next = btn.getAttribute('data-part')
+              if (next === view) return
+              view = next
+              markActive('#card-partition', 'data-part', view)
+              chart.updateOptions({
+                chart: { type: view },
+                series: view === 'sunburst' ? CATALOGUE : LEAVES,
+              })
+            })
+          })
+      }
+
+      // ---------------------------------------------------------------------------
+      // One slider, five charts.
+      // ---------------------------------------------------------------------------
+      function wireSpeed(charts) {
+        var input = document.querySelector('#speed')
+        var label = document.querySelector('#speed-value')
+        if (!input) return
+        input.addEventListener('input', function () {
+          MORPH_SPEED = parseInt(input.value, 10)
+          if (label) label.textContent = MORPH_SPEED
+          charts.forEach(function (chart) {
+            if (!chart) return
+            chart.updateOptions(
+              { chart: { animations: { chartTypeMorph: { speed: MORPH_SPEED } } } },
+              false,
+              false,
+            )
+          })
+        })
       }
     </script>
   </head>
@@ -135,91 +795,307 @@
   <body>
     
     <div id="app"><div class="wrap">
-      <h1>Chart-type morph</h1>
-      <p>
-        Click the buttons to switch chart types. With the optional
-        <code>apexcharts/features/morph</code> module loaded, supported pairs
-        (bar ↔ pie / donut / polarArea / radialBar) tween between paths
-        instead of flickering through a destroy + recreate.
+      <h1>Every morph, in one page</h1>
+      <p class="lede">
+        Changing a chart's type normally means destroying one chart and building
+        another. With the optional <code>apexcharts/features/morph</code> module
+        loaded, the marks travel instead. Each card below is one live chart and one
+        kind of change, and between them they cover every type the engine can morph.
       </p>
-      <p>
-        "Unit (dots)" is a different kind of change: one mark becomes many. A bar
-        stands for a quantity, so it comes apart along its own length and each dot
-        leaves from the part of the bar that was counting it. Going back, the cloud
-        collapses into the mark that aggregates it.
+      <p class="lede">
+        The trick throughout is that ink is conserved: nothing fades out and nothing
+        fades in. When one mark has to become many, it is cut into one piece per
+        object and the pieces fly, so what you were looking at is literally what you
+        end up looking at.
       </p>
     
-      <div class="chart-wrap">
+      <div class="speed-row">
+        <label for="speed">Morph speed</label>
+        <input type="range" id="speed" min="150" max="6000" step="50" value="700" />
+        <span><b id="speed-value">700</b> ms</span>
+      </div>
+    
+      <div class="card" id="card-shapes">
+        <p class="kind">Shape to shape &middot; bar family and radial family</p>
+        <h2>Nine shapes, five numbers, one mark each</h2>
+        <p>
+          Every one of these draws exactly one mark per channel, so each mark simply
+          becomes the next shape of itself: no overlay, no fade, no exit. The
+          channels are in descending order, so nothing has to re-sort, which means a
+          colour is the same channel in all nine. Pick one and follow it.
+        </p>
+        <div class="actions">
+          <button data-shape="column">Column</button>
+          <button data-shape="bar">Bar</button>
+          <button data-shape="funnel">Funnel</button>
+          <button data-shape="pyramid">Pyramid</button>
+          <span class="sep"></span>
+          <button data-shape="pie">Pie</button>
+          <button data-shape="donut">Donut</button>
+          <button data-shape="polarArea">Polar area</button>
+          <button data-shape="radialBar">Radial bar</button>
+          <button data-shape="gauge">Gauge</button>
+          <button class="ghost" id="shuffle-orders">Shuffle the week</button>
+        </div>
         <div id="chart">
-      <apexchart type="bar" height="380" :options="chartOptions" :series="series"></apexchart>
+      <apexchart type="polarArea" height="360" :options="chartOptions" :series="series"></apexchart>
     </div>
       </div>
     
-      <div class="actions">
-        <button data-type="bar" data-horizontal="false">Column</button>
-        <button data-type="bar" data-horizontal="true">Horizontal bar</button>
-        <button data-type="pie">Pie</button>
-        <button data-type="donut">Donut</button>
-        <button data-type="polarArea">Polar area</button>
-        <button data-type="radialBar">Radial bar</button>
-        <button data-type="funnel">Funnel</button>
-        <button data-type="pyramid">Pyramid</button>
-        <button data-type="unit">Unit (dots)</button>
+      <div class="card" id="card-counted">
+        <p class="kind">One mark becomes many &middot; unit and waffle</p>
+        <h2>A bar is a quantity, so it can come apart into it</h2>
+        <p>
+          A mark stands for things that were counted. Here those things exist, one
+          dot per two orders, so the mark is cut along its own length and every dot
+          leaves from the part of it that was counting that dot. A wedge is cut the
+          same way, along its curve rather than its bounding box, which is why a
+          donut's hole survives being taken apart. Going back, the cloud collapses
+          into the mark that aggregates it.
+        </p>
+        <div class="actions">
+          <button data-count="column">Column</button>
+          <button data-count="pie">Pie</button>
+          <button data-count="donut">Donut</button>
+          <span class="sep"></span>
+          <button data-count="dots">Dots</button>
+          <button data-count="waffle">Waffle</button>
+        </div>
+        <div id="chart2">
+      <apexchart type="bar" height="360" :options="chartOptions1" :series="series1"></apexchart>
+    </div>
+        <div class="readout" id="counted-readout"></div>
       </div>
     
-      <div class="actions">
-        <button id="randomize">Randomize values</button>
+      <div class="card" id="card-sample">
+        <p class="kind">A summary and its sample &middot; boxPlot and violin</p>
+        <h2>Every summary is a claim about some readings</h2>
+        <p>
+          A box plot shows five numbers and a violin shows a density, and both of
+          them were computed from the same parcels. So the pair that means something
+          is the one that takes the summary apart into the sample and puts it back.
+          A box and a violin never meet directly, because neither can be derived
+          from the other: press one while the other is showing and the chart takes
+          the only honest route, out through the readings.
+        </p>
+        <div class="actions">
+          <button data-summary="boxPlot">Box plot</button>
+          <button data-summary="violin">Violin</button>
+          <span class="sep"></span>
+          <button data-summary="readings">Every reading</button>
+        </div>
+        <div id="chart3">
+      <apexchart type="boxPlot" height="400" :options="chartOptions2" :series="series2"></apexchart>
+    </div>
+        <div class="readout" id="sample-readout"></div>
       </div>
     
-      <div class="speed-row">
-        Morph speed:
-        <input type="range" id="speed" min="100" max="15000" step="50" value="700" />
-        <span id="speed-value">700</span> ms
+      <div class="card" id="card-bins">
+        <p class="kind">A count and its rows &middot; histogram</p>
+        <h2>The one bar that can still name what it counted</h2>
+        <p>
+          A count has usually thrown away the rows behind it. Not this one: the
+          series was handed 420 raw dispatch times and the chart did the binning
+          itself, so <code>rowSeries()</code> can return each bar's own observations.
+          Colour carries the range across, so the blob still reads as a distribution
+          once the bars are gone.
+        </p>
+        <div class="actions">
+          <button data-bins="histogram">Histogram</button>
+          <button data-bins="rows">Every order</button>
+        </div>
+        <div id="chart4">
+      <apexchart type="histogram" height="380" :options="chartOptions3" :series="series3"></apexchart>
+    </div>
+        <div class="readout" id="bins-readout"></div>
+      </div>
+    
+      <div class="card" id="card-partition">
+        <p class="kind">Two projections of one partition &middot; treemap and sunburst</p>
+        <h2>A rectangle unrolls into an arc</h2>
+        <p>
+          A treemap tile and a sunburst arc are both exactly one mark per row, so
+          this is a shape change rather than a redraw: each rectangle unrolls into
+          the arc holding the same category, and back. Every category keeps its
+          colour. The sunburst adds the level a treemap cannot show, the parent
+          rings, which sweep in behind the leaves.
+        </p>
+        <div class="actions">
+          <button data-part="treemap">Treemap</button>
+          <button data-part="sunburst">Sunburst</button>
+        </div>
+        <div id="chart5">
+      <apexchart type="treemap" height="420" :options="chartOptions4" :series="series4"></apexchart>
+    </div>
+      </div>
+    
+      <div class="note">
+        <p>
+          Morphing is opt-in. Load <code>apexcharts/features/morph</code> and set
+          <code>chart.animations.chartTypeMorph.enabled</code>, or use the full
+          bundle, which this page does. Cards three and four also need
+          <code>apexcharts/features/stats</code> for the summaries and for
+          <code>rowSeries()</code>.
+        </p>
+        <p>
+          Pairs that are not offered are left out on purpose. A treemap will not
+          become a pie, and a box plot will not become a bar: both are mechanically
+          possible and neither has been driven, and claiming a morph nobody has
+          watched is worse than not offering it.
+        </p>
       </div>
     </div></div>
 
     <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
     <div id="html">&lt;div class=&quot;wrap&quot;&gt;
-        &lt;h1&gt;Chart-type morph&lt;/h1&gt;
-        &lt;p&gt;
-          Click the buttons to switch chart types. With the optional
-          &lt;code&gt;apexcharts/features/morph&lt;/code&gt; module loaded, supported pairs
-          (bar ↔ pie / donut / polarArea / radialBar) tween between paths
-          instead of flickering through a destroy + recreate.
+        &lt;h1&gt;Every morph, in one page&lt;/h1&gt;
+        &lt;p class=&quot;lede&quot;&gt;
+          Changing a chart&#39;s type normally means destroying one chart and building
+          another. With the optional &lt;code&gt;apexcharts/features/morph&lt;/code&gt; module
+          loaded, the marks travel instead. Each card below is one live chart and one
+          kind of change, and between them they cover every type the engine can morph.
         &lt;/p&gt;
-        &lt;p&gt;
-          &quot;Unit (dots)&quot; is a different kind of change: one mark becomes many. A bar
-          stands for a quantity, so it comes apart along its own length and each dot
-          leaves from the part of the bar that was counting it. Going back, the cloud
-          collapses into the mark that aggregates it.
+        &lt;p class=&quot;lede&quot;&gt;
+          The trick throughout is that ink is conserved: nothing fades out and nothing
+          fades in. When one mark has to become many, it is cut into one piece per
+          object and the pieces fly, so what you were looking at is literally what you
+          end up looking at.
         &lt;/p&gt;
       
-        &lt;div class=&quot;chart-wrap&quot;&gt;
+        &lt;div class=&quot;speed-row&quot;&gt;
+          &lt;label for=&quot;speed&quot;&gt;Morph speed&lt;/label&gt;
+          &lt;input type=&quot;range&quot; id=&quot;speed&quot; min=&quot;150&quot; max=&quot;6000&quot; step=&quot;50&quot; value=&quot;700&quot; /&gt;
+          &lt;span&gt;&lt;b id=&quot;speed-value&quot;&gt;700&lt;/b&gt; ms&lt;/span&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;card&quot; id=&quot;card-shapes&quot;&gt;
+          &lt;p class=&quot;kind&quot;&gt;Shape to shape &amp;middot; bar family and radial family&lt;/p&gt;
+          &lt;h2&gt;Nine shapes, five numbers, one mark each&lt;/h2&gt;
+          &lt;p&gt;
+            Every one of these draws exactly one mark per channel, so each mark simply
+            becomes the next shape of itself: no overlay, no fade, no exit. The
+            channels are in descending order, so nothing has to re-sort, which means a
+            colour is the same channel in all nine. Pick one and follow it.
+          &lt;/p&gt;
+          &lt;div class=&quot;actions&quot;&gt;
+            &lt;button data-shape=&quot;column&quot;&gt;Column&lt;/button&gt;
+            &lt;button data-shape=&quot;bar&quot;&gt;Bar&lt;/button&gt;
+            &lt;button data-shape=&quot;funnel&quot;&gt;Funnel&lt;/button&gt;
+            &lt;button data-shape=&quot;pyramid&quot;&gt;Pyramid&lt;/button&gt;
+            &lt;span class=&quot;sep&quot;&gt;&lt;/span&gt;
+            &lt;button data-shape=&quot;pie&quot;&gt;Pie&lt;/button&gt;
+            &lt;button data-shape=&quot;donut&quot;&gt;Donut&lt;/button&gt;
+            &lt;button data-shape=&quot;polarArea&quot;&gt;Polar area&lt;/button&gt;
+            &lt;button data-shape=&quot;radialBar&quot;&gt;Radial bar&lt;/button&gt;
+            &lt;button data-shape=&quot;gauge&quot;&gt;Gauge&lt;/button&gt;
+            &lt;button class=&quot;ghost&quot; id=&quot;shuffle-orders&quot;&gt;Shuffle the week&lt;/button&gt;
+          &lt;/div&gt;
           &lt;div id=&quot;chart&quot;&gt;
-        &lt;apexchart type=&quot;bar&quot; height=&quot;380&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+        &lt;apexchart type=&quot;polarArea&quot; height=&quot;360&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
       &lt;/div&gt;
         &lt;/div&gt;
       
-        &lt;div class=&quot;actions&quot;&gt;
-          &lt;button data-type=&quot;bar&quot; data-horizontal=&quot;false&quot;&gt;Column&lt;/button&gt;
-          &lt;button data-type=&quot;bar&quot; data-horizontal=&quot;true&quot;&gt;Horizontal bar&lt;/button&gt;
-          &lt;button data-type=&quot;pie&quot;&gt;Pie&lt;/button&gt;
-          &lt;button data-type=&quot;donut&quot;&gt;Donut&lt;/button&gt;
-          &lt;button data-type=&quot;polarArea&quot;&gt;Polar area&lt;/button&gt;
-          &lt;button data-type=&quot;radialBar&quot;&gt;Radial bar&lt;/button&gt;
-          &lt;button data-type=&quot;funnel&quot;&gt;Funnel&lt;/button&gt;
-          &lt;button data-type=&quot;pyramid&quot;&gt;Pyramid&lt;/button&gt;
-          &lt;button data-type=&quot;unit&quot;&gt;Unit (dots)&lt;/button&gt;
+        &lt;div class=&quot;card&quot; id=&quot;card-counted&quot;&gt;
+          &lt;p class=&quot;kind&quot;&gt;One mark becomes many &amp;middot; unit and waffle&lt;/p&gt;
+          &lt;h2&gt;A bar is a quantity, so it can come apart into it&lt;/h2&gt;
+          &lt;p&gt;
+            A mark stands for things that were counted. Here those things exist, one
+            dot per two orders, so the mark is cut along its own length and every dot
+            leaves from the part of it that was counting that dot. A wedge is cut the
+            same way, along its curve rather than its bounding box, which is why a
+            donut&#39;s hole survives being taken apart. Going back, the cloud collapses
+            into the mark that aggregates it.
+          &lt;/p&gt;
+          &lt;div class=&quot;actions&quot;&gt;
+            &lt;button data-count=&quot;column&quot;&gt;Column&lt;/button&gt;
+            &lt;button data-count=&quot;pie&quot;&gt;Pie&lt;/button&gt;
+            &lt;button data-count=&quot;donut&quot;&gt;Donut&lt;/button&gt;
+            &lt;span class=&quot;sep&quot;&gt;&lt;/span&gt;
+            &lt;button data-count=&quot;dots&quot;&gt;Dots&lt;/button&gt;
+            &lt;button data-count=&quot;waffle&quot;&gt;Waffle&lt;/button&gt;
+          &lt;/div&gt;
+          &lt;div id=&quot;chart2&quot;&gt;
+        &lt;apexchart type=&quot;bar&quot; height=&quot;360&quot; :options=&quot;chartOptions1&quot; :series=&quot;series1&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+          &lt;div class=&quot;readout&quot; id=&quot;counted-readout&quot;&gt;&lt;/div&gt;
         &lt;/div&gt;
       
-        &lt;div class=&quot;actions&quot;&gt;
-          &lt;button id=&quot;randomize&quot;&gt;Randomize values&lt;/button&gt;
+        &lt;div class=&quot;card&quot; id=&quot;card-sample&quot;&gt;
+          &lt;p class=&quot;kind&quot;&gt;A summary and its sample &amp;middot; boxPlot and violin&lt;/p&gt;
+          &lt;h2&gt;Every summary is a claim about some readings&lt;/h2&gt;
+          &lt;p&gt;
+            A box plot shows five numbers and a violin shows a density, and both of
+            them were computed from the same parcels. So the pair that means something
+            is the one that takes the summary apart into the sample and puts it back.
+            A box and a violin never meet directly, because neither can be derived
+            from the other: press one while the other is showing and the chart takes
+            the only honest route, out through the readings.
+          &lt;/p&gt;
+          &lt;div class=&quot;actions&quot;&gt;
+            &lt;button data-summary=&quot;boxPlot&quot;&gt;Box plot&lt;/button&gt;
+            &lt;button data-summary=&quot;violin&quot;&gt;Violin&lt;/button&gt;
+            &lt;span class=&quot;sep&quot;&gt;&lt;/span&gt;
+            &lt;button data-summary=&quot;readings&quot;&gt;Every reading&lt;/button&gt;
+          &lt;/div&gt;
+          &lt;div id=&quot;chart3&quot;&gt;
+        &lt;apexchart type=&quot;boxPlot&quot; height=&quot;400&quot; :options=&quot;chartOptions2&quot; :series=&quot;series2&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+          &lt;div class=&quot;readout&quot; id=&quot;sample-readout&quot;&gt;&lt;/div&gt;
         &lt;/div&gt;
       
-        &lt;div class=&quot;speed-row&quot;&gt;
-          Morph speed:
-          &lt;input type=&quot;range&quot; id=&quot;speed&quot; min=&quot;100&quot; max=&quot;15000&quot; step=&quot;50&quot; value=&quot;700&quot; /&gt;
-          &lt;span id=&quot;speed-value&quot;&gt;700&lt;/span&gt; ms
+        &lt;div class=&quot;card&quot; id=&quot;card-bins&quot;&gt;
+          &lt;p class=&quot;kind&quot;&gt;A count and its rows &amp;middot; histogram&lt;/p&gt;
+          &lt;h2&gt;The one bar that can still name what it counted&lt;/h2&gt;
+          &lt;p&gt;
+            A count has usually thrown away the rows behind it. Not this one: the
+            series was handed 420 raw dispatch times and the chart did the binning
+            itself, so &lt;code&gt;rowSeries()&lt;/code&gt; can return each bar&#39;s own observations.
+            Colour carries the range across, so the blob still reads as a distribution
+            once the bars are gone.
+          &lt;/p&gt;
+          &lt;div class=&quot;actions&quot;&gt;
+            &lt;button data-bins=&quot;histogram&quot;&gt;Histogram&lt;/button&gt;
+            &lt;button data-bins=&quot;rows&quot;&gt;Every order&lt;/button&gt;
+          &lt;/div&gt;
+          &lt;div id=&quot;chart4&quot;&gt;
+        &lt;apexchart type=&quot;histogram&quot; height=&quot;380&quot; :options=&quot;chartOptions3&quot; :series=&quot;series3&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+          &lt;div class=&quot;readout&quot; id=&quot;bins-readout&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;card&quot; id=&quot;card-partition&quot;&gt;
+          &lt;p class=&quot;kind&quot;&gt;Two projections of one partition &amp;middot; treemap and sunburst&lt;/p&gt;
+          &lt;h2&gt;A rectangle unrolls into an arc&lt;/h2&gt;
+          &lt;p&gt;
+            A treemap tile and a sunburst arc are both exactly one mark per row, so
+            this is a shape change rather than a redraw: each rectangle unrolls into
+            the arc holding the same category, and back. Every category keeps its
+            colour. The sunburst adds the level a treemap cannot show, the parent
+            rings, which sweep in behind the leaves.
+          &lt;/p&gt;
+          &lt;div class=&quot;actions&quot;&gt;
+            &lt;button data-part=&quot;treemap&quot;&gt;Treemap&lt;/button&gt;
+            &lt;button data-part=&quot;sunburst&quot;&gt;Sunburst&lt;/button&gt;
+          &lt;/div&gt;
+          &lt;div id=&quot;chart5&quot;&gt;
+        &lt;apexchart type=&quot;treemap&quot; height=&quot;420&quot; :options=&quot;chartOptions4&quot; :series=&quot;series4&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+        &lt;/div&gt;
+      
+        &lt;div class=&quot;note&quot;&gt;
+          &lt;p&gt;
+            Morphing is opt-in. Load &lt;code&gt;apexcharts/features/morph&lt;/code&gt; and set
+            &lt;code&gt;chart.animations.chartTypeMorph.enabled&lt;/code&gt;, or use the full
+            bundle, which this page does. Cards three and four also need
+            &lt;code&gt;apexcharts/features/stats&lt;/code&gt; for the summaries and for
+            &lt;code&gt;rowSeries()&lt;/code&gt;.
+          &lt;/p&gt;
+          &lt;p&gt;
+            Pairs that are not offered are left out on purpose. A treemap will not
+            become a pie, and a box plot will not become a bar: both are mechanically
+            possible and neither has been driven, and claiming a morph nobody has
+            watched is worse than not offering it.
+          &lt;/p&gt;
         &lt;/div&gt;
       &lt;/div&gt;</div>
 
@@ -230,12 +1106,12 @@
           apexchart: VueApexCharts,
         },
         data: {
-          series: [{ name: 'Sessions', data: [44, 55, 41, 27, 33] }],
+          series: ORDERS,
           chartOptions: {
             chart: {
-              id: 'morphChart',
-              type: 'bar',
-              height: 380,
+              id: 'morphShapes',
+              type: 'polarArea',
+              height: 360,
               toolbar: {
                 show: false,
               },
@@ -251,37 +1127,19 @@
             grid: {
               show: false,
             },
-            labels: ['Direct', 'Organic', 'Referral', 'Social', 'Email'],
-            legend: { show: false },
+            labels: CHANNELS,
+            legend: {
+              show: false,
+            },
             plotOptions: {
               bar: {
                 borderRadius: 4,
                 distributed: true,
                 barHeight: '99%',
               },
-              radialBar: {
-                inverseOrder: true,
-                hollow: {
-                  size: '5%',
-                },
-                track: {
-                  show: false,
-                },
-              },
+              radialBar: FULL_RING,
               funnel: {
                 shape: 'trapezoid',
-              },
-              unit: {
-                // One column of dots per category, so the cluster stands where its bar did.
-                layout: 'columns',
-                // Pin the dot size below what the layout would auto-fit: finer dots make
-                // the cross-type morph read as one mark dissolving into many, and a
-                // cluster's height stays proportional to its count, like the bar it
-                // replaces.
-                size: 7,
-                // Keep a dot's identity across every regroup, so the same object leaves and
-                // returns to the same place on a round trip.
-                transition: 'identity',
               },
             },
             yaxis: {
@@ -301,76 +1159,262 @@
                 show: false,
               },
             },
-            dataLabels: { enabled: false },
+            dataLabels: {
+              enabled: false,
+            },
             fill: {
               opacity: 0.9,
             },
-            stroke: { lineCap: 'butt', width: 1, colors: ['#fff'] },
+            stroke: {
+              lineCap: 'butt',
+              width: 1,
+              colors: ['#fff'],
+            },
+          },
+
+          series1: [{ name: 'Orders', data: ORDERS }],
+          chartOptions1: {
+            chart: {
+              id: 'morphCounted',
+              type: 'bar',
+              height: 360,
+              toolbar: {
+                show: false,
+              },
+              animations: {
+                enabled: true,
+                speed: 800,
+                chartTypeMorph: {
+                  enabled: true,
+                  speed: 700,
+                },
+              },
+            },
+            grid: {
+              show: false,
+            },
+            labels: CHANNELS,
+            legend: {
+              show: false,
+            },
+            plotOptions: {
+              bar: {
+                borderRadius: 4,
+                distributed: true,
+              },
+              unit: DOT_LAYOUT,
+            },
+            yaxis: {
+              show: false,
+              axisBorder: {
+                show: false,
+              },
+            },
+            xaxis: {
+              labels: {
+                show: false,
+              },
+              axisBorder: {
+                show: false,
+              },
+              axisTicks: {
+                show: false,
+              },
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            fill: {
+              opacity: 0.9,
+            },
+            stroke: {
+              lineCap: 'butt',
+              width: 1,
+              colors: ['#fff'],
+            },
+          },
+
+          series2: SUMMARY_SERIES,
+          chartOptions2: {
+            chart: {
+              id: 'morphSample',
+              type: 'boxPlot',
+              height: 400,
+              toolbar: {
+                show: false,
+              },
+              animations: {
+                enabled: true,
+                chartTypeMorph: {
+                  enabled: true,
+                  speed: 700,
+                },
+              },
+            },
+            // Three shades of one hue: the tiers are told apart by their lanes, and a
+            // single family of colour keeps the box, the violin and the dots recognisably
+            // the same three groups.
+            colors: ['#0f9c92', '#12b3a8', '#5ecfc6'],
+            plotOptions: {
+              bar: {
+                distributed: true,
+              },
+              boxPlot: {
+                colors: {
+                  upper: '#c8ece9',
+                  lower: '#9fdcd7',
+                },
+                points: {
+                  show: false,
+                },
+              },
+              violin: {
+                normalize: 'group',
+                // The toggle is the reveal here; the built-in overlay would spoil it.
+                points: {
+                  show: false,
+                },
+              },
+            },
+            legend: {
+              show: false,
+            },
+            stroke: {
+              width: 1,
+              colors: ['#8a97a3'],
+            },
+            yaxis: {
+              // The same domain and ticks the readings view pins itself to, so the two
+              // states share one grid and the morph never re-scales the room.
+              min: 0,
+              max: 11,
+              tickAmount: 11,
+              title: {
+                text: 'Days in transit',
+              },
+            },
+            xaxis: {
+              // One explicit label colour keeps the readings view's axis chrome (ticks,
+              // title, lane names) on the same near-black as the summary views, instead of
+              // the lane names taking the series colour.
+              labels: {
+                style: {
+                  colors: '#373d3f',
+                },
+              },
+            },
+          },
+
+          series3: DISPATCH_SERIES,
+          chartOptions3: {
+            chart: {
+              id: 'morphBins',
+              type: 'histogram',
+              height: 380,
+              toolbar: {
+                show: false,
+              },
+              animations: {
+                enabled: true,
+                chartTypeMorph: {
+                  enabled: true,
+                  speed: 700,
+                },
+              },
+            },
+            plotOptions: {
+              histogram: {
+                bins: 20,
+              },
+            },
+            colors: ['#4e8cff'],
+            legend: {
+              show: false,
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            xaxis: {
+              title: {
+                text: 'Minutes from order to dispatch',
+              },
+              labels: {
+                formatter: function (val) {
+                  return Math.round(val)
+                },
+              },
+            },
+            yaxis: {
+              title: {
+                text: 'Orders',
+              },
+            },
+          },
+
+          series4: LEAVES,
+          chartOptions4: {
+            chart: {
+              id: 'morphPartition',
+              type: 'treemap',
+              height: 420,
+              toolbar: {
+                show: false,
+              },
+              animations: {
+                enabled: true,
+                chartTypeMorph: {
+                  enabled: true,
+                  speed: 700,
+                },
+              },
+            },
+            colors: LEAF_COLORS,
+            legend: {
+              show: false,
+            },
+            dataLabels: {
+              enabled: true,
+              style: {
+                fontSize: '12px',
+              },
+            },
+            plotOptions: {
+              treemap: {
+                // One palette entry per tile, taken straight from the data above, so a
+                // tile and the arc it becomes are the same colour. Shading is off because
+                // it would recolour tiles by value and break that pairing.
+                distributed: true,
+                enableShades: false,
+              },
+              sunburst: {
+                innerSize: '22%',
+                borderRadius: 2,
+                spacing: 1,
+              },
+            },
           },
 
           morphTimer: null,
         },
         mounted: function () {
-          // The vue-apexcharts wrapper owns the render, so reach the live instance by
-          // its chart.id, then wire the same controls the vanilla build does. (LABELS,
-          // buildSeriesFor and setActive live in the shared head script.) updateOptions
-          // drives the chart instance directly, so no reactive data changes and the
-          // <apexchart> is never re-rendered under it.
+          // The vue-apexcharts wrapper owns the render, so reach the live instances by
+          // their chart.id, then wire the same five cards the vanilla build does.
           var me = this
-          var currentType = 'bar'
-          var currentHorizontal = false
-          var currentValues = [44, 55, 41, 27, 33]
-
           me.morphTimer = window.setInterval(function () {
-            var chart = ApexCharts.getChartByID('morphChart')
-            if (!chart) return
+            var shapes = ApexCharts.getChartByID('morphShapes')
+            var counted = ApexCharts.getChartByID('morphCounted')
+            var sample = ApexCharts.getChartByID('morphSample')
+            var bins = ApexCharts.getChartByID('morphBins')
+            var partition = ApexCharts.getChartByID('morphPartition')
+            if (!shapes || !counted || !sample || !bins || !partition) return
             window.clearInterval(me.morphTimer)
 
-            setActive(currentType, currentHorizontal)
-
-            document
-              .querySelectorAll('.actions button[data-type]')
-              .forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                  var nextType = btn.getAttribute('data-type')
-                  var nextHorizontal = btn.getAttribute('data-horizontal') === 'true'
-                  if (
-                    nextType === currentType &&
-                    nextHorizontal === currentHorizontal
-                  )
-                    return
-                  currentType = nextType
-                  currentHorizontal = nextHorizontal
-                  setActive(currentType, currentHorizontal)
-                  chart.updateOptions({
-                    chart: { type: currentType },
-                    plotOptions: { bar: { horizontal: currentHorizontal } },
-                    series: buildSeriesFor(currentType, currentValues),
-                    labels: LABELS,
-                  })
-                })
-              })
-
-            document
-              .querySelector('#randomize')
-              .addEventListener('click', function () {
-                currentValues = currentValues.map(function () {
-                  return Math.floor(Math.random() * 80) + 10
-                })
-                chart.updateSeries(buildSeriesFor(currentType, currentValues))
-              })
-
-            var speedInput = document.querySelector('#speed')
-            var speedValue = document.querySelector('#speed-value')
-            speedInput.addEventListener('input', function () {
-              var v = parseInt(speedInput.value, 10)
-              speedValue.textContent = v
-              chart.updateOptions(
-                { chart: { animations: { chartTypeMorph: { speed: v } } } },
-                false,
-                false,
-              )
-            })
+            wireShapes(shapes)
+            wireCounted(counted)
+            wireSample(sample)
+            wireBins(bins)
+            wirePartition(partition)
+            wireSpeed([shapes, counted, sample, bins, partition])
           }, 50)
         },
         beforeDestroy: function () {
