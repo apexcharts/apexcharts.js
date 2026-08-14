@@ -274,14 +274,22 @@ export default class MorphTypeChange {
     // the fallback for what pieces cannot serve.
     const ff = familyOf(fromType)
     const tf = familyOf(toType)
-    const pieceFamilies = ff === 'bar' || ff === 'summary'
+    // A wedge can only be cut where the ink is, which needs path hit-testing;
+    // without it the cells would be a rectangle stamped over a circle, so the
+    // radial pairs keep the fade rather than lie about their geometry.
+    const canShape = this._canProbePaths()
+    const pieceFamilies =
+      ff === 'bar' || ff === 'summary' || (ff === 'radial' && canShape)
     if (tf === 'unit' && pieceFamilies) {
       // mark -> objects. The object count comes from the incoming series (one
       // datum per dot in the object form); the numeric form scales values by
       // unitValue and cannot be counted here, so it keeps the burst + ghost.
       const total = this._countUnitSeries(newSeries)
       this._snapshot.pieceOut = total > 0 && total <= PIECE_BUDGET
-    } else if (ff === 'unit' && (tf === 'bar' || tf === 'summary')) {
+    } else if (
+      ff === 'unit' &&
+      (tf === 'bar' || tf === 'summary' || (tf === 'radial' && canShape))
+    ) {
       // objects -> mark. The dots were just captured, so the count is exact.
       let total = 0
       unitDots.forEach((list) => {
@@ -294,14 +302,24 @@ export default class MorphTypeChange {
         // _buildMapping uses, so cluster k pairs with keyOrder[k].
         /** @type {string[]} */
         const keyOrder = []
-        ;(Array.isArray(newSeries) ? newSeries : []).forEach(
-          (/** @type {any} */ s, /** @type {number} */ seriesIdx) => {
-            const data = s && Array.isArray(s.data) ? s.data : []
-            for (let j = 0; j < data.length; j++) {
-              keyOrder.push(`${seriesIdx}:${j}`)
-            }
-          },
-        )
+        if (tf === 'radial') {
+          // A radial series is one flat value per slice, and its marks are
+          // keyed the way the radial capture keys them: slice index, j = 0.
+          ;(Array.isArray(newSeries) ? newSeries : []).forEach(
+            (/** @type {any} */ _v, /** @type {number} */ i) => {
+              keyOrder.push(`${i}:0`)
+            },
+          )
+        } else {
+          ;(Array.isArray(newSeries) ? newSeries : []).forEach(
+            (/** @type {any} */ s, /** @type {number} */ seriesIdx) => {
+              const data = s && Array.isArray(s.data) ? s.data : []
+              for (let j = 0; j < data.length; j++) {
+                keyOrder.push(`${seriesIdx}:${j}`)
+              }
+            },
+          )
+        }
         this._snapshot.keyOrder = keyOrder
       }
     }
@@ -584,11 +602,28 @@ export default class MorphTypeChange {
   }
 
   /**
+   * Whether this environment can hit-test path geometry at all. Decided
+   * before the ghost clone is taken, because a family whose cells are only
+   * honest when probed (radial) must keep the fade rather than fall back to a
+   * rectangular grid it cannot justify. jsdom answers no.
+   * @returns {boolean}
+   */
+  _canProbePaths() {
+    if (!Environment.isBrowser()) return false
+    const probe = BrowserAPIs.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'path',
+    )
+    return !!probe && typeof (/** @type {any} */ (probe).isPointInFill) === 'function'
+  }
+
+  /**
    * A per-band ink prober over a mark's path, for gridDivideShape: given a
    * major-axis band it measures where the mark actually has ink across the
-   * minor axis, so a violin's cells follow its density outline and a
-   * boxPlot's whisker rows collapse to slivers instead of every row spanning
-   * the bounding box (which stamped a rectangle over the mark at frame one).
+   * minor axis, so a violin's cells follow its density outline, a boxPlot's
+   * whisker rows collapse to slivers, and a wedge's rows stop at the wedge
+   * instead of spanning the bounding box (which stamped a rectangle over the
+   * mark at frame one).
    *
    * The probe path is mounted (hidden) inside the piece layer so its user
    * space is exactly the space the cells are laid out in. The stroke test
@@ -601,7 +636,7 @@ export default class MorphTypeChange {
    * @param {string} d - path data, in piece-layer coordinates
    * @param {{x:number,y:number,width:number,height:number}} bbox
    * @param {any} layer - the mounted piece layer
-   * @returns {{ extentAt: (bandLo: number, bandHi: number, horizontal: boolean) => [number, number] | null, dispose: () => void } | null}
+   * @returns {{ intervalsAt: (bandLo: number, bandHi: number, horizontal: boolean) => Array<[number, number]> | null, dispose: () => void } | null}
    */
   _makeExtentProber(d, bbox, layer) {
     const doc = layer.ownerDocument
@@ -634,17 +669,22 @@ export default class MorphTypeChange {
       )
     }
 
-    // Coarse segments across the minor axis. 16 keeps the exact centre as a
-    // sample point, which is where a centred whisker line lives.
-    const SCAN = 16
+    // Samples across the minor axis per probe line. Fine enough to catch a
+    // thin ring (a donut's arm at its narrowest) and the exact centre, which
+    // is where a centred whisker line lives.
+    const SCAN = 48
 
     /**
+     * Every interval of ink a band crosses, not merely its outermost extent:
+     * a wedge can cross twice and a donut ring crosses twice over most of its
+     * height, and treating those as one interval would fill the hole.
+     *
      * @param {number} bandLo
      * @param {number} bandHi
      * @param {boolean} horizontal
-     * @returns {[number, number] | null}
+     * @returns {Array<[number, number]> | null}
      */
-    const extentAt = (bandLo, bandHi, horizontal) => {
+    const intervalsAt = (bandLo, bandHi, horizontal) => {
       const lo = horizontal ? bbox.y : bbox.x
       const hi = lo + (horizontal ? bbox.height : bbox.width)
       if (!(hi > lo)) return null
@@ -661,7 +701,8 @@ export default class MorphTypeChange {
       ]
 
       /**
-       * Bisect the ink edge between a known hit and a known miss.
+       * Bisect the ink edge between a known hit and a known miss, on whichever
+       * probe line found the hit.
        * @param {number} inside @param {number} outside @param {number} major
        */
       const edge = (inside, outside, major) => {
@@ -675,32 +716,53 @@ export default class MorphTypeChange {
         return (a + b) / 2
       }
 
-      let min = Infinity
-      let max = -Infinity
+      // Union the three lines sample by sample, keeping which line proved each
+      // hit so the edge refinement asks the line that can answer.
+      const step = (hi - lo) / SCAN
+      /** @type {Array<number|null>} */
+      const proof = new Array(SCAN + 1).fill(null)
+      let any = false
       for (const major of majors) {
-        let first = -1
-        let last = -1
         for (let s = 0; s <= SCAN; s++) {
-          const v = lo + ((hi - lo) * s) / SCAN
-          if (at(v, major)) {
-            if (first < 0) first = s
-            last = s
+          if (proof[s] !== null) continue
+          if (at(lo + s * step, major)) {
+            proof[s] = major
+            any = true
           }
         }
-        if (first < 0) continue
-        const step = (hi - lo) / SCAN
-        const left =
-          first === 0 ? lo : edge(lo + first * step, lo + (first - 1) * step, major)
-        const right =
-          last === SCAN ? hi : edge(lo + last * step, lo + (last + 1) * step, major)
-        if (left < min) min = left
-        if (right > max) max = right
       }
-      return min <= max ? [min, max] : null
+      if (!any) return null
+
+      /** @type {Array<[number, number]>} */
+      const out = []
+      let runStart = -1
+      for (let s = 0; s <= SCAN + 1; s++) {
+        const inside = s <= SCAN && proof[s] !== null
+        if (inside && runStart < 0) runStart = s
+        if (!inside && runStart >= 0) {
+          const last = s - 1
+          const major = /** @type {number} */ (proof[runStart])
+          const left =
+            runStart === 0
+              ? lo
+              : edge(lo + runStart * step, lo + (runStart - 1) * step, major)
+          const right =
+            last === SCAN
+              ? hi
+              : edge(
+                  lo + last * step,
+                  lo + (last + 1) * step,
+                  /** @type {number} */ (proof[last]),
+                )
+          if (right > left) out.push([left, right])
+          runStart = -1
+        }
+      }
+      return out.length ? out : null
     }
 
     return {
-      extentAt,
+      intervalsAt,
       dispose: () => {
         if (probe.parentNode) probe.parentNode.removeChild(probe)
       },
@@ -768,7 +830,8 @@ export default class MorphTypeChange {
     // summary mark (violin, boxPlot) is a silhouette inside its box, and
     // cutting the box would stamp a rectangle over the curve at frame one:
     // its cells follow the measured ink instead.
-    const shapedSource = familyOf(snap.fromType) === 'summary'
+    const sourceFam = familyOf(snap.fromType)
+    const shapedSource = sourceFam === 'summary' || sourceFam === 'radial'
 
     Array.from(byCluster.keys())
       .sort((a, b) => a - b)
@@ -799,7 +862,7 @@ export default class MorphTypeChange {
           if (shifted) prober = this._makeExtentProber(shifted, box, layer)
         }
         const divided = prober
-          ? gridDivideShape(box, dots.length, prober.extentAt)
+          ? gridDivideShape(box, dots.length, prober.intervalsAt)
           : gridDivideRect(box, dots.length)
         if (prober) prober.dispose()
 
@@ -888,7 +951,8 @@ export default class MorphTypeChange {
 
     // Same silhouette rule as the separate direction: a mosaic assembling a
     // violin should build the violin's outline, not its bounding rectangle.
-    const shapedTarget = familyOf(snap.toType) === 'summary'
+    const targetFam = familyOf(snap.toType)
+    const shapedTarget = targetFam === 'summary' || targetFam === 'radial'
 
     for (let k = 0; k < clusterIdx.length; k++) {
       const dots = /** @type {any[]} */ (snap.sourceDots.get(clusterIdx[k]))
@@ -914,18 +978,22 @@ export default class MorphTypeChange {
       let prober = null
       if (shapedTarget) {
         // The mark's final geometry, straight off its (hidden) elements. A
-        // boxPlot is more than one path per mark, so probe them as one.
-        const d = target.els
-          .map(
-            (/** @type {any} */ p) =>
-              p.getAttribute('pathTo') || p.getAttribute('d'),
-          )
-          .filter(Boolean)
-          .join(' ')
+        // boxPlot is more than one path per mark, so probe them as one; a
+        // radial mark carries the final path the renderer stamped, since its
+        // live `d` is still wherever its own animation left it.
+        const d =
+          target.d ||
+          target.els
+            .map(
+              (/** @type {any} */ p) =>
+                p.getAttribute('pathTo') || p.getAttribute('d'),
+            )
+            .filter(Boolean)
+            .join(' ')
         if (d) prober = this._makeExtentProber(d, target.bbox, layer)
       }
       const divided = prober
-        ? gridDivideShape(target.bbox, dots.length, prober.extentAt)
+        ? gridDivideShape(target.bbox, dots.length, prober.intervalsAt)
         : gridDivideRect(target.bbox, dots.length)
       if (prober) prober.dispose()
 
@@ -1018,7 +1086,7 @@ export default class MorphTypeChange {
    * several, walked exactly like the capture branch walks the outgoing ones.
    *
    * @param {string} toType
-   * @returns {Map<string, { realIndex: number, j: number, bbox: {x:number,y:number,width:number,height:number}, fill: string|null, els: any[] }>}
+   * @returns {Map<string, { realIndex: number, j: number, bbox: {x:number,y:number,width:number,height:number}, fill: string|null, els: any[], d?: string }>}
    */
   _collectTargetMarks(toType) {
     /** @type {any} */
@@ -1028,6 +1096,34 @@ export default class MorphTypeChange {
     if (!baseEl) return out
 
     const fam = familyOf(toType)
+
+    if (fam === 'radial') {
+      // A slice's live `d` is wherever its own animation currently has it, so
+      // the geometry comes from the final path the renderer stamps for us
+      // (data:pathFinal). Keys match the radial capture: slice index, j = 0.
+      baseEl
+        .querySelectorAll('.apexcharts-pie-series .apexcharts-pie-area')
+        .forEach((/** @type {any} */ p, /** @type {number} */ i) => {
+          const d = p.getAttribute('data:pathFinal') || p.getAttribute('d')
+          if (!d || !d.trim()) return
+          const box = this._pathBBox(d)
+          if (!box) return
+          out.set(`${i}:0`, {
+            realIndex: i,
+            j: 0,
+            d,
+            bbox: {
+              x: box.minX,
+              y: box.minY,
+              width: box.maxX - box.minX,
+              height: box.maxY - box.minY,
+            },
+            fill: p.getAttribute('fill'),
+            els: [p],
+          })
+        })
+      return out
+    }
     const wrapClass =
       fam === 'summary'
         ? `.apexcharts-${toType}-series`

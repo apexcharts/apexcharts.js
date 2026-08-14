@@ -7,9 +7,11 @@
  * pairs the correspondence is one-to-many, and the exit is the PIECE LAYER:
  * the outgoing mark is cut into one cell per object and every cell flies to
  * its object, corners rounding off and fill blending, so the ink is conserved
- * and nothing ever fades. The old whole-chart ghost fade survives only as the
- * fallback (an unsupported source family such as radial, or an object count
- * past the piece budget).
+ * and nothing ever fades. Wedges are cut the same way, against their own ink
+ * rather than their bounding box, so a donut's hole survives the division.
+ * The old whole-chart ghost fade survives only as the fallback (an object
+ * count past the piece budget, a unit series whose count cannot be known
+ * before the merge, or an environment that cannot hit-test a path).
  *
  * These tests pin the parts that are invisible to a unit test: that the
  * pieces start exactly where the outgoing marks were, that the hidden
@@ -281,7 +283,7 @@ test.describe('Cross-type morph exit layer', () => {
     expect(r.ghosts).toBe(0)
   })
 
-  test('unit -> pie keeps the ghost fallback: wedges cannot be tiled yet', async ({
+  test('unit -> pie tiles the wedges too, and leaves no ghost', async ({
     page,
     loadChart,
   }) => {
@@ -290,21 +292,119 @@ test.describe('Cross-type morph exit layer', () => {
     await page.waitForTimeout(1500)
 
     const r = await page.evaluate(async ([piecesSel, ghostSel]) => {
+      const dotsBefore = document.querySelectorAll('.apexcharts-unit-area').length
       let pieces = 0
       let ghosts = 0
       document.querySelector('.actions button[data-type="pie"]').click()
+      await new Promise((res) => requestAnimationFrame(res))
+      const hiddenWedges = document.querySelectorAll(
+        '.apexcharts-pie-area[data-piece-hidden]',
+      ).length
       for (let k = 0; k < 70; k++) {
         await new Promise((res) => requestAnimationFrame(res))
         pieces = Math.max(pieces, document.querySelectorAll(piecesSel).length)
         ghosts = Math.max(ghosts, document.querySelectorAll(ghostSel).length)
       }
-      await new Promise((res) => setTimeout(res, 1000))
-      return { pieces, ghosts, after: document.querySelectorAll(ghostSel).length }
+      await new Promise((res) => setTimeout(res, 1200))
+      return {
+        dotsBefore,
+        pieces,
+        ghosts,
+        hiddenWedges,
+        wedges: document.querySelectorAll('.apexcharts-pie-area').length,
+        after: document.querySelectorAll(ghostSel).length,
+        stranded: document.querySelectorAll('[data-piece-hidden]').length,
+      }
     }, [PIECES, GHOST])
 
-    expect(r.pieces).toBe(0)
-    expect(r.ghosts).toBe(1)
+    // Every outgoing dot becomes a piece, every incoming wedge waits hidden
+    // for its mosaic, and the fade never runs.
+    expect(r.pieces).toBe(r.dotsBefore)
+    expect(r.hiddenWedges).toBe(r.wedges)
+    expect(r.ghosts).toBe(0)
     expect(r.after).toBe(0)
+    expect(r.stranded).toBe(0)
+  })
+
+  test('a wedge is cut where its ink is, and a donut keeps its hole', async ({
+    page,
+    loadChart,
+  }) => {
+    // The reason the radial pairs used to fade: a rectangular grid over a
+    // wedge's bounding box puts cells where the wedge has no ink at all, and
+    // over a donut it fills the hole. The divider probes the mark instead, so
+    // this asserts the property directly rather than the mechanism.
+    await loadChart('misc', 'chart-type-morph')
+
+    for (const kind of ['pie', 'donut']) {
+      const r = await page.evaluate(async (type) => {
+        document.querySelector(`.actions button[data-type="${type}"]`).click()
+        await new Promise((res) => setTimeout(res, 1700))
+
+        // The wedges as plain numbers: their path data and the matrix from
+        // their user space to the page. The morph destroys the elements, so
+        // nothing may hold a reference to them.
+        const snap = [...document.querySelectorAll('.apexcharts-pie-area')].map((p) => {
+          const m = p.getScreenCTM()
+          return { d: p.getAttribute('d'), m: [m.a, m.b, m.c, m.d, m.e, m.f] }
+        })
+
+        document.querySelector('.actions button[data-type="unit"]').click()
+        await new Promise((res) => requestAnimationFrame(res))
+        const pieces = [
+          ...document.querySelectorAll('.apexcharts-morph-pieces rect'),
+        ].map((el) => {
+          const b = el.getBoundingClientRect()
+          return {
+            i: +el.getAttribute('data-i'),
+            x: b.x + b.width / 2,
+            y: b.y + b.height / 2,
+          }
+        })
+
+        // Rebuild each wedge live and hit-test the piece centres against it.
+        const holder = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        holder.setAttribute('style', 'position:fixed;left:-9999px;width:1200px;height:900px')
+        document.body.appendChild(holder)
+        const probes = snap.map((sn) => {
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+          path.setAttribute('d', sn.d)
+          holder.appendChild(path)
+          const [a, b, c, d, e, f] = sn.m
+          const det = a * d - b * c
+          return {
+            path,
+            inv: (X, Y) => ({
+              x: (d * (X - e) - c * (Y - f)) / det,
+              y: (a * (Y - f) - b * (X - e)) / det,
+            }),
+          }
+        })
+        const pt = holder.createSVGPoint()
+        let inside = 0
+        for (const pc of pieces) {
+          const probe = probes[pc.i]
+          if (!probe) continue
+          const local = probe.inv(pc.x, pc.y)
+          pt.x = local.x
+          pt.y = local.y
+          if (probe.path.isPointInFill(pt) || probe.path.isPointInStroke(pt)) inside++
+        }
+        holder.remove()
+
+        await new Promise((res) => setTimeout(res, 1700))
+        document.querySelector('.actions button[data-type="bar"][data-horizontal="false"]').click()
+        await new Promise((res) => setTimeout(res, 1500))
+        return { pieces: pieces.length, inside }
+      }, kind)
+
+      expect(r.pieces).toBeGreaterThan(40)
+      // Cells follow the ink. The few that miss sit on the stepped edge of a
+      // curve, where a rectangular cell cannot help overshooting slightly; a
+      // bounding-box grid scores far below this (a quarter of a pie's box is
+      // outside the wedge, and a donut's hole is most of its middle).
+      expect(r.inside / r.pieces).toBeGreaterThan(0.85)
+    }
   })
 
   test('past the piece budget the ghost fallback runs and nothing hides', async ({

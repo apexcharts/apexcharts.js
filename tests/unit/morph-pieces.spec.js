@@ -66,13 +66,25 @@ describe('gridDivideRect', () => {
 
 describe('gridDivideShape', () => {
   // A tall diamond: widest at the middle, a point at each end. Every band
-  // crosses it in one interval, like a violin.
+  // crosses it in ONE interval, like a violin.
   const BOX = { x: 100, y: 0, width: 60, height: 240 }
   const HALF_AT = (y) => 30 * (1 - Math.abs(y - 120) / 120)
   const diamond = (bandLo, bandHi) => {
     const mid = (bandLo + bandHi) / 2
     const half = Math.max(0.5, HALF_AT(mid))
-    return /** @type {[number, number]} */ ([130 - half, 130 + half])
+    return /** @type {Array<[number, number]>} */ ([[130 - half, 130 + half]])
+  }
+
+  // The same box hollowed out: two arms with a gap between them, which is
+  // what a band across a donut ring actually crosses.
+  const ring = (bandLo, bandHi) => {
+    const mid = (bandLo + bandHi) / 2
+    const half = Math.max(0.5, HALF_AT(mid))
+    if (half < 12) return /** @type {Array<[number, number]>} */ ([[130 - half, 130 + half]])
+    return /** @type {Array<[number, number]>} */ ([
+      [130 - half, 130 - half + 8],
+      [130 + half - 8, 130 + half],
+    ])
   }
 
   it('returns exactly count cells, remainder included', () => {
@@ -125,12 +137,39 @@ describe('gridDivideShape', () => {
   })
 
   it('clamps a runaway extent to the box and survives degenerate boxes', () => {
-    const wild = gridDivideShape(BOX, 6, () => [0, 1000])
+    const wild = gridDivideShape(BOX, 6, () => [[0, 1000]])
     for (const c of wild) {
       expect(c.x).toBeGreaterThanOrEqual(BOX.x - 1e-9)
       expect(c.x + c.width).toBeLessThanOrEqual(BOX.x + BOX.width + 1e-9)
     }
     expect(gridDivideShape({ x: 5, y: 5, width: 0, height: 0 }, 4, diamond).length).toBe(4)
+  })
+
+  it('splits a band between its intervals and never fills the hole', () => {
+    // The case a bounding-box grid cannot express and the reason this takes
+    // intervals: a donut's band is two arms with a gap, and a cell landing in
+    // the gap would be ink where the mark has none.
+    const cells = gridDivideShape(BOX, 80, ring)
+    expect(cells.length).toBe(80)
+
+    // Every cell sits inside one of the intervals its own band reported.
+    let inHole = 0
+    for (const c of cells) {
+      const spans = ring(c.y, c.y + c.height)
+      const cx = c.x + c.width / 2
+      if (!spans.some(([lo, hi]) => cx >= lo - 1e-6 && cx <= hi + 1e-6)) inHole++
+    }
+    expect(inHole).toBe(0)
+
+    // And both arms are actually used, rather than one arm taking everything.
+    const wide = cells.filter((c) => {
+      const spans = ring(c.y, c.y + c.height)
+      return spans.length === 2
+    })
+    const left = wide.filter((c) => c.x + c.width / 2 < 130).length
+    const right = wide.length - left
+    expect(left).toBeGreaterThan(0)
+    expect(right).toBeGreaterThan(0)
   })
 
   it('probes the minor axis of a squat shape (rows run along the width)', () => {
@@ -140,7 +179,7 @@ describe('gridDivideShape', () => {
       seen.push(horizontal)
       const mid = (lo + hi) / 2
       const half = Math.max(0.5, 30 * (1 - Math.abs(mid - 120) / 120))
-      return [130 - half, 130 + half]
+      return [[130 - half, 130 + half]]
     })
     // Rows run along the longer axis (x), so the prober is asked for
     // vertical extents.

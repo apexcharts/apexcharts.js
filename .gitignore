@@ -20,3 +20,6 @@ dist-ssr
 
 # Claude Code local (machine-specific) settings
 .claude/settings.local.json
+
+# Playwright per-failure artifacts (traces, error contexts): transient output.
+tests/interaction/test-results/*/

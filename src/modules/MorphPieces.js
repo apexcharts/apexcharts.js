@@ -82,30 +82,33 @@ export function gridDivideRect(bbox, count) {
  * silhouette instead of its bounding box.
  *
  * Same row layout as gridDivideRect (rows along the longer axis, remainder
- * one extra cell per row from the first row on), but each row's cells span
- * the shape's measured ink across that row's band rather than the full box.
- * For the marks this serves (a violin's density outline, a boxPlot's box and
- * whisker) every band crosses the ink in a single interval, so the cells tile
- * the silhouette: the first frame of a dissolve looks like the mark coming
- * apart, not like a rectangle stamped over it.
+ * one extra cell per row from the first row on), but each row's cells are laid
+ * inside the ink the mark actually has across that row's band. A band may
+ * cross the ink MORE THAN ONCE, which is why this takes intervals rather than
+ * one extent: a violin or a box crosses once, a pie wedge can cross twice, and
+ * a donut ring crosses twice over most of its height, two arms with a hole
+ * between them. A row's cells are shared between its intervals in proportion
+ * to their length, so the ink is covered where it is and nowhere else, and no
+ * cell is ever stamped over the hole.
  *
- * `extentAt(bandLo, bandHi, horizontal)` returns the ink's [lo, hi] across
- * the minor axis within that major-axis band, or null when the band has no
- * measurable ink; a null band falls back to the full box, which is the
+ * `intervalsAt(bandLo, bandHi, horizontal)` returns every [lo, hi] interval of
+ * ink across the minor axis within that major-axis band, or null when the band
+ * has none measurable; a null band falls back to the full box, which is the
  * plain-grid behaviour.
  *
  * @param {{x:number, y:number, width:number, height:number}} bbox
  * @param {number} count
- * @param {(bandLo: number, bandHi: number, horizontal: boolean) => [number, number] | null} extentAt
+ * @param {(bandLo: number, bandHi: number, horizontal: boolean) => Array<[number, number]> | null} intervalsAt
  * @returns {Array<{x:number, y:number, width:number, height:number}>}
  */
-export function gridDivideShape(bbox, count, extentAt) {
+export function gridDivideShape(bbox, count, intervalsAt) {
   if (!(count > 0)) return []
 
   const horizontal = bbox.width >= bbox.height
   const rowExtent = horizontal ? bbox.width : bbox.height
   const colExtent = horizontal ? bbox.height : bbox.width
   const minorLo = horizontal ? bbox.y : bbox.x
+  const minorHi = minorLo + colExtent
 
   // The silhouette is only as smooth as its bands are thin. The square-ish
   // grid that serves a bar makes a low count chunky here (14 cells over a
@@ -129,22 +132,49 @@ export function gridDivideShape(bbox, count, extentAt) {
   for (let r = 0; r < rows; r++) {
     const cols = baseCols + (remainder > 0 ? 1 : 0)
     if (remainder > 0) remainder--
-    const span = extentAt(rowStart, rowStart + rowSize, horizontal)
-    let lo = span ? Math.max(minorLo, Math.min(span[0], span[1])) : minorLo
-    let hi = span
-      ? Math.min(minorLo + colExtent, Math.max(span[0], span[1]))
-      : minorLo + colExtent
-    if (!(hi >= lo)) {
-      lo = minorLo
-      hi = minorLo + colExtent
+
+    // Clamp what the prober reports into the box, and drop anything empty.
+    /** @type {Array<[number, number]>} */
+    const spans = []
+    const raw = intervalsAt(rowStart, rowStart + rowSize, horizontal)
+    if (Array.isArray(raw)) {
+      for (let s = 0; s < raw.length; s++) {
+        const iv = raw[s]
+        if (!iv) continue
+        const lo = Math.max(minorLo, Math.min(iv[0], iv[1]))
+        const hi = Math.min(minorHi, Math.max(iv[0], iv[1]))
+        if (hi > lo) spans.push([lo, hi])
+      }
     }
-    const colSize = cols > 0 ? (hi - lo) / cols : 0
-    for (let c = 0; c < cols; c++) {
-      cells.push(
-        horizontal
-          ? { x: rowStart, y: lo + c * colSize, width: rowSize, height: colSize }
-          : { x: lo + c * colSize, y: rowStart, width: colSize, height: rowSize },
-      )
+    if (!spans.length) spans.push([minorLo, minorHi])
+
+    // Share the row's cells between its intervals by length, largest fraction
+    // first, so the row still emits exactly `cols` of them.
+    const totalLen = spans.reduce((a, s) => a + (s[1] - s[0]), 0)
+    const exact = spans.map((s) =>
+      totalLen > 0 ? ((s[1] - s[0]) / totalLen) * cols : cols / spans.length,
+    )
+    const share = exact.map((v) => Math.floor(v))
+    let used = share.reduce((a, b) => a + b, 0)
+    const byFrac = exact
+      .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+      .sort((a, b) => b.frac - a.frac)
+    for (let k = 0; used < cols; k++, used++) {
+      share[byFrac[k % byFrac.length].i]++
+    }
+
+    for (let s = 0; s < spans.length; s++) {
+      const n = share[s]
+      if (n <= 0) continue
+      const lo = spans[s][0]
+      const colSize = (spans[s][1] - lo) / n
+      for (let c = 0; c < n; c++) {
+        cells.push(
+          horizontal
+            ? { x: rowStart, y: lo + c * colSize, width: rowSize, height: colSize }
+            : { x: lo + c * colSize, y: rowStart, width: colSize, height: rowSize },
+        )
+      }
     }
     rowStart += rowSize
   }

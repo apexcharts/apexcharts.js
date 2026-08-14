@@ -621,6 +621,32 @@ class Pie {
 
       elPieArc.add(elPath)
 
+      // Cross-type morph, objects -> wedge: the piece layer needs this mark's
+      // FINAL geometry, and a slice's live `d` is wherever its own animation
+      // currently has it. Stamp the final path for the engine to read, and
+      // only while a morph is active so a normal render pays nothing.
+      let pieceClaimed = false
+      if (morphActive) {
+        const finalD = this.getPiePath({
+          me: this,
+          startAngle,
+          angle,
+          size: this.sliceSizes[i],
+        })
+        elPath.node.setAttribute('data:pathFinal', finalD)
+        pieceClaimed =
+          this.ctx.morphTypeChange.claimsTargetMark?.(i, 0) === true
+        if (pieceClaimed) {
+          // Born final and held hidden: the flying dots tile this wedge and
+          // reveal it when the mosaic closes, so it must not animate itself
+          // underneath them (a bar that did replayed its grow as a bounce).
+          elPath.attr({ d: finalD })
+          elPath.node.setAttribute('data:pathOrig', finalD)
+          elPath.node.setAttribute('opacity', '0')
+          elPath.node.setAttribute('data-piece-hidden', '1')
+        }
+      }
+
       // Animation code starts
       let dur = 0
       if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
@@ -633,7 +659,11 @@ class Pie {
         this.animBeginArr.push(0)
       }
 
-      if (morphActive && morphFrom) {
+      if (pieceClaimed) {
+        // Nothing to animate here: the pieces own every pixel of this
+        // transition and the reveal is the engine's to make. (animBeginArr
+        // was already pushed above, once per slice, for every branch.)
+      } else if (morphActive && morphFrom) {
         // Cross-type morph: bypass the angle-based animateArc loop and let
         // SVGAnimation's morphPaths interpolate from the captured outgoing
         // path to the final pie/donut/polarArea arc directly.
