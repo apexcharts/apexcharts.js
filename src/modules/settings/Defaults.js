@@ -2,6 +2,7 @@
 import Utils from '../../utils/Utils'
 import DateTime from '../../utils/DateTime'
 import Formatters from '../Formatters'
+import Options from './Options'
 
 /**
  * ApexCharts Default Class for setting default options for all chart types.
@@ -10,23 +11,19 @@ import Formatters from '../Formatters'
  **/
 
 /**
- * Marks a `tooltip.custom` that a chart type installed for itself, and names
- * the types allowed to keep it. Type defaults are applied once, by
- * Config.init on the initial render, so a later
- * `updateOptions({ chart: { type } })` leaves the OUTGOING type's formatter in
- * place. Every one of these reads globals only its own type fills: a box plot
- * that became a violin kept asking for a five-number summary nobody had
- * computed and threw on each hover, killing the tooltip and stranding the
- * crosshair on the first category. See Defaults.retargetTypeOwnedTooltip.
+ * Marks a function a chart type installed as one of its own defaults, so it can
+ * be told from a function the user supplied. Two closures are never `===`, and
+ * a merged config records no provenance, so without the mark there is no way
+ * back from "this config has a formatter" to "whose formatter is it".
  *
- * The mark is also what tells a built-in formatter from a user's own, which is
- * never retargeted.
+ * Only functions carry the mark. Every other type default is recognised by
+ * value, by comparing against what the outgoing type would have chosen.
  */
 const TYPE_OWNED = '_apexOwnedByType'
 
 /**
  * @template {Function} T
- * @param {string[]} types chart types whose data this formatter can read
+ * @param {string[]} types chart types whose data this function can read
  * @param {T} fn
  * @returns {T}
  */
@@ -36,14 +33,158 @@ const ownedBy = (types, fn) => {
   return fn
 }
 
-/** Every chart type that installs a `tooltip.custom` of its own. */
-const TYPE_OWNED_TOOLTIPS = [
-  'candlestick',
-  'boxPlot',
-  'violin',
-  'rangeBar',
-  'rangeArea',
+/**
+ * The config leaves that belong to the chart TYPE rather than to the chart, and
+ * so are re-chosen when `updateOptions({ chart: { type } })` changes it.
+ *
+ * Type defaults are applied once, by Config.init on the initial render. The
+ * update path constructs Config directly and skips init, so before this every
+ * leaf a type had chosen for itself outlived that type. Two ways that showed:
+ * a box plot that became a violin kept asking for a five-number summary nobody
+ * computes for a violin and threw on every hover, and a bar that became a box
+ * plot never acquired the five-number formatter at all.
+ *
+ * The line drawn here is between what a chart DOES and how it is PAINTED. A
+ * leaf that decides what is read, what is said, or what is hit-tested belongs
+ * to the type and hands over. A leaf that decides colour, opacity, stroke,
+ * spacing or legend placement stays put, so that changing type re-reads the
+ * data without also restyling the chart out from under a morph in flight, and
+ * so that a palette chosen for a bar survives its becoming a line.
+ *
+ * A leaf only hands over when it still holds exactly what the outgoing type
+ * chose for it. Anything the user set, then or in this same update, is theirs
+ * and is left alone.
+ */
+const TYPE_OWNED_PATHS = [
+  // What the tooltip reads and how it resolves a hover. `custom` is the sharp
+  // one: each built-in reads globals only its own type fills.
+  'tooltip.custom',
+  'tooltip.shared',
+  'tooltip.intersect',
+  'tooltip.followCursor',
+  // Whether values are written on the marks, and how they are phrased. A pie's
+  // percentage formatter handed a treemap a category name.
+  'dataLabels.enabled',
+  'dataLabels.formatter',
+  'plotOptions.bar.dataLabels.position',
+  // A box plot's outlier markers are hit targets; a violin draws none.
+  'markers.size',
+  // Hover and select feedback, off by design on the types that draw their own.
+  'states.hover.filter.type',
+  'states.active.filter.type',
+  // Axis chrome that exists to be pointed at.
+  'xaxis.crosshairs.width',
+  'xaxis.tickPlacement',
+  'xaxis.tooltip.enabled',
+  // Interaction the type either supports or does not: a violin's categories
+  // cannot be range-zoomed, and an index-keyed summary animates as churn.
+  'chart.zoom.enabled',
+  'chart.animations.dynamicAnimation.enabled',
 ]
+
+/**
+ * Read a dotted path out of a config-shaped object.
+ * @param {Record<string, any> | undefined} obj
+ * @param {string} path
+ */
+const readPath = (obj, path) => {
+  let cur = /** @type {any} */ (obj)
+  for (const key of path.split('.')) {
+    if (cur == null || typeof cur !== 'object') return undefined
+    cur = cur[key]
+  }
+  return cur
+}
+
+/**
+ * Write a dotted path into a config-shaped object, creating the objects on the
+ * way. A leaf whose new value is `undefined` is deleted rather than set, so the
+ * field reads as absent exactly like it would on a fresh chart of that type.
+ * @param {Record<string, any>} obj
+ * @param {string} path
+ * @param {any} value
+ */
+const writePath = (obj, path, value) => {
+  const keys = path.split('.')
+  const last = keys.pop()
+  let cur = /** @type {any} */ (obj)
+  for (const key of keys) {
+    if (cur[key] == null || typeof cur[key] !== 'object') cur[key] = {}
+    cur = cur[key]
+  }
+  if (value === undefined) delete cur[/** @type {string} */ (last)]
+  else cur[/** @type {string} */ (last)] = value
+}
+
+/** The user-facing chart types that render through another type's pathway. */
+const TYPE_ALIASES = {
+  funnel: 'bar',
+  pyramid: 'bar',
+  gauge: 'radialBar',
+  waffle: 'unit',
+  histogram: 'bar',
+}
+
+/**
+ * A throwaway config naming one chart type and nothing else, for asking
+ * Defaults.forType what that type wants. Throwaway because two of the type
+ * blocks (funnel and radar) hide the y-axis by writing into the opts they are
+ * handed, and the live config must not take that write.
+ *
+ * @param {string} type a chart type, or a user-facing alias of one
+ * @param {Record<string, any>} config the live config, read for the few
+ *   chart-level flags a type default consults
+ */
+const typeOpts = (type, config) => {
+  const base = /** @type {Record<string, string>} */ (TYPE_ALIASES)[type]
+  return {
+    chart: {
+      type: base || type,
+      requestedType: base ? type : undefined,
+      // Stacking belongs to the chart, not to its type, so both sides see it.
+      stacked: config.chart?.stacked,
+    },
+    plotOptions: {
+      bar: { isFunnel: type === 'funnel' || type === 'pyramid' },
+      histogram: config.plotOptions?.histogram,
+    },
+    // The histogram's defaults read the series to decide whether overlaid bins
+    // share a tooltip. Both sides are asked with the series the chart has now.
+    series: config.series,
+    yaxis: [{ title: {}, labels: {}, axisBorder: {}, axisTicks: {} }],
+  }
+}
+
+/**
+ * Is `current` still what the outgoing type chose, rather than something the
+ * user put there?
+ *
+ * Functions can only be compared by provenance: a marked function came from
+ * this module and may be replaced, an unmarked one is the user's and may not.
+ * Everything else compares by value.
+ *
+ * @param {any} current
+ * @param {any} fromDefault
+ */
+const isUntouched = (current, fromDefault) => {
+  if (typeof current === 'function') {
+    if (Array.isArray(/** @type {any} */ (current)[TYPE_OWNED])) return true
+    // Unmarked, so it is either the user's or one of the plain formatters
+    // Options rebuilds on every read. Those are never `===` across two reads,
+    // so the only thing left to compare is the source itself.
+    return (
+      typeof fromDefault === 'function' &&
+      String(current) === String(fromDefault)
+    )
+  }
+  if (typeof fromDefault === 'function') return current === undefined
+  if (current === fromDefault) return true
+  try {
+    return JSON.stringify(current) === JSON.stringify(fromDefault)
+  } catch {
+    return false
+  }
+}
 
 /** @param {{isTimeline: any, seriesIndex: any, dataPointIndex: any, y1: any, y2: any, w: any}} opts */
 const getRangeValues = ({
@@ -188,33 +329,108 @@ export default class Defaults {
   }
 
   /**
-   * Hand a type-owned `tooltip.custom` over to whichever type the chart is now,
-   * after `updateOptions({ chart: { type } })` changed it. Only formatters this
-   * module installed carry the mark (see TYPE_OWNED), so a user's own `custom`
-   * is left alone whatever the chart becomes; a type with no formatter of its
-   * own clears the field back to the base default. Idempotent, so the update
-   * path can call it without first working out whether the type moved.
+   * The defaults a chart type chooses for itself, which is the same pick
+   * Config.init makes on the initial render. Shared with the update path so
+   * that "what does type X want" has one answer and cannot drift between the
+   * two. Modes layered on top of a type (brush, slope, sparkline) are not
+   * included: they belong to the chart, not to its type, and a type change does
+   * not disturb them.
+   *
+   * @param {Record<string, any>} opts a config, read for the type and for the
+   *   flags that pick a variant of it
+   * @returns {Record<string, any>}
+   */
+  static forType(opts) {
+    const defaults = new Defaults(opts)
+    const chartTypes = [
+      'line',
+      'area',
+      'bar',
+      'candlestick',
+      'boxPlot',
+      'violin',
+      'rangeBar',
+      'rangeArea',
+      'bubble',
+      'scatter',
+      'heatmap',
+      'treemap',
+      'unit',
+      'sunburst',
+      'pie',
+      'polarArea',
+      'donut',
+      'radar',
+      'radialBar',
+    ]
+    const requestedType = opts.chart.requestedType
+    let chartDefaults
+
+    if (requestedType === 'funnel' || requestedType === 'pyramid') {
+      chartDefaults = /** @type {any} */ (defaults)[requestedType]()
+    } else if (requestedType === 'gauge') {
+      chartDefaults = defaults.gauge()
+    } else if (requestedType === 'histogram') {
+      chartDefaults = defaults.histogram()
+    } else if (chartTypes.indexOf(opts.chart.type) !== -1) {
+      chartDefaults = /** @type {any} */ (defaults)[opts.chart.type]()
+    } else {
+      // Unknown, or a type someone registered: it has no defaults of its own,
+      // so it gets the same baseline Config.init would give it.
+      chartDefaults = defaults.line()
+    }
+
+    if (opts.plotOptions?.bar?.isFunnel) {
+      chartDefaults = defaults.funnel()
+    }
+
+    if (opts.chart.stacked && opts.chart.type === 'bar') {
+      chartDefaults = defaults.stackedBars()
+    }
+
+    return chartDefaults
+  }
+
+  /**
+   * Re-choose the type-owned leaves (see TYPE_OWNED_PATHS) after
+   * `updateOptions({ chart: { type } })` moved the chart from one type to
+   * another, so the chart behaves as the type it now is.
+   *
+   * A leaf is only handed over when it still holds exactly what `fromType`
+   * chose for it. That single test covers every way a value can be the user's
+   * instead of ours: set at construction, set by an earlier update, or set by
+   * this very update. `options` is consulted too, so an explicit ask in the
+   * same call wins even when it happens to equal the outgoing default.
    *
    * @param {Record<string, any>} config the merged w.config, mutated in place
+   * @param {string} fromType the type (or requested alias) before this update
+   * @param {Record<string, any>} [options] this update's payload
    */
-  static retargetTypeOwnedTooltip(config) {
-    const custom = config?.tooltip?.custom
-    const owner =
-      typeof custom === 'function'
-        ? /** @type {any} */ (custom)[TYPE_OWNED]
-        : null
-    if (!owner) return
+  static handOverTypeDefaults(config, fromType, options) {
+    const toType = config.chart.requestedType || config.chart.type
+    if (!fromType || fromType === toType) return
 
-    const type = config.chart.requestedType || config.chart.type
-    if (owner.indexOf(type) !== -1) return
+    // Ask each side separately, through a config that names only that type, so
+    // neither answer is contaminated by the other's alias flags. Each answer is
+    // then laid over the base options, because a type that says nothing about a
+    // leaf is not saying "absent", it is leaving the library default standing:
+    // a violin sets no markers.size, and what it wants there is the base 0, not
+    // the box plot's 7 and not nothing at all.
+    const base = new Options().init()
+    const from = Utils.extend(
+      base,
+      Defaults.forType(typeOpts(fromType, config)),
+    )
+    const to = Utils.extend(base, Defaults.forType(typeOpts(toType, config)))
 
-    // Only the types that own a formatter are looked up, so an unknown or
-    // user-registered chart.type can never reach an unrelated Defaults method.
-    const hasOwnFormatter = TYPE_OWNED_TOOLTIPS.indexOf(type) !== -1
-    const next = hasOwnFormatter
-      ? /** @type {any} */ (new Defaults(config))[type]()
-      : null
-    config.tooltip.custom = next?.tooltip?.custom
+    for (const path of TYPE_OWNED_PATHS) {
+      if (options && readPath(options, path) !== undefined) continue
+      const fromDefault = readPath(from, path)
+      const toDefault = readPath(to, path)
+      if (fromDefault === undefined && toDefault === undefined) continue
+      if (!isUntouched(readPath(config, path), fromDefault)) continue
+      writePath(config, path, toDefault)
+    }
   }
 
   hideYAxis() {

@@ -70,9 +70,13 @@ export default class UpdateHelpers {
         // ability to morph FROM funnel into anything in the bar family
         // (funnel → pyramid, funnel → bar). The incoming `options.chart.type`
         // is the raw value the user passed and has not yet been normalized.
+        // Read before the merge, and outside the `animate` guard below: the
+        // type-default handover has to know what the chart WAS whether or not
+        // the change is being animated.
+        const fromType = w.config.chart.requestedType || w.config.chart.type
+
         if (animate && options && typeof options === 'object') {
           const newType = options?.chart?.type
-          const fromType = w.config.chart.requestedType || w.config.chart.type
           if (newType && newType !== fromType) {
             ch.morphTypeChange?.captureBeforeDestroy({
               fromType,
@@ -141,12 +145,11 @@ export default class UpdateHelpers {
           w.config = Utils.extend(w.config, options)
 
           // Type defaults are applied once, by Config.init, and this path
-          // skips it — so a `tooltip.custom` the OUTGOING type installed for
-          // itself would survive into the incoming one and read globals that
-          // are no longer filled. Runs before the initialConfig snapshot below
-          // so a later resetSeries restores the retargeted formatter, not the
-          // stale one.
-          Defaults.retargetTypeOwnedTooltip(w.config)
+          // skips it — so every leaf the OUTGOING type had chosen for itself
+          // would otherwise outlive that type. Runs before the initialConfig
+          // snapshot below, so a later resetSeries restores the config the
+          // chart actually has rather than the stale one.
+          Defaults.handOverTypeDefaults(w.config, fromType, options)
 
           if (overwriteInitialConfig) {
             // we need to forget the lastXAxis and lastYAxis as user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.

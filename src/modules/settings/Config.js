@@ -38,49 +38,10 @@ export default class Config {
     let config = options.init()
     let newDefaults = {}
     if (opts && typeof opts === 'object') {
-      let chartDefaults = {}
-      const chartTypes = [
-        'line',
-        'area',
-        'bar',
-        'candlestick',
-        'boxPlot',
-        'violin',
-        'rangeBar',
-        'rangeArea',
-        'bubble',
-        'scatter',
-        'heatmap',
-        'treemap',
-        'unit',
-        'sunburst',
-        'pie',
-        'polarArea',
-        'donut',
-        'radar',
-        'radialBar',
-      ]
-
-      const requestedType = opts.chart.requestedType
-      if (requestedType === 'funnel' || requestedType === 'pyramid') {
-        chartDefaults = /** @type {any} */ (defaults)[requestedType]()
-      } else if (requestedType === 'gauge') {
-        chartDefaults = defaults.gauge()
-      } else if (requestedType === 'histogram') {
-        chartDefaults = defaults.histogram()
-      } else if (chartTypes.indexOf(opts.chart.type) !== -1) {
-        chartDefaults = /** @type {any} */ (defaults)[opts.chart.type]()
-      } else {
-        chartDefaults = defaults.line()
-      }
-
-      if (opts.plotOptions?.bar?.isFunnel) {
-        chartDefaults = defaults.funnel()
-      }
-
-      if (opts.chart.stacked && opts.chart.type === 'bar') {
-        chartDefaults = defaults.stackedBars()
-      }
+      // Which type's defaults apply. Shared with the update path, which has to
+      // make the same pick when chart.type changes at runtime; see
+      // Defaults.handOverTypeDefaults. The modes below layer on top of it.
+      let chartDefaults = Defaults.forType(opts)
 
       if (opts.chart.brush?.enabled) {
         chartDefaults = defaults.brush(chartDefaults)
