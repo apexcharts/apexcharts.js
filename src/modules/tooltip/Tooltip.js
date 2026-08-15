@@ -1008,6 +1008,48 @@ export default class Tooltip {
     }
   }
 
+  /**
+   * Where a pie / donut / polarArea slice wants its tooltip anchored, in
+   * elWrap-relative pixels.
+   *
+   * Pie.js stamps the arc centroid on the path as `data:cx` / `data:cy`, in
+   * the slice's OWN user space: below the inner group's translate, and below
+   * the pie group's customScale. Reading those as if they were SVG-root
+   * coordinates silently drops both, and the inner translate is exactly the
+   * offset that centres a pie in a chart wider than it is tall, so on such a
+   * chart the tooltip landed a couple of hundred pixels to the left of the
+   * slice it described. The element's screen matrix accounts for every
+   * ancestor transform at once, including the translate a slice picks up while
+   * it is slid out on click.
+   *
+   * @param {any} el a slice path carrying data:cx / data:cy
+   * @returns {{x: number, y: number} | null} null when it carries neither
+   */
+  getSliceAnchor(el) {
+    const w = this.w
+    const cx = parseFloat(el?.getAttribute('data:cx') ?? '')
+    const cy = parseFloat(el?.getAttribute('data:cy') ?? '')
+    if (isNaN(cx) || isNaN(cy)) return null
+
+    const wrapBound = w.dom.elWrap.getBoundingClientRect()
+    const ctm = typeof el.getScreenCTM === 'function' ? el.getScreenCTM() : null
+
+    if (!ctm) {
+      // No matrix support (jsdom): fall back to the SVG root's own offset,
+      // which is right whenever nothing above the slice is transformed.
+      const svgBound = w.dom.Paper.node.getBoundingClientRect()
+      return {
+        x: svgBound.left - wrapBound.left + cx,
+        y: svgBound.top - wrapBound.top + cy,
+      }
+    }
+
+    return {
+      x: ctm.a * cx + ctm.c * cy + ctm.e - wrapBound.left,
+      y: ctm.b * cx + ctm.d * cy + ctm.f - wrapBound.top,
+    }
+  }
+
   // tooltip handling for pie/donuts
   /** @param {{e: any, opt: any, tooltipRect: any}} opts */
   nonAxisChartsTooltips({ e, opt, tooltipRect }) {
@@ -1054,24 +1096,13 @@ export default class Tooltip {
       // opt.paths is the <g class="apexcharts-series"> group element;
       // data:cx / data:cy are set on the child <path> arc element inside it
       const arcPath = opt.paths.querySelector('path[data\\:cx]') || opt.paths
+      const anchor = w.config.tooltip.intersect
+        ? this.getSliceAnchor(arcPath)
+        : null
 
-      if (
-        w.config.tooltip.intersect &&
-        arcPath.hasAttribute('data:cx') &&
-        arcPath.hasAttribute('data:cy')
-      ) {
-        const svgBound = w.dom.Paper.node.getBoundingClientRect()
-        x =
-          svgBound.left -
-          seriesBound.left +
-          parseFloat(arcPath.getAttribute('data:cx')) -
-          tooltipRect.ttWidth / 2
-        y =
-          svgBound.top -
-          seriesBound.top +
-          parseFloat(arcPath.getAttribute('data:cy')) -
-          tooltipRect.ttHeight -
-          10
+      if (anchor) {
+        x = anchor.x - tooltipRect.ttWidth / 2
+        y = anchor.y - tooltipRect.ttHeight - 10
       } else {
         x =
           (w.interact.clientX ?? 0) - seriesBound.left - tooltipRect.ttWidth / 2

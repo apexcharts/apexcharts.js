@@ -854,25 +854,15 @@ export default class KeyboardNavigation {
     const ttWidth = tooltipBound.width || ttCtx.tooltipRect.ttWidth || 0
     const ttHeight = tooltipBound.height || ttCtx.tooltipRect.ttHeight || 0
 
-    // Use data:cx / data:cy — the arc centroid in SVG/grid-space computed by
-    // Pie.js (same values that nonAxisChartsTooltips uses for intersect mode).
-    // The path element carries j='${j}' (0-indexed). data:cx/cy are set on
-    // the path directly (not on the parent group).
+    // Anchor on the arc centroid, through the same helper the mouse path uses
+    // so keyboard and pointer land a slice's tooltip in the same place. The
+    // path element carries j='${j}' (0-indexed); data:cx/cy are set on the
+    // path directly, not on the parent group.
     const sliceEl = w.dom.baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`)
-    if (sliceEl) {
-      const cx = parseFloat(sliceEl.getAttribute('data:cx') ?? '')
-      const cy = parseFloat(sliceEl.getAttribute('data:cy') ?? '')
-
-      if (!isNaN(cx) && !isNaN(cy)) {
-        // Convert SVG-space to elWrap-relative (same transform as mouse path)
-        const svgBound = w.dom.Paper.node.getBoundingClientRect()
-        const wrapBound = w.dom.elWrap.getBoundingClientRect()
-        const offsetX = svgBound.left - wrapBound.left
-        const offsetY = svgBound.top - wrapBound.top
-
-        tooltipEl.style.left = offsetX + cx - ttWidth / 2 + 'px'
-        tooltipEl.style.top = offsetY + cy - ttHeight - 10 + 'px'
-      }
+    const anchor = ttCtx.getSliceAnchor(sliceEl)
+    if (anchor) {
+      tooltipEl.style.left = anchor.x - ttWidth / 2 + 'px'
+      tooltipEl.style.top = anchor.y - ttHeight - 10 + 'px'
     }
   }
   /**
