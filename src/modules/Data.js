@@ -331,7 +331,12 @@ export default class Data {
           }
         } else {
           if (cnf.xaxis.type === 'datetime') {
-            this.twoDSeriesX.push(dt.parseDate(x.toString()))
+            // A Date already carries an exact epoch value, so read it
+            // directly. Date.prototype.toString() has second resolution, and
+            // parsing its output back drops the milliseconds silently.
+            this.twoDSeriesX.push(
+              x instanceof Date ? x.getTime() : dt.parseDate(x.toString())
+            )
           } else {
             this.w.axisFlags.dataFormatXNumeric = true
             this.w.axisFlags.isXNumeric = true
