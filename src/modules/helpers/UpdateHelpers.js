@@ -140,6 +140,14 @@ export default class UpdateHelpers {
 
           w.config = Utils.extend(w.config, options)
 
+          // Type defaults are applied once, by Config.init, and this path
+          // skips it — so a `tooltip.custom` the OUTGOING type installed for
+          // itself would survive into the incoming one and read globals that
+          // are no longer filled. Runs before the initialConfig snapshot below
+          // so a later resetSeries restores the retargeted formatter, not the
+          // stale one.
+          Defaults.retargetTypeOwnedTooltip(w.config)
+
           if (overwriteInitialConfig) {
             // we need to forget the lastXAxis and lastYAxis as user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.
             w.globals.lastXAxis = options.xaxis

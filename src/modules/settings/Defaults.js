@@ -9,6 +9,42 @@ import Formatters from '../Formatters'
  * @module Defaults
  **/
 
+/**
+ * Marks a `tooltip.custom` that a chart type installed for itself, and names
+ * the types allowed to keep it. Type defaults are applied once, by
+ * Config.init on the initial render, so a later
+ * `updateOptions({ chart: { type } })` leaves the OUTGOING type's formatter in
+ * place. Every one of these reads globals only its own type fills: a box plot
+ * that became a violin kept asking for a five-number summary nobody had
+ * computed and threw on each hover, killing the tooltip and stranding the
+ * crosshair on the first category. See Defaults.retargetTypeOwnedTooltip.
+ *
+ * The mark is also what tells a built-in formatter from a user's own, which is
+ * never retargeted.
+ */
+const TYPE_OWNED = '_apexOwnedByType'
+
+/**
+ * @template {Function} T
+ * @param {string[]} types chart types whose data this formatter can read
+ * @param {T} fn
+ * @returns {T}
+ */
+const ownedBy = (types, fn) => {
+  const marked = /** @type {any} */ (fn)
+  marked[TYPE_OWNED] = types
+  return fn
+}
+
+/** Every chart type that installs a `tooltip.custom` of its own. */
+const TYPE_OWNED_TOOLTIPS = [
+  'candlestick',
+  'boxPlot',
+  'violin',
+  'rangeBar',
+  'rangeArea',
+]
+
 /** @param {{isTimeline: any, seriesIndex: any, dataPointIndex: any, y1: any, y2: any, w: any}} opts */
 const getRangeValues = ({
   isTimeline,
@@ -149,6 +185,36 @@ export default class Defaults {
    */
   constructor(opts) {
     this.opts = opts
+  }
+
+  /**
+   * Hand a type-owned `tooltip.custom` over to whichever type the chart is now,
+   * after `updateOptions({ chart: { type } })` changed it. Only formatters this
+   * module installed carry the mark (see TYPE_OWNED), so a user's own `custom`
+   * is left alone whatever the chart becomes; a type with no formatter of its
+   * own clears the field back to the base default. Idempotent, so the update
+   * path can call it without first working out whether the type moved.
+   *
+   * @param {Record<string, any>} config the merged w.config, mutated in place
+   */
+  static retargetTypeOwnedTooltip(config) {
+    const custom = config?.tooltip?.custom
+    const owner =
+      typeof custom === 'function'
+        ? /** @type {any} */ (custom)[TYPE_OWNED]
+        : null
+    if (!owner) return
+
+    const type = config.chart.requestedType || config.chart.type
+    if (owner.indexOf(type) !== -1) return
+
+    // Only the types that own a formatter are looked up, so an unknown or
+    // user-registered chart.type can never reach an unrelated Defaults method.
+    const hasOwnFormatter = TYPE_OWNED_TOOLTIPS.indexOf(type) !== -1
+    const next = hasOwnFormatter
+      ? /** @type {any} */ (new Defaults(config))[type]()
+      : null
+    config.tooltip.custom = next?.tooltip?.custom
   }
 
   hideYAxis() {
@@ -562,15 +628,18 @@ export default class Defaults {
       },
       tooltip: {
         shared: true,
-        custom: (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
-          return this._getBoxTooltip(
-            w,
-            seriesIndex,
-            dataPointIndex,
-            ['Open', 'High', '', 'Low', 'Close'],
-            'candlestick',
-          )
-        },
+        custom: ownedBy(
+          ['candlestick'],
+          (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
+            return this._getBoxTooltip(
+              w,
+              seriesIndex,
+              dataPointIndex,
+              ['Open', 'High', '', 'Low', 'Close'],
+              'candlestick',
+            )
+          },
+        ),
       },
       states: {
         active: {
@@ -605,15 +674,18 @@ export default class Defaults {
       },
       tooltip: {
         shared: true,
-        custom: (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
-          return this._getBoxTooltip(
-            w,
-            seriesIndex,
-            dataPointIndex,
-            ['Minimum', 'Q1', 'Median', 'Q3', 'Maximum'],
-            'boxPlot',
-          )
-        },
+        custom: ownedBy(
+          ['boxPlot'],
+          (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
+            return this._getBoxTooltip(
+              w,
+              seriesIndex,
+              dataPointIndex,
+              ['Minimum', 'Q1', 'Median', 'Q3', 'Maximum'],
+              'boxPlot',
+            )
+          },
+        ),
       },
       markers: {
         size: 7,
@@ -654,9 +726,12 @@ export default class Defaults {
       },
       tooltip: {
         shared: true,
-        custom: (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
-          return this._getViolinTooltip(w, seriesIndex, dataPointIndex)
-        },
+        custom: ownedBy(
+          ['violin'],
+          (/** @type {any} */ { seriesIndex, dataPointIndex, w }) => {
+            return this._getViolinTooltip(w, seriesIndex, dataPointIndex)
+          },
+        ),
       },
       states: {
         active: {
@@ -765,20 +840,21 @@ export default class Defaults {
       tooltip: {
         shared: false,
         followCursor: true,
-        /**
-         * @param {Record<string, any>} opts
-         */
-        custom(opts) {
-          if (
-            opts.w.config.plotOptions &&
-            opts.w.config.plotOptions.bar &&
-            opts.w.config.plotOptions.bar.horizontal
-          ) {
-            return handleTimelineTooltip(opts)
-          } else {
-            return handleRangeColumnTooltip(opts)
-          }
-        },
+        custom: ownedBy(
+          ['rangeBar'],
+          /** @param {Record<string, any>} opts */
+          (opts) => {
+            if (
+              opts.w.config.plotOptions &&
+              opts.w.config.plotOptions.bar &&
+              opts.w.config.plotOptions.bar.horizontal
+            ) {
+              return handleTimelineTooltip(opts)
+            } else {
+              return handleRangeColumnTooltip(opts)
+            }
+          },
+        ),
       },
       xaxis: {
         tickPlacement: 'between',
@@ -889,12 +965,11 @@ export default class Defaults {
         intersect: false,
         shared: true,
         followCursor: true,
-        /**
-         * @param {Record<string, any>} opts
-         */
-        custom(opts) {
-          return handleRangeAreaTooltip(opts)
-        },
+        custom: ownedBy(
+          ['rangeArea'],
+          /** @param {Record<string, any>} opts */
+          (opts) => handleRangeAreaTooltip(opts),
+        ),
       },
     }
   }
