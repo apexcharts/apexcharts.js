@@ -637,12 +637,13 @@ export default class BarDataLabels {
 
     if (!w.config.chart.stacked) {
       if (dataLabelsConfig.textAnchor === 'start') {
-        if (dataLabelsX - textRects.width < 0) {
-          // Pin the label to the plot edge, but keep honoring the user's
-          // offsetX from that edge — otherwise a `position:'bottom'` +
-          // `textAnchor:'start'` label (whose dataLabelsX equals the offset for
-          // left-rooted bars) silently loses any offsetX smaller than its own
-          // text width. offX is 0 by default, so this is a no-op unless set.
+        if (dataLabelsX < 0) {
+          // Pin the label to the plot edge when the anchor point itself
+          // is off-screen to the left. textAnchor:'start' means the text
+          // extends to the RIGHT from dataLabelsX, so only the anchor
+          // position matters — not the text width. Previously used
+          // `dataLabelsX - textRects.width < 0` which incorrectly pinned
+          // labels whose text was wider than the bar (issue #5094).
           dataLabelsX = valIsNegative
             ? textRects.width + strokeWidth - offX
             : strokeWidth + offX
