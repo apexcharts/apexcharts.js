@@ -1,3 +1,22 @@
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -19,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.8.0
+ * ApexCharts v6.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -28,7 +47,42 @@ import { default as default2 } from "apexcharts/core";
 const Utils = _core.__apex_Utils;
 const Environment = _core.__apex_Environment_Environment;
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
-const XHTML = "http://www.w3.org/1999/xhtml";
+const BREADCRUMB_HEIGHT = 18;
+function breadcrumbCeiling(w, nav) {
+  const gridTop = w.layout.translateY || 0;
+  const elWrap = w.dom.elWrap;
+  if (!elWrap) return gridTop;
+  const labels = w.dom.baseEl.querySelectorAll(".apexcharts-yaxis-label");
+  if (!labels.length) return gridTop;
+  const wrapTop = elWrap.getBoundingClientRect().top;
+  const navRect = nav.getBoundingClientRect();
+  let ceiling = gridTop;
+  for (let i = 0; i < labels.length; i++) {
+    const r = labels[i].getBoundingClientRect();
+    if (!r.height) continue;
+    if (r.left >= navRect.right || r.right <= navRect.left) continue;
+    ceiling = Math.min(ceiling, r.top - wrapTop);
+  }
+  return ceiling;
+}
+function placeInReservedBand(w, ctx, nav, cfg) {
+  var _a;
+  const dimHelpers = (_a = ctx == null ? void 0 : ctx.dimensions) == null ? void 0 : _a.dimHelpers;
+  const titleArea = dimHelpers ? dimHelpers.getTitleSubtitleCoords("title").height + dimHelpers.getTitleSubtitleCoords("subtitle").height : 0;
+  const navH = nav.getBoundingClientRect().height || BREADCRUMB_HEIGHT;
+  const offsetY = cfg && cfg.offsetY || 0;
+  const ceiling = breadcrumbCeiling(w, nav);
+  if (ceiling - titleArea >= navH + 1) {
+    nav.style.top = `${ceiling - navH - 1 + offsetY}px`;
+    return true;
+  }
+  nav.style.top = `${titleArea + offsetY}px`;
+  const dark = w.config.theme.mode === "dark";
+  nav.style.background = dark ? "rgba(20,24,30,0.82)" : "rgba(255,255,255,0.86)";
+  nav.style.borderRadius = "4px";
+  return false;
+}
+const XHTML$1 = "http://www.w3.org/1999/xhtml";
 class Breadcrumb {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -55,14 +109,14 @@ class Breadcrumb {
     const cfg = w.config.drilldown && w.config.drilldown.breadcrumb;
     if (!cfg || cfg.show === false) return;
     if (this.drilldown.depth === 0) return;
-    const nav = BrowserAPIs.createElementNS(XHTML, "nav");
+    const nav = BrowserAPIs.createElementNS(XHTML$1, "nav");
     nav.setAttribute("class", "apexcharts-breadcrumb");
     nav.setAttribute("aria-label", "Drilldown breadcrumb");
     this._position(nav, cfg);
     const separator = cfg.separator != null ? cfg.separator : " / ";
     path.forEach((id, i) => {
       if (i > 0) {
-        const sep = BrowserAPIs.createElementNS(XHTML, "span");
+        const sep = BrowserAPIs.createElementNS(XHTML$1, "span");
         sep.setAttribute("class", "apexcharts-breadcrumb-separator");
         sep.setAttribute("aria-hidden", "true");
         sep.textContent = separator;
@@ -71,7 +125,7 @@ class Breadcrumb {
       const label = this._label(id, i);
       const isCurrent = i === path.length - 1;
       if (isCurrent) {
-        const cur = BrowserAPIs.createElementNS(XHTML, "span");
+        const cur = BrowserAPIs.createElementNS(XHTML$1, "span");
         cur.setAttribute(
           "class",
           "apexcharts-breadcrumb-item apexcharts-breadcrumb-current"
@@ -82,18 +136,18 @@ class Breadcrumb {
       } else {
         const btn = (
           /** @type {HTMLButtonElement} */
-          BrowserAPIs.createElementNS(XHTML, "button")
+          BrowserAPIs.createElementNS(XHTML$1, "button")
         );
         btn.setAttribute("type", "button");
         btn.setAttribute("class", "apexcharts-breadcrumb-item");
         if (i === 0) {
-          const arrow = BrowserAPIs.createElementNS(XHTML, "span");
+          const arrow = BrowserAPIs.createElementNS(XHTML$1, "span");
           arrow.setAttribute("class", "apexcharts-breadcrumb-arrow");
           arrow.setAttribute("aria-hidden", "true");
           arrow.textContent = "←";
           btn.appendChild(arrow);
         }
-        const text = BrowserAPIs.createElementNS(XHTML, "span");
+        const text = BrowserAPIs.createElementNS(XHTML$1, "span");
         text.setAttribute("class", "apexcharts-breadcrumb-label");
         text.textContent = label;
         btn.appendChild(text);
@@ -102,6 +156,9 @@ class Breadcrumb {
       }
     });
     elWrap.appendChild(nav);
+    if (this.w.globals.axisCharts) {
+      placeInReservedBand(this.w, this.ctx, nav, cfg);
+    }
     this._avoidChromeOverlap(nav);
   }
   /**
@@ -166,7 +223,68 @@ class Breadcrumb {
     }
   }
 }
+const XHTML = "http://www.w3.org/1999/xhtml";
+const CLASS = "apexcharts-drilldown-loading";
+class DrilldownLoading {
+  /**
+   * @param {import('../../types/internal').ChartStateW} w
+   */
+  constructor(w) {
+    this.w = w;
+    this.el = null;
+  }
+  /** @returns {any} the drilldown.loading config, normalised. */
+  _cfg() {
+    const d = this.w.config.drilldown;
+    const l = d && d.loading;
+    if (l === false) return { show: false };
+    return l || {};
+  }
+  /**
+   * Mount the overlay. No-op when disabled, outside a browser, or already up.
+   */
+  show() {
+    if (!Environment.isBrowser()) return;
+    const cfg = this._cfg();
+    if (cfg.show === false) return;
+    const elWrap = this.w.dom.elWrap;
+    if (!elWrap) return;
+    this.hide();
+    const box = BrowserAPIs.createElementNS(XHTML, "div");
+    box.setAttribute("class", CLASS);
+    box.setAttribute("role", "status");
+    box.setAttribute("aria-live", "polite");
+    box.setAttribute("aria-label", cfg.text || "Loading");
+    const spinner = BrowserAPIs.createElementNS(XHTML, "div");
+    spinner.setAttribute("class", `${CLASS}-spinner`);
+    spinner.setAttribute("aria-hidden", "true");
+    box.appendChild(spinner);
+    if (cfg.text) {
+      const label = BrowserAPIs.createElementNS(XHTML, "span");
+      label.setAttribute("class", `${CLASS}-text`);
+      label.textContent = cfg.text;
+      box.appendChild(label);
+    }
+    elWrap.appendChild(box);
+    this.el = box;
+  }
+  /** Remove the overlay. Safe to call when it is not mounted. */
+  hide() {
+    const elWrap = this.w.dom.elWrap;
+    if (elWrap) {
+      const nodes = elWrap.querySelectorAll(`.${CLASS}`);
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        if (n.parentNode) n.parentNode.removeChild(n);
+      }
+    } else if (this.el && this.el.parentNode) {
+      this.el.parentNode.removeChild(this.el);
+    }
+    this.el = null;
+  }
+}
 const MAX_DEPTH = 32;
+const DRILL_MARKER = "__apexDrilldownMarker";
 class Drilldown {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -178,9 +296,18 @@ class Drilldown {
     this.stack = [];
     this.rootSnapshot = null;
     this._wired = false;
+    this._asyncCache = /* @__PURE__ */ new Map();
+    this._pending = null;
+    this._warnedUnreachable = false;
+    this._warnedNoSliceOffset = false;
     this.breadcrumb = new Breadcrumb(w, ctx, this);
+    this.loading = new DrilldownLoading(w);
     this._onPointSelect = this._onPointSelect.bind(this);
     this._afterRender = this._afterRender.bind(this);
+    this._onPlotDown = this._onPlotDown.bind(this);
+    this._onPlotClick = this._onPlotClick.bind(this);
+    this._downAt = null;
+    this._plotClickWired = null;
     this.init();
   }
   init() {
@@ -191,6 +318,9 @@ class Drilldown {
     this.ctx.addEventListener("dataPointSelection", this._onPointSelect);
     this.ctx.addEventListener("mounted", this._afterRender);
     this.ctx.addEventListener("updated", this._afterRender);
+    if (w.config.markers) {
+      w.config.markers.discrete = this._drillMarkers(w.config.series);
+    }
   }
   // ─── Observable state ──────────────────────────────────────────────────────
   /** @returns {Array<string|number>} e.g. ['root', '2024-quarters'] */
@@ -261,7 +391,7 @@ class Drilldown {
   /**
    * @param {any} child
    * @param {any} [triggerPoint]
-   * @param {object} [meta]
+   * @param {{ seriesIndex?: number, dataPointIndex?: number }} [meta]
    * @returns {Promise<any>}
    */
   _drillInto(child, triggerPoint, meta) {
@@ -281,35 +411,118 @@ class Drilldown {
     });
   }
   /**
-   * Minimal async resolver (loading overlay lands in Phase 3).
+   * Resolve a level through `onDrillDown` and drill into it.
+   *
+   * Failure never changes state: on a throw, a rejection, or a resolver that
+   * hands back something undrillable, the chart stays exactly where it was and
+   * `drillDownError` fires. That is what makes this usable against a real
+   * backend, where a fetch failing is ordinary rather than exceptional.
+   *
    * @param {string|number|null} id
    * @param {any} point
-   * @param {object} [meta]
+   * @param {{ seriesIndex?: number, dataPointIndex?: number }} [meta]
    * @returns {Promise<any>}
    */
   _drillDownAsync(id, point, meta) {
-    const fn = this.w.config.drilldown.onDrillDown;
+    const cfg = this.w.config.drilldown;
+    const fn = cfg.onDrillDown;
+    const cached = this._cacheGet(id);
+    if (cached) return this._drillInto(cached, point, meta);
+    if (this._pending) return this._pending;
     let result;
+    this.loading.show();
     try {
       result = fn({
+        // `id` was missing here, so a resolver could not tell WHICH level was
+        // asked for without re-deriving it from the point. It is the first
+        // thing a real implementation needs (`fetch('/levels/' + id)`).
+        id,
         point,
         seriesIndex: meta && meta.seriesIndex,
         dataPointIndex: meta && meta.dataPointIndex
       });
     } catch (error) {
+      this.loading.hide();
       this._fire("drillDownError", { id, error });
       return Promise.resolve(this.ctx);
     }
-    return Promise.resolve(result).then(
+    const settle = () => {
+      this._pending = null;
+      this.loading.hide();
+    };
+    const p = Promise.resolve(result).then(
       (child) => {
-        if (!child || !child.data) return this.ctx;
-        return this._drillInto(child, point, meta);
+        settle();
+        if (this._isDead()) return this.ctx;
+        if (!child || !child.data) {
+          this._fire("drillDownError", {
+            id,
+            error: new Error(
+              `drilldown: onDrillDown resolved without a drillable level for id "${id}" (expected an object with a \`data\` array).`
+            )
+          });
+          return this.ctx;
+        }
+        const level = child.id != null ? child : __spreadProps(__spreadValues({}, child), { id });
+        this._cacheSet(id, level);
+        return this._drillInto(level, point, meta);
       },
       (error) => {
+        settle();
+        if (this._isDead()) return this.ctx;
         this._fire("drillDownError", { id, error });
         return this.ctx;
       }
     );
+    this._pending = p;
+    return p;
+  }
+  /**
+   * Whether the chart was torn down while a resolver was in flight.
+   *
+   * Clicking to drill and then navigating away is ordinary, not exceptional: a
+   * component unmounts, `destroy()` runs, and the fetch settles afterwards.
+   * Without this the resolved level would be applied to a destroyed chart,
+   * which throws out of `updateOptions` and surfaces in the host app as an
+   * unhandled rejection from a click the user has already forgotten about.
+   *
+   * @returns {boolean}
+   */
+  _isDead() {
+    const w = this.w;
+    return !w || !w.globals || w.globals.isDestroyed === true;
+  }
+  /** @returns {boolean} whether resolved async levels are cached. */
+  _cacheEnabled() {
+    const cfg = this.w.config.drilldown;
+    return !!(cfg && cfg.cache !== false);
+  }
+  /**
+   * @param {string|number|null} id
+   * @returns {any|null}
+   */
+  _cacheGet(id) {
+    if (!this._cacheEnabled() || id == null) return null;
+    return this._asyncCache.get(id) || null;
+  }
+  /**
+   * @param {string|number|null} id
+   * @param {any} level
+   */
+  _cacheSet(id, level) {
+    if (!this._cacheEnabled() || id == null) return;
+    this._asyncCache.set(id, level);
+  }
+  /**
+   * Drop cached async levels, so the next drill re-runs `onDrillDown`. Call it
+   * when the underlying data changes behind a chart that has already drilled.
+   * @param {string|number} [id] a single level, or every level when omitted
+   * @returns {any} the chart, for chaining
+   */
+  clearCache(id) {
+    if (id == null) this._asyncCache.clear();
+    else this._asyncCache.delete(id);
+    return this.ctx;
   }
   /**
    * Capture the overridable surface of the current view so it can be restored.
@@ -450,6 +663,9 @@ class Drilldown {
     w.globals.ancillaryCollapsedSeriesIndices = [];
     w.globals.allSeriesCollapsed = false;
     w.globals.risingSeries = [];
+    view.markers = __spreadProps(__spreadValues({}, view.markers || {}), {
+      discrete: this._drillMarkers(view.series)
+    });
     const animate = (!w.config.drilldown.animation || w.config.drilldown.animation.enabled !== false) && w.config.chart.animations.enabled !== false;
     if (direction === "down") this._fire("drillDownStart", meta);
     const runUpdate = (anim) => this.ctx.updateOptions(view, false, anim, false, false);
@@ -647,13 +863,27 @@ class Drilldown {
     return s.data[dataPointIndex] != null ? s.data[dataPointIndex] : null;
   }
   _afterRender() {
-    if (!this.w.config.drilldown || !this.w.config.drilldown.enabled) return;
+    const w = this.w;
+    if (!w.config.drilldown || !w.config.drilldown.enabled) return;
     this._markDrillableTargets();
+    this._wirePlotClick();
     this.breadcrumb.render(this.path);
+    if (w.config.markers) {
+      w.config.markers.discrete = this._drillMarkers(w.config.series);
+    }
   }
   /**
-   * Add the drilldown-target cursor class to every point that carries a
-   * `drilldown` field. Best-effort and cosmetic — a missed selector is harmless.
+   * Mark every point that carries a `drilldown` field as an openable target.
+   *
+   * Two things have to be true for a point to be drillable, and on line/area
+   * neither holds by default. It needs a mark to click (with `markers.size: 0`
+   * there is no element at all), and that mark has to accept the click: core
+   * gives line/area markers `no-pointer-events` so the shared tooltip can track
+   * the whole plot, which silently swallows it. `_drillMarkers()` supplies the
+   * missing dots; this re-enables pointer events on them.
+   *
+   * The cursor class only goes on marks that can actually take the click, so we
+   * never promise an interaction that cannot happen.
    */
   _markDrillableTargets() {
     if (!Environment.isBrowser()) return;
@@ -661,17 +891,187 @@ class Drilldown {
     const baseEl = w.dom.baseEl;
     const series = w.config.series;
     if (!baseEl || !Array.isArray(series)) return;
+    let unreachable = 0;
     series.forEach((s, i) => {
       const data = s && Array.isArray(s.data) ? s.data : null;
       if (!data) return;
       data.forEach((point, j) => {
         if (!point || typeof point !== "object" || point.drilldown == null) return;
         const nodes = baseEl.querySelectorAll(`[index="${i}"][j="${j}"]`);
-        nodes.forEach(
-          (node) => node.classList.add("apexcharts-drilldown-target")
-        );
+        if (!nodes.length) unreachable++;
+        nodes.forEach((node) => {
+          if (this._isClickThroughMark(node)) {
+            node.classList.remove("no-pointer-events");
+          }
+          node.classList.add("apexcharts-drilldown-target");
+        });
       });
     });
+    if (unreachable && !this._warnedUnreachable) {
+      this._warnedUnreachable = true;
+      console.warn(
+        `ApexCharts: ${unreachable} drillable point(s) have no clickable mark, so clicking them cannot do anything. Leave \`drilldown.marker\` on, or give the series markers of its own (\`markers.size > 0\`).`
+      );
+    }
+  }
+  /**
+   * Called by Pie when it declines to wire the slice pull-out because this
+   * chart drills. Warned once per chart (a drill re-renders, and the same
+   * notice on every navigation is just noise), and from here rather than from
+   * Pie because this module is the reason it is unavailable.
+   */
+  warnSliceOffsetDisabled() {
+    if (this._warnedNoSliceOffset) return;
+    this._warnedNoSliceOffset = true;
+    console.warn(
+      "ApexCharts: `plotOptions.pie.expandOnClick` is not available in a drilldown pie/donut, so it was ignored. A slice click navigates, and a slice that slid out would be discarded by the drill it just triggered."
+    );
+  }
+  /**
+   * Make the whole band a drillable point owns clickable, not just its dot.
+   *
+   * A dot is ~6px across, so hitting it takes pixel-precise aim, it is far under
+   * the ~44px a finger needs, and the tooltip's arrow points AT the point by
+   * design, which puts a triangle over the very thing you are aiming at. Rather
+   * than move the tooltip, widen the target: a click anywhere in the plot drills
+   * whichever point the tooltip is currently reading. The hit area then matches
+   * the feedback already on screen, so "the tooltip says 2024, I click, I get
+   * 2024" holds, and the dot goes back to being an affordance rather than a
+   * target you have to chase.
+   *
+   * Only for the point-based types, since a bar, slice or tile is already a
+   * comfortably large mark and drilling one by clicking the background near it
+   * would be surprising.
+   */
+  _wirePlotClick() {
+    if (!Environment.isBrowser()) return;
+    const baseEl = this.w.dom.baseEl;
+    if (!baseEl || this._plotClickWired === baseEl) return;
+    if (this._plotClickWired) {
+      this._plotClickWired.removeEventListener("mousedown", this._onPlotDown);
+      this._plotClickWired.removeEventListener("click", this._onPlotClick);
+    }
+    baseEl.addEventListener("mousedown", this._onPlotDown);
+    baseEl.addEventListener("click", this._onPlotClick);
+    this._plotClickWired = baseEl;
+  }
+  /** @param {any} e */
+  _onPlotDown(e) {
+    this._downAt = { x: e.clientX, y: e.clientY };
+  }
+  /**
+   * @param {any} e
+   * @returns {any}
+   */
+  _onPlotClick(e) {
+    const w = this.w;
+    if (!w.config.drilldown || !w.config.drilldown.enabled) return void 0;
+    const down = this._downAt;
+    this._downAt = null;
+    if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 4) {
+      return void 0;
+    }
+    const target = (
+      /** @type {Element} */
+      e.target
+    );
+    if (!target || typeof target.closest !== "function") return void 0;
+    if (target.closest(".apexcharts-drilldown-target")) return void 0;
+    if (target.closest(
+      ".apexcharts-legend, .apexcharts-toolbar, .apexcharts-breadcrumb, .apexcharts-menu, .apexcharts-tooltip"
+    )) {
+      return void 0;
+    }
+    const i = w.interact.capturedSeriesIndex;
+    const j = w.interact.capturedDataPointIndex;
+    if (i == null || j == null || i < 0 || j < 0) return void 0;
+    if (!this._isPointBasedSeries(w.config.series[i])) return void 0;
+    const point = this._pointAt(i, j);
+    if (!point || typeof point !== "object" || point.drilldown == null) {
+      return void 0;
+    }
+    return this.drillDown(point.drilldown, point, {
+      seriesIndex: i,
+      dataPointIndex: j
+    });
+  }
+  /**
+   * A series mark that is deliberately click-through. Restricted to markers
+   * inside the plot: the tooltip draws its own `no-pointer-events` marker, and
+   * that one must stay click-through or it would sit under the cursor and eat
+   * the hover it exists to follow.
+   * @param {Element} node
+   * @returns {boolean}
+   */
+  _isClickThroughMark(node) {
+    if (!node.classList || !node.classList.contains("no-pointer-events")) {
+      return false;
+    }
+    if (!node.classList.contains("apexcharts-marker")) return false;
+    return !(typeof node.closest === "function" && node.closest(".apexcharts-tooltip"));
+  }
+  /**
+   * Discrete-marker entries that give each drillable point a visible dot.
+   *
+   * Only series drawn WITHOUT markers get them, so an author who already shows
+   * markers keeps their styling untouched, and only drillable points get one, so
+   * the dots read as "these are the ones you can open" rather than turning every
+   * point into a dot. Core renders discrete markers even when `markers.size` is
+   * 0, which is what makes the affordance possible without a core change.
+   *
+   * Entries are tagged so a resync replaces ours and leaves the author's alone.
+   * @param {any[]} series - the series being rendered (a drill applies its
+   *   level's series, which are not yet on `w.config` when this runs)
+   * @returns {any[]}
+   */
+  _drillMarkers(series) {
+    const w = this.w;
+    const cfg = w.config.drilldown;
+    const authored = Array.isArray(w.config.markers && w.config.markers.discrete) ? w.config.markers.discrete.filter(
+      (d) => !d || !d[DRILL_MARKER]
+    ) : [];
+    const mk = cfg && cfg.marker || {};
+    if (mk.show === false || !Array.isArray(series)) return authored;
+    const own = [];
+    series.forEach((s, i) => {
+      if (!this._seriesNeedsDrillMarker(i, s)) return;
+      const data = s && Array.isArray(s.data) ? s.data : null;
+      if (!data) return;
+      data.forEach((point, j) => {
+        if (!point || typeof point !== "object" || point.drilldown == null) return;
+        const entry = { seriesIndex: i, dataPointIndex: j, [DRILL_MARKER]: true };
+        if (mk.size !== void 0) entry.size = mk.size;
+        if (mk.shape !== void 0) entry.shape = mk.shape;
+        if (mk.fillColor !== void 0) entry.fillColor = mk.fillColor;
+        if (mk.strokeColor !== void 0) entry.strokeColor = mk.strokeColor;
+        own.push(entry);
+      });
+    });
+    return authored.concat(own);
+  }
+  /**
+   * Whether a series needs drill dots supplied for it: a point-based type whose
+   * marks are the markers, drawn with markers off. Bar, pie, treemap and heatmap
+   * marks are already real clickable elements, and a series that already shows
+   * markers already has its affordance.
+   * @param {number} i @param {any} s
+   * @returns {boolean}
+   */
+  _seriesNeedsDrillMarker(i, s) {
+    if (!this._isPointBasedSeries(s)) return false;
+    const size = this.w.config.markers && this.w.config.markers.size;
+    const effective = Array.isArray(size) ? size[i] : size;
+    return !(Number(effective) > 0);
+  }
+  /**
+   * A series whose marks are markers (a point), rather than a shape big enough
+   * to aim at on its own.
+   * @param {any} s
+   * @returns {boolean}
+   */
+  _isPointBasedSeries(s) {
+    const type = s && s.type || this.w.config.chart.type;
+    return type === "line" || type === "area";
   }
 }
 _core__default.registerFeatures({ drilldown: Drilldown });

@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.8.0
+ * ApexCharts v6.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -579,7 +579,6 @@ class KeyboardNavigation {
    * @param {HTMLElement} tooltipEl
    */
   _showTooltipNonAxis(i, j, ttCtx, tooltipEl) {
-    var _a, _b;
     const w = this.w;
     ttCtx.tooltipLabels.drawSeriesTexts({
       ttItems: ttCtx.ttItems,
@@ -590,17 +589,10 @@ class KeyboardNavigation {
     const ttWidth = tooltipBound.width || ttCtx.tooltipRect.ttWidth || 0;
     const ttHeight = tooltipBound.height || ttCtx.tooltipRect.ttHeight || 0;
     const sliceEl = w.dom.baseEl.querySelector(`.apexcharts-pie-area[j='${j}']`);
-    if (sliceEl) {
-      const cx = parseFloat((_a = sliceEl.getAttribute("data:cx")) != null ? _a : "");
-      const cy = parseFloat((_b = sliceEl.getAttribute("data:cy")) != null ? _b : "");
-      if (!isNaN(cx) && !isNaN(cy)) {
-        const svgBound = w.dom.Paper.node.getBoundingClientRect();
-        const wrapBound = w.dom.elWrap.getBoundingClientRect();
-        const offsetX = svgBound.left - wrapBound.left;
-        const offsetY = svgBound.top - wrapBound.top;
-        tooltipEl.style.left = offsetX + cx - ttWidth / 2 + "px";
-        tooltipEl.style.top = offsetY + cy - ttHeight - 10 + "px";
-      }
+    const anchor = ttCtx.getSliceAnchor(sliceEl);
+    if (anchor) {
+      tooltipEl.style.left = anchor.x - ttWidth / 2 + "px";
+      tooltipEl.style.top = anchor.y - ttHeight - 10 + "px";
     }
   }
   /**

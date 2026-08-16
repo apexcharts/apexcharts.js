@@ -346,24 +346,33 @@ rect.legend-mouseover-inactive,
 
 .apexcharts-tooltip {
   --apx-tt-bg: #ffffff;
-  --apx-tt-border: rgba(15, 23, 42, 0.06);
-  /* Layered shadow: tight inner contact + soft outer drop. The two Y
-   * offsets are exposed as variables so they flip in sync with the
-   * arrow when the tooltip is below the data point — see the
-   * `[data-placement="bottom"]` rule further down. */
-  --apx-tt-shadow-y-mid: 8px;
-  --apx-tt-shadow-y-far: 16px;
-  --apx-tt-shadow: 0 0 0 1px rgba(15, 23, 42, 0.04), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(15, 23, 42, 0.12), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(15, 23, 42, 0.18);
+  /* Shared by the body and the arrow's two outward facets, so the
+   * hairline reads as one continuous outline around the whole shape.
+   * Keep it strong enough to survive on its own: the shadow below is
+   * elevation, not edge definition. */
+  --apx-tt-border: rgba(15, 23, 42, 0.12);
+  /* Elevation, in three layers: a tight contact shadow that anchors the
+   * bottom edge, a directional key shadow for the lift, and a wide
+   * ambient one that grounds the whole box. Each is weaker and more
+   * diffuse than the last.
+   *
+   * A tooltip is unusual in that it floats over *data*, so reach costs
+   * more than it does on a page: every pixel the shadow travels tints a
+   * bar or a line the reader is trying to compare. These numbers are
+   * tuned to keep the near-edge contrast that reads as elevation while
+   * dropping the long low haze that only muddies the plot.
+   *
+   * Note there is deliberately no `0 0 0 1px` ring layer. That used to
+   * stand in for edge definition back when --apx-tt-border was barely
+   * visible; now that the border is a real hairline (and the arrow
+   * shares it) a ring only double-draws the outline, and being spread
+   * rather than offset it leaked ink upward too, flattening the lift.
+   *
+   * `--apx-tt-shadow-dir` flips the whole stack's Y in one place — see
+   * the `[data-placement="bottom"]` rule further down. */
+  --apx-tt-shadow-dir: 1;
+  --apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(15, 23, 42, 0.06), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(15, 23, 42, 0.10), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(15, 23, 42, 0.14);
   --apx-tt-arrow-bg: var(--apx-tt-bg);
-  /* Two stacked drop-shadows: the first is a tight contact halo for
-   * edge definition against light chart backgrounds; the second is a
-   * softer directional drop that lifts the arrow off the surface.
-   * `--apx-tt-arrow-drop-y` is the Y offset of the directional drop;
-   * a per-placement rule below flips it to negative when the tooltip
-   * is below the data point (arrow on top) so the shadow always
-   * casts outward instead of into the tooltip body. */
-  --apx-tt-arrow-drop-y: 2px;
-  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(15, 23, 42, 0.2)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(15, 23, 42, 0.2));
   --apx-tt-color: #0f172a;
   --apx-tt-color-muted: rgba(15, 23, 42, 0.55);
   border-radius: 8px;
@@ -407,9 +416,12 @@ rect.legend-mouseover-inactive,
 
 .apexcharts-tooltip.apexcharts-theme-dark {
   --apx-tt-bg: #1c1c1f;
-  --apx-tt-border: rgba(255, 255, 255, 0.08);
-  --apx-tt-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 var(--apx-tt-shadow-y-mid) 16px -6px rgba(0, 0, 0, 0.45), 0 var(--apx-tt-shadow-y-far) 36px -12px rgba(0, 0, 0, 0.55);
-  --apx-tt-arrow-shadow: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.55)) drop-shadow(0 var(--apx-tt-arrow-drop-y) 4px rgba(0, 0, 0, 0.45));
+  --apx-tt-border: rgba(255, 255, 255, 0.16);
+  /* Dark needs more alpha than light to register at all, but not as much
+   * as it used to: the light rim above now carries the edge, so the
+   * shadow is free to be pure elevation instead of doubling as an
+   * outline. Same geometry as light, heavier ink. */
+  --apx-tt-shadow: 0 calc(var(--apx-tt-shadow-dir) * 1px) 2px rgba(0, 0, 0, 0.24), 0 calc(var(--apx-tt-shadow-dir) * 4px) 8px -2px rgba(0, 0, 0, 0.30), 0 calc(var(--apx-tt-shadow-dir) * 12px) 20px -8px rgba(0, 0, 0, 0.38);
   --apx-tt-color: #f3f4f6;
   --apx-tt-color-muted: rgba(243, 244, 246, 0.55);
 }
@@ -474,64 +486,84 @@ rect.legend-mouseover-inactive,
   color: #fff
 }
 
-/* Arrow connector — sits *entirely outside* the tooltip body. Shares
- * the body's solid fill so it reads as a single shape. `filter:
- * drop-shadow` traces the clipped triangle outline (a regular
- * `box-shadow` would be erased by the `clip-path`). */
+/* Arrow connector — a 45°-rotated square straddling the body's edge, so
+ * the body's 1px border runs continuously out across the arrow and back.
+ * The two facets that face away from the tooltip carry the border; the
+ * two that face into it carry none, and the square's opaque fill covers
+ * the segment of the body's own border it sits on, hiding the seam.
+ *
+ * This is why it's a rotated square and not a triangle: `clip-path`
+ * erases `border` and `box-shadow` along with everything outside the
+ * polygon, which left `filter: drop-shadow` as the only way to suggest
+ * an edge — and a drop-shadow can only ever blur one, never draw a
+ * hairline. Nothing here needs a filter.
+ *
+ * Geometry: a square of side S rotated 45° reaches S/√2 from its centre
+ * to each corner, so S = 10px gives the ~7px tip overhang that
+ * ARROW_TIP_OVERHANG assumes (tooltip/constants.js) over a ~14px base.
+ * The offsets park the square's *centre* 1px outside the padding box
+ * (-6px = -1px border - 10px/2), i.e. exactly on the body's border line,
+ * so the two borders meet end to end instead of overlapping or gapping.
+ * `box-sizing` must be border-box or the bordered sides would grow the
+ * square asymmetrically and knock its centre off that line. */
 .apexcharts-tooltip-arrow {
   position: absolute;
-  width: 7px;
-  height: 14px;
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
   background: var(--apx-tt-arrow-bg);
-  /* The variable already contains the full `drop-shadow(...) ...` filter
-   * chain (stacked shadows) so it's applied raw. */
-  -webkit-filter: var(--apx-tt-arrow-shadow);
-  filter: var(--apx-tt-arrow-shadow);
+  transform: rotate(45deg);
   pointer-events: none;
-  top: calc(var(--apx-tt-arrow-y, 50%) - 7px)
+  top: calc(var(--apx-tt-arrow-y, 50%) - 5px)
 }
 
+/* Which two sides face outward depends on the placement. Under
+ * `rotate(45deg)` the square's bottom-left corner swings to the left,
+ * top-right to the right, top-left to the top and bottom-right to the
+ * bottom — so the pair of borders below is always the two sharing the
+ * corner that ends up as the tip. */
 .apexcharts-tooltip[data-placement="right"] .apexcharts-tooltip-arrow {
-  left: -7px;
-  clip-path: polygon(0 50%, 100% 0, 100% 100%)
+  left: -6px;
+  border-left: 1px solid var(--apx-tt-border);
+  border-bottom: 1px solid var(--apx-tt-border)
 }
 
 .apexcharts-tooltip[data-placement="left"] .apexcharts-tooltip-arrow {
-  right: -7px;
-  clip-path: polygon(100% 50%, 0 0, 0 100%)
+  right: -6px;
+  border-top: 1px solid var(--apx-tt-border);
+  border-right: 1px solid var(--apx-tt-border)
 }
 
 /* Vertical arrow variants: tooltip is above/below the data point and the
  * arrow points down/up. The base rule above uses `--apx-tt-arrow-y` for
- * left/right placement; for top/bottom we re-orient the rectangle and
- * use `--apx-tt-arrow-x` (set by applyTooltipPosition). */
+ * left/right placement; for top/bottom we centre on `--apx-tt-arrow-x`
+ * instead (set by applyTooltipPosition). */
 .apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow,
 .apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {
-  width: 14px;
-  height: 7px;
   top: auto;
-  left: calc(var(--apx-tt-arrow-x, 50%) - 7px)
+  left: calc(var(--apx-tt-arrow-x, 50%) - 5px)
 }
 
 .apexcharts-tooltip[data-placement="top"] .apexcharts-tooltip-arrow {
-  bottom: -7px;
-  clip-path: polygon(50% 100%, 0 0, 100% 0)
+  bottom: -6px;
+  border-right: 1px solid var(--apx-tt-border);
+  border-bottom: 1px solid var(--apx-tt-border)
 }
 
 .apexcharts-tooltip[data-placement="bottom"] .apexcharts-tooltip-arrow {
-  top: -7px;
-  clip-path: polygon(50% 0, 0 100%, 100% 100%)
+  top: -6px;
+  border-top: 1px solid var(--apx-tt-border);
+  border-left: 1px solid var(--apx-tt-border)
 }
 
-/* When the tooltip is flipped below the data point (arrow on top
- * pointing up), the default downward-biased shadows leave the top
- * edge of both the body *and* the arrow undefined. Flipping every
- * Y offset to negative casts the entire elevation upward so the
- * shadow falls between the tooltip and the bar above. */
+/* When the tooltip is flipped below the data point, the default
+ * downward-biased shadow leaves its top edge undefined. Negating the
+ * direction casts the whole elevation upward instead, so the shadow
+ * falls between the tooltip and the mark above it. One multiplier flips
+ * all three layers together; the arrow needs no counterpart, since its
+ * border doesn't depend on light direction. */
 .apexcharts-tooltip[data-placement="bottom"] {
-  --apx-tt-shadow-y-mid: -8px;
-  --apx-tt-shadow-y-far: -16px;
-  --apx-tt-arrow-drop-y: -2px
+  --apx-tt-shadow-dir: -1
 }
 
 .apexcharts-tooltip-text-goals-value,
@@ -1196,6 +1228,67 @@ rect.legend-mouseover-inactive,
 
 .apexcharts-theme-dark .apexcharts-breadcrumb-item:hover:not(.apexcharts-breadcrumb-current) {
   background: rgba(255, 255, 255, 0.12)
+}
+
+.apexcharts-drilldown-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.62);
+  /* The chart underneath stays interactive-looking but must not take clicks
+     while a level is resolving, or a second drill can start mid-fetch. */
+  cursor: progress
+}
+
+.apexcharts-drilldown-loading-spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(0, 0, 0, 0.16);
+  border-top-color: rgba(0, 0, 0, 0.55);
+  animation: apexcharts-drilldown-spin 0.7s linear infinite
+}
+
+.apexcharts-drilldown-loading-text {
+  opacity: 0.8
+}
+
+.apexcharts-theme-dark .apexcharts-drilldown-loading {
+  background: rgba(30, 30, 30, 0.62)
+}
+
+.apexcharts-theme-dark .apexcharts-drilldown-loading-spinner {
+  border-color: rgba(255, 255, 255, 0.22);
+  border-top-color: rgba(255, 255, 255, 0.7)
+}
+
+@keyframes apexcharts-drilldown-spin {
+  to {
+    transform: rotate(360deg)
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apexcharts-drilldown-loading-spinner {
+    animation: apexcharts-drilldown-pulse 1.4s ease-in-out infinite
+  }
+
+  @keyframes apexcharts-drilldown-pulse {
+    0%, 100% {
+      opacity: 0.35
+    }
+
+    50% {
+      opacity: 1
+    }
+  }
 }
 
 .apexcharts-disable-transitions * {

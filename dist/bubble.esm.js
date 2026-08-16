@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.8.0
+ * ApexCharts v6.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -1423,18 +1423,17 @@ class Line {
       if (stackSeries) {
         if (i > 0 && w.globals.collapsedSeries.length < w.config.series.length - 1) {
           const prevIndex = (pi) => {
-            for (let pii = pi; pii > 0; pii--) {
-              if (w.globals.collapsedSeriesIndices.indexOf(
-                (seriesIndex == null ? void 0 : seriesIndex[pii]) || pii
-              ) > -1) {
-                pii--;
-              } else {
+            var _a2;
+            for (let pii = pi; pii >= 0; pii--) {
+              const ri = (_a2 = seriesIndex == null ? void 0 : seriesIndex[pii]) != null ? _a2 : pii;
+              if (w.globals.collapsedSeriesIndices.indexOf(ri) === -1 && w.globals.ancillaryCollapsedSeriesIndices.indexOf(ri) === -1) {
                 return pii;
               }
             }
-            return 0;
+            return -1;
           };
-          lineYPosition = this.prevSeriesY[prevIndex(i - 1)][j + 1];
+          const pIdx = prevIndex(i - 1);
+          lineYPosition = pIdx < 0 ? this.zeroY : this.prevSeriesY[pIdx][j + 1];
         } else {
           lineYPosition = this.zeroY;
         }

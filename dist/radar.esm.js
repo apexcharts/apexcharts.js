@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.8.0
+ * ApexCharts v6.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -155,6 +155,7 @@ class CircularChartsHelpers {
   }
 }
 const CoreUtils = _core.__apex_CoreUtils;
+const RADAR_HIT_AREA_SIZE = 5;
 class Radar {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -317,6 +318,12 @@ class Radar {
           seriesIndex: i,
           dataPointIndex: j
         });
+        if (!opts.pSize) {
+          opts.pSize = RADAR_HIT_AREA_SIZE;
+          opts.pointFillColor = "transparent";
+          opts.pointStrokeColor = "transparent";
+          opts.pointStrokeWidth = 0;
+        }
         const point = this.graphics.drawMarker(
           dataPointsPos[j].x,
           dataPointsPos[j].y,

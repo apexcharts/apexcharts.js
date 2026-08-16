@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.8.0
+ * ApexCharts v6.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -367,6 +367,151 @@ class Helpers {
   }
 }
 const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
+const DEFAULT_DIVERGING = ["#cf4d3f", "#8f9499", "#26a75b"];
+const lerp = (a, b, t) => a + (b - a) * t;
+function toHexPair(n) {
+  const v = Math.max(0, Math.min(255, Math.round(n)));
+  return v.toString(16).padStart(2, "0");
+}
+function mixColors(c1, c2, t) {
+  const a = Utils.parseHex(normalizeHex(c1));
+  const b = Utils.parseHex(normalizeHex(c2));
+  if (!a || !b) return c1;
+  return "#" + toHexPair(lerp(a[0], b[0], t)) + toHexPair(lerp(a[1], b[1], t)) + toHexPair(lerp(a[2], b[2], t));
+}
+function normalizeHex(c) {
+  if (typeof c !== "string") return "#000000";
+  if (Utils.isColorHex(c)) return c;
+  const asHex = Utils.rgb2hex(c);
+  return asHex || "#000000";
+}
+function colorValueOf(w, i, j) {
+  const series = (
+    /** @type {any} */
+    w.config.series[i]
+  );
+  const datum = series && Array.isArray(series.data) ? series.data[j] : null;
+  return colorValueOfDatum(w, datum, i, j);
+}
+function colorValueOfDatum(w, datum, i, j) {
+  var _a, _b, _c;
+  if (!datum || typeof datum !== "object") return null;
+  const accessor = (_c = (_b = (_a = w.config.plotOptions) == null ? void 0 : _a.treemap) == null ? void 0 : _b.colorScale) == null ? void 0 : _c.colorValue;
+  let raw;
+  if (typeof accessor === "function") {
+    raw = accessor(datum, { seriesIndex: i, dataPointIndex: j, w });
+  } else if (typeof accessor === "string") {
+    raw = datum[accessor];
+  } else {
+    raw = datum.colorValue;
+  }
+  if (raw == null) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+function resolveStops(cfg, min, max, midpoint) {
+  if (Array.isArray(cfg.stops) && cfg.stops.length >= 2) {
+    return cfg.stops.filter((s) => s && Number.isFinite(Number(s.value))).map((s) => ({
+      value: Number(s.value),
+      color: normalizeHex(s.color)
+    })).sort(
+      (a, b) => a.value - b.value
+    );
+  }
+  const colors = (Array.isArray(cfg.colors) && cfg.colors.length >= 2 ? cfg.colors : DEFAULT_DIVERGING).map(normalizeHex);
+  const n = colors.length;
+  if (midpoint != null && n >= 3) {
+    const mid = Math.floor((n - 1) / 2);
+    const out = [];
+    for (let k = 0; k <= mid; k++) {
+      out.push({ value: lerp(min, midpoint, k / mid), color: colors[k] });
+    }
+    for (let k = mid + 1; k < n; k++) {
+      out.push({
+        value: lerp(midpoint, max, (k - mid) / (n - 1 - mid)),
+        color: colors[k]
+      });
+    }
+    return out;
+  }
+  return colors.map((c, k) => ({
+    value: lerp(min, max, k / (n - 1)),
+    color: c
+  }));
+}
+function buildContinuousScale(w) {
+  var _a, _b, _c;
+  const cs = (_c = (_b = (_a = w.config) == null ? void 0 : _a.plotOptions) == null ? void 0 : _b.treemap) == null ? void 0 : _c.colorScale;
+  const cfg = cs && cs.gradient;
+  if (!cfg) return null;
+  if (cfg.enabled === false) return null;
+  const series = (
+    /** @type {any} */
+    w.config.series || []
+  );
+  let dataMin = Infinity;
+  let dataMax = -Infinity;
+  let found = false;
+  for (let i = 0; i < series.length; i++) {
+    const data = series[i] && series[i].data;
+    if (!Array.isArray(data)) continue;
+    for (let j = 0; j < data.length; j++) {
+      const v = colorValueOfDatum(w, data[j], i, j);
+      if (v == null) continue;
+      found = true;
+      if (v < dataMin) dataMin = v;
+      if (v > dataMax) dataMax = v;
+    }
+  }
+  if (!found && cfg.enabled !== true) return null;
+  if (!Number.isFinite(dataMin)) {
+    dataMin = 0;
+    dataMax = 0;
+  }
+  let min = Number.isFinite(Number(cfg.min)) ? Number(cfg.min) : dataMin;
+  let max = Number.isFinite(Number(cfg.max)) ? Number(cfg.max) : dataMax;
+  let midpoint = null;
+  if (cfg.midpoint === null) {
+    midpoint = null;
+  } else if (Number.isFinite(Number(cfg.midpoint))) {
+    midpoint = Number(cfg.midpoint);
+  } else if (min < 0 && max > 0) {
+    midpoint = 0;
+  }
+  if (midpoint != null && cfg.symmetric !== false && !Number.isFinite(Number(cfg.min)) && !Number.isFinite(Number(cfg.max))) {
+    const reach = Math.max(Math.abs(min - midpoint), Math.abs(max - midpoint));
+    min = midpoint - reach;
+    max = midpoint + reach;
+  }
+  if (max === min) {
+    min -= 0.5;
+    max += 0.5;
+  }
+  const stops = resolveStops(cfg, min, max, midpoint);
+  if (stops.length < 2) return null;
+  const at = (v) => {
+    if (!Number.isFinite(v)) return stops[Math.floor(stops.length / 2)].color;
+    if (v <= stops[0].value) return stops[0].color;
+    const last = stops[stops.length - 1];
+    if (v >= last.value) return last.color;
+    for (let k = 1; k < stops.length; k++) {
+      const hi = stops[k];
+      if (v <= hi.value) {
+        const lo = stops[k - 1];
+        const span2 = hi.value - lo.value;
+        const t = span2 === 0 ? 0 : (v - lo.value) / span2;
+        return mixColors(lo.color, hi.color, t);
+      }
+    }
+    return last.color;
+  };
+  const span = max - min;
+  const legendStops = stops.map((s) => ({
+    percent: span === 0 ? 0 : (s.value - min) / span,
+    color: s.color
+  }));
+  return { min, max, midpoint, stops, at, legendStops };
+}
 const SVG_NS = "http://www.w3.org/2000/svg";
 class HeatmapGradientLegend {
   /**
@@ -391,7 +536,7 @@ class HeatmapGradientLegend {
   }
   /** Default value formatter for min/max labels and the hover tooltip. */
   _getFormatter() {
-    const cfg = this.w.config.plotOptions.heatmap.colorScale.gradientLegend;
+    const cfg = this._cfg();
     if (typeof cfg.formatter === "function") return cfg.formatter;
     return (v) => {
       if (!Number.isFinite(v)) return String(v);
@@ -402,13 +547,46 @@ class HeatmapGradientLegend {
     };
   }
   /**
+   * The colorScale of whichever chart type is being drawn. Every chart type
+   * that encodes a value as colour carries the same `colorScale` shape, so one
+   * strip serves them all rather than a near-copy per type.
+   * @param {any} w
+   */
+  static colorScaleOf(w) {
+    var _a, _b, _c, _d, _e;
+    const type = (_b = (_a = w == null ? void 0 : w.config) == null ? void 0 : _a.chart) == null ? void 0 : _b.type;
+    if (!type) return null;
+    return ((_e = (_d = (_c = w == null ? void 0 : w.config) == null ? void 0 : _c.plotOptions) == null ? void 0 : _d[type]) == null ? void 0 : _e.colorScale) || null;
+  }
+  /**
+   * @param {any} w
+   */
+  static configFor(w) {
+    const cs = HeatmapGradientLegend.colorScaleOf(w);
+    return cs && cs.gradientLegend || null;
+  }
+  /** This instance's gradient-legend config. */
+  _cfg() {
+    return HeatmapGradientLegend.configFor(this.w) || {};
+  }
+  /**
    * True when the user has opted into the gradient legend variant.
    * @param {any} w
    */
   static isEnabled(w) {
-    var _a, _b, _c, _d;
-    const cfg = (_d = (_c = (_b = (_a = w == null ? void 0 : w.config) == null ? void 0 : _a.plotOptions) == null ? void 0 : _b.heatmap) == null ? void 0 : _c.colorScale) == null ? void 0 : _d.gradientLegend;
+    if (!HeatmapGradientLegend.supports(w)) return false;
+    const cfg = HeatmapGradientLegend.configFor(w);
     return !!(cfg && cfg.enabled);
+  }
+  /**
+   * Chart types this legend can serve: those that encode a value as colour
+   * through a `colorScale`. Everything else gets the categorical legend.
+   * @param {any} w
+   */
+  static supports(w) {
+    var _a, _b;
+    const type = (_b = (_a = w == null ? void 0 : w.config) == null ? void 0 : _a.chart) == null ? void 0 : _b.type;
+    return type === "heatmap" || type === "treemap";
   }
   /**
    * Build the gradient legend DOM into `elLegendWrap`.
@@ -422,7 +600,7 @@ class HeatmapGradientLegend {
       w.dom.elLegendWrap
     );
     if (!elLegendWrap) return;
-    const cfg = w.config.plotOptions.heatmap.colorScale.gradientLegend;
+    const cfg = this._cfg();
     const position = w.config.legend.position;
     const isVertical = position === "left" || position === "right";
     const arrowSize = (_b = (_a = cfg.arrow) == null ? void 0 : _a.size) != null ? _b : 8;
@@ -439,7 +617,10 @@ class HeatmapGradientLegend {
     const stripX = isVertical ? position === "left" ? verticalGroupLeftPad : verticalGroupLeftPad + arrowGutter : labelPadAlongStrip;
     const stripY = isVertical ? labelPadAcrossStrip : position === "top" ? arrowGutter : 4;
     const svg = BrowserAPIs.createElementNS(SVG_NS, "svg");
-    svg.setAttribute("class", "apexcharts-heatmap-gradient-legend");
+    svg.setAttribute(
+      "class",
+      "apexcharts-heatmap-gradient-legend apexcharts-gradient-legend"
+    );
     svg.setAttribute("width", String(svgWidth));
     svg.setAttribute("height", String(svgHeight));
     svg.setAttribute("overflow", "visible");
@@ -611,7 +792,7 @@ class HeatmapGradientLegend {
    */
   _applyWrapAlignment(elLegendWrap, position, isVertical, svgWidth, svgHeight) {
     const w = this.w;
-    const cfg = w.config.plotOptions.heatmap.colorScale.gradientLegend;
+    const cfg = this._cfg();
     const align = cfg.align || "center";
     const edgePad = 12;
     const chartWidth = w.globals.svgWidth || w.config.chart.width || 600;
@@ -678,7 +859,7 @@ class HeatmapGradientLegend {
     if (!wrap || !this._geom) return;
     if (!Number.isFinite(g.gridWidth) || !Number.isFinite(g.gridHeight)) return;
     const { isVertical, position, svgWidth, svgHeight, stripX, stripY, stripThickness } = this._geom;
-    const align = w.config.plotOptions.heatmap.colorScale.gradientLegend.align || "center";
+    const align = this._cfg().align || "center";
     const ox = w.config.legend.offsetX || 0;
     const oy = w.config.legend.offsetY || 0;
     const dimHelpers = (_b = (_a = this.ctx) == null ? void 0 : _a.dimensions) == null ? void 0 : _b.dimHelpers;
@@ -822,7 +1003,7 @@ class HeatmapGradientLegend {
    * @param {...any} args
    */
   _onCellEnter(...args) {
-    var _a, _b;
+    var _a, _b, _c;
     const w = this.w;
     if (!this.arrowEl) return;
     const opts = args[args.length - 1];
@@ -830,9 +1011,13 @@ class HeatmapGradientLegend {
     const i = opts.seriesIndex;
     const j = opts.dataPointIndex;
     if (typeof i !== "number" || typeof j !== "number") return;
-    if (w.config.chart.type !== "heatmap") return;
-    const row = (_b = (_a = w.seriesData) == null ? void 0 : _a.series) == null ? void 0 : _b[i];
-    const val = row == null ? void 0 : row[j];
+    if (!HeatmapGradientLegend.supports(w)) return;
+    let val;
+    if (this._continuous) {
+      val = colorValueOf(w, i, j);
+    } else {
+      val = (_c = (_b = (_a = w.seriesData) == null ? void 0 : _a.series) == null ? void 0 : _b[i]) == null ? void 0 : _c[j];
+    }
     if (val == null || Number.isNaN(val)) return;
     this._positionArrow(val);
   }
@@ -945,8 +1130,19 @@ class HeatmapGradientLegend {
   _computeStops() {
     var _a, _b;
     const w = this.w;
-    const cs = w.config.plotOptions.heatmap.colorScale;
-    const cfg = cs.gradientLegend;
+    const cs = HeatmapGradientLegend.colorScaleOf(w) || {};
+    const cfg = this._cfg();
+    const continuous = buildContinuousScale(w);
+    if (continuous) {
+      this._continuous = true;
+      return {
+        min: continuous.min,
+        max: continuous.max,
+        stops: continuous.legendStops,
+        bands: []
+      };
+    }
+    this._continuous = false;
     let dataMin = Infinity;
     let dataMax = -Infinity;
     const rows = ((_a = w.seriesData) == null ? void 0 : _a.series) || [];
@@ -990,7 +1186,8 @@ class HeatmapGradientLegend {
     } else {
       const baseColor = w.globals.colors[0] || "#008FFB";
       const utils = new Utils();
-      const shadeIntensity = (_b = w.config.plotOptions.heatmap.shadeIntensity) != null ? _b : 0.5;
+      const plot = w.config.plotOptions[w.config.chart.type] || {};
+      const shadeIntensity = (_b = plot.shadeIntensity) != null ? _b : 0.5;
       const hasNegs = (
         /** @type {any} */
         w.globals.hasNegs
@@ -1003,7 +1200,7 @@ class HeatmapGradientLegend {
         const percent_v = total === 0 ? 0 : 100 * v / total;
         let colorShadePercent;
         if (hasNegs) {
-          if (w.config.plotOptions.heatmap.reverseNegativeShade) {
+          if (plot.reverseNegativeShade) {
             colorShadePercent = percent_v < 0 ? percent_v / 100 * (shadeIntensity * 1.25) : (1 - percent_v / 100) * (shadeIntensity * 1.25);
           } else {
             colorShadePercent = percent_v <= 0 ? 1 - (1 + percent_v / 100) * shadeIntensity : (1 - percent_v / 100) * shadeIntensity;
@@ -1013,7 +1210,7 @@ class HeatmapGradientLegend {
         }
         if (colorShadePercent > 1) colorShadePercent = 1;
         if (colorShadePercent < -1) colorShadePercent = -1;
-        const shaded = w.config.plotOptions.heatmap.enableShades ? utils.shadeColor(
+        const shaded = plot.enableShades ? utils.shadeColor(
           w.config.theme.mode === "dark" ? colorShadePercent * -1 : colorShadePercent,
           baseColor
         ) : baseColor;
@@ -1046,7 +1243,10 @@ class Legend {
     const showLegendAlways = cnf.legend.showForSingleSeries && this.w.seriesData.series.length === 1 || this.isBarsDistributed || // Heatmap legends are colorScale-driven (discrete ranges or the
     // gradient strip), not series-driven, so they must render even for a
     // single-row heatmap.
-    cnf.chart.type === "heatmap" || this.w.seriesData.series.length > 1;
+    cnf.chart.type === "heatmap" || // Same for a treemap once it has a gradient strip: a nested treemap is
+    // usually one series, and the strip describes the colour metric rather
+    // than the series.
+    HeatmapGradientLegend.isEnabled(w) || this.w.seriesData.series.length > 1;
     this.legendHelpers.appendToForeignObject();
     if ((showLegendAlways || !gl.axisCharts) && cnf.legend.show) {
       const elLegendWrap = (
@@ -1060,7 +1260,7 @@ class Legend {
         this.heatmapGradientLegend.destroy();
         this.heatmapGradientLegend = null;
       }
-      if (cnf.chart.type === "heatmap" && HeatmapGradientLegend.isEnabled(w)) {
+      if (HeatmapGradientLegend.isEnabled(w)) {
         this.heatmapGradientLegend = new HeatmapGradientLegend(w, this.ctx);
         this.heatmapGradientLegend.draw();
       } else {

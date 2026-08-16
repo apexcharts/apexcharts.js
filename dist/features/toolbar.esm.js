@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.8.0
+ * ApexCharts v6.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -30,6 +30,7 @@ const Data = _core.__apex_Data;
 const Series = _core.__apex_Series;
 const Utils = _core.__apex_Utils;
 const Environment = _core.__apex_Environment_Environment;
+const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const SVGNS = _core.__apex_math_SVGNS;
 class Exports {
   /**
@@ -260,6 +261,218 @@ class Exports {
     });
   }
   /**
+   * The colour a raster export paints under the chart.
+   *
+   * A PNG needs an opaque base, so `dataURI` fills the canvas before drawing
+   * the SVG onto it. That fill used to be `#fff` whenever `chart.background`
+   * was unset *or* `'transparent'`, which is wrong for a dark theme:
+   * `theme.mode: 'dark'` moves `chart.foreColor` to a near-white `#f6f7f8` but
+   * leaves the background alone, so `background: 'transparent'` produced
+   * near-white labels, axes and legend on white — a PNG that looked like it had
+   * lost all its text. See #2920.
+   *
+   * The unset-background case was already covered: `Core.setupElements` paints
+   * the SVG paper `#343A3F` for a dark theme, and the clone carries that inline
+   * style into the export. `'transparent'` is the gap, because it makes that
+   * paper style transparent too and nothing is left to cover the white fill.
+   *
+   * An explicit non-transparent `chart.background` still wins, including one
+   * written by the Facet `--apx-surface` token (Theme assigns it into the same
+   * field).
+   * @returns {string}
+   */
+  resolveExportBackground() {
+    const w = this.w;
+    const bg = w.config.chart.background;
+    if (bg && bg !== "transparent") return bg;
+    return w.config.theme.mode === "dark" ? "#343A3F" : "#fff";
+  }
+  /**
+   * Font families the rendered chart actually paints with.
+   *
+   * Read off the live DOM rather than the config: computed styles resolve
+   * `chart.fontFamily`, every per-element `style.fontFamily` override, and any
+   * family the chart inherits from the page, none of which are reliably
+   * enumerable from config alone. The clone is not in the document, so its
+   * computed styles would come back empty.
+   * @returns {Set<string>}
+   */
+  collectFontFamilies() {
+    const families = /* @__PURE__ */ new Set();
+    const w = this.w;
+    if (!Environment.isBrowser() || !w.dom.elWrap) return families;
+    const els = this.queryStyleable(
+      w.dom.elWrap,
+      "text, tspan, .apexcharts-legend-text, .apexcharts-title-text, .apexcharts-subtitle-text"
+    );
+    const all = [w.dom.elWrap, ...els];
+    all.forEach((el) => {
+      const cs = (
+        /** @type {any} */
+        BrowserAPIs.getComputedStyle(
+          /** @type {any} */
+          el
+        )
+      );
+      const ff = cs && cs.fontFamily;
+      if (!ff) return;
+      ff.split(",").forEach((name) => {
+        const clean = name.trim().replace(/^['"]|['"]$/g, "");
+        if (clean) families.add(clean.toLowerCase());
+      });
+    });
+    return families;
+  }
+  /**
+   * Every `@font-face` rule reachable from the document, as `{ family, css }`.
+   *
+   * Same-origin sheets are read through `cssRules`. A cross-origin sheet throws
+   * on that access, so it is re-fetched by href and its `@font-face` blocks are
+   * pulled out of the text: that is the path that matters in practice, since
+   * hosted webfonts (the subject of #3617) are exactly the cross-origin case.
+   * @returns {Promise<Array<{family: string, css: string}>>}
+   */
+  collectFontFaceRules() {
+    if (!Environment.isBrowser()) return Promise.resolve([]);
+    const found = [];
+    const remote = [];
+    const pushFromText = (cssText) => {
+      const blocks = cssText.match(/@font-face\s*\{[^}]*\}/gi) || [];
+      blocks.forEach((css) => {
+        const m = css.match(/font-family\s*:\s*([^;}]+)/i);
+        if (!m) return;
+        const family = m[1].trim().replace(/^['"]|['"]$/g, "");
+        found.push({ family: family.toLowerCase(), css });
+      });
+    };
+    const sheets = Array.from(document.styleSheets || []);
+    sheets.forEach((sheet) => {
+      let rules = null;
+      try {
+        rules = sheet.cssRules;
+      } catch (e) {
+        rules = null;
+      }
+      if (rules) {
+        Array.from(rules).forEach((rule) => {
+          if (rule.type === 5 && rule.cssText) pushFromText(rule.cssText);
+        });
+        return;
+      }
+      if (sheet.href) {
+        remote.push(
+          fetch(sheet.href).then((r) => r.ok ? r.text() : "").then(pushFromText).catch(() => {
+          })
+        );
+      }
+    });
+    return Promise.all(remote).then(() => found);
+  }
+  /**
+   * Inline the `@font-face` rules for the families the chart uses, with the
+   * font files themselves as base64 data URIs, into the exported SVG.
+   *
+   * Needed because the export is a standalone document: rasterizing it through
+   * `<img src="data:image/svg+xml,...">` gives it no access to the page's
+   * stylesheets *or* its loaded fonts, and an SVG-as-image may not fetch
+   * external resources at all. Without this the text silently reflows into a
+   * generic fallback face. See #3617.
+   *
+   * `@font-face` only exists as a stylesheet construct, so unlike the rules in
+   * `applyExportStyles` this cannot be expressed as inline styles and has to
+   * ship as a `<style>` element. A page whose CSP forbids inline styles will
+   * drop it and fall back to today's behaviour, which is why the whole thing is
+   * best-effort: any failure leaves the export exactly as it was.
+   * @param {any} svgNode the parsed outer <svg> about to be serialized
+   * @returns {Promise<void>}
+   */
+  embedFonts(svgNode) {
+    const w = this.w;
+    if (!Environment.isBrowser() || !w.config.chart.toolbar.export.embedFonts || typeof fetch !== "function") {
+      return Promise.resolve();
+    }
+    const used = this.collectFontFamilies();
+    if (!used.size) return Promise.resolve();
+    return this.collectFontFaceRules().then((faces) => {
+      const wanted = faces.filter((f) => used.has(f.family));
+      if (!wanted.length) return Promise.resolve([]);
+      return Promise.all(
+        wanted.map(
+          (face) => this.inlineFontFaceUrls(face.css).catch(() => null)
+        )
+      );
+    }).then((cssBlocks) => {
+      const css = (cssBlocks || []).filter(Boolean).join("\n");
+      if (!css) return;
+      const style = document.createElementNS(SVGNS, "style");
+      style.textContent = css;
+      svgNode.insertBefore(style, svgNode.firstChild);
+    }).catch(() => {
+    });
+  }
+  /**
+   * Replace every remote `url(...)` in one `@font-face` block with a base64
+   * data URI. Resolves to null if no url could be fetched, so the caller can
+   * drop a block that would only reference unreachable files.
+   * @param {string} css
+   * @returns {Promise<string | null>}
+   */
+  inlineFontFaceUrls(css) {
+    const urls = [];
+    const re = /url\(\s*(['"]?)([^'")]+)\1\s*\)/gi;
+    let m;
+    while ((m = re.exec(css)) !== null) {
+      if (!m[2].startsWith("data:")) urls.push(m[2]);
+    }
+    if (!urls.length) return Promise.resolve(css.includes("data:") ? css : null);
+    return Promise.all(
+      urls.map(
+        (url) => this.fetchAsDataUri(url).then((dataUri) => ({ url, dataUri })).catch(() => ({ url, dataUri: null }))
+      )
+    ).then((results) => {
+      let out = css;
+      let replaced = 0;
+      results.forEach(({ url, dataUri }) => {
+        if (!dataUri) return;
+        out = out.split(url).join(dataUri);
+        replaced++;
+      });
+      return replaced ? out : null;
+    });
+  }
+  /**
+   * Fetch a binary asset as a base64 data URI.
+   *
+   * Uses `fetch` rather than the `<img>`+canvas route in `getBase64FromUrl`:
+   * that route only works for raster images and taints the canvas for any
+   * response without CORS headers, whereas this works for fonts too and fails
+   * cleanly when CORS denies it.
+   * @param {string} url
+   * @returns {Promise<string>}
+   */
+  fetchAsDataUri(url) {
+    if (typeof fetch !== "function" || typeof btoa !== "function") {
+      return Promise.reject(new Error("fetch unavailable"));
+    }
+    return fetch(url).then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      const type = res.headers.get("content-type") || "application/octet-stream";
+      return res.arrayBuffer().then((buf) => {
+        const bytes = new Uint8Array(buf);
+        let binary = "";
+        const CHUNK = 32768;
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+          binary += String.fromCharCode.apply(
+            null,
+            /** @type {any} */
+            bytes.subarray(i, i + CHUNK)
+          );
+        }
+        return `data:${type};base64,${btoa(binary)}`;
+      });
+    });
+  }
+  /**
    * @param {number} [_scale]
    */
   getSvgString(_scale) {
@@ -299,27 +512,50 @@ class Exports {
       if (scale !== 1) {
         this.scaleSvgNode(svgNode, scale);
       }
-      this.convertImagesToBase64(svgNode).then(() => {
+      Promise.all([
+        this.convertImagesToBase64(svgNode),
+        this.embedFonts(svgNode)
+      ]).then(() => {
         svgString = new XMLSerializer().serializeToString(svgNode);
         resolve(svgString.replace(/&nbsp;/g, "&#160;"));
       });
     });
   }
   /**
+   * Turn every remote `<image>` in the export into an inline data URI.
+   *
+   * This is not an optimisation: an SVG rasterized through `<img src="data:...">`
+   * is not allowed to fetch external resources, so any href left pointing at a
+   * URL vanishes from the PNG entirely. Image annotations and `hollow.image`
+   * were disappearing from downloads for exactly this reason. See #3170.
+   *
+   * Two things were missing before. `SVGContainer.image()` writes `xlink:href`,
+   * but Strata's inlined canvas layers and hand-authored `customSVG` markup use
+   * the plain `href` form, and only the namespaced attribute was being read.
+   * And conversion went through `<img>`+canvas, which taints (and therefore
+   * throws) for any response without CORS headers, so a cross-origin icon,
+   * the common case, silently failed. `fetch` is tried first and only falls
+   * back to the canvas route, which still helps for a same-origin image on a
+   * page whose CSP blocks `connect-src`.
    * @param {any} svgNode
    */
   convertImagesToBase64(svgNode) {
+    const XLINK = "http://www.w3.org/1999/xlink";
     const images = svgNode.getElementsByTagName("image");
     const promises = Array.from(images).map((img) => {
-      const href = img.getAttributeNS("http://www.w3.org/1999/xlink", "href");
-      if (href && !href.startsWith("data:")) {
-        return this.getBase64FromUrl(href).then((base64) => {
-          img.setAttributeNS("http://www.w3.org/1999/xlink", "href", base64);
-        }).catch((error) => {
+      const nsHref = img.getAttributeNS(XLINK, "href");
+      const plainHref = img.getAttribute("href");
+      const href = nsHref || plainHref;
+      if (!href || href.startsWith("data:")) return Promise.resolve();
+      const write = (base64) => {
+        if (nsHref) img.setAttributeNS(XLINK, "href", base64);
+        if (plainHref || !nsHref) img.setAttribute("href", base64);
+      };
+      return this.fetchAsDataUri(href).then(write).catch(
+        () => this.getBase64FromUrl(href).then(write).catch((error) => {
           console.error("Error converting image to base64:", error);
-        });
-      }
-      return Promise.resolve();
+        })
+      );
     });
     return Promise.all(promises);
   }
@@ -364,7 +600,7 @@ class Exports {
       const canvas = document.createElement("canvas");
       canvas.width = w.globals.svgWidth * scale;
       canvas.height = parseInt(w.dom.elWrap.style.height, 10) * scale;
-      const canvasBg = w.config.chart.background === "transparent" || !w.config.chart.background ? "#fff" : w.config.chart.background;
+      const canvasBg = this.resolveExportBackground();
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.fillStyle = canvasBg;
@@ -659,7 +895,6 @@ class Exports {
     document.body.removeChild(downloadLink);
   }
 }
-const BrowserAPIs = _core.__apex_BrowserAPIs_BrowserAPIs;
 const icoPan = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M5 9 2 12l3 3"/>\n    <path d="M9 5l3-3 3 3"/>\n    <path d="M15 19l-3 3-3-3"/>\n    <path d="M19 9l3 3-3 3"/>\n    <path d="M2 12h20"/>\n    <path d="M12 2v20"/>\n</svg>\n';
 const icoZoom = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <circle cx="11" cy="11" r="7"/>\n    <path d="m21 21-4.3-4.3M8 11h6M11 8v6"/>\n</svg>\n';
 const icoReset = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>\n    <path d="M3 3v5h5"/>\n</svg>\n';
@@ -1318,6 +1553,24 @@ class AxisMapping {
   static pxToDataX(w, px) {
     return w.globals.minX + px * AxisMapping.xRatio(w);
   }
+  /**
+   * Client (screen) x -> pixels from the plot origin. The origin is the svg
+   * element's left edge plus `translateX`, never the `.apexcharts-grid` box
+   * (fact 2 above), so the result does not depend on what the grid happens to
+   * render. `svgWidth` is the unscaled width the svg was drawn at, so the ratio
+   * against the measured one is the CSS zoom of any container the chart sits in.
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {number} screenX
+   * @returns {number}
+   */
+  static screenXToPlotPx(w, screenX) {
+    const baseEl = w.dom.baseEl;
+    const svg = baseEl && baseEl.querySelector(".apexcharts-svg");
+    if (!svg) return screenX - w.layout.translateX;
+    const svgRect = svg.getBoundingClientRect();
+    const zoom = w.globals.svgWidth ? svgRect.width / w.globals.svgWidth : 1;
+    return (screenX - svgRect.left) / (zoom || 1) - w.layout.translateX;
+  }
 }
 const Box = _core.__apex_index_Box;
 const WHEEL_ZOOM_PIXELS_PER_2X = 240;
@@ -1399,7 +1652,7 @@ class ZoomPanSelection extends Toolbar {
         }
       );
     });
-    if (w.config.chart.zoom.enabled && w.config.chart.zoom.allowMouseWheelZoom) {
+    if (this._wheelZoomEnabled()) {
       this.hoverArea.addEventListener("wheel", me.mouseWheelEvent.bind(me), {
         capture: false,
         passive: false
@@ -1534,6 +1787,29 @@ class ZoomPanSelection extends Toolbar {
   // mid-gesture, so all wheel-gesture state lives on w.interact.wheel rather
   // than on the instance.
   // ---------------------------------------------------------------------------
+  /**
+   * A wheel or pinch zoom is an incidental gesture: the viewer can land in a
+   * zoomed window without meaning to (a page scroll over the chart, a two-finger
+   * swipe), so it is only offered when there is a way back out of it. The only
+   * built-in way back is the toolbar's reset button, hence 'auto' (the default
+   * for both allowMouseWheelZoom and pinch) resolves against that button being
+   * present. A page that builds its own reset control sets the option to true
+   * and gets the gesture with no toolbar. Drag-to-zoom is deliberate, so it is
+   * not gated this way.
+   *
+   * @param {boolean|'auto'} setting
+   */
+  _incidentalZoomEnabled(setting) {
+    var _a, _b, _c;
+    const c = this.w.config.chart;
+    if (!c.zoom || !c.zoom.enabled) return false;
+    if (setting !== "auto") return !!setting;
+    return !!(((_a = c.toolbar) == null ? void 0 : _a.show) && ((_c = (_b = c.toolbar) == null ? void 0 : _b.tools) == null ? void 0 : _c.reset));
+  }
+  _wheelZoomEnabled() {
+    const { zoom } = this.w.config.chart;
+    return this._incidentalZoomEnabled(zoom && zoom.allowMouseWheelZoom);
+  }
   /** Lazily-created, re-render-surviving wheel-gesture state. */
   _wheel() {
     const it = this.w.interact;
@@ -2152,8 +2428,7 @@ class ZoomPanSelection extends Toolbar {
     return this._pinchEnabled() || this._panInertiaEnabled();
   }
   _pinchEnabled() {
-    const c = this.w.config.chart;
-    return !!(c.zoom && c.zoom.enabled && c.zoom.pinch);
+    return this._incidentalZoomEnabled(this.w.config.chart.zoom.pinch);
   }
   _panInertiaEnabled() {
     const c = this.w.config.chart;
@@ -2206,10 +2481,7 @@ class ZoomPanSelection extends Toolbar {
    * @returns {number}
    */
   _screenXToPlotPx(screenX) {
-    const baseEl = this.w.dom.baseEl;
-    const svg = baseEl && baseEl.querySelector(".apexcharts-svg");
-    const svgLeft = svg ? svg.getBoundingClientRect().left : 0;
-    return screenX - svgLeft - this.w.layout.translateX;
+    return AxisMapping.screenXToPlotPx(this.w, screenX);
   }
   /**
    * Raw data bounds to clamp against. When zoom-aware downsampling is active,

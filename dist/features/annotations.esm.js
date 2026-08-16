@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.8.0
+ * ApexCharts v6.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -77,10 +77,12 @@ class Helpers {
     if (anno.label.orientation === "vertical") {
       [ptop, pbottom, pleft, pright] = [pleft, pright, ptop, pbottom];
     }
-    const x1 = (coords.left - elGridRect.left) / zoom - pleft;
-    const y1 = (coords.top - elGridRect.top) / zoom - ptop;
+    const gridLeft = elGridRect.left - gridBBox.x * zoom;
+    const gridTop = elGridRect.top - gridBBox.y * zoom;
+    const x1 = (coords.left - gridLeft) / zoom - pleft;
+    const y1 = (coords.top - gridTop) / zoom - ptop;
     const elRect = this.annoCtx.graphics.drawRect(
-      x1 - w.globals.barPadForNumericAxis,
+      x1,
       y1,
       coords.width / zoom + pleft + pright,
       coords.height / zoom + ptop + pbottom,

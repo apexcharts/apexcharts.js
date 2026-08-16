@@ -1,20 +1,36 @@
 var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+var __spreadValues = (a2, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a2, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a2, prop, b[prop]);
+    }
+  return a2;
+};
+var __spreadProps = (a2, b) => __defProps(a2, __getOwnPropDescs(b));
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
         step(generator.next(value));
-      } catch (e) {
-        reject(e);
+      } catch (e2) {
+        reject(e2);
       }
     };
     var rejected = (value) => {
       try {
         step(generator.throw(value));
-      } catch (e) {
-        reject(e);
+      } catch (e2) {
+        reject(e2);
       }
     };
     var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
@@ -22,7 +38,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v6.8.0
+ * ApexCharts v6.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as ApexCharts from "apexcharts/core";
@@ -39,7 +55,7 @@ function axisWindow(min, max) {
 }
 function cloneSelection(sel) {
   if (!Array.isArray(sel)) return [];
-  return sel.map((a) => Array.isArray(a) ? a.slice() : a);
+  return sel.map((a2) => Array.isArray(a2) ? a2.slice() : a2);
 }
 function annotationKind(method, ctx) {
   if (typeof method !== "function" || !ctx) return null;
@@ -184,10 +200,10 @@ function applyViewInteraction(ctx, view) {
   w.interact.zoomed = !!view.zoomed;
   applyCollapsedSet(ctx, view.collapsed, view.ancillaryCollapsed);
   if (view.annotations && Array.isArray(view.annotations.dynamic)) {
-    view.annotations.dynamic.forEach((a) => {
-      const method = addMethodName(a.kind);
+    view.annotations.dynamic.forEach((a2) => {
+      const method = addMethodName(a2.kind);
       if (method && typeof ctx[method] === "function") {
-        ctx[method](a.params, true);
+        ctx[method](a2.params, true);
       }
     });
   }
@@ -199,409 +215,202 @@ function applyViewInteraction(ctx, view) {
     ctx.measure.setPins(view.measure && view.measure.pins || []);
   }
 }
-const PUBLIC_KEYS_SPKI_BASE64 = [
-  "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="
-];
-const LEGACY_KEYS_ACCEPTED_UNTIL = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z");
-const KEY_PREFIX = "APEX-";
-const signatureVerdicts = /* @__PURE__ */ new Map();
-const verifying = /* @__PURE__ */ new Set();
-const listeners = /* @__PURE__ */ new Set();
-let warnedUnverifiable = false;
-function base64Decode(encoded) {
-  if (typeof atob === "function") return atob(encoded);
-  if (typeof Buffer !== "undefined") {
-    return Buffer.from(encoded, "base64").toString("binary");
+const e = globalThis.console;
+function t(t2) {
+  e.error(t2);
+}
+function s(t2) {
+  e.warn(t2);
+}
+const i = "APEX-", n = /* @__PURE__ */ new Date("2027-07-31T00:00:00Z"), r = "__apex_license_v1__";
+function a() {
+  const e2 = globalThis;
+  let t2 = e2[r];
+  return t2 || (t2 = { key: null, listeners: /* @__PURE__ */ new Set(), result: null }, e2[r] = t2), t2;
+}
+const l = class {
+  static get licenseKey() {
+    return a().key;
   }
-  throw new Error("no base64 decoder available");
-}
-function base64ToBytes(base64) {
-  const normalised = base64.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = normalised.padEnd(Math.ceil(normalised.length / 4) * 4, "=");
-  const binary = base64Decode(padded);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-function canonicalPayload(data) {
-  const domains = data.domains && data.domains.length > 0 ? data.domains.join(",") : "";
-  return `v1|${data.issueDate}|${data.expiryDate}|${data.plan}|${domains}`;
-}
-function currentHostname() {
-  return typeof window !== "undefined" && window.location ? window.location.hostname : "";
-}
-function signatureOf(encodedData) {
-  try {
-    const raw = JSON.parse(base64Decode(encodedData));
-    return typeof raw.sig === "string" && raw.sig ? raw.sig : null;
-  } catch (e) {
-    return null;
+  static set licenseKey(e2) {
+    a().key = e2;
   }
-}
-function notify(result) {
-  listeners.forEach((listener) => {
-    try {
-      listener(result);
-    } catch (e) {
-    }
-  });
-}
-function verifySignature(key, data, signature) {
-  return __async(this, null, function* () {
-    if (verifying.has(key) || signatureVerdicts.has(key)) return;
-    verifying.add(key);
-    const subtle = globalThis.crypto ? globalThis.crypto.subtle : void 0;
-    const accepted = LicenseManager.publicKeysSpki;
-    if (!subtle || accepted.length === 0) {
-      verifying.delete(key);
-      if (!warnedUnverifiable) {
-        warnedUnverifiable = true;
-        console.warn(
-          subtle ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified."
-        );
-      }
-      return;
-    }
-    const signed = new TextEncoder().encode(canonicalPayload(data));
-    let verified = false;
-    for (const spki of accepted) {
-      try {
-        const publicKey = yield subtle.importKey(
-          "spki",
-          base64ToBytes(spki),
-          { name: "ECDSA", namedCurve: "P-256" },
-          false,
-          ["verify"]
-        );
-        verified = yield subtle.verify(
-          { hash: "SHA-256", name: "ECDSA" },
-          publicKey,
-          base64ToBytes(signature),
-          signed
-        );
-      } catch (e) {
-        verified = false;
-      }
-      if (verified) break;
-    }
-    verifying.delete(key);
-    signatureVerdicts.set(key, verified);
-    if (!verified) {
-      console.error(
-        "[Apex] Invalid license key. The license signature does not verify."
-      );
-    }
-    notify(LicenseManager.validateKey(key));
-  });
-}
-class LicenseManager {
-  /**
-   * Decode license data from an encoded string (base64 + JSON).
-   * @param {string} encodedData
-   * @returns {LicenseData | null}
-   */
-  static decodeLicenseData(encodedData) {
-    try {
-      const data = JSON.parse(base64Decode(encodedData));
-      if (!data.issueDate || !data.expiryDate || !data.plan) {
-        return null;
-      }
-      return {
-        domains: Array.isArray(data.domains) ? data.domains : void 0,
-        expiryDate: data.expiryDate,
-        issueDate: data.issueDate,
-        plan: data.plan,
-        valid: true
-      };
-    } catch (e) {
-      return null;
-    }
+  static get listeners() {
+    return a().listeners;
   }
-  /**
-   * The key set via setLicense (or null). Lets the enforcer resolve the
-   * chart.license -> setLicense -> Apex.license precedence.
-   * @returns {null | string}
-   */
+  static get validationResult() {
+    return a().result;
+  }
+  static set validationResult(e2) {
+    a().result = e2;
+  }
   static getKey() {
     return this.licenseKey;
   }
-  /**
-   * Validation result for the singleton key.
-   * @returns {LicenseValidationResult}
-   */
   static getLicenseStatus() {
-    if (!this.licenseKey) {
-      return { expired: false, valid: false };
-    }
-    this.validationResult = this.validateKey(this.licenseKey);
-    return this.validationResult;
+    return this.licenseKey ? (this.validationResult = this.validateKey(this.licenseKey), this.validationResult) : { expired: false, signatureVerified: false, valid: false };
   }
-  /**
-   * Whether a specific key is valid (pure; no singleton mutation).
-   * @param {string | undefined | null} key
-   * @returns {boolean}
-   */
-  static isKeyValid(key) {
-    if (!key) return false;
-    return this.validateKey(key).valid;
+  static isKeyValid(e2) {
+    return !!e2 && this.validateKey(e2).valid;
   }
-  /** @returns {boolean} whether the singleton key is valid */
   static isLicenseValid() {
-    if (!this.licenseKey) return false;
     return this.getLicenseStatus().valid;
   }
-  /**
-   * Subscribe to signature verdicts arriving. Returns an unsubscribe function.
-   *
-   * Without this a forged key would go unnoticed by any chart that asked once and
-   * painted. `LicenseEnforcer` uses it to re-evaluate every live chart.
-   *
-   * @param {(result: LicenseValidationResult) => void} listener
-   * @returns {() => void}
-   */
-  static onChange(listener) {
-    listeners.add(listener);
-    return () => {
-      listeners.delete(listener);
+  static onChange(e2) {
+    return this.listeners.add(e2), () => {
+      this.listeners.delete(e2);
     };
   }
-  /**
-   * Set the global (singleton) license key. console.errors when invalid, to
-   * match the rest of the family.
-   * @param {string} key
-   */
-  static setLicense(key) {
-    this.licenseKey = key;
-    this.validationResult = this.validateKey(key);
-    if (!this.validationResult.valid) {
-      console.error(`[Apex] ${this.validationResult.message}`);
-    }
+  static setLicense(e2) {
+    var _a;
+    var i2;
+    if (!e2) return this.licenseKey = null, void this.publish({ expired: false, signatureVerified: false, valid: false });
+    const n2 = this.validateKey(e2);
+    n2.valid || e2 === this.licenseKey || !(null == (i2 = this.validationResult) ? void 0 : i2.valid) ? (this.licenseKey = e2, this.publish(n2), n2.valid || t(`[Apex] ${n2.message}`)) : s(`[Apex] Ignoring license key: ${(_a = n2.message) != null ? _a : "it is not valid"} A valid license is already active on this page.`);
   }
-  /**
-   * Validate an arbitrary key WITHOUT mutating the singleton. Used to resolve
-   * per-chart (`chart.license`) and global (`window.Apex.license`) keys, which
-   * bypass setLicense. This is a superset of the family (which keeps
-   * validateLicense private); the format and rules are identical.
-   *
-   * Synchronous by contract, because it runs during render. Signature checking is
-   * started here and settles later; see `onChange`.
-   *
-   * @param {string} key
-   * @returns {LicenseValidationResult}
-   */
-  static validateKey(key) {
-    try {
-      if (typeof key !== "string" || !key.startsWith(KEY_PREFIX)) {
-        return {
-          expired: false,
-          message: 'Invalid license key format. License key must start with "APEX-".',
-          signatureVerified: false,
-          valid: false
-        };
-      }
-      const encodedData = key.slice(KEY_PREFIX.length);
-      if (!encodedData) {
-        return {
-          expired: false,
-          message: "Invalid license key format. Expected format: APEX-{encoded-data}.",
-          signatureVerified: false,
-          valid: false
-        };
-      }
-      const licenseData = this.decodeLicenseData(encodedData);
-      if (!licenseData) {
-        return {
-          expired: false,
-          message: "Invalid license key. Unable to decode license data.",
-          signatureVerified: false,
-          valid: false
-        };
-      }
-      const signature = signatureOf(encodedData);
-      if (!signature && /* @__PURE__ */ new Date() >= LEGACY_KEYS_ACCEPTED_UNTIL) {
-        return {
-          data: licenseData,
-          expired: false,
-          message: "This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.",
-          signatureVerified: false,
-          valid: false
-        };
-      }
-      const now = /* @__PURE__ */ new Date();
-      const expiryDate = new Date(licenseData.expiryDate);
-      if (expiryDate < now) {
-        return {
-          data: licenseData,
-          expired: true,
-          message: `License expired on ${licenseData.expiryDate}. Please renew your license.`,
-          signatureVerified: false,
-          valid: false
-        };
-      }
-      if (licenseData.domains && licenseData.domains.length > 0) {
-        const hostname = currentHostname();
-        const allowed = licenseData.domains.some(
-          (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
-        );
-        if (!allowed) {
-          return {
-            data: licenseData,
-            expired: false,
-            message: `License is not valid for this domain (${hostname}). Allowed domains: ${licenseData.domains.join(", ")}.`,
-            signatureVerified: false,
-            valid: false
-          };
-        }
-      }
-      if (signature) {
-        const verdict = signatureVerdicts.get(key);
-        if (verdict === false) {
-          return {
-            data: licenseData,
-            expired: false,
-            message: "Invalid license key. The license signature does not verify.",
-            signatureVerified: true,
-            valid: false
-          };
-        }
-        if (verdict === void 0) {
-          void verifySignature(key, licenseData, signature);
-        }
-        return {
-          data: licenseData,
-          expired: false,
-          signatureVerified: verdict === true,
-          valid: true
-        };
-      }
-      return {
-        data: licenseData,
-        expired: false,
-        signatureVerified: false,
-        valid: true
-      };
-    } catch (e) {
-      return {
-        expired: false,
-        message: "Invalid license key format or corrupted data.",
-        signatureVerified: false,
-        valid: false
-      };
-    }
+  static validateKey(e2) {
+    const t2 = this.parseKey(e2), s2 = this.validateStructure(e2, t2);
+    if (!s2.valid || !(null == t2 ? void 0 : t2.signature)) return s2;
+    const i2 = this.verdicts.get(e2);
+    return false === i2 ? { data: t2.data, expired: false, message: "Invalid license key. The license signature does not verify.", signatureVerified: true, valid: false } : (void 0 === i2 && this.verifySignature(e2, t2, s2), __spreadProps(__spreadValues({}, s2), { signatureVerified: true === i2 }));
   }
-  /** Test-only: forget signature verdicts and the one-time warnings. */
   static _resetSignatureState() {
-    signatureVerdicts.clear();
-    verifying.clear();
-    warnedUnverifiable = false;
+    this.verdicts.clear(), this.verifying.clear(), this.warnedUnverifiable = false, this.epoch++;
   }
-}
-/** @type {null | string} */
-__publicField(LicenseManager, "licenseKey", null);
-/**
- * Accepted signing keys. Replaced by tests with an ephemeral keypair, since
- * they cannot sign for the production key. Not public API.
- * @type {string[]}
- */
-__publicField(LicenseManager, "publicKeysSpki", PUBLIC_KEYS_SPKI_BASE64);
-/** @type {LicenseValidationResult | null} */
-__publicField(LicenseManager, "validationResult", null);
-const WATERMARK_ATTR = "data-apexcharts-watermark";
-const WATERMARK_TEXT = "APEXCHARTS";
-const CRITICAL_STYLES = {
-  position: "absolute",
-  top: "0",
-  right: "0",
-  bottom: "0",
-  left: "0",
-  pointerEvents: "none",
-  userSelect: "none",
-  webkitUserSelect: "none",
-  msUserSelect: "none",
-  zIndex: "10000",
-  display: "block",
-  visibility: "visible",
-  opacity: "1"
-};
-function createWatermarkPattern() {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="300" height="200">
-      <text
-        x="50%"
-        y="50%"
-        dominant-baseline="middle"
-        text-anchor="middle"
-        font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif"
-        font-size="18"
-        font-weight="600"
-        fill="rgba(134, 134, 134, 0.1)"
-        transform="rotate(-35, 100, 60)"
-      >${WATERMARK_TEXT}</text>
-    </svg>
-  `;
-  return `url("data:image/svg+xml,${encodeURIComponent(svg.trim())}")`;
-}
-class Watermark {
-  /**
-   * Apply the overlay's critical styles + background to a node. Split out so a
-   * MutationObserver can restore styles after tampering.
-   * @param {HTMLElement} el
-   */
-  static applyStyles(el) {
-    Object.assign(el.style, CRITICAL_STYLES, {
-      backgroundImage: createWatermarkPattern(),
-      backgroundRepeat: "repeat"
+  static base64ToBytes(e2) {
+    const t2 = e2.replace(/-/g, "+").replace(/_/g, "/"), s2 = t2.padEnd(4 * Math.ceil(t2.length / 4), "="), i2 = globalThis.atob;
+    if ("function" != typeof i2) throw new Error("no base64 decoder available");
+    const n2 = i2(s2), r2 = new Uint8Array(n2.length);
+    for (let e3 = 0; e3 < n2.length; e3++) r2[e3] = n2.charCodeAt(e3);
+    return r2;
+  }
+  static canonicalPayload(e2) {
+    const t2 = e2.domains && e2.domains.length > 0 ? e2.domains.join(",") : "";
+    return `v1|${e2.issueDate}|${e2.expiryDate}|${e2.plan}|${t2}`;
+  }
+  static notify(e2) {
+    for (const t2 of this.listeners) try {
+      t2(e2);
+    } catch (e3) {
+    }
+  }
+  static parseKey(e2) {
+    if ("string" != typeof e2 || !e2.startsWith(i)) return null;
+    const t2 = e2.slice(5);
+    if (!t2) return null;
+    try {
+      const e3 = new TextDecoder().decode(this.base64ToBytes(t2)), s2 = JSON.parse(e3);
+      return s2.issueDate && s2.expiryDate && s2.plan ? { data: { domains: Array.isArray(s2.domains) ? s2.domains : void 0, expiryDate: s2.expiryDate, issueDate: s2.issueDate, plan: s2.plan, valid: true }, signature: "string" == typeof s2.sig && s2.sig ? s2.sig : null } : null;
+    } catch (e3) {
+      return null;
+    }
+  }
+  static publish(e2) {
+    this.validationResult = e2, this.notify(e2);
+  }
+  static validateStructure(e2, t2) {
+    const s2 = (e3) => ({ expired: false, message: e3, signatureVerified: false, valid: false });
+    if ("string" != typeof e2 || !e2.startsWith(i)) return s2('Invalid license key format. License key must start with "APEX-".');
+    if (!t2) return s2("Invalid license key. Unable to decode license data.");
+    const { data: r2, signature: a2 } = t2;
+    if (!a2 && /* @__PURE__ */ new Date() >= n) return s2("This license key is in the old unsigned format, which is no longer accepted. Please request a replacement key.");
+    if (new Date(r2.expiryDate) < /* @__PURE__ */ new Date()) return { data: r2, expired: true, message: `License expired on ${r2.expiryDate}. Please renew your license.`, signatureVerified: false, valid: false };
+    if (r2.domains && r2.domains.length > 0) {
+      const e3 = "undefined" == typeof location ? "" : location.hostname;
+      if (!r2.domains.some(((t3) => e3 === t3 || e3.endsWith(`.${t3}`)))) return { data: r2, expired: false, message: `License is not valid for this domain (${e3}). Allowed domains: ${r2.domains.join(", ")}.`, signatureVerified: false, valid: false };
+    }
+    return { data: r2, expired: false, signatureVerified: false, valid: true };
+  }
+  static verifySignature(e2, i2, n2) {
+    return __async(this, null, function* () {
+      var r2;
+      if (this.verifying.has(e2) || this.verdicts.has(e2)) return;
+      this.verifying.add(e2);
+      const a2 = this.epoch, l2 = null == (r2 = globalThis.crypto) ? void 0 : r2.subtle;
+      if (!l2 || 0 === this.publicKeysSpki.length) return this.verifying.delete(e2), void (this.warnedUnverifiable || (this.warnedUnverifiable = true, s(l2 ? "[Apex] No license signing key is configured in this build, so license signatures cannot be verified." : "[Apex] Web Crypto is unavailable (a secure context is required), so the license signature cannot be verified.")));
+      const o2 = new TextEncoder().encode(this.canonicalPayload(i2.data));
+      let c2 = false;
+      for (const e3 of this.publicKeysSpki) {
+        try {
+          const t2 = yield l2.importKey("spki", this.base64ToBytes(e3), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+          c2 = yield l2.verify({ hash: "SHA-256", name: "ECDSA" }, t2, this.base64ToBytes(i2.signature), o2);
+        } catch (e4) {
+          c2 = false;
+        }
+        if (c2) break;
+      }
+      if (this.verifying.delete(e2), this.epoch !== a2) return;
+      if (this.verdicts.set(e2, c2), c2) {
+        const t2 = __spreadProps(__spreadValues({}, n2), { signatureVerified: true });
+        return void (this.licenseKey === e2 ? this.publish(t2) : this.notify(t2));
+      }
+      const h2 = "Invalid license key. The license signature does not verify.", d = { data: i2.data, expired: false, message: h2, signatureVerified: true, valid: false };
+      this.licenseKey === e2 ? this.publish(d) : this.notify(d), t(`[Apex] ${h2}`);
     });
   }
-  /**
-   * Add the watermark to a container, reusing the existing node if present (so
-   * a style-tamper observer bound to it stays valid across re-renders). No-op
-   * when there is no document (SSR) or no container.
-   * @param {HTMLElement | null | undefined} container
-   * @returns {HTMLElement | null} the watermark node
-   */
-  static add(container) {
-    if (!container || typeof document === "undefined") return null;
-    let watermark = this.node(container);
-    if (!watermark) {
-      watermark = document.createElement("div");
-      watermark.setAttribute(WATERMARK_ATTR, "");
-      container.appendChild(watermark);
-    }
-    this.applyStyles(watermark);
-    if (typeof getComputedStyle === "function" && getComputedStyle(container).position === "static") {
-      container.style.position = "relative";
-    }
-    return watermark;
+};
+l.publicKeysSpki = ["MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIaK9UMD6n0oR/FIy8QdL0uSzKMQlf1BB+tOrji4/WuHsyRNxeDhVykoSsNURozMi1xhmqWvBH1L//xIfugTPA=="], l.verdicts = /* @__PURE__ */ new Map(), l.verifying = /* @__PURE__ */ new Set(), l.warnedUnverifiable = false, l.epoch = 0;
+let o = l;
+const c = class {
+  static applyStyles(e2) {
+    Object.assign(e2.style, this.CRITICAL_STYLES, { backgroundImage: this.createWatermarkPattern(), backgroundRepeat: "repeat" });
   }
-  /**
-   * @param {HTMLElement | null | undefined} container
-   * @returns {HTMLElement | null} the watermark node, if present
-   */
-  static node(container) {
-    if (!container) return null;
-    return (
-      /** @type {HTMLElement | null} */
-      container.querySelector(`[${WATERMARK_ATTR}]`)
-    );
+  static node(e2) {
+    return e2 ? e2.querySelector(`[${this.WATERMARK_ATTR}]`) : null;
   }
-  /**
-   * @param {HTMLElement | null | undefined} container
-   * @returns {boolean}
-   */
-  static exists(container) {
-    return !!this.node(container);
+  static add(e2, t2) {
+    return e2 && "undefined" != typeof document ? (this.setManaged(e2, t2), this.paint(e2)) : null;
   }
-  /**
-   * Remove the watermark from a container.
-   * @param {HTMLElement | null | undefined} container
-   */
-  static remove(container) {
-    const existing = this.node(container);
-    if (existing) existing.remove();
+  static exists(e2) {
+    return !!this.node(e2);
   }
-}
-__publicField(Watermark, "ATTR", WATERMARK_ATTR);
+  static remove(e2, t2) {
+    e2 && (this.setManaged(e2, t2), this.erase(e2));
+  }
+  static untrack(e2) {
+    this.managed.delete(e2);
+  }
+  static createWatermarkPattern() {
+    const e2 = this.WATERMARK_TEXT;
+    return `url("data:image/svg+xml,${encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="300" height="200">
+        <text
+          x="50%"
+          y="50%"
+          dominant-baseline="middle"
+          text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif"
+          font-size="18"
+          font-weight="600"
+          fill="rgba(134, 134, 134, 0.1)"
+          transform="rotate(-35, 100, 60)"
+        >${e2}</text>
+      </svg>
+    `.trim())}")`;
+  }
+  static erase(e2) {
+    var t2;
+    null == (t2 = this.node(e2)) || t2.remove();
+  }
+  static paint(e2) {
+    let t2 = this.node(e2);
+    return t2 || (t2 = document.createElement("div"), t2.setAttribute(this.WATERMARK_ATTR, ""), e2.appendChild(t2)), this.applyStyles(t2), "function" == typeof getComputedStyle && "static" === getComputedStyle(e2).position && (e2.style.position = "relative"), t2;
+  }
+  static reconcile() {
+    const e2 = o.isLicenseValid();
+    for (const t2 of this.managed) t2.isConnected ? e2 ? this.erase(t2) : this.paint(t2) : this.managed.delete(t2);
+  }
+  static setManaged(e2, t2) {
+    false !== (null == t2 ? void 0 : t2.manage) ? this.track(e2) : this.managed.delete(e2);
+  }
+  static track(e2) {
+    this.managed.add(e2), this.subscribed || (this.subscribed = true, o.onChange((() => {
+      this.reconcile();
+    })));
+  }
+};
+c.WATERMARK_ATTR = "data-apexcharts-watermark", c.WATERMARK_TEXT = "APEXCHARTS", c.ATTR = "data-apexcharts-watermark", c.CRITICAL_STYLES = { bottom: "0", display: "block", left: "0", msUserSelect: "none", opacity: "1", pointerEvents: "none", position: "absolute", right: "0", top: "0", userSelect: "none", visibility: "visible", webkitUserSelect: "none", zIndex: "10000" }, c.managed = /* @__PURE__ */ new Set(), c.subscribed = false;
+let h = c;
 const PRICING_URL = "https://apexcharts.com/pricing";
 let _perspectivesTokenDecoded = false;
 const enforced = /* @__PURE__ */ new Set();
@@ -636,7 +445,7 @@ function premiumFeaturesInUse(w, ctx) {
 function resolveKey(w) {
   const perChart = w && w.config && w.config.chart && w.config.chart.license;
   if (perChart) return perChart;
-  const singleton = LicenseManager.getKey();
+  const singleton = o.getKey();
   if (singleton) return singleton;
   const apex = Environment.getApex();
   if (apex && apex.license) return apex.license;
@@ -645,23 +454,23 @@ function resolveKey(w) {
 const PREMIUM_PLANS = /* @__PURE__ */ new Set(["premium", "enterprise"]);
 function licensedForPremium(key) {
   if (!key) return false;
-  const result = LicenseManager.validateKey(key);
+  const result = o.validateKey(key);
   if (!result.valid) return false;
   const plan = result.data && result.data.plan;
   return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
 }
 function reinstateWatermark(ctx, elWrap) {
-  const node = Watermark.add(elWrap);
+  const node = h.add(elWrap, { manage: false });
   if (!node || typeof MutationObserver === "undefined") return;
   if (ctx._wmNodeObserver && ctx._wmObservedNode === node) return;
   if (ctx._wmNodeObserver) ctx._wmNodeObserver.disconnect();
   const nodeObs = new MutationObserver(() => {
-    const n = Watermark.node(elWrap);
-    if (!n) return;
+    const n2 = h.node(elWrap);
+    if (!n2) return;
     nodeObs.disconnect();
-    Watermark.applyStyles(n);
+    h.applyStyles(n2);
     nodeObs.takeRecords();
-    nodeObs.observe(n, { attributes: true, attributeFilter: ["style"] });
+    nodeObs.observe(n2, { attributes: true, attributeFilter: ["style"] });
   });
   nodeObs.observe(node, { attributes: true, attributeFilter: ["style"] });
   ctx._wmNodeObserver = nodeObs;
@@ -671,7 +480,7 @@ function addWatermark(ctx, elWrap) {
   reinstateWatermark(ctx, elWrap);
   if (typeof MutationObserver === "undefined" || ctx._wmWrapObserver) return;
   const wrapObs = new MutationObserver(() => {
-    if (!Watermark.node(elWrap)) reinstateWatermark(ctx, elWrap);
+    if (!h.node(elWrap)) reinstateWatermark(ctx, elWrap);
   });
   wrapObs.observe(elWrap, { childList: true });
   ctx._wmWrapObserver = wrapObs;
@@ -687,7 +496,7 @@ function teardownWatermark(ctx, elWrap) {
   }
   ctx._wmObservedNode = null;
   const wrap = elWrap || ctx.w && ctx.w.dom && ctx.w.dom.elWrap;
-  if (wrap) Watermark.remove(wrap);
+  if (wrap) h.remove(wrap, { manage: false });
 }
 function notifyTrial(ctx, key, features) {
   if (ctx._premiumLicenseNotified) return;
@@ -699,7 +508,7 @@ function notifyTrial(ctx, key, features) {
     );
     return;
   }
-  const result = LicenseManager.validateKey(key);
+  const result = o.validateKey(key);
   if (result.valid) {
     const plan = result.data && result.data.plan || "current";
     console.warn(
@@ -707,7 +516,7 @@ function notifyTrial(ctx, key, features) {
     );
     return;
   }
-  if (key !== LicenseManager.getKey()) {
+  if (key !== o.getKey()) {
     console.error(`[Apex] ${result.message}`);
   }
 }
@@ -734,7 +543,7 @@ function enforceLicense(w, ctx) {
     }
     addWatermark(ctx, elWrap);
     notifyTrial(ctx, key, features);
-  } catch (e) {
+  } catch (e2) {
   }
 }
 function reevaluateLicenseAcrossCharts() {
@@ -762,7 +571,7 @@ function reevaluateLicenseAcrossCharts() {
     enforceLicense(w, ctx);
   });
 }
-LicenseManager.onChange(reevaluateLicenseAcrossCharts);
+o.onChange(reevaluateLicenseAcrossCharts);
 const PERSPECTIVE_VERSION = 1;
 const HASH_KEY = "apex";
 function toBase64(str) {
@@ -771,7 +580,7 @@ function toBase64(str) {
   }
   const bytes = new TextEncoder().encode(str);
   let bin = "";
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  for (let i2 = 0; i2 < bytes.length; i2++) bin += String.fromCharCode(bytes[i2]);
   return btoa(bin);
 }
 function fromBase64(b64) {
@@ -780,7 +589,7 @@ function fromBase64(b64) {
   }
   const bin = atob(b64);
   const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  for (let i2 = 0; i2 < bin.length; i2++) bytes[i2] = bin.charCodeAt(i2);
   return new TextDecoder().decode(bytes);
 }
 function base64urlEncode(str) {
@@ -794,7 +603,7 @@ function base64urlDecode(b64url) {
 function stripFunctions(obj) {
   try {
     return JSON.parse(JSON.stringify(obj));
-  } catch (e) {
+  } catch (e2) {
     return void 0;
   }
 }
@@ -850,8 +659,8 @@ class Perspectives {
    * @returns {string}
    */
   encode(token) {
-    const t = token || this.capture();
-    return base64urlEncode(JSON.stringify(t));
+    const t2 = token || this.capture();
+    return base64urlEncode(JSON.stringify(t2));
   }
   /**
    * Decode a base64url token string. Never throws: returns null on any error
@@ -922,15 +731,15 @@ class Perspectives {
    * @returns {{ id: string, name: string, token: any }[]}
    */
   list() {
-    return this._saved.map((s) => ({ id: s.id, name: s.name, token: s.token }));
+    return this._saved.map((s2) => ({ id: s2.id, name: s2.name, token: s2.token }));
   }
   /**
    * Delete a saved perspective by id.
    * @param {string} id
    */
   delete(id) {
-    const i = this._saved.findIndex((s) => s.id === id);
-    if (i > -1) this._saved.splice(i, 1);
+    const i2 = this._saved.findIndex((s2) => s2.id === id);
+    if (i2 > -1) this._saved.splice(i2, 1);
   }
   /** Drop the saved-views registry (called on full destroy). */
   teardown() {
@@ -954,8 +763,8 @@ class Perspectives {
         return null;
       }
       return token;
-    } catch (e) {
-      console.warn("apexcharts: failed to decode perspective token.", e);
+    } catch (e2) {
+      console.warn("apexcharts: failed to decode perspective token.", e2);
       return null;
     }
   }
@@ -975,7 +784,7 @@ class Perspectives {
       const pair = hash.split("&").map((p) => p.split("=")).find((p) => p[0] === HASH_KEY);
       if (!pair || pair[1] == null) return null;
       return Perspectives.decode(decodeURIComponent(pair[1]));
-    } catch (e) {
+    } catch (e2) {
       return null;
     }
   }

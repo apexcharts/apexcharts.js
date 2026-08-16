@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.8.0
+ * ApexCharts v6.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -353,10 +353,48 @@ class BarDataLabels {
       totalDataLabels
     };
   }
+  /**
+   * True when this chart stacks in more than one group, so totals have to be
+   * resolved per group rather than across the whole data point. A single-group
+   * chart keeps every old code path exactly as it was. See #4173.
+   */
+  hasMultipleSeriesGroups() {
+    return this.w.labelData.seriesGroups.length > 1;
+  }
+  /**
+   * The series group `realIndex` belongs to, and that group's own stacking
+   * state, or null when totals are chart-wide (the single-group case).
+   * @param {number} realIndex
+   * @returns {{groupIndex: number, group: string[]} | null}
+   */
+  getTotalGroupContext(realIndex) {
+    if (!this.hasMultipleSeriesGroups()) return null;
+    const groupIndex = this.barCtx.barHelpers.getSeriesGroupIndex(realIndex);
+    if (groupIndex < 0) return null;
+    return { groupIndex, group: this.w.labelData.seriesGroups[groupIndex] };
+  }
+  /**
+   * Whether `realIndex` is the series that should draw the stacked total.
+   *
+   * That is the series capping the stack. With grouped stacks each group has
+   * its own cap, so gating on the chart-wide `lastActiveBarSerieIndex` drew a
+   * single total for the last group only. See #4173.
+   * @param {number} realIndex
+   */
+  drawsStackedTotal(realIndex) {
+    const byGroup = this.barCtx.lastActiveBarSerieIndexByGroup;
+    const ctx = this.getTotalGroupContext(realIndex);
+    if (ctx && byGroup && byGroup.length > ctx.groupIndex) {
+      return byGroup[ctx.groupIndex] === realIndex;
+    }
+    return this.barCtx.lastActiveBarSerieIndex === realIndex;
+  }
   /** @param {{realIndex: any, j: any}} opts */
   getStackedTotalDataLabel({ realIndex, j }) {
     const w = this.w;
-    let val = this.barCtx.stackedSeriesTotals[j];
+    const ctx = this.getTotalGroupContext(realIndex);
+    const byGroups = w.seriesData.stackedSeriesTotalsByGroups;
+    let val = ctx && byGroups && byGroups[ctx.groupIndex] ? byGroups[ctx.groupIndex][j] : this.barCtx.stackedSeriesTotals[j];
     if (this.totalFormatter) {
       val = this.totalFormatter(val, __spreadProps(__spreadValues({}, w), {
         seriesIndex: realIndex,
@@ -470,7 +508,9 @@ class BarDataLabels {
         break;
     }
     let lowestPrevY = newY;
-    w.labelData.seriesGroups.forEach((sg) => {
+    const totalGroupCtx = this.getTotalGroupContext(realIndex);
+    const prevYGroups = totalGroupCtx ? [totalGroupCtx.group] : w.labelData.seriesGroups;
+    prevYGroups.forEach((sg) => {
       var _a;
       (_a = this.barCtx[sg.join(",")]) == null ? void 0 : _a.prevY.forEach(
         (arr) => {
@@ -482,7 +522,7 @@ class BarDataLabels {
         }
       );
     });
-    if (this.barCtx.lastActiveBarSerieIndex === realIndex && barTotalDataLabelsConfig.enabled) {
+    if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
       const ADDITIONAL_OFFY = 18;
       const graphics = new Graphics(this.barCtx.w);
       const totalLabeltextRects = graphics.getTextRects(
@@ -495,7 +535,7 @@ class BarDataLabels {
         totalDataLabelsY = lowestPrevY + totalLabeltextRects.height + offY + barTotalDataLabelsConfig.offsetY - ADDITIONAL_OFFY;
       }
       const xDivision = dataPointsDividedWidth;
-      totalDataLabelsX = totalDataLabelsBcx + (w.axisFlags.isXNumeric ? -barWidth * w.globals.barGroups.length / 2 : w.globals.barGroups.length * barWidth / 2 - (w.globals.barGroups.length - 1) * barWidth - xDivision) + barTotalDataLabelsConfig.offsetX;
+      totalDataLabelsX = totalDataLabelsBcx + (w.axisFlags.isXNumeric ? -barWidth / 2 : barWidth / 2 - xDivision) + barTotalDataLabelsConfig.offsetX;
     }
     if (!w.config.chart.stacked) {
       if (dataLabelsY < 0) {
@@ -590,7 +630,9 @@ class BarDataLabels {
       }
     }
     let lowestPrevX = newX;
-    w.labelData.seriesGroups.forEach((sg) => {
+    const totalGroupCtx = this.getTotalGroupContext(realIndex);
+    const prevXGroups = totalGroupCtx ? [totalGroupCtx.group] : w.labelData.seriesGroups;
+    prevXGroups.forEach((sg) => {
       var _a2;
       (_a2 = this.barCtx[sg.join(",")]) == null ? void 0 : _a2.prevX.forEach(
         (arr) => {
@@ -602,7 +644,7 @@ class BarDataLabels {
         }
       );
     });
-    if (this.barCtx.lastActiveBarSerieIndex === realIndex && barTotalDataLabelsConfig.enabled) {
+    if (this.drawsStackedTotal(realIndex) && barTotalDataLabelsConfig.enabled) {
       const graphics = new Graphics(this.barCtx.w);
       const totalLabeltextRects = graphics.getTextRects(
         this.getStackedTotalDataLabel({ realIndex, j }),
@@ -615,7 +657,7 @@ class BarDataLabels {
         totalDataLabelsX = lowestPrevX + offX + barTotalDataLabelsConfig.offsetX + (this.barCtx.isReversed ? -(barWidth + strokeWidth) : strokeWidth);
       }
       totalDataLabelsY = dataLabelsY - textRects.height / 2 + totalLabeltextRects.height / 2 + barTotalDataLabelsConfig.offsetY + strokeWidth;
-      if (w.globals.barGroups.length > 1) {
+      if (w.globals.barGroups.length > 1 && !totalGroupCtx) {
         totalDataLabelsY = totalDataLabelsY - w.globals.barGroups.length / 2 * (barHeight / 2);
       }
     }
@@ -770,7 +812,7 @@ class BarDataLabels {
   }) {
     const graphics = new Graphics(this.barCtx.w);
     let totalDataLabelText;
-    if (barTotalDataLabelsConfig.enabled && typeof x !== "undefined" && typeof y !== "undefined" && this.barCtx.lastActiveBarSerieIndex === realIndex) {
+    if (barTotalDataLabelsConfig.enabled && typeof x !== "undefined" && typeof y !== "undefined" && this.drawsStackedTotal(realIndex)) {
       totalDataLabelText = graphics.drawText({
         x,
         y,
@@ -788,6 +830,12 @@ class BarDataLabels {
 const Series = _core.__apex_Series;
 const Fill = _core.__apex_Fill;
 const Utils = _core.__apex_Utils;
+function isHistogramOverlay(w) {
+  var _a, _b, _c, _d, _e, _f, _g;
+  if (((_b = (_a = w == null ? void 0 : w.config) == null ? void 0 : _a.chart) == null ? void 0 : _b.requestedType) !== "histogram") return false;
+  if (((_d = (_c = w.config.plotOptions) == null ? void 0 : _c.histogram) == null ? void 0 : _d.overlap) === false) return false;
+  return ((_g = (_f = (_e = w.seriesData) == null ? void 0 : _e.series) == null ? void 0 : _f.length) != null ? _g : 0) > 1;
+}
 class Helpers {
   /**
    * @param {Record<string, any>} barCtx
@@ -847,7 +895,7 @@ class Helpers {
       dataPoints = w.labelData.labels.length;
     }
     let seriesLen = this.barCtx.seriesLen;
-    if (w.config.plotOptions.bar.rangeBarGroupRows) {
+    if (w.config.plotOptions.bar.rangeBarGroupRows || isHistogramOverlay(w)) {
       seriesLen = 1;
     }
     if (this.barCtx.isHorizontal) {
@@ -1572,6 +1620,22 @@ class Helpers {
     };
   }
   /**
+   * Index of the series group `seriesIndex` belongs to within
+   * `w.labelData.seriesGroups`, or -1 when the chart has no groups.
+   *
+   * Unlike `getGroupIndex` this is a pure lookup: it never appends to
+   * `columnGroupIndices`, so it is safe to call from positioning/label code
+   * that must not perturb the draw order bookkeeping.
+   * @param {number} seriesIndex
+   * @returns {number}
+   */
+  getSeriesGroupIndex(seriesIndex) {
+    const w = this.w;
+    return w.labelData.seriesGroups.findIndex(
+      (group) => group.indexOf(w.seriesData.seriesNames[seriesIndex]) > -1
+    );
+  }
+  /**
    * @param {number} seriesIndex
    */
   getGroupIndex(seriesIndex) {
@@ -1623,6 +1687,24 @@ class AxisMapping {
    */
   static pxToDataX(w, px) {
     return w.globals.minX + px * AxisMapping.xRatio(w);
+  }
+  /**
+   * Client (screen) x -> pixels from the plot origin. The origin is the svg
+   * element's left edge plus `translateX`, never the `.apexcharts-grid` box
+   * (fact 2 above), so the result does not depend on what the grid happens to
+   * render. `svgWidth` is the unscaled width the svg was drawn at, so the ratio
+   * against the measured one is the CSS zoom of any container the chart sits in.
+   * @param {import('../types/internal').ChartStateW} w
+   * @param {number} screenX
+   * @returns {number}
+   */
+  static screenXToPlotPx(w, screenX) {
+    const baseEl = w.dom.baseEl;
+    const svg = baseEl && baseEl.querySelector(".apexcharts-svg");
+    if (!svg) return screenX - w.layout.translateX;
+    const svgRect = svg.getBoundingClientRect();
+    const zoom = w.globals.svgWidth ? svgRect.width / w.globals.svgWidth : 1;
+    return (screenX - svgRect.left) / (zoom || 1) - w.layout.translateX;
   }
 }
 function seriesEmitter(ctx, graphics) {
@@ -1678,6 +1760,7 @@ class Bar {
       "bar",
       "column"
     ]);
+    this.lastActiveBarSerieIndexByGroup = ser.getActiveConfigSeriesIndexByGroup(["bar", "column"]);
     this.columnGroupIndices = [];
     const barSeriesIndices = ser.getBarSeriesIndices();
     const coreUtils = new CoreUtils(this.w);
@@ -2024,6 +2107,11 @@ class Bar {
     if (!skipDrawing) {
       const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
       const dataChangeSpeed = morphActive ? this.ctx.morphTypeChange.getSpeed() : w.config.chart.animations.dynamicAnimation.speed;
+      const pieceClaimed = morphActive && this.ctx.morphTypeChange.claimsTargetMark(realIndex, j);
+      if (pieceClaimed) {
+        pathFrom = pathTo;
+        delay = 0;
+      }
       const renderedPath = (
         /** @type {any} */
         emit.renderPaths({
@@ -2039,12 +2127,19 @@ class Bar {
           animationDelay: delay,
           initialSpeed: w.config.chart.animations.speed,
           dataChangeSpeed,
-          className: `apexcharts-${type}-area ${classes}`,
+          // `classes` is optional: boxPlot, violin and candlestick call
+          // renderSeries without it, and interpolating it unguarded stamped a
+          // literal "undefined" into every one of their marks' class lists.
+          className: `apexcharts-${type}-area${classes ? ` ${classes}` : ""}`,
           chartType: type,
           bindEventsOnPaths: false
         })
       );
       renderedPath.attr("clip-path", `url(#gridRectBarMask${w.globals.cuid})`);
+      if (pieceClaimed) {
+        renderedPath.node.setAttribute("opacity", "0");
+        renderedPath.node.setAttribute("data-piece-hidden", "1");
+      }
       const forecast = w.config.forecastDataPoints;
       if (forecast.count > 0) {
         if (j >= w.globals.dataPoints - forecast.count) {
@@ -2330,7 +2425,7 @@ class Bar {
       x = AxisMapping.dataXToPx(w, w.seriesData.seriesX[sxI][j]) - barWidth * this.seriesLen / 2;
     }
     return {
-      barXPosition: x + barWidth * this.visibleI,
+      barXPosition: x + (isHistogramOverlay(w) ? 0 : barWidth * this.visibleI),
       x
     };
   }
@@ -2912,7 +3007,7 @@ class Violin extends Bar {
   }
   /** @param {{indexes: any, x: any, xDivision: any, barWidth: any, zeroH: any}} opts */
   drawVerticalViolin({ indexes, x, xDivision, barWidth, zeroH }) {
-    var _a;
+    var _a, _b, _c;
     const w = this.w;
     const { realIndex, j, translationsIndex } = indexes;
     const yRatio = this.yRatio[translationsIndex];
@@ -2935,7 +3030,10 @@ class Violin extends Bar {
       collapsed: false
     });
     let pathFrom = null;
-    if (w.globals.previousPaths.length > 0) {
+    const morphFrom = (_b = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(realIndex, j);
+    if (morphFrom) {
+      pathFrom = morphFrom;
+    } else if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j, pathTo);
     }
     if (pathFrom == null) {
@@ -2962,12 +3060,12 @@ class Violin extends Bar {
       alongFn,
       density,
       maxWeight,
-      alongRepresentative: alongFn((_a = this.series[indexes.i][j]) != null ? _a : 0)
+      alongRepresentative: alongFn((_c = this.series[indexes.i][j]) != null ? _c : 0)
     };
   }
   /** @param {{indexes: any, y: any, yDivision: any, barHeight: any, zeroW: any}} opts */
   drawHorizontalViolin({ indexes, y, yDivision, barHeight, zeroW }) {
-    var _a;
+    var _a, _b, _c;
     const w = this.w;
     const { realIndex, j } = indexes;
     const yRatio = this.invertedYRatio;
@@ -2990,7 +3088,10 @@ class Violin extends Bar {
       collapsed: false
     });
     let pathFrom = null;
-    if (w.globals.previousPaths.length > 0) {
+    const morphFrom = (_b = (_a = this.ctx) == null ? void 0 : _a.morphTypeChange) == null ? void 0 : _b.getInitialPathFor(realIndex, j);
+    if (morphFrom) {
+      pathFrom = morphFrom;
+    } else if (w.globals.previousPaths.length > 0) {
       pathFrom = this.getPreviousPath(realIndex, j, pathTo);
     }
     if (pathFrom == null) {
@@ -3017,7 +3118,7 @@ class Violin extends Bar {
       alongFn,
       maxWeight,
       density,
-      alongRepresentative: alongFn((_a = this.series[indexes.i][j]) != null ? _a : 0)
+      alongRepresentative: alongFn((_c = this.series[indexes.i][j]) != null ? _c : 0)
     };
   }
   /**

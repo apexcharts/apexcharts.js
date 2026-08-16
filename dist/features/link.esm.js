@@ -18,566 +18,292 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.8.0
+ * ApexCharts v6.9.0
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";
 import { default as default2 } from "apexcharts/core";
-const REGISTRY_KEY = "__apexcharts_crossfilters__";
-function cleanFloat(x) {
-  if (!Number.isFinite(x)) return x;
-  const n = Number(x.toPrecision(12));
-  return Object.is(n, -0) ? 0 : n;
+const X = "__apexcharts_crossfilters__";
+function Y(e) {
+  if (!Number.isFinite(e)) return e;
+  const t = Number(e.toPrecision(12));
+  return Object.is(t, -0) ? 0 : t;
 }
-function isNum(v) {
-  return typeof v === "number" && Number.isFinite(v);
+function Z(e) {
+  return "number" == typeof e && Number.isFinite(e);
 }
-function makeReducer(reduce) {
-  if (typeof reduce === "function") return reduce;
-  if (reduce && typeof reduce === "object") {
-    if (typeof reduce.sum === "string") {
-      const f = reduce.sum;
-      return (rows) => rows.reduce((a, r) => a + (Number(r[f]) || 0), 0);
+function J(e) {
+  if ("function" == typeof e) return e;
+  if (e && "object" == typeof e) {
+    if ("string" == typeof e.sum) {
+      const t = e.sum;
+      return (e2) => e2.reduce(((e3, s) => e3 + (Number(s[t]) || 0)), 0);
     }
-    if (typeof reduce.avg === "string") {
-      const f = reduce.avg;
-      return (rows) => rows.length ? rows.reduce((a, r) => a + (Number(r[f]) || 0), 0) / rows.length : 0;
+    if ("string" == typeof e.avg) {
+      const t = e.avg;
+      return (e2) => e2.length ? e2.reduce(((e3, s) => e3 + (Number(s[t]) || 0)), 0) / e2.length : 0;
     }
-    if (typeof reduce.min === "string") {
-      const f = reduce.min;
-      return (rows) => rows.length ? Math.min(...rows.map((r) => Number(r[f]) || 0)) : 0;
+    if ("string" == typeof e.min) {
+      const t = e.min;
+      return (e2) => e2.length ? Math.min(...e2.map(((e3) => Number(e3[t]) || 0))) : 0;
     }
-    if (typeof reduce.max === "string") {
-      const f = reduce.max;
-      return (rows) => rows.length ? Math.max(...rows.map((r) => Number(r[f]) || 0)) : 0;
-    }
-  }
-  return (rows) => rows.length;
-}
-function applyOrder(keys, order) {
-  if (typeof order === "function") return keys.slice().sort(order);
-  if (order === "asc") return keys.slice().sort((a, b) => a > b ? 1 : a < b ? -1 : 0);
-  if (order === "desc") return keys.slice().sort((a, b) => a < b ? 1 : a > b ? -1 : 0);
-  return keys;
-}
-function categoryDomain(records, accessor, order) {
-  const seen = /* @__PURE__ */ new Set();
-  const keys = [];
-  for (let i = 0; i < records.length; i++) {
-    const k = accessor(records[i]);
-    if (k == null) continue;
-    if (!seen.has(k)) {
-      seen.add(k);
-      keys.push(k);
+    if ("string" == typeof e.max) {
+      const t = e.max;
+      return (e2) => e2.length ? Math.max(...e2.map(((e3) => Number(e3[t]) || 0))) : 0;
     }
   }
-  return applyOrder(keys, order);
+  return (e2) => e2.length;
 }
-function matrixDomain(records, accessor, order) {
-  const xSeen = /* @__PURE__ */ new Set();
-  const ySeen = /* @__PURE__ */ new Set();
-  const xLabels = [];
-  const yLabels = [];
-  for (let i = 0; i < records.length; i++) {
-    const pair = accessor(records[i]);
-    if (!pair) continue;
-    const x = pair[0];
-    const y = pair[1];
-    if (x != null && !xSeen.has(x)) {
-      xSeen.add(x);
-      xLabels.push(x);
-    }
-    if (y != null && !ySeen.has(y)) {
-      ySeen.add(y);
-      yLabels.push(y);
-    }
-  }
-  return { xLabels: applyOrder(xLabels, order), yLabels: applyOrder(yLabels, order) };
+function G(e, t) {
+  return "function" == typeof t ? e.slice().sort(t) : "asc" === t ? e.slice().sort(((e2, t2) => e2 > t2 ? 1 : e2 < t2 ? -1 : 0)) : "desc" === t ? e.slice().sort(((e2, t2) => e2 < t2 ? 1 : e2 > t2 ? -1 : 0)) : e;
 }
-function rangeEdges(records, accessor, bins) {
-  if (bins && Array.isArray(bins.thresholds) && bins.thresholds.length >= 2) {
-    const t = Array.from(new Set(bins.thresholds.filter(isNum))).sort(
-      (a, b) => a - b
-    );
-    return t.length >= 2 ? t.map(cleanFloat) : [0, 1];
-  }
-  let min = Infinity;
-  let max = -Infinity;
-  for (let i = 0; i < records.length; i++) {
-    const v = accessor(records[i]);
-    if (!isNum(v)) continue;
-    if (v < min) min = v;
-    if (v > max) max = v;
-  }
-  if (min === Infinity) return [0, 1];
-  if (min === max) {
-    const pad = Math.abs(min) > 0 ? Math.abs(min) : 1;
-    return [cleanFloat(min), cleanFloat(min + pad)];
-  }
-  if (bins && isNum(bins.width) && bins.width > 0) {
-    const w2 = bins.width;
-    const start = Math.floor(min / w2) * w2;
-    let end = Math.ceil(max / w2) * w2;
-    if (end <= start) end = start + w2;
-    const count2 = Math.max(1, Math.round((end - start) / w2));
-    const edges2 = new Array(count2 + 1);
-    for (let i = 0; i <= count2; i++) edges2[i] = cleanFloat(start + i * w2);
-    return edges2;
-  }
-  const count = bins && isNum(bins.count) && bins.count >= 1 ? Math.floor(bins.count) : 30;
-  const w = (max - min) / count;
-  const edges = new Array(count + 1);
-  for (let i = 0; i <= count; i++) edges[i] = cleanFloat(min + i * w);
-  edges[count] = cleanFloat(max);
-  return edges;
-}
-function binIndexOf(v, edges) {
-  if (!isNum(v)) return -1;
-  const last = edges.length - 1;
-  if (v < edges[0] || v > edges[last]) return -1;
-  if (v === edges[last]) return last - 1;
-  for (let i = 0; i < last; i++) {
-    if (v >= edges[i] && v < edges[i + 1]) return i;
-  }
+function ee(e, t) {
+  if (!Z(e)) return -1;
+  const s = t.length - 1;
+  if (e < t[0] || e > t[s]) return -1;
+  if (e === t[s]) return s - 1;
+  for (let i = 0; i < s; i++) if (e >= t[i] && e < t[i + 1]) return i;
   return -1;
 }
-function binCenters(edges) {
-  const centers = [];
-  for (let i = 0; i < edges.length - 1; i++) {
-    centers.push(cleanFloat((edges[i] + edges[i + 1]) / 2));
-  }
-  return centers;
+function te(e) {
+  const t = [];
+  for (let s = 0; s < e.length - 1; s++) t.push(Y((e[s] + e[s + 1]) / 2));
+  return t;
 }
-class Crossfilter {
-  /**
-   * @param {string} id
-   * @param {any[]} [records]
-   */
-  constructor(id, records) {
-    this.id = id;
-    this.records = Array.isArray(records) ? records : [];
-    this.dims = /* @__PURE__ */ new Map();
-    this._listeners = /* @__PURE__ */ new Map();
+class se {
+  constructor(e, t) {
+    this.dims = /* @__PURE__ */ new Map(), this.listeners = /* @__PURE__ */ new Map(), this.id = e, this.records = Array.isArray(t) ? t : [];
   }
-  // ----- registry ---------------------------------------------------------
-  /** @returns {Map<string, Crossfilter>} */
-  static _store() {
-    const g = (
-      /** @type {any} */
-      globalThis
-    );
-    if (!g[REGISTRY_KEY]) g[REGISTRY_KEY] = /* @__PURE__ */ new Map();
-    return g[REGISTRY_KEY];
+  static store() {
+    const e = globalThis;
+    return e[X] || (e[X] = /* @__PURE__ */ new Map()), e[X];
   }
-  /**
-   * Get-or-create a coordinator by id. Passing `records` on an existing
-   * coordinator swaps its dataset (re-aggregates).
-   * @param {{id:string, records?:any[]}} opts
-   * @returns {Crossfilter}
-   */
-  static getOrCreate(opts) {
-    if (!opts || typeof opts.id !== "string") {
-      throw new Error("ApexCharts.crossfilter requires an { id } string.");
+  static getOrCreate(e) {
+    if (!e || "string" != typeof e.id) throw new Error("Crossfilter.getOrCreate requires an { id } string.");
+    const t = se.store(), s = t.get(e.id);
+    if (s) return e.records && s.setRecords(e.records), s;
+    const i = new se(e.id, e.records);
+    return t.set(e.id, i), i;
+  }
+  static get(e) {
+    return se.store().get(e) || null;
+  }
+  setRecords(e) {
+    return this.records = Array.isArray(e) ? e : [], this.dims.forEach(((e2) => this.recomputeDomain(e2))), this.emit("records", this.state()), this.emit("change", this.state()), this;
+  }
+  registerDimension(e, t) {
+    if (!t || "function" != typeof t.dimension) throw new Error(`crossfilter.registerDimension("${e}") needs a dimension function.`);
+    const s = t.type || (t.bins ? "range" : "category"), i = { accessor: t.dimension, reducer: J(t.reduce), type: s, bins: t.bins, order: t.order, filter: null, labels: [], edges: null, xLabels: [], yLabels: [] };
+    return this.dims.set(e, i), this.recomputeDomain(i), null != t.filter && this.setFilterOn(i, t.filter), this;
+  }
+  hasDimension(e) {
+    return this.dims.has(e);
+  }
+  removeDimension(e) {
+    const t = this.dims.get(e), s = !!t && this.hasFilter(t);
+    return this.dims.delete(e), s && this.emit("change", this.state()), this;
+  }
+  recomputeDomain(e) {
+    if ("matrix" === e.type) {
+      const t = (function(e2, t2, s) {
+        const i = /* @__PURE__ */ new Set(), n = /* @__PURE__ */ new Set(), r = [], a = [];
+        for (let s2 = 0; s2 < e2.length; s2++) {
+          const l = t2(e2[s2]);
+          if (!l) continue;
+          const o = l[0], c = l[1];
+          null == o || i.has(o) || (i.add(o), r.push(o)), null == c || n.has(c) || (n.add(c), a.push(c));
+        }
+        return { xLabels: G(r, s), yLabels: G(a, s) };
+      })(this.records, e.accessor, e.order);
+      return e.xLabels = t.xLabels, e.yLabels = t.yLabels, void (e.edges = null);
     }
-    const store = Crossfilter._store();
-    let cf = store.get(opts.id);
-    if (cf) {
-      if (opts.records) cf.setRecords(opts.records);
-      return cf;
-    }
-    cf = new Crossfilter(opts.id, opts.records);
-    store.set(opts.id, cf);
-    return cf;
-  }
-  /** @param {string} id @returns {Crossfilter|null} */
-  static get(id) {
-    return Crossfilter._store().get(id) || null;
-  }
-  // ----- data + dimensions ------------------------------------------------
-  /**
-   * Swap the shared dataset and recompute every dimension's domain. Existing
-   * filters are kept where still valid (categorical keys no longer present are
-   * pruned); the change is broadcast.
-   * @param {any[]} records
-   */
-  setRecords(records) {
-    this.records = Array.isArray(records) ? records : [];
-    this.dims.forEach((dim) => this._recomputeDomain(dim));
-    this._emit("records", this.state());
-    this._emit("change", this.state());
-    return this;
-  }
-  /**
-   * Register (or replace) a chart's dimension + reduction.
-   * @param {string} chartId
-   * @param {{
-   *   dimension:(row:any)=>any, reduce?:any, type?:'category'|'range',
-   *   bins?:{width?:number,count?:number,thresholds?:number[]},
-   *   order?:'first-seen'|'asc'|'desc'|((a:any,b:any)=>number),
-   *   filter?:any }} spec
-   */
-  registerDimension(chartId, spec) {
-    if (!spec || typeof spec.dimension !== "function") {
-      throw new Error(
-        `crossfilter.registerDimension("${chartId}") needs a dimension function.`
-      );
-    }
-    const type = spec.type || (spec.bins ? "range" : "category");
-    const dim = {
-      accessor: spec.dimension,
-      reducer: makeReducer(spec.reduce),
-      type,
-      bins: spec.bins,
-      order: spec.order,
-      /** @type {Set<any>|[number,number]|null} */
-      filter: null,
-      /** @type {any[]} */
-      labels: [],
-      /** @type {number[]|null} */
-      edges: null
-    };
-    this.dims.set(chartId, dim);
-    this._recomputeDomain(dim);
-    if (spec.filter != null) this._setFilterOn(dim, spec.filter);
-    return this;
-  }
-  /** @param {string} chartId @returns {boolean} */
-  hasDimension(chartId) {
-    return this.dims.has(chartId);
-  }
-  /** @param {string} chartId */
-  removeDimension(chartId) {
-    const dim = this.dims.get(chartId);
-    const hadFilter = dim ? this._hasFilter(dim) : false;
-    this.dims.delete(chartId);
-    if (hadFilter) this._emit("change", this.state());
-    return this;
-  }
-  /** @param {any} dim */
-  _recomputeDomain(dim) {
-    if (dim.type === "matrix") {
-      const dom = matrixDomain(this.records, dim.accessor, dim.order);
-      dim.xLabels = dom.xLabels;
-      dim.yLabels = dom.yLabels;
-      dim.edges = null;
-      return;
-    }
-    if (dim.type === "range") {
-      dim.edges = rangeEdges(this.records, dim.accessor, dim.bins);
-      dim.labels = binCenters(dim.edges);
-    } else {
-      dim.labels = categoryDomain(this.records, dim.accessor, dim.order);
-      dim.edges = null;
-      if (dim.filter instanceof Set) {
-        const domain = new Set(dim.labels);
-        Array.from(dim.filter).forEach((k) => {
-          if (!domain.has(k)) dim.filter.delete(k);
-        });
+    if ("range" === e.type) return e.edges = (function(e2, t, s) {
+      if (s && Array.isArray(s.thresholds) && s.thresholds.length >= 2) {
+        const e3 = Array.from(new Set(s.thresholds.filter(Z))).sort(((e4, t2) => e4 - t2));
+        return e3.length >= 2 ? e3.map(Y) : [0, 1];
       }
-    }
-  }
-  // ----- filters ----------------------------------------------------------
-  /**
-   * Set (replace) a chart's filter. Categorical: an array/Set of keys (or null
-   * to clear). Range: a `[min,max]` tuple (or null to clear).
-   * @param {string} chartId
-   * @param {any[]|Set<any>|[number,number]|null} filter
-   */
-  filter(chartId, filter) {
-    const dim = this.dims.get(chartId);
-    if (!dim) return this;
-    this._setFilterOn(dim, filter);
-    this._emit("change", this.state());
-    return this;
-  }
-  /**
-   * Toggle one categorical key in a chart's filter Set (multi-select, OR).
-   * @param {string} chartId @param {any} key
-   */
-  toggleKey(chartId, key) {
-    const dim = this.dims.get(chartId);
-    if (!dim || dim.type !== "category") return this;
-    if (!(dim.filter instanceof Set)) dim.filter = /* @__PURE__ */ new Set();
-    const set = (
-      /** @type {Set<any>} */
-      dim.filter
-    );
-    if (set.has(key)) set.delete(key);
-    else set.add(key);
-    if (set.size === 0) dim.filter = null;
-    this._emit("change", this.state());
-    return this;
-  }
-  /** @param {any} dim @param {any} filter */
-  _setFilterOn(dim, filter) {
-    if (filter == null) {
-      dim.filter = null;
-      return;
-    }
-    if (dim.type === "range") {
-      if (Array.isArray(filter) && filter.length === 2 && filter.every(isNum)) {
-        dim.filter = [Math.min(filter[0], filter[1]), Math.max(filter[0], filter[1])];
-      } else {
-        dim.filter = null;
+      let i = 1 / 0, n = -1 / 0;
+      for (let s2 = 0; s2 < e2.length; s2++) {
+        const r2 = t(e2[s2]);
+        Z(r2) && (r2 < i && (i = r2), r2 > n && (n = r2));
       }
+      if (i === 1 / 0) return [0, 1];
+      if (i === n) {
+        const e3 = Math.abs(i) > 0 ? Math.abs(i) : 1;
+        return [Y(i), Y(i + e3)];
+      }
+      if (s && Z(s.width) && s.width > 0) {
+        const e3 = s.width, t2 = Math.floor(i / e3) * e3;
+        let r2 = Math.ceil(n / e3) * e3;
+        r2 <= t2 && (r2 = t2 + e3);
+        const a2 = Math.max(1, Math.round((r2 - t2) / e3)), l2 = new Array(a2 + 1);
+        for (let s2 = 0; s2 <= a2; s2++) l2[s2] = Y(t2 + s2 * e3);
+        return l2;
+      }
+      const r = s && Z(s.count) && s.count >= 1 ? Math.floor(s.count) : 30, a = (n - i) / r, l = new Array(r + 1);
+      for (let e3 = 0; e3 <= r; e3++) l[e3] = Y(i + e3 * a);
+      return l[r] = Y(n), l;
+    })(this.records, e.accessor, e.bins), void (e.labels = te(e.edges));
+    if (e.labels = (function(e2, t, s) {
+      const i = /* @__PURE__ */ new Set(), n = [];
+      for (let s2 = 0; s2 < e2.length; s2++) {
+        const r = t(e2[s2]);
+        null != r && (i.has(r) || (i.add(r), n.push(r)));
+      }
+      return G(n, s);
+    })(this.records, e.accessor, e.order), e.edges = null, e.filter instanceof Set) {
+      const t = new Set(e.labels);
+      Array.from(e.filter).forEach(((s) => {
+        t.has(s) || e.filter.delete(s);
+      }));
+    }
+  }
+  filter(e, t) {
+    const s = this.dims.get(e);
+    return s ? (this.setFilterOn(s, t), this.emit("change", this.state()), this) : this;
+  }
+  toggleKey(e, t) {
+    const s = this.dims.get(e);
+    if (!s || "category" !== s.type) return this;
+    s.filter instanceof Set || (s.filter = /* @__PURE__ */ new Set());
+    const i = s.filter;
+    return i.has(t) ? i.delete(t) : i.add(t), 0 === i.size && (s.filter = null), this.emit("change", this.state()), this;
+  }
+  setFilterOn(e, t) {
+    if (null == t) return void (e.filter = null);
+    if ("range" === e.type) {
+      if (Array.isArray(t) && 2 === t.length && t.every(Z)) {
+        const [s2, i] = t;
+        e.filter = [Math.min(s2, i), Math.max(s2, i)];
+      } else e.filter = null;
       return;
     }
-    const set = filter instanceof Set ? new Set(filter) : new Set(filter);
-    dim.filter = set.size ? set : null;
+    const s = new Set(t);
+    e.filter = s.size ? s : null;
   }
-  /**
-   * Clear one chart's filter.
-   * @param {string} chartId
-   */
-  clear(chartId) {
-    const dim = this.dims.get(chartId);
-    if (dim) dim.filter = null;
-    this._emit("change", this.state());
-    return this;
+  clear(e) {
+    const t = this.dims.get(e);
+    return t && (t.filter = null), this.emit("change", this.state()), this;
   }
-  /** Clear all filters across every dimension. */
   reset() {
-    this.dims.forEach((dim) => {
-      dim.filter = null;
-    });
-    this._emit("change", this.state());
-    return this;
+    return this.dims.forEach(((e) => {
+      e.filter = null;
+    })), this.emit("change", this.state()), this;
   }
-  /** @param {any} dim @returns {boolean} does this dimension have an active filter */
-  _hasFilter(dim) {
-    if (dim.filter == null) return false;
-    if (dim.filter instanceof Set) return dim.filter.size > 0;
-    return true;
+  hasFilter(e) {
+    return null != e.filter && (!(e.filter instanceof Set) || e.filter.size > 0);
   }
-  /** @param {any} dim @param {any} row @returns {boolean} does row pass this dim's filter */
-  _passes(dim, row) {
-    if (!this._hasFilter(dim)) return true;
-    const v = dim.accessor(row);
-    if (dim.filter instanceof Set) return dim.filter.has(v);
-    if (!isNum(v)) return false;
-    return v >= dim.filter[0] && v <= dim.filter[1];
+  passes(e, t) {
+    if (!this.hasFilter(e)) return true;
+    const s = e.accessor(t);
+    if (e.filter instanceof Set) return e.filter.has(s);
+    if (!Z(s)) return false;
+    const [i, n] = e.filter;
+    return s >= i && s <= n;
   }
-  // ----- aggregation ------------------------------------------------------
-  /**
-   * Records passing every ACTIVE filter except the one on `exceptChartId`
-   * (pass null/undefined to apply all filters).
-   * @param {string|null} [exceptChartId]
-   * @returns {any[]}
-   */
-  filteredRecords(exceptChartId) {
-    const active = [];
-    this.dims.forEach((dim, id) => {
-      if (id === exceptChartId) return;
-      if (this._hasFilter(dim)) active.push(dim);
-    });
-    if (active.length === 0) return this.records;
-    return this.records.filter((row) => active.every((dim) => this._passes(dim, row)));
+  filteredRecords(e) {
+    const t = [];
+    return this.dims.forEach(((s, i) => {
+      i !== e && this.hasFilter(s) && t.push(s);
+    })), 0 === t.length ? this.records : this.records.filter(((e2) => t.every(((t2) => this.passes(t2, e2)))));
   }
-  /** Rows passing ALL active filters (the fully filtered set). @returns {any[]} */
   filteredRows() {
     return this.filteredRecords(null);
   }
-  /**
-   * The crossfilter aggregation for one chart: reduce over records passing all
-   * OTHER charts' filters, bucketed by this chart's dimension. Category/range
-   * dims return `{type, labels, values, keys, edges?}`; a matrix (2D) dim
-   * returns `{type:'matrix', xLabels, yLabels, matrix}`.
-   * @param {string} chartId
-   * @returns {any}
-   */
-  aggregateFor(chartId) {
-    const dim = this.dims.get(chartId);
-    if (!dim) return { type: "category", labels: [], values: [], keys: [] };
-    const rows = this.filteredRecords(chartId);
-    if (dim.type === "matrix") {
-      const xIndex = new Map(dim.xLabels.map((k, i) => [k, i]));
-      const yIndex = new Map(dim.yLabels.map((k, i) => [k, i]));
-      const buckets = dim.yLabels.map(() => dim.xLabels.map(() => []));
-      for (let i = 0; i < rows.length; i++) {
-        const pair = dim.accessor(rows[i]);
-        if (!pair) continue;
-        const xi = xIndex.get(pair[0]);
-        const yi = yIndex.get(pair[1]);
-        if (xi != null && yi != null) buckets[yi][xi].push(rows[i]);
+  aggregateFor(e) {
+    const t = this.dims.get(e);
+    if (!t) return { type: "category", labels: [], values: [], keys: [] };
+    const s = this.filteredRecords(e);
+    if ("matrix" === t.type) {
+      const e2 = new Map(t.xLabels.map(((e3, t2) => [e3, t2]))), i2 = new Map(t.yLabels.map(((e3, t2) => [e3, t2]))), n = t.yLabels.map((() => t.xLabels.map((() => []))));
+      for (let r = 0; r < s.length; r++) {
+        const a = t.accessor(s[r]);
+        if (!a) continue;
+        const l = e2.get(a[0]), o = i2.get(a[1]);
+        null != l && null != o && n[o][l].push(s[r]);
       }
-      return {
-        type: "matrix",
-        xLabels: dim.xLabels.slice(),
-        yLabels: dim.yLabels.slice(),
-        matrix: buckets.map((brow) => brow.map((cell) => dim.reducer(cell)))
-      };
+      return { type: "matrix", xLabels: t.xLabels.slice(), yLabels: t.yLabels.slice(), matrix: n.map(((e3) => e3.map(((e4) => t.reducer(e4))))) };
     }
-    if (dim.type === "range") {
-      const edges = dim.edges || [0, 1];
-      const nBins = edges.length - 1;
-      const buckets = Array.from({ length: nBins }, () => []);
-      for (let i = 0; i < rows.length; i++) {
-        const idx = binIndexOf(dim.accessor(rows[i]), edges);
-        if (idx >= 0) buckets[idx].push(rows[i]);
+    if ("range" === t.type) {
+      const e2 = t.edges || [0, 1], i2 = e2.length - 1, n = Array.from({ length: i2 }, (() => []));
+      for (let i3 = 0; i3 < s.length; i3++) {
+        const r = ee(t.accessor(s[i3]), e2);
+        r >= 0 && n[r].push(s[i3]);
       }
-      return {
-        type: "range",
-        labels: binCenters(edges),
-        // plot bars at bin centers, not lower edges
-        values: buckets.map((b) => dim.reducer(b)),
-        keys: buckets.map((_, i) => [edges[i], edges[i + 1]]),
-        edges
-      };
+      return { type: "range", labels: te(e2), values: n.map(((e3) => t.reducer(e3))), keys: n.map(((t2, s2) => [e2[s2], e2[s2 + 1]])), edges: e2 };
     }
-    const index = /* @__PURE__ */ new Map();
-    dim.labels.forEach((k) => index.set(k, []));
-    for (let i = 0; i < rows.length; i++) {
-      const k = dim.accessor(rows[i]);
-      const bucket = index.get(k);
-      if (bucket) bucket.push(rows[i]);
+    const i = /* @__PURE__ */ new Map();
+    t.labels.forEach(((e2) => i.set(e2, [])));
+    for (let e2 = 0; e2 < s.length; e2++) {
+      const n = i.get(t.accessor(s[e2]));
+      n && n.push(s[e2]);
     }
-    return {
-      type: "category",
-      labels: dim.labels.slice(),
-      values: dim.labels.map(
-        (k) => dim.reducer(index.get(k) || [])
-      ),
-      keys: dim.labels.slice()
-    };
+    return { type: "category", labels: t.labels.slice(), values: t.labels.map(((e2) => t.reducer(i.get(e2) || []))), keys: t.labels.slice() };
   }
-  /**
-   * Aggregate every registered chart.
-   * @returns {Record<string, ReturnType<Crossfilter['aggregateFor']>>}
-   */
   aggregateAll() {
-    const out = {};
-    this.dims.forEach((_dim, id) => {
-      out[id] = this.aggregateFor(id);
-    });
-    return out;
+    const e = {};
+    return this.dims.forEach(((t, s) => {
+      e[s] = this.aggregateFor(s);
+    })), e;
   }
-  // ----- state + events ---------------------------------------------------
-  /**
-   * A serializable snapshot: active filters, filtered/total record counts.
-   * @returns {{filters:Record<string, any[]|[number,number]>, filteredCount:number, total:number}}
-   */
   state() {
-    const filters = {};
-    this.dims.forEach((dim, id) => {
-      if (!this._hasFilter(dim)) return;
-      filters[id] = dim.filter instanceof Set ? Array.from(dim.filter) : dim.filter.slice();
-    });
-    return {
-      filters,
-      filteredCount: this.filteredRows().length,
-      total: this.records.length
-    };
+    const e = {};
+    return this.dims.forEach(((t, s) => {
+      this.hasFilter(t) && (e[s] = t.filter instanceof Set ? Array.from(t.filter) : t.filter.slice());
+    })), { filters: e, filteredCount: this.filteredRows().length, total: this.records.length };
   }
-  /** @param {string} chartId @returns {any} the current filter (Set copy / range copy / null) */
-  filterOf(chartId) {
-    const dim = this.dims.get(chartId);
-    if (!dim || !this._hasFilter(dim)) return null;
-    return dim.filter instanceof Set ? new Set(dim.filter) : dim.filter.slice();
+  filterOf(e) {
+    const t = this.dims.get(e);
+    return t && this.hasFilter(t) ? t.filter instanceof Set ? new Set(t.filter) : t.filter.slice() : null;
   }
-  /**
-   * Subscribe to an event ('change' | 'records'). Returns an unsubscribe fn.
-   * @param {string} event @param {Function} cb
-   */
-  on(event, cb) {
-    let set = this._listeners.get(event);
-    if (!set) {
-      set = /* @__PURE__ */ new Set();
-      this._listeners.set(event, set);
-    }
-    set.add(cb);
-    return () => this.off(event, cb);
+  on(e, t) {
+    let s = this.listeners.get(e);
+    return s || (s = /* @__PURE__ */ new Set(), this.listeners.set(e, s)), s.add(t), () => this.off(e, t);
   }
-  /** @param {string} event @param {Function} cb */
-  off(event, cb) {
-    var _a;
-    (_a = this._listeners.get(event)) == null ? void 0 : _a.delete(cb);
-    return this;
+  off(e, t) {
+    var s;
+    return null == (s = this.listeners.get(e)) || s.delete(t), this;
   }
-  /** @param {string} event @param {any} payload */
-  _emit(event, payload) {
-    var _a;
-    (_a = this._listeners.get(event)) == null ? void 0 : _a.forEach((cb) => {
+  emit(e, t) {
+    var s;
+    null == (s = this.listeners.get(e)) || s.forEach(((e2) => {
       try {
-        cb(payload);
-      } catch (e) {
-        console.error(e);
+        e2(t);
+      } catch (e3) {
       }
-    });
+    }));
   }
-  // ----- data table (presentation helper) ---------------------------------
-  // Renders the filtered rows into a user-provided element and keeps it in sync
-  // on every filter change. Only the passed `el` is touched (no window/document
-  // globals), so the engine stays SSR-safe and unit-testable.
-  /** @param {string} s @returns {string} HTML-escaped */
-  _esc(s) {
-    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  static esc(e) {
+    return String(null == e ? "" : e).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
-  /**
-   * @param {Array<string|{field:string,label?:string,format?:(v:any,row:any)=>any}>|undefined} columns
-   * @returns {Array<{field:string,label:string,format?:Function}>}
-   */
-  _resolveColumns(columns) {
-    if (Array.isArray(columns) && columns.length) {
-      return columns.map(
-        (c) => typeof c === "string" ? { field: c, label: c } : { field: c.field, label: c.label || c.field, format: c.format }
-      );
-    }
-    const first = this.records[0];
-    const fields = first ? Object.keys(first) : [];
-    return fields.map((f) => ({ field: f, label: f }));
+  resolveColumns(e) {
+    if (Array.isArray(e) && e.length) return e.map(((e2) => "string" == typeof e2 ? { field: e2, label: e2 } : { field: e2.field, label: e2.label || e2.field, format: e2.format }));
+    const t = this.records[0];
+    return (t ? Object.keys(t) : []).map(((e2) => ({ field: e2, label: e2 })));
   }
-  /**
-   * @param {Array<{field:string,label:string,format?:Function}>} columns
-   * @param {any[]} rows @param {number} total
-   * @returns {string}
-   */
-  _tableHTML(columns, rows, total) {
-    const head = "<thead><tr>" + columns.map((c) => `<th>${this._esc(c.label)}</th>`).join("") + "</tr></thead>";
-    const body = "<tbody>" + rows.map(
-      (row) => "<tr>" + columns.map((c) => {
-        const raw = row[c.field];
-        const val = c.format ? c.format(raw, row) : raw;
-        return `<td>${this._esc(val)}</td>`;
-      }).join("") + "</tr>"
-    ).join("") + "</tbody>";
-    const caption = `<caption>${rows.length} of ${total} rows</caption>`;
-    return `<table class="apexcharts-cf-table">${caption}${head}${body}</table>`;
+  tableHTML(e, t, s) {
+    const i = "<thead><tr>" + e.map(((e2) => `<th>${se.esc(e2.label)}</th>`)).join("") + "</tr></thead>", n = "<tbody>" + t.map(((t2) => "<tr>" + e.map(((e2) => {
+      const s2 = t2[e2.field], i2 = e2.format ? e2.format(s2, t2) : s2;
+      return `<td>${se.esc(i2)}</td>`;
+    })).join("") + "</tr>")).join("") + "</tbody>";
+    return `<table class="apexcharts-cf-table">${`<caption>${t.length} of ${s} rows</caption>`}${i}${n}</table>`;
   }
-  /**
-   * Bind an HTML table of the filtered rows to `el`; it re-renders on every
-   * filter change. Returns a handle with refresh()/destroy().
-   * @param {HTMLElement} el
-   * @param {{columns?:any[], page?:number, pageSize?:number}} [opts]
-   */
-  dataTable(el, opts) {
-    if (!el) return { refresh() {
+  dataTable(e, t) {
+    if (!e) return { refresh() {
     }, destroy() {
     } };
-    const o = opts || {};
-    const columns = this._resolveColumns(o.columns);
-    const pageSize = o.pageSize || 0;
-    const page = o.page || 0;
-    const render = () => {
-      const rows = this.filteredRows();
-      const shown = pageSize ? rows.slice(page * pageSize, page * pageSize + pageSize) : rows;
-      el.innerHTML = this._tableHTML(columns, shown, rows.length);
+    const s = t || {}, i = this.resolveColumns(s.columns), n = s.pageSize || 0, r = s.page || 0, a = () => {
+      const t2 = this.filteredRows(), s2 = n ? t2.slice(r * n, r * n + n) : t2;
+      e.innerHTML = this.tableHTML(i, s2, t2.length);
     };
-    render();
-    const off = this.on("change", render);
-    return {
-      refresh: render,
-      destroy: () => {
-        off();
-        el.innerHTML = "";
-      }
-    };
+    a();
+    const l = this.on("change", a);
+    return { refresh: a, destroy: () => {
+      l(), e.innerHTML = "";
+    } };
   }
-  /** Remove this coordinator from the registry and drop all state. */
   destroy() {
-    Crossfilter._store().delete(this.id);
-    this.dims.clear();
-    this._listeners.clear();
-    this.records = [];
+    se.store().delete(this.id), this.dims.clear(), this.listeners.clear(), this.records = [];
   }
 }
 const MARK_SELECTOR = [
@@ -730,7 +456,7 @@ class LinkedViews {
   _cf() {
     const link = this.w.config.chart.link;
     const id = link && (link.id || this.w.config.chart.group);
-    return id ? Crossfilter.get(id) : null;
+    return id ? se.get(id) : null;
   }
   _isPie() {
     return PIE_TYPES.indexOf(this.w.config.chart.type) !== -1;
@@ -932,7 +658,9 @@ class LinkedViews {
     }
     const isCategory = filter instanceof Set;
     const isRange = Array.isArray(filter);
-    const keys = cf.aggregateFor(chartId).keys;
+    const agg = cf.aggregateFor(chartId);
+    if (agg.type === "matrix") return;
+    const keys = agg.keys;
     baseEl.querySelectorAll(FILTER_MARK_SELECTOR).forEach((node) => {
       const jAttr = node.getAttribute("j");
       if (jAttr === null) return;
@@ -985,8 +713,8 @@ const AC = (
   /** @type {any} */
   ApexCharts
 );
-AC._crossfilterFactory = (opts) => Crossfilter.getOrCreate(opts);
-AC._crossfilterGet = (id) => Crossfilter.get(id);
+AC._crossfilterFactory = (opts) => se.getOrCreate(opts);
+AC._crossfilterGet = (id) => se.get(id);
 export {
   default2 as default
 };

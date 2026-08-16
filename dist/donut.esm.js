@@ -1,5 +1,24 @@
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.8.0
+ * ApexCharts v6.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -232,6 +251,37 @@ function roundedPieSegmentPath({ cx, cy, rOut, a0, a1, r, spanDeg }) {
     "Z"
   ].join(" ");
 }
+function sharpDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, spanDeg }) {
+  const ptAt = (radius, deg) => arcPoint(cx, cy, radius, deg);
+  const largeArc = spanDeg > 180 ? 1 : 0;
+  const A = ptAt(rOut, a0);
+  const B = ptAt(rOut, a1);
+  const C = ptAt(rIn, a1);
+  const Din = ptAt(rIn, a0);
+  return [
+    "M",
+    xy(A),
+    "A",
+    rOut,
+    rOut,
+    0,
+    largeArc,
+    1,
+    xy(B),
+    "L",
+    xy(C),
+    "A",
+    rIn,
+    rIn,
+    0,
+    largeArc,
+    0,
+    xy(Din),
+    "Z"
+  ].join(" ");
+}
+const SLICE_OFFSET_TRANSITION = "transform 320ms cubic-bezier(0.25, 0.8, 0.3, 1)";
+const HOVER_OUTLINE_TRANSITION = "opacity 180ms ease-out";
 class Pie {
   /**
    * @param {import('../types/internal').ChartStateW} w
@@ -287,6 +337,12 @@ class Pie {
     this.maxY = 0;
     this.sliceLabels = [];
     this.sliceSizes = [];
+    this.prevSliceSizes = [];
+    this.sliceLabelGroups = {};
+    this.externalLabelGroups = {};
+    this.elHoverOutline = null;
+    this.elHoverOutlinePath = null;
+    this.hoverOutlineIndex = -1;
     this.prevSectorAngleArr = [];
   }
   /**
@@ -388,11 +444,20 @@ class Pie {
     if (w.config.grid.position === "back" && this.chartType === "polarArea") {
       this.drawPolarElements(elPie);
     }
+    const collapsedIdx = w.globals.collapsedSeriesIndices || [];
+    let polarVisible = 1;
+    if (this.chartType === "polarArea") {
+      let visible = 0;
+      for (let k = 0; k < series.length; k++) {
+        if (collapsedIdx.indexOf(k) === -1) visible++;
+      }
+      polarVisible = Math.max(1, visible);
+    }
     for (let i = 0; i < series.length; i++) {
       const angle = this.fullAngle * Utils.negToZero(series[i]) / total;
       sectorAngleArr.push(angle);
       if (this.chartType === "polarArea") {
-        sectorAngleArr[i] = this.fullAngle / series.length;
+        sectorAngleArr[i] = collapsedIdx.indexOf(i) > -1 ? 0 : this.fullAngle / polarVisible;
         this.sliceSizes.push(
           w.globals.radialSize * series[i] / (this.maxY || 1)
         );
@@ -402,15 +467,42 @@ class Pie {
     }
     const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
     if (w.globals.dataChanged && !morphActive) {
-      let prevTotal = 0;
-      for (let k = 0; k < w.globals.previousPaths.length; k++) {
-        prevTotal += Utils.negToZero(w.globals.previousPaths[k]);
+      if (this.chartType === "polarArea") {
+        const prevValues = w.globals.previousPaths;
+        const stash = w.globals.prevPolarAngles;
+        if (Array.isArray(stash) && stash.length === prevValues.length) {
+          this.prevSectorAngleArr = stash.slice();
+        } else {
+          for (let i = 0; i < prevValues.length; i++) {
+            this.prevSectorAngleArr.push(
+              this.fullAngle / Math.max(1, prevValues.length)
+            );
+          }
+        }
+        let prevMaxY = 0;
+        for (let k = 0; k < prevValues.length; k++) {
+          prevMaxY = Math.max(prevMaxY, Utils.negToZero(prevValues[k]));
+        }
+        if (w.config.yaxis[0].max) {
+          prevMaxY = w.config.yaxis[0].max;
+        }
+        this.prevSliceSizes = prevValues.map(
+          (v) => w.globals.radialSize * Utils.negToZero(v) / (prevMaxY || 1)
+        );
+      } else {
+        let prevTotal = 0;
+        for (let k = 0; k < w.globals.previousPaths.length; k++) {
+          prevTotal += Utils.negToZero(w.globals.previousPaths[k]);
+        }
+        let previousAngle;
+        for (let i = 0; i < w.globals.previousPaths.length; i++) {
+          previousAngle = this.fullAngle * Utils.negToZero(w.globals.previousPaths[i]) / prevTotal;
+          this.prevSectorAngleArr.push(previousAngle);
+        }
       }
-      let previousAngle;
-      for (let i = 0; i < w.globals.previousPaths.length; i++) {
-        previousAngle = this.fullAngle * Utils.negToZero(w.globals.previousPaths[i]) / prevTotal;
-        this.prevSectorAngleArr.push(previousAngle);
-      }
+    }
+    if (this.chartType === "polarArea") {
+      w.globals.prevPolarAngles = sectorAngleArr.slice();
     }
     if (this.donutSize < 0) {
       this.donutSize = 0;
@@ -465,7 +557,7 @@ class Pie {
    * @param {any[]} series
    */
   drawArcs(sectorAngleArr, series) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e;
     const w = this.w;
     const filters = new Filters(this.w);
     const graphics = new Graphics(this.w);
@@ -473,6 +565,15 @@ class Pie {
     const g = graphics.group({
       class: "apexcharts-slices"
     });
+    this.elHoverOutline = graphics.group({
+      class: "apexcharts-pie-hover-outline"
+    });
+    this.elHoverOutline.node.style.pointerEvents = "none";
+    this.elHoverOutline.node.style.opacity = "0";
+    if (w.config.chart.animations.enabled) {
+      this.elHoverOutline.node.style.transition = HOVER_OUTLINE_TRANSITION;
+    }
+    g.add(this.elHoverOutline);
     let startAngle = this.initialAngle;
     let prevStartAngle = this.initialAngle;
     let endAngle = this.initialAngle;
@@ -498,7 +599,8 @@ class Pie {
         value: series[i]
       });
       const morphFrom = morphActive ? this.ctx.morphTypeChange.getInitialPathFor(i, 0) : null;
-      const path = morphFrom || this.getChangedPath(prevStartAngle, prevEndAngle);
+      const prevSize = this.chartType === "polarArea" && w.globals.dataChanged && !morphActive ? this.prevSliceSizes[i] || 0 : void 0;
+      const path = morphFrom || this.getChangedPath(prevStartAngle, prevEndAngle, prevSize);
       const elPath = graphics.drawPath({
         d: path,
         // Pie/donut/polarArea data is a single series, so a user-supplied
@@ -522,7 +624,7 @@ class Pie {
         const shadow = w.config.chart.dropShadow;
         filters.dropShadow(elPath, shadow, i);
       }
-      this.addListeners(elPath, this.donutDataLabels);
+      this.addListeners(elPath, this.donutDataLabels, i);
       let labelPosition = {
         x: 0,
         y: 0
@@ -565,6 +667,23 @@ class Pie {
         "data:cy": arcCenter.y
       });
       elPieArc.add(elPath);
+      let pieceClaimed = false;
+      if (morphActive) {
+        const finalD = this.getPiePath({
+          me: this,
+          startAngle,
+          angle,
+          size: this.sliceSizes[i]
+        });
+        elPath.node.setAttribute("data:pathFinal", finalD);
+        pieceClaimed = ((_d = (_c = this.ctx.morphTypeChange).claimsTargetMark) == null ? void 0 : _d.call(_c, i, 0)) === true;
+        if (pieceClaimed) {
+          elPath.attr({ d: finalD });
+          elPath.node.setAttribute("data:pathOrig", finalD);
+          elPath.node.setAttribute("opacity", "0");
+          elPath.node.setAttribute("data-piece-hidden", "1");
+        }
+      }
       let dur = 0;
       if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged) {
         dur = angle / this.fullAngle * w.config.chart.animations.speed;
@@ -574,7 +693,8 @@ class Pie {
       } else {
         this.animBeginArr.push(0);
       }
-      if (morphActive && morphFrom) {
+      if (pieceClaimed) ;
+      else if (morphActive && morphFrom) {
         const targetD = this.getPiePath({
           me: this,
           startAngle,
@@ -593,6 +713,7 @@ class Pie {
       } else if (this.dynamicAnim && w.globals.dataChanged) {
         this.animatePaths(elPath, {
           size: this.sliceSizes[i],
+          prevSize,
           endAngle,
           startAngle,
           prevStartAngle,
@@ -614,16 +735,18 @@ class Pie {
           dur
         });
       }
-      if (w.config.plotOptions.pie.expandOnClick && this.chartType !== "polarArea") {
+      if (this.getExpandOffset() > 0) {
         elPath.node.addEventListener("mouseup", this.pieClicked.bind(this, i));
+      } else if (i === 0 && Filters.drilldownBlocksSliceOffset(w)) {
+        (_e = this.ctx.drilldown) == null ? void 0 : _e.warnSliceOffsetDisabled();
       }
       if (typeof w.interact.selectedDataPoints[0] !== "undefined" && w.interact.selectedDataPoints[0].indexOf(i) > -1) {
         if (this.initialAnim && !w.globals.resized && !w.globals.dataChanged && this.animDur > 0) {
           const _this = this;
           const _i = i;
-          setTimeout(() => _this.pieClicked(_i), this.animDur);
+          setTimeout(() => _this.pieClicked(_i, { animate: false }), this.animDur);
         } else {
-          this.pieClicked(i);
+          this.pieClicked(i, { animate: false });
         }
       }
       if (w.config.dataLabels.enabled) {
@@ -663,6 +786,7 @@ class Pie {
             elPieLabel.node.style.animationDelay = w.config.chart.animations.speed / 940 + "s";
           }
           this.sliceLabels.push(elPieLabelWrap);
+          this.sliceLabelGroups[i] = elPieLabelWrap.node;
         }
       }
       if (this.showExternalLabels && angle !== 0) {
@@ -683,6 +807,7 @@ class Pie {
           const isRight = elbow.x >= this.centerX;
           const baseLabelX = isRight ? elbow.x + (this.externalCfg.connector.length || 0) : elbow.x - (this.externalCfg.connector.length || 0);
           this.externalLabels.push({
+            i,
             lines,
             anchor,
             elbow,
@@ -719,6 +844,7 @@ class Pie {
           group.node.classList.add("apexcharts-element-hidden");
           w.globals.delayedElements.push({ el: group.node });
         }
+        this.externalLabelGroups[lbl.i] = group.node;
         g.add(group);
       });
     }
@@ -758,8 +884,9 @@ class Pie {
   /**
    * @param {any} elPath
    * @param {Record<string, any>} dataLabels
+   * @param {number} [i] slice index, for the hover outline band
    */
-  addListeners(elPath, dataLabels) {
+  addListeners(elPath, dataLabels, i) {
     const graphics = new Graphics(this.w, this.ctx);
     elPath.node.addEventListener(
       "mouseenter",
@@ -773,6 +900,16 @@ class Pie {
       "mouseleave",
       this.revertDataLabelsInner.bind(this)
     );
+    if (typeof i === "number") {
+      elPath.node.addEventListener(
+        "mouseenter",
+        this.showHoverOutline.bind(this, i)
+      );
+      elPath.node.addEventListener(
+        "mouseleave",
+        this.hideHoverOutline.bind(this)
+      );
+    }
     elPath.node.addEventListener(
       "mousedown",
       graphics.pathMouseDown.bind(graphics, elPath)
@@ -836,13 +973,14 @@ class Pie {
     let currAngle = angle;
     let startAngle = toStartAngle;
     const fromAngle = fromStartAngle < toStartAngle ? this.fullAngle + fromStartAngle - toStartAngle : fromStartAngle - toStartAngle;
+    const hasPrevSize = typeof opts.prevSize === "number";
     if (w.globals.dataChanged && opts.shouldSetPrevPaths) {
       if (opts.prevEndAngle) {
         path = me.getPiePath({
           me,
           startAngle: opts.prevStartAngle,
           angle: opts.prevEndAngle < opts.prevStartAngle ? this.fullAngle + opts.prevEndAngle - opts.prevStartAngle : opts.prevEndAngle - opts.prevStartAngle,
-          size
+          size: hasPrevSize ? opts.prevSize : size
         });
         el.attr({ d: path });
       }
@@ -872,7 +1010,7 @@ class Pie {
           me,
           startAngle,
           angle: currAngle,
-          size
+          size: hasPrevSize ? opts.prevSize + (size - opts.prevSize) * pos : size
         });
         el.node.setAttribute("data:pathOrig", path);
         el.attr({
@@ -897,53 +1035,230 @@ class Pie {
     }
   }
   /**
+   * Toggle slice `i` in or out of the pie. Only one slice sits outside at a
+   * time. Bound to `mouseup` on each slice, and also reached from the
+   * `toggleDataPointSelection` API and from the pre-selected-slice pass in
+   * drawArcs (which passes `animate: false` so the slice is already parked by
+   * the time the first frame is painted).
    * @param {number} i
+   * @param {{animate?: boolean}} [opts] a MouseEvent when called as a listener,
+   *   which carries no `animate`, so real clicks animate
    */
-  pieClicked(i) {
+  pieClicked(i, opts) {
     const w = this.w;
     const me = this;
-    const size = me.sliceSizes[i] + (w.config.plotOptions.pie.expandOnClick ? 4 : 0);
+    const animate = !(opts && opts.animate === false);
     const elPath = w.dom.Paper.findOne(
       `.apexcharts-${me.chartType.toLowerCase()}-slice-${i}`
     );
+    if (!elPath) return;
     if (elPath.attr("data:pieClicked") === "true") {
       elPath.attr({
         "data:pieClicked": "false"
       });
       this.revertDataLabelsInner();
-      const origPath = elPath.attr("data:pathOrig");
-      elPath.attr({
-        d: origPath
-      });
+      this.offsetSlice(i, 0, animate);
       return;
-    } else {
-      const allEls = w.dom.baseEl.getElementsByClassName("apexcharts-pie-area");
-      Array.prototype.forEach.call(allEls, (pieSlice) => {
-        pieSlice.setAttribute("data:pieClicked", "false");
-        const origPath = pieSlice.getAttribute("data:pathOrig");
-        if (origPath) {
-          pieSlice.setAttribute("d", origPath);
-        }
-      });
-      w.interact.capturedDataPointIndex = i;
-      elPath.attr("data:pieClicked", "true");
     }
-    const startAngle = parseInt(elPath.attr("data:startAngle"), 10);
-    const angle = parseInt(elPath.attr("data:angle"), 10);
-    const path = me.getPiePath({
-      me,
-      startAngle,
+    const allEls = w.dom.baseEl.getElementsByClassName("apexcharts-pie-area");
+    Array.prototype.forEach.call(allEls, (pieSlice) => {
+      const wasOut = pieSlice.getAttribute("data:pieClicked") === "true";
+      pieSlice.setAttribute("data:pieClicked", "false");
+      if (wasOut) {
+        this.offsetSlice(parseInt(pieSlice.getAttribute("j"), 10), 0, animate);
+      }
+    });
+    w.interact.capturedDataPointIndex = i;
+    elPath.attr("data:pieClicked", "true");
+    this.offsetSlice(i, this.getExpandOffset(), animate);
+  }
+  /**
+   * How far a clicked slice slides out, in px. 0 when the pull-out is off, when
+   * drilldown owns the click, and always for polarArea: there the radius
+   * encodes the value, so moving a slice outward would read as a bigger number.
+   * @returns {number}
+   */
+  getExpandOffset() {
+    const pie = this.w.config.plotOptions.pie;
+    if (!pie.expandOnClick || this.chartType === "polarArea") return 0;
+    if (Filters.drilldownBlocksSliceOffset(this.w)) return 0;
+    const offset = Number(pie.expandOffset);
+    return Number.isFinite(offset) && offset > 0 ? offset : 0;
+  }
+  /**
+   * Every node that has to travel with slice `i`: the slice path itself plus
+   * its labels, which live in sibling groups so they paint above all slices.
+   * @param {number} i
+   * @returns {SVGElement[]}
+   */
+  getSliceMovers(i) {
+    const elPath = this.w.dom.Paper.findOne(
+      `.apexcharts-${this.chartType.toLowerCase()}-slice-${i}`
+    );
+    return [
+      elPath ? elPath.node : null,
+      this.sliceLabelGroups[i],
+      this.externalLabelGroups[i],
+      // The hover band, when it is this slice's: clicking a slice you are
+      // hovering has to take its outline along, or the band is left behind
+      // sitting in the gap the slice just opened.
+      this.hoverOutlineIndex === i && this.elHoverOutlinePath ? this.elHoverOutlinePath.node : null
+    ].filter(Boolean);
+  }
+  /**
+   * Slide slice `i` `dist` px out of the pie along its own mid-angle, or back
+   * to its resting place when `dist` is 0.
+   *
+   * The slice is *translated*, never re-drawn: the arc keeps the exact radius
+   * and span it had, so the pulled-out slice still encodes the same quantity
+   * (growing the radius, as this used to, quietly inflates it) and a clean gap
+   * opens between it and the rest of the pie.
+   * @param {number} i
+   * @param {number} dist
+   * @param {boolean} [animate] false to park it instantly, with no transition
+   */
+  offsetSlice(i, dist, animate = true) {
+    const w = this.w;
+    const elPath = w.dom.Paper.findOne(
+      `.apexcharts-${this.chartType.toLowerCase()}-slice-${i}`
+    );
+    if (!elPath) return;
+    const { dx, dy } = this.getSliceOffsetVector(i, dist);
+    const transform = `translate(${dx} ${dy})`;
+    const transition = animate && w.config.chart.animations.enabled ? SLICE_OFFSET_TRANSITION : "";
+    this.getSliceMovers(i).forEach((node) => {
+      node.style.transition = transition;
+      node.setAttribute("transform", transform);
+    });
+  }
+  /**
+   * The px vector `dist` along slice `i`'s mid-angle. Zero for a slice that
+   * fills the pie: there is no "outside" for it to move to, and sliding it
+   * would just shift the whole chart sideways.
+   * @param {number} i
+   * @param {number} dist
+   * @returns {{dx: number, dy: number}}
+   */
+  getSliceOffsetVector(i, dist) {
+    const elPath = this.w.dom.Paper.findOne(
+      `.apexcharts-${this.chartType.toLowerCase()}-slice-${i}`
+    );
+    const angle = elPath ? parseFloat(elPath.attr("data:angle")) : NaN;
+    if (!dist || !Number.isFinite(angle) || angle >= this.fullAngle) {
+      return { dx: 0, dy: 0 };
+    }
+    const startAngle = parseFloat(elPath.attr("data:startAngle"));
+    const midRad = Math.PI * (startAngle + angle / 2 - 90) / 180;
+    return { dx: dist * Math.cos(midRad), dy: dist * Math.sin(midRad) };
+  }
+  /**
+   * Fade in the hover outline: a translucent band traced just outside the rim
+   * of slice `i`, in the slice's own colour. It replaces lightening the slice
+   * (see Filters.hoverOutlineOwnsHoverState) so a hovered slice keeps the
+   * colour the legend and the data labels claim it has.
+   * @param {number} i
+   */
+  showHoverOutline(i) {
+    const w = this.w;
+    if (!Filters.hoverOutlineOwnsHoverState(w)) return;
+    if (!this.elHoverOutline) return;
+    const path = this.getHoverOutlinePath(i);
+    if (!path) return;
+    const cfg = w.config.plotOptions.pie.hoverOutline;
+    const fill = cfg.color || w.globals.colors[i];
+    if (!this.elHoverOutlinePath) {
+      const graphics = new Graphics(w);
+      this.elHoverOutlinePath = graphics.drawPath({
+        d: path,
+        fill,
+        strokeWidth: 0,
+        classes: "apexcharts-pie-hover-outline-band"
+      });
+      this.elHoverOutline.add(this.elHoverOutlinePath);
+    }
+    this.elHoverOutlinePath.attr({
+      d: path,
+      fill,
+      "fill-opacity": cfg.opacity
+    });
+    const { dx, dy } = this.getSliceOffsetVector(
+      i,
+      this.isSliceOut(i) ? this.getExpandOffset() : 0
+    );
+    this.elHoverOutlinePath.node.style.transition = "";
+    this.elHoverOutlinePath.node.setAttribute("transform", `translate(${dx} ${dy})`);
+    this.hoverOutlineIndex = i;
+    this.elHoverOutline.node.style.opacity = "1";
+  }
+  /** Fade the hover outline back out, leaving the band node in place. */
+  hideHoverOutline() {
+    if (this.elHoverOutline) {
+      this.elHoverOutline.node.style.opacity = "0";
+    }
+  }
+  /** @param {number} i @returns {boolean} */
+  isSliceOut(i) {
+    const elPath = this.w.dom.Paper.findOne(
+      `.apexcharts-${this.chartType.toLowerCase()}-slice-${i}`
+    );
+    return !!elPath && elPath.attr("data:pieClicked") === "true";
+  }
+  /**
+   * Band geometry for the hover outline of slice `i`: an annulus from the
+   * slice rim (plus the stroke and the configured clearance) outward, over the
+   * same angular extent the slice is actually drawn over, so it lines up with
+   * both slice edges even with `spacing` insetting them. Rounded into a pill
+   * when the band is thick enough for the fillets to fit.
+   * @param {number} i
+   * @returns {string | null}
+   */
+  getHoverOutlinePath(i) {
+    const w = this.w;
+    const cfg = w.config.plotOptions.pie.hoverOutline;
+    const elPath = w.dom.Paper.findOne(
+      `.apexcharts-${this.chartType.toLowerCase()}-slice-${i}`
+    );
+    if (!elPath) return null;
+    const angle = parseFloat(elPath.attr("data:angle"));
+    if (!Number.isFinite(angle) || angle <= 0) return null;
+    const size = this.sliceSizes[i];
+    const thickness = Number(cfg.size);
+    if (!Number.isFinite(size) || !Number.isFinite(thickness) || thickness <= 0) {
+      return null;
+    }
+    const { startDeg, spanDeg } = this.getSliceExtent({
+      me: this,
+      startAngle: parseFloat(elPath.attr("data:startAngle")),
       angle,
       size
     });
-    if (angle === 360) return;
-    elPath.plot(path);
+    if (!(spanDeg > 0)) return null;
+    const rIn = size + (this.strokeWidth || 0) / 2 + (Number(cfg.gap) || 0);
+    const rOut = rIn + thickness;
+    const geo = {
+      cx: this.centerX,
+      cy: this.centerY,
+      rIn,
+      rOut,
+      a0: startDeg,
+      a1: startDeg + spanDeg,
+      spanDeg
+    };
+    const r = Math.min(thickness / 2, spanDeg * Math.PI / 180 / 2 * rIn);
+    return r > 0.5 ? roundedDonutSegmentPath(__spreadProps(__spreadValues({}, geo), { r })) : sharpDonutSegmentPath(geo);
   }
   /**
    * @param {number} prevStartAngle
    * @param {number} prevEndAngle
    */
-  getChangedPath(prevStartAngle, prevEndAngle) {
+  /**
+   * @param {number} prevStartAngle
+   * @param {number} prevEndAngle
+   * @param {number} [prevSize] - polarArea passes its previous slice radius,
+   *   so the pre-animation frame sits at the previous VALUE too, not just the
+   *   previous angles.
+   */
+  getChangedPath(prevStartAngle, prevEndAngle, prevSize) {
     let path = "";
     if (this.dynamicAnim && this.w.globals.dataChanged) {
       path = this.getPiePath({
@@ -951,16 +1266,22 @@ class Pie {
         startAngle: prevStartAngle,
         angle: prevEndAngle - prevStartAngle,
         // @ts-ignore — size is set dynamically during draw()
-        size: this.size
+        size: typeof prevSize === "number" ? prevSize : this.size
       });
     }
     return path;
   }
-  /** @param {{me: any, startAngle: any, angle: any, size: any}} opts */
-  getPiePath({ me, startAngle, angle, size }) {
-    let path;
+  /**
+   * The angular extent a slice is actually drawn over: the raw start / span
+   * clamped so a full circle never overlaps itself, then inset by
+   * `plotOptions.pie.spacing`. Shared by getPiePath and the hover outline, so
+   * the band lines up with the slice edges instead of with the un-inset angles
+   * cached on the path node.
+   * @param {{me: any, startAngle: number, angle: number, size: number}} opts
+   * @returns {{startDeg: number, spanDeg: number, endDeg: number}}
+   */
+  getSliceExtent({ me, startAngle, angle, size }) {
     const w = this.w;
-    const graphics = new Graphics(this.w);
     let startDeg = startAngle;
     let endDeg = angle + startAngle;
     if (Math.ceil(endDeg) >= this.fullAngle + this.w.config.plotOptions.pie.startAngle % this.fullAngle) {
@@ -978,6 +1299,20 @@ class Pie {
     }
     endDeg = startDeg + spanDeg;
     if (Math.ceil(endDeg) > this.fullAngle) endDeg -= this.fullAngle;
+    return { startDeg, spanDeg, endDeg };
+  }
+  /** @param {{me: any, startAngle: any, angle: any, size: any}} opts */
+  getPiePath({ me, startAngle, angle, size }) {
+    let path;
+    const w = this.w;
+    const graphics = new Graphics(this.w);
+    const { startDeg, spanDeg, endDeg } = this.getSliceExtent({
+      me,
+      startAngle,
+      angle,
+      size
+    });
+    const isSliceType = me.chartType === "pie" || me.chartType === "donut" || me.chartType === "polarArea";
     const startRadians = Math.PI * (startDeg - 90) / 180;
     const borderRadius = w.config.plotOptions.pie.borderRadius;
     if (borderRadius > 0 && isSliceType) {

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.8.0
+ * ApexCharts v6.9.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -100,6 +100,95 @@ function sharpDonutSegmentPath({ cx, cy, rIn, rOut, a0, a1, spanDeg }) {
     "Z"
   ].join(" ");
 }
+const Animations = _core.__apex_Animations;
+function drilldownById(w, id) {
+  const dd = w.config.drilldown;
+  const list = dd && Array.isArray(dd.series) ? dd.series : [];
+  return list.find((s) => s && s.id === id);
+}
+function toNode(w, d, i, paletteFromParent, parentKey, seenIds = null, opts = {}) {
+  var _a, _b, _c;
+  const isObj = d && typeof d === "object";
+  const name = isObj ? (_b = (_a = d.x) != null ? _a : d.name) != null ? _b : "" : "";
+  const value = isObj ? Number((_c = d.y) != null ? _c : d.value) : Number(d);
+  const node = {
+    name: String(name),
+    value: isNaN(value) ? null : value,
+    color: isObj && d.color ? d.color : void 0,
+    // Identity across data updates: the path of names (indexed so same-named
+    // siblings stay distinct). Update animations morph matched keys in place.
+    _key: `${parentKey}/${i}:${name}`
+  };
+  if (paletteFromParent && !node.color) {
+    node.color = paletteFromParent[i % paletteFromParent.length];
+  }
+  if (opts.keepDatum) node._datum = d;
+  if (isObj && Array.isArray(d.children) && d.children.length) {
+    node.children = d.children.map(
+      (c, j) => toNode(w, c, j, null, node._key, seenIds, opts)
+    );
+  } else if (isObj && d.drilldown != null && opts.expandDrilldown !== false) {
+    const visited = seenIds || /* @__PURE__ */ new Set();
+    if (!visited.has(d.drilldown)) {
+      const dd = drilldownById(w, d.drilldown);
+      if (dd && Array.isArray(dd.data) && dd.data.length) {
+        const nextSeen = new Set(visited);
+        nextSeen.add(d.drilldown);
+        const palette = Array.isArray(dd.colors) ? dd.colors : null;
+        node.children = dd.data.map(
+          (c, j) => toNode(w, c, j, palette, node._key, nextSeen, opts)
+        );
+      }
+    }
+  }
+  return node;
+}
+function buildHierarchy(w, opts = {}) {
+  const cfgSeries = (
+    /** @type {any} */
+    w.config.series
+  );
+  const first = cfgSeries && cfgSeries[0];
+  const data = first && Array.isArray(first.data) ? first.data : cfgSeries;
+  if (!Array.isArray(data)) return [];
+  return data.map(
+    (d, i) => toNode(w, d, i, null, "", null, opts)
+  );
+}
+function fillValues(node) {
+  if (node.children && node.children.length) {
+    node.children.forEach((c) => fillValues(c));
+    if (node.value == null || isNaN(node.value)) {
+      node.value = node.children.reduce(
+        (s, c) => s + Math.max(0, c.value || 0),
+        0
+      );
+    }
+  }
+  if (node.value == null || isNaN(node.value)) node.value = 0;
+}
+function morphKey(key) {
+  if (typeof key !== "string") return "";
+  const i = key.indexOf("/");
+  return i === -1 ? "" : key.slice(i);
+}
+function avoidChromeOverlap(w, nav) {
+  const chrome = (
+    /** @type {Element[]} */
+    [".apexcharts-title-text", ".apexcharts-subtitle-text"].map((s) => w.dom.baseEl.querySelector(s)).filter((el) => el !== null)
+  );
+  if (!chrome.length) return;
+  const wrapTop = w.dom.elWrap.getBoundingClientRect().top;
+  for (let pass = 0; pass < chrome.length + 1; pass++) {
+    const nr = nav.getBoundingClientRect();
+    const hit = chrome.find((el) => {
+      const r = el.getBoundingClientRect();
+      return nr.left < r.right && nr.right > r.left && nr.top < r.bottom && nr.bottom > r.top;
+    });
+    if (!hit) break;
+    nav.style.top = `${hit.getBoundingClientRect().bottom - wrapTop + 4}px`;
+  }
+}
 const D2R = Math.PI / 180;
 const R2D = 180 / Math.PI;
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -133,6 +222,7 @@ class SunburstChart {
     this._outerR = () => 0;
     this._tooltipEl = null;
     this._lblSeq = 0;
+    this._morphLeafIndex = 0;
     this._graphics = null;
     this._ringsG = null;
     this._labelsG = null;
@@ -187,88 +277,18 @@ class SunburstChart {
   /**
    * Resolve the config into root nodes `{ name, value, color?, children? }`.
    * Each datum may carry `children` (native) or `drilldown: '<id>'` (adapter).
+   * Shared with the treemap - see charts/common/Hierarchy.
    * @returns {any[]}
    */
   _buildHierarchy() {
-    const cfgSeries = (
-      /** @type {any} */
-      this.w.config.series
-    );
-    const first = cfgSeries && cfgSeries[0];
-    const data = first && Array.isArray(first.data) ? first.data : cfgSeries;
-    if (!Array.isArray(data)) return [];
-    return data.map(
-      (d, i) => this._toNode(d, i, null, "")
-    );
-  }
-  /**
-   * @param {any} d
-   * @param {number} i
-   * @param {string[]|null} paletteFromParent  per-level colours from a drilldown entry
-   * @param {string} parentKey  hierarchical identity of the parent
-   * @param {Set<any>|null} [seenIds]  drilldown ids already expanded on this path
-   * @returns {any}
-   */
-  _toNode(d, i, paletteFromParent, parentKey, seenIds = null) {
-    var _a, _b, _c;
-    const isObj = d && typeof d === "object";
-    const name = isObj ? (_b = (_a = d.x) != null ? _a : d.name) != null ? _b : "" : "";
-    const value = isObj ? Number((_c = d.y) != null ? _c : d.value) : Number(d);
-    const node = {
-      name: String(name),
-      value: isNaN(value) ? null : value,
-      color: isObj && d.color ? d.color : void 0,
-      // Identity across data updates: the path of names (indexed so same-named
-      // siblings stay distinct). Update animations morph matched keys in place.
-      _key: `${parentKey}/${i}:${name}`
-    };
-    if (paletteFromParent && !node.color) {
-      node.color = paletteFromParent[i % paletteFromParent.length];
-    }
-    if (isObj && Array.isArray(d.children) && d.children.length) {
-      node.children = d.children.map(
-        (c, j) => this._toNode(c, j, null, node._key, seenIds)
-      );
-    } else if (isObj && d.drilldown != null) {
-      const visited = seenIds || /* @__PURE__ */ new Set();
-      if (!visited.has(d.drilldown)) {
-        const dd = this._drilldownById(d.drilldown);
-        if (dd && Array.isArray(dd.data) && dd.data.length) {
-          const nextSeen = new Set(visited);
-          nextSeen.add(d.drilldown);
-          const palette = Array.isArray(dd.colors) ? dd.colors : null;
-          node.children = dd.data.map(
-            (c, j) => this._toNode(c, j, palette, node._key, nextSeen)
-          );
-        }
-      }
-    }
-    return node;
-  }
-  /**
-   * @param {string|number} id
-   * @returns {any}
-   */
-  _drilldownById(id) {
-    const dd = this.w.config.drilldown;
-    const list = dd && Array.isArray(dd.series) ? dd.series : [];
-    return list.find((s) => s && s.id === id);
+    return buildHierarchy(this.w);
   }
   /**
    * Fill a parent's value from its children when missing.
    * @param {any} node
    */
   _fillValues(node) {
-    if (node.children && node.children.length) {
-      node.children.forEach((c) => this._fillValues(c));
-      if (node.value == null || isNaN(node.value)) {
-        node.value = node.children.reduce(
-          (s, c) => s + Math.max(0, c.value || 0),
-          0
-        );
-      }
-    }
-    if (node.value == null || isNaN(node.value)) node.value = 0;
+    fillValues(node);
   }
   /**
    * With `partition: 'strict'`, warn (once) when a parent's value does not
@@ -384,10 +404,18 @@ class SunburstChart {
    * @param {'intro'|'zoom'|'update'|'none'} mode
    */
   _applyLayout(mode) {
+    var _a;
     const w = this.w;
     const anims = w.config.chart.animations;
     const dur = !anims.enabled ? 0 : mode === "none" ? 0 : mode === "update" ? anims.dynamicAnimation.speed || 350 : anims.speed || 500;
     const gen = ++this._zoomGen;
+    const morph = (
+      /** @type {any} */
+      (_a = this.ctx) == null ? void 0 : _a.morphTypeChange
+    );
+    const morphActive = !!morph && typeof morph.isActive === "function" && morph.isActive() && typeof morph.getInitialPathAt === "function";
+    const morphDur = morphActive ? morph.getSpeed() : 0;
+    this._morphLeafIndex = 0;
     const prev = mode === "update" ? (
       /** @type {any} */
       this.ctx._sunburstPrevGeoms
@@ -401,8 +429,11 @@ class SunburstChart {
           oR: node._oR
         };
         if (!node._el) node._el = this._createArcEl(node);
-        if (mode === "intro" && dur > 0) {
-          this._sweepArc(node, target, dur, gen);
+        const morphFrom = morphActive ? this._morphSourceFor(node) : null;
+        if (morphFrom && morphDur > 0) {
+          this._morphArcFrom(node, morphFrom, target, morphDur, gen);
+        } else if ((mode === "intro" || morphActive) && dur > 0) {
+          this._sweepArc(node, target, morphActive ? morphDur : dur, gen);
         } else {
           let from;
           let isNew = false;
@@ -431,6 +462,81 @@ class SunburstChart {
     });
     this.ctx._sunburstPrevGeoms = geoms;
     this._renderLabels(dur);
+  }
+  /**
+   * The captured mark this leaf should unroll from, or null when the node is
+   * the outgoing chart had nothing to give it.
+   *
+   * When both charts carry branch keys the pairing is by identity, so EVERY
+   * ring finds the tile that stood for the same branch and the inner rings
+   * unroll instead of appearing from nothing.
+   *
+   * Without keys (a flat treemap, or an older config) only leaves pair, and
+   * they consume the captured paths in draw order - the order the outgoing
+   * renderer laid its own marks out in, so tile k pairs with leaf k.
+   *
+   * @param {any} node
+   * @returns {string | null}
+   */
+  _morphSourceFor(node) {
+    const ctx = (
+      /** @type {any} */
+      this.ctx
+    );
+    const morph = ctx && ctx.morphTypeChange;
+    if (!morph) return null;
+    if (typeof morph.hasKeyedMarks === "function" && morph.hasKeyedMarks() && typeof morph.getInitialPathForKey === "function") {
+      return morph.getInitialPathForKey(morphKey(node._key));
+    }
+    if (node.children && node.children.length) return null;
+    return morph.getInitialPathAt(this._morphLeafIndex++);
+  }
+  /**
+   * Unroll an arc from an arbitrary captured shape.
+   *
+   * `_animateArc` interpolates arc PARAMETERS (angles and radii), which cannot
+   * express a rectangle, so this one tweens the path data itself through
+   * Animations.morphSVG - the same call every other morphing renderer makes,
+   * which already selects the polygon-resample algorithm while a cross-type
+   * morph is active.
+   *
+   * @param {any} node
+   * @param {string} fromD
+   * @param {{a0:number,a1:number,iR:number,oR:number}} target
+   * @param {number} dur
+   * @param {number} gen
+   */
+  _morphArcFrom(node, fromD, target, dur, gen) {
+    const el = node._el;
+    const toD = this._arcPath(
+      target.iR,
+      target.oR,
+      target.a0,
+      target.a1,
+      this.cfg.borderRadius
+    );
+    el.node.style.display = "";
+    el.attr({ d: fromD, opacity: 1 });
+    node._cur = target;
+    if (this._zoomGen !== gen) return;
+    new Animations(
+      this.w,
+      /** @type {any} */
+      this.ctx
+    ).morphSVG(
+      el,
+      0,
+      // Not a (series, point) index: an arc has no j, and passing a number here
+      // would make morphSVG treat it as the last point of a series and fire the
+      // chart's animation-completed hook.
+      /** @type {any} */
+      null,
+      node._color,
+      fromD,
+      toD,
+      dur,
+      0
+    );
   }
   /**
    * Pie/donut-style intro: a clock sweep from startAngle to endAngle. Each
@@ -479,6 +585,11 @@ class SunburstChart {
     const el = path.node;
     el.setAttribute("data:name", node.name);
     el.setAttribute("data:value", String(node.value));
+    el.setAttribute("data:key", morphKey(node._key));
+    el.setAttribute(
+      "data:leaf",
+      String(!(node.children && node.children.length))
+    );
     this._attachTooltip(el, node);
     if (Environment.isBrowser()) {
       el.addEventListener("click", () => this._zoomTo(node));
@@ -711,23 +822,12 @@ class SunburstChart {
    * sunburst must not import the drilldown feature.)
    * @param {any} nav
    */
+  /**
+   * Shared with the treemap - see charts/common/Breadcrumb.
+   * @param {any} nav
+   */
   _avoidChromeOverlap(nav) {
-    const w = this.w;
-    const chrome = (
-      /** @type {Element[]} */
-      [".apexcharts-title-text", ".apexcharts-subtitle-text"].map((s) => w.dom.baseEl.querySelector(s)).filter((el) => el !== null)
-    );
-    if (!chrome.length) return;
-    const wrapTop = w.dom.elWrap.getBoundingClientRect().top;
-    for (let pass = 0; pass < chrome.length + 1; pass++) {
-      const nr = nav.getBoundingClientRect();
-      const hit = chrome.find((el) => {
-        const r = el.getBoundingClientRect();
-        return nr.left < r.right && nr.right > r.left && nr.top < r.bottom && nr.bottom > r.top;
-      });
-      if (!hit) break;
-      nav.style.top = `${hit.getBoundingClientRect().bottom - wrapTop + 4}px`;
-    }
+    avoidChromeOverlap(this.w, nav);
   }
   // ------------------------------------------------------------ geometry
   /**
