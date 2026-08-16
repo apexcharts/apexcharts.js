@@ -301,14 +301,21 @@ export default class Position {
       if (!elGrid) return null
       const seriesBound = elGrid.getBoundingClientRect()
 
-      x = ttCtx.e.clientX - seriesBound.left
+      // CSS zoom compensation: when the chart container has a CSS zoom
+      // property != 1, getBoundingClientRect returns viewport-scaled values
+      // but style.left/top are applied in the container's CSS pixel space
+      // which is further scaled by the zoom factor.  Divide by zoom so the
+      // tooltip follows the cursor at the correct position.
+      const zoom = w.dom.elWrap.currentCSSZoom || 1
+
+      x = (ttCtx.e.clientX - seriesBound.left) / zoom
       if (x > w.layout.gridWidth / 2) {
         x = x - ttW
         placement = 'left'
       } else {
         placement = 'right'
       }
-      y = ttCtx.e.clientY + w.layout.translateY - seriesBound.top
+      y = (ttCtx.e.clientY + w.layout.translateY - seriesBound.top) / zoom
       if (y > w.layout.gridHeight / 2) {
         y = y - ttH
       }
@@ -712,7 +719,10 @@ export default class Position {
 
     if (!w.globals.isBarHorizontal) {
       if (w.config.tooltip.followCursor) {
-        bcy = ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2
+        const zoom = w.dom.elWrap.currentCSSZoom || 1
+        bcy =
+          (ttCtx.e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2) /
+          zoom
       } else {
         if (bcy + ttCtx.tooltipRect.ttHeight + 15 > w.layout.gridHeight) {
           bcy = w.layout.gridHeight

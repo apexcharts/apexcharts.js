@@ -184,13 +184,12 @@ class Intersect {
     }
     if (ttCtx.w.config.tooltip.followCursor) {
       const seriesBound = w.dom.elWrap.getBoundingClientRect()
+      const zoom = w.dom.elWrap.currentCSSZoom || 1
       x =
-        (w.interact.clientX ?? 0) -
-        seriesBound.left -
+        ((w.interact.clientX ?? 0) - seriesBound.left) / zoom -
         (x > w.layout.gridWidth / 2 ? ttCtx.tooltipRect.ttWidth : 0)
       y =
-        (w.interact.clientY ?? 0) -
-        seriesBound.top -
+        ((w.interact.clientY ?? 0) - seriesBound.top) / zoom -
         (y > w.layout.gridHeight / 2 ? ttCtx.tooltipRect.ttHeight : 0)
     }
 
@@ -266,7 +265,8 @@ class Intersect {
         const elGrid = ttCtx.getElGrid()
         if (!elGrid) return { x, y }
         const seriesBound = elGrid.getBoundingClientRect()
-        y = ttCtx.e.clientY + w.layout.translateY - seriesBound.top
+        const zoom = w.dom.elWrap.currentCSSZoom || 1
+        y = (ttCtx.e.clientY + w.layout.translateY - seriesBound.top) / zoom
       }
 
       ttCtx.marker.enlargeCurrentPoint(j, opt.paths, x, y)
@@ -632,11 +632,13 @@ class Intersect {
 
       if (w.config.tooltip.followCursor) {
         if (w.globals.isBarHorizontal) {
-          x = clientX - seriesBound.left + 15
+          const zoom = w.dom.elWrap.currentCSSZoom || 1
+          x = (clientX - seriesBound.left + 15) / zoom
           y = handleYForBars()
         } else {
+          const zoom = w.dom.elWrap.currentCSSZoom || 1
           x = handleXForColumns(x)
-          y = e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2 - 15
+          y = (e.clientY - seriesBound.top - ttCtx.tooltipRect.ttHeight / 2 - 15) / zoom
         }
       } else {
         if (w.globals.isBarHorizontal) {
