@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Unit Chart - Funnel Silhouette</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 24px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .note {
+        color: #8592a0;
+        font-size: 12px;
+        text-align: center;
+        margin: 16px 0 0;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../../dist/unit-shapes.js"></script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+  &lt;h1&gt;7,200 leads, one dot per 8&lt;/h1&gt;
+  &lt;p&gt;
+    A funnel shaped crowd, not a funnel chart. The dots are handed out in row order
+    from the top, so the stages stack down the shape widest first and the last one
+    lands in the neck. Every dot is still one lead.
+  &lt;/p&gt;
+
+  &lt;div class=&quot;chart-wrap&quot;&gt;
+    &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;unit&quot; height={470} /&gt;
+&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;p class=&quot;note&quot;&gt;1 dot = 8 leads&lt;/p&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [3600, 2000, 1000, 600],
+          options: {
+            chart: {
+              type: 'unit',
+              height: 470,
+              animations: {
+                enabled: true,
+                speed: 900,
+              },
+            },
+            labels: ['Leads', 'Qualified', 'Proposal', 'Closed won'],
+            colors: ['#7FC0DE', '#219EBC', '#0E7C7B', '#023047'],
+            plotOptions: {
+              unit: {
+                layout: 'custom',
+                // One of the shapes in apexcharts/unit-shapes.
+                positions: 'funnel',
+                transition: 'flow',
+                unitValue: 8,
+                clusterLabels: {
+                  // Outer labels: each band is named in the margin with a leader line to its
+                  // own dots, so the crowd reads without a legend.
+                  external: {
+                    show: true,
+                  },
+                },
+              },
+            },
+            legend: {
+              show: false,
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div class="wrap">
+              <h1>7,200 leads, one dot per 8</h1>
+              <p>
+                A funnel shaped crowd, not a funnel chart. The dots are handed out in
+                row order from the top, so the stages stack down the shape widest
+                first and the last one lands in the neck. Every dot is still one lead.
+              </p>
+
+              <div class="chart-wrap">
+                <div id="chart">
+                  <ReactApexChart
+                    options={state.options}
+                    series={state.series}
+                    type="unit"
+                    height={470}
+                  />
+                </div>
+              </div>
+
+              <p class="note">1 dot = 8 leads</p>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

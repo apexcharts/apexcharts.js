@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Unit Chart - Aircraft Silhouette</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 24px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .note {
+        color: #8592a0;
+        font-size: 12px;
+        text-align: center;
+        margin: 16px 0 0;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../../dist/unit-shapes.js"></script>
+  </head>
+
+  <body>
+     <div class="wrap">
+        <h1>4.2 million passengers, one dot per 5,000</h1>
+        <p>
+          The wings and tailplane are the thinnest parts of any shape in the collection,
+          so this is the layout that needs the most dots before it reads. Below roughly
+          160 the wings thin to a single dot each and the plane becomes a cross.
+        </p>
+      
+        <div class="chart-wrap">
+          <div id="chart"></div>
+        </div>
+      
+        <p class="note">1 dot = 5,000 passengers</p>
+      </div>
+
+    <script>
+      var options = {
+        series: [3400000, 480000, 260000, 60000],
+        chart: {
+          type: 'unit',
+          height: 470,
+          animations: {
+            enabled: true,
+            speed: 900,
+          },
+        },
+        labels: ['Economy', 'Premium economy', 'Business', 'First'],
+        colors: ['#008FFB', '#00B8A9', '#FFAB00', '#FF4560'],
+        plotOptions: {
+          unit: {
+            layout: 'custom',
+            // One of the shapes in apexcharts/unit-shapes.
+            positions: 'plane',
+            transition: 'flow',
+            unitValue: 5000,
+            clusterLabels: {
+              // Outer labels: each band is named in the margin with a leader line to its
+              // own dots, so the crowd reads without a legend.
+              external: {
+                show: true,
+              },
+            },
+          },
+        },
+        legend: {
+          show: false,
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+
+    
+  </body>
+</html>

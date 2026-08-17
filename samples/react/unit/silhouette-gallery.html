@@ -18,7 +18,7 @@
         padding: 32px 16px;
       }
       .wrap {
-        max-width: 760px;
+        max-width: 880px;
         margin: 0 auto;
       }
       h1 {
@@ -39,22 +39,31 @@
       .actions {
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
         gap: 6px;
-        justify-content: center;
-        margin: 0 auto 10px;
+        margin: 0 auto 8px;
+      }
+      .cat {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #8592a0;
+        width: 84px;
+        flex: none;
       }
       .actions.builtin {
         margin-bottom: 22px;
       }
       .actions button {
         font: inherit;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
         cursor: pointer;
         border: 1px solid #d4dbe0;
         background: #fff;
         color: #2c3e50;
-        padding: 7px 14px;
+        padding: 5px 11px;
         border-radius: 999px;
       }
       .actions button.active {
@@ -102,16 +111,40 @@
     // instead of being rebuilt.
     var VIEWS = {
       droplet: { layout: 'custom', positions: 'droplet' },
-      heart: { layout: 'custom', positions: 'heart' },
-      human: { layout: 'custom', positions: 'human' },
       tree: { layout: 'custom', positions: 'tree' },
-      globe: { layout: 'custom', positions: 'globe' },
+      leaf: { layout: 'custom', positions: 'leaf' },
+      cloud: { layout: 'custom', positions: 'cloud' },
+      sun: { layout: 'custom', positions: 'sun' },
+      flame: { layout: 'custom', positions: 'flame' },
+      fish: { layout: 'custom', positions: 'fish' },
       house: { layout: 'custom', positions: 'house' },
       battery: { layout: 'custom', positions: 'battery' },
-      shield: { layout: 'custom', positions: 'shield' },
       rocket: { layout: 'custom', positions: 'rocket' },
+      bulb: { layout: 'custom', positions: 'bulb' },
+      flask: { layout: 'custom', positions: 'flask' },
+      car: { layout: 'custom', positions: 'car' },
+      plane: { layout: 'custom', positions: 'plane' },
+      human: { layout: 'custom', positions: 'human' },
+      group: { layout: 'custom', positions: 'group' },
+      hand: { layout: 'custom', positions: 'hand' },
+      mortarboard: { layout: 'custom', positions: 'mortarboard' },
       target: { layout: 'custom', positions: 'target' },
+      trophy: { layout: 'custom', positions: 'trophy' },
+      moneybag: { layout: 'custom', positions: 'moneybag' },
+      funnel: { layout: 'custom', positions: 'funnel' },
+      shield: { layout: 'custom', positions: 'shield' },
+      gear: { layout: 'custom', positions: 'gear' },
+      robot: { layout: 'custom', positions: 'robot' },
+      heart: { layout: 'custom', positions: 'heart' },
       pyramid: { layout: 'custom', positions: 'pyramid' },
+      star: { layout: 'custom', positions: 'star' },
+      arrow: { layout: 'custom', positions: 'arrow' },
+      crown: { layout: 'custom', positions: 'crown' },
+      cross: { layout: 'custom', positions: 'cross' },
+      bolt: { layout: 'custom', positions: 'bolt' },
+      globe: { layout: 'custom', positions: 'globe' },
+      pin: { layout: 'custom', positions: 'pin' },
+      mountain: { layout: 'custom', positions: 'mountain' },
       packed: { layout: 'packed', positions: undefined },
       columns: { layout: 'columns', positions: undefined },
     }
@@ -147,35 +180,82 @@
     <div id="app"></div>
 
     <div id="html">&lt;div class=&quot;wrap&quot;&gt;
-  &lt;h1&gt;One crowd, eleven layouts the chart does not ship&lt;/h1&gt;
+  &lt;h1&gt;One crowd, thirty-five layouts the chart does not ship&lt;/h1&gt;
   &lt;p&gt;
     820 dots, one per employee. A unit layout is a plain function of every mark
     and the plot rect, returning positions, so a shape can be registered from
-    outside the library. Switch views: the same dots flow into the next
-    arrangement, keeping their identity, colour and size, rather than the chart
-    being torn down and rebuilt.
+    outside the library. Every shape below comes from apexcharts/unit-shapes.
+    Switch views: the same dots flow into the next arrangement, keeping their
+    identity, colour and size, rather than the chart being torn down and rebuilt.
   &lt;/p&gt;
 
   &lt;div class=&quot;actions&quot;&gt;
-    &lt;button data-view=&quot;heart&quot;&gt;Heart&lt;/button&gt;
-    &lt;button data-view=&quot;human&quot;&gt;Human&lt;/button&gt;
+    &lt;span class=&quot;cat&quot;&gt;Nature&lt;/span&gt;
+    &lt;button data-view=&quot;droplet&quot;&gt;Droplet&lt;/button&gt;
     &lt;button data-view=&quot;tree&quot;&gt;Tree&lt;/button&gt;
-    &lt;button data-view=&quot;globe&quot;&gt;Globe&lt;/button&gt;
-    &lt;button data-view=&quot;house&quot;&gt;House&lt;/button&gt;
-    &lt;button data-view=&quot;battery&quot;&gt;Battery&lt;/button&gt;
+    &lt;button data-view=&quot;leaf&quot;&gt;Leaf&lt;/button&gt;
+    &lt;button data-view=&quot;cloud&quot;&gt;Cloud&lt;/button&gt;
+    &lt;button data-view=&quot;sun&quot;&gt;Sun&lt;/button&gt;
+    &lt;button data-view=&quot;flame&quot;&gt;Flame&lt;/button&gt;
+    &lt;button data-view=&quot;fish&quot;&gt;Fish&lt;/button&gt;
   &lt;/div&gt;
 
   &lt;div class=&quot;actions&quot;&gt;
-    &lt;button data-view=&quot;shield&quot;&gt;Shield&lt;/button&gt;
+    &lt;span class=&quot;cat&quot;&gt;Objects&lt;/span&gt;
+    &lt;button data-view=&quot;house&quot;&gt;House&lt;/button&gt;
+    &lt;button data-view=&quot;battery&quot;&gt;Battery&lt;/button&gt;
     &lt;button data-view=&quot;rocket&quot;&gt;Rocket&lt;/button&gt;
+    &lt;button data-view=&quot;bulb&quot;&gt;Bulb&lt;/button&gt;
+    &lt;button data-view=&quot;flask&quot;&gt;Flask&lt;/button&gt;
+    &lt;button data-view=&quot;car&quot;&gt;Car&lt;/button&gt;
+    &lt;button data-view=&quot;plane&quot;&gt;Plane&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;actions&quot;&gt;
+    &lt;span class=&quot;cat&quot;&gt;People&lt;/span&gt;
+    &lt;button data-view=&quot;human&quot;&gt;Human&lt;/button&gt;
+    &lt;button data-view=&quot;group&quot;&gt;Group&lt;/button&gt;
+    &lt;button data-view=&quot;hand&quot;&gt;Hand&lt;/button&gt;
+    &lt;button data-view=&quot;mortarboard&quot;&gt;Mortarboard&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;actions&quot;&gt;
+    &lt;span class=&quot;cat&quot;&gt;Business&lt;/span&gt;
     &lt;button data-view=&quot;target&quot;&gt;Target&lt;/button&gt;
+    &lt;button data-view=&quot;trophy&quot;&gt;Trophy&lt;/button&gt;
+    &lt;button data-view=&quot;moneybag&quot;&gt;Moneybag&lt;/button&gt;
+    &lt;button data-view=&quot;funnel&quot;&gt;Funnel&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;actions&quot;&gt;
+    &lt;span class=&quot;cat&quot;&gt;Technology&lt;/span&gt;
+    &lt;button data-view=&quot;shield&quot;&gt;Shield&lt;/button&gt;
+    &lt;button data-view=&quot;gear&quot;&gt;Gear&lt;/button&gt;
+    &lt;button data-view=&quot;robot&quot;&gt;Robot&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;actions&quot;&gt;
+    &lt;span class=&quot;cat&quot;&gt;Symbols&lt;/span&gt;
+    &lt;button data-view=&quot;heart&quot;&gt;Heart&lt;/button&gt;
     &lt;button data-view=&quot;pyramid&quot;&gt;Pyramid&lt;/button&gt;
-    &lt;button data-view=&quot;droplet&quot;&gt;Droplet&lt;/button&gt;
+    &lt;button data-view=&quot;star&quot;&gt;Star&lt;/button&gt;
+    &lt;button data-view=&quot;arrow&quot;&gt;Arrow&lt;/button&gt;
+    &lt;button data-view=&quot;crown&quot;&gt;Crown&lt;/button&gt;
+    &lt;button data-view=&quot;cross&quot;&gt;Cross&lt;/button&gt;
+    &lt;button data-view=&quot;bolt&quot;&gt;Bolt&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;actions&quot;&gt;
+    &lt;span class=&quot;cat&quot;&gt;Geography&lt;/span&gt;
+    &lt;button data-view=&quot;globe&quot;&gt;Globe&lt;/button&gt;
+    &lt;button data-view=&quot;pin&quot;&gt;Pin&lt;/button&gt;
+    &lt;button data-view=&quot;mountain&quot;&gt;Mountain&lt;/button&gt;
   &lt;/div&gt;
 
   &lt;div class=&quot;actions builtin&quot;&gt;
-    &lt;button data-view=&quot;packed&quot;&gt;Packed (built in)&lt;/button&gt;
-    &lt;button data-view=&quot;columns&quot;&gt;Columns (built in)&lt;/button&gt;
+    &lt;span class=&quot;cat&quot;&gt;Built in&lt;/span&gt;
+    &lt;button data-view=&quot;packed&quot;&gt;Packed&lt;/button&gt;
+    &lt;button data-view=&quot;columns&quot;&gt;Columns&lt;/button&gt;
   &lt;/div&gt;
 
   &lt;div class=&quot;chart-wrap&quot;&gt;
@@ -239,35 +319,83 @@
         return (
           <div>
             <div class="wrap">
-              <h1>One crowd, eleven layouts the chart does not ship</h1>
+              <h1>One crowd, thirty-five layouts the chart does not ship</h1>
               <p>
                 820 dots, one per employee. A unit layout is a plain function of every
                 mark and the plot rect, returning positions, so a shape can be
-                registered from outside the library. Switch views: the same dots flow
-                into the next arrangement, keeping their identity, colour and size,
-                rather than the chart being torn down and rebuilt.
+                registered from outside the library. Every shape below comes from
+                apexcharts/unit-shapes. Switch views: the same dots flow into the next
+                arrangement, keeping their identity, colour and size, rather than the
+                chart being torn down and rebuilt.
               </p>
 
               <div class="actions">
-                <button data-view="heart">Heart</button>
-                <button data-view="human">Human</button>
+                <span class="cat">Nature</span>
+                <button data-view="droplet">Droplet</button>
                 <button data-view="tree">Tree</button>
-                <button data-view="globe">Globe</button>
-                <button data-view="house">House</button>
-                <button data-view="battery">Battery</button>
+                <button data-view="leaf">Leaf</button>
+                <button data-view="cloud">Cloud</button>
+                <button data-view="sun">Sun</button>
+                <button data-view="flame">Flame</button>
+                <button data-view="fish">Fish</button>
               </div>
 
               <div class="actions">
-                <button data-view="shield">Shield</button>
+                <span class="cat">Objects</span>
+                <button data-view="house">House</button>
+                <button data-view="battery">Battery</button>
                 <button data-view="rocket">Rocket</button>
+                <button data-view="bulb">Bulb</button>
+                <button data-view="flask">Flask</button>
+                <button data-view="car">Car</button>
+                <button data-view="plane">Plane</button>
+              </div>
+
+              <div class="actions">
+                <span class="cat">People</span>
+                <button data-view="human">Human</button>
+                <button data-view="group">Group</button>
+                <button data-view="hand">Hand</button>
+                <button data-view="mortarboard">Mortarboard</button>
+              </div>
+
+              <div class="actions">
+                <span class="cat">Business</span>
                 <button data-view="target">Target</button>
+                <button data-view="trophy">Trophy</button>
+                <button data-view="moneybag">Moneybag</button>
+                <button data-view="funnel">Funnel</button>
+              </div>
+
+              <div class="actions">
+                <span class="cat">Technology</span>
+                <button data-view="shield">Shield</button>
+                <button data-view="gear">Gear</button>
+                <button data-view="robot">Robot</button>
+              </div>
+
+              <div class="actions">
+                <span class="cat">Symbols</span>
+                <button data-view="heart">Heart</button>
                 <button data-view="pyramid">Pyramid</button>
-                <button data-view="droplet">Droplet</button>
+                <button data-view="star">Star</button>
+                <button data-view="arrow">Arrow</button>
+                <button data-view="crown">Crown</button>
+                <button data-view="cross">Cross</button>
+                <button data-view="bolt">Bolt</button>
+              </div>
+
+              <div class="actions">
+                <span class="cat">Geography</span>
+                <button data-view="globe">Globe</button>
+                <button data-view="pin">Pin</button>
+                <button data-view="mountain">Mountain</button>
               </div>
 
               <div class="actions builtin">
-                <button data-view="packed">Packed (built in)</button>
-                <button data-view="columns">Columns (built in)</button>
+                <span class="cat">Built in</span>
+                <button data-view="packed">Packed</button>
+                <button data-view="columns">Columns</button>
               </div>
 
               <div class="chart-wrap">
