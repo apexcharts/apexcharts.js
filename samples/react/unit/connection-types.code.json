@@ -1,0 +1,18 @@
+{
+  "title": "Unit Chart - Wifi Stroke",
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js"
+  ],
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\n// This demo also loads: https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [900000, 400000, 240000, 60000],\n    options: {\n      chart: {\n        type: 'unit',\n        height: 470,\n        animations: {\n          enabled: true,\n          speed: 900,\n        },\n      },\n      labels: ['Wifi', '5G', '4G', 'Wired'],\n      colors: ['#008FFB', '#00B8A9', '#F2994A', '#7B8794'],\n      plotOptions: {\n        unit: {\n          layout: 'custom',\n          // A stroke shape from apexcharts/unit-shapes.\n          positions: 'wifi',\n          transition: 'flow',\n          unitValue: 2000,\n          clusterLabels: {\n            // Outer labels: each band is named in the margin with a leader line to its\n            // own dots, so the crowd reads without a legend.\n            external: {\n              show: true,\n            },\n          },\n        },\n      },\n      legend: {\n        show: false,\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div className=\"wrap\">\n        <h1>1.6 million sessions, one dot per 2,000</h1>\n        <p>\n          Three arcs and a dot, as one stroked centreline. The gaps between the\n          arcs are the constraint rather than the arcs themselves: pack too few\n          dots and neighbouring bands merge into a solid fan, which is what this\n          shape's minimum count protects. The dot is a zero-length segment,\n          which the stroke resolves to a single disc.\n        </p>\n\n        <div className=\"chart-wrap\">\n          <div id=\"chart\">\n            <ReactApexChart\n              options={state.options}\n              series={state.series}\n              type=\"unit\"\n              height={470}\n            />\n          </div>\n        </div>\n\n        <p className=\"note\">1 dot = 2,000 sessions</p>\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "body {\n  font-family:\n    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n  background: #fafbfc;\n  color: #2c3e50;\n  margin: 0;\n  padding: 32px 16px;\n}\n.wrap {\n  max-width: 720px;\n  margin: 0 auto;\n}\nh1 {\n  font-size: 22px;\n  margin: 0 0 8px;\n}\np {\n  color: #5b6b78;\n  line-height: 1.5;\n  margin: 0 0 24px;\n}\n.chart-wrap {\n  background: #fff;\n  border-radius: 8px;\n  padding: 16px;\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);\n}\n.note {\n  color: #8592a0;\n  font-size: 12px;\n  text-align: center;\n  margin: 16px 0 0;\n}\n"
+    }
+  ]
+}
