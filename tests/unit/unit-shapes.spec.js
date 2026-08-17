@@ -595,4 +595,78 @@ describe('unit-shapes: preview()', () => {
     expect(body).not.toContain('<svg')
     expect((body.match(/<circle /g) || []).length).toBe(30)
   })
+
+  describe('series bands', () => {
+    it('takes its dot count from the series total when none is given', () => {
+      const svg = preview(heart, { series: [40, 30, 30] })
+      expect((svg.match(/<circle /g) || []).length).toBe(100)
+    })
+
+    it('colours each band by series, in proportion, summing to the count', () => {
+      const svg = preview(heart, { series: [576, 168, 42, 34], count: 820 })
+      const groups = [...svg.matchAll(/<g fill="([^"]+)">(.*?)<\/g>/g)].map((m) => ({
+        fill: m[1],
+        n: (m[2].match(/<circle /g) || []).length,
+      }))
+      expect(groups.map((g) => g.n)).toEqual([576, 168, 42, 34])
+      // The library's own palette, so the picture matches a real chart's.
+      expect(groups.map((g) => g.fill)).toEqual([
+        '#008FFB',
+        '#00A86F',
+        '#CA8501',
+        '#FF4560',
+      ])
+    })
+
+    it('scales the bands to a smaller dot count, keeping the total exact', () => {
+      const svg = preview(heart, { series: [576, 168, 42, 34], count: 120 })
+      const counts = [...svg.matchAll(/<g fill="[^"]+">(.*?)<\/g>/g)].map(
+        (m) => (m[1].match(/<circle /g) || []).length,
+      )
+      expect(counts.reduce((a, b) => a + b, 0)).toBe(120)
+      expect(counts.length).toBe(4)
+      // Still ordered largest to smallest, since the data is.
+      expect(counts).toEqual([...counts].sort((a, b) => b - a))
+    })
+
+    it('keeps a dot for a series too small to round to one', () => {
+      const svg = preview(heart, { series: [4000, 1], count: 60 })
+      const counts = [...svg.matchAll(/<g fill="[^"]+">(.*?)<\/g>/g)].map(
+        (m) => (m[1].match(/<circle /g) || []).length,
+      )
+      expect(counts).toEqual([59, 1])
+    })
+
+    it('leaves a zero series out entirely', () => {
+      const svg = preview(heart, { series: [50, 0, 50] })
+      expect((svg.match(/<g fill="/g) || []).length).toBe(2)
+    })
+
+    it('takes a ramp of its own over the default palette', () => {
+      const svg = preview(heart, { series: [50, 50], fill: ['#111', '#222'] })
+      expect(svg).toContain('<g fill="#111">')
+      expect(svg).toContain('<g fill="#222">')
+      expect(svg).not.toContain('#008FFB')
+    })
+
+    it('draws its bands where the shape fills, not in arrival order', () => {
+      // `rowsUp` fills bottom-first, so the first series sits BELOW the second.
+      const up = heart.with({ order: 'rowsUp' })
+      const svg = preview(up, { series: [50, 50], width: 200 })
+      const bands = [...svg.matchAll(/<g fill="[^"]+">(.*?)<\/g>/g)].map((m) =>
+        [...m[1].matchAll(/cy="([\d.]+)"/g)].map((c) => Number(c[1])),
+      )
+      const mid = (ys) => ys.reduce((a, b) => a + b, 0) / ys.length
+      expect(mid(bands[0])).toBeGreaterThan(mid(bands[1]))
+    })
+  })
+})
+
+describe('unit-shapes: preview() palette', () => {
+  it('matches the library palette it stands in for', async () => {
+    const { getThemePalettes } = await import('../../src/utils/ThemePalettes.js')
+    const svg = preview(heart, { series: [1, 1, 1, 1, 1], count: 500 })
+    const fills = [...svg.matchAll(/<g fill="([^"]+)">/g)].map((m) => m[1])
+    expect(fills).toEqual(getThemePalettes().palette1)
+  })
 })

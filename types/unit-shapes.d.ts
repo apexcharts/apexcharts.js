@@ -201,6 +201,12 @@ export function preview(
   shape: ApexUnitShape,
   opts?: {
     count?: number
+    /**
+     * Series values, coloured band by band the way the chart colours them, and
+     * the default for `count`. Pass this whenever the preview stands in for a
+     * real chart: one flat colour says the categories cannot be told apart.
+     */
+    series?: number[]
     width?: number
     height?: number
     padding?: number
