@@ -2,7 +2,7 @@ import { build } from 'vite'
 import { readFileSync } from 'fs'
 import { gzipSync } from 'zlib'
 import chalk from 'chalk'
-import { SUB_ENTRIES } from '../vite.config.mjs'
+import { SUB_ENTRIES, UMD_ENTRIES } from '../vite.config.mjs'
 
 // Build all formats in two passes:
 //   Pass 1 — full bundle (apexcharts.esm.js / .common.js / .js / .min.js)
@@ -23,6 +23,19 @@ async function buildAll() {
       process.env.APEX_ENTRY_FILE = file
       await build({ mode: 'sub-entry' })
       process.stdout.write(chalk.green('done\n'))
+    }
+
+    // ── Pass 3: script-loadable (UMD) builds for opt-in sub-entries ──────
+    const umdNames = Object.keys(UMD_ENTRIES)
+    if (umdNames.length) {
+      console.log(chalk.cyan('\n📦 Building script-loadable (UMD) entries...'))
+      for (const name of umdNames) {
+        process.stdout.write(chalk.gray(`  • ${name}... `))
+        process.env.APEX_ENTRY_NAME = name
+        process.env.APEX_ENTRY_FILE = UMD_ENTRIES[name].file
+        await build({ mode: 'sub-entry-umd' })
+        process.stdout.write(chalk.green('done\n'))
+      }
     }
 
     showBuildStats()

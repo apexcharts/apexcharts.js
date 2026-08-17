@@ -38,6 +38,8 @@ export const SUB_ENTRIES = {
   heatmap: resolve(__dirname, 'src/entries/heatmap.js'),
   treemap: resolve(__dirname, 'src/entries/treemap.js'),
   sunburst: resolve(__dirname, 'src/entries/sunburst.js'),
+  unit: resolve(__dirname, 'src/entries/unit.js'),
+  'unit-shapes': resolve(__dirname, 'src/unit-shapes/index.js'),
   // Alias entries — one per public chart type name
   area: resolve(__dirname, 'src/entries/area.js'),
   scatter: resolve(__dirname, 'src/entries/scatter.js'),
@@ -74,6 +76,21 @@ export const SUB_ENTRIES = {
   'features/all': resolve(__dirname, 'src/features/all.js'),
 }
 
+/**
+ * Sub-entries that ALSO ship a script-loadable build, so a page without a
+ * bundler gets the same opt-in choice a bundler user has (plan 08's missing CDN
+ * channel). Each is a separate pass, because the UMD file is built from its own
+ * side-effecting entry (it registers itself on load) rather than from the pure
+ * one bundlers import.
+ */
+export const UMD_ENTRIES = {
+  'unit-shapes': {
+    file: resolve(__dirname, 'src/unit-shapes/cdn.js'),
+    global: 'ApexUnitShapes',
+    out: 'unit-shapes.js',
+  },
+}
+
 export default defineConfig(({ mode }) => {
   const isDev = mode === 'development'
   const isSSR = mode === 'ssr'
@@ -88,6 +105,52 @@ export default defineConfig(({ mode }) => {
   const subEntryOutDir = subEntryName.includes('/')
     ? `dist/${subEntryName.slice(0, subEntryName.lastIndexOf('/'))}`
     : 'dist'
+
+  // UMD mode: one script-loadable file for a sub-entry that opts in via
+  // UMD_ENTRIES. The chart itself stays external, mapped to the global, so the
+  // file layers onto whichever apexcharts.js the page already loaded.
+  if (mode === 'sub-entry-umd') {
+    const umd = UMD_ENTRIES[subEntryName]
+    if (!umd) throw new Error(`No UMD_ENTRIES entry for "${subEntryName}"`)
+    return {
+      build: {
+        lib: { entry: umd.file, name: umd.global, formats: ['umd'] },
+        outDir: 'dist',
+        emptyOutDir: false,
+        sourcemap: false,
+        target: 'es2015',
+        cssCodeSplit: false,
+        rollupOptions: {
+          external: ['apexcharts'],
+          output: [
+            {
+              format: 'umd',
+              name: umd.global,
+              entryFileNames: umd.out,
+              globals: { apexcharts: 'ApexCharts' },
+              banner,
+              exports: 'named',
+              plugins: isDev
+                ? []
+                : [
+                    terser({
+                      format: {
+                        ascii_only: true,
+                        comments: false,
+                        preamble: banner,
+                      },
+                      compress: { drop_console: false, drop_debugger: true },
+                    }),
+                  ],
+            },
+          ],
+        },
+      },
+      resolve: { extensions: ['.js', '.json'] },
+      define: { 'process.env.NODE_ENV': JSON.stringify('production') },
+      plugins: [svgInlineLoader(), cssAsString()],
+    }
+  }
 
   if (isSSR) {
     return {

@@ -50,8 +50,14 @@ function dedent(text) {
  * Sample-local assets (../../assets/foo.js) are served publicly under
  * https://apexcharts.com/samples/assets/, so displayed code points there
  * and works when copied out of the site.
+ *
+ * A sample may also pull one of the library's own opt-in script builds
+ * (../../../dist/unit-shapes.js). Those are npm artifacts, not sample assets,
+ * so they point at the CDN copy of the package instead.
  */
 function rewriteAssetUrl(url) {
+  const dist = url.match(/^(?:\.\.\/)+dist\/(.+)$/)
+  if (dist) return `${APEXCHARTS_CDN}/dist/${dist[1]}`
   const m = url.match(/^(?:\.\.\/)+assets\/(.+)$/)
   return m ? `https://apexcharts.com/samples/assets/${m[1]}` : url
 }

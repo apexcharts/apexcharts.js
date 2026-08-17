@@ -135,6 +135,16 @@
       "import": "./dist/sunburst.esm.js",
       "require": "./dist/sunburst.common.js"
     },
+    "./unit": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/unit.esm.js",
+      "require": "./dist/unit.common.js"
+    },
+    "./unit-shapes": {
+      "types": "./types/unit-shapes.d.ts",
+      "import": "./dist/unit-shapes.esm.js",
+      "require": "./dist/unit-shapes.common.js"
+    },
     "./core": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/core.esm.js",
@@ -321,6 +331,7 @@
     "./src/modules/helpers/InitCtxVariables.js",
     "./src/entries/*.js",
     "./src/features/*.js",
+    "./src/unit-shapes/cdn.js",
     "./dist/*.esm.js",
     "./dist/features/*.esm.js"
   ],
