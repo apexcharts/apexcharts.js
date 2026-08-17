@@ -61,6 +61,10 @@ export { mountain } from './shapes/mountain.js'
 export { check } from './shapes/check.js'
 export { wifi } from './shapes/wifi.js'
 export { pulse } from './shapes/pulse.js'
+export { xmark } from './shapes/xmark.js'
+export { percent } from './shapes/percent.js'
+export { question } from './shapes/question.js'
+export { spiral } from './shapes/spiral.js'
 
 export { catalog } from './catalog.js'
 export {
@@ -72,5 +76,7 @@ export {
 // The factories, for shapes of your own. `silhouette` takes an outline;
 // `rings`, `sphere` and `tiers` are the arrangements that are not outlines.
 export { silhouette, shapeFrom } from './engine/silhouette.js'
-export { stroke, strokeFrom } from './engine/stroke.js'
+export { stroke, strokeFrom, outlined } from './engine/stroke.js'
+export { glyphs, digitsPath } from './engine/digits.js'
+export { preview } from './engine/preview.js'
 export { rings, sphere, tiers } from './engine/radial.js'

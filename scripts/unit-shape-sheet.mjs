@@ -17,6 +17,8 @@ import { writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { catalog } from '../src/unit-shapes/catalog.js'
+import { outlined } from '../src/unit-shapes/engine/stroke.js'
+import { glyphs } from '../src/unit-shapes/engine/digits.js'
 
 const argv = process.argv.slice(2)
 const flag = (name, fallback) => {
@@ -31,13 +33,21 @@ const perShapeCounts = !!flag('--counts', false)
 const count = parseInt(String(flag('--count', '820')), 10)
 const names = argv.filter((a) => !a.startsWith('--'))
 
-const shapes = names.length
-  ? names.map((n) => {
-      const s = catalog.find((c) => c.shape.name === n)
-      if (!s) throw new Error(`no shape named "${n}"`)
-      return s
-    })
-  : catalog
+// --glyphs '9,412' renders the digit composer; --outline traces the named shapes
+// instead of filling them.
+const glyphText = flag('--glyphs', null)
+const wantOutline = !!flag('--outline', false)
+
+const shapes = glyphText
+  ? [glyphs(String(glyphText))]
+  : (names.length
+      ? names.map((n) => {
+          const s = catalog.find((c) => c.shape.name === n)
+          if (!s) throw new Error(`no shape named "${n}"`)
+          return s
+        })
+      : catalog
+    ).map((s) => (wantOutline && s.shape.path ? outlined(s) : s))
 
 const CELL = 300
 const PAD = 12

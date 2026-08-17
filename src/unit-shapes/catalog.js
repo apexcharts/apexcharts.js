@@ -46,6 +46,10 @@ import { mountain } from './shapes/mountain.js'
 import { check } from './shapes/check.js'
 import { wifi } from './shapes/wifi.js'
 import { pulse } from './shapes/pulse.js'
+import { xmark } from './shapes/xmark.js'
+import { percent } from './shapes/percent.js'
+import { question } from './shapes/question.js'
+import { spiral } from './shapes/spiral.js'
 
 /** @typedef {import('./engine/shape.js').UnitShape} UnitShape */
 
@@ -86,4 +90,8 @@ export const catalog = [
   check,
   wifi,
   pulse,
+  xmark,
+  percent,
+  question,
+  spiral,
 ]

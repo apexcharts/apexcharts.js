@@ -118,6 +118,10 @@ var VIEWS = {
   check: { layout: 'custom', positions: 'check' },
   wifi: { layout: 'custom', positions: 'wifi' },
   pulse: { layout: 'custom', positions: 'pulse' },
+  xmark: { layout: 'custom', positions: 'xmark' },
+  percent: { layout: 'custom', positions: 'percent' },
+  question: { layout: 'custom', positions: 'question' },
+  spiral: { layout: 'custom', positions: 'spiral' },
   packed: { layout: 'packed', positions: undefined },
   columns: { layout: 'columns', positions: undefined },
 }
@@ -146,7 +150,7 @@ function wireGallery(chart) {
 
 <html>
 <div class="wrap">
-  <h1>One crowd, thirty-five layouts the chart does not ship</h1>
+  <h1>One crowd, thirty-nine layouts the chart does not ship</h1>
   <p>
     820 dots, one per employee. A unit layout is a plain function of every mark
     and the plot rect, returning positions, so a shape can be registered from
@@ -222,6 +226,10 @@ function wireGallery(chart) {
     <button data-view="check">Check</button>
     <button data-view="wifi">Wifi</button>
     <button data-view="pulse">Pulse</button>
+    <button data-view="xmark">Xmark</button>
+    <button data-view="percent">Percent</button>
+    <button data-view="question">Question</button>
+    <button data-view="spiral">Spiral</button>
   </div>
 
   <div class="actions builtin">

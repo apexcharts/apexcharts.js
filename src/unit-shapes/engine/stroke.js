@@ -115,7 +115,7 @@ function build(meta) {
  * @returns {UnitShape}
  */
 export function stroke(meta) {
-  return defineShape({ kind: 'stroke', ...meta }, build)
+  return defineShape({ ...meta, kind: 'stroke' }, build)
 }
 
 /**
@@ -128,4 +128,40 @@ export function stroke(meta) {
  */
 export function strokeFrom(path, opts = {}) {
   return stroke({ name: 'custom-stroke', ...opts, path })
+}
+
+/**
+ * The hollow version of a filled shape: trace its outline instead of filling it.
+ *
+ * Every silhouette already carries the one thing this needs, its outline, and a
+ * stroked closed path is a ring, so the whole catalog gains a second look for no
+ * new artwork. A hollow heart of 300 dots and a solid one of 300 dots are
+ * different charts: the hollow one spends all of them on the edge, which is where
+ * the shape actually lives.
+ *
+ * Deliberately a helper rather than 30-odd new catalog entries. The names are
+ * frozen at v1, and doubling the namespace to express one transformation would be
+ * a poor trade.
+ *
+ * @param {UnitShape} shape any silhouette (a shape with a `path`)
+ * @param {number} [width] stroke thickness in path units (14)
+ * @returns {UnitShape}
+ */
+export function outlined(shape, width = 14) {
+  const meta = shape.shape
+  if (!meta.path) {
+    throw new Error(
+      `[ApexCharts] outlined(): "${meta.name}" has no outline to trace. ` +
+        `The generated shapes (rings, globe, tiers) compute positions directly, ` +
+        `so there is no path to stroke.`,
+    )
+  }
+  return stroke({
+    ...meta,
+    name: `${meta.name}-outline`,
+    width,
+    // A traced outline is thinner than the solid it came from, so it needs more
+    // dots before it closes into a continuous line.
+    minUnits: Math.max(meta.minUnits || 0, 120),
+  })
 }

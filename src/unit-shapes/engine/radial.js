@@ -349,7 +349,7 @@ function buildTiers(meta) {
  * @returns {UnitShape}
  */
 export function rings(meta) {
-  return defineShape({ kind: 'rings', ...meta }, buildRings)
+  return defineShape({ ...meta, kind: 'rings' }, buildRings)
 }
 
 /**
@@ -357,7 +357,7 @@ export function rings(meta) {
  * @returns {UnitShape}
  */
 export function sphere(meta) {
-  return defineShape({ kind: 'globe', ...meta }, buildGlobe)
+  return defineShape({ ...meta, kind: 'globe' }, buildGlobe)
 }
 
 /**
@@ -365,5 +365,5 @@ export function sphere(meta) {
  * @returns {UnitShape}
  */
 export function tiers(meta) {
-  return defineShape({ kind: 'tiers', ...meta }, buildTiers)
+  return defineShape({ ...meta, kind: 'tiers' }, buildTiers)
 }

@@ -33,7 +33,12 @@ import {
   house,
   globe,
   pyramid,
+  star,
   shapeFrom,
+  outlined,
+  glyphs,
+  digitsPath,
+  preview,
   registerShapes,
   unregisterShapes,
 } from '../../src/unit-shapes/index.js'
@@ -490,5 +495,104 @@ describe('unit-shapes: registration', () => {
     expect(getUnitLayout('org-chart')).toBe(pyramid)
     unregisterShapes('org-chart')
     expect(getUnitLayout('org-chart')).toBe(null)
+  })
+})
+
+describe('unit-shapes: outlined()', () => {
+  it('traces a filled shape instead of filling it', () => {
+    const hollow = outlined(heart)
+    expect(hollow.shape.kind).toBe('stroke')
+    expect(hollow.shape.name).toBe('heart-outline')
+    expect(hollow.shape.width).toBeGreaterThan(0)
+    // and leaves the original alone
+    expect(heart.shape.kind).toBe('silhouette')
+  })
+
+  it('puts every dot ON the outline, not inside it', () => {
+    // The point of the helper: a hollow shape spends its dots on the edge. Half
+    // the stroke sits OUTSIDE the filled region, so a dot passing the solid
+    // shape's containment test would prove nothing here.
+    const rect = RECTS[0]
+    const hollow = outlined(star, 14)
+    const { polys, r } = fittedCentreline(hollow, rect)
+    const pos = hollow(objects(820), rect)
+    const strays = pos.filter((p) => distToCentreline(polys, p.x, p.y) > r + 0.75)
+    expect(strays, `${strays.length} dots off the traced outline`).toHaveLength(0)
+  })
+
+  it('raises its own minUnits, since a trace is thinner than the solid', () => {
+    expect(outlined(heart).shape.minUnits).toBeGreaterThanOrEqual(120)
+  })
+
+  it('explains itself for a shape with no outline to trace', () => {
+    expect(() => outlined(globe)).toThrow(/no outline to trace/)
+    expect(() => outlined(pyramid)).toThrow(/no outline to trace/)
+  })
+})
+
+describe('unit-shapes: glyphs()', () => {
+  it('spells a number out in exactly that many dots', () => {
+    const shape = glyphs('1,024')
+    const pos = shape(objects(1024), RECTS[0])
+    expect(pos).toHaveLength(1024)
+    pos.forEach((p) => {
+      expect(Number.isFinite(p.x)).toBe(true)
+      expect(Number.isFinite(p.y)).toBe(true)
+    })
+  })
+
+  it('takes a number as readily as a string', () => {
+    expect(glyphs(2026).shape.path).toBe(glyphs('2026').shape.path)
+  })
+
+  it('advances 1 clear of the next glyph', () => {
+    // Regression: 1 lights segments b and c, which sit on the RIGHT edge of the
+    // box, so narrowing its advance without moving its ink let the following
+    // glyph draw straight through it.
+    const one = digitsPath('1')
+    const xs = [...one.matchAll(/[ML] ([\d.]+) /g)].map((m) => parseFloat(m[1]))
+    const rightmost = Math.max(...xs)
+    // the next glyph starts here
+    const advance = digitsPath('11').match(/M ([\d.]+) /g).length
+    expect(advance).toBe(4) // two glyphs, two subpaths each
+    const both = [...digitsPath('11').matchAll(/M ([\d.]+) /g)].map((m) =>
+      parseFloat(m[1]),
+    )
+    expect(Math.min(...both.slice(2))).toBeGreaterThan(rightmost)
+  })
+
+  it('is deterministic', () => {
+    const a = glyphs('42')(objects(400), RECTS[0])
+    const b = glyphs('42')(objects(400), RECTS[0])
+    expect(a).toEqual(b)
+  })
+
+  it('refuses a character it has no form for, rather than dropping it', () => {
+    expect(() => glyphs('4x2')).toThrow(/no seven-segment form/)
+  })
+
+  it('scales its minUnits with the digit count', () => {
+    expect(glyphs('9').shape.minUnits).toBeLessThan(glyphs('9412').shape.minUnits)
+  })
+})
+
+describe('unit-shapes: preview()', () => {
+  it('renders a shape to standalone SVG with no chart and no DOM', () => {
+    const svg = preview(heart, { count: 120, width: 200 })
+    expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)
+    expect(svg).toContain('viewBox="0 0 200 200"')
+    expect((svg.match(/<circle /g) || []).length).toBe(120)
+    expect(svg).toContain('aria-label="heart drawn with 120 dots"')
+  })
+
+  it('hands a colour ramp out in order, one group per colour', () => {
+    const svg = preview(heart, { count: 100, fill: ['#111', '#222', '#333'] })
+    expect((svg.match(/<g fill="/g) || []).length).toBe(3)
+  })
+
+  it('can return the dots alone, for a viewport the caller owns', () => {
+    const body = preview(heart, { count: 30, svg: false })
+    expect(body).not.toContain('<svg')
+    expect((body.match(/<circle /g) || []).length).toBe(30)
   })
 })

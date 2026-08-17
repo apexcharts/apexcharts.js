@@ -143,6 +143,10 @@ export const crown: ApexUnitShape
 export const cross: ApexUnitShape
 export const bolt: ApexUnitShape
 export const check: ApexUnitShape
+export const xmark: ApexUnitShape
+export const percent: ApexUnitShape
+export const question: ApexUnitShape
+export const spiral: ApexUnitShape
 
 // geography
 export const globe: ApexUnitShape
@@ -173,6 +177,38 @@ export function strokeFrom(
   path: string,
   opts?: Partial<ApexUnitShapeMeta>,
 ): ApexUnitShape
+
+/**
+ * The hollow version of a filled shape: trace its outline instead of filling it.
+ * Throws for the generated shapes (rings, globe, tiers), which have no path.
+ */
+export function outlined(shape: ApexUnitShape, width?: number): ApexUnitShape
+
+/**
+ * A number as a shape, so the dots spell out how many there are.
+ * Accepts digits plus "-", ".", "," and ":".
+ */
+export function glyphs(
+  text: string | number,
+  opts?: Partial<ApexUnitShapeMeta> & { gap?: number },
+): ApexUnitShape
+
+/** The seven-segment centreline behind `glyphs`, if you want it directly. */
+export function digitsPath(text: string | number, gap?: number): string
+
+/** Render a shape to an SVG string, with no chart and no DOM. */
+export function preview(
+  shape: ApexUnitShape,
+  opts?: {
+    count?: number
+    width?: number
+    height?: number
+    padding?: number
+    fill?: string | string[]
+    r?: number
+    svg?: boolean
+  },
+): string
 
 /** The factories behind the catalog, for shapes of your own. */
 export function silhouette(meta: ApexUnitShapeMeta): ApexUnitShape

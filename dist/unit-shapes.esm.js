@@ -17,6 +17,18 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __objRest = (source, exclude) => {
+  var target2 = {};
+  for (var prop in source)
+    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
+      target2[prop] = source[prop];
+  if (source != null && __getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(source)) {
+      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
+        target2[prop] = source[prop];
+    }
+  return target2;
+};
 /*!
  * ApexCharts v6.9.0
  * (c) 2018-2026 ApexCharts
@@ -665,7 +677,7 @@ function build$1(meta) {
   };
 }
 function silhouette(meta) {
-  return defineShape(__spreadValues({ kind: "silhouette" }, meta), build$1);
+  return defineShape(__spreadProps(__spreadValues({}, meta), { kind: "silhouette" }), build$1);
 }
 function shapeFrom(path, opts = {}) {
   return silhouette(__spreadProps(__spreadValues({ name: "custom" }, opts), { path }));
@@ -940,13 +952,13 @@ function buildTiers(meta) {
   };
 }
 function rings(meta) {
-  return defineShape(__spreadValues({ kind: "rings" }, meta), buildRings);
+  return defineShape(__spreadProps(__spreadValues({}, meta), { kind: "rings" }), buildRings);
 }
 function sphere(meta) {
-  return defineShape(__spreadValues({ kind: "globe" }, meta), buildGlobe);
+  return defineShape(__spreadProps(__spreadValues({}, meta), { kind: "globe" }), buildGlobe);
 }
 function tiers(meta) {
-  return defineShape(__spreadValues({ kind: "tiers" }, meta), buildTiers);
+  return defineShape(__spreadProps(__spreadValues({}, meta), { kind: "tiers" }), buildTiers);
 }
 const target = /* @__PURE__ */ rings({
   name: "target",
@@ -1169,10 +1181,25 @@ function build(meta) {
   };
 }
 function stroke(meta) {
-  return defineShape(__spreadValues({ kind: "stroke" }, meta), build);
+  return defineShape(__spreadProps(__spreadValues({}, meta), { kind: "stroke" }), build);
 }
 function strokeFrom(path, opts = {}) {
   return stroke(__spreadProps(__spreadValues({ name: "custom-stroke" }, opts), { path }));
+}
+function outlined(shape, width = 14) {
+  const meta = shape.shape;
+  if (!meta.path) {
+    throw new Error(
+      `[ApexCharts] outlined(): "${meta.name}" has no outline to trace. The generated shapes (rings, globe, tiers) compute positions directly, so there is no path to stroke.`
+    );
+  }
+  return stroke(__spreadProps(__spreadValues({}, meta), {
+    name: `${meta.name}-outline`,
+    width,
+    // A traced outline is thinner than the solid it came from, so it needs more
+    // dots before it closes into a continuous line.
+    minUnits: Math.max(meta.minUnits || 0, 120)
+  }));
 }
 const check = /* @__PURE__ */ stroke({
   name: "check",
@@ -1197,6 +1224,38 @@ const pulse = /* @__PURE__ */ stroke({
   width: 11,
   source: "original",
   path: "M 4 58 L 26 58 L 35 30 L 47 84 L 59 44 L 68 58 L 96 58"
+});
+const xmark = /* @__PURE__ */ stroke({
+  name: "xmark",
+  category: "symbols",
+  minUnits: 40,
+  width: 18,
+  source: "original",
+  path: "M 18 18 L 82 82 M 82 18 L 18 82"
+});
+const percent = /* @__PURE__ */ stroke({
+  name: "percent",
+  category: "symbols",
+  minUnits: 150,
+  width: 9,
+  source: "original",
+  path: "M 12 24 A 12 12 0 0 1 36 24 A 12 12 0 0 1 12 24 Z M 64 76 A 12 12 0 0 1 88 76 A 12 12 0 0 1 64 76 Z M 80 14 L 20 86"
+});
+const question = /* @__PURE__ */ stroke({
+  name: "question",
+  category: "symbols",
+  minUnits: 90,
+  width: 14,
+  source: "original",
+  path: "M 25 32 C 25 8 76 8 76 33 C 76 52 50 54 50 70 M 50 90 L 50 90"
+});
+const spiral = /* @__PURE__ */ stroke({
+  name: "spiral",
+  category: "symbols",
+  minUnits: 140,
+  width: 9,
+  source: "generated",
+  path: "M 56.0 50.0 L 56.4 51.4 L 56.5 52.9 L 56.2 54.5 L 55.5 56.1 L 54.3 57.5 L 52.9 58.8 L 51.0 59.7 L 48.9 60.3 L 46.6 60.3 L 44.3 59.9 L 42.0 58.9 L 39.9 57.3 L 38.1 55.3 L 36.8 52.8 L 35.9 50.0 L 35.7 47.0 L 36.2 43.8 L 37.3 40.8 L 39.1 37.9 L 41.6 35.5 L 44.7 33.5 L 48.1 32.3 L 51.9 31.7 L 55.8 32.0 L 59.7 33.1 L 63.4 35.1 L 66.6 37.9 L 69.3 41.4 L 71.1 45.5 L 72.2 50.0 L 72.2 54.7 L 71.2 59.4 L 69.2 64.0 L 66.3 68.1 L 62.4 71.5 L 57.8 74.1 L 52.7 75.8 L 47.2 76.3 L 41.7 75.7 L 36.2 73.8 L 31.2 70.9 L 26.8 66.8 L 23.4 61.9 L 21.0 56.2 L 19.8 50.0 L 19.9 43.6 L 21.4 37.3 L 24.2 31.3 L 28.3 25.9 L 33.5 21.5 L 39.7 18.2 L 46.4 16.2 L 53.6 15.7 L 60.8 16.6 L 67.8 19.2 L 74.2 23.1 L 79.7 28.4 L 84.0 34.9 L 86.9 42.1 L 88.3 50.0 L 88.0 58.1 L 86.0 66.0 L 82.3 73.5 L 77.1 80.1 L 70.5 85.5 L 62.8 89.5 L 54.4 91.8 L 45.5 92.4 L 36.7 91.0 L 28.2 87.8 L 20.4 82.9 L 13.8 76.3 L 8.6 68.4 L 5.2 59.5 L 3.6 50.0 L 4.1 40.2 L 6.6 30.7 L 11.2 21.8"
 });
 const catalog = [
   heart,
@@ -1233,7 +1292,11 @@ const catalog = [
   mountain,
   check,
   wifi,
-  pulse
+  pulse,
+  xmark,
+  percent,
+  question,
+  spiral
 ];
 const LAYOUT_KEY = "__apexcharts_unit_layouts__";
 function layouts() {
@@ -1269,6 +1332,125 @@ function unregisterShapes(names) {
 function registeredShapeNames() {
   return Object.keys(layouts());
 }
+const EM = 46;
+const TOP = 8;
+const MID = 48;
+const BOT = 88;
+const SEG = {
+  a: [8, TOP, 38, TOP],
+  b: [40, TOP + 3, 40, MID - 3],
+  c: [40, MID + 3, 40, BOT - 3],
+  d: [8, BOT, 38, BOT],
+  e: [6, MID + 3, 6, BOT - 3],
+  f: [6, TOP + 3, 6, MID - 3],
+  g: [8, MID, 38, MID]
+};
+const GLYPHS = {
+  0: "abcdef",
+  2: "abdeg",
+  3: "abcdg",
+  4: "bcfg",
+  5: "acdfg",
+  6: "acdefg",
+  7: "abc",
+  8: "abcdefg",
+  9: "abcdfg",
+  "-": "g"
+};
+const MARKS = {
+  1: (dx) => `M ${dx + 17} ${TOP + 3} L ${dx + 17} ${MID - 3} M ${dx + 17} ${MID + 3} L ${dx + 17} ${BOT - 3} `,
+  ".": (dx) => `M ${dx + 20} ${BOT} L ${dx + 20} ${BOT} `,
+  ",": (dx) => `M ${dx + 21} ${BOT - 2} L ${dx + 15} ${BOT + 10} `,
+  ":": (dx) => `M ${dx + 20} 34 L ${dx + 20} 34 M ${dx + 20} 62 L ${dx + 20} 62 `
+};
+const ADVANCE = { 1: EM * 0.5, ".": EM * 0.42, ",": EM * 0.42, ":": EM * 0.42, " ": EM * 0.5 };
+function digitsPath(text, gap = 10) {
+  let d = "";
+  let dx = 0;
+  for (const ch of String(text)) {
+    if (ch === " ") {
+      dx += ADVANCE[" "] + gap;
+      continue;
+    }
+    const mark = MARKS[ch];
+    if (mark) {
+      d += mark(dx);
+      dx += (ADVANCE[ch] || EM) + gap;
+      continue;
+    }
+    const on = GLYPHS[ch];
+    if (!on) {
+      throw new Error(
+        `[ApexCharts] glyphs(): no seven-segment form for "${ch}". Digits, "-", ".", "," and ":" are available.`
+      );
+    }
+    for (const key of on) {
+      const s = SEG[key];
+      d += `M ${dx + s[0]} ${s[1]} L ${dx + s[2]} ${s[3]} `;
+    }
+    dx += (ADVANCE[ch] || EM) + gap;
+  }
+  return d.trim();
+}
+function glyphs(text, opts = {}) {
+  const str = String(text);
+  const _a = opts, { gap } = _a, meta = __objRest(_a, ["gap"]);
+  return stroke(__spreadProps(__spreadValues({
+    name: `glyphs-${str}`,
+    category: "symbols",
+    // Each stroke is one segment wide, so a long number needs the dots to go
+    // round: roughly 45 per lit segment keeps the strokes continuous.
+    minUnits: Math.max(60, str.replace(/[^0-9]/g, "").length * 180),
+    source: "generated",
+    width: 13
+  }, meta), {
+    path: digitsPath(str, gap)
+  }));
+}
+function preview(shape, opts = {}) {
+  const count = Math.max(1, Math.round(opts.count || shape.shape.minUnits || 220));
+  const width = opts.width || 300;
+  const height = opts.height || width;
+  const pad = opts.padding || 0;
+  const fills = Array.isArray(opts.fill) ? opts.fill : [opts.fill || "#008FFB"];
+  const objects = [];
+  for (let i = 0; i < count; i++) {
+    objects.push({
+      id: `p:${i}`,
+      index: i,
+      seriesIndex: 0,
+      dataPointIndex: i,
+      label: "preview",
+      value: 1,
+      datum: void 0,
+      // The shapes refine this themselves; it only has to be in the right league.
+      r: opts.r || Math.max(1.2, Math.sqrt(width * height / count) / 2.6)
+    });
+  }
+  const placed = shape(objects, {
+    x: pad,
+    y: pad,
+    width: Math.max(1, width - pad * 2),
+    height: Math.max(1, height - pad * 2)
+  });
+  const groups = /* @__PURE__ */ new Map();
+  placed.forEach((p, i) => {
+    const fill = fills[Math.floor(i / placed.length * fills.length)] || fills[0];
+    const circle = `<circle cx="${round(p.x)}" cy="${round(p.y)}" r="${round(p.r || 3)}"/>`;
+    const list = groups.get(fill);
+    if (list) list.push(circle);
+    else groups.set(fill, [circle]);
+  });
+  let body = "";
+  groups.forEach((circles, fill) => {
+    body += `<g fill="${fill}">${circles.join("")}</g>`;
+  });
+  if (opts.svg === false) return body;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="${shape.shape.name} drawn with ${placed.length} dots">${body}</svg>`;
+}
+function round(n) {
+  return Math.round(n * 10) / 10;
+}
 export {
   arrow,
   battery,
@@ -1279,6 +1461,7 @@ export {
   check,
   cross,
   crown,
+  digitsPath,
   droplet,
   fish,
   flame,
@@ -1286,6 +1469,7 @@ export {
   funnel,
   gear,
   globe,
+  glyphs,
   group,
   heart,
   house,
@@ -1293,10 +1477,14 @@ export {
   leaf,
   moneybag,
   mountain,
+  outlined,
+  percent,
   pin,
   plane,
+  preview,
   pulse,
   pyramid,
+  question,
   registerShapes,
   registeredShapeNames,
   rings,
@@ -1306,6 +1494,7 @@ export {
   shield,
   silhouette,
   sphere,
+  spiral,
   star,
   stroke,
   strokeFrom,
@@ -1315,5 +1504,6 @@ export {
   tree,
   trophy,
   unregisterShapes,
-  wifi
+  wifi,
+  xmark
 };

@@ -91,7 +91,7 @@ function build(meta) {
  * @returns {UnitShape}
  */
 export function silhouette(meta) {
-  return defineShape({ kind: 'silhouette', ...meta }, build)
+  return defineShape({ ...meta, kind: 'silhouette' }, build)
 }
 
 /**
