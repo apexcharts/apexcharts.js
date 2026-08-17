@@ -730,8 +730,8 @@ export default class ApexCharts {
         !ApexCharts._optionsTooBigToCompare(options)
       ) {
         if (
-          JSON.stringify(this.lastUpdateOptions.series) ===
-          JSON.stringify(options.series)
+          Utils.stringifyForCompare(this.lastUpdateOptions.series) ===
+          Utils.stringifyForCompare(options.series)
         ) {
           // series unchanged, check other options
           const optionsWithoutSeries = { ...options }
@@ -936,7 +936,8 @@ export default class ApexCharts {
         options &&
         this.lastUpdateOptions &&
         !ApexCharts._optionsTooBigToCompare(options) &&
-        JSON.stringify(this.lastUpdateOptions) === JSON.stringify(options)
+        Utils.stringifyForCompare(this.lastUpdateOptions) ===
+          Utils.stringifyForCompare(options)
       ) {
         // Options are identical, skip the update
         return resolve(this)

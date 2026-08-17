@@ -6,6 +6,14 @@
 import { Environment } from './Environment.js'
 import { BrowserAPIs } from '../ssr/BrowserAPIs.js'
 
+/**
+ * Identity tokens for function-valued options (see `stringifyForCompare`).
+ * A WeakMap so a config that is thrown away takes its callbacks with it.
+ * @type {WeakMap<Function, number>}
+ */
+const fnIds = new WeakMap()
+let fnSeq = 0
+
 class Utils {
   /**
    * @param {*} item
@@ -155,6 +163,35 @@ class Utils {
       return source.slice()
     }
     return Object.assign({}, source)
+  }
+
+  /**
+   * Serialize options for an equality check, with functions included.
+   *
+   * `JSON.stringify` DROPS function values, so two configs differing only in a
+   * callback stringify identically. The update path used that comparison to skip
+   * redundant renders, which silently swallowed any update that changed only a
+   * function: a new `plotOptions.unit.positions` (a whole layout), a new
+   * `dataLabels.formatter`, a new custom tooltip.
+   *
+   * Functions are compared BY IDENTITY: the same function twice still compares
+   * equal (so the skip keeps working), a different one does not. A caller who
+   * passes a fresh closure on every update gets a render every time, which is
+   * the safe direction to err in - the closure may capture new state.
+   *
+   * @param {any} options
+   * @returns {string}
+   */
+  static stringifyForCompare(options) {
+    return JSON.stringify(options, (_key, value) => {
+      if (typeof value !== 'function') return value
+      let id = fnIds.get(value)
+      if (id === undefined) {
+        id = ++fnSeq
+        fnIds.set(value, id)
+      }
+      return `__apx_fn_${id}`
+    })
   }
 
   /**

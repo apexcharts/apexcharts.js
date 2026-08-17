@@ -2452,6 +2452,61 @@ describe('Unit chart — custom layout (position provider)', () => {
     chart.destroy()
   })
 
+  it('swaps one shape for another on every update, not just the first', () => {
+    // The identical-options skip in update() compared configs with
+    // JSON.stringify, which drops functions - so a second update that changed
+    // ONLY the provider stringified identically to the first and was skipped.
+    // A page cycling through shapes then froze on whichever it reached second.
+    const left = (objects, rect) =>
+      objects.map((o) => ({ id: o.id, x: rect.x + 10, y: rect.y + 10 }))
+    const right = (objects, rect) =>
+      objects.map((o) => ({ id: o.id, x: rect.x + rect.width - 10, y: rect.y + 10 }))
+
+    const chart = customChart(ring)
+    const unit = (positions) => ({
+      plotOptions: {
+        unit: { layout: 'custom', positions, clusterLabels: { show: false } },
+      },
+    })
+
+    chart.updateOptions(unit(left))
+    expect(positionsOf(chart)[0].x).toBeCloseTo(10, 6)
+
+    // Same shape of options, different function: this is the update that used
+    // to vanish.
+    chart.updateOptions(unit(right))
+    expect(positionsOf(chart)[0].x).toBeGreaterThan(100)
+
+    // And back again, so the skip is not merely deferred by one update.
+    chart.updateOptions(unit(left))
+    expect(positionsOf(chart)[0].x).toBeCloseTo(10, 6)
+    chart.destroy()
+  })
+
+  it('still skips an update that repeats the same provider', () => {
+    let calls = 0
+    const counted = (objects, rect) => {
+      calls++
+      return ring(objects, rect)
+    }
+    const chart = customChart(ring)
+    const same = {
+      plotOptions: {
+        unit: {
+          layout: 'custom',
+          positions: counted,
+          clusterLabels: { show: false },
+        },
+      },
+    }
+    chart.updateOptions(same)
+    expect(calls).toBe(1)
+    // Identical options, including the same function identity: no re-render.
+    chart.updateOptions(same)
+    expect(calls).toBe(1)
+    chart.destroy()
+  })
+
   it('warns and falls back to grouped when no provider is given', () => {
     const chart = unitChart({
       series: [6, 6],
