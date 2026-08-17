@@ -140,6 +140,14 @@ describe('unit-shapes: catalog hygiene', () => {
       expect(allowed).toContain(meta.category)
       expect(meta.minUnits).toBeGreaterThan(0)
       expect(meta.source).toBeTruthy()
+      // The provenance rule, enforced rather than trusted: an outline is either
+      // ours ('original') or does not exist ('generated'). A third-party path is
+      // not admissible even under a permissive licence, because it ships
+      // verbatim inside dist/unit-shapes.js and its notice would then have to
+      // travel into every consumer's bundle. A new value here means someone
+      // brought an outline in from outside; that is the decision to revisit, not
+      // the assertion to relax.
+      expect(['original', 'generated']).toContain(meta.source)
       expect(['silhouette', 'rings', 'globe', 'tiers']).toContain(meta.kind)
       if (meta.kind === 'silhouette') expect(meta.path).toBeTruthy()
     })
@@ -170,6 +178,50 @@ describe('unit-shapes: catalog hygiene', () => {
         /export const \w+ = \/\* @__PURE__ \*\//,
       )
     })
+  })
+
+  it('the catalog, the package exports and the types all agree', () => {
+    // Three lists have to be kept in step by hand, and a shape missing from any
+    // one of them fails in a way nothing else catches: absent from the catalog it
+    // is invisible to every test in this file, and absent from the .d.ts it ships
+    // untyped while still working perfectly in JavaScript.
+    const read = (f) => readFileSync(join(process.cwd(), f), 'utf8')
+    const names = (src, re) => new Set(Array.from(src.matchAll(re), (m) => m[1]))
+
+    const exported = names(
+      read('src/unit-shapes/index.js'),
+      /export \{ (\w+) \} from '\.\/shapes\//g,
+    )
+    const imported = names(
+      read('src/unit-shapes/catalog.js'),
+      /import \{ (\w+) \} from '\.\/shapes\//g,
+    )
+    const typed = names(
+      read('types/unit-shapes.d.ts'),
+      /^export const (\w+): ApexUnitShape$/gm,
+    )
+    const inCatalog = new Set(catalog.map((s) => s.shape.name))
+
+    expect([...exported].sort()).toEqual([...inCatalog].sort())
+    expect([...imported].sort()).toEqual([...inCatalog].sort())
+    expect([...typed].sort()).toEqual([...inCatalog].sort())
+  })
+
+  it('no shape carries an attribution, because none may need one', () => {
+    // Backstop for the provenance rule. The `source` enum blocks the honest
+    // route in; this catches the other one, where a third-party outline arrives
+    // labelled 'original' with a credit tacked on beside it. If a shape ever
+    // legitimately needs attribution, the catalog policy has changed and that is
+    // a decision to make deliberately, not a test to delete.
+    const dir = join(process.cwd(), 'src/unit-shapes/shapes')
+    readdirSync(dir)
+      .filter((f) => f.endsWith('.js'))
+      .forEach((f) => {
+        const src = readFileSync(join(dir, f), 'utf8')
+        expect(src, `${f} looks like it carries third-party provenance`).not.toMatch(
+          /\b(licen[cs]e|attribution|copyright|\(c\)\s*\d{4})\b/i,
+        )
+      })
   })
 })
 

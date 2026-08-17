@@ -47,7 +47,21 @@
  * @property {number} [sampling]
  * @property {number} [tilt]
  * @property {number} [twist]
- * @property {string} [source] provenance, for the licence audit
+ * @property {'original' | 'generated'} [source] provenance. Only these two
+ *   values are permitted, and the shape-lint suite enforces it:
+ *
+ *   - 'original': the outline was authored here. Looking at references while
+ *     drawing is normal; reproducing a particular icon set's rendering of an
+ *     object, even retraced by eye, is not.
+ *   - 'generated': there is no outline at all, positions come from maths.
+ *
+ *   No third-party path may enter the catalog, including permissively licensed
+ *   ones. The paths are redistributed verbatim inside dist/unit-shapes.js
+ *   whatever we render them as, so a copied outline is a copy we shipped, and
+ *   MIT/Apache/CC-BY notices would then have to travel into every consumer's
+ *   bundle forever. Drawing them ourselves is cheaper than that obligation.
+ *   Brand marks and logos are excluded outright: trademark has no originality
+ *   threshold to fall back on.
  * @property {{ minSeparation?: number }} [lint] per-shape lint thresholds
  */
 

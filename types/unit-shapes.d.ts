@@ -73,7 +73,13 @@ export interface ApexUnitShapeMeta {
   tilt?: number
   /** Rings only: radians of rotation per ring. */
   twist?: number
-  source?: string
+  /**
+   * Provenance. `'original'` means the outline was authored in this repo;
+   * `'generated'` means there is no outline and the positions come from maths.
+   * No third-party path is admitted to the catalog, permissive licence or not,
+   * because the outline ships verbatim inside the bundle.
+   */
+  source?: 'original' | 'generated'
   lint?: { minSeparation?: number }
 }
 
@@ -92,17 +98,54 @@ export interface ApexUnitShape {
   with(overrides: Partial<ApexUnitShapeMeta>): ApexUnitShape
 }
 
-export const heart: ApexUnitShape
+// nature
 export const droplet: ApexUnitShape
-export const human: ApexUnitShape
 export const tree: ApexUnitShape
+export const leaf: ApexUnitShape
+export const cloud: ApexUnitShape
+export const sun: ApexUnitShape
+export const flame: ApexUnitShape
+export const fish: ApexUnitShape
+
+// objects
 export const house: ApexUnitShape
 export const battery: ApexUnitShape
-export const shield: ApexUnitShape
 export const rocket: ApexUnitShape
+export const bulb: ApexUnitShape
+export const flask: ApexUnitShape
+export const car: ApexUnitShape
+export const plane: ApexUnitShape
+
+// people & society
+export const human: ApexUnitShape
+export const group: ApexUnitShape
+export const hand: ApexUnitShape
+export const mortarboard: ApexUnitShape
+
+// business
 export const target: ApexUnitShape
-export const globe: ApexUnitShape
+export const trophy: ApexUnitShape
+export const moneybag: ApexUnitShape
+export const funnel: ApexUnitShape
+
+// technology
+export const shield: ApexUnitShape
+export const gear: ApexUnitShape
+export const robot: ApexUnitShape
+
+// symbols
+export const heart: ApexUnitShape
 export const pyramid: ApexUnitShape
+export const star: ApexUnitShape
+export const arrow: ApexUnitShape
+export const crown: ApexUnitShape
+export const cross: ApexUnitShape
+export const bolt: ApexUnitShape
+
+// geography
+export const globe: ApexUnitShape
+export const pin: ApexUnitShape
+export const mountain: ApexUnitShape
 
 /**
  * Every shipped shape. Importing this pulls the whole collection in, so it is
