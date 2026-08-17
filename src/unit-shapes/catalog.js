@@ -23,7 +23,6 @@ import { target } from './shapes/target.js'
 import { globe } from './shapes/globe.js'
 import { pyramid } from './shapes/pyramid.js'
 import { leaf } from './shapes/leaf.js'
-import { cloud } from './shapes/cloud.js'
 import { sun } from './shapes/sun.js'
 import { flame } from './shapes/flame.js'
 import { fish } from './shapes/fish.js'
@@ -37,8 +36,6 @@ import { flask } from './shapes/flask.js'
 import { car } from './shapes/car.js'
 import { plane } from './shapes/plane.js'
 import { group } from './shapes/group.js'
-import { mortarboard } from './shapes/mortarboard.js'
-import { hand } from './shapes/hand.js'
 import { trophy } from './shapes/trophy.js'
 import { moneybag } from './shapes/moneybag.js'
 import { funnel } from './shapes/funnel.js'
@@ -63,7 +60,6 @@ export const catalog = [
   globe,
   pyramid,
   leaf,
-  cloud,
   sun,
   flame,
   fish,
@@ -77,8 +73,6 @@ export const catalog = [
   car,
   plane,
   group,
-  mortarboard,
-  hand,
   trophy,
   moneybag,
   funnel,

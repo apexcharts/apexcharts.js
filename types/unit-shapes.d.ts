@@ -102,7 +102,6 @@ export interface ApexUnitShape {
 export const droplet: ApexUnitShape
 export const tree: ApexUnitShape
 export const leaf: ApexUnitShape
-export const cloud: ApexUnitShape
 export const sun: ApexUnitShape
 export const flame: ApexUnitShape
 export const fish: ApexUnitShape
@@ -119,8 +118,6 @@ export const plane: ApexUnitShape
 // people & society
 export const human: ApexUnitShape
 export const group: ApexUnitShape
-export const hand: ApexUnitShape
-export const mortarboard: ApexUnitShape
 
 // business
 export const target: ApexUnitShape

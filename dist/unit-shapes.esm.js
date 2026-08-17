@@ -891,17 +891,6 @@ const leaf = /* @__PURE__ */ silhouette({
   // playing-card spade, since a spade is exactly a wide leaf with a stem.
   path: "M 27.5 7.6 C 22.6 28.3 17.8 49 26.2 64.9 C 35.6 82.6 55.5 90.1 71.6 90.6 C 80.2 77 85.1 56.3 75.7 38.6 C 67.2 22.7 47.3 15.2 27.5 7.6 Z M 67.1 88.5 L 71.9 101.8 L 80.7 97.1 L 72.4 85.7 Z"
 });
-const cloud = /* @__PURE__ */ silhouette({
-  name: "cloud",
-  category: "nature",
-  minUnits: 60,
-  source: "original",
-  path: (
-    // The base is inset well inside the discs. Run it out to their full width and
-    // its corners poke through as vertical edges, which squares the cloud off.
-    "M 22 76 L 80 76 L 80 58 L 22 58 Z M 14 60 A 18 18 0 0 0 50 60 A 18 18 0 0 0 14 60 Z M 28 50 A 24 24 0 0 0 76 50 A 24 24 0 0 0 28 50 Z M 60 58 A 17 17 0 0 0 94 58 A 17 17 0 0 0 60 58 Z"
-  )
-});
 const sun = /* @__PURE__ */ silhouette({
   name: "sun",
   category: "nature",
@@ -993,20 +982,6 @@ const group = /* @__PURE__ */ silhouette({
   source: "original",
   path: "M 8 94 L 8 57 C 8 48 14.6 48 14.6 48 L 23.4 48 C 23.4 48 30 48 30 57 L 30 94 Z M 9.5 34 A 9.5 9.5 0 0 1 28.5 34 A 9.5 9.5 0 0 1 9.5 34 Z M 36 94 L 36 47 C 36 38 44.4 38 44.4 38 L 55.6 38 C 55.6 38 64 38 64 47 L 64 94 Z M 38.5 23 A 11.5 11.5 0 0 1 61.5 23 A 11.5 11.5 0 0 1 38.5 23 Z M 70 94 L 70 57 C 70 48 76.6 48 76.6 48 L 85.4 48 C 85.4 48 92 48 92 57 L 92 94 Z M 71.5 34 A 9.5 9.5 0 0 1 90.5 34 A 9.5 9.5 0 0 1 71.5 34 Z"
 });
-const mortarboard = /* @__PURE__ */ silhouette({
-  name: "mortarboard",
-  category: "people",
-  minUnits: 90,
-  source: "original",
-  path: "M 50 18 L 98 36 L 50 54 L 2 36 Z M 33 44 L 50 50.5 L 67 44 L 67 62 C 67 74 33 74 33 62 Z"
-});
-const hand = /* @__PURE__ */ silhouette({
-  name: "hand",
-  category: "people",
-  minUnits: 180,
-  source: "original",
-  path: "M 22 94 L 22 50 L 24 50 L 24 24 A 5.5 5.5 0 0 1 35 24 L 35 50 L 37 50 L 37 18 A 5.5 5.5 0 0 1 48 18 L 48 50 L 50 50 L 50 22 A 5.5 5.5 0 0 1 61 22 L 61 50 L 63 50 L 63 32 A 5 5 0 0 1 73 32 L 73 50 L 78 50 L 78 94 Z M 22 74 C 18 78 8 78 6 70 C 4 62 12 56 22 58 Z"
-});
 const trophy = /* @__PURE__ */ silhouette({
   name: "trophy",
   category: "business",
@@ -1069,7 +1044,6 @@ const catalog = [
   globe,
   pyramid,
   leaf,
-  cloud,
   sun,
   flame,
   fish,
@@ -1083,8 +1057,6 @@ const catalog = [
   car,
   plane,
   group,
-  mortarboard,
-  hand,
   trophy,
   moneybag,
   funnel,
@@ -1134,7 +1106,6 @@ export {
   bulb,
   car,
   catalog,
-  cloud,
   cross,
   crown,
   droplet,
@@ -1145,13 +1116,11 @@ export {
   gear,
   globe,
   group,
-  hand,
   heart,
   house,
   human,
   leaf,
   moneybag,
-  mortarboard,
   mountain,
   pin,
   plane,
