@@ -285,6 +285,18 @@ const _violinRaw: ApexCharts.ApexOptions = {
 }
 void _boxRaw; void _violinRaw
 
+// datetime axis: a Date, a timestamp and a date string are all valid x values
+const _dateX: ApexCharts.ApexOptions = {
+  chart: { type: 'line' },
+  xaxis: { type: 'datetime' },
+  series: [
+    { name: 'Date', data: [{ x: new Date(1748924002500), y: 1 }] },
+    { name: 'Timestamp', data: [{ x: 1748924002500, y: 2 }] },
+    { name: 'String', data: [{ x: '2025-06-03T04:13:22.500Z', y: 3 }] },
+  ],
+}
+void _dateX
+
 // SSR statics from the apexcharts/ssr entry
 async function _ssrUse() {
   const html = await ApexChartsClass.renderToHTML({ chart: { type: 'bar' } }, { width: 500 })
