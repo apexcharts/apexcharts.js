@@ -880,6 +880,182 @@ const pyramid = /* @__PURE__ */ tiers({
   order: "rowsUp",
   source: "generated"
 });
+const leaf = /* @__PURE__ */ silhouette({
+  name: "leaf",
+  category: "nature",
+  minUnits: 60,
+  source: "original",
+  // Two cubics per side, so both ends close as cusps: one cubic per side pulls
+  // wide too early and rounds the tip off. Narrow (roughly 2:1) and tilted 28
+  // degrees, both for the same reason. Drawn upright and square it reads as a
+  // playing-card spade, since a spade is exactly a wide leaf with a stem.
+  path: "M 27.5 7.6 C 22.6 28.3 17.8 49 26.2 64.9 C 35.6 82.6 55.5 90.1 71.6 90.6 C 80.2 77 85.1 56.3 75.7 38.6 C 67.2 22.7 47.3 15.2 27.5 7.6 Z M 67.1 88.5 L 71.9 101.8 L 80.7 97.1 L 72.4 85.7 Z"
+});
+const cloud = /* @__PURE__ */ silhouette({
+  name: "cloud",
+  category: "nature",
+  minUnits: 60,
+  source: "original",
+  path: (
+    // The base is inset well inside the discs. Run it out to their full width and
+    // its corners poke through as vertical edges, which squares the cloud off.
+    "M 22 76 L 80 76 L 80 58 L 22 58 Z M 14 60 A 18 18 0 0 0 50 60 A 18 18 0 0 0 14 60 Z M 28 50 A 24 24 0 0 0 76 50 A 24 24 0 0 0 28 50 Z M 60 58 A 17 17 0 0 0 94 58 A 17 17 0 0 0 60 58 Z"
+  )
+});
+const sun = /* @__PURE__ */ silhouette({
+  name: "sun",
+  category: "nature",
+  minUnits: 140,
+  source: "original",
+  path: "M 75.5 41.2 L 98 50 L 75.5 58.8 L 74.3 61.8 L 83.9 83.9 L 61.8 74.3 L 58.8 75.5 L 50 98 L 41.2 75.5 L 38.2 74.3 L 16.1 83.9 L 25.7 61.8 L 24.5 58.8 L 2 50 L 24.5 41.2 L 25.7 38.2 L 16.1 16.1 L 38.2 25.7 L 41.2 24.5 L 50 2 L 58.8 24.5 L 61.8 25.7 L 83.9 16.1 L 74.3 38.2 Z"
+});
+const flame = /* @__PURE__ */ silhouette({
+  name: "flame",
+  category: "nature",
+  minUnits: 60,
+  source: "original",
+  path: "M 56 2 C 52 24 34 30 30 50 C 27 64 33 70 34 78 C 24 72 20 60 21 50 C 12 62 10 76 16 86 C 24 95 38 98 52 98 C 72 98 84 84 82 64 C 80 46 68 40 66 26 C 64 38 60 42 58 44 C 62 30 60 14 56 2 Z"
+});
+const fish = /* @__PURE__ */ silhouette({
+  name: "fish",
+  category: "nature",
+  minUnits: 80,
+  source: "original",
+  path: "M 20 50 C 34 26 58 20 76 30 C 86 36 92 44 94 50 C 92 56 86 64 76 70 C 58 80 34 74 20 50 Z M 26 50 L 4 74 L 12 50 L 4 26 Z"
+});
+const star = /* @__PURE__ */ silhouette({
+  name: "star",
+  category: "symbols",
+  minUnits: 80,
+  source: "original",
+  path: "M 50 2 L 61.8 33.8 L 95.7 35.2 L 69 56.2 L 78.2 88.8 L 50 70 L 21.8 88.8 L 31 56.2 L 4.3 35.2 L 38.2 33.8 Z"
+});
+const arrow = /* @__PURE__ */ silhouette({
+  name: "arrow",
+  category: "symbols",
+  minUnits: 60,
+  source: "original",
+  path: "M 50 4 L 92 46 L 70 46 L 70 96 L 30 96 L 30 46 L 8 46 Z"
+});
+const crown = /* @__PURE__ */ silhouette({
+  name: "crown",
+  category: "symbols",
+  minUnits: 90,
+  source: "original",
+  path: "M 8 84 L 14 26 L 32 52 L 50 16 L 68 52 L 86 26 L 92 84 Z"
+});
+const cross = /* @__PURE__ */ silhouette({
+  name: "cross",
+  category: "symbols",
+  minUnits: 40,
+  source: "original",
+  path: "M 36 6 L 64 6 L 64 36 L 94 36 L 94 64 L 64 64 L 64 94 L 36 94 L 36 64 L 6 64 L 6 36 L 36 36 Z"
+});
+const bolt = /* @__PURE__ */ silhouette({
+  name: "bolt",
+  category: "symbols",
+  minUnits: 70,
+  source: "original",
+  path: "M 62 3 L 20 56 L 44 56 L 38 97 L 80 40 L 54 40 Z"
+});
+const bulb = /* @__PURE__ */ silhouette({
+  name: "bulb",
+  category: "objects",
+  minUnits: 90,
+  source: "original",
+  path: "M 50 4 C 29 4 14 21 14 39 C 14 54 25 62 30 72 L 70 72 C 75 62 86 54 86 39 C 86 21 71 4 50 4 Z M 34 74 L 36 96 L 64 96 L 66 74 Z"
+});
+const flask = /* @__PURE__ */ silhouette({
+  name: "flask",
+  category: "objects",
+  minUnits: 60,
+  source: "original",
+  path: "M 40 4 L 60 4 L 60 36 L 92 92 L 8 92 L 40 36 Z"
+});
+const car = /* @__PURE__ */ silhouette({
+  name: "car",
+  category: "objects",
+  minUnits: 120,
+  source: "original",
+  path: "M 4 78 L 4 56 L 20 52 L 32 30 L 68 30 L 82 52 L 96 56 L 96 78 Z M 13 78 A 13 13 0 0 1 39 78 A 13 13 0 0 1 13 78 Z M 61 78 A 13 13 0 0 1 87 78 A 13 13 0 0 1 61 78 Z"
+});
+const plane = /* @__PURE__ */ silhouette({
+  name: "plane",
+  category: "objects",
+  minUnits: 160,
+  source: "original",
+  path: "M 50 2 C 54 2 57 9 58 19 L 58 35 L 95 57 L 95 67 L 58 57 L 58 76 L 70 86 L 70 95 L 50 89 L 30 95 L 30 86 L 42 76 L 42 57 L 5 67 L 5 57 L 42 35 L 42 19 C 43 9 46 2 50 2 Z"
+});
+const group = /* @__PURE__ */ silhouette({
+  name: "group",
+  category: "people",
+  minUnits: 160,
+  source: "original",
+  path: "M 8 94 L 8 57 C 8 48 14.6 48 14.6 48 L 23.4 48 C 23.4 48 30 48 30 57 L 30 94 Z M 9.5 34 A 9.5 9.5 0 0 1 28.5 34 A 9.5 9.5 0 0 1 9.5 34 Z M 36 94 L 36 47 C 36 38 44.4 38 44.4 38 L 55.6 38 C 55.6 38 64 38 64 47 L 64 94 Z M 38.5 23 A 11.5 11.5 0 0 1 61.5 23 A 11.5 11.5 0 0 1 38.5 23 Z M 70 94 L 70 57 C 70 48 76.6 48 76.6 48 L 85.4 48 C 85.4 48 92 48 92 57 L 92 94 Z M 71.5 34 A 9.5 9.5 0 0 1 90.5 34 A 9.5 9.5 0 0 1 71.5 34 Z"
+});
+const mortarboard = /* @__PURE__ */ silhouette({
+  name: "mortarboard",
+  category: "people",
+  minUnits: 90,
+  source: "original",
+  path: "M 50 18 L 98 36 L 50 54 L 2 36 Z M 33 44 L 50 50.5 L 67 44 L 67 62 C 67 74 33 74 33 62 Z"
+});
+const hand = /* @__PURE__ */ silhouette({
+  name: "hand",
+  category: "people",
+  minUnits: 180,
+  source: "original",
+  path: "M 22 94 L 22 50 L 24 50 L 24 24 A 5.5 5.5 0 0 1 35 24 L 35 50 L 37 50 L 37 18 A 5.5 5.5 0 0 1 48 18 L 48 50 L 50 50 L 50 22 A 5.5 5.5 0 0 1 61 22 L 61 50 L 63 50 L 63 32 A 5 5 0 0 1 73 32 L 73 50 L 78 50 L 78 94 Z M 22 74 C 18 78 8 78 6 70 C 4 62 12 56 22 58 Z"
+});
+const trophy = /* @__PURE__ */ silhouette({
+  name: "trophy",
+  category: "business",
+  minUnits: 110,
+  source: "original",
+  path: "M 30 8 L 70 8 L 68 40 C 68 54 58 62 50 62 C 42 62 32 54 32 40 Z M 45 60 L 55 60 L 55 78 L 45 78 Z M 30 78 L 70 78 L 74 92 L 26 92 Z"
+});
+const moneybag = /* @__PURE__ */ silhouette({
+  name: "moneybag",
+  category: "business",
+  minUnits: 80,
+  source: "original",
+  path: "M 36 8 L 64 8 L 59 24 C 80 32 90 48 90 65 C 90 83 73 94 50 94 C 27 94 10 83 10 65 C 10 48 20 32 41 24 Z"
+});
+const funnel = /* @__PURE__ */ silhouette({
+  name: "funnel",
+  category: "business",
+  minUnits: 80,
+  source: "original",
+  path: "M 6 10 L 94 10 L 58 56 L 58 92 L 42 92 L 42 56 Z"
+});
+const gear = /* @__PURE__ */ silhouette({
+  name: "gear",
+  category: "technology",
+  minUnits: 260,
+  source: "original",
+  path: "M 82 50.9 L 96.8 54.3 L 93.2 68.5 L 78.6 64.4 L 73.9 71.2 L 83.1 83.3 L 71.2 92 L 62.6 79.4 L 54.7 81.7 L 53.9 96.8 L 39.3 95.8 L 40.8 80.6 L 33.2 77.3 L 22.9 88.4 L 12.4 78.2 L 23.2 67.5 L 19.6 60.1 L 4.6 62 L 3.1 47.4 L 18.2 46.2 L 20.2 38.2 L 7.5 30 L 15.7 17.8 L 28.1 26.7 L 34.8 21.9 L 30.3 7.3 L 44.4 3.3 L 48.2 18 L 56.4 18.7 L 62.3 4.6 L 75.7 10.7 L 69.2 24.4 L 75.1 30.1 L 88.6 23.2 L 95 36.4 L 81.2 42.7 Z M 37 50 A 13 13 0 0 0 63 50 A 13 13 0 0 0 37 50 Z"
+});
+const robot = /* @__PURE__ */ silhouette({
+  name: "robot",
+  category: "technology",
+  minUnits: 220,
+  source: "original",
+  path: "M 18 40 C 18 30 26 26 36 26 L 64 26 C 74 26 82 30 82 40 L 82 72 C 82 82 74 86 64 86 L 36 86 C 26 86 18 82 18 72 Z M 46 14 L 54 14 L 54 28 L 46 28 Z M 44 12 A 6 6 0 0 1 56 12 A 6 6 0 0 1 44 12 Z M 29 50 A 7 7 0 0 0 43 50 A 7 7 0 0 0 29 50 Z M 57 50 A 7 7 0 0 0 71 50 A 7 7 0 0 0 57 50 Z"
+});
+const pin = /* @__PURE__ */ silhouette({
+  name: "pin",
+  category: "geography",
+  minUnits: 120,
+  source: "original",
+  path: "M 50 96 C 50 96 16 56 16 38 C 16 20 31 6 50 6 C 69 6 84 20 84 38 C 84 56 50 96 50 96 Z M 39 37 A 11 11 0 0 0 61 37 A 11 11 0 0 0 39 37 Z"
+});
+const mountain = /* @__PURE__ */ silhouette({
+  name: "mountain",
+  category: "geography",
+  minUnits: 60,
+  source: "original",
+  path: "M 2 90 L 34 26 L 50 56 L 64 18 L 98 90 Z"
+});
 const catalog = [
   heart,
   droplet,
@@ -891,7 +1067,31 @@ const catalog = [
   rocket,
   target,
   globe,
-  pyramid
+  pyramid,
+  leaf,
+  cloud,
+  sun,
+  flame,
+  fish,
+  star,
+  arrow,
+  crown,
+  cross,
+  bolt,
+  bulb,
+  flask,
+  car,
+  plane,
+  group,
+  mortarboard,
+  hand,
+  trophy,
+  moneybag,
+  funnel,
+  gear,
+  robot,
+  pin,
+  mountain
 ];
 const LAYOUT_KEY = "__apexcharts_unit_layouts__";
 function layouts() {
@@ -928,24 +1128,48 @@ function registeredShapeNames() {
   return Object.keys(layouts());
 }
 export {
+  arrow,
   battery,
+  bolt,
+  bulb,
+  car,
   catalog,
+  cloud,
+  cross,
+  crown,
   droplet,
+  fish,
+  flame,
+  flask,
+  funnel,
+  gear,
   globe,
+  group,
+  hand,
   heart,
   house,
   human,
+  leaf,
+  moneybag,
+  mortarboard,
+  mountain,
+  pin,
+  plane,
   pyramid,
   registerShapes,
   registeredShapeNames,
   rings,
+  robot,
   rocket,
   shapeFrom,
   shield,
   silhouette,
   sphere,
+  star,
+  sun,
   target,
   tiers,
   tree,
+  trophy,
   unregisterShapes
 };
