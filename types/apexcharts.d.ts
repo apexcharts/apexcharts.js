@@ -1845,7 +1845,11 @@ type ApexAxisChartSeries = {
  data:
  | (number | null)[]
  | {
-   x: string | number;
+   /**
+    * A category label, a timestamp, or a `Date`. On a `datetime` axis all
+    * three keep millisecond resolution.
+    */
+   x: string | number | Date;
    /**
     * A plain value for most charts. For `candlestick`/`boxPlot`, the
     * summary array (`[O,H,L,C]` / `[min,Q1,median,Q3,max]`). For `violin`, an

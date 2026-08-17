@@ -309,7 +309,7 @@ export default class Data {
       const isXDate = !isXArr && !!dt.isValidDate(x)
 
       if (isXString || isXDate) {
-        // user supplied '01/01/2017' or a date string (a JS date object is not supported)
+        // user supplied a date string ('01/01/2017') or a JS Date object
         if (isXString || cnf.xaxis.convertedCatToNumeric) {
           const isRangeColumn =
             gl.isBarHorizontal && this.w.axisFlags.isRangeData
@@ -335,7 +335,7 @@ export default class Data {
             // directly. Date.prototype.toString() has second resolution, and
             // parsing its output back drops the milliseconds silently.
             this.twoDSeriesX.push(
-              x instanceof Date ? x.getTime() : dt.parseDate(x.toString())
+              x instanceof Date ? x.getTime() : dt.parseDate(x.toString()),
             )
           } else {
             this.w.axisFlags.dataFormatXNumeric = true
