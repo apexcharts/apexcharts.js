@@ -6,6 +6,7 @@ import Graphics from '../modules/Graphics'
 import Filters from '../modules/Filters'
 import Scales from '../modules/Scales'
 import Helpers from './common/circle/Helpers'
+import { spaceOutLabels } from './common/OuterLabels'
 import { Environment } from '../utils/Environment'
 import {
   roundedDonutSegmentPath,
@@ -905,35 +906,13 @@ class Pie {
       this.centerY + w.globals.radialSize + w.globals.pieExternalLabelMarginY
 
     ;['left', 'right'].forEach((side) => {
-      const items = this.externalLabels
-        .filter((l) => l.side === side)
-        .sort((a, b) => a.idealY - b.idealY)
-
-      items.forEach((l) => {
-        l.labelY = l.idealY
-      })
-
-      // forward pass: push each label down to keep the minimum gap
-      for (let k = 1; k < items.length; k++) {
-        if (items[k].labelY - items[k - 1].labelY < lineHeight) {
-          items[k].labelY = items[k - 1].labelY + lineHeight
-        }
-      }
-
-      // if the column ran past the bottom, pull it back up as a block
-      const last = items[items.length - 1]
-      const overflow = last ? last.labelY - maxY : 0
-      if (overflow > 0) {
-        for (let k = items.length - 1; k >= 0; k--) {
-          items[k].labelY -= overflow
-          if (
-            k < items.length - 1 &&
-            items[k + 1].labelY - items[k].labelY < lineHeight
-          ) {
-            items[k].labelY = items[k + 1].labelY - lineHeight
-          }
-        }
-      }
+      // No top clamp: the pie is centred in its own chart, so a column pulled
+      // up as a block stays on screen.
+      spaceOutLabels(
+        this.externalLabels.filter((l) => l.side === side),
+        lineHeight,
+        maxY,
+      )
     })
   }
 

@@ -2971,10 +2971,37 @@ type ApexPlotOptions = {
       /** Defaults to the cluster's own colour when undefined. */
       color?: string
       offsetY?: number
+      /** Return "\n"-separated text to split an outer label over several lines. */
       formatter?(
         name: string,
         opts: { seriesIndex: number; value: number; percent: number; w: any }
       ): string
+      /**
+       * Outer (name) labels, as pie/donut draw them: the label sits in the margin
+       * beside the shape and a leader line joins it to the colour band it names,
+       * so the crowd can be read without a legend.
+       *
+       * `layout: 'custom'` only, and best on a silhouette whose categories stack
+       * vertically (the default row ordering): those alternate down the left and
+       * right gutters. A column-ordered shape sends each label to the side its own
+       * band sits on. The margin is taken off both sides so the shape stays
+       * centred, so turning this on makes the silhouette a little smaller.
+       */
+      external?: {
+        show?: boolean
+        connector?: {
+          show?: boolean
+          width?: number
+          /** Defaults to the band's own colour when undefined. */
+          color?: string
+          /** Air between the band's outermost dot and the leader line's bend. */
+          gap?: number
+          /** Length of the run out to the label. */
+          length?: number
+        }
+        offsetX?: number
+        offsetY?: number
+      }
     }
     /** Per-unit (per-dot) tooltip. */
     tooltip?: {

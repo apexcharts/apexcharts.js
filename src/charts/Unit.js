@@ -6,6 +6,11 @@ import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
 import { prefersReducedMotion } from '../modules/Animations'
+import {
+  drawOuterLabel,
+  measureLabelWidth,
+  spaceOutLabels,
+} from './common/OuterLabels'
 
 /**
  * ApexCharts Unit Class - dot-cluster / pictogram ("unit") chart.
@@ -411,6 +416,16 @@ export default class Unit {
       ret.add(elSeries)
     })
 
+    // Outer (name) labels: parked in the margins reserved by _layoutCustom and
+    // joined to their colour band by a leader line. Added after every series so
+    // they sit above the dots, and planned in one pass so crowded labels can be
+    // spaced apart before they reach the DOM.
+    // `!prev`: on an update the dots tween from where they already are, so there
+    // is nothing to wait for and the labels appear at once.
+    if (this._outerLabelsOn(opts)) {
+      this._drawOuterLabels(ret, clusters, counts, total, opts, animate && !prev)
+    }
+
     // Exit ghosts: dots present last render but gone now (a cluster shrank, or
     // a whole category disappeared on a dataset switch) fade + collapse toward
     // the plot centre so the removal reads as motion rather than a pop-out.
@@ -495,17 +510,31 @@ export default class Unit {
       return this._layoutGrouped(counts, opts)
     }
 
+    // Outer labels live in a margin the shape has to give up, on BOTH sides so
+    // the silhouette stays centred (which is what it is for). Reserved before
+    // the dot size is chosen, so the shape is sized for the room it will
+    // actually get rather than being scaled down afterwards.
+    const gutter = this._outerLabelsOn(opts)
+      ? this._outerLabelGutter(counts, opts)
+      : 0
+    this._lastOuterGutter = gutter
+    const rect = {
+      x: gutter,
+      y: 0,
+      width: Math.max(1, gw - gutter * 2),
+      height: gh,
+    }
+
     // Auto dot size: treat the plot rect as a blob of the same area, so `total`
     // marks fill it at the configured spacing. A fixed size (image, explicit
     // size, bubble maxRadius) short-circuits inside _resolveStep exactly as it
     // does for every other layout.
-    const availR = Math.sqrt((gw * gh) / Math.PI)
+    const availR = Math.sqrt((rect.width * rect.height) / Math.PI)
     const step = this._resolveStep(opts, availR, total)
     this._lastDotR = this._dotRadiusFromStep(step, opts)
     const dotR = this._lastDotR
 
     const objects = this._layoutObjects(counts, dotR)
-    const rect = { x: 0, y: 0, width: gw, height: gh }
 
     let placed
     try {
@@ -2926,6 +2955,233 @@ export default class Unit {
       }
     }
     this.w.globals.unitExitRAF = BrowserAPIs.requestAnimationFrame(stepFn)
+  }
+
+  /**
+   * Are outer (name) labels on? Only for `layout: 'custom'`: they name a colour
+   * BAND, so they need categories that occupy their own part of the shape. The
+   * generated layouts (`packed`, `grid`) interleave categories, and the blob /
+   * bar / arc layouts already carry a label of their own.
+   * @param {any} opts
+   */
+  _outerLabelsOn(opts) {
+    const cfg = opts.clusterLabels
+    return !!(
+      opts.layout === 'custom' &&
+      cfg &&
+      cfg.show !== false &&
+      cfg.external &&
+      cfg.external.show
+    )
+  }
+
+  /**
+   * One outer label's text, as lines. Two lines by default (name, then share),
+   * which is what makes the label readable at a distance from the band it names.
+   * A `clusterLabels.formatter` may return "\n"-separated text to control the
+   * split, or a single line.
+   * @param {number} i @param {number} value @param {number} total @param {any} opts
+   * @returns {string[]}
+   */
+  _outerLabelLines(i, value, total, opts) {
+    const w = this.w
+    const name = w.seriesData.seriesNames[i] || `series-${i + 1}`
+    const percent = total > 0 ? (value / total) * 100 : 0
+    const cfg = opts.clusterLabels
+    const text =
+      typeof cfg.formatter === 'function'
+        ? cfg.formatter(name, { seriesIndex: i, value, percent, w })
+        : `${name}\n${percent.toFixed(1)}%`
+    return String(text).split('\n')
+  }
+
+  /**
+   * Room one side has to give up: the widest label, plus the leader line, plus a
+   * little air. Capped at a quarter of the plot so one long category name shrinks
+   * its own label into the gutter instead of starving the shape.
+   * @param {number[]} counts @param {any} opts
+   * @returns {number}
+   */
+  _outerLabelGutter(counts, opts) {
+    const w = this.w
+    const cfg = opts.clusterLabels
+    const conn = cfg.external.connector || {}
+    const total = counts.reduce((a, b) => a + b, 0)
+
+    /** @type {string[]} */
+    const lines = []
+    counts.forEach((c, i) => {
+      if (c > 0) lines.push(...this._outerLabelLines(i, c, total, opts))
+    })
+    if (!lines.length) return 0
+
+    const width = measureLabelWidth(w, lines, {
+      fontSize: cfg.fontSize,
+      fontFamily: cfg.fontFamily || w.config.chart.fontFamily,
+    })
+    const gap = conn.gap != null ? conn.gap : 8
+    const length = conn.length != null ? conn.length : 22
+    const room = width + gap + length + 8 + Math.abs(parseFloat(cfg.external.offsetX) || 0)
+    return Math.min(room, w.layout.gridWidth * 0.25)
+  }
+
+  /**
+   * Plan and draw the outer labels. A band's anchor is one of its own dots - the
+   * outermost on the label's side, preferring dots near the band's middle - so
+   * the leader line lands on the crowd rather than on a bounding box the viewer
+   * cannot see.
+   *
+   * Sides: a silhouette ordered by rows stacks its categories vertically, so
+   * their centroids share an x and the labels have to alternate left/right down
+   * the shape. One ordered by columns spreads them horizontally, so each label
+   * goes to the side its band is already on.
+   *
+   * @param {any} ret @param {{ i:number, cx:number, cy:number, dots:{x:number,y:number,r?:number}[] }[]} clusters
+   * @param {number[]} counts @param {number} total @param {any} opts
+   * @param {boolean} gathering true only when the dots are flying in from the
+   *   centre (first render / cross-type morph). On an update the crowd is already
+   *   on screen, so the labels must not wait for anything.
+   */
+  _drawOuterLabels(ret, clusters, counts, total, opts, gathering) {
+    const w = this.w
+    if (!Environment.isBrowser()) return
+
+    const cfg = opts.clusterLabels
+    const ext = cfg.external
+    const conn = ext.connector || {}
+    const gap = conn.gap != null ? conn.gap : 8
+    const length = conn.length != null ? conn.length : 22
+    const offsetX = parseFloat(ext.offsetX) || 0
+    const offsetY = parseFloat(ext.offsetY) || 0
+    const gw = w.layout.gridWidth
+    const gh = w.layout.gridHeight
+    const dotR = this._lastDotR
+
+    const live = clusters.filter((c) => c.dots.length > 0)
+    if (!live.length) return
+
+    let spreadX = 0
+    let spreadY = 0
+    if (live.length > 1) {
+      const xs = live.map((c) => c.cx)
+      const ys = live.map((c) => c.cy)
+      spreadX = Math.max(...xs) - Math.min(...xs)
+      spreadY = Math.max(...ys) - Math.min(...ys)
+    }
+    const bandedByX = spreadX > spreadY
+
+    const fontSize = parseFloat(cfg.fontSize) || 13
+    const lineHeight = Math.round(fontSize * 1.35)
+
+    /** @type {{ i:number, lines:string[], anchor:{x:number,y:number}, elbow:{x:number,y:number}, labelX:number, idealY:number, labelY:number, side:'left'|'right' }[]} */
+    const items = []
+    live
+      .slice()
+      .sort((a, b) => a.cy - b.cy)
+      .forEach((c, k) => {
+        const lines = this._outerLabelLines(c.i, counts[c.i], total, opts)
+        if (!lines.some((l) => l !== '')) return
+
+        /** @type {'left'|'right'} */
+        const side = bandedByX
+          ? c.cx >= gw / 2
+            ? 'right'
+            : 'left'
+          : k % 2 === 0
+            ? 'right'
+            : 'left'
+        const dir = side === 'right' ? 1 : -1
+
+        // Outermost dot on this side, pulled toward the band's own middle so a
+        // single stray dot at the shape's tip cannot claim the label.
+        let best = c.dots[0]
+        let bestScore = -Infinity
+        c.dots.forEach((d) => {
+          const score = dir * d.x - 0.75 * Math.abs(d.y - c.cy)
+          if (score > bestScore) {
+            bestScore = score
+            best = d
+          }
+        })
+
+        const anchor = { x: best.x + dir * (best.r || dotR), y: best.y }
+        const elbow = { x: anchor.x + dir * gap, y: anchor.y }
+        items.push({
+          i: c.i,
+          lines,
+          anchor,
+          elbow,
+          labelX: elbow.x + dir * length + offsetX,
+          idealY: anchor.y + offsetY,
+          labelY: anchor.y + offsetY,
+          side,
+        })
+      })
+
+    if (!items.length) return
+
+    // Space each gutter column apart, then keep it inside the plot: a label
+    // block is centred on labelY, so half of it has to fit above and below.
+    const maxLines = items.reduce((m, it) => Math.max(m, it.lines.length), 1)
+    const block = maxLines * lineHeight
+    const half = block / 2
+    ;['left', 'right'].forEach((side) => {
+      spaceOutLabels(
+        items.filter((it) => it.side === side),
+        block + 2,
+        gh - half,
+        half,
+      )
+    })
+
+    const group = new Graphics(w, this.ctx).group({
+      class: 'apexcharts-unit-outer-labels',
+    })
+    // On a gather the dots fly in from the plot centre, so a leader line drawn at
+    // full opacity would point at an empty gutter. Fade the labels in behind it.
+    //
+    // Deliberately NOT timed to the last dot landing (speed + the stagger): the
+    // crowd is easing out, so the shape is recognisable long before it settles,
+    // and waiting for the final dot reads as the labels being broken. They come
+    // in partway through instead, and the fade is slow enough to feel like they
+    // arrive WITH the crowd rather than popping in after it. Capped so a slow
+    // configured speed cannot hold them back for seconds.
+    if (gathering) {
+      const speed = Math.max(1, w.config.chart.animations.speed || 800)
+      group.node.classList.add('apexcharts-unit-label-delay')
+      group.node.style.animationDelay = `${Math.min(speed * 0.45, 600) / 1000}s`
+    }
+
+    items.forEach((it) => {
+      const color = w.globals.colors[it.i] || w.globals.colors[0] || '#008FFB'
+      group.add(
+        drawOuterLabel(w, {
+          lines: it.lines,
+          lineHeight,
+          anchor: it.anchor,
+          elbow: it.elbow,
+          labelX: it.labelX,
+          labelY: it.labelY,
+          side: it.side,
+          connector: {
+            show: conn.show !== false,
+            width: conn.width != null ? conn.width : 1.5,
+            color: conn.color || color,
+          },
+          style: {
+            fontSize: cfg.fontSize,
+            fontFamily: cfg.fontFamily || w.config.chart.fontFamily,
+            fontWeight: cfg.fontWeight,
+          },
+          foreColor: cfg.color || w.config.chart.foreColor,
+          groupClass: 'apexcharts-unit-outer-label-group',
+          textClass: 'apexcharts-unit-outer-label',
+          connectorClass: 'apexcharts-unit-label-connector',
+        }),
+      )
+    })
+
+    ret.add(group)
   }
 
   /**

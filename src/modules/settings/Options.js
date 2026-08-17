@@ -1333,8 +1333,35 @@ export default class Options {
             // defaults to the cluster's own colour when undefined.
             color: undefined,
             offsetY: 0,
-            // (name, { seriesIndex, value, percent, w }) => string
+            // (name, { seriesIndex, value, percent, w }) => string.
+            // Return "\n"-separated text to split an outer label over lines.
             formatter: undefined,
+            // Outer (name) labels, as pie/donut draw them: the label sits in the
+            // margin beside the shape and a leader line joins it to the colour
+            // band it names, so the crowd needs no legend to be read.
+            //
+            // `layout: 'custom'` only, and best on a silhouette whose categories
+            // stack vertically (the default row ordering): those alternate down
+            // the left and right gutters. A column-ordered shape sends each
+            // label to the side its own band sits on.
+            //
+            // The margin is taken off BOTH sides so the shape stays centred,
+            // which means turning this on makes the silhouette a little smaller.
+            external: {
+              show: false,
+              connector: {
+                show: true,
+                width: 1.5,
+                // defaults to the band's own colour when undefined.
+                color: undefined,
+                // air between the band's outermost dot and the line's bend.
+                gap: 8,
+                // length of the run out to the label.
+                length: 22,
+              },
+              offsetX: 0,
+              offsetY: 0,
+            },
           },
           tooltip: {
             // Per-unit tooltip body. Each dot carries its category (seriesIndex)

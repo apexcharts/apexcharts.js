@@ -1,5 +1,6 @@
 // @ts-check
 import Graphics from '../../../modules/Graphics'
+import { drawOuterLabel } from '../OuterLabels'
 
 export default class CircularChartsHelpers {
   /**
@@ -79,67 +80,15 @@ export default class CircularChartsHelpers {
    *   foreColor: string,
    * }} opts
    */
-  drawExternalLabel({
-    lines,
-    lineHeight,
-    anchor,
-    elbow,
-    labelX,
-    labelY,
-    side,
-    connector,
-    style,
-    foreColor,
-  }) {
-    const graphics = new Graphics(this.w)
-
-    const group = graphics.group({
-      class: 'apexcharts-pie-name-label-group',
+  drawExternalLabel(opts) {
+    // Shared with the unit chart's band labels - see charts/common/OuterLabels.
+    // The class names stay pie-specific: they are public API for CSS, and the
+    // export path looks for them.
+    return drawOuterLabel(this.w, {
+      ...opts,
+      groupClass: 'apexcharts-pie-name-label-group',
+      textClass: 'apexcharts-pie-name-label',
+      connectorClass: 'apexcharts-pie-label-connector',
     })
-
-    if (connector.show) {
-      const d = `M ${anchor.x} ${anchor.y} L ${elbow.x} ${elbow.y} L ${labelX} ${labelY}`
-      const line = graphics.drawPath({
-        d,
-        stroke: connector.color,
-        strokeWidth: connector.width,
-        fill: 'none',
-        strokeLinecap: 'round',
-      })
-      line.node.classList.add('apexcharts-pie-label-connector')
-      group.add(line)
-    }
-
-    // small horizontal pad so the text doesn't touch the connector end
-    const textX = side === 'right' ? labelX + 4 : labelX - 4
-    const n = lines.length
-    // single text element with one tspan per line, block centered on labelY
-    const startY = labelY - ((n - 1) * lineHeight) / 2
-    const elText = graphics.drawText({
-      x: textX,
-      y: startY,
-      text: n === 1 ? lines[0] : lines,
-      textAnchor: side === 'right' ? 'start' : 'end',
-      fontSize: style.fontSize,
-      fontFamily: style.fontFamily,
-      fontWeight: style.fontWeight,
-      foreColor,
-      dominantBaseline: 'central',
-      cssClass: 'apexcharts-pie-name-label',
-    })
-    // normalize multi-line spacing to lineHeight (svg.js newLine leading varies)
-    if (n > 1) {
-      const tspans = elText.node.getElementsByTagName('tspan')
-      for (let li = 0; li < tspans.length; li++) {
-        tspans[li].setAttribute('x', `${textX}`)
-        tspans[li].setAttribute('dy', li === 0 ? '0' : `${lineHeight}`)
-      }
-    }
-    group.add(elText)
-
-    // Reveal timing is handled by the caller via delayedElements +
-    // apexcharts-element-hidden (faded back in on animationCompleted), so the
-    // labels and connectors don't pop in before the slice sweep finishes.
-    return group
   }
 }
