@@ -58,9 +58,11 @@ export interface ApexUnitShapeMeta {
   category?: ApexUnitShapeCategory
   /** Below this count the shape stops reading; warns in development. */
   minUnits?: number
-  kind?: 'silhouette' | 'rings' | 'globe' | 'tiers'
-  /** The outline, for silhouettes. */
+  kind?: 'silhouette' | 'stroke' | 'rings' | 'globe' | 'tiers'
+  /** The outline for silhouettes, the centreline for strokes. */
   path?: string
+  /** Stroke thickness in path units, for strokes (16). */
+  width?: number
   order?: ApexUnitShapeOrder
   /** Share of the plot rect to fill (0.94). */
   padding?: number
@@ -129,6 +131,8 @@ export const funnel: ApexUnitShape
 export const shield: ApexUnitShape
 export const gear: ApexUnitShape
 export const robot: ApexUnitShape
+export const wifi: ApexUnitShape
+export const pulse: ApexUnitShape
 
 // symbols
 export const heart: ApexUnitShape
@@ -138,6 +142,7 @@ export const arrow: ApexUnitShape
 export const crown: ApexUnitShape
 export const cross: ApexUnitShape
 export const bolt: ApexUnitShape
+export const check: ApexUnitShape
 
 // geography
 export const globe: ApexUnitShape
@@ -163,8 +168,15 @@ export function shapeFrom(
   opts?: Partial<ApexUnitShapeMeta>,
 ): ApexUnitShape
 
+/** Your own centreline, for a thing that is a line rather than an area. */
+export function strokeFrom(
+  path: string,
+  opts?: Partial<ApexUnitShapeMeta>,
+): ApexUnitShape
+
 /** The factories behind the catalog, for shapes of your own. */
 export function silhouette(meta: ApexUnitShapeMeta): ApexUnitShape
+export function stroke(meta: ApexUnitShapeMeta): ApexUnitShape
 export function rings(meta: ApexUnitShapeMeta): ApexUnitShape
 export function sphere(meta: ApexUnitShapeMeta): ApexUnitShape
 export function tiers(meta: ApexUnitShapeMeta): ApexUnitShape

@@ -115,6 +115,9 @@ var VIEWS = {
   globe: { layout: 'custom', positions: 'globe' },
   pin: { layout: 'custom', positions: 'pin' },
   mountain: { layout: 'custom', positions: 'mountain' },
+  check: { layout: 'custom', positions: 'check' },
+  wifi: { layout: 'custom', positions: 'wifi' },
+  pulse: { layout: 'custom', positions: 'pulse' },
   packed: { layout: 'packed', positions: undefined },
   columns: { layout: 'columns', positions: undefined },
 }
@@ -143,11 +146,13 @@ function wireGallery(chart) {
 
 <html>
 <div class="wrap">
-  <h1>One crowd, thirty-two layouts the chart does not ship</h1>
+  <h1>One crowd, thirty-five layouts the chart does not ship</h1>
   <p>
     820 dots, one per employee. A unit layout is a plain function of every mark
     and the plot rect, returning positions, so a shape can be registered from
-    outside the library. Every shape below comes from apexcharts/unit-shapes.
+    outside the library. Every shape below comes from apexcharts/unit-shapes; the
+    last row are strokes, where the dots pack a thickened line rather than an
+    outline, which is how a shape with no interior joins in.
     Switch views: the same dots flow into the next arrangement, keeping their
     identity, colour and size, rather than the chart being torn down and rebuilt.
   </p>
@@ -210,6 +215,13 @@ function wireGallery(chart) {
     <button data-view="globe">Globe</button>
     <button data-view="pin">Pin</button>
     <button data-view="mountain">Mountain</button>
+  </div>
+
+  <div class="actions">
+    <span class="cat">Strokes</span>
+    <button data-view="check">Check</button>
+    <button data-view="wifi">Wifi</button>
+    <button data-view="pulse">Pulse</button>
   </div>
 
   <div class="actions builtin">

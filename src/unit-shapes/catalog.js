@@ -43,6 +43,9 @@ import { gear } from './shapes/gear.js'
 import { robot } from './shapes/robot.js'
 import { pin } from './shapes/pin.js'
 import { mountain } from './shapes/mountain.js'
+import { check } from './shapes/check.js'
+import { wifi } from './shapes/wifi.js'
+import { pulse } from './shapes/pulse.js'
 
 /** @typedef {import('./engine/shape.js').UnitShape} UnitShape */
 
@@ -80,4 +83,7 @@ export const catalog = [
   robot,
   pin,
   mountain,
+  check,
+  wifi,
+  pulse,
 ]

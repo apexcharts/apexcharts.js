@@ -15,7 +15,8 @@
  *    radii (this is what caught the globe drawing rim dots on top of each other)
  *  - even density: the largest nearest-neighbour gap is close to the median one
  *    (this is what catches holes and isolated dots)
- *  - inside the shape: for silhouettes, every dot's centre is within the outline
+ *  - inside the shape: for silhouettes, every dot's centre is within the outline;
+ *    for strokes, within half a stroke width of the centreline
  *  - honest metadata: every shape passes at its own declared `minUnits`
  *  - deterministic, and responsive to the plot rect
  *
@@ -122,6 +123,48 @@ function fittedOutline(shape, rect, padding = 0.94) {
   )
 }
 
+/**
+ * The same fit for a stroke, whose box is grown by half the stroke width before
+ * being fitted (otherwise the glyph is scaled to the plot and then clipped by
+ * exactly that margin). Returns the centreline in pixels plus the half width in
+ * pixels, which is the containment radius.
+ */
+function fittedCentreline(shape, rect, padding = 0.94) {
+  const half = (shape.shape.width ?? 16) / 2
+  const polys = flattenPath(shape.shape.path, shape.shape.sampling ?? 0.6, true)
+  const b = boundsOf(polys)
+  const bw = b.x1 - b.x0 + half * 2
+  const bh = b.y1 - b.y0 + half * 2
+  const scale = Math.min((rect.width * padding) / bw, (rect.height * padding) / bh)
+  const offX = rect.x + rect.width / 2 - (b.x0 - half + bw / 2) * scale
+  const offY = rect.y + rect.height / 2 - (b.y0 - half + bh / 2) * scale
+  return {
+    polys: polys.map((pts) =>
+      pts.map((p) => ({ x: offX + p.x * scale, y: offY + p.y * scale })),
+    ),
+    r: half * scale,
+  }
+}
+
+/** Distance from a point to the nearest segment of any polyline. */
+function distToCentreline(polys, x, y) {
+  let best = Infinity
+  polys.forEach((pts) => {
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const ax = pts[i].x
+      const ay = pts[i].y
+      const dx = pts[i + 1].x - ax
+      const dy = pts[i + 1].y - ay
+      const len2 = dx * dx + dy * dy
+      let t = len2 > 0 ? ((x - ax) * dx + (y - ay) * dy) / len2 : 0
+      t = Math.max(0, Math.min(1, t))
+      const d = Math.hypot(x - (ax + t * dx), y - (ay + t * dy))
+      if (d < best) best = d
+    }
+  })
+  return best
+}
+
 describe('unit-shapes: catalog hygiene', () => {
   it('every shape carries the metadata the collection is curated on', () => {
     const allowed = [
@@ -148,8 +191,12 @@ describe('unit-shapes: catalog hygiene', () => {
       // brought an outline in from outside; that is the decision to revisit, not
       // the assertion to relax.
       expect(['original', 'generated']).toContain(meta.source)
-      expect(['silhouette', 'rings', 'globe', 'tiers']).toContain(meta.kind)
+      expect(['silhouette', 'stroke', 'rings', 'globe', 'tiers']).toContain(meta.kind)
       if (meta.kind === 'silhouette') expect(meta.path).toBeTruthy()
+      if (meta.kind === 'stroke') {
+        expect(meta.path).toBeTruthy()
+        expect(meta.width).toBeGreaterThan(0)
+      }
     })
   })
 
@@ -293,6 +340,21 @@ describe('unit-shapes: every shape, every count, every plot size', () => {
         const pos = shape(objects(820), rect)
         const strays = pos.filter((p) => !inside(polys, p.x, p.y))
         expect(strays, `${strays.length} dots outside the outline`).toHaveLength(0)
+      })
+    }
+
+    if (shape.shape.kind === 'stroke') {
+      it(`${name}: every dot sits on the stroke`, () => {
+        // The stroke equivalent of the point-in-polygon check, and independent of
+        // the engine in the same way: refit the centreline here and measure each
+        // dot's distance to it, rather than trusting the region that placed them.
+        const rect = RECTS[0]
+        const { polys, r } = fittedCentreline(shape, rect)
+        const pos = shape(objects(820), rect)
+        const strays = pos.filter(
+          (p) => distToCentreline(polys, p.x, p.y) > r + 0.75,
+        )
+        expect(strays, `${strays.length} dots off the stroke`).toHaveLength(0)
       })
     }
   })

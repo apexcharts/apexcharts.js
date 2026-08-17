@@ -30,9 +30,14 @@ const CMD = /[MmLlHhVvCcSsQqTtAaZz]/
  *
  * @param {string} d
  * @param {number} [tolerance] max step length in path units (0.6)
+ * @param {boolean} [keepLines] keep two-point subpaths. A two-point subpath
+ *   encloses no area, so a FILL must drop it (that is the default): left in, it
+ *   would contribute a pair of coincident scanline crossings and open a
+ *   zero-width span. A STROKE is the opposite case, where a straight line from A
+ *   to B is a perfectly ordinary glyph, so the stroke region asks for them.
  * @returns {Point[][]}
  */
-export function flattenPath(d, tolerance = 0.6) {
+export function flattenPath(d, tolerance = 0.6, keepLines = false) {
   const tol = tolerance > 0 ? tolerance : 0.6
   const n = d.length
   let i = 0
@@ -100,7 +105,7 @@ export function flattenPath(d, tolerance = 0.6) {
   function closePoly() {
     // A subpath that closed back onto its first point leaves a zero-length
     // edge, which the scanline ignores, so no de-duplication is needed.
-    if (poly.length > 2) polys.push(poly)
+    if (poly.length > (keepLines ? 1 : 2)) polys.push(poly)
     poly = []
   }
 

@@ -38,8 +38,9 @@
  *   'technology' | 'symbols'
  * @property {number} [minUnits] below this the shape stops reading. Enforced by
  *   the shape-lint suite and warned about in development.
- * @property {string} [kind] 'silhouette' | 'rings' | 'globe' | 'tiers'
- * @property {string} [path] outline, for silhouettes
+ * @property {string} [kind] 'silhouette' | 'stroke' | 'rings' | 'globe' | 'tiers'
+ * @property {string} [path] outline for silhouettes, centreline for strokes
+ * @property {number} [width] stroke thickness in path units, for strokes (16)
  * @property {string} [order] which slots the first category takes
  * @property {number} [padding]
  * @property {number} [rowRatio]
@@ -84,13 +85,21 @@ export function defineShape(meta, build) {
   /** @type {any} */
   const layout = (/** @type {UnitObject[]} */ objects, /** @type {Rect} */ rect) => {
     // The count a shape needs to stay recognisable is part of its definition,
-    // so it is worth saying out loud rather than rendering mush.
+    // so it is worth saying out loud rather than rendering mush. Say what will
+    // actually happen too: the two kinds fail differently, and a stroke's failure
+    // mode is often perfectly acceptable, so a flat warning would send people
+    // hunting for a problem they may not have.
     if (min && objects.length && objects.length < min && !warned.has(meta.name)) {
       warned.add(meta.name)
+      const effect =
+        meta.kind === 'stroke'
+          ? 'A stroke thins to a dotted line below that, which may well be fine.'
+          : 'Fine detail closes up below that.'
       console.warn(
         `[ApexCharts] unit shape "${meta.name}" reads best from about ` +
-          `${min} units; this chart has ${objects.length}. Use a smaller ` +
-          `plotOptions.unit.unitValue, or a simpler shape.`,
+          `${min} units; this chart has ${objects.length}. ${effect} ` +
+          `Lower plotOptions.unit.unitValue to draw more dots, or pick a ` +
+          `simpler shape.`,
       )
     }
     return inner(objects, rect)

@@ -139,6 +139,157 @@ export function polygonRegion(polys, tf, opts = {}) {
 }
 
 /**
+ * Interior intervals of a STROKED centreline: the set of points within
+ * `halfWidth` of the path.
+ *
+ * This is the region that lets thin glyphs into the collection at all. A
+ * checkmark, an arrow, a wifi arc and a heartbeat trace have no interior to fill,
+ * only a line and a thickness, so as outlines they would have to be authored as
+ * closed polygons with both sides of every segment and every join drawn by hand.
+ *
+ * Why a region and not a layout. The tempting design is to walk the centreline
+ * placing dots along it like beads, and it fails on capacity: a line of length L
+ * holds L/pitch beads and no more, so a high dot count has to spill into parallel
+ * lanes, at which point it has become area packing written a second time. Treating
+ * the stroke as a region instead means the existing packer bisects the gap as
+ * always, and the same glyph is two dots thick at 100 units and ten dots thick at
+ * 3000, with no ceiling and no second code path.
+ *
+ * The geometry is closed-form, which is what keeps this small. A stroked segment
+ * is a capsule: a rotated rectangle plus a disc at each end. A horizontal line
+ * meets the rectangle in one interval (found from its edge crossings) and each
+ * disc in one interval (found from the circle equation), and the union of the
+ * intervals is the answer. Round caps and round joins come free from the discs,
+ * and a centreline that crosses itself simply unions with itself, so there is no
+ * join, cap or self-intersection case to special case.
+ *
+ * A closed centreline needs no wrap-around here: `flattenPath` appends the start
+ * point for `Z`, so the closing segment is already in the point list.
+ *
+ * @param {Point[][]} polys centrelines in path units, from
+ *   `flattenPath(d, tol, true)` so straight two-point glyphs survive
+ * @param {{ scale: number, offX: number, offY: number }} tf
+ * @param {number} halfWidth in PATH units; scaled with the shape
+ * @returns {Region}
+ */
+export function strokeRegion(polys, tf, halfWidth) {
+  const r = Math.max(1e-6, halfWidth * tf.scale)
+  /** @type {{ax:number,ay:number,bx:number,by:number,nx:number,ny:number}[]} */
+  const caps = []
+  let minY = Infinity
+  let maxY = -Infinity
+  let minX = Infinity
+  let maxX = -Infinity
+
+  polys.forEach((pts) => {
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const ax = tf.offX + pts[i].x * tf.scale
+      const ay = tf.offY + pts[i].y * tf.scale
+      const bx = tf.offX + pts[i + 1].x * tf.scale
+      const by = tf.offY + pts[i + 1].y * tf.scale
+      const len = Math.hypot(bx - ax, by - ay)
+      // A zero-length segment contributes only its disc, which the endpoints
+      // already cover, so the normal can be anything.
+      const nx = len > 1e-9 ? (-(by - ay) / len) * r : r
+      const ny = len > 1e-9 ? ((bx - ax) / len) * r : 0
+      caps.push({ ax, ay, bx, by, nx, ny })
+      if (Math.min(ax, bx) - r < minX) minX = Math.min(ax, bx) - r
+      if (Math.max(ax, bx) + r > maxX) maxX = Math.max(ax, bx) + r
+      if (Math.min(ay, by) - r < minY) minY = Math.min(ay, by) - r
+      if (Math.max(ay, by) + r > maxY) maxY = Math.max(ay, by) + r
+    }
+  })
+
+  if (!caps.length) {
+    return { minY: 0, maxY: 0, minX: 0, maxX: 0, spansAt: () => [] }
+  }
+
+  // Same banding as the polygon region, and for the same reason: fitting the gap
+  // rescans every row ~34 times, so a row query must not touch every capsule.
+  const height = Math.max(1e-6, maxY - minY)
+  /** @type {typeof caps[]} */
+  const bands = []
+  for (let k = 0; k < BANDS; k++) bands.push([])
+  caps.forEach((c) => {
+    const lo = Math.min(c.ay, c.by) - r
+    const hi = Math.max(c.ay, c.by) + r
+    let i0 = Math.floor(((lo - minY) / height) * BANDS)
+    let i1 = Math.floor(((hi - minY) / height) * BANDS)
+    i0 = Math.max(0, Math.min(BANDS - 1, i0))
+    i1 = Math.max(0, Math.min(BANDS - 1, i1))
+    for (let i = i0; i <= i1; i++) bands[i].push(c)
+  })
+
+  /**
+   * Interval where the row meets a disc, or null.
+   * @param {number} cx @param {number} cy @param {number} y
+   * @returns {Span | null}
+   */
+  const disc = (cx, cy, y) => {
+    const dy = y - cy
+    if (dy <= -r || dy >= r) return null
+    const half = Math.sqrt(r * r - dy * dy)
+    return { x0: cx - half, x1: cx + half }
+  }
+
+  /** @type {(y: number) => Span[]} */
+  const spansAt = (y) => {
+    const bi = Math.floor(((y - minY) / height) * BANDS)
+    if (bi < 0 || bi > BANDS - 1) return []
+    const list = bands[bi]
+    /** @type {Span[]} */
+    const parts = []
+
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i]
+      // The rotated rectangle: four corners, offset either side of the segment.
+      const qx = [c.ax + c.nx, c.bx + c.nx, c.bx - c.nx, c.ax - c.nx]
+      const qy = [c.ay + c.ny, c.by + c.ny, c.by - c.ny, c.ay - c.ny]
+      let lo = Infinity
+      let hi = -Infinity
+      for (let k = 0; k < 4; k++) {
+        const j = (k + 1) % 4
+        const y0 = qy[k]
+        const y1 = qy[j]
+        // Half-open, so a corner shared by two edges is counted once.
+        if (y0 === y1) continue
+        const top = Math.min(y0, y1)
+        const bot = Math.max(y0, y1)
+        if (y < top || y >= bot) continue
+        const x = qx[k] + ((y - y0) / (y1 - y0)) * (qx[j] - qx[k])
+        if (x < lo) lo = x
+        if (x > hi) hi = x
+      }
+      if (hi > lo) parts.push({ x0: lo, x1: hi })
+
+      const da = disc(c.ax, c.ay, y)
+      if (da) parts.push(da)
+      const db = disc(c.bx, c.by, y)
+      if (db) parts.push(db)
+    }
+
+    if (!parts.length) return []
+    // Merge: adjacent capsules always overlap at their shared joint, so without
+    // this a row would be handed a dozen overlapping intervals and the packer
+    // would place a dot in each.
+    parts.sort((a, b) => a.x0 - b.x0)
+    /** @type {Span[]} */
+    const spans = [parts[0]]
+    for (let i = 1; i < parts.length; i++) {
+      const last = spans[spans.length - 1]
+      if (parts[i].x0 <= last.x1) {
+        if (parts[i].x1 > last.x1) last.x1 = parts[i].x1
+      } else {
+        spans.push(parts[i])
+      }
+    }
+    return spans
+  }
+
+  return { minY, maxY, minX, maxX, spansAt }
+}
+
+/**
  * Fit a shape's bounds into the plot rect at a UNIFORM scale. A shape stretched
  * to the plot's aspect stops being that shape, so the spare axis becomes margin.
  *

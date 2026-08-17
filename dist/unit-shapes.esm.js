@@ -22,7 +22,7 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
  * (c) 2018-2026 ApexCharts
  */
 const CMD = /[MmLlHhVvCcSsQqTtAaZz]/;
-function flattenPath(d, tolerance = 0.6) {
+function flattenPath(d, tolerance = 0.6, keepLines = false) {
   const tol = tolerance > 0 ? tolerance : 0.6;
   const n = d.length;
   let i = 0;
@@ -67,7 +67,7 @@ function flattenPath(d, tolerance = 0.6) {
     return null;
   }
   function closePoly() {
-    if (poly.length > 2) polys.push(poly);
+    if (poly.length > (keepLines ? 1 : 2)) polys.push(poly);
     poly = [];
   }
   function move(x, y) {
@@ -395,6 +395,94 @@ function polygonRegion(polys, tf, opts = {}) {
   };
   return { minY, maxY, minX, maxX, spansAt };
 }
+function strokeRegion(polys, tf, halfWidth) {
+  const r = Math.max(1e-6, halfWidth * tf.scale);
+  const caps = [];
+  let minY = Infinity;
+  let maxY = -Infinity;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  polys.forEach((pts) => {
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const ax = tf.offX + pts[i].x * tf.scale;
+      const ay = tf.offY + pts[i].y * tf.scale;
+      const bx = tf.offX + pts[i + 1].x * tf.scale;
+      const by = tf.offY + pts[i + 1].y * tf.scale;
+      const len = Math.hypot(bx - ax, by - ay);
+      const nx = len > 1e-9 ? -(by - ay) / len * r : r;
+      const ny = len > 1e-9 ? (bx - ax) / len * r : 0;
+      caps.push({ ax, ay, bx, by, nx, ny });
+      if (Math.min(ax, bx) - r < minX) minX = Math.min(ax, bx) - r;
+      if (Math.max(ax, bx) + r > maxX) maxX = Math.max(ax, bx) + r;
+      if (Math.min(ay, by) - r < minY) minY = Math.min(ay, by) - r;
+      if (Math.max(ay, by) + r > maxY) maxY = Math.max(ay, by) + r;
+    }
+  });
+  if (!caps.length) {
+    return { minY: 0, maxY: 0, minX: 0, maxX: 0, spansAt: () => [] };
+  }
+  const height = Math.max(1e-6, maxY - minY);
+  const bands = [];
+  for (let k = 0; k < BANDS; k++) bands.push([]);
+  caps.forEach((c) => {
+    const lo = Math.min(c.ay, c.by) - r;
+    const hi = Math.max(c.ay, c.by) + r;
+    let i0 = Math.floor((lo - minY) / height * BANDS);
+    let i1 = Math.floor((hi - minY) / height * BANDS);
+    i0 = Math.max(0, Math.min(BANDS - 1, i0));
+    i1 = Math.max(0, Math.min(BANDS - 1, i1));
+    for (let i = i0; i <= i1; i++) bands[i].push(c);
+  });
+  const disc = (cx, cy, y) => {
+    const dy = y - cy;
+    if (dy <= -r || dy >= r) return null;
+    const half = Math.sqrt(r * r - dy * dy);
+    return { x0: cx - half, x1: cx + half };
+  };
+  const spansAt = (y) => {
+    const bi = Math.floor((y - minY) / height * BANDS);
+    if (bi < 0 || bi > BANDS - 1) return [];
+    const list = bands[bi];
+    const parts = [];
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
+      const qx = [c.ax + c.nx, c.bx + c.nx, c.bx - c.nx, c.ax - c.nx];
+      const qy = [c.ay + c.ny, c.by + c.ny, c.by - c.ny, c.ay - c.ny];
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (let k = 0; k < 4; k++) {
+        const j = (k + 1) % 4;
+        const y0 = qy[k];
+        const y1 = qy[j];
+        if (y0 === y1) continue;
+        const top = Math.min(y0, y1);
+        const bot = Math.max(y0, y1);
+        if (y < top || y >= bot) continue;
+        const x = qx[k] + (y - y0) / (y1 - y0) * (qx[j] - qx[k]);
+        if (x < lo) lo = x;
+        if (x > hi) hi = x;
+      }
+      if (hi > lo) parts.push({ x0: lo, x1: hi });
+      const da = disc(c.ax, c.ay, y);
+      if (da) parts.push(da);
+      const db = disc(c.bx, c.by, y);
+      if (db) parts.push(db);
+    }
+    if (!parts.length) return [];
+    parts.sort((a, b) => a.x0 - b.x0);
+    const spans = [parts[0]];
+    for (let i = 1; i < parts.length; i++) {
+      const last = spans[spans.length - 1];
+      if (parts[i].x0 <= last.x1) {
+        if (parts[i].x1 > last.x1) last.x1 = parts[i].x1;
+      } else {
+        spans.push(parts[i]);
+      }
+    }
+    return spans;
+  };
+  return { minY, maxY, minX, maxX, spansAt };
+}
 function fitBox(bounds, rect, padding) {
   const bw = Math.max(1e-6, bounds.x1 - bounds.x0);
   const bh = Math.max(1e-6, bounds.y1 - bounds.y0);
@@ -523,8 +611,9 @@ function defineShape(meta, build2) {
   const layout = (objects, rect) => {
     if (min && objects.length && objects.length < min && !warned.has(meta.name)) {
       warned.add(meta.name);
+      const effect = meta.kind === "stroke" ? "A stroke thins to a dotted line below that, which may well be fine." : "Fine detail closes up below that.";
       console.warn(
-        `[ApexCharts] unit shape "${meta.name}" reads best from about ${min} units; this chart has ${objects.length}. Use a smaller plotOptions.unit.unitValue, or a simpler shape.`
+        `[ApexCharts] unit shape "${meta.name}" reads best from about ${min} units; this chart has ${objects.length}. ${effect} Lower plotOptions.unit.unitValue to draw more dots, or pick a simpler shape.`
       );
     }
     return inner(objects, rect);
@@ -536,18 +625,18 @@ function defineShape(meta, build2) {
     layout
   );
 }
-const cache = /* @__PURE__ */ new Map();
+const cache$1 = /* @__PURE__ */ new Map();
 function outline(path, sampling) {
   const key = `${sampling}|${path}`;
-  let hit = cache.get(key);
+  let hit = cache$1.get(key);
   if (!hit) {
     const polys = flattenPath(path, sampling);
     hit = { polys, bounds: boundsOf(polys) };
-    cache.set(key, hit);
+    cache$1.set(key, hit);
   }
   return hit;
 }
-function build(meta) {
+function build$1(meta) {
   const path = meta.path || "";
   const order = meta.order || "rows";
   const padding = meta.padding == null ? 0.94 : meta.padding;
@@ -576,7 +665,7 @@ function build(meta) {
   };
 }
 function silhouette(meta) {
-  return defineShape(__spreadValues({ kind: "silhouette" }, meta), build);
+  return defineShape(__spreadValues({ kind: "silhouette" }, meta), build$1);
 }
 function shapeFrom(path, opts = {}) {
   return silhouette(__spreadProps(__spreadValues({ name: "custom" }, opts), { path }));
@@ -1031,6 +1120,84 @@ const mountain = /* @__PURE__ */ silhouette({
   source: "original",
   path: "M 2 90 L 34 26 L 50 56 L 64 18 L 98 90 Z"
 });
+const cache = /* @__PURE__ */ new Map();
+function centreline(path, sampling) {
+  const key = `${sampling}|${path}`;
+  let hit = cache.get(key);
+  if (!hit) {
+    const polys = flattenPath(path, sampling, true);
+    hit = { polys, bounds: boundsOf(polys) };
+    cache.set(key, hit);
+  }
+  return hit;
+}
+function build(meta) {
+  const path = meta.path || "";
+  const order = meta.order || "rows";
+  const padding = meta.padding == null ? 0.94 : meta.padding;
+  const rowRatio = meta.rowRatio == null ? 0.88 : meta.rowRatio;
+  const sampling = meta.sampling == null ? 0.6 : meta.sampling;
+  const half = Math.max(0.5, (meta.width == null ? 16 : meta.width) / 2);
+  return (objects, rect) => {
+    if (!objects.length || !path) return [];
+    const { polys, bounds } = centreline(path, sampling);
+    if (!polys.length) return [];
+    const tf = fitBox(
+      {
+        x0: bounds.x0 - half,
+        y0: bounds.y0 - half,
+        x1: bounds.x1 + half,
+        y1: bounds.y1 + half
+      },
+      rect,
+      padding
+    );
+    const region = strokeRegion(polys, tf, half);
+    const dx = fitSpacing(region, objects.length, rowRatio);
+    const packed = rowSlots(region, dx, dx * rowRatio);
+    if (!packed.cells.length) return [];
+    const counts = allocate(
+      packed.cells.map((c) => c.cap),
+      objects.length
+    );
+    const r = fitRadius(objects[0].r > 0 ? objects[0].r : 3, dx);
+    const slots = [];
+    packed.cells.forEach((cell, i) => {
+      placeRow(cell, counts[i], dx, packed.inset, r, slots);
+    });
+    return assign(objects, slots, order, dx);
+  };
+}
+function stroke(meta) {
+  return defineShape(__spreadValues({ kind: "stroke" }, meta), build);
+}
+function strokeFrom(path, opts = {}) {
+  return stroke(__spreadProps(__spreadValues({ name: "custom-stroke" }, opts), { path }));
+}
+const check = /* @__PURE__ */ stroke({
+  name: "check",
+  category: "symbols",
+  minUnits: 40,
+  width: 19,
+  source: "original",
+  path: "M 13 55 L 37 79 L 87 22"
+});
+const wifi = /* @__PURE__ */ stroke({
+  name: "wifi",
+  category: "technology",
+  minUnits: 120,
+  width: 8,
+  source: "original",
+  path: "M 11.9 62 A 44 44 0 0 1 88.1 62 M 24 69 A 30 30 0 0 1 76 69 M 36.1 76 A 16 16 0 0 1 63.9 76 M 50 86 L 50 86"
+});
+const pulse = /* @__PURE__ */ stroke({
+  name: "pulse",
+  category: "technology",
+  minUnits: 60,
+  width: 11,
+  source: "original",
+  path: "M 4 58 L 26 58 L 35 30 L 47 84 L 59 44 L 68 58 L 96 58"
+});
 const catalog = [
   heart,
   droplet,
@@ -1063,7 +1230,10 @@ const catalog = [
   gear,
   robot,
   pin,
-  mountain
+  mountain,
+  check,
+  wifi,
+  pulse
 ];
 const LAYOUT_KEY = "__apexcharts_unit_layouts__";
 function layouts() {
@@ -1106,6 +1276,7 @@ export {
   bulb,
   car,
   catalog,
+  check,
   cross,
   crown,
   droplet,
@@ -1124,6 +1295,7 @@ export {
   mountain,
   pin,
   plane,
+  pulse,
   pyramid,
   registerShapes,
   registeredShapeNames,
@@ -1135,10 +1307,13 @@ export {
   silhouette,
   sphere,
   star,
+  stroke,
+  strokeFrom,
   sun,
   target,
   tiers,
   tree,
   trophy,
-  unregisterShapes
+  unregisterShapes,
+  wifi
 };

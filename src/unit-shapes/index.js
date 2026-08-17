@@ -58,6 +58,9 @@ export { gear } from './shapes/gear.js'
 export { robot } from './shapes/robot.js'
 export { pin } from './shapes/pin.js'
 export { mountain } from './shapes/mountain.js'
+export { check } from './shapes/check.js'
+export { wifi } from './shapes/wifi.js'
+export { pulse } from './shapes/pulse.js'
 
 export { catalog } from './catalog.js'
 export {
@@ -69,4 +72,5 @@ export {
 // The factories, for shapes of your own. `silhouette` takes an outline;
 // `rings`, `sphere` and `tiers` are the arrangements that are not outlines.
 export { silhouette, shapeFrom } from './engine/silhouette.js'
+export { stroke, strokeFrom } from './engine/stroke.js'
 export { rings, sphere, tiers } from './engine/radial.js'
