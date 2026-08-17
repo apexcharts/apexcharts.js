@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Unit Chart - Rocket Silhouette</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      p {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 24px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .note {
+        color: #8592a0;
+        font-size: 12px;
+        text-align: center;
+        margin: 16px 0 0;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../../dist/unit-shapes.js"></script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="wrap">
+      <h1>820 payloads to orbit, one dot each</h1>
+      <p>
+        Nose, hull, porthole and swept fins. The fins are separate subpaths that
+        overlap the hull and the porthole is one wound the other way, so a shape
+        with thin extremities and a hole in it is still a single packing pass.
+      </p>
+    
+      <div class="chart-wrap">
+        <div id="chart">
+      <apexchart type="unit" height="470" :options="chartOptions" :series="series"></apexchart>
+    </div>
+      </div>
+    
+      <p class="note">1 dot = 1 payload</p>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+        &lt;h1&gt;820 payloads to orbit, one dot each&lt;/h1&gt;
+        &lt;p&gt;
+          Nose, hull, porthole and swept fins. The fins are separate subpaths that
+          overlap the hull and the porthole is one wound the other way, so a shape
+          with thin extremities and a hole in it is still a single packing pass.
+        &lt;/p&gt;
+      
+        &lt;div class=&quot;chart-wrap&quot;&gt;
+          &lt;div id=&quot;chart&quot;&gt;
+        &lt;apexchart type=&quot;unit&quot; height=&quot;470&quot; :options=&quot;chartOptions&quot; :series=&quot;series&quot;&gt;&lt;/apexchart&gt;
+      &lt;/div&gt;
+        &lt;/div&gt;
+      
+        &lt;p class=&quot;note&quot;&gt;1 dot = 1 payload&lt;/p&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [576, 168, 42, 34],
+          chartOptions: {
+            chart: {
+              type: 'unit',
+              height: 470,
+              animations: {
+                enabled: true,
+                speed: 900,
+              },
+            },
+            labels: ['Communications', 'Earth observation', 'Science', 'Crewed'],
+            colors: ['#008FFB', '#00B8A9', '#FFAB00', '#FF7A45'],
+            plotOptions: {
+              unit: {
+                layout: 'custom',
+                // One of the shapes in apexcharts/unit-shapes.
+                positions: 'rocket',
+                transition: 'flow',
+                clusterLabels: {
+                  show: false,
+                },
+              },
+            },
+            legend: {
+              position: 'bottom',
+            },
+          },
+        },
+      })
+    </script>
+    
+  </body>
+</html>

@@ -1,0 +1,232 @@
+<title>Unit Chart - Custom Layout Gallery</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fafbfc;
+  color: #2c3e50;
+  margin: 0;
+  padding: 32px 16px;
+}
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+p {
+  color: #5b6b78;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+.chart-wrap {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin: 0 auto 10px;
+}
+.actions.builtin {
+  margin-bottom: 22px;
+}
+.actions button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #d4dbe0;
+  background: #fff;
+  color: #2c3e50;
+  padding: 7px 14px;
+  border-radius: 999px;
+}
+.actions button.active {
+  background: #2c3e50;
+  border-color: #2c3e50;
+  color: #fff;
+}
+.actions.builtin button.active {
+  background: #008ffb;
+  border-color: #008ffb;
+}
+.note {
+  color: #8592a0;
+  font-size: 12px;
+  text-align: center;
+  margin: 16px 0 0;
+}
+</style>
+
+<scripts>
+<script src="../../../dist/unit-shapes.js"></script>
+<script>
+// Every button maps to one plotOptions.unit patch. The shapes come from
+// apexcharts/unit-shapes, which registers each one under its own name; packed
+// and columns are built in. Nothing else changes between views, which is the
+// point: the dots keep their identity, colour and size, so the crowd re-forms
+// instead of being rebuilt.
+var VIEWS = {
+  droplet: { layout: 'custom', positions: 'droplet' },
+  heart: { layout: 'custom', positions: 'heart' },
+  human: { layout: 'custom', positions: 'human' },
+  tree: { layout: 'custom', positions: 'tree' },
+  globe: { layout: 'custom', positions: 'globe' },
+  house: { layout: 'custom', positions: 'house' },
+  battery: { layout: 'custom', positions: 'battery' },
+  shield: { layout: 'custom', positions: 'shield' },
+  rocket: { layout: 'custom', positions: 'rocket' },
+  target: { layout: 'custom', positions: 'target' },
+  pyramid: { layout: 'custom', positions: 'pyramid' },
+  packed: { layout: 'packed', positions: undefined },
+  columns: { layout: 'columns', positions: undefined },
+}
+
+function setActive(id) {
+  document.querySelectorAll('.actions button[data-view]').forEach(function (btn) {
+    btn.classList.toggle('active', btn.getAttribute('data-view') === id)
+  })
+}
+
+function wireGallery(chart) {
+  var current = 'heart'
+  setActive(current)
+  document.querySelectorAll('.actions button[data-view]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.getAttribute('data-view')
+      if (id === current) return
+      current = id
+      setActive(current)
+      chart.updateOptions({ plotOptions: { unit: VIEWS[id] } })
+    })
+  })
+}
+</script>
+</scripts>
+
+<html>
+<div class="wrap">
+  <h1>One crowd, eleven layouts the chart does not ship</h1>
+  <p>
+    820 dots, one per employee. A unit layout is a plain function of every mark
+    and the plot rect, returning positions, so a shape can be registered from
+    outside the library. Switch views: the same dots flow into the next
+    arrangement, keeping their identity, colour and size, rather than the chart
+    being torn down and rebuilt.
+  </p>
+
+  <div class="actions">
+    <button data-view="heart">Heart</button>
+    <button data-view="human">Human</button>
+    <button data-view="tree">Tree</button>
+    <button data-view="globe">Globe</button>
+    <button data-view="house">House</button>
+    <button data-view="battery">Battery</button>
+  </div>
+
+  <div class="actions">
+    <button data-view="shield">Shield</button>
+    <button data-view="rocket">Rocket</button>
+    <button data-view="target">Target</button>
+    <button data-view="pyramid">Pyramid</button>
+    <button data-view="droplet">Droplet</button>
+  </div>
+
+  <div class="actions builtin">
+    <button data-view="packed">Packed (built in)</button>
+    <button data-view="columns">Columns (built in)</button>
+  </div>
+
+  <div class="chart-wrap">
+    {{ charts[0] }}
+  </div>
+
+  <p class="note">
+    Same data, same dots. Only the position provider changes.
+  </p>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'shapeGallery',
+  type: 'unit',
+  height: 460,
+  animations: {
+    enabled: true,
+    speed: 900,
+  },
+},
+labels: ['Engineering', 'Sales', 'Marketing', 'Operations'],
+colors: ['#008FFB', '#00B8D9', '#FFAB00', '#FF4560'],
+plotOptions: {
+  unit: {
+    layout: 'custom',
+    positions: 'heart',
+    // Keyed by global order, so the crowd migrates across a relayout instead
+    // of each category fading in and out on the spot.
+    transition: 'flow',
+    clusterLabels: {
+      show: false,
+    },
+  },
+},
+legend: {
+  position: 'bottom',
+},
+</options>
+
+<series>
+[576, 168, 42, 34]
+</series>
+</chart>
+
+<vanilla-js-script>
+// VIEWS, setActive and wireGallery live in the shared head script, which also
+// registers every shape layout.
+wireGallery(chart)
+</vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the controls.
+  const timer = window.setInterval(() => {
+    const chart = ApexCharts.getChartByID('shapeGallery')
+    if (!chart) return
+    window.clearInterval(timer)
+    wireGallery(chart)
+  }, 50)
+
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+galleryTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the controls.
+  var me = this
+  me.galleryTimer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('shapeGallery')
+    if (!chart) return
+    window.clearInterval(me.galleryTimer)
+    wireGallery(chart)
+  }, 50)
+},
+beforeDestroy: function () {
+  window.clearInterval(this.galleryTimer)
+},
+</vue-script>

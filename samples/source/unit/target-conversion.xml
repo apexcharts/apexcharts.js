@@ -1,0 +1,101 @@
+<title>Unit Chart - Target Silhouette</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fafbfc;
+  color: #2c3e50;
+  margin: 0;
+  padding: 32px 16px;
+}
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+p {
+  color: #5b6b78;
+  line-height: 1.5;
+  margin: 0 0 24px;
+}
+.chart-wrap {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+.note {
+  color: #8592a0;
+  font-size: 12px;
+  text-align: center;
+  margin: 16px 0 0;
+}
+</style>
+
+<scripts>
+<script src="../../../dist/unit-shapes.js"></script>
+</scripts>
+
+<html>
+<div class="wrap">
+  <h1>410,000 reached, 17,000 converted</h1>
+  <p>
+    A funnel as a target. The layout lays its dots on concentric rings, spaced
+    one dot apart in both directions and handed out from the outside in, so the
+    stages fall into bands and the last one lands in the bullseye. The rings are
+    positions only: the colours come from the series, as they do in every other
+    unit layout.
+  </p>
+
+  <div class="chart-wrap">
+    {{ charts[0] }}
+  </div>
+
+  <p class="note">1 dot = 500 people</p>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  type: 'unit',
+  height: 470,
+  animations: {
+    enabled: true,
+    speed: 900,
+  },
+},
+labels: ['Reached', 'Engaged', 'Qualified', 'Converted'],
+// A funnel is ordered and its rings are already separated by geometry, so here a
+// ramp earns its keep - the eye reads "narrowing toward the bullseye". It turns
+// hue as it darkens and takes bigger steps than a pure tint scale would, so
+// neighbouring rings still separate at this dot size.
+colors: ['#7FC0DE', '#219EBC', '#0E7C7B', '#023047'],
+plotOptions: {
+  unit: {
+    layout: 'custom',
+    // One of the shapes in apexcharts/unit-shapes.
+    positions: 'target',
+    transition: 'flow',
+    unitValue: 500,
+    clusterLabels: {
+      // No outer labels here: those alternate down the two margins, which suits
+      // a shape whose bands stack vertically. Concentric rings would need the
+      // inner labels' leader lines to cross the outer rings, so the legend does
+      // a cleaner job for a target.
+      show: false,
+    },
+  },
+},
+legend: {
+  position: 'bottom',
+},
+</options>
+
+<series>
+[288000, 84000, 21000, 17000]
+</series>
+</chart>

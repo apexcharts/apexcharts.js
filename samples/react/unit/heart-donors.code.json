@@ -1,0 +1,18 @@
+{
+  "title": "Unit Chart - Heart Silhouette",
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js"
+  ],
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\n// This demo also loads: https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [57600, 16800, 4200, 3400],\n    options: {\n      chart: {\n        type: 'unit',\n        height: 470,\n        animations: {\n          enabled: true,\n          speed: 900,\n        },\n      },\n      labels: [\n        'Repeat donors',\n        'First-time',\n        'Workplace drives',\n        'Emergency call-ups',\n      ],\n      // Four hues, not four tints of one: at this dot size a lightness ramp is very\n      // hard to read back, and the palest end all but disappears on a white card.\n      // Crimson still carries two thirds of the heart, so the shape keeps its colour.\n      colors: ['#E8264F', '#FF8A3D', '#00A6A0', '#1D4E89'],\n      plotOptions: {\n        unit: {\n          layout: 'custom',\n          // One of the shapes in apexcharts/unit-shapes.\n          positions: 'heart',\n          transition: 'flow',\n          unitValue: 100,\n          clusterLabels: {\n            // Outer labels: each band is named in the margin with a leader line to\n            // its own dots, the way a pie names its slices. It replaces the legend,\n            // so no one has to match a swatch to a band.\n            external: {\n              show: true,\n            },\n          },\n        },\n      },\n      legend: {\n        show: false,\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div className=\"wrap\">\n        <h1>82,000 blood donations, one dot per 100</h1>\n        <p>\n          The heart is a custom unit layout: a function that receives every dot\n          and the plot rect and returns positions. Nothing is drawn under the\n          dots, the dots are the shape. It packs itself from the outline at\n          whatever dot count and chart size it is given.\n        </p>\n\n        <div className=\"chart-wrap\">\n          <div id=\"chart\">\n            <ReactApexChart\n              options={state.options}\n              series={state.series}\n              type=\"unit\"\n              height={470}\n            />\n          </div>\n        </div>\n\n        <p className=\"note\">1 dot = 100 donations</p>\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "body {\n  font-family:\n    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n  background: #fafbfc;\n  color: #2c3e50;\n  margin: 0;\n  padding: 32px 16px;\n}\n.wrap {\n  max-width: 720px;\n  margin: 0 auto;\n}\nh1 {\n  font-size: 22px;\n  margin: 0 0 8px;\n}\np {\n  color: #5b6b78;\n  line-height: 1.5;\n  margin: 0 0 24px;\n}\n.chart-wrap {\n  background: #fff;\n  border-radius: 8px;\n  padding: 16px;\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);\n}\n.note {\n  color: #8592a0;\n  font-size: 12px;\n  text-align: center;\n  margin: 16px 0 0;\n}\n"
+    }
+  ]
+}

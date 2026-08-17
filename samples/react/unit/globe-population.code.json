@@ -1,0 +1,18 @@
+{
+  "title": "Unit Chart - Globe Silhouette",
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js"
+  ],
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\n// This demo also loads: https://cdn.jsdelivr.net/npm/apexcharts/dist/unit-shapes.js\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [4700, 1480, 1030, 740, 45],\n    options: {\n      chart: {\n        type: 'unit',\n        height: 470,\n        animations: {\n          enabled: true,\n          speed: 900,\n        },\n      },\n      labels: ['Asia', 'Africa', 'Americas', 'Europe', 'Oceania'],\n      colors: ['#1565C0', '#00B8D9', '#00A96E', '#FFAB00', '#FF4560'],\n      plotOptions: {\n        unit: {\n          layout: 'custom',\n          // One of the shapes in apexcharts/unit-shapes.\n          positions: 'globe',\n          transition: 'flow',\n          // Values are millions of people, so one dot stands for ten of them.\n          unitValue: 10,\n          clusterLabels: {\n            show: false,\n          },\n        },\n      },\n      legend: {\n        position: 'bottom',\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div className=\"wrap\">\n        <h1>8 billion people, one dot per 10 million</h1>\n        <p>\n          The globe layout puts every dot on a sphere instead of in the plane.\n          Rows are latitudes, so they converge towards the pole and bow as it\n          leans in, and each dot fades smaller as the surface turns away.\n          Spacing is measured on screen rather than in longitude, which is what\n          keeps the rim from piling up. The silhouette is still made of the\n          units, one per 10 million people.\n        </p>\n\n        <div className=\"chart-wrap\">\n          <div id=\"chart\">\n            <ReactApexChart\n              options={state.options}\n              series={state.series}\n              type=\"unit\"\n              height={470}\n            />\n          </div>\n        </div>\n\n        <p className=\"note\">1 dot = 10 million people</p>\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "body {\n  font-family:\n    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n  background: #fafbfc;\n  color: #2c3e50;\n  margin: 0;\n  padding: 32px 16px;\n}\n.wrap {\n  max-width: 720px;\n  margin: 0 auto;\n}\nh1 {\n  font-size: 22px;\n  margin: 0 0 8px;\n}\np {\n  color: #5b6b78;\n  line-height: 1.5;\n  margin: 0 0 24px;\n}\n.chart-wrap {\n  background: #fff;\n  border-radius: 8px;\n  padding: 16px;\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);\n}\n.note {\n  color: #8592a0;\n  font-size: 12px;\n  text-align: center;\n  margin: 16px 0 0;\n}\n"
+    }
+  ]
+}

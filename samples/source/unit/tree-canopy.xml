@@ -1,0 +1,97 @@
+<title>Unit Chart - Tree Silhouette</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fafbfc;
+  color: #2c3e50;
+  margin: 0;
+  padding: 32px 16px;
+}
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+p {
+  color: #5b6b78;
+  line-height: 1.5;
+  margin: 0 0 24px;
+}
+.chart-wrap {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+.note {
+  color: #8592a0;
+  font-size: 12px;
+  text-align: center;
+  margin: 16px 0 0;
+}
+</style>
+
+<scripts>
+<script src="../../../dist/unit-shapes.js"></script>
+</scripts>
+
+<html>
+<div class="wrap">
+  <h1>41,000 saplings, one dot per 50</h1>
+  <p>
+    A lobed canopy over a flared trunk, packed with dots. The outline is two
+    overlapping subpaths, which the layout unions before it packs, so a canopy
+    with nine bumps and a trunk with roots is one shape rather than a circle
+    balanced on a rectangle.
+  </p>
+
+  <div class="chart-wrap">
+    {{ charts[0] }}
+  </div>
+
+  <p class="note">1 dot = 50 saplings planted this season</p>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  type: 'unit',
+  height: 470,
+  animations: {
+    enabled: true,
+    speed: 900,
+  },
+},
+labels: ['Oak', 'Silver birch', 'Rowan', 'Wild cherry'],
+// Green where the canopy is dense, then earth tones for the smaller species:
+// four greens would be a single unreadable mass at this dot size, while green
+// plus ochre plus bark keeps the tree looking like a tree.
+colors: ['#2E7D32', '#7CB342', '#C9A227', '#8D6E63'],
+plotOptions: {
+  unit: {
+    layout: 'custom',
+    // One of the shapes in apexcharts/unit-shapes.
+    positions: 'tree',
+    transition: 'flow',
+    unitValue: 50,
+    clusterLabels: {
+      external: {
+        show: true,
+      },
+    },
+  },
+},
+legend: {
+  show: false,
+},
+</options>
+
+<series>
+[28800, 8400, 2100, 1700]
+</series>
+</chart>
