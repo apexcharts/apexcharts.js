@@ -321,6 +321,34 @@ describe('Pie chart', () => {
   })
 })
 
+  describe('stroke', () => {
+    it('should not apply stroke-width to single-slice pie chart (Closes #5084)', () => {
+      const chart = pieChart({
+        series: [44],
+        labels: ['Single'],
+        stroke: { show: true, width: 4, colors: ['#fff'] },
+      })
+
+      const slice = chart.w.dom.baseEl.querySelector('.apexcharts-pie-area')
+      expect(slice).toBeTruthy()
+      const strokeWidth = parseFloat(slice.getAttribute('stroke-width'))
+      expect(strokeWidth).toBe(0)
+    })
+
+    it('should apply configured stroke-width to multi-slice pie chart', () => {
+      const chart = pieChart({
+        stroke: { show: true, width: 4, colors: ['#fff'] },
+      })
+
+      const slices = chart.w.dom.baseEl.querySelectorAll('.apexcharts-pie-area')
+      expect(slices.length).toBeGreaterThan(1)
+      slices.forEach((slice) => {
+        const strokeWidth = parseFloat(slice.getAttribute('stroke-width'))
+        expect(strokeWidth).toBe(4)
+      })
+    })
+  })
+
 // ===========================================================================
 // DONUT CHART TESTS
 // ===========================================================================

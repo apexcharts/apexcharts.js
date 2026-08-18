@@ -492,6 +492,12 @@ class Pie {
     let prevEndAngle = this.initialAngle
 
     this.strokeWidth = w.config.stroke.show ? w.config.stroke.width : 0
+    // When there is only one slice (full 360° circle), the stroke at the
+    // start/end junction creates a visible gap from center to edge. Disable
+    // stroke for single-slice pie/donut charts to avoid this artifact.
+    if (sectorAngleArr.length === 1) {
+      this.strokeWidth = 0
+    }
 
     const morphActive = this.ctx.morphTypeChange?.isActive() === true
 
