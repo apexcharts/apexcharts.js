@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Unit Chart - Bring Your Own Shape</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px 60px;
+      }
+      .wrap {
+        max-width: 860px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 23px;
+        margin: 0 0 10px;
+      }
+      .lede {
+        color: #5b6b78;
+        line-height: 1.6;
+        font-size: 14.5px;
+        margin: 0 0 14px;
+      }
+      .card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 18px 18px 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        margin-bottom: 24px;
+      }
+      .card .kind {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #97a4b1;
+        margin: 0 0 6px;
+      }
+      .card h2 {
+        font-size: 17px;
+        margin: 0 0 8px;
+      }
+      .card p {
+        color: #5b6b78;
+        line-height: 1.6;
+        font-size: 13.5px;
+        margin: 0 0 14px;
+      }
+      .card code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12.5px;
+        background: #f2f5f8;
+        border-radius: 3px;
+        padding: 1px 4px;
+      }
+      .note {
+        color: #8592a0;
+        font-size: 12px;
+        text-align: center;
+        margin: 14px 0 0;
+      }
+      .rules {
+        color: #5b6b78;
+        font-size: 13px;
+        line-height: 1.7;
+        background: #fff;
+        border-left: 3px solid #008ffb;
+        border-radius: 0 8px 8px 0;
+        padding: 14px 18px;
+      }
+      .rules ul {
+        margin: 8px 0 0;
+        padding-left: 20px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script src="../../../dist/unit-shapes.js"></script>
+  <script>
+    // Nothing here is in the catalog. `shapeFrom` and `strokeFrom` take an outline of
+    // your own and pack it with the same engine the 39 built-in shapes use, so a logo,
+    // a product silhouette or a national symbol needs no release from us.
+
+    // A paw print: one pad and four toes, drawn as five subpaths in a 0-100 box.
+    // Every subpath is wound the same way, so they union into one shape. Wind one the
+    // other way (flip an arc's sweep flag) and it would cut a hole instead.
+    var PAW =
+      'M 26 71 A 24 21 0 1 1 74 71 A 24 21 0 1 1 26 71 Z ' +
+      'M 10 48 A 9.5 12 -35 1 1 27 36 A 9.5 12 -35 1 1 10 48 Z ' +
+      'M 29 33 A 10 12.5 -12 1 1 48 29 A 10 12.5 -12 1 1 29 33 Z ' +
+      'M 52 29 A 10 12.5 12 1 1 71 33 A 10 12.5 12 1 1 52 29 Z ' +
+      'M 73 36 A 9.5 12 35 1 1 90 48 A 9.5 12 35 1 1 73 36 Z'
+
+    var paw = ApexUnitShapes.shapeFrom(PAW, {
+      name: 'paw',
+      // The count below which the toes stop reading as toes. Ask for fewer and the
+      // chart says so in the console rather than drawing mush.
+      minUnits: 180,
+    })
+
+    // A ridge line: for a thing with no interior, give a CENTRELINE and a width
+    // instead of drawing both sides of it by hand. `order: 'cols'` makes the season
+    // bands run along the walk rather than slicing it.
+    var ridge = ApexUnitShapes.strokeFrom(
+      'M 6 76 L 24 44 L 40 60 L 58 22 L 74 46 L 94 30',
+      {
+        name: 'ridge',
+        width: 12,
+        order: 'cols',
+      },
+    )
+
+    // No outline at all, and no import either: `positions` is just a function of the
+    // marks and the plot rectangle, so a rule that computes places is a shape too.
+    // This is the sunflower spiral - each mark one golden angle round from the last,
+    // its distance from the centre following the square root of its index so the
+    // density stays even.
+    function sunflower(objects, rect) {
+      var cx = rect.x + rect.width / 2
+      var cy = rect.y + rect.height / 2
+      var span = Math.min(rect.width, rect.height) / 2 - 6
+      var golden = Math.PI * (3 - Math.sqrt(5))
+      return objects.map(function (o, i) {
+        var t = Math.sqrt((i + 0.5) / objects.length)
+        var angle = i * golden
+        return {
+          id: o.id,
+          x: cx + Math.cos(angle) * span * t,
+          y: cy + Math.sin(angle) * span * t,
+        }
+      })
+    }
+  </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+  &lt;h1&gt;A shape of your own&lt;/h1&gt;
+  &lt;p class=&quot;lede&quot;&gt;
+    The collection ships 39 shapes, and the one you have in mind is probably not
+    among them. It does not have to be: &lt;code&gt;plotOptions.unit.positions&lt;/code&gt; is a
+    function from the marks and the plot rectangle to places, and everything in the
+    kit is one of those. Three routes in, depending on what you have.
+  &lt;/p&gt;
+  &lt;p class=&quot;lede&quot;&gt;
+    None of the shapes on this page are built in. Each is defined in this sample&#39;s
+    own head script, in the lines shown under it.
+  &lt;/p&gt;
+
+  &lt;div class=&quot;card&quot;&gt;
+    &lt;p class=&quot;kind&quot;&gt;Route 1 &amp;middot; you have an outline&lt;/p&gt;
+    &lt;h2&gt;3,460 adoptions, in a paw&lt;/h2&gt;
+    &lt;p&gt;
+      &lt;code&gt;shapeFrom(path)&lt;/code&gt; takes SVG path data and returns a shape. The
+      packer does the rest: rows across the outline, each row cut into the spans
+      that fall inside it, and the gap between dots bisected until the spans hold
+      exactly the number of marks the data asks for. Five subpaths here, all wound
+      the same way, so the pad and the toes union into one shape.
+    &lt;/p&gt;
+    &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;unit&quot; height={430} /&gt;
+&lt;/div&gt;
+    &lt;p class=&quot;note&quot;&gt;1 dot = 5 adoptions&lt;/p&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;card&quot;&gt;
+    &lt;p class=&quot;kind&quot;&gt;Route 2 &amp;middot; your thing is a line&lt;/p&gt;
+    &lt;h2&gt;15,000 trail visits, along the ridge&lt;/h2&gt;
+    &lt;p&gt;
+      A ridge, a route or a signal has no interior, and drawing both sides of one by
+      hand means mitring every corner. &lt;code&gt;strokeFrom(path, &amp;#123; width &amp;#125;)&lt;/code&gt; takes
+      the centreline instead and thickens it, so the outline is six points long. A
+      stroke also degrades kindly: run it short of dots and it becomes a dotted line,
+      which still reads as the same line.
+    &lt;/p&gt;
+    &lt;div id=&quot;chart2&quot;&gt;
+  &lt;ReactApexChart options={state.options1} series={state.series1} type=&quot;unit&quot; height={380} /&gt;
+&lt;/div&gt;
+    &lt;p class=&quot;note&quot;&gt;1 dot = 24 visits &amp;middot; bands ordered along the walk&lt;/p&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;card&quot;&gt;
+    &lt;p class=&quot;kind&quot;&gt;Route 3 &amp;middot; you have a rule, not a picture&lt;/p&gt;
+    &lt;h2&gt;1,000 wristbands, on a spiral&lt;/h2&gt;
+    &lt;p&gt;
+      No outline, and no import from the kit at all: a plain function that returns
+      &lt;code&gt;&amp;#123; id, x, y &amp;#125;&lt;/code&gt; per mark is already a valid layout. This one is the
+      sunflower spiral. Because the marks arrive in series order and the spiral walks
+      outward, the tiers land as rings, which is worth knowing when you write your
+      own: the order the marks come in is the order your rule sees them.
+    &lt;/p&gt;
+    &lt;div id=&quot;chart3&quot;&gt;
+  &lt;ReactApexChart options={state.options2} series={state.series2} type=&quot;unit&quot; height={430} /&gt;
+&lt;/div&gt;
+    &lt;p class=&quot;note&quot;&gt;1 dot = 1 wristband&lt;/p&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;rules&quot;&gt;
+    &lt;b&gt;Authoring an outline&lt;/b&gt;
+    &lt;ul&gt;
+      &lt;li&gt;Start each subpath with an absolute &lt;code&gt;M&lt;/code&gt;, and close it with &lt;code&gt;Z&lt;/code&gt;.&lt;/li&gt;
+      &lt;li&gt;Subpaths wound the same way union; one wound the other way cuts a hole. That is the mistake to look for first when a shape comes out inverted.&lt;/li&gt;
+      &lt;li&gt;Keep a subpath from crossing itself. Two overlapping subpaths are fine.&lt;/li&gt;
+      &lt;li&gt;Any coordinate box works: the shape is fitted to the plot rectangle, so 0-100 is as good as 0-1024.&lt;/li&gt;
+      &lt;li&gt;Give a &lt;code&gt;minUnits&lt;/code&gt; for the count below which your shape stops being recognisable, and the chart will warn instead of drawing mush.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [1840, 1260, 220, 140],
+          options: {
+            chart: {
+              type: 'unit',
+              height: 430,
+              animations: {
+                enabled: true,
+                speed: 900,
+              },
+            },
+            labels: ['Dogs', 'Cats', 'Rabbits', 'Others'],
+            colors: ['#008FFB', '#00A96E', '#C98A00', '#E8264F'],
+            plotOptions: {
+              unit: {
+                layout: 'custom',
+                // Defined in the head script from path data, not imported from the catalog.
+                positions: paw,
+                transition: 'flow',
+                unitValue: 5,
+                clusterLabels: {
+                  show: false,
+                },
+              },
+            },
+            legend: {
+              position: 'bottom',
+            },
+          },
+
+          series1: [4200, 6800, 3100, 900],
+          options1: {
+            chart: {
+              type: 'unit',
+              height: 380,
+              animations: {
+                enabled: true,
+                speed: 900,
+              },
+            },
+            labels: ['Spring', 'Summer', 'Autumn', 'Winter'],
+            colors: ['#00A96E', '#7CB342', '#C98A00', '#0EB8C4'],
+            plotOptions: {
+              unit: {
+                layout: 'custom',
+                // A centreline plus a width, also from the head script.
+                positions: ridge,
+                transition: 'flow',
+                unitValue: 24,
+                clusterLabels: {
+                  show: false,
+                },
+              },
+            },
+            legend: {
+              position: 'bottom',
+            },
+          },
+
+          series2: [520, 300, 120, 60],
+          options2: {
+            chart: {
+              type: 'unit',
+              height: 430,
+              animations: {
+                enabled: true,
+                speed: 900,
+              },
+            },
+            labels: ['Weekend', 'Day pass', 'Camping', 'Crew'],
+            colors: ['#008FFB', '#00A96E', '#C98A00', '#E8264F'],
+            plotOptions: {
+              unit: {
+                layout: 'custom',
+                // A function, not a shape object: this chart imports nothing from the kit.
+                positions: sunflower,
+                transition: 'flow',
+                clusterLabels: {
+                  show: false,
+                },
+              },
+            },
+            legend: {
+              position: 'bottom',
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div class="wrap">
+              <h1>A shape of your own</h1>
+              <p class="lede">
+                The collection ships 39 shapes, and the one you have in mind is
+                probably not among them. It does not have to be:{' '}
+                <code>plotOptions.unit.positions</code> is a function from the marks
+                and the plot rectangle to places, and everything in the kit is one of
+                those. Three routes in, depending on what you have.
+              </p>
+              <p class="lede">
+                None of the shapes on this page are built in. Each is defined in this
+                sample's own head script, in the lines shown under it.
+              </p>
+
+              <div class="card">
+                <p class="kind">Route 1 &middot; you have an outline</p>
+                <h2>3,460 adoptions, in a paw</h2>
+                <p>
+                  <code>shapeFrom(path)</code> takes SVG path data and returns a
+                  shape. The packer does the rest: rows across the outline, each row
+                  cut into the spans that fall inside it, and the gap between dots
+                  bisected until the spans hold exactly the number of marks the data
+                  asks for. Five subpaths here, all wound the same way, so the pad and
+                  the toes union into one shape.
+                </p>
+                <div id="chart">
+                  <ReactApexChart
+                    options={state.options}
+                    series={state.series}
+                    type="unit"
+                    height={430}
+                  />
+                </div>
+                <p class="note">1 dot = 5 adoptions</p>
+              </div>
+
+              <div class="card">
+                <p class="kind">Route 2 &middot; your thing is a line</p>
+                <h2>15,000 trail visits, along the ridge</h2>
+                <p>
+                  A ridge, a route or a signal has no interior, and drawing both sides
+                  of one by hand means mitring every corner.{' '}
+                  <code>strokeFrom(path, &#123; width &#125;)</code> takes the
+                  centreline instead and thickens it, so the outline is six points
+                  long. A stroke also degrades kindly: run it short of dots and it
+                  becomes a dotted line, which still reads as the same line.
+                </p>
+                <div id="chart2">
+                  <ReactApexChart
+                    options={state.options1}
+                    series={state.series1}
+                    type="unit"
+                    height={380}
+                  />
+                </div>
+                <p class="note">
+                  1 dot = 24 visits &middot; bands ordered along the walk
+                </p>
+              </div>
+
+              <div class="card">
+                <p class="kind">Route 3 &middot; you have a rule, not a picture</p>
+                <h2>1,000 wristbands, on a spiral</h2>
+                <p>
+                  No outline, and no import from the kit at all: a plain function that
+                  returns
+                  <code>&#123; id, x, y &#125;</code> per mark is already a valid
+                  layout. This one is the sunflower spiral. Because the marks arrive
+                  in series order and the spiral walks outward, the tiers land as
+                  rings, which is worth knowing when you write your own: the order the
+                  marks come in is the order your rule sees them.
+                </p>
+                <div id="chart3">
+                  <ReactApexChart
+                    options={state.options2}
+                    series={state.series2}
+                    type="unit"
+                    height={430}
+                  />
+                </div>
+                <p class="note">1 dot = 1 wristband</p>
+              </div>
+
+              <div class="rules">
+                <b>Authoring an outline</b>
+                <ul>
+                  <li>
+                    Start each subpath with an absolute <code>M</code>, and close it
+                    with <code>Z</code>.
+                  </li>
+                  <li>
+                    Subpaths wound the same way union; one wound the other way cuts a
+                    hole. That is the mistake to look for first when a shape comes out
+                    inverted.
+                  </li>
+                  <li>
+                    Keep a subpath from crossing itself. Two overlapping subpaths are
+                    fine.
+                  </li>
+                  <li>
+                    Any coordinate box works: the shape is fitted to the plot
+                    rectangle, so 0-100 is as good as 0-1024.
+                  </li>
+                  <li>
+                    Give a <code>minUnits</code> for the count below which your shape
+                    stops being recognisable, and the chart will warn instead of
+                    drawing mush.
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

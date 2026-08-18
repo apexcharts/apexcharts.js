@@ -193,6 +193,18 @@ new ApexCharts(el, {
 
 Shapes are composable (`outlined(heart)` traces it instead of filling it, `heart.with({ order: 'cols' })` changes where each series band lands), and `preview(heart, { series })` renders one to an SVG string with no chart and no DOM, for docs and build-time images. From a script tag, `dist/unit-shapes.js` exposes the same kit as `ApexUnitShapes` and registers every shape by name.
 
+**The shape you want is probably not one of the 39, and it does not have to be.** `positions` takes any function of the marks and the plot rectangle, so there are three ways in, none of which needs a release from us:
+
+```js
+import { shapeFrom, strokeFrom } from 'apexcharts/unit-shapes'
+
+shapeFrom('M 26 71 A 24 21 0 1 1 74 71 …')        // your own outline, packed like ours
+strokeFrom('M 6 76 L 24 44 L 40 60 …', { width: 12 })  // a centreline, for a line
+positions: (objects, rect) => objects.map(…)      // your own rule, no kit at all
+```
+
+Working demo of all three, including the outline-authoring rules (subpaths union, a reverse-wound one cuts a hole): [bring-your-own-shape](samples/vanilla-js/unit/bring-your-own-shape.html).
+
 ## Premium features & licensing
 
 Most of ApexCharts is free and open source. A small set of advanced features are **premium** and require a license key:
