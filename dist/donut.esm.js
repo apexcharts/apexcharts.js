@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.9.0
+ * ApexCharts v6.10.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -30,6 +30,81 @@ const Utils = _core.__apex_Utils;
 const Graphics = _core.__apex_Graphics;
 const Filters = _core.__apex_Filters;
 const Scales = _core.__apex_Scales;
+function drawOuterLabel(w, spec) {
+  const {
+    lines,
+    lineHeight,
+    anchor,
+    elbow,
+    labelX,
+    labelY,
+    side,
+    connector,
+    style,
+    foreColor
+  } = spec;
+  const graphics = new Graphics(w);
+  const group = graphics.group({
+    class: spec.groupClass || "apexcharts-outer-label-group"
+  });
+  if (connector.show) {
+    const d = `M ${anchor.x} ${anchor.y} L ${elbow.x} ${elbow.y} L ${labelX} ${labelY}`;
+    const line = graphics.drawPath({
+      d,
+      stroke: connector.color,
+      strokeWidth: connector.width,
+      fill: "none",
+      strokeLinecap: "round"
+    });
+    line.node.classList.add(spec.connectorClass || "apexcharts-outer-label-connector");
+    group.add(line);
+  }
+  const textX = side === "right" ? labelX + 4 : labelX - 4;
+  const n = lines.length;
+  const startY = labelY - (n - 1) * lineHeight / 2;
+  const elText = graphics.drawText({
+    x: textX,
+    y: startY,
+    text: n === 1 ? lines[0] : lines,
+    textAnchor: side === "right" ? "start" : "end",
+    fontSize: style.fontSize,
+    fontFamily: style.fontFamily,
+    fontWeight: style.fontWeight,
+    foreColor,
+    dominantBaseline: "central",
+    cssClass: spec.textClass || "apexcharts-outer-label"
+  });
+  if (n > 1) {
+    const tspans = elText.node.getElementsByTagName("tspan");
+    for (let li = 0; li < tspans.length; li++) {
+      tspans[li].setAttribute("x", `${textX}`);
+      tspans[li].setAttribute("dy", li === 0 ? "0" : `${lineHeight}`);
+    }
+  }
+  group.add(elText);
+  return group;
+}
+function spaceOutLabels(items, minGap, maxY, minY) {
+  const col = items.slice().sort((a, b) => a.idealY - b.idealY);
+  col.forEach((l) => {
+    l.labelY = l.idealY;
+  });
+  for (let k = 1; k < col.length; k++) {
+    if (col[k].labelY - col[k - 1].labelY < minGap) {
+      col[k].labelY = col[k - 1].labelY + minGap;
+    }
+  }
+  const last = col[col.length - 1];
+  const overflow = last ? last.labelY - maxY : 0;
+  if (overflow > 0) {
+    for (let k = col.length - 1; k >= 0; k--) {
+      col[k].labelY -= overflow;
+      if (k < col.length - 1 && col[k + 1].labelY - col[k].labelY < minGap) {
+        col[k].labelY = col[k + 1].labelY - minGap;
+      }
+    }
+  }
+}
 class CircularChartsHelpers {
   /**
    * @param {import('../../../types/internal').ChartStateW} w
@@ -100,58 +175,12 @@ class CircularChartsHelpers {
    *   foreColor: string,
    * }} opts
    */
-  drawExternalLabel({
-    lines,
-    lineHeight,
-    anchor,
-    elbow,
-    labelX,
-    labelY,
-    side,
-    connector,
-    style,
-    foreColor
-  }) {
-    const graphics = new Graphics(this.w);
-    const group = graphics.group({
-      class: "apexcharts-pie-name-label-group"
-    });
-    if (connector.show) {
-      const d = `M ${anchor.x} ${anchor.y} L ${elbow.x} ${elbow.y} L ${labelX} ${labelY}`;
-      const line = graphics.drawPath({
-        d,
-        stroke: connector.color,
-        strokeWidth: connector.width,
-        fill: "none",
-        strokeLinecap: "round"
-      });
-      line.node.classList.add("apexcharts-pie-label-connector");
-      group.add(line);
-    }
-    const textX = side === "right" ? labelX + 4 : labelX - 4;
-    const n = lines.length;
-    const startY = labelY - (n - 1) * lineHeight / 2;
-    const elText = graphics.drawText({
-      x: textX,
-      y: startY,
-      text: n === 1 ? lines[0] : lines,
-      textAnchor: side === "right" ? "start" : "end",
-      fontSize: style.fontSize,
-      fontFamily: style.fontFamily,
-      fontWeight: style.fontWeight,
-      foreColor,
-      dominantBaseline: "central",
-      cssClass: "apexcharts-pie-name-label"
-    });
-    if (n > 1) {
-      const tspans = elText.node.getElementsByTagName("tspan");
-      for (let li = 0; li < tspans.length; li++) {
-        tspans[li].setAttribute("x", `${textX}`);
-        tspans[li].setAttribute("dy", li === 0 ? "0" : `${lineHeight}`);
-      }
-    }
-    group.add(elText);
-    return group;
+  drawExternalLabel(opts) {
+    return drawOuterLabel(this.w, __spreadProps(__spreadValues({}, opts), {
+      groupClass: "apexcharts-pie-name-label-group",
+      textClass: "apexcharts-pie-name-label",
+      connectorClass: "apexcharts-pie-label-connector"
+    }));
   }
 }
 const Environment = _core.__apex_Environment_Environment;
@@ -860,25 +889,11 @@ class Pie {
     const lineHeight = this.externalLabelMaxLines * this.externalLabelLineH + 2;
     const maxY = this.centerY + w.globals.radialSize + w.globals.pieExternalLabelMarginY;
     ["left", "right"].forEach((side) => {
-      const items = this.externalLabels.filter((l) => l.side === side).sort((a, b) => a.idealY - b.idealY);
-      items.forEach((l) => {
-        l.labelY = l.idealY;
-      });
-      for (let k = 1; k < items.length; k++) {
-        if (items[k].labelY - items[k - 1].labelY < lineHeight) {
-          items[k].labelY = items[k - 1].labelY + lineHeight;
-        }
-      }
-      const last = items[items.length - 1];
-      const overflow = last ? last.labelY - maxY : 0;
-      if (overflow > 0) {
-        for (let k = items.length - 1; k >= 0; k--) {
-          items[k].labelY -= overflow;
-          if (k < items.length - 1 && items[k + 1].labelY - items[k].labelY < lineHeight) {
-            items[k].labelY = items[k + 1].labelY - lineHeight;
-          }
-        }
-      }
+      spaceOutLabels(
+        this.externalLabels.filter((l) => l.side === side),
+        lineHeight,
+        maxY
+      );
     });
   }
   /**

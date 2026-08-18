@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target2;
 };
 /*!
- * ApexCharts v6.9.0
+ * ApexCharts v6.10.0
  * (c) 2018-2026 ApexCharts
  */
 const CMD = /[MmLlHhVvCcSsQqTtAaZz]/;
@@ -1407,24 +1407,36 @@ function glyphs(text, opts = {}) {
     path: digitsPath(str, gap)
   }));
 }
+const PALETTE = ["#008FFB", "#00A86F", "#CA8501", "#FF4560", "#846DD5"];
 function preview(shape, opts = {}) {
-  const count = Math.max(1, Math.round(opts.count || shape.shape.minUnits || 220));
+  const series = opts.series && opts.series.length ? opts.series : null;
+  const total = series ? series.reduce((a, b) => a + Math.max(0, b), 0) : 0;
+  const count = Math.max(
+    1,
+    Math.round(opts.count || total || shape.shape.minUnits || 220)
+  );
   const width = opts.width || 300;
   const height = opts.height || width;
   const pad = opts.padding || 0;
-  const fills = Array.isArray(opts.fill) ? opts.fill : [opts.fill || "#008FFB"];
+  const given = Array.isArray(opts.fill) ? opts.fill : opts.fill ? [opts.fill] : null;
+  const fills = given || (series ? PALETTE : ["#008FFB"]);
+  const shares = series ? share(series, count) : null;
   const objects = [];
+  const owner = [];
+  const r = opts.r || Math.max(1.2, Math.sqrt(width * height / count) / 2.6);
   for (let i = 0; i < count; i++) {
+    const s = shares ? seriesAt(shares, i) : 0;
+    owner.push(s);
     objects.push({
       id: `p:${i}`,
       index: i,
-      seriesIndex: 0,
+      seriesIndex: s,
       dataPointIndex: i,
-      label: "preview",
+      label: shares ? `series-${s + 1}` : "preview",
       value: 1,
       datum: void 0,
       // The shapes refine this themselves; it only has to be in the right league.
-      r: opts.r || Math.max(1.2, Math.sqrt(width * height / count) / 2.6)
+      r
     });
   }
   const placed = shape(objects, {
@@ -1435,7 +1447,8 @@ function preview(shape, opts = {}) {
   });
   const groups = /* @__PURE__ */ new Map();
   placed.forEach((p, i) => {
-    const fill = fills[Math.floor(i / placed.length * fills.length)] || fills[0];
+    const slot = shares ? owner[i] % fills.length : Math.floor(i / placed.length * fills.length);
+    const fill = fills[slot] || fills[0];
     const circle = `<circle cx="${round(p.x)}" cy="${round(p.y)}" r="${round(p.r || 3)}"/>`;
     const list = groups.get(fill);
     if (list) list.push(circle);
@@ -1447,6 +1460,28 @@ function preview(shape, opts = {}) {
   });
   if (opts.svg === false) return body;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="${shape.shape.name} drawn with ${placed.length} dots">${body}</svg>`;
+}
+function share(series, count) {
+  const weights = series.map((v) => Math.max(0, v));
+  const out = allocate(weights, count);
+  for (let i = 0; i < out.length; i++) {
+    if (out[i] || !weights[i]) continue;
+    let big = 0;
+    for (let j = 1; j < out.length; j++) if (out[j] > out[big]) big = j;
+    if (out[big] > 1) {
+      out[big]--;
+      out[i] = 1;
+    }
+  }
+  return out;
+}
+function seriesAt(shares, i) {
+  let acc = 0;
+  for (let s = 0; s < shares.length; s++) {
+    acc += shares[s];
+    if (i < acc) return s;
+  }
+  return shares.length - 1;
 }
 function round(n) {
   return Math.round(n * 10) / 10;

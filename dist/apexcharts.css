@@ -1090,21 +1090,32 @@ rect.legend-mouseover-inactive,
 .apexcharts-pie-label,
 .apexcharts-pie-name-label,
 .apexcharts-pie-name-label-group,
-.apexcharts-pie-label-connector {
+.apexcharts-pie-label-connector,
+.apexcharts-unit-outer-label,
+.apexcharts-unit-outer-label-group,
+.apexcharts-unit-label-connector {
   cursor: default;
   pointer-events: none
 }
 
-.apexcharts-pie-label-connector {
+.apexcharts-pie-label-connector,
+.apexcharts-unit-label-connector {
   fill: none
 }
 
-.apexcharts-pie-label-delay {
+.apexcharts-pie-label-delay,
+.apexcharts-unit-label-delay {
   opacity: 0;
   animation-name: opaque;
   animation-duration: .3s;
   animation-fill-mode: forwards;
   animation-timing-function: ease
+}
+
+/* Slower than the pie's, on purpose: these come in while the dots are still
+   easing into place, so a longer fade reads as arriving WITH the crowd. */
+.apexcharts-unit-label-delay {
+  animation-duration: .5s
 }
 
 .apexcharts-radialbar-label {
