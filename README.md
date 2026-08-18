@@ -89,7 +89,7 @@ Browse [100+ ready-to-use samples](https://apexcharts.com/javascript-chart-demos
 - [Pie](https://apexcharts.com/javascript-chart-demos/pie-charts/) · [Donut](https://apexcharts.com/javascript-chart-demos/pie-charts/) · [Polar Area](https://apexcharts.com/javascript-chart-demos/polar-area-charts/) · [Radial Bar / Gauge](https://apexcharts.com/javascript-chart-demos/radialbar-charts/)
 - [Radar](https://apexcharts.com/javascript-chart-demos/radar-charts/) · [Heatmap](https://apexcharts.com/javascript-chart-demos/heatmap-charts/) · [Treemap](https://apexcharts.com/javascript-chart-demos/treemap-charts/)
 - [Funnel](https://apexcharts.com/javascript-chart-demos/funnel-charts/)
-- [Unit / Pictogram / Beeswarm](samples/vanilla-js/unit/) · [Waffle](samples/vanilla-js/waffle/) (premium)
+- [Unit / Pictogram / Beeswarm](samples/vanilla-js/unit/) · [Waffle](samples/vanilla-js/waffle/) (premium) · [shape kit](#shapes-for-the-unit-chart)
 
 Combine any of the above as [mixed/combo charts](https://apexcharts.com/javascript-chart-demos/mixed-charts/), [stacked variants](https://apexcharts.com/javascript-chart-demos/column-charts/stacked/), [sparklines](https://apexcharts.com/javascript-chart-demos/sparklines/), or [synchronized multi-chart layouts](https://apexcharts.com/javascript-chart-demos/line-charts/syncing-charts/).
 
@@ -174,6 +174,24 @@ import 'apexcharts/features/toolbar'      // zoom/pan toolbar
 ```
 
 See the [tree-shaking guide](https://apexcharts.com/docs/tree-shaking/) for the complete list of entry points.
+
+### Shapes for the unit chart
+
+`apexcharts/unit-shapes` is a companion kit: 39 shapes a unit chart can pack its dots into, as silhouettes (heart, house, globe, tree), stroked glyphs (checkmark, arrow, heartbeat trace) and a composer that draws a number in its own dots. Every shape is a plain function of the marks and the plot rectangle, so it repacks at any dot count and any size, and importing one costs about 4 KB gzipped with the rest shaken out.
+
+```js
+import ApexCharts from 'apexcharts'
+import { heart } from 'apexcharts/unit-shapes'
+
+new ApexCharts(el, {
+  chart: { type: 'unit' },
+  series: [576, 168, 42, 34],
+  labels: ['Owned', 'Mortgaged', 'Renting', 'Other'],
+  plotOptions: { unit: { layout: 'custom', positions: heart } },
+}).render()
+```
+
+Shapes are composable (`outlined(heart)` traces it instead of filling it, `heart.with({ order: 'cols' })` changes where each series band lands), and `preview(heart, { series })` renders one to an SVG string with no chart and no DOM, for docs and build-time images. From a script tag, `dist/unit-shapes.js` exposes the same kit as `ApexUnitShapes` and registers every shape by name.
 
 ## Premium features & licensing
 
