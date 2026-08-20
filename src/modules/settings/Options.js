@@ -279,6 +279,78 @@ export default class Options {
       // (`import 'apexcharts/features/weave'`, included in the full bundle) and
       // the plugin registered via ApexCharts.registerPlugin().
       plugins: [],
+      // Trellis (#22): small multiples / faceting. Requires the trellis
+      // feature (`import 'apexcharts/features/trellis'`, included in the full
+      // bundle). Setting `by` makes this chart a trellis HOST: the series
+      // array is split into one panel per facet-key value, each panel is a
+      // real chart of this chart.type, and the trellis owns everything shared
+      // (scale domains, pixel-aligned plot rects, color-by-series-name, one
+      // legend/title/toolbar, headers, responsive columns).
+      trellis: {
+        // Facet accessor: a series-object key name, or (series, i) => key.
+        // Series WITHOUT the key repeat in every panel (reference series).
+        by: undefined,
+        // Tidy-row input (alternative to `series`): a row table pivoted by
+        // the `by`/`x`/`y`/`seriesBy` COLUMN NAMES. Rows win over `series`
+        // when both are given. Duplicate (panel, series, x) rows keep the
+        // last and warn; aggregate the rows first for sums/means.
+        data: undefined, // [{ date, region, revenue }, ...]
+        x: undefined, // x-value column name (tidy form only)
+        y: undefined, // y-value column name (tidy form only)
+        seriesBy: undefined, // optional series-name column (tidy form only)
+        // Layout
+        columns: 'auto', // 'auto' (fit minPanelWidth) | number
+        minPanelWidth: 220, // px; drives 'auto' and the responsive collapse
+        gap: 12, // px between cells
+        aspectRatio: 1.6, // panel w:h when no explicit height governs
+        panelHeight: undefined, // px; wins over aspectRatio/chart.height
+        order: 'first-seen', // | 'asc' | 'desc' | string[] | comparator
+        limit: undefined, // render only the first N panels (warns)
+        // Virtualization: 'auto' mounts only the panels intersecting the
+        // viewport (plus one row) once the grid exceeds 64 panels; true
+        // always virtualizes; false always renders eagerly. Unmounted cells
+        // keep their header and a fixed-height skeleton (page height and
+        // scroll position never shift); a panel that scrolls out is
+        // destroyed with its view state stashed, and a remount restores its
+        // zoom window. getPanel(key) returns null for unmounted panels.
+        virtualize: 'auto', // 'auto' | true | false
+        // Scale resolution per channel: 'shared' | 'independent'.
+        // Independent y still renders pixel-aligned panels (the gutter pass
+        // equalizes axis widths); independent scales force their own axis
+        // labels on every panel.
+        scales: {
+          x: 'shared',
+          y: 'shared',
+          color: 'shared',
+          size: 'shared',
+        },
+        // Per-cell facet headers.
+        header: {
+          show: true,
+          formatter: undefined, // (key, { dimension, index, count }) => string
+          style: {
+            fontSize: undefined,
+            fontWeight: undefined,
+            color: undefined,
+          },
+        },
+        // Axis-label policy: 'edges' shows y labels on the first column and x
+        // labels on each column's bottom panel (label SPACE is always
+        // reserved everywhere, so panels stay aligned); 'all' | 'none'.
+        axes: {
+          labels: 'edges',
+        },
+        legend: 'shared', // 'shared' | 'none' (per-panel legends are hidden)
+        toolbar: 'shared', // 'shared' | 'none' (zoom / pan / reset)
+        // 'panel': tooltip card only in the hovered panel, crosshair sweeps
+        // all panels. 'sync': every panel shows its own card at the hovered x.
+        tooltip: 'panel',
+        zoom: 'sync', // 'sync' (drag/wheel zoom moves every panel) | 'none'
+        targetTicks: 4, // tick density for the shared nice y scale
+        // Per-panel option override, applied last:
+        // (key, { index, seriesNames }) => partial options
+        panel: undefined,
+      },
       chart: {
         animations: {
           // Master switch — set false to render charts without any animation.

@@ -68,6 +68,11 @@ export default class Destroy {
       this.ctx.history = null
       this.ctx.linkedViews?.teardown()
       this.ctx.linkedViews = null
+      // Trellis: panels were destroyed by ApexCharts.destroy() before this
+      // runs; teardown() is idempotent, so this is belt-and-braces plus the
+      // reference drop.
+      this.ctx.trellis?.teardown()
+      this.ctx.trellis = null
       this.ctx.ink?.teardown()
       this.ctx.ink = null
       this.ctx.measure?.teardown()

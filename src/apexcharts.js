@@ -102,6 +102,7 @@ export default class ApexCharts {
   /** @type {any} */ storyboard
   /** @type {any} */ history
   /** @type {any} */ linkedViews
+  /** @type {any} */ trellis
   /** @type {any} */ ink
   /** @type {any} */ measure
   /** @type {any} */ contextMenu
@@ -202,13 +203,31 @@ export default class ApexCharts {
 
         this.events.fireEvent('beforeMount', [this, this.w])
 
+        // Trellis (#22): a host carrying `trellis.by` delegates rendering to
+        // the orchestrator (real panel charts in a coordinated grid) instead
+        // of the single-chart pipeline. Resolved here, before the resize
+        // listeners: the trellis owns relayout through its own container
+        // ResizeObserver, so the host must not self-rerender on resize.
+        const isTrellisHost = !!(
+          this.w.config.trellis?.by &&
+          this.trellis &&
+          this.trellis.isActive()
+        )
+        if (this.w.config.trellis?.by && !this.trellis) {
+          console.warn(
+            "ApexCharts: `trellis` requires the trellis feature — import 'apexcharts/features/trellis' (included in the full bundle). Rendering as a single chart.",
+          )
+        }
+
         // add event listeners in browser environment
         if (Environment.isBrowser()) {
-          window.addEventListener('resize', this.windowResizeHandler)
-          addResizeListener(
-            /** @type {HTMLElement} */ (this.el.parentNode),
-            this.parentResizeHandler,
-          )
+          if (!isTrellisHost) {
+            window.addEventListener('resize', this.windowResizeHandler)
+            addResizeListener(
+              /** @type {HTMLElement} */ (this.el.parentNode),
+              this.parentResizeHandler,
+            )
+          }
 
           const rootNode = /** @type {any} */ (
             this.el.getRootNode && this.el.getRootNode()
@@ -239,6 +258,30 @@ export default class ApexCharts {
               doc.head.appendChild(css)
             }
           }
+        }
+
+        if (isTrellisHost) {
+          this.trellis
+            .render()
+            .then(() => {
+              // License: the trellis is a gated premium feature; the enforcer
+              // addresses the host through w.dom.elWrap, which the trellis
+              // orchestrator has just populated.
+              enforceLicense(this.w, this)
+              if (typeof this.w.config.chart.events.mounted === 'function') {
+                this.w.config.chart.events.mounted(this, this.w)
+              }
+              this.events.fireEvent('mounted', [this, this.w])
+              resolve(this)
+            })
+            .catch((/** @type {any} */ e) => {
+              const enriched = e instanceof Error ? e : new Error(String(e))
+              const err = /** @type {any} */ (enriched)
+              err.chartId = this.w?.globals?.chartID
+              err.el = this.el
+              reject(enriched)
+            })
+          return
         }
 
         const graphData = this.create(this.w.config.series, {})
@@ -639,6 +682,12 @@ export default class ApexCharts {
    * After calling this, the instance should not be used again.
    */
   destroy() {
+    // Trellis (#22): destroy every panel (each unregisters itself from
+    // Apex._chartInstances), disconnect the container observer and drop the
+    // grid DOM before the host's own teardown runs.
+    if (this.trellis) {
+      this.trellis.teardown()
+    }
     // allow a fresh render() on this instance after teardown
     this._renderPromise = null
     // remove event listeners in browser environment
@@ -708,6 +757,16 @@ export default class ApexCharts {
       )
       options = { ...options }
       delete options.series
+    }
+
+    // Trellis (#22): an option change on a live trellis host is structural
+    // (it can move the split, the scales, the layout or any panel option), so
+    // it merges into the host's config and re-renders the whole grid.
+    if (this.trellis && this.trellis._mounted) {
+      this.opts = Utils.extend(this.opts || {}, options || {})
+      this.w.config = Utils.extend(w.config, options || {})
+      this.trellis.teardown()
+      return this.render()
     }
 
     // when called externally, clear some global variables
@@ -805,6 +864,12 @@ export default class ApexCharts {
         'ApexCharts: updateSeries() ignored the call because the series is not an array.',
       )
       return Promise.resolve(this)
+    }
+    // Trellis (#22): the host re-splits and fans the new slices out to its
+    // panels (same key set: in-place panel updates; changed key set: a full
+    // trellis re-render).
+    if (this.trellis && this.trellis._mounted) {
+      return this.trellis.updateSeries(newSeries, animate)
     }
     this.data.resetParsingFlags()
 
@@ -1389,6 +1454,27 @@ export default class ApexCharts {
   }
 
   /**
+   * Trellis (#22): the panels of a trellis host, in grid order. Empty for a
+   * chart that is not a trellis.
+   *
+   * @returns {Array<{ key: string, index: number, chart: ApexCharts|null, el: HTMLElement|null }>}
+   */
+  getPanels() {
+    return this.trellis ? this.trellis.getPanels() : []
+  }
+
+  /**
+   * Trellis (#22): one panel's own ApexCharts instance by facet key — the
+   * escape hatch to every per-chart API the trellis does not re-expose.
+   *
+   * @param {string} key
+   * @returns {ApexCharts|null}
+   */
+  getPanel(key) {
+    return this.trellis ? this.trellis.getPanel(key) : null
+  }
+
+  /**
    * Returns all charts in the same `chart.group`, excluding this instance.
    * Used internally to apply hover/zoom effects to sibling charts.
    *
@@ -1427,6 +1513,30 @@ export default class ApexCharts {
       (/** @type {any} */ ch) => ch.id === chartId,
     )[0]
     return c && c.chart
+  }
+
+  /**
+   * Trellis (#22): imperative entry point. Creates a trellis host and starts
+   * rendering it; `render()` is idempotent, so `await chart.render()` on the
+   * returned instance settles with the same in-flight mount.
+   *
+   * Requires the trellis feature (`import 'apexcharts/features/trellis'`,
+   * included in the full bundle); warns and returns null otherwise.
+   *
+   * @param {HTMLElement} el
+   * @param {ApexOptions} options must carry `trellis.by`
+   * @returns {ApexCharts|null}
+   */
+  static trellis(el, options) {
+    if (!InitCtxVariables._featureRegistry.get('trellis')) {
+      console.warn(
+        "ApexCharts.trellis requires the trellis feature — import 'apexcharts/features/trellis' (included in the full bundle).",
+      )
+      return null
+    }
+    const chart = new ApexCharts(el, options)
+    chart.render()
+    return chart
   }
 
   /**

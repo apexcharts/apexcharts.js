@@ -95,6 +95,17 @@ export function premiumFeaturesInUse(w, ctx) {
   // the product. It renders fully in trial mode, just watermarked.
   if (chart.type === 'unit') used.push('unit')
 
+  // trellis (small multiples): premium FEATURE. "in use" is "this chart is a
+  // trellis host" — the split/alignment engine is the product. Panels the
+  // host creates carry no trellis key, so they never double-flag.
+  if (
+    ctx.trellis &&
+    typeof ctx.trellis.isActive === 'function' &&
+    ctx.trellis.isActive()
+  ) {
+    used.push('trellis')
+  }
+
   // storyboard: API-only. bind() sets ctx.storyboard._used; unbind() clears it.
   if (ctx.storyboard && ctx.storyboard._used) used.push('storyboard')
 

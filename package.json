@@ -226,6 +226,10 @@
     "import": "./dist/features/stats.esm.js",
     "require": "./dist/features/stats.common.js"
   },
+    "./features/trellis": {
+      "import": "./dist/features/trellis.esm.js",
+      "require": "./dist/features/trellis.common.js"
+    },
     "./features/all": {
       "import": "./dist/features/all.esm.js",
       "require": "./dist/features/all.common.js"

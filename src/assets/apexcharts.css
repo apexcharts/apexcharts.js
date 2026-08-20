@@ -1329,3 +1329,106 @@ rect.legend-mouseover-inactive,
 .apexcharts-disable-transitions * {
   transition: none !important;
 }
+/* ── Trellis (#22): small multiples ─────────────────────────────────────── */
+.apexcharts-trellis {
+  position: relative;
+}
+.apexcharts-trellis-grid {
+  display: grid;
+}
+.apexcharts-trellis-cell {
+  min-width: 0;
+  position: relative;
+}
+.apexcharts-trellis-header {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 22px;
+  height: 22px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--apx-fore, #373d3f);
+}
+.apexcharts-trellis-title {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 2px 0 6px;
+  color: var(--apx-fore, #373d3f);
+}
+/* Edge-label policy: a muted cell hides its axis-label INK, never the label
+   SPACE — every panel keeps the identical plot rectangle, and flipping the
+   policy on a resize is a class toggle, not a re-render. */
+.apexcharts-trellis-mute-y .apexcharts-yaxis {
+  opacity: 0;
+}
+.apexcharts-trellis-mute-x .apexcharts-xaxis {
+  opacity: 0;
+}
+/* Virtualization (P2): an unmounted panel's mount div reserves the exact
+   panel height (inline min-height) so page height and scroll position never
+   shift; the skeleton itself is a quiet tinted block. Deliberately not
+   animated: a shimmering grid of 200 placeholders is noise. */
+.apexcharts-trellis-panel.apexcharts-trellis-skeleton {
+  background: var(--apx-fore, #373d3f);
+  opacity: 0.05;
+  border-radius: 4px;
+}
+/* tooltip: 'panel' — the group still syncs every panel's crosshair, but only
+   the hovered cell shows its tooltip cards. */
+.apexcharts-trellis[data-tooltip-mode='panel'] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,
+.apexcharts-trellis[data-tooltip-mode='panel'] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,
+.apexcharts-trellis[data-tooltip-mode='panel'] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip {
+  opacity: 0 !important;
+}
+.apexcharts-trellis-toolbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 2px;
+  z-index: 12;
+}
+.apexcharts-trellis-tool {
+  border: 0;
+  background: transparent;
+  padding: 2px;
+  cursor: pointer;
+  border-radius: 3px;
+  color: #6e8192;
+  line-height: 0;
+}
+.apexcharts-trellis-tool:hover {
+  color: var(--apx-fore, #373d3f);
+}
+.apexcharts-trellis-tool.apexcharts-selected {
+  color: var(--apx-accent, #008ffb);
+}
+.apexcharts-trellis-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  padding: 8px 10px 2px;
+}
+.apexcharts-trellis-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  line-height: 1;
+}
+.apexcharts-trellis-legend-item .apexcharts-legend-marker {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.apexcharts-trellis-legend-item .apexcharts-legend-text {
+  font-size: 12px;
+  color: var(--apx-fore, #373d3f);
+}
+.apexcharts-trellis-legend-item.apexcharts-inactive-legend {
+  opacity: 0.45;
+}

@@ -334,6 +334,18 @@ declare class ApexCharts {
   getState(): ApexCharts.ChartState
 
   /**
+   * Trellis: the panels of a trellis host in grid order (empty for a chart
+   * that is not a trellis). Requires `import 'apexcharts/features/trellis'`.
+   */
+  getPanels(): ApexCharts.ApexTrellisPanel[]
+
+  /**
+   * Trellis: one panel's own ApexCharts instance by facet key — the escape
+   * hatch to every per-chart API the trellis does not re-expose.
+   */
+  getPanel(key: string): ApexCharts | null
+
+  /**
    * Calls a public method on a chart instance identified by chartID.
    * Useful when you don't have a direct reference to the instance.
    */
@@ -341,6 +353,17 @@ declare class ApexCharts {
 
   /** Retrieves a rendered chart instance by its chart.id config value. */
   static getChartByID(chartID: string): ApexCharts | undefined
+
+  /**
+   * Trellis: imperative entry point — creates a trellis host (options must
+   * carry `trellis.by`) and starts rendering it. `render()` on the returned
+   * instance settles with the same in-flight mount. Returns null when the
+   * trellis feature is not bundled.
+   */
+  static trellis(
+    el: HTMLElement,
+    options: ApexCharts.ApexOptions
+  ): ApexCharts | null
 
   /**
    * Scans the document for elements with data-apexcharts and data-options
@@ -1077,6 +1100,12 @@ declare namespace ApexCharts {
     noData?: ApexNoData
     /** Weave (#1) plugin activation list. Requires `import 'apexcharts/features/weave'`. */
     plugins?: ApexPluginActivation[]
+    /**
+     * Trellis (small multiples / faceting): split the series into a grid of
+     * pixel-aligned panels by a facet key. Requires
+     * `import 'apexcharts/features/trellis'` (included in the full bundle).
+     */
+    trellis?: ApexTrellis
     plotOptions?: ApexPlotOptions
     responsive?: ApexResponsive[]
     parsing?: ApexParsing;
@@ -1132,6 +1161,125 @@ declare namespace ApexCharts {
   export type { ApexStoryboardBeat }
   export type { ApexStoryboardBeatInfo }
   export type { ApexStoryboardBindOptions }
+  export type { ApexTrellis }
+  export type { ApexTrellisPanel }
+}
+
+/**
+ * Trellis (small multiples / faceting). Requires
+ * `import 'apexcharts/features/trellis'` (included in the full bundle).
+ *
+ * Setting `by` makes the chart a trellis HOST: the series array is split into
+ * one panel per facet-key value, every panel is a real chart of the host's
+ * chart.type, and the trellis owns everything shared: the scale domains, the
+ * pixel-aligned plot rectangles, the color-by-series-name map, the headers,
+ * one legend, one toolbar and the responsive column count. Series WITHOUT the
+ * facet key repeat in every panel (reference series).
+ */
+type ApexTrellis = {
+  /**
+   * Facet accessor: the name of a key on each series object (the blessed
+   * typed field is `facet`, but any key works), or a function returning the
+   * key per series.
+   */
+  by?: string | ((series: any, index: number) => string | number | undefined)
+  /**
+   * Tidy-row input, an alternative to `series`: a row table pivoted by the
+   * `by` / `x` / `y` / `seriesBy` COLUMN NAMES (all strings in this form).
+   * Rows win over `series` when both are given. Duplicate (panel, series, x)
+   * rows keep the last and warn; aggregate the rows first for sums or means.
+   */
+  data?: Record<string, any>[]
+  /** x-value column name (tidy form only). */
+  x?: string
+  /** y-value column name (tidy form only). */
+  y?: string
+  /** Optional series-name column (tidy form only); absent means one series per panel named after `y`. */
+  seriesBy?: string
+  /** 'auto' (default) fits `minPanelWidth` columns into the container. */
+  columns?: number | 'auto'
+  /** Drives 'auto' columns and the responsive collapse. Default 220. */
+  minPanelWidth?: number
+  /** Gap between cells, px. Default 12. */
+  gap?: number
+  /** Panel width : height when no explicit height governs. Default 1.6. */
+  aspectRatio?: number
+  /** Explicit panel height in px; wins over aspectRatio and chart.height. */
+  panelHeight?: number
+  /** Panel order. Default 'first-seen'. */
+  order?:
+    | 'first-seen'
+    | 'asc'
+    | 'desc'
+    | string[]
+    | ((a: string, b: string) => number)
+  /** Render only the first N panels (warns about the rest). */
+  limit?: number
+  /**
+   * 'auto' (default) mounts only the panels intersecting the viewport (plus
+   * one row) once the grid exceeds 64 panels; true always virtualizes; false
+   * always renders eagerly. Unmounted cells keep their header and a
+   * fixed-height skeleton, so page height and scroll position never shift; a
+   * panel that scrolls out is destroyed with its view state stashed, and a
+   * remount restores its zoom window. getPanel(key) returns null for
+   * unmounted panels.
+   */
+  virtualize?: 'auto' | boolean
+  /**
+   * Scale resolution per channel. Independent y still renders pixel-aligned
+   * panels (the gutter pass equalizes axis widths), and an independent scale
+   * forces its own axis labels on every panel.
+   */
+  scales?: {
+    x?: 'shared' | 'independent'
+    y?: 'shared' | 'independent'
+    color?: 'shared'
+    size?: 'shared'
+  }
+  /** Per-cell facet headers. */
+  header?: {
+    show?: boolean
+    formatter?: (
+      key: string,
+      opts: { dimension?: string; index: number; count: number }
+    ) => string
+    style?: { fontSize?: string; fontWeight?: string | number; color?: string }
+  }
+  /**
+   * Axis-label policy. 'edges' (default) shows y labels on the first column
+   * and x labels on each column's bottom panel; label SPACE is always
+   * reserved everywhere so panels stay aligned. 'all' | 'none'.
+   */
+  axes?: { labels?: 'edges' | 'all' | 'none' }
+  /** One legend for the grid (toggles a series name in every panel). */
+  legend?: 'shared' | 'none'
+  /** One zoom / pan / reset toolbar for the grid. */
+  toolbar?: 'shared' | 'none'
+  /**
+   * 'panel' (default): tooltip card only in the hovered panel while the
+   * crosshair sweeps all panels. 'sync': every panel shows its own card.
+   */
+  tooltip?: 'panel' | 'sync'
+  /** 'sync' (default): a zoom in any panel moves every panel. */
+  zoom?: 'sync' | 'none'
+  /** Tick density for the shared nice y scale. Default 4. */
+  targetTicks?: number
+  /** Per-panel option override, applied last. */
+  panel?: (
+    key: string,
+    opts: { index: number; seriesNames: string[] }
+  ) => ApexCharts.ApexOptions
+}
+
+/** One trellis panel, as returned by chart.getPanels(). */
+type ApexTrellisPanel = {
+  key: string
+  index: number
+  /** The panel's own ApexCharts instance (null before it mounts, and for
+   *  virtualized panels currently offscreen). */
+  chart: ApexCharts | null
+  /** The panel's cell element (header + chart mount). */
+  el: HTMLElement | null
 }
 
 type ApexDropShadow = {
@@ -1842,6 +1990,12 @@ type ApexAxisChartSeries = {
  hidden?: boolean
  zIndex?: number
  parsing?: ApexParsing;
+ /**
+  * Trellis facet key: which panel this series belongs to. The blessed typed
+  * field for `trellis.by: 'facet'`; any other key name works from plain JS,
+  * and the `trellis.by` function form works from either.
+  */
+ facet?: string | number
  data:
  | (number | null)[]
  | {

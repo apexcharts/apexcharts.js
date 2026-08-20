@@ -267,6 +267,14 @@ export default class InitCtxVariables {
     const WeaveCtor = reg.get('weave')
     ctx.weave = WeaveCtor ? new WeaveCtor(w, ctx) : null
 
+    // Trellis (#22): ctx.trellis (opt-in small multiples via a top-level
+    // `trellis.by` config key). Eager and self-inert: isActive() is false for
+    // every chart without the key, INCLUDING the panel charts a trellis host
+    // itself creates. When active, the host's render()/destroy()/updateSeries()
+    // delegate to it instead of the single-chart pipeline.
+    const TrellisCtor = reg.get('trellis')
+    ctx.trellis = TrellisCtor ? new TrellisCtor(w, ctx) : null
+
     // Facet OS watcher: ctx.osThemeWatcher (opt-in `theme.follow:'os'`). Eager
     // so the initial mode is resolved onto w.config before Theme.init in the
     // same create(); the constructor self-wires the matchMedia listener only

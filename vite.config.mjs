@@ -73,6 +73,7 @@ export const SUB_ENTRIES = {
   'features/measure': resolve(__dirname, 'src/features/measure.js'),
   'features/context-menu': resolve(__dirname, 'src/features/context-menu.js'),
   'features/stats': resolve(__dirname, 'src/features/stats.js'),
+  'features/trellis': resolve(__dirname, 'src/features/trellis.js'),
   'features/all': resolve(__dirname, 'src/features/all.js'),
 }
 
