@@ -66,8 +66,34 @@ export default class PointAnnotations {
 
       const text = anno.label.text ? anno.label.text : ''
 
+      // Clamp label x to keep it within chart bounds (prevents cutting off
+      // labels near left/right chart boundary — fixes apexcharts/apexcharts.js#5106)
+      const gridWidth = w.layout.gridWidth
+      const labelWidth = text
+        ? this.annoCtx.graphics.getTextRects(
+            text,
+            anno.label.style.fontSize,
+            anno.label.style.fontFamily
+          ).width
+        : 0
+
+      let labelX = x + anno.label.offsetX
+      if (labelWidth > 0) {
+        if (anno.label.textAnchor === 'end') {
+          labelX = Math.max(labelWidth, Math.min(labelX, gridWidth))
+        } else if (anno.label.textAnchor === 'middle') {
+          labelX = Math.max(
+            labelWidth / 2,
+            Math.min(labelX, gridWidth - labelWidth / 2)
+          )
+        } else {
+          // 'start' (default)
+          labelX = Math.max(0, Math.min(labelX, gridWidth - labelWidth))
+        }
+      }
+
       const elText = this.annoCtx.graphics.drawText({
-        x: x + anno.label.offsetX,
+        x: labelX,
         y:
           y +
           anno.label.offsetY -
