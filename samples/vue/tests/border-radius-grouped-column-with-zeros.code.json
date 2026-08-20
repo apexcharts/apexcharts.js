@@ -1,0 +1,11 @@
+{
+  "title": "Border Radius Grouped Column With Zeros",
+  "externals": [],
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"bar\"\n        height=\"380\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [\n        { name: 'Budget low', group: 'budget', data: [0, 55, 0, 37] },\n        { name: 'Budget high', group: 'budget', data: [13, 0, 20, 8] },\n        { name: 'Actual low', group: 'actual', data: [11, 17, 0, 0] },\n        { name: 'Actual high', group: 'actual', data: [21, 7, 25, 13] },\n      ],\n      chartOptions: {\n        chart: {\n          type: 'bar',\n          height: 380,\n          stacked: true,\n        },\n        plotOptions: {\n          bar: {\n            horizontal: false,\n            borderRadius: 10,\n            borderRadiusApplication: 'end',\n          },\n        },\n        colors: ['#008FFB', '#4FC3F7', '#00E396', '#66DA26'],\n        dataLabels: {\n          enabled: false,\n        },\n        stroke: {\n          width: 1,\n          colors: ['#fff'],\n        },\n        title: {\n          text: 'a zero segment is skipped; its neighbour caps instead',\n          style: { fontSize: '13px', fontWeight: 500 },\n        },\n        xaxis: {\n          categories: ['Q1', 'Q2', 'Q3', 'Q4'],\n        },\n        legend: {\n          position: 'top',\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

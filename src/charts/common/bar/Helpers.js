@@ -324,7 +324,54 @@ export default class Helpers {
   }
 
   /**
+   * Series indices bucketed into the stacks they actually draw in: one bucket
+   * per series group, or a single bucket holding every series when the chart is
+   * not grouped. Order within a bucket follows series order, which is stacking
+   * order.
+   *
+   * @param {number} numSeries
+   * @returns {number[][]}
+   */
+  getStackedSeriesIndices(numSeries) {
+    const groups = this.w.labelData.seriesGroups
+    if (!groups || groups.length < 2) {
+      return [Array.from({ length: numSeries }, (_, i) => i)]
+    }
+
+    /** @type {number[][]} */
+    const buckets = Array.from({ length: groups.length }, () => [])
+    /** @type {number[]} */
+    const ungrouped = []
+    for (let i = 0; i < numSeries; i++) {
+      const g = this.getSeriesGroupIndex(i)
+      if (g > -1) buckets[g].push(i)
+      else ungrouped.push(i)
+    }
+    // A series whose name matches no group still stacks somewhere; keep them
+    // together rather than dropping them out of the assignment entirely.
+    if (ungrouped.length) buckets.push(ungrouped)
+    return buckets.filter((b) => b.length > 0)
+  }
+
+  /**
+   * Which corners each bar rounds, as a [seriesIndex][dataPointIndex] grid of
+   * 'top' | 'bottom' | 'both' | 'none'.
+   *
+   * A rounded corner belongs to the OUTSIDE of a stack, so this resolves, per
+   * data point, the outermost segment on each side of the baseline; everything
+   * sandwiched between them stays square.
+   *
+   * Crucially a "stack" is a series GROUP, not the whole chart. A grouped
+   * stacked chart draws one independent stack per group, side by side, and each
+   * one needs its own outermost segments. Resolving chart-wide instead put the
+   * radius on the bottom of the first group's lowest series and the top of the
+   * last group's highest, leaving every stack in between completely square, 
+   * which is exactly how it looked: the first column rounded at the bottom, the
+   * second at the top, and nothing else touched. Stacked totals already resolve
+   * per group (see drawsStackedTotal, #4173); corners never got the same fix.
+   *
    * @param {any[]} series
+   * @returns {string[][]}
    */
   createBorderRadiusArr(series) {
     const w = this.w
@@ -339,89 +386,59 @@ export default class Helpers {
     )
 
     if (alwaysApplyRadius) return output
-    
-    const chartType = this.w.config.chart.type;
 
-    for (let j = 0; j < numColumns; j++) {
-      const positiveIndices = []
-      const negativeIndices = []
-      let nonZeroCount = 0
+    // A lone horizontal bar in a single-category chart keeps 'top' where a
+    // column would take the full 'both'. Preserved from the original.
+    const isSoloHorizontal =
+      this.w.config.chart.type === 'bar' && numColumns === 1
+    const soloCorner = isSoloHorizontal ? 'top' : 'both'
+    const baseCorner = isSoloHorizontal ? 'top' : 'bottom'
 
-      // Collect positive and negative indices
-      for (let i = 0; i < numSeries; i++) {
-        const value = series[i][j]
-        if (value > 0) {
-          positiveIndices.push(i)
-          nonZeroCount++
-        } else if (value < 0) {
-          negativeIndices.push(i)
-          nonZeroCount++
+    for (const stack of this.getStackedSeriesIndices(numSeries)) {
+      for (let j = 0; j < numColumns; j++) {
+        /** @type {number[]} */
+        const positiveIndices = []
+        /** @type {number[]} */
+        const negativeIndices = []
+
+        for (const i of stack) {
+          const value = series[i][j]
+          if (value > 0) positiveIndices.push(i)
+          else if (value < 0) negativeIndices.push(i)
         }
-      }
 
-      if (positiveIndices.length > 0 && negativeIndices.length === 0) {
-        // Only positive values in this column
-        if (positiveIndices.length === 1) {
-          // Single positive value
-          output[positiveIndices[0]][j] = (chartType === 'bar' && numColumns === 1) ? 'top' : 'both'
-        } else {
-          // Multiple positive values
-          const firstPositiveIndex = positiveIndices[0]
-          const lastPositiveIndex = positiveIndices[positiveIndices.length - 1]
+        if (positiveIndices.length > 0 && negativeIndices.length === 0) {
+          if (positiveIndices.length === 1) {
+            output[positiveIndices[0]][j] = soloCorner
+          } else {
+            const first = positiveIndices[0]
+            const last = positiveIndices[positiveIndices.length - 1]
+            for (const i of positiveIndices) {
+              output[i][j] =
+                i === first ? baseCorner : i === last ? 'top' : 'none'
+            }
+          }
+        } else if (negativeIndices.length > 0 && positiveIndices.length === 0) {
+          if (negativeIndices.length === 1) {
+            output[negativeIndices[0]][j] = 'both'
+          } else {
+            const highest = Math.max(...negativeIndices) // closest to the axis
+            const lowest = Math.min(...negativeIndices) // farthest from it
+            for (const i of negativeIndices) {
+              output[i][j] =
+                i === highest ? 'bottom' : i === lowest ? 'top' : 'none'
+            }
+          }
+        } else if (positiveIndices.length > 0 && negativeIndices.length > 0) {
+          const lastPositive = positiveIndices[positiveIndices.length - 1]
           for (const i of positiveIndices) {
-            if (i === firstPositiveIndex) {
-
-              output[i][j] = (chartType === 'bar' && numColumns === 1) ? 'top' : 'bottom'
-            } else if (i === lastPositiveIndex) {
-              output[i][j] = 'top'
-            } else {
-              output[i][j] = 'none'
-            }
+            output[i][j] = i === lastPositive ? 'top' : 'none'
           }
-        }
-      } else if (negativeIndices.length > 0 && positiveIndices.length === 0) {
-        // Only negative values in this column
-        if (negativeIndices.length === 1) {
-          // Single negative value
-          output[negativeIndices[0]][j] = 'both'
-        } else {
-          // Multiple negative values
-          const highestNegativeIndex = Math.max(...negativeIndices)
-          const lowestNegativeIndex = Math.min(...negativeIndices)
+          const highestNegative = Math.max(...negativeIndices)
           for (const i of negativeIndices) {
-            if (i === highestNegativeIndex) {
-              output[i][j] = 'bottom' // Closest to axis
-            } else if (i === lowestNegativeIndex) {
-              output[i][j] = 'top' // Farthest from axis
-            } else {
-              output[i][j] = 'none'
-            }
+            output[i][j] = i === highestNegative ? 'bottom' : 'none'
           }
         }
-      } else if (positiveIndices.length > 0 && negativeIndices.length > 0) {
-        // Mixed positive and negative values
-        // Assign 'top' to the last positive bar
-        const lastPositiveIndex = positiveIndices[positiveIndices.length - 1]
-        for (const i of positiveIndices) {
-          if (i === lastPositiveIndex) {
-            output[i][j] = 'top'
-          } else {
-            output[i][j] = 'none'
-          }
-        }
-        // Assign 'bottom' to the highest negative index (closest to axis)
-        const highestNegativeIndex = Math.max(...negativeIndices)
-        for (const i of negativeIndices) {
-          if (i === highestNegativeIndex) {
-            output[i][j] = 'bottom'
-          } else {
-            output[i][j] = 'none'
-          }
-        }
-      } else if (nonZeroCount === 1) {
-        // Only one non-zero value (either positive or negative)
-        const index = positiveIndices[0] || negativeIndices[0]
-        output[index][j] = 'both'
       }
     }
 
@@ -508,12 +525,16 @@ export default class Helpers {
         ? ' Z'
         : ' z'
 
-    let pathTo =
+    // The square rect this bar is built from, kept because a bar that is
+    // GAINING a rounded corner has to travel to its new slot square and only
+    // round once it gets there, see Bar.getPreviousPath.
+    const squarePathTo =
       graphics.move(x1, y1) +
       graphics.line(x1, y2) +
       graphics.line(x2, y2) +
       sl +
       closing
+    let pathTo = squarePathTo
     if (this.arrBorderRadius[realIndex][j] !== 'none') {
       pathTo = graphics.roundPathCorners(
         pathTo,
@@ -535,7 +556,7 @@ export default class Helpers {
       // Update: keyed survivor → its old geometry (reflow morph); survivor
       // whose shape changed → pathTo (snap); ENTERING datum → null, which
       // falls through to the baseline rise below.
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo)
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo, squarePathTo)
     }
     if (pathFrom == null) {
       // Initial mount or entering datum: rise from the baseline of the final
@@ -828,12 +849,15 @@ export default class Helpers {
         ? ' Z'
         : ' z'
 
-    let pathTo =
+    // See the column builder: kept so a bar gaining a rounded corner can
+    // travel to its new slot square and only round once it gets there.
+    const squarePathTo =
       graphics.move(x1, y1) +
       graphics.line(x2, y1) +
       graphics.line(x2, y2) +
       sl +
       closing
+    let pathTo = squarePathTo
     if (this.arrBorderRadius[realIndex][j] !== 'none') {
       pathTo = graphics.roundPathCorners(
         pathTo,
@@ -852,7 +876,7 @@ export default class Helpers {
       // Update: keyed survivor → its old geometry (reflow morph); survivor
       // whose shape changed → pathTo (snap); ENTERING datum → null, which
       // falls through to the baseline rise below.
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo)
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo, squarePathTo)
     }
     if (pathFrom == null) {
       // Initial mount or entering datum: rise from the baseline of the final

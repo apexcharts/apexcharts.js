@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Border Radius Ungrouped Bar Series Mixed</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;bar&quot; height={380} /&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [
+            { name: 'Budget below', data: [-13, -23, -20, -8] },
+            { name: 'Budget above', data: [44, 55, 41, 37] },
+            { name: 'Actual below', data: [-21, -7, -25, -13] },
+            { name: 'Actual above', data: [11, 17, 15, 15] },
+          ],
+          options: {
+            chart: {
+              type: 'bar',
+              height: 380,
+              stacked: true,
+            },
+            plotOptions: {
+              bar: {
+                horizontal: true,
+                borderRadius: 10,
+                borderRadiusApplication: 'end',
+              },
+            },
+            colors: ['#008FFB', '#4FC3F7', '#00E396', '#66DA26'],
+            dataLabels: {
+              enabled: false,
+            },
+            stroke: {
+              width: 1,
+              colors: ['#fff'],
+            },
+            title: {
+              text: 'ungrouped bar, mixed: single stack, outermost segments cap',
+              style: { fontSize: '13px', fontWeight: 500 },
+            },
+            xaxis: {
+              categories: ['Q1', 'Q2', 'Q3', 'Q4'],
+            },
+            legend: {
+              position: 'top',
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div id="chart">
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="bar"
+                height={380}
+              />
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

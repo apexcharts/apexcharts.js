@@ -2287,7 +2287,6 @@ type ApexPlotOptions = {
     distributed?: boolean
     borderRadius?: number;
     borderRadiusApplication?: 'around' | 'end';
-    borderRadiusWhenStacked?: 'all' | 'last';
     hideZeroBarsWhenGrouped?: boolean
     rangeBarOverlap?: boolean
     rangeBarGroupRows?: boolean
@@ -3555,9 +3554,10 @@ type ApexDataLabels = {
   }
   dropShadow?: ApexDropShadow
   /**
-   * Ride data labels to their new position on a data-change update (e.g. a bar
-   * chart race) instead of snapping. Off by default. Bar/column only; speed and
-   * easing follow chart.animations.dynamicAnimation.
+   * Ride data labels to their new position on a data-change update instead of
+   * snapping. On by default, so labels reflow on the same clock as the bars,
+   * markers and axis ticks. Bar/column only; speed and easing follow
+   * chart.animations.dynamicAnimation.
    */
   animate?: {
     enabled?: boolean

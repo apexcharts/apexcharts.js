@@ -966,10 +966,9 @@ export default class ApexCharts {
           // as the series morph (no-op otherwise; consumes prevChromeFrame).
           applyAxisTransition(this.w)
 
-          // Opt-in bar-chart-race polish: ride data labels to their new slot
-          // and count their value up, on the same clock as the morph (no-op
-          // unless dataLabels.animate/countUp is enabled and a frame was
-          // captured this update).
+          // Ride data labels to their new slot (and, opt-in, count their value
+          // up) on the same clock as the morph. No-op when nothing moved or no
+          // frame was captured this update.
           applyDataLabelTransition(this.w)
 
           if (typeof this.w.config.chart.events.updated === 'function') {
@@ -1330,6 +1329,27 @@ export default class ApexCharts {
         if (w.config.dataLabels.background.enabled) {
           dataLabels.dataLabelsBackground()
         }
+
+        // Same reflow tweens the full render runs, and for the same reason: a
+        // same-shape updateSeries is the MOST common update there is, and it
+        // lands here, not in update(). Without these the ruler and the labels
+        // snap to their final places on the first frame while the marks morph
+        // for another few hundred ms. Both consume the frame captured by
+        // Series.getPreviousPaths() before this render, and both no-op when
+        // nothing moved, including when the scale did not change and the axis
+        // chrome was preserved in place rather than redrawn.
+        //
+        // Ordering: after bringForward()/dataLabelsBackground(), so a label
+        // group is in its final parent with its background rect inside it and
+        // one translate carries the pair.
+        //
+        // A streaming scroll is the one case that opts out of the ruler tween:
+        // StreamScroll is already producing continuous motion many times a
+        // second, so sliding every tick label on top of it buys nothing visible
+        // and the extra per-frame DOM writes show up as velocity jitter in the
+        // scroll itself.
+        if (!gl.streamScrolled) applyAxisTransition(w)
+        applyDataLabelTransition(w)
 
         // Reattach tooltip event listeners to new series elements.
         if (Environment.isBrowser() && w.config.tooltip.enabled && !gl.noData) {

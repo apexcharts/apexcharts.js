@@ -1,0 +1,21 @@
+{
+  "title": "Border Radius Grouped Column Single Series Group",
+  "externals": [],
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    { name: 'Solo', group: 'solo', data: [44, 55, 41, 37] },\n    { name: 'Pair low', group: 'pair', data: [11, 17, 15, 15] },\n    { name: 'Pair high', group: 'pair', data: [21, 7, 25, 13] },\n  ],\n  chart: {\n    type: 'bar',\n    height: 380,\n    stacked: true,\n  },\n  plotOptions: {\n    bar: {\n      horizontal: false,\n      borderRadius: 10,\n      borderRadiusApplication: 'end',\n    },\n  },\n  colors: ['#008FFB', '#4FC3F7', '#00E396', '#66DA26'],\n  dataLabels: {\n    enabled: false,\n  },\n  stroke: {\n    width: 1,\n    colors: ['#fff'],\n  },\n  title: {\n    text: 'a group of one caps both ends, not half',\n    style: { fontSize: '13px', fontWeight: 500 },\n  },\n  xaxis: {\n    categories: ['Q1', 'Q2', 'Q3', 'Q4'],\n  },\n  legend: {\n    position: 'top',\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Border Radius Grouped Column Single Series Group</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

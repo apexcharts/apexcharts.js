@@ -1,0 +1,47 @@
+<title>Border Radius Grouped Column Three Groups</title>
+
+<chart>
+<options>
+chart: {
+          type: 'bar',
+          height: 380,
+          stacked: true,
+        },
+        plotOptions: {
+          bar: {
+            horizontal: false,
+            borderRadius: 10,
+            borderRadiusApplication: 'end',
+          },
+        },
+        colors: ['#008FFB', '#4FC3F7', '#00E396', '#66DA26', '#FEB019', '#FFC46B'],
+        dataLabels: {
+          enabled: false,
+        },
+        stroke: {
+          width: 1,
+          colors: ['#fff'],
+        },
+        title: {
+          text: 'three stacks side by side, each capped independently',
+          style: { fontSize: '13px', fontWeight: 500 },
+        },
+        xaxis: {
+          categories: ['Q1', 'Q2', 'Q3', 'Q4'],
+        },
+        legend: {
+          position: 'top',
+        }
+</options>
+
+<series>
+[
+          { name: 'A low', group: 'a', data: [44, 55, 41, 37] },
+          { name: 'A high', group: 'a', data: [13, 23, 20, 8] },
+          { name: 'B low', group: 'b', data: [11, 17, 15, 15] },
+          { name: 'B high', group: 'b', data: [21, 7, 25, 13] },
+          { name: 'C low', group: 'c', data: [18, 12, 22, 19] },
+          { name: 'C high', group: 'c', data: [9, 14, 11, 16] },
+        ]
+</series>
+</chart>

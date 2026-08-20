@@ -1,6 +1,7 @@
 // @ts-check
 import Graphics from './Graphics'
 import Utils from '../utils/Utils'
+import { Environment } from '../utils/Environment'
 import { captureStreamFrame } from './animations/StreamScroll'
 import { captureAxisChrome } from './animations/AxisTransition'
 import { captureDataLabels } from './animations/DataLabelTransition'
@@ -94,6 +95,7 @@ export default class Series {
    * @param {number} index
    */
   static addCollapsedClassToSeries(w, elSeries, index) {
+    let collapsed = false
     /**
      * @param {any[]} series
      */
@@ -101,12 +103,43 @@ export default class Series {
       for (let cs = 0; cs < series.length; cs++) {
         if (series[cs].index === index) {
           elSeries.node.classList.add('apexcharts-series-collapsed')
+          collapsed = true
         }
       }
     }
 
     iterateOnAllCollapsedSeries(w.globals.collapsedSeries)
     iterateOnAllCollapsedSeries(w.globals.ancillaryCollapsedSeries)
+
+    if (!collapsed) return
+
+    // A series hidden by THIS render is still mid-exit: its marks hold the slot
+    // they had before the click and tween down to nothing. `-collapsed` alone
+    // (opacity: 0) would blank them on the first frame, which on a stacked
+    // chart leaves a hole the height of the outgoing layer until the tween
+    // finishes. The `-collapsing` class restores opacity for the length of the
+    // exit so the layer visibly shrinks away and the stack stays closed;
+    // everything that keys off `-collapsed` (tooltip skipping, isSeriesHidden,
+    // the public toggle API) keeps working throughout.
+    if ((w.globals.collapsingSeriesIndices || []).indexOf(index) === -1) return
+
+    elSeries.node.classList.add('apexcharts-series-collapsing')
+    if (!Environment.isBrowser()) return
+
+    // Hold the paint until the LAST mark of the series has landed, not just the
+    // first: Bar.renderSeries staggers marks within a series (capped at half of
+    // `animations.speed` across the whole row/column) and Animations.morphSVG
+    // spends that delay twice, once holding at pathFrom, once before the tween
+    //, so the final mark can start a full `animations.speed` late. Dropping
+    // the class earlier re-opens the hole in the columns that have not finished
+    // shrinking. Overshooting is free: by then the marks are at zero size and
+    // paint nothing either way.
+    const anim = w.config.chart.animations
+    const hold = (anim.dynamicAnimation.speed || 0) + (anim.speed || 0) + 100
+    setTimeout(() => {
+      if (w.globals.isDestroyed) return
+      elSeries.node.classList.remove('apexcharts-series-collapsing')
+    }, hold)
   }
 
   /**
@@ -633,10 +666,19 @@ export default class Series {
           // Datum key + fill stamped by the bar renderer: the key lets the
           // next render match survivors by identity (not position) and detect
           // exited datums; the fill paints their exit ghosts.
+          //
+          // `flip` records whether the bar was MIRRORED. A stacked bar with a
+          // borderRadius only ever carries top-rounded geometry; the radius is
+          // moved to the bottom by the apexcharts-flip-y/-x class, so without
+          // this the next render cannot tell where the previous radius visually
+          // sat. See BarStacked's held-mirror handling.
           dArr.paths.push({
             d,
             key: paths[j].getAttribute('data:pathKey'),
             fill: paths[j].getAttribute('fill'),
+            flip:
+              paths[j].classList.contains('apexcharts-flip-y') ||
+              paths[j].classList.contains('apexcharts-flip-x'),
           })
         }
       }

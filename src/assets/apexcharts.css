@@ -326,6 +326,30 @@ rect.legend-mouseover-inactive,
   opacity: 0
 }
 
+/* A series still playing its exit tween stays painted so it can visibly shrink
+   away, hiding it on the first frame leaves a hole in a stacked chart for the
+   length of the animation. Dropped once the tween lands. */
+.apexcharts-series-collapsed.apexcharts-series-collapsing {
+  opacity: 1
+}
+
+/* Its labels ride the shrinking marks, but a mark runs out of room for its text
+   well before it reaches zero, so fade them across the exit instead of holding
+   them crisp over a sliver. Duration is set inline from dynamicAnimation.speed. */
+.apexcharts-datalabels.apexcharts-series-collapsing {
+  animation: apexcharts-datalabels-exit var(--apexcharts-dl-exit, 400ms) ease-in
+    forwards;
+}
+
+@keyframes apexcharts-datalabels-exit {
+  from {
+    opacity: 1
+  }
+  to {
+    opacity: 0
+  }
+}
+
 .apexcharts-canvas svg:focus:not(:focus-visible) {
   outline: none;
 }

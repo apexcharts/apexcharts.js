@@ -696,7 +696,12 @@ export default class Animations {
       }
     }
 
-    const runner = el.plot(pathFrom).animate(1, delay).plot(pathFrom).animate(speed, delay)
+    // One runner, one delay. The old two-runner chain (a 1ms hold followed by
+    // the real morph, each carrying `delay`) accumulated the delay TWICE in
+    // _executeChain, so every staggered bar started at 2x its intended offset,
+    // drifting away from the axis/data labels that share its clock. The
+    // synchronous plot(pathFrom) already pins the start shape during the wait.
+    const runner = el.plot(pathFrom).animate(speed, delay)
     if (morphEase) {
       runner.ease(morphEase)
     }

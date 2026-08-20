@@ -4,6 +4,7 @@ import Bar from './Bar'
 import Graphics from '../modules/Graphics'
 import Series from '../modules/Series'
 import Utils from '../utils/Utils'
+import { Environment } from '../utils/Environment'
 
 /**
  * ApexCharts BarStacked Class responsible for drawing both Stacked Columns and Bars.
@@ -47,6 +48,16 @@ class BarStacked extends Bar {
     let x = 0
     let y = 0
 
+    // Only hold a bar's mirror across an animated update, with animations off
+    // the new corner state is reached instantly and the mirror should follow it
+    // instantly too.
+    const anim = w.config.chart.animations
+    const holdMirror =
+      anim.enabled &&
+      anim.dynamicAnimation.enabled &&
+      w.globals.previousPaths.length > 0
+    let heldMirrors = false
+
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
       const realIndex = w.globals.comboCharts
         ? /** @type {any} */ (seriesIndex)[i]
@@ -86,6 +97,17 @@ class BarStacked extends Bar {
         class: 'apexcharts-datalabels',
         'data:realIndex': realIndex,
       })
+      // The label wrap is a SIBLING of the series group, not a child, so it
+      // does not inherit the collapsed/collapsing opacity handling. Give it the
+      // same lifecycle or a collapsing series' labels either vanish a tween
+      // early or linger after its bars have gone.
+      Series.addCollapsedClassToSeries(this.w, elDataLabelsWrap, realIndex)
+      if ((w.globals.collapsingSeriesIndices || []).indexOf(realIndex) > -1) {
+        elDataLabelsWrap.node.style.setProperty(
+          '--apexcharts-dl-exit',
+          `${w.config.chart.animations.dynamicAnimation.speed}ms`,
+        )
+      }
 
       const elGoalsMarkers = this.graphics.group({
         class: 'apexcharts-bar-goals-markers',
@@ -190,13 +212,38 @@ class BarStacked extends Bar {
         const flipClass = w.globals.isBarHorizontal
           ? 'apexcharts-flip-x'
           : 'apexcharts-flip-y'
-        if (
+        const wantsFlip =
           (this.barHelpers.arrBorderRadius[realIndex][j] === 'bottom' &&
             w.seriesData.series[realIndex][j] > 0) ||
           (this.barHelpers.arrBorderRadius[realIndex][j] === 'top' &&
             w.seriesData.series[realIndex][j] < 0)
-        ) {
+
+        // The mirror is a DISCRETE flag over CONTINUOUS geometry, so it cannot
+        // simply follow the new corner state: it would snap on frame 0 while
+        // the path it belongs to spends the whole tween morphing. Collapse the
+        // bottom series of a stack and the layer leaving keeps its rounded
+        // corners for the length of the tween but loses the mirror instantly,
+        // so its radius jumps to the top; the layer inheriting the bottom gains
+        // the mirror instantly, so a radius appears on it before the leaver has
+        // moved out of the way.
+        //
+        // Hold the mirror across the tween instead (union of old and new). This
+        // is safe because the endpoint that is NOT rounded is a plain rect, and
+        // this mirror maps a box exactly onto itself, so on a plain rect, and
+        // on the symmetric 'both' state, applying it is a pixel-level no-op.
+        // The radius is then free to grow in or shrink out in place, which is
+        // what the padded morph in Bar.getPreviousPath already provides.
+        const heldFlip = holdMirror && !wantsFlip && this.getPreviousFlip(realIndex, j)
+        if (wantsFlip || heldFlip) {
           classes = flipClass
+        }
+        if (heldFlip) {
+          // 'bottom' → 'top' is the one transition where the mirror is still
+          // load-bearing at rest (both endpoints are genuinely rounded, at
+          // opposite ends), so the held mirror has to be dropped once the
+          // geometry has arrived. Marked here, settled after the draw.
+          classes += ' apexcharts-flip-held'
+          heldMirrors = true
         }
         elSeries = this.renderSeries({
           realIndex,
@@ -237,7 +284,39 @@ class BarStacked extends Bar {
       ret.add(elSeries)
     }
 
+    if (heldMirrors) this.settleHeldMirrors()
+
     return ret
+  }
+
+  /**
+   * Drop the mirrors held across an animated update once the geometry they
+   * were covering for has arrived. A no-op for every state except
+   * 'bottom' → 'top', where the endpoint really is rounded at the other end;
+   * everywhere else the mirror is an exact identity on the settled shape, so
+   * removing it changes nothing on screen.
+   */
+  settleHeldMirrors() {
+    const w = this.w
+    if (!Environment.isBrowser()) return
+
+    const anim = w.config.chart.animations
+    // Matches the collapsing-series hold: morphSVG applies the stagger delay
+    // twice, so the real tail runs past dynamicAnimation.speed on its own.
+    const hold = (anim.dynamicAnimation.speed || 0) + (anim.speed || 0) + 100
+
+    setTimeout(() => {
+      if (w.globals.isDestroyed || !Utils.elementExists(w.dom.baseEl)) return
+      w.dom.baseEl
+        .querySelectorAll('.apexcharts-flip-held')
+        .forEach((/** @type {Element} */ el) => {
+          el.classList.remove(
+            'apexcharts-flip-held',
+            'apexcharts-flip-y',
+            'apexcharts-flip-x',
+          )
+        })
+    }, hold)
   }
 
   /**

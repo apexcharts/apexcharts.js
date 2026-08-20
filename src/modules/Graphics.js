@@ -65,6 +65,15 @@ class Graphics {
 
       var distance = Math.sqrt(width * width + height * height)
 
+      // Degenerate segment: the two points coincide, so there is no direction
+      // to move along. `amount / 0` is NaN (radius 0) or Infinity, and either
+      // poisons every coordinate downstream, a stacked bar whose layer has
+      // collapsed to zero extent then hands morphSVG a path full of NaN, which
+      // it can only rescue by dropping the mark on the chart origin. Stay put.
+      if (!distance) {
+        return { x: movingPoint.x, y: movingPoint.y }
+      }
+
       return moveTowardsFractional(
         movingPoint,
         targetPoint,
@@ -1530,14 +1539,34 @@ class Graphics {
    * @param {string} fontSize
    * @param {string | null | undefined} [fontFamily]
    * @param {string} [transform]
+   * @param {boolean} [useBBox]
+   * @param {string | number} [fontWeight] weight to measure at. Omit and the
+   *   measurement is taken at 'regular' (drawText's default), which is only
+   *   correct for text that also RENDERS at regular. Bolder text is wider, so
+   *   measuring a bold label at regular under-reports its width and any
+   *   fit/overflow decision made from it comes up short.
    * @returns {{ width: number, height: number }}
    */
-  getTextRects(text, fontSize, fontFamily, transform, useBBox = true) {
+  getTextRects(
+    text,
+    fontSize,
+    fontFamily,
+    transform,
+    useBBox = true,
+    fontWeight,
+  ) {
     const w = this.w
 
     // cache text measurements to avoid repeated DOM create/measure/remove cycles
     // Use \0 (null byte) as separator — cannot appear in font families or CSS transforms
-    const cacheKey = [text, fontSize, fontFamily, transform, useBBox].join('\0')
+    const cacheKey = [
+      text,
+      fontSize,
+      fontFamily,
+      transform,
+      useBBox,
+      fontWeight,
+    ].join('\0')
     const cache = w.globals.textRectsCache
     if (cache && cache.has(cacheKey)) {
       return /** @type {{ width: number, height: number }} */ (
@@ -1552,6 +1581,7 @@ class Graphics {
       textAnchor: 'start',
       fontSize,
       fontFamily,
+      fontWeight,
       foreColor: '#fff',
       opacity: 0,
     })

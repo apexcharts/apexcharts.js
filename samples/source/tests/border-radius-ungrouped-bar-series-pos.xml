@@ -1,0 +1,45 @@
+<title>Border Radius Ungrouped Bar Series Pos</title>
+
+<chart>
+<options>
+chart: {
+          type: 'bar',
+          height: 380,
+          stacked: true,
+        },
+        plotOptions: {
+          bar: {
+            horizontal: true,
+            borderRadius: 10,
+            borderRadiusApplication: 'end',
+          },
+        },
+        colors: ['#008FFB', '#4FC3F7', '#00E396', '#66DA26'],
+        dataLabels: {
+          enabled: false,
+        },
+        stroke: {
+          width: 1,
+          colors: ['#fff'],
+        },
+        title: {
+          text: 'ungrouped bar, pos: single stack, outermost segments cap',
+          style: { fontSize: '13px', fontWeight: 500 },
+        },
+        xaxis: {
+          categories: ['Q1', 'Q2', 'Q3', 'Q4'],
+        },
+        legend: {
+          position: 'top',
+        }
+</options>
+
+<series>
+[
+          { name: 'Budget low', data: [44, 55, 41, 37] },
+          { name: 'Budget high', data: [13, 23, 20, 8] },
+          { name: 'Actual low', data: [11, 17, 15, 15] },
+          { name: 'Actual high', data: [21, 7, 25, 13] },
+        ]
+</series>
+</chart>

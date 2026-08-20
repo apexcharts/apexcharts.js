@@ -95,9 +95,10 @@ var raceInitial = raceFrame()
   A "bar chart race": each tick re-sorts the entities by value and updates the
   chart. The bars slide to their new ranks and the left-hand category labels
   ride along with them (automatic whenever a reorder update runs with
-  <code>dynamicAnimation</code> enabled). The value labels also ride each bar
-  and count up/down, via the opt-in <code>dataLabels.animate</code> and
-  <code>dataLabels.countUp</code> flags: together these complete the race.
+  <code>dynamicAnimation</code> enabled). The value labels ride each bar too,
+  which every bar chart does by default. What completes the race is
+  <code>dataLabels.countUp</code>: opt into it and each number counts up or
+  down from its previous value instead of switching.
 </div>
 </html>
 
@@ -128,11 +129,9 @@ plotOptions: {
 colors: raceInitial.colors,
 dataLabels: {
   enabled: true,
-  // Opt-in race polish: the value labels ride to each bar's new rank and
-  // count up/down from their previous value on every tick.
-  animate: {
-    enabled: true
-  },
+  // Riding to each bar's new rank is the default; counting the number up or
+  // down from its previous value on every tick is the opt-in that makes it
+  // read as a race.
   countUp: {
     enabled: true
   }

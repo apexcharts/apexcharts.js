@@ -50,6 +50,10 @@
  */
 export function captureStreamFrame(w) {
   const gl = w.globals
+  // Cleared once per update, set by detectStreamScroll below. Post-render
+  // consumers read it to know a scroll is driving this frame, see the axis
+  // transition in fastUpdate, which stands aside for one.
+  gl.streamScrolled = false
   if (
     !gl.axisCharts ||
     !w.seriesData ||
@@ -236,6 +240,10 @@ export function detectStreamScroll(w, realIndex, newXPixels, newYPixels) {
       }
     }
   }
+
+  // Record that a scroll is driving this render (cleared by
+  // captureStreamFrame at the top of the update).
+  gl.streamScrolled = true
 
   return { ax, bx, ay, by }
 }

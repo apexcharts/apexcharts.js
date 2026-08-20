@@ -141,11 +141,15 @@ test.describe('Bar chart race — data labels (opt-in)', () => {
       return { v: t == null || t === '' ? null : parseFloat(t) }
     }`
 
+    // Germany is the LAST datapoint (j=9), and on a pure value update its bar
+    // keeps the per-datapoint stagger (~360ms here), which the label now waits
+    // for so the pair move on one clock. The window has to outlast the bar's
+    // clock (delay + dynamicAnimation.speed), not just the label tween.
     const samples = await sampleDuringUpdate(
       page,
       { series: [{ data: [400, 430, 448, 470, 540, 580, 690, 1100, 1200, 500] }] },
       sampler,
-      700,
+      1200,
     )
 
     const clean = samples.filter((s) => !s.error && s.v != null && !isNaN(s.v))

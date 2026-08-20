@@ -357,10 +357,27 @@ export default class Helpers {
       }
     }
 
-    this.lgCtx.updateSeries(
-      series,
-      w.config.chart.animations.dynamicAnimation.enabled,
-    )
+    // Mark the series as collapsing for the length of the render this update
+    // kicks off. A stacked segment owns its slot in the stack until its exit
+    // tween has actually shrunk it to nothing: hide it on the first frame and
+    // it becomes an invisible spacer, so the stack reads as torn open at the
+    // hidden layer for the whole animation. `collapsingSeriesIndices` keeps it
+    // painted until it reaches zero, see Series.addCollapsedClassToSeries.
+    const animate = w.config.chart.animations.dynamicAnimation.enabled
+    if (animate) {
+      w.globals.collapsingSeriesIndices = [realIndex]
+    }
+    const clearCollapsing = () => {
+      w.globals.collapsingSeriesIndices = []
+    }
+    const updated = this.lgCtx.updateSeries(series, animate)
+    // The render is synchronous inside updateSeries, so the flag has already
+    // done its job by the time this returns; the promise arm is the guard for
+    // any path that defers.
+    clearCollapsing()
+    if (updated && typeof updated.then === 'function') {
+      updated.then(clearCollapsing, clearCollapsing)
+    }
   }
 
   /**

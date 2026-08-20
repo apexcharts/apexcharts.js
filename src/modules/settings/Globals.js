@@ -219,6 +219,7 @@ export default class Globals {
       'collapsedSeriesIndices',
       'ancillaryCollapsedSeries',
       'ancillaryCollapsedSeriesIndices',
+      'collapsingSeriesIndices',
       'allSeriesCollapsed',
       'risingSeries',
       'previousPaths',
@@ -441,6 +442,11 @@ export default class Globals {
       collapsedSeriesIndices: [],
       ancillaryCollapsedSeries: [],
       ancillaryCollapsedSeriesIndices: [],
+      // Series collapsing on THIS render only (the legend click that hid it).
+      // Transient, unlike collapsedSeriesIndices it is cleared as soon as the
+      // render it triggered is done, so the exit tween can keep the outgoing
+      // marks painted while every later render treats the series as hidden.
+      collapsingSeriesIndices: [],
       risingSeries: [], // series being re-shown after collapse
       ignoreYAxisIndexes: [], // y-axis indices excluded during series collapse
 
@@ -472,6 +478,9 @@ export default class Globals {
       // captured by Series.getPreviousPaths(). Consulted (like previousPaths)
       // only while a data-change morph renders. See StreamScroll.
       prevStreamFrame: null,
+      // Set for the duration of one render when a streaming scroll is driving
+      // it; see captureStreamFrame / detectStreamScroll.
+      streamScrolled: false,
       // Axis-chrome snapshot (tick label texts/positions + gridline positions)
       // captured alongside prevStreamFrame; consumed once by AxisTransition
       // after a variable-length re-render mounts.

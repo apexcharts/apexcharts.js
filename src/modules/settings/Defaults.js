@@ -1267,7 +1267,6 @@ export default class Defaults {
         bar: {
           ...barDefaults.plotOptions.bar,
           borderRadiusApplication: 'end',
-          borderRadiusWhenStacked: 'last',
         },
       },
     }

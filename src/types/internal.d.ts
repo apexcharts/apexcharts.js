@@ -365,6 +365,8 @@ export interface ChartGlobals
   collapsedSeriesIndices: number[]
   ancillaryCollapsedSeries: Array<{ index: number; data: any; type: string; name?: string }>
   ancillaryCollapsedSeriesIndices: number[]
+  /** Series collapsing on this render only; cleared once that render is done. */
+  collapsingSeriesIndices: number[]
   risingSeries: number[]
   ignoreYAxisIndexes: number[]
 
@@ -467,6 +469,13 @@ export interface ChartGlobals
     labels: any[]
     isXNumeric: boolean
   } | null
+  /**
+   * True when a streaming scroll is driving the render in progress. Cleared by
+   * captureStreamFrame once per update, set by detectStreamScroll. Lets
+   * post-render polish (the axis tween) stand aside for a scroll that is
+   * already animating continuously.
+   */
+  streamScrolled: boolean
   // Axis-chrome snapshot (tick label texts/positions + gridline positions),
   // captured alongside prevStreamFrame and consumed once by AxisTransition
   // after a variable-length re-render mounts.

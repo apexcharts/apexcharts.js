@@ -19,7 +19,6 @@ plotOptions: {
     horizontal: false,
     borderRadius: 10,
     borderRadiusApplication: 'end',
-    borderRadiusWhenStacked: 'last',
     dataLabels: {
       total: {
         enabled: true,

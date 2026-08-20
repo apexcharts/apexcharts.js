@@ -82,6 +82,10 @@ class Bar {
     this._ltCache = null
     /** @type {Record<number, boolean> | null} */
     this._layoutShiftCache = null
+    // Set by getPreviousPath when a bar's corner state flipped and the morph
+    // has to aim at a padded copy of pathTo; consumed by renderSeries.
+    /** @type {string | null} */
+    this._pathToInterp = null
 
     /** @type {any[]} */
     this.series = []
@@ -434,6 +438,12 @@ class Bar {
     const emit = seriesEmitter(this.ctx, graphics)
     let skipDrawing = false
 
+    // Corner-flip morph target, set by the getPreviousPath call that built the
+    // pathFrom we were just handed. Consume it so it can never leak into the
+    // next bar.
+    const pathToInterp = this._pathToInterp
+    this._pathToInterp = null
+
     // Set up event delegation once per series group instead of per-element listeners
     if (!elSeries._bindingsDelegated) {
       elSeries._bindingsDelegated = true
@@ -474,6 +484,63 @@ class Bar {
         : checkAvailableColor
     }
 
+    // Per-bar stagger delay. The base step is auto-scaled so total stagger
+    // (across all bars in a row/column) caps at ~half the animation speed -
+    // a 5-bar chart and a 50-bar chart finish in similar wall-clock time.
+    // For stacked bars: bottom layers (lower `i`) animate first, top layers
+    // cascade on a smaller offset so each stack visibly "builds up".
+    //
+    // Note: animatePathsGradually() multiplies the passed `animationDelay` by
+    // `animateGradually.delay` (the "delayFactor"). To express the stagger in
+    // real milliseconds we divide by that factor here so the multiplication
+    // cancels - otherwise a 40ms intended delay would become 40x150=6000ms.
+    //
+    // Computed BEFORE the data labels are drawn because the label transition
+    // rides on the same clock: each label group is stamped with this bar's
+    // delay (data:dlDelay) so a staggered bar's label waits for its bar
+    // instead of landing hundreds of ms early.
+    const animCfg = w.config.chart.animations
+    const gradCfg = animCfg.animateGradually
+    // Layout-shifting updates (points entered/exited OR a reorder / bar-chart
+    // race) run every survivor on one shared clock: staggered starts read as
+    // incoherent churn when bars are also sliding to new slots, and would leave
+    // the bars out of sync with the axis/data labels, which move together on a
+    // single clock. Pure value updates (no slot change) keep the stagger.
+    const staggerEnabled =
+      gradCfg &&
+      gradCfg.enabled !== false &&
+      !(w.globals.dataChanged && this.isLayoutShift(realIndex))
+    let delay = 0
+    let delayMs = 0
+    if (staggerEnabled) {
+      const totalBars = w.globals.dataPoints || 1
+      const configStep = gradCfg.delay || 0
+      const baseDelayMs = Math.min(
+        configStep,
+        (animCfg.speed * 0.5) / Math.max(1, totalBars),
+      )
+      delayMs = computeStagger({
+        style: 'sequential',
+        index: j,
+        baseDelay: baseDelayMs,
+      })
+      // The per-layer cascade is an initial-mount effect only. Every layer of a
+      // stack is drawn edge-to-edge against its neighbours, so on an update the
+      // whole stack has to move on ONE clock: give layer i+1 a later start than
+      // layer i and the seam between them tears open (the lower segment has
+      // already shrunk while the one above it has not begun to slide down), so
+      // the stack visibly comes apart mid-flight and only closes at the end.
+      // On mount every layer rises from the same baseline, so the cascade reads
+      // as the stack building up instead.
+      if (w.config.chart.stacked && !w.globals.dataChanged) {
+        delayMs += i * baseDelayMs * 0.5
+      }
+      // Convert ms -> delayFactor units so animatePathsGradually's
+      // `delay * delayFactor` reproduces our intended ms delay.
+      const delayFactor = configStep || 1
+      delay = delayMs / delayFactor
+    }
+
     const barDataLabels = new BarDataLabels(this)
     const dataLabelsObj = /** @type {any} */ (
       barDataLabels.handleBarDataLabels({
@@ -493,6 +560,22 @@ class Bar {
         visibleSeries,
       })
     )
+
+    // Hand each label its bar's stagger so the two move on one clock; the
+    // label transition (DataLabelTransition) holds the label at its previous
+    // spot for this long before riding. Only updates ride, so only stamp when
+    // this render staggers at all.
+    if (delayMs > 0) {
+      const dlAnimCfg = w.config.dataLabels
+      if (dlAnimCfg.animate?.enabled || dlAnimCfg.countUp?.enabled) {
+        const stampDelay = String(Math.round(delayMs))
+        dataLabelsObj.dataLabels?.node?.setAttribute('data:dlDelay', stampDelay)
+        dataLabelsObj.totalDataLabels?.node?.setAttribute(
+          'data:dlDelay',
+          stampDelay,
+        )
+      }
+    }
 
     if (!w.globals.isBarHorizontal) {
       if (
@@ -515,52 +598,20 @@ class Bar {
         .strokeColor
     }
 
-    if (this.isNullValue) {
+    // A collapsing series reads as null (its values were zeroed by the legend
+    // click), but its marks are mid-exit and still hold the slot they had
+    // before the click. Leave them painted so the layer shrinks away instead of
+    // blinking out and leaving a hole in the stack, see
+    // Series.addCollapsedClassToSeries.
+    if (
+      this.isNullValue &&
+      w.globals.collapsingSeriesIndices.indexOf(realIndex) === -1
+    ) {
       pathFill = 'none'
     }
 
-    // Per-bar stagger delay. The base step is auto-scaled so total stagger
-    // (across all bars in a row/column) caps at ~half the animation speed —
-    // a 5-bar chart and a 50-bar chart finish in similar wall-clock time.
-    // For stacked bars: bottom layers (lower `i`) animate first, top layers
-    // cascade on a smaller offset so each stack visibly "builds up".
-    //
-    // Note: animatePathsGradually() multiplies the passed `animationDelay` by
-    // `animateGradually.delay` (the "delayFactor"). To express the stagger in
-    // real milliseconds we divide by that factor here so the multiplication
-    // cancels — otherwise a 40ms intended delay would become 40×150=6000ms.
-    const animCfg = w.config.chart.animations
-    const gradCfg = animCfg.animateGradually
-    // Layout-shifting updates (points entered/exited OR a reorder / bar-chart
-    // race) run every survivor on one shared clock: staggered starts read as
-    // incoherent churn when bars are also sliding to new slots, and would leave
-    // the bars out of sync with the axis/data labels, which move together on a
-    // single clock. Pure value updates (no slot change) keep the stagger.
-    const staggerEnabled =
-      gradCfg &&
-      gradCfg.enabled !== false &&
-      !(w.globals.dataChanged && this.isLayoutShift(realIndex))
-    let delay = 0
-    if (staggerEnabled) {
-      const totalBars = w.globals.dataPoints || 1
-      const configStep = gradCfg.delay || 0
-      const baseDelayMs = Math.min(
-        configStep,
-        (animCfg.speed * 0.5) / Math.max(1, totalBars),
-      )
-      let delayMs = computeStagger({
-        style: 'sequential',
-        index: j,
-        baseDelay: baseDelayMs,
-      })
-      if (w.config.chart.stacked) {
-        delayMs += i * baseDelayMs * 0.5
-      }
-      // Convert ms → delayFactor units so animatePathsGradually's
-      // `delay * delayFactor` reproduces our intended ms delay.
-      const delayFactor = configStep || 1
-      delay = delayMs / delayFactor
-    }
+    // (The per-bar stagger `delay` is computed above, before the data labels
+    // are drawn, so the label transition can be stamped with the same clock.)
 
     if (!skipDrawing) {
       // Cross-type morph (e.g. pie → bar) uses its own dedicated speed so the
@@ -595,6 +646,7 @@ class Bar {
           strokeWidth,
           strokeLineCap: w.config.stroke.lineCap,
           fill: pathFill,
+          pathToInterp,
           animationDelay: delay,
           initialSpeed: w.config.chart.animations.speed,
           dataChangeSpeed,
@@ -1104,10 +1156,16 @@ class Bar {
    * @param {number} realIndex - stable series index from `data:realIndex`
    * @param {number} j - data-point index within the series
    * @param {string} pathTo - the freshly-built path for this bar (post-roundPathCorners)
+   * @param {string} [squarePathTo] - the same bar before roundPathCorners, i.e.
+   *   its new slot with square corners. Supplied by the stacked builders so a
+   *   bar gaining a corner can travel square and round only on arrival.
    * @returns {string | null}
    **/
-  getPreviousPath(realIndex, j, pathTo) {
+  getPreviousPath(realIndex, j, pathTo, squarePathTo) {
     const w = this.w
+    // Side channel for the corner-flip case below; renderSeries consumes and
+    // clears it on the very next call, so it can never go stale.
+    this._pathToInterp = null
     const record = this._prevRecord(realIndex)
     if (!record) {
       // The series itself is new: enter from the baseline when this render is
@@ -1131,13 +1189,205 @@ class Bar {
       isNewDatum = true
     }
 
-    if (oldD && Bar.pathCommandCount(oldD) === Bar.pathCommandCount(pathTo)) {
-      return oldD
+    if (oldD) {
+      const fromCount = Bar.pathCommandCount(oldD)
+      const toCount = Bar.pathCommandCount(pathTo)
+      if (fromCount === toCount) {
+        return oldD
+      }
+
+      // A corner state flipped without the datum changing. On a stacked chart
+      // that happens constantly: collapse a series and whichever layer inherits
+      // the top (or bottom) of the stack gains rounded corners, while the layer
+      // that left loses them on its way to zero. A rounded rect and a plain one
+      // do not have the same command count, and the morph engine can only
+      // reconcile that by parking phantom commands on the cursor, which is
+      // what drew the mangled, self-intersecting shapes: the leaving bar's
+      // control points crossed over each other and it shrank sideways instead
+      // of down.
+      //
+      // The fix is to stop asking the morph engine to bridge the mismatch and
+      // hand it two paths of the same shape instead. `roundPathCorners` decides
+      // which corners to round from the path's STRUCTURE, not from the radius,
+      // so rounding by ZERO returns a path that is geometrically identical to
+      // its input but carries the extra commands. That gives a padded twin of
+      // whichever side is short, sitting exactly where its original sits.
+      //
+      // It also animates the corner itself for free. Padding the square side by
+      // zero and morphing it against the genuinely rounded side means the
+      // radius grows in (or straightens out) across the tween, instead of
+      // popping on the first or last frame.
+      const graphics = new Graphics(w)
+
+      // A rounded corner is only ever correct on the OUTER edge of a stack.
+      // While a corner is being handed between two layers, the edge it sits on
+      // is an INTERIOR seam, and a corner there cuts two notches that show the
+      // neighbour through them, a rounded corner in the middle of a stack.
+      // That is the odd look; it is not a morphing artifact.
+      //
+      // So the rule is about which layer owns the outer edge for the WHOLE
+      // tween. A layer arriving from (or leaving to) zero extent owns it
+      // throughout and keeps its corner, which simply grows or tucks in with
+      // its own height. A layer that keeps real extent on both sides of the
+      // update is handing the edge over, and must show no corner while it does.
+      // Which side of the update carries the "still has real extent" test
+      // differs by direction, because it is always the OTHER end of the tween
+      // that says whether this layer is the one arriving at / vacating the
+      // edge (it owns it throughout, keeps its corner) or the one handing it
+      // over (its edge goes interior, so the corner must not be drawn).
+      //   gaining  → was it already there before?  (old extent)
+      //   losing   → is it still there after?      (new extent)
+      // Below a pixel there is no corner to see anyway.
+      const extentOf = (/** @type {string} */ d) => {
+        const box = Bar.pathBox(d)
+        return box
+          ? Math.min(box.maxX - box.minX, box.maxY - box.minY)
+          : 0
+      }
+      const handingOver =
+        fromCount < toCount ? extentOf(oldD) > 1 : extentOf(pathTo) > 1
+
+      if (fromCount < toCount) {
+        // Gaining a corner. Pad the old rect so the counts match either way.
+        const padded = graphics.roundPathCorners(oldD, 0)
+        if (Bar.pathCommandCount(padded) === toCount) {
+          if (handingOver && squarePathTo) {
+            // Inheriting the edge from a departing neighbour: travel square and
+            // round only on arrival, once that neighbour is gone. The landing
+            // is the final _plotSnap, so the corner appears with the bar
+            // already in place.
+            const squareTarget = graphics.roundPathCorners(squarePathTo, 0)
+            if (Bar.pathCommandCount(squareTarget) === toCount) {
+              this._pathToInterp = squareTarget
+            }
+          }
+          return padded
+        }
+      } else {
+        // Losing a corner. The target cannot be padded in place, so aim the
+        // tween at a padded twin of it and land on the clean path at the end;
+        // the twin is the same geometry, so that final swap is invisible.
+        const padded = graphics.roundPathCorners(pathTo, 0)
+        if (Bar.pathCommandCount(padded) === fromCount) {
+          this._pathToInterp = padded
+          if (handingOver) {
+            // Handing the edge to a neighbour that is arriving underneath: its
+            // edge is interior from frame 0, so the corner has to go now rather
+            // than shrink across the tween. Start from its own box, square.
+            const square = Bar.squareLike(oldD)
+            const squareStart = square
+              ? graphics.roundPathCorners(square, 0)
+              : null
+            if (squareStart && Bar.pathCommandCount(squareStart) === fromCount) {
+              return squareStart
+            }
+          }
+          return oldD
+        }
+      }
     }
     if (isNewDatum && lengthTransitionEnabled(w)) {
       return null
     }
     return pathTo
+  }
+
+  /**
+   * The axis-aligned box a bar path occupies, and the point it starts from.
+   *
+   * @param {string} d
+   * @returns {{minX: number, maxX: number, minY: number, maxY: number, start: [number, number], vertical: boolean} | null}
+   */
+  static pathBox(d) {
+    if (!d) return null
+    /** @type {[number, number][]} */
+    const pts = []
+    const re = /([MLC])([^MLCZz]*)/g
+    let m
+    while ((m = re.exec(d)) !== null) {
+      const nums = m[2].trim().split(/[\s,]+/).map(Number)
+      if (nums.length < 2 || nums.some(isNaN)) continue
+      // Only the command's END point matters for the box; a C's control points
+      // sit on the two legs it joins and never leave the rect.
+      pts.push([nums[nums.length - 2], nums[nums.length - 1]])
+    }
+    if (pts.length < 3) return null
+
+    const xs = pts.map((p) => p[0])
+    const ys = pts.map((p) => p[1])
+    return {
+      minX: Math.min(...xs),
+      maxX: Math.max(...xs),
+      minY: Math.min(...ys),
+      maxY: Math.max(...ys),
+      start: pts[0],
+      // Column bars run their first leg down a vertical edge, horizontal bars
+      // run it along a horizontal one. Rounding moves the start point ALONG
+      // that leg, so the axis it does not move on is the one it shares.
+      vertical: Math.abs(pts[1][0] - pts[0][0]) < Math.abs(pts[1][1] - pts[0][1]),
+    }
+  }
+
+  /**
+   * Rebuild a bar path as the plain rectangle it was rounded from, same box,
+   * same corner order, no radius.
+   *
+   * The corner the path starts at is the one nearest its start point, because
+   * rounding only ever slides that point a radius along the first leg. Knowing
+   * that corner and the winding is enough to re-emit the rect exactly as the
+   * builders in common/bar/Helpers do, so the result pairs command-for-command
+   * with anything built from them.
+   *
+   * @param {string} d
+   * @returns {string | null}
+   */
+  static squareLike(d) {
+    const box = Bar.pathBox(d)
+    if (!box) return null
+    const { minX, maxX, minY, maxY, start, vertical } = box
+    const near = (/** @type {number} */ v, /** @type {number} */ a, /** @type {number} */ b) =>
+      Math.abs(v - a) <= Math.abs(v - b) ? [a, b] : [b, a]
+
+    let x1, x2, y1, y2
+    if (vertical) {
+      // Column: the first leg is vertical, so x is exact and y slid by r.
+      x1 = Math.abs(start[0] - minX) <= Math.abs(start[0] - maxX) ? minX : maxX
+      x2 = x1 === minX ? maxX : minX
+      ;[y1, y2] = near(start[1], minY, maxY)
+    } else {
+      // Horizontal bar: the first leg is horizontal, so y is exact.
+      y1 = Math.abs(start[1] - minY) <= Math.abs(start[1] - maxY) ? minY : maxY
+      y2 = y1 === minY ? maxY : minY
+      ;[x1, x2] = near(start[0], minX, maxX)
+    }
+
+    const closing = d.trim().endsWith('Z') ? ' Z' : ' z'
+    return vertical
+      ? `M ${x1} ${y1} L ${x1} ${y2} L ${x2} ${y2} L ${x2} ${y1}${closing}`
+      : `M ${x1} ${y1} L ${x2} ${y1} L ${x2} ${y2} L ${x1} ${y2}${closing}`
+  }
+
+  /**
+   * Was this bar MIRRORED in the previous render? Stacked bars carry only
+   * top-rounded geometry; a bottom radius is produced by the apexcharts-flip-y
+   * (or -x, horizontal) class, so the mirror is the only record of where the
+   * radius visually sat. Matched by datum key like getPreviousPath, falling
+   * back to position when the previous render carries no keys.
+   *
+   * @param {number} realIndex
+   * @param {number} j
+   * @returns {boolean | null} null when there is no previous record to consult
+   */
+  getPreviousFlip(realIndex, j) {
+    const w = this.w
+    const record = this._prevRecord(realIndex)
+    if (!record) return null
+
+    const keyed = this._prevKeyedPaths(realIndex)
+    const prev = keyed
+      ? keyed.get(datumKey(w, realIndex, j))
+      : record.paths[j]
+    return prev ? !!prev.flip : null
   }
 
   /**

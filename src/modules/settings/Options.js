@@ -716,7 +716,6 @@ export default class Options {
           distributed: false,
           borderRadius: 0,
           borderRadiusApplication: 'around', // [around, end]
-          borderRadiusWhenStacked: 'last', // [all, last]
           rangeBarOverlap: true,
           rangeBarGroupRows: false,
           hideZeroBarsWhenGrouped: false,
@@ -1827,11 +1826,14 @@ export default class Options {
           opacity: 0.8,
         },
         // Ride data labels to their new position on a data-change update
-        // (e.g. a bar chart race), instead of snapping. Off by default so
-        // existing charts are unchanged. Speed/easing follow
-        // chart.animations.dynamicAnimation. Bar/column only.
+        // instead of snapping. ON by default: the bars, the markers and the
+        // axis ticks all already reflow on one clock, so a label that jumps to
+        // its final slot on the first frame is the odd one out, it arrives
+        // several hundred ms before the bar it belongs to. Speed/easing follow
+        // chart.animations.dynamicAnimation, and a label that has not moved is
+        // a per-label no-op. Bar/column only.
         animate: {
-          enabled: false,
+          enabled: true,
         },
         // Count the numeric value up/down from its previous value on update,
         // like countUp.js. Off by default. The dataLabels.formatter runs each
