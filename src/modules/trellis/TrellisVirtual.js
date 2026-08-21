@@ -226,9 +226,9 @@ export default class TrellisVirtual {
   /** @param {any} panel */
   async _mount(panel) {
     const t = this.trellis
-    if (!panel.el || panel.chart) return
+    if (!panel.el || panel.chart || panel.noMount) return
     const stash = panel.viewStash
-    const sharedY = (t.cfg.scales?.y || 'shared') === 'shared'
+    const sharedY = t._yMode() === 'shared'
     const independentY = !sharedY
 
     // Remounts never replay the mount animation: scrolling back should read

@@ -8,13 +8,27 @@ import {
 import { split } from '../../src/modules/trellis/TrellisSplit'
 
 describe('TrellisScales.niceBounds', () => {
-  it('rounds to 1-2-5 steps with an integer tick count', () => {
-    expect(niceBounds(3, 97, 4)).toEqual({ min: 0, max: 100, tickAmount: 5 })
+  it('picks the nice step whose tick count lands closest to the target', () => {
+    expect(niceBounds(3, 97, 4)).toEqual({ min: 0, max: 100, tickAmount: 4 })
     expect(niceBounds(0, 4000000, 4)).toEqual({
       min: 0,
       max: 4000000,
       tickAmount: 4,
     })
+  })
+
+  it('never lands far above the target (the 7-label small-panel bug)', () => {
+    // 0..55000 with the old fixed thresholds stepped by 10000: 6 ticks and
+    // 7 labels crammed into a 100px panel. Closest-count selection steps by
+    // 20000 instead.
+    expect(niceBounds(4000, 55000, 4)).toEqual({
+      min: 0,
+      max: 60000,
+      tickAmount: 3,
+    })
+    // Default target is 3 (a small panel wears at most ~4 labels well).
+    const b = niceBounds(0, 812)
+    expect(b.tickAmount).toBeLessThanOrEqual(4)
   })
 
   it('handles a flat domain by padding it open', () => {
@@ -98,7 +112,8 @@ describe('TrellisScales.resolve', () => {
       { name: 'a', k: 'p2', data: [[50, 97]] },
     ])
     expect(r.x).toEqual({ min: 10, max: 50 })
-    expect(r.y).toEqual({ min: 0, max: 100, tickAmount: 5 })
+    // Default targetTicks 3: ties between candidates prefer fewer ticks.
+    expect(r.y).toEqual({ min: 0, max: 100, tickAmount: 2 })
   })
 
   it('independent y resolves to null (the gutter pass aligns instead)', () => {

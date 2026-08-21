@@ -141,24 +141,33 @@ export default class TreemapHelpers {
       }
     }
 
-    if (typeof chartOpts.colorScale.min !== 'undefined') {
-      min =
-        chartOpts.colorScale.min < w.globals.minY
-          ? chartOpts.colorScale.min
-          : w.globals.minY
-      max =
-        chartOpts.colorScale.max > w.globals.maxY
-          ? chartOpts.colorScale.max
-          : w.globals.maxY
+    const csMin = chartOpts.colorScale.min
+    const csMax = chartOpts.colorScale.max
+    if (typeof csMin !== 'undefined' && typeof csMax !== 'undefined' && csMax > csMin) {
+      // BOTH ends set: an explicit, ABSOLUTE window. This is what lets
+      // several charts share one color scale (a trellis pushes the union
+      // extent): comparing against each chart's own niced globals would
+      // shift the mapping per chart by a nice-step. Values outside the
+      // window saturate at its ends.
+      min = csMin
+      max = csMax
+    } else if (typeof csMin !== 'undefined') {
+      // One-sided: the historical expand-not-clamp semantics.
+      min = csMin < w.globals.minY ? csMin : w.globals.minY
+      max = csMax > w.globals.maxY ? csMax : w.globals.maxY
     }
 
     const total = Math.abs(max) + Math.abs(min)
+
+    // Saturate into the scale window (only an explicit window can place a
+    // value outside min..max).
+    const clamped = Math.min(Math.max(val, min), max)
 
     // When min === max (total === 0), every cell sits at the midpoint of the
     // scale. Use a tiny positive epsilon so percent → 0 instead of exploding
     // to a large negative number (the previous `total - 0.000001` fallback
     // produced a negative divisor).
-    let percent = total === 0 ? 0 : (100 * val) / total
+    let percent = total === 0 ? 0 : (100 * clamped) / total
 
     if (chartOpts.colorScale.ranges.length > 0) {
       const colorRange = chartOpts.colorScale.ranges

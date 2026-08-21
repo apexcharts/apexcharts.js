@@ -203,17 +203,23 @@ export default class ApexCharts {
 
         this.events.fireEvent('beforeMount', [this, this.w])
 
-        // Trellis (#22): a host carrying `trellis.by` delegates rendering to
-        // the orchestrator (real panel charts in a coordinated grid) instead
-        // of the single-chart pipeline. Resolved here, before the resize
-        // listeners: the trellis owns relayout through its own container
-        // ResizeObserver, so the host must not self-rerender on resize.
+        // Trellis (#22): a host carrying `trellis.by` (or `row`/`column`,
+        // P4) delegates rendering to the orchestrator (real panel charts in
+        // a coordinated grid) instead of the single-chart pipeline. Resolved
+        // here, before the resize listeners: the trellis owns relayout
+        // through its own container ResizeObserver, so the host must not
+        // self-rerender on resize.
+        const trellisCfg = this.w.config.trellis
+        const wantsTrellis = !!(
+          trellisCfg &&
+          (trellisCfg.by || trellisCfg.row || trellisCfg.column)
+        )
         const isTrellisHost = !!(
-          this.w.config.trellis?.by &&
+          wantsTrellis &&
           this.trellis &&
           this.trellis.isActive()
         )
-        if (this.w.config.trellis?.by && !this.trellis) {
+        if (wantsTrellis && !this.trellis) {
           console.warn(
             "ApexCharts: `trellis` requires the trellis feature — import 'apexcharts/features/trellis' (included in the full bundle). Rendering as a single chart.",
           )
@@ -1524,7 +1530,8 @@ export default class ApexCharts {
    * included in the full bundle); warns and returns null otherwise.
    *
    * @param {HTMLElement} el
-   * @param {ApexOptions} options must carry `trellis.by`
+   * @param {ApexOptions} options must carry `trellis.by` (or `trellis.row`
+   *   / `trellis.column` for a 2-D grid)
    * @returns {ApexCharts|null}
    */
   static trellis(el, options) {

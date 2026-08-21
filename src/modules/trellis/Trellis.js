@@ -36,7 +36,8 @@ import {
   computeMarkCount,
   hasCanvasUnsupportedFeature,
 } from '../../renderers/Renderer'
-import { split as splitSeries } from './TrellisSplit'
+import { split as splitSeries, placeholderSeries } from './TrellisSplit'
+import { buildTypeFrames } from './TrellisFrames'
 import { pivotRows } from './pivotRows'
 import * as TrellisScales from './TrellisScales'
 import * as TrellisLayout from './TrellisLayout'
@@ -57,6 +58,40 @@ const ANIMATION_PANEL_BUDGET = 16
 
 /** The vertical-axis label pad inside the yLabelsCoords width (22a Q2). */
 const Y_LABEL_PAD = 10
+
+/**
+ * Vertical air a standalone chart reserves that a trellis panel must NOT
+ * (the header and grid gap are the breathing room here; inside the panel it
+ * is dead space that visibly pushes rows apart). With the panel's empty
+ * title/subtitle at margin 0, Dimensions still leaves a 20px no-title gutter
+ * above the plot and a flat 15px of slack below the x-axis band; these
+ * paddings (composed with the user's own grid.padding) reclaim most of it.
+ * The bottom is axis-aware: TIMESCALE labels draw ~6px deeper into that
+ * slack than the category/numeric label path (measured: a standalone
+ * datetime chart keeps only ~5px of true clearance), so a datetime panel
+ * may only take 2. Values are calibrated to Dimensions' constants; the
+ * compact-chrome interaction test pins both the reclaim AND that no x-label
+ * ink is cropped by the svg bottom.
+ */
+const PANEL_PAD_RECLAIM_TOP = 12
+const PANEL_PAD_RECLAIM_BOTTOM = 7
+const PANEL_PAD_RECLAIM_BOTTOM_DATETIME = 2
+
+/**
+ * Chart types a trellis refuses (P5, plan §10): the reading does not survive
+ * a small frame, so the host warns and renders a single chart instead of an
+ * unreadable grid. `unit` is a redirect, not a limitation: its native
+ * `plotOptions.unit.grid.split` already draws one mini-waffle per category
+ * inside a single instance, which beats N unit panels.
+ * @type {Record<string, string>}
+ */
+const TYPE_VETO = {
+  treemap:
+    'trellis does not support treemap: area encoding needs room a panel cannot give. Rendering a single chart.',
+  sunburst:
+    'trellis does not support sunburst: its labels are illegible at panel size. Rendering a single chart.',
+  unit: 'the unit type has its own small-multiples mode (plotOptions.unit.grid.split), which beats a trellis of unit charts. Rendering a single chart.',
+}
 
 /**
  * Grid-level canvas auto-selection (P2, plan §7.12): a trellis is dense in
@@ -152,9 +187,12 @@ export default class Trellis {
     /**
      * Panel records. `wantMounted`/`viewStash` are virtualization state (P2):
      * the observer's latest verdict and the view captured at unmount.
-     * @type {Array<{ key: string, index: number, el: HTMLElement|null, cellEl: HTMLElement|null, chart: any|null, empty: boolean, wantMounted?: boolean, viewStash?: any }>}
+     * `noMount` (P4) marks empty combinations under 'skip'/'hide'.
+     * @type {Array<{ key: string, index: number, el: HTMLElement|null, cellEl: HTMLElement|null, chart: any|null, empty: boolean, noMount?: boolean, wantMounted?: boolean, viewStash?: any }>}
      */
     this.panels = []
+    /** @type {HTMLElement[]} 2-D row/column strip elements (P4) */
+    this._stripEls = []
     /** @type {import('./TrellisSplit').TrellisSplitResult|null} */
     this.split = null
     /** @type {ReturnType<typeof TrellisScales.resolve>|null} */
@@ -177,6 +215,8 @@ export default class Trellis {
     this._virtualActive = false
     /** @type {'canvas'|null} uniform panel renderer override (P2) */
     this._panelRenderer = null
+    /** @type {number} uniform y-label decimals across the grid (P4) */
+    this._yLabelDecimals = 0
     /** @type {HTMLElement|null} the outer trellis element (w.dom.elWrap) */
     this.elWrap = null
     /** @type {HTMLElement|null} */
@@ -190,12 +230,72 @@ export default class Trellis {
     this.autoScaleYaxis = false
     /** @type {HTMLElement|null} */
     this._elChromeTop = null
+    /** Whether the type-veto warning (P5) has been emitted once. */
+    this._vetoWarned = false
+    /** @type {import('./TrellisFrames').TypeFrames|null} shared type frames (P5) */
+    this._frames = null
   }
 
-  /** Whether this chart is a trellis host: `trellis.by` is the switch. */
+  /** Whether this chart is a trellis host: `by` (1-D) or `row`/`column`
+   *  (2-D, P4) is the switch. A vetoed chart type (P5) returns false, which
+   *  makes EVERY host seam (render delegation, update branches, exports,
+   *  promotion) fall back to the single-chart pipeline at once. */
   isActive() {
     const t = this.w.config.trellis
-    return !!(t && t.by)
+    if (!(t && (t.by || t.row || t.column))) return false
+    const type = this.w.config.chart?.type
+    if (type && TYPE_VETO[type]) {
+      if (!this._vetoWarned) {
+        this._vetoWarned = true
+        console.warn(`ApexCharts: ${TYPE_VETO[type]}`)
+      }
+      return false
+    }
+    return true
+  }
+
+  /** The layout-facing config: a 2-D grid has a FIXED column count (one per
+   *  column key; responsive recolumning would break the row/column
+   *  semantics), so panels shrink instead of wrapping. */
+  _layoutCfg() {
+    if (this.split && this.split.mode === '2d' && this.split.colKeys) {
+      return { ...this.cfg, columns: this.split.colKeys.length }
+    }
+    return this.cfg
+  }
+
+  /**
+   * The EFFECTIVE y scale mode: the user's, unless a type frame (P5) forced
+   * 'shared' because group modes are meaningless for the chart type.
+   * @returns {string}
+   */
+  _yMode() {
+    if (this._frames && this._frames.forceSharedY) return 'shared'
+    return this.cfg.scales?.y || 'shared'
+  }
+
+  /**
+   * The y bounds one panel should carry, per the scales mode: the shared
+   * union, its row's union ('independent-row'), its column's union
+   * ('independent-column'), or none ('independent'). Types whose y axis does
+   * not carry the data values (heatmap rows, the radial family) never get a
+   * yaxis push at all (P5): the frame's own channel is the shared one.
+   * @param {import('./TrellisSplit').TrellisSlice} slice
+   * @returns {{ min: number, max: number, tickAmount: number } | null}
+   */
+  _yBoundsFor(slice) {
+    const scales = this.scales
+    if (!scales) return null
+    if (this._frames && this._frames.skipYaxisPush) return null
+    const yMode = this._yMode()
+    if (yMode === 'shared') return scales.y
+    if (yMode === 'independent-row' && scales.rowY) {
+      return scales.rowY.get(slice.rowKey ?? '') || null
+    }
+    if (yMode === 'independent-column' && scales.colY) {
+      return scales.colY.get(slice.colKey ?? '') || null
+    }
+    return null
   }
 
   /** @returns {string} namespaced panel group id */
@@ -275,10 +375,36 @@ export default class Trellis {
         )
       }
 
-      // 2. Shared scales.
-      this.scales = TrellisScales.resolve(split, this.cfg, {
+      // 1.6 Type frames (P5): the shared hidden frames (histogram bin edges
+      //     + count domain, violin bandwidth, heatmap color scale, bubble z,
+      //     pie totals) that make the awkward types honest. `histogram` is a
+      //     Config ALIAS (chart.type is rewritten to 'bar', the original kept
+      //     in requestedType), so the frame gate must look at the alias.
+      const frameType =
+        w.config.chart.requestedType === 'histogram'
+          ? 'histogram'
+          : w.config.chart.type
+      this._frames = buildTypeFrames(split, this.cfg, w.config, frameType)
+      this._frames.warnings.forEach((msg) =>
+        console.warn(`ApexCharts: ${msg}`),
+      )
+
+      // 2. Shared scales (through the EFFECTIVE y mode: a type frame can
+      //    force 'shared' where group modes are meaningless).
+      // With an overridden y domain the DRAWN values are not the data
+      // (histogram counts, not observations), so the data's decimals must
+      // not leak into the labels; the tick step's own decimals still apply.
+      this._yLabelDecimals = this._frames.yExtentOverride
+        ? 0
+        : TrellisScales.maxYDecimals(split.panels)
+      const scalesCfg =
+        this._yMode() !== (this.cfg.scales?.y || 'shared')
+          ? { ...this.cfg, scales: { ...(this.cfg.scales || {}), y: this._yMode() } }
+          : this.cfg
+      this.scales = TrellisScales.resolve(split, scalesCfg, {
         chartType: w.config.chart.type,
         userColors: this.ctx.opts && this.ctx.opts.colors,
+        yExtentOverride: this._frames.yExtentOverride,
       })
 
       // 2.5 Renderer policy (P2): one uniform grid-level decision.
@@ -296,14 +422,16 @@ export default class Trellis {
       this.layout = TrellisLayout.compute({
         panelCount: split.panels.length,
         containerWidth: width,
-        cfg: this.cfg,
+        cfg: this._layoutCfg(),
         hostHeight: this._hostHeight(),
       })
       this._applyGridStyle()
       this._buildCells()
 
-      // 4. Mount panels.
-      const independentY = (this.cfg.scales?.y || 'shared') === 'independent'
+      // 4. Mount panels. Any non-shared y mode needs the measured gutter
+      //    pass: group modes push identical bounds WITHIN a group, but label
+      //    widths still differ ACROSS groups.
+      const independentY = this._yMode() !== 'shared'
       const wrap = /** @type {HTMLElement} */ (this.elWrap)
 
       if (useVirtual) {
@@ -320,6 +448,7 @@ export default class Trellis {
 
         for (let i = 0; i < this.panels.length; i++) {
           const panel = this.panels[i]
+          if (panel.noMount) continue
           const opts = this._assemblePanelOptions(panel.index)
           const chart = new ApexCharts(
             /** @type {HTMLElement} */ (panel.el),
@@ -398,6 +527,9 @@ export default class Trellis {
       'div',
     )
     wrap.className = 'apexcharts-trellis'
+    if (this.split && this.split.mode === '2d') {
+      wrap.classList.add('apexcharts-trellis-2d')
+    }
     wrap.id = `apexcharts-trellis${this.w.globals.chartID}`
     wrap.setAttribute('data-tooltip-mode', this.cfg.tooltip || 'panel')
 
@@ -426,7 +558,14 @@ export default class Trellis {
       this.layout
     )
     grid.style.display = 'grid'
-    grid.style.gridTemplateColumns = `repeat(${ly.cols}, minmax(0, 1fr))`
+    const is2d = this.split && this.split.mode === '2d'
+    const stripped = is2d && this.cfg.header?.show !== false
+    // A 2-D grid with row strips reserves an auto-sized first column for the
+    // row labels; the panel columns stay equal fractions, so alignment holds
+    // whatever the strip measures.
+    grid.style.gridTemplateColumns = stripped
+      ? `auto repeat(${ly.cols}, minmax(0, 1fr))`
+      : `repeat(${ly.cols}, minmax(0, 1fr))`
     grid.style.gap = `${ly.gap}px`
   }
 
@@ -438,15 +577,52 @@ export default class Trellis {
     const ly = /** @type {import('./TrellisLayout').TrellisLayoutResult} */ (
       this.layout
     )
-    this.panels = split.panels.map((slice, i) => {
+    const is2d = split.mode === '2d'
+    const stripped = is2d && this.cfg.header?.show !== false
+    this._stripEls = []
+    const emptyMode = this.cfg.emptyPanels || 'placeholder'
+
+    // 2-D chrome (P4): column labels once across the top, row labels once
+    // down the left, instead of a header per cell. Auto grid placement lays
+    // them out: corner + C column strips, then per row (row strip + C cells).
+    if (stripped) {
+      const corner = BrowserAPIs.createElement('div')
+      corner.className = 'apexcharts-trellis-corner'
+      grid.appendChild(corner)
+      this._stripEls.push(corner)
+      ;(split.colKeys || []).forEach((ck, ci) => {
+        const el = this.chrome.stripEl('column', ck, {
+          index: ci,
+          count: (split.colKeys || []).length,
+        })
+        grid.appendChild(el)
+        this._stripEls.push(el)
+      })
+    }
+
+    this.panels = []
+    split.panels.forEach((slice, i) => {
+      if (stripped && i % ly.cols === 0) {
+        const ri = Math.floor(i / ly.cols)
+        const el = this.chrome.stripEl(
+          'row',
+          (split.rowKeys || [])[ri] ?? '',
+          { index: ri, count: (split.rowKeys || []).length },
+        )
+        grid.appendChild(el)
+        this._stripEls.push(el)
+      }
+
       const cell = BrowserAPIs.createElement('div')
       cell.className = 'apexcharts-trellis-cell'
       cell.setAttribute('data-key', slice.key)
       this._applyCellMutes(cell, ly.cells[i])
-      this.chrome.buildHeader(cell, slice.key, {
-        index: i,
-        count: split.panels.length,
-      })
+      if (!is2d) {
+        this.chrome.buildHeader(cell, slice.key, {
+          index: i,
+          count: split.panels.length,
+        })
+      }
       const mount = BrowserAPIs.createElement('div')
       mount.className = 'apexcharts-trellis-panel'
       if (this._virtualActive) {
@@ -456,15 +632,39 @@ export default class Trellis {
         mount.style.minHeight = `${ly.panelH}px`
       }
       cell.appendChild(mount)
+
+      // Empty combinations (P4): 'placeholder' mounts a REAL panel with an
+      // all-null aligned series (same scale/geometry code as every other
+      // panel, so alignment holds by construction) plus a quiet label;
+      // 'skip' keeps the slot with a tinted blank; 'hide' keeps the slot
+      // with nothing at all.
+      const noMount = slice.empty && emptyMode !== 'placeholder'
+      if (slice.empty) {
+        cell.classList.add('apexcharts-trellis-cell-empty')
+        if (emptyMode === 'hide') {
+          cell.classList.add('apexcharts-trellis-cell-hidden')
+        } else if (emptyMode === 'skip') {
+          mount.classList.add('apexcharts-trellis-skeleton')
+          mount.style.minHeight = `${ly.panelH}px`
+        } else {
+          const label = BrowserAPIs.createElement('div')
+          label.className = 'apexcharts-trellis-empty-label'
+          label.textContent =
+            (this.w.config.noData && this.w.config.noData.text) || 'no data'
+          cell.appendChild(label)
+        }
+      }
+
       grid.appendChild(cell)
-      return {
+      this.panels.push({
         key: slice.key,
         index: i,
         el: mount,
         cellEl: cell,
         chart: null,
-        empty: slice.series.length === 0,
-      }
+        empty: slice.empty,
+        noMount,
+      })
     })
   }
 
@@ -527,6 +727,33 @@ export default class Trellis {
       (split.panels.length > ANIMATION_PANEL_BUDGET &&
         userAnimations === undefined)
 
+    // Empty combination under 'placeholder' (P4): a real panel carrying one
+    // valueless series aligned to the union x, so it runs the exact scale
+    // and geometry code every sibling runs (zero-size marks for bar types:
+    // the numeric bar pad only engages for series that draw).
+    const isPlaceholder =
+      slice.empty && (this.cfg.emptyPanels || 'placeholder') === 'placeholder'
+    let panelSeries = isPlaceholder
+      ? [placeholderSeries(split, { chartType: w.config.chart.type })]
+      : slice.series
+
+    // The radial value family (P5) takes a BARE values array, not the
+    // axis-chart {name, data} form the split emits: unwrap, keeping the
+    // POSITION of every value (a missing value becomes 0, never dropped:
+    // value k must stay aligned with label k in every panel).
+    const isValueSeries = ['pie', 'donut', 'polarArea', 'radialBar'].includes(
+      w.config.chart.type,
+    )
+    if (isValueSeries) {
+      panelSeries = panelSeries
+        .flatMap((/** @type {any} */ s) =>
+          Array.isArray(s.data) ? s.data : [],
+        )
+        .map((/** @type {any} */ v) =>
+          typeof v === 'number' && isFinite(v) ? v : 0,
+        )
+    }
+
     /** @type {Record<string, any>} */
     const overrides = {
       chart: {
@@ -559,14 +786,54 @@ export default class Trellis {
           scrolled: this.sync.makeScrolledHandler(userEvents.scrolled),
         },
       },
-      series: slice.series,
+      series: panelSeries,
       // Shared color: by series NAME across the whole trellis, so 'Revenue'
       // is the same color in every panel no matter the panel's series order.
-      colors: slice.series.map((s) => scales.colorOf(s.name)),
+      // The radial value family colors by LABEL index from the shared config
+      // instead, which is identical across panels by construction.
+      ...(isValueSeries
+        ? {}
+        : {
+            colors: panelSeries.map((/** @type {any} */ s) =>
+              scales.colorOf(s.name),
+            ),
+          }),
       // Headers replace per-panel titles; the shared legend replaces per-panel
-      // legends.
-      title: { text: '' },
+      // legends. margin: 0 and floating both matter: an empty-string title
+      // still charges its margin to the top gutter in Dimensions, and its
+      // empty element still measures height + 5 unless floating.
+      title: { text: '', margin: 0, floating: true },
+      subtitle: { text: '', margin: 0, floating: true },
       legend: { show: false },
+      // A placeholder has nothing to read: its zero marks must not caption.
+      ...(isPlaceholder ? { tooltip: { enabled: false } } : {}),
+    }
+
+    // Reclaim the standalone chart's vertical breathing room (see the
+    // PANEL_PAD_RECLAIM constants), composed with the user's own padding.
+    // Only for grid-based panels: circular/space-filling types have no
+    // top gutter or x-axis slack to reclaim, and a sparkline zeroes its own
+    // chrome (a negative pad there would shift the plot off the svg).
+    const gridlessTypes = ['pie', 'donut', 'polarArea', 'radialBar', 'radar', 'treemap']
+    if (
+      !userChart.sparkline?.enabled &&
+      !gridlessTypes.includes(w.config.chart.type)
+    ) {
+      const userPad = (base.grid && base.grid.padding) || {}
+      const reclaimBottom =
+        this.ctx.opts?.xaxis?.type === 'datetime'
+          ? PANEL_PAD_RECLAIM_BOTTOM_DATETIME
+          : PANEL_PAD_RECLAIM_BOTTOM
+      overrides.grid = {
+        padding: {
+          top:
+            (typeof userPad.top === 'number' ? userPad.top : 0) -
+            PANEL_PAD_RECLAIM_TOP,
+          bottom:
+            (typeof userPad.bottom === 'number' ? userPad.bottom : 0) -
+            reclaimBottom,
+        },
+      }
     }
 
     // Shared x domain (numeric/datetime): the equal-minX gate is what allows
@@ -574,18 +841,71 @@ export default class Trellis {
     if (scales.x) {
       overrides.xaxis = { min: scales.x.min, max: scales.x.max }
     }
-    // Shared y domain: identical bounds + tickAmount => identical ticks,
-    // labels, gutters and plot rects (22a Q1). Merged INTO the user's own
-    // yaxis entry (array or object): Utils.extend replaces arrays wholesale,
-    // so a bare object override would drop the user's formatter/label config.
-    if (scales.y) {
+    // The panel's y domain per the scales mode (shared union, or its
+    // row's/column's union, P4): identical bounds + tickAmount => identical
+    // ticks, labels, gutters and plot rects (22a Q1). Merged INTO the user's
+    // own yaxis entry (array or object): Utils.extend replaces arrays
+    // wholesale, so a bare object override would drop the user's
+    // formatter/label config.
+    const yBounds = this._yBoundsFor(slice)
+    if (yBounds) {
+      const userYaxisRaw = Array.isArray(this.ctx.opts?.yaxis)
+        ? this.ctx.opts.yaxis[0]
+        : this.ctx.opts?.yaxis
       const userYaxis = Array.isArray(base.yaxis) ? base.yaxis[0] : base.yaxis
+      // Identical bounds need identical label FORMATTING to yield identical
+      // gutters: the library derives label decimals from each panel's OWN
+      // data (decimalsInFloat only applies to float panels), so a
+      // placeholder's zeros, or an integer-valued panel among float
+      // siblings, would render "20" beside "20.00" and misalign. When the
+      // user brought no formatter, push one uniform toFixed sized by the
+      // union data's decimals and the tick step's own.
+      /** @type {Record<string, any>} */
+      let labelsPatch = {}
+      if (typeof userYaxisRaw?.labels?.formatter !== 'function') {
+        const step =
+          (yBounds.max - yBounds.min) / Math.max(1, yBounds.tickAmount)
+        const digits = Math.max(
+          this._yLabelDecimals,
+          TrellisScales.decimalCount(step),
+        )
+        labelsPatch = {
+          labels: {
+            formatter: (/** @type {any} */ val) =>
+              typeof val === 'number' && isFinite(val)
+                ? val.toFixed(digits)
+                : val,
+          },
+        }
+      }
       overrides.yaxis = Utils.extend(userYaxis || {}, {
-        min: scales.y.min,
-        max: scales.y.max,
-        tickAmount: scales.y.tickAmount,
+        min: yBounds.min,
+        max: yBounds.max,
+        tickAmount: yBounds.tickAmount,
+        ...labelsPatch,
       })
       delete base.yaxis
+    }
+
+    // Type frames (P5): the shared hidden frames every panel must draw in.
+    // Deep-merged into the user's own plotOptions by Utils.extend below, so
+    // only the shared keys (histogram range/binWidth, violin bandwidth,
+    // heatmap colorScale min/max, bubble minZ/maxZ) are pinned.
+    const frames = this._frames
+    if (frames && frames.plotOptions) {
+      overrides.plotOptions = Utils.clone(frames.plotOptions)
+    }
+    if (frames && frames.pieScaleOf) {
+      const ratio = frames.pieScaleOf(slice.key)
+      if (ratio !== null) {
+        const userScale = this.ctx.opts?.plotOptions?.pie?.customScale
+        overrides.plotOptions = Utils.extend(overrides.plotOptions || {}, {
+          pie: {
+            customScale:
+              ratio * (typeof userScale === 'number' ? userScale : 1),
+          },
+        })
+      }
     }
 
     let opts = Utils.extend(base, overrides)
@@ -671,7 +991,7 @@ export default class Trellis {
    */
   async promote(key) {
     const panel = this.panels.find((p) => p.key === String(key))
-    if (!panel || !this._mounted) return
+    if (!panel || panel.noMount || !this._mounted) return
     if (this._promotedKey === panel.key) return
     if (this._promotedKey) await this.restorePromotion()
 
@@ -691,6 +1011,10 @@ export default class Trellis {
       p.cellEl.classList.toggle('apexcharts-trellis-cell-promoted', promoted)
       p.cellEl.classList.toggle('apexcharts-trellis-cell-parked', !promoted)
     })
+    // 2-D strips park with the grid (the promoted panel names itself).
+    this._stripEls.forEach((el) =>
+      el.classList.add('apexcharts-trellis-cell-parked'),
+    )
     this.chrome.buildBreadcrumb(
       /** @type {HTMLElement} */ (this._elChromeTop),
       panel.key,
@@ -727,6 +1051,9 @@ export default class Trellis {
       p.cellEl.classList.remove('apexcharts-trellis-cell-promoted')
       p.cellEl.classList.remove('apexcharts-trellis-cell-parked')
     })
+    this._stripEls.forEach((el) =>
+      el.classList.remove('apexcharts-trellis-cell-parked'),
+    )
     this.chrome.removeBreadcrumb()
     const ly = this.layout
     if (panel && panel.el && ly) panel.el.style.minHeight = `${ly.panelH}px`
@@ -758,7 +1085,7 @@ export default class Trellis {
     this.layout = TrellisLayout.compute({
       panelCount: split.panels.length,
       containerWidth: width,
-      cfg: this.cfg,
+      cfg: this._layoutCfg(),
       hostHeight: this._hostHeight(),
     })
     this._applyGridStyle()
@@ -809,23 +1136,70 @@ export default class Trellis {
     }
 
     this.split = nextSplit
-    this.scales = TrellisScales.resolve(nextSplit, this.cfg, {
+    // Type frames (P5) are data-derived (bin edges, color extent, z extent,
+    // pie totals): recompute them with the new data before the pushes.
+    this._frames = buildTypeFrames(
+      nextSplit,
+      this.cfg,
+      w.config,
+      w.config.chart.requestedType === 'histogram'
+        ? 'histogram'
+        : w.config.chart.type,
+    )
+    const scalesCfg =
+      this._yMode() !== (this.cfg.scales?.y || 'shared')
+        ? { ...this.cfg, scales: { ...(this.cfg.scales || {}), y: this._yMode() } }
+        : this.cfg
+    this.scales = TrellisScales.resolve(nextSplit, scalesCfg, {
       chartType: w.config.chart.type,
       userColors: this.ctx.opts && this.ctx.opts.colors,
+      yExtentOverride: this._frames.yExtentOverride,
     })
     const scales = this.scales
+    const frames = this._frames
 
+    const isValueSeries = ['pie', 'donut', 'polarArea', 'radialBar'].includes(
+      w.config.chart.type,
+    )
     const pushes = this.panels.map((p, i) => {
       if (!p.chart) return Promise.resolve()
       /** @type {Record<string, any>} */
-      const payload = { series: nextSplit.panels[i].series }
+      const payload = {
+        // The radial value family takes a BARE values array (see the same
+        // unwrap in _assemblePanelOptions).
+        series: isValueSeries
+          ? nextSplit.panels[i].series
+              .flatMap((/** @type {any} */ s) =>
+                Array.isArray(s.data) ? s.data : [],
+              )
+              .map((/** @type {any} */ v) =>
+                typeof v === 'number' && isFinite(v) ? v : 0,
+              )
+          : nextSplit.panels[i].series,
+      }
       if (scales.x) payload.xaxis = { min: scales.x.min, max: scales.x.max }
-      if (scales.y) {
+      const yBounds = this._yBoundsFor(nextSplit.panels[i])
+      if (yBounds) {
         payload.yaxis = yaxisPayload(p.chart, {
-          min: scales.y.min,
-          max: scales.y.max,
-          tickAmount: scales.y.tickAmount,
+          min: yBounds.min,
+          max: yBounds.max,
+          tickAmount: yBounds.tickAmount,
         })
+      }
+      if (frames.plotOptions) {
+        payload.plotOptions = Utils.clone(frames.plotOptions)
+      }
+      if (frames.pieScaleOf) {
+        const ratio = frames.pieScaleOf(nextSplit.panels[i].key)
+        if (ratio !== null) {
+          const userScale = this.ctx.opts?.plotOptions?.pie?.customScale
+          payload.plotOptions = Utils.extend(payload.plotOptions || {}, {
+            pie: {
+              customScale:
+                ratio * (typeof userScale === 'number' ? userScale : 1),
+            },
+          })
+        }
       }
       return p.chart
         .updateOptions(payload, false, animate, false)
@@ -862,6 +1236,8 @@ export default class Trellis {
     this._virtualActive = false
     this._panelRenderer = null
     this._promotedKey = null
+    this._frames = null
+    this.chrome.destroyGradientLegend()
     if (this.gridTooltip) {
       this.gridTooltip.destroy()
       this.gridTooltip = null
@@ -888,6 +1264,7 @@ export default class Trellis {
       p.chart = null
     })
     this.panels = []
+    this._stripEls = []
     if (this.elWrap && this.elWrap.parentNode) {
       this.elWrap.parentNode.removeChild(this.elWrap)
     }

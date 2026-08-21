@@ -51,6 +51,12 @@ export default class HeatmapGradientLegend {
     this._bandHitEls = []
     /** @type {number} Currently highlighted band index (-1 = none). */
     this._activeBandIndex = -1
+    /**
+     * Detached mode (trellis): an explicit wrap element passed to draw().
+     * The host slot owns layout, so all plot-relative positioning is skipped.
+     * @type {HTMLElement|null}
+     */
+    this._targetEl = null
     this._onCellEnter = this._onCellEnter.bind(this)
     this._onCellLeave = this._onCellLeave.bind(this)
     this._onBandEnter = this._onBandEnter.bind(this)
@@ -118,10 +124,16 @@ export default class HeatmapGradientLegend {
   /**
    * Build the gradient legend DOM into `elLegendWrap`.
    * Caller is responsible for clearing the wrap first.
+   * @param {HTMLElement|null} [targetEl] detached mode: draw into this
+   *   element instead (a trellis's shared legend slot); the host owns layout,
+   *   so all plot-relative positioning is skipped.
    */
-  draw() {
+  draw(targetEl = null) {
     const w = this.w
-    const elLegendWrap = /** @type {HTMLElement} */ (w.dom.elLegendWrap)
+    this._targetEl = targetEl
+    const elLegendWrap = /** @type {HTMLElement} */ (
+      targetEl || w.dom.elLegendWrap
+    )
     if (!elLegendWrap) return
 
     const cfg = this._cfg()
@@ -356,7 +368,15 @@ export default class HeatmapGradientLegend {
     if (this.hoverValueEl) elLegendWrap.appendChild(this.hoverValueEl)
     this.svgEl = svg
 
-    this._applyWrapAlignment(elLegendWrap, position, isVertical, svgWidth, svgHeight)
+    if (targetEl) {
+      // Detached: content-size the slot and stop; the host lays it out.
+      elLegendWrap.style.width = svgWidth + 'px'
+      elLegendWrap.style.height = svgHeight + 'px'
+      elLegendWrap.style.position = 'relative'
+      elLegendWrap.style.overflow = 'visible'
+    } else {
+      this._applyWrapAlignment(elLegendWrap, position, isVertical, svgWidth, svgHeight)
+    }
     this._attachHoverListeners()
     this._attachBandHoverListeners()
   }
@@ -478,6 +498,8 @@ export default class HeatmapGradientLegend {
    */
   repositionToPlot() {
     if (!Environment.isBrowser()) return
+    // Detached mode (trellis): the host slot owns layout entirely.
+    if (this._targetEl) return
     const w = this.w
     const g = w.globals
     const wrap = /** @type {HTMLElement} */ (w.dom.elLegendWrap)
@@ -851,15 +873,22 @@ export default class HeatmapGradientLegend {
     if (!Number.isFinite(dataMin)) dataMin = 0
     if (!Number.isFinite(dataMax)) dataMax = 0
 
-    // Apply colorScale.min/max overrides (same expand-not-clamp semantics as
-    // determineColor — keeps behavior consistent with the cells).
+    // Apply colorScale.min/max overrides, mirroring determineColor so the
+    // strip can never disagree with the cells: BOTH ends set = an explicit
+    // ABSOLUTE window (what shared scales across several charts need);
+    // one-sided = the historical expand-not-clamp semantics.
     let min = dataMin
     let max = dataMax
-    if (typeof cs.min !== 'undefined') {
-      min = cs.min < dataMin ? cs.min : dataMin
-    }
-    if (typeof cs.max !== 'undefined') {
-      max = cs.max > dataMax ? cs.max : dataMax
+    if (typeof cs.min !== 'undefined' && typeof cs.max !== 'undefined' && cs.max > cs.min) {
+      min = cs.min
+      max = cs.max
+    } else {
+      if (typeof cs.min !== 'undefined') {
+        min = cs.min < dataMin ? cs.min : dataMin
+      }
+      if (typeof cs.max !== 'undefined') {
+        max = cs.max > dataMax ? cs.max : dataMax
+      }
     }
 
     /** @type {Array<{percent:number,color:string}>} */

@@ -14,7 +14,11 @@
  * @module modules/trellis/TrellisSync
  */
 import Utils from '../../utils/Utils'
-import { niceBounds, yExtentInWindow } from './TrellisScales'
+import {
+  niceBounds,
+  yExtentInWindow,
+  DEFAULT_TARGET_TICKS,
+} from './TrellisScales'
 
 /**
  * Build a safe yaxis payload for updateOptions: the panel's CURRENT yaxis
@@ -127,7 +131,7 @@ export default class TrellisSync {
 
     const ext = yExtentInWindow(t.split.panels, t.split.xForm, xw.min, xw.max)
     if (!ext) return
-    const y = niceBounds(ext.min, ext.max, cfg.targetTicks || 4)
+    const y = niceBounds(ext.min, ext.max, cfg.targetTicks || DEFAULT_TARGET_TICKS)
     if (this.currentWindow) {
       this.currentWindow.y = {
         min: y.min,
@@ -180,11 +184,14 @@ export default class TrellisSync {
       p.chart.w.interact.zoomed = false
       /** @type {Record<string, any>} */
       const options = { xaxis }
-      if (t.scales && t.scales.y) {
+      // The panel's own domain per the scales mode (shared union, or its
+      // row's/column's union in a 2-D grid).
+      const yBounds = t.split ? t._yBoundsFor(t.split.panels[p.index]) : null
+      if (yBounds) {
         options.yaxis = yaxisPayload(p.chart, {
-          min: t.scales.y.min,
-          max: t.scales.y.max,
-          tickAmount: t.scales.y.tickAmount,
+          min: yBounds.min,
+          max: yBounds.max,
+          tickAmount: yBounds.tickAmount,
         })
       }
       return p.chart.updateOptions(options, false, false, false).catch(() => {})

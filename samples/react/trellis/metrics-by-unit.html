@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Trellis Chart - Metrics by Business Unit (Independent Row Scales)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 1040px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      .lead {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 20px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .note {
+        background: #f0fdfa;
+        border-left: 3px solid #0d9488;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #333;
+        border-radius: 2px;
+        line-height: 1.6;
+        margin: 26px auto 0;
+      }
+      .note code {
+        background: #ccfbf1;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Three metrics in three units: dollars, percent, people. They cannot share
+      // an axis, and a dual-axis chart is the most misread chart there is. The
+      // 2-D answer: rows = metric, columns = business unit, and
+      // `scales.y: 'independent-row'` gives each METRIC one shared domain across
+      // its row. Along a row the units are directly comparable (identical ticks);
+      // across rows each metric keeps its own honest scale.
+      //
+      // Deterministic monthly walks so the e2e snapshot is stable.
+      function mulberry32(seed) {
+        return function () {
+          seed |= 0
+          seed = (seed + 0x6d2b79f5) | 0
+          var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+        }
+      }
+
+      function monthly(seed, base, drift, vol) {
+        var rand = mulberry32(seed)
+        var out = []
+        var ts = new Date('01 Jan 2025').getTime()
+        var val = base
+        for (var i = 0; i < 12; i++) {
+          val = Math.max(1, val + drift + (rand() - 0.5) * vol)
+          out.push([ts, Math.round(val * 10) / 10])
+          ts += 2678400000 // ~1 month
+        }
+        return out
+      }
+
+      var UNITS = [
+        { unit: 'North America', seed: 3 },
+        { unit: 'Europe', seed: 41 },
+        { unit: 'APAC', seed: 89 },
+      ]
+
+      var metricSeries = []
+      UNITS.forEach(function (u, i) {
+        metricSeries.push({
+          name: 'value',
+          metric: 'Revenue',
+          unit: u.unit,
+          data: monthly(u.seed, 420 - i * 90, 14 - i * 3, 60),
+        })
+        metricSeries.push({
+          name: 'value',
+          metric: 'Margin',
+          unit: u.unit,
+          // Europe's margin erodes: visible only because the row shares a scale.
+          data: monthly(
+            u.seed + 7,
+            24 + i * 2,
+            u.unit === 'Europe' ? -0.9 : 0.1,
+            2.4,
+          ),
+        })
+        metricSeries.push({
+          name: 'value',
+          metric: 'Headcount',
+          unit: u.unit,
+          data: monthly(u.seed + 13, 120 - i * 30, 2, 8),
+        })
+      })
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+  &lt;h1&gt;Three metrics, three units, no dual axis&lt;/h1&gt;
+  &lt;p class=&quot;lead&quot;&gt;
+    Each row is one metric on one honest scale: compare units left to right.
+    Each column is one unit top to bottom. Europe&#39;s margin erosion is
+    unmissable because the whole Margin row shares its domain, and no axis
+    pretends dollars and percent are the same thing.
+  &lt;/p&gt;
+
+  &lt;div class=&quot;chart-wrap&quot;&gt;
+    &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;line&quot; height={560} /&gt;
+&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;note&quot;&gt;
+    &lt;code&gt;scales.y: &#39;independent-row&#39;&lt;/code&gt; computes ONE domain per row (the
+    union across that row&#39;s panels) so ticks are identical along a row and
+    different across rows; the y labels draw on the first column only,
+    because the row&#39;s left edge speaks for the whole row. Per-row units come
+    from &lt;code&gt;trellis.panel&lt;/code&gt;: the Margin row formats as percent, the
+    Revenue row as dollars. The grid stays pixel-aligned across rows via the
+    measured shared gutter. Trellis is a premium feature; without a license
+    it renders with a trial watermark.
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: metricSeries,
+          options: {
+            chart: {
+              id: 'metricsTrellis',
+              type: 'line',
+              height: 560,
+              animations: {
+                enabled: false,
+              },
+            },
+            trellis: {
+              row: 'metric',
+              column: 'unit',
+              gap: 12,
+              scales: {
+                y: 'independent-row',
+              },
+              panel: function (key) {
+                if (key.indexOf('Revenue') === 0) {
+                  return {
+                    yaxis: {
+                      labels: {
+                        formatter: function (val) {
+                          return '$' + Math.round(val) + 'k'
+                        },
+                      },
+                    },
+                  }
+                }
+                if (key.indexOf('Margin') === 0) {
+                  return {
+                    yaxis: {
+                      labels: {
+                        formatter: function (val) {
+                          return Math.round(val) + '%'
+                        },
+                      },
+                    },
+                  }
+                }
+                return {
+                  yaxis: {
+                    labels: {
+                      formatter: function (val) {
+                        return String(Math.round(val))
+                      },
+                    },
+                  },
+                }
+              },
+            },
+            colors: ['#0D9488'],
+            stroke: {
+              width: 2.5,
+              curve: 'straight',
+            },
+            xaxis: {
+              type: 'datetime',
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            tooltip: {
+              x: {
+                format: 'MMM yyyy',
+              },
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div class="wrap">
+              <h1>Three metrics, three units, no dual axis</h1>
+              <p class="lead">
+                Each row is one metric on one honest scale: compare units left to
+                right. Each column is one unit top to bottom. Europe's margin erosion
+                is unmissable because the whole Margin row shares its domain, and no
+                axis pretends dollars and percent are the same thing.
+              </p>
+
+              <div class="chart-wrap">
+                <div id="chart">
+                  <ReactApexChart
+                    options={state.options}
+                    series={state.series}
+                    type="line"
+                    height={560}
+                  />
+                </div>
+              </div>
+
+              <div class="note">
+                <code>scales.y: 'independent-row'</code> computes ONE domain per row
+                (the union across that row's panels) so ticks are identical along a
+                row and different across rows; the y labels draw on the first column
+                only, because the row's left edge speaks for the whole row. Per-row
+                units come from <code>trellis.panel</code>: the Margin row formats as
+                percent, the Revenue row as dollars. The grid stays pixel-aligned
+                across rows via the measured shared gutter. Trellis is a premium
+                feature; without a license it renders with a trial watermark.
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

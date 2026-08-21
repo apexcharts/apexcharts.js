@@ -290,6 +290,20 @@ export default class Options {
         // Facet accessor: a series-object key name, or (series, i) => key.
         // Series WITHOUT the key repeat in every panel (reference series).
         by: undefined,
+        // 2-D faceting (P4): row and/or column facet accessors, forming a
+        // FIXED grid of every (row, column) combination in row-major order
+        // (no responsive recolumning; panels shrink instead). Mutually
+        // exclusive with `by`. Column labels draw once across the top, row
+        // labels once down the left. Reference semantics per dimension: a
+        // series with only the row key repeats across that row; only the
+        // column key, down that column; neither, everywhere.
+        row: undefined,
+        column: undefined,
+        // Missing (row, column) combinations: 'placeholder' mounts a real
+        // empty panel (same scales, same geometry, a quiet "no data" label);
+        // 'skip' keeps the slot with a tinted blank; 'hide' keeps the slot
+        // with nothing at all.
+        emptyPanels: 'placeholder',
         // Tidy-row input (alternative to `series`): a row table pivoted by
         // the `by`/`x`/`y`/`seriesBy` COLUMN NAMES. Rows win over `series`
         // when both are given. Duplicate (panel, series, x) rows keep the
@@ -314,10 +328,14 @@ export default class Options {
         // destroyed with its view state stashed, and a remount restores its
         // zoom window. getPanel(key) returns null for unmounted panels.
         virtualize: 'auto', // 'auto' | true | false
-        // Scale resolution per channel: 'shared' | 'independent'.
-        // Independent y still renders pixel-aligned panels (the gutter pass
-        // equalizes axis widths); independent scales force their own axis
-        // labels on every panel.
+        // Scale resolution per channel: 'shared' | 'independent'; y also
+        // takes 'independent-row' | 'independent-column' in a 2-D grid (one
+        // shared domain per row/column: comparable along the group, free
+        // across groups). Non-shared y still renders pixel-aligned panels
+        // (the gutter pass equalizes axis widths); 'independent' and
+        // 'independent-column' force their own y labels on every panel,
+        // 'independent-row' keeps them on the first column (ticks are
+        // identical along a row).
         scales: {
           x: 'shared',
           y: 'shared',
@@ -353,7 +371,13 @@ export default class Options {
         // the grid's full width, with an "All panels" breadcrumb back
         // (also chart.promotePanel(key) / chart.restorePanels()).
         promote: true,
-        targetTicks: 4, // tick density for the shared nice y scale
+        // Pie/donut/polarArea only: scale each panel's radius so its AREA is
+        // proportional to the panel's total (equal-size pies cannot encode
+        // magnitude, which is the honest objection to a pie trellis).
+        radiusByTotal: false,
+        // Tick-interval target for the shared nice y scale. Panels are small:
+        // 3 intervals (up to ~4 labels) keeps the axis from outweighing the data.
+        targetTicks: 3,
         // Per-panel option override, applied last:
         // (key, { index, seriesNames }) => partial options
         panel: undefined,
@@ -831,6 +855,11 @@ export default class Options {
           zScaling: true,
           minBubbleRadius: undefined,
           maxBubbleRadius: undefined,
+          // Explicit z window for the size scale. EXPANDS the data's own z
+          // extent, never clamps it, so several bubble charts can share one
+          // size scale (a trellis pushes the union extent through these).
+          minZ: undefined,
+          maxZ: undefined,
         },
         scatter: {
           // Spread overlapping points apart ("jitter"). Two uses, one engine:

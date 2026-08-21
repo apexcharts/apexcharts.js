@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Trellis Chart - Distribution by Cohort (Shared Bin Edges)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      .lead {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 20px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .note {
+        background: #f0fdfa;
+        border-left: 3px solid #0e7490;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #333;
+        border-radius: 2px;
+        line-height: 1.6;
+        margin: 26px auto 0;
+      }
+      .note code {
+        background: #ccfbf1;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Eight monthly signup cohorts, ~240 raw onboarding times each. Every panel
+      // is a real histogram over its own observations, but the trellis derives ONE
+      // set of bin edges over the union sample and pushes it into every panel, so
+      // the same bar in every panel means the same interval and the drift of the
+      // whole distribution (newer cohorts finish faster) reads directly. Overlaid
+      // translucent histograms stop being readable past about three; eight panels
+      // with shared edges stay readable.
+      //
+      // Deterministic samples so the e2e snapshot is stable.
+      function mulberry32(seed) {
+        return function () {
+          seed |= 0
+          seed = (seed + 0x6d2b79f5) | 0
+          var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+        }
+      }
+
+      // Bell-ish sample: mean minutes drop cohort by cohort, spread tightens.
+      function onboardingMinutes(seed, mean, spread, n) {
+        var rand = mulberry32(seed)
+        var out = []
+        for (var i = 0; i < n; i++) {
+          var v = mean + (rand() + rand() + rand() - 1.5) * spread
+          // A slow tail: some users always wander off mid-setup.
+          if (rand() < 0.06) v += rand() * 25
+          out.push(Math.max(2, Math.round(v * 10) / 10))
+        }
+        return out
+      }
+
+      var COHORTS = [
+        { name: 'Jan', seed: 11, mean: 34, spread: 14 },
+        { name: 'Feb', seed: 23, mean: 32, spread: 13 },
+        { name: 'Mar', seed: 37, mean: 30, spread: 13 },
+        { name: 'Apr', seed: 41, mean: 27, spread: 12 },
+        { name: 'May', seed: 53, mean: 25, spread: 11 },
+        { name: 'Jun', seed: 67, mean: 22, spread: 10 },
+        { name: 'Jul', seed: 79, mean: 20, spread: 9 },
+        { name: 'Aug', seed: 97, mean: 18, spread: 8 },
+      ]
+
+      var cohortSeries = COHORTS.map(function (c) {
+        return {
+          name: 'Onboarding time',
+          cohort: c.name + ' cohort',
+          data: onboardingMinutes(c.seed, c.mean, c.spread, 240),
+        }
+      })
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div class=&quot;wrap&quot;&gt;
+  &lt;h1&gt;Time to first success, cohort by cohort&lt;/h1&gt;
+  &lt;p class=&quot;lead&quot;&gt;
+    Eight histograms over raw observations, binned on ONE shared set of edges
+    and counted on one shared scale, so the whole distribution&#39;s slide to the
+    left (newer cohorts finish faster) is the picture, not an artifact of
+    per-panel binning.
+  &lt;/p&gt;
+
+  &lt;div class=&quot;chart-wrap&quot;&gt;
+    &lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;histogram&quot; height={560} /&gt;
+&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;note&quot;&gt;
+    Feed each panel its raw observations and the trellis derives one bin
+    frame over the union sample, pushing an explicit
+    &lt;code&gt;plotOptions.histogram.range&lt;/code&gt; and &lt;code&gt;binWidth&lt;/code&gt; into
+    every panel: identical edges by construction, so the same bar always
+    means the same interval. The y scale is shared over the bin
+    &lt;em&gt;counts&lt;/em&gt; (not the raw values, which live on a different axis
+    entirely). Binning each panel to its own extent would put different
+    intervals at the same x, which is the classic way a histogram grid lies.
+    Trellis is a premium feature; without a license it renders with a trial
+    watermark.
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: cohortSeries,
+          options: {
+            chart: {
+              id: 'cohortTrellis',
+              type: 'histogram',
+              height: 560,
+              animations: {
+                enabled: false,
+              },
+            },
+            trellis: {
+              by: 'cohort',
+              columns: 4,
+              gap: 12,
+            },
+            colors: ['#0E7490'],
+            plotOptions: {
+              histogram: {
+                bins: 'auto',
+              },
+            },
+            xaxis: {
+              tickAmount: 5,
+              labels: {
+                rotate: 0,
+                formatter: function (val) {
+                  return Math.round(Number(val)) + 'm'
+                },
+              },
+            },
+            dataLabels: {
+              enabled: false,
+            },
+            stroke: {
+              width: 1,
+              colors: ['#fff'],
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div class="wrap">
+              <h1>Time to first success, cohort by cohort</h1>
+              <p class="lead">
+                Eight histograms over raw observations, binned on ONE shared set of
+                edges and counted on one shared scale, so the whole distribution's
+                slide to the left (newer cohorts finish faster) is the picture, not an
+                artifact of per-panel binning.
+              </p>
+
+              <div class="chart-wrap">
+                <div id="chart">
+                  <ReactApexChart
+                    options={state.options}
+                    series={state.series}
+                    type="histogram"
+                    height={560}
+                  />
+                </div>
+              </div>
+
+              <div class="note">
+                Feed each panel its raw observations and the trellis derives one bin
+                frame over the union sample, pushing an explicit
+                <code>plotOptions.histogram.range</code> and <code>binWidth</code>{' '}
+                into every panel: identical edges by construction, so the same bar
+                always means the same interval. The y scale is shared over the bin
+                <em>counts</em> (not the raw values, which live on a different axis
+                entirely). Binning each panel to its own extent would put different
+                intervals at the same x, which is the classic way a histogram grid
+                lies. Trellis is a premium feature; without a license it renders with
+                a trial watermark.
+              </div>
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>

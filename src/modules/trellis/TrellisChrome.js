@@ -14,6 +14,7 @@
  * @module modules/trellis/TrellisChrome
  */
 import { BrowserAPIs } from '../../ssr/BrowserAPIs.js'
+import HeatmapGradientLegend from '../legend/HeatmapGradientLegend.js'
 
 /** Minimal inline icons (original shapes, stroke = currentColor). */
 const ICONS = {
@@ -39,6 +40,10 @@ export default class TrellisChrome {
     this.elTitle = null
     /** @type {HTMLElement|null} */
     this.elBreadcrumb = null
+    /** @type {HeatmapGradientLegend|null} shared gradient strip (P5, heatmap) */
+    this.gradientLegend = null
+    /** @type {(() => void)|null} unsubscribe for a deferred gradient build */
+    this._gradPending = null
   }
 
   /**
@@ -89,6 +94,36 @@ export default class TrellisChrome {
       })
     }
     cell.appendChild(el)
+  }
+
+  /**
+   * One 2-D strip label (P4): column labels once across the top, row labels
+   * once down the left, instead of a header per cell. The header formatter
+   * applies with the dimension named.
+   * @param {'row'|'column'} dimension
+   * @param {string} key
+   * @param {{ index: number, count: number }} meta
+   * @returns {HTMLElement}
+   */
+  stripEl(dimension, key, meta) {
+    const t = this.trellis
+    const hcfg = t.cfg.header || {}
+    const el = BrowserAPIs.createElement('div')
+    el.className = `apexcharts-trellis-strip apexcharts-trellis-strip-${dimension}`
+    let text = key
+    if (typeof hcfg.formatter === 'function') {
+      text = hcfg.formatter(key, {
+        dimension,
+        index: meta.index,
+        count: meta.count,
+      })
+    }
+    el.textContent = text == null ? '' : String(text)
+    const style = hcfg.style || {}
+    if (style.fontSize) el.style.fontSize = style.fontSize
+    if (style.fontWeight) el.style.fontWeight = String(style.fontWeight)
+    if (style.color) el.style.color = style.color
+    return el
   }
 
   /**
@@ -158,6 +193,12 @@ export default class TrellisChrome {
   buildLegend(host) {
     const t = this.trellis
     if ((t.cfg.legend || 'shared') !== 'shared') return
+    // A heatmap's legend IS its color scale (P5): one shared gradient strip
+    // for the grid instead of a categorical name list.
+    if (t.w.config.chart.type === 'heatmap') {
+      this.buildGradientLegend(host)
+      return
+    }
     const names = t.split ? t.split.seriesNames : []
     // A one-name legend restates the header; skip it, like the per-chart
     // legend skips single-series charts by default.
@@ -202,6 +243,72 @@ export default class TrellisChrome {
 
     host.appendChild(wrap)
     this.elLegend = wrap
+  }
+
+  /**
+   * One shared gradient strip for a heatmap grid (P5). Every panel carries
+   * the same pushed colorScale min/max (TrellisFrames), so any ONE mounted
+   * panel's strip is THE grid's scale; it draws detached into a trellis-owned
+   * slot under the grid. Hover (the value arrow) is wired through every
+   * mounted panel's events, so sweeping any panel moves the one arrow.
+   * On a virtualized grid with nothing mounted yet, the build defers to the
+   * first panelMounted.
+   * @param {HTMLElement} host
+   */
+  buildGradientLegend(host) {
+    const t = this.trellis
+    const mounted = t.panels.find((p) => p.chart)
+    if (!mounted) {
+      if (this._gradPending) return
+      /** @type {any} */
+      const once = () => {
+        this._gradPending = null
+        t.ctx.events.removeEventListener?.('panelMounted', once)
+        this.buildGradientLegend(host)
+      }
+      this._gradPending = once
+      t.ctx.events.addEventListener('panelMounted', once)
+      return
+    }
+
+    const slot = BrowserAPIs.createElement('div')
+    slot.className = 'apexcharts-trellis-legend apexcharts-trellis-gradient-legend'
+    host.appendChild(slot)
+    this.elLegend = slot
+
+    const chart = /** @type {any} */ (mounted.chart)
+    const legend = new HeatmapGradientLegend(chart.w, chart.ctx)
+    legend.draw(slot)
+    this.gradientLegend = legend
+
+    // The instance's own hover wiring only hears ITS panel; mirror the same
+    // handlers onto every other mounted panel so the arrow follows the
+    // cursor anywhere in the grid.
+    t.panels.forEach((p) => {
+      if (!p.chart || p === mounted) return
+      const ev = /** @type {any} */ (p.chart).ctx?.events
+      if (!ev?.addEventListener) return
+      ev.addEventListener('dataPointMouseEnter', legend._onCellEnter)
+      ev.addEventListener('dataPointMouseLeave', legend._onCellLeave)
+    })
+  }
+
+  /** Tear down the shared gradient strip (P5). */
+  destroyGradientLegend() {
+    const t = this.trellis
+    if (this._gradPending) {
+      t.ctx.events.removeEventListener?.('panelMounted', this._gradPending)
+      this._gradPending = null
+    }
+    if (this.gradientLegend) {
+      try {
+        this.gradientLegend.destroy()
+      } catch (e) {
+        // The carrier panel may already be destroyed; the strip DOM goes
+        // with the trellis wrap either way.
+      }
+      this.gradientLegend = null
+    }
   }
 
   /**

@@ -124,9 +124,16 @@ export function compute({ panelCount, containerWidth, cfg, hostHeight }) {
       // 'edges'. An independent scale implies its own axis labels (a panel
       // with its own domain but no readable ticks is worse than either
       // extreme), overriding the edge policy for that channel.
+      // 'independent-row' keeps the column-0 policy (ticks are identical
+      // along a row, so the row's left edge speaks for the row);
+      // 'independent-column' gives every panel its own labels (each column's
+      // domain differs, and only a panel's own left edge can carry it).
       showXLabels =
         scales.x === 'independent' || r === lastRowFor(c, panelCount, cols, rows)
-      showYLabels = scales.y === 'independent' || c === 0
+      showYLabels =
+        scales.y === 'independent' ||
+        scales.y === 'independent-column' ||
+        c === 0
     }
     return { i, r, c, showXLabels, showYLabels }
   })

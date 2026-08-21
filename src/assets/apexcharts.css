@@ -1366,6 +1366,58 @@ rect.legend-mouseover-inactive,
 .apexcharts-trellis-mute-x .apexcharts-xaxis {
   opacity: 0;
 }
+/* 2-D faceting (P4): column labels once across the top, row labels once
+   down the left. The row strip column is auto-sized; panel columns stay
+   equal fractions, so panel alignment is independent of the strip width.
+   The grid drops below the toolbar band so the last column's label and the
+   toolbar never collide. */
+.apexcharts-trellis-2d {
+  padding-top: 24px;
+}
+.apexcharts-trellis-strip {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--apx-fore, #373d3f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.apexcharts-trellis-strip-column {
+  text-align: center;
+  line-height: 22px;
+  height: 22px;
+  align-self: end;
+}
+.apexcharts-trellis-strip-row {
+  align-self: center;
+  max-width: 140px;
+  padding-right: 6px;
+}
+/* Empty (row, column) combinations. 'placeholder' keeps a REAL panel with a
+   quiet label; 'skip' shows the tinted skeleton; 'hide' shows nothing while
+   keeping the grid slot. */
+.apexcharts-trellis-cell-empty {
+  position: relative;
+}
+.apexcharts-trellis-empty-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--apx-fore, #373d3f);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.apexcharts-trellis-cell-hidden > * {
+  visibility: hidden;
+}
+/* P5: one shared gradient strip is a heatmap grid's legend. The slot is
+   content-sized inline (the strip svg's own box); centering is its own. */
+.apexcharts-trellis-gradient-legend {
+  margin: 10px auto 0;
+}
 /* Virtualization (P2): an unmounted panel's mount div reserves the exact
    panel height (inline min-height) so page height and scroll position never
    shift; the skeleton itself is a quiet tinted block. Deliberately not

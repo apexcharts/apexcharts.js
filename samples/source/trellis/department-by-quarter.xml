@@ -1,0 +1,173 @@
+<title>Trellis Chart - Department by Quarter (2-D Grid)</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fafbfc;
+  color: #2c3e50;
+  margin: 0;
+  padding: 32px 16px;
+}
+.wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+.lead {
+  color: #5b6b78;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+.chart-wrap {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+.note {
+  background: #eff6ff;
+  border-left: 3px solid #2563eb;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #333;
+  border-radius: 2px;
+  line-height: 1.6;
+  margin: 26px auto 0;
+}
+.note code {
+  background: #dbeafe;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+</style>
+
+<scripts>
+<script>
+// Four departments by four quarters: the 2-D grid IS the shape of the
+// question. Reading across a row is "this department over the year"; down a
+// column is "this quarter across departments"; both are one glance, where a
+// pivot table is arithmetic and a 16-group column chart is soup.
+//
+// Marketing was formed in Q2, so (Marketing, Q1) has no data: the default
+// `emptyPanels: 'placeholder'` keeps the slot as a REAL panel on the same
+// shared scale (so the grid never lies about geometry) with a quiet label.
+//
+// Deterministic monthly hours so the e2e snapshot is stable.
+function mulberry32(seed) {
+  return function () {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+var DEPTS = [
+  { name: 'Engineering', base: 610 },
+  { name: 'Sales', base: 380 },
+  { name: 'Support', base: 290 },
+  { name: 'Marketing', base: 170 },
+]
+var QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4']
+
+function monthlyHours(seed, base) {
+  var rand = mulberry32(seed)
+  var out = []
+  for (var m = 0; m < 3; m++) {
+    out.push({
+      x: 'M' + (m + 1),
+      y: Math.round(base * (0.85 + rand() * 0.3)),
+    })
+  }
+  return out
+}
+
+var deptSeries = []
+DEPTS.forEach(function (d, di) {
+  QUARTERS.forEach(function (q, qi) {
+    if (d.name === 'Marketing' && q === 'Q1') return // formed in Q2
+    deptSeries.push({
+      name: 'Hours',
+      dept: d.name,
+      quarter: q,
+      data: monthlyHours(di * 17 + qi * 5 + 3, d.base),
+    })
+  })
+})
+</script>
+</scripts>
+
+<html>
+<div class="wrap">
+  <h1>Delivery hours, department by quarter</h1>
+  <p class="lead">
+    Across a row: one department's year. Down a column: one quarter's whole
+    org. The empty slot is honest: Marketing did not exist in Q1, and the
+    placeholder keeps that cell on the same scale instead of collapsing the
+    grid.
+  </p>
+
+  <div class="chart-wrap">
+    {{ charts[0] }}
+  </div>
+
+  <div class="note">
+    Two facet keys make a fixed grid: <code>trellis.row: 'dept'</code> and
+    <code>trellis.column: 'quarter'</code>, every (row, column) combination in
+    row-major order, column labels drawn once across the top and row labels
+    once down the left. Missing combinations follow
+    <code>emptyPanels</code>: <code>'placeholder'</code> (default) mounts a
+    real panel on the shared scale with a quiet label, <code>'skip'</code>
+    leaves a tinted blank, <code>'hide'</code> leaves nothing. A 2-D grid
+    never re-columns responsively; panels shrink instead, so the grid's
+    meaning survives any width. Trellis is a premium feature; without a
+    license it renders with a trial watermark.
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'deptQuarterTrellis',
+  type: 'bar',
+  height: 560,
+  animations: {
+    enabled: false,
+  },
+},
+trellis: {
+  row: 'dept',
+  column: 'quarter',
+  gap: 12,
+},
+colors: ['#2563EB'],
+plotOptions: {
+  bar: {
+    columnWidth: '55%',
+    borderRadius: 3,
+  },
+},
+xaxis: {
+  type: 'category',
+},
+yaxis: {
+  labels: {
+    formatter: function (val) {
+      return Math.round(val) + 'h'
+    },
+  },
+},
+dataLabels: {
+  enabled: false,
+},
+</options>
+
+<series>
+deptSeries
+</series>
+</chart>

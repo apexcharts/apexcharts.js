@@ -46,9 +46,9 @@ async function mountTrellis(page, buildOptsSrc, { width = 1200 } = {}) {
   await page.addScriptTag({ path: umdPath })
   await page.evaluate(
     ([walkSrc, optsSrc]) => {
-      // eslint-disable-next-line no-eval
+       
       eval(walkSrc)
-      // eslint-disable-next-line no-eval
+       
       const opts = eval(`(${optsSrc})`)
       window.chart = new window.ApexCharts(
         document.querySelector('#trellis'),
@@ -58,13 +58,18 @@ async function mountTrellis(page, buildOptsSrc, { width = 1200 } = {}) {
     },
     [WALK_SRC, buildOptsSrc],
   )
+  // Ready = every panel's own animationEnded, or the HOST flag the trellis
+  // sets at eager-render end (after all panels mounted). The host flag is the
+  // documented readiness signal and covers heatmap panels, which never flip
+  // their own flag when animations are disabled (pre-existing core quirk).
   await page.waitForFunction(
     () =>
       window.chart &&
       window.chart.getPanels().length > 0 &&
-      window.chart
-        .getPanels()
-        .every((p) => p.chart && p.chart.w.globals.animationEnded === true),
+      (window.chart.w.globals.animationEnded === true ||
+        window.chart
+          .getPanels()
+          .every((p) => p.chart && p.chart.w.globals.animationEnded === true)),
     { timeout: 10_000 },
   )
   return errors
@@ -162,6 +167,73 @@ test.describe('trellis', () => {
     expect(allSame).toBe(false)
     // The measurement pass is done: the wrap is visible.
     await expect(page.locator('.apexcharts-trellis')).toBeVisible()
+    expect(errors).toHaveLength(0)
+  })
+
+  test('compact panel chrome: the plot fills the panel, few y labels', async ({
+    page,
+  }) => {
+    // The standalone chart's breathing room (no-title gutter, bottom slack)
+    // is dead space inside a small panel: the reclaim in
+    // _assemblePanelOptions must leave the plot MOST of the panel height,
+    // and the shared scale must not cram more than ~4 labels into it
+    // (the 7-label / 44%-plot regression this test pins).
+    const errors = await mountTrellis(
+      page,
+      `{
+        chart: { type: 'area', height: 300, animations: { enabled: false } },
+        trellis: { by: 'k', columns: 2, panelHeight: 120 },
+        series: [
+          { name: 's', k: 'a', data: walk(5, 60, 20000) },
+          { name: 's', k: 'b', data: walk(6, 60, 8000) },
+          { name: 's', k: 'c', data: walk(7, 60, 3000) },
+          { name: 's', k: 'd', data: walk(8, 60, 400) },
+        ],
+        xaxis: { type: 'datetime' },
+        dataLabels: { enabled: false },
+      }`,
+    )
+    const geom = await page.evaluate(() =>
+      window.chart.getPanels().map((p) => {
+        const g = p.chart.w.globals
+        const svgRect = p.el
+          .querySelector('svg.apexcharts-svg')
+          .getBoundingClientRect()
+        // Deepest x-label INK vs the svg's clip edge: timescale labels draw
+        // deeper than the category path, and an over-eager bottom reclaim
+        // CROPS them (a real regression: dates lost their bottom half).
+        const xBottoms = Array.from(
+          p.el.querySelectorAll('.apexcharts-xaxis-label'),
+          (n) => n.getBoundingClientRect().bottom,
+        )
+        return {
+          key: p.key,
+          translateY: g.translateY,
+          plotShare: g.gridHeight / svgRect.height,
+          yLabelCount: p.el.querySelectorAll('.apexcharts-yaxis-label').length,
+          xLabelClearance: xBottoms.length
+            ? svgRect.bottom - Math.max(...xBottoms)
+            : null,
+        }
+      }),
+    )
+    for (const p of geom) {
+      // Top air above the first gridline: was 35px of a 120px panel.
+      expect(p.translateY, `translateY of ${p.key}`).toBeLessThanOrEqual(10)
+      // The plot rectangle owns most of the panel: was 44%. (Datetime keeps
+      // a little more bottom slack than category: its labels sit deeper.)
+      expect(p.plotShare, `plot share of ${p.key}`).toBeGreaterThanOrEqual(0.65)
+      // Default targetTicks 3: at most ~4-5 labels, never the crammed 7.
+      expect(p.yLabelCount, `y labels of ${p.key}`).toBeLessThanOrEqual(5)
+      expect(p.yLabelCount, `y labels of ${p.key}`).toBeGreaterThanOrEqual(2)
+      // No cropped x labels: every glyph fully inside the svg.
+      if (p.xLabelClearance !== null) {
+        expect(
+          p.xLabelClearance,
+          `x-label clearance of ${p.key}`,
+        ).toBeGreaterThanOrEqual(1)
+      }
+    }
     expect(errors).toHaveLength(0)
   })
 
@@ -421,9 +493,9 @@ test.describe('trellis virtualization (P2)', () => {
     await page.addScriptTag({ path: umdPath })
     await page.evaluate(
       ([walkSrc, optsSrc]) => {
-        // eslint-disable-next-line no-eval
+         
         eval(walkSrc)
-        // eslint-disable-next-line no-eval
+         
         const opts = eval(`(${optsSrc})`)
         window.chart = new window.ApexCharts(
           document.querySelector('#trellis'),
@@ -840,6 +912,195 @@ test.describe('trellis P3 (one chart)', () => {
     // Geometry re-derived: the grid still satisfies the alignment invariant.
     const panels = await readPanels(page)
     expectAligned(panels)
+    expect(errors).toHaveLength(0)
+  })
+})
+
+/**
+ * P4 exit gates: two-dimensional faceting.
+ *   - a 2-D grid with a MISSING combination keeps every panel pixel-aligned
+ *     in 'placeholder' mode (the placeholder is a real panel on the same
+ *     scales), on a COLUMN fixture (the strict geometry, 22a D6).
+ *   - independent-row produces IDENTICAL rendered ticks along a row and
+ *     DIFFERENT ticks across rows, with the grid still pixel-aligned.
+ */
+test.describe('trellis 2-D (P4)', () => {
+  test("missing combination stays pixel-aligned in 'placeholder' mode", async ({
+    page,
+  }) => {
+    const errors = await mountTrellis(
+      page,
+      `{
+        chart: { type: 'bar', height: 460, animations: { enabled: false } },
+        trellis: { row: 'dept', column: 'quarter' },
+        series: [
+          { name: 'Hours', dept: 'Sales',   quarter: 'Q1', data: walk(7, 12, 10) },
+          { name: 'Hours', dept: 'Sales',   quarter: 'Q2', data: walk(8, 12, 10) },
+          { name: 'Hours', dept: 'Sales',   quarter: 'Q3', data: walk(9, 12, 10) },
+          { name: 'Hours', dept: 'Support', quarter: 'Q1', data: walk(10, 12, 10) },
+          { name: 'Hours', dept: 'Support', quarter: 'Q3', data: walk(11, 12, 10) },
+        ],
+        xaxis: { type: 'datetime' },
+        dataLabels: { enabled: false },
+      }`,
+    )
+    const panels = await readPanels(page)
+    expect(panels).toHaveLength(6)
+    expect(panels.map((p) => p.key)).toEqual([
+      'Sales / Q1',
+      'Sales / Q2',
+      'Sales / Q3',
+      'Support / Q1',
+      'Support / Q2',
+      'Support / Q3',
+    ])
+    // THE gate: the placeholder for (Support, Q2) has the identical plot
+    // rectangle, on a column-geometry fixture.
+    expectAligned(panels)
+    // Same rendered ticks everywhere (shared scale includes the placeholder).
+    for (const p of panels) {
+      expect(p.yLabels, `yLabels of ${p.key}`).toEqual(panels[0].yLabels)
+    }
+    // The placeholder carries its quiet label; strips drew once per key.
+    await expect(page.locator('.apexcharts-trellis-empty-label')).toHaveCount(1)
+    await expect(page.locator('.apexcharts-trellis-strip-column')).toHaveCount(3)
+    await expect(page.locator('.apexcharts-trellis-strip-row')).toHaveCount(2)
+    expect(errors).toHaveLength(0)
+  })
+
+  test('independent-row: identical ticks along a row, different across rows', async ({
+    page,
+  }) => {
+    const errors = await mountTrellis(
+      page,
+      `{
+        chart: { type: 'line', height: 460, animations: { enabled: false } },
+        trellis: { row: 'metric', column: 'unit', scales: { y: 'independent-row' } },
+        series: [
+          { name: 'v', metric: 'Revenue',   unit: 'East', data: walk(7, 20, 1000000) },
+          { name: 'v', metric: 'Revenue',   unit: 'West', data: walk(8, 20, 1000000) },
+          { name: 'v', metric: 'Headcount', unit: 'East', data: walk(9, 20, 10) },
+          { name: 'v', metric: 'Headcount', unit: 'West', data: walk(10, 20, 10) },
+        ],
+        xaxis: { type: 'datetime' },
+        dataLabels: { enabled: false },
+      }`,
+    )
+    const panels = await readPanels(page)
+    expect(panels).toHaveLength(4)
+    // Identical rendered ticks ALONG each row...
+    expect(panels[0].yLabels).toEqual(panels[1].yLabels)
+    expect(panels[2].yLabels).toEqual(panels[3].yLabels)
+    expect(panels[0].yLabels.length).toBeGreaterThan(1)
+    // ...different ACROSS rows (magnitude 1e6 vs 10)...
+    expect(panels[0].yLabels).not.toEqual(panels[2].yLabels)
+    // ...and the grid is still pixel-aligned (the cross-group gutter pass).
+    expectAligned(panels)
+    expect(errors).toHaveLength(0)
+  })
+})
+
+/**
+ * P5 exit gates: the type guardrails, at the pixel.
+ *   - histogram: one shared bin frame means every panel renders its bars at
+ *     IDENTICAL x positions (different samples, same edges).
+ *   - heatmap: one shared color scale means the same value paints the same
+ *     fill in every panel, under ONE shared gradient strip.
+ */
+test.describe('trellis type guardrails (P5)', () => {
+  test('histogram: shared bin edges render identical bar geometry', async ({
+    page,
+  }) => {
+    const errors = await mountTrellis(
+      page,
+      `{
+        chart: { type: 'histogram', height: 420, animations: { enabled: false } },
+        trellis: { by: 'k', columns: 3 },
+        series: [
+          { name: 'd', k: 'a', data: Array.from({length: 80}, (_, i) => 10 + ((i * 37) % 250) / 10) },
+          { name: 'd', k: 'b', data: Array.from({length: 80}, (_, i) => 25 + ((i * 53) % 250) / 10) },
+          { name: 'd', k: 'c', data: Array.from({length: 80}, (_, i) => 18 + ((i * 71) % 250) / 10) },
+        ],
+        dataLabels: { enabled: false },
+      }`,
+    )
+    const geom = await page.evaluate(() =>
+      window.chart.getPanels().map((p) => ({
+        key: p.key,
+        // A shared bin frame = identical bar x layout in every panel.
+        barX: Array.from(
+          p.el.querySelectorAll('.apexcharts-bar-area'),
+          (b) => Math.round(Number(b.getAttribute('barWidth') || 0)),
+        ),
+        edges: p.chart.w.histogramData.edges.map((e) => +e.toFixed(6)),
+        yLabels: Array.from(
+          p.el.querySelectorAll('.apexcharts-yaxis-label'),
+          (n) => n.textContent,
+        ),
+      })),
+    )
+    expect(geom).toHaveLength(3)
+    for (const p of geom) {
+      expect(p.edges, `edges of ${p.key}`).toEqual(geom[0].edges)
+      expect(p.barX.length, `bar count of ${p.key}`).toBe(geom[0].barX.length)
+      expect(p.barX, `bar widths of ${p.key}`).toEqual(geom[0].barX)
+      // Shared COUNT domain: identical rendered y labels, starting at 0.
+      expect(p.yLabels, `yLabels of ${p.key}`).toEqual(geom[0].yLabels)
+    }
+    const panels = await readPanels(page)
+    expectAligned(panels)
+    expect(errors).toHaveLength(0)
+  })
+
+  test('heatmap: the same value paints the same fill; ONE gradient strip', async ({
+    page,
+  }) => {
+    // Both panels carry a cell with value 50 but have very different extents:
+    // without the shared color frame, 50 would be panel-a's hottest color and
+    // panel-b's coldest.
+    const errors = await mountTrellis(
+      page,
+      `{
+        chart: { type: 'heatmap', height: 420, animations: { enabled: false } },
+        trellis: { by: 'k', columns: 2 },
+        series: [
+          { name: 'r1', k: 'a', data: [{ x: 'c1', y: 5 }, { x: 'c2', y: 50 }] },
+          { name: 'r2', k: 'a', data: [{ x: 'c1', y: 10 }, { x: 'c2', y: 20 }] },
+          { name: 'r1', k: 'b', data: [{ x: 'c1', y: 50 }, { x: 'c2', y: 95 }] },
+          { name: 'r2', k: 'b', data: [{ x: 'c1', y: 80 }, { x: 'c2', y: 99 }] },
+        ],
+        dataLabels: { enabled: false },
+      }`,
+    )
+    const out = await page.evaluate(() => {
+      const fillOfValue = (panel, value) => {
+        const rects = panel.el.querySelectorAll('.apexcharts-heatmap-rect')
+        for (const r of rects) {
+          if (Number(r.getAttribute('val')) === value) {
+            return r.getAttribute('color') || r.getAttribute('fill')
+          }
+        }
+        return null
+      }
+      const [a, b] = window.chart.getPanels()
+      return {
+        fillA50: fillOfValue(a, 50),
+        fillB50: fillOfValue(b, 50),
+        fillA5: fillOfValue(a, 5),
+        fillB99: fillOfValue(b, 99),
+        strips: document.querySelectorAll(
+          '.apexcharts-trellis-gradient-legend svg',
+        ).length,
+      }
+    })
+    expect(out.fillA50).toBeTruthy()
+    // THE gate: identical value, identical ink, across panels.
+    expect(out.fillA50).toBe(out.fillB50)
+    // And the scale is not degenerate: the extremes differ from the midpoint.
+    expect(out.fillA5).not.toBe(out.fillA50)
+    expect(out.fillB99).not.toBe(out.fillB50)
+    // One shared strip is the grid's legend.
+    expect(out.strips).toBe(1)
     expect(errors).toHaveLength(0)
   })
 })

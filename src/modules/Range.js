@@ -780,6 +780,18 @@ class Range {
         }
       }
     }
+
+    // An explicit z window (plotOptions.bubble.minZ/maxZ) EXPANDS the data's
+    // own extent, never clamps it (the heatmap colorScale.min/max semantics):
+    // several bubble charts can share one size scale, so the same z draws the
+    // same radius in every one of them.
+    const bubbleCfg = this.w.config.plotOptions?.bubble || {}
+    if (Utils.isNumber(bubbleCfg.minZ) && bubbleCfg.minZ < gl.minZ) {
+      gl.minZ = bubbleCfg.minZ
+    }
+    if (Utils.isNumber(bubbleCfg.maxZ) && bubbleCfg.maxZ > gl.maxZ) {
+      gl.maxZ = bubbleCfg.maxZ
+    }
   }
 
   _handleSingleDataPoint() {

@@ -1195,6 +1195,25 @@ type ApexTrellis = {
    */
   by?: string | ((series: any, index: number) => string | number | undefined)
   /**
+   * 2-D faceting: the row facet accessor. With `row`/`column` set, the grid
+   * is every (row, column) combination in row-major order with a FIXED
+   * column count; column labels draw once across the top, row labels once
+   * down the left. Mutually exclusive with `by`. A series carrying only the
+   * row key repeats across that row (a row-scoped reference series).
+   */
+  row?: string | ((series: any, index: number) => string | number | undefined)
+  /** 2-D faceting: the column facet accessor (see `row`). */
+  column?:
+    | string
+    | ((series: any, index: number) => string | number | undefined)
+  /**
+   * Missing (row, column) combinations: 'placeholder' (default) mounts a
+   * real empty panel at the shared geometry with a quiet "no data" label
+   * (`noData.text`); 'skip' keeps the slot with a tinted blank; 'hide'
+   * keeps the slot with nothing at all.
+   */
+  emptyPanels?: 'placeholder' | 'skip' | 'hide'
+  /**
    * Tidy-row input, an alternative to `series`: a row table pivoted by the
    * `by` / `x` / `y` / `seriesBy` COLUMN NAMES (all strings in this form).
    * Rows win over `series` when both are given. Duplicate (panel, series, x)
@@ -1237,13 +1256,16 @@ type ApexTrellis = {
    */
   virtualize?: 'auto' | boolean
   /**
-   * Scale resolution per channel. Independent y still renders pixel-aligned
-   * panels (the gutter pass equalizes axis widths), and an independent scale
-   * forces its own axis labels on every panel.
+   * Scale resolution per channel. y also takes 'independent-row' /
+   * 'independent-column' in a 2-D grid: one shared domain per row or column
+   * (comparable along the group, free across groups). Non-shared y still
+   * renders pixel-aligned panels (the gutter pass equalizes axis widths);
+   * 'independent' and 'independent-column' force their own y labels on
+   * every panel, 'independent-row' keeps them on the first column.
    */
   scales?: {
     x?: 'shared' | 'independent'
-    y?: 'shared' | 'independent'
+    y?: 'shared' | 'independent' | 'independent-row' | 'independent-column'
     color?: 'shared'
     size?: 'shared'
   }
@@ -1281,7 +1303,16 @@ type ApexTrellis = {
    * chart.promotePanel(key) / chart.restorePanels().
    */
   promote?: boolean
-  /** Tick density for the shared nice y scale. Default 4. */
+  /**
+   * Pie/donut/polarArea only: scale each panel's radius so its AREA is
+   * proportional to the panel's total (default false). Equal-size pies
+   * cannot encode magnitude; this is what makes a pie trellis honest.
+   */
+  radiusByTotal?: boolean
+  /**
+   * Tick-interval target for the shared nice y scale (default 3, so at most
+   * ~4 labels: a small panel wears few labels well).
+   */
   targetTicks?: number
   /** Per-panel option override, applied last. */
   panel?: (
@@ -1292,6 +1323,7 @@ type ApexTrellis = {
 
 /** One trellis panel, as returned by chart.getPanels(). */
 type ApexTrellisPanel = {
+  /** 'North' in 1-D; 'Sales / Q1' in a 2-D grid. */
   key: string
   index: number
   /** The panel's own ApexCharts instance (null before it mounts, and for
@@ -2521,6 +2553,13 @@ type ApexPlotOptions = {
     zScaling?: boolean
     minBubbleRadius?: number
     maxBubbleRadius?: number
+    /**
+     * Explicit z window for the size scale. Expands the data's own z extent,
+     * never clamps it, so several bubble charts can share one size scale
+     * (a trellis pushes the union extent through these).
+     */
+    minZ?: number
+    maxZ?: number
   }
   scatter?: {
     /**
