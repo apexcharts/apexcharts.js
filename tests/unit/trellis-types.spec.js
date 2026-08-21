@@ -486,3 +486,110 @@ describe('matrix: boxPlot and rangeBar keep position semantics', () => {
     chart.destroy()
   })
 })
+
+describe('matrix: horizontal bars measure along x, so the shared bounds go there', () => {
+  const rows = (a, b) => [
+    { x: 'one', y: a },
+    { x: 'two', y: b },
+  ]
+
+  const mountHorizontal = (extraXaxis = {}) =>
+    mount({
+      chart: { type: 'bar' },
+      plotOptions: { bar: { horizontal: true } },
+      trellis: { by: 'k' },
+      series: [
+        { name: 's', k: 'a', data: rows(10, 40) },
+        { name: 's', k: 'b', data: rows(90, 500) },
+      ],
+      xaxis: { type: 'category', ...extraXaxis },
+      dataLabels: { enabled: false },
+    })
+
+  it('pushes the value bounds onto xaxis, identically in every panel', async () => {
+    const { chart } = await mountHorizontal()
+    const a = chart.getPanel('a').w.config.xaxis
+    const b = chart.getPanel('b').w.config.xaxis
+    expect(a.min).toBe(0)
+    expect(a.min).toBe(b.min)
+    expect(a.max).toBe(b.max)
+    // The trellis's own tick target reaches the axis the library actually
+    // reads for a horizontal chart: without this the panel re-nices its own
+    // value scale and a small panel gets 7 labels.
+    expect(a.tickAmount).toBe(b.tickAmount)
+    expect(a.tickAmount).toBeLessThanOrEqual(4)
+    chart.destroy()
+  })
+
+  it('the drawn domain agrees across panels (same value, same length)', async () => {
+    const { chart } = await mountHorizontal()
+    const ga = chart.getPanel('a').w.globals
+    const gb = chart.getPanel('b').w.globals
+    expect(ga.minY).toBe(gb.minY)
+    expect(ga.maxY).toBe(gb.maxY)
+    // The bigger panel's own max is what both panels are framed by.
+    expect(ga.maxY).toBeGreaterThanOrEqual(500)
+    chart.destroy()
+  })
+
+  it('an explicit xaxis.tickAmount wins, and the panels still agree', async () => {
+    const { chart } = await mountHorizontal({ tickAmount: 2 })
+    const a = chart.getPanel('a').w.config.xaxis
+    const b = chart.getPanel('b').w.config.xaxis
+    expect(a.tickAmount).toBe(2)
+    expect(b.tickAmount).toBe(2)
+    expect(a.min).toBe(b.min)
+    expect(a.max).toBe(b.max)
+    chart.destroy()
+  })
+
+  it('a vertical bar trellis leaves xaxis bounds alone', async () => {
+    const { chart } = await mount({
+      chart: { type: 'bar' },
+      trellis: { by: 'k' },
+      series: [
+        { name: 's', k: 'a', data: rows(10, 40) },
+        { name: 's', k: 'b', data: rows(90, 500) },
+      ],
+      xaxis: { type: 'category' },
+      dataLabels: { enabled: false },
+    })
+    const a = chart.getPanel('a').w.config.xaxis
+    expect(a.min === undefined || a.min === null).toBe(true)
+    expect(yOf(chart, 'a').max).toBe(yOf(chart, 'b').max)
+    chart.destroy()
+  })
+})
+
+describe('the shared toolbar reserves its own band', () => {
+  const series = [
+    { name: 's', k: 'a', data: pairs(10) },
+    { name: 's', k: 'b', data: pairs(40) },
+  ]
+
+  it('marks the wrapper so the grid starts below the buttons', async () => {
+    const { chart, el } = await mount({
+      chart: { type: 'line' },
+      trellis: { by: 'k' },
+      series,
+      xaxis: { type: 'numeric' },
+    })
+    const wrap = el.querySelector('.apexcharts-trellis')
+    expect(wrap.classList.contains('apexcharts-trellis-has-toolbar')).toBe(true)
+    expect(el.querySelectorAll('.apexcharts-trellis-toolbar').length).toBe(1)
+    chart.destroy()
+  })
+
+  it('claims no band when the toolbar is off', async () => {
+    const { chart, el } = await mount({
+      chart: { type: 'line' },
+      trellis: { by: 'k', toolbar: 'none' },
+      series,
+      xaxis: { type: 'numeric' },
+    })
+    const wrap = el.querySelector('.apexcharts-trellis')
+    expect(wrap.classList.contains('apexcharts-trellis-has-toolbar')).toBe(false)
+    expect(el.querySelectorAll('.apexcharts-trellis-toolbar').length).toBe(0)
+    chart.destroy()
+  })
+})

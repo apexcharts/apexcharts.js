@@ -245,6 +245,20 @@ export default class Tooltip {
       tooltipEl.classList.add('apexcharts-tooltip-fill-series')
     }
 
+    // `compact`: one tight line instead of a card. The x label loses its own
+    // title bar and sits inline before the value, the marker goes, and the
+    // padding and font shrink. Meant for panels a normal card would cover
+    // (small multiples, sparklines, dashboard tiles). With a SINGLE series the
+    // series-name label goes too, because in a one-series panel it repeats
+    // what the panel header already says; with several series the names are
+    // the only thing distinguishing the rows, so they stay.
+    if (this.tConfig.compact) {
+      tooltipEl.classList.add('apexcharts-tooltip-compact')
+      if (w.config.series.length === 1) {
+        tooltipEl.classList.add('apexcharts-tooltip-value-only')
+      }
+    }
+
     // Optional user-supplied solid background — set on the CSS variable so
     // the rest of the glass theme (border, shadow) still applies cleanly.
     // An opaque value also visually disables the backdrop blur.
@@ -888,8 +902,16 @@ export default class Tooltip {
     if (!tooltipEl) return
     const xcrosshairs = this.getElXCrosshairs()
 
+    // A 2-D cell chart is hit-tested per CELL, not per x index, so it has its
+    // own handler and must never fall into the sticky/synced path below: that
+    // path resolves one x index, prints every series row for it, and anchors
+    // the card to the axis rather than the cell. In a group (a trellis panel
+    // is always grouped) that turned a one-line cell tooltip into an
+    // all-rows card pinned to the first column.
+    const isCellChart = ['heatmap', 'treemap'].includes(w.config.chart.type)
+
     let syncedCharts = []
-    if (w.config.chart.group) {
+    if (w.config.chart.group && !isCellChart) {
       // we need to fallback to sticky tooltip in case charts are synced
       syncedCharts = this.ctx.getSyncedCharts()
     }
@@ -932,8 +954,8 @@ export default class Tooltip {
       }
 
       if (
-        (isStickyTooltip && !this.showOnIntersect) ||
-        syncedCharts.length > 1
+        !isCellChart &&
+        ((isStickyTooltip && !this.showOnIntersect) || syncedCharts.length > 1)
       ) {
         this.handleStickyTooltip(e, clientX, clientY, opt)
       } else {

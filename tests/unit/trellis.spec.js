@@ -483,3 +483,52 @@ describe('tidy-row input (P2)', () => {
     chart.destroy()
   })
 })
+
+describe('compact tooltips on short panels', () => {
+  /** The tooltip config one panel ends up with. */
+  const ttOf = (chart, key) => chart.getPanel(key).w.config.tooltip
+
+  it('a short panel defaults to the compact one-liner', async () => {
+    const { chart } = await renderTrellis({
+      trellis: { panelHeight: 80 },
+    })
+    expect(ttOf(chart, 'North').compact).toBe(true)
+    expect(ttOf(chart, 'South').compact).toBe(true)
+    chart.destroy()
+  })
+
+  it('a normal-height panel keeps the full card', async () => {
+    const { chart } = await renderTrellis({
+      trellis: { panelHeight: 220 },
+    })
+    expect(ttOf(chart, 'North').compact).toBe(false)
+    chart.destroy()
+  })
+
+  it('an explicit tooltip.compact wins, either way', async () => {
+    const on = await renderTrellis({
+      trellis: { panelHeight: 220 },
+      options: { tooltip: { compact: true } },
+    })
+    expect(ttOf(on.chart, 'North').compact).toBe(true)
+    on.chart.destroy()
+
+    const off = await renderTrellis(
+      {
+        trellis: { panelHeight: 80 },
+        options: { tooltip: { compact: false } },
+      },
+      'trellis-host-2',
+    )
+    expect(ttOf(off.chart, 'North').compact).toBe(false)
+    off.chart.destroy()
+  })
+
+  it("tooltip: 'grid' opts out (it composes its card from the panels')", async () => {
+    const { chart } = await renderTrellis({
+      trellis: { panelHeight: 80, tooltip: 'grid' },
+    })
+    expect(ttOf(chart, 'North').compact).toBe(false)
+    chart.destroy()
+  })
+})

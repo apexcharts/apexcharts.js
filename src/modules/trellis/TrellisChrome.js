@@ -398,5 +398,9 @@ export default class TrellisChrome {
 
     host.appendChild(bar)
     this.elToolbar = bar
+    // The toolbar floats at the grid's top-right, so the grid has to start
+    // BELOW it: at four or more columns the last cell's header runs straight
+    // under the buttons otherwise.
+    host.classList.add('apexcharts-trellis-has-toolbar')
   }
 }

@@ -663,6 +663,58 @@ rect.legend-mouseover-inactive,
   padding: 6px 0 5px
 }
 
+/* `tooltip.compact`: a tight box instead of a card, for panels a normal card
+   would cover (small multiples, sparklines, tiles). Only the box shrinks, so
+   the arrow and every anchor rule still apply. Rows stay stacked when there
+   are several series (the names are what tells them apart); a one-series
+   chart collapses to a single line, see `-value-only` below. */
+.apexcharts-tooltip.apexcharts-tooltip-compact {
+  padding: 3px 8px;
+  font-size: 11px;
+  line-height: 1.35
+}
+
+.apexcharts-tooltip-compact .apexcharts-tooltip-title {
+  padding: 0;
+  font-size: 11px;
+  white-space: nowrap
+}
+
+.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,
+.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,
+.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child {
+  padding: 0;
+  gap: 5px
+}
+
+.apexcharts-tooltip-compact .apexcharts-tooltip-y-group {
+  padding: 0
+}
+
+.apexcharts-tooltip-compact .apexcharts-tooltip-marker {
+  width: 8px;
+  height: 8px
+}
+
+/* A one-series panel: the series name repeats what the panel header already
+   says, so the value stands alone and the x label becomes its prefix on one
+   line ("Aug 2024  6.59"). */
+.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only {
+  /* The tooltip body is a flex COLUMN by default (title row, then series
+     rows); one series needs no column, so the same box turns into one line. */
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px
+}
+
+.apexcharts-tooltip-value-only .apexcharts-tooltip-marker {
+  display: none
+}
+
+.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label {
+  display: none
+}
+
 .apexcharts-custom-tooltip,
 .apexcharts-tooltip-box {
   padding: 4px 8px
@@ -1366,14 +1418,16 @@ rect.legend-mouseover-inactive,
 .apexcharts-trellis-mute-x .apexcharts-xaxis {
   opacity: 0;
 }
-/* 2-D faceting (P4): column labels once across the top, row labels once
-   down the left. The row strip column is auto-sized; panel columns stay
-   equal fractions, so panel alignment is independent of the strip width.
-   The grid drops below the toolbar band so the last column's label and the
-   toolbar never collide. */
-.apexcharts-trellis-2d {
+/* The shared toolbar floats at the top-right, so a grid that has one starts
+   below it: from four columns on, the last cell's header (or a 2-D column
+   strip label) would otherwise run under the buttons. One band for the whole
+   grid, not per panel. */
+.apexcharts-trellis-has-toolbar {
   padding-top: 24px;
 }
+/* 2-D faceting (P4): column labels once across the top, row labels once
+   down the left. The row strip column is auto-sized; panel columns stay
+   equal fractions, so panel alignment is independent of the strip width. */
 .apexcharts-trellis-strip {
   font-size: 12px;
   font-weight: 600;

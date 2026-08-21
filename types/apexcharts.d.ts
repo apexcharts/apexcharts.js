@@ -3830,6 +3830,15 @@ type ApexTooltip = {
   intersect?: boolean
   inverseOrder?: boolean
   arrow?: boolean
+  /**
+   * One tight line instead of a card: the x label sits inline before the
+   * value, the marker goes, the padding and font shrink. Meant for panels a
+   * normal card would cover (small multiples, sparklines, dashboard tiles).
+   * A single-series chart also drops the series-name label; with several
+   * series the names stay, since they are what tells the rows apart.
+   * @default false
+   */
+  compact?: boolean
   custom?:
     | ((opts: ApexTooltipCustomOpts) => string | number | Element | { nodeName: string })
     | Array<(opts: ApexTooltipCustomOpts) => string | number | Element | { nodeName: string }>

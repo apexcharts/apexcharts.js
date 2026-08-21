@@ -1,0 +1,207 @@
+<title>Trellis Chart - Task Mix by Team (Horizontal Bars)</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fafbfc;
+  color: #2c3e50;
+  margin: 0;
+  padding: 32px 16px;
+}
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+.lead {
+  color: #5b6b78;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+.chart-wrap {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+.axis-note {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5b6b78;
+  margin: 6px 0 0;
+}
+.note {
+  background: #f0f9ff;
+  border-left: 3px solid #0369a1;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #333;
+  border-radius: 2px;
+  line-height: 1.6;
+  margin: 26px auto 0;
+}
+.note code {
+  background: #e0f2fe;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+</style>
+
+<scripts>
+<script>
+// Eight teams, the same seven tasks in the same order in every panel, one
+// colour per team. Horizontal bars are the right shape when the categories
+// are words rather than dates, and a trellis of them answers "does every
+// team work the same way?" in one sweep.
+//
+// The row order is IDENTICAL in every panel on purpose. Sorting each panel
+// by its own values would make every panel a descending staircase and the
+// comparison would be gone: same row, same height, is what carries meaning
+// across a grid.
+//
+// Deterministic values so the e2e snapshot is stable.
+function mulberry32(seed) {
+  return function () {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+// Short category names on purpose: a trellis reserves the label gutter in
+// every panel (that is what keeps the plot rectangles pixel-identical), so
+// long category names are paid for N times over.
+var TASKS = [
+  'Ad hoc',
+  'Reports',
+  'Dashboards',
+  'Alerts',
+  'Modeling',
+  'Sharing',
+  'Exports',
+]
+
+// Each team gets a task profile: the shape of the profile is the story.
+var TEAMS = [
+  { name: 'Atlas', color: '#2563EB', profile: [64, 52, 44, 22, 18, 14, 8] },
+  { name: 'Beacon', color: '#0E7490', profile: [58, 61, 39, 26, 12, 19, 11] },
+  { name: 'Cobalt', color: '#15803D', profile: [41, 38, 57, 34, 9, 24, 6] },
+  { name: 'Delta', color: '#B45309', profile: [67, 44, 31, 17, 26, 12, 14] },
+  { name: 'Ember', color: '#B91C1C', profile: [35, 29, 62, 48, 7, 31, 9] },
+  { name: 'Forge', color: '#0F766E', profile: [52, 47, 36, 21, 33, 16, 12] },
+  { name: 'Harbor', color: '#A16207', profile: [46, 55, 42, 19, 11, 27, 18] },
+  { name: 'Ivy', color: '#475569', profile: [61, 33, 28, 39, 15, 22, 7] },
+]
+
+var rand = mulberry32(20260821)
+var teamSeries = TEAMS.map(function (t) {
+  return {
+    name: 'Weekly use',
+    team: t.name,
+    data: TASKS.map(function (task, ti) {
+      // A little jitter around the profile, clamped to the shared 0-70 frame.
+      var v = t.profile[ti] * (0.92 + rand() * 0.16)
+      return { x: task, y: Math.min(70, Math.max(2, Math.round(v))) }
+    }),
+  }
+})
+
+var TEAM_COLORS = {}
+TEAMS.forEach(function (t) {
+  TEAM_COLORS[t.name] = t.color
+})
+</script>
+</scripts>
+
+<html>
+<div class="wrap">
+  <h1>How each team actually uses the workspace</h1>
+  <p class="lead">
+    Eight teams, the same seven tasks in the same order, every panel on the
+    same 0-75% scale. Reading down a column compares one task across teams;
+    reading a panel top to bottom is one team's whole working style.
+  </p>
+
+  <div class="chart-wrap">
+    {{ charts[0] }}
+    <p class="axis-note">Share of team members using the task weekly (every panel spans 0-75%)</p>
+  </div>
+
+  <div class="note">
+    Horizontal bars put the category labels on the vertical axis, so the
+    <code>axes.labels: 'edges'</code> policy draws them down the first column
+    and mutes the rest: the space stays reserved in every panel, which is
+    exactly what keeps the plot rectangles pixel-identical. The shared value
+    scale is what makes bar length comparable across panels, and because a
+    horizontal bar measures along x, the trellis pushes those shared bounds
+    onto the <code>xaxis</code>, where the library reads a horizontal chart's
+    value axis from. Setting <code>xaxis.tickAmount</code> yourself overrides
+    the trellis's tick target, and per-team colour comes from
+    <code>trellis.panel</code>, the per-panel override hook. Trellis is a
+    premium feature; without a license it renders with a trial watermark.
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'taskMixTrellis',
+  type: 'bar',
+  height: 620,
+  animations: {
+    enabled: false,
+  },
+},
+trellis: {
+  by: 'team',
+  columns: 4,
+  minPanelWidth: 200,
+  gap: 10,
+  panel: function (key) {
+    return { colors: [TEAM_COLORS[key] || '#475569'] }
+  },
+},
+plotOptions: {
+  bar: {
+    horizontal: true,
+    barHeight: '68%',
+    borderRadius: 2,
+    borderRadiusApplication: 'end',
+  },
+},
+xaxis: {
+  type: 'category',
+  labels: {
+    formatter: function (val) {
+      return Math.round(Number(val)) + '%'
+    },
+  },
+},
+dataLabels: {
+  enabled: false,
+},
+grid: {
+  xaxis: {
+    lines: {
+      show: true,
+    },
+  },
+  yaxis: {
+    lines: {
+      show: false,
+    },
+  },
+},
+</options>
+
+<series>
+teamSeries
+</series>
+</chart>

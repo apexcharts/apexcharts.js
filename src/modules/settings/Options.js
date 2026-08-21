@@ -2232,6 +2232,12 @@ export default class Options {
         intersect: false, // when enabled, tooltip will only show when user directly hovers over point
         inverseOrder: false,
         arrow: true,
+        // One tight line instead of a card: the x label sits inline before
+        // the value, the marker goes, the padding and font shrink. For panels
+        // a normal card would cover (small multiples, sparklines, tiles). A
+        // single-series chart drops the series-name label too; with several
+        // series the names stay, because they are what tells the rows apart.
+        compact: false,
         custom: undefined,
         fillSeriesColor: false,
         theme: 'light',

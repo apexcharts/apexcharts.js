@@ -1104,3 +1104,91 @@ test.describe('trellis type guardrails (P5)', () => {
     expect(errors).toHaveLength(0)
   })
 })
+
+test.describe('trellis horizontal bars + toolbar band', () => {
+  test('horizontal panels share the value axis and stay few-ticked', async ({
+    page,
+  }) => {
+    // Panel b is an order of magnitude bigger than panel a: without the
+    // shared bounds on the axis the library actually reads for a horizontal
+    // chart (xaxis), each panel would frame its own data and the same value
+    // would draw at a different length in each.
+    const errors = await mountTrellis(
+      page,
+      `{
+        chart: { type: 'bar', height: 420, animations: { enabled: false } },
+        plotOptions: { bar: { horizontal: true } },
+        trellis: { by: 'k', columns: 2 },
+        series: [
+          { name: 's', k: 'a', data: [{ x: 'one', y: 10 }, { x: 'two', y: 40 }] },
+          { name: 's', k: 'b', data: [{ x: 'one', y: 40 }, { x: 'two', y: 500 }] },
+        ],
+        xaxis: { type: 'category' },
+        dataLabels: { enabled: false },
+      }`,
+    )
+    const out = await page.evaluate(() => {
+      const panels = window.chart.getPanels()
+      return panels.map((p) => ({
+        key: p.key,
+        // Bar LENGTHS in draw order: a[1] and b[0] both encode 40.
+        bars: Array.from(p.el.querySelectorAll('.apexcharts-bar-area'), (b) =>
+          Math.round(b.getBoundingClientRect().width),
+        ),
+        // Numeric (value) labels live on the x axis when bars are horizontal.
+        xLabels: Array.from(
+          p.el.querySelectorAll('.apexcharts-xaxis-label'),
+          (n) => n.textContent.trim(),
+        ).filter(Boolean),
+        domain: [p.chart.w.globals.minY, p.chart.w.globals.maxY],
+      }))
+    })
+    expect(out).toHaveLength(2)
+    // One shared frame: identical domain, so 40 is the same length in both.
+    expect(out[0].domain).toEqual(out[1].domain)
+    expect(out[0].bars[1]).toBe(out[1].bars[0])
+    // The tick target reaches the horizontal value axis: a small panel must
+    // not end up with the 7-label axis the density pass removed.
+    expect(out[0].xLabels.length).toBeGreaterThan(1)
+    expect(out[0].xLabels.length).toBeLessThanOrEqual(5)
+    expect(out[0].xLabels).toEqual(out[1].xLabels)
+    const panels = await readPanels(page)
+    expectAligned(panels)
+    expect(errors).toHaveLength(0)
+  })
+
+  test('the toolbar never sits on a cell header', async ({ page }) => {
+    const errors = await mountTrellis(
+      page,
+      `{
+        chart: { type: 'line', height: 460, animations: { enabled: false } },
+        trellis: { by: 'k', columns: 5, minPanelWidth: 120 },
+        series: Array.from({ length: 10 }, (_, i) => ({
+          name: 's',
+          k: 'panel ' + (i + 1),
+          data: Array.from({ length: 6 }, (_, j) => [j, 10 + i + j]),
+        })),
+        xaxis: { type: 'numeric' },
+      }`,
+    )
+    const out = await page.evaluate(() => {
+      const bar = document.querySelector('.apexcharts-trellis-toolbar')
+      const headers = Array.from(
+        document.querySelectorAll('.apexcharts-trellis-header'),
+      )
+      const b = bar.getBoundingClientRect()
+      const overlaps = headers.filter((h) => {
+        const r = h.getBoundingClientRect()
+        return (
+          r.left < b.right && r.right > b.left && r.top < b.bottom && r.bottom > b.top
+        )
+      }).length
+      const firstHeader = headers[0].getBoundingClientRect()
+      return { overlaps, headerTop: firstHeader.top, toolbarBottom: b.bottom }
+    })
+    // The band is reserved, so the first header row starts below the buttons.
+    expect(out.overlaps).toBe(0)
+    expect(out.headerTop).toBeGreaterThanOrEqual(out.toolbarBottom - 1)
+    expect(errors).toHaveLength(0)
+  })
+})

@@ -78,6 +78,14 @@ const PANEL_PAD_RECLAIM_BOTTOM = 7
 const PANEL_PAD_RECLAIM_BOTTOM_DATETIME = 2
 
 /**
+ * Panel height (px) below which panels default to `tooltip.compact`. A normal
+ * card runs ~45px for one row and ~110px for three, so on a panel this short
+ * it covers the line it is captioning. Set `tooltip.compact` yourself (either
+ * value) and the trellis leaves the decision alone.
+ */
+const COMPACT_TOOLTIP_PANEL_H = 120
+
+/**
  * Chart types a trellis refuses (P5, plan §10): the reading does not survive
  * a small frame, so the host warns and renders a single chart instead of an
  * unreadable grid. `unit` is a redirect, not a limitation: its native
@@ -296,6 +304,41 @@ export default class Trellis {
       return scales.colY.get(slice.colKey ?? '') || null
     }
     return null
+  }
+
+  /**
+   * Horizontal bars measure along x, and the library reads that value axis
+   * from `xaxis` (Scales.setYScaleForIndex switches on `isBarHorizontal`),
+   * so the shared bounds have to be pushed THERE as well: `yaxis` alone
+   * seeds the domain but the panel then re-nices it from its own data, which
+   * silently discards the trellis's tick target.
+   *
+   * rangeBar is excluded on purpose: its horizontal value axis carries dates,
+   * and a nice-number domain is meaningless on a timeline.
+   * @returns {boolean}
+   */
+  _valueAxisIsX() {
+    const cnf = this.w.config
+    return (
+      ['bar', 'boxPlot', 'violin'].includes(cnf.chart.type) &&
+      !!cnf.plotOptions?.bar?.horizontal
+    )
+  }
+
+  /**
+   * The value-axis patch for a horizontal panel. An explicit user
+   * `xaxis.tickAmount` wins: the count is theirs to set, and the panels
+   * still agree because they all re-nice from the SAME pushed bounds.
+   * @param {{ min: number, max: number, tickAmount: number }} bounds
+   * @returns {Record<string, any>}
+   */
+  _valueAxisXPatch(bounds) {
+    /** @type {Record<string, any>} */
+    const patch = { min: bounds.min, max: bounds.max }
+    if (typeof this.ctx.opts?.xaxis?.tickAmount !== 'number') {
+      patch.tickAmount = bounds.tickAmount
+    }
+    return patch
   }
 
   /** @returns {string} namespaced panel group id */
@@ -807,6 +850,16 @@ export default class Trellis {
       legend: { show: false },
       // A placeholder has nothing to read: its zero marks must not caption.
       ...(isPlaceholder ? { tooltip: { enabled: false } } : {}),
+      // A normal tooltip card is taller than a short panel, so on a dense
+      // grid it covers the very line it is captioning. Below the threshold
+      // the panels get the compact one-liner unless the user decided for
+      // themselves. 'grid' mode composes its own card from the panels', so it
+      // opts out: shrinking the source rows would shrink the grid card too.
+      ...(ly.panelH < COMPACT_TOOLTIP_PANEL_H &&
+      this.cfg.tooltip !== 'grid' &&
+      typeof this.ctx.opts?.tooltip?.compact !== 'boolean'
+        ? { tooltip: { compact: true } }
+        : {}),
     }
 
     // Reclaim the standalone chart's vertical breathing room (see the
@@ -837,8 +890,11 @@ export default class Trellis {
     }
 
     // Shared x domain (numeric/datetime): the equal-minX gate is what allows
-    // the group tooltip sync at all.
-    if (scales.x) {
+    // the group tooltip sync at all. Skipped when x IS the value axis
+    // (horizontal bars): there the union of the numeric CATEGORIES would
+    // overwrite the value domain with category indices.
+    const valueAxisIsX = this._valueAxisIsX()
+    if (scales.x && !valueAxisIsX) {
       overrides.xaxis = { min: scales.x.min, max: scales.x.max }
     }
     // The panel's y domain per the scales mode (shared union, or its
@@ -885,6 +941,12 @@ export default class Trellis {
         ...labelsPatch,
       })
       delete base.yaxis
+      if (valueAxisIsX) {
+        overrides.xaxis = Utils.extend(
+          overrides.xaxis || {},
+          this._valueAxisXPatch(yBounds),
+        )
+      }
     }
 
     // Type frames (P5): the shared hidden frames every panel must draw in.
@@ -1177,7 +1239,10 @@ export default class Trellis {
               )
           : nextSplit.panels[i].series,
       }
-      if (scales.x) payload.xaxis = { min: scales.x.min, max: scales.x.max }
+      const valueAxisIsX = this._valueAxisIsX()
+      if (scales.x && !valueAxisIsX) {
+        payload.xaxis = { min: scales.x.min, max: scales.x.max }
+      }
       const yBounds = this._yBoundsFor(nextSplit.panels[i])
       if (yBounds) {
         payload.yaxis = yaxisPayload(p.chart, {
@@ -1185,6 +1250,12 @@ export default class Trellis {
           max: yBounds.max,
           tickAmount: yBounds.tickAmount,
         })
+        if (valueAxisIsX) {
+          payload.xaxis = Utils.extend(
+            payload.xaxis || {},
+            this._valueAxisXPatch(yBounds),
+          )
+        }
       }
       if (frames.plotOptions) {
         payload.plotOptions = Utils.clone(frames.plotOptions)
