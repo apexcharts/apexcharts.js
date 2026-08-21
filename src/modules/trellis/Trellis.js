@@ -43,6 +43,8 @@ import * as TrellisLayout from './TrellisLayout'
 import TrellisChrome from './TrellisChrome'
 import TrellisSync, { yaxisPayload } from './TrellisSync'
 import TrellisVirtual from './TrellisVirtual'
+import TrellisTooltip from './TrellisTooltip'
+import TrellisExports from './TrellisExports'
 
 /** Above this, `virtualize: 'auto'` mounts only the visible panels (P2). */
 const EAGER_PANEL_BUDGET = 64
@@ -99,6 +101,46 @@ export function choosePanelRenderer(
   return computeMarkCount(shim) >= threshold ? 'canvas' : null
 }
 
+/**
+ * Trellis-scoped annotations (P3): filter one annotations config for one
+ * panel. An annotation with no `scope` (or `scope: 'trellis'`) draws in
+ * EVERY panel, projected through that panel's own scale; a string or string[]
+ * scope names the panel key(s) it belongs to. The `scope` key itself is
+ * stripped from the copy the panel receives.
+ *
+ * Pure; exported for tests.
+ *
+ * @param {Record<string, any>|undefined} annotations a cloned annotations config
+ * @param {string} key the panel's facet key
+ * @returns {Record<string, any>|undefined}
+ */
+export function scopeAnnotations(annotations, key) {
+  if (!annotations || typeof annotations !== 'object') return annotations
+  const out = { ...annotations }
+  for (const kind of ['yaxis', 'xaxis', 'points', 'texts', 'images']) {
+    const list = out[kind]
+    if (!Array.isArray(list)) continue
+    out[kind] = list
+      .filter((item) => {
+        if (!item || item.scope === undefined || item.scope === null) {
+          return true
+        }
+        if (item.scope === 'trellis') return true
+        if (Array.isArray(item.scope)) {
+          return item.scope.map(String).indexOf(key) !== -1
+        }
+        return String(item.scope) === key
+      })
+      .map((item) => {
+        if (!item || item.scope === undefined) return item
+        const copy = { ...item }
+        delete copy.scope
+        return copy
+      })
+  }
+  return out
+}
+
 export default class Trellis {
   /**
    * @param {import('../../types/internal').ChartStateW} w
@@ -124,6 +166,11 @@ export default class Trellis {
     this.sync = new TrellisSync(this)
     this.chrome = new TrellisChrome(this)
     this.virtual = new TrellisVirtual(this)
+    this.exports = new TrellisExports(this)
+    /** @type {TrellisTooltip|null} the grid-mode tooltip card (P3) */
+    this.gridTooltip = null
+    /** @type {string|null} the promoted panel's key (P3) */
+    this._promotedKey = null
     /** The panel constructor, exposed so TrellisVirtual stays import-light. */
     this._ApexCharts = ApexCharts
     /** @type {boolean} whether this render virtualizes (P2) */
@@ -301,6 +348,10 @@ export default class Trellis {
       this.chrome.buildToolbar(wrap)
       this.chrome.buildLegend(wrap)
       this.sync.wireCrosshairs(/** @type {HTMLElement} */ (this.elGrid))
+      if ((this.cfg.tooltip || 'panel') === 'grid') {
+        this.gridTooltip = new TrellisTooltip(this)
+        this.gridTooltip.wire(/** @type {HTMLElement} */ (this.elGrid), wrap)
+      }
 
       // 7. One ResizeObserver for the whole grid; panels have both
       //    redrawOn*Resize flags off, so this is the only relayout owner.
@@ -458,6 +509,11 @@ export default class Trellis {
     delete base.trellis
     delete base.series
     delete base.responsive
+    // Trellis-scoped annotations (P3): declared once on the host, filtered
+    // per panel by `scope`, projected through each panel's own scale.
+    if (base.annotations) {
+      base.annotations = scopeAnnotations(base.annotations, slice.key)
+    }
 
     const userChart = base.chart || {}
     const userEvents = userChart.events || {}
@@ -594,8 +650,99 @@ export default class Trellis {
       const width = this._containerWidth()
       if (Math.round(width) === Math.round(this._lastWidth)) return
       this._lastWidth = width
+      if (this._promotedKey) {
+        // While promoted the grid layout is suspended; the promoted panel
+        // just re-measures its new width.
+        const p = this.panels.find((p) => p.key === this._promotedKey)
+        if (p && p.chart) p.chart.updateOptions({}, false, false, false).catch(() => {})
+        return
+      }
       this._relayout(width)
     })
+  }
+
+  /**
+   * Panel promotion (P3): expand one panel to the grid's full width, park the
+   * rest (their cells hide; virtualized ones unmount via the observer), and
+   * show a breadcrumb to come back. Zoom/legend state is untouched: parked
+   * eager panels stay alive, parked virtual panels stash and restore.
+   * @param {string} key
+   * @returns {Promise<void>}
+   */
+  async promote(key) {
+    const panel = this.panels.find((p) => p.key === String(key))
+    if (!panel || !this._mounted) return
+    if (this._promotedKey === panel.key) return
+    if (this._promotedKey) await this.restorePromotion()
+
+    this._promotedKey = panel.key
+    const ly = this.layout
+    const gridH = this.elGrid ? this.elGrid.getBoundingClientRect().height : 0
+    // The grid's own footprint, bounded to something a single chart wears
+    // well: never taller than the grid it replaces, never a sliver.
+    const promotedH = Math.round(
+      Math.max(280, Math.min(560, gridH || (ly ? ly.panelH * 2.4 : 420))),
+    )
+
+    this.elWrap?.classList.add('apexcharts-trellis-promoting')
+    this.panels.forEach((p) => {
+      if (!p.cellEl) return
+      const promoted = p === panel
+      p.cellEl.classList.toggle('apexcharts-trellis-cell-promoted', promoted)
+      p.cellEl.classList.toggle('apexcharts-trellis-cell-parked', !promoted)
+    })
+    this.chrome.buildBreadcrumb(
+      /** @type {HTMLElement} */ (this._elChromeTop),
+      panel.key,
+      () => this.restorePromotion(),
+    )
+
+    if (!panel.chart && this._virtualActive) {
+      // A promotion by API of an offscreen panel: mount it through the
+      // normal drain (it now intersects, its cell being the only one shown).
+      panel.wantMounted = true
+      this.virtual._dirty.add(panel)
+      this.virtual._schedule()
+    }
+    if (panel.el) panel.el.style.minHeight = `${promotedH}px`
+    if (panel.chart) {
+      await panel.chart
+        .updateOptions({ chart: { height: promotedH } }, false, false, false)
+        .catch(() => {})
+    }
+    this.ctx.events.fireEvent('panelPromoted', [
+      this.ctx,
+      { key: panel.key, chart: panel.chart },
+    ])
+  }
+
+  /** Restore the grid from a promotion. @returns {Promise<void>} */
+  async restorePromotion() {
+    if (!this._promotedKey) return
+    const panel = this.panels.find((p) => p.key === this._promotedKey)
+    this._promotedKey = null
+    this.elWrap?.classList.remove('apexcharts-trellis-promoting')
+    this.panels.forEach((p) => {
+      if (!p.cellEl) return
+      p.cellEl.classList.remove('apexcharts-trellis-cell-promoted')
+      p.cellEl.classList.remove('apexcharts-trellis-cell-parked')
+    })
+    this.chrome.removeBreadcrumb()
+    const ly = this.layout
+    if (panel && panel.el && ly) panel.el.style.minHeight = `${ly.panelH}px`
+    if (panel && panel.chart && ly) {
+      await panel.chart
+        .updateOptions({ chart: { height: ly.panelH } }, false, false, false)
+        .catch(() => {})
+    }
+    // Re-derive the grid for the current width (mutes, heights, observer).
+    this._lastWidth = 0
+    this._relayout(this._containerWidth())
+    this._lastWidth = this._containerWidth()
+    this.ctx.events.fireEvent('panelRestored', [
+      this.ctx,
+      { key: panel ? panel.key : null },
+    ])
   }
 
   /**
@@ -714,6 +861,11 @@ export default class Trellis {
     this.virtual.stop()
     this._virtualActive = false
     this._panelRenderer = null
+    this._promotedKey = null
+    if (this.gridTooltip) {
+      this.gridTooltip.destroy()
+      this.gridTooltip = null
+    }
     if (this._raf) {
       cancelAnimationFrame(this._raf)
       this._raf = 0

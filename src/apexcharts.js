@@ -2286,6 +2286,11 @@ export default class ApexCharts {
       throw new Error(
         'apexcharts: Exports feature is not registered. Import apexcharts/features/exports.',
       )
+    // Trellis (#22, P3): a trellis host exports ONE composed image of the
+    // whole grid (its panels' own export paths do the per-panel work).
+    if (this.trellis && this.trellis._mounted) {
+      return this.trellis.exports.dataURI(options)
+    }
     return this.ctx.exports.dataURI(options)
   }
 
@@ -2301,6 +2306,9 @@ export default class ApexCharts {
       throw new Error(
         'apexcharts: Exports feature is not registered. Import apexcharts/features/exports.',
       )
+    if (this.trellis && this.trellis._mounted) {
+      return this.trellis.exports.svgString()
+    }
     return this.ctx.exports.getSvgString(scale)
   }
 
@@ -2315,7 +2323,32 @@ export default class ApexCharts {
       throw new Error(
         'apexcharts: Exports feature is not registered. Import apexcharts/features/exports.',
       )
+    if (this.trellis && this.trellis._mounted) {
+      return this.trellis.exports.download('csv')
+    }
     return this.ctx.exports.exportToCSV(options)
+  }
+
+  /**
+   * Trellis (#22, P3): expand one panel to the grid's full width (what
+   * clicking its header does). No-op on a chart that is not a trellis host.
+   * @param {string} key the panel's facet key
+   * @returns {Promise<void>}
+   */
+  promotePanel(key) {
+    return this.trellis && this.trellis._mounted
+      ? this.trellis.promote(key)
+      : Promise.resolve()
+  }
+
+  /**
+   * Trellis (#22, P3): restore the grid from a panel promotion.
+   * @returns {Promise<void>}
+   */
+  restorePanels() {
+    return this.trellis && this.trellis._mounted
+      ? this.trellis.restorePromotion()
+      : Promise.resolve()
   }
 
   paper() {

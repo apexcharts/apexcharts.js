@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Trellis Chart - Panel Promotion (Click a Header to Expand)</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #fafbfc;
+        color: #2c3e50;
+        margin: 0;
+        padding: 32px 16px;
+      }
+      .wrap {
+        max-width: 1040px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      .lead {
+        color: #5b6b78;
+        line-height: 1.5;
+        margin: 0 0 20px;
+      }
+      .chart-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .note {
+        background: #ecfeff;
+        border-left: 3px solid #0891b2;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #333;
+        border-radius: 2px;
+        line-height: 1.6;
+        margin: 26px auto 0;
+      }
+      .note code {
+        background: #cffafe;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // Nine services' p99 latency, one panel each. The grid answers "which
+      // service is misbehaving" (checkout is); CLICKING THAT HEADER answers "what
+      // exactly happened": the panel expands to the grid's full width with both
+      // axes readable, and the "All panels" breadcrumb puts the grid back. Zoom
+      // and legend state survive the round trip.
+      //
+      // Deterministic latencies so the e2e snapshot is stable.
+      function mulberry32(seed) {
+        return function () {
+          seed |= 0
+          seed = (seed + 0x6d2b79f5) | 0
+          var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+        }
+      }
+
+      var SERVICES = [
+        { name: 'gateway', seed: 3, base: 120 },
+        { name: 'auth', seed: 11, base: 85 },
+        { name: 'catalog', seed: 19, base: 140 },
+        { name: 'search', seed: 27, base: 210 },
+        { name: 'cart', seed: 35, base: 95 },
+        { name: 'checkout', seed: 43, base: 150 },
+        { name: 'payments', seed: 51, base: 180 },
+        { name: 'shipping', seed: 59, base: 110 },
+        { name: 'notifications', seed: 67, base: 70 },
+      ]
+
+      function latency(seed, base, degradeFrom) {
+        var rand = mulberry32(seed)
+        var out = []
+        var ts = new Date('01 Jan 2025').getTime()
+        var val = base
+        for (var i = 0; i < 72; i++) {
+          val = Math.max(40, val + (rand() - 0.5) * base * 0.1)
+          var v = val
+          // checkout degrades in steps after hour 40: the shape you promote to see.
+          if (degradeFrom && i >= degradeFrom) {
+            v = val + Math.min(320, (i - degradeFrom) * 14)
+          }
+          out.push([ts, Math.round(v)])
+          ts += 3600000 // hourly
+        }
+        return out
+      }
+
+      var latencySeries = SERVICES.map(function (s) {
+        return {
+          name: 'p99 latency',
+          service: s.name,
+          data: latency(s.seed, s.base, s.name === 'checkout' ? 40 : 0),
+        }
+      })
+    </script>
+  </head>
+
+  <body>
+     <div class="wrap">
+        <h1>p99 latency by service</h1>
+        <p class="lead">
+          Nine services at a glance, one obviously degrading. Click the
+          <strong>checkout</strong> header: the panel expands to the grid's full
+          width for a proper look, and "All panels" brings the grid back.
+        </p>
+      
+        <div class="chart-wrap">
+          <div id="chart"></div>
+        </div>
+      
+        <div class="note">
+          Every cell header is a button: clicking it promotes that panel to the
+          grid's full width (parked panels keep their state; a virtualized grid
+          simply unmounts them) and a breadcrumb restores the grid. Clicking the
+          promoted header again also restores. The same flow is scriptable:
+          <code>chart.promotePanel('checkout')</code> and
+          <code>chart.restorePanels()</code>. Set <code>trellis.promote:
+          false</code> to make headers inert. Trellis is a premium feature; without
+          a license it renders with a trial watermark.
+        </div>
+      </div>
+
+    <script>
+      var options = {
+        series: latencySeries,
+        chart: {
+          id: 'latencyTrellis',
+          type: 'line',
+          animations: {
+            enabled: false,
+          },
+        },
+        trellis: {
+          by: 'service',
+          minPanelWidth: 250,
+          panelHeight: 140,
+          gap: 12,
+        },
+        colors: ['#0891B2'],
+        stroke: {
+          width: 2,
+          curve: 'straight',
+        },
+        xaxis: {
+          type: 'datetime',
+        },
+        yaxis: {
+          labels: {
+            formatter: function (val) {
+              return Math.round(val) + ' ms'
+            },
+          },
+        },
+        dataLabels: {
+          enabled: false,
+        },
+        tooltip: {
+          x: {
+            format: 'dd MMM HH:mm',
+          },
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+
+    
+  </body>
+</html>

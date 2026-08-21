@@ -346,6 +346,17 @@ declare class ApexCharts {
   getPanel(key: string): ApexCharts | null
 
   /**
+   * Trellis: expand one panel to the grid's full width (what clicking its
+   * header does). No-op on a chart that is not a trellis host.
+   */
+  promotePanel(key: string): Promise<void>
+
+  /**
+   * Trellis: restore the grid from a panel promotion.
+   */
+  restorePanels(): Promise<void>
+
+  /**
    * Calls a public method on a chart instance identified by chartID.
    * Useful when you don't have a direct reference to the instance.
    */
@@ -1258,10 +1269,18 @@ type ApexTrellis = {
   /**
    * 'panel' (default): tooltip card only in the hovered panel while the
    * crosshair sweeps all panels. 'sync': every panel shows its own card.
+   * 'grid': ONE card near the cursor with one row per panel at the hovered x
+   * (composed from the panels' own tooltips, so every formatter is honored).
    */
-  tooltip?: 'panel' | 'sync'
+  tooltip?: 'panel' | 'sync' | 'grid'
   /** 'sync' (default): a zoom in any panel moves every panel. */
   zoom?: 'sync' | 'none'
+  /**
+   * Clicking a cell's header expands that panel to the grid's full width,
+   * with an "All panels" breadcrumb back (default true). Also available as
+   * chart.promotePanel(key) / chart.restorePanels().
+   */
+  promote?: boolean
   /** Tick density for the shared nice y scale. Default 4. */
   targetTicks?: number
   /** Per-panel option override, applied last. */
@@ -2122,6 +2141,13 @@ type AnnotationStyle = {
 }
 
 type XAxisAnnotations = {
+  /**
+   * Trellis (#22): which panels this annotation draws in. Absent or
+   * 'trellis' means every panel (projected through each panel's own scale);
+   * a panel key or list of keys limits it to those panels. Ignored outside a
+   * trellis host.
+   */
+  scope?: 'trellis' | string | string[]
   id?: number | string
   x?: null | number | string
   x2?: null | number | string
@@ -2141,6 +2167,13 @@ type XAxisAnnotations = {
 }
 
 type YAxisAnnotations = {
+  /**
+   * Trellis (#22): which panels this annotation draws in. Absent or
+   * 'trellis' means every panel (projected through each panel's own scale);
+   * a panel key or list of keys limits it to those panels. Ignored outside a
+   * trellis host.
+   */
+  scope?: 'trellis' | string | string[]
   id?: number | string
   y?: null | number | string
   y2?: null | number | string
@@ -2162,6 +2195,13 @@ type YAxisAnnotations = {
 }
 
 type PointAnnotations = {
+  /**
+   * Trellis (#22): which panels this annotation draws in. Absent or
+   * 'trellis' means every panel (projected through each panel's own scale);
+   * a panel key or list of keys limits it to those panels. Ignored outside a
+   * trellis host.
+   */
+  scope?: 'trellis' | string | string[]
   id?: number | string
   x?: number | string
   y?: null | number

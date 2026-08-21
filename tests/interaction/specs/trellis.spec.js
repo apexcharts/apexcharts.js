@@ -625,3 +625,221 @@ test.describe('trellis virtualization (P2)', () => {
     expect(errors).toHaveLength(0)
   })
 })
+
+/**
+ * P3 exit gates: the grid reads as ONE chart.
+ *   - tooltip: 'grid': hovering any panel yields exactly one card with one
+ *     row per panel (per-panel tooltip ink suppressed), asserted at rest.
+ *   - one scope-free annotation declaration projects into EVERY panel through
+ *     each panel's own scale (positions differ under independent y).
+ *   - dataURI() returns one PNG of the whole grid.
+ *   - a header click promotes the panel to full grid width; the breadcrumb
+ *     restores.
+ */
+test.describe('trellis P3 (one chart)', () => {
+  const GRID6 = (extraTrellis = '', extraOptions = '') => `{
+    chart: { type: 'line', height: 560, animations: { enabled: false } },
+    trellis: { by: 'k', columns: 3${extraTrellis} },
+    series: [
+      { name: 's', k: 'a', data: walk(7, 30, 10) },
+      { name: 's', k: 'b', data: walk(8, 30, 10) },
+      { name: 's', k: 'c', data: walk(9, 30, 10) },
+      { name: 's', k: 'd', data: walk(10, 30, 10) },
+      { name: 's', k: 'e', data: walk(11, 30, 10) },
+      { name: 's', k: 'f', data: walk(12, 30, 10) },
+    ],
+    xaxis: { type: 'datetime' },
+    dataLabels: { enabled: false },
+    tooltip: { enabled: true }${extraOptions}
+  }`
+
+  test("tooltip: 'grid' shows ONE card with one row per panel, at rest", async ({
+    page,
+  }) => {
+    const errors = await mountTrellis(
+      page,
+      GRID6(`, tooltip: 'grid'`),
+    )
+    const cell0 = page.locator('.apexcharts-trellis-cell').first()
+    const box = await cell0.boundingBox()
+    await page.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.6)
+    await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.6, {
+      steps: 5,
+    })
+    await page.waitForTimeout(400)
+
+    const card = page.locator('.apexcharts-trellis-tooltip')
+    await expect(card).toHaveCount(1)
+    await expect(card).toHaveClass(/apexcharts-trellis-tooltip-active/)
+    const rows = page.locator('.apexcharts-trellis-tooltip-row')
+    await expect(rows).toHaveCount(6)
+    // The hovered panel's row is marked.
+    await expect(
+      page.locator(
+        '.apexcharts-trellis-tooltip-row-active[data-key="a"]',
+      ),
+    ).toHaveCount(1)
+    // Every per-panel tooltip's ink is suppressed, including the hovered one.
+    const opacities = await page.evaluate(() =>
+      Array.from(
+        document.querySelectorAll(
+          '.apexcharts-trellis-cell .apexcharts-tooltip',
+        ),
+        (n) => getComputedStyle(n).opacity,
+      ),
+    )
+    expect(opacities.every((o) => o === '0')).toBe(true)
+    // Rows carry the panels' own formatted values (marker + number).
+    const firstRow = await rows.first().innerText()
+    expect(firstRow.length).toBeGreaterThan(1)
+    expect(errors).toHaveLength(0)
+  })
+
+  test('one annotation declaration projects into every panel, per panel scale', async ({
+    page,
+  }) => {
+    // Explicit domains built to CONTAIN the band everywhere (an annotation
+    // outside a panel's y-domain is culled entirely, so a fixture must earn
+    // its N-panels claim): a spans ~1..4, b ~2..9, c ~1.5..4.5; the band
+    // 2.5..3.0 is inside all three, at a different relative position in
+    // each. The scoped line y=5 is inside b only, by scope AND by domain.
+    const errors = await mountTrellis(
+      page,
+      `{
+        chart: { type: 'line', height: 420, animations: { enabled: false } },
+        trellis: { by: 'k', columns: 3, scales: { y: 'independent' } },
+        series: [
+          { name: 's', k: 'a', data: [[Date.UTC(2025,0,1), 1], [Date.UTC(2025,0,2), 2], [Date.UTC(2025,0,3), 4]] },
+          { name: 's', k: 'b', data: [[Date.UTC(2025,0,1), 2], [Date.UTC(2025,0,2), 5], [Date.UTC(2025,0,3), 9]] },
+          { name: 's', k: 'c', data: [[Date.UTC(2025,0,1), 1.5], [Date.UTC(2025,0,2), 3], [Date.UTC(2025,0,3), 4.5]] },
+        ],
+        xaxis: { type: 'datetime' },
+        dataLabels: { enabled: false },
+        annotations: {
+          yaxis: [
+            { y: 2.5, y2: 3.0, fillColor: '#16A34A', opacity: 0.15 },
+            { y: 5, scope: 'b', borderColor: '#DC2626' },
+          ],
+        },
+      }`,
+    )
+    // The unscoped band is drawn once per panel (3 band rects)...
+    const bands = await page.evaluate(() =>
+      Array.from(
+        document.querySelectorAll('.apexcharts-trellis-cell'),
+        (cell) =>
+          Array.from(
+            cell.querySelectorAll(
+              '.apexcharts-yaxis-annotations .apexcharts-annotation-rect',
+            ),
+            (r) => +(+r.getAttribute('y')).toFixed(1),
+          ),
+      ),
+    )
+    expect(bands.map((b) => b.length)).toEqual([1, 1, 1])
+    // ...projected through each panel's OWN scale: the same 2.6..3.0 band
+    // lands at different plot positions in magnitude-1 vs magnitude-2 panels.
+    expect(bands[0][0]).not.toBe(bands[1][0])
+    // The scoped line lands only in panel b.
+    const lines = await page.evaluate(() =>
+      Array.from(
+        document.querySelectorAll('.apexcharts-trellis-cell'),
+        (cell) => cell.querySelectorAll('.apexcharts-yaxis-annotations line')
+          .length,
+      ),
+    )
+    expect(lines).toEqual([0, 1, 0])
+    expect(errors).toHaveLength(0)
+  })
+
+  test('dataURI() composes ONE image of the whole grid', async ({ page }) => {
+    const errors = await mountTrellis(page, GRID6())
+    const result = await page.evaluate(async () => {
+      const { imgURI } = await window.chart.dataURI()
+      const img = new Image()
+      await new Promise((resolveLoad, rejectLoad) => {
+        img.onload = resolveLoad
+        img.onerror = rejectLoad
+        img.src = imgURI
+      })
+      const wrap = document.querySelector('.apexcharts-trellis')
+      const rect = wrap.getBoundingClientRect()
+      return {
+        prefix: imgURI.slice(0, 22),
+        w: img.naturalWidth,
+        h: img.naturalHeight,
+        wrapW: Math.ceil(rect.width),
+        wrapH: Math.ceil(rect.height),
+        len: imgURI.length,
+      }
+    })
+    expect(result.prefix).toBe('data:image/png;base64,')
+    expect(result.w).toBe(result.wrapW)
+    expect(result.h).toBe(result.wrapH)
+    // A composed grid is not a blank canvas.
+    expect(result.len).toBeGreaterThan(20000)
+    expect(errors).toHaveLength(0)
+  })
+
+  test('header click promotes the panel full-width; breadcrumb restores', async ({
+    page,
+  }) => {
+    const errors = await mountTrellis(page, GRID6())
+    const gridW = await page.evaluate(
+      () =>
+        document
+          .querySelector('.apexcharts-trellis-grid')
+          .getBoundingClientRect().width,
+    )
+    const widthBefore = await page.evaluate(
+      () =>
+        document
+          .querySelectorAll('.apexcharts-trellis-cell')[2]
+          .getBoundingClientRect().width,
+    )
+
+    await page.locator('.apexcharts-trellis-header').nth(2).click()
+    await page.waitForFunction(
+      () =>
+        document.querySelectorAll('.apexcharts-trellis-cell-parked').length ===
+        5,
+      { timeout: 5_000 },
+    )
+    const promotedW = await page.evaluate(
+      () =>
+        document
+          .querySelector('.apexcharts-trellis-cell-promoted')
+          .getBoundingClientRect().width,
+    )
+    expect(Math.abs(promotedW - gridW)).toBeLessThanOrEqual(2)
+    // The chart inside re-measured to the promoted width.
+    await page.waitForFunction(
+      (want) => {
+        const p = window.chart.getPanel('c')
+        return p && Math.abs(p.w.globals.svgWidth - want) < 8
+      },
+      gridW,
+      { timeout: 5_000 },
+    )
+    await expect(page.locator('.apexcharts-trellis-breadcrumb')).toHaveCount(1)
+
+    await page.locator('.apexcharts-trellis-breadcrumb-back').click()
+    await page.waitForFunction(
+      () =>
+        document.querySelectorAll('.apexcharts-trellis-cell-parked').length ===
+        0,
+      { timeout: 5_000 },
+    )
+    const widthAfter = await page.evaluate(
+      () =>
+        document
+          .querySelectorAll('.apexcharts-trellis-cell')[2]
+          .getBoundingClientRect().width,
+    )
+    expect(Math.abs(widthAfter - widthBefore)).toBeLessThanOrEqual(2)
+    // Geometry re-derived: the grid still satisfies the alignment invariant.
+    const panels = await readPanels(page)
+    expectAligned(panels)
+    expect(errors).toHaveLength(0)
+  })
+})

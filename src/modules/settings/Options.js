@@ -344,8 +344,15 @@ export default class Options {
         toolbar: 'shared', // 'shared' | 'none' (zoom / pan / reset)
         // 'panel': tooltip card only in the hovered panel, crosshair sweeps
         // all panels. 'sync': every panel shows its own card at the hovered x.
+        // 'grid': ONE card near the cursor with one row per panel at the
+        // hovered x (composed from the panels' own tooltips, so every
+        // formatter is honored; unmounted virtualized panels have no row).
         tooltip: 'panel',
         zoom: 'sync', // 'sync' (drag/wheel zoom moves every panel) | 'none'
+        // Panel promotion: clicking a cell's header expands that panel to
+        // the grid's full width, with an "All panels" breadcrumb back
+        // (also chart.promotePanel(key) / chart.restorePanels()).
+        promote: true,
         targetTicks: 4, // tick density for the shared nice y scale
         // Per-panel option override, applied last:
         // (key, { index, seriesNames }) => partial options

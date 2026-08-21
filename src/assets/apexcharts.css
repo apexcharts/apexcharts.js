@@ -1382,6 +1382,150 @@ rect.legend-mouseover-inactive,
 .apexcharts-trellis[data-tooltip-mode='panel'] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip {
   opacity: 0 !important;
 }
+/* tooltip: 'grid' (P3) — ALL per-panel tooltip ink is hidden (the group
+   still computes it; the trellis card reads it) and one trellis-owned card
+   follows the cursor with one row per panel. */
+.apexcharts-trellis[data-tooltip-mode='grid'] .apexcharts-trellis-cell .apexcharts-tooltip,
+.apexcharts-trellis[data-tooltip-mode='grid'] .apexcharts-trellis-cell .apexcharts-xaxistooltip,
+.apexcharts-trellis[data-tooltip-mode='grid'] .apexcharts-trellis-cell .apexcharts-yaxistooltip {
+  opacity: 0 !important;
+}
+.apexcharts-trellis-tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 14;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  background: var(--apx-bg, #fff);
+  color: var(--apx-fore, #373d3f);
+  border: 1px solid rgba(120, 120, 120, 0.25);
+  border-radius: 5px;
+  box-shadow: 2px 2px 6px -4px rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+  min-width: 140px;
+  max-width: 320px;
+}
+.apexcharts-trellis-tooltip-active {
+  opacity: 1;
+}
+.apexcharts-trellis-tooltip .apexcharts-tooltip-title {
+  padding: 5px 10px;
+  font-weight: 600;
+  background: rgba(120, 120, 120, 0.08);
+  border-bottom: 1px solid rgba(120, 120, 120, 0.18);
+  margin-bottom: 2px;
+}
+.apexcharts-trellis-tooltip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 2px 10px;
+  line-height: 1.6;
+}
+.apexcharts-trellis-tooltip-row-active {
+  background: rgba(120, 120, 120, 0.1);
+  font-weight: 600;
+}
+.apexcharts-trellis-tooltip-key {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.apexcharts-trellis-tooltip-vals {
+  display: flex;
+  gap: 10px;
+  white-space: nowrap;
+}
+.apexcharts-trellis-tooltip-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.apexcharts-trellis-tooltip-marker {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+}
+/* Panel promotion (P3): the promoted cell spans the grid; the rest park.
+   The promoted panel is the only visible one, so both its axes unmute. */
+.apexcharts-trellis-cell-promoted {
+  grid-column: 1 / -1;
+}
+.apexcharts-trellis-cell-parked {
+  display: none;
+}
+.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,
+.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis {
+  opacity: 1;
+}
+.apexcharts-trellis-header-clickable {
+  cursor: pointer;
+}
+.apexcharts-trellis-header-clickable:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.apexcharts-trellis-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 2px 0 6px;
+  color: var(--apx-fore, #373d3f);
+}
+.apexcharts-trellis-breadcrumb-back {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--apx-accent, #008ffb);
+}
+.apexcharts-trellis-breadcrumb-back:hover {
+  text-decoration: underline;
+}
+.apexcharts-trellis-breadcrumb-sep {
+  opacity: 0.5;
+}
+.apexcharts-trellis-breadcrumb-current {
+  font-weight: 600;
+}
+/* The toolbar download menu (P3). */
+.apexcharts-trellis-menu {
+  position: absolute;
+  top: 26px;
+  right: 0;
+  display: none;
+  flex-direction: column;
+  min-width: 132px;
+  background: var(--apx-bg, #fff);
+  border: 1px solid rgba(120, 120, 120, 0.25);
+  border-radius: 5px;
+  box-shadow: 2px 2px 6px -4px rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  z-index: 15;
+}
+.apexcharts-trellis-menu-open {
+  display: flex;
+}
+.apexcharts-trellis-menu-item {
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--apx-fore, #373d3f);
+}
+.apexcharts-trellis-menu-item:hover {
+  background: rgba(120, 120, 120, 0.12);
+}
 .apexcharts-trellis-toolbar {
   position: absolute;
   top: 0;

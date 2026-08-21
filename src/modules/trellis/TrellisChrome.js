@@ -21,6 +21,8 @@ const ICONS = {
   pan: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M3 12h18"/><path d="M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg>',
   reset:
     '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10a8 8 0 1 1 2 6"/><path d="M4 4v6h6"/></svg>',
+  download:
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v11"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>',
 }
 
 export default class TrellisChrome {
@@ -35,6 +37,8 @@ export default class TrellisChrome {
     this.elToolbar = null
     /** @type {HTMLElement|null} */
     this.elTitle = null
+    /** @type {HTMLElement|null} */
+    this.elBreadcrumb = null
   }
 
   /**
@@ -63,7 +67,69 @@ export default class TrellisChrome {
     if (style.fontSize) el.style.fontSize = style.fontSize
     if (style.fontWeight) el.style.fontWeight = String(style.fontWeight)
     if (style.color) el.style.color = style.color
+
+    // Panel promotion (P3): clicking a header expands that panel to the
+    // grid's full width; the breadcrumb (or clicking the header again)
+    // restores the grid. `trellis.promote: false` opts out.
+    if (t.cfg.promote !== false) {
+      el.classList.add('apexcharts-trellis-header-clickable')
+      el.setAttribute('role', 'button')
+      el.setAttribute('tabindex', '0')
+      el.setAttribute('title', 'Expand this panel')
+      const toggle = () => {
+        if (t._promotedKey === key) t.restorePromotion()
+        else t.promote(key)
+      }
+      el.addEventListener('click', toggle)
+      el.addEventListener('keydown', (/** @type {any} */ e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          toggle()
+        }
+      })
+    }
     cell.appendChild(el)
+  }
+
+  /**
+   * The promotion breadcrumb: "All panels / KEY", where "All panels" is the
+   * way back. Lives in the chrome-top strip so the grid's own layout is
+   * untouched.
+   * @param {HTMLElement} host
+   * @param {string} key
+   * @param {() => void} onBack
+   */
+  buildBreadcrumb(host, key, onBack) {
+    this.removeBreadcrumb()
+    const el = BrowserAPIs.createElement('div')
+    el.className = 'apexcharts-trellis-breadcrumb'
+
+    const back = BrowserAPIs.createElement('button')
+    back.setAttribute('type', 'button')
+    back.className = 'apexcharts-trellis-breadcrumb-back'
+    back.textContent = 'All panels'
+    back.addEventListener('click', onBack)
+
+    const sep = BrowserAPIs.createElement('span')
+    sep.className = 'apexcharts-trellis-breadcrumb-sep'
+    sep.textContent = '/'
+
+    const current = BrowserAPIs.createElement('span')
+    current.className = 'apexcharts-trellis-breadcrumb-current'
+    current.textContent = key
+
+    el.appendChild(back)
+    el.appendChild(sep)
+    el.appendChild(current)
+    host.appendChild(el)
+    this.elBreadcrumb = el
+  }
+
+  removeBreadcrumb() {
+    if (this.elBreadcrumb && this.elBreadcrumb.parentNode) {
+      this.elBreadcrumb.parentNode.removeChild(this.elBreadcrumb)
+    }
+    this.elBreadcrumb = null
   }
 
   /**
@@ -191,6 +257,32 @@ export default class TrellisChrome {
     makeButton('reset', 'Reset zoom', () => {
       t.sync.resetAll()
     })
+
+    // The download tool (P3): one composed artifact for the whole grid.
+    // Requires the exports feature on the panels; omitted otherwise.
+    if (t.ctx.exports) {
+      const menu = BrowserAPIs.createElement('div')
+      menu.className = 'apexcharts-trellis-menu'
+      ;/** @type {Array<['png'|'svg'|'csv', string]>} */ ([
+        ['png', 'Download PNG'],
+        ['svg', 'Download SVG'],
+        ['csv', 'Download CSV'],
+      ]).forEach(([kind, label]) => {
+        const item = BrowserAPIs.createElement('button')
+        item.setAttribute('type', 'button')
+        item.className = 'apexcharts-trellis-menu-item'
+        item.textContent = label
+        item.addEventListener('click', () => {
+          menu.classList.remove('apexcharts-trellis-menu-open')
+          t.exports.download(kind)
+        })
+        menu.appendChild(item)
+      })
+      makeButton('download', 'Download', () => {
+        menu.classList.toggle('apexcharts-trellis-menu-open')
+      })
+      bar.appendChild(menu)
+    }
 
     // Default tool mirrors the per-chart default (toolbar.autoSelected 'zoom').
     buttons.zoom.classList.add('apexcharts-selected')
