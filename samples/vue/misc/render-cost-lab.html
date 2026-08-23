@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Render cost: where the time goes at scale</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      .lab {
+        max-width: 760px;
+        margin: 12px auto;
+        font-family: Helvetica, Arial, sans-serif;
+        color: #101a2b;
+      }
+      .lab-lede {
+        font-size: 13.5px;
+        line-height: 1.6;
+        color: #47536b;
+        margin: 4px 6px 14px;
+      }
+      .lab-lede code,
+      .lab-note code,
+      .lab-caption code,
+      .lab-verdict code {
+        background: #eef2fa;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 12px;
+      }
+      .lab-console {
+        background: #fff;
+        border: 1px solid #dce3f0;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      /* controls */
+      .lab-controls {
+        display: flex;
+        gap: 18px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        padding: 14px 16px;
+        border-bottom: 1px solid #dce3f0;
+        background: #eef2fa;
+      }
+      .lab-ctl {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .lab-ctl-label {
+        font-family: monospace;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #8b97ae;
+      }
+      .lab-seg {
+        display: inline-flex;
+        background: #f3f6fc;
+        border: 1px solid #c4cee0;
+        border-radius: 8px;
+        padding: 3px;
+        gap: 2px;
+      }
+      .lab-seg button {
+        font-family: monospace;
+        font-size: 12.5px;
+        color: #47536b;
+        background: transparent;
+        border: 0;
+        border-radius: 6px;
+        padding: 5px 11px;
+        cursor: pointer;
+      }
+      .lab-seg button[aria-pressed='true'] {
+        background: #2563eb;
+        color: #fff;
+        font-weight: 600;
+      }
+      .lab-seg button:hover:not([aria-pressed='true']) {
+        color: #101a2b;
+      }
+      .lab-run {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+      }
+      .lab-btn {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 13.5px;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 8px;
+        padding: 8px 15px;
+        border: 1px solid transparent;
+        white-space: nowrap;
+      }
+      .lab-btn.primary {
+        background: #2563eb;
+        color: #fff;
+      }
+      .lab-btn.ghost {
+        background: transparent;
+        color: #101a2b;
+        border-color: #c4cee0;
+      }
+      .lab-btn:disabled {
+        opacity: 0.5;
+        cursor: progress;
+      }
+      /* metric readout */
+      .lab-readout {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border-bottom: 1px solid #dce3f0;
+      }
+      .lab-metric {
+        padding: 12px 14px;
+        border-right: 1px solid #dce3f0;
+      }
+      .lab-metric:last-child {
+        border-right: 0;
+      }
+      .lab-metric .k {
+        font-family: monospace;
+        font-size: 10px;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+        color: #8b97ae;
+      }
+      .lab-metric .v {
+        font-family: monospace;
+        font-size: 22px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        margin-top: 4px;
+      }
+      .lab-metric .v small {
+        font-size: 12px;
+        color: #8b97ae;
+        font-weight: 500;
+        margin-left: 2px;
+      }
+      .lab-metric .v.time {
+        color: #2563eb;
+      }
+      /* chart stage */
+      .lab-stage {
+        padding: 6px 10px 12px;
+        position: relative;
+      }
+      .lab-hint {
+        font-family: monospace;
+        font-size: 11px;
+        color: #8b97ae;
+        padding: 4px 6px 2px;
+      }
+      #chart {
+        min-height: 340px;
+      }
+      .lab-busy {
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.72);
+        z-index: 5;
+        font-family: monospace;
+        font-size: 13px;
+        color: #47536b;
+      }
+      .lab-busy.on {
+        display: flex;
+      }
+      /* matrix */
+      .lab-panel {
+        margin-top: 14px;
+        background: #fff;
+        border: 1px solid #dce3f0;
+        border-radius: 12px;
+        padding: 16px 18px;
+      }
+      .lab-panel h2 {
+        font-family: monospace;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8b97ae;
+        font-weight: 600;
+        margin: 0 0 12px;
+      }
+      .lab-empty {
+        color: #8b97ae;
+        font-family: monospace;
+        font-size: 12.5px;
+        margin: 0;
+      }
+      .lab-lane {
+        display: grid;
+        grid-template-columns: 172px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 9px;
+      }
+      .lab-who {
+        font-family: monospace;
+        font-size: 11.5px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #47536b;
+      }
+      .lab-who .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        flex: none;
+      }
+      .lab-meter {
+        height: 20px;
+        background: #eef2fa;
+        border-radius: 5px;
+        overflow: hidden;
+      }
+      .lab-meter > span {
+        display: block;
+        height: 100%;
+        width: 0;
+        border-radius: 5px;
+        transition: width 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+      }
+      .lab-num {
+        font-family: monospace;
+        font-size: 12.5px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        min-width: 130px;
+        text-align: right;
+      }
+      .lab-num em {
+        font-style: normal;
+        color: #8b97ae;
+        font-weight: 500;
+      }
+      .lab-verdict {
+        font-family: monospace;
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: #47536b;
+        margin: 12px 0 0;
+      }
+      .lab-verdict b {
+        color: #047857;
+      }
+      /* side by side */
+      .lab-pair {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .lab-pair figure {
+        margin: 0;
+      }
+      /* Deliberately not colour-coded: the matrix above uses amber and green for
+               slow and fast, and this panel is about fidelity, not speed. */
+      .lab-pair figcaption {
+        font-family: monospace;
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        color: #47536b;
+      }
+      .lab-pair .count {
+        font-family: monospace;
+        font-size: 11px;
+        color: #8b97ae;
+        margin: 4px 0 0;
+      }
+      .lab-caption {
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: #47536b;
+        margin: 12px 0 0;
+      }
+      /* notes */
+      .lab-notes {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .lab-note {
+        background: #fff;
+        border: 1px solid #dce3f0;
+        border-radius: 10px;
+        padding: 14px;
+      }
+      .lab-note h3 {
+        margin: 0 0 6px;
+        font-size: 13.5px;
+      }
+      .lab-note h3 .n {
+        font-family: monospace;
+        color: #2563eb;
+        font-size: 11px;
+        margin-right: 7px;
+      }
+      .lab-note p {
+        margin: 0;
+        font-size: 12.5px;
+        color: #47536b;
+        line-height: 1.5;
+      }
+      @media (max-width: 620px) {
+        .lab-readout {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .lab-metric:nth-child(2n) {
+          border-right: 0;
+        }
+        .lab-metric:nth-child(-n + 2) {
+          border-bottom: 1px solid #dce3f0;
+        }
+        .lab-notes,
+        .lab-pair {
+          grid-template-columns: 1fr;
+        }
+        .lab-lane {
+          grid-template-columns: 130px 1fr;
+        }
+        .lab-num {
+          grid-column: 2;
+          text-align: left;
+        }
+        .lab-run {
+          margin-left: 0;
+          width: 100%;
+        }
+        .lab-run .lab-btn {
+          flex: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .lab-meter > span {
+          transition: none;
+        }
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    <script>
+      // The demo lowers markers.largeDatasetThreshold to this so batching is
+      // reachable at a few hundred points. The shipped default is 0, meaning off:
+      // see note 02 below for why.
+      var LAB_THRESHOLD = 200
+
+      // Seeded PRNG (mulberry32) so every configuration below plots the SAME scene.
+      // A benchmark over two different random datasets measures nothing.
+      function labRng(seed) {
+        return function () {
+          seed |= 0
+          seed = (seed + 0x6d2b79f5) | 0
+          var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+        }
+      }
+
+      // A wandering series with enough vertical travel that markers pile up on the
+      // turns, which is where the batching trade-off is visible.
+      // gapMode: 'none' | 'sparse' (every 7th null) | 'half' (every other null).
+      function labData(points, gapMode) {
+        var rng = labRng(0x51a3c7)
+        var t0 = Date.UTC(2024, 0, 1)
+        var out = new Array(points)
+        var y = 60
+        for (var i = 0; i < points; i++) {
+          y += (rng() - 0.5) * 9
+          y = Math.max(8, Math.min(112, y))
+          var nulled =
+            (gapMode === 'sparse' && i % 7 === 0) ||
+            (gapMode === 'half' && i % 2 === 0)
+          out[i] = [t0 + i * 3600000, nulled ? null : +y.toFixed(2)]
+        }
+        return out
+      }
+
+      // Every SVG mark is a live DOM node, so counting inside the chart is the
+      // clearest view of what a render actually built.
+      function labCensus(sel) {
+        var el = document.querySelector(sel || '#chart')
+        if (!el) return { paths: 0, markers: 0, nodes: 0 }
+        return {
+          // series geometry only: the axes and grid draw paths too, and those are
+          // a fixed cost that would blur the comparison
+          paths: el.querySelectorAll(
+            '.apexcharts-line, .apexcharts-area, .apexcharts-marker-batch',
+          ).length,
+          markers: el.querySelectorAll(
+            '.apexcharts-series-markers-wrap .apexcharts-marker',
+          ).length,
+          nodes: el.getElementsByTagName('*').length,
+        }
+      }
+
+      // Stateless DOM helpers, shared by the vanilla, React and Vue builds.
+      function labSelected(segId) {
+        var seg = document.getElementById(segId)
+        return (
+          seg.querySelector('button[aria-pressed="true"]') ||
+          seg.querySelector('button')
+        )
+      }
+
+      function labSetPressed(segId, btn) {
+        var seg = document.getElementById(segId)
+        Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
+          b.setAttribute('aria-pressed', b === btn ? 'true' : 'false')
+        })
+      }
+
+      // Read the four segmented controls into one config object.
+      function labConfig() {
+        return {
+          points: parseInt(labSelected('labPoints').getAttribute('data-v'), 10),
+          gaps: labSelected('labGaps').getAttribute('data-v'),
+          markers: labSelected('labMarkers').getAttribute('data-v') === 'on',
+          batch: labSelected('labBatch').getAttribute('data-v') === 'on',
+        }
+      }
+
+      // Apply a config to a copy of the sample's own chart options, so the lab and
+      // the code shown in the sample never drift apart.
+      function labApply(base, cfg) {
+        var o = Object.assign({}, base)
+        o.chart = Object.assign({}, base.chart)
+        o.markers = Object.assign({}, base.markers, {
+          size: cfg.markers ? 4 : 0,
+          largeDatasetThreshold: cfg.batch ? LAB_THRESHOLD : 0,
+        })
+        o.series = [{ name: 'Sensor', data: labData(cfg.points, cfg.gaps) }]
+        return o
+      }
+
+      // One variable at a time against a common baseline, so each row answers one
+      // question. Rows 2 and 3 are the null story, rows 4 and 5 the marker story.
+      var LAB_MATRIX = [
+        {
+          key: 'clean',
+          label: 'baseline: no gaps, no markers',
+          color: '#94a3b8',
+          gaps: 'none',
+          markers: false,
+          batch: false,
+        },
+        {
+          key: 'nulls',
+          label: 'half the values null',
+          color: '#b45309',
+          gaps: 'half',
+          markers: false,
+          batch: false,
+        },
+        {
+          key: 'nullsBatched',
+          label: 'half null, batched',
+          color: '#047857',
+          gaps: 'half',
+          markers: false,
+          batch: true,
+        },
+        {
+          key: 'markers',
+          label: 'markers on',
+          color: '#b45309',
+          gaps: 'none',
+          markers: true,
+          batch: false,
+        },
+        {
+          key: 'markersBatched',
+          label: 'markers on, batched',
+          color: '#047857',
+          gaps: 'none',
+          markers: true,
+          batch: true,
+        },
+      ]
+
+      function labShowMatrix(rows, points) {
+        document.getElementById('labMatrixEmpty').hidden = true
+        var host = document.getElementById('labMatrixData')
+        host.hidden = false
+
+        var maxMs = 1
+        rows.forEach(function (r) {
+          if (r.ms > maxMs) maxMs = r.ms
+        })
+
+        host.innerHTML = rows
+          .map(function (r) {
+            var pct = Math.max(2, Math.round((r.ms / maxMs) * 100))
+            return (
+              '<div class="lab-lane">' +
+              '<span class="lab-who"><span class="dot" style="background:' +
+              r.color +
+              '"></span>' +
+              r.label +
+              '</span>' +
+              '<div class="lab-meter"><span style="width:' +
+              pct +
+              '%;background:' +
+              r.color +
+              '"></span></div>' +
+              '<span class="lab-num">' +
+              r.ms +
+              ' ms <em>&middot; ' +
+              (r.paths + r.markers).toLocaleString() +
+              ' els</em></span>' +
+              '</div>'
+            )
+          })
+          .join('')
+
+        var byKey = {}
+        rows.forEach(function (r) {
+          byKey[r.key] = r
+        })
+        var ratio = function (a, b) {
+          return (a.ms / Math.max(b.ms, 0.1)).toFixed(1)
+        }
+        var parts = []
+        if (byKey.clean && byKey.nulls && byKey.nullsBatched) {
+          parts.push(
+            'Nulling half the values costs <b>' +
+              ratio(byKey.nulls, byKey.clean) +
+              '&times;</b> the baseline, and almost none of that is the line: the ' +
+              'series is <b>' +
+              byKey.nulls.paths +
+              ' path element' +
+              (byKey.nulls.paths === 1 ? '' : 's') +
+              '</b> either way, because the breaks are subpaths of one ' +
+              '<code>d</code>. It is the <b>' +
+              byKey.nulls.markers.toLocaleString() +
+              ' dots</b> every isolated point gets, on a chart with markers off. ' +
+              'Batching those brings it to <b>' +
+              byKey.nullsBatched.ms +
+              ' ms</b>.',
+          )
+        }
+        if (byKey.markers && byKey.markersBatched) {
+          parts.push(
+            'Markers on their own add <b>' +
+              byKey.markers.markers.toLocaleString() +
+              ' elements</b> and <b>' +
+              Math.max(0, byKey.markers.ms - byKey.clean.ms).toFixed(1) +
+              ' ms</b>, which batching returns as <b>' +
+              ratio(byKey.markers, byKey.markersBatched) +
+              '&times; faster</b> at ' +
+              points.toLocaleString() +
+              ' points on this device.',
+          )
+        }
+        document.getElementById('labVerdict').innerHTML = parts.join(' ')
+      }
+    </script>
+  </head>
+
+  <body>
+    
+    <div id="app"><div class="lab">
+      <p class="lab-lede">
+        In SVG every mark is a live DOM node, and building one costs a node, its
+        attributes and an <code>appendChild</code>. At scale that per-element cost,
+        not the arithmetic, is what makes a chart slow. Flip the switches and watch
+        the element count and the clock move together. The gaps switch moves markers
+        too: a point next to a null gets its own dot so a one-point segment stays
+        visible, which is why a chart with markers off can still build thousands of
+        them.
+      </p>
+    
+      <section class="lab-console" aria-label="Render cost lab">
+        <div class="lab-controls">
+          <div class="lab-ctl">
+            <span class="lab-ctl-label">Points</span>
+            <div class="lab-seg" id="labPoints" role="group" aria-label="Point count">
+              <button type="button" data-v="500">500</button>
+              <button type="button" data-v="2000" aria-pressed="true">2k</button>
+              <button type="button" data-v="5000">5k</button>
+            </div>
+          </div>
+          <div class="lab-ctl">
+            <span class="lab-ctl-label">Gaps</span>
+            <div class="lab-seg" id="labGaps" role="group" aria-label="Null values">
+              <button type="button" data-v="none" aria-pressed="true">none</button>
+              <button type="button" data-v="sparse">1 in 7</button>
+              <button type="button" data-v="half">half</button>
+            </div>
+          </div>
+          <div class="lab-ctl">
+            <span class="lab-ctl-label">Markers</span>
+            <div class="lab-seg" id="labMarkers" role="group" aria-label="Markers">
+              <button type="button" data-v="off" aria-pressed="true">off</button>
+              <button type="button" data-v="on">on</button>
+            </div>
+          </div>
+          <div class="lab-ctl">
+            <span class="lab-ctl-label">Batch markers</span>
+            <div class="lab-seg" id="labBatch" role="group" aria-label="Marker batching">
+              <button type="button" data-v="off" aria-pressed="true">off</button>
+              <button type="button" data-v="on">on</button>
+            </div>
+          </div>
+          <div class="lab-run">
+            <button class="lab-btn ghost" id="labMatrix" type="button">Run the matrix</button>
+            <button class="lab-btn primary" id="labRender" type="button">Render</button>
+          </div>
+        </div>
+    
+        <div class="lab-readout">
+          <div class="lab-metric">
+            <div class="k">Render time</div>
+            <div class="v time" id="mTime">-<small>ms</small></div>
+          </div>
+          <div class="lab-metric">
+            <div class="k">Series path elements</div>
+            <div class="v" id="mPaths">-</div>
+          </div>
+          <div class="lab-metric">
+            <div class="k">Marker elements</div>
+            <div class="v" id="mMarkers">-</div>
+          </div>
+          <div class="lab-metric">
+            <div class="k">DOM nodes in chart</div>
+            <div class="v" id="mNodes">-</div>
+          </div>
+        </div>
+    
+        <div class="lab-stage">
+          <div class="lab-hint">
+            Line &middot; datetime axis &middot; the tooltip still sweeps and the
+            crosshair still tracks with no marker nodes at all.
+          </div>
+          <div id="chart"></div>
+          <div class="lab-busy" id="labBusy">rendering&hellip;</div>
+        </div>
+      </section>
+    
+      <section class="lab-panel">
+        <h2>The matrix &middot; same scene, one variable at a time</h2>
+        <p class="lab-empty" id="labMatrixEmpty">
+          Press <b>Run the matrix</b> to render the current point count four times
+          over and compare.
+        </p>
+        <div id="labMatrixData" hidden></div>
+        <p class="lab-verdict" id="labVerdict"></p>
+      </section>
+    
+      <section class="lab-panel">
+        <h2>What batching costs you</h2>
+        <div class="lab-pair">
+          <figure class="per">
+            <figcaption>one element per marker</figcaption>
+            <div id="labMiniPer"></div>
+            <p class="count" id="labMiniPerCount"></p>
+          </figure>
+          <figure class="bat">
+            <figcaption>one path per series</figcaption>
+            <div id="labMiniBat"></div>
+            <p class="count" id="labMiniBatCount"></p>
+          </figure>
+        </div>
+        <p class="lab-caption">
+          Same data, same colours, same marker size. One path is rasterized as a
+          single region, so where markers overlap they lose their individual
+          outlines: all the fills paint, then all the strokes, and the seams between
+          neighbours disappear. Dense clusters read flatter. Above a thousand points
+          in a chart this wide markers always overlap, so there is no point count at
+          which the merge is free, which is exactly why
+          <code>markers.largeDatasetThreshold</code> ships off.
+        </p>
+      </section>
+    
+      <section class="lab-notes">
+        <div class="lab-note">
+          <h3><span class="n">01</span>A gap is a subpath</h3>
+          <p>
+            A null breaks the line, and a break in SVG is just another subpath. A
+            gapped series is now one path element carrying one <code>M</code> per
+            segment, where it used to be one element per segment. Automatic, no
+            config, and pixel for pixel identical.
+          </p>
+        </div>
+        <div class="lab-note">
+          <h3><span class="n">02</span>What is left is markers</h3>
+          <p>
+            Markers, not nulls, dominate a big render, and a null-heavy series draws
+            them whether you asked or not: every isolated point gets a dot so a
+            one-point segment stays visible.
+            <code>markers.largeDatasetThreshold</code> merges both kinds where they
+            are already non-interactive, for the overlap detail above.
+          </p>
+        </div>
+        <div class="lab-note">
+          <h3><span class="n">03</span>When neither is enough</h3>
+          <p>
+            Past a few tens of thousands of points, stop drawing them all:
+            <code>chart.dataReducer</code> downsamples to the pixels you actually
+            have, and <code>chart.renderer: 'auto'</code> paints dense series into a
+            canvas instead of the DOM.
+          </p>
+        </div>
+      </section>
+    </div></div>
+
+    <!-- Below element is just for displaying source code. it is not required. DO NOT USE -->
+    <div id="html">&lt;div class=&quot;lab&quot;&gt;
+        &lt;p class=&quot;lab-lede&quot;&gt;
+          In SVG every mark is a live DOM node, and building one costs a node, its
+          attributes and an &lt;code&gt;appendChild&lt;/code&gt;. At scale that per-element cost,
+          not the arithmetic, is what makes a chart slow. Flip the switches and watch
+          the element count and the clock move together. The gaps switch moves markers
+          too: a point next to a null gets its own dot so a one-point segment stays
+          visible, which is why a chart with markers off can still build thousands of
+          them.
+        &lt;/p&gt;
+      
+        &lt;section class=&quot;lab-console&quot; aria-label=&quot;Render cost lab&quot;&gt;
+          &lt;div class=&quot;lab-controls&quot;&gt;
+            &lt;div class=&quot;lab-ctl&quot;&gt;
+              &lt;span class=&quot;lab-ctl-label&quot;&gt;Points&lt;/span&gt;
+              &lt;div class=&quot;lab-seg&quot; id=&quot;labPoints&quot; role=&quot;group&quot; aria-label=&quot;Point count&quot;&gt;
+                &lt;button type=&quot;button&quot; data-v=&quot;500&quot;&gt;500&lt;/button&gt;
+                &lt;button type=&quot;button&quot; data-v=&quot;2000&quot; aria-pressed=&quot;true&quot;&gt;2k&lt;/button&gt;
+                &lt;button type=&quot;button&quot; data-v=&quot;5000&quot;&gt;5k&lt;/button&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;lab-ctl&quot;&gt;
+              &lt;span class=&quot;lab-ctl-label&quot;&gt;Gaps&lt;/span&gt;
+              &lt;div class=&quot;lab-seg&quot; id=&quot;labGaps&quot; role=&quot;group&quot; aria-label=&quot;Null values&quot;&gt;
+                &lt;button type=&quot;button&quot; data-v=&quot;none&quot; aria-pressed=&quot;true&quot;&gt;none&lt;/button&gt;
+                &lt;button type=&quot;button&quot; data-v=&quot;sparse&quot;&gt;1 in 7&lt;/button&gt;
+                &lt;button type=&quot;button&quot; data-v=&quot;half&quot;&gt;half&lt;/button&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;lab-ctl&quot;&gt;
+              &lt;span class=&quot;lab-ctl-label&quot;&gt;Markers&lt;/span&gt;
+              &lt;div class=&quot;lab-seg&quot; id=&quot;labMarkers&quot; role=&quot;group&quot; aria-label=&quot;Markers&quot;&gt;
+                &lt;button type=&quot;button&quot; data-v=&quot;off&quot; aria-pressed=&quot;true&quot;&gt;off&lt;/button&gt;
+                &lt;button type=&quot;button&quot; data-v=&quot;on&quot;&gt;on&lt;/button&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;lab-ctl&quot;&gt;
+              &lt;span class=&quot;lab-ctl-label&quot;&gt;Batch markers&lt;/span&gt;
+              &lt;div class=&quot;lab-seg&quot; id=&quot;labBatch&quot; role=&quot;group&quot; aria-label=&quot;Marker batching&quot;&gt;
+                &lt;button type=&quot;button&quot; data-v=&quot;off&quot; aria-pressed=&quot;true&quot;&gt;off&lt;/button&gt;
+                &lt;button type=&quot;button&quot; data-v=&quot;on&quot;&gt;on&lt;/button&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;lab-run&quot;&gt;
+              &lt;button class=&quot;lab-btn ghost&quot; id=&quot;labMatrix&quot; type=&quot;button&quot;&gt;Run the matrix&lt;/button&gt;
+              &lt;button class=&quot;lab-btn primary&quot; id=&quot;labRender&quot; type=&quot;button&quot;&gt;Render&lt;/button&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+      
+          &lt;div class=&quot;lab-readout&quot;&gt;
+            &lt;div class=&quot;lab-metric&quot;&gt;
+              &lt;div class=&quot;k&quot;&gt;Render time&lt;/div&gt;
+              &lt;div class=&quot;v time&quot; id=&quot;mTime&quot;&gt;-&lt;small&gt;ms&lt;/small&gt;&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;lab-metric&quot;&gt;
+              &lt;div class=&quot;k&quot;&gt;Series path elements&lt;/div&gt;
+              &lt;div class=&quot;v&quot; id=&quot;mPaths&quot;&gt;-&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;lab-metric&quot;&gt;
+              &lt;div class=&quot;k&quot;&gt;Marker elements&lt;/div&gt;
+              &lt;div class=&quot;v&quot; id=&quot;mMarkers&quot;&gt;-&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;lab-metric&quot;&gt;
+              &lt;div class=&quot;k&quot;&gt;DOM nodes in chart&lt;/div&gt;
+              &lt;div class=&quot;v&quot; id=&quot;mNodes&quot;&gt;-&lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+      
+          &lt;div class=&quot;lab-stage&quot;&gt;
+            &lt;div class=&quot;lab-hint&quot;&gt;
+              Line &amp;middot; datetime axis &amp;middot; the tooltip still sweeps and the
+              crosshair still tracks with no marker nodes at all.
+            &lt;/div&gt;
+            &lt;div id=&quot;chart&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;lab-busy&quot; id=&quot;labBusy&quot;&gt;rendering&amp;hellip;&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/section&gt;
+      
+        &lt;section class=&quot;lab-panel&quot;&gt;
+          &lt;h2&gt;The matrix &amp;middot; same scene, one variable at a time&lt;/h2&gt;
+          &lt;p class=&quot;lab-empty&quot; id=&quot;labMatrixEmpty&quot;&gt;
+            Press &lt;b&gt;Run the matrix&lt;/b&gt; to render the current point count four times
+            over and compare.
+          &lt;/p&gt;
+          &lt;div id=&quot;labMatrixData&quot; hidden&gt;&lt;/div&gt;
+          &lt;p class=&quot;lab-verdict&quot; id=&quot;labVerdict&quot;&gt;&lt;/p&gt;
+        &lt;/section&gt;
+      
+        &lt;section class=&quot;lab-panel&quot;&gt;
+          &lt;h2&gt;What batching costs you&lt;/h2&gt;
+          &lt;div class=&quot;lab-pair&quot;&gt;
+            &lt;figure class=&quot;per&quot;&gt;
+              &lt;figcaption&gt;one element per marker&lt;/figcaption&gt;
+              &lt;div id=&quot;labMiniPer&quot;&gt;&lt;/div&gt;
+              &lt;p class=&quot;count&quot; id=&quot;labMiniPerCount&quot;&gt;&lt;/p&gt;
+            &lt;/figure&gt;
+            &lt;figure class=&quot;bat&quot;&gt;
+              &lt;figcaption&gt;one path per series&lt;/figcaption&gt;
+              &lt;div id=&quot;labMiniBat&quot;&gt;&lt;/div&gt;
+              &lt;p class=&quot;count&quot; id=&quot;labMiniBatCount&quot;&gt;&lt;/p&gt;
+            &lt;/figure&gt;
+          &lt;/div&gt;
+          &lt;p class=&quot;lab-caption&quot;&gt;
+            Same data, same colours, same marker size. One path is rasterized as a
+            single region, so where markers overlap they lose their individual
+            outlines: all the fills paint, then all the strokes, and the seams between
+            neighbours disappear. Dense clusters read flatter. Above a thousand points
+            in a chart this wide markers always overlap, so there is no point count at
+            which the merge is free, which is exactly why
+            &lt;code&gt;markers.largeDatasetThreshold&lt;/code&gt; ships off.
+          &lt;/p&gt;
+        &lt;/section&gt;
+      
+        &lt;section class=&quot;lab-notes&quot;&gt;
+          &lt;div class=&quot;lab-note&quot;&gt;
+            &lt;h3&gt;&lt;span class=&quot;n&quot;&gt;01&lt;/span&gt;A gap is a subpath&lt;/h3&gt;
+            &lt;p&gt;
+              A null breaks the line, and a break in SVG is just another subpath. A
+              gapped series is now one path element carrying one &lt;code&gt;M&lt;/code&gt; per
+              segment, where it used to be one element per segment. Automatic, no
+              config, and pixel for pixel identical.
+            &lt;/p&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;lab-note&quot;&gt;
+            &lt;h3&gt;&lt;span class=&quot;n&quot;&gt;02&lt;/span&gt;What is left is markers&lt;/h3&gt;
+            &lt;p&gt;
+              Markers, not nulls, dominate a big render, and a null-heavy series draws
+              them whether you asked or not: every isolated point gets a dot so a
+              one-point segment stays visible.
+              &lt;code&gt;markers.largeDatasetThreshold&lt;/code&gt; merges both kinds where they
+              are already non-interactive, for the overlap detail above.
+            &lt;/p&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;lab-note&quot;&gt;
+            &lt;h3&gt;&lt;span class=&quot;n&quot;&gt;03&lt;/span&gt;When neither is enough&lt;/h3&gt;
+            &lt;p&gt;
+              Past a few tens of thousands of points, stop drawing them all:
+              &lt;code&gt;chart.dataReducer&lt;/code&gt; downsamples to the pixels you actually
+              have, and &lt;code&gt;chart.renderer: &#39;auto&#39;&lt;/code&gt; paints dense series into a
+              canvas instead of the DOM.
+            &lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/section&gt;
+      &lt;/div&gt;</div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        components: {
+          apexchart: VueApexCharts,
+        },
+        data: {
+          series: [{ name: 'Sensor', data: labData(2000, 'none') }],
+          chartOptions: {
+            chart: {
+              height: 340,
+              type: 'line',
+              animations: { enabled: false },
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              toolbar: { show: false },
+              zoom: { enabled: false },
+            },
+            colors: ['#2563eb'],
+            stroke: { curve: 'straight', width: 2 },
+            dataLabels: { enabled: false },
+            markers: { size: 0, strokeWidth: 2, strokeColors: '#fff' },
+            grid: { borderColor: '#e7ecf5' },
+            xaxis: {
+              type: 'datetime',
+              tooltip: { enabled: false },
+              labels: { style: { colors: '#8b97ae' } },
+            },
+            yaxis: {
+              labels: {
+                style: { colors: '#8b97ae' },
+                formatter: function (val) {
+                  return val.toFixed(0)
+                },
+              },
+            },
+            tooltip: { x: { format: 'dd MMM HH:mm' } },
+          },
+
+          labChart: null,
+          labMinis: [],
+          labDisposed: false,
+        },
+        mounted: function () {
+          // The lab destroys and rebuilds its chart per configuration, so this build
+          // skips the vue-apexcharts wrapper and owns the instance in #chart, exactly
+          // like the vanilla build. labData, labCensus, labConfig, labApply,
+          // labSetPressed, LAB_MATRIX and labShowMatrix live in the shared head script.
+          var me = this
+          var labBusy = document.getElementById('labBusy')
+          var chart = null
+
+          // The vanilla build gets a mutable `options` global from the template; rebuild
+          // the equivalent here from the parsed chart state.
+          var options = Object.assign({ series: me.series }, me.chartOptions)
+          options.chart = Object.assign({}, me.chartOptions.chart)
+
+          function labUpdateMetrics(ms) {
+            var c = labCensus('#chart')
+            document.getElementById('mTime').innerHTML =
+              (ms > 0 ? ms : '-') + '<small>ms</small>'
+            document.getElementById('mPaths').textContent = c.paths.toLocaleString()
+            document.getElementById('mMarkers').textContent =
+              c.markers.toLocaleString()
+            document.getElementById('mNodes').textContent = c.nodes.toLocaleString()
+          }
+
+          // Rebuild #chart with the given config and report what it cost. Timed around
+          // destroy + construct + render, which is the whole cost a page actually pays.
+          function labRenderWith(cfg) {
+            if (me.labDisposed)
+              return Promise.resolve({ ms: 0, paths: 0, markers: 0 })
+            var opts = labApply(options, cfg)
+            var t = performance.now()
+            if (chart) chart.destroy()
+            chart = new ApexCharts(document.querySelector('#chart'), opts)
+            me.labChart = chart
+            return chart.render().then(function () {
+              var ms = +(performance.now() - t).toFixed(1)
+              var c = labCensus('#chart')
+              return { ms: ms, paths: c.paths, markers: c.markers }
+            })
+          }
+
+          function labRender() {
+            labBusy.classList.add('on')
+            return labRenderWith(labConfig()).then(function (r) {
+              labBusy.classList.remove('on')
+              labUpdateMetrics(r.ms)
+            })
+          }
+
+          function labRunMatrix() {
+            var points = labConfig().points
+            var btnM = document.getElementById('labMatrix')
+            var btnR = document.getElementById('labRender')
+            btnM.disabled = true
+            btnR.disabled = true
+            labBusy.classList.add('on')
+
+            // Warm once at this point count first: an unwarmed comparison of these
+            // configurations once made the slower one look faster, because the first
+            // render paid for the JIT.
+            var rows = []
+            var run = labRenderWith({
+              points: points,
+              gaps: 'none',
+              markers: false,
+              batch: false,
+            })
+            LAB_MATRIX.forEach(function (m) {
+              run = run
+                .then(function () {
+                  return labRenderWith({
+                    points: points,
+                    gaps: m.gaps,
+                    markers: m.markers,
+                    batch: m.batch,
+                  })
+                })
+                .then(function (r) {
+                  rows.push({
+                    key: m.key,
+                    label: m.label,
+                    color: m.color,
+                    ms: r.ms,
+                    paths: r.paths,
+                    markers: r.markers,
+                  })
+                })
+            })
+
+            return run
+              .then(function () {
+                // leave the stage on the user's own selection, not the last matrix run
+                return labRenderWith(labConfig())
+              })
+              .then(function (r) {
+                if (me.labDisposed) return
+                labShowMatrix(rows, points)
+                labUpdateMetrics(r.ms)
+                labBusy.classList.remove('on')
+                btnM.disabled = false
+                btnR.disabled = false
+              })
+          }
+
+          // The side-by-side pair: 400 points at marker size 5 in a narrow chart, so
+          // the markers overlap several deep and the merge is visible rather than
+          // argued.
+          function labBuildMiniPair() {
+            var data = labData(400, 'none')
+            var mini = function (threshold) {
+              return {
+                chart: {
+                  type: 'line',
+                  height: 170,
+                  animations: { enabled: false },
+                  toolbar: { show: false },
+                  zoom: { enabled: false },
+                  parentHeightOffset: 0,
+                  fontFamily: 'Helvetica, Arial, sans-serif',
+                },
+                series: [{ name: 'Sensor', data: data }],
+                colors: ['#2563eb'],
+                stroke: { curve: 'straight', width: 2 },
+                dataLabels: { enabled: false },
+                markers: {
+                  size: 5,
+                  strokeWidth: 2,
+                  strokeColors: '#fff',
+                  largeDatasetThreshold: threshold,
+                },
+                grid: {
+                  show: false,
+                  padding: { left: 2, right: 2, top: 0, bottom: 0 },
+                },
+                xaxis: {
+                  type: 'datetime',
+                  labels: { show: false },
+                  axisBorder: { show: false },
+                  axisTicks: { show: false },
+                  tooltip: { enabled: false },
+                },
+                yaxis: { show: false },
+                tooltip: { enabled: false },
+                legend: { show: false },
+              }
+            }
+
+            ;[
+              { sel: '#labMiniPer', out: 'labMiniPerCount', threshold: 0 },
+              {
+                sel: '#labMiniBat',
+                out: 'labMiniBatCount',
+                threshold: LAB_THRESHOLD,
+              },
+            ].forEach(function (p) {
+              var c = new ApexCharts(document.querySelector(p.sel), mini(p.threshold))
+              me.labMinis.push(c)
+              c.render().then(function () {
+                var census = labCensus(p.sel)
+                document.getElementById(p.out).textContent =
+                  census.markers > 0
+                    ? census.markers.toLocaleString() + ' marker elements'
+                    : '1 path, ' + data.length.toLocaleString() + ' subpaths'
+              })
+            })
+          }
+
+          ;['labPoints', 'labGaps', 'labMarkers', 'labBatch'].forEach(
+            function (segId) {
+              document.getElementById(segId).addEventListener('click', function (e) {
+                var btn = e.target.closest('button')
+                if (btn) labSetPressed(segId, btn)
+              })
+            },
+          )
+
+          document.getElementById('labRender').addEventListener('click', labRender)
+          document.getElementById('labMatrix').addEventListener('click', labRunMatrix)
+
+          chart = new ApexCharts(document.querySelector('#chart'), options)
+          me.labChart = chart
+          chart.render().then(function () {
+            labUpdateMetrics(0)
+            labBuildMiniPair()
+          })
+        },
+        beforeDestroy: function () {
+          this.labDisposed = true
+          if (this.labChart) this.labChart.destroy()
+          this.labMinis.forEach(function (c) {
+            c.destroy()
+          })
+        },
+      })
+    </script>
+    
+  </body>
+</html>

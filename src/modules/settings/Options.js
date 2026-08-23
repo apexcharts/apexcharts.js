@@ -2143,11 +2143,19 @@ export default class Options {
           sizeOffset: 3,
         },
         // OPT-IN (0 = off). Above this many points in a series, that series'
-        // markers are drawn as ONE path element carrying a subpath per point
-        // instead of one element per point. Each per-point element costs a node,
-        // ~16 attribute writes and an appendChild, which is why markers
-        // dominate a large render: 2000 of them take 15ms of a 18ms render, and
-        // batched they take 3.5ms.
+        // markers are drawn as ONE path element per marker size, carrying a
+        // subpath per point, instead of one element per point. Each per-point
+        // element costs a node, ~16 attribute writes and an appendChild, which
+        // is why markers dominate a large render: 2000 of them take 15ms of an
+        // 18ms render, and batched they take 1ms.
+        //
+        // This covers the markers `showNullDataPoints` adds implicitly, not
+        // just the ones asked for: every point beside a null is isolated and
+        // gets its own dot, so a 2000-point series with half its values null
+        // built ~1000 elements even at markers.size 0. Batched that render goes
+        // from 15ms to 3.7ms, and 5000 points from 37ms to 5.9ms. Those dots
+        // are a different size from the configured ones, hence one path per
+        // size rather than one per series.
         //
         // Off by default because it is NOT pixel-identical where markers
         // overlap, and above ~1000 points in a normal-width chart they always

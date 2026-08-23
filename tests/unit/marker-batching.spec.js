@@ -93,7 +93,13 @@ describe('Marker batching', () => {
     expect(perPointCount()).toBe(POINTS)
   })
 
-  it('skips points with no value rather than drawing them', () => {
+  it('batches the smaller showNullDataPoints markers as their own group', () => {
+    // A null makes its neighbours isolated, and showNullDataPoints gives those
+    // their own smaller marker so a one-point segment is not invisible. Those
+    // arrive on a separate pass with an explicit size, which is the whole
+    // reason the batch groups by size: one path per size, not one per point.
+    // markers.size 9 keeps the two sizes apart (at the default they can
+    // coincide, and then correctly merge into one group).
     const withNulls = createChartWithOptions({
       chart: { type: 'line', width: 800, height: 350 },
       series: [
@@ -105,16 +111,32 @@ describe('Marker batching', () => {
         },
       ],
       dataLabels: { enabled: false },
-      markers: { size: 4, largeDatasetThreshold: 100 },
+      markers: { size: 9, largeDatasetThreshold: 100 },
     })
 
     expect(withNulls.w.globals.markers.batched).toBe(true)
-    const subpaths = (batchEl().getAttribute('d').match(/M/g) || []).length
-    // a third of the points are null, so a third fewer subpaths -- and never
-    // a NaN, which is what an unguarded coordinate would produce
-    expect(subpaths).toBeGreaterThan(POINTS / 2)
-    expect(subpaths).toBeLessThan(POINTS)
-    expect(batchEl().getAttribute('d')).not.toMatch(/NaN|undefined/)
+
+    const groups = [...document.querySelectorAll('.apexcharts-marker-batch')]
+      .map((el) => ({
+        size: Number(el.getAttribute('default-marker-size')),
+        subpaths: (el.getAttribute('d').match(/M/g) || []).length,
+        d: el.getAttribute('d'),
+      }))
+      .sort((a, b) => a.size - b.size)
+
+    expect(groups).toHaveLength(2)
+    // a third of the points are null: those get the small marker, the other two
+    // thirds get markers.size
+    expect(groups[0].size).toBeLessThan(9)
+    expect(groups[0].subpaths).toBe(POINTS / 3)
+    expect(groups[1].size).toBe(9)
+    expect(groups[1].subpaths).toBe((POINTS * 2) / 3)
+    // never a NaN, which is what an unguarded null coordinate would produce
+    groups.forEach((g) => expect(g.d).not.toMatch(/NaN|undefined/))
+    // two nodes left: the tooltip's hover dot, and the one off-grid virtual
+    // point a null-bearing series parks below the grid (#3641 needs it to stay
+    // its own element, so it is excluded from batching by name)
+    expect(perPointCount()).toBe(2)
   })
 
   it('draws stroke-shaped markers as strokes, as drawMarker does', () => {

@@ -43,7 +43,8 @@ const test = base.extend({
      * serialized across the page boundary, and only their presence is tested.
      * @param {{points?: number, threshold?: number, series?: number,
      *          markers?: object, tooltip?: object, onDataPointSelection?: boolean,
-     *          onMarkerClick?: boolean, perPointColor?: boolean, type?: string}} o
+     *          onMarkerClick?: boolean, perPointColor?: boolean, type?: string,
+     *          gaps?: 'none'|'half'}} o
      */
     const boot = async (o = {}) => {
       await page.goto('about:blank')
@@ -58,6 +59,10 @@ const test = base.extend({
         const mk = (/** @type {number} */ seed) => {
           const out = []
           for (let i = 0; i < points; i++) {
+            if (opt.gaps === 'half' && i % 2 === 0) {
+              out.push([t0 + i * 3600_000, null])
+              continue
+            }
             const y = Math.round(50 + 40 * Math.sin((i + seed) / 9))
             // a per-point colour makes the series non-uniform, so it cannot
             // share one path's style attributes
@@ -178,6 +183,45 @@ test.describe('Marker batching (markers.largeDatasetThreshold)', () => {
     // enlarge, and resetPointsSize rewrites the `d` of every match, so a batch
     // wearing it would lose its whole subpath list on first mouseover
     expect(inert.klass.split(/\s+/)).not.toContain('apexcharts-marker')
+  })
+
+  test('reaches the implicit markers a null-heavy series draws', async ({
+    page,
+    boot,
+  }) => {
+    // The case #3249 actually reported. Even with markers.size 0, every point
+    // next to a null is isolated, and showNullDataPoints gives each of those
+    // its own marker: half nulls means ~n/2 elements on a chart nobody asked
+    // for markers on. Batching has to reach those or it misses the real cost.
+    await boot({
+      points: POINTS,
+      threshold: THRESHOLD,
+      gaps: 'half',
+      markers: { size: 0 },
+    })
+
+    const c = await census(page)
+    expect(c.batched).toBe(true)
+    // one path for the whole implicit set, where there were hundreds
+    expect(c.batchEls).toBe(1)
+    expect(c.subpaths).toBeGreaterThan(POINTS / 3)
+    // two nodes left: the tooltip's hover dot, and the one off-grid virtual
+    // point a null-bearing series parks below the grid (#3641 needs it to stay
+    // its own element, so it is excluded from batching by name)
+    expect(c.perPoint).toBe(2)
+  })
+
+  test('a null-heavy series is untouched when not opted in', async ({
+    page,
+    boot,
+  }) => {
+    await boot({ points: POINTS, gaps: 'half', markers: { size: 0 } })
+
+    const c = await census(page)
+    expect(c.batched).toBe(false)
+    expect(c.batchEls).toBe(0)
+    // one element per isolated point, which is the cost the flag removes
+    expect(c.perPoint).toBeGreaterThan(POINTS / 3)
   })
 
   test('area charts batch too', async ({ page, boot }) => {

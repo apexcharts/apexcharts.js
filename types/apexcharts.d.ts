@@ -3728,9 +3728,11 @@ type ApexMarkers = {
   }
   /**
    * Opt-in (default 0 = off). Above this many points in a series, that series'
-   * markers are drawn as one path element (a subpath per point) instead of one
-   * element per point, which roughly quarters the cost of a marker-heavy
-   * render. Not pixel-identical: overlapping markers are rasterized as one
+   * markers are drawn as one path element per marker size (a subpath per point)
+   * instead of one element per point, which cuts the cost of a marker-heavy
+   * render several-fold. Also covers the markers `showNullDataPoints` adds to
+   * isolated points, which is what makes a null-heavy series slow even at
+   * `size: 0`. Not pixel-identical: overlapping markers are rasterized as one
    * region and lose their individual outlines, so dense clusters read flatter.
    * Only applies where markers are already non-interactive and uniform, and
    * such a series has no `.apexcharts-marker` nodes.
