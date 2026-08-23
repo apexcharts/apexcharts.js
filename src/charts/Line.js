@@ -59,6 +59,12 @@ class Line {
 
     /** @type {any} */
     this.prevSeriesY = []
+    /**
+     * Top of the stack so far, keyed by x identity rather than by data-point
+     * ordinal. See _stackKey / _recordStackTops.
+     * @type {Map<any, number>}
+     */
+    this.prevSeriesYByX = new Map()
     this.categoryAxisCorrection = 0
     this.yaxisIndex = 0
     /** @type {number} */ this.xDivision = 0
@@ -98,6 +104,7 @@ class Line {
     this.yRatio = coreUtils.getLogYRatios(this.yRatio)
     // We call draw() for each series group
     this.prevSeriesY = []
+    this.prevSeriesYByX = new Map()
 
     // push all series in an array, so we can draw in reverse order
     // (for stacked charts)
@@ -463,6 +470,81 @@ class Line {
     }
   }
 
+  /**
+   * The identity a stacked baseline is looked up by.
+   *
+   * On a numeric or datetime axis each series carries its own x array, and two
+   * series' Nth points are not the same x when one of them is missing an entry.
+   * So the key is the x VALUE there. On a category axis every series is indexed
+   * against the shared category list, so the ordinal already IS the identity
+   * (and the pixel x is a running sum, unsafe to compare as a float).
+   *
+   * Returns undefined when this ordinal has no x, which happens on every series
+   * shorter than the longest one: the loop runs `dataPoints - 1` times for all
+   * of them. Those iterations must not write to or read from the map.
+   * @param {number} realIndex
+   * @param {number} ordinal
+   * @returns {any}
+   */
+  _stackKey(realIndex, ordinal) {
+    if (!this.w.axisFlags.isXNumeric) return ordinal
+    const xs = this.w.seriesData.seriesX[realIndex]
+    return xs ? xs[ordinal] : undefined
+  }
+
+  /**
+   * Pixel y of the top of the stack at one point of the series being drawn, or
+   * undefined when nothing has been stacked there yet (so the caller starts
+   * from the axis baseline).
+   * @param {number} realIndex
+   * @param {number} ordinal
+   * @returns {number | undefined}
+   */
+  stackTopAt(realIndex, ordinal) {
+    const key = this._stackKey(realIndex, ordinal)
+    if (key === undefined || key === null) return undefined
+    return this.prevSeriesYByX.get(key)
+  }
+
+  /**
+   * Fold a drawn series into the running stack top, so the next series can find
+   * its baseline by x (#4886).
+   *
+   * A point the series does not have simply leaves the previous top in place,
+   * which is the same thing as contributing 0 there. That is exactly what the
+   * workaround posted on the issue does by hand (pad every series onto the union
+   * of all x with zeros), and it is the behaviour the reporter expected.
+   *
+   * Collapsed series are skipped rather than folded in. Today a collapsed series
+   * renders a full-length yArrj sitting on the running baseline, so folding it
+   * would be a no-op anyway, but skipping states the intent and keeps this
+   * correct if that representation ever changes.
+   * @param {number} realIndex
+   * @param {any[]} yArrj
+   */
+  _recordStackTops(realIndex, yArrj) {
+    const w = this.w
+    if (!Array.isArray(yArrj)) return
+    if (
+      w.globals.collapsedSeriesIndices.indexOf(realIndex) !== -1 ||
+      w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) !== -1
+    ) {
+      return
+    }
+
+    for (let j = 0; j < yArrj.length; j++) {
+      const key = this._stackKey(realIndex, j)
+      if (key === undefined || key === null) continue
+      // A null y is a gap in this series, not a new top: leave whatever the
+      // series below contributed. The ordinal path used to hand the null
+      // straight to the next series as its baseline, where it coerced to 0 and
+      // put that point at the top of the plot.
+      const y = yArrj[j]
+      if (!Utils.isNumber(y)) continue
+      this.prevSeriesYByX.set(key, y)
+    }
+  }
+
   /** @param {{type: any, realIndex: any, i: any, paths: any}} opts */
   _handlePaths({ type, realIndex, i, paths }) {
     const w = this.w
@@ -475,6 +557,7 @@ class Line {
 
     // push all current y values array to main PrevY Array
     this.prevSeriesY.push(paths.yArrj)
+    this._recordStackTops(realIndex, paths.yArrj)
 
     // Streaming scroll: when this update is a windowed continuation of the
     // previous render (rolling window / append under xaxis.range), morph from
@@ -885,8 +968,18 @@ class Line {
           }
           const pIdx = prevIndex(i - 1)
           // Every earlier series hidden: this one stacks from the baseline.
-          lineYPosition =
-            pIdx < 0 ? this.zeroY : this.prevSeriesY[pIdx][j + 1]
+          if (pIdx < 0) {
+            lineYPosition = this.zeroY
+          } else {
+            // Resolve the baseline by x, not by ordinal (#4886). With ragged x
+            // arrays this series' ordinal j+1 is a different date from the
+            // previous series' ordinal j+1, so the ordinal lookup stacked onto
+            // the wrong point entirely: in the reported data it displaced a
+            // series by up to 92px of a 387px plot. A miss means no earlier
+            // series has a value at this x, so there is nothing to stack on.
+            const top = this.stackTopAt(realIndex, j + 1)
+            lineYPosition = top === undefined ? this.zeroY : top
+          }
         } else {
           // the first series will not have prevY values
           lineYPosition = this.zeroY

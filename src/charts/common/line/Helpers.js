@@ -129,8 +129,11 @@ export default class Helpers {
     if (typeof series[i]?.[0] !== 'undefined') {
       if (stackSeries) {
         if (i > 0) {
-          // 1st y value of previous series
-          lineYPosition = this.lineCtx.prevSeriesY[i - 1][0]
+          // Top of the stack at THIS series' first x. Reading
+          // prevSeriesY[i - 1][0] instead assumed both series start at the same
+          // x, which is not true once the arrays are ragged (#4886).
+          const top = this.lineCtx.stackTopAt(realIndex, 0)
+          lineYPosition = top === undefined ? this.lineCtx.zeroY : top
         } else {
           // the first series will not have prevY values
           lineYPosition = this.lineCtx.zeroY
