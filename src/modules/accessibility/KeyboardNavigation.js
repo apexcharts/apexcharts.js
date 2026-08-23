@@ -766,7 +766,11 @@ export default class KeyboardNavigation {
     // specific marker for (i, j), resize only it, and position the tooltip
     // at its cx/cy using the same formula as mouse hover.
     const isScatterLike = type === 'scatter' || type === 'bubble'
-    const hasVisibleMarkers = w.globals.markers.largestSize > 0
+    // batched markers are one path per series, so there is no per-point node to
+    // enlarge: the dynamic-point path below handles them, as it does for
+    // markers.size: 0
+    const hasVisibleMarkers =
+      w.globals.markers.largestSize > 0 && !w.globals.markers.batched
 
     if (isScatterLike) {
       this._showScatterBubblePoint(i, j, ttCtx)
@@ -986,7 +990,7 @@ export default class KeyboardNavigation {
   _applyFocusClass(i, j) {
     this._removeFocusClass()
 
-    const el = this._getFocusableElement(i, j)
+    const el = this._getFocusableElement(i, j) || this._getBatchedFocusEl(i)
     if (el) {
       el.classList.add('apexcharts-keyboard-focused')
       // WCAG 4.1.2 Name, Role, Value: give the focused data point an
@@ -998,6 +1002,22 @@ export default class KeyboardNavigation {
       if (label) el.setAttribute('aria-label', label)
       this._focusedEl = el
     }
+  }
+
+  /**
+   * A batched series has no `.apexcharts-marker[rel]` node to carry the focus
+   * ring and aria-label, so the focus lands on the tooltip's own marker for
+   * that series instead: `_showTooltip` moves it onto the focused point in this
+   * same task, so it is the element the reader sees highlighted. Only used when
+   * batching is on, since with per-point nodes the exact node is better.
+   * @param {number} i
+   * @returns {Element | null}
+   */
+  _getBatchedFocusEl(i) {
+    if (!this.w.globals.markers.batched) return null
+    return this.w.dom.baseEl.querySelector(
+      `.apexcharts-series[data\\:realIndex='${i}'] .apexcharts-series-markers path`,
+    )
   }
 
   _removeFocusClass() {

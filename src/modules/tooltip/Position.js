@@ -446,7 +446,9 @@ export default class Position {
     const w = this.w
     const ttCtx = this.ttCtx
 
-    if (w.globals.markers.size[i] > 0) {
+    // batched markers are one path per series, so there is no per-point node
+    // to find by `rel` and enlarge: fall through to the dynamic point
+    if (w.globals.markers.size[i] > 0 && !w.globals.markers.batched) {
       const allPoints = w.dom.baseEl.querySelectorAll(
         ` .apexcharts-series[data\\:realIndex='${i}'] .apexcharts-marker`,
       )

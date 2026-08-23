@@ -407,6 +407,12 @@ export default class Globals {
         colors: [],
         size: config.markers.size,
         largestSize: 0,
+        // Set once per render by Markers.setGlobalMarkerSize: this chart's
+        // markers are drawn as one path element per series (a subpath per
+        // point) rather than one element per point, so there are no
+        // `.apexcharts-marker` nodes to enlarge, ride or hit-test. Everything
+        // that reads per-point marker nodes has to consult this.
+        batched: false,
       },
 
       // ── Device / environment detected once at startup ─────────────────────────

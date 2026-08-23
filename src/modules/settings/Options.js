@@ -2142,6 +2142,30 @@ export default class Options {
           size: undefined,
           sizeOffset: 3,
         },
+        // OPT-IN (0 = off). Above this many points in a series, that series'
+        // markers are drawn as ONE path element carrying a subpath per point
+        // instead of one element per point. Each per-point element costs a node,
+        // ~16 attribute writes and an appendChild, which is why markers
+        // dominate a large render: 2000 of them take 15ms of a 18ms render, and
+        // batched they take 3.5ms.
+        //
+        // Off by default because it is NOT pixel-identical where markers
+        // overlap, and above ~1000 points in a normal-width chart they always
+        // do. One path is rasterized as a single region, so overlapping markers
+        // lose their individual outlines: all the fills paint, then all the
+        // strokes, and the seams between neighbours disappear. Dense clusters
+        // read flatter (measured 1-9% of pixels, scaling with density). Sparse
+        // markers that do not touch are unaffected.
+        //
+        // Only applies where markers are already non-interactive and uniform (a
+        // plain line/area with the default sweep tooltip, no discrete markers,
+        // no per-point colours, no marker click handlers, no dataPointSelection
+        // handler). A batched series has no `.apexcharts-marker` nodes, so the
+        // hover dot is served by the tooltip's own marker (the same one
+        // markers.size: 0 charts use), the keyboard focus ring lands on that
+        // marker, and the per-marker reveal / stream ride is replaced by the
+        // series-level fade.
+        largeDatasetThreshold: 0,
       },
       noData: {
         text: undefined,

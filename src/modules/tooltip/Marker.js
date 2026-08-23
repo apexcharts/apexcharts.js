@@ -102,11 +102,7 @@ export default class Marker {
         let PointClasses = `apexcharts-marker w${(Math.random() + 1)
           .toString(36)
           .substring(4)}`
-        if (
-          (w.config.chart.type === 'line' || w.config.chart.type === 'area') &&
-          !w.globals.comboCharts &&
-          !w.config.tooltip.intersect
-        ) {
+        if (Markers.markersAreInert(w)) {
           PointClasses += ' no-pointer-events'
         }
 

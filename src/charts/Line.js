@@ -263,6 +263,10 @@ class Line {
 
       this._handlePaths({ type, realIndex, i, paths })
 
+      // Batched markers accumulate across the j loop above and become one path
+      // element here, at the end of the series.
+      this.markers.flushBatch(this.elPointsMain, realIndex)
+
       this.elSeries.add(this.elPointsMain)
       this.elSeries.add(this.elDataLabelsWrap)
 
@@ -1012,7 +1016,12 @@ class Line {
       // Progressive marker reveal handles per-marker opacity timing (synced
       // to the line draw), so the legacy group-level hide is bypassed on
       // initial mount. Data updates and resizes still use the old code path.
-      const useProgressive = !w.globals.dataChanged && !w.globals.resized
+      // A batched series has no per-marker element to time, so it takes the
+      // group-level reveal (the whole batch appears when the draw completes).
+      const useProgressive =
+        !w.globals.dataChanged &&
+        !w.globals.resized &&
+        !w.globals.markers.batched
       if (!useProgressive && w.seriesData.series[i].length > 1) {
         this.elPointsMain.node.classList.add('apexcharts-element-hidden')
       }

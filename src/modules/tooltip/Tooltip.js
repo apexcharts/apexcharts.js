@@ -340,7 +340,13 @@ export default class Tooltip {
       this.showOnIntersect = true
     }
 
-    if (w.config.markers.size === 0 || w.globals.markers.largestSize === 0) {
+    if (
+      w.config.markers.size === 0 ||
+      w.globals.markers.largestSize === 0 ||
+      // batched markers have no per-point node to enlarge, so the hover dot is
+      // served by the same single marker a markers.size: 0 chart uses
+      w.globals.markers.batched
+    ) {
       // when user don't want to show points all the time, but only on when hovering on series
       this.marker.drawDynamicPoints()
     }
@@ -1520,11 +1526,16 @@ export default class Tooltip {
     const bars = this.tooltipUtil.getElBars()
 
     const handlePoints = () => {
-      if (w.globals.markers.largestSize > 0 && !canvasMode) {
+      if (
+        w.globals.markers.largestSize > 0 &&
+        !canvasMode &&
+        !w.globals.markers.batched
+      ) {
         ttCtx.marker.enlargePoints(j)
       } else {
         // canvas: markers paint to a bitmap with no node to enlarge, so the
-        // box is positioned off the cached pointsArray coords instead.
+        // box is positioned off the cached pointsArray coords instead. Batched
+        // markers are one path per series, with the same consequence.
         ttCtx.tooltipPosition.moveDynamicPointsOnHover(j)
       }
     }

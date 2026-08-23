@@ -303,7 +303,13 @@ export interface ChartGlobals
   stroke: { colors: string[] }
   dataLabels: { style: { colors: string[] } }
   radarPolygons: { fill: { colors: string[] } }
-  markers: { colors: string[]; size: number[]; largestSize: number }
+  markers: {
+    colors: string[]
+    size: number[]
+    largestSize: number
+    /** one path element per series instead of one per point: no marker nodes */
+    batched: boolean
+  }
 
   // ── Chart-type flags ──────────────────────────────────────────────────────
   axisCharts: boolean
