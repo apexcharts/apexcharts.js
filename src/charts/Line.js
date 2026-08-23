@@ -576,18 +576,44 @@ class Line {
     // moveTo/lineTo loop instead of parsing the d string into a Path2D.
     const numericXY = paths.numericXY
 
+    // A null splits a series into segments, but a gap in SVG is just another
+    // subpath: every segment already begins with an M, so the whole series
+    // fits in ONE path element rather than one element per segment. Each extra
+    // element cost a DOM node, its attributes, its listeners and a getBBox,
+    // which is why a series with many nulls rendered so disproportionately
+    // slowly (#3249: ~20us per null against ~0.5us per ordinary point, so 286
+    // nulls meant 288 path elements and a 3x render).
+    //
+    // For a line this is pixel-identical. For an area it also makes the fill
+    // gradient one continuous ramp across the series instead of restarting at
+    // every gap, which is what a single series should look like.
+    //
+    // rangeArea is excluded: its segments were already combined pairwise above
+    // (upper + lower per segment) and its fill depends on that pairing. Canvas
+    // mode is unaffected either way, since `numericXY` already carries the
+    // whole series rather than per-segment coordinates.
+    const mergeSegments = type === 'line' || type === 'area'
+    const linePathsToDraw =
+      mergeSegments && paths.linePaths.length > 1
+        ? [paths.linePaths.join(' ')]
+        : paths.linePaths
+    const areaPathsToDraw =
+      mergeSegments && paths.areaPaths.length > 1
+        ? [paths.areaPaths.join(' ')]
+        : paths.areaPaths
+
     if (type === 'area') {
       const pathFill = fill.fillPath({
         seriesNumber: realIndex,
       })
 
-      for (let p = 0; p < paths.areaPaths.length; p++) {
+      for (let p = 0; p < areaPathsToDraw.length; p++) {
         const renderedPath = emit.renderPaths({
           ...defaultRenderedPathOptions,
           pathFrom: streamScroll
             ? projectPathToPrevFrame(paths.areaPaths[p], streamScroll)
             : (reconcile?.area?.from ?? paths.pathFromArea),
-          pathTo: paths.areaPaths[p],
+          pathTo: areaPathsToDraw[p],
           pathToNumeric: numericXY
             ? {
                 xs: numericXY.xs,
@@ -629,7 +655,7 @@ class Line {
       }
 
       // range-area paths are drawn using linePaths
-      for (let p = 0; p < paths.linePaths.length; p++) {
+      for (let p = 0; p < linePathsToDraw.length; p++) {
         let pathFill = lineFill
         if (type === 'rangeArea') {
           pathFill = fill.fillPath({
@@ -641,7 +667,7 @@ class Line {
           pathFrom: streamScroll
             ? projectPathToPrevFrame(paths.linePaths[p], streamScroll)
             : (reconcile?.line?.from ?? paths.pathFromLine),
-          pathTo: paths.linePaths[p],
+          pathTo: linePathsToDraw[p],
           pathToNumeric: numericXY
             ? { xs: numericXY.xs, ys: numericXY.ys }
             : undefined,

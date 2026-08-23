@@ -2,13 +2,18 @@ import { describe, it, expect } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
 
 /**
- * #5209: with plotOptions.line.colors thresholds, a null splits the series into
- * several path elements. Under the default objectBoundingBox units each segment
- * resolved the shared gradient against its own bounding box, so the color
- * transition landed on a different value in every segment.
+ * #5209: with plotOptions.line.colors thresholds, a null splits the series in
+ * two. Under the default objectBoundingBox units each part resolved the shared
+ * gradient against its own bounding box, so the color transition landed on a
+ * different value on either side of the gap.
  *
  * The fix anchors the threshold gradient to the plot area and positions its
  * boundary over the y-axis range, which is the space that gradient now spans.
+ *
+ * Since #3249 those parts are subpaths of ONE path element rather than one
+ * element each, so the preconditions below count `M` commands. The anchoring is
+ * still required and still asserted: the gradient is shared across the gap
+ * either way, and it also has to survive an axis window wider than the data.
  */
 
 const thresholdColors = {
@@ -60,9 +65,12 @@ describe('Issue 5209: null values with line threshold colors', () => {
   it('anchors the threshold gradient to the plot area', () => {
     const chart = render()
 
-    // the null splits the area into multiple paths
+    // the null splits the area, as subpaths of the one gradient-filled element
     const areaPaths = document.querySelectorAll('.apexcharts-area[fill^="url("]')
-    expect(areaPaths.length).toBeGreaterThan(1)
+    expect(areaPaths.length).toBe(1)
+    expect(
+      (areaPaths[0].getAttribute('d').match(/M/g) || []).length,
+    ).toBeGreaterThan(1)
 
     const grad = thresholdGradient()
     expect(grad.units).toBe('userSpaceOnUse')
@@ -99,7 +107,10 @@ describe('Issue 5209: null values with line threshold colors', () => {
     render({ chart: { type: 'line', width: 800, height: 350 } })
 
     const linePaths = document.querySelectorAll('.apexcharts-line[stroke^="url("]')
-    expect(linePaths.length).toBeGreaterThan(1)
+    expect(linePaths.length).toBe(1)
+    expect(
+      (linePaths[0].getAttribute('d').match(/M/g) || []).length,
+    ).toBeGreaterThan(1)
 
     const grad = thresholdGradient()
     expect(grad.units).toBe('userSpaceOnUse')
