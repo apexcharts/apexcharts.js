@@ -46,8 +46,14 @@ export default class Annotations {
 
   drawAxesAnnotations() {
     const w = this.w
-    if (w.globals.axisCharts && w.globals.dataPoints) {
-      // w.globals.dataPoints check added to fix  #1832
+    // The containers are built unconditionally, even on an empty chart: the
+    // runtime addXaxisAnnotation/addYaxisAnnotation/addPointAnnotation APIs look
+    // their parent group up by selector and used to throw on a null parent when
+    // the chart had no data. Whether an individual annotation can be *placed* is
+    // decided per annotation by Helpers.hasXDomain(), which is what replaced the
+    // blanket `w.globals.dataPoints` check here (#1832): that check also
+    // suppressed y-axis annotations, whose scale is always valid (#5278).
+    if (w.globals.axisCharts) {
       const yAnnotations = this.yAxisAnnotations.drawYAxisAnnotations()
       const xAnnotations = this.xAxisAnnotations.drawXAxisAnnotations()
       const pointAnnotations = this.pointsAnnotations.drawPointAnnotations()

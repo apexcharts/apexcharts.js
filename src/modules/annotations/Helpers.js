@@ -1,5 +1,6 @@
 // @ts-check
 import CoreUtils from '../CoreUtils'
+import Utils from '../../utils/Utils'
 import { applyProgressiveReveal } from '../Animations'
 
 export default class Helpers {
@@ -186,12 +187,71 @@ export default class Helpers {
   }
 
   /**
+   * Does the x position take the category branch of `getX1X2` (a label lookup)
+   * rather than projecting through a numeric domain? Mirrors the conditions
+   * applied there, so the two cannot drift apart.
+   *
+   * @returns {boolean}
+   */
+  usesCategoryX() {
+    const w = this.w
+
+    return (
+      (w.config.xaxis.type === 'category' ||
+        w.config.xaxis.convertedCatToNumeric) &&
+      !this.annoCtx.invertAxis &&
+      !w.axisFlags.dataFormatXNumeric &&
+      !w.config.chart.sparkline.enabled
+    )
+  }
+
+  /**
+   * Is there a real domain for an x position to project through?
+   *
+   * An empty series still gets a laid-out grid and a y scale (the default 0..6,
+   * or the configured `yaxis.min`/`max`), which is why a y-axis annotation is
+   * always placeable. Nothing bounds the x domain though: `maxX` is left
+   * undefined and `xRange` is NaN, and a category axis has no labels to index
+   * into. Projecting through that is silently wrong rather than merely absent:
+   * NaN sails past the clip comparisons in `getX1X2` (both `NaN > gridWidth`
+   * and `NaN < 0` are false), and the category branch hands back the raw value
+   * as a pixel offset, so `x: 5` draws 5px from the grid's left edge.
+   *
+   * Gating each annotation on this replaces the chart-wide `dataPoints` check
+   * that used to sit in `drawAxesAnnotations()` (#1832), which suppressed the
+   * placeable y-axis annotations along with the unplaceable x ones (#5278).
+   *
+   * @returns {boolean}
+   */
+  hasXDomain() {
+    const w = this.w
+
+    if (this.annoCtx.invertAxis) {
+      // A horizontal bar reads the y scale for horizontal position. Its
+      // minX/xRange are never populated (they sit at ±MAX_VALUE / Infinity even
+      // with data), so they must not be consulted here.
+      return (
+        Utils.isNumber(w.globals.minY) && Utils.isNumber(w.globals.yRange[0])
+      )
+    }
+
+    if (this.usesCategoryX()) {
+      return (
+        w.labelData.labels.length > 0 || w.labelData.categoryLabels.length > 0
+      )
+    }
+
+    return Utils.isNumber(w.globals.minX) && Utils.isNumber(w.globals.xRange)
+  }
+
+  /**
    * @param {string} type
    * @param {Record<string, any>} anno
    */
   getY1Y2(type, anno) {
     const w = this.w
     const y = type === 'y1' ? anno.y : anno.y2
+    const isPx = typeof y === 'string' && y.includes('px')
     let yP
     let clipped = false
 
@@ -200,6 +260,15 @@ export default class Helpers {
         ? w.labelData.categoryLabels
         : w.labelData.labels
       const catIndex = labels.indexOf(y)
+
+      // On a horizontal bar the y value names a category, so it has to resolve
+      // to one. It doesn't when the chart has no data (no categories exist yet)
+      // or when the value simply isn't in the list. Both used to place the
+      // annotation at -barHeight instead of dropping it.
+      if (!isPx && catIndex === -1) {
+        return { yP: 0, clipped: true }
+      }
+
       const xLabel = w.dom.baseEl.querySelector(
         `.apexcharts-yaxis-texts-g text:nth-child(${catIndex + 1})`,
       )
@@ -215,22 +284,41 @@ export default class Helpers {
           w.globals.barHeight * anno.seriesIndex
       }
     } else {
-      // Guard an out-of-range yAxisIndex (e.g. addPointAnnotation({ yAxisIndex: 2 })
-      // on a single-y-axis chart): seriesYAxisMap[idx] would be undefined and [0]
-      // would throw, aborting the whole render. Clip the annotation instead.
-      const yAxisMap = w.globals.seriesYAxisMap[anno.yAxisIndex]
-      if (!yAxisMap || yAxisMap[0] == null || !w.config.yaxis[anno.yAxisIndex]) {
+      // An annotation is placed against the scale of whichever series owns its
+      // y axis. Two ways that lookup comes up empty, which need opposite
+      // answers:
+      //
+      //  - The yAxisIndex is out of range (e.g. addPointAnnotation({
+      //    yAxisIndex: 2 }) on a single-y-axis chart). There is no such axis, so
+      //    clip. Reading seriesYAxisMap[idx][0] here would throw and take the
+      //    whole render down with it.
+      //  - The axis exists but nothing is plotted on it yet (`series: []`, the
+      //    shape a chart renders in while its data loads). The axis is drawn and
+      //    labelled from the chart-level domain, so project through that.
+      if (!w.config.yaxis[anno.yAxisIndex]) {
         return { yP: 0, clipped: true }
       }
-      const seriesIndex = yAxisMap[0]
-      const yPos = w.config.yaxis[anno.yAxisIndex].logarithmic
-        ? new CoreUtils(this.w).getLogVal(
-            w.config.yaxis[anno.yAxisIndex].logBase,
-            y,
-            seriesIndex,
-          ) / /** @type {any} */ (w.globals).yLogRatio[seriesIndex]
-        : (y - w.globals.minYArr[seriesIndex]) /
-          (w.globals.yRange[seriesIndex] / w.layout.gridHeight)
+      const yAxisMap = w.globals.seriesYAxisMap[anno.yAxisIndex]
+      const seriesIndex = yAxisMap?.[0] ?? null
+      if (seriesIndex === null && w.seriesData.series.length) {
+        return { yP: 0, clipped: true }
+      }
+
+      const yMin =
+        seriesIndex === null ? w.globals.minY : w.globals.minYArr[seriesIndex]
+      const yRange =
+        seriesIndex === null
+          ? w.globals.maxY - w.globals.minY
+          : w.globals.yRange[seriesIndex]
+
+      const yPos =
+        w.config.yaxis[anno.yAxisIndex].logarithmic && seriesIndex !== null
+          ? new CoreUtils(this.w).getLogVal(
+              w.config.yaxis[anno.yAxisIndex].logBase,
+              y,
+              seriesIndex,
+            ) / /** @type {any} */ (w.globals).yLogRatio[seriesIndex]
+          : (y - yMin) / (yRange / w.layout.gridHeight)
 
       yP =
         w.layout.gridHeight - Math.min(Math.max(yPos, 0), w.layout.gridHeight)
@@ -245,8 +333,8 @@ export default class Helpers {
       }
     }
 
-    if (typeof y === 'string' && y.includes('px')) {
-      yP = parseFloat(y)
+    if (isPx) {
+      yP = parseFloat(/** @type {string} */ (y))
     }
 
     return { yP, clipped }
@@ -265,6 +353,17 @@ export default class Helpers {
       ? w.globals.yRange[0]
       : w.globals.xRange
     let clipped = false
+
+    // A pixel value and a marker pinned to the grid edge are positioned without
+    // consulting a domain, so they stay placeable on an empty chart. Everything
+    // else has to project through one, so refuse when there isn't one to
+    // project through rather than drawing at a meaningless pixel. See
+    // hasXDomain().
+    const isPx = typeof x === 'string' && x.includes('px')
+    const isEdgeMarker = (x === undefined || x === null) && anno.marker
+    if (!isPx && !isEdgeMarker && !this.hasXDomain()) {
+      return { x: 0, clipped: true }
+    }
 
     let xP = this.annoCtx.inversedReversedAxis
       ? (max - x) / (range / w.layout.gridWidth)
