@@ -934,16 +934,27 @@ class Line {
           // series cannot be used as this one's stacking baseline - originally
           // for apexcharts.js#1372.
           //
-          // This walk is currently belt-and-braces: a collapsed series still
-          // renders a full-length yArrj that sits exactly on the running
-          // baseline (it contributes 0), so every candidate index resolves to
-          // the same y and the walk cannot change the drawn geometry. It is
-          // kept correct rather than removed because it is the only thing
-          // standing between "a collapsed series stops contributing" and "a
-          // collapsed series corrupts the stack" if that representation ever
-          // goes back to emptying the array.
+          // This walk IS load-bearing, contrary to what this comment said when
+          // the three defects below were fixed in 39d56302c. That change was
+          // labelled behaviour-neutral on the reasoning that a collapsed series
+          // still renders a full-length yArrj sitting on the running baseline,
+          // so every candidate index resolves to the same y. The representation
+          // part is true, but the conclusion was not: the walk returned the
+          // WRONG index, not merely a different one that happened to agree.
           //
-          // Three defects were fixed here while it was behaviour-neutral:
+          // It was in fact the fix for #4984 (four series, the third declared
+          // `hidden: true` in the config). Measured on the reporter's own
+          // config: 6.8.0 draws the top series' second point at y=115.3 where it
+          // belongs at 57.7, and 6.9.0 onwards is correct. With the double
+          // decrement, series D's walk from index 2 landed on index 0 (A) rather
+          // than index 1 (B), so it stacked on A's top instead of B's.
+          //
+          // Only the second point onward was wrong, which is why hand-checking
+          // the first category would have looked fine: point 0 does not come
+          // through here at all, it comes from determineFirstPrevY, which reads
+          // prevSeriesY[i - 1][0] directly and never walks.
+          //
+          // The three defects, for the record:
           //   - `pii` was decremented inside the loop *and* by the for-update,
           //     stepping over two positions per collapsed series.
           //   - `pii > 0` never tested index 0, and `return 0` handed back

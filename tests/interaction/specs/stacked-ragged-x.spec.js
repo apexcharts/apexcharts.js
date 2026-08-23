@@ -356,6 +356,76 @@ test.describe('Stacked series with ragged x arrays (#4886)', () => {
     expect(hidden).toEqual(absent)
   })
 
+  test('a series declared hidden in the config does not corrupt the stack (#4984)', async ({
+    page,
+  }) => {
+    // #4984, from the config the reporter eventually supplied: a category axis,
+    // four equal-length series, the third `hidden: true` in the CONFIG rather
+    // than toggled off later. Nothing to do with ragged x, but it lives in the
+    // same walk-back-to-a-baseline code and it shipped broken, so it is guarded
+    // here rather than left to the next refactor to rediscover.
+    //
+    // Fixed in 6.9.0 by 39d56302c, which believed itself behaviour-neutral. On
+    // 6.8.0 the top series' SECOND point is drawn at y=115.3 instead of 57.7:
+    // the walk skipped past B to A, so D stacked on 7 units instead of 12, and
+    // 15/25 of a 288.3px plot is 115.3. The first point looks right either way,
+    // because it comes from determineFirstPrevY and never walks.
+    await page.goto('about:blank')
+    await page.setContent('<div id="chart" style="width:700px"></div>')
+    await page.addScriptTag({ path: distPath })
+
+    const tops = async (hideThird) =>
+      page.evaluate(async (hideThird) => {
+        /** @param {string} name @param {number} v @param {boolean} h */
+        const mk = (name, v, h) => ({
+          name,
+          hidden: h,
+          data: [
+            { x: 'a', y: v },
+            { x: 'b', y: v },
+          ],
+        })
+        document.querySelector('#chart').innerHTML = ''
+        window.chart = new ApexCharts(document.querySelector('#chart'), {
+          chart: {
+            type: 'area',
+            stacked: true,
+            height: 380,
+            width: 700,
+            animations: { enabled: false },
+          },
+          xaxis: { categories: ['a', 'b'] },
+          series: hideThird
+            ? [mk('A', 7, false), mk('B', 5, false), mk('C', 4, true), mk('D', 8, false)]
+            : [mk('A', 7, false), mk('B', 5, false), mk('D', 8, false)],
+          dataLabels: { enabled: false },
+          markers: { size: 5 },
+          stroke: { curve: 'straight' },
+        })
+        await window.chart.render()
+        const g = [...document.querySelectorAll('.apexcharts-series')].find(
+          (n) => n.getAttribute('seriesName') === 'D',
+        )
+        return [...g.querySelectorAll('.apexcharts-marker')]
+          .map((m) => ({
+            x: +parseFloat(m.getAttribute('cx')).toFixed(1),
+            y: +parseFloat(m.getAttribute('cy')).toFixed(1),
+          }))
+          .sort((a, b) => a.x - b.x)
+          .map((p) => p.y)
+      }, hideThird)
+
+    const withHidden = await tops(true)
+    const withoutIt = await tops(false)
+
+    // hiding it must be indistinguishable from never declaring it
+    expect(withHidden).toEqual(withoutIt)
+    // and specifically: both points at the same height, since the data is flat.
+    // Pre-6.9.0 the second one alone was wrong, so an equality check that only
+    // looked at point 0 would have passed.
+    expect(new Set(withHidden).size).toBe(1)
+  })
+
   test('a category axis is unaffected (invariant)', async ({ render }) => {
     // On a category axis every series is indexed against the shared category
     // list, so the ordinal already IS the x identity and this code path must not
