@@ -19,6 +19,34 @@ export default class Utils {
   }
 
   /**
+   * The element the pointer was over when a hover event fired, which is not
+   * always what `e.target` says later on.
+   *
+   * Hover events are coalesced through a ~20ms timer (Tooltip.onSeriesHover),
+   * so a good half of them are read back after they have finished propagating.
+   * At that point a chart living inside a shadow root has had its target
+   * retargeted to the host element, every `classList.contains('apexcharts-…')`
+   * gate below fails, and the tooltip is left wherever the previous event put
+   * it (#3237). `composedPath()` is no help after dispatch either: it returns
+   * an empty array.
+   *
+   * Called while the event is still dispatching (`eventPhase` is then
+   * non-zero) this remembers the real target on the event for the deferred
+   * readers; called afterwards it hands that back. Outside a shadow root
+   * nothing is retargeted and it is `e.target` either way.
+   *
+   * @param {any} e
+   * @returns {any}
+   */
+  static hoverTarget(e) {
+    if (!e) return null
+    if (e.eventPhase && e.target) {
+      e.apexHoverTarget = e.target
+    }
+    return e.apexHoverTarget || e.target
+  }
+
+  /**
    ** When hovering over series, you need to capture which series is being hovered on.
    ** This function will return both capturedseries index as well as inner index of that series
    * @memberof Utils

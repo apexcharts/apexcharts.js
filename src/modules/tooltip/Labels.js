@@ -223,7 +223,7 @@ export default class Labels {
    */
   resolvePatternColor(e, fallback) {
     const w = this.w
-    const targetFill = e?.target?.getAttribute('fill')
+    const targetFill = Utils.hoverTarget(e)?.getAttribute?.('fill')
     if (!targetFill) return fallback
     if (targetFill.indexOf('url') === -1) return targetFill
     if (targetFill.indexOf('Pattern') === -1) return fallback

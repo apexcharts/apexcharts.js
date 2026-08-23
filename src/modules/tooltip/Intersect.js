@@ -1,5 +1,6 @@
 // @ts-check
 import Utils from '../../utils/Utils'
+import TooltipUtils from './Utils'
 import { ARROW_TIP_OVERHANG } from './constants'
 
 /**
@@ -32,7 +33,8 @@ class Intersect {
    */
   getAttr(e, attr) {
     return parseFloat(
-      /** @type {Element} */ (e.target).getAttribute(attr) ?? '',
+      /** @type {Element} */ (TooltipUtils.hoverTarget(e)).getAttribute(attr) ??
+        '',
     )
   }
 
@@ -52,6 +54,8 @@ class Intersect {
       renderer &&
       renderer.kind === 'canvas' &&
       typeof renderer.hitTest === 'function'
+
+    const hovered = TooltipUtils.hoverTarget(e)
 
     let i, j, cx, cy, width, height
 
@@ -73,7 +77,7 @@ class Intersect {
       cy = hit.y
       width = hit.width
       height = hit.height
-    } else if (e.target.classList.contains(`apexcharts-${type}-rect`)) {
+    } else if (hovered.classList.contains(`apexcharts-${type}-rect`)) {
       i = this.getAttr(e, 'i')
       j = this.getAttr(e, 'j')
       cx = this.getAttr(e, 'cx')
@@ -123,7 +127,7 @@ class Intersect {
         clRight = cx + width
         clBottom = cy + height
       } else {
-        const r = e.target.getBoundingClientRect()
+        const r = hovered.getBoundingClientRect()
         clLeft = r.left - elGridRect.left
         clTop = r.top - elGridRect.top
         clRight = r.right - elGridRect.left
@@ -211,7 +215,7 @@ class Intersect {
 
     let i
     let j
-    if (e.target.classList.contains('apexcharts-marker')) {
+    if (TooltipUtils.hoverTarget(e).classList.contains('apexcharts-marker')) {
       const cx = parseInt(opt.paths.getAttribute('cx'), 10)
       const cy = parseInt(opt.paths.getAttribute('cy'), 10)
       const val = parseFloat(opt.paths.getAttribute('val'))
@@ -536,7 +540,8 @@ class Intersect {
     /** @type {{left:number, top:number, right:number, bottom:number} | null} */
     let barRectInGrid = null
 
-    const cl = e.target.classList
+    const hovered = TooltipUtils.hoverTarget(e)
+    const cl = hovered.classList
 
     if (
       cl.contains('apexcharts-bar-area') ||
@@ -544,7 +549,7 @@ class Intersect {
       cl.contains('apexcharts-boxPlot-area') ||
       cl.contains('apexcharts-rangebar-area')
     ) {
-      const bar = e.target
+      const bar = hovered
       const barRect = bar.getBoundingClientRect()
 
       const seriesBound = opt.elGrid.getBoundingClientRect()

@@ -694,6 +694,12 @@ export default class Tooltip {
    */
   /** @param {Record<string, any>} opt @param {any} e */
   onSeriesHover(opt, e) {
+    // Note down the element under the pointer NOW, while the event is still
+    // propagating. The draw below can be deferred past the end of dispatch, and
+    // by then a chart inside a shadow root reports the host element as the
+    // target instead of the bar/marker/cell we need (#3237).
+    Utils.hoverTarget(e)
+
     // If a user is moving their mouse quickly, don't bother updating the tooltip every single frame
 
     const targetDelay = 20
@@ -823,7 +829,7 @@ export default class Tooltip {
     ) {
       if (this.tConfig.onDatasetHover.highlightDataSeries) {
         const series = new Series(chartCtx.w)
-        series.toggleSeriesOnHover(e, e.target.parentNode)
+        series.toggleSeriesOnHover(e, Utils.hoverTarget(e)?.parentNode)
       }
     }
 
@@ -1099,14 +1105,15 @@ export default class Tooltip {
         tooltipEl.removeAttribute('aria-hidden')
       }
 
-      // Unit chart: the listener sits on the cluster GROUP, but e.target is the
-      // individual dot the cursor is over. Resolve it so each dot tooltips its
+      // Unit chart: the listener sits on the cluster GROUP, but the hovered
+      // element is the individual dot. Resolve it so each dot tooltips its
       // own identity (category + index within the category) instead of every
       // dot repeating the cluster aggregate.
       if (w.config.chart.type === 'unit') {
+        const hovered = Utils.hoverTarget(e)
         const unitDot =
-          e.target && typeof e.target.closest === 'function'
-            ? e.target.closest('.apexcharts-unit-area')
+          hovered && typeof hovered.closest === 'function'
+            ? hovered.closest('.apexcharts-unit-area')
             : null
         // Over a label / gap (no dot): leave the last tooltip untouched.
         if (!unitDot) return
