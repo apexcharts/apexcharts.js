@@ -77,32 +77,33 @@
       }
     </script>
 
-    <script>
-      var barCount = 10000
+    <script src="../../../dist/features/renderer-canvas.js"></script>
+  <script>
+    var barCount = 10000
 
-      // Smooth-ish random heights so the dense column band has visible structure.
-      function generateBars(count) {
-        var data = new Array(count)
-        var y = 60
-        for (var i = 0; i < count; i++) {
-          y += (Math.random() - 0.5) * 12
-          if (y < 10) y = 10
-          if (y > 100) y = 100
-          data[i] = { x: i, y: Math.round(y) }
-        }
-        return data
+    // Smooth-ish random heights so the dense column band has visible structure.
+    function generateBars(count) {
+      var data = new Array(count)
+      var y = 60
+      for (var i = 0; i < count; i++) {
+        y += (Math.random() - 0.5) * 12
+        if (y < 10) y = 10
+        if (y > 100) y = 100
+        data[i] = { x: i, y: Math.round(y) }
       }
+      return data
+    }
 
-      var barData = generateBars(barCount)
+    var barData = generateBars(barCount)
 
-      // Stateless helper shared by the vanilla, React and Vue builds. The chart-bound
-      // updateStats (and its lastRenderMs) live in each per-format script instead,
-      // since they read the live instance and per-render timing.
-      function domNodeCount() {
-        var el = document.querySelector('#chart')
-        return el ? el.getElementsByTagName('*').length : 0
-      }
-    </script>
+    // Stateless helper shared by the vanilla, React and Vue builds. The chart-bound
+    // updateStats (and its lastRenderMs) live in each per-format script instead,
+    // since they read the live instance and per-render timing.
+    function domNodeCount() {
+      var el = document.querySelector('#chart')
+      return el ? el.getElementsByTagName('*').length : 0
+    }
+  </script>
   </head>
 
   <body>

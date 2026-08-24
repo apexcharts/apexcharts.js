@@ -1,4 +1,17 @@
 // @ts-check
+//
+// NOT in the default bundle (Tier 2: 5.4 KB gzipped, over the Tier-1 budget it
+// was admitted under, and a minority of charts are large enough to want it).
+// Both channels opt in explicitly:
+//
+//   bundler     import 'apexcharts/features/renderer-canvas'
+//   script tag  <script src=".../dist/apexcharts.js"></script>
+//               <script src=".../dist/features/renderer-canvas.js"></script>
+//
+// The add-on reads its shared modules off `ApexCharts.__internals`, so load it
+// AFTER apexcharts.js. Without it `renderer:'canvas'` warns and falls back to
+// SVG, and `renderer:'auto'` falls back silently (that is what auto means).
+
 import ApexCharts from '../apexcharts'
 import CanvasRenderer from '../renderers/canvas/CanvasRenderer'
 

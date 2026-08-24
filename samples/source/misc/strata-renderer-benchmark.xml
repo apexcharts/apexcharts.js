@@ -362,6 +362,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/features/renderer-canvas.js"></script>
 <script>
   var pointCount = 10000
 

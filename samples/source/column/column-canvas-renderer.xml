@@ -54,6 +54,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/features/renderer-canvas.js"></script>
 <script>
   var barCount = 10000
 

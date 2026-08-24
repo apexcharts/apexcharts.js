@@ -131,6 +131,12 @@ export const UMD_ENTRIES = {
     out: 'features/storyboard.js',
     shared: true,
   },
+  'features/renderer-canvas': {
+    file: resolve(__dirname, 'src/features/renderer-canvas.js'),
+    global: 'ApexRendererCanvas',
+    out: 'features/renderer-canvas.js',
+    shared: true,
+  },
 }
 
 export default defineConfig(({ mode }) => {

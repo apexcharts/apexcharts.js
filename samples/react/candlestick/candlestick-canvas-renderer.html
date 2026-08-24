@@ -80,53 +80,54 @@
       }
     </script>
 
-    <script>
-      var candleCount = 10000
+    <script src="../../../dist/features/renderer-canvas.js"></script>
+  <script>
+    var candleCount = 10000
 
-      // OHLC random walk: each candle opens at the previous close so the series
-      // reads as a continuous price, dense enough that individual candles blur into
-      // a band (which is exactly where the canvas renderer earns its keep).
-      //
-      // The PRNG reseeds on every call (same LCG and seed as the template's global
-      // Math.random override, so the initial render is unchanged). The template
-      // override alone is not enough here: its seed is a running stream, so the
-      // second generateCandles call, e.g. after toggling a control, would continue
-      // the stream and produce a different walk, which read as "the data changed"
-      // when comparing downsampling on/off.
-      function generateCandles(count) {
-        var seed = 42
-        function rnd() {
-          seed = (seed * 16807) % 2147483647
-          return (seed - 1) / 2147483646
-        }
-        var data = new Array(count)
-        var t = new Date('2015-01-01T00:00:00Z').getTime()
-        var step = 60 * 60 * 1000 // 1 hour
-        var o = 100
-        for (var i = 0; i < count; i++) {
-          var h = o + rnd() * 6
-          var l = o - rnd() * 6
-          var c = l + rnd() * (h - l)
-          data[i] = {
-            x: t + i * step,
-            y: [+o.toFixed(2), +h.toFixed(2), +l.toFixed(2), +c.toFixed(2)],
-          }
-          // reflect off a floor so the walk never drifts into negative prices
-          o = c < 20 ? 40 - c : c
-        }
-        return data
+    // OHLC random walk: each candle opens at the previous close so the series
+    // reads as a continuous price, dense enough that individual candles blur into
+    // a band (which is exactly where the canvas renderer earns its keep).
+    //
+    // The PRNG reseeds on every call (same LCG and seed as the template's global
+    // Math.random override, so the initial render is unchanged). The template
+    // override alone is not enough here: its seed is a running stream, so the
+    // second generateCandles call, e.g. after toggling a control, would continue
+    // the stream and produce a different walk, which read as "the data changed"
+    // when comparing downsampling on/off.
+    function generateCandles(count) {
+      var seed = 42
+      function rnd() {
+        seed = (seed * 16807) % 2147483647
+        return (seed - 1) / 2147483646
       }
-
-      var candleData = generateCandles(candleCount)
-
-      // Stateless helper shared by the vanilla, React and Vue builds. The chart-bound
-      // updateStats (and its lastRenderMs) live in each per-format script instead,
-      // since they read the live instance and per-render timing.
-      function domNodeCount() {
-        var el = document.querySelector('#chart')
-        return el ? el.getElementsByTagName('*').length : 0
+      var data = new Array(count)
+      var t = new Date('2015-01-01T00:00:00Z').getTime()
+      var step = 60 * 60 * 1000 // 1 hour
+      var o = 100
+      for (var i = 0; i < count; i++) {
+        var h = o + rnd() * 6
+        var l = o - rnd() * 6
+        var c = l + rnd() * (h - l)
+        data[i] = {
+          x: t + i * step,
+          y: [+o.toFixed(2), +h.toFixed(2), +l.toFixed(2), +c.toFixed(2)],
+        }
+        // reflect off a floor so the walk never drifts into negative prices
+        o = c < 20 ? 40 - c : c
       }
-    </script>
+      return data
+    }
+
+    var candleData = generateCandles(candleCount)
+
+    // Stateless helper shared by the vanilla, React and Vue builds. The chart-bound
+    // updateStats (and its lastRenderMs) live in each per-format script instead,
+    // since they read the live instance and per-render timing.
+    function domNodeCount() {
+      var el = document.querySelector('#chart')
+      return el ? el.getElementsByTagName('*').length : 0
+    }
+  </script>
   </head>
 
   <body>

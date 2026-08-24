@@ -38,7 +38,6 @@ const TIER_1 = [
   'perspectives',
   'history',
   'weave',
-  'renderer-canvas',
   'marks',
   'facet',
   'context-menu',
@@ -50,7 +49,14 @@ const TIER_1 = [
  * explicitly rather than inferred, so re-adding one fails loudly with a name
  * rather than silently passing an "unknown import" check.
  */
-const TIER_2 = ['trellis', 'measure', 'link', 'ink', 'storyboard']
+const TIER_2 = [
+  'trellis',
+  'measure',
+  'link',
+  'ink',
+  'storyboard',
+  'renderer-canvas',
+]
 
 const RULE = `
 features/all.js is the tier boundary (plans/08-distribution-and-plugin-tiers.md).

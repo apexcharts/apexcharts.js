@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
 import ApexCharts from '../../src/entries/full.js'
+// renderer-canvas is Tier 2 and no longer in `entries/full.js`. The first
+// block below deliberately unregisters it to exercise the fallback path, so
+// the suite still needs it present to begin with.
+import '../../src/features/renderer-canvas.js'
 import RendererController from '../../src/modules/RendererController.js'
 
 // Strata P1: renderer interface + selection. The canvas backend is not built
@@ -29,9 +33,9 @@ function chartOf(chartExtra = {}, { n = 5, type = 'line', top = {} } = {}) {
 // ---------------------------------------------------------------------------
 
 describe('Strata: defaults + fallback (no canvas renderer bundled)', () => {
-  // full.js now bundles the real canvas renderer (Strata P2), which registers
-  // itself on import. These tests exercise the NOT-bundled fallback path, so
-  // temporarily remove it, then restore for the later blocks.
+  // The feature import at the top registers the real canvas renderer. These
+  // tests exercise the NOT-bundled fallback path, so temporarily remove it,
+  // then restore for the later blocks.
   let savedCanvasFactory
   beforeAll(() => {
     savedCanvasFactory = RendererController._rendererRegistry.get('canvas')
