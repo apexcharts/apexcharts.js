@@ -147,7 +147,7 @@ describe('log axis: endpoint and ordering invariants', () => {
   })
 
   it('is strictly monotonic: a larger value is never painted lower', () => {
-    const chart = render({
+    render({
       series: [{ name: 'S', data: [1, 5, 25, 125, 625, 3125] }],
       yaxis: { logarithmic: true },
     })
@@ -209,7 +209,7 @@ describe('log axis: tick labels agree with the ink', () => {
   })
 
   it('powers of the base are evenly spaced', () => {
-    const chart = render({
+    render({
       series: [{ name: 'S', data: [1, 100, 10000] }],
       yaxis: { logarithmic: true },
     })
@@ -224,7 +224,7 @@ describe('log axis: tick labels agree with the ink', () => {
   it('a data point lands on the gridline of its own tick value', () => {
     // The headline invariant: value 100 is a rendered tick AND a data point, so
     // the ink and the label must resolve to the same place.
-    const chart = render({
+    render({
       series: [{ name: 'S', data: [1, 100, 10000] }],
       yaxis: { logarithmic: true },
     })
@@ -339,7 +339,7 @@ describe('log axis: all series on one axis share one domain', () => {
   })
 
   it('paints equal values from different series at the same height', () => {
-    const chart = render({
+    render({
       series: [
         { name: 'A', data: [1, 100, 10000] },
         { name: 'B', data: [10000, 100, 1] },

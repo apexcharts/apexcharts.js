@@ -24,7 +24,6 @@ import {
   catalog,
   person,
   house,
-  heart,
   definePictogram,
   registerMarks,
   unregisterMarks,
@@ -302,7 +301,7 @@ describe('unit chart : pictogram marks', () => {
     // Recover the glyph's centre and check it is a real, distinct slot.
     const gx = Number(tx[1]) + 50 * s
     const gy = Number(tx[2]) + 50 * s
-    expect(Number.isFinite(gx)).toBe(true)
+    expect(Number.isFinite(gx) && Number.isFinite(gy)).toBe(true)
     expect(Math.abs(gx - Number(circles[0].getAttribute('cx')))).toBeGreaterThan(1)
     c.destroy()
   })

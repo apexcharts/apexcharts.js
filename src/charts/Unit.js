@@ -2866,9 +2866,8 @@ export default class Unit {
    * @param {UnitAnimDot[]} dots
    * @param {any} gcfg plotOptions.unit.gather
    * @param {number} speed chart.animations.speed, in ms
-   * @param {any} opts plotOptions.unit
    */
-  _seedSprings(dots, gcfg, speed, opts) {
+  _seedSprings(dots, gcfg, speed) {
     const [stiffness, damping] = springParams(gcfg.spring, speed)
     const live = this.ctx ? this.ctx._unitSprings : null
     /** @type {Map<string, {x: import('apex-commons').Spring, y: import('apex-commons').Spring}>} */
@@ -2957,7 +2956,7 @@ export default class Unit {
       motion === 'spring' ||
       (motion === 'auto' && (!gcfg.easing || gcfg.easing === 'outCubic'))
 
-    if (useSpring) this._seedSprings(dots, gcfg, speed, opts)
+    if (useSpring) this._seedSprings(dots, gcfg, speed)
     // Springs left from an earlier render are stale once the tween path owns
     // the positions, so switching motion at runtime cannot resurrect them.
     else if (this.ctx) this.ctx._unitSprings = null
