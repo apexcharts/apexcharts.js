@@ -96,14 +96,30 @@ function externalUrls(externals) {
 }
 
 /**
- * Inside displayed js/jsx/vue code, external deps become plain-url comments.
- * Never embed the raw tag here: a literal closing script tag inside an SFC
- * or jsx string breaks html-aware parsers and copied code alike.
+ * Inside displayed js/jsx/vue code, an external dep becomes either the import a
+ * bundler user actually needs, or a plain-url comment when there is no such
+ * import. Never embed the raw tag here: a literal closing script tag inside an
+ * SFC or jsx string breaks html-aware parsers and copied code alike.
+ *
+ * The library's own Tier-2 feature add-ons are the case that matters. A demo
+ * pulls `dist/features/trellis.js` because a script-tag page has no other way
+ * in, but the React and Vue versions of that same demo need
+ * `import 'apexcharts/features/trellis'`. Printing a CDN url there would teach
+ * the wrong thing to the audience most able to act on it.
+ *
+ * Only `features/*` is mapped. Entries like unit-shapes keep a PURE package
+ * root on purpose (so `import { heart }` never drags the whole catalog in), so
+ * a bare side-effect import of those would register nothing.
  */
 function externalsAsComments(externals) {
   if (!externals.length) return ''
   return externalUrls(externals)
-    .map((url) => `// This demo also loads: ${url}`)
+    .map((url) => {
+      const feature = url.match(/(?:^|\/)dist\/(features\/[\w-]+)\.js$/)
+      return feature
+        ? `import 'apexcharts/${feature[1]}'`
+        : `// This demo also loads: ${url}`
+    })
     .join('\n')
 }
 
