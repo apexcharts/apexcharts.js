@@ -107,6 +107,12 @@ export const UMD_ENTRIES = {
     out: 'features/trellis.js',
     shared: true,
   },
+  'features/measure': {
+    file: resolve(__dirname, 'src/features/measure.js'),
+    global: 'ApexMeasure',
+    out: 'features/measure.js',
+    shared: true,
+  },
 }
 
 export default defineConfig(({ mode }) => {

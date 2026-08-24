@@ -1604,7 +1604,9 @@ type ApexChart = {
   }
   /**
    * Measure ruler (#18): a measure/delta ruler. Requires the `measure`
-   * feature (`import 'apexcharts/features/measure'`). Hold `key` and drag
+   * feature, which is NOT in the default bundle:
+   * `import 'apexcharts/features/measure'`, or for a script-tag page add
+   * `dist/features/measure.js` after apexcharts.js. Hold `key` and drag
    * A->B on the plot, or call `chart.startMeasure()`, to read
    * dx/dy/%change/slope in data space; on release the ruler pins as a
    * data-anchored overlay that re-projects on zoom/resize. Fires `measured`.

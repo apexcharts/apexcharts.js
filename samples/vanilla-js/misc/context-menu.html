@@ -55,17 +55,19 @@
       }
     </script>
 
-    <script>
-      function series() {
-        var out = []
-        var v = 2200
-        for (var i = 0; i < 60; i++) {
-          v += Math.sin(i / 4) * 55 + i * 5 - 6
-          out.push([i, Math.round(v)])
-        }
-        return out
+    <script src="../../../dist/features/ink.js"></script>
+  <script src="../../../dist/features/measure.js"></script>
+  <script>
+    function series() {
+      var out = []
+      var v = 2200
+      for (var i = 0; i < 60; i++) {
+        v += Math.sin(i / 4) * 55 + i * 5 - 6
+        out.push([i, Math.round(v)])
       }
-    </script>
+      return out
+    }
+  </script>
   </head>
 
   <body>

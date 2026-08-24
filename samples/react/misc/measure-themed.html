@@ -86,17 +86,18 @@
       }
     </script>
 
-    <script>
-      function price() {
-        var out = []
-        var v = 2400
-        for (var i = 0; i < 60; i++) {
-          v += Math.sin(i / 5) * 60 + i * 8 - 10
-          out.push([i, Math.round(v)])
-        }
-        return out
+    <script src="../../../dist/features/measure.js"></script>
+  <script>
+    function price() {
+      var out = []
+      var v = 2400
+      for (var i = 0; i < 60; i++) {
+        v += Math.sin(i / 5) * 60 + i * 8 - 10
+        out.push([i, Math.round(v)])
       }
-    </script>
+      return out
+    }
+  </script>
   </head>
 
   <body>

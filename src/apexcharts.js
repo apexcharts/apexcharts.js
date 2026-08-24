@@ -226,6 +226,17 @@ export default class ApexCharts {
           )
         }
 
+        // Same guard for the measure ruler: asking for it without the feature
+        // present used to fail in total silence, which is the worst possible
+        // outcome for someone whose chart stopped having a ruler after an
+        // upgrade. Config-driven, so it fires whether or not they ever call
+        // startMeasure().
+        if (this.w.config.chart?.measure?.enabled && !this.measure) {
+          console.warn(
+            "ApexCharts: `chart.measure` requires the measure feature, which is not in the default bundle. Bundler: import 'apexcharts/features/measure'. Script tag: add <script src='.../dist/features/measure.js'> after apexcharts.js.",
+          )
+        }
+
         // add event listeners in browser environment
         if (Environment.isBrowser()) {
           if (!isTrellisHost) {

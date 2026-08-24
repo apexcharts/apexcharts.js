@@ -59,6 +59,8 @@
 </style>
 
 <scripts>
+<script src="../../../dist/features/ink.js"></script>
+<script src="../../../dist/features/measure.js"></script>
 <script>
   // A wandering line (numeric x, ~45 points) so there is room to zoom, pan,
   // annotate and measure. Randomize regenerates it into a fresh checkpoint.

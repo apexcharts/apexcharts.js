@@ -1,6 +1,10 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
 import ApexCharts from '../../src/entries/full.js'
+// measure is Tier 2 and no longer in `entries/full.js`. This suite is about
+// license gating, not bundling, so it imports the feature the way an
+// application would and keeps asserting on a chart that HAS the tool.
+import '../../src/features/measure.js'
 import { LicenseManager } from 'apex-commons'
 import { installTestSigningKey, signedKey, forgedKey } from './utils/license-keys.js'
 import {

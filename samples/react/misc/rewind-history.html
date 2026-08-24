@@ -87,21 +87,23 @@
       }
     </script>
 
-    <script>
-      // A wandering line (numeric x, ~45 points) so there is room to zoom, pan,
-      // annotate and measure. Randomize regenerates it into a fresh checkpoint.
-      function randomSeries() {
-        var d = []
-        var v = 45 + Math.random() * 25
-        for (var i = 0; i < 45; i++) {
-          v += (Math.random() - 0.5) * 22
-          if (v < 8) v = 8
-          if (v > 100) v = 100
-          d.push([i + 1, Math.round(v)])
-        }
-        return d
+    <script src="../../../dist/features/ink.js"></script>
+  <script src="../../../dist/features/measure.js"></script>
+  <script>
+    // A wandering line (numeric x, ~45 points) so there is room to zoom, pan,
+    // annotate and measure. Randomize regenerates it into a fresh checkpoint.
+    function randomSeries() {
+      var d = []
+      var v = 45 + Math.random() * 25
+      for (var i = 0; i < 45; i++) {
+        v += (Math.random() - 0.5) * 22
+        if (v < 8) v = 8
+        if (v > 100) v = 100
+        d.push([i + 1, Math.round(v)])
       }
-    </script>
+      return d
+    }
+  </script>
   </head>
 
   <body>

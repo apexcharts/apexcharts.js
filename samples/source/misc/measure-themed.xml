@@ -60,6 +60,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/features/measure.js"></script>
 <script>
   function price() {
     var out = []

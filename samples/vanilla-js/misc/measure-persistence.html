@@ -86,20 +86,21 @@
       }
     </script>
 
-    <script>
-      // Pinned measure rulers live in data space on the chart, not in your app, so
-      // they can be captured into the shared view state: Perspectives carries them
-      // in a URL and Rewind (history) makes each pin an undo step.
-      function series() {
-        var out = []
-        var v = 2400
-        for (var i = 0; i < 60; i++) {
-          v += Math.sin(i / 5) * 40 + i * 6 - 8
-          out.push([i, Math.round(v)])
-        }
-        return out
+    <script src="../../../dist/features/measure.js"></script>
+  <script>
+    // Pinned measure rulers live in data space on the chart, not in your app, so
+    // they can be captured into the shared view state: Perspectives carries them
+    // in a URL and Rewind (history) makes each pin an undo step.
+    function series() {
+      var out = []
+      var v = 2400
+      for (var i = 0; i < 60; i++) {
+        v += Math.sin(i / 5) * 40 + i * 6 - 8
+        out.push([i, Math.round(v)])
       }
-    </script>
+      return out
+    }
+  </script>
   </head>
 
   <body>

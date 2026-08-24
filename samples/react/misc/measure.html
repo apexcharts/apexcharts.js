@@ -76,17 +76,18 @@
       }
     </script>
 
-    <script>
-      function series() {
-        var out = []
-        var v = 100
-        for (var i = 0; i < 60; i++) {
-          v += 2 + Math.sin(i / 5) * 3
-          out.push([i, Math.round(v)])
-        }
-        return out
+    <script src="../../../dist/features/measure.js"></script>
+  <script>
+    function series() {
+      var out = []
+      var v = 100
+      for (var i = 0; i < 60; i++) {
+        v += 2 + Math.sin(i / 5) * 3
+        out.push([i, Math.round(v)])
       }
-    </script>
+      return out
+    }
+  </script>
   </head>
 
   <body>
