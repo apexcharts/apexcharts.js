@@ -271,6 +271,15 @@ export default class ApexCharts {
           )
         }
 
+        // And for Rewind. Absent, edits still apply and simply cannot be undone
+        // — Ctrl-Z does nothing, which users read as a lost keystroke rather
+        // than a missing feature.
+        if (this.w.config.chart?.history?.enabled && !this.history) {
+          console.warn(
+            "ApexCharts: `chart.history` requires the history feature, which is not in the default bundle. Bundler: import 'apexcharts/features/history'. Script tag: add <script src='.../dist/features/history.js'> after apexcharts.js.",
+          )
+        }
+
         // add event listeners in browser environment
         if (Environment.isBrowser()) {
           if (!isTrellisHost) {

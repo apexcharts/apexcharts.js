@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
+// history is Tier 2: the shared test helper mounts via entries/full.js, which
+// no longer registers it, so the suite imports the feature itself.
+import '../../src/features/history.js'
 
 // ---------------------------------------------------------------------------
 // Helpers. History capture is coalesced + settled on timers, so tests use a

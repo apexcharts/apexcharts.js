@@ -36,7 +36,6 @@ const TIER_1 = [
   'drilldown',
   // Admitted under the budget.
   'perspectives',
-  'history',
   'weave',
   'marks',
   'facet',
@@ -56,6 +55,7 @@ const TIER_2 = [
   'storyboard',
   'renderer-canvas',
   'context-menu',
+  'history',
 ]
 
 const RULE = `

@@ -143,6 +143,12 @@ export const UMD_ENTRIES = {
     out: 'features/context-menu.js',
     shared: true,
   },
+  'features/history': {
+    file: resolve(__dirname, 'src/features/history.js'),
+    global: 'ApexHistory',
+    out: 'features/history.js',
+    shared: true,
+  },
 }
 
 export default defineConfig(({ mode }) => {
