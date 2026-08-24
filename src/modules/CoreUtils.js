@@ -629,11 +629,15 @@ class CoreUtils {
         // reverseMap consumers (getLogSeries etc.) already do, so we don't read
         // logarithmic off undefined. The axis has no series, so its baseline is 0.
         if (!yAxis) return 0
+        // A log axis needs no baseline shift: getLogSeries normalises its values
+        // so niceMin is already 0. The old code took getBaseLog(y) and divided
+        // it by yRatio[i], a linear data-space ratio, which is a unit mismatch
+        // that only cancels when log(niceMin) happens to be 0. For a domain of
+        // 1e-5..1e-3 it produced -(-5) / 2.92e-6, offsetting the whole series by
+        // 1.7 million pixels off-canvas.
+        if (yAxis.logarithmic) return 0
         const sign = y < 0 ? -1 : 1
         y = Math.abs(y)
-        if (yAxis.logarithmic) {
-          y = this.getBaseLog(yAxis.logBase, y)
-        }
         return (-sign * y) / yRatio[i]
       }
       if (gl.isMultipleYAxis) {
@@ -746,7 +750,12 @@ class CoreUtils {
         ? 0 // make sure we dont calculate log of 0
         : this.getBaseLog(b, w.globals.maxYArr[seriesIndex])
     const number_of_height_levels = max_log_val - min_log_val
-    if (d < 1) return d / number_of_height_levels
+    // Values below 1 used to short-circuit to `d / number_of_height_levels`,
+    // returning a raw data value where the caller expects a 0..1 fraction. On a
+    // domain living entirely under 1 (1e-5..1e-3) every point came back as
+    // roughly its own magnitude instead of its position, so the series
+    // flat-lined. The general formula below already handles d < 1 correctly,
+    // because min_log_val is negative there.
     const log_height_value = this.getBaseLog(b, d) - min_log_val
     return log_height_value / number_of_height_levels
   }
@@ -767,25 +776,24 @@ class CoreUtils {
           w.config.yaxis[yAxisIndex] &&
           this.w.config.yaxis[yAxisIndex].logarithmic
         ) {
-          let maxY = -Number.MAX_VALUE
-          let minY = Number.MIN_VALUE
-          let range = 1
-          /** @type {any[]} */ gl.seriesLog.forEach(
-            (/** @type {any[]} */ s, /** @type {number} */ si) => {
-              s.forEach((/** @type {number} */ v) => {
-                if (w.config.yaxis[si] && w.config.yaxis[si].logarithmic) {
-                  maxY = Math.max(v, maxY)
-                  minY = Math.min(v, minY)
-                }
-              })
-            },
-          )
-
-          range = Math.pow(gl.yRange[i], Math.abs(minY - maxY) / gl.yRange[i])
-
+          // getLogSeries has already mapped this axis' values onto 0..1, where
+          // 0 is niceMin and 1 is niceMax. One unit of transformed value is
+          // therefore exactly one grid height, whatever the underlying domain.
+          //
+          // The old code derived a range here instead, raising yRange to the
+          // power of (span of transformed extremes / yRange). That mixes 0..1
+          // space with data space and rescales the whole axis: a 1..21 domain
+          // came out 14% short, so the ink missed its own gridlines (#3046),
+          // and it also scanned every log series regardless of which axis owned
+          // it, collapsing two log axes into one range (#5035, #2697, #2800).
+          const range = 1
           _gl.yLogRatio[i] = range / this.w.layout.gridHeight
           return range
         }
+        // A linear axis in a mixed log/linear chart still needs a range here.
+        // Falling out of the callback left logYRange[i] === undefined for every
+        // non-log axis, so anything reading it got NaN downstream.
+        return gl.yRange[i]
       },
     )
 

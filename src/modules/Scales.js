@@ -481,11 +481,59 @@ export default class Scales {
   }
 
   /**
+   * Resolve an axis' tickAmount into a numeric interval count, or null when the
+   * axis does not constrain it. Matches niceScale: tickAmount counts INTERVALS,
+   * so N yields N + 1 labels.
+   * @param {any} axisCnf
+   * @returns {number | null}
+   */
+  _resolveLogTickAmount(axisCnf) {
+    let ta = axisCnf.tickAmount
+    if (ta === 'dataPoints') ta = this.w.globals.dataPoints - 1
+    return Utils.isNumber(ta) && ta >= 1 ? Number(ta) : null
+  }
+
+  /**
+   * Drop ticks from an evenly spaced list until it holds at most
+   * `tickAmount + 1` of them, keeping both endpoints and even spacing.
+   * @param {number[]} values
+   * @param {number | null} tickAmount
+   * @returns {number[]}
+   */
+  _thinToTickAmount(values, tickAmount) {
+    if (tickAmount === null || !Utils.isNumber(tickAmount) || tickAmount < 1) {
+      return values
+    }
+    const want = tickAmount + 1
+    if (values.length <= want) return values
+
+    // Only a stride that divides the interval count evenly keeps the remaining
+    // ticks evenly spaced AND retains both endpoints, so choose the divisor
+    // landing closest to the requested count without exceeding it. Powers of
+    // the base cannot hit every requested count, so this undershoots rather
+    // than emitting uneven gaps or an unrequested extra label.
+    const intervals = values.length - 1
+    let best = null
+    for (let stride = 1; stride <= intervals; stride++) {
+      if (intervals % stride !== 0) continue
+      const count = intervals / stride + 1
+      if (count > want) continue
+      if (best === null || count > best.count) best = { stride, count }
+    }
+    if (!best) return [values[0], values[values.length - 1]]
+
+    const out = []
+    for (let i = 0; i < values.length; i += best.stride) out.push(values[i])
+    return out
+  }
+
+  /**
    * @param {number} yMin
    * @param {number} yMax
    * @param {number} base
+   * @param {number | null} [tickAmount]
    */
-  logarithmicScaleNice(yMin, yMax, base) {
+  logarithmicScaleNice(yMin, yMax, base, tickAmount = null) {
     // Basic validation to avoid for loop starting at -inf.
     if (yMax <= 0) yMax = Math.max(yMin, base)
     if (yMin <= 0) yMin = Math.min(yMax, base)
@@ -500,19 +548,51 @@ export default class Scales {
       logs.push(Math.pow(base, i))
     }
 
+    // Thinning keeps the first and last entry, so the DOMAIN is untouched and
+    // only the label density changes. The painted geometry reads niceMin and
+    // niceMax, so it must not move here.
+    const result = this._thinToTickAmount(logs, tickAmount)
+
     return {
-      result: logs,
-      niceMin: logs[0],
-      niceMax: logs[logs.length - 1],
+      result,
+      niceMin: result[0],
+      niceMax: result[result.length - 1],
     }
+  }
+
+  /**
+   * How many full multiples of `base` the domain spans. Used to decide whether
+   * a log scale is meaningful at all, independent of the domain's magnitude.
+   * @param {number} yMin
+   * @param {number} yMax
+   * @param {number} base
+   * @returns {number}
+   */
+  _logDomainSpan(yMin, yMax, base) {
+    // logBase is only defaulted on yaxis; a horizontal bar reads cnf.xaxis here.
+    if (!base) base = 10
+    // A base of 1 or less has no logarithm to speak of - treat as degenerate
+    // rather than dividing by Math.log(1) === 0.
+    if (base <= 1) return 0
+
+    // Mirror the clamps logarithmicScale()/logarithmicScaleNice() apply, so the
+    // span tested here is the span that would actually be drawn.
+    if (yMax <= 0) yMax = Math.max(yMin, base)
+    if (yMin <= 0) yMin = Math.min(yMax, base)
+    if (yMin <= 0 || yMax <= 0) return 0
+
+    return Math.abs(
+      Math.log(yMax) / Math.log(base) - Math.log(yMin) / Math.log(base),
+    )
   }
 
   /**
    * @param {number} yMin
    * @param {number} yMax
    * @param {number} base
+   * @param {number | null} [tickAmount]
    */
-  logarithmicScale(yMin, yMax, base) {
+  logarithmicScale(yMin, yMax, base, tickAmount = null) {
     // Basic validation to avoid for loop starting at -inf.
     if (yMax <= 0) yMax = Math.max(yMin, base)
     if (yMin <= 0) yMin = Math.min(yMax, base)
@@ -530,7 +610,15 @@ export default class Scales {
     // Round the logarithmic range to get the number of ticks we will create.
     // If the chosen min/max values are multiples of each other WRT the base, this will be neat.
     // If the chosen min/max aren't, we will at least still provide USEFUL ticks.
-    const ticks = Math.round(logRange)
+    //
+    // This scale interpolates geometrically rather than snapping to powers of
+    // the base, so it can honour any requested count exactly: tickAmount is an
+    // interval count and the loop below emits one more label than that.
+    // Math.round(logRange) is 0 for a domain spanning under half a base
+    // multiple, which divided by zero and left a single-label axis, so the
+    // fallback has a floor of 1.
+    const ticks =
+      tickAmount !== null ? tickAmount : Math.max(1, Math.round(logRange))
 
     // Get the logarithmic spacing between ticks.
     const logTickSpacing = logRange / ticks
@@ -593,15 +681,30 @@ export default class Scales {
 
     const range = Math.abs(maxY - minY)
 
-    if (y.logarithmic && range <= 5) {
+    // A log scale is degenerate when the domain spans less than one full
+    // multiple of the base. The old test used the LINEAR difference alone
+    // (`range <= 5`), which silently demoted every small-magnitude domain to a
+    // linear scale: [1e-5, 1e-3] spans two decades but its linear range is
+    // 0.00099, so `logarithmic: true` was ignored without a word (#1341).
+    // The linear escape is kept as a back-compat hold, so this only ever ADDS
+    // a log scale and never takes one away from a chart that has it today.
+    const spansABase =
+      y.logarithmic && this._logDomainSpan(minY, maxY, y.logBase) >= 1
+    const validLogScale = y.logarithmic && (spansABase || range > 5)
+
+    if (y.logarithmic && !validLogScale) {
       gl.invalidLogScale = true
     }
 
-    if (y.logarithmic && range > 5) {
+    if (validLogScale) {
       gl.allSeriesCollapsed = false
+      // tickAmount never reached the log generators, so a log axis emitted one
+      // label per base multiple no matter what was configured: a 1..1e9 domain
+      // printed ten labels whether you asked for two or six (#4873, #3345).
+      const logTickAmount = this._resolveLogTickAmount(y)
       ;/** @type {any} */ (gl).yAxisScale[index] = y.forceNiceScale
-        ? this.logarithmicScaleNice(minY, maxY, y.logBase)
-        : this.logarithmicScale(minY, maxY, y.logBase)
+        ? this.logarithmicScaleNice(minY, maxY, y.logBase, logTickAmount)
+        : this.logarithmicScale(minY, maxY, y.logBase, logTickAmount)
     } else {
       if (
         maxY === -Number.MAX_VALUE ||

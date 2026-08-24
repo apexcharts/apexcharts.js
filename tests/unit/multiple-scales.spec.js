@@ -42,13 +42,18 @@ describe('Multiple Y-axis Scales', () => {
 
     expect(maxYArr).toEqual([500000000, 500000000])
 
+    // Both axes ask for tickAmount: 4, so both get 4 intervals / 5 labels. The
+    // log axis used to return 4 labels here because tickAmount never reached
+    // the log generators and the count fell out of Math.round(logRange)
+    // instead, disagreeing with the linear axis in the same chart (#4873).
+    // Consecutive log ticks are in a constant ratio of 500^(1/4) = 4.7287.
     expect(yAxisScale).toEqual([
       {
         niceMax: 500000000,
         niceMin: 1000000,
         result: [
-          999999.9999999979, 7937005.259840991, 62996052.4947437,
-          499999999.99999994,
+          999999.9999999979, 4728708.04501587, 22360679.77499785,
+          105737126.3440564, 499999999.99999994,
         ],
       },
       {
@@ -101,10 +106,24 @@ describe('Multiple Y-axis Scales', () => {
 
     expect(yAxisScale[0].niceMax).toBe(500000000)
     expect(yAxisScale[0].niceMin).toBe(1000000)
-    expect(yAxisScale[0].result).toHaveLength(3)
+    // tickAmount: 4 is now honoured, so 5 labels rather than the 3 that
+    // Math.round(logRange) happened to yield for base 20 (#4873).
+    //
+    // Without forceNiceScale the ticks are a geometric interpolation across the
+    // domain, and geometric spacing does not depend on the base, so a fixed
+    // tickAmount gives the same values here as base 10 does. logBase now only
+    // influences the count, and only when tickAmount is left unset.
+    expect(yAxisScale[0].result).toHaveLength(5)
     expect(yAxisScale[0].result[0]).toBeCloseTo(999999.9999999998, 0)
-    expect(yAxisScale[0].result[1]).toBeCloseTo(22360679.775, 0)
-    expect(yAxisScale[0].result[2]).toBeCloseTo(500000000.0000007, 0)
+    expect(yAxisScale[0].result[1]).toBeCloseTo(4728708.045015873, 0)
+    expect(yAxisScale[0].result[2]).toBeCloseTo(22360679.774997853, 0)
+    expect(yAxisScale[0].result[3]).toBeCloseTo(105737126.3440561, 0)
+    expect(yAxisScale[0].result[4]).toBeCloseTo(500000000.0000007, 0)
+    // consecutive ratios are constant: 500^(1/4)
+    const r = yAxisScale[0].result
+    for (let i = 1; i < r.length; i++) {
+      expect(r[i] / r[i - 1]).toBeCloseTo(Math.pow(500, 1 / 4), 4)
+    }
     expect(yAxisScale[1]).toEqual({
       niceMax: 500000000,
       niceMin: 1000000,
