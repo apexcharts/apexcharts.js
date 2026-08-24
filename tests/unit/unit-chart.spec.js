@@ -10,6 +10,9 @@
 
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
+// perspectives is Tier 2: the shared helper mounts via entries/full.js, which
+// no longer registers it, so the suite imports the feature itself.
+import '../../src/features/perspectives.js'
 import ApexCharts from '../../src/entries/full.js'
 import Unit from '../../src/charts/Unit.js'
 import { LicenseManager } from 'apex-commons'

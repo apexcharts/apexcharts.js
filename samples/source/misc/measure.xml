@@ -50,6 +50,8 @@
 </style>
 
 <scripts>
+<script src="../../../dist/features/history.js"></script>
+<script src="../../../dist/features/perspectives.js"></script>
 <script src="../../../dist/features/measure.js"></script>
 <script>
   function series() {

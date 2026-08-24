@@ -149,6 +149,12 @@ export const UMD_ENTRIES = {
     out: 'features/history.js',
     shared: true,
   },
+  'features/perspectives': {
+    file: resolve(__dirname, 'src/features/perspectives.js'),
+    global: 'ApexPerspectives',
+    out: 'features/perspectives.js',
+    shared: true,
+  },
 }
 
 export default defineConfig(({ mode }) => {

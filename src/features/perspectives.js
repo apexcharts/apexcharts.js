@@ -1,4 +1,19 @@
 // @ts-check
+//
+// NOT in the default bundle (Tier 2: premium). Both channels opt in:
+//
+//   bundler     import 'apexcharts/features/perspectives'
+//   script tag  <script src=".../dist/apexcharts.js"></script>
+//               <script src=".../dist/features/perspectives.js"></script>
+//
+// The add-on reads its shared modules off `ApexCharts.__internals`, so load it
+// AFTER apexcharts.js. `apexcharts/features/storyboard` imports this file, so a
+// storyboard build already has perspectives and must not load both.
+//
+// Without it `chart.perspectives` and the `ApexCharts.perspectives` statics are
+// null, so a call throws and names the missing piece; there is no `enabled`
+// flag to hang a friendlier warning off.
+
 import ApexCharts from '../apexcharts'
 import Perspectives from '../modules/perspectives/Perspectives'
 import { markPerspectivesTokenDecoded } from '../modules/license/LicenseEnforcer'

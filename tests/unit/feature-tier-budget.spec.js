@@ -35,7 +35,6 @@ const TIER_1 = [
   'morph',
   'drilldown',
   // Admitted under the budget.
-  'perspectives',
   'weave',
   'marks',
   'facet',
@@ -56,6 +55,7 @@ const TIER_2 = [
   'renderer-canvas',
   'context-menu',
   'history',
+  'perspectives',
 ]
 
 const RULE = `
