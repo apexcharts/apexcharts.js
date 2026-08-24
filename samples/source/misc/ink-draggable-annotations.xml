@@ -36,6 +36,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/features/ink.js"></script>
 <script>
   function signal() {
     var out = []

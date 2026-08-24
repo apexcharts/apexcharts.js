@@ -82,20 +82,21 @@
       }
     </script>
 
-    <script>
-      // Perspectives (#10): capture the full VIEW state (zoom window, hidden series,
-      // selection, theme, annotations) as a token, apply it back, or encode it into
-      // a shareable URL. Passive: no config flag needed.
-      function bigSeries(seed, amp) {
-        var d = []
-        var v = seed
-        for (var i = 0; i < 40; i++) {
-          v += (Math.random() - 0.5) * amp
-          d.push({ x: i + 1, y: Math.round(v) })
-        }
-        return d
+    <script src="../../../dist/features/ink.js"></script>
+  <script>
+    // Perspectives (#10): capture the full VIEW state (zoom window, hidden series,
+    // selection, theme, annotations) as a token, apply it back, or encode it into
+    // a shareable URL. Passive: no config flag needed.
+    function bigSeries(seed, amp) {
+      var d = []
+      var v = seed
+      for (var i = 0; i < 40; i++) {
+        v += (Math.random() - 0.5) * amp
+        d.push({ x: i + 1, y: Math.round(v) })
       }
-    </script>
+      return d
+    }
+  </script>
   </head>
 
   <body>

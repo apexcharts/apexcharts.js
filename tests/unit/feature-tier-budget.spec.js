@@ -47,7 +47,6 @@ const TIER_1 = [
   // added here anyway. They are released, so removing them is semver-major and
   // is happening one feature at a time. As each lands, move its name down to
   // TIER_2 below; that move is the checklist.
-  'ink',
   'storyboard',
 ]
 
@@ -56,7 +55,7 @@ const TIER_1 = [
  * explicitly rather than inferred, so re-adding one fails loudly with a name
  * rather than silently passing an "unknown import" check.
  */
-const TIER_2 = ['trellis', 'measure', 'link']
+const TIER_2 = ['trellis', 'measure', 'link', 'ink']
 
 const RULE = `
 features/all.js is the tier boundary (plans/08-distribution-and-plugin-tiers.md).

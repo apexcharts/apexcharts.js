@@ -62,16 +62,17 @@
       }
     </script>
 
-    <script>
-      function signal() {
-        var out = []
-        for (var i = 0; i < 40; i++) {
-          var v = 50 + 22 * Math.sin(i / 4.0) + 9 * Math.sin(i / 1.4) + i * 0.4
-          out.push([i, Math.round(v)])
-        }
-        return out
+    <script src="../../../dist/features/ink.js"></script>
+  <script>
+    function signal() {
+      var out = []
+      for (var i = 0; i < 40; i++) {
+        var v = 50 + 22 * Math.sin(i / 4.0) + 9 * Math.sin(i / 1.4) + i * 0.4
+        out.push([i, Math.round(v)])
       }
-    </script>
+      return out
+    }
+  </script>
   </head>
 
   <body>

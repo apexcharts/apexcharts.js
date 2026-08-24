@@ -246,6 +246,22 @@ export default class ApexCharts {
           )
         }
 
+        // And for the ink layer. Two ways in, so check both: the global switch
+        // and a single annotation asking to be draggable. Without the feature
+        // the annotation still DRAWS, it just cannot be moved, which is exactly
+        // the kind of half-working state nobody thinks to file a bug about.
+        if (!this.ink) {
+          const inkOn = this.w.config.chart?.ink?.enabled
+          const anyDraggable = (
+            this.w.config.annotations?.points ?? []
+          ).some((/** @type {any} */ p) => p && p.draggable)
+          if (inkOn || anyDraggable) {
+            console.warn(
+              "ApexCharts: `chart.ink` / `annotations.points[].draggable` requires the ink feature, which is not in the default bundle. Bundler: import 'apexcharts/features/ink'. Script tag: add <script src='.../dist/features/ink.js'> after apexcharts.js.",
+            )
+          }
+        }
+
         // add event listeners in browser environment
         if (Environment.isBrowser()) {
           if (!isTrellisHost) {

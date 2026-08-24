@@ -119,6 +119,12 @@ export const UMD_ENTRIES = {
     out: 'features/link.js',
     shared: true,
   },
+  'features/ink': {
+    file: resolve(__dirname, 'src/features/ink.js'),
+    global: 'ApexInk',
+    out: 'features/ink.js',
+    shared: true,
+  },
 }
 
 export default defineConfig(({ mode }) => {
