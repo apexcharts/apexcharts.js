@@ -72,58 +72,59 @@
       }
     </script>
 
-    <script>
-      // Eight monthly signup cohorts, ~240 raw onboarding times each. Every panel
-      // is a real histogram over its own observations, but the trellis derives ONE
-      // set of bin edges over the union sample and pushes it into every panel, so
-      // the same bar in every panel means the same interval and the drift of the
-      // whole distribution (newer cohorts finish faster) reads directly. Overlaid
-      // translucent histograms stop being readable past about three; eight panels
-      // with shared edges stay readable.
-      //
-      // Deterministic samples so the e2e snapshot is stable.
-      function mulberry32(seed) {
-        return function () {
-          seed |= 0
-          seed = (seed + 0x6d2b79f5) | 0
-          var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
-          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-        }
+    <script src="../../../dist/features/trellis.js"></script>
+  <script>
+    // Eight monthly signup cohorts, ~240 raw onboarding times each. Every panel
+    // is a real histogram over its own observations, but the trellis derives ONE
+    // set of bin edges over the union sample and pushes it into every panel, so
+    // the same bar in every panel means the same interval and the drift of the
+    // whole distribution (newer cohorts finish faster) reads directly. Overlaid
+    // translucent histograms stop being readable past about three; eight panels
+    // with shared edges stay readable.
+    //
+    // Deterministic samples so the e2e snapshot is stable.
+    function mulberry32(seed) {
+      return function () {
+        seed |= 0
+        seed = (seed + 0x6d2b79f5) | 0
+        var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296
       }
+    }
 
-      // Bell-ish sample: mean minutes drop cohort by cohort, spread tightens.
-      function onboardingMinutes(seed, mean, spread, n) {
-        var rand = mulberry32(seed)
-        var out = []
-        for (var i = 0; i < n; i++) {
-          var v = mean + (rand() + rand() + rand() - 1.5) * spread
-          // A slow tail: some users always wander off mid-setup.
-          if (rand() < 0.06) v += rand() * 25
-          out.push(Math.max(2, Math.round(v * 10) / 10))
-        }
-        return out
+    // Bell-ish sample: mean minutes drop cohort by cohort, spread tightens.
+    function onboardingMinutes(seed, mean, spread, n) {
+      var rand = mulberry32(seed)
+      var out = []
+      for (var i = 0; i < n; i++) {
+        var v = mean + (rand() + rand() + rand() - 1.5) * spread
+        // A slow tail: some users always wander off mid-setup.
+        if (rand() < 0.06) v += rand() * 25
+        out.push(Math.max(2, Math.round(v * 10) / 10))
       }
+      return out
+    }
 
-      var COHORTS = [
-        { name: 'Jan', seed: 11, mean: 34, spread: 14 },
-        { name: 'Feb', seed: 23, mean: 32, spread: 13 },
-        { name: 'Mar', seed: 37, mean: 30, spread: 13 },
-        { name: 'Apr', seed: 41, mean: 27, spread: 12 },
-        { name: 'May', seed: 53, mean: 25, spread: 11 },
-        { name: 'Jun', seed: 67, mean: 22, spread: 10 },
-        { name: 'Jul', seed: 79, mean: 20, spread: 9 },
-        { name: 'Aug', seed: 97, mean: 18, spread: 8 },
-      ]
+    var COHORTS = [
+      { name: 'Jan', seed: 11, mean: 34, spread: 14 },
+      { name: 'Feb', seed: 23, mean: 32, spread: 13 },
+      { name: 'Mar', seed: 37, mean: 30, spread: 13 },
+      { name: 'Apr', seed: 41, mean: 27, spread: 12 },
+      { name: 'May', seed: 53, mean: 25, spread: 11 },
+      { name: 'Jun', seed: 67, mean: 22, spread: 10 },
+      { name: 'Jul', seed: 79, mean: 20, spread: 9 },
+      { name: 'Aug', seed: 97, mean: 18, spread: 8 },
+    ]
 
-      var cohortSeries = COHORTS.map(function (c) {
-        return {
-          name: 'Onboarding time',
-          cohort: c.name + ' cohort',
-          data: onboardingMinutes(c.seed, c.mean, c.spread, 240),
-        }
-      })
-    </script>
+    var cohortSeries = COHORTS.map(function (c) {
+      return {
+        name: 'Onboarding time',
+        cohort: c.name + ' cohort',
+        data: onboardingMinutes(c.seed, c.mean, c.spread, 240),
+      }
+    })
+  </script>
   </head>
 
   <body>

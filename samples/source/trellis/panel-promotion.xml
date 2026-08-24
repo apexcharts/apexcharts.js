@@ -45,6 +45,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/features/trellis.js"></script>
 <script>
 // Nine services' p99 latency, one panel each. The grid answers "which
 // service is misbehaving" (checkout is); CLICKING THAT HEADER answers "what

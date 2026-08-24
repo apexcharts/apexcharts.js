@@ -56,6 +56,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/features/trellis.js"></script>
 <script>
 // Twenty countries, sixty days of sessions each, on ONE shared y scale, so
 // the long tail reads honestly (flat means small, not "own scale"). The

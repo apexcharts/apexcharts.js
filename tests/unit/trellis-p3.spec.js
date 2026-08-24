@@ -9,6 +9,9 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import './__mocks__/ResizeObserver.js'
 import ApexCharts from '../../src/entries/full.js'
+// Trellis is Tier 2: `entries/full.js` no longer registers it, so the feature
+// has to be imported the same way an application imports it.
+import '../../src/features/trellis.js'
 import { scopeAnnotations } from '../../src/modules/trellis/Trellis.js'
 
 beforeAll(() => {

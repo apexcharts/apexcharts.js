@@ -45,6 +45,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/features/trellis.js"></script>
 <script>
 // Twelve patients, one reference range: the 60-100 bpm normal band is
 // declared ONCE on the host and drawn in every panel, projected through the

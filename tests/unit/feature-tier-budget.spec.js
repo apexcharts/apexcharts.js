@@ -51,7 +51,6 @@ const TIER_1 = [
   'link',
   'ink',
   'storyboard',
-  'trellis',
 ]
 
 /**
@@ -59,7 +58,7 @@ const TIER_1 = [
  * explicitly rather than inferred, so re-adding one fails loudly with a name
  * rather than silently passing an "unknown import" check.
  */
-const TIER_2 = []
+const TIER_2 = ['trellis']
 
 const RULE = `
 features/all.js is the tier boundary (plans/08-distribution-and-plugin-tiers.md).

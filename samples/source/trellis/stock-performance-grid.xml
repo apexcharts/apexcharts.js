@@ -45,6 +45,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/features/trellis.js"></script>
 <script>
 // Six tickers whose price levels differ by 40x: a shared y scale would
 // flatten the cheap ones into noise, so this trellis uses

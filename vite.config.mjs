@@ -97,6 +97,16 @@ export const UMD_ENTRIES = {
     global: 'ApexPictograms',
     out: 'pictograms.js',
   },
+  // Tier-2 features: not in the full bundle, so this is the only way a page
+  // without a bundler can reach them. Built from the SAME entry bundlers
+  // import, because a feature entry already registers itself on load; `shared`
+  // makes its core imports resolve off the global instead of inlining core.
+  'features/trellis': {
+    file: resolve(__dirname, 'src/features/trellis.js'),
+    global: 'ApexTrellis',
+    out: 'features/trellis.js',
+    shared: true,
+  },
 }
 
 export default defineConfig(({ mode }) => {

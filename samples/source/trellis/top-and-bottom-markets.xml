@@ -60,6 +60,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/features/trellis.js"></script>
 <script>
 // Forty-two markets, three years of monthly activation rate, no axes at all.
 // At this size an axis costs more than it pays: the shared scale is stated

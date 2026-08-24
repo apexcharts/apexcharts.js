@@ -69,51 +69,52 @@
       }
     </script>
 
-    <script>
-      // Eighteen stores, one gauge each, every gauge against the SAME target. A
-      // gauge grid is scannable for "who is under target" in a way an 18-bar chart
-      // is not, and a radialBar still reads at 120px. The trellis owns the grid,
-      // the headers and the responsive columns; each panel is a real radialBar.
-      //
-      // Deterministic values so the e2e snapshot is stable.
-      function mulberry32(seed) {
-        return function () {
-          seed |= 0
-          seed = (seed + 0x6d2b79f5) | 0
-          var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
-          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-        }
+    <script src="../../../dist/features/trellis.js"></script>
+  <script>
+    // Eighteen stores, one gauge each, every gauge against the SAME target. A
+    // gauge grid is scannable for "who is under target" in a way an 18-bar chart
+    // is not, and a radialBar still reads at 120px. The trellis owns the grid,
+    // the headers and the responsive columns; each panel is a real radialBar.
+    //
+    // Deterministic values so the e2e snapshot is stable.
+    function mulberry32(seed) {
+      return function () {
+        seed |= 0
+        seed = (seed + 0x6d2b79f5) | 0
+        var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296
       }
+    }
 
-      var STORES = [
-        'Aurora',
-        'Brookfield',
-        'Cedar Park',
-        'Dunwoody',
-        'Eastvale',
-        'Fairfield',
-        'Glenview',
-        'Harborside',
-        'Ironwood',
-        'Junction',
-        'Kingsford',
-        'Lakeshore',
-        'Maplewood',
-        'Northgate',
-        'Oakhurst',
-        'Pinecrest',
-        'Quarry Bay',
-        'Riverton',
-      ]
+    var STORES = [
+      'Aurora',
+      'Brookfield',
+      'Cedar Park',
+      'Dunwoody',
+      'Eastvale',
+      'Fairfield',
+      'Glenview',
+      'Harborside',
+      'Ironwood',
+      'Junction',
+      'Kingsford',
+      'Lakeshore',
+      'Maplewood',
+      'Northgate',
+      'Oakhurst',
+      'Pinecrest',
+      'Quarry Bay',
+      'Riverton',
+    ]
 
-      var rand = mulberry32(20260821)
-      var gaugeSeries = STORES.map(function (store) {
-        // Attainment 48..104%, a few clear laggards in the mix.
-        var v = Math.round(48 + rand() * 56)
-        return { name: 'Attainment', store: store, data: [Math.min(v, 100)] }
-      })
-    </script>
+    var rand = mulberry32(20260821)
+    var gaugeSeries = STORES.map(function (store) {
+      // Attainment 48..104%, a few clear laggards in the mix.
+      var v = Math.round(48 + rand() * 56)
+      return { name: 'Attainment', store: store, data: [Math.min(v, 100)] }
+    })
+  </script>
   </head>
 
   <body>

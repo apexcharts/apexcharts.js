@@ -52,6 +52,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/features/trellis.js"></script>
 <script>
 // Eight teams, the same seven tasks in the same order in every panel, one
 // colour per team. Horizontal bars are the right shape when the categories

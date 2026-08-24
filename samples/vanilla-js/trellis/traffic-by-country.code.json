@@ -1,6 +1,8 @@
 {
   "title": "Trellis Chart - Traffic by Country (Responsive Columns)",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - Traffic by Country (Responsive Columns)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Sessions by country, all twenty of them</h1>\n      <p class=\"lead\">\n        One shared scale, so flat really means small, and the spike in New\n        Zealand is unmissable even from the bottom of the tail. Drag the card's\n        bottom-right corner: the grid recolumns 4 &rarr; 3 &rarr; 2 &rarr; 1\n        from the container width alone.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n      <div class=\"hint\">&#8598; drag the card's corner handle to resize</div>\n\n      <div class=\"note\">\n        The responsive column count needs no breakpoints:\n        <code>minPanelWidth: 240</code> is the whole configuration, and the\n        trellis's single ResizeObserver recolumns the SAME panel instances (no\n        re-creation, no re-mounting) as its container changes. The bottom row's\n        x labels and the first column's y labels follow the new edges\n        automatically; label space is reserved in every panel, so the plots stay\n        pixel-aligned through every layout. Above 64 panels the grid would also\n        virtualize automatically. Trellis is a premium feature; without a\n        license it renders with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - Traffic by Country (Responsive Columns)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Sessions by country, all twenty of them</h1>\n      <p class=\"lead\">\n        One shared scale, so flat really means small, and the spike in New\n        Zealand is unmissable even from the bottom of the tail. Drag the card's\n        bottom-right corner: the grid recolumns 4 &rarr; 3 &rarr; 2 &rarr; 1\n        from the container width alone.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n      <div class=\"hint\">&#8598; drag the card's corner handle to resize</div>\n\n      <div class=\"note\">\n        The responsive column count needs no breakpoints:\n        <code>minPanelWidth: 240</code> is the whole configuration, and the\n        trellis's single ResizeObserver recolumns the SAME panel instances (no\n        re-creation, no re-mounting) as its container changes. The bottom row's\n        x labels and the first column's y labels follow the new edges\n        automatically; label space is reserved in every panel, so the plots stay\n        pixel-aligned through every layout. Above 64 panels the grid would also\n        virtualize automatically. Trellis is a premium feature; without a\n        license it renders with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

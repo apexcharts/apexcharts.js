@@ -45,6 +45,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/features/trellis.js"></script>
 <script>
 // One dataset, six panels: `trellis.by: 'region'` splits the series into one
 // pixel-aligned panel per region. Every panel shares the SAME y scale (so

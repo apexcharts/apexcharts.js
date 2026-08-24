@@ -1134,7 +1134,8 @@ declare namespace ApexCharts {
     /**
      * Trellis (small multiples / faceting): split the series into a grid of
      * pixel-aligned panels by a facet key. Requires
-     * `import 'apexcharts/features/trellis'` (included in the full bundle).
+     * `import 'apexcharts/features/trellis'`. NOT in the default bundle; a
+     * script-tag page adds `dist/features/trellis.js` after apexcharts.js.
      */
     trellis?: ApexTrellis
     plotOptions?: ApexPlotOptions
@@ -1198,7 +1199,8 @@ declare namespace ApexCharts {
 
 /**
  * Trellis (small multiples / faceting). Requires
- * `import 'apexcharts/features/trellis'` (included in the full bundle).
+ * `import 'apexcharts/features/trellis'`. NOT in the default bundle; a
+ * script-tag page adds `dist/features/trellis.js` after apexcharts.js.
  *
  * Setting `by` makes the chart a trellis HOST: the series array is split into
  * one panel per facet-key value, every panel is a real chart of the host's

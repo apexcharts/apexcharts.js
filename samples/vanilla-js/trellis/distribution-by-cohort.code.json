@@ -1,6 +1,8 @@
 {
   "title": "Trellis Chart - Distribution by Cohort (Shared Bin Edges)",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - Distribution by Cohort (Shared Bin Edges)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Time to first success, cohort by cohort</h1>\n      <p class=\"lead\">\n        Eight histograms over raw observations, binned on ONE shared set of\n        edges and counted on one shared scale, so the whole distribution's slide\n        to the left (newer cohorts finish faster) is the picture, not an\n        artifact of per-panel binning.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        Feed each panel its raw observations and the trellis derives one bin\n        frame over the union sample, pushing an explicit\n        <code>plotOptions.histogram.range</code> and <code>binWidth</code> into\n        every panel: identical edges by construction, so the same bar always\n        means the same interval. The y scale is shared over the bin\n        <em>counts</em> (not the raw values, which live on a different axis\n        entirely). Binning each panel to its own extent would put different\n        intervals at the same x, which is the classic way a histogram grid lies.\n        Trellis is a premium feature; without a license it renders with a trial\n        watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - Distribution by Cohort (Shared Bin Edges)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Time to first success, cohort by cohort</h1>\n      <p class=\"lead\">\n        Eight histograms over raw observations, binned on ONE shared set of\n        edges and counted on one shared scale, so the whole distribution's slide\n        to the left (newer cohorts finish faster) is the picture, not an\n        artifact of per-panel binning.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        Feed each panel its raw observations and the trellis derives one bin\n        frame over the union sample, pushing an explicit\n        <code>plotOptions.histogram.range</code> and <code>binWidth</code> into\n        every panel: identical edges by construction, so the same bar always\n        means the same interval. The y scale is shared over the bin\n        <em>counts</em> (not the raw values, which live on a different axis\n        entirely). Binning each panel to its own extent would put different\n        intervals at the same x, which is the classic way a histogram grid lies.\n        Trellis is a premium feature; without a license it renders with a trial\n        watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

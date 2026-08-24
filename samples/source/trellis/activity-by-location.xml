@@ -45,6 +45,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/features/trellis.js"></script>
 <script>
 // Six locations, each a real heatmap of day x hour check-ins, all six drawn
 // against ONE colour scale derived from the union of every panel's values.

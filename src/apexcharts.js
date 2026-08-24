@@ -222,7 +222,7 @@ export default class ApexCharts {
         )
         if (wantsTrellis && !this.trellis) {
           console.warn(
-            "ApexCharts: `trellis` requires the trellis feature — import 'apexcharts/features/trellis' (included in the full bundle). Rendering as a single chart.",
+            "ApexCharts: `trellis` requires the trellis feature, which is not in the default bundle. Bundler: import 'apexcharts/features/trellis'. Script tag: add <script src='.../dist/features/trellis.js'> after apexcharts.js. Rendering as a single chart.",
           )
         }
 
@@ -1527,8 +1527,9 @@ export default class ApexCharts {
    * rendering it; `render()` is idempotent, so `await chart.render()` on the
    * returned instance settles with the same in-flight mount.
    *
-   * Requires the trellis feature (`import 'apexcharts/features/trellis'`,
-   * included in the full bundle); warns and returns null otherwise.
+   * Requires the trellis feature, which is NOT in the default bundle
+   * (`import 'apexcharts/features/trellis'`, or add `dist/features/trellis.js`
+   * after apexcharts.js on a script-tag page); warns and returns null otherwise.
    *
    * @param {HTMLElement} el
    * @param {ApexOptions} options must carry `trellis.by` (or `trellis.row`
@@ -1538,7 +1539,7 @@ export default class ApexCharts {
   static trellis(el, options) {
     if (!InitCtxVariables._featureRegistry.get('trellis')) {
       console.warn(
-        "ApexCharts.trellis requires the trellis feature — import 'apexcharts/features/trellis' (included in the full bundle).",
+        "ApexCharts.trellis requires the trellis feature, which is not in the default bundle. Bundler: import 'apexcharts/features/trellis'. Script tag: add <script src='.../dist/features/trellis.js'> after apexcharts.js.",
       )
       return null
     }

@@ -1,6 +1,8 @@
 {
   "title": "Trellis Chart - Stock Performance Grid (Independent Y Scales)",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - Stock Performance Grid (Independent Y Scales)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Six tickers, one grid</h1>\n      <p class=\"lead\">\n        Price levels 40x apart, so each panel keeps its own y scale, yet all six\n        plot rectangles are pixel-identical. Zoom anywhere: every ticker follows\n        on the same date window, and one reset brings them all back.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        <code>scales.y: 'independent'</code> gives every ticker its own domain\n        (a $24 stock and a $900 stock cannot share an axis honestly), and an\n        independent scale draws its own labels on every panel. The panels stay\n        aligned anyway: the trellis measures each panel's label gutter and\n        pushes the widest as a shared <code>yaxis.labels.minWidth</code>, so\n        shapes compare cleanly across the grid. The x window is shared:\n        drag-zoom any panel and the whole grid moves; the single toolbar's reset\n        restores it. Trellis is a premium feature; without a license it renders\n        with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - Stock Performance Grid (Independent Y Scales)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Six tickers, one grid</h1>\n      <p class=\"lead\">\n        Price levels 40x apart, so each panel keeps its own y scale, yet all six\n        plot rectangles are pixel-identical. Zoom anywhere: every ticker follows\n        on the same date window, and one reset brings them all back.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        <code>scales.y: 'independent'</code> gives every ticker its own domain\n        (a $24 stock and a $900 stock cannot share an axis honestly), and an\n        independent scale draws its own labels on every panel. The panels stay\n        aligned anyway: the trellis measures each panel's label gutter and\n        pushes the widest as a shared <code>yaxis.labels.minWidth</code>, so\n        shapes compare cleanly across the grid. The x window is shared:\n        drag-zoom any panel and the whole grid moves; the single toolbar's reset\n        restores it. Trellis is a premium feature; without a license it renders\n        with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

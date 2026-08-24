@@ -45,6 +45,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/features/trellis.js"></script>
 <script>
 // Four departments by four quarters: the 2-D grid IS the shape of the
 // question. Reading across a row is "this department over the year"; down a

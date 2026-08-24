@@ -1,6 +1,8 @@
 {
   "title": "Trellis Chart - Department by Quarter (2-D Grid)",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - Department by Quarter (2-D Grid)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Delivery hours, department by quarter</h1>\n      <p class=\"lead\">\n        Across a row: one department's year. Down a column: one quarter's whole\n        org. The empty slot is honest: Marketing did not exist in Q1, and the\n        placeholder keeps that cell on the same scale instead of collapsing the\n        grid.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        Two facet keys make a fixed grid: <code>trellis.row: 'dept'</code> and\n        <code>trellis.column: 'quarter'</code>, every (row, column) combination\n        in row-major order, column labels drawn once across the top and row\n        labels once down the left. Missing combinations follow\n        <code>emptyPanels</code>: <code>'placeholder'</code> (default) mounts a\n        real panel on the shared scale with a quiet label,\n        <code>'skip'</code> leaves a tinted blank, <code>'hide'</code> leaves\n        nothing. A 2-D grid never re-columns responsively; panels shrink\n        instead, so the grid's meaning survives any width. Trellis is a premium\n        feature; without a license it renders with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - Department by Quarter (2-D Grid)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Delivery hours, department by quarter</h1>\n      <p class=\"lead\">\n        Across a row: one department's year. Down a column: one quarter's whole\n        org. The empty slot is honest: Marketing did not exist in Q1, and the\n        placeholder keeps that cell on the same scale instead of collapsing the\n        grid.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        Two facet keys make a fixed grid: <code>trellis.row: 'dept'</code> and\n        <code>trellis.column: 'quarter'</code>, every (row, column) combination\n        in row-major order, column labels drawn once across the top and row\n        labels once down the left. Missing combinations follow\n        <code>emptyPanels</code>: <code>'placeholder'</code> (default) mounts a\n        real panel on the shared scale with a quiet label,\n        <code>'skip'</code> leaves a tinted blank, <code>'hide'</code> leaves\n        nothing. A 2-D grid never re-columns responsively; panels shrink\n        instead, so the grid's meaning survives any width. Trellis is a premium\n        feature; without a license it renders with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

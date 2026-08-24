@@ -45,6 +45,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/features/trellis.js"></script>
 <script>
 // Three metrics in three units: dollars, percent, people. They cannot share
 // an axis, and a dual-axis chart is the most misread chart there is. The

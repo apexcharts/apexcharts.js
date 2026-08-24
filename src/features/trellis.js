@@ -18,8 +18,17 @@
  *     series: [{ name: 'Revenue', region: 'North', data: [...] }, ...],
  *   }).render()
  *
- * Included in the full bundle via features/all.js. Without this import, a
- * config carrying `trellis.by` warns and renders as a normal single chart.
+ * NOT in the default bundle (Tier 2: ~25 KB gzipped, and a minority of charts
+ * are small multiples). Both channels opt in explicitly:
+ *
+ *   bundler     import 'apexcharts/features/trellis'
+ *   script tag  <script src=".../dist/apexcharts.js"></script>
+ *               <script src=".../dist/features/trellis.js"></script>
+ *
+ * The add-on reads its shared modules off `ApexCharts.__internals`, so it
+ * layers onto the bundle already on the page rather than duplicating it. Load
+ * it AFTER apexcharts.js. Without this feature, a config carrying `trellis.by`
+ * warns and renders as a normal single chart.
  *
  * @module features/trellis
  */

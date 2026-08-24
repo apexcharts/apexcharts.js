@@ -1,6 +1,8 @@
 {
   "title": "Trellis Chart - KPI Gauge Grid (RadialBar Panels)",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - KPI Gauge Grid (RadialBar Panels)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Q3 target attainment, store by store</h1>\n      <p class=\"lead\">\n        Eighteen gauges against one target. Green is done, amber is close, red\n        is a conversation: the laggards jump out in a way no 18-bar chart\n        manages.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        The radial family needs no scale sharing beyond consistent options,\n        which makes it one of the cheapest trellis types: every panel is a real\n        radialBar on the same 0-100 track. The traffic-light fill comes from\n        <code>trellis.panel</code>, the per-panel override hook: it reads each\n        panel's own value and hands back a color. Trellis is a premium feature;\n        without a license it renders with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - KPI Gauge Grid (RadialBar Panels)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Q3 target attainment, store by store</h1>\n      <p class=\"lead\">\n        Eighteen gauges against one target. Green is done, amber is close, red\n        is a conversation: the laggards jump out in a way no 18-bar chart\n        manages.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        The radial family needs no scale sharing beyond consistent options,\n        which makes it one of the cheapest trellis types: every panel is a real\n        radialBar on the same 0-100 track. The traffic-light fill comes from\n        <code>trellis.panel</code>, the per-panel override hook: it reads each\n        panel's own value and hands back a color. Trellis is a premium feature;\n        without a license it renders with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

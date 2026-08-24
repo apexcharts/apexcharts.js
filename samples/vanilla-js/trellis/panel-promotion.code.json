@@ -1,6 +1,8 @@
 {
   "title": "Trellis Chart - Panel Promotion (Click a Header to Expand)",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - Panel Promotion (Click a Header to Expand)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>p99 latency by service</h1>\n      <p class=\"lead\">\n        Nine services at a glance, one obviously degrading. Click the\n        <strong>checkout</strong> header: the panel expands to the grid's full\n        width for a proper look, and \"All panels\" brings the grid back.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        Every cell header is a button: clicking it promotes that panel to the\n        grid's full width (parked panels keep their state; a virtualized grid\n        simply unmounts them) and a breadcrumb restores the grid. Clicking the\n        promoted header again also restores. The same flow is scriptable:\n        <code>chart.promotePanel('checkout')</code> and\n        <code>chart.restorePanels()</code>. Set\n        <code>trellis.promote: false</code> to make headers inert. Trellis is a\n        premium feature; without a license it renders with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - Panel Promotion (Click a Header to Expand)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>p99 latency by service</h1>\n      <p class=\"lead\">\n        Nine services at a glance, one obviously degrading. Click the\n        <strong>checkout</strong> header: the panel expands to the grid's full\n        width for a proper look, and \"All panels\" brings the grid back.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        Every cell header is a button: clicking it promotes that panel to the\n        grid's full width (parked panels keep their state; a virtualized grid\n        simply unmounts them) and a breadcrumb restores the grid. Clicking the\n        promoted header again also restores. The same flow is scriptable:\n        <code>chart.promotePanel('checkout')</code> and\n        <code>chart.restorePanels()</code>. Set\n        <code>trellis.promote: false</code> to make headers inert. Trellis is a\n        premium feature; without a license it renders with a trial watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

@@ -17,12 +17,16 @@
 import { test, expect } from '../fixtures/base.js'
 
 const umdPath = 'dist/apexcharts.js'
+// Trellis is Tier 2 and ships outside the full bundle; the grouped-panel
+// cases below need the add-on layered on top, as a script-tag page would.
+const trellisAddonPath = 'dist/features/trellis.js'
 
 async function mount(page, optsSrc, { width = 640 } = {}) {
   const errors = []
   page.on('pageerror', (err) => errors.push(err.message))
   await page.setContent(`<div id="stage" style="width:${width}px"></div>`)
   await page.addScriptTag({ path: umdPath })
+  await page.addScriptTag({ path: trellisAddonPath })
   await page.evaluate((src) => {
     const opts = eval(`(${src})`)
     window.chart = new window.ApexCharts(document.querySelector('#stage'), opts)
@@ -142,6 +146,7 @@ test.describe('grouped heatmaps keep their per-cell tooltip', () => {
       '<div id="a" style="width:520px"></div><div id="b" style="width:520px"></div>',
     )
     await page.addScriptTag({ path: umdPath })
+    await page.addScriptTag({ path: trellisAddonPath })
     await page.evaluate(
       ([srcA, srcB]) => {
         window.a = new window.ApexCharts(

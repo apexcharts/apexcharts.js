@@ -45,6 +45,7 @@ h1 {
 </style>
 
 <scripts>
+<script src="../../../dist/features/trellis.js"></script>
 <script>
 // Eight monthly signup cohorts, ~240 raw onboarding times each. Every panel
 // is a real histogram over its own observations, but the trellis derives ONE

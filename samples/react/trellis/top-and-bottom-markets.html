@@ -87,119 +87,120 @@
       }
     </script>
 
-    <script>
-      // Forty-two markets, three years of monthly activation rate, no axes at all.
-      // At this size an axis costs more than it pays: the shared scale is stated
-      // once in the caption, each panel labels its own latest value, and the ink
-      // left over is the trend. The five best and five weakest latest rates are
-      // tinted so the extremes are findable without reading 42 numbers.
-      //
-      // Deterministic series so the e2e snapshot is stable.
-      function mulberry32(seed) {
-        return function () {
-          seed |= 0
-          seed = (seed + 0x6d2b79f5) | 0
-          var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
-          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-        }
+    <script src="../../../dist/features/trellis.js"></script>
+  <script>
+    // Forty-two markets, three years of monthly activation rate, no axes at all.
+    // At this size an axis costs more than it pays: the shared scale is stated
+    // once in the caption, each panel labels its own latest value, and the ink
+    // left over is the trend. The five best and five weakest latest rates are
+    // tinted so the extremes are findable without reading 42 numbers.
+    //
+    // Deterministic series so the e2e snapshot is stable.
+    function mulberry32(seed) {
+      return function () {
+        seed |= 0
+        seed = (seed + 0x6d2b79f5) | 0
+        var t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296
       }
+    }
 
-      var MARKETS = [
-        'Amsterdam',
-        'Antwerp',
-        'Athens',
-        'Auckland',
-        'Austin',
-        'Bergen',
-        'Bilbao',
-        'Bologna',
-        'Bristol',
-        'Calgary',
-        'Cardiff',
-        'Cork',
-        'Dublin',
-        'Dundee',
-        'Edinburgh',
-        'Galway',
-        'Ghent',
-        'Graz',
-        'Helsinki',
-        'Kingston',
-        'Leeds',
-        'Leiden',
-        'Lisbon',
-        'Lyon',
-        'Malaga',
-        'Malmo',
-        'Nantes',
-        'Oporto',
-        'Oslo',
-        'Ottawa',
-        'Padua',
-        'Perth',
-        'Reykjavik',
-        'Rotterdam',
-        'Salerno',
-        'Seville',
-        'Tampere',
-        'Turin',
-        'Turku',
-        'Utrecht',
-        'Verona',
-        'Zurich',
-      ]
+    var MARKETS = [
+      'Amsterdam',
+      'Antwerp',
+      'Athens',
+      'Auckland',
+      'Austin',
+      'Bergen',
+      'Bilbao',
+      'Bologna',
+      'Bristol',
+      'Calgary',
+      'Cardiff',
+      'Cork',
+      'Dublin',
+      'Dundee',
+      'Edinburgh',
+      'Galway',
+      'Ghent',
+      'Graz',
+      'Helsinki',
+      'Kingston',
+      'Leeds',
+      'Leiden',
+      'Lisbon',
+      'Lyon',
+      'Malaga',
+      'Malmo',
+      'Nantes',
+      'Oporto',
+      'Oslo',
+      'Ottawa',
+      'Padua',
+      'Perth',
+      'Reykjavik',
+      'Rotterdam',
+      'Salerno',
+      'Seville',
+      'Tampere',
+      'Turin',
+      'Turku',
+      'Utrecht',
+      'Verona',
+      'Zurich',
+    ]
 
-      var MONTHS = 36
-      var START = new Date(2023, 0, 1).getTime()
-      var MONTH_MS = 30.44 * 24 * 3600 * 1000
+    var MONTHS = 36
+    var START = new Date(2023, 0, 1).getTime()
+    var MONTH_MS = 30.44 * 24 * 3600 * 1000
 
-      // A trend plus a wobble, so the panels have shape rather than noise.
-      function activationSeries(seed, start, drift) {
-        var rand = mulberry32(seed)
-        var out = []
-        var v = start
-        for (var m = 0; m < MONTHS; m++) {
-          v += drift + (rand() - 0.5) * 0.55
-          // A mild seasonal lift in the second half of each year.
-          var season = Math.sin(((m % 12) / 12) * Math.PI * 2) * 0.28
-          out.push({
-            x: Math.round(START + m * MONTH_MS),
-            y: Math.max(1.2, Math.round((v + season) * 100) / 100),
-          })
-        }
-        return out
+    // A trend plus a wobble, so the panels have shape rather than noise.
+    function activationSeries(seed, start, drift) {
+      var rand = mulberry32(seed)
+      var out = []
+      var v = start
+      for (var m = 0; m < MONTHS; m++) {
+        v += drift + (rand() - 0.5) * 0.55
+        // A mild seasonal lift in the second half of each year.
+        var season = Math.sin(((m % 12) / 12) * Math.PI * 2) * 0.28
+        out.push({
+          x: Math.round(START + m * MONTH_MS),
+          y: Math.max(1.2, Math.round((v + season) * 100) / 100),
+        })
       }
+      return out
+    }
 
-      var marketSeries = MARKETS.map(function (name, i) {
-        var rand = mulberry32(1000 + i * 13)
-        var start = 2.4 + rand() * 3.2
-        var drift = (rand() - 0.42) * 0.11
-        return {
-          name: 'Activation rate',
-          market: name,
-          data: activationSeries(200 + i * 7, start, drift),
-        }
-      })
+    var marketSeries = MARKETS.map(function (name, i) {
+      var rand = mulberry32(1000 + i * 13)
+      var start = 2.4 + rand() * 3.2
+      var drift = (rand() - 0.42) * 0.11
+      return {
+        name: 'Activation rate',
+        market: name,
+        data: activationSeries(200 + i * 7, start, drift),
+      }
+    })
 
-      // Rank on the LATEST value: the five best get the teal tint, the five
-      // weakest the amber one, everything else stays quiet grey.
-      var latest = {}
-      marketSeries.forEach(function (s) {
-        latest[s.market] = s.data[s.data.length - 1].y
-      })
-      var ranked = MARKETS.slice().sort(function (a, b) {
-        return latest[b] - latest[a]
-      })
-      var TOP = {}
-      var BOTTOM = {}
-      ranked.slice(0, 5).forEach(function (m) {
-        TOP[m] = true
-      })
-      ranked.slice(-5).forEach(function (m) {
-        BOTTOM[m] = true
-      })
-    </script>
+    // Rank on the LATEST value: the five best get the teal tint, the five
+    // weakest the amber one, everything else stays quiet grey.
+    var latest = {}
+    marketSeries.forEach(function (s) {
+      latest[s.market] = s.data[s.data.length - 1].y
+    })
+    var ranked = MARKETS.slice().sort(function (a, b) {
+      return latest[b] - latest[a]
+    })
+    var TOP = {}
+    var BOTTOM = {}
+    ranked.slice(0, 5).forEach(function (m) {
+      TOP[m] = true
+    })
+    ranked.slice(-5).forEach(function (m) {
+      BOTTOM[m] = true
+    })
+  </script>
   </head>
 
   <body>

@@ -1,6 +1,8 @@
 {
   "title": "Trellis Chart - Revenue by Region (Small Multiples)",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - Revenue by Region (Small Multiples)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Revenue by region</h1>\n      <p class=\"lead\">\n        Six regions, one shared scale: each panel is a real chart, and all six\n        are pixel-aligned so the shapes compare honestly. Hover anywhere: the\n        crosshair sweeps every panel at the same month.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        A trellis (small multiples) splits one dataset into a grid of panels:\n        <code>trellis.by: 'region'</code> is the whole configuration. The\n        trellis owns everything shared: the y domain (union of all panels, so\n        panels never lie), the x window, one legend (click\n        <code>Target</code> to hide it in every panel), one zoom/pan/reset\n        toolbar, and the responsive column count (resize the window: 3 &rarr; 2\n        &rarr; 1 columns from <code>minPanelWidth</code> alone). The keyless\n        <code>Target</code> series repeats in every panel as a reference line.\n        Trellis is a premium feature; without a license it renders with a trial\n        watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Trellis Chart - Revenue by Region (Small Multiples)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/features/trellis.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"wrap\">\n      <h1>Revenue by region</h1>\n      <p class=\"lead\">\n        Six regions, one shared scale: each panel is a real chart, and all six\n        are pixel-aligned so the shapes compare honestly. Hover anywhere: the\n        crosshair sweeps every panel at the same month.\n      </p>\n\n      <div class=\"chart-wrap\">\n        <div id=\"chart\"></div>\n      </div>\n\n      <div class=\"note\">\n        A trellis (small multiples) splits one dataset into a grid of panels:\n        <code>trellis.by: 'region'</code> is the whole configuration. The\n        trellis owns everything shared: the y domain (union of all panels, so\n        panels never lie), the x window, one legend (click\n        <code>Target</code> to hide it in every panel), one zoom/pan/reset\n        toolbar, and the responsive column count (resize the window: 3 &rarr; 2\n        &rarr; 1 columns from <code>minPanelWidth</code> alone). The keyless\n        <code>Target</code> series repeats in every panel as a reference line.\n        Trellis is a premium feature; without a license it renders with a trial\n        watermark.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",
