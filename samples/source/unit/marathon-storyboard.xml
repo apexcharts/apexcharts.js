@@ -217,6 +217,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/features/storyboard.js"></script>
 <script>
 // One field of 600 marathon finishers, shown three ways on a single unit chart:
 // as five regional clusters, as one packed field, then regrouped into six

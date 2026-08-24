@@ -219,6 +219,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/features/storyboard.js"></script>
 <script src="../../../dist/unit-shapes.js"></script>
 <script>
 // A year at Halo, a (fictional) coffee roaster: 2,400 kilos roasted, one dot

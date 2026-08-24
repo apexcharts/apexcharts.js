@@ -243,77 +243,78 @@
       }
     </script>
 
-    <script>
-      // One field of 600 marathon finishers, shown three ways on a single unit chart:
-      // as five regional clusters, as one packed field, then regrouped into six
-      // finish-time bars. The design rule that makes it a story rather than three
-      // separate charts: every beat sets plotOptions.unit.transition:'flow', so the
-      // SAME dots are keyed by global order and GLIDE (and recolour) from one
-      // arrangement into the next instead of being rebuilt. These definitions are
-      // shared by the vanilla-js, React and Vue builds.
-      var REGION_LABELS = ['Africa', 'Europe', 'Americas', 'Asia', 'Oceania']
-      var REGION_COLORS = ['#F2994A', '#2D9CDB', '#27AE60', '#EB5757', '#8D6E63']
-      var REGION_COUNT = [100, 170, 150, 140, 40] // 600 finishers
+    <script src="../../../dist/features/storyboard.js"></script>
+  <script>
+    // One field of 600 marathon finishers, shown three ways on a single unit chart:
+    // as five regional clusters, as one packed field, then regrouped into six
+    // finish-time bars. The design rule that makes it a story rather than three
+    // separate charts: every beat sets plotOptions.unit.transition:'flow', so the
+    // SAME dots are keyed by global order and GLIDE (and recolour) from one
+    // arrangement into the next instead of being rebuilt. These definitions are
+    // shared by the vanilla-js, React and Vue builds.
+    var REGION_LABELS = ['Africa', 'Europe', 'Americas', 'Asia', 'Oceania']
+    var REGION_COLORS = ['#F2994A', '#2D9CDB', '#27AE60', '#EB5757', '#8D6E63']
+    var REGION_COUNT = [100, 170, 150, 140, 40] // 600 finishers
 
-      var FINISH_LABELS = [
-        'Sub-3:00',
-        '3:00-3:30',
-        '3:30-4:00',
-        '4:00-4:30',
-        '4:30-5:00',
-        '5:00+',
-      ]
-      var FINISH_COLORS = [
-        '#1E8E5A',
-        '#35B37E',
-        '#86C82B',
-        '#F2C037',
-        '#F2994A',
-        '#EB5757',
-      ]
-      var FINISH_COUNT = [45, 120, 165, 140, 85, 45] // also 600
+    var FINISH_LABELS = [
+      'Sub-3:00',
+      '3:00-3:30',
+      '3:30-4:00',
+      '4:00-4:30',
+      '4:30-5:00',
+      '5:00+',
+    ]
+    var FINISH_COLORS = [
+      '#1E8E5A',
+      '#35B37E',
+      '#86C82B',
+      '#F2C037',
+      '#F2994A',
+      '#EB5757',
+    ]
+    var FINISH_COUNT = [45, 120, 165, 140, 85, 45] // also 600
 
-      // A bare ViewState shared by every beat: the unit chart has no axes to window,
-      // so each beat only needs to describe its own data + layout in `options`.
-      var LIGHT = { theme: { mode: 'light' } }
+    // A bare ViewState shared by every beat: the unit chart has no axes to window,
+    // so each beat only needs to describe its own data + layout in `options`.
+    var LIGHT = { theme: { mode: 'light' } }
 
-      var BEATS = [
-        {
-          selector: '#sb-step-1',
-          view: LIGHT,
-          options: {
-            series: REGION_COUNT,
-            labels: REGION_LABELS,
-            colors: REGION_COLORS,
-            plotOptions: { unit: { layout: 'grouped', transition: 'flow' } },
-          },
-          announce: 'The field by region: five clusters of finishers',
+    var BEATS = [
+      {
+        selector: '#sb-step-1',
+        view: LIGHT,
+        options: {
+          series: REGION_COUNT,
+          labels: REGION_LABELS,
+          colors: REGION_COLORS,
+          plotOptions: { unit: { layout: 'grouped', transition: 'flow' } },
         },
-        {
-          selector: '#sb-step-2',
-          view: LIGHT,
-          options: {
-            series: REGION_COUNT,
-            labels: REGION_LABELS,
-            colors: REGION_COLORS,
-            plotOptions: { unit: { layout: 'packed', transition: 'flow' } },
-          },
-          announce:
-            'One field: the same finishers packed together, smallest region centred',
+        announce: 'The field by region: five clusters of finishers',
+      },
+      {
+        selector: '#sb-step-2',
+        view: LIGHT,
+        options: {
+          series: REGION_COUNT,
+          labels: REGION_LABELS,
+          colors: REGION_COLORS,
+          plotOptions: { unit: { layout: 'packed', transition: 'flow' } },
         },
-        {
-          selector: '#sb-step-3',
-          view: LIGHT,
-          options: {
-            series: FINISH_COUNT,
-            labels: FINISH_LABELS,
-            colors: FINISH_COLORS,
-            plotOptions: { unit: { layout: 'columns', transition: 'flow' } },
-          },
-          announce: 'Regrouped by finish time: the finishers flow into six bars',
+        announce:
+          'One field: the same finishers packed together, smallest region centred',
+      },
+      {
+        selector: '#sb-step-3',
+        view: LIGHT,
+        options: {
+          series: FINISH_COUNT,
+          labels: FINISH_LABELS,
+          colors: FINISH_COLORS,
+          plotOptions: { unit: { layout: 'columns', transition: 'flow' } },
         },
-      ]
-    </script>
+        announce: 'Regrouped by finish time: the finishers flow into six bars',
+      },
+    ]
+  </script>
   </head>
 
   <body>

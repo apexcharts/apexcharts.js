@@ -238,169 +238,170 @@
       }
     </script>
 
-    <script>
-      // The design rule of this story: every beat keeps the SAME twelve marks.
-      // Emphasis changes via per-column colors and annotations (values, axes and
-      // mark count never change), so each transition tweens element-for-element
-      // instead of popping marks in and out. The finale is the one shape change:
-      // a 1:1 bar-to-donut morph, each column curling into its own slice.
-      // These definitions are shared by the vanilla-js, React and Vue builds.
-      var REV = [12, 14, 9, 15, 18, 22, 26, 31, 37, 44, 52, 61]
-      var MONTHS = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ]
+    <script src="../../../dist/features/storyboard.js"></script>
+  <script>
+    // The design rule of this story: every beat keeps the SAME twelve marks.
+    // Emphasis changes via per-column colors and annotations (values, axes and
+    // mark count never change), so each transition tweens element-for-element
+    // instead of popping marks in and out. The finale is the one shape change:
+    // a 1:1 bar-to-donut morph, each column curling into its own slice.
+    // These definitions are shared by the vanilla-js, React and Vue builds.
+    var REV = [12, 14, 9, 15, 18, 22, 26, 31, 37, 44, 52, 61]
+    var MONTHS = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ]
 
-      var ACCENT = '#0EA5E9'
-      var FADE = '#e3e8f4' // out-of-spotlight months step back to this
-      var RED = '#f87171'
-      var QCOLORS = ['#0EA5E9', '#7dd3fc', '#4ade80', '#fbbf24'] // one per quarter
+    var ACCENT = '#0EA5E9'
+    var FADE = '#e3e8f4' // out-of-spotlight months step back to this
+    var RED = '#f87171'
+    var QCOLORS = ['#0EA5E9', '#7dd3fc', '#4ade80', '#fbbf24'] // one per quarter
 
-      function colors12(fn) {
-        var a = []
-        for (var i = 0; i < 12; i++) a.push(fn(i))
-        return a
-      }
-      var C_ALL = colors12(function () {
-        return ACCENT
-      })
-      var C_OUTAGE = colors12(function (i) {
-        if (i === 2) return RED // March
-        return i >= 1 && i <= 3 ? ACCENT : FADE
-      })
-      var C_V2 = colors12(function (i) {
-        return i >= 4 ? ACCENT : FADE
-      }) // May on
-      var C_QUARTERS = colors12(function (i) {
-        return QCOLORS[Math.floor(i / 3)]
-      })
+    function colors12(fn) {
+      var a = []
+      for (var i = 0; i < 12; i++) a.push(fn(i))
+      return a
+    }
+    var C_ALL = colors12(function () {
+      return ACCENT
+    })
+    var C_OUTAGE = colors12(function (i) {
+      if (i === 2) return RED // March
+      return i >= 1 && i <= 3 ? ACCENT : FADE
+    })
+    var C_V2 = colors12(function (i) {
+      return i >= 4 ? ACCENT : FADE
+    }) // May on
+    var C_QUARTERS = colors12(function (i) {
+      return QCOLORS[Math.floor(i / 3)]
+    })
 
-      // The shared column payload; a beat only swaps the colors array. labels []
-      // resets the donut's month labels so they never leak into the axis mapping.
-      var COLUMN_OPTS = {
-        chart: { type: 'bar' },
-        series: [{ name: 'Revenue (k$)', data: REV }],
-        labels: [],
-        stroke: { width: 0, colors: undefined },
-        plotOptions: {
-          bar: { columnWidth: '58%', borderRadius: 3, distributed: true },
-        },
-        legend: { show: false },
-      }
-      function columnBeat(colors) {
-        return Object.assign({}, COLUMN_OPTS, { colors: colors })
-      }
+    // The shared column payload; a beat only swaps the colors array. labels []
+    // resets the donut's month labels so they never leak into the axis mapping.
+    var COLUMN_OPTS = {
+      chart: { type: 'bar' },
+      series: [{ name: 'Revenue (k$)', data: REV }],
+      labels: [],
+      stroke: { width: 0, colors: undefined },
+      plotOptions: {
+        bar: { columnWidth: '58%', borderRadius: 3, distributed: true },
+      },
+      legend: { show: false },
+    }
+    function columnBeat(colors) {
+      return Object.assign({}, COLUMN_OPTS, { colors: colors })
+    }
 
-      // The finale: same twelve values, same quarter colors, new shape. The morph
-      // feature pairs the 12 columns with the 12 slices.
-      var DONUT_OPTS = {
-        chart: { type: 'donut' },
-        series: REV,
-        labels: MONTHS,
-        colors: C_QUARTERS,
-        stroke: { width: 2, colors: ['#fff'] },
-        legend: { show: false },
-        plotOptions: {
-          pie: {
-            expandOnClick: false,
-            donut: {
-              size: '68%',
-              labels: {
+    // The finale: same twelve values, same quarter colors, new shape. The morph
+    // feature pairs the 12 columns with the 12 slices.
+    var DONUT_OPTS = {
+      chart: { type: 'donut' },
+      series: REV,
+      labels: MONTHS,
+      colors: C_QUARTERS,
+      stroke: { width: 2, colors: ['#fff'] },
+      legend: { show: false },
+      plotOptions: {
+        pie: {
+          expandOnClick: false,
+          donut: {
+            size: '68%',
+            labels: {
+              show: true,
+              total: {
                 show: true,
-                total: {
-                  show: true,
-                  label: 'FY25 revenue',
-                  formatter: function () {
-                    return '341 k$'
-                  },
+                label: 'FY25 revenue',
+                formatter: function () {
+                  return '341 k$'
                 },
               },
             },
           },
         },
-      }
+      },
+    }
 
-      var BEATS = [
-        {
-          selector: '#sb-step-1',
-          view: { window: { xaxis: null, yaxis: [null] }, theme: { mode: 'light' } },
-          options: columnBeat(C_ALL),
-          announce: 'Overview: fiscal 2025 revenue, month by month',
-        },
-        {
-          selector: '#sb-step-2',
-          view: {
-            window: { xaxis: null, yaxis: [null] },
-            theme: { mode: 'light' },
-            annotations: {
-              static: {
-                xaxis: [
-                  {
-                    x: 'Mar',
-                    strokeDashArray: 4,
-                    borderColor: '#f87171',
-                    label: {
-                      text: 'The outage',
-                      borderColor: '#fca5a5',
-                      style: { color: '#7f1d1d', background: '#fee2e2' },
-                    },
+    var BEATS = [
+      {
+        selector: '#sb-step-1',
+        view: { window: { xaxis: null, yaxis: [null] }, theme: { mode: 'light' } },
+        options: columnBeat(C_ALL),
+        announce: 'Overview: fiscal 2025 revenue, month by month',
+      },
+      {
+        selector: '#sb-step-2',
+        view: {
+          window: { xaxis: null, yaxis: [null] },
+          theme: { mode: 'light' },
+          annotations: {
+            static: {
+              xaxis: [
+                {
+                  x: 'Mar',
+                  strokeDashArray: 4,
+                  borderColor: '#f87171',
+                  label: {
+                    text: 'The outage',
+                    borderColor: '#fca5a5',
+                    style: { color: '#7f1d1d', background: '#fee2e2' },
                   },
-                ],
-              },
+                },
+              ],
             },
           },
-          options: columnBeat(C_OUTAGE),
-          announce: 'Spotlight on March: the outage month',
         },
-        {
-          selector: '#sb-step-3',
-          view: {
-            window: { xaxis: null, yaxis: [null] },
-            theme: { mode: 'light' },
-            annotations: {
-              static: {
-                xaxis: [
-                  {
-                    x: 'May',
-                    strokeDashArray: 4,
-                    borderColor: '#4ade80',
-                    label: {
-                      text: 'v2 ships',
-                      borderColor: '#86efac',
-                      style: { color: '#14532d', background: '#dcfce7' },
-                    },
+        options: columnBeat(C_OUTAGE),
+        announce: 'Spotlight on March: the outage month',
+      },
+      {
+        selector: '#sb-step-3',
+        view: {
+          window: { xaxis: null, yaxis: [null] },
+          theme: { mode: 'light' },
+          annotations: {
+            static: {
+              xaxis: [
+                {
+                  x: 'May',
+                  strokeDashArray: 4,
+                  borderColor: '#4ade80',
+                  label: {
+                    text: 'v2 ships',
+                    borderColor: '#86efac',
+                    style: { color: '#14532d', background: '#dcfce7' },
                   },
-                ],
-              },
+                },
+              ],
             },
           },
-          options: columnBeat(C_V2),
-          announce: 'Spotlight from May on: v2 changes the slope',
         },
-        {
-          selector: '#sb-step-4',
-          view: { window: { xaxis: null, yaxis: [null] }, theme: { mode: 'light' } },
-          options: columnBeat(C_QUARTERS),
-          announce: 'The months grouped into quarters by color',
-        },
-        {
-          selector: '#sb-step-5',
-          view: { window: { xaxis: null, yaxis: [null] }, theme: { mode: 'light' } },
-          options: DONUT_OPTS,
-          announce: 'The twelve months as a donut ring',
-        },
-      ]
-    </script>
+        options: columnBeat(C_V2),
+        announce: 'Spotlight from May on: v2 changes the slope',
+      },
+      {
+        selector: '#sb-step-4',
+        view: { window: { xaxis: null, yaxis: [null] }, theme: { mode: 'light' } },
+        options: columnBeat(C_QUARTERS),
+        announce: 'The months grouped into quarters by color',
+      },
+      {
+        selector: '#sb-step-5',
+        view: { window: { xaxis: null, yaxis: [null] }, theme: { mode: 'light' } },
+        options: DONUT_OPTS,
+        announce: 'The twelve months as a donut ring',
+      },
+    ]
+  </script>
   </head>
 
   <body>

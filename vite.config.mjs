@@ -125,6 +125,12 @@ export const UMD_ENTRIES = {
     out: 'features/ink.js',
     shared: true,
   },
+  'features/storyboard': {
+    file: resolve(__dirname, 'src/features/storyboard.js'),
+    global: 'ApexStoryboard',
+    out: 'features/storyboard.js',
+    shared: true,
+  },
 }
 
 export default defineConfig(({ mode }) => {

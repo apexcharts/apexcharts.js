@@ -626,8 +626,10 @@ declare class ApexCharts {
    * Storyboard: scroll-driven chart choreography (scrollytelling). Beats are
    * prose elements paired with Perspective views; scrolling a beat across the
    * trigger line applies its view, and scrolling back reverses it.
-   * Requires the Storyboard feature: `import 'apexcharts/features/storyboard'`
-   * (which includes Perspectives).
+   * Requires the Storyboard feature, which is NOT in the default bundle:
+   * `import 'apexcharts/features/storyboard'` (which includes Perspectives),
+   * or add `dist/features/storyboard.js` after apexcharts.js on a script-tag
+   * page. Without it `chart.storyboard` is null and `.bind()` throws.
    */
   storyboard: {
     bind(opts?: ApexStoryboardBindOptions): number
