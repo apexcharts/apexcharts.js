@@ -1,13 +1,14 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createChartWithOptions } from './utils/utils.js'
 import ApexCharts from '../../src/entries/full.js'
-// measure, link, ink and storyboard are Tier 2 and no longer in `entries/full.js`. This suite
+// measure, link, ink, storyboard and context-menu are Tier 2 and no longer in `entries/full.js`. This suite
 // is about license gating, not bundling, so it imports each feature the way
 // an application would and keeps asserting on a chart that HAS the tool.
 import '../../src/features/measure.js'
 import '../../src/features/link.js'
 import '../../src/features/ink.js'
 import '../../src/features/storyboard.js'
+import '../../src/features/context-menu.js'
 import { LicenseManager } from 'apex-commons'
 import { installTestSigningKey, signedKey, forgedKey } from './utils/license-keys.js'
 import {

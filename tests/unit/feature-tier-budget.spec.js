@@ -40,7 +40,6 @@ const TIER_1 = [
   'weave',
   'marks',
   'facet',
-  'context-menu',
   'stats',
 ]
 
@@ -56,6 +55,7 @@ const TIER_2 = [
   'ink',
   'storyboard',
   'renderer-canvas',
+  'context-menu',
 ]
 
 const RULE = `

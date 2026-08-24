@@ -262,6 +262,15 @@ export default class ApexCharts {
           }
         }
 
+        // And for the context menu. Absent, the browser's own menu opens on
+        // right-click, which looks enough like "nothing happened" that it
+        // reads as a broken build rather than a missing import.
+        if (this.w.config.chart?.contextMenu?.enabled && !this.contextMenu) {
+          console.warn(
+            "ApexCharts: `chart.contextMenu` requires the context-menu feature, which is not in the default bundle. Bundler: import 'apexcharts/features/context-menu'. Script tag: add <script src='.../dist/features/context-menu.js'> after apexcharts.js.",
+          )
+        }
+
         // add event listeners in browser environment
         if (Environment.isBrowser()) {
           if (!isTrellisHost) {

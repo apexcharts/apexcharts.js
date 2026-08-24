@@ -137,6 +137,12 @@ export const UMD_ENTRIES = {
     out: 'features/renderer-canvas.js',
     shared: true,
   },
+  'features/context-menu': {
+    file: resolve(__dirname, 'src/features/context-menu.js'),
+    global: 'ApexContextMenu',
+    out: 'features/context-menu.js',
+    shared: true,
+  },
 }
 
 export default defineConfig(({ mode }) => {
