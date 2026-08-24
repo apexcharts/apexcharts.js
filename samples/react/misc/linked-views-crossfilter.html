@@ -75,33 +75,34 @@
       }
     </script>
 
-    <script>
-      // Deterministic 30-day dashboard data (no randomness, stable demo).
-      var LV_START = new Date('2024-03-01').getTime()
-      var LV_DAY = 86400000
-      function ordersData() {
-        var out = []
-        for (var i = 0; i < 30; i++) {
-          var v = 60 + 30 * Math.sin(i / 3.3) + 14 * Math.sin(i / 1.7) + i * 0.6
-          out.push([LV_START + i * LV_DAY, Math.round(v)])
-        }
-        return out
+    <script src="../../../dist/features/link.js"></script>
+  <script>
+    // Deterministic 30-day dashboard data (no randomness, stable demo).
+    var LV_START = new Date('2024-03-01').getTime()
+    var LV_DAY = 86400000
+    function ordersData() {
+      var out = []
+      for (var i = 0; i < 30; i++) {
+        var v = 60 + 30 * Math.sin(i / 3.3) + 14 * Math.sin(i / 1.7) + i * 0.6
+        out.push([LV_START + i * LV_DAY, Math.round(v)])
       }
-      function valueData() {
-        var out = []
-        for (var i = 0; i < 30; i++) {
-          // average order value, loosely anti-correlated with volume
-          var v = 120 - 22 * Math.sin(i / 3.3) + 10 * Math.cos(i / 2.1)
-          out.push([LV_START + i * LV_DAY, Math.round(v)])
-        }
-        return out
+      return out
+    }
+    function valueData() {
+      var out = []
+      for (var i = 0; i < 30; i++) {
+        // average order value, loosely anti-correlated with volume
+        var v = 120 - 22 * Math.sin(i / 3.3) + 10 * Math.cos(i / 2.1)
+        out.push([LV_START + i * LV_DAY, Math.round(v)])
       }
+      return out
+    }
 
-      // Shared by the vanilla-js, React and Vue builds.
-      function fmt(ts) {
-        return new Date(ts).toISOString().slice(0, 10)
-      }
-    </script>
+    // Shared by the vanilla-js, React and Vue builds.
+    function fmt(ts) {
+      return new Date(ts).toISOString().slice(0, 10)
+    }
+  </script>
   </head>
 
   <body>

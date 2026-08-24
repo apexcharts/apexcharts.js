@@ -113,6 +113,12 @@ export const UMD_ENTRIES = {
     out: 'features/measure.js',
     shared: true,
   },
+  'features/link': {
+    file: resolve(__dirname, 'src/features/link.js'),
+    global: 'ApexLink',
+    out: 'features/link.js',
+    shared: true,
+  },
 }
 
 export default defineConfig(({ mode }) => {

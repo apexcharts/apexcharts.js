@@ -90,63 +90,64 @@
       }
     </script>
 
-    <script>
-      // Deterministic trade records (one row per trade). No randomness, but the
-      // distributions are intentionally uneven so the crossfilter is visible:
-      //   - quarters have different totals (the donut is 18 / 12 / 16 / 14, not 4x15)
-      //   - each quarter peaks on a different weekday
-      //   - outcome leans Gain early in the week and Loss later
-      // So clicking a quarter OR an outcome noticeably reshapes the day bar below.
-      function tradesData() {
-        var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+    <script src="../../../dist/features/link.js"></script>
+  <script>
+    // Deterministic trade records (one row per trade). No randomness, but the
+    // distributions are intentionally uneven so the crossfilter is visible:
+    //   - quarters have different totals (the donut is 18 / 12 / 16 / 14, not 4x15)
+    //   - each quarter peaks on a different weekday
+    //   - outcome leans Gain early in the week and Loss later
+    // So clicking a quarter OR an outcome noticeably reshapes the day bar below.
+    function tradesData() {
+      var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
 
-        // quarter -> trades per weekday (Mon..Fri); column totals differ per quarter.
-        var plan = {
-          Q1: [8, 4, 3, 2, 1], // early-week heavy
-          Q2: [1, 2, 5, 3, 1], // mid-week heavy
-          Q3: [2, 2, 3, 4, 5], // late-week heavy
-          Q4: [3, 6, 2, 2, 1], // Tuesday spike
-        }
-        // Share of Gains by weekday index (Mon..Fri): high early, low late.
-        var gainByDay = [0.85, 0.7, 0.5, 0.3, 0.15]
-
-        var out = []
-        Object.keys(plan).forEach(function (q) {
-          plan[q].forEach(function (count, di) {
-            var gains = Math.round(count * gainByDay[di])
-            for (var k = 0; k < count; k++) {
-              out.push({
-                q: q,
-                day: days[di],
-                gl: k < gains ? 'Gain' : 'Loss',
-              })
-            }
-          })
-        })
-        return out
+      // quarter -> trades per weekday (Mon..Fri); column totals differ per quarter.
+      var plan = {
+        Q1: [8, 4, 3, 2, 1], // early-week heavy
+        Q2: [1, 2, 5, 3, 1], // mid-week heavy
+        Q3: [2, 2, 3, 4, 5], // late-week heavy
+        Q4: [3, 6, 2, 2, 1], // Tuesday spike
       }
+      // Share of Gains by weekday index (Mon..Fri): high early, low late.
+      var gainByDay = [0.85, 0.7, 0.5, 0.3, 0.15]
 
-      // Register the shared record set BEFORE the charts are constructed, so each
-      // chart's initial paint is already the aggregation (no empty flash).
-      ApexCharts.crossfilter({ id: 'trades', records: tradesData() })
-
-      // Readout formatter, shared by the vanilla-js, React and Vue builds.
-      function fmtFilters(state) {
-        var keys = Object.keys(state.filters)
-        if (!keys.length) return 'No filter (all ' + state.total + ' trades)'
-        var parts = keys.map(function (id) {
-          return id + ': ' + state.filters[id].join(', ')
+      var out = []
+      Object.keys(plan).forEach(function (q) {
+        plan[q].forEach(function (count, di) {
+          var gains = Math.round(count * gainByDay[di])
+          for (var k = 0; k < count; k++) {
+            out.push({
+              q: q,
+              day: days[di],
+              gl: k < gains ? 'Gain' : 'Loss',
+            })
+          }
         })
-        return (
-          parts.join('  |  ') +
-          '   ->   ' +
-          state.filteredCount +
-          ' / ' +
-          state.total +
-          ' trades'
-        )
-      }
-    </script>
+      })
+      return out
+    }
+
+    // Register the shared record set BEFORE the charts are constructed, so each
+    // chart's initial paint is already the aggregation (no empty flash).
+    ApexCharts.crossfilter({ id: 'trades', records: tradesData() })
+
+    // Readout formatter, shared by the vanilla-js, React and Vue builds.
+    function fmtFilters(state) {
+      var keys = Object.keys(state.filters)
+      if (!keys.length) return 'No filter (all ' + state.total + ' trades)'
+      var parts = keys.map(function (id) {
+        return id + ': ' + state.filters[id].join(', ')
+      })
+      return (
+        parts.join('  |  ') +
+        '   ->   ' +
+        state.filteredCount +
+        ' / ' +
+        state.total +
+        ' trades'
+      )
+    }
+  </script>
   </head>
 
   <body>

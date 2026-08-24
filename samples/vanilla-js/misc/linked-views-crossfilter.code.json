@@ -1,6 +1,8 @@
 {
   "title": "Linked Views: Crossfilter by Brushing (chart.link)",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/features/link.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Linked Views: Crossfilter by Brushing (chart.link)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"panel\">\n      <div class=\"bar\">\n        <button id=\"clear\">Clear crossfilter</button>\n        <span class=\"readout\" id=\"readout\"\n          >Drag a date range on the top chart to crossfilter both</span\n        >\n      </div>\n    </div>\n\n    <div class=\"wrap\"><div id=\"chart\"></div></div>\n    <div class=\"wrap\"><div id=\"chart2\"></div></div>\n\n    <div class=\"panel\">\n      <div class=\"note\">\n        Both charts share <code>chart.group: 'sales'</code> and opt in with\n        <code>chart.link.enabled</code>. The top chart also has\n        <code>chart.selection.enabled</code>, so dragging a date range on it\n        dims every data point (in both charts) whose date falls outside the\n        range, in place, with no re-render and no axis change. Slide or resize\n        the selection box (or draw a new one) to update the filter live;\n        <b>Clear crossfilter</b> (or <code>chart.clearCrossfilter()</code>)\n        restores. Needs the <code>link</code> feature. Highlight mode works on\n        discrete marks (columns, scatter); a continuous line path is not dimmed\n        per segment.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Linked Views: Crossfilter by Brushing (chart.link)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/features/link.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"panel\">\n      <div class=\"bar\">\n        <button id=\"clear\">Clear crossfilter</button>\n        <span class=\"readout\" id=\"readout\"\n          >Drag a date range on the top chart to crossfilter both</span\n        >\n      </div>\n    </div>\n\n    <div class=\"wrap\"><div id=\"chart\"></div></div>\n    <div class=\"wrap\"><div id=\"chart2\"></div></div>\n\n    <div class=\"panel\">\n      <div class=\"note\">\n        Both charts share <code>chart.group: 'sales'</code> and opt in with\n        <code>chart.link.enabled</code>. The top chart also has\n        <code>chart.selection.enabled</code>, so dragging a date range on it\n        dims every data point (in both charts) whose date falls outside the\n        range, in place, with no re-render and no axis change. Slide or resize\n        the selection box (or draw a new one) to update the filter live;\n        <b>Clear crossfilter</b> (or <code>chart.clearCrossfilter()</code>)\n        restores. Needs the <code>link</code> feature. Highlight mode works on\n        discrete marks (columns, scatter); a continuous line path is not dimmed\n        per segment.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

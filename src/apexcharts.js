@@ -237,6 +237,15 @@ export default class ApexCharts {
           )
         }
 
+        // And for linked views. `chart.link` carries the crossfilter dimension
+        // config too, so an absent feature means the chart quietly stops
+        // participating in its dashboard rather than erroring anywhere.
+        if (this.w.config.chart?.link?.enabled && !this.linkedViews) {
+          console.warn(
+            "ApexCharts: `chart.link` requires the link feature, which is not in the default bundle. Bundler: import 'apexcharts/features/link'. Script tag: add <script src='.../dist/features/link.js'> after apexcharts.js.",
+          )
+        }
+
         // add event listeners in browser environment
         if (Environment.isBrowser()) {
           if (!isTrellisHost) {
@@ -1935,9 +1944,11 @@ export default class ApexCharts {
    * reduction under `chart.link`. Selecting in one chart re-aggregates the
    * others over the filtered subset.
    *
-   * Lives in core (always callable) but the engine ships in the `link` feature
-   * (`import 'apexcharts/features/link'`, included in the full bundle); without
-   * it this warns and returns null so the engine shakes out when unused.
+   * Lives in core (always callable) but the engine ships in the `link` feature,
+   * which is NOT in the default bundle (`import 'apexcharts/features/link'`, or
+   * add `dist/features/link.js` after apexcharts.js on a script-tag page);
+   * without it this warns and returns null so the engine shakes out when
+   * unused.
    *
    * @param {{ id: string, records?: any[] }} opts
    * @returns {any} the coordinator handle, or null if the feature is absent
@@ -1952,7 +1963,7 @@ export default class ApexCharts {
     const factory = /** @type {any} */ (ApexCharts)._crossfilterFactory
     if (!factory) {
       console.warn(
-        `[apexcharts] ApexCharts.crossfilter(...) requires the link feature: import 'apexcharts/features/link'.`,
+        `[apexcharts] ApexCharts.crossfilter(...) requires the link feature, which is not in the default bundle. Bundler: import 'apexcharts/features/link'. Script tag: add <script src='.../dist/features/link.js'> after apexcharts.js.`,
       )
       return null
     }

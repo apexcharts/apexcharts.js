@@ -93,34 +93,35 @@
       }
     </script>
 
-    <script>
-      // Deterministic trade records. outcome is derived from the fluctuation sign,
-      // so brushing the fluctuation histogram visibly reshapes the outcome donut.
-      function tradesData() {
-        var quarters = ['Q1', 'Q2', 'Q3', 'Q4']
-        var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
-        var out = []
-        for (var i = 0; i < 120; i++) {
-          var pct =
-            3.0 * Math.sin(i / 5.0) +
-            1.3 * Math.sin(i / 1.7) +
-            0.4 * Math.cos(i / 3.1)
-          var vol = Math.round(120 + 70 * Math.sin(i / 6.0) + 40 * Math.cos(i / 2.3))
-          out.push({
-            id: i + 1,
-            quarter: quarters[Math.floor(i / 30) % 4],
-            day: days[(i * 3) % 5],
-            outcome: pct >= 0 ? 'Gain' : 'Loss',
-            pct: Math.round(pct * 100) / 100,
-            volume: Math.max(20, vol),
-          })
-        }
-        return out
+    <script src="../../../dist/features/link.js"></script>
+  <script>
+    // Deterministic trade records. outcome is derived from the fluctuation sign,
+    // so brushing the fluctuation histogram visibly reshapes the outcome donut.
+    function tradesData() {
+      var quarters = ['Q1', 'Q2', 'Q3', 'Q4']
+      var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+      var out = []
+      for (var i = 0; i < 120; i++) {
+        var pct =
+          3.0 * Math.sin(i / 5.0) +
+          1.3 * Math.sin(i / 1.7) +
+          0.4 * Math.cos(i / 3.1)
+        var vol = Math.round(120 + 70 * Math.sin(i / 6.0) + 40 * Math.cos(i / 2.3))
+        out.push({
+          id: i + 1,
+          quarter: quarters[Math.floor(i / 30) % 4],
+          day: days[(i * 3) % 5],
+          outcome: pct >= 0 ? 'Gain' : 'Loss',
+          pct: Math.round(pct * 100) / 100,
+          volume: Math.max(20, vol),
+        })
       }
+      return out
+    }
 
-      // Register the shared record set BEFORE the charts are constructed.
-      ApexCharts.crossfilter({ id: 'trades', records: tradesData() })
-    </script>
+    // Register the shared record set BEFORE the charts are constructed.
+    ApexCharts.crossfilter({ id: 'trades', records: tradesData() })
+  </script>
   </head>
 
   <body>

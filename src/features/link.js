@@ -3,6 +3,16 @@ import ApexCharts from '../apexcharts'
 import LinkedViews from '../modules/link/LinkedViews'
 import Crossfilter from '../modules/link/Crossfilter'
 
+// NOT in the default bundle (Tier 2: premium, and dashboard-scoped rather than
+// useful to a majority of charts). Both channels opt in explicitly:
+//
+//   bundler     import 'apexcharts/features/link'
+//   script tag  <script src=".../dist/apexcharts.js"></script>
+//               <script src=".../dist/features/link.js"></script>
+//
+// The add-on reads its shared modules off `ApexCharts.__internals`, so load it
+// AFTER apexcharts.js.
+//
 // P1: per-chart linked-highlighting module (opt-in via chart.link.enabled).
 ApexCharts.registerFeatures({ linkedViews: LinkedViews })
 

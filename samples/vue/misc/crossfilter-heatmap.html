@@ -81,24 +81,25 @@
       }
     </script>
 
-    <script>
-      function tradesData() {
-        var quarters = ['Q1', 'Q2', 'Q3', 'Q4']
-        var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
-        var out = []
-        for (var i = 0; i < 90; i++) {
-          out.push({
-            quarter: quarters[Math.floor(i / 23) % 4],
-            day: days[i % 5],
-            outcome: i % 3 === 0 ? 'Loss' : 'Gain',
-          })
-        }
-        return out
+    <script src="../../../dist/features/link.js"></script>
+  <script>
+    function tradesData() {
+      var quarters = ['Q1', 'Q2', 'Q3', 'Q4']
+      var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+      var out = []
+      for (var i = 0; i < 90; i++) {
+        out.push({
+          quarter: quarters[Math.floor(i / 23) % 4],
+          day: days[i % 5],
+          outcome: i % 3 === 0 ? 'Loss' : 'Gain',
+        })
       }
+      return out
+    }
 
-      // Register the shared records BEFORE the charts are constructed.
-      ApexCharts.crossfilter({ id: 'trades', records: tradesData() })
-    </script>
+    // Register the shared records BEFORE the charts are constructed.
+    ApexCharts.crossfilter({ id: 'trades', records: tradesData() })
+  </script>
   </head>
 
   <body>

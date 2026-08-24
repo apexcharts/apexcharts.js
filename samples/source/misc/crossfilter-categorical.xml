@@ -69,6 +69,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/features/link.js"></script>
 <script>
   // Deterministic trade records (one row per trade). No randomness, but the
   // distributions are intentionally uneven so the crossfilter is visible:

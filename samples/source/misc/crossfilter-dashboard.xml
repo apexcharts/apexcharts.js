@@ -70,6 +70,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/features/link.js"></script>
 <script>
   // Deterministic trade records. outcome is derived from the fluctuation sign,
   // so brushing the fluctuation histogram visibly reshapes the outcome donut.

@@ -58,6 +58,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/features/link.js"></script>
 <script>
   function tradesData() {
     var quarters = ['Q1', 'Q2', 'Q3', 'Q4']

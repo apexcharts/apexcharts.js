@@ -1,6 +1,8 @@
 {
   "title": "Crossfilter: Click to Filter Across Charts (chart.link)",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/features/link.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Crossfilter: Click to Filter Across Charts (chart.link)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"cf-wrap\">\n      <div class=\"cf-bar\">\n        <button id=\"cf-reset\">Reset filters</button>\n        <span class=\"readout\" id=\"cf-readout\"\n          >Click a slice or bar to filter every chart</span\n        >\n      </div>\n\n      <div class=\"cf-grid\">\n        <div class=\"cf-card\"><div id=\"chart\"></div></div>\n        <div class=\"cf-card\"><div id=\"chart2\"></div></div>\n        <div class=\"cf-card full\"><div id=\"chart3\"></div></div>\n      </div>\n\n      <div class=\"cf-note\">\n        All three charts declare a <code>chart.link.dimension</code> over one\n        record set registered with\n        <code>ApexCharts.crossfilter(&#123; id, records &#125;)</code>. Clicking\n        a slice or bar toggles that bucket: the clicked chart dims its other\n        buckets, and every other chart\n        <b>re-aggregates over the filtered trades</b> and animates to its new\n        values. Selections combine (a chart never filters itself), so you always\n        see what is still available. <b>Reset filters</b> clears everything.\n        Needs the <code>link</code> feature.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Crossfilter: Click to Filter Across Charts (chart.link)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/features/link.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"cf-wrap\">\n      <div class=\"cf-bar\">\n        <button id=\"cf-reset\">Reset filters</button>\n        <span class=\"readout\" id=\"cf-readout\"\n          >Click a slice or bar to filter every chart</span\n        >\n      </div>\n\n      <div class=\"cf-grid\">\n        <div class=\"cf-card\"><div id=\"chart\"></div></div>\n        <div class=\"cf-card\"><div id=\"chart2\"></div></div>\n        <div class=\"cf-card full\"><div id=\"chart3\"></div></div>\n      </div>\n\n      <div class=\"cf-note\">\n        All three charts declare a <code>chart.link.dimension</code> over one\n        record set registered with\n        <code>ApexCharts.crossfilter(&#123; id, records &#125;)</code>. Clicking\n        a slice or bar toggles that bucket: the clicked chart dims its other\n        buckets, and every other chart\n        <b>re-aggregates over the filtered trades</b> and animates to its new\n        values. Selections combine (a chart never filters itself), so you always\n        see what is still available. <b>Reset filters</b> clears everything.\n        Needs the <code>link</code> feature.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",

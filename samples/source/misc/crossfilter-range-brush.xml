@@ -52,6 +52,7 @@
 </style>
 
 <scripts>
+<script src="../../../dist/features/link.js"></script>
 <script>
   // Deterministic daily market data: a fluctuation % and the quarter it fell in.
   function marketData() {

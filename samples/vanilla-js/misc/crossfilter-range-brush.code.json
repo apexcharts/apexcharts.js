@@ -1,6 +1,8 @@
 {
   "title": "Crossfilter: Brush a Range to Filter (chart.link)",
-  "externals": [],
+  "externals": [
+    "https://cdn.jsdelivr.net/npm/apexcharts/dist/features/link.js"
+  ],
   "files": [
     {
       "name": "chart.js",
@@ -10,7 +12,7 @@
     {
       "name": "index.html",
       "language": "xml",
-      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Crossfilter: Brush a Range to Filter (chart.link)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"cf-wrap\">\n      <div class=\"cf-bar\">\n        <button id=\"cf-reset\">Reset</button>\n        <span class=\"readout\" id=\"cf-readout\"\n          >Drag a range on the histogram to filter the quarter chart</span\n        >\n      </div>\n\n      <div class=\"cf-card\"><div id=\"chart\"></div></div>\n      <div class=\"cf-card\"><div id=\"chart2\"></div></div>\n\n      <div class=\"cf-note\">\n        The top chart is a <b>histogram</b> of daily fluctuation %, binned by\n        the <code>link</code> engine (<code>bins: &#123; count &#125;</code>) on\n        a numeric x-axis. It has <code>chart.selection.enabled</code>, so\n        brushing a range sets a <code>[min, max]</code> filter on the\n        fluctuation dimension: the bottom chart <b>re-aggregates</b> to just the\n        days in that range, and the histogram dims the bins outside it. Because\n        a chart never filters itself, the histogram's own bars keep their full\n        shape. <b>Reset</b> clears the brush.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Crossfilter: Brush a Range to Filter (chart.link)</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts/dist/features/link.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div class=\"cf-wrap\">\n      <div class=\"cf-bar\">\n        <button id=\"cf-reset\">Reset</button>\n        <span class=\"readout\" id=\"cf-readout\"\n          >Drag a range on the histogram to filter the quarter chart</span\n        >\n      </div>\n\n      <div class=\"cf-card\"><div id=\"chart\"></div></div>\n      <div class=\"cf-card\"><div id=\"chart2\"></div></div>\n\n      <div class=\"cf-note\">\n        The top chart is a <b>histogram</b> of daily fluctuation %, binned by\n        the <code>link</code> engine (<code>bins: &#123; count &#125;</code>) on\n        a numeric x-axis. It has <code>chart.selection.enabled</code>, so\n        brushing a range sets a <code>[min, max]</code> filter on the\n        fluctuation dimension: the bottom chart <b>re-aggregates</b> to just the\n        days in that range, and the histogram dims the bins outside it. Because\n        a chart never filters itself, the histogram's own bars keep their full\n        shape. <b>Reset</b> clears the brush.\n      </div>\n    </div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
     },
     {
       "name": "styles.css",
