@@ -495,6 +495,26 @@ declare class ApexCharts {
   static unregisterUnitLayout(name: string): typeof ApexCharts
 
   /**
+   * Registers a named unit-chart MARK (pictogram), referenceable via
+   * `plotOptions.unit.pictogram.mark: '<name>'`.
+   *
+   * The twin of `registerUnitLayout`, and the split between them is the one the
+   * unit chart is built on: a LAYOUT is where the marks go, a MARK is what one
+   * of them looks like. They compose freely, so neither has to know about the
+   * other.
+   */
+  static registerUnitMark(
+    name: string,
+    def: string | ApexUnitMarkDef,
+  ): typeof ApexCharts
+
+  /**
+   * Removes a mark registered via `registerUnitMark`. Charts referencing it by
+   * name fall back to `plotOptions.unit.pictogram.fallback`.
+   */
+  static unregisterUnitMark(name: string): typeof ApexCharts
+
+  /**
    * Registers a row source: given a chart's state, what rows is each of its
    * marks standing for?
    *
@@ -3014,8 +3034,41 @@ type ApexPlotOptions = {
      * per-unit object form with unique ids/names.
      */
     transition?: 'group' | 'flow' | 'identity'
-    /** Mark shape for each unit. `'image'` renders an icon (isotype pictogram). */
-    shape?: 'circle' | 'square' | 'image'
+    /**
+     * What ONE unit looks like. Independent of `layout`, which is where the
+     * units go, so `positions: heart` with `shape: 'pictogram'` arranges glyphs
+     * into a heart and every other pairing is equally valid.
+     *
+     * `'image'` fetches a raster / multi-colour icon; `'pictogram'` draws a
+     * vector glyph (see `pictogram`) and is the one that scales to thousands
+     * of units.
+     */
+    shape?: 'circle' | 'square' | 'image' | 'pictogram'
+    /**
+     * `shape: 'pictogram'`. A glyph is drawn as one `<path>` per unit, filled
+     * in that unit's own colour - no request, no decode, and no recolour
+     * filter.
+     *
+     * There is deliberately no size: a glyph is fitted to the box the dot
+     * itself would have occupied, so `size` and `spacing` size a pictogram
+     * exactly as they size a dot.
+     */
+    pictogram?: {
+      /**
+       * The glyph: a registered name, a `{path, viewBox?, fillRule?}` object,
+       * raw path data, or an array (one per series). A datum's own `mark`
+       * overrides all of it, so one crowd can mix glyphs.
+       */
+      mark?: ApexUnitMarkRef | ApexUnitMarkRef[]
+      /** Which side of the glyph binds to the dot's box. */
+      fit?: 'contain' | 'width' | 'height'
+      /** Nudge for glyphs that read light. */
+      scale?: number
+      /** 0..0.9 of the pitch, opening the lattice up. */
+      padding?: number
+      /** Drawn when a mark cannot be resolved. */
+      fallback?: 'circle' | 'square'
+    }
     /** Icon used when `shape: 'image'`. */
     image?: {
       /** Icon URL or data URI. */
@@ -4231,6 +4284,23 @@ interface ApexUnitPosition {
  * coordinates. Omitting a mark's id removes it, and it animates out through the
  * normal exit path.
  */
+/**
+ * One glyph a unit can be drawn as. Fill-only: the chart positions a mark with
+ * a uniform `scale()` fitted to the radius the layout chose, so any stroke
+ * width would scale with it.
+ */
+interface ApexUnitMarkDef {
+  name?: string
+  /** Outline path data, in `viewBox` units. */
+  path: string
+  /** Defaults to `[0, 0, 100, 100]`, the catalog's convention. */
+  viewBox?: [number, number, number, number]
+  fillRule?: 'nonzero' | 'evenodd'
+}
+
+/** A registered mark name, raw path data, or the mark itself. */
+type ApexUnitMarkRef = string | ApexUnitMarkDef
+
 type ApexUnitLayout = (
   objects: ApexUnitObject[],
   rect: { x: number; y: number; width: number; height: number },

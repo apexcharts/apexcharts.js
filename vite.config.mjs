@@ -40,6 +40,7 @@ export const SUB_ENTRIES = {
   sunburst: resolve(__dirname, 'src/entries/sunburst.js'),
   unit: resolve(__dirname, 'src/entries/unit.js'),
   'unit-shapes': resolve(__dirname, 'src/unit-shapes/index.js'),
+  pictograms: resolve(__dirname, 'src/pictograms/index.js'),
   // Alias entries — one per public chart type name
   area: resolve(__dirname, 'src/entries/area.js'),
   scatter: resolve(__dirname, 'src/entries/scatter.js'),
@@ -89,6 +90,11 @@ export const UMD_ENTRIES = {
     file: resolve(__dirname, 'src/unit-shapes/cdn.js'),
     global: 'ApexUnitShapes',
     out: 'unit-shapes.js',
+  },
+  pictograms: {
+    file: resolve(__dirname, 'src/pictograms/cdn.js'),
+    global: 'ApexPictograms',
+    out: 'pictograms.js',
   },
 }
 

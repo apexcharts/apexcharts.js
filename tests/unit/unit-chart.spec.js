@@ -2559,4 +2559,72 @@ describe('Unit chart — custom layout (position provider)', () => {
       chart.destroy()
     }
   })
+
+  it('keeps each dot pointing at its OWN datum when a layout omits marks', () => {
+    // `_layoutCustom` used to push positions with no dataPointIndex, so the
+    // draw pass fell back to the loop index. A provider is allowed to omit
+    // marks (that is how a mark exits), and every dot after an omitted one then
+    // reported the PREVIOUS datum in its tooltip.
+    const skipB = (objects, rect) =>
+      objects
+        .filter((o) => o.id !== 'b')
+        .map((o, i) => ({ id: o.id, x: rect.x + 20 + i * 30, y: rect.y + 30 }))
+    const chart = unitChart({
+      series: [
+        {
+          name: 'S',
+          data: [
+            { id: 'a', value: 1 },
+            { id: 'b', value: 2 },
+            { id: 'c', value: 3 },
+          ],
+        },
+      ],
+      plotOptions: {
+        unit: { layout: 'custom', positions: skipB, clusterLabels: { show: false } },
+      },
+    })
+    const els = [...chart.w.dom.baseEl.querySelectorAll('.apexcharts-unit-area')]
+    expect(els).toHaveLength(2)
+    // The survivors report their own indices: 'a' is j=0, 'c' is j=2.
+    expect(els.map((e) => e.getAttribute('j'))).toEqual(['0', '2'])
+    chart.destroy()
+  })
+
+  it('centres a square on its OWN radius when a layout sizes marks per mark', () => {
+    // `_drawDot` sized the rect from the dot's own radius, but `_placeDot`
+    // converted centre -> top-left using the chart-wide `_lastDotR`. Any layout
+    // handing back per-mark radii drew every square off its slot by the
+    // difference.
+    const R = [6, 14]
+    const twoSizes = (objects, rect) =>
+      objects.map((o, i) => ({
+        id: o.id,
+        x: rect.x + 40 + i * 80,
+        y: rect.y + 40,
+        r: R[i],
+      }))
+    const chart = unitChart({
+      series: [{ name: 'S', data: [{ id: 'a' }, { id: 'b' }] }],
+      plotOptions: {
+        unit: {
+          layout: 'custom',
+          positions: twoSizes,
+          shape: 'square',
+          clusterLabels: { show: false },
+        },
+      },
+    })
+    const rects = [...chart.w.dom.baseEl.querySelectorAll('rect.apexcharts-unit-area')]
+    expect(rects).toHaveLength(2)
+    rects.forEach((el, i) => {
+      const side = Number(el.getAttribute('width'))
+      const cx = Number(el.getAttribute('x')) + side / 2
+      const cy = Number(el.getAttribute('y')) + side / 2
+      expect(side).toBeCloseTo(R[i] * 2, 5)
+      expect(cx).toBeCloseTo(40 + i * 80, 5)
+      expect(cy).toBeCloseTo(40, 5)
+    })
+    chart.destroy()
+  })
 })

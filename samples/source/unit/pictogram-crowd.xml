@@ -1,0 +1,241 @@
+<title>Unit Chart - Pictograms in a Silhouette</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #fafbfc;
+  color: #2c3e50;
+  margin: 0;
+  padding: 32px 16px;
+}
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+p {
+  color: #5b6b78;
+  line-height: 1.55;
+  margin: 0 0 24px;
+}
+.chart-wrap {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+.controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 20px 0 0;
+}
+button {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 14px;
+  border: 1px solid #d7dee5;
+  border-radius: 999px;
+  background: #fff;
+  color: #2c3e50;
+  cursor: pointer;
+}
+button:hover {
+  border-color: #9fb0bd;
+}
+button.on {
+  background: #1D4E89;
+  border-color: #1D4E89;
+  color: #fff;
+}
+.note {
+  color: #8592a0;
+  font-size: 12px;
+  text-align: center;
+  margin: 16px 0 0;
+}
+</style>
+
+<scripts>
+<script src="../../../dist/unit-shapes.js"></script>
+<script src="../../../dist/pictograms.js"></script>
+<script>
+// Shared by the vanilla-js, React and Vue builds. Layout and mark are two
+// INDEPENDENT choices, so the state is two fields and the update payload sets
+// each from its own field; nothing here knows which combination is selected.
+var pictoState = { layout: 'heart', mark: 'person' }
+
+// The updateOptions payload for the current pair. An empty mark means "no
+// glyph", which is just the ordinary dot the chart drew before pictograms
+// existed - `shape` carries that, so `pictogram.mark` is left alone.
+function pictoOptions() {
+  return {
+    plotOptions: {
+      unit: {
+        positions: pictoState.layout,
+        shape: pictoState.mark ? 'pictogram' : 'circle',
+        pictogram: { mark: pictoState.mark || undefined },
+      },
+    },
+  }
+}
+
+function pictoPaint() {
+  document.querySelectorAll('#layout-nav button').forEach(function (b) {
+    b.classList.toggle('on', b.getAttribute('data-layout') === pictoState.layout)
+  })
+  document.querySelectorAll('#mark-nav button').forEach(function (b) {
+    b.classList.toggle('on', b.getAttribute('data-mark') === pictoState.mark)
+  })
+}
+
+// Wire both button rows to a live chart instance. Each format hands over its
+// own instance; the behaviour is identical.
+function pictoWire(chart) {
+  document.querySelectorAll('#layout-nav button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      pictoState.layout = b.getAttribute('data-layout')
+      chart.updateOptions(pictoOptions(), false, true)
+      pictoPaint()
+    })
+  })
+  document.querySelectorAll('#mark-nav button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      pictoState.mark = b.getAttribute('data-mark')
+      chart.updateOptions(pictoOptions(), false, true)
+      pictoPaint()
+    })
+  })
+  pictoPaint()
+}
+</script>
+</scripts>
+
+<html>
+<div class="wrap">
+  <h1>1,400 volunteers, one glyph each</h1>
+  <p>
+    Two independent choices. <b>Layout</b> is where the units go: a heart, a
+    house, a plain grid. <b>Mark</b> is what one unit looks like: a dot, or a
+    pictogram. They compose, so a crowd of people can be arranged into a heart
+    and the same crowd can walk into a house without either choice knowing
+    about the other. Pick one of each.
+  </p>
+
+  <div class="chart-wrap">
+    {{ charts[0] }}
+  </div>
+
+  <div class="controls" id="layout-nav">
+    <button data-layout="heart" class="on">Heart</button>
+    <button data-layout="human">Person</button>
+    <button data-layout="house">House</button>
+    <button data-layout="tree">Tree</button>
+  </div>
+  <div class="controls" id="mark-nav">
+    <button data-mark="person" class="on">Person</button>
+    <button data-mark="house">House</button>
+    <button data-mark="heart">Heart</button>
+    <button data-mark="tree">Tree</button>
+    <button data-mark="">Plain dot</button>
+  </div>
+
+  <p class="note">
+    1 glyph = 10 volunteers. Each glyph is one drawn path, filled in its own
+    colour, so the crowd stays this size without a per-icon image or a recolour
+    filter.
+  </p>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  type: 'unit',
+  id: 'pictoCrowd',
+  height: 460,
+  animations: {
+    enabled: true,
+    speed: 900,
+  },
+},
+labels: ['Weekday shifts', 'Weekend shifts', 'On call'],
+colors: ['#1D4E89', '#00A6A0', '#FF8A3D'],
+plotOptions: {
+  unit: {
+    layout: 'custom',
+    positions: 'heart',
+    // A glyph, not a dot. `mark` names one of the pictograms; the chart fits
+    // it to the box the dot would have occupied, so switching between them
+    // never re-flows the layout.
+    shape: 'pictogram',
+    pictogram: {
+      mark: 'person',
+    },
+    // The same specific volunteer keeps their glyph and colour when the layout
+    // changes, so a shape swap reads as the crowd walking rather than as a
+    // slideshow.
+    transition: 'flow',
+    unitValue: 10,
+    clusterLabels: {
+      show: false,
+    },
+  },
+},
+legend: {
+  position: 'bottom',
+},
+</options>
+
+<series>
+[820, 410, 170]
+</series>
+</chart>
+
+<vanilla-js-script>
+// Layout and mark buttons. (pictoState, pictoOptions and pictoWire live in the
+// shared head script.)
+pictoWire(chart)
+</vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // Reach the live instance by its chart.id, then wire the buttons.
+  // updateOptions drives the instance directly, so no React state changes
+  // under it.
+  const timer = window.setInterval(() => {
+    const chart = ApexCharts.getChartByID('pictoCrowd')
+    if (!chart) return
+    window.clearInterval(timer)
+    pictoWire(chart)
+  }, 50)
+
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+pictoTimer: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // Reach the live instance by its chart.id, then wire the buttons.
+  // updateOptions drives the instance directly, so no reactive data changes
+  // under it.
+  var me = this
+  me.pictoTimer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('pictoCrowd')
+    if (!chart) return
+    window.clearInterval(me.pictoTimer)
+    pictoWire(chart)
+  }, 50)
+},
+beforeDestroy: function () {
+  window.clearInterval(this.pictoTimer)
+},
+</vue-script>

@@ -145,6 +145,11 @@
       "import": "./dist/unit-shapes.esm.js",
       "require": "./dist/unit-shapes.common.js"
     },
+    "./pictograms": {
+      "types": "./types/pictograms.d.ts",
+      "import": "./dist/pictograms.esm.js",
+      "require": "./dist/pictograms.common.js"
+    },
     "./core": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/core.esm.js",
@@ -336,6 +341,7 @@
     "./src/entries/*.js",
     "./src/features/*.js",
     "./src/unit-shapes/cdn.js",
+    "./src/pictograms/cdn.js",
     "./dist/*.esm.js",
     "./dist/features/*.esm.js"
   ],

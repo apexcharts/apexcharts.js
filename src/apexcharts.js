@@ -26,6 +26,7 @@ import {
   registerUnitLayout,
   unregisterUnitLayout,
 } from './modules/UnitLayoutRegistry'
+import { registerUnitMark, unregisterUnitMark } from './modules/UnitMarkRegistry'
 import {
   registerRowSource,
   unregisterRowSource,
@@ -1817,6 +1818,43 @@ export default class ApexCharts {
    */
   static unregisterUnitLayout(name) {
     unregisterUnitLayout(name)
+    return ApexCharts
+  }
+
+  /**
+   * Register a named unit-chart MARK (pictogram), referenceable via
+   * `plotOptions.unit.pictogram.mark: '<name>'` with
+   * `plotOptions.unit.shape: 'pictogram'`.
+   *
+   * This is the twin of registerUnitLayout, and the split between them is the
+   * one the unit chart is built on: a LAYOUT is where the marks go, a MARK is
+   * what one of them looks like. They compose freely - a person glyph arranged
+   * into a heart, a house glyph on a waffle grid - so neither has to know about
+   * the other.
+   *
+   * A mark is fill-only path data. The chart positions it with a uniform
+   * `scale()` fitted to the radius the layout chose, so the glyph occupies the
+   * box the dot would have and any stroke width would scale with it.
+   *
+   * @param {string} name  the mark name, e.g. 'person'
+   * @param {string|any} def path data in a 0..100 box, or
+   *   `{path, viewBox?, fillRule?}`
+   * @returns {typeof ApexCharts}
+   */
+  static registerUnitMark(name, def) {
+    registerUnitMark(name, def)
+    return ApexCharts
+  }
+
+  /**
+   * Remove a mark registered via registerUnitMark. Charts referencing it by
+   * name fall back to `plotOptions.unit.pictogram.fallback` on their next
+   * render.
+   * @param {string} name
+   * @returns {typeof ApexCharts}
+   */
+  static unregisterUnitMark(name) {
+    unregisterUnitMark(name)
     return ApexCharts
   }
 

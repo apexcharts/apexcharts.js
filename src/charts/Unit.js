@@ -2,6 +2,7 @@
 import { makeSpring, resolveSpring, retarget, stepSpring } from 'apex-commons'
 import Graphics from '../modules/Graphics'
 import { getUnitLayout } from '../modules/UnitLayoutRegistry'
+import { getUnitMark, normalizeUnitMark } from '../modules/UnitMarkRegistry'
 import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
@@ -79,6 +80,17 @@ const SPRING_REFERENCE_SPEED = 800
 const MAX_FRAME_STEP = 0.25
 
 /**
+ * How a mark is positioned. Read once per dot per frame, so it is an int rather
+ * than a string compare. See `_place` / `Unit#_baseSpec`.
+ *   PK_CIRCLE  cx / cy at the centre
+ *   PK_CORNER  x / y at the top-left  (square, image)
+ *   PK_GLYPH   transform="translate(...) scale(s)"  (pictogram)
+ */
+const PK_CIRCLE = 0
+const PK_CORNER = 1
+const PK_GLYPH = 2
+
+/**
  * Resolve a spring preset to a `[stiffness, damping]` pair rescaled for the
  * chart's animation speed.
  *
@@ -111,6 +123,9 @@ function springParams(preset, speed) {
  * @property {number} cy0 start y
  * @property {number} delay stagger delay (ms) before this dot starts moving
  * @property {boolean} isEnter true when the dot has no previous slot
+ * @property {any} spec this mark's placement/draw spec (see Unit#_place). The
+ *   frame loop switches on `spec.pk` rather than on a chart-wide shape, which
+ *   is what lets one population mix circles and pictograms.
  * @property {string} [key] identity key, used to carry live spring state
  *   across a gather that was interrupted by a re-render
  * @property {number} [r0]
@@ -140,6 +155,10 @@ export default class Unit {
     this._gridDenom = 1
     /** @type {any} scatter (beeswarm) axis geometry, set by _layoutScatter */
     this._scatterAxis = null
+    /** @type {Map<string, any>} glyph draw specs, keyed (mark, quantised r) */
+    this._specCache = new Map()
+    /** @type {Set<string>|null} mark names already warned about */
+    this._markWarned = null
   }
 
   /**
@@ -198,7 +217,7 @@ export default class Unit {
     counts = this._applyMaxUnits(counts, opts.maxUnits)
 
     const total = counts.reduce((a, b) => a + b, 0)
-    /** @type {{ i: number, cx: number, cy: number, outerR: number, dots: {x:number,y:number,slot?:number,r?:number}[] }[]} */
+    /** @type {{ i: number, cx: number, cy: number, outerR: number, dots: {x:number,y:number,slot?:number,r?:number,j?:number}[] }[]} */
     const clusters =
       layout === 'packed'
         ? this._layoutPacked(counts, opts)
@@ -255,7 +274,7 @@ export default class Unit {
     // and fly out from the centre + fade in. Ignored during a cross-type morph
     // (the previous chart was not a unit chart).
     const prev = animate && !morphActive && this.ctx ? this.ctx._unitPrevDots : null
-    /** @type {Map<string, {x:number,y:number,fill:string,r?:number}>} */
+    /** @type {Map<string, {x:number,y:number,fill:string,r?:number,spec?:any}>} */
     const nextPrev = new Map()
     /** @type {UnitAnimDot[]} */
     const animDots = []
@@ -291,7 +310,11 @@ export default class Unit {
       const burstCount = cluster.dots.length
       const catData = unitData[cluster.i]
 
-      cluster.dots.forEach((d, j) => {
+      cluster.dots.forEach((d, jj) => {
+        // The mark's own dataPointIndex where the layout carried one (a custom
+        // provider may omit marks, which would otherwise shift every later
+        // datum by one), else its position in the cluster.
+        const j = d.j != null ? d.j : jj
         // A per-unit fillColor (object-form data) overrides the category colour.
         const datum = catData ? catData[j] : undefined
         const dotFill =
@@ -307,7 +330,11 @@ export default class Unit {
             : sizeStats
               ? this._radiusForValue(this._unitValueOf(datum), sizeStats)
               : dotR
-        const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j)
+        // Which mark THIS unit draws, and how it is positioned. Sized from `rj`
+        // rather than the chart-wide radius, so a layout that hands back
+        // per-mark radii places every mark on its own slot.
+        const spec = this._markSpecFor(opts, datum, cluster.i, rj)
+        const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j, spec)
         elSeries.add(el)
         // Identity keying: a specific unit (by id/name) persists across any
         // regroup or relayout. Flow: anonymous crowd by global draw order.
@@ -334,12 +361,13 @@ export default class Unit {
           key = `${cluster.i}:${j}`
         }
         gIndex++
-        nextPrev.set(key, { x: d.x, y: d.y, fill: dotFill, r: rj })
+        // The spec rides along so an exit ghost leaves as the mark it was.
+        nextPrev.set(key, { x: d.x, y: d.y, fill: dotFill, r: rj, spec })
         if (pieceTakeover) {
           // The piece layer does the flying; this dot waits at its final slot
           // for its piece to land, and gets no tween of its own so the swap
           // is geometrically exact.
-          this._placeDot(el.node, opts, d.x, d.y)
+          this._place(el.node, spec, d.x, d.y)
           el.node.setAttribute('opacity', '0')
           el.node.setAttribute('data-piece-hidden', '1')
         } else if (animate) {
@@ -369,9 +397,10 @@ export default class Unit {
                 ? d.y
                 : cluster.cy
           el.node.style.opacity = anchor ? '1' : '0'
-          this._placeDot(el.node, opts, cx0, cy0)
+          this._place(el.node, spec, cx0, cy0)
           animDots.push({
             node: el.node,
+            spec,
             x: d.x,
             y: d.y,
             cx0,
@@ -392,7 +421,7 @@ export default class Unit {
             isEnter: !anchor,
           })
         } else {
-          this._placeDot(el.node, opts, d.x, d.y)
+          this._place(el.node, spec, d.x, d.y)
         }
       })
 
@@ -453,6 +482,14 @@ export default class Unit {
 
     if (animate && animDots.length) {
       this._runGather(animDots)
+    } else {
+      // Nothing is in flight, so the chart is already at rest. Every other
+      // chart type raises this flag (Pie, Scatter, Graphics, Animations); the
+      // unit chart never did, which left it invisible to the two readiness
+      // signals the tooling waits on - the e2e runner and the Playwright
+      // fixture both poll `animationEnded`, and both were falling through to a
+      // timeout on every unit sample rather than to a real signal.
+      w.globals.animationEnded = true
     }
 
     return ret
@@ -568,7 +605,7 @@ export default class Unit {
       })
     })
 
-    /** @type {{ i: number, cx: number, cy: number, outerR: number, dots: {x:number,y:number,r?:number}[] }[]} */
+    /** @type {{ i: number, cx: number, cy: number, outerR: number, dots: {x:number,y:number,r?:number,j?:number}[] }[]} */
     const clusters = counts.map((_, i) => ({
       i,
       cx: gw / 2,
@@ -580,7 +617,16 @@ export default class Unit {
     objects.forEach((o) => {
       const hit = byId.get(o.id)
       if (!hit) return
-      clusters[o.seriesIndex].dots.push({ x: hit.x, y: hit.y, r: hit.r })
+      // `j` is the mark's own dataPointIndex, NOT its position in this array.
+      // A provider is allowed to omit marks, and the draw pass would otherwise
+      // fall back to the loop index - so omitting one day of a calendar made
+      // every later dot report the PREVIOUS day's datum in its tooltip.
+      clusters[o.seriesIndex].dots.push({
+        x: hit.x,
+        y: hit.y,
+        r: hit.r,
+        j: o.dataPointIndex,
+      })
     })
 
     // A cluster's centre and radius still drive the burst origin for entering
@@ -2310,8 +2356,9 @@ export default class Unit {
   }
 
   /**
-   * Whether opt-in bubble sizing applies: enabled, and the shape is a circle
-   * (squares/images keep a uniform size).
+   * Whether opt-in bubble sizing applies: enabled, and the shape sizes per
+   * mark. Squares and images keep a uniform size; a pictogram does not, because
+   * its scale is derived per mark from the same radius a circle would use.
    * @param {any} opts @returns {boolean}
    */
   _bubbleActive(opts) {
@@ -2436,14 +2483,197 @@ export default class Unit {
 
   /**
    * Half-width/height used to convert a centre point to a corner shape's x/y.
-   * @param {any} opts @returns {{hx:number, hy:number}}
+   * @param {any} opts @param {number} [r] this mark's own radius; defaults to
+   *   the chart-wide one (an image is sized by its own width/height either way)
+   * @returns {{hx:number, hy:number}}
    */
-  _halfExtent(opts) {
+  _halfExtent(opts, r) {
     if (opts.shape === 'image' && opts.image) {
       return { hx: (opts.image.width || 20) / 2, hy: (opts.image.height || 20) / 2 }
     }
-    const r = this._lastDotR
-    return { hx: r, hy: r }
+    const rr = r != null ? r : this._lastDotR
+    return { hx: rr, hy: rr }
+  }
+
+  /**
+   * The draw + placement rule for ONE mark.
+   *
+   * Positioning used to be a chart-GLOBAL decision - `_isCorner(opts)` and a
+   * single `_halfExtent(opts)`, hoisted out of the gather loop - which held only
+   * while every mark in a render was the same element. Two things broke that:
+   * a pictogram render where dot 3 is a <circle> and dot 4 a <path>, and the
+   * plainer bug that a `square` sized from a per-position radius (`_drawDot`
+   * uses the dot's own `rj`) was still being CENTRED with the chart-wide
+   * `_lastDotR`, so a layout returning per-mark radii drew every square off its
+   * own slot by `_lastDotR - r`.
+   *
+   * So the rule travels with the mark. A spec is one frozen object per distinct
+   * (kind, size) - shared by every dot that uses it, resolved once per render -
+   * carrying an int the frame loop switches on. `_place` is the only writer.
+   *
+   * @typedef {object} UnitMarkSpec
+   * @property {number} pk PK_CIRCLE | PK_CORNER | PK_GLYPH
+   * @property {number} [hx] corner: half-width
+   * @property {number} [hy] corner: half-height
+   * @property {any} [mark] glyph: the resolved mark definition
+   * @property {string} [d] glyph: path data, in the mark's own viewBox units
+   * @property {string} [fillRule] glyph: 'evenodd' when the mark declares it
+   * @property {number} [s] glyph: uniform scale from viewBox units to px
+   * @property {number} [ox] glyph: pre-scaled x of the viewBox centre
+   * @property {number} [oy] glyph: pre-scaled y of the viewBox centre
+   * @property {string} [tail] glyph: the pre-built `) scale(s)` transform tail
+   * @property {number} [r] the radius this spec was fitted to
+   */
+
+  /**
+   * Position one mark at (x, y), whatever element it is.
+   *
+   * Circles and corner shapes write byte-identically to what they wrote before
+   * this seam existed, so the morph capture and every existing test read the
+   * same DOM. A glyph writes ONE attribute where they write two.
+   *
+   * @param {SVGElement} node @param {UnitMarkSpec} spec
+   * @param {number} x @param {number} y
+   */
+  _place(node, spec, x, y) {
+    // One typedef covers all three kinds, so every per-kind field is optional
+    // on it. The `pk` switch is what makes them present.
+    const s = /** @type {any} */ (spec)
+    if (s.pk === PK_GLYPH) {
+      node.setAttribute(
+        'transform',
+        'translate(' + (x - s.ox) + ',' + (y - s.oy) + s.tail,
+      )
+    } else if (s.pk === PK_CORNER) {
+      node.setAttribute('x', String(x - s.hx))
+      node.setAttribute('y', String(y - s.hy))
+    } else {
+      node.setAttribute('cx', String(x))
+      node.setAttribute('cy', String(y))
+    }
+  }
+
+  /**
+   * The spec for the chart-wide shape (no pictogram, no per-mark radius).
+   * @param {any} opts @param {number} [r]
+   * @returns {UnitMarkSpec}
+   */
+  _baseSpec(opts, r) {
+    const rr = r != null ? r : this._lastDotR
+    if (!this._isCorner(opts)) return { pk: PK_CIRCLE, r: rr }
+    const { hx, hy } = this._halfExtent(opts, rr)
+    return { pk: PK_CORNER, hx, hy, r: rr }
+  }
+
+  /**
+   * Resolve whatever `pictogram.mark` / `datum.mark` held into a mark
+   * definition, or null. A name goes through the registry; an object or a bare
+   * path string is taken as-is.
+   *
+   * An unresolvable mark warns ONCE per name and falls back rather than
+   * dropping the unit: a typo should cost you the glyph, not the data point.
+   *
+   * @param {any} ref @returns {any|null}
+   */
+  _resolveMark(ref) {
+    if (ref == null) return null
+    if (typeof ref === 'object') return normalizeUnitMark(ref)
+    if (typeof ref !== 'string' || !ref) return null
+    const s = ref.trim()
+    // Sugar: an inline outline rather than a registered name.
+    if (s[0] === 'M' || s[0] === 'm') return normalizeUnitMark(s)
+    const found = getUnitMark(s)
+    if (found) return found
+    if (!this._markWarned) this._markWarned = new Set()
+    if (!this._markWarned.has(s)) {
+      this._markWarned.add(s)
+      console.warn(
+        `[ApexCharts] unit chart: no mark named "${s}" is registered. ` +
+          `Register one with ApexCharts.registerUnitMark("${s}", pathData), ` +
+          `or import a catalog from 'apexcharts/pictograms'.`,
+      )
+    }
+    return null
+  }
+
+  /**
+   * The draw spec for one glyph at the current lattice pitch, cached per
+   * (mark, radius) for the render so thousands of units of one glyph resolve
+   * once and then share both the spec and the `d` STRING.
+   *
+   * The scale lives in the transform rather than being baked into `d`, for two
+   * reasons: baking needs a full path parser at runtime (the unit-shapes one
+   * lives in a separate optional module, and arcs cannot be scaled by naive
+   * number substitution), and a constant `scale(s)` costs the same single
+   * attribute write per frame that a bare translate would.
+   *
+   * Sizing is derived from `dotR` - the radius the LAYOUT chose - so a glyph
+   * occupies the box the dot itself would have. Swapping `circle` for a
+   * pictogram therefore never re-flows the chart: same pitch, same slots.
+   *
+   * @param {any} mark @param {number} dotR @param {any} pcfg
+   * @returns {UnitMarkSpec}
+   */
+  _glyphSpec(mark, dotR, pcfg) {
+    // Quantised to 0.1px so bubble sizing (a distinct radius per unit) cannot
+    // grow the cache to one entry per dot; sub-tenth-pixel scale differences
+    // are not observable anyway.
+    const qr = Math.round(dotR * 10) / 10
+    const key = mark.name + '|' + mark.path.length + '|' + qr
+    const hit = this._specCache.get(key)
+    if (hit) return hit
+
+    const vb = mark.viewBox || [0, 0, 100, 100]
+    const pad = Math.max(0, Math.min(0.9, pcfg.padding || 0))
+    const grow = typeof pcfg.scale === 'number' && pcfg.scale > 0 ? pcfg.scale : 1
+    const box = 2 * qr * (1 - pad) * grow
+    const s =
+      pcfg.fit === 'width'
+        ? box / vb[2]
+        : pcfg.fit === 'height'
+          ? box / vb[3]
+          : box / Math.max(vb[2], vb[3])
+
+    const spec = Object.freeze({
+      pk: PK_GLYPH,
+      mark,
+      d: mark.path,
+      fillRule: mark.fillRule,
+      s,
+      ox: (vb[0] + vb[2] / 2) * s,
+      oy: (vb[1] + vb[3] / 2) * s,
+      tail: ') scale(' + s + ')',
+      r: qr,
+    })
+    this._specCache.set(key, spec)
+    return spec
+  }
+
+  /**
+   * Which mark THIS unit draws.
+   *
+   * Precedence mirrors how `datum.fillColor` already overrides the category
+   * colour: the datum's own `mark` first (a per-unit override, so one crowd can
+   * mix glyphs), then the per-series entry of a `mark` array, then the one
+   * chart-wide mark.
+   *
+   * @param {any} opts @param {any} datum @param {number} i @param {number} r
+   * @returns {UnitMarkSpec}
+   */
+  _markSpecFor(opts, datum, i, r) {
+    if (opts.shape !== 'pictogram') return this._baseSpec(opts, r)
+    const pcfg = opts.pictogram || {}
+    const own = datum && typeof datum === 'object' ? datum.mark : undefined
+    const cfg = Array.isArray(pcfg.mark)
+      ? pcfg.mark[i % pcfg.mark.length]
+      : pcfg.mark
+    const mark = this._resolveMark(own != null ? own : cfg)
+    if (mark) return this._glyphSpec(mark, r, pcfg)
+    // Unresolvable: draw the fallback element rather than nothing.
+    return this._baseSpec(
+      { ...opts, shape: pcfg.fallback === 'square' ? 'square' : 'circle' },
+      r,
+    )
   }
 
   /**
@@ -2451,9 +2681,11 @@ export default class Unit {
    * stroke, tagged so the shared non-axis tooltip and hover reuse work.
    * @param {Graphics} graphics @param {any} opts @param {number} dotR
    * @param {string} color @param {number} i @param {number} j
+   * @param {UnitMarkSpec} [spec] this mark's resolved spec; defaults to the
+   *   chart-wide shape
    * @returns {any}
    */
-  _drawDot(graphics, opts, dotR, color, i, j) {
+  _drawDot(graphics, opts, dotR, color, i, j, spec) {
     const w = this.w
     const strokeW = w.config.stroke.show ? w.config.stroke.width : 0
     const strokeColor = Array.isArray(w.globals.stroke.colors)
@@ -2468,7 +2700,22 @@ export default class Unit {
       typeof w.config.fill.opacity === 'number' ? w.config.fill.opacity : 1
 
     let el
-    if (opts.shape === 'image' && opts.image && opts.image.src) {
+    if (spec && spec.pk === PK_GLYPH) {
+      // A monochrome vector glyph: ONE <path>, filled directly in the mark's
+      // colour. No fetch, no decode, and crucially no per-colour <filter> - an
+      // feFlood/feComposite pair (what `shape:'image'` needs to match the
+      // legend) forces an offscreen surface PER ELEMENT on every paint, which
+      // is what caps the tinted-image pictogram well below the dot chart.
+      el = w.dom.Paper.path(spec.d)
+      el.node.setAttribute('fill', color)
+      if (spec.fillRule === 'evenodd') {
+        el.node.setAttribute('fill-rule', 'evenodd')
+      }
+      if (fillOpacity < 1) el.node.setAttribute('fill-opacity', String(fillOpacity))
+      // Geometry the morph capture cannot read back off a transform. Written
+      // once at creation; never touched in a frame.
+      el.node.setAttribute('data:r', String(spec.r))
+    } else if (opts.shape === 'image' && opts.image && opts.image.src) {
       const iw = opts.image.width || 20
       const ih = opts.image.height || 20
       el = w.dom.Paper.image(opts.image.src)
@@ -2545,18 +2792,14 @@ export default class Unit {
 
   /**
    * Position a non-animated dot at (x, y). Circles use cx/cy at the centre;
-   * corner shapes (square, image) use x/y at the top-left.
+   * corner shapes (square, image) use x/y at the top-left; a pictogram rides a
+   * transform. Callers that already hold the mark's spec pass it; the rest get
+   * the chart-wide one.
    * @param {SVGElement} node @param {any} opts @param {number} x @param {number} y
+   * @param {UnitMarkSpec} [spec]
    */
-  _placeDot(node, opts, x, y) {
-    if (this._isCorner(opts)) {
-      const { hx, hy } = this._halfExtent(opts)
-      node.setAttribute('x', String(x - hx))
-      node.setAttribute('y', String(y - hy))
-    } else {
-      node.setAttribute('cx', String(x))
-      node.setAttribute('cy', String(y))
-    }
+  _placeDot(node, opts, x, y, spec) {
+    this._place(node, spec || this._baseSpec(opts), x, y)
   }
 
   /**
@@ -2650,7 +2893,7 @@ export default class Unit {
         // where the dot actually is, before the first frame paints.
         d.cx0 = sx.value
         d.cy0 = sy.value
-        this._placeDot(d.node, opts, d.cx0, d.cy0)
+        this._place(d.node, d.spec, d.cx0, d.cy0)
         // A dot that is still moving does not get re-staggered. The stagger
         // exists to make a LAUNCH read as a wave, and a moving dot is not
         // launching; holding it to its old target through the delay window
@@ -2689,8 +2932,12 @@ export default class Unit {
     const w = this.w
     const opts = w.config.plotOptions.unit
     const speed = Math.max(1, w.config.chart.animations.speed || 800)
-    const corner = this._isCorner(opts)
-    const { hx, hy } = this._halfExtent(opts)
+
+    // The placement rule is on each dot's `spec` (see `_place`), not hoisted
+    // here: a pictogram render mixes <circle> and <path> in one population, so
+    // there is no single chart-wide rule to hoist. The per-frame write count
+    // does not go up - a circle still writes cx+cy, a glyph writes ONE
+    // transform.
 
     // Stagger across the whole population, capped so large sets still settle
     // quickly. Dots animate outward roughly centre-first.
@@ -2699,11 +2946,6 @@ export default class Unit {
     for (let k = 0; k < n; k++) {
       dots[k].delay = n > 1 ? (k / (n - 1)) * maxDelay : 0
     }
-
-    const cxAttr = corner ? 'x' : 'cx'
-    const cyAttr = corner ? 'y' : 'cy'
-    const offX = corner ? hx : 0
-    const offY = corner ? hy : 0
 
     const gcfg = opts.gather || {}
     // Springs unless the caller asked for a tween, which a non-default
@@ -2720,22 +2962,15 @@ export default class Unit {
     // the positions, so switching motion at runtime cannot resurrect them.
     else if (this.ctx) this.ctx._unitSprings = null
 
-    // Seed initial corner for corner shapes (x/y are top-left).
-    if (corner) {
-      for (let k = 0; k < n; k++) {
-        dots[k].node.setAttribute(cxAttr, String(dots[k].cx0 - offX))
-        dots[k].node.setAttribute(cyAttr, String(dots[k].cy0 - offY))
-      }
-    }
-
     // Seed the starting radius for size-changing circles so they grow from the
-    // previous size instead of flashing at the new one for a frame.
-    if (!corner) {
-      for (let k = 0; k < n; k++) {
-        const d = dots[k]
-        if (d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
-          d.node.setAttribute('r', String(d.r0))
-        }
+    // previous size instead of flashing at the new one for a frame. (The old
+    // "seed initial corner" pass that stood here is gone: it rewrote exactly
+    // what draw()'s _placeDot had already written, and what _seedSprings
+    // rewrites again for a carried spring.)
+    for (let k = 0; k < n; k++) {
+      const d = dots[k]
+      if (d.spec.pk === PK_CIRCLE && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
+        d.node.setAttribute('r', String(d.r0))
       }
     }
 
@@ -2779,6 +3014,7 @@ export default class Unit {
       // Animations.animatePop.
       if (this.w.globals.isDestroyed) {
         this.w.globals.unitGatherRAF = null
+        this.w.globals.animationEnded = true
         return
       }
       const dt = Math.min(MAX_FRAME_STEP, Math.max(0, (now - last) / 1000))
@@ -2810,8 +3046,7 @@ export default class Unit {
           cx = d.cx0 + (d.x - d.cx0) * e
           cy = d.cy0 + (d.y - d.cy0) * e
         }
-        d.node.setAttribute(cxAttr, String(cx - offX))
-        d.node.setAttribute(cyAttr, String(cy - offY))
+        this._place(d.node, d.spec, cx, cy)
         // Entering dots fade in over the first stretch; moving dots stay solid.
         if (d.isEnter) d.node.style.opacity = String(Math.min(1, t * 2.5))
         // Cross-fade the fill for dots that changed group colour.
@@ -2822,7 +3057,12 @@ export default class Unit {
           d.node.setAttribute('fill', `rgb(${cr},${cg},${cb})`)
         }
         // Grow/shrink circles whose radius changed (bubble sizing).
-        if (!corner && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
+        if (
+          d.spec.pk === PK_CIRCLE &&
+          d.r0 != null &&
+          d.r1 != null &&
+          d.r0 !== d.r1
+        ) {
           d.node.setAttribute('r', String(d.r0 + (d.r1 - d.r0) * ec))
         }
         if (t < 1) done = false
@@ -2833,11 +3073,20 @@ export default class Unit {
           d.node.style.opacity = ''
           // Settle on the exact target colour + radius (undo rounding drift).
           if (d._c1 && d.fill1) d.node.setAttribute('fill', d.fill1)
-          if (!corner && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
+          if (
+            d.spec.pk === PK_CIRCLE &&
+            d.r0 != null &&
+            d.r1 != null &&
+            d.r0 !== d.r1
+          ) {
             d.node.setAttribute('r', String(d.r1))
           }
         }
         this.w.globals.unitGatherRAF = null
+        // The gather is the unit chart's animation, so its completion is what
+        // "the chart has settled" means here. Raised only when the loop reaches
+        // rest, so a snapshot taken on this signal catches the final layout.
+        this.w.globals.animationEnded = true
       } else {
         this.w.globals.unitGatherRAF = BrowserAPIs.requestAnimationFrame(stepFn)
       }
@@ -2848,16 +3097,16 @@ export default class Unit {
   /**
    * Keys present in the previous render but not the current one, resolved back
    * to their old slot {x, y, fill}. These are the dots that must animate out.
-   * @param {Map<string, {x:number,y:number,fill:string}>} prev
-   * @param {Map<string, {x:number,y:number,fill:string}>} nextPrev
+   * @param {Map<string, {x:number,y:number,fill:string,r?:number,spec?:any}>} prev
+   * @param {Map<string, {x:number,y:number,fill:string,r?:number,spec?:any}>} nextPrev
    * @param {any} opts
-   * @returns {{x:number,y:number,fill:string}[]}
+   * @returns {{x:number,y:number,fill:string,r?:number,spec?:any}[]}
    */
   _collectExits(prev, nextPrev, opts) {
     // Cap the ghost count so a huge dataset switch (e.g. hundreds removed) does
     // not spawn an unbounded number of one-shot animated nodes.
     const cap = Math.max(0, opts.maxUnits || 5000)
-    /** @type {{x:number,y:number,fill:string}[]} */
+    /** @type {{x:number,y:number,fill:string,r?:number,spec?:any}[]} */
     const exits = []
     for (const [key, slot] of prev) {
       if (!nextPrev.has(key)) {
@@ -2875,7 +3124,7 @@ export default class Unit {
    * cells across tiles or bubbles across the plane, which reads as wrong. The
    * blob / bar layouts keep the gentle inward collapse so a removal reads as
    * motion rather than a pop.
-   * @param {any} group @param {{x:number,y:number,fill:string}[]} exits @param {any} opts
+   * @param {any} group @param {{x:number,y:number,fill:string,r?:number,spec?:any}[]} exits @param {any} opts
    */
   _runExits(group, exits, opts) {
     const w = this.w
@@ -2895,14 +3144,18 @@ export default class Unit {
         ? 0
         : 0.35
 
-    /** @type {{ node: SVGElement, x0:number, y0:number }[]} */
+    /** @type {{ node: SVGElement, x0:number, y0:number, spec: UnitMarkSpec }[]} */
     const ghosts = []
     exits.forEach((slot) => {
-      const el = this._drawDot(graphics, opts, dotR, slot.fill, 0, 0)
+      // A ghost must leave as the mark it WAS, so the spec travels with the
+      // slot; without it every pictogram would ghost out as a plain circle.
+      const r = slot.r != null ? slot.r : dotR
+      const spec = slot.spec || this._baseSpec(opts, r)
+      const el = this._drawDot(graphics, opts, r, slot.fill, 0, 0, spec)
       el.node.classList.add('apexcharts-unit-exit')
-      this._placeDot(el.node, opts, slot.x, slot.y)
+      this._place(el.node, spec, slot.x, slot.y)
       group.add(el)
-      ghosts.push({ node: el.node, x0: slot.x, y0: slot.y })
+      ghosts.push({ node: el.node, x0: slot.x, y0: slot.y, spec })
     })
 
     if (!this._shouldAnimate()) {
@@ -2912,12 +3165,6 @@ export default class Unit {
     }
 
     const speed = Math.max(1, w.config.chart.animations.speed || 800)
-    const corner = this._isCorner(opts)
-    const { hx, hy } = this._halfExtent(opts)
-    const offX = corner ? hx : 0
-    const offY = corner ? hy : 0
-    const cxAttr = corner ? 'x' : 'cx'
-    const cyAttr = corner ? 'y' : 'cy'
     // Cancel an exit loop still running from a previous render before starting a
     // new one, so stale ghosts don't keep fading on a rapid update.
     if (this.w.globals.unitExitRAF != null) {
@@ -2942,8 +3189,7 @@ export default class Unit {
         if (drift) {
           const x = g.x0 + (cx - g.x0) * e * drift
           const y = g.y0 + (cy - g.y0) * e * drift
-          g.node.setAttribute(cxAttr, String(x - offX))
-          g.node.setAttribute(cyAttr, String(y - offY))
+          this._place(g.node, g.spec, x, y)
         }
         g.node.style.opacity = String(1 - e)
       }

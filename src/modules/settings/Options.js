@@ -1261,18 +1261,60 @@ export default class Options {
           // so a SPECIFIC unit migrates across any regroup/relayout keeping its
           // colour and size (needs the object form with unique ids/names).
           transition: 'group',
-          // 'circle' | 'square' | 'image' (isotype pictogram).
+          // What ONE unit looks like. Independent of `layout`, which is where
+          // the units go: `positions:'heart'` with `shape:'pictogram'` arranges
+          // glyphs into a heart, and every other pairing is equally valid.
+          //
+          // 'circle' | 'square' | 'image' (a raster / multi-colour icon,
+          // fetched) | 'pictogram' (a vector glyph, drawn - see `pictogram`).
           shape: 'circle',
           // Icon used when shape:'image'. Each unit renders this icon at the
           // given size. Set `tint:true` to recolour a monochrome icon to the
           // category colour (or a per-unit fillColor) so the pictogram matches
           // the legend; leave it off for multi-colour icons that should keep
           // their own colours.
+          //
+          // Prefer `shape:'pictogram'` for a monochrome glyph. Tinting an
+          // <image> needs an SVG filter per colour, and a filter forces an
+          // offscreen surface PER ELEMENT on every paint: measured on this
+          // repo's cost lab, 2000 tinted icons cost ~10x what 2000 drawn
+          // glyphs cost, and the gather drops frames well before 2000.
           image: {
             src: undefined,
             width: 20,
             height: 20,
             tint: false,
+          },
+          // `shape: 'pictogram'`. A glyph is DRAWN, not fetched: one <path> per
+          // unit, filled in that unit's own colour, so it needs no request, no
+          // decode and no recolour filter.
+          //
+          // `mark` is the glyph: the name of one registered with
+          // `ApexCharts.registerUnitMark`, a `{path, viewBox?, fillRule?}`
+          // object, raw path data, or an ARRAY (one per series). A single datum
+          // overrides all of it with its own `mark`, exactly as `fillColor`
+          // overrides the category colour - so one crowd can mix glyphs.
+          //
+          // There is deliberately no size here. A glyph is fitted to the box
+          // the dot itself would have occupied, so `size` and `spacing` size a
+          // pictogram exactly as they size a dot and swapping circle ->
+          // pictogram never re-flows the chart. `fit` picks which side of the
+          // glyph binds to that box, `scale` nudges glyphs that read light, and
+          // `padding` (0..0.9 of the pitch) opens the lattice up.
+          //
+          // One caveat worth knowing: a filled glyph is hit-tested over its
+          // INK, not its box, so the tooltip tracks the glyph exactly - it
+          // closes in the gap between a person's legs and reopens on the next
+          // glyph. Chunky glyphs therefore both read and BEHAVE better than
+          // fine ones; a hairline glyph reads as flickery while sweeping a
+          // crowd. There is no portable fix (`pointer-events: bounding-box` is
+          // Chrome only).
+          pictogram: {
+            mark: undefined,
+            fit: 'contain', // 'contain' (longest side) | 'width' | 'height'
+            scale: 1,
+            padding: 0,
+            fallback: 'circle', // drawn when a mark cannot be resolved
           },
           // dot radius in px, or 'auto' to size dots so the largest cluster
           // fits its allotted box.
