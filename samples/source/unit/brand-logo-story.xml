@@ -1,0 +1,726 @@
+<title>Unit Chart Storyboard: Your Logo, Made of Your Numbers</title>
+
+<style>
+  .lg-wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 8px;
+    font-family: Helvetica, Arial, sans-serif;
+    color: #2b2118;
+  }
+  .lg-hero {
+    padding: 18px 4px 14px;
+  }
+  .lg-hero h1 {
+    font-size: 22px;
+    margin: 0 0 8px;
+    letter-spacing: -0.4px;
+  }
+  .lg-hero p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #6b5a4a;
+    margin: 0;
+  }
+
+  /* One self-contained card holding a two-column scrollytelling layout: the
+     story scrolls in the left column while the chart stays put on the right.
+     The card has a FIXED pixel height (never vh), so the whole sample stays
+     bounded and the demo page's auto-resizing iframe cannot feed a
+     viewport-relative layout back into a runaway height. The story column is
+     its own scroll container (#lg-scroller), so the storyboard observes that
+     panel's scroll rather than the page/iframe viewport. */
+  .lg-card {
+    background: #fff;
+    border: 1px solid #ece3d8;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 10px rgba(60, 42, 25, 0.07);
+    height: 540px;
+    box-sizing: border-box;
+  }
+  .lg-layout {
+    display: grid;
+    grid-template-columns: minmax(200px, 250px) 1fr;
+    gap: 24px;
+    height: 100%;
+  }
+
+  /* LEFT: the story panel. Scrolling it drives the beats; each step reaches
+     the panel's middle trigger line as you go. */
+  .lg-scroller {
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+  }
+  .lg-steps {
+    margin: 0;
+    /* Top/bottom room so the first and last steps can reach the panel's middle
+       trigger line. */
+    padding: 110px 6px 200px;
+  }
+  .lg-step {
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0.32;
+    transition: opacity 0.3s ease;
+  }
+  .lg-step.is-active {
+    opacity: 1;
+  }
+  .lg-step .card {
+    border-left: 3px solid #eadbc6;
+    background: #fffdfa;
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(60, 42, 25, 0.06);
+  }
+  .lg-step.is-active .card {
+    border-left-color: #C77B30;
+  }
+  .lg-step h3 {
+    margin: 0 0 6px;
+    font-size: 15px;
+    color: #2b2118;
+  }
+  .lg-step p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #6b5a4a;
+  }
+
+  /* RIGHT: the chart pins in place while the story scrolls. Vertically
+     centered in its column, with the controls right under it, docs-style. */
+  .lg-graphic {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+  }
+  /* The shared demo stylesheet gives the first chart container (#chart) its
+     own white panel; the card provides it here instead. */
+  #chart {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    width: 100%;
+  }
+  .lg-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .lg-head b {
+    font-size: 14px;
+    color: #2b2118;
+  }
+  .lg-chip {
+    font-family: monospace;
+    font-size: 12px;
+    color: #8A5A20;
+    background: #FDF3E3;
+    border-radius: 999px;
+    padding: 3px 10px;
+    margin-left: 10px;
+    white-space: nowrap;
+  }
+  .lg-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .lg-btn {
+    padding: 4px 12px;
+    border-radius: 8px;
+    border: 1px solid #e0d5c6;
+    background: #fff;
+    color: #5b4a38;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .lg-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .lg-dot {
+    width: 11px;
+    height: 11px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid #E0B77C;
+    background: #fff;
+    cursor: pointer;
+  }
+  .lg-dot.is-active {
+    background: #C77B30;
+    border-color: #C77B30;
+  }
+  .lg-hint {
+    font-size: 13px;
+    color: #7d6a58;
+    margin: 12px 4px 0;
+    line-height: 1.6;
+  }
+  .lg-note {
+    background: #FDF7EE;
+    border-left: 3px solid #C77B30;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #4a3a2a;
+    border-radius: 2px;
+    line-height: 1.65;
+    margin: 20px 4px 30px;
+  }
+  .lg-note code {
+    background: #F5E7D3;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .lg-note b {
+    color: #2b2118;
+  }
+
+  /* Narrow containers: stack to one column with the chart on top and the story
+     panel below it, back to a fixed-height internal scroller. This sample runs
+     inside the demo page's iframe, so the query matches the IFRAME width (not
+     the browser viewport). */
+  @media (max-width: 560px) {
+    .lg-card {
+      height: auto;
+    }
+    .lg-layout {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    .lg-graphic {
+      order: -1;
+    }
+    .lg-scroller {
+      height: 240px;
+      border-top: 1px solid #f0e8dd;
+      padding-top: 4px;
+    }
+    .lg-steps {
+      padding: 60px 6px 90px;
+    }
+    .lg-step {
+      min-height: 180px;
+    }
+  }
+</style>
+
+<scripts>
+<script src="../../../dist/unit-shapes.js"></script>
+<script>
+// A year at Halo, a (fictional) coffee roaster: 2,400 kilos roasted, one dot
+// per kilo, told in five beats on ONE unit chart. Halo's logo is not in the
+// shape catalog and never will be, because it is Halo's. It does not need to
+// be: `shapeFrom` takes an outline and packs it with the same engine the
+// built-in shapes use, so any company's mark is a layout the moment someone
+// pastes its path data. These definitions are shared by the vanilla-js, React
+// and Vue builds.
+
+// The mark: a cup on a saucer under two rising wisps, drawn as eight subpaths
+// in a 0-100 box.
+//
+// This is the DEFAULT nonzero fill rule doing the two things that make a mark
+// like this authorable in pieces rather than as one traced contour:
+//
+//   1. Overlapping subpaths UNION. The cup, its elliptical rim, its foot, the
+//      saucer and the handle are five separate shapes that simply overlap, and
+//      they merge into one silhouette. Nothing has to be mitred or joined by
+//      hand, which is why a logo can be assembled part by part.
+//   2. A subpath wound the OTHER WAY cuts a hole. The handle is a solid loop
+//      with the finger hole punched back out of it, so the hole is not a
+//      separate idea from the fill: it is the same ellipse, wound backwards.
+//
+// The winding is the thing to get right and the thing nothing in the path data
+// reveals. Here every union subpath is written clockwise on screen, and the one
+// hole runs anticlockwise (as an arc, `sweep 1` is the positive direction and
+// `sweep 0` the negative one). A subpath wound backwards by accident still
+// renders, so it looks deliberate: a cup with its body bored through.
+var HALO_PATH =
+  // the cup: straight tapering sides down to a rounded bottom
+  'M 72 42 L 62 72 C 62 76, 55 77, 46 77 C 37 77, 30 76, 30 72 L 20 42 Z ' +
+  // the rim, an ellipse overlapping the cup's flat top so it reads as a vessel
+  // seen slightly from above
+  'M 20 42 A 26 7 0 0 1 72 42 A 26 7 0 0 1 20 42 Z ' +
+  // the foot
+  'M 38 75 L 54 75 L 57 81.5 L 35 81.5 Z ' +
+  // the saucer
+  'M 4 86.5 A 42 6.5 0 0 1 88 86.5 A 42 6.5 0 0 1 4 86.5 Z ' +
+  // the handle: a solid loop overlapping the cup's right wall...
+  'M 64 58 A 14 11 0 0 1 92 58 A 14 11 0 0 1 64 58 Z ' +
+  // ...and the finger hole, the SAME kind of ellipse wound the other way
+  // (`sweep 0`), which is what turns it from a blob into a handle
+  'M 74 58 A 7 5 0 0 0 88 58 A 7 5 0 0 0 74 58 Z ' +
+  // two wisps of steam, each tapering to a point at both ends
+  'M 48 37 C 36 27, 56 19, 47 5 C 50 4, 52 5, 54 7 C 60 19, 44 26, 54 37 ' +
+  'C 52 38, 50 38, 48 37 Z ' +
+  'M 30 36 C 21 28, 35 21, 28 9 C 30 8, 32 9, 34 11 C 39 21, 28 27, 36 36 ' +
+  'C 34 37, 32 37, 30 36 Z'
+
+var halo = ApexUnitShapes.shapeFrom(HALO_PATH, {
+  name: 'halo',
+  // Measured, not guessed: at 600 dots the steam has thinned to a single file
+  // and the finger hole is one dot from closing, which is the floor. Ask for
+  // fewer and the chart warns in the console rather than drawing mush. Every
+  // logo has a number like this; finding yours is the one piece of homework a
+  // custom shape asks for.
+  minUnits: 600,
+})
+
+// The same outline, filled from the middle out instead of top down. Nothing is
+// re-authored: `.with()` returns a variant and leaves the original alone.
+var haloCore = halo.with({ order: 'centerOut' })
+
+// The dots spelling out how many of them there are. `glyphs` builds a
+// seven-segment centreline from the text and thickens it, so this is a stroke
+// shape and needs no outline at all.
+var total = ApexUnitShapes.glyphs('2,400')
+
+var LINES = ['Espresso', 'Filter', 'Decaf', 'Cold brew']
+var KILOS = [980, 720, 300, 400] // 2,400
+var ROAST = ['#5C3A21', '#C77B30', '#6F9B4A', '#2E8B9A']
+
+// A bare ViewState shared by every beat: the unit chart has no axes to window,
+// so each beat only needs to describe its own layout in `options`. The series,
+// labels and colours never change across this story: one crowd, five
+// arrangements.
+var LIGHT = { theme: { mode: 'light' } }
+
+function beat(unit) {
+  return {
+    series: KILOS,
+    labels: LINES,
+    colors: ROAST,
+    // 'flow' keys the dots by global order, so the SAME dot glides from one
+    // arrangement into the next instead of being rebuilt. It is the whole
+    // reason this reads as one crowd moving rather than five charts.
+    plotOptions: { unit: Object.assign({ transition: 'flow' }, unit) },
+  }
+}
+
+var BEATS = [
+  {
+    selector: '#lg-step-1',
+    view: LIGHT,
+    options: beat({ layout: 'packed' }),
+    announce: 'A year of roasting: 2,400 kilos in one packed crowd',
+  },
+  {
+    selector: '#lg-step-2',
+    view: LIGHT,
+    options: beat({ layout: 'custom', positions: halo }),
+    announce: 'The same 2,400 kilos, gathered into the company mark: a cup of coffee',
+  },
+  {
+    selector: '#lg-step-3',
+    view: LIGHT,
+    options: beat({ layout: 'custom', positions: haloCore }),
+    announce: 'Refilled from the centre out: espresso fills the cup',
+  },
+  {
+    selector: '#lg-step-4',
+    view: LIGHT,
+    options: beat({ layout: 'columns' }),
+    announce: 'The same kilos as four plain columns, in true proportion',
+  },
+  {
+    selector: '#lg-step-5',
+    view: LIGHT,
+    options: beat({ layout: 'custom', positions: total }),
+    announce: 'The dots spell out their own total: 2,400',
+  },
+]
+</script>
+</scripts>
+
+<html>
+<div class="lg-wrap">
+  <div class="lg-hero">
+    <h1>Your logo, made of your numbers</h1>
+    <p>
+      A year at Halo, a coffee roaster: 2,400 kilos roasted, one dot per kilo.
+      The crowd gathers into the company's own mark, refills from the middle
+      out, squares up into honest columns, then spells out its own total. Halo's
+      logo is not one of the 39 built-in shapes. It is eight subpaths of path
+      data in this sample's head script, and that is all a logo has to be.
+    </p>
+  </div>
+
+  <div class="lg-card">
+    <div class="lg-layout">
+      <div class="lg-scroller" id="lg-scroller">
+        <div class="lg-steps">
+          <section class="lg-step" id="lg-step-1">
+            <div class="card">
+              <h3>2,400 kilos</h3>
+              <p>
+                One year, four product lines, one dot per kilo roasted. Packed
+                into a single crowd, the biggest line takes the outside and the
+                smallest nests in the middle. Honest, and almost mute: you can
+                see there is a lot of espresso, and very little else.
+              </p>
+            </div>
+          </section>
+          <section class="lg-step" id="lg-step-2">
+            <div class="card">
+              <h3>Into the mark</h3>
+              <p>
+                The same 2,400 dots, packed into Halo's cup. The packer scans
+                the outline row by row and splits the dots across the rows, so
+                the count comes out exact: no dot is added to make the shape
+                work, and none is dropped. Cup, rim, foot, saucer and handle are
+                five overlapping pieces that merge into one silhouette.
+              </p>
+            </div>
+          </section>
+          <section class="lg-step" id="lg-step-3">
+            <div class="card">
+              <h3>Espresso fills the cup</h3>
+              <p>
+                Same outline, filled from the middle out rather than top down,
+                so the biggest line lands where the coffee would actually be. One
+                property, <code>order</code>, and the colours swirl outward into
+                bands without a single dot leaving the mark.
+              </p>
+            </div>
+          </section>
+          <section class="lg-step" id="lg-step-4">
+            <div class="card">
+              <h3>What the mark flatters</h3>
+              <p>
+                A logo is a lovely liar: a cup gives every line a share of a
+                nice silhouette, and a wisp of steam flatters a small one. Four
+                plain columns give them a length instead. Same dots, same
+                colours, no persuasion.
+              </p>
+            </div>
+          </section>
+          <section class="lg-step" id="lg-step-5">
+            <div class="card">
+              <h3>2,400, in its own hand</h3>
+              <p>
+                Last beat, and the dots go and spell how many of them there are.
+                Nothing is drawn behind them: <code>glyphs('2,400')</code> is a
+                centreline the packer fills, the same way it filled the cup.
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="lg-graphic">
+        {{ charts[0] }}
+
+        <div class="lg-head">
+          <div>
+            <b>Halo &middot; kilos roasted</b>
+            <span class="lg-chip" id="lg-chip">Beat 1 of 5</span>
+          </div>
+          <div class="lg-nav">
+            <button class="lg-btn" id="lg-prev" type="button" disabled>Prev</button>
+            <button class="lg-dot is-active" aria-label="Go to beat 1"></button>
+            <button class="lg-dot" aria-label="Go to beat 2"></button>
+            <button class="lg-dot" aria-label="Go to beat 3"></button>
+            <button class="lg-dot" aria-label="Go to beat 4"></button>
+            <button class="lg-dot" aria-label="Go to beat 5"></button>
+            <button class="lg-btn" id="lg-next" type="button">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="lg-hint">
+    Scroll the story, or use the beat dots and Prev/Next. Each beat is a saved
+    view; scrolling back up reverses it.
+  </p>
+
+  <div class="lg-note">
+    <b>Bringing your own mark.</b>
+    <code>ApexUnitShapes.shapeFrom(pathData)</code> returns a layout, so a logo
+    goes straight into <code>plotOptions.unit.positions</code> with no
+    registration step and no release from us. The mark here is eight subpaths
+    under the default nonzero rule, which is worth understanding before you draw
+    anything, because it is what lets a logo be assembled in pieces:
+    <b>overlapping subpaths union</b> (cup, rim, foot, saucer and handle are five
+    shapes that merely overlap) and <b>a subpath wound the other way cuts a
+    hole</b> (the handle's finger hole is the same ellipse as the loop, wound
+    backwards). Nothing in path data reveals which way a subpath is wound, and a
+    backwards one still renders perfectly happily, so a mark that arrives
+    inverted or bored through is nearly always that. If you would rather not
+    think about winding at all, <code>fillRule: 'evenodd'</code> decides
+    solid-versus-hollow by nesting instead, which suits a mark whose counter sits
+    cleanly inside its outline: a ring, the bowl of a <b>P</b>, the hole in a
+    <b>b</b>. Give your shape a <code>minUnits</code> for the count below which it
+    stops being recognisable, and the chart warns instead of drawing mush. To do
+    this with your own mark rather than Halo's, the <b>Logo Forge</b> sample
+    takes a dropped <code>.svg</code> and hands back the code for it. Needs the
+    <code>storyboard</code> feature (bundles <code>perspectives</code>) plus the
+    <code>apexcharts/unit-shapes</code> build. The unit chart is a premium
+    type; without a license it renders with a trial watermark.
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'haloStory',
+  type: 'unit',
+  height: 420,
+  fontFamily: 'Helvetica, Arial, sans-serif',
+  animations: {
+    enabled: true,
+    speed: 850,
+  },
+  toolbar: { show: false },
+},
+labels: ['Espresso', 'Filter', 'Decaf', 'Cold brew'],
+colors: ['#5C3A21', '#C77B30', '#6F9B4A', '#2E8B9A'],
+legend: {
+  position: 'bottom',
+},
+plotOptions: {
+  unit: {
+    layout: 'packed',
+    transition: 'flow',
+    // A fixed dot size keeps every dot the SAME size in all five layouts, so
+    // dots only move across the story and never resize.
+    //
+    // Which beat sets the number is worth knowing, because it is not the one it
+    // looks like. A silhouette fits the dot gap to its OWN area and then clamps
+    // the radius to that gap, so the cup ignores anything above ~1.7 and beats
+    // 2, 3 and 5 render identically at 1.7 or at 3. The binding constraint is
+    // beat 1: the packed blob grows with the size it is given, and at 2 it
+    // reaches 17px past the top of the legend.
+    size: 1.7,
+    spacing: 1.05,
+    clusterLabels: {
+      show: false,
+    },
+  },
+},
+</options>
+
+<series>
+[980, 720, 300, 400]
+</series>
+</chart>
+
+<vanilla-js-script>
+// beatChange fires on every activation (scroll or goTo): drive the page UI.
+// (The shape, the beats and the data live in the shared head script.)
+var steps = document.querySelectorAll('.lg-step')
+var dots = document.querySelectorAll('.lg-dot')
+var chip = document.getElementById('lg-chip')
+var prevBtn = document.getElementById('lg-prev')
+var nextBtn = document.getElementById('lg-next')
+var scroller = document.getElementById('lg-scroller')
+var current = 0
+
+// Center a beat's step inside the story column WITHOUT scrolling the page:
+// adjust only the panel's own scrollTop. The IntersectionObserver then
+// activates that beat, so the manual controls and the scroll stay in sync.
+function scrollToBeat(i) {
+  var step = document.getElementById('lg-step-' + (i + 1))
+  if (!step || !scroller) return
+  var sRect = step.getBoundingClientRect()
+  var cRect = scroller.getBoundingClientRect()
+  scroller.scrollTop +=
+    sRect.top - cRect.top - (scroller.clientHeight - step.clientHeight) / 2
+}
+
+function goToBeat(i) {
+  i = Math.max(0, Math.min(BEATS.length - 1, i))
+  chart.storyboard.goTo(i)
+  scrollToBeat(i)
+}
+
+chart.addEventListener('beatChange', function (c, info) {
+  current = info.index
+  steps.forEach(function (el, i) {
+    el.classList.toggle('is-active', i === info.index)
+  })
+  dots.forEach(function (dot, i) {
+    dot.classList.toggle('is-active', i === info.index)
+  })
+  chip.textContent = 'Beat ' + (info.index + 1) + ' of ' + BEATS.length
+  prevBtn.disabled = info.index === 0
+  nextBtn.disabled = info.index === BEATS.length - 1
+})
+
+dots.forEach(function (dot, i) {
+  dot.addEventListener('click', function () {
+    goToBeat(i)
+  })
+})
+prevBtn.addEventListener('click', function () {
+  goToBeat(current - 1)
+})
+nextBtn.addEventListener('click', function () {
+  goToBeat(current + 1)
+})
+
+window.addEventListener('load', function () {
+  // scroller binds the observer to the story column, so the story is driven by
+  // that panel's own scroll (not the page/iframe viewport).
+  chart.storyboard.bind({ beats: BEATS, scroller: '#lg-scroller' })
+})
+</vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id. Poll until it exists, then wire the same story the vanilla
+  // build does. (The shape, the beats and the data live in the shared head
+  // script.) The storyboard drives the chart instance directly, so no React
+  // state changes and the <ReactApexChart> is never re-rendered under it.
+  let chart
+  const timer = window.setInterval(() => {
+    chart = ApexCharts.getChartByID('haloStory')
+    if (!chart) return
+    window.clearInterval(timer)
+
+    const steps = document.querySelectorAll('.lg-step')
+    const dots = document.querySelectorAll('.lg-dot')
+    const chip = document.getElementById('lg-chip')
+    const prevBtn = document.getElementById('lg-prev')
+    const nextBtn = document.getElementById('lg-next')
+    const scroller = document.getElementById('lg-scroller')
+    let current = 0
+
+    // Center a beat's step inside the story column WITHOUT scrolling the page:
+    // adjust only the panel's own scrollTop. The IntersectionObserver then
+    // activates that beat, so the controls and the scroll stay in sync.
+    const scrollToBeat = (i) => {
+      const step = document.getElementById('lg-step-' + (i + 1))
+      if (!step || !scroller) return
+      const sRect = step.getBoundingClientRect()
+      const cRect = scroller.getBoundingClientRect()
+      scroller.scrollTop +=
+        sRect.top - cRect.top - (scroller.clientHeight - step.clientHeight) / 2
+    }
+    const goToBeat = (i) => {
+      i = Math.max(0, Math.min(BEATS.length - 1, i))
+      chart.storyboard.goTo(i)
+      scrollToBeat(i)
+    }
+
+    chart.addEventListener('beatChange', (c, info) => {
+      current = info.index
+      steps.forEach((el, i) => el.classList.toggle('is-active', i === info.index))
+      dots.forEach((dot, i) => dot.classList.toggle('is-active', i === info.index))
+      chip.textContent = 'Beat ' + (info.index + 1) + ' of ' + BEATS.length
+      prevBtn.disabled = info.index === 0
+      nextBtn.disabled = info.index === BEATS.length - 1
+    })
+
+    dots.forEach((dot, i) => {
+      dot.addEventListener('click', () => goToBeat(i))
+    })
+    prevBtn.addEventListener('click', () => goToBeat(current - 1))
+    nextBtn.addEventListener('click', () => goToBeat(current + 1))
+
+    // scroller binds the observer to the story column, so the story is driven
+    // by that panel's own scroll (not the page/iframe viewport).
+    chart.storyboard.bind({ beats: BEATS, scroller: '#lg-scroller' })
+  }, 50)
+
+  return () => {
+    window.clearInterval(timer)
+    if (chart && chart.storyboard) chart.storyboard.unbind()
+  }
+}, [])
+</react-script>
+
+<vue-data>
+haloStory: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id. Poll until it exists, then wire the same story the vanilla
+  // build does. (The shape, the beats and the data live in the shared head
+  // script.) The storyboard drives the chart instance directly, so no reactive
+  // data changes and the <apexchart> is never re-rendered under it.
+  var me = this
+  var timer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('haloStory')
+    if (!chart) return
+    window.clearInterval(timer)
+    me.haloStory = chart
+
+    var steps = document.querySelectorAll('.lg-step')
+    var dots = document.querySelectorAll('.lg-dot')
+    var chip = document.getElementById('lg-chip')
+    var prevBtn = document.getElementById('lg-prev')
+    var nextBtn = document.getElementById('lg-next')
+    var scroller = document.getElementById('lg-scroller')
+    var current = 0
+
+    // Center a beat's step inside the story column WITHOUT scrolling the page:
+    // adjust only the panel's own scrollTop. The IntersectionObserver then
+    // activates that beat, so the controls and the scroll stay in sync.
+    function scrollToBeat(i) {
+      var step = document.getElementById('lg-step-' + (i + 1))
+      if (!step || !scroller) return
+      var sRect = step.getBoundingClientRect()
+      var cRect = scroller.getBoundingClientRect()
+      scroller.scrollTop +=
+        sRect.top - cRect.top - (scroller.clientHeight - step.clientHeight) / 2
+    }
+    function goToBeat(i) {
+      i = Math.max(0, Math.min(BEATS.length - 1, i))
+      chart.storyboard.goTo(i)
+      scrollToBeat(i)
+    }
+
+    chart.addEventListener('beatChange', function (c, info) {
+      current = info.index
+      steps.forEach(function (el, i) {
+        el.classList.toggle('is-active', i === info.index)
+      })
+      dots.forEach(function (dot, i) {
+        dot.classList.toggle('is-active', i === info.index)
+      })
+      chip.textContent = 'Beat ' + (info.index + 1) + ' of ' + BEATS.length
+      prevBtn.disabled = info.index === 0
+      nextBtn.disabled = info.index === BEATS.length - 1
+    })
+
+    dots.forEach(function (dot, i) {
+      dot.addEventListener('click', function () {
+        goToBeat(i)
+      })
+    })
+    prevBtn.addEventListener('click', function () {
+      goToBeat(current - 1)
+    })
+    nextBtn.addEventListener('click', function () {
+      goToBeat(current + 1)
+    })
+
+    // scroller binds the observer to the story column, so the story is driven by
+    // that panel's own scroll (not the page/iframe viewport).
+    chart.storyboard.bind({ beats: BEATS, scroller: '#lg-scroller' })
+  }, 50)
+},
+beforeDestroy: function () {
+  if (this.haloStory && this.haloStory.storyboard) {
+    this.haloStory.storyboard.unbind()
+  }
+},
+</vue-script>

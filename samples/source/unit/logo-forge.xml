@@ -1,0 +1,1490 @@
+<title>Unit Chart: The Logo Forge (drop your own SVG)</title>
+
+<style>
+  .fg-wrap {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 8px;
+    font-family: Helvetica, Arial, sans-serif;
+    color: #2b2118;
+  }
+  .fg-hero {
+    padding: 18px 4px 14px;
+  }
+  .fg-hero h1 {
+    font-size: 22px;
+    margin: 0 0 8px;
+    letter-spacing: -0.4px;
+  }
+  .fg-hero p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #6b5a4a;
+    margin: 0;
+  }
+  .fg-card {
+    background: #fff;
+    border: 1px solid #ece3d8;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 10px rgba(60, 42, 25, 0.07);
+    box-sizing: border-box;
+  }
+
+  /* The drop target. It is the whole left column, so the gesture has a big
+     forgiving area rather than a small button. */
+  .fg-top {
+    display: grid;
+    grid-template-columns: minmax(0, 260px) 1fr;
+    gap: 20px;
+    align-items: stretch;
+  }
+  .fg-drop {
+    border: 2px dashed #ddcdb6;
+    border-radius: 10px;
+    background: #FFFDF9;
+    padding: 16px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    cursor: pointer;
+  }
+  .fg-drop.is-over {
+    border-color: #C77B30;
+    background: #FDF3E3;
+  }
+  .fg-drop b {
+    font-size: 14px;
+    color: #2b2118;
+  }
+  .fg-drop span {
+    font-size: 12.5px;
+    color: #7d6a58;
+    line-height: 1.55;
+  }
+  .fg-or {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #a5947f;
+  }
+  .fg-paste {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    border: 1px solid #e6dccd;
+    border-radius: 6px;
+    padding: 6px 8px;
+    resize: vertical;
+    min-height: 54px;
+    color: #4a3a2a;
+    background: #fff;
+  }
+  .fg-graphic {
+    min-width: 0;
+  }
+  #chart {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    width: 100%;
+  }
+
+  .fg-presets {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 4px 0 0;
+  }
+  .fg-presets .fg-lab {
+    font-size: 12px;
+    color: #7d6a58;
+  }
+  .fg-chipbtn {
+    border: 1px solid #e0d5c6;
+    background: #fff;
+    color: #5b4a38;
+    border-radius: 999px;
+    padding: 3px 11px;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .fg-chipbtn.is-active {
+    background: #C77B30;
+    border-color: #C77B30;
+    color: #fff;
+  }
+
+  /* Controls: the documented options, as knobs. */
+  .fg-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px 18px;
+    border-top: 1px solid #f0e8dd;
+    margin-top: 14px;
+    padding-top: 14px;
+  }
+  .fg-ctl label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #97836c;
+    margin-bottom: 5px;
+  }
+  .fg-ctl label code {
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 11.5px;
+    color: #8A5A20;
+  }
+  .fg-ctl input[type='range'] {
+    width: 100%;
+    accent-color: #C77B30;
+  }
+  .fg-ctl select {
+    width: 100%;
+    font-size: 13px;
+    padding: 4px 6px;
+    border: 1px solid #e0d5c6;
+    border-radius: 6px;
+    background: #fff;
+    color: #4a3a2a;
+  }
+  .fg-seg {
+    display: flex;
+    gap: 0;
+  }
+  .fg-seg button {
+    flex: 1;
+    border: 1px solid #e0d5c6;
+    background: #fff;
+    color: #5b4a38;
+    font-size: 12.5px;
+    padding: 5px 4px;
+    cursor: pointer;
+  }
+  .fg-seg button:first-child {
+    border-radius: 6px 0 0 6px;
+  }
+  .fg-seg button:last-child {
+    border-radius: 0 6px 6px 0;
+    border-left: 0;
+  }
+  .fg-seg button.is-active {
+    background: #FDF3E3;
+    border-color: #C77B30;
+    color: #8A5A20;
+    font-weight: 600;
+  }
+  /* A control group that cannot apply to the current mark. Dimmed AND inert,
+     because a live control that silently does nothing is worse than none. */
+  .fg-seg.is-off {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  .fg-val {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: #2b2118;
+  }
+
+  /* The readout: what the packer actually did with the outline. */
+  .fg-readout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #f0e8dd;
+    font-size: 12.5px;
+    color: #6b5a4a;
+  }
+  .fg-readout b {
+    color: #2b2118;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .fg-warn {
+    margin-top: 12px;
+    background: #FFF6E8;
+    border-left: 3px solid #D98324;
+    border-radius: 2px;
+    padding: 9px 13px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #6b4a1e;
+  }
+  .fg-warn.is-bad {
+    background: #FDEDEA;
+    border-left-color: #C0442B;
+    color: #7a2f1d;
+  }
+  .fg-hide {
+    display: none;
+  }
+
+  /* The emitted snippet. */
+  .fg-code {
+    margin: 18px 0 0;
+    background: #2b2118;
+    color: #f4ece0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.65;
+    white-space: pre;
+  }
+  .fg-code .c {
+    color: #a89b88;
+  }
+  .fg-code .s {
+    color: #E8B87D;
+  }
+  .fg-codehead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 22px 4px 0;
+  }
+  .fg-codehead h2 {
+    font-size: 15px;
+    margin: 0;
+  }
+  .fg-copy {
+    border: 1px solid #e0d5c6;
+    background: #fff;
+    color: #5b4a38;
+    border-radius: 8px;
+    padding: 4px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .fg-note {
+    background: #FDF7EE;
+    border-left: 3px solid #C77B30;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #4a3a2a;
+    border-radius: 2px;
+    line-height: 1.65;
+    margin: 22px 4px 30px;
+  }
+  .fg-note code {
+    background: #F5E7D3;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .fg-note b {
+    color: #2b2118;
+  }
+
+  @media (max-width: 560px) {
+    .fg-top {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<scripts>
+<script src="../../../dist/unit-shapes.js"></script>
+<script>
+// Drop a company logo on the page and it becomes a unit chart. Nothing is
+// uploaded and nothing is stored: the file is read in the page with FileReader,
+// turned into an outline, and handed to `ApexUnitShapes.shapeFrom`, which packs
+// it with the same engine the 39 built-in shapes use. These definitions are
+// shared by the vanilla-js, React and Vue builds.
+
+// ---------------------------------------------------------------------------
+// Turning "some SVG someone exported from a design tool" into ONE outline.
+//
+// Real logo files are not a tidy path in a 0-100 box. They are groups nested
+// four deep, `transform="matrix(...)"` on half of them, circles and rects
+// alongside paths, and often a stroke-only monoline mark with no fill at all.
+// Rather than re-implement a transform stack and an element-to-path converter,
+// this hands the problem to the geometry engine already in the browser:
+//
+//   * every drawable SVG element is an SVGGeometryElement, so it answers
+//     `getTotalLength()` and `getPointAtLength()`. One loop covers path,
+//     circle, ellipse, rect, polygon, polyline and line, and arbitrary curves
+//     come back already flattened.
+//   * `getCTM()` returns the matrix from the element to the root viewport, with
+//     every ancestor transform and the viewBox already folded in, so a sampled
+//     point maps to root coordinates with one `matrixTransform`.
+//
+// The result is a polygon soup in a single coordinate space, which is exactly
+// what the packer wants: `fitBox` normalises whatever box it arrives in, so the
+// numbers themselves do not matter.
+// ---------------------------------------------------------------------------
+var SAMPLE_BUDGET = 2600 // points spread across the whole mark
+
+function svgOutline(markup) {
+  var host = document.createElement('div')
+  // Rendered but off-screen: getCTM() and getPointAtLength() need a live layout,
+  // and `display:none` would return null matrices.
+  host.setAttribute(
+    'style',
+    'position:absolute;left:-99999px;top:0;width:1000px;height:1000px;overflow:hidden'
+  )
+  host.innerHTML = markup
+  document.body.appendChild(host)
+  try {
+    var svg = host.querySelector('svg')
+    if (!svg) return { error: 'No <svg> element found in that file.' }
+
+    var nodes = svg.querySelectorAll(
+      'path,circle,ellipse,rect,polygon,polyline,line'
+    )
+    var geo = []
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i]
+      if (typeof el.getTotalLength !== 'function') continue
+      var len = 0
+      try {
+        len = el.getTotalLength()
+      } catch (e) {
+        continue // a degenerate element (zero-radius circle, empty d)
+      }
+      if (!(len > 0)) continue
+      var cs = window.getComputedStyle(el)
+      if (cs.display === 'none' || Number(cs.opacity) === 0) continue
+      var fill = cs.fill
+      geo.push({
+        el: el,
+        len: len,
+        filled: !!fill && fill !== 'none' && fill !== 'transparent',
+        // A real logo file usually SAYS which rule it wants. Reading it beats
+        // making someone guess with the toggle.
+        rule: cs.fillRule === 'evenodd' ? 'evenodd' : 'nonzero',
+        strokeWidth: parseFloat(cs.strokeWidth) || 0,
+      })
+    }
+    if (!geo.length) return { error: 'That SVG has no drawable shapes in it.' }
+
+    // A logo is either filled artwork or a monoline drawn in strokes. If
+    // anything is filled, the filled parts ARE the mark and the strokes are
+    // trim; if nothing is, the strokes are the mark and their centrelines go to
+    // `strokeFrom` instead.
+    var filled = geo.filter(function (g) {
+      return g.filled
+    })
+    var use = filled.length ? filled : geo
+    var stroked = !filled.length
+    var totalLen = use.reduce(function (s, g) {
+      return s + g.len
+    }, 0)
+
+    var parts = []
+    var widths = []
+    use.forEach(function (g) {
+      // Sample each element in proportion to its length, so a long swooping
+      // curve gets the points and a tiny dot does not.
+      var n = Math.max(10, Math.round((g.len / totalLen) * SAMPLE_BUDGET))
+      var step = g.len / n
+      var m = g.el.getCTM()
+      var k2 = m ? Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) || 1 : 1
+
+      // One `d` can hold several subpaths (the ring and its counter, a dotted
+      // i, every letter of an outlined wordmark), and `getPointAtLength` walks
+      // them end to end without saying where one stops. Sampling straight
+      // through therefore draws a chord ACROSS the gap, and the packer, which
+      // cannot tell that edge from a real one, fills a spoke of dots along it.
+      //
+      // It does not need to be told: arc length does not accrue across the
+      // gap, so the jump appears as a chord far longer than the sampling step.
+      // For any real curve the chord between two samples is at MOST the arc
+      // length between them, so anything past a few steps is a subpath
+      // boundary and starts a new polygon. Distances are compared after the
+      // transform, so the step is scaled by the matrix too.
+      var jump = step * k2 * 3 + 1e-6
+      var poly = []
+      var prev = null
+
+      var flush = function () {
+        // Two points cannot bound an area, and a stray one is noise.
+        if (poly.length < 3) return
+        var d = ''
+        poly.forEach(function (p, i) {
+          d += (i === 0 ? 'M ' : ' L ') + round2(p.x) + ' ' + round2(p.y)
+        })
+        // Close a filled subpath; leave a centreline open, or the stroke
+        // doubles back on itself from finish to start.
+        parts.push(stroked ? d : d + ' Z')
+      }
+
+      for (var k = 0; k <= n; k++) {
+        var p = g.el.getPointAtLength((k / n) * g.len)
+        if (m) p = p.matrixTransform(m)
+        if (prev && Math.hypot(p.x - prev.x, p.y - prev.y) > jump) {
+          flush()
+          poly = []
+        }
+        poly.push({ x: p.x, y: p.y })
+        prev = p
+      }
+      flush()
+
+      if (stroked && g.strokeWidth) {
+        // The stroke width has to travel into the same space as the points.
+        widths.push(g.strokeWidth * k2)
+      }
+    })
+    if (!parts.length) return { error: 'That SVG has no drawable shapes in it.' }
+
+    return {
+      path: parts.join(' '),
+      stroked: stroked,
+      width: widths.length ? median(widths) : 8,
+      // Elements found vs polygons recovered: one <path> holding a ring and its
+      // counter is 1 element and 2 subpaths, and it is the second number that
+      // decides whether the mark has a hole in it.
+      elements: use.length,
+      subpaths: parts.length,
+      // The rule the artwork itself declares, for `apply` to adopt on load.
+      rule: use[0].rule,
+      skipped: geo.length - use.length,
+    }
+  } catch (e) {
+    return { error: 'That file could not be read as SVG (' + e.message + ').' }
+  } finally {
+    document.body.removeChild(host)
+  }
+}
+
+function round2(v) {
+  return Math.round(v * 100) / 100
+}
+
+function median(a) {
+  var s = a.slice().sort(function (x, y) {
+    return x - y
+  })
+  return s[Math.floor(s.length / 2)]
+}
+
+// ---------------------------------------------------------------------------
+// Two marks to start with, both drawn for this sample. The first is the Halo
+// ring from the storyboard sample, nested circles under even-odd; the second is
+// stroke-only, so it takes the `strokeFrom` branch above.
+// ---------------------------------------------------------------------------
+var PRESETS = {
+  // Halo's own mark (the storyboard sample's brand): eight overlapping subpaths
+  // under the DEFAULT nonzero rule, where the handle's finger hole is the loop's
+  // ellipse wound backwards. Try the fillRule toggle on this one: even-odd
+  // treats every overlap as a hole and takes the cup apart.
+  Cup:
+    '<svg viewBox="0 0 100 100"><path fill="#5C3A21" d="' +
+    'M 72 42 L 62 72 C 62 76, 55 77, 46 77 C 37 77, 30 76, 30 72 L 20 42 Z ' +
+    'M 20 42 A 26 7 0 0 1 72 42 A 26 7 0 0 1 20 42 Z ' +
+    'M 38 75 L 54 75 L 57 81.5 L 35 81.5 Z ' +
+    'M 4 86.5 A 42 6.5 0 0 1 88 86.5 A 42 6.5 0 0 1 4 86.5 Z ' +
+    'M 64 58 A 14 11 0 0 1 92 58 A 14 11 0 0 1 64 58 Z ' +
+    'M 74 58 A 7 5 0 0 0 88 58 A 7 5 0 0 0 74 58 Z ' +
+    'M 48 37 C 36 27, 56 19, 47 5 C 50 4, 52 5, 54 7 C 60 19, 44 26, 54 37 ' +
+    'C 52 38, 50 38, 48 37 Z ' +
+    'M 30 36 C 21 28, 35 21, 28 9 C 30 8, 32 9, 34 11 C 39 21, 28 27, 36 36 ' +
+    'C 34 37, 32 37, 30 36 Z' +
+    '" /></svg>',
+  // Three NESTED circles, which is the case even-odd exists for. Under nonzero
+  // they are all wound the same way, so they union into a plain disc: the
+  // counter and the bean vanish. That is the single most common reason a pasted
+  // logo comes out wrong, and the toggle is the fix.
+  'Ring (evenodd)':
+    '<svg viewBox="0 0 100 100">' +
+    '<path fill="#5C3A21" fill-rule="evenodd" d="' +
+    'M 4 50 A 46 46 0 1 1 96 50 A 46 46 0 1 1 4 50 Z ' +
+    'M 20 50 A 30 30 0 1 1 80 50 A 30 30 0 1 1 20 50 Z ' +
+    'M 34.44 60.9 A 19 12 -35 1 1 65.56 39.1 A 19 12 -35 1 1 34.44 60.9 Z' +
+    '" /></svg>',
+  // No fill anywhere, so this one arrives as a centreline plus a width.
+  Current:
+    '<svg viewBox="0 0 100 100">' +
+    '<g transform="translate(2 4) rotate(-4 50 50)">' +
+    '<path fill="none" stroke="#2E8B9A" stroke-width="9" ' +
+    'd="M 6 62 C 26 26, 42 82, 58 46 S 78 20, 92 40" />' +
+    '<path fill="none" stroke="#2E8B9A" stroke-width="9" d="M 20 84 L 82 84" />' +
+    '</g></svg>',
+}
+
+// ---------------------------------------------------------------------------
+// The chart's data is deliberately anonymous: four parts of a whole, so the
+// bands read as bands whatever mark is on screen. The dot-count slider scales
+// these to a target total, which is the honest way to show a repack (more data,
+// not a redrawn shape).
+// ---------------------------------------------------------------------------
+var SPLIT = [0.4, 0.27, 0.15, 0.18]
+var PART_LABELS = ['Part A', 'Part B', 'Part C', 'Part D']
+var PART_COLORS = ['#5C3A21', '#C77B30', '#6F9B4A', '#2E8B9A']
+
+function seriesFor(total) {
+  var out = SPLIT.map(function (f) {
+    return Math.round(total * f)
+  })
+  // Put the rounding error on the biggest part, so the total is exactly asked.
+  out[0] += total - out.reduce(function (s, v) {
+    return s + v
+  }, 0)
+  return out
+}
+
+// What the packer actually did, measured from the positions it returned rather
+// than guessed: dots land on shared row baselines, so grouping by y recovers the
+// rows, and the thinnest rows say whether any part of the mark has thinned to a
+// single file of dots.
+function inspect(shape, count) {
+  var objects = []
+  for (var i = 0; i < count; i++) {
+    objects.push({
+      id: 'u' + i,
+      index: i,
+      seriesIndex: 0,
+      dataPointIndex: i,
+      label: '',
+      datum: null,
+      r: 2,
+    })
+  }
+  var pos = shape(objects, { x: 0, y: 0, width: 620, height: 400 })
+  if (!pos.length) return { placed: 0, rows: 0, thin: 0 }
+  var asc = function (a, b) {
+    return a - b
+  }
+
+  // Dots land on shared row baselines, so grouping by y recovers the rows the
+  // packer cut the outline into.
+  var rows = {}
+  pos.forEach(function (p) {
+    var k = Math.round(p.y * 2) / 2
+    if (!rows[k]) rows[k] = []
+    rows[k].push(p.x)
+  })
+  var keys = Object.keys(rows)
+  keys.forEach(function (k) {
+    rows[k].sort(asc)
+  })
+
+  // Counting dots per ROW is not the measure wanted, and a ring is why: a row
+  // across the middle of one holds a handful on the left and a handful on the
+  // right, and their sum says the mark is comfortably thick when in fact it is
+  // two hairlines. So find the typical dot pitch first, then break each row
+  // where the gap exceeds it, and measure the CONTIGUOUS runs.
+  var gaps = []
+  keys.forEach(function (k) {
+    var xs = rows[k]
+    for (var i = 1; i < xs.length; i++) gaps.push(xs[i] - xs[i - 1])
+  })
+  gaps.sort(asc)
+  var pitch = gaps.length ? gaps[Math.floor(gaps.length * 0.5)] : 0
+
+  var runs = []
+  keys.forEach(function (k) {
+    var xs = rows[k]
+    var run = 1
+    for (var i = 1; i < xs.length; i++) {
+      if (pitch > 0 && xs[i] - xs[i - 1] > pitch * 1.8) {
+        runs.push(run)
+        run = 1
+      } else {
+        run++
+      }
+    }
+    runs.push(run)
+  })
+  runs.sort(asc)
+
+  return {
+    placed: pos.length,
+    rows: keys.length,
+    // 10th percentile, not the minimum: the top and bottom row of any rounded
+    // mark legitimately holds one dot, so the minimum is always 1 and says
+    // nothing.
+    thin: runs[Math.floor(runs.length * 0.1)] || 0,
+  }
+}
+</script>
+</scripts>
+
+<html>
+<div class="fg-wrap">
+  <div class="fg-hero">
+    <h1>The Logo Forge</h1>
+    <p>
+      Drop your company's <code>.svg</code> logo anywhere on the panel below and
+      it becomes a unit chart: your mark, drawn out of your numbers, one dot per
+      unit. Nothing is uploaded. The file is read in this page, sampled into an
+      outline, and handed to <code>shapeFrom</code>, which packs it with the same
+      engine the 39 built-in shapes use. Then the controls are the documented
+      options, so you can find the settings your mark needs before you write a
+      line of it.
+    </p>
+  </div>
+
+  <div class="fg-card" id="fg-card">
+    <div class="fg-top">
+      <div class="fg-drop" id="fg-drop">
+        <b>Drop an SVG logo here</b>
+        <span>or click to choose a file. It never leaves your browser.</span>
+        <span class="fg-or">or paste markup</span>
+        <textarea
+          class="fg-paste"
+          id="fg-paste"
+          spellcheck="false"
+          placeholder="&lt;svg viewBox=&quot;0 0 24 24&quot;&gt;&lt;path d=&quot;M12 2 L22 22 L2 22 Z&quot;/&gt;&lt;/svg&gt;"
+        ></textarea>
+        <input type="file" id="fg-file" accept=".svg,image/svg+xml" class="fg-hide" />
+      </div>
+
+      <div class="fg-graphic">
+        {{ charts[0] }}
+        <div class="fg-presets">
+          <span class="fg-lab">Or try:</span>
+          <button class="fg-chipbtn is-active" type="button" data-preset="Cup">Cup</button>
+          <button class="fg-chipbtn" type="button" data-preset="Ring (evenodd)">Ring</button>
+          <button class="fg-chipbtn" type="button" data-preset="Current">Current</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="fg-controls">
+      <div class="fg-ctl">
+        <label for="fg-count">Dots <span class="fg-val" id="fg-count-val">1,200</span></label>
+        <input type="range" id="fg-count" min="150" max="4000" step="50" value="1200" />
+      </div>
+      <div class="fg-ctl">
+        <label><code>fillRule</code></label>
+        <div class="fg-seg" id="fg-rule">
+          <button type="button" data-rule="nonzero" class="is-active">nonzero</button>
+          <button type="button" data-rule="evenodd">evenodd</button>
+        </div>
+      </div>
+      <div class="fg-ctl">
+        <label for="fg-order"><code>order</code> (which slots go first)</label>
+        <select id="fg-order">
+          <option value="rows">rows</option>
+          <option value="rowsUp">rowsUp</option>
+          <option value="cols">cols</option>
+          <option value="centerOut">centerOut</option>
+          <option value="centerIn">centerIn</option>
+        </select>
+      </div>
+      <div class="fg-ctl">
+        <label>Solid or traced</label>
+        <div class="fg-seg" id="fg-hollow">
+          <button type="button" data-hollow="0" class="is-active">filled</button>
+          <button type="button" data-hollow="1">outlined()</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="fg-readout">
+      <div>Source: <b id="fg-src">Halo (preset)</b></div>
+      <div>Subpaths sampled: <b id="fg-els">1</b></div>
+      <div>Dots placed: <b id="fg-placed">0</b></div>
+      <div>Rows: <b id="fg-rows">0</b></div>
+      <div>Thinnest run: <b id="fg-thin">0</b> dots</div>
+    </div>
+    <div class="fg-warn fg-hide" id="fg-warn"></div>
+  </div>
+
+  <div class="fg-codehead">
+    <h2>The code for the mark on screen</h2>
+    <button class="fg-copy" id="fg-copy" type="button">Copy</button>
+  </div>
+  <pre class="fg-code" id="fg-code"></pre>
+
+  <div class="fg-note">
+    <b>What to expect from your own file.</b> The fill rule is loaded from your
+    artwork when it declares one, so most files land right the first time; the
+    toggle is for the ones that do not, and it is the first thing to try when a
+    mark arrives wrong. The two rules fail in opposite directions, and the
+    presets show both: <b>nonzero</b> (the default) unions overlapping subpaths
+    and needs a hole wound the opposite way round, so the nested Ring collapses
+    into a plain disc under it. <b>evenodd</b> decides by nesting alone, which
+    suits that ring, but treats every OVERLAP as a hole, so it takes the Cup
+    apart at the seams where its rim and handle meet the body. A stroke-only monoline logo has no interior to fill, so it is routed to
+    <code>strokeFrom</code> and its centrelines are thickened instead. Text is
+    the one thing that will not work: a wordmark still in a <code>&lt;text&gt;</code>
+    element has no geometry to sample, so convert it to outlines in your design
+    tool first. Watch the <b>thinnest run</b> readout as you pull the dot count
+    down: the number of dots at which your mark stops being your mark is exactly
+    what <code>minUnits</code> is for. For what to then do with the mark once it
+    packs cleanly, the <b>Your logo, made of your numbers</b> sample takes one
+    through a five-beat story. Needs the
+    <code>apexcharts/unit-shapes</code> build. The unit chart is a premium type;
+    without a license it renders with a trial watermark.
+  </div>
+</div>
+</html>
+
+<chart>
+<options>
+chart: {
+  id: 'logoForge',
+  type: 'unit',
+  height: 400,
+  fontFamily: 'Helvetica, Arial, sans-serif',
+  animations: {
+    enabled: true,
+    speed: 700,
+  },
+  toolbar: { show: false },
+},
+labels: ['Part A', 'Part B', 'Part C', 'Part D'],
+colors: ['#5C3A21', '#C77B30', '#6F9B4A', '#2E8B9A'],
+legend: {
+  position: 'bottom',
+},
+plotOptions: {
+  unit: {
+    layout: 'custom',
+    // Replaced on every change by the forge below; the initial value is the
+    // Halo preset, built in the same way a dropped file is.
+    positions: undefined,
+    // 'identity' would need per-datum ids; 'flow' keys the dots by global order,
+    // so the same crowd migrates from one mark into the next instead of being
+    // rebuilt, which is what makes swapping logos feel like one continuous
+    // object rather than a slideshow.
+    transition: 'flow',
+    size: 2.2,
+    clusterLabels: {
+      show: false,
+    },
+  },
+},
+</options>
+
+<series>
+[480, 324, 180, 216]
+</series>
+</chart>
+
+<vanilla-js-script>
+// (svgOutline, PRESETS, seriesFor and inspect live in the shared head script.)
+var state = {
+  markup: PRESETS.Cup,
+  source: 'Cup (preset)',
+  count: 1200,
+  rule: 'nonzero',
+  order: 'rows',
+  hollow: false,
+  adoptRule: true,
+}
+
+var el = {
+  drop: document.getElementById('fg-drop'),
+  file: document.getElementById('fg-file'),
+  paste: document.getElementById('fg-paste'),
+  count: document.getElementById('fg-count'),
+  countVal: document.getElementById('fg-count-val'),
+  order: document.getElementById('fg-order'),
+  rule: document.getElementById('fg-rule'),
+  hollow: document.getElementById('fg-hollow'),
+  src: document.getElementById('fg-src'),
+  els: document.getElementById('fg-els'),
+  placed: document.getElementById('fg-placed'),
+  rows: document.getElementById('fg-rows'),
+  thin: document.getElementById('fg-thin'),
+  warn: document.getElementById('fg-warn'),
+  code: document.getElementById('fg-code'),
+  copy: document.getElementById('fg-copy'),
+}
+
+function commas(n) {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+}
+
+var lastSnippet = ''
+
+// Build the shape from the current markup + controls, push it into the chart,
+// and report what the packer made of it.
+function apply() {
+  var out = svgOutline(state.markup)
+  if (out.error) {
+    el.warn.className = 'fg-warn is-bad'
+    el.warn.textContent = out.error
+    return
+  }
+
+  // A newly loaded mark adopts the fill rule its own artwork declares; an
+  // explicit click on the toggle is never overridden.
+  if (state.adoptRule) {
+    state.adoptRule = false
+    if (out.rule && !out.stroked) {
+      state.rule = out.rule
+      el.rule.querySelectorAll('button').forEach(function (x) {
+        x.classList.toggle('is-active', x.getAttribute('data-rule') === state.rule)
+      })
+    }
+  }
+
+  var opts = { name: 'mine' }
+  var shape
+  if (out.stroked) {
+    // No fill anywhere in the file: the strokes ARE the mark.
+    opts.width = out.width
+    opts.order = state.order
+    shape = ApexUnitShapes.strokeFrom(out.path, opts)
+  } else {
+    opts.fillRule = state.rule
+    opts.order = state.order
+    shape = ApexUnitShapes.shapeFrom(out.path, opts)
+    if (state.hollow) shape = ApexUnitShapes.outlined(shape, 7)
+  }
+
+  // A stroke-only mark has no interior, so fillRule and outlined() have
+  // nothing to act on. Dim them rather than leave them live and inert.
+  el.rule.classList.toggle('is-off', out.stroked)
+  el.hollow.classList.toggle('is-off', out.stroked)
+
+  var stats = inspect(shape, state.count)
+
+  var chart = ApexCharts.getChartByID('logoForge')
+  chart.updateOptions(
+    {
+      series: seriesFor(state.count),
+      plotOptions: { unit: { layout: 'custom', positions: shape } },
+    },
+    false,
+    true
+  )
+
+  el.src.textContent = state.source
+  el.els.textContent = commas(out.subpaths) + ' from ' + commas(out.elements) + (out.stroked ? ' stroke el.' : ' el.')
+  el.placed.textContent = commas(stats.placed)
+  el.rows.textContent = commas(stats.rows)
+  el.thin.textContent = commas(stats.thin)
+
+  // The readability warning, from the measurement rather than from taste.
+  if (stats.placed < state.count) {
+    el.warn.className = 'fg-warn is-bad'
+    el.warn.textContent =
+      'Only ' + commas(stats.placed) + ' of ' + commas(state.count) +
+      ' dots found a slot. The outline is probably not closed, or it is so thin' +
+      ' at this dot count that whole rows hold nothing.'
+  } else if (stats.thin <= 1) {
+    el.warn.className = 'fg-warn'
+    el.warn.textContent =
+      'Parts of this mark are down to a single file of dots. Raise the dot' +
+      ' count, or set minUnits to about ' + commas(Math.round(state.count * 2.2)) +
+      ' so the chart warns instead of drawing mush.'
+  } else if (stats.thin <= 2) {
+    el.warn.className = 'fg-warn'
+    el.warn.textContent =
+      'Thin, but still reading: two dots across at the narrowest. This is about' +
+      ' the floor for this mark, so it is a fair value for minUnits.'
+  } else {
+    el.warn.className = 'fg-warn fg-hide'
+  }
+
+  emit(out, stats)
+}
+
+// The snippet is the real thing, including the sampled outline, because that is
+// what actually got packed.
+function emit(out, stats) {
+  var d = out.path
+  var shown = d.length > 200 ? d.slice(0, 200) + ' ...' : d
+  var fn = out.stroked ? 'strokeFrom' : 'shapeFrom'
+  var opts = out.stroked
+    ? "  width: " + round2(out.width) + ",\n"
+    : "  fillRule: '" + state.rule + "',\n"
+  var minU = Math.max(100, Math.round(state.count * (stats.thin <= 2 ? 1 : 0.5)))
+
+  lastSnippet =
+    "import ApexCharts from 'apexcharts'\n" +
+    "import { " + fn + " } from 'apexcharts/unit-shapes'\n\n" +
+    '// ' + out.subpaths + ' subpath(s) sampled from ' + state.source + '\n' +
+    'const MY_LOGO = ' + JSON.stringify(shown) + '\n\n' +
+    'const mine = ' + fn + '(MY_LOGO, {\n' +
+    opts +
+    "  order: '" + state.order + "',\n" +
+    '  minUnits: ' + minU + ',\n' +
+    '})\n\n' +
+    'new ApexCharts(host, {\n' +
+    "  chart: { type: 'unit' },\n" +
+    '  series: [' + seriesFor(state.count).join(', ') + '],\n' +
+    '  labels: ' + JSON.stringify(PART_LABELS) + ',\n' +
+    "  plotOptions: { unit: { layout: 'custom', positions: mine } },\n" +
+    '}).render()'
+
+  el.code.innerHTML = esc(lastSnippet)
+    .replace(/^(\/\/.*)$/gm, '<span class="c">$1</span>')
+    .replace(/(&quot;|')((?:[^'&]|&(?!quot;))*)\1/g, function (m) {
+      return '<span class="s">' + m + '</span>'
+    })
+}
+
+function load(markup, label) {
+  state.markup = markup
+  state.source = label
+  state.adoptRule = true
+  document.querySelectorAll('[data-preset]').forEach(function (b) {
+    b.classList.toggle('is-active', b.getAttribute('data-preset') === label)
+  })
+  apply()
+}
+
+// --- the drop gesture -------------------------------------------------------
+function readFile(file) {
+  if (!file) return
+  var reader = new FileReader()
+  reader.onload = function () {
+    load(String(reader.result), file.name)
+  }
+  reader.readAsText(file)
+}
+
+;['dragenter', 'dragover'].forEach(function (ev) {
+  el.drop.addEventListener(ev, function (e) {
+    e.preventDefault()
+    el.drop.classList.add('is-over')
+  })
+})
+;['dragleave', 'drop'].forEach(function (ev) {
+  el.drop.addEventListener(ev, function (e) {
+    e.preventDefault()
+    el.drop.classList.remove('is-over')
+  })
+})
+el.drop.addEventListener('drop', function (e) {
+  var dt = e.dataTransfer
+  if (dt && dt.files && dt.files.length) readFile(dt.files[0])
+})
+// The whole panel is the target, but the textarea inside it has to stay usable.
+el.drop.addEventListener('click', function (e) {
+  if (e.target !== el.paste) el.file.click()
+})
+el.file.addEventListener('change', function () {
+  readFile(el.file.files[0])
+})
+el.paste.addEventListener('input', function () {
+  var v = el.paste.value.trim()
+  if (v.indexOf('<svg') !== -1) load(v, 'pasted markup')
+})
+
+// --- the controls -----------------------------------------------------------
+el.count.addEventListener('input', function () {
+  state.count = Number(el.count.value)
+  el.countVal.textContent = commas(state.count)
+  apply()
+})
+el.order.addEventListener('change', function () {
+  state.order = el.order.value
+  apply()
+})
+el.rule.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-rule]')
+  if (!b) return
+  state.rule = b.getAttribute('data-rule')
+  el.rule.querySelectorAll('button').forEach(function (x) {
+    x.classList.toggle('is-active', x === b)
+  })
+  apply()
+})
+el.hollow.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-hollow]')
+  if (!b) return
+  state.hollow = b.getAttribute('data-hollow') === '1'
+  el.hollow.querySelectorAll('button').forEach(function (x) {
+    x.classList.toggle('is-active', x === b)
+  })
+  apply()
+})
+document.querySelectorAll('[data-preset]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var name = b.getAttribute('data-preset')
+    load(PRESETS[name], name)
+  })
+})
+el.copy.addEventListener('click', function () {
+  if (navigator.clipboard) navigator.clipboard.writeText(lastSnippet)
+  el.copy.textContent = 'Copied'
+  window.setTimeout(function () {
+    el.copy.textContent = 'Copy'
+  }, 1400)
+})
+
+// The chart mounts with `positions: undefined`, so the forge supplies the first
+// shape as soon as it is on screen.
+apply()
+</vanilla-js-script>
+
+<react-script>
+React.useEffect(() => {
+  // The react-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the same forge the vanilla build does. (svgOutline,
+  // PRESETS, seriesFor and inspect live in the shared head script.) The forge
+  // drives the chart instance directly, so no React state changes and the
+  // <ReactApexChart> is never re-rendered under it.
+  const timer = window.setInterval(() => {
+    if (!ApexCharts.getChartByID('logoForge')) return
+    window.clearInterval(timer)
+
+    const state = {
+      markup: PRESETS.Cup,
+      source: 'Cup (preset)',
+      count: 1200,
+      rule: 'nonzero',
+      order: 'rows',
+      hollow: false,
+      adoptRule: true,
+    }
+    const el = {
+      drop: document.getElementById('fg-drop'),
+      file: document.getElementById('fg-file'),
+      paste: document.getElementById('fg-paste'),
+      count: document.getElementById('fg-count'),
+      countVal: document.getElementById('fg-count-val'),
+      order: document.getElementById('fg-order'),
+      rule: document.getElementById('fg-rule'),
+      hollow: document.getElementById('fg-hollow'),
+      src: document.getElementById('fg-src'),
+      els: document.getElementById('fg-els'),
+      placed: document.getElementById('fg-placed'),
+      rows: document.getElementById('fg-rows'),
+      thin: document.getElementById('fg-thin'),
+      warn: document.getElementById('fg-warn'),
+      code: document.getElementById('fg-code'),
+      copy: document.getElementById('fg-copy'),
+    }
+    const commas = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    let lastSnippet = ''
+
+    const emit = (out, stats) => {
+      const d = out.path
+      const shown = d.length > 200 ? d.slice(0, 200) + ' ...' : d
+      const fn = out.stroked ? 'strokeFrom' : 'shapeFrom'
+      const opts = out.stroked
+        ? '  width: ' + round2(out.width) + ',\n'
+        : "  fillRule: '" + state.rule + "',\n"
+      const minU = Math.max(100, Math.round(state.count * (stats.thin <= 2 ? 1 : 0.5)))
+      lastSnippet =
+        "import ApexCharts from 'apexcharts'\n" +
+        'import { ' + fn + " } from 'apexcharts/unit-shapes'\n\n" +
+        '// ' + out.subpaths + ' subpath(s) sampled from ' + state.source + '\n' +
+        'const MY_LOGO = ' + JSON.stringify(shown) + '\n\n' +
+        'const mine = ' + fn + '(MY_LOGO, {\n' +
+        opts +
+        "  order: '" + state.order + "',\n" +
+        '  minUnits: ' + minU + ',\n' +
+        '})\n\n' +
+        'new ApexCharts(host, {\n' +
+        "  chart: { type: 'unit' },\n" +
+        '  series: [' + seriesFor(state.count).join(', ') + '],\n' +
+        '  labels: ' + JSON.stringify(PART_LABELS) + ',\n' +
+        "  plotOptions: { unit: { layout: 'custom', positions: mine } },\n" +
+        '}).render()'
+      el.code.innerHTML = esc(lastSnippet)
+        .replace(/^(\/\/.*)$/gm, '<span class="c">$1</span>')
+        .replace(/(&quot;|')((?:[^'&]|&(?!quot;))*)\1/g, (m) => '<span class="s">' + m + '</span>')
+    }
+
+    const apply = () => {
+      const out = svgOutline(state.markup)
+      if (out.error) {
+        el.warn.className = 'fg-warn is-bad'
+        el.warn.textContent = out.error
+        return
+      }
+      // A newly loaded mark adopts the fill rule its own artwork declares; an
+      // explicit click on the toggle is never overridden.
+      if (state.adoptRule) {
+        state.adoptRule = false
+        if (out.rule && !out.stroked) {
+          state.rule = out.rule
+          el.rule.querySelectorAll('button').forEach(function (x) {
+            x.classList.toggle('is-active', x.getAttribute('data-rule') === state.rule)
+          })
+        }
+      }
+      const opts = { name: 'mine', order: state.order }
+      let shape
+      if (out.stroked) {
+        opts.width = out.width
+        shape = ApexUnitShapes.strokeFrom(out.path, opts)
+      } else {
+        opts.fillRule = state.rule
+        shape = ApexUnitShapes.shapeFrom(out.path, opts)
+        if (state.hollow) shape = ApexUnitShapes.outlined(shape, 7)
+      }
+      // A stroke-only mark has no interior, so fillRule and outlined() have
+      // nothing to act on. Dim them rather than leave them live and inert.
+      el.rule.classList.toggle('is-off', out.stroked)
+      el.hollow.classList.toggle('is-off', out.stroked)
+
+      const stats = inspect(shape, state.count)
+      ApexCharts.getChartByID('logoForge').updateOptions(
+        {
+          series: seriesFor(state.count),
+          plotOptions: { unit: { layout: 'custom', positions: shape } },
+        },
+        false,
+        true
+      )
+      el.src.textContent = state.source
+      el.els.textContent = commas(out.subpaths) + ' from ' + commas(out.elements) + (out.stroked ? ' stroke el.' : ' el.')
+      el.placed.textContent = commas(stats.placed)
+      el.rows.textContent = commas(stats.rows)
+      el.thin.textContent = commas(stats.thin)
+      if (stats.placed < state.count) {
+        el.warn.className = 'fg-warn is-bad'
+        el.warn.textContent =
+          'Only ' + commas(stats.placed) + ' of ' + commas(state.count) +
+          ' dots found a slot. The outline is probably not closed, or it is so thin' +
+          ' at this dot count that whole rows hold nothing.'
+      } else if (stats.thin <= 1) {
+        el.warn.className = 'fg-warn'
+        el.warn.textContent =
+          'Parts of this mark are down to a single file of dots. Raise the dot' +
+          ' count, or set minUnits to about ' + commas(Math.round(state.count * 2.2)) +
+          ' so the chart warns instead of drawing mush.'
+      } else if (stats.thin <= 2) {
+        el.warn.className = 'fg-warn'
+        el.warn.textContent =
+          'Thin, but still reading: two dots across at the narrowest. This is about' +
+          ' the floor for this mark, so it is a fair value for minUnits.'
+      } else {
+        el.warn.className = 'fg-warn fg-hide'
+      }
+      emit(out, stats)
+    }
+
+    const load = (markup, label) => {
+      state.markup = markup
+      state.source = label
+      state.adoptRule = true
+      document.querySelectorAll('[data-preset]').forEach((b) => {
+        b.classList.toggle('is-active', b.getAttribute('data-preset') === label)
+      })
+      apply()
+    }
+    const readFile = (file) => {
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = () => load(String(reader.result), file.name)
+      reader.readAsText(file)
+    }
+
+    ;['dragenter', 'dragover'].forEach((ev) =>
+      el.drop.addEventListener(ev, (e) => {
+        e.preventDefault()
+        el.drop.classList.add('is-over')
+      })
+    )
+    ;['dragleave', 'drop'].forEach((ev) =>
+      el.drop.addEventListener(ev, (e) => {
+        e.preventDefault()
+        el.drop.classList.remove('is-over')
+      })
+    )
+    el.drop.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer
+      if (dt && dt.files && dt.files.length) readFile(dt.files[0])
+    })
+    el.drop.addEventListener('click', (e) => {
+      if (e.target !== el.paste) el.file.click()
+    })
+    el.file.addEventListener('change', () => readFile(el.file.files[0]))
+    el.paste.addEventListener('input', () => {
+      const v = el.paste.value.trim()
+      if (v.indexOf('<svg') !== -1) load(v, 'pasted markup')
+    })
+    el.count.addEventListener('input', () => {
+      state.count = Number(el.count.value)
+      el.countVal.textContent = commas(state.count)
+      apply()
+    })
+    el.order.addEventListener('change', () => {
+      state.order = el.order.value
+      apply()
+    })
+    el.rule.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-rule]')
+      if (!b) return
+      state.rule = b.getAttribute('data-rule')
+      el.rule.querySelectorAll('button').forEach((x) => x.classList.toggle('is-active', x === b))
+      apply()
+    })
+    el.hollow.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-hollow]')
+      if (!b) return
+      state.hollow = b.getAttribute('data-hollow') === '1'
+      el.hollow.querySelectorAll('button').forEach((x) => x.classList.toggle('is-active', x === b))
+      apply()
+    })
+    document.querySelectorAll('[data-preset]').forEach((b) => {
+      b.addEventListener('click', () => load(PRESETS[b.getAttribute('data-preset')], b.getAttribute('data-preset')))
+    })
+    el.copy.addEventListener('click', () => {
+      if (navigator.clipboard) navigator.clipboard.writeText(lastSnippet)
+      el.copy.textContent = 'Copied'
+      window.setTimeout(() => {
+        el.copy.textContent = 'Copy'
+      }, 1400)
+    })
+
+    apply()
+  }, 50)
+
+  return () => window.clearInterval(timer)
+}, [])
+</react-script>
+
+<vue-data>
+logoForge: null,
+</vue-data>
+
+<vue-script>
+mounted: function () {
+  // The vue-apexcharts wrapper owns the render, so reach the live instance by
+  // its chart.id, then wire the same forge the vanilla build does. (svgOutline,
+  // PRESETS, seriesFor and inspect live in the shared head script.) The forge
+  // drives the chart instance directly, so no reactive data changes and the
+  // <apexchart> is never re-rendered under it.
+  var me = this
+  var timer = window.setInterval(function () {
+    var chart = ApexCharts.getChartByID('logoForge')
+    if (!chart) return
+    window.clearInterval(timer)
+    me.logoForge = chart
+
+    var state = {
+      markup: PRESETS.Cup,
+      source: 'Cup (preset)',
+      count: 1200,
+      rule: 'nonzero',
+      order: 'rows',
+      hollow: false,
+      adoptRule: true,
+    }
+    var el = {
+      drop: document.getElementById('fg-drop'),
+      file: document.getElementById('fg-file'),
+      paste: document.getElementById('fg-paste'),
+      count: document.getElementById('fg-count'),
+      countVal: document.getElementById('fg-count-val'),
+      order: document.getElementById('fg-order'),
+      rule: document.getElementById('fg-rule'),
+      hollow: document.getElementById('fg-hollow'),
+      src: document.getElementById('fg-src'),
+      els: document.getElementById('fg-els'),
+      placed: document.getElementById('fg-placed'),
+      rows: document.getElementById('fg-rows'),
+      thin: document.getElementById('fg-thin'),
+      warn: document.getElementById('fg-warn'),
+      code: document.getElementById('fg-code'),
+      copy: document.getElementById('fg-copy'),
+    }
+    function commas(n) {
+      return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    }
+    function esc(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    }
+    var lastSnippet = ''
+
+    function emit(out, stats) {
+      var d = out.path
+      var shown = d.length > 200 ? d.slice(0, 200) + ' ...' : d
+      var fn = out.stroked ? 'strokeFrom' : 'shapeFrom'
+      var opts = out.stroked
+        ? '  width: ' + round2(out.width) + ',\n'
+        : "  fillRule: '" + state.rule + "',\n"
+      var minU = Math.max(100, Math.round(state.count * (stats.thin <= 2 ? 1 : 0.5)))
+      lastSnippet =
+        "import ApexCharts from 'apexcharts'\n" +
+        'import { ' + fn + " } from 'apexcharts/unit-shapes'\n\n" +
+        '// ' + out.subpaths + ' subpath(s) sampled from ' + state.source + '\n' +
+        'const MY_LOGO = ' + JSON.stringify(shown) + '\n\n' +
+        'const mine = ' + fn + '(MY_LOGO, {\n' +
+        opts +
+        "  order: '" + state.order + "',\n" +
+        '  minUnits: ' + minU + ',\n' +
+        '})\n\n' +
+        'new ApexCharts(host, {\n' +
+        "  chart: { type: 'unit' },\n" +
+        '  series: [' + seriesFor(state.count).join(', ') + '],\n' +
+        '  labels: ' + JSON.stringify(PART_LABELS) + ',\n' +
+        "  plotOptions: { unit: { layout: 'custom', positions: mine } },\n" +
+        '}).render()'
+      el.code.innerHTML = esc(lastSnippet)
+        .replace(/^(\/\/.*)$/gm, '<span class="c">$1</span>')
+        .replace(/(&quot;|')((?:[^'&]|&(?!quot;))*)\1/g, function (m) {
+          return '<span class="s">' + m + '</span>'
+        })
+    }
+
+    function apply() {
+      var out = svgOutline(state.markup)
+      if (out.error) {
+        el.warn.className = 'fg-warn is-bad'
+        el.warn.textContent = out.error
+        return
+      }
+      // A newly loaded mark adopts the fill rule its own artwork declares; an
+      // explicit click on the toggle is never overridden.
+      if (state.adoptRule) {
+        state.adoptRule = false
+        if (out.rule && !out.stroked) {
+          state.rule = out.rule
+          el.rule.querySelectorAll('button').forEach(function (x) {
+            x.classList.toggle('is-active', x.getAttribute('data-rule') === state.rule)
+          })
+        }
+      }
+      var opts = { name: 'mine', order: state.order }
+      var shape
+      if (out.stroked) {
+        opts.width = out.width
+        shape = ApexUnitShapes.strokeFrom(out.path, opts)
+      } else {
+        opts.fillRule = state.rule
+        shape = ApexUnitShapes.shapeFrom(out.path, opts)
+        if (state.hollow) shape = ApexUnitShapes.outlined(shape, 7)
+      }
+      // A stroke-only mark has no interior, so fillRule and outlined() have
+      // nothing to act on. Dim them rather than leave them live and inert.
+      el.rule.classList.toggle('is-off', out.stroked)
+      el.hollow.classList.toggle('is-off', out.stroked)
+
+      var stats = inspect(shape, state.count)
+      chart.updateOptions(
+        {
+          series: seriesFor(state.count),
+          plotOptions: { unit: { layout: 'custom', positions: shape } },
+        },
+        false,
+        true
+      )
+      el.src.textContent = state.source
+      el.els.textContent = commas(out.subpaths) + ' from ' + commas(out.elements) + (out.stroked ? ' stroke el.' : ' el.')
+      el.placed.textContent = commas(stats.placed)
+      el.rows.textContent = commas(stats.rows)
+      el.thin.textContent = commas(stats.thin)
+      if (stats.placed < state.count) {
+        el.warn.className = 'fg-warn is-bad'
+        el.warn.textContent =
+          'Only ' + commas(stats.placed) + ' of ' + commas(state.count) +
+          ' dots found a slot. The outline is probably not closed, or it is so thin' +
+          ' at this dot count that whole rows hold nothing.'
+      } else if (stats.thin <= 1) {
+        el.warn.className = 'fg-warn'
+        el.warn.textContent =
+          'Parts of this mark are down to a single file of dots. Raise the dot' +
+          ' count, or set minUnits to about ' + commas(Math.round(state.count * 2.2)) +
+          ' so the chart warns instead of drawing mush.'
+      } else if (stats.thin <= 2) {
+        el.warn.className = 'fg-warn'
+        el.warn.textContent =
+          'Thin, but still reading: two dots across at the narrowest. This is about' +
+          ' the floor for this mark, so it is a fair value for minUnits.'
+      } else {
+        el.warn.className = 'fg-warn fg-hide'
+      }
+      emit(out, stats)
+    }
+
+    function load(markup, label) {
+      state.markup = markup
+      state.source = label
+      state.adoptRule = true
+      document.querySelectorAll('[data-preset]').forEach(function (b) {
+        b.classList.toggle('is-active', b.getAttribute('data-preset') === label)
+      })
+      apply()
+    }
+    function readFile(file) {
+      if (!file) return
+      var reader = new FileReader()
+      reader.onload = function () {
+        load(String(reader.result), file.name)
+      }
+      reader.readAsText(file)
+    }
+
+    ;['dragenter', 'dragover'].forEach(function (ev) {
+      el.drop.addEventListener(ev, function (e) {
+        e.preventDefault()
+        el.drop.classList.add('is-over')
+      })
+    })
+    ;['dragleave', 'drop'].forEach(function (ev) {
+      el.drop.addEventListener(ev, function (e) {
+        e.preventDefault()
+        el.drop.classList.remove('is-over')
+      })
+    })
+    el.drop.addEventListener('drop', function (e) {
+      var dt = e.dataTransfer
+      if (dt && dt.files && dt.files.length) readFile(dt.files[0])
+    })
+    el.drop.addEventListener('click', function (e) {
+      if (e.target !== el.paste) el.file.click()
+    })
+    el.file.addEventListener('change', function () {
+      readFile(el.file.files[0])
+    })
+    el.paste.addEventListener('input', function () {
+      var v = el.paste.value.trim()
+      if (v.indexOf('<svg') !== -1) load(v, 'pasted markup')
+    })
+    el.count.addEventListener('input', function () {
+      state.count = Number(el.count.value)
+      el.countVal.textContent = commas(state.count)
+      apply()
+    })
+    el.order.addEventListener('change', function () {
+      state.order = el.order.value
+      apply()
+    })
+    el.rule.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-rule]')
+      if (!b) return
+      state.rule = b.getAttribute('data-rule')
+      el.rule.querySelectorAll('button').forEach(function (x) {
+        x.classList.toggle('is-active', x === b)
+      })
+      apply()
+    })
+    el.hollow.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-hollow]')
+      if (!b) return
+      state.hollow = b.getAttribute('data-hollow') === '1'
+      el.hollow.querySelectorAll('button').forEach(function (x) {
+        x.classList.toggle('is-active', x === b)
+      })
+      apply()
+    })
+    document.querySelectorAll('[data-preset]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var name = b.getAttribute('data-preset')
+        load(PRESETS[name], name)
+      })
+    })
+    el.copy.addEventListener('click', function () {
+      if (navigator.clipboard) navigator.clipboard.writeText(lastSnippet)
+      el.copy.textContent = 'Copied'
+      window.setTimeout(function () {
+        el.copy.textContent = 'Copy'
+      }, 1400)
+    })
+
+    apply()
+  }, 50)
+},
+</vue-script>
