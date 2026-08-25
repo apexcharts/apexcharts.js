@@ -97,20 +97,30 @@ describe('virtualization activation', () => {
     chart.destroy()
   })
 
-  it('virtualize: false renders 70 panels eagerly, with a warning', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const { chart } = await renderVirtualTrellis({
-      panels: 70,
-      trellis: { virtualize: false },
-    })
-    expect(chart.trellis._virtualActive).toBe(false)
-    expect(mountedCount(chart)).toBe(70)
-    expect(
-      warn.mock.calls.some((c) => String(c[0]).includes('renders eagerly')),
-    ).toBe(true)
-    warn.mockRestore()
-    chart.destroy()
-  })
+  // The heaviest test in the suite by a wide margin: it opts OUT of
+  // virtualization at 70 panels, so it mounts 70 real chart instances in
+  // jsdom. ~1.5s alone, ~3.3s under full-suite parallelism, and roughly 8x
+  // that on the publish runner — which is how it timed out in CI and blocked
+  // the 7.0.0-rc.1 publish. Its own budget, rather than dragging the global
+  // one up to fit it.
+  it(
+    'virtualize: false renders 70 panels eagerly, with a warning',
+    async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const { chart } = await renderVirtualTrellis({
+        panels: 70,
+        trellis: { virtualize: false },
+      })
+      expect(chart.trellis._virtualActive).toBe(false)
+      expect(mountedCount(chart)).toBe(70)
+      expect(
+        warn.mock.calls.some((c) => String(c[0]).includes('renders eagerly')),
+      ).toBe(true)
+      warn.mockRestore()
+      chart.destroy()
+    },
+    60000,
+  )
 
   it('virtualize: true virtualizes even a small grid', async () => {
     const { chart } = await renderVirtualTrellis({ panels: 6 })

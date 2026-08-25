@@ -39,6 +39,19 @@ export default defineConfig({
         lines: 67,
       },
     },
+    // Vitest's 5s default is really an assertion about how fast the machine
+    // is, and most of this suite mounts real charts in jsdom, so the cost
+    // tracks the runner rather than the code. The publish job measured 166s
+    // for a suite that takes ~21s on a dev machine — 8x — which is enough to
+    // put any test over ~600ms locally past a 5s budget. That is exactly how
+    // the 7.0.0-rc.1 publish failed: `trellis-virtual` timed out in CI having
+    // never been slow anywhere else, and it blocked the release rather than
+    // reporting a defect.
+    //
+    // 20s covers the ~900ms-under-load tier with room to spare. The one test
+    // that genuinely earns more (70 real chart instances) sets its own. A hung
+    // test still fails, just later, which is the cheaper way to be wrong here.
+    testTimeout: 20000,
     // 10x faster than Jest for this codebase
     globals: true, // Jest uses globals (describe, it, expect), so we enable them in Vitest
   },
