@@ -98,7 +98,9 @@ export function getChartClass(type) {
   if (!Cls) {
     throw new Error(
       `ApexCharts: chart type "${type}" is not registered. ` +
-        `Import it via ApexCharts.use() or use the full apexcharts bundle.`,
+        `Bundler: import 'apexcharts/${type}'. ` +
+        `Script tag: add <script src=".../dist/${type}.js"> after ` +
+        `apexcharts.core.js, or load the full apexcharts.js instead.`,
     )
   }
   return Cls

@@ -155,6 +155,151 @@ export const UMD_ENTRIES = {
     out: 'features/perspectives.js',
     shared: true,
   },
+  // The lean-core CDN baseline (plan 08's other half). Bundles the chart class
+  // and nothing else, and attaches the same __internals surface the full bundle
+  // does, so every add-on below layers onto either one unchanged.
+  core: {
+    file: resolve(__dirname, 'src/entries/core-umd.js'),
+    global: 'ApexCharts',
+    out: 'apexcharts.core.js',
+    alsoMin: true,
+  },
+  // Chart types, script-loadable. A lean-core page renders nothing until it
+  // loads at least one of these. Alias names (area, column, donut, ...) are
+  // registered by their parent: 'area' comes from line.js, not its own file.
+  'line': {
+    file: resolve(__dirname, 'src/entries/line.js'),
+    global: 'ApexLine',
+    out: 'line.js',
+    shared: true,
+  },
+  'bar': {
+    file: resolve(__dirname, 'src/entries/bar.js'),
+    global: 'ApexBar',
+    out: 'bar.js',
+    shared: true,
+  },
+  'candlestick': {
+    file: resolve(__dirname, 'src/entries/candlestick.js'),
+    global: 'ApexCandlestick',
+    out: 'candlestick.js',
+    shared: true,
+  },
+  'violin': {
+    file: resolve(__dirname, 'src/entries/violin.js'),
+    global: 'ApexViolin',
+    out: 'violin.js',
+    shared: true,
+  },
+  'pie': {
+    file: resolve(__dirname, 'src/entries/pie.js'),
+    global: 'ApexPie',
+    out: 'pie.js',
+    shared: true,
+  },
+  'radialBar': {
+    file: resolve(__dirname, 'src/entries/radialBar.js'),
+    global: 'ApexRadialBar',
+    out: 'radialBar.js',
+    shared: true,
+  },
+  'radar': {
+    file: resolve(__dirname, 'src/entries/radar.js'),
+    global: 'ApexRadar',
+    out: 'radar.js',
+    shared: true,
+  },
+  'heatmap': {
+    file: resolve(__dirname, 'src/entries/heatmap.js'),
+    global: 'ApexHeatmap',
+    out: 'heatmap.js',
+    shared: true,
+  },
+  'treemap': {
+    file: resolve(__dirname, 'src/entries/treemap.js'),
+    global: 'ApexTreemap',
+    out: 'treemap.js',
+    shared: true,
+  },
+  'sunburst': {
+    file: resolve(__dirname, 'src/entries/sunburst.js'),
+    global: 'ApexSunburst',
+    out: 'sunburst.js',
+    shared: true,
+  },
+  'unit': {
+    file: resolve(__dirname, 'src/entries/unit.js'),
+    global: 'ApexUnit',
+    out: 'unit.js',
+    shared: true,
+  },
+  // Tier-1 features. In the full bundle already; a lean-core page opts in.
+  'features/exports': {
+    file: resolve(__dirname, 'src/features/exports.js'),
+    global: 'ApexExports',
+    out: 'features/exports.js',
+    shared: true,
+  },
+  'features/legend': {
+    file: resolve(__dirname, 'src/features/legend.js'),
+    global: 'ApexLegend',
+    out: 'features/legend.js',
+    shared: true,
+  },
+  'features/toolbar': {
+    file: resolve(__dirname, 'src/features/toolbar.js'),
+    global: 'ApexToolbar',
+    out: 'features/toolbar.js',
+    shared: true,
+  },
+  'features/annotations': {
+    file: resolve(__dirname, 'src/features/annotations.js'),
+    global: 'ApexAnnotations',
+    out: 'features/annotations.js',
+    shared: true,
+  },
+  'features/keyboard': {
+    file: resolve(__dirname, 'src/features/keyboard.js'),
+    global: 'ApexKeyboard',
+    out: 'features/keyboard.js',
+    shared: true,
+  },
+  'features/morph': {
+    file: resolve(__dirname, 'src/features/morph.js'),
+    global: 'ApexMorph',
+    out: 'features/morph.js',
+    shared: true,
+  },
+  'features/drilldown': {
+    file: resolve(__dirname, 'src/features/drilldown.js'),
+    global: 'ApexDrilldown',
+    out: 'features/drilldown.js',
+    shared: true,
+  },
+  'features/weave': {
+    file: resolve(__dirname, 'src/features/weave.js'),
+    global: 'ApexWeave',
+    out: 'features/weave.js',
+    shared: true,
+  },
+  'features/marks': {
+    file: resolve(__dirname, 'src/features/marks.js'),
+    global: 'ApexMarks',
+    out: 'features/marks.js',
+    shared: true,
+  },
+  'features/facet': {
+    file: resolve(__dirname, 'src/features/facet.js'),
+    global: 'ApexFacet',
+    out: 'features/facet.js',
+    shared: true,
+  },
+  'features/stats': {
+    file: resolve(__dirname, 'src/features/stats.js'),
+    global: 'ApexStats',
+    out: 'features/stats.js',
+    shared: true,
+  },
 }
 
 export default defineConfig(({ mode }) => {
@@ -191,18 +336,43 @@ export default defineConfig(({ mode }) => {
         outDir: 'dist',
         emptyOutDir: false,
         sourcemap: false,
+        // Off here, on per output: vite's default esbuild pass would minify
+        // every output including the lean core's readable build, leaving
+        // apexcharts.core.js and .core.min.js the same size. Terser below is
+        // the single place minification happens, as in the main bundle.
+        minify: false,
         target: 'es2015',
         cssCodeSplit: false,
         rollupOptions: {
           external: ['apexcharts'],
           output: [
+            // Add-ons ship minified under their plain name; only the lean
+            // core also emits a readable build, mirroring apexcharts.js /
+            // apexcharts.min.js so the two baselines look alike.
+            ...(umd.alsoMin
+              ? [
+                  {
+                    format: 'umd',
+                    name: umd.global,
+                    entryFileNames: umd.out,
+                    globals: { apexcharts: 'ApexCharts' },
+                    banner,
+                    exports: 'default',
+                  },
+                ]
+              : []),
             {
               format: 'umd',
               name: umd.global,
-              entryFileNames: umd.out,
+              entryFileNames: umd.alsoMin
+                ? umd.out.replace(/\.js$/, '.min.js')
+                : umd.out,
               globals: { apexcharts: 'ApexCharts' },
               banner,
-              exports: 'named',
+              // The lean core IS the class on the global, like apexcharts.js.
+              // 'named' would wrap it in a namespace object and
+              // `new ApexCharts(...)` would throw "is not a constructor".
+              exports: umd.alsoMin ? 'default' : 'named',
               plugins: isDev
                 ? []
                 : [
