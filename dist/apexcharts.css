@@ -326,6 +326,30 @@ rect.legend-mouseover-inactive,
   opacity: 0
 }
 
+/* A series still playing its exit tween stays painted so it can visibly shrink
+   away, hiding it on the first frame leaves a hole in a stacked chart for the
+   length of the animation. Dropped once the tween lands. */
+.apexcharts-series-collapsed.apexcharts-series-collapsing {
+  opacity: 1
+}
+
+/* Its labels ride the shrinking marks, but a mark runs out of room for its text
+   well before it reaches zero, so fade them across the exit instead of holding
+   them crisp over a sliver. Duration is set inline from dynamicAnimation.speed. */
+.apexcharts-datalabels.apexcharts-series-collapsing {
+  animation: apexcharts-datalabels-exit var(--apexcharts-dl-exit, 400ms) ease-in
+    forwards;
+}
+
+@keyframes apexcharts-datalabels-exit {
+  from {
+    opacity: 1
+  }
+  to {
+    opacity: 0
+  }
+}
+
 .apexcharts-canvas svg:focus:not(:focus-visible) {
   outline: none;
 }
@@ -637,6 +661,58 @@ rect.legend-mouseover-inactive,
 
 .apexcharts-tooltip-y-group {
   padding: 6px 0 5px
+}
+
+/* `tooltip.compact`: a tight box instead of a card, for panels a normal card
+   would cover (small multiples, sparklines, tiles). Only the box shrinks, so
+   the arrow and every anchor rule still apply. Rows stay stacked when there
+   are several series (the names are what tells them apart); a one-series
+   chart collapses to a single line, see `-value-only` below. */
+.apexcharts-tooltip.apexcharts-tooltip-compact {
+  padding: 3px 8px;
+  font-size: 11px;
+  line-height: 1.35
+}
+
+.apexcharts-tooltip-compact .apexcharts-tooltip-title {
+  padding: 0;
+  font-size: 11px;
+  white-space: nowrap
+}
+
+.apexcharts-tooltip-compact .apexcharts-tooltip-series-group,
+.apexcharts-tooltip-compact .apexcharts-tooltip-series-group.apexcharts-active:last-child,
+.apexcharts-tooltip-compact .apexcharts-tooltip-series-group:last-child {
+  padding: 0;
+  gap: 5px
+}
+
+.apexcharts-tooltip-compact .apexcharts-tooltip-y-group {
+  padding: 0
+}
+
+.apexcharts-tooltip-compact .apexcharts-tooltip-marker {
+  width: 8px;
+  height: 8px
+}
+
+/* A one-series panel: the series name repeats what the panel header already
+   says, so the value stands alone and the x label becomes its prefix on one
+   line ("Aug 2024  6.59"). */
+.apexcharts-tooltip.apexcharts-tooltip-compact.apexcharts-tooltip-value-only {
+  /* The tooltip body is a flex COLUMN by default (title row, then series
+     rows); one series needs no column, so the same box turns into one line. */
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px
+}
+
+.apexcharts-tooltip-value-only .apexcharts-tooltip-marker {
+  display: none
+}
+
+.apexcharts-tooltip-value-only .apexcharts-tooltip-text-y-label {
+  display: none
 }
 
 .apexcharts-custom-tooltip,
@@ -1304,4 +1380,305 @@ rect.legend-mouseover-inactive,
 
 .apexcharts-disable-transitions * {
   transition: none !important;
+}
+/* ── Trellis (#22): small multiples ─────────────────────────────────────── */
+.apexcharts-trellis {
+  position: relative;
+}
+.apexcharts-trellis-grid {
+  display: grid;
+}
+.apexcharts-trellis-cell {
+  min-width: 0;
+  position: relative;
+}
+.apexcharts-trellis-header {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 22px;
+  height: 22px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--apx-fore, #373d3f);
+}
+.apexcharts-trellis-title {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 2px 0 6px;
+  color: var(--apx-fore, #373d3f);
+}
+/* Edge-label policy: a muted cell hides its axis-label INK, never the label
+   SPACE — every panel keeps the identical plot rectangle, and flipping the
+   policy on a resize is a class toggle, not a re-render. */
+.apexcharts-trellis-mute-y .apexcharts-yaxis {
+  opacity: 0;
+}
+.apexcharts-trellis-mute-x .apexcharts-xaxis {
+  opacity: 0;
+}
+/* The shared toolbar floats at the top-right, so a grid that has one starts
+   below it: from four columns on, the last cell's header (or a 2-D column
+   strip label) would otherwise run under the buttons. One band for the whole
+   grid, not per panel. */
+.apexcharts-trellis-has-toolbar {
+  padding-top: 24px;
+}
+/* 2-D faceting (P4): column labels once across the top, row labels once
+   down the left. The row strip column is auto-sized; panel columns stay
+   equal fractions, so panel alignment is independent of the strip width. */
+.apexcharts-trellis-strip {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--apx-fore, #373d3f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.apexcharts-trellis-strip-column {
+  text-align: center;
+  line-height: 22px;
+  height: 22px;
+  align-self: end;
+}
+.apexcharts-trellis-strip-row {
+  align-self: center;
+  max-width: 140px;
+  padding-right: 6px;
+}
+/* Empty (row, column) combinations. 'placeholder' keeps a REAL panel with a
+   quiet label; 'skip' shows the tinted skeleton; 'hide' shows nothing while
+   keeping the grid slot. */
+.apexcharts-trellis-cell-empty {
+  position: relative;
+}
+.apexcharts-trellis-empty-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--apx-fore, #373d3f);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.apexcharts-trellis-cell-hidden > * {
+  visibility: hidden;
+}
+/* P5: one shared gradient strip is a heatmap grid's legend. The slot is
+   content-sized inline (the strip svg's own box); centering is its own. */
+.apexcharts-trellis-gradient-legend {
+  margin: 10px auto 0;
+}
+/* Virtualization (P2): an unmounted panel's mount div reserves the exact
+   panel height (inline min-height) so page height and scroll position never
+   shift; the skeleton itself is a quiet tinted block. Deliberately not
+   animated: a shimmering grid of 200 placeholders is noise. */
+.apexcharts-trellis-panel.apexcharts-trellis-skeleton {
+  background: var(--apx-fore, #373d3f);
+  opacity: 0.05;
+  border-radius: 4px;
+}
+/* tooltip: 'panel' — the group still syncs every panel's crosshair, but only
+   the hovered cell shows its tooltip cards. */
+.apexcharts-trellis[data-tooltip-mode='panel'] .apexcharts-trellis-cell:not(:hover) .apexcharts-tooltip,
+.apexcharts-trellis[data-tooltip-mode='panel'] .apexcharts-trellis-cell:not(:hover) .apexcharts-xaxistooltip,
+.apexcharts-trellis[data-tooltip-mode='panel'] .apexcharts-trellis-cell:not(:hover) .apexcharts-yaxistooltip {
+  opacity: 0 !important;
+}
+/* tooltip: 'grid' (P3) — ALL per-panel tooltip ink is hidden (the group
+   still computes it; the trellis card reads it) and one trellis-owned card
+   follows the cursor with one row per panel. */
+.apexcharts-trellis[data-tooltip-mode='grid'] .apexcharts-trellis-cell .apexcharts-tooltip,
+.apexcharts-trellis[data-tooltip-mode='grid'] .apexcharts-trellis-cell .apexcharts-xaxistooltip,
+.apexcharts-trellis[data-tooltip-mode='grid'] .apexcharts-trellis-cell .apexcharts-yaxistooltip {
+  opacity: 0 !important;
+}
+.apexcharts-trellis-tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 14;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  background: var(--apx-bg, #fff);
+  color: var(--apx-fore, #373d3f);
+  border: 1px solid rgba(120, 120, 120, 0.25);
+  border-radius: 5px;
+  box-shadow: 2px 2px 6px -4px rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+  min-width: 140px;
+  max-width: 320px;
+}
+.apexcharts-trellis-tooltip-active {
+  opacity: 1;
+}
+.apexcharts-trellis-tooltip .apexcharts-tooltip-title {
+  padding: 5px 10px;
+  font-weight: 600;
+  background: rgba(120, 120, 120, 0.08);
+  border-bottom: 1px solid rgba(120, 120, 120, 0.18);
+  margin-bottom: 2px;
+}
+.apexcharts-trellis-tooltip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 2px 10px;
+  line-height: 1.6;
+}
+.apexcharts-trellis-tooltip-row-active {
+  background: rgba(120, 120, 120, 0.1);
+  font-weight: 600;
+}
+.apexcharts-trellis-tooltip-key {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.apexcharts-trellis-tooltip-vals {
+  display: flex;
+  gap: 10px;
+  white-space: nowrap;
+}
+.apexcharts-trellis-tooltip-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.apexcharts-trellis-tooltip-marker {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+}
+/* Panel promotion (P3): the promoted cell spans the grid; the rest park.
+   The promoted panel is the only visible one, so both its axes unmute. */
+.apexcharts-trellis-cell-promoted {
+  grid-column: 1 / -1;
+}
+.apexcharts-trellis-cell-parked {
+  display: none;
+}
+.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-y .apexcharts-yaxis,
+.apexcharts-trellis-cell-promoted.apexcharts-trellis-mute-x .apexcharts-xaxis {
+  opacity: 1;
+}
+.apexcharts-trellis-header-clickable {
+  cursor: pointer;
+}
+.apexcharts-trellis-header-clickable:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.apexcharts-trellis-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 2px 0 6px;
+  color: var(--apx-fore, #373d3f);
+}
+.apexcharts-trellis-breadcrumb-back {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--apx-accent, #008ffb);
+}
+.apexcharts-trellis-breadcrumb-back:hover {
+  text-decoration: underline;
+}
+.apexcharts-trellis-breadcrumb-sep {
+  opacity: 0.5;
+}
+.apexcharts-trellis-breadcrumb-current {
+  font-weight: 600;
+}
+/* The toolbar download menu (P3). */
+.apexcharts-trellis-menu {
+  position: absolute;
+  top: 26px;
+  right: 0;
+  display: none;
+  flex-direction: column;
+  min-width: 132px;
+  background: var(--apx-bg, #fff);
+  border: 1px solid rgba(120, 120, 120, 0.25);
+  border-radius: 5px;
+  box-shadow: 2px 2px 6px -4px rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  z-index: 15;
+}
+.apexcharts-trellis-menu-open {
+  display: flex;
+}
+.apexcharts-trellis-menu-item {
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--apx-fore, #373d3f);
+}
+.apexcharts-trellis-menu-item:hover {
+  background: rgba(120, 120, 120, 0.12);
+}
+.apexcharts-trellis-toolbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 2px;
+  z-index: 12;
+}
+.apexcharts-trellis-tool {
+  border: 0;
+  background: transparent;
+  padding: 2px;
+  cursor: pointer;
+  border-radius: 3px;
+  color: #6e8192;
+  line-height: 0;
+}
+.apexcharts-trellis-tool:hover {
+  color: var(--apx-fore, #373d3f);
+}
+.apexcharts-trellis-tool.apexcharts-selected {
+  color: var(--apx-accent, #008ffb);
+}
+.apexcharts-trellis-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  padding: 8px 10px 2px;
+}
+.apexcharts-trellis-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  line-height: 1;
+}
+.apexcharts-trellis-legend-item .apexcharts-legend-marker {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.apexcharts-trellis-legend-item .apexcharts-legend-text {
+  font-size: 12px;
+  color: var(--apx-fore, #373d3f);
+}
+.apexcharts-trellis-legend-item.apexcharts-inactive-legend {
+  opacity: 0.45;
 }

@@ -15,7 +15,7 @@ var __spreadValues = (a, b) => {
   return a;
 };
 /*!
- * ApexCharts v6.10.0
+ * ApexCharts v7.0.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts/core";

@@ -1,5 +1,24 @@
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b2) => {
+  for (var prop in b2 || (b2 = {}))
+    if (__hasOwnProp.call(b2, prop))
+      __defNormalProp(a, prop, b2[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b2)) {
+      if (__propIsEnum.call(b2, prop))
+        __defNormalProp(a, prop, b2[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b2) => __defProps(a, __getOwnPropDescs(b2));
 /*!
- * ApexCharts v6.10.0
+ * ApexCharts v7.0.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -47,6 +66,51 @@ function getLayouts() {
 function getUnitLayout(name) {
   if (!name) return null;
   return getLayouts()[name] || null;
+}
+const MARK_KEY = "__apexcharts_unit_marks__";
+if (!/** @type {any} */
+globalThis[MARK_KEY]) {
+  globalThis[MARK_KEY] = {};
+}
+function getMarks() {
+  return (
+    /** @type {any} */
+    globalThis[MARK_KEY]
+  );
+}
+function normalizeUnitMark(def, name) {
+  if (typeof def === "string") {
+    const d = def.trim();
+    if (!d) return null;
+    return Object.freeze({
+      name: "anonymous",
+      path: d,
+      viewBox: (
+        /** @type {[number,number,number,number]} */
+        [0, 0, 100, 100]
+      )
+    });
+  }
+  if (!def || typeof def !== "object") return null;
+  if (typeof def.path !== "string" || !def.path.trim()) return null;
+  const vb = Array.isArray(def.viewBox) && def.viewBox.length === 4 ? def.viewBox.map(Number) : [0, 0, 100, 100];
+  if (!vb.every((n) => isFinite(n)) || vb[2] <= 0 || vb[3] <= 0) {
+    return null;
+  }
+  return Object.freeze(__spreadProps(__spreadValues({}, def), {
+    name: def.name || "anonymous",
+    path: def.path.trim(),
+    viewBox: (
+      /** @type {[number,number,number,number]} */
+      /** @type {any} */
+      vb
+    ),
+    fillRule: def.fillRule === "evenodd" ? "evenodd" : void 0
+  }));
+}
+function getUnitMark(name) {
+  if (!name) return null;
+  return getMarks()[name] || null;
 }
 const Utils = _core.__apex_Utils;
 const Environment = _core.__apex_Environment_Environment;
@@ -158,6 +222,9 @@ function easeInOutCubic(t) {
 }
 const SPRING_REFERENCE_SPEED = 800;
 const MAX_FRAME_STEP = 0.25;
+const PK_CIRCLE = 0;
+const PK_CORNER = 1;
+const PK_GLYPH = 2;
 function springParams(preset, speed) {
   const [stiffness, damping] = L(
     /** @type {import('apex-commons').SpringPreset|undefined} */
@@ -178,6 +245,8 @@ class Unit {
     this._gridTrack = null;
     this._gridDenom = 1;
     this._scatterAxis = null;
+    this._specCache = /* @__PURE__ */ new Map();
+    this._markWarned = null;
   }
   /**
    * @param {any[]} series - flat count array (non-axis / pie-shaped data)
@@ -231,11 +300,13 @@ class Unit {
       const burst = morphActive && !perRowBurst ? morph.getInitialCenterFor(cluster.i) : null;
       const burstCount = cluster.dots.length;
       const catData = unitData[cluster.i];
-      cluster.dots.forEach((d, j) => {
+      cluster.dots.forEach((d, jj) => {
+        const j = d.j != null ? d.j : jj;
         const datum = catData ? catData[j] : void 0;
         const dotFill = datum && typeof datum === "object" && datum.fillColor ? datum.fillColor : color;
         const rj = d.r != null ? d.r : sizeStats ? this._radiusForValue(this._unitValueOf(datum), sizeStats) : dotR;
-        const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j);
+        const spec = this._markSpecFor(opts, datum, cluster.i, rj);
+        const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j, spec);
         elSeries.add(el);
         let key;
         if (identity) {
@@ -249,9 +320,9 @@ class Unit {
           key = `${cluster.i}:${j}`;
         }
         gIndex++;
-        nextPrev.set(key, { x: d.x, y: d.y, fill: dotFill, r: rj });
+        nextPrev.set(key, { x: d.x, y: d.y, fill: dotFill, r: rj, spec });
         if (pieceTakeover) {
-          this._placeDot(el.node, opts, d.x, d.y);
+          this._place(el.node, spec, d.x, d.y);
           el.node.setAttribute("opacity", "0");
           el.node.setAttribute("data-piece-hidden", "1");
         } else if (animate) {
@@ -262,9 +333,10 @@ class Unit {
           const cx0 = anchor ? anchor.x : inPlace ? d.x : cluster.cx;
           const cy0 = anchor ? anchor.y : enter === "rise" && !gridSplit ? d.y + 14 : inPlace ? d.y : cluster.cy;
           el.node.style.opacity = anchor ? "1" : "0";
-          this._placeDot(el.node, opts, cx0, cy0);
+          this._place(el.node, spec, cx0, cy0);
           animDots.push({
             node: el.node,
+            spec,
             x: d.x,
             y: d.y,
             cx0,
@@ -286,7 +358,7 @@ class Unit {
             isEnter: !anchor
           });
         } else {
-          this._placeDot(el.node, opts, d.x, d.y);
+          this._place(el.node, spec, d.x, d.y);
         }
       });
       if ((layout === "grouped" || layout === "columns" || gridSplit) && opts.clusterLabels && opts.clusterLabels.show && counts[cluster.i] > 0) {
@@ -310,6 +382,8 @@ class Unit {
     if (this.ctx && (!animate || morphActive)) this.ctx._unitSprings = null;
     if (animate && animDots.length) {
       this._runGather(animDots);
+    } else {
+      w2.globals.animationEnded = true;
     }
     return ret;
   }
@@ -406,7 +480,12 @@ class Unit {
     objects.forEach((o) => {
       const hit = byId.get(o.id);
       if (!hit) return;
-      clusters[o.seriesIndex].dots.push({ x: hit.x, y: hit.y, r: hit.r });
+      clusters[o.seriesIndex].dots.push({
+        x: hit.x,
+        y: hit.y,
+        r: hit.r,
+        j: o.dataPointIndex
+      });
     });
     clusters.forEach((c) => {
       if (!c.dots.length) return;
@@ -1801,8 +1880,9 @@ class Unit {
     return null;
   }
   /**
-   * Whether opt-in bubble sizing applies: enabled, and the shape is a circle
-   * (squares/images keep a uniform size).
+   * Whether opt-in bubble sizing applies: enabled, and the shape sizes per
+   * mark. Squares and images keep a uniform size; a pictogram does not, because
+   * its scale is derived per mark from the same radius a circle would use.
    * @param {any} opts @returns {boolean}
    */
   _bubbleActive(opts) {
@@ -1913,29 +1993,201 @@ class Unit {
   }
   /**
    * Half-width/height used to convert a centre point to a corner shape's x/y.
-   * @param {any} opts @returns {{hx:number, hy:number}}
+   * @param {any} opts @param {number} [r] this mark's own radius; defaults to
+   *   the chart-wide one (an image is sized by its own width/height either way)
+   * @returns {{hx:number, hy:number}}
    */
-  _halfExtent(opts) {
+  _halfExtent(opts, r) {
     if (opts.shape === "image" && opts.image) {
       return { hx: (opts.image.width || 20) / 2, hy: (opts.image.height || 20) / 2 };
     }
-    const r = this._lastDotR;
-    return { hx: r, hy: r };
+    const rr = r != null ? r : this._lastDotR;
+    return { hx: rr, hy: rr };
+  }
+  /**
+   * The draw + placement rule for ONE mark.
+   *
+   * Positioning used to be a chart-GLOBAL decision - `_isCorner(opts)` and a
+   * single `_halfExtent(opts)`, hoisted out of the gather loop - which held only
+   * while every mark in a render was the same element. Two things broke that:
+   * a pictogram render where dot 3 is a <circle> and dot 4 a <path>, and the
+   * plainer bug that a `square` sized from a per-position radius (`_drawDot`
+   * uses the dot's own `rj`) was still being CENTRED with the chart-wide
+   * `_lastDotR`, so a layout returning per-mark radii drew every square off its
+   * own slot by `_lastDotR - r`.
+   *
+   * So the rule travels with the mark. A spec is one frozen object per distinct
+   * (kind, size) - shared by every dot that uses it, resolved once per render -
+   * carrying an int the frame loop switches on. `_place` is the only writer.
+   *
+   * @typedef {object} UnitMarkSpec
+   * @property {number} pk PK_CIRCLE | PK_CORNER | PK_GLYPH
+   * @property {number} [hx] corner: half-width
+   * @property {number} [hy] corner: half-height
+   * @property {any} [mark] glyph: the resolved mark definition
+   * @property {string} [d] glyph: path data, in the mark's own viewBox units
+   * @property {string} [fillRule] glyph: 'evenodd' when the mark declares it
+   * @property {number} [s] glyph: uniform scale from viewBox units to px
+   * @property {number} [ox] glyph: pre-scaled x of the viewBox centre
+   * @property {number} [oy] glyph: pre-scaled y of the viewBox centre
+   * @property {string} [tail] glyph: the pre-built `) scale(s)` transform tail
+   * @property {number} [r] the radius this spec was fitted to
+   */
+  /**
+   * Position one mark at (x, y), whatever element it is.
+   *
+   * Circles and corner shapes write byte-identically to what they wrote before
+   * this seam existed, so the morph capture and every existing test read the
+   * same DOM. A glyph writes ONE attribute where they write two.
+   *
+   * @param {SVGElement} node @param {UnitMarkSpec} spec
+   * @param {number} x @param {number} y
+   */
+  _place(node, spec, x, y) {
+    const s = (
+      /** @type {any} */
+      spec
+    );
+    if (s.pk === PK_GLYPH) {
+      node.setAttribute(
+        "transform",
+        "translate(" + (x - s.ox) + "," + (y - s.oy) + s.tail
+      );
+    } else if (s.pk === PK_CORNER) {
+      node.setAttribute("x", String(x - s.hx));
+      node.setAttribute("y", String(y - s.hy));
+    } else {
+      node.setAttribute("cx", String(x));
+      node.setAttribute("cy", String(y));
+    }
+  }
+  /**
+   * The spec for the chart-wide shape (no pictogram, no per-mark radius).
+   * @param {any} opts @param {number} [r]
+   * @returns {UnitMarkSpec}
+   */
+  _baseSpec(opts, r) {
+    const rr = r != null ? r : this._lastDotR;
+    if (!this._isCorner(opts)) return { pk: PK_CIRCLE, r: rr };
+    const { hx, hy } = this._halfExtent(opts, rr);
+    return { pk: PK_CORNER, hx, hy, r: rr };
+  }
+  /**
+   * Resolve whatever `pictogram.mark` / `datum.mark` held into a mark
+   * definition, or null. A name goes through the registry; an object or a bare
+   * path string is taken as-is.
+   *
+   * An unresolvable mark warns ONCE per name and falls back rather than
+   * dropping the unit: a typo should cost you the glyph, not the data point.
+   *
+   * @param {any} ref @returns {any|null}
+   */
+  _resolveMark(ref) {
+    if (ref == null) return null;
+    if (typeof ref === "object") return normalizeUnitMark(ref);
+    if (typeof ref !== "string" || !ref) return null;
+    const s = ref.trim();
+    if (s[0] === "M" || s[0] === "m") return normalizeUnitMark(s);
+    const found = getUnitMark(s);
+    if (found) return found;
+    if (!this._markWarned) this._markWarned = /* @__PURE__ */ new Set();
+    if (!this._markWarned.has(s)) {
+      this._markWarned.add(s);
+      console.warn(
+        `[ApexCharts] unit chart: no mark named "${s}" is registered. Register one with ApexCharts.registerUnitMark("${s}", pathData), or import a catalog from 'apexcharts/pictograms'.`
+      );
+    }
+    return null;
+  }
+  /**
+   * The draw spec for one glyph at the current lattice pitch, cached per
+   * (mark, radius) for the render so thousands of units of one glyph resolve
+   * once and then share both the spec and the `d` STRING.
+   *
+   * The scale lives in the transform rather than being baked into `d`, for two
+   * reasons: baking needs a full path parser at runtime (the unit-shapes one
+   * lives in a separate optional module, and arcs cannot be scaled by naive
+   * number substitution), and a constant `scale(s)` costs the same single
+   * attribute write per frame that a bare translate would.
+   *
+   * Sizing is derived from `dotR` - the radius the LAYOUT chose - so a glyph
+   * occupies the box the dot itself would have. Swapping `circle` for a
+   * pictogram therefore never re-flows the chart: same pitch, same slots.
+   *
+   * @param {any} mark @param {number} dotR @param {any} pcfg
+   * @returns {UnitMarkSpec}
+   */
+  _glyphSpec(mark, dotR, pcfg) {
+    const qr = Math.round(dotR * 10) / 10;
+    const key = mark.name + "|" + mark.path.length + "|" + qr;
+    const hit = this._specCache.get(key);
+    if (hit) return hit;
+    const vb = mark.viewBox || [0, 0, 100, 100];
+    const pad = Math.max(0, Math.min(0.9, pcfg.padding || 0));
+    const grow = typeof pcfg.scale === "number" && pcfg.scale > 0 ? pcfg.scale : 1;
+    const box = 2 * qr * (1 - pad) * grow;
+    const s = pcfg.fit === "width" ? box / vb[2] : pcfg.fit === "height" ? box / vb[3] : box / Math.max(vb[2], vb[3]);
+    const spec = Object.freeze({
+      pk: PK_GLYPH,
+      mark,
+      d: mark.path,
+      fillRule: mark.fillRule,
+      s,
+      ox: (vb[0] + vb[2] / 2) * s,
+      oy: (vb[1] + vb[3] / 2) * s,
+      tail: ") scale(" + s + ")",
+      r: qr
+    });
+    this._specCache.set(key, spec);
+    return spec;
+  }
+  /**
+   * Which mark THIS unit draws.
+   *
+   * Precedence mirrors how `datum.fillColor` already overrides the category
+   * colour: the datum's own `mark` first (a per-unit override, so one crowd can
+   * mix glyphs), then the per-series entry of a `mark` array, then the one
+   * chart-wide mark.
+   *
+   * @param {any} opts @param {any} datum @param {number} i @param {number} r
+   * @returns {UnitMarkSpec}
+   */
+  _markSpecFor(opts, datum, i, r) {
+    if (opts.shape !== "pictogram") return this._baseSpec(opts, r);
+    const pcfg = opts.pictogram || {};
+    const own = datum && typeof datum === "object" ? datum.mark : void 0;
+    const cfg = Array.isArray(pcfg.mark) ? pcfg.mark[i % pcfg.mark.length] : pcfg.mark;
+    const mark = this._resolveMark(own != null ? own : cfg);
+    if (mark) return this._glyphSpec(mark, r, pcfg);
+    return this._baseSpec(
+      __spreadProps(__spreadValues({}, opts), { shape: pcfg.fallback === "square" ? "square" : "circle" }),
+      r
+    );
   }
   /**
    * Draw one dot (circle, square, or image icon) with the category fill +
    * stroke, tagged so the shared non-axis tooltip and hover reuse work.
    * @param {Graphics} graphics @param {any} opts @param {number} dotR
    * @param {string} color @param {number} i @param {number} j
+   * @param {UnitMarkSpec} [spec] this mark's resolved spec; defaults to the
+   *   chart-wide shape
    * @returns {any}
    */
-  _drawDot(graphics, opts, dotR, color, i, j) {
+  _drawDot(graphics, opts, dotR, color, i, j, spec) {
     const w2 = this.w;
     const strokeW = w2.config.stroke.show ? w2.config.stroke.width : 0;
     const strokeColor = Array.isArray(w2.globals.stroke.colors) ? w2.globals.stroke.colors[i] || "none" : "none";
     const fillOpacity = typeof w2.config.fill.opacity === "number" ? w2.config.fill.opacity : 1;
     let el;
-    if (opts.shape === "image" && opts.image && opts.image.src) {
+    if (spec && spec.pk === PK_GLYPH) {
+      el = w2.dom.Paper.path(spec.d);
+      el.node.setAttribute("fill", color);
+      if (spec.fillRule === "evenodd") {
+        el.node.setAttribute("fill-rule", "evenodd");
+      }
+      if (fillOpacity < 1) el.node.setAttribute("fill-opacity", String(fillOpacity));
+      el.node.setAttribute("data:r", String(spec.r));
+    } else if (opts.shape === "image" && opts.image && opts.image.src) {
       const iw = opts.image.width || 20;
       const ih = opts.image.height || 20;
       el = w2.dom.Paper.image(opts.image.src);
@@ -2004,18 +2256,14 @@ class Unit {
   }
   /**
    * Position a non-animated dot at (x, y). Circles use cx/cy at the centre;
-   * corner shapes (square, image) use x/y at the top-left.
+   * corner shapes (square, image) use x/y at the top-left; a pictogram rides a
+   * transform. Callers that already hold the mark's spec pass it; the rest get
+   * the chart-wide one.
    * @param {SVGElement} node @param {any} opts @param {number} x @param {number} y
+   * @param {UnitMarkSpec} [spec]
    */
-  _placeDot(node, opts, x, y) {
-    if (this._isCorner(opts)) {
-      const { hx, hy } = this._halfExtent(opts);
-      node.setAttribute("x", String(x - hx));
-      node.setAttribute("y", String(y - hy));
-    } else {
-      node.setAttribute("cx", String(x));
-      node.setAttribute("cy", String(y));
-    }
+  _placeDot(node, opts, x, y, spec) {
+    this._place(node, spec || this._baseSpec(opts), x, y);
   }
   /**
    * Parse a `#rgb` / `#rrggbb` / `rgb()` / `rgba()` colour to `[r, g, b]`, or
@@ -2079,9 +2327,8 @@ class Unit {
    * @param {UnitAnimDot[]} dots
    * @param {any} gcfg plotOptions.unit.gather
    * @param {number} speed chart.animations.speed, in ms
-   * @param {any} opts plotOptions.unit
    */
-  _seedSprings(dots, gcfg, speed, opts) {
+  _seedSprings(dots, gcfg, speed) {
     const [stiffness, damping] = springParams(gcfg.spring, speed);
     const live = this.ctx ? this.ctx._unitSprings : null;
     const springs = /* @__PURE__ */ new Map();
@@ -2097,7 +2344,7 @@ class Unit {
         sy.damping = damping;
         d.cx0 = sx.value;
         d.cy0 = sy.value;
-        this._placeDot(d.node, opts, d.cx0, d.cy0);
+        this._place(d.node, d.spec, d.cx0, d.cy0);
         if (sx.velocity !== 0 || sy.velocity !== 0) d.delay = 0;
       }
       d.sx = sx;
@@ -2126,34 +2373,20 @@ class Unit {
     const w$1 = this.w;
     const opts = w$1.config.plotOptions.unit;
     const speed = Math.max(1, w$1.config.chart.animations.speed || 800);
-    const corner = this._isCorner(opts);
-    const { hx, hy } = this._halfExtent(opts);
     const maxDelay = Math.min(speed * 0.6, 450);
     const n = dots.length;
     for (let k = 0; k < n; k++) {
       dots[k].delay = n > 1 ? k / (n - 1) * maxDelay : 0;
     }
-    const cxAttr = corner ? "x" : "cx";
-    const cyAttr = corner ? "y" : "cy";
-    const offX = corner ? hx : 0;
-    const offY = corner ? hy : 0;
     const gcfg = opts.gather || {};
     const motion = gcfg.motion || "auto";
     const useSpring = motion === "spring" || motion === "auto" && (!gcfg.easing || gcfg.easing === "outCubic");
-    if (useSpring) this._seedSprings(dots, gcfg, speed, opts);
+    if (useSpring) this._seedSprings(dots, gcfg, speed);
     else if (this.ctx) this.ctx._unitSprings = null;
-    if (corner) {
-      for (let k = 0; k < n; k++) {
-        dots[k].node.setAttribute(cxAttr, String(dots[k].cx0 - offX));
-        dots[k].node.setAttribute(cyAttr, String(dots[k].cy0 - offY));
-      }
-    }
-    if (!corner) {
-      for (let k = 0; k < n; k++) {
-        const d = dots[k];
-        if (d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
-          d.node.setAttribute("r", String(d.r0));
-        }
+    for (let k = 0; k < n; k++) {
+      const d = dots[k];
+      if (d.spec.pk === PK_CIRCLE && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
+        d.node.setAttribute("r", String(d.r0));
       }
     }
     for (let k = 0; k < n; k++) {
@@ -2173,6 +2406,7 @@ class Unit {
     const stepFn = (now) => {
       if (this.w.globals.isDestroyed) {
         this.w.globals.unitGatherRAF = null;
+        this.w.globals.animationEnded = true;
         return;
       }
       const dt = Math.min(MAX_FRAME_STEP, Math.max(0, (now - last) / 1e3));
@@ -2200,8 +2434,7 @@ class Unit {
           cx = d.cx0 + (d.x - d.cx0) * e;
           cy = d.cy0 + (d.y - d.cy0) * e;
         }
-        d.node.setAttribute(cxAttr, String(cx - offX));
-        d.node.setAttribute(cyAttr, String(cy - offY));
+        this._place(d.node, d.spec, cx, cy);
         if (d.isEnter) d.node.style.opacity = String(Math.min(1, t * 2.5));
         if (d._c0 && d._c1) {
           const cr = Math.round(d._c0[0] + (d._c1[0] - d._c0[0]) * ec);
@@ -2209,7 +2442,7 @@ class Unit {
           const cb = Math.round(d._c0[2] + (d._c1[2] - d._c0[2]) * ec);
           d.node.setAttribute("fill", `rgb(${cr},${cg},${cb})`);
         }
-        if (!corner && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
+        if (d.spec.pk === PK_CIRCLE && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
           d.node.setAttribute("r", String(d.r0 + (d.r1 - d.r0) * ec));
         }
         if (t < 1) done = false;
@@ -2219,11 +2452,12 @@ class Unit {
           const d = dots[k];
           d.node.style.opacity = "";
           if (d._c1 && d.fill1) d.node.setAttribute("fill", d.fill1);
-          if (!corner && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
+          if (d.spec.pk === PK_CIRCLE && d.r0 != null && d.r1 != null && d.r0 !== d.r1) {
             d.node.setAttribute("r", String(d.r1));
           }
         }
         this.w.globals.unitGatherRAF = null;
+        this.w.globals.animationEnded = true;
       } else {
         this.w.globals.unitGatherRAF = BrowserAPIs.requestAnimationFrame(stepFn);
       }
@@ -2233,10 +2467,10 @@ class Unit {
   /**
    * Keys present in the previous render but not the current one, resolved back
    * to their old slot {x, y, fill}. These are the dots that must animate out.
-   * @param {Map<string, {x:number,y:number,fill:string}>} prev
-   * @param {Map<string, {x:number,y:number,fill:string}>} nextPrev
+   * @param {Map<string, {x:number,y:number,fill:string,r?:number,spec?:any}>} prev
+   * @param {Map<string, {x:number,y:number,fill:string,r?:number,spec?:any}>} nextPrev
    * @param {any} opts
-   * @returns {{x:number,y:number,fill:string}[]}
+   * @returns {{x:number,y:number,fill:string,r?:number,spec?:any}[]}
    */
   _collectExits(prev, nextPrev, opts) {
     const cap = Math.max(0, opts.maxUnits || 5e3);
@@ -2256,7 +2490,7 @@ class Unit {
    * cells across tiles or bubbles across the plane, which reads as wrong. The
    * blob / bar layouts keep the gentle inward collapse so a removal reads as
    * motion rather than a pop.
-   * @param {any} group @param {{x:number,y:number,fill:string}[]} exits @param {any} opts
+   * @param {any} group @param {{x:number,y:number,fill:string,r?:number,spec?:any}[]} exits @param {any} opts
    */
   _runExits(group, exits, opts) {
     const w2 = this.w;
@@ -2267,23 +2501,19 @@ class Unit {
     const drift = opts.layout === "grid" || opts.layout === "scatter" || opts.layout === "arc" || opts.layout === "custom" ? 0 : 0.35;
     const ghosts = [];
     exits.forEach((slot) => {
-      const el = this._drawDot(graphics, opts, dotR, slot.fill, 0, 0);
+      const r = slot.r != null ? slot.r : dotR;
+      const spec = slot.spec || this._baseSpec(opts, r);
+      const el = this._drawDot(graphics, opts, r, slot.fill, 0, 0, spec);
       el.node.classList.add("apexcharts-unit-exit");
-      this._placeDot(el.node, opts, slot.x, slot.y);
+      this._place(el.node, spec, slot.x, slot.y);
       group.add(el);
-      ghosts.push({ node: el.node, x0: slot.x, y0: slot.y });
+      ghosts.push({ node: el.node, x0: slot.x, y0: slot.y, spec });
     });
     if (!this._shouldAnimate()) {
       ghosts.forEach((g2) => g2.node.remove());
       return;
     }
     const speed = Math.max(1, w2.config.chart.animations.speed || 800);
-    const corner = this._isCorner(opts);
-    const { hx, hy } = this._halfExtent(opts);
-    const offX = corner ? hx : 0;
-    const offY = corner ? hy : 0;
-    const cxAttr = corner ? "x" : "cx";
-    const cyAttr = corner ? "y" : "cy";
     if (this.w.globals.unitExitRAF != null) {
       BrowserAPIs.cancelAnimationFrame(this.w.globals.unitExitRAF);
       this.w.globals.unitExitRAF = null;
@@ -2301,8 +2531,7 @@ class Unit {
         if (drift) {
           const x = g2.x0 + (cx - g2.x0) * e * drift;
           const y = g2.y0 + (cy - g2.y0) * e * drift;
-          g2.node.setAttribute(cxAttr, String(x - offX));
-          g2.node.setAttribute(cyAttr, String(y - offY));
+          this._place(g2.node, g2.spec, x, y);
         }
         g2.node.style.opacity = String(1 - e);
       }

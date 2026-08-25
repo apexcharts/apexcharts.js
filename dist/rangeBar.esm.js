@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.10.0
+ * ApexCharts v7.0.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -293,7 +293,11 @@ class BarDataLabels {
           dataPointIndex: j,
           w
         })) : w.formatters.yLabelFormatters[0](yLabel),
-        parseFloat(dataLabelsConfig.style.fontSize).toString()
+        parseFloat(dataLabelsConfig.style.fontSize).toString(),
+        dataLabelsConfig.style.fontFamily,
+        void 0,
+        true,
+        dataLabelsConfig.style.fontWeight
       );
     }
     const params = {
@@ -340,8 +344,10 @@ class BarDataLabels {
         barWidth,
         barHeight,
         realIndex,
+        j,
         textAnchor: dataLabelsPos.totalDataLabelsAnchor,
         val: this.getStackedTotalDataLabel({ realIndex, j }),
+        rawVal: this.getStackedTotalValue({ realIndex, j }),
         dataLabelsConfig,
         barTotalDataLabelsConfig
       });
@@ -388,12 +394,22 @@ class BarDataLabels {
     }
     return this.barCtx.lastActiveBarSerieIndex === realIndex;
   }
-  /** @param {{realIndex: any, j: any}} opts */
-  getStackedTotalDataLabel({ realIndex, j }) {
+  /**
+   * The raw (unformatted) stacked total at this data point. Split out of
+   * getStackedTotalDataLabel so the label transition can count the total up
+   * from its previous number and re-run the formatter itself each frame.
+   * @param {{realIndex: any, j: any}} opts
+   */
+  getStackedTotalValue({ realIndex, j }) {
     const w = this.w;
     const ctx = this.getTotalGroupContext(realIndex);
     const byGroups = w.seriesData.stackedSeriesTotalsByGroups;
-    let val = ctx && byGroups && byGroups[ctx.groupIndex] ? byGroups[ctx.groupIndex][j] : this.barCtx.stackedSeriesTotals[j];
+    return ctx && byGroups && byGroups[ctx.groupIndex] ? byGroups[ctx.groupIndex][j] : this.barCtx.stackedSeriesTotals[j];
+  }
+  /** @param {{realIndex: any, j: any}} opts */
+  getStackedTotalDataLabel({ realIndex, j }) {
+    const w = this.w;
+    let val = this.getStackedTotalValue({ realIndex, j });
     if (this.totalFormatter) {
       val = this.totalFormatter(val, __spreadProps(__spreadValues({}, w), {
         seriesIndex: realIndex,
@@ -661,24 +677,24 @@ class BarDataLabels {
       }
     }
     if (!w.config.chart.stacked) {
-      if (dataLabelsConfig.textAnchor === "start") {
-        if (dataLabelsX - textRects.width < 0) {
-          dataLabelsX = valIsNegative ? textRects.width + strokeWidth - offX : strokeWidth + offX;
-        } else if (dataLabelsX + textRects.width > w.layout.gridWidth) {
-          dataLabelsX = valIsNegative ? w.layout.gridWidth - strokeWidth : w.layout.gridWidth - textRects.width - strokeWidth;
-        }
-      } else if (dataLabelsConfig.textAnchor === "middle") {
-        if (dataLabelsX - textRects.width / 2 < 0) {
-          dataLabelsX = textRects.width / 2 + strokeWidth;
-        } else if (dataLabelsX + textRects.width / 2 > w.layout.gridWidth) {
-          dataLabelsX = w.layout.gridWidth - textRects.width / 2 - strokeWidth;
-        }
-      } else if (dataLabelsConfig.textAnchor === "end") {
-        if (dataLabelsX < 1) {
-          dataLabelsX = textRects.width + strokeWidth;
-        } else if (dataLabelsX + 1 > w.layout.gridWidth) {
-          dataLabelsX = w.layout.gridWidth - textRects.width - strokeWidth;
-        }
+      const flipped = valIsNegative && dataLabelsConfig.textAnchor !== "middle" ? dataLabelsConfig.textAnchor === "start" ? "end" : "start" : dataLabelsConfig.textAnchor;
+      let spanLeft;
+      if (barDataLabelsConfig.orientation === "vertical") {
+        spanLeft = textRects.height / 2;
+      } else if (flipped === "end") {
+        spanLeft = textRects.width;
+      } else if (flipped === "middle") {
+        spanLeft = textRects.width / 2;
+      } else {
+        spanLeft = 0;
+      }
+      const span = barDataLabelsConfig.orientation === "vertical" ? textRects.height : textRects.width;
+      const spanRight = span - spanLeft;
+      if (dataLabelsX + spanRight > w.layout.gridWidth - strokeWidth) {
+        dataLabelsX = w.layout.gridWidth - spanRight - strokeWidth;
+      }
+      if (dataLabelsX - spanLeft < strokeWidth) {
+        dataLabelsX = spanLeft + strokeWidth;
       }
     }
     return {
@@ -704,7 +720,7 @@ class BarDataLabels {
     barWidth,
     dataLabelsConfig
   }) {
-    var _a, _b;
+    var _a, _b, _c;
     const w = this.w;
     let rotate = "rotate(0)";
     if (w.config.plotOptions.bar.dataLabels.orientation === "vertical")
@@ -713,14 +729,19 @@ class BarDataLabels {
     const graphics = new Graphics(this.barCtx.w);
     const formatter = dataLabelsConfig.formatter;
     let elDataLabelsWrap = null;
-    const isSeriesNotCollapsed = w.globals.collapsedSeriesIndices.indexOf(i) > -1;
-    if (dataLabelsConfig.enabled && !isSeriesNotCollapsed) {
+    const isSeriesCollapsed = w.globals.collapsedSeriesIndices.indexOf(i) > -1;
+    const isSeriesCollapsing = (w.globals.collapsingSeriesIndices || []).indexOf(i) > -1;
+    if (isSeriesCollapsing) {
+      const prev = (_a = w.globals.prevDataLabels) == null ? void 0 : _a.get(`${i}::${datumKey(w, i, j)}`);
+      if (prev && isFinite(prev.val)) val = prev.val;
+    }
+    if (dataLabelsConfig.enabled && (!isSeriesCollapsed || isSeriesCollapsing)) {
       elDataLabelsWrap = graphics.group({
         class: "apexcharts-data-labels",
         transform: rotate
       });
       const dlCfg = w.config.dataLabels;
-      if (((_a = dlCfg.animate) == null ? void 0 : _a.enabled) || ((_b = dlCfg.countUp) == null ? void 0 : _b.enabled)) {
+      if (((_b = dlCfg.animate) == null ? void 0 : _b.enabled) || ((_c = dlCfg.countUp) == null ? void 0 : _c.enabled)) {
         elDataLabelsWrap.node.setAttribute(
           "data:dlKey",
           `${i}::${datumKey(w, i, j)}`
@@ -765,7 +786,10 @@ class BarDataLabels {
           text = "";
         }
       }
-      if (w.config.chart.stacked && this.barCtx.barOptions.dataLabels.hideOverflowingLabels) {
+      if (w.config.chart.stacked && this.barCtx.barOptions.dataLabels.hideOverflowingLabels && // A collapsing series is measured against its NEW extent, which is
+      // already zero, so this would blank a label whose bar is still at full
+      // height on screen. It starts out fitting and fades away with the mark.
+      !isSeriesCollapsing) {
         if (this.barCtx.isHorizontal) {
           if (textRects.width / 1.6 > Math.abs(barWidth)) {
             text = "";
@@ -800,15 +824,18 @@ class BarDataLabels {
     }
     return elDataLabelsWrap;
   }
-  /** @param {{ x?: any, y?: any, val?: any, realIndex?: any, textAnchor?: any, barWidth?: any, barHeight?: any, dataLabelsConfig?: any, barTotalDataLabelsConfig?: any }} opts */
+  /** @param {{ x?: any, y?: any, val?: any, rawVal?: any, realIndex?: any, j?: any, textAnchor?: any, barWidth?: any, barHeight?: any, dataLabelsConfig?: any, barTotalDataLabelsConfig?: any }} opts */
   drawTotalDataLabels({
     x,
     y,
     val,
+    rawVal,
     realIndex,
+    j,
     textAnchor,
     barTotalDataLabelsConfig
   }) {
+    var _a, _b;
     const graphics = new Graphics(this.barCtx.w);
     let totalDataLabelText;
     if (barTotalDataLabelsConfig.enabled && typeof x !== "undefined" && typeof y !== "undefined" && this.drawsStackedTotal(realIndex)) {
@@ -822,6 +849,26 @@ class BarDataLabels {
         fontSize: barTotalDataLabelsConfig.style.fontSize,
         fontWeight: barTotalDataLabelsConfig.style.fontWeight
       });
+      totalDataLabelText.attr({
+        class: "apexcharts-datalabel-total",
+        cx: x,
+        cy: y
+      });
+      const dlCfg = this.w.config.dataLabels;
+      if (((_a = dlCfg.animate) == null ? void 0 : _a.enabled) || ((_b = dlCfg.countUp) == null ? void 0 : _b.enabled)) {
+        const { groupIndex } = this.barCtx.barHelpers.getGroupIndex(realIndex);
+        totalDataLabelText.node.setAttribute(
+          "data:dlTotalKey",
+          `${groupIndex}::${datumKey(this.w, realIndex, j)}`
+        );
+        totalDataLabelText.node.setAttribute(
+          "data:dlTotalSeries",
+          String(realIndex)
+        );
+        if (typeof rawVal === "number" && isFinite(rawVal)) {
+          totalDataLabelText.node.setAttribute("data:dlTotalVal", String(rawVal));
+        }
+      }
     }
     return totalDataLabelText;
   }
@@ -1044,7 +1091,48 @@ class Helpers {
     return strokeWidth;
   }
   /**
+   * Series indices bucketed into the stacks they actually draw in: one bucket
+   * per series group, or a single bucket holding every series when the chart is
+   * not grouped. Order within a bucket follows series order, which is stacking
+   * order.
+   *
+   * @param {number} numSeries
+   * @returns {number[][]}
+   */
+  getStackedSeriesIndices(numSeries) {
+    const groups = this.w.labelData.seriesGroups;
+    if (!groups || groups.length < 2) {
+      return [Array.from({ length: numSeries }, (_, i) => i)];
+    }
+    const buckets = Array.from({ length: groups.length }, () => []);
+    const ungrouped = [];
+    for (let i = 0; i < numSeries; i++) {
+      const g = this.getSeriesGroupIndex(i);
+      if (g > -1) buckets[g].push(i);
+      else ungrouped.push(i);
+    }
+    if (ungrouped.length) buckets.push(ungrouped);
+    return buckets.filter((b) => b.length > 0);
+  }
+  /**
+   * Which corners each bar rounds, as a [seriesIndex][dataPointIndex] grid of
+   * 'top' | 'bottom' | 'both' | 'none'.
+   *
+   * A rounded corner belongs to the OUTSIDE of a stack, so this resolves, per
+   * data point, the outermost segment on each side of the baseline; everything
+   * sandwiched between them stays square.
+   *
+   * Crucially a "stack" is a series GROUP, not the whole chart. A grouped
+   * stacked chart draws one independent stack per group, side by side, and each
+   * one needs its own outermost segments. Resolving chart-wide instead put the
+   * radius on the bottom of the first group's lowest series and the top of the
+   * last group's highest, leaving every stack in between completely square, 
+   * which is exactly how it looked: the first column rounded at the bottom, the
+   * second at the top, and nothing else touched. Stacked totals already resolve
+   * per group (see drawsStackedTotal, #4173); corners never got the same fix.
+   *
    * @param {any[]} series
+   * @returns {string[][]}
    */
   createBorderRadiusArr(series) {
     var _a;
@@ -1057,73 +1145,48 @@ class Helpers {
       () => Array(numColumns).fill(alwaysApplyRadius ? "top" : "none")
     );
     if (alwaysApplyRadius) return output;
-    const chartType = this.w.config.chart.type;
-    for (let j = 0; j < numColumns; j++) {
-      const positiveIndices = [];
-      const negativeIndices = [];
-      let nonZeroCount = 0;
-      for (let i = 0; i < numSeries; i++) {
-        const value = series[i][j];
-        if (value > 0) {
-          positiveIndices.push(i);
-          nonZeroCount++;
-        } else if (value < 0) {
-          negativeIndices.push(i);
-          nonZeroCount++;
+    const isSoloHorizontal = this.w.config.chart.type === "bar" && numColumns === 1;
+    const soloCorner = isSoloHorizontal ? "top" : "both";
+    const baseCorner = isSoloHorizontal ? "top" : "bottom";
+    for (const stack of this.getStackedSeriesIndices(numSeries)) {
+      for (let j = 0; j < numColumns; j++) {
+        const positiveIndices = [];
+        const negativeIndices = [];
+        for (const i of stack) {
+          const value = series[i][j];
+          if (value > 0) positiveIndices.push(i);
+          else if (value < 0) negativeIndices.push(i);
         }
-      }
-      if (positiveIndices.length > 0 && negativeIndices.length === 0) {
-        if (positiveIndices.length === 1) {
-          output[positiveIndices[0]][j] = chartType === "bar" && numColumns === 1 ? "top" : "both";
-        } else {
-          const firstPositiveIndex = positiveIndices[0];
-          const lastPositiveIndex = positiveIndices[positiveIndices.length - 1];
+        if (positiveIndices.length > 0 && negativeIndices.length === 0) {
+          if (positiveIndices.length === 1) {
+            output[positiveIndices[0]][j] = soloCorner;
+          } else {
+            const first = positiveIndices[0];
+            const last = positiveIndices[positiveIndices.length - 1];
+            for (const i of positiveIndices) {
+              output[i][j] = i === first ? baseCorner : i === last ? "top" : "none";
+            }
+          }
+        } else if (negativeIndices.length > 0 && positiveIndices.length === 0) {
+          if (negativeIndices.length === 1) {
+            output[negativeIndices[0]][j] = "both";
+          } else {
+            const highest = Math.max(...negativeIndices);
+            const lowest = Math.min(...negativeIndices);
+            for (const i of negativeIndices) {
+              output[i][j] = i === highest ? "bottom" : i === lowest ? "top" : "none";
+            }
+          }
+        } else if (positiveIndices.length > 0 && negativeIndices.length > 0) {
+          const lastPositive = positiveIndices[positiveIndices.length - 1];
           for (const i of positiveIndices) {
-            if (i === firstPositiveIndex) {
-              output[i][j] = chartType === "bar" && numColumns === 1 ? "top" : "bottom";
-            } else if (i === lastPositiveIndex) {
-              output[i][j] = "top";
-            } else {
-              output[i][j] = "none";
-            }
+            output[i][j] = i === lastPositive ? "top" : "none";
           }
-        }
-      } else if (negativeIndices.length > 0 && positiveIndices.length === 0) {
-        if (negativeIndices.length === 1) {
-          output[negativeIndices[0]][j] = "both";
-        } else {
-          const highestNegativeIndex = Math.max(...negativeIndices);
-          const lowestNegativeIndex = Math.min(...negativeIndices);
+          const highestNegative = Math.max(...negativeIndices);
           for (const i of negativeIndices) {
-            if (i === highestNegativeIndex) {
-              output[i][j] = "bottom";
-            } else if (i === lowestNegativeIndex) {
-              output[i][j] = "top";
-            } else {
-              output[i][j] = "none";
-            }
+            output[i][j] = i === highestNegative ? "bottom" : "none";
           }
         }
-      } else if (positiveIndices.length > 0 && negativeIndices.length > 0) {
-        const lastPositiveIndex = positiveIndices[positiveIndices.length - 1];
-        for (const i of positiveIndices) {
-          if (i === lastPositiveIndex) {
-            output[i][j] = "top";
-          } else {
-            output[i][j] = "none";
-          }
-        }
-        const highestNegativeIndex = Math.max(...negativeIndices);
-        for (const i of negativeIndices) {
-          if (i === highestNegativeIndex) {
-            output[i][j] = "bottom";
-          } else {
-            output[i][j] = "none";
-          }
-        }
-      } else if (nonZeroCount === 1) {
-        const index = positiveIndices[0] || negativeIndices[0];
-        output[index][j] = "both";
       }
     }
     return output;
@@ -1185,7 +1248,8 @@ class Helpers {
     y2 += 1e-3 + strokeCenter * direction;
     const sl = graphics.line(x2, y1);
     const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z";
-    let pathTo = graphics.move(x1, y1) + graphics.line(x1, y2) + graphics.line(x2, y2) + sl + closing;
+    const squarePathTo = graphics.move(x1, y1) + graphics.line(x1, y2) + graphics.line(x2, y2) + sl + closing;
+    let pathTo = squarePathTo;
     if (this.arrBorderRadius[realIndex][j] !== "none") {
       pathTo = graphics.roundPathCorners(
         pathTo,
@@ -1200,7 +1264,7 @@ class Helpers {
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo, squarePathTo);
     }
     if (pathFrom == null) {
       pathFrom = graphics.move(x1, y1) + graphics.line(x1, y1) + sl + sl + sl + sl + sl + graphics.line(x1, y1) + closing;
@@ -1416,7 +1480,8 @@ class Helpers {
     const fromX = isFunnel ? (x1 + x2) / 2 : x1;
     const sl = graphics.line(x1, y2);
     const closing = w.config.plotOptions.bar.borderRadiusApplication === "around" || this.arrBorderRadius[realIndex][j] === "both" ? " Z" : " z";
-    let pathTo = graphics.move(x1, y1) + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + closing;
+    const squarePathTo = graphics.move(x1, y1) + graphics.line(x2, y1) + graphics.line(x2, y2) + sl + closing;
+    let pathTo = squarePathTo;
     if (this.arrBorderRadius[realIndex][j] !== "none") {
       pathTo = graphics.roundPathCorners(
         pathTo,
@@ -1431,7 +1496,7 @@ class Helpers {
     if (morphFrom) {
       pathFrom = morphFrom;
     } else if (w.globals.previousPaths.length > 0) {
-      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo);
+      pathFrom = this.barCtx.getPreviousPath(realIndex, j, pathTo, squarePathTo);
     }
     if (pathFrom == null) {
       const slFrom = isFunnel ? graphics.line(fromX, y2) : sl;
@@ -1751,6 +1816,7 @@ class Bar {
     this._prevKeyed = null;
     this._ltCache = null;
     this._layoutShiftCache = null;
+    this._pathToInterp = null;
     this.series = [];
     this.elSeries = null;
     this.visibleI = 0;
@@ -2017,11 +2083,13 @@ class Bar {
     type,
     classes
   }) {
-    var _a;
+    var _a, _b, _c, _d, _e, _f, _g;
     const w = this.w;
     const graphics = new Graphics(this.w, this.ctx);
     const emit = seriesEmitter(this.ctx, graphics);
     let skipDrawing = false;
+    const pathToInterp = this._pathToInterp;
+    this._pathToInterp = null;
     if (!elSeries._bindingsDelegated) {
       elSeries._bindingsDelegated = true;
       graphics.setupEventDelegation(elSeries, `.apexcharts-${type}-area`);
@@ -2046,6 +2114,29 @@ class Bar {
       const checkAvailableColor = typeof w.globals.stroke.colors[realIndex] === "function" ? fetchColor(realIndex) : w.globals.stroke.colors[realIndex];
       lineFill = this.barOptions.distributed ? w.globals.stroke.colors[j] : checkAvailableColor;
     }
+    const animCfg = w.config.chart.animations;
+    const gradCfg = animCfg.animateGradually;
+    const staggerEnabled = gradCfg && gradCfg.enabled !== false && !(w.globals.dataChanged && this.isLayoutShift(realIndex));
+    let delay = 0;
+    let delayMs = 0;
+    if (staggerEnabled) {
+      const totalBars = w.globals.dataPoints || 1;
+      const configStep = gradCfg.delay || 0;
+      const baseDelayMs = Math.min(
+        configStep,
+        animCfg.speed * 0.5 / Math.max(1, totalBars)
+      );
+      delayMs = computeStagger({
+        style: "sequential",
+        index: j,
+        baseDelay: baseDelayMs
+      });
+      if (w.config.chart.stacked && !w.globals.dataChanged) {
+        delayMs += i * baseDelayMs * 0.5;
+      }
+      const delayFactor = configStep || 1;
+      delay = delayMs / delayFactor;
+    }
     const barDataLabels = new BarDataLabels(this);
     const dataLabelsObj = (
       /** @type {any} */
@@ -2066,6 +2157,17 @@ class Bar {
         visibleSeries
       })
     );
+    if (delayMs > 0) {
+      const dlAnimCfg = w.config.dataLabels;
+      if (((_a = dlAnimCfg.animate) == null ? void 0 : _a.enabled) || ((_b = dlAnimCfg.countUp) == null ? void 0 : _b.enabled)) {
+        const stampDelay = String(Math.round(delayMs));
+        (_d = (_c = dataLabelsObj.dataLabels) == null ? void 0 : _c.node) == null ? void 0 : _d.setAttribute("data:dlDelay", stampDelay);
+        (_f = (_e = dataLabelsObj.totalDataLabels) == null ? void 0 : _e.node) == null ? void 0 : _f.setAttribute(
+          "data:dlDelay",
+          stampDelay
+        );
+      }
+    }
     if (!w.globals.isBarHorizontal) {
       if (dataLabelsObj.dataLabelsPos.dataLabelsX + Math.max(barWidth, w.globals.barPadForNumericAxis) < 0 || dataLabelsObj.dataLabelsPos.dataLabelsX - Math.max(barWidth, w.globals.barPadForNumericAxis) > w.layout.gridWidth) {
         skipDrawing = true;
@@ -2079,33 +2181,11 @@ class Bar {
       lineFill = /** @type {Record<string,any>} */
       w.config.series[i].data[j].strokeColor;
     }
-    if (this.isNullValue) {
+    if (this.isNullValue && w.globals.collapsingSeriesIndices.indexOf(realIndex) === -1) {
       pathFill = "none";
     }
-    const animCfg = w.config.chart.animations;
-    const gradCfg = animCfg.animateGradually;
-    const staggerEnabled = gradCfg && gradCfg.enabled !== false && !(w.globals.dataChanged && this.isLayoutShift(realIndex));
-    let delay = 0;
-    if (staggerEnabled) {
-      const totalBars = w.globals.dataPoints || 1;
-      const configStep = gradCfg.delay || 0;
-      const baseDelayMs = Math.min(
-        configStep,
-        animCfg.speed * 0.5 / Math.max(1, totalBars)
-      );
-      let delayMs = computeStagger({
-        style: "sequential",
-        index: j,
-        baseDelay: baseDelayMs
-      });
-      if (w.config.chart.stacked) {
-        delayMs += i * baseDelayMs * 0.5;
-      }
-      const delayFactor = configStep || 1;
-      delay = delayMs / delayFactor;
-    }
     if (!skipDrawing) {
-      const morphActive = ((_a = this.ctx.morphTypeChange) == null ? void 0 : _a.isActive()) === true;
+      const morphActive = ((_g = this.ctx.morphTypeChange) == null ? void 0 : _g.isActive()) === true;
       const dataChangeSpeed = morphActive ? this.ctx.morphTypeChange.getSpeed() : w.config.chart.animations.dynamicAnimation.speed;
       const pieceClaimed = morphActive && this.ctx.morphTypeChange.claimsTargetMark(realIndex, j);
       if (pieceClaimed) {
@@ -2124,6 +2204,7 @@ class Bar {
           strokeWidth,
           strokeLineCap: w.config.stroke.lineCap,
           fill: pathFill,
+          pathToInterp,
           animationDelay: delay,
           initialSpeed: w.config.chart.animations.speed,
           dataChangeSpeed,
@@ -2548,10 +2629,14 @@ class Bar {
    * @param {number} realIndex - stable series index from `data:realIndex`
    * @param {number} j - data-point index within the series
    * @param {string} pathTo - the freshly-built path for this bar (post-roundPathCorners)
+   * @param {string} [squarePathTo] - the same bar before roundPathCorners, i.e.
+   *   its new slot with square corners. Supplied by the stacked builders so a
+   *   bar gaining a corner can travel square and round only on arrival.
    * @returns {string | null}
    **/
-  getPreviousPath(realIndex, j, pathTo) {
+  getPreviousPath(realIndex, j, pathTo, squarePathTo) {
     const w = this.w;
+    this._pathToInterp = null;
     const record = this._prevRecord(realIndex);
     if (!record) {
       return lengthTransitionEnabled(w) ? null : pathTo;
@@ -2571,13 +2656,129 @@ class Bar {
     } else {
       isNewDatum = true;
     }
-    if (oldD && Bar.pathCommandCount(oldD) === Bar.pathCommandCount(pathTo)) {
-      return oldD;
+    if (oldD) {
+      const fromCount = Bar.pathCommandCount(oldD);
+      const toCount = Bar.pathCommandCount(pathTo);
+      if (fromCount === toCount) {
+        return oldD;
+      }
+      const graphics = new Graphics(w);
+      const extentOf = (d) => {
+        const box = Bar.pathBox(d);
+        return box ? Math.min(box.maxX - box.minX, box.maxY - box.minY) : 0;
+      };
+      const handingOver = fromCount < toCount ? extentOf(oldD) > 1 : extentOf(pathTo) > 1;
+      if (fromCount < toCount) {
+        const padded = graphics.roundPathCorners(oldD, 0);
+        if (Bar.pathCommandCount(padded) === toCount) {
+          if (handingOver && squarePathTo) {
+            const squareTarget = graphics.roundPathCorners(squarePathTo, 0);
+            if (Bar.pathCommandCount(squareTarget) === toCount) {
+              this._pathToInterp = squareTarget;
+            }
+          }
+          return padded;
+        }
+      } else {
+        const padded = graphics.roundPathCorners(pathTo, 0);
+        if (Bar.pathCommandCount(padded) === fromCount) {
+          this._pathToInterp = padded;
+          if (handingOver) {
+            const square = Bar.squareLike(oldD);
+            const squareStart = square ? graphics.roundPathCorners(square, 0) : null;
+            if (squareStart && Bar.pathCommandCount(squareStart) === fromCount) {
+              return squareStart;
+            }
+          }
+          return oldD;
+        }
+      }
     }
     if (isNewDatum && lengthTransitionEnabled(w)) {
       return null;
     }
     return pathTo;
+  }
+  /**
+   * The axis-aligned box a bar path occupies, and the point it starts from.
+   *
+   * @param {string} d
+   * @returns {{minX: number, maxX: number, minY: number, maxY: number, start: [number, number], vertical: boolean} | null}
+   */
+  static pathBox(d) {
+    if (!d) return null;
+    const pts = [];
+    const re = /([MLC])([^MLCZz]*)/g;
+    let m;
+    while ((m = re.exec(d)) !== null) {
+      const nums = m[2].trim().split(/[\s,]+/).map(Number);
+      if (nums.length < 2 || nums.some(isNaN)) continue;
+      pts.push([nums[nums.length - 2], nums[nums.length - 1]]);
+    }
+    if (pts.length < 3) return null;
+    const xs = pts.map((p) => p[0]);
+    const ys = pts.map((p) => p[1]);
+    return {
+      minX: Math.min(...xs),
+      maxX: Math.max(...xs),
+      minY: Math.min(...ys),
+      maxY: Math.max(...ys),
+      start: pts[0],
+      // Column bars run their first leg down a vertical edge, horizontal bars
+      // run it along a horizontal one. Rounding moves the start point ALONG
+      // that leg, so the axis it does not move on is the one it shares.
+      vertical: Math.abs(pts[1][0] - pts[0][0]) < Math.abs(pts[1][1] - pts[0][1])
+    };
+  }
+  /**
+   * Rebuild a bar path as the plain rectangle it was rounded from, same box,
+   * same corner order, no radius.
+   *
+   * The corner the path starts at is the one nearest its start point, because
+   * rounding only ever slides that point a radius along the first leg. Knowing
+   * that corner and the winding is enough to re-emit the rect exactly as the
+   * builders in common/bar/Helpers do, so the result pairs command-for-command
+   * with anything built from them.
+   *
+   * @param {string} d
+   * @returns {string | null}
+   */
+  static squareLike(d) {
+    const box = Bar.pathBox(d);
+    if (!box) return null;
+    const { minX, maxX, minY, maxY, start, vertical } = box;
+    const near = (v, a, b) => Math.abs(v - a) <= Math.abs(v - b) ? [a, b] : [b, a];
+    let x1, x2, y1, y2;
+    if (vertical) {
+      x1 = Math.abs(start[0] - minX) <= Math.abs(start[0] - maxX) ? minX : maxX;
+      x2 = x1 === minX ? maxX : minX;
+      [y1, y2] = near(start[1], minY, maxY);
+    } else {
+      y1 = Math.abs(start[1] - minY) <= Math.abs(start[1] - maxY) ? minY : maxY;
+      y2 = y1 === minY ? maxY : minY;
+      [x1, x2] = near(start[0], minX, maxX);
+    }
+    const closing = d.trim().endsWith("Z") ? " Z" : " z";
+    return vertical ? `M ${x1} ${y1} L ${x1} ${y2} L ${x2} ${y2} L ${x2} ${y1}${closing}` : `M ${x1} ${y1} L ${x2} ${y1} L ${x2} ${y2} L ${x1} ${y2}${closing}`;
+  }
+  /**
+   * Was this bar MIRRORED in the previous render? Stacked bars carry only
+   * top-rounded geometry; a bottom radius is produced by the apexcharts-flip-y
+   * (or -x, horizontal) class, so the mirror is the only record of where the
+   * radius visually sat. Matched by datum key like getPreviousPath, falling
+   * back to position when the previous render carries no keys.
+   *
+   * @param {number} realIndex
+   * @param {number} j
+   * @returns {boolean | null} null when there is no previous record to consult
+   */
+  getPreviousFlip(realIndex, j) {
+    const w = this.w;
+    const record = this._prevRecord(realIndex);
+    if (!record) return null;
+    const keyed = this._prevKeyedPaths(realIndex);
+    const prev = keyed ? keyed.get(datumKey(w, realIndex, j)) : record.paths[j];
+    return prev ? !!prev.flip : null;
   }
   /**
    * Count SVG path commands (M, L, C, Q, Z, etc.). Used to detect whether
@@ -2620,6 +2821,9 @@ class BarStacked extends Bar {
     });
     let x = 0;
     let y = 0;
+    const anim = w.config.chart.animations;
+    const holdMirror = anim.enabled && anim.dynamicAnimation.enabled && w.globals.previousPaths.length > 0;
+    let heldMirrors = false;
     for (let i = 0, bc = 0; i < series.length; i++, bc++) {
       const realIndex = w.globals.comboCharts ? (
         /** @type {any} */
@@ -2651,6 +2855,13 @@ class BarStacked extends Bar {
         class: "apexcharts-datalabels",
         "data:realIndex": realIndex
       });
+      Series.addCollapsedClassToSeries(this.w, elDataLabelsWrap, realIndex);
+      if ((w.globals.collapsingSeriesIndices || []).indexOf(realIndex) > -1) {
+        elDataLabelsWrap.node.style.setProperty(
+          "--apexcharts-dl-exit",
+          `${w.config.chart.animations.dynamicAnimation.speed}ms`
+        );
+      }
       const elGoalsMarkers = this.graphics.group({
         class: "apexcharts-bar-goals-markers"
       });
@@ -2740,8 +2951,14 @@ class BarStacked extends Bar {
         );
         let classes = "";
         const flipClass = w.globals.isBarHorizontal ? "apexcharts-flip-x" : "apexcharts-flip-y";
-        if (this.barHelpers.arrBorderRadius[realIndex][j] === "bottom" && w.seriesData.series[realIndex][j] > 0 || this.barHelpers.arrBorderRadius[realIndex][j] === "top" && w.seriesData.series[realIndex][j] < 0) {
+        const wantsFlip = this.barHelpers.arrBorderRadius[realIndex][j] === "bottom" && w.seriesData.series[realIndex][j] > 0 || this.barHelpers.arrBorderRadius[realIndex][j] === "top" && w.seriesData.series[realIndex][j] < 0;
+        const heldFlip = holdMirror && !wantsFlip && this.getPreviousFlip(realIndex, j);
+        if (wantsFlip || heldFlip) {
           classes = flipClass;
+        }
+        if (heldFlip) {
+          classes += " apexcharts-flip-held";
+          heldMirrors = true;
         }
         elSeries = this.renderSeries(__spreadProps(__spreadValues({
           realIndex,
@@ -2776,7 +2993,31 @@ class BarStacked extends Bar {
       this.groupCtx.prevXVal.push(this.groupCtx.xArrjVal);
       ret.add(elSeries);
     }
+    if (heldMirrors) this.settleHeldMirrors();
     return ret;
+  }
+  /**
+   * Drop the mirrors held across an animated update once the geometry they
+   * were covering for has arrived. A no-op for every state except
+   * 'bottom' → 'top', where the endpoint really is rounded at the other end;
+   * everywhere else the mirror is an exact identity on the settled shape, so
+   * removing it changes nothing on screen.
+   */
+  settleHeldMirrors() {
+    const w = this.w;
+    if (!Environment.isBrowser()) return;
+    const anim = w.config.chart.animations;
+    const hold = (anim.dynamicAnimation.speed || 0) + (anim.speed || 0) + 100;
+    setTimeout(() => {
+      if (w.globals.isDestroyed || !Utils.elementExists(w.dom.baseEl)) return;
+      w.dom.baseEl.querySelectorAll(".apexcharts-flip-held").forEach((el) => {
+        el.classList.remove(
+          "apexcharts-flip-held",
+          "apexcharts-flip-y",
+          "apexcharts-flip-x"
+        );
+      });
+    }, hold);
   }
   /**
    * @param {number} x

@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target2;
 };
 /*!
- * ApexCharts v6.10.0
+ * ApexCharts v7.0.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 const CMD = /[MmLlHhVvCcSsQqTtAaZz]/;

@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.10.0
+ * ApexCharts v7.0.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -145,18 +145,61 @@ class Helpers {
     );
   }
   /**
+   * Does the x position take the category branch of `getX1X2` (a label lookup)
+   * rather than projecting through a numeric domain? Mirrors the conditions
+   * applied there, so the two cannot drift apart.
+   *
+   * @returns {boolean}
+   */
+  usesCategoryX() {
+    const w = this.w;
+    return (w.config.xaxis.type === "category" || w.config.xaxis.convertedCatToNumeric) && !this.annoCtx.invertAxis && !w.axisFlags.dataFormatXNumeric && !w.config.chart.sparkline.enabled;
+  }
+  /**
+   * Is there a real domain for an x position to project through?
+   *
+   * An empty series still gets a laid-out grid and a y scale (the default 0..6,
+   * or the configured `yaxis.min`/`max`), which is why a y-axis annotation is
+   * always placeable. Nothing bounds the x domain though: `maxX` is left
+   * undefined and `xRange` is NaN, and a category axis has no labels to index
+   * into. Projecting through that is silently wrong rather than merely absent:
+   * NaN sails past the clip comparisons in `getX1X2` (both `NaN > gridWidth`
+   * and `NaN < 0` are false), and the category branch hands back the raw value
+   * as a pixel offset, so `x: 5` draws 5px from the grid's left edge.
+   *
+   * Gating each annotation on this replaces the chart-wide `dataPoints` check
+   * that used to sit in `drawAxesAnnotations()` (#1832), which suppressed the
+   * placeable y-axis annotations along with the unplaceable x ones (#5278).
+   *
+   * @returns {boolean}
+   */
+  hasXDomain() {
+    const w = this.w;
+    if (this.annoCtx.invertAxis) {
+      return Utils.isNumber(w.globals.minY) && Utils.isNumber(w.globals.yRange[0]);
+    }
+    if (this.usesCategoryX()) {
+      return w.labelData.labels.length > 0 || w.labelData.categoryLabels.length > 0;
+    }
+    return Utils.isNumber(w.globals.minX) && Utils.isNumber(w.globals.xRange);
+  }
+  /**
    * @param {string} type
    * @param {Record<string, any>} anno
    */
   getY1Y2(type, anno) {
-    var _a, _b;
+    var _a, _b, _c;
     const w = this.w;
     const y = type === "y1" ? anno.y : anno.y2;
+    const isPx = typeof y === "string" && y.includes("px");
     let yP;
     let clipped = false;
     if (this.annoCtx.invertAxis) {
       const labels = w.config.xaxis.convertedCatToNumeric ? w.labelData.categoryLabels : w.labelData.labels;
       const catIndex = labels.indexOf(y);
+      if (!isPx && catIndex === -1) {
+        return { yP: 0, clipped: true };
+      }
       const xLabel = w.dom.baseEl.querySelector(
         `.apexcharts-yaxis-texts-g text:nth-child(${catIndex + 1})`
       );
@@ -165,28 +208,36 @@ class Helpers {
         yP -= w.globals.barHeight / 2 * (w.seriesData.series.length - 1) - w.globals.barHeight * anno.seriesIndex;
       }
     } else {
-      const yAxisMap = w.globals.seriesYAxisMap[anno.yAxisIndex];
-      if (!yAxisMap || yAxisMap[0] == null || !w.config.yaxis[anno.yAxisIndex]) {
+      if (!w.config.yaxis[anno.yAxisIndex]) {
         return { yP: 0, clipped: true };
       }
-      const seriesIndex = yAxisMap[0];
-      const yPos = w.config.yaxis[anno.yAxisIndex].logarithmic ? new CoreUtils(this.w).getLogVal(
+      const yAxisMap = w.globals.seriesYAxisMap[anno.yAxisIndex];
+      const seriesIndex = (_b = yAxisMap == null ? void 0 : yAxisMap[0]) != null ? _b : null;
+      if (seriesIndex === null && w.seriesData.series.length) {
+        return { yP: 0, clipped: true };
+      }
+      const yMin = seriesIndex === null ? w.globals.minY : w.globals.minYArr[seriesIndex];
+      const yRange = seriesIndex === null ? w.globals.maxY - w.globals.minY : w.globals.yRange[seriesIndex];
+      const yPos = w.config.yaxis[anno.yAxisIndex].logarithmic && seriesIndex !== null ? new CoreUtils(this.w).getLogVal(
         w.config.yaxis[anno.yAxisIndex].logBase,
         y,
         seriesIndex
       ) / /** @type {any} */
-      w.globals.yLogRatio[seriesIndex] : (y - w.globals.minYArr[seriesIndex]) / (w.globals.yRange[seriesIndex] / w.layout.gridHeight);
+      w.globals.yLogRatio[seriesIndex] : (y - yMin) / (yRange / w.layout.gridHeight);
       yP = w.layout.gridHeight - Math.min(Math.max(yPos, 0), w.layout.gridHeight);
       clipped = yPos > w.layout.gridHeight || yPos < 0;
       if (anno.marker && (anno.y === void 0 || anno.y === null)) {
         yP = 0;
       }
-      if ((_b = w.config.yaxis[anno.yAxisIndex]) == null ? void 0 : _b.reversed) {
+      if ((_c = w.config.yaxis[anno.yAxisIndex]) == null ? void 0 : _c.reversed) {
         yP = yPos;
       }
     }
-    if (typeof y === "string" && y.includes("px")) {
-      yP = parseFloat(y);
+    if (isPx) {
+      yP = parseFloat(
+        /** @type {string} */
+        y
+      );
     }
     return { yP, clipped };
   }
@@ -201,6 +252,11 @@ class Helpers {
     const max = this.annoCtx.invertAxis ? w.globals.maxY : w.globals.maxX;
     const range = this.annoCtx.invertAxis ? w.globals.yRange[0] : w.globals.xRange;
     let clipped = false;
+    const isPx = typeof x === "string" && x.includes("px");
+    const isEdgeMarker = (x === void 0 || x === null) && anno.marker;
+    if (!isPx && !isEdgeMarker && !this.hasXDomain()) {
+      return { x: 0, clipped: true };
+    }
     let xP = this.annoCtx.inversedReversedAxis ? (max - x) / (range / w.layout.gridWidth) : (x - min) / (range / w.layout.gridWidth);
     if ((w.config.xaxis.type === "category" || w.config.xaxis.convertedCatToNumeric) && !this.annoCtx.invertAxis && !w.axisFlags.dataFormatXNumeric) {
       if (!w.config.chart.sparkline.enabled) {
@@ -754,7 +810,7 @@ class Annotations {
   }
   drawAxesAnnotations() {
     const w = this.w;
-    if (w.globals.axisCharts && w.globals.dataPoints) {
+    if (w.globals.axisCharts) {
       const yAnnotations = this.yAxisAnnotations.drawYAxisAnnotations();
       const xAnnotations = this.xAxisAnnotations.drawXAxisAnnotations();
       const pointAnnotations = this.pointsAnnotations.drawPointAnnotations();

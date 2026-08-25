@@ -1,5 +1,5 @@
 /*!
- * ApexCharts v6.10.0
+ * ApexCharts v7.0.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -129,12 +129,18 @@ class TreemapHelpers {
         if (row[k] > max) max = row[k];
       }
     }
-    if (typeof chartOpts.colorScale.min !== "undefined") {
-      min = chartOpts.colorScale.min < w.globals.minY ? chartOpts.colorScale.min : w.globals.minY;
-      max = chartOpts.colorScale.max > w.globals.maxY ? chartOpts.colorScale.max : w.globals.maxY;
+    const csMin = chartOpts.colorScale.min;
+    const csMax = chartOpts.colorScale.max;
+    if (typeof csMin !== "undefined" && typeof csMax !== "undefined" && csMax > csMin) {
+      min = csMin;
+      max = csMax;
+    } else if (typeof csMin !== "undefined") {
+      min = csMin < w.globals.minY ? csMin : w.globals.minY;
+      max = csMax > w.globals.maxY ? csMax : w.globals.maxY;
     }
     const total = Math.abs(max) + Math.abs(min);
-    let percent = total === 0 ? 0 : 100 * val / total;
+    const clamped = Math.min(Math.max(val, min), max);
+    let percent = total === 0 ? 0 : 100 * clamped / total;
     if (chartOpts.colorScale.ranges.length > 0) {
       const colorRange = chartOpts.colorScale.ranges;
       colorRange.map((range) => {

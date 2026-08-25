@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.10.0
+ * ApexCharts v7.0.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -303,10 +303,18 @@ class Helpers {
         }
       }
     }
-    this.lgCtx.updateSeries(
-      series,
-      w.config.chart.animations.dynamicAnimation.enabled
-    );
+    const animate = w.config.chart.animations.dynamicAnimation.enabled;
+    if (animate) {
+      w.globals.collapsingSeriesIndices = [realIndex];
+    }
+    const clearCollapsing = () => {
+      w.globals.collapsingSeriesIndices = [];
+    };
+    const updated = this.lgCtx.updateSeries(series, animate);
+    clearCollapsing();
+    if (updated && typeof updated.then === "function") {
+      updated.then(clearCollapsing, clearCollapsing);
+    }
   }
   /**
    * @param {any[]} collapsedSeries
@@ -529,6 +537,7 @@ class HeatmapGradientLegend {
     this._geom = null;
     this._bandHitEls = [];
     this._activeBandIndex = -1;
+    this._targetEl = null;
     this._onCellEnter = this._onCellEnter.bind(this);
     this._onCellLeave = this._onCellLeave.bind(this);
     this._onBandEnter = this._onBandEnter.bind(this);
@@ -591,13 +600,17 @@ class HeatmapGradientLegend {
   /**
    * Build the gradient legend DOM into `elLegendWrap`.
    * Caller is responsible for clearing the wrap first.
+   * @param {HTMLElement|null} [targetEl] detached mode: draw into this
+   *   element instead (a trellis's shared legend slot); the host owns layout,
+   *   so all plot-relative positioning is skipped.
    */
-  draw() {
+  draw(targetEl = null) {
     var _a, _b, _c, _d, _e, _f, _g, _h;
     const w = this.w;
+    this._targetEl = targetEl;
     const elLegendWrap = (
       /** @type {HTMLElement} */
-      w.dom.elLegendWrap
+      targetEl || w.dom.elLegendWrap
     );
     if (!elLegendWrap) return;
     const cfg = this._cfg();
@@ -752,7 +765,14 @@ class HeatmapGradientLegend {
     elLegendWrap.appendChild(svg);
     if (this.hoverValueEl) elLegendWrap.appendChild(this.hoverValueEl);
     this.svgEl = svg;
-    this._applyWrapAlignment(elLegendWrap, position, isVertical, svgWidth, svgHeight);
+    if (targetEl) {
+      elLegendWrap.style.width = svgWidth + "px";
+      elLegendWrap.style.height = svgHeight + "px";
+      elLegendWrap.style.position = "relative";
+      elLegendWrap.style.overflow = "visible";
+    } else {
+      this._applyWrapAlignment(elLegendWrap, position, isVertical, svgWidth, svgHeight);
+    }
     this._attachHoverListeners();
     this._attachBandHoverListeners();
   }
@@ -850,6 +870,7 @@ class HeatmapGradientLegend {
   repositionToPlot() {
     var _a, _b;
     if (!Environment.isBrowser()) return;
+    if (this._targetEl) return;
     const w = this.w;
     const g = w.globals;
     const wrap = (
@@ -1160,11 +1181,16 @@ class HeatmapGradientLegend {
     if (!Number.isFinite(dataMax)) dataMax = 0;
     let min = dataMin;
     let max = dataMax;
-    if (typeof cs.min !== "undefined") {
-      min = cs.min < dataMin ? cs.min : dataMin;
-    }
-    if (typeof cs.max !== "undefined") {
-      max = cs.max > dataMax ? cs.max : dataMax;
+    if (typeof cs.min !== "undefined" && typeof cs.max !== "undefined" && cs.max > cs.min) {
+      min = cs.min;
+      max = cs.max;
+    } else {
+      if (typeof cs.min !== "undefined") {
+        min = cs.min < dataMin ? cs.min : dataMin;
+      }
+      if (typeof cs.max !== "undefined") {
+        max = cs.max > dataMax ? cs.max : dataMax;
+      }
     }
     const stops = [];
     const bands = [];

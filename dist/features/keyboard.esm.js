@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.10.0
+ * ApexCharts v7.0.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -529,7 +529,7 @@ class KeyboardNavigation {
       shared
     });
     const isScatterLike = type === "scatter" || type === "bubble";
-    const hasVisibleMarkers = w.globals.markers.largestSize > 0;
+    const hasVisibleMarkers = w.globals.markers.largestSize > 0 && !w.globals.markers.batched;
     if (isScatterLike) {
       this._showScatterBubblePoint(i, j, ttCtx);
     } else if (hasVisibleMarkers) {
@@ -686,7 +686,7 @@ class KeyboardNavigation {
    */
   _applyFocusClass(i, j) {
     this._removeFocusClass();
-    const el = this._getFocusableElement(i, j);
+    const el = this._getFocusableElement(i, j) || this._getBatchedFocusEl(i);
     if (el) {
       el.classList.add("apexcharts-keyboard-focused");
       el.setAttribute("role", "img");
@@ -694,6 +694,21 @@ class KeyboardNavigation {
       if (label) el.setAttribute("aria-label", label);
       this._focusedEl = el;
     }
+  }
+  /**
+   * A batched series has no `.apexcharts-marker[rel]` node to carry the focus
+   * ring and aria-label, so the focus lands on the tooltip's own marker for
+   * that series instead: `_showTooltip` moves it onto the focused point in this
+   * same task, so it is the element the reader sees highlighted. Only used when
+   * batching is on, since with per-point nodes the exact node is better.
+   * @param {number} i
+   * @returns {Element | null}
+   */
+  _getBatchedFocusEl(i) {
+    if (!this.w.globals.markers.batched) return null;
+    return this.w.dom.baseEl.querySelector(
+      `.apexcharts-series[data\\:realIndex='${i}'] .apexcharts-series-markers path`
+    );
   }
   _removeFocusClass() {
     if (this._focusedEl) {

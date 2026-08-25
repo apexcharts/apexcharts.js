@@ -18,7 +18,7 @@ var __spreadValues = (a, b) => {
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 /*!
- * ApexCharts v6.10.0
+ * ApexCharts v7.0.0-rc.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -120,7 +120,8 @@ class Helpers {
     if (typeof ((_c = series[i]) == null ? void 0 : _c[0]) !== "undefined") {
       if (stackSeries) {
         if (i > 0) {
-          lineYPosition = this.lineCtx.prevSeriesY[i - 1][0];
+          const top = this.lineCtx.stackTopAt(realIndex, 0);
+          lineYPosition = top === void 0 ? this.lineCtx.zeroY : top;
         } else {
           lineYPosition = this.lineCtx.zeroY;
         }
@@ -377,6 +378,7 @@ function detectStreamScroll(w, realIndex, newXPixels, newYPixels) {
       }
     }
   }
+  gl.streamScrolled = true;
   return { ax, bx, ay, by };
 }
 const NUM_RE = /[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi;
@@ -877,6 +879,7 @@ class Line {
     this.lineHelpers = new Helpers(this);
     this.markers = new Markers(this.w, this.ctx);
     this.prevSeriesY = [];
+    this.prevSeriesYByX = /* @__PURE__ */ new Map();
     this.categoryAxisCorrection = 0;
     this.yaxisIndex = 0;
     this.xDivision = 0;
@@ -912,6 +915,7 @@ class Line {
     series = coreUtils.getLogSeries(series);
     this.yRatio = coreUtils.getLogYRatios(this.yRatio);
     this.prevSeriesY = [];
+    this.prevSeriesYByX = /* @__PURE__ */ new Map();
     const allSeries = [];
     for (let i = 0; i < series.length; i++) {
       series = this.lineHelpers.sameValueSeriesFix(i, series);
@@ -1033,6 +1037,7 @@ class Line {
         paths.pathFromArea += "z";
       }
       this._handlePaths({ type, realIndex, i, paths });
+      this.markers.flushBatch(this.elPointsMain, realIndex);
       this.elSeries.add(this.elPointsMain);
       this.elSeries.add(this.elDataLabelsWrap);
       allSeries.push(this.elSeries);
@@ -1170,6 +1175,70 @@ class Line {
       pathFromArea
     };
   }
+  /**
+   * The identity a stacked baseline is looked up by.
+   *
+   * On a numeric or datetime axis each series carries its own x array, and two
+   * series' Nth points are not the same x when one of them is missing an entry.
+   * So the key is the x VALUE there. On a category axis every series is indexed
+   * against the shared category list, so the ordinal already IS the identity
+   * (and the pixel x is a running sum, unsafe to compare as a float).
+   *
+   * Returns undefined when this ordinal has no x, which happens on every series
+   * shorter than the longest one: the loop runs `dataPoints - 1` times for all
+   * of them. Those iterations must not write to or read from the map.
+   * @param {number} realIndex
+   * @param {number} ordinal
+   * @returns {any}
+   */
+  _stackKey(realIndex, ordinal) {
+    if (!this.w.axisFlags.isXNumeric) return ordinal;
+    const xs = this.w.seriesData.seriesX[realIndex];
+    return xs ? xs[ordinal] : void 0;
+  }
+  /**
+   * Pixel y of the top of the stack at one point of the series being drawn, or
+   * undefined when nothing has been stacked there yet (so the caller starts
+   * from the axis baseline).
+   * @param {number} realIndex
+   * @param {number} ordinal
+   * @returns {number | undefined}
+   */
+  stackTopAt(realIndex, ordinal) {
+    const key = this._stackKey(realIndex, ordinal);
+    if (key === void 0 || key === null) return void 0;
+    return this.prevSeriesYByX.get(key);
+  }
+  /**
+   * Fold a drawn series into the running stack top, so the next series can find
+   * its baseline by x (#4886).
+   *
+   * A point the series does not have simply leaves the previous top in place,
+   * which is the same thing as contributing 0 there. That is exactly what the
+   * workaround posted on the issue does by hand (pad every series onto the union
+   * of all x with zeros), and it is the behaviour the reporter expected.
+   *
+   * Collapsed series are skipped rather than folded in. Today a collapsed series
+   * renders a full-length yArrj sitting on the running baseline, so folding it
+   * would be a no-op anyway, but skipping states the intent and keeps this
+   * correct if that representation ever changes.
+   * @param {number} realIndex
+   * @param {any[]} yArrj
+   */
+  _recordStackTops(realIndex, yArrj) {
+    const w = this.w;
+    if (!Array.isArray(yArrj)) return;
+    if (w.globals.collapsedSeriesIndices.indexOf(realIndex) !== -1 || w.globals.ancillaryCollapsedSeriesIndices.indexOf(realIndex) !== -1) {
+      return;
+    }
+    for (let j = 0; j < yArrj.length; j++) {
+      const key = this._stackKey(realIndex, j);
+      if (key === void 0 || key === null) continue;
+      const y = yArrj[j];
+      if (!Utils.isNumber(y)) continue;
+      this.prevSeriesYByX.set(key, y);
+    }
+  }
   /** @param {{type: any, realIndex: any, i: any, paths: any}} opts */
   _handlePaths({ type, realIndex, i, paths }) {
     var _a, _b, _c, _d, _e, _f, _g;
@@ -1178,6 +1247,7 @@ class Line {
     const emit = seriesEmitter(this.ctx, graphics);
     const fill = new Fill(this.w);
     this.prevSeriesY.push(paths.yArrj);
+    this._recordStackTops(realIndex, paths.yArrj);
     let streamScroll = null;
     if ((type === "line" || type === "area") && w.globals.dataChanged) {
       streamScroll = detectStreamScroll(w, realIndex, paths.xArrj, paths.yArrj);
@@ -1248,14 +1318,17 @@ class Line {
       className: `apexcharts-${type}`
     };
     const numericXY = paths.numericXY;
+    const mergeSegments = type === "line" || type === "area";
+    const linePathsToDraw = mergeSegments && paths.linePaths.length > 1 ? [paths.linePaths.join(" ")] : paths.linePaths;
+    const areaPathsToDraw = mergeSegments && paths.areaPaths.length > 1 ? [paths.areaPaths.join(" ")] : paths.areaPaths;
     if (type === "area") {
       const pathFill = fill.fillPath({
         seriesNumber: realIndex
       });
-      for (let p = 0; p < paths.areaPaths.length; p++) {
+      for (let p = 0; p < areaPathsToDraw.length; p++) {
         const renderedPath = emit.renderPaths(__spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
           pathFrom: streamScroll ? projectPathToPrevFrame(paths.areaPaths[p], streamScroll) : (_c = (_b = reconcile == null ? void 0 : reconcile.area) == null ? void 0 : _b.from) != null ? _c : paths.pathFromArea,
-          pathTo: paths.areaPaths[p],
+          pathTo: areaPathsToDraw[p],
           pathToNumeric: numericXY ? {
             xs: numericXY.xs,
             ys: numericXY.ys,
@@ -1291,7 +1364,7 @@ class Line {
           w.config.fill = prevFill;
         }
       }
-      for (let p = 0; p < paths.linePaths.length; p++) {
+      for (let p = 0; p < linePathsToDraw.length; p++) {
         let pathFill = lineFill;
         if (type === "rangeArea") {
           pathFill = fill.fillPath({
@@ -1300,7 +1373,7 @@ class Line {
         }
         const linePathCommonOpts = __spreadProps(__spreadValues({}, defaultRenderedPathOptions), {
           pathFrom: streamScroll ? projectPathToPrevFrame(paths.linePaths[p], streamScroll) : (_f = (_e = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _e.from) != null ? _f : paths.pathFromLine,
-          pathTo: paths.linePaths[p],
+          pathTo: linePathsToDraw[p],
           pathToNumeric: numericXY ? { xs: numericXY.xs, ys: numericXY.ys } : void 0,
           pathToInterp: (_g = reconcile == null ? void 0 : reconcile.line) == null ? void 0 : _g.toInterp,
           scrollMorph: !!streamScroll,
@@ -1433,7 +1506,12 @@ class Line {
             return -1;
           };
           const pIdx = prevIndex(i - 1);
-          lineYPosition = pIdx < 0 ? this.zeroY : this.prevSeriesY[pIdx][j + 1];
+          if (pIdx < 0) {
+            lineYPosition = this.zeroY;
+          } else {
+            const top = this.stackTopAt(realIndex, j + 1);
+            lineYPosition = top === void 0 ? this.zeroY : top;
+          }
         } else {
           lineYPosition = this.zeroY;
         }
@@ -1532,7 +1610,7 @@ class Line {
     const w = this.w;
     const dataLabels = new DataLabels(this.w, this.ctx);
     if (!this.pointsChart) {
-      const useProgressive = !w.globals.dataChanged && !w.globals.resized;
+      const useProgressive = !w.globals.dataChanged && !w.globals.resized && !w.globals.markers.batched;
       if (!useProgressive && w.seriesData.series[i].length > 1) {
         this.elPointsMain.node.classList.add("apexcharts-element-hidden");
       }
