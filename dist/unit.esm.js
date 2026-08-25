@@ -18,7 +18,7 @@ var __spreadValues = (a, b2) => {
 };
 var __spreadProps = (a, b2) => __defProps(a, __getOwnPropDescs(b2));
 /*!
- * ApexCharts v7.0.0-rc.1
+ * ApexCharts v7.0.0
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
