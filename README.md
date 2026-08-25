@@ -140,7 +140,19 @@ No more `dynamic(() => import(...), { ssr: false })` workarounds: the chart rend
 
 ## Tree-shaking: ship only what you use
 
-By default `import ApexCharts from 'apexcharts'` includes everything. For smaller bundles, import from `apexcharts/core` and add only what you need:
+`import ApexCharts from 'apexcharts'` gives you every chart type and the
+everyday features. Nine optional features ship outside it and are imported
+explicitly (marked **opt-in** below); each warns in the console if its config is
+set but the feature is absent. Adding one to the default bundle is a single
+line, and the two share one copy of the core:
+
+```js
+import ApexCharts from 'apexcharts'
+import 'apexcharts/features/trellis'
+```
+
+For a smaller bundle still, start from `apexcharts/core` and add only what you
+need:
 
 ```js
 import ApexCharts from 'apexcharts/core'   // bare class: no chart types, no features
@@ -160,18 +172,32 @@ import 'apexcharts/features/toolbar'      // zoom/pan toolbar
 // import 'apexcharts/features/keyboard'     // keyboard navigation
 // import 'apexcharts/features/drilldown'    // hierarchical drill-down
 // import 'apexcharts/features/morph'        // animated chart-type morphs
-// import 'apexcharts/features/history'      // undo/redo (premium)
-// import 'apexcharts/features/perspectives' // shareable view state (premium)
-// import 'apexcharts/features/storyboard'   // scrollytelling, incl. perspectives (premium)
+// import 'apexcharts/features/history'      // undo/redo (premium, opt-in)
+// import 'apexcharts/features/perspectives' // shareable view state (premium, opt-in)
+// import 'apexcharts/features/storyboard'   // scrollytelling, incl. perspectives (premium, opt-in)
 // import 'apexcharts/features/facet'        // design tokens + OS themes
 // import 'apexcharts/features/weave'        // plugin platform
 // import 'apexcharts/features/marks'        // custom series types
-// import 'apexcharts/features/link'         // crossfilter / linked views (premium)
-// import 'apexcharts/features/ink'          // on-chart annotation editing (premium)
-// import 'apexcharts/features/measure'      // measure/delta ruler (premium)
-// import 'apexcharts/features/context-menu' // right-click context menu (premium)
-// import 'apexcharts/features/renderer-canvas' // canvas series renderer
+// import 'apexcharts/features/link'         // crossfilter / linked views (premium, opt-in)
+// import 'apexcharts/features/ink'          // on-chart annotation editing (premium, opt-in)
+// import 'apexcharts/features/measure'      // measure/delta ruler (premium, opt-in)
+// import 'apexcharts/features/context-menu' // right-click context menu (premium, opt-in)
+// import 'apexcharts/features/renderer-canvas' // canvas series renderer (opt-in)
+// import 'apexcharts/features/trellis'     // small multiples (premium, opt-in)
 ```
+
+A page without a bundler gets the same choice. `apexcharts.js` stays
+batteries-included, and `apexcharts.core.min.js` is the lean baseline you build
+up from:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts/dist/line.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts/dist/features/legend.js"></script>
+```
+
+Opt-in features work the same way there: load `dist/features/<name>.js` after
+whichever bundle the page already has.
 
 See the [tree-shaking guide](https://apexcharts.com/docs/tree-shaking/) for the complete list of entry points.
 
