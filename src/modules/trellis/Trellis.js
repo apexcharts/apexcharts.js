@@ -36,7 +36,7 @@ import {
   computeMarkCount,
   hasCanvasUnsupportedFeature,
 } from '../../renderers/Renderer'
-import { split as splitSeries, placeholderSeries } from './TrellisSplit'
+import { split as splitSeries, placeholderSeries, keyOf } from './TrellisSplit'
 import { buildTypeFrames } from './TrellisFrames'
 import { pivotRows } from './pivotRows'
 import * as TrellisScales from './TrellisScales'
@@ -240,6 +240,8 @@ export default class Trellis {
     this._elChromeTop = null
     /** Whether the type-veto warning (P5) has been emitted once. */
     this._vetoWarned = false
+    /** Whether the unmatched-`by` warning has been emitted once. */
+    this._noKeyWarned = false
     /** @type {import('./TrellisFrames').TypeFrames|null} shared type frames (P5) */
     this._frames = null
   }
@@ -258,6 +260,38 @@ export default class Trellis {
         console.warn(`ApexCharts: ${TYPE_VETO[type]}`)
       }
       return false
+    }
+
+    // A `by` key that no series carries splits into zero panels. The split
+    // itself already noticed this, but it runs inside render(), by which point
+    // the host has committed to the trellis path and deliberately skipped its
+    // resize listeners (the trellis owns relayout). Bailing out there left an
+    // empty container; falling back there would leave a chart that never
+    // relayouts. So the decision belongs here, alongside TYPE_VETO, which is
+    // the fallback route the host already handles correctly.
+    //
+    // Scoped to the plain `by` case on purpose: `row`/`column` and the
+    // `trellis.data` pivot resolve their keys differently, and reproducing
+    // that here would be a second copy of the split's rules.
+    if (t.by && !t.row && !t.column && !Array.isArray(t.data)) {
+      const list = this.w.config.series || []
+      const anyKeyed = list.some(
+        (/** @type {any} */ s, /** @type {number} */ i) =>
+          keyOf(s, i, t.by) !== null,
+      )
+      if (!anyKeyed) {
+        if (!this._noKeyWarned) {
+          this._noKeyWarned = true
+          const named =
+            typeof t.by === 'function'
+              ? 'the `trellis.by` function returned no key for any series'
+              : `no series carries the \`trellis.by\` key '${t.by}'`
+          console.warn(
+            `ApexCharts: ${named}; there is nothing to split. Rendering as a single chart.`,
+          )
+        }
+        return false
+      }
     }
     return true
   }

@@ -241,6 +241,78 @@ describe('trellis lifecycle', () => {
     chart.destroy()
   })
 
+  // A `by` key no series carries used to render NOTHING: the split correctly
+  // reported "nothing to split", but it runs inside render(), after the host
+  // has committed to the trellis path and skipped its resize listeners, so
+  // bailing there left an empty container. One typo in `by` cost the whole
+  // chart. The decision now sits in isActive(), next to the type veto, which
+  // is the fallback route the host already handles.
+  describe('a `by` key that matches no series falls back to a single chart', () => {
+    const singleChart = (by) => ({
+      chart: { type: 'line', height: 300, animations: { enabled: false } },
+      trellis: { by },
+      series: [
+        { name: 'A', data: walk(6, 10) },
+        { name: 'B', data: walk(6, 20) },
+      ],
+      xaxis: { type: 'datetime' },
+    })
+
+    it('renders the chart instead of an empty container', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const el = document.createElement('div')
+      document.body.appendChild(el)
+      const chart = new ApexCharts(el, singleChart('region'))
+      await chart.render()
+
+      expect(chart.trellis.isActive()).toBe(false)
+      expect(el.querySelector('.apexcharts-trellis')).toBeNull()
+      // the point of the fix: real chart ink, not an empty host
+      expect(el.querySelector('.apexcharts-canvas')).toBeTruthy()
+      expect(el.querySelectorAll('.apexcharts-series').length).toBeGreaterThan(0)
+
+      expect(
+        warn.mock.calls.some(
+          (c) =>
+            /trellis\.by/.test(String(c[0])) &&
+            /single chart/.test(String(c[0])),
+        ),
+        'the warning must name the key AND say what it did instead',
+      ).toBe(true)
+
+      warn.mockRestore()
+      chart.destroy()
+    })
+
+    it('warns once, not once per isActive() call', async () => {
+      const el = document.createElement('div')
+      document.body.appendChild(el)
+      const chart = new ApexCharts(el, singleChart('region'))
+      await chart.render()
+
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      chart.trellis.isActive()
+      chart.trellis.isActive()
+      expect(warn.mock.calls.filter((c) => /trellis\.by/.test(String(c[0]))))
+        .toHaveLength(0)
+      warn.mockRestore()
+      chart.destroy()
+    })
+
+    it('still splits when at least one series carries the key', async () => {
+      const el = document.createElement('div')
+      document.body.appendChild(el)
+      const opts = singleChart('region')
+      opts.series[0].region = 'North'
+      const chart = new ApexCharts(el, opts)
+      await chart.render()
+
+      expect(chart.trellis.isActive()).toBe(true)
+      expect(chart.getPanels().length).toBeGreaterThan(0)
+      chart.destroy()
+    })
+  })
+
   it('trellis.panel(key) override is applied last', async () => {
     const { chart } = await renderTrellis({
       trellis: {

@@ -104,7 +104,7 @@ function placeholderFor(x, form) {
  * @param {string|Function} by
  * @returns {string|null} null when the series carries no key (repeat it)
  */
-function keyOf(s, i, by) {
+export function keyOf(s, i, by) {
   const raw = typeof by === 'function' ? by(s, i) : s ? s[by] : undefined
   if (raw === undefined || raw === null || raw === '') return null
   return String(raw)
