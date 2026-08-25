@@ -89,11 +89,16 @@ describe('default bundle composes with feature add-ons', () => {
     const req = createRequire(import.meta.url)
     const files = [
       'apexcharts.common.js',
+      // The `node` export condition resolves `require('apexcharts')` to the SSR
+      // build, not to apexcharts.common.js, so this is the file a Node caller
+      // actually gets and the one an interop bug would strand first.
+      'apexcharts.ssr.common.js',
       'core.common.js',
       'line.common.js',
       'bar.common.js',
       'features/legend.common.js',
       'features/ink.common.js',
+      'features/trellis.common.js',
     ]
 
     for (const f of files) {
