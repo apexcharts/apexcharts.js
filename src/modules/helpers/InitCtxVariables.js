@@ -47,6 +47,28 @@ if (Environment.isBrowser()) {
   }
 }
 
+/**
+ * Versioned globalThis slot, matching ChartFactory / ThemeRegistry /
+ * RendererController.
+ *
+ * A class static would live once per copy of this module, and a page can hold
+ * two: `import 'apexcharts'` and `import 'apexcharts/features/trellis'` used to
+ * resolve different cores, so the add-on registered into a Map no chart ever
+ * read and the feature silently did nothing. The build now shares one core, so
+ * this is belt as well as braces, but every other registry is already shared
+ * and being the one exception is what made that failure possible.
+ */
+const FEATURE_REGISTRY_KEY = '__apexcharts_features_v1__'
+
+if (!(/** @type {any} */ (globalThis)[FEATURE_REGISTRY_KEY])) {
+  ;/** @type {any} */ (globalThis)[FEATURE_REGISTRY_KEY] = new Map()
+}
+
+/** @returns {Map<string, new (w: object, ctx: object) => unknown>} */
+function getFeatureRegistry() {
+  return /** @type {any} */ (globalThis)[FEATURE_REGISTRY_KEY]
+}
+
 export default class InitCtxVariables {
   /**
    * Registry of optional feature modules.
@@ -58,7 +80,9 @@ export default class InitCtxVariables {
    * Core modules that every chart needs are NOT in this registry — they are
    * always instantiated unconditionally in initModules().
    */
-  static _featureRegistry = new Map()
+  static get _featureRegistry() {
+    return getFeatureRegistry()
+  }
 
   /**
    * Register one or more optional feature modules.

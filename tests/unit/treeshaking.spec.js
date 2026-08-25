@@ -78,10 +78,25 @@ describe('import structure', () => {
     expect(content).toContain('from "apexcharts/core"')
   })
 
-  test('full bundle apexcharts.esm.js does not import from apexcharts/core', () => {
+  // Inverted in 7.0. This used to assert the opposite, and that inlined core
+  // was exactly the bug: `import 'apexcharts'` and `import
+  // 'apexcharts/features/trellis'` resolved two different chart classes, so the
+  // add-on registered into a registry no chart read and the app carried core
+  // twice. Since nine features now ship outside the default bundle, that
+  // pairing is the documented upgrade path and has to share one core.
+  test('full bundle apexcharts.esm.js DOES import from apexcharts/core', () => {
     const full = read('apexcharts.esm.js')
     expect(full).not.toBeNull()
-    expect(full).not.toContain('from "apexcharts/core"')
+    expect(full).toContain('from "apexcharts/core"')
+  })
+
+  // The UMD halves must stay self-contained: a script tag has no resolver, so
+  // apexcharts.js has to carry core rather than reference it.
+  test('the UMD bundle stays self-contained', () => {
+    const umd = read('apexcharts.js')
+    expect(umd).not.toBeNull()
+    expect(umd).not.toContain('require("apexcharts/core")')
+    expect(umd).not.toContain("from 'apexcharts/core'")
   })
 })
 

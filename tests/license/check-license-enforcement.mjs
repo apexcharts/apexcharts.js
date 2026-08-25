@@ -165,6 +165,19 @@ async function runCase(bundlePath, caseName) {
     throw new Error(`no ApexCharts constructor exported from ${bundle}`)
   }
 
+  // The fixture below turns on `ink` so the licence decision has something to
+  // act on, and since 7.0 ink is not in the default bundle. Load the add-on the
+  // way an application does. This import is also the check that the pairing
+  // WORKS: both files resolve apexcharts/core to one module, so the feature
+  // registers onto the class this bundle exports. When the default bundle
+  // inlined its own core instead, ink registered into a registry no chart read,
+  // every case came back "no watermark", and this script said so.
+  const addon = resolve(bundle, '..', 'features', 'ink.esm.js')
+  if (!existsSync(addon)) {
+    throw new Error(`premium feature add-on not found at ${addon} (run: yarn build)`)
+  }
+  await import(pathToFileURL(addon).href)
+
   for (const name of ['SVG', 'Apex']) {
     if (dom.window[name] !== undefined) globalThis[name] = dom.window[name]
   }
@@ -184,6 +197,8 @@ async function runCase(bundlePath, caseName) {
       ...(spec.id ? { id: 'enforcement-check' } : {}),
       // A premium feature, so the licence decision has an effect at all. Without
       // one, every case returns "no watermark" and the check proves nothing.
+      // Ink ships outside the default bundle since 7.0; the add-on is imported
+      // above.
       ...(spec.premium ? { ink: { enabled: true } } : {}),
     },
     series: [{ name: 's', data: [3, 1, 4, 1, 5] }],

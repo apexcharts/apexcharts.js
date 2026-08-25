@@ -473,6 +473,14 @@ export default defineConfig(({ mode }) => {
               entryFileNames: `${subEntryBaseName}.common.js`,
               banner,
               exports: 'named',
+              // dist/core.common.js is an __esModule CJS file, so the chart
+              // class is on `.default`. Rollup's default interop assumes a
+              // bare CJS export and emits `require(...).use(...)`, which
+              // throws "h.use is not a function" the moment anything requires
+              // a sub-entry. That has been broken in every published CJS
+              // sub-entry; `auto` emits the __esModule check and picks
+              // `.default` when it is there.
+              interop: 'auto',
               plugins: isDev
                 ? []
                 : [
@@ -490,6 +498,57 @@ export default defineConfig(({ mode }) => {
       plugins: isCoreEntry
         ? [svgInlineLoader(), cssAsString()]
         : [coreExternalPlugin(), svgInlineLoader(), cssAsString()],
+    }
+  }
+
+  // ── The default bundle, ESM + CJS ────────────────────────────────────────
+  // Built like a sub-entry, externalising apexcharts/core, so that
+  //
+  //   import ApexCharts from 'apexcharts'
+  //   import 'apexcharts/features/trellis'
+  //
+  // lands both on ONE core. Bundle core in here instead and the two files carry
+  // rival copies of the class: the add-on registers into a registry the chart
+  // never reads (the feature registry is not globalThis-backed), and the app
+  // ships ~130 KB gzipped of duplicate core for a 6 KB feature. Since 7.0 that
+  // pairing is the documented upgrade path for nine features, so it has to be
+  // the cheap and correct one.
+  //
+  // The UMD halves stay self-contained: a script tag has no resolver.
+  if (mode === 'full-esm') {
+    return {
+      build: {
+        lib: { entry: resolve(__dirname, 'src/entries/full.js'), name: 'ApexCharts' },
+        outDir: 'dist',
+        emptyOutDir: false,
+        sourcemap: isDev,
+        minify: false,
+        target: 'es2015',
+        cssCodeSplit: false,
+        rollupOptions: {
+          output: [
+            { format: 'es', entryFileNames: 'apexcharts.esm.js', banner },
+            {
+              format: 'cjs',
+              entryFileNames: 'apexcharts.common.js',
+              banner,
+              exports: 'named',
+              interop: 'auto',
+              plugins: isDev
+                ? []
+                : [
+                    terser({
+                      format: { ascii_only: true, comments: false, preamble: banner },
+                      compress: { drop_console: true, drop_debugger: true },
+                    }),
+                  ],
+            },
+          ],
+        },
+      },
+      resolve: { extensions: ['.js', '.json'] },
+      define: { 'process.env.NODE_ENV': JSON.stringify('production') },
+      plugins: [coreExternalPlugin({ target: 'core' }), svgInlineLoader(), cssAsString()],
     }
   }
 

@@ -15,6 +15,12 @@ async function buildAll() {
     console.log(chalk.cyan('\n📦 Building full bundle (all 4 formats)...'))
     await build({ mode: 'production' })
 
+    // Re-emit the ESM + CJS halves with apexcharts/core external, so the
+    // default bundle and the add-ons share one core. Runs after the pass above
+    // (which empties dist/) and overwrites its two files; the UMD pair it wrote
+    // stays, because a script tag needs a self-contained file.
+    await build({ mode: 'full-esm' })
+
     // ── Pass 2: sub-entries (ESM + CJS only, no UMD) ─────────────────────
     console.log(chalk.cyan('\n📦 Building sub-entries...'))
     for (const [name, file] of Object.entries(SUB_ENTRIES)) {
