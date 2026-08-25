@@ -6,14 +6,28 @@
 
 name: Node.js CI
 
+# Also runs on pushes to main, because work that lands directly on main
+# otherwise gets NO test signal at all until a `release:` commit reaches
+# publish.yml — which runs `yarn unit` and will refuse to publish. That is not
+# hypothetical: 7.0.0-rc.1 failed to publish on a jsdom test that had never run
+# in CI once, having been added two days after the previous release. Finding it
+# at release time, on the one workflow that holds the npm token, is the worst
+# possible moment.
 on:
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
 
 jobs:
   build:
     name: Test & Build
     runs-on: ubuntu-latest
+    # PR-only: this job diffs head against base, checking out
+    # `github.event.pull_request.base.*`, which is empty on a push. The
+    # push-safe signal comes from test-reproducibility below, which runs the
+    # same `yarn test:ci`.
+    if: github.event_name == 'pull_request'
 
     strategy:
       fail-fast: false
