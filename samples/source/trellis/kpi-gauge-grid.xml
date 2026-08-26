@@ -106,7 +106,7 @@ var gaugeSeries = STORES.map(function (store) {
 chart: {
   id: 'gaugeTrellis',
   type: 'radialBar',
-  height: 560,
+  height: 470,
   animations: {
     enabled: false,
   },

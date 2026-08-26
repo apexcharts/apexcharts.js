@@ -66,7 +66,10 @@ class Radial extends Pie {
 
     const elSeries = graphics.group()
 
-    const centerY = this.defaultSize / 2
+    // See Pie's constructor: the vertical centre is the band's, not the
+    // clipped square's, so a tall narrow container does not push the rings to
+    // the top and leave a void above the legend (#4875).
+    const centerY = w.layout.gridHeight / 2
     const centerX = w.layout.gridWidth / 2
 
     let size = this.defaultSize / 2.05

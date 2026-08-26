@@ -57,7 +57,14 @@ class Pie {
 
     this.defaultSize = Math.min(w.layout.gridWidth, w.layout.gridHeight)
 
-    this.centerY = this.defaultSize / 2
+    // Centre the circle in the space it actually has, not in the square it was
+    // clipped to. `defaultSize` is min(gridWidth, gridHeight), so on a container
+    // taller than it is wide it is the WIDTH, and `defaultSize / 2` pinned the
+    // circle to the top of the band, dumping the entire surplus underneath it
+    // with the bottom legend still pinned to the band's bottom edge (#4875).
+    // Whenever gridHeight is the smaller side, which covers every square or
+    // wide layout, this is the same number as before.
+    this.centerY = w.layout.gridHeight / 2
     this.centerX = w.layout.gridWidth / 2
 
     if (w.config.chart.type === 'radialBar') {
