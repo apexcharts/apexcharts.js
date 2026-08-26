@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ApexCharts print test (#3352)</title>
+<style>
+  body { margin: 0; font: 14px/1.5 system-ui, sans-serif; color: #111 }
+  .wrap { padding: 24px }
+  h1 { font-size: 20px; margin: 0 0 4px }
+  .hint { background: #eef6ff; border: 1px solid #b9d9ff; border-radius: 8px;
+          padding: 12px 14px; margin: 12px 0 24px; max-width: 60em }
+  kbd { background: #fff; border: 1px solid #ccc; border-bottom-width: 2px;
+        border-radius: 4px; padding: 1px 5px; font: 12px ui-monospace, monospace }
+  h2 { font-size: 15px; margin: 24px 0 2px }
+  .note { color: #555; font-size: 13px; margin: 0 0 8px }
+  .chart { width: 100% }
+  .screen-only { }
+  @media print { .screen-only { display: none } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="screen-only">
+    <h1>ApexCharts print test (#3352)</h1>
+    <p class="note">Open this file directly in a browser; it loads <code>../../dist/apexcharts.js</code>, so run <code>npm run build</code> first if you have changed the source. Printing cannot be covered by the automated suites (a headless PDF is the only programmatic print, and it cannot be snapshot-compared), so this page is the manual check.</p>
+    <div class="hint">
+      <b>Widen this window first</b> (the bug needs a chart wider than the print
+      width, 700px by default), then press <kbd>Cmd</kbd>+<kbd>P</kbd>.<br><br>
+      In the print preview: chart <b>A</b> should show all twelve months, Jan to
+      Dec. Chart <b>B</b> opts out of the fix and should be cut off around Aug,
+      which is what every chart did before. Chart <b>C</b> lays out at 900px, so
+      on portrait paper it is scaled down to fit rather than cropped.
+    </div>
+  </div>
+
+  <h2>A. default (chart.print left alone)</h2>
+  <p class="note screen-only">Expect: complete chart, labels at normal size.</p>
+  <div id="a" class="chart"></div>
+
+  <h2>B. chart.print.enabled = false (the old behaviour)</h2>
+  <p class="note screen-only">Expect: cut off at the right edge of the paper.</p>
+  <div id="b" class="chart"></div>
+
+  <h2>C. chart.print.width = 900</h2>
+  <p class="note screen-only">Expect: complete, scaled down to fit the sheet.</p>
+  <div id="c" class="chart"></div>
+</div>
+
+<script src="../../dist/apexcharts.js"></script>
+<script>
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const opts = (title, print) => ({
+    chart: { type: 'area', height: 280, width: '100%', ...(print ? { print } : {}) },
+    series: [{ name: 'Revenue', data: [31,40,28,51,42,109,100,88,120,95,140,130] }],
+    xaxis: { categories: months },
+    title: { text: title },
+    dataLabels: { enabled: true },
+  })
+
+  new ApexCharts(document.querySelector('#a'), opts('A - default')).render()
+  new ApexCharts(document.querySelector('#b'), opts('B - print disabled', { enabled: false })).render()
+  new ApexCharts(document.querySelector('#c'), opts('C - print width 900', { enabled: true, width: 900 })).render()
+</script>
+</body>
+</html>

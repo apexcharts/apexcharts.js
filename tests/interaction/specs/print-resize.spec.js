@@ -250,6 +250,35 @@ test.describe('printing (#3352)', () => {
     expect(r.during.rendered).toBeGreaterThan(400)
   })
 
+  test('an explicitly undefined print config still prints correctly', async ({
+    printRun,
+  }) => {
+    // The options merge copies an undefined value straight over the default
+    // object, so `chart: { print: undefined }` (what `{ print }` yields when the
+    // caller omits the argument) leaves no config to read. It has to mean the
+    // documented default, not silently off: writing the demo page for this fix
+    // hit exactly that within minutes.
+    const r = await printRun({
+      opts: wideChart({ print: undefined }),
+      viewport: { width: 1400, height: 900 },
+    })
+
+    expect(r.during.laidOutAt).toBe(700)
+    expect(r.after.laidOutAt).toBeGreaterThan(1000)
+  })
+
+  test('print:false reads as off', async ({ printRun }) => {
+    // Not the documented shape, but it is the obvious way to ask for off.
+    const r = await printRun({
+      opts: wideChart({ print: false }),
+      viewport: { width: 1400, height: 900 },
+    })
+
+    expect(r.during.laidOutAt).toBe(r.before.laidOutAt)
+    expect(r.during.viewBox).toBe(null)
+    expect(r.during.updates).toBe(0)
+  })
+
   test('the print stylesheet leaves an opted-out chart uncapped', async ({
     printRun,
   }) => {

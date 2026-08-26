@@ -297,7 +297,7 @@ export default class ApexCharts {
             // Printing reports no resize of any kind, so it needs its own pair
             // of hooks. Same function references every time, so a second
             // render() cannot double-register them.
-            if (this.w.config.chart.print?.enabled) {
+            if (this._printEnabled()) {
               window.addEventListener('beforeprint', this.beforePrintHandler)
               window.addEventListener('afterprint', this.afterPrintHandler)
             }
@@ -2671,6 +2671,20 @@ export default class ApexCharts {
   }
 
   /**
+   * Whether this chart handles printing.
+   *
+   * A missing or undefined `print` means the default, on: the options merge
+   * copies an explicitly-undefined value straight over the default object, so
+   * `print: undefined` (what `{ print }` yields when the caller omits it) must
+   * not read as "off". `print: false` is not the documented shape, but it is the
+   * obvious way to ask for off, so it counts as off.
+   */
+  _printEnabled() {
+    const print = this.w.config.chart.print
+    return print !== false && print?.enabled !== false
+  }
+
+  /**
    * Lay the chart out for the printable page.
    *
    * The sheet is a layout the page never sees. Nothing measures it, no resize
@@ -2681,10 +2695,11 @@ export default class ApexCharts {
    * screen-width chart down to a sheet would shrink 12px text to 4px.
    */
   _beforePrint() {
-    if (this._printRestore) return
+    if (this._printRestore || !this._printEnabled()) return
 
     const w = this.w
-    const printWidth = w.config.chart.print?.width
+    // ?? mirrors the Options default, for a config that dropped the object
+    const printWidth = w.config.chart.print?.width ?? 700
     this._printRestore = { width: w.config.chart.width }
 
     if (
