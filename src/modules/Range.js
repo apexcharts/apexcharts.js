@@ -53,8 +53,48 @@ class Range {
   }
 
   /**
+   * Whether the y scale should follow the zoomed x window: chart.zoom.
+   * autoScaleYaxis, or a brush source that asks for it.
+   *
+   * @returns {boolean}
+   */
+  _autoScaleYEnabled() {
+    const cnf = this.w.config
+    const brush = /** @type {any} */ (this.w.globals).brushSource?.w.config.chart
+      .brush
+    return !!(
+      (cnf.chart.zoom.enabled && cnf.chart.zoom.autoScaleYaxis) ||
+      (brush?.enabled && brush?.autoScaleYaxis)
+    )
+  }
+
+  /**
+   * The x window one series should be measured inside, widened by a rendered
+   * pixel, or null when the axis carries no zoom bounds at all.
+   *
+   * Bounds are read with the same truthiness test the trim loops have always
+   * used, so a legitimate `xaxis.min` of 0 keeps counting as "unset" here
+   * rather than quietly changing which points are in scope.
+   *
+   * @param {number} i
+   * @returns {{lo: number, hi: number} | null}
+   */
+  _autoScaleXBounds(i) {
+    const cnfX = this.w.config.xaxis
+    if (!cnfX.min && !cnfX.max) return null
+    const tolerance = this._xPixelTolerance(this.w.seriesData.seriesX[i])
+    return {
+      lo: cnfX.min ? cnfX.min - tolerance : -Infinity,
+      hi: cnfX.max ? cnfX.max + tolerance : Infinity,
+    }
+  }
+
+  /**
    * @param {number} startingSeriesIndex
+   * @param {number} [lowestY]
+   * @param {number} [highestY]
    * @param {number | null} [endingSeriesIndex]
+   * @returns {{minY: number, maxY: number, lowestY: number, highestY: number}}
    */
   getMinYMaxY(
     startingSeriesIndex,
@@ -88,14 +128,13 @@ class Range {
       seriesMax = this.w.rangeData.seriesRangeEnd
     }
     let autoScaleYaxis = false
+    // set when a series was dropped for having nothing inside the window, so
+    // the retry below can tell "no visible data" from "no data at all"
+    let droppedForWindow = false
     if (this.w.seriesData.seriesX.length >= endingSeriesIndex) {
       // Eventually brushSource will be set if the current chart is a target.
       // That is, after the appropriate event causes us to update.
-      const brush = /** @type {any} */ (gl).brushSource?.w.config.chart.brush
-      if (
-        (cnf.chart.zoom.enabled && cnf.chart.zoom.autoScaleYaxis) ||
-        (brush?.enabled && brush?.autoScaleYaxis)
-      ) {
+      if (this._autoScaleYEnabled() && !this._ignoreAutoScaleWindow) {
         autoScaleYaxis = true
       }
     }
@@ -135,27 +174,51 @@ class Range {
         // can land a sub-pixel fraction inside a boundary data point. Trimming
         // on a strict compare then drops a point whose marker and line segment
         // are still painted inside the plot, and the Y scale clips it (#5251).
-        const xTolerance = this._xPixelTolerance(this.w.seriesData.seriesX[i])
-        if (cnf.xaxis.min) {
-          const lowerBound = cnf.xaxis.min - xTolerance
+        const xs = this.w.seriesData.seriesX[i]
+        const bounds = this._autoScaleXBounds(i)
+        if (bounds && cnf.xaxis.min) {
           for (
             ;
-            firstXIndex < lastXIndex &&
-            this.w.seriesData.seriesX[i][firstXIndex] < lowerBound;
+            firstXIndex < lastXIndex && xs[firstXIndex] < bounds.lo;
             firstXIndex++
           ) {
             // Intentionally empty - just incrementing firstXIndex
           }
         }
-        if (cnf.xaxis.max) {
-          const upperBound = cnf.xaxis.max + xTolerance
+        if (bounds && cnf.xaxis.max) {
           for (
             ;
-            lastXIndex > firstXIndex &&
-            this.w.seriesData.seriesX[i][lastXIndex] > upperBound;
+            lastXIndex > firstXIndex && xs[lastXIndex] > bounds.hi;
             lastXIndex--
           ) {
             // Intentionally empty - just decrementing lastXIndex
+          }
+        }
+
+        // Both loops stop as soon as the indices meet, so a series with NOTHING
+        // inside the window is left pointing at one surviving point, whose y
+        // then stretched the axis even though the series draws no ink in view
+        // (#1260: zoom into a range a second series does not cover and the
+        // scale stayed on the full-data domain).
+        //
+        // The exception is a series that STRADDLES the window with points on
+        // both sides: the segment joining them is drawn straight through, so
+        // those two ends do bound what is visible and have to be kept.
+        if (bounds && xs && xs.length) {
+          const inWindow =
+            xs[firstXIndex] >= bounds.lo && xs[firstXIndex] <= bounds.hi
+          if (!inWindow) {
+            const straddles =
+              xs[0] < bounds.lo && xs[xs.length - 1] > bounds.hi
+            if (straddles && firstXIndex > 0) {
+              lastXIndex = firstXIndex
+              firstXIndex = lastXIndex - 1
+            } else {
+              // an empty range: both scan lanes below then contribute nothing
+              firstXIndex = 0
+              lastXIndex = -1
+              droppedForWindow = true
+            }
           }
         }
       }
@@ -398,6 +461,25 @@ class Range {
       }
       if (minY === Number.MIN_VALUE) {
         minY = 0
+      }
+    }
+
+    if (droppedForWindow && maxY === -Number.MAX_VALUE) {
+      // Every series was dropped, i.e. the window holds no data at all: someone
+      // panned or zoomed past the end of the series. Scaling to nothing would
+      // leave the axis on its sentinels and print a domain unrelated to the
+      // data, so fall back to measuring the full extent, which is what the
+      // axis showed before any zoom.
+      this._ignoreAutoScaleWindow = true
+      try {
+        return this.getMinYMaxY(
+          startingSeriesIndex,
+          Number.MAX_VALUE,
+          -Number.MAX_VALUE,
+          endingSeriesIndex,
+        )
+      } finally {
+        this._ignoreAutoScaleWindow = false
       }
     }
 
@@ -924,6 +1006,7 @@ class Range {
 
   _setStackedMinMax() {
     const gl = this.w.globals
+    const windowed = this._autoScaleYEnabled()
     // for stacked charts, we calculate each series's parallel values.
     // i.e, series[0][j] + series[1][j] .... [series[i.length][j]]
     // and get the max out of it
@@ -952,11 +1035,20 @@ class Range {
         .filter((/** @type {any} */ f) => f !== null)
 
       indicesOfSeriesInGroup.forEach((/** @type {number} */ i) => {
+        // autoScaleYaxis: only points inside the zoomed window may raise the
+        // stacked total. Summing the whole series here left gl.maxY on the
+        // full-data maximum, so zooming a stacked chart moved the x axis and
+        // nothing else (#1260).
+        const bounds = windowed ? this._autoScaleXBounds(i) : null
+        const xs = this.w.seriesData.seriesX[i]
+        const hasX = !!(bounds && xs && xs.length)
+
         for (
           let j = 0;
           j < this.w.seriesData.series[gl.maxValsInArrayIndex].length;
           j++
         ) {
+          if (hasX && (xs[j] < bounds.lo || xs[j] > bounds.hi)) continue
           if (typeof stackedPoss[group][j] === 'undefined') {
             stackedPoss[group][j] = 0
             stackedNegs[group][j] = 0
