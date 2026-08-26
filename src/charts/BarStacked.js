@@ -365,13 +365,26 @@ class BarStacked extends Bar {
       barWidth = xDivision
 
       const userColumnWidth = w.config.plotOptions.bar.columnWidth
-      if (w.axisFlags.isXNumeric && w.globals.dataPoints > 1) {
-        xDivision = w.globals.minXDiff / this.xRatio
+      // barSlotXSpan resolves the slot for a single data point too, where the
+      // old `dataPoints > 1` guard fell through to a bar the width of the whole
+      // grid (#4885).
+      const slotXSpan = w.axisFlags.isXNumeric
+        ? this.barHelpers.barSlotXSpan()
+        : 0
+      if (slotXSpan > 0) {
+        xDivision = slotXSpan / this.xRatio
         barWidth = (xDivision * parseInt(this.barOptions.columnWidth, 10)) / 100
-      } else if (String(userColumnWidth).indexOf('%') === -1) {
-        barWidth = parseInt(userColumnWidth, 10)
       } else {
         barWidth *= parseInt(userColumnWidth, 10) / 100
+      }
+
+      if (String(userColumnWidth).indexOf('%') === -1) {
+        // An explicit width in PIXELS. The non-numeric path always honoured it
+        // and the plain (unstacked) bar path honours it on a numeric axis too,
+        // but here it used to fall into the branch above and be read as a
+        // percentage, so `columnWidth: '18'` came out 24.8px, 40.6px or 18.4px
+        // depending on how many points the series happened to have (#4885).
+        barWidth = parseInt(userColumnWidth, 10)
       }
 
       if (this.isReversed) {

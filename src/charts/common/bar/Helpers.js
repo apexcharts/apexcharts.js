@@ -85,6 +85,112 @@ export default class Helpers {
   }
 
   /**
+   * The x-span that one bar slot covers, in DATA units, on a numeric or
+   * datetime axis. Returns 0 when it cannot be resolved, which leaves the
+   * caller on its category-style fallback.
+   *
+   * `w.globals.minXDiff` cannot serve here on its own, for two reasons:
+   *
+   *  - It is the smallest gap WITHIN a series, minimised over series, so it
+   *    never sees the gaps BETWEEN two series' x values. Series A on the 1st
+   *    and the 4th plus series B on the 2nd gives minXDiff = 3 days while the
+   *    axis really has a 1 day gap, and every bar is drawn 3 days wide, so
+   *    neighbours overlap (#4885).
+   *  - With one data point there are no gaps to measure at all and it is set
+   *    to a 0.5 sentinel, so the slot fell back to the whole grid width and a
+   *    single bar covered most of the chart. Range._handleSingleDataPoint pads
+   *    the axis by ±2 units around a lone point (2 days for datetime, 2 for
+   *    numeric), so one unit is a quarter of the resulting span.
+   *
+   * Cached: the merge below is O(points × series) and every series in a draw
+   * pass asks the same question.
+   *
+   * @returns {number}
+   */
+  barSlotXSpan() {
+    const w = this.w
+
+    if (this._slotXSpan !== undefined) return this._slotXSpan
+
+    let slot = 0
+    if (w.globals.dataPoints <= 1) {
+      const span = w.globals.maxX - w.globals.minX
+      slot = span > 0 ? span / 4 : 0
+    } else {
+      slot = this._unionMinXGap()
+      if (!(slot > 0) || !isFinite(slot)) {
+        // nothing usable in the x arrays: keep what the axis worked out
+        const min = w.globals.minXDiff
+        slot = min > 0 && isFinite(min) && min !== 0.5 ? min : 0
+      }
+    }
+
+    this._slotXSpan = slot
+    return slot
+  }
+
+  /**
+   * Smallest positive gap between neighbouring x values once every series is
+   * merged onto one axis. A k-way merge over the series arrays, which are
+   * already sorted in every ordinary case; an unsorted one can only make the
+   * answer smaller, i.e. the bars narrower, never overlapping.
+   *
+   * Collapsed series count too, exactly as they did for `minXDiff`. Skipping
+   * them would widen every bar the moment someone hid the tightest-spaced
+   * series from the legend, so bar geometry would depend on legend state.
+   *
+   * @returns {number}
+   */
+  _unionMinXGap() {
+    const w = this.w
+    const seriesX = w.seriesData.seriesX || []
+
+    /** @type {any[][]} */
+    const arrays = []
+    for (let i = 0; i < seriesX.length; i++) {
+      const xs = seriesX[i]
+      if (Array.isArray(xs) && xs.length > 0) arrays.push(xs)
+    }
+    if (!arrays.length) return 0
+
+    const cursor = new Array(arrays.length).fill(0)
+    let prev = NaN
+    let min = Infinity
+
+    for (;;) {
+      let next = Infinity
+      let from = -1
+      for (let k = 0; k < arrays.length; k++) {
+        const xs = arrays[k]
+        // step over anything that is not a usable number
+        while (cursor[k] < xs.length && typeof xs[cursor[k]] !== 'number') {
+          cursor[k]++
+        }
+        if (cursor[k] >= xs.length) continue
+        const v = xs[cursor[k]]
+        if (v !== v) {
+          cursor[k]++
+          k--
+          continue
+        }
+        if (v < next) {
+          next = v
+          from = k
+        }
+      }
+      if (from === -1) break
+      cursor[from]++
+      if (prev === prev) {
+        const d = next - prev
+        if (d > 0 && d < min) min = d
+      }
+      prev = next
+    }
+
+    return isFinite(min) ? min : 0
+  }
+
+  /**
    * @param {number} realIndex
    */
   initialPositions(realIndex) {
@@ -144,15 +250,12 @@ export default class Helpers {
         100
 
       if (w.axisFlags.isXNumeric) {
-        // max barwidth should be equal to minXDiff to avoid overlap
+        // one slot wide at most, so neighbouring bars cannot overlap
         const xRatio = this.barCtx.xRatio
+        const slotXSpan = this.barSlotXSpan()
 
-        if (
-          w.globals.minXDiff &&
-          w.globals.minXDiff !== 0.5 &&
-          w.globals.minXDiff / xRatio > 0
-        ) {
-          xDivision = w.globals.minXDiff / xRatio
+        if (slotXSpan > 0 && slotXSpan / xRatio > 0) {
+          xDivision = slotXSpan / xRatio
         }
 
         barWidth =
