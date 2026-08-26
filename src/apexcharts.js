@@ -2629,7 +2629,13 @@ export default class ApexCharts {
     if (this._parentResizeWaiter) return
 
     const startedAt = Date.now()
-    const giveUpAfter = 1000 + (this.w.config.chart.animations?.speed || 800) * 2
+    // animationEnded flips at roughly twice the configured speed (per-series
+    // stagger and the fill/marker tails), so the deadline is the animation's own
+    // duration plus a second: long enough that it is only ever reached by a
+    // chart that never flips the flag at all, and clamped so neither a
+    // sub-second speed nor a wildly long one can make it useless.
+    const speed = this.w.config.chart.animations?.speed || 800
+    const giveUpAfter = Math.min(Math.max(1000 + speed * 2, 1500), 15000)
 
     const check = () => {
       this._parentResizeWaiter = null
@@ -2654,6 +2660,11 @@ export default class ApexCharts {
    * Handle window resize and re-draw the whole chart.
    */
   _windowResize() {
+    // Debounce: a container animated with a CSS transition reports a new size
+    // every frame, and each call used to queue its own 150ms render, so one
+    // 300ms sidebar transition cost 16 full chart rebuilds. Only the last size
+    // is worth drawing.
+    clearTimeout(this.w.globals.resizeTimer ?? undefined)
     this.w.globals.resizeTimer = window.setTimeout(() => {
       const gl = this.w.globals
 
