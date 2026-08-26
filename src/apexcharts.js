@@ -98,6 +98,7 @@ export default class ApexCharts {
   /** @type {string[]} */ publicMethods = []
   /** @type {string[]} */ eventList = []
   /** @type {Promise<any> | null} */ _renderPromise = null
+  /** @type {number | null} */ _parentResizeWaiter = null
   /** @type {any} */ config
   /** @type {any} */ perspectives
   /** @type {any} */ storyboard
@@ -761,6 +762,8 @@ export default class ApexCharts {
       // cancel any pending resize redraw so a queued update() can't run against
       // a torn-down chart after destroy(). See react-apexcharts#602.
       clearTimeout(this.w.globals.resizeTimer ?? undefined)
+      clearTimeout(this._parentResizeWaiter ?? undefined)
+      this._parentResizeWaiter = null
     }
     // remove the chart's instance from the global Apex._chartInstances
     const chartID = this.w.config.chart.id
@@ -2600,12 +2603,51 @@ export default class ApexCharts {
   }
 
   _parentResizeCallback() {
-    if (
-      this.w.globals.animationEnded &&
-      this.w.config.chart.redrawOnParentResize
-    ) {
-      this._windowResize()
+    if (!this.w.config.chart.redrawOnParentResize) return
+
+    // The container can change size while the chart is animating: a sidebar
+    // collapsing just after load, or a resize landing in the middle of an
+    // updateSeries on a live dashboard. Redrawing right then would cancel the
+    // running animation, but simply dropping the resize left the chart stuck at
+    // its old width for good, because a ResizeObserver reports each size change
+    // exactly once and nothing ever asks again (#1584). Wait for the animation
+    // to finish, then re-check the container.
+    if (!this.w.globals.animationEnded) {
+      this._deferParentResize()
+      return
     }
+
+    this._windowResize()
+  }
+
+  /**
+   * Re-check the container once the running animation is over. Bounded, because
+   * a chart that never flips animationEnded (one drawing no series, say) must
+   * not swallow the resize that is waiting on it.
+   */
+  _deferParentResize() {
+    if (this._parentResizeWaiter) return
+
+    const startedAt = Date.now()
+    const giveUpAfter = 1000 + (this.w.config.chart.animations?.speed || 800) * 2
+
+    const check = () => {
+      this._parentResizeWaiter = null
+      if (this.w.globals.isDestroyed || !Utils.elementExists(this.el)) return
+
+      if (
+        this.w.globals.animationEnded ||
+        Date.now() - startedAt >= giveUpAfter
+      ) {
+        // _windowResize() weighs the container against the size the chart was
+        // last drawn at, so an animation that moved nothing costs one no-op.
+        this._windowResize()
+        return
+      }
+      this._parentResizeWaiter = window.setTimeout(check, 100)
+    }
+
+    this._parentResizeWaiter = window.setTimeout(check, 100)
   }
 
   /**
