@@ -1682,3 +1682,28 @@ rect.legend-mouseover-inactive,
 .apexcharts-trellis-legend-item.apexcharts-inactive-legend {
   opacity: 0.45;
 }
+
+/* Printing (#3352). The sheet is narrower than the screen and nothing reports
+   its width to the page, so a chart laid out for the screen would be cropped at
+   the edge of the paper. The chart lays itself out again for print (see
+   chart.print in the options); this caps whatever is left over so it shrinks to
+   fit rather than being cut. Shrink only: a chart narrower than the page keeps
+   the size it was drawn at. */
+@media print {
+  /* Scoped to the class the chart adds while it is laid out for the sheet: this
+     pair of rules is only safe once an identity viewBox is in place, since
+     without one a capped width crops the drawing instead of scaling it. A chart
+     with chart.print.enabled:false gets neither, and prints as it always did. */
+  .apexcharts-canvas.apexcharts-printing,
+  .apexcharts-canvas.apexcharts-printing svg {
+    max-width: 100% !important;
+  }
+
+  .apexcharts-canvas.apexcharts-printing svg {
+    height: auto !important;
+  }
+
+  .apexcharts-toolbar {
+    display: none !important;
+  }
+}

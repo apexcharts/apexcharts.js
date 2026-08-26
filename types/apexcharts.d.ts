@@ -1751,6 +1751,21 @@ type ApexChart = {
   parentHeightOffset?: number
   redrawOnParentResize?: boolean
   redrawOnWindowResize?: boolean | ((...args: any[]) => boolean)
+  /**
+   * Printing. A chart sized from the screen would be cut off at the edge of the
+   * paper, so it is laid out again for the printable page and put back
+   * afterwards.
+   */
+  print?: {
+    /** Hook `beforeprint`/`afterprint` at all. Defaults to true. */
+    enabled?: boolean
+    /**
+     * Width, in CSS pixels, to lay the chart out at while printing. A chart
+     * already narrower than this is left as it is. Defaults to 700, which suits
+     * A4 and Letter portrait; anything left over is shrunk to fit.
+     */
+    width?: number
+  }
   sparkline?: {
     enabled?: boolean
   }

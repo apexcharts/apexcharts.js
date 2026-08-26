@@ -99,6 +99,9 @@ export default class ApexCharts {
   /** @type {string[]} */ eventList = []
   /** @type {Promise<any> | null} */ _renderPromise = null
   /** @type {number | null} */ _parentResizeWaiter = null
+  /** @type {{width: any, viewBoxAdded?: boolean} | null} */ _printRestore = null
+  /** @type {any} */ beforePrintHandler
+  /** @type {any} */ afterPrintHandler
   /** @type {any} */ config
   /** @type {any} */ perspectives
   /** @type {any} */ storyboard
@@ -160,6 +163,8 @@ export default class ApexCharts {
     if (Environment.isBrowser()) {
       this.windowResizeHandler = this._windowResizeHandler.bind(this)
       this.parentResizeHandler = this._parentResizeCallback.bind(this)
+      this.beforePrintHandler = this._beforePrint.bind(this)
+      this.afterPrintHandler = this._afterPrint.bind(this)
     }
   }
 
@@ -289,6 +294,13 @@ export default class ApexCharts {
               /** @type {HTMLElement} */ (this.el.parentNode),
               this.parentResizeHandler,
             )
+            // Printing reports no resize of any kind, so it needs its own pair
+            // of hooks. Same function references every time, so a second
+            // render() cannot double-register them.
+            if (this.w.config.chart.print?.enabled) {
+              window.addEventListener('beforeprint', this.beforePrintHandler)
+              window.addEventListener('afterprint', this.afterPrintHandler)
+            }
           }
 
           const rootNode = /** @type {any} */ (
@@ -764,6 +776,8 @@ export default class ApexCharts {
       clearTimeout(this.w.globals.resizeTimer ?? undefined)
       clearTimeout(this._parentResizeWaiter ?? undefined)
       this._parentResizeWaiter = null
+      window.removeEventListener('beforeprint', this.beforePrintHandler)
+      window.removeEventListener('afterprint', this.afterPrintHandler)
     }
     // remove the chart's instance from the global Apex._chartInstances
     const chartID = this.w.config.chart.id
@@ -2654,6 +2668,84 @@ export default class ApexCharts {
     }
 
     this._parentResizeWaiter = window.setTimeout(check, 100)
+  }
+
+  /**
+   * Lay the chart out for the printable page.
+   *
+   * The sheet is a layout the page never sees. Nothing measures it, no resize
+   * is reported for it, and matchMedia('print') is still false while this
+   * handler runs, so a chart sized from a 1600px screen prints at 1600px and
+   * its right-hand side falls off the paper (#3352). Re-laying it out at a
+   * printable width keeps the labels at their intended size, where scaling a
+   * screen-width chart down to a sheet would shrink 12px text to 4px.
+   */
+  _beforePrint() {
+    if (this._printRestore) return
+
+    const w = this.w
+    const printWidth = w.config.chart.print?.width
+    this._printRestore = { width: w.config.chart.width }
+
+    if (
+      typeof printWidth === 'number' &&
+      printWidth > 0 &&
+      w.globals.svgWidth > printWidth
+    ) {
+      // Synchronously: the browser snapshots the page the moment this handler
+      // returns, so anything deferred misses the print altogether. Nothing here
+      // may touch the initial config or the synced group, which is why this
+      // takes the internal path rather than the public updateOptions().
+      this.updateHelpers._updateOptions(
+        { chart: { width: printWidth } },
+        false,
+        false,
+        false,
+        false,
+      )
+    }
+
+    // An identity viewBox on whatever is now drawn. The print stylesheet caps
+    // the SVG at the width of the page, and a viewBox is what turns that cap
+    // into a scale rather than a crop, so a paper narrower than expected (wide
+    // margins, a small sheet) still gets the whole chart.
+    const svg = w.dom?.Paper?.node
+    if (svg && !svg.getAttribute('viewBox')) {
+      svg.setAttribute(
+        'viewBox',
+        `0 0 ${w.globals.svgWidth} ${w.globals.svgHeight}`,
+      )
+      this._printRestore.viewBoxAdded = true
+      // The stylesheet's shrink-to-fit rules key off this class, so they can
+      // never apply to an SVG that has no viewBox to scale by.
+      w.dom?.elWrap?.classList.add('apexcharts-printing')
+    }
+  }
+
+  /** Put back what _beforePrint() changed. */
+  _afterPrint() {
+    if (!this._printRestore) return
+
+    const w = this.w
+    const restore = this._printRestore
+    this._printRestore = null
+
+    if (restore.viewBoxAdded) {
+      w.dom?.Paper?.node?.removeAttribute('viewBox')
+      w.dom?.elWrap?.classList.remove('apexcharts-printing')
+    }
+    if (w.config.chart.width !== restore.width) {
+      this.updateHelpers._updateOptions(
+        { chart: { width: restore.width } },
+        false,
+        false,
+        false,
+        false,
+      )
+      // Both re-renders resized the host, which the parent observer reports:
+      // that redraw would only repeat the one just done.
+      clearTimeout(w.globals.resizeTimer ?? undefined)
+    }
   }
 
   /**

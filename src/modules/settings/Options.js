@@ -527,6 +527,19 @@ export default class Options {
         parentHeightOffset: 15,
         redrawOnParentResize: true,
         redrawOnWindowResize: true,
+        // Printing. The sheet is a layout the page itself never sees: nothing
+        // measures it, no resize is reported for it, and matchMedia('print') is
+        // still false while `beforeprint` runs. So a chart sized from a wide
+        // screen prints at its screen width and the right-hand side falls off
+        // the paper (#3352). `width` is the width, in CSS pixels, to lay the
+        // chart out at for printing, and a chart already narrower than that is
+        // left alone. The default suits A4 and Letter portrait with the usual
+        // margins; whatever is left over is shrunk to fit by the print
+        // stylesheet, so the value only has to be close.
+        print: {
+          enabled: true,
+          width: 700,
+        },
         id: undefined,
         group: undefined,
         nonce: undefined,
