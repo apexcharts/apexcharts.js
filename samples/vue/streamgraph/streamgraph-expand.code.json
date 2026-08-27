@@ -1,0 +1,11 @@
+{
+  "title": "Streamgraph (Share of Total)",
+  "externals": [],
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"streamgraph\"\n        height=\"380\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [\n        {\n          name: 'Chrome',\n          data: [64, 65, 63, 62, 60, 58, 56],\n        },\n        {\n          name: 'Safari',\n          data: [16, 17, 19, 20, 22, 24, 25],\n        },\n        {\n          name: 'Edge',\n          data: [3, 5, 7, 9, 11, 12, 14],\n        },\n        {\n          name: 'Firefox',\n          data: [10, 9, 8, 6, 5, 4, 3],\n        },\n        {\n          name: 'Other',\n          data: [7, 4, 3, 3, 2, 2, 2],\n        },\n      ],\n      chartOptions: {\n        chart: {\n          type: 'streamgraph',\n          height: 380,\n        },\n        colors: ['#0EA5E9', '#22C55E', '#F97316', '#EF4444', '#14B8A6'],\n        plotOptions: {\n          streamgraph: {\n            // Each column normalized to its own total, so the chart reads as\n            // composition over time rather than volume.\n            offset: 'expand',\n            order: 'inverse',\n          },\n        },\n        title: {\n          text: 'Share of page views by browser',\n          align: 'left',\n        },\n        subtitle: {\n          text: 'Illustrative data. Every column is 100% tall, so only the mix moves.',\n          align: 'left',\n        },\n        xaxis: {\n          categories: ['2019', '2020', '2021', '2022', '2023', '2024', '2025'],\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

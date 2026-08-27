@@ -1423,6 +1423,7 @@ type ApexChart = {
   | 'rangeArea'
   | 'waterfall'
   | 'dumbbell'
+  | 'streamgraph'
   | 'treemap'
   | 'unit'
   | 'waffle'
@@ -1433,9 +1434,10 @@ type ApexChart = {
   /**
    * Internal — populated when `type` is a first-class alias (`'funnel'`,
    * `'pyramid'`, `'gauge'`, `'waffle'`, `'histogram'`, `'waterfall'`,
-   * `'dumbbell'`). The
+   * `'dumbbell'`, `'streamgraph'`). The
    * original requested type is preserved here while `type` is normalized to the
-   * underlying renderer (`'bar'`, `'rangeBar'`, `'radialBar'` or `'unit'`).
+   * underlying renderer (`'bar'`, `'rangeBar'`, `'rangeArea'`, `'radialBar'` or
+   * `'unit'`).
    * Read-only for consumers.
    */
   requestedType?:
@@ -1446,6 +1448,7 @@ type ApexChart = {
     | 'histogram'
     | 'waterfall'
     | 'dumbbell'
+    | 'streamgraph'
   foreColor?: string
   fontFamily?: string
   background?: string
@@ -2969,6 +2972,57 @@ type ApexPlotOptions = {
       strokeWidth?: number
       /** Default `3`. */
       strokeDashArray?: number
+    }
+  }
+  streamgraph?: {
+    /**
+     * Where the baseline goes.
+     *
+     * - `'wiggle'` (default) minimizes the total weighted slope of the bands,
+     *   so the thick ones stay level. This is the classic streamgraph.
+     * - `'silhouette'` centres the stack on one horizontal line.
+     * - `'zero'` is an ordinary stacked area, on the zero line.
+     * - `'expand'` normalizes each column to its own total, so the chart reads
+     *   as composition rather than volume.
+     */
+    offset?: 'wiggle' | 'silhouette' | 'zero' | 'expand'
+    /**
+     * The order the bands stack in, bottom first.
+     *
+     * - `'inside-out'` (default) puts the series that peak earliest in the
+     *   middle and fans later peaks outward, each band going to whichever side
+     *   is currently thinner. The middle of the stack moves least under a
+     *   wiggle baseline, so this is what keeps a streamgraph readable.
+     * - `'inverse'` is the series order, reversed.
+     * - `'none'` is the series order as given.
+     */
+    order?: 'inside-out' | 'inverse' | 'none'
+    /**
+     * The series name written on the band itself, where that band is thickest.
+     * On by default, and the reason `legend.show` defaults to `false` for this
+     * type: a drifting band is far easier to find by its own label than by
+     * matching a colour to a key.
+     */
+    labels?: {
+      /** Default `true`. */
+      show?: boolean
+      /**
+       * A band narrower than this many pixels is left unlabelled rather than
+       * given a name truncated past the point of being a name. Default `24`.
+       */
+      minWidth?: number
+      style?: {
+        /** Default `'12px'`. */
+        fontSize?: string
+        fontFamily?: string
+        /** Default `600`. */
+        fontWeight?: string | number
+        /**
+         * Per-series override. By default each label takes black or white,
+         * whichever reads on its own band.
+         */
+        colors?: string[]
+      }
     }
   }
   funnel?: {

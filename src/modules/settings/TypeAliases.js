@@ -28,4 +28,5 @@ export const TYPE_ALIASES = {
   histogram: 'bar',
   waterfall: 'rangeBar',
   dumbbell: 'rangeBar',
+  streamgraph: 'rangeArea',
 }

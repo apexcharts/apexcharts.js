@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Basic Streamgraph</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            name: 'Drama',
+            data: [
+              { x: '2024-01-01', y: 32 },
+              { x: '2024-02-01', y: 35 },
+              { x: '2024-03-01', y: 41 },
+              { x: '2024-04-01', y: 38 },
+              { x: '2024-05-01', y: 30 },
+              { x: '2024-06-01', y: 26 },
+              { x: '2024-07-01', y: 24 },
+              { x: '2024-08-01', y: 29 },
+              { x: '2024-09-01', y: 37 },
+              { x: '2024-10-01', y: 44 },
+              { x: '2024-11-01', y: 48 },
+              { x: '2024-12-01', y: 52 },
+            ],
+          },
+          {
+            name: 'Comedy',
+            data: [
+              { x: '2024-01-01', y: 24 },
+              { x: '2024-02-01', y: 22 },
+              { x: '2024-03-01', y: 20 },
+              { x: '2024-04-01', y: 23 },
+              { x: '2024-05-01', y: 27 },
+              { x: '2024-06-01', y: 31 },
+              { x: '2024-07-01', y: 34 },
+              { x: '2024-08-01', y: 33 },
+              { x: '2024-09-01', y: 28 },
+              { x: '2024-10-01', y: 25 },
+              { x: '2024-11-01', y: 26 },
+              { x: '2024-12-01', y: 30 },
+            ],
+          },
+          {
+            name: 'Documentary',
+            data: [
+              { x: '2024-01-01', y: 9 },
+              { x: '2024-02-01', y: 11 },
+              { x: '2024-03-01', y: 14 },
+              { x: '2024-04-01', y: 18 },
+              { x: '2024-05-01', y: 21 },
+              { x: '2024-06-01', y: 19 },
+              { x: '2024-07-01', y: 15 },
+              { x: '2024-08-01', y: 13 },
+              { x: '2024-09-01', y: 12 },
+              { x: '2024-10-01', y: 14 },
+              { x: '2024-11-01', y: 17 },
+              { x: '2024-12-01', y: 16 },
+            ],
+          },
+          {
+            name: 'Sport',
+            data: [
+              { x: '2024-01-01', y: 6 },
+              { x: '2024-02-01', y: 14 },
+              { x: '2024-03-01', y: 12 },
+              { x: '2024-04-01', y: 9 },
+              { x: '2024-05-01', y: 11 },
+              { x: '2024-06-01', y: 28 },
+              { x: '2024-07-01', y: 36 },
+              { x: '2024-08-01', y: 31 },
+              { x: '2024-09-01', y: 18 },
+              { x: '2024-10-01', y: 12 },
+              { x: '2024-11-01', y: 10 },
+              { x: '2024-12-01', y: 13 },
+            ],
+          },
+          {
+            name: 'Kids',
+            data: [
+              { x: '2024-01-01', y: 18 },
+              { x: '2024-02-01', y: 16 },
+              { x: '2024-03-01', y: 15 },
+              { x: '2024-04-01', y: 17 },
+              { x: '2024-05-01', y: 19 },
+              { x: '2024-06-01', y: 26 },
+              { x: '2024-07-01', y: 33 },
+              { x: '2024-08-01', y: 35 },
+              { x: '2024-09-01', y: 21 },
+              { x: '2024-10-01', y: 18 },
+              { x: '2024-11-01', y: 20 },
+              { x: '2024-12-01', y: 27 },
+            ],
+          },
+          {
+            name: 'News',
+            data: [
+              { x: '2024-01-01', y: 12 },
+              { x: '2024-02-01', y: 13 },
+              { x: '2024-03-01', y: 11 },
+              { x: '2024-04-01', y: 10 },
+              { x: '2024-05-01', y: 12 },
+              { x: '2024-06-01', y: 14 },
+              { x: '2024-07-01', y: 13 },
+              { x: '2024-08-01', y: 15 },
+              { x: '2024-09-01', y: 17 },
+              { x: '2024-10-01', y: 22 },
+              { x: '2024-11-01', y: 29 },
+              { x: '2024-12-01', y: 19 },
+            ],
+          },
+        ],
+        chart: {
+          type: 'streamgraph',
+          height: 380,
+        },
+        colors: ['#2E93fA', '#66DA26', '#F97316', '#0EA5E9', '#FACC15', '#E11D48'],
+        title: {
+          text: 'Where the streaming hours went',
+          align: 'left',
+        },
+        subtitle: {
+          text: 'Illustrative data. Thickness is hours; the baseline drifts to keep the bands level.',
+          align: 'left',
+        },
+        xaxis: {
+          type: 'datetime',
+        },
+        tooltip: {
+          x: {
+            format: 'MMM yyyy',
+          },
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+
+    
+  </body>
+</html>

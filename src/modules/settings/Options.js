@@ -1120,6 +1120,45 @@ export default class Options {
             strokeDashArray: 3,
           },
         },
+        streamgraph: {
+          // `chart.type: 'streamgraph'`. See features/streamgraph.
+          //
+          // Where the baseline goes:
+          //   'wiggle'     — minimize the total weighted slope of the bands, so
+          //                  the thick ones stay level (the classic form)
+          //   'silhouette' — centre the stack on one horizontal line
+          //   'zero'       — an ordinary stacked area, on the zero line
+          //   'expand'     — each column normalized to its own total, so the
+          //                  chart reads as composition rather than volume
+          offset: 'wiggle',
+          // The order the bands stack in, bottom first:
+          //   'inside-out' — the series that peak earliest sit in the middle,
+          //                  later peaks fan outward to whichever side is
+          //                  currently thinner. The middle moves least under a
+          //                  wiggle baseline, so this is what keeps a
+          //                  streamgraph readable
+          //   'inverse'    — the series order, reversed
+          //   'none'       — the series order as given
+          order: 'inside-out',
+          labels: {
+            // The series name written on the band itself, where that band is
+            // thickest. On by default, and the reason `legend.show` defaults
+            // to false for this type: a drifting band is much easier to find
+            // by its own label than by matching a colour to a key.
+            show: true,
+            // A band narrower than this many pixels is left unlabelled rather
+            // than given a name truncated past the point of being a name.
+            minWidth: 24,
+            style: {
+              fontSize: '12px',
+              fontFamily: undefined,
+              fontWeight: 600,
+              // Per-series override. By default each label takes black or
+              // white, whichever reads on its own band.
+              colors: undefined,
+            },
+          },
+        },
         funnel: {
           // 'rectangle' preserves the existing centered-rectangle funnel
           // geometry. 'trapezoid' produces continuous sloped sides between

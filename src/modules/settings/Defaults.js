@@ -369,6 +369,8 @@ export default class Defaults {
       chartDefaults = defaults.waterfall()
     } else if (requestedType === 'dumbbell') {
       chartDefaults = defaults.dumbbell()
+    } else if (requestedType === 'streamgraph') {
+      chartDefaults = defaults.streamgraph()
     } else if (chartTypes.indexOf(opts.chart.type) !== -1) {
       chartDefaults = /** @type {any} */ (defaults)[opts.chart.type]()
     } else {
@@ -1403,6 +1405,170 @@ export default class Defaults {
           /** @param {Record<string, any>} opts */
           (opts) => handleRangeAreaTooltip(opts),
         ),
+      },
+    }
+  }
+
+  streamgraph() {
+    // Streamgraph defaults: a stacked area on a computed baseline, drawn
+    // through the range-area pathway (see Config.normalizeAliasedChartType).
+    // Starts from the range-area defaults and changes only what the form needs.
+    const range = this.rangeArea()
+
+    /**
+     * The hovered column, every band read out at once.
+     *
+     * The band's own `[lo, hi]` are stacking offsets, not measurements — the
+     * numbers the reader gave are on `w.streamgraphData.values` — so the
+     * inherited range tooltip would print two coordinates nobody supplied.
+     * Read out top-down in stacking order so the list matches the picture.
+     *
+     * @param {any} opts
+     */
+    const handleStreamTooltip = (opts) => {
+      const { w, dataPointIndex, seriesIndex } = opts
+      const data = w.streamgraphData
+
+      if (!data || !Array.isArray(data.order)) {
+        // Bands were supplied ready-stacked, so there is nothing but the
+        // interval itself to read out.
+        const { color, seriesName, ylabel, start, end } = getRangeValues(opts)
+        return buildRangeTooltipHTML({
+          ...opts,
+          color,
+          seriesName,
+          ylabel,
+          start,
+          end,
+        })
+      }
+
+      const { ylabel } = getRangeValues(opts)
+
+      // NOT the inherited y formatter. That one takes its decimal count from
+      // `gl.yValueDecimal`, which is measured off the values the chart DREW —
+      // and a streamgraph draws wiggle offsets, whose fractions run to the full
+      // width of a double. It turns a band worth 26 into "26.0000000000000000".
+      // A `tooltip.y` the user configured still wins, because that one is about
+      // the numbers being reported rather than the ones being plotted.
+      const configured = w.formatters.ttVal !== undefined
+      /** @param {number} k @param {number} v */
+      const bandValue = (k, v) => {
+        if (configured) {
+          const f = w.globals.tooltip.tooltipLabels.getFormatters(k)
+          if (typeof f.yLbFormatter === 'function') return f.yLbFormatter(v)
+        }
+        if (Number.isInteger(v)) return String(v)
+        // Six places is past anything a part-to-whole reading needs, and it
+        // drops the float noise that summing the reader's own values leaves.
+        return String(Number(v.toFixed(6)))
+      }
+
+      let rows = ''
+      let total = 0
+      for (let i = data.order.length - 1; i >= 0; i--) {
+        const k = data.order[i]
+        const v = data.values[k]?.[dataPointIndex]
+        if (v == null || !isFinite(v)) continue
+        total += v
+        rows +=
+          '<div class="apexcharts-tooltip-stream-band' +
+          (k === seriesIndex ? ' apexcharts-active' : '') +
+          '">' +
+          '<span class="apexcharts-tooltip-marker" style="background-color: ' +
+          w.globals.colors[k] +
+          '"></span>' +
+          '<span class="series-name">' +
+          data.names[k] +
+          '</span> <span class="value">' +
+          bandValue(k, v) +
+          '</span></div>'
+      }
+
+      // The total is the one number a streamgraph genuinely cannot be read for
+      // — the drifting baseline is exactly what hides it — so it is stated
+      // rather than left to be estimated from the envelope.
+      const totalRow =
+        data.offset === 'expand'
+          ? ''
+          : '<div class="apexcharts-tooltip-stream-total">' +
+            '<span class="series-name">Total</span> <span class="value">' +
+            bandValue(seriesIndex, total) +
+            '</span></div>'
+
+      return (
+        '<div class="apexcharts-tooltip-stream">' +
+        '<div class="apexcharts-tooltip-title">' +
+        ylabel +
+        '</div>' +
+        rows +
+        totalRow +
+        '</div>'
+      )
+    }
+
+    return {
+      ...range,
+      chart: {
+        stacked: false,
+      },
+      stroke: {
+        // Bands meet edge to edge, so any stroke at all draws a seam down the
+        // middle of every boundary and doubles it at the two outer edges.
+        curve: 'smooth',
+        width: 0,
+      },
+      fill: {
+        type: 'solid',
+        // A streamgraph reads as one continuous surface, so the bands are
+        // opaque: at range-area's 0.6 the grid shows through and the boundaries
+        // between neighbours turn into a third, muddier colour.
+        opacity: 1,
+      },
+      dataLabels: {
+        // One label per point on a stacked surface is unreadable at any real
+        // series count. The names go on the bands instead
+        // (plotOptions.streamgraph.labels).
+        enabled: false,
+      },
+      grid: {
+        // There is nothing to measure against, so gridlines only add noise
+        // behind an opaque surface. The x ruler stays: the whole point of the
+        // form is *when* the mix changed.
+        //
+        // `padding` is deliberately left alone. Zeroing it so the surface
+        // bleeds to the plot edges is tempting and costs almost nothing
+        // visually, but it puts the first and last category label half outside
+        // the SVG, so a category streamgraph starts with an axis reading "19"
+        // where it should read "2019".
+        yaxis: { lines: { show: false } },
+      },
+      markers: {
+        size: 0,
+        // A streamgraph has no data points to hit, only bands. The inherited
+        // `sizeOffset` grows a size-0 marker to 3px on hover, which puts a dot
+        // on a band BOUNDARY — a place that is not a value in either band.
+        hover: {
+          size: 0,
+          sizeOffset: 0,
+        },
+      },
+      tooltip: {
+        intersect: false,
+        shared: false,
+        followCursor: true,
+        custom: ownedBy(
+          ['streamgraph'],
+          /** @param {Record<string, any>} opts */
+          (opts) => handleStreamTooltip(opts),
+        ),
+      },
+      legend: {
+        // Off by default because the band labels already name every band in
+        // place, and a legend would say the same six things a second time.
+        // Turn `plotOptions.streamgraph.labels.show` off and this back on for
+        // very thin bands that cannot hold a name.
+        show: false,
       },
     }
   }

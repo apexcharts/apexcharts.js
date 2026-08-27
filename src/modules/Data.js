@@ -1605,6 +1605,12 @@ export default class Data {
     if (name !== 'dumbbell' && this.w.dumbbellData) {
       this.w.dumbbellData = null
     }
+    // Same reason again: the band values are read by the tooltip and the band
+    // labels, and left behind they would have a plain range area writing the
+    // names of a streamgraph it used to be over bands it no longer has.
+    if (name !== 'streamgraph' && this.w.streamgraphData) {
+      this.w.streamgraphData = null
+    }
 
     const transform = getSeriesTransform(name)
     if (transform) return transform(ser, this.w)
@@ -1965,6 +1971,11 @@ export default class Data {
       // make resetSeries() restore one series of pairs in place of the measures
       // the chart was given, and the endpoint names would not come back.
       gl.initialSeries = gl.dumbbellRawSeries
+    } else if (gl.streamgraphRawSeries) {
+      // Same reason again: `ser` is the stacked bands, so snapshotting it would
+      // make resetSeries() restore stacking offsets as if they were values, and
+      // every reset would stack one level deeper.
+      gl.initialSeries = gl.streamgraphRawSeries
     } else if (gl.waterfallRawSeries) {
       // Same reason again: `ser` is the accumulated pairs, so snapshotting it
       // would make resetSeries() restore levels as if they were deltas, and

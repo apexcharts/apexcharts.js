@@ -748,6 +748,69 @@ rect.legend-mouseover-inactive,
   margin-bottom: 5px
 }
 
+/* Streamgraph: every band read out at one column, top-down in stacking order.
+ * A row per band rather than the shared tooltip's list, because a streamgraph's
+ * `[lo, hi]` are stacking offsets and the values the reader gave live on
+ * w.streamgraphData. */
+.apexcharts-tooltip-stream {
+  padding: 5px 8px
+}
+
+.apexcharts-tooltip-stream .apexcharts-tooltip-title {
+  background: transparent;
+  border: 0;
+  padding: 0 0 4px;
+  margin: 0;
+  font-weight: 700
+}
+
+.apexcharts-tooltip-stream-band {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.6;
+  opacity: .72
+}
+
+.apexcharts-tooltip-stream-band.apexcharts-active {
+  opacity: 1;
+  font-weight: 700
+}
+
+.apexcharts-tooltip-stream-band .series-name {
+  flex: 1 1 auto;
+  margin-right: 8px
+}
+
+.apexcharts-tooltip-stream-band .value {
+  font-weight: 700;
+  margin-left: auto
+}
+
+.apexcharts-tooltip-stream-total {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--apx-tt-border, rgba(15, 23, 42, .12))
+}
+
+.apexcharts-tooltip-stream-total .series-name {
+  flex: 1 1 auto;
+  font-weight: 600
+}
+
+.apexcharts-tooltip-stream-total .value {
+  font-weight: 700;
+  margin-left: auto
+}
+
+/* The band labels themselves. Pointer events off so a name never blocks a
+ * hover on the band it sits on. */
+.apexcharts-streamgraph-label {
+  pointer-events: none
+}
+
 /* X/Y axis tooltips — small popovers that label the crosshair on the
  * axes. Restyled to match the modern data-tooltip palette: solid white
  * body with a subtle border + soft drop-shadow, smaller font, rounded

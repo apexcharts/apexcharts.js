@@ -53,6 +53,7 @@ export const SUB_ENTRIES = {
   histogram: resolve(__dirname, 'src/entries/histogram.js'),
   waterfall: resolve(__dirname, 'src/entries/waterfall.js'),
   dumbbell: resolve(__dirname, 'src/entries/dumbbell.js'),
+  streamgraph: resolve(__dirname, 'src/entries/streamgraph.js'),
   donut: resolve(__dirname, 'src/entries/donut.js'),
   polarArea: resolve(__dirname, 'src/entries/polarArea.js'),
   'features/annotations': resolve(__dirname, 'src/features/annotations.js'),
@@ -79,6 +80,7 @@ export const SUB_ENTRIES = {
   'features/stats': resolve(__dirname, 'src/features/stats.js'),
   'features/waterfall': resolve(__dirname, 'src/features/waterfall.js'),
   'features/dumbbell': resolve(__dirname, 'src/features/dumbbell.js'),
+  'features/streamgraph': resolve(__dirname, 'src/features/streamgraph.js'),
   'features/trellis': resolve(__dirname, 'src/features/trellis.js'),
   'features/all': resolve(__dirname, 'src/features/all.js'),
 }
@@ -314,6 +316,12 @@ export const UMD_ENTRIES = {
     file: resolve(__dirname, 'src/features/dumbbell.js'),
     global: 'ApexDumbbell',
     out: 'features/dumbbell.js',
+    shared: true,
+  },
+  'features/streamgraph': {
+    file: resolve(__dirname, 'src/features/streamgraph.js'),
+    global: 'ApexStreamgraph',
+    out: 'features/streamgraph.js',
     shared: true,
   },
 }

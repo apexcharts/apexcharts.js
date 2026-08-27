@@ -225,6 +225,34 @@ export interface DumbbellData {
   hidden: number[]
 }
 
+/**
+ * Streamgraph bands, living on `w.streamgraphData`, written by the streamgraph
+ * series transform (`features/streamgraph`) each parse. Null for every chart
+ * that is not a streamgraph, and for a streamgraph handed bands that were
+ * already stacked.
+ */
+export interface StreamgraphData {
+  /** names[k] is band k's series name. */
+  names: string[]
+  /** xs[j] is column j's x value, in drawing order. */
+  xs: any[]
+  /** values[k][j] is the number the reader gave for band k at column j. */
+  values: number[][]
+  /**
+   * Per-band stacking offsets, or null for a band the legend has collapsed.
+   * `highs[k][j]` IS `lows[next][j]` — the same accumulator value, not a copy —
+   * which is what makes adjacent bands meet with no hairline gap.
+   */
+  lows: Array<number[] | null>
+  highs: Array<number[] | null>
+  /** Series indices, bottom band first. */
+  order: number[]
+  /** The baseline mode the bands were solved with. */
+  offset: 'wiggle' | 'silhouette' | 'zero' | 'expand'
+  /** Band indices collapsed from the legend. */
+  hidden: number[]
+}
+
 /** Label / category data — lives on `w.labelData` */
 export interface LabelData {
   labels: string[]
@@ -424,6 +452,16 @@ export interface ChartGlobals
   // the input and every re-render merges from it. Cleared by _updateSeries and
   // appended to by appendData when the user pushes new data.
   dumbbellRawSeries: Array<{ data: any }> | null
+
+  // ── Streamgraph (chart.type: 'streamgraph') ───────────────────────────────
+  // The raw band series, stashed on first parse. parseData writes the stacked
+  // [lo, hi] bands back to config.series, so this is the only surviving copy of
+  // the input and every re-render stacks from it. Cleared by _updateSeries and
+  // appended to by appendData when the user pushes new data.
+  streamgraphRawSeries: Array<{ data: any }> | null
+  // Set once per chart after negative values have been floored to zero, so a
+  // resize does not re-warn on every render.
+  streamgraphWarnedNegative?: boolean
 
   // ── Nested treemap (a datum carrying `children`) ──────────────────────────
   // The nested input, stashed on first parse. parseData writes the flattened
@@ -717,6 +755,7 @@ export interface ChartStateW {
   histogramData: HistogramData
   waterfallData: WaterfallData
   dumbbellData: DumbbellData | null
+  streamgraphData: StreamgraphData | null
   labelData: LabelData
   axisFlags: AxisFlags
   seriesData: SeriesData

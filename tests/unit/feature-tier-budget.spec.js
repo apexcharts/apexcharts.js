@@ -46,6 +46,11 @@ const TIER_1 = [
   // Same again: `chart.type: 'dumbbell'` without it draws the two measures as
   // two unrelated grouped bars, which is not a bundle saving either.
   'dumbbell',
+  // Same again, and the quietest failure of the three: `chart.type:
+  // 'streamgraph'` without it routes scalar series into the range-area
+  // pathway, where every band comes out `[y, y]` — zero thickness. The chart
+  // renders, throws nothing, and shows an empty plot. +1.8 KB gzipped.
+  'streamgraph',
 ]
 
 /**

@@ -1,0 +1,21 @@
+{
+  "title": "Basic Streamgraph",
+  "externals": [],
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Drama',\n      data: [\n        { x: '2024-01-01', y: 32 },\n        { x: '2024-02-01', y: 35 },\n        { x: '2024-03-01', y: 41 },\n        { x: '2024-04-01', y: 38 },\n        { x: '2024-05-01', y: 30 },\n        { x: '2024-06-01', y: 26 },\n        { x: '2024-07-01', y: 24 },\n        { x: '2024-08-01', y: 29 },\n        { x: '2024-09-01', y: 37 },\n        { x: '2024-10-01', y: 44 },\n        { x: '2024-11-01', y: 48 },\n        { x: '2024-12-01', y: 52 },\n      ],\n    },\n    {\n      name: 'Comedy',\n      data: [\n        { x: '2024-01-01', y: 24 },\n        { x: '2024-02-01', y: 22 },\n        { x: '2024-03-01', y: 20 },\n        { x: '2024-04-01', y: 23 },\n        { x: '2024-05-01', y: 27 },\n        { x: '2024-06-01', y: 31 },\n        { x: '2024-07-01', y: 34 },\n        { x: '2024-08-01', y: 33 },\n        { x: '2024-09-01', y: 28 },\n        { x: '2024-10-01', y: 25 },\n        { x: '2024-11-01', y: 26 },\n        { x: '2024-12-01', y: 30 },\n      ],\n    },\n    {\n      name: 'Documentary',\n      data: [\n        { x: '2024-01-01', y: 9 },\n        { x: '2024-02-01', y: 11 },\n        { x: '2024-03-01', y: 14 },\n        { x: '2024-04-01', y: 18 },\n        { x: '2024-05-01', y: 21 },\n        { x: '2024-06-01', y: 19 },\n        { x: '2024-07-01', y: 15 },\n        { x: '2024-08-01', y: 13 },\n        { x: '2024-09-01', y: 12 },\n        { x: '2024-10-01', y: 14 },\n        { x: '2024-11-01', y: 17 },\n        { x: '2024-12-01', y: 16 },\n      ],\n    },\n    {\n      name: 'Sport',\n      data: [\n        { x: '2024-01-01', y: 6 },\n        { x: '2024-02-01', y: 14 },\n        { x: '2024-03-01', y: 12 },\n        { x: '2024-04-01', y: 9 },\n        { x: '2024-05-01', y: 11 },\n        { x: '2024-06-01', y: 28 },\n        { x: '2024-07-01', y: 36 },\n        { x: '2024-08-01', y: 31 },\n        { x: '2024-09-01', y: 18 },\n        { x: '2024-10-01', y: 12 },\n        { x: '2024-11-01', y: 10 },\n        { x: '2024-12-01', y: 13 },\n      ],\n    },\n    {\n      name: 'Kids',\n      data: [\n        { x: '2024-01-01', y: 18 },\n        { x: '2024-02-01', y: 16 },\n        { x: '2024-03-01', y: 15 },\n        { x: '2024-04-01', y: 17 },\n        { x: '2024-05-01', y: 19 },\n        { x: '2024-06-01', y: 26 },\n        { x: '2024-07-01', y: 33 },\n        { x: '2024-08-01', y: 35 },\n        { x: '2024-09-01', y: 21 },\n        { x: '2024-10-01', y: 18 },\n        { x: '2024-11-01', y: 20 },\n        { x: '2024-12-01', y: 27 },\n      ],\n    },\n    {\n      name: 'News',\n      data: [\n        { x: '2024-01-01', y: 12 },\n        { x: '2024-02-01', y: 13 },\n        { x: '2024-03-01', y: 11 },\n        { x: '2024-04-01', y: 10 },\n        { x: '2024-05-01', y: 12 },\n        { x: '2024-06-01', y: 14 },\n        { x: '2024-07-01', y: 13 },\n        { x: '2024-08-01', y: 15 },\n        { x: '2024-09-01', y: 17 },\n        { x: '2024-10-01', y: 22 },\n        { x: '2024-11-01', y: 29 },\n        { x: '2024-12-01', y: 19 },\n      ],\n    },\n  ],\n  chart: {\n    type: 'streamgraph',\n    height: 380,\n  },\n  colors: ['#2E93fA', '#66DA26', '#F97316', '#0EA5E9', '#FACC15', '#E11D48'],\n  title: {\n    text: 'Where the streaming hours went',\n    align: 'left',\n  },\n  subtitle: {\n    text: 'Illustrative data. Thickness is hours; the baseline drifts to keep the bands level.',\n    align: 'left',\n  },\n  xaxis: {\n    type: 'datetime',\n  },\n  tooltip: {\n    x: {\n      format: 'MMM yyyy',\n    },\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Basic Streamgraph</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

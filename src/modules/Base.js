@@ -152,6 +152,17 @@ export default class Base {
       //   carrier     = the series index the merged rows were written to
       //   hidden[]    = endpoint indices collapsed from the legend
       dumbbellData: null,
+      // Streamgraph bands, written by the streamgraph series transform
+      // (features/streamgraph) each parse; null for every other chart type.
+      //   names[k]     = band k's series name
+      //   xs[j]        = column j's x value, in drawing order
+      //   values[k][j] = the number the reader gave for band k at column j
+      //   lows/highs   = per-band stacking offsets, or null when collapsed;
+      //                  highs[k][j] IS lows[next][j], not a copy of it
+      //   order[]      = series indices, bottom band first
+      //   offset       = the baseline mode the bands were solved with
+      //   hidden[]     = band indices collapsed from the legend
+      streamgraphData: null,
       // Label / category data — written by Data.parseData() and TimeScale each render.
       labelData: {
         labels: [],

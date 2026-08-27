@@ -297,6 +297,12 @@ export default class InitCtxVariables {
     const WaterfallCtor = reg.get('waterfall')
     ctx.waterfall = WaterfallCtor ? new WaterfallCtor(w, ctx) : null
 
+    // Streamgraph: ctx.streamgraph (the band-label layer of `chart.type:
+    // 'streamgraph'`). Eager and self-inert: isActive() is false for every
+    // chart that is not a streamgraph, and drawLabels() is a no-op then.
+    const StreamgraphCtor = reg.get('streamgraph')
+    ctx.streamgraph = StreamgraphCtor ? new StreamgraphCtor(w, ctx) : null
+
     // Trellis (#22): ctx.trellis (opt-in small multiples via a top-level
     // `trellis.by` config key). Eager and self-inert: isActive() is false for
     // every chart without the key, INCLUDING the panel charts a trellis host

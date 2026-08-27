@@ -255,6 +255,7 @@ export default class UpdateHelpers {
         w.globals.histogramRawSeries = null
         w.globals.waterfallRawSeries = null
         w.globals.dumbbellRawSeries = null
+        w.globals.streamgraphRawSeries = null
         w.globals.treemapRawSeries = null
       }
 

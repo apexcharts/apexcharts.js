@@ -1,0 +1,49 @@
+<title>Streamgraph (Share of Total)</title>
+
+<chart>
+<options>
+chart: {
+  type: 'streamgraph',
+  height: 380
+},
+colors: ['#0EA5E9', '#22C55E', '#F97316', '#EF4444', '#14B8A6'],
+plotOptions: {
+  streamgraph: {
+    // Each column normalized to its own total, so the chart reads as
+    // composition over time rather than volume.
+    offset: 'expand',
+    order: 'inverse'
+  }
+},
+title: {
+  text: 'Share of page views by browser',
+  align: 'left'
+},
+subtitle: {
+  text: 'Illustrative data. Every column is 100% tall, so only the mix moves.',
+  align: 'left'
+},
+xaxis: {
+  categories: ['2019', '2020', '2021', '2022', '2023', '2024', '2025']
+}
+</options>
+
+<series>
+[{
+  name: 'Chrome',
+  data: [64, 65, 63, 62, 60, 58, 56]
+}, {
+  name: 'Safari',
+  data: [16, 17, 19, 20, 22, 24, 25]
+}, {
+  name: 'Edge',
+  data: [3, 5, 7, 9, 11, 12, 14]
+}, {
+  name: 'Firefox',
+  data: [10, 9, 8, 6, 5, 4, 3]
+}, {
+  name: 'Other',
+  data: [7, 4, 3, 3, 2, 2, 2]
+}]
+</series>
+</chart>

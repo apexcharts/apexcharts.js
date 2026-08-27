@@ -192,6 +192,25 @@ export default class Config {
       // would fight the range pathway, so it is forced off.
       opts.chart.stacked = false
       opts.chart.type = 'rangeBar'
+    } else if (requested === 'streamgraph') {
+      // A streamgraph band floats between a baseline that is not zero and that
+      // baseline plus its own value, which is exactly what a range area already
+      // draws. So the type routes to `rangeArea` (NOT stacked `area`: a stacked
+      // area's every fill closes to the plot floor) and features/streamgraph
+      // supplies the two things a range area has no opinion about: where the
+      // baseline goes, and the names written on the bands.
+      //
+      // `chart.stacked` would fight the range pathway — the stacking IS the
+      // transform's job here — so it is forced off.
+      opts.chart.stacked = false
+      // The form has no zero line and no axis to read against, so an axis of
+      // stacking offsets would be actively misleading. Set only when the user
+      // has not chosen otherwise.
+      opts.yaxis = opts.yaxis || {}
+      if (!Array.isArray(opts.yaxis) && opts.yaxis.show == null) {
+        opts.yaxis.show = false
+      }
+      opts.chart.type = 'rangeArea'
     } else if (requested === 'histogram') {
       // `histogram` renders through the bar pathway: the raw observations are
       // binned in Data.binHistogramData into one column per bin. The x-axis
