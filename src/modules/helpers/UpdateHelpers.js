@@ -161,7 +161,25 @@ export default class UpdateHelpers {
               : []
 
             // After forgetting lastAxes, we need to restore the new config in initialConfig/initialSeries
-            w.globals.initialConfig = Utils.extend({}, w.config)
+            // Two traps here. Utils.extend() copies arrays by reference, so
+            // the snapshot would hand back the LIVE series array; and
+            // w.config.series carries the legend-collapse state
+            // (`series[i].data = []` for every hidden series), so
+            // re-snapshotting it made the "initial" config forget the data of
+            // everything the user had toggled off (#5118). Only a call that
+            // actually redefines the series may move that baseline; a plain
+            // updateOptions() keeps the one it already had.
+            const prevInitialSeries =
+              w.globals.initialConfig && w.globals.initialConfig.series
+            const initialConfig =
+              /** @type {NonNullable<typeof w.globals.initialConfig>} */ (
+                Utils.extend({}, w.config)
+              )
+            initialConfig.series =
+              !options.series && prevInitialSeries
+                ? prevInitialSeries
+                : Utils.copySeriesShallow(w.config.series)
+            w.globals.initialConfig = initialConfig
             // lazy snapshot: deep clone deferred to first read
             w.globals.initialSeries = w.config.series
 
@@ -271,7 +289,11 @@ export default class UpdateHelpers {
         // initialSeries was already captured by parseData above through the
         // lazy-snapshot setter, so no deep clone happens here either.
         if (w.globals.initialConfig) {
-          w.globals.initialConfig.series = w.config.series
+          // A copy, not the alias the comment above describes: sharing the array
+          // is what let a later collapse empty the snapshot (#5118).
+          w.globals.initialConfig.series = Utils.copySeriesShallow(
+            w.config.series,
+          )
         }
         w.globals.initialSeries = w.config.series
       }

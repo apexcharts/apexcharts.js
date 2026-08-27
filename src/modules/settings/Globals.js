@@ -597,7 +597,15 @@ export default class Globals {
 
     this.defineLazyInitialSeries(globals)
 
-    globals.initialConfig = Utils.extend({}, config)
+    // Utils.extend() copies arrays by reference (isObject() excludes arrays),
+    // so initialConfig.series WAS config.series. Collapsing a series replaces
+    // series[i].data with [] in place, and the snapshot lost the data with it.
+    const initialConfig =
+      /** @type {NonNullable<typeof globals.initialConfig>} */ (
+        Utils.extend({}, config)
+      )
+    initialConfig.series = Utils.copySeriesShallow(config.series)
+    globals.initialConfig = initialConfig
     globals.initialSeries = config.series
 
     globals.lastXAxis = Utils.clone(

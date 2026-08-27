@@ -74,6 +74,21 @@ class Utils {
     return output
   }
 
+  // A per-series shallow copy: the series OBJECTS are copied, their data arrays
+  // are shared. Internal "mutations" of a series' data are property
+  // REPLACEMENTS (`series[i].data = []` on legend collapse, `series[i] = 0` for
+  // non-axis charts), and neither can reach a copy made this way. This is the
+  // same cheap shape `globals.initialSeries` captures, so snapshotting a config
+  // stays O(n) instead of deep-cloning every point.
+  /**
+   * @param {any} series
+   */
+  static copySeriesShallow(series) {
+    return Array.isArray(series)
+      ? series.map((s) => (this.isObject(s) ? { ...s } : s))
+      : series
+  }
+
   /**
    * @param {any[]} arrToExtend
    * @param {any} resultArr
