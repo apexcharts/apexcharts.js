@@ -1,0 +1,73 @@
+<title>Dumbbell Chart</title>
+
+<chart>
+<options>
+chart: {
+  type: 'dumbbell',
+  height: 380
+},
+colors: ['#3B82F6', '#EF4444'],
+title: {
+  text: 'Median base salary by role',
+  align: 'left'
+},
+subtitle: {
+  text: 'Illustrative data. The dot is the year, the bar is the gap.',
+  align: 'left'
+},
+xaxis: {
+  labels: {
+    formatter: function (val) {
+      return '$' + Math.round(val) + 'k'
+    }
+  }
+},
+grid: {
+  xaxis: {
+    lines: {
+      show: true
+    }
+  }
+}
+</options>
+
+<series>
+[{
+  name: '2020',
+  data: [{
+    x: 'Data engineer',
+    y: 96
+  }, {
+    x: 'Backend',
+    y: 92
+  }, {
+    x: 'Mobile',
+    y: 88
+  }, {
+    x: 'Frontend',
+    y: 84
+  }, {
+    x: 'QA',
+    y: 71
+  }]
+}, {
+  name: '2025',
+  data: [{
+    x: 'Data engineer',
+    y: 148
+  }, {
+    x: 'Backend',
+    y: 137
+  }, {
+    x: 'Mobile',
+    y: 121
+  }, {
+    x: 'Frontend',
+    y: 126
+  }, {
+    x: 'QA',
+    y: 99
+  }]
+}]
+</series>
+</chart>

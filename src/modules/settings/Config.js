@@ -1,5 +1,6 @@
 // @ts-check
 import Defaults from './Defaults'
+import { TYPE_ALIASES } from './TypeAliases'
 import Utils from './../../utils/Utils'
 import Options from './Options'
 import { Environment } from '../../utils/Environment.js'
@@ -55,8 +56,14 @@ export default class Config {
         opts = defaults.stacked100(opts)
       }
 
-      if (opts.plotOptions?.bar?.isDumbbell) {
-        opts = defaults.dumbbell(opts)
+      // `chart.type: 'dumbbell'` picks its own connector thickness through
+      // Defaults.dumbbell, so this is only for the bare flag on a range bar.
+      // Written into opts, it would otherwise beat the type's own default.
+      if (
+        opts.plotOptions?.bar?.isDumbbell &&
+        opts.chart.requestedType !== 'dumbbell'
+      ) {
+        opts = defaults.dumbbellSizing(opts)
       }
 
       // If user has specified a dark theme, make the tooltip dark too
@@ -114,14 +121,9 @@ export default class Config {
   normalizeAliasedChartType(opts) {
     if (!opts || !opts.chart) return opts
     const requested = opts.chart.type
-    if (
-      requested !== 'funnel' &&
-      requested !== 'pyramid' &&
-      requested !== 'gauge' &&
-      requested !== 'waffle' &&
-      requested !== 'waterfall' &&
-      requested !== 'histogram'
-    ) {
+    // One list, in Defaults, so the names that normalize here are the same ones
+    // registerSeriesType refuses to let a custom type take.
+    if (!requested || !TYPE_ALIASES[requested]) {
       return opts
     }
     opts.chart.requestedType = requested
@@ -168,6 +170,26 @@ export default class Config {
       //
       // Stacking a waterfall is meaningless (the bars are already a cumulative
       // walk) and would fight the range pathway, so it is forced off.
+      opts.chart.stacked = false
+      opts.chart.type = 'rangeBar'
+    } else if (requested === 'dumbbell') {
+      // A dumbbell is an interval with its two ends marked, which is what a
+      // range bar with `isDumbbell` already draws. So the type routes to
+      // `rangeBar` and features/dumbbell supplies the one thing a range bar has
+      // no opinion about: turning the two measures the reader compares into the
+      // single interval per row the renderer takes.
+      //
+      // Horizontal by default because the categories are names, and a name
+      // reads along the row it labels rather than turned on its side under a
+      // column. Set `plotOptions.bar.horizontal: false` for the column form.
+      opts.plotOptions = opts.plotOptions || {}
+      opts.plotOptions.bar = opts.plotOptions.bar || {}
+      opts.plotOptions.bar.isDumbbell = true
+      if (opts.plotOptions.bar.horizontal == null) {
+        opts.plotOptions.bar.horizontal = true
+      }
+      // Stacking is meaningless here (the rows are not parts of a whole) and
+      // would fight the range pathway, so it is forced off.
       opts.chart.stacked = false
       opts.chart.type = 'rangeBar'
     } else if (requested === 'histogram') {

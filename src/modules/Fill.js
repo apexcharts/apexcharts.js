@@ -289,7 +289,12 @@ class Fill {
       const colorStops = cnf.fill.gradient.colorStops
         ? [...cnf.fill.gradient.colorStops]
         : []
-      let type = cnf.fill.gradient.type
+      // A per-datum fill (`data[j].fill`) overrides the chart's gradient colours
+      // and stops, so it has to be able to override the DIRECTION too: a
+      // gradient given the right colours and the wrong axis is not the gradient
+      // that was asked for. Only when the datum names one; otherwise the chart's
+      // choice stands.
+      let type = opts.fillConfig?.gradient?.type ?? cnf.fill.gradient.type
       if (drawMultiColorLine) {
         colorStops[this.seriesIndex] = this.computeColorStops(
           this.getSeriesAxisRange(this.seriesIndex),

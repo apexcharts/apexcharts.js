@@ -1,0 +1,77 @@
+<title>Dumbbell Chart - Columns</title>
+
+<chart>
+<options>
+chart: {
+  type: 'dumbbell',
+  height: 380
+},
+colors: ['#F59E0B', '#0EA5E9'],
+plotOptions: {
+  bar: {
+    horizontal: false
+  }
+},
+title: {
+  text: 'Daily temperature range by month',
+  align: 'left'
+},
+subtitle: {
+  text: 'Illustrative data, degrees Celsius',
+  align: 'left'
+},
+yaxis: {
+  labels: {
+    formatter: function (val) {
+      return Math.round(val) + '°'
+    }
+  }
+}
+</options>
+
+<series>
+[{
+  name: 'Low',
+  data: [{
+    x: 'Jan',
+    y: 2
+  }, {
+    x: 'Feb',
+    y: 3
+  }, {
+    x: 'Mar',
+    y: 6
+  }, {
+    x: 'Apr',
+    y: 9
+  }, {
+    x: 'May',
+    y: 13
+  }, {
+    x: 'Jun',
+    y: 17
+  }]
+}, {
+  name: 'High',
+  data: [{
+    x: 'Jan',
+    y: 8
+  }, {
+    x: 'Feb',
+    y: 10
+  }, {
+    x: 'Mar',
+    y: 14
+  }, {
+    x: 'Apr',
+    y: 18
+  }, {
+    x: 'May',
+    y: 22
+  }, {
+    x: 'Jun',
+    y: 26
+  }]
+}]
+</series>
+</chart>

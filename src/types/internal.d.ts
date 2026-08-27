@@ -197,6 +197,34 @@ export interface WaterfallData {
   > | null
 }
 
+/**
+ * Dumbbell endpoints, living on `w.dumbbellData`, written by the dumbbell
+ * series transform (`features/dumbbell`) each parse. Null for every chart that
+ * is not a dumbbell.
+ */
+export interface DumbbellData {
+  /**
+   * 'series': N scalar measures were merged and the endpoints are identified.
+   * 'pairs':  a `y: [lo, hi]` series was passed through; there are no endpoint
+   * names, and the legacy `dumbbellColors` pathway draws it.
+   */
+  form: 'series' | 'pairs'
+  /** names[k] is endpoint k's series name. */
+  names: string[]
+  /** values[j][k] is endpoint k's value on row j, or null where it has none. */
+  values: Array<Array<number | null>>
+  /**
+   * order[j] is `[kLow, kHigh]`: which endpoint sits at each end of row j's
+   * connector. Null when the row has no visible endpoint. The rows are emitted
+   * low-to-high, so this is what ties an end back to the measure it belongs to.
+   */
+  order: Array<[number, number] | null>
+  /** The series index the merged rows were written to (the first visible one). */
+  carrier: number
+  /** Endpoint indices collapsed from the legend. */
+  hidden: number[]
+}
+
 /** Label / category data — lives on `w.labelData` */
 export interface LabelData {
   labels: string[]
@@ -389,6 +417,13 @@ export interface ChartGlobals
   // copy of the input and every re-render accumulates from it. Cleared by
   // _updateSeries and appended to by appendData when the user pushes new data.
   waterfallRawSeries: Array<{ data: any }> | null
+
+  // ── Dumbbell (chart.type: 'dumbbell') ─────────────────────────────────────
+  // The raw endpoint series, stashed on first parse. parseData writes the
+  // merged rows back to config.series, so this is the only surviving copy of
+  // the input and every re-render merges from it. Cleared by _updateSeries and
+  // appended to by appendData when the user pushes new data.
+  dumbbellRawSeries: Array<{ data: any }> | null
 
   // ── Nested treemap (a datum carrying `children`) ──────────────────────────
   // The nested input, stashed on first parse. parseData writes the flattened
@@ -681,6 +716,7 @@ export interface ChartStateW {
   violinData: ViolinData
   histogramData: HistogramData
   waterfallData: WaterfallData
+  dumbbellData: DumbbellData | null
   labelData: LabelData
   axisFlags: AxisFlags
   seriesData: SeriesData

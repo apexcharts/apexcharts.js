@@ -95,6 +95,11 @@
       "import": "./dist/waterfall.esm.js",
       "require": "./dist/waterfall.common.js"
     },
+    "./dumbbell": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/dumbbell.esm.js",
+      "require": "./dist/dumbbell.common.js"
+    },
     "./violin": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/violin.esm.js",
@@ -239,6 +244,10 @@
     "./features/waterfall": {
       "import": "./dist/features/waterfall.esm.js",
       "require": "./dist/features/waterfall.common.js"
+    },
+    "./features/dumbbell": {
+      "import": "./dist/features/dumbbell.esm.js",
+      "require": "./dist/features/dumbbell.common.js"
     },
     "./features/trellis": {
       "import": "./dist/features/trellis.esm.js",

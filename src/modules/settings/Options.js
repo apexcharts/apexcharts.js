@@ -837,6 +837,44 @@ export default class Options {
           hideZeroBarsWhenGrouped: false,
           isDumbbell: false,
           dumbbellColors: undefined,
+          // `chart.type: 'dumbbell'`, and any range bar drawn `isDumbbell`.
+          // The connector's thickness is `barHeight` / `columnWidth`, and the
+          // size of the marked ends is `markers.size`: they are the bar and its
+          // markers, so they are configured as such.
+          dumbbell: {
+            connector: {
+              // A solid colour for the join. Left undefined, the connector is a
+              // gradient between the two endpoint colours, resolved per row so
+              // that a row where the measures cross still runs the right way.
+              color: undefined,
+              // The join is context for the two marked ends, not a third mark
+              // competing with them.
+              opacity: 0.55,
+            },
+            // A value written at each end of the connector. The pair of numbers
+            // IS the comparison, and reading them off an axis costs the glance
+            // the chart was meant to save.
+            dataLabels: {
+              enabled: false,
+              // px clear of the marked end, outward from the connector.
+              offset: 6,
+              // Each label takes its own end's colour, so a value is tied to a
+              // measure by more than its position.
+              colorFromMarker: true,
+              formatter: undefined,
+              style: {
+                fontSize: '12px',
+                fontFamily: undefined,
+                fontWeight: 600,
+                // Used when colorFromMarker is false.
+                colors: undefined,
+              },
+            },
+            tooltip: {
+              // Names the gap the two dots are on one row to show.
+              differenceLabel: 'Difference',
+            },
+          },
           isFunnel: false,
           isFunnel3d: true,
           colors: {

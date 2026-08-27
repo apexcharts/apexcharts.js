@@ -1,9 +1,9 @@
 /**
  * Marks (#11) interaction tests: custom series types via registerSeriesType.
  *
- * Uses the dumbbell fixture (samples/vanilla-js/marks/dumbbell.html), which
- * registers a 'dumbbell' custom type (dataType: 'rangeXY') in page scripts and
- * renders chart.type 'dumbbell'. Exercises the real render + event wiring that
+ * Uses the ring-stem fixture (samples/vanilla-js/marks/ring-stem.html), which
+ * registers a 'ringStem' custom type (dataType: 'rangeXY') in page scripts and
+ * renders chart.type 'ringStem'. Exercises the real render + event wiring that
  * jsdom cannot:
  *   - the adapter draws tagged marks and populates the shared coordinate caches
  *   - event delegation resolves a mark hover to (seriesIndex, dataPointIndex)
@@ -16,7 +16,7 @@ import { test, expect } from '../fixtures/base.js'
 
 test.describe('Marks: custom series render + integration', () => {
   test.beforeEach(async ({ loadChart }) => {
-    await loadChart('marks', 'dumbbell')
+    await loadChart('marks', 'ring-stem')
   })
 
   test('renders tagged marks and populates the shared coordinate caches', async ({
@@ -84,28 +84,29 @@ test.describe('Marks: custom series render + integration', () => {
       return {
         warned: warnings.some((wr) => wr.includes('built-in')),
         lineStillBuiltIn: !globalThis.__apexcharts_custom_types__.has('line'),
-        dumbbellStillCustom: globalThis.__apexcharts_custom_types__.has('dumbbell'),
+        ringStemStillCustom:
+          globalThis.__apexcharts_custom_types__.has('ringStem'),
       }
     })
     expect(r.warned).toBe(true)
     expect(r.lineStillBuiltIn).toBe(true)
-    expect(r.dumbbellStillCustom).toBe(true)
+    expect(r.ringStemStillCustom).toBe(true)
   })
 
   test('unregisterSeriesType removes a custom type; built-ins are immune', async ({
     page,
   }) => {
     const r = await page.evaluate(() => {
-      window.ApexCharts.unregisterSeriesType('dumbbell')
+      window.ApexCharts.unregisterSeriesType('ringStem')
       window.ApexCharts.unregisterSeriesType('line') // must be a no-op
       return {
-        dumbbellGone: !globalThis.__apexcharts_custom_types__.has('dumbbell'),
-        dumbbellUnregistered: !globalThis.__apexcharts_registry__.dumbbell,
+        ringStemGone: !globalThis.__apexcharts_custom_types__.has('ringStem'),
+        ringStemUnregistered: !globalThis.__apexcharts_registry__.ringStem,
         lineIntact: !!globalThis.__apexcharts_registry__.line,
       }
     })
-    expect(r.dumbbellGone).toBe(true)
-    expect(r.dumbbellUnregistered).toBe(true)
+    expect(r.ringStemGone).toBe(true)
+    expect(r.ringStemUnregistered).toBe(true)
     expect(r.lineIntact).toBe(true)
   })
 

@@ -1592,6 +1592,12 @@ export default class Data {
         geometry: null,
       }
     }
+    // Same reason: the endpoint identities are read by the markers, the end
+    // labels and the tooltip, and left behind they would have a plain range bar
+    // colouring its ends after series it no longer has.
+    if (name !== 'dumbbell' && this.w.dumbbellData) {
+      this.w.dumbbellData = null
+    }
 
     const transform = getSeriesTransform(name)
     if (transform) return transform(ser, this.w)
@@ -1947,6 +1953,11 @@ export default class Data {
       // snapshotting it would make resetSeries() restore counts as if they
       // were observations, and every reset would bin one level deeper.
       gl.initialSeries = gl.histogramRawSeries
+    } else if (gl.dumbbellRawSeries) {
+      // Same reason again: `ser` is the merged rows, so snapshotting it would
+      // make resetSeries() restore one series of pairs in place of the measures
+      // the chart was given, and the endpoint names would not come back.
+      gl.initialSeries = gl.dumbbellRawSeries
     } else if (gl.waterfallRawSeries) {
       // Same reason again: `ser` is the accumulated pairs, so snapshotting it
       // would make resetSeries() restore levels as if they were deltas, and

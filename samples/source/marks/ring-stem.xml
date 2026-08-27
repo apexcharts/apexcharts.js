@@ -1,4 +1,4 @@
-<title>Dumbbell Chart via a Custom Series Type (Marks)</title>
+<title>A Custom Series Type (Marks)</title>
 
 <style>
   #chart {
@@ -55,11 +55,15 @@
 
 <scripts>
 <script>
-  // Marks (#11): register a reusable "dumbbell" series type once. Each datum is
+  // Marks (#11): register a reusable "ringStem" series type once. Each datum is
   // a { x, y: [start, end] } pair. dataType 'rangeXY' tells ApexCharts to fold
   // BOTH y-bounds into the axis scale (so the axis fits the full range, not just
   // the end value) and to render the tooltip as "start - end".
-  ApexCharts.registerSeriesType('dumbbell', {
+  //
+  // ApexCharts ships `chart.type: 'dumbbell'` for the ordinary version of this
+  // chart. What a custom type buys you is the mark itself: a hollow ring for
+  // where the value started and a filled dot for where it finished.
+  ApexCharts.registerSeriesType('ringStem', {
     dataType: 'rangeXY',
     renderItem: function (ctx) {
       var datum = ctx.datum
@@ -84,7 +88,7 @@
     },
   })
 
-  var dumbbellData = [
+  var ringStemData = [
     { x: 'Austin', y: [312, 498] },
     { x: 'Denver', y: [398, 545] },
     { x: 'Miami', y: [285, 610] },
@@ -108,8 +112,11 @@
 
 <div class="panel">
   <div class="note">
-    There is no built-in dumbbell type here. It is a custom series registered with
-    <code>ApexCharts.registerSeriesType('dumbbell', &#123; dataType: 'rangeXY', renderItem &#125;)</code>.
+    The marks here are a custom series, registered with
+    <code>ApexCharts.registerSeriesType('ringStem', &#123; dataType: 'rangeXY', renderItem &#125;)</code>.
+    (For the ordinary two-dot version of this chart, ApexCharts has a built-in
+    <code>chart.type: 'dumbbell'</code>; this is what to do when you want a mark
+    of your own.)
     <code>renderItem</code> draws one stem and two circles per datum through the
     primitive <code>api</code>, and <code>dataType: 'rangeXY'</code> routes the
     <code>y: [start, end]</code> pair through the range path so the y-axis fits
@@ -122,7 +129,7 @@
 <options>
 chart: {
   height: 440,
-  type: 'dumbbell',
+  type: 'ringStem',
   animations: { enabled: false },
   toolbar: { show: false },
 },
@@ -135,7 +142,7 @@ title: {
   align: 'left',
 },
 subtitle: {
-  text: 'A custom "dumbbell" series type built with Marks (registerSeriesType)',
+  text: 'A custom "ringStem" series type built with Marks (registerSeriesType)',
   align: 'left',
 },
 xaxis: {
@@ -162,7 +169,7 @@ tooltip: {
 
 <series>
 [
-  { name: 'Price range', data: dumbbellData }
+  { name: 'Price range', data: ringStemData }
 ]
 </series>
 </chart>

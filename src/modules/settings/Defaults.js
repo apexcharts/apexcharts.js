@@ -3,6 +3,7 @@ import Utils from '../../utils/Utils'
 import DateTime from '../../utils/DateTime'
 import Formatters from '../Formatters'
 import Options from './Options'
+import { TYPE_ALIASES } from './TypeAliases'
 
 /**
  * ApexCharts Default Class for setting default options for all chart types.
@@ -116,16 +117,6 @@ const writePath = (obj, path, value) => {
   else cur[/** @type {string} */ (last)] = value
 }
 
-
-/** The user-facing chart types that render through another type's pathway. */
-const TYPE_ALIASES = {
-  funnel: 'bar',
-  pyramid: 'bar',
-  gauge: 'radialBar',
-  waffle: 'unit',
-  histogram: 'bar',
-  waterfall: 'rangeBar',
-}
 
 /**
  * A throwaway config naming one chart type and nothing else, for asking
@@ -376,6 +367,8 @@ export default class Defaults {
       chartDefaults = defaults.histogram()
     } else if (requestedType === 'waterfall') {
       chartDefaults = defaults.waterfall()
+    } else if (requestedType === 'dumbbell') {
+      chartDefaults = defaults.dumbbell()
     } else if (chartTypes.indexOf(opts.chart.type) !== -1) {
       chartDefaults = /** @type {any} */ (defaults)[opts.chart.type]()
     } else {
@@ -1165,10 +1158,155 @@ export default class Defaults {
     }
   }
 
+  dumbbell() {
+    // Dumbbell defaults: two measures per category, drawn as the interval
+    // between them with both ends marked (see Config.normalizeAliasedChartType).
+    // Starts from the range-bar defaults and changes only what the comparison
+    // needs.
+    const range = this.rangeBar()
+
+    /**
+     * One row of the tooltip: an endpoint's name, in its own colour, and its
+     * value.
+     * @param {string} name @param {string} color @param {any} value
+     */
+    const endpointRow = (name, color, value) =>
+      '<div class="apexcharts-tooltip-dumbbell-endpoint">' +
+      '<span class="series-name" style="color: ' +
+      color +
+      '">' +
+      name +
+      '</span> <span class="value">' +
+      value +
+      '</span></div>'
+
+    /**
+     * @param {any} opts
+     */
+    const handleDumbbellTooltip = (opts) => {
+      const { w, dataPointIndex, seriesIndex } = opts
+      const dumbbell = w.dumbbellData
+
+      if (!dumbbell || dumbbell.form !== 'series') {
+        // The `y: [lo, hi]` form names no endpoints, so there is nothing to
+        // read out but the interval itself.
+        const { color, seriesName, ylabel, start, end } = getRangeValues(opts)
+        return buildRangeTooltipHTML({
+          ...opts,
+          color,
+          seriesName,
+          ylabel,
+          start,
+          end,
+        })
+      }
+
+      const values = dumbbell.values[dataPointIndex] || []
+      const formatter =
+        w.globals.tooltip.tooltipLabels.getFormatters(seriesIndex)
+      const ylabel = w.labelData.labels[dataPointIndex] ?? ''
+
+      let rows = ''
+      /** @type {number[]} */
+      const shown = []
+      for (let k = 0; k < values.length; k++) {
+        if (values[k] === null || dumbbell.hidden.indexOf(k) !== -1) continue
+        shown.push(values[k])
+        rows += endpointRow(
+          dumbbell.names[k],
+          w.globals.colors[k],
+          formatter.yLbFormatter(values[k]),
+        )
+      }
+
+      // The gap is the reason the two dots are on one row, so it is read out
+      // rather than left to be eyeballed. Only when there are exactly two
+      // endpoints: with three or more "the difference" names nothing.
+      const gap =
+        shown.length === 2
+          ? '<div class="apexcharts-tooltip-dumbbell-gap">' +
+            '<span class="category">' +
+            w.config.plotOptions.bar.dumbbell.tooltip.differenceLabel +
+            ': </span><span class="value">' +
+            formatter.yLbFormatter(Math.abs(shown[1] - shown[0])) +
+            '</span></div>'
+          : ''
+
+      return (
+        '<div class="apexcharts-tooltip-rangebar apexcharts-tooltip-dumbbell">' +
+        '<div><span class="category">' +
+        ylabel +
+        '</span></div>' +
+        rows +
+        gap +
+        '</div>'
+      )
+    }
+
+    return {
+      ...range,
+      chart: {
+        stacked: false,
+        // A dumbbell is a fixed set of named rows, not a window onto a
+        // continuum: there is nothing to zoom into, and a horizontal one would
+        // otherwise inherit the timeline range bar's zoom toolbar.
+        zoom: {
+          enabled: false,
+        },
+      },
+      plotOptions: {
+        ...range.plotOptions,
+        bar: {
+          .../** @type {any} */ (range.plotOptions).bar,
+          // The connector, not a bar: thin enough that the marked ends are what
+          // the eye lands on, thick enough to read as a join at a glance.
+          barHeight: 6,
+          columnWidth: 6,
+          dumbbell: {
+            dataLabels: {
+              // The two values ARE the comparison, so they are written at the
+              // ends by default. The centred range label a range bar would draw
+              // reads out `end - start` over the connector, which is the one
+              // number a dumbbell can already be seen to say.
+              enabled: true,
+            },
+          },
+        },
+      },
+      dataLabels: {
+        .../** @type {any} */ (range).dataLabels,
+        enabled: false,
+      },
+      legend: {
+        // Two named measures, which is exactly what the series legend is for.
+        // (The `y: [lo, hi]` form has one series and no endpoint names; that is
+        // what `legend.customLegendItems` is for.)
+        show: true,
+        position: 'bottom',
+        horizontalAlign: 'left',
+        markers: {
+          // Echoes the marked ends rather than the connector.
+          shape: 'circle',
+        },
+      },
+      tooltip: {
+        shared: false,
+        intersect: true,
+        followCursor: false,
+        custom: ownedBy(['rangeBar'], handleDumbbellTooltip),
+      },
+    }
+  }
+
   /**
+   * The connector's thickness, for any range bar drawn `isDumbbell`.
+   *
+   * Written into the opts rather than returned as defaults because it applies
+   * to the flag wherever it is set, not only to `chart.type: 'dumbbell'`.
+   *
    * @param {Record<string, any>} opts
    */
-  dumbbell(opts) {
+  dumbbellSizing(opts) {
     if (!opts.plotOptions.bar?.barHeight) {
       opts.plotOptions.bar.barHeight = 2
     }

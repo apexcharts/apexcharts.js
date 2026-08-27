@@ -4,6 +4,7 @@ import CoreUtils from './modules/CoreUtils'
 import DataLabels from './modules/DataLabels'
 import PerformanceCache from './utils/PerformanceCache'
 import Defaults from './modules/settings/Defaults'
+import { TYPE_ALIASES } from './modules/settings/TypeAliases'
 import Grid from './modules/axes/Grid'
 import Markers from './modules/Markers'
 import Range from './modules/Range'
@@ -1013,14 +1014,18 @@ export default class ApexCharts {
       me.series.getPreviousPaths()
     }
 
-    // Histogram and waterfall: `config.series` holds rows this library derived
-    // (binned counts, accumulated [start, end] pairs) and the raw stash is the
-    // only copy of the input. New rows are appended THERE and the derivation
-    // re-runs over the enlarged input. Appending to the derived rows instead
-    // would add bars whose x is an observation value, or whose y is a level
-    // rather than a step with the walk restarting from zero at the join.
+    // Histogram, waterfall and dumbbell: `config.series` holds rows this
+    // library derived (binned counts, accumulated [start, end] pairs, merged
+    // endpoints) and the raw stash is the only copy of the input. New rows are
+    // appended THERE and the derivation re-runs over the enlarged input.
+    // Appending to the derived rows instead would add bars whose x is an
+    // observation value, or whose y is a level rather than a step with the walk
+    // restarting from zero at the join, or endpoints appended to the one series
+    // that happens to be carrying the merge.
     const derivedRaw =
-      me.w.globals.histogramRawSeries || me.w.globals.waterfallRawSeries
+      me.w.globals.histogramRawSeries ||
+      me.w.globals.waterfallRawSeries ||
+      me.w.globals.dumbbellRawSeries
     if (derivedRaw) {
       for (let i = 0; i < derivedRaw.length; i++) {
         const src = /** @type {any} */ (newData[i])
@@ -1817,7 +1822,13 @@ export default class ApexCharts {
     // custom type shadow a built-in would silently break every chart on the
     // page. Re-registering a CUSTOM name replaces it (idempotent, like
     // registerPlugin); a built-in name is rejected.
-    if (hasChartClass(name) && !isCustom(name)) {
+    //
+    // An alias name (`dumbbell`, `funnel`, `gauge`, ...) is rejected on the same
+    // grounds even though it has no class of its own: Config normalizes it to
+    // the renderer it routes to before dispatch ever reaches the registry, so a
+    // custom type registered under one of those names would take the
+    // registration and then never be drawn.
+    if ((hasChartClass(name) && !isCustom(name)) || TYPE_ALIASES[name]) {
       console.warn(
         `[apexcharts] registerSeriesType("${name}") would override the built-in "${name}" chart type; pick another name.`,
       )

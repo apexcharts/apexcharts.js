@@ -141,6 +141,17 @@ export default class Base {
         kinds: [],
         geometry: null,
       },
+      // Dumbbell endpoints, written by the dumbbell series transform
+      // (features/dumbbell) each parse; null for every other chart type.
+      //   form        = 'series' (N measures merged, endpoints identified) or
+      //                 'pairs' (a y: [lo, hi] series, nothing to identify)
+      //   names[k]    = endpoint k's series name
+      //   values[j][k]= endpoint k's value on row j, or null
+      //   order[j]    = [kLow, kHigh], which endpoint each end of row j's
+      //                 connector belongs to (null when the row is empty)
+      //   carrier     = the series index the merged rows were written to
+      //   hidden[]    = endpoint indices collapsed from the legend
+      dumbbellData: null,
       // Label / category data — written by Data.parseData() and TimeScale each render.
       labelData: {
         labels: [],

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Dumbbell Chart via a Custom Series Type (Marks)</title>
+    <title>A Custom Series Type (Marks)</title>
 
     <link href="../../assets/styles.css" rel="stylesheet" />
 
@@ -81,11 +81,15 @@
     </script>
 
     <script>
-      // Marks (#11): register a reusable "dumbbell" series type once. Each datum is
+      // Marks (#11): register a reusable "ringStem" series type once. Each datum is
       // a { x, y: [start, end] } pair. dataType 'rangeXY' tells ApexCharts to fold
       // BOTH y-bounds into the axis scale (so the axis fits the full range, not just
       // the end value) and to render the tooltip as "start - end".
-      ApexCharts.registerSeriesType('dumbbell', {
+      //
+      // ApexCharts ships `chart.type: 'dumbbell'` for the ordinary version of this
+      // chart. What a custom type buys you is the mark itself: a hollow ring for
+      // where the value started and a filled dot for where it finished.
+      ApexCharts.registerSeriesType('ringStem', {
         dataType: 'rangeXY',
         renderItem: function (ctx) {
           var datum = ctx.datum
@@ -117,7 +121,7 @@
         },
       })
 
-      var dumbbellData = [
+      var ringStemData = [
         { x: 'Austin', y: [312, 498] },
         { x: 'Denver', y: [398, 545] },
         { x: 'Miami', y: [285, 610] },
@@ -141,13 +145,16 @@
 &lt;/div&gt;
 
 &lt;div id=&quot;chart&quot;&gt;
-  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;dumbbell&quot; height={440} /&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;ringStem&quot; height={440} /&gt;
 &lt;/div&gt;
 
 &lt;div class=&quot;panel&quot;&gt;
   &lt;div class=&quot;note&quot;&gt;
-    There is no built-in dumbbell type here. It is a custom series registered with
-    &lt;code&gt;ApexCharts.registerSeriesType(&#39;dumbbell&#39;, &amp;#123; dataType: &#39;rangeXY&#39;, renderItem &amp;#125;)&lt;/code&gt;.
+    The marks here are a custom series, registered with
+    &lt;code&gt;ApexCharts.registerSeriesType(&#39;ringStem&#39;, &amp;#123; dataType: &#39;rangeXY&#39;, renderItem &amp;#125;)&lt;/code&gt;.
+    (For the ordinary two-dot version of this chart, ApexCharts has a built-in
+    &lt;code&gt;chart.type: &#39;dumbbell&#39;&lt;/code&gt;; this is what to do when you want a mark
+    of your own.)
     &lt;code&gt;renderItem&lt;/code&gt; draws one stem and two circles per datum through the
     primitive &lt;code&gt;api&lt;/code&gt;, and &lt;code&gt;dataType: &#39;rangeXY&#39;&lt;/code&gt; routes the
     &lt;code&gt;y: [start, end]&lt;/code&gt; pair through the range path so the y-axis fits
@@ -158,11 +165,11 @@
     <script type="text/babel">
       const ApexChart = () => {
         const [state, setState] = React.useState({
-          series: [{ name: 'Price range', data: dumbbellData }],
+          series: [{ name: 'Price range', data: ringStemData }],
           options: {
             chart: {
               height: 440,
-              type: 'dumbbell',
+              type: 'ringStem',
               animations: { enabled: false },
               toolbar: { show: false },
             },
@@ -175,7 +182,7 @@
               align: 'left',
             },
             subtitle: {
-              text: 'A custom "dumbbell" series type built with Marks (registerSeriesType)',
+              text: 'A custom "ringStem" series type built with Marks (registerSeriesType)',
               align: 'left',
             },
             xaxis: {
@@ -218,20 +225,23 @@
               <ReactApexChart
                 options={state.options}
                 series={state.series}
-                type="dumbbell"
+                type="ringStem"
                 height={440}
               />
             </div>
 
             <div class="panel">
               <div class="note">
-                There is no built-in dumbbell type here. It is a custom series
-                registered with
+                The marks here are a custom series, registered with
                 <code>
-                  ApexCharts.registerSeriesType('dumbbell', &#123; dataType:
+                  ApexCharts.registerSeriesType('ringStem', &#123; dataType:
                   'rangeXY', renderItem &#125;)
                 </code>
-                .<code>renderItem</code> draws one stem and two circles per datum
+                . (For the ordinary two-dot version of this chart, ApexCharts has a
+                built-in
+                <code>chart.type: 'dumbbell'</code>; this is what to do when you want
+                a mark of your own.)
+                <code>renderItem</code> draws one stem and two circles per datum
                 through the primitive <code>api</code>, and{' '}
                 <code>dataType: 'rangeXY'</code> routes the
                 <code>y: [start, end]</code> pair through the range path so the y-axis

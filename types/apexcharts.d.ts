@@ -1422,6 +1422,7 @@ type ApexChart = {
   | 'rangeBar'
   | 'rangeArea'
   | 'waterfall'
+  | 'dumbbell'
   | 'treemap'
   | 'unit'
   | 'waffle'
@@ -1431,7 +1432,8 @@ type ApexChart = {
   | 'gauge'
   /**
    * Internal — populated when `type` is a first-class alias (`'funnel'`,
-   * `'pyramid'`, `'gauge'`, `'waffle'`, `'histogram'`, `'waterfall'`). The
+   * `'pyramid'`, `'gauge'`, `'waffle'`, `'histogram'`, `'waterfall'`,
+   * `'dumbbell'`). The
    * original requested type is preserved here while `type` is normalized to the
    * underlying renderer (`'bar'`, `'rangeBar'`, `'radialBar'` or `'unit'`).
    * Read-only for consumers.
@@ -1443,6 +1445,7 @@ type ApexChart = {
     | 'waffle'
     | 'histogram'
     | 'waterfall'
+    | 'dumbbell'
   foreColor?: string
   fontFamily?: string
   background?: string
@@ -2568,6 +2571,67 @@ type ApexTreemapLevel = {
   }
 }
 
+/**
+ * `plotOptions.bar.dumbbell`: `chart.type: 'dumbbell'`, and any range bar
+ * drawn `isDumbbell`.
+ *
+ * The connector's thickness is `plotOptions.bar.barHeight` (rows) or
+ * `columnWidth` (columns), and the size of the marked ends is `markers.size`:
+ * they are the bar and its markers, so they are configured as such.
+ */
+type ApexPlotOptionsDumbbell = {
+  connector?: {
+    /**
+     * A solid colour for the join. Left undefined, the connector is a gradient
+     * between the two endpoint colours, resolved per row so that a row where
+     * the measures cross still runs the right way.
+     */
+    color?: string
+    /** Default `0.55`. The join is context for the marked ends, not a third mark. */
+    opacity?: number
+  }
+  /**
+   * A value written at each end of the connector, in that end's own colour.
+   * Default on for `chart.type: 'dumbbell'`, off for the bare `isDumbbell`
+   * flag. With three or more measures only the two extremes are labelled:
+   * anything between them sits on the connector, where a label has nowhere to
+   * go that is not over the line or over its neighbour.
+   */
+  dataLabels?: {
+    enabled?: boolean
+    /** px clear of the marked end, outward from the connector. Default `6`. */
+    offset?: number
+    /** Default `true`: each label takes its own end's colour. */
+    colorFromMarker?: boolean
+    /**
+     * Formats one endpoint value. Defaults to the value axis' own label
+     * formatter, NOT `dataLabels.formatter` (on a range bar that one reads out
+     * `end - start`, which is the gap, not the endpoint).
+     */
+    formatter?(
+      value: number,
+      opts: {
+        seriesIndex: number
+        dataPointIndex: number
+        /** Which measure this end belongs to (its series index). */
+        endpointIndex: number
+        w: any
+      },
+    ): string
+    style?: {
+      fontSize?: string
+      fontFamily?: string
+      fontWeight?: string | number
+      /** Used when `colorFromMarker` is false; indexed by endpoint. */
+      colors?: string[]
+    }
+  }
+  tooltip?: {
+    /** Names the gap between two endpoints. Default `'Difference'`. */
+    differenceLabel?: string
+  }
+}
+
 type ApexPlotOptions = {
   line?: {
     isSlopeChart?: boolean
@@ -2591,7 +2655,14 @@ type ApexPlotOptions = {
     rangeBarOverlap?: boolean
     rangeBarGroupRows?: boolean
     isDumbbell?: boolean;
+    /**
+     * Endpoint colours for the `y: [lo, hi]` form, per series:
+     * `[[startColor, endColor]]`. `chart.type: 'dumbbell'` with one series per
+     * measure takes its colours from `colors` instead, so that each dot is
+     * coloured after the series it belongs to.
+     */
     dumbbellColors?: string[][];
+    dumbbell?: ApexPlotOptionsDumbbell;
     isFunnel?: boolean;
     isFunnel3d?: boolean;
     colors?: {

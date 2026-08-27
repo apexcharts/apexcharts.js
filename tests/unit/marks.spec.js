@@ -72,6 +72,18 @@ describe('Marks: registry safety', () => {
     warn.mockRestore()
   })
 
+  it('rejects an alias name too, which has no class to detect it by', () => {
+    // `dumbbell` (like `funnel`, `gauge`, `waffle`) is a real chart type that
+    // Config rewrites to the renderer it routes through, before dispatch ever
+    // reaches the registry. Registered here it would take the name and then
+    // never be drawn, so it is refused on the same grounds as a built-in.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    ApexCharts.registerSeriesType('dumbbell', { renderItem: () => {} })
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('built-in'))
+    expect(globalThis.__apexcharts_custom_types__.has('dumbbell')).toBe(false)
+    warn.mockRestore()
+  })
+
   it('re-registering a custom name replaces it', async () => {
     ApexCharts.registerSeriesType('dot', {
       renderItem({ x, y, api }) {

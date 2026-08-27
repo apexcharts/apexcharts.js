@@ -1,0 +1,21 @@
+{
+  "title": "Dumbbell Chart",
+  "externals": [],
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: '2020',\n      data: [\n        {\n          x: 'Data engineer',\n          y: 96,\n        },\n        {\n          x: 'Backend',\n          y: 92,\n        },\n        {\n          x: 'Mobile',\n          y: 88,\n        },\n        {\n          x: 'Frontend',\n          y: 84,\n        },\n        {\n          x: 'QA',\n          y: 71,\n        },\n      ],\n    },\n    {\n      name: '2025',\n      data: [\n        {\n          x: 'Data engineer',\n          y: 148,\n        },\n        {\n          x: 'Backend',\n          y: 137,\n        },\n        {\n          x: 'Mobile',\n          y: 121,\n        },\n        {\n          x: 'Frontend',\n          y: 126,\n        },\n        {\n          x: 'QA',\n          y: 99,\n        },\n      ],\n    },\n  ],\n  chart: {\n    type: 'dumbbell',\n    height: 380,\n  },\n  colors: ['#3B82F6', '#EF4444'],\n  title: {\n    text: 'Median base salary by role',\n    align: 'left',\n  },\n  subtitle: {\n    text: 'Illustrative data. The dot is the year, the bar is the gap.',\n    align: 'left',\n  },\n  xaxis: {\n    labels: {\n      formatter: function (val) {\n        return '$' + Math.round(val) + 'k'\n      },\n    },\n  },\n  grid: {\n    xaxis: {\n      lines: {\n        show: true,\n      },\n    },\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Dumbbell Chart</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

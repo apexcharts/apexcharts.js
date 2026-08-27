@@ -1,0 +1,101 @@
+<title>Dumbbell Chart - Three Measures</title>
+
+<chart>
+<options>
+chart: {
+  type: 'dumbbell',
+  height: 380
+},
+colors: ['#93C5FD', '#3B82F6', '#1D4ED8'],
+title: {
+  text: 'Share of teams running each stage in CI',
+  align: 'left'
+},
+subtitle: {
+  text: 'Three snapshots on one row. Only the two extremes are labelled.',
+  align: 'left'
+},
+plotOptions: {
+  bar: {
+    dumbbell: {
+      connector: {
+        color: '#E5E7EB',
+        opacity: 1
+      },
+      dataLabels: {
+        formatter: function (val) {
+          return val + '%'
+        }
+      }
+    }
+  }
+},
+xaxis: {
+  min: 0,
+  max: 100,
+  labels: {
+    formatter: function (val) {
+      return val + '%'
+    }
+  }
+}
+</options>
+
+<series>
+[{
+  name: '2021',
+  data: [{
+    x: 'Unit tests',
+    y: 62
+  }, {
+    x: 'Linting',
+    y: 55
+  }, {
+    x: 'Type checks',
+    y: 31
+  }, {
+    x: 'E2E tests',
+    y: 24
+  }, {
+    x: 'Security scan',
+    y: 18
+  }]
+}, {
+  name: '2023',
+  data: [{
+    x: 'Unit tests',
+    y: 74
+  }, {
+    x: 'Linting',
+    y: 71
+  }, {
+    x: 'Type checks',
+    y: 52
+  }, {
+    x: 'E2E tests',
+    y: 39
+  }, {
+    x: 'Security scan',
+    y: 37
+  }]
+}, {
+  name: '2025',
+  data: [{
+    x: 'Unit tests',
+    y: 88
+  }, {
+    x: 'Linting',
+    y: 86
+  }, {
+    x: 'Type checks',
+    y: 78
+  }, {
+    x: 'E2E tests',
+    y: 58
+  }, {
+    x: 'Security scan',
+    y: 64
+  }]
+}]
+</series>
+</chart>

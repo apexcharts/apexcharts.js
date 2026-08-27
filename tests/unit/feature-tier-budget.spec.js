@@ -43,6 +43,9 @@ const TIER_1 = [
   // `chart.type: 'waterfall'` without it is a chart that silently refuses to
   // draw, which is not a bundle saving anyone asked for.
   'waterfall',
+  // Same again: `chart.type: 'dumbbell'` without it draws the two measures as
+  // two unrelated grouped bars, which is not a bundle saving either.
+  'dumbbell',
 ]
 
 /**

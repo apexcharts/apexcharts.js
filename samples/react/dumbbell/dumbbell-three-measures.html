@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Dumbbell Chart - Three Measures</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/babel-core@5.8.34/browser.min.js"></script>
+    <script src="../../../dist/apexcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-apexcharts@1.7.0/dist/react-apexcharts.iife.min.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+    
+    <div id="app"></div>
+
+    <div id="html">&lt;div id=&quot;chart&quot;&gt;
+  &lt;ReactApexChart options={state.options} series={state.series} type=&quot;dumbbell&quot; height={380} /&gt;
+&lt;/div&gt;</div>
+
+    <script type="text/babel">
+      const ApexChart = () => {
+        const [state, setState] = React.useState({
+          series: [
+            {
+              name: '2021',
+              data: [
+                {
+                  x: 'Unit tests',
+                  y: 62,
+                },
+                {
+                  x: 'Linting',
+                  y: 55,
+                },
+                {
+                  x: 'Type checks',
+                  y: 31,
+                },
+                {
+                  x: 'E2E tests',
+                  y: 24,
+                },
+                {
+                  x: 'Security scan',
+                  y: 18,
+                },
+              ],
+            },
+            {
+              name: '2023',
+              data: [
+                {
+                  x: 'Unit tests',
+                  y: 74,
+                },
+                {
+                  x: 'Linting',
+                  y: 71,
+                },
+                {
+                  x: 'Type checks',
+                  y: 52,
+                },
+                {
+                  x: 'E2E tests',
+                  y: 39,
+                },
+                {
+                  x: 'Security scan',
+                  y: 37,
+                },
+              ],
+            },
+            {
+              name: '2025',
+              data: [
+                {
+                  x: 'Unit tests',
+                  y: 88,
+                },
+                {
+                  x: 'Linting',
+                  y: 86,
+                },
+                {
+                  x: 'Type checks',
+                  y: 78,
+                },
+                {
+                  x: 'E2E tests',
+                  y: 58,
+                },
+                {
+                  x: 'Security scan',
+                  y: 64,
+                },
+              ],
+            },
+          ],
+          options: {
+            chart: {
+              type: 'dumbbell',
+              height: 380,
+            },
+            colors: ['#93C5FD', '#3B82F6', '#1D4ED8'],
+            title: {
+              text: 'Share of teams running each stage in CI',
+              align: 'left',
+            },
+            subtitle: {
+              text: 'Three snapshots on one row. Only the two extremes are labelled.',
+              align: 'left',
+            },
+            plotOptions: {
+              bar: {
+                dumbbell: {
+                  connector: {
+                    color: '#E5E7EB',
+                    opacity: 1,
+                  },
+                  dataLabels: {
+                    formatter: function (val) {
+                      return val + '%'
+                    },
+                  },
+                },
+              },
+            },
+            xaxis: {
+              min: 0,
+              max: 100,
+              labels: {
+                formatter: function (val) {
+                  return val + '%'
+                },
+              },
+            },
+          },
+        })
+
+        return (
+          <div>
+            <div id="chart">
+              <ReactApexChart
+                options={state.options}
+                series={state.series}
+                type="dumbbell"
+                height={380}
+              />
+            </div>
+            <div id="html-dist"></div>
+          </div>
+        )
+      }
+
+      const domContainer = document.querySelector('#app')
+      ReactDOM.render(<ApexChart />, domContainer)
+    </script>
+
+    
+  </body>
+</html>
