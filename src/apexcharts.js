@@ -26,7 +26,10 @@ import {
   registerUnitLayout,
   unregisterUnitLayout,
 } from './modules/UnitLayoutRegistry'
-import { registerUnitMark, unregisterUnitMark } from './modules/UnitMarkRegistry'
+import {
+  registerUnitMark,
+  unregisterUnitMark,
+} from './modules/UnitMarkRegistry'
 import {
   registerRowSource,
   unregisterRowSource,
@@ -83,6 +86,7 @@ export default class ApexCharts {
   /** @type {any} */ tooltip
   /** @type {any} */ data
   /** @type {any} */ animations
+
   /** @type {any} */ exports
   /** @type {any} */ legend
   /** @type {any} */ toolbar
@@ -99,7 +103,8 @@ export default class ApexCharts {
   /** @type {string[]} */ eventList = []
   /** @type {Promise<any> | null} */ _renderPromise = null
   /** @type {number | null} */ _parentResizeWaiter = null
-  /** @type {{width: any, viewBoxAdded?: boolean} | null} */ _printRestore = null
+  /** @type {{width: any, viewBoxAdded?: boolean, minHeight?: string} | null} */
+  _printRestore = null
   /** @type {any} */ beforePrintHandler
   /** @type {any} */ afterPrintHandler
   /** @type {any} */ config
@@ -258,9 +263,9 @@ export default class ApexCharts {
         // the kind of half-working state nobody thinks to file a bug about.
         if (!this.ink) {
           const inkOn = this.w.config.chart?.ink?.enabled
-          const anyDraggable = (
-            this.w.config.annotations?.points ?? []
-          ).some((/** @type {any} */ p) => p && p.draggable)
+          const anyDraggable = (this.w.config.annotations?.points ?? []).some(
+            (/** @type {any} */ p) => p && p.draggable,
+          )
           if (inkOn || anyDraggable) {
             console.warn(
               "ApexCharts: `chart.ink` / `annotations.points[].draggable` requires the ink feature, which is not in the default bundle. Bundler: import 'apexcharts/features/ink'. Script tag: add <script src='.../dist/features/ink.js'> after apexcharts.js.",
@@ -2734,6 +2739,15 @@ export default class ApexCharts {
       // The stylesheet's shrink-to-fit rules key off this class, so they can
       // never apply to an SVG that has no viewBox to scale by.
       w.dom?.elWrap?.classList.add('apexcharts-printing')
+      // Core reserves the chart's height on the host as an inline min-height
+      // (parentHeightOffset), which no stylesheet can override. Left in place, a
+      // chart scaled down to fit a narrow column prints above a white gap the
+      // size of the height it gave up.
+      const host = /** @type {HTMLElement} */ (this.el)
+      if (host && host.style) {
+        this._printRestore.minHeight = host.style.minHeight
+        host.style.minHeight = '0'
+      }
     }
   }
 
@@ -2748,6 +2762,10 @@ export default class ApexCharts {
     if (restore.viewBoxAdded) {
       w.dom?.Paper?.node?.removeAttribute('viewBox')
       w.dom?.elWrap?.classList.remove('apexcharts-printing')
+      const host = /** @type {HTMLElement} */ (this.el)
+      if (host && host.style) {
+        host.style.minHeight = restore.minHeight ?? ''
+      }
     }
     if (w.config.chart.width !== restore.width) {
       this.updateHelpers._updateOptions(

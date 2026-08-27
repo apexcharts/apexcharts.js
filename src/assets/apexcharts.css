@@ -1703,6 +1703,14 @@ rect.legend-mouseover-inactive,
     height: auto !important;
   }
 
+  /* A scaled-down SVG is shorter than the box drawn for it, and the wrapper
+     carries the pre-scale height inline, so without this a chart shrunk to fit a
+     narrow column prints above a white gap the size of what it gave up. The
+     host element's own inline min-height is cleared by _beforePrint. */
+  .apexcharts-canvas.apexcharts-printing {
+    height: auto !important;
+  }
+
   .apexcharts-toolbar {
     display: none !important;
   }

@@ -6,60 +6,119 @@
 <style>
   body { margin: 0; font: 14px/1.5 system-ui, sans-serif; color: #111 }
   .wrap { padding: 24px }
-  h1 { font-size: 20px; margin: 0 0 4px }
+  h1 { font-size: 20px; margin: 0 0 8px }
   .hint { background: #eef6ff; border: 1px solid #b9d9ff; border-radius: 8px;
-          padding: 12px 14px; margin: 12px 0 24px; max-width: 60em }
+          padding: 12px 14px; margin: 12px 0; max-width: 62em }
+  .mode { font-weight: 600 }
+  .mode.off { color: #b42318 }
   kbd { background: #fff; border: 1px solid #ccc; border-bottom-width: 2px;
         border-radius: 4px; padding: 1px 5px; font: 12px ui-monospace, monospace }
-  h2 { font-size: 15px; margin: 24px 0 2px }
-  .note { color: #555; font-size: 13px; margin: 0 0 8px }
+  code { font: 12px ui-monospace, monospace; background: #f4f4f5; padding: 1px 4px;
+         border-radius: 3px }
+  h2 { font-size: 15px; margin: 26px 0 2px }
+  .note { color: #555; font-size: 13px; margin: 0 0 10px }
+
+  /* 1. the reported shape: a dashboard card that CLIPS its overflow. Nothing
+        here is wider than the paper, so the browser cannot rescue it by
+        scaling the document, and the chart is simply cut at the card edge. */
+  .card { border: 1px solid #e4e4e7; border-radius: 10px; padding: 12px;
+          overflow: hidden; background: #fff }
+  /* 2. a narrow card, to show the shrink-to-fit net doing its job */
+  .card.narrow { width: 46% }
   .chart { width: 100% }
-  .screen-only { }
-  @media print { .screen-only { display: none } }
+
+  @media print {
+    .screen-only { display: none }
+    /* keep the cards visible on paper so a cut is obvious */
+    .card { border: 1px solid #bbb }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="screen-only">
     <h1>ApexCharts print test (#3352)</h1>
-    <p class="note">Open this file directly in a browser; it loads <code>../../dist/apexcharts.js</code>, so run <code>npm run build</code> first if you have changed the source. Printing cannot be covered by the automated suites (a headless PDF is the only programmatic print, and it cannot be snapshot-compared), so this page is the manual check.</p>
     <div class="hint">
       <b>Widen this window first</b> (the bug needs a chart wider than the print
-      width, 700px by default), then press <kbd>Cmd</kbd>+<kbd>P</kbd>.<br><br>
-      In the print preview: chart <b>A</b> should show all twelve months, Jan to
-      Dec. Chart <b>B</b> opts out of the fix and should be cut off around Aug,
-      which is what every chart did before. Chart <b>C</b> lays out at 900px, so
-      on portrait paper it is scaled down to fit rather than cropped.
+      width, 700px by default), then press <kbd>Cmd</kbd>+<kbd>P</kbd>.
+      <br><br>
+      Every chart on this page shares one setting, so the print is a clean
+      before/after. Currently:
+      <span id="mode" class="mode"></span>
+      <br><br>
+      <a id="toggle" href="?off">switch mode</a>
+      &nbsp;|&nbsp; loads <code>../../dist/apexcharts.js</code>, so run
+      <code>npm run build</code> first if you changed the source.
+      <br><br>
+      <b>Do not mix the two modes on one page.</b> A chart that keeps its screen
+      width makes the whole document wider than the sheet, and the browser then
+      scales <i>everything</i> down to fit, including the charts that were sized
+      correctly. That is why a mixed page makes the fix look like it shrinks
+      charts: it is the browser's document scaling, not the chart's layout.
+      <br><br>
+      Printing cannot be covered by the automated suites (a headless PDF is the
+      only programmatic print, and it cannot be snapshot-compared), so this page
+      is the manual check.
     </div>
   </div>
 
-  <h2>A. default (chart.print left alone)</h2>
-  <p class="note screen-only">Expect: complete chart, labels at normal size.</p>
-  <div id="a" class="chart"></div>
+  <h2>1. Dashboard card (clips its overflow) &mdash; the reported case</h2>
+  <p class="note screen-only">
+    Default: all twelve months, inside the card.
+    With <code>?off</code>: cut off around Aug at the card's edge, which is the
+    bug as reported.
+  </p>
+  <div class="card"><div id="c1" class="chart"></div></div>
 
-  <h2>B. chart.print.enabled = false (the old behaviour)</h2>
-  <p class="note screen-only">Expect: cut off at the right edge of the paper.</p>
-  <div id="b" class="chart"></div>
+  <h2>2. Narrow card (46% wide)</h2>
+  <p class="note screen-only">
+    Default: complete, scaled down to the card by the print stylesheet, since
+    700px does not fit a 46% column.
+    With <code>?off</code>: cut off far earlier.
+  </p>
+  <div class="card narrow"><div id="c2" class="chart"></div></div>
 
-  <h2>C. chart.print.width = 900</h2>
-  <p class="note screen-only">Expect: complete, scaled down to fit the sheet.</p>
-  <div id="c" class="chart"></div>
+  <h2>3. Full-bleed chart (nothing clips it)</h2>
+  <p class="note screen-only">
+    Default: laid out at 700px, so the document no longer overflows the sheet
+    and the labels stay at their normal size.
+    With <code>?off</code>: the chart stays at its screen width, so the browser
+    either cuts it off or scales the whole document down to fit, depending on
+    the browser and its scale setting. Complete-but-tiny is the same bug wearing
+    a different hat.
+  </p>
+  <div id="c3" class="chart"></div>
 </div>
 
 <script src="../../dist/apexcharts.js"></script>
 <script>
+  const off = new URLSearchParams(location.search).has('off')
+  const modeEl = document.getElementById('mode')
+  modeEl.textContent = off
+    ? 'print handling OFF (chart.print.enabled: false) — how every chart behaved before the fix'
+    : 'print handling ON (the default)'
+  modeEl.classList.toggle('off', off)
+  document.getElementById('toggle').href = off ? '?' : '?off'
+  document.getElementById('toggle').textContent = off
+    ? 'switch to the default (fixed)'
+    : 'switch to off (the old behaviour)'
+
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  const opts = (title, print) => ({
-    chart: { type: 'area', height: 280, width: '100%', ...(print ? { print } : {}) },
+  const opts = (title) => ({
+    chart: {
+      type: 'area', height: 280, width: '100%',
+      // one setting for the whole page: see the warning above
+      ...(off ? { print: { enabled: false } } : {}),
+    },
     series: [{ name: 'Revenue', data: [31,40,28,51,42,109,100,88,120,95,140,130] }],
     xaxis: { categories: months },
     title: { text: title },
     dataLabels: { enabled: true },
   })
 
-  new ApexCharts(document.querySelector('#a'), opts('A - default')).render()
-  new ApexCharts(document.querySelector('#b'), opts('B - print disabled', { enabled: false })).render()
-  new ApexCharts(document.querySelector('#c'), opts('C - print width 900', { enabled: true, width: 900 })).render()
+  new ApexCharts(document.querySelector('#c1'), opts('1 - dashboard card')).render()
+  new ApexCharts(document.querySelector('#c2'), opts('2 - narrow card')).render()
+  new ApexCharts(document.querySelector('#c3'), opts('3 - full bleed')).render()
 </script>
 </body>
 </html>

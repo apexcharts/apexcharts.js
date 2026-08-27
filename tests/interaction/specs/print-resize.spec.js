@@ -100,6 +100,7 @@ const test = base.extend({
               rendered: svg ? Math.round(svg.getBoundingClientRect().width) : null,
               hostWidth: Math.round(host.getBoundingClientRect().width),
               viewBox: svg && svg.getAttribute('viewBox'),
+              hostMinHeight: host.style.minHeight,
               printing: !!canvas &&
                 canvas.classList.contains('apexcharts-printing'),
               configWidth: w.config.chart.width,
@@ -180,6 +181,20 @@ test.describe('printing (#3352)', () => {
     expect(r.during.printing).toBe(true)
     expect(r.after.viewBox).toBe(null)
     expect(r.after.printing).toBe(false)
+  })
+
+  test('the reserved height is released while printing, then given back', async ({
+    printRun,
+  }) => {
+    // Core reserves the chart's height on the host as an inline min-height, and
+    // no stylesheet can override that. A chart scaled down to fit a narrow
+    // column would otherwise print above a white gap the size of what it gave
+    // up, which is very visible on a card-based dashboard.
+    const r = await printRun({ viewport: { width: 1400, height: 900 } })
+
+    expect(r.before.hostMinHeight).toMatch(/px$/)
+    expect(r.during.hostMinHeight).toBe('0px')
+    expect(r.after.hostMinHeight).toBe(r.before.hostMinHeight)
   })
 
   test('printing does not rewrite the initial config', async ({ printRun }) => {
