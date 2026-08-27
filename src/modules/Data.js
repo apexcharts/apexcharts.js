@@ -1578,6 +1578,21 @@ export default class Data {
   applySeriesTransform(ser) {
     const cnf = this.w.config
     const name = cnf.chart.requestedType || cnf.chart.type
+
+    // A transform-derived slice is refilled by its transform on every parse,
+    // and a chart that has CHANGED type no longer runs the one that filled it.
+    // Cleared here rather than at the read sites: the waterfall's steps are read
+    // by the label and the tooltip, and left behind they made a plain bar chart
+    // print the numbers of the waterfall it used to be.
+    if (name !== 'waterfall' && this.w.waterfallData.geometry) {
+      this.w.waterfallData = {
+        values: [],
+        cumulative: [],
+        kinds: [],
+        geometry: null,
+      }
+    }
+
     const transform = getSeriesTransform(name)
     if (transform) return transform(ser, this.w)
     if (!Array.isArray(ser) || RAW_SAMPLE_TYPES.indexOf(name) === -1) return ser
@@ -1932,6 +1947,11 @@ export default class Data {
       // snapshotting it would make resetSeries() restore counts as if they
       // were observations, and every reset would bin one level deeper.
       gl.initialSeries = gl.histogramRawSeries
+    } else if (gl.waterfallRawSeries) {
+      // Same reason again: `ser` is the accumulated pairs, so snapshotting it
+      // would make resetSeries() restore levels as if they were deltas, and
+      // every reset would accumulate one level deeper.
+      gl.initialSeries = gl.waterfallRawSeries
     } else if (gl.treemapRawSeries) {
       // Same reason again: `ser` is the flattened leaves, so snapshotting it
       // would make resetSeries() restore a treemap that has lost its levels.

@@ -248,11 +248,12 @@ export default class UpdateHelpers {
       // initialSeries). Clearing on those fed the derived rows back in as
       // input: one legend click on a histogram re-binned its own bin counts,
       // turning 900 observations into 62, and every click after that binned a
-      // level deeper. `Data.parseData` already draws this same line for these
-      // three when it decides what initialSeries means.
+      // level deeper. `Data.parseData` already draws this same line for each of
+      // these when it decides what initialSeries means.
       if (overwriteInitialSeries) {
         w.globals.dataReducerRawSeries = null
         w.globals.histogramRawSeries = null
+        w.globals.waterfallRawSeries = null
         w.globals.treemapRawSeries = null
       }
 

@@ -291,6 +291,12 @@ export default class InitCtxVariables {
     const WeaveCtor = reg.get('weave')
     ctx.weave = WeaveCtor ? new WeaveCtor(w, ctx) : null
 
+    // Waterfall: ctx.waterfall (the connector layer of `chart.type:
+    // 'waterfall'`). Eager and self-inert: isActive() is false for every chart
+    // that is not a waterfall, and drawConnectors() is a no-op then.
+    const WaterfallCtor = reg.get('waterfall')
+    ctx.waterfall = WaterfallCtor ? new WaterfallCtor(w, ctx) : null
+
     // Trellis (#22): ctx.trellis (opt-in small multiples via a top-level
     // `trellis.by` config key). Eager and self-inert: isActive() is false for
     // every chart without the key, INCLUDING the panel charts a trellis host

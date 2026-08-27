@@ -116,6 +116,7 @@ const writePath = (obj, path, value) => {
   else cur[/** @type {string} */ (last)] = value
 }
 
+
 /** The user-facing chart types that render through another type's pathway. */
 const TYPE_ALIASES = {
   funnel: 'bar',
@@ -123,6 +124,7 @@ const TYPE_ALIASES = {
   gauge: 'radialBar',
   waffle: 'unit',
   histogram: 'bar',
+  waterfall: 'rangeBar',
 }
 
 /**
@@ -372,6 +374,8 @@ export default class Defaults {
       chartDefaults = defaults.gauge()
     } else if (requestedType === 'histogram') {
       chartDefaults = defaults.histogram()
+    } else if (requestedType === 'waterfall') {
+      chartDefaults = defaults.waterfall()
     } else if (chartTypes.indexOf(opts.chart.type) !== -1) {
       chartDefaults = /** @type {any} */ (defaults)[opts.chart.type]()
     } else {
@@ -729,6 +733,81 @@ export default class Defaults {
             },
           },
         },
+      },
+    }
+  }
+
+  waterfall() {
+    // Waterfall defaults: a cumulative walk drawn as floating range columns
+    // (see Config.normalizeAliasedChartType), so it starts from the range-column
+    // defaults and changes only what the walk needs.
+    const range = this.rangeBar()
+
+    return {
+      ...range,
+      chart: {
+        stacked: false,
+        // A waterfall is a fixed set of named steps, not a window onto a
+        // continuum: there is nothing to zoom into, and a horizontal one would
+        // otherwise inherit the timeline range bar's zoom toolbar.
+        zoom: {
+          enabled: false,
+        },
+        animations: {
+          // The bars ARE a left-to-right sequence, so the staggered reveal
+          // traces the walk instead of implying an order that is not there.
+          // (A timeline range bar turns this off; a waterfall wants it.)
+          animateGradually: {
+            enabled: true,
+          },
+        },
+      },
+      plotOptions: {
+        ...range.plotOptions,
+        bar: {
+          .../** @type {any} */ (range.plotOptions).bar,
+          // Narrower than a plain bar's 70%, because the gaps are load-bearing
+          // here: the connectors are drawn in them. Both orientations, so a
+          // horizontal waterfall's connectors have room too.
+          columnWidth: '60%',
+          barHeight: '60%',
+        },
+      },
+      dataLabels: {
+        .../** @type {any} */ (range).dataLabels,
+        // The step is the whole point of a waterfall, so it is written on the
+        // bar by default. The inherited range formatter already reports
+        // `end - start`, which is the delta for a step bar and the sum for a
+        // subtotal / total bar.
+        enabled: true,
+        // Small steps are normal in a waterfall, and a label wider or taller
+        // than its bar gets placed OUTSIDE it. The range column's white label
+        // is then white text on the chart background, so the two smallest steps
+        // of a P&L bridge simply vanished. A pale chip with dark ink reads
+        // wherever the label lands: over a green, red or blue bar, or off it.
+        background: {
+          enabled: true,
+          backgroundColor: '#fff',
+          foreColor: '#373d3f',
+          borderColor: '#e3e8ee',
+          opacity: 0.92,
+        },
+      },
+      legend: {
+        // A waterfall is one series, so the legend would show a single swatch
+        // named after it, and clicking it empties the chart. The legend a
+        // waterfall actually wants names the KINDS of bar (increase, decrease,
+        // total), which is not something the series legend can express.
+        show: false,
+      },
+      tooltip: {
+        shared: false,
+        intersect: true,
+        followCursor: false,
+        // Deliberately no `custom`: the range-column tooltip reads out
+        // "start - end", which is a span the data never claims. The ordinary
+        // tooltip is correct once the value it prints is the step, which
+        // TooltipLabels.formatYValue takes from `w.waterfallData.values`.
       },
     }
   }

@@ -1,0 +1,11 @@
+{
+  "title": "Horizontal Waterfall Chart",
+  "externals": [],
+  "files": [
+    {
+      "name": "App.vue",
+      "language": "xml",
+      "code": "<template>\n  <div>\n    <div id=\"chart\">\n      <apexchart\n        type=\"waterfall\"\n        height=\"400\"\n        :options=\"chartOptions\"\n        :series=\"series\"\n      ></apexchart>\n    </div>\n  </div>\n</template>\n\n<script>\nimport VueApexCharts from 'vue-apexcharts'\n\nexport default {\n  components: {\n    apexchart: VueApexCharts,\n  },\n  data: function () {\n    return {\n      series: [\n        {\n          name: 'Headcount',\n          data: [\n            {\n              x: 'Opening',\n              y: 412,\n            },\n            {\n              x: 'Graduate intake',\n              y: 68,\n            },\n            {\n              x: 'Lateral hires',\n              y: 41,\n            },\n            {\n              x: 'Voluntary exits',\n              y: -57,\n            },\n            {\n              x: 'Restructuring',\n              y: -34,\n            },\n            {\n              x: 'Closing',\n              isTotal: true,\n            },\n          ],\n        },\n      ],\n      chartOptions: {\n        chart: {\n          type: 'waterfall',\n          height: 400,\n        },\n        plotOptions: {\n          bar: {\n            horizontal: true,\n          },\n        },\n        title: {\n          text: 'What moved headcount this year',\n          align: 'left',\n        },\n        xaxis: {\n          labels: {\n            formatter: function (val) {\n              return Math.round(val)\n            },\n          },\n        },\n        dataLabels: {\n          formatter: function (val) {\n            return (val > 0 ? '+' : '') + val\n          },\n        },\n      },\n    }\n  },\n}\n</script>\n\n<style>\n#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n</style>\n"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+<title>Horizontal Waterfall Chart</title>
+
+<chart>
+<options>
+chart: {
+  type: 'waterfall',
+  height: 400
+},
+plotOptions: {
+  bar: {
+    horizontal: true
+  }
+},
+title: {
+  text: 'What moved headcount this year',
+  align: 'left'
+},
+xaxis: {
+  labels: {
+    formatter: function (val) {
+      return Math.round(val)
+    }
+  }
+},
+dataLabels: {
+  formatter: function (val) {
+    return (val > 0 ? '+' : '') + val
+  }
+}
+</options>
+
+<series>
+[{
+  name: 'Headcount',
+  data: [{
+    x: 'Opening',
+    y: 412
+  }, {
+    x: 'Graduate intake',
+    y: 68
+  }, {
+    x: 'Lateral hires',
+    y: 41
+  }, {
+    x: 'Voluntary exits',
+    y: -57
+  }, {
+    x: 'Restructuring',
+    y: -34
+  }, {
+    x: 'Closing',
+    isTotal: true
+  }]
+}]
+</series>
+</chart>

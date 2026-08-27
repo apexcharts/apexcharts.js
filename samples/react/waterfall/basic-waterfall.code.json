@@ -1,0 +1,16 @@
+{
+  "title": "Waterfall Chart",
+  "externals": [],
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Operating income',\n        data: [\n          {\n            x: 'Net revenue',\n            y: 8786000,\n          },\n          {\n            x: 'Cost of sales',\n            y: -2786000,\n          },\n          {\n            x: 'Gross profit',\n            isSubtotal: true,\n          },\n          {\n            x: 'Operating expenses',\n            y: -1786000,\n          },\n          {\n            x: 'Amortisation',\n            y: -453000,\n          },\n          {\n            x: 'Income from equity',\n            y: 1465000,\n          },\n          {\n            x: 'Operating income',\n            isTotal: true,\n          },\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        type: 'waterfall',\n        height: 380,\n      },\n      title: {\n        text: 'From revenue to operating income',\n        align: 'left',\n      },\n      subtitle: {\n        text: 'FY 2025, in thousands of USD',\n        align: 'left',\n      },\n      yaxis: {\n        labels: {\n          formatter: function (val) {\n            return (val / 1000).toFixed(0) + 'k'\n          },\n        },\n      },\n      dataLabels: {\n        formatter: function (val) {\n          return (val / 1000).toFixed(0) + 'k'\n        },\n      },\n      tooltip: {\n        y: {\n          formatter: function (val) {\n            return (val > 0 ? '+' : '') + val.toLocaleString('en-US')\n          },\n        },\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"waterfall\"\n          height={380}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

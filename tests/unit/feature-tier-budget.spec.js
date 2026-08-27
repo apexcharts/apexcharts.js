@@ -39,6 +39,10 @@ const TIER_1 = [
   'marks',
   'facet',
   'stats',
+  // Same reason as `stats`: it backs a first-class `chart.type`, not a garnish.
+  // `chart.type: 'waterfall'` without it is a chart that silently refuses to
+  // draw, which is not a bundle saving anyone asked for.
+  'waterfall',
 ]
 
 /**

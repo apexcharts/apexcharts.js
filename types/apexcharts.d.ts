@@ -1421,6 +1421,7 @@ type ApexChart = {
   | 'polarArea'
   | 'rangeBar'
   | 'rangeArea'
+  | 'waterfall'
   | 'treemap'
   | 'unit'
   | 'waffle'
@@ -1430,11 +1431,18 @@ type ApexChart = {
   | 'gauge'
   /**
    * Internal — populated when `type` is a first-class alias (`'funnel'`,
-   * `'pyramid'`, `'gauge'`, `'waffle'`, `'histogram'`). The original requested
-   * type is preserved here while `type` is normalized to the underlying
-   * renderer (`'bar'`, `'radialBar'` or `'unit'`). Read-only for consumers.
+   * `'pyramid'`, `'gauge'`, `'waffle'`, `'histogram'`, `'waterfall'`). The
+   * original requested type is preserved here while `type` is normalized to the
+   * underlying renderer (`'bar'`, `'rangeBar'`, `'radialBar'` or `'unit'`).
+   * Read-only for consumers.
    */
-  requestedType?: 'funnel' | 'pyramid' | 'gauge' | 'waffle' | 'histogram'
+  requestedType?:
+    | 'funnel'
+    | 'pyramid'
+    | 'gauge'
+    | 'waffle'
+    | 'histogram'
+    | 'waterfall'
   foreColor?: string
   fontFamily?: string
   background?: string
@@ -2053,6 +2061,28 @@ type ApexTitleSubtitle = {
  * (`treemap`, `sunburst`). A branch may omit its own value and take the sum of
  * its children; a leaf supplies one.
  */
+/**
+ * One row of a `waterfall`.
+ *
+ * A step bar carries `y`, the signed amount it moves the running total by. A
+ * running-total bar carries `isSubtotal` (the sum of the steps since the last
+ * cut) or `isTotal` (the sum from zero) instead, and the library supplies the
+ * value. Every field is optional so a series can mix the two freely.
+ */
+type ApexWaterfallPoint = {
+  /** A category label, a timestamp, or a `Date`. */
+  x?: string | number | Date
+  /** The step. Omitted on a subtotal / total bar, which is measured for you. */
+  y?: number | null
+  /** Sum of the steps since the previous subtotal / total bar. */
+  isSubtotal?: boolean
+  /** Sum of every step from zero. */
+  isTotal?: boolean
+  /** Overrides the semantic fill from `plotOptions.waterfall.colors`. */
+  fillColor?: string
+  meta?: unknown
+}
+
 type ApexHierarchyNode = {
   /** The node's label. `name` is accepted as an alias. */
   x?: string | number
@@ -2153,6 +2183,9 @@ type ApexAxisChartSeries = {
  // value of its own. Listed before the catch-all so authors get completion on
  // the node shape instead of falling through to `Record<string, any>`.
  | ApexHierarchyNode[]
+ // A waterfall, where a running-total row carries no `y` of its own. Same
+ // reason as the line above: completion on the row shape rather than `any`.
+ | ApexWaterfallPoint[]
  | Record<string, any>[];
 }[]
 
@@ -2831,6 +2864,40 @@ type ApexPlotOptions = {
        * orientation flips to point at the strip from the chart-facing side.
        */
       gradientLegend?: ApexGradientLegend
+    }
+  }
+  waterfall?: {
+    /**
+     * Semantic fills for the three kinds of bar. A datum's own `fillColor`
+     * always wins over these.
+     */
+    colors?: {
+      /** A step that raises the running total. Default `'#00A86F'`. */
+      positive?: string
+      /** A step that lowers it. Default `'#FF4560'`. */
+      negative?: string
+      /**
+       * An `isSubtotal` bar. Defaults to the series colour from the active
+       * palette, so the running totals stay distinct from the steps and still
+       * follow the theme.
+       */
+      subtotal?: string
+      /** An `isTotal` bar. Same default as `subtotal`. */
+      total?: string
+    }
+    /**
+     * The segments joining each bar's finish to the next one's start. Without
+     * them the floating columns read as unrelated bars rather than one walk.
+     */
+    connectors?: {
+      /** Default `true`. */
+      show?: boolean
+      /** Defaults to `grid.borderColor`, so it is theme-aware. */
+      color?: string
+      /** Default `1`. */
+      strokeWidth?: number
+      /** Default `3`. */
+      strokeDashArray?: number
     }
   }
   funnel?: {

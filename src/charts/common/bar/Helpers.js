@@ -687,6 +687,12 @@ export default class Helpers {
     return {
       pathTo,
       pathFrom,
+      // The box the path was built from, AFTER the stroke centering and the
+      // anti-exponential nudge above. Anything that has to line up with a drawn
+      // bar (the waterfall connectors) reads this rather than recomputing the
+      // edges, which is how it stays exact when a stroke width is set.
+      // `y1` is the lower value's edge and `y2` the upper one's.
+      drawnBox: { x1, x2, y1, y2 },
     }
   }
 
@@ -1007,6 +1013,9 @@ export default class Helpers {
     return {
       pathTo,
       pathFrom,
+      // See getColumnPaths. Here `x1` is the start value's edge and `x2` the
+      // end value's, because a horizontal bar's two ends arrive unsorted.
+      drawnBox: { x1, x2, y1, y2 },
     }
   }
 

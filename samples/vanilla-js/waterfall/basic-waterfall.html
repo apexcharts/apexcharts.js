@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Waterfall Chart</title>
+
+    <link href="../../assets/styles.css" rel="stylesheet" />
+
+    <style>
+      #chart {
+        max-width: 650px;
+        margin: 35px auto;
+      }
+    </style>
+
+    
+    <script src="../../../dist/apexcharts.js"></script>
+    
+
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42
+      Math.random = function () {
+        _seed = (_seed * 16807) % 2147483647
+        return (_seed - 1) / 2147483646
+      }
+    </script>
+
+    
+  </head>
+
+  <body>
+     <div id="chart"></div>
+
+    <script>
+      var options = {
+        series: [
+          {
+            name: 'Operating income',
+            data: [
+              {
+                x: 'Net revenue',
+                y: 8786000,
+              },
+              {
+                x: 'Cost of sales',
+                y: -2786000,
+              },
+              {
+                x: 'Gross profit',
+                isSubtotal: true,
+              },
+              {
+                x: 'Operating expenses',
+                y: -1786000,
+              },
+              {
+                x: 'Amortisation',
+                y: -453000,
+              },
+              {
+                x: 'Income from equity',
+                y: 1465000,
+              },
+              {
+                x: 'Operating income',
+                isTotal: true,
+              },
+            ],
+          },
+        ],
+        chart: {
+          type: 'waterfall',
+          height: 380,
+        },
+        title: {
+          text: 'From revenue to operating income',
+          align: 'left',
+        },
+        subtitle: {
+          text: 'FY 2025, in thousands of USD',
+          align: 'left',
+        },
+        yaxis: {
+          labels: {
+            formatter: function (val) {
+              return (val / 1000).toFixed(0) + 'k'
+            },
+          },
+        },
+        dataLabels: {
+          formatter: function (val) {
+            return (val / 1000).toFixed(0) + 'k'
+          },
+        },
+        tooltip: {
+          y: {
+            formatter: function (val) {
+              return (val > 0 ? '+' : '') + val.toLocaleString('en-US')
+            },
+          },
+        },
+      }
+
+      var chart = new ApexCharts(document.querySelector('#chart'), options)
+      chart.render()
+    </script>
+
+    
+  </body>
+</html>

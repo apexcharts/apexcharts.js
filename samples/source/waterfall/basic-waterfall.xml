@@ -1,0 +1,65 @@
+<title>Waterfall Chart</title>
+
+<chart>
+<options>
+chart: {
+  type: 'waterfall',
+  height: 380
+},
+title: {
+  text: 'From revenue to operating income',
+  align: 'left'
+},
+subtitle: {
+  text: 'FY 2025, in thousands of USD',
+  align: 'left'
+},
+yaxis: {
+  labels: {
+    formatter: function (val) {
+      return (val / 1000).toFixed(0) + 'k'
+    }
+  }
+},
+dataLabels: {
+  formatter: function (val) {
+    return (val / 1000).toFixed(0) + 'k'
+  }
+},
+tooltip: {
+  y: {
+    formatter: function (val) {
+      return (val > 0 ? '+' : '') + val.toLocaleString('en-US')
+    }
+  }
+}
+</options>
+
+<series>
+[{
+  name: 'Operating income',
+  data: [{
+    x: 'Net revenue',
+    y: 8786000
+  }, {
+    x: 'Cost of sales',
+    y: -2786000
+  }, {
+    x: 'Gross profit',
+    isSubtotal: true
+  }, {
+    x: 'Operating expenses',
+    y: -1786000
+  }, {
+    x: 'Amortisation',
+    y: -453000
+  }, {
+    x: 'Income from equity',
+    y: 1465000
+  }, {
+    x: 'Operating income',
+    isTotal: true
+  }]
+}]
+</series>
+</chart>

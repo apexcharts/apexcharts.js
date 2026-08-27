@@ -90,6 +90,11 @@
     "import": "./dist/histogram.esm.js",
     "require": "./dist/histogram.common.js"
   },
+    "./waterfall": {
+      "types": "./types/apexcharts.d.ts",
+      "import": "./dist/waterfall.esm.js",
+      "require": "./dist/waterfall.common.js"
+    },
     "./violin": {
       "types": "./types/apexcharts.d.ts",
       "import": "./dist/violin.esm.js",
@@ -231,6 +236,10 @@
     "import": "./dist/features/stats.esm.js",
     "require": "./dist/features/stats.common.js"
   },
+    "./features/waterfall": {
+      "import": "./dist/features/waterfall.esm.js",
+      "require": "./dist/features/waterfall.common.js"
+    },
     "./features/trellis": {
       "import": "./dist/features/trellis.esm.js",
       "require": "./dist/features/trellis.common.js"

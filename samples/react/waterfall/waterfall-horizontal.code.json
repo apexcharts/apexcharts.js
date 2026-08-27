@@ -1,0 +1,16 @@
+{
+  "title": "Horizontal Waterfall Chart",
+  "externals": [],
+  "files": [
+    {
+      "name": "App.jsx",
+      "language": "javascript",
+      "code": "import React from 'react'\nimport ReactApexChart from 'react-apexcharts'\nimport './styles.css'\n\nconst ApexChart = () => {\n  const [state, setState] = React.useState({\n    series: [\n      {\n        name: 'Headcount',\n        data: [\n          {\n            x: 'Opening',\n            y: 412,\n          },\n          {\n            x: 'Graduate intake',\n            y: 68,\n          },\n          {\n            x: 'Lateral hires',\n            y: 41,\n          },\n          {\n            x: 'Voluntary exits',\n            y: -57,\n          },\n          {\n            x: 'Restructuring',\n            y: -34,\n          },\n          {\n            x: 'Closing',\n            isTotal: true,\n          },\n        ],\n      },\n    ],\n    options: {\n      chart: {\n        type: 'waterfall',\n        height: 400,\n      },\n      plotOptions: {\n        bar: {\n          horizontal: true,\n        },\n      },\n      title: {\n        text: 'What moved headcount this year',\n        align: 'left',\n      },\n      xaxis: {\n        labels: {\n          formatter: function (val) {\n            return Math.round(val)\n          },\n        },\n      },\n      dataLabels: {\n        formatter: function (val) {\n          return (val > 0 ? '+' : '') + val\n        },\n      },\n    },\n  })\n\n  return (\n    <div>\n      <div id=\"chart\">\n        <ReactApexChart\n          options={state.options}\n          series={state.series}\n          type=\"waterfall\"\n          height={400}\n        />\n      </div>\n    </div>\n  )\n}\n\nexport default ApexChart\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

@@ -168,6 +168,22 @@ export default class Labels {
    */
   formatYValue(f, index, j) {
     const w = this.w
+
+    // A waterfall's bars are floats, so they take the range-data path, but the
+    // two levels are not what the reader is after: "120000 - 689000" reads as a
+    // span the data never claims, when the number that matters is the step
+    // (+569000). The transform recorded each bar's signed height, which is the
+    // delta for a step bar and the sum for a subtotal / total bar.
+    const steps = w.waterfallData && w.waterfallData.values
+    if (steps && steps[index] && steps[index][j] != null) {
+      return f.yLbFormatter(steps[index][j], {
+        series: steps,
+        seriesIndex: index,
+        dataPointIndex: j,
+        w,
+      })
+    }
+
     if (w.axisFlags.isRangeData) {
       return (
         f.yLbFormatter(w.rangeData.seriesRangeStart?.[index]?.[j], {

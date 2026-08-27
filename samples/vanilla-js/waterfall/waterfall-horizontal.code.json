@@ -1,0 +1,21 @@
+{
+  "title": "Horizontal Waterfall Chart",
+  "externals": [],
+  "files": [
+    {
+      "name": "chart.js",
+      "language": "javascript",
+      "code": "var options = {\n  series: [\n    {\n      name: 'Headcount',\n      data: [\n        {\n          x: 'Opening',\n          y: 412,\n        },\n        {\n          x: 'Graduate intake',\n          y: 68,\n        },\n        {\n          x: 'Lateral hires',\n          y: 41,\n        },\n        {\n          x: 'Voluntary exits',\n          y: -57,\n        },\n        {\n          x: 'Restructuring',\n          y: -34,\n        },\n        {\n          x: 'Closing',\n          isTotal: true,\n        },\n      ],\n    },\n  ],\n  chart: {\n    type: 'waterfall',\n    height: 400,\n  },\n  plotOptions: {\n    bar: {\n      horizontal: true,\n    },\n  },\n  title: {\n    text: 'What moved headcount this year',\n    align: 'left',\n  },\n  xaxis: {\n    labels: {\n      formatter: function (val) {\n        return Math.round(val)\n      },\n    },\n  },\n  dataLabels: {\n    formatter: function (val) {\n      return (val > 0 ? '+' : '') + val\n    },\n  },\n}\n\nvar chart = new ApexCharts(document.querySelector('#chart'), options)\nchart.render()\n"
+    },
+    {
+      "name": "index.html",
+      "language": "xml",
+      "code": "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Horizontal Waterfall Chart</title>\n    <link href=\"styles.css\" rel=\"stylesheet\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  </head>\n  <body>\n    <div id=\"chart\"></div>\n\n    <script src=\"chart.js\"></script>\n  </body>\n</html>\n"
+    },
+    {
+      "name": "styles.css",
+      "language": "css",
+      "code": "#chart {\n  max-width: 650px;\n  margin: 35px auto;\n}\n"
+    }
+  ]
+}

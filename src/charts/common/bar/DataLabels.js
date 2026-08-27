@@ -46,6 +46,18 @@ export default class BarDataLabels {
     const w = this.w
     const graphics = new Graphics(this.barCtx.w)
 
+    // On a waterfall the series value is the LEVEL the bar reached, while the
+    // label states the step it made (the delta, or the sum for a subtotal /
+    // total bar). Resolved once and used for BOTH the measurement and the drawn
+    // text: measuring a string that is never drawn would size the overflow
+    // clamps wrongly, and handing a user's own formatter the level would leave
+    // no way to reach the number actually on the chart.
+    const steps = w.waterfallData && w.waterfallData.values
+    const waterfallStep =
+      steps && steps[realIndex] && steps[realIndex][j] != null
+        ? steps[realIndex][j]
+        : null
+
     const strokeWidth = Array.isArray(this.barCtx.strokeWidth)
       ? this.barCtx.strokeWidth[realIndex]
       : this.barCtx.strokeWidth
@@ -113,7 +125,10 @@ export default class BarDataLabels {
       // `i` which is the compacted bar-subset index in a combo chart. Otherwise
       // the label is measured/formatted from a different series than the value
       // actually drawn (drawCalculatedDataLabels below uses realIndex).
-      const yLabel = w.seriesData.series[realIndex][j]
+      const yLabel =
+        waterfallStep !== null
+          ? waterfallStep
+          : w.seriesData.series[realIndex][j]
 
       // Measure in the SAME font the label will be drawn in. Data labels
       // default to fontWeight 600, and the default measurement is taken at
@@ -166,14 +181,33 @@ export default class BarDataLabels {
       dataLabelsPos = this.calculateColumnsDataLabelsPosition(params)
     }
 
+    // A waterfall's float is centred on its OWN span. The horizontal-bar
+    // formula anchors the label to the bar's far edge assuming it grew from the
+    // baseline, and a step that ran BACKWARDS has both bounds positive, so
+    // nothing downstream can tell: the label was placed a full bar-width to the
+    // left of the bar it belongs to. The recorded box says where the bar is.
+    if (
+      waterfallStep !== null &&
+      this.barCtx.isHorizontal &&
+      barDataLabelsConfig.position === 'center'
+    ) {
+      const box = w.waterfallData.geometry?.[realIndex]?.[j]
+      if (box && box.horizontal) {
+        dataLabelsPos.dataLabelsX = (box.levelStart + box.levelEnd) / 2 + offX
+      }
+    }
+
     dataLabels = this.drawCalculatedDataLabels({
       x: dataLabelsPos.dataLabelsX,
       y: dataLabelsPos.dataLabelsY,
-      val: this.barCtx.isRangeBar
-        ? [y1, y2]
-        : w.config.chart.stackType === '100%'
-          ? series[realIndex][j]
-          : w.seriesData.series[realIndex][j],
+      val:
+        waterfallStep !== null
+          ? waterfallStep
+          : this.barCtx.isRangeBar
+            ? [y1, y2]
+            : w.config.chart.stackType === '100%'
+              ? series[realIndex][j]
+              : w.seriesData.series[realIndex][j],
       i: realIndex,
       j,
       barWidth,

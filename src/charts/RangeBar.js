@@ -357,10 +357,12 @@ class RangeBar extends Bar {
     let y1 = Math.min(range.start, range.end)
     let y2 = Math.max(range.start, range.end)
 
-    if (
+    const hasValue = !(
       typeof /** @type {any} */ (this.series)[i]?.[j] === 'undefined' ||
       /** @type {any} */ (this.series)[i]?.[j] === null
-    ) {
+    )
+
+    if (!hasValue) {
       y1 = zeroH
     } else {
       y1 = zeroH - y1 / yRatio
@@ -380,6 +382,22 @@ class RangeBar extends Bar {
       j,
       w,
     })
+
+    // A hole draws no column, so there is no box to line anything up with:
+    // `range` is null there and would record a level of 0.001px.
+    if (hasValue) {
+      const box = paths.drawnBox
+      const endIsUpper = range.end >= range.start
+      this.recordColumnGeometry(realIndex, j, {
+        slotStart: box.x1,
+        slotEnd: box.x2,
+        // `drawnBox.y1` is the lower VALUE's edge, so which of the two is the
+        // level this bar left behind depends on which way it stepped.
+        levelStart: endIsUpper ? box.y1 : box.y2,
+        levelEnd: endIsUpper ? box.y2 : box.y1,
+        horizontal: false,
+      })
+    }
 
     if (!w.axisFlags.isXNumeric) {
       x = x + xDivision
@@ -463,6 +481,17 @@ class RangeBar extends Bar {
       w,
     })
 
+    if (range.start != null && range.end != null) {
+      const box = paths.drawnBox
+      this.recordColumnGeometry(realIndex, j, {
+        slotStart: box.y1,
+        slotEnd: box.y2,
+        levelStart: box.x1,
+        levelEnd: box.x2,
+        horizontal: true,
+      })
+    }
+
     if (!w.axisFlags.isXNumeric) {
       y = y + yDivision
     }
@@ -482,6 +511,32 @@ class RangeBar extends Bar {
       ),
       y,
     }
+  }
+
+  /**
+   * Record the px box this bar was actually drawn in, for a consumer that has
+   * to line something up with it.
+   *
+   * Only the waterfall connector layer asks (the sink is put on the state by
+   * the waterfall transform, and is null for every other chart), and it asks
+   * because re-deriving slot geometry from the axis is precisely how the
+   * brush<->bar mapping kept drifting half a bar sideways: see the three facts
+   * in `AxisMapping`. Reading back what the renderer committed to cannot drift.
+   *
+   * `slotStart`/`slotEnd` bound the bar along the CATEGORY axis and
+   * `levelStart`/`levelEnd` are the px of its two value bounds, so one shape
+   * describes both orientations.
+   *
+   * @param {number} realIndex
+   * @param {number} j
+   * @param {{slotStart: number, slotEnd: number, levelStart: number, levelEnd: number, horizontal: boolean}} rec
+   */
+  recordColumnGeometry(realIndex, j, rec) {
+    const sink = this.w.waterfallData && this.w.waterfallData.geometry
+    if (!sink) return
+    if (!isFinite(rec.slotStart) || !isFinite(rec.levelEnd)) return
+    if (!sink[realIndex]) sink[realIndex] = []
+    sink[realIndex][j] = rec
   }
 
   /**

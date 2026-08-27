@@ -164,6 +164,39 @@ export interface HistogramData {
   capped: boolean
 }
 
+/**
+ * Waterfall accumulation — lives on `w.waterfallData`, written by the waterfall
+ * series transform (`features/waterfall`) each parse.
+ */
+export interface WaterfallData {
+  /**
+   * values[seriesIndex][j] — the bar's signed height (`end - start`): the delta
+   * for a step bar, the sum for a subtotal / total bar. What a label and a
+   * tooltip print, in place of the "start - end" a range bar would read out.
+   */
+  values: Array<Array<number | null>>
+  /** cumulative[seriesIndex][j] — the running total AFTER bar j. */
+  cumulative: number[][]
+  /** kinds[seriesIndex][j] — 'positive' | 'negative' | 'subtotal' | 'total' */
+  kinds: Array<Array<string | null>>
+  /**
+   * geometry[seriesIndex][j] — the px box the bar was drawn in, recorded by
+   * RangeBar and joined up by the connector layer. A non-null sink here is what
+   * asks RangeBar to record at all, so it is null for every other chart type.
+   */
+  geometry: Array<
+    Array<{
+      /** Bounds along the CATEGORY axis (x when vertical, y when horizontal). */
+      slotStart: number
+      slotEnd: number
+      /** px of the bar's two value bounds. */
+      levelStart: number
+      levelEnd: number
+      horizontal: boolean
+    }>
+  > | null
+}
+
 /** Label / category data — lives on `w.labelData` */
 export interface LabelData {
   labels: string[]
@@ -349,6 +382,13 @@ export interface ChartGlobals
   // sample and every re-render bins from it. Cleared by _updateSeries and
   // appendData when the user pushes new data.
   histogramRawSeries: Array<{ data: any }> | null
+
+  // ── Waterfall (chart.type: 'waterfall') ───────────────────────────────────
+  // The raw deltas, stashed on first parse. parseData writes the accumulated
+  // [start, end] pairs back to config.series, so this is the only surviving
+  // copy of the input and every re-render accumulates from it. Cleared by
+  // _updateSeries and appended to by appendData when the user pushes new data.
+  waterfallRawSeries: Array<{ data: any }> | null
 
   // ── Nested treemap (a datum carrying `children`) ──────────────────────────
   // The nested input, stashed on first parse. parseData writes the flattened
@@ -640,6 +680,7 @@ export interface ChartStateW {
   rangeData: RangeData
   violinData: ViolinData
   histogramData: HistogramData
+  waterfallData: WaterfallData
   labelData: LabelData
   axisFlags: AxisFlags
   seriesData: SeriesData

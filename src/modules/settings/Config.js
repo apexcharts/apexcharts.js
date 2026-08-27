@@ -119,6 +119,7 @@ export default class Config {
       requested !== 'pyramid' &&
       requested !== 'gauge' &&
       requested !== 'waffle' &&
+      requested !== 'waterfall' &&
       requested !== 'histogram'
     ) {
       return opts
@@ -158,6 +159,17 @@ export default class Config {
       }
     } else if (requested === 'gauge') {
       opts.chart.type = 'radialBar'
+    } else if (requested === 'waterfall') {
+      // A waterfall bar floats between the level it started at and the level it
+      // left behind, which is exactly what a range column already draws. So the
+      // type routes to `rangeBar` (NOT `bar`: a plain bar always grows from the
+      // baseline) and features/waterfall supplies the two things a range column
+      // has no opinion about: the running totals, and the connectors.
+      //
+      // Stacking a waterfall is meaningless (the bars are already a cumulative
+      // walk) and would fight the range pathway, so it is forced off.
+      opts.chart.stacked = false
+      opts.chart.type = 'rangeBar'
     } else if (requested === 'histogram') {
       // `histogram` renders through the bar pathway: the raw observations are
       // binned in Data.binHistogramData into one column per bin. The x-axis

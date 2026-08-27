@@ -117,6 +117,7 @@ export default class ApexCharts {
   /** @type {any} */ measure
   /** @type {any} */ contextMenu
   /** @type {any} */ weave
+  /** @type {any} */ waterfall
   /** @type {any} */ renderer
   /** @type {any} */ rendererController
 
@@ -644,6 +645,10 @@ export default class ApexCharts {
         }
       }
 
+      // Waterfall: the segments joining each floating column to the next. Drawn
+      // from the geometry the bars were committed at, so it has to follow them.
+      me.waterfall?.drawConnectors()
+
       if (w.config.xaxis.crosshairs.position === 'front') {
         me.crosshairs.drawXCrosshairs()
       }
@@ -1008,17 +1013,24 @@ export default class ApexCharts {
       me.series.getPreviousPaths()
     }
 
-    // Histogram: config.series holds the binned rows, and the only copy of the
-    // sample is the raw stash, so new observations are appended there and the
-    // bars are recomputed from the enlarged sample. Appending to the binned
-    // rows instead would add bars whose x is an observation value.
-    const histRaw = me.w.globals.histogramRawSeries
-    if (histRaw) {
-      for (let i = 0; i < histRaw.length; i++) {
+    // Histogram and waterfall: `config.series` holds rows this library derived
+    // (binned counts, accumulated [start, end] pairs) and the raw stash is the
+    // only copy of the input. New rows are appended THERE and the derivation
+    // re-runs over the enlarged input. Appending to the derived rows instead
+    // would add bars whose x is an observation value, or whose y is a level
+    // rather than a step with the walk restarting from zero at the join.
+    const derivedRaw =
+      me.w.globals.histogramRawSeries || me.w.globals.waterfallRawSeries
+    if (derivedRaw) {
+      for (let i = 0; i < derivedRaw.length; i++) {
         const src = /** @type {any} */ (newData[i])
-        if (src && Array.isArray(src.data) && Array.isArray(histRaw[i].data)) {
+        if (
+          src &&
+          Array.isArray(src.data) &&
+          Array.isArray(derivedRaw[i].data)
+        ) {
           for (let j = 0; j < src.data.length; j++) {
-            histRaw[i].data.push(src.data[j])
+            derivedRaw[i].data.push(src.data[j])
           }
         }
       }
@@ -1477,6 +1489,10 @@ export default class ApexCharts {
         if (w.config.dataLabels.background.enabled) {
           dataLabels.dataLabelsBackground()
         }
+
+        // Waterfall connectors: the series above were redrawn, so the layer
+        // that joins them is stale. drawConnectors replaces it in place.
+        this.waterfall?.drawConnectors()
 
         // Same reflow tweens the full render runs, and for the same reason: a
         // same-shape updateSeries is the MOST common update there is, and it

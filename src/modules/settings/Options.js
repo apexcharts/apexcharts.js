@@ -1058,6 +1058,30 @@ export default class Options {
             },
           },
         },
+        waterfall: {
+          // `chart.type: 'waterfall'`. See features/waterfall.
+          colors: {
+            // Up is good, down is bad: the one convention a waterfall is read
+            // by, so it is a default rather than something to configure. A
+            // datum's own `fillColor` still wins.
+            positive: '#00A86F',
+            negative: '#FF4560',
+            // The running-total bars (`isSubtotal` / `isTotal`) take the
+            // series colour from the active palette, so they stay distinct
+            // from the steps AND follow the theme. Name a colour to override.
+            subtotal: undefined,
+            total: undefined,
+          },
+          connectors: {
+            // The segments joining each bar's finish to the next one's start.
+            // Without them the floating columns read as unrelated bars.
+            show: true,
+            // Falls back to grid.borderColor, so it is theme-aware.
+            color: undefined,
+            strokeWidth: 1,
+            strokeDashArray: 3,
+          },
+        },
         funnel: {
           // 'rectangle' preserves the existing centered-rectangle funnel
           // geometry. 'trapezoid' produces continuous sloped sides between
