@@ -58,12 +58,21 @@ class DateTime {
   }
 
   /**
-   * @param {string} dateStr
+   * @param {any} dateStr - a date string, or anything isValidDate() was handed
    */
   parseDate(dateStr) {
     const parsed = Date.parse(dateStr)
     if (!isNaN(parsed)) {
       return this.getTimeStamp(dateStr)
+    }
+
+    // The salvage pass below re-spells the input and parses it again. Only a
+    // string has an alternate spelling to try: on an invalid Date, or on any
+    // other object, .replace() does not exist and the call threw. That took
+    // isValidDate() down with it, so a single bad x killed the whole render
+    // instead of being reported as "not a date".
+    if (typeof dateStr !== 'string') {
+      return NaN
     }
 
     let output = Date.parse(dateStr.replace(/-/g, '/').replace(/[a-z]+/gi, ' '))

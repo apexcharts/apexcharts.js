@@ -340,7 +340,14 @@ export default class Data {
           } else {
             this.w.axisFlags.dataFormatXNumeric = true
             this.w.axisFlags.isXNumeric = true
-            this.twoDSeriesX.push(parseFloat(x))
+            // The two lines above have already decided this x is numeric.
+            // parseFloat() reads a Date through toString(), which starts with
+            // a weekday name, so every Date arrived here as NaN. A Date's
+            // numeric value is its epoch, the same one the datetime branch
+            // above reads.
+            this.twoDSeriesX.push(
+              x instanceof Date ? x.getTime() : parseFloat(x),
+            )
           }
         }
       } else if (isXArr) {
