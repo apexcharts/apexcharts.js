@@ -284,13 +284,13 @@ export default class UpdateHelpers {
       this.ctx._writeParsedAxisFlags(parsedState.axisFlags)
 
       if (overwriteInitialSeries) {
-        // initialConfig.series has aliased w.config.series since Globals.init
-        // (Utils.extend copies arrays by reference); keep that alias fresh.
+        // Refresh the initialConfig snapshot with the series the caller just
+        // defined. A copy, never the live array: this site used to assign
+        // w.config.series itself, restoring the very alias #5118 came from, so
+        // one updateSeries() would undo the capture Globals.init now makes.
         // initialSeries was already captured by parseData above through the
         // lazy-snapshot setter, so no deep clone happens here either.
         if (w.globals.initialConfig) {
-          // A copy, not the alias the comment above describes: sharing the array
-          // is what let a later collapse empty the snapshot (#5118).
           w.globals.initialConfig.series = Utils.copySeriesShallow(
             w.config.series,
           )
