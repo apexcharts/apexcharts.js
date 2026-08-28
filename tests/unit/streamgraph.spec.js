@@ -361,7 +361,10 @@ describe('Wiring: the alias reaches the range-area pathway', () => {
     expect(chart.w.config.fill.opacity).toBe(1)
     // Any stroke at all draws a seam down every band boundary.
     expect(chart.w.config.stroke.width).toBe(0)
-    expect(chart.w.config.stroke.curve).toBe('smooth')
+    // monotoneCubic, not 'smooth': smooth puts an inflection at every point,
+    // so a band that simply declines is drawn as a run of S-curves and appears
+    // to stall and dip on the way down. Fritsch-Carlson is shape preserving.
+    expect(chart.w.config.stroke.curve).toBe('monotoneCubic')
   })
 
   test('the chart parses as range data, so the y domain covers the bands', () => {

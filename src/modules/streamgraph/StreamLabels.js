@@ -123,7 +123,7 @@ export default class StreamLabels {
         minWidth,
         graphics,
       })
-      if (label) placed.push({ k, ...label })
+      if (label) placed.push(label)
     }
 
     let drawn = 0
@@ -166,16 +166,21 @@ export default class StreamLabels {
   }
 
   /**
-   * Where band `k`'s name goes, or null if it has nowhere to go.
+   * Where band `k`'s name could go, best spot first, or null if nowhere.
    *
-   * The anchor is the widest stretch of the band, found by taking its thickest
-   * column and walking outward for as long as the band still clears the line
-   * box. That stretch is what the text is centred in and truncated to, so a
-   * name only appears where it actually fits inside the shape it names.
+   * Returns several candidates rather than one. Each band picks its spot from
+   * its own shape alone, and on a chart where everything peaks in the same
+   * burst that puts every name in the same narrow strip — the first version of
+   * this returned one placement each and the de-overlap pass then had to throw
+   * twenty of twenty-two away. Offering alternatives lets a name that loses its
+   * first choice slide along its own band instead of vanishing.
+   *
+   * A candidate is the middle of a stretch where the band clears the line box,
+   * plus, on a stretch with room to spare, two more spread across it.
    *
    * @param {number} k
    * @param {{fontSize: string, fontFamily: string, fontWeight: any, minWidth: number, graphics: any}} opts
-   * @returns {{x: number, y: number, text: string, color: string, fontSize: string, width: number, height: number, weight: number}|null}
+   * @returns {{k: number, weight: number, candidates: any[]}|null}
    */
   _placeLabel(k, { fontSize, fontFamily, fontWeight, minWidth, graphics }) {
     const w = this.w
@@ -193,22 +198,17 @@ export default class StreamLabels {
 
     /** @type {number[]} */
     const thickness = new Array(m)
-    let peak = -1
     let peakT = 0
     for (let j = 0; j < m; j++) {
       const t = Math.abs(this._yPx(hi[j]) - this._yPx(lo[j]))
       thickness[j] = t
-      if (t > peakT) {
-        peakT = t
-        peak = j
-      }
+      if (t > peakT) peakT = t
     }
-    if (peak === -1) return null
+    if (peakT <= 0) return null
 
-    // The size this band's name is drawn at. On a chart of twenty bands where
-    // one carries half the total, a single size makes a sliver shout as loudly
-    // as the band that IS the story — sizing each name to its own band is what
-    // turns the labels into the chart's hierarchy instead of noise over it.
+    // Sized from the band's GREATEST thickness, not from whichever stretch the
+    // name ends up on, so the size still says how big this band gets even when
+    // the name has been pushed to a thinner part of it.
     const size = this._resolveFontSize(fontSize, peakT)
 
     // Measured with the weight it will RENDER at: getTextRects measures at
@@ -224,39 +224,18 @@ export default class StreamLabels {
       true,
       fontWeight,
     )
-    const needed = rect.height + VPAD * 2
-    if (peakT < needed) return null
-
-    let left = peak
-    let right = peak
-    while (left > 0 && thickness[left - 1] >= needed) left--
-    while (right < m - 1 && thickness[right + 1] >= needed) right++
-
-    const xLeft = Number(xPx[left])
-    const xRight = Number(xPx[right])
-    if (!isFinite(xLeft) || !isFinite(xRight)) return null
-
-    // A single qualifying column has no span of its own, so fall back to the
-    // gap to its neighbours rather than reporting a zero-width slot.
-    let available = xRight - xLeft
-    if (available <= 0 && m > 1) {
-      const step = Math.abs(
-        Number(xPx[Math.min(peak + 1, m - 1)]) -
-          Number(xPx[Math.max(peak - 1, 0)]),
-      )
-      available = isFinite(step) ? step : 0
-    }
-    if (available < minWidth) return null
+    if (peakT < rect.height + VPAD * 2) return null
 
     // A band can be thick and short — a tall narrow spike. Sizing on thickness
     // alone would then set a name far too wide for the stretch it has to sit
     // in, and truncating it to fit would print "Do..." where a smaller whole
     // word would have gone. Text width is near enough linear in font size, so
-    // one step down by the overflow ratio lands it.
-    if (rect.width > available && fontSize === 'auto') {
-      const shrunk = Math.floor(px * (available / rect.width))
-      const floor = this._autoBounds().min
-      if (shrunk < floor) return null
+    // one step down by the widest stretch's overflow ratio lands it.
+    const widest = this._widestRun(thickness, xPx, rect.height + VPAD * 2, m)
+    if (!widest) return null
+    if (rect.width > widest.width && fontSize === 'auto') {
+      const shrunk = Math.floor(px * (widest.width / rect.width))
+      if (shrunk < this._autoBounds().min) return null
       px = shrunk
       rect = graphics.getTextRects(
         name,
@@ -266,53 +245,123 @@ export default class StreamLabels {
         true,
         fontWeight,
       )
-      // Re-check the band still clears the (now smaller) line box at its peak.
       if (peakT < rect.height + VPAD * 2) return null
     }
-    if (available < rect.width * 0.35) return null
 
-    const text =
-      rect.width <= available
-        ? name
-        : graphics.getTextBasedOnMaxWidth({
-            text: name,
-            maxWidth: available,
-            fontSize: `${px}px`,
-            fontFamily,
-          })
-    if (!text || text === '...') return null
+    const needed = rect.height + VPAD * 2
+    /** @type {any[]} */
+    const candidates = []
+    for (const run of this._runs(thickness, needed, m)) {
+      const xL = Number(xPx[run.l])
+      const xR = Number(xPx[run.r])
+      if (!isFinite(xL) || !isFinite(xR)) continue
 
-    const cx = (xLeft + xRight) / 2
-    // Centre the label vertically on the band AT the column it sits over, not
-    // at the peak: on a wide stretch those are different rows, and a label
-    // centred on the peak drifts off a band that is sloping away from it.
-    let anchor = peak
-    let bestDx = Infinity
-    for (let j = left; j <= right; j++) {
-      const dx = Math.abs(Number(xPx[j]) - cx)
-      if (dx < bestDx) {
-        bestDx = dx
-        anchor = j
+      let span = xR - xL
+      if (span <= 0 && m > 1) {
+        // A single qualifying column has no span of its own, so fall back to
+        // the gap to its neighbours rather than reporting a zero-width slot.
+        const step = Math.abs(
+          Number(xPx[Math.min(run.r + 1, m - 1)]) -
+            Number(xPx[Math.max(run.l - 1, 0)]),
+        )
+        span = isFinite(step) ? step : 0
       }
-    }
-    const cy = (this._yPx(lo[anchor]) + this._yPx(hi[anchor])) / 2
+      if (span < minWidth || span < rect.width * 0.35) continue
 
-    // The drawn width, not the full name's: a truncated label occupies less
-    // room, and the de-overlap pass has to reason about what is actually on
-    // screen.
-    const drawnWidth =
-      text === name ? rect.width : rect.width * (text.length / name.length)
+      const text =
+        rect.width <= span
+          ? name
+          : graphics.getTextBasedOnMaxWidth({
+              text: name,
+              maxWidth: span,
+              fontSize: `${px}px`,
+              fontFamily,
+            })
+      if (!text || text === '...') continue
+      const drawnWidth =
+        text === name ? rect.width : rect.width * (text.length / name.length)
 
-    return {
-      x: cx,
-      y: cy,
-      text,
-      color: this._contrastOn(k),
-      fontSize: `${px}px`,
-      width: drawnWidth,
-      height: rect.height,
-      weight: peakT,
+      // The middle of the stretch first. A stretch with room for the name twice
+      // over also offers a spot either side of centre, which is what lets two
+      // bands that both peak in the same burst keep both names.
+      const centres = [xL + span / 2]
+      if (span > drawnWidth * 2.2) {
+        centres.push(xL + drawnWidth / 2 + 2, xR - drawnWidth / 2 - 2)
+      }
+
+      for (const cx of centres) {
+        // Centre vertically on the band AT the column the name sits over, not
+        // at the band's peak: on a wide stretch those are different rows, and a
+        // label centred on the peak drifts off a band sloping away from it.
+        let anchor = run.l
+        let bestDx = Infinity
+        for (let j = run.l; j <= run.r; j++) {
+          const dx = Math.abs(Number(xPx[j]) - cx)
+          if (dx < bestDx) {
+            bestDx = dx
+            anchor = j
+          }
+        }
+        candidates.push({
+          x: cx,
+          y: (this._yPx(lo[anchor]) + this._yPx(hi[anchor])) / 2,
+          text,
+          color: this._contrastOn(k),
+          fontSize: `${px}px`,
+          width: drawnWidth,
+          height: rect.height,
+        })
+      }
+      if (candidates.length >= 6) break
     }
+
+    return candidates.length ? { k, weight: peakT, candidates } : null
+  }
+
+  /**
+   * The contiguous stretches where the band clears `needed`, thickest first.
+   * @param {number[]} thickness
+   * @param {number} needed
+   * @param {number} m
+   * @returns {Array<{l: number, r: number, maxT: number}>}
+   */
+  _runs(thickness, needed, m) {
+    /** @type {Array<{l: number, r: number, maxT: number}>} */
+    const runs = []
+    let j = 0
+    while (j < m) {
+      if (thickness[j] < needed) {
+        j++
+        continue
+      }
+      let end = j
+      let maxT = thickness[j]
+      while (end + 1 < m && thickness[end + 1] >= needed) {
+        end++
+        if (thickness[end] > maxT) maxT = thickness[end]
+      }
+      runs.push({ l: j, r: end, maxT })
+      j = end + 1
+    }
+    return runs.sort((a, b) => b.maxT - a.maxT)
+  }
+
+  /**
+   * The widest qualifying stretch in px, used to decide whether the name has to
+   * be stepped down a size before any placement is attempted.
+   * @param {number[]} thickness
+   * @param {any[]} xPx
+   * @param {number} needed
+   * @param {number} m
+   * @returns {{width: number}|null}
+   */
+  _widestRun(thickness, xPx, needed, m) {
+    let best = -1
+    for (const run of this._runs(thickness, needed, m)) {
+      const span = Number(xPx[run.r]) - Number(xPx[run.l])
+      if (isFinite(span) && span > best) best = span
+    }
+    return best >= 0 ? { width: best } : null
   }
 
   /**
@@ -338,21 +387,32 @@ export default class StreamLabels {
 
     /** @type {any[]} */
     const kept = []
-    for (const label of byImportance) {
-      const box = {
-        left: label.x - label.width / 2,
-        right: label.x + label.width / 2,
-        top: label.y - label.height / 2,
-        bottom: label.y + label.height / 2,
-      }
-      const clashes = kept.some(
+    /** @param {any} box */
+    const free = (box) =>
+      !kept.some(
         (o) =>
           box.left < o.box.right &&
           box.right > o.box.left &&
           box.top < o.box.bottom &&
           box.bottom > o.box.top,
       )
-      if (!clashes) kept.push({ ...label, box })
+
+    for (const label of byImportance) {
+      // Each band's alternatives are tried in its own order of preference, so a
+      // name only moves as far as it has to and gives up only when its whole
+      // band is spoken for.
+      for (const c of label.candidates) {
+        const box = {
+          left: c.x - c.width / 2,
+          right: c.x + c.width / 2,
+          top: c.y - c.height / 2,
+          bottom: c.y + c.height / 2,
+        }
+        if (free(box)) {
+          kept.push({ k: label.k, ...c, box })
+          break
+        }
+      }
     }
     return kept
   }

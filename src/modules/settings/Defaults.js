@@ -1514,7 +1514,8 @@ export default class Defaults {
       // resolving it here is what keeps the two from naming different bands.
       const active = (() => {
         const d = w.streamgraphData
-        const svg = w.dom.baseEl && w.dom.baseEl.querySelector('.apexcharts-svg')
+        const svg =
+          w.dom.baseEl && w.dom.baseEl.querySelector('.apexcharts-svg')
         const clientY = w.interact && w.interact.clientY
         const span = w.globals.maxY - w.globals.minY
         if (!svg || clientY == null || !span || !isFinite(span)) {
@@ -1612,9 +1613,17 @@ export default class Defaults {
         stacked: false,
       },
       stroke: {
+        // monotoneCubic, not `smooth`. `smooth` sets its control points at a
+        // fixed fraction of the x gap without consulting the slope on either
+        // side, which puts an inflection at EVERY point: a band that simply
+        // declines (18, 9, 0) is drawn as a run of little S-curves, so it
+        // appears to stall and dip repeatedly on the way down. On a stack of
+        // twenty bands that invented wobble is most of what the reader sees.
+        // Fritsch-Carlson is shape preserving — where the data is monotone the
+        // curve is monotone — so a falling band reads as one continuous fall.
+        curve: 'monotoneCubic',
         // Bands meet edge to edge, so any stroke at all draws a seam down the
         // middle of every boundary and doubles it at the two outer edges.
-        curve: 'smooth',
         width: 0,
       },
       fill: {

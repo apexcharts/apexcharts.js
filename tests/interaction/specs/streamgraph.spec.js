@@ -570,3 +570,88 @@ test.describe('Streamgraph: many bands', () => {
     expect(new Set(sizes)).toEqual(new Set(['11px']))
   })
 })
+
+test.describe('Streamgraph: a dense burst', () => {
+  test.beforeEach(async ({ loadChart }) => {
+    await loadChart('streamgraph', 'streamgraph-conversation')
+  })
+
+  test('keeps most names when every band peaks in the same burst', async ({
+    page,
+  }) => {
+    // 22 bands that all swell at the end. Each one picks its spot from its own
+    // shape alone, so without alternatives to fall back on they all want the
+    // same strip and the de-overlap pass throws nearly all of them away — this
+    // chart drew 3 names out of 22 before each band could offer more than one
+    // position.
+    const r = await page.evaluate(() => ({
+      series: window.chart.w.streamgraphData.names.length,
+      labelled: document.querySelectorAll('.apexcharts-streamgraph-label')
+        .length,
+    }))
+    expect(r.series).toBe(22)
+    expect(r.labelled).toBeGreaterThanOrEqual(10)
+  })
+
+  test('still lets none of them overlap', async ({ page }) => {
+    const overlaps = await page.evaluate(() => {
+      const boxes = [
+        ...document.querySelectorAll('.apexcharts-streamgraph-label'),
+      ].map((n) => ({ t: n.textContent, r: n.getBoundingClientRect() }))
+      const hits = []
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i].r
+          const b = boxes[j].r
+          if (
+            a.left < b.right &&
+            a.right > b.left &&
+            a.top < b.bottom &&
+            a.bottom > b.top
+          ) {
+            hits.push([boxes[i].t, boxes[j].t])
+          }
+        }
+      }
+      return hits
+    })
+    expect(overlaps).toEqual([])
+  })
+
+  test('every name that moved is still inside its own band', async ({
+    page,
+  }) => {
+    // The alternatives a name can slide to are all on its OWN band, so moving
+    // to avoid a collision must never move it onto a neighbour.
+    const stray = await page.evaluate(() => {
+      const w = window.chart.w
+      const d = w.streamgraphData
+      const h = w.layout.gridHeight
+      const span = w.globals.maxY - w.globals.minY
+      const yPx = (v) => h - ((v - w.globals.minY) / span) * h
+      const out = []
+      document
+        .querySelectorAll('.apexcharts-streamgraph-label')
+        .forEach((el) => {
+          const k = Number(el.getAttribute('data:realIndex'))
+          const lx = Number(el.getAttribute('x'))
+          const ly = Number(el.getAttribute('y'))
+          const xs = w.globals.seriesXvalues[k]
+          let j = 0
+          let best = Infinity
+          xs.forEach((x, idx) => {
+            const dx = Math.abs(x - lx)
+            if (dx < best) {
+              best = dx
+              j = idx
+            }
+          })
+          if (ly < yPx(d.highs[k][j]) || ly > yPx(d.lows[k][j])) {
+            out.push(d.names[k])
+          }
+        })
+      return out
+    })
+    expect(stray).toEqual([])
+  })
+})
