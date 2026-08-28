@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * Streamgraph chrome: the band labels, and the outline that answers the cursor.
+ * Streamgraph chrome: the band labels, and the dim that answers the cursor.
  *
  * Both are things a range area has no element for, so neither can be expressed
  * as configuration on one.
@@ -12,19 +12,15 @@
  * guaranteed to have room for it, and it is the part of the band the reader is
  * most likely to be looking at.
  *
- * The hover outline is the surface's only acknowledgement of the cursor, and it
- * is drawn INSET (the stroke is clipped to the band's own shape) for a reason
- * particular to this form. The bands touch edge to edge, so there is no gap for
- * a treatment to live in: a drop shadow has nowhere to fall except onto the two
- * neighbours, where it reads as dirt rather than lift, and a centred stroke
- * would spend half its width painting over the band above. Clipping the stroke
- * to the band means the only pixels that change belong to the band the cursor
- * is on.
- *
- * Dimming the other bands would isolate harder, but that is the LEGEND's
- * gesture (`legend.onItemHover` already drops the rest to 0.2), and it is a
- * deliberate act rather than something that should fire five times a second as
- * the cursor sweeps across the plot.
+ * The hover dim is the surface's only acknowledgement of the cursor, and it
+ * works by taking the OTHER bands down rather than by adding anything to the
+ * hovered one. That is forced by the form: the bands touch edge to edge, so
+ * there is no empty space for a treatment to occupy. A drop shadow has nowhere
+ * to fall except onto the two neighbours, where it reads as dirt rather than as
+ * lift; a stroke along the band's edge is centred on a boundary it SHARES, so
+ * half of it paints over the neighbour. Fading everything else needs no room at
+ * all, and it leaves the hovered band's colour untouched, which matters on a
+ * chart where colour is the only thing tying a band to its name.
  *
  * @module modules/streamgraph/StreamLabels
  */
@@ -44,7 +40,7 @@ export default class StreamLabels {
   constructor(w, ctx) {
     this.w = w
     this.ctx = ctx
-    /** The band the outline is currently on, or -1. @type {number} */
+    /** The band the cursor is currently on, or -1. @type {number} */
     this._hovered = -1
   }
 
@@ -80,10 +76,9 @@ export default class StreamLabels {
    */
   draw() {
     if (!this.isActive()) return
-    // The bands were just redrawn, so any outline still on screen is tracing a
-    // shape that has moved.
-    this.removeOutline()
-    this._hovered = -1
+    // The bands were just redrawn, so a band left faded by the last hover would
+    // stay faded over geometry that has since moved.
+    this.clearDim()
     this.bindHover()
     this.drawLabels()
   }
@@ -318,10 +313,10 @@ export default class StreamLabels {
 
     svg.addEventListener('mousemove', (/** @type {MouseEvent} */ e) => {
       if (!this.isActive() || !this.w.streamgraphData) return
-      this._outline(this._bandAt(e))
+      this._dim(this._bandAt(e))
     })
     svg.addEventListener('mouseleave', () => {
-      this._outline(-1)
+      this._dim(-1)
     })
   }
 
@@ -401,79 +396,102 @@ export default class StreamLabels {
   }
 
   /**
-   * Trace band `k`, or clear the outline when `k` is -1.
+   * Bring band `k` forward by dropping every other band's opacity, or clear the
+   * effect when `k` is -1.
    *
-   * The stroke is drawn at twice its configured width and clipped to the band's
-   * OWN path, so exactly half of it survives and every pixel that changes
-   * belongs to the band the cursor is on. A centred stroke would spend its
-   * other half painting over the neighbour above.
+   * The bands touch edge to edge, so there is no gap for a treatment to live
+   * in: anything drawn ON the hovered band either spends half its width on the
+   * neighbour (a centred stroke) or falls entirely onto both of them (a drop
+   * shadow). Taking the OTHERS down instead is the one move that needs no
+   * empty space to work in, and it leaves the hovered band's colour exactly as
+   * it was, which matters on a chart where colour is the only thing tying a
+   * band to its name.
+   *
+   * A dimmed band's label is RECOLOURED rather than faded with it. Each label
+   * takes black or white by the contrast of the band it sits on at full
+   * strength, so fading the band alone leaves a white name on a band that has
+   * gone pale — the name does not read as de-emphasised, it reads as broken.
+   * Dropped to the chart's own foreColor instead, it stays legible on every
+   * faded band while clearly no longer being the one in focus.
    *
    * @param {number} k
    */
-  _outline(k) {
+  _dim(k) {
     const w = this.w
     if (k === this._hovered) return
     this._hovered = k
-    this.removeOutline()
-    if (k < 0) return
-
-    const host = w.dom.elGraphical
-    const band = w.dom.baseEl.querySelector(
-      `.apexcharts-series[data\\:realIndex='${k}'] path.apexcharts-rangeArea`,
-    )
-    if (!host || !band) return
-    const d = band.getAttribute('d')
-    if (!d) return
 
     const cfg = this._hoverCfg()
-    const width = cfg.strokeWidth == null ? 2 : cfg.strokeWidth
-    if (!width) return
-
-    const ns = 'http://www.w3.org/2000/svg'
-    const group = document.createElementNS(ns, 'g')
-    group.setAttribute('class', 'apexcharts-streamgraph-hover')
-    // The band itself is masked to the plot box; the outline has to be too, or
-    // a band clipped at the edge would be traced past it.
-    const mask = band.getAttribute('clip-path')
-    if (mask) group.setAttribute('clip-path', mask)
-
-    const clipId = `apexcharts-stream-hover-${w.globals.cuid}`
-    const defs = document.createElementNS(ns, 'defs')
-    const clip = document.createElementNS(ns, 'clipPath')
-    clip.setAttribute('id', clipId)
-    const clipShape = document.createElementNS(ns, 'path')
-    clipShape.setAttribute('d', d)
-    clip.appendChild(clipShape)
-    defs.appendChild(clip)
-    group.appendChild(defs)
-
-    const stroke = document.createElementNS(ns, 'path')
-    stroke.setAttribute('d', d)
-    stroke.setAttribute('fill', 'none')
-    stroke.setAttribute('stroke', cfg.color || this._contrastOn(k))
-    stroke.setAttribute('stroke-width', String(width * 2))
-    stroke.setAttribute(
-      'stroke-opacity',
-      String(cfg.opacity == null ? 0.9 : cfg.opacity),
+    const dimmed = cfg.opacity == null ? 0.35 : cfg.opacity
+    const bands = w.dom.baseEl.querySelectorAll('.apexcharts-series')
+    const labels = w.dom.baseEl.querySelectorAll(
+      '.apexcharts-streamgraph-label',
     )
-    stroke.setAttribute('stroke-linejoin', 'round')
-    stroke.setAttribute('clip-path', `url(#${clipId})`)
-    stroke.setAttribute('pointer-events', 'none')
-    group.appendChild(stroke)
 
-    // Above the bands, below the names: a label sits inside the band the
-    // outline traces, and the trace must not cut across its text.
-    const labels = host.node.querySelector('.apexcharts-streamgraph-labels')
-    if (labels) host.node.insertBefore(group, labels)
-    else host.node.appendChild(group)
+    /**
+     * @param {any} el
+     * @param {number} index
+     * @returns {boolean} whether this element is the one in focus
+     */
+    const focused = (el, index) => k < 0 || index === k
+
+    for (let i = 0; i < bands.length; i++) {
+      const el = /** @type {any} */ (bands[i])
+      // Set once and left in place, so the fade runs in BOTH directions: a
+      // transition applied along with the dim would animate on the way in and
+      // snap on the way out, because by then the rule is gone again.
+      el.style.transition = 'opacity .15s ease'
+      el.style.opacity = focused(el, Number(el.getAttribute('data:realIndex')))
+        ? ''
+        : String(dimmed)
+    }
+
+    for (let i = 0; i < labels.length; i++) {
+      const el = /** @type {any} */ (labels[i])
+      el.style.transition = 'opacity .15s ease, fill .15s ease'
+      if (focused(el, Number(el.getAttribute('data:realIndex')))) {
+        this._restoreLabel(el)
+      } else {
+        // Stashed rather than recomputed: the colour may have come from
+        // `labels.style.colors`, which this layer would otherwise have to
+        // re-resolve every time the cursor moves.
+        if (!el.getAttribute('data:fill')) {
+          el.setAttribute('data:fill', el.getAttribute('fill') || '')
+        }
+        el.setAttribute('fill', w.config.chart.foreColor)
+        el.style.opacity = '0.65'
+      }
+    }
   }
 
-  /** Drop the hover outline, if one is present. */
-  removeOutline() {
-    const host = this.w.dom.elGraphical
-    const prev =
-      host && host.node.querySelector('.apexcharts-streamgraph-hover')
-    if (prev && prev.parentNode) prev.parentNode.removeChild(prev)
+  /**
+   * Give one label its own colour back.
+   * @param {any} el
+   */
+  _restoreLabel(el) {
+    const orig = el.getAttribute('data:fill')
+    if (orig) el.setAttribute('fill', orig)
+    el.style.opacity = ''
+  }
+
+  /** Put every band and label back the way it was drawn. */
+  clearDim() {
+    this._hovered = -1
+    const w = this.w
+    if (!w.dom.baseEl) return
+    const bands = w.dom.baseEl.querySelectorAll('.apexcharts-series')
+    for (let i = 0; i < bands.length; i++) {
+      // Bound to a const rather than cast in place: a line-leading JSDoc cast
+      // gets parsed as a CALL of the line above it in a semicolon-less file.
+      const el = /** @type {any} */ (bands[i])
+      el.style.opacity = ''
+    }
+    const labels = w.dom.baseEl.querySelectorAll(
+      '.apexcharts-streamgraph-label',
+    )
+    for (let i = 0; i < labels.length; i++) {
+      this._restoreLabel(/** @type {any} */ (labels[i]))
+    }
   }
 
   /**

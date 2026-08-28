@@ -253,66 +253,93 @@ test.describe('Streamgraph: tooltip', () => {
   })
 })
 
-test.describe('Streamgraph: hover outline', () => {
+test.describe('Streamgraph: hover dim', () => {
   test.beforeEach(async ({ loadChart }) => {
     await loadChart('streamgraph', 'basic-streamgraph')
   })
 
-  /** Move to a fraction of the plot box and settle. */
+  /** Move to a fraction of the plot box and let the fade settle. */
   const hover = async (page, fx, fy) => {
     const box = await page.locator('.apexcharts-inner').first().boundingBox()
     await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy)
-    await page.waitForTimeout(120)
+    await page.waitForTimeout(200)
   }
 
-  test('traces the band under the cursor, and only that band', async ({
+  /** Every band's name -> the opacity it is currently painted at. */
+  const bandOpacities = (page) =>
+    page.evaluate(() => {
+      const out = {}
+      document.querySelectorAll('.apexcharts-series').forEach((s) => {
+        const k = Number(s.getAttribute('data:realIndex'))
+        out[window.chart.w.streamgraphData.names[k]] = s.style.opacity || '1'
+      })
+      return out
+    })
+
+  test('fades every band except the one under the cursor', async ({ page }) => {
+    await hover(page, 0.5, 0.5)
+    const bands = await bandOpacities(page)
+    const full = Object.keys(bands).filter((n) => bands[n] === '1')
+    const faded = Object.keys(bands).filter((n) => bands[n] === '0.35')
+
+    expect(full).toHaveLength(1)
+    expect(faded).toHaveLength(5)
+  })
+
+  test('recolours the faded names instead of fading them into the band', async ({
     page,
   }) => {
+    // Each label takes black or white by the contrast of the band it sits on at
+    // FULL strength. Fade the band alone and a white name is left on a band
+    // that has gone pale, which does not read as de-emphasised, it reads as
+    // broken. The regression this guards is a label whose fill never moved.
     await hover(page, 0.5, 0.5)
-    const o = await page.evaluate(() => {
-      const groups = document.querySelectorAll('.apexcharts-streamgraph-hover')
-      const stroke = groups[0] && groups[0].querySelector('path[stroke]')
-      return {
-        groups: groups.length,
-        // Clipped to the band's OWN shape, which is what keeps the stroke
-        // inset instead of spending half its width on the neighbour above.
-        clipped: !!(stroke && stroke.getAttribute('clip-path')),
-        width: stroke && stroke.getAttribute('stroke-width'),
-        fill: stroke && stroke.getAttribute('fill'),
-      }
+
+    const labels = await page.evaluate(() => {
+      const fore = window.chart.w.config.chart.foreColor
+      return [
+        ...document.querySelectorAll('.apexcharts-streamgraph-label'),
+      ].map((n) => ({
+        text: n.textContent,
+        fill: n.getAttribute('fill'),
+        stashed: n.getAttribute('data:fill'),
+        isFore: n.getAttribute('fill') === fore,
+        opacity: n.style.opacity || '1',
+      }))
     })
-    expect(o.groups).toBe(1)
-    expect(o.clipped).toBe(true)
-    // Drawn at 2x the configured width; the clip cuts it back to 2px.
-    expect(o.width).toBe('4')
-    expect(o.fill).toBe('none')
+
+    const focused = labels.filter((l) => l.opacity === '1')
+    const dimmed = labels.filter((l) => l.opacity !== '1')
+
+    expect(focused.length).toBeGreaterThanOrEqual(1)
+    expect(dimmed.length).toBeGreaterThanOrEqual(1)
+    // A dimmed name drops to the chart foreColor, and its own colour is kept so
+    // it can be handed back.
+    dimmed.forEach((l) => {
+      expect(l.isFore).toBe(true)
+      expect(l.stashed).toBeTruthy()
+    })
   })
 
   test('never disagrees with the tooltip about which band that is', async ({
     page,
   }) => {
-    // The two resolve the band independently (the outline hit-tests the
-    // geometry, the tooltip runs its own capture), so they can drift apart.
-    // A tooltip naming a band with nothing on the chart pointing at it is the
-    // failure this guards.
+    // The two resolve the band independently (the dim hit-tests the geometry,
+    // the tooltip runs its own capture), so they can drift apart. A tooltip
+    // naming a band while a different one is lit is the failure this guards —
+    // and it caught a real one: the generic capture picks the series whose
+    // stored y is nearest, and for a range area that stored y is the band's
+    // LOWER EDGE, so hovering inside Drama used to bold News.
     const disagreements = []
     for (const fx of [0.2, 0.4, 0.6, 0.8]) {
       for (const fy of [0.2, 0.4, 0.6, 0.8]) {
         await hover(page, fx, fy)
         const r = await page.evaluate(() => {
           const w = window.chart.w
-          const outline = document.querySelector(
-            '.apexcharts-streamgraph-hover path[stroke]',
-          )
-          let outlined = null
+          let lit = null
           document.querySelectorAll('.apexcharts-series').forEach((s) => {
-            const band = s.querySelector('path.apexcharts-rangeArea')
-            if (
-              band &&
-              outline &&
-              band.getAttribute('d') === outline.getAttribute('d')
-            ) {
-              outlined =
+            if ((s.style.opacity || '1') === '1') {
+              lit =
                 w.streamgraphData.names[
                   Number(s.getAttribute('data:realIndex'))
                 ]
@@ -321,38 +348,51 @@ test.describe('Streamgraph: hover outline', () => {
           const tip = document.querySelector(
             '.apexcharts-tooltip-stream-band.apexcharts-active .series-name',
           )
-          return { outlined, tooltip: tip && tip.textContent }
+          return { lit, tooltip: tip && tip.textContent }
         })
-        if (!r.outlined || r.outlined !== r.tooltip) {
-          disagreements.push({ fx, fy, ...r })
-        }
+        if (!r.lit || r.lit !== r.tooltip) disagreements.push({ fx, fy, ...r })
       }
     }
     expect(disagreements).toEqual([])
   })
 
-  test('a sweep leaves one outline behind, not one per mousemove', async ({
-    page,
-  }) => {
+  test('a sweep leaves exactly one band lit, never two', async ({ page }) => {
     for (let i = 1; i <= 10; i++) await hover(page, i / 11, 0.5)
-    const groups = await page.$$eval(
-      '.apexcharts-streamgraph-hover',
-      (ns) => ns.length,
-    )
-    expect(groups).toBe(1)
+    const bands = await bandOpacities(page)
+    expect(Object.values(bands).filter((o) => o === '1')).toHaveLength(1)
   })
 
-  test('clears when the cursor leaves the chart', async ({ page }) => {
+  test('restores every band when the cursor leaves the chart', async ({
+    page,
+  }) => {
     await hover(page, 0.5, 0.5)
     expect(
-      await page.$$eval('.apexcharts-streamgraph-hover', (ns) => ns.length),
-    ).toBe(1)
+      Object.values(await bandOpacities(page)).filter((o) => o !== '1'),
+    ).toHaveLength(5)
 
     await page.mouse.move(2, 2)
-    await page.waitForTimeout(250)
-    expect(
-      await page.$$eval('.apexcharts-streamgraph-hover', (ns) => ns.length),
-    ).toBe(0)
+    await page.waitForTimeout(300)
+
+    const back = await page.evaluate(() => {
+      const bands = [...document.querySelectorAll('.apexcharts-series')].map(
+        (s) => s.style.opacity || '1',
+      )
+      // The names get their own colours back too, not just their opacity.
+      const labels = [
+        ...document.querySelectorAll('.apexcharts-streamgraph-label'),
+      ].map((n) => ({
+        fill: n.getAttribute('fill'),
+        stashed: n.getAttribute('data:fill'),
+        opacity: n.style.opacity || '1',
+      }))
+      return { bands, labels }
+    })
+
+    expect(back.bands.every((o) => o === '1')).toBe(true)
+    back.labels.forEach((l) => {
+      expect(l.opacity).toBe('1')
+      if (l.stashed) expect(l.fill).toBe(l.stashed)
+    })
   })
 })
 

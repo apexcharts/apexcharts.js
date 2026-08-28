@@ -1170,23 +1170,18 @@ export default class Options {
           //   'none'       — the series order as given
           order: 'inside-out',
           hover: {
-            // The band under the cursor is traced along its own edges, which
-            // is the surface's only acknowledgement that it can be used.
+            // Hovering a band fades the others, which is the surface's only
+            // acknowledgement that it can be used.
             //
-            // The stroke is drawn INSET (clipped to the band's own shape)
-            // because the bands touch edge to edge: there is no gap for a
-            // treatment to live in, so a centred stroke would spend half its
-            // width painting over the band above, and a drop shadow has
-            // nowhere to fall except onto both neighbours. Isolating a band by
-            // dimming the rest is the LEGEND's gesture (see
-            // `legend.onItemHover`), which is deliberate rather than something
-            // that should fire as the cursor sweeps.
+            // It fades the OTHERS rather than marking the hovered one because
+            // the bands touch edge to edge and leave no room to mark anything:
+            // a drop shadow falls onto both neighbours, and an edge stroke is
+            // centred on a boundary the band SHARES. Fading needs no room, and
+            // it leaves the hovered band's colour exactly as it was.
             show: true,
-            // Visible width in px. Drawn at twice this and halved by the clip.
-            strokeWidth: 2,
-            // Defaults to black or white, whichever reads on that band.
-            color: undefined,
-            opacity: 0.9,
+            // What the other bands drop to. Below ~0.5 the hovered band stops
+            // reading as picked out.
+            opacity: 0.35,
           },
           labels: {
             // The series name written on the band itself, where that band is

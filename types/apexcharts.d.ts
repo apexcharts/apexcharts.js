@@ -3044,10 +3044,34 @@ type ApexPlotOptions = {
      */
     order?: 'inside-out' | 'inverse' | 'none'
     /**
+     * Hovering a band fades the others — the surface's only acknowledgement
+     * that it can be used.
+     *
+     * It fades the others rather than marking the hovered band because the
+     * bands touch edge to edge and leave no room to mark anything: a drop
+     * shadow falls onto both neighbours, and an edge stroke is centred on a
+     * boundary the band shares. Fading needs no room, and it leaves the hovered
+     * band's colour exactly as it was.
+     *
+     * A faded band's name is recoloured to `chart.foreColor` rather than faded
+     * with it: the name takes black or white by the contrast of the band at
+     * full strength, so fading the band alone would leave white text on a band
+     * that has gone pale.
+     */
+    hover?: {
+      /** Default `true`. */
+      show?: boolean
+      /**
+       * What the other bands drop to. Default `0.35`; much above ~0.5 the
+       * hovered band stops reading as picked out.
+       */
+      opacity?: number
+    }
+    /**
      * The series name written on the band itself, where that band is thickest.
-     * On by default, and the reason `legend.show` defaults to `false` for this
-     * type: a drifting band is far easier to find by its own label than by
-     * matching a colour to a key.
+     * On by default: a drifting band is far easier to find by its own name than
+     * by matching a colour to a key, which leaves the legend free to be the
+     * thing you click rather than the only place the names appear.
      */
     labels?: {
       /** Default `true`. */
